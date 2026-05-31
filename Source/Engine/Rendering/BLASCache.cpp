@@ -11,8 +11,8 @@
 #include <Rendering/Mesh.hpp>
 #include <Rendering/MaterialInstance.hpp>
 
-#include <Core/threading/Mutex.hpp>
-#include <Core/containers/Map.hpp>
+#include <Core/Threading/Mutex.hpp>
+#include <Core/Containers/Map.hpp>
 
 #include <Scene/Entity.hpp>
 

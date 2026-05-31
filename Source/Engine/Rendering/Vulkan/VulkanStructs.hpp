@@ -1,0 +1,60 @@
+/*!
+ *  @author: The Hyperion Contributors
+ *  @date 2016-2026
+ *  @licence MIT
+*/
+
+#pragma once
+#include <Core/Utilities/Optional.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Types.hpp>
+
+#include <Vulkan/vulkan.h>
+
+#include <memory>
+
+namespace Hyperion {
+struct MeshBindingDescription
+{
+    uint32 binding;
+    uint32 stride;
+    VkVertexInputRate inputRate;
+
+    MeshBindingDescription()
+        : binding(0),
+          stride(0),
+          inputRate(VK_VERTEX_INPUT_RATE_VERTEX)
+    {
+    }
+
+    MeshBindingDescription(uint32 binding, uint32 stride, VkVertexInputRate inputRate)
+        : binding(binding),
+          stride(stride),
+          inputRate(inputRate)
+    {
+    }
+
+    VkVertexInputBindingDescription GetBindingDescription()
+    {
+        VkVertexInputBindingDescription bind;
+        bind.binding = this->binding;
+        bind.stride = this->stride;
+        bind.inputRate = this->inputRate;
+        return bind;
+    }
+};
+
+struct VulkanSwapchainSupportDetails
+{
+    VkSurfaceCapabilitiesKHR capabilities;
+    Array<VkQueueFamilyProperties> queueFamilyProperties;
+    Array<VkSurfaceFormatKHR> formats;
+    Array<VkPresentModeKHR> presentModes;
+};
+
+using IndirectDrawCommand = VkDrawIndexedIndirectCommand;
+
+static_assert(std::is_standard_layout_v<IndirectDrawCommand>, "IndirectDrawCommand must be POD");
+static_assert(sizeof(IndirectDrawCommand) == 20, "Verify size of struct in shader");
+
+} // namespace Hyperion

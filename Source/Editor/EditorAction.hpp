@@ -7,14 +7,14 @@
 #pragma once
 
 #include <Core/Types.hpp>
-#include <Core/name/Name.hpp>
+#include <Core/Name/Name.hpp>
 
-#include <Core/memory/UniquePtr.hpp>
+#include <Core/Memory/UniquePtr.hpp>
 
-#include <Core/functional/Proc.hpp>
+#include <Core/Functional/Proc.hpp>
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 namespace Hyperion {
 

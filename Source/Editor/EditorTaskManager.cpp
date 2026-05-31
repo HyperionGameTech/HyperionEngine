@@ -8,13 +8,13 @@
 
 #include <Editor/EditorTaskManager.hpp>
 
-#include <Editor/ui/EditorUI.hpp>
+#include <Editor/UI/EditorUI.hpp>
 
 #include <UI/UIObject.hpp>
 #include <UI/UIPanel.hpp>
 #include <UI/UIText.hpp>
 
-#include <Scene/components/UIComponent.hpp>
+#include <Scene/Components/UIComponent.hpp>
 
 namespace Hyperion {
 

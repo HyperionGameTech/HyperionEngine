@@ -6,22 +6,22 @@
 
 #pragma once
 
-#include <Core/containers/String.hpp>
-#include <Core/containers/Map.hpp>
+#include <Core/Containers/String.hpp>
+#include <Core/Containers/Map.hpp>
 
-#include <Core/utilities/Span.hpp>
-#include <Core/utilities/Result.hpp>
+#include <Core/Utilities/Span.hpp>
+#include <Core/Utilities/Result.hpp>
 
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/Handle.hpp>
 
-#include <Core/math/Transform.hpp>
-#include <Core/math/Mat4f.hpp>
-#include <Core/math/BoundingBox.hpp>
-#include <Core/math/Ray.hpp>
+#include <Core/Math/Transform.hpp>
+#include <Core/Math/Mat4f.hpp>
+#include <Core/Math/BoundingBox.hpp>
+#include <Core/Math/Ray.hpp>
 
 #include <Rendering/Vertex.hpp>
 
-#include <Util/img/Bitmap.hpp>
+#include <Util/Img/Bitmap.hpp>
 
 namespace Hyperion {
 

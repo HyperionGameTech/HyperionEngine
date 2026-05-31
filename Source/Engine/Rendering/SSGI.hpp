@@ -10,11 +10,11 @@
 #include <Rendering/FullScreenPass.hpp>
 #include <Rendering/RenderTypes.hpp>
 
-#include <Core/config/Config.hpp>
+#include <Core/Config/Config.hpp>
 
-#include <Core/reflection/ObjectMacros.hpp>
+#include <Core/Reflection/ObjectMacros.hpp>
 
-#include <Core/utilities/EnumFlags.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
 
 namespace Hyperion {
 

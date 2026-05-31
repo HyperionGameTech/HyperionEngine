@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <Core/containers/StaticString.hpp>
+#include <Core/Containers/StaticString.hpp>
 
 #include <Core/Defines.hpp>
 

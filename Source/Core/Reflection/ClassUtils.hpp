@@ -1,0 +1,82 @@
+/*!
+ *  @author: The Hyperion Contributors
+ *  @date 2016-2026
+ *  @licence MIT
+*/
+
+#pragma once
+
+#include <Core/Reflection/Class.hpp>
+#include <Core/Reflection/Struct.hpp>
+#include <Core/Reflection/Enum.hpp>
+#include <Core/Reflection/MemberVariant.hpp>
+#include <Core/Reflection/TypeInfo.hpp>
+#include <Core/Reflection/ObjectMacros.hpp>
+
+#include <Core/Utilities/EnumFlags.hpp>
+#include <Core/Utilities/FormatFwd.hpp>
+
+#include <Core/Constants.hpp>
+
+#include <type_traits>
+
+namespace Hyperion {
+
+class HYP_EXPORT ClassRegistrationBase
+{
+protected:
+    ClassRegistrationBase(const TypeId& typeId, Class* cls);
+
+    const Class* m_class;
+};
+
+template <class T>
+class ClassRegistration final : public ClassRegistrationBase
+{
+public:
+    static constexpr EnumFlags<ClassFlags> flags = ClassFlags::CLASS_TYPE
+        | (is_pod_type_v<T> ? ClassFlags::POD_TYPE : ClassFlags::NONE)
+        | (std::is_abstract_v<T> ? ClassFlags::ABSTRACT : ClassFlags::NONE);
+
+    ClassRegistration(const Class** pGlobal, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, Span<MemberVariant> members)
+        : ClassRegistrationBase(TypeId::ForType<T>(), &ClassInstance<T>::GetInstance(name, staticIndex, numDescendants, parentName, attributes, flags, Span<MemberVariant>(members.Begin(), members.End())))
+    {
+#ifndef HYP_TOOL
+        *pGlobal = m_class;
+#endif
+    }
+};
+
+template <class T>
+class StructRegistration final : public ClassRegistrationBase
+{
+public:
+    static constexpr EnumFlags<ClassFlags> flags = ClassFlags::STRUCT_TYPE
+        | (is_pod_type_v<T> ? ClassFlags::POD_TYPE : ClassFlags::NONE)
+        | (std::is_abstract_v<T> ? ClassFlags::ABSTRACT : ClassFlags::NONE);
+
+    StructRegistration(const Class** pGlobal, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, Span<MemberVariant> members)
+        : ClassRegistrationBase(TypeId::ForType<T>(), &StructInstance<T>::GetInstance(name, staticIndex, numDescendants, parentName, attributes, flags, Span<MemberVariant>(members.Begin(), members.End())))
+    {
+#ifndef HYP_TOOL
+        *pGlobal = m_class;
+#endif
+    }
+};
+
+template <class T>
+class EnumRegistration final : public ClassRegistrationBase
+{
+public:
+    static constexpr EnumFlags<ClassFlags> flags = ClassFlags::ENUM_TYPE;
+
+    EnumRegistration(const Class** pGlobal, Name name, int staticIndex, uint32 numDescendants, Span<const ClassAttribute> attributes, Span<MemberVariant> members)
+        : ClassRegistrationBase(TypeId::ForType<T>(), &EnumInstance<T>::GetInstance(name, staticIndex, numDescendants, Name::Invalid(), attributes, flags, Span<MemberVariant>(members.Begin(), members.End())))
+    {
+#ifndef HYP_TOOL
+        *pGlobal = m_class;
+#endif
+    }
+};
+
+} // namespace Hyperion

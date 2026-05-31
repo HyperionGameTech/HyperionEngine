@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Core/math/Vector2.hpp>
+#include <Core/Math/Vector2.hpp>
 
 namespace Hyperion {
 

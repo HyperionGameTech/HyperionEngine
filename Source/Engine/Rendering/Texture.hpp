@@ -14,14 +14,14 @@
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/Shared.hpp>
 
-#include <Core/containers/FixedArray.hpp>
+#include <Core/Containers/FixedArray.hpp>
 
-#include <Core/utilities/Pair.hpp>
+#include <Core/Utilities/Pair.hpp>
 
-#include <Core/io/ByteReader.hpp>
-#include <Core/io/ByteWriter.hpp>
+#include <Core/IO/ByteReader.hpp>
+#include <Core/IO/ByteWriter.hpp>
 
-#include <Core/math/Vector3.hpp>
+#include <Core/Math/Vector3.hpp>
 
 namespace Hyperion {
 

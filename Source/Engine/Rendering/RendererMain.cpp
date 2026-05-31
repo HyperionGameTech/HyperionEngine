@@ -28,14 +28,14 @@
 #include <Rendering/PlaceholderData.hpp>
 #include <Rendering/CBufferAllocator.hpp>
 
-#include <Rendering/shadows/ShadowMapCache.hpp>
-#include <Rendering/shadows/ShadowMapAllocator.hpp>
-#include <Rendering/shadows/ShadowMap.hpp>
+#include <Rendering/Shadows/ShadowMapCache.hpp>
+#include <Rendering/Shadows/ShadowMapAllocator.hpp>
+#include <Rendering/Shadows/ShadowMap.hpp>
 
-#include <Rendering/passes/DeferredPass.hpp>
+#include <Rendering/Passes/DeferredPass.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
-#include <Rendering/util/ShaderPropertyDictionary.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
+#include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
 #include <Scene/Scene.hpp>
 #include <Scene/View.hpp>
@@ -47,12 +47,12 @@
 #include <Scene/LightmapVolume.hpp>
 #include <Scene/Sprite.hpp>
 
-#include <Scene/camera/Camera.hpp>
+#include <Scene/Camera/Camera.hpp>
 
-#include <Scene/animation/Skeleton.hpp>
+#include <Scene/Animation/Skeleton.hpp>
 
-#include <Core/threading/Threads.hpp>
-#include <Core/threading/ThreadLocalStorage.hpp>
+#include <Core/Threading/Threads.hpp>
+#include <Core/Threading/ThreadLocalStorage.hpp>
 
 #include <Core/Util.hpp>
 
@@ -62,7 +62,7 @@
 
 #include <Framework/resources/ResourceTracker.hpp>
 
-#include <Framework/config/EngineConfig.hpp>
+#include <Framework/Config/EngineConfig.hpp>
 
 namespace Hyperion {
 

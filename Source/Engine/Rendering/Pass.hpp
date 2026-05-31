@@ -6,16 +6,16 @@
 
 #pragma once
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/Handle.hpp>
 
-#include <Core/config/Config.hpp>
+#include <Core/Config/Config.hpp>
 
-#include <Core/debug/Debug.hpp>
+#include <Core/Debug/Debug.hpp>
 
-#include <Core/utilities/Span.hpp>
+#include <Core/Utilities/Span.hpp>
 
-#include <Core/containers/SparsePagedArray.hpp>
+#include <Core/Containers/SparsePagedArray.hpp>
 
 #include <Rendering/CullData.hpp>
 #include <Rendering/GraphicsPipelineCache.hpp>

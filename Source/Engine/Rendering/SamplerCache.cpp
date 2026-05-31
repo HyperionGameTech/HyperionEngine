@@ -10,9 +10,9 @@
 #include <Rendering/Sampler.hpp>
 #include <Rendering/RenderInterface.hpp>
 
-#include <Core/containers/Map.hpp>
+#include <Core/Containers/Map.hpp>
 
-#include <Core/threading/SharedMutex.hpp>
+#include <Core/Threading/SharedMutex.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 

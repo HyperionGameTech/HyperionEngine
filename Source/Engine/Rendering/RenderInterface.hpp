@@ -6,9 +6,9 @@
 
 #pragma once
 
-#include <Core/memory/UniquePtr.hpp>
+#include <Core/Memory/UniquePtr.hpp>
 
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 #include <Rendering/RenderableAttributes.hpp>
 #include <Rendering/RenderTypes.hpp>
@@ -19,9 +19,9 @@
 #include <Framework/DeviceDetails.hpp>
 
 #ifdef HYP_VULKAN
-#include <Rendering/vulkan/VulkanStructs.hpp>
+#include <Rendering/Vulkan/VulkanStructs.hpp>
 #elif defined(HYP_DX12)
-#include <Rendering/dx12/DX12Structs.hpp>
+#include <Rendering/DX12/DX12Structs.hpp>
 #endif
 
 namespace Hyperion {
@@ -481,9 +481,9 @@ private:
 #define INCLUDE_FROM_RHI_BASE
 
 #if HYP_VULKAN
-#include <Rendering/vulkan/VulkanRenderInterface.hpp>
+#include <Rendering/Vulkan/VulkanRenderInterface.hpp>
 #elif HYP_DX12
-#include <Rendering/dx12/DX12RenderInterface.hpp>
+#include <Rendering/DX12/DX12RenderInterface.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

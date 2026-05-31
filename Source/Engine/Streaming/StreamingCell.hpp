@@ -6,15 +6,15 @@
 
 #pragma once
 
-#include <Core/threading/Task.hpp>
-#include <Core/threading/Mutex.hpp>
+#include <Core/Threading/Task.hpp>
+#include <Core/Threading/Mutex.hpp>
 
-#include <Core/reflection/ObjectMacros.hpp>
+#include <Core/Reflection/ObjectMacros.hpp>
 
-#include <Core/math/Vector2.hpp>
-#include <Core/math/BoundingBox.hpp>
+#include <Core/Math/Vector2.hpp>
+#include <Core/Math/BoundingBox.hpp>
 
-#include <Core/functional/Delegate.hpp>
+#include <Core/Functional/Delegate.hpp>
 
 #include <Core/HashCode.hpp>
 

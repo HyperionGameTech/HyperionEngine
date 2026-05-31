@@ -8,7 +8,7 @@
 
 #include <Rendering/RenderHelpers.hpp>
 
-#include <Core/math/MathUtil.hpp>
+#include <Core/Math/MathUtil.hpp>
 
 namespace Hyperion {
 namespace helpers {

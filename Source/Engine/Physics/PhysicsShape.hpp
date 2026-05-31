@@ -9,15 +9,15 @@
 #include <Core/Defines.hpp>
 #include <Core/Types.hpp>
 
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/Handle.hpp>
 
-#include <Core/memory/RefCountedPtr.hpp>
+#include <Core/Memory/RefCountedPtr.hpp>
 
-#include <Core/math/Transform.hpp>
-#include <Core/math/BoundingBox.hpp>
-#include <Core/math/BoundingSphere.hpp>
-#include <Core/math/Vector3.hpp>
-#include <Core/math/Vector4.hpp>
+#include <Core/Math/Transform.hpp>
+#include <Core/Math/BoundingBox.hpp>
+#include <Core/Math/BoundingSphere.hpp>
+#include <Core/Math/Vector3.hpp>
+#include <Core/Math/Vector4.hpp>
 
 #include <Asset/AssetObject.hpp>
 

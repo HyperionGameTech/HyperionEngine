@@ -3,12 +3,12 @@
 #include <Scripting/ScriptObjectResource.hpp>
 #include <Scripting/Script.hpp>
 
-#include <Core/reflection/ClassRegistry.hpp>
-#include <Core/reflection/Object.hpp>
+#include <Core/Reflection/ClassRegistry.hpp>
+#include <Core/Reflection/Object.hpp>
 
-#include <Core/debug/Debug.hpp>
+#include <Core/Debug/Debug.hpp>
 
-#include <Core/reflection/ScriptObjectFunctions.hpp>
+#include <Core/Reflection/ScriptObjectFunctions.hpp>
 
 #ifdef HYP_DOTNET
 #include <DotNET/ManagedObject.hpp>

@@ -87,9 +87,9 @@ protected:
 #define INCLUDE_FROM_RHI_BASE
 
 #if HYP_VULKAN
-#include <Rendering/vulkan/VulkanSampler.hpp>
+#include <Rendering/Vulkan/VulkanSampler.hpp>
 #elif HYP_DX12
-#include <Rendering/dx12/DX12Sampler.hpp>
+#include <Rendering/DX12/DX12Sampler.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

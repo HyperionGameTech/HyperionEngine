@@ -11,34 +11,34 @@
 #include <Asset/AssetRegistry.hpp>
 #include <Asset/AssetLoader.hpp>
 
-#include <Asset/model_loaders/FBXModelLoader.hpp>
-#include <Asset/model_loaders/GLTFModelLoader.hpp>
-#include <Asset/model_loaders/OBJModelLoader.hpp>
-#include <Asset/model_loaders/PLYModelLoader.hpp>
-#include <Asset/model_loaders/OgreXMLModelLoader.hpp>
-#include <Asset/material_loaders/MTLMaterialLoader.hpp>
+#include <Asset/ModelLoaders/FBXModelLoader.hpp>
+#include <Asset/ModelLoaders/GLTFModelLoader.hpp>
+#include <Asset/ModelLoaders/OBJModelLoader.hpp>
+#include <Asset/ModelLoaders/PLYModelLoader.hpp>
+#include <Asset/ModelLoaders/OgreXMLModelLoader.hpp>
+#include <Asset/MaterialLoaders/MTLMaterialLoader.hpp>
 
-#include <Asset/skeleton_loaders/OgreXMLSkeletonLoader.hpp>
+#include <Asset/SkeletonLoaders/OgreXMLSkeletonLoader.hpp>
 
-#include <Asset/texture_loaders/TextureLoader.hpp>
+#include <Asset/TextureLoaders/TextureLoader.hpp>
 
-#include <Asset/audio_loaders/WAVAudioLoader.hpp>
+#include <Asset/AudioLoaders/WAVAudioLoader.hpp>
 
-#include <Asset/data_loaders/JSONLoader.hpp>
+#include <Asset/DataLoaders/JSONLoader.hpp>
 
-#include <Asset/font_loaders/FontFaceLoader.hpp>
-#include <Asset/font_loaders/FontAtlasLoader.hpp>
+#include <Asset/FontLoaders/FontFaceLoader.hpp>
+#include <Asset/FontLoaders/FontAtlasLoader.hpp>
 
-#include <Asset/ui_loaders/UILoader.hpp>
+#include <Asset/UILoaders/UILoader.hpp>
 
-#include <Core/threading/TaskSystem.hpp>
-#include <Core/threading/TaskThread.hpp>
+#include <Core/Threading/TaskSystem.hpp>
+#include <Core/Threading/TaskThread.hpp>
 
 #include <System/DirectoryInitializer.hpp>
 
 #include <UI/UIObject.hpp>
 
-#include <Core/filesystem/FsUtil.hpp>
+#include <Core/FileSystem/FsUtil.hpp>
 
 #include <Framework/EngineDriver.hpp>
 

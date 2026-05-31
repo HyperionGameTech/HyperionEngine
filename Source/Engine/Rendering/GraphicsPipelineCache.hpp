@@ -6,14 +6,14 @@
 
 #pragma once
 
-#include <Core/containers/Array.hpp>
-#include <Core/containers/FixedArray.hpp>
-#include <Core/containers/Map.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/FixedArray.hpp>
+#include <Core/Containers/Map.hpp>
 
-#include <Core/threading/Mutex.hpp>
-#include <Core/threading/Task.hpp>
+#include <Core/Threading/Mutex.hpp>
+#include <Core/Threading/Task.hpp>
 
-#include <Core/utilities/Span.hpp>
+#include <Core/Utilities/Span.hpp>
 
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/Shared.hpp>

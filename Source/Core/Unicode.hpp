@@ -7,7 +7,7 @@
 #pragma once
 
 #include <Core/Defines.hpp>
-#include <Core/containers/Array.hpp>
+#include <Core/Containers/Array.hpp>
 
 #include <Core/Types.hpp>
 

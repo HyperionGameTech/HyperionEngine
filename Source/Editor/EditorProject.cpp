@@ -23,17 +23,17 @@
 #include <Scene/World.hpp>
 #include <Scene/EntityManager.hpp>
 
-#include <Scene/camera/Camera.hpp>
+#include <Scene/Camera/Camera.hpp>
 
-#include <Core/utilities/DeferredScope.hpp>
-#include <Core/utilities/GlobalContext.hpp>
+#include <Core/Utilities/DeferredScope.hpp>
+#include <Core/Utilities/GlobalContext.hpp>
 
-#include <Core/reflection/Class.hpp>
+#include <Core/Reflection/Class.hpp>
 
-#include <Core/io/ByteReader.hpp>
-#include <Core/io/ByteWriter.hpp>
+#include <Core/IO/ByteReader.hpp>
+#include <Core/IO/ByteWriter.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <HyperionEngine.hpp>
 

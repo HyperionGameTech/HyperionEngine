@@ -6,14 +6,14 @@
 
 #include <Core/Core.hpp>
 
-#include <Core/threading/Mutex.hpp>
+#include <Core/Threading/Mutex.hpp>
 
-#include <Core/containers/LinkedList.hpp>
+#include <Core/Containers/LinkedList.hpp>
 
-#include <Core/reflection/BoxedValue.hpp>
+#include <Core/Reflection/BoxedValue.hpp>
 
-#include <Core/reflection/TypeInfo.hpp>
-#include <Core/utilities/Uuid.hpp>
+#include <Core/Reflection/TypeInfo.hpp>
+#include <Core/Utilities/Uuid.hpp>
 
 namespace Hyperion {
 

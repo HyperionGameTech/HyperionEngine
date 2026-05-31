@@ -2,17 +2,17 @@
 
 #include <Scripting/ScriptFwd.hpp>
 
-#include <Core/containers/String.hpp>
+#include <Core/Containers/String.hpp>
 
-#include <Core/utilities/EnumFlags.hpp>
-#include <Core/utilities/Uuid.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
+#include <Core/Utilities/Uuid.hpp>
 
-#include <Core/memory/RefCountedPtr.hpp>
-#include <Core/memory/UniquePtr.hpp>
+#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/UniquePtr.hpp>
 
-#include <Core/reflection/ObjectMacros.hpp>
+#include <Core/Reflection/ObjectMacros.hpp>
 
-#include <Core/filesystem/FilePath.hpp>
+#include <Core/FileSystem/FilePath.hpp>
 
 #include <Core/HashCode.hpp>
 

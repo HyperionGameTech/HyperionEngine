@@ -50,18 +50,18 @@
 #include <Framework/resources/ResourceBinder.hpp>
 #include <Rendering/resources/ResourceBindings.hpp>
 
-#include <Rendering/passes/EnvProbePass.hpp>
-#include <Rendering/passes/DeferredPass.hpp>
-#include <Rendering/passes/ShadowsPass.hpp>
-#include <Rendering/passes/ParticlesPass.hpp>
-#include <Rendering/passes/SpritePass.hpp>
-#include <Rendering/passes/UIPass.hpp>
+#include <Rendering/Passes/EnvProbePass.hpp>
+#include <Rendering/Passes/DeferredPass.hpp>
+#include <Rendering/Passes/ShadowsPass.hpp>
+#include <Rendering/Passes/ParticlesPass.hpp>
+#include <Rendering/Passes/SpritePass.hpp>
+#include <Rendering/Passes/UIPass.hpp>
 
-#include <Rendering/shadows/ShadowMapCache.hpp>
+#include <Rendering/Shadows/ShadowMapCache.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
-#include <Rendering/util/ShaderPropertyDictionary.hpp>
-#include <Rendering/util/ShaderCompiler.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
+#include <Rendering/Util/ShaderPropertyDictionary.hpp>
+#include <Rendering/Util/ShaderCompiler.hpp>
 
 #include <Scene/View.hpp>
 #include <Scene/World.hpp>
@@ -74,29 +74,29 @@
 #include <Scene/Sprite.hpp>
 #include <Scene/TextSprite.hpp>
 
-#include <Scene/animation/Skeleton.hpp>
+#include <Scene/Animation/Skeleton.hpp>
 
-#include <Core/utilities/DeferredScope.hpp>
+#include <Core/Utilities/DeferredScope.hpp>
 
-#include <Core/io/ByteWriter.hpp>
+#include <Core/IO/ByteWriter.hpp>
 
-#include <Core/containers/SparsePagedArray.hpp>
+#include <Core/Containers/SparsePagedArray.hpp>
 
-#include <Core/threading/Semaphore.hpp>
-#include <Core/threading/Threads.hpp>
+#include <Core/Threading/Semaphore.hpp>
+#include <Core/Threading/Threads.hpp>
 
-#include <Core/memory/pool/Pool.hpp>
+#include <Core/Memory/Pool/Pool.hpp>
 
 // for EnumToString
-#include <Core/reflection/Enum.hpp>
+#include <Core/Reflection/Enum.hpp>
 
-#include <Core/io/ByteReader.hpp>
+#include <Core/IO/ByteReader.hpp>
 
 #include <Framework/EngineStats.hpp>
 #include <Framework/EngineDriver.hpp>
 #include <Framework/CVarManager.hpp>
 
-#include <Framework/config/EngineConfig.hpp>
+#include <Framework/Config/EngineConfig.hpp>
 
 #include <System/AppContext.hpp>
 
@@ -2142,7 +2142,7 @@ static struct GlobalDescriptorSetsDeclarations
 {
     GlobalDescriptorSetsDeclarations()
     {
-#include <Rendering/inl/DescriptorSets.inl>
+#include <Rendering/Inl/DescriptorSets.inl>
     }
 } s_globalDescriptorSetsDeclarations;
 } // namespace

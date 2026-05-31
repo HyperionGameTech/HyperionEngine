@@ -8,17 +8,17 @@
 
 #include <Streaming/StreamingCell.hpp>
 
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/Handle.hpp>
 #include <Core/Defines.hpp>
 
-#include <Core/containers/Array.hpp>
-#include <Core/containers/Set.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/Set.hpp>
 
-#include <Core/threading/AtomicVar.hpp>
+#include <Core/Threading/AtomicVar.hpp>
 
-#include <Core/utilities/Result.hpp>
+#include <Core/Utilities/Result.hpp>
 
-#include <Core/math/Vector2.hpp>
+#include <Core/Math/Vector2.hpp>
 
 namespace Hyperion {
 

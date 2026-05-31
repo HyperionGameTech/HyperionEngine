@@ -9,7 +9,7 @@
 #include <Rendering/DDGI.hpp>
 #include <Rendering/AccelerationStructure.hpp>
 
-#include <Rendering/passes/DeferredPass.hpp>
+#include <Rendering/Passes/DeferredPass.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/PlaceholderData.hpp>
@@ -26,14 +26,14 @@
 #include <Rendering/TextureViewCache.hpp>
 #include <Rendering/CBufferAllocator.hpp>
 
-#include <Rendering/shadows/ShadowMapCache.hpp>
+#include <Rendering/Shadows/ShadowMapCache.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Scene/View.hpp>
 #include <Scene/EnvProbe.hpp>
 
-#include <Core/utilities/DeferredScope.hpp>
+#include <Core/Utilities/DeferredScope.hpp>
 
 #include <Framework/EngineDriver.hpp>
 

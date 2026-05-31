@@ -26,17 +26,17 @@
 
 #include <Asset/AssetRegistry.hpp>
 
-#include <Rendering/shadows/ShadowMapCache.hpp>
+#include <Rendering/Shadows/ShadowMapCache.hpp>
 
-#include <Rendering/passes/DeferredPass.hpp>
+#include <Rendering/Passes/DeferredPass.hpp>
 
 #include <Framework/CVarManager.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
-#include <Core/utilities/DeferredScope.hpp>
+#include <Core/Utilities/DeferredScope.hpp>
 
-#include <Core/threading/Threads.hpp>
+#include <Core/Threading/Threads.hpp>
 
 #include <Scene/EnvProbe.hpp>
 #include <Scene/Light.hpp>

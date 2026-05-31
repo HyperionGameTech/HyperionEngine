@@ -6,10 +6,10 @@
 
 #pragma once
 
-#include <Core/containers/String.hpp>
-#include <Core/containers/Map.hpp>
+#include <Core/Containers/String.hpp>
+#include <Core/Containers/Map.hpp>
 
-#include <Core/utilities/Result.hpp>
+#include <Core/Utilities/Result.hpp>
 
 #include <Core/Defines.hpp>
 

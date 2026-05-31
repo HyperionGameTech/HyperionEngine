@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 #include <Core/Types.hpp>
 

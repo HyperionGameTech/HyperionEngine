@@ -9,11 +9,11 @@
 #include <Scripting/ScriptableDelegateFwd.hpp>
 #include <Scripting/ScriptObjectResource.hpp>
 
-#include <Core/functional/Delegate.hpp>
+#include <Core/Functional/Delegate.hpp>
 
-#include <Core/memory/resource/Resource.hpp>
+#include <Core/Memory/Resource/Resource.hpp>
 
-#include <Core/utilities/DeferredScope.hpp>
+#include <Core/Utilities/DeferredScope.hpp>
 
 #ifdef HYP_DOTNET
 #include <DotNET/ManagedObject.hpp>

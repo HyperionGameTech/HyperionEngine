@@ -10,12 +10,12 @@
 #include <Core/Constants.hpp>
 #include <Core/Types.hpp>
 
-#include <Core/containers/LinkedList.hpp>
+#include <Core/Containers/LinkedList.hpp>
 
-#include <Core/memory/allocator/Allocator.hpp>
-#include <Core/memory/allocator/ArenaAllocator.hpp>
+#include <Core/Memory/Allocator/Allocator.hpp>
+#include <Core/Memory/Allocator/ArenaAllocator.hpp>
 
-#include <Core/threading/SharedMutex.hpp>
+#include <Core/Threading/SharedMutex.hpp>
 
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/RenderMemory.hpp>

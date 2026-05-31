@@ -7,12 +7,12 @@
 #pragma once
 
 #include <Core/Defines.hpp>
-#include <Core/name/Name.hpp>
+#include <Core/Name/Name.hpp>
 
-#include <Core/math/BoundingBox.hpp>
+#include <Core/Math/BoundingBox.hpp>
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 #include <Core/HashCode.hpp>
 

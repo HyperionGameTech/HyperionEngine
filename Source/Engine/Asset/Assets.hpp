@@ -8,15 +8,15 @@
 
 #include <Asset/AssetLoader.hpp>
 
-#include <Core/reflection/Handle.hpp>
-#include <Core/reflection/ObjectFwd.hpp>
+#include <Core/Reflection/Handle.hpp>
+#include <Core/Reflection/ObjectFwd.hpp>
 
-#include <Core/functional/Delegate.hpp>
+#include <Core/Functional/Delegate.hpp>
 
-#include <Core/filesystem/FsUtil.hpp>
-#include <Core/filesystem/FilePath.hpp>
+#include <Core/FileSystem/FsUtil.hpp>
+#include <Core/FileSystem/FilePath.hpp>
 
-#include <Core/logging/LoggerFwd.hpp>
+#include <Core/Logging/LoggerFwd.hpp>
 
 #include <Core/Constants.hpp>
 #include <Core/Defines.hpp>

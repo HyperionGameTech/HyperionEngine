@@ -6,9 +6,9 @@
 
 #pragma once
 
-#include <Core/io/ByteReader.hpp>
+#include <Core/IO/ByteReader.hpp>
 
-#include <Core/utilities/Result.hpp>
+#include <Core/Utilities/Result.hpp>
 
 namespace Hyperion {
 

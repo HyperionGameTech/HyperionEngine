@@ -8,16 +8,16 @@
 
 #include <Core/Defines.hpp>
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/Handle.hpp>
 
-#include <Core/containers/Array.hpp>
+#include <Core/Containers/Array.hpp>
 
-#include <Core/math/BoundingBox.hpp>
-#include <Core/math/BoundingSphere.hpp>
+#include <Core/Math/BoundingBox.hpp>
+#include <Core/Math/BoundingSphere.hpp>
 
-#include <Core/threading/Semaphore.hpp>
-#include <Core/threading/Mutex.hpp>
+#include <Core/Threading/Semaphore.hpp>
+#include <Core/Threading/Mutex.hpp>
 
 namespace Hyperion {
 

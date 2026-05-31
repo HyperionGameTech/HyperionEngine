@@ -11,15 +11,15 @@
 
 #include <Editor/EditorAction.hpp>
 
-#include <Core/containers/Array.hpp>
-#include <Core/containers/LinkedList.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/LinkedList.hpp>
 
 #include <Scripting/ScriptableDelegate.hpp>
 
-#include <Core/utilities/EnumFlags.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 namespace Hyperion {
 

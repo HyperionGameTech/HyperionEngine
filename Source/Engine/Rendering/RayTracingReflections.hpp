@@ -13,7 +13,7 @@
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/Shared.hpp>
 
-#include <Core/config/Config.hpp>
+#include <Core/Config/Config.hpp>
 
 namespace Hyperion {
 

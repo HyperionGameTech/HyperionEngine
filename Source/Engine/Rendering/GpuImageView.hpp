@@ -88,9 +88,9 @@ protected:
 #define INCLUDE_FROM_RHI_BASE
 
 #if HYP_VULKAN
-#include <Rendering/vulkan/VulkanGpuImageView.hpp>
+#include <Rendering/Vulkan/VulkanGpuImageView.hpp>
 #elif HYP_DX12
-#include <Rendering/dx12/DX12GpuImageView.hpp>
+#include <Rendering/DX12/DX12GpuImageView.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

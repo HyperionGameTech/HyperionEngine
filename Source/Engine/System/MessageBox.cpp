@@ -8,8 +8,8 @@
 
 #include <System/MessageBox.hpp>
 
-#include <Core/threading/Task.hpp>
-#include <Core/threading/Threads.hpp>
+#include <Core/Threading/Task.hpp>
+#include <Core/Threading/Threads.hpp>
 
 extern "C"
 {

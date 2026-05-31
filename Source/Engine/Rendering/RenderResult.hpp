@@ -8,9 +8,9 @@
 
 #include <Core/Defines.hpp>
 
-#include <Core/utilities/Result.hpp>
+#include <Core/Utilities/Result.hpp>
 
-#include <Core/debug/Debug.hpp>
+#include <Core/Debug/Debug.hpp>
 
 namespace Hyperion {
 

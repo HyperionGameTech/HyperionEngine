@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 #include <Rendering/RenderTypes.hpp>
 
@@ -49,9 +49,9 @@ public:
 #define INCLUDE_FROM_RHI_BASE
 
 #if HYP_VULKAN
-#include <Rendering/vulkan/VulkanTextureViewCache.hpp>
+#include <Rendering/Vulkan/VulkanTextureViewCache.hpp>
 #elif HYP_DX12
-#include <Rendering/dx12/DX12TextureViewCache.hpp>
+#include <Rendering/DX12/DX12TextureViewCache.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

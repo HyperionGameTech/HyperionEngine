@@ -27,9 +27,9 @@
 #include <Rendering/RawBufferAllocator.hpp>
 #include <Rendering/CBufferAllocator.hpp>
 
-#include <Rendering/passes/DeferredPass.hpp>
+#include <Rendering/Passes/DeferredPass.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/EngineStats.hpp>
@@ -43,9 +43,9 @@
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
 
-#include <Rendering/util/MeshBuilder.hpp>
+#include <Rendering/Util/MeshBuilder.hpp>
 
-#include <Core/memory/resource/Resource.hpp>
+#include <Core/Memory/Resource/Resource.hpp>
 
 #include <DebugDrawer.generated.inl>
 

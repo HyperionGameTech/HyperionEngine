@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Core/reflection/ObjectFwd.hpp>
+#include <Core/Reflection/ObjectFwd.hpp>
 
 #include <Core/Defines.hpp>
 #include <Core/Types.hpp>

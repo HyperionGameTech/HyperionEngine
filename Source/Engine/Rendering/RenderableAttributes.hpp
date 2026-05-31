@@ -13,9 +13,9 @@
 #include <Rendering/Shared.hpp>
 #include <Rendering/RenderBucket.hpp>
 
-#include <Core/utilities/EnumFlags.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
 
-#include <Core/reflection/ObjectFwd.hpp>
+#include <Core/Reflection/ObjectFwd.hpp>
 
 namespace Hyperion {
 

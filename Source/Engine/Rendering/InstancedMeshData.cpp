@@ -2,7 +2,7 @@
 
 #include <Rendering/InstancedMeshData.hpp>
 
-#include <Core/math/MathUtil.hpp>
+#include <Core/Math/MathUtil.hpp>
 
 #include <Asset/AssetRegistry.hpp>
 #include <Asset/Assets.hpp>

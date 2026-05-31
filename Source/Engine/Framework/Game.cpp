@@ -14,13 +14,13 @@
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
 
-#include <Core/threading/Threads.hpp>
+#include <Core/Threading/Threads.hpp>
 
-#include <Core/debug/Debug.hpp>
+#include <Core/Debug/Debug.hpp>
 
 #include <Scene/World.hpp>
 
-#include <Scene/camera/Camera.hpp>
+#include <Scene/Camera/Camera.hpp>
 
 #include <UI/UISubsystem.hpp>
 #include <UI/UIStage.hpp>
@@ -34,7 +34,7 @@
 
 #include <Input/Event.hpp>
 
-#include <Scene/input/TouchControlsSubsystem.hpp>
+#include <Scene/Input/TouchControlsSubsystem.hpp>
 
 #include <Game.generated.inl>
 

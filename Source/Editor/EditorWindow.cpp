@@ -2,8 +2,8 @@
 
 #include <Editor/EditorWindow.hpp>
 
-#include <Core/threading/Threads.hpp>
-#include <Core/threading/Scheduler.hpp>
+#include <Core/Threading/Threads.hpp>
+#include <Core/Threading/Scheduler.hpp>
 
 #ifdef HYP_LIBUI
 #include <UI.h>

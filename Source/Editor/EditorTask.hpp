@@ -7,19 +7,19 @@
 #pragma once
 
 #include <Core/Types.hpp>
-#include <Core/name/Name.hpp>
+#include <Core/Name/Name.hpp>
 
-#include <Core/memory/RefCountedPtr.hpp>
+#include <Core/Memory/RefCountedPtr.hpp>
 
-#include <Core/threading/Task.hpp>
-#include <Core/threading/AtomicVar.hpp>
+#include <Core/Threading/Task.hpp>
+#include <Core/Threading/AtomicVar.hpp>
 
-#include <Core/memory/Pimpl.hpp>
+#include <Core/Memory/Pimpl.hpp>
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/Handle.hpp>
 
-#include <Core/utilities/ClockTimer.hpp>
+#include <Core/Utilities/ClockTimer.hpp>
 
 #include <Scripting/ScriptableDelegate.hpp>
 

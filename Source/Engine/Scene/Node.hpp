@@ -6,29 +6,29 @@
 
 #pragma once
 
-#include <Core/containers/Array.hpp>
-#include <Core/containers/String.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/String.hpp>
 
-#include <Core/memory/RefCountedPtr.hpp>
+#include <Core/Memory/RefCountedPtr.hpp>
 
-#include <Core/utilities/Uuid.hpp>
-#include <Core/utilities/EnumFlags.hpp>
-#include <Core/utilities/StringView.hpp>
-#include <Core/utilities/Variant.hpp>
+#include <Core/Utilities/Uuid.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
+#include <Core/Utilities/StringView.hpp>
+#include <Core/Utilities/Variant.hpp>
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 #include <Scripting/ScriptableDelegate.hpp>
 
-#include <Core/name/Name.hpp>
+#include <Core/Name/Name.hpp>
 
-#include <Core/math/Transform.hpp>
-#include <Core/math/Ray.hpp>
-#include <Core/math/BoundingBox.hpp>
-#include <Core/math/Vector2.hpp>
-#include <Core/math/Vector3.hpp>
-#include <Core/math/Vector4.hpp>
+#include <Core/Math/Transform.hpp>
+#include <Core/Math/Ray.hpp>
+#include <Core/Math/BoundingBox.hpp>
+#include <Core/Math/Vector2.hpp>
+#include <Core/Math/Vector3.hpp>
+#include <Core/Math/Vector4.hpp>
 
 #include <Core/HashCode.hpp>
 #include <Core/Types.hpp>

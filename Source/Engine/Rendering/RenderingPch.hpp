@@ -4,8 +4,8 @@
 
 #include <HyperionPch.hpp>
 
-#include <Core/threading/Task.hpp>
-#include <Core/threading/TaskSystem.hpp>
+#include <Core/Threading/Task.hpp>
+#include <Core/Threading/TaskSystem.hpp>
 
 #include <Rendering/RenderResult.hpp>
 #include <Rendering/RenderTypes.hpp>

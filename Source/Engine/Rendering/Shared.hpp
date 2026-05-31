@@ -9,17 +9,17 @@
 #include <Core/Defines.hpp>
 #include <Core/Types.hpp>
 
-#include <Core/name/Name.hpp>
+#include <Core/Name/Name.hpp>
 
-#include <Core/utilities/Float16.hpp>
-#include <Core/utilities/EnumFlags.hpp>
-#include <Core/utilities/ByteUtil.hpp>
-#include <Core/utilities/Variant.hpp>
+#include <Core/Utilities/Float16.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
+#include <Core/Utilities/ByteUtil.hpp>
+#include <Core/Utilities/Variant.hpp>
 
-#include <Core/containers/FlatMap.hpp>
+#include <Core/Containers/FlatMap.hpp>
 
-#include <Core/math/Vector2.hpp>
-#include <Core/math/Color.hpp>
+#include <Core/Math/Vector2.hpp>
+#include <Core/Math/Color.hpp>
 
 #include <Rendering/Vertex.hpp>
 #include <Rendering/RenderTypes.hpp>
@@ -29,9 +29,9 @@
 #include <Util/EnumOptions.hpp>
 
 #ifdef HYP_VULKAN
-#include <Rendering/vulkan/VulkanStructs.hpp>
+#include <Rendering/Vulkan/VulkanStructs.hpp>
 #elif defined(HYP_DX12)
-#include <Rendering/dx12/DX12Structs.hpp>
+#include <Rendering/DX12/DX12Structs.hpp>
 #endif
 
 namespace Hyperion {
@@ -1028,9 +1028,9 @@ struct PushConstantData
 
 } // namespace Hyperion
 
-#include <Core/math/Vector3.hpp>
-#include <Core/math/Vector4.hpp>
-#include <Core/math/Mat4f.hpp>
+#include <Core/Math/Vector3.hpp>
+#include <Core/Math/Vector4.hpp>
+#include <Core/Math/Mat4f.hpp>
 
 namespace Hyperion {
 

@@ -17,20 +17,20 @@
 #include <Rendering/RenderHelpers.hpp>
 #include <Rendering/TextureViewCache.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
 #include <Asset/BlobStorage.hpp>
 
-#include <Core/utilities/DeferredScope.hpp>
+#include <Core/Utilities/DeferredScope.hpp>
 
-#include <Core/threading/ThreadSignal.hpp>
+#include <Core/Threading/ThreadSignal.hpp>
 
 // for EnumToString
-#include <Core/reflection/Enum.hpp>
+#include <Core/Reflection/Enum.hpp>
 
-#include <Util/img/Bitmap.hpp>
+#include <Util/Img/Bitmap.hpp>
 
 #include <Framework/EngineDriver.hpp>
 

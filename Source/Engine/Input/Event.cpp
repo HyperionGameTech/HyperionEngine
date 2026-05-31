@@ -5,7 +5,7 @@
 
 #include <System/AppContext.hpp>
 
-#include <Core/threading/Task.hpp>
+#include <Core/Threading/Task.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/threads/MainThread.hpp>

@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <Core/memory/Pimpl.hpp>
+#include <Core/Memory/Pimpl.hpp>
 
 #include <Core/HashCode.hpp>
 

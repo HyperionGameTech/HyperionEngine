@@ -9,7 +9,7 @@
 #include <Input/InputHandler.hpp>
 #include <Input/InputManager.hpp>
 
-#include <Core/utilities/ByteUtil.hpp>
+#include <Core/Utilities/ByteUtil.hpp>
 
 #include <InputHandler.generated.inl>
 

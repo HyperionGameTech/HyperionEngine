@@ -9,10 +9,10 @@
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/GpuImage.hpp>
 
-#include <Core/functional/Proc.hpp>
-#include <Core/functional/Delegate.hpp>
+#include <Core/Functional/Proc.hpp>
+#include <Core/Functional/Delegate.hpp>
 
-#include <Core/math/Vector2.hpp>
+#include <Core/Math/Vector2.hpp>
 
 #include <Core/Defines.hpp>
 
@@ -99,9 +99,9 @@ protected:
 #define INCLUDE_FROM_RHI_BASE
 
 #if HYP_VULKAN
-#include <Rendering/vulkan/VulkanSwapchain.hpp>
+#include <Rendering/Vulkan/VulkanSwapchain.hpp>
 #elif HYP_DX12
-#include <Rendering/dx12/DX12Swapchain.hpp>
+#include <Rendering/DX12/DX12Swapchain.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

@@ -8,7 +8,7 @@
 
 #include <Core/Defines.hpp>
 
-#include <Core/filesystem/FilePath.hpp>
+#include <Core/FileSystem/FilePath.hpp>
 
 namespace Hyperion {
 

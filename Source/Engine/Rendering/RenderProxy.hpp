@@ -6,14 +6,14 @@
 
 #pragma once
 
-#include <Core/utilities/EnumFlags.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
 
-#include <Core/containers/FixedArray.hpp>
+#include <Core/Containers/FixedArray.hpp>
 
-#include <Core/math/BoundingBox.hpp>
-#include <Core/math/Mat3f.hpp>
-#include <Core/math/Mat4f.hpp>
-#include <Core/math/Frustum.hpp>
+#include <Core/Math/BoundingBox.hpp>
+#include <Core/Math/Mat3f.hpp>
+#include <Core/Math/Mat4f.hpp>
+#include <Core/Math/Frustum.hpp>
 
 #include <Rendering/RenderableAttributes.hpp>
 #include <Rendering/RenderTypes.hpp>

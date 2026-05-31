@@ -9,7 +9,7 @@
 #include <Physics/Adapter.hpp>
 #include <Physics/RigidBody.hpp>
 
-#include <Core/math/Vector3.hpp>
+#include <Core/Math/Vector3.hpp>
 
 namespace Hyperion {
 
@@ -178,7 +178,7 @@ private:
 
 #if defined(HYP_BULLET) && HYP_BULLET
 
-#include <Physics/bullet/Adapter.hpp>
+#include <Physics/Bullet/Adapter.hpp>
 
 namespace Hyperion {
 using PhysicsWorld = TPhysicsWorld<BulletPhysicsAdapter>;
@@ -186,7 +186,7 @@ using PhysicsWorld = TPhysicsWorld<BulletPhysicsAdapter>;
 
 #else // !HYP_BULLET_PHYSICS
 
-#include <Physics/null/Adapter.hpp>
+#include <Physics/Null/Adapter.hpp>
 
 namespace Hyperion {
 using PhysicsWorld = TPhysicsWorld<NullPhysicsAdapter>;

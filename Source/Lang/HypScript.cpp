@@ -1,38 +1,38 @@
 #include <Lang/HypScript.hpp>
 
-#include <Lang/vm/BytecodeStream.hpp>
+#include <Lang/VM/BytecodeStream.hpp>
 
-#include <Lang/compiler/emit/BytecodeChunk.hpp>
-#include <Lang/compiler/emit/InstructionStream.hpp>
-#include <Lang/compiler/emit/Instruction.hpp>
-#include <Lang/compiler/emit/codegen/CodeGenerator.hpp>
+#include <Lang/Compiler/Emit/BytecodeChunk.hpp>
+#include <Lang/Compiler/Emit/InstructionStream.hpp>
+#include <Lang/Compiler/Emit/Instruction.hpp>
+#include <Lang/Compiler/Emit/Codegen/CodeGenerator.hpp>
 
-#include <Lang/compiler/Module.hpp>
-#include <Lang/compiler/SemanticAnalyzer.hpp>
-#include <Lang/compiler/Optimizer.hpp>
-#include <Lang/compiler/Lexer.hpp>
-#include <Lang/compiler/Parser.hpp>
-#include <Lang/compiler/Compiler.hpp>
+#include <Lang/Compiler/Module.hpp>
+#include <Lang/Compiler/SemanticAnalyzer.hpp>
+#include <Lang/Compiler/Optimizer.hpp>
+#include <Lang/Compiler/Lexer.hpp>
+#include <Lang/Compiler/Parser.hpp>
+#include <Lang/Compiler/Compiler.hpp>
 
-#include <Lang/compiler/dis/DecompilationUnit.hpp>
+#include <Lang/Compiler/Dis/DecompilationUnit.hpp>
 
-#include <Lang/compiler/AstPrintVisitor.hpp>
+#include <Lang/Compiler/AstPrintVisitor.hpp>
 
-#include <Lang/vm/VirtualMachine.hpp>
+#include <Lang/VM/VirtualMachine.hpp>
 
-#include <Core/reflection/Class.hpp>
-#include <Core/reflection/Method.hpp>
-#include <Core/reflection/Field.hpp>
-#include <Core/reflection/Member.hpp>
-#include <Core/reflection/ClassRegistry.hpp>
+#include <Core/Reflection/Class.hpp>
+#include <Core/Reflection/Method.hpp>
+#include <Core/Reflection/Field.hpp>
+#include <Core/Reflection/Member.hpp>
+#include <Core/Reflection/ClassRegistry.hpp>
 
-#include <Core/io/ByteReader.hpp>
+#include <Core/IO/ByteReader.hpp>
 
-#include <Core/logging/Logger.hpp>
-#include <Core/logging/LogChannels.hpp>
+#include <Core/Logging/Logger.hpp>
+#include <Core/Logging/LogChannels.hpp>
 
-#include <Core/utilities/Format.hpp>
-#include <Core/utilities/Result.hpp>
+#include <Core/Utilities/Format.hpp>
+#include <Core/Utilities/Result.hpp>
 
 #include <iostream>
 
@@ -42,7 +42,7 @@ namespace Hyperion {
 
 HYP_DEFINE_LOG_CHANNEL(HypScript);
 
-#include <Core/reflection/ScriptObjectFunctions.hpp>
+#include <Core/Reflection/ScriptObjectFunctions.hpp>
 
 static constexpr size_t ScriptPoolBlockSize = 8 * 1024 * 1024;
 

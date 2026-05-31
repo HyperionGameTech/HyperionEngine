@@ -9,10 +9,10 @@
 #include <Baking/BakerSubsystem.hpp>
 #include <Baking/Baker.hpp>
 
-#include <Baking/lightmap_volume/LightmapVolumeBaker.hpp>
-#include <Baking/reflection_probe/ReflectionProbeBaker.hpp>
-#include <Baking/fog_volume/FogVolumeBaker.hpp>
-#include <Baking/shadow_map/ShadowMapBaker.hpp>
+#include <Baking/LightmapVolume/LightmapVolumeBaker.hpp>
+#include <Baking/ReflectionProbe/ReflectionProbeBaker.hpp>
+#include <Baking/FogVolume/FogVolumeBaker.hpp>
+#include <Baking/ShadowMap/ShadowMapBaker.hpp>
 
 #include <Rendering/RenderConfig.hpp>
 
@@ -27,9 +27,9 @@
 #include <Asset/AssetRegistry.hpp>
 #include <Asset/AssetObject.hpp>
 
-#include <Core/threading/TaskSystem.hpp>
+#include <Core/Threading/TaskSystem.hpp>
 
-#include <Core/math/BoundingBox.hpp>
+#include <Core/Math/BoundingBox.hpp>
 
 #include <System/AppContext.hpp>
 

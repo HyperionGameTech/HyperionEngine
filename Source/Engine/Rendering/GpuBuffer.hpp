@@ -9,10 +9,10 @@
 #include <Core/Defines.hpp>
 #include <Core/Types.hpp>
 
-#include <Core/functional/Proc.hpp>
+#include <Core/Functional/Proc.hpp>
 
-#include <Core/containers/Array.hpp>
-#include <Core/containers/Set.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/Set.hpp>
 
 #include <Rendering/RenderResult.hpp>
 #include <Rendering/RenderTypes.hpp>
@@ -137,9 +137,9 @@ protected:
 #define INCLUDE_FROM_RHI_BASE
 
 #if HYP_VULKAN
-#include <Rendering/vulkan/VulkanGpuBuffer.hpp>
+#include <Rendering/Vulkan/VulkanGpuBuffer.hpp>
 #elif HYP_DX12
-#include <Rendering/dx12/DX12GpuBuffer.hpp>
+#include <Rendering/DX12/DX12GpuBuffer.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

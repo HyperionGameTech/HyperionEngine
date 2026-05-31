@@ -6,10 +6,10 @@
 
 #pragma once
 
-#include <Core/containers/FlatMap.hpp>
-#include <Core/containers/TypeMap.hpp>
+#include <Core/Containers/FlatMap.hpp>
+#include <Core/Containers/TypeMap.hpp>
 
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 #include <Rendering/GpuImage.hpp>
 #include <Rendering/GpuImageView.hpp>
@@ -18,9 +18,9 @@
 #include <Rendering/Device.hpp>
 #include <Rendering/RenderTypes.hpp>
 
-#include <Core/math/MathUtil.hpp>
+#include <Core/Math/MathUtil.hpp>
 
-#include <Core/threading/Semaphore.hpp>
+#include <Core/Threading/Semaphore.hpp>
 
 #include <Asset/AssetPath.hpp>
 

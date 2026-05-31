@@ -8,9 +8,9 @@
 
 #include <Scene/ComponentInterface.hpp>
 
-#include <Core/containers/FixedArray.hpp>
+#include <Core/Containers/FixedArray.hpp>
 
-#include <Core/reflection/TypeInfo.hpp>
+#include <Core/Reflection/TypeInfo.hpp>
 
 namespace Hyperion {
 

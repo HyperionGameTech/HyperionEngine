@@ -8,23 +8,23 @@
 
 #include <Core/Types.hpp>
 
-#include <Core/containers/Array.hpp>
-#include <Core/containers/Map.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/Map.hpp>
 
-#include <Core/utilities/ValueStorage.hpp>
-#include <Core/utilities/Range.hpp>
-#include <Core/utilities/Result.hpp>
+#include <Core/Utilities/ValueStorage.hpp>
+#include <Core/Utilities/Range.hpp>
+#include <Core/Utilities/Result.hpp>
 
-#include <Core/filesystem/FilePath.hpp>
+#include <Core/FileSystem/FilePath.hpp>
 
-#include <Core/memory/allocator/ArenaAllocator.hpp>
+#include <Core/Memory/Allocator/ArenaAllocator.hpp>
 
-#include <Core/threading/Mutex.hpp>
+#include <Core/Threading/Mutex.hpp>
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/Handle.hpp>
 
-#include <Core/io/MemoryMappedFile.hpp>
+#include <Core/IO/MemoryMappedFile.hpp>
 
 #include <Asset/BlobStorageStructs.hpp>
 

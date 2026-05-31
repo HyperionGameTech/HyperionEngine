@@ -6,13 +6,13 @@
 
 #pragma once
 
-#include <Core/name/Name.hpp>
+#include <Core/Name/Name.hpp>
 
-#include <Core/memory/Pimpl.hpp>
+#include <Core/Memory/Pimpl.hpp>
 
 #include <Rendering/RenderTypes.hpp>
 
-#include <Rendering/util/ShaderCompiler.hpp>
+#include <Rendering/Util/ShaderCompiler.hpp>
 
 namespace Hyperion {
 

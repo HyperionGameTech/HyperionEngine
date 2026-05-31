@@ -1,0 +1,163 @@
+/*!
+ *  @author: The Hyperion Contributors
+ *  @date 2016-2026
+ *  @licence MIT
+*/
+
+#include <ScenePch.hpp>
+
+#include <Scene/Systems/AudioSystem.hpp>
+#include <Scene/EntityManager.hpp>
+
+#include <Scene/Scene.hpp>
+#include <Scene/World.hpp>
+#include <Scene/Camera/Camera.hpp>
+
+#include <Audio/AudioManager.hpp>
+
+#include <Core/Math/MathUtil.hpp>
+
+#include <Framework/GameState.hpp>
+
+#include <AudioSystem.generated.inl>
+
+namespace Hyperion {
+
+bool AudioSystem::ShouldProcessScene(Scene* scene) const
+{
+    static constexpr EnumFlags<SceneFlags> ExpectedFlags = SceneFlags::FOREGROUND;
+
+    return (scene->GetSceneFlags() & (SceneFlags::UI | SceneFlags::DETACHED | ExpectedFlags)) == ExpectedFlags;
+}
+
+void AudioSystem::OnEntityAdded(Entity* entity)
+{
+    SystemBase::OnEntityAdded(entity);
+
+    AudioComponent& audioComponent = entity->GetEntityManager()->GetComponent<AudioComponent>(entity);
+
+    if (audioComponent.audioSource.IsValid())
+    {
+        InitObject(audioComponent.audioSource);
+
+        audioComponent.flags |= AudioComponentFlags::INIT;
+    }
+}
+
+void AudioSystem::Process(float delta, Span<Handle<Scene>> scenes)
+{
+    HYP_SCOPE;
+
+    if (!g_audioManager->IsReady())
+    {
+        return;
+    }
+
+    if (!GetWorld()->GetGameState().IsSimulating())
+    {
+        return;
+    }
+
+    for (Scene* scene : scenes)
+    {
+        if (!ShouldProcessScene(scene))
+        {
+            continue;
+        }
+
+        if (scene->GetIsAudioListener())
+        {
+            if (Camera* camera = scene->GetPrimaryCamera())
+            {
+                g_audioManager->SetListenerOrientation(camera->GetDirection(), camera->GetUpVector());
+                g_audioManager->SetListenerPosition(camera->GetWorldTranslation());
+            }
+        }
+
+        for (auto [entity, audioComponent, transformComponent] : scene->GetEntityManager()->GetEntitySet<AudioComponent, TransformComponent>().GetScopedView(GetComponentInfos()))
+        {
+            if (!audioComponent.audioSource.IsValid())
+            {
+                audioComponent.playbackState.status = APS_STOPPED;
+                audioComponent.playbackState.currentTime = 0.0f;
+
+                continue;
+            }
+
+            if (audioComponent.playbackState.status == APS_PLAYING)
+            {
+                switch (audioComponent.playbackState.loopMode)
+                {
+                case ALM_ONCE:
+                    if (audioComponent.playbackState.currentTime > audioComponent.audioSource->GetDuration())
+                    {
+                        audioComponent.playbackState.status = APS_STOPPED;
+                        audioComponent.playbackState.currentTime = 0.0f;
+
+                        audioComponent.audioSource->Stop();
+                    }
+
+                    continue;
+
+                    break;
+                case ALM_REPEAT:
+                    if (audioComponent.playbackState.currentTime > audioComponent.audioSource->GetDuration())
+                    {
+                        audioComponent.playbackState.currentTime = 0.0f;
+                    }
+
+                    break;
+                }
+
+                audioComponent.playbackState.currentTime += delta * audioComponent.playbackState.speed;
+
+                switch (audioComponent.audioSource->GetState())
+                {
+                case AudioSourceState::PLAYING:
+                    break;
+                case AudioSourceState::PAUSED: // fallthrough
+                case AudioSourceState::STOPPED:
+                    audioComponent.audioSource->SetPitch(audioComponent.playbackState.speed);
+                    audioComponent.audioSource->SetLoop(audioComponent.playbackState.loopMode == ALM_REPEAT);
+
+                    audioComponent.audioSource->Play();
+                    break;
+                default:
+                    break;
+                }
+
+                const Vec3f& position = transformComponent.translation;
+
+                if (!MathUtil::ApproxEqual(position, audioComponent.lastPosition))
+                {
+                    const Vec3f positionChange = position - audioComponent.lastPosition;
+                    const float timeChange = (audioComponent.timer + delta) - audioComponent.timer;
+                    const Vec3f velocity = positionChange / timeChange;
+
+                    audioComponent.audioSource->SetPosition(position);
+                    audioComponent.audioSource->SetVelocity(velocity);
+
+                    audioComponent.lastPosition = position;
+                }
+            }
+            else if (audioComponent.playbackState.status == APS_PAUSED)
+            {
+                if (audioComponent.audioSource->GetState() != AudioSourceState::PAUSED)
+                {
+                    audioComponent.audioSource->Pause();
+                }
+            }
+            else if (audioComponent.playbackState.status == APS_STOPPED)
+            {
+                if (audioComponent.audioSource->GetState() != AudioSourceState::STOPPED)
+                {
+                    audioComponent.audioSource->Stop();
+                }
+            }
+
+            audioComponent.timer += delta; /// \todo : prevent overflow
+        }
+    }
+}
+
+} // namespace Hyperion

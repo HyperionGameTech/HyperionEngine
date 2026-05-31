@@ -10,7 +10,7 @@
 #include <Scene/Scene.hpp>
 #include <Scene/EnvProbe.hpp>
 #include <Scene/LightmapVolume.hpp>
-#include <Scene/camera/Camera.hpp>
+#include <Scene/Camera/Camera.hpp>
 
 #include <Rendering/RenderProxy.hpp>
 #include <Rendering/Texture.hpp>

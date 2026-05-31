@@ -14,36 +14,36 @@
 #include <Scene/SystemExecutionGroup.hpp>
 #include <Scene/Subsystem.hpp>
 
-#include <Scene/util/EntityScripting.hpp>
+#include <Scene/Util/EntityScripting.hpp>
 
-#include <Scene/systems/VisibilityStateUpdaterSystem.hpp>
-#include <Scene/systems/LightmapSystem.hpp>
-#include <Scene/systems/AnimationSystem.hpp>
-#include <Scene/systems/AudioSystem.hpp>
-#include <Scene/systems/PhysicsSystem.hpp>
-#include <Scene/systems/CharacterControllerSystem.hpp>
-#include <Scene/systems/ScriptSystem.hpp>
-#include <Scene/systems/MeshSystem.hpp>
+#include <Scene/Systems/VisibilityStateUpdaterSystem.hpp>
+#include <Scene/Systems/LightmapSystem.hpp>
+#include <Scene/Systems/AnimationSystem.hpp>
+#include <Scene/Systems/AudioSystem.hpp>
+#include <Scene/Systems/PhysicsSystem.hpp>
+#include <Scene/Systems/CharacterControllerSystem.hpp>
+#include <Scene/Systems/ScriptSystem.hpp>
+#include <Scene/Systems/MeshSystem.hpp>
 
-#include <Scene/components/MeshComponent.hpp>
-#include <Scene/components/TransformComponent.hpp>
-#include <Scene/components/BoundingBoxComponent.hpp>
+#include <Scene/Components/MeshComponent.hpp>
+#include <Scene/Components/TransformComponent.hpp>
+#include <Scene/Components/BoundingBoxComponent.hpp>
 
-#include <Scene/world_grid/WorldGrid.hpp>
+#include <Scene/WorldGrid/WorldGrid.hpp>
 
-#include <Core/threading/Threads.hpp>
-#include <Core/threading/Task.hpp>
-#include <Core/threading/TaskSystem.hpp>
-#include <Core/threading/DataRaceDetector.hpp>
+#include <Core/Threading/Threads.hpp>
+#include <Core/Threading/Task.hpp>
+#include <Core/Threading/TaskSystem.hpp>
+#include <Core/Threading/DataRaceDetector.hpp>
 
-#include <Core/config/Config.hpp>
+#include <Core/Config/Config.hpp>
 
 #include <System/AppContext.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/RenderProxy.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Framework/Game.hpp>
 #include <Framework/EngineDriver.hpp>

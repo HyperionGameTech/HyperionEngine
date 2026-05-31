@@ -24,19 +24,19 @@
 
 #include <Core/Core.hpp>
 
-#include <Core/reflection/ClassRegistry.hpp>
-#include <Core/reflection/Class.hpp>
-#include <Core/reflection/TypeInfo.hpp>
-#include <Core/reflection/Handle.hpp>
-#include <Core/reflection/Method.hpp>
+#include <Core/Reflection/ClassRegistry.hpp>
+#include <Core/Reflection/Class.hpp>
+#include <Core/Reflection/TypeInfo.hpp>
+#include <Core/Reflection/Handle.hpp>
+#include <Core/Reflection/Method.hpp>
 
-#include <Core/threading/Threads.hpp>
-#include <Core/threading/TaskSystem.hpp>
+#include <Core/Threading/Threads.hpp>
+#include <Core/Threading/TaskSystem.hpp>
 
-#include <Core/memory/allocator/ArenaAllocator.hpp>
-#include <Core/memory/pool/Pool.hpp>
+#include <Core/Memory/Allocator/ArenaAllocator.hpp>
+#include <Core/Memory/Pool/Pool.hpp>
 
-#include <Core/cli/CommandLine.hpp>
+#include <Core/CLI/CommandLine.hpp>
 
 #include <System/MessageBox.hpp>
 #include <System/AppContext.hpp>
@@ -52,9 +52,9 @@
 #include <Rendering/ShaderManager.hpp>
 #include <Rendering/DebugDrawer.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
-#include <Rendering/util/ShaderCompiler.hpp>
-#include <Rendering/util/ShaderPropertyDictionary.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
+#include <Rendering/Util/ShaderCompiler.hpp>
+#include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
 #include <Scene/ComponentInterface.hpp>
 
@@ -63,7 +63,7 @@
 #include <Audio/AudioManager.hpp>
 
 #if HYP_VULKAN
-#include <Rendering/vulkan/VulkanRenderInterface.hpp>
+#include <Rendering/Vulkan/VulkanRenderInterface.hpp>
 #endif // HYP_VULKAN
 
 #if HYP_EDITOR

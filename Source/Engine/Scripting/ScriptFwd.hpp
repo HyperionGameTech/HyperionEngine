@@ -3,7 +3,7 @@
 #include <Core/Types.hpp>
 #include <Core/Defines.hpp>
 
-#include <Core/utilities/EnumFlags.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
 
 namespace Hyperion {
 

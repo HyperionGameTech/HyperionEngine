@@ -8,14 +8,14 @@
 
 #include <Core/Types.hpp>
 
-#include <Core/threading/SharedMutex.hpp>
+#include <Core/Threading/SharedMutex.hpp>
 
-#include <Core/io/MemoryMappedFile.hpp>
+#include <Core/IO/MemoryMappedFile.hpp>
 
-#include <Core/memory/ByteBuffer.hpp>
-#include <Core/memory/allocator/Allocator.hpp>
+#include <Core/Memory/ByteBuffer.hpp>
+#include <Core/Memory/Allocator/Allocator.hpp>
 
-#include <Core/filesystem/FilePath.hpp>
+#include <Core/FileSystem/FilePath.hpp>
 
 namespace Hyperion {
 

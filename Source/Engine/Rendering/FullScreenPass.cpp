@@ -24,16 +24,16 @@
 #include <Rendering/Texture.hpp>
 #include <Rendering/TextureViewCache.hpp>
 
-#include <Rendering/passes/DeferredPass.hpp>
+#include <Rendering/Passes/DeferredPass.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
-#include <Rendering/util/ShaderPropertyDictionary.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
+#include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
 #include <Scene/View.hpp>
 
-#include <Core/math/MathUtil.hpp>
+#include <Core/Math/MathUtil.hpp>
 
-#include <Rendering/util/MeshBuilder.hpp>
+#include <Rendering/Util/MeshBuilder.hpp>
 
 namespace Hyperion {
 

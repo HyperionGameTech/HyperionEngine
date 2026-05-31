@@ -13,9 +13,9 @@
 
 #include <Core/Defines.hpp>
 
-#include <Core/containers/Set.hpp>
+#include <Core/Containers/Set.hpp>
 
-#include <Core/functional/Delegate.hpp>
+#include <Core/Functional/Delegate.hpp>
 
 #include <Core/Types.hpp>
 
@@ -69,9 +69,9 @@ protected:
 #define INCLUDE_FROM_RHI_BASE
 
 #if HYP_VULKAN
-#include <Rendering/vulkan/VulkanFrame.hpp>
+#include <Rendering/Vulkan/VulkanFrame.hpp>
 #elif HYP_DX12
-#include <Rendering/dx12/DX12Frame.hpp>
+#include <Rendering/DX12/DX12Frame.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

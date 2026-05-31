@@ -13,16 +13,16 @@
 #include <Scene/BVH.hpp>
 #include <Scene/DetachedScene.hpp>
 
-#include <Scene/animation/Bone.hpp>
+#include <Scene/Animation/Bone.hpp>
 
 #include <Scene/EntityManager.hpp>
 #include <Scene/ComponentInterface.hpp>
-#include <Scene/components/BoundingBoxComponent.hpp>
-#include <Scene/components/MeshComponent.hpp>
-#include <Scene/components/TransformComponent.hpp>
-#include <Scene/components/VisibilityStateComponent.hpp>
+#include <Scene/Components/BoundingBoxComponent.hpp>
+#include <Scene/Components/MeshComponent.hpp>
+#include <Scene/Components/TransformComponent.hpp>
+#include <Scene/Components/VisibilityStateComponent.hpp>
 
-#include <Core/debug/Debug.hpp>
+#include <Core/Debug/Debug.hpp>
 
 #if HYP_EDITOR
 #include <Editor/EditorDelegates.hpp>
@@ -36,7 +36,7 @@
 
 #include <Rendering/Mesh.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <cstring>
 

@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <Core/threading/TaskSystem.hpp>
+#include <Core/Threading/TaskSystem.hpp>
 
 namespace Hyperion {
 namespace Baking {

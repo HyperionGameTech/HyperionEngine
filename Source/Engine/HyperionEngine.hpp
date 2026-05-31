@@ -6,11 +6,11 @@
 
 #pragma once
 
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 #include <Core/Defines.hpp>
 
-#include <Core/config/Config.hpp>
+#include <Core/Config/Config.hpp>
 
 #include <Framework/EngineMemory.hpp>
 

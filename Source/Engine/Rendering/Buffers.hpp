@@ -6,18 +6,18 @@
 
 #pragma once
 
-#include <Core/memory/allocator/SlabAllocator.hpp>
-#include <Core/memory/Memory.hpp>
-#include <Core/memory/Pimpl.hpp>
+#include <Core/Memory/Allocator/SlabAllocator.hpp>
+#include <Core/Memory/Memory.hpp>
+#include <Core/Memory/Pimpl.hpp>
 
-#include <Core/threading/DataRaceDetector.hpp>
+#include <Core/Threading/DataRaceDetector.hpp>
 
-#include <Core/containers/String.hpp>
-#include <Core/containers/FixedArray.hpp>
+#include <Core/Containers/String.hpp>
+#include <Core/Containers/FixedArray.hpp>
 
-#include <Core/utilities/IdGenerator.hpp>
-#include <Core/utilities/Range.hpp>
-#include <Core/reflection/TypeInfoFwd.hpp>
+#include <Core/Utilities/IdGenerator.hpp>
+#include <Core/Utilities/Range.hpp>
+#include <Core/Reflection/TypeInfoFwd.hpp>
 
 #include <Core/Defines.hpp>
 
@@ -26,7 +26,7 @@
 #include <Rendering/GpuBuffer.hpp>
 #include <Rendering/Frame.hpp>
 
-#include <Core/math/Mat4f.hpp>
+#include <Core/Math/Mat4f.hpp>
 
 #include <Core/Constants.hpp>
 #include <Core/Types.hpp>

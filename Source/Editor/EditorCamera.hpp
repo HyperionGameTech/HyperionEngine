@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <Scene/camera/FirstPersonCamera.hpp>
+#include <Scene/Camera/FirstPersonCamera.hpp>
 
 namespace Hyperion {
 

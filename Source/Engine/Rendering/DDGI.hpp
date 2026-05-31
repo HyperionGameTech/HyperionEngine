@@ -9,11 +9,11 @@
 #include <Rendering/Shared.hpp>
 #include <Rendering/RenderTypes.hpp>
 
-#include <Core/math/BoundingBox.hpp>
+#include <Core/Math/BoundingBox.hpp>
 
 #include <Core/Types.hpp>
 
-#include <random>
+#include <Random>
 
 namespace Hyperion {
 

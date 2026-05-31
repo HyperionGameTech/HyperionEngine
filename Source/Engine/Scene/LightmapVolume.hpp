@@ -8,9 +8,9 @@
 
 #include <Core/Types.hpp>
 
-#include <Core/math/BoundingBox.hpp>
+#include <Core/Math/BoundingBox.hpp>
 
-#include <Core/utilities/Uuid.hpp>
+#include <Core/Utilities/Uuid.hpp>
 
 #include <Scene/Volume.hpp>
 

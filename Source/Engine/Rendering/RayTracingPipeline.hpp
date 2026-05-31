@@ -83,9 +83,9 @@ protected:
 #define INCLUDE_FROM_RHI_BASE
 
 #if HYP_VULKAN
-#include <Rendering/vulkan/VulkanRayTracingPipeline.hpp>
+#include <Rendering/Vulkan/VulkanRayTracingPipeline.hpp>
 #elif HYP_DX12
-#include <Rendering/dx12/DX12RayTracingPipeline.hpp>
+#include <Rendering/DX12/DX12RayTracingPipeline.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

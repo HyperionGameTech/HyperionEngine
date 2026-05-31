@@ -6,11 +6,11 @@
 
 #pragma once
 
-#include <Core/containers/Array.hpp>
-#include <Core/containers/Map.hpp>
-#include <Core/containers/SparsePagedArray.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/Map.hpp>
+#include <Core/Containers/SparsePagedArray.hpp>
 
-#include <Core/threading/Mutex.hpp>
+#include <Core/Threading/Mutex.hpp>
 
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/Shared.hpp>

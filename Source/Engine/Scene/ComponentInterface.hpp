@@ -6,17 +6,17 @@
 
 #pragma once
 
-#include <Core/reflection/TypeInfoFwd.hpp>
+#include <Core/Reflection/TypeInfoFwd.hpp>
 
-#include <Core/memory/UniquePtr.hpp>
+#include <Core/Memory/UniquePtr.hpp>
 
-#include <Core/containers/Array.hpp>
-#include <Core/containers/TypeMap.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/TypeMap.hpp>
 
-#include <Core/name/Name.hpp>
+#include <Core/Name/Name.hpp>
 
-#include <Core/reflection/BoxedValue.hpp>
-#include <Core/reflection/ObjectFwd.hpp>
+#include <Core/Reflection/BoxedValue.hpp>
+#include <Core/Reflection/ObjectFwd.hpp>
 
 #include <Scene/ComponentFactory.hpp>
 #include <Scene/ComponentContainer.hpp>

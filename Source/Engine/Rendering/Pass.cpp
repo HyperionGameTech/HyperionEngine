@@ -6,13 +6,13 @@
 #include <Rendering/DrawCall.hpp>
 #include <Rendering/RenderGroup.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Scene/View.hpp>
 
-#include <Core/threading/Threads.hpp>
+#include <Core/Threading/Threads.hpp>
 
-#include <Core/profiling/PerformanceClock.hpp>
+#include <Core/Profiling/PerformanceClock.hpp>
 
 #include <Pass.generated.inl>
 

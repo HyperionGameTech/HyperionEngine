@@ -10,7 +10,7 @@
 #include <Rendering/ShaderInstance.hpp>
 #include <Rendering/Shader.hpp>
 
-#include <Rendering/util/ShaderCompiler.hpp>
+#include <Rendering/Util/ShaderCompiler.hpp>
 
 #include <RayTracingPipeline.generated.inl>
 

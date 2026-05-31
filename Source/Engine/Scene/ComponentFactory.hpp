@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <Core/memory/UniquePtr.hpp>
+#include <Core/Memory/UniquePtr.hpp>
 
 namespace Hyperion {
 

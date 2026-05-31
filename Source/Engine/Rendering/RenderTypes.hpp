@@ -11,7 +11,7 @@
 #include <Core/Constants.hpp>
 #include <Core/Types.hpp>
 
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 /// Type definitions used for specific rendering backends.
 /// For example, if HYP_VULKAN is defined, 'GraphicsPipeline' becomes 'VulkanGraphicsPipeline'

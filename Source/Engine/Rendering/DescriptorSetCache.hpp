@@ -9,9 +9,9 @@
 #include <Core/HashCode.hpp>
 #include <Core/Types.hpp>
 
-#include <Core/containers/Array.hpp>
-#include <Core/containers/Map.hpp>
-#include <Core/containers/FlatMap.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/Map.hpp>
+#include <Core/Containers/FlatMap.hpp>
 
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/RenderMemory.hpp>

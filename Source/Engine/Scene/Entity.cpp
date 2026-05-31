@@ -12,17 +12,17 @@
 #include <Scene/Node.hpp>
 #include <Scene/DetachedScene.hpp>
 
-#include <Scene/util/EntityScripting.hpp>
+#include <Scene/Util/EntityScripting.hpp>
 
 #include <Scene/EntityManager.hpp>
 #include <Scene/EntityTag.hpp>
 
 #include <Scene/ComponentInterface.hpp>
-#include <Scene/components/MeshComponent.hpp>
-#include <Scene/components/ScriptComponent.hpp>
-#include <Scene/components/TransformComponent.hpp>
-#include <Scene/components/VisibilityStateComponent.hpp>
-#include <Scene/components/BoundingBoxComponent.hpp>
+#include <Scene/Components/MeshComponent.hpp>
+#include <Scene/Components/ScriptComponent.hpp>
+#include <Scene/Components/TransformComponent.hpp>
+#include <Scene/Components/VisibilityStateComponent.hpp>
+#include <Scene/Components/BoundingBoxComponent.hpp>
 
 #include <Rendering/Mesh.hpp>
 #include <Rendering/MaterialInstance.hpp>

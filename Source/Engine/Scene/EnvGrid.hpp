@@ -8,11 +8,11 @@
 
 #include <Core/HashCode.hpp>
 
-#include <Core/config/Config.hpp>
+#include <Core/Config/Config.hpp>
 
-#include <Core/utilities/EnumFlags.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
 
-#include <Core/math/BoundingBox.hpp>
+#include <Core/Math/BoundingBox.hpp>
 
 #include <Scene/Entity.hpp>
 

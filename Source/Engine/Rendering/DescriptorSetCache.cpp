@@ -10,9 +10,9 @@
 #include <Rendering/DescriptorSet.hpp>
 #include <Rendering/RenderInterface.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
-#include <Core/threading/Threads.hpp>
+#include <Core/Threading/Threads.hpp>
 
 namespace Hyperion {
 

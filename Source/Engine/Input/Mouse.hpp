@@ -1,10 +1,10 @@
 #pragma once
 
-#include <Core/math/Vector2.hpp>
+#include <Core/Math/Vector2.hpp>
 
-#include <Core/utilities/EnumFlags.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
 
-#include <Core/reflection/ObjectFwd.hpp>
+#include <Core/Reflection/ObjectFwd.hpp>
 
 namespace Hyperion {
 

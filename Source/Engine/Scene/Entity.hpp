@@ -6,14 +6,14 @@
 
 #pragma once
 
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/Handle.hpp>
 
-#include <Core/containers/Array.hpp>
-#include <Core/containers/Set.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/Set.hpp>
 
-#include <Core/memory/AnyRef.hpp>
+#include <Core/Memory/AnyRef.hpp>
 
-#include <Core/math/Mat4f.hpp>
+#include <Core/Math/Mat4f.hpp>
 
 #include <Scene/Node.hpp>
 #include <Scene/EntityTag.hpp>

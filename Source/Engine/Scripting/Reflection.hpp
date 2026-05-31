@@ -8,12 +8,12 @@
 
 #include <Core/Defines.hpp>
 
-#include <Core/reflection/ObjectFwd.hpp>
+#include <Core/Reflection/ObjectFwd.hpp>
 
-#include <Core/reflection/BoxedValue.hpp>
-#include <Core/reflection/Class.hpp>
+#include <Core/Reflection/BoxedValue.hpp>
+#include <Core/Reflection/Class.hpp>
 
-#include <Core/name/Name.hpp>
+#include <Core/Name/Name.hpp>
 
 namespace Hyperion {
 

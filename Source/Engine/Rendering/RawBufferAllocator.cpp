@@ -10,7 +10,7 @@
 #include <Rendering/RawBuffer.hpp>
 #include <Rendering/RenderInterface.hpp>
 
-#include <Core/threading/SharedMutex.hpp>
+#include <Core/Threading/SharedMutex.hpp>
 
 namespace Hyperion {
 

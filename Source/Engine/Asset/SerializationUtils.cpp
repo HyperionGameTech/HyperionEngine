@@ -8,30 +8,30 @@
 #include <Asset/AssetObject.hpp>
 #include <Asset/AssetReference.hpp>
 
-#include <Core/json/JSON.hpp>
+#include <Core/JSON/JSON.hpp>
 
-#include <Core/config/Config.hpp>
+#include <Core/Config/Config.hpp>
 
-#include <Core/reflection/Class.hpp>
-#include <Core/reflection/Property.hpp>
-#include <Core/reflection/Field.hpp>
-#include <Core/reflection/StaticField.hpp>
-#include <Core/reflection/Method.hpp>
-#include <Core/reflection/BoxedValue.hpp>
-#include <Core/reflection/TypeInfo.hpp>
+#include <Core/Reflection/Class.hpp>
+#include <Core/Reflection/Property.hpp>
+#include <Core/Reflection/Field.hpp>
+#include <Core/Reflection/StaticField.hpp>
+#include <Core/Reflection/Method.hpp>
+#include <Core/Reflection/BoxedValue.hpp>
+#include <Core/Reflection/TypeInfo.hpp>
 
-#include <Core/containers/Array.hpp>
-#include <Core/containers/FlatSet.hpp>
-#include <Core/containers/LinkedList.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/FlatSet.hpp>
+#include <Core/Containers/LinkedList.hpp>
 
-#include <Core/utilities/Format.hpp>
-#include <Core/utilities/Uuid.hpp>
-#include <Core/utilities/DeferredScope.hpp>
-#include <Core/utilities/Float16.hpp>
-#include <Core/utilities/GlobalContext.hpp>
+#include <Core/Utilities/Format.hpp>
+#include <Core/Utilities/Uuid.hpp>
+#include <Core/Utilities/DeferredScope.hpp>
+#include <Core/Utilities/Float16.hpp>
+#include <Core/Utilities/GlobalContext.hpp>
 
-#include <Core/logging/LogChannels.hpp>
-#include <Core/logging/Logger.hpp>
+#include <Core/Logging/LogChannels.hpp>
+#include <Core/Logging/Logger.hpp>
 
 namespace Hyperion {
 

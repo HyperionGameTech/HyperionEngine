@@ -6,16 +6,16 @@
 
 #pragma once
 
-#include <Core/containers/TypeMap.hpp>
-#include <Core/containers/FlatMap.hpp>
-#include <Core/containers/Array.hpp>
+#include <Core/Containers/TypeMap.hpp>
+#include <Core/Containers/FlatMap.hpp>
+#include <Core/Containers/Array.hpp>
 
-#include <Core/memory/UniquePtr.hpp>
+#include <Core/Memory/UniquePtr.hpp>
 
-#include <Core/reflection/Handle.hpp>
-#include <Core/reflection/ObjId.hpp>
+#include <Core/Reflection/Handle.hpp>
+#include <Core/Reflection/ObjId.hpp>
 
-#include <Core/profiling/PerformanceClock.hpp>
+#include <Core/Profiling/PerformanceClock.hpp>
 
 #include <Scene/System.hpp>
 

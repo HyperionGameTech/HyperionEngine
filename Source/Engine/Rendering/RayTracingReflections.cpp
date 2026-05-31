@@ -22,15 +22,15 @@
 #include <Rendering/RenderHelpers.hpp>
 #include <Rendering/CBufferAllocator.hpp>
 
-#include <Rendering/passes/DeferredPass.hpp>
+#include <Rendering/Passes/DeferredPass.hpp>
 
 #include <Rendering/AccelerationStructure.hpp>
 #include <Rendering/RayTracingReflections.hpp>
 #include <Rendering/DDGI.hpp>
 
-#include <Rendering/shadows/ShadowMapCache.hpp>
+#include <Rendering/Shadows/ShadowMapCache.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Framework/CVarManager.hpp>
 
@@ -39,7 +39,7 @@
 #include <Scene/EnvProbe.hpp>
 #include <Scene/EnvGrid.hpp>
 
-#include <Core/utilities/DeferredScope.hpp>
+#include <Core/Utilities/DeferredScope.hpp>
 
 #include <RayTracingReflections.generated.inl>
 

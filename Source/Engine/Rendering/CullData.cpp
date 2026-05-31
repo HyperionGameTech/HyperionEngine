@@ -10,7 +10,7 @@
 #include <Rendering/GpuImageView.hpp>
 #include <Rendering/GpuBuffer.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 namespace Hyperion {
 

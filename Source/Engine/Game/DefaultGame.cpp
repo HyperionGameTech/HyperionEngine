@@ -14,21 +14,21 @@
 #include <Scene/EntityManager.hpp>
 #include <Scene/ComponentInterface.hpp>
 
-#include <Scene/sky/DynamicSkySystem.hpp>
+#include <Scene/Sky/DynamicSkySystem.hpp>
 
-#include <Scene/components/ScriptComponent.hpp>
-#include <Scene/components/MeshComponent.hpp>
+#include <Scene/Components/ScriptComponent.hpp>
+#include <Scene/Components/MeshComponent.hpp>
 
-#include <Scene/camera/FirstPersonCamera.hpp>
+#include <Scene/Camera/FirstPersonCamera.hpp>
 
-#include <Scene/world_grid/terrain/TerrainWorldGridLayer.hpp>
-#include <Scene/world_grid/WorldGrid.hpp>
+#include <Scene/WorldGrid/Terrain/TerrainWorldGridLayer.hpp>
+#include <Scene/WorldGrid/WorldGrid.hpp>
 
-#include <Scene/input/TouchControlsSubsystem.hpp>
+#include <Scene/Input/TouchControlsSubsystem.hpp>
 
 #include <Lang/HypScript.hpp>
 
-#include <Scripting/asset/ScriptAsset.hpp>
+#include <Scripting/Asset/ScriptAsset.hpp>
 
 #include <Asset/AssetObject.hpp>
 #include <Asset/AssetRegistry.hpp>
@@ -40,9 +40,9 @@
 #include <Rendering/MaterialDefinition.hpp>
 #include <Rendering/MaterialInstance.hpp>
 
-#include <Core/config/Config.hpp>
+#include <Core/Config/Config.hpp>
 
-#include <Rendering/util/MeshBuilder.hpp>
+#include <Rendering/Util/MeshBuilder.hpp>
 
 #include <Scene/TextSprite.hpp>
 
@@ -54,9 +54,9 @@
 
 #include <UI/UISubsystem.hpp>
 #include <UI/UIStage.hpp>
-#include <UI/overlays/BaseStatsOverlay.hpp>
-#include <UI/overlays/StatsOverlay.hpp>
-#include <UI/overlays/ConsoleOverlay.hpp>
+#include <UI/Overlays/BaseStatsOverlay.hpp>
+#include <UI/Overlays/StatsOverlay.hpp>
+#include <UI/Overlays/ConsoleOverlay.hpp>
 
 #include <HyperionEngine.hpp>
 

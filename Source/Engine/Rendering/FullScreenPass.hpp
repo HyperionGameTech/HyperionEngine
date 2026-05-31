@@ -9,14 +9,14 @@
 #include <Core/Constants.hpp>
 #include <Core/Types.hpp>
 
-#include <Core/utilities/EnumFlags.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/Handle.hpp>
 
-#include <Core/memory/UniquePtr.hpp>
+#include <Core/Memory/UniquePtr.hpp>
 
-#include <Core/threading/ThreadSignal.hpp>
+#include <Core/Threading/ThreadSignal.hpp>
 
 #include <Rendering/RenderableAttributes.hpp>
 #include <Rendering/GraphicsPipelineCache.hpp>

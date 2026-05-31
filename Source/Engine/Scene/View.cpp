@@ -19,14 +19,14 @@
 #include <Scene/Sprite.hpp>
 #include <Scene/TextSprite.hpp>
 
-#include <Scene/camera/Camera.hpp>
-#include <Scene/animation/Skeleton.hpp>
+#include <Scene/Camera/Camera.hpp>
+#include <Scene/Animation/Skeleton.hpp>
 
-#include <Scene/components/MeshComponent.hpp>
-#include <Scene/components/TransformComponent.hpp>
-#include <Scene/components/BoundingBoxComponent.hpp>
-#include <Scene/components/VisibilityStateComponent.hpp>
-#include <Scene/components/LightmapElementComponent.hpp>
+#include <Scene/Components/MeshComponent.hpp>
+#include <Scene/Components/TransformComponent.hpp>
+#include <Scene/Components/BoundingBoxComponent.hpp>
+#include <Scene/Components/VisibilityStateComponent.hpp>
+#include <Scene/Components/LightmapElementComponent.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/RendererMain.hpp>
@@ -38,16 +38,16 @@
 #include <Rendering/Mesh.hpp>
 #include <Rendering/MaterialInstance.hpp>
 
-#include <Rendering/shadows/ShadowMapCache.hpp>
-#include <Rendering/shadows/ShadowCameraHelper.hpp>
+#include <Rendering/Shadows/ShadowMapCache.hpp>
+#include <Rendering/Shadows/ShadowCameraHelper.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Asset/AssetRegistry.hpp>
 
-#include <Core/math/Mat3f.hpp>
+#include <Core/Math/Mat3f.hpp>
 
-#include <Core/threading/Task.hpp>
+#include <Core/Threading/Task.hpp>
 
 #include <Framework/EngineDriver.hpp>
 

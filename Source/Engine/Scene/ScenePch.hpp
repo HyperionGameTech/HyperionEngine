@@ -4,13 +4,13 @@
 
 #include <HyperionPch.hpp>
 
-#include <Core/threading/Task.hpp>
-#include <Core/threading/TaskSystem.hpp>
+#include <Core/Threading/Task.hpp>
+#include <Core/Threading/TaskSystem.hpp>
 
-#include <Core/memory/allocator/Allocator.hpp>
-#include <Core/memory/allocator/ArenaAllocator.hpp>
+#include <Core/Memory/Allocator/Allocator.hpp>
+#include <Core/Memory/Allocator/ArenaAllocator.hpp>
 
-#include <Core/memory/pool/Pool.hpp>
+#include <Core/Memory/Pool/Pool.hpp>
 
 #include <Scene/Node.hpp>
 #include <Scene/EntityManager.hpp>

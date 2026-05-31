@@ -10,10 +10,10 @@
 #include <Asset/BlobStorageViews.hpp>
 #include <Asset/SerializationUtils.hpp>
 
-#include <Core/json/JSON.hpp>
+#include <Core/JSON/JSON.hpp>
 
-#include <Core/io/ByteReader.hpp>
-#include <Core/io/ByteWriter.hpp>
+#include <Core/IO/ByteReader.hpp>
+#include <Core/IO/ByteWriter.hpp>
 
 #include <BlobStorage.generated.inl>
 

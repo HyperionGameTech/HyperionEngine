@@ -13,15 +13,15 @@
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>
 
-#include <Core/threading/TaskSystem.hpp>
+#include <Core/Threading/TaskSystem.hpp>
 
-#include <Core/utilities/Format.hpp>
+#include <Core/Utilities/Format.hpp>
 
-#include <Core/reflection/Handle.hpp>
-#include <Core/reflection/TypeInfo.hpp>
-#include <Core/reflection/ClassRegistry.hpp>
+#include <Core/Reflection/Handle.hpp>
+#include <Core/Reflection/TypeInfo.hpp>
+#include <Core/Reflection/ClassRegistry.hpp>
 
-#include <Core/profiling/ProfileScope.hpp>
+#include <Core/Profiling/ProfileScope.hpp>
 
 #include <EntityManager.generated.inl>
 

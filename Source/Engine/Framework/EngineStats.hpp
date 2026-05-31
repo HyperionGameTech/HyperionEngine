@@ -8,12 +8,12 @@
 
 #include <Core/Constants.hpp>
 
-#include <Core/threading/AtomicVar.hpp>
-#include <Core/threading/util/ThreadId.hpp>
+#include <Core/Threading/AtomicVar.hpp>
+#include <Core/Threading/Util/ThreadId.hpp>
 
-#include <Core/profiling/PerformanceClock.hpp>
+#include <Core/Profiling/PerformanceClock.hpp>
 
-#include <Core/utilities/ClockTimer.hpp>
+#include <Core/Utilities/ClockTimer.hpp>
 
 #include <cfloat>
 

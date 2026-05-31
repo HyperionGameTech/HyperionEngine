@@ -6,20 +6,20 @@
 
 #pragma once
 
-#include <Core/containers/Array.hpp>
-#include <Core/containers/FlatMap.hpp>
-#include <Core/utilities/EnumFlags.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/FlatMap.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
 
-#include <Core/utilities/Optional.hpp>
-#include <Core/memory/UniquePtr.hpp>
-#include <Core/memory/AnyRef.hpp>
-#include <Core/memory/MemoryPool.hpp>
+#include <Core/Utilities/Optional.hpp>
+#include <Core/Memory/UniquePtr.hpp>
+#include <Core/Memory/AnyRef.hpp>
+#include <Core/Memory/MemoryPool.hpp>
 
-#include <Core/threading/DataRaceDetector.hpp>
+#include <Core/Threading/DataRaceDetector.hpp>
 
-#include <Core/reflection/BoxedValue.hpp>
+#include <Core/Reflection/BoxedValue.hpp>
 
-#include <Core/reflection/ObjId.hpp>
+#include <Core/Reflection/ObjId.hpp>
 #include <Core/Util.hpp>
 
 namespace Hyperion {

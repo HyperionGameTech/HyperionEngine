@@ -8,10 +8,10 @@
 
 #include <Core/Defines.hpp>
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/ObjectMacros.hpp>
-#include <Core/reflection/ObjId.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/ObjectMacros.hpp>
+#include <Core/Reflection/ObjId.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 namespace Hyperion {
 

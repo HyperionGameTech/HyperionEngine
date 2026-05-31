@@ -10,7 +10,7 @@
 #include <Rendering/MaterialInstance.hpp>
 #include <Rendering/Texture.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Asset/AssetRegistry.hpp>
 

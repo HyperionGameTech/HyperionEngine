@@ -14,7 +14,7 @@
 #include <UI/UIGrid.hpp>
 #include <UI/UITextbox.hpp>
 
-#include <Core/reflection/ClassRegistry.hpp>
+#include <Core/Reflection/ClassRegistry.hpp>
 
 namespace Hyperion {
 

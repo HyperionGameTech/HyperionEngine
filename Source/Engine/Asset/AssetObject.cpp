@@ -13,13 +13,13 @@
 #include <Asset/BlobStorage.hpp>
 #include <Asset/SerializationUtils.hpp>
 
-#include <Core/utilities/DeferredScope.hpp>
-#include <Core/utilities/GlobalContext.hpp>
+#include <Core/Utilities/DeferredScope.hpp>
+#include <Core/Utilities/GlobalContext.hpp>
 
-#include <Core/io/BufferedByteReader.hpp>
-#include <Core/io/ByteWriter.hpp>
+#include <Core/IO/BufferedByteReader.hpp>
+#include <Core/IO/ByteWriter.hpp>
 
-#include <Core/json/JSON.hpp>
+#include <Core/JSON/JSON.hpp>
 
 #include <System/MessageBox.hpp>
 

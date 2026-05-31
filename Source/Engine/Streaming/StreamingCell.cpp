@@ -10,7 +10,7 @@
 
 #include <Streaming/StreamingCell.hpp>
 
-#include <Scene/world_grid/WorldGrid.hpp>
+#include <Scene/WorldGrid/WorldGrid.hpp>
 
 #include <Asset/AssetReference.hpp>
 

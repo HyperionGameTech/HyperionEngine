@@ -1,12 +1,12 @@
 #pragma once
 #include <Scripting/Script.hpp>
 
-#include <Core/containers/Queue.hpp>
+#include <Core/Containers/Queue.hpp>
 
-#include <Core/threading/Mutex.hpp>
-#include <Core/threading/AtomicVar.hpp>
+#include <Core/Threading/Mutex.hpp>
+#include <Core/Threading/AtomicVar.hpp>
 
-#include <Core/functional/Delegate.hpp>
+#include <Core/Functional/Delegate.hpp>
 
 namespace Hyperion {
 

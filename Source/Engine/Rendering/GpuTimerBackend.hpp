@@ -9,7 +9,7 @@
 #include <Core/Types.hpp>
 #include <Core/Defines.hpp>
 
-#include <Core/memory/pool/Pool.hpp>
+#include <Core/Memory/Pool/Pool.hpp>
 
 #include <Rendering/RenderMemory.hpp>
 
@@ -56,7 +56,7 @@ protected:
 #define INCLUDE_FROM_RHI_BASE
 
 #if HYP_VULKAN
-#include <Rendering/vulkan/VulkanGpuTimerBackend.hpp>
+#include <Rendering/Vulkan/VulkanGpuTimerBackend.hpp>
 
 namespace Hyperion
 {
@@ -64,7 +64,7 @@ namespace Hyperion
 } // namespace Hyperion
 
 #elif HYP_DX12
-#include <Rendering/dx12/DX12GpuTimerBackend.hpp>
+#include <Rendering/DX12/DX12GpuTimerBackend.hpp>
 
 namespace Hyperion
 {

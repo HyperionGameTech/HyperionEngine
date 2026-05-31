@@ -11,15 +11,15 @@
 #include <Core/Types.hpp>
 #include <Core/Util.hpp>
 
-#include <Core/containers/FixedArray.hpp>
-#include <Core/containers/String.hpp>
+#include <Core/Containers/FixedArray.hpp>
+#include <Core/Containers/String.hpp>
 
-#include <Core/threading/AtomicVar.hpp>
-#include <Core/threading/Mutex.hpp>
+#include <Core/Threading/AtomicVar.hpp>
+#include <Core/Threading/Mutex.hpp>
 
-#include <Core/name/Name.hpp>
+#include <Core/Name/Name.hpp>
 
-#include <Core/utilities/StringUtil.hpp>
+#include <Core/Utilities/StringUtil.hpp>
 
 #include <type_traits>
 

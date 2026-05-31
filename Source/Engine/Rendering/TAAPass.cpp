@@ -22,17 +22,17 @@
 #include <Rendering/RenderProxy.hpp>
 #include <Rendering/CBufferAllocator.hpp>
 
-#include <Rendering/passes/DeferredPass.hpp>
+#include <Rendering/Passes/DeferredPass.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Scene/View.hpp>
 
 #include <Framework/EngineStats.hpp>
 
-#include <Core/math/MathUtil.hpp>
+#include <Core/Math/MathUtil.hpp>
 
-#include <Core/threading/Threads.hpp>
+#include <Core/Threading/Threads.hpp>
 
 namespace Hyperion {
 

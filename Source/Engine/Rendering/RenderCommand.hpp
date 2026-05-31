@@ -9,17 +9,17 @@
 #include <Rendering/RenderResult.hpp>
 #include <Rendering/RenderMemory.hpp>
 
-#include <Core/debug/Debug.hpp>
+#include <Core/Debug/Debug.hpp>
 
-#include <Core/threading/AtomicVar.hpp>
-#include <Core/threading/Threads.hpp>
-#include <Core/threading/Semaphore.hpp>
+#include <Core/Threading/AtomicVar.hpp>
+#include <Core/Threading/Threads.hpp>
+#include <Core/Threading/Semaphore.hpp>
 
-#include <Core/containers/LinkedList.hpp>
+#include <Core/Containers/LinkedList.hpp>
 
-#include <Core/memory/UniquePtr.hpp>
+#include <Core/Memory/UniquePtr.hpp>
 
-#include <Core/utilities/StringView.hpp>
+#include <Core/Utilities/StringView.hpp>
 
 #include <Core/Util.hpp>
 #include <Core/Types.hpp>

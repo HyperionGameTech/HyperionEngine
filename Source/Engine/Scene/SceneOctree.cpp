@@ -13,11 +13,11 @@
 #include <Scene/View.hpp>
 
 #include <Scene/EntityManager.hpp>
-#include <Scene/components/VisibilityStateComponent.hpp>
-#include <Scene/components/TransformComponent.hpp>
-#include <Scene/components/MeshComponent.hpp>
+#include <Scene/Components/VisibilityStateComponent.hpp>
+#include <Scene/Components/TransformComponent.hpp>
+#include <Scene/Components/MeshComponent.hpp>
 
-#include <Scene/camera/Camera.hpp>
+#include <Scene/Camera/Camera.hpp>
 
 #include <Rendering/Mesh.hpp>
 

@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <Core/containers/SparsePagedArray.hpp>
+#include <Core/Containers/SparsePagedArray.hpp>
 
 #include <Rendering/RenderTypes.hpp>
 

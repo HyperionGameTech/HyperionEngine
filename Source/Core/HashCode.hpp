@@ -8,9 +8,9 @@
 
 #include <Core/Types.hpp>
 #include <Core/Constants.hpp>
-#include <Core/utilities/Traits.hpp>
+#include <Core/Utilities/Traits.hpp>
 
-#include <Core/reflection/ObjectMacros.hpp>
+#include <Core/Reflection/ObjectMacros.hpp>
 
 #include <type_traits>
 #include <bit>

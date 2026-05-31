@@ -10,18 +10,18 @@
 
 #include <Core/Defines.hpp>
 
-#include <Core/reflection/ObjectFwd.hpp>
+#include <Core/Reflection/ObjectFwd.hpp>
 
-#include <Core/memory/resource/Resource.hpp>
-#include <Core/memory/RefCountedPtr.hpp>
+#include <Core/Memory/Resource/Resource.hpp>
+#include <Core/Memory/RefCountedPtr.hpp>
 
-#include <Core/utilities/EnumFlags.hpp>
-#include <Core/utilities/Variant.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
+#include <Core/Utilities/Variant.hpp>
 
 #include <Core/Types.hpp>
 
 #ifdef HYP_SCRIPT
-#include <Core/reflection/BoxedValue.hpp>
+#include <Core/Reflection/BoxedValue.hpp>
 #endif
 
 namespace Hyperion {

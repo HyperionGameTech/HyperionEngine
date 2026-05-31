@@ -10,10 +10,10 @@
 #include <Core/Types.hpp>
 #include <Core/HashCode.hpp>
 
-#include <Core/name/Name.hpp>
+#include <Core/Name/Name.hpp>
 
-#include <Core/io/ByteReader.hpp>
-#include <Core/io/ByteWriter.hpp>
+#include <Core/IO/ByteReader.hpp>
+#include <Core/IO/ByteWriter.hpp>
 
 namespace Hyperion {
 

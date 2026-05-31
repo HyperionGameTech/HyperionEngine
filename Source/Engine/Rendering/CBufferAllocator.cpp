@@ -9,7 +9,7 @@
 #include <Rendering/CBufferAllocator.hpp>
 #include <Rendering/RenderInterface.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 namespace Hyperion {
 

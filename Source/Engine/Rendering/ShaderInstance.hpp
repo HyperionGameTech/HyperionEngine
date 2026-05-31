@@ -5,16 +5,16 @@
 */
 
 #pragma once
-#include <Core/memory/ByteBuffer.hpp>
-#include <Core/memory/RefCountedPtr.hpp>
+#include <Core/Memory/ByteBuffer.hpp>
+#include <Core/Memory/RefCountedPtr.hpp>
 
-#include <Core/containers/Array.hpp>
-#include <Core/containers/String.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/String.hpp>
 
 #include <Core/Defines.hpp>
 
 #if HYP_ENABLE_SHADER_RELOAD
-#include <Core/utilities/Time.hpp>
+#include <Core/Utilities/Time.hpp>
 #endif
 
 #include <Rendering/Shared.hpp>
@@ -97,9 +97,9 @@ protected:
 #define INCLUDE_FROM_RHI_BASE
 
 #if HYP_VULKAN
-#include <Rendering/vulkan/VulkanShaderInstance.hpp>
+#include <Rendering/Vulkan/VulkanShaderInstance.hpp>
 #elif HYP_DX12
-#include <Rendering/dx12/DX12ShaderInstance.hpp>
+#include <Rendering/DX12/DX12ShaderInstance.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

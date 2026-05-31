@@ -9,14 +9,14 @@
 #include <Core/Constants.hpp>
 #include <Core/Types.hpp>
 
-#include <Core/containers/FixedArray.hpp>
+#include <Core/Containers/FixedArray.hpp>
 
-#include <Core/utilities/Variant.hpp>
+#include <Core/Utilities/Variant.hpp>
 
-#include <Core/functional/Delegate.hpp>
+#include <Core/Functional/Delegate.hpp>
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 #include <Rendering/RenderBucket.hpp>
 #include <Rendering/GpuImage.hpp>

@@ -8,9 +8,9 @@
 
 #include <Scene/Scene.hpp>
 
-#include <Core/math/Vector2.hpp>
+#include <Core/Math/Vector2.hpp>
 
-#include <Core/functional/Delegate.hpp>
+#include <Core/Functional/Delegate.hpp>
 
 #include <Rendering/RenderTypes.hpp>
 

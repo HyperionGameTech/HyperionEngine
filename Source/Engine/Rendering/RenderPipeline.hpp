@@ -8,11 +8,11 @@
 
 #include <Rendering/Shared.hpp>
 
-#include <Core/containers/Array.hpp>
-#include <Core/utilities/Optional.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Utilities/Optional.hpp>
 #include <Core/Defines.hpp>
 
-#include <Core/math/Vector4.hpp>
+#include <Core/Math/Vector4.hpp>
 
 #include <Core/Types.hpp>
 

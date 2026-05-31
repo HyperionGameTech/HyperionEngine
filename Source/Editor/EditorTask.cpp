@@ -9,11 +9,11 @@
 #include <Editor/EditorTask.hpp>
 #include <Editor/EditorState.hpp>
 
-#include <Core/threading/TaskSystem.hpp>
-#include <Core/threading/Threads.hpp>
+#include <Core/Threading/TaskSystem.hpp>
+#include <Core/Threading/Threads.hpp>
 
-#include <Core/logging/Logger.hpp>
-#include <Core/logging/LogChannels.hpp>
+#include <Core/Logging/Logger.hpp>
+#include <Core/Logging/LogChannels.hpp>
 
 #include <Framework/threads/SimThread.hpp>
 

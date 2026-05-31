@@ -10,13 +10,13 @@
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/Swapchain.hpp>
 
-#include <Rendering/passes/DeferredPass.hpp>
+#include <Rendering/Passes/DeferredPass.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <System/AppContext.hpp>
 
-#include <Core/threading/Threads.hpp>
+#include <Core/Threading/Threads.hpp>
 
 #include <Framework/CVarManager.hpp>
 

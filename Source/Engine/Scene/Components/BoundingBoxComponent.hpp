@@ -1,0 +1,32 @@
+/*!
+ *  @author: The Hyperion Contributors
+ *  @date 2016-2026
+ *  @licence MIT
+*/
+
+#pragma once
+
+#include <Core/Math/BoundingBox.hpp>
+#include <Core/HashCode.hpp>
+
+namespace Hyperion {
+
+HYP_STRUCT(Component, Editor = false, Serialize = false)
+struct BoundingBoxComponent
+{
+    HYP_STRUCT_BODY(BoundingBoxComponent);
+
+    HYP_FIELD(Property = "WorldAABB")
+    BoundingBox worldAabb;
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        HashCode hashCode;
+
+        hashCode.Add(worldAabb);
+
+        return hashCode;
+    }
+};
+
+} // namespace Hyperion

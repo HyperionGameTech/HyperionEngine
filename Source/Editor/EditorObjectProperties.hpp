@@ -6,13 +6,13 @@
 
 #pragma once
 
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/Handle.hpp>
 
-#include <Core/math/Vector2.hpp>
-#include <Core/math/Vector3.hpp>
-#include <Core/math/Vector4.hpp>
+#include <Core/Math/Vector2.hpp>
+#include <Core/Math/Vector3.hpp>
+#include <Core/Math/Vector4.hpp>
 
-#include <Core/memory/RefCountedPtr.hpp>
+#include <Core/Memory/RefCountedPtr.hpp>
 
 namespace Hyperion {
 

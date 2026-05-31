@@ -8,12 +8,12 @@
 
 #include <Core/Defines.hpp>
 
-#include <Core/reflection/ObjId.hpp>
-#include <Core/reflection/Handle.hpp>
-#include <Core/reflection/TypeInfoFwd.hpp>
-#include <Core/reflection/TypeInfo.hpp>
+#include <Core/Reflection/ObjId.hpp>
+#include <Core/Reflection/Handle.hpp>
+#include <Core/Reflection/TypeInfoFwd.hpp>
+#include <Core/Reflection/TypeInfo.hpp>
 
-#include <Core/utilities/IdGenerator.hpp>
+#include <Core/Utilities/IdGenerator.hpp>
 
 #include <Rendering/RawBuffer.hpp>
 #include <Rendering/RenderMemory.hpp>

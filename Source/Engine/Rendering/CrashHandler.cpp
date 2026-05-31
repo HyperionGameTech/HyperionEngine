@@ -8,11 +8,11 @@
 
 #include <Rendering/CrashHandler.hpp>
 
-#include <Core/debug/Debug.hpp>
+#include <Core/Debug/Debug.hpp>
 
-#include <Core/threading/Threads.hpp>
+#include <Core/Threading/Threads.hpp>
 
-#include <Core/io/ByteWriter.hpp>
+#include <Core/IO/ByteWriter.hpp>
 
 #include <System/MessageBox.hpp>
 

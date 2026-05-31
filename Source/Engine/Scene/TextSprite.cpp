@@ -9,11 +9,11 @@
 #include <Scene/TextSprite.hpp>
 
 #include <Scene/EntityManager.hpp>
-#include <Scene/components/BoundingBoxComponent.hpp>
+#include <Scene/Components/BoundingBoxComponent.hpp>
 
-#include <UI/font/FontAtlas.hpp>
+#include <UI/Font/FontAtlas.hpp>
 
-#include <Core/utilities/GlobalContext.hpp>
+#include <Core/Utilities/GlobalContext.hpp>
 
 #include <Asset/AssetRegistry.hpp>
 #include <Asset/Assets.hpp>

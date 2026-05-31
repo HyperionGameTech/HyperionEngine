@@ -8,7 +8,7 @@
 
 #include <Core/Defines.hpp>
 
-#include <Core/utilities/ByteUtil.hpp>
+#include <Core/Utilities/ByteUtil.hpp>
 
 #include <Core/Types.hpp>
 

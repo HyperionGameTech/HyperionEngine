@@ -8,7 +8,7 @@
 
 #include <Core/Types.hpp>
 
-#include <Core/math/Color.hpp>
+#include <Core/Math/Color.hpp>
 
 #include <Scene/Entity.hpp>
 
