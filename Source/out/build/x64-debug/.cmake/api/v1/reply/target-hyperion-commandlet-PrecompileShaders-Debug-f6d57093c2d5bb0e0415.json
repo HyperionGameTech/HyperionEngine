@@ -1,0 +1,528 @@
+{
+	"artifacts" : 
+	[
+		{
+			"path" : "/Windows/Debug/PrecompileShaders.exe"
+		},
+		{
+			"path" : "/Windows/Debug/PrecompileShaders.pdb"
+		}
+	],
+	"backtrace" : 2,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_executable",
+			"add_commandlet_target",
+			"link_directories",
+			"target_link_libraries",
+			"add_dependencies",
+			"add_definitions",
+			"target_compile_definitions",
+			"include_directories",
+			"target_include_directories"
+		],
+		"files" : 
+		[
+			"Commandlets/CMakeLists.txt",
+			"CMakeLists.txt",
+			"C:/Users/andre/hyperion-engine/External/ThirdParty/Source/D3D12MemoryAllocator/src/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 49,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 14,
+				"parent" : 1
+			},
+			{
+				"file" : 1
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 279,
+				"parent" : 3
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 30,
+				"parent" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 1025,
+				"parent" : 3
+			},
+			{
+				"file" : 2
+			},
+			{
+				"command" : 3,
+				"file" : 2,
+				"line" : 33,
+				"parent" : 7
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 1026,
+				"parent" : 3
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 29,
+				"parent" : 1
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 187,
+				"parent" : 3
+			},
+			{
+				"command" : 6,
+				"file" : 0,
+				"line" : 18,
+				"parent" : 1
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 179,
+				"parent" : 3
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 436,
+				"parent" : 3
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 354,
+				"parent" : 3
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 356,
+				"parent" : 3
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 61,
+				"parent" : 3
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 351,
+				"parent" : 3
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 360,
+				"parent" : 3
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 191,
+				"parent" : 3
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 195,
+				"parent" : 3
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 331,
+				"parent" : 3
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 332,
+				"parent" : 3
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 333,
+				"parent" : 3
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 77,
+				"parent" : 3
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 223,
+				"parent" : 3
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 219,
+				"parent" : 3
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 222,
+				"parent" : 3
+			},
+			{
+				"command" : 7,
+				"file" : 1,
+				"line" : 854,
+				"parent" : 3
+			},
+			{
+				"command" : 7,
+				"file" : 1,
+				"line" : 960,
+				"parent" : 3
+			},
+			{
+				"command" : 8,
+				"file" : 0,
+				"line" : 23,
+				"parent" : 1
+			},
+			{
+				"command" : 7,
+				"file" : 1,
+				"line" : 609,
+				"parent" : 3
+			},
+			{
+				"command" : 7,
+				"file" : 1,
+				"line" : 602,
+				"parent" : 3
+			},
+			{
+				"command" : 7,
+				"file" : 1,
+				"line" : 445,
+				"parent" : 3
+			},
+			{
+				"command" : 7,
+				"file" : 1,
+				"line" : 959,
+				"parent" : 3
+			}
+		]
+	},
+	"codemodelVersion" : 
+	{
+		"major" : 2,
+		"minor" : 9
+	},
+	"compileDependencies" : 
+	[
+		{
+			"backtrace" : 5,
+			"id" : "hyperion::@6890427a1f51a3e7e1df"
+		}
+	],
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Z7 /MP /constexpr:depth1024 /bigobj /arch:AVX2 /fp:fast /MDd /Zi /Ob0 /Od /RTC1 -std:c++20   /wd4251 /wd4275"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 11,
+					"define" : "HYPERION_ENGINE=1"
+				},
+				{
+					"backtrace" : 12,
+					"define" : "HYP_COMMANDLET=1"
+				},
+				{
+					"backtrace" : 12,
+					"define" : "HYP_COMMANDLET_NAME=PrecompileShaders"
+				},
+				{
+					"backtrace" : 13,
+					"define" : "HYP_DEBUG_MODE=1"
+				},
+				{
+					"backtrace" : 14,
+					"define" : "HYP_DX12=1"
+				},
+				{
+					"backtrace" : 15,
+					"define" : "HYP_EDITOR=1"
+				},
+				{
+					"backtrace" : 16,
+					"define" : "HYP_ENABLE_SHADER_RELOAD=1"
+				},
+				{
+					"backtrace" : 17,
+					"define" : "HYP_MSVC=1"
+				},
+				{
+					"backtrace" : 18,
+					"define" : "HYP_ROOT_DIR=\"\""
+				},
+				{
+					"backtrace" : 19,
+					"define" : "HYP_SCRIPT=1"
+				},
+				{
+					"backtrace" : 20,
+					"define" : "HYP_TESTS=1"
+				},
+				{
+					"backtrace" : 21,
+					"define" : "HYP_TYPE_ID_COMPILE_TIME=1"
+				},
+				{
+					"backtrace" : 22,
+					"define" : "HYP_VERSION_MAJOR=1"
+				},
+				{
+					"backtrace" : 23,
+					"define" : "HYP_VERSION_MINOR=4"
+				},
+				{
+					"backtrace" : 24,
+					"define" : "HYP_VERSION_PATCH=0"
+				},
+				{
+					"backtrace" : 25,
+					"define" : "HYP_WINDOWS=1"
+				},
+				{
+					"backtrace" : 26,
+					"define" : "NOMINMAX"
+				},
+				{
+					"backtrace" : 27,
+					"define" : "_CRT_SECURE_NO_WARNINGS"
+				},
+				{
+					"backtrace" : 28,
+					"define" : "_HAS_EXCEPTIONS=0"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 29,
+					"path" : "C:/Users/andre/hyperion-engine/Source/Shaders"
+				},
+				{
+					"backtrace" : 30,
+					"path" : "C:/Users/andre/hyperion-engine/Source/Generated"
+				},
+				{
+					"backtrace" : 30,
+					"path" : "C:/Users/andre/hyperion-engine/Source"
+				},
+				{
+					"backtrace" : 30,
+					"path" : "C:/Users/andre/hyperion-engine/Source/Engine"
+				},
+				{
+					"backtrace" : 31,
+					"path" : "C:/Users/andre/hyperion-engine/Source/.."
+				},
+				{
+					"backtrace" : 31,
+					"path" : "C:/Users/andre/hyperion-engine/Source/../Engine"
+				},
+				{
+					"backtrace" : 5,
+					"path" : "C:/Users/andre/hyperion-engine/External/ThirdParty/Source/D3D12MemoryAllocator/include"
+				},
+				{
+					"backtrace" : 32,
+					"isSystem" : true,
+					"path" : "C:/Users/andre/hyperion-engine/Source/../External/ThirdParty/Source/dxc"
+				},
+				{
+					"backtrace" : 33,
+					"isSystem" : true,
+					"path" : "C:/Users/andre/hyperion-engine/Source/../External/ThirdParty/Source/DirectX-Headers"
+				},
+				{
+					"backtrace" : 34,
+					"isSystem" : true,
+					"path" : "C:/Users/andre/hyperion-engine/Source/../External/ThirdParty/Source/D3D12MemoryAllocator/include"
+				},
+				{
+					"backtrace" : 35,
+					"isSystem" : true,
+					"path" : "C:/Users/andre/hyperion-engine/Source/../External/ThirdParty/Source"
+				}
+			],
+			"language" : "CXX",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					2
+				],
+				"standard" : "20"
+			},
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 10,
+			"id" : "hyperion::@6890427a1f51a3e7e1df"
+		},
+		{
+			"backtrace" : 5,
+			"id" : "hyperion-script::@7e87b4e47c3bb6bbacb8"
+		},
+		{
+			"backtrace" : 5,
+			"id" : "D3D12MemoryAllocator::@198a0cd4fabfd8858ef7"
+		}
+	],
+	"id" : "hyperion-commandlet-PrecompileShaders::@6384113db490bba59e09",
+	"link" : 
+	{
+		"commandFragments" : 
+		[
+			{
+				"fragment" : "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Z7 /MP /constexpr:depth1024 /bigobj /arch:AVX2 /fp:fast /MDd /Zi /Ob0 /Od /RTC1",
+				"role" : "flags"
+			},
+			{
+				"fragment" : "/INCREMENTAL:NO /DEBUG /NATVIS:C:/Users/andre/hyperion-engine/Source/Engine/Hyperion.natvis /debug /INCREMENTAL",
+				"role" : "flags"
+			},
+			{
+				"fragment" : "/subsystem:console",
+				"role" : "flags"
+			},
+			{
+				"fragment" : "/DEBUG",
+				"role" : "flags"
+			},
+			{
+				"backtrace" : 4,
+				"fragment" : "-LIBPATH:\\Windows\\Debug\\Windows\\Debug",
+				"role" : "libraryPath"
+			},
+			{
+				"backtrace" : 5,
+				"fragment" : "hyperion.lib",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 6,
+				"fragment" : "ThirdParty\\D3D12MemoryAllocator_build\\src\\D3D12MAd.lib",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 8,
+				"fragment" : "d3d12.lib",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 8,
+				"fragment" : "dxgi.lib",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 8,
+				"fragment" : "dxguid.lib",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 9,
+				"fragment" : "Lang\\hyperion-script.lib",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib",
+				"role" : "libraries"
+			}
+		],
+		"language" : "CXX"
+	},
+	"linkLibraries" : 
+	[
+		{
+			"backtrace" : 5,
+			"id" : "hyperion::@6890427a1f51a3e7e1df"
+		}
+	],
+	"name" : "hyperion-commandlet-PrecompileShaders",
+	"nameOnDisk" : "PrecompileShaders.exe",
+	"orderDependencies" : 
+	[
+		{
+			"backtrace" : 10,
+			"id" : "hyperion::@6890427a1f51a3e7e1df"
+		}
+	],
+	"paths" : 
+	{
+		"build" : "Commandlets",
+		"source" : "Commandlets"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "Engine/engine/commandlet/CommandletMain.cpp",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "EXECUTABLE"
+}

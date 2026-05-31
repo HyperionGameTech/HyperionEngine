@@ -1,0 +1,778 @@
+{
+	"archive" : 
+	{
+		"commandFragments" : 
+		[
+			{
+				"fragment" : "/machine:x64",
+				"role" : "flags"
+			}
+		]
+	},
+	"artifacts" : 
+	[
+		{
+			"path" : "system/hyperion-system.lib"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"add_dependencies",
+			"target_link_libraries",
+			"add_definitions",
+			"target_compile_definitions",
+			"include_directories",
+			"target_precompile_headers"
+		],
+		"files" : 
+		[
+			"Engine/system/CMakeLists.txt",
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 37,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 43,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 45,
+				"parent" : 0
+			},
+			{
+				"file" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 187,
+				"parent" : 4
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 38,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 15,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 179,
+				"parent" : 4
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 436,
+				"parent" : 4
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 354,
+				"parent" : 4
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 356,
+				"parent" : 4
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 61,
+				"parent" : 4
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 351,
+				"parent" : 4
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 360,
+				"parent" : 4
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 191,
+				"parent" : 4
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 195,
+				"parent" : 4
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 331,
+				"parent" : 4
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 332,
+				"parent" : 4
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 333,
+				"parent" : 4
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 77,
+				"parent" : 4
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 223,
+				"parent" : 4
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 219,
+				"parent" : 4
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 222,
+				"parent" : 4
+			},
+			{
+				"command" : 5,
+				"file" : 0,
+				"line" : 18,
+				"parent" : 0
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 609,
+				"parent" : 4
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 602,
+				"parent" : 4
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 445,
+				"parent" : 4
+			},
+			{
+				"command" : 5,
+				"file" : 0,
+				"line" : 17,
+				"parent" : 0
+			},
+			{
+				"command" : 6,
+				"file" : 0,
+				"line" : 41,
+				"parent" : 0
+			}
+		]
+	},
+	"codemodelVersion" : 
+	{
+		"major" : 2,
+		"minor" : 9
+	},
+	"compileDependencies" : 
+	[
+		{
+			"backtrace" : 3,
+			"id" : "hyperion-core::@94795ff35dabbbd3a8ca"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "hyperion-input::@7640cc9b7e3662b2250a"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "hyperion-rendering::@0571c450e5d1102b49fa"
+		}
+	],
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Z7 /MP /constexpr:depth1024 /bigobj /arch:AVX2 /fp:fast /MD /O2 /Ob2 /DNDEBUG -std:c++20   /wd4251 /wd4275"
+				},
+				{
+					"fragment" : "/YcC:/Users/andre/hyperion-engine/Source/out/build/x64-release/system/CMakeFiles/hyperion-system.dir/cmake_pch.hxx /FpC:/Users/andre/hyperion-engine/Source/out/build/x64-release/system/CMakeFiles/hyperion-system.dir/.//cmake_pch.cxx.pch /FIC:/Users/andre/hyperion-engine/Source/out/build/x64-release/system/CMakeFiles/hyperion-system.dir/cmake_pch.hxx"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 5,
+					"define" : "HYPERION_ENGINE=1"
+				},
+				{
+					"backtrace" : 6,
+					"define" : "HYP_BUILD_ENGINE=1"
+				},
+				{
+					"backtrace" : 7,
+					"define" : "HYP_BUILD_LIBRARY=1"
+				},
+				{
+					"backtrace" : 8,
+					"define" : "HYP_DEBUG_MODE=1"
+				},
+				{
+					"backtrace" : 9,
+					"define" : "HYP_DX12=1"
+				},
+				{
+					"backtrace" : 10,
+					"define" : "HYP_EDITOR=1"
+				},
+				{
+					"backtrace" : 11,
+					"define" : "HYP_ENABLE_SHADER_RELOAD=1"
+				},
+				{
+					"backtrace" : 12,
+					"define" : "HYP_MSVC=1"
+				},
+				{
+					"backtrace" : 13,
+					"define" : "HYP_ROOT_DIR=\"\""
+				},
+				{
+					"backtrace" : 14,
+					"define" : "HYP_SCRIPT=1"
+				},
+				{
+					"backtrace" : 15,
+					"define" : "HYP_TESTS=1"
+				},
+				{
+					"backtrace" : 16,
+					"define" : "HYP_TYPE_ID_COMPILE_TIME=1"
+				},
+				{
+					"backtrace" : 17,
+					"define" : "HYP_VERSION_MAJOR=1"
+				},
+				{
+					"backtrace" : 18,
+					"define" : "HYP_VERSION_MINOR=4"
+				},
+				{
+					"backtrace" : 19,
+					"define" : "HYP_VERSION_PATCH=0"
+				},
+				{
+					"backtrace" : 20,
+					"define" : "HYP_WINDOWS=1"
+				},
+				{
+					"backtrace" : 21,
+					"define" : "NOMINMAX"
+				},
+				{
+					"backtrace" : 22,
+					"define" : "_CRT_SECURE_NO_WARNINGS"
+				},
+				{
+					"backtrace" : 23,
+					"define" : "_HAS_EXCEPTIONS=0"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 24,
+					"path" : "C:/Users/andre/hyperion-engine/Source"
+				},
+				{
+					"backtrace" : 24,
+					"path" : "C:/Users/andre/hyperion-engine/Source/Generated"
+				},
+				{
+					"backtrace" : 24,
+					"path" : "C:/Users/andre/hyperion-engine/Source/Engine"
+				},
+				{
+					"backtrace" : 24,
+					"path" : "C:/Users/andre/hyperion-engine/Source/Engine/system"
+				},
+				{
+					"backtrace" : 25,
+					"isSystem" : true,
+					"path" : "C:/Users/andre/hyperion-engine/Source/../External/ThirdParty/Source/dxc"
+				},
+				{
+					"backtrace" : 26,
+					"isSystem" : true,
+					"path" : "C:/Users/andre/hyperion-engine/Source/../External/ThirdParty/Source/DirectX-Headers"
+				},
+				{
+					"backtrace" : 27,
+					"isSystem" : true,
+					"path" : "C:/Users/andre/hyperion-engine/Source/../External/ThirdParty/Source/D3D12MemoryAllocator/include"
+				},
+				{
+					"backtrace" : 28,
+					"isSystem" : true,
+					"path" : "C:/Users/andre/hyperion-engine/Source/../External/ThirdParty/Source"
+				}
+			],
+			"language" : "CXX",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					1
+				],
+				"standard" : "20"
+			},
+			"precompileHeaders" : 
+			[
+				{
+					"backtrace" : 29,
+					"header" : "C:/Users/andre/hyperion-engine/Source/Engine/HyperionPch.hpp"
+				},
+				{
+					"backtrace" : 29,
+					"header" : "C:/Users/andre/hyperion-engine/Source/Engine/system/SystemPch.hpp"
+				}
+			],
+			"sourceIndexes" : 
+			[
+				0
+			]
+		},
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Z7 /MP /constexpr:depth1024 /bigobj /arch:AVX2 /fp:fast /MD /O2 /Ob2 /DNDEBUG -std:c++20   /wd4251 /wd4275"
+				},
+				{
+					"fragment" : "/YuC:/Users/andre/hyperion-engine/Source/out/build/x64-release/system/CMakeFiles/hyperion-system.dir/cmake_pch.hxx /FpC:/Users/andre/hyperion-engine/Source/out/build/x64-release/system/CMakeFiles/hyperion-system.dir/.//cmake_pch.cxx.pch /FIC:/Users/andre/hyperion-engine/Source/out/build/x64-release/system/CMakeFiles/hyperion-system.dir/cmake_pch.hxx"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 5,
+					"define" : "HYPERION_ENGINE=1"
+				},
+				{
+					"backtrace" : 6,
+					"define" : "HYP_BUILD_ENGINE=1"
+				},
+				{
+					"backtrace" : 7,
+					"define" : "HYP_BUILD_LIBRARY=1"
+				},
+				{
+					"backtrace" : 8,
+					"define" : "HYP_DEBUG_MODE=1"
+				},
+				{
+					"backtrace" : 9,
+					"define" : "HYP_DX12=1"
+				},
+				{
+					"backtrace" : 10,
+					"define" : "HYP_EDITOR=1"
+				},
+				{
+					"backtrace" : 11,
+					"define" : "HYP_ENABLE_SHADER_RELOAD=1"
+				},
+				{
+					"backtrace" : 12,
+					"define" : "HYP_MSVC=1"
+				},
+				{
+					"backtrace" : 13,
+					"define" : "HYP_ROOT_DIR=\"\""
+				},
+				{
+					"backtrace" : 14,
+					"define" : "HYP_SCRIPT=1"
+				},
+				{
+					"backtrace" : 15,
+					"define" : "HYP_TESTS=1"
+				},
+				{
+					"backtrace" : 16,
+					"define" : "HYP_TYPE_ID_COMPILE_TIME=1"
+				},
+				{
+					"backtrace" : 17,
+					"define" : "HYP_VERSION_MAJOR=1"
+				},
+				{
+					"backtrace" : 18,
+					"define" : "HYP_VERSION_MINOR=4"
+				},
+				{
+					"backtrace" : 19,
+					"define" : "HYP_VERSION_PATCH=0"
+				},
+				{
+					"backtrace" : 20,
+					"define" : "HYP_WINDOWS=1"
+				},
+				{
+					"backtrace" : 21,
+					"define" : "NOMINMAX"
+				},
+				{
+					"backtrace" : 22,
+					"define" : "_CRT_SECURE_NO_WARNINGS"
+				},
+				{
+					"backtrace" : 23,
+					"define" : "_HAS_EXCEPTIONS=0"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 24,
+					"path" : "C:/Users/andre/hyperion-engine/Source"
+				},
+				{
+					"backtrace" : 24,
+					"path" : "C:/Users/andre/hyperion-engine/Source/Generated"
+				},
+				{
+					"backtrace" : 24,
+					"path" : "C:/Users/andre/hyperion-engine/Source/Engine"
+				},
+				{
+					"backtrace" : 24,
+					"path" : "C:/Users/andre/hyperion-engine/Source/Engine/system"
+				},
+				{
+					"backtrace" : 25,
+					"isSystem" : true,
+					"path" : "C:/Users/andre/hyperion-engine/Source/../External/ThirdParty/Source/dxc"
+				},
+				{
+					"backtrace" : 26,
+					"isSystem" : true,
+					"path" : "C:/Users/andre/hyperion-engine/Source/../External/ThirdParty/Source/DirectX-Headers"
+				},
+				{
+					"backtrace" : 27,
+					"isSystem" : true,
+					"path" : "C:/Users/andre/hyperion-engine/Source/../External/ThirdParty/Source/D3D12MemoryAllocator/include"
+				},
+				{
+					"backtrace" : 28,
+					"isSystem" : true,
+					"path" : "C:/Users/andre/hyperion-engine/Source/../External/ThirdParty/Source"
+				}
+			],
+			"language" : "CXX",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					1
+				],
+				"standard" : "20"
+			},
+			"precompileHeaders" : 
+			[
+				{
+					"backtrace" : 29,
+					"header" : "C:/Users/andre/hyperion-engine/Source/Engine/HyperionPch.hpp"
+				},
+				{
+					"backtrace" : 29,
+					"header" : "C:/Users/andre/hyperion-engine/Source/Engine/system/SystemPch.hpp"
+				}
+			],
+			"sourceIndexes" : 
+			[
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7
+			]
+		}
+	],
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 2,
+			"id" : "hyperion-core::@94795ff35dabbbd3a8ca"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "hyperion-asset::@343fd741dd86c7546a7b"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "hyperion-rendering::@0571c450e5d1102b49fa"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "hyperion-input::@7640cc9b7e3662b2250a"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "hyperion-dx12::@865e5d28648432085ad4"
+		}
+	],
+	"id" : "hyperion-system::@addd07e476d8cfca0b24",
+	"interfaceLinkLibraries" : 
+	[
+		{
+			"backtrace" : 3,
+			"id" : "hyperion-core::@94795ff35dabbbd3a8ca"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "hyperion-input::@7640cc9b7e3662b2250a"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "hyperion-rendering::@0571c450e5d1102b49fa"
+		}
+	],
+	"linkLibraries" : 
+	[
+		{
+			"backtrace" : 3,
+			"id" : "hyperion-core::@94795ff35dabbbd3a8ca"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "hyperion-input::@7640cc9b7e3662b2250a"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "hyperion-rendering::@0571c450e5d1102b49fa"
+		}
+	],
+	"name" : "hyperion-system",
+	"nameOnDisk" : "hyperion-system.lib",
+	"orderDependencies" : 
+	[
+		{
+			"backtrace" : 2,
+			"id" : "hyperion-core::@94795ff35dabbbd3a8ca"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "hyperion-rendering::@0571c450e5d1102b49fa"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "hyperion-input::@7640cc9b7e3662b2250a"
+		}
+	],
+	"paths" : 
+	{
+		"build" : "system",
+		"source" : "Engine/system"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		},
+		{
+			"name" : "Source Code",
+			"sourceIndexes" : 
+			[
+				1,
+				2,
+				8,
+				9,
+				10,
+				11,
+				12,
+				13,
+				14
+			]
+		},
+		{
+			"name" : "Source Code\\platform\\windows",
+			"sourceIndexes" : 
+			[
+				3,
+				4,
+				5,
+				6,
+				7,
+				16
+			]
+		},
+		{
+			"name" : "Source Code\\helpers",
+			"sourceIndexes" : 
+			[
+				15
+			]
+		},
+		{
+			"name" : "Precompile Header File",
+			"sourceIndexes" : 
+			[
+				17
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 0,
+			"compileGroupIndex" : 0,
+			"path" : "out/build/x64-release/system/CMakeFiles/hyperion-system.dir/cmake_pch.cxx",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/system/AppContext.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/system/MessageBox.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/system/platform/windows/FileDialog.cpp",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/system/platform/windows/PlatformUtils.cpp",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/system/platform/windows/ShowMessageBox.cpp",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/system/platform/windows/Win32AppContext.cpp",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/system/platform/windows/Win32ApplicationWindow.cpp",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/system/AppContext.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/system/DirectoryInitializer.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/system/MessageBox.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/system/OpenFileDialog.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/system/SaveFileDialog.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/system/SelectFolderDialog.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/system/SystemPch.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/system/helpers/AppContextHelpers.inc",
+			"sourceGroupIndex" : 3
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/system/platform/windows/Win32Helpers.hpp",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 0,
+			"path" : "out/build/x64-release/system/CMakeFiles/hyperion-system.dir/cmake_pch.hxx",
+			"sourceGroupIndex" : 4
+		}
+	],
+	"type" : "STATIC_LIBRARY"
+}

@@ -1,0 +1,101 @@
+{
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_custom_target"
+		],
+		"files" : 
+		[
+			"Engine/editor/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 200,
+				"parent" : 0
+			}
+		]
+	},
+	"codemodelVersion" : 
+	{
+		"major" : 2,
+		"minor" : 9
+	},
+	"dependencies" : 
+	[
+		{
+			"id" : "hyperion::@6890427a1f51a3e7e1df"
+		},
+		{
+			"id" : "Hyperion.NET.Interop::@f1c6d6693f3721d8d3a3"
+		},
+		{
+			"id" : "Hyperion.NET.Runtime::@dcf6d6b3a78d87189fa9"
+		},
+		{
+			"id" : "Hyperion.NET.Shared::@b1f7512934231ee3f25d"
+		}
+	],
+	"id" : "Hyperion.Editor::@ed37844f285895dce70e",
+	"name" : "Hyperion.Editor",
+	"orderDependencies" : 
+	[
+		{
+			"id" : "hyperion::@6890427a1f51a3e7e1df"
+		},
+		{
+			"id" : "Hyperion.NET.Interop::@f1c6d6693f3721d8d3a3"
+		},
+		{
+			"id" : "Hyperion.NET.Runtime::@dcf6d6b3a78d87189fa9"
+		},
+		{
+			"id" : "Hyperion.NET.Shared::@b1f7512934231ee3f25d"
+		}
+	],
+	"paths" : 
+	{
+		"build" : "editor",
+		"source" : "Engine/editor"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		},
+		{
+			"name" : "CMake Rules",
+			"sourceIndexes" : 
+			[
+				1
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "out/build/x64-release/editor/CMakeFiles/Hyperion.Editor",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 0,
+			"isGenerated" : true,
+			"path" : "out/build/x64-release/editor/CMakeFiles/Hyperion.Editor.rule",
+			"sourceGroupIndex" : 1
+		}
+	],
+	"type" : "UTILITY"
+}
