@@ -8,9 +8,9 @@
 
 #include <Core/Defines.hpp>
 
-#include <Core/threading/DataRaceDetector.hpp>
+#include <Core/Threading/DataRaceDetector.hpp>
 
-#include <Core/containers/TypeMap.hpp>
+#include <Core/Containers/TypeMap.hpp>
 
 #include <Rendering/GpuBuffer.hpp>
 

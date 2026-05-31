@@ -127,9 +127,9 @@ protected:
 #define INCLUDE_FROM_RHI_BASE
 
 #if HYP_VULKAN
-#include <Rendering/vulkan/VulkanFramebuffer.hpp>
+#include <Rendering/Vulkan/VulkanFramebuffer.hpp>
 #elif HYP_DX12
-#include <Rendering/dx12/DX12Framebuffer.hpp>
+#include <Rendering/DX12/DX12Framebuffer.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

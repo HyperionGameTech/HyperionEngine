@@ -9,8 +9,8 @@
 #include <Core/Constants.hpp>
 #include <Core/Types.hpp>
 
-#include <Core/containers/FixedArray.hpp>
-#include <Core/containers/Array.hpp>
+#include <Core/Containers/FixedArray.hpp>
+#include <Core/Containers/Array.hpp>
 
 #include <Rendering/CullData.hpp>
 

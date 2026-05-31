@@ -14,20 +14,20 @@
 #include <Rendering/RenderProxy.hpp>
 #include <Rendering/Shared.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
-#include <Core/reflection/Handle.hpp>
-#include <Core/threading/Threads.hpp>
+#include <Core/Reflection/Handle.hpp>
+#include <Core/Threading/Threads.hpp>
 
-#include <Core/math/Vector3.hpp>
-#include <Core/math/MathUtil.hpp>
+#include <Core/Math/Vector3.hpp>
+#include <Core/Math/MathUtil.hpp>
 
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
 
 #if HYP_EDITOR
 #include <Baking/BakerSubsystem.hpp>
-#include <Baking/fog_volume/FogVolumeBakeData.hpp>
+#include <Baking/FogVolume/FogVolumeBakeData.hpp>
 #endif
 
 #include <FogVolume.generated.inl>

@@ -14,11 +14,11 @@
 #include <Rendering/MaterialInstance.hpp>
 #include <Rendering/InstancedMeshData.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Scene/Entity.hpp>
 
-#include <Scene/animation/Skeleton.hpp>
+#include <Scene/Animation/Skeleton.hpp>
 
 #include <DrawCall.generated.inl>
 

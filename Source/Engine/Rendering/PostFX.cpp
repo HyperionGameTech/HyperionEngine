@@ -11,9 +11,9 @@
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/DescriptorSet.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
-#include <Rendering/util/MeshBuilder.hpp>
+#include <Rendering/Util/MeshBuilder.hpp>
 
 namespace Hyperion {
 

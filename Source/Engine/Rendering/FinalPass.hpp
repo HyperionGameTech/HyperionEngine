@@ -6,9 +6,9 @@
 
 #pragma once
 
-#include <Core/reflection/Handle.hpp>
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/containers/SparsePagedArray.hpp>
+#include <Core/Reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Containers/SparsePagedArray.hpp>
 
 #include <Core/Types.hpp>
 

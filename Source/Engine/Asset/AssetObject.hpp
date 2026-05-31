@@ -10,18 +10,18 @@
 #include <Asset/AssetTypes.hpp>
 #include <Asset/BlobStorageStructs.hpp>
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/Handle.hpp>
 
-#include <Core/utilities/Result.hpp>
+#include <Core/Utilities/Result.hpp>
 
-#include <Core/filesystem/FilePath.hpp>
+#include <Core/FileSystem/FilePath.hpp>
 
-#include <Core/memory/resource/Resource.hpp>
+#include <Core/Memory/Resource/Resource.hpp>
 
-#include <Core/memory/pool/Pool.hpp>
+#include <Core/Memory/Pool/Pool.hpp>
 
-#include <Core/logging/LoggerFwd.hpp>
+#include <Core/Logging/LoggerFwd.hpp>
 
 #include <Core/Constants.hpp>
 #include <Core/Defines.hpp>

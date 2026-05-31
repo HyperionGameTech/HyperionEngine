@@ -13,33 +13,33 @@
 #include <Scene/EntityTag.hpp>
 #include <Scene/EntityManager.hpp>
 
-#include <Scene/camera/Camera.hpp>
-#include <Scene/camera/OrthoCamera.hpp>
-#include <Scene/camera/PerspectiveCamera.hpp>
+#include <Scene/Camera/Camera.hpp>
+#include <Scene/Camera/OrthoCamera.hpp>
+#include <Scene/Camera/PerspectiveCamera.hpp>
 
-#include <Rendering/shadows/ShadowMap.hpp>
-#include <Rendering/shadows/ShadowCameraHelper.hpp>
+#include <Rendering/Shadows/ShadowMap.hpp>
+#include <Rendering/Shadows/ShadowCameraHelper.hpp>
 
 #include <Rendering/MaterialInstance.hpp>
 #include <Rendering/RenderProxy.hpp>
 #include <Rendering/RenderInterface.hpp>
 
-#include <Rendering/passes/ShadowsPass.hpp>
+#include <Rendering/Passes/ShadowsPass.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
-#include <Core/threading/Threads.hpp>
+#include <Core/Threading/Threads.hpp>
 
 // for EnumToString
-#include <Core/reflection/Enum.hpp>
+#include <Core/Reflection/Enum.hpp>
 
-#include <Core/utilities/Float16.hpp>
+#include <Core/Utilities/Float16.hpp>
 
 #include <Framework/EngineDriver.hpp>
 
 #if HYP_EDITOR
 #include <Baking/BakerSubsystem.hpp>
-#include <Baking/shadow_map/ShadowMapBakeData.hpp>
+#include <Baking/ShadowMap/ShadowMapBakeData.hpp>
 #endif
 
 #include <Light.generated.inl>

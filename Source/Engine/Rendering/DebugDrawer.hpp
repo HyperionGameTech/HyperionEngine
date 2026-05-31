@@ -6,20 +6,20 @@
 
 #pragma once
 
-#include <Core/containers/Array.hpp>
-#include <Core/containers/FixedArray.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/FixedArray.hpp>
 
-#include <Core/threading/AtomicVar.hpp>
-#include <Core/threading/Mutex.hpp>
+#include <Core/Threading/AtomicVar.hpp>
+#include <Core/Threading/Mutex.hpp>
 
-#include <Core/config/Config.hpp>
+#include <Core/Config/Config.hpp>
 
-#include <Core/math/Transform.hpp>
-#include <Core/math/Frustum.hpp>
-#include <Core/math/Color.hpp>
-#include <Core/math/Vector2.hpp>
-#include <Core/math/Vector3.hpp>
-#include <Core/math/Vector4.hpp>
+#include <Core/Math/Transform.hpp>
+#include <Core/Math/Frustum.hpp>
+#include <Core/Math/Color.hpp>
+#include <Core/Math/Vector2.hpp>
+#include <Core/Math/Vector3.hpp>
+#include <Core/Math/Vector4.hpp>
 
 #include <Rendering/GraphicsPipelineCache.hpp>
 #include <Rendering/RenderTypes.hpp>

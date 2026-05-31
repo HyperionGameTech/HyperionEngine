@@ -6,10 +6,10 @@
 
 #pragma once
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/Handle.hpp>
 
-#include <Core/math/Vector3.hpp>
+#include <Core/Math/Vector3.hpp>
 
 #include <Core/Types.hpp>
 

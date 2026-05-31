@@ -1,0 +1,39 @@
+/*!
+ *  @author: The Hyperion Contributors
+ *  @date 2016-2026
+ *  @licence MIT
+*/
+
+#pragma once
+
+#include <Core/Types.hpp>
+#include <Core/Constants.hpp>
+
+#include <Core/Containers/FixedArray.hpp>
+
+#include <Vulkan/vulkan.h>
+
+namespace Hyperion {
+
+HYP_ENUM()
+enum class VulkanDeviceQueueType : uint8
+{
+    INVALID = 0,
+
+    GRAPHICS,
+    COMPUTE,
+    TRANSFER,
+    PRESENT,
+
+    MAX
+};
+
+struct VulkanDeviceQueue
+{
+    VulkanDeviceQueueType type = VulkanDeviceQueueType::INVALID;
+    VkQueue queue = VK_NULL_HANDLE;
+    uint32 familyIndex = 0;
+    FixedArray<VkCommandPool, NumRendererWorkerThreads + 1> commandPools {};
+};
+
+} // namespace Hyperion

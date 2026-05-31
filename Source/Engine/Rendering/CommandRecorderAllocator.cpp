@@ -10,10 +10,10 @@
 
 #include <Rendering/RenderInterface.hpp>
 
-#include <Core/threading/Threads.hpp>
-#include <Core/threading/AtomicVar.hpp>
+#include <Core/Threading/Threads.hpp>
+#include <Core/Threading/AtomicVar.hpp>
 
-#include <Core/memory/allocator/Allocator.hpp>
+#include <Core/Memory/Allocator/Allocator.hpp>
 
 namespace Hyperion {
 

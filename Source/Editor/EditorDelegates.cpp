@@ -11,7 +11,7 @@
 #include <Scene/Node.hpp>
 #include <Scene/Scene.hpp>
 
-#include <Core/threading/Threads.hpp>
+#include <Core/Threading/Threads.hpp>
 
 namespace Hyperion {
 

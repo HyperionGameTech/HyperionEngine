@@ -9,9 +9,9 @@
 #include <Rendering/ScratchImageAllocator.hpp>
 #include <Rendering/RenderInterface.hpp>
 
-#include <Core/threading/SharedMutex.hpp>
+#include <Core/Threading/SharedMutex.hpp>
 
-#include <Core/reflection/Enum.hpp>
+#include <Core/Reflection/Enum.hpp>
 
 namespace Hyperion {
 

@@ -16,9 +16,9 @@
 
 #include <Asset/AssetRegistry.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
-#include <Core/utilities/ByteUtil.hpp>
+#include <Core/Utilities/ByteUtil.hpp>
 
 #include <Framework/EngineDriver.hpp>
 

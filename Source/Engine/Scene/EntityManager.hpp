@@ -6,33 +6,33 @@
 
 #pragma once
 
-#include <Core/containers/Array.hpp>
-#include <Core/containers/FlatMap.hpp>
-#include <Core/containers/FlatSet.hpp>
-#include <Core/containers/Map.hpp>
-#include <Core/containers/Set.hpp>
-#include <Core/containers/TypeMap.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/FlatMap.hpp>
+#include <Core/Containers/FlatSet.hpp>
+#include <Core/Containers/Map.hpp>
+#include <Core/Containers/Set.hpp>
+#include <Core/Containers/TypeMap.hpp>
 
-#include <Core/memory/UniquePtr.hpp>
-#include <Core/memory/AnyRef.hpp>
+#include <Core/Memory/UniquePtr.hpp>
+#include <Core/Memory/AnyRef.hpp>
 
-#include <Core/functional/Proc.hpp>
+#include <Core/Functional/Proc.hpp>
 
-#include <Core/threading/Mutex.hpp>
-#include <Core/threading/Threads.hpp>
-#include <Core/threading/Task.hpp>
-#include <Core/threading/Semaphore.hpp>
-#include <Core/threading/DataRaceDetector.hpp>
+#include <Core/Threading/Mutex.hpp>
+#include <Core/Threading/Threads.hpp>
+#include <Core/Threading/Task.hpp>
+#include <Core/Threading/Semaphore.hpp>
+#include <Core/Threading/DataRaceDetector.hpp>
 
-#include <Core/utilities/Tuple.hpp>
-#include <Core/utilities/EnumFlags.hpp>
-#include <Core/utilities/ForEach.hpp>
+#include <Core/Utilities/Tuple.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
+#include <Core/Utilities/ForEach.hpp>
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
-#include <Core/reflection/ObjId.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/Handle.hpp>
+#include <Core/Reflection/ObjId.hpp>
 
-#include <Core/profiling/PerformanceClock.hpp>
+#include <Core/Profiling/PerformanceClock.hpp>
 
 #include <Scene/Entity.hpp>
 #include <Scene/EntitySet.hpp>

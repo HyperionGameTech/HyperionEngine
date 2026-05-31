@@ -9,20 +9,20 @@
 #include <Core/Constants.hpp>
 #include <Core/Defines.hpp>
 
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/Handle.hpp>
 
-#include <Core/containers/FixedArray.hpp>
-#include <Core/containers/Array.hpp>
-#include <Core/containers/Map.hpp>
-#include <Core/containers/LinkedList.hpp>
+#include <Core/Containers/FixedArray.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/Map.hpp>
+#include <Core/Containers/LinkedList.hpp>
 
-#include <Core/utilities/DeferredScope.hpp>
+#include <Core/Utilities/DeferredScope.hpp>
 
-#include <Core/threading/Mutex.hpp>
+#include <Core/Threading/Mutex.hpp>
 
-#include <Core/memory/ByteBuffer.hpp>
+#include <Core/Memory/ByteBuffer.hpp>
 
-#include <Core/memory/pool/Pool.hpp>
+#include <Core/Memory/Pool/Pool.hpp>
 
 #include <Rendering/RenderResult.hpp>
 #include <Rendering/CommandRecorder.hpp>

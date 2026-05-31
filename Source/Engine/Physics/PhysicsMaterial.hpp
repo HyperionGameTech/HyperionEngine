@@ -9,7 +9,7 @@
 #include <Core/Defines.hpp>
 #include <Core/HashCode.hpp>
 
-#include <Core/reflection/ObjectMacros.hpp>
+#include <Core/Reflection/ObjectMacros.hpp>
 
 namespace Hyperion {
 

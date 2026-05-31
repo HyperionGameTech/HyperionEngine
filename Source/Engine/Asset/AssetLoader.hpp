@@ -9,21 +9,21 @@
 #include <Asset/AssetPath.hpp>
 #include <Asset/Loader.hpp>
 
-#include <Core/reflection/ObjId.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjId.hpp>
+#include <Core/Reflection/Handle.hpp>
 
-#include <Core/reflection/BoxedValue.hpp>
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/BoxedValue.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/Handle.hpp>
 
-#include <Core/functional/Proc.hpp>
+#include <Core/Functional/Proc.hpp>
 
-#include <Core/utilities/Optional.hpp>
-#include <Core/utilities/FormatFwd.hpp>
+#include <Core/Utilities/Optional.hpp>
+#include <Core/Utilities/FormatFwd.hpp>
 
-#include <Core/logging/LoggerFwd.hpp>
+#include <Core/Logging/LoggerFwd.hpp>
 
-#include <Core/debug/Debug.hpp>
+#include <Core/Debug/Debug.hpp>
 
 #include <Core/Constants.hpp>
 

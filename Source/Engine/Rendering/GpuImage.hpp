@@ -8,9 +8,9 @@
 
 #include <Core/Defines.hpp>
 
-#include <Core/math/Rect.hpp>
+#include <Core/Math/Rect.hpp>
 
-#include <Core/utilities/EnumFlags.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
 
 #include <Rendering/RenderResult.hpp>
 #include <Rendering/Shared.hpp>
@@ -269,9 +269,9 @@ protected:
 #define INCLUDE_FROM_RHI_BASE
 
 #if HYP_VULKAN
-#include <Rendering/vulkan/VulkanGpuImage.hpp>
+#include <Rendering/Vulkan/VulkanGpuImage.hpp>
 #elif HYP_DX12
-#include <Rendering/dx12/DX12GpuImage.hpp>
+#include <Rendering/DX12/DX12GpuImage.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

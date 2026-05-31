@@ -8,12 +8,12 @@
 
 #include <Rendering/RenderableAttributes.hpp>
 
-#include <Core/containers/FixedArray.hpp>
-#include <Core/containers/String.hpp>
+#include <Core/Containers/FixedArray.hpp>
+#include <Core/Containers/String.hpp>
 
-#include <Core/reflection/ObjectFwd.hpp>
+#include <Core/Reflection/ObjectFwd.hpp>
 
-#include <Core/math/Color.hpp>
+#include <Core/Math/Color.hpp>
 
 #include <Core/Types.hpp>
 #include <Core/HashCode.hpp>

@@ -6,17 +6,17 @@
 
 #pragma once
 
-#include <Editor/ui/EditorUI.hpp>
+#include <Editor/UI/EditorUI.hpp>
 
 #include <Editor/EditorActionStack.hpp>
 #include <Editor/EditorTask.hpp>
 
 #include <Scene/Subsystem.hpp>
 
-#include <Core/math/BoundingBox.hpp>
+#include <Core/Math/BoundingBox.hpp>
 
-#include <Core/functional/Delegate.hpp>
-#include <Core/containers/Set.hpp>
+#include <Core/Functional/Delegate.hpp>
+#include <Core/Containers/Set.hpp>
 
 namespace Hyperion {
 

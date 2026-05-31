@@ -9,15 +9,15 @@
 #include <Framework/EngineStats.hpp>
 #include <Framework/EngineGlobals.hpp>
 
-#include <Core/math/MathUtil.hpp>
+#include <Core/Math/MathUtil.hpp>
 
-#include <Core/threading/AtomicVar.hpp>
+#include <Core/Threading/AtomicVar.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/CommandBuffer.hpp>
 #include <Rendering/Frame.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <EngineStats.generated.inl>
 

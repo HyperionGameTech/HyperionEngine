@@ -8,7 +8,7 @@
 
 #include <Rendering/GpuImageView.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <GpuImageView.generated.inl>
 

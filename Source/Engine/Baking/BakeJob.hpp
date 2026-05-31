@@ -6,15 +6,15 @@
 
 #pragma once
 
-#include <Core/threading/Mutex.hpp>
-#include <Core/threading/AtomicVar.hpp>
-#include <Core/threading/Task.hpp>
-#include <Core/threading/Semaphore.hpp>
-#include <Core/threading/ThreadSignal.hpp>
+#include <Core/Threading/Mutex.hpp>
+#include <Core/Threading/AtomicVar.hpp>
+#include <Core/Threading/Task.hpp>
+#include <Core/Threading/Semaphore.hpp>
+#include <Core/Threading/ThreadSignal.hpp>
 
-#include <Core/utilities/Span.hpp>
-#include <Core/utilities/Uuid.hpp>
-#include <Core/utilities/Result.hpp>
+#include <Core/Utilities/Span.hpp>
+#include <Core/Utilities/Uuid.hpp>
+#include <Core/Utilities/Result.hpp>
 
 #include <Baking/BakeData.hpp>
 #include <Baking/LightmapTexel.hpp>

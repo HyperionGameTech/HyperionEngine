@@ -10,41 +10,41 @@
 
 #include <Input/Event.hpp>
 
-#include <Core/cli/CommandLine.hpp>
+#include <Core/CLI/CommandLine.hpp>
 
-#include <Core/debug/Debug.hpp>
+#include <Core/Debug/Debug.hpp>
 
-#include <Core/threading/ThreadSignal.hpp>
+#include <Core/Threading/ThreadSignal.hpp>
 
-#include <Core/reflection/ClassRegistry.hpp>
+#include <Core/Reflection/ClassRegistry.hpp>
 
-#include <Core/config/Config.hpp>
+#include <Core/Config/Config.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/Device.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #if HYP_VULKAN
-#include <vulkan/vulkan.h>
+#include <Vulkan/vulkan.h>
 #if HYP_WINDOWS
-#include <vulkan/vulkan_win32.h>
+#include <Vulkan/vulkan_win32.h>
 #elif HYP_APPLE
-#include <vulkan/vulkan_metal.h>
+#include <Vulkan/vulkan_metal.h>
 #elif HYP_ANDROID
-#include <vulkan/vulkan_android.h>
+#include <Vulkan/vulkan_android.h>
 #elif HYP_LINUX
-#include <vulkan/vulkan_xlib.h>
+#include <Vulkan/vulkan_xlib.h>
 #endif
 
-#include <Rendering/vulkan/VulkanInstance.hpp>
+#include <Rendering/Vulkan/VulkanInstance.hpp>
 #endif // HYP_VULKAN
 
 #include <Rendering/Swapchain.hpp>
 
 #include <Framework/EngineDriver.hpp>
 
-#include <Framework/commandlet/Commandlet.hpp>
+#include <Framework/Commandlet/Commandlet.hpp>
 
 #include <Framework/threads/MainThread.hpp>
 #include <Framework/threads/RenderThread.hpp>

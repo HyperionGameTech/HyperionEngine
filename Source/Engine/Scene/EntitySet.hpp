@@ -6,16 +6,16 @@
 
 #pragma once
 
-#include <Core/containers/FlatMap.hpp>
-#include <Core/containers/Array.hpp>
-#include <Core/containers/FixedArray.hpp>
+#include <Core/Containers/FlatMap.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/FixedArray.hpp>
 
-#include <Core/utilities/Tuple.hpp>
-#include <Core/utilities/ValueStorage.hpp>
+#include <Core/Utilities/Tuple.hpp>
+#include <Core/Utilities/ValueStorage.hpp>
 
-#include <Core/memory/UniquePtr.hpp>
+#include <Core/Memory/UniquePtr.hpp>
 
-#include <Core/threading/DataRaceDetector.hpp>
+#include <Core/Threading/DataRaceDetector.hpp>
 
 #include <Scene/Entity.hpp>
 #include <Scene/EntitySetHelpers.hpp>

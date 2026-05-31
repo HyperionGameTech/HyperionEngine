@@ -9,12 +9,12 @@
 #include <Rendering/RenderCommand.hpp>
 #include <Rendering/RenderInterface.hpp>
 
-#include <Core/threading/Threads.hpp>
+#include <Core/Threading/Threads.hpp>
 
-#include <Core/logging/LogChannels.hpp>
-#include <Core/logging/Logger.hpp>
+#include <Core/Logging/LogChannels.hpp>
+#include <Core/Logging/Logger.hpp>
 
-#include <Core/profiling/ProfileScope.hpp>
+#include <Core/Profiling/ProfileScope.hpp>
 
 namespace Hyperion {
 RenderCommands::Buffer RenderCommands::s_buffers[2] = {};

@@ -27,15 +27,15 @@
 #include <Rendering/Sampler.hpp>
 #include <Rendering/TextureViewCache.hpp>
 
-#include <Rendering/util/ShaderCompiler.hpp>
+#include <Rendering/Util/ShaderCompiler.hpp>
 
 #include <Rendering/GpuTimerBackend.hpp>
 
-#include <Core/reflection/Enum.hpp>
+#include <Core/Reflection/Enum.hpp>
 
 #include <Scene/View.hpp>
 
-#include <Rendering/util/MeshBuilder.hpp>
+#include <Rendering/Util/MeshBuilder.hpp>
 
 namespace Hyperion {
 

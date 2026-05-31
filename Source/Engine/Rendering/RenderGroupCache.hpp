@@ -6,10 +6,10 @@
 
 #pragma once
 
-#include <Core/containers/Map.hpp>
-#include <Core/containers/Array.hpp>
+#include <Core/Containers/Map.hpp>
+#include <Core/Containers/Array.hpp>
 
-#include <Core/utilities/IdGenerator.hpp>
+#include <Core/Utilities/IdGenerator.hpp>
 
 #include <Rendering/RenderableAttributes.hpp>
 

@@ -6,17 +6,17 @@
 
 #pragma once
 
-#include <Core/containers/FlatMap.hpp>
+#include <Core/Containers/FlatMap.hpp>
 
-#include <Core/memory/resource/Resource.hpp>
+#include <Core/Memory/Resource/Resource.hpp>
 
-#include <Core/memory/allocator/ThreadAllocator.hpp>
+#include <Core/Memory/Allocator/ThreadAllocator.hpp>
 
-#include <Core/threading/DataRaceDetector.hpp>
-#include <Core/threading/Task.hpp>
-#include <Core/threading/TaskSystem.hpp>
+#include <Core/Threading/DataRaceDetector.hpp>
+#include <Core/Threading/Task.hpp>
+#include <Core/Threading/TaskSystem.hpp>
 
-#include <Core/reflection/ObjId.hpp>
+#include <Core/Reflection/ObjId.hpp>
 
 #include <Core/Types.hpp>
 

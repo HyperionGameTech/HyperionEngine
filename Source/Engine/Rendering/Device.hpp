@@ -8,8 +8,8 @@
 
 #include <Core/Defines.hpp>
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 #include <Rendering/RenderMemory.hpp>
 
@@ -32,9 +32,9 @@ public:
 #define INCLUDE_FROM_RHI_BASE
 
 #if HYP_VULKAN
-#include <Rendering/vulkan/VulkanDevice.hpp>
+#include <Rendering/Vulkan/VulkanDevice.hpp>
 #elif HYP_DX12
-#include <Rendering/dx12/DX12Device.hpp>
+#include <Rendering/DX12/DX12Device.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

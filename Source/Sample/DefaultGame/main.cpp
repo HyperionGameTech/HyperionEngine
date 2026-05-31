@@ -1,4 +1,4 @@
-#include <Core/logging/Logger.hpp>
+#include <Core/Logging/Logger.hpp>
 
 #include <HyperionEngine.hpp>
 

@@ -1,0 +1,104 @@
+/*!
+ *  @author: The Hyperion Contributors
+ *  @date 2016-2026
+ *  @licence MIT
+*/
+
+#pragma once
+
+#include <Core/Containers/String.hpp>
+#include <Core/Memory/ByteBuffer.hpp>
+#include <Core/Memory/UniquePtr.hpp>
+#include <Core/Utilities/Optional.hpp>
+
+namespace Hyperion {
+namespace threading {
+class TaskThread;
+} // namespace threading
+
+using threading::TaskThread;
+
+class RTCTrackBase;
+
+class ENGINE_API RTCStreamEncoder
+{
+public:
+    RTCStreamEncoder() = default;
+    RTCStreamEncoder(const RTCStreamEncoder& other) = delete;
+    RTCStreamEncoder& operator=(const RTCStreamEncoder& other) = delete;
+    RTCStreamEncoder(RTCStreamEncoder&& other) noexcept = default;
+    RTCStreamEncoder& operator=(RTCStreamEncoder&& other) noexcept = default;
+    virtual ~RTCStreamEncoder() = default;
+
+    virtual void PushData(ByteBuffer data) = 0;
+    virtual Optional<ByteBuffer> PullData() = 0;
+
+    virtual void Start() = 0;
+    virtual void Stop() = 0;
+};
+
+class ENGINE_API RTCStreamVideoEncoder : public RTCStreamEncoder
+{
+public:
+    RTCStreamVideoEncoder() = default;
+    RTCStreamVideoEncoder(const RTCStreamVideoEncoder& other) = delete;
+    RTCStreamVideoEncoder& operator=(const RTCStreamVideoEncoder& other) = delete;
+    RTCStreamVideoEncoder(RTCStreamVideoEncoder&& other) noexcept = default;
+    RTCStreamVideoEncoder& operator=(RTCStreamVideoEncoder&& other) noexcept = default;
+    virtual ~RTCStreamVideoEncoder() override = default;
+
+    virtual void PushData(ByteBuffer data) override = 0;
+    virtual Optional<ByteBuffer> PullData() override = 0;
+
+    virtual void Start() override = 0;
+    virtual void Stop() override = 0;
+};
+
+class ENGINE_API NullRTCStreamVideoEncoder : public RTCStreamVideoEncoder
+{
+public:
+    NullRTCStreamVideoEncoder() = default;
+    NullRTCStreamVideoEncoder(const NullRTCStreamVideoEncoder& other) = delete;
+    NullRTCStreamVideoEncoder& operator=(const NullRTCStreamVideoEncoder& other) = delete;
+    NullRTCStreamVideoEncoder(NullRTCStreamVideoEncoder&& other) noexcept = default;
+    NullRTCStreamVideoEncoder& operator=(NullRTCStreamVideoEncoder&& other) noexcept = default;
+    virtual ~NullRTCStreamVideoEncoder() override = default;
+
+    virtual void PushData(ByteBuffer data) override;
+    virtual Optional<ByteBuffer> PullData() override;
+
+    virtual void Start() override;
+    virtual void Stop() override;
+};
+
+#ifdef HYP_GSTREAMER
+
+class GStreamerThread;
+
+class ENGINE_API GStreamerRTCStreamVideoEncoder : public RTCStreamVideoEncoder
+{
+public:
+    GStreamerRTCStreamVideoEncoder();
+    GStreamerRTCStreamVideoEncoder(const GStreamerRTCStreamVideoEncoder& other) = delete;
+    GStreamerRTCStreamVideoEncoder& operator=(const GStreamerRTCStreamVideoEncoder& other) = delete;
+    GStreamerRTCStreamVideoEncoder(GStreamerRTCStreamVideoEncoder&& other) noexcept = default;
+    GStreamerRTCStreamVideoEncoder& operator=(GStreamerRTCStreamVideoEncoder&& other) noexcept = default;
+    virtual ~GStreamerRTCStreamVideoEncoder() override;
+
+    virtual void PushData(ByteBuffer data) override;
+    virtual Optional<ByteBuffer> PullData() override;
+
+    virtual void Start() override;
+    virtual void Stop() override;
+
+private:
+    UniquePtr<GStreamerThread> m_thread;
+};
+
+#else
+
+using GStreamerRTCStreamVideoEncoder = NullRTCStreamVideoEncoder;
+
+#endif
+
+} // namespace Hyperion

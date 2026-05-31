@@ -6,16 +6,16 @@
 
 #pragma once
 
-#include <Core/containers/Array.hpp>
-#include <Core/containers/FixedArray.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/FixedArray.hpp>
 
-#include <Core/utilities/Tuple.hpp>
+#include <Core/Utilities/Tuple.hpp>
 
-#include <Core/threading/SharedMutex.hpp>
+#include <Core/Threading/SharedMutex.hpp>
 
-#include <Core/memory/resource/Resource.hpp>
+#include <Core/Memory/Resource/Resource.hpp>
 
-#include <Core/reflection/ObjId.hpp>
+#include <Core/Reflection/ObjId.hpp>
 
 #include <Rendering/RenderableAttributes.hpp>
 #include <Rendering/Shared.hpp>

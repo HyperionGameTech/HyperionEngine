@@ -6,12 +6,12 @@
 
 #pragma once
 
-#include <Core/reflection/ObjId.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjId.hpp>
+#include <Core/Reflection/Handle.hpp>
 
-#include <Core/utilities/IdGenerator.hpp>
+#include <Core/Utilities/IdGenerator.hpp>
 
-#include <Core/containers/Map.hpp>
+#include <Core/Containers/Map.hpp>
 
 #include <Rendering/RenderTypes.hpp>
 

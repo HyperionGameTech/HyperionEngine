@@ -9,8 +9,8 @@
 #include <Rendering/Device.hpp>
 #include <Rendering/GpuBuffer.hpp>
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 #include <Core/Defines.hpp>
 
@@ -71,9 +71,9 @@ protected:
 #define INCLUDE_FROM_RHI_BASE
 
 #if HYP_VULKAN
-#include <Rendering/vulkan/VulkanCommandBuffer.hpp>
+#include <Rendering/Vulkan/VulkanCommandBuffer.hpp>
 #elif HYP_DX12
-#include <Rendering/dx12/DX12CommandBuffer.hpp>
+#include <Rendering/DX12/DX12CommandBuffer.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

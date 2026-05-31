@@ -8,11 +8,11 @@
 
 #include <Editor/EditorTask.hpp>
 
-#include <Core/containers/Array.hpp>
+#include <Core/Containers/Array.hpp>
 
-#include <Core/functional/Delegate.hpp>
+#include <Core/Functional/Delegate.hpp>
 
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 #include <Core/Defines.hpp>
 

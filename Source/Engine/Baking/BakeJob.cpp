@@ -9,7 +9,7 @@
 #include <Baking/BakeJob.hpp>
 #include <Baking/Baker.hpp>
 
-#include <Baking/lightmaps/LightmapPathTraceGpu.hpp>
+#include <Baking/Lightmaps/LightmapPathTraceGpu.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/RenderHelpers.hpp>
@@ -30,12 +30,12 @@
 #include <Scene/FogVolume.hpp>
 #include <Scene/LightmapVolume.hpp>
 
-#include <Scene/util/VoxelOctree.hpp>
+#include <Scene/Util/VoxelOctree.hpp>
 
-#include <Core/debug/Debug.hpp>
+#include <Core/Debug/Debug.hpp>
 
-#include <Core/threading/TaskSystem.hpp>
-#include <Core/threading/TaskThread.hpp>
+#include <Core/Threading/TaskSystem.hpp>
+#include <Core/Threading/TaskThread.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/EngineDriver.hpp>

@@ -8,21 +8,21 @@
 
 #include <Core/Defines.hpp>
 
-#include <Core/name/Name.hpp>
+#include <Core/Name/Name.hpp>
 
-#include <Core/containers/String.hpp>
-#include <Core/containers/Array.hpp>
-#include <Core/containers/FlatSet.hpp>
+#include <Core/Containers/String.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/FlatSet.hpp>
 
-#include <Core/functional/Delegate.hpp>
-#include <Core/functional/Proc.hpp>
+#include <Core/Functional/Delegate.hpp>
+#include <Core/Functional/Proc.hpp>
 
-#include <Core/threading/Mutex.hpp>
-#include <Core/threading/Scheduler.hpp>
+#include <Core/Threading/Mutex.hpp>
+#include <Core/Threading/Scheduler.hpp>
 
-#include <Core/reflection/Property.hpp>
+#include <Core/Reflection/Property.hpp>
 
-#include <Core/math/Transform.hpp>
+#include <Core/Math/Transform.hpp>
 
 #include <Core/Types.hpp>
 

@@ -9,18 +9,18 @@
 #include <Core/Constants.hpp>
 #include <Core/Types.hpp>
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/Handle.hpp>
 
-#include <Core/math/Ray.hpp>
+#include <Core/Math/Ray.hpp>
 
-#include <Core/utilities/EnumFlags.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
 
-#include <Core/functional/Delegate.hpp>
+#include <Core/Functional/Delegate.hpp>
 
-#include <Core/memory/resource/Resource.hpp>
+#include <Core/Memory/Resource/Resource.hpp>
 
-#include <Core/math/Frustum.hpp>
+#include <Core/Math/Frustum.hpp>
 
 #include <Rendering/Shared.hpp>
 #include <Rendering/RenderableAttributes.hpp>

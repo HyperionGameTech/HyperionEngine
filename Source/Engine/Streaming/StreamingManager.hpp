@@ -8,18 +8,18 @@
 
 #include <Core/Defines.hpp>
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/Handle.hpp>
 
-#include <Core/memory/UniquePtr.hpp>
+#include <Core/Memory/UniquePtr.hpp>
 
-#include <Core/containers/Array.hpp>
+#include <Core/Containers/Array.hpp>
 
-#include <Core/functional/Proc.hpp>
+#include <Core/Functional/Proc.hpp>
 
-#include <Core/threading/ThreadSignal.hpp>
+#include <Core/Threading/ThreadSignal.hpp>
 
-#include <Core/logging/LoggerFwd.hpp>
+#include <Core/Logging/LoggerFwd.hpp>
 
 #include <Streaming/Streamable.hpp>
 

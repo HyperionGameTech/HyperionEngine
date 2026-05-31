@@ -2,9 +2,9 @@
 
 #include <Core/Types.hpp>
 
-#include <Core/filesystem/FilePath.hpp>
+#include <Core/FileSystem/FilePath.hpp>
 
-#include <Core/memory/ByteBuffer.hpp>
+#include <Core/Memory/ByteBuffer.hpp>
 
 namespace Hyperion {
 

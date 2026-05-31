@@ -10,32 +10,32 @@
 #include <Asset/AssetTypes.hpp>
 #include <Asset/AssetBucket.hpp>
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/Handle.hpp>
 
-#include <Core/filesystem/FilePath.hpp>
+#include <Core/FileSystem/FilePath.hpp>
 
-#include <Core/containers/Set.hpp>
+#include <Core/Containers/Set.hpp>
 
-#include <Core/utilities/StringView.hpp>
-#include <Core/utilities/ForEach.hpp>
-#include <Core/utilities/Result.hpp>
+#include <Core/Utilities/StringView.hpp>
+#include <Core/Utilities/ForEach.hpp>
+#include <Core/Utilities/Result.hpp>
 
-#include <Core/threading/SharedMutex.hpp>
-#include <Core/threading/SchedulerFwd.hpp>
+#include <Core/Threading/SharedMutex.hpp>
+#include <Core/Threading/SchedulerFwd.hpp>
 
-#include <Core/memory/resource/Resource.hpp>
+#include <Core/Memory/Resource/Resource.hpp>
 
-#include <Core/logging/LoggerFwd.hpp>
+#include <Core/Logging/LoggerFwd.hpp>
 
 #include <Core/Constants.hpp>
 #include <Core/Defines.hpp>
 
-#include <Core/utilities/ClockTimer.hpp>
+#include <Core/Utilities/ClockTimer.hpp>
 
 #include <Scripting/ScriptableDelegate.hpp>
 
-#include <Core/utilities/GlobalContext.hpp>
+#include <Core/Utilities/GlobalContext.hpp>
 
 namespace Hyperion {
 

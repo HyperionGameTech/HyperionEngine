@@ -8,7 +8,7 @@
 
 #include <Editor/EditorCommand.hpp>
 
-#include <Core/reflection/Class.hpp>
+#include <Core/Reflection/Class.hpp>
 
 #include <EditorCommand.generated.inl>
 

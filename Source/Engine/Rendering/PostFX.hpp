@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include <Core/containers/TypeMap.hpp>
-#include <Core/threading/Threads.hpp>
+#include <Core/Containers/TypeMap.hpp>
+#include <Core/Threading/Threads.hpp>
 
 #include <Rendering/FullScreenPass.hpp>
 

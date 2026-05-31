@@ -8,7 +8,7 @@
 
 #include <Core/Defines.hpp>
 
-#include <Core/functional/Proc.hpp>
+#include <Core/Functional/Proc.hpp>
 
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/RenderMemory.hpp>

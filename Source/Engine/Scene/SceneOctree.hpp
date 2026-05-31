@@ -6,27 +6,27 @@
 
 #pragma once
 
-#include <Util/octree/Octree.hpp>
+#include <Util/Octree/Octree.hpp>
 
-#include <Core/containers/Array.hpp>
-#include <Core/containers/FixedArray.hpp>
-#include <Core/containers/Map.hpp>
-#include <Core/containers/Set.hpp>
-#include <Core/containers/SparsePagedArray.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/FixedArray.hpp>
+#include <Core/Containers/Map.hpp>
+#include <Core/Containers/Set.hpp>
+#include <Core/Containers/SparsePagedArray.hpp>
 
-#include <Core/utilities/Pair.hpp>
+#include <Core/Utilities/Pair.hpp>
 
-#include <Core/memory/pool/Pool.hpp>
+#include <Core/Memory/Pool/Pool.hpp>
 
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 #include <Scene/Entity.hpp>
 #include <Scene/VisibilityState.hpp>
 #include <Scene/EntityTag.hpp>
 
-#include <Core/math/Vector3.hpp>
-#include <Core/math/BoundingBox.hpp>
-#include <Core/math/Ray.hpp>
+#include <Core/Math/Vector3.hpp>
+#include <Core/Math/BoundingBox.hpp>
+#include <Core/Math/Ray.hpp>
 
 #include <Core/Types.hpp>
 

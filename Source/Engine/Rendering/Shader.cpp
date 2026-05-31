@@ -8,7 +8,7 @@
 
 #include <Rendering/Shader.hpp>
 
-#include <Rendering/util/ShaderPropertyDictionary.hpp>
+#include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
 #include <Asset/AssetRegistry.hpp>
 #include <Asset/Assets.hpp>

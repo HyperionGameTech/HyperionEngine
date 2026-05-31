@@ -20,27 +20,27 @@
 
 #include <Scripting/ScriptableDelegate.hpp>
 
-#include <Core/utilities/EnumFlags.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
 
-#include <Core/memory/Memory.hpp>
+#include <Core/Memory/Memory.hpp>
 
-#include <Core/containers/FixedArray.hpp>
+#include <Core/Containers/FixedArray.hpp>
 
-#include <Core/config/Config.hpp>
+#include <Core/Config/Config.hpp>
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 #include <Rendering/RenderTypes.hpp>
 
 #include <Input/Mouse.hpp>
 
 #if HYP_VULKAN
-#include <vulkan/vulkan_core.h>
+#include <Vulkan/vulkan_core.h>
 #endif
 
 #ifdef HYP_MACOS
-#include <System/platform/mac/CocoaFwd.h>
+#include <System/Platform/Mac/CocoaFwd.h>
 #endif
 
 namespace Hyperion {
@@ -548,6 +548,6 @@ private:
 ENGINE_API void Win32_CleanupWindowClasses();
 #endif
 
-#include <System/helpers/AppContextHelpers.inc>
+#include <System/Helpers/AppContextHelpers.inc>
 
 } // namespace Hyperion

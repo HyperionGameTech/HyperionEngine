@@ -9,21 +9,21 @@
 #include <Core/HashCode.hpp>
 #include <Core/Types.hpp>
 
-#include <Core/containers/Map.hpp>
-#include <Core/containers/Set.hpp>
-#include <Core/containers/SparsePagedArray.hpp>
+#include <Core/Containers/Map.hpp>
+#include <Core/Containers/Set.hpp>
+#include <Core/Containers/SparsePagedArray.hpp>
 
-#include <Core/math/MathUtil.hpp>
+#include <Core/Math/MathUtil.hpp>
 
-#include <Core/memory/Memory.hpp>
+#include <Core/Memory/Memory.hpp>
 
-#include <Core/threading/SharedMutex.hpp>
-#include <Core/threading/LockGuard.hpp>
+#include <Core/Threading/SharedMutex.hpp>
+#include <Core/Threading/LockGuard.hpp>
 
-#include <Core/io/ByteWriter.hpp>
-#include <Core/io/ByteReader.hpp>
+#include <Core/IO/ByteWriter.hpp>
+#include <Core/IO/ByteReader.hpp>
 
-#include <Core/logging/Logger.hpp>
+#include <Core/Logging/Logger.hpp>
 
 namespace Hyperion {
 

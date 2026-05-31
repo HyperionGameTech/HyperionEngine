@@ -8,13 +8,13 @@
 
 #include <Framework/CVarManager.hpp>
 
-#include <Core/config/Config.hpp>
+#include <Core/Config/Config.hpp>
 
-#include <Core/containers/Array.hpp>
+#include <Core/Containers/Array.hpp>
 
-#include <Core/utilities/StringUtil.hpp>
+#include <Core/Utilities/StringUtil.hpp>
 
-#include <Core/threading/AtomicVar.hpp>
+#include <Core/Threading/AtomicVar.hpp>
 
 namespace Hyperion {
 

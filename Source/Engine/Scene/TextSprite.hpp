@@ -8,16 +8,16 @@
 
 #include <Core/Types.hpp>
 
-#include <Core/containers/String.hpp>
+#include <Core/Containers/String.hpp>
 
-#include <Core/math/Color.hpp>
-#include <Core/math/Transform.hpp>
+#include <Core/Math/Color.hpp>
+#include <Core/Math/Transform.hpp>
 
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 #include <Scene/Sprite.hpp>
 
-#include <UI/font/FontAtlas.hpp>
+#include <UI/Font/FontAtlas.hpp>
 
 namespace Hyperion {
 

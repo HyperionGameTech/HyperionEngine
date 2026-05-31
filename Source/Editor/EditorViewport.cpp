@@ -13,7 +13,7 @@
 
 #include <System/AppContext.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Scene/View.hpp>
 #include <Scene/Scene.hpp>

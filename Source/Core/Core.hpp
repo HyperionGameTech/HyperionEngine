@@ -6,9 +6,9 @@
 
 #pragma once
 
-#include <Core/filesystem/FilePath.hpp>
-#include <Core/cli/CommandLine.hpp>
-#include <Core/config/Config.hpp>
+#include <Core/FileSystem/FilePath.hpp>
+#include <Core/CLI/CommandLine.hpp>
+#include <Core/Config/Config.hpp>
 
 namespace Hyperion {
 namespace CoreApi {

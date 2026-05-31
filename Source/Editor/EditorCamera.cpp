@@ -11,14 +11,14 @@
 #include <Input/InputManager.hpp>
 #include <Input/InputHandler.hpp>
 
-#include <Core/config/Config.hpp>
+#include <Core/Config/Config.hpp>
 
-#include <Core/logging/Logger.hpp>
-#include <Core/logging/LogChannels.hpp>
+#include <Core/Logging/Logger.hpp>
+#include <Core/Logging/LogChannels.hpp>
 
 #include <System/AppContext.hpp>
 
-#include <Core/profiling/ProfileScope.hpp>
+#include <Core/Profiling/ProfileScope.hpp>
 
 #include <Framework/EngineDriver.hpp>
 #include <Framework/CVarManager.hpp>

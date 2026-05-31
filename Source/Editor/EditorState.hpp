@@ -11,10 +11,10 @@
 
 #include <Scene/Node.hpp>
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/Handle.hpp>
 
-#include <Core/threading/Mutex.hpp>
+#include <Core/Threading/Mutex.hpp>
 
 #include <Scripting/ScriptableDelegate.hpp>
 

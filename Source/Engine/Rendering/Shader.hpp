@@ -8,15 +8,15 @@
 
 #include <Core/Defines.hpp>
 
-#include <Core/containers/Array.hpp>
-#include <Core/containers/String.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/String.hpp>
 
-#include <Core/utilities/Pair.hpp>
-#include <Core/utilities/Time.hpp>
+#include <Core/Utilities/Pair.hpp>
+#include <Core/Utilities/Time.hpp>
 
 #include <Asset/AssetObject.hpp>
 
-#include <Rendering/util/ShaderCompiler.hpp>
+#include <Rendering/Util/ShaderCompiler.hpp>
 
 namespace Hyperion {
 

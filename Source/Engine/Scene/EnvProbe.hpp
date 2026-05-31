@@ -8,13 +8,13 @@
 
 #include <Core/HashCode.hpp>
 
-#include <Core/containers/Bitset.hpp>
+#include <Core/Containers/Bitset.hpp>
 
-#include <Core/memory/pool/Pool.hpp>
+#include <Core/Memory/Pool/Pool.hpp>
 
-#include <Core/utilities/EnumFlags.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
 
-#include <Core/math/BoundingBox.hpp>
+#include <Core/Math/BoundingBox.hpp>
 
 #include <Scene/Volume.hpp>
 

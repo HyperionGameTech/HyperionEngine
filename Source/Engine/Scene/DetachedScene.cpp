@@ -9,11 +9,11 @@
 #include <Scene/DetachedScene.hpp>
 #include <Scene/Scene.hpp>
 
-#include <Core/threading/Mutex.hpp>
-#include <Core/threading/Thread.hpp>
-#include <Core/threading/AtomicFlag.hpp>
+#include <Core/Threading/Mutex.hpp>
+#include <Core/Threading/Thread.hpp>
+#include <Core/Threading/AtomicFlag.hpp>
 
-#include <Core/threading/util/ThreadId.hpp>
+#include <Core/Threading/Util/ThreadId.hpp>
 
 #include <Framework/EngineDriver.hpp>
 

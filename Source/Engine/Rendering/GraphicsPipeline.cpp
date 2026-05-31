@@ -13,8 +13,8 @@
 #include <Rendering/RenderableAttributes.hpp>
 #include <Rendering/Shader.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
-#include <Rendering/util/ShaderCompiler.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
+#include <Rendering/Util/ShaderCompiler.hpp>
 
 #include <GraphicsPipeline.generated.inl>
 

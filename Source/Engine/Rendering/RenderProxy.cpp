@@ -3,7 +3,7 @@
 #include <Rendering/RenderProxy.hpp>
 #include <Rendering/AccelerationStructure.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <RenderProxy.generated.inl>
 

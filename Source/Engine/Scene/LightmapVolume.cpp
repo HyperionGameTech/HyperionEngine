@@ -11,29 +11,29 @@
 #include <Scene/Scene.hpp>
 #include <Scene/EntityManager.hpp>
 
-#include <Scene/components/LightmapElementComponent.hpp>
-#include <Scene/components/BoundingBoxComponent.hpp>
+#include <Scene/Components/LightmapElementComponent.hpp>
+#include <Scene/Components/BoundingBoxComponent.hpp>
 
 #include <Rendering/Texture.hpp>
 #include <Rendering/RenderProxy.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Asset/AssetRegistry.hpp>
 #include <Asset/Assets.hpp>
 
-#include <Core/io/ByteWriter.hpp>
+#include <Core/IO/ByteWriter.hpp>
 
-#include <Core/utilities/DeferredScope.hpp>
+#include <Core/Utilities/DeferredScope.hpp>
 
-#include <Core/threading/Threads.hpp>
+#include <Core/Threading/Threads.hpp>
 
 #include <Framework/EngineDriver.hpp>
 #include <Framework/EngineGlobals.hpp>
 
 #if HYP_EDITOR
 #include <Baking/BakerSubsystem.hpp>
-#include <Baking/lightmap_volume/LightmapVolumeBakeData.hpp>
+#include <Baking/LightmapVolume/LightmapVolumeBakeData.hpp>
 #endif
 
 #include <LightmapVolume.generated.inl>

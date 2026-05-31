@@ -18,9 +18,9 @@
 #include <Rendering/ShaderInstance.hpp>
 #include <Rendering/Shader.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
-#include <Core/threading/Threads.hpp>
+#include <Core/Threading/Threads.hpp>
 
 namespace Hyperion {
 

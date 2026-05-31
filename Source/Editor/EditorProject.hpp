@@ -6,20 +6,20 @@
 
 #pragma once
 
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/Handle.hpp>
 
-#include <Core/filesystem/FilePath.hpp>
+#include <Core/FileSystem/FilePath.hpp>
 
-#include <Core/reflection/ObjectBase.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
 
-#include <Core/functional/Delegate.hpp>
+#include <Core/Functional/Delegate.hpp>
 #include <Scripting/ScriptableDelegate.hpp>
 
-#include <Core/utilities/Result.hpp>
+#include <Core/Utilities/Result.hpp>
 
-#include <Core/utilities/Time.hpp>
+#include <Core/Utilities/Time.hpp>
 
-#include <Core/name/Name.hpp>
+#include <Core/Name/Name.hpp>
 
 namespace Hyperion {
 

@@ -9,10 +9,10 @@
 #include <Core/Defines.hpp>
 #include <Core/Types.hpp>
 
-#include <Core/reflection/ObjectMacros.hpp>
-#include <Core/reflection/ObjId.hpp>
+#include <Core/Reflection/ObjectMacros.hpp>
+#include <Core/Reflection/ObjId.hpp>
 
-#include <Core/containers/Array.hpp>
+#include <Core/Containers/Array.hpp>
 
 namespace Hyperion {
 

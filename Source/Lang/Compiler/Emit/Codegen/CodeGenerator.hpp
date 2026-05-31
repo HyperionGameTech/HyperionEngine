@@ -1,0 +1,67 @@
+#pragma once
+
+#include <Lang/Compiler/Emit/BuildableVisitor.hpp>
+#include <Lang/Compiler/Emit/Codegen/InternalByteStream.hpp>
+#include <Core/Containers/FlatMap.hpp>
+
+#include <Core/Debug/Debug.hpp>
+
+#include <map>
+#include <sstream>
+#include <vector>
+#include <cstdint>
+
+namespace Hyperion {
+
+class CodeGenerator : public BuildableVisitor
+{
+public:
+    CodeGenerator(BuildParams& buildParams);
+    virtual ~CodeGenerator() = default;
+
+    InternalByteStream& GetInternalByteStream()
+    {
+        return m_ibs;
+    }
+    const InternalByteStream& GetInternalByteStream() const
+    {
+        return m_ibs;
+    }
+
+    void Bake();
+
+    virtual void Visit(BytecodeChunk*);
+    virtual void Visit(LabelMarker*);
+    virtual void Visit(Jump*);
+    virtual void Visit(Comparison*);
+    virtual void Visit(FunctionCall*);
+    virtual void Visit(Return*);
+    virtual void Visit(StoreLocal*);
+    virtual void Visit(PopLocal*);
+    virtual void Visit(LoadRef*);
+    virtual void Visit(LoadDeref*);
+    virtual void Visit(ConstI32*);
+    virtual void Visit(ConstI64*);
+    virtual void Visit(ConstU32*);
+    virtual void Visit(ConstU64*);
+    virtual void Visit(ConstF32*);
+    virtual void Visit(ConstF64*);
+    virtual void Visit(ConstBool*);
+    virtual void Visit(ConstNull*);
+    virtual void Visit(LoadClass*);
+    virtual void Visit(TryCatchInfo*);
+    virtual void Visit(ScriptFunction*);
+    virtual void Visit(ClassTable*);
+    virtual void Visit(ConstString*);
+    virtual void Visit(StorageOperation*);
+    virtual void Visit(Comment*);
+    virtual void Visit(SymbolExport*);
+    virtual void Visit(CastOperation*);
+    virtual void Visit(RawOperation<>*);
+
+private:
+    BuildParams& buildParams;
+    InternalByteStream m_ibs;
+};
+
+} // namespace Hyperion

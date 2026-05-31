@@ -8,16 +8,16 @@
 
 #include <Scene/Subsystem.hpp>
 
-#include <Core/containers/LinkedList.hpp>
-#include <Core/containers/Map.hpp>
+#include <Core/Containers/LinkedList.hpp>
+#include <Core/Containers/Map.hpp>
 
-#include <Core/threading/Task.hpp>
+#include <Core/Threading/Task.hpp>
 
-#include <Core/memory/UniquePtr.hpp>
+#include <Core/Memory/UniquePtr.hpp>
 
-#include <Core/math/BoundingBox.hpp>
+#include <Core/Math/BoundingBox.hpp>
 
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/Handle.hpp>
 #include <Core/Defines.hpp>
 
 namespace Hyperion {

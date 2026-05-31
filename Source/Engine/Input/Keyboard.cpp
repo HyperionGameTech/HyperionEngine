@@ -10,7 +10,7 @@
 #include <Input/InputManager.hpp>
 #include <Input/Event.hpp>
 
-#include <Core/debug/Debug.hpp>
+#include <Core/Debug/Debug.hpp>
 
 #include <Keyboard.generated.inl>
 

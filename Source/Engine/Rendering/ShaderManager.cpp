@@ -14,14 +14,14 @@
 #include <Rendering/GraphicsPipelineCache.hpp>
 #include <Rendering/GenericPipelineCache.hpp>
 
-#include <Rendering/util/ShaderPropertyDictionary.hpp>
+#include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/Handle.hpp>
 
-#include <Core/threading/SharedMutex.hpp>
-#include <Core/threading/ThreadSignal.hpp>
+#include <Core/Threading/SharedMutex.hpp>
+#include <Core/Threading/ThreadSignal.hpp>
 
-#include <Core/threading/util/ThreadId.hpp>
+#include <Core/Threading/Util/ThreadId.hpp>
 
 #include <Framework/EngineStats.hpp>
 #include <Framework/EngineGlobals.hpp>

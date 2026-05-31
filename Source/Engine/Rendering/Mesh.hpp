@@ -6,18 +6,18 @@
 
 #pragma once
 
-#include <Core/utilities/Pair.hpp>
-#include <Core/utilities/EnumFlags.hpp>
+#include <Core/Utilities/Pair.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
 
-#include <Core/containers/Array.hpp>
+#include <Core/Containers/Array.hpp>
 
-#include <Core/threading/DataRaceDetector.hpp>
-#include <Core/threading/AtomicFlag.hpp>
+#include <Core/Threading/DataRaceDetector.hpp>
+#include <Core/Threading/AtomicFlag.hpp>
 
-#include <Core/math/BoundingBox.hpp>
+#include <Core/Math/BoundingBox.hpp>
 
-#include <Core/io/ByteReader.hpp>
-#include <Core/io/ByteWriter.hpp>
+#include <Core/IO/ByteReader.hpp>
+#include <Core/IO/ByteWriter.hpp>
 
 #include <Scene/BVH.hpp>
 

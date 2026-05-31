@@ -6,22 +6,22 @@
 
 #pragma once
 
-#include <Core/name/Name.hpp>
+#include <Core/Name/Name.hpp>
 #include <Core/Types.hpp>
 
-#include <Core/math/Color.hpp>
+#include <Core/Math/Color.hpp>
 
-#include <Core/utilities/DataMutationState.hpp>
+#include <Core/Utilities/DataMutationState.hpp>
 
 #include <Scripting/ScriptableDelegate.hpp>
 
-#include <Core/logging/LoggerFwd.hpp>
+#include <Core/Logging/LoggerFwd.hpp>
 
 #include <Scene/Node.hpp>
 #include <Scene/Entity.hpp>
 #include <Scene/SceneOctree.hpp>
 
-#include <Scene/camera/Camera.hpp>
+#include <Scene/Camera/Camera.hpp>
 
 #include <Rendering/RenderTypes.hpp>
 

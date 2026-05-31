@@ -9,7 +9,7 @@
 #include <Core/Defines.hpp>
 #include <Core/Types.hpp>
 
-#include <Core/name/Name.hpp>
+#include <Core/Name/Name.hpp>
 
 namespace Hyperion {
 

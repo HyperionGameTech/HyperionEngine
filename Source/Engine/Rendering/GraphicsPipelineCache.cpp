@@ -19,18 +19,18 @@
 #include <Rendering/ShaderInstance.hpp>
 
 // For Shader
-#include <Rendering/util/ShaderCompiler.hpp>
+#include <Rendering/Util/ShaderCompiler.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
-#include <Core/threading/Threads.hpp>
-#include <Core/threading/Task.hpp>
+#include <Core/Threading/Threads.hpp>
+#include <Core/Threading/Task.hpp>
 
-#include <Core/containers/SparsePagedArray.hpp>
+#include <Core/Containers/SparsePagedArray.hpp>
 
-#include <Core/profiling/PerformanceClock.hpp>
+#include <Core/Profiling/PerformanceClock.hpp>
 
-#include <Core/utilities/DeferredScope.hpp>
+#include <Core/Utilities/DeferredScope.hpp>
 
 namespace Hyperion {
 

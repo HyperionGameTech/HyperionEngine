@@ -6,15 +6,15 @@
 
 #pragma once
 
-#include <Core/containers/TypeMap.hpp>
-#include <Core/containers/Map.hpp>
-#include <Core/containers/Array.hpp>
-#include <Core/containers/SparsePagedArray.hpp>
+#include <Core/Containers/TypeMap.hpp>
+#include <Core/Containers/Map.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/SparsePagedArray.hpp>
 
-#include <Core/threading/DataRaceDetector.hpp>
+#include <Core/Threading/DataRaceDetector.hpp>
 
-#include <Core/reflection/ObjId.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjId.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 #include <Framework/EngineMemory.hpp>
 

@@ -35,9 +35,9 @@
 #include <Rendering/RenderConfig.hpp>
 #include <Rendering/Texture.hpp>
 
-#include <Rendering/passes/DeferredPass.hpp>
+#include <Rendering/Passes/DeferredPass.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Scene/World.hpp>
 #include <Scene/View.hpp>
@@ -46,24 +46,24 @@
 #include <Scene/Subsystem.hpp>
 #include <Scene/InstancedMeshProxy.hpp>
 
-#include <Scene/components/VisibilityStateComponent.hpp>
-#include <Scene/components/BoundingBoxComponent.hpp>
-#include <Scene/components/MeshComponent.hpp>
+#include <Scene/Components/VisibilityStateComponent.hpp>
+#include <Scene/Components/BoundingBoxComponent.hpp>
+#include <Scene/Components/MeshComponent.hpp>
 
-#include <Core/filesystem/FsUtil.hpp>
+#include <Core/FileSystem/FsUtil.hpp>
 
-#include <Core/debug/StackDump.hpp>
+#include <Core/Debug/StackDump.hpp>
 
-#include <Core/utilities/DeferredScope.hpp>
+#include <Core/Utilities/DeferredScope.hpp>
 
-#include <Core/reflection/Enum.hpp> // For EnumValue()
+#include <Core/Reflection/Enum.hpp>
 
-#include <Core/cli/CommandLine.hpp>
+#include <Core/CLI/CommandLine.hpp>
 
-#include <Core/net/NetRequestThread.hpp>
+#include <Core/Net/NetRequestThread.hpp>
 
-#include <Core/threading/Threads.hpp>
-#include <Core/threading/TaskSystem.hpp>
+#include <Core/Threading/Threads.hpp>
+#include <Core/Threading/TaskSystem.hpp>
 
 #include <Core/Core.hpp>
 
@@ -71,7 +71,7 @@
 
 #include <Streaming/StreamingManager.hpp>
 
-#include <Rendering/util/MeshBuilder.hpp>
+#include <Rendering/Util/MeshBuilder.hpp>
 
 #include <Input/Event.hpp>
 

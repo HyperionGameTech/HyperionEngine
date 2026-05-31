@@ -8,7 +8,7 @@
 
 #include <Core/Defines.hpp>
 
-#include <Core/memory/pool/Pool.hpp>
+#include <Core/Memory/Pool/Pool.hpp>
 
 #include <Rendering/RenderResult.hpp>
 #include <Rendering/RenderMemory.hpp>

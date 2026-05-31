@@ -4,7 +4,7 @@
 
 #include <Framework/Game.hpp>
 
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 namespace Hyperion {
 

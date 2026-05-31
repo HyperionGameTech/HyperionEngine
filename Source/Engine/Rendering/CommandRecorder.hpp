@@ -22,10 +22,10 @@
 // #define HYP_RHI_COMMAND_STACK_TRACE
 
 #ifdef HYP_RHI_COMMAND_STACK_TRACE
-#include <Core/debug/StackDump.hpp>
+#include <Core/Debug/StackDump.hpp>
 #endif
 
-#include <Core/threading/AtomicFlag.hpp>
+#include <Core/Threading/AtomicFlag.hpp>
 
 namespace Hyperion {
 

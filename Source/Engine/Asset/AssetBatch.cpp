@@ -9,10 +9,10 @@
 #include <Asset/AssetBatch.hpp>
 #include <Asset/Assets.hpp>
 
-#include <Core/math/MathUtil.hpp>
+#include <Core/Math/MathUtil.hpp>
 
-#include <Core/threading/Threads.hpp>
-#include <Core/threading/TaskSystem.hpp>
+#include <Core/Threading/Threads.hpp>
+#include <Core/Threading/TaskSystem.hpp>
 
 namespace Hyperion {
 

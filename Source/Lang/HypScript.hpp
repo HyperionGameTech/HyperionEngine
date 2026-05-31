@@ -5,15 +5,15 @@
 #include <Core/Defines.hpp>
 
 #include <Lang/SourceFile.hpp>
-#include <Lang/compiler/ErrorList.hpp>
+#include <Lang/Compiler/ErrorList.hpp>
 
-#include <Lang/vm/Value.hpp>
+#include <Lang/VM/Value.hpp>
 
-#include <Core/containers/FixedArray.hpp>
+#include <Core/Containers/FixedArray.hpp>
 
-#include <Core/reflection/BoxedValue.hpp>
+#include <Core/Reflection/BoxedValue.hpp>
 
-#include <Core/memory/Pimpl.hpp>
+#include <Core/Memory/Pimpl.hpp>
 
 namespace Hyperion {
 

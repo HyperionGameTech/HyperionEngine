@@ -6,9 +6,9 @@
 
 #pragma once
 
-#include <Core/math/Extent.hpp>
+#include <Core/Math/Extent.hpp>
 
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 #include <Rendering/RenderTypes.hpp>
 

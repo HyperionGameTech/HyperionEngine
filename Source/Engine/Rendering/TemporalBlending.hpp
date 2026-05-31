@@ -8,9 +8,9 @@
 
 #include <Core/Constants.hpp>
 
-#include <Core/containers/FixedArray.hpp>
+#include <Core/Containers/FixedArray.hpp>
 
-#include <Core/functional/Delegate.hpp>
+#include <Core/Functional/Delegate.hpp>
 
 #include <Rendering/RenderTypes.hpp>
 

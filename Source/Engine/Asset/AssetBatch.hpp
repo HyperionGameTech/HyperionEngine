@@ -8,13 +8,13 @@
 
 #include <Asset/AssetLoader.hpp>
 
-#include <Core/containers/String.hpp>
+#include <Core/Containers/String.hpp>
 
-#include <Core/threading/TaskSystem.hpp>
+#include <Core/Threading/TaskSystem.hpp>
 
-#include <Core/functional/Delegate.hpp>
+#include <Core/Functional/Delegate.hpp>
 
-#include <Core/math/MathUtil.hpp>
+#include <Core/Math/MathUtil.hpp>
 
 #include <type_traits>
 

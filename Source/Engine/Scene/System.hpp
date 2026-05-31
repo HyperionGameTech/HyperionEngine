@@ -8,15 +8,15 @@
 
 #include <Core/Defines.hpp>
 
-#include <Core/containers/Array.hpp>
-#include <Core/containers/Set.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/Set.hpp>
 
-#include <Core/utilities/EnumFlags.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
 
-#include <Core/functional/Delegate.hpp>
+#include <Core/Functional/Delegate.hpp>
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 #include <Scene/ComponentContainer.hpp>
 #include <Scene/EntitySetHelpers.hpp>

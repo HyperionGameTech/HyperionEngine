@@ -8,13 +8,13 @@
 
 #include <Core/Types.hpp>
 
-#include <Core/utilities/DataMutationState.hpp>
+#include <Core/Utilities/DataMutationState.hpp>
 
-#include <Core/math/Color.hpp>
-#include <Core/math/Vector3.hpp>
-#include <Core/math/MathUtil.hpp>
-#include <Core/math/BoundingBox.hpp>
-#include <Core/math/BoundingSphere.hpp>
+#include <Core/Math/Color.hpp>
+#include <Core/Math/Vector3.hpp>
+#include <Core/Math/MathUtil.hpp>
+#include <Core/Math/BoundingBox.hpp>
+#include <Core/Math/BoundingSphere.hpp>
 
 #include <Scene/Entity.hpp>
 

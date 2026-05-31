@@ -16,13 +16,13 @@
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/RenderHelpers.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Asset/AssetRegistry.hpp>
 
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/Handle.hpp>
 
-#include <Core/memory/resource/Resource.hpp>
+#include <Core/Memory/Resource/Resource.hpp>
 
 namespace Hyperion {
 

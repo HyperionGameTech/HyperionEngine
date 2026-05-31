@@ -1,8 +1,8 @@
 #pragma once
 
-#include <Core/containers/FixedArray.hpp>
+#include <Core/Containers/FixedArray.hpp>
 
-#include <Core/reflection/TypeId.hpp>
+#include <Core/Reflection/TypeId.hpp>
 
 #include <Core/HashCode.hpp>
 

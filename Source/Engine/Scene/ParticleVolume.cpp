@@ -12,10 +12,10 @@
 #include <Rendering/Mesh.hpp>
 #include <Rendering/RenderProxy.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
-#include <Rendering/util/MeshBuilder.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
+#include <Rendering/Util/MeshBuilder.hpp>
 
-#include <Core/threading/Threads.hpp>
+#include <Core/Threading/Threads.hpp>
 
 #include <ParticleVolume.generated.inl>
 

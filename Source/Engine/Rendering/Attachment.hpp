@@ -9,10 +9,10 @@
 #include <Core/Defines.hpp>
 #include <Core/Types.hpp>
 
-#include <Core/containers/Array.hpp>
+#include <Core/Containers/Array.hpp>
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/Texture.hpp>
@@ -125,9 +125,9 @@ protected:
 #define INCLUDE_FROM_RHI_BASE
 
 #if HYP_VULKAN
-#include <Rendering/vulkan/VulkanAttachment.hpp>
+#include <Rendering/Vulkan/VulkanAttachment.hpp>
 #elif HYP_DX12
-#include <Rendering/dx12/DX12Attachment.hpp>
+#include <Rendering/DX12/DX12Attachment.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

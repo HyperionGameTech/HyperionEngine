@@ -10,7 +10,7 @@
 #include <Rendering/TemporalBlending.hpp>
 #include <Rendering/GBuffer.hpp>
 #include <Rendering/PlaceholderData.hpp>
-#include <Rendering/passes/DeferredPass.hpp>
+#include <Rendering/Passes/DeferredPass.hpp>
 #include <Rendering/ShaderManager.hpp>
 #include <Rendering/Frame.hpp>
 #include <Rendering/RenderProxy.hpp>
@@ -19,13 +19,13 @@
 #include <Rendering/DescriptorSet.hpp>
 #include <Rendering/TextureViewCache.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Rendering/Texture.hpp>
 
 #include <Scene/View.hpp>
 
-#include <Core/threading/Threads.hpp>
+#include <Core/Threading/Threads.hpp>
 
 namespace Hyperion {
 

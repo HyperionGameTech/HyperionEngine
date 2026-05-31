@@ -6,29 +6,29 @@
 
 #pragma once
 
-#include <Core/containers/Queue.hpp>
+#include <Core/Containers/Queue.hpp>
 
-#include <Core/threading/Mutex.hpp>
-#include <Core/threading/AtomicVar.hpp>
-#include <Core/threading/Task.hpp>
-#include <Core/threading/Semaphore.hpp>
-#include <Core/threading/ThreadSignal.hpp>
+#include <Core/Threading/Mutex.hpp>
+#include <Core/Threading/AtomicVar.hpp>
+#include <Core/Threading/Task.hpp>
+#include <Core/Threading/Semaphore.hpp>
+#include <Core/Threading/ThreadSignal.hpp>
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/Handle.hpp>
 
-#include <Core/utilities/Span.hpp>
-#include <Core/utilities/Result.hpp>
+#include <Core/Utilities/Span.hpp>
+#include <Core/Utilities/Result.hpp>
 
-#include <Core/math/BoundingBox.hpp>
+#include <Core/Math/BoundingBox.hpp>
 
-#include <Core/profiling/PerformanceClock.hpp>
+#include <Core/Profiling/PerformanceClock.hpp>
 
-#include <Core/config/Config.hpp>
+#include <Core/Config/Config.hpp>
 
 #include <Scene/Scene.hpp>
 
-#include <Core/utilities/ClockTimer.hpp>
+#include <Core/Utilities/ClockTimer.hpp>
 
 namespace Hyperion {
 

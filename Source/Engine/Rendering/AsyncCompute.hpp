@@ -8,10 +8,10 @@
 
 #include <Core/Defines.hpp>
 
-#include <Core/containers/FixedArray.hpp>
-#include <Core/containers/ArrayMap.hpp>
+#include <Core/Containers/FixedArray.hpp>
+#include <Core/Containers/ArrayMap.hpp>
 
-#include <Core/functional/Delegate.hpp>
+#include <Core/Functional/Delegate.hpp>
 
 #include <Rendering/CommandRecorder.hpp>
 #include <Rendering/RenderMemory.hpp>
@@ -19,8 +19,8 @@
 #include <Rendering/RenderResult.hpp>
 #include <Rendering/GpuBuffer.hpp>
 
-#include <Core/math/MathUtil.hpp>
-#include <Core/math/Extent.hpp>
+#include <Core/Math/MathUtil.hpp>
+#include <Core/Math/Extent.hpp>
 
 #include <Core/Types.hpp>
 
@@ -51,9 +51,9 @@ public:
 #define INCLUDE_FROM_RHI_BASE
 
 #if HYP_VULKAN
-#include <Rendering/vulkan/VulkanAsyncCompute.hpp>
+#include <Rendering/Vulkan/VulkanAsyncCompute.hpp>
 #elif HYP_DX12
-#include <Rendering/dx12/DX12AsyncCompute.hpp>
+#include <Rendering/DX12/DX12AsyncCompute.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

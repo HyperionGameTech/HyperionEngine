@@ -11,9 +11,9 @@
 
 #include <System/AppContext.hpp>
 
-#include <Core/utilities/DeferredScope.hpp>
+#include <Core/Utilities/DeferredScope.hpp>
 
-#include <Core/threading/Threads.hpp>
+#include <Core/Threading/Threads.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 

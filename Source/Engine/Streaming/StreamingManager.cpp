@@ -11,20 +11,20 @@
 #include <Streaming/StreamingCellCollection.hpp>
 #include <Streaming/StreamingVolume.hpp>
 
-#include <Scene/world_grid/WorldGrid.hpp>
-#include <Scene/world_grid/WorldGridLayer.hpp>
+#include <Scene/WorldGrid/WorldGrid.hpp>
+#include <Scene/WorldGrid/WorldGridLayer.hpp>
 
-#include <Core/threading/Thread.hpp>
-#include <Core/threading/TaskThread.hpp>
-#include <Core/threading/TaskSystem.hpp>
+#include <Core/Threading/Thread.hpp>
+#include <Core/Threading/TaskThread.hpp>
+#include <Core/Threading/TaskSystem.hpp>
 
-#include <Core/math/MathUtil.hpp>
+#include <Core/Math/MathUtil.hpp>
 
-#include <Core/memory/MemoryPool.hpp>
+#include <Core/Memory/MemoryPool.hpp>
 
-#include <Core/memory/allocator/ArenaAllocator.hpp>
+#include <Core/Memory/Allocator/ArenaAllocator.hpp>
 
-#include <Core/memory/pool/Pool.hpp>
+#include <Core/Memory/Pool/Pool.hpp>
 
 #include <Framework/EngineDriver.hpp>
 #include <Framework/EngineGlobals.hpp>

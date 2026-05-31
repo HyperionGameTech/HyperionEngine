@@ -10,14 +10,14 @@
 #include <Core/HashCode.hpp>
 #include <Core/Types.hpp>
 
-#include <Core/utilities/ByteUtil.hpp>
+#include <Core/Utilities/ByteUtil.hpp>
 
-#include <Core/containers/FixedArray.hpp>
-#include <Core/containers/String.hpp>
+#include <Core/Containers/FixedArray.hpp>
+#include <Core/Containers/String.hpp>
 
-#include <Core/math/Vector2.hpp>
-#include <Core/math/Vector3.hpp>
-#include <Core/math/Transform.hpp>
+#include <Core/Math/Vector2.hpp>
+#include <Core/Math/Vector3.hpp>
+#include <Core/Math/Transform.hpp>
 
 namespace Hyperion {
 

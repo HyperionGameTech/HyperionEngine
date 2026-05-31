@@ -6,14 +6,14 @@
 
 #pragma once
 
-#include <Core/memory/ByteBuffer.hpp>
-#include <Core/memory/Memory.hpp>
+#include <Core/Memory/ByteBuffer.hpp>
+#include <Core/Memory/Memory.hpp>
 
-#include <Core/math/Transform.hpp>
-#include <Core/math/BoundingBox.hpp>
-#include <Core/math/Mat4f.hpp>
+#include <Core/Math/Transform.hpp>
+#include <Core/Math/BoundingBox.hpp>
+#include <Core/Math/Mat4f.hpp>
 
-#include <Core/reflection/ObjectFwd.hpp>
+#include <Core/Reflection/ObjectFwd.hpp>
 
 #include <Asset/AssetObject.hpp>
 

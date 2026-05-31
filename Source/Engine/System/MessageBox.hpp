@@ -8,10 +8,10 @@
 
 #include <Core/Defines.hpp>
 
-#include <Core/containers/String.hpp>
-#include <Core/containers/Array.hpp>
+#include <Core/Containers/String.hpp>
+#include <Core/Containers/Array.hpp>
 
-#include <Core/functional/Proc.hpp>
+#include <Core/Functional/Proc.hpp>
 
 namespace Hyperion {
 

@@ -8,7 +8,7 @@
 
 #include <Core/Defines.hpp>
 
-#include <Core/utilities/Span.hpp>
+#include <Core/Utilities/Span.hpp>
 
 #include <Rendering/Shared.hpp>
 #include <Rendering/RenderResult.hpp>
@@ -16,10 +16,10 @@
 #include <Rendering/RenderConfig.hpp>
 #include <Rendering/RenderMemory.hpp>
 
-#include <Core/functional/Delegate.hpp>
+#include <Core/Functional/Delegate.hpp>
 
-#include <Core/memory/ByteBuffer.hpp>
-#include <Core/memory/RefCountedPtr.hpp>
+#include <Core/Memory/ByteBuffer.hpp>
+#include <Core/Memory/RefCountedPtr.hpp>
 
 namespace Hyperion {
 

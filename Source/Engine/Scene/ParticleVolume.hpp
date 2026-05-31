@@ -8,10 +8,10 @@
 
 #include <Core/Types.hpp>
 
-#include <Core/math/BoundingBox.hpp>
-#include <Core/math/Vector3.hpp>
+#include <Core/Math/BoundingBox.hpp>
+#include <Core/Math/Vector3.hpp>
 
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 #include <Scene/Volume.hpp>
 

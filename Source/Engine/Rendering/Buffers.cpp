@@ -12,14 +12,14 @@
 #include <Rendering/BufferCache.hpp>
 #include <Rendering/Frame.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
-#include <Core/utilities/ByteUtil.hpp>
-#include <Core/reflection/TypeInfo.hpp>
+#include <Core/Utilities/ByteUtil.hpp>
+#include <Core/Reflection/TypeInfo.hpp>
 
-#include <Core/profiling/ProfileScope.hpp>
+#include <Core/Profiling/ProfileScope.hpp>
 
-#include <Core/threading/Threads.hpp>
+#include <Core/Threading/Threads.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 

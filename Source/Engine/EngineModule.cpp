@@ -1,5 +1,5 @@
-#include <Core/logging/LogChannels.hpp>
-#include <Core/logging/Logger.hpp>
+#include <Core/Logging/LogChannels.hpp>
+#include <Core/Logging/Logger.hpp>
 
 namespace Hyperion {
 

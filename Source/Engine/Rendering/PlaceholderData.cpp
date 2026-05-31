@@ -10,14 +10,14 @@
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/Texture.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
 
-#include <Core/math/Vector2.hpp>
+#include <Core/Math/Vector2.hpp>
 
-#include <Util/img/Bitmap.hpp>
+#include <Util/Img/Bitmap.hpp>
 
 namespace Hyperion {
 

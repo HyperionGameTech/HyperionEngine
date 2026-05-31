@@ -6,9 +6,9 @@
 
 #include <Scripting/Reflection.hpp>
 
-#include <Core/reflection/ClassRegistry.hpp>
-#include <Core/reflection/Class.hpp>
-#include <Core/reflection/Field.hpp>
+#include <Core/Reflection/ClassRegistry.hpp>
+#include <Core/Reflection/Class.hpp>
+#include <Core/Reflection/Field.hpp>
 
 #include <Reflection.generated.inl>
 

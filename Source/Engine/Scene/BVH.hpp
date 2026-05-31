@@ -6,21 +6,21 @@
 
 #pragma once
 
-#include <Core/containers/Array.hpp>
-#include <Core/containers/LinkedList.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/LinkedList.hpp>
 
-#include <Core/utilities/EnumFlags.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
 
-#include <Core/memory/ByteBuffer.hpp>
+#include <Core/Memory/ByteBuffer.hpp>
 
-#include <Core/math/BoundingBox.hpp>
-#include <Core/math/Triangle.hpp>
+#include <Core/Math/BoundingBox.hpp>
+#include <Core/Math/Triangle.hpp>
 #include <Rendering/Vertex.hpp>
-#include <Core/math/Ray.hpp>
+#include <Core/Math/Ray.hpp>
 
 #include <Core/Defines.hpp>
-#include <Core/io/ByteWriter.hpp>
-#include <Core/io/ByteReader.hpp>
+#include <Core/IO/ByteWriter.hpp>
+#include <Core/IO/ByteReader.hpp>
 
 namespace Hyperion {
 

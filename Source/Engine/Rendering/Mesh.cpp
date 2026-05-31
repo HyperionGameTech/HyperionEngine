@@ -11,9 +11,9 @@
 #include <Rendering/Mesh.hpp>
 #include <Rendering/Frame.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
-#include <Core/containers/SparsePagedArray.hpp>
+#include <Core/Containers/SparsePagedArray.hpp>
 
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>

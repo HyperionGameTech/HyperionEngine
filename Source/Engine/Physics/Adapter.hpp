@@ -6,9 +6,9 @@
 
 #pragma once
 
-#include <Core/reflection/Handle.hpp>
-#include <Core/math/Vector3.hpp>
-#include <Core/memory/RefCountedPtr.hpp>
+#include <Core/Reflection/Handle.hpp>
+#include <Core/Math/Vector3.hpp>
+#include <Core/Memory/RefCountedPtr.hpp>
 
 namespace Hyperion {
 

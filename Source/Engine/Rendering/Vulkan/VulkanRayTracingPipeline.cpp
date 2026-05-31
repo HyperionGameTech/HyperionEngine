@@ -1,0 +1,276 @@
+/*!
+ *  @author: The Hyperion Contributors
+ *  @date 2016-2026
+ *  @licence MIT
+*/
+
+#include <VulkanPch.hpp>
+
+#include <Rendering/Vulkan/VulkanRayTracingPipeline.hpp>
+#include <Rendering/Vulkan/VulkanCommandBuffer.hpp>
+#include <Rendering/Vulkan/VulkanShaderInstance.hpp>
+#include <Rendering/Vulkan/VulkanRenderInterface.hpp>
+#include <Rendering/Vulkan/VulkanFeatures.hpp>
+
+#include <Rendering/Util/DeletionQueue.hpp>
+#include <Rendering/Util/ShaderCompiler.hpp>
+
+#include <Rendering/Shader.hpp>
+
+#include <Core/Debug/Debug.hpp>
+
+#include <Core/Math/MathUtil.hpp>
+#include <Core/Math/Transform.hpp>
+
+#include <Framework/EngineDriver.hpp>
+
+#include <VulkanRayTracingPipeline.generated.inl>
+
+namespace Hyperion {
+
+extern VulkanRenderInterface RI;
+
+template <>
+Array<VkDescriptorSetLayout, VulkanAllocator> GetVkDescriptorSetLayouts<VulkanRayTracingPipeline>(const VulkanRayTracingPipeline& pipeline)
+{
+    Array<VkDescriptorSetLayout, VulkanAllocator> usedLayouts;
+
+    VulkanShaderInstance* shaderInstance = pipeline.GetShader();
+    AssertDebug(shaderInstance != nullptr && shaderInstance->GetShader() != nullptr);
+
+    const ShaderInputGroup* decl = shaderInstance->GetShader()->GetDescriptorTableDeclaration();
+    Assert(decl != nullptr);
+
+    for (const ShaderInputSet& setDecl : decl->elements)
+    {
+        VkDescriptorSetLayout layout = VK_NULL_HANDLE;
+        Assert(RI.GetOrCreateVkDescriptorSetLayout(DescriptorSetLayout(&setDecl), layout));
+
+        Assert(layout != VK_NULL_HANDLE);
+
+        usedLayouts.PushBack(layout);
+    }
+
+    return usedLayouts;
+}
+
+#pragma region VulkanRayTracingPipeline
+
+VulkanRayTracingPipeline::VulkanRayTracingPipeline()
+    : VulkanPipelineBase(),
+      RayTracingPipelineBase()
+{
+}
+
+VulkanRayTracingPipeline::VulkanRayTracingPipeline(const VulkanShaderInstanceRef& shaderInstance)
+    : VulkanPipelineBase(),
+      RayTracingPipelineBase(shaderInstance)
+{
+}
+
+VulkanRayTracingPipeline::~VulkanRayTracingPipeline()
+{
+    m_shaderInstance.Reset();
+    m_shaderBindingTableBuffers.Clear();
+}
+
+RendererResult VulkanRayTracingPipeline::Create()
+{
+    if (!RI.GetDevice()->GetFeatures().IsRayTracingSupported())
+    {
+        return HYP_MAKE_ERROR(RendererError, "RayTracing is not supported on this device");
+    }
+
+    Assert(m_shaderInstance != nullptr);
+
+    /* Pipeline layout */
+    VkPipelineLayoutCreateInfo layoutInfo { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+
+    const uint32 maxSetLayouts = RI.GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
+
+    Array<VkDescriptorSetLayout, VulkanAllocator> usedLayouts = GetVkDescriptorSetLayouts(*this);
+
+    if (usedLayouts.Size() > maxSetLayouts)
+    {
+        return HYP_MAKE_ERROR(RendererError, "Device max bound descriptor sets exceeded");
+    }
+
+    layoutInfo.setLayoutCount = uint32(usedLayouts.Size());
+    layoutInfo.pSetLayouts = usedLayouts.Data();
+
+    VULKAN_CHECK(vkCreatePipelineLayout(RI.GetDevice()->GetDevice(), &layoutInfo, VK_NULL_HANDLE, &m_layout));
+
+    VkRayTracingPipelineCreateInfoKHR pipelineInfo { VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR };
+
+    const Array<VkPipelineShaderStageCreateInfo, VulkanAllocator>& stages = m_shaderInstance->GetVulkanShaderStages();
+    const Array<VulkanShaderGroup, VulkanAllocator>& shaderGroups = m_shaderInstance->GetShaderGroups();
+
+    Array<VkRayTracingShaderGroupCreateInfoKHR> shaderGroupCreateInfos;
+    shaderGroupCreateInfos.Resize(shaderGroups.Size());
+
+    for (size_t i = 0; i < shaderGroups.Size(); i++)
+    {
+        shaderGroupCreateInfos[i] = shaderGroups[i].rayTracingGroupCreateInfo;
+    }
+
+    pipelineInfo.stageCount = uint32(stages.Size());
+    pipelineInfo.pStages = stages.Data();
+    pipelineInfo.groupCount = uint32(shaderGroupCreateInfos.Size());
+    pipelineInfo.pGroups = shaderGroupCreateInfos.Data();
+    pipelineInfo.layout = m_layout;
+    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+    pipelineInfo.basePipelineIndex = -1;
+
+    VULKAN_CHECK(RI.dynamicFunctions.vkCreateRayTracingPipelinesKHR(
+        RI.GetDevice()->GetDevice(),
+        VK_NULL_HANDLE,
+        VK_NULL_HANDLE,
+        1,
+        &pipelineInfo,
+        VK_NULL_HANDLE,
+        &m_handle));
+
+#if HYP_DEBUG_MODE
+    if (Name debugName = GetDebugName())
+    {
+        SetDebugNameLayout(debugName);
+        SetDebugName(debugName);
+    }
+#endif
+
+    CheckResultOrReturn(CreateShaderBindingTables(m_shaderInstance));
+
+    return {};
+}
+
+void VulkanRayTracingPipeline::Bind(VulkanCommandBuffer* commandBuffer)
+{
+    Assert(m_handle != VK_NULL_HANDLE);
+
+    commandBuffer->ResetBoundDescriptorSets();
+
+    vkCmdBindPipeline(
+        commandBuffer->GetVulkanHandle(),
+        VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
+        m_handle);
+}
+
+void VulkanRayTracingPipeline::TraceRays(VulkanCommandBuffer* commandBuffer, const Vec3u& extent) const
+{
+    RI.dynamicFunctions.vkCmdTraceRaysKHR(
+        commandBuffer->GetVulkanHandle(),
+        &m_shaderBindingTableEntries.rayGen,
+        &m_shaderBindingTableEntries.rayMiss,
+        &m_shaderBindingTableEntries.closestHit,
+        &m_shaderBindingTableEntries.callable,
+        extent.x, extent.y, extent.z);
+}
+
+RendererResult VulkanRayTracingPipeline::CreateShaderBindingTables(VulkanShaderInstance* shaderInstance)
+{
+    const Array<VulkanShaderGroup, VulkanAllocator>& shaderGroups = shaderInstance->GetShaderGroups();
+
+    const VulkanFeatures& features = RI.GetDevice()->GetFeatures();
+    const auto& properties = features.GetRayTracingPipelineProperties();
+
+    const uint32 handleSize = properties.shaderGroupHandleSize;
+    const uint32 handleSizeAligned = features.PaddedSize(handleSize, properties.shaderGroupHandleAlignment);
+    const uint32 tableSize = uint32(shaderGroups.Size()) * handleSizeAligned;
+
+    ByteBuffer shaderHandleStorage(tableSize);
+
+    VULKAN_CHECK(RI.dynamicFunctions.vkGetRayTracingShaderGroupHandlesKHR(
+        RI.GetDevice()->GetDevice(),
+        m_handle,
+        0,
+        uint32(shaderGroups.Size()),
+        uint32(shaderHandleStorage.Size()),
+        shaderHandleStorage.Data()));
+
+    uint32 offset = 0;
+
+    ShaderBindingTableMap buffers;
+
+    for (const auto& group : shaderGroups)
+    {
+        const auto& createInfo = group.rayTracingGroupCreateInfo;
+
+        ShaderBindingTableEntry entry;
+
+#define SHADER_PRESENT_IN_GROUP(type) (createInfo.type != VK_SHADER_UNUSED_KHR ? 1 : 0)
+
+        const uint32 shaderCount = SHADER_PRESENT_IN_GROUP(generalShader)
+            + SHADER_PRESENT_IN_GROUP(closestHitShader)
+            + SHADER_PRESENT_IN_GROUP(anyHitShader)
+            + SHADER_PRESENT_IN_GROUP(intersectionShader);
+
+#undef SHADER_PRESENT_IN_GROUP
+
+        Assert(shaderCount != 0);
+
+        CheckResultOrReturn(CreateShaderBindingTableEntry(shaderCount, entry));
+
+        entry.buffer->Copy(handleSize, &shaderHandleStorage[offset]);
+
+        offset += handleSize;
+
+        buffers[group.type] = std::move(entry);
+    }
+
+    m_shaderBindingTableBuffers = std::move(buffers);
+
+#define GET_STRIDED_DEVICE_ADDRESS_REGION(type, out)                                 \
+    do                                                                               \
+    {                                                                                \
+        auto it = m_shaderBindingTableBuffers.Find(type);                            \
+        if (it != m_shaderBindingTableBuffers.End())                                 \
+        {                                                                            \
+            m_shaderBindingTableEntries.out = it->second.stridedDeviceAddressRegion; \
+        }                                                                            \
+    }                                                                                \
+    while (0)
+
+    GET_STRIDED_DEVICE_ADDRESS_REGION(ShaderModuleType::RayGen, rayGen);
+    GET_STRIDED_DEVICE_ADDRESS_REGION(ShaderModuleType::Miss, rayMiss);
+    GET_STRIDED_DEVICE_ADDRESS_REGION(ShaderModuleType::ClosestHit, closestHit);
+
+#undef GET_STRIDED_DEVICE_ADDRESS_REGION
+
+    return {};
+}
+
+RendererResult VulkanRayTracingPipeline::CreateShaderBindingTableEntry(
+    uint32 numShaders,
+    ShaderBindingTableEntry& out)
+{
+    const auto& properties = RI.GetDevice()->GetFeatures().GetRayTracingPipelineProperties();
+
+    Assert(properties.shaderGroupHandleSize != 0);
+
+    if (numShaders == 0)
+    {
+        return HYP_MAKE_ERROR(RendererError, "Creating shader binding table entry with zero shader count");
+    }
+
+    const uint32 handleSize = RI.GetDevice()->GetFeatures().PaddedSize(properties.shaderGroupHandleSize, properties.shaderGroupHandleAlignment);
+
+    // Buffer device address must be a multiple of shaderGroupBaseAlignment (VUID-vkCmdTraceRaysKHR-pRayGenShaderBindingTable-03682)
+    out.buffer = MakeHandle<VulkanGpuBuffer>(GpuBufferType::ShaderBindingTable, numShaders * handleSize, properties.shaderGroupBaseAlignment);
+#if HYP_DEBUG_MODE
+    out.buffer->SetDebugName(NAME("ShaderBindingTable"));
+#endif
+
+    CheckResultOrReturn(out.buffer->Create());
+
+    out.stridedDeviceAddressRegion = VkStridedDeviceAddressRegionKHR {
+        .deviceAddress = out.buffer->GetBufferDeviceAddress(),
+        .stride = handleSize,
+        .size = numShaders * handleSize
+    };
+
+    return {};
+}
+
+#pragma endregion VulkanRayTracingPipeline
+
+} // namespace Hyperion

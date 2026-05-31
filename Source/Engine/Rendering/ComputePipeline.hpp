@@ -10,8 +10,8 @@
 
 #include <Rendering/RenderTypes.hpp>
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 namespace Hyperion {
 
@@ -86,9 +86,9 @@ protected:
 #define INCLUDE_FROM_RHI_BASE
 
 #if HYP_VULKAN
-#include <Rendering/vulkan/VulkanComputePipeline.hpp>
+#include <Rendering/Vulkan/VulkanComputePipeline.hpp>
 #elif HYP_DX12
-#include <Rendering/dx12/DX12ComputePipeline.hpp>
+#include <Rendering/DX12/DX12ComputePipeline.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

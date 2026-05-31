@@ -10,11 +10,11 @@
 
 #include <Rendering/MaterialTypes.hpp>
 
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/Handle.hpp>
 
-#include <Core/containers/Map.hpp>
+#include <Core/Containers/Map.hpp>
 
-#include <Core/threading/Mutex.hpp>
+#include <Core/Threading/Mutex.hpp>
 
 namespace Hyperion {
 

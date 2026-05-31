@@ -11,7 +11,7 @@
 #include <Baking/BakeData.hpp>
 #include <Baking/BakerThreadPool.hpp>
 
-#include <Baking/lightmaps/LightmapPathTraceGpu.hpp>
+#include <Baking/Lightmaps/LightmapPathTraceGpu.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/RenderHelpers.hpp>
@@ -25,7 +25,7 @@
 #include <Rendering/Texture.hpp>
 #include <Rendering/Pass.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Scene/BVH.hpp>
 #include <Scene/World.hpp>
@@ -36,30 +36,30 @@
 #include <Scene/View.hpp>
 #include <Scene/LightmapVolume.hpp>
 
-#include <Scene/util/VoxelOctree.hpp>
+#include <Scene/Util/VoxelOctree.hpp>
 
-#include <Scene/camera/Camera.hpp>
-#include <Scene/camera/OrthoCamera.hpp>
+#include <Scene/Camera/Camera.hpp>
+#include <Scene/Camera/OrthoCamera.hpp>
 
 #include <Scene/EntityManager.hpp>
-#include <Scene/components/MeshComponent.hpp>
-#include <Scene/components/TransformComponent.hpp>
-#include <Scene/components/BoundingBoxComponent.hpp>
-#include <Scene/components/LightmapElementComponent.hpp>
+#include <Scene/Components/MeshComponent.hpp>
+#include <Scene/Components/TransformComponent.hpp>
+#include <Scene/Components/BoundingBoxComponent.hpp>
+#include <Scene/Components/LightmapElementComponent.hpp>
 
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
 
-#include <Core/threading/TaskSystem.hpp>
-#include <Core/threading/TaskThread.hpp>
+#include <Core/Threading/TaskSystem.hpp>
+#include <Core/Threading/TaskThread.hpp>
 
-#include <Core/utilities/Time.hpp>
-#include <Core/utilities/DeferredScope.hpp>
-#include <Core/utilities/Float16.hpp>
+#include <Core/Utilities/Time.hpp>
+#include <Core/Utilities/DeferredScope.hpp>
+#include <Core/Utilities/Float16.hpp>
 
-#include <Core/math/Triangle.hpp>
+#include <Core/Math/Triangle.hpp>
 
-#include <Rendering/util/MeshBuilder.hpp>
+#include <Rendering/Util/MeshBuilder.hpp>
 
 #include <System/AppContext.hpp>
 #include <System/MessageBox.hpp>

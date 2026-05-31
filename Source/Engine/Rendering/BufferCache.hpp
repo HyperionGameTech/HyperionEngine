@@ -6,11 +6,11 @@
 #include <Core/Types.hpp>
 #include <Core/Constants.hpp>
 
-#include <Core/containers/Array.hpp>
+#include <Core/Containers/Array.hpp>
 
-#include <Core/threading/SharedMutex.hpp>
+#include <Core/Threading/SharedMutex.hpp>
 
-#include <Core/math/MathUtil.hpp>
+#include <Core/Math/MathUtil.hpp>
 
 #include <Framework/EngineMemory.hpp>
 

@@ -9,7 +9,7 @@
 #include <Core/Defines.hpp>
 #include <Core/Types.hpp>
 
-#include <Core/memory/Pimpl.hpp>
+#include <Core/Memory/Pimpl.hpp>
 
 #include <Rendering/RenderMemory.hpp>
 #include <Rendering/RenderTypes.hpp>

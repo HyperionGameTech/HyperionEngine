@@ -6,13 +6,13 @@
 
 #pragma once
 
-#include <Core/containers/Array.hpp>
+#include <Core/Containers/Array.hpp>
 
-#include <Core/functional/Delegate.hpp>
+#include <Core/Functional/Delegate.hpp>
 
 #include <Rendering/RenderTypes.hpp>
 
-#include <Core/math/Extent.hpp>
+#include <Core/Math/Extent.hpp>
 
 namespace Hyperion {
 

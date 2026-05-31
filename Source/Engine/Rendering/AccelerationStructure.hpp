@@ -10,11 +10,11 @@
 #include <Core/Defines.hpp>
 #include <Core/Types.hpp>
 
-#include <Core/reflection/Handle.hpp>
+#include <Core/Reflection/Handle.hpp>
 
 #include <Rendering/Shared.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 namespace Hyperion {
 
@@ -176,9 +176,9 @@ protected:
 #define INCLUDE_FROM_RHI_BASE
 
 #if HYP_VULKAN
-#include <Rendering/vulkan/VulkanAccelerationStructure.hpp>
+#include <Rendering/Vulkan/VulkanAccelerationStructure.hpp>
 #elif HYP_DX12
-#include <Rendering/dx12/DX12AccelerationStructure.hpp>
+#include <Rendering/DX12/DX12AccelerationStructure.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

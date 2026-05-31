@@ -21,10 +21,10 @@
 #include <Rendering/RawBufferAllocator.hpp>
 #include <Rendering/RenderProxy.hpp>
 
-#include <Rendering/passes/DeferredPass.hpp>
-#include <Rendering/passes/UIPass.hpp>
+#include <Rendering/Passes/DeferredPass.hpp>
+#include <Rendering/Passes/UIPass.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Rendering/Mesh.hpp>
 #include <Rendering/Texture.hpp>
@@ -32,7 +32,7 @@
 #include <Scene/World.hpp>
 #include <Scene/View.hpp>
 
-#include <Rendering/util/MeshBuilder.hpp>
+#include <Rendering/Util/MeshBuilder.hpp>
 
 #include <System/AppContext.hpp>
 

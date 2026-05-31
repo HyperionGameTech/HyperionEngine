@@ -2,10 +2,10 @@
 #include <Input/Mouse.hpp>
 #include <Input/Keyboard.hpp>
 
-#include <Core/utilities/Variant.hpp>
-#include <Core/filesystem/FilePath.hpp>
+#include <Core/Utilities/Variant.hpp>
+#include <Core/FileSystem/FilePath.hpp>
 
-#include <Core/math/Vector2.hpp>
+#include <Core/Math/Vector2.hpp>
 
 #include <Core/Types.hpp>
 

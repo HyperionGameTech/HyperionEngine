@@ -9,9 +9,9 @@
 #include <Core/Defines.hpp>
 #include <Core/Types.hpp>
 
-#include <Core/memory/ByteBuffer.hpp>
+#include <Core/Memory/ByteBuffer.hpp>
 
-#include <Core/utilities/ByteUtil.hpp>
+#include <Core/Utilities/ByteUtil.hpp>
 
 #include <Rendering/GpuBuffer.hpp>
 #include <Rendering/RenderMemory.hpp>

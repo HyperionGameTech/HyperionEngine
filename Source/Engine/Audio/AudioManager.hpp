@@ -6,12 +6,12 @@
 
 #pragma once
 
-#include <Core/reflection/ObjectBase.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
 
-#include <Core/containers/Array.hpp>
-#include <Core/containers/String.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/String.hpp>
 
-#include <Core/math/Vector3.hpp>
+#include <Core/Math/Vector3.hpp>
 
 #include <AL/al.h>
 #include <AL/alc.h>

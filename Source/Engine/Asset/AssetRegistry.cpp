@@ -15,22 +15,22 @@
 #include <Asset/BlobStorageViews.hpp>
 #include <Asset/SerializationUtils.hpp>
 
-#include <Core/utilities/DeferredScope.hpp>
-#include <Core/utilities/GlobalContext.hpp>
+#include <Core/Utilities/DeferredScope.hpp>
+#include <Core/Utilities/GlobalContext.hpp>
 
-#include <Core/reflection/TypeInfo.hpp>
-#include <Core/reflection/Class.hpp>
+#include <Core/Reflection/TypeInfo.hpp>
+#include <Core/Reflection/Class.hpp>
 
-#include <Core/threading/Scheduler.hpp>
+#include <Core/Threading/Scheduler.hpp>
 
-#include <Core/reflection/Field.hpp>
-#include <Core/reflection/Property.hpp>
+#include <Core/Reflection/Field.hpp>
+#include <Core/Reflection/Property.hpp>
 
-#include <Core/io/ByteWriter.hpp>
+#include <Core/IO/ByteWriter.hpp>
 
-#include <Core/json/JSON.hpp>
+#include <Core/JSON/JSON.hpp>
 
-#include <Core/config/Config.hpp>
+#include <Core/Config/Config.hpp>
 
 #include <Scene/Entity.hpp>
 #include <Scene/EntityManager.hpp>

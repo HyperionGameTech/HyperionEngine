@@ -19,9 +19,9 @@
 #include <Rendering/ShaderInstance.hpp>
 #include <Rendering/SamplerCache.hpp>
 
-#include <Rendering/passes/DeferredPass.hpp>
+#include <Rendering/Passes/DeferredPass.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Framework/EngineDriver.hpp>
 

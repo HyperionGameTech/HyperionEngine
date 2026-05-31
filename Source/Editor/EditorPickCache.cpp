@@ -8,13 +8,13 @@
 
 #include <Editor/EditorPickCache.hpp>
 
-#include <Core/containers/SparsePagedArray.hpp>
+#include <Core/Containers/SparsePagedArray.hpp>
 
 #include <Rendering/RendererMain.hpp>
 #include <Rendering/RenderProxyList.hpp>
 #include <Rendering/Mesh.hpp>
 
-#include <Core/utilities/ClockTimer.hpp>
+#include <Core/Utilities/ClockTimer.hpp>
 
 namespace Hyperion {
 

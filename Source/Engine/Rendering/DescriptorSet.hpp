@@ -6,19 +6,19 @@
 
 #pragma once
 
-#include <Core/name/Name.hpp>
+#include <Core/Name/Name.hpp>
 
-#include <Core/utilities/Optional.hpp>
+#include <Core/Utilities/Optional.hpp>
 
-#include <Core/memory/RefCountedPtr.hpp>
+#include <Core/Memory/RefCountedPtr.hpp>
 
-#include <Core/containers/Map.hpp>
-#include <Core/containers/ArrayMap.hpp>
-#include <Core/containers/FixedArray.hpp>
+#include <Core/Containers/Map.hpp>
+#include <Core/Containers/ArrayMap.hpp>
+#include <Core/Containers/FixedArray.hpp>
 
-#include <Core/reflection/ObjectFwd.hpp>
+#include <Core/Reflection/ObjectFwd.hpp>
 
-#include <Core/utilities/Range.hpp>
+#include <Core/Utilities/Range.hpp>
 
 #include <Core/Defines.hpp>
 
@@ -26,8 +26,8 @@
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/Shared.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
-#include <Rendering/util/ShaderCompiler.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
+#include <Rendering/Util/ShaderCompiler.hpp>
 
 #include <Core/Types.hpp>
 #include <Core/HashCode.hpp>
@@ -503,9 +503,9 @@ protected:
 #define INCLUDE_FROM_RHI_BASE
 
 #if HYP_VULKAN
-#include <Rendering/vulkan/VulkanDescriptorSet.hpp>
+#include <Rendering/Vulkan/VulkanDescriptorSet.hpp>
 #elif HYP_DX12
-#include <Rendering/dx12/DX12DescriptorSet.hpp>
+#include <Rendering/DX12/DX12DescriptorSet.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

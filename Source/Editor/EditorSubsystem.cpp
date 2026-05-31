@@ -17,7 +17,7 @@
 #include <Editor/EditorViewport.hpp>
 #include <Editor/EditorCommand.hpp>
 
-#include <Scene/systems/Editor/EditorSpriteSystem.hpp>
+#include <Scene/Systems/Editor/EditorSpriteSystem.hpp>
 
 #include <DotNET/DotNETHost.hpp>
 
@@ -30,17 +30,17 @@
 #include <Scene/EntityManager.hpp>
 
 #include <Scene/System.hpp>
-#include <Scene/systems/ScriptSystem.hpp>
-#include <Scene/systems/MeshSystem.hpp>
+#include <Scene/Systems/ScriptSystem.hpp>
+#include <Scene/Systems/MeshSystem.hpp>
 
-#include <Scene/sky/DynamicSkySystem.hpp>
+#include <Scene/Sky/DynamicSkySystem.hpp>
 
-#include <Scene/camera/Camera.hpp>
+#include <Scene/Camera/Camera.hpp>
 
-#include <Scene/components/MeshComponent.hpp>
-#include <Scene/components/VisibilityStateComponent.hpp>
-#include <Scene/components/BoundingBoxComponent.hpp>
-#include <Scene/components/TransformComponent.hpp>
+#include <Scene/Components/MeshComponent.hpp>
+#include <Scene/Components/VisibilityStateComponent.hpp>
+#include <Scene/Components/BoundingBoxComponent.hpp>
+#include <Scene/Components/TransformComponent.hpp>
 
 #include <Scene/LightmapVolume.hpp>
 #include <Scene/Volume.hpp>
@@ -71,15 +71,15 @@
 #include <System/OpenFileDialog.hpp>
 #include <System/MessageBox.hpp>
 
-#include <Core/threading/TaskSystem.hpp>
+#include <Core/Threading/TaskSystem.hpp>
 
-#include <Core/io/ByteWriter.hpp>
+#include <Core/IO/ByteWriter.hpp>
 
 #include <Rendering/Mesh.hpp>
 #include <Rendering/MaterialDefinition.hpp>
 #include <Rendering/MaterialInstance.hpp>
 
-#include <Rendering/util/MeshBuilder.hpp>
+#include <Rendering/Util/MeshBuilder.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 #include <Rendering/Texture.hpp>
@@ -88,17 +88,17 @@
 #include <Rendering/RenderProxy.hpp>
 #include <Rendering/RenderInterface.hpp>
 
-#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 // temp
 #include <Baking/BakerSubsystem.hpp>
 #include <Baking/BakeData.hpp>
 
 // for EnumToString
-#include <Core/reflection/Enum.hpp>
-#include <Core/reflection/ClassRegistry.hpp>
+#include <Core/Reflection/Enum.hpp>
+#include <Core/Reflection/ClassRegistry.hpp>
 
-#include <Core/math/MathUtil.hpp>
+#include <Core/Math/MathUtil.hpp>
 
 #include <Scripting/ScriptingService.hpp>
 

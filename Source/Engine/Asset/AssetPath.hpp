@@ -8,16 +8,16 @@
 
 #include <Asset/AssetBucket.hpp>
 
-#include <Core/reflection/ObjectFwd.hpp>
+#include <Core/Reflection/ObjectFwd.hpp>
 
-#include <Core/name/Name.hpp>
+#include <Core/Name/Name.hpp>
 
-#include <Core/math/MathUtil.hpp>
+#include <Core/Math/MathUtil.hpp>
 
-#include <Core/containers/Array.hpp>
-#include <Core/containers/String.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/String.hpp>
 
-#include <Core/utilities/FormatFwd.hpp>
+#include <Core/Utilities/FormatFwd.hpp>
 
 namespace Hyperion {
 
