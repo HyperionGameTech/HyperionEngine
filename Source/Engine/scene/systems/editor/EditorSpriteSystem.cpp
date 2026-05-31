@@ -8,7 +8,7 @@
 
 #if HYP_EDITOR
 
-#include <scene/systems/editor/EditorSpriteSystem.hpp>
+#include <scene/systems/Editor/EditorSpriteSystem.hpp>
 
 #include <scene/EntityManager.hpp>
 #include <scene/Scene.hpp>
@@ -19,7 +19,7 @@
 
 #include <scene/camera/Camera.hpp>
 
-#include <editor/EditorSubsystem.hpp>
+#include <Editor/EditorSubsystem.hpp>
 
 #include <EditorSpriteSystem.generated.inl>
 

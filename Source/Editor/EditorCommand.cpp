@@ -6,7 +6,7 @@
 
 #include <EditorPch.hpp>
 
-#include <editor/EditorCommand.hpp>
+#include <Editor/EditorCommand.hpp>
 
 #include <Core/reflection/Class.hpp>
 

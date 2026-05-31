@@ -6,8 +6,8 @@
 
 #include <EditorPch.hpp>
 
-#include <editor/EditorState.hpp>
-#include <editor/EditorProject.hpp>
+#include <Editor/EditorState.hpp>
+#include <Editor/EditorProject.hpp>
 
 #include <engine/Game.hpp>
 

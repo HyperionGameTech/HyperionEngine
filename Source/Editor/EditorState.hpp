@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include <editor/EditorPickCache.hpp>
-#include <editor/EditorTaskManager.hpp>
+#include <Editor/EditorPickCache.hpp>
+#include <Editor/EditorTaskManager.hpp>
 
 #include <scene/Node.hpp>
 

@@ -25,10 +25,10 @@
 #include <Core/debug/Debug.hpp>
 
 #if HYP_EDITOR
-#include <editor/EditorDelegates.hpp>
-#include <editor/EditorSubsystem.hpp>
-#include <editor/EditorState.hpp>
-#include <editor/EditorPickCache.hpp>
+#include <Editor/EditorDelegates.hpp>
+#include <Editor/EditorSubsystem.hpp>
+#include <Editor/EditorState.hpp>
+#include <Editor/EditorPickCache.hpp>
 #endif
 
 #include <engine/EngineDriver.hpp>

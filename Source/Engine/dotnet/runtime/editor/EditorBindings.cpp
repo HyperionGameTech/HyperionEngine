@@ -6,7 +6,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <editor/EditorDelegates.hpp>
+#include <Editor/EditorDelegates.hpp>
 
 using namespace Hyperion;
 

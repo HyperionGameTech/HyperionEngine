@@ -18,8 +18,8 @@
 #include <Core/filesystem/FsUtil.hpp>
 
 #if HYP_EDITOR
-#include <editor/EditorState.hpp>
-#include <editor/EditorProject.hpp>
+#include <Editor/EditorState.hpp>
+#include <Editor/EditorProject.hpp>
 #endif
 
 #include <engine/EngineDriver.hpp>

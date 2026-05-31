@@ -44,7 +44,7 @@ static const TMap<ClassDefinitionType, String> s_endMacroNames = {
 
 static const Array<ModuleAPIMapping> s_moduleAPIMappings = {
     { "Core", "CORE_API", "core", "Core" },
-    { "Engine/editor", "EDITOR_API", "editor", "Editor" }
+    { "Editor", "EDITOR_API", "editor", "Editor" }
 };
 
 const Array<ModuleAPIMapping>& CXXModuleGenerator::GetModuleAPIMappings()

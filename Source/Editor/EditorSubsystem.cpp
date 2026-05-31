@@ -6,18 +6,18 @@
 
 #include <EditorPch.hpp>
 
-#include <editor/EditorSubsystem.hpp>
-#include <editor/EditorDelegates.hpp>
-#include <editor/EditorCamera.hpp>
-#include <editor/EditorTask.hpp>
-#include <editor/EditorProject.hpp>
-#include <editor/EditorActionStack.hpp>
-#include <editor/EditorAction.hpp>
-#include <editor/EditorState.hpp>
-#include <editor/EditorViewport.hpp>
-#include <editor/EditorCommand.hpp>
+#include <Editor/EditorSubsystem.hpp>
+#include <Editor/EditorDelegates.hpp>
+#include <Editor/EditorCamera.hpp>
+#include <Editor/EditorTask.hpp>
+#include <Editor/EditorProject.hpp>
+#include <Editor/EditorActionStack.hpp>
+#include <Editor/EditorAction.hpp>
+#include <Editor/EditorState.hpp>
+#include <Editor/EditorViewport.hpp>
+#include <Editor/EditorCommand.hpp>
 
-#include <scene/systems/editor/EditorSpriteSystem.hpp>
+#include <scene/systems/Editor/EditorSpriteSystem.hpp>
 
 #include <dotnet/DotNETHost.hpp>
 

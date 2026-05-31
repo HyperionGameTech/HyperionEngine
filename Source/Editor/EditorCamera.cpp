@@ -6,7 +6,7 @@
 
 #include <EditorPch.hpp>
 
-#include <editor/EditorCamera.hpp>
+#include <Editor/EditorCamera.hpp>
 
 #include <input/InputManager.hpp>
 #include <input/InputHandler.hpp>

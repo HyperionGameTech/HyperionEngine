@@ -1,59 +1,53 @@
 {
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "build",
-            "type": "shell",
-            "command": "ninja",
-            "args": [],
-            "options": {
-                "cwd": "${workspaceFolder}/Build/Mac/Release"
-            },
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "presentation": {
-                "reveal": "always",
-                "panel": "new"
-            },
-            "problemMatcher": [
-                "$gcc"
-            ]
-        },
-        {
-            "label": "build hyperion-sample",
-            "type": "shell",
-            "command": "ninja",
-            "args": ["hyperion-sample"],
-            "options": {
-                "cwd": "${workspaceFolder}/Build/Mac/Release"
-            },
-            "group": "build",
-            "presentation": {
-                "reveal": "always",
-                "panel": "new"
-            },
-            "problemMatcher": [
-                "$gcc"
-            ]
-        },
-        {
-            "label": "build Hyperion.Editor",
-            "type": "shell",
-            "command": "ninja",
-            "args": ["Hyperion.Editor"],
-            "options": {
-                "cwd": "${workspaceFolder}/Build/Mac/Release"
-            },
-            "group": "build",
-            "presentation": {
-                "reveal": "always",
-                "panel": "new"
-            },
-            "problemMatcher": [
-                "$gcc"
-            ]
-        }
-    ]
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "type": "shell",
+      "command": "ninja",
+      "args": [],
+      "options": {
+        "cwd": "${workspaceFolder}/Build/Mac/Release",
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true,
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+      },
+      "problemMatcher": ["$gcc"],
+    },
+    {
+      "label": "build hyperion-sample",
+      "type": "shell",
+      "command": "ninja",
+      "args": ["hyperion-sample"],
+      "options": {
+        "cwd": "${workspaceFolder}/Build/Mac/Release",
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+      },
+      "problemMatcher": ["$gcc"],
+    },
+    {
+      "label": "build Hyperion.Editor",
+      "type": "shell",
+      "command": "ninja",
+      "args": ["Hyperion.Editor"],
+      "options": {
+        "cwd": "${workspaceFolder}/Build/Mac/Release",
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+      },
+      "problemMatcher": ["$gcc"],
+    },
+  ],
 }

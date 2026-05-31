@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <editor/EditorTask.hpp>
+#include <Editor/EditorTask.hpp>
 
 #include <Core/containers/Array.hpp>
 

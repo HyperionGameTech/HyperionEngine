@@ -1,8 +1,8 @@
-#include <editor/EditorCommand.hpp>
-#include <editor/EditorSubsystem.hpp>
-#include <editor/EditorProject.hpp>
-#include <editor/EditorState.hpp>
-#include <editor/EditorViewport.hpp>
+#include <Editor/EditorCommand.hpp>
+#include <Editor/EditorSubsystem.hpp>
+#include <Editor/EditorProject.hpp>
+#include <Editor/EditorState.hpp>
+#include <Editor/EditorViewport.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>

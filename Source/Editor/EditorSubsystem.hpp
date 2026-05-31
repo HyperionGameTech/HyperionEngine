@@ -6,10 +6,10 @@
 
 #pragma once
 
-#include <editor/ui/EditorUI.hpp>
+#include <Editor/ui/EditorUI.hpp>
 
-#include <editor/EditorActionStack.hpp>
-#include <editor/EditorTask.hpp>
+#include <Editor/EditorActionStack.hpp>
+#include <Editor/EditorTask.hpp>
 
 #include <scene/Subsystem.hpp>
 

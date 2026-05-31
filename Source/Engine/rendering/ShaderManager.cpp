@@ -29,7 +29,7 @@
 #include <engine/threads/RenderThread.hpp>
 
 #if HYP_EDITOR
-#include <editor/EditorTask.hpp>
+#include <Editor/EditorTask.hpp>
 #endif
 
 #include <semaphore>

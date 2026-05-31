@@ -6,9 +6,9 @@
 
 #include <EditorPch.hpp>
 
-#include <editor/EditorActionStack.hpp>
-#include <editor/EditorSubsystem.hpp>
-#include <editor/EditorProject.hpp>
+#include <Editor/EditorActionStack.hpp>
+#include <Editor/EditorSubsystem.hpp>
+#include <Editor/EditorProject.hpp>
 
 #include <Core/logging/Logger.hpp>
 #include <Core/logging/LogChannels.hpp>

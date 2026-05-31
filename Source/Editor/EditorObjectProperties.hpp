@@ -13,6 +13,7 @@
 #include <Core/math/Vector4.hpp>
 
 #include <Core/memory/RefCountedPtr.hpp>
+
 namespace Hyperion {
 
 class Class;

@@ -6,9 +6,9 @@
 
 #include <EditorPch.hpp>
 
-#include <editor/EditorTaskManager.hpp>
+#include <Editor/EditorTaskManager.hpp>
 
-#include <editor/ui/EditorUI.hpp>
+#include <Editor/ui/EditorUI.hpp>
 
 #include <ui/UIObject.hpp>
 #include <ui/UIPanel.hpp>
@@ -69,7 +69,7 @@ void EditorTaskManager::Tick()
     for (auto it = m_tasks.Begin(); it != m_tasks.End();)
     {
         const Handle<EditorTaskBase>& task = it->GetTask();
-        
+
         if (task->IsCancellationRequested())
         {
             m_taskProgressValues.Erase(task->Id());
@@ -99,14 +99,14 @@ void EditorTaskManager::Tick()
             tickableTask->GetTimer().NextTick();
             tickableTask->Tick();
         }
-        
+
         if (task->GetProgress() != m_taskProgressValues[task->Id()])
         {
             OnTaskProgressUpdated(task);
 
             m_taskProgressValues[task->Id()] = task->GetProgress();
         }
-        
+
         if (task->IsCompleted())
         {
             m_taskProgressValues.Erase(task->Id());

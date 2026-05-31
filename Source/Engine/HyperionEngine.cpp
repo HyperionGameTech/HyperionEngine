@@ -67,9 +67,9 @@
 #endif // HYP_VULKAN
 
 #if HYP_EDITOR
-#include <editor/EditorState.hpp>
-#include <editor/EditorCommand.hpp>
-#include <editor/EditorSubsystem.hpp>
+#include <Editor/EditorState.hpp>
+#include <Editor/EditorCommand.hpp>
+#include <Editor/EditorSubsystem.hpp>
 
 #include <scene/World.hpp>
 #include <scene/Scene.hpp>

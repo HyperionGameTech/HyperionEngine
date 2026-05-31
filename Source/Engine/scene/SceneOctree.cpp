@@ -22,8 +22,8 @@
 #include <rendering/Mesh.hpp>
 
 #if HYP_EDITOR
-#include <editor/EditorState.hpp>
-#include <editor/EditorPickCache.hpp>
+#include <Editor/EditorState.hpp>
+#include <Editor/EditorPickCache.hpp>
 #endif
 
 namespace Hyperion {

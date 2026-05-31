@@ -6,7 +6,7 @@
 
 #include <EditorPch.hpp>
 
-#include <editor/EditorDelegates.hpp>
+#include <Editor/EditorDelegates.hpp>
 
 #include <scene/Node.hpp>
 #include <scene/Scene.hpp>

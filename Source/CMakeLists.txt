@@ -656,6 +656,7 @@ endif()
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/Core ${CMAKE_BINARY_DIR}/Core)
 add_subdirectory(${CMAKE_SOURCE_DIR}/Lang ${CMAKE_BINARY_DIR}/Lang)
+add_subdirectory(${CMAKE_SOURCE_DIR}/Editor ${CMAKE_BINARY_DIR}/Editor)
 
 function(collect_sources_and_modules dir out_sources out_headers out_modules)
 

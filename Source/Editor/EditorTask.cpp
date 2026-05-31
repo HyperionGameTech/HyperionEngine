@@ -6,8 +6,8 @@
 
 #include <EditorPch.hpp>
 
-#include <editor/EditorTask.hpp>
-#include <editor/EditorState.hpp>
+#include <Editor/EditorTask.hpp>
+#include <Editor/EditorState.hpp>
 
 #include <Core/threading/TaskSystem.hpp>
 #include <Core/threading/Threads.hpp>

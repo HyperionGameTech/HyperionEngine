@@ -36,7 +36,7 @@
 #include <rendering/DebugDrawer.hpp>
 
 #if HYP_EDITOR
-#include <editor/EditorState.hpp>
+#include <Editor/EditorState.hpp>
 #endif
 
 #if HYP_SCRIPT

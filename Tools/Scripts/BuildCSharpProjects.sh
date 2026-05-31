@@ -14,7 +14,7 @@ if [ ! -z "$1" ]; then
     CONFIG="$1"
 fi
 
-projects=("Hyperion.NET.Shared" "Hyperion.NET.Runtime" "Hyperion.NET.Interop" "Hyperion.NET.Scripting" "Hyperion.NET.Editor")
+projects=("Hyperion.NET.Shared" "Hyperion.NET.Runtime" "Hyperion.NET.Interop" "Hyperion.NET.Scripting" "Hyperion.Editor")
 
 pushd Build
 buildDir="$(pwd)"

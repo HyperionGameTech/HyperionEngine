@@ -9,7 +9,7 @@
 #include <Core/Defines.hpp>
 #include <Core/Types.hpp>
 
-#include <editor/EditorAction.hpp>
+#include <Editor/EditorAction.hpp>
 
 #include <Core/containers/Array.hpp>
 #include <Core/containers/LinkedList.hpp>

@@ -14,14 +14,14 @@
 #include <Core/threading/Task.hpp>
 #include <Core/threading/AtomicVar.hpp>
 
-#include <scripting/ScriptableDelegate.hpp>
-
 #include <Core/memory/Pimpl.hpp>
 
 #include <Core/reflection/ObjectBase.hpp>
 #include <Core/reflection/Handle.hpp>
 
 #include <Core/utilities/ClockTimer.hpp>
+
+#include <scripting/ScriptableDelegate.hpp>
 
 namespace Hyperion {
 

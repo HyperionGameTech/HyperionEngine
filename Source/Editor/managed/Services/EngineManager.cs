@@ -382,7 +382,7 @@ namespace Hyperion.Editor
 
                 return;
             }
-            
+
             WeakHandle<EditorViewport> viewportWeak = new WeakHandle<EditorViewport>(viewport);
 
             // not launched; add handler for after launch
@@ -413,7 +413,7 @@ namespace Hyperion.Editor
                             Logger.Log(LogLevel.Warning, $"EditorViewport {viewportWeak.Id} is no longer registered - skipping addition to EditorSubsystem.");
                             return;
                         }
-                    
+
                         editorSubsystem.AddViewport(registeredViewport);
                     }
                     finally
@@ -445,7 +445,7 @@ namespace Hyperion.Editor
             {
                 return;
             }
-            
+
             if (EditorGame.IsLaunched())
             {
                 _ = EngineManager.PostToSimThread(() =>
@@ -490,7 +490,7 @@ namespace Hyperion.Editor
             }
 
             _editorViewportsEnabled = enabled;
-            
+
             if (EditorGame == null || !EditorGame.IsLaunched())
             {
                 return;

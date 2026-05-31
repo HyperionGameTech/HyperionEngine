@@ -1,6 +1,6 @@
 #include <EditorPch.hpp>
 
-#include <editor/EditorWindow.hpp>
+#include <Editor/EditorWindow.hpp>
 
 #include <Core/threading/Threads.hpp>
 #include <Core/threading/Scheduler.hpp>

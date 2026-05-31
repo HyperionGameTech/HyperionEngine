@@ -1,17 +1,17 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "(lldb) Launch",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/Binaries/Mac/Release/Hyperion.Editor",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/Binaries/Mac/Release",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "lldb"
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "(lldb) Launch",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/Binaries/Mac/Release/Hyperion.Editor",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}/Binaries/Mac/Release",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "lldb",
+    },
+  ],
 }

@@ -6,7 +6,7 @@
 
 #include <EditorPch.hpp>
 
-#include <editor/EditorObjectProperties.hpp>
+#include <Editor/EditorObjectProperties.hpp>
 
 #include <ui/UIStage.hpp>
 #include <ui/UIObject.hpp>

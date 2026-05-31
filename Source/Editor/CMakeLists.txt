@@ -20,7 +20,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/Generated/editor
     ${CMAKE_SOURCE_DIR}/Engine
-    ${CMAKE_SOURCE_DIR}/Engine/editor
+    ${CMAKE_SOURCE_DIR}/Editor
 )
 
 set(CURRENT_SOURCES "")

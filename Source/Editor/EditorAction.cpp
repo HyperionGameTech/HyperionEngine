@@ -6,9 +6,9 @@
 
 #include <EditorPch.hpp>
 
-#include <editor/EditorAction.hpp>
-#include <editor/EditorProject.hpp>
-#include <editor/EditorSubsystem.hpp>
+#include <Editor/EditorAction.hpp>
+#include <Editor/EditorProject.hpp>
+#include <Editor/EditorSubsystem.hpp>
 
 #include <EditorAction.generated.inl>
 

@@ -6,7 +6,7 @@
 
 #include <EditorPch.hpp>
 
-#include <editor/EditorPickCache.hpp>
+#include <Editor/EditorPickCache.hpp>
 
 #include <Core/containers/SparsePagedArray.hpp>
 

@@ -6,10 +6,10 @@
 
 #include <EditorPch.hpp>
 
-#include <editor/EditorViewport.hpp>
-#include <editor/EditorSubsystem.hpp>
-#include <editor/EditorProject.hpp>
-#include <editor/EditorCamera.hpp>
+#include <Editor/EditorViewport.hpp>
+#include <Editor/EditorSubsystem.hpp>
+#include <Editor/EditorProject.hpp>
+#include <Editor/EditorCamera.hpp>
 
 #include <system/AppContext.hpp>
 

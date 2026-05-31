@@ -6,10 +6,10 @@
 
 #include <EditorPch.hpp>
 
-#include <editor/EditorProject.hpp>
-#include <editor/EditorActionStack.hpp>
-#include <editor/EditorTask.hpp>
-#include <editor/EditorState.hpp>
+#include <Editor/EditorProject.hpp>
+#include <Editor/EditorActionStack.hpp>
+#include <Editor/EditorTask.hpp>
+#include <Editor/EditorState.hpp>
 
 #include <engine/Game.hpp>
 

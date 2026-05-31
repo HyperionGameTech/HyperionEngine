@@ -6,7 +6,7 @@
 
 #include <EditorPch.hpp>
 
-#include <editor/ui/EditorPropertyPanel.hpp>
+#include <Editor/ui/EditorPropertyPanel.hpp>
 
 #include <ui/UIPanel.hpp>
 
