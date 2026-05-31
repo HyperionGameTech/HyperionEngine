@@ -2561,7 +2561,7 @@ bool ShaderCompiler::CompileBundle(
                 if (!filepath.Exists())
                 {
                     processErrors[index] = {
-                        ProcessError { "Shader source file does not exist" }
+                        ProcessError { "Shader source file does not exist: " + filepath }
                     };
 
                     return;

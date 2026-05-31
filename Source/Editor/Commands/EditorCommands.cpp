@@ -74,7 +74,7 @@ ENGINE_API extern const FilePath& GetDataDirectory();
     HYP_BEGIN_CLASS(EditorCommand##name, -1, 0, NAME("EditorCommandBase"))  \
     HYP_END_CLASS                                                           \
                                                                             \
-    TClassStaticInit<EditorCommand##name> g_classInit##EditorCommand##name {};
+    static TClassStaticInit<EditorCommand##name> g_classInit##EditorCommand##name {};
 
 #pragma region Undo
 
@@ -881,7 +881,7 @@ DEFINE_EDITOR_COMMAND(AddTextSprite);
 
 #pragma region EditorCommandAddPointLight
 
-class EditorCommandAddPointLight final : public EditorCommandAddNodeBase<EditorCommandAddPointLight>
+class EDITOR_API EditorCommandAddPointLight final : public EditorCommandAddNodeBase<EditorCommandAddPointLight>
 {
     HYP_OBJECT_BODY(EditorCommandAddPointLight);
 
