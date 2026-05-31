@@ -1203,7 +1203,6 @@ static bool LoadBundleFromAssetPath(const AssetPath& path, Handle<ShaderBundle>&
 
     if (!asset.IsValid() || !asset->IsA(ShaderBundle::StaticClass()))
     {
-        HYP_LOG(ShaderCompiler, Warning, "Got invalid ShaderBundle asset at : {} ", path.ToString());
         return false;
     }
 

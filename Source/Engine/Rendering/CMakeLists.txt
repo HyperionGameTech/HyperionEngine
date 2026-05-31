@@ -152,7 +152,7 @@ if(RENDERING_BACKEND STREQUAL "Vulkan")
 
   set(hyperion-vulkan_SOURCES ${VULKAN_SOURCES})
   set(hyperion-vulkan_HEADERS ${VULKAN_HEADERS})
-  set(hyperion-vulkan_PCH ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/VulkanPch.hpp)
+  set(hyperion-vulkan_PCH ${CMAKE_CURRENT_SOURCE_DIR}/Vulkan/VulkanPch.hpp)
 
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vulkan)
   set(RENDERER_LIBRARIES hyperion-vulkan)
@@ -165,7 +165,7 @@ elseif(RENDERING_BACKEND STREQUAL "DX12")
 
   set(hyperion-dx12_SOURCES ${DX12_SOURCES})
   set(hyperion-dx12_HEADERS ${DX12_HEADERS})
-  set(hyperion-dx12_PCH ${CMAKE_CURRENT_SOURCE_DIR}/dx12/Dx12Pch.hpp)
+  set(hyperion-dx12_PCH ${CMAKE_CURRENT_SOURCE_DIR}/DX12/DX12Pch.hpp)
 
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dx12)
   set(RENDERER_LIBRARIES hyperion-dx12)
