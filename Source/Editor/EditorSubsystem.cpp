@@ -17,82 +17,82 @@
 #include <Editor/EditorViewport.hpp>
 #include <Editor/EditorCommand.hpp>
 
-#include <scene/systems/Editor/EditorSpriteSystem.hpp>
+#include <Scene/systems/Editor/EditorSpriteSystem.hpp>
 
-#include <dotnet/DotNETHost.hpp>
+#include <DotNET/DotNETHost.hpp>
 
-#include <scene/Scene.hpp>
-#include <scene/World.hpp>
-#include <scene/View.hpp>
-#include <scene/Light.hpp>
-#include <scene/EnvProbe.hpp>
-#include <scene/FogVolume.hpp>
-#include <scene/EntityManager.hpp>
+#include <Scene/Scene.hpp>
+#include <Scene/World.hpp>
+#include <Scene/View.hpp>
+#include <Scene/Light.hpp>
+#include <Scene/EnvProbe.hpp>
+#include <Scene/FogVolume.hpp>
+#include <Scene/EntityManager.hpp>
 
-#include <scene/System.hpp>
-#include <scene/systems/ScriptSystem.hpp>
-#include <scene/systems/MeshSystem.hpp>
+#include <Scene/System.hpp>
+#include <Scene/systems/ScriptSystem.hpp>
+#include <Scene/systems/MeshSystem.hpp>
 
-#include <scene/sky/DynamicSkySystem.hpp>
+#include <Scene/sky/DynamicSkySystem.hpp>
 
-#include <scene/camera/Camera.hpp>
+#include <Scene/camera/Camera.hpp>
 
-#include <scene/components/MeshComponent.hpp>
-#include <scene/components/VisibilityStateComponent.hpp>
-#include <scene/components/BoundingBoxComponent.hpp>
-#include <scene/components/TransformComponent.hpp>
+#include <Scene/components/MeshComponent.hpp>
+#include <Scene/components/VisibilityStateComponent.hpp>
+#include <Scene/components/BoundingBoxComponent.hpp>
+#include <Scene/components/TransformComponent.hpp>
 
-#include <scene/LightmapVolume.hpp>
-#include <scene/Volume.hpp>
-#include <scene/Sprite.hpp>
+#include <Scene/LightmapVolume.hpp>
+#include <Scene/Volume.hpp>
+#include <Scene/Sprite.hpp>
 
-#include <asset/Assets.hpp>
-#include <asset/AssetRegistry.hpp>
-#include <asset/AssetBatch.hpp>
+#include <Asset/Assets.hpp>
+#include <Asset/AssetRegistry.hpp>
+#include <Asset/AssetBatch.hpp>
 
-#include <ui/UISubsystem.hpp>
-#include <ui/UIObject.hpp>
-#include <ui/UIStage.hpp>
-#include <ui/UIImage.hpp>
-#include <ui/UIEvent.hpp>
-#include <ui/UIListView.hpp>
-#include <ui/UIWindow.hpp>
-#include <ui/UIGrid.hpp>
-#include <ui/UIText.hpp>
-#include <ui/UIButton.hpp>
-#include <ui/UIMenuBar.hpp>
-#include <ui/UIDataSource.hpp>
-#include <ui/UITextbox.hpp>
+#include <UI/UISubsystem.hpp>
+#include <UI/UIObject.hpp>
+#include <UI/UIStage.hpp>
+#include <UI/UIImage.hpp>
+#include <UI/UIEvent.hpp>
+#include <UI/UIListView.hpp>
+#include <UI/UIWindow.hpp>
+#include <UI/UIGrid.hpp>
+#include <UI/UIText.hpp>
+#include <UI/UIButton.hpp>
+#include <UI/UIMenuBar.hpp>
+#include <UI/UIDataSource.hpp>
+#include <UI/UITextbox.hpp>
 
-#include <input/InputManager.hpp>
-#include <input/Event.hpp>
+#include <Input/InputManager.hpp>
+#include <Input/Event.hpp>
 
-#include <system/AppContext.hpp>
-#include <system/OpenFileDialog.hpp>
-#include <system/MessageBox.hpp>
+#include <System/AppContext.hpp>
+#include <System/OpenFileDialog.hpp>
+#include <System/MessageBox.hpp>
 
 #include <Core/threading/TaskSystem.hpp>
 
 #include <Core/io/ByteWriter.hpp>
 
-#include <rendering/Mesh.hpp>
-#include <rendering/MaterialDefinition.hpp>
-#include <rendering/MaterialInstance.hpp>
+#include <Rendering/Mesh.hpp>
+#include <Rendering/MaterialDefinition.hpp>
+#include <Rendering/MaterialInstance.hpp>
 
-#include <rendering/util/MeshBuilder.hpp>
+#include <Rendering/util/MeshBuilder.hpp>
 
 #include <Framework/EngineGlobals.hpp>
-#include <rendering/Texture.hpp>
-#include <rendering/RendererMain.hpp>
-#include <rendering/RenderProxyList.hpp>
-#include <rendering/RenderProxy.hpp>
-#include <rendering/RenderInterface.hpp>
+#include <Rendering/Texture.hpp>
+#include <Rendering/RendererMain.hpp>
+#include <Rendering/RenderProxyList.hpp>
+#include <Rendering/RenderProxy.hpp>
+#include <Rendering/RenderInterface.hpp>
 
-#include <rendering/util/DeletionQueue.hpp>
+#include <Rendering/util/DeletionQueue.hpp>
 
 // temp
-#include <baking/BakerSubsystem.hpp>
-#include <baking/BakeData.hpp>
+#include <Baking/BakerSubsystem.hpp>
+#include <Baking/BakeData.hpp>
 
 // for EnumToString
 #include <Core/reflection/Enum.hpp>
@@ -100,12 +100,12 @@
 
 #include <Core/math/MathUtil.hpp>
 
-#include <scripting/ScriptingService.hpp>
+#include <Scripting/ScriptingService.hpp>
 
 #include <Framework/Game.hpp>
 
 #include <Framework/EngineDriver.hpp>
-#include <rendering/DebugDrawer.hpp>
+#include <Rendering/DebugDrawer.hpp>
 
 #include <HyperionEngine.hpp>
 

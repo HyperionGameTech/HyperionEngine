@@ -13,7 +13,7 @@
 #include <Core/reflection/ObjectBase.hpp>
 
 #include <Core/functional/Delegate.hpp>
-#include <scripting/ScriptableDelegate.hpp>
+#include <Scripting/ScriptableDelegate.hpp>
 
 #include <Core/utilities/Result.hpp>
 

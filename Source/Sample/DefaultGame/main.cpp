@@ -2,7 +2,7 @@
 
 #include <HyperionEngine.hpp>
 
-#include <game/DefaultGame.hpp>
+#include <Game/DefaultGame.hpp>
 
 using namespace Hyperion;
 

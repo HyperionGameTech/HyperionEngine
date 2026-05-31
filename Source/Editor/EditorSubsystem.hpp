@@ -11,7 +11,7 @@
 #include <Editor/EditorActionStack.hpp>
 #include <Editor/EditorTask.hpp>
 
-#include <scene/Subsystem.hpp>
+#include <Scene/Subsystem.hpp>
 
 #include <Core/math/BoundingBox.hpp>
 

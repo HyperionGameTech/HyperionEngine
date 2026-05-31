@@ -8,7 +8,7 @@
 
 #include <Editor/ui/EditorUI.hpp>
 
-#include <ui/UIDataSource.hpp>
+#include <UI/UIDataSource.hpp>
 
 #include <Core/reflection/TypeInfo.hpp>
 

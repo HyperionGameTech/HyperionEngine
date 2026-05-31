@@ -1,0 +1,118 @@
+#include <HyperionPch.hpp>
+
+#include <Scripting/asset/ScriptAsset.hpp>
+
+#include <Asset/AssetRegistry.hpp>
+#include <Asset/BlobStorage.hpp>
+
+#include <Core/logging/Logger.hpp>
+
+#include <ScriptAsset.generated.inl>
+
+namespace Hyperion {
+
+ScriptAsset::~ScriptAsset()
+{
+    FreeBlobData(m_data);
+}
+
+void ScriptAsset::Init()
+{
+    AssetObject::Init();
+}
+
+void ScriptAsset::SetBytecode(ConstByteView view)
+{
+    if (view.Size() == 0 && m_data.size == 0)
+    {
+        // no change
+        return;
+    }
+
+    FreeBlobData(m_data);
+
+    if (view.Size() != 0)
+    {
+        AllocateBlobData(m_data, view.Data(), view.Size(), 1);
+    }
+
+    MarkDirty();
+}
+
+ConstByteView ScriptAsset::GetBytecode() const
+{
+    if (m_data.raw == nullptr || m_data.size == 0)
+    {
+        return ConstByteView();
+    }
+
+    return ConstByteView(reinterpret_cast<const ubyte*>(m_data.raw), m_data.size);
+}
+
+void ScriptAsset::PageBlobData()
+{
+    if (IsTransient() || !IsRegistered())
+    {
+        return;
+    }
+
+    Handle<AssetRegistry> registry = GetAssetRegistry();
+    AssertDebug(registry.IsValid());
+
+    if (!registry.IsValid())
+    {
+        return;
+    }
+
+    BlobStorage* blobStorage = registry->HasBlobStorage() ? &registry->GetBlobStorage() : nullptr;
+
+    if (m_data.raw == nullptr
+        && m_data.key
+        && m_data.size != 0)
+    {
+        if (!blobStorage || !blobStorage->GetData(m_data.key, m_data.size, m_data.raw))
+        {
+#if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
+            FileByteReader stream { registry->GetRootPath() / AssetBuckets::Scripts.GetName() / (String(*GetName()) + ".BC.raw.blob") };
+
+            if (!stream.Eof())
+            {
+                ByteBuffer buffer = stream.Read(stream.Max());
+
+                AllocateBlobData(m_data, buffer.Data(), buffer.Size(), 1);
+
+#if HYP_EDITOR
+                // Update to use cache rather than inline blob
+                if (blobStorage != nullptr)
+                {
+                    Result saveResult = SaveBlobData(blobStorage);
+
+                    if (saveResult.HasError())
+                    {
+                        HYP_LOG(Assets, Error, "Failed to save script blob data: {}", saveResult.GetError().GetMessage());
+                    }
+
+                    MarkDirty();
+                }
+#endif // HYP_EDITOR
+
+                return;
+            }
+#endif // HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
+        }
+        else
+        {
+            m_data.readOnly = true;
+        }
+    }
+}
+
+void ScriptAsset::UnpageBlobData()
+{
+    if (m_data.readOnly)
+    {
+        m_data.raw = nullptr;
+    }
+}
+
+} // namespace Hyperion

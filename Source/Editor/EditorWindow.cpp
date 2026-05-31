@@ -6,7 +6,7 @@
 #include <Core/threading/Scheduler.hpp>
 
 #ifdef HYP_LIBUI
-#include <ui.h>
+#include <UI.h>
 #endif
 
 #include <EditorWindow.generated.inl>

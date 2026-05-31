@@ -12,13 +12,13 @@
 #include <Framework/EngineMemory.hpp>
 #include <Framework/EngineStats.hpp>
 
-#include <scene/Entity.hpp>
-#include <scene/View.hpp>
-#include <scene/Scene.hpp>
-#include <scene/SceneOctree.hpp>
-#include <scene/EntityManager.hpp>
+#include <Scene/Entity.hpp>
+#include <Scene/View.hpp>
+#include <Scene/Scene.hpp>
+#include <Scene/SceneOctree.hpp>
+#include <Scene/EntityManager.hpp>
 
-#include <scene/components/VisibilityStateComponent.hpp>
+#include <Scene/components/VisibilityStateComponent.hpp>
 
 #include <Core/memory/allocator/SlabAllocator.hpp>
 

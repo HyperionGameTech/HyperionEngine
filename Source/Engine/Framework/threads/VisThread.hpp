@@ -15,7 +15,7 @@
 
 #include <Core/memory/allocator/ArenaAllocator.hpp>
 
-#include <scene/EntitySet.hpp>
+#include <Scene/EntitySet.hpp>
 
 #include <Core/utilities/ClockTimer.hpp>
 

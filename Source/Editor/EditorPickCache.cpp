@@ -10,9 +10,9 @@
 
 #include <Core/containers/SparsePagedArray.hpp>
 
-#include <rendering/RendererMain.hpp>
-#include <rendering/RenderProxyList.hpp>
-#include <rendering/Mesh.hpp>
+#include <Rendering/RendererMain.hpp>
+#include <Rendering/RenderProxyList.hpp>
+#include <Rendering/Mesh.hpp>
 
 #include <Core/utilities/ClockTimer.hpp>
 

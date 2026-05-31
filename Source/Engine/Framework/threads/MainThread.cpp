@@ -18,10 +18,10 @@
 
 #include <Core/cli/CommandLine.hpp>
 
-#include <input/InputManager.hpp>
-#include <input/Event.hpp>
+#include <Input/InputManager.hpp>
+#include <Input/Event.hpp>
 
-#include <system/AppContext.hpp>
+#include <System/AppContext.hpp>
 
 #include <semaphore>
 

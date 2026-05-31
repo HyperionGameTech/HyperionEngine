@@ -1,0 +1,58 @@
+/*!
+ *  @author: The Hyperion Contributors
+ *  @date 2016-2026
+ *  @licence MIT
+*/
+
+#include <UIPch.hpp>
+
+#include <UI/UIImage.hpp>
+
+#include <Rendering/Texture.hpp>
+
+#include <Framework/EngineDriver.hpp>
+
+#include <UIImage.generated.inl>
+
+namespace Hyperion {
+
+UIImage::UIImage()
+{
+    SetBackgroundColor(Color(1.0f, 1.0f, 1.0f, 1.0f));
+}
+
+void UIImage::Init()
+{
+    UIObject::Init();
+}
+
+void UIImage::SetTexture(const Handle<Texture>& texture)
+{
+    if (texture == m_texture)
+    {
+        return;
+    }
+
+    m_texture = texture;
+
+    if (m_texture.IsValid() && !m_texture->IsCreated())
+    {
+        CheckResult(m_texture->Create());
+    }
+
+    UpdateMaterial(false);
+}
+
+MaterialAttributes UIImage::GetMaterialAttributes() const
+{
+    return UIObject::GetMaterialAttributes();
+}
+
+MaterialTextures UIImage::GetMaterialTextures() const
+{
+    return MaterialTextures {
+        { MaterialTextureKey::Diffuse, m_texture }
+    };
+}
+
+} // namespace Hyperion

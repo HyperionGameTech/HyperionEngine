@@ -8,7 +8,7 @@
 
 #include <Editor/ui/EditorPropertyPanel.hpp>
 
-#include <ui/UIPanel.hpp>
+#include <UI/UIPanel.hpp>
 
 #include <EditorPropertyPanel.generated.inl>
 

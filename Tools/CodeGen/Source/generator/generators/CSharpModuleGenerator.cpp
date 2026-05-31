@@ -17,7 +17,7 @@
 
 #include <Core/io/ByteWriter.hpp>
 
-#include <util/Util.hpp>
+#include <Util/Util.hpp>
 
 namespace Hyperion {
 namespace CodeGen {

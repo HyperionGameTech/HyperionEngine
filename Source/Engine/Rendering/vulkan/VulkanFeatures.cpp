@@ -1,0 +1,116 @@
+/*!
+ *  @author: The Hyperion Contributors
+ *  @date 2016-2026
+ *  @licence MIT
+*/
+
+#include <VulkanPch.hpp>
+
+#include <Rendering/vulkan/VulkanFeatures.hpp>
+
+#include <Rendering/RenderInterface.hpp>
+
+namespace Hyperion {
+
+VulkanFeatures::VulkanFeatures()
+    : m_physicalDevice(nullptr),
+      m_properties { },
+      m_features { }
+{
+}
+
+VulkanFeatures::VulkanFeatures(VkPhysicalDevice physicalDevice)
+    : VulkanFeatures()
+{
+    SetPhysicalDevice(physicalDevice);
+}
+
+void VulkanFeatures::SetPhysicalDevice(VkPhysicalDevice physicalDevice)
+{
+    if ((m_physicalDevice = physicalDevice))
+    {
+        m_features.samplerAnisotropy = VK_TRUE;
+
+        vkGetPhysicalDeviceProperties(physicalDevice, &m_properties);
+        vkGetPhysicalDeviceFeatures(physicalDevice, &m_features);
+        vkGetPhysicalDeviceMemoryProperties(physicalDevice, &m_memoryProperties);
+
+        Assert(m_features.samplerAnisotropy);
+
+        m_features2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+
+        m_vulkan12Features = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
+        VulkanHelpers::ChainNext(m_features2, &m_vulkan12Features);
+
+        m_multiviewFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES_KHR };
+        VulkanHelpers::ChainNext(m_features2, &m_multiviewFeatures);
+
+        m_indexingFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT };
+        VulkanHelpers::ChainNext(m_features2, &m_indexingFeatures);
+
+        m_scalarBlockLayoutFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES };
+        VulkanHelpers::ChainNext(m_features2, &m_scalarBlockLayoutFeatures);
+
+        m_extendedDynamicStateFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT };
+        VulkanHelpers::ChainNext(m_features2, &m_extendedDynamicStateFeatures);
+
+#if defined(HYP_FEATURES_ENABLE_RAY_TRACING) && defined(HYP_FEATURES_BINDLESS_TEXTURES)
+        m_bufferDeviceAddressFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES };
+        VulkanHelpers::ChainNext(m_features2, &m_bufferDeviceAddressFeatures);
+
+        m_rayTracingPipelineFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR };
+        VulkanHelpers::ChainNext(m_features2, &m_rayTracingPipelineFeatures);
+
+        m_accelerationStructureFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR };
+        VulkanHelpers::ChainNext(m_features2, &m_accelerationStructureFeatures);
+
+        m_rayQueryFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR };
+        VulkanHelpers::ChainNext(m_features2, &m_rayQueryFeatures);
+#endif
+
+        vkGetPhysicalDeviceFeatures2(m_physicalDevice, &m_features2);
+
+        // properties
+        m_properties2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+
+        m_indexingProperties = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES_EXT };
+        VulkanHelpers::ChainNext(m_properties2, &m_indexingProperties);
+
+        m_samplerMinmaxProperties = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_FILTER_MINMAX_PROPERTIES_EXT };
+        VulkanHelpers::ChainNext(m_properties2, &m_samplerMinmaxProperties);
+
+#if defined(HYP_FEATURES_ENABLE_RAY_TRACING) && defined(HYP_FEATURES_BINDLESS_TEXTURES)
+        m_rayTracingPipelineProperties = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR };
+        VulkanHelpers::ChainNext(m_properties2, &m_rayTracingPipelineProperties);
+
+        m_accelerationStructureProperties = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR };
+        VulkanHelpers::ChainNext(m_properties2, &m_accelerationStructureProperties);
+#endif
+
+        vkGetPhysicalDeviceProperties2(m_physicalDevice, &m_properties2);
+    }
+}
+
+void VulkanFeatures::SetDeviceFeatures(VulkanDevice* device)
+{
+#if defined(HYP_MOLTENVK) && HYP_MOLTENVK && HYP_MOLTENVK_LINKED
+    MVKConfiguration* mvkConfig = nullptr;
+    size_t sz = 1;
+    RI.dynamicFunctions.vkGetMoltenVKConfigurationMVK(VK_NULL_HANDLE, mvkConfig, &sz);
+
+    mvkConfig = new MVKConfiguration[sz];
+
+    for (size_t i = 0; i < sz; i++)
+    {
+#if HYP_DEBUG_MODE
+        mvkConfig[i].debugMode = true;
+#endif
+    }
+
+    RI.dynamicFunctions.vkSetMoltenVKConfigurationMVK(VK_NULL_HANDLE, mvkConfig, &sz);
+
+    delete[] mvkConfig;
+#endif
+}
+
+} // namespace Hyperion

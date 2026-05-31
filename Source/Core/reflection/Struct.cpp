@@ -16,8 +16,8 @@
 #include <Core/logging/LogChannels.hpp>
 
 #ifdef HYP_DOTNET
-#include <dotnet/ManagedClass.hpp>
-#include <dotnet/ManagedObject.hpp>
+#include <DotNET/ManagedClass.hpp>
+#include <DotNET/ManagedObject.hpp>
 #endif
 
 namespace Hyperion {

@@ -13,11 +13,11 @@
 
 #include <Core/threading/AtomicVar.hpp>
 
-#include <rendering/RenderInterface.hpp>
-#include <rendering/CommandBuffer.hpp>
-#include <rendering/Frame.hpp>
+#include <Rendering/RenderInterface.hpp>
+#include <Rendering/CommandBuffer.hpp>
+#include <Rendering/Frame.hpp>
 
-#include <rendering/util/DeletionQueue.hpp>
+#include <Rendering/util/DeletionQueue.hpp>
 
 #include <EngineStats.generated.inl>
 

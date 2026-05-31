@@ -9,14 +9,14 @@
 #include <Editor/EditorPickCache.hpp>
 #include <Editor/EditorTaskManager.hpp>
 
-#include <scene/Node.hpp>
+#include <Scene/Node.hpp>
 
 #include <Core/reflection/ObjectBase.hpp>
 #include <Core/reflection/Handle.hpp>
 
 #include <Core/threading/Mutex.hpp>
 
-#include <scripting/ScriptableDelegate.hpp>
+#include <Scripting/ScriptableDelegate.hpp>
 
 #include <Core/Types.hpp>
 

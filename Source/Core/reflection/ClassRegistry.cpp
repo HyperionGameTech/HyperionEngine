@@ -16,9 +16,9 @@
 #include <Core/logging/LogChannels.hpp>
 
 #ifdef HYP_DOTNET
-#include <dotnet/ManagedClass.hpp>
-#include <dotnet/Assembly.hpp>
-#include <dotnet/DotNETHost.hpp>
+#include <DotNET/ManagedClass.hpp>
+#include <DotNET/Assembly.hpp>
+#include <DotNET/DotNETHost.hpp>
 #endif
 
 #define HYP_CLASS_REGISTRY_USE_TLS 1

@@ -7,18 +7,18 @@
 
 #include <Core/cli/CommandLine.hpp>
 
-#include <asset/AssetRegistry.hpp>
+#include <Asset/AssetRegistry.hpp>
 
-#include <rendering/Mesh.hpp>
-#include <rendering/MaterialDefinition.hpp>
-#include <rendering/MaterialInstance.hpp>
+#include <Rendering/Mesh.hpp>
+#include <Rendering/MaterialDefinition.hpp>
+#include <Rendering/MaterialInstance.hpp>
 
-#include <scene/Entity.hpp>
-#include <scene/EntityManager.hpp>
+#include <Scene/Entity.hpp>
+#include <Scene/EntityManager.hpp>
 
-#include <scene/components/MeshComponent.hpp>
+#include <Scene/components/MeshComponent.hpp>
 
-#include <rendering/util/MeshBuilder.hpp>
+#include <Rendering/util/MeshBuilder.hpp>
 
 #include <Core/math/Quat4f.hpp>
 #include <Core/math/Transform.hpp>

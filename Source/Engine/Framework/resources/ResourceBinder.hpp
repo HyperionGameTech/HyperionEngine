@@ -11,7 +11,7 @@
 
 #include <Core/logging/LoggerFwd.hpp>
 
-#include <rendering/Shared.hpp>
+#include <Rendering/Shared.hpp>
 
 #include <Framework/EngineMemory.hpp>
 

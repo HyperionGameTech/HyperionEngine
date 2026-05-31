@@ -12,33 +12,33 @@
 #include <Framework/EngineDriver.hpp>
 #include <Framework/EngineStats.hpp>
 #include <Framework/EngineMemory.hpp>
-#include <rendering/DebugDrawer.hpp>
+#include <Rendering/DebugDrawer.hpp>
 
-#include <rendering/PostFX.hpp>
-#include <rendering/RenderInterface.hpp>
-#include <rendering/GBuffer.hpp>
-#include <rendering/FinalPass.hpp>
-#include <rendering/ShaderManager.hpp>
-#include <rendering/RenderCommand.hpp>
-#include <rendering/RenderProxy.hpp>
-#include <rendering/AsyncCompute.hpp>
-#include <rendering/DescriptorSet.hpp>
-#include <rendering/GraphicsPipelineCache.hpp>
-#include <rendering/Device.hpp>
-#include <rendering/Swapchain.hpp>
-#include <rendering/RenderConfig.hpp>
-#include <rendering/Buffers.hpp>
-#include <rendering/Frame.hpp>
+#include <Rendering/PostFX.hpp>
+#include <Rendering/RenderInterface.hpp>
+#include <Rendering/GBuffer.hpp>
+#include <Rendering/FinalPass.hpp>
+#include <Rendering/ShaderManager.hpp>
+#include <Rendering/RenderCommand.hpp>
+#include <Rendering/RenderProxy.hpp>
+#include <Rendering/AsyncCompute.hpp>
+#include <Rendering/DescriptorSet.hpp>
+#include <Rendering/GraphicsPipelineCache.hpp>
+#include <Rendering/Device.hpp>
+#include <Rendering/Swapchain.hpp>
+#include <Rendering/RenderConfig.hpp>
+#include <Rendering/Buffers.hpp>
+#include <Rendering/Frame.hpp>
 
-#include <rendering/passes/DeferredPass.hpp>
+#include <Rendering/passes/DeferredPass.hpp>
 
-#include <rendering/util/DeletionQueue.hpp>
+#include <Rendering/util/DeletionQueue.hpp>
 
-#include <asset/Assets.hpp>
+#include <Asset/Assets.hpp>
 
-#include <scene/World.hpp>
+#include <Scene/World.hpp>
 
-#include <system/AppContext.hpp>
+#include <System/AppContext.hpp>
 
 #include <Core/threading/Threads.hpp>
 

@@ -9,7 +9,7 @@
 #include <Framework/EngineDriver.hpp>
 #include <Framework/EngineGlobals.hpp>
 
-#include <asset/AssetRegistry.hpp>
+#include <Asset/AssetRegistry.hpp>
 #include <Framework/EngineStats.hpp>
 #include <Framework/EngineMemory.hpp>
 #include <Framework/CVarManager.hpp>
@@ -20,35 +20,35 @@
 #include <Framework/threads/RenderThread.hpp>
 #include <Framework/threads/VisThread.hpp>
 
-#include <rendering/PostFX.hpp>
-#include <rendering/RenderInterface.hpp>
-#include <rendering/GBuffer.hpp>
-#include <rendering/FinalPass.hpp>
-#include <rendering/ShaderManager.hpp>
-#include <rendering/GraphicsPipelineCache.hpp>
-#include <rendering/RenderCommand.hpp>
-#include <rendering/RenderProxy.hpp>
-#include <rendering/AsyncCompute.hpp>
-#include <rendering/DescriptorSet.hpp>
-#include <rendering/Device.hpp>
-#include <rendering/Swapchain.hpp>
-#include <rendering/RenderConfig.hpp>
-#include <rendering/Texture.hpp>
+#include <Rendering/PostFX.hpp>
+#include <Rendering/RenderInterface.hpp>
+#include <Rendering/GBuffer.hpp>
+#include <Rendering/FinalPass.hpp>
+#include <Rendering/ShaderManager.hpp>
+#include <Rendering/GraphicsPipelineCache.hpp>
+#include <Rendering/RenderCommand.hpp>
+#include <Rendering/RenderProxy.hpp>
+#include <Rendering/AsyncCompute.hpp>
+#include <Rendering/DescriptorSet.hpp>
+#include <Rendering/Device.hpp>
+#include <Rendering/Swapchain.hpp>
+#include <Rendering/RenderConfig.hpp>
+#include <Rendering/Texture.hpp>
 
-#include <rendering/passes/DeferredPass.hpp>
+#include <Rendering/passes/DeferredPass.hpp>
 
-#include <rendering/util/DeletionQueue.hpp>
+#include <Rendering/util/DeletionQueue.hpp>
 
-#include <scene/World.hpp>
-#include <scene/View.hpp>
-#include <scene/Scene.hpp>
-#include <scene/EntityManager.hpp>
-#include <scene/Subsystem.hpp>
-#include <scene/InstancedMeshProxy.hpp>
+#include <Scene/World.hpp>
+#include <Scene/View.hpp>
+#include <Scene/Scene.hpp>
+#include <Scene/EntityManager.hpp>
+#include <Scene/Subsystem.hpp>
+#include <Scene/InstancedMeshProxy.hpp>
 
-#include <scene/components/VisibilityStateComponent.hpp>
-#include <scene/components/BoundingBoxComponent.hpp>
-#include <scene/components/MeshComponent.hpp>
+#include <Scene/components/VisibilityStateComponent.hpp>
+#include <Scene/components/BoundingBoxComponent.hpp>
+#include <Scene/components/MeshComponent.hpp>
 
 #include <Core/filesystem/FsUtil.hpp>
 
@@ -67,16 +67,16 @@
 
 #include <Core/Core.hpp>
 
-#include <asset/Assets.hpp>
+#include <Asset/Assets.hpp>
 
-#include <streaming/StreamingManager.hpp>
+#include <Streaming/StreamingManager.hpp>
 
-#include <rendering/util/MeshBuilder.hpp>
+#include <Rendering/util/MeshBuilder.hpp>
 
-#include <input/Event.hpp>
+#include <Input/Event.hpp>
 
-#include <system/AppContext.hpp>
-#include <system/DirectoryInitializer.hpp>
+#include <System/AppContext.hpp>
+#include <System/DirectoryInitializer.hpp>
 
 #include <HyperionEngine.hpp>
 

@@ -13,17 +13,17 @@
 
 #include <Framework/Game.hpp>
 
-#include <asset/Assets.hpp>
-#include <asset/AssetRegistry.hpp>
-#include <asset/AssetObject.hpp>
-#include <asset/BlobStorage.hpp>
-#include <asset/SerializationUtils.hpp>
+#include <Asset/Assets.hpp>
+#include <Asset/AssetRegistry.hpp>
+#include <Asset/AssetObject.hpp>
+#include <Asset/BlobStorage.hpp>
+#include <Asset/SerializationUtils.hpp>
 
-#include <scene/Scene.hpp>
-#include <scene/World.hpp>
-#include <scene/EntityManager.hpp>
+#include <Scene/Scene.hpp>
+#include <Scene/World.hpp>
+#include <Scene/EntityManager.hpp>
 
-#include <scene/camera/Camera.hpp>
+#include <Scene/camera/Camera.hpp>
 
 #include <Core/utilities/DeferredScope.hpp>
 #include <Core/utilities/GlobalContext.hpp>
@@ -33,7 +33,7 @@
 #include <Core/io/ByteReader.hpp>
 #include <Core/io/ByteWriter.hpp>
 
-#include <rendering/util/DeletionQueue.hpp>
+#include <Rendering/util/DeletionQueue.hpp>
 
 #include <HyperionEngine.hpp>
 

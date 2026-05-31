@@ -8,15 +8,15 @@
 
 #include <Editor/EditorCamera.hpp>
 
-#include <input/InputManager.hpp>
-#include <input/InputHandler.hpp>
+#include <Input/InputManager.hpp>
+#include <Input/InputHandler.hpp>
 
 #include <Core/config/Config.hpp>
 
 #include <Core/logging/Logger.hpp>
 #include <Core/logging/LogChannels.hpp>
 
-#include <system/AppContext.hpp>
+#include <System/AppContext.hpp>
 
 #include <Core/profiling/ProfileScope.hpp>
 

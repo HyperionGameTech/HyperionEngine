@@ -1,0 +1,40 @@
+/*!
+ *  @author: The Hyperion Contributors
+ *  @date 2016-2026
+ *  @licence MIT
+*/
+
+#include <RenderingPch.hpp>
+
+#include <Rendering/ComputePipeline.hpp>
+#include <Rendering/ShaderInstance.hpp>
+#include <Rendering/Shader.hpp>
+
+#include <Rendering/util/ShaderCompiler.hpp>
+
+#include <ComputePipeline.generated.inl>
+
+namespace Hyperion {
+
+#pragma region ComputePipelineBase
+
+bool ComputePipelineBase::MatchesSignature(const ShaderDesc& shaderDesc) const
+{
+    if (!m_shaderInstance.IsValid())
+    {
+        return false;
+    }
+
+    const Shader& shader = *m_shaderInstance->GetShader();
+
+    if (shaderDesc.name != shader.baseName || ((shader.properties & shaderDesc.properties) != shader.properties))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+#pragma endregion ComputePipelineBase
+
+} // namespace Hyperion

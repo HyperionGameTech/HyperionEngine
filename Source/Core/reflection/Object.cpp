@@ -20,15 +20,15 @@
 #if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
 
 #ifdef HYP_DOTNET
-#include <dotnet/ManagedClass.hpp>
-#include <dotnet/ManagedObject.hpp>
+#include <DotNET/ManagedClass.hpp>
+#include <DotNET/ManagedObject.hpp>
 #endif // HYP_DOTNET
 
 #ifdef HYP_SCRIPT
 #include <Lang/HypScript.hpp>
 #endif // HYP_SCRIPT
 
-#include <scripting/ScriptObjectResource.hpp>
+#include <Scripting/ScriptObjectResource.hpp>
 
 #endif // HYP_DOTNET || HYP_SCRIPT
 

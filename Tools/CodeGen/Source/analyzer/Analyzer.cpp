@@ -27,7 +27,7 @@
 
 #include <Core/json/JSON.hpp>
 
-#include <util/Util.hpp>
+#include <Util/Util.hpp>
 
 namespace Hyperion {
 namespace CodeGen {

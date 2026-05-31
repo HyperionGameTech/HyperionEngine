@@ -11,14 +11,14 @@
 #include <Editor/EditorProject.hpp>
 #include <Editor/EditorCamera.hpp>
 
-#include <system/AppContext.hpp>
+#include <System/AppContext.hpp>
 
-#include <rendering/util/DeletionQueue.hpp>
+#include <Rendering/util/DeletionQueue.hpp>
 
-#include <scene/View.hpp>
-#include <scene/Scene.hpp>
-#include <scene/World.hpp>
-#include <scene/EntityManager.hpp>
+#include <Scene/View.hpp>
+#include <Scene/Scene.hpp>
+#include <Scene/World.hpp>
+#include <Scene/EntityManager.hpp>
 
 #include <EditorViewport.generated.inl>
 

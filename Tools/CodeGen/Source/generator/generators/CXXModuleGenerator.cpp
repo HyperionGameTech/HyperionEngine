@@ -21,7 +21,7 @@
 
 #include <Core/utilities/StringUtil.hpp>
 
-#include <util/Util.hpp>
+#include <Util/Util.hpp>
 
 namespace Hyperion {
 namespace CodeGen {
@@ -531,20 +531,20 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
         // Add minimal feature-specific includes when needed
         if (isComponent || isEntity)
         {
-            writer.WriteString("#include <scene/ComponentInterface.hpp>\n");
+            writer.WriteString("#include <Scene/ComponentInterface.hpp>\n");
         }
 
         if (isEntity)
         {
-            writer.WriteString("#include <scene/EntityTag.hpp>\n");
+            writer.WriteString("#include <Scene/EntityTag.hpp>\n");
         }
 
         if (hasScriptableMethods)
         {
-            writer.WriteString("#include <scripting/ScriptObjectResource.hpp>\n");
-            writer.WriteString("#include <dotnet/ManagedObject.hpp>\n");
-            writer.WriteString("#include <dotnet/ManagedClass.hpp>\n");
-            writer.WriteString("#include <dotnet/ManagedMethod.hpp>\n");
+            writer.WriteString("#include <Scripting/ScriptObjectResource.hpp>\n");
+            writer.WriteString("#include <DotNET/ManagedObject.hpp>\n");
+            writer.WriteString("#include <DotNET/ManagedClass.hpp>\n");
+            writer.WriteString("#include <DotNET/ManagedMethod.hpp>\n");
         }
 
         writer.WriteString(HYP_FORMAT("using namespace {};\n", BaseNamespace));

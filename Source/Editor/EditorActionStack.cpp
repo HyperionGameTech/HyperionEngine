@@ -13,7 +13,7 @@
 #include <Core/logging/Logger.hpp>
 #include <Core/logging/LogChannels.hpp>
 
-#include <dotnet/ManagedObject.hpp>
+#include <DotNET/ManagedObject.hpp>
 
 #include <EditorActionStack.generated.inl>
 

@@ -13,9 +13,9 @@
 
 #include <Framework/threads/SimThread.hpp>
 
-#include <asset/Assets.hpp>
-#include <asset/AssetRegistry.hpp>
-#include <asset/AssetObject.hpp>
+#include <Asset/Assets.hpp>
+#include <Asset/AssetRegistry.hpp>
+#include <Asset/AssetObject.hpp>
 
 #include <EditorState.generated.inl>
 

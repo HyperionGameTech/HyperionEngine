@@ -14,7 +14,7 @@
 #include <Core/containers/Array.hpp>
 #include <Core/containers/LinkedList.hpp>
 
-#include <scripting/ScriptableDelegate.hpp>
+#include <Scripting/ScriptableDelegate.hpp>
 
 #include <Core/utilities/EnumFlags.hpp>
 

@@ -4,24 +4,24 @@
 #include <Editor/EditorState.hpp>
 #include <Editor/EditorViewport.hpp>
 
-#include <scene/Scene.hpp>
-#include <scene/World.hpp>
-#include <scene/EntityManager.hpp>
-#include <scene/Light.hpp>
-#include <scene/EnvProbe.hpp>
-#include <scene/LightmapVolume.hpp>
-#include <scene/InstancedMeshProxy.hpp>
+#include <Scene/Scene.hpp>
+#include <Scene/World.hpp>
+#include <Scene/EntityManager.hpp>
+#include <Scene/Light.hpp>
+#include <Scene/EnvProbe.hpp>
+#include <Scene/LightmapVolume.hpp>
+#include <Scene/InstancedMeshProxy.hpp>
 
-#include <scene/camera/Camera.hpp>
+#include <Scene/camera/Camera.hpp>
 
-#include <scene/ParticleVolume.hpp>
-#include <scene/FogVolume.hpp>
-#include <scene/Sprite.hpp>
-#include <scene/TextSprite.hpp>
+#include <Scene/ParticleVolume.hpp>
+#include <Scene/FogVolume.hpp>
+#include <Scene/Sprite.hpp>
+#include <Scene/TextSprite.hpp>
 
-#include <scene/components/BoundingBoxComponent.hpp>
+#include <Scene/components/BoundingBoxComponent.hpp>
 
-#include <scripting/asset/ScriptAsset.hpp>
+#include <Scripting/asset/ScriptAsset.hpp>
 
 #include <Core/reflection/ClassUtils.hpp>
 
@@ -29,25 +29,25 @@
 
 #include <Core/logging/Logger.hpp>
 
-#include <asset/Assets.hpp>
-#include <asset/AssetBatch.hpp>
-#include <asset/AssetRegistry.hpp>
+#include <Asset/Assets.hpp>
+#include <Asset/AssetBatch.hpp>
+#include <Asset/AssetRegistry.hpp>
 
-#include <rendering/Texture.hpp>
-#include <rendering/Mesh.hpp>
+#include <Rendering/Texture.hpp>
+#include <Rendering/Mesh.hpp>
 
-#include <rendering/util/MeshBuilder.hpp>
+#include <Rendering/util/MeshBuilder.hpp>
 
-#include <scene/animation/Skeleton.hpp>
+#include <Scene/animation/Skeleton.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 
-#include <system/OpenFileDialog.hpp>
-#include <system/SaveFileDialog.hpp>
-#include <system/SelectFolderDialog.hpp>
+#include <System/OpenFileDialog.hpp>
+#include <System/SaveFileDialog.hpp>
+#include <System/SelectFolderDialog.hpp>
 
-#include <ui/UISubsystem.hpp>
-#include <ui/overlays/Overlay.hpp>
+#include <UI/UISubsystem.hpp>
+#include <UI/overlays/Overlay.hpp>
 
 namespace Hyperion {
 

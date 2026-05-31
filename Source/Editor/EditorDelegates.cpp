@@ -8,8 +8,8 @@
 
 #include <Editor/EditorDelegates.hpp>
 
-#include <scene/Node.hpp>
-#include <scene/Scene.hpp>
+#include <Scene/Node.hpp>
+#include <Scene/Scene.hpp>
 
 #include <Core/threading/Threads.hpp>
 

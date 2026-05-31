@@ -1,0 +1,62 @@
+/*!
+ *  @author: The Hyperion Contributors
+ *  @date 2016-2026
+ *  @licence MIT
+*/
+
+#pragma once
+
+#include <Core/Defines.hpp>
+
+#include <Core/containers/FixedArray.hpp>
+#include <Core/containers/ArrayMap.hpp>
+
+#include <Core/functional/Delegate.hpp>
+
+#include <Rendering/CommandRecorder.hpp>
+#include <Rendering/RenderMemory.hpp>
+#include <Rendering/RenderTypes.hpp>
+#include <Rendering/RenderResult.hpp>
+#include <Rendering/GpuBuffer.hpp>
+
+#include <Core/math/MathUtil.hpp>
+#include <Core/math/Extent.hpp>
+
+#include <Core/Types.hpp>
+
+namespace Hyperion {
+
+class AsyncComputeBase
+{
+public:
+    HYP_DEF_POOL_NEW_DELETE(g_rhiPool);
+
+    virtual ~AsyncComputeBase() = default;
+
+    virtual bool IsSupported() const = 0;
+
+    virtual bool CheckStatus() = 0;
+
+    virtual void Create() = 0;
+
+    CommandRecorder cr;
+    uint32 lastFrame = uint32(-1);
+
+    Delegate<void> OnCompleted;
+};
+
+} // namespace Hyperion
+
+#ifndef INCLUDE_FROM_RHI
+#define INCLUDE_FROM_RHI_BASE
+
+#if HYP_VULKAN
+#include <Rendering/vulkan/VulkanAsyncCompute.hpp>
+#elif HYP_DX12
+#include <Rendering/dx12/DX12AsyncCompute.hpp>
+#endif
+
+#undef INCLUDE_FROM_RHI_BASE
+#else
+#undef INCLUDE_FROM_RHI
+#endif

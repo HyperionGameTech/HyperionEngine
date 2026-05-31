@@ -21,7 +21,7 @@
 
 #include <Core/utilities/ClockTimer.hpp>
 
-#include <scripting/ScriptableDelegate.hpp>
+#include <Scripting/ScriptableDelegate.hpp>
 
 namespace Hyperion {
 

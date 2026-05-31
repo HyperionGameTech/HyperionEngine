@@ -18,9 +18,9 @@
 #include <Framework/threads/RenderThread.hpp>
 #include <Framework/threads/VisThread.hpp>
 
-#include <asset/Assets.hpp>
-#include <asset/AssetRegistry.hpp>
-#include <asset/BlobStorage.hpp>
+#include <Asset/Assets.hpp>
+#include <Asset/AssetRegistry.hpp>
+#include <Asset/BlobStorage.hpp>
 
 #include <Core/Core.hpp>
 
@@ -38,32 +38,32 @@
 
 #include <Core/cli/CommandLine.hpp>
 
-#include <system/MessageBox.hpp>
-#include <system/AppContext.hpp>
-#include <system/DirectoryInitializer.hpp>
+#include <System/MessageBox.hpp>
+#include <System/AppContext.hpp>
+#include <System/DirectoryInitializer.hpp>
 
-#include <input/Event.hpp>
+#include <Input/Event.hpp>
 
-#include <streaming/StreamingManager.hpp>
+#include <Streaming/StreamingManager.hpp>
 
-#include <rendering/MaterialDefinition.hpp>
-#include <rendering/MaterialInstance.hpp>
-#include <rendering/RenderInterface.hpp>
-#include <rendering/ShaderManager.hpp>
-#include <rendering/DebugDrawer.hpp>
+#include <Rendering/MaterialDefinition.hpp>
+#include <Rendering/MaterialInstance.hpp>
+#include <Rendering/RenderInterface.hpp>
+#include <Rendering/ShaderManager.hpp>
+#include <Rendering/DebugDrawer.hpp>
 
-#include <rendering/util/DeletionQueue.hpp>
-#include <rendering/util/ShaderCompiler.hpp>
-#include <rendering/util/ShaderPropertyDictionary.hpp>
+#include <Rendering/util/DeletionQueue.hpp>
+#include <Rendering/util/ShaderCompiler.hpp>
+#include <Rendering/util/ShaderPropertyDictionary.hpp>
 
-#include <scene/ComponentInterface.hpp>
+#include <Scene/ComponentInterface.hpp>
 
-#include <ui/UIDataSource.hpp> // For UIElementFactoryRegistry
+#include <UI/UIDataSource.hpp> // For UIElementFactoryRegistry
 
-#include <audio/AudioManager.hpp>
+#include <Audio/AudioManager.hpp>
 
 #if HYP_VULKAN
-#include <rendering/vulkan/VulkanRenderInterface.hpp>
+#include <Rendering/vulkan/VulkanRenderInterface.hpp>
 #endif // HYP_VULKAN
 
 #if HYP_EDITOR
@@ -71,12 +71,12 @@
 #include <Editor/EditorCommand.hpp>
 #include <Editor/EditorSubsystem.hpp>
 
-#include <scene/World.hpp>
-#include <scene/Scene.hpp>
+#include <Scene/World.hpp>
+#include <Scene/Scene.hpp>
 #endif // HYP_EDITOR
 
 #if HYP_DOTNET
-#include <dotnet/DotNETHost.hpp>
+#include <DotNET/DotNETHost.hpp>
 #endif // HYP_DOTNET
 
 #if HYP_ANDROID

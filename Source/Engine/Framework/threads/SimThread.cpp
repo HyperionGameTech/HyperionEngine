@@ -21,19 +21,19 @@
 
 #include <Core/cli/CommandLine.hpp>
 
-#include <system/AppContext.hpp>
+#include <System/AppContext.hpp>
 
-#include <input/Event.hpp>
+#include <Input/Event.hpp>
 
-#include <scene/World.hpp>
-#include <scene/Scene.hpp>
+#include <Scene/World.hpp>
+#include <Scene/Scene.hpp>
 
-#include <asset/Assets.hpp>
+#include <Asset/Assets.hpp>
 
-#include <input/InputManager.hpp>
+#include <Input/InputManager.hpp>
 
-#include <rendering/RenderInterface.hpp>
-#include <rendering/DebugDrawer.hpp>
+#include <Rendering/RenderInterface.hpp>
+#include <Rendering/DebugDrawer.hpp>
 
 #if HYP_EDITOR
 #include <Editor/EditorState.hpp>

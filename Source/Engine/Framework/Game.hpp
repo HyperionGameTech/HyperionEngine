@@ -11,7 +11,7 @@
 #include <Core/reflection/ObjectBase.hpp>
 #include <Core/reflection/Handle.hpp>
 
-#include <scripting/ScriptableDelegate.hpp>
+#include <Scripting/ScriptableDelegate.hpp>
 
 #include <Core/Defines.hpp>
 #include <Core/Util.hpp>

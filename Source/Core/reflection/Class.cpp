@@ -24,16 +24,16 @@
 #if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
 
 #ifdef HYP_DOTNET
-#include <dotnet/ManagedObject.hpp>
-#include <dotnet/ManagedClass.hpp>
-#include <dotnet/Assembly.hpp>
+#include <DotNET/ManagedObject.hpp>
+#include <DotNET/ManagedClass.hpp>
+#include <DotNET/Assembly.hpp>
 #endif
 
 #ifdef HYP_SCRIPT
 #include <Lang/HypScript.hpp>
 #endif
 
-#include <scripting/ScriptObjectResource.hpp>
+#include <Scripting/ScriptObjectResource.hpp>
 
 #endif
 

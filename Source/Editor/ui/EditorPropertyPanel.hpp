@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <ui/UIPanel.hpp>
+#include <UI/UIPanel.hpp>
 
 namespace Hyperion {
 

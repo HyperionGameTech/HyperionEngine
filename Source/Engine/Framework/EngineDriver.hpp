@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <rendering/RenderTypes.hpp>
+#include <Rendering/RenderTypes.hpp>
 
 #include <Core/Types.hpp>
 
@@ -17,7 +17,7 @@
 
 #include <Framework/config/EngineConfig.hpp>
 
-#include <rendering/util/ShaderCompiler.hpp>
+#include <Rendering/util/ShaderCompiler.hpp>
 
 namespace Hyperion {
 namespace net {

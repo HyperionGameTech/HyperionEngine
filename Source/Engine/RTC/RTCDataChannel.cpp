@@ -1,0 +1,37 @@
+/*!
+ *  @author: The Hyperion Contributors
+ *  @date 2016-2026
+ *  @licence MIT
+*/
+
+#include <HyperionPch.hpp>
+#include <RTC/RTCDataChannel.hpp>
+
+#ifdef HYP_LIBDATACHANNEL
+#include <RTC/datachannel.hpp>
+#endif
+
+namespace Hyperion {
+
+void RTCDataChannel::Send(const String& str)
+{
+    Send(ByteBuffer(str.Size(), str.Data()));
+}
+
+void NullRTCDataChannel::Send(const ByteBuffer&)
+{
+    // Do nothing
+}
+
+#ifdef HYP_LIBDATACHANNEL
+
+void LibDataChannelRTCDataChannel::Send(const ByteBuffer& byteBuffer)
+{
+    Assert(m_dataChannel != nullptr);
+
+    m_dataChannel->send(reinterpret_cast<const rtc::byte*>(byteBuffer.Data()), byteBuffer.Size());
+}
+
+#endif
+
+} // namespace Hyperion

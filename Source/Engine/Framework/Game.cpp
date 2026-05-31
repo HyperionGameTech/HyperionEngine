@@ -9,32 +9,32 @@
 #include <Framework/Game.hpp>
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/EngineDriver.hpp>
-#include <rendering/DebugDrawer.hpp>
+#include <Rendering/DebugDrawer.hpp>
 
-#include <asset/Assets.hpp>
-#include <asset/AssetRegistry.hpp>
+#include <Asset/Assets.hpp>
+#include <Asset/AssetRegistry.hpp>
 
 #include <Core/threading/Threads.hpp>
 
 #include <Core/debug/Debug.hpp>
 
-#include <scene/World.hpp>
+#include <Scene/World.hpp>
 
-#include <scene/camera/Camera.hpp>
+#include <Scene/camera/Camera.hpp>
 
-#include <ui/UISubsystem.hpp>
-#include <ui/UIStage.hpp>
+#include <UI/UISubsystem.hpp>
+#include <UI/UIStage.hpp>
 
-#include <dotnet/DotNETHost.hpp>
-#include <dotnet/ManagedClass.hpp>
-#include <dotnet/ManagedObject.hpp>
-#include <dotnet/Assembly.hpp>
+#include <DotNET/DotNETHost.hpp>
+#include <DotNET/ManagedClass.hpp>
+#include <DotNET/ManagedObject.hpp>
+#include <DotNET/Assembly.hpp>
 
-#include <scripting/ScriptingService.hpp>
+#include <Scripting/ScriptingService.hpp>
 
-#include <input/Event.hpp>
+#include <Input/Event.hpp>
 
-#include <scene/input/TouchControlsSubsystem.hpp>
+#include <Scene/input/TouchControlsSubsystem.hpp>
 
 #include <Game.generated.inl>
 

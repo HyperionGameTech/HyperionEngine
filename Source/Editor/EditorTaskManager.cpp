@@ -10,11 +10,11 @@
 
 #include <Editor/ui/EditorUI.hpp>
 
-#include <ui/UIObject.hpp>
-#include <ui/UIPanel.hpp>
-#include <ui/UIText.hpp>
+#include <UI/UIObject.hpp>
+#include <UI/UIPanel.hpp>
+#include <UI/UIText.hpp>
 
-#include <scene/components/UIComponent.hpp>
+#include <Scene/components/UIComponent.hpp>
 
 namespace Hyperion {
 

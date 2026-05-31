@@ -8,11 +8,11 @@
 
 #include <Editor/EditorObjectProperties.hpp>
 
-#include <ui/UIStage.hpp>
-#include <ui/UIObject.hpp>
-#include <ui/UIPanel.hpp>
-#include <ui/UIGrid.hpp>
-#include <ui/UITextbox.hpp>
+#include <UI/UIStage.hpp>
+#include <UI/UIObject.hpp>
+#include <UI/UIPanel.hpp>
+#include <UI/UIGrid.hpp>
+#include <UI/UITextbox.hpp>
 
 #include <Core/reflection/ClassRegistry.hpp>
 

@@ -8,10 +8,10 @@
 
 #include <Framework/commandlet/Commandlet.hpp>
 
-#include <asset/Assets.hpp>
-#include <asset/AssetRegistry.hpp>
+#include <Asset/Assets.hpp>
+#include <Asset/AssetRegistry.hpp>
 
-#include <rendering/util/ShaderCompiler.hpp>
+#include <Rendering/util/ShaderCompiler.hpp>
 
 #include <Core/reflection/ClassUtils.hpp>
 #include <Core/reflection/ClassRegistry.hpp>
