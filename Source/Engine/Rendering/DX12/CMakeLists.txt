@@ -24,8 +24,8 @@ include_directories(
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/Generated
     ${CMAKE_SOURCE_DIR}/Engine
-    ${CMAKE_SOURCE_DIR}/Engine/rendering
-    ${CMAKE_SOURCE_DIR}/Engine/rendering/dx12
+    ${CMAKE_SOURCE_DIR}/Engine/Rendering
+    ${CMAKE_SOURCE_DIR}/Engine/Rendering/DX12
 )
 
 # Normalize sources/headers to absolute paths under the root

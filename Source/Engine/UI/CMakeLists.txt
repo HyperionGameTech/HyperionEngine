@@ -21,7 +21,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/Generated
     ${CMAKE_SOURCE_DIR}/Engine
-    ${CMAKE_SOURCE_DIR}/Engine/ui
+    ${CMAKE_SOURCE_DIR}/Engine/UI
 )
 
 if(NOT IOS)

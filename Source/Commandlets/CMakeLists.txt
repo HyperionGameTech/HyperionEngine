@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 function(add_commandlet_target COMMANDLET_NAME)
   set(TARGET_NAME "hyperion-commandlet-${COMMANDLET_NAME}")
 
-  set(COMMANDLET_MAIN_CPP "${CMAKE_SOURCE_DIR}/Engine/engine/commandlet/CommandletMain.cpp")
+  set(COMMANDLET_MAIN_CPP "${CMAKE_SOURCE_DIR}/Engine/Framework/Commandlet/CommandletMain.cpp")
 
   if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${COMMANDLET_NAME}.cpp")
     set(COMMANDLET_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/${COMMANDLET_NAME}.cpp")
