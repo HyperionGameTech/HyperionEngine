@@ -17,7 +17,7 @@
 namespace Hyperion {
 namespace functional {
 
-CORE_API void LogScriptableDelegateError(const char* message, dotnet::ManagedObject* objectPtr)
+ENGINE_API void LogScriptableDelegateError(const char* message, dotnet::ManagedObject* objectPtr)
 {
     HYP_LOG(Core, Error, "ScriptableDelegate: {}", message);
 }
