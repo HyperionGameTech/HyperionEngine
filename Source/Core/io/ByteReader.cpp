@@ -7,8 +7,8 @@
 namespace Hyperion {
 
 #if HYP_ANDROID
-extern AAssetManager* g_androidAssetManager;
-extern bool IsAndroidAssetPath(const FilePath& filepath);
+CORE_API extern AAssetManager* g_androidAssetManager;
+CORE_API extern bool IsAndroidAssetPath(const FilePath& filepath);
 #endif
 
 #pragma region MemoryByteReader
@@ -70,7 +70,7 @@ FileByteReader::FileByteReader(const FilePath& filepath, size_t offset)
 
             return;
         }
-        
+
         m_maxPos = size_t(AAsset_getLength64(m_asset));
 
         if (offset != 0)
@@ -261,7 +261,7 @@ size_t FileByteReader::Read(void* ptr, size_t size)
     {
         return 0;
     }
-    
+
     const size_t remaining = m_maxPos > m_pos ? (m_maxPos - m_pos) : 0;
     const size_t toRead = MathUtil::Min(size, remaining);
 
@@ -279,7 +279,7 @@ size_t FileByteReader::Read(void* ptr, size_t size)
         {
             m_pos += size_t(readBytes);
         }
-        
+
         // TODO: handle < 0 (error)
 
         return size_t(readBytes);
@@ -472,7 +472,7 @@ void MemoryMappedByteReader::Close()
             delete m_mappedFile;
         }
     }
-        
+
     m_mappedFile = nullptr;
 }
 

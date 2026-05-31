@@ -86,26 +86,42 @@ def jniLibsAbiDir     = file('src/main/jniLibs/arm64-v8a')
 
 def resolvedNdkDir = android.ndkDirectory
 
-tasks.register('stageNativeLibs') {
-    description 'Copies libhyperion.so (and libc++_shared.so) into jniLibs before the APK is assembled.'
+// resolve the file tree at configuration time (configuration-cache safe)
+def engineSoFiles = fileTree(engineBinariesDir).include('**/*.so')
 
-    def engineSo = new File(engineBinariesDir, 'libhyperion.so')
-    inputs.file  engineSo
+tasks.register('stageNativeLibs') {
+    description 'Copies all .so files from the engine binaries directory (plus libc++_shared.so) into jniLibs before the APK is assembled.'
+
+    inputs.files engineSoFiles
     outputs.dir  jniLibsAbiDir
 
     def ndkDir = resolvedNdkDir
 
     doLast {
-        if (!engineSo.exists()) {
+        jniLibsAbiDir.mkdirs()
+
+        if (engineSoFiles.isEmpty()) {
             throw new GradleException(
-                "libhyperion.so not found at:\n  ${engineSo.absolutePath}\n\n" +
+                "No .so files found under:\n  ${engineBinariesDir.absolutePath}\n\n" +
                 "Build the engine first: BuildHyperion.bat Android <Debug|Release>"
             )
         }
 
-        jniLibsAbiDir.mkdirs()
-        java.nio.file.Files.copy(engineSo.toPath(), new File(jniLibsAbiDir, 'libhyperion.so').toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
-        logger.lifecycle("[hyperion] Staged libhyperion.so")
+        engineSoFiles.each { soFile ->
+            def relativePath = soFile.absolutePath.substring(engineBinariesDir.absolutePath.length() + 1)
+
+            // strip any abi directory prefix so the final name is just the leaf .so filename
+            // e.g. "arm64-v8a/libfoo.so" -> "libfoo.so"
+            def segments = relativePath.replace('\\', '/').split('/')
+            def leafName = segments[-1]
+
+            java.nio.file.Files.copy(
+                soFile.toPath(),
+                new File(jniLibsAbiDir, leafName).toPath(),
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING
+            )
+            logger.lifecycle("[hyperion] Staged ${leafName}")
+        }
 
         if (ndkDir != null) {
             def hostOs = org.gradle.internal.os.OperatingSystem.current()
@@ -128,6 +144,7 @@ def basePackagesDir = file('../../../../Packages')
 def baseConfigDir = file("../../../../Config")
 def fontsDir = file("../../../../Data/Fonts")
 def scriptDir = file("../../../../Data/Scripts")
+def noiseDir = file("../../../../Data/Noise")
 // also just for testing, copying Shaders.ini to the assets folder - should prob go elsewhere.
 def shadersIni = file("../../../../Source/Shaders/Shaders.ini")
 def assetsDestDir = file('src/main/assets')
@@ -154,6 +171,9 @@ tasks.register('stagePackageAssets', Copy) {
     }
     from(scriptDir) {
         into 'Data/Scripts'
+    }
+    from(noiseDir) {
+        into 'Data/Noise'
     }
     from(shadersIni) {
         into 'Source/Shaders'

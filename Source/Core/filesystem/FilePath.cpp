@@ -40,14 +40,14 @@ CORE_API HYP_DECLARE_LOG_CHANNEL(IO);
 
 #if HYP_ANDROID
 
-extern AAssetManager* g_androidAssetManager;
+CORE_API extern AAssetManager* g_androidAssetManager;
 
-bool IsAndroidAssetPath(const FilePath& filepath)
+CORE_API bool IsAndroidAssetPath(const FilePath& filepath)
 {
     return filepath.FindFirstIndex(AndroidAssetPathPrefix) == 0;
 }
 
-UTF8StringView GetAndroidAssetPath(const FilePath& filepath)
+static UTF8StringView GetAndroidAssetPath(const FilePath& filepath)
 {
     if (!IsAndroidAssetPath(filepath))
     {
@@ -61,7 +61,6 @@ UTF8StringView GetAndroidAssetPath(const FilePath& filepath)
 #endif
 
 namespace filesystem {
-
 
 struct DirectoryIteratorImpl
 {

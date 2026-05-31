@@ -68,7 +68,7 @@ public:
         constexpr size_t headerSize = sizeof(Block);
         constexpr size_t objAlign = alignof(T);
         constexpr size_t objOffset = ByteUtil::AlignAs(headerSize, objAlign);
-        constexpr size_t totalSize = objOffset + sizeof(T);
+        constexpr size_t totalSize = ByteUtil::AlignAs(objOffset + sizeof(T), align);
 
         void* raw = s_allocator->Allocate(totalSize, align);
         HYP_CORE_ASSERT(raw != nullptr);
@@ -101,7 +101,7 @@ public:
 
         const size_t totalAlign = (alignof(Block) > src->objAlign ? alignof(Block) : src->objAlign);
         const size_t objOffset = ByteUtil::AlignAs(sizeof(Block), src->objAlign);
-        const size_t totalSize = objOffset + src->objSize;
+        const size_t totalSize = ByteUtil::AlignAs(objOffset + src->objSize, totalAlign);
 
         void* raw = s_allocator->Allocate(totalSize, totalAlign);
         HYP_CORE_ASSERT(raw != nullptr);
@@ -446,7 +446,7 @@ public:
         constexpr size_t headerSize = sizeof(Block);
         constexpr size_t objAlign = alignof(U);
         constexpr size_t objOffset = ByteUtil::AlignAs(headerSize, objAlign);
-        constexpr size_t totalSize = objOffset + sizeof(U);
+        constexpr size_t totalSize = ByteUtil::AlignAs(objOffset + sizeof(U), align);
 
         void* raw = s_allocator->Allocate(totalSize, align);
         HYP_CORE_ASSERT(raw != nullptr);

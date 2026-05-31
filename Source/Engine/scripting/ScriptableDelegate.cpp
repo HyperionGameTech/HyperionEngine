@@ -15,8 +15,12 @@
 #include <dotnet/ManagedClass.hpp>
 
 namespace Hyperion {
-
 namespace functional {
+
+CORE_API void LogScriptableDelegateError(const char* message, dotnet::ManagedObject* objectPtr)
+{
+    HYP_LOG(Core, Error, "ScriptableDelegate: {}", message);
+}
 
 void ScriptableDelegateHelper::InvokeMethod_Internal(BoxedValue* pOutBoxed, const Method* method, const Handle<ObjectBase>& target, Span<BoxedValue> argsBoxed)
 {

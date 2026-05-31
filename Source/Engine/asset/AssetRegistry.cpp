@@ -53,7 +53,7 @@ CORE_API extern const GlobalConfig& GetGlobalConfig();
 ENGINE_API extern const FilePath& GetCacheDirectory();
 
 #ifdef HYP_ANDROID
-extern bool IsAndroidAssetPath(const FilePath& filepath);
+CORE_API extern bool IsAndroidAssetPath(const FilePath& filepath);
 #endif // HYP_ANDROID
 
 static Handle<AssetRegistry> s_engineAssetRegistry;

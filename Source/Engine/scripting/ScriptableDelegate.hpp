@@ -29,10 +29,7 @@ extern "C" Method* Class_GetMethod(const Class* cls, const Name* methodName);
 
 namespace functional {
 
-static inline void LogScriptableDelegateError(const char* message, dotnet::ManagedObject* objectPtr)
-{
-    HYP_LOG(Core, Error, "ScriptableDelegate: {}", message);
-}
+CORE_API void LogScriptableDelegateError(const char* message, dotnet::ManagedObject* objectPtr);
 
 class IScriptableDelegate
 {

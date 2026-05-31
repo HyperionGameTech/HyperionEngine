@@ -467,7 +467,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                 }
                 else
                 {
-                    HYP_LOG(Script, Error, "Invalid bytecode for script: {}", scriptAsset->GetName());
+                    HYP_LOG(Scripting, Error, "Invalid bytecode for script: {}", scriptAsset->GetName());
                     return;
                 }
 #endif

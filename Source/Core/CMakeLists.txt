@@ -44,6 +44,8 @@ endif()
 # if Win32, link with DbgHelp
 if(HYP_PLATFORM_NAME STREQUAL "Windows")
   set(COMMON_LIBRARIES ${COMMON_LIBRARIES} DbgHelp dwmapi)
+elseif(HYP_ANDROID)
+  set(COMMON_LIBRARIES ${COMMON_LIBRARIES} android log)
 endif()
 
 if(NOT IOS)

@@ -3,6 +3,10 @@
 
 namespace Hyperion {
 
+#if HYP_ANDROID
+CORE_API struct AAssetManager* g_androidAssetManager;
+#endif // HYP_ANDROID
+
 CORE_API HYP_DEFINE_LOG_CHANNEL(Core);
 
 CORE_API HYP_DEFINE_LOG_SUBCHANNEL(Misc, Core);

@@ -79,6 +79,10 @@
 #include <dotnet/DotNETHost.hpp>
 #endif // HYP_DOTNET
 
+#if HYP_ANDROID
+#include <android/asset_manager.h>
+#endif // HYP_ANDROID
+
 /// ========== If this include is missing, you need to run the CodeGen tool (instructions in doc/CompilingTheEngine.md) ==========
 #include <CodeGenOutput.inc>
 
@@ -87,7 +91,7 @@ namespace Hyperion {
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Engine);
 
 #if HYP_ANDROID
-struct AAssetManager* g_androidAssetManager;
+CORE_API extern AAssetManager* g_androidAssetManager;
 #endif // HYP_ANDROID
 
 #pragma region Memory Pools
@@ -431,41 +435,6 @@ extern "C"
 
         g_engineDriver->Initialize();
 
-        EnumFlags<WindowFlags> windowFlags = WindowFlags::EVENTS_POLLING;
-
-        if (cliArgs["Headless"].ToBool())   windowFlags |= WindowFlags::HEADLESS;
-        if (cliArgs["HighDPI"].ToBool())    windowFlags |= WindowFlags::HIGH_DPI;
-
-        if (!(windowFlags & WindowFlags::HEADLESS))
-        {
-            Vec2i resolution = { 1280, 720 };
-
-            if (cliArgs["ResX"].IsNumber()) resolution.x = cliArgs["ResX"].ToInt32();
-            if (cliArgs["ResY"].IsNumber()) resolution.y = cliArgs["ResY"].ToInt32();
-
-            HYP_LOG(Engine, Info, "Running in windowed mode: {}x{}", resolution.x, resolution.y);
-
-            Handle<ApplicationWindow> window = g_appContext->CreateSystemWindow({ "Hyperion Engine", resolution, windowFlags });
-
-            window->OnClose
-                .Bind([]()
-                {
-                    // shut down application on main window close.
-                    Hyp_Shutdown();
-
-                    std::exit(0);
-                })
-                .Detach();
-
-            Assert(window.IsValid());
-
-            g_appContext->SetMainWindow(window);
-        }
-        else
-        {
-            HYP_LOG(Engine, Info, "Running in headless mode");
-        }
-
         if (isCommandlet)
         {
             const ANSIString commandletName = cliArgs["exec"].ToString().ToAnsi();
@@ -534,6 +503,41 @@ extern "C"
             std::exit(commandletResult.HasError() ? 1 : 0);
 
             return 0;
+        }
+
+        EnumFlags<WindowFlags> windowFlags = WindowFlags::EVENTS_POLLING;
+
+        if (cliArgs["Headless"].ToBool())   windowFlags |= WindowFlags::HEADLESS;
+        if (cliArgs["HighDPI"].ToBool())    windowFlags |= WindowFlags::HIGH_DPI;
+
+        if (!(windowFlags & WindowFlags::HEADLESS))
+        {
+            Vec2i resolution = { 1280, 720 };
+
+            if (cliArgs["ResX"].IsNumber()) resolution.x = cliArgs["ResX"].ToInt32();
+            if (cliArgs["ResY"].IsNumber()) resolution.y = cliArgs["ResY"].ToInt32();
+
+            HYP_LOG(Engine, Info, "Running in windowed mode: {}x{}", resolution.x, resolution.y);
+
+            Handle<ApplicationWindow> window = g_appContext->CreateSystemWindow({ "Hyperion Engine", resolution, windowFlags });
+
+            window->OnClose
+                .Bind([]()
+                {
+                    // shut down application on main window close.
+                    Hyp_Shutdown();
+
+                    std::exit(0);
+                })
+                .Detach();
+
+            Assert(window.IsValid());
+
+            g_appContext->SetMainWindow(window);
+        }
+        else
+        {
+            HYP_LOG(Engine, Info, "Running in headless mode");
         }
 
         return 1;

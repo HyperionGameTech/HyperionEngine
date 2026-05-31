@@ -128,7 +128,7 @@ ScriptObjectResource::~ScriptObjectResource()
     {
         if (hypScriptData->instance)
         {
-            
+
             HypScript::DestroyScript(hypScriptData->instance);
             hypScriptData->instance = nullptr;
         }
@@ -326,31 +326,39 @@ static struct ScriptObjectFunctionsDependencyInject
 {
     ScriptObjectFunctionsDependencyInject()
     {
+#if defined(HYP_DOTNET) && HYP_DOTNET
         ScriptObjectFunctions::IncScriptObjectRef = &Object_IncScriptObjectRef;
         ScriptObjectFunctions::DecScriptObjectRef = &Object_DecScriptObjectRef;
 
         ScriptObjectFunctions::CreateScriptObjectResource_DotNet = [](ObjectBase* target, const RC<dotnet::ManagedClass>& managedClass) -> ScriptObjectResource* {
             return new ScriptObjectResource(target, managedClass);
         };
+
+        ScriptObjectFunctions::ManagedClassRefCountedPtrFromThis = [](dotnet::ManagedClass* mc) -> RC<dotnet::ManagedClass> {
+            return mc->RefCountedPtrFromThis();
+        };
+
+        ScriptObjectFunctions::ManagedClassNewManagedObject = [](dotnet::ManagedClass* mc, void* contextPtr, void (*copyCallback)(void*, void*, unsigned int), dotnet::ObjectReference* outRef) {
+            *outRef = mc->NewManagedObject(contextPtr, copyCallback);
+        };
+
+        ScriptObjectFunctions::GetManagedObject = [](const ScriptObjectResource* obj) -> dotnet::ManagedObject* {
+            return obj->GetManagedObject();
+        };
+#endif // HYP_DOTNET
+
+#if defined(HYP_SCRIPT) && HYP_SCRIPT
         ScriptObjectFunctions::CreateScriptObjectResource_Script = [](ScriptInstance* instance, ObjectBase* target) -> ScriptObjectResource* {
             return new ScriptObjectResource(instance, target);
         };
+#endif // HYP_SCRIPT
+
         ScriptObjectFunctions::DestroyScriptObjectResource = [](ScriptObjectResource* obj) {
             delete obj;
         };
 
         ScriptObjectFunctions::GetScriptLanguageMask = [](const ScriptObjectResource* obj) -> unsigned int {
             return obj->GetScriptLanguageMask();
-        };
-        ScriptObjectFunctions::GetManagedObject = [](const ScriptObjectResource* obj) -> dotnet::ManagedObject* {
-            return obj->GetManagedObject();
-        };
-
-        ScriptObjectFunctions::ManagedClassRefCountedPtrFromThis = [](dotnet::ManagedClass* mc) -> RC<dotnet::ManagedClass> {
-            return mc->RefCountedPtrFromThis();
-        };
-        ScriptObjectFunctions::ManagedClassNewManagedObject = [](dotnet::ManagedClass* mc, void* contextPtr, void (*copyCallback)(void*, void*, unsigned int), dotnet::ObjectReference* outRef) {
-            *outRef = mc->NewManagedObject(contextPtr, copyCallback);
         };
     }
 } s_scriptObjectFunctionsDependencyInject {};
