@@ -19,7 +19,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/
     ${CMAKE_SOURCE_DIR}/Generated
     ${CMAKE_SOURCE_DIR}/Engine
-    ${CMAKE_SOURCE_DIR}/Engine/baking
+    ${CMAKE_SOURCE_DIR}/Engine/Baking
 )
 
 # Normalize sources/headers to absolute paths under the root

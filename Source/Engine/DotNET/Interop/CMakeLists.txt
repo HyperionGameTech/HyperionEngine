@@ -30,7 +30,7 @@ include_directories(SYSTEM
 include_directories(
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/Engine
-    ${CMAKE_SOURCE_DIR}/Engine/dotnet
+    ${CMAKE_SOURCE_DIR}/Engine/DotNET
 )
 
 add_library(${BUILD_NAME} STATIC ${SOURCES} ${HEADERS})

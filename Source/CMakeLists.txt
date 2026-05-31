@@ -125,8 +125,6 @@ if(CMAKE_GENERATOR MATCHES "^Visual Studio")
   message(STATUS "Using MSBuild for C# projects")
 endif()
 
-string(TOLOWER ${HYP_PLATFORM_NAME} HYP_PLATFORM_NAME_LOWER)
-
 set(HYP_BUILD_TYPE ${CMAKE_BUILD_TYPE})
 
 set(THIRD_PARTY_LIBRARY_DIR ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE})
@@ -665,7 +663,7 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
   set(local_pchs "${HYP_PCH}") # start with global PCHs
 
   # if the directory is system/platform/<platform not equal to HYP_PLATFORM_NAME>, skip it
-  if(${dir} MATCHES "${CMAKE_SOURCE_DIR}/Engine/system/platform/.*" AND NOT ${dir} MATCHES "${CMAKE_SOURCE_DIR}/Engine/system/platform/${HYP_PLATFORM_NAME_LOWER}")
+  if(${dir} MATCHES "${CMAKE_SOURCE_DIR}/Engine/System/Platform/.*" AND NOT ${dir} MATCHES "${CMAKE_SOURCE_DIR}/Engine/System/Platform/${HYP_PLATFORM_NAME}")
     message(STATUS "Skipping platform directory: ${dir}")
     return()
   endif()
@@ -695,15 +693,15 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
       return()
     endif()
 
-    if(dir MATCHES "dotnet/runtime")
+    if(dir MATCHES "DotNET/Runtime")
       set(sub_library_name "hyperion-dotnet-runtime")
-    elseif(dir MATCHES "dotnet/shared")
+    elseif(dir MATCHES "DotNET/Shared")
       set(sub_library_name "hyperion-dotnet-shared")
-    elseif(dir MATCHES "dotnet/interop")
+    elseif(dir MATCHES "DotNET/Interop")
       set(sub_library_name "hyperion-dotnet-interop")
-    elseif(dir MATCHES "dotnet/scripting")
+    elseif(dir MATCHES "DotNET/Scripting")
       set(sub_library_name "hyperion-dotnet-scripting")
-    elseif(dir MATCHES "rendering/") # skip rendering subdirectory, allow rendering module to handle that.
+    elseif(dir MATCHES "Rendering/") # skip rendering subdirectory, allow rendering module to handle that.
       set(should_skip_module TRUE)
     else()
       # the subfolder must contain a library with the name hyperion-<subfolder>
@@ -823,9 +821,9 @@ source_group(TREE ${THIRD_PARTY_INCLUDE_DIR} PREFIX "Third-Party Code" FILES ${T
 # list(APPEND HEADERS ${PLATFORM_SPECIFIC_HEADERS})
 
 # platform specific system stuff
-file(GLOB_RECURSE PLATFORM_FILES "${CMAKE_SOURCE_DIR}/Engine/system/platform/**/*")
+file(GLOB_RECURSE PLATFORM_FILES "${CMAKE_SOURCE_DIR}/Engine/System/Platform/**/*")
 foreach(PLATFORM_FILE ${PLATFORM_FILES})
-  if(NOT ${PLATFORM_FILE} MATCHES "${CMAKE_SOURCE_DIR}/Engine/system/platform/${HYP_PLATFORM_NAME_LOWER}")
+  if(NOT ${PLATFORM_FILE} MATCHES "${CMAKE_SOURCE_DIR}/Engine/System/Platform/${HYP_PLATFORM_NAME}")
     list(REMOVE_ITEM SOURCES ${PLATFORM_FILE})
     list(REMOVE_ITEM HEADERS ${PLATFORM_FILE})
   endif()

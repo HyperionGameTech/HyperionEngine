@@ -107,7 +107,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/Generated
     ${CMAKE_SOURCE_DIR}/Engine
-    ${CMAKE_SOURCE_DIR}/Engine/rendering
+    ${CMAKE_SOURCE_DIR}/Engine/Rendering
 )
 
 if(HYP_VULKAN)

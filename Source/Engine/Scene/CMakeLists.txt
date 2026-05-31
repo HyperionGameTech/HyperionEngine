@@ -32,7 +32,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/Generated
     ${CMAKE_SOURCE_DIR}/Engine
-    ${CMAKE_SOURCE_DIR}/Engine/scene
+    ${CMAKE_SOURCE_DIR}/Engine/Scene
 )
 
 # Normalize sources/headers to absolute paths under the root
