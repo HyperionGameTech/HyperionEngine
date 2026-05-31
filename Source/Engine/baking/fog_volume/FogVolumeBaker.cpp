@@ -16,7 +16,7 @@
 
 #include <scene/FogVolume.hpp>
 
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 namespace Hyperion {
 namespace Baking {
@@ -98,7 +98,7 @@ void Baker<FogVolume>::HandleCompletedJob_Internal(BakeJobBase* job)
     Handle<Texture> noiseTexture = MakeHandle<Texture>(noiseTextureDesc, noiseBitmap.ToByteView());
     noiseTexture->SetName(NAME_FMT("FogVolume_{}_NoiseMap", m_fogVolume->GetName()));
     GetCurrentAssetRegistry()->PutAsset(noiseTexture);
-    
+
     CheckResult(noiseTexture->Create());
 
     m_fogVolume->SetTextures(volumeTexture, noiseTexture);

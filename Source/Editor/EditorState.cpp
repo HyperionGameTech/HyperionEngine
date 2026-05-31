@@ -9,9 +9,9 @@
 #include <Editor/EditorState.hpp>
 #include <Editor/EditorProject.hpp>
 
-#include <engine/Game.hpp>
+#include <Framework/Game.hpp>
 
-#include <engine/threads/SimThread.hpp>
+#include <Framework/threads/SimThread.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>

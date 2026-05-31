@@ -12,7 +12,7 @@
 #include <Core/logging/LogChannels.hpp>
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-#include <engine/EngineMemory.hpp>
+#include <Framework/EngineMemory.hpp>
 #endif // HYPERION_ENGINE
 
 namespace Hyperion {

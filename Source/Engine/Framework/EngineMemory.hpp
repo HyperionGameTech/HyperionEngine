@@ -36,6 +36,6 @@ class ThreadId;
 
 using threading::ThreadId;
 
-#include <engine/EngineMemory.inc>
+#include <Framework/EngineMemory.inc>
 
 } // namespace Hyperion

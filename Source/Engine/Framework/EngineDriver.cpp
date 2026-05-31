@@ -6,19 +6,19 @@
 
 #include <HyperionPch.hpp>
 
-#include <engine/EngineDriver.hpp>
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineDriver.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <asset/AssetRegistry.hpp>
-#include <engine/EngineStats.hpp>
-#include <engine/EngineMemory.hpp>
-#include <engine/CVarManager.hpp>
-#include <engine/Game.hpp>
+#include <Framework/EngineStats.hpp>
+#include <Framework/EngineMemory.hpp>
+#include <Framework/CVarManager.hpp>
+#include <Framework/Game.hpp>
 
-#include <engine/threads/SimThread.hpp>
-#include <engine/threads/MainThread.hpp>
-#include <engine/threads/RenderThread.hpp>
-#include <engine/threads/VisThread.hpp>
+#include <Framework/threads/SimThread.hpp>
+#include <Framework/threads/MainThread.hpp>
+#include <Framework/threads/RenderThread.hpp>
+#include <Framework/threads/VisThread.hpp>
 
 #include <rendering/PostFX.hpp>
 #include <rendering/RenderInterface.hpp>

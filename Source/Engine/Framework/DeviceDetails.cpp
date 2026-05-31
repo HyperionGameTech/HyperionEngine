@@ -6,7 +6,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <engine/DeviceDetails.hpp>
+#include <Framework/DeviceDetails.hpp>
 
 #include <DeviceDetails.generated.inl>
 
@@ -106,12 +106,12 @@ static const char* GetVendorNameFromEnum(GpuVendor vendor)
 void DeviceDetails::Set(const GpuInfo& gpuInfo)
 {
     info = gpuInfo;
-    
+
     if (info.gpuVendor == GpuVendor::Unknown && info.vendorId != 0)
     {
         info.gpuVendor = GetVendorFromVendorId(info.vendorId);
     }
-    
+
     m_gpuVendorName = GetVendorNameFromEnum(info.gpuVendor);
 }
 

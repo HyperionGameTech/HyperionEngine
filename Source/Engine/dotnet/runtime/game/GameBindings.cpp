@@ -9,10 +9,10 @@
 #include <Core/threading/Thread.hpp>
 #include <Core/threading/Scheduler.hpp>
 
-#include <engine/Game.hpp>
+#include <Framework/Game.hpp>
 
-#include <engine/threads/SimThread.hpp>
-#include <engine/EngineGlobals.hpp>
+#include <Framework/threads/SimThread.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 using namespace Hyperion;
 

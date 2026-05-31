@@ -28,7 +28,7 @@
 
 #include <scene/View.hpp>
 
-#include <engine/EngineStats.hpp>
+#include <Framework/EngineStats.hpp>
 
 #include <Core/math/MathUtil.hpp>
 

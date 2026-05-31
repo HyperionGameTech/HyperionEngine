@@ -11,7 +11,7 @@
 
 #include <dotnet/runtime/asset/AssetMapBindings.hpp>
 
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 using namespace Hyperion;
 

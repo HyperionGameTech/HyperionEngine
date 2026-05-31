@@ -15,7 +15,7 @@
 
 #include <Core/threading/Threads.hpp>
 
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <InputManager.generated.inl>
 

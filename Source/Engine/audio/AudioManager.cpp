@@ -8,7 +8,7 @@
 
 #include <audio/AudioManager.hpp>
 
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <AudioManager.generated.inl>
 

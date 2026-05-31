@@ -38,8 +38,8 @@
 
 #include <Core/utilities/DeferredScope.hpp>
 
-#include <engine/EngineDriver.hpp>
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineDriver.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <UIObject.generated.inl>
 

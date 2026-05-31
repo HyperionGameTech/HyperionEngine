@@ -40,7 +40,7 @@
 
 #include <scene/animation/Skeleton.hpp>
 
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <system/OpenFileDialog.hpp>
 #include <system/SaveFileDialog.hpp>

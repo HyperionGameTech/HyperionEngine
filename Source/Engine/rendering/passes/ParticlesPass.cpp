@@ -30,7 +30,7 @@
 #include <rendering/util/DeletionQueue.hpp>
 #include <rendering/util/ShaderPropertyDictionary.hpp>
 
-#include <engine/EngineStats.hpp>
+#include <Framework/EngineStats.hpp>
 
 #include <scene/ParticleVolume.hpp>
 #include <scene/View.hpp>

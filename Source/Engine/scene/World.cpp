@@ -45,10 +45,10 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
-#include <engine/Game.hpp>
-#include <engine/EngineDriver.hpp>
-#include <engine/EngineStats.hpp>
-#include <engine/CVarManager.hpp>
+#include <Framework/Game.hpp>
+#include <Framework/EngineDriver.hpp>
+#include <Framework/EngineStats.hpp>
+#include <Framework/CVarManager.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetObject.hpp>

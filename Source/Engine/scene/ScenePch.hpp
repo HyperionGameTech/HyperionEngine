@@ -17,7 +17,7 @@
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
 
-#include <engine/EngineGlobals.hpp>
-#include <engine/EngineMemory.hpp>
+#include <Framework/EngineGlobals.hpp>
+#include <Framework/EngineMemory.hpp>
 
 #endif // __cplusplus

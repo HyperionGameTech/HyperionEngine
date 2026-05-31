@@ -31,8 +31,8 @@
 #include <Editor/EditorPickCache.hpp>
 #endif
 
-#include <engine/EngineDriver.hpp>
-#include <engine/GameState.hpp>
+#include <Framework/EngineDriver.hpp>
+#include <Framework/GameState.hpp>
 
 #include <rendering/Mesh.hpp>
 

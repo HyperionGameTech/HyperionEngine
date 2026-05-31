@@ -20,7 +20,7 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
-#include <engine/config/EngineConfig.hpp>
+#include <Framework/config/EngineConfig.hpp>
 
 #include <Core/utilities/Span.hpp>
 
@@ -28,7 +28,7 @@
 
 #include <system/AppContext.hpp>
 
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <cstring>
 

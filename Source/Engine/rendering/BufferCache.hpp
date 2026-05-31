@@ -12,7 +12,7 @@
 
 #include <Core/math/MathUtil.hpp>
 
-#include <engine/EngineMemory.hpp>
+#include <Framework/EngineMemory.hpp>
 
 namespace Hyperion {
 
@@ -164,7 +164,7 @@ public:
             {
                 break;
             }
-            
+
             auto lowerBoundIt = cachedBuffers.LowerBound(currEntry);
             cachedBuffers.Insert(lowerBoundIt, std::move(currEntry));
             usedBuffers.PopFront();

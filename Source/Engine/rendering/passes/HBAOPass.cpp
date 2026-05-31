@@ -31,9 +31,9 @@
 
 #include <Core/math/Vector2.hpp>
 
-#include <engine/EngineDriver.hpp>
-#include <engine/CVarManager.hpp>
-#include <engine/EngineStats.hpp>
+#include <Framework/EngineDriver.hpp>
+#include <Framework/CVarManager.hpp>
+#include <Framework/EngineStats.hpp>
 
 namespace Hyperion {
 

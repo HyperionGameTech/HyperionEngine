@@ -8,7 +8,7 @@
 
 #include <scene/camera/FirstPersonCamera.hpp>
 
-#include <engine/Game.hpp>
+#include <Framework/Game.hpp>
 
 #include <FirstPersonCamera.generated.inl>
 

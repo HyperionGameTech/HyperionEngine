@@ -22,7 +22,7 @@
 
 #include <baking/BakerSubsystem.hpp>
 
-#include <engine/EngineDriver.hpp>
+#include <Framework/EngineDriver.hpp>
 
 #include <EnvProbe.generated.inl>
 

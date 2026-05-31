@@ -6,7 +6,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <engine/commandlet/Commandlet.hpp>
+#include <Framework/commandlet/Commandlet.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>

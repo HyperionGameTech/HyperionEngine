@@ -32,7 +32,7 @@
 
 #include <util/img/Bitmap.hpp>
 
-#include <engine/EngineDriver.hpp>
+#include <Framework/EngineDriver.hpp>
 
 #include <Texture.generated.inl>
 
@@ -179,17 +179,17 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
             uint32 mipWidth = MathUtil::Max(1u, textureDesc.extent.x >> mipIndex);
             uint32 mipHeight = MathUtil::Max(1u, textureDesc.extent.y >> mipIndex);
             uint32 mipDepth = MathUtil::Max(1u, textureDesc.extent.z >> mipIndex);
-            
+
             uint32 bytesPerPixel = TextureUtils::NumComponents(textureDesc.format) * TextureUtils::BytesPerComponent(textureDesc.format);
             uint32 unalignedRowPitch = mipWidth * bytesPerPixel;
             uint32 numRows = mipHeight * mipDepth * numArrayLayers;
 
             // Align row pitch to 256 bytes
             uint32 paddedRowPitch = AlignUp(unalignedRowPitch, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-            
+
             // Record offset for this mip, ensuring 512-byte alignment
             paddedMipOffsets[mipIndex] = AlignUp(paddedTotalSize, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
-            
+
             // Advance total size by the padded size of this mip
             paddedTotalSize = paddedMipOffsets[mipIndex] + (paddedRowPitch * numRows);
         }
@@ -202,7 +202,7 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
             uint32 mipWidth = MathUtil::Max(1u, textureDesc.extent.x >> mipIndex);
             uint32 mipHeight = MathUtil::Max(1u, textureDesc.extent.y >> mipIndex);
             uint32 mipDepth = MathUtil::Max(1u, textureDesc.extent.z >> mipIndex);
-            
+
             uint32 bytesPerPixel = TextureUtils::NumComponents(textureDesc.format) * TextureUtils::BytesPerComponent(textureDesc.format);
             uint32 unalignedRowPitch = mipWidth * bytesPerPixel;
             uint32 paddedRowPitch = AlignUp(unalignedRowPitch, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
@@ -211,7 +211,7 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
             // Get tightly packed source offset
             uint32 srcMipOffset = (mipIndex == 0) ? 0 : mipOffsets[mipIndex - 1];
             const uint8* pSrcMipData = imageData.Data() + srcMipOffset;
-            
+
             // Get padded destination offset
             uint8* pDstMipData = paddedByteBuffer.Data() + paddedMipOffsets[mipIndex];
 
@@ -228,7 +228,7 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
         // Now acquire the staging buffer using the padded size!
         GpuBuffer* stagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(paddedTotalSize);
         Assert(stagingBuffer != nullptr && stagingBuffer->IsCreated());
-        
+
         // Copy the padded buffer instead of the raw imageData
         stagingBuffer->Copy(paddedTotalSize, paddedByteBuffer.Data());
 #else
@@ -250,7 +250,7 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
 #else
                 const uint32 mipSize = textureDesc.GetMipByteSize(mipIndex, /* includeArrayLayers */ true);
                 uint32 mipBlockStart = 0;
-                
+
                 if (mipIndex != 0)
                 {
                     mipBlockStart = mipOffsets[mipIndex - 1];
@@ -789,7 +789,7 @@ void Texture::Readback(GpuBufferRef& outBuffer, bool allMips)
 
         outBuffer = RI.MakeGpuBuffer(GpuBufferType::ReadbackBuffer, tightSize);
         outBuffer->SetIsCpuAccessible(true);
-        
+
         CheckResult(outBuffer->Create());
 
         outBuffer->Copy(tightSize, tightBuffer.Data());

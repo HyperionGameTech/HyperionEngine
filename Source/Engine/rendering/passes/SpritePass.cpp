@@ -41,9 +41,9 @@
 
 #include <Core/utilities/DeferredScope.hpp>
 
-#include <engine/EngineDriver.hpp>
-#include <engine/CVarManager.hpp>
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineDriver.hpp>
+#include <Framework/CVarManager.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <SpritePass.generated.inl>
 

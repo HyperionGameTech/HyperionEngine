@@ -10,7 +10,7 @@
 #include <rendering/GpuImage.hpp>
 #include <rendering/RenderInterface.hpp>
 
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <Attachment.generated.inl>
 

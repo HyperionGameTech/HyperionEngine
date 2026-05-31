@@ -13,7 +13,7 @@
 
 #include <rendering/passes/EnvProbePass.hpp>
 
-#include <engine/resources/ResourceBinder.hpp>
+#include <Framework/resources/ResourceBinder.hpp>
 
 #include <scene/EnvGrid.hpp>
 #include <scene/EnvProbe.hpp>

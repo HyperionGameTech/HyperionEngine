@@ -9,7 +9,7 @@
 #include <scene/System.hpp>
 #include <scene/components/ScriptComponent.hpp>
 
-#include <engine/GameState.hpp>
+#include <Framework/GameState.hpp>
 
 #include <Core/functional/Delegate.hpp>
 #include <Core/memory/UniquePtr.hpp>
@@ -27,7 +27,7 @@ class ScriptSystem final : public SystemBase
 public:
     ScriptSystem();
     ~ScriptSystem() override;
-    
+
     bool AllowParallelExecution() const override;
     bool RequiresSimThread() const override;
     bool AllowUpdate() const override;

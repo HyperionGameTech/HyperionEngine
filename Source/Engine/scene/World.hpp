@@ -19,7 +19,7 @@
 
 #include <Core/math/Color.hpp>
 
-#include <engine/EngineMemory.hpp>
+#include <Framework/EngineMemory.hpp>
 
 namespace Hyperion {
 

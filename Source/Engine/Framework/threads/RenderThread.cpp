@@ -6,12 +6,12 @@
 
 #include <HyperionPch.hpp>
 
-#include <engine/threads/RenderThread.hpp>
+#include <Framework/threads/RenderThread.hpp>
 
-#include <engine/EngineGlobals.hpp>
-#include <engine/EngineDriver.hpp>
-#include <engine/EngineStats.hpp>
-#include <engine/EngineMemory.hpp>
+#include <Framework/EngineGlobals.hpp>
+#include <Framework/EngineDriver.hpp>
+#include <Framework/EngineStats.hpp>
+#include <Framework/EngineMemory.hpp>
 #include <rendering/DebugDrawer.hpp>
 
 #include <rendering/PostFX.hpp>

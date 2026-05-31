@@ -20,7 +20,7 @@
 
 #include <Core/utilities/ByteUtil.hpp>
 
-#include <engine/EngineDriver.hpp>
+#include <Framework/EngineDriver.hpp>
 
 #include <MaterialInstance.generated.inl>
 

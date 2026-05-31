@@ -42,8 +42,8 @@
 
 #include <system/DirectoryInitializer.hpp>
 
-#include <engine/EngineDriver.hpp>
-#include <Engine/CVarManager.hpp>
+#include <Framework/EngineDriver.hpp>
+#include <Framework/CVarManager.hpp>
 
 #if HYP_DXC
 #if HYP_WINDOWS

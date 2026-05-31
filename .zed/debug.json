@@ -1,5 +1,17 @@
 [
   {
+    "label": "Start sample (Windows)",
+    "program": "$ZED_WORKTREE_ROOT/Binaries/Windows/Release/hyperion-sample.exe",
+    "request": "launch",
+    "adapter": "CodeLLDB",
+  },
+  {
+    "label": "Start editor (Windows)",
+    "program": "$ZED_WORKTREE_ROOT/Binaries/Windows/Release/Hyperion.Editor.exe",
+    "request": "launch",
+    "adapter": "CodeLLDB",
+  },
+  {
     "label": "Start sample (macOS)",
     "program": "$ZED_WORKTREE_ROOT/Binaries/Mac/Release/hyperion-sample",
     "request": "launch",

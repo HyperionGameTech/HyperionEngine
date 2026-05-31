@@ -36,8 +36,8 @@
 
 #include <system/AppContext.hpp>
 
-#include <engine/EngineDriver.hpp>
-#include <engine/CVarManager.hpp>
+#include <Framework/EngineDriver.hpp>
+#include <Framework/CVarManager.hpp>
 
 namespace Hyperion {
 

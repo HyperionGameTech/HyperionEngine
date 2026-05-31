@@ -23,7 +23,7 @@
 
 #include <system/AppContext.hpp>
 
-#include <engine/EngineDriver.hpp>
+#include <Framework/EngineDriver.hpp>
 
 #include <TextSprite.generated.inl>
 
@@ -49,7 +49,7 @@ static TResult<Handle<FontAtlas>> CreateFontAtlas()
     // some platforms build without freetype support so the atlas must already exist in the registry.
 
     AssetRegistry& registry = *GetEngineAssetRegistry();
-    
+
     GlobalContextScope contextScope { AssetRegistryContext { MakeStrongRef(&registry) } };
 
     Handle<FontAtlas> fontAtlas = DynamicCast<FontAtlas>(registry.GetAsset(AssetBuckets::FontAtlases, "Roboto_Regular"_sh));
@@ -68,13 +68,13 @@ static TResult<Handle<FontAtlas>> CreateFontAtlas()
 
     // create new font atlas
     fontAtlas = MakeHandle<FontAtlas>(NAME("Roboto_Regular"), std::move(fontFaceAsset->Result()));
-    
+
     // render atlas textures.
     if (Result renderAtlasResult = fontAtlas->RenderAtlasTextures(1.0f, 2.0f, 0.1f); renderAtlasResult.HasError())
     {
         return renderAtlasResult.GetError();
     }
-    
+
     registry.PutAssetsDeep(fontAtlas);
     registry.SaveDirtyAssets();
 
@@ -293,7 +293,7 @@ void TextSprite::SetText(const String& text)
 void TextSprite::SetTextColor(Color color)
 {
     m_textColor = color;
-    
+
     if (GetWorld() != nullptr)
     {
         SetNeedsRenderProxyUpdate();
@@ -319,7 +319,7 @@ void TextSprite::SetTextSize(float textSize)
 void TextSprite::SetFontAtlas(const Handle<FontAtlas>& fontAtlas)
 {
     m_fontAtlas = fontAtlas;
-    
+
     if (GetWorld() != nullptr)
     {
         UpdateTextAABB();

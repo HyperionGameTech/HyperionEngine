@@ -17,7 +17,7 @@
 #include <input/InputManager.hpp>
 #include <input/Mouse.hpp>
 
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <rendering/Swapchain.hpp>
 #include <rendering/RenderInterface.hpp>
@@ -31,8 +31,8 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
-#include <engine/threads/MainThread.hpp>
-#include <engine/threads/RenderThread.hpp>
+#include <Framework/threads/MainThread.hpp>
+#include <Framework/threads/RenderThread.hpp>
 
 namespace Hyperion {
 
@@ -362,7 +362,7 @@ void Win32ApplicationWindow::ProcessRawInput(void* rawInput)
     if (raw->header.dwType == RIM_TYPEMOUSE)
     {
         event = Event(EventType::MOUSEMOTION, this, platformEvent);
-        
+
         int x = raw->data.mouse.lLastX;
         int y = raw->data.mouse.lLastY;
 

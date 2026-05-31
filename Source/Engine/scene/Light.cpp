@@ -35,7 +35,7 @@
 
 #include <Core/utilities/Float16.hpp>
 
-#include <engine/EngineDriver.hpp>
+#include <Framework/EngineDriver.hpp>
 
 #if HYP_EDITOR
 #include <baking/BakerSubsystem.hpp>

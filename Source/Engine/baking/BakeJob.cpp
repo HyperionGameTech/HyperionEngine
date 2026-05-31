@@ -37,8 +37,8 @@
 #include <Core/threading/TaskSystem.hpp>
 #include <Core/threading/TaskThread.hpp>
 
-#include <engine/EngineGlobals.hpp>
-#include <engine/EngineDriver.hpp>
+#include <Framework/EngineGlobals.hpp>
+#include <Framework/EngineDriver.hpp>
 #include <rendering/DebugDrawer.hpp>
 
 namespace Hyperion {

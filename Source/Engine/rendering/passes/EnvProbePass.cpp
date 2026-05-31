@@ -38,7 +38,7 @@
 #include <scene/EnvProbe.hpp>
 #include <scene/Light.hpp>
 
-#include <engine/EngineStats.hpp>
+#include <Framework/EngineStats.hpp>
 
 #include <Core/math/MathUtil.hpp>
 
@@ -169,7 +169,7 @@ void ConvolveEnvProbeCubemap(
         const Vec2u mipExtent = mipIndex == 0
             ? extent
             : Vec2u(MathUtil::Max(extent.x >> mipIndex, 1u), MathUtil::Max(extent.y >> mipIndex, 1u));
-        
+
         ShaderPropertySet shaderProperties;
         // we have to round otherwise we'll potentially make too many permutations for *almost* the same values.
         shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("LOBE_SIZE"), MathUtil::Round(roughness, 3))));
@@ -189,7 +189,7 @@ void ConvolveEnvProbeCubemap(
 
         cba.Write(&constants);
         cba.Commit(cbuffer, cbufferOffset, cbufferSize);
-            
+
         ImageSubResource subResource {};
         subResource.baseMipLevel = mipIndex;
         subResource.numLevels = 1;

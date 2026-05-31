@@ -13,7 +13,7 @@
 
 #include <rendering/RenderInterface.hpp>
 
-#include <engine/EngineStats.hpp>
+#include <Framework/EngineStats.hpp>
 
 namespace Hyperion {
 

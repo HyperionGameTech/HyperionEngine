@@ -29,7 +29,7 @@
 
 #include <Core/threading/TaskThread.hpp>
 
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 namespace Hyperion {
 namespace Baking {

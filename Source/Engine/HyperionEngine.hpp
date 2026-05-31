@@ -12,7 +12,7 @@
 
 #include <Core/config/Config.hpp>
 
-#include <engine/EngineMemory.hpp>
+#include <Framework/EngineMemory.hpp>
 
 namespace Hyperion {
 

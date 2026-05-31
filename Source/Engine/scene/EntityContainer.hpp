@@ -16,7 +16,7 @@
 #include <Core/reflection/ObjId.hpp>
 #include <Core/reflection/Handle.hpp>
 
-#include <engine/EngineMemory.hpp>
+#include <Framework/EngineMemory.hpp>
 
 #include <scene/ComponentContainer.hpp>
 

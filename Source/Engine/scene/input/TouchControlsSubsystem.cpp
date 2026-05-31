@@ -26,8 +26,8 @@
 
 #include <asset/Assets.hpp>
 
-#include <engine/EngineDriver.hpp>
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineDriver.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <Core/math/MathUtil.hpp>
 

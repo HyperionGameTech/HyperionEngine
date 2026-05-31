@@ -15,7 +15,7 @@
 
 #include <Core/functional/Delegate.hpp>
 
-#include <engine/config/EngineConfig.hpp>
+#include <Framework/config/EngineConfig.hpp>
 
 #include <rendering/util/ShaderCompiler.hpp>
 

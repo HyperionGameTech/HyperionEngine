@@ -23,10 +23,10 @@
 
 #include <Core/threading/util/ThreadId.hpp>
 
-#include <engine/EngineStats.hpp>
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineStats.hpp>
+#include <Framework/EngineGlobals.hpp>
 
-#include <engine/threads/RenderThread.hpp>
+#include <Framework/threads/RenderThread.hpp>
 
 #if HYP_EDITOR
 #include <Editor/EditorTask.hpp>

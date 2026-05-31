@@ -16,7 +16,7 @@
 
 #include <rendering/CrashHandler.hpp>
 
-#include <engine/CVarManager.hpp>
+#include <Framework/CVarManager.hpp>
 
 #include <DX12Swapchain.generated.inl>
 

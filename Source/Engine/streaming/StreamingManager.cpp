@@ -26,10 +26,10 @@
 
 #include <Core/memory/pool/Pool.hpp>
 
-#include <engine/EngineDriver.hpp>
-#include <engine/EngineGlobals.hpp>
-#include <engine/EngineMemory.hpp>
-#include <engine/threads/SimThread.hpp>
+#include <Framework/EngineDriver.hpp>
+#include <Framework/EngineGlobals.hpp>
+#include <Framework/EngineMemory.hpp>
+#include <Framework/threads/SimThread.hpp>
 
 #include <StreamingManager.generated.inl>
 

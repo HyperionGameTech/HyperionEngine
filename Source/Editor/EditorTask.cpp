@@ -15,7 +15,7 @@
 #include <Core/logging/Logger.hpp>
 #include <Core/logging/LogChannels.hpp>
 
-#include <engine/threads/SimThread.hpp>
+#include <Framework/threads/SimThread.hpp>
 
 #include <EditorTask.generated.inl>
 

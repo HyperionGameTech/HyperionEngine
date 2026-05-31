@@ -14,7 +14,7 @@
 #include <asset/Assets.hpp>
 #include <asset/BlobStorage.hpp>
 
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <Shader.generated.inl>
 

@@ -24,7 +24,7 @@
 // for EnumToString
 #include <Core/reflection/Enum.hpp>
 
-#include <engine/CVarManager.hpp>
+#include <Framework/CVarManager.hpp>
 
 #include <VulkanSwapchain.generated.inl>
 

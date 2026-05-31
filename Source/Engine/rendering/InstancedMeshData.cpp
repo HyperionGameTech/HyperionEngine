@@ -8,7 +8,7 @@
 #include <asset/Assets.hpp>
 #include <asset/BlobStorage.hpp>
 
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <InstancedMeshData.generated.inl>
 
@@ -81,10 +81,10 @@ void InstancedMeshData::PageBlobData()
             }
         }
     }
-    
+
 #if HYP_EDITOR
     if (needSaveBlobData)
-    {    
+    {
         Result saveBlobDataResult = SaveBlobData(blobStorage);
 
         if (saveBlobDataResult.HasError())

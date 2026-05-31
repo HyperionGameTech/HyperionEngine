@@ -31,9 +31,9 @@
 
 #include <input/InputManager.hpp>
 
-#include <engine/EngineGlobals.hpp>
-#include <engine/EngineDriver.hpp>
-#include <engine/CVarManager.hpp>
+#include <Framework/EngineGlobals.hpp>
+#include <Framework/EngineDriver.hpp>
+#include <Framework/CVarManager.hpp>
 
 #include <Camera.generated.inl>
 

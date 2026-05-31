@@ -6,7 +6,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <streaming/StreamingCell.hpp>
 

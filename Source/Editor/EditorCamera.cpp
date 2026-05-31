@@ -20,8 +20,8 @@
 
 #include <Core/profiling/ProfileScope.hpp>
 
-#include <engine/EngineDriver.hpp>
-#include <engine/CVarManager.hpp>
+#include <Framework/EngineDriver.hpp>
+#include <Framework/CVarManager.hpp>
 
 #include <EditorCamera.generated.inl>
 

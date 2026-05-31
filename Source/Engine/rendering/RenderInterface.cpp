@@ -46,8 +46,8 @@
 #include <rendering/RenderGroupCache.hpp>
 #include <rendering/GpuTimerBackend.hpp>
 
-#include <engine/resources/ResourceTracker.hpp>
-#include <engine/resources/ResourceBinder.hpp>
+#include <Framework/resources/ResourceTracker.hpp>
+#include <Framework/resources/ResourceBinder.hpp>
 #include <rendering/resources/ResourceBindings.hpp>
 
 #include <rendering/passes/EnvProbePass.hpp>
@@ -92,11 +92,11 @@
 
 #include <Core/io/ByteReader.hpp>
 
-#include <engine/EngineStats.hpp>
-#include <engine/EngineDriver.hpp>
-#include <engine/CVarManager.hpp>
+#include <Framework/EngineStats.hpp>
+#include <Framework/EngineDriver.hpp>
+#include <Framework/CVarManager.hpp>
 
-#include <engine/config/EngineConfig.hpp>
+#include <Framework/config/EngineConfig.hpp>
 
 #include <system/AppContext.hpp>
 

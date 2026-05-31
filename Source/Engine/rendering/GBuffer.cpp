@@ -18,7 +18,7 @@
 
 #include <Core/threading/Threads.hpp>
 
-#include <engine/CVarManager.hpp>
+#include <Framework/CVarManager.hpp>
 
 #include <initializer_list>
 

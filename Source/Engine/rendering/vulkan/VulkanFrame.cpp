@@ -19,7 +19,7 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
-#include <engine/EngineStats.hpp>
+#include <Framework/EngineStats.hpp>
 
 #include <VulkanFrame.generated.inl>
 

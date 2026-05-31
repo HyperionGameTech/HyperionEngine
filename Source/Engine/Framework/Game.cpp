@@ -6,9 +6,9 @@
 
 #include <HyperionPch.hpp>
 
-#include <engine/Game.hpp>
-#include <engine/EngineGlobals.hpp>
-#include <engine/EngineDriver.hpp>
+#include <Framework/Game.hpp>
+#include <Framework/EngineGlobals.hpp>
+#include <Framework/EngineDriver.hpp>
 #include <rendering/DebugDrawer.hpp>
 
 #include <asset/Assets.hpp>

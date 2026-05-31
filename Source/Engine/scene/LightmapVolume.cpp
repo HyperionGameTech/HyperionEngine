@@ -28,8 +28,8 @@
 
 #include <Core/threading/Threads.hpp>
 
-#include <engine/EngineDriver.hpp>
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineDriver.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #if HYP_EDITOR
 #include <baking/BakerSubsystem.hpp>

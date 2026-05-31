@@ -64,9 +64,9 @@
 #include <scene/ParticleVolume.hpp>
 #include <scene/LightmapVolume.hpp>
 
-#include <engine/CVarManager.hpp>
+#include <Framework/CVarManager.hpp>
 
-#include <engine/config/EngineConfig.hpp>
+#include <Framework/config/EngineConfig.hpp>
 
 #include <Core/config/Config.hpp>
 
@@ -79,8 +79,8 @@
 
 #include <rendering/util/MeshBuilder.hpp>
 
-#include <engine/EngineDriver.hpp>
-#include <engine/EngineStats.hpp>
+#include <Framework/EngineDriver.hpp>
+#include <Framework/EngineStats.hpp>
 
 #include <DeferredPass.generated.inl>
 

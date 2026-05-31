@@ -6,7 +6,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <engine/CVarManager.hpp>
+#include <Framework/CVarManager.hpp>
 
 #include <Core/config/Config.hpp>
 

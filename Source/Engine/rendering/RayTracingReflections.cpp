@@ -32,7 +32,7 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
-#include <engine/CVarManager.hpp>
+#include <Framework/CVarManager.hpp>
 
 #include <scene/View.hpp>
 #include <scene/Light.hpp>

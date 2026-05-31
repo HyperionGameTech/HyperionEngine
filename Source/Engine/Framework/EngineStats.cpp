@@ -6,8 +6,8 @@
 
 #include <HyperionPch.hpp>
 
-#include <engine/EngineStats.hpp>
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineStats.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <Core/math/MathUtil.hpp>
 

@@ -26,7 +26,7 @@
 #include <rendering/RendererMain.hpp>
 #include <rendering/TextureViewCache.hpp>
 
-#include <engine/EngineStats.hpp>
+#include <Framework/EngineStats.hpp>
 
 #include <scene/Light.hpp>
 #include <scene/View.hpp>

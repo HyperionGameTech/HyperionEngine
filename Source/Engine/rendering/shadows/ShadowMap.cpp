@@ -28,7 +28,7 @@
 
 #include <Core/logging/Logger.hpp>
 
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <ShadowMap.generated.inl>
 

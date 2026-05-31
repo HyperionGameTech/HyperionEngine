@@ -6,11 +6,11 @@
 
 #include <HyperionPch.hpp>
 
-#include <engine/threads/VisThread.hpp>
+#include <Framework/threads/VisThread.hpp>
 
-#include <engine/EngineGlobals.hpp>
-#include <engine/EngineMemory.hpp>
-#include <engine/EngineStats.hpp>
+#include <Framework/EngineGlobals.hpp>
+#include <Framework/EngineMemory.hpp>
+#include <Framework/EngineStats.hpp>
 
 #include <scene/Entity.hpp>
 #include <scene/View.hpp>

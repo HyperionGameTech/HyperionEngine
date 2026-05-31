@@ -32,7 +32,7 @@
 
 #include <system/DirectoryInitializer.hpp>
 
-#include <engine/Game.hpp>
+#include <Framework/Game.hpp>
 
 #include <HyperionEngine.hpp>
 

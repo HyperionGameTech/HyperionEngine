@@ -15,7 +15,7 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
 
-#include <engine/EngineGlobals.hpp>
-#include <engine/EngineMemory.hpp>
+#include <Framework/EngineGlobals.hpp>
+#include <Framework/EngineMemory.hpp>
 
 #endif // __cplusplus

@@ -14,7 +14,7 @@
 
 #include <Core/threading/SharedMutex.hpp>
 
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 namespace Hyperion {
 

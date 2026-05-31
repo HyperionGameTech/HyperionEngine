@@ -11,9 +11,9 @@
 #include <ui/UIListView.hpp>
 #include <ui/UIText.hpp>
 
-#include <engine/DeviceDetails.hpp>
-#include <engine/EngineStats.hpp>
-#include <engine/EngineGlobals.hpp>
+#include <Framework/DeviceDetails.hpp>
+#include <Framework/EngineStats.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <rendering/RenderInterface.hpp>
 

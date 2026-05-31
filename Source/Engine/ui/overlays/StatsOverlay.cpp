@@ -15,7 +15,7 @@
 
 #include <scene/World.hpp>
 
-#include <engine/EngineStats.hpp>
+#include <Framework/EngineStats.hpp>
 
 #include <Core/profiling/ProfileScope.hpp>
 #include <Core/Core.hpp>
@@ -67,7 +67,7 @@ Handle<UIObject> StatsOverlay::CreateUIObject_Impl(UIObject* spawnParent)
                 Handle<UIPanel> textPanel = parent->CreateUIObject<UIPanel>(
                     Vec2i::Zero(),
                     UIObjectSize({ 100, UIObjectSize::PERCENT }, { 25, UIObjectSize::PIXEL }));
-                    
+
                 textPanel->SetBackgroundColor(Color::Transparent());
 
                 // heading
@@ -138,7 +138,7 @@ void StatsOverlay::Update_Impl(float delta)
 {
     HYP_SCOPE;
 
-#if HYP_ENABLE_PROFILE 
+#if HYP_ENABLE_PROFILE
     if (CoreApi::IsProfilingEnabled())
     {
         if (!m_hotFunctionsUpdateTimer.Waiting())

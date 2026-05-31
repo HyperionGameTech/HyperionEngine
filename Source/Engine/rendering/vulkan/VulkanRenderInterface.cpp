@@ -34,9 +34,9 @@
 #include <rendering/CrashHandler.hpp>
 #include <rendering/CBufferAllocator.hpp>
 
-#include <engine/config/EngineConfig.hpp>
+#include <Framework/config/EngineConfig.hpp>
 
-#include <engine/EngineStats.hpp>
+#include <Framework/EngineStats.hpp>
 
 #include <Core/containers/SparsePagedArray.hpp>
 

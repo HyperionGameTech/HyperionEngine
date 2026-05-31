@@ -19,7 +19,7 @@
 
 #include <Core/reflection/Handle.hpp>
 
-#include <engine/GameState.hpp>
+#include <Framework/GameState.hpp>
 
 #include <AnimationSystem.generated.inl>
 

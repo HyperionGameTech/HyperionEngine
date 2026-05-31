@@ -26,7 +26,7 @@
 #include <scene/camera/PerspectiveCamera.hpp>
 #include <scene/camera/OrthoCamera.hpp>
 
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 namespace Hyperion {
 

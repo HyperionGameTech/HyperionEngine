@@ -27,7 +27,7 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/Shared.hpp>
 
-#include <engine/EngineStats.hpp>
+#include <Framework/EngineStats.hpp>
 
 namespace Hyperion {
 

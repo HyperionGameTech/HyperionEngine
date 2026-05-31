@@ -56,13 +56,13 @@
 
 #include <Core/Util.hpp>
 
-#include <engine/EngineDriver.hpp>
-#include <engine/EngineStats.hpp>
-#include <engine/CVarManager.hpp>
+#include <Framework/EngineDriver.hpp>
+#include <Framework/EngineStats.hpp>
+#include <Framework/CVarManager.hpp>
 
-#include <engine/resources/ResourceTracker.hpp>
+#include <Framework/resources/ResourceTracker.hpp>
 
-#include <engine/config/EngineConfig.hpp>
+#include <Framework/config/EngineConfig.hpp>
 
 namespace Hyperion {
 
@@ -843,7 +843,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
     const DrawCallCollection& drawCallCollection = *payload.pNext->pDrawCallCollection;
 
     const DepthPrepass::Stage prepassStage = payload.pNext->prepassStage;
-    
+
     Mat4f vpMatrix;
 
     RenderProxyCamera* cameraProxy = nullptr;

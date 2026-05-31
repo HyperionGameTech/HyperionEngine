@@ -31,9 +31,9 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
-#include <engine/EngineGlobals.hpp>
-#include <engine/EngineStats.hpp>
-#include <engine/EngineDriver.hpp>
+#include <Framework/EngineGlobals.hpp>
+#include <Framework/EngineStats.hpp>
+#include <Framework/EngineDriver.hpp>
 
 #include <scene/View.hpp>
 #include <scene/Scene.hpp>

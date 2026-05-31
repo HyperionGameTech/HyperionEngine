@@ -24,7 +24,7 @@
 #include <rendering/vulkan/VulkanInstance.hpp>
 #endif
 
-#include <engine/threads/MainThread.hpp>
+#include <Framework/threads/MainThread.hpp>
 
 namespace Hyperion {
 
@@ -61,7 +61,7 @@ int Win32AppContext::PollEvents(Event& event)
     {
         ObjId<Win32ApplicationWindow> windowId;
         windowId.value = static_cast<decltype(ObjId<Win32ApplicationWindow>::value)>(GetWindowLongPtrW(msg.hwnd, GWLP_USERDATA));
-    
+
         Handle<Win32ApplicationWindow> windowHandle { windowId };
 
         TranslateMessage(&msg);

@@ -81,7 +81,7 @@
 
 #include <rendering/util/MeshBuilder.hpp>
 
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineGlobals.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/RendererMain.hpp>
 #include <rendering/RenderProxyList.hpp>
@@ -102,9 +102,9 @@
 
 #include <scripting/ScriptingService.hpp>
 
-#include <engine/Game.hpp>
+#include <Framework/Game.hpp>
 
-#include <engine/EngineDriver.hpp>
+#include <Framework/EngineDriver.hpp>
 #include <rendering/DebugDrawer.hpp>
 
 #include <HyperionEngine.hpp>

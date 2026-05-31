@@ -13,7 +13,7 @@
 
 #include <scene/World.hpp>
 
-#include <engine/EngineStats.hpp>
+#include <Framework/EngineStats.hpp>
 
 #include <BaseStatsOverlay.generated.inl>
 

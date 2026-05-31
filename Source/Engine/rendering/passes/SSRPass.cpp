@@ -25,8 +25,8 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
-#include <engine/CVarManager.hpp>
-#include <engine/EngineStats.hpp>
+#include <Framework/CVarManager.hpp>
+#include <Framework/EngineStats.hpp>
 
 #include <scene/View.hpp>
 #include <scene/EnvProbe.hpp>

@@ -48,6 +48,5 @@ endfunction()
 # ----- Commandlets to build as separate EXEs -----
 add_commandlet_target(PrecompileShaders)
 add_commandlet_target(BuildGizmosCommandlet)
-add_commandlet_target(LaunchEditor)
 # add_commandlet_target(GenerateBlueNoiseBlob)
 # add_commandlet_target(LogMemoryPools)

@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <engine/GameState.hpp>
+#include <Framework/GameState.hpp>
 
 #include <Core/reflection/ObjectBase.hpp>
 #include <Core/reflection/Handle.hpp>

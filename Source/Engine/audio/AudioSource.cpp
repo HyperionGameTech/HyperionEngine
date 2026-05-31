@@ -9,7 +9,7 @@
 #include <audio/AudioSource.hpp>
 #include <audio/AudioManager.hpp>
 
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <AudioSource.generated.inl>
 

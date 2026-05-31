@@ -4,8 +4,8 @@
 
 #include <HyperionPch.hpp>
 
-#include <engine/EngineGlobals.hpp>
-#include <engine/EngineMemory.hpp>
+#include <Framework/EngineGlobals.hpp>
+#include <Framework/EngineMemory.hpp>
 
 #include <rendering/dx12/DX12Shared.hpp>
 

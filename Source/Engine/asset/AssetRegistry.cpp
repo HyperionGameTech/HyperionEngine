@@ -38,7 +38,7 @@
 
 #include <streaming/StreamingCell.hpp>
 
-#include <engine/EngineDriver.hpp>
+#include <Framework/EngineDriver.hpp>
 
 #include <AssetRegistry.generated.inl>
 

@@ -20,7 +20,7 @@
 #include <rendering/MaterialDefinition.hpp>
 #include <rendering/MaterialInstance.hpp>
 
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <TerrainWorldGridLayer.generated.inl>
 

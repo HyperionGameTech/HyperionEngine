@@ -33,7 +33,7 @@
 
 #include <Core/threading/AtomicFlag.hpp>
 
-#include <engine/DeviceDetails.hpp>
+#include <Framework/DeviceDetails.hpp>
 
 #include <system/AppContext.hpp>
 
@@ -41,7 +41,7 @@
 
 #include <Core/utilities/Optional.hpp>
 
-#include <engine/config/EngineConfig.hpp>
+#include <Framework/config/EngineConfig.hpp>
 
 #include <dxgi1_6.h>
 

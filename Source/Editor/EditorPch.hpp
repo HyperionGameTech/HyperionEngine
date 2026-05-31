@@ -4,6 +4,6 @@
 
 #include <HyperionPch.hpp>
 
-#include <engine/EngineGlobals.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #endif // __cplusplus

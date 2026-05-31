@@ -16,7 +16,7 @@
 #include <rendering/CommandRecorderAllocator.hpp>
 #include <rendering/RawBuffer.hpp>
 
-#include <engine/DeviceDetails.hpp>
+#include <Framework/DeviceDetails.hpp>
 
 #ifdef HYP_VULKAN
 #include <rendering/vulkan/VulkanStructs.hpp>

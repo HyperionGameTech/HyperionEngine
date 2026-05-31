@@ -13,7 +13,7 @@
 
 #include <rendering/Shared.hpp>
 
-#include <engine/EngineMemory.hpp>
+#include <Framework/EngineMemory.hpp>
 
 namespace Hyperion {
 

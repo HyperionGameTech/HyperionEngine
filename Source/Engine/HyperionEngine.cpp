@@ -8,15 +8,15 @@
 
 #include <HyperionEngine.hpp>
 
-#include <engine/EngineDriver.hpp>
-#include <engine/EngineStats.hpp>
-#include <engine/Game.hpp>
-#include <engine/CVarManager.hpp>
+#include <Framework/EngineDriver.hpp>
+#include <Framework/EngineStats.hpp>
+#include <Framework/Game.hpp>
+#include <Framework/CVarManager.hpp>
 
-#include <engine/threads/MainThread.hpp>
-#include <engine/threads/SimThread.hpp>
-#include <engine/threads/RenderThread.hpp>
-#include <engine/threads/VisThread.hpp>
+#include <Framework/threads/MainThread.hpp>
+#include <Framework/threads/SimThread.hpp>
+#include <Framework/threads/RenderThread.hpp>
+#include <Framework/threads/VisThread.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
@@ -97,7 +97,7 @@ CORE_API extern AAssetManager* g_androidAssetManager;
 #pragma region Memory Pools
 
 #define HYP_ENGINE_MEMORY_IMPLEMENTATION 1
-#include <engine/EngineMemory.inc>
+#include <Framework/EngineMemory.inc>
 #undef HYP_ENGINE_MEMORY_IMPLEMENTATION
 
 #pragma endregion Memory Pools

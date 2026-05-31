@@ -23,7 +23,7 @@
 #include <rendering/vulkan/VulkanHelpers.hpp>
 #include <rendering/vulkan/VulkanMemoryAllocator.hpp>
 
-#include <engine/EngineGlobals.hpp>
-#include <engine/EngineMemory.hpp>
+#include <Framework/EngineGlobals.hpp>
+#include <Framework/EngineMemory.hpp>
 
 #endif // __cplusplus

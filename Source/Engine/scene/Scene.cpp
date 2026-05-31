@@ -20,7 +20,7 @@
 
 #include <Core/math/Halton.hpp>
 
-#include <engine/EngineDriver.hpp>
+#include <Framework/EngineDriver.hpp>
 
 // #define HYP_VISIBILITY_CHECK_DEBUG
 
@@ -147,7 +147,7 @@ void Scene::Shutdown()
             // Wait for shut down to complete
             task.Await();
         }
-    
+
         entityManager.Reset();
     }
 
