@@ -8,7 +8,7 @@
 #include <Core/Threading/Task.hpp>
 
 #include <Framework/EngineGlobals.hpp>
-#include <Framework/threads/MainThread.hpp>
+#include <Framework/Threads/MainThread.hpp>
 
 #include <Event.generated.inl>
 

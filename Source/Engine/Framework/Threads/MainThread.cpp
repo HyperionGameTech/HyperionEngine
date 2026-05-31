@@ -9,9 +9,9 @@
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/EngineDriver.hpp>
 
-#include <Framework/threads/MainThread.hpp>
-#include <Framework/threads/RenderThread.hpp>
-#include <Framework/threads/SimThread.hpp>
+#include <Framework/Threads/MainThread.hpp>
+#include <Framework/Threads/RenderThread.hpp>
+#include <Framework/Threads/SimThread.hpp>
 
 #include <Core/Threading/Threads.hpp>
 #include <Core/Threading/ThreadSignal.hpp>

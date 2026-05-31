@@ -6,7 +6,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <Framework/threads/VisThread.hpp>
+#include <Framework/Threads/VisThread.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/EngineMemory.hpp>

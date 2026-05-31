@@ -17,6 +17,7 @@
 
 #include <Core/Utilities/IdGenerator.hpp>
 #include <Core/Utilities/Range.hpp>
+
 #include <Core/Reflection/TypeInfoFwd.hpp>
 
 #include <Core/Defines.hpp>

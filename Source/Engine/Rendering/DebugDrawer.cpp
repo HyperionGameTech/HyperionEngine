@@ -30,6 +30,7 @@
 #include <Rendering/Passes/DeferredPass.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
+#include <Rendering/Util/MeshBuilder.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/EngineStats.hpp>
@@ -42,8 +43,6 @@
 
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
-
-#include <Rendering/Util/MeshBuilder.hpp>
 
 #include <Core/Memory/Resource/Resource.hpp>
 

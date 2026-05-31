@@ -60,7 +60,7 @@
 #include <Framework/EngineStats.hpp>
 #include <Framework/CVarManager.hpp>
 
-#include <Framework/resources/ResourceTracker.hpp>
+#include <Framework/Resources/ResourceTracker.hpp>
 
 #include <Framework/Config/EngineConfig.hpp>
 

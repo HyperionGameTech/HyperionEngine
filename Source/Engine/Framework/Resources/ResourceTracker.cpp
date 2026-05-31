@@ -6,7 +6,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <Framework/resources/ResourceTracker.hpp>
+#include <Framework/Resources/ResourceTracker.hpp>
 
 #include <Core/Threading/Threads.hpp>
 

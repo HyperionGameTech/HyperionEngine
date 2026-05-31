@@ -11,7 +11,7 @@
 
 #include <Framework/Game.hpp>
 
-#include <Framework/threads/SimThread.hpp>
+#include <Framework/Threads/SimThread.hpp>
 #include <Framework/EngineGlobals.hpp>
 
 using namespace Hyperion;

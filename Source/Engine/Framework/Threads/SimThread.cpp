@@ -6,7 +6,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <Framework/threads/SimThread.hpp>
+#include <Framework/Threads/SimThread.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/EngineDriver.hpp>

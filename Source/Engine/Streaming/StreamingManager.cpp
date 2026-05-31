@@ -29,7 +29,7 @@
 #include <Framework/EngineDriver.hpp>
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/EngineMemory.hpp>
-#include <Framework/threads/SimThread.hpp>
+#include <Framework/Threads/SimThread.hpp>
 
 #include <StreamingManager.generated.inl>
 

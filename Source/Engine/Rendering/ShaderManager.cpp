@@ -26,7 +26,7 @@
 #include <Framework/EngineStats.hpp>
 #include <Framework/EngineGlobals.hpp>
 
-#include <Framework/threads/RenderThread.hpp>
+#include <Framework/Threads/RenderThread.hpp>
 
 #if HYP_EDITOR
 #include <Editor/EditorTask.hpp>

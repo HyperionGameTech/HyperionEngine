@@ -20,7 +20,7 @@
 #include <Rendering/RenderableAttributes.hpp>
 #include <Rendering/Shared.hpp>
 
-#include <Framework/resources/ResourceTracker.hpp>
+#include <Framework/Resources/ResourceTracker.hpp>
 
 namespace Hyperion {
 

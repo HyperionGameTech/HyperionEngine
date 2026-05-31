@@ -31,8 +31,8 @@
 
 #include <Rendering/Util/DeletionQueue.hpp>
 
-#include <Framework/threads/MainThread.hpp>
-#include <Framework/threads/RenderThread.hpp>
+#include <Framework/Threads/MainThread.hpp>
+#include <Framework/Threads/RenderThread.hpp>
 
 namespace Hyperion {
 

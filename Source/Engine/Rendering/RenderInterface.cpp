@@ -46,8 +46,8 @@
 #include <Rendering/RenderGroupCache.hpp>
 #include <Rendering/GpuTimerBackend.hpp>
 
-#include <Framework/resources/ResourceTracker.hpp>
-#include <Framework/resources/ResourceBinder.hpp>
+#include <Framework/Resources/ResourceTracker.hpp>
+#include <Framework/Resources/ResourceBinder.hpp>
 #include <Rendering/resources/ResourceBindings.hpp>
 
 #include <Rendering/Passes/EnvProbePass.hpp>

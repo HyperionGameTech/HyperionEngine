@@ -24,7 +24,7 @@
 #include <Rendering/Vulkan/VulkanInstance.hpp>
 #endif
 
-#include <Framework/threads/MainThread.hpp>
+#include <Framework/Threads/MainThread.hpp>
 
 namespace Hyperion {
 

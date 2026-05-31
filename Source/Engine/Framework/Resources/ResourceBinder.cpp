@@ -6,7 +6,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <Framework/resources/ResourceBinder.hpp>
+#include <Framework/Resources/ResourceBinder.hpp>
 
 namespace Hyperion {
 namespace Resources {

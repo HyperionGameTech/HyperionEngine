@@ -13,10 +13,10 @@
 #include <Framework/Game.hpp>
 #include <Framework/CVarManager.hpp>
 
-#include <Framework/threads/MainThread.hpp>
-#include <Framework/threads/SimThread.hpp>
-#include <Framework/threads/RenderThread.hpp>
-#include <Framework/threads/VisThread.hpp>
+#include <Framework/Threads/MainThread.hpp>
+#include <Framework/Threads/SimThread.hpp>
+#include <Framework/Threads/RenderThread.hpp>
+#include <Framework/Threads/VisThread.hpp>
 
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
