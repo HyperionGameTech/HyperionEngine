@@ -542,6 +542,32 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                     IdentifierFlags::CONSTANT,
                     m_location)));
 
+                // If there is a user-defined constructor, add its extra parameters to $construct
+                if (userDefinedConstructorMember.HasValue())
+                {
+                    const SymbolType* ctorType = userDefinedConstructorMember.Get().GetType();
+                    Assert(ctorType != nullptr);
+
+                    const GenericInstanceTypeInfo& gi = ctorType->GetGenericInstanceInfo();
+                    const Array<GenericInstanceTypeInfo::Arg>& ctorGenericArgs = gi.m_genericArgs;
+
+                    // Skip index 0 (@return) and index 1 (self)
+                    for (size_t i = 2; i < ctorGenericArgs.Size(); i++)
+                    {
+                        const GenericInstanceTypeInfo::Arg& arg = ctorGenericArgs[i];
+
+                        constructorParams.PushBack(RC<AstParameter>(new AstParameter(
+                            arg.m_name,
+                            RC<AstTypeSpecifier>(new AstTypeSpecifier(
+                                RC<AstTypeRef>(new AstTypeRef(arg.m_type, m_location)),
+                                m_location)),
+                            CloneAstNode(arg.m_defaultValue),
+                            false, /* variadic */
+                            arg.m_isConst ? IdentifierFlags::CONSTANT : IdentifierFlags::NONE,
+                            m_location)));
+                    }
+                }
+
                 RC<AstBlock> constructorBody(new AstBlock(m_location));
                 // initialize data members to default values
                 for (const RC<AstVariableDeclaration>& dataMember : m_dataMembers)

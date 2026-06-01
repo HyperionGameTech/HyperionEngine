@@ -222,6 +222,7 @@ const SymbolType* BuiltinTypes::s_arrayType = SymbolType::Generic(
                     }
                 })
             },
+        // There is an issue showing up when using this method "Array<string> cannot be passed as Array<any>"
         SymbolTypeMember {
             "PopBack",
             SymbolType::GenericInstance(

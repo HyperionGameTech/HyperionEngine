@@ -237,6 +237,11 @@ UniquePtr<Buildable> AstArrayExpression::Build(AstVisitor* visitor, Module* mod)
         instrLoadOffset->GetBuilder().Load(arrayReg).Local().ByOffset(visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize() - arrayStackLocation);
         chunk->Append(std::move(instrLoadOffset));
 
+        // LoadDeref resolves through any reference wrapper (created by OpLoadOffset for Any-backed types
+        // like GenericArrayWrapper) to get a stable copy. This is needed because the POP below
+        // invalidates the stack slot the reference may point to.
+        chunk->Append(BytecodeUtil::Make<LoadDeref>(arrayReg, arrayReg));
+
         // pop array from stack
         chunk->Append(BytecodeUtil::Make<PopLocal>(1));
         visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();

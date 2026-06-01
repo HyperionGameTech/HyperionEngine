@@ -22,12 +22,26 @@ struct ScriptMapKey
 
     HYP_FORCE_INLINE bool operator==(const ScriptMapKey& other) const
     {
-        return GetHashCode() == other.GetHashCode() && key.value == other.key.value;
+        if (GetHashCode() != other.GetHashCode())
+        {
+            return false;
+        }
+
+        // For inline types (Name, int64, etc.) the Variant comparison works directly.
+        // For Any-wrapped types (String, GenericArrayWrapper), TMap stores independent copies
+        // via ShallowCopy, but Any::operator== is pointer-based, so two distinct copies
+        // with identical content would compare as unequal. Fall through to value comparison.
+        if (key.value == other.key.value)
+        {
+            return true;
+        }
+
+        return ScriptMapKey::ValuesEqual(key, other.key);
     }
 
     HYP_FORCE_INLINE bool operator!=(const ScriptMapKey& other) const
     {
-        return GetHashCode() != other.GetHashCode() || key.value != other.key.value;
+        return !operator==(other);
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
@@ -56,6 +70,24 @@ struct ScriptMapKey
                         hc = HashCode::GetHashCode(ref.GetPointer());
                     }
                 }
+                else if constexpr (std::is_same_v<T, Any>)
+                {
+                    // For Any-wrapped values, resolve the underlying type through ToRef
+                    const AnyRef& ref = key.ToRef();
+
+                    if (ref.Is<String>())
+                    {
+                        hc = ref.GetUnchecked<String>().GetHashCode();
+                    }
+                    else if (ref.Is<Name>())
+                    {
+                        hc = ref.GetUnchecked<Name>().GetHashCode();
+                    }
+                    else
+                    {
+                        hc = HashCode::GetHashCode(ref.GetPointer());
+                    }
+                }
                 else if constexpr (std::is_fundamental_v<T>)
                 {
                     hc = HashCode::GetHashCode(value);
@@ -64,10 +96,6 @@ struct ScriptMapKey
                 {
                     hc = value.GetHashCode();
                 }
-                else if (key.Is<String>())
-                {
-                    hc = key.Get<String>().GetHashCode();
-                }
                 else
                 {
                     hc = HashCode::GetHashCode(key.ToRef().GetPointer());
@@ -75,6 +103,37 @@ struct ScriptMapKey
             });
 
         return hc;
+    }
+
+    HYP_FORCE_INLINE static bool ValuesEqual(const BoxedValue& a, const BoxedValue& b)
+    {
+        const AnyRef aRef = a.ToRef();
+        const AnyRef bRef = b.ToRef();
+
+        if (!aRef.HasValue() || !bRef.HasValue())
+        {
+            return aRef.HasValue() == bRef.HasValue();
+        }
+
+        const TypeId aTypeId = aRef.GetTypeId();
+        const TypeId bTypeId = bRef.GetTypeId();
+
+        if (aTypeId != bTypeId)
+        {
+            return false;
+        }
+
+        if (aTypeId == TypeId::ForType<Name>())
+        {
+            return aRef.GetUnchecked<Name>() == bRef.GetUnchecked<Name>();
+        }
+
+        if (aTypeId == TypeId::ForType<String>())
+        {
+            return aRef.GetUnchecked<String>() == bRef.GetUnchecked<String>();
+        }
+
+        return false;
     }
 
 };

@@ -328,12 +328,12 @@ bool StringifyData(const BoxedValue& value, ScriptString& outString, int maxDept
                     // get the existing reference for ScriptArray instances
                     if (elementRef.GetTypeId().Value() == BoxedValueTypeId)
                     {
-                        outString += ValueToString(elementRef.Get<BoxedValue>(), currDepth + 1);
+                        outString += ToString(elementRef.Get<BoxedValue>());
                     }
                     // Otherwise, box up the reference and get the string from that
                     else
                     {
-                        outString += ValueToString(BoxedValue(elementRef), currDepth + 1);
+                        outString += ToString(BoxedValue(elementRef));
                     }
                 }
                 else

@@ -47,22 +47,17 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
     m_exprType = BuiltinTypes::s_errorType;
 
     m_target->Visit(visitor, mod);
-    m_index->Visit(visitor, mod);
+
+    {
+        // Visit the index in its own scope so any REF_VARIABLE_FLAG from a parent
+        // (e.g. AstMember for store-mode member access) does not leak into index sub-expressions.
+        ScopeGuard indexScope(mod, SCOPE_TYPE_NORMAL);
+        m_index->Visit(visitor, mod);
+    }
 
     const SymbolType* targetType = m_target->GetExprType();
     Assert(targetType != nullptr);
     targetType = targetType->GetUnaliased();
-
-    if (mod->IsInScopeOfType(SCOPE_TYPE_NORMAL, REF_VARIABLE_FLAG, /* thisScopeOnly */ false))
-    {
-        // TODO: implement ref array access
-        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-            LEVEL_ERROR,
-            Msg_internal_error,
-            m_location));
-
-        return;
-    }
 
     ScopeGuard scope(mod, SCOPE_TYPE_NORMAL);
 
