@@ -255,6 +255,11 @@ UniquePtr<Buildable> AstHashMap::Build(AstVisitor* visitor, Module* mod)
 
     const uint8 arrayReg = rp;
 
+    // LoadDeref resolves through any reference wrapper created by the outer array
+    // build so the PUSH below stores a stable value copy, not a reference to a
+    // register that gets overwritten by the class load that follows.
+    chunk->Append(BytecodeUtil::Make<LoadDeref>(arrayReg, arrayReg));
+
     // move array to stack
     {
         auto instrPush = BytecodeUtil::Make<RawOperation<>>();

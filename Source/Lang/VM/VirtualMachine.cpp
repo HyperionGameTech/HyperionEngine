@@ -927,7 +927,25 @@ public:
 
         BoxedValue& srcValue = *Deref(instance->thread.m_regs[srcReg]);
 
-        array.SetElementAt(index, ShallowCopy(srcValue, vm->GetGC()));
+        BoxedValue copy = ShallowCopy(srcValue, vm->GetGC());
+
+        // ShallowCopy may return a reference for Any-backed types in tracked memory.
+        // Array elements must be independent value copies, not references that can
+        // be invalidated when the source register is reused.
+        if (IsRef(copy))
+        {
+            BoxedValue& resolved = *Deref(copy);
+            BoxedValue valueCopy;
+            Visit(resolved.value, [&valueCopy](const auto& val)
+            {
+                valueCopy.value.Set<NormalizedType<decltype(val)>>(val);
+            });
+            array.SetElementAt(index, std::move(valueCopy));
+        }
+        else
+        {
+            array.SetElementAt(index, std::move(copy));
+        }
     }
 
     SCRIPT_INLINE void OpMovArrayIdxReg(RegisterIndex dstReg, RegisterIndex indexReg, RegisterIndex srcReg)
@@ -982,7 +1000,24 @@ public:
 
         BoxedValue& srcValue = *Deref(instance->thread.m_regs[srcReg]);
 
-        array.SetElementAt(indexValue, ShallowCopy(srcValue, vm->GetGC()));
+        BoxedValue copy = ShallowCopy(srcValue, vm->GetGC());
+
+        // ShallowCopy may return a reference for Any-backed types in tracked memory.
+        // Array elements must be independent value copies.
+        if (IsRef(copy))
+        {
+            BoxedValue& resolved = *Deref(copy);
+            BoxedValue valueCopy;
+            Visit(resolved.value, [&valueCopy](const auto& val)
+            {
+                valueCopy.value.Set<NormalizedType<decltype(val)>>(val);
+            });
+            array.SetElementAt(indexValue, std::move(valueCopy));
+        }
+        else
+        {
+            array.SetElementAt(indexValue, std::move(copy));
+        }
     }
 
     SCRIPT_INLINE void OpMov(RegisterIndex dstReg, RegisterIndex srcReg)
@@ -1265,6 +1300,12 @@ public:
                 // we push individually constructed objects
                 instance->thread.GetStack().Push(BoxedValue());
             }
+        }
+        else if (numVarArgs < 0)
+        {
+            // varargsAmt was 0: an empty varargs array was pushed onto the caller's stack
+            // (to fill the variadic parameter slot). Pop it so the caller's stack is balanced.
+            instance->thread.GetStack().Pop();
         }
 
         // decrease function depth
@@ -1752,6 +1793,18 @@ public:
             if (GetBoolean(*lhs, &lhsBool) && GetBoolean(*rhs, &rhsBool))
             {
                 instance->thread.m_regs.flags = (lhsBool == rhsBool) ? CF_EQUAL : ((lhsBool > rhsBool) ? CF_GREATER : CF_NONE);
+            }
+            else if (lhs->Is<ScriptString>() && rhs->Is<ScriptString>())
+            {
+                const ScriptString& lstr = lhs->Get<ScriptString>();
+                const ScriptString& rstr = rhs->Get<ScriptString>();
+
+                if (lstr == rstr)
+                    instance->thread.m_regs.flags = CF_EQUAL;
+                else if (lstr > rstr)
+                    instance->thread.m_regs.flags = CF_GREATER;
+                else
+                    instance->thread.m_regs.flags = CF_NONE;
             }
             else
             {

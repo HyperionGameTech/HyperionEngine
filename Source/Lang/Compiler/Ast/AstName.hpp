@@ -27,6 +27,14 @@ public:
 
     virtual const SymbolType* GetExprType() const override;
 
+    virtual bool MayHaveSideEffects() const override
+    {
+        // AstName always compiles to a Name::FromString call at runtime,
+        // so it always has side effects regardless of whether m_callExpr
+        // has been set yet (clones won't have it, but still have side effects).
+        return true;
+    }
+
     virtual HashCode GetHashCode() const override
     {
         HashCode hc = AstConstant::GetHashCode().Add(TypeName<AstName>());
