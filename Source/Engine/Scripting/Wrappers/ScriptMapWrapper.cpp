@@ -14,6 +14,8 @@ static const BoxedValue s_emptyBoxedValue = BoxedValue();
 
 ENGINE_API const Class* g_clsScriptMap = nullptr;
 
+HYP_DISABLE_OPTIMIZATION;
+
 // clang-format off
 HYP_BEGIN_STRUCT(ScriptMap, -1, 0, {})
     Method(NAME("operator[]"), +[](ScriptMap& map, const BoxedValue& key) -> const BoxedValue&

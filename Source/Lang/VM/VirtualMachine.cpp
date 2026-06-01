@@ -895,14 +895,7 @@ public:
 
         BoxedValue& srcValue = *Deref(instance->thread.m_regs[srcReg]);
 
-        if (PASS_AS_REF(srcValue))
-        {
-            array.SetElementAt(index, MakeRef(&srcValue));
-        }
-        else
-        {
-            array.SetElementAt(index, ShallowCopy(srcValue, vm->GetGC()));
-        }
+        array.SetElementAt(index, ShallowCopy(srcValue, vm->GetGC()));
     }
 
     SCRIPT_INLINE void OpMovArrayIdxReg(RegisterIndex dstReg, RegisterIndex indexReg, RegisterIndex srcReg)
@@ -957,14 +950,7 @@ public:
 
         BoxedValue& srcValue = *Deref(instance->thread.m_regs[srcReg]);
 
-        if (PASS_AS_REF(srcValue))
-        {
-            array.SetElementAt(indexValue, MakeRef(&srcValue));
-        }
-        else
-        {
-            array.SetElementAt(indexValue, ShallowCopy(srcValue, vm->GetGC()));
-        }
+        array.SetElementAt(indexValue, ShallowCopy(srcValue, vm->GetGC()));
     }
 
     SCRIPT_INLINE void OpMov(RegisterIndex dstReg, RegisterIndex srcReg)

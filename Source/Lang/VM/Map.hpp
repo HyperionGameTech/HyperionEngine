@@ -43,7 +43,20 @@ struct ScriptMapKey
             {
                 using T = NormalizedType<decltype(value)>;
 
-                if constexpr (std::is_fundamental_v<T>)
+                if constexpr (std::is_same_v<T, AnyRef>)
+                {
+                    const AnyRef& ref = value;
+
+                    if (ref.Is<Name>())
+                    {
+                        hc = ref.GetUnchecked<Name>().GetHashCode();
+                    }
+                    else
+                    {
+                        hc = HashCode::GetHashCode(ref.GetPointer());
+                    }
+                }
+                else if constexpr (std::is_fundamental_v<T>)
                 {
                     hc = HashCode::GetHashCode(value);
                 }
@@ -63,6 +76,7 @@ struct ScriptMapKey
 
         return hc;
     }
+
 };
 
 class ScriptMap final : public TMap<ScriptMapKey, BoxedValue, ScriptAllocator, HashTablePolicy::NotPooled>

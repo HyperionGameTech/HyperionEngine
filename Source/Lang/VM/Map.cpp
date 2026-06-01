@@ -10,7 +10,16 @@ namespace Hyperion {
 
 void ScriptMap::SetElement(ScriptMapKey&& key, BoxedValue&& value)
 {
-    Base::Set(std::move(key), std::move(value));
+    auto it = Base::Find(key);
+
+    if (it == Base::End())
+    {
+        Base::Insert(std::move(key), std::move(value));
+        return;
+    }
+
+    (void)key;
+    it->second = std::move(value);
 }
 
 BoxedValue* ScriptMap::GetElement(const ScriptMapKey& key)
