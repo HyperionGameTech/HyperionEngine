@@ -36,7 +36,7 @@ struct VisibilityState
 {
     HYP_STRUCT_BODY(VisibilityState);
 
-    Array<VisibilityStateSnapshot, InlineAllocator<8>> snapshots;
+    TFatArray<VisibilityStateSnapshot, InlineAllocator<8>> snapshots;
     uint16 validityMarker { 0u };
 
     VisibilityState() = default;

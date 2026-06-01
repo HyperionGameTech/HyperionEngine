@@ -179,13 +179,13 @@ private:
     void Init() override;
 
     HYP_FIELD(Property = "RadianceAtlasTextures")
-    Array<Handle<Texture>, FixedAllocator<MaxAtlases>> m_radianceAtlasTextures;
+    Array<Handle<Texture>> m_radianceAtlasTextures;
 
     HYP_FIELD(Property = "IrradianceAtlasTextures")
-    Array<Handle<Texture>, FixedAllocator<MaxAtlases>> m_irradianceAtlasTextures;
+    Array<Handle<Texture>> m_irradianceAtlasTextures;
 
     HYP_FIELD(Property = "Atlases")
-    Array<LightmapVolumeAtlas, DynamicAllocator> m_atlases;
+    Array<LightmapVolumeAtlas> m_atlases;
 };
 
 constexpr uint8 LightmapStencilMask = (1u << LightmapVolume::MaxAtlases) - 1;

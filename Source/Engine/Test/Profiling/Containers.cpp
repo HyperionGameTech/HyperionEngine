@@ -9,6 +9,7 @@
 #include <Core/Profiling/Profile.hpp>
 
 #include <Core/Containers/Array.hpp>
+#include <Core/Containers/SlimArray.hpp>
 #include <Core/Containers/SparsePagedArray.hpp>
 #include <Core/Containers/Map.hpp>
 #include <Core/Containers/FlatMap.hpp>
@@ -226,6 +227,85 @@ void ProfileArrayRemoval()
 
     Array<uint32, TestAllocator> array;
     array.Reserve(data.elementCount);
+
+    for (size_t i = 0; i < data.elementCount; ++i)
+    {
+        array.PushBack(data.keys[i]);
+    }
+
+    for (size_t i = 0; i < data.removalKeys.Size(); ++i)
+    {
+        array.Erase(data.removalKeys[i]);
+    }
+
+    Consume(array.Size());
+}
+
+void ProfileSlimArrayInsertion()
+{
+    const Dataset& data = ActiveDataset();
+
+    TSlimArray<uint32, TestAllocator> array;
+
+    for (size_t i = 0; i < data.elementCount; ++i)
+    {
+        array.PushBack(data.keys[i]);
+    }
+
+    Consume(array.Size());
+}
+
+void ProfileSlimArrayIteration()
+{
+    const Dataset& data = ActiveDataset();
+
+    TSlimArray<uint32, TestAllocator> array;
+    array.Reserve(static_cast<uint32>(data.elementCount));
+
+    for (size_t i = 0; i < data.elementCount; ++i)
+    {
+        array.PushBack(data.keys[i]);
+    }
+
+    uint64 sum = 0;
+    for (size_t i = 0; i < array.Size(); ++i)
+    {
+        sum += array[i];
+    }
+
+    Consume(sum);
+}
+
+void ProfileSlimArrayFind()
+{
+    const Dataset& data = ActiveDataset();
+
+    TSlimArray<uint32, TestAllocator> array;
+    array.Reserve(static_cast<uint32>(data.elementCount));
+
+    for (size_t i = 0; i < data.elementCount; ++i)
+    {
+        array.PushBack(data.keys[i]);
+    }
+
+    uint64 hits = 0;
+    for (size_t i = 0; i < data.lookupCount; ++i)
+    {
+        if (array.Find(data.lookupKeys[i]) != array.End())
+        {
+            ++hits;
+        }
+    }
+
+    Consume(hits);
+}
+
+void ProfileSlimArrayRemoval()
+{
+    const Dataset& data = ActiveDataset();
+
+    TSlimArray<uint32, TestAllocator> array;
+    array.Reserve(static_cast<uint32>(data.elementCount));
 
     for (size_t i = 0; i < data.elementCount; ++i)
     {
@@ -1246,6 +1326,7 @@ HYP_EXPORT void PrintContainerProfiling(size_t runsPer = 5, size_t numIterations
 
     const SectionEntry insertionEntries[] = {
         { "Array", &ProfileArrayInsertion },
+        { "SlimArray", &ProfileSlimArrayInsertion },
         { "SparsePagedArray", &ProfileSparsePagedArrayInsertion },
         { "TMap (Pooled)", &ProfileHashMapInsertion },
         { "TMap (Dynamic)", &ProfileHashMapDynamicInsertion },
@@ -1260,6 +1341,7 @@ HYP_EXPORT void PrintContainerProfiling(size_t runsPer = 5, size_t numIterations
 
     const SectionEntry iterationEntries[] = {
         { "Array", &ProfileArrayIteration },
+        { "SlimArray", &ProfileSlimArrayIteration },
         { "SparsePagedArray", &ProfileSparsePagedArrayIteration },
         { "TMap (Pooled)", &ProfileHashMapIteration },
         { "TMap (Dynamic)", &ProfileHashMapDynamicIteration },
@@ -1274,6 +1356,7 @@ HYP_EXPORT void PrintContainerProfiling(size_t runsPer = 5, size_t numIterations
 
     const SectionEntry findEntries[] = {
         { "Array", &ProfileArrayFind },
+        { "SlimArray", &ProfileSlimArrayFind },
         { "SparsePagedArray", &ProfileSparsePagedArrayFind },
         { "TMap (Pooled)", &ProfileHashMapFind },
         { "TMap (Dynamic)", &ProfileHashMapDynamicFind },
@@ -1288,6 +1371,7 @@ HYP_EXPORT void PrintContainerProfiling(size_t runsPer = 5, size_t numIterations
 
     const SectionEntry removalEntries[] = {
         { "Array", &ProfileArrayRemoval },
+        { "SlimArray", &ProfileSlimArrayRemoval },
         { "SparsePagedArray", &ProfileSparsePagedArrayRemoval },
         { "TMap (Pooled)", &ProfileHashMapRemoval },
         { "TMap (Dynamic)", &ProfileHashMapDynamicRemoval },

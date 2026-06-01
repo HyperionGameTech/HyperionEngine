@@ -1521,6 +1521,63 @@ struct BoxedValueHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const
     }
 };
 
+#if !defined(HYP_USE_SLIM_ARRAY) || !HYP_USE_SLIM_ARRAY
+
+/// TSlimArray
+
+template <class TElemType, class TAllocator>
+struct BoxedValueHelperDecl<TSlimArray<TElemType, TAllocator>, std::enable_if_t<!std::is_const_v<TElemType>>>
+{
+};
+
+template <class TElemType, class TAllocator>
+struct BoxedValueHelper<TSlimArray<TElemType, TAllocator>, std::enable_if_t<!std::is_const_v<TElemType>>> : BoxedValueHelper<GenericArrayWrapper>
+{
+    using ConvertibleFrom = Tuple<>;
+
+    HYP_FORCE_INLINE bool Is(const Any& value) const
+    {
+        const TypeId arrayTypeId = TypeId::ForType<TSlimArray<TElemType, TAllocator>>();
+
+        if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
+        {
+            return TypeInfo_GetId(*arr->typeInfo) == arrayTypeId;
+        }
+
+        return value.GetTypeId() == arrayTypeId;
+    }
+
+    HYP_FORCE_INLINE TSlimArray<TElemType, TAllocator>& Get(const Any& value) const
+    {
+        const TypeId arrayTypeId = TypeId::ForType<TSlimArray<TElemType, TAllocator>>();
+
+        HYP_CORE_ASSERT(this->Is(value));
+
+        if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
+        {
+            HYP_CORE_ASSERT(TypeInfo_GetId(*arr->typeInfo) == arrayTypeId);
+
+            return *static_cast<TSlimArray<TElemType, TAllocator>*>(arr->pInternalArray);
+        }
+
+        HYP_CORE_ASSERT(value.GetTypeId() == arrayTypeId);
+
+        return value.Get<TSlimArray<TElemType, TAllocator>>();
+    }
+
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const TSlimArray<TElemType, TAllocator>& value) const
+    {
+        BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
+    }
+
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, TSlimArray<TElemType, TAllocator>&& value) const
+    {
+        BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
+    }
+};
+
+#endif // !HYP_USE_SLIM_ARRAY
+
 /// FixedArray
 
 template <class T, size_t Size>

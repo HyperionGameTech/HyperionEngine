@@ -218,7 +218,7 @@ public:
     using ConstIterator = Iterator;
 
 private:
-    constexpr StringView(const CharType* _begin, const CharType* _end, size_t length)
+    constexpr StringView(const CharType* _begin, const CharType* _end, uint32 length)
         : m_begin(_begin),
           m_end(_end),
           m_length(length)
@@ -233,29 +233,44 @@ public:
     {
     }
 
-    // StringView(const String< TStringType > &str)
-    //     : m_begin(str.Begin()),
-    //       m_end(str.End() + 1 /* String class accounts for NUL char also */),
-    //       m_length(str.Length())
-    // {
-    // }
-
-    template <size_t Sz>
+    template <uint32 Sz>
     constexpr StringView(const CharType (&str)[Sz])
         : m_begin(&str[0]),
           m_end(&str[0] + Sz),
-          m_length(utf::StringLength<CharType, isUtf8>(str))
+          m_length(0)
     {
+        size_t len = utf::StringLength<CharType, isUtf8>(str);
+        
+        if (len >= UINT32_MAX)
+        {
+            // Invalid UTF8 or bad length
+            m_begin = nullptr;
+            m_end = nullptr;
+            m_length = 0;
+
+            return;
+        }
+
+        m_length = uint32(len);
     }
 
     constexpr StringView(const CharType* str)
-        : m_begin(str),
+        : m_begin(nullptr),
           m_end(nullptr),
           m_length(0)
     {
-        size_t codepoints = 0;
-        m_length = utf::StringLength<CharType, isUtf8>(str, codepoints);
-        m_end = m_begin + codepoints;
+        size_t codepoints;
+        size_t len = utf::StringLength<CharType, isUtf8>(str, codepoints);
+        
+        if (len >= UINT32_MAX)
+        {
+            // Invalid UTF8 or bad length
+            return;
+        }
+
+        m_begin = str;
+        m_end = str + codepoints;
+        m_length = uint32(len);
     }
 
     constexpr StringView(const CharType* _begin, const CharType* _end)
@@ -265,11 +280,35 @@ public:
     {
         if constexpr (isUtf8)
         {
-            m_length = utf::StringLength(_begin, _end);
+            size_t len = utf::StringLength(_begin, _end);
+            
+            if (len >= UINT32_MAX)
+            {
+                // Invalid UTF8 or bad length
+                m_begin = nullptr;
+                m_end = nullptr;
+                m_length = 0;
+
+                return;
+            }
+
+            m_length = uint32(len);
         }
         else
         {
-            m_length = size_t(_end - _begin);
+            size_t len = size_t(_end - _begin);
+            
+            if (len >= UINT32_MAX)
+            {
+                // Some corrupt pointer probably.
+                m_begin = nullptr;
+                m_end = nullptr;
+                m_length = 0;
+
+                return;
+            }
+
+            m_length = uint32(len);
         }
     }
 
@@ -282,39 +321,28 @@ public:
     // }
 
     constexpr StringView(ConstByteView byteView)
-        : m_begin(reinterpret_cast<const CharType*>(byteView.Data())),
-          m_end(reinterpret_cast<const CharType*>(byteView.Data() + byteView.Size())),
-          m_length(utf::StringLength<CharType, isUtf8>(reinterpret_cast<const CharType*>(byteView.Data())))
+        : m_begin(nullptr),
+          m_end(nullptr),
+          m_length(0)
     {
+        size_t len = utf::StringLength<CharType, isUtf8>(reinterpret_cast<const CharType*>(byteView.Data()));
+
+        if (len >= UINT32_MAX)
+        {
+            // Invalid UTF8 or bad length
+            return;
+        }
+
+        m_begin = reinterpret_cast<const CharType*>(byteView.Data());
+        m_end = reinterpret_cast<const CharType*>(byteView.Data() + byteView.Size());
+        m_length = len;
     }
 
     constexpr StringView(const StringView& other) noexcept = default;
     constexpr StringView& operator=(const StringView& other) noexcept = default;
+
     constexpr StringView(StringView&& other) noexcept = default;
     constexpr StringView& operator=(StringView&& other) noexcept = default;
-
-    // constexpr StringView(StringView &&other) noexcept
-    //     : m_begin(other.m_begin),
-    //       m_end(other.m_end),
-    //       m_length(other.m_length)
-    // {
-    //     other.m_begin = nullptr;
-    //     other.m_end = nullptr;
-    //     other.m_length = 0;
-    // }
-
-    // StringView &operator=(StringView &&other) noexcept
-    // {
-    //     m_begin = other.m_begin;
-    //     m_end = other.m_end;
-    //     m_length = other.m_length;
-
-    //     other.m_begin = nullptr;
-    //     other.m_end = nullptr;
-    //     other.m_length = 0;
-
-    //     return *this;
-    // }
 
     constexpr ~StringView() = default;
 
@@ -375,7 +403,7 @@ public:
      *  \returns The length of the string in characters. */
     HYP_FORCE_INLINE constexpr size_t Length() const
     {
-        return m_length;
+        return size_t(m_length);
     }
 
     /*! \brief Return the raw string pointer.
@@ -500,7 +528,7 @@ public:
 
         size_t firstByteIndex = 0;
         size_t lastByteIndex = 0;
-        size_t newLength = 0;
+        uint32 newLength = 0;
 
         if constexpr (isUtf8)
         {
@@ -557,11 +585,11 @@ public:
 
             lastByteIndex += firstByteIndex;
         }
-        else
+        else if ((last - first) <= UINT32_MAX)
         {
             firstByteIndex = first;
             lastByteIndex = last;
-            newLength = last - first;
+            newLength = uint32(last - first);
         }
 
         return StringView(m_begin + firstByteIndex, m_begin + lastByteIndex, newLength);
@@ -585,7 +613,12 @@ public:
             newLength = size_t(last.ptr - first.ptr);
         }
 
-        return StringView(first.ptr, last.ptr, newLength);
+        if (newLength >= UINT32_MAX)
+        {
+            return {};
+        }
+
+        return StringView(first.ptr, last.ptr, uint32(newLength));
     }
 
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
@@ -660,7 +693,8 @@ protected:
 private:
     const CharType* m_begin;
     const CharType* m_end;
-    size_t m_length;
+
+    uint32 m_length;
 };
 
 template <int TStringType>

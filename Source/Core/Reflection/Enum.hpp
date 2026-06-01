@@ -224,7 +224,7 @@ String EnumToString(EnumFlags<EnumType> value)
     using EnumUnderlyingType = std::underlying_type_t<NormalizedType<EnumType>>;
 
     // Set each bit that is set in value
-    Array<Name, InlineAllocator<8>> flagNames;
+    TFatArray<Name, InlineAllocator<8>> flagNames;
 
     // loop over the set bits
     FOR_EACH_BIT(EnumUnderlyingType(value), bit)

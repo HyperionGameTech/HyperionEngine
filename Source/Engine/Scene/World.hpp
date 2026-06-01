@@ -415,15 +415,15 @@ private:
     Array<SystemExecutionGroup*> m_systemExecutionGroups;
     SystemExecutionGroup* m_rootSynchronousExecutionGroup;
 
-    Array<View*> m_views;
+    Array<View*, SceneAllocator> m_views;
 
     // Views, buffered so the render thread can safely read from it
-    Array<Array<View*>, FixedAllocator<RingBufferDepth>> m_viewsPerFrame;
+    Array<View*> m_viewsPerFrame[RingBufferDepth];
 
     View* m_rayTracingView;
 
     SubsystemsMap m_subsystems;
-    Array<Subsystem*> m_subsystemsArray;
+    Array<Subsystem*, SceneAllocator> m_subsystemsArray;
 
     Handle<WorldGrid> m_worldGrid;
 

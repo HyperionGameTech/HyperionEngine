@@ -815,3 +815,276 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, LinkedList<T>&& list)
         return linkedList.Size();
     };
 }
+
+#if !defined(HYP_USE_SLIM_ARRAY) || !HYP_USE_SLIM_ARRAY
+
+// TSlimArray<TElemType, TAllocator>
+
+template <class TElemType, class TAllocator>
+GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, TSlimArray<TElemType, TAllocator>& arr)
+    : GenericArrayWrapper()
+{
+    pInternalArray = &arr;
+    functionTable.dtor = nullptr;
+    functionTable.copyCtor = nullptr;
+
+    typeInfo = &TypeOf<std::remove_cvref_t<decltype(arr)>>();
+    elementTypeInfo = &TypeOf<TElemType>();
+
+    functionTable.pushBack = [](GenericArrayWrapper& array, BoxedValue&& value) -> AnyRef
+    {
+        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+
+        if constexpr (IsBoxedValueV<TElemType>)
+        {
+            return AnyRef(arr.PushBack(std::move(value)));
+        }
+        else
+        {
+            return AnyRef(arr.PushBack(std::move(value.Get<TElemType>())));
+        }
+    };
+
+    functionTable.getElementAt = [](GenericArrayWrapper& array, size_t index) -> AnyRef
+    {
+        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+
+        if (index >= arr.Size())
+        {
+            return AnyRef();
+        }
+
+        return AnyRef(&arr[index]);
+    };
+
+    functionTable.getElementAt2 = [](GenericArrayWrapper& array, size_t index, BoxedValue& outValue) -> bool
+    {
+        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+
+        if (index >= arr.Size())
+        {
+            return false;
+        }
+
+        outValue = BoxedValue(arr[index]);
+
+        return true;
+    };
+
+    functionTable.setElementAt = [](GenericArrayWrapper& array, size_t index, BoxedValue&& value) -> bool
+    {
+        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+
+        if (index >= arr.Size())
+        {
+            return false;
+        }
+
+        if constexpr (IsBoxedValueV<TElemType>)
+        {
+            arr[index] = std::move(value);
+        }
+        else
+        {
+            arr[index] = value.Get<TElemType>();
+        }
+
+        return true;
+    };
+
+    functionTable.size = [](const GenericArrayWrapper& array) -> size_t
+    {
+        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+        return arr.Size();
+    };
+
+    functionTable.resize = [](GenericArrayWrapper& array, size_t newSize) -> bool
+    {
+        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+        arr.Resize(static_cast<uint32>(newSize));
+
+        return true;
+    };
+}
+
+template <class TElemType, class TAllocator>
+GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const TSlimArray<TElemType, TAllocator>& arr)
+    : GenericArrayWrapper()
+{
+    pInternalArray = new std::remove_cvref_t<decltype(arr)>(arr);
+    functionTable.dtor = &Memory::Delete<std::remove_cvref_t<decltype(arr)>>;
+    functionTable.copyCtor = [](void** pDst, void* src)
+    {
+        *pDst = new std::remove_cvref_t<decltype(arr)>(*(std::remove_cvref_t<decltype(arr)>*)src);
+    };
+
+    typeInfo = &TypeOf<std::remove_cvref_t<decltype(arr)>>();
+    elementTypeInfo = &TypeOf<TElemType>();
+
+    functionTable.pushBack = [](GenericArrayWrapper& array, BoxedValue&& value) -> AnyRef
+    {
+        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+
+        if constexpr (IsBoxedValueV<TElemType>)
+        {
+            return AnyRef(arr.PushBack(std::move(value)));
+        }
+        else
+        {
+            return AnyRef(arr.PushBack(std::move(value.Get<TElemType>())));
+        }
+    };
+
+    functionTable.getElementAt = [](GenericArrayWrapper& array, size_t index) -> AnyRef
+    {
+        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+
+        if (index >= arr.Size())
+        {
+            return AnyRef();
+        }
+
+        return AnyRef(&arr[index]);
+    };
+
+    functionTable.getElementAt2 = [](GenericArrayWrapper& array, size_t index, BoxedValue& outValue) -> bool
+    {
+        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+
+        if (index >= arr.Size())
+        {
+            return false;
+        }
+
+        outValue = BoxedValue(arr[index]);
+
+        return true;
+    };
+
+    functionTable.setElementAt = [](GenericArrayWrapper& array, size_t index, BoxedValue&& value) -> bool
+    {
+        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+
+        if (index >= arr.Size())
+        {
+            return false;
+        }
+
+        if constexpr (IsBoxedValueV<TElemType>)
+        {
+            arr[index] = std::move(value);
+        }
+        else
+        {
+            arr[index] = value.Get<TElemType>();
+        }
+
+        return true;
+    };
+
+    functionTable.size = [](const GenericArrayWrapper& array) -> size_t
+    {
+        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+        return arr.Size();
+    };
+
+    functionTable.resize = [](GenericArrayWrapper& array, size_t newSize) -> bool
+    {
+        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+        arr.Resize(static_cast<uint32>(newSize));
+
+        return true;
+    };
+}
+
+template <class TElemType, class TAllocator>
+GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, TSlimArray<TElemType, TAllocator>&& arr)
+    : GenericArrayWrapper()
+{
+    pInternalArray = new std::remove_cvref_t<decltype(arr)>(std::move(arr));
+    functionTable.dtor = &Memory::Delete<std::remove_cvref_t<decltype(arr)>>;
+    functionTable.copyCtor = [](void** pDst, void* src)
+    {
+        *pDst = new std::remove_cvref_t<decltype(arr)>(*(std::remove_cvref_t<decltype(arr)>*)src);
+    };
+
+    typeInfo = &TypeOf<std::remove_cvref_t<decltype(arr)>>();
+    elementTypeInfo = &TypeOf<TElemType>();
+
+    functionTable.pushBack = [](GenericArrayWrapper& array, BoxedValue&& value) -> AnyRef
+    {
+        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+
+        if constexpr (IsBoxedValueV<TElemType>)
+        {
+            return AnyRef(arr.PushBack(std::move(value)));
+        }
+        else
+        {
+            return AnyRef(arr.PushBack(std::move(value.Get<TElemType>())));
+        }
+    };
+
+    functionTable.getElementAt = [](GenericArrayWrapper& array, size_t index) -> AnyRef
+    {
+        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+
+        if (index >= arr.Size())
+        {
+            return AnyRef();
+        }
+
+        return AnyRef(&arr[index]);
+    };
+
+    functionTable.getElementAt2 = [](GenericArrayWrapper& array, size_t index, BoxedValue& outValue) -> bool
+    {
+        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+
+        if (index >= arr.Size())
+        {
+            return false;
+        }
+
+        outValue = BoxedValue(arr[index]);
+
+        return true;
+    };
+
+    functionTable.setElementAt = [](GenericArrayWrapper& array, size_t index, BoxedValue&& value) -> bool
+    {
+        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+
+        if (index >= arr.Size())
+        {
+            return false;
+        }
+
+        if constexpr (IsBoxedValueV<TElemType>)
+        {
+            arr[index] = std::move(value);
+        }
+        else
+        {
+            arr[index] = value.Get<TElemType>();
+        }
+
+        return true;
+    };
+
+    functionTable.size = [](const GenericArrayWrapper& array) -> size_t
+    {
+        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+        return arr.Size();
+    };
+
+    functionTable.resize = [](GenericArrayWrapper& array, size_t newSize) -> bool
+    {
+        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+        arr.Resize(static_cast<uint32>(newSize));
+
+        return true;
+    };
+}
+
+#endif // !HYP_USE_SLIM_ARRAY

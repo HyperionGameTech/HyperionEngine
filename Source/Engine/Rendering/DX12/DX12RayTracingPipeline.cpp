@@ -82,7 +82,8 @@ RendererResult DX12RayTracingPipeline::Create()
         D3D12_SHADER_BYTECODE bytecode;
     };
 
-    Array<RayTracingModule, FixedAllocator<5>> rtModules;
+    Array<RayTracingModule, DX12TempAllocator> rtModules;
+    rtModules.Reserve(5);
 
     for (ShaderModuleType type : { ShaderModuleType::RayGen, ShaderModuleType::Miss, ShaderModuleType::ClosestHit, ShaderModuleType::AnyHit, ShaderModuleType::Intersect })
     {

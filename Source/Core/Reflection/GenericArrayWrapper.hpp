@@ -6,6 +6,7 @@
 #include <Core/Containers/FlatMap.hpp>
 #include <Core/Containers/FlatSet.hpp>
 #include <Core/Containers/LinkedList.hpp>
+#include <Core/Containers/SlimArray.hpp>
 
 #include <Core/Reflection/TypeInfoFwd.hpp>
 #include <Core/Utilities/EnumFlags.hpp>
@@ -223,6 +224,19 @@ struct GenericArrayWrapper
 
     template <class T>
     GenericArrayWrapper(AsCopyTag, LinkedList<T>&& list);
+    
+#if !defined(HYP_USE_SLIM_ARRAY) || !HYP_USE_SLIM_ARRAY
+    // TSlimArray<TElemType, TAllocator>
+
+    template <class TElemType, class TAllocator>
+    GenericArrayWrapper(AsReferenceTag, TSlimArray<TElemType, TAllocator>& arr);
+
+    template <class TElemType, class TAllocator>
+    GenericArrayWrapper(AsCopyTag, const TSlimArray<TElemType, TAllocator>& arr);
+
+    template <class TElemType, class TAllocator>
+    GenericArrayWrapper(AsCopyTag, TSlimArray<TElemType, TAllocator>&& arr);
+#endif // !HYP_USE_SLIM_ARRAY
 
     ~GenericArrayWrapper()
     {

@@ -69,7 +69,7 @@ struct StringTypeImpl<WIDE_CHAR>
     using WidestCharType = wchar_t;
 };
 
-template <int TStringType>
+template <int TStringType, class TAllocator = DynamicAllocator>
 class String;
 
 template <class CharType>

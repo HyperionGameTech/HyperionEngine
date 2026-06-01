@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <UIPch.hpp>
 
@@ -403,11 +403,11 @@ void UIText::UpdateMeshData_Internal()
     const Vec2f position = GetAbsolutePosition();
     const float textSize = GetTextSize();
 
-    Array<Mat4f> instanceTransforms;
-    Array<Vec4f> instanceTexcoords;
-    Array<Vec4f> instanceOffsets;
-    Array<Vec4f> instanceSizes;
-    Array<Vec4u> instanceProperties;
+    Array<Mat4f, ThreadAllocator> instanceTransforms;
+    Array<Vec4f, ThreadAllocator> instanceTexcoords;
+    Array<Vec4f, ThreadAllocator> instanceOffsets;
+    Array<Vec4f, ThreadAllocator> instanceSizes;
+    Array<Vec4u, ThreadAllocator> instanceProperties;
 
     ForEachCharacter(*fontAtlas, m_text, GetParentBounds(), textSize, nullptr, [&](const FontAtlasCharacterIterator& iter)
         {

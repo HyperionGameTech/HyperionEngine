@@ -587,7 +587,8 @@ void EngineDriver::UpdateSim(float delta)
     {
         // update mark render proxies as needing update for all entities that could be visible,
         // if they have the UpdateRenderProxy tag
-        Array<Scene*, InlineAllocator<8, SceneAllocator>> visitedScenes;
+        Array<Scene*, SceneTempAllocator> visitedScenes;
+        visitedScenes.Reserve(8);
 
         for (View* view : views)
         {
@@ -607,6 +608,7 @@ void EngineDriver::UpdateSim(float delta)
 
 #if HYP_PROCESS_SUBSYSTEMS_ASYNC
     Array<Task<void>, SceneTempAllocator> updateSubsystemTasks;
+    updateSubsystemTasks.Reserve(subsystems.Size());
 
     for (Subsystem* subsystem : subsystems)
     {

@@ -33,6 +33,8 @@
 
 #include <Scene/Camera/Camera.hpp>
 
+#include <Core/Containers/Array.hpp>
+
 #include <Core/Utilities/DeferredScope.hpp>
 
 #include <ShadowsPass.generated.inl>
@@ -172,7 +174,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     cachedData->lastFrameUsed = GetFrameCounter();
 
-    Array<RenderProxyList*, FixedAllocator<6 * 2>> renderProxyLists;
+    TFatArray<RenderProxyList*, FixedAllocator<6 * 2>> renderProxyLists;
     HYP_DEFER({ for (RenderProxyList* rpl : renderProxyLists) rpl->EndRead(); });
 
     const bool isOmni = lightProxy->light.GetUnsafe()->IsA<PointLight>();

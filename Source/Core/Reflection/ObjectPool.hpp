@@ -273,8 +273,7 @@ public:
 
         static_assert(alignof(T) <= MaxObjectAlignment, "Invalid alignment for object type T, must be <= MaxObjectAlignment");
 
-        HYP_CORE_ASSERT(size != 0, "Object size and alignment must be set before allocating objects");
-        HYP_CORE_ASSERT(size >= sizeof(T));
+        HYP_CORE_ASSERT(size >= sizeof(T), "size param value (%zu) must be >= sizeof(T) (%zu)", size, sizeof(T));
 
         // allocation would be the header size + object size, aligned to the object alignment
         const size_t totalSize = ByteUtil::AlignAs(ByteUtil::AlignAs(sizeof(ObjectHeader), MaxObjectAlignment) + size, MaxObjectAlignment);

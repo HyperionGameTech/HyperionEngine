@@ -29,6 +29,8 @@
 namespace Hyperion {
 namespace utf {
 
+static constexpr size_t InvalidUTF8 = SIZE_MAX;
+
 // #define HYP_UTF8_CHECKED
 
 #define HYP_UTF8_ASSERT(cond)      \
@@ -113,7 +115,7 @@ constexpr inline size_t StringLength(const Char8* first, const Char8* last)
         else if ((c & 0xF8) == 0xF0)
             codepoints += 4;
         else
-            return -1; // invalid utf8
+            return InvalidUTF8; // invalid utf8
     }
 
     return count;
@@ -144,7 +146,7 @@ constexpr inline size_t StringLength(const Char8* first, const Char8* last, size
         else if ((c & 0xF8) == 0xF0)
             codepoints += 4;
         else
-            return -1; // invalid utf8
+            return InvalidUTF8; // invalid utf8
     }
 
     outCodepoints = codepoints;
@@ -170,7 +172,7 @@ constexpr inline size_t StringLength(const Char8* str, size_t& outCodepoints)
         else if ((c & 0xF8) == 0xF0)
             codepoints += 4;
         else
-            return -1; // invalid utf8
+            return InvalidUTF8; // invalid utf8
     }
 
     outCodepoints = codepoints;

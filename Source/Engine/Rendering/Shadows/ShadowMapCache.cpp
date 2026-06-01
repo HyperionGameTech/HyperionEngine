@@ -229,12 +229,11 @@ public:
 #if SHADOW_MAP_CACHE_MULTITHREADED
         TUniqueLock lock(mutex);
 #endif
+        TFatArray<View*, FixedAllocator<MaxShadowMapCascades * 2>> allViews;
 
         for (auto& pair : cache)
         {
             CachedShadowMapData& entry = pair.second;
-
-            Array<View*, FixedAllocator<MaxShadowMapCascades * 2>> allViews;
 
             for (View* view : entry.shadowViewsStatic)
             {

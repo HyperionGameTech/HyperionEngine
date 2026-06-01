@@ -80,7 +80,7 @@ CORE_API extern bool ClassRegistry_IsInitialized();
 
 namespace containers {
 
-template <int TStringType>
+template <int TStringType, class TAllocator>
 class String;
 
 template <class T, class AllocatorType>

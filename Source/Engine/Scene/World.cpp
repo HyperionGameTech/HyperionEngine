@@ -94,10 +94,6 @@ World::World(Name name, EnumFlags<WorldFlags> worldFlags)
     {
         Assert(m_worldFlags & WorldFlags::HAS_STREAMING, "Streaming layers require streaming to be enabled!");
     }
-
-    // set m_viewsPerFrame to initial size. It uses fixed allocator so it won't dynamically allocate any memory anyway
-    m_viewsPerFrame.Resize(m_viewsPerFrame.Capacity());
-    AssertDebug(m_viewsPerFrame.Size() == RingBufferDepth);
 }
 
 World::~World()

@@ -119,7 +119,9 @@ TResult<CSharpTypeMapping> MapToCSharpType(const Analyzer& analyzer, const ASTTy
         {
             const String templateName = type->typeName->parts.Back();
 
-            if (templateName == "Array")
+            if (templateName == "Array"
+                || templateName == "TSlimArray"
+                || templateName == "TFatArray")
             {
                 return CSharpTypeMapping { "Array" };
             }
@@ -308,6 +310,8 @@ TResult<HypScriptTypeMapping> MapToHypScriptType(const Analyzer& analyzer, const
 
             // hypscript uses Array<T> for arrays
             if (templateName == "Array"
+                || templateName == "TSlimArray"
+                || templateName == "TFatArray"
                 || templateName == "FixedArray")
             {
                 if (type->templateArguments.Empty())

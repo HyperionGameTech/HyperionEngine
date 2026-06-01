@@ -1046,7 +1046,7 @@ JString Value::ToString_Internal(bool representation, uint32 depth) const
 
         const bool isInteger = MathUtil::Fract(number) < MathUtil::epsilonD;
 
-        Array<char, InlineAllocator<16>> chars;
+        TFatArray<char, InlineAllocator<16>> chars;
 
         // ensure we take up as much space as we can to avoid reallocations
         chars.Resize(chars.Capacity());

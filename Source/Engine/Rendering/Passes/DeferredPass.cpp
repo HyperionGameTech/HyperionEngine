@@ -2473,7 +2473,7 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
 {
     AssertDebug(rs.world);
 
-    Array<RenderProxyList*, InlineAllocator<8, RenderAllocator>> renderProxyLists;
+    Array<RenderProxyList*, RenderTempAllocator> renderProxyLists;
 
     HYP_DEFER({
         for (RenderProxyList* rpl : renderProxyLists)

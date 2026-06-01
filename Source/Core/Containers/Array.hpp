@@ -6,8 +6,11 @@
 
 #pragma once
 
+#define HYP_USE_SLIM_ARRAY 1
+
 #include <Core/Containers/ContainerBase.hpp>
 #include <Core/Containers/FixedArray.hpp>
+#include <Core/Containers/SlimArray.hpp>
 
 #include <Core/Utilities/Pair.hpp>
 #include <Core/Utilities/ValueStorage.hpp>
@@ -37,29 +40,25 @@ namespace Hyperion {
 namespace containers {
 
 template <class T, size_t MaxInlineCapacityBytes = 16, class T2 = void>
-struct ArrayDefaultAllocatorSelector;
+struct FatArrayDefaultAllocatorSelector;
 
 template <class T, size_t MaxInlineCapacityBytes>
-struct ArrayDefaultAllocatorSelector<T, MaxInlineCapacityBytes, std::enable_if_t<(sizeof(T) <= MaxInlineCapacityBytes)>>
+struct FatArrayDefaultAllocatorSelector<T, MaxInlineCapacityBytes, std::enable_if_t<(sizeof(T) <= MaxInlineCapacityBytes)>>
 {
     using Type = InlineAllocator<MaxInlineCapacityBytes / sizeof(T)>;
 };
 
 template <class T, size_t MaxInlineCapacityBytes>
-struct ArrayDefaultAllocatorSelector<T, MaxInlineCapacityBytes, std::enable_if_t<(sizeof(T) > MaxInlineCapacityBytes)>>
+struct FatArrayDefaultAllocatorSelector<T, MaxInlineCapacityBytes, std::enable_if_t<(sizeof(T) > MaxInlineCapacityBytes)>>
 {
     using Type = DynamicAllocator;
 };
 
-/*! \brief Array class with smart front removal and inline storage so small arrays do not require any heap allocation
-    \details Average speed is about the same as std::vector in most cases
-    \note will use a bit more memory than std::vector, partially because of inline storage in the class,
-    and partially due to the front offset member, used to have fewer deallocations/shifting on PopFront(). */
-template <class T, class AllocatorType = typename ArrayDefaultAllocatorSelector<T>::Type>
-class Array : public ContainerBase<Array<T, AllocatorType>, size_t>
+template <class T, class AllocatorType = typename FatArrayDefaultAllocatorSelector<T>::Type>
+class TFatArray : public ContainerBase<TFatArray<T, AllocatorType>, size_t>
 {
 public:
-    using Base = ContainerBase<Array<T, AllocatorType>, size_t>;
+    using Base = ContainerBase<TFatArray<T, AllocatorType>, size_t>;
     using KeyType = typename Base::KeyType;
     using ValueType = T;
 
@@ -67,7 +66,7 @@ public:
 
     // Allow other Array types to access private members
     template <class OtherT, class OtherAllocatorType>
-    friend class Array;
+    friend class TFatArray;
 
 protected:
     // on PushFront() we can pad the start with this number,
@@ -81,38 +80,38 @@ public:
     using InsertResult = Pair<Iterator, bool>; // iterator, was inserted
 
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
-    Array()
+    TFatArray()
         : m_size(0),
           m_startOffset(0)
     {
         m_allocation.SetToInitialState();
     }
 
-    Array(const Array& other);
-    Array(Array&& other) noexcept;
+    TFatArray(const TFatArray& other);
+    TFatArray(TFatArray&& other) noexcept;
 
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
-    explicit Array(size_t size)
-        : Array()
+    explicit TFatArray(size_t size)
+        : TFatArray()
     {
         Resize(size);
     }
 
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
-    Array(Span<T> span)
-        : Array(span.Data(), span.Size())
+    TFatArray(Span<T> span)
+        : TFatArray(span.Data(), span.Size())
     {
     }
 
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
-    Array(Span<const T> span)
-        : Array(span.Data(), span.Size())
+    TFatArray(Span<const T> span)
+        : TFatArray(span.Data(), span.Size())
     {
     }
 
     template <size_t Sz, bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
-    Array(T const (&items)[Sz])
-        : Array()
+    TFatArray(T const (&items)[Sz])
+        : TFatArray()
     {
         ResizeUninitialized(Sz);
 
@@ -125,8 +124,8 @@ public:
     }
 
     template <size_t Sz, bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
-    Array(T (&&items)[Sz])
-        : Array()
+    TFatArray(T (&&items)[Sz])
+        : TFatArray()
     {
         ResizeUninitialized(Sz);
 
@@ -139,14 +138,14 @@ public:
     }
 
     template <size_t Sz, bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
-    Array(const FixedArray<T, Sz>& items)
-        : Array(items.Begin(), items.End())
+    TFatArray(const FixedArray<T, Sz>& items)
+        : TFatArray(items.Begin(), items.End())
     {
     }
 
     template <size_t Sz, bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
-    Array(FixedArray<T, Sz>&& items)
-        : Array()
+    TFatArray(FixedArray<T, Sz>&& items)
+        : TFatArray()
     {
         ResizeUninitialized(Sz);
 
@@ -159,8 +158,8 @@ public:
     }
 
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
-    Array(T* ptr, size_t size)
-        : Array()
+    TFatArray(T* ptr, size_t size)
+        : TFatArray()
     {
         ResizeUninitialized(size);
 
@@ -176,8 +175,8 @@ public:
     }
 
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
-    Array(Iterator first, Iterator last)
-        : Array()
+    TFatArray(Iterator first, Iterator last)
+        : TFatArray()
     {
         const size_t dist = last - first;
         ResizeUninitialized(dist);
@@ -191,8 +190,8 @@ public:
     }
 
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
-    Array(ConstIterator first, ConstIterator last)
-        : Array()
+    TFatArray(ConstIterator first, ConstIterator last)
+        : TFatArray()
     {
         const size_t dist = last - first;
         ResizeUninitialized(dist);
@@ -206,20 +205,20 @@ public:
     }
 
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
-    Array(const T* ptr, size_t size)
-        : Array(ptr, ptr + size)
+    TFatArray(const T* ptr, size_t size)
+        : TFatArray(ptr, ptr + size)
     {
     }
 
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
-    Array(std::initializer_list<T> initializerList)
-        : Array(initializerList.begin(), initializerList.end())
+    TFatArray(std::initializer_list<T> initializerList)
+        : TFatArray(initializerList.begin(), initializerList.end())
     {
     }
 
     template <class OtherAllocatorType, typename = std::enable_if_t<!std::is_same_v<OtherAllocatorType, AllocatorType> && HasDefaultAllocatorInstance<AllocatorType>>>
-    explicit Array(const Array<T, OtherAllocatorType>& other)
-        : Array()
+    explicit TFatArray(const TFatArray<T, OtherAllocatorType>& other)
+        : TFatArray()
     {
         m_size = other.Size();
 
@@ -232,15 +231,15 @@ public:
     }
 
     template <class OtherAllocatorType, typename = std::enable_if_t<!std::is_same_v<OtherAllocatorType, AllocatorType>>>
-    Array(Array<T, OtherAllocatorType>&& other) noexcept = delete;
+    TFatArray(TFatArray<T, OtherAllocatorType>&& other) noexcept = delete;
 
-    ~Array();
+    ~TFatArray();
 
-    Array& operator=(const Array& other);
-    Array& operator=(Array&& other) noexcept;
+    TFatArray& operator=(const TFatArray& other);
+    TFatArray& operator=(TFatArray&& other) noexcept;
 
     template <class OtherAllocatorType, typename = std::enable_if_t<!std::is_same_v<OtherAllocatorType, AllocatorType>>>
-    Array& operator=(Array<T, OtherAllocatorType>&& other) noexcept = delete;
+    TFatArray& operator=(TFatArray<T, OtherAllocatorType>&& other) noexcept = delete;
 
     HYP_FORCE_INLINE typename AllocatorType::template Allocation<T>& GetAllocation()
     {
@@ -468,11 +467,11 @@ public:
     /*! \brief Shift the array to the left by {count} times */
     void Shift(size_t count);
 
-    HYP_NODISCARD Array<T, AllocatorType> Slice(int first, int last) const;
+    HYP_NODISCARD TFatArray<T, AllocatorType> Slice(int first, int last) const;
 
     /*! \brief Modify the array by appending all items in \p other to the current array. */
     template <class OtherAllocatorType>
-    void Concat(const Array<T, OtherAllocatorType>& other)
+    void Concat(const TFatArray<T, OtherAllocatorType>& other)
     {
         if ((void*)this == (void*)&other)
         {
@@ -531,7 +530,7 @@ public:
 
     /*! \brief Build a new array with the elements in reverse order. Does not modify the original array. */
     template <class OtherAllocatorType>
-    void Reverse(Array<T, OtherAllocatorType>& outArray) const
+    void Reverse(TFatArray<T, OtherAllocatorType>& outArray) const
     {
         const size_t size = Size();
 
@@ -567,7 +566,7 @@ public:
     void Clear();
 
     template <class OtherAllocatorType>
-    HYP_FORCE_INLINE bool operator==(const Array<T, OtherAllocatorType>& other) const
+    HYP_FORCE_INLINE bool operator==(const TFatArray<T, OtherAllocatorType>& other) const
     {
         if (this == &other)
         {
@@ -601,7 +600,7 @@ public:
     }
 
     template <class OtherAllocatorType>
-    HYP_FORCE_INLINE bool operator!=(const Array<T, OtherAllocatorType>& other) const
+    HYP_FORCE_INLINE bool operator!=(const TFatArray<T, OtherAllocatorType>& other) const
     {
         if (this == &other)
         {
@@ -634,39 +633,39 @@ public:
         return false;
     }
 
-    /*! \brief Creates a Span<T> from the Array's data.
-     *  The span is only valid as long as the Array is not modified.
-     *  \return A Span<T> of the Array's data. */
+    /*! \brief Creates a Span<T> from the TFatArray's data.
+     *  The span is only valid as long as the TFatArray is not modified.
+     *  \return A Span<T> of the TFatArray's data. */
     HYP_NODISCARD HYP_FORCE_INLINE operator Span<T>()
     {
         return Span<T>(Data(), Size());
     }
 
-    /*! \brief Creates a Span<const T> from the Array's data.
-     *  The span is only valid as long as the Array is not modified.
-     *  \return A Span<const T> of the Array's data. */
+    /*! \brief Creates a Span<const T> from the TFatArray's data.
+     *  The span is only valid as long as the TFatArray is not modified.
+     *  \return A Span<const T> of the TFatArray's data. */
     HYP_NODISCARD HYP_FORCE_INLINE operator Span<const T>() const
     {
         return Span<const T>(Data(), Size());
     }
 
-    /*! \brief Creates a Span<T> from the Array's data.
-     *  The span is only valid as long as the Array is not modified.
-     *  \return A Span<T> of the Array's data. */
+    /*! \brief Creates a Span<T> from the TFatArray's data.
+     *  The span is only valid as long as the TFatArray is not modified.
+     *  \return A Span<T> of the TFatArray's data. */
     HYP_NODISCARD HYP_FORCE_INLINE Span<T> ToSpan()
     {
         return Span<T>(Data(), Size());
     }
 
-    /*! \brief Creates a Span<const T> from the Array's data.
-     *  The span is only valid as long as the Array is not modified.
-     *  \return A Span<const T> of the Array's data. */
+    /*! \brief Creates a Span<const T> from the TFatArray's data.
+     *  The span is only valid as long as the TFatArray is not modified.
+     *  \return A Span<const T> of the TFatArray's data. */
     HYP_NODISCARD HYP_FORCE_INLINE Span<const T> ToSpan() const
     {
         return Span<const T>(Data(), Size());
     }
 
-    /*! \brief Returns a ByteView of the Array's data. */
+    /*! \brief Returns a ByteView of the TFatArray's data. */
     HYP_NODISCARD HYP_FORCE_INLINE ByteView ToByteView(size_t offset = 0, size_t size = ~0ull)
     {
         if (offset >= Size())
@@ -682,7 +681,7 @@ public:
         return ByteView(reinterpret_cast<ubyte*>(Data()) + offset, size * sizeof(T));
     }
 
-    /*! \brief Returns a ConstByteView of the Array's data. */
+    /*! \brief Returns a ConstByteView of the TFatArray's data. */
     HYP_NODISCARD HYP_FORCE_INLINE ConstByteView ToByteView(size_t offset = 0, size_t size = ~0ull) const
     {
         if (offset >= Size())
@@ -732,7 +731,7 @@ protected:
 };
 
 template <class T, class AllocatorType>
-Array<T, AllocatorType>::Array(const Array& other)
+TFatArray<T, AllocatorType>::TFatArray(const TFatArray& other)
     : m_size(other.m_size - other.m_startOffset),
       m_startOffset(0)
 {
@@ -748,7 +747,7 @@ Array<T, AllocatorType>::Array(const Array& other)
 }
 
 template <class T, class AllocatorType>
-Array<T, AllocatorType>::Array(Array&& other) noexcept
+TFatArray<T, AllocatorType>::TFatArray(TFatArray&& other) noexcept
     : m_size(0),
       m_startOffset(0)
 {
@@ -793,7 +792,7 @@ Array<T, AllocatorType>::Array(Array&& other) noexcept
 }
 
 template <class T, class AllocatorType>
-Array<T, AllocatorType>::~Array()
+TFatArray<T, AllocatorType>::~TFatArray()
 {
     if (m_allocation.GetCapacity() != 0)
     {
@@ -807,7 +806,7 @@ Array<T, AllocatorType>::~Array()
 }
 
 template <class T, class AllocatorType>
-auto Array<T, AllocatorType>::operator=(const Array& other) -> Array&
+auto TFatArray<T, AllocatorType>::operator=(const TFatArray& other) -> TFatArray&
 {
     if (this == &other)
     {
@@ -835,7 +834,7 @@ auto Array<T, AllocatorType>::operator=(const Array& other) -> Array&
 }
 
 template <class T, class AllocatorType>
-auto Array<T, AllocatorType>::operator=(Array&& other) noexcept -> Array&
+auto TFatArray<T, AllocatorType>::operator=(TFatArray&& other) noexcept -> TFatArray&
 {
     if (this == &other)
     {
@@ -885,7 +884,7 @@ auto Array<T, AllocatorType>::operator=(Array&& other) noexcept -> Array&
 }
 
 template <class T, class AllocatorType>
-void Array<T, AllocatorType>::ResetOffsets()
+void TFatArray<T, AllocatorType>::ResetOffsets()
 {
     if (m_startOffset == 0)
     {
@@ -924,7 +923,7 @@ void Array<T, AllocatorType>::ResetOffsets()
 }
 
 template <class T, class AllocatorType>
-void Array<T, AllocatorType>::SetCapacity(size_t capacity, size_t offset)
+void TFatArray<T, AllocatorType>::SetCapacity(size_t capacity, size_t offset)
 {
     if (capacity == Capacity() && offset == m_startOffset)
     {
@@ -962,7 +961,7 @@ void Array<T, AllocatorType>::SetCapacity(size_t capacity, size_t offset)
 }
 
 template <class T, class AllocatorType>
-void Array<T, AllocatorType>::Reserve(size_t capacity)
+void TFatArray<T, AllocatorType>::Reserve(size_t capacity)
 {
     if (Capacity() >= capacity)
     {
@@ -973,7 +972,7 @@ void Array<T, AllocatorType>::Reserve(size_t capacity)
 }
 
 template <class T, class AllocatorType>
-void Array<T, AllocatorType>::Resize(size_t newSize)
+void TFatArray<T, AllocatorType>::Resize(size_t newSize)
 {
     const size_t currentSize = Size();
 
@@ -1031,7 +1030,7 @@ void Array<T, AllocatorType>::Resize(size_t newSize)
 }
 
 template <class T, class AllocatorType>
-void Array<T, AllocatorType>::ResizeUninitialized(size_t newSize)
+void TFatArray<T, AllocatorType>::ResizeUninitialized(size_t newSize)
 {
     const size_t currentSize = Size();
 
@@ -1074,7 +1073,7 @@ void Array<T, AllocatorType>::ResizeUninitialized(size_t newSize)
 }
 
 template <class T, class AllocatorType>
-void Array<T, AllocatorType>::ResizeZeroed(size_t newSize)
+void TFatArray<T, AllocatorType>::ResizeZeroed(size_t newSize)
 {
     static_assert(std::is_fundamental_v<T> || std::is_trivially_constructible_v<T>,
         "ResizeZeroed can only be used for fundamental or trivially constructible types");
@@ -1095,7 +1094,7 @@ void Array<T, AllocatorType>::ResizeZeroed(size_t newSize)
 }
 
 template <class T, class AllocatorType>
-void Array<T, AllocatorType>::Refit()
+void TFatArray<T, AllocatorType>::Refit()
 {
     if (Capacity() == Size())
     {
@@ -1106,7 +1105,7 @@ void Array<T, AllocatorType>::Refit()
 }
 
 template <class T, class AllocatorType>
-auto Array<T, AllocatorType>::PushBack(const ValueType& value) -> ValueType&
+auto TFatArray<T, AllocatorType>::PushBack(const ValueType& value) -> ValueType&
 {
     if (m_size + 1 >= Capacity())
     {
@@ -1130,7 +1129,7 @@ auto Array<T, AllocatorType>::PushBack(const ValueType& value) -> ValueType&
 }
 
 template <class T, class AllocatorType>
-auto Array<T, AllocatorType>::PushBack(ValueType&& value) -> ValueType&
+auto TFatArray<T, AllocatorType>::PushBack(ValueType&& value) -> ValueType&
 {
     if (m_size + 1 >= Capacity())
     {
@@ -1154,7 +1153,7 @@ auto Array<T, AllocatorType>::PushBack(ValueType&& value) -> ValueType&
 }
 
 template <class T, class AllocatorType>
-auto Array<T, AllocatorType>::PushFront(const ValueType& value) -> ValueType&
+auto TFatArray<T, AllocatorType>::PushFront(const ValueType& value) -> ValueType&
 {
     if (m_startOffset == 0)
     {
@@ -1204,7 +1203,7 @@ auto Array<T, AllocatorType>::PushFront(const ValueType& value) -> ValueType&
 }
 
 template <class T, class AllocatorType>
-auto Array<T, AllocatorType>::PushFront(ValueType&& value) -> ValueType&
+auto TFatArray<T, AllocatorType>::PushFront(ValueType&& value) -> ValueType&
 {
     if (m_startOffset == 0)
     {
@@ -1257,7 +1256,7 @@ auto Array<T, AllocatorType>::PushFront(ValueType&& value) -> ValueType&
 }
 
 template <class T, class AllocatorType>
-void Array<T, AllocatorType>::Shift(size_t count)
+void TFatArray<T, AllocatorType>::Shift(size_t count)
 {
     size_t newSize = 0;
 
@@ -1292,7 +1291,7 @@ void Array<T, AllocatorType>::Shift(size_t count)
 }
 
 template <class T, class AllocatorType>
-Array<T, AllocatorType> Array<T, AllocatorType>::Slice(int first, int last) const
+TFatArray<T, AllocatorType> TFatArray<T, AllocatorType>::Slice(int first, int last) const
 {
     if (first < 0)
     {
@@ -1316,12 +1315,12 @@ Array<T, AllocatorType> Array<T, AllocatorType>::Slice(int first, int last) cons
 
     if (first > last)
     {
-        return Array<T, AllocatorType>();
+        return TFatArray<T, AllocatorType>();
     }
 
     if (first >= Size())
     {
-        return Array<T, AllocatorType>();
+        return TFatArray<T, AllocatorType>();
     }
 
     if (last >= Size())
@@ -1329,7 +1328,7 @@ Array<T, AllocatorType> Array<T, AllocatorType>::Slice(int first, int last) cons
         last = Size() - 1;
     }
 
-    Array<T, AllocatorType> result;
+    TFatArray<T, AllocatorType> result;
     result.ResizeUninitialized(last - first + 1);
 
     const T* buffer = GetBuffer();
@@ -1344,7 +1343,7 @@ Array<T, AllocatorType> Array<T, AllocatorType>::Slice(int first, int last) cons
 }
 
 template <class T, class AllocatorType>
-void Array<T, AllocatorType>::Reverse()
+void TFatArray<T, AllocatorType>::Reverse()
 {
     if (Size() < 2)
     {
@@ -1366,7 +1365,7 @@ void Array<T, AllocatorType>::Reverse()
 }
 
 template <class T, class AllocatorType>
-auto Array<T, AllocatorType>::Erase(ConstIterator iter) -> Iterator
+auto TFatArray<T, AllocatorType>::Erase(ConstIterator iter) -> Iterator
 {
     const Iterator begin = Begin();
     const Iterator end = End();
@@ -1416,7 +1415,7 @@ auto Array<T, AllocatorType>::Erase(ConstIterator iter) -> Iterator
 }
 
 template <class T, class AllocatorType>
-auto Array<T, AllocatorType>::Erase(const T& value) -> Iterator
+auto TFatArray<T, AllocatorType>::Erase(const T& value) -> Iterator
 {
     ConstIterator iter = Base::Find(value);
 
@@ -1429,13 +1428,13 @@ auto Array<T, AllocatorType>::Erase(const T& value) -> Iterator
 }
 
 template <class T, class AllocatorType>
-auto Array<T, AllocatorType>::EraseAt(typename Array::Base::KeyType index) -> Iterator
+auto TFatArray<T, AllocatorType>::EraseAt(typename TFatArray::Base::KeyType index) -> Iterator
 {
     return Erase(Begin() + index);
 }
 
 template <class T, class AllocatorType>
-auto Array<T, AllocatorType>::Insert(ConstIterator where, const ValueType& value) -> Iterator
+auto TFatArray<T, AllocatorType>::Insert(ConstIterator where, const ValueType& value) -> Iterator
 {
     const size_t dist = where - Begin();
 
@@ -1512,7 +1511,7 @@ auto Array<T, AllocatorType>::Insert(ConstIterator where, const ValueType& value
 }
 
 template <class T, class AllocatorType>
-auto Array<T, AllocatorType>::Insert(ConstIterator where, ValueType&& value) -> Iterator
+auto TFatArray<T, AllocatorType>::Insert(ConstIterator where, ValueType&& value) -> Iterator
 {
     const size_t dist = where - Begin();
 
@@ -1585,7 +1584,7 @@ auto Array<T, AllocatorType>::Insert(ConstIterator where, ValueType&& value) -> 
 }
 
 template <class T, class AllocatorType>
-auto Array<T, AllocatorType>::PopFront() -> ValueType
+auto TFatArray<T, AllocatorType>::PopFront() -> ValueType
 {
     HYP_CORE_ASSERT(Size() != 0);
 
@@ -1599,7 +1598,7 @@ auto Array<T, AllocatorType>::PopFront() -> ValueType
 }
 
 template <class T, class AllocatorType>
-auto Array<T, AllocatorType>::PopBack() -> ValueType
+auto TFatArray<T, AllocatorType>::PopBack() -> ValueType
 {
     HYP_CORE_ASSERT(m_size != 0);
 
@@ -1613,7 +1612,7 @@ auto Array<T, AllocatorType>::PopBack() -> ValueType
 }
 
 template <class T, class AllocatorType>
-void Array<T, AllocatorType>::Clear()
+void TFatArray<T, AllocatorType>::Clear()
 {
     T* buffer = GetBuffer();
 
@@ -1629,6 +1628,18 @@ void Array<T, AllocatorType>::Clear()
 
     // Refit();
 }
+
+#if defined(HYP_USE_SLIM_ARRAY) && HYP_USE_SLIM_ARRAY
+
+template <class TElemType, class TAllocator = DynamicAllocator>
+using Array = TSlimArray<TElemType, TAllocator>;
+
+#else // !HYP_USE_SLIM_ARRAY
+
+template <class TElemType, class TAllocator = DynamicAllocator>
+using Array = TFatArray<TElemType, TAllocator>;
+
+#endif // HYP_USE_SLIM_ARRAY
 
 /*! \brief A filter function that applies a predicate to each element in a container.
  *  \param container The container to filter.
@@ -1681,15 +1692,27 @@ auto Map(ContainerType&& container, Func&& func)
 
 } // namespace containers
 
-using containers::Array;
 using containers::Filter;
 using containers::Map;
 
 // traits
-
 template <class T, class AllocatorType>
-struct IsArray<containers::Array<T, AllocatorType>> : std::true_type
+struct IsArray<containers::TFatArray<T, AllocatorType>> : std::true_type
 {
 };
+
+using containers::TFatArray;
+
+#if defined(HYP_USE_SLIM_ARRAY) && HYP_USE_SLIM_ARRAY
+
+template <class TElemType, class TAllocator = DynamicAllocator>
+using Array = containers::TSlimArray<TElemType, TAllocator>;
+
+#else // !HYP_USE_SLIM_ARRAY
+
+template <class TElemType, class TAllocator = DynamicAllocator>
+using Array = containers::TFatArray<TElemType, TAllocator>;
+
+#endif // HYP_USE_SLIM_ARRAY
 
 } // namespace Hyperion

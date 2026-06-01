@@ -71,8 +71,8 @@ private:
     {
         FixedArray<ShadowMap*, MaxShadowMapCascades> shadowMaps;
 
-        Array<View*, FixedAllocator<6>> shadowViewsDynamic;
-        Array<View*, FixedAllocator<6>> shadowViewsStatic;
+        TFatArray<View*, FixedAllocator<6>> shadowViewsDynamic;
+        TFatArray<View*, FixedAllocator<6>> shadowViewsStatic;
 
         FixedArray<FramebufferRef, 6> shadowMapFramebuffers;
 
