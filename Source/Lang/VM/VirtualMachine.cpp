@@ -239,8 +239,13 @@ BoxedValue ShallowCopy(BoxedValue& refValue, GarbageCollector* gc)
 
     if (refValue.extData.gcIndex != INVALID_GC_INDEX)
     {
-        // in tracked memory, make a reference to it
-        return MakeRef(&refValue);
+        // Only create a reference for Any-backed types where deep copying
+        // is expensive. Inline types (primitives, Name, Handle, etc.) are
+        // always copied by value regardless of tracked memory status.
+        if (PASS_AS_REF(refValue))
+        {
+            return MakeRef(&refValue);
+        }
     }
 
     BoxedValue newValue;
@@ -799,7 +804,34 @@ public:
     SCRIPT_INLINE void OpLoadDeref(RegisterIndex dstReg, RegisterIndex srcReg)
     {
         BoxedValue& src = *Deref(instance->thread.m_regs[srcReg]); // double deref to get the actual value
-        instance->thread.m_regs[dstReg] = ShallowCopy(*Deref(src), vm->GetGC());
+        BoxedValue result = ShallowCopy(*Deref(src), vm->GetGC());
+
+        // ShallowCopy may return a reference for tracked Any-backed types (arrays,
+        // maps, etc.). OpLoadDeref must always produce a stable value copy, so if
+        // the result is still a reference, force a proper copy through the Variant.
+        if (IsRef(result))
+        {
+            BoxedValue& target = *Deref(src);
+            BoxedValue valueCopy;
+            Visit(target.value, [&valueCopy](const auto& val)
+            {
+                valueCopy.value.Set<NormalizedType<decltype(val)>>(val);
+            });
+            instance->thread.m_regs[dstReg] = std::move(valueCopy);
+            return;
+        }
+
+        instance->thread.m_regs[dstReg] = std::move(result);
+    }
+
+    SCRIPT_INLINE void OpStoreDeref(RegisterIndex dstRefReg, RegisterIndex srcReg)
+    {
+        BoxedValue* pTarget = Deref(instance->thread.m_regs[dstRefReg]);
+        Assert(pTarget != nullptr);
+
+        BoxedValue& srcValue = *Deref(instance->thread.m_regs[srcReg]);
+
+        AssignValue(*pTarget, ShallowCopy(srcValue, vm->GetGC()), true);
     }
 
     SCRIPT_INLINE void OpLoadNull(RegisterIndex reg)
@@ -2809,6 +2841,7 @@ SCRIPT_INLINE static void HandleInstruction(
         const uint8 dstType = GET_MOV_DSTTYPE(subcmd);
         const uint8 srcType = GET_MOV_SRCTYPE(subcmd);
         const bool isArrayStore = GET_MOV_ARRAYSTORE(subcmd);
+        const bool isDerefDst = GET_MOV_DEREFDST(subcmd);
 
         // Handle array store operations first
         if (isArrayStore)
@@ -2864,7 +2897,11 @@ SCRIPT_INLINE static void HandleInstruction(
                     bs->Read(&dstReg);
                     RegisterIndex srcReg;
                     bs->Read(&srcReg);
-                    handler->OpMov(dstReg, srcReg);
+
+                    if (isDerefDst)
+                        handler->OpStoreDeref(dstReg, srcReg);
+                    else
+                        handler->OpMov(dstReg, srcReg);
                 }
                 break;
 

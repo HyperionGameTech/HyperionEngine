@@ -184,7 +184,8 @@ enum LoadSourceType : Hyperion::uint8
 // Bits 0-1: Destination type (2 bits = 4 types)
 // Bits 2-4: Source type (3 bits = 8 types)
 // Bit 5: Array store flag (1 bit)
-// Bits 6-7: Reserved
+// Bit 6: Deref destination flag (1 bit)
+// Bit 7: Reserved
 
 enum MoveDstType : Hyperion::uint8
 {
@@ -234,6 +235,8 @@ enum CastType : Hyperion::uint8
 #define MAKE_MOV_ARRAYSTORE_SUBCMD(dstType, srcType) \
     ((Hyperion::uint8)((dstType) | ((srcType) << 2) | (1 << 5)))
 
+#define MOV_DEREFDST_FLAG (1 << 6)
+
 #define MAKE_CAST_SUBCMD(castType) \
     ((Hyperion::uint8)(castType))
 
@@ -245,5 +248,6 @@ enum CastType : Hyperion::uint8
 #define GET_MOV_DSTTYPE(subcmd) ((subcmd) & 0x03)
 #define GET_MOV_SRCTYPE(subcmd) (((subcmd) >> 2) & 0x07)
 #define GET_MOV_ARRAYSTORE(subcmd) (((subcmd) >> 5) & 0x01)
+#define GET_MOV_DEREFDST(subcmd)  (((subcmd) >> 6) & 0x01)
 
 #define GET_CAST_TYPE(subcmd) ((subcmd) & 0x0F)

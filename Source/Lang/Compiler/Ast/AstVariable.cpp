@@ -266,12 +266,35 @@ UniquePtr<Buildable> AstVariable::Build(AstVisitor* visitor, Module* mod)
             }
             else if (m_accessMode == ACCESS_MODE_STORE)
             {
-                chunk->Append(BytecodeUtil::Make<Comment>("Store variable " + m_name));
+                if (isRef)
+                {
+                    chunk->Append(BytecodeUtil::Make<Comment>("Store to ref variable " + m_name));
 
-                // store the value at (rp - 1) into this local variable
-                auto instrMovIndex = BytecodeUtil::Make<StorageOperation>();
-                instrMovIndex->GetBuilder().Store(rp - 1).Local().ByOffset(offset);
-                chunk->Append(std::move(instrMovIndex));
+                    // Load the ref variable normally (its stack slot already holds a Reference,
+                    // and ShallowCopy returns references as-is), then store through it.
+                    auto instrLoad = BytecodeUtil::Make<StorageOperation>();
+                    instrLoad->GetBuilder().Load(rp, false).Local().ByOffset(offset);
+                    chunk->Append(std::move(instrLoad));
+
+                    // Store the RHS value through the reference using MOV_UNIFIED with deref-dst flag
+                    constexpr uint8 subcmd = MAKE_MOV_SUBCMD(MDST_REGISTER, MSRC_REGISTER) | MOV_DEREFDST_FLAG;
+
+                    auto instrStoreDeref = BytecodeUtil::Make<RawOperation<>>();
+                    instrStoreDeref->opcode = MOV_UNIFIED;
+                    instrStoreDeref->Accept<uint8>(subcmd);
+                    instrStoreDeref->Accept<uint8>(rp);     // dstRefReg (dereferenced as target)
+                    instrStoreDeref->Accept<uint8>(rp - 1); // srcReg (value to store)
+                    chunk->Append(std::move(instrStoreDeref));
+                }
+                else
+                {
+                    chunk->Append(BytecodeUtil::Make<Comment>("Store variable " + m_name));
+
+                    // store the value at (rp - 1) into this local variable
+                    auto instrMovIndex = BytecodeUtil::Make<StorageOperation>();
+                    instrMovIndex->GetBuilder().Store(rp - 1).Local().ByOffset(offset);
+                    chunk->Append(std::move(instrMovIndex));
+                }
             }
         }
         else
@@ -295,12 +318,35 @@ UniquePtr<Buildable> AstVariable::Build(AstVisitor* visitor, Module* mod)
             }
             else if (m_accessMode == ACCESS_MODE_STORE)
             {
-                chunk->Append(BytecodeUtil::Make<Comment>("Store variable " + m_name));
+                if (isRef)
+                {
+                    chunk->Append(BytecodeUtil::Make<Comment>("Store to ref variable " + m_name));
 
-                // store the value at the index into this local variable
-                auto instrMovIndex = BytecodeUtil::Make<StorageOperation>();
-                instrMovIndex->GetBuilder().Store(rp - 1).Local().ByIndex(stackLocation);
-                chunk->Append(std::move(instrMovIndex));
+                    // Load the ref variable normally (its stack slot already holds a Reference,
+                    // and ShallowCopy returns references as-is), then store through it.
+                    auto instrLoad = BytecodeUtil::Make<StorageOperation>();
+                    instrLoad->GetBuilder().Load(rp, false).Local().ByIndex(stackLocation);
+                    chunk->Append(std::move(instrLoad));
+
+                    // Store the RHS value through the reference using MOV_UNIFIED with deref-dst flag
+                    constexpr uint8 subcmd = MAKE_MOV_SUBCMD(MDST_REGISTER, MSRC_REGISTER) | MOV_DEREFDST_FLAG;
+
+                    auto instrStoreDeref = BytecodeUtil::Make<RawOperation<>>();
+                    instrStoreDeref->opcode = MOV_UNIFIED;
+                    instrStoreDeref->Accept<uint8>(subcmd);
+                    instrStoreDeref->Accept<uint8>(rp);     // dstRefReg (dereferenced as target)
+                    instrStoreDeref->Accept<uint8>(rp - 1); // srcReg (value to store)
+                    chunk->Append(std::move(instrStoreDeref));
+                }
+                else
+                {
+                    chunk->Append(BytecodeUtil::Make<Comment>("Store variable " + m_name));
+
+                    // store the value at the index into this local variable
+                    auto instrMovIndex = BytecodeUtil::Make<StorageOperation>();
+                    instrMovIndex->GetBuilder().Store(rp - 1).Local().ByIndex(stackLocation);
+                    chunk->Append(std::move(instrMovIndex));
+                }
             }
         }
 
