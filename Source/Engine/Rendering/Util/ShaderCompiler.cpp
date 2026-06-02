@@ -16,6 +16,7 @@
 #include <Rendering/DescriptorSet.hpp>
 #include <Rendering/Shader.hpp>
 #include <Rendering/ShaderInstance.hpp>
+#include <Rendering/ShaderManager.hpp>
 #include <Rendering/GraphicsPipelineCache.hpp>
 #include <Rendering/GenericPipelineCache.hpp>
 
@@ -1760,14 +1761,8 @@ bool ShaderCompiler::LoadBundle(
 
     Assert(outBundle != nullptr);
 
-    //Handle<AssetPackage> package = outBundle->GetPackage();
-    //Assert(package.IsValid());
-
-    //const Time lastSavedTimestamp = package.IsValid() ? package->GetLastSavedTimestamp() : Time(0);
-
-    // @FIXME
-
-    const Time lastSavedTimestamp = Time(0);
+    const FilePath manifestPath = GetEngineAssetRegistry()->GetManifestPath(outBundle->GetPath());
+    const Time lastSavedTimestamp = manifestPath.LastModifiedTimestamp();
 
     return HandleBundle(decl, shaderRequest, lastSavedTimestamp, outBundle);
 }
@@ -3346,26 +3341,28 @@ bool ShaderCompiler::CompileBundle(
         {
             for (Handle<Shader>& shader : existingShadersToRemove)
             {
+                shader->expired = true;
+                
                 GetEngineAssetRegistry()->RemoveAsset(shader);
             }
         }
         else
         {
-            // perform on render thread so we don't mess with cached pipelines currently in use while rendering the frame.
-            GetThreadById(g_renderThread)->GetScheduler().Enqueue([toRemove = std::move(existingShadersToRemove)]() mutable
+            for (Handle<Shader>& shader : existingShadersToRemove)
             {
-                for (Handle<Shader>& shader : toRemove)
-                {
-                    RI.graphicsPipelineCache->ExpirePipelinesForShader(shader);
-                    RI.computePipelineCache->ExpirePipelinesForShader(shader);
-                    RI.rayTracingPipelineCache->ExpirePipelinesForShader(shader);
+                shader->expired = true;
+                
+                RI.graphicsPipelineCache->ExpirePipelinesForShader(shader);
+                RI.computePipelineCache->ExpirePipelinesForShader(shader);
+                RI.rayTracingPipelineCache->ExpirePipelinesForShader(shader);
 
-                    GetEngineAssetRegistry()->RemoveAsset(shader);
+                RI.shaderManager->ExpireShaderEntries(shader);
 
-                    EnqueueDeletion(std::move(shader));
-                }
-            }, TaskEnqueueFlags::FIRE_AND_FORGET);
+                GetEngineAssetRegistry()->RemoveAsset(shader);
+            }
         }
+
+        existingShadersToRemove.Clear();
     }
 
     if (outBundle->HasErrors())

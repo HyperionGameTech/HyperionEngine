@@ -29,6 +29,8 @@ public:
         const ShaderPropertySet& properties,
         const VertexInputLayoutDesc& inputLayout);
 
+    void ExpireShaderEntries(const Shader* shader);
+
     size_t CalculateMemoryUsage() const;
 
 private:

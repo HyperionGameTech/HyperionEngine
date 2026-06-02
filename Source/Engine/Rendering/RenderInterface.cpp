@@ -1358,6 +1358,8 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
     } deferredBindCommandMemory;
 
     void (*executeBindCmdFunction)(CmdBase*, CommandBuffer*) = nullptr;
+    
+    GraphicsPipelineCacheHandle cacheHandle;
 
     switch (psoType)
     {
@@ -1371,8 +1373,6 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             || state.boundShaderDesc.properties != state.attributes.GetShaderProperties()
             || !state.boundGraphicsPipeline->MatchesSignature(state.attributes, state.framebuffer->GetFramebufferDesc()))
         {
-            GraphicsPipelineCacheHandle cacheHandle;
-
             graphicsPipelineCache->GetOrCreate(
                 state.attributes,
                 state.framebuffer->GetFramebufferDesc(),

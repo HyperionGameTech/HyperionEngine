@@ -369,7 +369,7 @@ public:
             if (task.IsValid())
             {
                 task.Await();
-                
+
                 RI.state.boundGraphicsPipeline = nullptr;
             }
         }
@@ -437,15 +437,14 @@ public:
             }
 
             Assert(entry->shaderInstance.IsValid());
+            Assert(!entry->shaderInstance->GetShader()->expired);
 
             if (EnsureMatch(properties, inputLayout, *entry->shaderInstance->GetShader()))
             {
                 return entry->shaderInstance;
             }
-            else
-            {
-                HYP_LOG(Shader, Error, "Loaded shader from cache (Name: {}) does not contain the requested properties!", name);
-            }
+
+            HYP_LOG(Shader, Error, "Loaded shader from cache (Name: {}) does not contain the requested properties!", name);
         }
 
         if (!entry)
@@ -458,6 +457,8 @@ public:
 
             entry->cacheId = cacheId;
             entry->shader = GetShader(entry->cacheId);
+
+            Assert(!entry->shader->expired);
         }
 
         outCacheId = entry->cacheId;
@@ -490,6 +491,8 @@ public:
 
         CompilingShaderScope compilingShaderScope { this, request };
         compilingShaderScope.Wait();
+
+        Assert(entry->shader != nullptr && !entry->shader->expired);
 
         return entry->shaderInstance;
     }
@@ -566,6 +569,50 @@ public:
         }
 
         return &m_entries.Get(uint64(shaderCacheId));
+    }
+
+    void ExpireShaderEntries(const Shader* shader)
+    {
+        if (!shader)
+        {
+            return;
+        }
+
+        TUniqueLock lock(m_mutex);
+
+        Array<HashCode> entriesToRemove;
+
+        for (const auto& it : m_entryMap)
+        {
+            ShaderMapEntry* entry = it.second;
+
+            if (!entry)
+            {
+                continue;
+            }
+
+            const Shader* entryShader = entry->shaderInstance.IsValid()
+                ? entry->shaderInstance->GetShader()
+                : entry->shader;
+
+            if (entryShader == shader && entry->threadSignal.IsSignalled())
+            {
+                entriesToRemove.PushBack(it.first);
+            }
+        }
+
+        for (HashCode hc : entriesToRemove)
+        {
+            auto it = m_entryMap.Find(hc);
+
+            if (it != m_entryMap.End())
+            {
+                it->second->shaderInstance = ShaderInstanceRef::Null();
+                it->second->shader = nullptr;
+
+                m_entryMap.Erase(hc);
+            }
+        }
     }
 
     size_t CalculateMemoryUsage() const
@@ -761,6 +808,11 @@ ShaderInstanceRef ShaderManager::GetOrCreate(Name name, const ShaderPropertySet&
 
     ShaderCacheId cacheId;
     return m_impl->GetOrCreate(name, propertySet, inputLayout, cacheId, /* doLoadShader */ true);
+}
+
+void ShaderManager::ExpireShaderEntries(const Shader* shader)
+{
+    m_impl->ExpireShaderEntries(shader);
 }
 
 ShaderCacheId ShaderManager::GetShaderCacheId(

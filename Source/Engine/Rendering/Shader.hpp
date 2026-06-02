@@ -101,6 +101,9 @@ public:
     HYP_METHOD(Property = "RevisionNumber", NoScriptBindings)
     int GetRevisionNumber() const;
     /// ==============================
+    ///
+    
+    bool expired = false;
 
     Shader() = default;
 

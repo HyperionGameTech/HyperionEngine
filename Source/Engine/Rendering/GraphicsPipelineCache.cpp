@@ -106,7 +106,8 @@ public:
 
         reverseAttrMap.Erase(reverseAttrMapIt);
 
-        EnqueueDeletion(std::move(*graphicsPipelinePtr));
+        (*graphicsPipelinePtr).Reset();
+        //EnqueueDeletion(std::move(*graphicsPipelinePtr));
     }
 
     GraphicsPipelineCacheHandle Alloc(size_t& outIndex)
@@ -319,6 +320,8 @@ void GraphicsPipelineCache::GetOrCreate(
     if (cacheHandle.IsAlive())
     {
         (*cacheHandle)->lastFrame = GetFrameCounter();
+        
+        Assert(!(*cacheHandle)->GetShader()->GetShader()->expired);
 
         outCacheHandle = std::move(cacheHandle);
         return;
@@ -340,6 +343,8 @@ void GraphicsPipelineCache::GetOrCreate(
         outCacheHandle = {};
         return;
     }
+    
+    Assert(!shader->GetShader()->expired);
 
     // // Shader may have additional static properties.
     // // See: ShaderBundle, staticProperties and its usage in ShaderCompiler.cpp.
@@ -459,7 +464,10 @@ void GraphicsPipelineCache::ExpirePipelinesForShader(const Shader* shader)
     {
         const PSOCacheKey& key = it->first;
 
-        if (key.shaderName == shader->baseName && key.shaderProperties == shader->properties)
+        // Fast-filter by shader base name, then check the actual Shader pointer
+        // of each pipeline to ensure we expire all pipelines referencing the
+        // destroyed shader, regardless of property set mismatches.
+        if (key.shaderName == shader->baseName)
         {
             // @NOTE intentionally making a copy of the array.
             // CachedPipelinesMap::Remove will modify the original array by removing pipelines one by one, so we need to avoid modifying the array while iterating over it.
@@ -468,9 +476,18 @@ void GraphicsPipelineCache::ExpirePipelinesForShader(const Shader* shader)
             for (GraphicsPipelineRef* const pPipeline : pipelines)
             {
                 Assert(pPipeline != nullptr);
-                
+
+                // Only remove pipelines that actually reference this specific Shader instance.
+                // Property-based matching (key.shaderProperties == shader->properties) can miss
+                // entries when the shader's property set differs from the cache key's property set.
+                if ((*pPipeline)->GetShader()->GetShader() != shader)
+                {
+                    continue;
+                }
+
 #if HYP_DEBUG_MODE
-                HYP_LOG(Rendering, Info, "Removing cached graphics pipeline: {}", (*pPipeline)->GetDebugName());
+                HYP_LOG(Rendering, Info, "Removing cached graphics pipeline: {} on thread: {}",
+                    (*pPipeline)->GetDebugName(), CurrentThreadId().GetName());
 #endif // HYP_DEBUG_MODE
 
                 // Unset so we don't trip over a destroyed pipeline!

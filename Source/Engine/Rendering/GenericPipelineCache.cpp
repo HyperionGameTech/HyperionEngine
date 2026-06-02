@@ -139,46 +139,48 @@ void GenericPipelineCache<PipelineType>::ExpirePipelinesForShader(const Shader* 
     // find all pipelines that use this shader and remove them, so they will be recreated with the new shader instance when requested again.
     for (auto it = m_keyToIndex.Begin(); it != m_keyToIndex.End();)
     {
-        const HashCode key = it->first;
+        const uint32 index = it->second;
+        CachedPipeline& cached = m_pipelines.Get(index);
 
-        // check if this pipeline corresponds to the shader we are expiring
-        if (key == ComputeHashKey(shader->baseName, shader->properties))
-        {
-            const uint32 index = it->second;
-            CachedPipeline& cached = m_pipelines.Get(index);
-
-            if (cached.pipeline.IsValid())
-            {
-                if constexpr (std::is_base_of_v<ComputePipelineBase, PipelineType>)
-                {
-                    // If this pipeline is currently bound, unbind it before deleting it.
-                    if (RI.state.boundComputePipeline == cached.pipeline.Get())
-                    {
-                        RI.state.boundComputePipeline = nullptr;
-                    }
-                }
-                else if constexpr (std::is_base_of_v<RayTracingPipelineBase, PipelineType>)
-                {
-                    // If this pipeline is currently bound, unbind it before deleting it.
-                    if (RI.state.boundRayTracingPipeline == cached.pipeline.Get())
-                    {
-                        RI.state.boundRayTracingPipeline = nullptr;
-                    }
-                }
-                // @NOTE Graphics pipelines have their own cache system.
-
-                EnqueueDeletion(std::move(cached.pipeline));
-            }
-
-            m_idGenerator.ReleaseId(index + 1);
-            it = m_keyToIndex.Erase(it);
-
-            m_pipelines.EraseAt(index);
-        }
-        else
+        if (!cached.pipeline.IsValid())
         {
             ++it;
+            continue;
         }
+
+        // Compare the actual Shader pointer rather than matching on (shaderName, properties)
+        // hash keys. Property-based matching can miss entries when the shader's property set
+        // differs from the cache key's property set.
+        if (cached.pipeline->GetShader()->GetShader() != shader)
+        {
+            ++it;
+            continue;
+        }
+
+        if constexpr (std::is_base_of_v<ComputePipelineBase, PipelineType>)
+        {
+            // If this pipeline is currently bound, unbind it before deleting it.
+            if (RI.state.boundComputePipeline == cached.pipeline.Get())
+            {
+                RI.state.boundComputePipeline = nullptr;
+            }
+        }
+        else if constexpr (std::is_base_of_v<RayTracingPipelineBase, PipelineType>)
+        {
+            // If this pipeline is currently bound, unbind it before deleting it.
+            if (RI.state.boundRayTracingPipeline == cached.pipeline.Get())
+            {
+                RI.state.boundRayTracingPipeline = nullptr;
+            }
+        }
+        // @NOTE Graphics pipelines have their own cache system.
+
+        EnqueueDeletion(std::move(cached.pipeline));
+
+        m_idGenerator.ReleaseId(index + 1);
+        it = m_keyToIndex.Erase(it);
+
+        m_pipelines.EraseAt(index);
     }
 }
 
