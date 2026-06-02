@@ -65,13 +65,13 @@ struct Proc_Impl<ReturnType(Args...), MemoryType>
         else
         {
             ptr = other.ptr;
+
+            deleteFn = other.deleteFn;
+            other.deleteFn = nullptr;
         }
 
         invokeFn = other.invokeFn;
         other.invokeFn = nullptr;
-
-        deleteFn = other.deleteFn;
-        other.deleteFn = nullptr;
     }
 
     Proc_Impl& operator=(Proc_Impl&& other) noexcept
@@ -89,6 +89,8 @@ struct Proc_Impl<ReturnType(Args...), MemoryType>
             deleteFn(GetPointer());
         }
 
+        moveFn = otherMoveFn;
+
         if (otherMoveFn != nullptr)
         {
             otherMoveFn(&other, this);
@@ -96,15 +98,13 @@ struct Proc_Impl<ReturnType(Args...), MemoryType>
         else
         {
             ptr = other.ptr;
+
+            deleteFn = other.deleteFn;
+            other.deleteFn = nullptr;
         }
 
         invokeFn = other.invokeFn;
         other.invokeFn = nullptr;
-
-        moveFn = otherMoveFn;
-
-        deleteFn = other.deleteFn;
-        other.deleteFn = nullptr;
 
         return *this;
     }
@@ -253,19 +253,36 @@ public:
 
                 m_impl.moveFn = [](Impl* src, Impl* dest)
                 {
-                    // Gauranteed that src is this - so we can safely get InlineStorageType from src
-
-                    dest->memory = InlineStorageType();
+                    const UIntPtr destPtr = reinterpret_cast<UIntPtr>(&dest->memory);
+                    const UIntPtr destAddressAligned = HYP_ALIGN_ADDRESS(destPtr, alignof(FuncNormalized));
 
                     FuncNormalized* srcData = HYP_ALIGN_PTR_AS(&src->memory, FuncNormalized);
 
-                    // Dest would already have its memory destroyed or not yet constructed, so we can safely construct into it here.
-                    new (HYP_ALIGN_PTR_AS(&dest->memory, FuncNormalized)) FuncNormalized(std::move(*srcData));
+                    if (destAddressAligned + sizeof(FuncNormalized) <= destPtr + InlineStorageSizeBytes)
+                    {
+                        dest->memory = InlineStorageType();
 
-                    // Destruct the source data after moving it - now InlineStorageType will not hold any valid data.
+                        new (reinterpret_cast<FuncNormalized*>(destAddressAligned)) FuncNormalized(std::move(*srcData));
+
+                        dest->deleteFn = src->deleteFn;
+                        src->deleteFn = nullptr;
+                    }
+                    else
+                    {
+                        // Destination cannot accommodate the functor inline; heap-allocate instead
+                        dest->ptr = Memory::New<FuncNormalized>(std::move(*srcData));
+
+                        if constexpr (!std::is_trivially_destructible_v<FuncNormalized>)
+                        {
+                            dest->deleteFn = &Memory::Delete<FuncNormalized>;
+                        }
+
+                        dest->moveFn = nullptr;
+
+                        src->deleteFn = nullptr;
+                    }
+
                     srcData->~FuncNormalized();
-
-                    // Proc_Impl handles setting the invokeFn, moveFn, and deleteFn members after this is called.
                 };
 
                 if constexpr (!std::is_trivially_destructible_v<FuncNormalized>)

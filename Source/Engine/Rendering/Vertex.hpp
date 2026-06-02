@@ -192,10 +192,10 @@ template <> struct TVertexPacket<VT_UV1>
 template <> struct TVertexPacket<VT_Skeletal>
 {
     static constexpr uint8 InvalidBoneIndex = UINT8_MAX;
-    
+
     uint32 boneIndices = UINT32_MAX;
     float boneWeights[4] {};
-    
+
     HYP_FORCE_INLINE void SetBoneWeight(int i, float val)
     {
         boneWeights[i] = val;
@@ -246,7 +246,7 @@ template <> struct TVertexPacket<VT_Skeletal>
     HYP_FORCE_INLINE uint32 NumBoneIndices() const
     {
         uint32 count = 0;
-        
+
         const uint8* boneIndicesU8 = reinterpret_cast<const uint8*>(&boneIndices);
 
         for (uint32 i = 0; i < MAX_BONE_INDICES; i++)
@@ -274,7 +274,7 @@ template <> struct TVertexPacket<VT_Skeletal>
     void AddBoneIndex(uint8 boneIndex)
     {
         const uint32 numIndices = NumBoneIndices();
-        
+
         uint8* boneIndicesU8 = reinterpret_cast<uint8*>(&boneIndices);
 
         if (numIndices < MAX_BONE_INDICES)
@@ -374,6 +374,8 @@ struct VertexInputLayoutDesc
     {
         return HashCode::GetHashCode(mask);
     }
+
+    String GetDebugString() const;
 };
 
 template <uint8 PacketMask>
@@ -387,7 +389,7 @@ struct VertexArrayView
     size_t vertexCount;
 
     VertexInputLayoutDesc layoutDesc;
-    
+
     VertexArrayView() = default;
 
     template <uint8 PacketMask>

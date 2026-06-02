@@ -263,7 +263,7 @@ else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-backtrace-limit=0")
 
   # # address sanitizer and other debugging utilities
-  # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined")
+  # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 
   # ClangCL on Windows uses link.exe, so it supports /DEBUG and /NATVIS
   if(HYP_CLANG_WINDOWS)
@@ -1067,6 +1067,8 @@ add_subdirectory(Sample)
 if(HYP_EDITOR)
   add_subdirectory(Editor)
   add_subdirectory(Commandlets)
+
+  add_dependencies(${BUILD_NAME} hyperion-editor)
 
   if(APPLE)
     target_link_libraries(${BUILD_NAME} PRIVATE "-force_load $<TARGET_FILE:hyperion-editor>")

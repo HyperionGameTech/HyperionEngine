@@ -669,7 +669,7 @@ void Mesh::CalculateNormals(bool weighted)
 
     uint32* uIndexData = reinterpret_cast<uint32*>(&indexData[0]);
 
-    SparsePagedArray<Array<Vec3f, InlineAllocator<3>>, 1 << 6> normals;
+    SparsePagedArray<TFatArray<Vec3f, InlineAllocator<3>>, (1 << 6)> normals;
 
     const size_t vertexSizeInFloats = vertexData.layoutDesc.VertexSize() / sizeof(float);
 

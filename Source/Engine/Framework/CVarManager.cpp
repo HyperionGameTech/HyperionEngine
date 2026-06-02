@@ -307,7 +307,10 @@ static void InitCVar(CVarManager* manager, CVarBase* cvar, const UTF8StringView&
 
         if (configPath)
         {
-            manager->cvarToConfigPath[cvar->id] = configPath.Data();
+            const size_t len = Memory::StrLen(configPath.Data()) + 1;
+            char* copiedPath = (char*)Memory::AllocateZeros(len);
+            Memory::StrCpy(copiedPath, configPath.Data(), len);
+            manager->cvarToConfigPath[cvar->id] = copiedPath;
         }
     }
 }
@@ -358,6 +361,14 @@ CVarManager::~CVarManager()
         if (var && var->isHeapAllocated)
         {
             delete var;
+        }
+    }
+
+    for (const char* path : cvarToConfigPath)
+    {
+        if (path != nullptr)
+        {
+            Memory::Free(const_cast<char*>(path));
         }
     }
 

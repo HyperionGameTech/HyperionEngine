@@ -1379,7 +1379,11 @@ Array<ShaderPropertyId> ShaderPropertySet::ToArray() const
     result.Reserve(ByteUtil::BitCount(chunks[0])
         + ByteUtil::BitCount(chunks[1])
         + ByteUtil::BitCount(chunks[2])
-        + ByteUtil::BitCount(chunks[3]));
+        + ByteUtil::BitCount(chunks[3])
+        + ByteUtil::BitCount(chunks[4])
+        + ByteUtil::BitCount(chunks[5])
+        + ByteUtil::BitCount(chunks[6])
+        + ByteUtil::BitCount(chunks[7]));
 
     uint64 chunkOffset = 0;
     for (uint32 chunk : chunks)

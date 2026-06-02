@@ -2265,10 +2265,7 @@ struct ShaderPropertySet
 
     HYP_FORCE_INLINE constexpr bool Test(ShaderPropertyId id) const
     {
-        return bool(chunks[0] & (1u << uint32(id)))
-            || bool(chunks[1] & (1u << uint32(id)))
-            || bool(chunks[2] & (1u << uint32(id)))
-            || bool(chunks[3] & (1u << uint32(id)));
+        return bool(chunks[uint32(id) / ChunkSizeBits] & (1u << (uint32(id) % ChunkSizeBits)));
     }
 
     HYP_FORCE_INLINE bool operator==(const ShaderPropertySet& other) const
@@ -2288,6 +2285,10 @@ struct ShaderPropertySet
         result.chunks[1] &= other.chunks[1];
         result.chunks[2] &= other.chunks[2];
         result.chunks[3] &= other.chunks[3];
+        result.chunks[4] &= other.chunks[4];
+        result.chunks[5] &= other.chunks[5];
+        result.chunks[6] &= other.chunks[6];
+        result.chunks[7] &= other.chunks[7];
 
         return result;
     }
@@ -2299,6 +2300,10 @@ struct ShaderPropertySet
         result.chunks[1] |= other.chunks[1];
         result.chunks[2] |= other.chunks[2];
         result.chunks[3] |= other.chunks[3];
+        result.chunks[4] |= other.chunks[4];
+        result.chunks[5] |= other.chunks[5];
+        result.chunks[6] |= other.chunks[6];
+        result.chunks[7] |= other.chunks[7];
 
         return result;
     }

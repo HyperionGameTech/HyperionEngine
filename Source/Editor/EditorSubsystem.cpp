@@ -475,15 +475,20 @@ void TranslateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEv
                     return a.first->CalculateDepth() < b.first->CalculateDepth();
                 });
 
+            String text = nodeData.Size() == 1
+                ? HYP_FORMAT("Translate {}", nodeData[0].first->GetName())
+                : HYP_FORMAT("Translate {} nodes", nodeData.Size());
+
             project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
-                nodeData.Size() == 1
-                    ? HYP_FORMAT("Translate {}", nodeData[0].first->GetName())
-                    : HYP_FORMAT("Translate {} nodes", nodeData.Size()),
-                [focusedNode, node = m_node, focusedFinalPosition, focusedOrigin, nodeData]() -> EditorActionFunctions
+                text,
+                [focusedNode, node = m_node, focusedFinalPosition, focusedOrigin, nodeData = std::move(nodeData)]() -> EditorActionFunctions
                 {
+                    auto nodeDataPtr = MakeRefCountedPtr<decltype(nodeData)>(std::move(nodeData));
+
                     return {
-                        [&](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
+                        [focusedNode, node, focusedFinalPosition, focusedOrigin, nodeDataPtr](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
                         {
+                            const auto& nodeData = *nodeDataPtr;
                             const Vec3f translationDelta = focusedFinalPosition - focusedOrigin;
 
                             for (const auto& pair : nodeData)
@@ -505,8 +510,10 @@ void TranslateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEv
 
                             editorSubsystem->SetFocusedNode(focusedNode, true);
                         },
-                        [&](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
+                        [focusedNode, node, focusedOrigin, nodeDataPtr](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
                         {
+                            const auto& nodeData = *nodeDataPtr;
+
                             for (const auto& pair : nodeData)
                             {
                                 const Handle<Node>& selectedNode = pair.first;
@@ -943,9 +950,13 @@ void RotateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
                     : HYP_FORMAT("Rotate {} nodes", nodeData.Size()),
                 [focusedNode, finalRotation, originRotation, deltaRotation, nodeData]() -> EditorActionFunctions
                 {
+                    auto nodeDataPtr = MakeRefCountedPtr<decltype(nodeData)>(std::move(nodeData));
+
                     return {
-                        [&](EditorSubsystem* editorSubsystem, EditorProject*)
+                        [focusedNode, deltaRotation, nodeDataPtr](EditorSubsystem* editorSubsystem, EditorProject*)
                         {
+                            const auto& nodeData = *nodeDataPtr;
+
                             // Execute: ancestors first so parent rotation is up-to-date
                             for (const auto& pair : nodeData)
                             {
@@ -961,8 +972,10 @@ void RotateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
 
                             editorSubsystem->SetFocusedNode(focusedNode, true);
                         },
-                        [&](EditorSubsystem* editorSubsystem, EditorProject*)
+                        [focusedNode, nodeDataPtr](EditorSubsystem* editorSubsystem, EditorProject*)
                         {
+                            const auto& nodeData = *nodeDataPtr;
+
                             // Revert: ancestors first so parent rotation is up-to-date
                             for (const auto& pair : nodeData)
                             {
@@ -1278,9 +1291,13 @@ void ScaleEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent&
                     : HYP_FORMAT("Scale {} nodes", nodeData.Size()),
                 [focusedNode, finalScale, originScale, scaleFactor, nodeData]() -> EditorActionFunctions
                 {
+                    auto nodeDataPtr = MakeRefCountedPtr<decltype(nodeData)>(std::move(nodeData));
+
                     return {
-                        [&](EditorSubsystem* editorSubsystem, EditorProject*)
+                        [focusedNode, scaleFactor, nodeDataPtr](EditorSubsystem* editorSubsystem, EditorProject*)
                         {
+                            const auto& nodeData = *nodeDataPtr;
+
                             for (const auto& pair : nodeData)
                             {
                                 const Handle<Node>& selectedNode = pair.first;
@@ -1295,8 +1312,10 @@ void ScaleEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent&
 
                             editorSubsystem->SetFocusedNode(focusedNode, true);
                         },
-                        [&](EditorSubsystem* editorSubsystem, EditorProject*)
+                        [focusedNode, nodeDataPtr](EditorSubsystem* editorSubsystem, EditorProject*)
                         {
+                            const auto& nodeData = *nodeDataPtr;
+
                             for (const auto& pair : nodeData)
                             {
                                 const Handle<Node>& selectedNode = pair.first;
@@ -1746,7 +1765,7 @@ void VolumeEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
                     [manipulationMode = GetManipulationMode(), focusedNode, finalBounds, originalBounds]() -> EditorActionFunctions
                     {
                         return {
-                            [&](EditorSubsystem* editorSubsystem, EditorProject*)
+                            [focusedNode, finalBounds, manipulationMode](EditorSubsystem* editorSubsystem, EditorProject*)
                             {
                                 BoundingBox finalBoundsLocal = finalBounds;
                                 finalBoundsLocal = focusedNode->GetWorldMatrix().Inverse() * finalBoundsLocal;
@@ -1756,7 +1775,7 @@ void VolumeEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
                                 editorSubsystem->SetSelectedManipulationMode(manipulationMode);
                                 editorSubsystem->SetFocusedNode(focusedNode, true);
                             },
-                            [&](EditorSubsystem* editorSubsystem, EditorProject*)
+                            [focusedNode, originalBounds, manipulationMode](EditorSubsystem* editorSubsystem, EditorProject*)
                             {
                                 BoundingBox originalBoundsLocal = originalBounds;
                                 originalBoundsLocal = focusedNode->GetWorldMatrix().Inverse() * originalBoundsLocal;
