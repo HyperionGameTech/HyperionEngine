@@ -277,11 +277,13 @@ public:
             }
 
             dir.MkDir();
+            
+            String projectName = *project->GetName();
 
             ShowSelectFolderDialog(
                 "Select project folder",
                 dir,
-                [weakSubsystem = MakeWeakRef(subsystem)](TResult<FilePath>&& result) mutable
+                [weakSubsystem = MakeWeakRef(subsystem), projectName = std::move(projectName)](TResult<FilePath>&& result) mutable
                 {
                     if (result.HasError())
                     {
@@ -294,6 +296,13 @@ public:
                     {
                         HYP_LOG(Editor, Warning, "No save path selected.");
                         return;
+                    }
+                    
+                    if (selectedPath.EndsWith(projectName))
+                    {
+                        // IF the path we receive ends with the project name (ie. Projects/Project1) we want to chop off that part,
+                        // otherwise we'd end up saving at Projects/Project1/Project1.
+                        selectedPath = selectedPath.BasePath();
                     }
 
                     GetThreadById(g_simThread)->GetScheduler().Enqueue([weakSubsystem = std::move(weakSubsystem), selectedPath = std::move(selectedPath)]() mutable

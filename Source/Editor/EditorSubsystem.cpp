@@ -1580,7 +1580,7 @@ void VolumeEditorGizmo::UpdateFaceGeometry(const BoundingBox& localBounds, const
 
 Handle<Node> VolumeEditorGizmo::Load_Internal() const
 {
-    //GlobalContextScope assetRegistryScope { AssetRegistryContext { GetEditorAssetRegistry() } };
+    GlobalContextScope assetRegistryScope { AssetRegistryContext { GetEditorAssetRegistry() } };
 
     //if (Handle<Node> node = GetCurrentAssetRegistry()->GetAsset<Node>(AssetBuckets::Nodes, "VolumeEditGizmo"_sh); node.IsValid())
     //{

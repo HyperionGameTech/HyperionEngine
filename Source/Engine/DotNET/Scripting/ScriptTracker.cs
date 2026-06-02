@@ -60,31 +60,31 @@ namespace Hyperion
                     continue;
                 }
 
+                Logger.Log(logChannel, LogLevel.Info, "Watching source directory: {0}", sourceDir);
+
                 // Watch for C# files
                 var csWatcher = new FileSystemWatcher(sourceDir)
                 {
-                    NotifyFilter = NotifyFilters.LastWrite,
+                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName,
                     Filter = "*.cs",
                     EnableRaisingEvents = true,
                     IncludeSubdirectories = true
                 };
                 csWatcher.Changed += OnCsFileChanged;
+                csWatcher.Created += OnCsFileChanged;
                 watchers.Add(csWatcher);
-
-                Logger.Log(logChannel, LogLevel.Info, "Watching C# files in: {0}", sourceDir);
 
                 // Watch for HypScript files
                 var hypWatcher = new FileSystemWatcher(sourceDir)
                 {
-                    NotifyFilter = NotifyFilters.LastWrite,
+                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName,
                     Filter = "*.hyp",
                     EnableRaisingEvents = true,
                     IncludeSubdirectories = true
                 };
                 hypWatcher.Changed += OnHypFileChanged;
+                hypWatcher.Created += OnHypFileChanged;
                 watchers.Add(hypWatcher);
-
-                Logger.Log(logChannel, LogLevel.Info, "Watching HypScript files in: {0}", sourceDir);
             }
         }
 

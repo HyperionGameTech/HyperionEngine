@@ -16,6 +16,7 @@
       "DepthFailOp": 0,
       "CompareOp": 0
     },
+    "DepthCompareOp": 0,
     "StencilReference": 0,
     "DepthBias": 0,
     "DepthBiasSlope": 0

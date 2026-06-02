@@ -23,6 +23,34 @@ Fps := 0.0
 Accum := 0.0
 Counter := 0
 
+enum TestEnum
+    Foo = 0,
+    Bar,
+    Baz,
+    Fufufu
+end
+
+// Why does it break when using Baz or Fufufu
+/// trace =
+/// =====
+/// [ERROR] unhandled exception in thread -1: Member with hash code 8922145923145611064 not found on type: `Hyperion::ClassRef`trace =
+/// =====
+eValue := TestEnum.Foo;
+
+Logger.LogScript(Channel, LogLevel.Info, "eValue is " + string(eValue))
+
+switch eValue
+    case 0:
+        Logger.LogScript(Channel, LogLevel.Info, "eValue is Foo")
+        break
+    case 1:
+        Logger.LogScript(Channel, LogLevel.Info, "eValue is Bar")
+        break
+    default:
+        Logger.LogScript(Channel, LogLevel.Info, "Default case")
+        break
+end
+
 export Update := (DeltaTime : float)
     Accum += DeltaTime
     Counter++
@@ -31,6 +59,6 @@ export Update := (DeltaTime : float)
         Accum = 0.0
         Counter = 0
 
-        Logger.LogScript(Channel, LogLevel.Info, "Frames per second: " + string(Fps))
+        Logger.LogScript(Channel, LogLevel.Info, "FPS: " + string(Fps))
     end
 end

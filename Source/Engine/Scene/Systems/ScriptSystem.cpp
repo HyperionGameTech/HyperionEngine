@@ -226,8 +226,35 @@ void ScriptSystem::OnAddedToWorld(World* world)
 
                             ScriptDesc& scriptDesc = scriptAsset->GetScriptDesc();
 
-                            // @TODO: Will need `path` for hypscript, assemblypath is only relevent for c#.
-                            if (Memory::StrCmp(inScriptDesc.assemblyPath.Data(), scriptDesc.assemblyPath.Data(), MathUtil::Min(ArraySize(inScriptDesc.assemblyPath), ArraySize(scriptDesc.assemblyPath))) == 0)
+                            bool matchesScript = false;
+
+                            if (inScriptDesc.language == ScriptLanguage::HypScript)
+                            {
+                                Handle<AssetRegistry> registry = scriptAsset->GetAssetRegistry();
+
+                                if (registry.IsValid())
+                                {
+                                    const FilePath incomingPath(inScriptDesc.path.Data());
+                                    const FilePath expectedSourcePath = registry->GetRootPath() / "Scripts" / (scriptAsset->GetName().ToString() + ".hyp");
+
+                                    // Compare paths - handles both absolute and relative path forms
+                                    if (incomingPath == expectedSourcePath
+                                        || incomingPath.EndsWith(expectedSourcePath)
+                                        || expectedSourcePath.EndsWith(incomingPath))
+                                    {
+                                        matchesScript = true;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                if (Memory::StrCmp(inScriptDesc.assemblyPath.Data(), scriptDesc.assemblyPath.Data(), MathUtil::Min(ArraySize(inScriptDesc.assemblyPath), ArraySize(scriptDesc.assemblyPath))) == 0)
+                                {
+                                    matchesScript = true;
+                                }
+                            }
+
+                            if (matchesScript)
                             {
                                 HYP_LOG(Scripting, Info, "ScriptSystem: Reloading script for entity {}", entity->Id());
 
