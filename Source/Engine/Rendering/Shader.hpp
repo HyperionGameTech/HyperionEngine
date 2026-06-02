@@ -85,9 +85,6 @@ public:
     HYP_FIELD(Property = "PropertySetHashCode")
     HashCode propertySetHashCode;
 
-    HYP_FIELD(Property = "LastCompiledTimestamp")
-    Time lastCompiledTimestamp;
-
     HYP_FIELD(Transient = true)
     ShaderPropertySet properties; // dependent on cache; so we serialize the actual properties (below)
 
@@ -102,7 +99,7 @@ public:
     int GetRevisionNumber() const;
     /// ==============================
     ///
-    
+
     bool expired = false;
 
     Shader() = default;

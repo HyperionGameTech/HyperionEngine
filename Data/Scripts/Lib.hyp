@@ -2047,7 +2047,6 @@ extern class Shader : AssetObject
     EntryPointNames : Array<string>
     ShaderBlobs : Array<BlobDataReference>
     PropertySetHashCode : HashCode
-    LastCompiledTimestamp : any
     Properties : ShaderPropertySet
     SerializeProperties() -> Array<ShaderProperty>
     DeserializeProperties(properties : Array<ShaderProperty>) -> void

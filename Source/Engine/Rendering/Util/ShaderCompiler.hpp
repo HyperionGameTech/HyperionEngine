@@ -706,7 +706,7 @@ public:
     bool IsGraphicsShaderBundle(Name name) const;
 
 #if HYP_ENABLE_SHADER_RELOAD
-    bool IsShaderBundleOutdated(Name name, const Time& lastCompiledTimestamp) const;
+    bool IsShaderBundleOutdated(Name name) const;
 #endif
 
     /*! \brief Get the current shader compilation parameters. */

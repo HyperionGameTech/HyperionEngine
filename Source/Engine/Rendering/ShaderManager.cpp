@@ -16,6 +16,8 @@
 
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
+#include <Asset/AssetRegistry.hpp>
+
 #include <Core/Reflection/Handle.hpp>
 
 #include <Core/Threading/SharedMutex.hpp>
@@ -191,13 +193,6 @@ public:
 
         ShaderInstanceRef si = RI.MakeShader(request.entry->shader);
         request.shaderInstance = si;
-
-#if HYP_ENABLE_SHADER_RELOAD
-        if (si.IsValid())
-        {
-            si->SetCompiledTimestamp(request.entry->shader->lastCompiledTimestamp);
-        }
-#endif
 
         CheckResult(si->Create());
 
@@ -437,14 +432,21 @@ public:
             }
 
             Assert(entry->shaderInstance.IsValid());
-            Assert(!entry->shaderInstance->GetShader()->expired);
 
-            if (EnsureMatch(properties, inputLayout, *entry->shaderInstance->GetShader()))
+            if (entry->shaderInstance->GetShader()->expired)
+            {
+                entry->shaderInstance = ShaderInstanceRef::Null();
+                entry->shader = nullptr;
+                entry->threadSignal.Reset();
+            }
+            else if (EnsureMatch(properties, inputLayout, *entry->shaderInstance->GetShader()))
             {
                 return entry->shaderInstance;
             }
-
-            HYP_LOG(Shader, Error, "Loaded shader from cache (Name: {}) does not contain the requested properties!", name);
+            else
+            {
+                HYP_LOG(Shader, Error, "Loaded shader from cache (Name: {}) does not contain the requested properties!", name);
+            }
         }
 
         if (!entry)
@@ -702,12 +704,20 @@ public:
                 {
                     continue;
                 }
+                
+                Time shaderSourceModifiedTimestamp;
+                Time lastSavedTimestamp;
 
-                if (!g_shaderCompiler->IsShaderBundleOutdated(
-                        entry->shader->baseName,
-                        entry->shader->lastCompiledTimestamp))
+                if (entry->shader->IsSaved())
                 {
-                    continue;
+                    const FilePath manifestPath = GetEngineAssetRegistry()->GetManifestPath(entry->shader->GetPath());
+                    
+                    lastSavedTimestamp = manifestPath.LastModifiedTimestamp();
+                    
+                    if (!g_shaderCompiler->IsShaderBundleOutdated(entry->shader->baseName))
+                    {
+                        continue;
+                    }
                 }
 
                 CompileShaderRequest& request = requests.EmplaceBack();
@@ -776,6 +786,17 @@ public:
             compilingShaderScope.Wait();
 
             Assert(request.entry->shader != nullptr);
+            
+
+            if (request.entry->shader->IsSaved())
+            {
+                const FilePath manifestPath = GetEngineAssetRegistry()->GetManifestPath(request.entry->shader->GetPath());
+                
+                Time shaderSourceModifiedTimestamp;
+                Time lastSavedTimestamp = manifestPath.LastModifiedTimestamp();
+                
+                AssertDebug(!g_shaderCompiler->IsShaderBundleOutdated(request.entry->shader->baseName));
+            }
 
             shadersToExpire.Add(request.entry->shader);
 
@@ -789,6 +810,8 @@ public:
                 RI.graphicsPipelineCache->ExpirePipelinesForShader(shader);
                 RI.computePipelineCache->ExpirePipelinesForShader(shader);
                 RI.rayTracingPipelineCache->ExpirePipelinesForShader(shader);
+                
+                RI.shaderManager->ExpireShaderEntries(shader);
             }
         }
 

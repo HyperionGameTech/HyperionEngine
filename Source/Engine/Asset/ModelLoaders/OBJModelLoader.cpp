@@ -185,6 +185,10 @@ OBJModel OBJModelLoader::LoadModel(LoaderState& state)
         if (tokens[0] == "v")
         {
             Vec3f position = ReadVector<Vec3f>(tokens, 1);
+
+            // Invert Z to convert Right-Handed to Left-Handed
+            position.z *= -1.0f;
+
             model.positions.PushBack(position);
 
             continue;
@@ -193,6 +197,10 @@ OBJModel OBJModelLoader::LoadModel(LoaderState& state)
         if (tokens[0] == "vn")
         {
             Vec3f normal = ReadVector<Vec3f>(tokens, 1);
+
+            // Same deal as above, we need to flip the normal Z to account for our conversion to use left handed coordinates.
+            normal.z *= -1.0f;
+
             model.normals.PushBack(normal);
 
             continue;

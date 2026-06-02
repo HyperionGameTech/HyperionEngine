@@ -2972,9 +2972,9 @@ bool ShaderCompiler::CompileBundle(
 
 #if HYP_ENABLE_SHADER_RELOAD
     Time maxSourceFileLastModified = Time(0);
-    for (const LoadedSourceFile& sourceFile : loadedSourceFiles)
+    for (const auto& source : decl.sources)
     {
-        maxSourceFileLastModified = MathUtil::Max(maxSourceFileLastModified, sourceFile.lastModifiedTimestamp);
+        maxSourceFileLastModified = MathUtil::Max(maxSourceFileLastModified, FilePath(source.second).LastModifiedTimestamp());
     }
 #endif
 
@@ -3024,6 +3024,8 @@ bool ShaderCompiler::CompileBundle(
 
         return {};
     };
+    
+    TSet<Shader*> newShaders;
 
     // compile shader with each permutation of properties
     ForEachPermutation(
@@ -3285,7 +3287,10 @@ bool ShaderCompiler::CompileBundle(
 
                 shader->properties.Add(propertyId);
             }
+            
             shader->propertySetHashCode = perm.GetPropertySetHashCode();
+            
+            newShaders.Add(shader);
 
             numCompiledPermutations += (numErrored == 0 && numCompiled > 0 ? 1 : 0);
             numErroredPermutations += (numErrored > 0 ? 1 : 0);
@@ -3300,10 +3305,6 @@ bool ShaderCompiler::CompileBundle(
             {
                 shader->inputGroup = ShaderInputGroup();
                 descriptorUsageSetsMerged.BuildDescriptorTableDeclaration(shader->inputGroup);
-
-#if HYP_ENABLE_SHADER_RELOAD
-                shader->lastCompiledTimestamp = maxSourceFileLastModified;
-#endif
 
                 Mutex::Guard guard(compiledShadersMutex);
 
@@ -3342,7 +3343,7 @@ bool ShaderCompiler::CompileBundle(
             for (Handle<Shader>& shader : existingShadersToRemove)
             {
                 shader->expired = true;
-                
+
                 GetEngineAssetRegistry()->RemoveAsset(shader);
             }
         }
@@ -3351,7 +3352,7 @@ bool ShaderCompiler::CompileBundle(
             for (Handle<Shader>& shader : existingShadersToRemove)
             {
                 shader->expired = true;
-                
+
                 RI.graphicsPipelineCache->ExpirePipelinesForShader(shader);
                 RI.computePipelineCache->ExpirePipelinesForShader(shader);
                 RI.rayTracingPipelineCache->ExpirePipelinesForShader(shader);
@@ -3363,6 +3364,12 @@ bool ShaderCompiler::CompileBundle(
         }
 
         existingShadersToRemove.Clear();
+    }
+    
+    for (Shader* shader : newShaders)
+    {
+        GetEngineAssetRegistry()->PutAsset(MakeStrongRef(shader));
+        shader->MarkDirty();
     }
 
     if (outBundle->HasErrors())
@@ -3417,7 +3424,7 @@ bool ShaderCompiler::CompileBundle(
 
     GetEngineAssetRegistry()->PutAssetsDeep(MakeStrongRef(outBundle));
     GetEngineAssetRegistry()->SaveDirtyAssets();
-
+    
 #ifdef HYP_SHADER_COMPILER_LOGGING
     if (numCompiledPermutations.Get(MemoryOrder::RELAXED) != 0)
     {
@@ -3523,7 +3530,7 @@ bool ShaderCompiler::IsGraphicsShaderBundle(Name name) const
 
 #if HYP_ENABLE_SHADER_RELOAD
 
-bool ShaderCompiler::IsShaderBundleOutdated(Name name, const Time& lastCompiledTimestamp) const
+bool ShaderCompiler::IsShaderBundleOutdated(Name name) const
 {
     if (!CanCompileShaders())
     {
@@ -3545,17 +3552,20 @@ bool ShaderCompiler::IsShaderBundleOutdated(Name name, const Time& lastCompiledT
     {
         return false;
     }
-
-    Time maxSourceFileLastModified = Time(0);
+    
+    const AssetPath bundleAssetPath = AssetPath(AssetRegistryId::Engine, AssetBuckets::ShaderBundles, name);
+    const FilePath bundleManifestFilePath = GetEngineAssetRegistry()->GetManifestPath(bundleAssetPath);
+    
+    const Time bundleManifestModifiedTimestamp = bundleManifestFilePath.LastModifiedTimestamp();
+    
+    Time sourceFileModifiedTimestamp = Time(0);
 
     for (const auto& sourceFile : foundDecl->sources)
     {
-        maxSourceFileLastModified = MathUtil::Max(
-            maxSourceFileLastModified,
-            FilePath(sourceFile.second).LastModifiedTimestamp());
+        sourceFileModifiedTimestamp = MathUtil::Max(sourceFileModifiedTimestamp, FilePath(sourceFile.second).LastModifiedTimestamp());
     }
 
-    return maxSourceFileLastModified > lastCompiledTimestamp;
+    return sourceFileModifiedTimestamp > bundleManifestModifiedTimestamp;
 }
 
 #endif // HYP_ENABLE_SHADER_RELOAD
