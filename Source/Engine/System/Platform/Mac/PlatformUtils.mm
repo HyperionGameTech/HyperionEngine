@@ -2,7 +2,7 @@
 
 #include <mach-o/dyld.h>
 
-#include <Core/containers/String.hpp>
+#include <Core/Containers/String.hpp>
 
 namespace Hyperion {
 namespace PlatformUtils {

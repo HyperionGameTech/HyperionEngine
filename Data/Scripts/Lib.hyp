@@ -1268,9 +1268,9 @@ extern class EngineDriver
 end
 extern class EngineStats
     static GetInstance() -> EngineStats
-    GetFps() -> double
-    GetMsPerFrame() -> double
-    QueryStatValue(path : string, valueIfNotFound : double) -> double
+    GetFps() -> float
+    GetMsPerFrame() -> float
+    QueryStatValue(path : string, valueIfNotFound : float) -> float
 end
 extern enum GpuType : uint8
     Unknown = 0,

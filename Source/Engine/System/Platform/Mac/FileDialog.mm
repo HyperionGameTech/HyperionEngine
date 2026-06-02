@@ -1,7 +1,7 @@
 #import <AppKit/AppKit.h>
 #import <Cocoa/Cocoa.h>
 
-#include <Core/functional/Proc.hpp>
+#include <Core/Functional/Proc.hpp>
 
 #import "Util/BlockInvoker.h"
 

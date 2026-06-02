@@ -5,7 +5,9 @@
 */
 
 #import <AppKit/AppKit.h>
+
 #include <dispatch/dispatch.h>
+
 #import <Cocoa/Cocoa.h>
 #import <CoreGraphics/CoreGraphics.h>
 #import <QuartzCore/CAMetalLayer.h>
@@ -18,17 +20,17 @@
 #include <Input/InputManager.hpp>
 #include <Input/Event.hpp>
 
-#include <Core/threading/Threads.hpp>
-#include <Core/threading/Scheduler.hpp>
+#include <Core/Threading/Threads.hpp>
+#include <Core/Threading/Scheduler.hpp>
 
-#include <Core/debug/Debug.hpp>
+#include <Core/Debug/Debug.hpp>
 
 #if HYP_VULKAN
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_metal.h>
 
-#include <Rendering/vulkan/VulkanInstance.hpp>
-#include <Rendering/vulkan/VulkanRenderInterface.hpp>
+#include <Rendering/Vulkan/VulkanInstance.hpp>
+#include <Rendering/Vulkan/VulkanRenderInterface.hpp>
 #endif
 
 namespace Hyperion {

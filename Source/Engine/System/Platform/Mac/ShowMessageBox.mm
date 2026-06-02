@@ -1,9 +1,9 @@
 #import <AppKit/AppKit.h>
 #import <Cocoa/Cocoa.h>
 
-#include <Core/functional/Proc.hpp>
+#include <Core/Functional/Proc.hpp>
 
-#include <Core/threading/Task.hpp>
+#include <Core/Threading/Task.hpp>
 
 using namespace Hyperion;
 

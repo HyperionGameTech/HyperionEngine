@@ -13,10 +13,10 @@
 
 #include <System/AppContext.hpp>
 
-#include <Core/threading/Threads.hpp>
-#include <Core/threading/Scheduler.hpp>
+#include <Core/Threading/Threads.hpp>
+#include <Core/Threading/Scheduler.hpp>
 
-#include <Core/debug/Debug.hpp>
+#include <Core/Debug/Debug.hpp>
 
 #include <Input/InputManager.hpp>
 #include <Input/Event.hpp>
@@ -28,7 +28,7 @@
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_metal.h>
 
-#include <Rendering/vulkan/VulkanSwapchain.hpp>
+#include <Rendering/Vulkan/VulkanSwapchain.hpp>
 #endif
 
 using namespace Hyperion;
