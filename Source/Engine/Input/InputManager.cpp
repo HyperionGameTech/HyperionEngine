@@ -526,16 +526,26 @@ void InputManager::ProcessEvent(Event&& event)
 
         break;
     case EventType::WINDOW_FOCUS_LOST:
-        if (m_isMouseLocked && m_ownerWindow && m_ownerWindow->IsMouseLocked())
+        if (m_ownerWindow)
         {
-            m_ownerWindow->SetIsMouseLocked(false);
+            m_ownerWindow->SetHasFocus(false);
+
+            if (m_isMouseLocked && m_ownerWindow->IsMouseLocked())
+            {
+                m_ownerWindow->SetIsMouseLocked(false);
+            }
         }
 
         break;
     case EventType::WINDOW_FOCUS_GAINED:
-        if (m_isMouseLocked && m_ownerWindow && !m_ownerWindow->IsMouseLocked())
+        if (m_ownerWindow)
         {
-            m_ownerWindow->SetIsMouseLocked(true);
+            m_ownerWindow->SetHasFocus(true);
+
+            if (m_isMouseLocked && m_ownerWindow && !m_ownerWindow->IsMouseLocked())
+            {
+                m_ownerWindow->SetIsMouseLocked(true);
+            }
         }
 
         break;

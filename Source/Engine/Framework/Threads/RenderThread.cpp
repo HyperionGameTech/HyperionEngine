@@ -12,7 +12,7 @@
 #include <Framework/EngineDriver.hpp>
 #include <Framework/EngineStats.hpp>
 #include <Framework/EngineMemory.hpp>
-#include <Rendering/DebugDrawer.hpp>
+#include <Framework/CVarManager.hpp>
 
 #include <Rendering/PostFX.hpp>
 #include <Rendering/RenderInterface.hpp>
@@ -29,6 +29,7 @@
 #include <Rendering/RenderConfig.hpp>
 #include <Rendering/Buffers.hpp>
 #include <Rendering/Frame.hpp>
+#include <Rendering/DebugDrawer.hpp>
 
 #include <Rendering/Passes/DeferredPass.hpp>
 
@@ -51,6 +52,9 @@ extern void HandleSignal(int signum);
 extern EngineStatTimer g_statRenderUpdate;
 
 extern ThreadSignal g_renderInitSignal;
+
+static constexpr float IdleMaxFrameRate = 15.0f;
+static CVar<float> s_cvTargetFrameRate("Rendering.TargetFrameRate", 0); // 0 == no limit
 
 RenderThread::RenderThread()
     : Thread(g_renderThread, ThreadPriorityValue::HIGHEST)
@@ -107,6 +111,50 @@ void RenderThread::Update()
         return;
     }
 
+    ApplicationWindow* mainWindow = g_appContext->GetMainWindow();
+    
+    static ClockTimer s_throttleTimer;
+    static bool s_wasFocused = true;
+    
+    float targetFrameRate = s_cvTargetFrameRate.Get();
+
+    if (!mainWindow || !mainWindow->HasFocus())
+    {
+        targetFrameRate = (targetFrameRate > 0) ? MathUtil::Min(targetFrameRate, IdleMaxFrameRate) : IdleMaxFrameRate;
+
+        if (s_wasFocused)
+        {
+            s_throttleTimer.Reset();
+            s_wasFocused = false;
+        }
+    }
+    else
+    {
+        if (!s_wasFocused)
+        {
+            s_throttleTimer.Reset();
+            s_wasFocused = true;
+        }
+    }
+    
+    if (targetFrameRate > 0.0f)
+    {
+        const float elapsed = s_throttleTimer.Interval(ClockTimer::Now());
+        const float targetInterval = 1.0f / targetFrameRate;
+
+        if (elapsed < targetInterval)
+        {
+            ThreadSleep(uint32((targetInterval - elapsed) * 1000.0f));
+
+            s_throttleTimer.lastTimePoint += std::chrono::duration_cast<ClockTimer::Clock::duration>(
+                std::chrono::duration<float>(targetInterval));
+        }
+        else
+        {
+            s_throttleTimer.NextTick();
+        }
+    }
+
     Queue<Scheduler::ScheduledTask> tasks;
     if (uint32 numEnqueued = m_scheduler->NumEnqueued())
     {
@@ -123,8 +171,6 @@ void RenderThread::Update()
 
     // Check if any swapchains need to be recreated
     Array<Swapchain*, RenderTempAllocator> swapchains;
-
-    ApplicationWindow* mainWindow = g_appContext->GetMainWindow();
 
     if (mainWindow != nullptr)
     {

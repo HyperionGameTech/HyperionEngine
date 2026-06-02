@@ -152,6 +152,17 @@ public:
     virtual bool HasMouseFocus() const = 0;
 
     HYP_METHOD()
+    HYP_FORCE_INLINE bool HasFocus() const
+    {
+        return m_hasFocus.Get(MemoryOrder::RELAXED);
+    }
+
+    HYP_FORCE_INLINE void SetHasFocus(bool hasFocus)
+    {
+        m_hasFocus.Set(hasFocus, MemoryOrder::RELAXED);
+    }
+
+    HYP_METHOD()
     virtual bool IsHighDPI() const
     {
         return false;
@@ -196,6 +207,7 @@ protected:
     Handle<InputManager> m_inputManager;
     HWND m_hwnd;
     SwapchainRef m_swapchain;
+    AtomicVar<bool> m_hasFocus { true };
 
 #if HYP_VULKAN
     VkSurfaceKHR m_vkSurface = VK_NULL_HANDLE;

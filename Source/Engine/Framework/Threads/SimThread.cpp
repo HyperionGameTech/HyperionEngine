@@ -19,6 +19,8 @@
 
 #include <Core/Math/MathUtil.hpp>
 
+#include <Core/Utilities/ClockTimer.hpp>
+
 #include <Core/CLI/CommandLine.hpp>
 
 #include <System/AppContext.hpp>
@@ -227,6 +229,27 @@ void SimThread::Update()
     DebugDrawer::GetInstance().Update();
 
     EndFrameSim();
+
+    // if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
+    // {
+    //     if (!mainWindow->HasFocus())
+    //     {
+    //         static constexpr float unfocusedFrameRate = 30.0f;
+    //         static ClockTimer focusThrottle;
+
+    //         const float elapsed = focusThrottle.Interval(ClockTimer::Now());
+    //         const float targetInterval = 1.0f / unfocusedFrameRate;
+
+    //         if (elapsed < targetInterval)
+    //         {
+    //             ThreadSleep(uint32((targetInterval - elapsed) * 1000.0f));
+    //         }
+
+    //         focusThrottle.NextTick();
+
+    //         m_counter.Reset();
+    //     }
+    // }
 }
 
 void SimThread::operator()()

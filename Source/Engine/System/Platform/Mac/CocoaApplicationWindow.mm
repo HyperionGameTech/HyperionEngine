@@ -236,12 +236,22 @@ HANDLE_COCOA_EVENT(keyUp)
 
 - (void)windowDidBecomeKey:(NSNotification *)notification
 {
-    // Window gained focus
+    if (_window)
+    {
+        PlatformEvent platformEvent {};
+        Event event(EventType::WINDOW_FOCUS_GAINED, _window, platformEvent);
+        _window->GetInputManager()->ProcessEvent(std::move(event));
+    }
 }
 
 - (void)windowDidResignKey:(NSNotification *)notification
 {
-    // Window lost focus
+    if (_window)
+    {
+        PlatformEvent platformEvent {};
+        Event event(EventType::WINDOW_FOCUS_LOST, _window, platformEvent);
+        _window->GetInputManager()->ProcessEvent(std::move(event));
+    }
 }
 
 @end
@@ -334,6 +344,7 @@ CocoaApplicationWindow::~CocoaApplicationWindow()
     if (m_windowDelegate)
     {
         HyperionWindowDelegate* delegate = (HyperionWindowDelegate*)m_windowDelegate;
+        [[NSNotificationCenter defaultCenter] removeObserver:delegate];
         delegate.window = nullptr;
         [delegate release];
 
@@ -427,6 +438,23 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
         m_nsView = metalView;
         m_metalLayer = [metalLayer retain];
         m_hwnd = parentWindow; // Store reference to parent window for coordinate conversions
+
+        // Setup delegate for focus notifications on the parent window
+        {
+            HyperionWindowDelegate* delegate = [[HyperionWindowDelegate alloc] init];
+            delegate.window = this;
+
+            [[NSNotificationCenter defaultCenter] addObserver:delegate
+                                                     selector:@selector(windowDidBecomeKey:)
+                                                         name:NSWindowDidBecomeKeyNotification
+                                                       object:parentWindow];
+            [[NSNotificationCenter defaultCenter] addObserver:delegate
+                                                     selector:@selector(windowDidResignKey:)
+                                                         name:NSWindowDidResignKeyNotification
+                                                       object:parentWindow];
+
+            m_windowDelegate = delegate;
+        }
 
         // trigger initial resize handling
         [metalView setFrameSize:frame.size];
