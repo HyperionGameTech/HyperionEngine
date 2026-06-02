@@ -1541,6 +1541,16 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         for (const ShaderInputSet& setDecl : tableDecl->elements)
         {
             const ShaderInputSet* pSetDecl = &setDecl;
+            
+            // If this assertion fires, likely the Shader was destroyed from underneath us
+            // likely due to shader recompilation and invalidation of cached pipelines for that shader not properly removing the cached pipelines...
+            // This is a bug seen on mac sometimes (especially when switching selected node).
+            // ---
+            // We could add some more tracking on the Shader object, e.g set a flag before we call ExpirePipelinesForShader() and then
+            // we can assert that this flag is not set before rendering, might help us get a better idea of where the issues stem from
+            // ---
+            // We also possibly need to unset active pipeline if the current bound pipeline happens to be one we're expiring in ExpirePipelinesForShader(). Hmm...
+            AssertDebug(pSetDecl != nullptr);
 
             if (setDecl.flags & ShaderInputSetFlags::Reference)
             {

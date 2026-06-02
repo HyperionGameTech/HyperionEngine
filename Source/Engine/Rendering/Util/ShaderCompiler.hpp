@@ -22,7 +22,7 @@
 
 #include <Rendering/Shared.hpp>
 
-#include <Util/Ini/INIFile.hpp>
+#include <Util/INI/INIFile.hpp>
 
 #include <Core/HashCode.hpp>
 #include <Core/Types.hpp>

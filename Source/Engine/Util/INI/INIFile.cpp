@@ -6,7 +6,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <Util/Ini/INIFile.hpp>
+#include <Util/INI/INIFile.hpp>
 
 #include <Core/IO/ByteReader.hpp>
 

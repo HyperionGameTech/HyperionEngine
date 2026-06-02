@@ -38,7 +38,7 @@
 
 #include <Core/Math/MathUtil.hpp>
 
-#include <Util/Ini/INIFile.hpp>
+#include <Util/INI/INIFile.hpp>
 
 #include <System/DirectoryInitializer.hpp>
 
@@ -3354,7 +3354,8 @@ bool ShaderCompiler::CompileBundle(
 
             GetEngineAssetRegistry()->RemoveAsset(shader);
 
-            EnqueueDeletion(std::move(shader));
+            shader.Reset();
+            //EnqueueDeletion(std::move(shader));
         }
     }
 

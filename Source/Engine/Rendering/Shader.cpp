@@ -24,6 +24,8 @@ extern ShaderInputGroup& GetStaticDescriptorTableDeclaration();
 
 Shader::~Shader()
 {
+    HYP_LOG(Rendering, Debug, "Destroying shader {}", GetName());
+
     for (BlobDataReference& ref : shaderBlobs)
     {
         FreeBlobData(ref);

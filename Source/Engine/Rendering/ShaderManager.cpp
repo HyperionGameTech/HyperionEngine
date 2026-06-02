@@ -436,8 +436,7 @@ public:
 
             Assert(entry->shaderInstance.IsValid());
 
-            if (true)
-            // if (EnsureMatch(properties, inputLayout, *entry->shaderInstance->GetShader()))
+            if (EnsureMatch(properties, inputLayout, *entry->shaderInstance->GetShader()))
             {
                 return entry->shaderInstance;
             }
