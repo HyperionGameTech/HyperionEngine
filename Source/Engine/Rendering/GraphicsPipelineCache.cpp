@@ -444,6 +444,9 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
 
 void GraphicsPipelineCache::ExpirePipelinesForShader(const Shader* shader)
 {
+    // Render thread or renderer worker thread.
+    AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
+
     if (!shader)
     {
         return;
@@ -465,6 +468,21 @@ void GraphicsPipelineCache::ExpirePipelinesForShader(const Shader* shader)
             for (GraphicsPipelineRef* const pPipeline : pipelines)
             {
                 Assert(pPipeline != nullptr);
+                
+#if HYP_DEBUG_MODE
+                HYP_LOG(Rendering, Info, "Removing cached graphics pipeline: {}", (*pPipeline)->GetDebugName());
+#endif // HYP_DEBUG_MODE
+
+                // Unset so we don't trip over a destroyed pipeline!
+                if (RI.state.boundGraphicsPipeline == *pPipeline)
+                {
+#if HYP_DEBUG_MODE
+                    HYP_LOG(Rendering, Info, "Unset bound graphics pipeline: {} on thread: {}",
+                        (*pPipeline)->GetDebugName(),
+                        CurrentThreadId().GetName());
+#endif // HYP_DEBUG_MODE
+                    RI.state.boundGraphicsPipeline = nullptr;
+                }
 
                 const size_t index = m_cachedPipelines->IndexOf(pPipeline);
                 Assert(index != SIZE_MAX);

@@ -4,6 +4,7 @@
  *  @licence MIT
 */
 
+#include "Core/Threading/Threads.hpp"
 #include <RenderingPch.hpp>
 
 #include <Rendering/Util/ShaderCompiler.hpp>
@@ -3341,21 +3342,29 @@ bool ShaderCompiler::CompileBundle(
 
     if (existingShadersToRemove.Any())
     {
-        for (Handle<Shader>& shader : existingShadersToRemove)
+        if (m_isPrecompilingShaders)
         {
-            // If we're using PrecompileShaders.exe, the pipeline caches will be null,
-            // so make sure we don't dereference them
-            if (!m_isPrecompilingShaders)
+            for (Handle<Shader>& shader : existingShadersToRemove)
             {
-                RI.graphicsPipelineCache->ExpirePipelinesForShader(shader);
-                RI.computePipelineCache->ExpirePipelinesForShader(shader);
-                RI.rayTracingPipelineCache->ExpirePipelinesForShader(shader);
+                GetEngineAssetRegistry()->RemoveAsset(shader);
             }
+        }
+        else
+        {
+            // perform on render thread so we don't mess with cached pipelines currently in use while rendering the frame.
+            GetThreadById(g_renderThread)->GetScheduler().Enqueue([toRemove = std::move(existingShadersToRemove)]() mutable
+            {
+                for (Handle<Shader>& shader : toRemove)
+                {
+                    RI.graphicsPipelineCache->ExpirePipelinesForShader(shader);
+                    RI.computePipelineCache->ExpirePipelinesForShader(shader);
+                    RI.rayTracingPipelineCache->ExpirePipelinesForShader(shader);
 
-            GetEngineAssetRegistry()->RemoveAsset(shader);
+                    GetEngineAssetRegistry()->RemoveAsset(shader);
 
-            shader.Reset();
-            //EnqueueDeletion(std::move(shader));
+                    EnqueueDeletion(std::move(shader));
+                }
+            }, TaskEnqueueFlags::FIRE_AND_FORGET);
         }
     }
 

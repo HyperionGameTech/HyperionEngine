@@ -369,6 +369,8 @@ public:
             if (task.IsValid())
             {
                 task.Await();
+                
+                RI.state.boundGraphicsPipeline = nullptr;
             }
         }
     };
@@ -676,7 +678,7 @@ public:
             return;
         }
 
-#if 0 // HYP_EDITOR
+#if 0//HYP_EDITOR
         {
             Array<String> reloadingShaderNames;
             reloadingShaderNames.Reserve(staleEntries.Size());

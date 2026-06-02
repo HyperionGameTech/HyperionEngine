@@ -21,6 +21,7 @@
 #include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Core/Threading/Threads.hpp>
+#include <type_traits>
 
 namespace Hyperion {
 
@@ -125,6 +126,9 @@ auto GenericPipelineCache<PipelineType>::Find(Name shaderName, const ShaderPrope
 template <class PipelineType>
 void GenericPipelineCache<PipelineType>::ExpirePipelinesForShader(const Shader* shader)
 {
+    // Render thread or renderer worker thread.
+    AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
+
     if (!shader)
     {
         return;
@@ -145,6 +149,24 @@ void GenericPipelineCache<PipelineType>::ExpirePipelinesForShader(const Shader* 
 
             if (cached.pipeline.IsValid())
             {
+                if constexpr (std::is_base_of_v<ComputePipelineBase, PipelineType>)
+                {
+                    // If this pipeline is currently bound, unbind it before deleting it.
+                    if (RI.state.boundComputePipeline == cached.pipeline.Get())
+                    {
+                        RI.state.boundComputePipeline = nullptr;
+                    }
+                }
+                else if constexpr (std::is_base_of_v<RayTracingPipelineBase, PipelineType>)
+                {
+                    // If this pipeline is currently bound, unbind it before deleting it.
+                    if (RI.state.boundRayTracingPipeline == cached.pipeline.Get())
+                    {
+                        RI.state.boundRayTracingPipeline = nullptr;
+                    }
+                }
+                // @NOTE Graphics pipelines have their own cache system.
+
                 EnqueueDeletion(std::move(cached.pipeline));
             }
 
