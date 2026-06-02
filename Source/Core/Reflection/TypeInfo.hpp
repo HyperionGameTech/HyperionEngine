@@ -84,7 +84,7 @@ template <int TStringType, class TAllocator>
 class String;
 
 template <class T, class AllocatorType>
-class LinkedList;
+class TList;
 
 template <class Key, class Value, class AllocatorType, class Policy>
 class TMap;
@@ -521,7 +521,7 @@ struct TypeInfoImpl<containers::FixedArray<T, Size>, TBoxed>
 };
 
 template <class T, class AllocatorType, class TBoxed>
-struct TypeInfoImpl<containers::LinkedList<T, AllocatorType>, TBoxed>
+struct TypeInfoImpl<containers::TList<T, AllocatorType>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
@@ -1204,9 +1204,9 @@ void TypeInfoImpl<containers::FixedArray<T, Size>, TBoxed>::operator()(TypeInfo&
 }
 
 template <class T, class AllocatorType, class TBoxed>
-void TypeInfoImpl<containers::LinkedList<T, AllocatorType>, TBoxed>::operator()(TypeInfo& result) const
+void TypeInfoImpl<containers::TList<T, AllocatorType>, TBoxed>::operator()(TypeInfo& result) const
 {
-    using ListType = containers::LinkedList<T, AllocatorType>;
+    using ListType = containers::TList<T, AllocatorType>;
 
     class LinkedListHandler final : public ITypeInfoLinkedListHandler
     {

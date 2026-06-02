@@ -7,7 +7,7 @@
 #include <Core/Profiling/ProfileScope.hpp>
 #include <Core/Profiling/PerformanceClock.hpp>
 
-#include <Core/Containers/LinkedList.hpp>
+#include <Core/Containers/List.hpp>
 #include <Core/Containers/FlatMap.hpp>
 #include <Core/Containers/FixedArray.hpp>
 
@@ -307,7 +307,7 @@ struct ProfileScopeEntry
     double measuredTimeMs;
 
     ProfileScopeEntry* parent = nullptr;
-    LinkedList<ProfileScopeEntry> children;
+    TList<ProfileScopeEntry> children;
 
     ProfileScopeEntry(ANSIStringView label, ANSIStringView location, ProfileScopeEntry* parent = nullptr)
         : label(label),

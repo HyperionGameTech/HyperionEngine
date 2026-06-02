@@ -173,10 +173,10 @@ endfunction()
 RunCodeGen(0 9)
 
 # set HYP_DEBUG_MODE to 1 for debug builds, 0 for release builds
-# if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-add_definitions(-DHYP_DEBUG_MODE=1)
-set(HYP_DEBUG_MODE 1)
-# endif()
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  add_definitions(-DHYP_DEBUG_MODE=1)
+  set(HYP_DEBUG_MODE 1)
+endif()
 
 # Uncomment to enable release final build optimizations
 # set(HYPERION_BUILD_RELEASE_FINAL 1)
@@ -223,12 +223,14 @@ if(HYP_MSVC)
   if(HYP_DEBUG_MODE)
     set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Z7 /MP /constexpr:depth1024 /bigobj /arch:AVX2 /fp:fast")
 
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG /INCREMENTAL /OPT:REF /OPT:ICF")
   else()
     set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Zi /GL /GF /Zc:inline /constexpr:depth1024 /bigobj /MP4 /arch:AVX2 /fp:fast")
   endif()
 
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG /NATVIS:${CMAKE_SOURCE_DIR}/Engine/Hyperion.natvis")
+  if (NOT HYPERION_BUILD_RELEASE_FINAL)
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG /INCREMENTAL /OPT:REF /OPT:ICF")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG /NATVIS:${CMAKE_SOURCE_DIR}/Engine/Hyperion.natvis")
+  endif()
 
   # if(HYP_DEBUG_MODE)
   # else()

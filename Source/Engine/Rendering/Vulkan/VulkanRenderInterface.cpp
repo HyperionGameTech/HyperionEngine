@@ -922,8 +922,8 @@ void VulkanRenderInterface::PrepareFrame(VulkanFrame* frame)
     for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
     {
         // reset our transient command buffers
-        LinkedList<VulkanCommandBuffer, VulkanAllocator>& freeList = m_transientCommandBuffers[threadIndex][frameCounter % NumFramesInFlight];
-        LinkedList<VulkanCommandBuffer, VulkanAllocator>& pendingList = m_pendingTransientCommandBuffers[threadIndex][frameCounter % NumFramesInFlight];
+        TList<VulkanCommandBuffer, VulkanAllocator>& freeList = m_transientCommandBuffers[threadIndex][frameCounter % NumFramesInFlight];
+        TList<VulkanCommandBuffer, VulkanAllocator>& pendingList = m_pendingTransientCommandBuffers[threadIndex][frameCounter % NumFramesInFlight];
 
         for (auto it = pendingList.Begin(); it != pendingList.End();)
         {
@@ -1056,8 +1056,8 @@ VulkanCommandBuffer& VulkanRenderInterface::GetTransientCommandBuffer()
     const uint32 frameCounter = GetFrameCounter();
     const uint32 renderThreadIndex = CurrentRenderThreadIndex();
 
-    LinkedList<VulkanCommandBuffer, VulkanAllocator>& freeList = m_transientCommandBuffers[renderThreadIndex][frameCounter % NumFramesInFlight];
-    LinkedList<VulkanCommandBuffer, VulkanAllocator>& pendingList = m_pendingTransientCommandBuffers[renderThreadIndex][frameCounter % NumFramesInFlight];
+    TList<VulkanCommandBuffer, VulkanAllocator>& freeList = m_transientCommandBuffers[renderThreadIndex][frameCounter % NumFramesInFlight];
+    TList<VulkanCommandBuffer, VulkanAllocator>& pendingList = m_pendingTransientCommandBuffers[renderThreadIndex][frameCounter % NumFramesInFlight];
 
     VulkanDeviceQueue* graphicsQueue = m_instance->GetDevice()->GetGraphicsQueue();
     Assert(graphicsQueue != nullptr);

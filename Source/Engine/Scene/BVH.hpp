@@ -7,7 +7,7 @@
 #pragma once
 
 #include <Core/Containers/Array.hpp>
-#include <Core/Containers/LinkedList.hpp>
+#include <Core/Containers/List.hpp>
 
 #include <Core/Utilities/EnumFlags.hpp>
 

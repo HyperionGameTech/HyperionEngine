@@ -15,7 +15,7 @@
 #include <Core/Threading/Threads.hpp>
 #include <Core/Threading/Semaphore.hpp>
 
-#include <Core/Containers/LinkedList.hpp>
+#include <Core/Containers/List.hpp>
 
 #include <Core/Memory/UniquePtr.hpp>
 
@@ -78,7 +78,7 @@ struct RenderCommandList
     // It's not frequent we'll be using more than just the first node, anyway.
 
     // Use array of 2 so we can double buffer it
-    FixedArray<LinkedList<Block>, 2> blocks;
+    FixedArray<TList<Block>, 2> blocks;
 
     RenderCommandList()
     {

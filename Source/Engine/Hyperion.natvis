@@ -64,7 +64,7 @@
     </Expand>
   </Type>
 
-  <Type Name="Hyperion::containers::LinkedList&lt;*,*&gt;">
+  <Type Name="Hyperion::containers::TList&lt;*,*&gt;">
     <DisplayString>{{ Count={m_size} }}</DisplayString>
     <Expand>
       <Item Name="[Count]">m_size</Item>

@@ -15,7 +15,7 @@
 #include <Core/Containers/FixedArray.hpp>
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/Map.hpp>
-#include <Core/Containers/LinkedList.hpp>
+#include <Core/Containers/List.hpp>
 
 #include <Core/Profiling/ProfileScope.hpp>
 
@@ -365,7 +365,7 @@ private:
     // for calling on another thread than sim thread / render thread.
     Mutex m_mutex;
 
-    LinkedList<EntryList<DynamicAllocator>> m_tempEntryLists;
+    TList<EntryList<DynamicAllocator>> m_tempEntryLists;
     volatile int32 m_tempEntryListCount = 0;
 
     FixedArray<EntryList<DynamicAllocator>*, RingBufferDepth> m_entryLists;

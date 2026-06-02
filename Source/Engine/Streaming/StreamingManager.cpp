@@ -417,10 +417,10 @@ private:
     UniquePtr<StreamingThreadPool> m_threadPool;
 
     Array<Handle<StreamingVolumeBase>, StreamingAllocator> m_volumes;
-    LinkedList<LayerData, StreamingAllocator> m_layers;
+    TList<LayerData, StreamingAllocator> m_layers;
 
     Array<Pair<Handle<StreamingCell>, StreamingCellState>> m_cellUpdatesSim;
-    LinkedList<Task<void>> m_futures;
+    TList<Task<void>> m_futures;
     Mutex m_futuresMutex;
 
     StreamingNotifier m_notifier;

@@ -14,7 +14,7 @@
 #include <Core/Containers/FixedArray.hpp>
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/Map.hpp>
-#include <Core/Containers/LinkedList.hpp>
+#include <Core/Containers/List.hpp>
 
 #include <Core/Utilities/DeferredScope.hpp>
 
@@ -56,7 +56,7 @@ private:
     // for calling on another thread than sim thread / render thread.
     Mutex m_mutex;
 
-    LinkedList<CommandRecorder> m_tempCommandRecorders;
+    TList<CommandRecorder> m_tempCommandRecorders;
     volatile int32 m_tempCommandRecordersCount = 0;
 };
 

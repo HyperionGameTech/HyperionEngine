@@ -1949,15 +1949,15 @@ struct BoxedValueHelper<FlatSet<T>> : BoxedValueHelper<GenericArrayWrapper>
     }
 };
 
-/// LinkedList
+/// TList
 
 template <class T>
-struct BoxedValueHelperDecl<LinkedList<T>>
+struct BoxedValueHelperDecl<TList<T>>
 {
 };
 
 template <class T>
-struct BoxedValueHelper<LinkedList<T>> : BoxedValueHelper<GenericArrayWrapper>
+struct BoxedValueHelper<TList<T>> : BoxedValueHelper<GenericArrayWrapper>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -1965,24 +1965,24 @@ struct BoxedValueHelper<LinkedList<T>> : BoxedValueHelper<GenericArrayWrapper>
     {
         if (const GenericArrayWrapper* array = value.TryGet<GenericArrayWrapper>())
         {
-            return TypeInfo_GetId(*array->typeInfo) == TypeId::ForType<LinkedList<T>>();
+            return TypeInfo_GetId(*array->typeInfo) == TypeId::ForType<TList<T>>();
         }
 
-        return value.GetTypeId() == TypeId::ForType<LinkedList<T>>();
+        return value.GetTypeId() == TypeId::ForType<TList<T>>();
     }
 
-    HYP_FORCE_INLINE LinkedList<T>& Get(const Any& value) const
+    HYP_FORCE_INLINE TList<T>& Get(const Any& value) const
     {
         if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
-            if (TypeInfo_GetId(*arr->typeInfo) == TypeId::ForType<LinkedList<T>>())
+            if (TypeInfo_GetId(*arr->typeInfo) == TypeId::ForType<TList<T>>())
             {
-                return *static_cast<LinkedList<T>*>(arr->pInternalArray);
+                return *static_cast<TList<T>*>(arr->pInternalArray);
             }
         }
-        else if (value.GetTypeId() == TypeId::ForType<LinkedList<T>>())
+        else if (value.GetTypeId() == TypeId::ForType<TList<T>>())
         {
-            return value.Get<LinkedList<T>>();
+            return value.Get<TList<T>>();
         }
 
         HYP_UNREACHABLE();
@@ -1990,20 +1990,20 @@ struct BoxedValueHelper<LinkedList<T>> : BoxedValueHelper<GenericArrayWrapper>
 
     HYP_FORCE_INLINE bool Is(const GenericArrayWrapper& value) const
     {
-        return TypeInfo_GetId(*value.typeInfo) == TypeId::ForType<LinkedList<T>>();
+        return TypeInfo_GetId(*value.typeInfo) == TypeId::ForType<TList<T>>();
     }
 
-    HYP_FORCE_INLINE LinkedList<T>& Get(const GenericArrayWrapper& value) const
+    HYP_FORCE_INLINE TList<T>& Get(const GenericArrayWrapper& value) const
     {
-        return *static_cast<LinkedList<T>*>(value.pInternalArray);
+        return *static_cast<TList<T>*>(value.pInternalArray);
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const LinkedList<T>& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const TList<T>& value) const
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, LinkedList<T>&& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, TList<T>&& value) const
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }

@@ -8,7 +8,7 @@
 
 #include <Core/Threading/Mutex.hpp>
 
-#include <Core/Containers/LinkedList.hpp>
+#include <Core/Containers/List.hpp>
 
 #include <Core/Reflection/BoxedValue.hpp>
 
@@ -85,7 +85,7 @@ HYP_NODISCARD CORE_API FilePath CreateTempDirectory()
     return FilePath();
 }
 
-static LinkedList<GlobalConfig> s_globalConfigChain;
+static TList<GlobalConfig> s_globalConfigChain;
 static Mutex s_globalConfigMutex;
 
 static CommandLineArguments s_commandLineArguments;

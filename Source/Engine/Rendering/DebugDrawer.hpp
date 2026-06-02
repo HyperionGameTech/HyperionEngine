@@ -271,7 +271,7 @@ private:
     // buffer sizes over the last X frames. we max() this to determine if we should compact the buffer
     FixedArray<size_t, 10> m_bufferSizeHistory;
 
-    FixedArray<LinkedList<DebugDrawCommandList>, RingBufferDepth> m_commandLists;
+    FixedArray<TList<DebugDrawCommandList>, RingBufferDepth> m_commandLists;
 
     typedef Array<ImmediateDrawShaderData, RenderAllocator> CachedPartitionedShaderData[MaxDebugDrawShapeTypes];
 

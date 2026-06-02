@@ -713,10 +713,10 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, TMap<K, V, AllocatorType>&& 
     };
 }
 
-// LinkedList<T>
+// TList<T>
 
 template <class T>
-GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, LinkedList<T>& list)
+GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, TList<T>& list)
     : GenericArrayWrapper()
 {
     pInternalArray = &list;
@@ -727,7 +727,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, LinkedList<T>& list)
 
     functionTable.pushBack = [](GenericArrayWrapper& array, BoxedValue&& value) -> AnyRef
     {
-        auto& list = *static_cast<LinkedList<T>*>(array.pInternalArray);
+        auto& list = *static_cast<TList<T>*>(array.pInternalArray);
 
         if constexpr (IsBoxedValueV<T>)
         {
@@ -741,13 +741,13 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, LinkedList<T>& list)
 
     functionTable.size = [](const GenericArrayWrapper& array) -> size_t
     {
-        auto& linkedList = *static_cast<const LinkedList<T>*>(array.pInternalArray);
+        auto& linkedList = *static_cast<const TList<T>*>(array.pInternalArray);
         return linkedList.Size();
     };
 }
 
 template <class T>
-GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const LinkedList<T>& list)
+GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const TList<T>& list)
     : GenericArrayWrapper()
 {
     pInternalArray = new std::remove_cvref_t<decltype(list)>(list);
@@ -762,7 +762,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const LinkedList<T>& list)
 
     functionTable.pushBack = [](GenericArrayWrapper& array, BoxedValue&& value) -> AnyRef
     {
-        auto& list = *static_cast<LinkedList<T>*>(array.pInternalArray);
+        auto& list = *static_cast<TList<T>*>(array.pInternalArray);
 
         if constexpr (IsBoxedValueV<T>)
         {
@@ -776,13 +776,13 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const LinkedList<T>& list)
 
     functionTable.size = [](const GenericArrayWrapper& array) -> size_t
     {
-        auto& linkedList = *static_cast<const LinkedList<T>*>(array.pInternalArray);
+        auto& linkedList = *static_cast<const TList<T>*>(array.pInternalArray);
         return linkedList.Size();
     };
 }
 
 template <class T>
-GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, LinkedList<T>&& list)
+GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, TList<T>&& list)
     : GenericArrayWrapper()
 {
     pInternalArray = new std::remove_cvref_t<decltype(list)>(std::move(list));
@@ -797,7 +797,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, LinkedList<T>&& list)
 
     functionTable.pushBack = [](GenericArrayWrapper& array, BoxedValue&& value) -> AnyRef
     {
-        auto& list = *static_cast<LinkedList<T>*>(array.pInternalArray);
+        auto& list = *static_cast<TList<T>*>(array.pInternalArray);
 
         if constexpr (IsBoxedValueV<T>)
         {
@@ -811,7 +811,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, LinkedList<T>&& list)
 
     functionTable.size = [](const GenericArrayWrapper& array) -> size_t
     {
-        auto& linkedList = *static_cast<const LinkedList<T>*>(array.pInternalArray);
+        auto& linkedList = *static_cast<const TList<T>*>(array.pInternalArray);
         return linkedList.Size();
     };
 }

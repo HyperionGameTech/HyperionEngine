@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <Core/Containers/LinkedList.hpp>
+#include <Core/Containers/List.hpp>
 
 #include <Core/Threading/Util/ThreadId.hpp>
 #include <Core/Threading/AtomicFlag.hpp>
@@ -115,7 +115,7 @@ public:
 protected:
     TlsfAllocator m_tlsf;
 
-    LinkedList<Block> m_blocks;
+    TList<Block> m_blocks;
     size_t m_blockSize;
     EnumFlags<PoolFlags> m_flags;
     AtomicFlag m_atomicFlag;

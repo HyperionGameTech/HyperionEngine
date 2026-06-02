@@ -10,7 +10,7 @@
 #include <Core/Constants.hpp>
 #include <Core/Types.hpp>
 
-#include <Core/Containers/LinkedList.hpp>
+#include <Core/Containers/List.hpp>
 
 #include <Core/Memory/Allocator/Allocator.hpp>
 #include <Core/Memory/Allocator/ArenaAllocator.hpp>
@@ -62,10 +62,10 @@ private:
     Block* NewBlock(uint32 currentFrameCounter);
     Block* TryGetRecycledBlock(uint32 currentFrameCounter);
 
-    LinkedList<Block, RenderAllocator> m_blocks;
+    TList<Block, RenderAllocator> m_blocks;
     size_t m_minAllocationAlignment;
 
-    LinkedList<Block, RenderAllocator> m_currentFrameBlocks[NumRendererWorkerThreads + 1];
+    TList<Block, RenderAllocator> m_currentFrameBlocks[NumRendererWorkerThreads + 1];
 
     TByteBuffer<RenderAllocator> m_scratch[NumRendererWorkerThreads + 1];
     size_t m_scratchAlignment[NumRendererWorkerThreads + 1];

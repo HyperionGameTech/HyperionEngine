@@ -28,17 +28,17 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(Engine);
 static constexpr const char* RootStatGroupName = "Root";
 static constexpr utf::Char32 PathSeparator = utf::Char32('/');
 
-static constexpr int NumReservedStatIds = 5;
+static constexpr uint16 NumReservedStatIds = 5;
 
 static AtomicVar<int> s_nextStatId { NumReservedStatIds };
 
 struct EngineStatsRecorderImpl
 {
     EngineStatsSnapshot* snapshots;
-    double* statsBuffer;
+    float* statsBuffer;
 
     ClockTimer counter;
-    double deltaAccum;
+    float deltaAccum;
     uint32 numSamples;
     uint32 sampleIndex;
 
@@ -53,7 +53,7 @@ struct EngineStatsRecorderImpl
 
         snapshots = new EngineStatsSnapshot[RingBufferDepth];
 
-        statsBuffer = new double[EngineStatsMaxStats * EngineStatsNumSamples];
+        statsBuffer = new float[EngineStatsMaxStats * EngineStatsNumSamples];
     }
 
     EngineStatsRecorderImpl(const EngineStatsRecorderImpl& other) = delete;
@@ -276,19 +276,19 @@ EngineStatBase* EngineStats::GetStat(UTF8StringView path) const
     return nullptr;
 }
 
-double EngineStats::GetFps() const
+float EngineStats::GetFps() const
 {
     const EngineStatsSnapshot& snapshot = GetCurrentSnapshot();
     return snapshot[StatIdFps].value;
 }
 
-double EngineStats::GetMsPerFrame() const
+float EngineStats::GetMsPerFrame() const
 {
     const EngineStatsSnapshot& snapshot = GetCurrentSnapshot();
     return snapshot[StatIdMsPerFrame].value;
 }
 
-double EngineStats::QueryStatValue(UTF8StringView path, double valueIfNotFound) const
+float EngineStats::QueryStatValue(UTF8StringView path, float valueIfNotFound) const
 {
     EngineStatBase* stat = GetStat(path);
 
@@ -312,14 +312,14 @@ const EngineStatsSnapshot& EngineStats::GetCurrentSnapshot() const
     return m_impl->snapshots[GetRingIndex()];
 }
 
-void EngineStats::SetSampleData(int statId, uint32 sampleIdx, double value)
+void EngineStats::SetSampleData(uint16 statId, uint32 sampleIdx, float value)
 {
-    if (statId < 0 || statId >= int(EngineStatsMaxStats))
+    if (statId < 0 || statId >= EngineStatsMaxStats)
     {
         return;
     }
 
-    double* base = m_impl->statsBuffer;
+    float* base = m_impl->statsBuffer;
     if (HYP_UNLIKELY(!base))
     {
         return;
@@ -331,14 +331,14 @@ void EngineStats::SetSampleData(int statId, uint32 sampleIdx, double value)
     base[idx] = value;
 }
 
-double EngineStats::GetSampleData(int statId, uint32 sampleIdx) const
+float EngineStats::GetSampleData(uint16 statId, uint32 sampleIdx) const
 {
-    if (statId < 0 || statId >= int(EngineStatsMaxStats))
+    if (statId < 0 || statId >= EngineStatsMaxStats)
     {
         return 0.0;
     }
 
-    const double* base = m_impl->statsBuffer;
+    const float* base = m_impl->statsBuffer;
     if (HYP_UNLIKELY(!base))
     {
         return 0.0;
@@ -350,7 +350,7 @@ double EngineStats::GetSampleData(int statId, uint32 sampleIdx) const
     return base[idx];
 }
 
-double EngineStats::CalculateFps() const
+float EngineStats::CalculateFps() const
 {
     if (m_impl->numSamples < EngineStatsMinSamples)
     {
@@ -358,7 +358,7 @@ double EngineStats::CalculateFps() const
     }
 
     const uint32 count = MathUtil::Min(m_impl->numSamples, EngineStatsNumSamples);
-    double sum = 0.0;
+    float sum = 0.0;
 
     for (uint32 i = 0; i < count; i++)
     {
@@ -367,7 +367,7 @@ double EngineStats::CalculateFps() const
         sum += GetSampleData(StatIdMsPerFrame, idx) / 1000.0;
     }
 
-    const double avgDelta = sum / double(count);
+    const float avgDelta = sum / float(count);
     return avgDelta > 0.0 ? 1.0 / avgDelta : INFINITY;
 }
 
@@ -379,7 +379,7 @@ void EngineStats::Prepare()
     const uint32 sampleIdx = m_impl->sampleIndex % EngineStatsNumSamples;
 
     // clear sample data for this sample index
-    for (int statId = 0; statId < int(EngineStatsMaxStats); statId++)
+    for (uint16 statId = 0; statId < EngineStatsMaxStats; statId++)
     {
         SetSampleData(statId, sampleIdx, 0.0);
     }
@@ -392,14 +392,14 @@ void EngineStats::RecordValueSet(const EngineStatsValueSet& valueSet)
 
     const uint32 sampleIdx = m_impl->sampleIndex % EngineStatsNumSamples;
 
-    for (int statId = 0; statId < int(EngineStatsMaxStats); ++statId)
+    for (uint16 statId = 0; statId < EngineStatsMaxStats; ++statId)
     {
-        const double value = valueSet.values[statId];
+        const float value = valueSet.values[statId];
 
         if (value != 0.0)
         {
             // Add to existing sample value (accumulate values from multiple sources)
-            const double currentValue = GetSampleData(statId, sampleIdx);
+            const float currentValue = GetSampleData(statId, sampleIdx);
             SetSampleData(statId, sampleIdx, currentValue + value);
         }
     }
@@ -432,7 +432,7 @@ void EngineStats::Advance()
 
     EngineStatsSnapshot& snapshot = m_impl->snapshots[GetRingIndex()];
 
-    const double msPerFrame = m_impl->counter.delta * 1000.0;
+    const float msPerFrame = m_impl->counter.delta * 1000.0;
 
     const uint32 sampleIdx = m_impl->sampleIndex % EngineStatsNumSamples;
     const uint32 prevSampleIdx = (sampleIdx + EngineStatsNumSamples - 1) % EngineStatsNumSamples;
@@ -441,7 +441,7 @@ void EngineStats::Advance()
     SetSampleData(StatIdFps, sampleIdx, m_impl->counter.delta > 0.0 ? (1.0 / (m_impl->counter.delta)) : 0.0);
 
     // integrate values into sample data
-    for (int statId = NumReservedStatIds; statId < EngineStatsMaxStats; ++statId)
+    for (uint16 statId = NumReservedStatIds; statId < EngineStatsMaxStats; ++statId)
     {
         EngineStatBase* stat = linearStats[statId];
 
@@ -450,18 +450,18 @@ void EngineStats::Advance()
             continue;
         }
 
-        double value = stat->resetPerFrame
+        float value = stat->resetPerFrame
             ? stat->Reset()     // Atomically read AND reset
             : stat->GetValue();
 
-        const double currValue = GetSampleData(statId, sampleIdx);
+        const float currValue = GetSampleData(statId, sampleIdx);
         SetSampleData(statId, sampleIdx, currValue + value);
     }
 
     const uint32 actualNumSamples = MathUtil::Min(m_impl->numSamples + 1u, EngineStatsNumSamples);
 
     // Update snapshot values
-    for (int statId = 0; statId < EngineStatsMaxStats; ++statId)
+    for (uint16 statId = 0; statId < EngineStatsMaxStats; ++statId)
     {
         EngineStatsSnapshotValue& statSnapshot = snapshot.values[statId];
 
@@ -481,22 +481,22 @@ void EngineStats::Advance()
         }
 
         // Calculate min, max, avg from samples
-        double sum = 0.0;
-        double minVal = DBL_MAX;
-        double maxVal = -DBL_MAX;
+        float sum = 0.0;
+        float minVal = DBL_MAX;
+        float maxVal = -DBL_MAX;
 
         for (uint32 i = 0; i < actualNumSamples; ++i)
         {
             const uint32 idx = (sampleIdx + EngineStatsNumSamples - i) % EngineStatsNumSamples;
 
-            double sampleValue = GetSampleData(statId, idx);
+            float sampleValue = GetSampleData(statId, idx);
             sum += sampleValue;
 
             minVal = MathUtil::Min(minVal, sampleValue);
             maxVal = MathUtil::Max(maxVal, sampleValue);
         }
 
-        const double currentValue = GetSampleData(statId, sampleIdx);
+        const float currentValue = GetSampleData(statId, sampleIdx);
 
         // If we don't have enough samples yet, use current value for min/max
         if (m_impl->numSamples == 0)
@@ -508,7 +508,7 @@ void EngineStats::Advance()
         statSnapshot.value = currentValue;
         statSnapshot.min = minVal;
         statSnapshot.max = maxVal;
-        statSnapshot.avg = actualNumSamples > 0 ? (sum / double(actualNumSamples)) : 0.0;
+        statSnapshot.avg = actualNumSamples > 0 ? (sum / float(actualNumSamples)) : 0.0;
     }
 
     m_impl->numSamples = MathUtil::Min<uint32>(m_impl->numSamples + 1u, EngineStatsNumSamples);

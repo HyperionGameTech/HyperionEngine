@@ -27,10 +27,11 @@ class CommandRecorderBase;
 
 static constexpr uint32 EngineStatsNumSamples = 1000;
 static constexpr uint32 EngineStatsMinSamples = 10;
-static constexpr uint32 EngineStatsMaxStats = 128;
 
-static constexpr int StatIdMsPerFrame = 0;
-static constexpr int StatIdFps = 1;
+static constexpr uint16 EngineStatsMaxStats = 128;
+
+static constexpr uint16 StatIdMsPerFrame = 0;
+static constexpr uint16 StatIdFps = 1;
 
 enum EngineStatType : uint8
 {
@@ -47,7 +48,7 @@ protected:
     EngineStatBase(EngineStatType type, UTF8StringView path, bool skipPathParsing);
 
 public:
-    int id;
+    uint16 id;
     Name name;
 
     EngineStatType type : 2;
@@ -56,12 +57,12 @@ public:
 
     virtual ~EngineStatBase() = default;
 
-    virtual double GetValue() const
+    virtual float GetValue() const
     {
         return 0.0;
     }
 
-    virtual double Reset()
+    virtual float Reset()
     {
         return 0.0;
     }
@@ -150,14 +151,14 @@ public:
         return static_cast<T>(AtomicAdd(const_cast<volatile InternalType*>(&m_value), 0));
     }
 
-    virtual double GetValue() const override
+    virtual float GetValue() const override
     {
-        return static_cast<double>(static_cast<T>(AtomicAdd(const_cast<volatile InternalType*>(&m_value), InternalType(0))));
+        return static_cast<float>(static_cast<T>(AtomicAdd(const_cast<volatile InternalType*>(&m_value), InternalType(0))));
     }
 
-    virtual double Reset() override
+    virtual float Reset() override
     {
-        return static_cast<double>(AtomicExchange(&m_value, InternalType(0)));
+        return static_cast<float>(AtomicExchange(&m_value, InternalType(0)));
     }
 
 private:
@@ -178,20 +179,20 @@ public:
 
     /*! \brief Atomically record elapsed time in milliseconds.
      *  Called by EngineStatScope on its destructor. Thread-safe - can be called from any thread. */
-    void RecordElapsedMs(double ms)
+    void RecordElapsedMs(float ms)
     {
         m_totalMicroseconds.Increment(static_cast<uint64>(ms * 1000.0), MemoryOrder::RELAXED);
     }
 
-    virtual double GetValue() const override
+    virtual float GetValue() const override
     {
-        return static_cast<double>(const_cast<EngineStatTimer *>(this)->m_totalMicroseconds.Get(MemoryOrder::RELAXED)) / 1000.0;
+        return static_cast<float>(const_cast<EngineStatTimer *>(this)->m_totalMicroseconds.Get(MemoryOrder::RELAXED)) / 1000.0;
     }
 
-    virtual double Reset() override
+    virtual float Reset() override
     {
         const uint64 oldValue = m_totalMicroseconds.Exchange(0, MemoryOrder::RELAXED);
-        return static_cast<double>(oldValue) / 1000.0;
+        return static_cast<float>(oldValue) / 1000.0;
     }
 
 private:
@@ -258,39 +259,39 @@ struct EngineStatGpuScope
 
 struct EngineStatsSnapshotValue
 {
-    int statId;
+    uint16 statId;
     EngineStatType type;
-    double value;
-    double min;
-    double max;
-    double avg;
+    float value;
+    float min;
+    float max;
+    float avg;
 };
 
 struct EngineStatsValueSet
 {
-    double values[EngineStatsMaxStats];
+    float values[EngineStatsMaxStats];
 
     EngineStatsValueSet()
         : values()
     {
     }
 
-    double& operator[](int statId)
+    float& operator[](uint16 statId)
     {
         return values[statId];
     }
 
-    double operator[](int statId) const
+    float operator[](uint16 statId) const
     {
         return values[statId];
     }
 
-    double& operator[](const EngineStatBase& stat)
+    float& operator[](const EngineStatBase& stat)
     {
         return values[stat.id];
     }
 
-    double operator[](const EngineStatBase& stat) const
+    float operator[](const EngineStatBase& stat) const
     {
         return values[stat.id];
     }
@@ -324,7 +325,7 @@ struct EngineStatsSnapshot
         }
     }
 
-    const EngineStatsSnapshotValue& operator[](int statId) const
+    const EngineStatsSnapshotValue& operator[](uint16 statId) const
     {
         return values[statId];
     }
@@ -357,13 +358,13 @@ public:
     EngineStatBase* GetStat(UTF8StringView path) const;
 
     HYP_METHOD()
-    double GetFps() const;
+    float GetFps() const;
 
     HYP_METHOD()
-    double GetMsPerFrame() const;
+    float GetMsPerFrame() const;
 
     HYP_METHOD()
-    double QueryStatValue(UTF8StringView path, double valueIfNotFound = 0.0) const;
+    float QueryStatValue(UTF8StringView path, float valueIfNotFound = 0.0) const;
 
     void Prepare();
     void Advance();
@@ -377,12 +378,10 @@ public:
     FixedArray<EngineStatBase*, EngineStatsMaxStats> linearStats;
 
 private:
-    double CalculateFps() const;
+    float CalculateFps() const;
 
-    void SetSampleData(int statId, uint32 sampleIdx, double value);
-    double GetSampleData(int statId, uint32 sampleIdx) const;
-
-    void RecordStat(int statId, EngineStatType type, double value);
+    void SetSampleData(uint16 statId, uint32 sampleIdx, float value);
+    float GetSampleData(uint16 statId, uint32 sampleIdx) const;
 
     struct EngineStatsRecorderImpl* m_impl;
 };

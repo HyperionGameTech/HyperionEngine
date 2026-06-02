@@ -27,7 +27,7 @@
 #include <Core/Containers/FlatMap.hpp>
 #include <Core/Containers/FlatSet.hpp>
 #include <Core/Containers/Bitset.hpp>
-#include <Core/Containers/LinkedList.hpp>
+#include <Core/Containers/List.hpp>
 #include <Core/Containers/Queue.hpp>
 #include <Core/Containers/Stack.hpp>
 

@@ -5,7 +5,7 @@
 #include <Core/Containers/Set.hpp>
 #include <Core/Containers/FlatMap.hpp>
 #include <Core/Containers/FlatSet.hpp>
-#include <Core/Containers/LinkedList.hpp>
+#include <Core/Containers/List.hpp>
 #include <Core/Containers/SlimArray.hpp>
 
 #include <Core/Reflection/TypeInfoFwd.hpp>
@@ -214,17 +214,17 @@ struct GenericArrayWrapper
     template <class K, class V, class AllocatorType>
     GenericArrayWrapper(AsCopyTag, TMap<K, V, AllocatorType>&& map);
 
-    // LinkedList<T>
+    // TList<T>
 
     template <class T>
-    GenericArrayWrapper(AsReferenceTag, LinkedList<T>& list);
+    GenericArrayWrapper(AsReferenceTag, TList<T>& list);
 
     template <class T>
-    GenericArrayWrapper(AsCopyTag, const LinkedList<T>& list);
+    GenericArrayWrapper(AsCopyTag, const TList<T>& list);
 
     template <class T>
-    GenericArrayWrapper(AsCopyTag, LinkedList<T>&& list);
-    
+    GenericArrayWrapper(AsCopyTag, TList<T>&& list);
+
 #if !defined(HYP_USE_SLIM_ARRAY) || !HYP_USE_SLIM_ARRAY
     // TSlimArray<TElemType, TAllocator>
 

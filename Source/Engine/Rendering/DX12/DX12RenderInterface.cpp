@@ -58,8 +58,9 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
 extern EngineStatGpuTimer g_statGpuFrameTime;
 
-#define HYP_DX12_ENABLE_DEBUG_LAYER
-#define HYP_DX12_ENABLE_DRED
+// @TODO Make these flags configurable
+//#define HYP_DX12_ENABLE_DEBUG_LAYER
+//#define HYP_DX12_ENABLE_DRED
 
 #pragma region DX12RenderConfig
 
@@ -684,8 +685,8 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
 
     for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
     {
-        LinkedList<DX12CommandBuffer, DX12Allocator>& freeList = m_transientCommandBuffers[threadIndex][frameIndex];
-        LinkedList<DX12CommandBuffer, DX12Allocator>& pendingList = m_pendingTransientCommandBuffers[threadIndex][frameIndex];
+        TList<DX12CommandBuffer, DX12Allocator>& freeList = m_transientCommandBuffers[threadIndex][frameIndex];
+        TList<DX12CommandBuffer, DX12Allocator>& pendingList = m_pendingTransientCommandBuffers[threadIndex][frameIndex];
 
         for (auto it = pendingList.Begin(); it != pendingList.End();)
         {
@@ -767,8 +768,8 @@ DX12CommandBuffer& DX12RenderInterface::GetTransientCommandBuffer()
 
     const uint32 renderThreadIndex = CurrentRenderThreadIndex();
 
-    LinkedList<DX12CommandBuffer, DX12Allocator>& freeList = m_transientCommandBuffers[renderThreadIndex][frameIndex];
-    LinkedList<DX12CommandBuffer, DX12Allocator>& pendingList = m_pendingTransientCommandBuffers[renderThreadIndex][frameIndex];
+    TList<DX12CommandBuffer, DX12Allocator>& freeList = m_transientCommandBuffers[renderThreadIndex][frameIndex];
+    TList<DX12CommandBuffer, DX12Allocator>& pendingList = m_pendingTransientCommandBuffers[renderThreadIndex][frameIndex];
 
     DX12CommandBuffer* pCommandBuffer = nullptr;
 

@@ -22,7 +22,7 @@
 
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/FlatSet.hpp>
-#include <Core/Containers/LinkedList.hpp>
+#include <Core/Containers/List.hpp>
 
 #include <Core/Utilities/Format.hpp>
 #include <Core/Utilities/Uuid.hpp>

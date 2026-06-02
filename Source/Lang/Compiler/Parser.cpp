@@ -1547,7 +1547,7 @@ RC<AstBlock> Parser::ParseBlock(bool requireBraces, bool skipEnd, bool endOnCatc
 
     RC<AstBlock> block(new AstBlock(location));
 
-    while (requireBraces ? !Match(TK_CLOSE_BRACE, false) : !(endOnCatch ? MatchKeyword(Keyword_catch, false) : MatchKeyword(Keyword_end, false)))
+    while (requireBraces ? !Match(TK_CLOSE_BRACE, false) : (!MatchKeyword(Keyword_end, false) && !MatchKeyword(Keyword_else, false) && !(endOnCatch && MatchKeyword(Keyword_catch, false))))
     {
         // skip statement terminator tokens
         if (!Match(TK_SEMICOLON, true) && !Match(TK_NEWLINE, true))
@@ -1617,12 +1617,15 @@ RC<AstIfStatement> Parser::ParseIfStatement()
         }
 
         RC<AstBlock> elseBlock = nullptr;
+        bool isElseIfChain = false; // true if this if has an else-if, so 'end' is consumed by the inner if
         // parse else statement if the "else" keyword is found
         if (Token elseToken = MatchKeyword(Keyword_else, true))
         {
             // check for "if" keyword for else-if
             if (MatchKeyword(Keyword_if, false))
             {
+                isElseIfChain = true;
+
                 elseBlock = RC<AstBlock>(new AstBlock(
                     elseToken.GetLocation()));
 
@@ -1643,7 +1646,7 @@ RC<AstIfStatement> Parser::ParseIfStatement()
             }
         }
 
-        if (!useBraces)
+        if (!useBraces && !isElseIfChain)
         {
             if (!ExpectKeyword(Keyword_end, true))
             {
