@@ -7,9 +7,9 @@
 #ifndef HYPERION_CODEGEN_GENERATOR_HPP
 #define HYPERION_CODEGEN_GENERATOR_HPP
 
-#include <Core/utilities/Result.hpp>
+#include <Core/Utilities/Result.hpp>
 
-#include <Core/filesystem/FilePath.hpp>
+#include <Core/FileSystem/FilePath.hpp>
 
 #include <Core/Defines.hpp>
 

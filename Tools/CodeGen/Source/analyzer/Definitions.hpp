@@ -7,19 +7,19 @@
 #ifndef HYPERION_CODEGEN_DEFINITIONs_HPP
 #define HYPERION_CODEGEN_DEFINITIONs_HPP
 
-#include <Core/containers/String.hpp>
-#include <Core/containers/Array.hpp>
+#include <Core/Containers/String.hpp>
+#include <Core/Containers/Array.hpp>
 
-#include <Core/memory/UniquePtr.hpp>
-#include <Core/memory/RefCountedPtr.hpp>
+#include <Core/Memory/UniquePtr.hpp>
+#include <Core/Memory/RefCountedPtr.hpp>
 
-#include <Core/utilities/EnumFlags.hpp>
-#include <Core/utilities/StringView.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
+#include <Core/Utilities/StringView.hpp>
 
-#include <Core/reflection/Member.hpp>
-#include <Core/reflection/ClassAttribute.hpp>
+#include <Core/Reflection/Member.hpp>
+#include <Core/Reflection/ClassAttribute.hpp>
 
-#include <Core/logging/Logger.hpp>
+#include <Core/Logging/Logger.hpp>
 
 #include <Core/Defines.hpp>
 

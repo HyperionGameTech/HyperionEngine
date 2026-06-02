@@ -7,12 +7,12 @@
 #ifndef HYPERION_CODEGEN_TOKEN_STREAM_HPP
 #define HYPERION_CODEGEN_TOKEN_STREAM_HPP
 
-#include <Core/containers/Array.hpp>
-#include <Core/containers/String.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/String.hpp>
 
 #include <parser/Token.hpp>
 
-#include <Core/debug/Debug.hpp>
+#include <Core/Debug/Debug.hpp>
 
 #include <Core/Types.hpp>
 

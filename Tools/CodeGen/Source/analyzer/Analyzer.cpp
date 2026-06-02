@@ -10,20 +10,20 @@
 #include <parser/Lexer.hpp>
 #include <parser/Parser.hpp>
 
-#include <Core/utilities/Format.hpp>
-#include <Core/utilities/StringView.hpp>
+#include <Core/Utilities/Format.hpp>
+#include <Core/Utilities/StringView.hpp>
 
-#include <Core/containers/Map.hpp>
-#include <Core/containers/Set.hpp>
-#include <Core/containers/Forest.hpp>
+#include <Core/Containers/Map.hpp>
+#include <Core/Containers/Set.hpp>
+#include <Core/Containers/Forest.hpp>
 
-#include <Core/functional/Proc.hpp>
+#include <Core/Functional/Proc.hpp>
 
-#include <Core/logging/Logger.hpp>
+#include <Core/Logging/Logger.hpp>
 
 #include <Core/math/MathUtil.hpp>
 
-#include <Core/io/BufferedByteReader.hpp>
+#include <Core/IO/BufferedByteReader.hpp>
 
 #include <Core/json/JSON.hpp>
 

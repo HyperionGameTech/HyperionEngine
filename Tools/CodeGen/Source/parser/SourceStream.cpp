@@ -5,7 +5,7 @@
 */
 
 #include <parser/SourceStream.hpp>
-#include <Core/debug/Debug.hpp>
+#include <Core/Debug/Debug.hpp>
 
 namespace Hyperion::CodeGen {
 

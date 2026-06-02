@@ -246,18 +246,14 @@ struct DynamicAllocator : Allocator<DynamicAllocator>
 
     HYP_FORCE_INLINE void* Allocate(size_t size, size_t alignment)
     {
-        HYP_CORE_ASSERT(size > 0);
-
         void* ptr = Memory::AllocateAligned(size, alignment);
-        HYP_CORE_ASSERT(ptr != nullptr);
+        HYP_CORE_ASSERT(ptr != nullptr, "Failed to allocate aligned memory (alignment = %zu, size = %zu)", alignment, size);
 
         return ptr;
     }
 
     HYP_FORCE_INLINE void Free(void* ptr)
     {
-        HYP_CORE_ASSERT(ptr != nullptr);
-
         Memory::FreeAligned(ptr);
     }
 };
@@ -715,7 +711,7 @@ struct AllocatorInstance : Allocator<AllocatorInstance<AllocatorType, GlobalInst
         HYP_CORE_ASSERT(size > 0 && alignment > 0);
 
         void* ptr = pAllocator->Allocate(size, alignment);
-        HYP_CORE_ASSERT(ptr != nullptr);
+        HYP_CORE_ASSERT(ptr != nullptr, "Failed to allocate aligned memory from allocator");
 
         return ptr;
     }
@@ -724,7 +720,7 @@ struct AllocatorInstance : Allocator<AllocatorInstance<AllocatorType, GlobalInst
     {
         HYP_CORE_ASSERT(pAllocator != nullptr);
 
-        HYP_CORE_ASSERT(ptr != nullptr);
+        HYP_CORE_ASSERT(ptr != nullptr, "Cannot free a null pointer");
 
         pAllocator->Free(ptr);
     }

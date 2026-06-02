@@ -94,7 +94,7 @@ void* TlsfAllocator::Reallocate(void* ptr, size_t newSize, size_t alignment)
     }
 
     AssertDebug(m_tlsf != nullptr);
-    AssertDebug(ptr != nullptr);
+    AssertDebug(ptr != nullptr, "Attempting to reallocate null pointer");
 
     return tlsf_realloc((tlsf_t)m_tlsf, ptr, newSize);
 }
@@ -107,7 +107,7 @@ void TlsfAllocator::Free(void* ptr)
     }
 
     AssertDebug(m_tlsf != nullptr);
-    AssertDebug(ptr != nullptr);
+    AssertDebug(ptr != nullptr, "Attempting to free null pointer");
 
     tlsf_free((tlsf_t)m_tlsf, ptr);
 }

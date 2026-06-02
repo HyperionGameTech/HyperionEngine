@@ -9,9 +9,9 @@
 
 #include <generator/Generator.hpp>
 
-#include <Core/containers/Array.hpp>
-#include <Core/containers/Map.hpp>
-#include <Core/containers/String.hpp>
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/Map.hpp>
+#include <Core/Containers/String.hpp>
 
 namespace Hyperion {
 namespace CodeGen {

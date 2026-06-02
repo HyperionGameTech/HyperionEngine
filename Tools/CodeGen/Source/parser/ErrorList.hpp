@@ -9,7 +9,7 @@
 
 #include <parser/CompilerError.hpp>
 
-#include <Core/containers/FlatSet.hpp>
+#include <Core/Containers/FlatSet.hpp>
 
 #include <Core/Unicode.hpp>
 

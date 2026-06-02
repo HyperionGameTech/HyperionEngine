@@ -87,7 +87,7 @@ CORE_API extern uint32 ReleaseWeak(ControlBlock<CountType>* block);
 template <class CountType, class T>
 ControlBlock<CountType>* NewExternalOwnedBlock(T* ptr)
 {
-    void* pBlock = HYP_ALLOC_ALIGNED(sizeof(ControlBlock<CountType>), alignof(ControlBlock<CountType>));
+    void* pBlock = Memory::AllocateAligned(sizeof(ControlBlock<CountType>), alignof(ControlBlock<CountType>));
 
     return new (pBlock) ControlBlock<CountType> {
         ptr,
@@ -108,7 +108,7 @@ HYP_NODISCARD static inline ControlBlock<CountType>* NewInlineBlock(Args&&... ar
     constexpr size_t alignment = (alignof(ControlBlock<CountType>) > objAlign ? alignof(ControlBlock<CountType>) : objAlign);
     constexpr size_t totalSize = ByteUtil::AlignAs(objOffset + sizeof(T), alignment);
 
-    void* pBlock = HYP_ALLOC_ALIGNED(totalSize, alignment);
+    void* pBlock = Memory::AllocateAligned(totalSize, alignment);
 
     // object is stored in the block
     void* pObj = reinterpret_cast<void*>(UIntPtr(pBlock) + objOffset);
@@ -976,7 +976,7 @@ public:
     {
         using BlockType = typename Base::BlockType;
 
-        Base::m_block = (BlockType*)HYP_ALLOC_ALIGNED(sizeof(BlockType), alignof(BlockType));
+        Base::m_block = (BlockType*)Memory::AllocateAligned(sizeof(BlockType), alignof(BlockType));
 
         new (Base::m_block) BlockType {
             static_cast<T*>(this),

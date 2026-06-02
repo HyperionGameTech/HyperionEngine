@@ -8,8 +8,8 @@
 #define HYPERION_CODEGEN_SOURCE_FILE_HPP
 
 #include <Core/Types.hpp>
-#include <Core/containers/String.hpp>
-#include <Core/memory/ByteBuffer.hpp>
+#include <Core/Containers/String.hpp>
+#include <Core/Memory/ByteBuffer.hpp>
 
 namespace Hyperion::CodeGen {
 

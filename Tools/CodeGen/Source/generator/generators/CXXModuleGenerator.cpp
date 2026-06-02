@@ -11,15 +11,15 @@
 
 #include <parser/Parser.hpp>
 
-#include <Core/io/ByteWriter.hpp>
+#include <Core/IO/ByteWriter.hpp>
 
-#include <Core/containers/Set.hpp>
+#include <Core/Containers/Set.hpp>
 
-#include <Core/utilities/Format.hpp>
+#include <Core/Utilities/Format.hpp>
 
-#include <Core/logging/Logger.hpp>
+#include <Core/Logging/Logger.hpp>
 
-#include <Core/utilities/StringUtil.hpp>
+#include <Core/Utilities/StringUtil.hpp>
 
 #include <Util/Util.hpp>
 
@@ -257,8 +257,8 @@ Result CXXModuleGenerator::GenerateClassDeclHeader(const Analyzer& analyzer, Byt
 Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analyzer, const String& apiMacro, ByteWriter& writer) const
 {
     writer.WriteString(GetGeneratedFilePreamble(String::empty));
-    writer.WriteString("#include <Core/reflection/Class.hpp>\n");
-    writer.WriteString("#include <Core/reflection/ObjectMacros.hpp>\n\n");
+    writer.WriteString("#include <Core/Reflection/Class.hpp>\n");
+    writer.WriteString("#include <Core/Reflection/ObjectMacros.hpp>\n\n");
 
     writer.WriteString(String("namespace ") + BaseNamespace + " {\n\n");
 
@@ -514,8 +514,8 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
 
     // the including .cpp should provide includes for dependencies
     // so we don't add them here
-    writer.WriteString("#include <Core/reflection/ObjectMacros.hpp>\n");
-    writer.WriteString("#include <Core/reflection/ClassUtils.hpp>\n");
+    writer.WriteString("#include <Core/Reflection/ObjectMacros.hpp>\n");
+    writer.WriteString("#include <Core/Reflection/ClassUtils.hpp>\n");
 
     for (const Pair<String, ClassDefinition>& pair : mod.GetClasses())
     {

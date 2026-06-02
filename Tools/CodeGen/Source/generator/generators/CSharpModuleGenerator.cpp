@@ -11,11 +11,11 @@
 
 #include <parser/Parser.hpp>
 
-#include <Core/name/Name.hpp>
+#include <Core/Name/Name.hpp>
 
-#include <Core/utilities/StringUtil.hpp>
+#include <Core/Utilities/StringUtil.hpp>
 
-#include <Core/io/ByteWriter.hpp>
+#include <Core/IO/ByteWriter.hpp>
 
 #include <Util/Util.hpp>
 

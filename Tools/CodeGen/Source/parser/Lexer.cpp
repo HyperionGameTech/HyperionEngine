@@ -7,9 +7,9 @@
 #include <parser/Lexer.hpp>
 #include <parser/CompilerError.hpp>
 
-#include <Core/containers/FixedArray.hpp>
+#include <Core/Containers/FixedArray.hpp>
 
-#include <Core/memory/Memory.hpp>
+#include <Core/Memory/Memory.hpp>
 
 #include <sstream>
 #include <cstdlib>

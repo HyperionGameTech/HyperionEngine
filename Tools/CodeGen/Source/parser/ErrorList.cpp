@@ -6,9 +6,9 @@
 
 #include <parser/ErrorList.hpp>
 
-#include <Core/containers/FlatSet.hpp>
+#include <Core/Containers/FlatSet.hpp>
 
-#include <Core/utilities/StringUtil.hpp>
+#include <Core/Utilities/StringUtil.hpp>
 
 #include <fstream>
 

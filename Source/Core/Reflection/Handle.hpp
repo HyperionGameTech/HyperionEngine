@@ -82,7 +82,7 @@ struct Handle final : HandleBase
             HYP_CORE_ASSERT(header != nullptr);
 
             ptr = ObjectHeader::GetObjectPointer(header);
-            HYP_CORE_ASSERT(ptr != nullptr);
+            HYP_CORE_ASSERT(ptr != nullptr, "Attempting to create handle from invalid ID");
 
             // If strong count == 1 after incrementing, the object has already been destructed and it is invalid to create a strong reference
             if (!header->TryIncRefStrong())
@@ -423,7 +423,7 @@ struct WeakHandle final
             HYP_CORE_ASSERT(header != nullptr);
 
             ptr = ObjectHeader::GetObjectPointer(header);
-            HYP_CORE_ASSERT(ptr != nullptr);
+            HYP_CORE_ASSERT(ptr != nullptr, "Attempting to create weak handle from invalid ID");
 
             header->IncRefWeak();
         }

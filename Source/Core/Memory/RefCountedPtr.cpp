@@ -106,7 +106,7 @@ CORE_API uint32 ReleaseStrong(ControlBlock<CountType>* block)
 
 CORE_API void DefaultFreeBlock(void* blk)
 {
-    HYP_FREE_ALIGNED(blk);
+    Memory::FreeAligned(blk);
 }
 
 CORE_API void ExternalBlockDeleter(void* blk)
@@ -118,7 +118,7 @@ CORE_API void ExternalBlockDeleter(void* blk)
         block->pFnDestructObj(block->pObj);
     }
 
-    HYP_FREE_ALIGNED(block);
+    Memory::FreeAligned(block);
 }
 
 // instantiations

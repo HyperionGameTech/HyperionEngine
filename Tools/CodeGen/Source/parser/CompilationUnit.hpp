@@ -9,7 +9,7 @@
 
 #include <parser/ErrorList.hpp>
 
-#include <Core/containers/Map.hpp>
+#include <Core/Containers/Map.hpp>
 
 namespace Hyperion::CodeGen {
 

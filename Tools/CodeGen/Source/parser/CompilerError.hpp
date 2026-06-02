@@ -9,10 +9,10 @@
 
 #include <parser/SourceLocation.hpp>
 
-#include <Core/containers/String.hpp>
-#include <Core/containers/Map.hpp>
+#include <Core/Containers/String.hpp>
+#include <Core/Containers/Map.hpp>
 
-#include <Core/utilities/Format.hpp>
+#include <Core/Utilities/Format.hpp>
 
 namespace Hyperion::CodeGen {
 

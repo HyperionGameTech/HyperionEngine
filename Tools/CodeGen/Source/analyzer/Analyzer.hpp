@@ -10,12 +10,12 @@
 #include <analyzer/Module.hpp>
 #include <analyzer/AnalyzerError.hpp>
 
-#include <Core/memory/UniquePtr.hpp>
+#include <Core/Memory/UniquePtr.hpp>
 
-#include <Core/containers/Set.hpp>
-#include <Core/containers/Map.hpp>
+#include <Core/Containers/Set.hpp>
+#include <Core/Containers/Map.hpp>
 
-#include <Core/utilities/Result.hpp>
+#include <Core/Utilities/Result.hpp>
 
 #include <Core/Defines.hpp>
 

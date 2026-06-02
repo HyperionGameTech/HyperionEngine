@@ -9,9 +9,9 @@
 #include <analyzer/Analyzer.hpp>
 #include <analyzer/Module.hpp>
 
-#include <Core/logging/Logger.hpp>
+#include <Core/Logging/Logger.hpp>
 
-#include <Core/io/ByteWriter.hpp>
+#include <Core/IO/ByteWriter.hpp>
 
 namespace Hyperion {
 namespace CodeGen {

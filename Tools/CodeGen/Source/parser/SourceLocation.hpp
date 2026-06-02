@@ -7,7 +7,7 @@
 #ifndef HYPERION_CODEGEN_SOURCE_LOCATION_HPP
 #define HYPERION_CODEGEN_SOURCE_LOCATION_HPP
 
-#include <Core/containers/String.hpp>
+#include <Core/Containers/String.hpp>
 #include <Core/HashCode.hpp>
 
 namespace Hyperion::CodeGen {

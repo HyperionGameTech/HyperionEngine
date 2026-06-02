@@ -10,6 +10,7 @@
 #include <Core/Types.hpp>
 
 #include <Core/Utilities/Traits.hpp>
+#include <Core/Utilities/ByteUtil.hpp>
 
 #include <type_traits>
 #include <utility>
@@ -154,22 +155,14 @@ public:
     template <class T, class... Args>
     HYP_NODISCARD static T* AllocateAndConstruct(Args&&... args)
     {
-        void* ptr;
+        void* ptr = AllocateAligned(sizeof(T), alignof(T));
 
-        if constexpr (alignof(T) <= alignof(std::max_align_t))
+        if (HYP_UNLIKELY(!ptr))
         {
-            // Use standard allocation if alignment is not greater than max alignment
-            ptr = Memory::Allocate(sizeof(T));
-        }
-        else
-        {
-            // Use aligned allocation if alignment is greater than max alignment
-            ptr = HYP_ALLOC_ALIGNED(sizeof(T), alignof(T));
+            return nullptr;
         }
 
-        new (ptr) T(std::forward<Args>(args)...);
-
-        return static_cast<T*>(ptr);
+        return new (ptr) T(std::forward<Args>(args)...);
     }
 
     template <class T>
@@ -214,37 +207,6 @@ public:
 #endif
     }
 
-    template <class T>
-    static typename std::enable_if_t<!std::is_same_v<void*, std::add_pointer_t<T>>, void> DestructAndFree(void* ptr)
-    {
-#if HYP_DEBUG_MODE
-        if (HYP_UNLIKELY(!ptr))
-        {
-            HYP_BREAKPOINT;
-        }
-#endif
-
-        if constexpr (!std::is_trivially_destructible_v<T>)
-        {
-            static_cast<T*>(ptr)->~T();
-        }
-
-#if HYP_DEBUG_MODE
-        Memory::Garble(ptr, sizeof(T));
-#endif
-
-        if constexpr (alignof(T) <= alignof(std::max_align_t))
-        {
-            // Use standard deallocation if alignment is not greater than max alignment
-            std::free(ptr);
-        }
-        else
-        {
-            // Use aligned deallocation if alignment is greater than max alignment
-            HYP_FREE_ALIGNED(ptr);
-        }
-    }
-
     /*! \brief No operation function for deleting a trivially destructible object. */
     HYP_FORCE_INLINE static void NoOp(void*)
     { /* Do nothing */
@@ -272,59 +234,25 @@ public:
         return malloc(count);
     }
 
-    template <class T>
-    HYP_FORCE_INLINE static T* Allocate()
-    {
-        if constexpr (alignof(T) <= alignof(std::max_align_t))
-        {
-            // Use standard allocation if alignment is not greater than max alignment
-            return static_cast<T*>(Memory::Allocate(sizeof(T)));
-        }
-        else
-        {
-            // Use aligned allocation if alignment is greater than max alignment
-            return static_cast<T*>(HYP_ALLOC_ALIGNED(sizeof(T), alignof(T)));
-        }
-    }
-
-    template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE static T* Allocate(size_t count)
-    {
-        if (count == 0)
-        {
-            return nullptr;
-        }
-
-        if constexpr (alignof(T) <= alignof(std::max_align_t))
-        {
-            // Use standard allocation if alignment is not greater than max alignment
-            return static_cast<T*>(Memory::Allocate(sizeof(T) * count));
-        }
-        else
-        {
-            // Use aligned allocation if alignment is greater than max alignment
-            return static_cast<T*>(HYP_ALLOC_ALIGNED(sizeof(T) * count, alignof(T)));
-        }
-    }
-
     HYP_NODISCARD HYP_FORCE_INLINE static void* AllocateAligned(size_t count, size_t alignment)
     {
+#ifdef HYP_UNIX
+        // POSIX requires alignment be a multiple of sizeof(void*)
+        alignment = ByteUtil::AlignAs(alignment, sizeof(void*));
+#endif
+
+        count = ByteUtil::AlignAs(count, alignment);
+
         return HYP_ALLOC_ALIGNED(count, alignment);
-    }
-
-    template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE static T* AllocateAligned(size_t count, size_t alignment)
-    {
-        if (count == 0)
-        {
-            return nullptr;
-        }
-
-        return static_cast<T*>(HYP_ALLOC_ALIGNED(sizeof(T) * count, alignment));
     }
 
     HYP_FORCE_INLINE static void FreeAligned(void* ptr)
     {
+        if (!ptr)
+        {
+            return;
+        }
+
         HYP_FREE_ALIGNED(ptr);
     }
 };

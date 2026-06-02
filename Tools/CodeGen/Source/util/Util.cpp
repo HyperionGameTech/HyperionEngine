@@ -8,14 +8,14 @@
 
 #include <Core/Defines.hpp>
 
-#include <Core/utilities/Format.hpp>
+#include <Core/Utilities/Format.hpp>
 
-#include <Core/io/BufferedByteReader.hpp>
+#include <Core/IO/BufferedByteReader.hpp>
 
-#include <Core/reflection/ClassAttribute.hpp>
+#include <Core/Reflection/ClassAttribute.hpp>
 
-#include <Core/logging/Logger.hpp>
-#include <Core/logging/LogChannels.hpp>
+#include <Core/Logging/Logger.hpp>
+#include <Core/Logging/LogChannels.hpp>
 
 #include <regex>
 #include <string>

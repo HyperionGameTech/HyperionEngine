@@ -261,7 +261,7 @@ public:
         Hyperion::RenderCommands::PushCustomRenderCommand(command);
 
         // ... elsewhere, after the command has been executed
-        HYP_FREE_ALIGNED(command);
+        Memory::FreeAligned(command);
         \endcode
 
         \attention Ownership of the command is NOT transferred to the render command queue, so the memory must be managed elsewhere.

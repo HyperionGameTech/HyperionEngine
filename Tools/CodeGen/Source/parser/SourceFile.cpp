@@ -6,7 +6,7 @@
 
 #include <parser/SourceFile.hpp>
 
-#include <Core/debug/Debug.hpp>
+#include <Core/Debug/Debug.hpp>
 
 #include <cstring>
 

@@ -8,7 +8,7 @@
 #define HYPERION_CODEGEN_TOKEN_HPP
 
 #include <parser/SourceLocation.hpp>
-#include <Core/containers/String.hpp>
+#include <Core/Containers/String.hpp>
 
 namespace Hyperion::CodeGen {
 
