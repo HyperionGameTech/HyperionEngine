@@ -463,6 +463,10 @@ RC<AstStatement> Parser::ParseStatement(
         {
             res = ParseIfStatement();
         }
+        else if (MatchKeyword(Keyword_switch, false))
+        {
+            res = ParseSwitchStatement();
+        }
         else if (MatchKeyword(Keyword_while, false))
         {
             res = ParseWhileLoop();
@@ -1658,6 +1662,194 @@ RC<AstIfStatement> Parser::ParseIfStatement()
             conditional,
             block,
             elseBlock,
+            token.GetLocation()));
+    }
+
+    return nullptr;
+}
+
+RC<AstSwitchStatement> Parser::ParseSwitchStatement()
+{
+    if (Token token = ExpectKeyword(Keyword_switch, true))
+    {
+        bool hasParentheses = false;
+
+        if (Match(TK_OPEN_PARENTH, true))
+        {
+            hasParentheses = true;
+        }
+
+        RC<AstExpression> expression;
+        if (!(expression = ParseExpression()))
+        {
+            return nullptr;
+        }
+
+        if (hasParentheses)
+        {
+            if (!Match(TK_CLOSE_PARENTH, true))
+            {
+                m_compilationUnit->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_unmatched_parentheses,
+                    token.GetLocation()));
+
+                if (m_tokenStream->HasNext())
+                {
+                    m_tokenStream->Next();
+                }
+            }
+        }
+
+        bool useBraces = !Match(TK_OPEN_BRACE, false).Empty();
+
+        if (useBraces)
+        {
+            if (!Expect(TK_OPEN_BRACE, true))
+            {
+                return nullptr;
+            }
+        }
+
+        Array<CaseClause> clauses;
+
+        while (useBraces
+            ? !Match(TK_CLOSE_BRACE, false)
+            : !MatchKeyword(Keyword_end, false)
+                && !MatchKeyword(Keyword_else, false))
+        {
+            if (!Match(TK_SEMICOLON, true) && !Match(TK_NEWLINE, true))
+            {
+                if (MatchKeyword(Keyword_case, false))
+                {
+                    Token caseTok = ExpectKeyword(Keyword_case, true);
+
+                    RC<AstExpression> caseValue;
+                    if (!(caseValue = ParseExpression()))
+                    {
+                        return nullptr;
+                    }
+
+                    if (!Match(TK_COLON, true))
+                    {
+                        m_compilationUnit->GetErrorList().AddError(CompilerError(
+                            LEVEL_ERROR,
+                            Msg_expected_token,
+                            CurrentLocation(),
+                            ":"));
+
+                        return nullptr;
+                    }
+
+                    RC<AstBlock> caseBlock(new AstBlock(caseTok.GetLocation()));
+
+                    while (useBraces
+                        ? !Match(TK_CLOSE_BRACE, false)
+                        : !MatchKeyword(Keyword_end, false)
+                            && !MatchKeyword(Keyword_else, false))
+                    {
+                        if (!Match(TK_SEMICOLON, true) && !Match(TK_NEWLINE, true))
+                        {
+                            if (MatchKeyword(Keyword_case, false)
+                                || MatchKeyword(Keyword_default, false)
+                                || (useBraces && Match(TK_CLOSE_BRACE, false))
+                                || (!useBraces && (MatchKeyword(Keyword_end, false) || MatchKeyword(Keyword_else, false))))
+                            {
+                                break;
+                            }
+
+                            if (auto stmt = ParseStatement())
+                            {
+                                caseBlock->AddChild(stmt);
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+                    }
+
+                    CaseClause clause;
+                    clause.m_value = caseValue;
+                    clause.m_block = caseBlock;
+                    clause.m_isDefault = false;
+                    clauses.PushBack(clause);
+                }
+                else if (MatchKeyword(Keyword_default, false))
+                {
+                    Token defaultTok = ExpectKeyword(Keyword_default, true);
+
+                    if (!Match(TK_COLON, true))
+                    {
+                        m_compilationUnit->GetErrorList().AddError(CompilerError(
+                            LEVEL_ERROR,
+                            Msg_expected_token,
+                            CurrentLocation(),
+                            ":"));
+
+                        return nullptr;
+                    }
+
+                    RC<AstBlock> defaultBlock(new AstBlock(defaultTok.GetLocation()));
+
+                    while (useBraces
+                        ? !Match(TK_CLOSE_BRACE, false)
+                        : !MatchKeyword(Keyword_end, false)
+                            && !MatchKeyword(Keyword_else, false))
+                    {
+                        if (!Match(TK_SEMICOLON, true) && !Match(TK_NEWLINE, true))
+                        {
+                            if (MatchKeyword(Keyword_case, false)
+                                || MatchKeyword(Keyword_default, false)
+                                || (useBraces && Match(TK_CLOSE_BRACE, false))
+                                || (!useBraces && (MatchKeyword(Keyword_end, false) || MatchKeyword(Keyword_else, false))))
+                            {
+                                break;
+                            }
+
+                            if (auto stmt = ParseStatement())
+                            {
+                                defaultBlock->AddChild(stmt);
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+                    }
+
+                    CaseClause clause;
+                    clause.m_value = nullptr;
+                    clause.m_block = defaultBlock;
+                    clause.m_isDefault = true;
+                    clauses.PushBack(clause);
+                }
+                else if (auto stmt = ParseStatement())
+                {
+                    m_compilationUnit->GetErrorList().AddError(CompilerError(
+                        LEVEL_ERROR,
+                        Msg_case_outside_switch,
+                        CurrentLocation()));
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+
+        if (useBraces)
+        {
+            Expect(TK_CLOSE_BRACE, true);
+        }
+        else
+        {
+            ExpectKeyword(Keyword_end, true);
+        }
+
+        return RC<AstSwitchStatement>(new AstSwitchStatement(
+            expression,
+            clauses,
             token.GetLocation()));
     }
 

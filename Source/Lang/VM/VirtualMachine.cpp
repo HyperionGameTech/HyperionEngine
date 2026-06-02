@@ -1806,6 +1806,18 @@ public:
                 else
                     instance->thread.m_regs.flags = CF_NONE;
             }
+            else if (lhs->Is<Name>() && rhs->Is<Name>())
+            {
+                const Name& lname = lhs->Get<Name>();
+                const Name& rname = rhs->Get<Name>();
+
+                if (lname == rname)
+                    instance->thread.m_regs.flags = CF_EQUAL;
+                else if (lname < rname)
+                    instance->thread.m_regs.flags = CF_GREATER;
+                else
+                    instance->thread.m_regs.flags = CF_NONE;
+            }
             else
             {
                 const int res = CompareAsPointers(*lhs, *rhs);

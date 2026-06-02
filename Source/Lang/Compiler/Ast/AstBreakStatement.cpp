@@ -28,7 +28,7 @@ void AstBreakStatement::Visit(AstVisitor* visitor, Module* mod)
     {
         m_numPops += top->Get().identifierTable.CountUsedVariables();
 
-        if (top->Get().scopeType == SCOPE_TYPE_LOOP)
+        if (top->Get().scopeType == SCOPE_TYPE_LOOP || top->Get().scopeType == SCOPE_TYPE_SWITCH)
         {
             inLoop = true;
 
@@ -51,18 +51,26 @@ UniquePtr<Buildable> AstBreakStatement::Build(AstVisitor* visitor, Module* mod)
 {
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    const auto* closestLoop = visitor->GetCompilationUnit()->GetInstructionStream().GetContextTree().FindClosestMatch(
+    const auto* closestMatch = visitor->GetCompilationUnit()->GetInstructionStream().GetContextTree().FindClosestMatch(
         [](const TreeNode<InstructionStreamContext>*, const InstructionStreamContext& context)
         {
-            return context.GetType() == INSTRUCTION_STREAM_CONTEXT_LOOP;
+            return context.GetType() == INSTRUCTION_STREAM_CONTEXT_LOOP ||
+                   context.GetType() == INSTRUCTION_STREAM_CONTEXT_SWITCH;
         });
 
-    Assert(closestLoop != nullptr, "No loop context found");
+    Assert(closestMatch != nullptr, "No loop or switch context found");
 
-    const Optional<LabelId> labelId = closestLoop->FindLabelByName(HYP_NAME(LoopBreakLabel));
-    Assert(labelId.HasValue(), "Break label not found in loop context");
+    const bool isSwitchBreak = closestMatch->GetType() == INSTRUCTION_STREAM_CONTEXT_SWITCH;
 
-    chunk->Append(BytecodeUtil::Make<Comment>("Break out of loop"));
+    const Name breakLabelName = isSwitchBreak
+        ? HYP_NAME(SwitchBreakLabel)
+        : HYP_NAME(LoopBreakLabel);
+
+    const Optional<LabelId> labelId = closestMatch->FindLabelByName(breakLabelName);
+    Assert(labelId.HasValue(), "Break label not found in loop or switch context");
+
+    chunk->Append(BytecodeUtil::Make<Comment>(
+        isSwitchBreak ? "Break out of switch" : "Break out of loop"));
 
     chunk->Append(Compiler::PopStack(visitor, m_numPops));
     chunk->Append(BytecodeUtil::Make<Jump>(Jump::JMP, labelId.Get()));

@@ -945,6 +945,7 @@ extern class ApplicationWindow
     SetIsMouseLocked(locked : bool) -> void
     IsMouseLocked() -> bool
     HasMouseFocus() -> bool
+    HasFocus() -> bool
     IsHighDPI() -> bool
     GetContentScaleFactor() -> float
     GetRenderTargetScale() -> float

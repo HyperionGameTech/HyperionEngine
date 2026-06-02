@@ -47,6 +47,7 @@
 #include <Lang/Compiler/Ast/AstNil.hpp>
 #include <Lang/Compiler/Ast/AstBlock.hpp>
 #include <Lang/Compiler/Ast/AstIfStatement.hpp>
+#include <Lang/Compiler/Ast/AstSwitchStatement.hpp>
 #include <Lang/Compiler/Ast/AstWhileLoop.hpp>
 #include <Lang/Compiler/Ast/AstForLoop.hpp>
 #include <Lang/Compiler/Ast/AstTryCatch.hpp>
@@ -115,6 +116,7 @@ public:
     RC<AstNil> ParseNil();
     RC<AstBlock> ParseBlock(bool requireBraces, bool skipEnd = false, bool endOnCatch = false);
     RC<AstIfStatement> ParseIfStatement();
+    RC<AstSwitchStatement> ParseSwitchStatement();
     RC<AstWhileLoop> ParseWhileLoop();
     RC<AstStatement> ParseForLoop();
     RC<AstStatement> ParseBreakStatement();

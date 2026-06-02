@@ -83,6 +83,12 @@ enum ErrorMessage
     Msg_break_outside_loop,
     Msg_continue_outside_loop,
 
+    /* SWITCH */
+    Msg_case_outside_switch,
+    Msg_duplicate_default,
+    Msg_switch_case_requires_constant,
+    Msg_switch_duplicate_case,
+
     /* FUNCTIONS */
     Msg_multiple_return_types,
     Msg_mismatched_return_type,

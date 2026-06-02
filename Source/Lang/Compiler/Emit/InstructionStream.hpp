@@ -14,7 +14,8 @@ namespace Hyperion {
 enum InstructionStreamContextType : uint32
 {
     INSTRUCTION_STREAM_CONTEXT_DEFAULT = 0,
-    INSTRUCTION_STREAM_CONTEXT_LOOP
+    INSTRUCTION_STREAM_CONTEXT_LOOP,
+    INSTRUCTION_STREAM_CONTEXT_SWITCH
 };
 
 class InstructionStreamContext
