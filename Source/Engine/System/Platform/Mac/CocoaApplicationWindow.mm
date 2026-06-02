@@ -97,6 +97,16 @@ KeyCode MapCocoaKeyCodeToKeyCode(unsigned short keyCode);
     return YES;
 }
 
+- (NSView*)hitTest:(NSPoint)point
+{
+    if (NSPointInRect(point, self.bounds))
+    {
+        return [super hitTest:point];
+    }
+
+    return nil;
+}
+
 - (void)updateTrackingAreas
 {
     [super updateTrackingAreas];
@@ -517,6 +527,18 @@ void CocoaApplicationWindow::Close()
     }
 }
 
+static bool IsMouseEventInContentArea(const CocoaApplicationWindow* window, NSPoint locationInWindow)
+{
+    NSView* contentView = (NSView*)window->GetNSView();
+    if (!contentView)
+    {
+        return true;
+    }
+
+    NSPoint viewPoint = [contentView convertPoint:locationInWindow fromView:nil];
+    return NSPointInRect(viewPoint, [contentView bounds]);
+}
+
 bool CocoaApplicationWindow::HandleNSEvent(NSEvent* nsEvent, Event& event)
 {
     HYP_SCOPE;
@@ -545,6 +567,14 @@ bool CocoaApplicationWindow::HandleNSEvent(NSEvent* nsEvent, Event& event)
     case NSEventTypeRightMouseDragged:
     case NSEventTypeOtherMouseDragged:
     {
+        NSPoint location = [nsEvent locationInWindow];
+
+        if (!IsMouseEventInContentArea(this, location))
+        {
+            [(NSEvent*)platformEvent.cocoaEvent.nsEvent release];
+            return false;
+        }
+
         event = Event(EventType::MOUSEMOTION, this, platformEvent);
 
         const CGFloat scale = m_metalLayer ? ((CAMetalLayer*)m_metalLayer).contentsScale : 1.0;
@@ -561,8 +591,6 @@ bool CocoaApplicationWindow::HandleNSEvent(NSEvent* nsEvent, Event& event)
         }
         else
         {
-            NSPoint location = [nsEvent locationInWindow];
-
             if (m_isEmbeddedView && m_nsView)
             {
                 // Convert to view coordinates
@@ -591,37 +619,105 @@ bool CocoaApplicationWindow::HandleNSEvent(NSEvent* nsEvent, Event& event)
     }
 
     case NSEventTypeLeftMouseDown:
+    {
+        NSPoint location = [nsEvent locationInWindow];
+
+        if (!IsMouseEventInContentArea(this, location))
+        {
+            [(NSEvent*)platformEvent.cocoaEvent.nsEvent release];
+            return false;
+        }
+
         event = Event(EventType::MOUSEBUTTON_DOWN, this, platformEvent);
         event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
         return true;
+    }
 
     case NSEventTypeLeftMouseUp:
+    {
+        NSPoint location = [nsEvent locationInWindow];
+
+        if (!IsMouseEventInContentArea(this, location))
+        {
+            [(NSEvent*)platformEvent.cocoaEvent.nsEvent release];
+            return false;
+        }
+
         event = Event(EventType::MOUSEBUTTON_UP, this, platformEvent);
         event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
         return true;
+    }
 
     case NSEventTypeRightMouseDown:
+    {
+        NSPoint location = [nsEvent locationInWindow];
+
+        if (!IsMouseEventInContentArea(this, location))
+        {
+            [(NSEvent*)platformEvent.cocoaEvent.nsEvent release];
+            return false;
+        }
+
         event = Event(EventType::MOUSEBUTTON_DOWN, this, platformEvent);
         event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
         return true;
+    }
 
     case NSEventTypeRightMouseUp:
+    {
+        NSPoint location = [nsEvent locationInWindow];
+
+        if (!IsMouseEventInContentArea(this, location))
+        {
+            [(NSEvent*)platformEvent.cocoaEvent.nsEvent release];
+            return false;
+        }
+
         event = Event(EventType::MOUSEBUTTON_UP, this, platformEvent);
         event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
         return true;
+    }
 
     case NSEventTypeOtherMouseDown:
+    {
+        NSPoint location = [nsEvent locationInWindow];
+
+        if (!IsMouseEventInContentArea(this, location))
+        {
+            [(NSEvent*)platformEvent.cocoaEvent.nsEvent release];
+            return false;
+        }
+
         event = Event(EventType::MOUSEBUTTON_DOWN, this, platformEvent);
         event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
         return true;
+    }
 
     case NSEventTypeOtherMouseUp:
+    {
+        NSPoint location = [nsEvent locationInWindow];
+
+        if (!IsMouseEventInContentArea(this, location))
+        {
+            [(NSEvent*)platformEvent.cocoaEvent.nsEvent release];
+            return false;
+        }
+
         event = Event(EventType::MOUSEBUTTON_UP, this, platformEvent);
         event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
         return true;
+    }
 
     case NSEventTypeScrollWheel:
     {
+        NSPoint location = [nsEvent locationInWindow];
+
+        if (!IsMouseEventInContentArea(this, location))
+        {
+            [(NSEvent*)platformEvent.cocoaEvent.nsEvent release];
+            return false;
+        }
+
         event = Event(EventType::MOUSESCROLL, this, platformEvent);
         CGFloat deltaX = [nsEvent scrollingDeltaX];
         CGFloat deltaY = [nsEvent scrollingDeltaY];

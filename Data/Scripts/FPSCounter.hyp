@@ -23,7 +23,7 @@ Fps := 0.0
 Accum := 0.0
 Counter := 0
 
-export func Update(DeltaTime : float)
+export Update := (DeltaTime : float)
     Accum += DeltaTime
     Counter++
     if (Accum >= 1.0)
