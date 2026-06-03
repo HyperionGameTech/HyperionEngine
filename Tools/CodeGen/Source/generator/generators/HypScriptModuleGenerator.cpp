@@ -316,6 +316,53 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
                     continue;
                 }
 
+                if (member.type == MemberType::Property)
+                {
+                    HypScriptTypeMapping propertyTypeMapping = g_hypscriptAnyTypeMapping;
+
+                    // Try to resolve the property type from the getter argument
+                    // HYP_PROPERTY(Name, &Class::member) or HYP_PROPERTY(Name, &Class::Getter, &Class::Setter)
+                    if (member.attributes.Size() >= 1)
+                    {
+                        const String& attrValue = member.attributes[0].first;
+
+                        size_t colonPos = attrValue.FindLastIndex(UTF8StringView("::"));
+                        if (colonPos != String::NotFound)
+                        {
+                            String refMemberName = attrValue.Substr(colonPos + 2);
+
+                            for (const auto& clsMember : cls->members)
+                            {
+                                if (clsMember.name == refMemberName && clsMember.cxxType != nullptr)
+                                {
+                                    RC<ASTType> typeToMap = clsMember.cxxType;
+
+                                    if (auto* funcType = dynamic_cast<ASTFunctionType*>(clsMember.cxxType.Get()))
+                                    {
+                                        typeToMap = funcType->returnType;
+                                    }
+
+                                    if (typeToMap != nullptr)
+                                    {
+                                        if (TResult<HypScriptTypeMapping> res = MapToHypScriptType(analyzer, typeToMap.Get()); !res.HasError())
+                                        {
+                                            propertyTypeMapping = res.GetValue();
+                                        }
+                                    }
+
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    writer.WriteString("    ");
+
+                    writer.WriteString(HYP_FORMAT("{} : {}\n", managedName, propertyTypeMapping.typeName));
+
+                    continue;
+                }
+
                 /* @TODO: Delegates */
             }
         }

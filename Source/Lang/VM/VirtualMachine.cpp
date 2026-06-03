@@ -1096,16 +1096,37 @@ public:
                 return;
             }
 
-            Field* field = cls->GetField(StringHash(NameID(hash)));
+            IMember* member = cls->GetMember(StringHash(NameID(hash)));
 
-            if (!field)
+            if (!member)
             {
                 vm->ThrowException(instance, Exception::MemberNotFoundException(pValue, hash));
 
                 return;
             }
 
-            field->Set(*pValue, std::move(newValue));
+            if (member->GetMemberType() == MemberType::Property)
+            {
+                Property* property = static_cast<Property*>(member);
+
+                if (!property->CanSet())
+                {
+                    vm->ThrowException(instance, Exception("Property has no setter"));
+
+                    return;
+                }
+
+                property->Set(*pValue, newValue);
+            }
+            else if (member->GetMemberType() == MemberType::Field)
+            {
+                Field* field = static_cast<Field*>(member);
+                field->Set(*pValue, std::move(newValue));
+            }
+            else
+            {
+                vm->ThrowException(instance, Exception("Member is not a field or property"));
+            }
         }
     }
 
@@ -1163,6 +1184,19 @@ public:
             AssertDebug(staticField->IsValid());
 
             instance->thread.m_regs[dstReg] = MakeValue(staticField->Get());
+        }
+        else if (member->GetMemberType() == MemberType::Property)
+        {
+            Property* property = static_cast<Property*>(member);
+
+            if (property->CanGet())
+            {
+                instance->thread.m_regs[dstReg] = property->Get(src);
+            }
+            else
+            {
+                vm->ThrowException(instance, Exception("Property has no getter"));
+            }
         }
         else if (member->GetMemberType() == MemberType::Method)
         {

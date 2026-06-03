@@ -790,6 +790,9 @@ end
 extern struct ShadowMapAtlasElement
 end
 extern struct ShadowMapAtlas
+    AtlasDimensions : any
+    Elements : any
+    FreeSpaces : any
     AtlasIndex : uint32
 end
 extern enum ShadowMapFilter : uint32
@@ -1583,6 +1586,7 @@ end
 extern struct AssetReference
 end
 extern struct AssetPath
+    Value : string
     IsValid() -> bool
     GetBucket() -> AssetBucket
     GetName() -> Name
@@ -1991,6 +1995,9 @@ extern class LightmapVolume : VolumeBase
     Atlases : Array<LightmapVolumeAtlas>
 end
 extern struct LightmapVolumeAtlas
+    AtlasDimensions : any
+    Elements : any
+    FreeSpaces : any
 end
 extern class FogVolume : VolumeBase
     GetVolumeTexture() -> Texture

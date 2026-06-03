@@ -521,6 +521,46 @@ public:
         return NotFound;
     }
 
+    /*! \brief Find the last occurrence of the substring.
+     *  \param substr The substring to search for.
+     *  \returns The index of the last occurrence of the substring or NotFound if it is not in the string. */
+    HYP_FORCE_INLINE constexpr size_t FindLastIndex(const StringView& substr) const
+    {
+        const size_t thisSize = Size();
+        const size_t otherSize = substr.Size();
+
+        if (thisSize < otherSize || otherSize == 0)
+        {
+            return NotFound;
+        }
+
+        size_t lastFound = NotFound;
+
+        for (size_t offset = 0; offset <= thisSize - otherSize; ++offset)
+        {
+            size_t i = 0;
+            for (; i < otherSize; i++)
+            {
+                if (m_begin[offset + i] != substr.m_begin[i])
+                {
+                    break;
+                }
+            }
+
+            if (i == otherSize)
+            {
+                lastFound = offset;
+            }
+        }
+
+        if (lastFound != NotFound && isUtf8)
+        {
+            lastFound = utf::StringLength(m_begin, m_begin + lastFound);
+        }
+
+        return lastFound;
+    }
+
     constexpr StringView Substr(size_t first, size_t last) const
     {
         first = MathUtil::Min(first, m_length);
