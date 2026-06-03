@@ -105,10 +105,15 @@ UniquePtr<Buildable> AstIsExpression::Build(AstVisitor* visitor, Module* mod)
     chunk->Append(m_typeSpec->GetExpr()->Build(visitor, mod));
     uint8 typeRefReg = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
+    const SymbolType* heldType = m_typeSpec->GetHeldType();
+    Assert(heldType != nullptr);
+    heldType = heldType->GetUnaliased();
+    HashCode::ValueType typeNameHash = HashCode::GetHashCode(heldType->GetName()).Value();
+
     visitor->GetCompilationUnit()->GetInstructionStream().IncRegisterUsage();
     uint8 dstReg = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-    chunk->Append(BytecodeUtil::Make<IsInstanceComp>(dstReg, srcReg, typeRefReg));
+    chunk->Append(BytecodeUtil::Make<IsInstanceComp>(dstReg, srcReg, typeRefReg, typeNameHash));
 
     {
         constexpr uint8 subcmd = MAKE_MOV_SUBCMD(MDST_REGISTER, MSRC_REGISTER);

@@ -2654,67 +2654,110 @@ public:
         instance->thread.m_regs[dst] = ShallowCopy(value, vm->GetGC());
     }
 
-    SCRIPT_INLINE void OpCastDynamic(RegisterIndex dst, RegisterIndex src)
+    SCRIPT_INLINE void OpCastDynamic(RegisterIndex dst, RegisterIndex src, uint64 typeNameHash)
     {
-        // dst register holds ClassRef object
-        BoxedValue& classValue = *Deref(instance->thread.m_regs[dst]);
-
-        const ClassRef& classRef = classValue.Get<ClassRef>();
-        Assert(classRef.IsValid());
+        // dst register may hold ClassRef object, or null for primitive types
+        BoxedValue& typeRefValue = *Deref(instance->thread.m_regs[dst]);
 
         // load value from register
         BoxedValue& value = *Deref(instance->thread.m_regs[src]);
 
         if (value.ToRef().GetPointer() != nullptr)
         {
-            const Class* cls = nullptr;
-
-            if (const Handle<ObjectBase>& object = GetObject(value))
+            if (ClassRef* classRef = typeRefValue.TryGet<ClassRef>().TryGet())
             {
-                cls = object.ptr->InstanceClass();
+                const Class* cls = nullptr;
+
+                if (const Handle<ObjectBase>& object = GetObject(value))
+                {
+                    cls = object.ptr->InstanceClass();
+                }
+                else
+                {
+                    cls = GetClass(value.GetTypeId());
+                }
+
+                if (!cls || !cls->IsDerivedFrom(*classRef))
+                {
+                    // not derived from target class, return null
+                    instance->thread.m_regs[dst] = BoxedValue(Handle<ObjectBase>());
+
+                    return;
+                }
             }
             else
             {
-                cls = GetClass(value.GetTypeId());
-            }
+                // Fallback: check by type name hash
+                const char* typeName = GetTypeString(value);
 
-            if (!cls || !cls->IsDerivedFrom(classRef))
-            {
-                // not derived from target class, return null
-                instance->thread.m_regs[dst] = BoxedValue(Handle<ObjectBase>());
+                if (typeName == nullptr)
+                {
+                    instance->thread.m_regs[dst] = BoxedValue(Handle<ObjectBase>());
 
-                return;
+                    return;
+                }
+
+                const uint64 valueTypeHash = HashCode::GetHashCode(typeName).Value();
+
+                if (valueTypeHash != typeNameHash)
+                {
+                    instance->thread.m_regs[dst] = BoxedValue(Handle<ObjectBase>());
+
+                    return;
+                }
             }
         }
 
         instance->thread.m_regs[dst] = ShallowCopy(value, vm->GetGC());
     }
 
-    SCRIPT_INLINE void OpIsInstance(RegisterIndex dst, RegisterIndex src, RegisterIndex typeRef)
+    SCRIPT_INLINE void OpIsInstance(RegisterIndex dst, RegisterIndex src, RegisterIndex typeRef, uint64 typeNameHash)
     {
-        BoxedValue& classValue = *Deref(instance->thread.m_regs[typeRef]);
-        const ClassRef& classRef = classValue.Get<ClassRef>();
-
-        BoxedValue& value = *Deref(instance->thread.m_regs[src]);
+        BoxedValue& typeRefValue = *Deref(instance->thread.m_regs[typeRef]);
 
         bool result = false;
 
-        if (value.ToRef().GetPointer() != nullptr)
+        if (ClassRef* classRef = typeRefValue.TryGet<ClassRef>().TryGet())
         {
-            const Class* cls = nullptr;
+            BoxedValue& value = *Deref(instance->thread.m_regs[src]);
 
-            if (const Handle<ObjectBase>& object = GetObject(value))
+            if (value.ToRef().GetPointer() != nullptr)
             {
-                cls = object.ptr->InstanceClass();
-            }
-            else
-            {
-                cls = GetClass(value.GetTypeId());
-            }
+                const Class* cls = nullptr;
 
-            if (cls && cls->IsDerivedFrom(classRef))
+                if (const Handle<ObjectBase>& object = GetObject(value))
+                {
+                    cls = object.ptr->InstanceClass();
+                }
+                else
+                {
+                    cls = GetClass(value.GetTypeId());
+                }
+
+                if (cls && cls->IsDerivedFrom(*classRef))
+                {
+                    result = true;
+                }
+            }
+        }
+        else
+        {
+            // @TODO Use TypeId (pre-hashed) instead of runtime hash calc!!!
+            BoxedValue& value = *Deref(instance->thread.m_regs[src]);
+
+            if (value.ToRef().GetPointer() != nullptr)
             {
-                result = true;
+                const char* typeName = GetTypeString(value);
+
+                if (typeName != nullptr)
+                {
+                    const uint64 valueTypeHash = HashCode::GetHashCode(typeName).Value();
+
+                    if (valueTypeHash == typeNameHash)
+                    {
+                        result = true;
+                    }
+                }
             }
         }
 
@@ -3096,8 +3139,14 @@ SCRIPT_INLINE static void HandleInstruction(
             handler->OpCastString(dstReg, srcReg);
             break;
         case CAST_TYPE_DYNAMIC:
-            handler->OpCastDynamic(dstReg, srcReg);
+        {
+            uint64 typeNameHash;
+            bs->Read(&typeNameHash);
+
+            handler->OpCastDynamic(dstReg, srcReg, typeNameHash);
+
             break;
+        }
         default:
             HYP_UNREACHABLE();
         }
@@ -3730,7 +3779,10 @@ SCRIPT_INLINE static void HandleInstruction(
         RegisterIndex typeRefReg;
         bs->Read(&typeRefReg);
 
-        handler->OpIsInstance(dstReg, srcReg, typeRefReg);
+        uint64 typeNameHash;
+        bs->Read(&typeNameHash);
+
+        handler->OpIsInstance(dstReg, srcReg, typeRefReg, typeNameHash);
 
         break;
     } // IS_INSTANCE

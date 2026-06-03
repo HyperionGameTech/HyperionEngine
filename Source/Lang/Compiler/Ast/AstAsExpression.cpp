@@ -233,7 +233,9 @@ UniquePtr<Buildable> AstAsExpression::Build(AstVisitor* visitor, Module* mod)
 
         chunk->Append(m_typeRef->Build(visitor, mod));
 
-        chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_DYNAMIC, dstRegister, srcRegister));
+        HashCode::ValueType typeNameHash = HashCode::GetHashCode(className).Value();
+
+        chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_DYNAMIC, dstRegister, srcRegister, typeNameHash));
     }
     else
     {

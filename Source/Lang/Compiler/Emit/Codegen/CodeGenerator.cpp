@@ -714,6 +714,11 @@ void CodeGenerator::Visit(CastOperation* node)
     m_ibs.Put(subcmd);
     m_ibs.Put(node->regDst);
     m_ibs.Put(node->regSrc);
+
+    if (node->type == CastOperation::CAST_DYNAMIC)
+    {
+        m_ibs.Put(reinterpret_cast<const ubyte*>(&node->typeNameHash), sizeof(node->typeNameHash));
+    }
 }
 
 void CodeGenerator::Visit(RawOperation<>* node)
@@ -732,6 +737,7 @@ void CodeGenerator::Visit(IsInstanceComp* node)
     m_ibs.Put(node->regDst);
     m_ibs.Put(node->regSrc);
     m_ibs.Put(node->regTypeRef);
+    m_ibs.Put(reinterpret_cast<const ubyte*>(&node->typeNameHash), sizeof(node->typeNameHash));
 }
 
 } // namespace Hyperion

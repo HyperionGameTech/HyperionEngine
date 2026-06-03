@@ -373,12 +373,21 @@ struct CastOperation final : public Instruction
     Type type = CAST_U8;
     RegIndex regDst;
     RegIndex regSrc;
+    HashCode::ValueType typeNameHash = 0;
 
     CastOperation() = default;
     CastOperation(Type type, RegIndex regDst, RegIndex regSrc)
         : type(type),
           regDst(regDst),
           regSrc(regSrc)
+    {
+    }
+
+    CastOperation(Type type, RegIndex regDst, RegIndex regSrc, HashCode::ValueType typeNameHash)
+        : type(type),
+          regDst(regDst),
+          regSrc(regSrc),
+          typeNameHash(typeNameHash)
     {
     }
 };
@@ -388,12 +397,14 @@ struct IsInstanceComp final : public Instruction
     RegIndex regDst;
     RegIndex regSrc;
     RegIndex regTypeRef;
+    HashCode::ValueType typeNameHash;
 
     IsInstanceComp() = default;
-    IsInstanceComp(RegIndex regDst, RegIndex regSrc, RegIndex regTypeRef)
+    IsInstanceComp(RegIndex regDst, RegIndex regSrc, RegIndex regTypeRef, HashCode::ValueType typeNameHash)
         : regDst(regDst),
           regSrc(regSrc),
-          regTypeRef(regTypeRef)
+          regTypeRef(regTypeRef),
+          typeNameHash(typeNameHash)
     {
     }
 };
