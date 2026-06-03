@@ -14,6 +14,11 @@ public:
         const SourceLocation& location);
     virtual ~AstArrayExpression() = default;
 
+    HYP_FORCE_INLINE Array<RC<AstExpression>>& GetMembers()
+    {
+        return m_members;
+    }
+
     HYP_FORCE_INLINE const Array<RC<AstExpression>>& GetMembers() const
     {
         return m_members;

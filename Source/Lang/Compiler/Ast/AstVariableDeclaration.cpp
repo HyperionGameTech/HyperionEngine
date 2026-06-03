@@ -3,6 +3,8 @@
 #include <Lang/Compiler/Ast/AstClass.hpp>
 #include <Lang/Compiler/Ast/AstConstant.hpp>
 #include <Lang/Compiler/Ast/AstAsExpression.hpp>
+#include <Lang/Compiler/Ast/AstArrayExpression.hpp>
+#include <Lang/Compiler/Ast/AstTypeRef.hpp>
 #include <Lang/Compiler/AstVisitor.hpp>
 #include <Lang/Compiler/Keywords.hpp>
 #include <Lang/Compiler/Configuration.hpp>
@@ -156,6 +158,32 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
         if (m_name == "$construct")
         { // m_flags & FLAG_CONSTRUCTOR) {
             m_realAssignment->ApplyExpressionFlags(EXPR_FLAGS_CONSTRUCTOR_DEFINITION);
+        }
+
+        if (hasUserSpecifiedType && m_symbolType != nullptr && m_symbolType->IsArrayType() && m_realAssignment != nullptr)
+        {
+            if (AstArrayExpression* arrayExpr = dynamic_cast<AstArrayExpression*>(m_realAssignment.Get()))
+            {
+                const auto& dstGenericInfo = m_symbolType->GetUnaliased()->GetGenericInstanceInfo();
+
+                if (dstGenericInfo.m_genericArgs.Size() == 1)
+                {
+                    const SymbolType* dstElemType = dstGenericInfo.m_genericArgs[0].m_type;
+
+                    if (dstElemType != nullptr)
+                    {
+                        for (auto& member : arrayExpr->GetMembers())
+                        {
+                            member.Reset(new AstAsExpression(
+                                CloneAstNode(member),
+                                RC<AstTypeSpecifier>(new AstTypeSpecifier(
+                                    RC<AstTypeRef>(new AstTypeRef(dstElemType, member->GetLocation())),
+                                    member->GetLocation())),
+                                member->GetLocation()));
+                        }
+                    }
+                }
+            }
         }
 
         m_realAssignment->Visit(visitor, mod);
