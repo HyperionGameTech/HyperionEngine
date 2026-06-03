@@ -726,4 +726,12 @@ void CodeGenerator::Visit(RawOperation<>* node)
     }
 }
 
+void CodeGenerator::Visit(IsInstanceComp* node)
+{
+    m_ibs.Put(Instructions::IS_INSTANCE);
+    m_ibs.Put(node->regDst);
+    m_ibs.Put(node->regSrc);
+    m_ibs.Put(node->regTypeRef);
+}
+
 } // namespace Hyperion

@@ -2689,6 +2689,37 @@ public:
 
         instance->thread.m_regs[dst] = ShallowCopy(value, vm->GetGC());
     }
+
+    SCRIPT_INLINE void OpIsInstance(RegisterIndex dst, RegisterIndex src, RegisterIndex typeRef)
+    {
+        BoxedValue& classValue = *Deref(instance->thread.m_regs[typeRef]);
+        const ClassRef& classRef = classValue.Get<ClassRef>();
+
+        BoxedValue& value = *Deref(instance->thread.m_regs[src]);
+
+        bool result = false;
+
+        if (value.ToRef().GetPointer() != nullptr)
+        {
+            const Class* cls = nullptr;
+
+            if (const Handle<ObjectBase>& object = GetObject(value))
+            {
+                cls = object.ptr->InstanceClass();
+            }
+            else
+            {
+                cls = GetClass(value.GetTypeId());
+            }
+
+            if (cls && cls->IsDerivedFrom(classRef))
+            {
+                result = true;
+            }
+        }
+
+        instance->thread.m_regs[dst] = MakeValue(result);
+    }
 };
 
 #if HYP_DEBUG_MODE
@@ -3688,6 +3719,21 @@ SCRIPT_INLINE static void HandleInstruction(
 
         break;
     } // EXPORT
+    case IS_INSTANCE:
+    {
+        RegisterIndex dstReg;
+        bs->Read(&dstReg);
+
+        RegisterIndex srcReg;
+        bs->Read(&srcReg);
+
+        RegisterIndex typeRefReg;
+        bs->Read(&typeRefReg);
+
+        handler->OpIsInstance(dstReg, srcReg, typeRefReg);
+
+        break;
+    } // IS_INSTANCE
     default:
     {
         int64 lastPos = int64(bs->Position()) - sizeof(ubyte);

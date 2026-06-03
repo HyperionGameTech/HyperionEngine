@@ -57,6 +57,7 @@ public:
     virtual void Visit(Comment*);
     virtual void Visit(SymbolExport*);
     virtual void Visit(CastOperation*);
+    virtual void Visit(IsInstanceComp*);
     virtual void Visit(RawOperation<>*);
 
 private:

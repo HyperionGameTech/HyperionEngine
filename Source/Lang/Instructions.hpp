@@ -142,6 +142,9 @@ enum Instructions : Hyperion::uint8
     /* Export a symbol from register value by name */
     EXPORT, // export [% src, u32 len, byte[len] str]
 
+    /* Check if the value in src register is an instance of the class type in typeRef register */
+    IS_INSTANCE, // isInstance [% dst, % src, % typeRef]
+
     /* Casting with sub-command */
     CAST_UNIFIED = 0x90, // [sub-cmd, dst, src]
     /* Signifies the end of the stream */

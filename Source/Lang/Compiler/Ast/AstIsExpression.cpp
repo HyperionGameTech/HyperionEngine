@@ -1,6 +1,7 @@
 #include <Lang/Compiler/Ast/AstIsExpression.hpp>
 #include <Lang/Compiler/Ast/AstIdentifier.hpp>
 #include <Lang/Compiler/Ast/AstTypeSpecifier.hpp>
+#include <Lang/Compiler/Ast/AstTypeRef.hpp>
 #include <Lang/Compiler/AstVisitor.hpp>
 #include <Lang/Compiler/Module.hpp>
 #include <Lang/Compiler/Configuration.hpp>
@@ -9,6 +10,7 @@
 
 #include <Lang/Compiler/Emit/BytecodeChunk.hpp>
 #include <Lang/Compiler/Emit/BytecodeUtil.hpp>
+#include <Lang/Compiler/Emit/Instruction.hpp>
 
 #include <Lang/Instructions.hpp>
 #include <Core/Debug/Debug.hpp>
@@ -71,47 +73,62 @@ void AstIsExpression::Visit(AstVisitor* visitor, Module* mod)
             }
         }
     }
-
-    if (m_isType == TRI_INDETERMINATE)
-    {
-        // clang-format off
-        // runtime check
-        m_overrideExpr = visitor->GetCompilationUnit()->GetAstNodeBuilder()
-            .Module(ScriptConfig::GlobalModuleName).Function("IsInstance")
-            .Call({
-                RC<AstArgument>(new AstArgument(CloneAstNode(m_target), false, false, false, false, "", m_target->GetLocation())),
-                RC<AstArgument>(new AstArgument(CloneAstNode(m_typeSpec->GetExpr()), false, false, false, false, "", m_typeSpec->GetLocation()))
-            });
-
-        // clang-format on
-
-        m_overrideExpr->Visit(visitor, mod);
-    }
 }
 
 UniquePtr<Buildable> AstIsExpression::Build(AstVisitor* visitor, Module* mod)
 {
-    if (m_overrideExpr != nullptr)
+    Assert(m_isType == TRI_TRUE || m_isType == TRI_FALSE || m_isType == TRI_INDETERMINATE);
+
+    if (m_isType == TRI_TRUE)
     {
-        return m_overrideExpr->Build(visitor, mod);
+        uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+
+        return BytecodeUtil::Make<ConstBool>(rp, true);
     }
 
-    Assert(m_isType == TRI_TRUE || m_isType == TRI_FALSE);
+    if (m_isType == TRI_FALSE)
+    {
+        uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-    uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+        return BytecodeUtil::Make<ConstBool>(rp, false);
+    }
 
-    return BytecodeUtil::Make<ConstBool>(rp, bool(m_isType.Value()));
+    Assert(m_isType == TRI_INDETERMINATE);
+
+    UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
+
+    chunk->Append(m_target->Build(visitor, mod));
+    uint8 srcReg = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+
+    Assert(m_typeSpec->GetExpr() != nullptr);
+    visitor->GetCompilationUnit()->GetInstructionStream().IncRegisterUsage();
+    chunk->Append(m_typeSpec->GetExpr()->Build(visitor, mod));
+    uint8 typeRefReg = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+
+    visitor->GetCompilationUnit()->GetInstructionStream().IncRegisterUsage();
+    uint8 dstReg = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+
+    chunk->Append(BytecodeUtil::Make<IsInstanceComp>(dstReg, srcReg, typeRefReg));
+
+    {
+        constexpr uint8 subcmd = MAKE_MOV_SUBCMD(MDST_REGISTER, MSRC_REGISTER);
+
+        auto instrMovReg = BytecodeUtil::Make<RawOperation<>>();
+        instrMovReg->opcode = MOV_UNIFIED;
+        instrMovReg->Accept<uint8>(subcmd);
+        instrMovReg->Accept<uint8>(srcReg);
+        instrMovReg->Accept<uint8>(dstReg);
+        chunk->Append(std::move(instrMovReg));
+    }
+
+    visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage(); // dstReg
+    visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage(); // typeRefReg
+
+    return chunk;
 }
 
 void AstIsExpression::Optimize(AstVisitor* visitor, Module* mod)
 {
-    if (m_overrideExpr != nullptr)
-    {
-        m_overrideExpr->Optimize(visitor, mod);
-
-        return;
-    }
-
     Assert(m_target != nullptr);
     m_target->Optimize(visitor, mod);
 

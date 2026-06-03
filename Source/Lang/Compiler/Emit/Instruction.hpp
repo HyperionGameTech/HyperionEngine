@@ -383,6 +383,21 @@ struct CastOperation final : public Instruction
     }
 };
 
+struct IsInstanceComp final : public Instruction
+{
+    RegIndex regDst;
+    RegIndex regSrc;
+    RegIndex regTypeRef;
+
+    IsInstanceComp() = default;
+    IsInstanceComp(RegIndex regDst, RegIndex regSrc, RegIndex regTypeRef)
+        : regDst(regDst),
+          regSrc(regSrc),
+          regTypeRef(regTypeRef)
+    {
+    }
+};
+
 template <class... Args>
 struct RawOperation final : public Instruction
 {

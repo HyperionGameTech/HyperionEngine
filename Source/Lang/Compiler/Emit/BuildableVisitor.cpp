@@ -112,6 +112,10 @@ void BuildableVisitor::Visit(Buildable* buildable)
     {
         Visit(node);
     }
+    else if (auto* node = dynamic_cast<IsInstanceComp*>(buildable))
+    {
+        Visit(node);
+    }
     else if (auto* node = dynamic_cast<RawOperation<>*>(buildable))
     {
         Visit(node);

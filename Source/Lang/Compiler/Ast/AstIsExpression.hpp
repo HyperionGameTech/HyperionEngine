@@ -42,8 +42,6 @@ protected:
     RC<AstTypeSpecifier> m_typeSpec;
 
     // set while analyzing
-    RC<AstExpression> m_overrideExpr;
-
     Tribool m_isType;
 
 private:
