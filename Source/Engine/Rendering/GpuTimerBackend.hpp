@@ -12,6 +12,7 @@
 #include <Core/Memory/Pool/Pool.hpp>
 
 #include <Rendering/RenderMemory.hpp>
+#include <Rendering/RenderTypes.hpp>
 
 namespace Hyperion {
 

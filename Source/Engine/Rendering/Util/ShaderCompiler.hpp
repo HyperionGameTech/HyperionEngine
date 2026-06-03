@@ -411,7 +411,7 @@ struct ShaderInput
     HYP_FIELD(Property = "Category", Serialize = true)
     ShaderResourceCategory category = ShaderResourceCategory::Unknown;
 
-    HYP_FIELD(Property = "Index", Transient = true, Serialize = false)
+    HYP_FIELD(Property = "Index", Serialize = true)
     uint32 index = ~0u;
 
     ConditionFunction cond = nullptr;
@@ -483,6 +483,10 @@ struct ShaderInputSet
 
     ShaderInput* FindDescriptorDeclaration(StringHash name) const;
 
+    /*! \brief Recalculate the index for each descriptor based on its position in the slot array.
+        This is needed for deserialized shaders where index may not have been persisted. */
+    void RecalculateIndices();
+
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
@@ -513,6 +517,10 @@ struct ShaderInputGroup
 
     ShaderInputSet* FindDescriptorSetDeclaration(StringHash name) const;
     ShaderInputSet* AddDescriptorSetDeclaration(ShaderInputSet&& inputSet);
+
+    /*! \brief Recalculate indices for all descriptor sets.
+        See ShaderInputSet::RecalculateIndices. */
+    void RecalculateAllIndices();
 
     /*! \brief Get the index of a descriptor set in the table
         \param name The name of the descriptor set

@@ -5,6 +5,7 @@
 #include <Lang/Compiler/Scope.hpp>
 #include <Lang/Compiler/CompilerError.hpp>
 #include <Lang/Compiler/TypeSystem/BuiltinTypes.hpp>
+#include <Lang/Compiler/TypeSystem/SymbolType.hpp>
 
 #include <Lang/Compiler/Ast/AstName.hpp>
 #include <Lang/Compiler/Ast/AstString.hpp>
@@ -24,10 +25,11 @@ AstSwitchStatement::AstSwitchStatement(
     const RC<AstExpression>& expression,
     const Array<CaseClause>& clauses,
     const SourceLocation& location)
-    : AstStatement(location),
+    : AstExpression(location, ACCESS_MODE_LOAD),
       m_expression(expression),
       m_clauses(clauses),
-      m_numPops(0)
+      m_numPops(0),
+      m_exprType(nullptr)
 {
 }
 
@@ -131,6 +133,74 @@ void AstSwitchStatement::Visit(AstVisitor* visitor, Module* mod)
 
     Scope& thisScope = mod->scopeTree.Top();
     m_numPops = thisScope.identifierTable.CountUsedVariables();
+
+    // Compute the common expression type from all case blocks.
+    // This follows the same pattern as hashmap key/value type deduction:
+    // all branches' last expression types are promoted to a common type.
+    bool hasExprType = false;
+    m_exprType = BuiltinTypes::s_errorType;
+
+    for (auto& clause : m_clauses)
+    {
+        Assert(clause.m_block != nullptr);
+
+        const SymbolType* lastExprType = clause.m_block->GetLastExprType();
+
+        if (lastExprType != nullptr)
+        {
+            lastExprType = lastExprType->GetUnaliased();
+
+            if (!hasExprType)
+            {
+                m_exprType = lastExprType;
+                hasExprType = true;
+            }
+            else
+            {
+                m_exprType = SymbolType::TypePromotion(m_exprType, lastExprType);
+            }
+        }
+    }
+
+    if (!hasExprType)
+    {
+        m_exprType = BuiltinTypes::s_voidType;
+    }
+
+    if (m_exprType->TypeEqual(*BuiltinTypes::s_errorType) && hasExprType)
+    {
+        // Type promotion failed - report mismatched types
+        // Track the first two incompatible types encountered
+        const SymbolType* firstType = nullptr;
+        const SymbolType* secondType = nullptr;
+
+        for (auto& clause : m_clauses)
+        {
+            const SymbolType* lastExprType = clause.m_block->GetLastExprType();
+
+            if (lastExprType != nullptr)
+            {
+                lastExprType = lastExprType->GetUnaliased();
+
+                if (firstType == nullptr)
+                {
+                    firstType = lastExprType;
+                }
+                else if (!firstType->TypeEqual(*lastExprType) && secondType == nullptr)
+                {
+                    secondType = lastExprType;
+                    break;
+                }
+            }
+        }
+
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_mismatched_types,
+            m_location,
+            firstType != nullptr ? firstType->ToString() : "<unknown>",
+            secondType != nullptr ? secondType->ToString() : "<unknown>"));
+    }
 
     mod->scopeTree.Close();
 }
@@ -279,10 +349,40 @@ RC<AstSwitchStatement> AstSwitchStatement::CloneImpl() const
         clonedClauses.PushBack(clonedClause);
     }
 
-    return RC<AstSwitchStatement>(new AstSwitchStatement(
+    RC<AstSwitchStatement> cloned(new AstSwitchStatement(
         CloneAstNode(m_expression),
         clonedClauses,
         m_location));
+
+    cloned->m_exprType = m_exprType;
+    cloned->m_numPops = m_numPops;
+
+    return cloned;
+}
+
+Tribool AstSwitchStatement::IsTrue() const
+{
+    return Tribool::Indeterminate();
+}
+
+bool AstSwitchStatement::MayHaveSideEffects() const
+{
+    return true;
+}
+
+const SymbolType* AstSwitchStatement::GetExprType() const
+{
+    if (m_exprType == nullptr)
+    {
+        return BuiltinTypes::s_errorType;
+    }
+
+    return m_exprType;
+}
+
+bool AstSwitchStatement::IsLiteral() const
+{
+    return false;
 }
 
 } // namespace Hyperion

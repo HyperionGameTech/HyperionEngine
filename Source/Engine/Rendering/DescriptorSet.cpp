@@ -96,6 +96,17 @@ uint32 ShaderInputSet::CalculateFlatIndex(ShaderRegister slot, StringHash name) 
     return ~0u;
 }
 
+void ShaderInputSet::RecalculateIndices()
+{
+    for (auto& slot : slots)
+    {
+        for (uint32 i = 0; i < slot.Size(); i++)
+        {
+            slot[i].index = i;
+        }
+    }
+}
+
 ShaderInputSet* ShaderInputGroup::FindDescriptorSetDeclaration(StringHash name) const
 {
     for (const ShaderInputSet& decl : elements)
@@ -112,6 +123,17 @@ ShaderInputSet* ShaderInputGroup::FindDescriptorSetDeclaration(StringHash name) 
 ShaderInputSet* ShaderInputGroup::AddDescriptorSetDeclaration(ShaderInputSet&& inputSet)
 {
     return &elements.PushBack(std::move(inputSet));
+}
+
+void ShaderInputGroup::RecalculateAllIndices()
+{
+    for (auto& element : elements)
+    {
+        if (element.setIndex != ~0u)
+        {
+            element.RecalculateIndices();
+        }
+    }
 }
 
 ShaderInputGroup& GetStaticDescriptorTableDeclaration()

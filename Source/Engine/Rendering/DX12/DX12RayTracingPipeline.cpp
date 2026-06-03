@@ -287,6 +287,8 @@ RendererResult DX12RayTracingPipeline::BuildRootSignature()
     const ShaderInputGroup* decl = m_shaderInstance->GetShader()->GetDescriptorTableDeclaration();
     Assert(decl != nullptr);
 
+    const_cast<ShaderInputGroup*>(decl)->RecalculateAllIndices();
+
     Array<D3D12_ROOT_PARAMETER, DX12TempAllocator> rootParams;
 
     TList<Array<D3D12_DESCRIPTOR_RANGE, DX12TempAllocator>, DX12TempAllocator> rangeAllocations;

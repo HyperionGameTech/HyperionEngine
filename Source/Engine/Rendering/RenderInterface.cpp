@@ -1120,7 +1120,7 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
     if (m_gpuTimerBackend != nullptr)
     {
         m_gpuTimerBackend->OnFrameStart();
-        m_gpuTimerBackend->WriteStopTimestamp(GetCurrentCommandBuffer(), &g_statGpuFrameTime);
+        m_gpuTimerBackend->WriteStartTimestamp(GetCurrentCommandBuffer(), &g_statGpuFrameTime);
     }
 }
 

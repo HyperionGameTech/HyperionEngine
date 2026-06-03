@@ -411,6 +411,8 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
     const ShaderInputGroup* decl = m_shaderInstance->GetShader()->GetDescriptorTableDeclaration();
     Assert(decl != nullptr);
 
+    const_cast<ShaderInputGroup*>(decl)->RecalculateAllIndices();
+
     Array<D3D12_ROOT_PARAMETER> rootParams;
 
     // use LL so we never invalid ptrs

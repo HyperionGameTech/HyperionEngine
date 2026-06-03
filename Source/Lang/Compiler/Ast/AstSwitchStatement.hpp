@@ -1,6 +1,5 @@
 #pragma once
 
-#include <Lang/Compiler/Ast/AstStatement.hpp>
 #include <Lang/Compiler/Ast/AstExpression.hpp>
 #include <Lang/Compiler/Ast/AstBlock.hpp>
 
@@ -18,7 +17,7 @@ struct CaseClause
     bool m_isDefault = false;
 };
 
-class AstSwitchStatement : public AstStatement
+class AstSwitchStatement : public AstExpression
 {
 public:
     AstSwitchStatement(
@@ -43,6 +42,11 @@ public:
 
     virtual RC<AstStatement> Clone() const override;
 
+    virtual Tribool IsTrue() const override;
+    virtual bool MayHaveSideEffects() const override;
+    virtual const SymbolType* GetExprType() const override;
+    virtual bool IsLiteral() const override;
+
     virtual HashCode GetHashCode() const override
     {
         HashCode hc;
@@ -62,6 +66,7 @@ private:
     RC<AstExpression> m_expression;
     Array<CaseClause> m_clauses;
     int m_numPops = 0;
+    const SymbolType* m_exprType = nullptr;
 
     RC<AstSwitchStatement> CloneImpl() const;
 };
