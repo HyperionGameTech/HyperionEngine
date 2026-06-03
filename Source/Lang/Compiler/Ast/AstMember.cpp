@@ -443,4 +443,29 @@ bool AstMember::IsMutable() const
     return m_target->IsMutable();
 }
 
+ConstantValue AstMember::GetConstantValue() const
+{
+    if (m_targetType == nullptr)
+    {
+        return ConstantValue(INVALID_CONSTANT_NUMBER);
+    }
+
+    uint32 fieldIndex = ~0u;
+    SymbolTypeMember member;
+
+    // Try static member lookup first (enum members, const static fields, etc.)
+    if (m_targetType->FindStaticMember(m_fieldName, member, fieldIndex))
+    {
+        if (member.IsConst())
+        {
+            if (const RC<AstExpression>& expr = member.GetExpr())
+            {
+                return expr->GetConstantValue();
+            }
+        }
+    }
+
+    return ConstantValue(INVALID_CONSTANT_NUMBER);
+}
+
 } // namespace Hyperion

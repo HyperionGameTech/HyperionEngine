@@ -44,6 +44,8 @@ public:
     virtual AstExpression* GetTarget() const override;
     virtual bool IsMutable() const override;
 
+    virtual ConstantValue GetConstantValue() const override;
+
     virtual HashCode GetHashCode() const override
     {
         HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstMember>());

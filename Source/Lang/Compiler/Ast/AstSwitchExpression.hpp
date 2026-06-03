@@ -17,14 +17,15 @@ struct CaseClause
     bool m_isDefault = false;
 };
 
-class AstSwitchStatement : public AstExpression
+class AstSwitchExpression : public AstExpression
 {
 public:
-    AstSwitchStatement(
+    AstSwitchExpression(
         const RC<AstExpression>& expression,
         const Array<CaseClause>& clauses,
         const SourceLocation& location);
-    virtual ~AstSwitchStatement() = default;
+
+    virtual ~AstSwitchExpression() = default;
 
     HYP_FORCE_INLINE const RC<AstExpression>& GetExpression() const
     {
@@ -50,7 +51,7 @@ public:
     virtual HashCode GetHashCode() const override
     {
         HashCode hc;
-        hc.Add(TypeName<AstSwitchStatement>());
+        hc.Add(TypeName<AstSwitchExpression>());
         hc.Add(m_expression ? m_expression->GetHashCode() : HashCode());
 
         for (const auto& clause : m_clauses)
@@ -68,7 +69,7 @@ private:
     int m_numPops = 0;
     const SymbolType* m_exprType = nullptr;
 
-    RC<AstSwitchStatement> CloneImpl() const;
+    RC<AstSwitchExpression> CloneImpl() const;
 };
 
 } // namespace Hyperion

@@ -158,7 +158,6 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
             m_baseType = BuiltinTypes::s_int32Type;
         }
 
-        // Create a generic instance of the enum type
         newType = SymbolType::Enum(
             m_name,
             m_baseType,

@@ -3293,8 +3293,6 @@ bool ShaderCompiler::CompileBundle(
             }
             
             shader->propertySetHashCode = perm.GetPropertySetHashCode();
-            
-            newShaders.Add(shader);
 
             numCompiledPermutations += (numErrored == 0 && numCompiled > 0 ? 1 : 0);
             numErroredPermutations += (numErrored > 0 ? 1 : 0);
@@ -3314,6 +3312,8 @@ bool ShaderCompiler::CompileBundle(
 
                 AssertDebug(!usedNames.Contains(shader->GetName()));
                 usedNames.Add(shader->GetName());
+            
+                newShaders.Add(shader);
 
                 auto existingIt = outBundle->compiledShaders.FindIf([name = shader->GetName()](const Handle<Shader>& existing)
                     {

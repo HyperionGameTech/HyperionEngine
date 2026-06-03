@@ -1,4 +1,4 @@
-#include <Lang/Compiler/Ast/AstSwitchStatement.hpp>
+#include <Lang/Compiler/Ast/AstSwitchExpression.hpp>
 #include <Lang/Compiler/AstVisitor.hpp>
 #include <Lang/Compiler/Compiler.hpp>
 #include <Lang/Compiler/Keywords.hpp>
@@ -21,7 +21,7 @@
 
 namespace Hyperion {
 
-AstSwitchStatement::AstSwitchStatement(
+AstSwitchExpression::AstSwitchExpression(
     const RC<AstExpression>& expression,
     const Array<CaseClause>& clauses,
     const SourceLocation& location)
@@ -33,7 +33,7 @@ AstSwitchStatement::AstSwitchStatement(
 {
 }
 
-void AstSwitchStatement::Visit(AstVisitor* visitor, Module* mod)
+void AstSwitchExpression::Visit(AstVisitor* visitor, Module* mod)
 {
     Assert(m_expression != nullptr);
 
@@ -86,38 +86,6 @@ void AstSwitchStatement::Visit(AstVisitor* visitor, Module* mod)
                     seenCaseValues.Insert(hc);
                 }
             }
-            else if (auto* nameExpr = dynamic_cast<AstName*>(clause.m_value.Get()))
-            {
-                HashCode hc = HashCode::GetHashCode(nameExpr->GetValue());
-
-                if (seenCaseValues.Contains(hc))
-                {
-                    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                        LEVEL_ERROR,
-                        Msg_switch_duplicate_case,
-                        clause.m_value->GetLocation()));
-                }
-                else
-                {
-                    seenCaseValues.Insert(hc);
-                }
-            }
-            else if (auto* strExpr = dynamic_cast<AstString*>(clause.m_value.Get()))
-            {
-                HashCode hc = HashCode::GetHashCode(strExpr->GetValue());
-
-                if (seenCaseValues.Contains(hc))
-                {
-                    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                        LEVEL_ERROR,
-                        Msg_switch_duplicate_case,
-                        clause.m_value->GetLocation()));
-                }
-                else
-                {
-                    seenCaseValues.Insert(hc);
-                }
-            }
             else
             {
                 visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -137,6 +105,8 @@ void AstSwitchStatement::Visit(AstVisitor* visitor, Module* mod)
     // Compute the common expression type from all case blocks.
     // This follows the same pattern as hashmap key/value type deduction:
     // all branches' last expression types are promoted to a common type.
+    // We iterate block children from the end to find the last AstExpression,
+    // skipping trailing non-expression statements like `break`.
     bool hasExprType = false;
     m_exprType = BuiltinTypes::s_errorType;
 
@@ -144,7 +114,19 @@ void AstSwitchStatement::Visit(AstVisitor* visitor, Module* mod)
     {
         Assert(clause.m_block != nullptr);
 
-        const SymbolType* lastExprType = clause.m_block->GetLastExprType();
+        const SymbolType* lastExprType = nullptr;
+
+        // Walk block children backwards to find the last expression,
+        // skipping trailing control-flow statements (break, etc.)
+        const auto& children = clause.m_block->GetChildren();
+        for (int j = int(children.Size()) - 1; j >= 0; j--)
+        {
+            if (auto* expr = dynamic_cast<AstExpression*>(children[j].Get()))
+            {
+                lastExprType = expr->GetExprType();
+                break;
+            }
+        }
 
         if (lastExprType != nullptr)
         {
@@ -176,7 +158,17 @@ void AstSwitchStatement::Visit(AstVisitor* visitor, Module* mod)
 
         for (auto& clause : m_clauses)
         {
-            const SymbolType* lastExprType = clause.m_block->GetLastExprType();
+            const SymbolType* lastExprType = nullptr;
+
+            const auto& children = clause.m_block->GetChildren();
+            for (int j = int(children.Size()) - 1; j >= 0; j--)
+            {
+                if (auto* expr = dynamic_cast<AstExpression*>(children[j].Get()))
+                {
+                    lastExprType = expr->GetExprType();
+                    break;
+                }
+            }
 
             if (lastExprType != nullptr)
             {
@@ -205,7 +197,7 @@ void AstSwitchStatement::Visit(AstVisitor* visitor, Module* mod)
     mod->scopeTree.Close();
 }
 
-UniquePtr<Buildable> AstSwitchStatement::Build(AstVisitor* visitor, Module* mod)
+UniquePtr<Buildable> AstSwitchExpression::Build(AstVisitor* visitor, Module* mod)
 {
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
@@ -309,7 +301,7 @@ UniquePtr<Buildable> AstSwitchStatement::Build(AstVisitor* visitor, Module* mod)
     return chunk;
 }
 
-void AstSwitchStatement::Optimize(AstVisitor* visitor, Module* mod)
+void AstSwitchExpression::Optimize(AstVisitor* visitor, Module* mod)
 {
     if (m_expression != nullptr)
     {
@@ -330,12 +322,12 @@ void AstSwitchStatement::Optimize(AstVisitor* visitor, Module* mod)
     }
 }
 
-RC<AstStatement> AstSwitchStatement::Clone() const
+RC<AstStatement> AstSwitchExpression::Clone() const
 {
     return CloneImpl();
 }
 
-RC<AstSwitchStatement> AstSwitchStatement::CloneImpl() const
+RC<AstSwitchExpression> AstSwitchExpression::CloneImpl() const
 {
     Array<CaseClause> clonedClauses;
     clonedClauses.Resize(m_clauses.Size());
@@ -349,7 +341,7 @@ RC<AstSwitchStatement> AstSwitchStatement::CloneImpl() const
         clonedClauses.PushBack(clonedClause);
     }
 
-    RC<AstSwitchStatement> cloned(new AstSwitchStatement(
+    RC<AstSwitchExpression> cloned(new AstSwitchExpression(
         CloneAstNode(m_expression),
         clonedClauses,
         m_location));
@@ -360,17 +352,19 @@ RC<AstSwitchStatement> AstSwitchStatement::CloneImpl() const
     return cloned;
 }
 
-Tribool AstSwitchStatement::IsTrue() const
+Tribool AstSwitchExpression::IsTrue() const
 {
+    // @TODO : implement IsTrue for AstSwitchExpression
+    // We can figure it out based on the expression and clauses
     return Tribool::Indeterminate();
 }
 
-bool AstSwitchStatement::MayHaveSideEffects() const
+bool AstSwitchExpression::MayHaveSideEffects() const
 {
     return true;
 }
 
-const SymbolType* AstSwitchStatement::GetExprType() const
+const SymbolType* AstSwitchExpression::GetExprType() const
 {
     if (m_exprType == nullptr)
     {
@@ -380,7 +374,7 @@ const SymbolType* AstSwitchStatement::GetExprType() const
     return m_exprType;
 }
 
-bool AstSwitchStatement::IsLiteral() const
+bool AstSwitchExpression::IsLiteral() const
 {
     return false;
 }

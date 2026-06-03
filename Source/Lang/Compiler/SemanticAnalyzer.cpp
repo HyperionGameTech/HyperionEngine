@@ -96,7 +96,7 @@ const SymbolType* SemanticAnalyzer::Helpers::ResolvePlaceholderType(
                         wasMutated = true;
                     }
 
-                    newMembers[memberIndex] = { srcMember.GetName(), const_cast<SymbolType*>(resolvedMemberType), srcMember.GetExpr() };
+                    newMembers[memberIndex] = { srcMember.GetName(), const_cast<SymbolType*>(resolvedMemberType), srcMember.GetExpr(), srcMember.IsConst() };
                 }
             }
 
@@ -122,7 +122,7 @@ const SymbolType* SemanticAnalyzer::Helpers::ResolvePlaceholderType(
                         wasMutated = true;
                     }
 
-                    newStaticMembers[memberIndex] = { srcMember.GetName(), const_cast<SymbolType*>(resolvedMemberType), srcMember.GetExpr() };
+                    newStaticMembers[memberIndex] = { srcMember.GetName(), const_cast<SymbolType*>(resolvedMemberType), srcMember.GetExpr(), srcMember.IsConst() };
                 }
             }
 

@@ -463,10 +463,6 @@ RC<AstStatement> Parser::ParseStatement(
         {
             res = ParseIfStatement();
         }
-        else if (MatchKeyword(Keyword_switch, false))
-        {
-            res = ParseSwitchStatement();
-        }
         else if (MatchKeyword(Keyword_while, false))
         {
             res = ParseWhileLoop();
@@ -685,6 +681,10 @@ RC<AstExpression> Parser::ParseTerm(
     else if (MatchKeyword(Keyword_func))
     {
         expr = ParseFunctionExpression();
+    }
+    else if (MatchKeyword(Keyword_switch, false))
+    {
+        expr = ParseSwitchExpression();
     }
     else if (MatchKeyword(Keyword_typeof))
     {
@@ -1668,7 +1668,7 @@ RC<AstIfStatement> Parser::ParseIfStatement()
     return nullptr;
 }
 
-RC<AstSwitchStatement> Parser::ParseSwitchStatement()
+RC<AstSwitchExpression> Parser::ParseSwitchExpression()
 {
     if (Token token = ExpectKeyword(Keyword_switch, true))
     {
@@ -1847,7 +1847,7 @@ RC<AstSwitchStatement> Parser::ParseSwitchStatement()
             ExpectKeyword(Keyword_end, true);
         }
 
-        return RC<AstSwitchStatement>(new AstSwitchStatement(
+        return RC<AstSwitchExpression>(new AstSwitchExpression(
             expression,
             clauses,
             token.GetLocation()));
