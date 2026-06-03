@@ -2656,10 +2656,8 @@ public:
 
     SCRIPT_INLINE void OpCastDynamic(RegisterIndex dst, RegisterIndex src, uint64 typeNameHash)
     {
-        // dst register may hold ClassRef object, or null for primitive types
         BoxedValue& typeRefValue = *Deref(instance->thread.m_regs[dst]);
 
-        // load value from register
         BoxedValue& value = *Deref(instance->thread.m_regs[src]);
 
         if (value.ToRef().GetPointer() != nullptr)
@@ -2679,7 +2677,6 @@ public:
 
                 if (!cls || !cls->IsDerivedFrom(*classRef))
                 {
-                    // not derived from target class, return null
                     instance->thread.m_regs[dst] = BoxedValue(Handle<ObjectBase>());
 
                     return;
@@ -2687,20 +2684,11 @@ public:
             }
             else
             {
-                // Fallback: check by type name hash
                 const char* typeName = GetTypeString(value);
 
-                if (typeName == nullptr)
+                if (typeName == nullptr || HashCode::GetHashCode(typeName).Value() != typeNameHash)
                 {
-                    instance->thread.m_regs[dst] = BoxedValue(Handle<ObjectBase>());
-
-                    return;
-                }
-
-                const uint64 valueTypeHash = HashCode::GetHashCode(typeName).Value();
-
-                if (valueTypeHash != typeNameHash)
-                {
+                    // Set Null.
                     instance->thread.m_regs[dst] = BoxedValue(Handle<ObjectBase>());
 
                     return;
@@ -2742,7 +2730,6 @@ public:
         }
         else
         {
-            // @TODO Use TypeId (pre-hashed) instead of runtime hash calc!!!
             BoxedValue& value = *Deref(instance->thread.m_regs[src]);
 
             if (value.ToRef().GetPointer() != nullptr)
@@ -2751,9 +2738,7 @@ public:
 
                 if (typeName != nullptr)
                 {
-                    const uint64 valueTypeHash = HashCode::GetHashCode(typeName).Value();
-
-                    if (valueTypeHash == typeNameHash)
+                    if (HashCode::GetHashCode(typeName).Value() == typeNameHash)
                     {
                         result = true;
                     }

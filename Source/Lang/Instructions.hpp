@@ -142,7 +142,7 @@ enum Instructions : Hyperion::uint8
     /* Export a symbol from register value by name */
     EXPORT, // export [% src, u32 len, byte[len] str]
 
-    /* Check if the value in src register is an instance of the type identified by typeRef (preferred) or typeNameHash (fallback for primitives) */
+    /* Check if the value in src register is an instance of the type identified by typeRef (for types with classes) or typeNameHash (FNV1 of scripting type name - for fundamentals) */
     IS_INSTANCE, // isInstance [% dst, % src, % typeRef, u64 typeNameHash]
 
     /* Casting with sub-command */
