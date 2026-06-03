@@ -14,46 +14,53 @@
 #undef INCLUDE_FROM_RHI
 #undef INCLUDE_FROM_RHI_BASE
 
-#include <Rendering/RenderTypes.hpp>
+#include <Core/Constants.hpp>
+#include <Core/Containers/FixedArray.hpp>
+
+#include <Rendering/DX12/DX12Shared.hpp>
 
 namespace Hyperion {
+
+class DX12CommandBuffer;
+class EngineStatGpuTimer;
 
 class DX12GpuTimerBackend final : public GpuTimerBackendBase
 {
 public:
-    DX12GpuTimerBackend() = default;
-    ~DX12GpuTimerBackend() override = default;
+    DX12GpuTimerBackend();
+    ~DX12GpuTimerBackend() override;
 
-    bool Initialize(DeviceBase* device) override
-    {
-        return false;
-    }
+    bool Initialize(DeviceBase* device) override;
+    void Shutdown() override;
 
-    void Shutdown() override
-    {
-    }
+    bool IsSupported() const override;
+    double GetTimestampPeriod() const override;
 
-    bool IsSupported() const override
-    {
-        return false;
-    }
+    void WriteStartTimestamp(DX12CommandBuffer* cmd, EngineStatGpuTimer* timer) override;
+    void WriteStopTimestamp(DX12CommandBuffer* cmd, EngineStatGpuTimer* timer) override;
 
-    double GetTimestampPeriod() const override
-    {
-        return 0.0;
-    }
+    void ResolveFrameResults(uint32 completedFrameIndex) override;
 
-    void WriteStartTimestamp(DX12CommandBuffer* cmd, EngineStatGpuTimer* timer) override
-    {
-    }
+private:
+    double ComputeDeltaMs(uint64 start, uint64 end) const;
 
-    void WriteStopTimestamp(DX12CommandBuffer* cmd, EngineStatGpuTimer* timer) override
-    {
-    }
+    uint32 GetOrCreateQuerySlot(EngineStatGpuTimer* timer);
 
-    void ResolveFrameResults(uint32 completedFrameIndex) override
+    void EnsureResolveRecorded(DX12CommandBuffer* cmd, uint32 frameIndex);
+
+    struct PerFrameState
     {
-    }
+        ComPtr<ID3D12QueryHeap> queryHeap;
+        ComPtr<ID3D12Resource> readbackBuffer;
+        bool resultsPending = false;
+        bool resolveRecorded = false;
+        uint32 timerCount = 0;
+    };
+
+    FixedArray<PerFrameState, NumFramesInFlight> m_frames;
+    uint64 m_timestampFrequency = 0;
+    double m_timestampPeriod = 0.0;
+    bool m_isSupported = false;
 };
 
 } // namespace Hyperion

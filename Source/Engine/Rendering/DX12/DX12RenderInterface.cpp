@@ -465,6 +465,11 @@ RendererResult DX12RenderInterface::Initialize()
 #endif
     }
 
+    if (!m_gpuTimerBackend->Initialize(nullptr))
+    {
+        HYP_LOG(RenderingBackend, Info, "GPU timestamp queries not supported on this device");
+    }
+
     descriptorHeapManager->Initialize();
 
     CheckResultOrReturn(RenderInterface::Initialize());
@@ -614,6 +619,9 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
 
         // HYP_LOG_TEMP("Waited on {} on frame {}", waitForValue, frameIndex);
     }
+
+    // Read back GPU timestamps from the completed frame
+    ResolveGpuFrameResults(frameIndex);
 
     // call frame callbacks after fence is waited on
     if (frame->OnFrameEnd.AnyBound())
@@ -1165,17 +1173,26 @@ void DX12RenderInterface::SubmitAsyncCompute(DX12AsyncCompute* asyncCompute)
 
 void DX12RenderInterface::RecordStartTimestamp(DX12CommandBuffer* cmd, EngineStatGpuTimer* timer)
 {
-    // @TODO
+    if (m_gpuTimerBackend)
+    {
+        m_gpuTimerBackend->WriteStartTimestamp(cmd, timer);
+    }
 }
 
 void DX12RenderInterface::RecordStopTimestamp(DX12CommandBuffer* cmd, EngineStatGpuTimer* timer)
 {
-    // @TODO
+    if (m_gpuTimerBackend)
+    {
+        m_gpuTimerBackend->WriteStopTimestamp(cmd, timer);
+    }
 }
 
 void DX12RenderInterface::ResolveGpuFrameResults(uint32 completedFrameIndex)
 {
-    // @todo:
+    if (m_gpuTimerBackend)
+    {
+        m_gpuTimerBackend->ResolveFrameResults(completedFrameIndex);
+    }
 }
 
 void DX12RenderInterface::ReleaseTransientMemory()
