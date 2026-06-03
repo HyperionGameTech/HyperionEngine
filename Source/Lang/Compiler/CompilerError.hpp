@@ -101,6 +101,9 @@ enum ErrorMessage
     Msg_closure_capture_must_be_parameter,
     Msg_function_arg_substitution_failed,
 
+    /* ITERATION */
+    Msg_invalid_iterable_type,
+
     /* ARRAYS */
     Msg_invalid_subscript,
 

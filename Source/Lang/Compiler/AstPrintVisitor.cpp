@@ -13,6 +13,7 @@
 #include <Lang/Compiler/Ast/AstBlock.hpp>
 #include <Lang/Compiler/Ast/AstIfStatement.hpp>
 #include <Lang/Compiler/Ast/AstForLoop.hpp>
+#include <Lang/Compiler/Ast/AstForEachLoop.hpp>
 #include <Lang/Compiler/Ast/AstWhileLoop.hpp>
 #include <Lang/Compiler/Ast/AstFunctionExpression.hpp>
 #include <Lang/Compiler/Ast/AstClass.hpp>
@@ -219,6 +220,11 @@ WideString AstPrintVisitor::GetNodeDescription(AstStatement* node) const
     if (dynamic_cast<AstForLoop*>(node))
     {
         return L"ForLoop";
+    }
+
+    if (dynamic_cast<AstForEachLoop*>(node))
+    {
+        return L"ForEachLoop";
     }
 
     if (dynamic_cast<AstWhileLoop*>(node))
@@ -509,6 +515,10 @@ Array<AstStatement*> AstPrintVisitor::GetChildNodes(AstStatement* node) const
     {
         children.PushBack(arrayAccess->GetTarget());
         children.PushBack(arrayAccess->GetIndex());
+    }
+    else if (auto* forEachLoop = dynamic_cast<AstForEachLoop*>(node))
+    {
+        // AstForEachLoop doesn't expose getters, but we still list it as a leaf
     }
 
     return children;

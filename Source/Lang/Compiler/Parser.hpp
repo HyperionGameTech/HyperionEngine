@@ -50,6 +50,7 @@
 #include <Lang/Compiler/Ast/AstSwitchExpression.hpp>
 #include <Lang/Compiler/Ast/AstWhileLoop.hpp>
 #include <Lang/Compiler/Ast/AstForLoop.hpp>
+#include <Lang/Compiler/Ast/AstForEachLoop.hpp>
 #include <Lang/Compiler/Ast/AstTryCatch.hpp>
 #include <Lang/Compiler/Ast/AstThrowExpression.hpp>
 #include <Lang/Compiler/Ast/AstTypeSpecifier.hpp>
@@ -119,6 +120,7 @@ public:
     RC<AstSwitchExpression> ParseSwitchExpression();
     RC<AstWhileLoop> ParseWhileLoop();
     RC<AstStatement> ParseForLoop();
+    RC<AstStatement> ParseForEachLoop(const Token& forToken, const RC<AstStatement>& declPart);
     RC<AstStatement> ParseBreakStatement();
     RC<AstStatement> ParseContinueStatement();
     RC<AstTryCatch> ParseTryCatchStatement();

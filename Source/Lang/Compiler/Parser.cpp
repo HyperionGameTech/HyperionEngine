@@ -1912,6 +1912,11 @@ RC<AstStatement> Parser::ParseForLoop()
             }
         }
 
+        if (MatchKeyword(Keyword_in, false))
+        {
+            return ParseForEachLoop(token, declPart);
+        }
+
         if (!Expect(TK_SEMICOLON, true))
         {
             return nullptr;
@@ -1966,6 +1971,78 @@ RC<AstStatement> Parser::ParseForLoop()
     }
 
     return nullptr;
+}
+
+static RC<AstVariableDeclaration> MakeVarDeclFromExpression(
+    const RC<AstStatement>& stmt,
+    const SourceLocation& location)
+{
+    if (dynamic_cast<AstVariableDeclaration*>(stmt.Get()))
+    {
+        return stmt.CastUnchecked<AstVariableDeclaration>();
+    }
+
+    if (auto* variable = dynamic_cast<AstVariable*>(stmt.Get()))
+    {
+        return RC<AstVariableDeclaration>(new AstVariableDeclaration(
+            variable->GetName(),
+            nullptr,
+            nullptr,
+            IdentifierFlags::NONE,
+            location));
+    }
+
+    return nullptr;
+}
+
+RC<AstStatement> Parser::ParseForEachLoop(const Token& forToken, const RC<AstStatement>& declPart)
+{
+    // We've already consumed: for ( <declPart>
+    // Now we need to consume: in <iterable> ) <body>
+
+    if (!ExpectKeyword(Keyword_in, true))
+    {
+        return nullptr;
+    }
+
+    RC<AstVariableDeclaration> varDecl = MakeVarDeclFromExpression(declPart, forToken.GetLocation());
+
+    if (varDecl == nullptr)
+    {
+        m_compilationUnit->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_expected_identifier,
+            forToken.GetLocation()));
+
+        return nullptr;
+    }
+
+    RC<AstExpression> iterable;
+    if (!(iterable = ParseExpression()))
+    {
+        return nullptr;
+    }
+
+    if (!Expect(TK_CLOSE_PARENTH, true))
+    {
+        return nullptr;
+    }
+
+    SkipStatementTerminators();
+
+    const bool useBraces = !Match(TK_OPEN_BRACE, false).Empty();
+
+    RC<AstBlock> block;
+    if (!(block = ParseBlock(/* requireBraces */ useBraces, /* skipEnd */ false)))
+    {
+        return nullptr;
+    }
+
+    return RC<AstForEachLoop>(new AstForEachLoop(
+        varDecl,
+        iterable,
+        block,
+        forToken.GetLocation()));
 }
 
 RC<AstStatement> Parser::ParseBreakStatement()

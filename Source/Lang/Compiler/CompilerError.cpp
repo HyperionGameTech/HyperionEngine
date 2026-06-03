@@ -79,6 +79,7 @@ const TMap<ErrorMessage, String> CompilerError::errorMessageStrings {
     { Msg_member_not_a_method, "Data member '%' is not a method" },
     { Msg_closure_capture_must_be_parameter, "'%' was declared in a function above this one, and must be passed as a parameter to be captured" },
     { Msg_function_arg_substitution_failed, "Argument resolution failed. This could be due to a previous error encountered while analyzing" },
+    { Msg_invalid_iterable_type, "Type '%' is not iterable (only arrays are supported in 'for-in' loops)" },
     { Msg_invalid_subscript, "Subscript operator invalid on type '%'" },
     { Msg_invalid_type_specifier, "Invalid type specifier" },
     { Msg_undefined_type, "'%' is not a built-in or user-defined type" },
