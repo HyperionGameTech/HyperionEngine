@@ -28,7 +28,7 @@
     </Expand>
   </Type>
 
-  <Type Name="Hyperion::containers::Array&lt;*,*&gt;">
+  <Type Name="Hyperion::containers::TFatArray&lt;*,*&gt;">
     <DisplayString>{{ Size={m_size - m_startOffset} Dynamic={m_allocation.isDynamic} }}</DisplayString>
 
     <Expand>
@@ -61,6 +61,21 @@
           <Exec>idx++</Exec>
         </Loop>
       </CustomListItems>
+    </Expand>
+  </Type>
+
+
+  <Type Name="Hyperion::containers::TSlimArray&lt;*,*&gt;">
+    <DisplayString>{{ Size={size} }}</DisplayString>
+    <DisplayString>{($T1 *)data}</DisplayString>
+    <Expand>
+      <Item Name="[Count]">(size)</Item>
+      <Item Name="[Capacity]">(capacity)</Item>
+
+      <ArrayItems>
+        <Size>(size)</Size>
+        <ValuePointer>(($T1 *)data)</ValuePointer>
+      </ArrayItems>
     </Expand>
   </Type>
 
@@ -417,38 +432,32 @@
 
         <Variable Name="found" InitialValue="false"/>
 
-        <Variable Name="hc" InitialValue="this-&gt;hashCode"/>
+        <Variable Name="hc" InitialValue="this-&amp;gt;hashCode"/>
         <Variable Name="registry" InitialValue="Name::s_registry"/>
 
-        <Variable Name="bucketPtr" InitialValue="registry-&gt;g_nullBucket" />
-        <Variable Name="currentHead" InitialValue="registry-&gt;g_nullNode" />
+        <Variable Name="bucketPtr" InitialValue="registry-&amp;gt;g_nullBucket" />
+        <Variable Name="currentHead" InitialValue="registry-&amp;gt;g_nullNode" />
 
-        <Exec Condition="registry-&gt;m_nameMap.m_buckets.m_allocation.allocationType == 1">bucketPtr = (Hyperion::NameRegistry::Bucket* )(&amp;(registry-&gt;m_nameMap.m_buckets.m_allocation.buffer))</Exec>
-        <Exec Condition="registry-&gt;m_nameMap.m_buckets.m_allocation.allocationType == 2 &amp;&amp; registry-&gt;m_nameMap.m_buckets.m_allocation.isDynamic == true">bucketPtr = (Hyperion::NameRegistry::Bucket* )(&amp;(registry-&gt;m_nameMap.m_buckets.m_allocation.buffer))</Exec>
-        <Exec Condition="registry-&gt;m_nameMap.m_buckets.m_allocation.allocationType == 2 &amp;&amp; registry-&gt;m_nameMap.m_buckets.m_allocation.isDynamic == false">bucketPtr = (Hyperion::NameRegistry::Bucket* )(&amp;(registry-&gt;m_nameMap.m_buckets.m_allocation.storage.dataBuffer[0]))</Exec>
-
-        <Exec Condition="registry-&gt;m_nameMap.m_buckets.m_allocation.allocationType == 1">bucketPtr = (Hyperion::NameRegistry::Bucket* )(registry-&gt;m_nameMap.m_buckets.m_allocation.buffer + registry-&gt;m_nameMap.m_buckets.m_startOffset)</Exec>
-        <Exec Condition="registry-&gt;m_nameMap.m_buckets.m_allocation.allocationType == 2 &amp;&amp; registry-&gt;m_nameMap.m_buckets.m_allocation.isDynamic == true">bucketPtr = (Hyperion::NameRegistry::Bucket* )(registry-&gt;m_nameMap.m_buckets.m_allocation.buffer + registry-&gt;m_nameMap.m_buckets.m_startOffset)</Exec>
-        <Exec Condition="registry-&gt;m_nameMap.m_buckets.m_allocation.allocationType == 2 &amp;&amp; registry-&gt;m_nameMap.m_buckets.m_allocation.isDynamic == false">bucketPtr = (Hyperion::NameRegistry::Bucket* )(&amp;registry-&gt;m_nameMap.m_buckets.m_allocation.storage.dataBuffer[0] + registry-&gt;m_nameMap.m_buckets.m_startOffset)</Exec>
+        <Exec>bucketPtr = (Hyperion::NameRegistry::Bucket* )(registry-&amp;gt;m_nameMap.m_buckets.data)</Exec>
 
         <Loop>
-          <Break Condition="found == true || bucketIndex == (registry-&gt;m_nameMap.m_buckets.m_size - registry-&gt;m_nameMap.m_buckets.m_startOffset)" />
+          <Break Condition="found == true || bucketIndex == registry-&amp;gt;m_nameMap.m_buckets.size" />
 
-          <Exec>currentHead = bucketPtr-&gt;head</Exec>
+          <Exec>currentHead = bucketPtr-&amp;gt;head</Exec>
 
-          <If Condition="found == false &amp;&amp; currentHead != nullptr">
+          <If Condition="found == false &amp;amp;&amp;amp; currentHead != nullptr">
            <Loop>
               <Break Condition="found == true || currentHead == nullptr" />
-              <If Condition="(unsigned __int64)hashCode == (unsigned __int64)currentHead-&gt;value.first">
-                <If Condition="currentHead-&gt;value.second.first.m_allocation.allocationType == 2 &amp;&amp; currentHead-&gt;value.second.first.m_allocation.isDynamic == false">
-                  <Item Name="StringValue">(char*)&amp;(currentHead-&gt;value.second.first.m_allocation.storage.dataBuffer + currentHead-&gt;value.second.first.m_startOffset)[0],s</Item>
+              <If Condition="(unsigned __int64)hashCode == (unsigned __int64)currentHead-&amp;gt;value.first">
+                <If Condition="currentHead-&amp;gt;value.second.first.m_allocation.allocationType == 2 &amp;amp;&amp;amp; currentHead-&amp;gt;value.second.first.m_allocation.isDynamic == false">
+                  <Item Name="StringValue">(char*)&amp;amp;(currentHead-&amp;gt;value.second.first.m_allocation.storage.dataBuffer + currentHead-&amp;gt;value.second.first.m_startOffset)[0],s</Item>
                 </If>
-                <If Condition="currentHead-&gt;value.second.first.m_allocation.allocationType == 1 || currentHead-&gt;value.second.first.m_allocation.isDynamic == true">
-                  <Item Name="StringValue">&amp;((char*)currentHead-&gt;value.second.first.m_allocation.buffer + currentHead-&gt;value.second.first.m_startOffset)[0],s</Item>
+                <If Condition="currentHead-&amp;gt;value.second.first.m_allocation.allocationType == 1 || currentHead-&amp;gt;value.second.first.m_allocation.isDynamic == true">
+                  <Item Name="StringValue">&amp;amp;((char*)currentHead-&amp;gt;value.second.first.m_allocation.buffer + currentHead-&amp;gt;value.second.first.m_startOffset)[0],s</Item>
                 </If>
                 <Exec>found = true</Exec>
               </If>
-              <Exec>currentHead = currentHead-&gt;next</Exec>
+              <Exec>currentHead = currentHead-&amp;gt;next</Exec>
             </Loop>
           </If>
 

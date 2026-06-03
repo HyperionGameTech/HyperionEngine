@@ -1130,7 +1130,8 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
     if (data.noiseTexture)
         cr << SetShaderUniform(6, "NoiseMap"_sh, RI.textureViewCache->GetOrCreate(data.noiseTexture));
 
-    cr << SetShaderUniform(7, "DepthPyramidTexture"_sh, dpd->depthPyramidRenderer->GetResultImageView());
+    //dpd->depthPyramidRenderer->GetResultImageView()
+    cr << SetShaderUniform(7, "DepthPyramidTexture"_sh, framebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
 
     // Set constants
     FogVolumeShaderData shaderData = proxy->bufferData;
@@ -3376,11 +3377,8 @@ void DeferredPass::GenerateMipChain(Frame* frame, const RenderSetup& rs, RenderC
         // End rendering to this mip
         cr << SetCurrentFramebuffer(nullptr);
 
-        // Transition the written mip to shader resource for the next iteration
-        cr << InsertBarrier(
-            mipChainTexture->GetGpuImage(),
-            RS_SHADER_RESOURCE,
-            ImageSubResource { .baseMipLevel = mipLevel, .numLevels = 1, .baseArrayLayer = 0, .numLayers = 1 });
+        // Transition entire image to shader resource so the next iteration can read the previous mip
+        cr << InsertBarrier(mipChainTexture->GetGpuImage(), RS_SHADER_RESOURCE);
     }
 
     // Reset depth state

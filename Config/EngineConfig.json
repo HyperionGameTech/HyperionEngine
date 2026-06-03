@@ -15,6 +15,7 @@
     "IndirectRendering": true,
     "DepthPrepass": true,
     "ParallelCollection": true,
+    "TargetFrameRate": 30,
     "SSR": {
       "Enabled": true,
       "Quality": 2,
@@ -52,7 +53,7 @@
   },
   "System": {
     "SelectedGpu": {
-      "Index": 1
+      "Index": 0
     }
   },
   "Baker": {

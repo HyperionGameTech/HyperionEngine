@@ -484,6 +484,42 @@ void DX12RenderInterface::Shutdown()
 {
     HYP_LOG(RenderingBackend, Info, "Destroying DX12 render backend...");
 
+    // Flush all GPU work
+    for (uint32 queueIndex = 0; queueIndex <= uint32(D3D12_COMMAND_LIST_TYPE_COPY); queueIndex++)
+    {
+        const DX12QueueData* queueData = GetQueueData(D3D12_COMMAND_LIST_TYPE(queueIndex));
+
+        if (queueData == nullptr || queueData->commandQueue == nullptr)
+        {
+            continue;
+        }
+
+        ComPtr<ID3D12Fence> flushFence;
+        HRESULT hr = m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&flushFence));
+
+        if (FAILED(hr))
+        {
+            continue;
+        }
+
+        const HANDLE flushEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+
+        if (flushEvent != nullptr)
+        {
+            constexpr uint64 fenceValue = 1;
+
+            queueData->commandQueue->Signal(flushFence.Get(), fenceValue);
+
+            if (flushFence->GetCompletedValue() < fenceValue)
+            {
+                flushFence->SetEventOnCompletion(fenceValue, flushEvent);
+                WaitForSingleObject(flushEvent, INFINITE);
+            }
+
+            CloseHandle(flushEvent);
+        }
+    }
+
     for (DX12AsyncCompute* ac : m_asyncComputePool)
     {
         delete ac;

@@ -308,6 +308,20 @@ private:
     bool m_onlyStencil : 1;
 };
 
+class InsertUAVBarrier final : public CmdBase
+{
+public:
+    explicit InsertUAVBarrier(GpuImage* image)
+        : m_image(image)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    GpuImage* m_image;
+};
+
 class Blit final : public CmdBase
 {
 public:

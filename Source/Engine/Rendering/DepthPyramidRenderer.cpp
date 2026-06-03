@@ -189,6 +189,8 @@ void DepthPyramidRenderer::Render(Frame* frame)
         frame->cr << SetShaderUniform(3, "DepthPyramidSampler"_sh, depthPyramidSampler);
 
         frame->cr << DispatchCompute({ (mipWidth + 7) / 8, (mipHeight + 7) / 8, 1 });
+
+        frame->cr << InsertUAVBarrier(m_depthPyramid.Get());
     }
 
     frame->cr << InsertBarrier(m_depthPyramid, RS_SHADER_RESOURCE);

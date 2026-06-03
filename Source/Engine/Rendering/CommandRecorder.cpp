@@ -841,6 +841,18 @@ void InsertBarrier::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 
 #pragma endregion InsertBarrier
 
+#pragma region InsertUAVBarrier
+
+void InsertUAVBarrier::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+{
+    InsertUAVBarrier* cmdCasted = static_cast<InsertUAVBarrier*>(cmd);
+
+    AssertDebug(cmdCasted->m_image != nullptr);
+    cmdCasted->m_image->InsertUAVBarrier(commandBuffer);
+}
+
+#pragma endregion InsertUAVBarrier
+
 #pragma region SetCurrentFramebuffer
 
 thread_local Framebuffer* s_currentFramebuffer;
