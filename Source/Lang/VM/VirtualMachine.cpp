@@ -2680,7 +2680,8 @@ public:
 
             if (!cls || !cls->IsDerivedFrom(classRef))
             {
-                vm->ThrowException(instance, Exception::InvalidCastException(GetTypeString(value), classRef->GetName().LookupString()));
+                // not derived from target class, return null
+                instance->thread.m_regs[dst] = BoxedValue(Handle<ObjectBase>());
 
                 return;
             }
