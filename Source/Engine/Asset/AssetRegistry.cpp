@@ -1639,12 +1639,12 @@ void AssetRegistry::Update()
        // @TODO
     }
 
-    if (!m_saveBlobCacheTimer.Waiting())
-    {
-        m_saveBlobCacheTimer.NextTick();
+    //if (!m_saveBlobCacheTimer.Waiting())
+    //{
+    //    m_saveBlobCacheTimer.NextTick();
 
-        SaveBlobCache(/* async */ true);
-    }
+    //    SaveBlobCache(/* async */ true);
+    //}
 #endif
 
     if (m_scheduler->NumEnqueued() > 0)

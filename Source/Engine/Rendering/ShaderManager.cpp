@@ -776,11 +776,6 @@ public:
 
         for (CompileShaderRequest& request : requests)
         {
-            if (!request.entry->IsLoaded())
-            {
-                continue;
-            }
-
             request.entry->threadSignal.Reset();
 
             CompilingShaderScope compilingShaderScope(

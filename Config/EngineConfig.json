@@ -12,9 +12,10 @@
     "RayTracedReflections": false,
     "RayTracedGI": false,
     "RayTracingEnabled": false,
-    "IndirectRendering": true,
-    "DepthPrepass": true,
+    "IndirectRendering": false,
+    "DepthPrepass": false,
     "ParallelCollection": true,
+    "TargetFrameRate": 30,
     "SSR": {
       "Enabled": true,
       "Quality": 2,

@@ -1139,6 +1139,9 @@ void World::AddView(View* view)
 
     view->AddRef();
 
+    // Mark all resources used dirty upon add to ensure proper state
+    view->m_markAllAsDirty = true;
+
     m_views.PushBack(view);
 
     if (m_isInitialized)

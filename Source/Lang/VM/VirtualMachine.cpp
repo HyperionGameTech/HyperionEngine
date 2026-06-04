@@ -4027,7 +4027,7 @@ void VirtualMachine::Invoke(ScriptInstance* instance, BoxedValue&& value, uint8 
     ThrowException(instance, Exception(buffer));
 }
 
-void VirtualMachine::InvokeNow(ScriptInstance* instance, BoxedValue&& value, uint8 nargs)
+void VirtualMachine::InvokeImmediate(ScriptInstance* instance, BoxedValue&& value, uint8 nargs)
 {
     Script_ExecutionThread* thread = &instance->thread;
     BytecodeStream* bs = &instance->stream;

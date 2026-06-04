@@ -298,6 +298,8 @@ protected:
     ProcRef<void(RenderProxyList&)> m_overrideCollectFunctor;
 
     TaskBatch* m_collectionTaskBatch;
+
+    bool m_markAllAsDirty = false;
 };
 
 } // namespace Hyperion

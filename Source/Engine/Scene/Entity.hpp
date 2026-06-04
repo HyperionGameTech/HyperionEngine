@@ -132,7 +132,7 @@ protected:
     virtual void OnTagAdded(EntityTag tag);
     virtual void OnTagRemoved(EntityTag tag);
 
-    virtual void SetScene(Scene* scene) override;
+    virtual void SetScene_Internal(Scene* scene, bool moveToDetached) override;
 
     virtual void OnTransformUpdated() override;
     virtual void OnMobilityChanged(bool isStatic) override;

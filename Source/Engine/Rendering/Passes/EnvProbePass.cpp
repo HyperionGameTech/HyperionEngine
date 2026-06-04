@@ -654,7 +654,10 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
     AssertDebug(!envProbe->IsBaked());
 
     View* firstView = envProbe->GetView(0);
-    Assert(firstView != nullptr);
+    if (firstView == nullptr)
+    {
+        return;
+    }
 
     EnvProbePassData* pd = static_cast<EnvProbePassData*>(FetchViewPassData(firstView));
     AssertDebug(pd != nullptr);

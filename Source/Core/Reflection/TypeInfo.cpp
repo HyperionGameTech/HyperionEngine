@@ -10,11 +10,17 @@
 #include <Core/Reflection/TypeInfo.hpp>
 
 #include <Core/Threading/Mutex.hpp>
+#include <Core/Threading/ThreadLocalStorage.hpp>
+#include <Core/Threading/Thread.hpp>
+#include <Core/Threading/Threads.hpp>
+#include <Core/Threading/Util/ThreadId.hpp>
 
 #include <Core/Containers/Map.hpp>
 
 #include <Core/Memory/Pool/Pool.hpp>
 #include <Core/Memory/Allocator/SlabAllocator.hpp>
+
+//#define HYP_TYPE_INFO_USE_TLS 1
 
 namespace Hyperion {
 namespace utilities {
@@ -59,6 +65,44 @@ static SlabAllocator& GetTypeInfoAllocator()
     return *s_typeInfoAllocator;
 }
 
+#if defined(HYP_TYPE_INFO_USE_TLS) && HYP_TYPE_INFO_USE_TLS
+
+using ThreadLocalCacheMap = TMap<TypeId, TypeInfo*>;
+
+static ThreadLocalCacheMap& GetDummyThreadLocalCache()
+{
+    static ThreadLocalCacheMap s_dummy;
+    return s_dummy;
+}
+
+thread_local ThreadLocalCacheMap* s_typeInfoThreadLocalCache;
+
+static void InitTypeInfoThreadLocalCache()
+{
+    ThreadBase* thisThread = CurrentThreadObject();
+
+    if (thisThread)
+    {
+        s_typeInfoThreadLocalCache = thisThread->GetTLS().Allocate<ThreadLocalCacheMap>();
+
+        if (s_typeInfoThreadLocalCache)
+        {
+            new (s_typeInfoThreadLocalCache) ThreadLocalCacheMap;
+
+            thisThread->AddOnExitCallback([]()
+                {
+                    s_typeInfoThreadLocalCache->~ThreadLocalCacheMap();
+                });
+
+            return;
+        }
+    }
+
+    s_typeInfoThreadLocalCache = &GetDummyThreadLocalCache();
+}
+
+#endif
+
 CORE_API TypeInfo* TypeInfo_Alloc(
     TypeId typeId, uint16 typeSize, uint16 typeAlignment,
     Mutex::Guard* outPGuard)
@@ -75,6 +119,17 @@ CORE_API TypeInfo* TypeInfo_Alloc(
     const auto it = typeAttributeCache.Find(typeId);
     if (it != typeAttributeCache.End())
     {
+#if defined(HYP_TYPE_INFO_USE_TLS) && HYP_TYPE_INFO_USE_TLS
+        if (HYP_UNLIKELY(!s_typeInfoThreadLocalCache))
+        {
+            InitTypeInfoThreadLocalCache();
+        }
+
+        if (s_typeInfoThreadLocalCache && s_typeInfoThreadLocalCache != &GetDummyThreadLocalCache())
+        {
+            (*s_typeInfoThreadLocalCache)[typeId] = it->second;
+        }
+#endif
         return it->second;
     }
 
@@ -83,12 +138,37 @@ CORE_API TypeInfo* TypeInfo_Alloc(
 
     typeAttributeCache.Insert({ typeId, pTypeInfo });
 
+#if defined(HYP_TYPE_INFO_USE_TLS) && HYP_TYPE_INFO_USE_TLS
+    if (HYP_UNLIKELY(!s_typeInfoThreadLocalCache))
+    {
+        InitTypeInfoThreadLocalCache();
+    }
+
+    if (s_typeInfoThreadLocalCache && s_typeInfoThreadLocalCache != &GetDummyThreadLocalCache())
+    {
+        (*s_typeInfoThreadLocalCache)[typeId] = pTypeInfo;
+    }
+#endif
+
     return pTypeInfo;
 }
 
 CORE_API TypeInfo* TypeInfo_FetchFromCache(TypeId typeId, uint16 size, uint16 alignment)
 {
     AssertDebug(typeId != TypeId::Void(), "Cannot allocate TypeInfo for void type");
+
+#if defined(HYP_TYPE_INFO_USE_TLS) && HYP_TYPE_INFO_USE_TLS
+    if (HYP_UNLIKELY(!s_typeInfoThreadLocalCache))
+    {
+        InitTypeInfoThreadLocalCache();
+    }
+
+    auto tlsIt = s_typeInfoThreadLocalCache->Find(typeId);
+    if (tlsIt != s_typeInfoThreadLocalCache->End())
+    {
+        return tlsIt->second;
+    }
+#endif
 
     Mutex::Guard guard(GetTypeInfoCacheMutex());
 
@@ -97,6 +177,12 @@ CORE_API TypeInfo* TypeInfo_FetchFromCache(TypeId typeId, uint16 size, uint16 al
     const auto it = typeAttributeCache.Find(typeId);
     if (it != typeAttributeCache.End())
     {
+#if defined(HYP_TYPE_INFO_USE_TLS) && HYP_TYPE_INFO_USE_TLS
+        if (s_typeInfoThreadLocalCache && s_typeInfoThreadLocalCache != &GetDummyThreadLocalCache())
+        {
+            (*s_typeInfoThreadLocalCache)[typeId] = it->second;
+        }
+#endif
         return it->second;
     }
 
@@ -267,6 +353,23 @@ const TypeInfo& TypeInfo::ForClass(const Class* cls)
     // we don't want to cache dynamic classes as they can be destroyed at runtime
     AssertDebug(!cls->IsDynamic());
 
+#if defined(HYP_TYPE_INFO_USE_TLS) && HYP_TYPE_INFO_USE_TLS
+    if (HYP_UNLIKELY(!s_typeInfoThreadLocalCache))
+    {
+        InitTypeInfoThreadLocalCache();
+    }
+
+    auto tlsIt = s_typeInfoThreadLocalCache->Find(cls->GetTypeId());
+    if (tlsIt != s_typeInfoThreadLocalCache->End())
+    {
+        if (s_typeInfoSystemInitialized) // don't check during static initialization
+        {
+            AssertDebug(tlsIt->second != nullptr && tlsIt->second->GetClass() == cls);
+        }
+        return *tlsIt->second;
+    }
+#endif
+
     // look in our cache
     Mutex::Guard guard(GetTypeInfoCacheMutex());
 
@@ -277,6 +380,13 @@ const TypeInfo& TypeInfo::ForClass(const Class* cls)
         {
             AssertDebug(it->second != nullptr && it->second->GetClass() == cls);
         }
+
+#if defined(HYP_TYPE_INFO_USE_TLS) && HYP_TYPE_INFO_USE_TLS
+        if (s_typeInfoThreadLocalCache && s_typeInfoThreadLocalCache != &GetDummyThreadLocalCache())
+        {
+            (*s_typeInfoThreadLocalCache)[cls->GetTypeId()] = it->second;
+        }
+#endif
         return *it->second;
     }
 

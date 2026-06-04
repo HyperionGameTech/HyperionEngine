@@ -109,25 +109,6 @@ void Scene::Shutdown()
     m_octree.SetEntityManager(nullptr);
     m_octree.Clear();
 
-    if (m_root.IsValid())
-    {
-        if (m_ownerThreadId.IsValid() && !IsOnThread(m_ownerThreadId))
-        {
-            Task<void> task = GetThreadById(m_ownerThreadId)->GetScheduler().Enqueue([&node = m_root]()
-                {
-                    node->SetScene(nullptr);
-                });
-
-            task.Await();
-        }
-        else
-        {
-            m_root->SetScene(nullptr);
-        }
-
-        m_root.Reset();
-    }
-
     // Move so destruction of components can check GetEntityManager() returns nullptr
     if (Handle<EntityManager> entityManager = std::move(m_entityManager); entityManager.IsValid())
     {
@@ -151,7 +132,26 @@ void Scene::Shutdown()
         entityManager.Reset();
     }
 
-    m_root.Reset();
+    if (m_root.IsValid())
+    {
+        // @NOTE moveToDetached is false so that we don't keep the Nodes in memory past when we'd expect them to have been destroyed.
+
+        if (m_ownerThreadId.IsValid() && !IsOnThread(m_ownerThreadId))
+        {
+            Task<void> task = GetThreadById(m_ownerThreadId)->GetScheduler().Enqueue([&node = m_root]()
+                {
+                    node->SetScene_Internal(nullptr, /* moveToDetached */ false);
+                });
+
+            task.Await();
+        }
+        else
+        {
+            m_root->SetScene_Internal(nullptr, /* moveToDetached */ false);
+        }
+
+        m_root.Reset();
+    }
 
     m_world = nullptr;
 }

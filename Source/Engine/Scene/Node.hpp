@@ -576,10 +576,10 @@ public:
         return m_scene;
     }
 
-    /*! \brief Set the Scene this Node and its children are attached to.
+    /*! \brief Set the Scene this Node and its children are attached to. If nullptr is provided, the Node will be moved to a detached Scene.
      *  \internal Not intended to be used in user code. Use Remove() instead. */
     HYP_METHOD(Property = "Scene", Transient)
-    virtual void SetScene(Scene* scene);
+    void SetScene(Scene* scene);
 
     /*! \returns A pointer to the World this Node and its children are attached to. May be null. */
     HYP_METHOD(Property = "World", Transient, EditHide)
@@ -898,6 +898,8 @@ protected:
 
     virtual void OnTransformUpdated();
     virtual void OnMobilityChanged(bool isStatic);
+
+    virtual void SetScene_Internal(Scene* scene, bool moveToDetached);
 
     HYP_METHOD(Property = "Children", NoScriptBindings, Serialize)
     void SetChildren(const NodeList& children); // use setter so we can manage parent pointers

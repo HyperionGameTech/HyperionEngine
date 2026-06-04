@@ -368,7 +368,7 @@ SCRIPT_API BoxedValue CallFunctionArgV(ScriptInstance* instance, const BoxedValu
     data.type = ScriptObjectData::Type::Reference;
     data.valueRef = const_cast<BoxedValue*>(&value);
 
-    s_impl.vm->InvokeNow(instance, MakeValue(data), numArgs);
+    s_impl.vm->InvokeImmediate(instance, MakeValue(data), numArgs);
 
     if (numArgs != 0)
     {

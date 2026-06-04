@@ -243,22 +243,18 @@ Node* Node::FindParentWithName(UTF8StringView name) const
 
 void Node::SetScene(Scene* scene)
 {
-    if (!scene)
+    SetScene_Internal(scene, /* moveToDetached */ true);
+}
+
+void Node::SetScene_Internal(Scene* scene, bool moveToDetached)
+{
+    if (moveToDetached && !scene)
     {
         scene = GetDetachedSceneForCurrentThread();
     }
 
-    Assert(scene != nullptr);
-
     if (m_scene != scene)
     {
-        Scene* previousScene = m_scene;
-
-        AssertDebug(
-            previousScene != nullptr,
-            "Previous scene is null when setting new scene for Node {} - should be set to detached world scene by default",
-            GetName());
-
         m_scene = scene;
 
         MarkDirty();
@@ -270,7 +266,7 @@ void Node::SetScene(Scene* scene)
                 continue;
             }
 
-            child->SetScene(m_scene);
+            child->SetScene_Internal(m_scene, moveToDetached);
         }
     }
 }
