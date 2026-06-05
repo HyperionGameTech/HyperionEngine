@@ -3031,312 +3031,311 @@ bool ShaderCompiler::CompileBundle(
     
     TSet<Shader*> newShaders;
 
-    // compile shader with each permutation of properties
-    ForEachPermutation(
-        permsToCompile,
-        [&](const ShaderVariantPerms& perm)
+    auto CompilePermFunctor = [&](const ShaderVariantPerms& perm)
+    {
+        HYP_LOG(ShaderCompiler, Verbose, "Compiling shader {}\n\tProperties: {}\n\tAttributes: {}",
+            decl.name,
+            perm.ToString(),
+            perm.GetRequiredVertexAttributes().ToString());
+
+        // Get the target backend and platform for this specific permutation
+        const Optional<ShaderCompileTargetBackend> targetBackend = GetTargetBackendFromPerm(perm);
+        const Optional<ShaderCompileTargetPlatform> targetPlatform = GetTargetPlatformFromPerm(perm);
+
+        if (!targetBackend.HasValue() || !targetPlatform.HasValue())
         {
-            HYP_LOG(ShaderCompiler, Verbose, "Compiling shader {}\n\tProperties: {}\n\tAttributes: {}",
-                decl.name,
-                perm.ToString(),
-                perm.GetRequiredVertexAttributes().ToString());
+            HYP_LOG(ShaderCompiler, Warning, "No target backend or platform for shader {}. Target backend: {}, target platform: {}", decl.name,
+                targetBackend.HasValue() ? *EnumToString(*targetBackend) : "<none>",
+                targetPlatform.HasValue() ? *EnumToString(*targetPlatform) : "<none>");
+            return;
+        }
 
-            // Get the target backend and platform for this specific permutation
-            const Optional<ShaderCompileTargetBackend> targetBackend = GetTargetBackendFromPerm(perm);
-            const Optional<ShaderCompileTargetPlatform> targetPlatform = GetTargetPlatformFromPerm(perm);
+        // Determine if we're compiling for Vulkan or DX12 for this specific variant
+        const bool isVulkan = targetBackend.Get() == ShaderCompileTargetBackend::Vulkan;
+        const bool isDX12 = targetBackend.Get() == ShaderCompileTargetBackend::DX12;
 
-            if (!targetBackend.HasValue() || !targetPlatform.HasValue())
-            {
-                HYP_LOG(ShaderCompiler, Warning, "No target backend or platform for shader {}. Target backend: {}, target platform: {}", decl.name,
-                    targetBackend.HasValue() ? *EnumToString(*targetBackend) : "<none>",
-                    targetPlatform.HasValue() ? *EnumToString(*targetPlatform) : "<none>");
-                return;
-            }
+        // DX12 is exclusive to Windows; skip invalid platform+backend combinations
+        if (isDX12 && targetPlatform.Get() != ShaderCompileTargetPlatform::Windows)
+        {
+            HYP_LOG(ShaderCompiler, Verbose, "Skipping DX12 shader variant for non-Windows platform: {}", perm.ToString());
+            return;
+        }
 
-            // Determine if we're compiling for Vulkan or DX12 for this specific variant
-            const bool isVulkan = targetBackend.Get() == ShaderCompileTargetBackend::Vulkan;
-            const bool isDX12 = targetBackend.Get() == ShaderCompileTargetBackend::DX12;
+        HashCode permHashCode = perm.GetPropertySetHashCode();
+        permHashCode.Add(perm.GetRequiredVertexAttributes().GetHashCode());
 
-            // DX12 is exclusive to Windows; skip invalid platform+backend combinations
-            if (isDX12 && targetPlatform.Get() != ShaderCompileTargetPlatform::Windows)
-            {
-                HYP_LOG(ShaderCompiler, Verbose, "Skipping DX12 shader variant for non-Windows platform: {}", perm.ToString());
-                return;
-            }
+        Handle<Shader> shader = MakeHandle<Shader>(NAME_FMT("{}_{}", decl.name, permHashCode.Value()));
+        shader->baseName = decl.name;
 
-            HashCode permHashCode = perm.GetPropertySetHashCode();
-            permHashCode.Add(perm.GetRequiredVertexAttributes().GetHashCode());
+        shader->inputLayout = { perm.GetRequiredVertexAttributes().flagMask };
 
-            Handle<Shader> shader = MakeHandle<Shader>(NAME_FMT("{}_{}", decl.name, permHashCode.Value()));
-            shader->baseName = decl.name;
+        uint32 numErrored = 0;
+        uint32 numCompiled = 0;
 
-            shader->inputLayout = { perm.GetRequiredVertexAttributes().flagMask };
+        Array<DescriptorUsageSet> descriptorUsageSetsPerFile;
+        descriptorUsageSetsPerFile.Resize(loadedSourceFiles.Size());
 
-            uint32 numErrored = 0;
-            uint32 numCompiled = 0;
+        Array<String> processedSources;
+        processedSources.Resize(loadedSourceFiles.Size());
 
-            Array<DescriptorUsageSet> descriptorUsageSetsPerFile;
-            descriptorUsageSetsPerFile.Resize(loadedSourceFiles.Size());
+        Array<Pair<FilePath, bool /* skip */>> filepaths;
+        filepaths.Resize(loadedSourceFiles.Size());
 
-            Array<String> processedSources;
-            processedSources.Resize(loadedSourceFiles.Size());
+        // load each source file, check if the output file exists, and if it
+        // does, check if it is older than the source file if it is, we can
+        // reuse the file. otherwise, we process the source and prepare it for
+        // compilation
+        for (size_t index = 0; index < loadedSourceFiles.Size(); index++)
+        {
+            const LoadedSourceFile& item = loadedSourceFiles[index];
 
-            Array<Pair<FilePath, bool /* skip */>> filepaths;
-            filepaths.Resize(loadedSourceFiles.Size());
+            // check if a file exists w/ same hash
+            const FilePath outputFilepath = item.GetOutputFilepath(*shader, *targetBackend, *targetPlatform);
 
-            // load each source file, check if the output file exists, and if it
-            // does, check if it is older than the source file if it is, we can
-            // reuse the file. otherwise, we process the source and prepare it for
-            // compilation
-            for (size_t index = 0; index < loadedSourceFiles.Size(); index++)
-            {
-                const LoadedSourceFile& item = loadedSourceFiles[index];
+            filepaths[index] = { outputFilepath, false };
 
-                // check if a file exists w/ same hash
-                const FilePath outputFilepath = item.GetOutputFilepath(*shader, *targetBackend, *targetPlatform);
+            DescriptorUsageSet& descriptorUsages = descriptorUsageSetsPerFile[index];
 
-                filepaths[index] = { outputFilepath, false };
+            Array<String> errorMessages;
 
-                DescriptorUsageSet& descriptorUsages = descriptorUsageSetsPerFile[index];
+            // set directory to the directory of the shader
+            const FilePath dir = GetShaderSourceDirectory() / FilePath::Relative(FilePath(item.file).BasePath(), GetShaderSourceDirectory());
 
-                Array<String> errorMessages;
+            String& processedSource = processedSources[index];
 
-                // set directory to the directory of the shader
-                const FilePath dir = GetShaderSourceDirectory() / FilePath::Relative(FilePath(item.file).BasePath(), GetShaderSourceDirectory());
+            { // Process shader (preprocessing, custom statements, etc.)
+                ProcessResult processResult = ProcessShaderSource(
+                    ProcessShaderSourcePhase::AFTER_PREPROCESS,
+                    item.type,
+                    item.language,
+                    item.source,
+                    item.file,
+                    perm);
 
-                String& processedSource = processedSources[index];
+                if (processResult.errors.Any())
+                {
+                    HYP_LOG(ShaderCompiler, Error, "{} shader processing errors:", processResult.errors.Size());
 
-                { // Process shader (preprocessing, custom statements, etc.)
-                    ProcessResult processResult = ProcessShaderSource(
-                        ProcessShaderSourcePhase::AFTER_PREPROCESS,
-                        item.type,
-                        item.language,
-                        item.source,
-                        item.file,
-                        perm);
-
-                    if (processResult.errors.Any())
+                    for (const ProcessError& processError : processResult.errors)
                     {
-                        HYP_LOG(ShaderCompiler, Error, "{} shader processing errors:", processResult.errors.Size());
-
-                        for (const ProcessError& processError : processResult.errors)
-                        {
-                            HYP_LOG(ShaderCompiler, Error, "\t{}", processError.errorMessage);
-                        }
-
-                        Mutex::Guard guard(errorMessagesMutex);
-                        outBundle->errorMessages.Concat(Map(processResult.errors, &ProcessError::errorMessage));
-
-                        ++numErrored;
-
-                        continue;
+                        HYP_LOG(ShaderCompiler, Error, "\t{}", processError.errorMessage);
                     }
 
-                    descriptorUsages.Merge(std::move(processResult.descriptorUsages));
+                    Mutex::Guard guard(errorMessagesMutex);
+                    outBundle->errorMessages.Concat(Map(processResult.errors, &ProcessError::errorMessage));
 
-                    processedSource = processResult.processedSource;
-                }
-            }
+                    ++numErrored;
 
-            // merge all descriptor usages together for the source files before
-            // compiling.
-            DescriptorUsageSet descriptorUsageSetsMerged;
-
-            for (const DescriptorUsageSet& descriptorUsageSet : descriptorUsageSetsPerFile)
-            {
-                descriptorUsageSetsMerged.Merge(descriptorUsageSet);
-            }
-
-            descriptorUsageSetsPerFile.Clear();
-
-            // for debug logging.
-            String staticPropertiesString;
-
-            for (const ShaderProperty& property : perm.ToArray())
-            {
-                if (!staticPropertiesString.Empty())
-                {
-                    staticPropertiesString += ", ";
-                }
-
-                staticPropertiesString += property.ToString();
-            }
-
-            HYP_LOG(
-                ShaderCompiler,
-                Verbose,
-                "Compiling shader {}\n\tProperties: [{}]",
-                decl.name,
-                staticPropertiesString);
-
-            // final substitution of properties + compilation
-            for (size_t index = 0; index < loadedSourceFiles.Size(); index++)
-            {
-                const LoadedSourceFile& item = loadedSourceFiles[index];
-
-                const Pair<FilePath, bool>& filepathState = filepaths[index];
-
-                // don't process these files
-                if (filepathState.second)
-                {
                     continue;
                 }
 
-                const FilePath& outputFilepath = filepathState.first;
+                descriptorUsages.Merge(std::move(processResult.descriptorUsages));
 
-                Array<String> errorMessages;
+                processedSource = processResult.processedSource;
+            }
+        }
 
-                ByteBuffer byteBuffer;
+        // merge all descriptor usages together for the source files before
+        // compiling.
+        DescriptorUsageSet descriptorUsageSetsMerged;
+
+        for (const DescriptorUsageSet& descriptorUsageSet : descriptorUsageSetsPerFile)
+        {
+            descriptorUsageSetsMerged.Merge(descriptorUsageSet);
+        }
+
+        descriptorUsageSetsPerFile.Clear();
+
+        // for debug logging.
+        String staticPropertiesString;
+
+        for (const ShaderProperty& property : perm.ToArray())
+        {
+            if (!staticPropertiesString.Empty())
+            {
+                staticPropertiesString += ", ";
+            }
+
+            staticPropertiesString += property.ToString();
+        }
+
+        HYP_LOG(
+            ShaderCompiler,
+            Verbose,
+            "Compiling shader {}\n\tProperties: [{}]",
+            decl.name,
+            staticPropertiesString);
+
+        // final substitution of properties + compilation
+        for (size_t index = 0; index < loadedSourceFiles.Size(); index++)
+        {
+            const LoadedSourceFile& item = loadedSourceFiles[index];
+
+            const Pair<FilePath, bool>& filepathState = filepaths[index];
+
+            // don't process these files
+            if (filepathState.second)
+            {
+                continue;
+            }
+
+            const FilePath& outputFilepath = filepathState.first;
+
+            Array<String> errorMessages;
+
+            ByteBuffer byteBuffer;
 
 #if HYP_DXC
-                HLSLOutputType outputType;
-                ShaderCompileTargetBackend hlslTargetBackend;
+            HLSLOutputType outputType;
+            ShaderCompileTargetBackend hlslTargetBackend;
 
-                if (isDX12)
-                {
-                    outputType = HLSLOutputType::DXIL;
-                    hlslTargetBackend = ShaderCompileTargetBackend::DX12;
-                }
-                else if (isVulkan)
-                {
-                    outputType = HLSLOutputType::SPIRV;
-                    hlslTargetBackend = ShaderCompileTargetBackend::Vulkan;
-                }
-                else
-                {
-                    Mutex::Guard guard(errorMessagesMutex);
-                    outBundle->errorMessages.EmplaceBack("Cannot determine HLSL output type - no target backend specified for this variant");
-
-                    ++numErrored;
-
-                    continue;
-                }
-
-                byteBuffer = CompileHLSL(
-                    item.type,
-                    outputType,
-                    descriptorUsageSetsMerged,
-                    processedSources[index],
-                    item.file,
-                    perm,
-                    hlslTargetBackend,
-                    errorMessages);
-
-                if (errorMessages.Any())
-                {
-                    Mutex::Guard guard(errorMessagesMutex);
-                    outBundle->errorMessages.Concat(errorMessages);
-
-                    ++numErrored;
-
-                    continue;
-                }
-
-#else
+            if (isDX12)
+            {
+                outputType = HLSLOutputType::DXIL;
+                hlslTargetBackend = ShaderCompileTargetBackend::DX12;
+            }
+            else if (isVulkan)
+            {
+                outputType = HLSLOutputType::SPIRV;
+                hlslTargetBackend = ShaderCompileTargetBackend::Vulkan;
+            }
+            else
+            {
                 Mutex::Guard guard(errorMessagesMutex);
-                outBundle->errorMessages.EmplaceBack("Cannot compile HLSL code, DXC not linked");
+                outBundle->errorMessages.EmplaceBack("Cannot determine HLSL output type - no target backend specified for this variant");
 
                 ++numErrored;
 
                 continue;
+            }
+
+            byteBuffer = CompileHLSL(
+                item.type,
+                outputType,
+                descriptorUsageSetsMerged,
+                processedSources[index],
+                item.file,
+                perm,
+                hlslTargetBackend,
+                errorMessages);
+
+            if (errorMessages.Any())
+            {
+                Mutex::Guard guard(errorMessagesMutex);
+                outBundle->errorMessages.Concat(errorMessages);
+
+                ++numErrored;
+
+                continue;
+            }
+
+#else
+            Mutex::Guard guard(errorMessagesMutex);
+            outBundle->errorMessages.EmplaceBack("Cannot compile HLSL code, DXC not linked");
+
+            ++numErrored;
+
+            continue;
 #endif
 
-                if (byteBuffer.Empty())
+            if (byteBuffer.Empty())
+            {
+                Mutex::Guard guard(errorMessagesMutex);
+                outBundle->errorMessages.EmplaceBack("No shader IL returned");
+
+                ++numErrored;
+
+                continue;
+            }
+
+            { // write the shader bytecode to the temp file
+                FileByteWriter tempWriter(outputFilepath.Data());
+
+                if (!tempWriter.IsOpen())
                 {
                     Mutex::Guard guard(errorMessagesMutex);
-                    outBundle->errorMessages.EmplaceBack("No shader IL returned");
+                    outBundle->errorMessages.PushBack(HYP_FORMAT("Could not open file {} for writing!", outputFilepath));
 
                     ++numErrored;
 
                     continue;
                 }
 
-                { // write the shader bytecode to the temp file
-                    FileByteWriter tempWriter(outputFilepath.Data());
+                tempWriter.Write(byteBuffer.Data(), byteBuffer.Size());
+                tempWriter.Close();
+            }
 
-                    if (!tempWriter.IsOpen())
+            const String relativePath = FilePath(item.file).Basename();
+
+            // for HLSL, we use entry point name based on stage
+            shader->AddShaderModule(item.type, relativePath, byteBuffer.ToByteView());
+
+            ++numCompiled;
+        }
+
+        for (const ShaderProperty& shaderProperty : perm.GetPropertySet())
+        {
+            // should be no longer permutable or value group by the time we get here (they should be "unwrapped")
+            AssertDebug(!shaderProperty.IsPermutable() && !shaderProperty.IsValueGroup());
+
+            const ShaderPropertyId propertyId = InternShaderProperty(shaderProperty);
+
+            // Strip out the bundle's staticProperties from the individual shader properties.
+            if (outBundle->staticProperties.Contains(propertyId))
+            {
+                continue;
+            }
+
+            shader->properties.Add(propertyId);
+        }
+            
+        shader->propertySetHashCode = perm.GetPropertySetHashCode();
+
+        numCompiledPermutations += (numErrored == 0 && numCompiled > 0 ? 1 : 0);
+        numErroredPermutations += (numErrored > 0 ? 1 : 0);
+
+        if (numCompiled == 0)
+        {
+            HYP_LOG(ShaderCompiler, Warning, "No shader bytecode files were output for {}\n\tProperties: [{}]",
+                decl.name,
+                staticPropertiesString);
+        }
+        else if (numErrored == 0)
+        {
+            shader->inputGroup = ShaderInputGroup();
+            descriptorUsageSetsMerged.BuildDescriptorTableDeclaration(shader->inputGroup);
+
+            Mutex::Guard guard(compiledShadersMutex);
+
+            AssertDebug(!usedNames.Contains(shader->GetName()));
+            usedNames.Add(shader->GetName());
+            
+            newShaders.Add(shader);
+
+            auto existingIt = outBundle->compiledShaders.FindIf([name = shader->GetName()](const Handle<Shader>& existing)
+                {
+                    if (existing->GetName() == name)
                     {
-                        Mutex::Guard guard(errorMessagesMutex);
-                        outBundle->errorMessages.PushBack(HYP_FORMAT("Could not open file {} for writing!", outputFilepath));
-
-                        ++numErrored;
-
-                        continue;
+                        return true;
                     }
 
-                    tempWriter.Write(byteBuffer.Data(), byteBuffer.Size());
-                    tempWriter.Close();
-                }
+                    return false;
+                });
 
-                const String relativePath = FilePath(item.file).Basename();
-
-                // for HLSL, we use entry point name based on stage
-                shader->AddShaderModule(item.type, relativePath, byteBuffer.ToByteView());
-
-                ++numCompiled;
-            }
-
-            for (const ShaderProperty& shaderProperty : perm.GetPropertySet())
+            if (existingIt != outBundle->compiledShaders.End())
             {
-                // should be no longer permutable or value group by the time we get here (they should be "unwrapped")
-                AssertDebug(!shaderProperty.IsPermutable() && !shaderProperty.IsValueGroup());
-
-                const ShaderPropertyId propertyId = InternShaderProperty(shaderProperty);
-
-                // Strip out the bundle's staticProperties from the individual shader properties.
-                if (outBundle->staticProperties.Contains(propertyId))
-                {
-                    continue;
-                }
-
-                shader->properties.Add(propertyId);
+                existingShadersToRemove.PushBack(std::move(*existingIt));
+                *existingIt = std::move(shader);
             }
-            
-            shader->propertySetHashCode = perm.GetPropertySetHashCode();
-
-            numCompiledPermutations += (numErrored == 0 && numCompiled > 0 ? 1 : 0);
-            numErroredPermutations += (numErrored > 0 ? 1 : 0);
-
-            if (numCompiled == 0)
+            else
             {
-                HYP_LOG(ShaderCompiler, Warning, "No shader bytecode files were output for {}\n\tProperties: [{}]",
-                    decl.name,
-                    staticPropertiesString);
+                outBundle->compiledShaders.PushBack(std::move(shader));
             }
-            else if (numErrored == 0)
-            {
-                shader->inputGroup = ShaderInputGroup();
-                descriptorUsageSetsMerged.BuildDescriptorTableDeclaration(shader->inputGroup);
+        }
+    };
 
-                Mutex::Guard guard(compiledShadersMutex);
-
-                AssertDebug(!usedNames.Contains(shader->GetName()));
-                usedNames.Add(shader->GetName());
-            
-                newShaders.Add(shader);
-
-                auto existingIt = outBundle->compiledShaders.FindIf([name = shader->GetName()](const Handle<Shader>& existing)
-                    {
-                        if (existing->GetName() == name)
-                        {
-                            return true;
-                        }
-
-                        return false;
-                    });
-
-                if (existingIt != outBundle->compiledShaders.End())
-                {
-                    existingShadersToRemove.PushBack(std::move(*existingIt));
-                    *existingIt = std::move(shader);
-                }
-                else
-                {
-                    outBundle->compiledShaders.PushBack(std::move(shader));
-                }
-            }
-        },
-        true);
+    // compile shader with each permutation of properties
+    ForEachPermutation(permsToCompile, CompilePermFunctor, true);
 
     outBundle->MarkDirty();
 

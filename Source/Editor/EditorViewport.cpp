@@ -31,10 +31,7 @@ EditorViewport::EditorViewport(const Handle<Camera>& camera)
 {
 }
 
-EditorViewport::~EditorViewport()
-{
-    EnqueueDeletion(std::move(m_camera));
-}
+EditorViewport::~EditorViewport() = default;
 
 void EditorViewport::Init()
 {
@@ -118,7 +115,8 @@ void EditorViewport::OnRemoved(EditorSubsystem* editorSubsystem)
     const Handle<Scene>& editorScene = editorSubsystem->GetEditorScene();
     Assert(editorScene.IsValid());
 
-    editorScene->GetRoot()->RemoveChild(m_camera);
+    m_camera->Remove(/* moveToDetached */ false);
+
     m_view->RemoveScene(editorScene);
 
     const Handle<EditorProject>& currentProject = editorSubsystem->GetCurrentProject();

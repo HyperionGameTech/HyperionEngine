@@ -295,49 +295,50 @@ void UISubsystem::RenderCollect(RenderProxyList& rpl)
 
     rpl.GetCameras().Track(m_view->GetCamera()->Id(), m_view->GetCamera(), m_view->GetCamera()->GetRenderProxyVersionPtr());
 
-    m_uiStage->CollectObjects([&rpl](UIObject* uiObject)
+    auto Predicate = [&rpl](UIObject* uiObject)
+    {
+        AssertDebug(uiObject != nullptr);
+
+        if (uiObject->IsA(UIStage::StaticClass()) // don't render stage (too large)
+            || uiObject->ComputeBlendedBackgroundColor().GetAlpha() <= 0.0001f)
         {
-            AssertDebug(uiObject != nullptr);
+            // skip; not considered visible.
+            return;
+        }
 
-            if (uiObject->IsA(UIStage::StaticClass()) // don't render stage (too large)
-                || uiObject->ComputeBlendedBackgroundColor().GetAlpha() <= 0.0001f)
+        const Handle<Entity>& entity = uiObject->GetEntity();
+        AssertDebug(entity != nullptr);
+
+        MeshComponent& meshComponent = entity->GetComponent<MeshComponent>();
+
+        /// \todo Include a way to determine the parent tree of the UI Object because some objects will
+        // have the same depth but should be rendered in a different order.
+        rpl.GetMeshEntities().Track(entity.Id(), entity, entity->GetRenderProxyVersionPtr(), /* allowDuplicatesInSameFrame */ false);
+
+        if (Mesh* mesh = meshComponent.mesh)
+        {
+            rpl.GetMeshes().Track(mesh->Id(), mesh);
+        }
+
+        if (MaterialInstance* material = meshComponent.material)
+        {
+            rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr(), /* allowDuplicatesInSameFrame */ true);
+
+            for (Texture* texture : material->GetTextures())
             {
-                // skip; not considered visible.
-                return;
-            }
-
-            const Handle<Entity>& entity = uiObject->GetEntity();
-            AssertDebug(entity != nullptr);
-
-            MeshComponent& meshComponent = entity->GetComponent<MeshComponent>();
-
-            /// \todo Include a way to determine the parent tree of the UI Object because some objects will
-            // have the same depth but should be rendered in a different order.
-            rpl.GetMeshEntities().Track(entity.Id(), entity, entity->GetRenderProxyVersionPtr(), /* allowDuplicatesInSameFrame */ false);
-
-            if (Mesh* mesh = meshComponent.mesh)
-            {
-                rpl.GetMeshes().Track(mesh->Id(), mesh);
-            }
-
-            if (MaterialInstance* material = meshComponent.material)
-            {
-                rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr(), /* allowDuplicatesInSameFrame */ true);
-
-                for (Texture* texture : material->GetTextures())
+                if (!texture)
                 {
-                    if (!texture)
-                    {
-                        continue;
-                    }
-
-                    rpl.GetTextures().Track(texture->Id(), texture);
+                    continue;
                 }
-            }
 
-            rpl.meshEntityOrdering.EmplaceBack(entity.Id(), uiObject->GetComputedDepth());
-        },
-        /* onlyVisible */ true);
+                rpl.GetTextures().Track(texture->Id(), texture);
+            }
+        }
+
+        rpl.meshEntityOrdering.EmplaceBack(entity.Id(), uiObject->GetComputedDepth());
+    };
+
+    m_uiStage->CollectObjects(Predicate, /* onlyVisible */ true);
 
     Resources::ResourceTrackerDiff meshesDiff = rpl.GetMeshEntities().GetDiff();
 

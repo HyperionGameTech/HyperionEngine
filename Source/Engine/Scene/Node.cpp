@@ -241,9 +241,9 @@ Node* Node::FindParentWithName(UTF8StringView name) const
     return m_parentNode->FindParentWithName(name);
 }
 
-void Node::SetScene(Scene* scene)
+void Node::SetScene(Scene* scene, bool moveToDetached)
 {
-    SetScene_Internal(scene, /* moveToDetached */ true);
+    SetScene_Internal(scene, moveToDetached);
 }
 
 void Node::SetScene_Internal(Scene* scene, bool moveToDetached)
@@ -353,7 +353,7 @@ void Node::OnNodeDetached(Node* node)
 
 void Node::SetChildren(const NodeList& children)
 {
-    RemoveAllChildren();
+    RemoveAllChildren(/* moveToDetached */ false);
 
     for (const Handle<Node>& child : children)
     {
@@ -425,7 +425,7 @@ Handle<Node> Node::AddChild(const Handle<Node>& node)
     return node;
 }
 
-bool Node::RemoveChild(const Node* node)
+bool Node::RemoveChild(const Node* node, bool moveToDetached)
 {
     if (!node)
     {
@@ -463,7 +463,7 @@ bool Node::RemoveChild(const Node* node)
 
     childNode->UpdateWorldTransform();
 
-    childNode->SetScene(nullptr);
+    childNode->SetScene(nullptr, moveToDetached);
 
     if (wasTransformLocked)
     {
@@ -487,7 +487,7 @@ bool Node::RemoveChild(const Node* node)
     return true;
 }
 
-bool Node::RemoveAt(uint32 index)
+bool Node::RemoveAt(uint32 index, bool moveToDetached)
 {
     if (index >= m_childNodes.Size())
     {
@@ -496,22 +496,22 @@ bool Node::RemoveAt(uint32 index)
 
     const Handle<Node>& childNode = m_childNodes[index];
 
-    return RemoveChild(childNode.Get());
+    return RemoveChild(childNode.Get(), moveToDetached);
 }
 
-bool Node::Remove()
+bool Node::Remove(bool moveToDetached)
 {
     if (!m_parentNode)
     {
-        SetScene(nullptr);
+        SetScene(nullptr, moveToDetached);
 
         return true;
     }
 
-    return m_parentNode->RemoveChild(this);
+    return m_parentNode->RemoveChild(this, moveToDetached);
 }
 
-void Node::RemoveAllChildren()
+void Node::RemoveAllChildren(bool moveToDetached)
 {
     for (auto it = m_childNodes.begin(); it != m_childNodes.end();)
     {
@@ -523,7 +523,7 @@ void Node::RemoveAllChildren()
             OnNodeDetached(node);
 
             node->OnDetachedFromNode(this);
-            node->SetScene(nullptr);
+            node->SetScene(nullptr, moveToDetached);
 
             Node* currentParent = this;
 

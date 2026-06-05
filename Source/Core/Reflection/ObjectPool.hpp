@@ -96,6 +96,7 @@ protected:
     IdGenerator m_idGenerator;
     Pool* m_pool;
     AtomicFlag m_atomicFlag;
+    AtomicVar<uint32> m_generation;
     SparsePagedArray<ObjectHeader*, 1024> m_headers;
 };
 
@@ -104,12 +105,14 @@ struct ObjectHeader
 {
     const Class* cls;
     uint32 index;
+    volatile uint32 generation;
     volatile int32 refCountStrong;
     volatile int32 refCountWeak;
 
     ObjectHeader()
         : cls(nullptr),
           index(~0u),
+          generation(0),
           refCountStrong(0),
           refCountWeak(0)
     {
@@ -140,12 +143,24 @@ struct ObjectHeader
 
     bool TryIncRefStrong()
     {
+        // Snapshot the generation to detect ABA (header freed and reallocated by the time CAS succeeds)
+        const uint32 gen = generation;
+
         int32 count = AtomicAdd(&refCountStrong, 0);
 
         while (count != 0)
         {
             if (AtomicCompareExchange(&refCountStrong, count, count + 1))
             {
+                // Re-read generation after the barrier provided by CAS.
+                // If it changed, this header was recycled — roll back the increment.
+                if (generation != gen)
+                {
+                    AtomicDecrement(&refCountStrong);
+
+                    return false;
+                }
+
 #ifdef HYP_DOTNET
                 if (ScriptObjectFunctions::IncScriptObjectRef)
                 {
@@ -164,6 +179,10 @@ struct ObjectHeader
     int32 IncRefStrong()
     {
         const int32 count = AtomicIncrement(&refCountStrong);
+
+        // If count == 1, refCountStrong was 0 before the increment — the object was already
+        // destructed and this would resurrect a dead object.
+        AssertDebug(count > 1, "IncRefStrong called on an object with no strong references");
 
 #ifdef HYP_DOTNET
         if (count > 1)
@@ -240,6 +259,7 @@ public:
         ObjectHeader* header = reinterpret_cast<ObjectHeader*>(reinterpret_cast<UIntPtr>(mem) + HeaderOffset);
         header->index = m_idGenerator.Next() - 1;
         header->cls = m_class;
+        header->generation = m_generation.Increment(1, MemoryOrder::ACQUIRE_RELEASE) + 1;
         header->refCountStrong = 1;
         header->refCountWeak = 0;
 
@@ -309,11 +329,11 @@ public:
 
         ObjectHeader* header = reinterpret_cast<ObjectHeader*>(reinterpret_cast<UIntPtr>(ptr) - sizeof(ObjectHeader));
 
-        // expected to be called from operator delete, so we release the strong reference we set in Allocate()
-        int32 refCount = AtomicDecrement(&header->refCountStrong);
+        // expected to be called from operator delete for the allocation ref set in Allocate()
+        // Delegate to DecRefStrong() which handles virtual destructor call, weak ref protection,
+        // and ReleaseObject() when both strong and weak counts reach zero.
+        const int32 refCount = header->DecRefStrong();
         HYP_CORE_ASSERT(refCount == 0);
-
-        Release(header);
     }
 };
 

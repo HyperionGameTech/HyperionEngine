@@ -925,10 +925,12 @@ public:
     {
         static_assert(std::is_base_of_v<UIObject, T>, "T must be a subclass of UIObject");
 
-        return DynamicCast<T>(GetClosestParentUIObject_Proc([](const UIObject* parent) -> bool
-            {
-                return parent->IsA<T>();
-            }));
+        auto Predicate = [](const UIObject* parent) -> bool
+        {
+            return parent->IsA<T>();
+        };
+
+        return DynamicCast<T>(GetClosestParentUIObject_Proc(Predicate));
     }
 
     template <class T>
@@ -936,10 +938,12 @@ public:
     {
         static_assert(std::is_base_of_v<UIObject, T>, "T must be a subclass of UIObject");
 
-        return DynamicCast<T>(GetClosestSpawnParent_Proc([](const UIObject* parent) -> bool
-            {
-                return parent->IsA<T>();
-            }));
+        auto Predicate = [](const UIObject* parent) -> bool
+        {
+            return parent->IsA<T>();
+        };
+
+        return DynamicCast<T>(GetClosestSpawnParent_Proc(Predicate));
     }
 
     /*! \brief The UIObject that this was spawned from. Not necessarily the parent UIObject that this is attached to in the graph.
@@ -1001,6 +1005,12 @@ public:
      *  \param deep If true, search all descendants. If false, only search immediate children.
      *  \return The child UIObject that matches the predicate, or nullptr if no child UIObject matches the predicate. */
     virtual Handle<UIObject> FindChildUIObject(ProcRef<bool(UIObject*)> predicate, bool deep = true) const;
+
+    template <class TFunctor, class = std::enable_if_t<!std::is_base_of_v<functional::ProcRefBase, TFunctor>>>
+    Handle<UIObject> FindChildUIObject(const TFunctor& functor, bool deep = true) const
+    {
+        return FindChildUIObject(ProcRef<bool(UIObject*)>(functor), deep);
+    }
 
     /*! \brief Check if the UI object has any child UIObjects.
      *  \return True if the object has child UIObjects, false otherwise. */

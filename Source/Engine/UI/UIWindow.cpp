@@ -169,7 +169,7 @@ void UIWindow::SetText(const String& text)
 
     if (m_titleBar != nullptr)
     {
-        if (Handle<UIObject> titleBarText = m_titleBar->FindChildUIObject(NAME("TitleBarText")))
+        if (Handle<UIObject> titleBarText = m_titleBar->FindChildUIObject("TitleBarText"_sh); titleBarText.IsValid())
         {
             titleBarText->SetText(text);
         }
