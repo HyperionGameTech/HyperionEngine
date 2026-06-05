@@ -1038,7 +1038,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
         const Class* entityClass = Entity::StaticClass();
         if (IsA(entityClass))
         {
-            TSharedLock<AssetObject> resGuard;
+            TSharedResLock<AssetObject> resGuard;
             Mesh* mesh = nullptr;
 
 #if HYP_EDITOR

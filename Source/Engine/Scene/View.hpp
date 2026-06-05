@@ -18,7 +18,7 @@
 
 #include <Core/Functional/Delegate.hpp>
 
-#include <Core/Memory/Resource/Resource.hpp>
+#include <Core/Resource/Resource.hpp>
 
 #include <Core/Math/Frustum.hpp>
 

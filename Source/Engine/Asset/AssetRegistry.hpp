@@ -24,7 +24,7 @@
 #include <Core/Threading/SharedMutex.hpp>
 #include <Core/Threading/SchedulerFwd.hpp>
 
-#include <Core/Memory/Resource/Resource.hpp>
+#include <Core/Resource/Resource.hpp>
 
 #include <Core/Logging/LoggerFwd.hpp>
 

@@ -89,14 +89,16 @@ CBufferAllocator::~CBufferAllocator()
 void CBufferAllocator::Initialize(size_t minAllocationAlignment)
 {
     m_minAllocationAlignment = minAllocationAlignment;
+
+    // Initialize all scratch buffers with enough memory that they'll rarely need to grow during the frame.
+    for (auto& scratch : m_scratch)
+    {
+        scratch.SetCapacity(4096);
+    }
 }
 
 void CBufferAllocator::OnFrameStart()
 {
-    for (auto& scratch : m_scratch)
-    {
-        scratch.SetCapacity(2048);
-    }
 }
 
 // only ever called after all workers are done.
@@ -106,7 +108,8 @@ void CBufferAllocator::OnFrameEnd()
 
     for (uint32 idx = 0; idx < NumRendererWorkerThreads + 1; idx++)
     {
-        m_scratch[idx].Clear();
+        // @NOTE: use SetSize(0) to clear the buffer without freeing memory
+        m_scratch[idx].SetSize(0);
 
         for (Block& block : m_currentFrameBlocks[idx])
         {
@@ -124,27 +127,6 @@ void CBufferAllocator::OnFrameEnd()
 
         m_currentFrameBlocks[idx].Clear();
     }
-}
-
-void CBufferAllocator::Write(const void* src, size_t count, size_t alignment)
-{
-    if (count == 0)
-        return;
-
-    AssertDebug(src != nullptr);
-
-    const uint32 idx = CurrentRenderThreadIndex();
-
-    auto& scratch = m_scratch[idx];
-
-    const size_t alignedCount = alignment > 0 ? ByteUtil::AlignAs(count, alignment) : count;
-    const size_t scratchOffset = ByteUtil::AlignAs(scratch.Size(), alignment);
-
-    scratch.SetSize(scratchOffset + alignedCount);
-
-    m_scratchAlignment[idx] = MathUtil::Max(m_scratchAlignment[idx], alignment);
-
-    Memory::Copy(scratch.Data() + scratchOffset, reinterpret_cast<const ubyte*>(src), count);
 }
 
 void CBufferAllocator::Commit(GpuBuffer*& outBuffer, size_t& outOffset, size_t& outSize)

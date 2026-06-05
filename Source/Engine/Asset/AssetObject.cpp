@@ -491,14 +491,14 @@ void AssetObject::SetBlobDataResident(bool resident, BlobDataReference& referenc
     }
 }
 
-TUniqueLock<AssetObject> AssetObject::GetWriteScope() const
+TUniqueResLock<AssetObject> AssetObject::GetWriteScope() const
 {
-    return TUniqueLock<AssetObject> { const_cast<AssetObject&>(*this) };
+    return TUniqueResLock<AssetObject> { const_cast<AssetObject&>(*this) };
 }
 
-TSharedLock<AssetObject> AssetObject::GetReadScope() const
+TSharedResLock<AssetObject> AssetObject::GetReadScope() const
 {
-    return TSharedLock<AssetObject> { const_cast<AssetObject&>(*this) };
+    return TSharedResLock<AssetObject> { const_cast<AssetObject&>(*this) };
 }
 
 void AssetObject::LockWriter(bool doInitialize)
@@ -509,6 +509,11 @@ void AssetObject::LockWriter(bool doInitialize)
     while (!AtomicCompareExchange(&m_rwState, expected, 1))
     {
         expected = 0;
+
+#if HYP_DEBUG_MODE
+        AssertDebug(m_uniqueLockHolderThread != ThreadId::Current(),
+            "Deadlock due to recursive locking detected!");
+#endif // HYP_DEBUG_MODE
 
         // volatile read
         while (m_rwState != 0)
@@ -525,26 +530,12 @@ void AssetObject::LockWriter(bool doInitialize)
         }
     }
 
-    /*if (doInitialize)
-    {
-        Assert(!m_isBlobLoaded);
-
-        PageBlobData();
-
-        m_isBlobLoaded = true;
-    }*/
+    m_uniqueLockHolderThread = ThreadId::Current();
 }
 
 void AssetObject::UnlockWriter(bool doDeinitialize)
 {
-    /*if (doDeinitialize)
-    {
-        Assert(m_isBlobLoaded);
-
-        UnpageBlobData();
-
-        m_isBlobLoaded = false;
-    }*/
+    m_uniqueLockHolderThread = ThreadId::Invalid();
 
     AtomicBitAnd(&m_rwState, ~0x1);
 }

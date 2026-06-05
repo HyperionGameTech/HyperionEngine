@@ -22,7 +22,7 @@
 
 #include <Core/Reflection/Handle.hpp>
 
-#include <Core/Memory/Resource/Resource.hpp>
+#include <Core/Resource/Resource.hpp>
 
 namespace Hyperion {
 

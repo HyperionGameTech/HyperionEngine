@@ -44,7 +44,7 @@
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
 
-#include <Core/Memory/Resource/Resource.hpp>
+#include <Core/Resource/Resource.hpp>
 
 #include <DebugDrawer.generated.inl>
 

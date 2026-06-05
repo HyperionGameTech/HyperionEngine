@@ -47,7 +47,7 @@ void AnimationSystem::OnEntityAdded(Entity* entity)
         {
             for (const Handle<AnimationTrack>& track : anim->GetTracks())
             {
-                locks.PushBack(MakeUnique<TSharedLock<AssetObject>>(*track));
+                locks.PushBack(MakeUnique<TSharedResLock<AssetObject>>(*track));
             }
         }
     }

@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <Core/Memory/Resource/Resource.hpp>
+#include <Core/Resource/Resource.hpp>
 
 #include <Rendering/Pass.hpp>
 #include <Rendering/RendererMain.hpp>

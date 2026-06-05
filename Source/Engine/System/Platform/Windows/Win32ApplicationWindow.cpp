@@ -9,6 +9,7 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <Windows.h>
+#include <CommCtrl.h>
 
 #include <System/AppContext.hpp>
 #include <System/Platform/Windows/Win32Helpers.hpp>
@@ -313,6 +314,42 @@ static LRESULT CALLBACK EngineWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
     return DefWindowProcW(hWnd, msg, wParam, lParam);
 }
 
+LRESULT CALLBACK Win32ApplicationWindow::ParentSubclassProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+{
+    switch (msg)
+    {
+    case WM_ACTIVATE:
+    {
+        auto* self = reinterpret_cast<Win32ApplicationWindow*>(dwRefData);
+
+        PlatformEvent platformEvent {};
+        platformEvent.win32Event = Win32Event();
+        platformEvent.win32Event.hwnd = hWnd;
+        platformEvent.win32Event.message = msg;
+        platformEvent.win32Event.wParam = wParam;
+        platformEvent.win32Event.lParam = lParam;
+
+        bool isActive = (LOWORD(wParam) != WA_INACTIVE);
+
+        Event event(isActive ? EventType::WINDOW_FOCUS_GAINED : EventType::WINDOW_FOCUS_LOST, self, platformEvent);
+
+        self->GetInputManager()->ProcessEvent(std::move(event));
+
+        break;
+    }
+    case WM_NCDESTROY:
+    {
+        RemoveWindowSubclass(hWnd, &Win32ApplicationWindow::ParentSubclassProc, uIdSubclass);
+
+        break;
+    }
+    default:
+        break;
+    }
+
+    return DefSubclassProc(hWnd, msg, wParam, lParam);
+}
+
 Win32ApplicationWindow::Win32ApplicationWindow(ANSIString title, Vec2i size)
     : ApplicationWindow(std::move(title), size)
 {
@@ -321,6 +358,12 @@ Win32ApplicationWindow::Win32ApplicationWindow(ANSIString title, Vec2i size)
 
 Win32ApplicationWindow::~Win32ApplicationWindow()
 {
+    if (m_parentHwnd)
+    {
+        RemoveWindowSubclass(m_parentHwnd, &Win32ApplicationWindow::ParentSubclassProc, reinterpret_cast<UINT_PTR>(this));
+        m_parentHwnd = nullptr;
+    }
+
     if (m_hwnd)
     {
         DestroyWindow(m_hwnd);
@@ -523,6 +566,19 @@ void Win32ApplicationWindow::Initialize(WindowOptions windowOptions)
     UpdateWindow(m_hwnd);
 
     m_isOpen = true;
+
+    if (windowOptions.parentHwnd != nullptr)
+    {
+        m_parentHwnd = GetAncestor(windowOptions.parentHwnd, GA_ROOT);
+
+        BOOL result = SetWindowSubclass(
+            m_parentHwnd,
+            &Win32ApplicationWindow::ParentSubclassProc,
+            reinterpret_cast<UINT_PTR>(this),
+            reinterpret_cast<DWORD_PTR>(this));
+
+        Assert(result != FALSE, "Failed to subclass parent window! Win32 Error: {}", GetLastError());
+    }
 }
 
 LRESULT CALLBACK Win32ApplicationWindow::StaticWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -688,19 +744,21 @@ void Win32ApplicationWindow::Close()
         return;
     }
 
+    if (m_parentHwnd)
+    {
+        RemoveWindowSubclass(m_parentHwnd, &Win32ApplicationWindow::ParentSubclassProc, reinterpret_cast<UINT_PTR>(this));
+        m_parentHwnd = nullptr;
+    }
+
     m_swapchain.Reset();
 
 #if HYP_VULKAN
     if (m_vkSurface)
     {
-        EnqueueDeletion(FunctionWrapper<Proc<void()>>([surface = m_vkSurface]()
-            {
-                VulkanInstance* vulkanInstance = RI.GetInstance();
-                Assert(vulkanInstance != nullptr);
-
-                vkDestroySurfaceKHR(vulkanInstance->GetInstance(), surface, nullptr);
-            }));
-
+        vkDestroySurfaceKHR(
+            RI.GetInstance()->GetInstance(),
+            m_vkSurface,
+            nullptr);
         m_vkSurface = VK_NULL_HANDLE;
     }
 #endif

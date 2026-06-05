@@ -55,8 +55,6 @@ Entity::Entity(Name name)
 
 Entity::~Entity()
 {
-    m_scene = nullptr;
-
     EntityManager* entityManager = GetEntityManager();
     if (entityManager == nullptr)
     {
@@ -78,7 +76,10 @@ Entity::~Entity()
     {
         // If not on the correct thread, perform the removal asynchronously
         // Keep a WeakHandle of Entity so the Id doesn't get reused while we're using it
-        GetThreadById(entityManager->GetOwnerThreadId())->GetScheduler().Enqueue([weakThis = MakeWeakRef(this), entityManagerWeak = MakeWeakRef(entityManager)]()
+        ThreadBase* ownerThread = GetThreadById(entityManager->GetOwnerThreadId());
+        Assert(ownerThread != nullptr, "Owner thread not registered: {}", entityManager->GetOwnerThreadId().GetName());
+
+        ownerThread->GetScheduler().Enqueue([weakThis = MakeWeakRef(this), entityManagerWeak = MakeWeakRef(entityManager)]()
             {
                 Handle<EntityManager> entityManager = entityManagerWeak.Lock();
                 if (!entityManager)

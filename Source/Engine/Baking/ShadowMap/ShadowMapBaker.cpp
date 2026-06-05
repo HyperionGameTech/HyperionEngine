@@ -104,7 +104,7 @@ void Baker<Light>::OnCompleted_Internal()
     shadowMap->SetName(NAME_FMT("{}_BakedShadowMap", m_light->GetName()));
     CheckResult(shadowMap->Create());
 
-    auto resGuard = m_light->GetWriteScope();
+    auto writeScope = m_light->GetWriteScope();
     m_light->SetBakedShadowMap(shadowMap);
 
     HYP_LOG(Lightmap, Verbose, "Shadow map baking for Light {} complete.", m_light->Id());

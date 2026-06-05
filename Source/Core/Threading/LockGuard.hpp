@@ -12,7 +12,7 @@ namespace Hyperion {
 namespace threading {
 
 template <class TLockObject>
-class TLockGuard final
+class TLockGuard
 {
 public:
     TLockGuard()
@@ -88,7 +88,7 @@ private:
 };
 
 template <class TLockObject>
-class TSharedLock final
+class TSharedLock
 {
 public:
     TSharedLock()
@@ -185,13 +185,13 @@ public:
         obj = &newMutex;
         obj->LockReader();
     }
-    
+
 private:
     TLockObject* obj;
 };
 
 template <class TLockObject>
-class TUniqueLock final
+class TUniqueLock
 {
 public:
     TUniqueLock()
@@ -216,7 +216,7 @@ public:
         if (obj)
             obj->UnlockWriter();
     }
-    
+
     HYP_FORCE_INLINE explicit operator bool() const
     {
         return obj != nullptr;

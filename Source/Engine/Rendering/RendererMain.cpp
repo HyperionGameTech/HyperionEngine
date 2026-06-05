@@ -638,7 +638,7 @@ void RenderProxyList::BeginWrite()
     // this clears their 'next' bits and sets their 'previous' bits so we can tell what changed.
     ForEachResourceTracker(resourceTrackers.ToSpan(), [](auto&& resourceTracker)
         {
-            resourceTracker.Advance();
+            resourceTracker.Advance(/* clearNextState */ true);
         });
 }
 
@@ -651,6 +651,7 @@ void RenderProxyList::EndWrite()
         UpdateRefs(*this);
     }
 
+    ++writeGeneration;
     state = CS_WRITTEN;
 
     m_lock.UnlockWriter();
@@ -704,6 +705,19 @@ void RenderProxyList::EndRead()
     {
         state = CS_DONE;
     }
+}
+
+void RenderProxyList::ClearAll()
+{
+    AssertDebug(state == CS_WRITING);
+
+    // Advance again.
+    // First advance would be from BeginWrite(), we advance again without tracking any new resources,
+    // so the current ones all get disposed.
+    ForEachResourceTracker(resourceTrackers.ToSpan(), [](auto&& resourceTracker)
+        {
+            resourceTracker.Advance(/* clearNextState */ true);
+        });
 }
 
 #pragma endregion RenderProxyList
@@ -2116,6 +2130,10 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
     AssertDebug(view != nullptr);
     AssertDebug(renderProxyList.state == RenderProxyList::CS_READING);
 
+#if HYP_DEBUG_MODE
+    HYP_DEFER({ lastFrameDEBUG = GetFrameCounter(); });
+#endif // HYP_DEBUG_MODE
+
     RenderGroupCache& attributeRegistry = *RI.renderGroupCache;
 
     const RenderableAttributeSet* overrideAttributes = view->GetOverrideAttributes().TryGet();
@@ -2211,24 +2229,26 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             const uint32 idx = id.ToIndex();
 
             const RenderableAttributeHandle* attributeHandle = previousAttributes.TryGet(idx);
-            AssertDebug(attributeHandle != nullptr);
 
-            if (attributeHandle != nullptr)
+            if (!attributeHandle)
             {
-                const RenderBucket bucket = attributeHandle->GetBucket();
-                const uint32 index = attributeHandle->GetIndex();
-
-                auto& mappings = mappingsByBucket[uint32(bucket)];
-                AssertDebug(mappings.HasIndex(index));
-
-                DrawCallCollection& drawCallCollection = mappings.Get(index);
-                Assert(drawCallCollection.batchAllocator != nullptr && drawCallCollection.isInit);
-
-                AssertDebug(drawCallCollection.meshProxies.HasIndex(idx));
-                drawCallCollection.meshProxies.EraseAt(idx);
-
-                previousAttributes.EraseAt(idx);
+                // no handle present — entity was never placed in a draw call collection, nothing to remove
+                continue;
             }
+            
+            const RenderBucket bucket = attributeHandle->GetBucket();
+            const uint32 index = attributeHandle->GetIndex();
+
+            auto& mappings = mappingsByBucket[uint32(bucket)];
+            AssertDebug(mappings.HasIndex(index));
+
+            DrawCallCollection& drawCallCollection = mappings.Get(index);
+            Assert(drawCallCollection.batchAllocator != nullptr && drawCallCollection.isInit);
+
+            AssertDebug(drawCallCollection.meshProxies.HasIndex(idx));
+            drawCallCollection.meshProxies.EraseAt(idx);
+
+            previousAttributes.EraseAt(idx);
         }
     }
 

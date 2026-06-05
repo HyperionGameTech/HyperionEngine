@@ -1,4 +1,4 @@
-#include <Core/Memory/Resource/Resource.hpp>
+#include <Core/Resource/Resource.hpp>
 
 #include <Core/Containers/TypeMap.hpp>
 

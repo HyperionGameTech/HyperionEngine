@@ -520,9 +520,9 @@ ENGINE_API Handle<Mesh> Merge(const Mesh* a, const Mesh* b, const Transform& aTr
         ApplyTransform(b, bTransform)
     };
 
-    TSharedLock<AssetObject> readScopes[] = {
-        transformedMeshes[0]->IsRegistered() ? TSharedLock<AssetObject>(*transformedMeshes[0]) : TSharedLock<AssetObject>(),
-        transformedMeshes[1]->IsRegistered() ? TSharedLock<AssetObject>(*transformedMeshes[1]) : TSharedLock<AssetObject>()
+    TSharedResLock<AssetObject> readScopes[] = {
+        transformedMeshes[0]->IsRegistered() ? TSharedResLock<AssetObject>(*transformedMeshes[0]) : TSharedResLock<AssetObject>(),
+        transformedMeshes[1]->IsRegistered() ? TSharedResLock<AssetObject>(*transformedMeshes[1]) : TSharedResLock<AssetObject>()
     };
 
     MeshDesc const* meshDescs[] = {
@@ -606,7 +606,7 @@ ENGINE_API Handle<Mesh> Merge(const Mesh* a, const Mesh* b, const Transform& aTr
         }
     }
 
-    for (TSharedLock<AssetObject>& scope : readScopes)
+    for (TSharedResLock<AssetObject>& scope : readScopes)
     {
         scope.Reset();
     }

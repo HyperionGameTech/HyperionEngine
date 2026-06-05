@@ -43,3 +43,7 @@ endif()
 add_dependencies(${BUILD_NAME} hyperion-core hyperion-input hyperion-rendering)
 
 target_link_libraries(${BUILD_NAME} PRIVATE hyperion-core hyperion-input hyperion-rendering)
+
+if(WIN32)
+    target_link_libraries(${BUILD_NAME} PUBLIC comctl32)
+endif()

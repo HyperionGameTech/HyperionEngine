@@ -182,58 +182,9 @@ struct ObjectHeader
         return AtomicIncrement(&refCountWeak);
     }
 
-    int32 DecRefStrong()
-    {
-        int32 count;
+    CORE_API int32 DecRefStrong();
 
-        if ((count = AtomicDecrement(&refCountStrong)) == 0)
-        {
-            // Increment weak reference count by 1 so any WeakHandleFromThis() calls in the destructor do not immediately cause the item to be removed from the pool
-            AtomicIncrement(&refCountWeak);
-
-            // call virtual destructor of ObjectBase
-            DestructThisObject(this);
-
-            if (AtomicDecrement(&refCountWeak) == 0)
-            {
-                // Free the slot for this
-                ReleaseObject(this);
-            }
-
-            return 0;
-        }
-
-        AssertDebug(count > 0, "RefCount bug! strong count went negative");
-
-#ifdef HYP_DOTNET
-        if (ScriptObjectFunctions::DecScriptObjectRef)
-        {
-            ScriptObjectFunctions::DecScriptObjectRef(GetObjectPointer(this));
-        }
-#endif
-
-        return count;
-    }
-
-    int32 DecRefWeak()
-    {
-        int32 count;
-
-        if ((count = AtomicDecrement(&refCountWeak)) == 0)
-        {
-            if (AtomicAdd(&refCountStrong, 0) == 0)
-            {
-                // Free the slot for this
-                ReleaseObject(this);
-            }
-
-            return 0;
-        }
-
-        AssertDebug(count > 0, "RefCount bug! weak count went negative");
-
-        return count;
-    }
+    CORE_API int32 DecRefWeak();
 
     //! Get the pointer to the actual object that this header is for. Header must be non-null
     static CORE_API ObjectBase* GetObjectPointer(ObjectHeader* header);
@@ -323,8 +274,6 @@ public:
 
         const uint32 index = header->index;
         HYP_CORE_ASSERT(index != ~0u, "Invalid index");
-
-        HYP_CORE_ASSERT(header->refCountStrong == 0 && header->refCountWeak == 0);
 
         m_idGenerator.ReleaseId(index + 1);
 

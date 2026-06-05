@@ -24,6 +24,8 @@ namespace Hyperion {
 
 struct CBufferAllocatorBlock;
 
+extern uint32 CurrentRenderThreadIndex();
+
 class CBufferAllocator
 {
     using Block = CBufferAllocatorBlock;
@@ -45,8 +47,27 @@ public:
     void OnFrameEnd();
 
     void* Allocate(size_t count, size_t alignment, GpuBuffer*& outBuffer, size_t& outStartOffset);
+    
+    void Write(const void* src, size_t count, size_t alignment)
+    {
+        if (count == 0 || !src)
+        {
+            return;
+        }
 
-    void Write(const void* src, size_t count, size_t alignment);
+        const uint32 idx = CurrentRenderThreadIndex();
+
+        auto& scratch = m_scratch[idx];
+
+        const size_t alignedCount = alignment > 0 ? ByteUtil::AlignAs(count, alignment) : count;
+        const size_t scratchOffset = ByteUtil::AlignAs(scratch.Size(), alignment);
+
+        scratch.SetSize(scratchOffset + alignedCount);
+
+        m_scratchAlignment[idx] = MathUtil::Max(m_scratchAlignment[idx], alignment);
+
+        Memory::Copy(scratch.Data() + scratchOffset, reinterpret_cast<const ubyte*>(src), count);
+    }
 
     template <class T>
     void Write(const T* src)

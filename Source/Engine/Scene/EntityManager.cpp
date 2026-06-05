@@ -333,6 +333,8 @@ void EntityManager::Shutdown()
 
     if (m_world != nullptr)
     {
+        TSet<Handle<Entity>> allEntities;
+
         for (SystemExecutionGroup* group : m_world->GetSystemExecutionGroups())
         {
             for (auto& systemIt : group->GetSystems())
@@ -355,6 +357,11 @@ void EntityManager::Shutdown()
                         for (Entity* entity : systemEntityIt->second)
                         {
                             entities.PushBack(entity);
+
+                            if (allEntities.FindAs(entity->Id()) == allEntities.End())
+                            {
+                                allEntities.Add(MakeStrongRef(entity));
+                            }
                         }
 
                         systemEntityIt->second.Clear();
@@ -363,27 +370,32 @@ void EntityManager::Shutdown()
 
                 for (Entity* entity : entities)
                 {
-                    entity->OnRemovedFromWorld(m_world);
-
-                    if (m_scene->GetSceneFlags() & SceneFlags::HAS_OCTREE)
-                    {
-                        auto removeFromOctreeResult = m_scene->GetOctree().Remove(entity, /* allowRebuild */ false);
-                        if (removeFromOctreeResult.HasError())
-                        {
-                            HYP_LOG(Entity, Warning, "Failed to remove Entity {} from Scene {}'s octree: {}",
-                                entity->GetName(),
-                                m_scene->GetName(),
-                                removeFromOctreeResult.GetError().GetMessage());
-                        }
-                    }
-
-                    entity->OnRemovedFromScene(m_scene);
-
                     system->OnEntityRemoved(entity);
                 }
 
                 system->Shutdown();
             }
+        }
+
+        for (const Handle<Entity>& entity : allEntities)
+        {
+            entity->OnRemovedFromWorld(m_world);
+
+            if (m_scene->GetSceneFlags() & SceneFlags::HAS_OCTREE)
+            {
+                auto removeFromOctreeResult = m_scene->GetOctree().Remove(entity, /* allowRebuild */ false);
+                if (removeFromOctreeResult.HasError())
+                {
+                    HYP_LOG(Entity, Warning, "Failed to remove Entity {} from Scene {}'s octree: {}",
+                        entity->GetName(),
+                        m_scene->GetName(),
+                        removeFromOctreeResult.GetError().GetMessage());
+                }
+            }
+
+            entity->OnRemovedFromScene(m_scene);
+
+            entity->m_entityManager = nullptr;
         }
     }
 

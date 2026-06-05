@@ -17,7 +17,8 @@
 
 #include <Core/FileSystem/FilePath.hpp>
 
-#include <Core/Memory/Resource/Resource.hpp>
+#include <Core/Resource/Resource.hpp>
+#include <Core/Resource/ResLock.hpp>
 
 #include <Core/Memory/Pool/Pool.hpp>
 
@@ -155,8 +156,8 @@ public:
     HYP_METHOD()
     Result SaveAs(const FilePath& manifestPath);
 
-    TUniqueLock<AssetObject> GetWriteScope() const;
-    TSharedLock<AssetObject> GetReadScope() const;
+    TUniqueResLock<AssetObject> GetWriteScope() const;
+    TSharedResLock<AssetObject> GetReadScope() const;
 
     void LockWriter(bool doInitialize = true);
     void UnlockWriter(bool doDeinitialize = true);
@@ -236,6 +237,8 @@ protected:
     mutable Mutex m_initMutex;
     ConditionVariable m_initCV;
     bool m_isBlobLoaded;
+
+    ThreadId m_uniqueLockHolderThread;
 };
 
 } // namespace Hyperion

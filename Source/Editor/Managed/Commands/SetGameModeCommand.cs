@@ -19,108 +19,115 @@ namespace Hyperion.Editor.Commands
         }
 
         public bool CanExecute(object? parameter) => true; // TEMP : debug
-            // EngineManager.GameInstance?.World?.GetGameState().Mode != _mode
-            //     && Interlocked.CompareExchange(ref _isChangingGameMode, 0, 0) == 0;
+                                                           // EngineManager.GameInstance?.World?.GetGameState().Mode != _mode
+                                                           //     && Interlocked.CompareExchange(ref _isChangingGameMode, 0, 0) == 0;
 
-        public void Execute(object? parameter)
+        public async void Execute(object? parameter)
         {
+            Dispatcher.UIThread.VerifyAccess();
+
             if (Interlocked.CompareExchange(ref _isChangingGameMode, 1, 0) != 0)
             {
                 Logger.Log(LogLevel.Warning, "Cannot set game mode; already setting");
                 return;
             }
 
-            Game? currentGameInstance = EngineManager.GameInstance;
-            Debug.Assert(currentGameInstance != null);
-
-            Game? gameInstance = currentGameInstance;
-
-            switch (_mode)
+            try
             {
-                case GameStateMode.Simulating:
+                Game? currentGameInstance = EngineManager.GameInstance;
+                Debug.Assert(currentGameInstance != null);
+
+                Game? gameInstance = currentGameInstance;
+
+                switch (_mode)
                 {
-                    _ = EngineManager.PostToSimThread(() =>
-                    {
-                        Game? gameInstance = null;
-
-                        try
+                    case GameStateMode.Simulating:
                         {
-                            EditorSubsystem? editorSubsystem = EngineManager.EditorGame?.EditorSubsystem;
-                            Debug.Assert(editorSubsystem != null, "EditorSubsystem is null");
+                            await EngineManager.PostToSimThread(() =>
+                            {
+                                Game? innerGameInstance = null;
 
-                            editorSubsystem.StartSimulation();
+                                try
+                                {
+                                    EditorSubsystem? editorSubsystem = EngineManager.EditorGame?.EditorSubsystem;
+                                    Debug.Assert(editorSubsystem != null, "EditorSubsystem is null");
 
-                            gameInstance = editorSubsystem.CurrentProject?.GameInstance;
-                            Debug.Assert(gameInstance != null);
+                                    editorSubsystem.StartSimulation();
+
+                                    innerGameInstance = editorSubsystem.CurrentProject?.GameInstance;
+                                    Debug.Assert(innerGameInstance != null);
+                                } catch (Exception)
+                                {
+                                    Interlocked.Exchange(ref _isChangingGameMode, 0);
+                                    throw;
+                                }
+
+                                Dispatcher.UIThread.Post(() =>
+                                {
+                                    try
+                                    {
+                                        EngineManager.InitializeGame(innerGameInstance);
+                                    } finally
+                                    {
+                                        Interlocked.Exchange(ref _isChangingGameMode, 0);
+                                    }
+                                });
+                            });
+
+                            break;
                         }
-                        catch (Exception)
-                        {
-                            Interlocked.Exchange(ref _isChangingGameMode, 0);
-                            throw;
-                        }
-
-                        Dispatcher.UIThread.Post(() =>
+                    case GameStateMode.Paused:
+                        await EngineManager.PostToSimThread(() =>
                         {
                             try
                             {
-                                EngineManager.InitializeGame(gameInstance);
+                                EditorSubsystem? editorSubsystem = EngineManager.EditorGame?.EditorSubsystem;
+                                Debug.Assert(editorSubsystem != null, "EditorSubsystem is null");
+
+                                editorSubsystem.PauseSimulation();
                             } finally
                             {
                                 Interlocked.Exchange(ref _isChangingGameMode, 0);
                             }
                         });
-                    });
 
-                    break;
+                        break;
+                    case GameStateMode.Stopped:
+                        await EngineManager.PostToSimThread(() =>
+                        {
+                            try
+                            {
+                                EditorSubsystem? editorSubsystem = EngineManager.EditorGame?.EditorSubsystem;
+                                Debug.Assert(editorSubsystem != null, "EditorSubsystem is null");
+
+                                editorSubsystem.StopSimulation();
+                            } catch (Exception)
+                            {
+                                Interlocked.Exchange(ref _isChangingGameMode, 0);
+                                throw;
+                            }
+
+                            Dispatcher.UIThread.Post(() =>
+                            {
+                                try
+                                {
+                                    EngineManager.InitializeEditor();
+                                } finally
+                                {
+                                    Interlocked.Exchange(ref _isChangingGameMode, 0);
+                                }
+                            });
+                        });
+
+                        break;
+                    default:
+                        Interlocked.Exchange(ref _isChangingGameMode, 0);
+                        throw new NotImplementedException();
                 }
-                case GameStateMode.Paused:
-                    _ = EngineManager.PostToSimThread(() =>
-                    {
-                        try
-                        {
-                            EditorSubsystem? editorSubsystem = EngineManager.EditorGame?.EditorSubsystem;
-                            Debug.Assert(editorSubsystem != null, "EditorSubsystem is null");
-
-                            editorSubsystem.PauseSimulation();
-                        }
-                        finally
-                        {
-                            Interlocked.Exchange(ref _isChangingGameMode, 0);
-                        }
-                    });
-
-                    break;
-                case GameStateMode.Stopped:
-                    _ = EngineManager.PostToSimThread(() =>
-                    {
-                        try
-                        {
-                            EditorSubsystem? editorSubsystem = EngineManager.EditorGame?.EditorSubsystem;
-                            Debug.Assert(editorSubsystem != null, "EditorSubsystem is null");
-
-                            editorSubsystem.StopSimulation();
-                        }
-                        catch (Exception)
-                        {
-                            Interlocked.Exchange(ref _isChangingGameMode, 0);
-                            throw;
-                        }
-
-                        Dispatcher.UIThread.Post(() =>
-                        {
-                            try
-                            {
-                                EngineManager.InitializeEditor();
-                            } finally
-                            {
-                                Interlocked.Exchange(ref _isChangingGameMode, 0);
-                            }
-                        });
-                    });
-
-                    break;
-                default:
-                    throw new NotImplementedException();
+            } catch (Exception)
+            {
+                Interlocked.Exchange(ref _isChangingGameMode, 0);
+                throw;
             }
         }
 

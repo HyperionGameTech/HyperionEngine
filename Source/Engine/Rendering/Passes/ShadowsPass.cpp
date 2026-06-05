@@ -35,6 +35,7 @@
 
 #include <Core/Containers/Array.hpp>
 
+#include <Core/Utilities/GlobalContext.hpp>
 #include <Core/Utilities/DeferredScope.hpp>
 
 #include <ShadowsPass.generated.inl>
