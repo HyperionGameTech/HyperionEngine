@@ -10,7 +10,7 @@
     "TAA": true,
     "PathTracing": false,
     "RayTracedReflections": false,
-    "RayTracedGI": true,
+    "RayTracedGI": false,
     "RayTracingEnabled": true,
     "IndirectRendering": true,
     "DepthPrepass": true,
@@ -53,7 +53,7 @@
   },
   "System": {
     "SelectedGpu": {
-      "Index": 0
+      "Index": 1
     }
   },
   "Baker": {

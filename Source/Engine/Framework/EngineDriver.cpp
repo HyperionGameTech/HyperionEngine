@@ -35,6 +35,8 @@
 #include <Rendering/RenderConfig.hpp>
 #include <Rendering/Texture.hpp>
 
+#include <Rendering/Shadows/ShadowMapCache.hpp>
+
 #include <Rendering/Passes/DeferredPass.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
@@ -535,6 +537,8 @@ void EngineDriver::UpdateSim(float delta)
                 view->PrepareShadowViews(views);
             }
         }
+
+        RI.shadowMapCache->Update();
     }
 
     static const auto RemoveNonUnique = []<class ArrayType>(ArrayType& elems)

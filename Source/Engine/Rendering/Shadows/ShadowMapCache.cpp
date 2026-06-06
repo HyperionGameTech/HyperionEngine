@@ -30,8 +30,6 @@
 
 namespace Hyperion {
 
-#define SHADOW_MAP_CACHE_MULTITHREADED 1
-
 static constexpr EnumFlags<ViewFlags> DefaultShadowViewFlags = ViewFlags::SHADOW_VIEW
     | ViewFlags::SKIP_LIGHTS | ViewFlags::SKIP_CAMERAS
     | ViewFlags::SKIP_LIGHTMAP_VOLUMES | ViewFlags::SKIP_PARTICLE_VOLUMES | ViewFlags::SKIP_FOG_VOLUMES
@@ -226,9 +224,8 @@ class ShadowMapCacheImpl
 public:
     ~ShadowMapCacheImpl()
     {
-#if SHADOW_MAP_CACHE_MULTITHREADED
         TUniqueLock lock(mutex);
-#endif
+
         TFatArray<View*, FixedAllocator<MaxShadowMapCascades * 2>> allViews;
 
         for (auto& pair : cache)
@@ -274,9 +271,11 @@ public:
     /// Cached (per-light/view combination) shadow map rendering data that is cleaned up when no longer used
     TMap<ShadowMapCacheKey, CachedShadowMapData, RenderAllocator> cache;
 
-#if SHADOW_MAP_CACHE_MULTITHREADED
+    TSlimArray<Camera*> deferredDeletionCameras;
+
+    volatile int numDeferredDeletionCameras = 0;
+
     SharedMutex mutex;
-#endif
 };
 
 ShadowMapCache::ShadowMapCache()
@@ -330,12 +329,8 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
     key.view = view;
     key.light = light;
 
-#if SHADOW_MAP_CACHE_MULTITHREADED
     TSharedLock<SharedMutex> sharedLock(m_impl->mutex);
     TUniqueLock<SharedMutex> uniqueLock; // not locked yet
-#else
-    AssertOnThread(g_renderThread);
-#endif
 
     // is 'cascadeIndex' actually the index of the cubemap face?
     const bool cascadesAreCubeFaces = light->IsA<PointLight>();
@@ -374,10 +369,8 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
         if (cascadeIndex >= entry->shadowViewsStatic.Size() || !entry->camera
             || !entry->shadowMaps[cascadesAreCubeFaces ? 0 : cascadeIndex])
         {
-#if SHADOW_MAP_CACHE_MULTITHREADED
             sharedLock.Reset();
             uniqueLock.Reset(m_impl->mutex);
-#endif
 
             if (!entry->camera)
             {
@@ -400,10 +393,8 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
             return outView;
         }
 
-#if SHADOW_MAP_CACHE_MULTITHREADED
         sharedLock.Reset();
         uniqueLock.Reset(m_impl->mutex);
-#endif
 
         it = m_impl->cache.Find(key);
         Assert(it != m_impl->cache.End());
@@ -445,10 +436,8 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
     }
     else
     {
-#if SHADOW_MAP_CACHE_MULTITHREADED
         sharedLock.Reset();
         uniqueLock.Reset(m_impl->mutex);
-#endif
 
         CachedShadowMapData& entry = m_impl->cache[key];
         AtomicExchange(&entry.lastFrameUsed, int64(GetFrameCounter()));
@@ -508,12 +497,8 @@ View* ShadowMapCache::TryGetShadowView(
     key.view = view;
     key.light = light;
 
-#if SHADOW_MAP_CACHE_MULTITHREADED
     TSharedLock<SharedMutex> sharedLock(m_impl->mutex);
     TUniqueLock<SharedMutex> uniqueLock; // not locked yet
-#else
-    AssertOnThread(g_renderThread);
-#endif
 
     auto it = m_impl->cache.Find(key);
 
@@ -541,11 +526,7 @@ ShadowMap* ShadowMapCache::GetShadowMap(
     key.view = view;
     key.light = light;
 
-#if SHADOW_MAP_CACHE_MULTITHREADED
     TSharedLock<SharedMutex> sharedLock(m_impl->mutex);
-#else
-    AssertOnThread(g_renderThread);
-#endif
 
     const bool cascadesAreCubeFaces = light->IsA<PointLight>();
 
@@ -627,9 +608,9 @@ bool ShadowMapCache::Remove(Light* light, View* view)
 
     if (entry.camera)
     {
-        // @FIXME: Crashing because we're releasing not on sim thread.
-        // @TODO: Move creation to render thread only? Or just detach from EM on sim thread?
-        entry.camera->Release();
+        m_impl->deferredDeletionCameras.PushBack(entry.camera);
+
+        AtomicIncrement(&m_impl->numDeferredDeletionCameras);
     }
 
     for (ShadowMap* shadowMap : entry.shadowMaps)
@@ -648,6 +629,25 @@ bool ShadowMapCache::Remove(Light* light, View* view)
     m_impl->cache.Erase(it);
 
     return true;
+}
+
+void ShadowMapCache::Update()
+{
+    if (AtomicAdd(&m_impl->numDeferredDeletionCameras, 0) == 0)
+    {
+        return;
+    }
+
+    TUniqueLock lock(m_impl->mutex);
+
+    for (Camera* camera : m_impl->deferredDeletionCameras)
+    {
+        camera->Release();
+    }
+
+    AtomicExchange(&m_impl->numDeferredDeletionCameras, 0);
+
+    m_impl->deferredDeletionCameras.Resize(0);
 }
 
 } // namespace Hyperion
