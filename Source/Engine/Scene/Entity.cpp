@@ -70,6 +70,8 @@ Entity::~Entity()
     {
         HYP_LOG(Entity, Error, "Failed to remove Entity {} from EntityManager", GetName());
     }
+
+    m_entityManager = nullptr;
 }
 
 Handle<Node> Entity::Clone() const

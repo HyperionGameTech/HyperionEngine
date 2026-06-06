@@ -68,7 +68,7 @@ void DynamicSkySystem::InitializeSky()
         m_renderScene = MakeHandle<Scene>(NAME("DynamicSkyRenderScene"), SceneFlags::NONE);
         m_renderScene->SetIsTransient(true); // don't save; it's generated at runtime
         m_renderScene->SetOwnerThreadId(g_simThread);
-        InitObject(m_renderScene);
+        m_renderScene->Initialize();
 
         Handle<Node> cameraNode = m_renderScene->GetRoot()->AddChild();
 
@@ -205,7 +205,7 @@ void DynamicSkySystem::Process(float delta, Span<Handle<Scene>>)
     }
 
     // update every second OR RingBufferDepth frames (whatever is sooner)
-    
+
     const uint32 currFrame = GetFrameCounter();
 
     //if (!m_updateTimer.Waiting() || m_lastFrame == UINT32_MAX || (currFrame - m_lastFrame) >= RingBufferDepth)

@@ -22,6 +22,7 @@
 #ifdef HYP_DOTNET
 #include <DotNET/ManagedClass.hpp>
 #include <DotNET/ManagedObject.hpp>
+#include <DotNET/DotNETHost.hpp>
 #endif // HYP_DOTNET
 
 #ifdef HYP_SCRIPT
@@ -95,10 +96,7 @@ ObjectInitializerGuardBase::~ObjectInitializerGuardBase()
                 }
                 else
                 {
-                    scriptObjectResource->SetScriptObjectData_DotNet(ScriptObjectData_DotNet {
-                        nullptr,
-                        managedClass
-                    });
+                    scriptObjectResource->SetScriptObjectData_DotNet(ScriptObjectData_DotNet { nullptr, managedClass });
                 }
 
                 scriptObjectResource->AddReader();

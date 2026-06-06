@@ -63,7 +63,8 @@ Scene::Scene(Name name, ThreadId ownerThreadId, EnumFlags<SceneFlags> flags)
       m_world(nullptr),
       m_entityManager(MakeHandle<EntityManager>(ownerThreadId, this)),
       m_octree(m_entityManager, BoundingBox(Vec3f(-250.0f), Vec3f(250.0f))),
-      m_previousDelta(0.01667f)
+      m_previousDelta(0.01667f),
+      m_isInitialized(false)
 {
     m_root = MakeHandle<Node>(s_nameSceneRoot, Transform::identity, this);
     m_root->SetIsStatic(false);
@@ -74,9 +75,14 @@ Scene::~Scene()
     Shutdown();
 }
 
-void Scene::Init()
+void Scene::Initialize()
 {
-    AssetObject::Init();
+    if (m_isInitialized)
+    {
+        return;
+    }
+
+    m_isInitialized = true;
 
     if (!m_root.IsValid())
     {
@@ -93,10 +99,6 @@ void Scene::Init()
 
     m_octree.SetEntityManager(m_entityManager);
 
-    // Scene must be ready before entity manager is initialized
-    // (OnEntityAdded() calls on Systems may require this)
-    SetReady(true);
-
     InitObject(m_root);
 
     m_entityManager->Initialize();
@@ -106,6 +108,13 @@ void Scene::Init()
 
 void Scene::Shutdown()
 {
+    if (!m_isInitialized)
+    {
+        return;
+    }
+
+    m_isInitialized = false;
+
     m_octree.SetEntityManager(nullptr);
     m_octree.Clear();
 

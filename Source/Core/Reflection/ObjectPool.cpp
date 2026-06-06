@@ -82,6 +82,9 @@ CORE_API void ReleaseObject(ObjectHeader* header)
 
     container->Release(header);
 
+    // mark invalid
+    header->index = UINT32_MAX;
+
     if (cls->IsDynamic())
     {
         AssertDebug(cls->IsClassType());

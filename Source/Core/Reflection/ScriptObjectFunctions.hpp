@@ -37,6 +37,8 @@ struct CORE_API ScriptObjectFunctions
     static ScriptObjectResource* (*CreateScriptObjectResource_Script)(ScriptInstance*, ObjectBase*);
     static void (*DestroyScriptObjectResource)(ScriptObjectResource*);
 
+    static void (*ReleaseDotNetGCHandle)(ObjectBase*);
+
     static unsigned int (*GetScriptLanguageMask)(const ScriptObjectResource*);
     static dotnet::ManagedObject* (*GetManagedObject)(const ScriptObjectResource*);
 

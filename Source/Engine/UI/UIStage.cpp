@@ -250,8 +250,6 @@ Scene* UIStage::GetScene() const
 
 void UIStage::SetScene(const Handle<Scene>& scene)
 {
-    HYP_SCOPE;
-
     Handle<Scene> newScene = scene;
 
     if (!newScene.IsValid())
@@ -260,7 +258,10 @@ void UIStage::SetScene(const Handle<Scene>& scene)
 
         newScene = MakeHandle<Scene>(NAME_FMT("UIStage_{}_Scene", GetName()), ownerThreadId, SceneFlags::FOREGROUND | SceneFlags::UI);
         newScene->SetIsTransient(true);
-        newScene->SetRoot(MakeHandle<Entity>());
+
+        Handle<Entity> entity = MakeHandle<Entity>();
+        entity->SetName(NAME_FMT("UIStage_{}_Root", GetName()));
+        newScene->SetRoot(entity);
     }
 
     if (newScene == m_scene)
@@ -293,8 +294,6 @@ void UIStage::SetScene(const Handle<Scene>& scene)
     {
         m_world->AddScene(m_scene);
     }
-
-    InitObject(m_scene);
 }
 
 void UIStage::SetWorld(World* world)
@@ -309,12 +308,19 @@ void UIStage::SetWorld(World* world)
     if (m_scene.IsValid())
     {
         m_scene->RemoveFromWorld();
+        m_scene->Shutdown();
+
+        AssertDebug(StaticCast<Entity>(m_node)->GetEntityManager() == nullptr);
     }
 
     m_world = world;
 
     if (m_world != nullptr && m_scene.IsValid())
     {
+        // Set root on the Scene, shutting down the scene unsets root
+        m_scene->SetRoot(m_node);
+
+        // Calls Scene::Initialize()
         m_world->AddScene(m_scene);
     }
 }
@@ -409,6 +415,7 @@ void UIStage::Init()
 
     // Will create a new Scene
     SetScene(nullptr);
+
     SetNodeProxy(m_scene->GetRoot());
 
     UIObject::Init();

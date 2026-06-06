@@ -169,7 +169,7 @@ void World::Initialize()
     {
         scene->SetWorld(this);
 
-        InitObject(scene);
+        scene->Initialize();
 
         OnSceneAdded(this, scene);
 
@@ -1035,7 +1035,7 @@ void World::AddScene(const Handle<Scene>& scene, bool addToStreamingLayer)
 
     if (m_isInitialized)
     {
-        InitObject(scene);
+        scene->Initialize();
 
         OnSceneAdded(this, scene);
 
@@ -1291,7 +1291,7 @@ void World::DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes)
 
         if (m_isInitialized)
         {
-            InitObject(scene);
+            scene->Initialize();
 
             OnSceneAdded(this, scene);
 
