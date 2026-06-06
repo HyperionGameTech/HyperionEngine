@@ -109,7 +109,7 @@ Node::~Node()
 
         child->m_parentNode = nullptr;
 
-        EnqueueDeletion(std::move(child));
+        child.Reset();
     }
 }
 
@@ -480,7 +480,8 @@ bool Node::RemoveChild(const Node* node, bool moveToDetached)
     }
 
     UpdateWorldTransform();
-    EnqueueDeletion(std::move(childNode));
+
+    childNode.Reset();
 
     MarkDirty();
 
@@ -536,7 +537,7 @@ void Node::RemoveAllChildren(bool moveToDetached)
         }
 
         it = m_childNodes.Erase(it);
-        EnqueueDeletion(std::move(*it));
+        it->Reset();
     }
 
     UpdateWorldTransform();

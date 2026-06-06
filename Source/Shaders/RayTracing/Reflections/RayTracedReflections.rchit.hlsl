@@ -20,8 +20,8 @@ DECLARE_SAMPLER(RTReflections, SamplerLinear) SamplerState sampler_linear;
 #include "../include/BRDF.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "../include/RayTracingMesh.hlsli"
-#include "../include/RayTracingPayload.hlsli"
+#include "../include/RayTracing/Mesh.hlsli"
+#include "../include/RayTracing/Payload.hlsli"
 
 /* Shadows */
 
@@ -32,7 +32,7 @@ DECLARE_SRV(RTReflections, PointLightShadowMapsTextureArray) TextureCubeArray po
 #include "../include/Shadows.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "../include/RayTracingRayTracingHelpers.hlsli"
+#include "../include/RayTracing/RayTracingHelpers.hlsli"
 
 /* End Shadows */
 

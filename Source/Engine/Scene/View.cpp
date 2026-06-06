@@ -190,7 +190,7 @@ View::View(const ViewDesc& viewDesc, Name name)
       name(name),
       flags(viewDesc.flags),
       priority(viewDesc.priority),
-      m_camera(MakeStrongRef(viewDesc.camera)),
+      m_camera(viewDesc.camera),
       m_overrideAttributes(viewDesc.overrideAttributes),
       m_collectionTaskBatch(nullptr),
       m_overrideCollectFunctor(nullptr)
@@ -231,16 +231,11 @@ View::~View()
 
         delete m_renderProxyLists[i];
     }
-
-    if (m_camera != nullptr)
-    {
-        EnqueueDeletion(std::move(m_camera));
-    }
 }
 
 void View::Init()
 {
-    if (m_camera.IsValid())
+    if (m_camera)
     {
         InitObject(m_camera);
     }
@@ -335,7 +330,7 @@ void View::UpdateVisibility()
     // Cubemap face views do not automatically update the sub-frustum
     if (!(flags & ViewFlags::CUBEMAP_FACE_VIEW))
     {
-        if (m_camera.IsValid())
+        if (m_camera)
         {
             cachedViewProjMatrix = m_camera->GetViewProjectionMatrix();
         }
@@ -1082,9 +1077,9 @@ void View::CollectCameras(RenderProxyList& rpl)
     HYP_SCOPE;
 
     // still want to consider our own camera for update
-    if (m_camera.IsValid())
+    if (m_camera)
     {
-        rpl.GetCameras().Track(m_camera.Id(), m_camera, GET_RESOURCE_VERSION(m_camera));
+        rpl.GetCameras().Track(m_camera->Id(), m_camera, GET_RESOURCE_VERSION(m_camera));
     }
 
     if (flags & ViewFlags::SKIP_CAMERAS)

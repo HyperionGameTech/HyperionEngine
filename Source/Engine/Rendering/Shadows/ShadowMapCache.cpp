@@ -627,6 +627,8 @@ bool ShadowMapCache::Remove(Light* light, View* view)
 
     if (entry.camera)
     {
+        // @FIXME: Crashing because we're releasing not on sim thread.
+        // @TODO: Move creation to render thread only? Or just detach from EM on sim thread?
         entry.camera->Release();
     }
 

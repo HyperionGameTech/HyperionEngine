@@ -24,8 +24,8 @@ DECLARE_SAMPLER(LightmapPathTracer, SamplerLinear) SamplerState sampler_linear;
 #include "../../include/BRDF.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "../../include/RayTracingMesh.hlsli"
-#include "../../include/RayTracingPayload.hlsli"
+#include "../../include/RayTracing/Mesh.hlsli"
+#include "../../include/RayTracing/Payload.hlsli"
 
 /* Shadows */
 
@@ -36,7 +36,7 @@ DECLARE_SRV(LightmapPathTracer, PointLightShadowMapsTextureArray) TextureCubeArr
 #include "../../include/Shadows.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "../../include/RayTracingRayTracingHelpers.hlsli"
+#include "../../include/RayTracing/RayTracingHelpers.hlsli"
 
 /* End Shadows */
 
@@ -86,18 +86,18 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
         buffers[ibIndex].Load(PrimitiveIndex() * 3 * 4 + 4),
         buffers[ibIndex].Load(PrimitiveIndex() * 3 * 4 + 8)
     );
-    
+
     Vertex v0, v1, v2;
-    
+
     LoadVertex(buffers[vbIndex], index[0], v0);
     LoadVertex(buffers[vbIndex], index[1], v1);
     LoadVertex(buffers[vbIndex], index[2], v2);
 
     const float3 barycentric_coords = float3(1.0 - attrib.barycentrics.x - attrib.barycentrics.y, attrib.barycentrics.x, attrib.barycentrics.y);
-    
+
     float3 normal = normalize(mul(ObjectToWorld3x4(), float4(v0.normal * barycentric_coords.x + v1.normal * barycentric_coords.y + v2.normal * barycentric_coords.z, 0.0)).xyz);
     if (dot(normal, -WorldRayDirection()) < 0.0) normal = -normal;
-    
+
     const float2 texcoord = v0.texcoord0 * barycentric_coords.x + v1.texcoord0 * barycentric_coords.y + v2.texcoord0 * barycentric_coords.z;
     const float3 position = mul(ObjectToWorld3x4(), float4(v0.position * barycentric_coords.x + v1.position * barycentric_coords.y + v2.position * barycentric_coords.z, 1.0)).xyz;
 

@@ -1,5 +1,5 @@
 #include "../include/Defines.hlsli"
-#include "../include/RayTracingprobe/ProbeUniforms.hlsli"
+#include "../include/RayTracing/GlobalIllumination/ProbeUniforms.hlsli"
 
 PERMUTE(MODE, IRRADIANCE, DEPTH);
 
@@ -31,7 +31,7 @@ DECLARE_BUFFER_DYNAMIC(DDGI, CBuffer) cbuffer CBuffer
 
 DECLARE_SRV(DDGI, ProbeRayData) StructuredBuffer<ProbeRayData> probe_rays;
 
-#include "../include/RayTracingprobe/Shared.hlsli"
+#include "../include/RayTracing/GlobalIllumination/Shared.hlsli"
 
 #if MODE_DEPTH
 DECLARE_UAV(DDGI, OutputImage) RWTexture2D<float2> outputImage;
@@ -42,7 +42,7 @@ DECLARE_UAV(DDGI, OutputImage) RWTexture2D<float4> outputImage;
 float2 NormalizeOctahedralCoord(uint2 coord)
 {
     int2 oct_frag_coord = int2((int(coord.x) - 2) % DDGI_PROBE_SIDE_LENGTH_BORDER, (int(coord.y) - 2) % DDGI_PROBE_SIDE_LENGTH_BORDER);
-    
+
     return (float2(oct_frag_coord) + float2(0.5, 0.5)) * (2.0 / float(DDGI_PROBE_SIDE_LENGTH)) - float2(1.0, 1.0);
 }
 

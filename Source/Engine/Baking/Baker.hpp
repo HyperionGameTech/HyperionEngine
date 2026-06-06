@@ -280,6 +280,8 @@ protected:
 
     Handle<View> m_view;
 
+    Handle<Camera> m_camera;
+
     Array<BakeEntity, DynamicAllocator> m_bakeEntities;
     TMap<Handle<Entity>, BakeEntity*> m_bakeEntitiesByEntity;
 

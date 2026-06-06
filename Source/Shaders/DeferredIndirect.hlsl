@@ -96,14 +96,14 @@ DECLARE_SRV(DeferredPass, WorldsBuffer) StructuredBuffer<WorldShaderData> _world
 DECLARE_SRV(DeferredPass, DDGIIrradianceTexture) Texture2D probe_irradiance;
 DECLARE_SRV(DeferredPass, DDGIDepthTexture) Texture2D probe_depth;
 
-#include "include/RayTracingprobe/ProbeUniforms.hlsli"
+#include "include/RayTracing/GlobalIllumination/ProbeUniforms.hlsli"
 
 DECLARE_BUFFER(DeferredPass, DDGIConstants) cbuffer DDGI
 {
     DDGIConstants ddgiConstants;
 };
 
-#include "include/RayTracingprobe/SampleDDGI.hlsli"
+#include "include/RayTracing/GlobalIllumination/SampleDDGI.hlsli"
 
 #endif // RT_GI
 

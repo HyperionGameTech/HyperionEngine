@@ -56,8 +56,8 @@ DECLARE_SRV(PathTracer, EnvProbesTexture) Texture2DArray envProbesTexture;
 
 #include "../../include/Octahedron.hlsli"
 
-#include "../../include/RayTracingRayTracingHelpers.hlsli"
-#include "../../include/RayTracingPayload.hlsli"
+#include "../../include/RayTracing/RayTracingHelpers.hlsli"
+#include "../../include/RayTracing/Payload.hlsli"
 
 DECLARE_BUFFER_DYNAMIC(PathTracer, CBuffer) cbuffer CBuffer
 {
@@ -76,7 +76,7 @@ DECLARE_BUFFER_DYNAMIC(PathTracer, CBuffer) cbuffer CBuffer
 void RayGenMain()
 {
     const int2 resolution = rayTracingConstants.output_image_resolution;
-    
+
     const int pixel_index = int(DispatchRaysIndex().x);
     const int2 storage_coord = int2(
         pixel_index % resolution.x,
@@ -126,14 +126,14 @@ void RayGenMain()
     float4 accumRadiance = (float4)0;
 
     // float noise = InterleavedGradientNoiseAnimated(float2(DispatchRaysIndex().xy), world_shader_data.frame_counter % 256);
-    
+
     for (uint sample_index = 0; sample_index < NUM_SAMPLES; sample_index++)
     {
         float3 origin = worldPosition.xyz + N0 * RAY_OFFSET;
         float3 direction;
 
         uint ray_seed = pcg_hash((DispatchRaysIndex().x * NUM_SAMPLES) + sample_index + (world_shader_data.frame_counter * 997));
-    
+
         float2 rnd = float2(RandomFloat(ray_seed), RandomFloat(ray_seed));
 
         float3 F0_init = CalculateF0(albedo, metalness);
@@ -141,7 +141,7 @@ void RayGenMain()
         float specProb = clamp(max(max(F_init.r, F_init.g), F_init.b), 0.05, 0.95);
 
         bool chooseSpecular = (RandomFloat(ray_seed) < specProb);
-        
+
         if (chooseSpecular)
         {
             float3 H = SampleGGX(rnd, perceptualRoughness, N0);
@@ -159,27 +159,27 @@ void RayGenMain()
 
         float3 radiance = (float3)0;
         float3 beta = (float3)1.0;
-        
+
         {
             float3 L = direction;
             float NdotL = max(dot(N0, L), 0.0);
             float NdotV = max(dot(N0, V), 0.0);
-            
+
             if (NdotL > 0.0 && NdotV > 0.0)
             {
                 float3 H = normalize(V + L);
                 float NdotH = max(dot(N0, H), 0.0);
                 float LdotH = max(dot(L, H), 0.0);
-                
+
                 float3 F = F_Schlick(F0_init, LdotH);
                 float D = DistributionGGX(NdotH, roughness);
                 float G = V_SmithGGXCorrelated(roughness * roughness, NdotV, NdotL);
-                
+
                 float3 specularBrdf = F * D * G;
                 float3 diffuseBrdf = (1.0 - F) * (1.0 - metalness) * albedo * HYP_FMATH_ONE_OVER_PI;
-                
+
                 float3 brdf = diffuseBrdf + specularBrdf;
-                
+
                 if (chooseSpecular)
                 {
                     float pdf = (D * NdotH) / (4.0 * LdotH);
@@ -194,7 +194,7 @@ void RayGenMain()
         }
 
         RayPayload payload = (RayPayload)0;
-        
+
         for (int bounceIndex = 0; bounceIndex < NUM_BOUNCES; ++bounceIndex)
         {
             payload.distance = -1.0;
@@ -230,10 +230,10 @@ void RayGenMain()
             }
 
             float3 hitAlbedo = payload.throughput.rgb;
-            
+
             float hitRoughness = clamp(payload.roughness, 0.05, 0.95); // alpha
             float hitMetalness = clamp(payload.throughput.w, 0.0, 1.0);
-            
+
             float3 diffuseColor = hitAlbedo * (1.0 - hitMetalness);
             float3 f0 = CalculateF0(hitAlbedo, hitMetalness);
 
@@ -251,20 +251,20 @@ void RayGenMain()
                     if (shadow > 0.0)
                     {
                         float NdotL = max(dot(N, L), 0.0);
-                        
+
                         if (NdotL > 0.0)
                         {
                             float3 H = normalize(-direction + L);
                             float NdotH = max(dot(N, H), 0.0);
                             float LdotH = max(dot(L, H), 0.0);
                             float NdotV = max(dot(N, -direction), 0.0);
-                            
+
                             float3 F = F_Schlick(f0, LdotH);
                             float G = V_SmithGGXCorrelated(hitRoughness * hitRoughness, NdotV, NdotL);
                             float D = DistributionGGX(NdotH, hitRoughness);
-                            
+
                             radiance += beta * shadow * light_color * NdotL * (
-                                (1.0 - F) * diffuseColor * HYP_FMATH_ONE_OVER_PI + 
+                                (1.0 - F) * diffuseColor * HYP_FMATH_ONE_OVER_PI +
                                 F * G * D
                             );
                         }
@@ -276,25 +276,25 @@ void RayGenMain()
                     float d2 = max(dot(toLight, toLight), 1e-6);
                     float d = sqrt(d2);
                     float3 L = toLight / d;
-                    
+
                     float shadow = 1.0 - CheckInShadow(hitPos, N, L, max(0.0, d - RAY_OFFSET));
                     float NdotL = max(dot(N, L), 0.0);
 
                     if (shadow > 0.0 && NdotL > 0.0)
                     {
                         float attenuation = 1.0 / d2;
-                        
+
                         float3 H = normalize(-direction + L);
                         float NdotH = max(dot(N, H), 0.0);
                         float LdotH = max(dot(L, H), 0.0);
                         float NdotV = max(dot(N, -direction), 0.0);
-                        
+
                         float3 F = F_Schlick(f0, LdotH);
                         float G = V_SmithGGXCorrelated(hitRoughness * hitRoughness, NdotV, NdotL);
                         float D = DistributionGGX(NdotH, hitRoughness);
-                        
+
                         radiance += beta * light_color * attenuation * shadow * NdotL * (
-                            (1.0 - F) * diffuseColor * HYP_FMATH_ONE_OVER_PI + 
+                            (1.0 - F) * diffuseColor * HYP_FMATH_ONE_OVER_PI +
                             F * G * D
                         );
                     }

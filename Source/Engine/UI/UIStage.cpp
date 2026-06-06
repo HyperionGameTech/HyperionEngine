@@ -1281,7 +1281,7 @@ bool UIStage::Remove(const Entity* entity)
         return false;
     }
 
-    return GetNode()->RemoveChild(entity);
+    return GetNode()->RemoveChild(entity, /* moveToDetached */ false);
 }
 
 #pragma endregion UIStage

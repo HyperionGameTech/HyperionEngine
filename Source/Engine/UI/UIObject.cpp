@@ -804,7 +804,7 @@ void UIObject::UpdateClampedSize(bool updateChildren)
 
 void UIObject::UpdateNodeTransform()
 {
-    if (!m_node.IsValid())
+    if (!m_node.IsValid() || !m_node->GetScene())
     {
         return;
     }

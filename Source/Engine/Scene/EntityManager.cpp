@@ -755,6 +755,11 @@ bool EntityManager::RemoveEntity(Entity* entity, bool calledFromEntityDestructor
         }
     }
 
+    if (!calledFromEntityDestructor)
+    {
+        entity->m_entityManager = nullptr;
+    }
+
     m_entities.Remove(entityId);
 
     return true;

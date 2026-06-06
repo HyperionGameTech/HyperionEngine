@@ -210,7 +210,12 @@ void EnvProbe::OnRemovedFromWorld(World* world)
 
     if (m_camera != nullptr)
     {
-        RemoveChild(m_camera);
+        for (const Handle<View>& view : m_views)
+        {
+            view->SetCamera(nullptr);
+        }
+
+        RemoveChild(m_camera, /* moveToDetached */ false);
         m_camera = nullptr;
     }
 

@@ -2,7 +2,7 @@
 
 #include "../../include/Defines.hlsli"
 #include "../../include/Shared.hlsli"
-#include "../../include/RayTracingPayload.hlsli"
+#include "../../include/RayTracing/Payload.hlsli"
 
 [shader("miss")]
 void MissMain(inout RayPayload payload)

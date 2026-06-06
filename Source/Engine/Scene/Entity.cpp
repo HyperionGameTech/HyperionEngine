@@ -366,10 +366,10 @@ void Entity::SetScene_Internal(Scene* scene, bool moveToDetached)
     // We need to call RemoveEntity() if MoveEntity() will not be called.
     // Do this before Node::SetScene_Internal() is called, because systems may try to do
     // entity->GetScene() and will not expect nullptr to be returned.
-    //if (scene == nullptr && !moveToDetached && prevEntityManager != nullptr)
-    //{
-     //   prevEntityManager->RemoveEntity(this);        
-    //}
+    if (scene == nullptr && !moveToDetached && prevEntityManager != nullptr)
+    {
+       prevEntityManager->RemoveEntity(this);
+    }
 
     Node::SetScene_Internal(scene, moveToDetached);
 
