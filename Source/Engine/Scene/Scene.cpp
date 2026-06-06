@@ -132,26 +132,7 @@ void Scene::Shutdown()
         entityManager.Reset();
     }
 
-    if (m_root.IsValid())
-    {
-        // @NOTE moveToDetached is false so that we don't keep the Nodes in memory past when we'd expect them to have been destroyed.
-
-        if (m_ownerThreadId.IsValid() && !IsOnThread(m_ownerThreadId))
-        {
-            Task<void> task = GetThreadById(m_ownerThreadId)->GetScheduler().Enqueue([&node = m_root]()
-                {
-                    node->SetScene_Internal(nullptr, /* moveToDetached */ false);
-                });
-
-            task.Await();
-        }
-        else
-        {
-            m_root->SetScene_Internal(nullptr, /* moveToDetached */ false);
-        }
-
-        m_root.Reset();
-    }
+    m_root.Reset();
 
     m_world = nullptr;
 }

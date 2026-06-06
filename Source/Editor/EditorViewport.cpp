@@ -86,8 +86,6 @@ void EditorViewport::OnAdded(EditorSubsystem* editorSubsystem)
 
     editorScene->GetRoot()->AddChild(m_camera);
 
-    m_view->SetCamera(m_camera);
-
     m_view->AddScene(editorScene);
 
     const Handle<EditorProject>& currentProject = editorSubsystem->GetCurrentProject();
@@ -119,8 +117,6 @@ void EditorViewport::OnRemoved(EditorSubsystem* editorSubsystem)
     Assert(editorScene.IsValid());
 
     m_camera->Remove(/* moveToDetached */ false);
-
-    m_view->SetCamera(nullptr);
 
     m_view->RemoveScene(editorScene);
 

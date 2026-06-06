@@ -120,49 +120,6 @@ void Entity::Init()
 
     Node::Init();
 
-    // If a TransformComponent already exists on the Entity, allow it to keep its current transform by moving the Node
-    // to match it, as long as we're not locked
-    // If transform is locked, the Entity's TransformComponent will be synced with the Node's current transform
-    if (TransformComponent* transformComponent = m_entityManager->TryGetComponent<TransformComponent>(this))
-    {
-        transformComponent->translation = GetWorldTranslation();
-        transformComponent->rotation = GetWorldRotation();
-        transformComponent->scale = GetWorldScale();
-    }
-    else
-    {
-        m_entityManager->AddComponent<TransformComponent>(this, TransformComponent { GetWorldTranslation(), GetWorldRotation(), GetWorldScale() });
-    }
-
-    if (BoundingBoxComponent* boundingBoxComponent = m_entityManager->TryGetComponent<BoundingBoxComponent>(this))
-    {
-        boundingBoxComponent->worldAabb = GetWorldBounds();
-    }
-    else
-    {
-        m_entityManager->AddComponent<BoundingBoxComponent>(this, BoundingBoxComponent { GetWorldBounds() });
-    }
-
-    if (!m_entityManager->HasComponent<VisibilityStateComponent>(this))
-    {
-        m_entityManager->AddComponent<VisibilityStateComponent>(this, {});
-    }
-
-    m_entityManager->AddTags<EntityTag::UpdateVisibility, EntityTag::UpdateRenderProxy>(this);
-
-    if (IsStatic())
-    {
-        m_entityManager->RemoveTag<EntityTag::MobDynamic>(this);
-        m_entityManager->AddTag<EntityTag::MobStatic>(this);
-    }
-    else
-    {
-        m_entityManager->RemoveTag<EntityTag::MobStatic>(this);
-        m_entityManager->AddTag<EntityTag::MobDynamic>(this);
-    }
-
-    m_transformChanged = false;
-
     SetReady(true);
 }
 
@@ -257,7 +214,48 @@ void Entity::OnAddedToScene(Scene* scene)
 {
     AssertDebug(scene != nullptr);
 
-    EntityManager* entityManager = nullptr;
+    // If a TransformComponent already exists on the Entity, allow it to keep its current transform by moving the Node
+    // to match it, as long as we're not locked
+    // If transform is locked, the Entity's TransformComponent will be synced with the Node's current transform
+    if (TransformComponent* transformComponent = m_entityManager->TryGetComponent<TransformComponent>(this))
+    {
+        transformComponent->translation = GetWorldTranslation();
+        transformComponent->rotation = GetWorldRotation();
+        transformComponent->scale = GetWorldScale();
+    }
+    else
+    {
+        m_entityManager->AddComponent<TransformComponent>(this, TransformComponent { GetWorldTranslation(), GetWorldRotation(), GetWorldScale() });
+    }
+
+    if (BoundingBoxComponent* boundingBoxComponent = m_entityManager->TryGetComponent<BoundingBoxComponent>(this))
+    {
+        boundingBoxComponent->worldAabb = GetWorldBounds();
+    }
+    else
+    {
+        m_entityManager->AddComponent<BoundingBoxComponent>(this, BoundingBoxComponent { GetWorldBounds() });
+    }
+
+    if (!m_entityManager->HasComponent<VisibilityStateComponent>(this))
+    {
+        m_entityManager->AddComponent<VisibilityStateComponent>(this, {});
+    }
+
+    m_entityManager->AddTags<EntityTag::UpdateVisibility, EntityTag::UpdateRenderProxy>(this);
+
+    if (IsStatic())
+    {
+        m_entityManager->RemoveTag<EntityTag::MobDynamic>(this);
+        m_entityManager->AddTag<EntityTag::MobStatic>(this);
+    }
+    else
+    {
+        m_entityManager->RemoveTag<EntityTag::MobStatic>(this);
+        m_entityManager->AddTag<EntityTag::MobDynamic>(this);
+    }
+
+    m_transformChanged = false;
 }
 
 void Entity::OnRemovedFromScene(Scene* scene)

@@ -58,6 +58,9 @@ public:
 
     bool Remove(Light* light, View* view);
 
+    // call on simulation thread
+    void Update();
+
 private:
     Pimpl<class ShadowMapCacheImpl> m_impl;
 };
