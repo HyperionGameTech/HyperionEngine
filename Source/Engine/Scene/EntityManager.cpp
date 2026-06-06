@@ -394,13 +394,23 @@ void EntityManager::Shutdown()
             }
 
             entity->OnRemovedFromScene(m_scene);
-            
+
             entity->m_entityManager = nullptr;
         }
     }
 
     for (auto& subtypeData : m_entities.GetSubtypeData())
     {
+        for (EntityData& entityData : subtypeData.data)
+        {
+            Entity* entity = entityData.entityWeak.GetUnsafe();
+            Assert(entity != nullptr);
+
+            entity->OnRemovedFromWorld(m_world);
+
+            entity->m_entityManager = nullptr;
+        }
+
         subtypeData.data.Clear();
     }
 
@@ -692,7 +702,7 @@ bool EntityManager::RemoveEntity(Entity* entity, bool calledFromEntityDestructor
 
     EntityData* entityData = m_entities.TryGetEntityData(entityId);
     Assert(entityData != nullptr, "Entity does not exist");
-    
+
     if (!calledFromEntityDestructor)
     {
         NotifySystemsOfEntityRemoved(entity, entityData->components);

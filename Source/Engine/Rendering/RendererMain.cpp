@@ -102,32 +102,45 @@ struct ParallelRenderingState_Shared
 
     static constexpr uint32 MaxBatches = ParallelRenderingState::MaxBatches;
 
-    using LocalQueue = ParallelRenderingState::LocalQueue;
-
-    FixedArray<LocalQueue*, MaxBatches> threadLocalRecorders;
+    using ThreadedCommandRecorder = ParallelRenderingState::ThreadedCommandRecorder;
+    FixedArray<ThreadedCommandRecorder, MaxBatches> threadedCommandRecorders;
 
     ParallelRenderingState_Shared()
-        : threadLocalRecorders {}
+        : threadedCommandRecorders {}
     {
-        AssertOnThread(g_renderThread);
-
-        for (uint32 i = 0; i < MaxBatches; i++)
-        {
-            threadLocalRecorders[i] = HYP_POOL_NEW(g_renderPool, LocalQueue);
-        }
     }
 
     ~ParallelRenderingState_Shared()
     {
+        // we have to free up the memory for each local queue on individual threads,
+        // due to the use of ThreadAllocator.
+        auto DestructCommandRecorders = [this]() mutable -> void
+        {
+            const uint32 renderThreadIndex = CurrentRenderThreadIndex();
+            Assert(renderThreadIndex < MaxBatches);
+
+            ThreadedCommandRecorder& commandRecorder = threadedCommandRecorders[renderThreadIndex];
+            commandRecorder.Reset(/* freeMemory */ true);
+        };
+
         AssertOnThread(g_renderThread);
 
-        for (uint32 i = 0; i < MaxBatches; i++)
+        // Render thread == 0
+        DestructCommandRecorders();
+
+        Array<Task<void>> tasks;
+        tasks.Reserve(ParallelRenderingState::MaxBatches);
+
+        auto& poolThreads = TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER).GetThreads();
+
+        for (uint32 i = 0; i < uint32(poolThreads.Size()); i++)
         {
-            if (threadLocalRecorders[i])
-            {
-                PoolDelete(*g_renderPool, threadLocalRecorders[i]);
-            }
+            AssertDebug(poolThreads[i] != nullptr);
+
+            tasks.EmplaceBack(poolThreads[i]->GetScheduler().Enqueue([&DestructCommandRecorders] { DestructCommandRecorders(); }));
         }
+
+        AwaitAll(tasks.ToSpan());
     }
 
     void Reset()
@@ -135,7 +148,7 @@ struct ParallelRenderingState_Shared
         for (uint32 i = 0; i < ParallelRenderingState::MaxBatches; i++)
         {
             // don't free memory; each queue uses thread-local memory allocators
-            threadLocalRecorders[i]->Reset(/* freeMemory */ false);
+            threadedCommandRecorders[i].Reset(/* freeMemory */ false);
         }
     }
 };
@@ -148,7 +161,7 @@ ParallelRenderingState::ParallelRenderingState(ParallelRenderingState_Shared* sh
 
     for (uint32 i = 0; i < MaxBatches; i++)
     {
-        threadLocalRecorders[i] = sharedData->threadLocalRecorders[i];
+        threadedCommandRecorders[i] = &sharedData->threadedCommandRecorders[i];
     }
 }
 
@@ -1116,7 +1129,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
 
         const RenderProxyMaterial* materialProxy = static_cast<const RenderProxyMaterial*>(GetRenderProxy(meshProxy.material));
         AssertDebug(materialProxy != nullptr);
-        
+
         if (HYP_UNLIKELY(!materialProxy))
         {
             continue;
@@ -1330,18 +1343,16 @@ RenderCollector::RenderCollector()
 
 RenderCollector::~RenderCollector()
 {
-    HYP_SCOPE;
-
     if (isFallback)
+    {
         return;
+    }
 
-    const bool isParallel = renderGroupFlags[RenderGroupFlags::PARALLEL_COLLECTION];
-
-    DeleteOnRenderThread([isParallel, attrs = std::move(previousAttributes), m = std::move(mappingsByBucket), states = parallelRenderingStates]() mutable
+    DeleteOnRenderThread([attrs = std::move(previousAttributes), m = std::move(mappingsByBucket), states = parallelRenderingStates]() mutable
         {
             attrs.Clear(/* freeMemory */ true);
 
-            Array<FixedArray<ParallelRenderingState::LocalQueue*, ParallelRenderingState::MaxBatches>> allLocalQueues;
+            Array<Span<ParallelRenderingState::ThreadedCommandRecorder>> allThreadedCommandRecorders;
 
             // Collect command recorders.
             for (auto& list : states)
@@ -1359,69 +1370,11 @@ RenderCollector::~RenderCollector()
                             delete state->taskBatch;
                         }
 
-                        if (state->ownsSharedData && state->sharedData != nullptr)
-                        {
-                            // take the local queues to free for ourselves - we need to free up their memory on a per-thread basis
-                            allLocalQueues.PushBack(state->sharedData->threadLocalRecorders);
-
-                            state->sharedData->threadLocalRecorders = {};
-                        }
-
                         ParallelRenderingState* nextState = state->next;
 
                         delete state;
 
                         state = nextState;
-                    }
-                }
-            }
-
-            if (allLocalQueues.Any())
-            {
-                const auto DestructCommandRecorders = [&allLocalQueues]() -> void
-                {
-                    const uint32 currRenderThreadThreadIndex = CurrentRenderThreadIndex();
-                    Assert(currRenderThreadThreadIndex < ParallelRenderingState::MaxBatches);
-
-                    for (FixedArray<ParallelRenderingState::LocalQueue*, ParallelRenderingState::MaxBatches>& queues : allLocalQueues)
-                    {
-                        ParallelRenderingState::LocalQueue* currQueue = queues[currRenderThreadThreadIndex];
-
-                        if (currQueue != nullptr)
-                        {
-                            currQueue->~TCommandRecorder();
-                        }
-                    }
-                };
-
-                // Render thread == 0
-                DestructCommandRecorders();
-
-                if (isParallel)
-                {
-                    // we have to free up the memory for each local queue on individual threads,
-                    // due to the use of ThreadAllocator:
-                    Array<Task<void>> tasks;
-                    tasks.Reserve(ParallelRenderingState::MaxBatches);
-
-                    auto& poolThreads = TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER).GetThreads();
-
-                    for (uint32 i = 0; i < uint32(poolThreads.Size()); i++)
-                    {
-                        AssertDebug(poolThreads[i] != nullptr);
-
-                        tasks.EmplaceBack(poolThreads[i]->GetScheduler().Enqueue([&DestructCommandRecorders] { DestructCommandRecorders(); }));
-                    }
-
-                    AwaitAll(tasks.ToSpan());
-                }
-
-                for (FixedArray<ParallelRenderingState::LocalQueue*, ParallelRenderingState::MaxBatches>& queues : allLocalQueues)
-                {
-                    for (ParallelRenderingState::LocalQueue* queue : queues)
-                    {
-                        // @NOTE: not PoolDelete(), we already destructed it on its own thread.
-                        PoolFree(*g_renderPool, queue);
                     }
                 }
             }
@@ -1594,9 +1547,10 @@ void RenderCollector::Commit(CommandRecorder& cr, uint8 index)
 
         for (uint32 i = 0; i < ParallelRenderingState::MaxBatches; i++)
         {
-            state->threadLocalRecorders[i]->Done();
-            cr.Concat(*state->threadLocalRecorders[i]);
-            state->threadLocalRecorders[i]->Reset(/* freeMemory */ false);
+            state->threadedCommandRecorders[i]->Done();
+            cr.Concat(*state->threadedCommandRecorders[i]);
+
+            state->threadedCommandRecorders[i]->Reset(/* freeMemory */ false);
         }
 
         // end threaded commands -- reset draw states
@@ -2159,7 +2113,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             {
                 continue;
             }
-            
+
             const RenderBucket prevBucket = cachedHandle->GetBucket();
             const uint32 prevIndex = cachedHandle->GetIndex();
 
@@ -2235,7 +2189,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
                 // no handle present — entity was never placed in a draw call collection, nothing to remove
                 continue;
             }
-            
+
             const RenderBucket bucket = attributeHandle->GetBucket();
             const uint32 index = attributeHandle->GetIndex();
 
@@ -2297,13 +2251,13 @@ void RenderCollector::PerformRendering(Frame* frame, PerformRenderingPayloadBase
         return;
     }
 
-    static const thread_local uint32 s_renderThreadIndex = CurrentRenderThreadIndex();
+    const uint32 renderThreadIndex = CurrentRenderThreadIndex();
 
     if (drawCallCollection.parallelRenderingState != nullptr)
     {
         AssertDebug(drawCallCollection.flags & RenderGroupFlags::PARALLEL_COLLECTION);
 
-        auto* cr = drawCallCollection.parallelRenderingState->threadLocalRecorders[s_renderThreadIndex];
+        auto* cr = drawCallCollection.parallelRenderingState->threadedCommandRecorders[renderThreadIndex];
         AssertDebug(cr != nullptr);
 
         TPerformRenderingPayload payloadNext { cr, &payload };

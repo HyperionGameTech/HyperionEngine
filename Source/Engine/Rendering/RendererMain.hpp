@@ -64,8 +64,6 @@ struct ParallelRenderingState
 
     static constexpr uint32 MaxBatches = NumAsyncCommandBuffers;
 
-    // temp, for testing something
-    using LocalQueue = TCommandRecorder<ThreadAllocator>;
 
     TaskBatch* taskBatch = nullptr;
 
@@ -78,7 +76,8 @@ struct ParallelRenderingState
     CommandRecorder renderThreadRecorder;
 
     // per-thread CommandRecorder
-    FixedArray<LocalQueue*, MaxBatches> threadLocalRecorders {};
+    using ThreadedCommandRecorder = TCommandRecorder<ThreadAllocator>;
+    FixedArray<ThreadedCommandRecorder*, MaxBatches> threadedCommandRecorders {};
 
     FixedArray<EngineStatsValueSet, MaxBatches> statValues {};
 

@@ -10,9 +10,6 @@
 
 #include <Core/Reflection/ScriptObjectFunctions.hpp>
 
-// TEMP
-#include <Scene/Entity.hpp>
-
 #ifdef HYP_DOTNET
 #include <DotNET/ManagedObject.hpp>
 #include <DotNET/ManagedClass.hpp>
@@ -316,23 +313,6 @@ ENGINE_API void Object_DecScriptObjectRef(ObjectBase* ptr)
     if (ScriptObjectResource* scriptObjectResource = ptr->GetScriptObjectResource();
         scriptObjectResource && scriptObjectResource->GetScriptLanguageMask() & (1u << uint32(ScriptLanguage::CSharp)))
     {
-        
-
-        int64 numReaders, numWriters;
-        scriptObjectResource->GetNumUsers(numReaders, numWriters);
-
-        if (numReaders == 1)
-        {
-            // temp debug
-            if (ptr->IsA(Entity::StaticClass()))
-            {
-                Entity* entity = static_cast<Entity*>(ptr);
-
-                AssertDebug(entity->GetEntityManager() == nullptr);
-            }
-        }
-
-
         scriptObjectResource->ReleaseReader();
     }
 }

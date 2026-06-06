@@ -707,6 +707,7 @@ extern class View
     AddScene(scene : Scene) -> void
     RemoveScene(scene : Scene) -> void
     GetCamera() -> Camera
+    SetCamera(camera : Camera) -> void
     GetPriority() -> int
     SetPriority(pri : int) -> void
 end
@@ -1773,14 +1774,14 @@ extern class Node : AssetObject
     FindParentWithName(name : string) -> Node
     IsRoot() -> bool
     GetScene() -> Scene
-    SetScene(scene : Scene) -> void
+    SetScene(scene : Scene, moveToDetached : bool) -> void
     GetWorld() -> World
     GetLocalBounds() -> BoundingBox
     SetLocalBounds(aabb : BoundingBox) -> void
     AddChild(node : Node) -> Node
-    RemoveAt(index : uint32) -> bool
-    Remove() -> bool
-    RemoveAllChildren() -> void
+    RemoveAt(index : uint32, moveToDetached : bool) -> bool
+    Remove(moveToDetached : bool) -> bool
+    RemoveAllChildren(moveToDetached : bool) -> void
     NumChildren() -> uint32
     GetChild(index : uint32) -> Node
     Select(selector : string) -> Node
