@@ -30,35 +30,35 @@ DeletionQueue& DeletionQueue::GetInstance()
 DeletionQueueElem<Handle<ObjectBase>>::DeletionQueueElem(ObjectBase* ptr)
     : ptr(ptr)
 {
-    if (ptr)
-    {
-#ifdef HYP_DOTNET
-        ScriptObjectResource* scriptObjectResource = ptr->GetScriptObjectResource();
-        const bool hasExtraRef = scriptObjectResource && bool(scriptObjectResource->GetScriptLanguageMask() & (1u << uint32(ScriptLanguage::CSharp)));
-#else
-        const bool hasExtraRef = false;
-#endif
-        ObjectHeader* header = ptr->GetObjectHeader_Internal();
-
-        int32 currentCount = AtomicIncrement(&header->refCountStrong);
-        AssertDebug(currentCount > 1); // should have another ref from input
-
-        while (currentCount != 1 + (hasExtraRef ? 1 : 0))
-        {
-            if (AtomicCompareExchange(&header->refCountStrong, currentCount, currentCount - 1))
-            {
-
-#ifdef HYP_DOTNET
-                if (hasExtraRef)
-                {
-                    Object_DecScriptObjectRef(ptr);
-                }
-#endif
-
-                break;
-            }
-        }
-    }
+//    if (ptr)
+//    {
+//#ifdef HYP_DOTNET
+//        ScriptObjectResource* scriptObjectResource = ptr->GetScriptObjectResource();
+//        const bool hasExtraRef = scriptObjectResource && bool(scriptObjectResource->GetScriptLanguageMask() & (1u << uint32(ScriptLanguage::CSharp)));
+//#else
+//        const bool hasExtraRef = false;
+//#endif
+//        ObjectHeader* header = ptr->GetObjectHeader_Internal();
+//
+//        int32 currentCount = AtomicIncrement(&header->refCountStrong);
+//        AssertDebug(currentCount > 1); // should have another ref from input
+//
+//        while (currentCount != 1 + (hasExtraRef ? 1 : 0))
+//        {
+//            if (AtomicCompareExchange(&header->refCountStrong, currentCount, currentCount - 1))
+//            {
+//
+//#ifdef HYP_DOTNET
+//                if (hasExtraRef)
+//                {
+//                    Object_DecScriptObjectRef(ptr);
+//                }
+//#endif
+//
+//                break;
+//            }
+//        }
+//    }
 }
 
 void DeletionQueueElem<Handle<ObjectBase>>::DestroyObject()
@@ -72,7 +72,9 @@ void DeletionQueueElem<Handle<ObjectBase>>::DestroyObject()
         /// However, we incremented the strong ref count in the constructor to prevent deletion until this point.
         /// So the object would've been kept alive long enough to be safe to use during rendering.
         /// When the .NET GC runs, it will decrement the strong ref count and delete the object immediately if it reaches 0.
-        if (AtomicDecrement(&header->refCountStrong) == 0)
+        const int32 count = AtomicDecrement(&header->refCountStrong);
+
+        if (count == 0)
         {
             // we increment weak reference to prevent weak refs to this from causing Release() upon calling their destructors.
             header->IncRefWeak();
@@ -81,6 +83,14 @@ void DeletionQueueElem<Handle<ObjectBase>>::DestroyObject()
 
             // this will free the slot if no other weak references remain
             header->DecRefWeak();
+        }
+        else
+        {
+            AssertDebug(count >= 0);
+
+#ifdef HYP_DOTNET
+            Object_DecScriptObjectRef(ptr);
+#endif
         }
     }
 }

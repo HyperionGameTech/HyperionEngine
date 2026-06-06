@@ -47,7 +47,7 @@ void TerrainWorldGridLayer::Init()
     WorldGridLayer::Init();
 
     AssertDebug(m_scene.IsValid());
-    InitObject(m_scene);
+    m_scene->Initialize();
 
     MaterialAttributes attributes;
     attributes.bucket = RenderBucket::Opaque;

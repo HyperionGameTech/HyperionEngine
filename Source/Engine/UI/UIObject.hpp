@@ -1223,7 +1223,7 @@ public:
         Assert(GetNode().IsValid());
 
         Handle<Entity> entity = MakeHandle<Entity>();
-        entity->SetName(name);
+        entity->SetName(name.IsValid() ? name : NAME_FMT("{}", TypeNameWithoutNamespace<T>()));
 
         // Set it to ignore parent scale so size of the UI object is not affected by the parent
         entity->SetNodeFlags(entity->GetNodeFlags() | NodeFlags::IgnoreParentScale);

@@ -394,7 +394,7 @@ void EntityManager::Shutdown()
             }
 
             entity->OnRemovedFromScene(m_scene);
-
+            
             entity->m_entityManager = nullptr;
         }
     }
@@ -444,6 +444,8 @@ void EntityManager::SetWorld(World* world)
                 Assert(entity != nullptr);
 
                 entity->OnRemovedFromWorld(m_world);
+
+                entity->m_entityManager = nullptr;
             }
         }
 
@@ -482,6 +484,8 @@ void EntityManager::SetWorld(World* world)
             {
                 Entity* entity = entityData.entityWeak.GetUnsafe();
                 Assert(entity != nullptr);
+
+                entity->m_entityManager = this;
 
                 entity->OnAddedToWorld(m_world);
             }

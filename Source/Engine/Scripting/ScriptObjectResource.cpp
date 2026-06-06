@@ -10,6 +10,9 @@
 
 #include <Core/Reflection/ScriptObjectFunctions.hpp>
 
+// TEMP
+#include <Scene/Entity.hpp>
+
 #ifdef HYP_DOTNET
 #include <DotNET/ManagedObject.hpp>
 #include <DotNET/ManagedClass.hpp>
@@ -313,7 +316,44 @@ ENGINE_API void Object_DecScriptObjectRef(ObjectBase* ptr)
     if (ScriptObjectResource* scriptObjectResource = ptr->GetScriptObjectResource();
         scriptObjectResource && scriptObjectResource->GetScriptLanguageMask() & (1u << uint32(ScriptLanguage::CSharp)))
     {
+        
+
+        int64 numReaders, numWriters;
+        scriptObjectResource->GetNumUsers(numReaders, numWriters);
+
+        if (numReaders == 1)
+        {
+            // temp debug
+            if (ptr->IsA(Entity::StaticClass()))
+            {
+                Entity* entity = static_cast<Entity*>(ptr);
+
+                AssertDebug(entity->GetEntityManager() == nullptr);
+            }
+        }
+
+
         scriptObjectResource->ReleaseReader();
+    }
+}
+
+ENGINE_API void Object_ReleaseDotNetGCHandle(ObjectBase* ptr)
+{
+    if (!ptr)
+    {
+        return;
+    }
+
+    if (ScriptObjectResource* scriptObjectResource = ptr->GetScriptObjectResource();
+        scriptObjectResource && scriptObjectResource->GetScriptLanguageMask() & (1u << uint32(ScriptLanguage::CSharp)))
+    {
+        if (auto* dotNetData = scriptObjectResource->GetScriptObjectData_DotNet())
+        {
+            if (dotNetData->objectPtr)
+            {
+                dotNetData->objectPtr->SetKeepAlive(false);
+            }
+        }
     }
 }
 
@@ -329,6 +369,8 @@ static struct ScriptObjectFunctionsDependencyInject
 #if defined(HYP_DOTNET) && HYP_DOTNET
         ScriptObjectFunctions::IncScriptObjectRef = &Object_IncScriptObjectRef;
         ScriptObjectFunctions::DecScriptObjectRef = &Object_DecScriptObjectRef;
+
+        ScriptObjectFunctions::ReleaseDotNetGCHandle = &Object_ReleaseDotNetGCHandle;
 
         ScriptObjectFunctions::CreateScriptObjectResource_DotNet = [](ObjectBase* target, const RC<dotnet::ManagedClass>& managedClass) -> ScriptObjectResource* {
             return new ScriptObjectResource(target, managedClass);

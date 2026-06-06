@@ -79,6 +79,7 @@ public:
 
     ~Scene();
 
+    void Initialize();
     void Shutdown();
 
     /*! \brief Get the thread Id that owns this Scene. */
@@ -216,8 +217,6 @@ public:
     ScriptableDelegate<void, Handle<Node>, Handle<Node>> OnRootNodeChanged;
 
 private:
-    void Init() override;
-
     template <class SystemType>
     void AddSystemIfApplicable();
 
@@ -243,6 +242,8 @@ private:
 
     HYP_FIELD(Property = "StreamingCentroid")
     Vec2i m_streamingCentroid;
+
+    bool m_isInitialized;
 };
 
 } // namespace Hyperion

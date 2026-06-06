@@ -59,7 +59,7 @@ private:
     Scene* CreateSceneForThread(const ThreadId& threadId)
     {
         Scene* scene = new Scene(NAME_FMT("DetachedSceneForThread_{}", threadId.GetName()), threadId, SceneFlags::DETACHED);
-        InitObject(scene);
+        scene->Initialize();
 
         return scene;
     }

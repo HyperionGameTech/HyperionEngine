@@ -9,6 +9,8 @@ ScriptObjectResource* (*ScriptObjectFunctions::CreateScriptObjectResource_DotNet
 ScriptObjectResource* (*ScriptObjectFunctions::CreateScriptObjectResource_Script)(ScriptInstance*, ObjectBase*) = nullptr;
 void (*ScriptObjectFunctions::DestroyScriptObjectResource)(ScriptObjectResource*) = nullptr;
 
+void (*ScriptObjectFunctions::ReleaseDotNetGCHandle)(ObjectBase*) = nullptr;
+
 unsigned int (*ScriptObjectFunctions::GetScriptLanguageMask)(const ScriptObjectResource*) = nullptr;
 dotnet::ManagedObject* (*ScriptObjectFunctions::GetManagedObject)(const ScriptObjectResource*) = nullptr;
 
