@@ -19,6 +19,57 @@ namespace Hyperion {
 
 CORE_API Pool* g_objectPool = nullptr;
 
+int32 ObjectHeader::DecRefStrong()
+{
+    int32 count;
+
+    if ((count = AtomicDecrement(&refCountStrong)) == 0)
+    {
+        // Increment weak reference count by 1 so any WeakHandleFromThis() calls in the destructor do not immediately cause the item to be removed from the pool
+        AtomicIncrement(&refCountWeak);
+
+        // call virtual destructor of ObjectBase
+        DestructThisObject(this);
+
+        if (AtomicDecrement(&refCountWeak) == 0)
+        {
+            ReleaseObject(this);
+        }
+
+        return 0;
+    }
+
+    AssertDebug(count > 0, "RefCount bug! strong count went negative");
+
+#ifdef HYP_DOTNET
+    if (ScriptObjectFunctions::DecScriptObjectRef)
+    {
+        ScriptObjectFunctions::DecScriptObjectRef(GetObjectPointer(this));
+    }
+#endif
+
+    return count;
+}
+
+int32 ObjectHeader::DecRefWeak()
+{
+    int32 count;
+
+    if ((count = AtomicDecrement(&refCountWeak)) == 0)
+    {
+        if (AtomicAdd(&refCountStrong, 0) == 0)
+        {
+            ReleaseObject(this);
+        }
+
+        return 0;
+    }
+
+    AssertDebug(count > 0, "RefCount bug! weak count went negative");
+
+    return count;
+}
+
 CORE_API void ReleaseObject(ObjectHeader* header)
 {
     AssertDebug(header != nullptr);

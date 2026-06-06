@@ -240,7 +240,7 @@ public:
     ~VirtualMachine();
 
     void Invoke(ScriptInstance* instance, BoxedValue&& value, uint8 nargs);
-    void InvokeNow(ScriptInstance* instance, BoxedValue&& value, uint8 nargs);
+    void InvokeImmediate(ScriptInstance* instance, BoxedValue&& value, uint8 nargs);
 
     void Execute(ScriptInstance* instance);
 

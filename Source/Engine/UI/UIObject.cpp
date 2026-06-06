@@ -198,12 +198,6 @@ UIObject::UIObject()
 
 UIObject::~UIObject()
 {
-    EnqueueDeletion(std::move(m_childUiObjects));
-    EnqueueDeletion(std::move(m_node));
-    EnqueueDeletion(std::move(m_dataSource));
-    EnqueueDeletion(std::move(m_verticalScrollbar));
-    EnqueueDeletion(std::move(m_horizontalScrollbar));
-
     OnInit.RemoveAllDetached();
     OnAttached.RemoveAllDetached();
     OnRemoved.RemoveAllDetached();
@@ -228,8 +222,6 @@ UIObject::~UIObject()
 
 void UIObject::Init()
 {
-    HYP_SCOPE;
-
     Assert(m_node.IsValid(), "Invalid Handle<Node> provided to UIObject!");
 
     const Scene* scene = GetScene();
@@ -431,6 +423,11 @@ void UIObject::OnRemoved_Internal()
     UpdateComputedTextSize();
     OnTextSizeUpdate();
 
+    if (m_node.IsValid())
+    {
+        m_node->Remove(/* moveToDetached */ false);
+    }
+
     OnRemoved();
 }
 
@@ -551,6 +548,11 @@ void UIObject::UpdatePosition(bool updateChildren)
     const Handle<Node>& node = GetNode();
 
     if (!node)
+    {
+        return;
+    }
+
+    if (node->GetScene() == nullptr)
     {
         return;
     }
@@ -802,7 +804,7 @@ void UIObject::UpdateClampedSize(bool updateChildren)
 
 void UIObject::UpdateNodeTransform()
 {
-    if (!m_node.IsValid())
+    if (!m_node.IsValid() || !m_node->GetScene())
     {
         return;
     }
@@ -1214,10 +1216,12 @@ Color UIObject::GetTextColor() const
 {
     if (uint32(m_textColor) == 0)
     {
-        Handle<UIObject> spawnParent = GetClosestSpawnParent_Proc([](UIObject* parent)
-            {
-                return uint32(parent->m_textColor) != 0;
-            });
+        auto Predicate = [](UIObject* parent)
+        {
+            return uint32(parent->m_textColor) != 0;
+        };
+
+        Handle<UIObject> spawnParent = GetClosestSpawnParent_Proc(Predicate);
 
         if (spawnParent != nullptr)
         {
@@ -1430,10 +1434,12 @@ void UIObject::UpdateComputedTextSize()
 
     if (m_textSize <= 0.0f)
     {
-        Handle<UIObject> spawnParent = GetClosestSpawnParent_Proc([](UIObject* parent)
-            {
-                return parent->m_textSize > 0.0f;
-            });
+        auto Predicate = [](UIObject* parent)
+        {
+            return parent->m_textSize > 0.0f;
+        };
+
+        Handle<UIObject> spawnParent = GetClosestSpawnParent_Proc(Predicate);
 
         if (spawnParent != nullptr)
         {
@@ -1576,13 +1582,13 @@ bool UIObject::RemoveChildUIObject(UIObject* uiObject)
 
         if (childNode)
         {
-            childNode->Remove();
+            childNode->Remove(/* moveToDetached */ false);
             childNode.Reset();
         }
 
         // update depths for the child and all nested UIObjects after its been removed
         strongUiObject->UpdateComputedDepth(true);
-        EnqueueDeletion(std::move(strongUiObject));
+        strongUiObject.Reset();
 
         if (UseAutoSizing())
         {
@@ -2599,10 +2605,12 @@ ScriptComponent* UIObject::GetScriptComponent(bool deep) const
 
 void UIObject::SetScriptComponent(ScriptComponent&& scriptComponent)
 {
-    HYP_SCOPE;
-
     const Scene* scene = GetScene();
-    Assert(scene != nullptr && scene->IsReady());
+
+    if (!scene)
+    {
+        return;
+    }
 
     const Handle<Entity>& entity = GetEntity();
     Assert(entity != nullptr && entity->IsReady());
@@ -2620,8 +2628,6 @@ void UIObject::SetScriptComponent(ScriptComponent&& scriptComponent)
 
 void UIObject::RemoveScriptComponent()
 {
-    HYP_SCOPE;
-
     const Scene* scene = GetScene();
 
     if (!scene)
@@ -2646,8 +2652,6 @@ void UIObject::RemoveScriptComponent()
 
 Handle<UIObject> UIObject::GetChildUIObject(int index) const
 {
-    HYP_SCOPE;
-
     Handle<UIObject> foundObject;
 
     int currentIndex = 0;
@@ -2824,11 +2828,12 @@ void UIObject::CollectObjects(ProcRef<void(UIObject*)> proc, bool onlyVisible) c
 
 void UIObject::CollectObjects(Array<UIObject*>& outObjects, bool onlyVisible) const
 {
-    CollectObjects([&outObjects](UIObject* uiObject)
-        {
-            outObjects.PushBack(uiObject);
-        },
-        onlyVisible);
+    auto Functor = [&outObjects](UIObject* uiObject)
+    {
+        outObjects.PushBack(uiObject);
+    };
+
+    CollectObjects(Functor, onlyVisible);
 }
 
 Vec2f UIObject::TransformScreenCoordsToRelative(Vec2f coords) const
@@ -2841,8 +2846,6 @@ Vec2f UIObject::TransformScreenCoordsToRelative(Vec2f coords) const
 
 Array<UIObject*> UIObject::GetChildUIObjects(bool deep) const
 {
-    HYP_SCOPE;
-
     Array<UIObject*> childObjects;
 
     ForEachChildUIObject([&childObjects](UIObject* child)
@@ -2869,8 +2872,6 @@ uint32 UIObject::NumChildUIObjects(bool deep) const
 
 Array<UIObject*> UIObject::FilterChildUIObjects(ProcRef<bool(UIObject*)> predicate, bool deep) const
 {
-    HYP_SCOPE;
-
     Array<UIObject*> childObjects;
 
     ForEachChildUIObject([&childObjects, &predicate](UIObject* child)
@@ -2890,8 +2891,6 @@ Array<UIObject*> UIObject::FilterChildUIObjects(ProcRef<bool(UIObject*)> predica
 template <class Lambda>
 void UIObject::ForEachChildUIObject(Lambda&& lambda, bool deep) const
 {
-    HYP_SCOPE;
-
     if (!deep)
     {
         // If not deep, iterate using the child UI objects list - more efficient this way
@@ -2944,8 +2943,6 @@ void UIObject::ForEachChildUIObject_Proc(ProcRef<IterationResult(UIObject*)> pro
 template <class Lambda>
 void UIObject::ForEachParentUIObject(Lambda&& lambda) const
 {
-    HYP_SCOPE;
-
     const Scene* scene = GetScene();
 
     if (!scene)
@@ -2987,8 +2984,6 @@ void UIObject::ForEachParentUIObject(Lambda&& lambda) const
 
 void UIObject::SetStage_Internal(UIStage* stage)
 {
-    HYP_SCOPE;
-
     m_stage = stage;
 
     OnFontAtlasUpdate_Internal();
@@ -3015,8 +3010,6 @@ void UIObject::SetStage_Internal(UIStage* stage)
 
 void UIObject::OnFontAtlasUpdate()
 {
-    HYP_SCOPE;
-
     OnFontAtlasUpdate_Internal();
 
     // Update font atlas for all children
@@ -3031,8 +3024,6 @@ void UIObject::OnFontAtlasUpdate()
 
 void UIObject::OnTextSizeUpdate()
 {
-    HYP_SCOPE;
-
     OnTextSizeUpdate_Internal();
 
     ForEachChildUIObject([](UIObject* child)
@@ -3046,8 +3037,6 @@ void UIObject::OnTextSizeUpdate()
 
 void UIObject::OnScrollOffsetUpdate(Vec2f delta)
 {
-    HYP_SCOPE;
-
     // Update child element's offset positions - they are dependent on parent scroll offset
     ForEachChildUIObject([](UIObject* child)
         {
@@ -3066,8 +3055,6 @@ void UIObject::OnScrollOffsetUpdate(Vec2f delta)
 
 void UIObject::SetDataSource(const Handle<UIDataSourceBase>& dataSource)
 {
-    HYP_SCOPE;
-
     if (dataSource == m_dataSource)
     {
         return;
@@ -3085,8 +3072,6 @@ void UIObject::SetDataSource(const Handle<UIDataSourceBase>& dataSource)
 
 void UIObject::SetDataSource_Internal(UIDataSourceBase* dataSource)
 {
-    HYP_SCOPE;
-
     if (!dataSource)
     {
         return;
@@ -3095,8 +3080,6 @@ void UIObject::SetDataSource_Internal(UIDataSourceBase* dataSource)
 
 Handle<UIObject> UIObject::CreateUIObject(const Class* cls, Name name, Vec2i position, UIObjectSize size)
 {
-    HYP_SCOPE;
-
     if (!cls)
     {
         return Handle<UIObject>::empty;

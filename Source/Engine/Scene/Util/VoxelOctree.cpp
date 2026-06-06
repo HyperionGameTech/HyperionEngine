@@ -137,7 +137,7 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
 
     BoundingBox newAabb = OctreeBase::m_aabb;
 
-    Array<Tuple<VoxelOctreeElement, MeshDesc, VertexArrayView, Span<const ubyte>, UniquePtr<TSharedLock<AssetObject>>>> meshDatas;
+    Array<Tuple<VoxelOctreeElement, MeshDesc, VertexArrayView, Span<const ubyte>, UniquePtr<TSharedResLock<AssetObject>>>> meshDatas;
 
     for (auto [entity, meshComponent, transformComponent, boundingBoxComponent] : entityManager.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
     {
@@ -178,7 +178,7 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
         element.transformMatrix = entity->GetWorldMatrix();
         element.aabb = boundingBoxComponent.worldAabb;
 
-        auto lock = MakeUnique<TSharedLock<AssetObject>>(*meshComponent.mesh);
+        auto lock = MakeUnique<TSharedResLock<AssetObject>>(*meshComponent.mesh);
 
         meshDatas.EmplaceBack(
             element,

@@ -322,9 +322,11 @@ public:
 
 private:
     static LRESULT __stdcall StaticWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+    static LRESULT __stdcall ParentSubclassProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
     LRESULT WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
     HINSTANCE m_hinst = nullptr;
+    HWND m_parentHwnd = nullptr;
     bool m_useWndProc = false;
     bool m_mouseLocked = false;
     bool m_isOpen = false;

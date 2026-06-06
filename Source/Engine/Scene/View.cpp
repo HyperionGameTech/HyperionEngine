@@ -60,6 +60,12 @@ namespace Hyperion {
 
 ENGINE_API extern Pool* g_scenePool;
 
+// Always mark dirty at this value
+static const int s_dirtyResourceVersion = -1;
+static const int* s_dirtyResourceVersionPtr = &s_dirtyResourceVersion;
+
+#define GET_RESOURCE_VERSION(res) (!m_markAllAsDirty ? (res)->GetRenderProxyVersionPtr() : s_dirtyResourceVersionPtr)
+
 struct LightSorter
 {
     Camera& camera;
@@ -184,7 +190,7 @@ View::View(const ViewDesc& viewDesc, Name name)
       name(name),
       flags(viewDesc.flags),
       priority(viewDesc.priority),
-      m_camera(MakeStrongRef(viewDesc.camera)),
+      m_camera(viewDesc.camera),
       m_overrideAttributes(viewDesc.overrideAttributes),
       m_collectionTaskBatch(nullptr),
       m_overrideCollectFunctor(nullptr)
@@ -225,16 +231,11 @@ View::~View()
 
         delete m_renderProxyLists[i];
     }
-
-    if (m_camera != nullptr)
-    {
-        EnqueueDeletion(std::move(m_camera));
-    }
 }
 
 void View::Init()
 {
-    if (m_camera.IsValid())
+    if (m_camera)
     {
         InitObject(m_camera);
     }
@@ -329,7 +330,7 @@ void View::UpdateVisibility()
     // Cubemap face views do not automatically update the sub-frustum
     if (!(flags & ViewFlags::CUBEMAP_FACE_VIEW))
     {
-        if (m_camera.IsValid())
+        if (m_camera)
         {
             cachedViewProjMatrix = m_camera->GetViewProjectionMatrix();
         }
@@ -565,6 +566,8 @@ void View::EndAsyncCollection()
     Assert(m_collectionTaskBatch->IsCompleted());
 
     m_collectionTaskBatch = nullptr;
+
+    m_markAllAsDirty = false;
 }
 
 void View::CollectSync()
@@ -657,7 +660,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
                     ++numCollectedEntities;
 
-                    rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
+                    rpl.GetMeshEntities().Track(entity->Id(), entity, GET_RESOURCE_VERSION(entity));
 
                     if (Mesh* mesh = meshComponent.mesh)
                     {
@@ -666,7 +669,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
                     if (MaterialInstance* material = meshComponent.material)
                     {
-                        rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
+                        rpl.GetMaterials().Track(material->Id(), material, GET_RESOURCE_VERSION(material));
 
                         for (const Handle<Texture>& texture : material->GetTextures())
                         {
@@ -681,7 +684,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
                     if (meshComponent.skeleton != nullptr)
                     {
-                        rpl.GetSkeletons().Track(meshComponent.skeleton->Id(), meshComponent.skeleton, meshComponent.skeleton->GetRenderProxyVersionPtr());
+                        rpl.GetSkeletons().Track(meshComponent.skeleton->Id(), meshComponent.skeleton, GET_RESOURCE_VERSION(meshComponent.skeleton));
                     }
                 }
             }
@@ -723,7 +726,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
                     ++numCollectedEntities;
 
-                    rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
+                    rpl.GetMeshEntities().Track(entity->Id(), entity, GET_RESOURCE_VERSION(entity));
 
                     if (Mesh* mesh = meshComponent.mesh)
                     {
@@ -732,7 +735,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
                     if (MaterialInstance* material = meshComponent.material)
                     {
-                        rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
+                        rpl.GetMaterials().Track(material->Id(), material, GET_RESOURCE_VERSION(material));
 
                         for (const Handle<Texture>& texture : material->GetTextures())
                         {
@@ -747,7 +750,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
                     if (meshComponent.skeleton != nullptr)
                     {
-                        rpl.GetSkeletons().Track(meshComponent.skeleton->Id(), meshComponent.skeleton, meshComponent.skeleton->GetRenderProxyVersionPtr());
+                        rpl.GetSkeletons().Track(meshComponent.skeleton->Id(), meshComponent.skeleton, GET_RESOURCE_VERSION(meshComponent.skeleton));
                     }
                 }
             }
@@ -771,7 +774,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
                     ++numCollectedEntities;
 
-                    rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
+                    rpl.GetMeshEntities().Track(entity->Id(), entity, GET_RESOURCE_VERSION(entity));
 
                     if (Mesh* mesh = meshComponent.mesh)
                     {
@@ -780,7 +783,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
                     if (MaterialInstance* material = meshComponent.material)
                     {
-                        rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
+                        rpl.GetMaterials().Track(material->Id(), material, GET_RESOURCE_VERSION(material));
 
                         for (const Handle<Texture>& texture : material->GetTextures())
                         {
@@ -795,7 +798,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
                     if (meshComponent.skeleton != nullptr)
                     {
-                        rpl.GetSkeletons().Track(meshComponent.skeleton->Id(), meshComponent.skeleton, meshComponent.skeleton->GetRenderProxyVersionPtr());
+                        rpl.GetSkeletons().Track(meshComponent.skeleton->Id(), meshComponent.skeleton, GET_RESOURCE_VERSION(meshComponent.skeleton));
                     }
                 }
             }
@@ -837,7 +840,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
                     ++numCollectedEntities;
 
-                    rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
+                    rpl.GetMeshEntities().Track(entity->Id(), entity, GET_RESOURCE_VERSION(entity));
 
                     if (Mesh* mesh = meshComponent.mesh)
                     {
@@ -846,7 +849,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
                     if (MaterialInstance* material = meshComponent.material)
                     {
-                        rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
+                        rpl.GetMaterials().Track(material->Id(), material, GET_RESOURCE_VERSION(material));
 
                         for (const Handle<Texture>& texture : material->GetTextures())
                         {
@@ -861,7 +864,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
                     if (meshComponent.skeleton != nullptr)
                     {
-                        rpl.GetSkeletons().Track(meshComponent.skeleton->Id(), meshComponent.skeleton, meshComponent.skeleton->GetRenderProxyVersionPtr());
+                        rpl.GetSkeletons().Track(meshComponent.skeleton->Id(), meshComponent.skeleton, GET_RESOURCE_VERSION(meshComponent.skeleton));
                     }
                 }
             }
@@ -885,7 +888,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
                     ++numCollectedEntities;
 
-                    rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
+                    rpl.GetMeshEntities().Track(entity->Id(), entity, GET_RESOURCE_VERSION(entity));
 
                     if (Mesh* mesh = meshComponent.mesh)
                     {
@@ -894,7 +897,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
                     if (MaterialInstance* material = meshComponent.material)
                     {
-                        rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
+                        rpl.GetMaterials().Track(material->Id(), material, GET_RESOURCE_VERSION(material));
 
                         for (const Handle<Texture>& texture : material->GetTextures())
                         {
@@ -909,7 +912,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
                     if (meshComponent.skeleton != nullptr)
                     {
-                        rpl.GetSkeletons().Track(meshComponent.skeleton->Id(), meshComponent.skeleton, meshComponent.skeleton->GetRenderProxyVersionPtr());
+                        rpl.GetSkeletons().Track(meshComponent.skeleton->Id(), meshComponent.skeleton, GET_RESOURCE_VERSION(meshComponent.skeleton));
                     }
                 }
             }
@@ -951,7 +954,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
                     ++numCollectedEntities;
 
-                    rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
+                    rpl.GetMeshEntities().Track(entity->Id(), entity, GET_RESOURCE_VERSION(entity));
 
                     if (Mesh* mesh = meshComponent.mesh)
                     {
@@ -960,7 +963,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
                     if (MaterialInstance* material = meshComponent.material)
                     {
-                        rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
+                        rpl.GetMaterials().Track(material->Id(), material, GET_RESOURCE_VERSION(material));
 
                         for (const Handle<Texture>& texture : material->GetTextures())
                         {
@@ -975,7 +978,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
                     if (meshComponent.skeleton != nullptr)
                     {
-                        rpl.GetSkeletons().Track(meshComponent.skeleton->Id(), meshComponent.skeleton, meshComponent.skeleton->GetRenderProxyVersionPtr());
+                        rpl.GetSkeletons().Track(meshComponent.skeleton->Id(), meshComponent.skeleton, GET_RESOURCE_VERSION(meshComponent.skeleton));
                     }
                 }
             }
@@ -1074,9 +1077,9 @@ void View::CollectCameras(RenderProxyList& rpl)
     HYP_SCOPE;
 
     // still want to consider our own camera for update
-    if (m_camera.IsValid())
+    if (m_camera)
     {
-        rpl.GetCameras().Track(m_camera.Id(), m_camera, m_camera->GetRenderProxyVersionPtr());
+        rpl.GetCameras().Track(m_camera->Id(), m_camera, GET_RESOURCE_VERSION(m_camera));
     }
 
     if (flags & ViewFlags::SKIP_CAMERAS)
@@ -1090,7 +1093,7 @@ void View::CollectCameras(RenderProxyList& rpl)
         {
             Camera* camera = static_cast<Camera*>(entity);
 
-            rpl.GetCameras().Track(camera->Id(), camera, camera->GetRenderProxyVersionPtr());
+            rpl.GetCameras().Track(camera->Id(), camera, GET_RESOURCE_VERSION(camera));
         }
     }
 }
@@ -1141,7 +1144,7 @@ void View::CollectLights(RenderProxyList& rpl)
 
             if (isLightInFrustum)
             {
-                rpl.GetLights().Track(light->Id(), light, light->GetRenderProxyVersionPtr());
+                rpl.GetLights().Track(light->Id(), light, GET_RESOURCE_VERSION(light));
 
                 if (light->GetMaterial().IsValid())
                 {
@@ -1197,7 +1200,7 @@ void View::CollectLightmapVolumes(RenderProxyList& rpl)
                 continue;
             }
 
-            rpl.GetLightmapVolumes().Track(lightmapVolume->Id(), lightmapVolume, lightmapVolume->GetRenderProxyVersionPtr());
+            rpl.GetLightmapVolumes().Track(lightmapVolume->Id(), lightmapVolume, GET_RESOURCE_VERSION(lightmapVolume));
         }
     }
 }
@@ -1248,7 +1251,7 @@ void View::CollectParticleVolumes(RenderProxyList& rpl)
                 rpl.GetMeshes().Track(volume->mesh.Id(), volume->mesh);
             }
 
-            rpl.GetParticleVolumes().Track(volume->Id(), volume, volume->GetRenderProxyVersionPtr());
+            rpl.GetParticleVolumes().Track(volume->Id(), volume, GET_RESOURCE_VERSION(volume));
         }
     }
 }
@@ -1289,7 +1292,7 @@ void View::CollectFogVolumes(RenderProxyList& rpl)
                 }
             }
 
-            rpl.GetFogVolumes().Track(volume->Id(), volume, volume->GetRenderProxyVersionPtr());
+            rpl.GetFogVolumes().Track(volume->Id(), volume, GET_RESOURCE_VERSION(volume));
         }
     }
 }
@@ -1330,7 +1333,7 @@ void View::CollectEnvGrids(RenderProxyList& rpl)
                 continue;
             }
 
-            rpl.GetEnvGrids().Track(envGrid->Id(), envGrid, envGrid->GetRenderProxyVersionPtr());
+            rpl.GetEnvGrids().Track(envGrid->Id(), envGrid, GET_RESOURCE_VERSION(envGrid));
         }
     }
 }
@@ -1372,7 +1375,7 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
                 }
             }
 
-            rpl.GetEnvProbes().Track(probe->Id(), probe, probe->GetRenderProxyVersionPtr());
+            rpl.GetEnvProbes().Track(probe->Id(), probe, GET_RESOURCE_VERSION(probe));
         }
     }
 }
@@ -1392,7 +1395,7 @@ void View::CollectSprites(RenderProxyList& rpl)
         {
             Sprite* sprite = static_cast<Sprite*>(entity);
 
-            rpl.GetSprites().Track(sprite->Id(), sprite, sprite->GetRenderProxyVersionPtr());
+            rpl.GetSprites().Track(sprite->Id(), sprite, GET_RESOURCE_VERSION(sprite));
 
             if (sprite->IsA<TextSprite>())
             {

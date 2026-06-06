@@ -112,7 +112,7 @@ using namespace Resources;
 static_assert(RingBufferDepth <= MinSafeDeleteCycles,
     "RingBufferDepth must be less than or equal to MinSafeDeleteCycles to ensure safe deletion of resources.");
 
-static constexpr uint32 MaxFramesBeforeDiscard = 100; // number of frames before ViewData is discarded if not written to
+static constexpr uint32 MaxFramesBeforeDiscard = RingBufferDepth; // number of frames before ViewData is discarded if not written to
 
 // must be greater than or equal to MinSafeDeleteCycles so that
 // we can ensure no active views hold pointers to deleted objects.
@@ -224,6 +224,8 @@ static ViewData* GetViewData(View* view, bool createIfNotExist)
         AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
     }
 
+    const uint32 frameCounter = GetFrameCounter();
+
     AssertDebug(view != nullptr);
 
     auto viewDataIt = s_viewData.Find(view);
@@ -239,14 +241,14 @@ static ViewData* GetViewData(View* view, bool createIfNotExist)
 
         ViewData* viewData = HYP_POOL_NEW(g_renderPool, ViewData);
         viewData->view = view;
-        viewData->lastUsedFrame = GetFrameCounter();
+        viewData->lastUsedFrame = frameCounter;
 
         view->AddRef();
 
         HYP_LOG(Rendering, Verbose, "Allocating new ViewData {} for View {} at frame {}\t(Camera : {})",
             (void*)viewData,
             view->Id(),
-            GetFrameCounter(),
+            frameCounter,
             view->GetCamera() ? *view->GetCamera()->GetName() : "null");
 
         // If NO_PARALLEL_DRAW_CALL_COLLECTION flag is set, we need to make sure PARALLEL_COLLECTION is disabled on the group
@@ -272,7 +274,9 @@ static ViewData* GetViewData(View* view, bool createIfNotExist)
         return viewData;
     }
 
-    return viewDataIt->second;
+    ViewData& viewData = *viewDataIt->second;
+
+    return &viewData;
 }
 
 // Data for views that is buffered over multiple frames
@@ -342,12 +346,19 @@ static BufferedViewData* GetBufferedViewData(View* view, uint32 slot)
     AssertDebug(bufferedViewData->rplShared != nullptr);
     AssertDebug(bufferedViewData->rplShared->isShared, "Expected isShared to be true to ensure multiple threads don't access the list concurrently");
 
+    // Clear out any lingering tracked resources.
+    bufferedViewData->rplShared->BeginWrite();
+    bufferedViewData->rplShared->ClearAll();
+    bufferedViewData->rplShared->EndWrite();
+    
+    AssertDebug(bufferedViewData->rplShared->GetMeshEntities().NumCurrent() == 0);
+
     bufferedData.perViewData[view] = bufferedViewData;
 
     return bufferedViewData;
 }
 
-} // namespace FrameData
+} // namespace Framework
 
 uint32 GetRingIndex()
 {

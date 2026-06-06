@@ -13,7 +13,7 @@
 
 #include <Core/Threading/SharedMutex.hpp>
 
-#include <Core/Memory/Resource/Resource.hpp>
+#include <Core/Resource/Resource.hpp>
 
 #include <Core/Reflection/ObjId.hpp>
 
@@ -123,6 +123,9 @@ public:
     ENGINE_API void BeginRead(bool* pOutSuccess = nullptr);
     ENGINE_API void EndRead();
 
+    // Must be in write mode to call
+    ENGINE_API void ClearAll();
+
     template <size_t Index>
     HYP_FORCE_INLINE auto GetResources() -> typename TupleElement_Tuple<Index, ResourceTrackerTypes>::Type*
     {
@@ -150,6 +153,8 @@ public:
     const bool useRefCounting : 1 = true;          //!< Should we inc/dec ref counts for resources we hold?
     bool useOrdering : 1 = false;                  //!< are mesh entities sorted using an indirect array to map sort order?
     bool disableBuildRenderCollection : 1 = false; //!< Disable building out RenderCollection. Set to true in the case of custom render collection building (See UIPass)
+
+    uint32 writeGeneration = 0;
 
     int priority;
 

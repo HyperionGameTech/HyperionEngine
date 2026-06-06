@@ -37,7 +37,7 @@
 
 namespace Hyperion {
 
-static constexpr uint32 MinSafeDeleteCycles = 10; // minimum number of cycles to wait before deleting an object
+static constexpr uint32 MinSafeDeleteCycles = RingBufferDepth; // minimum number of cycles to wait before deleting an object
 
 extern uint32 GetFrameCounter();
 

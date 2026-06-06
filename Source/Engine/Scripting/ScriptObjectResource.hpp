@@ -12,7 +12,7 @@
 
 #include <Core/Reflection/ObjectFwd.hpp>
 
-#include <Core/Memory/Resource/Resource.hpp>
+#include <Core/Resource/Resource.hpp>
 #include <Core/Memory/RefCountedPtr.hpp>
 
 #include <Core/Utilities/EnumFlags.hpp>

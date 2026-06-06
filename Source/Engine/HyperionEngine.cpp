@@ -1029,7 +1029,7 @@ extern "C"
         const Class* commandletBaseClass = ClassRegistry::GetInstance().GetClass("CommandletBase"_sh);
         Assert(commandletBaseClass != nullptr);
 
-        ClassRegistry::GetInstance().ForEachClass([&](const Class* cls) -> IterationResult
+        auto Predicate = [&](const Class* cls) -> IterationResult
         {
             if (cls->IsDerivedFrom(commandletBaseClass))
             {
@@ -1049,7 +1049,9 @@ extern "C"
             }
 
             return IterationResult::CONTINUE;
-        });
+        };
+
+        ClassRegistry::GetInstance().ForEachClass(Predicate);
     }
 
 #if HYP_EDITOR
@@ -1061,7 +1063,7 @@ extern "C"
         const Class* editorCommandBaseClass = ClassRegistry::GetInstance().GetClass("EditorCommandBase"_sh);
         Assert(editorCommandBaseClass != nullptr);
 
-        ClassRegistry::GetInstance().ForEachClass([&](const Class* cls) -> IterationResult
+        auto Predicate = [&](const Class* cls) -> IterationResult
         {
             if (cls->IsDerivedFrom(editorCommandBaseClass))
             {
@@ -1075,7 +1077,9 @@ extern "C"
             }
 
             return IterationResult::CONTINUE;
-        });
+        };
+
+        ClassRegistry::GetInstance().ForEachClass(Predicate);
     }
 #endif // HYP_EDITOR
 

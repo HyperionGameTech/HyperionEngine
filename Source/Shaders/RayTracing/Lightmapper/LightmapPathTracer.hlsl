@@ -43,8 +43,8 @@ DECLARE_SRV(LightmapPathTracer, WorldsBuffer) StructuredBuffer<WorldShaderData> 
 
 #include "../../include/Octahedron.hlsli"
 
-#include "../../include/RayTracingRayTracingHelpers.hlsli"
-#include "../../include/RayTracingPayload.hlsli"
+#include "../../include/RayTracing/RayTracingHelpers.hlsli"
+#include "../../include/RayTracing/Payload.hlsli"
 
 DECLARE_UAV(LightmapPathTracer, HitsBuffer) RWStructuredBuffer<float4> hits;
 

@@ -72,6 +72,8 @@ struct Proc_Impl<ReturnType(Args...), MemoryType>
 
         invokeFn = other.invokeFn;
         other.invokeFn = nullptr;
+
+        other.ptr = nullptr;
     }
 
     Proc_Impl& operator=(Proc_Impl&& other) noexcept
@@ -105,6 +107,8 @@ struct Proc_Impl<ReturnType(Args...), MemoryType>
 
         invokeFn = other.invokeFn;
         other.invokeFn = nullptr;
+
+        other.ptr = nullptr;
 
         return *this;
     }
@@ -144,6 +148,7 @@ struct Proc_Impl<ReturnType(Args...), MemoryType>
         invokeFn = nullptr;
         moveFn = nullptr;
         deleteFn = nullptr;
+        ptr = nullptr;
     }
 };
 
@@ -272,11 +277,7 @@ public:
                         // Destination cannot accommodate the functor inline; heap-allocate instead
                         dest->ptr = Memory::New<FuncNormalized>(std::move(*srcData));
 
-                        if constexpr (!std::is_trivially_destructible_v<FuncNormalized>)
-                        {
-                            dest->deleteFn = &Memory::Delete<FuncNormalized>;
-                        }
-
+                        dest->deleteFn = &Memory::Delete<FuncNormalized>;
                         dest->moveFn = nullptr;
 
                         src->deleteFn = nullptr;
@@ -468,25 +469,10 @@ public:
         }
     }
 
-    ProcRef(Proc<ReturnType(Args...)>&& proc)
-        : ProcRef(nullptr)
-    {
-        if (proc.IsValid())
-        {
-            m_ptr = static_cast<void*>(&proc);
-
-            m_invokeFn = [](void* ptr, Args... args) -> ReturnType
-            {
-                Proc<ReturnType(Args...)>& proc = *static_cast<Proc<ReturnType(Args...)>*>(ptr);
-                HYP_CORE_ASSERT(proc.IsValid(), "Cannot invoke ProcRef referencing invalid Proc");
-
-                return proc(std::forward<Args>(args)...);
-            };
-        }
-    }
+    ProcRef(Proc<ReturnType(Args...)>&& proc) = delete;
 
     // Assign ProcRef to a functor
-    template <class Callable, typename = std::enable_if_t<!std::is_base_of_v<ProcBase, NormalizedType<Callable>> && !std::is_base_of_v<ProcRefBase, NormalizedType<Callable>> && !std::is_same_v<ProcRef<ReturnType(Args...)>, NormalizedType<Callable>> && std::is_invocable_v<NormalizedType<Callable>, Args...> && !std::is_function_v<NormalizedType<Callable>> && !std::is_pointer_v<NormalizedType<Callable>>>>
+    template <class Callable, typename = std::enable_if_t<!std::is_base_of_v<ProcBase, NormalizedType<Callable>> && !std::is_base_of_v<ProcRefBase, NormalizedType<Callable>> && !std::is_same_v<ProcRef<ReturnType(Args...)>, NormalizedType<Callable>> && std::is_invocable_v<NormalizedType<Callable>, Args...> && !std::is_function_v<NormalizedType<Callable>> && !std::is_pointer_v<NormalizedType<Callable>> && std::is_lvalue_reference_v<Callable>>>
     ProcRef(Callable&& callable)
     {
         /*if constexpr (std::is_base_of_v<ProcRefBase, NormalizedType<Callable>>)

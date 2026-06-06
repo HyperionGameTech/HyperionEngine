@@ -576,10 +576,10 @@ public:
         return m_scene;
     }
 
-    /*! \brief Set the Scene this Node and its children are attached to.
+    /*! \brief Set the Scene this Node and its children are attached to. If nullptr is provided and \p moveToDetached is true, the Node will be moved to a detached Scene.
      *  \internal Not intended to be used in user code. Use Remove() instead. */
     HYP_METHOD(Property = "Scene", Transient)
-    virtual void SetScene(Scene* scene);
+    void SetScene(Scene* scene, bool moveToDetached = true);
 
     /*! \returns A pointer to the World this Node and its children are attached to. May be null. */
     HYP_METHOD(Property = "World", Transient, EditHide)
@@ -606,22 +606,24 @@ public:
 
     /*! \brief Remove a child from this Node's child list.
      *  \param node The child Node to remove from this Node's child list.
+     *  \param moveToDetached if true, will move the node to a detached scene, otherwise will set its Scene to nullptr.
      *  \returns Whether then removal was successful */
-    bool RemoveChild(const Node* node);
+    bool RemoveChild(const Node* node, bool moveToDetached = true);
 
     /*! \brief Remove a child at the given index
      *  \param index The index of the child element to remove
+     *  \param moveToDetached if true, will move the node to a detached scene, otherwise will set its Scene to nullptr.
      *  \returns Whether then removal was successful */
     HYP_METHOD()
-    bool RemoveAt(uint32 index);
+    bool RemoveAt(uint32 index, bool moveToDetached = true);
 
     /*! \brief Remove this node from the parent Node's list of child Nodes.
      *  \returns Whether the removal was successful. */
     HYP_METHOD()
-    bool Remove();
+    bool Remove(bool moveToDetached = true);
 
     HYP_METHOD()
-    void RemoveAllChildren();
+    void RemoveAllChildren(bool moveToDetached = true);
 
     HYP_METHOD()
     uint32 NumChildren() const;
@@ -898,6 +900,8 @@ protected:
 
     virtual void OnTransformUpdated();
     virtual void OnMobilityChanged(bool isStatic);
+
+    virtual void SetScene_Internal(Scene* scene, bool moveToDetached);
 
     HYP_METHOD(Property = "Children", NoScriptBindings, Serialize)
     void SetChildren(const NodeList& children); // use setter so we can manage parent pointers

@@ -96,6 +96,7 @@ protected:
     IdGenerator m_idGenerator;
     Pool* m_pool;
     AtomicFlag m_atomicFlag;
+    AtomicVar<uint32> m_generation;
     SparsePagedArray<ObjectHeader*, 1024> m_headers;
 };
 
@@ -104,12 +105,14 @@ struct ObjectHeader
 {
     const Class* cls;
     uint32 index;
+    volatile uint32 generation;
     volatile int32 refCountStrong;
     volatile int32 refCountWeak;
 
     ObjectHeader()
         : cls(nullptr),
           index(~0u),
+          generation(0),
           refCountStrong(0),
           refCountWeak(0)
     {
@@ -140,12 +143,24 @@ struct ObjectHeader
 
     bool TryIncRefStrong()
     {
+        // Snapshot the generation to detect ABA (header freed and reallocated by the time CAS succeeds)
+        const uint32 gen = generation;
+
         int32 count = AtomicAdd(&refCountStrong, 0);
 
         while (count != 0)
         {
             if (AtomicCompareExchange(&refCountStrong, count, count + 1))
             {
+                // Re-read generation after the barrier provided by CAS.
+                // If it changed, this header was recycled — roll back the increment.
+                if (generation != gen)
+                {
+                    AtomicDecrement(&refCountStrong);
+
+                    return false;
+                }
+
 #ifdef HYP_DOTNET
                 if (ScriptObjectFunctions::IncScriptObjectRef)
                 {
@@ -165,6 +180,10 @@ struct ObjectHeader
     {
         const int32 count = AtomicIncrement(&refCountStrong);
 
+        // If count == 1, refCountStrong was 0 before the increment — the object was already
+        // destructed and this would resurrect a dead object.
+        AssertDebug(count > 1, "IncRefStrong called on an object with no strong references");
+
 #ifdef HYP_DOTNET
         if (count > 1)
         {
@@ -182,58 +201,9 @@ struct ObjectHeader
         return AtomicIncrement(&refCountWeak);
     }
 
-    int32 DecRefStrong()
-    {
-        int32 count;
+    CORE_API int32 DecRefStrong();
 
-        if ((count = AtomicDecrement(&refCountStrong)) == 0)
-        {
-            // Increment weak reference count by 1 so any WeakHandleFromThis() calls in the destructor do not immediately cause the item to be removed from the pool
-            AtomicIncrement(&refCountWeak);
-
-            // call virtual destructor of ObjectBase
-            DestructThisObject(this);
-
-            if (AtomicDecrement(&refCountWeak) == 0)
-            {
-                // Free the slot for this
-                ReleaseObject(this);
-            }
-
-            return 0;
-        }
-
-        AssertDebug(count > 0, "RefCount bug! strong count went negative");
-
-#ifdef HYP_DOTNET
-        if (ScriptObjectFunctions::DecScriptObjectRef)
-        {
-            ScriptObjectFunctions::DecScriptObjectRef(GetObjectPointer(this));
-        }
-#endif
-
-        return count;
-    }
-
-    int32 DecRefWeak()
-    {
-        int32 count;
-
-        if ((count = AtomicDecrement(&refCountWeak)) == 0)
-        {
-            if (AtomicAdd(&refCountStrong, 0) == 0)
-            {
-                // Free the slot for this
-                ReleaseObject(this);
-            }
-
-            return 0;
-        }
-
-        AssertDebug(count > 0, "RefCount bug! weak count went negative");
-
-        return count;
-    }
+    CORE_API int32 DecRefWeak();
 
     //! Get the pointer to the actual object that this header is for. Header must be non-null
     static CORE_API ObjectBase* GetObjectPointer(ObjectHeader* header);
@@ -289,6 +259,7 @@ public:
         ObjectHeader* header = reinterpret_cast<ObjectHeader*>(reinterpret_cast<UIntPtr>(mem) + HeaderOffset);
         header->index = m_idGenerator.Next() - 1;
         header->cls = m_class;
+        header->generation = m_generation.Increment(1, MemoryOrder::ACQUIRE_RELEASE) + 1;
         header->refCountStrong = 1;
         header->refCountWeak = 0;
 
@@ -324,8 +295,6 @@ public:
         const uint32 index = header->index;
         HYP_CORE_ASSERT(index != ~0u, "Invalid index");
 
-        HYP_CORE_ASSERT(header->refCountStrong == 0 && header->refCountWeak == 0);
-
         m_idGenerator.ReleaseId(index + 1);
 
         constexpr uint32 HeaderOffset = ByteUtil::AlignAs(sizeof(ObjectHeader), 16) - sizeof(ObjectHeader);
@@ -360,11 +329,11 @@ public:
 
         ObjectHeader* header = reinterpret_cast<ObjectHeader*>(reinterpret_cast<UIntPtr>(ptr) - sizeof(ObjectHeader));
 
-        // expected to be called from operator delete, so we release the strong reference we set in Allocate()
-        int32 refCount = AtomicDecrement(&header->refCountStrong);
+        // expected to be called from operator delete for the allocation ref set in Allocate()
+        // Delegate to DecRefStrong() which handles virtual destructor call, weak ref protection,
+        // and ReleaseObject() when both strong and weak counts reach zero.
+        const int32 refCount = header->DecRefStrong();
         HYP_CORE_ASSERT(refCount == 0);
-
-        Release(header);
     }
 };
 

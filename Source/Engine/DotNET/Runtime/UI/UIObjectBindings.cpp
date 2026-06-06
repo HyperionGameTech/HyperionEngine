@@ -64,10 +64,12 @@ extern "C"
             return false;
         }
 
-        Handle<UIObject> uiObject = parent->FindChildUIObject([cls, name](UIObject* uiObject)
-            {
-                return uiObject->IsA(cls) && uiObject->GetName() == *name;
-            });
+        auto PredicateFunctor = [cls, name](UIObject* uiObject)
+        {
+            return uiObject->IsA(cls) && uiObject->GetName() == *name;
+        };
+
+        Handle<UIObject> uiObject = parent->FindChildUIObject(PredicateFunctor);
 
         if (!uiObject)
         {

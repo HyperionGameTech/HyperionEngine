@@ -22,10 +22,10 @@ DECLARE_SAMPLER(DDGI, SamplerLinear) SamplerState sampler_linear;
 #include "../../include/BRDF.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "../../include/RayTracingMesh.hlsli"
-#include "../../include/RayTracingPayload.hlsli"
+#include "../../include/RayTracing/Mesh.hlsli"
+#include "../../include/RayTracing/Payload.hlsli"
 
-#include "../../include/RayTracingprobe/ProbeUniforms.hlsli"
+#include "../../include/RayTracing/GlobalIllumination/ProbeUniforms.hlsli"
 
 DECLARE_BUFFER_DYNAMIC(DDGI, CBuffer) cbuffer CBuffer
 {
@@ -60,9 +60,9 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
         buffers[ibIndex].Load(PrimitiveIndex() * 3 * 4 + 4),
         buffers[ibIndex].Load(PrimitiveIndex() * 3 * 4 + 8)
     );
-    
+
     Vertex v0, v1, v2;
-    
+
     LoadVertex(buffers[vbIndex], index[0], v0);
     LoadVertex(buffers[vbIndex], index[1], v1);
     LoadVertex(buffers[vbIndex], index[2], v2);
@@ -71,7 +71,7 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
     const float3 normal = normalize(mul(ObjectToWorld3x4(), float4(v0.normal * barycentric_coords.x + v1.normal * barycentric_coords.y + v2.normal * barycentric_coords.z, 0.0)).xyz);
     const float2 texcoord = v0.texcoord0 * barycentric_coords.x + v1.texcoord0 * barycentric_coords.y + v2.texcoord0 * barycentric_coords.z;
     const float3 position = mul(ObjectToWorld3x4(), float4(v0.position * barycentric_coords.x + v1.position * barycentric_coords.y + v2.position * barycentric_coords.z, 1.0)).xyz;
-    
+
     float4 material_color = float4(1.0, 1.0, 1.0, 1.0);
 
     const uint material_index = mesh_description.material_index;
@@ -82,13 +82,13 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
     {
         material = materials[material_index];
     }
-    
+
     material_color = material.albedo;
 
     if (HAS_TEXTURE(material, DiffuseMap))
     {
         float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE_LOD(material, DiffuseMap, float2(texcoord.x, 1.0 - texcoord.y), 0.0);
-        
+
         material_color *= albedo_texture;
     }
 
@@ -97,7 +97,7 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
     if (HAS_TEXTURE(material, MetalnessMap))
     {
         float metalness_sample = SAMPLE_MATERIAL_TEXTURE_LOD(material, MetalnessMap, float2(texcoord.x, 1.0 - texcoord.y), 0.0).r;
-        
+
         metalness = metalness_sample;
     }
 

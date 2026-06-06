@@ -258,18 +258,19 @@ void UIGrid::SetNumColumns(int numColumns)
 {
     m_numColumns = numColumns;
 
-    ForEachChildUIObject_Proc([this](UIObject* uiObject)
+    auto Functor = [this](UIObject* uiObject)
+    {
+        if (!uiObject->IsA<UIGridRow>())
         {
-            if (!uiObject->IsA<UIGridRow>())
-            {
-                return IterationResult::CONTINUE;
-            }
-
-            static_cast<UIGridRow*>(uiObject)->SetNumColumns(m_numColumns);
-
             return IterationResult::CONTINUE;
-        },
-        false);
+        }
+
+        static_cast<UIGridRow*>(uiObject)->SetNumColumns(m_numColumns);
+
+        return IterationResult::CONTINUE;
+    };
+
+    ForEachChildUIObject_Proc(Functor, false);
 }
 
 void UIGrid::SetNumRows(uint32 numRows)
@@ -497,7 +498,7 @@ void UIGrid::SetDataSource_Internal(UIDataSourceBase* dataSource)
             if (Handle<UIObject> uiObject = FindChildUIObject([element](UIObject* uiObject)
                     {
                         return uiObject->GetDataSourceElementUUID() == element->GetUUID();
-                    }))
+                    }); uiObject.IsValid())
             {
                 RemoveChildUIObject(uiObject);
             }

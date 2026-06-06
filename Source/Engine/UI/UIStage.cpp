@@ -388,9 +388,16 @@ void UIStage::Init()
         }
 
         m_onWindowResizedHandler = window->OnWindowSizeChanged.BindThreaded(
-            [this](Vec2i newSize)
+            [weakThis = MakeWeakRef(this)](Vec2i newSize)
             {
-                SetSurfaceSize(newSize);
+                Handle<UIStage> strongThis = weakThis.Lock();
+
+                if (!strongThis.IsValid())
+                {
+                    return;
+                }
+
+                strongThis->SetSurfaceSize(newSize);
             },
             g_simThread);
     };
@@ -1274,7 +1281,7 @@ bool UIStage::Remove(const Entity* entity)
         return false;
     }
 
-    return GetNode()->RemoveChild(entity);
+    return GetNode()->RemoveChild(entity, /* moveToDetached */ false);
 }
 
 #pragma endregion UIStage

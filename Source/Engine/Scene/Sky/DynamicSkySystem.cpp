@@ -204,20 +204,18 @@ void DynamicSkySystem::Process(float delta, Span<Handle<Scene>>)
         return;
     }
 
-    // update every second OR 100-RingBufferDepth frames (whatever is sooner)
-    // we want to make sure it doesn't expire or it'll force recreation of ViewData resources in the renderer.
-    // @TODO: Replace 100 with a shared constant w/ RenderInterface
-
+    // update every second OR RingBufferDepth frames (whatever is sooner)
+    
     const uint32 currFrame = GetFrameCounter();
 
-    if (!m_updateTimer.Waiting() || m_lastFrame == UINT32_MAX || (currFrame - m_lastFrame) >= 100 - RingBufferDepth)
-    {
-        m_updateTimer.NextTick();
+    //if (!m_updateTimer.Waiting() || m_lastFrame == UINT32_MAX || (currFrame - m_lastFrame) >= RingBufferDepth)
+    //{
+    //    m_updateTimer.NextTick();
 
         m_envProbe->Update(delta);
 
         m_lastFrame = currFrame;
-    }
+    //}
 }
 
 } // namespace Hyperion

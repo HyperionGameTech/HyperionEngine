@@ -41,6 +41,8 @@
 
 #include <System/AppContext.hpp>
 
+#include <Core/Core.hpp>
+
 #include <Core/Threading/Threads.hpp>
 
 #include <semaphore>
@@ -54,12 +56,21 @@ extern EngineStatTimer g_statRenderUpdate;
 extern ThreadSignal g_renderInitSignal;
 
 static constexpr float IdleMaxFrameRate = 15.0f;
-static CVar<float> s_cvTargetFrameRate("Rendering.TargetFrameRate", 0); // 0 == no limit
-static CVar<bool> s_cvSkipRenderingWhenIdle("Rendering.SkipRenderingWhenIdle", true);
+static CVar<float> s_cvTargetFrameRate("Rendering.TargetFrameRate", 0);             // 0    = no limit
+static CVar<int> s_cvSkipRenderingWhenIdle("Rendering.SkipRenderingWhenIdle", -1);  // -1   = set dynamically based on if editor mode
 
 RenderThread::RenderThread()
     : Thread(g_renderThread, ThreadPriorityValue::HIGHEST)
 {
+#if HYP_EDITOR
+    if (s_cvSkipRenderingWhenIdle.Get() < 0)
+    {
+        if (CoreApi::GetCommandLineArguments()["Editor"].ToBool())
+        {
+            s_cvSkipRenderingWhenIdle.Set(1);
+        }
+    }
+#endif // HYP_EDITOR
 }
 
 RenderThread::~RenderThread() = default;
@@ -171,7 +182,7 @@ void RenderThread::Update()
 
 #if HYP_EDITOR
     // @FIXME: We need to check if we are in editor mode, the HYP_EDITOR define is not enough. That just means it is compiled with editor support
-    if ((!mainWindow || !mainWindow->HasFocus()) && s_cvSkipRenderingWhenIdle.Get())
+    if ((!mainWindow || !mainWindow->HasFocus()) && s_cvSkipRenderingWhenIdle.Get() > 0)
     {
         skipRenderingThisFrame = true;
     }

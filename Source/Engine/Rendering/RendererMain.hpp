@@ -8,7 +8,7 @@
 
 #include <Core/Containers/FlatMap.hpp>
 
-#include <Core/Memory/Resource/Resource.hpp>
+#include <Core/Resource/Resource.hpp>
 
 #include <Core/Memory/Allocator/ThreadAllocator.hpp>
 
@@ -136,7 +136,11 @@ public:
     EntityBatchAllocatorBase* batchAllocator;
     EnumFlags<RenderGroupFlags> renderGroupFlags;
 
-    bool isFallback;
+    bool isFallback : 1;
+
+#if HYP_DEBUG_MODE
+    uint32 lastFrameDEBUG = 0;
+#endif // HYP_DEBUG_MODE
 
     HYP_NODISCARD ParallelRenderingState* AcquireNextParallelRenderingState(uint8 index);
     void Commit(CommandRecorder& cr, uint8 index);

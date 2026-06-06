@@ -929,29 +929,31 @@ void AssetRegistry::PutAsset(const AssetBucket& bucket, const Handle<AssetObject
     {
         // no name; create one using the instance class's name. (e.g Mesh123)
 
+        auto UniquePredicate = [&assetObject, registryId = data.registryId, bucketIndex = data.bucketIndex](const AssetDesc& otherDesc) -> bool
+        {
+            if (assetObject->m_assetIndex == otherDesc.index)
+            {
+                return true;
+            }
+
+            // When index is invalid (e.g. after RemoveCached), identify by asset path
+            if (assetObject->m_assetIndex == AssetDesc::InvalidIndex)
+            {
+                const AssetPath& assetPath = assetObject->GetPath();
+
+                return assetPath.IsValid()
+                    && assetPath.registryId == registryId
+                    && assetPath.bucketIndex == bucketIndex
+                    && assetPath.assetName == otherDesc.name;
+            }
+
+            return false;
+        };
+
         data.AllocateUniqueAssetName(
             *assetObject->InstanceClass()->GetName(),
             assetDesc,
-            [&assetObject, registryId = data.registryId, bucketIndex = data.bucketIndex](const AssetDesc& otherDesc) -> bool
-            {
-                if (assetObject->m_assetIndex == otherDesc.index)
-                {
-                    return true;
-                }
-
-                // When index is invalid (e.g. after RemoveCached), identify by asset path
-                if (assetObject->m_assetIndex == AssetDesc::InvalidIndex)
-                {
-                    const AssetPath& assetPath = assetObject->GetPath();
-
-                    return assetPath.IsValid()
-                        && assetPath.registryId == registryId
-                        && assetPath.bucketIndex == bucketIndex
-                        && assetPath.assetName == otherDesc.name;
-                }
-
-                return false;
-            });
+            UniquePredicate);
     }
 
     data.SetAsset(assetDesc, assetObject);
@@ -994,29 +996,31 @@ void AssetRegistry::PutAssetUnique(const AssetBucket& bucket, const Handle<Asset
         assetDesc.name = assetObject->InstanceClass()->GetName();
     }
 
+    auto UniquePredicate = [&assetObject, registryId = data.registryId, bucketIndex = data.bucketIndex](const AssetDesc& otherDesc) -> bool
+    {
+        if (assetObject->m_assetIndex == otherDesc.index)
+        {
+            return true;
+        }
+
+        // When index is invalid (e.g. after RemoveCached), identify by asset path
+        if (assetObject->m_assetIndex == AssetDesc::InvalidIndex)
+        {
+            const AssetPath& assetPath = assetObject->GetPath();
+
+            return assetPath.IsValid()
+                && assetPath.registryId == registryId
+                && assetPath.bucketIndex == bucketIndex
+                && assetPath.assetName == otherDesc.name;
+        }
+
+        return false;
+    };
+
     data.AllocateUniqueAssetName(
         *assetDesc.name,
         assetDesc,
-        [&assetObject, registryId = data.registryId, bucketIndex = data.bucketIndex](const AssetDesc& otherDesc) -> bool
-        {
-            if (assetObject->m_assetIndex == otherDesc.index)
-            {
-                return true;
-            }
-
-            // When index is invalid (e.g. after RemoveCached), identify by asset path
-            if (assetObject->m_assetIndex == AssetDesc::InvalidIndex)
-            {
-                const AssetPath& assetPath = assetObject->GetPath();
-
-                return assetPath.IsValid()
-                    && assetPath.registryId == registryId
-                    && assetPath.bucketIndex == bucketIndex
-                    && assetPath.assetName == otherDesc.name;
-            }
-
-            return false;
-        });
+        UniquePredicate);
 
     assetObject->m_name = assetDesc.name;
 
@@ -1100,12 +1104,14 @@ void AssetRegistry::PutAssetsDeep(const Handle<AssetObject>& targetAsset)
 
         bool walked = false;
 
-        WalkBoxedValue(current, [&](const BoxedValue& value)
-            {
-                Iterate(value);
+        auto Functor = [&](const BoxedValue& value)
+        {
+            Iterate(value);
 
-                walked = true;
-            });
+            walked = true;
+        };
+
+        WalkBoxedValue(current, Functor);
 
         if (walked)
         {
@@ -1639,12 +1645,12 @@ void AssetRegistry::Update()
        // @TODO
     }
 
-    if (!m_saveBlobCacheTimer.Waiting())
-    {
-        m_saveBlobCacheTimer.NextTick();
+    //if (!m_saveBlobCacheTimer.Waiting())
+    //{
+    //    m_saveBlobCacheTimer.NextTick();
 
-        SaveBlobCache(/* async */ true);
-    }
+    //    SaveBlobCache(/* async */ true);
+    //}
 #endif
 
     if (m_scheduler->NumEnqueued() > 0)

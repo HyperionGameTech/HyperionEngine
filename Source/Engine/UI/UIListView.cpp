@@ -462,25 +462,26 @@ UIListViewItem* UIListView::FindListViewItem(const UIObject* parentObject, const
 
     UIListViewItem* resultPtr = nullptr;
 
-    parentObject->ForEachChildUIObject_Proc([&dataSourceElementUuid, &resultPtr](UIObject* object)
+    auto Predicate = [&dataSourceElementUuid, &resultPtr](UIObject* object)
+    {
+        if (object->IsA<UIListViewItem>() && object->GetDataSourceElementUUID() == dataSourceElementUuid)
         {
-            if (object->IsA<UIListViewItem>() && object->GetDataSourceElementUUID() == dataSourceElementUuid)
-            {
-                resultPtr = DynamicCast<UIListViewItem>(object);
+            resultPtr = DynamicCast<UIListViewItem>(object);
 
-                return IterationResult::STOP;
-            }
+            return IterationResult::STOP;
+        }
 
-            if (UIListViewItem* result = FindListViewItem(object, dataSourceElementUuid))
-            {
-                resultPtr = result;
+        if (UIListViewItem* result = FindListViewItem(object, dataSourceElementUuid))
+        {
+            resultPtr = result;
 
-                return IterationResult::STOP;
-            }
+            return IterationResult::STOP;
+        }
 
-            return IterationResult::CONTINUE;
-        },
-        false);
+        return IterationResult::CONTINUE;
+    };
+
+    parentObject->ForEachChildUIObject_Proc(Predicate, false);
 
     return resultPtr;
 }

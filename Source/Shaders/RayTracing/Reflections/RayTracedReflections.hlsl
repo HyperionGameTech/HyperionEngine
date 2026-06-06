@@ -37,8 +37,8 @@ DECLARE_SRV(RTReflections, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuff
 DECLARE_SRV(RTReflections, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
 #define world_shader_data _worlds_buffer[0]
 
-#include "../include/RayTracingRayTracingHelpers.hlsli"
-#include "../include/RayTracingPayload.hlsli"
+#include "../include/RayTracing/RayTracingHelpers.hlsli"
+#include "../include/RayTracing/Payload.hlsli"
 
 DECLARE_BUFFER_DYNAMIC(RTReflections, CBuffer) cbuffer CBuffer
 {

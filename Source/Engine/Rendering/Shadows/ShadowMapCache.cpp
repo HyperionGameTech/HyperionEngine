@@ -192,7 +192,7 @@ static ViewDesc GetViewDesc(Light* light, bool isStatic, uint32 cascadeIndex, Sh
 // we store the shadow maps here rather than on the per-view PassData
 struct CachedShadowMapData
 {
-    Array<ShadowMap*, RenderAllocator> shadowMaps;
+    FixedArray<ShadowMap*, 6> shadowMaps;
 
     Camera* camera = nullptr;
 
@@ -351,11 +351,10 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
         {
             if (cascadesAreCubeFaces)
             {
-                entry.shadowMaps = { shadowMap };
+                entry.shadowMaps[0] = shadowMap;
             }
             else
             {
-                entry.shadowMaps.Resize(cascadeIndex + 1);
                 entry.shadowMaps[cascadeIndex] = shadowMap;
             }
         }
@@ -372,7 +371,8 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
 
         auto* views = isStatic ? &entry->shadowViewsStatic : &entry->shadowViewsDynamic;
 
-        if (cascadeIndex >= entry->shadowViewsStatic.Size() || !entry->camera)
+        if (cascadeIndex >= entry->shadowViewsStatic.Size() || !entry->camera
+            || !entry->shadowMaps[cascadesAreCubeFaces ? 0 : cascadeIndex])
         {
 #if SHADOW_MAP_CACHE_MULTITHREADED
             sharedLock.Reset();
@@ -627,6 +627,8 @@ bool ShadowMapCache::Remove(Light* light, View* view)
 
     if (entry.camera)
     {
+        // @FIXME: Crashing because we're releasing not on sim thread.
+        // @TODO: Move creation to render thread only? Or just detach from EM on sim thread?
         entry.camera->Release();
     }
 

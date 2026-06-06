@@ -85,17 +85,19 @@ Array<FilePath> AssetLoaderBase::GetTryFilepaths(const FilePath& originalFilepat
         AddRebasedFilepath(basePath);
     }
 
-    AssetManager::GetInstance()->FindAssetCollector([&AddRebasedFilepath, &basePath](const Handle<AssetCollector>& assetCollector)
+    auto FindAssetCollectorFunctor = [&AddRebasedFilepath, &basePath](const Handle<AssetCollector>& assetCollector)
+    {
+        if (assetCollector->GetBasePath() == basePath)
         {
-            if (assetCollector->GetBasePath() == basePath)
-            {
-                return false;
-            }
-
-            AddRebasedFilepath(assetCollector->GetBasePath());
-
             return false;
-        });
+        }
+
+        AddRebasedFilepath(assetCollector->GetBasePath());
+
+        return false;
+    };
+
+    AssetManager::GetInstance()->FindAssetCollector(FindAssetCollectorFunctor);
 
     return paths;
 }

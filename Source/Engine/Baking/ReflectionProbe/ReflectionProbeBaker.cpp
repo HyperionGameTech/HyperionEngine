@@ -99,7 +99,7 @@ void Baker<ReflectionProbe>::OnCompleted_Internal()
     }
 
     // prevent writing on other threads
-    auto resGuard = m_envProbe->GetWriteScope();
+    auto envProbeWriteScope = m_envProbe->GetWriteScope();
 
     const Vec2u dimensions = m_envProbe->GetDimensions();
     AssertDebug(dimensions.Volume() > 0);
@@ -161,7 +161,7 @@ void Baker<ReflectionProbe>::OnCompleted_Internal()
 
             const Handle<EnvProbe>& envProbe = cmdCasted->payload->envProbe;
 
-            auto resGuard = envProbe->GetWriteScope();
+            auto envProbeWriteScope = envProbe->GetWriteScope();
 
             const Handle<Texture>& texture = envProbe->GetBakedTexture();
 

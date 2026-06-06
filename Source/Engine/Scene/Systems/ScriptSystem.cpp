@@ -19,7 +19,7 @@
 
 #include <Core/Threading/Threads.hpp>
 
-#include <Core/Memory/Resource/Resource.hpp>
+#include <Core/Resource/Resource.hpp>
 
 #include <DotNET/ManagedClass.hpp>
 #include <DotNET/ManagedObject.hpp>

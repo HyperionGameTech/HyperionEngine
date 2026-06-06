@@ -181,12 +181,15 @@ BakeJobBase::~BakeJobBase()
 void BakeJobBase::Start()
 {
     m_wasStarted = true;
-    m_runningSemaphore.Produce(1, [this](bool)
-        {
-            Start_Internal();
 
-            tracingCompleteSignal.Reset(int32(m_params.renderers->Size()));
-        });
+    auto Functor = [this](bool)
+    {
+        Start_Internal();
+
+        tracingCompleteSignal.Reset(int32(m_params.renderers->Size()));
+    };
+
+    m_runningSemaphore.Produce(1, Functor);
 }
 
 void BakeJobBase::Stop()

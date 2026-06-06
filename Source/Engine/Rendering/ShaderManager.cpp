@@ -711,6 +711,12 @@ public:
                     continue;
                 }
 
+                if (!entry->shader->baseName)
+                {
+                    // entry was allocated but never compiled; nothing to reload
+                    continue;
+                }
+
                 Time shaderSourceModifiedTimestamp;
                 Time lastSavedTimestamp;
 
@@ -776,11 +782,6 @@ public:
 
         for (CompileShaderRequest& request : requests)
         {
-            if (!request.entry->IsLoaded())
-            {
-                continue;
-            }
-
             request.entry->threadSignal.Reset();
 
             CompilingShaderScope compilingShaderScope(

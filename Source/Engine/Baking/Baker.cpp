@@ -178,11 +178,11 @@ void BakerBase::Initialize()
                 .Show();
         }
 
-        Handle<Camera> camera = MakeHandle<Camera>();
-        camera->SetName(NAME_FMT("{}_Camera", InstanceClass()->GetName()));
-        camera->AddCameraController(MakeHandle<OrthoCameraController>());
-        camera->SetFarClip(1000.0f);
-        InitObject(camera);
+        m_camera = MakeHandle<Camera>();
+        m_camera->SetName(NAME_FMT("{}_Camera", InstanceClass()->GetName()));
+        m_camera->AddCameraController(MakeHandle<OrthoCameraController>());
+        m_camera->SetFarClip(1000.0f);
+        InitObject(m_camera);
 
         // dummy output target
         FramebufferDesc framebufferDesc;
@@ -214,7 +214,7 @@ void BakerBase::Initialize()
                 | ViewFlags::NOT_MULTI_BUFFERED,
             .framebufferDesc = framebufferDesc,
             .scenes = { m_scene },
-            .camera = camera,
+            .camera = m_camera.Get(),
             .bounds = bounds
         };
 

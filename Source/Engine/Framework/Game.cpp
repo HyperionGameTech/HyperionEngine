@@ -10,6 +10,7 @@
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/EngineDriver.hpp>
 #include <Rendering/DebugDrawer.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
@@ -124,7 +125,7 @@ void Game::Shutdown(bool shutdownWorld)
         m_world->m_gameInstance = nullptr;
 
         g_engineDriver->RemoveWorld(m_world);
-
+        
         if (shutdownWorld)
         {
             m_world->Shutdown();
@@ -191,7 +192,7 @@ void Game::SetWorld(const Handle<World>& world)
             {
                 g_engineDriver->RemoveWorld(m_world);
             }
-
+            
             m_world->Shutdown();
         }
     }

@@ -3025,7 +3025,7 @@ void EditorSubsystem::StopWatchingNode(const Handle<Node>& node)
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     AssertDebug(uiSubsystem != nullptr);
 
-    Handle<UIListView> listView = DynamicCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")));
+    Handle<UIListView> listView = DynamicCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject("Outline_ListView"_sh));
     AssertDebug(listView.IsValid());
 
 
@@ -3043,7 +3043,7 @@ void EditorSubsystem::ClearWatchedNodes()
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     AssertDebug(uiSubsystem != nullptr);
 
-    Handle<UIListView> listView = DynamicCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")));
+    Handle<UIListView> listView = DynamicCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject("Outline_ListView"_sh));
     AssertDebug(listView.IsValid());
 
     if (const Handle<UIDataSourceBase>& dataSource = listView->GetDataSource())
@@ -3100,7 +3100,7 @@ void EditorSubsystem::InitActiveSceneSelection()
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     Assert(uiSubsystem != nullptr);
 
-    Handle<UIObject> activeSceneSelection = uiSubsystem->GetUIStage()->FindChildUIObject(NAME("SetActiveScene_MenuItem"));
+    Handle<UIObject> activeSceneSelection = uiSubsystem->GetUIStage()->FindChildUIObject("SetActiveScene_MenuItem"_sh);
     if (!activeSceneSelection.IsValid())
     {
         HYP_LOG(Editor, Warning, "Failed to find SetActiveScene_MenuItem element; creating a new one");

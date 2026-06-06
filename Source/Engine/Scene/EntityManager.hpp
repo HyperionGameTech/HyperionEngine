@@ -860,10 +860,13 @@ private:
     void NotifySystemsOfEntityRemoved(Entity* entity, const ComponentMap& componentIds);
 
     /*! \brief Removes an entity from the EntityManager.
-
+     *  \param entity The Entity to remove
+     *  \param calledFromEntityDestructor Set to true if calling from ~Entity().
+     *    This means it won't notify systems that the Entity has been removed, nor will it call any methods on \p{entity}
+     *
      *  \return True if the entity was removed, false otherwise.
      */
-    bool RemoveEntity(Entity* entity);
+    bool RemoveEntity(Entity* entity, bool calledFromEntityDestructor = false);
 
     bool IsEntityInitializedForSystem(SystemBase* system, const Entity* entity) const;
 

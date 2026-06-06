@@ -18,7 +18,7 @@
 
 #include <Core/Functional/Delegate.hpp>
 
-#include <Core/Memory/Resource/Resource.hpp>
+#include <Core/Resource/Resource.hpp>
 
 #include <Core/Math/Frustum.hpp>
 
@@ -198,9 +198,15 @@ public:
     void RemoveScene(Scene* scene);
 
     HYP_METHOD()
-    const Handle<Camera>& GetCamera() const
+    HYP_FORCE_INLINE Camera* GetCamera() const
     {
         return m_camera;
+    }
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE void SetCamera(Camera* camera)
+    {
+        m_camera = camera;
     }
 
     HYP_FORCE_INLINE const ViewOutputTarget& GetOutputTarget() const
@@ -285,7 +291,7 @@ protected:
     void CollectMeshEntities(RenderProxyList& rpl);
 
     Array<Scene*> m_scenes;
-    Handle<Camera> m_camera;
+    Camera* m_camera;
     ViewOutputTarget m_outputTarget;
 
     // optional rayTracing View set by the world
@@ -298,6 +304,8 @@ protected:
     ProcRef<void(RenderProxyList&)> m_overrideCollectFunctor;
 
     TaskBatch* m_collectionTaskBatch;
+
+    bool m_markAllAsDirty = false;
 };
 
 } // namespace Hyperion

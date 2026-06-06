@@ -131,8 +131,22 @@ struct Handle final : HandleBase
 
     Handle& operator=(Handle&& other) noexcept
     {
-        if (this == &other || ptr == other.ptr)
+        if (this == &other)
         {
+            return *this;
+        }
+
+        if (ptr == other.ptr)
+        {
+            // Both handles point to the same object; we must remove exactly one ref
+            // count (the moved-from handle's contribution) and null out other.
+            if (ptr)
+            {
+                ptr->m_header->DecRefStrong();
+            }
+
+            other.ptr = nullptr;
+
             return *this;
         }
 
@@ -499,8 +513,22 @@ struct WeakHandle final
 
     WeakHandle& operator=(WeakHandle&& other) noexcept
     {
+        if (this == &other)
+        {
+            return *this;
+        }
+
         if (ptr == other.ptr)
         {
+            // Both weak handles point to the same object; remove one weak ref
+            // (the moved-from handle's contribution) and null out other.
+            if (ptr)
+            {
+                ptr->m_header->DecRefWeak();
+            }
+
+            other.ptr = nullptr;
+
             return *this;
         }
 

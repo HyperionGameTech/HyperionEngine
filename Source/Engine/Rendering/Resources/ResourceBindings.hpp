@@ -490,6 +490,21 @@ static inline void CopyDependencies(
     }
 }
 
+static void DrainResources(ResourceContainer& resources, RenderProxyList& renderProxyList)
+{
+    int resourceTrackerIndex = 0;
+    StaticForEach<typename RenderProxyList::ResourceTrackerTypes>([&renderProxyList, &resourceTrackerIndex]<class ResourceTrackerType>(TypeWrapper<ResourceTrackerType>)
+        {
+            ResourceTrackerType& resourceTracker = static_cast<ResourceTrackerType&>(*renderProxyList.resourceTrackers[resourceTrackerIndex]);
+            resourceTracker.Advance();
+
+            ++resourceTrackerIndex;
+        });
+
+    static RenderProxyList s_emptyRpl { /* isShared */ false, /* useRefCounting */ false };
+    CopyDependencies(resources, renderProxyList, s_emptyRpl);
+}
+
 } // namespace Resources
 
 } // namespace Hyperion

@@ -139,8 +139,8 @@ void World::Initialize()
         framebufferDesc.attachments[0] = { TextureType::Texture2D, TextureFormat::R8 };
         framebufferDesc.numAttachments = 1;
 
-        Handle<Camera> camera = MakeHandle<Camera>();
-        camera->SetName(NAME("RayTracingViewDummyCamera"));
+        Camera* rayTracingViewCamera = new Camera;
+        rayTracingViewCamera->SetName(NAME("RayTracingViewDummyCamera"));
 
         ViewDesc rayTracingViewDesc {};
         rayTracingViewDesc.flags = ViewFlags::RAY_TRACING | ViewFlags::NO_DRAW_CALLS
@@ -154,7 +154,7 @@ void World::Initialize()
             | ViewFlags::SKIP_PARTICLE_VOLUMES
             | ViewFlags::NO_FRUSTUM_CULLING;
         rayTracingViewDesc.framebufferDesc = framebufferDesc;
-        rayTracingViewDesc.camera = camera;
+        rayTracingViewDesc.camera = rayTracingViewCamera;
 
         View* rayTracingView = new View(rayTracingViewDesc);
         rayTracingView->SetName(NAME("RayTracingView"));
@@ -334,7 +334,17 @@ void World::Shutdown()
     }
     m_systemExecutionGroups.Clear();
 
-    m_rayTracingView = nullptr;
+    if (m_rayTracingView != nullptr)
+    {
+        Camera* rayTracingViewCamera = m_rayTracingView->GetCamera();
+        AssertDebug(rayTracingViewCamera != nullptr);
+
+        m_rayTracingView->SetCamera(nullptr);
+
+        rayTracingViewCamera->Release();
+
+        m_rayTracingView = nullptr;
+    }
 
     for (View* view : m_views)
     {
@@ -1138,6 +1148,9 @@ void World::AddView(View* view)
     }
 
     view->AddRef();
+
+    // Mark all resources used dirty upon add to ensure proper state
+    view->m_markAllAsDirty = true;
 
     m_views.PushBack(view);
 

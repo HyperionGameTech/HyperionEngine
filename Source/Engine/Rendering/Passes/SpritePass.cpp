@@ -387,7 +387,7 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     CommandRecorder& cr = frame->cr;
     View* view = renderSetup.view;
 
-    RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(view->GetCamera().Get()));
+    RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(view->GetCamera()));
     Assert(cameraProxy != nullptr);
 
     GpuBuffer* cbuffer = nullptr;

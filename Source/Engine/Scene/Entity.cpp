@@ -55,48 +55,20 @@ Entity::Entity(Name name)
 
 Entity::~Entity()
 {
-    m_scene = nullptr;
-
     EntityManager* entityManager = GetEntityManager();
     if (entityManager == nullptr)
     {
         return;
     }
 
-    if (IsOnThread(entityManager->GetOwnerThreadId()))
+    // Can only be destroyed if no EM exists, or we are on the EM's owner thread.
+    Assert(IsOnThread(entityManager->GetOwnerThreadId()), "Destroying Entity {} from wrong thread while still attached to EntityManager!", GetName());
+
+    HYP_LOG(Entity, Verbose, "Removing Entity {} from entity manager", GetName());
+
+    if (!entityManager->RemoveEntity(this, /* calledFromEntityDestructor */ true))
     {
-        HYP_NAMED_SCOPE("Remove Entity from EntityManager (sync)");
-
-        HYP_LOG(Entity, Verbose, "Removing Entity {} from entity manager", Id());
-
-        if (!entityManager->RemoveEntity(this))
-        {
-            HYP_LOG(Entity, Error, "Failed to remove Entity {} from EntityManager", Id());
-        }
-    }
-    else
-    {
-        // If not on the correct thread, perform the removal asynchronously
-        // Keep a WeakHandle of Entity so the Id doesn't get reused while we're using it
-        GetThreadById(entityManager->GetOwnerThreadId())->GetScheduler().Enqueue([weakThis = MakeWeakRef(this), entityManagerWeak = MakeWeakRef(entityManager)]()
-            {
-                Handle<EntityManager> entityManager = entityManagerWeak.Lock();
-                if (!entityManager)
-                {
-                    HYP_LOG(Entity, Error, "EntityManager is no longer valid while removing Entity {}", weakThis.Id());
-                    return;
-                }
-
-                HYP_NAMED_SCOPE("Remove Entity from EntityManager (async)");
-
-                HYP_LOG(Entity, Verbose, "Removing Entity {} from entity manager", weakThis.Id());
-
-                if (!entityManager->RemoveEntity(weakThis.GetUnsafe()))
-                {
-                    HYP_LOG(Entity, Error, "Failed to remove Entity {} from EntityManager", weakThis.Id());
-                }
-            },
-            TaskEnqueueFlags::FIRE_AND_FORGET);
+        HYP_LOG(Entity, Error, "Failed to remove Entity {} from EntityManager", GetName());
     }
 }
 
@@ -387,17 +359,24 @@ void Entity::OnTagRemoved(EntityTag tag)
 #endif // HYP_EDITOR
 }
 
-void Entity::SetScene(Scene* scene)
+void Entity::SetScene_Internal(Scene* scene, bool moveToDetached)
 {
-    if (scene == m_scene)
+    EntityManager* prevEntityManager = GetEntityManager();
+
+    // We need to call RemoveEntity() if MoveEntity() will not be called.
+    // Do this before Node::SetScene_Internal() is called, because systems may try to do
+    // entity->GetScene() and will not expect nullptr to be returned.
+    if (scene == nullptr && !moveToDetached && prevEntityManager != nullptr)
     {
-        return;
+       prevEntityManager->RemoveEntity(this);
     }
 
-    Node::SetScene(scene);
+    Node::SetScene_Internal(scene, moveToDetached);
 
-    // Move entity from previous scene to new scene's EntityManager
-    SetEntityManager(m_scene->GetEntityManager());
+    if (m_scene != nullptr)
+    {
+        SetEntityManager(m_scene->GetEntityManager());
+    }
 }
 
 void Entity::LockTransform()

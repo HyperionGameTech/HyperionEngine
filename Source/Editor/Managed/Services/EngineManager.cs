@@ -223,9 +223,9 @@ namespace Hyperion.Editor
             GameInstance = null;
             EditorGame = null;
 
-            NativeBindings.Hyp_Shutdown();
+            ObjectBase.IsEngineShuttingDown = true;
 
-            GC.Collect(0, GCCollectionMode.Forced, true);
+            NativeBindings.Hyp_Shutdown();
 
             IsInitialized = false;
         }

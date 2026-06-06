@@ -333,6 +333,8 @@ void EntityManager::Shutdown()
 
     if (m_world != nullptr)
     {
+        TSet<Handle<Entity>> allEntities;
+
         for (SystemExecutionGroup* group : m_world->GetSystemExecutionGroups())
         {
             for (auto& systemIt : group->GetSystems())
@@ -355,6 +357,11 @@ void EntityManager::Shutdown()
                         for (Entity* entity : systemEntityIt->second)
                         {
                             entities.PushBack(entity);
+
+                            if (allEntities.FindAs(entity->Id()) == allEntities.End())
+                            {
+                                allEntities.Add(MakeStrongRef(entity));
+                            }
                         }
 
                         systemEntityIt->second.Clear();
@@ -363,27 +370,32 @@ void EntityManager::Shutdown()
 
                 for (Entity* entity : entities)
                 {
-                    entity->OnRemovedFromWorld(m_world);
-
-                    if (m_scene->GetSceneFlags() & SceneFlags::HAS_OCTREE)
-                    {
-                        auto removeFromOctreeResult = m_scene->GetOctree().Remove(entity, /* allowRebuild */ false);
-                        if (removeFromOctreeResult.HasError())
-                        {
-                            HYP_LOG(Entity, Warning, "Failed to remove Entity {} from Scene {}'s octree: {}",
-                                entity->GetName(),
-                                m_scene->GetName(),
-                                removeFromOctreeResult.GetError().GetMessage());
-                        }
-                    }
-
-                    entity->OnRemovedFromScene(m_scene);
-
                     system->OnEntityRemoved(entity);
                 }
 
                 system->Shutdown();
             }
+        }
+
+        for (const Handle<Entity>& entity : allEntities)
+        {
+            entity->OnRemovedFromWorld(m_world);
+
+            if (m_scene->GetSceneFlags() & SceneFlags::HAS_OCTREE)
+            {
+                auto removeFromOctreeResult = m_scene->GetOctree().Remove(entity, /* allowRebuild */ false);
+                if (removeFromOctreeResult.HasError())
+                {
+                    HYP_LOG(Entity, Warning, "Failed to remove Entity {} from Scene {}'s octree: {}",
+                        entity->GetName(),
+                        m_scene->GetName(),
+                        removeFromOctreeResult.GetError().GetMessage());
+                }
+            }
+
+            entity->OnRemovedFromScene(m_scene);
+
+            entity->m_entityManager = nullptr;
         }
     }
 
@@ -658,11 +670,9 @@ void EntityManager::AddExistingEntity_Internal(const Handle<Entity>& entity)
 /// Called from Entity destructor or from a task enqueued during Entity destructor.
 /// Does not operate on the Entity pointer as it would be invalid at this point,
 /// so NotifySystemsOfEntityRemoved() is not called (it's expected that this is a non-world EntityManager so it wouldn't be called anyway).
-bool EntityManager::RemoveEntity(Entity* entity)
+bool EntityManager::RemoveEntity(Entity* entity, bool calledFromEntityDestructor)
 {
     Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
-
-    Assert(m_world == nullptr, "RemoveEntity() can only be called on non-world EntityManagers. Use MoveEntity() to move entities out of a world EntityManager on its owner thread.");
 
     if (!entity)
     {
@@ -676,10 +686,13 @@ bool EntityManager::RemoveEntity(Entity* entity)
     // Components generically stored as BoxedValue by TypeId - to add to other EntityManager
     TMap<TypeId, BoxedValue> components;
 
-    HYP_MT_CHECK_RW(m_entitiesDataRaceDetector);
-
     EntityData* entityData = m_entities.TryGetEntityData(entityId);
     Assert(entityData != nullptr, "Entity does not exist");
+    
+    if (!calledFromEntityDestructor)
+    {
+        NotifySystemsOfEntityRemoved(entity, entityData->components);
+    }
 
     for (auto componentInfoPairIt = entityData->components.Begin(); componentInfoPairIt != entityData->components.End();)
     {
@@ -692,6 +705,23 @@ bool EntityManager::RemoveEntity(Entity* entity)
 
         AnyRef componentRef = componentContainerIt->second->TryGetComponent(componentId);
         Assert(componentRef.HasValue(), "Component of type '{}' with id {} does not exist in component container", *GetComponentTypeName(componentTypeId), componentId);
+
+        if (!calledFromEntityDestructor)
+        {
+            // Notify the entity that the component is being removed
+            // - needed to ensure proper lifecycle. every OnComponentRemoved() call must be matched with an OnComponentAdded() call and vice versa
+            EntityTag tag = EntityTag::None;
+
+            if (IsEntityTagComponent(componentTypeId, tag))
+            {
+                // Remove the tag from the entity
+                entity->OnTagRemoved(tag);
+            }
+            else
+            {
+                entity->OnComponentRemoved(componentRef);
+            }
+        }
 
         BoxedValue component;
         if (!componentContainerIt->second->RemoveComponent(componentId, component))
@@ -723,6 +753,11 @@ bool EntityManager::RemoveEntity(Entity* entity)
                 }
             }
         }
+    }
+
+    if (!calledFromEntityDestructor)
+    {
+        entity->m_entityManager = nullptr;
     }
 
     m_entities.Remove(entityId);

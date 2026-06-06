@@ -77,6 +77,8 @@ void ConvolveEnvProbeCubemap(
 {
     Assert(inTexture != nullptr);
 
+    HYP_LOG(Rendering, Info, "Convolve probe {}", envProbe.GetName());
+
     // Alloc command recorder
     // we need to do this after we Create() the src texture,
     // because CreateGpuImage in Texture.cpp creates its own command recorder,
@@ -241,7 +243,7 @@ void ConvolveEnvProbeCubemap(
 
             HYP_LOG(Rendering, Info, "Readback of convolved EnvProbe {} completed, size {} bytes", envProbeStrong->GetName(), buffer.Size());
 
-            auto textureResGuard = prefilteredEnvMap->GetWriteScope();
+            auto textureWriteScope = prefilteredEnvMap->GetWriteScope();
 
             TextureDesc desc = prefilteredEnvMap->GetTextureDesc();
             AssertDebug(desc.extent.Volume() != 0 && desc.extent.Volume() <= 2048*2048);
@@ -275,9 +277,9 @@ void ConvolveEnvProbeCubemap(
             prefilteredEnvMap->SetTextureDesc(desc);
             prefilteredEnvMap->SetImageData(view);
 
-            textureResGuard.Reset();
+            textureWriteScope.Reset();
 
-            auto envProbeResGuard = envProbeStrong->GetWriteScope();
+            auto envProbeWriteScope = envProbeStrong->GetWriteScope();
             envProbeStrong->SetBakedTexture(prefilteredEnvMap);
         }, /* allMips */ true);
     }
@@ -541,7 +543,7 @@ void ComputeEnvProbeSphericalHarmonics(
 
                                          {
                                              // SetSphericalHarmonicsData() marks it dirty so we don't need to do that here.
-                                             auto resGuard = payload.envProbe->GetWriteScope();
+                                             auto envProbeWriteScope = payload.envProbe->GetWriteScope();
                                              payload.envProbe->SetSphericalHarmonicsData(shData);
                                          }
 
@@ -654,7 +656,10 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
     AssertDebug(!envProbe->IsBaked());
 
     View* firstView = envProbe->GetView(0);
-    Assert(firstView != nullptr);
+    if (firstView == nullptr)
+    {
+        return;
+    }
 
     EnvProbePassData* pd = static_cast<EnvProbePassData*>(FetchViewPassData(firstView));
     AssertDebug(pd != nullptr);

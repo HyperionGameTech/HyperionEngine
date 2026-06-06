@@ -10,84 +10,132 @@ namespace Hyperion
         public IntPtr _classPtr;
         public IntPtr _nativeAddress;
 
+        private static readonly ReaderWriterLockSlim _shutdownLock = new(LockRecursionPolicy.SupportsRecursion);
+        private static int _isEngineShuttingDown = 0;
+
+        public static bool IsEngineShuttingDown
+        {
+            get
+            {
+                _shutdownLock.EnterReadLock();
+
+                bool value = _isEngineShuttingDown != 0;
+                
+                _shutdownLock.ExitReadLock();
+
+                return value;
+            }
+            set
+            {
+                _shutdownLock.EnterWriteLock();
+
+                Interlocked.Exchange(ref _isEngineShuttingDown, value ? 1 : 0);
+
+                _shutdownLock.ExitWriteLock();
+            }
+        }
+
         protected ObjectBase()
         {
-            bool initiatedFromManagedSide = _nativeAddress == IntPtr.Zero;
+            _shutdownLock.EnterReadLock();
 
-            if (initiatedFromManagedSide)
+            try
             {
-                Type type = this.GetType();
-
-                Class cls = Class.GetClass(type);
-
-                if (cls == Class.Invalid)
+                if (_isEngineShuttingDown != 0)
                 {
-                    throw new Exception("Invalid Class returned from ClassBinding attribute");
+                    throw new Exception("Cannot create ObjectBase instance after engine is shutting down");
                 }
 
-                if (!cls.IsReferenceCounted)
+                bool initiatedFromManagedSide = _nativeAddress == IntPtr.Zero;
+
+                if (initiatedFromManagedSide)
                 {
-                    throw new Exception("Can only create instances of reference counted Class objects (using Handle<T>) from managed code");
-                }
+                    Type type = GetType();
 
-                // Need to add this to managed object cache,
-                // pass to CreateInstance() so the ObjectBase in C++ knows not to create another of this..
-                GCHandle gcHandle = GCHandle.Alloc(this, GCHandleType.Normal);
+                    Class cls = Class.GetClass(type);
 
-                ObjectWrapper objectWrapper = new ObjectWrapper { obj = this };
-                ObjectReference objectReference = new ObjectReference();
+                    if (cls == Class.Invalid)
+                    {
+                        throw new Exception("Invalid Class returned from ClassBinding attribute");
+                    }
 
-                unsafe
-                {
-                    IntPtr objectWrapperPtr = (IntPtr)Unsafe.AsPointer(ref objectWrapper);
-                    IntPtr objectReferencePtr = (IntPtr)Unsafe.AsPointer(ref objectReference);
+                    if (!cls.IsReferenceCounted)
+                    {
+                        throw new Exception("Can only create instances of reference counted Class objects (using Handle<T>) from managed code");
+                    }
 
-                    IntPtr pClass = IntPtr.Zero;
+                    // Need to add this to managed object cache,
+                    // pass to CreateInstance() so the ObjectBase in C++ knows not to create another of this..
+                    GCHandle gcHandle = GCHandle.Alloc(this, GCHandleType.Normal);
 
-                    NativeInterop_AddObjectToCache(objectWrapperPtr, out pClass, objectReferencePtr, isWeak: true);
+                    ObjectWrapper objectWrapper = new ObjectWrapper { obj = this };
+                    ObjectReference objectReference = new ObjectReference();
+
+                    unsafe
+                    {
+                        IntPtr objectWrapperPtr = (IntPtr)Unsafe.AsPointer(ref objectWrapper);
+                        IntPtr objectReferencePtr = (IntPtr)Unsafe.AsPointer(ref objectReference);
+
+                        IntPtr pClass = IntPtr.Zero;
+
+                        NativeInterop_AddObjectToCache(objectWrapperPtr, out pClass, objectReferencePtr, isWeak: true);
 
 #if DEBUG
-                    if (pClass == IntPtr.Zero)
-                    {
-                        gcHandle.Free();
-                        throw new Exception("Failed to add object to cache -- pClass is null");
-                    }
+                        if (pClass == IntPtr.Zero)
+                        {
+                            gcHandle.Free();
+                            throw new Exception("Failed to add object to cache -- pClass is null");
+                        }
 
-                    if (!objectReference.IsValid)
-                    {
-                        gcHandle.Free();
-                        throw new Exception("Failed to add object to cache -- objectReference is invalid");
-                    }
+                        if (!objectReference.IsValid)
+                        {
+                            gcHandle.Free();
+                            throw new Exception("Failed to add object to cache -- objectReference is invalid");
+                        }
 #endif
 
-                    _classPtr = cls.Address;
+                        _classPtr = cls.Address;
 
-                    Object_Initialize(_classPtr, pClass, ref objectReference, out _nativeAddress);
+                        Object_Initialize(_classPtr, pClass, ref objectReference, out _nativeAddress);
+                    }
+
+                    gcHandle.Free();
+                }
+                else
+                {
+                    if (_classPtr == IntPtr.Zero)
+                        throw new Exception("Class pointer is null - object is not correctly initialized");
+
+                    if (_nativeAddress == IntPtr.Zero)
+                        throw new Exception("Native address is null - object is not correctly initialized");
+
+                    Object_IncRef(_classPtr, _nativeAddress, false);
                 }
 
-                gcHandle.Free();
+                Logger.Log(LogLevel.Verbose, "Construct ObjectBase of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
             }
-            else
+            finally
             {
-                if (_classPtr == IntPtr.Zero)
-                    throw new Exception("Class pointer is null - object is not correctly initialized");
-
-                if (_nativeAddress == IntPtr.Zero)
-                    throw new Exception("Native address is null - object is not correctly initialized");
-
-                Object_IncRef(_classPtr, _nativeAddress, false);
+                _shutdownLock.ExitReadLock();
             }
-
-            Logger.Log(LogLevel.Verbose, "Construct ObjectBase of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
         }
 
         ~ObjectBase()
         {
-            if (IsValid && Class.IsReferenceCounted)
-            {
-                Object_DecRef(_classPtr, _nativeAddress, false);
+            _shutdownLock.EnterReadLock();
 
-                Logger.Log(LogLevel.Verbose, "Finalized ObjectBase of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
+            try
+            {
+                if (IsValid && Class.IsReferenceCounted && _isEngineShuttingDown == 0)
+                {
+                    Object_DecRef(_classPtr, _nativeAddress, false);
+
+                    Logger.Log(LogLevel.Verbose, "Finalized ObjectBase of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
+                }
+            }
+            finally
+            {
+                _shutdownLock.ExitReadLock();
             }
         }
 
@@ -95,15 +143,24 @@ namespace Hyperion
         {
             if (IsValid)
             {
-                if (Class.IsReferenceCounted)
+                _shutdownLock.EnterReadLock();
+
+                try
                 {
+                    if (Class.IsReferenceCounted && _isEngineShuttingDown == 0)
+                    {
 #if DEBUG
-                    Assert.Throw(Object_GetRefCountStrong(_classPtr, _nativeAddress) == 1, "Strong reference must be 1 before destruction");
+                        Assert.Throw(Object_GetRefCountStrong(_classPtr, _nativeAddress) == 1, "Strong reference must be 1 before destruction");
 #endif
 
-                    Object_DecRef(_classPtr, _nativeAddress, false);
+                        Object_DecRef(_classPtr, _nativeAddress, false);
 
-                    Logger.Log(LogLevel.Verbose, "Disposed ObjectBase of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
+                        Logger.Log(LogLevel.Verbose, "Disposed ObjectBase of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
+                    }
+                }
+                finally
+                {
+                    _shutdownLock.ExitReadLock();
                 }
 
                 GC.SuppressFinalize(this);
@@ -122,8 +179,7 @@ namespace Hyperion
                     throw new Exception("Native address is null - cannot get Id");
                 }
 
-                ObjIdBase id;
-                Object_GetId(_nativeAddress, out id);
+                Object_GetId(_nativeAddress, out ObjIdBase id);
                 return id;
             }
         }

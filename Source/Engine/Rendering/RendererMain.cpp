@@ -638,7 +638,7 @@ void RenderProxyList::BeginWrite()
     // this clears their 'next' bits and sets their 'previous' bits so we can tell what changed.
     ForEachResourceTracker(resourceTrackers.ToSpan(), [](auto&& resourceTracker)
         {
-            resourceTracker.Advance();
+            resourceTracker.Advance(/* clearNextState */ true);
         });
 }
 
@@ -651,6 +651,7 @@ void RenderProxyList::EndWrite()
         UpdateRefs(*this);
     }
 
+    ++writeGeneration;
     state = CS_WRITTEN;
 
     m_lock.UnlockWriter();
@@ -704,6 +705,19 @@ void RenderProxyList::EndRead()
     {
         state = CS_DONE;
     }
+}
+
+void RenderProxyList::ClearAll()
+{
+    AssertDebug(state == CS_WRITING);
+
+    // Advance again.
+    // First advance would be from BeginWrite(), we advance again without tracking any new resources,
+    // so the current ones all get disposed.
+    ForEachResourceTracker(resourceTrackers.ToSpan(), [](auto&& resourceTracker)
+        {
+            resourceTracker.Advance(/* clearNextState */ true);
+        });
 }
 
 #pragma endregion RenderProxyList
@@ -1015,6 +1029,11 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
         const RenderProxyMaterial* materialProxy = static_cast<const RenderProxyMaterial*>(GetRenderProxy(meshProxy.material));
         AssertDebug(materialProxy != nullptr);
 
+        if (HYP_UNLIKELY(!materialProxy))
+        {
+            continue;
+        }
+
         { // Write constants for the draw
             CBufferAllocator& cba = *RI.cbufferAllocator;
             cba.Write(&meshProxy.bufferData);
@@ -1097,6 +1116,11 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
 
         const RenderProxyMaterial* materialProxy = static_cast<const RenderProxyMaterial*>(GetRenderProxy(meshProxy.material));
         AssertDebug(materialProxy != nullptr);
+        
+        if (HYP_UNLIKELY(!materialProxy))
+        {
+            continue;
+        }
 
         { // Write constants for the draw
             CBufferAllocator& cba = *RI.cbufferAllocator;
@@ -2106,6 +2130,10 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
     AssertDebug(view != nullptr);
     AssertDebug(renderProxyList.state == RenderProxyList::CS_READING);
 
+#if HYP_DEBUG_MODE
+    HYP_DEFER({ lastFrameDEBUG = GetFrameCounter(); });
+#endif // HYP_DEBUG_MODE
+
     RenderGroupCache& attributeRegistry = *RI.renderGroupCache;
 
     const RenderableAttributeSet* overrideAttributes = view->GetOverrideAttributes().TryGet();
@@ -2124,18 +2152,24 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
     {
         for (const ObjId<Entity> id : changedIds)
         {
-            const uint32 idx = id.ToIndex();
-
             RenderableAttributeHandle* cachedHandle = previousAttributes.TryGet(id.ToIndex());
             AssertDebug(cachedHandle != nullptr && cachedHandle->IsValid());
 
+            if (!cachedHandle || !cachedHandle->IsValid())
+            {
+                continue;
+            }
+            
+            const RenderBucket prevBucket = cachedHandle->GetBucket();
+            const uint32 prevIndex = cachedHandle->GetIndex();
+
             // remove from prev
-            auto& prevMappings = mappingsByBucket[uint32(cachedHandle->GetBucket())];
-            AssertDebug(prevMappings.HasIndex(cachedHandle->GetIndex()));
+            auto& prevMappings = mappingsByBucket[uint32(prevBucket)];
+            AssertDebug(prevMappings.HasIndex(prevIndex));
 
-            DrawCallCollection* prevDrawCallCollection = &prevMappings.Get(cachedHandle->GetIndex());
+            DrawCallCollection* prevDrawCallCollection = &prevMappings.Get(prevIndex);
 
-            RenderProxyMesh* meshProxy = prevDrawCallCollection->meshProxies.Get(idx);
+            RenderProxyMesh* meshProxy = prevDrawCallCollection->meshProxies.Get(id.ToIndex());
             AssertDebug(meshProxy != nullptr);
 
             RenderableAttributeSet newAttributes;
@@ -2143,7 +2177,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
 
             AssertDebug(newAttributes.GetMeshAttributes().inputLayout.mask != 0);
 
-            const RenderBucket bucket = newAttributes.GetMaterialAttributes().bucket;
+            const RenderBucket newBucket = newAttributes.GetMaterialAttributes().bucket;
             const RenderableAttributeHandle newHandle = attributeRegistry.GetOrCreate(newAttributes);
 
             if (newHandle == *cachedHandle)
@@ -2152,11 +2186,11 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
                 continue;
             }
 
-            prevDrawCallCollection->meshProxies.EraseAt(idx);
+            prevDrawCallCollection->meshProxies.EraseAt(id.ToIndex());
             prevDrawCallCollection = nullptr;
 
             // Add proxy to group
-            DrawCallCollection& newDrawCallCollection = mappingsByBucket[uint32(bucket)][newHandle.GetIndex()];
+            DrawCallCollection& newDrawCallCollection = mappingsByBucket[uint32(newBucket)][newHandle.GetIndex()];
 
             AssertDebug(newDrawCallCollection.parallelRenderingState == nullptr); // not handled properly? should be set to null after awaited
 
@@ -2168,7 +2202,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
 
             AssertDebug(meshProxy->mesh != nullptr && meshProxy->material != nullptr);
 
-            newDrawCallCollection.meshProxies.Set(idx, meshProxy);
+            newDrawCallCollection.meshProxies.Set(id.ToIndex(), meshProxy);
 
             *cachedHandle = newHandle;
         }
@@ -2194,15 +2228,21 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
 
             const uint32 idx = id.ToIndex();
 
-            AssertDebug(previousAttributes.HasIndex(idx));
+            const RenderableAttributeHandle* attributeHandle = previousAttributes.TryGet(idx);
 
-            const RenderableAttributeHandle attributeHandle = previousAttributes.Get(idx);
-            const RenderBucket bucket = attributeHandle.GetBucket();
+            if (!attributeHandle)
+            {
+                // no handle present — entity was never placed in a draw call collection, nothing to remove
+                continue;
+            }
+            
+            const RenderBucket bucket = attributeHandle->GetBucket();
+            const uint32 index = attributeHandle->GetIndex();
 
             auto& mappings = mappingsByBucket[uint32(bucket)];
-            AssertDebug(mappings.HasIndex(attributeHandle.GetIndex()));
+            AssertDebug(mappings.HasIndex(index));
 
-            DrawCallCollection& drawCallCollection = mappings.Get(attributeHandle.GetIndex());
+            DrawCallCollection& drawCallCollection = mappings.Get(index);
             Assert(drawCallCollection.batchAllocator != nullptr && drawCallCollection.isInit);
 
             AssertDebug(drawCallCollection.meshProxies.HasIndex(idx));

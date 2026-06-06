@@ -3335,6 +3335,8 @@ void DeferredPass::GenerateMipChain(Frame* frame, const RenderSetup& rs, RenderC
             0, 1                // layer 0, 1 layer
         );
 
+        cr << InsertBarrier(mipChainTexture->GetGpuImage(), RS_RENDER_TARGET, ImageSubResource { mipLevel, 1, 0, 1 });
+
         // Set up render target (destination mip level) - use pre-created framebuffer
         Framebuffer* dstFramebuffer = pd->mipChainFramebuffers[mipLevel];
         AssertDebug(dstFramebuffer != nullptr);
@@ -3377,8 +3379,7 @@ void DeferredPass::GenerateMipChain(Frame* frame, const RenderSetup& rs, RenderC
         // End rendering to this mip
         cr << SetCurrentFramebuffer(nullptr);
 
-        // Transition entire image to shader resource so the next iteration can read the previous mip
-        cr << InsertBarrier(mipChainTexture->GetGpuImage(), RS_SHADER_RESOURCE);
+        cr << InsertBarrier(mipChainTexture->GetGpuImage(), RS_SHADER_RESOURCE, ImageSubResource { mipLevel, 1, 0, 1 });
     }
 
     // Reset depth state

@@ -136,14 +136,11 @@ void TaskCallbackChain::Add(Proc<void()>&& callback)
 
 void TaskCallbackChain::operator()()
 {
-    if (m_numCallbacks.Get(MemoryOrder::ACQUIRE))
-    {
-        Mutex::Guard guard(m_mutex);
+    Mutex::Guard guard(m_mutex);
 
-        for (Proc<void()>& proc : m_callbacks)
-        {
-            proc();
-        }
+    for (Proc<void()>& proc : m_callbacks)
+    {
+        proc();
     }
 }
 

@@ -11,7 +11,8 @@
 
 #include <Core/Containers/Map.hpp>
 
-#include <Core/Memory/Resource/Resource.hpp>
+#include <Core/Resource/Resource.hpp>
+#include <Core/Resource/ResLock.hpp>
 
 #include <Asset/AssetReference.hpp>
 
@@ -45,7 +46,7 @@ private:
         };
     }
 
-    TMap<Skeleton*, Array<UniquePtr<TSharedLock<AssetObject>>>> m_resourceHandles;
+    TMap<Skeleton*, Array<UniquePtr<TSharedResLock<AssetObject>>>> m_resourceHandles;
 };
 
 } // namespace Hyperion

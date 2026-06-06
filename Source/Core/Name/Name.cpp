@@ -254,10 +254,17 @@ Name Name::Unique(const ANSIStringView& prefix)
     return GetRegistry()->RegisterUniqueName(prefix, /* lock */ true);
 }
 
+#if HYP_DEBUG_MODE
+// Disable optimization to allow us to use LookupString() in immediate window / lldb expr evaluation.
+HYP_DISABLE_OPTIMIZATION;
+#endif // HYP_DEBUG_MODE
 const char* Name::LookupString() const
 {
     return GetRegistry()->LookupStringForName(*this).Data();
 }
+#if HYP_DEBUG_MODE
+HYP_ENABLE_OPTIMIZATION;
+#endif // HYP_DEBUG_MODE
 
 Name Name::FromString(const char* str)
 {
