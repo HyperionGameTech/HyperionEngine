@@ -127,7 +127,7 @@ float4 CalculateReflectionProbe(in EnvProbe probe, float3 P, float3 N, float3 R,
 #ifndef ENV_PROBE_PARALLAX_CORRECTED
     // ENV_PROBE_PARALLAX_CORRECTED is not statically defined, we need to use flags on the EnvProbe struct
     // at render time to determine if the probe is parallax corrected.
-    const bool is_parallax_corrected = bool(GET_ENV_PROBE_FLAGS(probe) & HYP_ENV_PROBE_PARALLAX_CORRECTED);
+    const bool is_parallax_corrected = bool(GET_ENV_PROBE_FLAGS(probe) & EPF_PARALLAX_CORRECTED);
 
     if (is_parallax_corrected)
     {
@@ -193,7 +193,7 @@ void CalculateEnvProbesContribution(
         const float3 aabbMin = currentEnvProbe.aabb_min.xyz;
         const float3 aabbMax = currentEnvProbe.aabb_max.xyz;
 
-        const float3 probeReflectionVector = bool(GET_ENV_PROBE_FLAGS(currentEnvProbe) & HYP_ENV_PROBE_PARALLAX_CORRECTED)
+        const float3 probeReflectionVector = bool(GET_ENV_PROBE_FLAGS(currentEnvProbe) & EPF_PARALLAX_CORRECTED)
             ? EnvProbeCoordParallaxCorrected(currentEnvProbe.world_position.xyz, aabbMin, aabbMax, positionWS, R)
             : R;
 

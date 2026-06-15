@@ -507,11 +507,18 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
     proxy->bakedShadowMap = m_shadowMap.Get();
     proxy->numCascades = m_numShadowMapCascades;
 
+    Vec3f lightPosition = GetWorldTranslation();
+
+    if (m_type == LightType::Directional)
+    {
+        lightPosition = lightPosition.Normalize();
+    }
+
     LightShaderData& bufferData = proxy->bufferData;
     bufferData.lightType = uint32(m_type);
     bufferData.color = Vec4f(m_color);
     bufferData.radiusFalloffPacked = (uint32(Float16(m_falloff).Raw()) << 16) | Float16(m_radius).Raw();
-    bufferData.positionIntensity = Vec4f(GetWorldTranslation(), m_intensity);
+    bufferData.positionIntensity = Vec4f(lightPosition, m_intensity);
     bufferData.materialIndex = ~0u; // materialIndex gets set in WriteBufferData_Light()
     bufferData.flags = m_lightFlags;
 

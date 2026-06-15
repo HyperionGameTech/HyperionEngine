@@ -778,6 +778,7 @@ static void SetForwardShadingConstants(
     {
         LightShaderData lights[MaxBoundLightsForwardShading];
         ShadowMapData shadowMaps[MaxBoundLightsForwardShading];
+        EnvProbeShaderData fallbackProbe;
         uint32 numBoundLights;
     };
 
@@ -870,6 +871,35 @@ static void SetForwardShadingConstants(
 
             currShadowMapData.splitDistance = 0.0f; // @TODO
         }
+    }
+
+    // Set fallback probe
+    EnvProbe* fallbackProbe = nullptr;
+
+    for (EnvProbe* envProbe : rpl.GetEnvProbes())
+    {
+        if (envProbe == renderSetup.envProbe ||                                 // if we are drawing an env probe we don't want to use it as fallback
+            (!envProbe->IsA<SkyProbe>() && !envProbe->IsA<ReflectionProbe>()))  // only reflection / sky probes.
+        {
+            continue;
+        }
+
+        if (!fallbackProbe || uint32(envProbe->GetEnvProbeType()) < uint32(fallbackProbe->GetEnvProbeType()))
+        {
+            fallbackProbe = envProbe;
+        }
+    }
+
+    if (fallbackProbe != nullptr)
+    {
+        RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(fallbackProbe));
+        Assert(envProbeProxy != nullptr);
+
+        forwardShadingConstants->fallbackProbe = envProbeProxy->bufferData;
+    }
+    else
+    {
+        forwardShadingConstants->fallbackProbe = EnvProbeShaderData {};
     }
 
     rpl.EndRead();

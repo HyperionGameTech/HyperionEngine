@@ -36,9 +36,9 @@ EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 static const ShaderPropertyId s_propForwardShading = InternShaderProperty(ShaderProperty(NAME("FORWARD_SHADING")));
 
 static constexpr EnumFlags<EnvProbeFlags> DefaultEnvProbeFlags[EPT_MAX] = {
-    EPF_NONE,               // sky
-    EPF_PARALLAX_CORRECTED, // reflection
-    EPF_NONE                // ambient
+    EPF_ORIGIN_FROM_CENTER,                             // sky
+    EPF_ORIGIN_FROM_CENTER | EPF_PARALLAX_CORRECTED,    // reflection
+    EPF_ORIGIN_FROM_CENTER                              // ambient
 };
 
 static FixedArray<Mat4f, 6> CreateCubemapMatrices(const Vec3f& origin)
@@ -78,7 +78,7 @@ EnvProbe::EnvProbe(EnvProbeType envProbeType, const BoundingBox& aabb, const Vec
     SetLocalBounds(aabb);
 
     m_entityInitInfo.canEverUpdate = true;
-    m_entityInitInfo.receivesUpdate = !(m_envProbeFlags & EPF_BAKED);
+    m_entityInitInfo.receivesUpdate = !(m_envProbeFlags & EPF_BAKED);//IsRealtime();
 }
 
 EnvProbe::~EnvProbe()
@@ -104,6 +104,12 @@ void EnvProbe::Init()
 
 void EnvProbe::SetEnvProbeFlags(EnumFlags<EnvProbeFlags> envProbeFlags)
 {
+    // If baked, can't be realtime
+    if (envProbeFlags & EPF_BAKED)
+    {
+        envProbeFlags &= ~EPF_REALTIME;
+    }
+
     const uint32 changedFlags = envProbeFlags ^ m_envProbeFlags;
 
     if (!changedFlags)
@@ -113,38 +119,21 @@ void EnvProbe::SetEnvProbeFlags(EnumFlags<EnvProbeFlags> envProbeFlags)
 
     m_envProbeFlags = envProbeFlags;
 
-    if (changedFlags & EPF_BAKED)
+    if (changedFlags & EPF_REALTIME)
     {
-        if (envProbeFlags[EPF_BAKED])
+        if (envProbeFlags[EPF_REALTIME])
         {
-            SetReceivesUpdate(false);
+            SetReceivesUpdate(true);
         }
         else
         {
-            SetReceivesUpdate(true);
+            SetReceivesUpdate(false);
         }
     }
 
     MarkDirty();
 
     SetNeedsRenderProxyUpdate();
-}
-
-bool EnvProbe::IsVisible(ObjId<Camera> cameraId) const
-{
-    return m_visibilityBits.Test(cameraId.ToIndex());
-}
-
-void EnvProbe::SetIsVisible(ObjId<Camera> cameraId, bool isVisible)
-{
-    const bool previousValue = m_visibilityBits.Test(cameraId.ToIndex());
-
-    m_visibilityBits.Set(cameraId.ToIndex(), isVisible);
-
-    if (isVisible != previousValue)
-    {
-        Invalidate();
-    }
 }
 
 void EnvProbe::OnAttachedToNode(Node* node)
@@ -179,6 +168,7 @@ void EnvProbe::OnAddedToWorld(World* world)
         m_camera = camera;
 
         CreateViews();
+        EnqueueViewsUpdate();
 
         if (ShouldComputePrefilteredEnvMap())
         {
@@ -359,8 +349,7 @@ void EnvProbe::CreateViews()
         ViewDesc viewDesc {};
         viewDesc.flags = (OnlyCollectStaticEntities() ? ViewFlags::COLLECT_STATIC_ENTITIES : ViewFlags::COLLECT_ALL_ENTITIES)
             | ViewFlags::CUBEMAP_FACE_VIEW | ViewFlags::ENV_PROBE_VIEW
-            | ViewFlags::SKIP_ENV_PROBES
-            | ViewFlags::SKIP_ENV_GRIDS
+            | ViewFlags::SKIP_PROBE_VOLUMES
             | ViewFlags::NO_PARALLEL_DRAW_CALL_COLLECTION
             | ViewFlags::EXTERNAL_RENDERTARGET;
 
@@ -380,6 +369,11 @@ void EnvProbe::CreateViews()
             viewDesc.scenes = { m_scene };
         }
 
+        if (!IsA<IrradianceProbe>())
+        {
+            viewDesc.flags |= ViewFlags::SKIP_ENV_PROBES;
+        }
+
         Handle<View> view = MakeHandle<View>(viewDesc);
         view->SetName(NAME_FMT("{}_{}_View{}", InstanceClass()->GetName(), GetName(), viewIndex));
         InitObject(view);
@@ -388,24 +382,34 @@ void EnvProbe::CreateViews()
     }
 }
 
-void EnvProbe::SetOrigin(const Vec3f& origin)
+Vec3f EnvProbe::GetOrigin(bool fromCenter) const
+{
+    if (fromCenter)
+    {
+        return GetWorldBounds().GetCenter();
+    }
+    else
+    {
+        return GetWorldBounds().GetMin();
+    }
+}
+
+void EnvProbe::SetOrigin(const Vec3f& origin, bool fromCenter)
 {
     const Vec3f rel = origin - GetWorldTranslation();
 
     BoundingBox localBounds = GetLocalBounds();
 
-    if (IsAmbientProbe())
+    if (fromCenter)
     {
-        // ambient probes use the min point of the aabb as the origin,
-        // so it can blend between 7 other probes
+        localBounds.SetCenter(rel);
+    }
+    else
+    {
         const Vec3f extent = localBounds.GetExtent();
 
         localBounds.SetMin(rel);
         localBounds.SetMax(rel + extent);
-    }
-    else
-    {
-        localBounds.SetCenter(rel);
     }
 
     SetLocalBounds(localBounds);
@@ -423,11 +427,6 @@ void EnvProbe::Update(float delta)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
-
-    if (IsBaked())
-    {
-        return;
-    }
 
     const BoundingBox worldAabb = GetWorldBounds();
 
@@ -553,7 +552,9 @@ void EnvProbe::Update(float delta)
     }
 
     if (!needsUpdate)
+    {
         return;
+    }
 
     AssertDebug(m_camera != nullptr);
 
@@ -562,6 +563,11 @@ void EnvProbe::Update(float delta)
         m_camera->Update(delta);
     }
 
+    EnqueueViewsUpdate();
+}
+
+void EnvProbe::EnqueueViewsUpdate()
+{
     World* world = GetWorld();
     AssertDebug(world != nullptr);
 
@@ -591,7 +597,7 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
     EnvProbeShaderData& bufferData = proxy->bufferData;
     bufferData.aabbMin = Vec4f(worldBounds.min, 1.0f);
     bufferData.aabbMax = Vec4f(worldBounds.max, 1.0f);
-    bufferData.worldPosition = Vec4f(GetOrigin(), 1.0f);
+    bufferData.worldPosition = Vec4f(GetOrigin(bool(m_envProbeFlags & EPF_ORIGIN_FROM_CENTER)), 1.0f);//Vec4f(GetWorldTranslation(), 1.0f);
     bufferData.dimensions = Vec2u { m_dimensions.x, m_dimensions.y };
     bufferData.typeAndFlags = uint32(m_envProbeType) | (uint32(m_envProbeFlags) << 3);
 
@@ -686,26 +692,17 @@ void SkyProbe::Init()
 
 #pragma region IrradianceProbe
 
-void IrradianceProbe::OnTransformUpdated()
+void IrradianceProbe::Invalidate(bool forceRerender)
 {
-    EnvProbe::OnTransformUpdated();
-
-    NotifyVolumeNeedsRefresh();
-}
-
-void IrradianceProbe::NotifyVolumeNeedsRefresh()
-{
-    ProbeVolume* volume = GetParentVolume();
-
-    if (volume != nullptr)
+    if (ProbeVolume* volume = GetParentVolume(); volume != nullptr)
     {
         // Tell the volume to refresh this probe.
         // This will ensure that entities that could be affected by the probe's change are updated.
         volume->RefreshProbe(*this);
     }
-    else
+    else if (forceRerender || IsRealtime())
     {
-        HYP_LOG(Scene, Warning, "Irradiance probe {} has no valid parent volume", Id());
+        needsRender.Store(true);
     }
 }
 

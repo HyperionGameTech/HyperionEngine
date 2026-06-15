@@ -33,7 +33,7 @@ namespace Hyperion {
 static constexpr EnumFlags<ViewFlags> DefaultShadowViewFlags = ViewFlags::SHADOW_VIEW
     | ViewFlags::SKIP_LIGHTS | ViewFlags::SKIP_CAMERAS
     | ViewFlags::SKIP_LIGHTMAP_VOLUMES | ViewFlags::SKIP_PARTICLE_VOLUMES | ViewFlags::SKIP_FOG_VOLUMES
-    | ViewFlags::SKIP_ENV_PROBES | ViewFlags::SKIP_ENV_GRIDS;
+    | ViewFlags::SKIP_ENV_PROBES | ViewFlags::SKIP_PROBE_VOLUMES;
 
 static const ShaderPropertyId s_shadowMapFilterProperties[SMF_MAX] = {
     InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("STANDARD"))),

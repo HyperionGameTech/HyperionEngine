@@ -163,11 +163,18 @@ void DX12GpuTimerBackend::EnsureResolveRecorded(DX12CommandBuffer* cmd, uint32 f
 
     if (prevFrameState.resultsPending && !prevFrameState.resolveRecorded)
     {
+        const uint32 queryCount = prevFrameState.timerCount * 2;
+
+        if (queryCount == 0)
+        {
+            return;
+        }
+
         cmd->GetCommandList()->ResolveQueryData(
             prevFrameState.queryHeap.Get(),
             D3D12_QUERY_TYPE_TIMESTAMP,
             0,
-            MaxGpuTimestampQueriesPerFrame,
+            queryCount,
             prevFrameState.readbackBuffer.Get(),
             0);
 
@@ -191,6 +198,7 @@ void DX12GpuTimerBackend::WriteStartTimestamp(DX12CommandBuffer* cmd, EngineStat
     if (!frameState.resultsPending)
     {
         frameState.resultsPending = true;
+        frameState.timerCount = 0;
     }
 
     const uint32 slot = GetOrCreateQuerySlot(timer);
@@ -221,6 +229,7 @@ void DX12GpuTimerBackend::WriteStopTimestamp(DX12CommandBuffer* cmd, EngineStatG
     if (!frameState.resultsPending)
     {
         frameState.resultsPending = true;
+        frameState.timerCount = 0;
     }
 
     const uint32 slot = GetOrCreateQuerySlot(timer);
@@ -302,7 +311,7 @@ void DX12GpuTimerBackend::ResolveFrameResults(uint32 completedFrameIndex)
 
     Memory::Zero(mappedData, MaxGpuTimestampQueriesPerFrame * sizeof(uint64));
 
-    D3D12_RANGE writeRange { 0, MaxGpuTimestampQueriesPerFrame * sizeof(uint64) };
+    D3D12_RANGE writeRange { 0, 0 };
     frameState.readbackBuffer->Unmap(0, &writeRange);
 
     frameState.resultsPending = false;

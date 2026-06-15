@@ -83,11 +83,11 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 
     Entity currentEntity = entities[batch.indices[instanceId / 4][instanceId % 4]];
     float4x4 model_matrix = mul(batch.transforms[instanceId], currentEntity.model_matrix);
-    float3x3 normal_matrix = transpose(inverse((float3x3)model_matrix));
+    float3x3 normal_matrix = (float3x3)currentEntity.normal_matrix;
 #else
     Entity currentEntity = entity;
     float4x4 model_matrix = entity.model_matrix;
-    float3x3 normal_matrix = transpose(inverse((float3x3)model_matrix));
+    float3x3 normal_matrix = (float3x3)entity.normal_matrix;
 #endif
 
 #if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights)
@@ -180,12 +180,26 @@ DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
 };
 
 #ifdef FORWARD_SHADING
+
 DECLARE_BUFFER_DYNAMIC(Default, ForwardShadingConstants) cbuffer ForwardShadingConstants
 {
     Light lights[MAX_LIGHTS];
     ShadowMap shadowMaps[MAX_LIGHTS];
+    EnvProbe fallbackProbe;
     uint numBoundLights;
 };
+
+#if ENV_PROBE_CUBEMAP
+DECLARE_SRV(Default, EnvProbesTexture) TextureCubeArray envProbesTexture;
+#else // !ENV_PROBE_CUBEMAP
+DECLARE_SRV(Default, EnvProbesTexture) Texture2DArray envProbesTexture;
+#endif // ENV_PROBE_CUBEMAP
+
+DECLARE_SRV(Default, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
+DECLARE_SRV(Default, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
+
+#include "include/Shadows.hlsli"
+
 #endif // FORWARD_SHADING
 
 #ifndef CURRENT_MATERIAL
@@ -214,8 +228,8 @@ PSOutput PSMain(PSInput input)
         albedo *= albedo_texture;
     }
 
-    float roughness = GET_MATERIAL_PARAM(CURRENT_MATERIAL, MATERIAL_PARAM_ROUGHNESS);
-    float metalness = GET_MATERIAL_PARAM(CURRENT_MATERIAL, MATERIAL_PARAM_METALNESS);
+    float roughness = 1.0;//GET_MATERIAL_PARAM(CURRENT_MATERIAL, MATERIAL_PARAM_ROUGHNESS);
+    float metalness = 0.0;//GET_MATERIAL_PARAM(CURRENT_MATERIAL, MATERIAL_PARAM_METALNESS);
     float perceptualRoughness = roughness;
     roughness = roughness * roughness;
 
@@ -239,13 +253,21 @@ PSOutput PSMain(PSInput input)
         const float3 F0 = CalculateF0(albedo.rgb, metalness);
 
         const float NdotV = max(HYP_FMATH_EPSILON, dot(N, V));
-        float3 direct_lighting = (float3)0;
+        float3 directLight = (float3)0;
 
-        for (uint lightIdx = 0; lightIdx < numBoundLights; lightIdx++)
+        for (uint lightIdx = 0; lightIdx < min(numBoundLights, MAX_LIGHTS); lightIdx++)
         {
-            Light currentLight = lights[lightIdx];
+#define CURRENT_LIGHT (lights[lightIdx])
 
-            float3 L = CalculateLightDirection(currentLight, input.position);
+            const uint lightType = CURRENT_LIGHT.type;
+            const uint lightFlags = CURRENT_LIGHT.flags;
+
+            const float4 lightPositionIntensity = CURRENT_LIGHT.position_intensity;
+
+            float3 L = lightPositionIntensity.xyz;
+            L -= input.position * float(min(lightType, 1));
+            L = normalize(L);
+
             const float3 H = normalize(L + V);
 
             const float NdotL = max(0.000001, dot(N, L));
@@ -253,40 +275,77 @@ PSOutput PSMain(PSInput input)
             const float NdotH = max(0.000001, dot(N, H));
             const float HdotV = max(0.000001, dot(H, V));
 
-            float3 light_color = currentLight.color.rgb;
+            float3 light_color = CURRENT_LIGHT.color.rgb;
             float attenuation = 1.0;
+            float shadow = 1.0;
 
-            if (currentLight.type != HYP_LIGHT_TYPE_DIRECTIONAL)
+            if (lightType == HYP_LIGHT_TYPE_DIRECTIONAL)
             {
+                // directional shadow
+                if ((lightFlags & LF_SHADOW_CASTER) != 0)
+                {
+                    shadow = GetShadowStandard(shadowMaps[lightIdx], input.position, float2(0, 0), NdotL);
+                }
+            }
+            else
+            {
+                const uint radiusFalloffPacked = CURRENT_LIGHT.radiusFalloffPacked;
+
                 const float2 radiusFalloff = float2(
-                    f16tof32(currentLight.radiusFalloffPacked),
-                    f16tof32(currentLight.radiusFalloffPacked >> 16));
+                    f16tof32(radiusFalloffPacked),
+                    f16tof32(radiusFalloffPacked >> 16));
+
                 const float radius = radiusFalloff.x;
 
-                attenuation = GetSquareFalloffAttenuation(input.position, currentLight.position_intensity.xyz, radius);
+                attenuation = GetSquareFalloffAttenuation(input.position, lightPositionIntensity.xyz, radius);
 
-                if (currentLight.type == HYP_LIGHT_TYPE_SPOT)
+                if (lightType == HYP_LIGHT_TYPE_SPOT)
                 {
-                    const float theta = max(dot(-L, normalize(currentLight.normal.xyz)), 0.0);
-                    const float2 spot_angles = currentLight.area_size.xy;
+                    const float theta = max(dot(-L, normalize(CURRENT_LIGHT.normal.xyz)), 0.0);
+                    const float2 spot_angles = CURRENT_LIGHT.area_size.xy;
 
                     attenuation *= saturate((theta - spot_angles[0]) / (spot_angles[1] - spot_angles[0]))
                         * step(spot_angles[0], theta);
                 }
+                
+                if ((lightFlags & LF_SHADOW_CASTER) != 0)
+                {
+                    float3 worldToLight = input.position - lightPositionIntensity.xyz;
+
+                    shadow = GetPointShadowStandard(shadowMaps[lightIdx], worldToLight, NdotL);
+                }
             }
 
-            const float D = CalculateDistributionTerm(perceptualRoughness, NdotH);
-            const float G = CalculateGeometryTerm(NdotL, NdotV, HdotV, NdotH);
-            const float3 F = CalculateFresnelTerm(F0, perceptualRoughness, LdotH);
-
-            const float3 specular_lobe = D * G * F;
             const float3 diffuse_lobe = diffuseColor * HYP_FMATH_ONE_OVER_PI;
 
-            direct_lighting += (diffuse_lobe + specular_lobe)
-                * (light_color * NdotL * currentLight.position_intensity.w * attenuation);
+            directLight += (diffuse_lobe) * NdotL * shadow * lightPositionIntensity.w * attenuation * light_color;
+
+#undef CURRENT_LIGHT
         }
 
-        output.output_color.rgb = direct_lighting;
+        float3 indirectLight = (float3)0;
+
+        if (fallbackProbe.texture_index != ~0u)
+        {
+            float4 reflections = (float4)0;
+
+            const float3 aabbMin = fallbackProbe.aabb_min.xyz;
+            const float3 aabbMax = fallbackProbe.aabb_max.xyz;
+
+            const float numMips = 7.0; // assuming 128x128 cubemap size for reflection probes
+            const float lod = perceptualRoughness * numMips;
+
+#if ENV_PROBE_CUBEMAP
+            reflections = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(sampler_linear, envProbesTexture, float4(normalize(R), float(fallbackProbe.texture_index)), lod);
+#else // !ENV_PROBE_CUBEMAP
+            reflections = SAMPLE_TEXTURE_2D_ARRAY_LOD(sampler_linear, envProbesTexture, float3(EncodeOctahedralCoord(normalize(R)) * 0.5 + 0.5, float(fallbackProbe.texture_index)), lod);
+#endif // ENV_PROBE_CUBEMAP
+
+            indirectLight += diffuseColor * (reflections.rgb * reflections.a);
+        }
+
+
+        output.output_color.rgb = saturate(directLight);// + indirectLight);
     }
 #else
     output.output_color.rgb = albedo.rgb;

@@ -471,38 +471,41 @@ public:
 
         Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
             GetText(),
-            Proc<EditorActionFunctions()>([reflectionProbe, previousFocusedNode, activeScene]() -> EditorActionFunctions
-                                          {
-                                              return EditorActionFunctions {
-                                                  .execute = Proc<void(EditorSubsystem*, EditorProject*)>([reflectionProbe, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
-                                                                                                          {
-                                                                                                              activeScene->GetRoot()->AddChild(reflectionProbe);
+            Proc<EditorActionFunctions()>(
+                [reflectionProbe, previousFocusedNode, activeScene]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [reflectionProbe, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
+                            {
+                                activeScene->GetRoot()->AddChild(reflectionProbe);
 
-                                                                                                              editorSubsystem->SetFocusedNode(reflectionProbe, true);
-                                                                                                          }),
-                                                  .revert = Proc<void(EditorSubsystem*, EditorProject*)>([reflectionProbe, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
-                                                                                                         {
-                                                                                                             reflectionProbe->Remove();
+                                editorSubsystem->SetFocusedNode(reflectionProbe, true);
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [reflectionProbe, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
+                            {
+                                reflectionProbe->Remove();
 
-                                                                                                             if (editorSubsystem->GetFocusedNode() == reflectionProbe)
-                                                                                                             {
-                                                                                                                 editorSubsystem->SetFocusedNode(nullptr, true);
+                                if (editorSubsystem->GetFocusedNode() == reflectionProbe)
+                                {
+                                    editorSubsystem->SetFocusedNode(nullptr, true);
 
-                                                                                                                 Handle<Node> focusedNode = previousFocusedNode.Lock();
-                                                                                                                 if (focusedNode.IsValid())
-                                                                                                                 {
-                                                                                                                     editorSubsystem->SetFocusedNode(focusedNode, true);
-                                                                                                                 }
-                                                                                                             }
-                                                                                                         })
-                                              };
-                                          }));
+                                    Handle<Node> focusedNode = previousFocusedNode.Lock();
+                                    if (focusedNode.IsValid())
+                                    {
+                                        editorSubsystem->SetFocusedNode(focusedNode, true);
+                                    }
+                                }
+                            })
+                    };
+                }));
 
         InitObject(action);
 
         currentProject->GetActionStack()->PushAction(action);
 
-        if (!reflectionProbe->IsRealtime())
+        if (reflectionProbe->IsBaked())
         {
             // kickoff task to generate reflection cubemap
             Handle<GenerateLightmapsEditorTask> generateLightmapsTask = MakeHandle<GenerateLightmapsEditorTask>(reflectionProbe);
@@ -521,6 +524,85 @@ public:
 DEFINE_EDITOR_COMMAND(AddReflectionProbe);
 
 #pragma endregion AddReflectionProbe
+
+#pragma region AddIrradianceProbe
+
+class EditorCommandAddIrradianceProbe final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandAddIrradianceProbe);
+
+public:
+    virtual ~EditorCommandAddIrradianceProbe() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Add Irradiance Probe";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No project loaded; cannot add irradiance probe!");
+
+            return;
+        }
+
+        Handle<Scene> activeScene = subsystem->GetActiveScene();
+        if (!activeScene.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No active scene; cannot add irradiance probe!");
+
+            return;
+        }
+
+        Handle<IrradianceProbe> irradianceProbe = MakeHandle<IrradianceProbe>(BoundingBox(Vec3f(-10.0f), Vec3f(10.0f)), Vec2u(16, 16));
+        InitObject(irradianceProbe);
+
+        WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
+
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+            GetText(),
+            Proc<EditorActionFunctions()>(
+                [irradianceProbe, previousFocusedNode, activeScene]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [irradianceProbe, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
+                            {
+                                activeScene->GetRoot()->AddChild(irradianceProbe);
+
+                                editorSubsystem->SetFocusedNode(irradianceProbe, true);
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [irradianceProbe, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
+                            {
+                                irradianceProbe->Remove();
+
+                                if (editorSubsystem->GetFocusedNode() == irradianceProbe)
+                                {
+                                    editorSubsystem->SetFocusedNode(nullptr, true);
+
+                                    Handle<Node> focusedNode = previousFocusedNode.Lock();
+                                    if (focusedNode.IsValid())
+                                    {
+                                        editorSubsystem->SetFocusedNode(focusedNode, true);
+                                    }
+                                }
+                            })
+                    };
+                }));
+
+        InitObject(action);
+
+        currentProject->GetActionStack()->PushAction(action);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(AddIrradianceProbe);
+
+#pragma endregion AddIrradianceProbe
 
 #pragma region AddProbeVolume
 
@@ -572,7 +654,7 @@ public:
                         LightmapElementComponent component;
                         entity->AddComponent<LightmapElementComponent>(component);
                     }
-                    
+
                     entity->AddTag<EntityTag::UpdateSphericalHarmonicsData>();
                 }
             }
@@ -592,38 +674,38 @@ public:
                 {
                     return EditorActionFunctions {
                         .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
-                        [volume](EditorSubsystem* editorSubsystem, EditorProject* project)
-                        {
-                            Handle<Scene> activeScene = editorSubsystem->GetActiveScene();
-                            if (!activeScene.IsValid())
+                            [volume](EditorSubsystem* editorSubsystem, EditorProject* project)
                             {
-                                HYP_LOG(Editor, Error, "No active scene; cannot add irradiance probe volume!");
-
-                                return;
-                            }
-                            
-                            activeScene->GetRoot()->AddChild(volume);
-
-                            editorSubsystem->SetFocusedNode(volume, true);
-
-                            initOverlappingEntities(activeScene->GetWorld(), volume->GetWorldBounds());
-                        }),
-                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
-                        [volume, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
-                        {
-                            volume->Remove();
-
-                            if (editorSubsystem->GetFocusedNode() == volume)
-                            {
-                                editorSubsystem->SetFocusedNode(nullptr, true);
-
-                                Handle<Node> focusedNode = previousFocusedNode.Lock();
-                                if (focusedNode.IsValid())
+                                Handle<Scene> activeScene = editorSubsystem->GetActiveScene();
+                                if (!activeScene.IsValid())
                                 {
-                                    editorSubsystem->SetFocusedNode(focusedNode, true);
+                                    HYP_LOG(Editor, Error, "No active scene; cannot add irradiance probe volume!");
+
+                                    return;
                                 }
-                            }
-                        })
+
+                                activeScene->GetRoot()->AddChild(volume);
+
+                                editorSubsystem->SetFocusedNode(volume, true);
+
+                                initOverlappingEntities(activeScene->GetWorld(), volume->GetWorldBounds());
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [volume, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
+                            {
+                                volume->Remove();
+
+                                if (editorSubsystem->GetFocusedNode() == volume)
+                                {
+                                    editorSubsystem->SetFocusedNode(nullptr, true);
+
+                                    Handle<Node> focusedNode = previousFocusedNode.Lock();
+                                    if (focusedNode.IsValid())
+                                    {
+                                        editorSubsystem->SetFocusedNode(focusedNode, true);
+                                    }
+                                }
+                            })
                     };
                 }));
 

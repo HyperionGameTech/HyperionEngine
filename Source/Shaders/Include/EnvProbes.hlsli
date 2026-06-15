@@ -35,7 +35,11 @@ struct SH9
     float3 values[9];
 };
 
-#define HYP_ENV_PROBE_PARALLAX_CORRECTED 0x1
+#define EPF_NONE 0x0
+#define EPF_PARALLAX_CORRECTED 0x1
+#define EPF_BAKED 0x2
+#define EPF_REALTIME 0x4
+#define EPF_ORIGIN_FROM_CENTER 0x8
 
 #define GET_ENV_PROBE_TYPE(envProbe) (envProbe.typeAndFlags & 0x7)
 #define GET_ENV_PROBE_FLAGS(envProbe) ((envProbe.typeAndFlags >> 3))

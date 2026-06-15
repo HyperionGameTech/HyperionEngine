@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <DX12Pch.hpp>
 
@@ -64,7 +64,7 @@ EngineStatTimer g_statWaitOnTransientFence("Rendering/CPU/WaitOnTransientFence")
 
 // @TODO Make these flags configurable
 #define HYP_DX12_ENABLE_DEBUG_LAYER
-//#define HYP_DX12_ENABLE_DRED
+// #define HYP_DX12_ENABLE_DRED
 
 #pragma region DX12RenderConfig
 
@@ -261,7 +261,7 @@ RendererResult DX12RenderInterface::Initialize()
 
                         if (!cfg.Save())
                         {
-                           HYP_LOG(RenderingBackend, Warning, "Failed to save GPU selection config");
+                            HYP_LOG(RenderingBackend, Warning, "Failed to save GPU selection config");
                         }
                     }
 
@@ -363,9 +363,7 @@ RendererResult DX12RenderInterface::Initialize()
 #if defined(HYP_AFTERMATH) && HYP_AFTERMATH
     GFSDK_Aftermath_DX12_Initialize(
         GFSDK_Aftermath_Version_API,
-        GFSDK_Aftermath_FeatureFlags_EnableResourceTracking |
-            GFSDK_Aftermath_FeatureFlags_GenerateShaderDebugInfo |
-            GFSDK_Aftermath_FeatureFlags_EnableShaderErrorReporting,
+        GFSDK_Aftermath_FeatureFlags_EnableResourceTracking | GFSDK_Aftermath_FeatureFlags_GenerateShaderDebugInfo | GFSDK_Aftermath_FeatureFlags_EnableShaderErrorReporting,
         m_device.Get());
 #endif
 
@@ -374,7 +372,7 @@ RendererResult DX12RenderInterface::Initialize()
     static_cast<DX12RenderConfig*>(m_renderConfig.Get())->InitializeRayTracing(this);
 
     static_assert(sizeof(decltype(m_queueData)) / sizeof(decltype(m_queueData[0])) > D3D12_COMMAND_LIST_TYPE_COPY,
-        "m_queueData is too small; must have size increased.");
+                  "m_queueData is too small; must have size increased.");
 
     Memory::Zero(&m_queueData, sizeof(m_queueData));
 
@@ -535,7 +533,6 @@ void DX12RenderInterface::Shutdown()
             if (fence.isSubmitted)
             {
                 fence.Wait(true);
-                fence.Reset();
             }
         }
 
@@ -864,7 +861,7 @@ DX12CommandBuffer& DX12RenderInterface::GetTransientCommandBuffer()
     {
         wchar_t nameBuf[128];
         swprintf(nameBuf, std::size(nameBuf), L"Transient CommandBuffer [thread=%u][frame=%u]",
-            renderThreadIndex, frameIndex);
+                 renderThreadIndex, frameIndex);
         pCommandBuffer->SetDebugName(nameBuf);
     }
 #endif
@@ -1177,12 +1174,9 @@ bool DX12RenderInterface::IsSupportedFormat(TextureFormat format, ImageSupport s
     switch (supportType)
     {
     case ImageSupport::ShaderResource:
-        return (support1 & D3D12_FORMAT_SUPPORT1_TEXTURE2D) != 0 ||
-               (support1 & D3D12_FORMAT_SUPPORT1_TEXTURE3D) != 0 ||
-               (support1 & D3D12_FORMAT_SUPPORT1_TEXTURECUBE) != 0;
+        return (support1 & D3D12_FORMAT_SUPPORT1_TEXTURE2D) != 0 || (support1 & D3D12_FORMAT_SUPPORT1_TEXTURE3D) != 0 || (support1 & D3D12_FORMAT_SUPPORT1_TEXTURECUBE) != 0;
     case ImageSupport::Attachment:
-        return (support1 & D3D12_FORMAT_SUPPORT1_RENDER_TARGET) != 0 ||
-               (support1 & D3D12_FORMAT_SUPPORT1_DEPTH_STENCIL) != 0;
+        return (support1 & D3D12_FORMAT_SUPPORT1_RENDER_TARGET) != 0 || (support1 & D3D12_FORMAT_SUPPORT1_DEPTH_STENCIL) != 0;
     case ImageSupport::UnorderedAccess:
         return (support1 & D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW) != 0;
     default:

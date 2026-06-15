@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -40,7 +40,9 @@ enum EnvProbeFlags : uint32
 {
     EPF_NONE = 0x0,
     EPF_PARALLAX_CORRECTED = 0x1,
-    EPF_BAKED = 0x2
+    EPF_BAKED = 0x2,
+    EPF_REALTIME = 0x4,
+    EPF_ORIGIN_FROM_CENTER = 0x8
 };
 
 HYP_MAKE_ENUM_FLAGS(EnvProbeFlags);
@@ -118,7 +120,8 @@ public:
     {
         if (isBaked)
         {
-            SetEnvProbeFlags(m_envProbeFlags | EPF_BAKED);
+            // cannot be realtime if baked
+            SetEnvProbeFlags((m_envProbeFlags | EPF_BAKED) & ~EPF_REALTIME);
         }
         else
         {
@@ -129,7 +132,7 @@ public:
     HYP_METHOD()
     bool IsRealtime() const
     {
-        return !IsBaked();
+        return m_envProbeFlags[EPF_REALTIME];
     }
 
     HYP_FORCE_INLINE bool ShouldComputePrefilteredEnvMap() const
@@ -158,22 +161,10 @@ public:
     }
 
     HYP_METHOD()
-    Vec3f GetOrigin() const
-    {
-        if (IsAmbientProbe())
-        {
-            // ambient probes use the min point of the aabb as the origin,
-            // so it can blend between 7 other probes
-            return GetWorldBounds().GetMin();
-        }
-        else
-        {
-            return GetWorldBounds().GetCenter();
-        }
-    }
+    Vec3f GetOrigin(bool fromCenter) const;
 
     HYP_METHOD()
-    void SetOrigin(const Vec3f& origin);
+    void SetOrigin(const Vec3f& origin, bool fromCenter);
 
     HYP_METHOD()
     HYP_FORCE_INLINE Camera* GetCamera() const
@@ -241,7 +232,7 @@ protected:
         return IsReflectionProbe() || IsSkyProbe() || IsAmbientProbe();
     }
 
-    HYP_FORCE_INLINE void Invalidate()
+    virtual void Invalidate()
     {
         m_cachedOctantHashCodes.Clear();
     }
@@ -249,6 +240,8 @@ protected:
     virtual void Init() override;
 
     void CreateViews();
+
+    void EnqueueViewsUpdate();
 
     HYP_FIELD(Property = "Dimensions")
     Vec2u m_dimensions;
@@ -269,8 +262,6 @@ protected:
 
     FixedArray<Handle<View>, 6> m_views;
     FixedArray<FramebufferRef, 6> m_framebuffers;
-
-    Bitset m_visibilityBits;
 
     TMap<ObjId<Scene>, HashCode, SceneAllocator> m_cachedOctantHashCodes;
 
@@ -365,12 +356,28 @@ public:
 
     ~IrradianceProbe() override = default;
 
+    HYP_FORCE_INLINE bool IsAttachedToProbeVolume() const
+    {
+        return GetParentVolume() != nullptr;
+    }
+
     AtomicFlag needsRender;
 
 private:
-    void OnTransformUpdated() override;
+#if HYP_EDITOR
+    HYP_METHOD(EditorOnly, EditAction = "Recompute Irradiance")
+    void RecomputeIrradiance()
+    {
+        Invalidate(true);
+    }
+#endif // HYP_EDITOR
 
-    void NotifyVolumeNeedsRefresh();
+    void Invalidate() override
+    {
+        Invalidate(false);
+    }
+
+    void Invalidate(bool forceRerender);
 
     ProbeVolume* GetParentVolume() const;
 };

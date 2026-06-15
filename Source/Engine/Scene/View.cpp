@@ -1223,7 +1223,7 @@ void View::CollectProbeVolumes(RenderProxyList& rpl)
 {
     HYP_SCOPE;
 
-    if (flags & ViewFlags::SKIP_ENV_GRIDS)
+    if (flags & ViewFlags::SKIP_PROBE_VOLUMES)
     {
         return;
     }
@@ -1255,6 +1255,8 @@ void View::CollectProbeVolumes(RenderProxyList& rpl)
                 continue;
             }
 
+            bool anyProbeOwnsView = false;
+
             for (IrradianceProbe* probe : probeVolume->GetProbes())
             {
                 if (!probe)
@@ -1262,7 +1264,36 @@ void View::CollectProbeVolumes(RenderProxyList& rpl)
                     continue;
                 }
 
+                if (desc.flags & ViewFlags::ENV_PROBE_VIEW)
+                {
+                    bool skipProbe = false;
+
+                    // Skip probes that are owners of this view.
+                    for (uint8 envProbeViewIndex = 0; envProbeViewIndex < 6; envProbeViewIndex++)
+                    {
+                        View* envProbeView = probe->GetView(envProbeViewIndex);
+
+                        if (envProbeView == this)
+                        {
+                            skipProbe = true;
+                            break;
+                        }
+                    }
+
+                    if (skipProbe)
+                    {
+                        anyProbeOwnsView = true;
+                        break;
+                    }
+                }
+
                 rpl.GetEnvProbes().Track(probe->Id(), probe, GET_RESOURCE_VERSION(probe));
+            }
+
+            if (anyProbeOwnsView)
+            {
+                // Skip, as to not create circular dependency
+                continue;
             }
 
             rpl.GetProbeVolumes().Track(probeVolume->Id(), probeVolume, GET_RESOURCE_VERSION(probeVolume));
@@ -1284,6 +1315,28 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
         for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<EnvProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
             EnvProbe* probe = static_cast<EnvProbe*>(entity);
+
+            if (desc.flags & ViewFlags::ENV_PROBE_VIEW)
+            {
+                bool skipProbe = false;
+
+                // Skip env probes that own this view (don't want to create circular dependency)
+                for (uint8 envProbeViewIndex = 0; envProbeViewIndex < 6; envProbeViewIndex++)
+                {
+                    View* envProbeView = probe->GetView(envProbeViewIndex);
+
+                    if (envProbeView == this)
+                    {
+                        skipProbe = true;
+                        break;
+                    }
+                }
+
+                if (skipProbe)
+                {
+                    continue;
+                }
+            }
 
             if (!probe->IsSkyProbe())
             {

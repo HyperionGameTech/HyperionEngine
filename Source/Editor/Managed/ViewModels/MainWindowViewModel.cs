@@ -128,9 +128,10 @@ namespace Hyperion.Editor.ViewModels
         public EditorCommand AddSpotLight => new EditorCommand("AddSpotLight");
         public EditorCommand AddAreaRectLight => new EditorCommand("AddAreaRectLight");
 
+        public EditorCommand AddReflectionProbe => new EditorCommand("AddReflectionProbe");
+        public EditorCommand AddIrradianceProbe => new EditorCommand("AddIrradianceProbe");
         public EditorCommand AddLightmapVolume => new EditorCommand("AddLightmapVolume");
         public EditorCommand AddProbeVolume => new EditorCommand("AddProbeVolume");
-        public EditorCommand AddReflectionProbe => new EditorCommand("AddReflectionProbe");
         public EditorCommand AddParticleVolume => new EditorCommand("AddParticleVolume");
         public EditorCommand AddFogVolume => new EditorCommand("AddFogVolume");
 

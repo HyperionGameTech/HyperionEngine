@@ -409,7 +409,7 @@ void ComputeEnvProbeSphericalHarmonics(const EnvProbe& envProbe, const Texture& 
         ShaderPropertySet shaderProperties;
 
         // Helper to run pass
-        auto RunPass = [&](Name mode, const ComputeSHConstants& passConstants, const Vec3u& dispatchGroupSize, const StructuredBuffer& inputBuffer, const StructuredBuffer& outputBuffer)
+        auto runPass = [&](Name mode, const ComputeSHConstants& passConstants, const Vec3u& dispatchGroupSize, const StructuredBuffer& inputBuffer, const StructuredBuffer& outputBuffer)
         {
             ShaderPropertySet passShaderProperties;
             passShaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("MODE"), mode)));
@@ -442,12 +442,12 @@ void ComputeEnvProbeSphericalHarmonics(const EnvProbe& envProbe, const Texture& 
         };
 
         // MODE_CLEAR
-        RunPass(NAME("CLEAR"), constants, Vec3u { 1, 1, 1 }, shTilesBuffers[0], shTilesBuffers[1]);
+        runPass(NAME("CLEAR"), constants, Vec3u { 1, 1, 1 }, shTilesBuffers[0], shTilesBuffers[1]);
 
         cr << InsertBarrier(shTilesBuffers[0].gpuBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
 
         // MODE_BUILD_COEFFICIENTS
-        RunPass(NAME("BUILD_COEFFICIENTS"), constants, Vec3u { 1, 1, 1 }, shTilesBuffers[0], shTilesBuffers[1]);
+        runPass(NAME("BUILD_COEFFICIENTS"), constants, Vec3u { 1, 1, 1 }, shTilesBuffers[0], shTilesBuffers[1]);
 
         // Parallel reduce
         if (ShParallelReduce)
@@ -471,14 +471,14 @@ void ComputeEnvProbeSphericalHarmonics(const EnvProbe& envProbe, const Texture& 
                 Assert(prevDimensions.y > nextDimensions.y);
 
                 ComputeSHConstants reducePassConstants = constants;
-                reducePassConstants.levelDimensions = {
+                reducePassConstants.levelDimensions = Vec4u {
                     prevDimensions.x,
                     prevDimensions.y,
                     nextDimensions.x,
                     nextDimensions.y
                 };
 
-                RunPass(
+                runPass(
                     NAME("REDUCE"),
                     reducePassConstants,
                     Vec3u { 1, (nextDimensions.x + 3) / 4, (nextDimensions.y + 3) / 4 },
@@ -494,7 +494,7 @@ void ComputeEnvProbeSphericalHarmonics(const EnvProbe& envProbe, const Texture& 
         cr << InsertBarrier(shBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
 
         // MODE_FINALIZE
-        RunPass(
+        runPass(
             NAME("FINALIZE"),
             constants,
             Vec3u { 1, 1, 1 },
@@ -524,19 +524,19 @@ void ComputeEnvProbeSphericalHarmonics(const EnvProbe& envProbe, const Texture& 
 
         // Custom CmdBase class, executes when all previous commands are done.
         // Always executes on the Render thread.
-        class ReadbackSphericalHarmonics : public CmdBase
+        class ReadbackSphericalHarmonicsCmd : public CmdBase
         {
         public:
             ReadbackSphericalHarmonicsPayload* payload;
 
-            explicit ReadbackSphericalHarmonics(ReadbackSphericalHarmonicsPayload* payload)
+            explicit ReadbackSphericalHarmonicsCmd(ReadbackSphericalHarmonicsPayload* payload)
                 : payload(payload)
             {
             }
 
             static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
             {
-                ReadbackSphericalHarmonics* cmdCasted = static_cast<ReadbackSphericalHarmonics*>(cmd);
+                ReadbackSphericalHarmonicsCmd* cmdCasted = static_cast<ReadbackSphericalHarmonicsCmd*>(cmd);
 
                 Frame* frame = RI.GetCurrentFrame();
                 Assert(frame != nullptr);
@@ -548,27 +548,25 @@ void ComputeEnvProbeSphericalHarmonics(const EnvProbe& envProbe, const Texture& 
                         ReadbackSphericalHarmonicsPayload& payload = *pPayload;
 
                         Vec4f raw[9];
-
                         Assert(payload.readbackBuffer.IsValid() && payload.readbackBuffer->Size() >= sizeof(raw));
                         payload.readbackBuffer->Read(sizeof(raw), raw);
 
-                        {
-                        // Read back the SH coefficients from the GPU buffer and store on the EnvProbe.
-                        SphericalHarmonicsData shData;
+                        { // Read back the SH coefficients from the GPU buffer and store on the EnvProbe.
+                            SphericalHarmonicsData shData;
 
-                        // Copy data from raw
-                        float* outSH = shData.values;
-                        const Vec4f* inSH = raw;
-                        for (uint32 j = 0; j < 9; j++)
-                        {
-                            outSH[j * 3 + 0] = inSH[j].x;
-                            outSH[j * 3 + 1] = inSH[j].y;
-                            outSH[j * 3 + 2] = inSH[j].z;
-                        }
-                        
-                        // SetSphericalHarmonicsData() marks it dirty so we don't need to do that here.
-                        auto envProbeWriteScope = payload.envProbe->GetWriteScope();
-                        payload.envProbe->SetSphericalHarmonicsData(shData);
+                            // Copy data from raw
+                            float* outSH = shData.values;
+                            const Vec4f* inSH = raw;
+                            for (uint32 j = 0; j < 9; j++)
+                            {
+                                outSH[j * 3 + 0] = inSH[j].x;
+                                outSH[j * 3 + 1] = inSH[j].y;
+                                outSH[j * 3 + 2] = inSH[j].z;
+                            }
+                            
+                            // SetSphericalHarmonicsData() marks it dirty so we don't need to do that here.
+                            auto envProbeWriteScope = payload.envProbe->GetWriteScope();
+                            payload.envProbe->SetSphericalHarmonicsData(shData);
                         }
 
                         EnqueueDeletion(std::move(payload.shBuffer));
@@ -589,7 +587,7 @@ void ComputeEnvProbeSphericalHarmonics(const EnvProbe& envProbe, const Texture& 
         payload->readbackBuffer = std::move(readbackBuffer);
         payload->shTilesBuffers = std::move(shTilesBuffers);
 
-        cr << ReadbackSphericalHarmonics(payload);
+        cr << ReadbackSphericalHarmonicsCmd(payload);
     }
 
     if (useAsyncCompute)
@@ -648,13 +646,13 @@ void EnvProbePassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     EnvProbe* envProbe = renderSetup.envProbe;
     AssertDebug(envProbe != nullptr);
 
-    RenderSetup rs = renderSetup.Fork();
-    rs.envProbe = renderSetup.prev ? renderSetup.prev->envProbe : nullptr;
-    rs.viewport = Viewport { envProbe->GetDimensions() };
+    RenderSetup newRenderSetup = renderSetup.Fork();
+    newRenderSetup.envProbe = nullptr;
+    newRenderSetup.viewport = Viewport { envProbe->GetDimensions() };
 
     ENGINE_STAT_GPU_SCOPE(&s_statDrawEnvProbe, &frame->cr);
 
-    RenderProbe(frame, rs, envProbe);
+    RenderProbe(frame, newRenderSetup, envProbe);
 }
 
 PassData* EnvProbePassBase::CreateViewPassData(View* view, PassDataExt& ext)
@@ -692,7 +690,7 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
     bool needsRerender = false;
 
     // special checks for Sky + caching result based on light position + intensity
-    if (envProbe->IsA(SkyProbe::StaticClass()))
+    if (envProbe->IsA<SkyProbe>())
     {
         if (!renderSetup.light)
         {
@@ -716,8 +714,8 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
         // cache it to save on rendering later
         pd->cachedLightDirIntensity = lightProxy->bufferData.positionIntensity;
     }
-    else if (envProbe->IsA(ReflectionProbe::StaticClass())
-        && pd->cachedProbeOrigin == envProbeProxy->bufferData.worldPosition.GetXYZ())
+    else if (envProbe->IsA<ReflectionProbe>() &&
+        pd->cachedProbeOrigin == envProbeProxy->bufferData.worldPosition.GetXYZ())
     {
         return;
     }
@@ -737,9 +735,9 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
         rpl.BeginRead();
         HYP_DEFER({ rpl.EndRead(); });
 
-        if (!needsRerender
-            && !rpl.GetMeshEntities().GetDiff().NeedsUpdate()
-            && !rpl.GetLights().GetDiff().NeedsUpdate())
+        if (!needsRerender &&
+            !rpl.GetMeshEntities().GetDiff().NeedsUpdate() &&
+            !rpl.GetLights().GetDiff().NeedsUpdate())
         {
             continue;
         }
@@ -820,9 +818,9 @@ void IrradianceProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
         rpl.BeginRead();
         HYP_DEFER({ rpl.EndRead(); });
 
-        if (!needsRerender
-            && !rpl.GetMeshEntities().GetDiff().NeedsUpdate()
-            && !rpl.GetLights().GetDiff().NeedsUpdate())
+        if (!needsRerender &&
+            !rpl.GetMeshEntities().GetDiff().NeedsUpdate() &&
+            !rpl.GetLights().GetDiff().NeedsUpdate())
         {
             continue;
         }

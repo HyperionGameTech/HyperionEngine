@@ -1928,8 +1928,11 @@ public:
         std::sort(envProbes.Begin(), envProbes.End(),
                   [&cameraPosition](const Tuple<EnvProbe*, EnvProbeShaderData*, uint32>& a, const Tuple<EnvProbe*, EnvProbeShaderData*, uint32>& b)
                   {
-                      const bool aIsSky = a.GetElement<0>()->IsA<SkyProbe>();
-                      const bool bIsSky = b.GetElement<0>()->IsA<SkyProbe>();
+                      const auto& aData = *a.GetElement<1>();
+                      const auto& bData = *b.GetElement<1>();
+
+                      const bool aIsSky = (aData.typeAndFlags & 0x7) == EPT_SKY;
+                      const bool bIsSky = (bData.typeAndFlags & 0x7) == EPT_SKY;
 
                       if (aIsSky && !bIsSky)
                       {
@@ -1947,8 +1950,8 @@ public:
                       }
 
                       // both are reflection probes, sort by distance to camera
-                      const Vec3f aProbePosition = a.GetElement<1>()->worldPosition.GetXYZ();
-                      const Vec3f bProbePosition = b.GetElement<1>()->worldPosition.GetXYZ();
+                      const Vec3f aProbePosition = aData.worldPosition.GetXYZ();
+                      const Vec3f bProbePosition = bData.worldPosition.GetXYZ();
 
                       const float aDistSq = (aProbePosition - cameraPosition).LengthSquared();
                       const float bDistSq = (bProbePosition - cameraPosition).LengthSquared();
@@ -1967,10 +1970,9 @@ public:
             const Vec3f aabbMinWS = envProbeData.aabbMin.GetXYZ();
             const Vec3f aabbMaxWS = envProbeData.aabbMax.GetXYZ();
 
-            const bool isSky = envProbe.IsA<SkyProbe>();
-
-            if (isSky)
+            switch (envProbeData.typeAndFlags & 0x7)
             {
+            case EPT_SKY:
                 for (Tile& tile : tempTiles)
                 {
                     if (tile.numEnvProbes < MaxEnvProbesPerTile)
@@ -1979,7 +1981,19 @@ public:
                     }
                 }
 
-                continue;
+                break;
+            case EPT_AMBIENT:
+                AssertDebug(envProbe.IsA<IrradianceProbe>());
+                if (StaticCast<IrradianceProbe>(&envProbe)->IsAttachedToProbeVolume())
+                {
+                    // Skip irradiance probes that are handled by ProbeVolumes
+                    // Entities affected by them have their spherical harmonics data calculated on CPU
+                    continue;
+                }
+
+                break;
+            default:
+                break;
             }
 
             uint32 tileMinX;
@@ -2071,12 +2085,18 @@ public:
 
         ByteAddressBuffer& gridBuffer = RI.bufferAllocator->AcquireByteAddressBuffer(gridData.Size() * sizeof(TileGridData));
 #if HYP_DEBUG_MODE
-        gridBuffer.gpuBuffer->SetDebugName(NAME("ClusterGridBuffer"));
+        if (!gridBuffer.gpuBuffer->GetDebugName().IsValid())
+        {
+            gridBuffer.gpuBuffer->SetDebugName(NAME("ClusterGridBuffer"));
+        }
 #endif
 
         ByteAddressBuffer& indexBuffer = RI.bufferAllocator->AcquireByteAddressBuffer(flatIndexData.Size() * sizeof(uint16));
 #if HYP_DEBUG_MODE
-        indexBuffer.gpuBuffer->SetDebugName(NAME("ClusterIndexBuffer"));
+        if (!indexBuffer.gpuBuffer->GetDebugName().IsValid())
+        {
+            indexBuffer.gpuBuffer->SetDebugName(NAME("ClusterIndexBuffer"));
+        }
 #endif
 
         allocation.gridBufferSize = gridBuffer.gpuBuffer->Size();
@@ -2585,12 +2605,6 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
 
     {
         RenderSetup envProbeSetup = rs.Fork();
-
-        // Set sky as fallback probe
-        if (envProbes[EPT_SKY].Any())
-        {
-            envProbeSetup.envProbe = envProbes[EPT_SKY].Front();
-        }
 
         if (lights[uint32(LightType::Directional)].Any())
         {

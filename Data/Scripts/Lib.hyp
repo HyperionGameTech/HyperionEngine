@@ -691,7 +691,7 @@ extern enum ViewFlags : uint32
     COLLECT_ALL_ENTITIES = (COLLECT_STATIC_ENTITIES | COLLECT_DYNAMIC_ENTITIES),
     NO_FRUSTUM_CULLING = 0x10,
     SKIP_ENV_PROBES = 0x20,
-    SKIP_ENV_GRIDS = 0x40,
+    SKIP_PROBE_VOLUMES = 0x40,
     SKIP_LIGHTS = 0x80,
     SKIP_LIGHTMAP_VOLUMES = 0x100,
     SKIP_PARTICLE_VOLUMES = 0x200,
@@ -2037,8 +2037,8 @@ extern class EnvProbe : VolumeBase
     IsBaked() -> bool
     SetIsBaked(isBaked : bool) -> void
     IsRealtime() -> bool
-    GetOrigin() -> Vec3f
-    SetOrigin(origin : Vec3f) -> void
+    GetOrigin(fromCenter : bool) -> Vec3f
+    SetOrigin(origin : Vec3f, fromCenter : bool) -> void
     GetCamera() -> Camera
     GetBakedTexture() -> Texture
     SetBakedTexture(texture : Texture) -> void
@@ -2048,6 +2048,7 @@ extern class EnvProbe : VolumeBase
     ShData : SphericalHarmonicsData
 end
 extern class IrradianceProbe : EnvProbe
+    RecomputeIrradiance() -> void
 end
 extern class SkyProbe : EnvProbe
     GetSkyboxCubemap() -> Texture
@@ -2065,7 +2066,9 @@ end
 extern enum EnvProbeFlags : uint32
     EPF_NONE = 0x0,
     EPF_PARALLAX_CORRECTED = 0x1,
-    EPF_BAKED = 0x2
+    EPF_BAKED = 0x2,
+    EPF_REALTIME = 0x4,
+    EPF_ORIGIN_FROM_CENTER = 0x8
 end
 extern class Sprite : Entity
 end

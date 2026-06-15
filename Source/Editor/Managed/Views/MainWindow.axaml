@@ -285,24 +285,18 @@
                                                     HorizontalAlignment="Center"
                                                     FontSize="12"
                                                     Foreground="#808080"
-                                                    Header="Lights"
+                                                    Header="Lighting"
                                                     IsEnabled="False" />
                                                 <MenuItem Command="{Binding AddDirectionalLight}" Header="Directional Light" />
                                                 <MenuItem Command="{Binding AddPointLight}" Header="Point Light" />
                                                 <MenuItem Command="{Binding AddSpotLight}" Header="Spot Light" />
                                                 <MenuItem Command="{Binding AddAreaRectLight}" Header="Rectangular Area Light" />
                                                 <Separator />
-                                                <MenuItem
-                                                    Margin="0,2"
-                                                    Padding="8,4"
-                                                    HorizontalAlignment="Center"
-                                                    FontSize="12"
-                                                    Foreground="#808080"
-                                                    Header="Baked Lighting"
-                                                    IsEnabled="False" />
                                                 <MenuItem Command="{Binding AddReflectionProbe}" Header="Reflection Probe" /> <!-- Tooltip.Tip="Reflection probes capture static objects as a cubemap for reflections as well as spherical harmonics for indirect lighting." /> -->
-                                                <MenuItem Command="{Binding AddProbeVolume}" Header="Irradiance Probe Volume" /> <!-- Tooltip.Tip="Irradiance Probe Volumes encase four irradiance probes which capture the scene lighting to be used as indirect lighting for static and dynamic objects." /> -->
+                                                <MenuItem Command="{Binding AddIrradianceProbe}" Header="Irradiance Probe" />
+                                                <Separator />
                                                 <MenuItem Command="{Binding AddLightmapVolume}" Header="Lightmap Volume" /> <!-- Tooltip.Tip="Lightmap Volumes bake lighting for static objects into an atlas texture. Dynamic objects do not receive light from lightmaps." /> -->
+                                                <MenuItem Command="{Binding AddProbeVolume}" Header="Probe Volume" /> <!-- Tooltip.Tip="Irradiance Probe Volumes encase four irradiance probes which capture the scene lighting to be used as indirect lighting for static and dynamic objects." /> -->
                                                 <Separator />
                                                 <MenuItem
                                                     Margin="0,2"
