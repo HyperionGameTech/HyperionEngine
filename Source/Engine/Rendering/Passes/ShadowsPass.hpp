@@ -81,26 +81,7 @@ private:
         uint32 lastFrameUsed;
     };
 
-    struct CacheKey
-    {
-        Light* light;
-        View* view;
-
-        HYP_FORCE_INLINE bool operator==(const CacheKey& other) const
-        {
-            return light == other.light
-                && view == other.view;
-        }
-
-        HYP_FORCE_INLINE HashCode GetHashCode() const
-        {
-            return HashCode::GetHashCode(light)
-                .Combine(view);
-        }
-    };
-
-    /// Cached (per-light/view combination) shadow map rendering data that is cleaned up when no longer used
-    TMap<CacheKey, CachedShadowMapData, RenderAllocator> m_cachedShadowMapData;
+    TMap<uint64, CachedShadowMapData, RenderAllocator> m_cachedShadowMapData;
 };
 
 class PointLightShadowsPass : public ShadowsPassBase

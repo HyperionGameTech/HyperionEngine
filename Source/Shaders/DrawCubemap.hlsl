@@ -90,11 +90,11 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float3x3 normal_matrix = (float3x3)entity.normal_matrix;
 #endif
 
-#if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights)
+#if defined(SKINNING) && defined(VT_Skeletal)
     float4x4 skinning_matrix = CreateSkinningMatrix(input.a_bone_indices, input.a_bone_weights);
 
     position = mul(model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
-    normal_matrix = mul(normal_matrix, transpose(inverse((float3x3)skinning_matrix)));
+    normal_matrix = mul(normal_matrix, (float3x3)skinning_matrix);
 #else
     position = mul(model_matrix, float4(input.a_position, 1.0));
 #endif
@@ -345,7 +345,7 @@ PSOutput PSMain(PSInput input)
         }
 
 
-        output.output_color.rgb = saturate(directLight);// + indirectLight);
+        output.output_color.rgb = saturate(directLight + indirectLight);
     }
 #else
     output.output_color.rgb = albedo.rgb;

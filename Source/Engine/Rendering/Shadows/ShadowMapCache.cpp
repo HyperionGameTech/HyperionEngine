@@ -51,6 +51,35 @@ static const Name s_shadowMapCameraNames[MaxShadowMapCascades] = {
     NAME("ShadowMapCamera_Cascade3")
 };
 
+static HYP_FORCE_INLINE bool IsShadowMapViewDependent(Light& light)
+{
+    // Only directional lights are view dependent due to it being centered
+    // around the view's position.
+    // So we must cache shadow map data per-view
+    return light.GetLightType() == LightType::Directional;
+}
+
+ShadowMapCacheKey MakeShadowMapCacheKey(Light* light, View* view)
+{
+    AssertDebug(light != nullptr);
+
+    ShadowMapCacheKey key;
+    key.hash = HashCode::GetHashCode(light).Value() & ~(1ull << 63);
+
+    if (IsShadowMapViewDependent(*light))
+    {
+        AssertDebug(view != nullptr);
+
+        key.hash = HashCode(HashCode::ValueType(key.hash))
+            .Combine(view)
+            .Value();
+
+        key.hash |= (1ull << 63);
+    }
+
+    return key;
+}
+
 static FramebufferDesc GetFramebufferDesc(Light* light, ShaderDesc& outShaderDesc, ShadowMap& shadowMap)
 {
     const ShadowMapAtlasElement& atlasElement = *shadowMap.GetAtlasElement();
@@ -201,24 +230,6 @@ struct CachedShadowMapData
     volatile int64 lastFrameUsed;
 };
 
-struct ShadowMapCacheKey
-{
-    Light* light;
-    View* view;
-
-    HYP_FORCE_INLINE bool operator==(const ShadowMapCacheKey& other)
-    {
-        return light == other.light
-            && view == other.view;
-    }
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        return HashCode::GetHashCode(light)
-            .Combine(view);
-    }
-};
-
 class ShadowMapCacheImpl
 {
 public:
@@ -325,26 +336,34 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
 
     View* outView = nullptr;
 
-    ShadowMapCacheKey key {};
-    key.view = view;
-    key.light = light;
+    const ShadowMapCacheKey key = MakeShadowMapCacheKey(light, view);
 
     TSharedLock<SharedMutex> sharedLock(m_impl->mutex);
     TUniqueLock<SharedMutex> uniqueLock; // not locked yet
 
     // is 'cascadeIndex' actually the index of the cubemap face?
-    const bool cascadesAreCubeFaces = light->IsA<PointLight>();
+    const bool isOmni = light->IsA<PointLight>();
 
-    auto InitShadowCascade = [this, cascadeIndex, light, cascadesAreCubeFaces](CachedShadowMapData& entry) -> ShadowMap*
+    auto initShadowCascade = [this, cascadeIndex, light, isOmni](CachedShadowMapData& entry) -> ShadowMap*
     {
+        static constexpr ShadowMapType LightTypeToShadowMapType[uint32(LightType::Max)] = {
+            SMT_DIRECTIONAL,    // Directional
+            SMT_OMNI,           // Point
+            SMT_SPOT,           // Spot
+            SMT_SPOT            // AreaRect
+        };
+
+        const ShadowMapType shadowMapType = LightTypeToShadowMapType[uint32(light->GetLightType())];
+
+        const ShadowMapFilter filterMode = light->GetLightType() == LightType::Directional
+            ? SMF_CONTACT_HARDENED : SMF_STANDARD;
+
         ShadowMap* shadowMap = m_impl->allocator.AllocateShadowMap(
-            light->GetLightType() == LightType::Point ? ShadowMapType::SMT_OMNI : ShadowMapType::SMT_DIRECTIONAL,
-            light->GetLightType() == LightType::Directional ? SMF_CONTACT_HARDENED : SMF_STANDARD,
-            light->GetShadowMapDimensions());
+            shadowMapType, filterMode, light->GetShadowMapDimensions());
 
         if (shadowMap)
         {
-            if (cascadesAreCubeFaces)
+            if (isOmni)
             {
                 entry.shadowMaps[0] = shadowMap;
             }
@@ -366,8 +385,9 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
 
         auto* views = isStatic ? &entry->shadowViewsStatic : &entry->shadowViewsDynamic;
 
-        if (cascadeIndex >= entry->shadowViewsStatic.Size() || !entry->camera
-            || !entry->shadowMaps[cascadesAreCubeFaces ? 0 : cascadeIndex])
+        if (cascadeIndex >= entry->shadowViewsStatic.Size()
+            || !entry->camera
+            || !entry->shadowMaps[isOmni ? 0 : cascadeIndex])
         {
             sharedLock.Reset();
             uniqueLock.Reset(m_impl->mutex);
@@ -379,7 +399,7 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
 
             if (cascadeIndex >= entry->shadowViewsStatic.Size())
             {
-                if (!InitShadowCascade(*entry))
+                if (!initShadowCascade(*entry))
                 {
                     return nullptr;
                 }
@@ -413,8 +433,12 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
         {
             AssertDebug(entry->camera != nullptr);
 
-            ShadowMap* shadowMap = entry->shadowMaps[cascadesAreCubeFaces ? 0 : cascadeIndex];
-            AssertDebug(shadowMap != nullptr);
+            ShadowMap* shadowMap = entry->shadowMaps[isOmni ? 0 : cascadeIndex];
+            if (!shadowMap)
+            {
+                // shadow map was not allocated. abort the operation.
+                return nullptr;
+            }
 
             outView = new View(GetViewDesc(light, isStatic, cascadeIndex, *shadowMap, *entry->camera));
 
@@ -449,7 +473,7 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
 
         if (!entry.shadowViewsStatic[cascadeIndex])
         {
-            if (!InitShadowCascade(entry))
+            if (!initShadowCascade(entry))
             {
                 return nullptr;
             }
@@ -462,8 +486,13 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
         {
             AssertDebug(entry.camera != nullptr);
 
-            ShadowMap* shadowMap = entry.shadowMaps[cascadesAreCubeFaces ? 0 : cascadeIndex];
-            AssertDebug(shadowMap != nullptr);
+            ShadowMap* shadowMap = entry.shadowMaps[isOmni ? 0 : cascadeIndex];
+
+            if (!shadowMap)
+            {
+                // shadow map was not allocated. abort the operation.
+                return nullptr;
+            }
 
             outView = new View(GetViewDesc(light, isStatic, cascadeIndex, *shadowMap, *entry.camera));
 
@@ -493,9 +522,7 @@ View* ShadowMapCache::TryGetShadowView(
     uint32 cascadeIndex,
     bool isStatic) const
 {
-    ShadowMapCacheKey key {};
-    key.view = view;
-    key.light = light;
+    const ShadowMapCacheKey key = MakeShadowMapCacheKey(light, view);
 
     TSharedLock<SharedMutex> sharedLock(m_impl->mutex);
     TUniqueLock<SharedMutex> uniqueLock; // not locked yet
@@ -522,9 +549,7 @@ ShadowMap* ShadowMapCache::GetShadowMap(
     Span<View*>& outShadowViewsDynamic,
     Span<View*>& outShadowViewsStatic) const
 {
-    ShadowMapCacheKey key {};
-    key.view = view;
-    key.light = light;
+    const ShadowMapCacheKey key = MakeShadowMapCacheKey(light, view);
 
     TSharedLock<SharedMutex> sharedLock(m_impl->mutex);
 
@@ -555,18 +580,9 @@ ShadowMap* ShadowMapCache::GetShadowMap(
     return nullptr;
 }
 
-bool ShadowMapCache::Remove(Light* light, View* view)
+bool ShadowMapCache::Remove(const ShadowMapCacheKey& key)
 {
-    if (!light || !view)
-    {
-        return false;
-    }
-
     TUniqueLock lock(m_impl->mutex);
-
-    ShadowMapCacheKey key {};
-    key.view = view;
-    key.light = light;
 
     auto it = m_impl->cache.Find(key);
 
@@ -621,7 +637,7 @@ bool ShadowMapCache::Remove(Light* light, View* view)
 
             if (!success)
             {
-                HYP_LOG(Rendering, Warning, "Failed to remove shadow map from atlas for Light {} + View {}", light->Id(), view->Id());
+                HYP_LOG(Rendering, Warning, "Failed to remove shadow map from atlas");
             }
         }
     }

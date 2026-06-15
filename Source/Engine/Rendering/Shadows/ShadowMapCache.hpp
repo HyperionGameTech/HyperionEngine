@@ -22,6 +22,39 @@ class ShadowMap;
 
 enum ShadowMapType : uint32;
 
+struct ShadowMapCacheKey
+{
+    uint64 hash;
+
+    HYP_FORCE_INLINE bool IsViewDependent() const
+    {
+        // last bit == per-view dependency
+        return (hash & (1ull << 63)) != 0;
+    }
+
+    HYP_FORCE_INLINE constexpr bool operator==(const ShadowMapCacheKey& other) const
+    {
+        return hash == other.hash;
+    }
+
+    HYP_FORCE_INLINE constexpr bool operator!=(const ShadowMapCacheKey& other) const
+    {
+        return hash != other.hash;
+    }
+
+    HYP_FORCE_INLINE constexpr bool operator<(const ShadowMapCacheKey& other) const
+    {
+        return hash < other.hash;
+    }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        return HashCode(HashCode::ValueType(hash));
+    }
+};
+
+extern ShadowMapCacheKey MakeShadowMapCacheKey(Light* light, View* view);
+
 class ShadowMapCache
 {
 public:
@@ -56,7 +89,7 @@ public:
         Span<View*>& outShadowViewsDynamic,
         Span<View*>& outShadowViewsStatic) const;
 
-    bool Remove(Light* light, View* view);
+    bool Remove(const ShadowMapCacheKey& key);
 
     // call on simulation thread
     void Update();

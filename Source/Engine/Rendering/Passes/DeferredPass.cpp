@@ -2491,15 +2491,23 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
         m_quadMesh->UploadGpuData();
     }
 
-    // Collect view-independent renderable types from all views, binned
-    //// \todo : We could use the existing binning by subclass that ResourceTracker now provides.
-    FixedArray<FlatSet<EnvProbe*>, EPT_MAX> envProbes;
-    FixedArray<FlatSet<Light*>, NumLightTypes> lights;
-    FlatSet<ProbeVolume*> probeVolumes;
+    struct DrawShadowMapParams
+    {
+        Light* light;
+        View* view;
+    };
 
+    // --- Collect view-independent renderable types from all views, binned ---
+    FixedArray<TSet<EnvProbe*, RenderTempAllocator>, EPT_MAX> envProbes;
+    TSet<ProbeVolume*, RenderTempAllocator> probeVolumes;
+    
     // For rendering ProbeVolumes and EnvProbes, we use a directional light from one of the Views that references it (if found)
-    FlatMap<ProbeVolume*, Light*> probeVolumeLights;
-    FlatMap<EnvProbe*, Light*> envProbeLights;
+    TMap<ProbeVolume*, Light*, RenderTempAllocator> probeVolumeLights;
+    TMap<EnvProbe*, Light*, RenderTempAllocator> envProbeLights;
+
+    FixedArray<TSet<Light*, RenderTempAllocator>, NumLightTypes> lights;
+    TMap<ShadowMapCacheKey, DrawShadowMapParams, RenderTempAllocator> lightsForShadow;
+    // ---
 
     // init view pass data and collect global rendering resources
     // (env probes, env grids)
@@ -2551,7 +2559,21 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
         {
             AssertDebug(light != nullptr);
 
-            lights[uint32(light->GetLightType())].Insert(light);
+            lights[uint32(light->GetLightType())].Add(light);
+
+            if (light->GetLightFlags() & LightFlags::ShadowCaster)
+            {
+                const ShadowMapCacheKey cacheKey = MakeShadowMapCacheKey(light, view);
+
+                if (cacheKey.IsViewDependent())
+                {
+                    lightsForShadow[cacheKey] = { light, view };
+                }
+                else
+                {
+                    lightsForShadow[cacheKey] = { light, nullptr };
+                }
+            }
         }
 
         for (EnvProbe* envProbe : rpl.GetEnvProbes())
@@ -2599,11 +2621,39 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
                 }
             }
 
-            probeVolumes.Insert(probeVolume);
+            probeVolumes.Add(probeVolume);
         }
     }
 
-    {
+    { // Render shadow maps for all collected lights
+        for (const auto& pair : lightsForShadow)
+        {
+            const ShadowMapCacheKey& key = pair.first;
+            const DrawShadowMapParams& params = pair.second;
+
+            Light* light = params.light;
+            View* view = params.view;
+
+            const uint32 lightTypeIndex = uint32(light->GetLightType());
+
+            AssertDebug(lightTypeIndex < RI.namedPasses[NamedPass::ShadowMap].Size());
+
+            PassBase* shadowRenderer = RI.namedPasses[NamedPass::ShadowMap][lightTypeIndex];
+
+            if (!shadowRenderer)
+            {
+                continue;
+            }
+
+            RenderSetup shadowRs = rs.Fork();
+            shadowRs.light = light;
+            shadowRs.view = view;
+
+            shadowRenderer->RenderFrame(frame, shadowRs);
+        }
+    }
+
+    { // Render dynamic probes (realtime or queued for rerender)
         RenderSetup envProbeSetup = rs.Fork();
 
         if (lights[uint32(LightType::Directional)].Any())
@@ -2742,31 +2792,6 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
 
         renderCollector.BeginRecordDrawCalls(frame, rs, AllRenderBucketsMask);
-    }
-
-    // Render shadows for shadow casting lights
-    for (Light* light : rpl.GetLights())
-    {
-        const uint32 lightTypeIndex = uint32(light->GetLightType());
-
-        AssertDebug(lightTypeIndex < RI.namedPasses[NamedPass::ShadowMap].Size());
-
-        PassBase* shadowRenderer = RI.namedPasses[NamedPass::ShadowMap][lightTypeIndex];
-
-        if (!shadowRenderer)
-        {
-            continue;
-        }
-
-        if (!(light->GetLightFlags() & LightFlags::ShadowCaster))
-        {
-            continue;
-        }
-
-        RenderSetup shadowRs = rs.Fork();
-        shadowRs.light = light;
-
-        shadowRenderer->RenderFrame(frame, shadowRs);
     }
 
     if (performDepthPrepass)

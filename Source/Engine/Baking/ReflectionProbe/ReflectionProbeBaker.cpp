@@ -167,10 +167,17 @@ void Baker<ReflectionProbe>::OnCompleted_Internal()
 
             Assert(texture.IsValid());
 
-            ConvolveProbe::ConvolveEnvProbeCubemap(texture, *envProbe);
-            ComputeSH::ComputeEnvProbeSphericalHarmonics(*envProbe, *texture);
+            if (envProbe->ShouldComputePrefilteredEnvMap())
+            {
+                ConvolveProbe::ConvolveEnvProbeCubemap(texture, *envProbe);
+            }
 
-            HYP_LOG(Lightmap, Verbose, "EnvProbe {} lightmap baking complete! Radiance and irradiance textures created.", envProbe->Id());
+            if (envProbe->ShouldComputeSphericalHarmonics())
+            {
+                ComputeSH::ComputeEnvProbeSphericalHarmonics(*envProbe, *texture);
+            }
+
+            HYP_LOG(Lightmap, Verbose, "EnvProbe {} lightmap baking complete", envProbe->GetName());
 
             delete cmdCasted->payload;
         }

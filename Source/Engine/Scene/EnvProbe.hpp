@@ -229,7 +229,7 @@ protected:
 
     HYP_FORCE_INLINE bool OnlyCollectStaticEntities() const
     {
-        return IsReflectionProbe() || IsSkyProbe() || IsAmbientProbe();
+        return true;
     }
 
     virtual void Invalidate()

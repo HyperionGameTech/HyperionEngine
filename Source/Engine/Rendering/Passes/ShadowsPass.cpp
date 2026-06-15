@@ -66,20 +66,20 @@ void ShadowsPassBase::Initialize()
 
 void ShadowsPassBase::Shutdown()
 {
-    TSet<CacheKey> cacheKeys;
+    TSet<ShadowMapCacheKey> cacheKeys;
 
-    for (KeyValuePair<CacheKey, CachedShadowMapData>& pair : m_cachedShadowMapData)
+    for (KeyValuePair<uint64, CachedShadowMapData>& pair : m_cachedShadowMapData)
     {
-        cacheKeys.Add(pair.first);
+        cacheKeys.Add(ShadowMapCacheKey { pair.first });
     }
 
     m_cachedShadowMapData.Clear();
 
     if (cacheKeys.Any())
     {
-        for (CacheKey& cacheKey : cacheKeys)
+        for (ShadowMapCacheKey& cacheKey : cacheKeys)
         {
-            bool removed = RI.shadowMapCache->Remove(cacheKey.light, cacheKey.view);
+            bool removed = RI.shadowMapCache->Remove(cacheKey);
 
             if (!removed)
             {
@@ -103,9 +103,9 @@ int ShadowsPassBase::RunCleanupCycle(int maxIter)
 
         if (int64(currentFrame) - int64(value.lastFrameUsed) >= RingBufferDepth)
         {
-            HYP_LOG(Rendering, Verbose, "Removing cached shadow map for Light {} + View {} as it has not been used in over {} frames", it->first.light->Id(), it->first.view->Id(), RingBufferDepth);
+            HYP_LOG(Rendering, Verbose, "Removing cached shadow map as it has not been used in {} frames", int64(currentFrame) - int64(value.lastFrameUsed));
 
-            bool removed = RI.shadowMapCache->Remove(it->first.light, it->first.view);
+            bool removed = RI.shadowMapCache->Remove(ShadowMapCacheKey { it->first });
 
             if (!removed)
             {
@@ -128,11 +128,12 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    AssertDebug(renderSetup.view && renderSetup.world && renderSetup.light);
+    AssertDebug(renderSetup.world && renderSetup.light);
 
     ENGINE_STAT_GPU_SCOPE(&s_statShadowMaps);
 
     Light* light = renderSetup.light;
+    View* view = renderSetup.view; // may be null if shadow map is not view dependent (e.g non-directional light)
 
     RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
     Assert(lightProxy != nullptr, "Proxy for Light {} not found when rendering shadows!", light->Id());
@@ -141,18 +142,16 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     const bool hasBakedStaticShadowMaps = (light->GetLightFlags() & LightFlags::BakeStaticShadows) && lightProxy->bakedShadowMap != nullptr;
     const bool cacheStaticShadowMaps = !hasBakedStaticShadowMaps && (light->GetLightFlags() & LightFlags::CacheStaticShadowMaps);
 
-    CacheKey cacheKey {};
-    cacheKey.light = light;
-    cacheKey.view = renderSetup.view;
+    const ShadowMapCacheKey key = MakeShadowMapCacheKey(light, view);
 
-    KeyValuePair<CacheKey, CachedShadowMapData>* existingPair = m_cachedShadowMapData.TryGet(cacheKey);
+    KeyValuePair<uint64, CachedShadowMapData>* existingPair = m_cachedShadowMapData.TryGet(key.hash);
     CachedShadowMapData* cachedData = existingPair ? &existingPair->second : nullptr;
 
     if (!cachedData)
     {
         // init shadow data
 
-        cachedData = &m_cachedShadowMapData[cacheKey];
+        cachedData = &m_cachedShadowMapData[key.hash];
 
         /*if (isVarianceShadowMap)
         {
@@ -188,7 +187,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     for (uint32 cascadeIndex = 0; cascadeIndex < lightProxy->numCascades; cascadeIndex++)
     {
         ShadowMap* shadowMap = RI.shadowMapCache->GetShadowMap(
-            light, renderSetup.view,
+            light, view,
             cascadeIndex,
             shadowViewsDynamic,
             shadowViewsStatic);
@@ -202,12 +201,14 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
             Camera* shadowCamera = nullptr;
 
-            if (cachedData->shadowViewsDynamic.Size() > 0)
+            if (cachedData->shadowViewsDynamic.Size() > 0 &&
+                cachedData->shadowViewsDynamic[0] != nullptr)
             {
                 shadowCamera = cachedData->shadowViewsDynamic[0]->GetCamera();
-            }
+                AssertDebug(shadowCamera != nullptr);
 
-            shadowCameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(shadowCamera));
+                shadowCameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(shadowCamera));
+            }
         }
 
         if (!shadowCameraProxy)

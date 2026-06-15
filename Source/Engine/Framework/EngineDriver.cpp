@@ -532,7 +532,7 @@ void EngineDriver::UpdateSim(float delta)
             View* view = views[viewIndex];
             Assert(view != nullptr);
 
-            if (!(view->GetFlags() & (ViewFlags::SHADOW_VIEW | ViewFlags::BAKER_VIEW | ViewFlags::UI_VIEW | ViewFlags::ENV_PROBE_VIEW)))
+            if (!(view->GetFlags() & (ViewFlags::SHADOW_VIEW | ViewFlags::BAKER_VIEW | ViewFlags::UI_VIEW /*| ViewFlags::ENV_PROBE_VIEW*/)))
             {
                 view->PrepareShadowViews(views);
             }
