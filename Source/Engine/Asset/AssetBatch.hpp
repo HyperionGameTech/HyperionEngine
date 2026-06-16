@@ -22,7 +22,7 @@ namespace Hyperion {
 
 class AssetManager;
 
-using AssetMap = FlatMap<String, LoadedAsset>;
+using AssetMap = TFlatMap<String, LoadedAsset>;
 
 struct AssetBatchCallbackData
 {

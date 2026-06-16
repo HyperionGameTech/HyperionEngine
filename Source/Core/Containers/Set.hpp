@@ -969,9 +969,9 @@ public:
         return *this;
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE Array<Value> ToArray() const&
+    HYP_NODISCARD HYP_FORCE_INLINE Array<Value, AllocatorType> ToArray() const&
     {
-        Array<Value> result;
+        Array<Value, AllocatorType> result;
         result.ResizeUninitialized(m_size);
 
         size_t index = 0;
@@ -984,9 +984,9 @@ public:
         return result;
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE Array<Value> ToArray() &&
+    HYP_NODISCARD HYP_FORCE_INLINE Array<Value, AllocatorType> ToArray() &&
     {
-        Array<Value> result;
+        Array<Value, AllocatorType> result;
         result.ResizeUninitialized(m_size);
 
         size_t index = 0;

@@ -597,14 +597,14 @@ Array<EntityTag> Entity::SerializeTags() const
 
     auto SerializeEntityTags = [this, entityManager, &resultTags]()
     {
-        Optional<const TypeMap<ComponentId>&> allComponents = entityManager->GetAllComponents(this);
+        Optional<const ComponentMap&> allComponentsOpt = entityManager->GetAllComponents(this);
 
-        if (!allComponents.HasValue())
+        if (!allComponentsOpt.HasValue())
         {
             return;
         }
 
-        for (const auto& it : *allComponents)
+        for (const auto& it : *allComponentsOpt)
         {
             const IComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(it.first);
 
@@ -678,9 +678,9 @@ Array<BoxedValue, DynamicAllocator> Entity::SerializeComponents() const
 
     auto SerializeEntityAndComponents = [this, entityManager, &resultArray]()
     {
-        Optional<const TypeMap<ComponentId>&> allComponents = entityManager->GetAllComponents(this);
+        Optional<const ComponentMap&> allComponentsOpt = entityManager->GetAllComponents(this);
 
-        if (!allComponents.HasValue())
+        if (!allComponentsOpt.HasValue())
         {
             HYP_LOG(Serialization, Error, "No component map found for entity");
 
@@ -689,7 +689,7 @@ Array<BoxedValue, DynamicAllocator> Entity::SerializeComponents() const
 
         TSet<TypeId> serializedComponents;
 
-        for (const auto& it : *allComponents)
+        for (const auto& it : *allComponentsOpt)
         {
             const TypeId componentTypeId = it.first;
 

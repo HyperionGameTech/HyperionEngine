@@ -4,7 +4,7 @@
 
 namespace Hyperion {
 
-const FlatMap<String, Operator*> Operator::binaryOperators = {
+const TFlatMap<String, Operator*> Operator::binaryOperators = {
     { "+", new Operator(OP_add, 13, ARITHMETIC, false, true) },
     { "-", new Operator(OP_subtract, 13, ARITHMETIC, false, true) },
     { "*", new Operator(OP_multiply, 14, ARITHMETIC, false, true) },
@@ -42,7 +42,7 @@ const FlatMap<String, Operator*> Operator::binaryOperators = {
     { "|=", new Operator(OP_bitwise_or_assign, 3, ASSIGNMENT | BITWISE, true) },
 };
 
-const FlatMap<String, Operator*> Operator::unaryOperators = {
+const TFlatMap<String, Operator*> Operator::unaryOperators = {
     // Unary operators
     { "!", new Operator(OP_logical_not, 0, LOGICAL | PREFIX, false, true) },
     { "-", new Operator(OP_negative, 0, ARITHMETIC | PREFIX, false, true) },

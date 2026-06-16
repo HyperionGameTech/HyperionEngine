@@ -115,7 +115,7 @@ public:
                 HYP_LOG(Assets, Warning, "Ogre XML parser: `face` tag expected to have 3 attributes.");
             }
 
-            FlatMap<String, uint32> faceElements;
+            TFlatMap<String, uint32> faceElements;
             faceElements.Reserve(attributes.Size());
 
             for (const Pair<String, String>& it : attributes)

@@ -35,7 +35,7 @@ class Property;
 struct NodeWatcher
 {
     WeakHandle<Node> rootNode;
-    FlatSet<const Property*> propertiesToWatch;
+    TFlatSet<const Property*> propertiesToWatch;
     Delegate<void, Node*, const Property*> OnChange;
 };
 
@@ -43,14 +43,14 @@ class EditorDelegates
 {
     struct SuppressedNode
     {
-        FlatSet<const Property*> propertiesToSuppress;
+        TFlatSet<const Property*> propertiesToSuppress;
         int suppressAllCounter = 0;
     };
 
 public:
     struct SuppressUpdatesScope
     {
-        SuppressUpdatesScope(EditorDelegates& editorDelegates, Node* node, const FlatSet<const Property*>& propertiesToSuppress = {})
+        SuppressUpdatesScope(EditorDelegates& editorDelegates, Node* node, const TFlatSet<const Property*>& propertiesToSuppress = {})
             : editorDelegates(editorDelegates),
               node(node)
         {
@@ -95,7 +95,7 @@ public:
 
         EditorDelegates& editorDelegates;
         Node* node = nullptr;
-        FlatSet<const Property*> propertiesToSuppress;
+        TFlatSet<const Property*> propertiesToSuppress;
         bool suppressAll = false;
     };
 

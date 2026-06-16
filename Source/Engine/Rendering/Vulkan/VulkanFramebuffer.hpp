@@ -35,11 +35,11 @@ extern Pool* g_vulkanPool;
 
 struct VulkanAttachmentMap
 {
-    using Iterator = typename FlatMap<uint32, VulkanAttachment*>::Iterator;
-    using ConstIterator = typename FlatMap<uint32, VulkanAttachment*>::ConstIterator;
+    using Iterator = typename TFlatMap<uint32, VulkanAttachment*>::Iterator;
+    using ConstIterator = typename TFlatMap<uint32, VulkanAttachment*>::ConstIterator;
 
     VulkanFramebufferWeakRef framebufferWeak;
-    FlatMap<uint32, VulkanAttachment*> attachments;
+    TFlatMap<uint32, VulkanAttachment*> attachments;
 
     ~VulkanAttachmentMap()
     {

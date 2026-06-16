@@ -385,7 +385,7 @@ private:
     void GetDesiredCellsForLayer(
         const LayerData& layerData,
         const Handle<StreamingVolumeBase>& volume,
-        TSet<Vec2i, StreamingAllocator>& outCellCoords) const;
+        TSet<Vec2i, StreamingTempAllocator>& outCellCoords) const;
 
     void PostCellUpdate(Handle<StreamingCell> cell, StreamingCellState state)
     {
@@ -486,7 +486,7 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
 
         const WorldGridLayerInfo& layerInfo = layer->GetLayerInfo();
 
-        TSet<Vec2i, StreamingAllocator> desiredCells;
+        TSet<Vec2i, StreamingTempAllocator> desiredCells;
 
         for (const Handle<StreamingVolumeBase>& volume : m_volumes)
         {
@@ -498,8 +498,8 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
             GetDesiredCellsForLayer(layerData, volume, desiredCells);
         }
 
-        /// \todo Use bitset via IDs, or by cell index (x * height + y, would need constant max dimensions for that) to track desired cells and undesired cells.
-        Array<Vec2i> cellsToAdd = desiredCells.ToArray();
+        Array<Vec2i, StreamingTempAllocator> cellsToAdd = desiredCells.ToArray();
+
         Array<Handle<StreamingCell>, StreamingTempAllocator> cellsToRemove;
 
         for (const StreamingCellRuntimeInfo& cellRuntimeInfo : cells)
@@ -616,8 +616,8 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
 
             deferredUpdates.EmplaceBack([this, &layerData, cell]()
                 {
-                    // HYP_LOG(Streaming, Verbose, "Loading StreamingCell at coord: {} on thread: {} for layer: {}",
-                    //     cell->GetPatchInfo().coord, CurrentThreadId().GetName(), layerData.layer->InstanceClass()->GetName());
+                    HYP_LOG(Streaming, Debug, "Loading StreamingCell at coord: {} on thread: {} for layer: {}",
+                         cell->GetPatchInfo().coord, CurrentThreadId().GetName(), layerData.layer->InstanceClass()->GetName());
 
                     bool isOk = true;
 
@@ -681,9 +681,9 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
             // Call OnStreamEnd on the cell and then Unload it
             deferredUpdates.EmplaceBack([this, cell = std::move(cell), &layerData]()
                 {
-                    // HYP_LOG(Streaming, Verbose, "Unloading StreamingCell at coord: {} for layer: {} on thread: {}",
-                    //     cell->GetPatchInfo().coord, layerData.layer->InstanceClass()->GetName().LookupString(),
-                    //     CurrentThreadId().GetName());
+                    HYP_LOG(Streaming, Debug, "Unloading StreamingCell at coord: {} for layer: {} on thread: {}",
+                        cell->GetPatchInfo().coord, layerData.layer->InstanceClass()->GetName().LookupString(),
+                        CurrentThreadId().GetName());
 
                     PostCellUpdate(cell, StreamingCellState::UNLOADED);
 
@@ -709,7 +709,7 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
 void StreamingManagerThread::GetDesiredCellsForLayer(
     const LayerData& layerData,
     const Handle<StreamingVolumeBase>& volume,
-    TSet<Vec2i, StreamingAllocator>& outCellCoords) const
+    TSet<Vec2i, StreamingTempAllocator>& outCellCoords) const
 {
     constexpr Vec2i CellNeighborDirections[4] = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
 

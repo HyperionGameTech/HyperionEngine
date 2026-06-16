@@ -236,7 +236,7 @@ struct FBXCluster
 
 struct FBXSkin
 {
-    FlatSet<FBXObjectID> clusterIds;
+    TFlatSet<FBXObjectID> clusterIds;
 };
 
 struct FBXPoseNode
@@ -316,7 +316,7 @@ struct FBXNode
 
     FBXObjectID meshId = 0;
 
-    FlatSet<FBXObjectID> childIds;
+    TFlatSet<FBXObjectID> childIds;
 
     Transform localTransform;
 
@@ -741,7 +741,7 @@ static Result ReadBinaryArray(const FBXObject& object, Array<T>& ary)
 }
 
 template <class T>
-static bool GetFBXObjectInMapping(FlatMap<FBXObjectID, FBXNodeMapping>& mapping, FBXObjectID id, T*& out)
+static bool GetFBXObjectInMapping(TFlatMap<FBXObjectID, FBXNodeMapping>& mapping, FBXObjectID id, T*& out)
 {
     out = nullptr;
 
@@ -926,8 +926,8 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
         return matrix;
     };
 
-    FlatMap<FBXObjectID, FBXNodeMapping> objectMapping;
-    FlatSet<FBXObjectID> bindPoseIds;
+    TFlatMap<FBXObjectID, FBXNodeMapping> objectMapping;
+    TFlatSet<FBXObjectID> bindPoseIds;
     Array<FBXConnection> connections;
 
     const auto getFbxObject = [&objectMapping](FBXObjectID id, auto*& out)

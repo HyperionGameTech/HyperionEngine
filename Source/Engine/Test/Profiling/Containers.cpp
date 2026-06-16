@@ -560,7 +560,7 @@ void ProfileFlatMapInsertion()
 {
     const Dataset& data = ActiveDataset();
 
-    FlatMap<uint32, uint32> map;
+    TFlatMap<uint32, uint32> map;
     map.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -575,7 +575,7 @@ void ProfileFlatMapIteration()
 {
     const Dataset& data = ActiveDataset();
 
-    FlatMap<uint32, uint32> map;
+    TFlatMap<uint32, uint32> map;
     map.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -596,7 +596,7 @@ void ProfileFlatMapFind()
 {
     const Dataset& data = ActiveDataset();
 
-    FlatMap<uint32, uint32> map;
+    TFlatMap<uint32, uint32> map;
     map.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -620,7 +620,7 @@ void ProfileFlatMapRemoval()
 {
     const Dataset& data = ActiveDataset();
 
-    FlatMap<uint32, uint32> map;
+    TFlatMap<uint32, uint32> map;
     map.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -800,7 +800,7 @@ void ProfileFlatSetInsertion()
 {
     const Dataset& data = ActiveDataset();
 
-    FlatSet<uint32> set;
+    TFlatSet<uint32> set;
     set.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -815,7 +815,7 @@ void ProfileFlatSetIteration()
 {
     const Dataset& data = ActiveDataset();
 
-    FlatSet<uint32> set;
+    TFlatSet<uint32> set;
     set.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -836,7 +836,7 @@ void ProfileFlatSetFind()
 {
     const Dataset& data = ActiveDataset();
 
-    FlatSet<uint32> set;
+    TFlatSet<uint32> set;
     set.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -860,7 +860,7 @@ void ProfileFlatSetRemoval()
 {
     const Dataset& data = ActiveDataset();
 
-    FlatSet<uint32> set;
+    TFlatSet<uint32> set;
     set.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)

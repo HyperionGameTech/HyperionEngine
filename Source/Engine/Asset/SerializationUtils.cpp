@@ -1080,7 +1080,7 @@ Result ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, 
         GlobalContextScope contextScope { LoadAssetsFromReferencesContext() };
 
         // members with LoadOrder attribute get binned and put here first
-        SortedArray<KeyValuePair<int, const IMember*>> sortedMembers;
+        TSortedArray<KeyValuePair<int, const IMember*>> sortedMembers;
 
         // reoslve jsonpath members first
         for (const IMember& member : instanceClass->GetMembers(MemberType::Field | MemberType::Property))
@@ -2197,7 +2197,7 @@ void StripTransientMembers(BoxedValue& value)
     }
 
     // Build a set of transient member names so we know which to skip
-    FlatSet<Name> transientMembers;
+    TFlatSet<Name> transientMembers;
 
     for (const IMember& member : cls->GetMembers(MemberType::Field | MemberType::Property, /* deep */ false))
     {

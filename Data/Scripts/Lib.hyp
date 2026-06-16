@@ -718,7 +718,7 @@ extern class View
     GetCamera() -> Camera
     SetCamera(camera : Camera) -> void
     GetPriority() -> int
-    SetPriority(pri : int) -> void
+    SetPriority(priority : int) -> void
 end
 extern class SystemBase
 end
@@ -777,7 +777,7 @@ extern struct ComponentInfo
     Access : ComponentAccess
     ReceivesEvents : bool
 end
-extern enum ComponentAccess : uint32
+extern enum ComponentAccess : uint8
     NONE = 0,
     READ = 0x1,
     WRITE = 0x2,

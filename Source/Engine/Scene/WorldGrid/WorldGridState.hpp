@@ -45,13 +45,13 @@ struct WorldGridPatchGenerationQueue
 
 struct WorldGridState
 {
-    FlatMap<Vec2i, Task<void>> patchGenerationTasks;
+    TFlatMap<Vec2i, Task<void>> patchGenerationTasks;
 
     Queue<StreamingCellUpdate> patchUpdateQueue;
     AtomicVar<uint32> patchUpdateQueueSize { 0 };
     mutable Mutex patchUpdateQueueMutex;
 
-    FlatMap<Vec2i, Handle<StreamingCell>> patches;
+    TFlatMap<Vec2i, Handle<StreamingCell>> patches;
     mutable Mutex patchesMutex;
 
     // Keep track of the last desired patches to avoid unnecessary comparison and locking

@@ -196,9 +196,9 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
     }
 
     // set these to null after rendering
-    static Array<ParallelRenderingState**> s_parallelRenderingStatesToNullify;
-    s_parallelRenderingStatesToNullify.Reserve(32);
-    s_parallelRenderingStatesToNullify.Clear();
+    static Array<ParallelRenderingState**> s_parallelRenderingStatesToNull;
+    s_parallelRenderingStatesToNull.Reserve(32);
+    s_parallelRenderingStatesToNull.Resize(0);
 
     for (size_t index = 0; index < iterators.Size(); index++)
     {
@@ -214,7 +214,7 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
 
         if (drawCallCollection.parallelRenderingState != nullptr)
         {
-            s_parallelRenderingStatesToNullify.PushBack(&drawCallCollection.parallelRenderingState);
+            s_parallelRenderingStatesToNull.PushBack(&drawCallCollection.parallelRenderingState);
 
             AssertDebug(drawCallCollection.parallelRenderingState->taskBatch != nullptr);
             TaskSystem::GetInstance().EnqueueBatch(drawCallCollection.parallelRenderingState->taskBatch);
@@ -226,9 +226,9 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
         Commit(frame->cr, uint8(bit));
     }
 
-    if (s_parallelRenderingStatesToNullify.Any())
+    if (s_parallelRenderingStatesToNull.Any())
     {
-        for (ParallelRenderingState** pp : s_parallelRenderingStatesToNullify)
+        for (ParallelRenderingState** pp : s_parallelRenderingStatesToNull)
         {
             *pp = nullptr;
         }

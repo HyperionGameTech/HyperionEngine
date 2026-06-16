@@ -5,7 +5,7 @@ using System.Collections.Generic;
 namespace Hyperion
 {
     [Flags]
-    public enum ComponentAccess : uint
+    public enum ComponentAccess : byte
     {
         None = 0x0,
         Read = 0x1,
@@ -14,7 +14,7 @@ namespace Hyperion
     }
 
     [ClassBinding(Name = "ComponentInfo")]
-    [StructLayout(LayoutKind.Sequential, Size = 12, Pack = 4)]
+    [StructLayout(LayoutKind.Sequential, Size = 8, Pack = 4)]
     public struct ComponentInfo
     {
         public TypeId TypeId;

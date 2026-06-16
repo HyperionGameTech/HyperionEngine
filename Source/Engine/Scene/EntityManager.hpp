@@ -9,9 +9,7 @@
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/FlatMap.hpp>
 #include <Core/Containers/FlatSet.hpp>
-#include <Core/Containers/Map.hpp>
 #include <Core/Containers/Set.hpp>
-#include <Core/Containers/TypeMap.hpp>
 
 #include <Core/Memory/UniquePtr.hpp>
 #include <Core/Memory/AnyRef.hpp>
@@ -64,27 +62,25 @@ class Scene;
 struct BoxedValue;
 class Node;
 
-using ComponentMap = TypeMap<ComponentId>;
-
 /*! \brief The EntityManager is responsible for managing Entities and their components within a single Scene. */
 HYP_CLASS()
 class ENGINE_API EntityManager final : public ObjectBase
 {
     HYP_OBJECT_BODY(EntityManager);
 
-    friend class EntityToEntityManagerMap;
-
-    // Allow Entity destructor to call RemoveEntity().
+    // Allow Entity to call RemoveEntity().
     friend class Entity;
-
     friend class World;
 
 public:
     EntityManager(const ThreadId& ownerThreadId, Scene* scene, EnumFlags<EntityManagerFlags> flags = EntityManagerFlags::DEFAULT);
+    
     EntityManager(const EntityManager&) = delete;
     EntityManager& operator=(const EntityManager&) = delete;
+    
     EntityManager(EntityManager&&) noexcept = delete;
     EntityManager& operator=(EntityManager&&) noexcept = delete;
+
     ~EntityManager();
 
     template <class Component>
@@ -347,9 +343,9 @@ public:
         const Optional<ComponentId> componentIdOpt = entityData->TryGetComponentId<Component>();
         Assert(componentIdOpt.HasValue(), "Entity does not have component of type {}", TypeNameWithoutNamespace<Component>().Data());
 
-        static const TypeId s_componentTypeId = TypeId::ForType<Component>();
+        static constexpr TypeId ComponentTypeId = TypeId::ForType<Component>();
 
-        auto componentContainerIt = m_containers.Find(s_componentTypeId);
+        auto componentContainerIt = m_containers.Find(ComponentTypeId);
         Assert(componentContainerIt != m_containers.End(), "Component container does not exist");
 
         HYP_MT_CHECK_READ(componentContainerIt->second->GetDataRaceDetector());
@@ -390,7 +386,7 @@ public:
             return nullptr;
         }
 
-        static const TypeId s_componentTypeId = TypeId::ForType<Component>();
+        static constexpr TypeId ComponentTypeId = TypeId::ForType<Component>();
 
         const Optional<ComponentId> componentIdOpt = entityData->TryGetComponentId<Component>();
 
@@ -399,7 +395,7 @@ public:
             return nullptr;
         }
 
-        auto componentContainerIt = m_containers.Find(s_componentTypeId);
+        auto componentContainerIt = m_containers.Find(ComponentTypeId);
         if (componentContainerIt == m_containers.End())
         {
             return nullptr;
@@ -541,14 +537,14 @@ public:
         /// \todo : Replace the component if it already exists
         Assert(componentIt == entityData->components.End(), "Entity already has component of type {}", TypeNameWithoutNamespace<Component>().Data());
 
-        static const TypeId componentTypeId = TypeId::ForType<Component>();
+        static constexpr TypeId ComponentTypeId = TypeId::ForType<Component>();
 
         const Pair<ComponentId, Component&> componentInsertResult = GetContainer<Component>().AddComponent(std::move(component));
 
-        entityData->components.Set<Component>(componentInsertResult.first);
+        entityData->components[ComponentTypeId] = componentInsertResult.first;
 
         { // Lock the entity sets mutex
-            auto componentEntitySetsIt = m_componentEntitySets.Find(componentTypeId);
+            auto componentEntitySetsIt = m_componentEntitySets.Find(ComponentTypeId);
 
             if (componentEntitySetsIt != m_componentEntitySets.End())
             {
@@ -566,7 +562,7 @@ public:
 
         // Note: Call OnComponentAdded on the entity before notifying systems, as systems may remove the component
         EntityTag tag = EntityTag::None;
-        if (IsEntityTagComponent(componentTypeId, tag))
+        if (IsEntityTagComponent(ComponentTypeId, tag))
         {
             // If the component is an TagComponent, add the tag to the entity
             entity->OnTagAdded(tag);
@@ -791,11 +787,11 @@ public:
 
         Mutex::Guard guard(m_componentContainersMtx);
 
-        auto it = m_containers.Find<Component>();
+        auto it = m_containers.Find(TypeId::ForType<Component>());
 
         if (it == m_containers.End())
         {
-            it = m_containers.Set<Component>(MakeUnique<ComponentContainer<Component>>()).first;
+            it = m_containers.Set(TypeId::ForType<Component>(), MakeUnique<ComponentContainer<Component>>()).first;
         }
 
         return static_cast<ComponentContainer<Component>&>(*it->second);
@@ -914,27 +910,28 @@ private:
     Scene* m_scene;
     EnumFlags<EntityManagerFlags> m_flags;
 
-    TypeMap<UniquePtr<ComponentContainerBase>> m_containers;
-    DataRaceDetector m_containersDataRaceDetector;
+    TFlatMap<TypeId, UniquePtr<ComponentContainerBase>, SceneAllocator> m_containers;
     mutable Mutex m_componentContainersMtx;
 
     EntityContainer m_entities;
-    DataRaceDetector m_entitiesDataRaceDetector;
 
-    TMap<EntitySetId, UniquePtr<EntitySetBase>> m_entitySets;
+    TFlatMap<EntitySetId, UniquePtr<EntitySetBase>, SceneAllocator> m_entitySets;
 
-    TypeMap<TSet<EntitySetId>> m_componentEntitySets;
+    TFlatMap<TypeId, TSet<EntitySetId, SceneAllocator>, SceneAllocator> m_componentEntitySets;
 
     // thread safe map of entity sets not yet added to m_entitySets
     // that will be added upon synchronization
-    TMap<EntitySetId, UniquePtr<EntitySetBase>> m_pendingEntitySets;
+    TFlatMap<EntitySetId, UniquePtr<EntitySetBase>, SceneAllocator> m_pendingEntitySets;
     mutable Mutex m_pendingEntitySetsMtx;
 
-    TMap<SystemBase*, TSet<Entity*>> m_systemEntityMap;
+    TFlatMap<SystemBase*, TSet<Entity*, SceneAllocator>, SceneAllocator> m_systemEntityMap;
     mutable Mutex m_systemEntityMapMutex;
 
-    bool m_isInitialized;
-    bool m_isLocked;
+    bool m_isInitialized : 1;
+    bool m_isLocked : 1;
+
+    HYP_DECLARE_MT_CHECK(m_entitiesDataRaceDetector);
+    HYP_DECLARE_MT_CHECK(m_containersDataRaceDetector);
 };
 
 } // namespace Hyperion

@@ -264,7 +264,7 @@ void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
 
 size_t SemanticAnalyzer::Helpers::FindFreeSlot(
     size_t currentIndex,
-    const FlatSet<size_t>& usedIndices,
+    const TFlatSet<size_t>& usedIndices,
     const Array<GenericInstanceTypeInfo::Arg>& genericArgs,
     bool isVariadic,
     size_t numSuppliedArgs)
@@ -296,7 +296,7 @@ size_t SemanticAnalyzer::Helpers::FindFreeSlot(
 size_t SemanticAnalyzer::Helpers::ArgIndex(
     size_t currentIndex,
     const ArgInfo& argInfo,
-    const FlatSet<size_t>& usedIndices,
+    const TFlatSet<size_t>& usedIndices,
     const Array<GenericInstanceTypeInfo::Arg>& genericArgs,
     bool isVariadic,
     size_t numSuppliedArgs)
@@ -699,7 +699,7 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
         }
     }
 
-    FlatSet<size_t> usedIndices;
+    TFlatSet<size_t> usedIndices;
 
     Array<SubstitutionResult> substitutionResults;
     substitutionResults.Resize(numArgs);

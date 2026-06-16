@@ -22,7 +22,7 @@ template <class Value>
 class TypeMap : public ContainerBase<TypeMap<Value>, TypeId>
 {
 protected:
-    using Map = FlatMap<TypeId, Value>;
+    using Map = TFlatMap<TypeId, Value>;
 
 public:
     static constexpr bool isContiguous = Map::isContiguous;
@@ -263,12 +263,12 @@ public:
         return m_map.Empty();
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE FlatSet<TypeId> Keys() const
+    HYP_NODISCARD HYP_FORCE_INLINE TFlatSet<TypeId> Keys() const
     {
         return m_map.Keys();
     }
 
-    HYP_NODISCARD FlatSet<Value> Values() const
+    HYP_NODISCARD TFlatSet<Value> Values() const
     {
         return m_map.Values();
     }

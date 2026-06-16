@@ -148,7 +148,7 @@ TMap<String, Handle<MaterialInstance>> MTLMaterialLoader::ParseMtl_Internal(Load
     MaterialLibrary library;
     library.filepath = state.filepath;
 
-    const FlatMap<String, TextureMapping> textureKeys {
+    const TFlatMap<String, TextureMapping> textureKeys {
         Pair<String, TextureMapping> { "map_kd", TextureMapping { .key = MaterialTextureKey::Diffuse, .srgb = true, .filterMode = TFM_LINEAR_MIPMAP } },
         Pair<String, TextureMapping> { "map_bump", TextureMapping { .key = MaterialTextureKey::Normals, .srgb = false, .filterMode = TFM_LINEAR_MIPMAP } },
         Pair<String, TextureMapping> { "bump", TextureMapping { .key = MaterialTextureKey::Normals, .srgb = false, .filterMode = TFM_LINEAR_MIPMAP } },

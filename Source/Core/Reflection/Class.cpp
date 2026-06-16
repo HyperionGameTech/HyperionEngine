@@ -999,7 +999,7 @@ Array<Property*> Class::GetPropertiesInherited() const
 {
     if (const Class* parent = GetParent())
     {
-        FlatSet<Property*> properties { GetProperties().Begin(), GetProperties().End() };
+        TFlatSet<Property*> properties { GetProperties().Begin(), GetProperties().End() };
 
         Array<Property*> inheritedProperties = parent->GetPropertiesInherited();
 
@@ -1038,7 +1038,7 @@ Array<Method*> Class::GetMethodsInherited() const
 {
     if (const Class* parent = GetParent())
     {
-        FlatSet<Method*> methods { m_methods.Begin(), m_methods.End() };
+        TFlatSet<Method*> methods { m_methods.Begin(), m_methods.End() };
 
         Array<Method*> inheritedMethods = parent->GetMethodsInherited();
 
@@ -1077,7 +1077,7 @@ Array<Field*> Class::GetFieldsInherited() const
 {
     if (const Class* parent = GetParent())
     {
-        FlatSet<Field*> fields { m_fields.Begin(), m_fields.End() };
+        TFlatSet<Field*> fields { m_fields.Begin(), m_fields.End() };
 
         Array<Field*> inheritedFields = parent->GetFieldsInherited();
 
@@ -1116,7 +1116,7 @@ Array<StaticField*> Class::GetStaticFieldsInherited() const
 {
     if (const Class* parent = GetParent())
     {
-        FlatSet<StaticField*> staticFields { m_staticFields.Begin(), m_staticFields.End() };
+        TFlatSet<StaticField*> staticFields { m_staticFields.Begin(), m_staticFields.End() };
 
         Array<StaticField*> inheritedConstants = parent->GetStaticFieldsInherited();
 

@@ -26,11 +26,11 @@ enum class RenderPassMode : uint8;
 
 struct DX12AttachmentMap
 {
-    using Iterator = typename FlatMap<uint32, DX12Attachment*>::Iterator;
-    using ConstIterator = typename FlatMap<uint32, DX12Attachment*>::ConstIterator;
+    using Iterator = typename TFlatMap<uint32, DX12Attachment*>::Iterator;
+    using ConstIterator = typename TFlatMap<uint32, DX12Attachment*>::ConstIterator;
 
     DX12FramebufferWeakRef framebufferWeak;
-    FlatMap<uint32, DX12Attachment*> attachments;
+    TFlatMap<uint32, DX12Attachment*> attachments;
 
     ~DX12AttachmentMap()
     {

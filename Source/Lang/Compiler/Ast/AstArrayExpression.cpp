@@ -47,7 +47,7 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
 
     m_replacedMembers.Reserve(m_members.Size());
 
-    FlatSet<const SymbolType*> heldTypes;
+    TFlatSet<const SymbolType*> heldTypes;
 
     for (auto& member : m_members)
     {

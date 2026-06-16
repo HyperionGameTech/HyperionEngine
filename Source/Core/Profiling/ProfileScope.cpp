@@ -252,7 +252,7 @@ private:
     UUID m_traceId;
     ProfilerConnectionThread m_thread;
 
-    FlatMap<ThreadId, UniquePtr<JSON::JArray>> m_perThreadValues;
+    TFlatMap<ThreadId, UniquePtr<JSON::JArray>> m_perThreadValues;
     mutable Mutex m_valuesMutex;
 
     Array<Task<HTTPResponse>> m_requests;

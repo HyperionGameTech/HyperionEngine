@@ -265,9 +265,9 @@ public:
 
     /*! \brief Returns a copy of the ByteBuffer's data as an Array of ubyte.
      *  \return An Array of ubyte containing the ByteBuffer's data, copied from the ByteBuffer. */
-    HYP_FORCE_INLINE Array<ubyte> ToArray() const
+    HYP_FORCE_INLINE Array<ubyte, AllocatorType> ToArray() const
     {
-        Array<ubyte> byteArray;
+        Array<ubyte, AllocatorType> byteArray;
 
         if (m_size != 0)
         {

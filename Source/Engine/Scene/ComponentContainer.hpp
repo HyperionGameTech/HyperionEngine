@@ -30,7 +30,7 @@ enum class ComponentId : uint32;
 static constexpr ComponentId InvalidComponentId = ComponentId(0);
 
 HYP_ENUM()
-enum class ComponentAccess : uint32
+enum class ComponentAccess : uint8
 {
     NONE = 0,
     READ = 0x1,
@@ -38,7 +38,7 @@ enum class ComponentAccess : uint32
     READ_WRITE = READ | WRITE
 };
 
-HYP_MAKE_ENUM_FLAGS(ComponentAccess)
+HYP_MAKE_ENUM_FLAGS(ComponentAccess);
 
 template <class T, EnumFlags<ComponentAccess> TAccess = ComponentAccess::READ_WRITE, bool TReceivesEvents = true>
 struct ComponentDescriptor
@@ -49,7 +49,7 @@ struct ComponentDescriptor
     constexpr static bool ReceivesEvents = TReceivesEvents;
 };
 
-HYP_STRUCT(Size = 12)
+HYP_STRUCT(Size = 8)
 struct ComponentInfo
 {
     HYP_STRUCT_BODY(ComponentInfo);

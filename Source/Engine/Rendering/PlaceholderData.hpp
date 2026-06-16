@@ -113,8 +113,8 @@ public:
 
         auto& bufferContainer = m_buffers.At(bufferType);
 
-        // typename FlatMap<size_t, GpuBufferWeakRef>::Iterator it;
-        typename FlatMap<size_t, GpuBufferRef>::Iterator it;
+        // typename TFlatMap<size_t, GpuBufferWeakRef>::Iterator it;
+        typename TFlatMap<size_t, GpuBufferRef>::Iterator it;
 
         if (exactSize)
         {
@@ -160,7 +160,7 @@ public:
 private:
     GpuBufferRef CreateGpuBuffer(GpuBufferType bufferType, size_t size);
 
-    FlatMap<GpuBufferType, FlatMap<size_t, GpuBufferRef>> m_buffers;
+    TFlatMap<GpuBufferType, TFlatMap<size_t, GpuBufferRef>> m_buffers;
 };
 
 } // namespace Hyperion

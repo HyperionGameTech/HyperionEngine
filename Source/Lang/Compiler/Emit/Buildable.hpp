@@ -37,7 +37,7 @@ struct BuildParams
 {
     size_t blockOffset = 0;
     size_t localOffset = 0;
-    SortedArray<LabelInfo> labels;
+    TSortedArray<LabelInfo> labels;
 };
 
 struct Buildable

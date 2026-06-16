@@ -131,7 +131,7 @@ struct RayHit
     }
 };
 
-class RayTestResults : public FlatSet<RayHit>
+class RayTestResults : public TFlatSet<RayHit>
 {
 public:
     bool AddHit(const RayHit& hit)

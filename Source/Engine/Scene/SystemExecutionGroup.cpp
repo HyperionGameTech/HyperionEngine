@@ -44,7 +44,7 @@ bool SystemExecutionGroup::IsValidForSystem(const SystemBase* systemPtr) const
         return false;
     }
 
-    const Array<TypeId>& componentTypeIds = systemPtr->GetComponentTypeIds();
+    Span<const TypeId> componentTypeIds = systemPtr->GetComponentTypeIds();
 
     for (const auto& it : m_systems)
     {

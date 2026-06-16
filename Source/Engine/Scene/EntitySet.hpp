@@ -17,6 +17,8 @@
 
 #include <Core/Threading/DataRaceDetector.hpp>
 
+#include <Framework/EngineMemory.hpp>
+
 #include <Scene/Entity.hpp>
 #include <Scene/EntitySetHelpers.hpp>
 #include <Scene/EntityContainer.hpp>
@@ -118,7 +120,7 @@ public:
 
     virtual size_t Size() const = 0;
 
-    virtual Array<TypeId> GetComponentTypeIds() const = 0;
+    virtual Span<const TypeId> GetComponentTypeIds() const = 0;
 
     /*! \brief Checks if an Entity's components are valid for this EntitySet.
      *
@@ -189,19 +191,11 @@ public:
         return m_elements.Size();
     }
 
-    virtual Array<TypeId> GetComponentTypeIds() const override
+    virtual Span<const TypeId> GetComponentTypeIds() const override
     {
-        return Array<TypeId> { TypeId::ForType<Components>()... };
-    }
-
-    /*! \brief Gets the elements array of this set.
-     *  The elements array contains the entities in this set and the corresponding component IDs.
-     *
-     *  \return Reference to the elements array of this set.
-     */
-    HYP_FORCE_INLINE const Array<Element>& GetElements() const
-    {
-        return m_elements;
+        static TypeId s_componentTypeIds[] = { TypeId::ForType<Components>()... };
+        
+        return Span<const TypeId>(s_componentTypeIds, s_componentTypeIds + sizeof...(Components));
     }
 
     /*! \brief Gets the entities in this set.
@@ -307,7 +301,7 @@ public:
      *  \param componentInfos The ComponentInfo objects to use for the view.
      *  \return A scoped view of this EntitySet.
      */
-    HYP_FORCE_INLINE EntitySetView<Components...> GetScopedView(const Array<ComponentInfo>& componentInfos, ANSIStringView currentFunction = "", ANSIStringView message = "")
+    HYP_FORCE_INLINE EntitySetView<Components...> GetScopedView(Span<const ComponentInfo> componentInfos, ANSIStringView currentFunction = "", ANSIStringView message = "")
     {
         return EntitySetView<Components...>(*this, componentInfos);
     }
@@ -328,7 +322,7 @@ public:
     HYP_DEF_STL_BEGIN_END(Iterator(*this, 0), Iterator(*this, m_elements.Size()))
 
 private:
-    Array<Element> m_elements;
+    Array<Element, SceneAllocator> m_elements;
 
     EntityContainer& m_entities;
     Tuple<ComponentContainer<Components>*...> m_componentContainers;
@@ -365,7 +359,7 @@ struct EntitySetView
         }
     }
 
-    EntitySetView(EntitySet<Components...>& entitySet, const Array<ComponentInfo>& componentInfos, ANSIStringView currentFunction = "", ANSIStringView message = "")
+    EntitySetView(EntitySet<Components...>& entitySet, Span<const ComponentInfo> componentInfos, ANSIStringView currentFunction = "", ANSIStringView message = "")
         : entitySet(entitySet),
           m_componentDataRaceDetectors { &entitySet.m_componentContainers.template GetElement<ComponentContainer<Components>*>()->GetDataRaceDetector()... }
     {
@@ -377,7 +371,7 @@ struct EntitySetView
 
             for (size_t i = 0; i < m_componentDataRaceDetectors.Size(); i++)
             {
-                auto componentInfosIt = componentInfos.FindIf([typeId = componentTypeIds[i]](const ComponentInfo& info)
+                auto componentInfosIt = std::find_if(componentInfos.Begin(), componentInfos.End(), [typeId = componentTypeIds[i]](const ComponentInfo& info)
                     {
                         return info.typeId == typeId;
                     });
@@ -423,16 +417,6 @@ struct EntitySetView
             }
         }
 #endif
-    }
-
-    /*! \brief Gets the elements array of this set.
-     *  The elements array contains the entities in this set and the corresponding component IDs.
-     *
-     *  \return Reference to the elements array of this set.
-     */
-    HYP_FORCE_INLINE const Array<typename EntitySet<Components...>::Element>& GetElements() const
-    {
-        return entitySet.GetElements();
     }
 
     HYP_DEF_STL_BEGIN_END(entitySet.Begin(), entitySet.End())

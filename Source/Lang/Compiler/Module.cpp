@@ -19,9 +19,9 @@ Module::Module(
 
 Module::~Module() = default;
 
-FlatSet<String> Module::GenerateAllScanPaths() const
+TFlatSet<String> Module::GenerateAllScanPaths() const
 {
-    FlatSet<String> allScanPaths = m_scanPaths;
+    TFlatSet<String> allScanPaths = m_scanPaths;
 
     TreeNode<Module*>* top = importTreeNode;
 

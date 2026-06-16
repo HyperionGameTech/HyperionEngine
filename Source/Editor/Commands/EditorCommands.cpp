@@ -935,47 +935,50 @@ static void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
 
     Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
         HYP_FORMAT("Add {}", defaultNodeName),
-        Proc<EditorActionFunctions()>([n, currentFocusedNode, activeScene]() -> EditorActionFunctions
-                                      {
-                                          return EditorActionFunctions {
-                                              .execute = Proc<void(EditorSubsystem*, EditorProject*)>([n, currentFocusedNode, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
-                                                                                                      {
-                                                                                                          if constexpr (ShouldAddNodeAsChild<T>())
-                                                                                                          {
-                                                                                                              Handle<Node> parentNode = currentFocusedNode.Lock();
+        Proc<EditorActionFunctions()>(
+            [n, currentFocusedNode, activeScene]() -> EditorActionFunctions
+            {
+                return EditorActionFunctions {
+                    .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                        [n, currentFocusedNode, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
+                        {
+                            if constexpr (ShouldAddNodeAsChild<T>())
+                            {
+                                Handle<Node> parentNode = currentFocusedNode.Lock();
 
-                                                                                                              if (!parentNode.IsValid())
-                                                                                                              {
-                                                                                                                  parentNode = activeScene->GetRoot();
-                                                                                                              }
+                                if (!parentNode.IsValid())
+                                {
+                                    parentNode = activeScene->GetRoot();
+                                }
 
-                                                                                                              parentNode->AddChild(n);
-                                                                                                          }
-                                                                                                          else
-                                                                                                          {
-                                                                                                              activeScene->GetRoot()->AddChild(n);
-                                                                                                          }
+                                parentNode->AddChild(n);
+                            }
+                            else
+                            {
+                                activeScene->GetRoot()->AddChild(n);
+                            }
 
-                                                                                                          editorSubsystem->SetFocusedNode(n, true);
-                                                                                                      }),
-                                              .revert = Proc<void(EditorSubsystem*, EditorProject*)>([n, currentFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
-                                                                                                     {
-                                                                                                         n->Remove();
+                            editorSubsystem->SetFocusedNode(n, true);
+                        }),
+                    .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                        [n, currentFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
+                        {
+                            n->Remove();
 
-                                                                                                         if (editorSubsystem->GetFocusedNode() == n)
-                                                                                                         {
-                                                                                                             editorSubsystem->SetFocusedNode(nullptr, true);
+                            if (editorSubsystem->GetFocusedNode() == n)
+                            {
+                                editorSubsystem->SetFocusedNode(nullptr, true);
 
-                                                                                                             Handle<Node> focusedNode = currentFocusedNode.Lock();
+                                Handle<Node> focusedNode = currentFocusedNode.Lock();
 
-                                                                                                             if (focusedNode.IsValid())
-                                                                                                             {
-                                                                                                                 editorSubsystem->SetFocusedNode(focusedNode, true);
-                                                                                                             }
-                                                                                                         }
-                                                                                                     })
-                                          };
-                                      }));
+                                if (focusedNode.IsValid())
+                                {
+                                    editorSubsystem->SetFocusedNode(focusedNode, true);
+                                }
+                            }
+                        })
+                };
+            }));
 
     InitObject(action);
 

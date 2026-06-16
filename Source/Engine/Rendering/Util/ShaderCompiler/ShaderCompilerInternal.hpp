@@ -161,7 +161,7 @@ struct DescriptorUsage
 
 struct DescriptorUsageSet
 {
-    FlatSet<DescriptorUsage> elements;
+    TFlatSet<DescriptorUsage> elements;
 
     void BuildDescriptorTableDeclaration(ShaderInputGroup& table) const;
 

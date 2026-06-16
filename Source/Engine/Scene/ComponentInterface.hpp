@@ -279,9 +279,10 @@ public:
     }
 
 private:
+    TFlatMap<TypeId, UniquePtr<IComponentInterface> (*)()> m_factories;
+    TFlatMap<TypeId, UniquePtr<IComponentInterface>> m_interfaces;
+    
     bool m_isInitialized;
-    TypeMap<UniquePtr<IComponentInterface> (*)()> m_factories;
-    TypeMap<UniquePtr<IComponentInterface>> m_interfaces;
 };
 
 template <class ComponentType, bool ShouldSerialize = true>

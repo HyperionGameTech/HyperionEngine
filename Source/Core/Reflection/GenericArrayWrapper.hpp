@@ -181,27 +181,27 @@ struct GenericArrayWrapper
     template <class T, class AllocatorType>
     GenericArrayWrapper(AsCopyTag, TSet<T, AllocatorType>&& set);
 
-    // FlatSet<T>
+    // TFlatSet<T>
 
     template <class T>
-    GenericArrayWrapper(AsReferenceTag, FlatSet<T>& set);
+    GenericArrayWrapper(AsReferenceTag, TFlatSet<T>& set);
 
     template <class T>
-    GenericArrayWrapper(AsCopyTag, const FlatSet<T>& set);
+    GenericArrayWrapper(AsCopyTag, const TFlatSet<T>& set);
 
     template <class T>
-    GenericArrayWrapper(AsCopyTag, FlatSet<T>&& set);
+    GenericArrayWrapper(AsCopyTag, TFlatSet<T>&& set);
 
-    // FlatMap<K, V>
-
-    template <class K, class V>
-    GenericArrayWrapper(AsReferenceTag, FlatMap<K, V>& map);
+    // TFlatMap<K, V>
 
     template <class K, class V>
-    GenericArrayWrapper(AsCopyTag, const FlatMap<K, V>& map);
+    GenericArrayWrapper(AsReferenceTag, TFlatMap<K, V>& map);
 
     template <class K, class V>
-    GenericArrayWrapper(AsCopyTag, FlatMap<K, V>&& map);
+    GenericArrayWrapper(AsCopyTag, const TFlatMap<K, V>& map);
+
+    template <class K, class V>
+    GenericArrayWrapper(AsCopyTag, TFlatMap<K, V>&& map);
 
     // TMap<K, V, AllocatorType>
 

@@ -21,13 +21,15 @@
 #include <Scene/ComponentContainer.hpp>
 #include <Scene/EntitySetHelpers.hpp>
 
+#include <Framework/EngineMemory.hpp>
+
 namespace Hyperion {
 
 class EntityManager;
 class Scene;
 class World;
 
-class SystemComponentDescriptors : THashTable<ComponentInfo, &ComponentInfo::typeId>
+class SystemComponentDescriptors : THashTable<ComponentInfo, &ComponentInfo::typeId, SceneAllocator>
 {
 public:
     EntitySetId entitySetId; // can be 0 if inited dynamically (from Span<ComponentInfo>)
@@ -40,9 +42,9 @@ public:
         Assert(Size() == sizeof...(ComponentDescriptors), "Duplicate component descriptors found");
     }
 
-    explicit SystemComponentDescriptors(Span<ComponentInfo> componentInfos)
+    explicit SystemComponentDescriptors(Span<const ComponentInfo> componentInfos)
     {
-        for (ComponentInfo& componentInfo : componentInfos)
+        for (const ComponentInfo& componentInfo : componentInfos)
         {
             Insert(componentInfo);
         }
@@ -106,18 +108,18 @@ public:
      *
      *  \return The TypeIds of the components this System operates on.
      */
-    HYP_FORCE_INLINE const Array<TypeId>& GetComponentTypeIds() const
+    HYP_FORCE_INLINE Span<const TypeId> GetComponentTypeIds() const
     {
-        return m_componentTypeIds;
+        return m_componentTypeIds.ToSpan();
     }
 
     /*! \brief Returns the ComponentInfo objects of the components this System operates on.
      *
      *  \return The ComponentInfos of the components this System operates on.
      */
-    HYP_FORCE_INLINE const Array<ComponentInfo>& GetComponentInfos() const
+    HYP_FORCE_INLINE Span<const ComponentInfo> GetComponentInfos() const
     {
-        return m_componentInfos;
+        return m_componentInfos.ToSpan();
     }
 
     /*! \brief Returns true if all given TypeIds are operated on by this System, false otherwise.
@@ -127,7 +129,7 @@ public:
      *
      *  \return True if all given TypeIds are operated on by this System, false otherwise.
      */
-    bool ActsOnComponents(const Array<TypeId>& componentTypeIds, bool receiveEventsContext) const
+    bool ActsOnComponents(Span<const TypeId> componentTypeIds, bool receiveEventsContext) const
     {
         for (const TypeId componentTypeId : m_componentTypeIds)
         {
@@ -144,7 +146,7 @@ public:
                 continue;
             }
 
-            if (!componentTypeIds.Contains(componentTypeId))
+            if (std::find(componentTypeIds.Begin(), componentTypeIds.End(), componentTypeId) == componentTypeIds.End())
             {
                 return false;
             }
@@ -247,12 +249,12 @@ protected:
 private:
     void InitComponentInfos_Internal();
 
-    TSet<WeakHandle<Entity>> m_initializedEntities;
+    TSet<WeakHandle<Entity>, SceneAllocator> m_initializedEntities;
 
-    Array<TypeId> m_componentTypeIds;
-    Array<ComponentInfo> m_componentInfos;
+    Array<TypeId, SceneAllocator> m_componentTypeIds;
+    Array<ComponentInfo, SceneAllocator> m_componentInfos;
 
-    Array<Proc<void()>> m_afterProcessProcs;
+    Array<Proc<void()>, SceneAllocator> m_afterProcessProcs;
 };
 
 } // namespace Hyperion

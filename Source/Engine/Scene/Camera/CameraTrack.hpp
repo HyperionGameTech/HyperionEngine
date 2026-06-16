@@ -49,7 +49,7 @@ public:
 
 private:
     double m_duration;
-    SortedArray<CameraTrackPivot> m_pivots;
+    TSortedArray<CameraTrackPivot> m_pivots;
 };
 
 } // namespace Hyperion

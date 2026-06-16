@@ -2540,7 +2540,7 @@ static constexpr inline bool IsRayTracingShaderModule(ShaderModuleType type)
 struct ShaderBundleDecl // combination of shader files, .frag, .vert etc. in .ini definitions file.
 {
     Name name;
-    FlatMap<ShaderModuleType, String> sources;
+    TFlatMap<ShaderModuleType, String> sources;
     ShaderVariantPerms variantPerms;
 
     bool HasRTShaders() const

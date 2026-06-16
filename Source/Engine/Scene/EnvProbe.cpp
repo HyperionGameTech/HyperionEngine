@@ -160,6 +160,7 @@ void EnvProbe::OnAddedToWorld(World* world)
             int(m_dimensions.x), int(m_dimensions.y),
             m_cameraNear, m_cameraFar);
 
+        camera->SetReceivesUpdate(false); // Don't automatically update
         camera->SetName(NAME("EnvProbeCamera"));
         camera->SetViewMatrix(Mat4f::LookAt(worldBounds.GetCenter(), worldBounds.GetCenter() + Vec3f::UnitZ(), Vec3f::UnitY()));
 

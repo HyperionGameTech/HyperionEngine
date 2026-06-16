@@ -166,7 +166,7 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
             currentDir = m_location.GetFileName().Substr(0, slashIndex);
         }
 
-        FlatSet<String> scanPaths;
+        TFlatSet<String> scanPaths;
         String foundPath;
 
         if (currentDir.Any())
@@ -182,7 +182,7 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
         }
 
         // add global module's scan paths
-        const FlatSet<String>& globalScanPaths =
+        const TFlatSet<String>& globalScanPaths =
             visitor->GetCompilationUnit()->GetGlobalModule()->GetScanPaths();
 
         for (const String& scanPath : globalScanPaths)

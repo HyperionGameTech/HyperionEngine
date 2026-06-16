@@ -530,10 +530,10 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, TSet<T, AllocatorType>&& set
     };
 }
 
-// FlatSet<T>
+// TFlatSet<T>
 
 template <class T>
-GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, FlatSet<T>& set)
+GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, TFlatSet<T>& set)
     : GenericArrayWrapper()
 {
     pInternalArray = &set;
@@ -544,13 +544,13 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, FlatSet<T>& set)
 
     functionTable.size = [](const GenericArrayWrapper& array) -> size_t
     {
-        auto& flatSet = *static_cast<const FlatSet<T>*>(array.pInternalArray);
+        auto& flatSet = *static_cast<const TFlatSet<T>*>(array.pInternalArray);
         return flatSet.Size();
     };
 }
 
 template <class T>
-GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const FlatSet<T>& set)
+GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const TFlatSet<T>& set)
     : GenericArrayWrapper()
 {
     pInternalArray = new std::remove_cvref_t<decltype(set)>(set);
@@ -565,13 +565,13 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const FlatSet<T>& set)
 
     functionTable.size = [](const GenericArrayWrapper& array) -> size_t
     {
-        auto& flatSet = *static_cast<const FlatSet<T>*>(array.pInternalArray);
+        auto& flatSet = *static_cast<const TFlatSet<T>*>(array.pInternalArray);
         return flatSet.Size();
     };
 }
 
 template <class T>
-GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, FlatSet<T>&& set)
+GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, TFlatSet<T>&& set)
     : GenericArrayWrapper()
 {
     pInternalArray = new std::remove_cvref_t<decltype(set)>(std::move(set));
@@ -586,15 +586,15 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, FlatSet<T>&& set)
 
     functionTable.size = [](const GenericArrayWrapper& array) -> size_t
     {
-        auto& flatSet = *static_cast<const FlatSet<T>*>(array.pInternalArray);
+        auto& flatSet = *static_cast<const TFlatSet<T>*>(array.pInternalArray);
         return flatSet.Size();
     };
 }
 
-// FlatMap<K, V>
+// TFlatMap<K, V>
 
 template <class K, class V>
-GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, FlatMap<K, V>& map)
+GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, TFlatMap<K, V>& map)
     : GenericArrayWrapper()
 {
     pInternalArray = &map;
@@ -605,13 +605,13 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, FlatMap<K, V>& map)
 
     functionTable.size = [](const GenericArrayWrapper& array) -> size_t
     {
-        auto& flatMap = *static_cast<const FlatMap<K, V>*>(array.pInternalArray);
+        auto& flatMap = *static_cast<const TFlatMap<K, V>*>(array.pInternalArray);
         return flatMap.Size();
     };
 }
 
 template <class K, class V>
-GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const FlatMap<K, V>& map)
+GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const TFlatMap<K, V>& map)
     : GenericArrayWrapper()
 {
     pInternalArray = new std::remove_cvref_t<decltype(map)>(map);
@@ -626,13 +626,13 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const FlatMap<K, V>& map)
 
     functionTable.size = [](const GenericArrayWrapper& array) -> size_t
     {
-        auto& flatMap = *static_cast<const FlatMap<K, V>*>(array.pInternalArray);
+        auto& flatMap = *static_cast<const TFlatMap<K, V>*>(array.pInternalArray);
         return flatMap.Size();
     };
 }
 
 template <class K, class V>
-GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, FlatMap<K, V>&& map)
+GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, TFlatMap<K, V>&& map)
     : GenericArrayWrapper()
 {
     pInternalArray = new std::remove_cvref_t<decltype(map)>(std::move(map));
@@ -647,7 +647,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, FlatMap<K, V>&& map)
 
     functionTable.size = [](const GenericArrayWrapper& array) -> size_t
     {
-        auto& flatMap = *static_cast<const FlatMap<K, V>*>(array.pInternalArray);
+        auto& flatMap = *static_cast<const TFlatMap<K, V>*>(array.pInternalArray);
         return flatMap.Size();
     };
 }

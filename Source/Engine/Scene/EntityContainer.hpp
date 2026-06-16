@@ -6,8 +6,7 @@
 
 #pragma once
 
-#include <Core/Containers/TypeMap.hpp>
-#include <Core/Containers/Map.hpp>
+#include <Core/Containers/FlatMap.hpp>
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/SparsePagedArray.hpp>
 
@@ -27,16 +26,18 @@ CORE_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
 
 class Entity;
 
+using ComponentMap = TFlatMap<TypeId, ComponentId, SceneAllocator>;
+
 struct EntityData
 {
     // Keep a weak handle around so the Entity pointer doesn't get invalidated and reused
     WeakHandle<Entity> entityWeak;
-    TypeMap<ComponentId> components;
+    ComponentMap components;
 
     template <class Component>
     HYP_FORCE_INLINE bool HasComponent() const
     {
-        return components.Contains<Component>();
+        return components.Contains(TypeId::ForType<Component>());
     }
 
     HYP_FORCE_INLINE bool HasComponent(TypeId componentTypeId) const
@@ -66,18 +67,20 @@ struct EntityData
     template <class Component>
     HYP_FORCE_INLINE ComponentId GetComponentId() const
     {
-        return components.At<Component>();
+        auto* kvp = components.TryGet(TypeId::ForType<Component>());
+        return kvp ? kvp->second : InvalidComponentId;
     }
 
     HYP_FORCE_INLINE ComponentId GetComponentId(TypeId componentTypeId) const
     {
-        return components.At(componentTypeId);
+        auto* kvp = components.TryGet(componentTypeId);
+        return kvp ? kvp->second : InvalidComponentId;
     }
 
     template <class Component>
     HYP_FORCE_INLINE Optional<ComponentId> TryGetComponentId() const
     {
-        auto it = components.Find<Component>();
+        auto it = components.Find(TypeId::ForType<Component>());
 
         if (it == components.End())
         {
@@ -100,23 +103,23 @@ struct EntityData
     }
 
     template <class Component>
-    HYP_FORCE_INLINE typename TypeMap<ComponentId>::Iterator FindComponent()
+    HYP_FORCE_INLINE ComponentMap::Iterator FindComponent()
     {
-        return components.Find<Component>();
+        return components.Find(TypeId::ForType<Component>());
     }
 
-    HYP_FORCE_INLINE typename TypeMap<ComponentId>::Iterator FindComponent(TypeId componentTypeId)
+    HYP_FORCE_INLINE ComponentMap::Iterator FindComponent(TypeId componentTypeId)
     {
         return components.Find(componentTypeId);
     }
 
     template <class Component>
-    HYP_FORCE_INLINE typename TypeMap<ComponentId>::ConstIterator FindComponent() const
+    HYP_FORCE_INLINE ComponentMap::ConstIterator FindComponent() const
     {
-        return components.Find<Component>();
+        return components.Find(TypeId::ForType<Component>());
     }
 
-    HYP_FORCE_INLINE typename TypeMap<ComponentId>::ConstIterator FindComponent(TypeId componentTypeId) const
+    HYP_FORCE_INLINE ComponentMap::ConstIterator FindComponent(TypeId componentTypeId) const
     {
         return components.Find(componentTypeId);
     }

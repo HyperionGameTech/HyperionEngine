@@ -851,7 +851,7 @@ struct LoadedSourceFile
     }
 };
 
-static const FlatMap<String, ShaderModuleType> s_shaderTypeNames = {
+static const TFlatMap<String, ShaderModuleType> s_shaderTypeNames = {
     { "vs", ShaderModuleType::Vertex },
     { "ps", ShaderModuleType::Pixel },
     { "gs", ShaderModuleType::Geometry },

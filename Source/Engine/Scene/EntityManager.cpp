@@ -145,8 +145,9 @@ void EntityManager::NotifySystemOfExistingEntities(SystemBase* system)
             Assert(entity != nullptr);
 
             const ComponentMap& componentIds = entityData.components;
+            const auto keys = componentIds.Keys();
 
-            if (system->ActsOnComponents(componentIds.Keys(), true))
+            if (system->ActsOnComponents(keys.ToSpan(), true))
             {
                 { // critical section
                     Mutex::Guard guard(m_systemEntityMapMutex);

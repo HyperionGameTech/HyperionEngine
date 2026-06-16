@@ -25,7 +25,7 @@ void SystemBase::InitComponentInfos_Internal()
         // already init
         return;
 
-    Array<ComponentInfo> componentDescriptorsArray = GetComponentDescriptors().ToArray();
+    Array<ComponentInfo, SceneAllocator> componentDescriptorsArray = GetComponentDescriptors().ToArray();
     m_componentTypeIds.Reserve(componentDescriptorsArray.Size());
     m_componentInfos.Reserve(componentDescriptorsArray.Size());
 

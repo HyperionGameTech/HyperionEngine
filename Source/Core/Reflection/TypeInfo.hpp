@@ -92,11 +92,11 @@ class TMap;
 template <class Value, class AllocatorType, class Policy>
 class TSet;
 
-template <class Key, class Value>
-class FlatMap;
+template <class Key, class Value, class AllocatorType>
+class TFlatMap;
 
-template <class T>
-class FlatSet;
+template <class T, class AllocatorType>
+class TFlatSet;
 
 template <class Key, class Value>
 class ArrayMap;
@@ -538,26 +538,26 @@ struct TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, filesystem::Fi
     void operator()(TypeInfo& result) const;
 };
 
-template <class Key, class Value, class NodeAllocatorType, class TBoxed>
-struct TypeInfoImpl<containers::TMap<Key, Value, NodeAllocatorType>, TBoxed>
+template <class Key, class Value, class AllocatorType, class TBoxed>
+struct TypeInfoImpl<containers::TMap<Key, Value, AllocatorType>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
 
-template <class Value, class NodeAllocatorType, class TBoxed>
-struct TypeInfoImpl<containers::TSet<Value, NodeAllocatorType>, TBoxed>
+template <class Value, class AllocatorType, class TBoxed>
+struct TypeInfoImpl<containers::TSet<Value, AllocatorType>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
 
-template <class Key, class Value, class TBoxed>
-struct TypeInfoImpl<containers::FlatMap<Key, Value>, TBoxed>
+template <class Key, class Value, class AllocatorType, class TBoxed>
+struct TypeInfoImpl<containers::TFlatMap<Key, Value, AllocatorType>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
 
-template <class T, class TBoxed>
-struct TypeInfoImpl<containers::FlatSet<T>, TBoxed>
+template <class T, class AllocatorType, class TBoxed>
+struct TypeInfoImpl<containers::TFlatSet<T, AllocatorType>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
@@ -917,7 +917,7 @@ struct CORE_API TypeInfo
         return flags & TypeInfoFlags::HANDLE_TYPE;
     }
 
-    /*! \brief Get element type for Array, String, HashSet, FlatSet, or key type for TMap/FlatMap */
+    /*! \brief Get element type for Array, String, TSet, TFlatSet, or key type for TMap/TFlatMap */
     HYP_FORCE_INLINE const TypeInfo* GetElementType() const
     {
         return extendedInfo.GetElementType();
@@ -1306,10 +1306,10 @@ void TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, filesystem::File
     TypeInfoImpl<typename T::Base, TBoxed>()(result);
 }
 
-template <class Key, class Value, class NodeAllocatorType, class TBoxed>
-void TypeInfoImpl<containers::TMap<Key, Value, NodeAllocatorType>, TBoxed>::operator()(TypeInfo& result) const
+template <class Key, class Value, class AllocatorType, class TBoxed>
+void TypeInfoImpl<containers::TMap<Key, Value, AllocatorType>, TBoxed>::operator()(TypeInfo& result) const
 {
-    using MapType = containers::TMap<Key, Value, NodeAllocatorType>;
+    using MapType = containers::TMap<Key, Value, AllocatorType>;
 
     class HashMapHandler final : public ITypeInfoMapHandler
     {
@@ -1453,10 +1453,10 @@ void TypeInfoImpl<containers::TMap<Key, Value, NodeAllocatorType>, TBoxed>::oper
     result.extendedInfo.handler = &s_handler;
 }
 
-template <class Key, class Value, class TBoxed>
-void TypeInfoImpl<containers::FlatMap<Key, Value>, TBoxed>::operator()(TypeInfo& result) const
+template <class Key, class Value, class AllocatorType, class TBoxed>
+void TypeInfoImpl<containers::TFlatMap<Key, Value, AllocatorType>, TBoxed>::operator()(TypeInfo& result) const
 {
-    using MapType = containers::FlatMap<Key, Value>;
+    using MapType = containers::TFlatMap<Key, Value, AllocatorType>;
 
     class FlatMapHandler final : public ITypeInfoMapHandler
     {
@@ -1747,10 +1747,10 @@ void TypeInfoImpl<containers::ArrayMap<Key, Value>, TBoxed>::operator()(TypeInfo
     result.extendedInfo.handler = &s_handler;
 }
 
-template <class Value, class TBoxed>
-void TypeInfoImpl<containers::FlatSet<Value>, TBoxed>::operator()(TypeInfo& result) const
+template <class Value, class AllocatorType, class TBoxed>
+void TypeInfoImpl<containers::TFlatSet<Value, AllocatorType>, TBoxed>::operator()(TypeInfo& result) const
 {
-    using SetType = containers::FlatSet<Value>;
+    using SetType = containers::TFlatSet<Value, AllocatorType>;
 
     class FlatSetHandler final : public ITypeInfoSetHandler
     {
@@ -1857,10 +1857,10 @@ void TypeInfoImpl<containers::FlatSet<Value>, TBoxed>::operator()(TypeInfo& resu
     result.extendedInfo.handler = &s_handler;
 }
 
-template <class Value, class NodeAllocatorType, class TBoxed>
-void TypeInfoImpl<containers::TSet<Value, NodeAllocatorType>, TBoxed>::operator()(TypeInfo& result) const
+template <class Value, class AllocatorType, class TBoxed>
+void TypeInfoImpl<containers::TSet<Value, AllocatorType>, TBoxed>::operator()(TypeInfo& result) const
 {
-    using SetType = containers::TSet<Value, NodeAllocatorType>;
+    using SetType = containers::TSet<Value, AllocatorType>;
 
     class HashSetHandler final : public ITypeInfoSetHandler
     {

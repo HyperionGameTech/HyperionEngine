@@ -139,7 +139,7 @@ protected:
 
     Name m_name;
     WorldGridLayerInfo m_layerInfo;
-    FlatMap<Vec2i, Array<AssetReference, DynamicAllocator>> m_objectsByCoord;
+    TFlatMap<Vec2i, Array<AssetReference, DynamicAllocator>> m_objectsByCoord;
 
 private:
     HYP_METHOD()

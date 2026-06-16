@@ -63,7 +63,7 @@ public:
 protected:
     Vec3f m_gravity = EarthGravity;
 
-    FlatSet<Handle<RigidBody>> m_rigidBodies;
+    TFlatSet<Handle<RigidBody>> m_rigidBodies;
 };
 
 template <class Adapter>

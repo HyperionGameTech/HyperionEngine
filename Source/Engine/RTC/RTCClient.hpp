@@ -124,7 +124,7 @@ protected:
     RTCServer* m_server;
     RTCClientState m_state;
     Array<RC<RTCTrackBase>> m_tracks;
-    FlatMap<Name, RC<RTCDataChannel>> m_dataChannels;
+    TFlatMap<Name, RC<RTCDataChannel>> m_dataChannels;
     RTCClientCallbacks m_callbacks;
 };
 

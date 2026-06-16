@@ -518,7 +518,7 @@ void VulkanGraphicsPipeline::BuildVertexAttributes(
         VK_FORMAT_R32G32B32A32_SFLOAT
     };
 
-    FlatMap<uint32, uint32> bindingSizes {};
+    TFlatMap<uint32, uint32> bindingSizes {};
 
     const uint32 bits = uint32(ByteUtil::BitCount(m_inputLayout.mask));
     Assert(bits != 0);

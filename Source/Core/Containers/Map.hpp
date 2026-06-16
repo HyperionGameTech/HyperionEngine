@@ -151,16 +151,16 @@ public:
     Iterator FindByHashCode(HashCode hashCode);
     ConstIterator FindByHashCode(HashCode hashCode) const;
 
-    KeyValuePair<Key, Value>* TryGet(const KeyType& key)
+    HYP_FORCE_INLINE KeyValuePair<Key, Value>* TryGet(const KeyType& key)
     {
-        const auto it = Find(key);
+        Iterator it = Find(key);
 
         return it != End() ? &(*it) : nullptr;
     }
 
-    const KeyValuePair<Key, Value>* TryGet(const KeyType& key) const
+    HYP_FORCE_INLINE const KeyValuePair<Key, Value>* TryGet(const KeyType& key) const
     {
-        const auto it = Find(key);
+        ConstIterator it = Find(key);
 
         return it != End() ? &(*it) : nullptr;
     }

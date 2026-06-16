@@ -14,11 +14,11 @@
 namespace Hyperion {
 namespace containers {
 
-template <class T>
-class SortedArray : public Array<T>
+template <class T, class AllocatorType = DynamicAllocator>
+class TSortedArray : public Array<T, AllocatorType>
 {
 protected:
-    using Base = Array<T>;
+    using Base = Array<T, AllocatorType>;
     using KeyType = typename Base::KeyType;
     using ValueType = typename Base::ValueType;
 
@@ -26,25 +26,27 @@ public:
     using Iterator = typename Base::Iterator;
     using ConstIterator = typename Base::ConstIterator;
 
-    SortedArray();
+    TSortedArray();
 
-    SortedArray(std::initializer_list<T> initializerList)
+    TSortedArray(std::initializer_list<T> initializerList)
         : Base(initializerList)
     {
         std::sort(Begin(), End());
     }
 
-    SortedArray(const T* begin, const T* end)
+    TSortedArray(const T* begin, const T* end)
         : Base(begin, end)
     {
         std::sort(Begin(), End());
     }
 
-    SortedArray(const SortedArray& other);
-    SortedArray& operator=(const SortedArray& other);
-    SortedArray(SortedArray&& other) noexcept;
-    SortedArray& operator=(SortedArray&& other) noexcept;
-    ~SortedArray();
+    TSortedArray(const TSortedArray& other);
+    TSortedArray& operator=(const TSortedArray& other);
+    
+    TSortedArray(TSortedArray&& other) noexcept;
+    TSortedArray& operator=(TSortedArray&& other) noexcept;
+
+    ~TSortedArray();
 
     Iterator Find(const T& value);
     ConstIterator Find(const T& value) const;
@@ -128,45 +130,45 @@ private:
     using Base::PushFront;
 };
 
-template <class T>
-SortedArray<T>::SortedArray()
+template <class T, class AllocatorType>
+TSortedArray<T, AllocatorType>::TSortedArray()
     : Base()
 {
 }
 
-template <class T>
-SortedArray<T>::SortedArray(const SortedArray& other)
+template <class T, class AllocatorType>
+TSortedArray<T, AllocatorType>::TSortedArray(const TSortedArray& other)
     : Base(other)
 {
 }
 
-template <class T>
-auto SortedArray<T>::operator=(const SortedArray& other) -> SortedArray&
+template <class T, class AllocatorType>
+auto TSortedArray<T, AllocatorType>::operator=(const TSortedArray& other) -> TSortedArray&
 {
     Base::operator=(other);
 
     return *this;
 }
 
-template <class T>
-SortedArray<T>::SortedArray(SortedArray&& other) noexcept
+template <class T, class AllocatorType>
+TSortedArray<T, AllocatorType>::TSortedArray(TSortedArray&& other) noexcept
     : Base(std::move(other))
 {
 }
 
-template <class T>
-auto SortedArray<T>::operator=(SortedArray&& other) noexcept -> SortedArray&
+template <class T, class AllocatorType>
+auto TSortedArray<T, AllocatorType>::operator=(TSortedArray&& other) noexcept -> TSortedArray&
 {
     Base::operator=(std::move(other));
 
     return *this;
 }
 
-template <class T>
-SortedArray<T>::~SortedArray() = default;
+template <class T, class AllocatorType>
+TSortedArray<T, AllocatorType>::~TSortedArray() = default;
 
-template <class T>
-auto SortedArray<T>::Find(const T& value) -> Iterator
+template <class T, class AllocatorType>
+auto TSortedArray<T, AllocatorType>::Find(const T& value) -> Iterator
 {
     const auto it = Base::LowerBound(value);
 
@@ -178,8 +180,8 @@ auto SortedArray<T>::Find(const T& value) -> Iterator
     return (*it == value) ? it : End();
 }
 
-template <class T>
-auto SortedArray<T>::Find(const T& value) const -> ConstIterator
+template <class T, class AllocatorType>
+auto TSortedArray<T, AllocatorType>::Find(const T& value) const -> ConstIterator
 {
     const auto it = Base::LowerBound(value);
 
@@ -191,24 +193,24 @@ auto SortedArray<T>::Find(const T& value) const -> ConstIterator
     return (*it == value) ? it : End();
 }
 
-template <class T>
-auto SortedArray<T>::Insert(const T& value) -> Iterator
+template <class T, class AllocatorType>
+auto TSortedArray<T, AllocatorType>::Insert(const T& value) -> Iterator
 {
     Iterator it = Base::LowerBound(value);
 
     return Base::Insert(it, value);
 }
 
-template <class T>
-auto SortedArray<T>::Insert(T&& value) -> Iterator
+template <class T, class AllocatorType>
+auto TSortedArray<T, AllocatorType>::Insert(T&& value) -> Iterator
 {
     Iterator it = Base::LowerBound(value);
 
     return Base::Insert(it, std::forward<T>(value));
 }
 
-template <class T>
-auto SortedArray<T>::Erase(const T& value) -> Iterator
+template <class T, class AllocatorType>
+auto TSortedArray<T, AllocatorType>::Erase(const T& value) -> Iterator
 {
     const ConstIterator iter = Base::Find(value);
 
@@ -222,7 +224,6 @@ auto SortedArray<T>::Erase(const T& value) -> Iterator
 
 } // namespace containers
 
-template <class T>
-using SortedArray = containers::SortedArray<T>;
+using containers::TSortedArray;
 
 } // namespace Hyperion
