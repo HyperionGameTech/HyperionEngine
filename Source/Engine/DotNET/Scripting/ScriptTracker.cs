@@ -122,13 +122,13 @@ namespace Hyperion
 
             Logger.Log(logChannel, LogLevel.Info, "Processing {0} scripts...", processingScripts.Count);
 
-            List<string> scriptsToRemove = [];
+            List<KeyValuePair<string, ScriptLanguage>> scriptsToRemove = [];
 
             foreach (KeyValuePair<string, ScriptInstance> entry in processingScripts)
             {
                 if (!entry.Value.IsValid)
                 {
-                    scriptsToRemove.Add(entry.Key);
+                    scriptsToRemove.Add(new(entry.Key, entry.Value.Get().Language));
 
                     continue;
                 }
@@ -181,21 +181,28 @@ namespace Hyperion
                     entry.Value.Get().CompileStatus = ScriptCompileStatus.Errored;
                 }
 
-                scriptsToRemove.Add(entry.Key);
+                scriptsToRemove.Add(new(entry.Key, entry.Value.Get().Language));
             }
 
-            foreach (string scriptPath in scriptsToRemove)
+            foreach (KeyValuePair<string, ScriptLanguage> kvp in scriptsToRemove)
             {
-                processingScripts.Remove(scriptPath);
+                string scriptPath = kvp.Key;
+                ScriptLanguage language = kvp.Value;
 
-                if (tasks.Remove(scriptPath, out CompileScriptEditorTask? task))
+                bool removedFromProcessing = processingScripts.Remove(scriptPath);
+
+                if (language == ScriptLanguage.CSharp) // HypScript editor tasks are managed on the native side.
                 {
-                    task.SetIsCompleted(true);
+                    if (tasks.Remove(scriptPath, out CompileScriptEditorTask? task))
+                    {
+                        task.SetIsCompleted(true);
+                    } else
+                    {
+                        Logger.Log(LogLevel.Warning, "Editor task not found for script {}", scriptPath);
+                    }
                 }
-                else
-                {
-                    Logger.Log(LogLevel.Warning, "Editor task not found for script {}", scriptPath);
-                }
+
+                Debug.Assert(removedFromProcessing);
             }
         }
 

@@ -791,8 +791,6 @@ void DebugDrawer::Update()
     }
 }
 
-HYP_DISABLE_OPTIMIZATION;
-
 void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;

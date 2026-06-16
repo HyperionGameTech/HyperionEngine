@@ -50,6 +50,8 @@ public:
     utf::Char32 ReadEscapeCode();
     /** Reads a string literal and returns the token */
     Token ReadStringLiteral();
+    /** Reads a character literal and returns the token */
+    Token ReadCharacterLiteral();
     /** Reads a number literal and returns the token */
     Token ReadNumberLiteral();
     /** Reads a hex number literal and returns the token */

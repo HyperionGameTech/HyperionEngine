@@ -18,6 +18,7 @@ enum TokenClass
     TK_INTEGER,
     TK_FLOAT,
     TK_STRING,
+    TK_CHARACTER,
     TK_IDENT,
     TK_LABEL,
     TK_OPERATOR,

@@ -341,8 +341,6 @@ void ShowSaveFileDialog(
 
 #pragma region Select Folder Dialog
 
-HYP_DISABLE_OPTIMIZATION;
-
 void ShowSelectFolderDialog(
     UTF8StringView title,
     const FilePath& baseDir,

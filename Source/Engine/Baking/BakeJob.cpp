@@ -56,8 +56,6 @@ struct TraceLightmapRaysPayload
     uint32 rayOffset;
 };
 
-HYP_DISABLE_OPTIMIZATION;
-
 class TraceLightmapRaysCmd : public CmdBase
 {
 public:

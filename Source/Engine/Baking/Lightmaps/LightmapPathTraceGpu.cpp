@@ -262,8 +262,6 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(Frame* frame, BakeJobB
     jd.isCreated = true;
 }
 
-HYP_DISABLE_OPTIMIZATION;
-
 void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(
     Frame* frame,
     BakeJobBase* job,

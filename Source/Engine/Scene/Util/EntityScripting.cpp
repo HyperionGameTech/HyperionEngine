@@ -360,9 +360,8 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                     }
                 }
 
-                if (!instance)
+                if (!instance) // needs recompile
                 {
-
                     // Load source file and compile it
                     Handle<AssetRegistry> registry = scriptAsset->GetAssetRegistry();
                     AssertDebug(registry.IsValid());

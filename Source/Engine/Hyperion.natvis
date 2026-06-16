@@ -449,12 +449,7 @@
            <Loop>
               <Break Condition="found == true || currentHead == nullptr" />
               <If Condition="(unsigned __int64)hashCode == (unsigned __int64)currentHead-&amp;gt;value.first">
-                <If Condition="currentHead-&amp;gt;value.second.first.m_allocation.allocationType == 2 &amp;amp;&amp;amp; currentHead-&amp;gt;value.second.first.m_allocation.isDynamic == false">
-                  <Item Name="StringValue">(char*)&amp;amp;(currentHead-&amp;gt;value.second.first.m_allocation.storage.dataBuffer + currentHead-&amp;gt;value.second.first.m_startOffset)[0],s</Item>
-                </If>
-                <If Condition="currentHead-&amp;gt;value.second.first.m_allocation.allocationType == 1 || currentHead-&amp;gt;value.second.first.m_allocation.isDynamic == true">
-                  <Item Name="StringValue">&amp;amp;((char*)currentHead-&amp;gt;value.second.first.m_allocation.buffer + currentHead-&amp;gt;value.second.first.m_startOffset)[0],s</Item>
-                </If>
+                <Item Name="StringValue">(currentHead-&amp;gt;value.second.first.data),s</Item>
                 <Exec>found = true</Exec>
               </If>
               <Exec>currentHead = currentHead-&amp;gt;next</Exec>
@@ -471,6 +466,7 @@
       </CustomListItems>
     </Expand>
   </Type>
+
 
   <Type Name="Hyperion::utilities::TypeId">
     <DisplayString Condition="value == 0">Void</DisplayString>

@@ -132,8 +132,8 @@ struct ResourceSubtypeData final
     // Map from id -> ResourceData
     SparsePagedArray<ResourceData, 1024, RenderAllocator> data;
 
-    Bitset indicesPendingDelete;
-    Bitset indicesPendingUpdate;
+    TBitset<RenderAllocator> indicesPendingDelete;
+    TBitset<RenderAllocator> indicesPendingUpdate;
 
     // reserve 1 extra for easier iteration without bounds checking
     ResourceBinderBase* resourceBinders[MaxResourceBindersPerType + 1];
@@ -304,23 +304,23 @@ public:
 #pragma endregion ResourceContainer
 
 template <class ElementType, class ProxyType>
-static HYP_FORCE_INLINE void CopyRenderProxy(ResourceSubtypeData& subtypeData, const ObjId<ElementType>& id, ProxyType* newProxy)
+static inline void CopyRenderProxy(ResourceSubtypeData& subtypeData, const ObjId<ElementType>& id, ProxyType* newProxy)
 {
-    AssertDebug(newProxy != nullptr);
+    //AssertDebug(newProxy != nullptr);
+
+    //AssertDebug(subtypeData.typeInfo->id == id.GetTypeId(),
+    //    "Attempting to use ID for type {} as index into proxy collection that requires index type {}",
+    //    LookupTypeName(id.GetTypeId()),
+    //    subtypeData.typeInfo->name);
 
     const uint32 idx = id.ToIndex();
-
-    AssertDebug(subtypeData.typeInfo->id == id.GetTypeId(),
-        "Attempting to use ID for type {} as index into proxy collection that requires index type {}",
-        LookupTypeName(id.GetTypeId()),
-        subtypeData.typeInfo->name);
 
     subtypeData.proxies.SetElement(idx, *newProxy);
     subtypeData.indicesPendingUpdate.Set(idx, true);
 }
 
 template <class AllocatorType, class ElementType, class ProxyType>
-static HYP_FORCE_INLINE void SyncResourcesImpl(
+static inline void SyncResourcesImpl(
     ResourceTracker<AllocatorType, ObjId<ElementType>, ElementType*, ProxyType>& resourceTracker,
     const typename ResourceTracker<AllocatorType, ObjId<ElementType>, ElementType*, ProxyType>::Impl& impl)
 {
@@ -358,10 +358,10 @@ static void SyncResources(
         return;
     }
 
-    Array<ElementType*, RenderAllocator> removed;
+    Array<ElementType*, RenderTempAllocator> removed;
     dst.GetRemoved(removed, false);
 
-    Array<ElementType*, RenderAllocator> added;
+    Array<ElementType*, RenderTempAllocator> added;
     dst.GetAdded(added, false);
 
     for (ElementType* pResource : added)
@@ -421,7 +421,7 @@ static void SyncResources(
         }
     }
 
-    Array<ElementType*, RenderAllocator> changed;
+    Array<ElementType*, RenderTempAllocator> changed;
 
     if constexpr (!std::is_same_v<ProxyType, NullProxy>)
     {

@@ -493,6 +493,12 @@ extern struct ScriptDesc
     CompileStatus : uint8
     HotReloadVersion : int32
     LastModifiedTimestamp : uint64
+    SerializePath() -> string
+    DeserializePath(path : string) -> void
+    SerializeAssemblyPath() -> string
+    DeserializeAssemblyPath(assemblyPath : string) -> void
+    SerializeClassName() -> string
+    DeserializeClassName(className : string) -> void
 end
 extern struct PropertyHandle
 end

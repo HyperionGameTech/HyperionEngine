@@ -580,7 +580,6 @@ ShadowMap* ShadowMapCache::GetShadowMap(
     return nullptr;
 }
 
-HYP_DISABLE_OPTIMIZATION;
 bool ShadowMapCache::Remove(const ShadowMapCacheKey& key)
 {
     TUniqueLock lock(m_impl->mutex);

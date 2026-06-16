@@ -108,6 +108,10 @@ Token Lexer::NextToken()
     {
         return ReadStringLiteral();
     }
+    if (ch[0] == '\'')
+    {
+        return ReadCharacterLiteral();
+    }
     else if (ch[0] == '0' && (ch[1] == 'x' || ch[1] == 'X'))
     {
         return ReadHexNumberLiteral();
@@ -285,7 +289,36 @@ Char32 Lexer::ReadEscapeCode()
         Char32 esc = m_sourceStream.Next();
         m_sourceLocation.GetColumn()++;
 
-        // TODO: add support for unicode escapes
+        // Handle octal escape sequences: \0 through \377 (up to 3 octal digits)
+        if (esc >= (Char32)'0' && esc <= (Char32)'7')
+        {
+            Char32 value = esc - (Char32)'0';
+
+            for (int i = 0; i < 2; i++)
+            {
+                if (m_sourceStream.HasNext())
+                {
+                    Char32 next = m_sourceStream.Peek();
+                    if (next >= (Char32)'0' && next <= (Char32)'7')
+                    {
+                        m_sourceStream.Next();
+                        m_sourceLocation.GetColumn()++;
+                        value = (value << 3) + (next - (Char32)'0');
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            return value;
+        }
+
         switch (esc)
         {
         case 't':
@@ -367,6 +400,73 @@ Token Lexer::ReadStringLiteral()
     }
 
     return Token(TK_STRING, value, location);
+}
+
+Token Lexer::ReadCharacterLiteral()
+{
+    // the location for the start of the character literal
+    SourceLocation location = m_sourceLocation;
+
+    // read the opening single quote
+    Char32 delim = m_sourceStream.Next();
+    m_sourceLocation.GetColumn()++;
+
+    String value;
+
+    Char32 ch = m_sourceStream.Next();
+    m_sourceLocation.GetColumn()++;
+
+    // determine whether to read an escape sequence
+    if (ch == (Char32)'\\')
+    {
+        Char32 esc = ReadEscapeCode();
+        value.Append(utf::ToUtf8Chars(esc));
+    }
+    else if (ch == (Char32)'\'' || ch == (Char32)'\n' || !HasNext())
+    {
+        // empty character literal or unterminated
+        m_compilationUnit->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_unterminated_string_literal,
+            location));
+
+        return Token(TK_CHARACTER, value, location);
+    }
+    else
+    {
+        value.Append(utf::ToUtf8Chars(ch));
+    }
+
+    // read the closing single quote
+    if (!m_sourceStream.HasNext())
+    {
+        m_compilationUnit->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_unterminated_string_literal,
+            location));
+
+        return Token(TK_CHARACTER, value, location);
+    }
+
+    Char32 closing = m_sourceStream.Next();
+
+    if (closing != (Char32)'\'')
+    {
+        // multi-character literal (more than one char before closing quote) or missing closing quote
+        m_compilationUnit->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_unterminated_string_literal,
+            location));
+
+        // put back the extra character
+        m_sourceStream.GoBack(1);
+
+        return Token(TK_CHARACTER, value, location);
+    }
+
+    m_sourceLocation.GetColumn()++;
+
+    return Token(TK_CHARACTER, value, location);
 }
 
 Token Lexer::ReadNumberLiteral()
