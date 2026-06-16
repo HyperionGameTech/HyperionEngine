@@ -739,7 +739,9 @@ RendererResult RenderInterface::Initialize()
 
     CreateSphereSamplesBuffer();
     CreateBlueNoiseBuffer();
-    CreateEnvProbesTexture();
+
+    CreateEnvProbesColorTexture();
+    CreateEnvProbesDepthTexture();
 
     CheckResultOrReturn(globalDescriptorTable->Create());
 
@@ -847,7 +849,8 @@ void RenderInterface::Shutdown()
     blueNoiseBuffer.Shutdown();
     sphereSamplesBuffer.Shutdown();
 
-    envProbesTexture.Reset();
+    envProbesColorTexture.Reset();
+    envProbesDepthTexture.Reset();
 
     shadowMapCache->Shutdown();
     placeholderData->Shutdown();
@@ -2098,7 +2101,7 @@ void RenderInterface::CreateSphereSamplesBuffer()
     delete[] sphereSamples;
 }
 
-void RenderInterface::CreateEnvProbesTexture()
+void RenderInterface::CreateEnvProbesColorTexture()
 {
     TextureDesc textureDesc;
     textureDesc.format = TextureFormat::RGBA8;
@@ -2109,10 +2112,27 @@ void RenderInterface::CreateEnvProbesTexture()
     textureDesc.filterModeMin = TFM_LINEAR_MIPMAP;
     textureDesc.filterModeMag = TFM_LINEAR;
 
-    envProbesTexture = MakeHandle<Texture>(textureDesc);
-    envProbesTexture->SetName(NAME("EnvProbesTexture"));
-    envProbesTexture->SetIsTransient(true);
-    CheckResult(envProbesTexture->Create());
+    envProbesColorTexture = MakeHandle<Texture>(textureDesc);
+    envProbesColorTexture->SetName(NAME("EnvProbesColorTexture"));
+    envProbesColorTexture->SetIsTransient(true);
+    CheckResult(envProbesColorTexture->Create());
+}
+
+void RenderInterface::CreateEnvProbesDepthTexture()
+{
+    TextureDesc textureDesc;
+    textureDesc.format = TextureFormat::D16;
+    textureDesc.extent = Vec3u { 128, 128, 1 };
+    textureDesc.imageUsage = IU_SAMPLED;
+    textureDesc.type = TextureType::CubemapArray;
+    textureDesc.numLayers = MaxBoundReflectionProbes;
+    textureDesc.filterModeMin = TFM_NEAREST;
+    textureDesc.filterModeMag = TFM_NEAREST;
+
+    envProbesDepthTexture = MakeHandle<Texture>(textureDesc);
+    envProbesDepthTexture->SetName(NAME("EnvProbesDepthTexture"));
+    envProbesDepthTexture->SetIsTransient(true);
+    CheckResult(envProbesDepthTexture->Create());
 }
 
 #pragma endregion RenderInterface

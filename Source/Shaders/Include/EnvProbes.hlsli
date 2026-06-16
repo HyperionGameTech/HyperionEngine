@@ -40,6 +40,7 @@ struct SH9
 #define EPF_BAKED 0x2
 #define EPF_REALTIME 0x4
 #define EPF_ORIGIN_FROM_CENTER 0x8
+#define EPF_HAS_VISIBILITY 0x10
 
 #define GET_ENV_PROBE_TYPE(envProbe) (envProbe.typeAndFlags & 0x7)
 #define GET_ENV_PROBE_FLAGS(envProbe) ((envProbe.typeAndFlags >> 3))

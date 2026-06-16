@@ -2048,6 +2048,8 @@ extern class EnvProbe : VolumeBase
     GetCamera() -> Camera
     GetBakedTexture() -> Texture
     SetBakedTexture(texture : Texture) -> void
+    GetVisibilityTexture() -> Texture
+    SetVisibilityTexture(visibilityTexture : Texture) -> void
     Dimensions : Vec2u
     EnvProbeType : EnvProbeType
     EnvProbeFlags : EnvProbeFlags
@@ -2074,7 +2076,8 @@ extern enum EnvProbeFlags : uint32
     EPF_PARALLAX_CORRECTED = 0x1,
     EPF_BAKED = 0x2,
     EPF_REALTIME = 0x4,
-    EPF_ORIGIN_FROM_CENTER = 0x8
+    EPF_ORIGIN_FROM_CENTER = 0x8,
+    EPF_HAS_VISIBILITY = 0x10
 end
 extern class Sprite : Entity
 end

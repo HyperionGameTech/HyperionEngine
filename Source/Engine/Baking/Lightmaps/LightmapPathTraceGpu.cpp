@@ -585,7 +585,8 @@ bool LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
     cr << SetShaderUniform(10, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
     cr << SetShaderUniform(11, "EntitiesBuffer"_sh, RI.namedBuffers[NamedBuffer::Entities]);
 
-    cr << SetShaderUniform(12, "EnvProbesTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesTexture));
+    cr << SetShaderUniform(12, "EnvProbesColorTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesColorTexture));
+    cr << SetShaderUniform(13, "EnvProbesDepthTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesDepthTexture));
 
     Assert(jd.hitsBufferGpu.gpuBuffer->Size() >= rays.Size() * sizeof(LightmapHit));
     Assert(jd.raysBuffer->Size() >= rays.Size() * 2 * sizeof(Vec4f));

@@ -152,7 +152,8 @@ static_assert(sizeof(EnvProbeShaderData));
 struct RenderProxyEnvProbe : IRenderProxy
 {
     WeakHandle<EnvProbe> envProbe;
-    Texture* texture = nullptr; // baked cubemap texture or prefiltered env
+    Texture* texture = nullptr;             // baked cubemap texture or prefiltered env
+    Texture* visibilityTexture = nullptr;   // only relevant if envprobe has HAS_VISIBILITY flag set.
     EnvProbeShaderData bufferData {};
 };
 

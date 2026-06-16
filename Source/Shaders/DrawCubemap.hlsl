@@ -190,9 +190,9 @@ DECLARE_BUFFER_DYNAMIC(Default, ForwardShadingConstants) cbuffer ForwardShadingC
 };
 
 #if ENV_PROBE_CUBEMAP
-DECLARE_SRV(Default, EnvProbesTexture) TextureCubeArray envProbesTexture;
+DECLARE_SRV(Default, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
 #else // !ENV_PROBE_CUBEMAP
-DECLARE_SRV(Default, EnvProbesTexture) Texture2DArray envProbesTexture;
+DECLARE_SRV(Default, EnvProbesColorTexture) Texture2DArray envProbesColorTexture;
 #endif // ENV_PROBE_CUBEMAP
 
 DECLARE_SRV(Default, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
@@ -336,9 +336,9 @@ PSOutput PSMain(PSInput input)
             const float lod = perceptualRoughness * numMips;
 
 #if ENV_PROBE_CUBEMAP
-            reflections = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(sampler_linear, envProbesTexture, float4(normalize(R), float(fallbackProbe.texture_index)), lod);
+            reflections = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(sampler_linear, envProbesColorTexture, float4(normalize(R), float(fallbackProbe.texture_index)), lod);
 #else // !ENV_PROBE_CUBEMAP
-            reflections = SAMPLE_TEXTURE_2D_ARRAY_LOD(sampler_linear, envProbesTexture, float3(EncodeOctahedralCoord(normalize(R)) * 0.5 + 0.5, float(fallbackProbe.texture_index)), lod);
+            reflections = SAMPLE_TEXTURE_2D_ARRAY_LOD(sampler_linear, envProbesColorTexture, float3(EncodeOctahedralCoord(normalize(R)) * 0.5 + 0.5, float(fallbackProbe.texture_index)), lod);
 #endif // ENV_PROBE_CUBEMAP
 
             indirectLight += diffuseColor * (reflections.rgb * reflections.a);

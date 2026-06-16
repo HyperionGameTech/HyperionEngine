@@ -28,17 +28,16 @@ namespace Hyperion {
 
 extern ENGINE_API const FilePath& GetTempDirectory();
 
-namespace ConvolveProbe {
+namespace EnvProbeHelpers {
+
 void ConvolveEnvProbeCubemap(
     const Handle<Texture>& inTexture,
     const EnvProbe& envProbe);
-} // namespace ConvolveProbe
 
-namespace ComputeSH {
 void ComputeEnvProbeSphericalHarmonics(
     const EnvProbe& envProbe,
     const Texture& inColorTexture);
-} // namespace ComputeSH
+} // namespace EnvProbeHelpers
 
 namespace Baking {
 
@@ -169,12 +168,12 @@ void Baker<ReflectionProbe>::OnCompleted_Internal()
 
             if (envProbe->ShouldComputePrefilteredEnvMap())
             {
-                ConvolveProbe::ConvolveEnvProbeCubemap(texture, *envProbe);
+                EnvProbeHelpers::ConvolveEnvProbeCubemap(texture, *envProbe);
             }
 
             if (envProbe->ShouldComputeSphericalHarmonics())
             {
-                ComputeSH::ComputeEnvProbeSphericalHarmonics(*envProbe, *texture);
+                EnvProbeHelpers::ComputeEnvProbeSphericalHarmonics(*envProbe, *texture);
             }
 
             HYP_LOG(Lightmap, Verbose, "EnvProbe {} lightmap baking complete", envProbe->GetName());

@@ -112,9 +112,9 @@ void ApplyReflectionProbe(uint probe_texture_index, float3 probe_world_position,
 #endif // ENV_PROBE_PARALLAX_CORRECTED
 
 #if ENV_PROBE_CUBEMAP
-    ibl = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(sampler_linear, envProbesTexture, float4(normalize(R), float(probe_texture_index)), lod);
+    ibl = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(sampler_linear, envProbesColorTexture, float4(normalize(R), float(probe_texture_index)), lod);
 #else // !ENV_PROBE_CUBEMAP
-    ibl = SAMPLE_TEXTURE_2D_ARRAY_LOD(sampler_linear, envProbesTexture, float3(EncodeOctahedralCoord(normalize(R)) * 0.5 + 0.5, float(probe_texture_index)), lod);
+    ibl = SAMPLE_TEXTURE_2D_ARRAY_LOD(sampler_linear, envProbesColorTexture, float3(EncodeOctahedralCoord(normalize(R)) * 0.5 + 0.5, float(probe_texture_index)), lod);
 #endif // ENV_PROBE_CUBEMAP
 }
 

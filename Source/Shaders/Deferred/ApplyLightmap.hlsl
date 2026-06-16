@@ -98,9 +98,9 @@ DECLARE_BUFFER(LightmapPass, LightmapVolumeUniforms) cbuffer LightmapVolumeUnifo
 #include "../include/EnvProbes.hlsli"
 
 #if ENV_PROBE_CUBEMAP
-DECLARE_SRV(LightmapPass, EnvProbesTexture) TextureCubeArray envProbesTexture;
+DECLARE_SRV(LightmapPass, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
 #else // !ENV_PROBE_CUBEMAP
-DECLARE_SRV(LightmapPass, EnvProbesTexture) Texture2DArray envProbesTexture;
+DECLARE_SRV(LightmapPass, EnvProbesColorTexture) Texture2DArray envProbesColorTexture;
 #endif // ENV_PROBE_CUBEMAP
 
 DECLARE_SRV(LightmapPass, EnvProbesBuffer) StructuredBuffer<EnvProbe> env_probes;

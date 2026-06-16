@@ -958,6 +958,8 @@ static void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
                                 activeScene->GetRoot()->AddChild(n);
                             }
 
+                            editorSubsystem->ClearSelection();
+                            editorSubsystem->AddToSelection(n);
                             editorSubsystem->SetFocusedNode(n, true);
                         }),
                     .revert = Proc<void(EditorSubsystem*, EditorProject*)>(

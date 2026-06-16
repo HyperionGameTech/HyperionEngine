@@ -42,7 +42,8 @@ enum EnvProbeFlags : uint32
     EPF_PARALLAX_CORRECTED = 0x1,
     EPF_BAKED = 0x2,
     EPF_REALTIME = 0x4,
-    EPF_ORIGIN_FROM_CENTER = 0x8
+    EPF_ORIGIN_FROM_CENTER = 0x8,
+    EPF_HAS_VISIBILITY = 0x10
 };
 
 HYP_MAKE_ENUM_FLAGS(EnvProbeFlags);
@@ -191,8 +192,14 @@ public:
     HYP_METHOD(Property = "BakedTexture", LoadOrder = 1)
     void SetBakedTexture(const Handle<Texture>& texture);
 
-    HYP_DEPRECATED bool IsVisible(ObjId<Camera> cameraId) const;
-    HYP_DEPRECATED void SetIsVisible(ObjId<Camera> cameraId, bool isVisible);
+    HYP_METHOD(Property = "VisibilityTexture")
+    const Handle<Texture>& GetVisibilityTexture() const
+    {
+        return m_visibilityTexture;
+    }
+
+    HYP_METHOD(Property = "VisibilityTexture")
+    void SetVisibilityTexture(const Handle<Texture>& visibilityTexture);
 
     HYP_FORCE_INLINE const SphericalHarmonicsData& GetSphericalHarmonicsData() const
     {
@@ -253,6 +260,7 @@ protected:
     TMap<ObjId<Scene>, HashCode, SceneAllocator> m_cachedOctantHashCodes;
 
     Handle<Texture> m_texture;
+    Handle<Texture> m_visibilityTexture;
 };
 
 HYP_CLASS()

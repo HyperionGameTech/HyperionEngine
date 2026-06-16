@@ -281,7 +281,9 @@ void EnvProbe::CreateViews()
         TextureType::Cubemap,
         TextureFormat::RGBA8,
         LoadOperation::CLEAR,
-        StoreOperation::STORE });
+        StoreOperation::STORE
+    });
+
     attachmentImages.PushBack(RI.MakeImage(TextureDesc {
         colorDesc.imageType,
         colorDesc.format,
@@ -290,14 +292,17 @@ void EnvProbe::CreateViews()
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_SAMPLED | IU_ATTACHMENT }));
+        IU_SAMPLED | IU_ATTACHMENT
+    }));
 
     // Depth
     AttachmentDesc& depthDesc = attachmentDescs.PushBack(AttachmentDesc {
         TextureType::Cubemap,
-        TextureFormat::D32F,
+        TextureFormat::D16,
         LoadOperation::CLEAR,
-        StoreOperation::STORE });
+        StoreOperation::STORE
+    });
+
     attachmentImages.PushBack(RI.MakeImage(TextureDesc {
         depthDesc.imageType,
         depthDesc.format,
@@ -306,7 +311,8 @@ void EnvProbe::CreateViews()
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_SAMPLED | IU_ATTACHMENT }));
+        IU_SAMPLED | IU_ATTACHMENT
+    }));
 
     for (const GpuImageRef& image : attachmentImages)
     {
@@ -596,6 +602,23 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
 
     proxy->texture = m_texture;
 
+    if (m_envProbeFlags & EPF_HAS_VISIBILITY)
+    {
+        if (proxy->visibilityTexture != m_visibilityTexture)
+        {
+            proxy->forceRebind = true;
+            proxy->visibilityTexture = m_visibilityTexture.Get();
+        }
+    }
+    else
+    {
+        if (proxy->visibilityTexture != nullptr)
+        {
+            proxy->forceRebind = true;
+            proxy->visibilityTexture = nullptr;
+        }
+    }
+
     const BoundingBox worldBounds = GetWorldBounds();
 
     EnvProbeShaderData& bufferData = proxy->bufferData;
@@ -624,7 +647,7 @@ void EnvProbe::SetBakedTexture(const Handle<Texture>& texture)
         return;
     }
 
-    if (m_texture != nullptr)
+    if (m_texture.IsValid())
     {
         EnqueueDeletion(std::move(m_texture));
     }
@@ -634,6 +657,34 @@ void EnvProbe::SetBakedTexture(const Handle<Texture>& texture)
     if (m_texture.IsValid())
     {
         CheckResult(m_texture->Create());
+    }
+
+    MarkDirty();
+    SetNeedsRenderProxyUpdate();
+}
+
+void EnvProbe::SetVisibilityTexture(const Handle<Texture>& visibilityTexture)
+{
+    if (m_visibilityTexture == visibilityTexture)
+    {
+        return;
+    }
+
+    if (m_visibilityTexture.IsValid())
+    {
+        EnqueueDeletion(std::move(m_visibilityTexture));
+    }
+
+    m_visibilityTexture = visibilityTexture;
+
+    if (m_visibilityTexture.IsValid())
+    {
+        if (!(m_envProbeFlags & EPF_HAS_VISIBILITY))
+        {
+            HYP_LOG(Scene, Warning, "EnvProbe {} does not have visibility flag set, visibility texture will be unused unless the flag is set", GetName());
+        }
+
+        CheckResult(m_visibilityTexture->Create());
     }
 
     MarkDirty();

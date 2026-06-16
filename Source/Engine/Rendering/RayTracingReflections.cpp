@@ -259,8 +259,9 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
 
     if (renderSetup.envProbe != nullptr)
     {
-        frame->cr << SetShaderUniform(18, "EnvProbesTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesTexture));
-        frame->cr << SetShaderUniform(19, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes], Resources::GetBinding(renderSetup.envProbe));
+        frame->cr << SetShaderUniform(18, "EnvProbesColorTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesColorTexture));
+        frame->cr << SetShaderUniform(19, "EnvProbesDepthTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesDepthTexture));
+        frame->cr << SetShaderUniform(20, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes], Resources::GetBinding(renderSetup.envProbe));
     }
 
     const Vec3u imageExtent = m_texture->GetGpuImage()->GetExtent();

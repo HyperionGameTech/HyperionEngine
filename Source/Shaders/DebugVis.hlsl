@@ -193,9 +193,9 @@ DECLARE_BUFFER_DYNAMIC(DebugDrawerDescriptorSet, CBuffer) cbuffer CBuffer
 #include "include/EnvProbes.hlsli"
 
 #if ENV_PROBE_CUBEMAP
-DECLARE_SRV(DebugDrawerDescriptorSet, EnvProbesTexture) TextureCubeArray envProbesTexture;
+DECLARE_SRV(DebugDrawerDescriptorSet, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
 #else // !ENV_PROBE_CUBEMAP
-DECLARE_SRV(DebugDrawerDescriptorSet, EnvProbesTexture) Texture2DArray envProbesTexture;
+DECLARE_SRV(DebugDrawerDescriptorSet, EnvProbesColorTexture) Texture2DArray envProbesColorTexture;
 #endif // ENV_PROBE_CUBEMAP
 
 DECLARE_SRV(DebugDrawerDescriptorSet, EnvProbesBuffer) StructuredBuffer<EnvProbe> env_probes;

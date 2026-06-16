@@ -33,9 +33,9 @@ DECLARE_SRV(LightmapPathTracer, BlueNoiseBuffer) StructuredBuffer<int4> BlueNois
 #include "../../include/EnvProbes.hlsli"
 
 #if ENV_PROBE_CUBEMAP
-DECLARE_SRV(LightmapPathTracer, EnvProbesTexture) TextureCubeArray envProbesTexture;
+DECLARE_SRV(LightmapPathTracer, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
 #else
-DECLARE_SRV(LightmapPathTracer, EnvProbesTexture) Texture2DArray envProbesTexture;
+DECLARE_SRV(LightmapPathTracer, EnvProbesColorTexture) Texture2DArray envProbesColorTexture;
 #endif
 
 DECLARE_SRV(LightmapPathTracer, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
@@ -196,7 +196,7 @@ void RayGenMain()
                     const EnvProbe envProbe = envProbes[envProbeIdx];
                     if (envProbe.texture_index != ~0u)
                     {
-                        float4 env = EnvProbeSample(sampler_linear, envProbesTexture, envProbe.texture_index, direction, 0.0) * (1.0 - environmentRadiance.a);
+                        float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, envProbe.texture_index, direction, 0.0) * (1.0 - environmentRadiance.a);
                         environmentRadiance += env * ENVIRONMENT_INTENSITY;
                     }
                 }
@@ -351,7 +351,7 @@ void RayGenMain()
 
                     if (envProbe.texture_index != ~0u)
                     {
-                        float4 env = EnvProbeSample(sampler_linear, envProbesTexture, envProbe.texture_index, direction, 6.0);
+                        float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, envProbe.texture_index, direction, 6.0);
                         env *= (1.0 - environmentRadiance.a);
                         environmentRadiance += env * ENVIRONMENT_INTENSITY;
                     }
@@ -517,7 +517,7 @@ void RayGenMain()
 
             if (envProbe.texture_index != ~0u)
             {
-                float4 env = EnvProbeSample(sampler_linear, envProbesTexture, envProbe.texture_index, direction, 6.0);
+                float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, envProbe.texture_index, direction, 6.0);
                 env *= (1.0 - environmentRadiance.a);
                 environmentRadiance += env * ENVIRONMENT_INTENSITY;
             }

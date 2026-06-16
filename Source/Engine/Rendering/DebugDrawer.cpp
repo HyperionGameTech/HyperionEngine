@@ -892,7 +892,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
     cr << SetShaderUniform(0, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
     cr << SetShaderUniform(1, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinearMipmap());
     cr << SetShaderUniform(2, "GBufferMipChain"_sh, RI.textureViewCache->GetOrCreate(dpd->mipChain));
-    cr << SetShaderUniform(3, "EnvProbesTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesTexture));
+    cr << SetShaderUniform(3, "EnvProbesColorTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesColorTexture));
 
     cr << SetShaderUniform(4, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(renderSetup.view->GetCamera()));
     cr << SetShaderUniform(5, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);

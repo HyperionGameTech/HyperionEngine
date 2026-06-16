@@ -423,7 +423,8 @@ public:
     StructuredBuffer blueNoiseBuffer;
     StructuredBuffer sphereSamplesBuffer;
 
-    Handle<Texture> envProbesTexture;
+    Handle<Texture> envProbesColorTexture;
+    Handle<Texture> envProbesDepthTexture;
 
     MaterialTextureCache* materialTextureCache;
 
@@ -467,7 +468,9 @@ protected:
 
     void CreateBlueNoiseBuffer();
     void CreateSphereSamplesBuffer();
-    void CreateEnvProbesTexture();
+
+    void CreateEnvProbesColorTexture();
+    void CreateEnvProbesDepthTexture();
 
     GpuTimerBackendBase* m_gpuTimerBackend;
 

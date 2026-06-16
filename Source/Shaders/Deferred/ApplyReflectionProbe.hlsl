@@ -36,9 +36,9 @@ DECLARE_SRV_DYNAMIC(ReflectionsPass, CurrentEnvProbe) StructuredBuffer<EnvProbe>
 #define current_env_probe current_env_probe_buffer[0]
 
 #if ENV_PROBE_CUBEMAP
-DECLARE_SRV(ReflectionsPass, EnvProbesTexture) TextureCubeArray envProbesTexture;
+DECLARE_SRV(ReflectionsPass, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
 #else
-DECLARE_SRV(ReflectionsPass, EnvProbesTexture) Texture2DArray envProbesTexture;
+DECLARE_SRV(ReflectionsPass, EnvProbesColorTexture) Texture2DArray envProbesColorTexture;
 #endif
 
 DECLARE_SRV(ReflectionsPass, EnvProbesBuffer) StructuredBuffer<EnvProbe> env_probes;

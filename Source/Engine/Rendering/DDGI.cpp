@@ -315,7 +315,8 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << SetShaderUniform(9, "EntitiesBuffer"_sh, RI.namedBuffers[NamedBuffer::Entities]);
     frame->cr << SetShaderUniform(10, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
 
-    frame->cr << SetShaderUniform(11, "EnvProbesTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesTexture));
+    frame->cr << SetShaderUniform(11, "EnvProbesColorTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesColorTexture));
+    frame->cr << SetShaderUniform(12, "EnvProbesDepthTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesDepthTexture));
 
     frame->cr << TraceRays(Vec3u { NumProbes(m_gridInfo), m_gridInfo.numRaysPerProbe, 1u });
 

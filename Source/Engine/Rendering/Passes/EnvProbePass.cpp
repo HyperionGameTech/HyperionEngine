@@ -61,9 +61,9 @@ static EngineStatGpuTimer s_statDrawEnvProbe("Rendering/GPU/DrawEnvProbe");
 static EngineStatGpuTimer s_statConvolveEnvProbe("Rendering/GPU/ConvolveEnvProbe");
 static EngineStatGpuTimer s_statComputeEnvProbeSH("Rendering/GPU/ComputeEnvProbeSH");
 
-#pragma region ConvolveProbe
+#pragma region EnvProbeHelpers
 
-namespace ConvolveProbe {
+namespace EnvProbeHelpers {
 
 struct ConvolveProbeConstants
 {
@@ -177,8 +177,6 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
 
         cr << SetCurrentShader(ShaderDesc(NAME("ConvolveProbe"), shaderProperties));
 
-
-
         CBufferAllocator& cba = *RI.cbufferAllocator;
 
         GpuBuffer* cbuffer = nullptr;
@@ -283,17 +281,17 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
     }
 
     // Update in env probes texture array if bound
-    if (envProbe.IsA<SkyProbe>() || envProbe.IsA<ReflectionProbe>())
-    {
-        const uint32 boundIndex = Resources::GetBinding(&envProbe);
+    const uint32 boundIndex = Resources::GetBinding(&envProbe);
 
-        if (boundIndex != ~0u)
+    if (boundIndex != ~0u)
+    {
+        if (envProbe.IsA<SkyProbe>() || envProbe.IsA<ReflectionProbe>())
         {
             cr << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_COPY_SRC);
-            cr << InsertBarrier(RI.envProbesTexture->GetGpuImage(), RS_COPY_DST);
+            cr << InsertBarrier(RI.envProbesColorTexture->GetGpuImage(), RS_COPY_DST);
 
             const uint8 numMips = MathUtil::Min(
-                RI.envProbesTexture->GetTextureDesc().NumMips(),
+                RI.envProbesColorTexture->GetTextureDesc().NumMips(),
                 prefilteredEnvMap->GetTextureDesc().NumMips());
 
             for (uint8 mipIndex = 0; mipIndex < numMips; mipIndex++)
@@ -311,13 +309,13 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
                 dstSubResource.numLayers = 6;
 
                 const Vec3u srcMipExtent = prefilteredEnvMap->GetTextureDesc().GetMipExtent(mipIndex);
-                const Vec3u dstMipExtent = RI.envProbesTexture->GetTextureDesc().GetMipExtent(mipIndex);
+                const Vec3u dstMipExtent = RI.envProbesColorTexture->GetTextureDesc().GetMipExtent(mipIndex);
 
-                if (srcMipExtent == dstMipExtent && prefilteredEnvMap->GetTextureDesc().format == RI.envProbesTexture->GetTextureDesc().format)
+                if (srcMipExtent == dstMipExtent && prefilteredEnvMap->GetTextureDesc().format == RI.envProbesColorTexture->GetTextureDesc().format)
                 {
                     cr << CopyImage(
                         prefilteredEnvMap->GetGpuImage(),
-                        RI.envProbesTexture->GetGpuImage(),
+                        RI.envProbesColorTexture->GetGpuImage(),
                         srcMipExtent,
                         srcSubResource,
                         dstSubResource);
@@ -326,7 +324,7 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
                 {
                     cr << Blit(
                         prefilteredEnvMap,
-                        RI.envProbesTexture,
+                        RI.envProbesColorTexture,
                         Rect<uint32> { 0, 0, srcMipExtent.x, srcMipExtent.y },
                         Rect<uint32> { 0, 0, dstMipExtent.x, dstMipExtent.y },
                         srcSubResource,
@@ -335,7 +333,7 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
             }
 
             cr << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_SHADER_RESOURCE);
-            cr << InsertBarrier(RI.envProbesTexture->GetGpuImage(), RS_SHADER_RESOURCE);
+            cr << InsertBarrier(RI.envProbesColorTexture->GetGpuImage(), RS_SHADER_RESOURCE);
         }
     }
 }
@@ -356,18 +354,10 @@ static void ComputePrefilteredEnvMap(Frame* frame, const RenderSetup& renderSetu
     ConvolveEnvProbeCubemap(MakeStrongRef(colorAttachment), *envProbe);
 }
 
-} // namespace ConvolveProbe
-
-#pragma endregion ConvolveProbe
-
-#pragma region ComputeSH
-
-namespace ComputeSH {
-
-constexpr bool UseAsyncCompute = false;
-
 void ComputeEnvProbeSphericalHarmonics(const EnvProbe& envProbe, const Texture& inColorTexture)
 {
+    static constexpr bool UseAsyncCompute = false;
+
     bool useAsyncCompute = UseAsyncCompute;
     if (!IsOnThread(g_renderThread))
     {
@@ -611,9 +601,17 @@ static void ComputeEnvProbeSphericalHarmonics(Frame* frame, EnvProbe* envProbe)
     ComputeEnvProbeSphericalHarmonics(*envProbe, *colorAttachment);
 }
 
-} // namespace ComputeSH
+void UpdateEnvProbeVisibilityTexture(Frame* frame, EnvProbe* envProbe)
+{
+    Texture* visibilityTexture = envProbe->GetVisibilityTexture();
+    Assert(visibilityTexture != nullptr);
 
-#pragma endregion ComputeSH
+
+}
+
+} // namespace EnvProbeHelpers
+
+#pragma endregion EnvProbeHelpers
 
 struct EnvProbeRendererPassDataExt : PassDataExt
 {
@@ -754,12 +752,17 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
 
     if (envProbe->ShouldComputePrefilteredEnvMap())
     {
-        ConvolveProbe::ComputePrefilteredEnvMap(frame, renderSetup, envProbe);
+        EnvProbeHelpers::ComputePrefilteredEnvMap(frame, renderSetup, envProbe);
     }
 
     if (envProbe->ShouldComputeSphericalHarmonics())
     {
-        ComputeSH::ComputeEnvProbeSphericalHarmonics(frame, envProbe);
+        EnvProbeHelpers::ComputeEnvProbeSphericalHarmonics(frame, envProbe);
+    }
+
+    if (envProbe->GetEnvProbeFlags() & EPF_HAS_VISIBILITY)
+    {
+        EnvProbeHelpers::UpdateEnvProbeVisibilityTexture(frame, envProbe);
     }
 }
 
@@ -835,7 +838,7 @@ void IrradianceProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
         return;
     }
 
-    ComputeSH::ComputeEnvProbeSphericalHarmonics(frame, irradianceProbe);
+    EnvProbeHelpers::ComputeEnvProbeSphericalHarmonics(frame, irradianceProbe);
 
     irradianceProbe->needsRender.Store(false);
 }

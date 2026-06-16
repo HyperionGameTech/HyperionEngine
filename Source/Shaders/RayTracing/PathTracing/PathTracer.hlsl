@@ -49,9 +49,9 @@ DECLARE_SRV_DYNAMIC(PathTracer, CurrentEnvProbe) StructuredBuffer<EnvProbe> curr
 #define current_env_probe current_env_probe_buffer[0]
 
 #if ENV_PROBE_CUBEMAP
-DECLARE_SRV(PathTracer, EnvProbesTexture) TextureCubeArray envProbesTexture;
+DECLARE_SRV(PathTracer, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
 #else
-DECLARE_SRV(PathTracer, EnvProbesTexture) Texture2DArray envProbesTexture;
+DECLARE_SRV(PathTracer, EnvProbesColorTexture) Texture2DArray envProbesColorTexture;
 #endif
 
 #include "../../include/Octahedron.hlsli"
@@ -214,7 +214,7 @@ void RayGenMain()
                 if (current_env_probe.texture_index != ~0u)
                 {
                     uint probe_texture_index = max(0, min(current_env_probe.texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1));
-                    float3 env = EnvProbeSample(sampler_linear, envProbesTexture, probe_texture_index, direction, 0.0).rgb * ENVIRONMENT_INTENSITY;
+                    float3 env = EnvProbeSample(sampler_linear, envProbesColorTexture, probe_texture_index, direction, 0.0).rgb * ENVIRONMENT_INTENSITY;
                     radiance += beta * env;
                 }
                 break;
