@@ -48,6 +48,9 @@ private:
     // Currently only needed to be able to init/deinit instanced mesh data when changed in editor.
     TMap<Entity*, CachedInstancedMeshDataState, SceneAllocator> m_cachedStates;
 #endif // HYP_EDITOR
+
+    // Cached to reduce allocations
+    Array<Entity*, SceneAllocator> m_updatedEntities;
 };
 
 } // namespace Hyperion

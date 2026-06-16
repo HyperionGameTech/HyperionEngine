@@ -171,22 +171,22 @@ void MeshSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     // Update instanced mesh data for entities that need it.
 
-    TSet<Entity*, ThreadAllocator> updatedEntities;
-
     for (Scene* scene : scenes)
     {
-        updatedEntities.Clear();
-        
         if (!ShouldProcessScene(scene))
         {
             continue;
         }
+        
+        m_updatedEntities.Resize(0);
 
 #if HYP_EDITOR
         for (auto [entity, meshComponent] : scene->GetEntityManager()->GetEntitySet<MeshComponent>().GetScopedView(GetComponentInfos()))
         {
-            if (updatedEntities.Find(entity) != updatedEntities.End())
+            if (std::find(m_updatedEntities.Begin(), m_updatedEntities.End(), entity) != m_updatedEntities.End())
+            {
                 continue;
+            }
 
             auto cachedIt = m_cachedStates.Find(entity);
             if (cachedIt != m_cachedStates.End())
@@ -197,7 +197,7 @@ void MeshSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
                     cachedIt->second.enableAutoInstancing = meshComponent.enableAutoInstancing;
 
-                    updatedEntities.Add(entity);
+                    m_updatedEntities.PushBack(entity);
                 }
             }
         }
@@ -205,17 +205,19 @@ void MeshSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
         for (auto [entity, meshComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, TagComponent<EntityTag::UpdateInstancedMeshData>>().GetScopedView(GetComponentInfos()))
         {
-            if (updatedEntities.Find(entity) != updatedEntities.End())
+            if (std::find(m_updatedEntities.Begin(), m_updatedEntities.End(), entity) != m_updatedEntities.End())
+            {
                 continue;
+            }
 
             UpdateInstancedMeshData(*entity, meshComponent);
 
-            updatedEntities.Add(entity);
+            m_updatedEntities.PushBack(entity);
         }
 
-        if (updatedEntities.Any())
+        if (m_updatedEntities.Any())
         {
-            AfterProcess([updatedEntities = std::move(updatedEntities)]()
+            AfterProcess([updatedEntities = m_updatedEntities]()
                 {
                     for (Entity* entity : updatedEntities)
                     {

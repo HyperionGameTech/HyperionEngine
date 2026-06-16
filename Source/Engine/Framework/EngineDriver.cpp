@@ -697,7 +697,6 @@ void EngineDriver::UpdateSim(float delta)
         HYP_NAMED_SCOPE("Per-view entity collection");
 
         View* view = views[viewIndex];
-        Assert(view != nullptr);
 
         view->UpdateVisibility();
 

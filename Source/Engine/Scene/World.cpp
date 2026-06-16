@@ -66,6 +66,7 @@ ScriptableDelegate<void, World*, Scene*> World::OnSceneRemoved;
 #define HYP_WORLD_ASYNC_SUBSYSTEM_UPDATES
 #define HYP_WORLD_ASYNC_VIEW_COLLECTION
 
+
 // #define HYP_SYSTEMS_LAG_SPIKE_DETECTION
 // #define HYP_SYSTEM_LOG_PERFORMANCE
 

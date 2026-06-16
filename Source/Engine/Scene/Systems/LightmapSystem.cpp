@@ -154,14 +154,15 @@ void LightmapSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
     if (updatedEntities.Any())
     {
-        AfterProcess([updatedEntities = std::move(updatedEntities)]()
-                     {
-                         for (Entity* entity : updatedEntities)
-                         {
-                             entity->RemoveTag<EntityTag::UpdateSphericalHarmonicsData>();
-                             entity->AddTag<EntityTag::UpdateRenderProxy>();
-                         }
-                     });
+        AfterProcess(
+            [updatedEntities = std::move(updatedEntities)]()
+            {
+                for (Entity* entity : updatedEntities)
+                {
+                    entity->RemoveTag<EntityTag::UpdateSphericalHarmonicsData>();
+                    entity->AddTag<EntityTag::UpdateRenderProxy>();
+                }
+            });
     }
 }
 

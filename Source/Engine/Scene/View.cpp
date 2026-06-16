@@ -526,17 +526,17 @@ void View::BeginAsyncCollection(TaskBatch& batch)
     AssertDebug(m_collectionTaskBatch == nullptr, "m_collectionTaskBatch is not nullptr, already collecting?");
     m_collectionTaskBatch = &batch;
 
-    RenderProxyList& rpl = GetProducerProxyList(this);
-
     if (m_overrideCollectFunctor.IsValid())
     {
-        batch.AddTask([&fn = m_overrideCollectFunctor, &rpl]() { fn(rpl); });
+        batch.AddTask([this]() { m_overrideCollectFunctor(GetProducerProxyList(this)); });
 
         return;
     }
 
-    batch.AddTask([this, &rpl]()
+    batch.AddTask([this]()
         {
+            RenderProxyList& rpl = GetProducerProxyList(this);
+
             rpl.BeginWrite();
 
             rpl.priority = priority;

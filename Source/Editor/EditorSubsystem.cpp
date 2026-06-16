@@ -134,6 +134,7 @@ GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Handle<Reflection
 {
 }
 
+
 GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Array<Handle<ObjectBase>>& sources)
     : TickableEditorTask(),
       m_sources(sources)
