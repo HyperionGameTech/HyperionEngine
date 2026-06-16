@@ -137,11 +137,6 @@ public:
 
     HYP_FORCE_INLINE bool ShouldComputePrefilteredEnvMap() const
     {
-        if (IsBaked())
-        {
-            return false;
-        }
-
         if (IsReflectionProbe() || IsSkyProbe())
         {
             return m_dimensions.Volume() > 1;
@@ -152,11 +147,6 @@ public:
 
     HYP_FORCE_INLINE bool ShouldComputeSphericalHarmonics() const
     {
-        if (IsBaked())
-        {
-            return false;
-        }
-
         return m_dimensions.Volume() > 1;
     }
 
@@ -216,6 +206,8 @@ public:
     void UpdateRenderProxy(RenderProxyEnvProbe* proxy);
 
 protected:
+    virtual void Init() override;
+
     virtual void OnAttachedToNode(Node* node) override;
     virtual void OnDetachedFromNode(Node* node) override;
 
@@ -232,12 +224,7 @@ protected:
         return true;
     }
 
-    virtual void Invalidate()
-    {
-        m_cachedOctantHashCodes.Clear();
-    }
-
-    virtual void Init() override;
+    virtual void Invalidate();
 
     void CreateViews();
 
@@ -338,17 +325,11 @@ public:
     IrradianceProbe()
         : EnvProbe(EPT_AMBIENT)
     {
-#if HYP_EDITOR
-        useVolumeEditTool = false;
-#endif // HYP_EDITOR
     }
 
     IrradianceProbe(const BoundingBox& aabb, const Vec2u& dimensions)
         : EnvProbe(EPT_AMBIENT, aabb, dimensions)
     {
-#if HYP_EDITOR
-        useVolumeEditTool = false;
-#endif // HYP_EDITOR
     }
 
     IrradianceProbe(const IrradianceProbe& other) = delete;

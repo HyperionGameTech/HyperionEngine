@@ -2555,24 +2555,20 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
             UpdateRayTracingView(frame, newRenderSetup);
         }
 
+        const bool shouldCollectLightsForShadow = view->ShouldCollectShadowViews();
+        
+        // Collect lights
         for (Light* light : rpl.GetLights())
         {
             AssertDebug(light != nullptr);
 
             lights[uint32(light->GetLightType())].Add(light);
-
-            if (light->GetLightFlags() & LightFlags::ShadowCaster)
+                
+            if (shouldCollectLightsForShadow && (light->GetLightFlags() & LightFlags::ShadowCaster))
             {
                 const ShadowMapCacheKey cacheKey = MakeShadowMapCacheKey(light, view);
 
-                if (cacheKey.IsViewDependent())
-                {
-                    lightsForShadow[cacheKey] = { light, view };
-                }
-                else
-                {
-                    lightsForShadow[cacheKey] = { light, nullptr };
-                }
+                lightsForShadow[cacheKey] = { light, cacheKey.IsViewDependent() ? view : nullptr };
             }
         }
 
@@ -2598,7 +2594,7 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
                 }
             }
 
-            envProbes[envProbe->GetEnvProbeType()].Insert(envProbe);
+            envProbes[envProbe->GetEnvProbeType()].Add(envProbe);
         }
 
         for (ProbeVolume* probeVolume : rpl.GetProbeVolumes())
@@ -2666,24 +2662,29 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
             // check for dynamic probes to render
             for (uint32 envProbeType = 0; envProbeType < EPT_MAX; envProbeType++)
             {
-                if (PassBase* pass = RI.namedPasses[NamedPass::EnvProbe][envProbeType])
+                if (envProbes[envProbeType].Empty())
                 {
-                    for (EnvProbe* envProbe : envProbes[envProbeType])
-                    {
-                        if (envProbe->IsBaked())
-                        {
-                            continue; // skip baked
-                        }
-
-                        RenderSetup currentEnvProbeSetup = envProbeSetup.Fork();
-                        currentEnvProbeSetup.envProbe = envProbe;
-
-                        pass->RenderFrame(frame, currentEnvProbeSetup);
-                    }
+                    continue;
                 }
-                else
+
+                PassBase* pass = RI.namedPasses[NamedPass::EnvProbe][envProbeType];
+                AssertDebug(pass != nullptr);
+                
+                uint32 numRendered = 0;
+
+                for (EnvProbe* envProbe : envProbes[envProbeType])
                 {
-                    HYP_LOG_ONCE(Rendering, Warning, "No EnvProbePass found for EnvProbeType {}!", EnumToString(EnvProbeType(envProbeType)));
+                    if (envProbe->IsBaked())
+                    {
+                        continue; // skip baked
+                    }
+
+                    RenderSetup currentEnvProbeSetup = envProbeSetup.Fork();
+                    currentEnvProbeSetup.envProbe = envProbe;
+
+                    pass->RenderFrame(frame, currentEnvProbeSetup);
+                    
+                    ++numRendered;
                 }
             }
         }

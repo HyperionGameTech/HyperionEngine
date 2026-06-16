@@ -123,12 +123,16 @@ class ViewOutputTarget
 {
 public:
     ViewOutputTarget();
+
     ViewOutputTarget(const FramebufferRef& framebuffer);
     ViewOutputTarget(const Handle<GBuffer>& gbuffer);
+    
     ViewOutputTarget(const ViewOutputTarget& other) = delete;
     ViewOutputTarget& operator=(const ViewOutputTarget& other) = delete;
+    
     ViewOutputTarget(ViewOutputTarget&& other) noexcept = default;
     ViewOutputTarget& operator=(ViewOutputTarget&& other) noexcept = default;
+
     ~ViewOutputTarget();
 
     HYP_FORCE_INLINE bool IsValid() const
@@ -221,7 +225,7 @@ public:
     }
 
     HYP_METHOD()
-    void SetPriority(int pri);
+    void SetPriority(int priority);
 
     HYP_FORCE_INLINE const Optional<RenderableAttributeSet>& GetOverrideAttributes() const
     {
@@ -265,6 +269,11 @@ public:
 
     /*! \brief Synchronously collect scene resources for the View, blocks the current thread until complete. */
     void CollectSync();
+
+    HYP_FORCE_INLINE bool ShouldCollectShadowViews() const
+    {
+        return !(flags & (ViewFlags::SHADOW_VIEW | ViewFlags::BAKER_VIEW | ViewFlags::UI_VIEW));
+    }
 
     ViewDesc desc;
 

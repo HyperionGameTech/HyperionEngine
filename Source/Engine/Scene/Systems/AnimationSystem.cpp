@@ -32,8 +32,6 @@ bool AnimationSystem::ShouldProcessScene(Scene* scene) const
 
 void AnimationSystem::OnEntityAdded(Entity* entity)
 {
-    HYP_SCOPE;
-
     SystemBase::OnEntityAdded(entity);
 
     const MeshComponent& meshComponent = entity->GetEntityManager()->GetComponent<MeshComponent>(entity);
@@ -47,7 +45,7 @@ void AnimationSystem::OnEntityAdded(Entity* entity)
         {
             for (const Handle<AnimationTrack>& track : anim->GetTracks())
             {
-                locks.PushBack(MakeUnique<TSharedResLock<AssetObject>>(*track));
+                locks.EmplaceBack(MakeUnique<TSharedResLock<AssetObject>>(*track));
             }
         }
     }
@@ -65,8 +63,6 @@ void AnimationSystem::OnEntityAdded(Entity* entity)
 
 void AnimationSystem::OnEntityRemoved(Entity* entity)
 {
-    HYP_SCOPE;
-
     SystemBase::OnEntityRemoved(entity);
 
     const AnimationComponent& animationComponent = entity->GetEntityManager()->GetComponent<AnimationComponent>(entity);

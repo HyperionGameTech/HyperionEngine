@@ -584,9 +584,9 @@ void View::CollectSync()
     EndAsyncCollection();
 }
 
-void View::SetPriority(int pri)
+void View::SetPriority(int priority)
 {
-    priority = pri;
+    this->priority = priority;
 }
 
 void View::AddScene(Scene* scene)

@@ -842,7 +842,11 @@ static void SetForwardShadingConstants(
             AssertDebug(shadowMapViewsDynamic.Size() > 0 && shadowMapViewsDynamic[0]->GetCamera() != nullptr);
 
             RenderProxyCamera* shadowCameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(shadowMapViewsDynamic[0]->GetCamera()));
-            AssertDebug(shadowCameraProxy != nullptr);
+            
+            if (!shadowCameraProxy)
+            {
+                continue;
+            }
 
             const Mat4f& viewProjMat = shadowCameraProxy->bufferData.viewProjMat;
 

@@ -16,6 +16,8 @@
 
 #include <Asset/AssetReference.hpp>
 
+#include <Framework/EngineMemory.hpp>
+
 namespace Hyperion {
 
 class Skeleton;
@@ -46,7 +48,7 @@ private:
         };
     }
 
-    TMap<Skeleton*, Array<UniquePtr<TSharedResLock<AssetObject>>>> m_resourceHandles;
+    TMap<Skeleton*, Array<UniquePtr<TSharedResLock<AssetObject>>, SceneAllocator>, SceneAllocator> m_resourceHandles;
 };
 
 } // namespace Hyperion

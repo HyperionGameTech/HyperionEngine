@@ -95,7 +95,13 @@ void ProbeVolume::OnAddedToWorld(World* world)
     {
         if (node->IsA<IrradianceProbe>())
         {
-            m_probes.PushBack(static_cast<IrradianceProbe*>(node));
+            IrradianceProbe* probe = StaticCast<IrradianceProbe>(node);
+
+#if HYP_EDITOR
+            probe->useVolumeEditTool = false;
+#endif // HYP_EDITOR
+
+            m_probes.PushBack(probe);
         }
     }
 
@@ -622,6 +628,7 @@ void ProbeVolume::CreateProbes()
 
                 Handle<IrradianceProbe> probe = MakeHandle<IrradianceProbe>(probeLocalBounds, Vec2u { 8, 8 });
                 probe->SetLocalTranslation(cellMin + (cellSize * 0.5f) + jitter);
+                probe->useVolumeEditTool = false;
 
                 AddChild(probe);
 

@@ -7,6 +7,7 @@
 #include <winerror.h>
 
 #include <Core/Utilities/StringView.hpp>
+#include <Core/Utilities/StringUtil.hpp>
 #include <Core/Utilities/Result.hpp>
 #include <Core/Utilities/DeferredScope.hpp>
 
@@ -136,7 +137,6 @@ static void InitializeCOM()
     if (!s_isCOMInitialized)
     {
         HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-        
         Assert(SUCCEEDED(hr), "Failed to initialize COM library");
 
         s_isCOMInitialized = true;
@@ -341,12 +341,20 @@ void ShowSaveFileDialog(
 
 #pragma region Select Folder Dialog
 
+HYP_DISABLE_OPTIMIZATION;
+
 void ShowSelectFolderDialog(
     UTF8StringView title,
     const FilePath& baseDir,
     Proc<void(TResult<FilePath>&& result)>&& callback)
 {
     InitializeCOM();
+
+    // parse filename
+    Array<String> parts = baseDir.Split('\\', '/');
+    parts = StringUtil::CanonicalizePath(parts);
+    
+    FilePath canonPath { String::Join(parts, "\\") };
 
     IFileDialog* pFileDialog = NULL;
 
@@ -370,7 +378,9 @@ void ShowSelectFolderDialog(
     });
 
     DWORD dwOptions;
-    if (SUCCEEDED(pFileDialog->GetOptions(&dwOptions)))
+    hr = pFileDialog->GetOptions(&dwOptions);
+    
+    if (SUCCEEDED(hr))
     {
         pFileDialog->SetOptions(dwOptions | FOS_PICKFOLDERS);
     }
@@ -380,13 +390,13 @@ void ShowSelectFolderDialog(
         return;
     }
 
-    if (baseDir.Any() && baseDir.IsDirectory())
+    if (canonPath.Any() && canonPath.IsDirectory())
     {
-        WideString baseDirWide = String(baseDir).ToWide();
+        WideString pathWide = canonPath.ToWide();
 
         IShellItem* pFolderItem = nullptr;
         hr = SHCreateItemFromParsingName(
-            baseDirWide.Data(),
+            pathWide.Data(),
             NULL,
             IID_PPV_ARGS(&pFolderItem));
 

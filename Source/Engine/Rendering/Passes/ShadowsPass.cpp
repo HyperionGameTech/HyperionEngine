@@ -101,7 +101,8 @@ int ShadowsPassBase::RunCleanupCycle(int maxIter)
     {
         CachedShadowMapData& value = it->second;
 
-        if (int64(currentFrame) - int64(value.lastFrameUsed) >= RingBufferDepth)
+        static constexpr uint32 MaxFramesBeforeDiscard = 16;
+        if (int64(currentFrame) - int64(value.lastFrameUsed) >= MaxFramesBeforeDiscard)
         {
             HYP_LOG(Rendering, Verbose, "Removing cached shadow map as it has not been used in {} frames", int64(currentFrame) - int64(value.lastFrameUsed));
 

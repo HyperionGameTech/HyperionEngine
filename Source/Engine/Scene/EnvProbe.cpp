@@ -24,6 +24,7 @@
 #include <Baking/BakerSubsystem.hpp>
 
 #include <Framework/EngineDriver.hpp>
+#include <Framework/GameState.hpp>
 
 #include <EnvProbe.generated.inl>
 
@@ -78,7 +79,7 @@ EnvProbe::EnvProbe(EnvProbeType envProbeType, const BoundingBox& aabb, const Vec
     SetLocalBounds(aabb);
 
     m_entityInitInfo.canEverUpdate = true;
-    m_entityInitInfo.receivesUpdate = !(m_envProbeFlags & EPF_BAKED);//IsRealtime();
+    m_entityInitInfo.receivesUpdate = IsRealtime();
 }
 
 EnvProbe::~EnvProbe()
@@ -243,8 +244,6 @@ void EnvProbe::OnRemovedFromScene(Scene* scene)
             view->RemoveScene(scene);
         }
     }
-
-    Invalidate();
 }
 
 void EnvProbe::OnTransformUpdated()
@@ -566,10 +565,14 @@ void EnvProbe::Update(float delta)
     EnqueueViewsUpdate();
 }
 
+void EnvProbe::Invalidate()
+{
+    m_cachedOctantHashCodes.Clear();
+}
+
 void EnvProbe::EnqueueViewsUpdate()
 {
     World* world = GetWorld();
-    AssertDebug(world != nullptr);
 
     if (world != nullptr)
     {
@@ -694,15 +697,43 @@ void SkyProbe::Init()
 
 void IrradianceProbe::Invalidate(bool forceRerender)
 {
+    EnvProbe::Invalidate();
+
     if (ProbeVolume* volume = GetParentVolume(); volume != nullptr)
     {
         // Tell the volume to refresh this probe.
         // This will ensure that entities that could be affected by the probe's change are updated.
         volume->RefreshProbe(*this);
     }
-    else if (forceRerender || IsRealtime())
+    else if (IsRealtime())
     {
         needsRender.Store(true);
+    }
+    else
+    {
+        if (forceRerender)
+        {
+            needsRender.Store(true);
+        }
+
+        if (!IsBaked())
+        {
+            GetThreadById(g_simThread)->GetScheduler().Enqueue([weakThis = MakeWeakRef(this)]
+            {
+                Handle<IrradianceProbe> strongThis = weakThis.Lock();
+                if (!strongThis.IsValid())
+                {
+                    return;
+                }
+
+                World* world = strongThis->GetWorld();
+
+                if (world != nullptr)
+                {
+                    strongThis->Update(world->GetGameState().deltaTime);
+                }
+            }, TaskEnqueueFlags::FIRE_AND_FORGET);
+        }
     }
 }
 

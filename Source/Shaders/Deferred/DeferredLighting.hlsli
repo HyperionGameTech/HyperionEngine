@@ -155,6 +155,11 @@ float CalculateEnvProbeWeight(float3 positionWS, float3 aabbMin, float3 aabbMax)
 // Must include ClusteredShading.hlsli before including this if you want
 // to use CalculateEnvProbesContribution.
 
+// Define for intellisense on the block below
+#ifndef HYP_SHADER_COMPILER
+#define CLUSTERED_SHADING_HLSLI
+#endif // HYP_SHADER_COMPILER
+
 #ifdef CLUSTERED_SHADING_HLSLI
 
 void CalculateEnvProbesContribution(
@@ -179,8 +184,10 @@ void CalculateEnvProbesContribution(
     const uint numLights = (clusterData.y & 0xFFFF);
     const uint numEnvProbes = (clusterData.y >> 16) & 0xFFFF;
 
-#ifndef HYP_ENV_PROBES_NO_REFLECTIONS
+    //////////////////////////////////////////////////
     float accumWeightReflections = 0.0;
+    float accumWeightIrradiance = 0.0;
+    
     for (uint i = 0; i < numEnvProbes && accumWeightReflections < 1.0; ++i)
     {
         const uint envProbeIndex = Cluster_LoadEnvProbeIndex(clusterIndexOffset, numLights, i);
@@ -198,6 +205,7 @@ void CalculateEnvProbesContribution(
             : R;
 
         float4 currentReflections = (float4)0;
+        float3 currentIrradiance = EnvProbeSH(currentEnvProbe, N, /* order */2);
 
         ApplyReflectionProbe(
             currentEnvProbe.texture_index,
@@ -212,35 +220,18 @@ void CalculateEnvProbesContribution(
         float weight = CalculateEnvProbeWeight(positionWS, aabbMin, aabbMax);
 
         reflections += currentReflections * weight * (1.0 - accumWeightReflections);
-        weight *= currentReflections.a; // so we can blend probes that have alpha zero with another (e.g blending with skybox)
-        accumWeightReflections += weight * (1.0 - accumWeightReflections);
-    }
-
-    reflections = any(isnan(reflections)) ? (float4)0 : reflections;
-#endif // HYP_ENV_PROBES_NO_REFLECTIONS
-
-#ifndef HYP_ENV_PROBES_NO_IRRADIANCE
-    float accumWeightIrradiance = 0.0;
-
-    for (uint i = 0; i < numEnvProbes && accumWeightIrradiance < 1.0; ++i)
-    {
-        const uint envProbeIndex = Cluster_LoadEnvProbeIndex(clusterIndexOffset, numLights, i);
-
-        EnvProbe currentEnvProbe = EnvProbesBuffer[envProbeIndex];
-        const float3 aabbMin = currentEnvProbe.aabb_min.xyz;
-        const float3 aabbMax = currentEnvProbe.aabb_max.xyz;
-        const float weight = CalculateEnvProbeWeight(positionWS, aabbMin, aabbMax);
-
-        float3 currentIrradiance = EnvProbeSH(currentEnvProbe, N, /* order */ 2);
-        
-        // // sky contributes 0 alpha so we can prioritize other incoming irradiance
-        // const float alpha = float(GET_ENV_PROBE_TYPE(currentEnvProbe) != EPT_SKY);
-
         irradiance += float4(currentIrradiance, 1.0) * weight * (1.0 - accumWeightIrradiance);
-
+        
+        weight *= currentReflections.a; // so we can blend probes that have alpha zero with another (e.g blending with skybox)
+        
+        accumWeightReflections += weight * (1.0 - accumWeightReflections);
         accumWeightIrradiance += weight * (1.0 - accumWeightIrradiance);
     }
-#endif // HYP_ENV_PROBES_NO_IRRADIANCE
+    
+    //////////////////////////////////////////////////
+
+    // DEBUG
+    reflections = any(isnan(reflections)) ? (float4) 0 : reflections;
 }
 
 #endif // CLUSTERED_SHADING_HLSLI
