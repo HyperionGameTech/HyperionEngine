@@ -26,7 +26,7 @@ namespace Hyperion
     public enum TransformChangeType : byte
     {
         Default = 0,    // Default transform change, marks the node as dirty so the transform is saved and the editor is aware of the change when not in simulation mode.
-        Simulation = 1  // Transform change caused by physics or other simulation (e.g scripts) - should not mark the node as "dirty" for editor modifications.
+        Simulation = 1  // Transform change caused by physics or other simulation (e.g scripts) - should not mark the node as modified.
     }
 
     [ClassBinding(Name = "Node")]

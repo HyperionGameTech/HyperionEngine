@@ -739,7 +739,14 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
             }
             else if (member.type == MemberType::StaticField)
             {
-                writer.WriteString(HYP_FORMAT("    StaticField(NAME(HYP_STR({})), {}::{})", member.friendlyName, cls.name, member.name));
+                writer.WriteString(HYP_FORMAT("    StaticField(NAME(HYP_STR({})), {}::{}", member.friendlyName, cls.name, member.name));
+
+                if (attributesString.Any())
+                {
+                    writer.WriteString(", " + attributesString);
+                }
+
+                writer.WriteString(")");
             }
 
             if (i != cls.members.Size() - 1)
@@ -1148,7 +1155,14 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
             }
             else if (member.type == MemberType::StaticField)
             {
-                writer.WriteString(HYP_FORMAT("    StaticField(NAME(HYP_STR({})), {}::{})", member.friendlyName, cls.name, member.name));
+                writer.WriteString(HYP_FORMAT("    StaticField(NAME(HYP_STR({})), {}::{}", member.friendlyName, cls.name, member.name));
+
+                if (attributesString.Any())
+                {
+                    writer.WriteString(", " + attributesString);
+                }
+
+                writer.WriteString(")");
             }
 
             if (i != cls.members.Size() - 1)

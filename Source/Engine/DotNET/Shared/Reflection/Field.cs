@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace Hyperion
@@ -39,6 +40,41 @@ namespace Hyperion
             get
             {
                 return Field_GetOffset(ptr);
+            }
+        }
+
+        public ClassAttribute? GetAttribute(Name name)
+        {
+            IntPtr attributePtr = Field_GetAttribute(ptr, ref name);
+
+            if (attributePtr == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            return new(attributePtr);
+        }
+
+        public IEnumerable<ClassAttribute> Attributes
+        {
+            get
+            {
+                uint count = Field_GetAttributes(ptr, IntPtr.Zero);
+
+                IntPtr attributesPtr = Marshal.AllocHGlobal(IntPtr.Size * (int)count);
+                try
+                {
+                    Field_GetAttributes(ptr, attributesPtr);
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        yield return new(Marshal.ReadIntPtr(attributesPtr, i * IntPtr.Size));
+                    }
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(attributesPtr);
+                }
             }
         }
 
@@ -86,5 +122,11 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "Field_Get")]
         private static extern void Field_Get([In] IntPtr fieldPtr, [In] ref BoxedValueInternal targetData, [Out] out BoxedValueInternal outData);
+
+        [DllImport("hyperion", EntryPoint = "Field_GetAttribute")]
+        private static extern IntPtr Field_GetAttribute([In] IntPtr fieldPtr, [In] ref Name name);
+
+        [DllImport("hyperion", EntryPoint = "Field_GetAttributes")]
+        private static extern uint Field_GetAttributes([In] IntPtr fieldPtr, [Out] IntPtr attributesPtr);
     }
 }

@@ -120,9 +120,17 @@ Token Lexer::NextToken()
     {
         return ReadNumberLiteral();
     }
+    else if (ch[0] == '/' && ch[1] == '/' && ch[2] == '/')
+    {
+        return ReadDocumentation();
+    }
     else if (ch[0] == '/' && ch[1] == '/')
     {
         return ReadLineComment();
+    }
+    else if ((ch[0] == '/' && ch[1] == '*' && ch[2] == '*') || (ch[0] == '/' && ch[1] == '*' && ch[2] == '!'))
+    {
+        return ReadDocumentation();
     }
     else if (ch[0] == '/' && ch[1] == '*')
     {
@@ -747,50 +755,107 @@ Token Lexer::ReadDocumentation()
 {
     SourceLocation location = m_sourceLocation;
 
+    // consume the first '/'
+    m_sourceStream.Next();
+    m_sourceLocation.GetColumn()++;
+
+    // read second char to determine style
+    Char32 second = m_sourceStream.Next();
+    m_sourceLocation.GetColumn()++;
+
     String value;
 
-    // read '/**'
-    for (int i = 0; i < 3; i++)
+    if (second == (Char32)'/')
     {
+        // /// style - line doc comment
+        // consume the third '/'
         m_sourceStream.Next();
-
         m_sourceLocation.GetColumn()++;
-    }
 
-    Char32 previous = 0;
-
-    while (HasNext())
-    {
-        if (m_sourceStream.Peek() == (Char32)'/' && previous == (Char32)'*')
+        // skip optional leading whitespace after '///'
+        while (m_sourceStream.HasNext() && m_sourceStream.Peek() == (Char32)' ')
         {
             m_sourceStream.Next();
-
             m_sourceLocation.GetColumn()++;
-
-            break;
         }
-        else
-        {
-            utf::Char8 ch[4] = { '\0' };
-            utf::Char32to8(m_sourceStream.Peek(), ch);
 
-            // append value
-            value += reinterpret_cast<const String::CharType*>(ch);
+        // read until newline or EOF
+        while (m_sourceStream.HasNext() && m_sourceStream.Peek() != (Char32)'\n')
+        {
+            utf::Char8 buf[4] = { '\0' };
+            utf::Char32to8(m_sourceStream.Peek(), buf);
+            value += reinterpret_cast<const String::CharType*>(buf);
+
+            m_sourceStream.Next();
+            m_sourceLocation.GetColumn()++;
+        }
+    }
+    else if (second == (Char32)'*')
+    {
+        // /** style - block doc comment
+        // consume the third '*' so we have '/**' consumed
+        Char32 third = m_sourceStream.Next();
+        m_sourceLocation.GetColumn()++;
+
+        // If it's actually '/**' not just '/*' with something else
+        // (third will be '*' since NextToken() already checked ch[2] == '*')
+        (void)third;
+
+        Char32 previous = 0;
+
+        while (HasNext())
+        {
+            if (m_sourceStream.Peek() == (Char32)'/' && previous == (Char32)'*')
+            {
+                m_sourceStream.Next();
+                m_sourceLocation.GetColumn()++;
+                break;
+            }
+
+            utf::Char8 buf[4] = { '\0' };
+            utf::Char32to8(m_sourceStream.Peek(), buf);
+
+            // strip leading '*' and optional space from each line
+            if (previous == (Char32)'\n' || previous == 0)
+            {
+                while (m_sourceStream.HasNext() && m_sourceStream.Peek() == (Char32)' ')
+                {
+                    m_sourceStream.Next();
+                    m_sourceLocation.GetColumn()++;
+                }
+
+                if (m_sourceStream.HasNext() && m_sourceStream.Peek() == (Char32)'*')
+                {
+                    m_sourceStream.Next();
+                    m_sourceLocation.GetColumn()++;
+
+                    if (m_sourceStream.HasNext() && m_sourceStream.Peek() == (Char32)' ')
+                    {
+                        m_sourceStream.Next();
+                        m_sourceLocation.GetColumn()++;
+                    }
+
+                    previous = '*';
+                    continue;
+                }
+            }
+
+            value += reinterpret_cast<const String::CharType*>(buf);
 
             if (m_sourceStream.Peek() == (Char32)'\n')
             {
-                // just reset column and increment line
                 m_sourceLocation.GetColumn() = 0;
                 m_sourceLocation.GetLine()++;
             }
+
+            previous = m_sourceStream.Next();
+            m_sourceLocation.GetColumn()++;
         }
-
-        previous = m_sourceStream.Next();
-
-        m_sourceLocation.GetColumn()++;
     }
 
-    return Token::EMPTY;
+    value = value.Trimmed();
+
+    return Token(TK_DOC_COMMENT, value, location);
 }
 
 Token Lexer::ReadOperator()

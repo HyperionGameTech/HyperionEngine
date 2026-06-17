@@ -1794,6 +1794,10 @@ RC<ASTInitializerExpr> Parser::ParseInitializerExpr()
 
 RC<ASTMemberDecl> Parser::ParseMemberDecl()
 {
+    // skip leading doc comment tokens
+    while (Match(TK_DOC_COMMENT, true))
+        ;
+
     RC<ASTMemberDecl> memberDecl = MakeRefCountedPtr<ASTMemberDecl>();
 
     bool isInline = false;
@@ -1907,6 +1911,10 @@ RC<ASTMemberDecl> Parser::ParseMemberDecl()
 
 RC<ASTMemberDecl> Parser::ParseEnumMemberDecl(const RC<ASTType>& underlyingType)
 {
+    // skip leading doc comment tokens
+    while (Match(TK_DOC_COMMENT, true))
+        ;
+
     RC<ASTMemberDecl> memberDecl = MakeRefCountedPtr<ASTMemberDecl>();
     memberDecl->type = underlyingType;
 

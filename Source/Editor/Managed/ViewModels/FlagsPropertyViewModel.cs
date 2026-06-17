@@ -79,14 +79,38 @@ namespace Hyperion.Editor.ViewModels
             });
         }
 
+        private static void BuildEnumFlagEntryTitleAndDescription(StaticField staticField, out string outTitle, out string outDescription)
+        {
+            ClassAttribute? titleAttribute = staticField.GetAttribute("title");
+            outTitle = titleAttribute?.GetString() ?? staticField.Name.ToString();
+
+            ClassAttribute? descriptionAttribute = staticField.GetAttribute("description");
+            outDescription = descriptionAttribute?.GetString() ?? string.Empty;
+        }
+
         private void BuildFlagEntries(Class enumClass)
         {
             foreach (StaticField staticField in enumClass.StaticFields)
             {
                 try
                 {
+                    // if it has edithide attribute, then skip
+                    ClassAttribute? editHideAttribute = staticField.GetAttribute("edithide");
+
+                    if (editHideAttribute?.GetBool() == true)
+                    {
+                        continue;
+                    }
+
                     object? flagValue = staticField.ReadObject();
-                    _enumFlagEntries.Add(new EnumFlagEntry(staticField.Name.ToString(), flagValue, OnFlagEntryChanged));
+
+                    string title;
+                    string description;
+
+                    BuildEnumFlagEntryTitleAndDescription(staticField, out title, out description);
+
+                    _enumFlagEntries.Add(new EnumFlagEntry(title, description, flagValue, OnFlagEntryChanged));
+
                     Logger.Log(LogLevel.Debug, $"Inspector added enum flag static field '{staticField.Name}' to enum flag values for property '{_property.Name}'");
                 }
                 catch (Exception ex)
@@ -174,14 +198,16 @@ namespace Hyperion.Editor.ViewModels
             private readonly Action _onChanged;
             private bool _isSelected;
 
-            public EnumFlagEntry(string name, object? value, Action onChanged)
+            public EnumFlagEntry(string title, string? description, object? value, Action onChanged)
             {
-                Name = name;
+                Title = title;
+                Description = description ?? string.Empty;
                 Value = value;
                 _onChanged = onChanged;
             }
 
-            public string Name { get; }
+            public string Title { get; }
+            public string Description { get; }
 
             public object? Value { get; }
 

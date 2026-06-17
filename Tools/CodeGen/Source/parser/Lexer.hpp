@@ -60,7 +60,7 @@ public:
     Token ReadLineComment();
     /** Reads a multi-line block comment */
     Token ReadBlockComment();
-    /** Reads an important comment (documentation block) */
+    /** Reads a documentation comment (/// or /**) */
     Token ReadDocumentation();
     /** Reads an operator and returns the token */
     Token ReadOperator();

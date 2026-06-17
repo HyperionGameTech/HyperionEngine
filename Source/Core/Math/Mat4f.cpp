@@ -182,6 +182,7 @@ Mat4f Mat4f::Jitter(uint32 index, uint32 width, uint32 height, Vec4f& outJitter)
 
     const Vec2f pixelSize = Vec2f::One() / Vec2f { float(width), float(height) };
 
+    // Put the jitter in [-1,1]
     jitter = (jitter * 2.0f - 1.0f) * pixelSize * 0.5f;
     previousJitter = (previousJitter * 2.0f - 1.0f) * pixelSize * 0.5f;
 

@@ -38,12 +38,12 @@ using SceneAllocator = AllocatorInstance<Pool, &g_scenePool>;
 HYP_ENUM()
 enum EnvProbeFlags : uint32
 {
-    EPF_NONE = 0x0,
-    EPF_PARALLAX_CORRECTED = 0x1,
-    EPF_BAKED = 0x2,
-    EPF_REALTIME = 0x4,
-    EPF_ORIGIN_FROM_CENTER = 0x8,
-    EPF_HAS_VISIBILITY = 0x10
+    EPF_NONE = 0x0,                 //!< @edithide
+    EPF_PARALLAX_CORRECTED = 0x1,   //!< @title="Parallax Corrected"
+    EPF_BAKED = 0x2,                //!< @edithide
+    EPF_REALTIME = 0x4,             //!< @title="Real-time"
+    EPF_ORIGIN_FROM_CENTER = 0x8,   //!< @title="Origin from center"
+    EPF_HAS_VISIBILITY = 0x10       //!< @title="Prevent light leaking" @description="This EnvProbe stores distance values to a texture, used to prevent light leaks at the cost of more memory usage and rendering time."
 };
 
 HYP_MAKE_ENUM_FLAGS(EnvProbeFlags);

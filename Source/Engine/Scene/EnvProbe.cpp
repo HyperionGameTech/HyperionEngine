@@ -66,7 +66,7 @@ EnvProbe::EnvProbe()
 }
 
 EnvProbe::EnvProbe(EnvProbeType envProbeType)
-    : EnvProbe(envProbeType, BoundingBox(Vec3f(-25.0f), Vec3f(25.0f)), Vec2u { 256, 256 })
+    : EnvProbe(envProbeType, BoundingBox(Vec3f(-25.0f), Vec3f(25.0f)), Vec2u { 128, 128 })
 {
 }
 
@@ -347,8 +347,8 @@ void EnvProbe::CreateViews()
         colorDesc.imageType,
         colorDesc.format,
         Vec3u(framebufferDesc.extent, 1),
-        TFM_NEAREST,
-        TFM_NEAREST,
+        TFM_LINEAR,
+        TFM_LINEAR,
         TWM_CLAMP_TO_EDGE,
         1,
         IU_SAMPLED | IU_ATTACHMENT
@@ -370,8 +370,8 @@ void EnvProbe::CreateViews()
             visibilityDesc.imageType,
             visibilityDesc.format,
             Vec3u(framebufferDesc.extent, 1),
-            TFM_NEAREST,
-            TFM_NEAREST,
+            TFM_LINEAR,
+            TFM_LINEAR,
             TWM_CLAMP_TO_EDGE,
             1,
             IU_SAMPLED | IU_ATTACHMENT
@@ -450,10 +450,9 @@ void EnvProbe::CreateViews()
         viewDesc.overrideAttributes = RenderableAttributeSet(
             MeshAttributes {},
             MaterialAttributes {
-                .shaderName = shaderDesc.name,
-                .shaderProperties = shaderDesc.properties,
-                .blendFunction = BlendFunction::AlphaBlending(),
-                .cullFaces = FCM_NONE });
+                shaderDesc.name,
+                shaderDesc.properties
+            });
 
         viewDesc.viewIndex = static_cast<uint8>(viewIndex);
         viewDesc.camera = m_camera;
@@ -556,7 +555,7 @@ void EnvProbe::Update(float delta)
     for (Scene* scene : allScenes)
     {
         // Check if the probe itself is in view.
-        auto ApplyFrustumCheck = [&]()
+        auto applyFrustumCheck = [&]()
         {
             // don't bother with the check for sky
             if (IsA(SkyProbe::StaticClass()))
@@ -613,7 +612,9 @@ void EnvProbe::Update(float delta)
             if (it == m_cachedOctantHashCodes.End())
             {
                 if (!needsUpdate)
-                    ApplyFrustumCheck();
+                {
+                    applyFrustumCheck();
+                }
 
                 m_cachedOctantHashCodes[scene->Id()] = octantHashCode;
 
@@ -623,7 +624,9 @@ void EnvProbe::Update(float delta)
             if (it->second != octantHashCode)
             {
                 if (!needsUpdate)
-                    ApplyFrustumCheck();
+                {
+                    applyFrustumCheck();
+                }
 
                 it->second = octantHashCode;
 
@@ -633,7 +636,9 @@ void EnvProbe::Update(float delta)
         else
         {
             if (!needsUpdate)
-                ApplyFrustumCheck();
+            {
+                applyFrustumCheck();
+            }
         }
     }
 
@@ -743,7 +748,7 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
     EnvProbeShaderData& bufferData = proxy->bufferData;
     bufferData.aabbMin = Vec4f(worldBounds.min, m_camera ? m_camera->GetNearClip() : EnvProbeCameraNearClip);
     bufferData.aabbMax = Vec4f(worldBounds.max, m_camera ? m_camera->GetFarClip() : worldBounds.GetRadius());
-    bufferData.worldPosition = Vec4f(GetOrigin(bool(m_envProbeFlags & EPF_ORIGIN_FROM_CENTER)), 1.0f);
+    bufferData.worldPosition = Vec4f(GetWorldTranslation(), 1.0f);
     bufferData.dimensions = Vec2u { m_dimensions.x, m_dimensions.y };
     bufferData.typeAndFlags = uint32(m_envProbeType) | (uint32(m_envProbeFlags) << 3);
 

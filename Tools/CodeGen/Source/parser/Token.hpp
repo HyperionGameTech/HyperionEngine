@@ -35,7 +35,8 @@ enum TokenClass
     TK_OPEN_BRACKET,
     TK_CLOSE_BRACKET,
     TK_OPEN_BRACE,
-    TK_CLOSE_BRACE
+    TK_CLOSE_BRACE,
+    TK_DOC_COMMENT
 };
 
 class Token

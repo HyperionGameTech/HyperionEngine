@@ -10,9 +10,10 @@
     <ItemsControl ItemsSource="{Binding EnumFlagEntries}">
         <ItemsControl.ItemTemplate>
             <DataTemplate>
-                <CheckBox
-                    Margin="0,2,0,2"
-                    Content="{Binding Name}"
+              <!-- Tooltip.Tip="{Binding Description}" -->
+              <CheckBox
+                  Margin="0,2,0,2"
+                  Content="{Binding Title}"
                     IsChecked="{Binding IsSelected, Mode=TwoWay}" />
             </DataTemplate>
         </ItemsControl.ItemTemplate>

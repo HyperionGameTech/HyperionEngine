@@ -173,7 +173,8 @@ PSOutput PSMain(PSInput input)
 
     const float depth = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_NEAREST, gbuffer_depth_texture, texcoord, 0).r;
 
-    float4 positionVS = ReconstructViewSpacePositionFromDepth(camera.invProjMat, texcoord, depth);
+    float2 unjitteredTexcoord = texcoord - camera.jitter.xy * 0.5;
+    float4 positionVS = ReconstructViewSpacePositionFromDepth(camera.invProjMat, unjitteredTexcoord, depth);
 
     float4 position = mul(camera.invViewMat, positionVS);
     position /= position.w;

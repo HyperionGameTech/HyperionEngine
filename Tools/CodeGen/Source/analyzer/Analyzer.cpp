@@ -724,15 +724,208 @@ static TResult<void, AnalyzerError> CreateParser(const Analyzer& analyzer, const
     return checkErrors();
 }
 
+static void ApplyDocComment(const String& comment, MemberDef& member)
+{
+    String trimmed = comment.Trimmed();
+
+    if (trimmed.Empty())
+    {
+        return;
+    }
+
+    bool hasAtSyntax = false;
+    for (size_t i = 0; i < trimmed.Length(); i++)
+    {
+        if (trimmed.GetChar(i) == '@' && (i == 0 || trimmed.GetChar(i - 1) == ' '))
+        {
+            hasAtSyntax = true;
+            break;
+        }
+    }
+
+    if (hasAtSyntax)
+    {
+        size_t pos = 0;
+
+        while (pos < trimmed.Length())
+        {
+            while (pos < trimmed.Length() && trimmed.GetChar(pos) != '@')
+            {
+                pos++;
+            }
+
+            if (pos >= trimmed.Length())
+            {
+                break;
+            }
+
+            pos++;
+
+            size_t keyStart = pos;
+            while (pos < trimmed.Length() && trimmed.GetChar(pos) != '=' && trimmed.GetChar(pos) != ' ')
+            {
+                pos++;
+            }
+
+            String key = trimmed.Substr(keyStart, pos);
+
+            if (key.Empty())
+            {
+                continue;
+            }
+
+            while (pos < trimmed.Length() && trimmed.GetChar(pos) == ' ')
+            {
+                pos++;
+            }
+
+            if (pos < trimmed.Length() && trimmed.GetChar(pos) == '=')
+            {
+                pos++;
+
+                while (pos < trimmed.Length() && trimmed.GetChar(pos) == ' ')
+                {
+                    pos++;
+                }
+
+                if (pos < trimmed.Length() && trimmed.GetChar(pos) == '"')
+                {
+                    pos++;
+
+                    size_t valueStart = pos;
+
+                    while (pos < trimmed.Length() && trimmed.GetChar(pos) != '"')
+                    {
+                        pos++;
+                    }
+
+                    String value = trimmed.Substr(valueStart, pos);
+
+                    if (pos < trimmed.Length())
+                    {
+                        pos++;
+                    }
+
+                    member.AddAttribute(key, ClassAttributeValue(value));
+                }
+                else
+                {
+                    size_t valueStart = pos;
+
+                    while (pos < trimmed.Length() && trimmed.GetChar(pos) != ' ' && trimmed.GetChar(pos) != '@')
+                    {
+                        pos++;
+                    }
+
+                    String value = trimmed.Substr(valueStart, pos);
+
+                    bool isNumeric = true;
+                    bool hasDecimal = false;
+                    for (size_t vi = 0; vi < value.Length(); vi++)
+                    {
+                        utf::Char32 c = value.GetChar(vi);
+
+                        if (vi == 0 && (c == '-' || c == '+'))
+                        {
+                            continue;
+                        }
+
+                        if (c == '.')
+                        {
+                            hasDecimal = true;
+                            continue;
+                        }
+
+                        if (!utf::IsDecimal(c))
+                        {
+                            isNumeric = false;
+                            break;
+                        }
+                    }
+
+                    if (isNumeric && value.Any() && !hasDecimal)
+                    {
+                        int valueInt;
+
+                        if (StringUtil::Parse(value, &valueInt))
+                        {
+                            member.AddAttribute(key, ClassAttributeValue(valueInt));
+                        }
+                        else
+                        {
+                            member.AddAttribute(key, ClassAttributeValue(value));
+                        }
+                    }
+                    else
+                    {
+                        const String lower = value.ToLower();
+
+                        if (lower == "true")
+                        {
+                            member.AddAttribute(key, ClassAttributeValue(true));
+                        }
+                        else if (lower == "false")
+                        {
+                            member.AddAttribute(key, ClassAttributeValue(false));
+                        }
+                        else
+                        {
+                            member.AddAttribute(key, ClassAttributeValue(value));
+                        }
+                    }
+                }
+            }
+            else
+            {
+                member.AddAttribute(key, ClassAttributeValue(true));
+            }
+        }
+    }
+    else
+    {
+        member.AddAttribute("Description", ClassAttributeValue(trimmed));
+    }
+}
+
 static TResult<Array<MemberDef>, AnalyzerError> BuildClassMembers(const Analyzer& analyzer, const Module& mod, const ClassDefinition& classDefinition)
 {
     Array<MemberDef> results;
 
     Array<String> lines = classDefinition.source.Split('\n');
 
+    String docComment;
+
     for (size_t i = 0; i < lines.Size(); i++)
     {
         const String& line = lines[i];
+        String trimmedLine = line.Trimmed();
+
+        if (trimmedLine.Empty())
+        {
+            continue;
+        }
+
+        if (trimmedLine.StartsWith("///"))
+        {
+            String text = String(trimmedLine.Substr(3)).Trimmed();
+
+            if (text.Any())
+            {
+                if (docComment.Any())
+                {
+                    docComment += " ";
+                }
+
+                docComment += text;
+            }
+
+            continue;
+        }
+
+        if (trimmedLine.StartsWith("//"))
+        {
+            continue;
+        }
 
         size_t macroStartIndex;
         size_t macroEndIndex;
@@ -752,6 +945,12 @@ static TResult<Array<MemberDef>, AnalyzerError> BuildClassMembers(const Analyzer
         MemberDef& result = results.EmplaceBack();
         result.type = parseMacroResult.GetValue().first;
         result.attributes = parseMacroResult.GetValue().second;
+
+        if (docComment.Any())
+        {
+            ApplyDocComment(docComment, result);
+            docComment.Clear();
+        }
 
         if (result.type == MemberType::Property)
         {
@@ -795,6 +994,96 @@ static TResult<Array<MemberDef>, AnalyzerError> BuildClassMembers(const Analyzer
     }
 
     return results;
+}
+
+static void ExtractEnumDocComments(const String& innerContent, Array<MemberDef>& members)
+{
+    if (members.Empty())
+        return;
+
+    Array<String> lines = innerContent.Split('\n');
+    String docComment; // accumulated /// comments before the next member
+
+    auto applyDocComment = [](const String& comment, MemberDef& member) { ApplyDocComment(comment, member); };
+
+    size_t memberIndex = 0;
+
+    for (size_t li = 0; li < lines.Size() && memberIndex < members.Size(); li++)
+    {
+        const String& line = lines[li];
+        String trimmedLine = line.Trimmed();
+
+        if (trimmedLine.Empty())
+        {
+            continue;
+        }
+
+        if (trimmedLine.StartsWith("///"))
+        {
+            String text = String(trimmedLine.Substr(3)).Trimmed();
+
+            if (text.Any())
+            {
+                if (docComment.Any())
+                {
+                    docComment += " ";
+                }
+
+                docComment += text;
+            }
+
+            continue;
+        }
+
+        if (trimmedLine.StartsWith("//"))
+            continue;
+
+        String trailingComment;
+        {
+            size_t pos = 0;
+            bool inString = false;
+
+            while (pos < line.Length())
+            {
+                utf::Char32 ch = line.GetChar(pos);
+                
+                if (ch == '"')
+                {
+                    inString = !inString;
+                }
+
+                if (!inString && pos + 3 < line.Length() && ch == '/' && line.GetChar(pos + 1) == '/' && line.GetChar(pos + 2) == '!' && line.GetChar(pos + 3) == '<')
+                {
+                    trailingComment = String(line.Substr(pos + 4)).Trimmed();
+
+                    if (trailingComment.EndsWith(","))
+                    {
+                        trailingComment = String(trailingComment.Substr(0, trailingComment.Length() - 1)).Trimmed();
+                    }
+
+                    break;
+                }
+
+                pos++;
+            }
+        }
+
+        if (memberIndex < members.Size() && trimmedLine.FindFirstIndex(members[memberIndex].name) != String::NotFound)
+        {
+            if (trailingComment.Any())
+            {
+                applyDocComment(trailingComment, members[memberIndex]);
+            }
+
+            else if (docComment.Any())
+            {
+                applyDocComment(docComment, members[memberIndex]);
+            }
+
+            docComment.Clear();
+            memberIndex++;
+        }
+    }
 }
 
 static TResult<Array<MemberDef>, AnalyzerError> BuildEnumMembers(const Analyzer& analyzer, const Module& mod, const ClassDefinition& classDefinition)
@@ -865,6 +1154,8 @@ static TResult<Array<MemberDef>, AnalyzerError> BuildEnumMembers(const Analyzer&
     {
         return res.GetError();
     }
+
+    ExtractEnumDocComments(innerContent, results);
 
     return results;
 }

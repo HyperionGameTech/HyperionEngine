@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace Hyperion
@@ -42,6 +43,41 @@ namespace Hyperion
             }
         }
 
+        public ClassAttribute? GetAttribute(Name name)
+        {
+            IntPtr attributePtr = StaticField_GetAttribute(_ptr, ref name);
+
+            if (attributePtr == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            return new(attributePtr);
+        }
+
+        public IEnumerable<ClassAttribute> Attributes
+        {
+            get
+            {
+                uint count = StaticField_GetAttributes(_ptr, IntPtr.Zero);
+
+                IntPtr attributesPtr = Marshal.AllocHGlobal(IntPtr.Size * (int)count);
+                try
+                {
+                    StaticField_GetAttributes(_ptr, attributesPtr);
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        yield return new(Marshal.ReadIntPtr(attributesPtr, i * IntPtr.Size));
+                    }
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(attributesPtr);
+                }
+            }
+        }
+
         public object? ReadObject()
         {
             if (_ptr == IntPtr.Zero)
@@ -78,5 +114,11 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "StaticField_GetDataPointer")]
         private static extern IntPtr StaticField_GetDataPointer([In] IntPtr staticFieldPtr);
+
+        [DllImport("hyperion", EntryPoint = "StaticField_GetAttribute")]
+        private static extern IntPtr StaticField_GetAttribute([In] IntPtr staticFieldPtr, [In] ref Name name);
+
+        [DllImport("hyperion", EntryPoint = "StaticField_GetAttributes")]
+        private static extern uint StaticField_GetAttributes([In] IntPtr staticFieldPtr, [Out] IntPtr attributesPtr);
     }
 }

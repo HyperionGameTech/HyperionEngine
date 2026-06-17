@@ -50,4 +50,45 @@ extern "C"
         return pStaticField->GetDataPointer();
     }
 
+    HYP_EXPORT const ClassAttribute* StaticField_GetAttribute(const StaticField* pStaticField, const Name* name)
+    {
+        if (!pStaticField || !name)
+        {
+            return nullptr;
+        }
+
+        auto it = pStaticField->GetAttributes().Find(StringHash(*name));
+
+        if (it == pStaticField->GetAttributes().End())
+        {
+            return nullptr;
+        }
+
+        return &*it;
+    }
+
+    HYP_EXPORT uint32 StaticField_GetAttributes(const StaticField* pStaticField, const ClassAttribute** outAttributes)
+    {
+        if (!pStaticField)
+        {
+            return 0;
+        }
+
+        const ClassAttributeSet& attributes = pStaticField->GetAttributes();
+
+        if (!outAttributes)
+        {
+            return uint32(attributes.Size());
+        }
+
+        uint32 index = 0;
+
+        for (const ClassAttribute& attribute : attributes)
+        {
+            outAttributes[index++] = &attribute;
+        }
+
+        return index;
+    }
+
 } // extern "C"
