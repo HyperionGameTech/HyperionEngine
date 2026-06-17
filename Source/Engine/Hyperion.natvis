@@ -500,4 +500,11 @@
     </Expand>
   </Type>
 
+  <Type Name="Hyperion::EnumFlags&lt;*&gt;">
+    <DisplayString>{enumValue,en}</DisplayString>
+    <Expand>
+      <Item Name="[Value]">($T1)(value)</Item>
+    </Expand>
+  </Type>
+
 </AutoVisualizer>

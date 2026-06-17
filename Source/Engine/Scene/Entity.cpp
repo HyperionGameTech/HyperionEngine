@@ -379,6 +379,10 @@ void Entity::SetScene_Internal(Scene* scene, bool moveToDetached)
     {
         SetEntityManager(m_scene->GetEntityManager());
     }
+    else
+    {
+        m_entityManager = nullptr;
+    }
 }
 
 void Entity::UpdateRenderProxy(RenderProxyMesh* proxy)

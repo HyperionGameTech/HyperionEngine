@@ -107,7 +107,7 @@ class ENGINE_API SceneOctree final : public OctreeBase<SceneOctree, SceneOctreeP
 {
     friend class OctreeBase<SceneOctree, SceneOctreePayload>;
 
-    SceneOctree(const Handle<EntityManager>& entityManager, SceneOctree* parent, const BoundingBox& aabb, uint8 index);
+    SceneOctree(EntityManager* entityManager, SceneOctree* parent, const BoundingBox& aabb, uint8 index);
 
 public:
     static OctreeState<SceneOctree, SceneOctreePayload>* CreateOctreeState()
@@ -115,8 +115,8 @@ public:
         return new SceneOctreeState();
     }
 
-    SceneOctree(const Handle<EntityManager>& entityManager);
-    SceneOctree(const Handle<EntityManager>& entityManager, const BoundingBox& aabb);
+    explicit SceneOctree(EntityManager* entityManager);
+    SceneOctree(EntityManager* entityManager, const BoundingBox& aabb);
 
     ~SceneOctree();
 
@@ -137,14 +137,14 @@ public:
 
     /*! \brief Get the EntityManager the Octree is using to manage entities.
      *  \returns The EntityManager the Octree is set to use */
-    const Handle<EntityManager>& GetEntityManager() const
+    EntityManager* GetEntityManager() const
     {
         return m_entityManager;
     }
 
     /*! \brief Set the EntityManager for the Octree to use. For internal use from \ref Scene only
      *  \internal */
-    void SetEntityManager(const Handle<EntityManager>& entityManager);
+    void SetEntityManager(EntityManager* entityManager);
 
     /*! \brief Get a hashcode of all entities currently in this Octant that have the given tags (child octants affect this too)
      */
@@ -189,7 +189,8 @@ public:
 
     void Clear();
 
-    HYP_FORCE_INLINE void Clear(Array<SceneOctreePayload>& outPayloads, bool undivide)
+    template <class AllocatorType>
+    HYP_FORCE_INLINE void Clear(Array<SceneOctreePayload, AllocatorType>& outPayloads, bool undivide)
     {
         OctreeBase::Clear(outPayloads, undivide);
     }
@@ -238,7 +239,7 @@ private:
 
     Result RebuildExtend_Internal(const BoundingBox& extendIncludeAabb);
 
-    Handle<EntityManager> m_entityManager;
+    EntityManager* m_entityManager;
 
     FixedArray<HashCode, NumEntryHashes> m_entryHashes;
 

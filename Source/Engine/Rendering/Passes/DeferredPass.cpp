@@ -2571,7 +2571,10 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
             {
                 const ShadowMapCacheKey cacheKey = MakeShadowMapCacheKey(light, view);
 
-                lightsForShadow[cacheKey] = { light, cacheKey.IsViewDependent() ? view : nullptr };
+                lightsForShadow[cacheKey] = {
+                    light,
+                    cacheKey.IsCameraDependent() ? view : nullptr
+                };
             }
         }
 

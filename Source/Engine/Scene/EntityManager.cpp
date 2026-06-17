@@ -441,10 +441,15 @@ void EntityManager::SetWorld(World* world)
             for (auto& systemIt : group->GetSystems())
             {
                 SystemBase* system = systemIt.second;
-                Assert(system != nullptr);
+                Assert(system != nullptr && !systems.Contains(system));
 
                 systems.PushBack(system);
             }
+        }
+
+        for (SystemBase* system : systems)
+        {
+            NotifySystemOfAllEntitiesRemoved(system);
         }
 
         for (auto& subtypeData : m_entities.GetSubtypeData())
@@ -458,11 +463,6 @@ void EntityManager::SetWorld(World* world)
 
                 entity->m_entityManager = nullptr;
             }
-        }
-
-        for (SystemBase* system : systems)
-        {
-            NotifySystemOfAllEntitiesRemoved(system);
         }
     }
 

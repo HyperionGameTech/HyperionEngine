@@ -801,7 +801,7 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
     RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(envProbe));
     AssertDebug(envProbeProxy != nullptr);
 
-    bool needsRerender = envProbe->needsRender.Load();;
+    bool needsRerender = envProbe->needsRender.Load();
 
     // special checks for Sky + caching result based on light position + intensity
     if (envProbe->IsA<SkyProbe>())
@@ -828,10 +828,9 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
         // cache it to save on rendering later
         pd->cachedLightDirIntensity = lightProxy->bufferData.positionIntensity;
     }
-    else if (envProbe->IsA<ReflectionProbe>() &&
-        pd->cachedProbeOrigin == envProbeProxy->bufferData.worldPosition.GetXYZ())
+    else if (envProbe->IsA<ReflectionProbe>())
     {
-        return;
+        needsRerender |= (pd->cachedProbeOrigin == envProbeProxy->bufferData.worldPosition.GetXYZ());
     }
 
     pd->cachedProbeOrigin = envProbeProxy->bufferData.worldPosition.GetXYZ();

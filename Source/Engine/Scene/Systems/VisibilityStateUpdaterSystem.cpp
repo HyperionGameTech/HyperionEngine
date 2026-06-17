@@ -76,7 +76,7 @@ void VisibilityStateUpdaterSystem::OnEntityRemoved(Entity* entity)
 {
     SystemBase::OnEntityRemoved(entity);
 
-    /*EntityManager& entityManager = *entity->GetEntityManager();
+    EntityManager& entityManager = *entity->GetEntityManager();
 
     VisibilityStateComponent& visibilityStateComponent = entityManager.GetComponent<VisibilityStateComponent>(entity);
 
@@ -90,7 +90,7 @@ void VisibilityStateUpdaterSystem::OnEntityRemoved(Entity* entity)
     }
 
     visibilityStateComponent.octantId = OctantId::Invalid();
-    visibilityStateComponent.visibilityState = nullptr;*/
+    visibilityStateComponent.visibilityState = nullptr;
 }
 
 void VisibilityStateUpdaterSystem::Process(float delta, Span<Handle<Scene>> scenes)

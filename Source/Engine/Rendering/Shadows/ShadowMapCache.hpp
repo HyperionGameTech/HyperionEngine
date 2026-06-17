@@ -24,12 +24,21 @@ enum ShadowMapType : uint32;
 
 struct ShadowMapCacheKey
 {
-    uint64 hash;
-
-    HYP_FORCE_INLINE bool IsViewDependent() const
+    union
     {
-        // last bit == per-view dependency
-        return (hash & (1ull << 63)) != 0;
+        uint64 hash;
+
+        struct
+        {
+            uint32 lightHash : 32;
+            uint32 cameraHash : 31;
+            uint32 isCameraDependent : 1;
+        };
+    };
+
+    HYP_FORCE_INLINE bool IsCameraDependent() const
+    {
+        return isCameraDependent != 0;
     }
 
     HYP_FORCE_INLINE constexpr bool operator==(const ShadowMapCacheKey& other) const
@@ -52,6 +61,8 @@ struct ShadowMapCacheKey
         return HashCode(HashCode::ValueType(hash));
     }
 };
+
+static_assert(sizeof(ShadowMapCacheKey) == sizeof(uint64) && alignof(ShadowMapCacheKey) == alignof(uint64));
 
 extern ShadowMapCacheKey MakeShadowMapCacheKey(Light* light, View* view);
 

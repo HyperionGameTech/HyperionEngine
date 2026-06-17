@@ -200,25 +200,18 @@ void EnvProbe::SetEnvProbeFlags(EnumFlags<EnvProbeFlags> envProbeFlags)
     m_envProbeFlags = envProbeFlags;
 
     bool shouldForceRerender = false;
+    bool dirtyViewData = false;
 
     if (changedFlags & EPF_BAKED)
     {
-        if (envProbeFlags & EPF_BAKED)
-        {
-            RemoveCamera();
-            DestroyViewData();
-        }
-        else
-        {
-            CreateCamera();
-            CreateViewData();
-        }
-
+        dirtyViewData = true;
         shouldForceRerender = true;
     }
 
     if (changedFlags & EPF_REALTIME)
     {
+        dirtyViewData = true;
+
         if (envProbeFlags & EPF_REALTIME)
         {
             SetReceivesUpdate(true);
@@ -248,6 +241,21 @@ void EnvProbe::SetEnvProbeFlags(EnumFlags<EnvProbeFlags> envProbeFlags)
         {
             EnqueueDeletion(std::move(m_visibilityTexture));
         }
+    }
+
+    if (dirtyViewData)
+    {
+        if (envProbeFlags & EPF_BAKED)
+        {
+            RemoveCamera();
+            DestroyViewData();
+        }
+        else
+        {
+            CreateCamera();
+            CreateViewData();
+        }
+
     }
 
     if (shouldForceRerender)
@@ -502,8 +510,26 @@ void EnvProbe::CreateViewData()
         viewDesc.flags = (OnlyCollectStaticEntities() ? ViewFlags::COLLECT_STATIC_ENTITIES : ViewFlags::COLLECT_ALL_ENTITIES)
             | ViewFlags::CUBEMAP_FACE_VIEW | ViewFlags::ENV_PROBE_VIEW
             | ViewFlags::SKIP_PROBE_VOLUMES
-            | ViewFlags::NO_PARALLEL_DRAW_CALL_COLLECTION
             | ViewFlags::EXTERNAL_RENDERTARGET;
+
+        if (!IsRealtime())
+        {
+            viewDesc.flags |= ViewFlags::NO_PARALLEL_DRAW_CALL_COLLECTION;
+        }
+
+        switch (m_envProbeType)
+        {
+        case EPT_SKY:
+            viewDesc.flags |= ViewFlags::NO_SHADOW_VIEWS;
+            // fallthrough
+        case EPT_REFLECTION:
+            break;
+        case EPT_AMBIENT:
+            viewDesc.flags |= ViewFlags::SKIP_ENV_PROBES;
+            break;
+        default:
+            HYP_UNREACHABLE();
+        }
 
         viewDesc.overrideAttributes = RenderableAttributeSet(
             MeshAttributes {},
@@ -518,11 +544,6 @@ void EnvProbe::CreateViewData()
         if (m_scene != nullptr)
         {
             viewDesc.scenes = { m_scene };
-        }
-
-        if (!IsA<IrradianceProbe>())
-        {
-            viewDesc.flags |= ViewFlags::SKIP_ENV_PROBES;
         }
 
         Handle<View> view = MakeHandle<View>(viewDesc);

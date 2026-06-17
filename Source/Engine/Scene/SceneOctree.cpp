@@ -32,19 +32,19 @@ namespace Hyperion {
 extern Handle<EditorState> g_editorState;
 #endif
 
-SceneOctree::SceneOctree(const Handle<EntityManager>& entityManager)
+SceneOctree::SceneOctree(EntityManager* entityManager)
     : OctreeBase(),
       m_entityManager(entityManager)
 {
 }
 
-SceneOctree::SceneOctree(const Handle<EntityManager>& entityManager, const BoundingBox& aabb)
+SceneOctree::SceneOctree(EntityManager* entityManager, const BoundingBox& aabb)
     : OctreeBase(aabb),
       m_entityManager(entityManager)
 {
 }
 
-SceneOctree::SceneOctree(const Handle<EntityManager>& entityManager, SceneOctree* parent, const BoundingBox& aabb, uint8 index)
+SceneOctree::SceneOctree(EntityManager* entityManager, SceneOctree* parent, const BoundingBox& aabb, uint8 index)
     : OctreeBase(parent, aabb, index),
       m_entityManager(entityManager)
 {
@@ -56,7 +56,7 @@ SceneOctree::~SceneOctree()
     Clear();
 }
 
-void SceneOctree::SetEntityManager(const Handle<EntityManager>& entityManager)
+void SceneOctree::SetEntityManager(EntityManager* entityManager)
 {
     HYP_SCOPE;
 
@@ -235,7 +235,7 @@ SceneOctree::Result SceneOctree::RebuildExtend_Internal(const BoundingBox& exten
 
 SceneOctree::Result SceneOctree::Rebuild(const BoundingBox& newAabb, bool allowGrow)
 {
-    Array<SceneOctreePayload> payloads;
+    Array<SceneOctreePayload, SceneTempAllocator> payloads;
     OctreeBase::Clear(payloads, /* undivide */ true);
 
     m_aabb = newAabb;
@@ -265,12 +265,23 @@ SceneOctree::Result SceneOctree::Rebuild(const BoundingBox& newAabb, bool allowG
 
     InitOctants();
 
+    TSet<Entity*, SceneTempAllocator> addedEntities;
+
     for (SceneOctreePayload& payload : payloads)
     {
+        addedEntities.Reserve(addedEntities.Size() + payload.entries.Size());
+
         for (SceneOctreePayload::Entry& entry : payload.entries)
         {
             Entity* entity = entry.value;
-            Assert(entity != nullptr);
+            AssertDebug(entity != nullptr);
+            
+            if (addedEntities.Contains(entity))
+            {
+                continue;
+            }
+
+            AssertDebug(entity->GetEntityManager() == m_entityManager);
 
             if (entry.aabb.IsValid() && entry.aabb.IsFinite())
             {
@@ -283,6 +294,8 @@ SceneOctree::Result SceneOctree::Rebuild(const BoundingBox& newAabb, bool allowG
             {
                 return insertResult;
             }
+
+            addedEntities.Add(entity);
 
             VisibilityStateComponent* visibilityStateComponent = entity->TryGetComponent<VisibilityStateComponent>();
 

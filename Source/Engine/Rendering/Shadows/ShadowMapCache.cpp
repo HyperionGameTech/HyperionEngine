@@ -63,18 +63,15 @@ ShadowMapCacheKey MakeShadowMapCacheKey(Light* light, View* view)
 {
     AssertDebug(light != nullptr);
 
-    ShadowMapCacheKey key;
-    key.hash = HashCode::GetHashCode(light).Value() & ~(1ull << 63);
+    ShadowMapCacheKey key {};
+    key.lightHash = HashCode::GetHashCode(static_cast<void*>(light)).Value();
 
     if (IsShadowMapViewDependent(*light))
     {
-        AssertDebug(view != nullptr);
+        AssertDebug(view != nullptr && view->GetCamera() != nullptr);
 
-        key.hash = HashCode(HashCode::ValueType(key.hash))
-            .Combine(view)
-            .Value();
-
-        key.hash |= (1ull << 63);
+        key.cameraHash = HashCode::GetHashCode(static_cast<void*>(view->GetCamera())).Value();
+        key.isCameraDependent = 1;
     }
 
     return key;
@@ -171,6 +168,7 @@ static ViewDesc GetViewDesc(Light* light, bool isStatic, uint32 cascadeIndex, Sh
     if (light->IsA<PointLight>())
     {
         viewDesc.flags |= ViewFlags::CUBEMAP_FACE_VIEW;
+        
         viewDesc.viewIndex = cascadeIndex;
     }
 

@@ -91,7 +91,9 @@ enum class ViewFlags : uint32
     ENV_PROBE_VIEW = 0x2000000,         //!< Used by an EnvProbe for rendering a cubemap face - skips shadows and other fancy things that normally allocate per-view.
     CUBEMAP_FACE_VIEW = 0x4000000,      //!< This View corresponds to a face in a cubemap - will not automatically update sub-frustum
 
-    EXTERNAL_RENDERTARGET = 0x10000000,
+    EXTERNAL_RENDERTARGET = 0x10000000, //!< Will not create its own render target data, expected to draw using externally supplied target
+
+    NO_SHADOW_VIEWS = 0x20000000,       //!< No shadow view collection for this view will happen
 
     DEFAULT = ALL_WORLD_SCENES | COLLECT_ALL_ENTITIES
 };
@@ -103,9 +105,10 @@ struct ViewDesc
     EnumFlags<ViewFlags> flags = ViewFlags::DEFAULT;
 
     FramebufferDesc framebufferDesc;
-    uint8 viewIndex = 0; // for cubemap drawing
 
-    Array<Scene*> scenes;
+    uint8 viewIndex = 0;        //!< this slice index (cubemaps)
+
+    Array<Scene*> scenes;       //!< Scenes to render. If empty, will use all scenes for the world it is added to. (Must use World::AddView)
 
     Camera* camera = nullptr;
 
@@ -272,7 +275,8 @@ public:
 
     HYP_FORCE_INLINE bool ShouldCollectShadowViews() const
     {
-        return !(flags & (ViewFlags::SHADOW_VIEW | ViewFlags::BAKER_VIEW | ViewFlags::UI_VIEW));
+        return desc.viewIndex == 0 &&
+            !(flags & (ViewFlags::NO_SHADOW_VIEWS | ViewFlags::SHADOW_VIEW | ViewFlags::BAKER_VIEW | ViewFlags::UI_VIEW));
     }
 
     ViewDesc desc;
