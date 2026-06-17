@@ -423,7 +423,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
         View* shadowViewsStatic[6] {};
         View* shadowViewsDynamic[6] {};
 
-        const bool isOmni = light->IsA<PointLight>();
+        const bool isOmni = (light->GetLightType() == LightType::Point);
         const uint32 numShadowViews = isOmni ? 6 : light->GetNumShadowMapCascades();
 
         for (uint32 shadowViewIndex = 0; shadowViewIndex < numShadowViews; shadowViewIndex++)

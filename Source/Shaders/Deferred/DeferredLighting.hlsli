@@ -197,7 +197,7 @@ void CalculateEnvProbesContribution(
     float accumWeightReflections = 0.0;
     float accumWeightIrradiance = 0.0;
     
-    for (uint i = 0; i < numEnvProbes && accumWeightReflections < 1.0; ++i)
+    for (uint i = 0; i < numEnvProbes; ++i)
     {
         const uint envProbeIndex = Cluster_LoadEnvProbeIndex(clusterIndexOffset, numLights, i);
 
@@ -231,14 +231,28 @@ void CalculateEnvProbesContribution(
 
         if ((envProbeFlags & EPF_HAS_VISIBILITY) && visTextureIndex != INVALID_ENV_PROBE_TEXTURE)
         {
-            float2 moments = envProbesDepthTexture.SampleLevel(sampler_linear, float4(probeToPoint / dist, float(visTextureIndex)), 0).rg;
+            const float3 dirToProbe = probeToPoint / dist;
+
+            float2 moments = envProbesDepthTexture.SampleLevel(sampler_linear, float4(dirToProbe, float(visTextureIndex)), 0).rg;
            
+            float variance = max(moments.y - moments.x * moments.x, 0.000001);
+
             float d = dist - moments.x;
             float p = step(dist, moments.x);
-            float variance = max(moments.y - moments.x * moments.x, 0.0001);
             float p_max = variance / (variance + d * d);
+            // visibility = max(p, p_max);
+            
+            static const float s_softenAmount = 0.2;
 
-            visibility = max(p, p_max);
+            float soft_p_max = max(0.0, p_max - s_softenAmount) / (1.0 - s_softenAmount);
+
+            visibility = (p <= soft_p_max) ? max(p, soft_p_max) : 1.0;
+
+            // mask out backface hits
+            float directionalWeight = max(0.00001, (dot(-dirToProbe, N) + 1.0) * 0.5);
+            directionalWeight = directionalWeight * directionalWeight; // square to push negative dot products closer to 0
+
+            visibility *= directionalWeight;
         }
 
         ApplyReflectionProbe(
@@ -250,13 +264,20 @@ void CalculateEnvProbesContribution(
         float weight = CalculateEnvProbeWeight(positionWS, aabbMin.xyz, aabbMax.xyz);
         weight *= visibility;
 
+        // distance based falloff for irradiance
+        static const float s_irradianceFalloffPower = 0.5;
+        static const float s_irradianceFalloffBeginDist = 6.0;
+
+        float irradianceWeight = pow(max(1.0f - smoothstep(max(0.001, s_irradianceFalloffBeginDist), far, dist), 0.0001), s_irradianceFalloffPower);
+        irradianceWeight *= visibility;
+
         reflections += currentReflections * weight * (1.0 - accumWeightReflections);
-        irradiance += float4(currentIrradiance, 1.0) * weight * (1.0 - accumWeightIrradiance);
+        irradiance += float4(currentIrradiance, 1.0) * irradianceWeight * (1.0 - accumWeightIrradiance);
         
         weight *= currentReflections.a; // so we can blend probes that have alpha zero with another (e.g blending with skybox)
-        
         accumWeightReflections += weight * (1.0 - accumWeightReflections);
-        accumWeightIrradiance += weight * (1.0 - accumWeightIrradiance);
+
+        accumWeightIrradiance += irradianceWeight * (1.0 - accumWeightIrradiance);
 
 #undef CURRENT_ENV_PROBE
     }

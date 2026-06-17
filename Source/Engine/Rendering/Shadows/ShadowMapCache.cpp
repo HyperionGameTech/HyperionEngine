@@ -15,7 +15,7 @@
 
 #include <Rendering/Util/DeletionQueue.hpp>
 
-#include <Core/Containers/Map.hpp>
+#include <Core/Containers/FlatMap.hpp>
 
 #include <Core/Threading/SharedMutex.hpp>
 
@@ -227,7 +227,7 @@ struct CachedShadowMapData
     FixedArray<View*, 6> shadowViewsDynamic;
     FixedArray<View*, 6> shadowViewsStatic;
 
-    volatile int64 lastFrameUsed;
+    volatile int64 lastUsedFrame;
 };
 
 class ShadowMapCacheImpl
@@ -280,7 +280,7 @@ public:
     ShadowMapAllocator allocator;
 
     /// Cached (per-light/view combination) shadow map rendering data that is cleaned up when no longer used
-    TMap<ShadowMapCacheKey, CachedShadowMapData, RenderAllocator> cache;
+    TFlatMap<ShadowMapCacheKey, CachedShadowMapData, RenderAllocator> cache;
 
     TSlimArray<Camera*> deferredDeletionCameras;
 
@@ -342,7 +342,7 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
     TUniqueLock<SharedMutex> uniqueLock; // not locked yet
 
     // is 'cascadeIndex' actually the index of the cubemap face?
-    const bool isOmni = light->IsA<PointLight>();
+    const bool isOmni = (light->GetLightType() == LightType::Point);
 
     auto initShadowCascade = [this, cascadeIndex, light, isOmni](CachedShadowMapData& entry) -> ShadowMap*
     {
@@ -355,7 +355,7 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
 
         const ShadowMapType shadowMapType = LightTypeToShadowMapType[uint32(light->GetLightType())];
 
-        const ShadowMapFilter filterMode = light->GetLightType() == LightType::Directional
+        const ShadowMapFilter filterMode = (light->GetLightType() == LightType::Directional)
             ? SMF_CONTACT_HARDENED : SMF_STANDARD;
 
         ShadowMap* shadowMap = m_impl->allocator.AllocateShadowMap(
@@ -381,7 +381,7 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
     if (it != m_impl->cache.End())
     {
         CachedShadowMapData* entry = &it->second;
-        AtomicExchange(&entry->lastFrameUsed, int64(GetFrameCounter()));
+        AtomicExchange(&entry->lastUsedFrame, int64(GetFrameCounter()));
 
         auto* views = isStatic ? &entry->shadowViewsStatic : &entry->shadowViewsDynamic;
 
@@ -464,7 +464,7 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
         uniqueLock.Reset(m_impl->mutex);
 
         CachedShadowMapData& entry = m_impl->cache[key];
-        AtomicExchange(&entry.lastFrameUsed, int64(GetFrameCounter()));
+        AtomicExchange(&entry.lastUsedFrame, int64(GetFrameCounter()));
 
         if (!entry.camera)
         {
@@ -571,7 +571,7 @@ ShadowMap* ShadowMapCache::GetShadowMap(
             outShadowViewsDynamic = entry.shadowViewsDynamic.ToSpan();
             outShadowViewsStatic = entry.shadowViewsStatic.ToSpan();
 
-            AtomicExchange(&entry.lastFrameUsed, int64(GetFrameCounter()));
+            AtomicExchange(&entry.lastUsedFrame, int64(GetFrameCounter()));
 
             return entry.shadowMaps[shadowMapIndex];
         }
@@ -634,6 +634,7 @@ bool ShadowMapCache::Remove(const ShadowMapCacheKey& key)
         if (shadowMap)
         {
             bool success = m_impl->allocator.FreeShadowMap(shadowMap, /* clearTextureRegion */ true);
+            AssertDebug(success, "Failed to remove shadow map from atlas!");
 
             if (!success)
             {

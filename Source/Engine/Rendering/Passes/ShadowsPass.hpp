@@ -78,7 +78,7 @@ private:
 
         Handle<Texture> cachedShadowMapTexture;
 
-        uint32 lastFrameUsed;
+        uint32 lastUsedFrame;
     };
 
     TMap<uint64, CachedShadowMapData, RenderAllocator> m_cachedShadowMapData;

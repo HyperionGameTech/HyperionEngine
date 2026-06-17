@@ -632,15 +632,73 @@ void UpdateEnvProbeVisibilityTexture(Frame* frame, EnvProbe* envProbe)
     dstRect.x1 = dstExtent.x;
     dstRect.y1 = dstExtent.y;
 
-    cr << InsertBarrier(srcTexture->GetGpuImage(), RS_COPY_SRC);
-    cr << InsertBarrier(dstTexture->GetGpuImage(), RS_COPY_DST);
+    // Acquire scratch intermediate for blur
+    Handle<Texture> scratchTexture = RI.scratchImageAllocator->AcquireScratchImage(
+        TextureType::Cubemap,
+        dstTexture->GetFormat(),
+        dstExtent);
 
-    cr << Blit(srcTexture, dstTexture, srcRect, dstRect, subResource, subResource);
+    // Blit framebuffer -> scratch
+    cr << InsertBarrier(srcTexture->GetGpuImage(), RS_COPY_SRC);
+    cr << InsertBarrier(scratchTexture->GetGpuImage(), RS_COPY_DST);
+
+    cr << Blit(srcTexture, scratchTexture.Get(), srcRect, dstRect, subResource, subResource);
 
     cr << InsertBarrier(srcTexture->GetGpuImage(), RS_SHADER_RESOURCE);
 
-    // Convolution
-    // @TODO
+    // Barriers: scratch -> SRV, visibility -> UAV
+    cr << InsertBarrier(scratchTexture->GetGpuImage(), RS_SHADER_RESOURCE);
+    cr << InsertBarrier(dstTexture->GetGpuImage(), RS_UNORDERED_ACCESS);
+
+    // Blur visibility
+    {
+        ShaderPropertySet blurShaderProperties;
+        blurShaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("KERNEL_SIZE"), 7)));
+
+        cr << SetCurrentShader(ShaderDesc(NAME("BlurVisibility"), blurShaderProperties));
+
+        CBufferAllocator& cba = *RI.cbufferAllocator;
+
+        GpuBuffer* cbuffer = nullptr;
+        size_t cbufferSize = 0;
+        size_t cbufferOffset = 0;
+
+        struct
+        {
+            Vec2u dimensions;
+        } constants = {};
+
+        constants.dimensions = dstExtent.GetXY();
+
+        cba.Write(&constants);
+        cba.Commit(cbuffer, cbufferOffset, cbufferSize);
+
+        GpuImageViewRef scratchCubeView = RI.textureViewCache->GetOrCreate(scratchTexture);
+
+        ImageSubResource layersSubResource {};
+        layersSubResource.baseMipLevel = 0;
+        layersSubResource.numLevels = 1;
+        layersSubResource.baseArrayLayer = 0;
+        layersSubResource.numLayers = 6;
+
+        GpuImageViewRef dstArrayView = RI.textureViewCache->GetOrCreate(
+            dstTexture, layersSubResource, TextureType::Texture2DArray);
+
+        Assert(scratchCubeView.IsValid() && dstArrayView.IsValid());
+
+        cr << SetShaderUniform(0, "InputTexture"_sh, scratchCubeView);
+        cr << SetShaderUniform(1, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
+        cr << SetShaderUniform(2, "OutputTexture"_sh, dstArrayView);
+        cr << SetShaderUniform(3, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
+
+        cr << DispatchCompute(Vec3u {
+            (dstExtent.x + 7) / 8,
+            (dstExtent.y + 7) / 8,
+            6
+        });
+    }
+
+    cr << InsertBarrier(dstTexture->GetGpuImage(), RS_SHADER_RESOURCE);
 
     // Update in env probes depth texture array if bound
     const uint32 boundIndex = Resources::GetBinding(envProbe);

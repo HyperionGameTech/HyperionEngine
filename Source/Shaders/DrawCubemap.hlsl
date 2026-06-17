@@ -312,9 +312,9 @@ PSOutput PSMain(PSInput input)
                 }
             }
 
-            const float3 diffuse_lobe = diffuseColor;// * HYP_FMATH_ONE_OVER_PI;
+            const float3 diffuse_lobe = diffuseColor * HYP_FMATH_ONE_OVER_PI;
 
-            directLight += (diffuse_lobe) * shadow;// * NdotL * lightPositionIntensity.w * attenuation * light_color;
+            directLight += (diffuse_lobe) * shadow * NdotL * lightPositionIntensity.w * attenuation * light_color;
 
 #undef CURRENT_LIGHT
         }

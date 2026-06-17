@@ -228,14 +228,18 @@ protected:
     
     HYP_FORCE_INLINE bool OnlyCollectStaticEntities() const
     {
-        return true;
+        return !IsRealtime();
     }
     
     virtual void Invalidate(bool forceRerender = false);
+
+    void CreateCamera();
+    void RemoveCamera();
     
     void CreateVisibilityTexture();
 
-    void CreateViews();
+    void CreateViewData();
+    void DestroyViewData();
 
     void EnqueueViewsUpdate();
 

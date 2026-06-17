@@ -104,6 +104,50 @@ void EnvProbe::Init()
     SetReady(true);
 }
 
+void EnvProbe::CreateCamera()
+{
+    if (m_camera != nullptr)
+    {
+        // Already created
+        return;
+    }
+    
+    const BoundingBox worldBounds = GetWorldBounds();
+
+    Handle<Camera> camera = MakeHandle<Camera>(
+        90.0f,
+        int(m_dimensions.x), int(m_dimensions.y),
+        EnvProbeCameraNearClip, worldBounds.GetRadius());
+
+    camera->SetReceivesUpdate(false); // Don't automatically update
+    camera->SetName(NAME("EnvProbeCamera"));
+    camera->SetViewMatrix(Mat4f::LookAt(worldBounds.GetCenter(), worldBounds.GetCenter() + Vec3f::UnitZ(), Vec3f::UnitY()));
+
+    InitObject(camera);
+    AddChild(camera);
+
+    m_camera = camera;
+}
+
+void EnvProbe::RemoveCamera()
+{
+    if (!m_camera)
+    {
+        return;
+    }
+
+    for (View* view : m_views)
+    {
+        if (view != nullptr)
+        {
+            view->SetCamera(nullptr);
+        }
+    }
+
+    RemoveChild(m_camera, /* moveToDetached */ false);
+    m_camera = nullptr;
+}
+
 void EnvProbe::CreateVisibilityTexture()
 {
     if (m_visibilityTexture.IsValid())
@@ -114,12 +158,12 @@ void EnvProbe::CreateVisibilityTexture()
     m_visibilityTexture = MakeHandle<Texture>(TextureDesc {
         TextureType::Cubemap,
         TextureFormat::RG16F,
-        Vec3u { 8, 8, 1 },
+        Vec3u { 16, 16, 1 },
         TFM_LINEAR,
         TFM_LINEAR,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_SAMPLED
+        IU_SAMPLED | IU_STORAGE
     });
 
     m_visibilityTexture->SetName(NAME_FMT("{}_Vis", GetName()));
@@ -132,9 +176,18 @@ void EnvProbe::CreateVisibilityTexture()
 void EnvProbe::SetEnvProbeFlags(EnumFlags<EnvProbeFlags> envProbeFlags)
 {
     // If baked, can't be realtime
-    if (envProbeFlags & EPF_BAKED)
+    if (envProbeFlags & EPF_REALTIME)
     {
-        envProbeFlags &= ~EPF_REALTIME;
+        envProbeFlags &= ~EPF_BAKED;
+    }
+    else
+    {
+        // If it is a ReflectionProbe, mark EPF_BAKED if not realtime - 
+        // reflection probes are baked through the Baker system
+        if (m_envProbeType == EPT_REFLECTION)
+        {
+            envProbeFlags |= EPF_BAKED;
+        }
     }
 
     const uint32 changedFlags = envProbeFlags ^ m_envProbeFlags;
@@ -145,6 +198,24 @@ void EnvProbe::SetEnvProbeFlags(EnumFlags<EnvProbeFlags> envProbeFlags)
     }
 
     m_envProbeFlags = envProbeFlags;
+
+    bool shouldForceRerender = false;
+
+    if (changedFlags & EPF_BAKED)
+    {
+        if (envProbeFlags & EPF_BAKED)
+        {
+            RemoveCamera();
+            DestroyViewData();
+        }
+        else
+        {
+            CreateCamera();
+            CreateViewData();
+        }
+
+        shouldForceRerender = true;
+    }
 
     if (changedFlags & EPF_REALTIME)
     {
@@ -171,12 +242,17 @@ void EnvProbe::SetEnvProbeFlags(EnumFlags<EnvProbeFlags> envProbeFlags)
                 CreateVisibilityTexture();
             }
 
-            Invalidate(/* forceRerender */ true);
+            shouldForceRerender = true;
         }
         else if (m_visibilityTexture.IsValid())
         {
             EnqueueDeletion(std::move(m_visibilityTexture));
         }
+    }
+
+    if (shouldForceRerender)
+    {
+        Invalidate(/* forceRerender */ true);
     }
 
     MarkDirty();
@@ -200,23 +276,8 @@ void EnvProbe::OnAddedToWorld(World* world)
 
     if (!IsBaked())
     {
-        const BoundingBox worldBounds = GetWorldBounds();
-
-        Handle<Camera> camera = MakeHandle<Camera>(
-            90.0f,
-            int(m_dimensions.x), int(m_dimensions.y),
-            EnvProbeCameraNearClip, worldBounds.GetRadius());
-
-        camera->SetReceivesUpdate(false); // Don't automatically update
-        camera->SetName(NAME("EnvProbeCamera"));
-        camera->SetViewMatrix(Mat4f::LookAt(worldBounds.GetCenter(), worldBounds.GetCenter() + Vec3f::UnitZ(), Vec3f::UnitY()));
-
-        InitObject(camera);
-        AddChild(camera);
-
-        m_camera = camera;
-
-        CreateViews();
+        CreateCamera();
+        CreateViewData();
         EnqueueViewsUpdate();
 
         if (ShouldComputePrefilteredEnvMap())
@@ -260,24 +321,11 @@ void EnvProbe::OnAddedToWorld(World* world)
 
 void EnvProbe::OnRemovedFromWorld(World* world)
 {
-    if (m_camera != nullptr)
-    {
-        for (const Handle<View>& view : m_views)
-        {
-            view->SetCamera(nullptr);
-        }
-
-        RemoveChild(m_camera, /* moveToDetached */ false);
-        m_camera = nullptr;
-    }
+    RemoveCamera();
 
     Entity::OnRemovedFromWorld(world);
 
-    if (AnyOf(m_views, &Handle<View>::IsValid))
-    {
-        EnqueueDeletion(std::move(m_views));
-        EnqueueDeletion(std::move(m_framebuffers));
-    }
+    DestroyViewData();
 }
 
 void EnvProbe::OnAddedToScene(Scene* scene)
@@ -315,14 +363,24 @@ void EnvProbe::OnTransformUpdated()
     Invalidate();
 }
 
-void EnvProbe::CreateViews()
+void EnvProbe::CreateViewData()
 {
     if (IsBaked())
     {
+        // Do not create Views and other data if baked
         return;
     }
 
     AssertDebug(m_camera != nullptr);
+
+    // If any Views exist, we assume they have already been created
+    for (View* view : m_views)
+    {
+        if (view != nullptr)
+        {
+            return;
+        }
+    }
 
     Array<AttachmentDesc> attachmentDescs;
     Array<GpuImageRef> attachmentImages;
@@ -472,6 +530,27 @@ void EnvProbe::CreateViews()
         InitObject(view);
 
         m_views[viewIndex] = std::move(view);
+    }
+}
+
+void EnvProbe::DestroyViewData()
+{
+    for (FramebufferRef& framebuffer : m_framebuffers)
+    {
+        if (framebuffer.IsValid())
+        {
+            EnqueueDeletion(std::move(framebuffer));
+        }
+    }
+
+    for (Handle<View>& view : m_views)
+    {
+        if (view.IsValid())
+        {
+            view->RemoveScene(m_scene);
+
+            EnqueueDeletion(std::move(view));
+        }
     }
 }
 

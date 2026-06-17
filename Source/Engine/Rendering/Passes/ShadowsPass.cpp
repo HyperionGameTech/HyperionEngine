@@ -97,21 +97,17 @@ int ShadowsPassBase::RunCleanupCycle(int maxIter)
 
     int numCycles = PassBase::RunCleanupCycle(maxIter);
 
-    for (auto it = m_cachedShadowMapData.Begin(); it != m_cachedShadowMapData.End() && numCycles < maxIter; numCycles++)
+    for (auto it = m_cachedShadowMapData.Begin(); it != m_cachedShadowMapData.End();)
     {
         CachedShadowMapData& value = it->second;
 
         static constexpr uint32 MaxFramesBeforeDiscard = 16;
-        if (int64(currentFrame) - int64(value.lastFrameUsed) >= MaxFramesBeforeDiscard)
+        if (int64(currentFrame) - int64(value.lastUsedFrame) >= MaxFramesBeforeDiscard)
         {
-            HYP_LOG(Rendering, Verbose, "Removing cached shadow map as it has not been used in {} frames", int64(currentFrame) - int64(value.lastFrameUsed));
+            HYP_LOG(Rendering, Verbose, "Removing cached shadow map as it has not been used in {} frames", int64(currentFrame) - int64(value.lastUsedFrame));
 
             bool removed = RI.shadowMapCache->Remove(ShadowMapCacheKey { it->first });
-
-            if (!removed)
-            {
-                HYP_LOG(Rendering, Warning, "Failed to remove shadow map from cache.");
-            }
+            AssertDebug(removed, "Failed to remove shadow map frame cache - will cause a leak and further shadow map allocations to fail when filled");
 
             it = m_cachedShadowMapData.Erase(it);
 
@@ -173,7 +169,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         }*/
     }
 
-    cachedData->lastFrameUsed = GetFrameCounter();
+    cachedData->lastUsedFrame = GetFrameCounter();
 
     TFatArray<RenderProxyList*, FixedAllocator<6 * 2>> renderProxyLists;
     HYP_DEFER({ for (RenderProxyList* rpl : renderProxyLists) rpl->EndRead(); });
