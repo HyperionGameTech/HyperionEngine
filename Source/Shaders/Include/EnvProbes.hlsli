@@ -10,8 +10,6 @@
 
 // ENV PROBES
 
-#define ENV_PROBE_CUBEMAP 1
-
 struct EnvProbe
 {
     float4 aabb_max;
@@ -19,7 +17,7 @@ struct EnvProbe
     float4 world_position;
 
     uint2 dimensions;
-    uint texture_index; // point light shadow map probes - this is the index in the point shadow maps array
+    uint textureIndices; // High 16 bits == vis tex index, Low 16 bits == Color tex index
     uint typeAndFlags;
 
     float4 sh[9];
@@ -42,24 +40,20 @@ struct SH9
 #define EPF_ORIGIN_FROM_CENTER 0x8
 #define EPF_HAS_VISIBILITY 0x10
 
+#define INVALID_ENV_PROBE_TEXTURE (0xFFFFu)
+
 #define GET_ENV_PROBE_TYPE(envProbe) (envProbe.typeAndFlags & 0x7)
 #define GET_ENV_PROBE_FLAGS(envProbe) ((envProbe.typeAndFlags >> 3))
+#define GET_ENV_PROBE_COLOR_TEXTURE_INDEX(envProbe) (envProbe.textureIndices & 0xFFFFu)
+#define GET_ENV_PROBE_VIS_TEXTURE_INDEX(envProbe) ((envProbe.textureIndices >> 16) & 0xFFFFu)
 
 float4 EnvProbeSample(
     sampler samp,
-#if ENV_PROBE_CUBEMAP
     textureCubeArray tex,
-#else
-    texture2DArray tex,
-#endif
-    uint texture_index,
+    uint textureIndex,
     float3 coord, float lod)
 {
-#if ENV_PROBE_CUBEMAP
-    float4 color = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(samp, tex, float4(normalize(coord), float(texture_index)), lod);
-#else
-    float4 color = SAMPLE_TEXTURE_2D_ARRAY_LOD(samp, tex, float3(EncodeOctahedralCoord(normalize(coord)) * 0.5 + 0.5, float(texture_index)), lod);
-#endif
+    float4 color = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(samp, tex, float4(normalize(coord), float(textureIndex)), lod);
     // color.rgb = pow(color.rgb, float3(2.2));
     return color;
 }
@@ -81,30 +75,27 @@ float3 EnvProbeCoordParallaxCorrected(
 
 float4 EnvProbeSampleParallaxCorrected(
     sampler samp,
-#if ENV_PROBE_CUBEMAP
     textureCubeArray tex,
-#else
-    texture2DArray tex,
-#endif
-    in EnvProbe env_probe,
+    in EnvProbe envProbe,
     float3 world, float3 R, float lod)
 {
-    uint probe_texture_index = env_probe.texture_index;
+    uint colorTextureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(envProbe);
 
-    float3 rbmax = (env_probe.aabb_max.xyz - world) / R;
-    float3 rbmin = (env_probe.aabb_min.xyz - world) / R;
+    if (colorTextureIndex == INVALID_ENV_PROBE_TEXTURE)
+    {
+        return (float4)0.0;
+    }
+
+    float3 rbmax = (envProbe.aabb_max.xyz - world) / R;
+    float3 rbmin = (envProbe.aabb_min.xyz - world) / R;
     float3 rbminmax = max(rbmax, rbmin);
 
     float correction = min(min(rbminmax.x, rbminmax.y), rbminmax.z);
 
     float3 box = world + R * correction;
-    float3 coord = box - env_probe.world_position.xyz;
+    float3 coord = box - envProbe.world_position.xyz;
 
-#if ENV_PROBE_CUBEMAP
-    return SAMPLE_TEXTURE_CUBE_ARRAY_LOD(samp, tex, float4(normalize(coord), float(probe_texture_index)), lod);
-#else
-    return SAMPLE_TEXTURE_2D_ARRAY_LOD(samp, tex, float3(EncodeOctahedralCoord(normalize(coord)) * 0.5 + 0.5, float(probe_texture_index)), lod);
-#endif
+    return SAMPLE_TEXTURE_CUBE_ARRAY_LOD(samp, tex, float4(normalize(coord), float(colorTextureIndex)), lod);
 }
 
 void ProjectSHBands(float3 N, out float bands[9])

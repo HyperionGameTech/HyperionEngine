@@ -37,6 +37,7 @@ void ConvolveEnvProbeCubemap(
 void ComputeEnvProbeSphericalHarmonics(
     const EnvProbe& envProbe,
     const Texture& inColorTexture);
+
 } // namespace EnvProbeHelpers
 
 namespace Baking {

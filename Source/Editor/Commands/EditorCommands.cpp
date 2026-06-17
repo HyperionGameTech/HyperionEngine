@@ -463,7 +463,7 @@ public:
             return;
         }
 
-        Handle<ReflectionProbe> reflectionProbe = MakeHandle<ReflectionProbe>(BoundingBox(Vec3f(-10.0f), Vec3f(10.0f)), Vec2u(128));
+        Handle<ReflectionProbe> reflectionProbe = MakeHandle<ReflectionProbe>(BoundingBox(Vec3f(-10.0f), Vec3f(10.0f)), Vec2u(128, 128));
         reflectionProbe->SetIsBaked(true);
         InitObject(reflectionProbe);
 
@@ -557,7 +557,7 @@ public:
             return;
         }
 
-        Handle<IrradianceProbe> irradianceProbe = MakeHandle<IrradianceProbe>(BoundingBox(Vec3f(-10.0f), Vec3f(10.0f)), Vec2u(64, 64));
+        Handle<IrradianceProbe> irradianceProbe = MakeHandle<IrradianceProbe>(BoundingBox(Vec3f(-10.0f), Vec3f(10.0f)), Vec2u(128, 128));
         InitObject(irradianceProbe);
 
         WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();

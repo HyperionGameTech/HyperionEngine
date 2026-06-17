@@ -35,11 +35,7 @@ DECLARE_SRV(ReflectionsPass, GBufferMipChain) Texture2D gbuffer_mip_chain;
 DECLARE_SRV_DYNAMIC(ReflectionsPass, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
 #define current_env_probe current_env_probe_buffer[0]
 
-#if ENV_PROBE_CUBEMAP
 DECLARE_SRV(ReflectionsPass, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
-#else
-DECLARE_SRV(ReflectionsPass, EnvProbesColorTexture) Texture2DArray envProbesColorTexture;
-#endif
 
 DECLARE_SRV(ReflectionsPass, EnvProbesBuffer) StructuredBuffer<EnvProbe> env_probes;
 
@@ -123,7 +119,7 @@ PSOutput PSMain(PSInput input)
 
     float4 ibl = float4(0.0, 0.0, 0.0, 0.0);
 
-    const uint probe_texture_index = max(0, min(current_env_probe.texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1));
+    const uint colorTextureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(current_env_probe);
 
     float3 R = reflect(-V, N);
 
@@ -132,7 +128,7 @@ PSOutput PSMain(PSInput input)
 
     // pre-convoluted from baking util
     ApplyReflectionProbe(
-        current_env_probe.texture_index,
+        colorTextureIndex,
         current_env_probe.world_position.xyz,
         aabbMin,
         aabbMax,

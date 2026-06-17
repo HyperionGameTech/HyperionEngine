@@ -42,11 +42,7 @@ DECLARE_UAV(DDGI, ProbeRayData) RWStructuredBuffer<ProbeRayData> probe_rays;
 DECLARE_SRV(DDGI, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
 #define world_shader_data _worlds_buffer[0]
 
-#if ENV_PROBE_CUBEMAP
 DECLARE_SRV(DDGI, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
-#else // !ENV_PROBE_CUBEMAP
-DECLARE_SRV(DDGI, EnvProbesColorTexture) Texture2DArray envProbesColorTexture;
-#endif  // ENV_PROBE_CUBEMAP
 
 #define RAY_OFFSET 0.05
 #define NUM_SAMPLES 1
@@ -124,10 +120,10 @@ void RayGenMain()
 
         if (payload.distance < 0.0)
         {
-            if (currentEnvProbe.texture_index != ~0u)
+            const uint envTextureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(currentEnvProbe);
+            if (envTextureIndex != INVALID_ENV_PROBE_TEXTURE)
             {
-                uint probe_texture_index = max(0, min(currentEnvProbe.texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1));
-                float3 env = EnvProbeSample(sampler_linear, envProbesColorTexture, probe_texture_index, localDirection, 0.0).rgb * ENVIRONMENT_INTENSITY;
+                float3 env = EnvProbeSample(sampler_linear, envProbesColorTexture, envTextureIndex, localDirection, 0.0).rgb * ENVIRONMENT_INTENSITY;
                 radiance += env;
             }
 

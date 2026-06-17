@@ -97,25 +97,30 @@ float3 CalculateRefraction(
 
 static const float s_envProbeBlendFactor = 0.1;
 
+void ApplyReflectionProbe(uint probe_texture_index, float3 R, float lod, inout float4 ibl)
+{
+    ibl = float4(0.0, 0.0, 0.0, 0.0);
+    probe_texture_index = min(probe_texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1);
+
+    ibl = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(sampler_linear, envProbesColorTexture, float4(R, float(probe_texture_index)), lod);
+}
+
 void ApplyReflectionProbe(uint probe_texture_index, float3 probe_world_position, float3 aabb_min, float3 aabb_max, float3 P, float3 R, float lod, inout float4 ibl)
 {
     ibl = float4(0.0, 0.0, 0.0, 0.0);
 
     probe_texture_index = min(probe_texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1);
 
+#ifdef ENV_PROBE_PARALLAX_CORRECTED
     const float3 extent = (aabb_max - aabb_min);
     const float3 center = (aabb_max + aabb_min) * 0.5;
     const float3 diff = P - center;
 
-#ifdef ENV_PROBE_PARALLAX_CORRECTED
     R = EnvProbeCoordParallaxCorrected(probe_world_position, aabb_min, aabb_max, P, R);
+    R = normalize(R);
 #endif // ENV_PROBE_PARALLAX_CORRECTED
 
-#if ENV_PROBE_CUBEMAP
-    ibl = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(sampler_linear, envProbesColorTexture, float4(normalize(R), float(probe_texture_index)), lod);
-#else // !ENV_PROBE_CUBEMAP
-    ibl = SAMPLE_TEXTURE_2D_ARRAY_LOD(sampler_linear, envProbesColorTexture, float3(EncodeOctahedralCoord(normalize(R)) * 0.5 + 0.5, float(probe_texture_index)), lod);
-#endif // ENV_PROBE_CUBEMAP
+    ibl = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(sampler_linear, envProbesColorTexture, float4(R, float(probe_texture_index)), lod);
 }
 
 float4 CalculateReflectionProbe(in EnvProbe probe, float3 P, float3 N, float3 R, float3 camera_position, float roughness)
@@ -135,7 +140,11 @@ float4 CalculateReflectionProbe(in EnvProbe probe, float3 P, float3 N, float3 R,
     }
 #endif // ENV_PROBE_PARALLAX_CORRECTED
 
-    ApplyReflectionProbe(probe.texture_index, probe.world_position.xyz, probe.aabb_min.xyz, probe.aabb_max.xyz, P, R, lod, ibl);
+    const uint colorTextureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(probe);
+    if (colorTextureIndex != INVALID_ENV_PROBE_TEXTURE)
+    {
+        ApplyReflectionProbe(colorTextureIndex, probe.world_position.xyz, probe.aabb_min.xyz, probe.aabb_max.xyz, P, R, lod, ibl);
+    }
 
     return ibl;
 }
@@ -192,32 +201,54 @@ void CalculateEnvProbesContribution(
     {
         const uint envProbeIndex = Cluster_LoadEnvProbeIndex(clusterIndexOffset, numLights, i);
 
-        EnvProbe currentEnvProbe = EnvProbesBuffer[envProbeIndex];
+#define CURRENT_ENV_PROBE (EnvProbesBuffer[envProbeIndex])
+
+        const uint envProbeFlags = GET_ENV_PROBE_FLAGS(CURRENT_ENV_PROBE);
+
+        const uint textureIndices = CURRENT_ENV_PROBE.textureIndices;
+        const uint colorTextureIndex = (textureIndices & 0xFFFFu);
+        const uint visTextureIndex = (textureIndices >> 16) & 0xFFFFu;
 
         const float numMips = 7.0; // assuming 128x128 cubemap size for reflection probes
         const float lod = perceptualRoughness * numMips;
 
-        const float3 aabbMin = currentEnvProbe.aabb_min.xyz;
-        const float3 aabbMax = currentEnvProbe.aabb_max.xyz;
+        const float4 aabbMin = CURRENT_ENV_PROBE.aabb_min;
+        const float4 aabbMax = CURRENT_ENV_PROBE.aabb_max;
 
-        const float3 probeReflectionVector = bool(GET_ENV_PROBE_FLAGS(currentEnvProbe) & EPF_PARALLAX_CORRECTED)
-            ? EnvProbeCoordParallaxCorrected(currentEnvProbe.world_position.xyz, aabbMin, aabbMax, positionWS, R)
+        const float3 probeReflectionVector = bool(envProbeFlags & EPF_PARALLAX_CORRECTED)
+            ? normalize(EnvProbeCoordParallaxCorrected(CURRENT_ENV_PROBE.world_position.xyz, aabbMin.xyz, aabbMax.xyz, positionWS, R))
             : R;
 
         float4 currentReflections = (float4)0;
-        float3 currentIrradiance = EnvProbeSH(currentEnvProbe, N, /* order */2);
+        float3 currentIrradiance = EnvProbeSH(CURRENT_ENV_PROBE, N, /* order */2);
+
+        float3 probeToPoint = positionWS - CURRENT_ENV_PROBE.world_position.xyz;
+        float dist = length(probeToPoint);
+
+        float near = aabbMin.w;
+        float far = aabbMax.w;
+        float visibility = 1.0;
+
+        if ((envProbeFlags & EPF_HAS_VISIBILITY) && visTextureIndex != INVALID_ENV_PROBE_TEXTURE)
+        {
+            float depthSample = envProbesDepthTexture.SampleLevel(sampler_linear, float4(probeToPoint / dist, float(visTextureIndex)), 0).r;
+            // depth is in perspective projection (90deg FOV)
+            float linearOccluderDist = (near * far) / (far - depthSample * (far - near));
+            
+            float3 absDir = abs(probeToPoint);
+            float planarDist = max(absDir.x, max(absDir.y, absDir.z));
+
+            visibility = select(planarDist < linearOccluderDist, 1.0, 0.0);
+        }
 
         ApplyReflectionProbe(
-            currentEnvProbe.texture_index,
-            currentEnvProbe.world_position.xyz,
-            aabbMin,
-            aabbMax,
-            positionWS,
+            colorTextureIndex,
             probeReflectionVector,
             lod,
             currentReflections);
 
-        float weight = CalculateEnvProbeWeight(positionWS, aabbMin, aabbMax);
+        float weight = CalculateEnvProbeWeight(positionWS, aabbMin.xyz, aabbMax.xyz);
+        weight *= visibility;
 
         reflections += currentReflections * weight * (1.0 - accumWeightReflections);
         irradiance += float4(currentIrradiance, 1.0) * weight * (1.0 - accumWeightIrradiance);
@@ -226,6 +257,8 @@ void CalculateEnvProbesContribution(
         
         accumWeightReflections += weight * (1.0 - accumWeightReflections);
         accumWeightIrradiance += weight * (1.0 - accumWeightIrradiance);
+
+#undef CURRENT_ENV_PROBE
     }
     
     //////////////////////////////////////////////////

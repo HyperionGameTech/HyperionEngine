@@ -117,11 +117,8 @@ DECLARE_SRV(DeferredPass, PointLightShadowMapsTextureArray) TextureCubeArray poi
 #define HYP_DEFERRED_NO_ENV_PROBE
 #define HYP_DEFERRED_NO_RT_RADIANCE
 
-#if ENV_PROBE_CUBEMAP
 DECLARE_SRV(DeferredPass, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
-#else // !ENV_PROBE_CUBEMAP
-DECLARE_SRV(DeferredPass, EnvProbesColorTexture) Texture2DArray envProbesColorTexture;
-#endif // ENV_PROBE_CUBEMAP
+DECLARE_SRV(DeferredPass, EnvProbesDepthTexture) TextureCubeArray<float> envProbesDepthTexture;
 
 #include "./deferred/DeferredLighting.hlsli"
 

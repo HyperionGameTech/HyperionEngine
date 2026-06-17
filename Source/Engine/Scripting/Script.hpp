@@ -64,13 +64,13 @@ struct ScriptDesc
     // Serialization helpers
 
     // Path
-    HYP_METHOD(Property = "Path", Serialize = true)
+    HYP_METHOD(Property = "Path", Serialize, NoScriptBindings)
     String SerializePath() const
     {
         return String(path.Data());
     }
 
-    HYP_METHOD(Property = "Path", Serialize = true)
+    HYP_METHOD(Property = "Path", Serialize, NoScriptBindings)
     void DeserializePath(const String& path)
     {
         const size_t maxSize = path.Size() <= this->path.Size() - 1
@@ -82,13 +82,13 @@ struct ScriptDesc
 
     // AssemblyPath
 
-    HYP_METHOD(Property = "AssemblyPath", Serialize = true)
+    HYP_METHOD(Property = "AssemblyPath", Serialize, NoScriptBindings)
     String SerializeAssemblyPath() const
     {
         return String(assemblyPath.Data());
     }
 
-    HYP_METHOD(Property = "AssemblyPath", Serialize = true)
+    HYP_METHOD(Property = "AssemblyPath", Serialize, NoScriptBindings)
     void DeserializeAssemblyPath(const String& assemblyPath)
     {
         const size_t maxSize = assemblyPath.Size() <= this->assemblyPath.Size() - 1
@@ -100,13 +100,13 @@ struct ScriptDesc
 
     // className
 
-    HYP_METHOD(Property = "ClassName", Serialize = true)
+    HYP_METHOD(Property = "ClassName", Serialize, NoScriptBindings)
     String SerializeClassName() const
     {
         return String(className.Data());
     }
 
-    HYP_METHOD(Property = "ClassName", Serialize = true)
+    HYP_METHOD(Property = "ClassName", Serialize, NoScriptBindings)
     void DeserializeClassName(const String& className)
     {
         const size_t maxSize = className.Size() <= this->className.Size() - 1

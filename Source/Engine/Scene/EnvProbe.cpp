@@ -36,11 +36,13 @@ EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 
 static const ShaderPropertyId s_propForwardShading = InternShaderProperty(ShaderProperty(NAME("FORWARD_SHADING")));
 
-static constexpr EnumFlags<EnvProbeFlags> DefaultEnvProbeFlags[EPT_MAX] = {
+static constexpr EnumFlags<EnvProbeFlags> DefaultEnvProbeFlags[EPT_MAX] {
     EPF_ORIGIN_FROM_CENTER,                             // sky
     EPF_ORIGIN_FROM_CENTER | EPF_PARALLAX_CORRECTED,    // reflection
-    EPF_ORIGIN_FROM_CENTER                              // ambient
+    EPF_ORIGIN_FROM_CENTER | EPF_HAS_VISIBILITY         // irradiance
 };
+
+static constexpr float EnvProbeCameraNearClip = 0.025f;
 
 static FixedArray<Mat4f, 6> CreateCubemapMatrices(const Vec3f& origin)
 {
@@ -71,8 +73,6 @@ EnvProbe::EnvProbe(EnvProbeType envProbeType, const BoundingBox& aabb, const Vec
     : m_dimensions(dimensions),
       m_envProbeType(envProbeType),
       m_envProbeFlags(DefaultEnvProbeFlags[envProbeType]),
-      m_cameraNear(0.05f),
-      m_cameraFar(aabb.GetRadius()),
       m_camera(nullptr),
       m_shData {}
 {
@@ -103,6 +103,32 @@ void EnvProbe::Init()
     SetReady(true);
 }
 
+void EnvProbe::CreateVisibilityTexture()
+{
+    if (m_visibilityTexture.IsValid())
+    {
+        return;
+    }
+    
+    // encode visibility as depth value in a single channel.
+    m_visibilityTexture = MakeHandle<Texture>(TextureDesc {
+        TextureType::Cubemap,
+        TextureFormat::R16,
+        Vec3u { m_dimensions, 1 },
+        TFM_NEAREST,
+        TFM_NEAREST,
+        TWM_CLAMP_TO_EDGE,
+        1,
+        IU_SAMPLED
+    });
+
+    m_visibilityTexture->SetName(NAME_FMT("{}_Vis", GetName()));
+
+    CheckResult(m_visibilityTexture->Create());
+
+    // Assume the caller will MarkDirty() / SetNeedsRenderProxyUpdate()
+}
+
 void EnvProbe::SetEnvProbeFlags(EnumFlags<EnvProbeFlags> envProbeFlags)
 {
     // If baked, can't be realtime
@@ -122,13 +148,32 @@ void EnvProbe::SetEnvProbeFlags(EnumFlags<EnvProbeFlags> envProbeFlags)
 
     if (changedFlags & EPF_REALTIME)
     {
-        if (envProbeFlags[EPF_REALTIME])
+        if (envProbeFlags & EPF_REALTIME)
         {
             SetReceivesUpdate(true);
         }
         else
         {
             SetReceivesUpdate(false);
+        }
+    }
+
+    if (changedFlags & EPF_HAS_VISIBILITY)
+    {
+        if (envProbeFlags & EPF_HAS_VISIBILITY)
+        {
+            if (m_visibilityTexture.IsValid())
+            {
+                CheckResult(m_visibilityTexture->Create());
+            }
+            else
+            {
+                CreateVisibilityTexture();
+            }
+        }
+        else if (m_visibilityTexture.IsValid())
+        {
+            EnqueueDeletion(std::move(m_visibilityTexture));
         }
     }
 
@@ -158,7 +203,7 @@ void EnvProbe::OnAddedToWorld(World* world)
         Handle<Camera> camera = MakeHandle<Camera>(
             90.0f,
             int(m_dimensions.x), int(m_dimensions.y),
-            m_cameraNear, m_cameraFar);
+            EnvProbeCameraNearClip, worldBounds.GetRadius());
 
         camera->SetReceivesUpdate(false); // Don't automatically update
         camera->SetName(NAME("EnvProbeCamera"));
@@ -194,6 +239,20 @@ void EnvProbe::OnAddedToWorld(World* world)
     if (m_texture.IsValid())
     {
         CheckResult(m_texture->Create());
+    }
+
+    if (m_envProbeFlags & EPF_HAS_VISIBILITY)
+    {
+        if (m_visibilityTexture.IsValid())
+        {
+            CheckResult(m_visibilityTexture->Create());
+        }
+        else
+        {
+            CreateVisibilityTexture();
+
+            MarkDirty();
+        }
     }
 }
 
@@ -273,8 +332,6 @@ void EnvProbe::CreateViews()
 
     FramebufferRef framebuffer = RI.MakeFramebuffer(framebufferDesc);
     Assert(framebuffer.IsValid());
-
-    uint32 attachmentIndex = 0;
 
     // color
     AttachmentDesc& colorDesc = attachmentDescs.PushBack(AttachmentDesc {
@@ -622,9 +679,9 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
     const BoundingBox worldBounds = GetWorldBounds();
 
     EnvProbeShaderData& bufferData = proxy->bufferData;
-    bufferData.aabbMin = Vec4f(worldBounds.min, 1.0f);
-    bufferData.aabbMax = Vec4f(worldBounds.max, 1.0f);
-    bufferData.worldPosition = Vec4f(GetOrigin(bool(m_envProbeFlags & EPF_ORIGIN_FROM_CENTER)), 1.0f);//Vec4f(GetWorldTranslation(), 1.0f);
+    bufferData.aabbMin = Vec4f(worldBounds.min, m_camera ? m_camera->GetNearClip() : EnvProbeCameraNearClip);
+    bufferData.aabbMax = Vec4f(worldBounds.max, m_camera ? m_camera->GetFarClip() : worldBounds.GetRadius());
+    bufferData.worldPosition = Vec4f(GetOrigin(bool(m_envProbeFlags & EPF_ORIGIN_FROM_CENTER)), 1.0f);
     bufferData.dimensions = Vec2u { m_dimensions.x, m_dimensions.y };
     bufferData.typeAndFlags = uint32(m_envProbeType) | (uint32(m_envProbeFlags) << 3);
 

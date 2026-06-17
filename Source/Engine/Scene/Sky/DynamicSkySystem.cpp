@@ -204,6 +204,13 @@ void DynamicSkySystem::Process(float delta, Span<Handle<Scene>>)
         return;
     }
 
+    // Has the EnvProbe been removed from the scene?
+    // This can happen if for example, the user deleted the EnvProbe in the scene hierarchy
+    if (m_envProbe->GetScene() != m_visScene)
+    {
+        return;
+    }
+
     // update every second OR RingBufferDepth frames (whatever is sooner)
 
     const uint32 currFrame = GetFrameCounter();

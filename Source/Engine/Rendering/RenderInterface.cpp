@@ -2120,8 +2120,12 @@ void RenderInterface::CreateEnvProbesColorTexture()
 
 void RenderInterface::CreateEnvProbesDepthTexture()
 {
+    // @TODO: not only reflection probes can have visibility texture.
+    // we should make it so the dimensions of this are smaller so we can fit more. maybe use an atlas?
+    // and reduce dimensions drastically.
+
     TextureDesc textureDesc;
-    textureDesc.format = TextureFormat::D16;
+    textureDesc.format = TextureFormat::R16;
     textureDesc.extent = Vec3u { 128, 128, 1 };
     textureDesc.imageUsage = IU_SAMPLED;
     textureDesc.type = TextureType::CubemapArray;

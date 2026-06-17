@@ -15,10 +15,11 @@ extern void WriteBufferData_MeshEntity(StructuredBuffer& sbuffer, uint32 idx, IR
 
 extern void OnBindingChanged_Mesh(Mesh* mesh, uint32 prev, uint32 next);
 
+extern void OnBindingChanged_EnvProbe(EnvProbe* envProbe, uint32 prev, uint32 next);
+extern void WriteBufferData_EnvProbe(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* proxy);
+
 // for setting texture only
 extern void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 next);
-
-extern void WriteBufferData_EnvProbe(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* proxy);
 
 extern void WriteBufferData_Light(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* proxy);
 
@@ -41,7 +42,7 @@ ResourceBinderBase* g_cameraBinder = &s_cameraBinder;
 // Shared index allocator for all envprobes
 
 static ResourceBindingAllocator<MaxBoundEnvProbes> s_envProbeBindingsAllocator;
-static ResourceBinder<EnvProbe> s_envProbeBinder { &s_envProbeBindingsAllocator };
+static ResourceBinder<EnvProbe, &OnBindingChanged_EnvProbe> s_envProbeBinder { &s_envProbeBindingsAllocator };
 ResourceBinderBase* g_envProbeBinder = &s_envProbeBinder;
 
 // reflection / sky probes need to allocate texture slots

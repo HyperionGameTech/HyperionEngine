@@ -48,11 +48,7 @@ DECLARE_SRV(PathTracer, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_
 DECLARE_SRV_DYNAMIC(PathTracer, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
 #define current_env_probe current_env_probe_buffer[0]
 
-#if ENV_PROBE_CUBEMAP
 DECLARE_SRV(PathTracer, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
-#else
-DECLARE_SRV(PathTracer, EnvProbesColorTexture) Texture2DArray envProbesColorTexture;
-#endif
 
 #include "../../include/Octahedron.hlsli"
 
@@ -211,10 +207,11 @@ void RayGenMain()
 
             if (payload.distance < 0.0)
             {
-                if (current_env_probe.texture_index != ~0u)
+                const uint envProbeTextureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(envProbes[envProbeIdx]);
+
+                if (envProbeTextureIndex != INVALID_ENV_PROBE_TEXTURE)
                 {
-                    uint probe_texture_index = max(0, min(current_env_probe.texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1));
-                    float3 env = EnvProbeSample(sampler_linear, envProbesColorTexture, probe_texture_index, direction, 0.0).rgb * ENVIRONMENT_INTENSITY;
+                    float3 env = EnvProbeSample(sampler_linear, envProbesColorTexture, envProbeTextureIndex, direction, 0.0).rgb * ENVIRONMENT_INTENSITY;
                     radiance += beta * env;
                 }
                 break;

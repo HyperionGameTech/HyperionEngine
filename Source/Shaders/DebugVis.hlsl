@@ -192,11 +192,7 @@ DECLARE_BUFFER_DYNAMIC(DebugDrawerDescriptorSet, CBuffer) cbuffer CBuffer
 
 #include "include/EnvProbes.hlsli"
 
-#if ENV_PROBE_CUBEMAP
 DECLARE_SRV(DebugDrawerDescriptorSet, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
-#else // !ENV_PROBE_CUBEMAP
-DECLARE_SRV(DebugDrawerDescriptorSet, EnvProbesColorTexture) Texture2DArray envProbesColorTexture;
-#endif // ENV_PROBE_CUBEMAP
 
 DECLARE_SRV(DebugDrawerDescriptorSet, EnvProbesBuffer) StructuredBuffer<EnvProbe> env_probes;
 
@@ -243,7 +239,7 @@ PSOutput PSMain(PSInput input)
             const float lod = 0.2; // give it a little roughness to keep things interesting
 
             ApplyReflectionProbe(
-                env_probes[input.env_probe_index].texture_index,
+                GET_ENV_PROBE_COLOR_TEXTURE_INDEX(env_probes[input.env_probe_index]),
                 env_probes[input.env_probe_index].world_position.xyz,
                 env_probes[input.env_probe_index].aabb_min.xyz,
                 env_probes[input.env_probe_index].aabb_max.xyz,

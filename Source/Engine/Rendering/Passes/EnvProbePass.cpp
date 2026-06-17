@@ -40,6 +40,8 @@
 
 #include <Framework/EngineStats.hpp>
 
+#include <Framework/Resources/ResourceBinder.hpp>
+
 #include <Core/Math/MathUtil.hpp>
 
 #include <Core/Utilities/DeferredScope.hpp>
@@ -279,13 +281,13 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
             envProbeStrong->SetBakedTexture(prefilteredEnvMap);
         }, /* allMips */ true);
     }
-
-    // Update in env probes texture array if bound
-    const uint32 boundIndex = Resources::GetBinding(&envProbe);
-
-    if (boundIndex != ~0u)
+    
+    if (envProbe.IsA<SkyProbe>() || envProbe.IsA<ReflectionProbe>())
     {
-        if (envProbe.IsA<SkyProbe>() || envProbe.IsA<ReflectionProbe>())
+        // Update in env probes texture array if bound
+        const uint32 boundIndex = Resources::g_reflectionProbeTextureBinder->GetBindingForObject(const_cast<EnvProbe*>(&envProbe));
+
+        if (boundIndex != ~0u)
         {
             cr << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_COPY_SRC);
             cr << InsertBarrier(RI.envProbesColorTexture->GetGpuImage(), RS_COPY_DST);
@@ -606,7 +608,59 @@ void UpdateEnvProbeVisibilityTexture(Frame* frame, EnvProbe* envProbe)
     Texture* visibilityTexture = envProbe->GetVisibilityTexture();
     Assert(visibilityTexture != nullptr);
 
+    const FramebufferRef& framebuffer = envProbe->GetViewFramebuffer(0);
+    AssertDebug(framebuffer.IsValid());
 
+    AttachmentBase* depthAttachment = framebuffer->GetAttachment(1);
+    AssertDebug(depthAttachment != nullptr);
+
+    GpuImage* srcImage = depthAttachment->GetGpuImage();
+    GpuImage* dstImage = visibilityTexture->GetGpuImage();
+
+    AssertDebug(srcImage != nullptr);
+    AssertDebug(dstImage != nullptr);
+
+    CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
+    HYP_DEFER({ cr.Done(); });
+
+    ImageSubResource subResource {};
+    subResource.baseMipLevel = 0;
+    subResource.numLevels = 1;
+    subResource.baseArrayLayer = 0;
+    subResource.numLayers = 6;
+
+    cr << InsertBarrier(srcImage, RS_COPY_SRC);
+    cr << InsertBarrier(dstImage, RS_COPY_DST);
+
+    const Vec3u extent = depthAttachment->GetExtent();
+
+    cr << CopyImage(srcImage, dstImage, extent);
+
+    cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
+
+    // Update in env probes depth texture array if bound
+    const uint32 boundIndex = Resources::GetBinding(envProbe);
+
+    if (boundIndex != ~0u)
+    {
+        GpuImage* envProbesDepthImage = RI.envProbesDepthTexture->GetGpuImage();
+
+        cr << InsertBarrier(dstImage, RS_COPY_SRC, subResource);
+
+        ImageSubResource dstSubResource {};
+        dstSubResource.baseMipLevel = 0;
+        dstSubResource.numLevels = 1;
+        dstSubResource.baseArrayLayer = uint16(6 * boundIndex);
+        dstSubResource.numLayers = 6;
+
+        cr << InsertBarrier(envProbesDepthImage, RS_COPY_DST, dstSubResource);
+
+        cr << CopyImage(dstImage, envProbesDepthImage, extent, subResource, dstSubResource);
+
+        cr << InsertBarrier(envProbesDepthImage, RS_SHADER_RESOURCE, dstSubResource);
+    }
+    
+    cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
 }
 
 } // namespace EnvProbeHelpers

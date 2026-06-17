@@ -78,11 +78,7 @@ DECLARE_SRV(SSGI, PointLightShadowMapsTextureArray) TextureCubeArray point_shado
 #include "../include/EnvProbes.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#if ENV_PROBE_CUBEMAP
 DECLARE_SRV(SSGI, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
-#else
-DECLARE_SRV(SSGI, EnvProbesColorTexture) Texture2DArray envProbesColorTexture;
-#endif
 
 #define RAY_OFFSET 0.05
 #define ENVIRONMENT_INTENSITY 1.0
@@ -271,14 +267,14 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
         for (uint envProbeIdx = 0; envProbeIdx < ssgiConstants.numBoundEnvProbes && environmentRadiance.a < 1.0; envProbeIdx++)
         {
-            EnvProbe envProbe = envProbes[envProbeIdx];
+            const uint envProbeTextureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(envProbes[envProbeIdx]);
 
-            if (envProbe.texture_index == ~0u)
+            if (envProbeTextureIndex != INVALID_ENV_PROBE_TEXTURE)
             {
                 continue;
             }
 
-            environmentRadiance += EnvProbeSample(sampler_linear, envProbesColorTexture, envProbe.texture_index, rayDirWorld, 6.0)
+            environmentRadiance += EnvProbeSample(sampler_linear, envProbesColorTexture, envProbeTextureIndex, rayDirWorld, 6.0)
                 * ENVIRONMENT_INTENSITY
                 * (1.0 - environmentRadiance.a);
         }
@@ -306,14 +302,14 @@ float4 SampleSky(float3 dir)
 
     for (uint envProbeIdx = 0; envProbeIdx < ssgiConstants.numBoundEnvProbes && environmentRadiance.a < 1.0; envProbeIdx++)
     {
-        EnvProbe envProbe = envProbes[envProbeIdx];
+        const uint envProbeTextureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(envProbes[envProbeIdx]);
 
-        if (envProbe.texture_index == ~0u)
+        if (envProbeTextureIndex == INVALID_ENV_PROBE_TEXTURE)
         {
             continue;
         }
 
-        environmentRadiance += EnvProbeSample(sampler_linear, envProbesColorTexture, envProbe.texture_index, dir, 6.0)
+        environmentRadiance += EnvProbeSample(sampler_linear, envProbesColorTexture, envProbeTextureIndex, dir, 6.0)
             * ENVIRONMENT_INTENSITY
             * (1.0 - environmentRadiance.a);
     }

@@ -109,11 +109,8 @@ DECLARE_BUFFER(DeferredPass, DDGIConstants) cbuffer DDGI
 
 #include "./include/EnvProbes.hlsli"
 
-#if ENV_PROBE_CUBEMAP
 DECLARE_SRV(DeferredPass, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
-#else // !ENV_PROBE_CUBEMAP
-DECLARE_SRV(DeferredPass, EnvProbesColorTexture) Texture2DArray envProbesColorTexture;
-#endif // ENV_PROBE_CUBEMAP
+DECLARE_SRV(DeferredPass, EnvProbesDepthTexture) TextureCubeArray<float> envProbesDepthTexture;
 
 #define HYP_DEFERRED_NO_REFRACTION
 
@@ -239,7 +236,8 @@ PSOutput PSMain(PSInput input)
     //irradiance.rgb *= irradiance.a;
     irradiance.a = 1.0; // set alpha to 1 now that we're finished lerping between GI methods.
 
-    const float NdotV = max(0.0001, dot(N, V));
+    const float NdotV = max(0.00001, dot(N, V));
+    
     const float3 F0 = CalculateF0(albedo.rgb, metalness);
     const float3 F = CalculateFresnelTerm(F0, perceptualRoughness, NdotV);
     const float3 dfg = CalculateDFG(F, perceptualRoughness, NdotV);

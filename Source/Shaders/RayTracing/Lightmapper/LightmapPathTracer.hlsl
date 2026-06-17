@@ -32,11 +32,7 @@ DECLARE_SRV(LightmapPathTracer, BlueNoiseBuffer) StructuredBuffer<int4> BlueNois
 #include "../../include/BlueNoise.hlsli"
 #include "../../include/EnvProbes.hlsli"
 
-#if ENV_PROBE_CUBEMAP
 DECLARE_SRV(LightmapPathTracer, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
-#else
-DECLARE_SRV(LightmapPathTracer, EnvProbesColorTexture) Texture2DArray envProbesColorTexture;
-#endif
 
 DECLARE_SRV(LightmapPathTracer, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
 #define world_shader_data _worlds_buffer[0]
@@ -193,10 +189,11 @@ void RayGenMain()
 
                 for (uint envProbeIdx = 0; envProbeIdx < min(rayTracingConstants.numBoundEnvProbes, 16) && environmentRadiance.a < 1.0; envProbeIdx++)
                 {
-                    const EnvProbe envProbe = envProbes[envProbeIdx];
-                    if (envProbe.texture_index != ~0u)
+                    const uint envProbeTextureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(envProbes[envProbeIdx]);
+
+                    if (envProbeTextureIndex != INVALID_ENV_PROBE_TEXTURE)
                     {
-                        float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, envProbe.texture_index, direction, 0.0) * (1.0 - environmentRadiance.a);
+                        float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, envProbeTextureIndex, direction, 0.0) * (1.0 - environmentRadiance.a);
                         environmentRadiance += env * ENVIRONMENT_INTENSITY;
                     }
                 }
@@ -347,11 +344,11 @@ void RayGenMain()
 
                 for (uint envProbeIdx = 0; envProbeIdx < rayTracingConstants.numBoundEnvProbes && environmentRadiance.a < 1.0; envProbeIdx++)
                 {
-                    const EnvProbe envProbe = envProbes[envProbeIdx];
+                    const uint envProbeTextureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(envProbes[envProbeIdx]);
 
-                    if (envProbe.texture_index != ~0u)
+                    if (envProbeTextureIndex != INVALID_ENV_PROBE_TEXTURE)
                     {
-                        float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, envProbe.texture_index, direction, 6.0);
+                        float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, envProbeTextureIndex, direction, 6.0);
                         env *= (1.0 - environmentRadiance.a);
                         environmentRadiance += env * ENVIRONMENT_INTENSITY;
                     }
@@ -513,11 +510,11 @@ void RayGenMain()
 
         for (uint envProbeIdx = 0; envProbeIdx < rayTracingConstants.numBoundEnvProbes && environmentRadiance.a < 1.0; envProbeIdx++)
         {
-            const EnvProbe envProbe = envProbes[envProbeIdx];
+            const uint envProbeTextureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(currentEnvProbe);
 
-            if (envProbe.texture_index != ~0u)
+            if (envProbeTextureIndex != INVALID_ENV_PROBE_TEXTURE)
             {
-                float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, envProbe.texture_index, direction, 6.0);
+                float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, envProbeTextureIndex, direction, 6.0);
                 env *= (1.0 - environmentRadiance.a);
                 environmentRadiance += env * ENVIRONMENT_INTENSITY;
             }

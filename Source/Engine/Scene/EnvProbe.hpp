@@ -60,8 +60,6 @@ enum EnvProbeType : uint32
     EPT_MAX
 };
 
-#pragma pack(pop)
-
 HYP_CLASS(AssetBucket = "EnvProbes")
 class ENGINE_API EnvProbe : public VolumeBase
 {
@@ -217,21 +215,23 @@ protected:
 
     virtual void OnAttachedToNode(Node* node) override;
     virtual void OnDetachedFromNode(Node* node) override;
-
+    
     virtual void OnAddedToWorld(World* world) override;
     virtual void OnRemovedFromWorld(World* world) override;
 
     virtual void OnAddedToScene(Scene* scene) override;
     virtual void OnRemovedFromScene(Scene* scene) override;
-
+    
     virtual void OnTransformUpdated() override;
-
+    
     HYP_FORCE_INLINE bool OnlyCollectStaticEntities() const
     {
         return true;
     }
-
+    
     virtual void Invalidate();
+    
+    void CreateVisibilityTexture();
 
     void CreateViews();
 
@@ -248,9 +248,6 @@ protected:
 
     HYP_FIELD(Property = "SHData")
     SphericalHarmonicsData m_shData;
-
-    float m_cameraNear;
-    float m_cameraFar;
 
     Camera* m_camera;
 

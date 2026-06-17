@@ -63,10 +63,9 @@ void OnBindingChanged_Mesh(Mesh* mesh, uint32 prev, uint32 next)
     SetBinding(mesh, next);
 }
 
-void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 next)
+void OnBindingChanged_EnvProbe(EnvProbe* envProbe, uint32 prev, uint32 next)
 {
-    Assert(envProbe->IsA<SkyProbe>() || envProbe->IsA<ReflectionProbe>(),
-        "EnvProbe must be a SkyProbe or ReflectionProbe, but is a {}", envProbe->InstanceClass()->GetName());
+    SetBinding(envProbe, next);
 
     if (next != ~0u)
     {
@@ -81,75 +80,11 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
         RenderProxyEnvProbe* proxyCasted = static_cast<RenderProxyEnvProbe*>(proxy);
         AssertDebug(proxyCasted->envProbe.GetUnsafe() == envProbe);
 
-        if (!proxyCasted->texture)
-        {
-            HYP_LOG(Rendering, Warning, "No EnvProbe texture for {}", envProbe->Id());
-
-            return;
-        }
-
-        CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
-
-        { // color texture
-            Texture* srcTexture = proxyCasted->texture;
-            Texture* dstTexture = RI.envProbesColorTexture;
-
-            // blit to the array texture
-            GpuImage* srcImage = srcTexture->GetGpuImage();
-            AssertDebug(srcImage != nullptr);
-
-            GpuImage* dstImage = dstTexture->GetGpuImage();
-            AssertDebug(dstImage != nullptr);
-
-            // @TODO Set subresource states on dst?
-            cr << InsertBarrier(srcImage, RS_COPY_SRC);
-            cr << InsertBarrier(dstImage, RS_COPY_DST);
-
-            for (uint8 mipIndex = 0; mipIndex < dstImage->NumMips(); mipIndex++)
-            {
-                if (mipIndex >= srcImage->NumMips())
-                {
-                    break;
-                }
-
-                ImageSubResource srcSubResource {};
-                srcSubResource.baseMipLevel = mipIndex;
-                srcSubResource.numLevels = 1;
-                srcSubResource.baseArrayLayer = 0;
-                srcSubResource.numLayers = 6;
-
-                ImageSubResource dstSubResource {};
-                dstSubResource.baseMipLevel = mipIndex;
-                dstSubResource.numLevels = 1;
-                dstSubResource.baseArrayLayer = uint16(6 * next);
-                dstSubResource.numLayers = 6;
-
-                const Vec3u srcMipExtent = srcImage->GetTextureDesc().GetMipExtent(mipIndex);
-                const Vec3u dstMipExtent = dstImage->GetTextureDesc().GetMipExtent(mipIndex);
-
-                if (srcMipExtent == dstMipExtent && srcImage->GetTextureDesc().format == dstImage->GetTextureDesc().format)
-                {
-                    cr << CopyImage(srcImage, dstImage, srcMipExtent, srcSubResource, dstSubResource);
-                }
-                else
-                {
-                    cr << Blit(
-                        srcTexture,
-                        dstTexture,
-                        Rect<uint32> { 0, 0, srcMipExtent.x, srcMipExtent.y },
-                        Rect<uint32> { 0, 0, dstMipExtent.x, dstMipExtent.y },
-                        srcSubResource,
-                        dstSubResource);
-                }
-            }
-
-            cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
-            cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
-        }
-
         // depth
         if (proxyCasted->visibilityTexture != nullptr)
         {
+            CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
+
             Texture* srcTexture = proxyCasted->visibilityTexture;
             Texture* dstTexture = RI.envProbesDepthTexture;
 
@@ -184,9 +119,9 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
 
             cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE, srcSubResource);
             cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE, dstSubResource);
-        }
 
-        cr.Done();
+            cr.Done();
+        }
     }
 }
 
@@ -197,15 +132,113 @@ void WriteBufferData_EnvProbe(StructuredBuffer& sbuffer, uint32 idx, IRenderProx
     RenderProxyEnvProbe* proxyCasted = static_cast<RenderProxyEnvProbe*>(proxy);
     AssertDebug(proxyCasted != nullptr);
 
+    proxyCasted->bufferData.textureIndex = 0;
+
     if (proxyCasted->envProbe.GetUnsafe()->IsA<SkyProbe>() || proxyCasted->envProbe.GetUnsafe()->IsA<ReflectionProbe>())
     {
-        const uint32 textureBinding = Resources::g_reflectionProbeTextureBinder->GetBindingForObject(proxyCasted->envProbe.GetUnsafe());
-        Assert(textureBinding != ~0u);
+        const uint32 colorTextureBinding = Resources::g_reflectionProbeTextureBinder->GetBindingForObject(proxyCasted->envProbe.GetUnsafe());
+        AssertDebug(colorTextureBinding != ~0u);
+        AssertDebug(colorTextureBinding < 0xFFFFu); // we consider anything >= 0xFFFFu to be invalid
 
-        proxyCasted->bufferData.textureIndex = textureBinding;
+        proxyCasted->bufferData.textureIndex |= (colorTextureBinding & 0xFFFFu);
+    }
+
+    // If it has a visibility texture, it will be bound using env probe binding slot,
+    // as irradiance probes can also use visibility texture
+    if (proxyCasted->visibilityTexture != nullptr)
+    {
+        AssertDebug(idx < 0xFFFFu);
+
+        proxyCasted->bufferData.textureIndex |= ((idx & 0xFFFFu) << 16);
     }
 
     sbuffer.Write(idx * sizeof(proxyCasted->bufferData), sizeof(proxyCasted->bufferData), &proxyCasted->bufferData);
+}
+
+void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 next)
+{
+    Assert(envProbe->IsA<SkyProbe>() || envProbe->IsA<ReflectionProbe>(),
+        "EnvProbe must be a SkyProbe or ReflectionProbe, but is a {}", envProbe->InstanceClass()->GetName());
+
+    if (next != ~0u)
+    {
+        IRenderProxy* proxy = GetRenderProxy(envProbe);
+        AssertDebug(proxy != nullptr);
+
+        if (!proxy)
+        {
+            return;
+        }
+
+        RenderProxyEnvProbe* proxyCasted = static_cast<RenderProxyEnvProbe*>(proxy);
+        AssertDebug(proxyCasted->envProbe.GetUnsafe() == envProbe);
+
+        if (!proxyCasted->texture)
+        {
+            HYP_LOG(Rendering, Warning, "No EnvProbe texture for {}", envProbe->Id());
+
+            return;
+        }
+
+        CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
+
+        Texture* srcTexture = proxyCasted->texture;
+        Texture* dstTexture = RI.envProbesColorTexture;
+
+        // blit to the array texture
+        GpuImage* srcImage = srcTexture->GetGpuImage();
+        AssertDebug(srcImage != nullptr);
+
+        GpuImage* dstImage = dstTexture->GetGpuImage();
+        AssertDebug(dstImage != nullptr);
+
+        // @TODO Set subresource states on dst?
+        cr << InsertBarrier(srcImage, RS_COPY_SRC);
+        cr << InsertBarrier(dstImage, RS_COPY_DST);
+
+        for (uint8 mipIndex = 0; mipIndex < dstImage->NumMips(); mipIndex++)
+        {
+            if (mipIndex >= srcImage->NumMips())
+            {
+                break;
+            }
+
+            ImageSubResource srcSubResource {};
+            srcSubResource.baseMipLevel = mipIndex;
+            srcSubResource.numLevels = 1;
+            srcSubResource.baseArrayLayer = 0;
+            srcSubResource.numLayers = 6;
+
+            ImageSubResource dstSubResource {};
+            dstSubResource.baseMipLevel = mipIndex;
+            dstSubResource.numLevels = 1;
+            dstSubResource.baseArrayLayer = uint16(6 * next);
+            dstSubResource.numLayers = 6;
+
+            const Vec3u srcMipExtent = srcImage->GetTextureDesc().GetMipExtent(mipIndex);
+            const Vec3u dstMipExtent = dstImage->GetTextureDesc().GetMipExtent(mipIndex);
+
+            if (srcMipExtent == dstMipExtent && srcImage->GetTextureDesc().format == dstImage->GetTextureDesc().format)
+            {
+                cr << CopyImage(srcImage, dstImage, srcMipExtent, srcSubResource, dstSubResource);
+            }
+            else
+            {
+                cr << Blit(
+                    srcTexture,
+                    dstTexture,
+                    Rect<uint32> { 0, 0, srcMipExtent.x, srcMipExtent.y },
+                    Rect<uint32> { 0, 0, dstMipExtent.x, dstMipExtent.y },
+                    srcSubResource,
+                    dstSubResource);
+            }
+        }
+
+        cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
+        cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
+
+        cr.Done();
+    }
 }
 
 void WriteBufferData_Light(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* proxy)
