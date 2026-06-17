@@ -1340,6 +1340,8 @@ static void PerformRenderingImpl(Frame* frame, const TPerformRenderingPayload<TC
     const RenderableAttributeSet& ras = drawCallCollection.attributes;
     const MaterialAttributes& mas = ras.GetMaterialAttributes();
 
+    AssertDebug(mas.shaderName.IsValid());
+
     const uint8 stencilReference = mas.stencilReference;
 
     cr << SetTopology(ras.GetMeshAttributes().topology);

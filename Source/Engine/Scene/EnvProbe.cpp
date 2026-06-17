@@ -35,6 +35,7 @@ EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 #endif // HYP_EDITOR
 
 static const ShaderPropertyId s_propForwardShading = InternShaderProperty(ShaderProperty(NAME("FORWARD_SHADING")));
+static const ShaderPropertyId s_propWriteMoments = InternShaderProperty(ShaderProperty(NAME("WRITE_MOMENTS")));
 
 static constexpr EnumFlags<EnvProbeFlags> DefaultEnvProbeFlags[EPT_MAX] {
     EPF_ORIGIN_FROM_CENTER,                             // sky
@@ -110,13 +111,12 @@ void EnvProbe::CreateVisibilityTexture()
         return;
     }
     
-    // encode visibility as depth value in a single channel.
     m_visibilityTexture = MakeHandle<Texture>(TextureDesc {
         TextureType::Cubemap,
-        TextureFormat::R16,
+        TextureFormat::RG16F,
         Vec3u { m_dimensions, 1 },
-        TFM_NEAREST,
-        TFM_NEAREST,
+        TFM_LINEAR,
+        TFM_LINEAR,
         TWM_CLAMP_TO_EDGE,
         1,
         IU_SAMPLED
@@ -170,6 +170,8 @@ void EnvProbe::SetEnvProbeFlags(EnumFlags<EnvProbeFlags> envProbeFlags)
             {
                 CreateVisibilityTexture();
             }
+
+            Invalidate(/* forceRerender */ true);
         }
         else if (m_visibilityTexture.IsValid())
         {
@@ -333,7 +335,7 @@ void EnvProbe::CreateViews()
     FramebufferRef framebuffer = RI.MakeFramebuffer(framebufferDesc);
     Assert(framebuffer.IsValid());
 
-    // color
+    // Color target
     AttachmentDesc& colorDesc = attachmentDescs.PushBack(AttachmentDesc {
         TextureType::Cubemap,
         TextureFormat::RGBA8,
@@ -352,7 +354,31 @@ void EnvProbe::CreateViews()
         IU_SAMPLED | IU_ATTACHMENT
     }));
 
-    // Depth
+    // Visibility target
+    // @FIXME: Needs to be created with HAS_VISIBILITY flag set for this to ever be created.
+    // Setting HAS_VISIBILITY on an EnvProbe that wasn't created with it originally will cause us grievances.
+    if (m_envProbeFlags & EPF_HAS_VISIBILITY)
+    {
+        AttachmentDesc& visibilityDesc = attachmentDescs.PushBack(AttachmentDesc {
+            TextureType::Cubemap,
+            TextureFormat::RG16F,
+            LoadOperation::CLEAR,
+            StoreOperation::STORE
+        });
+
+        attachmentImages.PushBack(RI.MakeImage(TextureDesc {
+            visibilityDesc.imageType,
+            visibilityDesc.format,
+            Vec3u(framebufferDesc.extent, 1),
+            TFM_NEAREST,
+            TFM_NEAREST,
+            TWM_CLAMP_TO_EDGE,
+            1,
+            IU_SAMPLED | IU_ATTACHMENT
+        }));
+    }
+
+    // Depth target
     AttachmentDesc& depthDesc = attachmentDescs.PushBack(AttachmentDesc {
         TextureType::Cubemap,
         TextureFormat::D16,
@@ -386,6 +412,11 @@ void EnvProbe::CreateViews()
     {
         shaderDesc.name = NAME("DrawCubemap");
         shaderDesc.properties.Add(s_propForwardShading);
+
+        if (m_envProbeFlags & EPF_HAS_VISIBILITY)
+        {
+            shaderDesc.properties.Add(s_propWriteMoments);
+        }
     }
 
     AssertDebug(shaderDesc.name.IsValid());
@@ -629,9 +660,40 @@ void EnvProbe::Update(float delta)
     EnqueueViewsUpdate();
 }
 
-void EnvProbe::Invalidate()
+void EnvProbe::Invalidate(bool forceRerender)
 {
     m_cachedOctantHashCodes.Clear();
+
+    if (IsRealtime())
+    {
+        needsRender.Store(true);
+    }
+    else
+    {
+        if (forceRerender)
+        {
+            needsRender.Store(true);
+        }
+
+        if (!IsBaked())
+        {
+            GetThreadById(g_simThread)->GetScheduler().Enqueue([weakThis = MakeWeakRef(this)]
+            {
+                Handle<EnvProbe> strongThis = weakThis.Lock();
+                if (!strongThis.IsValid())
+                {
+                    return;
+                }
+
+                World* world = strongThis->GetWorld();
+
+                if (world != nullptr)
+                {
+                    strongThis->Update(world->GetGameState().deltaTime);
+                }
+            }, TaskEnqueueFlags::FIRE_AND_FORGET);
+        }
+    }
 }
 
 void EnvProbe::EnqueueViewsUpdate()
@@ -742,6 +804,8 @@ void EnvProbe::SetVisibilityTexture(const Handle<Texture>& visibilityTexture)
         }
 
         CheckResult(m_visibilityTexture->Create());
+
+        Invalidate(/* forceRerender */ true);
     }
 
     MarkDirty();
@@ -806,43 +870,13 @@ void SkyProbe::Init()
 
 void IrradianceProbe::Invalidate(bool forceRerender)
 {
-    EnvProbe::Invalidate();
+    EnvProbe::Invalidate(forceRerender);
 
     if (ProbeVolume* volume = GetParentVolume(); volume != nullptr)
     {
         // Tell the volume to refresh this probe.
         // This will ensure that entities that could be affected by the probe's change are updated.
         volume->RefreshProbe(*this);
-    }
-    else if (IsRealtime())
-    {
-        needsRender.Store(true);
-    }
-    else
-    {
-        if (forceRerender)
-        {
-            needsRender.Store(true);
-        }
-
-        if (!IsBaked())
-        {
-            GetThreadById(g_simThread)->GetScheduler().Enqueue([weakThis = MakeWeakRef(this)]
-            {
-                Handle<IrradianceProbe> strongThis = weakThis.Lock();
-                if (!strongThis.IsValid())
-                {
-                    return;
-                }
-
-                World* world = strongThis->GetWorld();
-
-                if (world != nullptr)
-                {
-                    strongThis->Update(world->GetGameState().deltaTime);
-                }
-            }, TaskEnqueueFlags::FIRE_AND_FORGET);
-        }
     }
 }
 

@@ -605,20 +605,22 @@ static void ComputeEnvProbeSphericalHarmonics(Frame* frame, EnvProbe* envProbe)
 
 void UpdateEnvProbeVisibilityTexture(Frame* frame, EnvProbe* envProbe)
 {
-    Texture* visibilityTexture = envProbe->GetVisibilityTexture();
-    Assert(visibilityTexture != nullptr);
-
     const FramebufferRef& framebuffer = envProbe->GetViewFramebuffer(0);
     AssertDebug(framebuffer.IsValid());
 
-    AttachmentBase* depthAttachment = framebuffer->GetAttachment(1);
-    AssertDebug(depthAttachment != nullptr);
+    Attachment* visibilityAttachment = framebuffer->GetAttachment(1);
+    AssertDebug(visibilityAttachment != nullptr);
 
-    GpuImage* srcImage = depthAttachment->GetGpuImage();
-    GpuImage* dstImage = visibilityTexture->GetGpuImage();
-
+    GpuImage* srcImage = visibilityAttachment->GetGpuImage();
     AssertDebug(srcImage != nullptr);
+    
+    Texture* visibilityTexture = envProbe->GetVisibilityTexture();
+    Assert(visibilityTexture != nullptr);
+
+    GpuImage* dstImage = visibilityTexture->GetGpuImage();
     AssertDebug(dstImage != nullptr);
+
+    const Vec3u& extent = srcImage->GetExtent();
 
     CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
     HYP_DEFER({ cr.Done(); });
@@ -632,8 +634,6 @@ void UpdateEnvProbeVisibilityTexture(Frame* frame, EnvProbe* envProbe)
     cr << InsertBarrier(srcImage, RS_COPY_SRC);
     cr << InsertBarrier(dstImage, RS_COPY_DST);
 
-    const Vec3u extent = depthAttachment->GetExtent();
-
     cr << CopyImage(srcImage, dstImage, extent);
 
     cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
@@ -645,7 +645,7 @@ void UpdateEnvProbeVisibilityTexture(Frame* frame, EnvProbe* envProbe)
     {
         GpuImage* envProbesDepthImage = RI.envProbesDepthTexture->GetGpuImage();
 
-        cr << InsertBarrier(dstImage, RS_COPY_SRC, subResource);
+        cr << InsertBarrier(dstImage, RS_COPY_SRC);
 
         ImageSubResource dstSubResource {};
         dstSubResource.baseMipLevel = 0;
@@ -739,7 +739,7 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
     RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(envProbe));
     AssertDebug(envProbeProxy != nullptr);
 
-    bool needsRerender = false;
+    bool needsRerender = envProbe->needsRender.Load();;
 
     // special checks for Sky + caching result based on light position + intensity
     if (envProbe->IsA<SkyProbe>())
@@ -818,6 +818,8 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
     {
         EnvProbeHelpers::UpdateEnvProbeVisibilityTexture(frame, envProbe);
     }
+
+    envProbe->needsRender.Store(false);
 }
 
 void ReflectionProbePass::RenderProbeView(Frame* frame, const RenderSetup& renderSetup, EnvProbe* envProbe)
@@ -894,6 +896,11 @@ void IrradianceProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
 
     EnvProbeHelpers::ComputeEnvProbeSphericalHarmonics(frame, irradianceProbe);
 
+    if (irradianceProbe->GetEnvProbeFlags() & EPF_HAS_VISIBILITY)
+    {
+        EnvProbeHelpers::UpdateEnvProbeVisibilityTexture(frame, irradianceProbe);
+    }
+
     irradianceProbe->needsRender.Store(false);
 }
 
@@ -905,7 +912,7 @@ void IrradianceProbePass::RenderProbeView(Frame* frame, const RenderSetup& rende
     RenderCollector& renderCollector = GetRenderCollector(view);
 
 #if HYP_DEBUG_MODE
-        HYP_LOG(Rendering, Verbose, "Render EnvProbe {}, num total draw calls: {}", envProbe->Id(), renderCollector.NumDrawCallsCollected());
+    HYP_LOG(Rendering, Verbose, "Render EnvProbe {}, num total draw calls: {}", envProbe->Id(), renderCollector.NumDrawCallsCollected());
 #endif
 
     renderCollector.ExecuteDrawCalls(frame, renderSetup, RenderBucketMask<RenderBucket::Opaque, RenderBucket::Translucent>);

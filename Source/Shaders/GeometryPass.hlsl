@@ -86,7 +86,7 @@ float3 EvaluateSH(float3 N)
 #ifdef SHADING_TYPE_FORWARD
 
 DECLARE_SRV(Default, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
-DECLARE_SRV(Default, EnvProbesDepthTexture) TextureCubeArray<float> envProbesDepthTexture;
+DECLARE_SRV(Default, EnvProbesDepthTexture) TextureCubeArray<float2> envProbesDepthTexture;
 
 DECLARE_SRV(Default, GBufferMipChain) Texture2D gbuffer_mip_chain;
 

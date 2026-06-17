@@ -2125,13 +2125,13 @@ void RenderInterface::CreateEnvProbesDepthTexture()
     // and reduce dimensions drastically.
 
     TextureDesc textureDesc;
-    textureDesc.format = TextureFormat::R16;
+    textureDesc.format = TextureFormat::RG16F;
     textureDesc.extent = Vec3u { 128, 128, 1 };
     textureDesc.imageUsage = IU_SAMPLED;
     textureDesc.type = TextureType::CubemapArray;
     textureDesc.numLayers = MaxBoundReflectionProbes;
-    textureDesc.filterModeMin = TFM_NEAREST;
-    textureDesc.filterModeMag = TFM_NEAREST;
+    textureDesc.filterModeMin = TFM_LINEAR;
+    textureDesc.filterModeMag = TFM_LINEAR;
 
     envProbesDepthTexture = MakeHandle<Texture>(textureDesc);
     envProbesDepthTexture->SetName(NAME("EnvProbesDepthTexture"));

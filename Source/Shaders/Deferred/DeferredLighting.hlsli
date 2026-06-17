@@ -231,14 +231,14 @@ void CalculateEnvProbesContribution(
 
         if ((envProbeFlags & EPF_HAS_VISIBILITY) && visTextureIndex != INVALID_ENV_PROBE_TEXTURE)
         {
-            float depthSample = envProbesDepthTexture.SampleLevel(sampler_linear, float4(probeToPoint / dist, float(visTextureIndex)), 0).r;
-            // depth is in perspective projection (90deg FOV)
-            float linearOccluderDist = (near * far) / (far - depthSample * (far - near));
-            
-            float3 absDir = abs(probeToPoint);
-            float planarDist = max(absDir.x, max(absDir.y, absDir.z));
+            float2 moments = envProbesDepthTexture.SampleLevel(sampler_linear, float4(probeToPoint / dist, float(visTextureIndex)), 0).rg;
+           
+            float d = dist - moments.x;
+            float p = step(dist, moments.x);
+            float variance = max(moments.y - moments.x * moments.x, 0.0001);
+            float p_max = variance / (variance + d * d);
 
-            visibility = select(planarDist < linearOccluderDist, 1.0, 0.0);
+            visibility = max(p, p_max);
         }
 
         ApplyReflectionProbe(

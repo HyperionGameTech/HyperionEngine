@@ -110,7 +110,7 @@ DECLARE_BUFFER(DeferredPass, DDGIConstants) cbuffer DDGI
 #include "./include/EnvProbes.hlsli"
 
 DECLARE_SRV(DeferredPass, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
-DECLARE_SRV(DeferredPass, EnvProbesDepthTexture) TextureCubeArray<float> envProbesDepthTexture;
+DECLARE_SRV(DeferredPass, EnvProbesDepthTexture) TextureCubeArray<float2> envProbesDepthTexture;
 
 #define HYP_DEFERRED_NO_REFRACTION
 

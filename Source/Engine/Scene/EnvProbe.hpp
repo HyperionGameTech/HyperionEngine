@@ -210,6 +210,8 @@ public:
 
     void UpdateRenderProxy(RenderProxyEnvProbe* proxy);
 
+    AtomicFlag needsRender;
+
 protected:
     virtual void Init() override;
 
@@ -229,7 +231,7 @@ protected:
         return true;
     }
     
-    virtual void Invalidate();
+    virtual void Invalidate(bool forceRerender = false);
     
     void CreateVisibilityTexture();
 
@@ -347,8 +349,6 @@ public:
         return GetParentVolume() != nullptr;
     }
 
-    AtomicFlag needsRender;
-
 private:
 #if HYP_EDITOR
     HYP_METHOD(EditorOnly, EditAction = "Recompute Irradiance")
@@ -358,12 +358,7 @@ private:
     }
 #endif // HYP_EDITOR
 
-    void Invalidate() override
-    {
-        Invalidate(false);
-    }
-
-    void Invalidate(bool forceRerender);
+    void Invalidate(bool forceRerender = false) override;
 
     ProbeVolume* GetParentVolume() const;
 };
