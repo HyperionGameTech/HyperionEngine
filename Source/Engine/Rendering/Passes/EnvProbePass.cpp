@@ -77,8 +77,6 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
 {
     Assert(inTexture != nullptr);
 
-    HYP_LOG(Rendering, Info, "Convolve probe {}", envProbe.GetName());
-
     // Alloc command recorder
     // we need to do this after we Create() the src texture,
     // because CreateGpuImage in Texture.cpp creates its own command recorder,
@@ -608,19 +606,14 @@ void UpdateEnvProbeVisibilityTexture(Frame* frame, EnvProbe* envProbe)
     const FramebufferRef& framebuffer = envProbe->GetViewFramebuffer(0);
     AssertDebug(framebuffer.IsValid());
 
-    Attachment* visibilityAttachment = framebuffer->GetAttachment(1);
-    AssertDebug(visibilityAttachment != nullptr);
-
-    GpuImage* srcImage = visibilityAttachment->GetGpuImage();
-    AssertDebug(srcImage != nullptr);
+    Attachment* srcTexture = framebuffer->GetAttachment(1);
+    AssertDebug(srcTexture != nullptr);
     
-    Texture* visibilityTexture = envProbe->GetVisibilityTexture();
-    Assert(visibilityTexture != nullptr);
+    Texture* dstTexture = envProbe->GetVisibilityTexture();
+    Assert(dstTexture != nullptr);
 
-    GpuImage* dstImage = visibilityTexture->GetGpuImage();
-    AssertDebug(dstImage != nullptr);
-
-    const Vec3u& extent = srcImage->GetExtent();
+    const Vec3u& srcExtent = srcTexture->GetExtent();
+    const Vec3u& dstExtent = dstTexture->GetExtent();
 
     CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
     HYP_DEFER({ cr.Done(); });
@@ -631,12 +624,23 @@ void UpdateEnvProbeVisibilityTexture(Frame* frame, EnvProbe* envProbe)
     subResource.baseArrayLayer = 0;
     subResource.numLayers = 6;
 
-    cr << InsertBarrier(srcImage, RS_COPY_SRC);
-    cr << InsertBarrier(dstImage, RS_COPY_DST);
+    Rect<uint32> srcRect {};
+    srcRect.x1 = srcExtent.x;
+    srcRect.y1 = srcExtent.y;
 
-    cr << CopyImage(srcImage, dstImage, extent);
+    Rect<uint32> dstRect {};
+    dstRect.x1 = dstExtent.x;
+    dstRect.y1 = dstExtent.y;
 
-    cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
+    cr << InsertBarrier(srcTexture->GetGpuImage(), RS_COPY_SRC);
+    cr << InsertBarrier(dstTexture->GetGpuImage(), RS_COPY_DST);
+
+    cr << Blit(srcTexture, dstTexture, srcRect, dstRect, subResource, subResource);
+
+    cr << InsertBarrier(srcTexture->GetGpuImage(), RS_SHADER_RESOURCE);
+
+    // Convolution
+    // @TODO
 
     // Update in env probes depth texture array if bound
     const uint32 boundIndex = Resources::GetBinding(envProbe);
@@ -645,7 +649,7 @@ void UpdateEnvProbeVisibilityTexture(Frame* frame, EnvProbe* envProbe)
     {
         GpuImage* envProbesDepthImage = RI.envProbesDepthTexture->GetGpuImage();
 
-        cr << InsertBarrier(dstImage, RS_COPY_SRC);
+        cr << InsertBarrier(dstTexture->GetGpuImage(), RS_COPY_SRC);
 
         ImageSubResource dstSubResource {};
         dstSubResource.baseMipLevel = 0;
@@ -655,12 +659,12 @@ void UpdateEnvProbeVisibilityTexture(Frame* frame, EnvProbe* envProbe)
 
         cr << InsertBarrier(envProbesDepthImage, RS_COPY_DST, dstSubResource);
 
-        cr << CopyImage(dstImage, envProbesDepthImage, extent, subResource, dstSubResource);
+        cr << CopyImage(dstTexture->GetGpuImage(), envProbesDepthImage, dstExtent, subResource, dstSubResource);
 
         cr << InsertBarrier(envProbesDepthImage, RS_SHADER_RESOURCE, dstSubResource);
     }
     
-    cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
+    cr << InsertBarrier(dstTexture->GetGpuImage(), RS_SHADER_RESOURCE);
 }
 
 } // namespace EnvProbeHelpers

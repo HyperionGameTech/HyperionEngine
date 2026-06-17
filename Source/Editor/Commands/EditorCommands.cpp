@@ -557,7 +557,7 @@ public:
             return;
         }
 
-        Handle<IrradianceProbe> irradianceProbe = MakeHandle<IrradianceProbe>(BoundingBox(Vec3f(-10.0f), Vec3f(10.0f)), Vec2u(128, 128));
+        Handle<IrradianceProbe> irradianceProbe = MakeHandle<IrradianceProbe>(BoundingBox(Vec3f(-10.0f), Vec3f(10.0f)), Vec2u(8, 8));
         InitObject(irradianceProbe);
 
         WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
@@ -2049,19 +2049,22 @@ public:
 
         Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
             GetText(),
-            Proc<EditorActionFunctions()>([scriptAsset]() -> EditorActionFunctions
-                                          {
-                                              return EditorActionFunctions {
-                                                  .execute = Proc<void(EditorSubsystem*, EditorProject*)>([scriptAsset](EditorSubsystem*, EditorProject*)
-                                                                                                          {
-                                                                                                              GetCurrentAssetRegistry()->PutAssetUnique(scriptAsset);
-                                                                                                          }),
-                                                  .revert = Proc<void(EditorSubsystem*, EditorProject*)>([scriptAsset](EditorSubsystem*, EditorProject*)
-                                                                                                         {
-                                                                                                             GetCurrentAssetRegistry()->RemoveAsset(scriptAsset);
-                                                                                                         })
-                                              };
-                                          }));
+            Proc<EditorActionFunctions()>(
+                [scriptAsset]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [scriptAsset](EditorSubsystem*, EditorProject*)
+                            {
+                                GetCurrentAssetRegistry()->PutAssetUnique(scriptAsset);
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [scriptAsset](EditorSubsystem*, EditorProject*)
+                            {
+                                GetCurrentAssetRegistry()->RemoveAsset(scriptAsset);
+                            })
+                    };
+                }));
 
         InitObject(action);
 

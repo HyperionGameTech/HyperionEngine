@@ -114,7 +114,7 @@ void EnvProbe::CreateVisibilityTexture()
     m_visibilityTexture = MakeHandle<Texture>(TextureDesc {
         TextureType::Cubemap,
         TextureFormat::RG16F,
-        Vec3u { m_dimensions, 1 },
+        Vec3u { 8, 8, 1 },
         TFM_LINEAR,
         TFM_LINEAR,
         TWM_CLAMP_TO_EDGE,
