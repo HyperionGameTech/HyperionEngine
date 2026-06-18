@@ -40,6 +40,9 @@ namespace Hyperion.Editor.ViewModels
             set => SetProperty(ref _isExpanded, value);
         }
 
+        public bool CanAddElement { get; }
+        public bool CanRemoveElement { get; }
+
         // Arrays span both label and value columns (like structs).
         public override bool ShowInlineLabel => false;
 
@@ -48,8 +51,17 @@ namespace Hyperion.Editor.ViewModels
             : base(target, property, isReadOnly)
         {
             _depth = depth;
-            _elementTypeInfo = property.TypeInfo.GetElementTypeInfo();
-            Value = "(array)";
+
+            TypeInfo propertyTypeInfo = property.TypeInfo;
+            _elementTypeInfo = propertyTypeInfo.GetElementTypeInfo();
+
+            Value = propertyTypeInfo.Name.ToString();
+
+            bool isFixedArray = propertyTypeInfo.Name.ToString().Contains("FixedArray");
+
+            CanAddElement = !isReadOnly && !isFixedArray;
+            CanRemoveElement = !isReadOnly && !isFixedArray;
+
             AddElementCommand = new RelayCommand(AddElement, () => !_isReadOnly);
             RemoveElementCommand = new RelayCommand<InspectorPropertyViewModelBase>(vm => RemoveElementAt(Elements.IndexOf(vm!)));
         }
@@ -58,8 +70,17 @@ namespace Hyperion.Editor.ViewModels
             : base(classAddress, targetAddressResolver, property, isReadOnly)
         {
             _depth = depth;
-            _elementTypeInfo = property.TypeInfo.GetElementTypeInfo();
-            Value = "(array)";
+
+            TypeInfo propertyTypeInfo = property.TypeInfo;
+            _elementTypeInfo = propertyTypeInfo.GetElementTypeInfo();
+
+            Value = propertyTypeInfo.Name.ToString();
+
+            bool isFixedArray = propertyTypeInfo.Name.ToString().Contains("FixedArray");
+
+            CanAddElement = !isReadOnly && !isFixedArray;
+            CanRemoveElement = !isReadOnly && !isFixedArray;
+
             AddElementCommand = new RelayCommand(AddElement, () => !_isReadOnly);
             RemoveElementCommand = new RelayCommand<InspectorPropertyViewModelBase>(vm => RemoveElementAt(Elements.IndexOf(vm!)));
         }
@@ -68,8 +89,14 @@ namespace Hyperion.Editor.ViewModels
             : base(label, typeInfoHint, getter, setter, isReadOnly)
         {
             _depth = depth;
+
             _elementTypeInfo = typeInfoHint.GetElementTypeInfo();
-            Value = "(array)";
+
+            Value = _elementTypeInfo.Name.ToString();
+
+            CanAddElement = !isReadOnly;
+            CanRemoveElement = !isReadOnly;
+
             AddElementCommand = new RelayCommand(AddElement, () => !_isReadOnly);
             RemoveElementCommand = new RelayCommand<InspectorPropertyViewModelBase>(vm => RemoveElementAt(Elements.IndexOf(vm!)));
         }

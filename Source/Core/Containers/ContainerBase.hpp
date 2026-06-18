@@ -113,8 +113,6 @@ public:
     template <class Func>
     auto FindIf(Func&& pred) const
     {
-        FunctionWrapper<NormalizedType<Func>> fn { std::forward<Func>(pred) };
-
         return std::find_if(
             static_cast<const Container*>(this)->Begin(),
             static_cast<const Container*>(this)->End(),

@@ -19,6 +19,9 @@
             <DataTemplate x:DataType="vm:FlagsPropertyViewModel">
                 <local:EnumFlagsPropertyEditor DataContext="{Binding}" />
             </DataTemplate>
+            <DataTemplate x:DataType="vm:MobilityPropertyViewModel">
+                <local:MobilityPropertyEditor DataContext="{Binding}" />
+            </DataTemplate>
             <DataTemplate x:DataType="vm:Vec2fViewModel">
                 <Grid ColumnDefinitions="*,*">
                     <TextBox Grid.Column="0" Margin="0,0,4,0" HorizontalAlignment="Stretch" Text="{Binding X, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
@@ -145,6 +148,7 @@
                                             Padding="4,1"
                                             FontSize="10"
                                             Content="✕"
+                                            IsVisible="{ReflectionBinding DataContext.CanRemoveElement, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                             Command="{ReflectionBinding DataContext.RemoveElementCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                             CommandParameter="{ReflectionBinding}" />
                                         <ContentControl Content="{Binding}" />
@@ -158,6 +162,7 @@
                             Padding="8,2"
                             FontSize="11"
                             Content="Add"
+                            IsVisible="{Binding CanAddElement}"
                             Command="{Binding AddElementCommand}" />
                     </StackPanel>
                 </Expander>

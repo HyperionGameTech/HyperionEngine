@@ -15,11 +15,16 @@ namespace Hyperion
         IgnoreParentRotation = 0x4,
         IgnoreParentTransform = IgnoreParentTranslation | IgnoreParentScale | IgnoreParentRotation,
 
-        ExcludeFromParentAABB = 0x8,
+        ExcludeFromParentBounds = 0x8,
 
-        Transient = 0x100, // Set if the node should not be serialized.
+        HideInSceneOutline = 0x1000, // Should this node be hidden in the editor's outline window?
 
-        HideInSceneOutline = 0x1000 // Should this node be hidden in the editor's outline window?
+        Mobility = 0xE000,
+        MobilityStatic = 0x2000,
+        MobilityStaticByProxy = 0x4000,
+        MobilityDynamic = Mobility & ~(MobilityStatic | MobilityStaticByProxy),
+
+        Default = MobilityStatic
     }
 
     [ClassBinding(Name = "TransformChangeType")]

@@ -73,14 +73,14 @@ namespace Hyperion.Editor.ViewModels
         }
 
         /// <summary>Delegate-based constructor used when there is no backing Property (e.g. array elements).</summary>
-        protected InspectorPropertyViewModelBase(string label, TypeInfo typeInfoHint, Func<BoxedValue> getter, Action<BoxedValue> setter, bool isReadOnly = false)
+        protected InspectorPropertyViewModelBase(string label, TypeInfo typeInfoHint, Func<BoxedValue>? getter, Action<BoxedValue>? setter, bool isReadOnly = false)
         {
             _target = null;
             _property = Property.Invalid;
             _isReadOnly = isReadOnly;
             _isRefreshing = 0;
-            _valueGetter = getter ?? throw new ArgumentNullException(nameof(getter));
-            _valueSetter = setter ?? throw new ArgumentNullException(nameof(setter));
+            _valueGetter = getter;
+            _valueSetter = setter;
             _typeInfoHint = typeInfoHint;
             _label = label;
         }

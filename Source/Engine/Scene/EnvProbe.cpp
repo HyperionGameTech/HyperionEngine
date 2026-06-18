@@ -21,6 +21,8 @@
 #include <Rendering/DescriptorSet.hpp>
 #include <Rendering/RenderProxy.hpp>
 
+#include <Asset/AssetRegistry.hpp>
+
 #include <Baking/BakerSubsystem.hpp>
 
 #include <Framework/EngineDriver.hpp>
@@ -104,11 +106,49 @@ void EnvProbe::Init()
     SetReady(true);
 }
 
+Result EnvProbe::Rename(Name name)
+{
+    Result result = AssetObject::Rename(name);
+
+    if (result.HasError())
+    {
+        return result.GetError();
+    }
+
+    if (m_texture.IsValid())
+    {
+        m_texture->Rename(NAME_FMT("{}_ColorMap", name));
+    }
+
+    if (m_visibilityTexture.IsValid())
+    {
+        m_visibilityTexture->Rename(NAME_FMT("{}_VisibilityMap", name));
+    }
+
+    if (m_camera != nullptr)
+    {
+        m_camera->Rename(NAME_FMT("{}_Capture", name));
+    }
+
+    return {};
+}
+
 void EnvProbe::CreateCamera()
 {
     if (m_camera != nullptr)
     {
-        // Already created
+        // Already created and set
+        return;
+    }
+
+    // Try to find existing child of type Camera, if we are loading this EnvProbe
+    auto cameraIt = GetChildren().FindIf(&ObjectBase::IsA<Camera>);
+    if (cameraIt != GetChildren().End())
+    {
+        m_camera = StaticCast<Camera>(cameraIt->Get());
+
+        InitObject(m_camera);
+
         return;
     }
     
@@ -120,7 +160,7 @@ void EnvProbe::CreateCamera()
         EnvProbeCameraNearClip, worldBounds.GetRadius());
 
     camera->SetReceivesUpdate(false); // Don't automatically update
-    camera->SetName(NAME("EnvProbeCamera"));
+    camera->SetName(NAME_FMT("{}_Capture", GetName()));
     camera->SetViewMatrix(Mat4f::LookAt(worldBounds.GetCenter(), worldBounds.GetCenter() + Vec3f::UnitZ(), Vec3f::UnitY()));
 
     InitObject(camera);
@@ -166,9 +206,11 @@ void EnvProbe::CreateVisibilityTexture()
         IU_SAMPLED | IU_STORAGE
     });
 
-    m_visibilityTexture->SetName(NAME_FMT("{}_Vis", GetName()));
+    m_visibilityTexture->SetName(NAME_FMT("{}_VisibilityMap", GetName()));
 
     CheckResult(m_visibilityTexture->Create());
+
+    GetCurrentAssetRegistry()->PutAssetUnique(m_visibilityTexture);
 
     // Assume the caller will MarkDirty() / SetNeedsRenderProxyUpdate()
 }
@@ -290,7 +332,7 @@ void EnvProbe::OnAddedToWorld(World* world)
 
         if (ShouldComputePrefilteredEnvMap())
         {
-            if (!m_texture)
+            if (!m_texture.IsValid())
             {
                 m_texture = MakeHandle<Texture>(TextureDesc {
                     TextureType::Texture2D,
@@ -302,7 +344,9 @@ void EnvProbe::OnAddedToWorld(World* world)
                     1,
                     IU_STORAGE | IU_SAMPLED });
 
-                m_texture->SetName(NAME_FMT("{}_{}_PrefilteredEnvMap", InstanceClass()->GetName(), GetName()));
+                m_texture->SetName(NAME_FMT("{}_ColorMap", GetName()));
+
+                GetCurrentAssetRegistry()->PutAssetUnique(m_texture);
             }
         }
     }
@@ -910,6 +954,8 @@ void EnvProbe::SetVisibilityTexture(const Handle<Texture>& visibilityTexture)
 
         CheckResult(m_visibilityTexture->Create());
 
+        GetCurrentAssetRegistry()->PutAssetUnique(m_visibilityTexture);
+
         Invalidate(/* forceRerender */ true);
     }
 
@@ -963,7 +1009,7 @@ void SkyProbe::Init()
         1,
         IU_STORAGE | IU_SAMPLED });
 
-    m_texture->SetName(NAME_FMT("{}_SkyboxCubemap", Id()));
+    m_texture->SetName(NAME_FMT("{}_ColorMap", GetName()));
     m_texture->SetIsTransient(true);
 
     EnvProbe::Init();

@@ -75,6 +75,8 @@ public:
 
     ~EnvProbe();
 
+    Result Rename(Name name) override;
+
     HYP_METHOD()
     EnvProbeType GetEnvProbeType() const
     {
@@ -87,7 +89,7 @@ public:
         return m_envProbeFlags;
     }
 
-    HYP_METHOD(Property = "EnvProbeFlags")
+    HYP_METHOD(Property = "EnvProbeFlags", LoadOrder = 10)
     void SetEnvProbeFlags(EnumFlags<EnvProbeFlags> envProbeFlags);
 
     HYP_METHOD()
@@ -196,7 +198,7 @@ public:
         return m_visibilityTexture;
     }
 
-    HYP_METHOD(Property = "VisibilityTexture")
+    HYP_METHOD(Property = "VisibilityTexture", LoadOrder = 1)
     void SetVisibilityTexture(const Handle<Texture>& visibilityTexture);
 
     HYP_FORCE_INLINE const SphericalHarmonicsData& GetSphericalHarmonicsData() const

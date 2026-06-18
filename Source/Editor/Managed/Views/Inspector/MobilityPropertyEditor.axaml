@@ -1,0 +1,84 @@
+<UserControl
+    x:Class="Hyperion.Editor.Views.Inspector.MobilityPropertyEditor"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+    x:DataType="vm:MobilityPropertyViewModel"
+    mc:Ignorable="d">
+    <UserControl.Styles>
+        <Style Selector="ToggleButton.mobility">
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Background" Value="{DynamicResource Brush.PanelAlt}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border
+                        Name="border"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                        <ContentPresenter
+                            Margin="{TemplateBinding Padding}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Content="{TemplateBinding Content}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="ToggleButton.mobility:checked">
+            <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="ToggleButton.mobility:pointerover">
+            <Setter Property="Background" Value="{DynamicResource Brush.Panel}" />
+        </Style>
+        <Style Selector="ToggleButton.mobility:checked:pointerover">
+            <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
+        </Style>
+    </UserControl.Styles>
+    <Border
+        BorderBrush="{DynamicResource Brush.Border}"
+        BorderThickness="1"
+        CornerRadius="4">
+        <Grid ColumnDefinitions="*,*,*">
+            <ToggleButton
+                Grid.Column="0"
+                Classes="mobility"
+                CornerRadius="4,0,0,4"
+                Margin="0"
+                Padding="8,4"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Center"
+                IsChecked="{Binding IsInherit, Mode=TwoWay}"
+                Content="Inherit" />
+            <ToggleButton
+                Grid.Column="1"
+                Classes="mobility"
+                CornerRadius="0,0,0,0"
+                Margin="0"
+                Padding="8,4"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Center"
+                IsChecked="{Binding IsStatic, Mode=TwoWay}"
+                Content="Static" />
+            <ToggleButton
+                Grid.Column="2"
+                Classes="mobility"
+                CornerRadius="0,4,4,0"
+                Margin="0"
+                Padding="8,4"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Center"
+                IsChecked="{Binding IsDynamic, Mode=TwoWay}"
+                Content="Dynamic" />
+        </Grid>
+    </Border>
+</UserControl>

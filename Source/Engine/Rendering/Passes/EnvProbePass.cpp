@@ -67,6 +67,11 @@ static EngineStatGpuTimer s_statComputeEnvProbeSH("Rendering/GPU/ComputeEnvProbe
 
 namespace EnvProbeHelpers {
 
+static HYP_FORCE_INLINE EnumFlags<EnvProbeFlags> GetFlagsFromProxy(const RenderProxyEnvProbe& proxy)
+{
+    return static_cast<EnumFlags<EnvProbeFlags>>(proxy.bufferData.typeAndFlags >> 3);
+}
+
 struct ConvolveProbeConstants
 {
     Vec2u outImageDimensions;
@@ -493,6 +498,8 @@ void ComputeEnvProbeSphericalHarmonics(const EnvProbe& envProbe, const Texture& 
 
         cr << InsertBarrier(shBuffer, RS_COPY_SRC, ShaderModuleType::Compute);
 
+        /// ========== READBACK ==========
+
         GpuBufferRef readbackBuffer = RI.MakeGpuBuffer(GpuBufferType::ReadbackBuffer, shBuffer->Size());
         readbackBuffer->SetIsCpuAccessible(true);
 #if HYP_DEBUG_MODE
@@ -578,6 +585,8 @@ void ComputeEnvProbeSphericalHarmonics(const EnvProbe& envProbe, const Texture& 
         payload->shTilesBuffers = std::move(shTilesBuffers);
 
         cr << ReadbackSphericalHarmonicsCmd(payload);
+
+        /// ==============================
     }
 
     if (useAsyncCompute)
@@ -601,7 +610,7 @@ static void ComputeEnvProbeSphericalHarmonics(Frame* frame, EnvProbe* envProbe)
     ComputeEnvProbeSphericalHarmonics(*envProbe, *colorAttachment);
 }
 
-void UpdateEnvProbeVisibilityTexture(Frame* frame, EnvProbe* envProbe)
+void UpdateEnvProbeVisibilityTexture(Frame* frame, EnvProbe* envProbe, bool shouldReadback)
 {
     const FramebufferRef& framebuffer = envProbe->GetViewFramebuffer(0);
     AssertDebug(framebuffer.IsValid());
@@ -723,6 +732,35 @@ void UpdateEnvProbeVisibilityTexture(Frame* frame, EnvProbe* envProbe)
     }
     
     cr << InsertBarrier(dstTexture->GetGpuImage(), RS_SHADER_RESOURCE);
+
+    if (shouldReadback)
+    {
+        // read back the texture to CPU
+        dstTexture->EnqueueReadback([envProbeWeak = MakeWeakRef(envProbe), visTexture = MakeStrongRef(dstTexture)](GpuBuffer& buffer)
+        {
+            Handle<EnvProbe> envProbeStrong = envProbeWeak.Lock();
+            if (!envProbeStrong.IsValid())
+            {
+                HYP_LOG(Rendering, Warning, "EnvProbe was destroyed before readback of vis data completed, skipping write to cpu-side data.");
+                return;
+            }
+
+            HYP_LOG(Rendering, Info, "Readback of visibility texture for EnvProbe {} completed, size {} bytes", envProbeStrong->GetName(), buffer.Size());
+
+            auto textureWriteScope = visTexture->GetWriteScope();
+
+            ConstByteView view;
+            view.first = static_cast<const ubyte*>(buffer.Map());
+            view.last = view.first + buffer.Size();
+
+            visTexture->SetImageData(view);
+
+            textureWriteScope.Reset();
+
+            auto envProbeWriteScope = envProbeStrong->GetWriteScope();
+            envProbeStrong->SetVisibilityTexture(visTexture);
+        });
+    }
 }
 
 } // namespace EnvProbeHelpers
@@ -835,7 +873,11 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
 
     pd->cachedProbeOrigin = envProbeProxy->bufferData.worldPosition.GetXYZ();
 
-    bool renderedView = false;
+    const EnumFlags<EnvProbeFlags> envProbeFlags = EnvProbeHelpers::GetFlagsFromProxy(*envProbeProxy);
+
+    const bool isRealtime = bool(envProbeFlags & EPF_REALTIME);
+    
+    uint8 renderedViews = 0;
 
     for (uint8 viewIndex = 0; viewIndex < 6; viewIndex++)
     {
@@ -846,21 +888,21 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
 
         RenderProxyList& rpl = GetConsumerProxyList(rs.view);
         rpl.BeginRead();
+
         HYP_DEFER({ rpl.EndRead(); });
 
-        if (!needsRerender &&
-            !rpl.GetMeshEntities().GetDiff().NeedsUpdate() &&
-            !rpl.GetLights().GetDiff().NeedsUpdate())
+        if (needsRerender ||
+            rpl.GetMeshEntities().GetDiff().NeedsUpdate() ||
+            rpl.GetLights().GetDiff().NeedsUpdate() ||
+            (isRealtime && rpl.GetSkeletons().GetDiff().NeedsUpdate()))
         {
-            continue;
+            RenderProbeView(frame, rs, envProbe);
+
+            renderedViews |= (1u << viewIndex);
         }
-
-        RenderProbeView(frame, rs, envProbe);
-
-        renderedView = true;
     }
 
-    if (!renderedView)
+    if (renderedViews == 0)
     {
         return;
     }
@@ -877,7 +919,7 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
 
     if (envProbe->GetEnvProbeFlags() & EPF_HAS_VISIBILITY)
     {
-        EnvProbeHelpers::UpdateEnvProbeVisibilityTexture(frame, envProbe);
+        EnvProbeHelpers::UpdateEnvProbeVisibilityTexture(frame, envProbe, /* shouldReadback */ !isRealtime);
     }
 
     envProbe->needsRender.Store(false);
@@ -891,10 +933,10 @@ void ReflectionProbePass::RenderProbeView(Frame* frame, const RenderSetup& rende
     RenderCollector& renderCollector = GetRenderCollector(view);
 
 #if HYP_DEBUG_MODE
-        HYP_LOG(Rendering, Verbose, "Render EnvProbe {}, num total draw calls: {}", envProbe->Id(), renderCollector.NumDrawCallsCollected());
+    HYP_LOG(Rendering, Debug, "Render EnvProbe {}, num total draw calls: {}", envProbe->Id(), renderCollector.NumDrawCallsCollected());
 #endif
 
-    renderCollector.ExecuteDrawCalls(frame, renderSetup, RenderBucketMask<RenderBucket::Opaque, RenderBucket::Translucent>);
+    renderCollector.ExecuteDrawCalls(frame, renderSetup, RenderBucketMask<RenderBucket::Opaque, RenderBucket::Lightmapped, RenderBucket::Translucent>);
 }
 
 #pragma endregion ReflectionProbePass
@@ -923,6 +965,10 @@ void IrradianceProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
 
     RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(irradianceProbe));
     AssertDebug(envProbeProxy != nullptr);
+    
+    const EnumFlags<EnvProbeFlags> envProbeFlags = EnvProbeHelpers::GetFlagsFromProxy(*envProbeProxy);
+
+    const bool isRealtime = bool(envProbeFlags & EPF_REALTIME);
 
     bool needsRerender = irradianceProbe->needsRender.Load();
     uint8 renderedViews = 0;
@@ -959,7 +1005,7 @@ void IrradianceProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
 
     if (irradianceProbe->GetEnvProbeFlags() & EPF_HAS_VISIBILITY)
     {
-        EnvProbeHelpers::UpdateEnvProbeVisibilityTexture(frame, irradianceProbe);
+        EnvProbeHelpers::UpdateEnvProbeVisibilityTexture(frame, irradianceProbe, /* shouldReadback */ !isRealtime);
     }
 
     irradianceProbe->needsRender.Store(false);
@@ -976,7 +1022,7 @@ void IrradianceProbePass::RenderProbeView(Frame* frame, const RenderSetup& rende
     HYP_LOG(Rendering, Verbose, "Render EnvProbe {}, num total draw calls: {}", envProbe->Id(), renderCollector.NumDrawCallsCollected());
 #endif
 
-    renderCollector.ExecuteDrawCalls(frame, renderSetup, RenderBucketMask<RenderBucket::Opaque, RenderBucket::Translucent>);
+    renderCollector.ExecuteDrawCalls(frame, renderSetup, RenderBucketMask<RenderBucket::Opaque, RenderBucket::Lightmapped, RenderBucket::Translucent>);
 }
 
 #pragma endregion IrradianceProbePass

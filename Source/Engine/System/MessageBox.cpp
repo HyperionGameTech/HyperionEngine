@@ -136,11 +136,7 @@ void SystemMessageBox::Show(bool showBlocking) const
         }
         else
         {
-            // unfortunately we need to const_cast and move here to move the Proc out of the const SystemMessageBox
-            // otherwise we would have an issue where we destruct the Proc then call it on the Obj-C side asynchronously
-            // when the button is clicked
-            // @FIXME ! this is ugly and needs a better solution
-            buttonFuncs[i] = new Proc<void()>(std::move(const_cast<SystemMessageBox*>(this)->m_buttons[i].onClick));
+            buttonFuncs[i] = new Proc<void()>([this, i] { m_buttons[i].onClick(); });
         }
     }
 

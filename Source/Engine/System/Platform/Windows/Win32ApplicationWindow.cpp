@@ -368,14 +368,16 @@ LRESULT CALLBACK Win32ApplicationWindow::ParentSubclassProc(HWND hWnd, UINT msg,
 
         Event event(isActive ? EventType::WINDOW_FOCUS_GAINED : EventType::WINDOW_FOCUS_LOST, self, platformEvent);
 
-        InputManager* inputManager = self->GetInputManager();
-        Assert(inputManager != nullptr);
+        if (!self->GetInputManager())
+        {
+            break;
+        }
 
-        inputManager->ProcessEvent(std::move(event));
+        self->GetInputManager()->ProcessEvent(std::move(event));
 
         break;
     }
-    case WM_NCDESTROY:
+    case WM_DESTROY:
     {
         RemoveWindowSubclass(hWnd, &Win32ApplicationWindow::ParentSubclassProc, uIdSubclass);
 
@@ -680,12 +682,9 @@ LRESULT Win32ApplicationWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPAR
     {
     case WM_DESTROY:
     {
-        if (m_parentHwnd)
-        {
-            RemoveWindowSubclass(m_parentHwnd, &Win32ApplicationWindow::ParentSubclassProc, reinterpret_cast<UINT_PTR>(this));
-            AliveWindows::GetInstance().Remove(this);
-            m_parentHwnd = nullptr;
-        }
+        m_hwnd = nullptr;
+
+        Close();
 
         break;
     }
@@ -695,14 +694,6 @@ LRESULT Win32ApplicationWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPAR
         int height = HIWORD(lParam);
 
         HandleResize(Vec2i(width, height));
-
-        break;
-    }
-    case WM_NCDESTROY:
-    {
-        m_hwnd = nullptr;
-
-        Close();
 
         break;
     }
@@ -805,6 +796,8 @@ void Win32ApplicationWindow::Close()
         m_parentHwnd = nullptr;
     }
 
+    m_isOpen = false;
+
     m_swapchain.Reset();
 
 #if HYP_VULKAN
@@ -823,8 +816,6 @@ void Win32ApplicationWindow::Close()
         DestroyWindow(m_hwnd);
         m_hwnd = nullptr;
     }
-
-    m_isOpen = false;
 
     lock.Reset();
 

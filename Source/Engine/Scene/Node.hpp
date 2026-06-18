@@ -55,26 +55,26 @@ enum class TransformChangeType : uint8
 HYP_ENUM()
 enum class NodeFlags : uint32
 {
-    None = 0x0,
+    None = 0x0,                                                                                 //!< @edithide
 
-    IgnoreParentTranslation = 0x1,
-    IgnoreParentScale = 0x2,
-    IgnoreParentRotation = 0x4,
-    IgnoreParentTransform = IgnoreParentTranslation | IgnoreParentScale | IgnoreParentRotation,
+    IgnoreParentTranslation = 0x1,                                                              //!< @title="Ignores parent translation"
+    IgnoreParentScale = 0x2,                                                                    //!< @title="Ignores parent scaling"
+    IgnoreParentRotation = 0x4,                                                                 //!< @title="Ignores parent rotation"
+    IgnoreParentTransform = IgnoreParentTranslation | IgnoreParentScale | IgnoreParentRotation, //!< @edithide
 
-    ExcludeFromParentBounds = 0x8,
+    ExcludeFromParentBounds = 0x8,                                                              //!< @title="Does not affect parent node's bounds"
 
-    HideInSceneOutline = 0x1000, // Should this node be hidden in the editor's outline window?
+    HideInSceneOutline = 0x1000,                                                                //!< @edithide
 
-    Mobility = 0xE000, // ** mask **
-    MobilityStatic = 0x2000,
-    MobilityStaticByProxy = 0x4000, // static, but only because its parent is static
-    MobilityDynamic = Mobility & ~(MobilityStatic | MobilityStaticByProxy),
+    Mobility = 0xE000,                                                                          //!< @edithide
+    MobilityStatic = 0x2000,                                                                    //!< @edithide
+    MobilityStaticByProxy = 0x4000,                                                             //!< @edithide
+    MobilityDynamic = Mobility & ~(MobilityStatic | MobilityStaticByProxy),                     //!< @edithide
 
-    Default = MobilityStatic
+    Default = MobilityStatic                                                                    //!< @edithide
 };
 
-HYP_MAKE_ENUM_FLAGS(NodeFlags)
+HYP_MAKE_ENUM_FLAGS(NodeFlags);
 
 HYP_STRUCT()
 struct NodeTag

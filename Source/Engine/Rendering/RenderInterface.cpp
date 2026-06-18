@@ -2115,6 +2115,7 @@ void RenderInterface::CreateEnvProbesColorTexture()
     envProbesColorTexture = MakeHandle<Texture>(textureDesc);
     envProbesColorTexture->SetName(NAME("EnvProbesColorTexture"));
     envProbesColorTexture->SetIsTransient(true);
+
     CheckResult(envProbesColorTexture->Create());
 }
 
@@ -2135,6 +2136,7 @@ void RenderInterface::CreateEnvProbesDepthTexture()
     envProbesDepthTexture = MakeHandle<Texture>(textureDesc);
     envProbesDepthTexture->SetName(NAME("EnvProbesDepthTexture"));
     envProbesDepthTexture->SetIsTransient(true);
+
     CheckResult(envProbesDepthTexture->Create());
 }
 

@@ -184,6 +184,25 @@ namespace Hyperion.Editor.ViewModels
                 .ThenBy(p => p.Name.ToString())
                 .ToList();
 
+            bool hasAddedMobility = false;
+
+            var addMobility = () =>
+            {
+                try
+                {
+                    var mobilityVm = new MobilityPropertyViewModel(SelectedNode, Class.GetClass<Node>().GetProperty("NodeFlags") ?? throw new Exception("Failed to get NodeFlags property"));
+                    mobilityVm.RefreshValue();
+                    
+                    Properties.Add(mobilityVm);
+
+                    hasAddedMobility = true;
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogLevel.Warning, $"Inspector failed to create mobility selector: {ex.Message}");
+                }
+            };
+
             foreach (Property property in properties)
             {
                 try
@@ -208,17 +227,29 @@ namespace Hyperion.Editor.ViewModels
                     {
                         isReadOnly = true;
                     }
+
                     Properties.Add(InspectorViewModelFactory.Create(SelectedNode, property, isReadOnly));
 
                     if (Properties[Properties.Count - 1] is FlagsPropertyViewModel flagsVm)
                     {
                         flagsVm.ValueCommitted += RefreshActions;
+
+                        // Insert Mobility selector right after the Flags property
+                        if (!hasAddedMobility)
+                        {
+                            addMobility();
+                        }
                     }
                 }
                 catch (Exception ex)
                 {
                     Logger.Log(LogLevel.Warning, $"Inspector failed to create view model for property '{property.Name}': {ex.Message}");
                 }
+            }
+
+            if (!hasAddedMobility)
+            {
+                addMobility();
             }
 
             // collect actions (methods with editaction attribute)
