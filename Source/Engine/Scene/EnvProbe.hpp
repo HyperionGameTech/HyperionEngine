@@ -200,12 +200,14 @@ public:
 
     HYP_METHOD(Property = "VisibilityTexture", LoadOrder = 1)
     void SetVisibilityTexture(const Handle<Texture>& visibilityTexture);
-
+    
+    HYP_METHOD(Property = "SHData", NoScriptBindings)
     HYP_FORCE_INLINE const SphericalHarmonicsData& GetSphericalHarmonicsData() const
     {
         return m_shData;
     }
 
+    HYP_METHOD(Property = "SHData", NoScriptBindings)
     void SetSphericalHarmonicsData(const SphericalHarmonicsData& shData);
 
     virtual void Update(float delta) override;

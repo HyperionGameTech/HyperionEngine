@@ -99,7 +99,9 @@ struct SphericalHarmonicsData
     HYP_METHOD(Property = "Order1", Serialize = true, NoScriptBindings)
     void SetOrder1(const FixedArray<Vec3f, 3>& inValues)
     {
-        std::memcpy(values + 3, inValues.Data(), sizeof(float) * 9);
+        std::memcpy(values + 3, inValues.Data() + 0, sizeof(float) * 3);
+        std::memcpy(values + 6, inValues.Data() + 1, sizeof(float) * 3);
+        std::memcpy(values + 9, inValues.Data() + 2, sizeof(float) * 3);
     }
 
     HYP_METHOD(Property = "Order2", Serialize = true, NoScriptBindings)
@@ -117,7 +119,11 @@ struct SphericalHarmonicsData
     HYP_METHOD(Property = "Order2", Serialize = true, NoScriptBindings)
     void SetOrder2(const FixedArray<Vec3f, 5>& inValues)
     {
-        std::memcpy(values + 12, inValues.Data(), sizeof(float) * 15);
+        std::memcpy(values + 12, inValues.Data() + 0, sizeof(float) * 3);
+        std::memcpy(values + 15, inValues.Data() + 1, sizeof(float) * 3);
+        std::memcpy(values + 18, inValues.Data() + 2, sizeof(float) * 3);
+        std::memcpy(values + 21, inValues.Data() + 3, sizeof(float) * 3);
+        std::memcpy(values + 24, inValues.Data() + 4, sizeof(float) * 3);
     }
 
 #pragma endregion Serialization
