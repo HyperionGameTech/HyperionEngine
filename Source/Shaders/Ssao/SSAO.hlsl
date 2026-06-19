@@ -51,7 +51,7 @@ struct PSOutput
 };
 
 DECLARE_SRV(RenderSSAO, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
-DECLARE_SRV(RenderSSAO, GBufferMaterialTexture) Texture2D<uint2> gbuffer_material_texture;
+DECLARE_SRV(RenderSSAO, GBufferMaterialTexture) Texture2D<uint> gbuffer_material_texture;
 DECLARE_SRV(RenderSSAO, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
 DECLARE_SRV(RenderSSAO, GBufferMipChain) Texture2D gbuffer_mip_chain;
 DECLARE_SRV(RenderSSAO, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
