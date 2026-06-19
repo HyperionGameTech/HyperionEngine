@@ -1560,9 +1560,12 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
             {
                 scriptObjectResource->SetScriptObjectData_DotNet(ScriptObjectData_DotNet { .managedClass = managedClass });
             }
-
-            // keep it alive
+                
             scriptObjectResource->AddReader();
+
+            int64 readers, writers;
+            scriptObjectResource->GetNumUsers(readers, writers);
+            Assert(readers == 1);
         }
 
         isCreated = true;

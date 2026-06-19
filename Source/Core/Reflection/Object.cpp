@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <Core/Reflection/Object.hpp>
 #include <Core/Reflection/ObjectPool.hpp>
@@ -55,8 +55,7 @@ ObjectInitializerGuardBase::ObjectInitializerGuardBase(TypedObjPtr ptr)
     // Push NONE to prevent our current flags from polluting allocations that happen in the constructor
     PushGlobalContext(ObjectInitializerContext {
         ptr.GetClass(),
-        ObjectInitializerFlags::NONE
-    });
+        ObjectInitializerFlags::NONE });
 }
 
 ObjectInitializerGuardBase::~ObjectInitializerGuardBase()
@@ -98,8 +97,12 @@ ObjectInitializerGuardBase::~ObjectInitializerGuardBase()
                 {
                     scriptObjectResource->SetScriptObjectData_DotNet(ScriptObjectData_DotNet { nullptr, managedClass });
                 }
-
+                
                 scriptObjectResource->AddReader();
+
+                int64 readers, writers;
+                scriptObjectResource->GetNumUsers(readers, writers);
+                Assert(readers == 1);
             }
             else
             {
@@ -214,7 +217,8 @@ ObjectBase::~ObjectBase()
         }
 #endif
 
-        if (ScriptObjectFunctions::DestroyScriptObjectResource) {
+        if (ScriptObjectFunctions::DestroyScriptObjectResource)
+        {
             ScriptObjectFunctions::DestroyScriptObjectResource(m_scriptObjectResource);
         }
         m_scriptObjectResource = nullptr;

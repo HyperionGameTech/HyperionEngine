@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -141,58 +141,8 @@ struct ObjectHeader
         return AtomicAdd(const_cast<volatile int32*>(&refCountWeak), 0);
     }
 
-    bool TryIncRefStrong()
-    {
-        // Snapshot the generation to detect ABA (header freed and reallocated by the time CAS succeeds)
-        const uint32 currGeneration = generation;
-
-        int32 count = AtomicAdd(&refCountStrong, 0);
-
-        while (count != 0)
-        {
-            if (AtomicCompareExchange(&refCountStrong, count, count + 1))
-            {
-                if (generation != currGeneration)
-                {
-                    AtomicDecrement(&refCountStrong);
-
-                    return false;
-                }
-
-#ifdef HYP_DOTNET
-                if (ScriptObjectFunctions::IncScriptObjectRef)
-                {
-                    ScriptObjectFunctions::IncScriptObjectRef(GetObjectPointer(this));
-                }
-#endif
-
-                return true;
-            }
-        }
-
-        // if count was 0, the object is no longer alive, return false
-        return false;
-    }
-
-    int32 IncRefStrong()
-    {
-        const int32 count = AtomicIncrement(&refCountStrong);
-
-        // If count == 1, refCountStrong was 0 before the increment — the object was already
-        // destructed and this would resurrect a dead object.
-        AssertDebug(count > 1, "IncRefStrong called on an object with no strong references");
-
-#ifdef HYP_DOTNET
-        if (count > 1)
-        {
-            if (ScriptObjectFunctions::IncScriptObjectRef) {
-                ScriptObjectFunctions::IncScriptObjectRef(GetObjectPointer(this));
-            }
-        }
-#endif
-
-        return count;
-    }
+    CORE_API bool TryIncRefStrong();
+    CORE_API int32 IncRefStrong();
 
     int32 IncRefWeak()
     {

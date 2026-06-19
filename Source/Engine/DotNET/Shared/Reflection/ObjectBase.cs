@@ -64,8 +64,6 @@ namespace Hyperion
                         throw new Exception("Can only create instances of reference counted Class objects (using Handle<T>) from managed code");
                     }
 
-                    // Need to add this to managed object cache,
-                    // pass to CreateInstance() so the ObjectBase in C++ knows not to create another of this..
                     GCHandle gcHandle = GCHandle.Alloc(this, GCHandleType.Normal);
 
                     ObjectWrapper objectWrapper = new ObjectWrapper { obj = this };

@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <Core/Reflection/ObjectPool.hpp>
 #include <Core/Reflection/Class.hpp>
@@ -18,6 +18,62 @@
 namespace Hyperion {
 
 CORE_API Pool* g_objectPool = nullptr;
+
+bool ObjectHeader::TryIncRefStrong()
+{
+    // Snapshot the generation to detect ABA (header freed and reallocated by the time CAS succeeds)
+    const uint32 currGeneration = generation;
+
+    int32 count = AtomicAdd(&refCountStrong, 0);
+
+    while (count != 0)
+    {
+        if (AtomicCompareExchange(&refCountStrong, count, count + 1))
+        {
+            if (generation != currGeneration)
+            {
+                AtomicDecrement(&refCountStrong);
+
+                return false;
+            }
+
+#ifdef HYP_DOTNET
+            // The >= (instead of >) is there because we would have incremented it,
+            // so it essentially functions as the same comparison.
+            if (count >= 1 && ScriptObjectFunctions::IncScriptObjectRef)
+            {
+                ScriptObjectFunctions::IncScriptObjectRef(GetObjectPointer(this));
+            }
+#endif
+
+            return true;
+        }
+    }
+
+    // if count was 0, the object is no longer alive, return false
+    return false;
+}
+
+int32 ObjectHeader::IncRefStrong()
+{
+    const int32 count = AtomicIncrement(&refCountStrong);
+
+    // If count == 1, refCountStrong was 0 before the increment — the object was already
+    // destructed and this would resurrect a dead object.
+    AssertDebug(count > 1, "IncRefStrong called on an object with no strong references");
+
+#ifdef HYP_DOTNET
+    if (count > 1)
+    {
+        if (ScriptObjectFunctions::IncScriptObjectRef)
+        {
+            ScriptObjectFunctions::IncScriptObjectRef(GetObjectPointer(this));
+        }
+    }
+#endif
+
+    return count;
+}
 
 int32 ObjectHeader::DecRefStrong()
 {
@@ -130,9 +186,9 @@ ObjectContainerBase& ObjectContainerMap::GetOrCreate(TypeId typeId, const Class*
     Mutex::Guard guard(m_mutex);
 
     auto it = m_map.FindIf([typeId](const auto& element)
-        {
-            return element.first == typeId;
-        });
+                           {
+                               return element.first == typeId;
+                           });
 
     if (it != m_map.End())
     {
@@ -166,9 +222,9 @@ ObjectContainerBase& ObjectContainerMap::Get(TypeId typeId)
     Mutex::Guard guard(m_mutex);
 
     const auto it = m_map.FindIf([typeId](const auto& element)
-        {
-            return element.first == typeId;
-        });
+                                 {
+                                     return element.first == typeId;
+                                 });
 
     if (it == m_map.End())
     {
@@ -185,9 +241,9 @@ ObjectContainerBase* ObjectContainerMap::TryGet(TypeId typeId)
     Mutex::Guard guard(m_mutex);
 
     const auto it = m_map.FindIf([typeId](const auto& element)
-        {
-            return element.first == typeId;
-        });
+                                 {
+                                     return element.first == typeId;
+                                 });
 
     if (it == m_map.End())
     {
@@ -228,9 +284,9 @@ ObjectContainerBase::~ObjectContainerBase()
 
             if (refCount > 0)
             {
-                //HYP_LOG(Core, Warning, "Object {} still has {} strong references during ObjectContainer destruction",
-                //    ObjIdBase(header->cls->GetTypeId(), header->index + 1),
-                //    refCount);
+                // HYP_LOG(Core, Warning, "Object {} still has {} strong references during ObjectContainer destruction",
+                //     ObjIdBase(header->cls->GetTypeId(), header->index + 1),
+                //     refCount);
             }
         }
     }
