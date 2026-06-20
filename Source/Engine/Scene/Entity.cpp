@@ -64,7 +64,7 @@ Entity::~Entity()
     }
 
     // Can only be destroyed if no EM exists, or we are on the EM's owner thread.
-    Assert(IsOnThread(entityManager->GetOwnerThreadId()), "Destroying Entity {} from wrong thread while still attached to EntityManager!", GetName());
+    Assert(entityManager->IsDetachedScene() || IsOnThread(entityManager->GetOwnerThreadId()), "Destroying Entity {} from wrong thread while still attached to EntityManager!", GetName());
 
     HYP_LOG(Entity, Verbose, "Removing Entity {} from entity manager", GetName());
 

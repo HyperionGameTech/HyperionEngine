@@ -52,10 +52,12 @@ enum class EntityManagerFlags : uint32
 {
     NONE = 0x0,
 
+    DETACHED_SCENE = 0x1, //!< Created for DETACHED scene, can remove entities on any thread
+
     DEFAULT = NONE
 };
 
-HYP_MAKE_ENUM_FLAGS(EntityManagerFlags)
+HYP_MAKE_ENUM_FLAGS(EntityManagerFlags);
 
 class World;
 class Scene;
@@ -124,6 +126,16 @@ public:
         m_ownerThreadId = ownerThreadId;
     }
 
+    HYP_FORCE_INLINE bool IsDetachedScene() const
+    {
+        return m_flags & EntityManagerFlags::DETACHED_SCENE;
+    }
+
+    HYP_FORCE_INLINE bool IsDetachedSceneLocked() const
+    {
+        return IsDetachedScene() && m_detachedSceneLocked.LoadVolatile();
+    }
+
     /*! \brief Gets the World that this EntityManager is associated with.
      *
      *  \return Pointer to the World.
@@ -167,19 +179,8 @@ public:
         return m_isLocked;
     }
 
-    HYP_FORCE_INLINE void Lock()
-    {
-        AssertOnThread(m_ownerThreadId);
-
-        m_isLocked = true;
-    }
-
-    HYP_FORCE_INLINE void Unlock()
-    {
-        AssertOnThread(m_ownerThreadId);
-
-        m_isLocked = false;
-    }
+    void Lock();
+    void Unlock();
 
     /*! \brief Adds a new entity to the EntityManager.
      *  \note Must be called from the owner thread.
@@ -685,7 +686,7 @@ public:
 
             auto entitySetsInsertResult = m_entitySets.Set(
                 entitySetId,
-                MakeUnique<EntitySet<Components...>>(m_entities, GetContainer<Components>()...));
+                MakeUniqueWithAllocator<EntitySet<Components...>, SceneAllocator>(m_entities, GetContainer<Components>()...));
 
             Assert(entitySetsInsertResult.second); // Make sure the element was inserted (it shouldn't already exist)
 
@@ -785,13 +786,13 @@ public:
     {
         EnsureValidComponentType<Component>();
 
-        Mutex::Guard guard(m_componentContainersMtx);
+        TUniqueLock lock(m_componentContainersMtx);
 
         auto it = m_containers.Find(TypeId::ForType<Component>());
 
         if (it == m_containers.End())
         {
-            it = m_containers.Set(TypeId::ForType<Component>(), MakeUnique<ComponentContainer<Component>>()).first;
+            it = m_containers.Set(TypeId::ForType<Component>(), MakeUniqueWithAllocator<ComponentContainer<Component>, SceneAllocator>()).first;
         }
 
         return static_cast<ComponentContainer<Component>&>(*it->second);
@@ -801,7 +802,7 @@ public:
     {
         EnsureValidComponentType(componentTypeId);
 
-        Mutex::Guard guard(m_componentContainersMtx);
+        TSharedLock lock(m_componentContainersMtx);
 
         auto it = m_containers.Find(componentTypeId);
 
@@ -871,7 +872,7 @@ private:
     template <class... Components>
     EntitySet<Components...>& GetOrCreatePendingEntitySet()
     {
-        Mutex::Guard guard(m_pendingEntitySetsMtx);
+        TUniqueLock lock(m_pendingEntitySetsMtx);
 
         const EntitySetId entitySetId = GetEntitySetId<Components...>();
 
@@ -881,7 +882,7 @@ private:
         {
             auto insertResult = m_pendingEntitySets.Insert(
                 entitySetId,
-                MakeUnique<EntitySet<Components...>>(m_entities, GetContainer<Components>()...));
+                MakeUniqueWithAllocator<EntitySet<Components...>, SceneAllocator>(m_entities, GetContainer<Components>()...));
 
             Assert(insertResult.second);
 
@@ -893,7 +894,7 @@ private:
 
     EntitySetBase* TryGetPendingEntitySet(EntitySetId entitySetId)
     {
-        Mutex::Guard guard(m_pendingEntitySetsMtx);
+        TSharedLock lock(m_pendingEntitySetsMtx);
 
         auto it = m_pendingEntitySets.Find(entitySetId);
 
@@ -910,22 +911,24 @@ private:
     Scene* m_scene;
     EnumFlags<EntityManagerFlags> m_flags;
 
-    TFlatMap<TypeId, UniquePtr<ComponentContainerBase>, SceneAllocator> m_containers;
-    mutable Mutex m_componentContainersMtx;
+    TFlatMap<TypeId, UniquePtr<ComponentContainerBase, SceneAllocator>, SceneAllocator> m_containers;
+    mutable SharedMutex m_componentContainersMtx;
 
     EntityContainer m_entities;
 
-    TFlatMap<EntitySetId, UniquePtr<EntitySetBase>, SceneAllocator> m_entitySets;
+    TFlatMap<EntitySetId, UniquePtr<EntitySetBase, SceneAllocator>, SceneAllocator> m_entitySets;
 
     TFlatMap<TypeId, TSet<EntitySetId, SceneAllocator>, SceneAllocator> m_componentEntitySets;
 
     // thread safe map of entity sets not yet added to m_entitySets
     // that will be added upon synchronization
-    TFlatMap<EntitySetId, UniquePtr<EntitySetBase>, SceneAllocator> m_pendingEntitySets;
-    mutable Mutex m_pendingEntitySetsMtx;
+    TFlatMap<EntitySetId, UniquePtr<EntitySetBase, SceneAllocator>, SceneAllocator> m_pendingEntitySets;
+    mutable SharedMutex m_pendingEntitySetsMtx;
 
     TFlatMap<SystemBase*, TSet<Entity*, SceneAllocator>, SceneAllocator> m_systemEntityMap;
-    mutable Mutex m_systemEntityMapMutex;
+    mutable SharedMutex m_systemEntityMapMutex;
+
+    mutable AtomicFlag m_detachedSceneLocked;
 
     bool m_isInitialized : 1;
     bool m_isLocked : 1;

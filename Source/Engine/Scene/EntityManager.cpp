@@ -109,6 +109,11 @@ EntityManager::EntityManager(const ThreadId& ownerThreadId, Scene* scene, EnumFl
 {
     Assert(scene != nullptr);
 
+    if (scene->GetSceneFlags() & SceneFlags::DETACHED)
+    {
+        m_flags |= EntityManagerFlags::DETACHED_SCENE;
+    }
+
     // add initial component containers
     for (const IComponentInterface* componentInterface : ComponentInterfaceRegistry::GetInstance().GetComponentInterfaces())
     {
@@ -117,7 +122,7 @@ EntityManager::EntityManager(const ThreadId& ownerThreadId, Scene* scene, EnumFl
         ComponentContainerFactoryBase* componentContainerFactory = componentInterface->GetComponentContainerFactory();
         Assert(componentContainerFactory != nullptr);
 
-        UniquePtr<ComponentContainerBase> componentContainer = componentContainerFactory->Create();
+        UniquePtr<ComponentContainerBase, SceneAllocator> componentContainer = componentContainerFactory->Create();
         Assert(componentContainer != nullptr);
 
         m_containers.Set(componentInterface->GetTypeInfo().id, std::move(componentContainer));
@@ -150,7 +155,7 @@ void EntityManager::NotifySystemOfExistingEntities(SystemBase* system)
             if (system->ActsOnComponents(keys.ToSpan(), true))
             {
                 { // critical section
-                    Mutex::Guard guard(m_systemEntityMapMutex);
+                    TUniqueLock lock(m_systemEntityMapMutex);
 
                     auto systemEntityIt = m_systemEntityMap.Find(system);
 
@@ -189,16 +194,16 @@ void EntityManager::NotifySystemOfAllEntitiesRemoved(SystemBase* system)
             if (system->ActsOnComponents(componentIds.Keys(), true) && IsEntityInitializedForSystem(system, entity))
             {
                 { // critical section
-                    Mutex::Guard guard(m_systemEntityMapMutex);
+                    TUniqueLock lock(m_systemEntityMapMutex);
 
                     auto systemEntityIt = m_systemEntityMap.Find(system);
 
                     // Check if the system already has this entity initialized
                     if (systemEntityIt == m_systemEntityMap.End())
                     {
-
                         continue;
                     }
+
                     systemEntityIt->second.Erase(entity);
                 }
 
@@ -349,7 +354,7 @@ void EntityManager::Shutdown()
                 Array<Entity*> entities;
 
                 {
-                    Mutex::Guard guard(m_systemEntityMapMutex);
+                    TUniqueLock lock(m_systemEntityMapMutex);
 
                     auto systemEntityIt = m_systemEntityMap.Find(system);
 
@@ -415,7 +420,7 @@ void EntityManager::Shutdown()
         subtypeData.data.Clear();
     }
 
-    Mutex::Guard guard(m_systemEntityMapMutex);
+    TUniqueLock lock(m_systemEntityMapMutex);
     m_systemEntityMap.Clear();
 
     m_isInitialized = false;
@@ -504,9 +509,44 @@ void EntityManager::SetWorld(World* world)
     }
 }
 
+void EntityManager::Lock()
+{
+    AssertDebug(!IsDetachedScene(), "Cannot lock/unlock EntityManager for detached scene");
+
+    if (IsDetachedScene())
+    {
+        return;
+    }
+
+    AssertOnThread(m_ownerThreadId);
+
+    m_isLocked = true;
+}
+
+void EntityManager::Unlock()
+{
+    AssertDebug(!IsDetachedScene(), "Cannot lock/unlock EntityManager for detached scene");
+
+    if (IsDetachedScene())
+    {
+        return;
+    }
+
+    AssertOnThread(m_ownerThreadId);
+
+    m_isLocked = false;
+}
+
 Handle<Entity> EntityManager::AddBasicEntity()
 {
-    Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
+    Assert(!IsLocked() && (IsOnThread(m_ownerThreadId) || IsDetachedScene()));
+
+    TLockGuard<AtomicFlag> lock;
+
+    if (IsDetachedScene())
+    {
+        lock.Reset(m_detachedSceneLocked);
+    }
 
     Handle<Entity> entity = MakeHandle<Entity>();
 
@@ -544,7 +584,14 @@ Handle<Entity> EntityManager::AddBasicEntity()
 
 Handle<Entity> EntityManager::AddTypedEntity(const Class* cls)
 {
-    Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
+    Assert(!IsLocked() && (IsOnThread(m_ownerThreadId) || IsDetachedScene()));
+
+    TLockGuard<AtomicFlag> lock;
+
+    if (IsDetachedScene())
+    {
+        lock.Reset(m_detachedSceneLocked);
+    }
 
     Assert(cls != nullptr, "Class must not be null");
     Assert(cls->IsDerivedFrom(Entity::StaticClass()), "Class must be a subclass of Entity");
@@ -618,8 +665,15 @@ void EntityManager::AddExistingEntity_Internal(const Handle<Entity>& entity)
     {
         return;
     }
+    
+    Assert(!IsLocked() && (IsOnThread(m_ownerThreadId) || IsDetachedScene()));
 
-    Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
+    TLockGuard<AtomicFlag> lock;
+
+    if (IsDetachedScene())
+    {
+        lock.Reset(m_detachedSceneLocked);
+    }
 
     // Get the current EntityManager for the entity, if it exists
     EntityManager* otherEntityManager = entity->GetEntityManager();
@@ -687,11 +741,18 @@ void EntityManager::AddExistingEntity_Internal(const Handle<Entity>& entity)
 /// so NotifySystemsOfEntityRemoved() is not called (it's expected that this is a non-world EntityManager so it wouldn't be called anyway).
 bool EntityManager::RemoveEntity(Entity* entity, bool calledFromEntityDestructor)
 {
-    Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
+    Assert(!IsLocked() && (IsOnThread(m_ownerThreadId) || IsDetachedScene()));
 
     if (!entity)
     {
         return false;
+    }
+
+    TLockGuard<AtomicFlag> lock;
+
+    if (IsDetachedScene())
+    {
+        lock.Reset(m_detachedSceneLocked);
     }
 
     HYP_MT_CHECK_RW(m_entitiesDataRaceDetector);
@@ -791,8 +852,15 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
     {
         return;
     }
+    
+    Assert(!IsLocked() && (IsOnThread(m_ownerThreadId) || IsDetachedScene()));
 
-    Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
+    TLockGuard<AtomicFlag> lock;
+
+    if (IsDetachedScene())
+    {
+        lock.Reset(m_detachedSceneLocked);
+    }
 
     // Components generically stored as BoxedValue by TypeId - to add to other EntityManager
     Array<BoxedValue> components;
@@ -888,9 +956,16 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
     }
 
     // Add the entity and its components to the other EntityManager
-    auto AddToOtherEntityManager = [other = other, entity = entity, components = std::move(components)]() mutable
+    auto addToOtherEntityManager = [other = other, entity = entity, components = std::move(components)]() mutable
     {
-        Assert(!other->IsLocked() && IsOnThread(other->m_ownerThreadId));
+        Assert(!other->IsLocked() && (IsOnThread(other->m_ownerThreadId) || other->IsDetachedScene()));
+
+        TLockGuard<AtomicFlag> lock;
+
+        if (other->IsDetachedScene())
+        {
+            lock.Reset(other->m_detachedSceneLocked);
+        }
 
         // Sanity check to prevent infinite recursion from AddExistingEntity calling MoveEntity again if there is already an EntityManager set
         AssertDebug(entity->GetEntityManager() == nullptr);
@@ -987,11 +1062,11 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
 
     if (IsOnThread(other->GetOwnerThreadId()))
     {
-        AddToOtherEntityManager();
+        addToOtherEntityManager();
     }
     else
     {
-        Task<void> task = GetThreadById(other->GetOwnerThreadId())->GetScheduler().Enqueue(std::move(AddToOtherEntityManager));
+        Task<void> task = GetThreadById(other->GetOwnerThreadId())->GetScheduler().Enqueue(std::move(addToOtherEntityManager));
         task.Await();
     }
 }
@@ -999,7 +1074,7 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
 void EntityManager::AddComponent(Entity* entity, const BoxedValue& componentData)
 {
     AssertDebug(!componentData.IsNull());
-
+    
     Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
 
     Assert(entity, "Invalid entity");
@@ -1077,7 +1152,7 @@ void EntityManager::AddComponent(Entity* entity, const BoxedValue& componentData
 void EntityManager::AddComponent(Entity* entity, BoxedValue&& componentData)
 {
     AssertDebug(!componentData.IsNull());
-
+    
     Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
 
     Assert(entity, "Invalid entity");
@@ -1153,8 +1228,8 @@ void EntityManager::AddComponent(Entity* entity, BoxedValue&& componentData)
 bool EntityManager::RemoveComponent(TypeId componentTypeId, Entity* entity)
 {
     EnsureValidComponentType(componentTypeId);
-
-    Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
+    
+    Assert(!IsLocked() && (IsOnThread(m_ownerThreadId) || IsDetachedSceneLocked()));
 
     if (!entity)
     {
@@ -1234,7 +1309,7 @@ bool EntityManager::RemoveComponent(TypeId componentTypeId, Entity* entity)
 
 bool EntityManager::HasTag(const Entity* entity, EntityTag tag) const
 {
-    Assert(IsLocked() || IsOnThread(m_ownerThreadId));
+    Assert(!IsLocked() && (IsOnThread(m_ownerThreadId) || IsDetachedSceneLocked()));
 
     if (!entity)
     {
@@ -1318,6 +1393,8 @@ bool EntityManager::RemoveTag(Entity* entity, EntityTag tag)
     {
         return false;
     }
+    
+    Assert(!IsLocked() && (IsOnThread(m_ownerThreadId) || IsDetachedSceneLocked()));
 
     const IComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetEntityTagComponentInterface(tag);
 
@@ -1354,7 +1431,7 @@ void EntityManager::NotifySystemsOfEntityAdded(const Handle<Entity>& entity, con
             if (systemIt.second->ActsOnComponents(componentIds.Keys(), true))
             {
                 { // critical section
-                    Mutex::Guard guard(m_systemEntityMapMutex);
+                    TUniqueLock lock(m_systemEntityMapMutex);
 
                     auto systemEntityIt = m_systemEntityMap.Find(systemIt.second);
 
@@ -1394,7 +1471,7 @@ void EntityManager::NotifySystemsOfEntityRemoved(Entity* entity, const Component
             if (systemIt.second->ActsOnComponents(componentIds.Keys(), true))
             {
                 { // critical section
-                    Mutex::Guard guard(m_systemEntityMapMutex);
+                    TUniqueLock lock(m_systemEntityMapMutex);
 
                     auto systemEntityIt = m_systemEntityMap.Find(systemIt.second);
 
@@ -1436,14 +1513,14 @@ void EntityManager::UpdateEntities(float delta)
 
 void EntityManager::AddPendingEntitySets()
 {
-    Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
+    Assert(!IsLocked() && IsOnThread(m_ownerThreadId) && !IsDetachedScene());
 
-    Mutex::Guard guard(m_pendingEntitySetsMtx);
+    TUniqueLock lock(m_pendingEntitySetsMtx);
 
     for (auto& kvp : m_pendingEntitySets)
     {
         const EntitySetId entitySetId = kvp.first;
-        UniquePtr<EntitySetBase>& entitySetPtr = kvp.second;
+        UniquePtr<EntitySetBase, SceneAllocator>& entitySetPtr = kvp.second;
 
         AssertDebug(!m_entitySets.Contains(entitySetId));
 
@@ -1474,7 +1551,7 @@ bool EntityManager::IsEntityInitializedForSystem(SystemBase* system, const Entit
         return false;
     }
 
-    Mutex::Guard guard(m_systemEntityMapMutex);
+    TSharedLock lock(m_systemEntityMapMutex);
 
     const auto it = m_systemEntityMap.Find(system);
 

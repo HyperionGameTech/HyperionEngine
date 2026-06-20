@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -245,11 +245,11 @@ public:
 
     /*! \brief Constructs a new UniquePtr<T> from the given arguments, using the provided allocator. */
     template <class... Args>
-    HYP_NODISCARD HYP_FORCE_INLINE static UniquePtr ConstructWithAllocator(AllocatorType allocator, Args&&... args)
+    HYP_NODISCARD HYP_FORCE_INLINE static UniquePtr ConstructWithAllocator(Args&&... args)
     {
         static_assert(std::is_constructible_v<T, Args...>, "T must be constructible using the given args");
 
-        UniquePtr ptr(std::move(allocator));
+        UniquePtr ptr;
         ptr.m_ptr = ptr.AllocateObject<T>(std::forward<Args>(args)...);
 
         return ptr;
@@ -301,9 +301,9 @@ HYP_FORCE_INLINE UniquePtr<T> MakeUnique(Args&&... args)
 }
 
 template <class T, class AllocatorType, class... Args>
-HYP_FORCE_INLINE UniquePtr<T, AllocatorType> MakeUniqueWithAllocator(AllocatorType allocator, Args&&... args)
+HYP_FORCE_INLINE UniquePtr<T, AllocatorType> MakeUniqueWithAllocator(Args&&... args)
 {
-    return UniquePtr<T, AllocatorType>::ConstructWithAllocator(std::move(allocator), std::forward<Args>(args)...);
+    return UniquePtr<T, AllocatorType>::ConstructWithAllocator(std::forward<Args>(args)...);
 }
 
 } // namespace Hyperion

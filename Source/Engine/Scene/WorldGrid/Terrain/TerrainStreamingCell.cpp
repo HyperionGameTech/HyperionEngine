@@ -296,11 +296,11 @@ Array<uint32> TerrainMeshBuilder::BuildIndices() const
         for (uint32 x = 0; x < m_heightData.cellInfo.extent.x - 1; x++)
         {
             indices[i++] = i0;
-            indices[i++] = i2;
             indices[i++] = i1;
             indices[i++] = i2;
-            indices[i++] = i0;
+            indices[i++] = i2;
             indices[i++] = i3;
+            indices[i++] = i0;
 
             i0++;
             i1++;
@@ -443,7 +443,7 @@ void TerrainStreamingCell::OnRemoved_Impl()
 
     if (m_node.IsValid())
     {
-        m_node->Remove();
+        m_node->Remove(/* moveToDetached */ false);
         m_node.Reset();
     }
 }

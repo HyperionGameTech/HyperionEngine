@@ -22,6 +22,8 @@
 #include <Core/Reflection/ObjId.hpp>
 #include <Core/Util.hpp>
 
+#include <Framework/EngineMemory.hpp>
+
 namespace Hyperion {
 
 class Entity;
@@ -215,13 +217,13 @@ protected:
     }
 
 public:
-    HYP_FORCE_INLINE UniquePtr<ComponentContainerBase> Create() const
+    HYP_FORCE_INLINE UniquePtr<ComponentContainerBase, SceneAllocator> Create() const
     {
         return m_createFn();
     }
 
 protected:
-    UniquePtr<ComponentContainerBase> (*m_createFn)(void);
+    UniquePtr<ComponentContainerBase, SceneAllocator> (*m_createFn)(void);
 };
 
 template <class Component>
@@ -230,7 +232,7 @@ class ComponentContainer final : public ComponentContainerBase
     static class FactoryInstance final : public ComponentContainerFactoryBase
     {
     public:
-        FactoryInstance(UniquePtr<ComponentContainerBase> (*createFn)(void))
+        FactoryInstance(UniquePtr<ComponentContainerBase, SceneAllocator> (*createFn)(void))
         {
             m_createFn = createFn;
         }
@@ -417,15 +419,14 @@ public:
 private:
     uint32 m_componentIdCounter = 0;
 
-    /// TODO: Change to MemoryPool and use Component* rather than ComponentId
-    TMap<ComponentId, Component> m_components;
+    TFlatMap<ComponentId, Component, SceneAllocator> m_components;
 };
 
 template <class Component>
 typename ComponentContainer<Component>::FactoryInstance ComponentContainer<Component>::s_factoryInstance {
-    []() -> UniquePtr<ComponentContainerBase>
+    []() -> UniquePtr<ComponentContainerBase, SceneAllocator>
     {
-        return MakeUnique<ComponentContainer<Component>>();
+        return MakeUniqueWithAllocator<ComponentContainer<Component>, SceneAllocator>();
     }
 };
 
