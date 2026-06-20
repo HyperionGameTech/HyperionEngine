@@ -432,6 +432,7 @@ TResult<CommandLineArguments> CommandLineParser::Parse(const String& commandLine
             if (currentStringIndex++ == 0)
             {
                 command = currentString.ToAnsi();
+                currentString.Clear();
             }
             else
             {

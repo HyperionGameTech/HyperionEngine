@@ -52,11 +52,15 @@ namespace Hyperion.Editor.Commands
                                     EditorSubsystem? editorSubsystem = EngineManager.EditorGame?.EditorSubsystem;
                                     Debug.Assert(editorSubsystem != null, "EditorSubsystem is null");
 
-                                    editorSubsystem.StartSimulation();
+                                    if (!editorSubsystem.StartSimulation())
+                                    {
+                                        throw new Exception("Failed to start simulation!");
+                                    }
 
                                     innerGameInstance = editorSubsystem.CurrentProject?.GameInstance;
                                     Debug.Assert(innerGameInstance != null);
-                                } catch (Exception)
+                                }
+                                catch (Exception)
                                 {
                                     Interlocked.Exchange(ref _isChangingGameMode, 0);
                                     throw;
@@ -84,8 +88,12 @@ namespace Hyperion.Editor.Commands
                                 EditorSubsystem? editorSubsystem = EngineManager.EditorGame?.EditorSubsystem;
                                 Debug.Assert(editorSubsystem != null, "EditorSubsystem is null");
 
-                                editorSubsystem.PauseSimulation();
-                            } finally
+                                if (!editorSubsystem.PauseSimulation())
+                                {
+                                    throw new Exception("Failed to pause simulation!");
+                                }
+                            }
+                            finally
                             {
                                 Interlocked.Exchange(ref _isChangingGameMode, 0);
                             }
@@ -95,13 +103,21 @@ namespace Hyperion.Editor.Commands
                     case GameStateMode.Stopped:
                         await EngineManager.PostToSimThread(() =>
                         {
+                            EditorProject? simulationProject;
+
                             try
                             {
                                 EditorSubsystem? editorSubsystem = EngineManager.EditorGame?.EditorSubsystem;
                                 Debug.Assert(editorSubsystem != null, "EditorSubsystem is null");
 
-                                editorSubsystem.StopSimulation();
-                            } catch (Exception)
+                                simulationProject = editorSubsystem.CurrentProject;
+
+                                if (!editorSubsystem.StopSimulation())
+                                {
+                                    throw new Exception("Failed to stop simulating!");
+                                }
+                            }
+                            catch (Exception)
                             {
                                 Interlocked.Exchange(ref _isChangingGameMode, 0);
                                 throw;
@@ -112,9 +128,19 @@ namespace Hyperion.Editor.Commands
                                 try
                                 {
                                     EngineManager.InitializeEditor();
-                                } finally
+                                }
+                                finally
                                 {
                                     Interlocked.Exchange(ref _isChangingGameMode, 0);
+
+                                    // Release resources the project from the simulation state. We need to do this on simulation thread,
+                                    // as the InitializeEditor() call sets GameInstance but it may not have propagated to the sim thread yet
+                                    // via LaunchGameAsync.
+
+                                    if (simulationProject != null)
+                                    {
+                                        _ = EngineManager.PostToSimThread(() => simulationProject.Dispose());
+                                    }
                                 }
                             });
                         });
@@ -124,7 +150,8 @@ namespace Hyperion.Editor.Commands
                         Interlocked.Exchange(ref _isChangingGameMode, 0);
                         throw new NotImplementedException();
                 }
-            } catch (Exception)
+            }
+            catch (Exception)
             {
                 Interlocked.Exchange(ref _isChangingGameMode, 0);
                 throw;

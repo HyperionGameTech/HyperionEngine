@@ -430,6 +430,7 @@ void AssetObject::AllocateBlobData(BlobDataReference& reference, const void* inD
 
         const size_t countAligned = ByteUtil::AlignAs(count, alignment);
 
+        // Allocate memory from the asset pool
         reference.raw = g_assetPool->Allocate(countAligned, alignment);
         Assert(reference.raw != nullptr);
 

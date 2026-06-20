@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace Hyperion
@@ -28,6 +29,19 @@ namespace Hyperion
         {
         }
 
+        protected override void Dispose(bool isDisposing)
+        {
+            if (isDisposing)
+            {
+                foreach (Scene? scene in Scenes)
+                {
+                    scene?.Dispose();
+                }
+            }
+
+            base.Dispose(isDisposing);
+        }
+
         public Name Name
         {
             get => this.GetName();
@@ -40,6 +54,18 @@ namespace Hyperion
         {
             get => this.GetWorldFlags();
             set => this.SetWorldFlags(value);
+        }
+
+        public IEnumerable<Scene?> Scenes
+        {
+            get
+            {
+                Array scenes = this.GetScenes();
+                foreach (Scene? scene in scenes)
+                {
+                    yield return scene;
+                }
+            }
         }
 
         public T? GetSubsystem<T>() where T : Subsystem

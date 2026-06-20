@@ -27,6 +27,8 @@
 #include <Core/Memory/Memory.hpp>
 #include <Core/Memory/Pool/Pool.hpp>
 
+#include <Core/Functional/Proc.hpp>
+
 #include <type_traits>
 
 // #define HYP_OBJECT_POOL_DEBUG
@@ -74,6 +76,8 @@ public:
     virtual ObjectHeader* GetObjectHeader(uint32 index, TLockGuard<AtomicFlag>& outGuard) = 0;
 
     virtual void Release(ObjectHeader* header) = 0;
+
+    virtual void ForEachHeader(const ProcRef<void(const ObjectHeader*)>& callback) = 0;
 
 protected:
     enum PoolFlags : uint8
@@ -253,6 +257,15 @@ public:
         m_headers.EraseAt(index);
     }
 
+    virtual void ForEachHeader(const ProcRef<void(const ObjectHeader*)>& callback) override
+    {
+        for (auto& header_ptr : m_headers)
+        {
+            if (header_ptr != nullptr)
+                callback(header_ptr);
+        }
+    }
+
     // To match allocator interface
     HYP_NODISCARD void* Allocate(size_t size)
     {
@@ -307,6 +320,13 @@ public:
 
     ObjectContainerBase& Get(TypeId typeId);
     ObjectContainerBase* TryGet(TypeId typeId);
+
+    void ForEachContainer(const ProcRef<void(TypeId, ObjectContainerBase*)>& callback)
+    {
+        Mutex::Guard guard(m_mutex);
+        for (auto& entry : m_map)
+            callback(entry.first, entry.second);
+    }
 
     ObjectContainerBase& GetOrCreate(
         TypeId typeId,

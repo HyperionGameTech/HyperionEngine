@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <HyperionPch.hpp>
 
@@ -18,9 +18,8 @@ using namespace Hyperion;
 
 extern "C"
 {
-    HYP_EXPORT void Game_PostTask(Game* pGame, void (*pTaskFunc)())
+    HYP_EXPORT void SimThread_PostTask(void (*pTaskFunc)())
     {
-        Assert(pGame != nullptr);
         Assert(pTaskFunc != nullptr);
 
         if (IsOnThread(g_simThread))

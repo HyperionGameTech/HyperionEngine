@@ -2530,11 +2530,11 @@ void EditorSubsystem::CreateHighlightNode()
     // m_highlightNode->SetEntity(entity);
 }
 
-void EditorSubsystem::StartSimulation()
+bool EditorSubsystem::StartSimulation()
 {
     if (m_editorViewports.Empty() || !m_currentProject.IsValid())
     {
-        return;
+        return false;
     }
 
     const GameState& gameState = m_currentProject->GetGame()->GetGameState();
@@ -2550,7 +2550,7 @@ void EditorSubsystem::StartSimulation()
             m_currentProject->GetGame()->StartSimulating();
         }
 
-        return;
+        return true;
     }
 
     // Save the current project state as a snapshot to restore from when simulation ends.
@@ -2558,7 +2558,7 @@ void EditorSubsystem::StartSimulation()
     {
         HYP_LOG(Editor, Error, "Failed to save project snapshot before simulation: {}", saveResult.GetError().GetMessage());
 
-        return;
+        return false;
     }
 
     m_preSimulationProject = m_currentProject;
@@ -2575,7 +2575,7 @@ void EditorSubsystem::StartSimulation()
     {
         HYP_LOG(Editor, Error, "Failed to load project when starting simulation!! Error was: {}", loadResult.GetError().GetMessage());
 
-        return;
+        return false;
     }
 
     OpenProject(*loadResult);
@@ -2646,11 +2646,13 @@ void EditorSubsystem::StartSimulation()
     }
 
     m_currentProject->GetGame()->StartSimulating();
+
+    return true;
 }
 
-void EditorSubsystem::StopSimulation()
+bool EditorSubsystem::StopSimulation()
 {
-    if (m_currentProject)
+    if (m_currentProject.IsValid())
     {
         Game* gameInstance = m_currentProject->GetGame();
 
@@ -2661,24 +2663,30 @@ void EditorSubsystem::StopSimulation()
 
         gameInstance->StopSimulating();
         gameInstance->Shutdown();
+
+        m_simulationView.Reset();
+
+        Assert(m_preSimulationProject.IsValid());
+        OpenProject(m_preSimulationProject);
+
+        m_preSimulationProject.Reset();
+
+        return true;
     }
 
-    m_simulationView.Reset();
-
-    // should be set in StartSimulation, but just in case.
-    AssertDebug(m_preSimulationProject.IsValid());
-
-    OpenProject(m_preSimulationProject);
-
-    m_preSimulationProject.Reset();
+    return true;
 }
 
-void EditorSubsystem::PauseSimulation()
+bool EditorSubsystem::PauseSimulation()
 {
     if (m_currentProject.IsValid())
     {
         m_currentProject->GetGame()->PauseSimulation();
+
+        return true;
     }
+
+    return false;
 }
 
 void EditorSubsystem::InitViewport()

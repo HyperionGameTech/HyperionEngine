@@ -600,13 +600,13 @@ private:
     void ShutdownGizmos();
 
     HYP_METHOD()
-    void StartSimulation();
+    bool StartSimulation();
 
     HYP_METHOD()
-    void StopSimulation();
+    bool StopSimulation();
 
     HYP_METHOD()
-    void PauseSimulation();
+    bool PauseSimulation();
 
     void SetHoveredGizmo(
         const MouseEvent& event,

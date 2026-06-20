@@ -309,26 +309,12 @@ namespace Hyperion.Editor
 
         public static async Task PostToSimThread(Action action)
         {
-            Game? gameInstance = GameInstance;
-
-            if (gameInstance == null)
-            {
-                throw new InvalidOperationException("Game instance is not available.");
-            }
-
-            await gameInstance.PostTask(action).ConfigureAwait(false);
+            await SimThread.PostTask(action).ConfigureAwait(false);
         }
 
         public static async Task<T> PostToSimThread<T>(Func<T> func)
         {
-            Game? gameInstance = GameInstance;
-
-            if (gameInstance == null)
-            {
-                throw new InvalidOperationException("Game instance is not available.");
-            }
-
-            return await gameInstance.PostTask(func).ConfigureAwait(false);
+            return await SimThread.PostTask(func).ConfigureAwait(false);
         }
 
         public static void RegisterViewport(EditorViewport viewport)

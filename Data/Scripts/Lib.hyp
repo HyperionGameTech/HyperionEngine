@@ -2439,9 +2439,9 @@ extern class EditorSubsystem : Subsystem
     OnSelectedBucketChanged : any
     OnActiveViewportChanged : any
     OnSelectionChanged : any
-    StartSimulation() -> void
-    StopSimulation() -> void
-    PauseSimulation() -> void
+    StartSimulation() -> bool
+    StopSimulation() -> bool
+    PauseSimulation() -> bool
 end
 extern class EditorState
     static GetInstance() -> EditorState

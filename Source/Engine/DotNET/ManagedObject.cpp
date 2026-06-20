@@ -54,7 +54,15 @@ ManagedObject::ManagedObject(const RC<ManagedClass>& managedClass, ObjectReferen
 
 ManagedObject::~ManagedObject()
 {
+    ManagedClass* managedClassPtr = m_managedClass.Get();
+
     Reset();
+
+    auto removeFn = DotNETHost::GetInstance().GetGlobalFunctions().removeObjectFromCacheFptr;
+    if (removeFn && managedClassPtr)
+    {
+        removeFn(managedClassPtr);
+    }
 }
 
 void ManagedObject::Reset()

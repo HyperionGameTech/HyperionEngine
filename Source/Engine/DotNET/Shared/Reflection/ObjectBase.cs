@@ -120,24 +120,17 @@ namespace Hyperion
 
         ~ObjectBase()
         {
-            _shutdownLock.EnterReadLock();
-
-            try
-            {
-                if (IsValid && Class.IsReferenceCounted && _isEngineShuttingDown == 0)
-                {
-                    Object_DecRef(_classPtr, _nativeAddress, false);
-
-                    Logger.Log(LogLevel.Verbose, "Finalized ObjectBase of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
-                }
-            }
-            finally
-            {
-                _shutdownLock.ExitReadLock();
-            }
+            Dispose(false);
         }
 
         public void Dispose()
+        {
+            Dispose(true);
+
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool isDisposing)
         {
             if (IsValid)
             {
@@ -160,8 +153,6 @@ namespace Hyperion
                 {
                     _shutdownLock.ExitReadLock();
                 }
-
-                GC.SuppressFinalize(this);
             }
 
             _classPtr = IntPtr.Zero;

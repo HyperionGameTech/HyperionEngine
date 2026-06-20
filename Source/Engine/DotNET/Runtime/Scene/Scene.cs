@@ -49,13 +49,17 @@ namespace Hyperion
         {
         }
 
-        public Node RootNode
+        protected override void Dispose(bool isDisposing)
         {
-            get
+            if (isDisposing)
             {
-                return this.GetRoot();
+                RootNode?.Dispose();
             }
+
+            base.Dispose(isDisposing);
         }
+
+        public Node? RootNode => this.GetRoot();
 
         public SceneFlags SceneFlags
         {

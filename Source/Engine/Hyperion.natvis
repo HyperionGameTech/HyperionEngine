@@ -16,6 +16,48 @@
     </Expand>
   </Type>
 
+  <!-- Walks the whole hash map to display the name as a string! -->
+  <Type Name="Hyperion::Name">
+    <DisplayString Condition="hashCode == 0">[empty]</DisplayString>
+    <DisplayString Condition="hashCode != 0">Name(0x{hashCode,x})</DisplayString>
+
+    <Expand>
+      <CustomListItems>
+        <Variable Name="bucketIndex" InitialValue="0" />
+        <Variable Name="found" InitialValue="false"/>
+        <Variable Name="registry" InitialValue="Hyperion::NameRegistry::s_instance"/>
+        <Variable Name="bucketPtr" InitialValue="((Hyperion::NameRegistry::Bucket *)nullptr)" />
+        <Variable Name="currentHead" InitialValue="((Hyperion::NameRegistry::Node *)nullptr)" />
+
+        <Exec>bucketPtr = (Hyperion::NameRegistry::Bucket* )(registry-&amp;gt;m_nameMap.m_buckets.data)</Exec>
+
+        <Loop>
+          <Break Condition="found == true || bucketIndex == registry-&amp;gt;m_nameMap.m_buckets.size" />
+
+          <Exec>currentHead = bucketPtr-&amp;gt;head</Exec>
+
+          <If Condition="found == false &amp;&amp; currentHead != nullptr">
+           <Loop>
+              <Break Condition="found == true || currentHead == nullptr" />
+              <If Condition="(unsigned __int64)hashCode == (unsigned __int64)currentHead-&amp;gt;value.first">
+                <Item Name="StringValue">(currentHead-&amp;gt;value.second.first.data),s</Item>
+                <Exec>found = true</Exec>
+              </If>
+              <Exec>currentHead = currentHead-&amp;gt;next</Exec>
+            </Loop>
+          </If>
+
+          <Exec>bucketPtr++</Exec>
+          <Exec>bucketIndex++</Exec>
+        </Loop>
+
+        <If Condition="found == false">
+          <Item Name="StringValue">"???"</Item>
+        </If>
+      </CustomListItems>
+    </Expand>
+  </Type>
+
   <Type Name="Hyperion::containers::FixedArray&lt;*,*&gt;">
     <DisplayString>{($T1 *)m_values}</DisplayString>
     <Expand>
@@ -65,9 +107,11 @@
   </Type>
 
 
+
+
+
   <Type Name="Hyperion::containers::TSlimArray&lt;*,*&gt;">
     <DisplayString>{{ Size={size} }}</DisplayString>
-    <DisplayString>{($T1 *)data}</DisplayString>
     <Expand>
       <Item Name="[Count]">(size)</Item>
       <Item Name="[Capacity]">(capacity)</Item>
@@ -167,19 +211,12 @@
       <CustomListItems>
         <Variable Name="bucketPtr" InitialValue="((Bucket *)nullptr)" />
         <Variable Name="bucketIndex" InitialValue="0" />
-
         <Variable Name="currentHead" InitialValue="((Node *)nullptr)" />
 
-        <Exec Condition="m_buckets.m_allocation.allocationType == 1">bucketPtr = ((Bucket *) m_buckets.m_allocation.buffer)</Exec>
-        <Exec Condition="m_buckets.m_allocation.allocationType == 2 &amp;&amp; m_buckets.m_allocation.isDynamic == false">bucketPtr = ((Bucket *) &amp;(m_buckets.m_allocation.storage.dataBuffer[0]))</Exec>
-        <Exec Condition="m_buckets.m_allocation.allocationType == 2 &amp;&amp; m_buckets.m_allocation.isDynamic == true">bucketPtr = ((Bucket *) m_buckets.m_allocation.dynamicAllocation.buffer)</Exec>
-
-        <Exec Condition="m_buckets.m_allocation.allocationType == 1">bucketPtr = ((Bucket *)m_buckets.m_allocation.buffer + m_buckets.m_startOffset)</Exec>
-        <Exec Condition="m_buckets.m_allocation.allocationType == 2 &amp;&amp; m_buckets.m_allocation.isDynamic == false">bucketPtr = ((Bucket *)&amp;m_buckets.m_allocation.storage.dataBuffer[0] + m_buckets.m_startOffset)</Exec>
-        <Exec Condition="m_buckets.m_allocation.allocationType == 2 &amp;&amp; m_buckets.m_allocation.isDynamic == true">bucketPtr = ((Bucket *)m_buckets.m_allocation.dynamicAllocation.buffer + m_buckets.m_startOffset)</Exec>
+        <Exec>bucketPtr = (Bucket *)m_buckets.data</Exec>
 
         <Loop>
-          <Break Condition="bucketIndex == (m_buckets.m_size - m_buckets.m_startOffset)" />
+          <Break Condition="bucketIndex == m_buckets.size" />
 
           <Exec>currentHead = bucketPtr-&gt;head</Exec>
 
@@ -205,19 +242,12 @@
       <CustomListItems>
         <Variable Name="bucketPtr" InitialValue="((Bucket *)nullptr)" />
         <Variable Name="bucketIndex" InitialValue="0" />
-
         <Variable Name="currentHead" InitialValue="((Node *)nullptr)" />
 
-        <Exec Condition="m_buckets.m_allocation.allocationType == 1">bucketPtr = ((Bucket *) m_buckets.m_allocation.buffer)</Exec>
-        <Exec Condition="m_buckets.m_allocation.allocationType == 2 &amp;&amp; m_buckets.m_allocation.isDynamic == false">bucketPtr = ((Bucket *) &amp;(m_buckets.m_allocation.storage.dataBuffer[0]))</Exec>
-        <Exec Condition="m_buckets.m_allocation.allocationType == 2 &amp;&amp; m_buckets.m_allocation.isDynamic == true">bucketPtr = ((Bucket *) m_buckets.m_allocation.dynamicAllocation.buffer)</Exec>
-
-        <Exec Condition="m_buckets.m_allocation.allocationType == 1">bucketPtr = ((Bucket *)m_buckets.m_allocation.buffer + m_buckets.m_startOffset)</Exec>
-        <Exec Condition="m_buckets.m_allocation.allocationType == 2 &amp;&amp; m_buckets.m_allocation.isDynamic == false">bucketPtr = ((Bucket *)&amp;m_buckets.m_allocation.storage.dataBuffer[0] + m_buckets.m_startOffset)</Exec>
-        <Exec Condition="m_buckets.m_allocation.allocationType == 2 &amp;&amp; m_buckets.m_allocation.isDynamic == true">bucketPtr = ((Bucket *)m_buckets.m_allocation.dynamicAllocation.buffer + m_buckets.m_startOffset)</Exec>
+        <Exec>bucketPtr = (Bucket *)m_buckets.data</Exec>
 
         <Loop>
-          <Break Condition="bucketIndex == (m_buckets.m_size - m_buckets.m_startOffset)" />
+          <Break Condition="bucketIndex == m_buckets.size" />
 
           <Exec>currentHead = bucketPtr-&gt;head</Exec>
 
@@ -302,6 +332,7 @@
      </Expand>
   </Type>
 
+  
   <Type Name="Hyperion::utilities::Variant&lt;*&gt;">
     <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 0">{{ {*($T1 *)&amp;m_holder.m_storage} }}</DisplayString>
     <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 1">{{ {*($T2 *)&amp;m_holder.m_storage} }}</DisplayString>
@@ -381,9 +412,9 @@
     <DisplayString>{m_name}</DisplayString>
     <Expand>
       <Item Name="[Name]">m_name</Item>
-      <Item Name="[ID]">m_value &amp; g_threadIdMask</Item>
-      <Item Name="[Category]">(Hyperion::threading::ThreadCategory)(m_value &amp; g_threadCategoryMask)</Item>
-      <Item Name="[IsDynamic]">(bool)(m_value &amp; g_threadDynamicMask)</Item>
+      <Item Name="[ID]">m_value &amp; ThreadIdMask</Item>
+      <Item Name="[Category]">(Hyperion::threading::ThreadCategory)(m_value &amp; ThreadCategoryMask)</Item>
+      <Item Name="[IsDynamic]">(bool)(m_value &amp; ThreadDynamicMask)</Item>
     </Expand>
   </Type>
 
@@ -424,49 +455,6 @@
     </Expand>
   </Type>
 
-  <!-- Walks the whole hash map to display the name as a string! -->
-  <Type Name="Hyperion::Name">
-    <Expand>
-      <CustomListItems>
-        <Variable Name="bucketIndex" InitialValue="0" />
-
-        <Variable Name="found" InitialValue="false"/>
-
-        <Variable Name="hc" InitialValue="this-&amp;gt;hashCode"/>
-        <Variable Name="registry" InitialValue="Name::s_registry"/>
-
-        <Variable Name="bucketPtr" InitialValue="registry-&amp;gt;g_nullBucket" />
-        <Variable Name="currentHead" InitialValue="registry-&amp;gt;g_nullNode" />
-
-        <Exec>bucketPtr = (Hyperion::NameRegistry::Bucket* )(registry-&amp;gt;m_nameMap.m_buckets.data)</Exec>
-
-        <Loop>
-          <Break Condition="found == true || bucketIndex == registry-&amp;gt;m_nameMap.m_buckets.size" />
-
-          <Exec>currentHead = bucketPtr-&amp;gt;head</Exec>
-
-          <If Condition="found == false &amp;amp;&amp;amp; currentHead != nullptr">
-           <Loop>
-              <Break Condition="found == true || currentHead == nullptr" />
-              <If Condition="(unsigned __int64)hashCode == (unsigned __int64)currentHead-&amp;gt;value.first">
-                <Item Name="StringValue">(currentHead-&amp;gt;value.second.first.data),s</Item>
-                <Exec>found = true</Exec>
-              </If>
-              <Exec>currentHead = currentHead-&amp;gt;next</Exec>
-            </Loop>
-          </If>
-
-          <Exec>bucketPtr++</Exec>
-          <Exec>bucketIndex++</Exec>
-        </Loop>
-
-        <If Condition="found == false">
-          <Item Name="StringValue">"???"</Item>
-        </If>
-      </CustomListItems>
-    </Expand>
-  </Type>
-
 
   <Type Name="Hyperion::utilities::TypeId">
     <DisplayString Condition="value == 0">Void</DisplayString>
@@ -479,25 +467,7 @@
   </Type>
 
   <Type Name="Hyperion::AssetPath">
-    <DisplayString>{chain,hv}</DisplayString>
-    <Expand>
-      <CustomListItems>
-        <Variable Name="current" InitialValue="chain" />
-        <Variable Name="first" InitialValue="true" />
-
-        <Loop>
-          <Break Condition="current-&gt;hashCode == 0" />
-
-          <If Condition="first == true">
-            <Exec>first = false</Exec>
-          </If>
-
-          <Item>(current),na</Item>
-
-          <Exec>current = current + 1</Exec>
-        </Loop>
-      </CustomListItems>
-    </Expand>
+    <!-- FIXME! -->
   </Type>
 
   <Type Name="Hyperion::EnumFlags&lt;*&gt;">

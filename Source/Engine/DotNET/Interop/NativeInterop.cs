@@ -2,6 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.Reflection;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Diagnostics;
 
@@ -28,6 +29,8 @@ namespace Hyperion
     {
         private const string ClassPtrFieldName = "_classPtr";
         private const string NativeAddressFieldName = "_nativeAddress";
+
+        private static readonly ConcurrentDictionary<IntPtr, int> s_liveObjectCounts = new ConcurrentDictionary<IntPtr, int>();
 
         private static bool VerifyEngineVersion(string versionString, bool major, bool minor, bool patch)
         {
@@ -96,6 +99,9 @@ namespace Hyperion
                 NativeInterop_SetTriggerGCFunction((delegate* unmanaged<void>)&TriggerGC);
                 NativeInterop_SetGetAssemblyPointerFunction((delegate* unmanaged<IntPtr, IntPtr, void>)&GetAssemblyPointer);
                 NativeInterop_SetCleanupOnShutdownFunction((delegate* unmanaged<void>)&CleanupOnShutdown);
+                NativeInterop_SetRemoveObjectFromCacheFunction((delegate* unmanaged<IntPtr, void>)&RemoveObjectFromCache);
+                NativeInterop_SetQueryManagedObjectCountsFunction((delegate* unmanaged<IntPtr*, int, int>)&QueryManagedObjectCounts);
+                NativeInterop_SetGetTotalMemoryFunction((delegate* unmanaged<long>)&GetTotalMemory);
             }
             catch (Exception ex)
             {
@@ -860,6 +866,8 @@ namespace Hyperion
                 throw new Exception("ManagedClass not found for Type " + type.Name + " from assembly: " + type.Assembly.FullName + ", has the assembly been registered? Ensure the class or struct is public.");
             }
 
+            s_liveObjectCounts.AddOrUpdate(pClass, 1, (_, count) => count + 1);
+
             Marshal.WriteIntPtr(outClassObjectPtr, pClass);
 
             GCHandle gcHandleWeak = GCHandle.Alloc(obj, GCHandleType.Weak);
@@ -982,6 +990,39 @@ namespace Hyperion
             GC.Collect(0, GCCollectionMode.Forced, blocking: true, compacting: true);
         }
 
+        [UnmanagedCallersOnly]
+        public static void RemoveObjectFromCache(IntPtr classPtr)
+        {
+            if (classPtr == IntPtr.Zero)
+                return;
+
+            s_liveObjectCounts.AddOrUpdate(classPtr, 0, (_, count) => Math.Max(0, count - 1));
+        }
+
+        [UnmanagedCallersOnly]
+        public static long GetTotalMemory()
+        {
+            return GC.GetTotalMemory(false);
+        }
+
+        [UnmanagedCallersOnly]
+        public static unsafe int QueryManagedObjectCounts(IntPtr* outPairs, int maxPairs)
+        {
+            int written = 0;
+            foreach (var kvp in s_liveObjectCounts)
+            {
+                if (written >= maxPairs)
+                    break;
+                if (kvp.Value <= 0)
+                    continue;
+
+                outPairs[written * 2 + 0] = kvp.Key;
+                outPairs[written * 2 + 1] = (IntPtr)kvp.Value;
+                written++;
+            }
+            return written;
+        }
+
         public static void HandleUnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
             Logger.Log(LogLevel.Error, "Unhandled managed exception: {0}\n\n{1}", ((Exception)e.ExceptionObject).Message, ((Exception)e.ExceptionObject).StackTrace);
@@ -1044,6 +1085,15 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_SetCleanupOnShutdownFunction")]
         private static extern unsafe void NativeInterop_SetCleanupOnShutdownFunction(void* cleanupOnShutdownFunction);
+
+        [DllImport("hyperion", EntryPoint = "NativeInterop_SetRemoveObjectFromCacheFunction")]
+        private static extern unsafe void NativeInterop_SetRemoveObjectFromCacheFunction(void* removeObjectFromCacheFunction);
+
+        [DllImport("hyperion", EntryPoint = "NativeInterop_SetQueryManagedObjectCountsFunction")]
+        private static extern unsafe void NativeInterop_SetQueryManagedObjectCountsFunction(void* queryManagedObjectCountsFunction);
+
+        [DllImport("hyperion", EntryPoint = "NativeInterop_SetGetTotalMemoryFunction")]
+        private static extern unsafe void NativeInterop_SetGetTotalMemoryFunction(void* getTotalMemoryFunction);
 
         [DllImport("hyperion")]
         private static extern int NativeInterop_NewAssembly(Guid guid, out IntPtr outAssemblyPtr);

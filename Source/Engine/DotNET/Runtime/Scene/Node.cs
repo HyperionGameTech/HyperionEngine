@@ -41,109 +41,62 @@ namespace Hyperion
         {
         }
 
+        protected override void Dispose(bool isDisposing)
+        {
+            if (isDisposing)
+            {
+                foreach (Node? childNode in Children)
+                {
+                    childNode?.Dispose();
+                }
+            }
+
+            base.Dispose(isDisposing);
+        }
+
         public NodeFlags Flags
         {
-            get
-            {
-                return this.GetNodeFlags();
-            }
-            set
-            {
-                this.SetNodeFlags(value);
-            }
+            get => this.GetNodeFlags();
+            set => this.SetNodeFlags(value);
         }
 
         public Transform LocalTransform
         {
-            get
-            {
-                return this.GetLocalTransform();
-            }
-            set
-            {
-                this.SetLocalTransform(value, TransformChangeType.Default);
-            }
+            get => this.GetLocalTransform();
+            set => this.SetLocalTransform(value, TransformChangeType.Default);
         }
 
         public Vec3f LocalTranslation
         {
-            get
-            {
-                return this.GetLocalTranslation();
-            }
-            set
-            {
-                this.SetLocalTranslation(value, TransformChangeType.Default);
-            }
+            get => this.GetLocalTranslation();
+            set => this.SetLocalTranslation(value, TransformChangeType.Default);
         }
 
         public Vec3f LocalScale
         {
-            get
-            {
-                return this.GetLocalScale();
-            }
-            set
-            {
-                this.SetLocalScale(value, TransformChangeType.Default);
-            }
+            get => this.GetLocalScale();
+            set => this.SetLocalScale(value, TransformChangeType.Default);
         }
 
         public Quat4f LocalRotation
         {
-            get
-            {
-                return this.GetLocalRotation();
-            }
-            set
-            {
-                this.SetLocalRotation(value, TransformChangeType.Default);
-            }
+            get => this.GetLocalRotation();
+            set => this.SetLocalRotation(value, TransformChangeType.Default);
         }
 
-        public Mat4f WorldMatrix
-        {
-            get
-            {
-                return this.GetWorldMatrix();
-            }
-        }
+        public Mat4f WorldMatrix => this.GetWorldMatrix();
 
         public BoundingBox LocalBounds
         {
-            get
-            {
-                return this.GetLocalBounds();
-            }
-            set
-            {
-                this.SetLocalBounds(value);
-            }
+            get => this.GetLocalBounds();
+            set => this.SetLocalBounds(value);
         }
 
-        public Node? Parent
-        {
-            get
-            {
-                return this.GetParent();
-            }
-        }
+        public Node? Parent => this.GetParent();
 
-        public Scene? Scene
-        {
-            get
-            {
-                return this.GetScene();
-            }
-        }
+        public Scene? Scene => this.GetScene();
 
-        public uint NumChildren
-        {
-            get
-            {
-                return this.NumChildren();
-            }
-        }
+        public uint NumChildren => this.NumChildren();
 
         public IEnumerable<Node?> Children
         {

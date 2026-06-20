@@ -906,7 +906,14 @@ extern "C"
             }
 
             CommandLineParser parser { &argumentDefinitions };
-            TResult<CommandLineArguments> parseResult = parser.Parse(commandLine);
+            TResult<CommandLineArguments> parseResult = parser.Parse(commandName + " " + commandLine);
+
+            if (parseResult.HasError())
+            {
+                HYP_LOG(Engine, Error, "Failed to parse commandlet arguments: {}", parseResult.GetError().GetMessage());
+
+                return 1;
+            }
 
             Result commandletResult = g_appContext->RunCommandlet(
                 *commandletClass->GetName(),

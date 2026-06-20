@@ -8,15 +8,26 @@ namespace Hyperion
     {
         private static LogChannel _logChannel = LogChannel.ByName("Editor");
 
+        protected override void Dispose(bool isDisposing)
+        {
+            if (isDisposing)
+            {
+                // Game disposes World
+                GameInstance?.Dispose();
+            }
+
+            base.Dispose(isDisposing);
+        }
+
         public Name Name
         {
             get => this.GetName();
             set => this.SetName(value);
         }
 
-        public World World => this.GetWorld();
+        public World? World => this.GetWorld();
 
-        public Game GameInstance
+        public Game? GameInstance
         {
             get => this.GetGame();
             set => this.SetGame(value);
@@ -28,7 +39,7 @@ namespace Hyperion
 
         public bool IsSaved => this.IsSaved();
 
-        public EditorActionStack ActionStack => this.GetActionStack();
+        public EditorActionStack? ActionStack => this.GetActionStack();
 
         public Name GetNextDefaultProjectName(string defaultProjectName)
         {
@@ -37,7 +48,7 @@ namespace Hyperion
 
             try
             {
-                directories = System.IO.Directory.GetDirectories(projectsDirectory);
+                directories = Directory.GetDirectories(projectsDirectory);
             }
             catch (Exception e)
             {
@@ -53,7 +64,7 @@ namespace Hyperion
                 foreach (string directory in directories)
                 {
                     // get basename of dir without extension
-                    string basename = System.IO.Path.GetFileNameWithoutExtension(directory);
+                    string basename = Path.GetFileNameWithoutExtension(directory);
 
                     if (basename.Equals(projectName, StringComparison.OrdinalIgnoreCase))
                     {

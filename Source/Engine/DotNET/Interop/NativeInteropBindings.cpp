@@ -126,6 +126,21 @@ extern "C"
         DotNETHost::GetInstance().GetGlobalFunctions().cleanupOnShutdownFunction = cleanupOnShutdownFunction;
     }
 
+    HYP_EXPORT void NativeInterop_SetRemoveObjectFromCacheFunction(RemoveObjectFromCacheFunction removeObjectFromCacheFptr)
+    {
+        DotNETHost::GetInstance().GetGlobalFunctions().removeObjectFromCacheFptr = removeObjectFromCacheFptr;
+    }
+
+    HYP_EXPORT void NativeInterop_SetQueryManagedObjectCountsFunction(QueryManagedObjectCountsFunction queryManagedObjectCountsFptr)
+    {
+        DotNETHost::GetInstance().GetGlobalFunctions().queryManagedObjectCountsFptr = queryManagedObjectCountsFptr;
+    }
+
+    HYP_EXPORT void NativeInterop_SetGetTotalMemoryFunction(GetTotalMemoryFunction getTotalMemoryFptr)
+    {
+        DotNETHost::GetInstance().GetGlobalFunctions().getTotalMemoryFptr = getTotalMemoryFptr;
+    }
+
     HYP_EXPORT void NativeInterop_GetAssemblyPointer(ObjectReference* assemblyObjectReference, Assembly** pOutAssembly)
     {
         Assert(assemblyObjectReference != nullptr);
