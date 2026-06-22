@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -14,6 +14,8 @@
 #include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Core/Containers/SparsePagedArray.hpp>
+
+#include <Core/Memory/Allocator/ThreadAllocator.hpp>
 
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
@@ -179,24 +181,24 @@ void Mesh::PageBlobData()
         if (!blobStorage || !blobStorage->GetData(m_vertexData.key, m_vertexData.size, m_vertexData.raw))
         {
             ([&]()
-                {
+             {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
-                    // check if failed; if so, try to import from raw data blob in project directory
-                    FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (String(*GetName()) + ".VB.raw.blob") };
-                    if (!stream.Eof())
-                    {
-                        ByteBuffer buffer = stream.Read(stream.Max());
+                 // check if failed; if so, try to import from raw data blob in project directory
+                 FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (String(*GetName()) + ".VB.raw.blob") };
+                 if (!stream.Eof())
+                 {
+                     ByteBuffer buffer = stream.Read(stream.Max());
 
-                        AllocateBlobData(m_vertexData, buffer.Data(), buffer.Size(), 16);
+                     AllocateBlobData(m_vertexData, buffer.Data(), buffer.Size(), 16);
 
-                        needsSaveBlobData = true;
+                     needsSaveBlobData = true;
 
-                        return;
-                    }
+                     return;
+                 }
 #endif
 
-                    HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} vertex buffer", GetName());
-                })();
+                 HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} vertex buffer", GetName());
+             })();
         }
         else
         {
@@ -206,25 +208,25 @@ void Mesh::PageBlobData()
         if (!blobStorage || !blobStorage->GetData(m_indexData.key, m_indexData.size, m_indexData.raw))
         {
             ([&]()
-                {
+             {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
-                    // check if failed; if so, try to import from raw data blob in project directory
-                    FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (String(*GetName()) + ".IB.raw.blob") };
-                    if (!stream.Eof())
-                    {
-                        ByteBuffer buffer = stream.Read(stream.Max());
-                        AssertDebug(buffer.Size() == stream.Max());
+                 // check if failed; if so, try to import from raw data blob in project directory
+                 FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (String(*GetName()) + ".IB.raw.blob") };
+                 if (!stream.Eof())
+                 {
+                     ByteBuffer buffer = stream.Read(stream.Max());
+                     AssertDebug(buffer.Size() == stream.Max());
 
-                        AllocateBlobData(m_indexData, buffer.Data(), buffer.Size(), alignof(uint32));
+                     AllocateBlobData(m_indexData, buffer.Data(), buffer.Size(), alignof(uint32));
 
-                        needsSaveBlobData = true;
+                     needsSaveBlobData = true;
 
-                        return;
-                    }
+                     return;
+                 }
 #endif
 
-                    HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} index buffer", GetName());
-                })();
+                 HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} index buffer", GetName());
+             })();
         }
         else
         {
@@ -240,23 +242,23 @@ void Mesh::PageBlobData()
         if (!blobStorage || !blobStorage->GetData(m_bvhData.key, m_bvhData.size, m_bvhData.raw))
         {
             ([&]()
-                {
+             {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
-                    FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (String(*GetName()) + ".BVH.raw.blob") };
-                    if (!stream.Eof())
-                    {
-                        ByteBuffer buffer = stream.Read(stream.Max());
+                 FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (String(*GetName()) + ".BVH.raw.blob") };
+                 if (!stream.Eof())
+                 {
+                     ByteBuffer buffer = stream.Read(stream.Max());
 
-                        AllocateBlobData(m_bvhData, buffer.Data(), buffer.Size(), alignof(uint32));
+                     AllocateBlobData(m_bvhData, buffer.Data(), buffer.Size(), alignof(uint32));
 
-                        needsSaveBlobData = true;
+                     needsSaveBlobData = true;
 
-                        return;
-                    }
+                     return;
+                 }
 #endif
 
-                    HYP_FAIL("Blob data missing! Data corruption detected.");
-                })();
+                 HYP_FAIL("Blob data missing! Data corruption detected.");
+             })();
         }
         else
         {
@@ -305,7 +307,8 @@ void Mesh::UploadGpuData()
     // @TODO fix for non-uint32 indices
     Assert(GpuElemTypeSize(m_meshDesc.meshAttributes.indexBufferElemType) == 4);
 
-    Array<float> vertices = BuildVertexBuffer(m_meshDesc.meshAttributes.inputLayout);
+    Array<float, ThreadAllocator> vertices;
+    BuildVertexBuffer(m_meshDesc.meshAttributes.inputLayout, vertices);
 
     const Span<const ubyte> indexData = GetIndexData();
 
@@ -315,15 +318,15 @@ void Mesh::UploadGpuData()
         return;
     }
 
-    Array<uint32> indices;
-    indices.Resize(indexData.Size() / sizeof(uint32));
+    TByteBuffer<ThreadAllocator> indices;
+    indices.SetSize(indexData.Size());
     Memory::Copy(indices.Data(), indexData.Data(), indexData.Size());
 
     const size_t vertexSize = m_meshDesc.meshAttributes.inputLayout.VertexSize();
     const size_t vertexSizeInFloats = vertexSize / sizeof(float);
 
     AssertDebug(vertices.Size() == m_meshDesc.numVertices * vertexSizeInFloats);
-    AssertDebug(indices.Size() == m_meshDesc.numIndices);
+    AssertDebug(indices.Size() == m_meshDesc.numIndices * sizeof(uint32));
 
     // Done reading data into buffers for upload
     readScope.Reset();
@@ -339,17 +342,17 @@ void Mesh::UploadGpuData()
     }
 
     // Ensure indices exist and are a multiple of 3
-    if (indices.Empty())
+    if (m_meshDesc.numIndices == 0)
     {
-        indices.Resize(3);
+        indices.SetSize(3 * sizeof(uint32));
     }
-    else if (indices.Size() % 3 != 0)
+    else if (m_meshDesc.numIndices % 3 != 0)
     {
-        indices.Resize(indices.Size() + (3 - (indices.Size() % 3)));
+        indices.SetSize((m_meshDesc.numIndices + (3 - (m_meshDesc.numIndices % 3))) * sizeof(uint32));
     }
 
     const size_t packedVerticesSize = vertices.ByteSize();
-    const size_t packedIndicesSize = indices.ByteSize();
+    const size_t packedIndicesSize = indices.Size();
 
     GpuBufferRef vertexBuffer = RI.MakeGpuBuffer(GpuBufferType::VertexBuffer, packedVerticesSize);
     GpuBufferRef indexBuffer = RI.MakeGpuBuffer(GpuBufferType::IndexBuffer, packedIndicesSize);
@@ -371,7 +374,11 @@ void Mesh::UploadGpuData()
     stagingBuffer->Copy(packedVerticesSize, packedIndicesSize, indices.Data());
     stagingBuffer->Flush(0, bufferSizeCombined);
 
-    CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
+    Frame* currentFrame = nullptr;
+
+    CommandRecorder& cr = IsOnThread(g_renderThread) && (currentFrame = RI.GetCurrentFrame()) != nullptr
+        ? currentFrame->preRenderCommands
+        : RI.commandRecorderAllocator.GetCommandRecorder();
 
     cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
 
@@ -400,7 +407,10 @@ void Mesh::UploadGpuData()
 
     isUploaded.Store(true);
 
-    cr.Done();
+    if (!currentFrame || &cr != &currentFrame->preRenderCommands)
+    {
+        cr.Done();
+    }
 }
 
 void Mesh::ReleaseGpuData()
@@ -539,7 +549,10 @@ BoundingBox Mesh::CalculateAABB() const
     return aabb;
 }
 
-Array<float> Mesh::BuildVertexBuffer(const VertexInputLayoutDesc& inputLayout) const
+template <class AllocatorType>
+void Mesh::BuildVertexBuffer(
+    const VertexInputLayoutDesc& inputLayout,
+    Array<float, AllocatorType>& outData) const
 {
     const VertexArrayView vertices = GetVertexData();
     AssertDebug(uintptr_t(vertices.floatData) > 0x1000000);
@@ -554,8 +567,7 @@ Array<float> Mesh::BuildVertexBuffer(const VertexInputLayoutDesc& inputLayout) c
     const size_t dstVertexSize = inputLayout.VertexSize();
     const size_t dstVertexSizeInFloats = dstVertexSize / sizeof(float);
 
-    Array<float> dstBuffer;
-    dstBuffer.Resize(dstVertexSizeInFloats * vertices.vertexCount);
+    outData.Resize(dstVertexSizeInFloats * vertices.vertexCount);
 
     size_t currentOffset = 0;
 
@@ -564,7 +576,7 @@ Array<float> Mesh::BuildVertexBuffer(const VertexInputLayoutDesc& inputLayout) c
         const float* srcFloatBuffer = vertices.floatData + (i * srcVertexSizeInFloats);
         AssertDebug((uintptr_t(srcFloatBuffer + srcVertexSizeInFloats) - uintptr_t(vertices.floatData)) <= m_vertexData.size);
 
-        float* dstFloatBuffer = dstBuffer.Data() + (i * dstVertexSizeInFloats);
+        float* dstFloatBuffer = outData.Data() + (i * dstVertexSizeInFloats);
 
         if (combinedMask & VT_Position)
         {
@@ -638,9 +650,10 @@ Array<float> Mesh::BuildVertexBuffer(const VertexInputLayoutDesc& inputLayout) c
             dstFloatBuffer += sizeof(weights) / sizeof(float);
         }
     }
-
-    return dstBuffer;
 }
+
+template void Mesh::BuildVertexBuffer<ThreadAllocator>(const VertexInputLayoutDesc& inputLayout, Array<float, ThreadAllocator>& outData) const;
+template void Mesh::BuildVertexBuffer<DynamicAllocator>(const VertexInputLayoutDesc& inputLayout, Array<float, DynamicAllocator>& outData) const;
 
 #define ADD_NORMAL(ary, idx, normal)     \
     do                                   \
@@ -658,7 +671,7 @@ void Mesh::CalculateNormals(bool weighted)
 {
     VertexArrayView vertexData = GetVertexData();
     AssertDebug(((VT_Position | VT_Normal) & vertexData.layoutDesc.mask) == (VT_Position | VT_Normal),
-        "Vertex data must have VT_Position and VT_Normal at least in order to calculate normals");
+                "Vertex data must have VT_Position and VT_Normal at least in order to calculate normals");
 
     Span<ubyte> indexData = GetIndexData();
 

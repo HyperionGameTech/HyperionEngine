@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -38,7 +38,6 @@ struct Entry
 
 using MeshEntityIdToKeyMap = SparsePagedArray<uint64, 128, RenderAllocator>;
 
-
 class BLASCacheImpl
 {
 public:
@@ -51,7 +50,7 @@ public:
     {
         for (auto& pair : map)
         {
-            pair.second.blas->Release();
+            EnqueueDeletion(pair.second.blas);
         }
 
         map.Clear();
@@ -89,11 +88,9 @@ void BLASCache::GetOrCreateBLAS(
 
     AssertDebug(entity->InstanceClass() == Entity::StaticClass()); // needed since we use ToIndex() - if we ever want to change this, we need subclassImpls as used elsewhere.
 
-    const uint64 newKey = MakeBLASKey(Span<const ObjIdBase>({
-        entity->Id(),
-        mesh->Id(),
-        material ? material->Id() : ObjId<MaterialInstance>()
-    }));
+    const uint64 newKey = MakeBLASKey(Span<const ObjIdBase>({ entity->Id(),
+                                                              mesh->Id(),
+                                                              material ? material->Id() : ObjId<MaterialInstance>() }));
 
     outNewKey = newKey;
 
@@ -116,7 +113,7 @@ void BLASCache::GetOrCreateBLAS(
         auto it = m_impl->map.Find(oldKey);
         Assert(it != m_impl->map.End());
 
-        it->second.blas->Release();
+        EnqueueDeletion(it->second.blas);
 
         m_impl->map.Erase(it);
     }
@@ -145,19 +142,23 @@ void BLASCache::GetOrCreateBLAS(
         }
 
         // Material changed or BLAS is null, need to rebuild
-        entry.blas->Release();
+        EnqueueDeletion(entry.blas);
     }
 
-    GpuBlasRef blas = MeshBlasBuilder::Build(mesh, material);
+    it = m_impl->map.Emplace(newKey).first;
+    Assert(it->second.blas == nullptr);
+
+    GpuBlasRef gpuBlas = MeshBlasBuilder::Build(mesh, material);
+    CheckResult(gpuBlas->Create());
 
     // Build new BLAS
-    Entry entry {};
-    entry.blas = blas.Release();
+    Entry& entry = it->second;
+
+    entry = {};
+    entry.blas = gpuBlas.Release();
     entry.lastUsedFrame = GetFrameCounter();
 
     outBlas = entry.blas;
-
-    m_impl->map[newKey] = entry;
 }
 
 void BLASCache::RunCleanupCycle(int maxIter)
@@ -188,7 +189,7 @@ void BLASCache::RunCleanupCycle(int maxIter)
 
         if (frameCounter - entry.lastUsedFrame > 100)
         {
-            entry.blas->Release();
+            EnqueueDeletion(entry.blas);
 
             m_impl->map.Erase(key);
             m_impl->cleanupIterator = m_impl->meshEntityIdToKey.Erase(m_impl->cleanupIterator);

@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <HyperionPch.hpp>
 
@@ -156,7 +156,7 @@ HYP_EXPORT const FilePath& GetLibraryDirectory()
 #if HYP_EDITOR
     static DirectoryInitializer<HYP_STATIC_STRING("Packages"), /* RelativeToExecutablePath */ false> s_resourceDirectory;
     return s_resourceDirectory.path;
-#else // !HYP_EDITOR
+#else  // !HYP_EDITOR
     // shouldn't be used in non-editor builds, so just return executable path to avoid issues with appending paths
     HYP_LOG(Engine, Warning, "GetLibraryDirectory() called in non-editor build; returning executable path instead");
 
@@ -225,7 +225,7 @@ HYP_EXPORT const FilePath& GetTempDirectory()
     // not used in Android build.
     static const FilePath s_emptyPath;
     return s_emptyPath;
-#else // !HYP_ANDROID
+#else  // !HYP_ANDROID
     static DirectoryInitializer<HYP_STATIC_STRING("Temp"), /* RelativeToExecutablePath */ true> s_tempDirectory;
     return s_tempDirectory.path;
 #endif // HYP_ANDROID
@@ -352,7 +352,7 @@ extern "C"
 #if HYP_ANDROID
         // use asset manager for all assets
         const FilePath basePath = FilePath(AndroidAssetPathPrefix);
-#else // !HYP_ANDROID
+#else  // !HYP_ANDROID
         const FilePath basePath = FilePath(PlatformUtils::GetExecutableAbsolutePath().ToUtf8()).BasePath();
 #endif // HYP_ANDROID
 
@@ -430,7 +430,7 @@ extern "C"
         g_appContext = MakeHandle<SDLAppContext>("Hyperion", cliArgs);
 #elif HYP_ANDROID
         g_appContext = MakeHandle<AndroidAppContext>("Hyperion", cliArgs);
-#else // !HYP_WINDOWS && !HYP_MACOS && !HYP_SDL && !HYP_ANDROID
+#else  // !HYP_WINDOWS && !HYP_MACOS && !HYP_SDL && !HYP_ANDROID
         HYP_FAIL("AppContext not implemented for this platform");
 #endif // HYP_WINDOWS || HYP_MACOS || HYP_SDL || HYP_ANDROID
 
@@ -451,16 +451,43 @@ extern "C"
                 return 1;
             }
 
-            String cliString;
+            // Build cli string from raw args after --exec=<command> OR --exec <command>
+            const String commandletNameStr = cliArgs["exec"].ToString();
+            Array<String> commandletArgsRaw;
+            
+            enum class ExecState { None, FoundFlag, Collecting };
+
+            ExecState execState = ExecState::None;
 
             for (int i = 1; i < argc; i++)
             {
-                cliString += argv[i];
-                if (i != argc - 1)
+                String arg = String(argv[i]);
+
+                switch (execState)
                 {
-                    cliString += ' ';
+                case ExecState::None:
+                    if (arg.StartsWith("--exec="))
+                    {
+                        if (arg.Substr(7) == commandletNameStr)
+                        {
+                            execState = ExecState::Collecting;
+                        }
+                    }
+                    else if (arg == "--exec")
+                    {
+                        execState = ExecState::FoundFlag;
+                    }
+                    break;
+                case ExecState::FoundFlag:
+                    execState = ExecState::Collecting; // skip the commandlet name
+                    break;
+                case ExecState::Collecting:
+                    commandletArgsRaw.PushBack(std::move(arg));
+                    break;
                 }
             }
+
+            String cliString = commandletNameStr + ' ' + String::Join(commandletArgsRaw, " ");
 
             CommandLineArgumentDefinitions argumentDefinitions {};
 
@@ -508,15 +535,19 @@ extern "C"
 
         EnumFlags<WindowFlags> windowFlags = WindowFlags::EVENTS_POLLING;
 
-        if (cliArgs["Headless"].ToBool())   windowFlags |= WindowFlags::HEADLESS;
-        if (cliArgs["HighDPI"].ToBool())    windowFlags |= WindowFlags::HIGH_DPI;
+        if (cliArgs["Headless"].ToBool())
+            windowFlags |= WindowFlags::HEADLESS;
+        if (cliArgs["HighDPI"].ToBool())
+            windowFlags |= WindowFlags::HIGH_DPI;
 
         if (!(windowFlags & WindowFlags::HEADLESS))
         {
             Vec2i resolution = { 1280, 720 };
 
-            if (cliArgs["ResX"].IsNumber()) resolution.x = cliArgs["ResX"].ToInt32();
-            if (cliArgs["ResY"].IsNumber()) resolution.y = cliArgs["ResY"].ToInt32();
+            if (cliArgs["ResX"].IsNumber())
+                resolution.x = cliArgs["ResX"].ToInt32();
+            if (cliArgs["ResY"].IsNumber())
+                resolution.y = cliArgs["ResY"].ToInt32();
 
             HYP_LOG(Engine, Info, "Running in windowed mode: {}x{}", resolution.x, resolution.y);
 
@@ -524,16 +555,16 @@ extern "C"
 
             window->OnClose
                 .Bind(window, []()
-                {
-                    // shut down application on main window close.
-                    g_mainThreadInstance->GetScheduler().Enqueue([]()
-                        {
-                            Hyp_Shutdown();
+                      {
+                          // shut down application on main window close.
+                          g_mainThreadInstance->GetScheduler().Enqueue([]()
+                                                                       {
+                                                                           Hyp_Shutdown();
 
-                            std::exit(0);
-                        },
-                        TaskEnqueueFlags::FIRE_AND_FORGET);
-                })
+                                                                           std::exit(0);
+                                                                       },
+                                                                       TaskEnqueueFlags::FIRE_AND_FORGET);
+                      })
                 .Detach();
 
             Assert(window.IsValid());
@@ -957,9 +988,10 @@ extern "C"
                         else
                         {
                             g_simThreadInstance->GetScheduler().Enqueue([editorSubsystem, command]()
-                                {
-                                    command->Execute(editorSubsystem);
-                                }, TaskEnqueueFlags::FIRE_AND_FORGET);
+                                                                        {
+                                                                            command->Execute(editorSubsystem);
+                                                                        },
+                                                                        TaskEnqueueFlags::FIRE_AND_FORGET);
                         }
 
                         return 0;
@@ -1018,7 +1050,7 @@ extern "C"
 
     HYP_EXPORT void Hyp_GetAllCVarNames(void* callback, void* userData)
     {
-        using CallbackType = void(*)(const char*, void*);
+        using CallbackType = void (*)(const char*, void*);
         auto callbackFn = reinterpret_cast<CallbackType>(callback);
 
         const auto& cvars = CVarManager::GetInstance().cvars;
@@ -1035,7 +1067,7 @@ extern "C"
 
     HYP_EXPORT void Hyp_GetAllCommandletNames(void* callback, void* userData)
     {
-        using CallbackType = void(*)(const char*, void*);
+        using CallbackType = void (*)(const char*, void*);
         auto callbackFn = reinterpret_cast<CallbackType>(callback);
 
         const Class* commandletBaseClass = ClassRegistry::GetInstance().GetClass("CommandletBase"_sh);
@@ -1069,7 +1101,7 @@ extern "C"
 #if HYP_EDITOR
     HYP_EXPORT void Hyp_GetAllEditorCommandNames(void* callback, void* userData)
     {
-        using CallbackType = void(*)(const char*, void*);
+        using CallbackType = void (*)(const char*, void*);
         auto callbackFn = reinterpret_cast<CallbackType>(callback);
 
         const Class* editorCommandBaseClass = ClassRegistry::GetInstance().GetClass("EditorCommandBase"_sh);
@@ -1094,7 +1126,6 @@ extern "C"
         ClassRegistry::GetInstance().ForEachClass(Predicate);
     }
 #endif // HYP_EDITOR
-
 }
 
 } // namespace Hyperion

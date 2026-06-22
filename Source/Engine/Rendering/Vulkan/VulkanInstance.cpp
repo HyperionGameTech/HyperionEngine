@@ -311,6 +311,11 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
         break;
     }
 
+    if (ANSIStringView(callbackData->pMessageIdName).Contains("vkQueueSubmit"))
+    {
+        HYP_BREAKPOINT;
+    }
+
     return VK_FALSE;
 }
 

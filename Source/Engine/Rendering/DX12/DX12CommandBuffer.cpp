@@ -203,6 +203,11 @@ void DX12CommandBuffer::BindVertexBuffer(const DX12GpuBuffer* buffer)
     AssertDebug(buffer != nullptr);
     AssertDebug(buffer->GetBufferType() == GpuBufferType::VertexBuffer,
         "Not a vertex buffer! Got buffer type: {}", buffer->GetBufferType());
+    
+    AssertDebug(buffer->GetResourceState() == RS_VERTEX_BUFFER,
+                "Buffer {} is not in VERTEX_BUFFER resource state, current state == {}",
+                buffer->GetDebugName(),
+                EnumToString(buffer->GetResourceState()));
 
     D3D12_VERTEX_BUFFER_VIEW vbView {};
     vbView.BufferLocation = buffer->GetResource()->GetGPUVirtualAddress();
@@ -228,6 +233,11 @@ void DX12CommandBuffer::BindIndexBuffer(const DX12GpuBuffer* buffer, GpuElemType
     AssertDebug(buffer != nullptr);
     AssertDebug(buffer->GetBufferType() == GpuBufferType::IndexBuffer,
         "Not an index buffer! Got buffer type: {}", buffer->GetBufferType());
+
+    AssertDebug(buffer->GetResourceState() == RS_INDEX_BUFFER,
+                "Buffer {} is not in INDEX_BUFFER resource state, current state == {}",
+                buffer->GetDebugName(),
+                EnumToString(buffer->GetResourceState()));
 
     D3D12_INDEX_BUFFER_VIEW ibView {};
     ibView.BufferLocation = buffer->GetResource()->GetGPUVirtualAddress();

@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -21,6 +21,8 @@
 #include <Asset/AssetRegistry.hpp>
 
 #include <Core/Reflection/Handle.hpp>
+
+#include <Core/Memory/Allocator/ThreadAllocator.hpp>
 
 #include <Core/Resource/Resource.hpp>
 
@@ -129,7 +131,9 @@ GpuBlasRef MeshBlasBuilder::Build(Mesh* mesh, MaterialInstance* material)
     auto resGuard = mesh->GetReadScope();
 
     // Currently RT shaders are all expecting VT_Simple layout
-    Array<float> packedVertices = mesh->BuildVertexBuffer(StaticVertexInputLayout<VT_Simple>);
+    Array<float> packedVertices;
+    mesh->BuildVertexBuffer(StaticVertexInputLayout<VT_Simple>, packedVertices);
+
     Array<ubyte> packedIndices = mesh->GetIndexData();
 
     AssertDebug(packedVertices.Size() > 0 && packedIndices.Size() > 0);
@@ -141,7 +145,7 @@ GpuBlasRef MeshBlasBuilder::Build(Mesh* mesh, MaterialInstance* material)
 
     // some assertions to prevent gpu faults down the line
     const uint32* packedIndicesU32 = reinterpret_cast<const uint32*>(packedIndices.Data());
-    for (size_t i = 0; i <  mesh->GetMeshDesc().numIndices; i++)
+    for (size_t i = 0; i < mesh->GetMeshDesc().numIndices; i++)
     {
         Assert(packedIndicesU32[i] < mesh->GetMeshDesc().numVertices);
     }

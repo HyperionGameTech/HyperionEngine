@@ -106,7 +106,7 @@ public:
 
         reverseAttrMap.Erase(reverseAttrMapIt);
 
-        pPipelineRef->Reset();
+        EnqueueDeletion(std::move(*pPipelineRef));
     }
 
     void Remove(GraphicsPipelineRef* pPipelineRef, bool removeFromAttrMap = true)
@@ -151,7 +151,7 @@ public:
                 }
             }
 
-            pPipelineRef->Reset();
+            EnqueueDeletion(std::move(*pPipelineRef));
 
             return;
         }

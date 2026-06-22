@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <ScenePch.hpp>
 
@@ -75,7 +75,7 @@ struct TerrainHeightData
     uint32 GetHeightIndex(int x, int z) const
     {
         return uint32(((x + cellInfo.extent.x) % cellInfo.extent.x)
-            + ((z + cellInfo.extent.z) % cellInfo.extent.z) * cellInfo.extent.x);
+                      + ((z + cellInfo.extent.z) % cellInfo.extent.z) * cellInfo.extent.x);
     }
 };
 
@@ -217,8 +217,8 @@ void TerrainMeshBuilder::GenerateHeights(const NoiseCombinator& noiseCombinator)
         NoiseScale);
 
     FileByteWriter fileWriter { HYP_FORMAT("Temp/terrain_noise_{}_{}.bmp",
-        m_heightData.cellInfo.coord.x,
-        m_heightData.cellInfo.coord.y) };
+                                           m_heightData.cellInfo.coord.x,
+                                           m_heightData.cellInfo.coord.y) };
 
     if (!bm.Write(&fileWriter))
     {
@@ -248,6 +248,8 @@ Handle<Mesh> TerrainMeshBuilder::BuildMesh() const
     mesh->SetMeshData(meshDesc, vertexArrayView, indices.ToByteView());
 
     mesh->CalculateNormals();
+
+    mesh->UploadGpuData();
 
     return mesh;
 }

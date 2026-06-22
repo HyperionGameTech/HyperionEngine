@@ -1640,25 +1640,25 @@ bool ShaderCompiler::HandleBundle(
 
     if (shaderRequest.HasValue())
     {
-        auto requestedIt = inOutBundle->compiledShaders.FindIf([&](const Handle<Shader>& shader)
-                                                               {
-                                                                   return SatisfiesRequested(
-                                                                       shaderRequest->properties,
-                                                                       shaderRequest->inputLayout,
-                                                                       *shader,
-                                                                       /* matchAllProperties */ CanCompileShaders());
-                                                               });
+        auto requestedIt = inOutBundle->compiledShaders.FindIf(
+            [&](const Handle<Shader>& shader)
+            {
+                return SatisfiesRequested(
+                    shaderRequest->properties,
+                    shaderRequest->inputLayout,
+                    *shader,
+                    /* matchAllProperties */ CanCompileShaders());
+            });
 
         requestedFound = requestedIt != inOutBundle->compiledShaders.End();
 
         if (!requestedFound)
         {
-            String requestString = "requested shader with properties: " + shaderRequest->properties.GetDebugString();
-            requestString += " and vertex attributes: " + (shaderRequest->inputLayout.mask ? InputLayoutToString(shaderRequest->inputLayout) : "<none>");
-
             HYP_LOG(ShaderCompiler, Verbose,
-                    "Bundle {} does not contain a shader satisfying the {}",
-                    *decl.name, requestString);
+                    "Bundle {} does not contain a shader satisfying the requested shader with properties: {} and vertex attributes: {}",
+                    *decl.name,
+                    shaderRequest->properties.GetDebugString(),
+                    (shaderRequest->inputLayout.mask ? InputLayoutToString(shaderRequest->inputLayout) : "<none>"));
 
             HYP_LOG(ShaderCompiler, Verbose, "Other shaders in the bundle:\n===============================");
 

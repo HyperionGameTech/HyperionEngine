@@ -13,10 +13,13 @@
 #include <Scene/Scene.hpp>
 #include <Scene/EnvProbe.hpp>
 #include <Scene/EntityManager.hpp>
+
 #include <Scene/Components/TransformComponent.hpp>
 #include <Scene/Components/MeshComponent.hpp>
 #include <Scene/Components/VisibilityStateComponent.hpp>
 #include <Scene/Components/BoundingBoxComponent.hpp>
+
+#include <Scene/Camera/OrthoCamera.hpp>
 
 #include <Rendering/Pass.hpp>
 #include <Rendering/Frame.hpp>
@@ -153,6 +156,37 @@ void DynamicSkySystem::InitializeSky()
 
         // add MeshComponent to skybox entity
         m_skyboxEntity->AddComponent<MeshComponent>(MeshComponent { mesh, skyboxMaterialInstance });
+
+        // Sky Visibility view
+        m_topDownCamera = MakeHandle<Camera>();
+        m_topDownCamera->SetDimensions(Vec2i { 256, 256 });
+        m_topDownCamera->SetName(NAME("SkyVisbilityCamera"));
+        m_topDownCamera->AddCameraController(MakeHandle<OrthoCameraController>());
+        m_topDownCamera->SetDirection(Vec3f(0.0f, -1.0f, 0.0f));
+        m_visScene->GetRoot()->AddChild(m_topDownCamera);
+
+        ViewDesc topDownViewDesc {};
+
+        topDownViewDesc.camera = m_topDownCamera;
+        topDownViewDesc.flags = ViewFlags::COLLECT_STATIC_ENTITIES
+            | ViewFlags::NO_SHADOW_VIEWS
+            | ViewFlags::ALL_WORLD_SCENES
+            | ViewFlags::NO_FRUSTUM_CULLING; // TEMP
+
+        FramebufferDesc& framebufferDesc = topDownViewDesc.framebufferDesc;
+        framebufferDesc.extent = Vec2u { 256, 256 };
+
+        AttachmentDesc momentsAttachmentDesc {};
+        momentsAttachmentDesc.imageType = TextureType::Texture2D;
+        momentsAttachmentDesc.format = TextureFormat::RG16F;
+        framebufferDesc.attachments[framebufferDesc.numAttachments++] = momentsAttachmentDesc;
+
+        AttachmentDesc depthAttachmentDesc {};
+        depthAttachmentDesc.imageType = TextureType::Texture2D;
+        depthAttachmentDesc.format = TextureFormat::D16;
+        framebufferDesc.attachments[framebufferDesc.numAttachments++] = depthAttachmentDesc;
+
+        m_topDownView = MakeHandle<View>(topDownViewDesc);
     }
 }
 
@@ -167,6 +201,11 @@ void DynamicSkySystem::OnAddedToWorld(World* world)
 
     GetWorld()->AddScene(m_renderScene);
     GetWorld()->AddScene(m_visScene);
+
+    if (m_topDownView.IsValid())
+    {
+        GetWorld()->AddView(m_topDownView);
+    }
 
     for (uint32 viewIndex = 0; viewIndex < 6; viewIndex++)
     {
@@ -191,6 +230,11 @@ void DynamicSkySystem::OnRemovedFromWorld(World* world)
         {
             view->RemoveScene(m_renderScene);
         }
+    }
+
+    if (m_topDownView.IsValid())
+    {
+        GetWorld()->RemoveView(m_topDownView);
     }
 
     GetWorld()->RemoveScene(m_renderScene);

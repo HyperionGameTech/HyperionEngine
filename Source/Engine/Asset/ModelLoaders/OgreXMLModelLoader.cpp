@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <AssetPch.hpp>
 
@@ -31,7 +31,7 @@
 
 #include <Framework/EngineDriver.hpp>
 
-#include <Util/Xml/SAXParser.hpp>
+#include <Util/XML/SAXParser.hpp>
 
 #include <OgreXMLModelLoader.generated.inl>
 
@@ -150,7 +150,7 @@ public:
             }
 
             m_model.submeshes.PushBack({ name,
-                Array<uint32> {} });
+                                         Array<uint32> {} });
         }
         else if (name == "vertex")
         {
@@ -338,7 +338,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         vertexArrayView.layoutDesc = meshDesc.meshAttributes.inputLayout;
 
         mesh->SetMeshData(meshDesc, vertexArrayView, subMesh.indices.ToByteView());
-        //mesh->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
+        // mesh->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
 
         GetCurrentAssetRegistry()->PutAsset(mesh);
 

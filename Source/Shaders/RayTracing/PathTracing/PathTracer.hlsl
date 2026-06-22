@@ -45,8 +45,8 @@ DECLARE_SRV(PathTracer, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;
 DECLARE_SRV(PathTracer, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
 #define world_shader_data _worlds_buffer[0]
 
-DECLARE_SRV_DYNAMIC(PathTracer, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
-#define current_env_probe current_env_probe_buffer[0]
+DECLARE_SRV_DYNAMIC(PathTracer, CurrentEnvProbe) StructuredBuffer<EnvProbe> EnvProbesBuffer;
+#define currentEnvProbe EnvProbesBuffer[0]
 
 DECLARE_SRV(PathTracer, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
 
@@ -207,7 +207,7 @@ void RayGenMain()
 
             if (payload.distance < 0.0)
             {
-                const uint envProbeTextureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(envProbes[envProbeIdx]);
+                const uint envProbeTextureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(currentEnvProbe);
 
                 if (envProbeTextureIndex != INVALID_ENV_PROBE_TEXTURE)
                 {

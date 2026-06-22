@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <AssetPch.hpp>
 
@@ -37,7 +37,7 @@
 #include <UI/UIWindow.hpp>
 #include <UI/UIScriptDelegate.hpp>
 
-#include <Util/Xml/SAXParser.hpp>
+#include <Util/XML/SAXParser.hpp>
 
 #include <Core/JSON/JSON.hpp>
 
@@ -58,13 +58,13 @@ namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Assets);
 
-#define UI_OBJECT_CREATE_FUNCTION(name)                                                                                \
-    {                                                                                                                  \
-        String(HYP_STR(name)).ToUpper(),                                                                               \
-            [](UIObject* parent, Name name, Vec2i position, UIObjectSize size) -> Pair<Handle<UIObject>, const Class*> \
-        {                                                                                                              \
-            return { parent->CreateUIObject<UI##name>(name, position, size), UI##name::StaticClass() };                \
-        }                                                                                                              \
+#define UI_OBJECT_CREATE_FUNCTION(name)                                                                            \
+    {                                                                                                              \
+        String(HYP_STR(name)).ToUpper(),                                                                           \
+        [](UIObject* parent, Name name, Vec2i position, UIObjectSize size) -> Pair<Handle<UIObject>, const Class*> \
+        {                                                                                                          \
+            return { parent->CreateUIObject<UI##name>(name, position, size), UI##name::StaticClass() };            \
+        }                                                                                                          \
     }
 
 static const TFlatMap<String, std::add_pointer_t<Pair<Handle<UIObject>, const Class*>(UIObject*, Name, Vec2i, UIObjectSize)>> s_nodeCreateFunctions {
@@ -91,13 +91,13 @@ static const TFlatMap<String, std::add_pointer_t<Pair<Handle<UIObject>, const Cl
 
 #undef UI_OBJECT_CREATE_FUNCTION
 
-#define UI_OBJECT_GET_DELEGATE_FUNCTION(name)                                   \
-    {                                                                           \
-        String(HYP_STR(name)).ToUpper(),                                        \
-            [](UIObject* uiObject) -> ScriptableDelegate<UIEventHandlerResult>* \
-        {                                                                       \
-            return &uiObject->name;                                             \
-        }                                                                       \
+#define UI_OBJECT_GET_DELEGATE_FUNCTION(name)                               \
+    {                                                                       \
+        String(HYP_STR(name)).ToUpper(),                                    \
+        [](UIObject* uiObject) -> ScriptableDelegate<UIEventHandlerResult>* \
+        {                                                                   \
+            return &uiObject->name;                                         \
+        }                                                                   \
     }
 
 static const TFlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult>*(UIObject*)>> s_getDelegateFunctions {
@@ -108,13 +108,13 @@ static const TFlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandl
 
 #undef UI_OBJECT_GET_DELEGATE_FUNCTION
 
-#define UI_OBJECT_GET_DELEGATE_FUNCTION(name)                                              \
-    {                                                                                      \
-        String(HYP_STR(name)).ToUpper(),                                                   \
-            [](UIObject* uiObject) -> ScriptableDelegate<UIEventHandlerResult, UIObject*>* \
-        {                                                                                  \
-            return &uiObject->name;                                                        \
-        }                                                                                  \
+#define UI_OBJECT_GET_DELEGATE_FUNCTION(name)                                          \
+    {                                                                                  \
+        String(HYP_STR(name)).ToUpper(),                                               \
+        [](UIObject* uiObject) -> ScriptableDelegate<UIEventHandlerResult, UIObject*>* \
+        {                                                                              \
+            return &uiObject->name;                                                    \
+        }                                                                              \
     }
 
 static const TFlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult, UIObject*>*(UIObject*)>> s_getDelegateFunctionsChildren {
@@ -124,13 +124,13 @@ static const TFlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandl
 
 #undef UI_OBJECT_GET_DELEGATE_FUNCTION
 
-#define UI_OBJECT_GET_DELEGATE_FUNCTION(name)                                                      \
-    {                                                                                              \
-        String(HYP_STR(name)).ToUpper(),                                                           \
-            [](UIObject* uiObject) -> ScriptableDelegate<UIEventHandlerResult, const MouseEvent&>* \
-        {                                                                                          \
-            return &uiObject->name;                                                                \
-        }                                                                                          \
+#define UI_OBJECT_GET_DELEGATE_FUNCTION(name)                                                  \
+    {                                                                                          \
+        String(HYP_STR(name)).ToUpper(),                                                       \
+        [](UIObject* uiObject) -> ScriptableDelegate<UIEventHandlerResult, const MouseEvent&>* \
+        {                                                                                      \
+            return &uiObject->name;                                                            \
+        }                                                                                      \
     }
 
 static const TFlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult, const MouseEvent&>*(UIObject*)>> s_getDelegateFunctionsMouse {
@@ -149,13 +149,13 @@ static const TFlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandl
 
 #undef UI_OBJECT_GET_DELEGATE_FUNCTION
 
-#define UI_OBJECT_GET_DELEGATE_FUNCTION(name)                                                         \
-    {                                                                                                 \
-        String(HYP_STR(name)).ToUpper(),                                                              \
-            [](UIObject* uiObject) -> ScriptableDelegate<UIEventHandlerResult, const KeyboardEvent&>* \
-        {                                                                                             \
-            return &uiObject->name;                                                                   \
-        }                                                                                             \
+#define UI_OBJECT_GET_DELEGATE_FUNCTION(name)                                                     \
+    {                                                                                             \
+        String(HYP_STR(name)).ToUpper(),                                                          \
+        [](UIObject* uiObject) -> ScriptableDelegate<UIEventHandlerResult, const KeyboardEvent&>* \
+        {                                                                                         \
+            return &uiObject->name;                                                               \
+        }                                                                                         \
     }
 
 static const TFlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult, const KeyboardEvent&>*(UIObject*)>> s_getDelegateFunctionsKeyboard {
@@ -575,21 +575,21 @@ public:
                     ClassMemberList staticMemberList = cls->GetMembers(MemberType::StaticField);
 
                     auto staticMemberIt = FindIf(staticMemberList.Begin(), staticMemberList.End(), [&attributeNameUpper](const IMember& member)
-                        {
-                            const ClassAttributeValue& attr = member.GetAttribute(Attributes::g_attrScriptableDelegate);
+                                                 {
+                                                     const ClassAttributeValue& attr = member.GetAttribute(Attributes::g_attrScriptableDelegate);
 
-                            if (!attr.GetBool())
-                            {
-                                return false;
-                            }
+                                                     if (!attr.GetBool())
+                                                     {
+                                                         return false;
+                                                     }
 
-                            if (String(member.GetName().LookupString()).ToUpper() == attributeNameUpper)
-                            {
-                                return true;
-                            }
+                                                     if (String(member.GetName().LookupString()).ToUpper() == attributeNameUpper)
+                                                     {
+                                                         return true;
+                                                     }
 
-                            return false;
-                        });
+                                                     return false;
+                                                 });
 
                     if (staticMemberIt != staticMemberList.End())
                     {
@@ -604,21 +604,21 @@ public:
                         ClassMemberList memberList = cls->GetMembers(MemberType::Field);
 
                         auto memberIt = FindIf(memberList.Begin(), memberList.End(), [&attributeNameUpper](const IMember& member)
-                            {
-                                const ClassAttributeValue& attr = member.GetAttribute(Attributes::g_attrScriptableDelegate);
+                                               {
+                                                   const ClassAttributeValue& attr = member.GetAttribute(Attributes::g_attrScriptableDelegate);
 
-                                if (!attr.GetBool())
-                                {
-                                    return false;
-                                }
+                                                   if (!attr.GetBool())
+                                                   {
+                                                       return false;
+                                                   }
 
-                                if (String(member.GetName().LookupString()).ToUpper() == attributeNameUpper)
-                                {
-                                    return true;
-                                }
+                                                   if (String(member.GetName().LookupString()).ToUpper() == attributeNameUpper)
+                                                   {
+                                                       return true;
+                                                   }
 
-                                return false;
-                            });
+                                                   return false;
+                                               });
 
                         if (memberIt != memberList.End())
                         {
@@ -642,7 +642,7 @@ public:
                     if (!scriptComponent)
                     {
                         HYP_LOG(Assets, Error, "Failed to bind \"{}\" event - No script component found on UI object \"{}\"",
-                            attributeNameUpper, uiObject->GetName());
+                                attributeNameUpper, uiObject->GetName());
 
                         continue;
                     }
@@ -652,7 +652,7 @@ public:
                     if (!scriptComponent->scriptObjectResource)
                     {
                         HYP_LOG(Assets, Error, "Failed to bind \"{}\" event - No ScriptObjectResource found on ScriptComponent for UIObject \"{}\"",
-                            attributeNameUpper, uiObject->GetName());
+                                attributeNameUpper, uiObject->GetName());
 
                         continue;
                     }
@@ -699,7 +699,7 @@ public:
                         if (!BoxedFromJSON(jsonParseResult.value, member.GetTypeInfo(), boxed))
                         {
                             HYP_LOG(Assets, Error, "Failed to deserialize field \"{}\" of Class \"{}\" from JSON",
-                                member.GetName(), uiObject->GetName());
+                                    member.GetName(), uiObject->GetName());
 
                             return false;
                         }
@@ -707,7 +707,7 @@ public:
                     else
                     {
                         HYP_LOG(Assets, Error, "Failed to parse JSON for field \"{}\" of Class \"{}\": {}",
-                            member.GetName(), uiObject->GetName(), jsonParseResult.message);
+                                member.GetName(), uiObject->GetName(), jsonParseResult.message);
 
                         return false;
                     }
@@ -750,14 +750,14 @@ public:
                     ClassMemberList memberList = cls->GetMembers(MemberType::Property | MemberType::Field);
 
                     auto memberIt = FindIf(memberList.Begin(), memberList.End(), [&HandleFoundMember, &attributeNameLower](const auto& it)
-                        {
-                            if (const ClassAttributeValue& attr = it.GetAttribute("xmlattribute"_sh); attr.IsValid())
-                            {
-                                return String(attr.GetString()).ToLower() == attributeNameLower;
-                            }
+                                           {
+                                               if (const ClassAttributeValue& attr = it.GetAttribute("xmlattribute"_sh); attr.IsValid())
+                                               {
+                                                   return String(attr.GetString()).ToLower() == attributeNameLower;
+                                               }
 
-                            return false;
-                        });
+                                               return false;
+                                           });
 
                     if (memberIt != memberList.End())
                     {
@@ -775,19 +775,19 @@ public:
                     ClassMemberList memberList = cls->GetMembers(MemberType::Property);
 
                     auto memberIt = FindIf(memberList.Begin(), memberList.End(), [&HandleFoundMember, &attributeNameLower](const auto& it)
-                        {
-                            if (it.GetAttribute("xmlattribute"_sh).IsValid())
-                            {
-                                return false;
-                            }
+                                           {
+                                               if (it.GetAttribute("xmlattribute"_sh).IsValid())
+                                               {
+                                                   return false;
+                                               }
 
-                            if (String(it.GetName().LookupString()).ToLower() == attributeNameLower)
-                            {
-                                return true;
-                            }
+                                               if (String(it.GetName().LookupString()).ToLower() == attributeNameLower)
+                                               {
+                                                   return true;
+                                               }
 
-                            return false;
-                        });
+                                               return false;
+                                           });
 
                     if (memberIt != memberList.End())
                     {

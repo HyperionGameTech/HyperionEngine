@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -33,45 +33,45 @@ struct ShaderInputGroup;
 class Shader;
 
 static constexpr const char* DefaultEntryPointNames[NumShaderModuleTypes] = {
-    "",                     // ShaderModuleType::None
+    "", // ShaderModuleType::None
 
-    "VSMain",               // ShaderModuleType::Vertex
-    "PSMain",               // ShaderModuleType::Pixel
-    "GSMain",               // ShaderModuleType::Geometry
-    "CSMain",               // ShaderModuleType::Compute
+    "VSMain", // ShaderModuleType::Vertex
+    "PSMain", // ShaderModuleType::Pixel
+    "GSMain", // ShaderModuleType::Geometry
+    "CSMain", // ShaderModuleType::Compute
 
-    "TaskMain",             // ShaderModuleType::Task
-    "MeshMain",             // ShaderModuleType::Mesh
+    "TaskMain", // ShaderModuleType::Task
+    "MeshMain", // ShaderModuleType::Mesh
 
-    "TessControlMain",      // ShaderModuleType::TessControl
-    "TessEvalMain",         // ShaderModuleType::TessEval
+    "TessControlMain", // ShaderModuleType::TessControl
+    "TessEvalMain",    // ShaderModuleType::TessEval
 
-    "RayGenMain",           // ShaderModuleType::RayGen
-    "IntersectMain",        // ShaderModuleType::Intersect
-    "AnyHitMain",           // ShaderModuleType::AnyHit
-    "ClosestHitMain",       // ShaderModuleType::ClosestHit
-    "MissMain"              // ShaderModuleType::Miss
+    "RayGenMain",     // ShaderModuleType::RayGen
+    "IntersectMain",  // ShaderModuleType::Intersect
+    "AnyHitMain",     // ShaderModuleType::AnyHit
+    "ClosestHitMain", // ShaderModuleType::ClosestHit
+    "MissMain"        // ShaderModuleType::Miss
 };
 
 static constexpr const char* ShaderModuleTypeNames[NumShaderModuleTypes] = {
-    "",                     // ShaderModuleType::None
+    "", // ShaderModuleType::None
 
-    "VERTEX_SHADER",        // ShaderModuleType::Vertex
-    "PIXEL_SHADER",         // ShaderModuleType::Pixel
-    "GEOMETRY_SHADER",      // ShaderModuleType::Geometry
-    "COMPUTE_SHADER",       // ShaderModuleType::Compute
+    "VERTEX_SHADER",   // ShaderModuleType::Vertex
+    "PIXEL_SHADER",    // ShaderModuleType::Pixel
+    "GEOMETRY_SHADER", // ShaderModuleType::Geometry
+    "COMPUTE_SHADER",  // ShaderModuleType::Compute
 
-    "TASK_SHADER",          // ShaderModuleType::Task
-    "MESH_SHADER",          // ShaderModuleType::Mesh
+    "TASK_SHADER", // ShaderModuleType::Task
+    "MESH_SHADER", // ShaderModuleType::Mesh
 
-    "TESS_CONTROL_SHADER",  // ShaderModuleType::TessControl
-    "TESS_EVAL_SHADER",     // ShaderModuleType::TessEval
+    "TESS_CONTROL_SHADER", // ShaderModuleType::TessControl
+    "TESS_EVAL_SHADER",    // ShaderModuleType::TessEval
 
-    "RAY_GEN_SHADER",       // ShaderModuleType::RayGen
-    "INTERSECT_SHADER",     // ShaderModuleType::Intersect
-    "ANY_HIT_SHADER",       // ShaderModuleType::AnyHit
-    "CLOSEST_HIT_SHADER",   // ShaderModuleType::ClosestHit
-    "MISS_SHADER"           // ShaderModuleType::Miss
+    "RAY_GEN_SHADER",     // ShaderModuleType::RayGen
+    "INTERSECT_SHADER",   // ShaderModuleType::Intersect
+    "ANY_HIT_SHADER",     // ShaderModuleType::AnyHit
+    "CLOSEST_HIT_SHADER", // ShaderModuleType::ClosestHit
+    "MISS_SHADER"         // ShaderModuleType::Miss
 };
 
 HYP_ENUM()
@@ -84,12 +84,12 @@ enum class ShaderLanguage : uint32
 HYP_ENUM()
 enum class ShaderCompileTargetPlatform : uint32
 {
-    None        = 0x00000000,
-    Windows     = 0x00000001,   // Bit 0
-    Mac         = 0x00000002,   // Bit 1
-    Linux       = 0x00000004,   // Bit 2
-    Android     = 0x00000008,   // Bit 3
-    iOS         = 0x00000010,   // Bit 4
+    None = 0x00000000,
+    Windows = 0x00000001, // Bit 0
+    Mac = 0x00000002,     // Bit 1
+    Linux = 0x00000004,   // Bit 2
+    Android = 0x00000008, // Bit 3
+    iOS = 0x00000010,     // Bit 4
     AllPlatforms = Windows | Mac | Linux | Android | iOS
 };
 
@@ -98,9 +98,9 @@ HYP_MAKE_ENUM_FLAGS(ShaderCompileTargetPlatform);
 HYP_ENUM()
 enum class ShaderCompileTargetBackend : uint32
 {
-    None        = 0x00000000,
-    Vulkan      = 0x00000100,   // Bit 8
-    DX12        = 0x00000200,   // Bit 9
+    None = 0x00000000,
+    Vulkan = 0x00000100, // Bit 8
+    DX12 = 0x00000200,   // Bit 9
     AllBackends = Vulkan | DX12
 };
 
@@ -133,7 +133,10 @@ struct ShaderCompileParams
     {
     }
 
-    HYP_FORCE_INLINE bool HasShaderFilters() const { return shaderFilters.Any(); }
+    HYP_FORCE_INLINE bool HasShaderFilters() const
+    {
+        return shaderFilters.Any();
+    }
 
     bool ShaderMatchesFilter(const String& shaderName) const
     {
@@ -428,6 +431,7 @@ struct ShaderInput
         hc.Add(isDynamic);
         hc.Add(bufferType);
         hc.Add(structInfo);
+        hc.Add(category);
         hc.Add(index);
 
         // cond excluded intentionally
@@ -608,12 +612,9 @@ struct ShaderInputGroup
             shaderInput.size = size;
             shaderInput.count = count;
             shaderInput.isDynamic = isDynamic;
+            shaderInput.category = category;
 
-            if (category != ShaderResourceCategory::Unknown)
-            {
-                shaderInput.category = category;
-            }
-            else if (type == ShaderInputType::CBV || type == ShaderInputType::CBV_Dynamic)
+            if (type == ShaderInputType::CBV || type == ShaderInputType::CBV_Dynamic)
             {
                 shaderInput.category = ShaderResourceCategory::Buffer;
             }

@@ -111,11 +111,14 @@ static VkDescriptorSetLayout CreateVkDescriptorSetLayout(VulkanDevice* device, c
         | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
         | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
 
-    Array<VkDescriptorSetLayoutBinding> bindings;
+    Array<VkDescriptorSetLayoutBinding, VulkanTempAllocator> bindings;
     bindings.Reserve(layout.GetElements().Size());
 
-    Array<VkDescriptorBindingFlags> bindingFlags;
+    Array<VkDescriptorBindingFlags, VulkanTempAllocator> bindingFlags;
     bindingFlags.Reserve(layout.GetElements().Size());
+
+    bool isBindlessTextures = false;
+    bool isBindlessBuffers = false;
 
     for (const ShaderInputWithBinding& shaderInput : layout.GetElements())
     {
@@ -123,9 +126,18 @@ static VkDescriptorSetLayout CreateVkDescriptorSetLayout(VulkanDevice* device, c
 
         if (descriptorCount == ~0u)
         {
-            descriptorCount = shaderInput.category == ShaderResourceCategory::Buffer
-                ? MaxBindlessResources[BindlessStorage_Buffers]
-                : MaxBindlessResources[BindlessStorage_Textures];
+            if (shaderInput.category == ShaderResourceCategory::Buffer)
+            {
+                isBindlessBuffers = true;
+
+                descriptorCount = MaxBindlessResources[BindlessStorage_Buffers];
+            }
+            else
+            {
+                isBindlessTextures = true;
+
+                descriptorCount = MaxBindlessResources[BindlessStorage_Textures];
+            }
         }
 
         // if (descriptorCount > 1 && !m_device->GetFeatures().SupportsDynamicDescriptorIndexing()) {
@@ -280,7 +292,7 @@ private:
     RendererResult CreateDescriptorPool(VulkanDescriptorPoolRequirements reqs, VkDescriptorPool& outDescriptorPool);
 
     SharedMutex m_mutex;
-    TMap<HashCode, VkDescriptorSetLayout> m_vkDescriptorSetLayouts;
+    TFlatMap<uint64, VkDescriptorSetLayout, VulkanAllocator> m_vkDescriptorSetLayouts;
 
     struct VulkanDescriptorPool
     {
@@ -290,7 +302,7 @@ private:
         uint32 frameCounter = 0; // last used or created
     };
 
-    Array<VulkanDescriptorPool> m_pools;
+    Array<VulkanDescriptorPool, VulkanAllocator> m_pools;
 };
 
 VulkanDescriptorSetManager::VulkanDescriptorSetManager()
@@ -402,14 +414,14 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VulkanDescriptor
         return HYP_MAKE_ERROR(RendererError, "Cannot allocate new descriptor pool: maximum number of descriptor pools has been exceeded ({})", 0, MaxDescriptorPools);
     }
 
-    Array<VkDescriptorPoolSize> descriptorPoolSizes = {
+    Array<VkDescriptorPoolSize, VulkanTempAllocator> descriptorPoolSizes = {
         { VK_DESCRIPTOR_TYPE_SAMPLER, 16 },
         { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, (reqs & VDPR_BindlessTextures) ? MaxBindlessResources[BindlessStorage_Textures] : 1000 },
         { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
         { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, (reqs & VDPR_BindlessBuffers) ? MaxBindlessResources[BindlessStorage_Buffers] : 1000 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, (reqs & VDPR_BindlessBuffers) ? MaxBindlessResources[BindlessStorage_Buffers] : 1000 }
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 }
     };
 
     // only add acceleration structure descriptor type if rayTracing is supported,
@@ -438,7 +450,7 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VulkanDescriptor
         nullptr,
         &dp.pool));
 
-    HYP_LOG(RenderingBackend, Verbose, "Created new Vulkan descriptor pool {} ({})", (void*)dp.pool, m_pools.Size());
+    HYP_LOG(RenderingBackend, Verbose, "Created new Vulkan descriptor pool {}, reqs = {}", (void*)dp.pool, reqs);
 
     outDescriptorPool = dp.pool;
 
@@ -470,7 +482,7 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(
     variableCountInfo.descriptorSetCount = 1;
     variableCountInfo.pDescriptorCounts = &variableDescriptorCount;
 
-    bool shouldRetry = false;
+    bool shouldRetry = true;
 
     do
     {
@@ -497,8 +509,23 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(
         {
             if (vkResult == VK_ERROR_OUT_OF_POOL_MEMORY)
             {
+                if (poolIndex < 0)
+                {
+                    // Failed to allocate from newly allocated pool - fail instead of trying infinitely until we run out of pools.
+                    return HYP_MAKE_ERROR(RendererError, "Failed to allocate descriptor set!", int(vkResult));
+                }
+
                 // descend down the list of existing descriptor pools. we start trying to allocate from the last descriptor pool (see GetDescriptorPool())
                 --poolIndex;
+
+                // we need a pool that matches our requirements.
+                if (reqs)
+                {
+                    while (poolIndex >= 0 && (m_pools[poolIndex].reqs & reqs) != reqs)
+                    {
+                        --poolIndex;
+                    }
+                }
 
                 // create a new descriptor pool if we're out of existing pools to try with
                 if (poolIndex >= 0)
@@ -567,13 +594,13 @@ RendererResult VulkanDescriptorSetManager::DestroyDescriptorSet(VulkanDevice* de
 
 VkDescriptorSetLayout VulkanDescriptorSetManager::GetOrCreateVkDescriptorSetLayout(VulkanDevice* device, const DescriptorSetLayout& layout)
 {
-    const HashCode hashCode = layout.GetHashCode();
+    const uint64 layoutHash = layout.GetHashCode().Value();
 
     VkDescriptorSetLayout handle = VK_NULL_HANDLE;
 
     TSharedLock lock(m_mutex);
 
-    auto it = m_vkDescriptorSetLayouts.Find(hashCode);
+    auto it = m_vkDescriptorSetLayouts.Find(layoutHash);
 
     if (it != m_vkDescriptorSetLayouts.End())
     {
@@ -593,14 +620,14 @@ VkDescriptorSetLayout VulkanDescriptorSetManager::GetOrCreateVkDescriptorSetLayo
     TUniqueLock lock2(m_mutex);
 
     // make sure it hasnt changed
-    auto insertResult = m_vkDescriptorSetLayouts.Set(hashCode, handle);
+    auto insertResult = m_vkDescriptorSetLayouts.Insert(layoutHash, handle);
 
     if (!insertResult.second)
     {
         DestroyVkDescriptorSetLayout(device, handle);
 
-        handle = m_vkDescriptorSetLayouts.At(hashCode);
-        Assert(handle != nullptr);
+        handle = insertResult.first->second;
+        AssertDebug(handle != VK_NULL_HANDLE);
     }
 
     return handle;
@@ -1138,7 +1165,6 @@ void VulkanRenderInterface::SubmitTransientCommandBuffer(VulkanCommandBuffer& co
         CheckResult(signalSemaphore.Create());
 
         VulkanFence& fence = m_transientCommandBufferFences[frameIndex].EmplaceBack();
-        pFence = &fence;
 
         if (m_recycledTransientCommandBufferFences.Any())
         {
@@ -1159,7 +1185,7 @@ void VulkanRenderInterface::SubmitTransientCommandBuffer(VulkanCommandBuffer& co
 
         commandBuffer.Submit(
             graphicsQueue,
-            pFence,
+            &fence,
             waitSemaphoreSpan,
             Span<VulkanSemaphore*> { &pSignalSemaphore, 1 });
     }

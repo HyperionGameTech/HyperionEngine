@@ -192,6 +192,10 @@ RendererResult DX12GpuBuffer::Create()
         return HYP_MAKE_ERROR(RendererError, "Failed to create D3D12MA buffer", hr);
     }
 
+    m_resourceState = finalState == D3D12_RESOURCE_STATE_GENERIC_READ
+        ? RS_READ_GENERIC
+        : RS_COMMON;
+
 #if HYP_DEBUG_MODE
     if (m_debugName && m_resource)
     {

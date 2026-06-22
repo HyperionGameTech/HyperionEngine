@@ -328,9 +328,14 @@ private:
             return;
         }
 
+        m_threadPool->Stop();
+
         m_notifier.Signal();
 
-        m_threadPool->Stop();
+        for (const UniquePtr<ThreadBase>& thread : m_threadPool->GetThreads())
+        {
+            thread->GetScheduler().WakeUpOwnerThread();
+        }
 
         // Wait for it to finish
         while (m_threadPool->IsRunning())

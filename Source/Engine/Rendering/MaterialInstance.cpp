@@ -296,7 +296,8 @@ void MaterialInstance::UpdateRenderProxy(RenderProxyMaterial* proxy)
     Memory::Fill(textureIndicesU32, 0, sizeof(bufferData.textureIndices));
 
     const uint32 numTextureSlots = MathUtil::Min(
-        MaterialTextures::MaxTextures, useBindlessTextures ? MaxBindlessResources[BindlessStorage_Textures] : MaxBoundTextures);
+        MaterialTextures::MaxTextures,
+        useBindlessTextures ? MaxBindlessResources[BindlessStorage_Textures] : MaxBoundTextures);
 
     uint32 remainingTextureSlots = numTextureSlots;
 

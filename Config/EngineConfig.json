@@ -10,7 +10,7 @@
     "TAA": true,
     "PathTracing": false,
     "RayTracedReflections": false,
-    "RayTracedGI": false,
+    "RayTracedGI": true,
     "RayTracingEnabled": true,
     "IndirectRendering": true,
     "DepthPrepass": true,
@@ -36,7 +36,7 @@
     },
     "VSync": true,
     "Vulkan": {
-      "DebugLayers": false,
+      "DebugLayers": true,
       "TimelineSemaphores": true
     }
   },

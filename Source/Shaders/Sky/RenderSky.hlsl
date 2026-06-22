@@ -230,6 +230,7 @@ PSOutput PSMain(PSInput input)
 #endif
 
     sky_color.rgb = 1.0 - exp(-1.0 * sky_color.rgb);
+    sky_color.a = 1.0;
 
     output.output_color = sky_color;
 

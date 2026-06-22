@@ -65,6 +65,8 @@ struct StagingBufferPoolImpl
 
     void OnFrameEnd()
     {
+        TUniqueLock lock(mutex);
+
         const uint32 frameCounter = GetFrameCounter();
 
         if (HYP_UNLIKELY(frameCounter < NumFramesInFlight))
@@ -80,6 +82,8 @@ struct StagingBufferPoolImpl
 
     void Cleanup()
     {
+        TUniqueLock lock(mutex);
+
         const uint32 currFrame = GetFrameCounter();
 
         for (auto it = cachedBuffers.Begin(); it != cachedBuffers.End();)

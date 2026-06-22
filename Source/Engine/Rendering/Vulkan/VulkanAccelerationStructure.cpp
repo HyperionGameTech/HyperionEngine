@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <VulkanPch.hpp>
 
@@ -135,8 +135,7 @@ RendererResult VulkanAccelerationGeometry::Create()
             .maxVertex = uint32(m_packedVerticesBuffer->Size() / sizeof(PackedVertex)) - 1,
             .indexType = VK_INDEX_TYPE_UINT32,
             .indexData = indicesAddress,
-            .transformData = { {} }
-        }
+            .transformData = { {} } }
     };
 
     m_isCreated = true;
@@ -165,12 +164,12 @@ VulkanAccelerationStructureBase::~VulkanAccelerationStructureBase()
     if (m_accelerationStructure != VK_NULL_HANDLE)
     {
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([accelerationStructure = m_accelerationStructure]()
-            {
-                RI.dynamicFunctions.vkDestroyAccelerationStructureKHR(
-                    RI.GetDevice()->GetDevice(),
-                    accelerationStructure,
-                    VK_NULL_HANDLE);
-            }));
+                                                      {
+                                                          RI.dynamicFunctions.vkDestroyAccelerationStructureKHR(
+                                                              RI.GetDevice()->GetDevice(),
+                                                              accelerationStructure,
+                                                              VK_NULL_HANDLE);
+                                                      }));
 
         m_accelerationStructure = VK_NULL_HANDLE;
     }
@@ -202,12 +201,30 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
         return HYP_MAKE_ERROR(RendererError, "Geometries empty");
     }
 
+    VkAccelerationStructureGeometryKHR* pGeometries = (VkAccelerationStructureGeometryKHR*)g_vulkanPool->Allocate(sizeof(VkAccelerationStructureGeometryKHR) * geometries.Size(), alignof(VkAccelerationStructureGeometryKHR));
+    Memory::Copy(pGeometries, geometries.Data(), geometries.Size() * sizeof(VkAccelerationStructureGeometryKHR));
+    
+    uint32* pPrimitiveCounts = (uint32*)g_vulkanPool->Allocate(sizeof(uint32) * primitiveCounts.Size(), alignof(uint32));
+    Memory::Copy(pPrimitiveCounts, primitiveCounts.Data(), primitiveCounts.Size() * sizeof(uint32));
+
+    HYP_DEFER({
+        if (pPrimitiveCounts)
+        {
+            g_vulkanPool->Free(pPrimitiveCounts);
+        }
+
+        if (pGeometries)
+        {
+            g_vulkanPool->Free(pGeometries);
+        }
+    });
+
     VkAccelerationStructureBuildGeometryInfoKHR geometryInfo { VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR };
     geometryInfo.type = ToVkAccelerationStructureType(type);
     geometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
     geometryInfo.mode = update ? VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR : VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
     geometryInfo.geometryCount = uint32(geometries.Size());
-    geometryInfo.pGeometries = geometries.Data();
+    geometryInfo.pGeometries = pGeometries;
 
     Assert(primitiveCounts.Size() == geometries.Size());
 
@@ -216,7 +233,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
         RI.GetDevice()->GetDevice(),
         VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
         &geometryInfo,
-        primitiveCounts.Data(),
+        pPrimitiveCounts,
         &buildSizesInfo);
 
     const size_t scratchBufferAlignment = RI.GetDevice()->GetFeatures().GetAccelerationStructureProperties().minAccelerationStructureScratchOffsetAlignment;
@@ -250,14 +267,14 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
         if (wasRebuilt)
         {
             // delete the current acceleration structure once the frame is done, rather than stalling the gpu here
-            RI.GetCurrentFrame()->OnFrameEnd
-                .Bind([oldAccelerationStructure = m_accelerationStructure](...)
-                {
-                    RI.dynamicFunctions.vkDestroyAccelerationStructureKHR(
-                        RI.GetDevice()->GetDevice(),
-                        oldAccelerationStructure,
-                        nullptr);
-                })
+            RI.GetCurrentFrame()->OnFrameEnd.Bind(
+                                                [oldAccelerationStructure = m_accelerationStructure](...)
+                                                {
+                                                    RI.dynamicFunctions.vkDestroyAccelerationStructureKHR(
+                                                        RI.GetDevice()->GetDevice(),
+                                                        oldAccelerationStructure,
+                                                        nullptr);
+                                                })
                 .Detach();
 
             m_accelerationStructure = VK_NULL_HANDLE;
@@ -271,7 +288,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
                 RI.GetDevice()->GetDevice(),
                 VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
                 &geometryInfo,
-                primitiveCounts.Data(),
+                pPrimitiveCounts,
                 &buildSizesInfo);
 
             accelerationStructureSize = MathUtil::NextMultiple(buildSizesInfo.accelerationStructureSize, 256ull);
@@ -333,52 +350,88 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
     Array<VkAccelerationStructureBuildRangeInfoKHR, VulkanAllocator> rangeInfos;
     rangeInfos.Resize(geometries.Size());
 
-    Array<VkAccelerationStructureBuildRangeInfoKHR*, VulkanAllocator> rangeInfoPtrs;
-    rangeInfoPtrs.Resize(geometries.Size());
-
     for (size_t i = 0; i < geometries.Size(); i++)
     {
         rangeInfos[i] = VkAccelerationStructureBuildRangeInfoKHR {
-            .primitiveCount = primitiveCounts[i],
+            .primitiveCount = pPrimitiveCounts[i],
             .primitiveOffset = 0,
             .firstVertex = 0,
             .transformOffset = 0
         };
-
-        rangeInfoPtrs[i] = &rangeInfos[i];
     }
+    
+    CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
+    HYP_DEFER({ cr.Done(); });
 
-    VulkanCommandBufferRef commandBuffer = MakeHandle<VulkanCommandBuffer>();
-    commandBuffer->Create(RI.GetDevice()->GetGraphicsQueue()->commandPools[0]);
+    struct BuildAccelerationStructurePayload
+    {
+        VkAccelerationStructureBuildGeometryInfoKHR geometryInfo;
 
-    commandBuffer->Begin();
+        Array<VkAccelerationStructureBuildRangeInfoKHR, VulkanAllocator> rangeInfos;
 
-    RI.dynamicFunctions.vkCmdBuildAccelerationStructuresKHR(
-        commandBuffer->GetVulkanHandle(),
-        uint32(rangeInfoPtrs.Size()),
-        &geometryInfo,
-        rangeInfoPtrs.Data());
+        VkAccelerationStructureGeometryKHR* pGeometries;
+        uint32* pPrimitiveCounts;
+    };
 
-    VkMemoryBarrier memoryBarrier { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
-    memoryBarrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
-    memoryBarrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR;
+    class BuildAccelerationStructureCmd : public CmdBase
+    {
+    public:
+        BuildAccelerationStructurePayload* payload;
 
-    vkCmdPipelineBarrier(
-        commandBuffer->GetVulkanHandle(),
-        VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
-        VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
-        0,
-        1, &memoryBarrier,
-        0, nullptr,
-        0, nullptr);
+        BuildAccelerationStructureCmd(BuildAccelerationStructurePayload* payload)
+            : payload(payload)
+        {
+        }
 
-    commandBuffer->End();
+        static void InvokeStatic(CmdBase* cmd, VulkanCommandBuffer* commandBuffer)
+        {
+            BuildAccelerationStructureCmd* cmdCasted = static_cast<BuildAccelerationStructureCmd*>(cmd);
+            
+            Array<VkAccelerationStructureBuildRangeInfoKHR*, VulkanTempAllocator> rangeInfoPtrs;
+            rangeInfoPtrs.Resize(cmdCasted->payload->rangeInfos.Size());
 
-    // HYP_LOG_TEMP("Submitting acceleration structure build command buffer for frame {}, thread: {}", GetFrameCounter() % NumFramesInFlight, CurrentThreadId().GetName());
+            for (size_t i = 0; i < cmdCasted->payload->rangeInfos.Size(); i++)
+            {
+                rangeInfoPtrs[i] = &cmdCasted->payload->rangeInfos[i];
+            }
 
-    CheckResultOrReturn(commandBuffer->Submit(RI.GetDevice()->GetGraphicsQueue(), nullptr, nullptr, nullptr));
+            RI.dynamicFunctions.vkCmdBuildAccelerationStructuresKHR(
+                commandBuffer->GetVulkanHandle(),
+                uint32(rangeInfoPtrs.Size()),
+                &cmdCasted->payload->geometryInfo,
+                rangeInfoPtrs.Data());
 
-    EnqueueDeletion(std::move(commandBuffer));
+            VkMemoryBarrier memoryBarrier { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
+            memoryBarrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
+            memoryBarrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR;
+
+            vkCmdPipelineBarrier(
+                commandBuffer->GetVulkanHandle(),
+                VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+                VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
+                0,
+                1, &memoryBarrier,
+                0, nullptr,
+                0, nullptr);
+
+            g_vulkanPool->Free(cmdCasted->payload->pGeometries);
+            g_vulkanPool->Free(cmdCasted->payload->pPrimitiveCounts);
+
+            PoolDelete(*g_vulkanPool, cmdCasted->payload);
+        }
+    };
+
+    BuildAccelerationStructurePayload* payload = HYP_POOL_NEW(g_vulkanPool, BuildAccelerationStructurePayload);
+    payload->geometryInfo = geometryInfo;
+    payload->rangeInfos = std::move(rangeInfos);
+    payload->pGeometries = pGeometries;
+    payload->pPrimitiveCounts = pPrimitiveCounts;
+
+    // Set to nullptr so we don't free the memory (ownership handed off to the command)
+    pGeometries = nullptr;
+    pPrimitiveCounts = nullptr;
+
+    cr << BuildAccelerationStructureCmd(payload);
 
     ClearFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING);
 
@@ -489,26 +542,23 @@ bool VulkanGpuTlas::IsCreated() const
     return m_accelerationStructure != VK_NULL_HANDLE;
 }
 
-Array<VkAccelerationStructureGeometryKHR, VulkanAllocator> VulkanGpuTlas::GetGeometries() const
+Array<VkAccelerationStructureGeometryKHR, VulkanTempAllocator> VulkanGpuTlas::GetGeometries() const
 {
     Assert(m_instancesBuffer != nullptr && m_instancesBuffer->IsCreated());
 
     return {
         { .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR,
-            .geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR,
-            .geometry = {
-                .instances = {
-                    .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR,
-                    .arrayOfPointers = VK_FALSE,
-                    .data = { .deviceAddress = m_instancesBuffer->GetBufferDeviceAddress() }
-                }
-            },
-            .flags = VK_GEOMETRY_OPAQUE_BIT_KHR
-        }
+          .geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR,
+          .geometry = {
+              .instances = {
+                  .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR,
+                  .arrayOfPointers = VK_FALSE,
+                  .data = { .deviceAddress = m_instancesBuffer->GetBufferDeviceAddress() } } },
+          .flags = VK_GEOMETRY_OPAQUE_BIT_KHR }
     };
 }
 
-Array<uint32, VulkanAllocator> VulkanGpuTlas::GetPrimitiveCounts() const
+Array<uint32, VulkanTempAllocator> VulkanGpuTlas::GetPrimitiveCounts() const
 {
     return { uint32(m_blases.Size()) };
 }
@@ -538,8 +588,8 @@ RendererResult VulkanGpuTlas::Create()
 
     RTUpdateStateFlags updateStateFlags = RT_UPDATE_STATE_FLAGS_NONE;
 
-    Array<VkAccelerationStructureGeometryKHR, VulkanAllocator> geometries = GetGeometries();
-    Array<uint32, VulkanAllocator> primitiveCounts = GetPrimitiveCounts();
+    Array<VkAccelerationStructureGeometryKHR, VulkanTempAllocator> geometries = GetGeometries();
+    Array<uint32, VulkanTempAllocator> primitiveCounts = GetPrimitiveCounts();
 
     CheckResultOrReturn(CreateAccelerationStructure(GetType(), geometries, primitiveCounts, false, updateStateFlags));
 
@@ -855,8 +905,8 @@ RendererResult VulkanGpuTlas::UpdateStructure(RTUpdateStateFlags& outUpdateState
         CheckResultOrReturn(BuildInstancesBuffer(dirtyRange.GetStart(), dirtyRange.GetEnd()));
         CheckResultOrReturn(BuildMeshDescriptionsBuffer(dirtyRange.GetStart(), dirtyRange.GetEnd()));
 
-        Array<VkAccelerationStructureGeometryKHR, VulkanAllocator> geometries = GetGeometries();
-        Array<uint32, VulkanAllocator> primitiveCounts = GetPrimitiveCounts();
+        Array<VkAccelerationStructureGeometryKHR, VulkanTempAllocator> geometries = GetGeometries();
+        Array<uint32, VulkanTempAllocator> primitiveCounts = GetPrimitiveCounts();
 
         CheckResultOrReturn(CreateAccelerationStructure(GetType(), geometries, primitiveCounts, true, outUpdateStateFlags));
 
@@ -888,8 +938,8 @@ RendererResult VulkanGpuTlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
     CheckResultOrReturn(BuildInstancesBuffer());
     outUpdateStateFlags |= RT_UPDATE_STATE_FLAGS_UPDATE_INSTANCES;
 
-    Array<VkAccelerationStructureGeometryKHR, VulkanAllocator> geometries = GetGeometries();
-    Array<uint32, VulkanAllocator> primitiveCounts = GetPrimitiveCounts();
+    Array<VkAccelerationStructureGeometryKHR, VulkanTempAllocator> geometries = GetGeometries();
+    Array<uint32, VulkanTempAllocator> primitiveCounts = GetPrimitiveCounts();
 
     CheckResultOrReturn(CreateAccelerationStructure(
         GetType(),
@@ -949,8 +999,8 @@ RendererResult VulkanGpuBlas::Create()
 
     RendererResult result;
 
-    Array<VkAccelerationStructureGeometryKHR, VulkanAllocator> geometries(m_geometries.Size());
-    Array<uint32, VulkanAllocator> primitiveCounts(m_geometries.Size());
+    Array<VkAccelerationStructureGeometryKHR, VulkanTempAllocator> geometries(m_geometries.Size());
+    Array<uint32, VulkanTempAllocator> primitiveCounts(m_geometries.Size());
 
     if (m_geometries.Empty())
     {

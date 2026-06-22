@@ -42,6 +42,12 @@ namespace Hyperion.Editor
 
         private static bool _editorViewportsEnabled = false;
 
+        private static ReadOnlySpan<string> CoreAssemblyNames => new[] {
+            "Hyperion.NET.Shared.dll",
+            "Hyperion.NET.Runtime.dll",
+            // Loading our own dll is necessary to load HyperionEditorGame into class registry.
+            "Hyperion.Editor.dll"
+        };
         public static void Initialize()
         {
             if (IsInitialized)
@@ -265,15 +271,7 @@ namespace Hyperion.Editor
 
             try
             {
-                string[] coreAssemblyNames = [
-                    "Hyperion.NET.Shared.dll",
-                    "Hyperion.NET.Runtime.dll",
-
-                    // Loading our own dll is necessary to load HyperionEditorGame into class registry.
-                    "Hyperion.Editor.dll"
-                ];
-
-                foreach (string assemblyName in coreAssemblyNames)
+                foreach (string assemblyName in CoreAssemblyNames)
                 {
                     string assemblyPath = Path.Combine(AppContext.BaseDirectory, assemblyName);
                     assemblyPathPtr = Marshal.StringToHGlobalAnsi(assemblyPath);

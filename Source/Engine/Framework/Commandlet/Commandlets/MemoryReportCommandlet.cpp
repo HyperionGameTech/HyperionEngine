@@ -105,13 +105,23 @@ protected:
         uint32 csharpCompanionCount = 0;
     };
 
-    template <class... Args>
-    static void LogLine(const char* fmt, Args&&... args)
+    // Ignore the warning, this is fine as we are using string literal
+    // by virtue of HYP_STATIC_STRING.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-security"
+
+    template <auto Fmt, class... Args>
+    static HYP_FORCE_INLINE void LogLineEx(Args&&... args)
     {
         char buf[512];
-        std::snprintf(buf, sizeof(buf), fmt, std::forward<Args>(args)...);
+        std::snprintf(buf, sizeof(buf), Fmt.Data(), std::forward<Args>(args)...);
+
         HYP_LOG(Engine, Info, "{}", ANSIString(buf));
     }
+
+#pragma clang diagnostic pop
+
+#define LOG_LINE(fmt, ...) LogLineEx<HYP_STATIC_STRING(fmt)>(__VA_ARGS__)
 
     static Array<PoolInfo> GetAllPools(const CommandLineArguments& args)
     {
@@ -123,24 +133,29 @@ protected:
 
         Array<PoolInfo> pools;
 
-        auto try_add = [&](const ANSIString& name, Pool* pool, size_t blockSize)
+        auto tryAddPool = [&](const ANSIString& name, Pool* pool, size_t blockSize)
         {
             if (!pool)
+            {
                 return;
+            }
+
             if (poolFilter == "all" || poolFilter == name)
+            {
                 pools.PushBack({ name, pool, blockSize });
+            }
         };
 
-        try_add("objectPool", g_objectPool, size_t(ObjectPoolBlockSize));
-        try_add("scenePool", g_scenePool, size_t(ScenePoolBlockSize));
-        try_add("assetPool", g_assetPool, size_t(AssetPoolBlockSize));
-        try_add("streamingPool", g_streamingPool, size_t(StreamingPoolBlockSize));
-        try_add("renderPool", g_renderPool, size_t(RenderPoolBlockSize));
+        tryAddPool("objectPool", g_objectPool, size_t(ObjectPoolBlockSize));
+        tryAddPool("scenePool", g_scenePool, size_t(ScenePoolBlockSize));
+        tryAddPool("assetPool", g_assetPool, size_t(AssetPoolBlockSize));
+        tryAddPool("streamingPool", g_streamingPool, size_t(StreamingPoolBlockSize));
+        tryAddPool("renderPool", g_renderPool, size_t(RenderPoolBlockSize));
 
 #if HYP_VULKAN
-        try_add("vulkanPool", g_vulkanPool, size_t(RHIPoolBlockSize));
+        tryAddPool("vulkanPool", g_vulkanPool, size_t(RHIPoolBlockSize));
 #elif HYP_DX12
-        try_add("dx12Pool", g_dx12Pool, size_t(RHIPoolBlockSize));
+        tryAddPool("dx12Pool", g_dx12Pool, size_t(RHIPoolBlockSize));
 #endif
 
         return pools;
@@ -156,10 +171,10 @@ protected:
             return;
         }
 
-        LogLine("");
-        LogLine("======= Memory Pools =======");
-        LogLine("%-18s %-10s %-14s %-14s %-14s %-14s %-6s %-5s",
-            "Pool", "Block", "Committed", "Used", "Free", "Peak", "Util", "Frag");
+        LOG_LINE("");
+        LOG_LINE("======= Memory Pools =======");
+        LOG_LINE("%-18s %-10s %-14s %-14s %-14s %-14s %-6s %-5s",
+                 "Pool", "Block", "Committed", "Used", "Free", "Peak", "Util", "Frag");
 
         MemoryMetrics totalMetrics;
 
@@ -172,26 +187,26 @@ protected:
             float utilPct = metrics.GetUtilization() * 100.0f;
             float fragPct = metrics.GetFragmentation() * 100.0f;
 
-            LogLine("%-18s %-10s %-14s %-14s %-14s %-14s %5.1f%% %5.1f%%",
-                pi.name.Data(),
-                FormatBytes(pi.blockSize).Data(),
-                FormatBytes(metrics[MemoryMetrics::MM_BYTES_COMMITTED]).Data(),
-                FormatBytes(metrics[MemoryMetrics::MM_BYTES_USED]).Data(),
-                FormatBytes(metrics[MemoryMetrics::MM_BYTES_FREE]).Data(),
-                FormatBytes(metrics[MemoryMetrics::MM_BYTES_PEAK]).Data(),
-                utilPct, fragPct);
+            LOG_LINE("%-18s %-10s %-14s %-14s %-14s %-14s %5.1f%% %5.1f%%",
+                     pi.name.Data(),
+                     FormatBytes(pi.blockSize).Data(),
+                     FormatBytes(metrics[MemoryMetrics::MM_BYTES_COMMITTED]).Data(),
+                     FormatBytes(metrics[MemoryMetrics::MM_BYTES_USED]).Data(),
+                     FormatBytes(metrics[MemoryMetrics::MM_BYTES_FREE]).Data(),
+                     FormatBytes(metrics[MemoryMetrics::MM_BYTES_PEAK]).Data(),
+                     utilPct, fragPct);
         }
 
         float totalUtil = totalMetrics.GetUtilization() * 100.0f;
         float totalFrag = totalMetrics.GetFragmentation() * 100.0f;
 
-        LogLine("%-30s %-14s %-14s %-14s %-14s %5.1f%% %5.1f%%",
-            "Total",
-            FormatBytes(totalMetrics[MemoryMetrics::MM_BYTES_COMMITTED]).Data(),
-            FormatBytes(totalMetrics[MemoryMetrics::MM_BYTES_USED]).Data(),
-            FormatBytes(totalMetrics[MemoryMetrics::MM_BYTES_FREE]).Data(),
-            FormatBytes(totalMetrics[MemoryMetrics::MM_BYTES_PEAK]).Data(),
-            totalUtil, totalFrag);
+        LOG_LINE("%-30s %-14s %-14s %-14s %-14s %5.1f%% %5.1f%%",
+                 "Total",
+                 FormatBytes(totalMetrics[MemoryMetrics::MM_BYTES_COMMITTED]).Data(),
+                 FormatBytes(totalMetrics[MemoryMetrics::MM_BYTES_USED]).Data(),
+                 FormatBytes(totalMetrics[MemoryMetrics::MM_BYTES_FREE]).Data(),
+                 FormatBytes(totalMetrics[MemoryMetrics::MM_BYTES_PEAK]).Data(),
+                 totalUtil, totalFrag);
     }
 
     void ReportObjectBreakdown()
@@ -257,10 +272,10 @@ protected:
             return;
         }
 
-        LogLine("");
-        LogLine("=== Object Containers (per-type) ===");
-        LogLine("%-30s %-7s %-7s %-14s %-7s %-7s %-7s %-6s",
-            "Type", "Count", "Sizeof", "Total", "AvgRef", "MinRef", "MaxRef", "C#Cmp");
+        LOG_LINE("");
+        LOG_LINE("=== Object Containers (per-type) ===");
+        LOG_LINE("%-30s %-7s %-7s %-14s %-7s %-7s %-7s %-6s",
+                 "Type", "Count", "Sizeof", "Total", "AvgRef", "MinRef", "MaxRef", "C#Cmp");
 
         size_t totalObjectMemory = 0;
         uint32 totalObjectCount = 0;
@@ -272,22 +287,22 @@ protected:
             totalObjectCount += s.count;
             totalCSharpCompanionCount += s.csharpCompanionCount;
 
-            LogLine("%-30s %-7u %-7s %-14s %-7.1f %-7d %-7d %-6u",
-                s.typeName.Data(),
-                s.count,
-                FormatBytes(s.instanceSize).Data(),
-                FormatBytes(s.totalMemory).Data(),
-                s.avgRefCount,
-                s.minRefCount,
-                s.maxRefCount,
-                s.csharpCompanionCount);
+            LOG_LINE("%-30s %-7u %-7s %-14s %-7.1f %-7d %-7d %-6u",
+                     s.typeName.Data(),
+                     s.count,
+                     FormatBytes(s.instanceSize).Data(),
+                     FormatBytes(s.totalMemory).Data(),
+                     s.avgRefCount,
+                     s.minRefCount,
+                     s.maxRefCount,
+                     s.csharpCompanionCount);
         }
 
-        LogLine("--------------------------------------------------------------------------------");
-        LogLine("%-30s %-7u %-7s %-14s",
-            "Total", totalObjectCount, "", FormatBytes(totalObjectMemory).Data());
-        LogLine("  Objects with C# companion: %u", totalCSharpCompanionCount);
-        LogLine("  Native-only objects: %u", totalObjectCount - totalCSharpCompanionCount);
+        LOG_LINE("--------------------------------------------------------------------------------");
+        LOG_LINE("%-30s %-7u %-7s %-14s",
+                 "Total", totalObjectCount, "", FormatBytes(totalObjectMemory).Data());
+        LOG_LINE("  Objects with C# companion: %u", totalCSharpCompanionCount);
+        LOG_LINE("  Native-only objects: %u", totalObjectCount - totalCSharpCompanionCount);
     }
 
     void ReportCSharpBreakdown()
@@ -302,7 +317,7 @@ protected:
             if (globalFns.getTotalMemoryFptr)
             {
                 int64 totalMemoryBytes = globalFns.getTotalMemoryFptr();
-                LogLine(".NET managed heap: %s", FormatBytes(size_t(totalMemoryBytes)).Data());
+                LOG_LINE(".NET managed heap: %s", FormatBytes(size_t(totalMemoryBytes)).Data());
             }
 
             return;
@@ -319,16 +334,16 @@ protected:
             if (globalFns.getTotalMemoryFptr)
             {
                 int64 totalMemoryBytes = globalFns.getTotalMemoryFptr();
-                LogLine(".NET managed heap: %s", FormatBytes(size_t(totalMemoryBytes)).Data());
+                LOG_LINE(".NET managed heap: %s", FormatBytes(size_t(totalMemoryBytes)).Data());
             }
 
             return;
         }
 
-        LogLine("");
-        LogLine("=== Managed C# Objects ===");
-        LogLine("%-32s %-7s %-16s",
-            "C# Type", "Count", "C++ Companion");
+        LOG_LINE("");
+        LOG_LINE("=== Managed C# Objects ===");
+        LOG_LINE("%-32s %-7s %-16s",
+                 "C# Type", "Count", "C++ Companion");
 
         int totalCount = 0;
 
@@ -344,19 +359,19 @@ protected:
 
             bool hasCppCompanion = mc->GetClass() != nullptr;
 
-            LogLine("%-32s %-7d %-16s",
-                mc->GetName().Data(),
-                objCount,
-                hasCppCompanion ? "yes" : "no");
+            LOG_LINE("%-32s %-7d %-16s",
+                     mc->GetName().Data(),
+                     objCount,
+                     hasCppCompanion ? "yes" : "no");
         }
 
-        LogLine("--------------------------------------------------------------");
-        LogLine("Total managed objects: %d", totalCount);
+        LOG_LINE("--------------------------------------------------------------");
+        LOG_LINE("Total managed objects: %d", totalCount);
 
         if (globalFns.getTotalMemoryFptr)
         {
             int64 totalMemoryBytes = globalFns.getTotalMemoryFptr();
-            LogLine(".NET managed heap: %s", FormatBytes(size_t(totalMemoryBytes)).Data());
+            LOG_LINE(".NET managed heap: %s", FormatBytes(size_t(totalMemoryBytes)).Data());
         }
 
 #else
@@ -376,11 +391,13 @@ protected:
         if (args.Contains("csharp") && args["csharp"].ToBool())
             ReportCSharpBreakdown();
 
-        LogLine("");
-        LogLine("=== End Memory Report ===");
+        LOG_LINE("");
+        LOG_LINE("=== End Memory Report ===");
 
         return {};
     }
+
+#undef LOG_LINE
 };
 
 ENGINE_API const Class* g_clsMemoryReportCommandlet = nullptr;
@@ -391,9 +408,9 @@ const Class* MemoryReportCommandlet::StaticClass()
 }
 
 HYP_BEGIN_CLASS(MemoryReportCommandlet, -1, 0, NAME("CommandletBase"),
-    ClassAttribute("command", "memoryreport"))
-    Method(NAME("GetArgumentDefinitions"), &Type::GetArgumentDefinitions)
-HYP_END_CLASS
+                ClassAttribute("command", "memoryreport"))
+Method(NAME("GetArgumentDefinitions"), &Type::GetArgumentDefinitions)
+    HYP_END_CLASS
 
 HYP_REGISTER_STATIC_CLASS(MemoryReportCommandlet);
 

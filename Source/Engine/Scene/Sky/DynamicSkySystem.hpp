@@ -62,6 +62,10 @@ private:
     Handle<Scene> m_renderScene;
     Handle<EnvProbe> m_envProbe;
 
+    // For rendering top down view of world for sky visibility map
+    Handle<Camera> m_topDownCamera;
+    Handle<View> m_topDownView;
+
     // Stuff that gets added to world
     Handle<Entity> m_skyboxEntity;
     Handle<Scene> m_visScene;

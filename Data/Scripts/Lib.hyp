@@ -1990,7 +1990,6 @@ extern class ProbeVolume : VolumeBase
     SetGridSize(gridSize : Vec3u) -> void
     CreateProbes() -> void
     GridSize : Vec3u
-    GridCount : Vec3u
     Probes : Array<IrradianceProbe>
     Tetrahedra : Array<Tetrahedron>
 end

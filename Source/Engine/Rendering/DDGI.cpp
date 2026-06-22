@@ -151,6 +151,7 @@ void DDGI::CreateStorageBuffers()
             TWM_CLAMP_TO_EDGE,
             1,
             IU_STORAGE | IU_SAMPLED });
+
         Assert(m_irradianceImage->Create());
     }
 

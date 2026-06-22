@@ -94,7 +94,7 @@ void OnBindingChanged_EnvProbe(EnvProbe* envProbe, uint32 prev, uint32 next)
 
             GpuImage* dstImage = dstTexture->GetGpuImage();
             AssertDebug(dstImage != nullptr);
-            
+
             ImageSubResource srcSubResource {};
             srcSubResource.baseMipLevel = 0;
             srcSubResource.numLevels = 1;
@@ -158,7 +158,7 @@ void WriteBufferData_EnvProbe(StructuredBuffer& sbuffer, uint32 idx, IRenderProx
 void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 next)
 {
     Assert(envProbe->IsA<SkyProbe>() || envProbe->IsA<ReflectionProbe>(),
-        "EnvProbe must be a SkyProbe or ReflectionProbe, but is a {}", envProbe->InstanceClass()->GetName());
+           "EnvProbe must be a SkyProbe or ReflectionProbe, but is a {}", envProbe->InstanceClass()->GetName());
 
     if (next != ~0u)
     {

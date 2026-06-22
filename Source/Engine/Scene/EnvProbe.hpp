@@ -30,6 +30,7 @@ class Texture;
 class View;
 class Light;
 class Camera;
+class ProbeVolume;
 struct RenderProxyEnvProbe;
 
 ENGINE_API extern Pool* g_scenePool;
@@ -38,12 +39,12 @@ using SceneAllocator = AllocatorInstance<Pool, &g_scenePool>;
 HYP_ENUM()
 enum EnvProbeFlags : uint32
 {
-    EPF_NONE = 0x0,                 //!< @edithide
-    EPF_PARALLAX_CORRECTED = 0x1,   //!< @title="Parallax Corrected"
-    EPF_BAKED = 0x2,                //!< @edithide
-    EPF_REALTIME = 0x4,             //!< @title="Real-time"
-    EPF_ORIGIN_FROM_CENTER = 0x8,   //!< @title="Origin from center"
-    EPF_HAS_VISIBILITY = 0x10       //!< @title="Prevent light leaking" @description="This EnvProbe stores distance values to a texture, used to prevent light leaks at the cost of more memory usage and rendering time."
+    EPF_NONE = 0x0,               //!< @edithide
+    EPF_PARALLAX_CORRECTED = 0x1, //!< @title="Parallax Corrected"
+    EPF_BAKED = 0x2,              //!< @edithide
+    EPF_REALTIME = 0x4,           //!< @title="Real-time"
+    EPF_ORIGIN_FROM_CENTER = 0x8, //!< @title="Origin from center"
+    EPF_HAS_VISIBILITY = 0x10     //!< @title="Prevent light leaking" @description="This EnvProbe stores distance values to a texture, used to prevent light leaks at the cost of more memory usage and rendering time."
 };
 
 HYP_MAKE_ENUM_FLAGS(EnvProbeFlags);
@@ -200,7 +201,7 @@ public:
 
     HYP_METHOD(Property = "VisibilityTexture", LoadOrder = 1)
     void SetVisibilityTexture(const Handle<Texture>& visibilityTexture);
-    
+
     HYP_METHOD(Property = "SHData", NoScriptBindings)
     HYP_FORCE_INLINE const SphericalHarmonicsData& GetSphericalHarmonicsData() const
     {
@@ -221,25 +222,25 @@ protected:
 
     virtual void OnAttachedToNode(Node* node) override;
     virtual void OnDetachedFromNode(Node* node) override;
-    
+
     virtual void OnAddedToWorld(World* world) override;
     virtual void OnRemovedFromWorld(World* world) override;
 
     virtual void OnAddedToScene(Scene* scene) override;
     virtual void OnRemovedFromScene(Scene* scene) override;
-    
+
     virtual void OnTransformUpdated() override;
-    
+
     HYP_FORCE_INLINE bool OnlyCollectStaticEntities() const
     {
         return !IsRealtime();
     }
-    
+
     virtual void Invalidate(bool forceRerender = false);
 
     void CreateCamera();
     void RemoveCamera();
-    
+
     void CreateVisibilityTexture();
 
     void CreateViewData();

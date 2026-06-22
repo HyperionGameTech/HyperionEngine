@@ -94,7 +94,7 @@ void DefaultGame::OnLaunch_Impl()
     GetWorld()->AddSubsystem(MakeHandle<TouchControlsSubsystem>());
 #endif
 
-#if 0
+#if 1
     // Get MainScene
     Handle<AssetObject> mainSceneAsset = GetCurrentAssetRegistry()->GetAsset<Scene>(AssetBuckets::Scenes, "MainScene"_sh);
     Assert(mainSceneAsset.IsValid());
@@ -155,12 +155,17 @@ void DefaultGame::OnLaunch_Impl()
             GetWorld()->AddScene(mainScene);
 
             auto sunIt = mainScene->GetRoot()->GetChildren().FindIf([](const Handle<Node>& child)
-                {
-                    return child->IsA<DirectionalLight>();
-                });
+                                                                    {
+                                                                        return child->IsA<DirectionalLight>();
+                                                                    });
             if (sunIt != mainScene->GetRoot()->GetChildren().End())
             {
                 m_sun = StaticCast<DirectionalLight>(*sunIt);
+
+                if (m_sun.IsValid())
+                {
+                    m_sun->SetIntensity(15.0f);
+                }
             }
         }
 
@@ -267,26 +272,26 @@ void DefaultGame::OnLaunch_Impl()
     // add MeshComponent to skybox entity
     cubeEnt->AddComponent<MeshComponent>(MeshComponent { mesh, materialInstance });
 
-     AssetBatch* batch = g_assetManager->CreateBatch();
-     batch->Add("testbed", "Models/testbed/testbed.obj");
-     auto results = batch->ForceLoad();
+    AssetBatch* batch = g_assetManager->CreateBatch();
+    batch->Add("testbed", "Models/testbed/testbed.obj");
+    auto results = batch->ForceLoad();
 
-     LoadedAsset& testbedAsset = results["testbed"];
+    LoadedAsset& testbedAsset = results["testbed"];
 
-     if (testbedAsset.IsValid())
-     {
-         Handle<Node> testbedNode = testbedAsset.ExtractAs<Handle<Node>>();
-         testbedNode->Scale(3.0f);
+    if (testbedAsset.IsValid())
+    {
+        Handle<Node> testbedNode = testbedAsset.ExtractAs<Handle<Node>>();
+        testbedNode->Scale(3.0f);
 
-         //scene->GetRoot()->AddChild(testbedNode);
-     }
-     else if (const AssetLoadError* error = testbedAsset.GetErrorIfFailed())
-     {
-         HYP_LOG(Game, Error, "Failed to load test asset: {}", error->GetMessage());
-     }
+        // scene->GetRoot()->AddChild(testbedNode);
+    }
+    else if (const AssetLoadError* error = testbedAsset.GetErrorIfFailed())
+    {
+        HYP_LOG(Game, Error, "Failed to load test asset: {}", error->GetMessage());
+    }
 
-     ScriptComponent& scriptComponent = m_sun->AddComponent<ScriptComponent>(ScriptComponent {
-         scriptAsset });
+    ScriptComponent& scriptComponent = m_sun->AddComponent<ScriptComponent>(ScriptComponent {
+        scriptAsset });
 
     //    Handle<FogVolume> fogVolume = MakeHandle<FogVolume>();
     //    fogVolume->SetLocalBounds(BoundingBox(Vec3f(-30.0f, -0.5f, -30.0f), Vec3f(30.0f, 40.0f, 30.0f)));
@@ -327,7 +332,7 @@ void DefaultGame::OnUpdate_Impl(float delta)
     }
 
     // Rotate sun for day/night cycle
-    //if (m_sun)
+    // if (m_sun)
     //{
     //    m_sunAngle += delta * 0.5f;
     //    Vec3f dir = Vec3f(MathUtil::Sin(m_sunAngle), 0.7f, MathUtil::Cos(m_sunAngle)).Normalize();

@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -24,8 +24,6 @@ extern ShaderInputGroup& GetStaticDescriptorTableDeclaration();
 
 Shader::~Shader()
 {
-    HYP_LOG(Rendering, Debug, "Destroying shader {}", GetName());
-
     for (BlobDataReference& ref : shaderBlobs)
     {
         FreeBlobData(ref);
@@ -59,8 +57,8 @@ void Shader::AddShaderModule(
     }
 
     Assert(moduleTypes.Size() == shaderBlobs.Size()
-        && moduleTypes.Size() == moduleNames.Size()
-        && moduleTypes.Size() == entryPointNames.Size());
+           && moduleTypes.Size() == moduleNames.Size()
+           && moduleTypes.Size() == entryPointNames.Size());
 
     moduleTypes.PushBack(moduleType);
     moduleNames.PushBack(moduleName);

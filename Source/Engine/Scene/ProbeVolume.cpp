@@ -89,7 +89,7 @@ ProbeVolume::~ProbeVolume()
 void ProbeVolume::OnAddedToWorld(World* world)
 {
     m_probes.Clear();
-    m_probes.Reserve(m_gridCount.Volume());
+    m_probes.Reserve(m_gridSize.Volume());
 
     for (Node* node : GetChildren())
     {
@@ -296,12 +296,12 @@ bool ProbeVolume::FindEnclosingTetrahedron(
     }
 
     // Try O(1) grid-cell lookup first
-    if (m_gridCount.x > 1 && m_gridCount.y > 1 && m_gridCount.z > 1)
+    if (m_gridSize.x > 1 && m_gridSize.y > 1 && m_gridSize.z > 1)
     {
         const BoundingBox worldBounds = GetWorldBounds();
         const Vec3f extent = worldBounds.GetExtent();
 
-        const Vec3f halfCellSize = (extent / Vec3f(m_gridCount)) * 0.5f;
+        const Vec3f halfCellSize = (extent / Vec3f(m_gridSize)) * 0.5f;
 
         // The actual space covered by the tetrahedral mesh
         const Vec3f meshMin = worldBounds.min + halfCellSize;
@@ -312,9 +312,9 @@ bool ProbeVolume::FindEnclosingTetrahedron(
         {
             const Vec3f relativePos = position - meshMin;
 
-            const int32 numCellsX = m_gridCount.x - 1;
-            const int32 numCellsY = m_gridCount.y - 1;
-            const int32 numCellsZ = m_gridCount.z - 1;
+            const int32 numCellsX = static_cast<int32>(m_gridSize.x) - 1;
+            const int32 numCellsY = static_cast<int32>(m_gridSize.y) - 1;
+            const int32 numCellsZ = static_cast<int32>(m_gridSize.z) - 1;
 
             const int32 gx = MathUtil::Clamp(static_cast<int32>((relativePos.x / meshSpan.x) * numCellsX), 0, numCellsX - 1);
             const int32 gy = MathUtil::Clamp(static_cast<int32>((relativePos.y / meshSpan.y) * numCellsY), 0, numCellsY - 1);
@@ -651,8 +651,6 @@ void ProbeVolume::TessellateGrid()
     {
         return;
     }
-
-    m_gridCount = m_gridSize;
 
     const uint32 countX = m_gridSize.x;
     const uint32 countY = m_gridSize.y;

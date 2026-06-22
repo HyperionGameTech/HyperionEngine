@@ -229,8 +229,6 @@ static const ShaderPropertyId s_propHasParallaxMap = InternShaderProperty(Shader
 static const ShaderPropertyId s_propHasMetalnessMap = InternShaderProperty(ShaderProperty(s_nameHasMetalnessMap));
 static const ShaderPropertyId s_propHasRoughnessMap = InternShaderProperty(ShaderProperty(s_nameHasRoughnessMap));
 
-static const ShaderPropertyId s_propMultiView = InternShaderProperty(ShaderProperty(s_nameMultiView));
-
 static const Pair<MaterialTextureKey, ShaderPropertyId> s_textureProperties[] = {
     { MaterialTextureKey::Diffuse, InternShaderProperty(ShaderProperty(s_nameHasDiffuseMap)) },
     { MaterialTextureKey::Normals, InternShaderProperty(ShaderProperty(s_nameHasNormalMap)) },
@@ -294,12 +292,6 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
 
     const bool isCubemap = IsCubemapShader(attributes.GetMaterialAttributes().shaderName);
 
-#if 0 // def HYP_VULKAN
-    const bool isMultiView = isCubemap;
-#else
-    const bool isMultiView = false;
-#endif
-
     // if lightmap volume is set we need stencil testing
     if (hasLightmaps && !isPathTracer)
     {
@@ -329,11 +321,6 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     if (hasInstancing != currentShaderProperties.Test(Props::s_propInstancing))
     {
         newShaderProperties.Set(Props::s_propInstancing, hasInstancing);
-    }
-
-    if (isMultiView != currentShaderProperties.Test(Props::s_propMultiView))
-    {
-        newShaderProperties.Set(Props::s_propMultiView, isMultiView);
     }
 
     {
@@ -842,7 +829,7 @@ static void SetForwardShadingConstants(
             AssertDebug(shadowMapViewsDynamic.Size() > 0 && shadowMapViewsDynamic[0]->GetCamera() != nullptr);
 
             RenderProxyCamera* shadowCameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(shadowMapViewsDynamic[0]->GetCamera()));
-            
+
             if (!shadowCameraProxy)
             {
                 continue;
@@ -882,8 +869,8 @@ static void SetForwardShadingConstants(
 
     for (EnvProbe* envProbe : rpl.GetEnvProbes())
     {
-        if (envProbe == renderSetup.envProbe ||                                 // if we are drawing an env probe we don't want to use it as fallback
-            (!envProbe->IsA<SkyProbe>() && !envProbe->IsA<ReflectionProbe>()))  // only reflection / sky probes.
+        if (envProbe == renderSetup.envProbe ||                                // if we are drawing an env probe we don't want to use it as fallback
+            (!envProbe->IsA<SkyProbe>() && !envProbe->IsA<ReflectionProbe>())) // only reflection / sky probes.
         {
             continue;
         }
@@ -2027,7 +2014,6 @@ void RenderCollector::ExecuteDrawCalls(
 
         s_parallelRenderingStatesToNull.Resize(0);
     }
-    
 
     if (framebuffer)
     {

@@ -101,7 +101,7 @@ public:
     HYP_METHOD(Property = "GridSize", EditorOnly)
     void SetGridSize(const Vec3u& gridSize);
 
-    HYP_METHOD(EditAction = "Rebuild Connectivity")
+    HYP_METHOD(EditorOnly, EditAction = "Rebuild Connectivity")
     void CreateProbes();
 
     void BakeTetrahedra();
@@ -112,14 +112,11 @@ public:
     }
 
 private:
-    HYP_FIELD(Property = "GridSize", EditorOnly, Serialize)
-    Vec3u m_gridSize = Vec3u { 2, 2, 2 };
-
     void TessellateGrid();
 #endif // HYP_EDITOR
 
-    HYP_FIELD(Property = "GridCount", Serialize, EditHide)
-    Vec3u m_gridCount = Vec3u { 0, 0, 0 };
+    HYP_FIELD(Property = "GridSize", Serialize)
+    Vec3u m_gridSize = Vec3u { 2, 2, 2 };
 
     HYP_FIELD(Property = "Probes", Transient, EditHide)
     Array<IrradianceProbe*, SceneAllocator> m_probes;

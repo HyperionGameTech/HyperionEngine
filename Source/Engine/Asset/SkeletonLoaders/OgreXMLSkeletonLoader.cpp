@@ -17,7 +17,7 @@
 
 #include <Core/Utilities/StringUtil.hpp>
 
-#include <Util/Xml/SAXParser.hpp>
+#include <Util/XML/SAXParser.hpp>
 
 #include <algorithm>
 

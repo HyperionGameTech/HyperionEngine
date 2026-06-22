@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <Core/Logging/Logger.hpp>
 #include <Core/Logging/LogChannels.hpp>
@@ -253,12 +253,12 @@ public:
             {
                 static constexpr android_LogPriority LogLevelToAndroidLogPriority[NumLogLevels] = {
 
-                     ANDROID_LOG_FATAL,     // Fatal
-                     ANDROID_LOG_ERROR,     // Error
-                     ANDROID_LOG_WARN,      // Warning
-                     ANDROID_LOG_INFO,      // Info
-                     ANDROID_LOG_VERBOSE,   // Verbose
-                     ANDROID_LOG_DEBUG      // Debug
+                    ANDROID_LOG_FATAL,   // Fatal
+                    ANDROID_LOG_ERROR,   // Error
+                    ANDROID_LOG_WARN,    // Warning
+                    ANDROID_LOG_INFO,    // Info
+                    ANDROID_LOG_VERBOSE, // Verbose
+                    ANDROID_LOG_DEBUG    // Debug
                 };
 
                 static thread_local TByteBuffer<ThreadAllocator>* s_androidLogBuffer = nullptr;
@@ -275,8 +275,10 @@ public:
                         if (s_androidLogBuffer)
                         {
                             new (s_androidLogBuffer) TByteBuffer<ThreadAllocator>;
+                            s_androidLogBuffer->SetCapacity(4096);
 
-                            thisThread->AddOnExitCallback([]()
+                            thisThread->AddOnExitCallback(
+                                []()
                                 {
                                     s_androidLogBuffer->~TByteBuffer<ThreadAllocator>();
                                 });
@@ -695,9 +697,9 @@ void Logger::RemoveDynamicLogChannel(Name name)
     Mutex::Guard guard(m_impl->m_dynamicLogChannelsMutex);
 
     auto it = m_impl->m_dynamicLogChannels.FindIf([name](LogChannel* channel)
-        {
-            return channel->name == name;
-        });
+                                                  {
+                                                      return channel->name == name;
+                                                  });
 
     if (it == m_impl->m_dynamicLogChannels.End())
     {

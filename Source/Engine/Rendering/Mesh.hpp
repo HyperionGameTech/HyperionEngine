@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -168,7 +168,10 @@ public:
 
     BoundingBox CalculateAABB() const;
 
-    Array<float> BuildVertexBuffer(const VertexInputLayoutDesc& inputLayout) const;
+    template <class AllocatorType>
+    void BuildVertexBuffer(
+        const VertexInputLayoutDesc& inputLayout,
+        Array<float, AllocatorType>& outData) const;
 
     void CalculateNormals(bool weighted = false);
 

@@ -304,8 +304,8 @@ private:
 
     RendererResult Rebuild(RTUpdateStateFlags& outUpdateStateFlags);
 
-    Array<VkAccelerationStructureGeometryKHR, VulkanAllocator> GetGeometries() const;
-    Array<uint32, VulkanAllocator> GetPrimitiveCounts() const;
+    Array<VkAccelerationStructureGeometryKHR, VulkanTempAllocator> GetGeometries() const;
+    Array<uint32, VulkanTempAllocator> GetPrimitiveCounts() const;
 
     RendererResult BuildInstancesBuffer();
     RendererResult BuildInstancesBuffer(uint32 first, uint32 last);
@@ -315,7 +315,8 @@ private:
 
     Array<VulkanGpuBlas*, VulkanAllocator> m_blases;
     Array<uint64, VulkanAllocator> m_keys;
-    TMap<uint64, Pair<VulkanGpuBlas*, uint32>, VulkanAllocator> m_keyToBlasAndStorageId;
+
+    TFlatMap<uint64, Pair<VulkanGpuBlas*, uint32>, VulkanAllocator> m_keyToBlasAndStorageId;
 
     VulkanGpuBufferRef m_instancesBuffer;
 };
