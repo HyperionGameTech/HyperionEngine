@@ -3,18 +3,19 @@
 
 float GetSquareFalloffAttenuation(float3 P, float3 L, float radius)
 {
-    const float3 position_to_light = P - L;
+    const float3 toLight = P - L;
 
-    const float dist = length(position_to_light);
-    const float distance_square = dot(position_to_light, position_to_light);
-    // const float radius_square = radius * radius;
+    const float distanceSq = dot(toLight, toLight);
+    const float radiusSq = radius * radius;
+    const float inverseSquare = 1.0 / max(distanceSq, 0.0001);
+    
+    const float distanceOverRadiusSq = distanceSq / radiusSq;
+    const float distanceOverRadiusQuad = distanceOverRadiusSq * distanceOverRadiusSq;
+    
+    float window = saturate(1.0 - distanceOverRadiusQuad);
+    window *= window;
 
-    // return 2.0 / (distance_square + radius_square + (dist * sqrt(distance_square + radius_square)));
-
-    float inv_radius = 1.0 / radius;
-    float factor = distance_square * HYP_FMATH_SQR(inv_radius);
-    float smooth_factor = max(1.0 - HYP_FMATH_SQR(factor), 0.0);
-    return HYP_FMATH_SQR(smooth_factor) / max(distance_square, 1e-4);
+    return inverseSquare * window;
 }
 
 // http://www.frostbite.com/wp-content/uploads/2014/11/course_notes_moving_frostbite_to_pbr.pdf

@@ -292,8 +292,7 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     GpuTlas* tlas = pd->rayTracingTlases[frameIndex];
     Assert(tlas != nullptr);
 
-    GpuBuffer* meshDescriptionsBuffer = tlas->GetMeshDescriptionsBuffer();
-    Assert(meshDescriptionsBuffer != nullptr && meshDescriptionsBuffer->IsCreated());
+    const StructuredBuffer& meshDescriptionsBuffer = tlas->GetMeshDescriptionsBuffer();
 
     frame->cr << InsertBarrier(m_radianceBuffer, RS_UNORDERED_ACCESS);
 
@@ -305,7 +304,7 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << SetShaderUniform(0, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
     frame->cr << SetShaderUniform(1, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinearMipmap());
     frame->cr << SetShaderUniform(2, "TLAS"_sh, tlas);
-    frame->cr << SetShaderUniform(3, "MeshDescriptionsBuffer"_sh, meshDescriptionsBuffer, ShaderDataOffset(0, sizeof(MeshDescription)));
+    frame->cr << SetShaderUniform(3, "MeshDescriptionsBuffer"_sh, meshDescriptionsBuffer);
     frame->cr << SetShaderUniform(4, "CBuffer"_sh, m_dynamicCBuffer, ShaderDataOffset(m_dynamicCBufferOffset, m_dynamicCBufferSize));
     frame->cr << SetShaderUniform(5, "ProbeRayData"_sh, m_radianceBuffer, ShaderDataOffset(0, sizeof(ProbeRayData)));
 

@@ -46,17 +46,13 @@ void VulkanFeatures::SetPhysicalDevice(VkPhysicalDevice physicalDevice)
         VulkanHelpers::ChainNext(m_features2, &m_multiviewFeatures);
 
         m_indexingFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT };
-        VulkanHelpers::ChainNext(m_features2, &m_indexingFeatures);
-
         m_scalarBlockLayoutFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES };
-        VulkanHelpers::ChainNext(m_features2, &m_scalarBlockLayoutFeatures);
 
         m_extendedDynamicStateFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT };
         VulkanHelpers::ChainNext(m_features2, &m_extendedDynamicStateFeatures);
 
 #if defined(HYP_FEATURES_ENABLE_RAY_TRACING) && defined(HYP_FEATURES_BINDLESS_TEXTURES)
         m_bufferDeviceAddressFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES };
-        VulkanHelpers::ChainNext(m_features2, &m_bufferDeviceAddressFeatures);
 
         m_rayTracingPipelineFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR };
         VulkanHelpers::ChainNext(m_features2, &m_rayTracingPipelineFeatures);
@@ -69,6 +65,15 @@ void VulkanFeatures::SetPhysicalDevice(VkPhysicalDevice physicalDevice)
 #endif
 
         vkGetPhysicalDeviceFeatures2(m_physicalDevice, &m_features2);
+
+        m_indexingFeatures.descriptorBindingPartiallyBound = m_vulkan12Features.descriptorBindingPartiallyBound;
+        m_indexingFeatures.runtimeDescriptorArray = m_vulkan12Features.runtimeDescriptorArray;
+
+        m_scalarBlockLayoutFeatures.scalarBlockLayout = m_vulkan12Features.scalarBlockLayout;
+
+#if defined(HYP_FEATURES_ENABLE_RAY_TRACING) && defined(HYP_FEATURES_BINDLESS_TEXTURES)
+        m_bufferDeviceAddressFeatures.bufferDeviceAddress = m_vulkan12Features.bufferDeviceAddress;
+#endif
 
         // properties
         m_properties2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };

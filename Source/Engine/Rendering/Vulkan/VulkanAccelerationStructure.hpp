@@ -49,11 +49,11 @@ public:
         const Handle<MaterialInstance>& material);
 
     VulkanAccelerationGeometry(VulkanAccelerationGeometry&& other) noexcept
-        : m_packedVerticesBuffer(std::move(other.m_packedIndicesBuffer)),
+        : m_material(std::move(other.m_material)),
+          m_packedVerticesBuffer(std::move(other.m_packedIndicesBuffer)),
           m_packedIndicesBuffer(std::move(other.m_packedIndicesBuffer)),
           m_numVertices(other.m_numVertices),
           m_numIndices(other.m_numIndices),
-          m_material(std::move(other.m_material)),
           m_geometry(other.m_geometry),
           m_isCreated(other.m_isCreated)
     {
@@ -99,13 +99,13 @@ public:
     RendererResult Create();
 
 private:
+    Handle<MaterialInstance> m_material;
+
     VulkanGpuBufferRef m_packedVerticesBuffer;
     VulkanGpuBufferRef m_packedIndicesBuffer;
 
     uint32 m_numVertices;
     uint32 m_numIndices;
-
-    Handle<MaterialInstance> m_material;
 
     VkAccelerationStructureGeometryKHR m_geometry;
 

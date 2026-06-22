@@ -104,12 +104,10 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
     const GpuTlasRef& tlas = pd->rayTracingTlases[frameIndex];
     Assert(tlas != nullptr);
 
-    const GpuBufferRef& meshDescriptionsBuffer = tlas->GetMeshDescriptionsBuffer();
-    Assert(meshDescriptionsBuffer != nullptr && meshDescriptionsBuffer->IsCreated());
+    const StructuredBuffer& meshDescriptionsBuffer = tlas->GetMeshDescriptionsBuffer();
 
     const bool isPathTracer = cvPathTracing.Get();
     InitTemporalBlending(isPathTracer);
-
 
     // Reset progressive blending if the camera view matrix has changed (for path tracing)
     RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
@@ -245,7 +243,7 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << SetShaderUniform(4, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
     frame->cr << SetShaderUniform(5, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinearMipmap());
     frame->cr << SetShaderUniform(6, "TLAS"_sh, tlas);
-    frame->cr << SetShaderUniform(7, "MeshDescriptionsBuffer"_sh, meshDescriptionsBuffer, ShaderDataOffset(0, sizeof(MeshDescription)));
+    frame->cr << SetShaderUniform(7, "MeshDescriptionsBuffer"_sh, meshDescriptionsBuffer);
     frame->cr << SetShaderUniform(8, "OutputImage"_sh, RI.textureViewCache->GetOrCreate(m_texture));
     frame->cr << SetShaderUniform(9, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 

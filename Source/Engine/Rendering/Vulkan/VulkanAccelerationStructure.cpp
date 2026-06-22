@@ -6,6 +6,7 @@
 
 #include <VulkanPch.hpp>
 
+#include <Rendering/Vulkan/VulkanGpuBuffer.hpp>
 #include <Rendering/Vulkan/VulkanAccelerationStructure.hpp>
 #include <Rendering/Vulkan/VulkanFence.hpp>
 #include <Rendering/Vulkan/VulkanFrame.hpp>
@@ -32,10 +33,10 @@ namespace Hyperion {
 
 extern VulkanRenderInterface RI;
 
-static VkTransformMatrixKHR ToVkTransform(const Mat4f& matrix)
+static HYP_FORCE_INLINE VkTransformMatrixKHR ToVkTransform(const Mat4f& matrix)
 {
     VkTransformMatrixKHR transform;
-    std::memcpy(&transform, matrix.values, sizeof(VkTransformMatrixKHR));
+    std::memcpy(&transform, &matrix, 3 * 4 * sizeof(float));
 
     return transform;
 }
@@ -60,13 +61,13 @@ VulkanAccelerationGeometry::VulkanAccelerationGeometry(
     const VulkanGpuBufferRef& packedIndicesBuffer,
     uint32 numVertices, uint32 numIndices,
     const Handle<MaterialInstance>& material)
-    : m_isCreated(false),
+    : m_material(material),
       m_packedVerticesBuffer(packedVerticesBuffer),
       m_packedIndicesBuffer(packedIndicesBuffer),
       m_numVertices(numVertices),
       m_numIndices(numIndices),
-      m_material(material),
-      m_geometry {}
+      m_geometry {},
+      m_isCreated(false)
 {
 }
 
@@ -203,6 +204,8 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
         return HYP_MAKE_ERROR(RendererError, "Geometries empty");
     }
 
+    VkAccelerationStructureBuildRangeInfoKHR* pRangeInfos = nullptr;
+
     VkAccelerationStructureGeometryKHR* pGeometries = (VkAccelerationStructureGeometryKHR*)g_vulkanPool->Allocate(sizeof(VkAccelerationStructureGeometryKHR) * geometries.Size(), alignof(VkAccelerationStructureGeometryKHR));
     Memory::Copy(pGeometries, geometries.Data(), geometries.Size() * sizeof(VkAccelerationStructureGeometryKHR));
 
@@ -210,6 +213,11 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
     Memory::Copy(pPrimitiveCounts, primitiveCounts.Data(), primitiveCounts.Size() * sizeof(uint32));
 
     HYP_DEFER({
+        if (pRangeInfos)
+        {
+            g_vulkanPool->Free(pRangeInfos);
+        }
+
         if (pPrimitiveCounts)
         {
             g_vulkanPool->Free(pPrimitiveCounts);
@@ -346,12 +354,11 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
     geometryInfo.srcAccelerationStructure = (update && !wasRebuilt) ? m_accelerationStructure : VK_NULL_HANDLE;
     geometryInfo.scratchData = { .deviceAddress = m_scratchBuffer->GetBufferDeviceAddress() };
 
-    Array<VkAccelerationStructureBuildRangeInfoKHR, VulkanAllocator> rangeInfos;
-    rangeInfos.Resize(geometries.Size());
+    pRangeInfos = (VkAccelerationStructureBuildRangeInfoKHR*)g_vulkanPool->Allocate(sizeof(VkAccelerationStructureBuildRangeInfoKHR) * geometries.Size(), alignof(VkAccelerationStructureBuildRangeInfoKHR));
 
     for (size_t i = 0; i < geometries.Size(); i++)
     {
-        rangeInfos[i] = VkAccelerationStructureBuildRangeInfoKHR {
+        pRangeInfos[i] = VkAccelerationStructureBuildRangeInfoKHR {
             .primitiveCount = pPrimitiveCounts[i],
             .primitiveOffset = 0,
             .firstVertex = 0,
@@ -366,10 +373,12 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
     {
         VkAccelerationStructureBuildGeometryInfoKHR geometryInfo;
 
-        Array<VkAccelerationStructureBuildRangeInfoKHR, VulkanAllocator> rangeInfos;
+        VkAccelerationStructureBuildRangeInfoKHR* pRangeInfos;
 
         VkAccelerationStructureGeometryKHR* pGeometries;
         uint32* pPrimitiveCounts;
+
+        uint32 numGeometries;
     };
 
     class BuildAccelerationStructureCmd : public CmdBase
@@ -387,11 +396,11 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
             BuildAccelerationStructureCmd* cmdCasted = static_cast<BuildAccelerationStructureCmd*>(cmd);
 
             Array<VkAccelerationStructureBuildRangeInfoKHR*, VulkanTempAllocator> rangeInfoPtrs;
-            rangeInfoPtrs.Resize(cmdCasted->payload->rangeInfos.Size());
+            rangeInfoPtrs.Resize(cmdCasted->payload->numGeometries);
 
-            for (size_t i = 0; i < cmdCasted->payload->rangeInfos.Size(); i++)
+            for (uint32 i = 0; i < cmdCasted->payload->numGeometries; i++)
             {
-                rangeInfoPtrs[i] = &cmdCasted->payload->rangeInfos[i];
+                rangeInfoPtrs[i] = &cmdCasted->payload->pRangeInfos[i];
             }
 
             RI.dynamicFunctions.vkCmdBuildAccelerationStructuresKHR(
@@ -407,7 +416,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
             vkCmdPipelineBarrier(
                 commandBuffer->GetVulkanHandle(),
                 VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
-                VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
+                VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR | VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
                 0,
                 1, &memoryBarrier,
                 0, nullptr,
@@ -415,18 +424,23 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
 
             g_vulkanPool->Free(cmdCasted->payload->pGeometries);
             g_vulkanPool->Free(cmdCasted->payload->pPrimitiveCounts);
+            g_vulkanPool->Free(cmdCasted->payload->pRangeInfos);
 
-            PoolDelete(*g_vulkanPool, cmdCasted->payload);
+            g_vulkanPool->Free(cmdCasted->payload);
         }
     };
 
-    BuildAccelerationStructurePayload* payload = HYP_POOL_NEW(g_vulkanPool, BuildAccelerationStructurePayload);
+    BuildAccelerationStructurePayload* payload = (BuildAccelerationStructurePayload*)g_vulkanPool->Allocate<BuildAccelerationStructurePayload>();
+
+    *payload = {};
     payload->geometryInfo = geometryInfo;
-    payload->rangeInfos = std::move(rangeInfos);
+    payload->numGeometries = uint32(geometries.Size());
+    payload->pRangeInfos = pRangeInfos;
     payload->pGeometries = pGeometries;
     payload->pPrimitiveCounts = pPrimitiveCounts;
 
     // Set to nullptr so we don't free the memory (ownership handed off to the command)
+    pRangeInfos = nullptr;
     pGeometries = nullptr;
     pPrimitiveCounts = nullptr;
 
@@ -475,7 +489,6 @@ VulkanGpuTlas::VulkanGpuTlas()
 VulkanGpuTlas::~VulkanGpuTlas()
 {
     m_instancesBuffer.Reset();
-    m_meshDescriptionsBuffer.Reset();
     m_scratchBuffer.Reset();
 
     for (VulkanGpuBlas* blas : m_blases)
@@ -532,6 +545,8 @@ RendererResult VulkanGpuTlas::Create()
         return {};
     }
 
+    m_meshDescriptionsBuffer.Initialize();
+
     Assert(m_accelerationStructure == VK_NULL_HANDLE);
 
     if (m_blases.Empty())
@@ -573,6 +588,13 @@ void VulkanGpuTlas::AddGpuBlas(uint64 key, VulkanGpuBlas* blas)
         return;
     }
 
+    AssertDebug(m_blases.Size() < MaxBlases, "Cannot add any more BLASes to TLAS, limit reached");
+
+    if (m_blases.Size() == MaxBlases)
+    {
+        return;
+    }
+
     Assert(blas->IsCreated());
     Assert(!blas->GetGeometries().Empty());
 
@@ -581,15 +603,6 @@ void VulkanGpuTlas::AddGpuBlas(uint64 key, VulkanGpuBlas* blas)
         Assert(geometry.GetPackedVerticesBuffer().IsValid());
         Assert(geometry.GetPackedIndicesBuffer().IsValid());
     }
-
-    /*if (IsCreated())
-    {
-        // If the TLAS is already created, we need to ensure that the GpuBlas is created as well.
-        if (!vulkanBlas->IsCreated())
-        {
-            Assert(vulkanBlas->Create());
-        }
-    }*/
 
     auto& entry = m_keyToBlasAndStorageId[key];
     entry.first = blas;
@@ -695,7 +708,7 @@ RendererResult VulkanGpuTlas::BuildInstancesBuffer(uint32 first, uint32 last)
         last = uint32(m_blases.Size());
     }
 
-    Array<VkAccelerationStructureInstanceKHR, VulkanAllocator> instances;
+    Array<VkAccelerationStructureInstanceKHR, VulkanTempAllocator> instances;
     instances.Resize(last - first);
 
     for (uint32 i = first; i < last; i++)
@@ -741,45 +754,13 @@ RendererResult VulkanGpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 l
 
     last = MathUtil::Min(m_blases.Size(), last);
 
-    constexpr size_t minMeshDescriptionsBufferSize = sizeof(MeshDescription);
-    const size_t meshDescriptionsBufferSize = MathUtil::Max(minMeshDescriptionsBufferSize, sizeof(MeshDescription) * m_blases.Size());
-
-    bool meshDescriptionsBufferRecreated = false;
-
-    if (m_meshDescriptionsBuffer && m_meshDescriptionsBuffer->Size() < meshDescriptionsBufferSize)
-    {
-        EnqueueDeletion(std::move(m_meshDescriptionsBuffer));
-    }
-
-    if (!m_meshDescriptionsBuffer)
-    {
-        m_meshDescriptionsBuffer = RI.MakeGpuBuffer(GpuBufferType::StructuredBuffer, meshDescriptionsBufferSize);
-#if HYP_DEBUG_MODE
-        m_meshDescriptionsBuffer->SetDebugName(NAME("ASMeshDescriptionsBuffer"));
-#endif
-        m_meshDescriptionsBuffer->SetIsCpuAccessible(true);
-        CheckResultOrReturn(m_meshDescriptionsBuffer->Create());
-
-        meshDescriptionsBufferRecreated = true;
-    }
-
-    if (meshDescriptionsBufferRecreated)
-    {
-        // zero out buffer
-        m_meshDescriptionsBuffer->Memset(m_meshDescriptionsBuffer->Size(), 0x0);
-
-        // set dirty range to all elements if resized or newly created
-        first = 0;
-        last = uint32(m_blases.Size());
-    }
-
     if (m_blases.Empty() || last <= first)
     {
         // no need to update the data inside
         return RendererResult();
     }
 
-    Array<MeshDescription, VulkanAllocator> meshDescriptions;
+    Array<MeshDescription, VulkanTempAllocator> meshDescriptions;
     meshDescriptions.Resize(last - first);
 
     for (uint32 i = first; i < last; i++)
@@ -824,15 +805,12 @@ RendererResult VulkanGpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 l
         meshDescription.numVertices = blas->GetGeometries()[0].NumVertices();
     }
 
-    Assert(m_meshDescriptionsBuffer != nullptr);
-    Assert(m_meshDescriptionsBuffer->Size() >= (first + meshDescriptions.Size()) * sizeof(MeshDescription));
-
-    m_meshDescriptionsBuffer->Copy(
+    m_meshDescriptionsBuffer.Write(
         first * sizeof(MeshDescription),
         meshDescriptions.Size() * sizeof(MeshDescription),
         meshDescriptions.Data());
 
-    m_meshDescriptionsBuffer->Flush(first * sizeof(MeshDescription), meshDescriptions.Size() * sizeof(MeshDescription));
+    m_meshDescriptionsBuffer.FlushBatched();
 
     return RendererResult();
 }
@@ -941,7 +919,7 @@ VulkanGpuBlas::VulkanGpuBlas(
 
 VulkanGpuBlas::~VulkanGpuBlas()
 {
-    HYP_LOG_TEMP("DESTROY ACCELERATION STRUCTURE {} {}", InstanceClass()->GetName(), Id());
+    HYP_LOG_TEMP("DESTROY ACCELERATION STRUCTURE {} {} {}", InstanceClass()->GetName(), Id(), m_packedVerticesBuffer->GetDebugName());
 
     EnqueueDeletion(std::move(m_material));
     EnqueueDeletion(std::move(m_packedVerticesBuffer));
@@ -955,7 +933,7 @@ bool VulkanGpuBlas::IsCreated() const
 
 RendererResult VulkanGpuBlas::Create()
 {
-    HYP_LOG_TEMP("CREATE ACCELERATION STRUCTURE {} {}", InstanceClass()->GetName(), Id());
+    HYP_LOG_TEMP("CREATE ACCELERATION STRUCTURE {} {} {}", InstanceClass()->GetName(), Id(), m_packedVerticesBuffer->GetDebugName());
 
     if (IsCreated())
     {

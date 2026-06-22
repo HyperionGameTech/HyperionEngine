@@ -13,8 +13,10 @@
 #include <Core/Reflection/Handle.hpp>
 
 #include <Rendering/Shared.hpp>
+#include <Rendering/RawBuffer.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
+
 
 namespace Hyperion {
 
@@ -57,15 +59,14 @@ class GpuTlasBase : public ObjectBase
 public:
     static Pool* GetAllocator() { return g_rhiPool; }
 
+    static constexpr uint32 MaxBlases = 1024;
+
     GpuTlasBase()
-        : m_meshDescriptionsBuffer(GpuBufferRef::Null())
+        : m_meshDescriptionsBuffer(MaxBlases, sizeof(MeshDescription))
     {
     }
 
-    virtual ~GpuTlasBase() override
-    {
-        EnqueueDeletion(std::move(m_meshDescriptionsBuffer));
-    }
+    virtual ~GpuTlasBase() override = default;
 
 #if HYP_DEBUG_MODE
     Name GetDebugName() const
@@ -84,7 +85,7 @@ public:
         return AccelerationStructureType::TOP_LEVEL;
     }
 
-    HYP_FORCE_INLINE const GpuBufferRef& GetMeshDescriptionsBuffer() const
+    HYP_FORCE_INLINE const StructuredBuffer& GetMeshDescriptionsBuffer() const
     {
         return m_meshDescriptionsBuffer;
     }
@@ -100,7 +101,7 @@ public:
     virtual RendererResult UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags) = 0;
 
 protected:
-    GpuBufferRef m_meshDescriptionsBuffer;
+    StructuredBuffer m_meshDescriptionsBuffer;
 
 #if HYP_DEBUG_MODE
     Name m_debugName;

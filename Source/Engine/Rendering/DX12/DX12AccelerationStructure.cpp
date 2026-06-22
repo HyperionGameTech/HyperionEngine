@@ -6,9 +6,11 @@
 
 #include <DX12Pch.hpp>
 
+#include <Rendering/DX12/DX12GpuBuffer.hpp>
 #include <Rendering/DX12/DX12AccelerationStructure.hpp>
 #include <Rendering/DX12/DX12RenderInterface.hpp>
 #include <Rendering/DX12/DX12CommandBuffer.hpp>
+
 #include <Rendering/Shared.hpp>
 #include <Rendering/Bindless.hpp>
 
@@ -16,6 +18,8 @@
 
 #include <Core/Math/MathUtil.hpp>
 #include <Core/Utilities/Range.hpp>
+
+#include <Core/Memory/Allocator/ArenaAllocator.hpp>
 
 #include <DX12AccelerationStructure.generated.inl>
 
@@ -141,12 +145,12 @@ DX12GpuBlas::DX12GpuBlas(
 {
     m_material = material;
 
-    m_geometries.PushBack(MakeHandle<DX12AccelerationGeometry>(
+    m_geometries.EmplaceBack(
         m_packedVerticesBuffer,
         m_packedIndicesBuffer,
         numVertices,
         numIndices,
-        m_material));
+        m_material);
 }
 
 DX12GpuBlas::~DX12GpuBlas()
@@ -286,8 +290,6 @@ RendererResult DX12GpuBlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
         CheckResultOrReturn(m_scratchBuffer->Create());
     }
 
-    // Use the current command buffer if it is recording, otherwise acquire a transient one
-    // (BLAS builds may be triggered outside the frame's Begin/End recording window).
     DX12CommandBuffer* pCmdBuffer = RI.GetCurrentCommandBuffer();
     bool ownCmdBuffer = false;
 
@@ -392,11 +394,10 @@ void DX12GpuTlas::AddGpuBlas(uint64 key, GpuBlas* blas)
     Assert(dx12Blas->IsCreated());
     Assert(!dx12Blas->GetGeometries().Empty());
 
-    for (const DX12AccelerationGeometryRef& geometry : dx12Blas->GetGeometries())
+    for (const DX12AccelerationGeometry& geometry : dx12Blas->GetGeometries())
     {
-        Assert(geometry != nullptr);
-        Assert(geometry->GetPackedVerticesBuffer() != nullptr);
-        Assert(geometry->GetPackedIndicesBuffer() != nullptr);
+        Assert(geometry.GetPackedVerticesBuffer() != nullptr);
+        Assert(geometry.GetPackedIndicesBuffer() != nullptr);
     }
 
     auto& entry = m_keyToBlasAndStorageId[key];
@@ -464,6 +465,8 @@ RendererResult DX12GpuTlas::Create()
 
         CheckResultOrReturn(blas->Create());
     }
+
+    m_meshDescriptionsBuffer.Initialize();
 
     CheckResultOrReturn(BuildInstancesBuffer());
 
@@ -580,8 +583,6 @@ RendererResult DX12GpuTlas::UpdateStructure(RTUpdateStateFlags& outUpdateStateFl
 
         D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS inputs {};
         inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
-        // PERFORM_UPDATE must be set for in-place updates; SourceAccelerationStructureData
-        // must be non-null and 256-byte aligned when this flag is present.
         inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE
             | D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE
             | D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE;
@@ -669,11 +670,10 @@ RendererResult DX12GpuTlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
         Assert(blas->IsCreated());
         Assert(!blas->GetGeometries().Empty());
 
-        for (const DX12AccelerationGeometryRef& geometry : blas->GetGeometries())
+        for (const DX12AccelerationGeometry& geometry : blas->GetGeometries())
         {
-            Assert(geometry != nullptr);
-            Assert(geometry->GetPackedVerticesBuffer() != nullptr);
-            Assert(geometry->GetPackedIndicesBuffer() != nullptr);
+            Assert(geometry.GetPackedVerticesBuffer() != nullptr);
+            Assert(geometry.GetPackedIndicesBuffer() != nullptr);
         }
     }
 
@@ -682,7 +682,6 @@ RendererResult DX12GpuTlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
 
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS inputs {};
     inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
-    // Full rebuild — do NOT include PERFORM_UPDATE; SourceAccelerationStructureData must be 0.
     inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE
         | D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE;
     inputs.NumDescs = uint32(m_blases.Size());
@@ -803,7 +802,7 @@ RendererResult DX12GpuTlas::BuildInstancesBuffer(uint32 first, uint32 last)
         return RendererResult();
     }
 
-    Array<D3D12_RAYTRACING_INSTANCE_DESC, RenderAllocator> instances;
+    Array<D3D12_RAYTRACING_INSTANCE_DESC, DX12TempAllocator> instances;
     instances.Resize(last - first);
 
     for (uint32 i = first; i < last; i++)
@@ -851,44 +850,12 @@ RendererResult DX12GpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 las
 
     last = MathUtil::Min(uint32(m_blases.Size()), last);
 
-    constexpr size_t minMeshDescriptionsBufferSize = sizeof(MeshDescription);
-    const size_t meshDescriptionsBufferSize = MathUtil::Max(minMeshDescriptionsBufferSize, sizeof(MeshDescription) * m_blases.Size());
-
-    bool meshDescriptionsBufferRecreated = false;
-
-    if (m_meshDescriptionsBuffer && m_meshDescriptionsBuffer->Size() < meshDescriptionsBufferSize)
-    {
-        EnqueueDeletion(std::move(m_meshDescriptionsBuffer));
-    }
-
-    if (!m_meshDescriptionsBuffer)
-    {
-        m_meshDescriptionsBuffer = RI.MakeGpuBuffer(GpuBufferType::StructuredBuffer, meshDescriptionsBufferSize);
-
-#if HYP_DEBUG_MODE
-        m_meshDescriptionsBuffer->SetDebugName(NAME("ASMeshDescriptionsBuffer"));
-#endif
-
-        m_meshDescriptionsBuffer->SetIsCpuAccessible(true);
-        CheckResultOrReturn(m_meshDescriptionsBuffer->Create());
-
-        meshDescriptionsBufferRecreated = true;
-    }
-
-    if (meshDescriptionsBufferRecreated)
-    {
-        m_meshDescriptionsBuffer->Memset(m_meshDescriptionsBuffer->Size(), 0x0);
-
-        first = 0;
-        last = uint32(m_blases.Size());
-    }
-
     if (m_blases.Empty() || last <= first)
     {
         return RendererResult();
     }
 
-    Array<MeshDescription, RenderAllocator> meshDescriptions;
+    Array<MeshDescription, DX12TempAllocator> meshDescriptions;
     meshDescriptions.Resize(last - first);
 
     for (uint32 i = first; i < last; i++)
@@ -901,8 +868,8 @@ RendererResult DX12GpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 las
 
         Assert(blas->GetGeometries().Any(), "No geometries added to GpuBlas node %u!", i);
 
-        Assert(blas->GetGeometries()[0]->GetPackedVerticesBuffer() && blas->GetGeometries()[0]->GetPackedVerticesBuffer()->IsCreated());
-        Assert(blas->GetGeometries()[0]->GetPackedIndicesBuffer() && blas->GetGeometries()[0]->GetPackedIndicesBuffer()->IsCreated());
+        Assert(blas->GetGeometries()[0].GetPackedVerticesBuffer()->IsCreated());
+        Assert(blas->GetGeometries()[0].GetPackedIndicesBuffer()->IsCreated());
 
         uint32 storageId = ~0u;
 
@@ -922,28 +889,23 @@ RendererResult DX12GpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 las
 
                 m_keyToBlasAndStorageId[key].second = storageId;
 
-                RI.bindlessStorage->AddResource(BindlessStorage_Buffers, storageId * 2, blas->GetGeometries()[0]->GetPackedVerticesBuffer());
-                RI.bindlessStorage->AddResource(BindlessStorage_Buffers, storageId * 2 + 1, blas->GetGeometries()[0]->GetPackedIndicesBuffer());
+                RI.bindlessStorage->AddResource(BindlessStorage_Buffers, storageId * 2, blas->GetGeometries()[0].GetPackedVerticesBuffer());
+                RI.bindlessStorage->AddResource(BindlessStorage_Buffers, storageId * 2 + 1, blas->GetGeometries()[0].GetPackedIndicesBuffer());
             }
         }
 
         meshDescription.bindlessIndex = storageId;
         meshDescription.materialIndex = blas->GetMaterialBinding();
-        meshDescription.numIndices = blas->GetGeometries()[0]->NumIndices();
-        meshDescription.numVertices = blas->GetGeometries()[0]->NumVertices();
+        meshDescription.numIndices = blas->GetGeometries()[0].NumIndices();
+        meshDescription.numVertices = blas->GetGeometries()[0].NumVertices();
     }
 
-    Assert(m_meshDescriptionsBuffer != nullptr);
-    Assert(m_meshDescriptionsBuffer->Size() >= (first + meshDescriptions.Size()) * sizeof(MeshDescription));
-
-    m_meshDescriptionsBuffer->Copy(
+    m_meshDescriptionsBuffer.Write(
         first * sizeof(MeshDescription),
         meshDescriptions.Size() * sizeof(MeshDescription),
         meshDescriptions.Data());
 
-    m_meshDescriptionsBuffer->Flush(
-        first * sizeof(MeshDescription),
-        meshDescriptions.Size() * sizeof(MeshDescription));
+    m_meshDescriptionsBuffer.FlushBatched();
 
     return RendererResult();
 }

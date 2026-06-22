@@ -249,8 +249,6 @@ Handle<Mesh> TerrainMeshBuilder::BuildMesh() const
 
     mesh->CalculateNormals();
 
-    mesh->UploadGpuData();
-
     return mesh;
 }
 

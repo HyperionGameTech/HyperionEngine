@@ -2922,8 +2922,6 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
             if (tlas && tlas->IsCreated())
             {
-                Assert(tlas->GetMeshDescriptionsBuffer() != nullptr);
-
                 rayTracingPassData->parentPass = &passData;
 
                 RenderSetup rayTracingRS = rs.Fork();

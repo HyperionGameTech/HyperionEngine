@@ -37,14 +37,14 @@ struct BuildMeshBlas : public RenderCommand
 
     GpuBufferRef packedVerticesBuffer;
     GpuBufferRef packedIndicesBuffer;
-    GpuBufferRef verticesStagingBuffer;
-    GpuBufferRef indicesStagingBuffer;
 
-    BuildMeshBlas(GpuBlasRef& blas, Array<float>&& packedVertices, Array<ubyte>&& packedIndices, const Handle<MaterialInstance>& material)
+    BuildMeshBlas(GpuBlasRef& blas, Array<float>&& packedVertices, Array<ubyte>&& packedIndices, Mesh* mesh, MaterialInstance* material)
         : packedVertices(std::move(packedVertices)),
           packedIndices(std::move(packedIndices)),
-          material(material)
+          material(MakeStrongRef(material))
     {
+        Assert(mesh && material);
+
         const size_t packedVerticesSize = this->packedVertices.ByteSize();
         const size_t packedIndicesSize = this->packedIndices.ByteSize();
 
@@ -56,12 +56,12 @@ struct BuildMeshBlas : public RenderCommand
             packedIndicesBuffer,
             uint32(packedVerticesSize),
             uint32(packedIndicesSize),
-            material,
+            this->material,
             Mat4f::identity);
 
 #if HYP_DEBUG_MODE
-        packedVerticesBuffer->SetDebugName(NAME_FMT("PackedVertexBuffer_GpuBlas_{}", blas->GetDebugName()));
-        packedIndicesBuffer->SetDebugName(NAME_FMT("PackedIndexBuffer_GpuBlas_{}", blas->GetDebugName()));
+        packedVerticesBuffer->SetDebugName(NAME_FMT("BLAS_VB_{}", mesh->GetName()));
+        packedIndicesBuffer->SetDebugName(NAME_FMT("BLAS_IB_{}", mesh->GetName()));
 #endif
 
         this->blas = blas;
@@ -71,8 +71,6 @@ struct BuildMeshBlas : public RenderCommand
     {
         EnqueueDeletion(std::move(packedVerticesBuffer));
         EnqueueDeletion(std::move(packedIndicesBuffer));
-        EnqueueDeletion(std::move(verticesStagingBuffer));
-        EnqueueDeletion(std::move(indicesStagingBuffer));
     }
 
     virtual RendererResult operator()() override
@@ -83,28 +81,18 @@ struct BuildMeshBlas : public RenderCommand
         CheckResultOrReturn(packedVerticesBuffer->Create());
         CheckResultOrReturn(packedIndicesBuffer->Create());
 
-        verticesStagingBuffer = RI.MakeGpuBuffer(GpuBufferType::StagingBuffer, packedVerticesSize);
-#if HYP_DEBUG_MODE
-        verticesStagingBuffer->SetDebugName(NAME_FMT("StagingBuffer_VB_GpuBlas_{}", blas->GetDebugName()));
-#endif
-        CheckResultOrReturn(verticesStagingBuffer->Create());
-        verticesStagingBuffer->Memset(packedVerticesSize, 0); // zero out
+        GpuBuffer* verticesStagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(packedVerticesSize);
         verticesStagingBuffer->Copy(packedVerticesSize, packedVertices.Data());
         verticesStagingBuffer->Flush(0, packedVerticesSize);
 
-        indicesStagingBuffer = RI.MakeGpuBuffer(GpuBufferType::StagingBuffer, packedIndicesSize);
-#if HYP_DEBUG_MODE
-        indicesStagingBuffer->SetDebugName(NAME_FMT("StagingBuffer_IB_GpuBlas_{}", blas->GetDebugName()));
-#endif
-        CheckResultOrReturn(indicesStagingBuffer->Create());
-        indicesStagingBuffer->Memset(packedIndicesSize, 0); // zero out
+        GpuBuffer* indicesStagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(packedIndicesSize);
         indicesStagingBuffer->Copy(packedIndicesSize, packedIndices.Data());
         indicesStagingBuffer->Flush(0, packedIndicesSize);
 
         CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
 
-        cr << InsertBarrier(verticesStagingBuffer.Get(), RS_COPY_SRC);
-        cr << InsertBarrier(indicesStagingBuffer.Get(), RS_COPY_SRC);
+        cr << InsertBarrier(verticesStagingBuffer, RS_COPY_SRC);
+        cr << InsertBarrier(indicesStagingBuffer, RS_COPY_SRC);
 
         cr << InsertBarrier(packedVerticesBuffer.Get(), RS_COPY_DST);
         cr << InsertBarrier(packedIndicesBuffer.Get(), RS_COPY_DST);
@@ -151,7 +139,7 @@ GpuBlasRef MeshBlasBuilder::Build(Mesh* mesh, MaterialInstance* material)
     }
 
     GpuBlasRef blas;
-    PUSH_RENDER_COMMAND(BuildMeshBlas, blas, std::move(packedVertices), std::move(packedIndices), MakeStrongRef(material));
+    PUSH_RENDER_COMMAND(BuildMeshBlas, blas, std::move(packedVertices), std::move(packedIndices), mesh, material);
 
 #if HYP_DEBUG_MODE
     blas->SetDebugName(NAME_FMT("MeshBlas_{}", mesh->GetName()));

@@ -20,20 +20,12 @@
 
 namespace Hyperion {
 
-HYP_CLASS(NoScriptBindings)
-class DX12AccelerationGeometry final : public ObjectBase
+class DX12AccelerationGeometry final
 {
-    HYP_OBJECT_BODY(DX12AccelerationGeometry);
-
     friend class DX12GpuTlas;
     friend class DX12GpuBlas;
 
 public:
-    static Pool* GetAllocator()
-    {
-        return g_rhiPool;
-    }
-
     DX12AccelerationGeometry(
         const DX12GpuBufferRef& packedVerticesBuffer,
         const DX12GpuBufferRef& packedIndicesBuffer,
@@ -41,7 +33,10 @@ public:
         uint32 numIndices,
         const Handle<MaterialInstance>& material);
 
-    ~DX12AccelerationGeometry() override;
+    DX12AccelerationGeometry(DX12AccelerationGeometry&& other) noexcept = default;
+    DX12AccelerationGeometry& operator=(DX12AccelerationGeometry&& other) noexcept = default;
+
+    ~DX12AccelerationGeometry();
 
     HYP_FORCE_INLINE const DX12GpuBufferRef& GetPackedVerticesBuffer() const
     {
@@ -73,18 +68,16 @@ public:
     RendererResult Create();
 
 private:
-    bool m_isCreated;
+    Handle<MaterialInstance> m_material;
 
     DX12GpuBufferRef m_packedVerticesBuffer;
     DX12GpuBufferRef m_packedIndicesBuffer;
 
     uint32 m_numVertices;
     uint32 m_numIndices;
-
-    Handle<MaterialInstance> m_material;
+    
+    bool m_isCreated;
 };
-
-using DX12AccelerationGeometryRef = Handle<DX12AccelerationGeometry>;
 
 class DX12AccelerationStructureBase
 {
@@ -113,7 +106,7 @@ public:
         m_flags = AccelerationStructureFlags(m_flags & ~flag);
     }
 
-    HYP_FORCE_INLINE const TList<DX12AccelerationGeometryRef, RenderAllocator>& GetGeometries() const
+    HYP_FORCE_INLINE const TList<DX12AccelerationGeometry, DX12Allocator>& GetGeometries() const
     {
         return m_geometries;
     }
@@ -151,7 +144,7 @@ protected:
 
     DX12GpuBufferRef m_buffer;
     DX12GpuBufferRef m_scratchBuffer;
-    TList<DX12AccelerationGeometryRef, DX12Allocator> m_geometries;
+    TList<DX12AccelerationGeometry, DX12Allocator> m_geometries;
     Mat4f m_transform;
     AccelerationStructureFlags m_flags;
 
@@ -232,9 +225,9 @@ private:
     RendererResult BuildMeshDescriptionsBuffer();
     RendererResult BuildMeshDescriptionsBuffer(uint32 first, uint32 last);
 
-    Array<DX12GpuBlas*, RenderAllocator> m_blases;
-    Array<uint64, RenderAllocator> m_keys;
-    TMap<uint64, Pair<DX12GpuBlas*, uint32>, RenderAllocator> m_keyToBlasAndStorageId;
+    Array<DX12GpuBlas*, DX12Allocator> m_blases;
+    Array<uint64, DX12Allocator> m_keys;
+    TMap<uint64, Pair<DX12GpuBlas*, uint32>, DX12Allocator> m_keyToBlasAndStorageId;
 
     DX12GpuBufferRef m_instancesBuffer;
 };
