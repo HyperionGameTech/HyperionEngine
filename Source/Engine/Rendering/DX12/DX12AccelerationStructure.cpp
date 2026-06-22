@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <DX12Pch.hpp>
 
@@ -99,32 +99,6 @@ DX12AccelerationStructureBase::~DX12AccelerationStructureBase()
     m_geometries.Clear();
     m_buffer.Reset();
     m_scratchBuffer.Reset();
-}
-
-void DX12AccelerationStructureBase::RemoveGeometry(uint32 index)
-{
-    const auto it = m_geometries.Begin() + index;
-
-    if (it >= m_geometries.End())
-    {
-        return;
-    }
-
-    EnqueueDeletion(std::move(*it));
-
-    m_geometries.Erase(it);
-
-    SetNeedsRebuildFlag();
-}
-
-void DX12AccelerationStructureBase::RemoveGeometry(const DX12AccelerationGeometryRef& geometry)
-{
-    auto it = m_geometries.Find(geometry);
-    if (it != m_geometries.End())
-    {
-        m_geometries.Erase(it);
-        SetNeedsRebuildFlag();
-    }
 }
 
 #if HYP_DEBUG_MODE

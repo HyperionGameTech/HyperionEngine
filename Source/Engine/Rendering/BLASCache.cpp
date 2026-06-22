@@ -88,9 +88,9 @@ void BLASCache::GetOrCreateBLAS(
 
     AssertDebug(entity->InstanceClass() == Entity::StaticClass()); // needed since we use ToIndex() - if we ever want to change this, we need subclassImpls as used elsewhere.
 
-    const uint64 newKey = MakeBLASKey(Span<const ObjIdBase>({ entity->Id(),
-                                                              mesh->Id(),
-                                                              material ? material->Id() : ObjId<MaterialInstance>() }));
+    ObjIdBase ids[] = { entity->Id(), mesh->Id(), material ? material->Id() : ObjId<MaterialInstance>() };
+
+    const uint64 newKey = MakeBLASKey(Span<const ObjIdBase>(ids, ids + std::size(ids)));
 
     outNewKey = newKey;
 
@@ -143,6 +143,7 @@ void BLASCache::GetOrCreateBLAS(
 
         // Material changed or BLAS is null, need to rebuild
         EnqueueDeletion(entry.blas);
+        entry.blas = nullptr;
     }
 
     it = m_impl->map.Emplace(newKey).first;

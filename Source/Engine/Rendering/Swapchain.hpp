@@ -30,7 +30,7 @@ public:
 
     virtual bool IsCreated() const = 0;
 
-    HYP_FORCE_INLINE const Array<GpuImageRef>& GetImages() const
+    HYP_FORCE_INLINE const Array<GpuImageRef, RHIAllocator>& GetImages() const
     {
         return m_images;
     }
@@ -40,7 +40,7 @@ public:
         return uint32(m_images.Size());
     }
 
-    HYP_FORCE_INLINE const Array<FramebufferRef>& GetFramebuffers() const
+    HYP_FORCE_INLINE const Array<FramebufferRef, RHIAllocator>& GetFramebuffers() const
     {
         return m_framebuffers;
     }
@@ -84,11 +84,13 @@ protected:
     {
     }
 
-    Array<GpuImageRef> m_images;
-    Array<FramebufferRef> m_framebuffers;
+    Array<GpuImageRef, RHIAllocator> m_images;
+    Array<FramebufferRef, RHIAllocator> m_framebuffers;
+
     Vec2u m_extent;
     TextureFormat m_imageFormat;
     uint32 m_acquiredImageIndex;
+
     bool m_needsRecreate;
     bool m_isPqHdr;
 };

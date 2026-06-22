@@ -3187,7 +3187,7 @@ void DeferredPass::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
         return;
     }
 
-    const uint32 currentFrameIndex = frame->GetFrameIndex();
+    const uint32 currentFrameIndex = GetFrameCounter() % NumFramesInFlight;
 
     RayTracingPassData* pd = DynamicCast<RayTracingPassData>(rs.passData);
 
@@ -3229,7 +3229,9 @@ void DeferredPass::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
         GpuBlas* blas;
 
         RI.blasCache->GetOrCreateBLAS(
-            entity, meshProxy->mesh, meshProxy->material, newKey, oldKey, blas);
+            entity, meshProxy->mesh, meshProxy->material,
+            newKey, oldKey,
+            blas);
 
         if (!blas)
         {

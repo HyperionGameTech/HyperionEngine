@@ -364,8 +364,8 @@ void VulkanSwapchain::Recreate()
 {
     HYP_LOG(RenderingBackend, Verbose, "Recreating Vulkan swapchain {} with new extent: {}", Id(), m_extent);
 
-    Array<VulkanGpuImageRef> oldImages = std::move(m_images);
-    Array<VulkanFramebufferRef> oldFramebuffers = std::move(m_framebuffers);
+    Array<VulkanGpuImageRef, VulkanAllocator> oldImages = std::move(m_images);
+    Array<VulkanFramebufferRef, VulkanAllocator> oldFramebuffers = std::move(m_framebuffers);
     Array<VulkanSemaphoreRef, VulkanAllocator> oldPresentSemaphores = std::move(m_presentSemaphores);
 
     m_oldHandle = m_handle;

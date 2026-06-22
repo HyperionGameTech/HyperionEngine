@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -29,7 +29,10 @@ class DX12AccelerationGeometry final : public ObjectBase
     friend class DX12GpuBlas;
 
 public:
-    static Pool* GetAllocator() { return g_rhiPool; }
+    static Pool* GetAllocator()
+    {
+        return g_rhiPool;
+    }
 
     DX12AccelerationGeometry(
         const DX12GpuBufferRef& packedVerticesBuffer,
@@ -110,24 +113,10 @@ public:
         m_flags = AccelerationStructureFlags(m_flags & ~flag);
     }
 
-    HYP_FORCE_INLINE const Array<DX12AccelerationGeometryRef, RenderAllocator>& GetGeometries() const
+    HYP_FORCE_INLINE const TList<DX12AccelerationGeometryRef, RenderAllocator>& GetGeometries() const
     {
         return m_geometries;
     }
-
-    HYP_FORCE_INLINE void AddGeometry(const DX12AccelerationGeometryRef& geometry)
-    {
-        if (!geometry || m_geometries.Contains(geometry))
-        {
-            return;
-        }
-
-        m_geometries.PushBack(geometry);
-        SetNeedsRebuildFlag();
-    }
-
-    void RemoveGeometry(uint32 index);
-    void RemoveGeometry(const DX12AccelerationGeometryRef& geometry);
 
     HYP_FORCE_INLINE const Mat4f& GetTransform() const
     {
@@ -162,7 +151,7 @@ protected:
 
     DX12GpuBufferRef m_buffer;
     DX12GpuBufferRef m_scratchBuffer;
-    Array<DX12AccelerationGeometryRef, RenderAllocator> m_geometries;
+    TList<DX12AccelerationGeometryRef, DX12Allocator> m_geometries;
     Mat4f m_transform;
     AccelerationStructureFlags m_flags;
 

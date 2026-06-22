@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -35,17 +35,12 @@ class Entity;
 
 extern Pool* g_vulkanPool;
 
-HYP_CLASS(NoScriptBindings)
-class VulkanAccelerationGeometry final : public ObjectBase
+class VulkanAccelerationGeometry final
 {
-    HYP_OBJECT_BODY(VulkanAccelerationGeometry);
-
     friend class VulkanGpuTlas;
     friend class VulkanGpuBlas;
 
 public:
-    static Pool* GetAllocator() { return g_vulkanPool; }
-
     VulkanAccelerationGeometry(
         const VulkanGpuBufferRef& packedVerticesBuffer,
         const VulkanGpuBufferRef& packedIndicesBuffer,
@@ -53,7 +48,26 @@ public:
         uint32 numIndices,
         const Handle<MaterialInstance>& material);
 
-    ~VulkanAccelerationGeometry() override;
+    VulkanAccelerationGeometry(VulkanAccelerationGeometry&& other) noexcept
+        : m_packedVerticesBuffer(std::move(other.m_packedIndicesBuffer)),
+          m_packedIndicesBuffer(std::move(other.m_packedIndicesBuffer)),
+          m_numVertices(other.m_numVertices),
+          m_numIndices(other.m_numIndices),
+          m_material(std::move(other.m_material)),
+          m_geometry(other.m_geometry),
+          m_isCreated(other.m_isCreated)
+    {
+        other.m_isCreated = false;
+    }
+
+    VulkanAccelerationGeometry& operator=(VulkanAccelerationGeometry&& other) noexcept = delete;
+
+    ~VulkanAccelerationGeometry();
+
+    HYP_FORCE_INLINE bool operator==(const VulkanAccelerationGeometry& other) const
+    {
+        return std::memcmp(&m_geometry, &other.m_geometry, sizeof(VkAccelerationStructureGeometryKHR)) == 0;
+    }
 
     HYP_FORCE_INLINE const VulkanGpuBufferRef& GetPackedVerticesBuffer() const
     {
@@ -85,8 +99,6 @@ public:
     RendererResult Create();
 
 private:
-    bool m_isCreated;
-
     VulkanGpuBufferRef m_packedVerticesBuffer;
     VulkanGpuBufferRef m_packedIndicesBuffer;
 
@@ -96,10 +108,9 @@ private:
     Handle<MaterialInstance> m_material;
 
     VkAccelerationStructureGeometryKHR m_geometry;
-};
 
-using VulkanAccelerationGeometryRef = Handle<VulkanAccelerationGeometry>;
-using VulkanAccelerationGeometryWeakRef = WeakHandle<VulkanAccelerationGeometry>;
+    bool m_isCreated : 1;
+};
 
 class VulkanAccelerationStructureBase
 {
@@ -138,28 +149,10 @@ public:
         m_flags = AccelerationStructureFlags(m_flags & ~flag);
     }
 
-    HYP_FORCE_INLINE const Array<VulkanAccelerationGeometryRef, VulkanAllocator>& GetGeometries() const
+    HYP_FORCE_INLINE const TList<VulkanAccelerationGeometry, VulkanAllocator>& GetGeometries() const
     {
         return m_geometries;
     }
-
-    HYP_FORCE_INLINE void AddGeometry(const VulkanAccelerationGeometryRef& geometry)
-    {
-        if (!geometry || m_geometries.Contains(geometry))
-        {
-            return;
-        }
-
-        m_geometries.PushBack(geometry);
-        SetNeedsRebuildFlag();
-    }
-
-    void RemoveGeometry(uint32 index);
-
-    /*! \brief Remove the geometry from the internal list of Nodes and set a flag that the
-     * structure needs to be rebuilt. Will not automatically rebuild.
-     */
-    void RemoveGeometry(const VulkanAccelerationGeometryRef& geometry);
 
     HYP_FORCE_INLINE const Mat4f& GetTransform() const
     {
@@ -200,7 +193,9 @@ protected:
 
     VulkanGpuBufferRef m_buffer;
     VulkanGpuBufferRef m_scratchBuffer;
-    Array<VulkanAccelerationGeometryRef, VulkanAllocator> m_geometries;
+
+    TList<VulkanAccelerationGeometry, VulkanAllocator> m_geometries;
+
     Mat4f m_transform;
     VkAccelerationStructureKHR m_accelerationStructure;
     uint64 m_deviceAddress;

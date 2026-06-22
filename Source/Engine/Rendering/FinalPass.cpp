@@ -91,7 +91,7 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
 
     const uint32 acquiredImageIndex = rs.swapchain->GetAcquiredImageIndex();
 
-    if (acquiredImageIndex == ~0u)
+    if (acquiredImageIndex >= rs.swapchain->GetFramebuffers().Size())
     {
         // invalid, skip the frame
         return;

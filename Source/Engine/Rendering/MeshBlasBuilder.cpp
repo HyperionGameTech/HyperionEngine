@@ -115,7 +115,7 @@ struct BuildMeshBlas : public RenderCommand
         cr << InsertBarrier(packedVerticesBuffer.Get(), RS_SHADER_RESOURCE);
         cr << InsertBarrier(packedIndicesBuffer.Get(), RS_SHADER_RESOURCE);
 
-        cr.Submit();
+        cr.Done();
 
         return {};
     }
