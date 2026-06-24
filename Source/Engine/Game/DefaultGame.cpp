@@ -94,7 +94,7 @@ void DefaultGame::OnLaunch_Impl()
     GetWorld()->AddSubsystem(MakeHandle<TouchControlsSubsystem>());
 #endif
 
-#if 1
+#if 0
     // Get MainScene
     Handle<AssetObject> mainSceneAsset = GetCurrentAssetRegistry()->GetAsset<Scene>(AssetBuckets::Scenes, "MainScene"_sh);
     Assert(mainSceneAsset.IsValid());
@@ -168,7 +168,6 @@ void DefaultGame::OnLaunch_Impl()
                 {
                     m_sun->SetIntensity(15.0f);
                     m_sun->SetNumShadowMapCascades(3);
-                    // m_sun->SetLightFlags(m_sun->GetLightFlags() & ~LightFlags::CacheStaticShadowMaps);
                 }
             }
         }

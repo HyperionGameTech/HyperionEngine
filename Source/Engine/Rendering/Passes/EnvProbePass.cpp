@@ -907,6 +907,8 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
         return;
     }
 
+    HYP_LOG(Rendering, Info, "Rendered {} views for EnvProbe {}", ByteUtil::BitCount(renderedViews), envProbe->GetName());
+
     if (envProbe->ShouldComputePrefilteredEnvMap())
     {
         EnvProbeHelpers::ComputePrefilteredEnvMap(frame, renderSetup, envProbe);

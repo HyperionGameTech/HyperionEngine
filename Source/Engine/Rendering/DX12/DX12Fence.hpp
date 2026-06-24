@@ -42,6 +42,10 @@ public:
         return m_value;
     }
 
+    uint64 GetCompletedValue() const;
+
+    bool CheckStatus();
+
     RendererResult Create();
     RendererResult Wait(bool timeoutLoop = false);
     void Increment();

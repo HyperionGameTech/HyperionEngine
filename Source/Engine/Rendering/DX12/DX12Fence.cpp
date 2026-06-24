@@ -77,6 +77,31 @@ DX12Fence::~DX12Fence()
     }
 }
 
+uint64 DX12Fence::GetCompletedValue() const
+{
+    if (!m_fence)
+    {
+        return 0;
+    }
+
+    return m_fence->GetCompletedValue();
+}
+
+bool DX12Fence::CheckStatus()
+{
+    if (HYP_UNLIKELY(!m_fence))
+    {
+        return false;
+    }
+
+    if (!isSubmitted)
+    {
+        return false;
+    }
+
+    return (m_fence->GetCompletedValue() >= m_value);
+}
+
 RendererResult DX12Fence::Create()
 {
     Assert(m_fence == nullptr);

@@ -60,7 +60,6 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 extern EngineStatGpuTimer g_statGpuFrameTime;
 
 extern EngineStatTimer g_statTotalStallTime;
-EngineStatTimer g_statWaitOnTransientFence("Rendering/CPU/WaitOnTransientFence");
 
 // @TODO Make these flags configurable
 // #define HYP_DX12_ENABLE_DEBUG_LAYER
@@ -451,11 +450,6 @@ RendererResult DX12RenderInterface::Initialize()
         return HYP_MAKE_ERROR(RendererError, "Failed to create transient sync fence", hr);
     }
 
-    for (auto& value : m_transientSyncValues)
-    {
-        value = 0;
-    }
-
     const DX12QueueData* queueData = GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
     Assert(queueData != nullptr);
 
@@ -629,11 +623,12 @@ bool DX12RenderInterface::CheckDeviceRemoved() const
 DX12Frame* DX12RenderInterface::GetCurrentFrame() const
 {
     if (m_frames.Empty())
+    {
         return nullptr;
+    }
 
     return m_frames[GetFrameCounter() % NumFramesInFlight].Get();
 }
-HYP_DISABLE_OPTIMIZATION;
 
 void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
 {
@@ -740,19 +735,15 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
         }
     }
 
-    // Wait on all fences for the frame that is about to be reused (the frame that was submitted NumFramesInFlight frames ago).
+    // The frame fence wait above guarantees ALL GPU work from this frame slot is
+    // complete, so every transient fence is guaranteed to be signaled.
+    // No per-fence CheckStatus() or Wait() needed — just drain into the recycle list.
     auto& fences = m_transientCommandBufferFences[frameIndex];
     for (auto it = fences.Begin(); it != fences.End();)
     {
         DX12Fence& fence = *it;
 
-        {
-            ENGINE_STAT_SCOPE(&g_statTotalStallTime);
-            ENGINE_STAT_SCOPE(&g_statWaitOnTransientFence);
-
-            fence.Wait(true);
-        }
-
+        fence.isSubmitted = false;
         m_recycledTransientCommandBufferFences.PushBack(std::move(fence));
 
         it = fences.Erase(it);
@@ -776,10 +767,7 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
 
     frame->OnFrameStart();
 
-    // Reset transient sync value for this frame index — the old frame's
-    // transient submissions have been CPU-waited on above, so the sync value
-    // from NumFramesInFlight ago is no longer needed.
-    m_transientSyncValues[frameIndex] = 0;
+    m_transientSyncValues[frameIndex].Set(0, MemoryOrder::RELEASE);
 }
 
 DX12SwapchainRef DX12RenderInterface::CreateSwapchain(ApplicationWindow* window, const Vec2u& extent)
@@ -931,10 +919,9 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
         }
     }
 
-    // Signal the transient sync fence so that the main frame submission can wait on this value and guarantee ordering.
+    // Signal the transient sync fence
     {
-        uint64& syncValue = m_transientSyncValues[frameIndex];
-        ++syncValue;
+        const uint64 syncValue = m_transientSyncValues[frameIndex].Increment(1, MemoryOrder::ACQUIRE_RELEASE) + 1;
 
         hr = commandQueue->Signal(m_transientSyncFence.Get(), syncValue);
         if (FAILED(hr))
@@ -1268,7 +1255,7 @@ void DX12RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
 void DX12RenderInterface::InsertTransientSyncBarrier()
 {
     const uint32 frameIndex = GetFrameCounter() % NumFramesInFlight;
-    const uint64 syncValue = m_transientSyncValues[frameIndex];
+    const uint64 syncValue = m_transientSyncValues[frameIndex].Get(MemoryOrder::ACQUIRE);
 
     if (syncValue > 0 && m_transientSyncFence != nullptr)
     {

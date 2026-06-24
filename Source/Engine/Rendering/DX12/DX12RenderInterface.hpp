@@ -21,6 +21,8 @@
 
 #include <Core/Memory/Pimpl.hpp>
 
+#include <atomic>
+
 #include <D3D12MemAlloc.h>
 
 #include <dxgi1_6.h>
@@ -190,7 +192,7 @@ private:
     Mutex m_transientCommandBuffersMutex;
 
     ComPtr<ID3D12Fence> m_transientSyncFence;
-    FixedArray<uint64, NumFramesInFlight> m_transientSyncValues;
+    AtomicVar<uint64> m_transientSyncValues[NumFramesInFlight];
 
     ComPtr<IDXGIAdapter1> m_hardwareAdapter;
 

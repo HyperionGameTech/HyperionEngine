@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <VulkanPch.hpp>
 
@@ -38,9 +38,9 @@ VulkanFence& VulkanFence::operator=(VulkanFence&& other) noexcept
         if (handle != VK_NULL_HANDLE)
         {
             EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = handle]()
-                {
-                    vkDestroyFence(RI.GetDevice()->GetDevice(), handle, nullptr);
-                }));
+                                                          {
+                                                              vkDestroyFence(RI.GetDevice()->GetDevice(), handle, nullptr);
+                                                          }));
         }
 
         handle = other.handle;
@@ -60,9 +60,9 @@ VulkanFence::~VulkanFence()
     if (handle != VK_NULL_HANDLE)
     {
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = handle]()
-            {
-                vkDestroyFence(RI.GetDevice()->GetDevice(), handle, nullptr);
-            }));
+                                                      {
+                                                          vkDestroyFence(RI.GetDevice()->GetDevice(), handle, nullptr);
+                                                      }));
 
         handle = VK_NULL_HANDLE;
     }
@@ -90,7 +90,10 @@ void VulkanFence::Create(bool createSignaled)
 
 bool VulkanFence::CheckStatus()
 {
-    Assert(handle != VK_NULL_HANDLE);
+    if (HYP_UNLIKELY(handle == VK_NULL_HANDLE))
+    {
+        return false;
+    }
 
     if (!isSubmitted)
     {

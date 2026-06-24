@@ -557,23 +557,31 @@ EngineStatGroup::~EngineStatGroup()
 
 #pragma region EngineStatGpuScope
 
+static constexpr bool EnableGpuStats = true;
+
 EngineStatGpuScope::EngineStatGpuScope(EngineStatGpuTimer* inTimer, CommandRecorderBase* inCommandRecorder)
     : timer(inTimer),
       commandRecorder(inCommandRecorder)
 {
     AssertDebug(timer != nullptr);
 
-    if (!commandRecorder)
+    if constexpr (EnableGpuStats)
     {
-        commandRecorder = &RI.GetCurrentFrame()->cr;
-    }
+        if (!commandRecorder)
+        {
+            commandRecorder = &RI.GetCurrentFrame()->cr;
+        }
 
-    *commandRecorder << RecordGpuTimestamp(timer, /* isStart */ true);
+        *commandRecorder << RecordGpuTimestamp(timer, /* isStart */ true);
+    }
 }
 
 EngineStatGpuScope::~EngineStatGpuScope()
 {
-    *commandRecorder << RecordGpuTimestamp(timer, /* isStart */ false);
+    if constexpr (EnableGpuStats)
+    {
+        *commandRecorder << RecordGpuTimestamp(timer, /* isStart */ false);
+    }
 }
 
 #pragma endregion EngineStatGpuScope

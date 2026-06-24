@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <ScenePch.hpp>
 
@@ -589,9 +589,8 @@ DirectionalLight::DirectionalLight(const Vec3f& direction, const Color& color, f
     : Light(LightType::Directional, direction.Normalized(), color, intensity, 0.0f)
 {
     m_lightFlags |= LightFlags::CacheStaticShadowMaps;
-    m_numShadowMapCascades = 2;
+    m_numShadowMapCascades = 4;
 }
-
 
 #pragma endregion DirectionalLight
 

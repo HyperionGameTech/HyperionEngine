@@ -39,6 +39,7 @@ BoundingBox CalculateCascadeBounds(
     const Vec3f& lightDir)
 {
     Frustum cascadeFrustum = mainCameraFrustum.SubFrustum(splitNear, splitFar, maxFar);
+
     const FixedArray<Vec3f, 8>& frustumCorners = cascadeFrustum.GetCorners();
 
     Vec3f frustumCenter(0.0f);
@@ -51,19 +52,21 @@ BoundingBox CalculateCascadeBounds(
     frustumCenter /= 8.0f;
 
     float sphereRadius = 0.0f;
+
     for (uint8 i = 0; i < 8; ++i)
     {
         float dist = (frustumCorners[i] - frustumCenter).Length();
+
         sphereRadius = MathUtil::Max(sphereRadius, dist);
     }
 
-    Vec4f centerLS4 = shadowViewMatrix.TransformVector(Vec4f(frustumCenter, 1.0f));
-    Vec3f centerLS = centerLS4.GetXYZ();
+    Vec4f centerLS = shadowViewMatrix.TransformVector(Vec4f(frustumCenter, 1.0f));
+    centerLS /= centerLS.w;
 
     float worldUnitsPerTexel = (sphereRadius * 2.0f) / static_cast<float>(shadowMapResolution.Max());
 
-    centerLS.x = std::floor(centerLS.x / worldUnitsPerTexel) * worldUnitsPerTexel;
-    centerLS.y = std::floor(centerLS.y / worldUnitsPerTexel) * worldUnitsPerTexel;
+    centerLS.x = MathUtil::Floor(centerLS.x / worldUnitsPerTexel) * worldUnitsPerTexel;
+    centerLS.y = MathUtil::Floor(centerLS.y / worldUnitsPerTexel) * worldUnitsPerTexel;
 
     BoundingBox finalBounds;
     finalBounds.min.x = centerLS.x - sphereRadius;
