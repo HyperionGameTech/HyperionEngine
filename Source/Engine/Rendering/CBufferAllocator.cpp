@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -24,7 +24,7 @@ struct CBufferAllocatorBlock
     uint32 lastUsedFrame;
 
     CBufferAllocatorBlock()
-        : buffer(new GpuBuffer{ GpuBufferType::ConstantBuffer, CBufferSize, 256 }),
+        : buffer(new GpuBuffer { GpuBufferType::ConstantBuffer, CBufferSize, 256 }),
           offset(0),
           lastUsedFrame(UINT32_MAX)
     {
@@ -157,7 +157,29 @@ void CBufferAllocator::Commit(GpuBuffer*& outBuffer, size_t& outOffset, size_t& 
     scratchAlignment = 0;
 }
 
-void* CBufferAllocator::Allocate(size_t count, size_t alignment, GpuBuffer*& outBuffer, size_t& outStartOffset)
+HYP_NODISCARD void* CBufferAllocator::Allocate(size_t count, size_t alignment)
+{
+    if (count == 0)
+    {
+        return nullptr;
+    }
+
+    const uint32 idx = CurrentRenderThreadIndex();
+
+    auto& scratch = m_scratch[idx];
+
+    const size_t alignedCount = alignment > 0 ? ByteUtil::AlignAs(count, alignment) : count;
+    const size_t scratchOffset = ByteUtil::AlignAs(scratch.Size(), alignment);
+
+    scratch.SetSize(scratchOffset + alignedCount);
+
+    m_scratchAlignment[idx] = MathUtil::Max(m_scratchAlignment[idx], alignment);
+
+    // return the allocated chunk
+    return scratch.Data() + scratchOffset;
+}
+
+HYP_NODISCARD void* CBufferAllocator::Allocate(size_t count, size_t alignment, GpuBuffer*& outBuffer, size_t& outStartOffset)
 {
     if (alignment < m_minAllocationAlignment)
         alignment = m_minAllocationAlignment;

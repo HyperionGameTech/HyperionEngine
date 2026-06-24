@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <Core/Math/Frustum.hpp>
 
@@ -202,6 +202,36 @@ Vec3f Frustum::GetIntersectionPoint(uint32 planeIndex0, uint32 planeIndex1, uint
     Vec3f r = (bxc * -planes[0].w) - (cxa * planes[1].w) - (axb * planes[2].w);
 
     return r * (1.0f / planes[0].GetXYZ().Dot(bxc));
+}
+
+HYP_NODISCARD Frustum Frustum::SubFrustum(
+    const float inNear,
+    const float inFar,
+    const float inMaxFar) const
+{
+    Frustum sub;
+
+    // const float nearAdjusted = inNear * inMaxFar;
+    // const float farAdjusted = inFar * inMaxFar;
+
+    for (int i = 0; i < 4; ++i)
+    {
+        sub.corners[i] = MathUtil::Lerp(corners[i], corners[i + 4], inNear);
+        sub.corners[i + 4] = MathUtil::Lerp(corners[i], corners[i + 4], inFar);
+    }
+
+    sub.planes[0] = planes[0];
+    sub.planes[1] = planes[1];
+    sub.planes[2] = planes[2];
+    sub.planes[3] = planes[3];
+
+    sub.planes[4] = Vec4f(planes[4].GetXYZ(), 0.0f);
+    sub.planes[4].w = -sub.planes[4].GetXYZ().Dot(sub.corners[0]);
+
+    sub.planes[5] = Vec4f(planes[5].GetXYZ(), 0.0f);
+    sub.planes[5].w = -sub.planes[5].GetXYZ().Dot(sub.corners[4]);
+
+    return sub;
 }
 
 } // namespace Hyperion

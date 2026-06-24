@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -142,7 +142,7 @@ static Camera* CreateShadowCamera(Light* light, uint32 cascadeIndex)
     case LightType::Point:
         shadowMapCamera->SetFOV(90.0f);
         shadowMapCamera->SetNearClip(0.01f);
-        shadowMapCamera->SetFarClip(1000.0f);//light->GetRadius());
+        shadowMapCamera->SetFarClip(1000.0f); // light->GetRadius());
 
         shadowMapCamera->AddCameraController(MakeHandle<PerspectiveCameraController>());
 
@@ -158,6 +158,9 @@ static Camera* CreateShadowCamera(Light* light, uint32 cascadeIndex)
 
 static ViewDesc GetViewDesc(Light* light, bool isStatic, uint32 cascadeIndex, ShadowMap& shadowMap, Camera& camera)
 {
+    const bool isDirectional = (light->GetLightType() == LightType::Directional);
+    const bool isOmni = (light->GetLightType() == LightType::Point);
+
     const bool hasBakedStaticShadows = (light->GetLightFlags() & LightFlags::BakeStaticShadows);
     const bool cacheStaticShadowMaps = !hasBakedStaticShadows && (light->GetLightFlags() & LightFlags::CacheStaticShadowMaps);
     const bool splitStaticAndDynamic = cacheStaticShadowMaps || hasBakedStaticShadows;
@@ -165,10 +168,10 @@ static ViewDesc GetViewDesc(Light* light, bool isStatic, uint32 cascadeIndex, Sh
     ViewDesc viewDesc {};
     viewDesc.flags = DefaultShadowViewFlags | ViewFlags::EXTERNAL_RENDERTARGET; // use atlas as target
 
-    if (light->IsA<PointLight>())
+    if (isOmni)
     {
         viewDesc.flags |= ViewFlags::CUBEMAP_FACE_VIEW;
-        
+
         viewDesc.viewIndex = cascadeIndex;
     }
 
@@ -181,8 +184,8 @@ static ViewDesc GetViewDesc(Light* light, bool isStatic, uint32 cascadeIndex, Sh
     MaterialAttributes materialAttributes {};
     materialAttributes.shaderName = shaderDesc.name;
     materialAttributes.shaderProperties = shaderDesc.properties;
-    materialAttributes.flags = MAF_DEPTH_WRITE | MAF_DEPTH_TEST | MAF_DEPTH_CLAMP | MAF_DEPTH_BIAS;
-    materialAttributes.depthBias = light->IsA<DirectionalLight>() ? 4 : 0;
+    materialAttributes.flags = MAF_DEPTH_WRITE | MAF_DEPTH_TEST | MAF_DEPTH_BIAS | MAF_DEPTH_CLAMP;
+    materialAttributes.depthBias = isDirectional ? 4 : 0;
     materialAttributes.depthBiasSlope = 0.1f;
     materialAttributes.cullFaces = FCM_FRONT;
 
@@ -260,12 +263,12 @@ public:
             if (allViews.Any())
             {
                 EnqueueDeletion(FunctionWrapper<Proc<void()>>([allViews = std::move(allViews)]()
-                    {
-                        for (View* view : allViews)
-                        {
-                            view->Release();
-                        }
-                    }));
+                                                              {
+                                                                  for (View* view : allViews)
+                                                                  {
+                                                                      view->Release();
+                                                                  }
+                                                              }));
             }
 
             if (entry.camera)
@@ -281,8 +284,7 @@ public:
     TFlatMap<ShadowMapCacheKey, CachedShadowMapData, RenderAllocator> cache;
 
     TSlimArray<Camera*> deferredDeletionCameras;
-
-    volatile int numDeferredDeletionCameras = 0;
+    AtomicFlag hasDeferredDeletionCameras;
 
     SharedMutex mutex;
 };
@@ -345,33 +347,28 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
     auto initShadowCascade = [this, cascadeIndex, light, isOmni](CachedShadowMapData& entry) -> ShadowMap*
     {
         static constexpr ShadowMapType LightTypeToShadowMapType[uint32(LightType::Max)] = {
-            SMT_DIRECTIONAL,    // Directional
-            SMT_OMNI,           // Point
-            SMT_SPOT,           // Spot
-            SMT_SPOT            // AreaRect
+            SMT_DIRECTIONAL, // Directional
+            SMT_OMNI,        // Point
+            SMT_SPOT,        // Spot
+            SMT_SPOT         // AreaRect
         };
 
         const ShadowMapType shadowMapType = LightTypeToShadowMapType[uint32(light->GetLightType())];
 
         const ShadowMapFilter filterMode = (light->GetLightType() == LightType::Directional)
-            ? SMF_CONTACT_HARDENED : SMF_STANDARD;
+            ? SMF_CONTACT_HARDENED
+            : SMF_STANDARD;
 
-        ShadowMap* shadowMap = m_impl->allocator.AllocateShadowMap(
+        ShadowMap* newShadowMap = m_impl->allocator.AllocateShadowMap(
             shadowMapType, filterMode, light->GetShadowMapDimensions());
 
-        if (shadowMap)
-        {
-            if (isOmni)
-            {
-                entry.shadowMaps[0] = shadowMap;
-            }
-            else
-            {
-                entry.shadowMaps[cascadeIndex] = shadowMap;
-            }
-        }
+        ShadowMap*& outShadowMap = isOmni
+            ? entry.shadowMaps[0]
+            : entry.shadowMaps[cascadeIndex];
 
-        return shadowMap;
+        Assert(outShadowMap == nullptr, "Overwriting allocated shadow map!");
+
+        return (outShadowMap = newShadowMap);
     };
 
     auto it = m_impl->cache.Find(key);
@@ -383,9 +380,7 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
 
         auto* views = isStatic ? &entry->shadowViewsStatic : &entry->shadowViewsDynamic;
 
-        if (cascadeIndex >= entry->shadowViewsStatic.Size()
-            || !entry->camera
-            || !entry->shadowMaps[isOmni ? 0 : cascadeIndex])
+        if (!entry->camera || !entry->shadowMaps[isOmni ? 0 : cascadeIndex])
         {
             sharedLock.Reset();
             uniqueLock.Reset(m_impl->mutex);
@@ -395,12 +390,9 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
                 entry->camera = CreateShadowCamera(light, cascadeIndex);
             }
 
-            if (cascadeIndex >= entry->shadowViewsStatic.Size())
+            if (!initShadowCascade(*entry))
             {
-                if (!initShadowCascade(*entry))
-                {
-                    return nullptr;
-                }
+                return nullptr;
             }
         }
 
@@ -531,10 +523,7 @@ View* ShadowMapCache::TryGetShadowView(
     {
         auto& shadowViews = isStatic ? it->second.shadowViewsStatic : it->second.shadowViewsDynamic;
 
-        if (cascadeIndex < shadowViews.Size())
-        {
-            return shadowViews[cascadeIndex];
-        }
+        return shadowViews[cascadeIndex];
     }
 
     return nullptr;
@@ -544,17 +533,18 @@ ShadowMap* ShadowMapCache::GetShadowMap(
     Light* light,
     View* view,
     uint32 cascadeIndex,
-    Span<View*>& outShadowViewsDynamic,
-    Span<View*>& outShadowViewsStatic) const
+    View*& outShadowViewDynamic,
+    View*& outShadowViewStatic) const
 {
     const ShadowMapCacheKey key = MakeShadowMapCacheKey(light, view);
 
     TSharedLock<SharedMutex> sharedLock(m_impl->mutex);
 
-    const bool cascadesAreCubeFaces = light->IsA<PointLight>();
+    const bool isOmni = (light->GetLightType() == LightType::Point);
+    const bool cascadesAreCubeFaces = isOmni;
 
-    outShadowViewsDynamic = nullptr;
-    outShadowViewsStatic = nullptr;
+    outShadowViewDynamic = nullptr;
+    outShadowViewStatic = nullptr;
 
     auto it = m_impl->cache.Find(key);
 
@@ -566,8 +556,8 @@ ShadowMap* ShadowMapCache::GetShadowMap(
 
         if (shadowMapIndex < entry.shadowMaps.Size())
         {
-            outShadowViewsDynamic = entry.shadowViewsDynamic.ToSpan();
-            outShadowViewsStatic = entry.shadowViewsStatic.ToSpan();
+            outShadowViewDynamic = entry.shadowViewsDynamic[cascadeIndex];
+            outShadowViewStatic = entry.shadowViewsStatic[cascadeIndex];
 
             AtomicExchange(&entry.lastUsedFrame, int64(GetFrameCounter()));
 
@@ -611,7 +601,8 @@ bool ShadowMapCache::Remove(const ShadowMapCacheKey& key)
 
     if (allViews.Any())
     {
-        EnqueueDeletion(FunctionWrapper<Proc<void()>>([allViews = std::move(allViews)]()
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>(
+            [allViews = std::move(allViews)]()
             {
                 for (View* view : allViews)
                 {
@@ -623,8 +614,7 @@ bool ShadowMapCache::Remove(const ShadowMapCacheKey& key)
     if (entry.camera)
     {
         m_impl->deferredDeletionCameras.PushBack(entry.camera);
-
-        AtomicIncrement(&m_impl->numDeferredDeletionCameras);
+        m_impl->hasDeferredDeletionCameras.Store(true);
     }
 
     for (ShadowMap* shadowMap : entry.shadowMaps)
@@ -648,7 +638,7 @@ bool ShadowMapCache::Remove(const ShadowMapCacheKey& key)
 
 void ShadowMapCache::Update()
 {
-    if (AtomicAdd(&m_impl->numDeferredDeletionCameras, 0) == 0)
+    if (!m_impl->hasDeferredDeletionCameras.Load())
     {
         return;
     }
@@ -660,9 +650,9 @@ void ShadowMapCache::Update()
         camera->Release();
     }
 
-    AtomicExchange(&m_impl->numDeferredDeletionCameras, 0);
-
     m_impl->deferredDeletionCameras.Resize(0);
+
+    m_impl->hasDeferredDeletionCameras.Store(false);
 }
 
 } // namespace Hyperion

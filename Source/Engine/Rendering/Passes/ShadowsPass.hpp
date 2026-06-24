@@ -71,17 +71,17 @@ private:
     {
         FixedArray<ShadowMap*, MaxShadowMapCascades> shadowMaps;
 
-        TFatArray<View*, FixedAllocator<6>> shadowViewsDynamic;
-        TFatArray<View*, FixedAllocator<6>> shadowViewsStatic;
+        FixedArray<View*, 6> shadowViewsDynamic;
+        FixedArray<View*, 6> shadowViewsStatic;
 
         FixedArray<FramebufferRef, 6> shadowMapFramebuffers;
 
-        Handle<Texture> cachedShadowMapTexture;
+        FixedArray<Handle<Texture>, 6> cachedShadowMapTextures;
 
         uint32 lastUsedFrame;
     };
 
-    TMap<uint64, CachedShadowMapData, RenderAllocator> m_cachedShadowMapData;
+    TFlatMap<uint64, CachedShadowMapData, RenderAllocator> m_cachedShadowMapData;
 };
 
 class PointLightShadowsPass : public ShadowsPassBase

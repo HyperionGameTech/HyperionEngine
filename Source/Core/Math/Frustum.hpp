@@ -77,6 +77,11 @@ struct CORE_API Frustum
     void StoreViewProjectionMatrix(Mat4f& outVP) const;
 
     Vec3f GetIntersectionPoint(uint32 planeIndex0, uint32 planeIndex1, uint32 planeIndex2) const;
+
+    HYP_NODISCARD Frustum SubFrustum(
+        const float inNear,
+        const float inFar,
+        const float inMaxFar) const;
 };
 
 } // namespace Hyperion

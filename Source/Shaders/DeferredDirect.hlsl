@@ -86,10 +86,24 @@ DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
     Camera camera;
     Light currentLight;
 #ifdef LIGHT_TYPE_DIRECTIONAL
-    ShadowMap shadowMap0;
-    ShadowMap shadowMap1;
-    ShadowMap shadowMap2;
-    ShadowMap shadowMap3;
+    // CSM
+
+    float4x4 shadowViewMat; // shared for all cascades
+
+    float4 atlasU;
+    float4 atlasV;
+    float4 atlasScaleX;
+    float4 atlasScaleY;
+
+    uint4 atlasSlice;
+
+    float4 cascadeScaleX;
+    float4 cascadeScaleY;
+    float4 cascadeScaleZ;
+
+    float4 cascadeOffsetX;
+    float4 cascadeOffsetY;
+    float4 cascadeOffsetZ;
 #else // !LIGHT_TYPE_DIRECTIONAL
     ShadowMap shadowMap;
 #endif // LIGHT_TYPE_DIRECTIONAL
@@ -421,7 +435,36 @@ PSOutput PSMain(PSInput input)
 #elif defined(LIGHT_TYPE_DIRECTIONAL)
     if ((currentLight.flags & LF_SHADOW_CASTER) != 0)
     {
-        shadow = GetShadow(shadowMap0, currentLight.flags, position.xyz, texcoord, camera.dimensions.xy, NdotL);
+        float4 positionLS = mul(shadowViewMat, position);
+        positionLS /= positionLS.w;
+
+        float4 uvX = positionLS.x * cascadeScaleX + cascadeOffsetX;
+        float4 uvY = positionLS.y * cascadeScaleY + cascadeOffsetY;
+        float4 uvZ = positionLS.z * cascadeScaleZ + cascadeOffsetZ;
+        
+        float4 distX = abs(uvX - 0.5);
+        float4 distY = abs(uvY - 0.5);
+        float4 distZ = abs(uvZ - 0.5);
+        
+        float4 maxDist = max(distX, max(distY, distZ));
+        
+        float4 insideMask = step(maxDist, (float4)0.5);
+        
+        int cascadeIndex = 4 - (int)dot(insideMask, (float4)1.0);
+        cascadeIndex = min(cascadeIndex, 3);
+        
+        float4 shadowMapCoord;
+        shadowMapCoord.x = uvX[cascadeIndex];
+        shadowMapCoord.y = uvY[cascadeIndex];
+        shadowMapCoord.z = uvZ[cascadeIndex];
+        shadowMapCoord.w = (float)atlasSlice[cascadeIndex];
+
+        float2 atlasUV = float2(atlasU[cascadeIndex], atlasV[cascadeIndex]);
+        float2 atlasScale = float2(atlasScaleX[cascadeIndex], atlasScaleY[cascadeIndex]);
+
+        shadow = GetShadowPCF(shadowMapCoord,
+            atlasUV, atlasScale,
+            position.xyz, texcoord, camera.dimensions.xy, NdotL);
     }
 #endif // LIGHT_TYPE_POINT
 

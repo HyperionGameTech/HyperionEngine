@@ -704,12 +704,22 @@ RendererResult DX12GpuTlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
 
     if (!m_buffer || m_buffer->Size() < accelerationStructureSize)
     {
+        if (m_buffer.IsValid())
+        {
+            EnqueueDeletion(std::move(m_buffer));
+        }
+
         m_buffer = RI.MakeGpuBuffer(GpuBufferType::AccelerationStructureBuffer, accelerationStructureSize, 256);
         CheckResultOrReturn(m_buffer->Create());
     }
 
     if (!m_scratchBuffer || m_scratchBuffer->Size() < scratchBufferSize)
     {
+        if (m_scratchBuffer.IsValid())
+        {
+            EnqueueDeletion(std::move(m_scratchBuffer));
+        }
+
         m_scratchBuffer = RI.MakeGpuBuffer(GpuBufferType::ScratchBuffer, scratchBufferSize);
         CheckResultOrReturn(m_scratchBuffer->Create());
     }
@@ -791,7 +801,7 @@ RendererResult DX12GpuTlas::BuildInstancesBuffer(uint32 first, uint32 last)
 
     if (instancesBufferRecreated)
     {
-        m_instancesBuffer->Memset(m_instancesBuffer->Size(), 0x0);
+        m_instancesBuffer->Memset(m_instancesBuffer->Size(), 0);
 
         first = 0;
         last = uint32(m_blases.Size());
@@ -811,11 +821,12 @@ RendererResult DX12GpuTlas::BuildInstancesBuffer(uint32 first, uint32 last)
         Assert(blas != nullptr);
 
         D3D12_RAYTRACING_INSTANCE_DESC& desc = instances[i - first];
+        desc = {};
         desc.InstanceID = i;
         desc.InstanceContributionToHitGroupIndex = i;
         desc.Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
 
-        const Mat4f transform = blas->GetTransform();
+        const Mat4f& transform = blas->GetTransform();
         std::memcpy(desc.Transform, transform.values, sizeof(desc.Transform));
 
         desc.AccelerationStructure = blas->GetBuffer()->GetResource()->GetGPUVirtualAddress();

@@ -163,7 +163,7 @@ struct ResourceSubtypeData final
           writeBufferDataFn(writeBufferDataFn)
     {
         static_assert(NumResourceBinders <= MaxResourceBindersPerType,
-            "Number of resource binders exceeds MaxResourceBindersPerType!");
+                      "Number of resource binders exceeds MaxResourceBindersPerType!");
 
         // copy resource binders
         for (size_t i = 0; i < NumResourceBinders; i++)
@@ -279,8 +279,8 @@ public:
                 }
 
                 AssertDebug(!container.dataByType.HasIndex(staticIndex),
-                    "ResourceSubtypeData for resource class '{}' has already been registered!",
-                    *resourceClass->GetName());
+                            "ResourceSubtypeData for resource class '{}' has already been registered!",
+                            *resourceClass->GetName());
 
                 container.dataByType.Emplace(
                     staticIndex,
@@ -291,7 +291,7 @@ public:
                     writeBufferDataFn);
 
                 HYP_LOG(Rendering, Verbose, "Registered resource container for resource class '{}'",
-                    *resourceClass->GetName());
+                        *resourceClass->GetName());
             });
     }
 };
@@ -306,12 +306,12 @@ public:
 template <class ElementType, class ProxyType>
 static inline void CopyRenderProxy(ResourceSubtypeData& subtypeData, const ObjId<ElementType>& id, ProxyType* newProxy)
 {
-    //AssertDebug(newProxy != nullptr);
+    // AssertDebug(newProxy != nullptr);
 
-    //AssertDebug(subtypeData.typeInfo->id == id.GetTypeId(),
-    //    "Attempting to use ID for type {} as index into proxy collection that requires index type {}",
-    //    LookupTypeName(id.GetTypeId()),
-    //    subtypeData.typeInfo->name);
+    // AssertDebug(subtypeData.typeInfo->id == id.GetTypeId(),
+    //     "Attempting to use ID for type {} as index into proxy collection that requires index type {}",
+    //     LookupTypeName(id.GetTypeId()),
+    //     subtypeData.typeInfo->name);
 
     const uint32 idx = id.ToIndex();
 
@@ -463,7 +463,7 @@ static inline void SyncResourcesT(
          resources,
          static_cast<typename TupleElement_Tuple<Indices, RenderProxyList::ResourceTrackerTypes>::Type&>(*dstResourceTrackers[Indices]),
          static_cast<const typename TupleElement_Tuple<Indices, RenderProxyList::ResourceTrackerTypes>::Type&>(*srcResourceTrackers[Indices])),
-        ...);
+     ...);
 }
 
 static inline void CopyDependencies(
@@ -482,7 +482,8 @@ static inline void CopyDependencies(
         std::make_index_sequence<TupleSize<RenderProxyList::ResourceTrackerTypes>::value>());
 
     // Copy cached VP matrix so render subsystem can use it as it was written from the main thread
-    dst.cachedViewProjMatrix = src.cachedViewProjMatrix;
+    dst.cachedMatrices = src.cachedMatrices;
+    dst.cachedBounds = src.cachedBounds;
 
     if (src.useOrdering)
     {
@@ -493,7 +494,8 @@ static inline void CopyDependencies(
 static void DrainResources(ResourceContainer& resources, RenderProxyList& renderProxyList)
 {
     int resourceTrackerIndex = 0;
-    StaticForEach<typename RenderProxyList::ResourceTrackerTypes>([&renderProxyList, &resourceTrackerIndex]<class ResourceTrackerType>(TypeWrapper<ResourceTrackerType>)
+    StaticForEach<typename RenderProxyList::ResourceTrackerTypes>(
+        [&renderProxyList, &resourceTrackerIndex]<class ResourceTrackerType>(TypeWrapper<ResourceTrackerType>)
         {
             ResourceTrackerType& resourceTracker = static_cast<ResourceTrackerType&>(*renderProxyList.resourceTrackers[resourceTrackerIndex]);
             resourceTracker.Advance();

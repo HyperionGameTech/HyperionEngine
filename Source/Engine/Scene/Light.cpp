@@ -589,7 +589,7 @@ DirectionalLight::DirectionalLight(const Vec3f& direction, const Color& color, f
     : Light(LightType::Directional, direction.Normalized(), color, intensity, 0.0f)
 {
     m_lightFlags |= LightFlags::CacheStaticShadowMaps;
-    m_numShadowMapCascades = 1;
+    m_numShadowMapCascades = 2;
 }
 
 

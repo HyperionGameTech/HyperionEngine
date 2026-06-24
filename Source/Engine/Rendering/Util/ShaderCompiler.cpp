@@ -3312,15 +3312,16 @@ bool ShaderCompiler::CompileBundle(
 
             newShaders.Add(shader);
 
-            auto existingIt = outBundle->compiledShaders.FindIf([name = shader->GetName()](const Handle<Shader>& existing)
-                                                                {
-                                                                    if (existing->GetName() == name)
-                                                                    {
-                                                                        return true;
-                                                                    }
+            auto existingIt = outBundle->compiledShaders.FindIf(
+                [name = shader->GetName()](const Handle<Shader>& existing)
+                {
+                    if (existing->GetName() == name)
+                    {
+                        return true;
+                    }
 
-                                                                    return false;
-                                                                });
+                    return false;
+                });
 
             if (existingIt != outBundle->compiledShaders.End())
             {

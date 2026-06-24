@@ -42,6 +42,7 @@ DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
 #endif // !INSTANCING
     Camera camera;
     Material material;
+    float4x4 vpMatrix;
 };
 
 #ifndef CURRENT_MATERIAL
@@ -65,8 +66,7 @@ struct VSOutput
     float4 position_cs : SV_POSITION;
     float3 v_position : TEXCOORD0;
     float2 v_texcoord0 : TEXCOORD1;
-    nointerpolation float3 v_camera_position : TEXCOORD2;
-    nointerpolation uint object_index : TEXCOORD3;
+    nointerpolation uint object_index : TEXCOORD2;
 };
 
 #ifdef SKINNING
@@ -104,7 +104,6 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 
     output.v_position = position.xyz / position.w;
     output.v_texcoord0 = float2(input.a_texcoord0.x, 1.0 - input.a_texcoord0.y);
-    output.v_camera_position = camera.position.xyz;
 
 #ifdef INSTANCING
     output.object_index = OBJECT_INDEX;
@@ -112,7 +111,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.object_index = ~0u;
 #endif
 
-    float4 position_ndc = mul(camera.viewProjMat, position);
+    float4 position_ndc = mul(vpMatrix, position);
     position_ndc /= position_ndc.w;
 
     output.position_cs = position_ndc;
@@ -129,8 +128,7 @@ struct PSInput
     float4 position_cs : SV_POSITION;
     float3 v_position : TEXCOORD0;
     float2 v_texcoord0 : TEXCOORD1;
-    nointerpolation float3 v_camera_position : TEXCOORD2;
-    nointerpolation uint object_index : TEXCOORD3;
+    nointerpolation uint object_index : TEXCOORD2;
 };
 
 struct PSOutput

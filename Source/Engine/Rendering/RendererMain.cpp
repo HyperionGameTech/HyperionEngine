@@ -806,15 +806,17 @@ static void SetForwardShadingConstants(
         // Set shadow map
         ShadowMapData& currShadowMapData = forwardShadingConstants->shadowMaps[lightIndex];
 
-        Span<View*> shadowMapViewsDynamic;
-        Span<View*> shadowMapViewsStatic;
+        const uint32 cascadeIndex = 0;
+
+        View* shadowMapViewDynamic;
+        View* shadowMapViewStatic;
 
         ShadowMap* shadowMap = RI.shadowMapCache->GetShadowMap(
             light,
             renderSetup.view,
-            0,
-            shadowMapViewsDynamic,
-            shadowMapViewsStatic);
+            cascadeIndex,
+            shadowMapViewDynamic,
+            shadowMapViewStatic);
 
         if (shadowMap != nullptr)
         {
@@ -826,27 +828,25 @@ static void SetForwardShadingConstants(
                 continue;
             }
 
-            AssertDebug(shadowMapViewsDynamic.Size() > 0 && shadowMapViewsDynamic[0]->GetCamera() != nullptr);
+            AssertDebug(shadowMapViewDynamic != nullptr && shadowMapViewDynamic->GetCamera() != nullptr);
 
-            RenderProxyCamera* shadowCameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(shadowMapViewsDynamic[0]->GetCamera()));
+            RenderProxyList& rpl = GetConsumerProxyList(shadowMapViewDynamic);
+            rpl.BeginRead();
+            HYP_DEFER({ rpl.EndRead(); });
 
-            if (!shadowCameraProxy)
-            {
-                continue;
-            }
-
-            const Mat4f& viewProjMat = shadowCameraProxy->bufferData.viewProjMat;
+            const Mat4f& viewProjMat = rpl.cachedMatrices.viewProj;
+            const Mat4f& invProjMat = rpl.cachedMatrices.invProj;
 
             BoundingBox shadowBoundsNDC;
             shadowBoundsNDC.min = Vec3f(-1.0f);
             shadowBoundsNDC.max = Vec3f(1.0f);
 
-            BoundingBox shadowBoundsWS = shadowCameraProxy->bufferData.inverseViewMat * shadowBoundsNDC;
+            BoundingBox shadowBoundsWS = viewProjMat.Inverse() * shadowBoundsNDC;
 
             currShadowMapData.layerIndex = atlasElement->layerIndex;
 
             currShadowMapData.viewProjMat = viewProjMat;
-            currShadowMapData.invProjMat = shadowCameraProxy->bufferData.inverseProjMat;
+            currShadowMapData.invProjMat = invProjMat;
 
             currShadowMapData.aabbMin.x = shadowBoundsWS.min.x;
             currShadowMapData.aabbMin.y = shadowBoundsWS.min.y;
@@ -909,14 +909,14 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
 
     const DepthPrepass::Stage prepassStage = payload.pNext->prepassStage;
 
-    Mat4f vpMatrix;
+    Mat4f viewProjMat;
 
     RenderProxyCamera* cameraProxy = nullptr;
     if (renderSetup.view != nullptr)
     {
         AssertDebug(drawCallCollection.renderProxyList != nullptr);
 
-        vpMatrix = drawCallCollection.renderProxyList->cachedViewProjMatrix;
+        viewProjMat = drawCallCollection.renderProxyList->cachedMatrices.viewProj;
 
         Camera* camera = renderSetup.view->GetCamera();
         cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(camera));
@@ -1018,15 +1018,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
     {
         if (prepassStage == DepthPrepass::DPP_InPrepass)
         {
-            if (!cameraProxy)
-            {
-                return true; // skip draw
-            }
-
-            if (DepthPrepass::ShouldIncludeInPrepass(
-                    renderSetup.viewport,
-                    cameraProxy->bufferData.viewProjMat,
-                    meshProxy))
+            if (DepthPrepass::ShouldIncludeInPrepass(renderSetup.viewport, viewProjMat, meshProxy))
             {
                 if (!isDepthWriteEnabled)
                 {
@@ -1041,29 +1033,23 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
         }
         else if (prepassStage == DepthPrepass::DPP_InMainPass)
         {
-            if (cameraProxy)
+            bool shouldEnableDepthWrite;
+
+            if (DepthPrepass::ShouldIncludeInPrepass(renderSetup.viewport, viewProjMat, meshProxy))
             {
-                bool shouldEnableDepthWrite;
+                // No depth write; depth would have been written by the prepass
+                shouldEnableDepthWrite = false;
+            }
+            else
+            {
+                // we need to set depth write based on the mesh proxy's depth write flag
+                shouldEnableDepthWrite = bool(mas.flags & MAF_DEPTH_WRITE);
+            }
 
-                if (DepthPrepass::ShouldIncludeInPrepass(
-                        renderSetup.viewport,
-                        cameraProxy->bufferData.viewProjMat,
-                        meshProxy))
-                {
-                    // No depth write; depth would have been written by the prepass
-                    shouldEnableDepthWrite = false;
-                }
-                else
-                {
-                    // we need to set depth write based on the mesh proxy's depth write flag
-                    shouldEnableDepthWrite = bool(mas.flags & MAF_DEPTH_WRITE);
-                }
-
-                if (shouldEnableDepthWrite != isDepthWriteEnabled)
-                {
-                    cr << SetDepthWrite(shouldEnableDepthWrite);
-                    isDepthWriteEnabled = shouldEnableDepthWrite;
-                }
+            if (shouldEnableDepthWrite != isDepthWriteEnabled)
+            {
+                cr << SetDepthWrite(shouldEnableDepthWrite);
+                isDepthWriteEnabled = shouldEnableDepthWrite;
             }
         }
 
@@ -1096,7 +1082,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
             cba.Write(&meshProxy.bufferData);
             cba.Write(&cameraProxy->bufferData);
             cba.Write(&materialProxy->bufferData);
-            cba.Write(&vpMatrix);
+            cba.Write(&viewProjMat);
 
             if (shouldWriteSHData)
             {
@@ -1205,7 +1191,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
             cba.Write(&meshProxy.bufferData);
             cba.Write(&cameraProxy->bufferData);
             cba.Write(&materialProxy->bufferData);
-            cba.Write(&vpMatrix);
+            cba.Write(&viewProjMat);
 
             if (shouldWriteSHData)
             {
@@ -1255,9 +1241,10 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
             {
                 const StringHash textureUniformName = MaterialDefinition::s_textureNames[bit];
 
-                cr << SetShaderUniform(numDrawCallUniforms++,
-                                       textureUniformName,
-                                       imageViews[materialProxy->boundTextureIndices[bit]]);
+                cr << SetShaderUniform(
+                    numDrawCallUniforms++,
+                    textureUniformName,
+                    imageViews[materialProxy->boundTextureIndices[bit]]);
             }
         }
 
@@ -2039,7 +2026,7 @@ void RenderCollector::CollectRenderables(uint32 bucketBits)
 
     using IteratorType = BinnedDrawCallCollections::Iterator;
 
-    Array<IteratorType, RenderAllocator> iterators;
+    Array<IteratorType, RenderTempAllocator> iterators;
 
     FOR_EACH_BIT(bucketBits, bitIndex)
     {
@@ -2065,7 +2052,7 @@ void RenderCollector::CollectRenderables(uint32 bucketBits)
         return;
     }
 
-    for (IteratorType it : iterators)
+    for (const IteratorType& it : iterators)
     {
         DrawCallCollection& drawCallCollection = *it;
         AssertDebug(drawCallCollection.batchAllocator != nullptr && drawCallCollection.isInit);

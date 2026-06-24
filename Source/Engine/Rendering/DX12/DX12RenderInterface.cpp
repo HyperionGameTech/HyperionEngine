@@ -63,7 +63,7 @@ extern EngineStatTimer g_statTotalStallTime;
 EngineStatTimer g_statWaitOnTransientFence("Rendering/CPU/WaitOnTransientFence");
 
 // @TODO Make these flags configurable
-#define HYP_DX12_ENABLE_DEBUG_LAYER
+// #define HYP_DX12_ENABLE_DEBUG_LAYER
 // #define HYP_DX12_ENABLE_DRED
 
 #pragma region DX12RenderConfig
@@ -149,18 +149,19 @@ public:
         DX12Fence fence;
         CheckResultOrReturn(fence.Create());
 
-        DX12CommandBuffer commandBuffer(D3D12_COMMAND_LIST_TYPE_DIRECT);
+        const DX12QueueData* queueData = RI.GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
+        Assert(queueData != nullptr && queueData->commandQueue != nullptr);
+
+        DX12CommandBuffer commandBuffer(D3D12_COMMAND_LIST_TYPE_DIRECT, queueData->commandQueue.Get());
         CheckResultOrReturn(commandBuffer.Create());
 
         commandBuffer.Begin();
         cr.Execute(&commandBuffer);
         commandBuffer.End();
 
-        const DX12QueueData* queueData = RI.GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
-        Assert(queueData != nullptr && queueData->commandQueue != nullptr);
+        ID3D12CommandList* commandList = commandBuffer.GetCommandList();
 
-        ID3D12CommandList* commandLists[] = { commandBuffer.GetCommandList() };
-        queueData->commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
+        queueData->commandQueue->ExecuteCommandLists(1, &commandList);
 
         fence.Increment();
 
@@ -455,9 +456,12 @@ RendererResult DX12RenderInterface::Initialize()
         value = 0;
     }
 
+    const DX12QueueData* queueData = GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
+    Assert(queueData != nullptr);
+
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        m_commandBuffers[frameIndex] = MakeHandle<DX12CommandBuffer>(D3D12_COMMAND_LIST_TYPE_DIRECT);
+        m_commandBuffers[frameIndex] = MakeHandle<DX12CommandBuffer>(D3D12_COMMAND_LIST_TYPE_DIRECT, queueData->commandQueue.Get());
         CheckResultOrReturn(m_commandBuffers[frameIndex]->Create());
 
 #ifdef HYP_DEBUG_MODE
@@ -812,11 +816,8 @@ void DX12RenderInterface::PresentToSwapchain(DX12Swapchain* swapchain)
 
     RI.InsertTransientSyncBarrier();
 
-    const DX12QueueData* queueData = RI.GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
-    Assert(queueData != nullptr);
-
     const uint64 signalValue = uint64(frameCounter) + 1;
-    commandBuffer->Submit(queueData->commandQueue.Get(), m_frameFence.Get(), signalValue);
+    commandBuffer->Submit(m_frameFence.Get(), signalValue);
 
     // HYP_LOG_TEMP("Signalling {} on frame {}", signalValue, frameIndex);
 
@@ -850,7 +851,10 @@ DX12CommandBuffer& DX12RenderInterface::GetTransientCommandBuffer()
     }
     else
     {
-        pCommandBuffer = &pendingList.EmplaceBack(D3D12_COMMAND_LIST_TYPE_DIRECT);
+        const DX12QueueData* queueData = GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
+        AssertDebug(queueData != nullptr && queueData->commandQueue != nullptr);
+
+        pCommandBuffer = &pendingList.EmplaceBack(D3D12_COMMAND_LIST_TYPE_DIRECT, queueData->commandQueue.Get());
         CheckResult(pCommandBuffer->Create());
     }
 
@@ -871,12 +875,6 @@ DX12CommandBuffer& DX12RenderInterface::GetTransientCommandBuffer()
 
 void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& commandBuffer)
 {
-    // Transient command buffers are submitted to the DIRECT queue alongside
-    // the main command buffer. A dedicated sync fence (m_transientSyncFence)
-    // is signaled after each transient submission, and the main frame
-    // GPU-waits on it via InsertTransientSyncBarrier() before executing.
-    // This ensures the main rendering sees all transient work.
-
     const uint32 frameCounter = GetFrameCounter();
     const uint32 frameIndex = frameCounter % NumFramesInFlight;
 
@@ -884,9 +882,6 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
     {
         commandBuffer.End();
     }
-
-    const DX12QueueData* queueData = GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
-    AssertDebug(queueData != nullptr);
 
     DX12Fence* pTransientFence = nullptr;
 
@@ -913,14 +908,16 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
         pTransientFence = &fence;
     }
 
+    ID3D12CommandQueue* commandQueue = commandBuffer.GetCommandQueue();
+
     ID3D12CommandList* commandLists[] = { commandBuffer.GetCommandList() };
-    queueData->commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
+    commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
 
     pTransientFence->Increment();
 
     // HYP_LOG_TEMP("Submitting transient command buffer {} with value {} on frame {}", pTransientFence->GetDebugName(), pTransientFence->GetValue(), frameIndex);
 
-    HRESULT hr = queueData->commandQueue->Signal(pTransientFence->GetD3D12Fence(), pTransientFence->GetValue());
+    HRESULT hr = commandQueue->Signal(pTransientFence->GetD3D12Fence(), pTransientFence->GetValue());
     if (FAILED(hr))
     {
         HYP_LOG(RenderingBackend, Error, "Failed to signal fence after executing command lists! Error: {}", hr);
@@ -939,7 +936,7 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
         uint64& syncValue = m_transientSyncValues[frameIndex];
         ++syncValue;
 
-        hr = queueData->commandQueue->Signal(m_transientSyncFence.Get(), syncValue);
+        hr = commandQueue->Signal(m_transientSyncFence.Get(), syncValue);
         if (FAILED(hr))
         {
             HYP_LOG(RenderingBackend, Error, "Failed to signal transient sync fence! Error: {}", hr);

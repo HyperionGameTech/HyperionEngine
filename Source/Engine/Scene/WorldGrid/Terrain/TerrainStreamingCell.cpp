@@ -398,6 +398,7 @@ void TerrainStreamingCell::OnLoaded_Impl()
 
     Handle<Entity> entity = entityManager->AddEntity();
     entity->SetLocalBounds(m_mesh->GetAABB());
+    entity->SetIsStatic(true);
 
     entityManager->GetComponent<TransformComponent>(entity) = TransformComponent {
         .translation = transform.GetTranslation(),
@@ -426,6 +427,7 @@ void TerrainStreamingCell::OnLoaded_Impl()
     m_node->SetName(NAME_FMT("TerrainPatch_{}", m_cellInfo.coord));
     m_node->AddChild(entity);
     m_node->SetLocalTransform(transform);
+    m_node->SetIsStatic(true);
 
     // auto result = AssetManager::GetInstance()->Load<Node>("models/sphere16.obj");
     // Assert(result.HasValue());

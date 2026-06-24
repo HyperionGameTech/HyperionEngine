@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -13,16 +13,25 @@
 
 namespace Hyperion {
 
-class Camera;
+struct Frustum;
+struct BoundingSphere;
 
-class ShadowCameraHelper
-{
-public:
-    static void UpdateShadowCameraDirectional(
-        Camera& camera,
-        const Vec3f& center,
-        const Vec3f& dir,
-        float radius);
-};
+namespace ShadowCameraHelpers {
+
+Mat4f CalculateShadowViewMatrix(
+    const Frustum& mainCameraFrustum,
+    const Vec3f& lightDir);
+
+BoundingBox CalculateCascadeBounds(
+    const Frustum& mainCameraFrustum,
+    const BoundingSphere& sceneWorldBounds,
+    const Mat4f& shadowViewMatrix,
+    const Vec2u& shadowMapResolution,
+    float splitNear,
+    float splitFar,
+    float maxFar,
+    const Vec3f& lightDir);
+
+} // namespace ShadowCameraHelpers
 
 } // namespace Hyperion

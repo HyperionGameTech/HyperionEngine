@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -56,44 +56,44 @@ enum class ViewFlags : uint32
 
     GBUFFER = 0x1,
 
-    ALL_WORLD_SCENES = 0x2,             //!< If set, all scenes added to the world will be added view, and removed when removed from the world. Otherwise, the View itself manages the scenes it contains.
+    ALL_WORLD_SCENES = 0x2, //!< If set, all scenes added to the world will be added view, and removed when removed from the world. Otherwise, the View itself manages the scenes it contains.
 
-    COLLECT_STATIC_ENTITIES = 0x4,      //!< If set, the view will collect static entities (those that are not dynamic). Dynamic entities are those that move or are animated.
-    COLLECT_DYNAMIC_ENTITIES = 0x8,     //!< If set, the view will collect dynamic entities (those that are not static). Static entities are those that do not move and are not animated.
+    COLLECT_STATIC_ENTITIES = 0x4,  //!< If set, the view will collect static entities (those that are not dynamic). Dynamic entities are those that move or are animated.
+    COLLECT_DYNAMIC_ENTITIES = 0x8, //!< If set, the view will collect dynamic entities (those that are not static). Static entities are those that do not move and are not animated.
     COLLECT_ALL_ENTITIES = COLLECT_STATIC_ENTITIES | COLLECT_DYNAMIC_ENTITIES,
 
-    NO_FRUSTUM_CULLING = 0x10,          //!< If set, the view will not perform frustum culling. This is useful for debugging or when you want to render everything regardless of visibility.
+    NO_FRUSTUM_CULLING = 0x10, //!< If set, the view will not perform frustum culling. This is useful for debugging or when you want to render everything regardless of visibility.
 
-    SKIP_ENV_PROBES = 0x20,             //!< If set, the view will not collect EnvProbes
-    SKIP_PROBE_VOLUMES = 0x40,              //!< If set, the view will not collect ProbeVolumes.
-    SKIP_LIGHTS = 0x80,                 //!< If set, the view will not collect Lights.
-    SKIP_LIGHTMAP_VOLUMES = 0x100,      //!< If set, the view will not collect LightmapVolumes.
-    SKIP_PARTICLE_VOLUMES = 0x200,      //!< If set, the view will not collect ParticleVolumes.
-    SKIP_FOG_VOLUMES = 0x400,           //!< If set, the view will not collect FogVolumes.
-    SKIP_CAMERAS = 0x800,               //!< If set, the view will not collect Cameras.
-    SKIP_SPRITES = 0x1000,              //!< If set, the view will not collect Sprites.
+    SKIP_ENV_PROBES = 0x20,        //!< If set, the view will not collect EnvProbes
+    SKIP_PROBE_VOLUMES = 0x40,     //!< If set, the view will not collect ProbeVolumes.
+    SKIP_LIGHTS = 0x80,            //!< If set, the view will not collect Lights.
+    SKIP_LIGHTMAP_VOLUMES = 0x100, //!< If set, the view will not collect LightmapVolumes.
+    SKIP_PARTICLE_VOLUMES = 0x200, //!< If set, the view will not collect ParticleVolumes.
+    SKIP_FOG_VOLUMES = 0x400,      //!< If set, the view will not collect FogVolumes.
+    SKIP_CAMERAS = 0x800,          //!< If set, the view will not collect Cameras.
+    SKIP_SPRITES = 0x1000,         //!< If set, the view will not collect Sprites.
 
-    NOT_MULTI_BUFFERED = 0x2000,        //!< Disables double / triple buffering for the RenderProxyList this View writes to.
-                                        //  --- Use ONLY for Views that are not written to every frame, and instead are written to and read once (or infrequently); e.g EnvProbes.
-                                        //  --- Use of these is still threadsafe, however it uses a spinlock instead of multiple buffering so contentions will eat up cpu cycles.
-    NO_DRAW_CALLS = 0x4000,             //!< If set, no draw calls will be built for any mesh entities that this View collects.
+    NOT_MULTI_BUFFERED = 0x2000, //!< Disables double / triple buffering for the RenderProxyList this View writes to.
+                                 //  --- Use ONLY for Views that are not written to every frame, and instead are written to and read once (or infrequently); e.g EnvProbes.
+                                 //  --- Use of these is still threadsafe, however it uses a spinlock instead of multiple buffering so contentions will eat up cpu cycles.
+    NO_DRAW_CALLS = 0x4000,      //!< If set, no draw calls will be built for any mesh entities that this View collects.
 
     NO_PARALLEL_DRAW_CALL_COLLECTION = 0x8000, //!< Set flag in order to forcibly disable parallel draw call collection for this View. Used for systems like EnvProbe rendering, rather than geometry pass rendering.
 
     // enable flags
-    RAY_TRACING = 0x100000,             //!< Does this View contain rayTracing data (acceleration structures)? (RayTracing must be enabled in the global config and must have RT hardware support)
+    RAY_TRACING = 0x100000, //!< Does this View contain rayTracing data (acceleration structures)? (RayTracing must be enabled in the global config and must have RT hardware support)
 
     MATCH_CAMERA_DIMENSIONS = 0x200000, //!< If set, the Viewport dimensions will always match the associated Camera's dimensions.
 
-    SHADOW_VIEW = 0x400000,             //!< This View is for a rendering a shadow map slice or cascade
-    BAKER_VIEW = 0x800000,              //!< This View is for baking lightmaps or shadow maps, not for rendering to the screen (see: Baker.cpp)
-    UI_VIEW = 0x1000000,                //!< This View is for rendering UI elements. See UISubsystem.
-    ENV_PROBE_VIEW = 0x2000000,         //!< Used by an EnvProbe for rendering a cubemap face - skips shadows and other fancy things that normally allocate per-view.
-    CUBEMAP_FACE_VIEW = 0x4000000,      //!< This View corresponds to a face in a cubemap - will not automatically update sub-frustum
+    SHADOW_VIEW = 0x400000,        //!< This View is for a rendering a shadow map slice or cascade
+    BAKER_VIEW = 0x800000,         //!< This View is for baking lightmaps or shadow maps, not for rendering to the screen (see: Baker.cpp)
+    UI_VIEW = 0x1000000,           //!< This View is for rendering UI elements. See UISubsystem.
+    ENV_PROBE_VIEW = 0x2000000,    //!< Used by an EnvProbe for rendering a cubemap face - skips shadows and other fancy things that normally allocate per-view.
+    CUBEMAP_FACE_VIEW = 0x4000000, //!< This View corresponds to a face in a cubemap - will not automatically update sub-frustum
 
     EXTERNAL_RENDERTARGET = 0x10000000, //!< Will not create its own render target data, expected to draw using externally supplied target
 
-    NO_SHADOW_VIEWS = 0x20000000,       //!< No shadow view collection for this view will happen
+    NO_SHADOW_VIEWS = 0x20000000, //!< No shadow view collection for this view will happen
 
     DEFAULT = ALL_WORLD_SCENES | COLLECT_ALL_ENTITIES
 };
@@ -106,9 +106,9 @@ struct ViewDesc
 
     FramebufferDesc framebufferDesc;
 
-    uint8 viewIndex = 0;        //!< this slice index (cubemaps)
+    uint8 viewIndex = 0; //!< this slice index (cubemaps)
 
-    Array<Scene*> scenes;       //!< Scenes to render. If empty, will use all scenes for the world it is added to. (Must use World::AddView)
+    Array<Scene*> scenes; //!< Scenes to render. If empty, will use all scenes for the world it is added to. (Must use World::AddView)
 
     Camera* camera = nullptr;
 
@@ -129,10 +129,10 @@ public:
 
     ViewOutputTarget(const FramebufferRef& framebuffer);
     ViewOutputTarget(const Handle<GBuffer>& gbuffer);
-    
+
     ViewOutputTarget(const ViewOutputTarget& other) = delete;
     ViewOutputTarget& operator=(const ViewOutputTarget& other) = delete;
-    
+
     ViewOutputTarget(ViewOutputTarget&& other) noexcept = default;
     ViewOutputTarget& operator=(ViewOutputTarget&& other) noexcept = default;
 
@@ -275,8 +275,7 @@ public:
 
     HYP_FORCE_INLINE bool ShouldCollectShadowViews() const
     {
-        return desc.viewIndex == 0 &&
-            !(flags & (ViewFlags::NO_SHADOW_VIEWS | ViewFlags::SHADOW_VIEW | ViewFlags::BAKER_VIEW | ViewFlags::UI_VIEW));
+        return desc.viewIndex == 0 && !(flags & (ViewFlags::NO_SHADOW_VIEWS | ViewFlags::SHADOW_VIEW | ViewFlags::BAKER_VIEW | ViewFlags::UI_VIEW));
     }
 
     ViewDesc desc;
@@ -285,8 +284,9 @@ public:
 
     EnumFlags<ViewFlags> flags;
 
-    Mat4f cachedViewProjMatrix;
+    CameraMatrices cachedMatrices;
     Frustum cachedFrustum;
+    BoundingBox cachedBounds; // Used for CSM only (SHADOW_VIEW)
 
     int priority;
 

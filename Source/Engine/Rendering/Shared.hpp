@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -249,8 +249,8 @@ static inline constexpr uint32 NumComponents(TextureFormat fmt)
         return 3;
     case TextureFormat::RGBA8:
     case TextureFormat::RGBA8_SRGB:
-    case TextureFormat::R11G11B10F: // treat R11G11B10F as RGBA so it is correctly calculated as 4 bytes per pixel.
-    case TextureFormat::R10G10B10A2:  // same as above
+    case TextureFormat::R11G11B10F:  // treat R11G11B10F as RGBA so it is correctly calculated as 4 bytes per pixel.
+    case TextureFormat::R10G10B10A2: // same as above
     case TextureFormat::RGBA16:
     case TextureFormat::RGBA32:
     case TextureFormat::RGBA16F:
@@ -2180,10 +2180,10 @@ private:
         }
 
         std::sort(propsPtrs.Begin(), propsPtrs.End(), [](const ShaderProperty* a, const ShaderProperty* b)
-            {
-                // sort by name to ensure consistent hashcode
-                return std::strcmp(*a->name, *b->name) < 0;
-            });
+                  {
+                      // sort by name to ensure consistent hashcode
+                      return std::strcmp(*a->name, *b->name) < 0;
+                  });
 
         for (const ShaderProperty* property : propsPtrs)
         {
@@ -2226,12 +2226,12 @@ struct ShaderPropertySet
     FixedArray<uint32, NumChunks> chunks;
 
     HYP_FORCE_INLINE constexpr ShaderPropertySet()
-        : chunks{}
+        : chunks {}
     {
     }
 
     template <size_t N>
-    constexpr ShaderPropertySet(const ShaderPropertyId(&properties)[N])
+    constexpr ShaderPropertySet(const ShaderPropertyId (&properties)[N])
     {
         for (auto it = std::begin(properties); it != std::end(properties); ++it)
         {
@@ -2333,12 +2333,12 @@ struct ShaderDesc
 
     explicit ShaderDesc(Name name)
         : name(name),
-          properties{}
+          properties {}
     {
     }
 
     template <size_t N>
-    constexpr ShaderDesc(Name name, const ShaderPropertyId(&propertyIds)[N])
+    constexpr ShaderDesc(Name name, const ShaderPropertyId (&propertyIds)[N])
         : name(name)
     {
         for (uint32 i = 0; i < N; i++)
@@ -2546,26 +2546,33 @@ struct ShaderBundleDecl // combination of shader files, .frag, .vert etc. in .in
     bool HasRTShaders() const
     {
         return AnyOf(sources, [](const KeyValuePair<ShaderModuleType, String>& item)
-            {
-                return IsRayTracingShaderModule(item.first);
-            });
+                     {
+                         return IsRayTracingShaderModule(item.first);
+                     });
     }
 
     bool IsComputeShader() const
     {
         return Every(sources, [](const KeyValuePair<ShaderModuleType, String>& item)
-            {
-                return item.first == ShaderModuleType::Compute;
-            });
+                     {
+                         return item.first == ShaderModuleType::Compute;
+                     });
     }
 
     bool HasVertexShader() const
     {
         return AnyOf(sources, [](const KeyValuePair<ShaderModuleType, String>& item)
-            {
-                return item.first == ShaderModuleType::Vertex;
-            });
+                     {
+                         return item.first == ShaderModuleType::Vertex;
+                     });
     }
+};
+
+struct CameraMatrices
+{
+    Mat4f view;
+    Mat4f viewProj;
+    Mat4f invProj;
 };
 
 } // namespace Hyperion

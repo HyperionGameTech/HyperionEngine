@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <EditorPch.hpp>
 
@@ -49,7 +49,7 @@ void EditorViewport::Init()
 
         m_camera->SetFOV(60.0f);
         m_camera->SetNearClip(0.1f);
-        m_camera->SetFarClip(3000.0f);
+        m_camera->SetFarClip(1000.0f);
     }
 
     InitObject(m_camera);

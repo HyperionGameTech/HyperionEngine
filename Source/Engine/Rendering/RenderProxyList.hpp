@@ -2,12 +2,14 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/FixedArray.hpp>
+
+#include <Core/Math/BoundingBox.hpp>
 
 #include <Core/Utilities/Tuple.hpp>
 
@@ -160,15 +162,15 @@ public:
 
     FixedArray<ResourceTrackerBase<AllocatorType>*, TupleSize<TrackedResourceTypes>::value> resourceTrackers;
 
-#define DEF_RESOURCE_TRACKER_GETTER(getterName, T)                                                                                                                            \
-    HYP_FORCE_INLINE auto Get##getterName()->typename TupleElement_Tuple<FindTypeElementIndex<class T, TrackedResourceTypes>::value, ResourceTrackerTypes>::Type&             \
-    {                                                                                                                                                                         \
-        return *GetResources<FindTypeElementIndex<class T, TrackedResourceTypes>::value>();                                                                                   \
-    }                                                                                                                                                                         \
-                                                                                                                                                                              \
-    HYP_FORCE_INLINE auto Get##getterName() const->const typename TupleElement_Tuple<FindTypeElementIndex<class T, TrackedResourceTypes>::value, ResourceTrackerTypes>::Type& \
-    {                                                                                                                                                                         \
-        return *GetResources<FindTypeElementIndex<class T, TrackedResourceTypes>::value>();                                                                                   \
+#define DEF_RESOURCE_TRACKER_GETTER(getterName, T)                                                                                                                              \
+    HYP_FORCE_INLINE auto Get##getterName() -> typename TupleElement_Tuple<FindTypeElementIndex<class T, TrackedResourceTypes>::value, ResourceTrackerTypes>::Type&             \
+    {                                                                                                                                                                           \
+        return *GetResources<FindTypeElementIndex<class T, TrackedResourceTypes>::value>();                                                                                     \
+    }                                                                                                                                                                           \
+                                                                                                                                                                                \
+    HYP_FORCE_INLINE auto Get##getterName() const -> const typename TupleElement_Tuple<FindTypeElementIndex<class T, TrackedResourceTypes>::value, ResourceTrackerTypes>::Type& \
+    {                                                                                                                                                                           \
+        return *GetResources<FindTypeElementIndex<class T, TrackedResourceTypes>::value>();                                                                                     \
     }
 
     DEF_RESOURCE_TRACKER_GETTER(MeshEntities, Entity);
@@ -189,7 +191,8 @@ public:
 
     Array<Pair<ObjId<Entity>, int>, DynamicAllocator> meshEntityOrdering;
 
-    Mat4f cachedViewProjMatrix;
+    CameraMatrices cachedMatrices;
+    BoundingBox cachedBounds;
 
     SharedMutex m_lock;
 };

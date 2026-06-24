@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -46,8 +46,17 @@ public:
     void OnFrameStart();
     void OnFrameEnd();
 
-    void* Allocate(size_t count, size_t alignment, GpuBuffer*& outBuffer, size_t& outStartOffset);
-    
+    HYP_NODISCARD void* Allocate(size_t count, size_t alignment);
+    HYP_NODISCARD void* Allocate(size_t count, size_t alignment, GpuBuffer*& outBuffer, size_t& outStartOffset);
+
+    template <class T>
+    HYP_NODISCARD T* Allocate(size_t count = 1)
+    {
+        static_assert(is_pod_type_v<T> && !std::is_pointer_v<T>, "T must be plain old data to allocate in constant buffers");
+
+        return static_cast<T*>(Allocate(sizeof(T) * count, alignof(T)));
+    }
+
     void Write(const void* src, size_t count, size_t alignment)
     {
         if (count == 0 || !src)

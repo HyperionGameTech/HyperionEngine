@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -176,30 +176,29 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     const bool isOmni = lightProxy->light.GetUnsafe()->IsA<PointLight>();
 
-    Span<View*> shadowViewsDynamic;
-    Span<View*> shadowViewsStatic;
-
     RenderProxyCamera* shadowCameraProxy = nullptr;
 
     for (uint32 cascadeIndex = 0; cascadeIndex < lightProxy->numCascades; cascadeIndex++)
     {
+        View* shadowViewDynamic;
+        View* shadowViewStatic;
+
         ShadowMap* shadowMap = RI.shadowMapCache->GetShadowMap(
             light, view,
             cascadeIndex,
-            shadowViewsDynamic,
-            shadowViewsStatic);
+            shadowViewDynamic,
+            shadowViewStatic);
 
         cachedData->shadowMaps[cascadeIndex] = shadowMap;
 
+        cachedData->shadowViewsDynamic[cascadeIndex] = shadowViewDynamic;
+        cachedData->shadowViewsStatic[cascadeIndex] = shadowViewStatic;
+
         if (cascadeIndex == 0)
         {
-            cachedData->shadowViewsDynamic = shadowViewsDynamic;
-            cachedData->shadowViewsStatic = shadowViewsStatic;
-
             Camera* shadowCamera = nullptr;
 
-            if (cachedData->shadowViewsDynamic.Size() > 0 &&
-                cachedData->shadowViewsDynamic[0] != nullptr)
+            if (cachedData->shadowViewsDynamic[0] != nullptr)
             {
                 shadowCamera = cachedData->shadowViewsDynamic[0]->GetCamera();
                 AssertDebug(shadowCamera != nullptr);
@@ -224,14 +223,35 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
         for (uint32 viewIndex = cascadeIndex; viewIndex < numViewsToIterate; viewIndex++)
         {
-            const bool isFirstCubemapFace = isOmni && viewIndex == 0;
+            bool isFirstCubemapFace = false;
+
+            if (isOmni)
+            {
+                isFirstCubemapFace = (viewIndex == 0);
+
+                // This would occur only for omni shadow maps upon first initialization.
+                if (HYP_UNLIKELY(!cachedData->shadowViewsDynamic[viewIndex]))
+                {
+                    cachedData->shadowViewsDynamic[viewIndex] = RI.shadowMapCache->TryGetShadowView(view, light, viewIndex, /* isStatic */ false);
+                    Assert(cachedData->shadowViewsDynamic[viewIndex] != nullptr);
+
+                    // If we got here, the static one should also be initialized.
+                    if (cacheStaticShadowMaps)
+                    {
+                        cachedData->shadowViewsStatic[viewIndex] = RI.shadowMapCache->TryGetShadowView(view, light, viewIndex, /* isStatic */ true);
+                        Assert(cachedData->shadowViewsStatic[viewIndex] != nullptr);
+                    }
+                }
+            }
 
             AssertDebug(shadowMap->GetAtlasElement() != nullptr);
 
             GpuImage* shadowMapImage = shadowMap->GetImageView()->GetImage();
             AssertDebug(shadowMapImage != nullptr);
 
-            if (cacheStaticShadowMaps && !cachedData->cachedShadowMapTexture)
+            Handle<Texture>& cachedShadowMapTexture = cachedData->cachedShadowMapTextures[viewIndex];
+
+            if (cacheStaticShadowMaps && !cachedShadowMapTexture.IsValid())
             {
                 TextureDesc textureDesc;
                 textureDesc.format = shadowMapImage->GetTextureFormat();
@@ -239,12 +259,12 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 textureDesc.type = shadowMapImage->GetType();
                 textureDesc.numLayers = 1;
 
-                cachedData->cachedShadowMapTexture = MakeHandle<Texture>(textureDesc);
-                CheckResult(cachedData->cachedShadowMapTexture->Create());
+                cachedShadowMapTexture = MakeHandle<Texture>(textureDesc);
+                CheckResult(cachedShadowMapTexture->Create());
             }
-            else if (!cacheStaticShadowMaps && cachedData->cachedShadowMapTexture)
+            else if (!cacheStaticShadowMaps && cachedShadowMapTexture.IsValid())
             {
-                EnqueueDeletion(std::move(cachedData->cachedShadowMapTexture));
+                EnqueueDeletion(std::move(cachedShadowMapTexture));
             }
 
             const ShadowMapAtlasElement& atlasElement = *shadowMap->GetAtlasElement();
@@ -302,7 +322,12 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 CheckResult(framebuffer->Create());
             }
 
-            enum : uint8 { ShadowStage_Static, ShadowStage_Dynamic, ShadowStage_Max };
+            enum : uint8
+            {
+                ShadowStage_Static,
+                ShadowStage_Dynamic,
+                ShadowStage_Max
+            };
 
             View* localPasses[ShadowStage_Max] = {
                 // static first so we can copy to cache texture or blit from it
@@ -383,7 +408,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 HYP_DEFER({ rpl.EndRead(); });
 
                 const bool isMatrixDirty = viewIndex >= pd->prevCameraMatrices.Size()
-                    || pd->prevCameraMatrices[viewIndex] != rpl.cachedViewProjMatrix;
+                    || pd->prevCameraMatrices[viewIndex] != rpl.cachedMatrices.viewProj;
 
                 // Copy from cached
                 if (!isMatrixDirty
@@ -395,7 +420,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                     Attachment* depthTarget = framebuffer->GetAttachment(framebuffer->NumAttachments() - 1);
                     Assert(depthTarget != nullptr);
 
-                    Assert(cachedData->cachedShadowMapTexture.IsValid());
+                    Assert(cachedShadowMapTexture.IsValid());
 
                     ImageSubResource srcImageSubResource;
                     srcImageSubResource.baseArrayLayer = 0;
@@ -416,11 +441,11 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                         dstImageSubResource.baseArrayLayer = (atlasElement.layerIndex * 6) + viewIndex;
                     }
 
-                    frame->cr << InsertBarrier(cachedData->cachedShadowMapTexture->GetGpuImage(), RS_COPY_SRC, srcImageSubResource);
+                    frame->cr << InsertBarrier(cachedShadowMapTexture->GetGpuImage(), RS_COPY_SRC, srcImageSubResource);
                     frame->cr << InsertBarrier(depthTarget->GetGpuImage(), RS_COPY_DST, dstImageSubResource);
 
                     frame->cr << CopyImage(
-                        cachedData->cachedShadowMapTexture->GetGpuImage(),
+                        cachedShadowMapTexture->GetGpuImage(),
                         depthTarget->GetGpuImage(),
                         Vec3u(0, 0, 0),
                         Vec3u(atlasElement.offsetCoords.x, atlasElement.offsetCoords.y, 0),
@@ -442,7 +467,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                     pd->prevCameraMatrices.Resize(viewIndex + 1);
                 }
 
-                pd->prevCameraMatrices[viewIndex] = rpl.cachedViewProjMatrix;
+                pd->prevCameraMatrices[viewIndex] = rpl.cachedMatrices.viewProj;
             }
             else
             {
@@ -505,7 +530,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
                 if (shouldCacheAfterRender)
                 {
-                    Assert(cachedData->cachedShadowMapTexture.IsValid());
+                    Assert(cachedShadowMapTexture.IsValid());
 
                     // Save rendered result to cache texture
                     ImageSubResource srcImageSubResource;
@@ -531,11 +556,11 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                     frame->cr << InsertBarrier(resultImage, RS_COPY_SRC, srcImageSubResource);
 
                     // and our cache texture should be COPY_DST
-                    frame->cr << InsertBarrier(cachedData->cachedShadowMapTexture->GetGpuImage(), RS_COPY_DST, dstImageSubResource);
+                    frame->cr << InsertBarrier(cachedShadowMapTexture->GetGpuImage(), RS_COPY_DST, dstImageSubResource);
 
                     frame->cr << CopyImage(
                         resultImage,
-                        cachedData->cachedShadowMapTexture->GetGpuImage(),
+                        cachedShadowMapTexture->GetGpuImage(),
                         Vec3u(atlasElement.offsetCoords.x, atlasElement.offsetCoords.y, 0),
                         Vec3u(0, 0, 0),
                         Vec3u(atlasElement.dimensions.x, atlasElement.dimensions.y, 1),

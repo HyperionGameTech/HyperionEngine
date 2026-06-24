@@ -497,12 +497,25 @@ void DX12Framebuffer::Clear(
 
     uint32 colorAttachmentIndex = 0;
 
+    const bool isRectEntireImage = (static_cast<int>(rect.x1) - static_cast<int>(rect.x0)) >= static_cast<int>(GetExtent().x)
+        && (static_cast<int>(rect.y1) - static_cast<int>(rect.y0)) >= static_cast<int>(GetExtent().y);
+
+    static uint32 numRects = 1;
+
+    D3D12_RECT rects[1] {};
+    rects[0].left = static_cast<LONG>(rect.x0);
+    rects[0].right = static_cast<LONG>(rect.x1);
+    rects[0].top = static_cast<LONG>(rect.y0);
+    rects[0].bottom = static_cast<LONG>(rect.y1);
+
     for (const auto& it : m_attachmentMap)
     {
         const uint32 binding = it.first;
 
         if (attachmentsMask != uint8(-1) && !(attachmentsMask & (1u << binding)))
+        {
             continue;
+        }
 
         DX12Attachment* attachment = it.second;
         Assert(attachment != nullptr && attachment->IsCreated());
@@ -517,7 +530,7 @@ void DX12Framebuffer::Clear(
             clearValue.DepthStencil.Stencil = 0;
 
             D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = m_dsvDescriptorHandle.cpuHandle;
-            commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+            commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, numRects, rects);
         }
         else
         {
@@ -533,7 +546,7 @@ void DX12Framebuffer::Clear(
             clearValue.Color[2] = clearColor.z;
             clearValue.Color[3] = clearColor.w;
 
-            commandList->ClearRenderTargetView(rtvHandle, clearColor.values, 0, nullptr);
+            commandList->ClearRenderTargetView(rtvHandle, clearColor.values, numRects, rects);
 
             colorAttachmentIndex++;
         }

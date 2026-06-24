@@ -24,18 +24,21 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
 extern DX12RenderInterface RI;
 
-DX12CommandBuffer::DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE type)
+DX12CommandBuffer::DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE type, ID3D12CommandQueue* commandQueue)
     : m_type(type),
+      m_commandQueue(commandQueue),
       m_isRecording(false),
       m_boundGraphicsPipeline(nullptr),
       m_boundViewHeap(nullptr),
       m_boundSamplerHeap(nullptr),
       m_indirectCommandSignature(nullptr)
 {
+    Assert(m_commandQueue != nullptr);
 }
 
 DX12CommandBuffer::DX12CommandBuffer(DX12CommandBuffer&& other) noexcept
     : m_type(other.m_type),
+      m_commandQueue(other.m_commandQueue),
       m_commandList(std::move(other.m_commandList)),
       m_allocator(std::move(other.m_allocator)),
       m_isRecording(other.m_isRecording),
@@ -67,6 +70,7 @@ DX12CommandBuffer& DX12CommandBuffer::operator=(DX12CommandBuffer&& other) noexc
     m_allocator.Reset();
 
     m_type = other.m_type;
+    m_commandQueue = other.m_commandQueue;
     m_commandList = std::move(other.m_commandList);
     m_allocator = std::move(other.m_allocator);
     m_isRecording = other.m_isRecording;
@@ -203,11 +207,11 @@ void DX12CommandBuffer::BindVertexBuffer(const DX12GpuBuffer* buffer)
     AssertDebug(buffer != nullptr);
     AssertDebug(buffer->GetBufferType() == GpuBufferType::VertexBuffer,
         "Not a vertex buffer! Got buffer type: {}", buffer->GetBufferType());
-    
-    AssertDebug(buffer->GetResourceState() == RS_VERTEX_BUFFER,
-                "Buffer {} is not in VERTEX_BUFFER resource state, current state == {}",
-                buffer->GetDebugName(),
-                EnumToString(buffer->GetResourceState()));
+
+    //AssertDebug(buffer->GetResourceState() == RS_VERTEX_BUFFER,
+    //            "Buffer {} is not in VERTEX_BUFFER resource state, current state == {}",
+    //            buffer->GetDebugName(),
+    //            EnumToString(buffer->GetResourceState()));
 
     D3D12_VERTEX_BUFFER_VIEW vbView {};
     vbView.BufferLocation = buffer->GetResource()->GetGPUVirtualAddress();
@@ -234,10 +238,10 @@ void DX12CommandBuffer::BindIndexBuffer(const DX12GpuBuffer* buffer, GpuElemType
     AssertDebug(buffer->GetBufferType() == GpuBufferType::IndexBuffer,
         "Not an index buffer! Got buffer type: {}", buffer->GetBufferType());
 
-    AssertDebug(buffer->GetResourceState() == RS_INDEX_BUFFER,
-                "Buffer {} is not in INDEX_BUFFER resource state, current state == {}",
-                buffer->GetDebugName(),
-                EnumToString(buffer->GetResourceState()));
+    //AssertDebug(buffer->GetResourceState() == RS_INDEX_BUFFER,
+    //            "Buffer {} is not in INDEX_BUFFER resource state, current state == {}",
+    //            buffer->GetDebugName(),
+    //            EnumToString(buffer->GetResourceState()));
 
     D3D12_INDEX_BUFFER_VIEW ibView {};
     ibView.BufferLocation = buffer->GetResource()->GetGPUVirtualAddress();
@@ -297,13 +301,12 @@ void DX12CommandBuffer::DrawIndexedIndirect(const DX12GpuBuffer* buffer, uint32 
 }
 
 void DX12CommandBuffer::Submit(
-    ID3D12CommandQueue* commandQueue,
     ID3D12Fence* fence,
     uint64 fenceValue)
 {
     AssertOnThread(g_renderThread);
 
-    AssertDebug(commandQueue != nullptr);
+    AssertDebug(m_commandQueue != nullptr);
 
     if (m_isRecording)
     {
@@ -311,11 +314,11 @@ void DX12CommandBuffer::Submit(
     }
 
     ID3D12CommandList* commandLists[] = { m_commandList.Get() };
-    commandQueue->ExecuteCommandLists(1, commandLists);
+    m_commandQueue->ExecuteCommandLists(1, commandLists);
 
     if (fence != nullptr)
     {
-        HRESULT hr = commandQueue->Signal(fence, fenceValue);
+        HRESULT hr = m_commandQueue->Signal(fence, fenceValue);
         if (!SUCCEEDED(hr))
         {
             CrashHandler::Dump();

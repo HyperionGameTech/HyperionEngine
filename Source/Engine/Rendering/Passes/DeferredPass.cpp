@@ -249,28 +249,26 @@ void GetDeferredShaderProperties(
 void FillShadowMapData(
     ShadowMapData& outShadowMapData,
     const ShadowMap& inShadowMap,
-    Span<View*> shadowMapViewsDynamic,
-    Span<View*> shadowMapViewsStatic)
+    uint32 cascadeIndex,
+    View* shadowMapViewDynamic,
+    View* shadowMapViewStatic)
 {
     ShadowMapAtlasElement* atlasElement = inShadowMap.GetAtlasElement();
     AssertDebug(atlasElement != nullptr);
 
     if (!atlasElement)
-        return;
-
-    AssertDebug(shadowMapViewsDynamic.Size() > 0 && shadowMapViewsDynamic[0]->GetCamera() != nullptr);
-
-    outShadowMapData = {};
-
-    RenderProxyCamera* shadowCameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(shadowMapViewsDynamic[0]->GetCamera()));
-    if (!shadowCameraProxy)
     {
-        // Shadow camera not ready yet.
-        // Defer until the next frame.
         return;
     }
 
-    const Mat4f& viewProjMat = shadowCameraProxy->bufferData.viewProjMat;
+    RenderProxyList& rpl = GetConsumerProxyList(shadowMapViewDynamic);
+    rpl.BeginRead();
+    HYP_DEFER({ rpl.EndRead(); });
+
+    const Mat4f& viewProjMat = rpl.cachedMatrices.viewProj;
+    const Mat4f& invProjMat = rpl.cachedMatrices.invProj;
+
+    outShadowMapData = {};
 
     BoundingBox shadowBoundsNDC;
     shadowBoundsNDC.min = Vec3f(-1.0f);
@@ -281,7 +279,7 @@ void FillShadowMapData(
     outShadowMapData.layerIndex = atlasElement->layerIndex;
 
     outShadowMapData.viewProjMat = viewProjMat;
-    outShadowMapData.invProjMat = shadowCameraProxy->bufferData.inverseProjMat;
+    outShadowMapData.invProjMat = invProjMat;
 
     outShadowMapData.aabbMin.x = shadowBoundsWS.min.x;
     outShadowMapData.aabbMin.y = shadowBoundsWS.min.y;
@@ -527,7 +525,7 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
         uint32 localNumShaderUniforms = numShaderUniforms;
 
-        // Write out MAX_SHADOW_MAPS (8?) ShadowMaps for the View, indexed by light idx (GetBinding())
+        // Write out all ShadowMaps for the View, indexed by light idx (GetBinding())
         { // Build constants
             GpuBuffer* cbuffer = nullptr;
             size_t cbufferOffset = 0;
@@ -536,10 +534,13 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             // write camera
             RI.cbufferAllocator->Write(&cameraProxy->bufferData);
 
-            uint32 maxLightBinding = 0;
+            uint32 maxLightBinding = 1;
 
             Array<Pair<Light*, uint32>, RenderTempAllocator> shadowCasterLightsInView;
             shadowCasterLightsInView.Reserve(MaxClusteredShadowMaps);
+            
+            Array<ShadowMapData, RenderTempAllocator> tempShadowMapData;
+            tempShadowMapData.Resize(MaxClusteredShadowMaps);
 
             for (Light* light : rpl.GetLights())
             {
@@ -562,12 +563,6 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 shadowCasterLightsInView.EmplaceBack(light, binding);
             }
 
-            Array<ShadowMapData, RenderTempAllocator> shadowMapData;
-            shadowMapData.Resize(MaxClusteredShadowMaps);
-
-            if (maxLightBinding == 0)
-                maxLightBinding = 1;
-
             ByteAddressBuffer& shadowMapIndexBuffer = RI.bufferAllocator->AcquireByteAddressBuffer(maxLightBinding * sizeof(uint32));
 
             uint32 shadowMapIndex = 0;
@@ -584,27 +579,30 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 uint32 lightBinding = lightAndLightBinding.second;
                 AssertDebug(lightBinding < maxLightBinding);
 
-                ShadowMapData& currShadowMapData = shadowMapData[shadowMapIndex];
-
                 shadowMapIndexBuffer.Write(lightBinding * sizeof(uint32), sizeof(uint32), &shadowMapIndex);
 
-                Span<View*> shadowMapViewsDynamic;
-                Span<View*> shadowMapViewsStatic;
+                const uint32 cascadeIndex = 0;
+
+                View* shadowMapViewDynamic;
+                View* shadowMapViewStatic;
 
                 ShadowMap* shadowMap = RI.shadowMapCache->GetShadowMap(
                     light,
                     rs.view,
-                    0,
-                    shadowMapViewsDynamic,
-                    shadowMapViewsStatic);
+                    cascadeIndex,
+                    shadowMapViewDynamic,
+                    shadowMapViewStatic);
 
                 if (shadowMap != nullptr)
                 {
+                    ShadowMapData& currShadowMapData = tempShadowMapData[shadowMapIndex];
+
                     DeferredRendererHelpers::FillShadowMapData(
                         currShadowMapData,
                         *shadowMap,
-                        shadowMapViewsDynamic,
-                        shadowMapViewsStatic);
+                        cascadeIndex,
+                        shadowMapViewDynamic,
+                        shadowMapViewStatic);
                 }
 
                 ++shadowMapIndex;
@@ -614,7 +612,7 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
             cr << SetShaderUniform(localNumShaderUniforms++, "ShadowMapIndexBuffer"_sh, shadowMapIndexBuffer);
 
-            RI.cbufferAllocator->Write(shadowMapData.Data(), MaxClusteredShadowMaps * sizeof(ShadowMapData), alignof(ShadowMapData));
+            RI.cbufferAllocator->Write(tempShadowMapData.Data(), MaxClusteredShadowMaps * sizeof(ShadowMapData), alignof(ShadowMapData));
             RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
             cr << SetShaderUniform(cbufferUniformIndex, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
@@ -674,35 +672,127 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 // write current light
                 RI.cbufferAllocator->Write(&lightProxy->bufferData);
 
-                ShadowMapData shadowMapData[MaxShadowMapCascades];
+                // Directional light writes out all cascades, other light types write only one.
+                uint32 numCascadesToWrite = (lightType == LightType::Directional) ? lightProxy->numCascades : 1;
+                numCascadesToWrite = MathUtil::Clamp(numCascadesToWrite, 1u, MaxShadowMapCascades);
 
-                // Directional light writes out all cascades (4), other light types write only one.
-                const uint32 numCascadesToWrite = (lightType == LightType::Directional) ? MaxShadowMapCascades : 1;
+                struct DirectionalLightCSMData
+                {
+                    Mat4f shadowViewMat;
 
+                    Vec4f atlasU;
+                    Vec4f atlasV;
+                    Vec4f atlasScaleX;
+                    Vec4f atlasScaleY;
+
+                    Vec4u cascadeSlice;
+
+                    Vec4f cascadeScaleX;
+                    Vec4f cascadeScaleY;
+                    Vec4f cascadeScaleZ;
+
+                    Vec4f cascadeOffsetX;
+                    Vec4f cascadeOffsetY;
+                    Vec4f cascadeOffsetZ;
+                };
+
+                ShadowMap* shadowMaps[MaxShadowMapCascades] {};
+
+                View* shadowMapViewsDynamic[MaxShadowMapCascades] {};
+                View* shadowMapViewsStatic[MaxShadowMapCascades] {};
+                
+                // Initialize shadowMaps / views
                 for (uint32 cascadeIndex = 0; cascadeIndex < numCascadesToWrite; cascadeIndex++)
                 {
-                    ShadowMapData& currShadowMapData = shadowMapData[cascadeIndex];
-
-                    Span<View*> shadowMapViewsDynamic;
-                    Span<View*> shadowMapViewsStatic;
-
-                    ShadowMap* shadowMap = RI.shadowMapCache->GetShadowMap(
+                    shadowMaps[cascadeIndex] = RI.shadowMapCache->GetShadowMap(
                         light,
                         rs.view,
                         cascadeIndex,
-                        shadowMapViewsDynamic,
-                        shadowMapViewsStatic);
+                        shadowMapViewsDynamic[cascadeIndex],
+                        shadowMapViewsStatic[cascadeIndex]);
+                }
 
-                    if (shadowMap != nullptr)
+                // CSM: Directional lights use the shared shadow view matrix to perform cascade selection
+                // Write it out before writing any per-cascade shadow map data
+                if (lightType == LightType::Directional)
+                {
+                    DirectionalLightCSMData* csmData = RI.cbufferAllocator->Allocate<DirectionalLightCSMData>();
+                    Memory::Zero(csmData, sizeof(DirectionalLightCSMData));
+
+                    for (uint32 cascadeIndex = 0; cascadeIndex < numCascadesToWrite; cascadeIndex++)
                     {
-                        DeferredRendererHelpers::FillShadowMapData(
-                            currShadowMapData,
-                            *shadowMap,
-                            shadowMapViewsDynamic,
-                            shadowMapViewsStatic);
-                    }
+                        View* shadowMapView = shadowMapViewsDynamic[cascadeIndex];
 
-                    RI.cbufferAllocator->Write(&currShadowMapData);
+                        if (!shadowMapView)
+                        {
+                            break;
+                        }
+
+                        RenderProxyList& shadowViewRpl = GetConsumerProxyList(shadowMapView);
+                        shadowViewRpl.BeginRead();
+                        HYP_DEFER({ shadowViewRpl.EndRead(); });
+
+                        if (cascadeIndex == 0)
+                        {
+                            // Shared view matrix for all cascades
+                            csmData->shadowViewMat = shadowViewRpl.cachedMatrices.view;
+                        }
+
+                        ShadowMap* shadowMap = shadowMaps[cascadeIndex];
+                        AssertDebug(shadowMap != nullptr);
+
+                        const Vec2f& atlasScale = shadowMap->GetAtlasElement()->scale;
+                        const Vec2f& atlasOffset = shadowMap->GetAtlasElement()->offsetUV;
+                        const uint32 layerIndex = shadowMap->GetAtlasElement()->layerIndex;
+
+                        const BoundingBox& cascadeBounds = shadowViewRpl.cachedBounds;
+
+                        const float rawScaleX = 1.0f / (cascadeBounds.max.x - cascadeBounds.min.x);
+                        const float rawScaleY = -1.0f / (cascadeBounds.max.y - cascadeBounds.min.y);
+                        const float rawScaleZ = 1.0f / (cascadeBounds.max.z - cascadeBounds.min.z);
+    
+                        const float rawOffsetX = -cascadeBounds.min.x * rawScaleX;
+                        const float rawOffsetY = -cascadeBounds.max.y * rawScaleY;
+                        const float rawOffsetZ = -cascadeBounds.min.z * rawScaleZ;
+
+                        csmData->cascadeSlice[cascadeIndex] = layerIndex;
+
+                        csmData->atlasU[cascadeIndex] = atlasOffset.x;
+                        csmData->atlasV[cascadeIndex] = atlasOffset.y;
+
+                        csmData->atlasScaleX[cascadeIndex] = atlasScale.x;
+                        csmData->atlasScaleY[cascadeIndex] = atlasScale.y;
+                        
+                        csmData->cascadeScaleX[cascadeIndex] = rawScaleX;
+                        csmData->cascadeScaleY[cascadeIndex] = rawScaleY;
+                        csmData->cascadeScaleZ[cascadeIndex] = rawScaleZ; 
+    
+                        csmData->cascadeOffsetX[cascadeIndex] = rawOffsetX;
+                        csmData->cascadeOffsetY[cascadeIndex] = rawOffsetY;
+                        csmData->cascadeOffsetZ[cascadeIndex] = rawOffsetZ;
+                    }
+                }
+                else
+                {
+                    ShadowMapData* shadowMapData = RI.cbufferAllocator->Allocate<ShadowMapData>(numCascadesToWrite);
+                    Memory::Zero(shadowMapData, sizeof(ShadowMapData) * numCascadesToWrite);
+
+                    for (uint32 cascadeIndex = 0; cascadeIndex < numCascadesToWrite; cascadeIndex++)
+                    {
+                        ShadowMapData& currShadowMapData = shadowMapData[cascadeIndex];
+
+                        ShadowMap* shadowMap = shadowMaps[cascadeIndex];
+
+                        if (shadowMap != nullptr)
+                        {
+                            DeferredRendererHelpers::FillShadowMapData(
+                                currShadowMapData,
+                                *shadowMap,
+                                cascadeIndex,
+                                shadowMapViewsDynamic[cascadeIndex],
+                                shadowMapViewsStatic[cascadeIndex]);
+                        }
+                    }
                 }
 
                 RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
@@ -1182,25 +1272,28 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
 
         if (i < uint32(tempLightsArray.Size()))
         {
-            Span<View*> shadowMapViewsDynamic;
-            Span<View*> shadowMapViewsStatic;
+            View* shadowMapViewDynamic;
+            View* shadowMapViewStatic;
 
             Light* light = tempLightsArray[i].first;
+
+            const uint32 cascadeIndex = 0;
 
             ShadowMap* shadowMap = RI.shadowMapCache->GetShadowMap(
                 light,
                 renderSetup.view,
-                /* cascadeIndex */ 0,
-                shadowMapViewsDynamic,
-                shadowMapViewsStatic);
+                cascadeIndex,
+                shadowMapViewDynamic,
+                shadowMapViewStatic);
 
             if (shadowMap != nullptr)
             {
                 DeferredRendererHelpers::FillShadowMapData(
                     shadowMapData,
                     *shadowMap,
-                    shadowMapViewsDynamic,
-                    shadowMapViewsStatic);
+                    cascadeIndex,
+                    shadowMapViewDynamic,
+                    shadowMapViewStatic);
             }
         }
 
@@ -2503,7 +2596,7 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
     // --- Collect view-independent renderable types from all views, binned ---
     FixedArray<TSet<EnvProbe*, RenderTempAllocator>, EPT_MAX> envProbes;
     TSet<ProbeVolume*, RenderTempAllocator> probeVolumes;
-    
+
     // For rendering ProbeVolumes and EnvProbes, we use a directional light from one of the Views that references it (if found)
     TMap<ProbeVolume*, Light*, RenderTempAllocator> probeVolumeLights;
     TMap<EnvProbe*, Light*, RenderTempAllocator> envProbeLights;
@@ -2559,14 +2652,14 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
         }
 
         const bool shouldCollectLightsForShadow = view->ShouldCollectShadowViews();
-        
+
         // Collect lights
         for (Light* light : rpl.GetLights())
         {
             AssertDebug(light != nullptr);
 
             lights[uint32(light->GetLightType())].Add(light);
-                
+
             if (shouldCollectLightsForShadow && (light->GetLightFlags() & LightFlags::ShadowCaster))
             {
                 const ShadowMapCacheKey cacheKey = MakeShadowMapCacheKey(light, view);
@@ -2675,7 +2768,7 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
 
                 PassBase* pass = RI.namedPasses[NamedPass::EnvProbe][envProbeType];
                 AssertDebug(pass != nullptr);
-                
+
                 uint32 numRendered = 0;
 
                 for (EnvProbe* envProbe : envProbes[envProbeType])
@@ -2689,7 +2782,7 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
                     currentEnvProbeSetup.envProbe = envProbe;
 
                     pass->RenderFrame(frame, currentEnvProbeSetup);
-                    
+
                     ++numRendered;
                 }
             }

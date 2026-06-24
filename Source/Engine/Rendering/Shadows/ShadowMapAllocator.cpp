@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -15,12 +15,12 @@
 #include <Rendering/FullScreenPass.hpp>
 #include <Rendering/Frame.hpp>
 #include <Rendering/Texture.hpp>
-
 #include <Rendering/CommandRecorder.hpp>
-
 #include <Rendering/TextureViewCache.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
+
+#include <Asset/AssetRegistry.hpp>
 
 #include <Scene/Light.hpp>
 #include <Scene/View.hpp>
@@ -87,11 +87,13 @@ void ShadowMapAllocator::Initialize()
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
         uint16(m_atlases.Size()),
-        IU_SAMPLED | IU_ATTACHMENT
-    });
+        IU_SAMPLED | IU_ATTACHMENT });
 
     m_atlasTextureArray->SetName(NAME("ShadowMapAtlas"));
+    m_atlasTextureArray->SetIsTransient(true);
     CheckResult(m_atlasTextureArray->Create());
+
+    GetEngineAssetRegistry()->PutAsset(m_atlasTextureArray);
 
     m_pointLightTextureArray = MakeHandle<Texture>(TextureDesc {
         TextureType::CubemapArray,
@@ -101,11 +103,13 @@ void ShadowMapAllocator::Initialize()
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
         MaxBoundOmniShadowMaps * 6,
-        IU_SAMPLED | IU_ATTACHMENT
-    });
+        IU_SAMPLED | IU_ATTACHMENT });
 
     m_pointLightTextureArray->SetName(NAME("PointLightShadowMapImage"));
+    m_atlasTextureArray->SetIsTransient(true);
     CheckResult(m_pointLightTextureArray->Create());
+
+    GetEngineAssetRegistry()->PutAsset(m_pointLightTextureArray);
 
     m_clearTexture = MakeHandle<Texture>(TextureDesc {
         TextureType::Texture2DArray,
@@ -115,8 +119,7 @@ void ShadowMapAllocator::Initialize()
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_SAMPLED | IU_ATTACHMENT
-    });
+        IU_SAMPLED | IU_ATTACHMENT });
     m_clearTexture->SetName(NAME("ShadowMapClearTexture"));
     CheckResult(m_clearTexture->Create());
 

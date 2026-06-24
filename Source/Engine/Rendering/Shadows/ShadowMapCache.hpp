@@ -97,8 +97,8 @@ public:
         Light* light,
         View* view,
         uint32 cascadeIndex,
-        Span<View*>& outShadowViewsDynamic,
-        Span<View*>& outShadowViewsStatic) const;
+        View*& outShadowViewDynamic,
+        View*& outShadowViewStatic) const;
 
     bool Remove(const ShadowMapCacheKey& key);
 

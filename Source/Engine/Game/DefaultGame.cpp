@@ -88,7 +88,7 @@ void DefaultGame::OnLaunch_Impl()
 
     // sky
     GetWorld()->AddSystemT<DynamicSkySystem>();
-    GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>());
+    // GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>());
 
 #ifdef HYP_ANDROID
     GetWorld()->AddSubsystem(MakeHandle<TouchControlsSubsystem>());
@@ -154,10 +154,12 @@ void DefaultGame::OnLaunch_Impl()
 
             GetWorld()->AddScene(mainScene);
 
-            auto sunIt = mainScene->GetRoot()->GetChildren().FindIf([](const Handle<Node>& child)
-                                                                    {
-                                                                        return child->IsA<DirectionalLight>();
-                                                                    });
+            auto sunIt = mainScene->GetRoot()->GetChildren().FindIf(
+                [](const Handle<Node>& child)
+                {
+                    return child->IsA<DirectionalLight>();
+                });
+
             if (sunIt != mainScene->GetRoot()->GetChildren().End())
             {
                 m_sun = StaticCast<DirectionalLight>(*sunIt);
@@ -165,6 +167,8 @@ void DefaultGame::OnLaunch_Impl()
                 if (m_sun.IsValid())
                 {
                     m_sun->SetIntensity(15.0f);
+                    m_sun->SetNumShadowMapCascades(3);
+                    // m_sun->SetLightFlags(m_sun->GetLightFlags() & ~LightFlags::CacheStaticShadowMaps);
                 }
             }
         }

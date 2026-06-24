@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <ScenePch.hpp>
 
@@ -72,9 +72,9 @@ String NodeTag::ToString() const
     String str;
 
     Visit(data, [&str](const auto& value)
-        {
-            str = HYP_FORMAT("{}", value);
-        });
+          {
+              str = HYP_FORMAT("{}", value);
+          });
 
     return str;
 }
@@ -384,7 +384,7 @@ Handle<Node> Node::AddChild(const Handle<Node>& node)
     if (node->GetParent() != nullptr)
     {
         HYP_LOG(Node, Warning, "Attaching node {} to {} when it already has a parent node ({}). Node will be detached from parent.",
-            node->GetName(), GetName(), node->GetParent()->GetName());
+                node->GetName(), GetName(), node->GetParent()->GetName());
 
         node->Remove();
     }
@@ -441,9 +441,9 @@ bool Node::RemoveChild(const Node* node, bool moveToDetached)
     }
 
     auto it = m_childNodes.FindIf([node](const Handle<Node>& it)
-        {
-            return it.Get() == node;
-        });
+                                  {
+                                      return it.Get() == node;
+                                  });
 
     if (it == m_childNodes.End())
     {
@@ -538,9 +538,9 @@ void Node::RemoveAllChildren(bool moveToDetached)
 
             while (currentParent != nullptr)
             {
-            OnChildRemoved.Fire(currentParent, node, /* direct */ currentParent == this);
+                OnChildRemoved.Fire(currentParent, node, /* direct */ currentParent == this);
 
-            currentParent = currentParent->m_parentNode;
+                currentParent = currentParent->m_parentNode;
             }
         }
 
@@ -621,7 +621,7 @@ Handle<Node> Node::Select(ANSIStringView selector) const
             if (bufferIndex == std::size(buffer))
             {
                 HYP_LOG(Node, Warning, "Node search string too long, must be within buffer size limit of {}",
-                    std::size(buffer));
+                        std::size(buffer));
 
                 return Handle<Node>::empty;
             }
@@ -650,17 +650,17 @@ Handle<Node> Node::Select(ANSIStringView selector) const
 Node::NodeList::Iterator Node::FindChild(const Node* node)
 {
     return m_childNodes.FindIf([node](const auto& it)
-        {
-            return it.Get() == node;
-        });
+                               {
+                                   return it.Get() == node;
+                               });
 }
 
 Node::NodeList::ConstIterator Node::FindChild(const Node* node) const
 {
     return m_childNodes.FindIf([node](const auto& it)
-        {
-            return it.Get() == node;
-        });
+                               {
+                                   return it.Get() == node;
+                               });
 }
 
 Node::NodeList::Iterator Node::FindChild(const char* name)
@@ -668,9 +668,9 @@ Node::NodeList::Iterator Node::FindChild(const char* name)
     const StringHash stringHash { name };
 
     return m_childNodes.FindIf([stringHash](const Handle<Node>& node)
-        {
-            return node->GetName() == stringHash;
-        });
+                               {
+                                   return node->GetName() == stringHash;
+                               });
 }
 
 Node::NodeList::ConstIterator Node::FindChild(const char* name) const
@@ -678,9 +678,9 @@ Node::NodeList::ConstIterator Node::FindChild(const char* name) const
     const StringHash stringHash { name };
 
     return m_childNodes.FindIf([stringHash](const Handle<Node>& node)
-        {
-            return node->GetName() == stringHash;
-        });
+                               {
+                                   return node->GetName() == stringHash;
+                               });
 }
 
 Array<Node*> Node::GetDescendantsArray() const
@@ -821,7 +821,12 @@ BoundingBox Node::GetLocalBoundsWithChildren() const
 
         if (!(child->GetNodeFlags() & NodeFlags::ExcludeFromParentBounds))
         {
-            aabb = aabb.Union(child->GetLocalTransform() * child->GetLocalBoundsWithChildren());
+            BoundingBox childBounds = child->GetLocalBoundsWithChildren();
+
+            if (childBounds.IsValid() && childBounds.IsFinite() && !childBounds.IsZero())
+            {
+                aabb = aabb.Union(child->GetLocalTransform() * childBounds);
+            }
         }
     }
 
@@ -846,7 +851,12 @@ BoundingBox Node::GetWorldBounds() const
 
         if (!(child->GetNodeFlags() & NodeFlags::ExcludeFromParentBounds))
         {
-            aabb = aabb.Union(child->GetWorldBounds());
+            BoundingBox childBounds = child->GetWorldBounds();
+
+            if (childBounds.IsValid() && childBounds.IsFinite() && !childBounds.IsZero())
+            {
+                aabb = aabb.Union(childBounds);
+            }
         }
     }
 

@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <ScenePch.hpp>
 
@@ -222,7 +222,7 @@ View::~View()
 {
     Assert(m_collectionTaskBatch == nullptr, "Collection tasks pending on View destruction!");
 
-    for (uint32 i = 0; i < HYP_ARRAY_SIZE(m_renderProxyLists); i++)
+    for (size_t i = 0; i < std::size(m_renderProxyLists); i++)
     {
         if ((flags & ViewFlags::NOT_MULTI_BUFFERED) && i > 0)
         {
@@ -247,7 +247,7 @@ void View::Init()
         if (flags & ViewFlags::GBUFFER)
         {
             AssertDebug(desc.framebufferDesc.numAttachments == 0,
-                "View with GBuffer flag cannot have output target attachments defined, as it will use GBuffer instead.");
+                        "View with GBuffer flag cannot have output target attachments defined, as it will use GBuffer instead.");
 
             m_outputTarget = ViewOutputTarget(MakeHandle<GBuffer>(extent));
         }
@@ -327,20 +327,29 @@ void View::UpdateVisibility()
     AssertOnThread(g_simThread | g_visThread);
     AssertReady();
 
-    // Cubemap face views do not automatically update the sub-frustum
-    if (!(flags & ViewFlags::CUBEMAP_FACE_VIEW))
+    if (!(flags & ViewFlags::SHADOW_VIEW))
     {
-        if (m_camera)
-        {
-            cachedViewProjMatrix = m_camera->GetViewProjectionMatrix();
-        }
-        else
-        {
-            cachedViewProjMatrix = Mat4f::identity;
-        }
-    }
+        // Shadow views update their own frustums and VP matrices (View::PrepareShadowViews())
 
-    cachedFrustum.SetFromViewProjectionMatrix(cachedViewProjMatrix);
+        // Cubemap face views do not automatically update the sub-frustum
+        if (!(flags & ViewFlags::CUBEMAP_FACE_VIEW))
+        {
+            if (m_camera)
+            {
+                cachedMatrices.view = m_camera->GetViewMatrix();
+                cachedMatrices.viewProj = m_camera->GetViewProjectionMatrix();
+                cachedMatrices.invProj = m_camera->GetProjectionMatrix().Inverse();
+            }
+            else
+            {
+                cachedMatrices = {};
+            }
+        }
+
+        cachedFrustum.SetFromViewProjectionMatrix(cachedMatrices.viewProj);
+
+        cachedBounds = BoundingBox();
+    }
 
     for (Scene* scene : m_scenes)
     {
@@ -360,7 +369,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
     HYP_SCOPE;
     AssertOnThread(g_simThread);
 
-    if (flags & (ViewFlags::SKIP_LIGHTS | ViewFlags::SHADOW_VIEW))
+    if (flags & (ViewFlags::SKIP_LIGHTS | ViewFlags::SHADOW_VIEW | ViewFlags::NO_SHADOW_VIEWS))
     {
         return;
     }
@@ -377,7 +386,9 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
             Light* light = static_cast<Light*>(entity);
 
             if (!(light->GetLightFlags() & LightFlags::ShadowCaster))
+            {
                 continue;
+            }
 
             bool isLightInFrustum = false;
 
@@ -406,14 +417,19 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
             }
 
             if (!isLightInFrustum)
+            {
                 // Skip shadow view creation/update if the light is totally out of view.
                 continue;
+            }
 
             allShadowCastingLights.PushBack(light);
         }
     }
 
     std::sort(allShadowCastingLights.Begin(), allShadowCastingLights.End(), LightSorter(*m_camera, cachedFrustum));
+
+    static constexpr float ShadowCascadeClipDistances[] = { 0.025f, 0.1f, 0.3f, 1.0f };
+    static constexpr float ShadowCascadeMaxDistance = 250.0f;
 
     for (Light* light : allShadowCastingLights)
     {
@@ -424,7 +440,37 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
         View* shadowViewsDynamic[6] {};
 
         const bool isOmni = (light->GetLightType() == LightType::Point);
-        const uint32 numShadowViews = isOmni ? 6 : light->GetNumShadowMapCascades();
+        const bool isDirectional = (light->GetLightType() == LightType::Directional);
+
+        const uint32 numCascades = (isDirectional ? light->GetNumShadowMapCascades() : 1);
+        const bool hasCascades = (numCascades > 1);
+
+        const uint32 numShadowViews = isOmni ? 6 : numCascades;
+
+        // outside of loop because we share a view matrix for CSM
+        Mat4f shadowViewMatrix;
+        Mat4f shadowViewProjMatrix;
+        Mat4f shadowInvProjMatrix;
+
+        // Calculate total world bounds for CSM
+        BoundingSphere worldBoundsSphere;
+        bool isWorldBoundsSphereValid = false;
+
+        if (isDirectional)
+        {
+            for (Scene* scene : m_scenes)
+            {
+                if (isWorldBoundsSphereValid)
+                {
+                    worldBoundsSphere.Extend(BoundingSphere(scene->GetRoot()->GetWorldBounds()));
+                }
+                else
+                {
+                    worldBoundsSphere = BoundingSphere(scene->GetRoot()->GetWorldBounds());
+                    isWorldBoundsSphereValid = true;
+                }
+            }
+        }
 
         for (uint32 shadowViewIndex = 0; shadowViewIndex < numShadowViews; shadowViewIndex++)
         {
@@ -458,43 +504,64 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
             Assert(shadowCamera != nullptr);
 
             // Update shadow map camera
-            if (shadowViewIndex == 0)
+            if (shadowViewIndex == 0 && !isDirectional)
             {
-                BoundingBox shadowBounds;
-
-                switch (light->GetLightType())
-                {
-                case LightType::Directional:
-                {
-                    ShadowCameraHelper::UpdateShadowCameraDirectional(
-                        *shadowCamera,
-                        m_camera ? m_camera->GetWorldTranslation() : Vec3f::Zero(),
-                        light->GetWorldTranslation().Normalized() * 1000.0f,
-                        40.0f);
-
-                    break;
-                }
-                case LightType::Point:
-                    shadowBounds = light->GetWorldBounds();
-
-                    shadowCamera->SetWorldTranslation(light->GetWorldTranslation());
-
-                    break;
-                default:
-                    HYP_LOG_ONCE(Scene, Warning, "Shadow view update not implemented for light type {}", EnumToString(light->GetLightType()));
-                    break;
-                }
+                shadowCamera->SetWorldTranslation(light->GetWorldTranslation());
             }
 
-            Mat4f shadowViewProjMatrix;
+            Frustum shadowViewFrustum;
+            BoundingBox shadowViewBounds;
 
             if (isOmni)
             {
-                // Set frustum for the cubemap face
-                Mat4f lookAt = Mat4f::LookAt(Texture::s_cubemapDirections[shadowViewIndex].first, Texture::s_cubemapDirections[shadowViewIndex].second)
+                // Calculate matrices and frustum for this cube face
+
+                shadowViewMatrix = Mat4f::LookAt(Texture::s_cubemapDirections[shadowViewIndex].first, Texture::s_cubemapDirections[shadowViewIndex].second)
                     * Mat4f::Translation(-shadowCamera->GetWorldTranslation());
 
-                shadowViewProjMatrix = shadowCamera->GetProjectionMatrix() * lookAt;
+                shadowViewProjMatrix = shadowCamera->GetProjectionMatrix() * shadowViewMatrix;
+                shadowInvProjMatrix = shadowCamera->GetProjectionMatrix().Inverse();
+
+                shadowViewFrustum.SetFromViewProjectionMatrix(shadowViewProjMatrix);
+            }
+            else if (isDirectional)
+            {
+                Assert(m_camera != nullptr);
+
+                // calculate view matrix if first cascade
+                if (shadowViewIndex == 0)
+                {
+                    shadowViewMatrix = ShadowCameraHelpers::CalculateShadowViewMatrix(
+                        m_camera->GetFrustum(),
+                        light->GetWorldTranslation().Normalized());
+                }
+
+                shadowViewBounds = ShadowCameraHelpers::CalculateCascadeBounds(
+                    m_camera->GetFrustum(),
+                    worldBoundsSphere,
+                    shadowViewMatrix,
+                    light->GetShadowMapDimensions(),
+                    (shadowViewIndex == 0) ? 0.0f : ShadowCascadeClipDistances[shadowViewIndex - 1],
+                    ShadowCascadeClipDistances[shadowViewIndex],
+                    m_camera->GetFarClip(), // ShadowCascadeMaxDistance / MathUtil::Max(m_camera->GetFarClip(), ShadowCascadeMaxDistance),
+                    light->GetWorldTranslation().Normalized());
+
+                const Mat4f cascadeProjMatrix = Mat4f::Orthographic(
+                    shadowViewBounds.min.x, shadowViewBounds.max.x,
+                    shadowViewBounds.min.y, shadowViewBounds.max.y,
+                    shadowViewBounds.min.z, shadowViewBounds.max.z);
+
+                shadowInvProjMatrix = cascadeProjMatrix.Inverse();
+                shadowViewProjMatrix = cascadeProjMatrix * shadowViewMatrix;
+
+                shadowViewFrustum.SetFromViewProjectionMatrix(shadowViewProjMatrix);
+            }
+            else
+            {
+                // @TODO : Matrix calculations for other light types.
+                HYP_LOG_ONCE(Scene, Warning, "Shadow matrix calculation not implemented for light type: {}", EnumToString(light->GetLightType()));
+
+                continue;
             }
 
             for (View* shadowView : { shadowViewsDynamic[shadowViewIndex], shadowViewsStatic[shadowViewIndex] })
@@ -504,10 +571,13 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                     continue;
                 }
 
-                if (isOmni)
-                {
-                    shadowView->cachedViewProjMatrix = shadowViewProjMatrix;
-                }
+                shadowView->cachedMatrices.view = shadowViewMatrix;
+                shadowView->cachedMatrices.viewProj = shadowViewProjMatrix;
+                shadowView->cachedMatrices.invProj = shadowInvProjMatrix;
+
+                shadowView->cachedFrustum = shadowViewFrustum;
+
+                shadowView->cachedBounds = shadowViewBounds;
 
                 shadowView->m_scenes = m_scenes;
 
@@ -528,19 +598,25 @@ void View::BeginAsyncCollection(TaskBatch& batch)
 
     if (m_overrideCollectFunctor.IsValid())
     {
-        batch.AddTask([this]() { m_overrideCollectFunctor(GetProducerProxyList(this)); });
+        batch.AddTask([this]()
+                      {
+                          m_overrideCollectFunctor(GetProducerProxyList(this));
+                      });
 
         return;
     }
 
-    batch.AddTask([this]()
+    batch.AddTask(
+        [this]()
         {
             RenderProxyList& rpl = GetProducerProxyList(this);
 
             rpl.BeginWrite();
 
             rpl.priority = priority;
-            rpl.cachedViewProjMatrix = cachedViewProjMatrix;
+
+            rpl.cachedMatrices = cachedMatrices;
+            rpl.cachedBounds = cachedBounds;
 
             CollectCameras(rpl);
             CollectLights(rpl);

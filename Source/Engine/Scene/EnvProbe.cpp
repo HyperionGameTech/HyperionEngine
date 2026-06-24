@@ -40,9 +40,9 @@ static const ShaderPropertyId s_propForwardShading = InternShaderProperty(Shader
 static const ShaderPropertyId s_propWriteMoments = InternShaderProperty(ShaderProperty(NAME("WRITE_MOMENTS")));
 
 static constexpr EnumFlags<EnvProbeFlags> DefaultEnvProbeFlags[EPT_MAX] {
-    EPF_ORIGIN_FROM_CENTER,                             // sky
-    EPF_ORIGIN_FROM_CENTER | EPF_PARALLAX_CORRECTED,    // reflection
-    EPF_ORIGIN_FROM_CENTER | EPF_HAS_VISIBILITY         // irradiance
+    EPF_ORIGIN_FROM_CENTER,                          // sky
+    EPF_ORIGIN_FROM_CENTER | EPF_PARALLAX_CORRECTED, // reflection
+    EPF_ORIGIN_FROM_CENTER | EPF_HAS_VISIBILITY      // irradiance
 };
 
 static constexpr float EnvProbeCameraNearClip = 0.025f;
@@ -151,7 +151,7 @@ void EnvProbe::CreateCamera()
 
         return;
     }
-    
+
     const BoundingBox worldBounds = GetWorldBounds();
 
     Handle<Camera> camera = MakeHandle<Camera>(
@@ -194,7 +194,7 @@ void EnvProbe::CreateVisibilityTexture()
     {
         return;
     }
-    
+
     m_visibilityTexture = MakeHandle<Texture>(TextureDesc {
         TextureType::Cubemap,
         TextureFormat::RG16F,
@@ -203,8 +203,7 @@ void EnvProbe::CreateVisibilityTexture()
         TFM_LINEAR,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_SAMPLED | IU_STORAGE
-    });
+        IU_SAMPLED | IU_STORAGE });
 
     m_visibilityTexture->SetName(NAME_FMT("{}_VisibilityMap", GetName()));
 
@@ -224,7 +223,7 @@ void EnvProbe::SetEnvProbeFlags(EnumFlags<EnvProbeFlags> envProbeFlags)
     }
     else
     {
-        // If it is a ReflectionProbe, mark EPF_BAKED if not realtime - 
+        // If it is a ReflectionProbe, mark EPF_BAKED if not realtime -
         // reflection probes are baked through the Baker system
         if (m_envProbeType == EPT_REFLECTION)
         {
@@ -297,7 +296,6 @@ void EnvProbe::SetEnvProbeFlags(EnumFlags<EnvProbeFlags> envProbeFlags)
             CreateCamera();
             CreateViewData();
         }
-
     }
 
     if (shouldForceRerender)
@@ -450,8 +448,7 @@ void EnvProbe::CreateViewData()
         TextureType::Cubemap,
         TextureFormat::RGBA8,
         LoadOperation::CLEAR,
-        StoreOperation::STORE
-    });
+        StoreOperation::STORE });
 
     attachmentImages.PushBack(RI.MakeImage(TextureDesc {
         colorDesc.imageType,
@@ -461,8 +458,7 @@ void EnvProbe::CreateViewData()
         TFM_LINEAR,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_SAMPLED | IU_ATTACHMENT
-    }));
+        IU_SAMPLED | IU_ATTACHMENT }));
 
     // Visibility target
     // @FIXME: Needs to be created with HAS_VISIBILITY flag set for this to ever be created.
@@ -473,8 +469,7 @@ void EnvProbe::CreateViewData()
             TextureType::Cubemap,
             TextureFormat::RG16F,
             LoadOperation::CLEAR,
-            StoreOperation::STORE
-        });
+            StoreOperation::STORE });
 
         attachmentImages.PushBack(RI.MakeImage(TextureDesc {
             visibilityDesc.imageType,
@@ -484,8 +479,7 @@ void EnvProbe::CreateViewData()
             TFM_LINEAR,
             TWM_CLAMP_TO_EDGE,
             1,
-            IU_SAMPLED | IU_ATTACHMENT
-        }));
+            IU_SAMPLED | IU_ATTACHMENT }));
     }
 
     // Depth target
@@ -493,8 +487,7 @@ void EnvProbe::CreateViewData()
         TextureType::Cubemap,
         TextureFormat::D16,
         LoadOperation::CLEAR,
-        StoreOperation::STORE
-    });
+        StoreOperation::STORE });
 
     attachmentImages.PushBack(RI.MakeImage(TextureDesc {
         depthDesc.imageType,
@@ -504,8 +497,7 @@ void EnvProbe::CreateViewData()
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_SAMPLED | IU_ATTACHMENT
-    }));
+        IU_SAMPLED | IU_ATTACHMENT }));
 
     for (const GpuImageRef& image : attachmentImages)
     {
@@ -579,8 +571,7 @@ void EnvProbe::CreateViewData()
             MeshAttributes {},
             MaterialAttributes {
                 shaderDesc.name,
-                shaderDesc.properties
-            });
+                shaderDesc.properties });
 
         viewDesc.viewIndex = static_cast<uint8>(viewIndex);
         viewDesc.camera = m_camera;
@@ -688,7 +679,9 @@ void EnvProbe::Update(float delta)
 
         const Mat4f& viewMatrix = matrices[viewIndex];
 
-        view->cachedViewProjMatrix = m_camera->GetProjectionMatrix() * viewMatrix;
+        view->cachedMatrices.view = viewMatrix;
+        view->cachedMatrices.viewProj = m_camera->GetProjectionMatrix() * viewMatrix;
+        view->cachedMatrices.invProj = m_camera->GetProjectionMatrix().Inverse();
 
         for (Scene* scene : view->GetScenes())
         {
@@ -827,20 +820,21 @@ void EnvProbe::Invalidate(bool forceRerender)
         if (!IsBaked())
         {
             GetThreadById(g_simThread)->GetScheduler().Enqueue([weakThis = MakeWeakRef(this)]
-            {
-                Handle<EnvProbe> strongThis = weakThis.Lock();
-                if (!strongThis.IsValid())
-                {
-                    return;
-                }
+                                                               {
+                                                                   Handle<EnvProbe> strongThis = weakThis.Lock();
+                                                                   if (!strongThis.IsValid())
+                                                                   {
+                                                                       return;
+                                                                   }
 
-                World* world = strongThis->GetWorld();
+                                                                   World* world = strongThis->GetWorld();
 
-                if (world != nullptr)
-                {
-                    strongThis->Update(world->GetGameState().deltaTime);
-                }
-            }, TaskEnqueueFlags::FIRE_AND_FORGET);
+                                                                   if (world != nullptr)
+                                                                   {
+                                                                       strongThis->Update(world->GetGameState().deltaTime);
+                                                                   }
+                                                               },
+                                                               TaskEnqueueFlags::FIRE_AND_FORGET);
         }
     }
 }

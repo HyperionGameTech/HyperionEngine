@@ -87,7 +87,10 @@ void DX12AsyncCompute::Create()
 
     CheckResult(m_fence->Create());
 
-    m_commandBuffer = new DX12CommandBuffer(m_commandListType);
+    const DX12QueueData* queueData = RI.GetQueueData(m_commandListType);
+    Assert(queueData != nullptr && queueData->commandQueue != nullptr);
+
+    m_commandBuffer = new DX12CommandBuffer(m_commandListType, queueData->commandQueue.Get());
     CheckResult(m_commandBuffer->Create());
 }
 
@@ -100,22 +103,20 @@ void DX12AsyncCompute::Submit()
         CheckResult(m_fence->Wait(true));
     }
 
-    const DX12QueueData* queueData = RI.GetQueueData(m_commandListType);
-    Assert(queueData != nullptr && queueData->commandQueue != nullptr);
-
     // Begin resets the allocator and opens the command list for recording
     m_commandBuffer->Begin();
-
     cr.Execute(m_commandBuffer);
-
     m_commandBuffer->End();
 
-    ID3D12CommandList* commandLists[] = { m_commandBuffer->GetCommandList() };
-    queueData->commandQueue->ExecuteCommandLists(UINT(std::size(commandLists)), commandLists);
+    ID3D12CommandQueue* commandQueue = m_commandBuffer->GetCommandQueue();
+    AssertDebug(commandQueue != nullptr);
+
+    ID3D12CommandList* commandList = m_commandBuffer->GetCommandList();
+    commandQueue->ExecuteCommandLists(1, &commandList);
 
     m_fence->Increment();
 
-    HRESULT res = queueData->commandQueue->Signal(m_fence->GetD3D12Fence(), m_fence->GetValue());
+    HRESULT res = commandQueue->Signal(m_fence->GetD3D12Fence(), m_fence->GetValue());
     Assert(SUCCEEDED(res));
 
     m_isSubmitted = true;

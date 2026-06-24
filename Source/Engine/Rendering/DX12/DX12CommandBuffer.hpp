@@ -37,7 +37,7 @@ class DX12CommandBuffer final : public CommandBufferBase
     friend class DX12DescriptorSet;
 
 public:
-    explicit DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE type);
+    DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE type, ID3D12CommandQueue* commandQueue);
 
     DX12CommandBuffer(DX12CommandBuffer&& other) noexcept;
     DX12CommandBuffer& operator=(DX12CommandBuffer&& other) noexcept;
@@ -47,6 +47,11 @@ public:
     HYP_FORCE_INLINE D3D12_COMMAND_LIST_TYPE GetType() const
     {
         return m_type;
+    }
+
+    HYP_FORCE_INLINE ID3D12CommandQueue* GetCommandQueue() const
+    {
+        return m_commandQueue;
     }
 
     HYP_FORCE_INLINE ID3D12GraphicsCommandList* GetCommandList() const
@@ -86,7 +91,6 @@ public:
         uint32 bufferOffset) const override;
 
     void Submit(
-        ID3D12CommandQueue* commandQueue,
         ID3D12Fence* fence = nullptr,
         uint64 fenceValue = 0);
 
@@ -121,6 +125,8 @@ public:
 
 private:
     D3D12_COMMAND_LIST_TYPE m_type;
+    ID3D12CommandQueue* m_commandQueue;
+
     ComPtr<ID3D12GraphicsCommandList> m_commandList;
     ComPtr<ID3D12CommandAllocator> m_allocator;
 

@@ -65,8 +65,9 @@ namespace DeferredRendererHelpers {
 void FillShadowMapData(
     ShadowMapData& outShadowMapData,
     const ShadowMap& inShadowMap,
-    Span<View*> shadowMapViewDynamic,
-    Span<View*> shadowMapViewStatic);
+    uint32 cascadeIndex,
+    View* shadowMapViewDynamic,
+    View* shadowMapViewStatic);
 
 } // namespace DeferredRendererHelpers
 
@@ -297,25 +298,28 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
 
                 if (i < uint32(tempLights.Size()))
                 {
-                    Span<View*> shadowMapViewsDynamic;
-                    Span<View*> shadowMapViewsStatic;
+                    View* shadowMapViewDynamic;
+                    View* shadowMapViewStatic;
 
                     Light* light = tempLights[i].first;
+
+                    const uint32 cascadeIndex = 0;
 
                     ShadowMap* shadowMap = RI.shadowMapCache->GetShadowMap(
                         light,
                         renderSetup.view,
-                        /* cascadeIndex */ 0,
-                        shadowMapViewsDynamic,
-                        shadowMapViewsStatic);
+                        cascadeIndex,
+                        shadowMapViewDynamic,
+                        shadowMapViewStatic);
 
                     if (shadowMap != nullptr)
                     {
                         DeferredRendererHelpers::FillShadowMapData(
                             shadowMapData,
                             *shadowMap,
-                            shadowMapViewsDynamic,
-                            shadowMapViewsStatic);
+                            cascadeIndex,
+                            shadowMapViewDynamic,
+                            shadowMapViewStatic);
                     }
                 }
 
