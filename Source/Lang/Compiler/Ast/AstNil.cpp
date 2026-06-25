@@ -16,6 +16,8 @@
 
 #include <Core/Types.hpp>
 
+#include <AstNil.generated.inl>
+
 namespace Hyperion {
 
 AstNil::AstNil(const SourceLocation& location)

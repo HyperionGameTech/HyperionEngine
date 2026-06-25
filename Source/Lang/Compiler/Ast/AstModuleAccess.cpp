@@ -8,6 +8,8 @@
 #include <Lang/Instructions.hpp>
 #include <Core/Debug/Debug.hpp>
 
+#include <AstModuleAccess.generated.inl>
+
 namespace Hyperion {
 
 AstModuleAccess::AstModuleAccess(
@@ -45,7 +47,7 @@ void AstModuleAccess::Visit(AstVisitor* visitor, Module* mod)
         PerformLookup(visitor, mod);
     }
 
-    if (AstModuleAccess* exprModAccess = dynamic_cast<AstModuleAccess*>(m_expr.Get()))
+    if (AstModuleAccess* exprModAccess = DynamicCast<AstModuleAccess>(m_expr.Get()))
     {
         // set expr to be chained
         exprModAccess->m_isChained = true;

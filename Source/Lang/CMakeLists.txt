@@ -20,6 +20,13 @@ file(GLOB_RECURSE SOURCES "*.cpp" "*.cc" "*.c")
 file(GLOB_RECURSE HEADERS "*.h" "*.hpp")
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "HypScript Code" FILES ${SOURCES} ${HEADERS})
 
+set(HYP_GENERATED_DIR "${CMAKE_SOURCE_DIR}/Generated/Lang")
+file(GLOB REFLECTION_GENERATED_SOURCES "${HYP_GENERATED_DIR}/*.cpp")
+source_group(TREE ${HYP_GENERATED_DIR} PREFIX "Generated Code" FILES ${REFLECTION_GENERATED_SOURCES})
+
+set(SOURCES "${SOURCES}" ${REFLECTION_GENERATED_SOURCES})
+set(HEADERS "${HEADERS}" ${REFLECTION_GENERATED_HEADERS})
+
 add_definitions(-DHYP_SCRIPT=1)
 
 include_directories(SYSTEM
@@ -29,8 +36,7 @@ include_directories(SYSTEM
 )
 include_directories(
     ${CMAKE_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/Engine
-    ${CMAKE_SOURCE_DIR}/Engine/script
+    ${HYP_GENERATED_DIR}
 )
 
 add_library(${BUILD_NAME} SHARED ${SOURCES} ${HEADERS})

@@ -22,6 +22,8 @@
 
 #include <iostream>
 
+#include <AstMemberCallExpression.generated.inl>
+
 namespace Hyperion {
 
 AstMemberCallExpression::AstMemberCallExpression(

@@ -8,8 +8,11 @@ namespace Hyperion {
 
 class AstTypeRef;
 
+HYP_CLASS()
 class AstVariable final : public AstIdentifier
 {
+    HYP_OBJECT_BODY(AstVariable);
+
 public:
     AstVariable(const String& name, const SourceLocation& location);
     virtual ~AstVariable() override = default;

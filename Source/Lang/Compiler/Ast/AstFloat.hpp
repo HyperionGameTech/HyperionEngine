@@ -4,8 +4,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstFloat final : public AstConstant
 {
+    HYP_OBJECT_BODY(AstFloat);
+
 public:
     AstFloat(
         double value,

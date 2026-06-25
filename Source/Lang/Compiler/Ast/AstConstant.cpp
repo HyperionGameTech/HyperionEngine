@@ -2,6 +2,8 @@
 #include <Lang/Compiler/Module.hpp>
 #include <Lang/Compiler/AstVisitor.hpp>
 
+#include <AstConstant.generated.inl>
+
 namespace Hyperion {
 
 AstConstant::AstConstant(const ConstantValue& constantValue, const SourceLocation& location)

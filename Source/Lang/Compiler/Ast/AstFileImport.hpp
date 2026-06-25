@@ -7,8 +7,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstFileImport : public AstImport
 {
+    HYP_OBJECT_BODY(AstFileImport);
+
 public:
     AstFileImport(
         const String& path,

@@ -9,8 +9,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstCallExpression : public AstExpression
 {
+    HYP_OBJECT_BODY(AstCallExpression);
+
 public:
     AstCallExpression(
         const RC<AstExpression>& expr,

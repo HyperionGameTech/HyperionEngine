@@ -18,6 +18,8 @@
 
 #include <Core/Unicode.hpp>
 
+#include <AstTypeSpecifier.generated.inl>
+
 namespace Hyperion {
 
 AstTypeSpecifier::AstTypeSpecifier(

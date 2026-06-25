@@ -7,8 +7,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstTernaryExpression : public AstExpression
 {
+    HYP_OBJECT_BODY(AstTernaryExpression);
+
 public:
     AstTernaryExpression(
         const RC<AstExpression>& conditional,

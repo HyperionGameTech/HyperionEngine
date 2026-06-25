@@ -7,8 +7,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS(Abstract)
 class AstDeclaration : public AstStatement
 {
+    HYP_OBJECT_BODY(AstDeclaration);
+
 public:
     AstDeclaration(
         const String& name,

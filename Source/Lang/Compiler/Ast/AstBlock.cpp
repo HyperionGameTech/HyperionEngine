@@ -10,6 +10,8 @@
 
 #include <limits>
 
+#include <AstBlock.generated.inl>
+
 namespace Hyperion {
 
 AstBlock::AstBlock(
@@ -47,8 +49,8 @@ void AstBlock::Visit(AstVisitor* visitor, Module* mod)
         child->Visit(visitor, mod);
     }
 
-    m_lastIsReturn = m_children.Any() && (dynamic_cast<AstReturnStatement*>(m_children.Back().Get()) != nullptr);
-    m_lastIsExpr = m_children.Any() && (dynamic_cast<AstExpression*>(m_children.Back().Get()) != nullptr);
+    m_lastIsReturn = m_children.Any() && m_children.Back()->IsA<AstReturnStatement>();
+    m_lastIsExpr = m_children.Any() && m_children.Back()->IsA<AstExpression>();
 
     if (m_lastIsExpr)
     {

@@ -10,6 +10,8 @@
 #include <Lang/Instructions.hpp>
 #include <Core/Debug/Debug.hpp>
 
+#include <AstTryCatch.generated.inl>
+
 namespace Hyperion {
 
 AstTryCatch::AstTryCatch(const RC<AstBlock>& tryBlock,

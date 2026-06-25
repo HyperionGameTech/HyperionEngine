@@ -8,6 +8,8 @@
 
 #include <Lang/Compiler/Emit/BytecodeUtil.hpp>
 
+#include <AstString.generated.inl>
+
 namespace Hyperion {
 
 AstString::AstString(const String& value, const SourceLocation& location)

@@ -9,6 +9,8 @@
 #include <Lang/Instructions.hpp>
 #include <Core/Debug/Debug.hpp>
 
+#include <AstArgumentList.generated.inl>
+
 namespace Hyperion {
 
 AstArgumentList::AstArgumentList(

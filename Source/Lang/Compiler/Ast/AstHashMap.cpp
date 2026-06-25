@@ -26,6 +26,8 @@
 
 #include <Core/Types.hpp>
 
+#include <AstHashMap.generated.inl>
+
 namespace Hyperion {
 
 /// @TODO: Should be reworked to use intrinsic bytecode instructions rather than constructing nested arrays and using Map.FromArray!

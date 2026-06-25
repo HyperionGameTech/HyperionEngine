@@ -4,8 +4,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstUndefined : public AstConstant
 {
+    HYP_OBJECT_BODY(AstUndefined);
+
 public:
     AstUndefined(const SourceLocation& location);
 

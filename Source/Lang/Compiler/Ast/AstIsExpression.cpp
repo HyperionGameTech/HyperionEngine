@@ -17,6 +17,8 @@
 
 #include <iostream>
 
+#include <AstIsExpression.generated.inl>
+
 namespace Hyperion {
 
 AstIsExpression::AstIsExpression(

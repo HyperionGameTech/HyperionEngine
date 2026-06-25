@@ -19,6 +19,8 @@
 #include <Core/Containers/FlatSet.hpp>
 #include <Core/HashCode.hpp>
 
+#include <AstSwitchExpression.generated.inl>
+
 namespace Hyperion {
 
 AstSwitchExpression::AstSwitchExpression(
@@ -121,7 +123,7 @@ void AstSwitchExpression::Visit(AstVisitor* visitor, Module* mod)
         const auto& children = clause.m_block->GetChildren();
         for (int j = int(children.Size()) - 1; j >= 0; j--)
         {
-            if (auto* expr = dynamic_cast<AstExpression*>(children[j].Get()))
+            if (auto* expr = DynamicCast<AstExpression>(children[j].Get()))
             {
                 lastExprType = expr->GetExprType();
                 break;
@@ -163,7 +165,7 @@ void AstSwitchExpression::Visit(AstVisitor* visitor, Module* mod)
             const auto& children = clause.m_block->GetChildren();
             for (int j = int(children.Size()) - 1; j >= 0; j--)
             {
-                if (auto* expr = dynamic_cast<AstExpression*>(children[j].Get()))
+                if (auto* expr = DynamicCast<AstExpression>(children[j].Get()))
                 {
                     lastExprType = expr->GetExprType();
                     break;

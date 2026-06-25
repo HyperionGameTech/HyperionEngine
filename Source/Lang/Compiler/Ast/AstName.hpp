@@ -8,8 +8,11 @@ namespace Hyperion {
 
 class AstCallExpression;
 
+HYP_CLASS()
 class AstName final : public AstConstant
 {
+    HYP_OBJECT_BODY(AstName);
+
 public:
     AstName(const String& value, const SourceLocation& location);
 

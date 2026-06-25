@@ -7,8 +7,11 @@ namespace Hyperion {
 
 class AstTypeRef;
 
+HYP_CLASS(Abstract)
 class AstMember : public AstExpression
 {
+    HYP_OBJECT_BODY(AstMember);
+
 public:
     AstMember(
         const String& fieldName,

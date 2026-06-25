@@ -15,6 +15,8 @@
 #include <Core/Debug/Debug.hpp>
 #include <Core/Unicode.hpp>
 
+#include <AstForLoop.generated.inl>
+
 namespace Hyperion {
 
 AstForLoop::AstForLoop(

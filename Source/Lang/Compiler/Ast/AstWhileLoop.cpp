@@ -15,6 +15,8 @@
 
 #include <sstream>
 
+#include <AstWhileLoop.generated.inl>
+
 namespace Hyperion {
 
 AstWhileLoop::AstWhileLoop(const RC<AstExpression>& conditional,

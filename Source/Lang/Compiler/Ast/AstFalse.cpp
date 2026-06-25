@@ -10,6 +10,8 @@
 
 #include <Core/Types.hpp>
 
+#include <AstFalse.generated.inl>
+
 namespace Hyperion {
 
 AstFalse::AstFalse(const SourceLocation& location)

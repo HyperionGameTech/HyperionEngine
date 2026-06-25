@@ -15,6 +15,8 @@
 
 #include <iostream>
 
+#include <AstTypeRef.generated.inl>
+
 namespace Hyperion {
 
 AstTypeRef::AstTypeRef(

@@ -17,6 +17,8 @@
 
 #include <iostream>
 
+#include <AstVariable.generated.inl>
+
 namespace Hyperion {
 
 AstVariable::AstVariable(

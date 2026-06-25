@@ -29,6 +29,8 @@
 
 #include <Core/Types.hpp>
 
+#include <AstArrayExpression.generated.inl>
+
 namespace Hyperion {
 
 AstArrayExpression::AstArrayExpression(

@@ -8,8 +8,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstIfStatement : public AstStatement
 {
+    HYP_OBJECT_BODY(AstIfStatement);
+
 public:
     AstIfStatement(
         const RC<AstExpression>& conditional,

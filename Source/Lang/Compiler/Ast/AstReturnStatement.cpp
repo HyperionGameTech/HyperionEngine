@@ -14,6 +14,8 @@
 #include <Lang/Instructions.hpp>
 #include <Core/Debug/Debug.hpp>
 
+#include <AstReturnStatement.generated.inl>
+
 namespace Hyperion {
 
 AstReturnStatement::AstReturnStatement(

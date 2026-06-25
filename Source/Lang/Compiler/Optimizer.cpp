@@ -656,7 +656,7 @@ RC<AstExpression> Optimizer::OptimizeExpr(
     Assert(expr != nullptr);
     expr->Optimize(visitor, mod);
 
-    if (const AstIdentifier* exprAsIdentifier = dynamic_cast<AstIdentifier*>(expr.Get()))
+    if (const AstIdentifier* exprAsIdentifier = DynamicCast<AstIdentifier>(expr.Get()))
     {
         // the side is a variable, so we can further optimize by inlining,
         // only if it is literal.
@@ -674,7 +674,7 @@ RC<AstExpression> Optimizer::OptimizeExpr(
             }
         }
     }
-    else if (const AstBinaryExpression* exprAsBinop = dynamic_cast<AstBinaryExpression*>(expr.Get()))
+    else if (const AstBinaryExpression* exprAsBinop = DynamicCast<AstBinaryExpression>(expr.Get()))
     {
         if (!exprAsBinop->GetRight())
         {
@@ -702,7 +702,7 @@ void Optimizer::Optimize(bool expectModuleDecl)
         if (m_astIterator->HasNext()) {
             RC<AstStatement> firstStmt = m_astIterator->Next();
 
-            if (AstModuleDeclaration *modDecl = dynamic_cast<AstModuleDeclaration*>(firstStmt.Get())) {
+            if (AstModuleDeclaration *modDecl = DynamicCast<AstModuleDeclaration>(firstStmt.Get())) {
                 // all files must begin with a module declaration
                 modDecl->Optimize(this, nullptr);
                 OptimizeInner();

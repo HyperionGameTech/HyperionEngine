@@ -8,8 +8,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstArgument : public AstExpression
 {
+    HYP_OBJECT_BODY(AstArgument);
+
 public:
     AstArgument(
         const RC<AstExpression>& expr,

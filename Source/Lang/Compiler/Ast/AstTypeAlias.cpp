@@ -5,6 +5,8 @@
 #include <Core/Debug/Debug.hpp>
 #include <Core/Unicode.hpp>
 
+#include <AstTypeAlias.generated.inl>
+
 namespace Hyperion {
 
 AstTypeAlias::AstTypeAlias(

@@ -6,8 +6,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstInteger final : public AstConstant
 {
+    HYP_OBJECT_BODY(AstInteger);
+
 public:
     AstInteger(
         int64 value,

@@ -17,6 +17,8 @@
 #include <iostream>
 #include <functional>
 
+#include <AstImport.generated.inl>
+
 namespace Hyperion {
 
 AstImport::AstImport(const SourceLocation& location)

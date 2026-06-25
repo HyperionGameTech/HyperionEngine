@@ -6,8 +6,11 @@ namespace Hyperion {
 
 class AstTypeSpecifier;
 
+HYP_CLASS()
 class AstArrayExpression : public AstExpression
 {
+    HYP_OBJECT_BODY(AstArrayExpression);
+
 public:
     AstArrayExpression(
         const Array<RC<AstExpression>>& members,

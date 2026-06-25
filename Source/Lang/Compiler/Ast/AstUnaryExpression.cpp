@@ -22,6 +22,8 @@
 #include <Lang/Instructions.hpp>
 #include <Core/Debug/Debug.hpp>
 
+#include <AstUnaryExpression.generated.inl>
+
 namespace Hyperion {
 
 AstUnaryExpression::AstUnaryExpression(

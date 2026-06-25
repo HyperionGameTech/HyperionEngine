@@ -5,8 +5,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstReturnStatement final : public AstStatement
 {
+    HYP_OBJECT_BODY(AstReturnStatement);
+
 public:
     AstReturnStatement(
         const RC<AstExpression>& expr,

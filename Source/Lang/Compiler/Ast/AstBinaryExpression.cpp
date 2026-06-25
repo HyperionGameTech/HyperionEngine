@@ -21,6 +21,8 @@
 
 #include <Lang/Instructions.hpp>
 
+#include <AstBinaryExpression.generated.inl>
+
 namespace Hyperion {
 
 AstBinaryExpression::AstBinaryExpression(
@@ -324,8 +326,8 @@ UniquePtr<Buildable> AstBinaryExpression::Build(AstVisitor* visitor, Module* mod
         RC<AstExpression> first = nullptr;
         RC<AstExpression> second = nullptr;
 
-        AstBinaryExpression* leftAsBinop = dynamic_cast<AstBinaryExpression*>(m_left.Get());
-        AstBinaryExpression* rightAsBinop = dynamic_cast<AstBinaryExpression*>(m_right.Get());
+        AstBinaryExpression* leftAsBinop = DynamicCast<AstBinaryExpression>(m_left.Get());
+        AstBinaryExpression* rightAsBinop = DynamicCast<AstBinaryExpression>(m_right.Get());
 
         if (leftAsBinop == nullptr && rightAsBinop != nullptr)
         {
@@ -576,8 +578,8 @@ UniquePtr<Buildable> AstBinaryExpression::Build(AstVisitor* visitor, Module* mod
             Assert(false, "Invalid operator for comparison");
         }
 
-        AstBinaryExpression* leftAsBinop = dynamic_cast<AstBinaryExpression*>(m_left.Get());
-        AstBinaryExpression* rightAsBinop = dynamic_cast<AstBinaryExpression*>(m_right.Get());
+        AstBinaryExpression* leftAsBinop = DynamicCast<AstBinaryExpression>(m_left.Get());
+        AstBinaryExpression* rightAsBinop = DynamicCast<AstBinaryExpression>(m_right.Get());
 
         if (m_right != nullptr)
         {
@@ -869,7 +871,7 @@ RC<AstVariableDeclaration> AstBinaryExpression::CheckLazyDeclaration(AstVisitor*
 {
     if (m_op->GetOperatorType() == Operators::OP_assign)
     {
-        if (AstVariable* leftAsVar = dynamic_cast<AstVariable*>(m_left.Get()))
+        if (AstVariable* leftAsVar = DynamicCast<AstVariable>(m_left.Get()))
         {
             String varName = leftAsVar->GetName();
             // lookup variable name

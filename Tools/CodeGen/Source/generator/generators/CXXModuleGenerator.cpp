@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <generator/generators/CXXModuleGenerator.hpp>
 
@@ -43,8 +43,9 @@ static const TMap<ClassDefinitionType, String> s_endMacroNames = {
 };
 
 static const Array<ModuleAPIMapping> s_moduleAPIMappings = {
-    { "Core", "CORE_API", "core", "Core" },
-    { "Editor", "EDITOR_API", "editor", "Editor" }
+    { "Core", "CORE_API", "Core", "Core" },
+    { "Editor", "EDITOR_API", "Editor", "Editor" },
+    { "Lang", "SCRIPT_API", "Lang", "Script" }
 };
 
 const Array<ModuleAPIMapping>& CXXModuleGenerator::GetModuleAPIMappings()
@@ -164,9 +165,9 @@ Result CXXModuleGenerator::GenerateClassDeclHeader(const Analyzer& analyzer, Byt
     }
 
     std::sort(allClasses.Begin(), allClasses.End(), [](const ClassInfo& a, const ClassInfo& b)
-        {
-            return a.definition->name < b.definition->name;
-        });
+              {
+                  return a.definition->name < b.definition->name;
+              });
 
     /*for (const ClassInfo& classInfo : allClasses)
     {
@@ -552,9 +553,9 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
         if (cls.namespaceParts.Any() && (cls.namespaceParts.Size() > 1 || cls.namespaceParts[0] != BaseNamespace))
         {
             writer.WriteString(HYP_FORMAT("using {} = {}::{};\n",
-                cls.name,
-                BuildNamespaceString(cls.namespaceParts),
-                cls.name));
+                                          cls.name,
+                                          BuildNamespaceString(cls.namespaceParts),
+                                          cls.name));
         }
 
         writer.WriteString(HYP_FORMAT("using {}::Class;\n", BaseNamespace)); // to resolve ambiguity in intellisense
@@ -965,9 +966,9 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
         {
             // bring the class into the current namespace to avoid having to qualify it everywhere in the generated code
             writer.WriteString(HYP_FORMAT("using {} = {}::{};\n",
-                cls.name,
-                BuildNamespaceString(cls.namespaceParts),
-                cls.name));
+                                          cls.name,
+                                          BuildNamespaceString(cls.namespaceParts),
+                                          cls.name));
         }
 
         writer.WriteString(HYP_FORMAT("using {}::Class;\n", BaseNamespace)); // to resolve ambiguity in intellisense

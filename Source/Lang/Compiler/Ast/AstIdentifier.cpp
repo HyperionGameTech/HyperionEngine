@@ -9,6 +9,8 @@
 
 #include <iostream>
 
+#include <AstIdentifier.generated.inl>
+
 namespace Hyperion {
 
 AstIdentifier::AstIdentifier(const String& name, const SourceLocation& location)

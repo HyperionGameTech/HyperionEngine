@@ -7,8 +7,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS(Abstract)
 class AstConstant : public AstExpression
 {
+    HYP_OBJECT_BODY(AstConstant);
+
 protected:
     explicit AstConstant(const ConstantValue& constantValue, const SourceLocation& location);
 

@@ -7,8 +7,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstString final : public AstConstant
 {
+    HYP_OBJECT_BODY(AstString);
+
 public:
     AstString(const String& value, const SourceLocation& location);
 

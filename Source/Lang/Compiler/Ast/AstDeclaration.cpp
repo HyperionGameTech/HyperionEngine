@@ -2,6 +2,8 @@
 #include <Lang/Compiler/AstVisitor.hpp>
 #include <Lang/Compiler/Module.hpp>
 
+#include <AstDeclaration.generated.inl>
+
 namespace Hyperion {
 
 AstDeclaration::AstDeclaration(

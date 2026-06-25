@@ -13,6 +13,8 @@
 #include <Core/Debug/Debug.hpp>
 #include <Core/Utilities/StringUtil.hpp>
 
+#include <AstModuleDeclaration.generated.inl>
+
 namespace Hyperion {
 
 AstModuleDeclaration::AstModuleDeclaration(
@@ -57,7 +59,7 @@ void AstModuleDeclaration::PreRegisterClassTypes(AstVisitor* visitor, Module* mo
     {
         Assert(child != nullptr);
 
-        if (AstClass* classNode = dynamic_cast<AstClass*>(child.Get()))
+        if (AstClass* classNode = DynamicCast<AstClass>(child.Get()))
         {
             classNode->SetPreRegister(true);
 

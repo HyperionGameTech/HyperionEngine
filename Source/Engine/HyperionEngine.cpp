@@ -66,7 +66,7 @@
 #include <Rendering/Vulkan/VulkanRenderInterface.hpp>
 #endif // HYP_VULKAN
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 #include <Editor/EditorState.hpp>
 #include <Editor/EditorCommand.hpp>
 #include <Editor/EditorSubsystem.hpp>
@@ -105,9 +105,13 @@ CORE_API extern AAssetManager* g_androidAssetManager;
 ENGINE_API extern void InitializeModule_Engine();
 CORE_API extern void InitializeModule_Core();
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 EDITOR_API extern void InitializeModule_Editor();
-#endif
+#endif // HYP_EDITOR
+
+#ifdef HYP_SCRIPT
+SCRIPT_API extern void InitializeModule_Script();
+#endif // HYP_SCRIPT
 
 // defined in PlatformUtils.[cpp|mm]
 namespace PlatformUtils {
@@ -124,7 +128,7 @@ ENGINE_API Handle<EngineStats> g_engineStats;
 ENGINE_API MaterialInstanceCache* g_materialInstanceCache;
 ENGINE_API ShaderCompiler* g_shaderCompiler;
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 Handle<EditorState> g_editorState;
 #endif // HYP_EDITOR
 
@@ -153,7 +157,7 @@ static void HandleFatalError(const char* message)
 
 HYP_EXPORT const FilePath& GetLibraryDirectory()
 {
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     static DirectoryInitializer<HYP_STATIC_STRING("Packages"), /* RelativeToExecutablePath */ false> s_resourceDirectory;
     return s_resourceDirectory.path;
 #else  // !HYP_EDITOR
@@ -167,7 +171,7 @@ HYP_EXPORT const FilePath& GetLibraryDirectory()
 #endif // HYP_EDITOR
 }
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 HYP_EXPORT const FilePath& GetProjectsDirectory()
 {
     // @TODO Use configuration value for this path. can be in Documents folder eg
@@ -323,9 +327,14 @@ extern "C"
 
         InitializeModule_Core();
         InitializeModule_Engine();
-#if HYP_EDITOR
+
+#ifdef HYP_EDITOR
         InitializeModule_Editor();
-#endif
+#endif // HYP_EDITOR
+
+#ifdef HYP_SCRIPT
+        InitializeModule_Script();
+#endif // HYP_SCRIPT
 
         CoreApi::SetConfigDirectory(GetConfigDirectory());
 
@@ -391,7 +400,7 @@ extern "C"
             SetEngineAssetRegistry(engineRegistry);
         }
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
         // Create the editor asset registry
         {
             Handle<AssetRegistry> editorRegistry = MakeHandle<AssetRegistry>(
@@ -407,7 +416,7 @@ extern "C"
         g_audioManager = MakeHandle<AudioManager>();
         g_audioManager->Initialize();
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
         g_editorState = MakeHandle<EditorState>();
         g_editorState->Initialize();
 #endif // HYP_EDITOR
@@ -454,8 +463,13 @@ extern "C"
             // Build cli string from raw args after --exec=<command> OR --exec <command>
             const String commandletNameStr = cliArgs["exec"].ToString();
             Array<String> commandletArgsRaw;
-            
-            enum class ExecState { None, FoundFlag, Collecting };
+
+            enum class ExecState
+            {
+                None,
+                FoundFlag,
+                Collecting
+            };
 
             ExecState execState = ExecState::None;
 
@@ -612,7 +626,7 @@ extern "C"
         GetEngineAssetRegistry()->Shutdown();
         SetEngineAssetRegistry(Handle<AssetRegistry>::Null());
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
         GetEditorAssetRegistry()->Shutdown();
         SetEditorAssetRegistry(Handle<AssetRegistry>::Null());
 #endif // HYP_EDITOR
@@ -621,7 +635,7 @@ extern "C"
         g_engineDriver.Reset();
         g_engineStats.Reset();
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
         g_editorState.Reset();
 #endif // HYP_EDITOR
 
@@ -830,7 +844,7 @@ extern "C"
     }
 #endif // HYP_DOTNET
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     using LogCallback = void (*)(
         const char* channel,
         LogLevel level,
@@ -960,7 +974,7 @@ extern "C"
             return 0; // 0 == success to model C main()
         }
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
         // Try finding an EditorCommand by name.
         const Class* editorCommandClass = ClassRegistry::GetInstance().GetClass(ANSIString("EditorCommand") + commandName, /* ignoreCase */ true);
 
@@ -1098,7 +1112,7 @@ extern "C"
         ClassRegistry::GetInstance().ForEachClass(Predicate);
     }
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     HYP_EXPORT void Hyp_GetAllEditorCommandNames(void* callback, void* userData)
     {
         using CallbackType = void (*)(const char*, void*);

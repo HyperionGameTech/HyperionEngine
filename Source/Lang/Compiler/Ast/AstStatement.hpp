@@ -1,15 +1,17 @@
 #pragma once
 
+#include <Core/Defines.hpp>
+
 #include <Core/Memory/RefCountedPtr.hpp>
 #include <Core/Memory/UniquePtr.hpp>
 
 #include <Core/Containers/String.hpp>
 
+#include <Core/Reflection/Handle.hpp>
+#include <Core/Reflection/ObjectBase.hpp>
+
 #include <Lang/SourceLocation.hpp>
 #include <Lang/Compiler/Emit/Buildable.hpp>
-
-#include <vector>
-#include <sstream>
 
 namespace Hyperion {
 
@@ -18,9 +20,12 @@ class AstVisitor;
 class Module;
 class SymbolType;
 
-class AstStatement
+HYP_CLASS(Abstract)
+class AstStatement : public ObjectBase
 {
     friend class AstIterator;
+
+    HYP_OBJECT_BODY(AstStatement);
 
 protected:
     static const String s_unnamed;

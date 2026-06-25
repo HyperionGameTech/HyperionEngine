@@ -15,6 +15,8 @@
 #include <Lang/Compiler/Ast/AstArgument.hpp>
 #include <Lang/Compiler/Ast/AstArgumentList.hpp>
 
+#include <AstName.generated.inl>
+
 namespace Hyperion {
 
 AstName::AstName(const String& value, const SourceLocation& location)

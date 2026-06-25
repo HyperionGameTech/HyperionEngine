@@ -8,8 +8,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstContinueStatement : public AstStatement
 {
+    HYP_OBJECT_BODY(AstContinueStatement);
+
 public:
     AstContinueStatement(const SourceLocation& location);
     virtual ~AstContinueStatement() = default;

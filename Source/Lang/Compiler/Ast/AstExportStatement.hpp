@@ -7,8 +7,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstExportStatement : public AstStatement
 {
+    HYP_OBJECT_BODY(AstExportStatement);
+
 public:
     AstExportStatement(
         const RC<AstStatement>& stmt,

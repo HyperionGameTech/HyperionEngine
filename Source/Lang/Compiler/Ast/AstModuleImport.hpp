@@ -13,8 +13,11 @@ class SymbolType;
 
 using Symbol = Variant<RC<Identifier>, const SymbolType*>;
 
+HYP_CLASS()
 class AstModuleImportPart : public AstStatement
 {
+    HYP_OBJECT_BODY(AstModuleImportPart);
+
 public:
     AstModuleImportPart(
         const String& left,
@@ -79,8 +82,11 @@ private:
     }
 };
 
+HYP_CLASS()
 class AstModuleImport : public AstImport
 {
+    HYP_OBJECT_BODY(AstModuleImport);
+
 public:
     AstModuleImport(
         const Array<RC<AstModuleImportPart>>& parts,

@@ -1,5 +1,7 @@
 #include <Lang/Compiler/Ast/AstStatement.hpp>
 
+#include <AstStatement.generated.inl>
+
 namespace Hyperion {
 
 const String AstStatement::s_unnamed = "<unnamed>";

@@ -1977,12 +1977,12 @@ static RC<AstVariableDeclaration> MakeVarDeclFromExpression(
     const RC<AstStatement>& stmt,
     const SourceLocation& location)
 {
-    if (dynamic_cast<AstVariableDeclaration*>(stmt.Get()))
+    if (stmt->IsA<AstVariableDeclaration>())
     {
         return stmt.CastUnchecked<AstVariableDeclaration>();
     }
 
-    if (auto* variable = dynamic_cast<AstVariable*>(stmt.Get()))
+    if (auto* variable = DynamicCast<AstVariable>(stmt.Get()))
     {
         return RC<AstVariableDeclaration>(new AstVariableDeclaration(
             variable->GetName(),

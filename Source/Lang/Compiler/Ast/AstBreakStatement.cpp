@@ -10,6 +10,8 @@
 #include <Lang/Instructions.hpp>
 #include <Core/Debug/Debug.hpp>
 
+#include <AstBreakStatement.generated.inl>
+
 namespace Hyperion {
 
 AstBreakStatement::AstBreakStatement(const SourceLocation& location)

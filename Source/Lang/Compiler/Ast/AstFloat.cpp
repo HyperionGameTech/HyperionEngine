@@ -14,6 +14,8 @@
 #include <limits>
 #include <cmath>
 
+#include <AstFloat.generated.inl>
+
 namespace Hyperion {
 
 AstFloat::AstFloat(double value, ConstantBitSize bitSize, const SourceLocation& location)

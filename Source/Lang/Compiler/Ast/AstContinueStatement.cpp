@@ -10,6 +10,8 @@
 #include <Lang/Instructions.hpp>
 #include <Core/Debug/Debug.hpp>
 
+#include <AstContinueStatement.generated.inl>
+
 namespace Hyperion {
 
 AstContinueStatement::AstContinueStatement(const SourceLocation& location)

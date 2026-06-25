@@ -68,8 +68,11 @@ struct AstIdentifierProperties
     }
 };
 
+HYP_CLASS(Abstract)
 class AstIdentifier : public AstExpression
 {
+    HYP_OBJECT_BODY(AstIdentifier);
+
 public:
     AstIdentifier(
         const String& name,

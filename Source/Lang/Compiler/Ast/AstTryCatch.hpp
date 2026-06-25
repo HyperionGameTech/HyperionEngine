@@ -8,8 +8,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstTryCatch : public AstStatement
 {
+    HYP_OBJECT_BODY(AstTryCatch);
+
 public:
     AstTryCatch(
         const RC<AstBlock>& tryBlock,

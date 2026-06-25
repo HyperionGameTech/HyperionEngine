@@ -11,6 +11,8 @@
 
 #include <Lang/Compiler/Emit/BytecodeUtil.hpp>
 
+#include <AstInteger.generated.inl>
+
 namespace Hyperion {
 
 AstInteger::AstInteger(int64 value, ConstantBitSize bitSize, const SourceLocation& location)

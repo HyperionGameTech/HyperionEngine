@@ -10,6 +10,8 @@
 
 #include <cstdio>
 
+#include <AstTernaryExpression.generated.inl>
+
 namespace Hyperion {
 
 AstTernaryExpression::AstTernaryExpression(

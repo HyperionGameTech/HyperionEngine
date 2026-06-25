@@ -4,8 +4,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstTrue final : public AstConstant
 {
+    HYP_OBJECT_BODY(AstTrue);
+
 public:
     AstTrue(const SourceLocation& location);
 

@@ -11,8 +11,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstNewExpression : public AstExpression
 {
+    HYP_OBJECT_BODY(AstNewExpression);
+
 public:
     AstNewExpression(
         const RC<AstTypeSpecifier>& typeSpec,

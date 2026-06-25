@@ -12,8 +12,11 @@ class ByteReader;
 
 namespace Hyperion {
 
+HYP_CLASS(Abstract)
 class AstImport : public AstStatement
 {
+    HYP_OBJECT_BODY(AstImport);
+
 public:
     AstImport(const SourceLocation& location);
     virtual ~AstImport() = default;

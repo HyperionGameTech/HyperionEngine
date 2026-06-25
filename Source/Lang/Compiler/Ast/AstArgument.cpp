@@ -7,6 +7,8 @@
 #include <Lang/Instructions.hpp>
 #include <Core/Debug/Debug.hpp>
 
+#include <AstArgument.generated.inl>
+
 namespace Hyperion {
 
 AstArgument::AstArgument(

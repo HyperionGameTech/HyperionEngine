@@ -13,6 +13,8 @@
 
 #include <iostream>
 
+#include <AstThrowExpression.generated.inl>
+
 namespace Hyperion {
 
 AstThrowExpression::AstThrowExpression(

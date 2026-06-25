@@ -22,6 +22,8 @@
 
 #include <iostream>
 
+#include <AstVariableDeclaration.generated.inl>
+
 namespace Hyperion {
 
 AstVariableDeclaration::AstVariableDeclaration(
@@ -162,7 +164,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 
         if (hasUserSpecifiedType && m_symbolType != nullptr && m_symbolType->IsArrayType() && m_realAssignment != nullptr)
         {
-            if (AstArrayExpression* arrayExpr = dynamic_cast<AstArrayExpression*>(m_realAssignment.Get()))
+            if (AstArrayExpression* arrayExpr = DynamicCast<AstArrayExpression>(m_realAssignment.Get()))
             {
                 const auto& dstGenericInfo = m_symbolType->GetUnaliased()->GetGenericInstanceInfo();
 

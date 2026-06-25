@@ -7,8 +7,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstBinaryExpression : public AstExpression
 {
+    HYP_OBJECT_BODY(AstBinaryExpression);
+
 public:
     AstBinaryExpression(
         const RC<AstExpression>& left,

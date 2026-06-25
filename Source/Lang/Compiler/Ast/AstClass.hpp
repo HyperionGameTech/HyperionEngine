@@ -21,8 +21,11 @@ enum AstClassFlags : uint8
 
 HYP_MAKE_ENUM_FLAGS(AstClassFlags);
 
+HYP_CLASS()
 class AstClass : public AstExpression
 {
+    HYP_OBJECT_BODY(AstClass);
+
 public:
     AstClass(
         const String& name,

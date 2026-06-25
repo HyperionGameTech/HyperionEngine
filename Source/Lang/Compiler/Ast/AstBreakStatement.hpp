@@ -8,8 +8,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstBreakStatement : public AstStatement
 {
+    HYP_OBJECT_BODY(AstBreakStatement);
+
 public:
     AstBreakStatement(const SourceLocation& location);
     virtual ~AstBreakStatement() = default;

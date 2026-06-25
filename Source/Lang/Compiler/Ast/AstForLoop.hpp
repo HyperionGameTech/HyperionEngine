@@ -8,8 +8,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstForLoop : public AstStatement
 {
+    HYP_OBJECT_BODY(AstForLoop);
+
 public:
     AstForLoop(
         const RC<AstStatement>& declPart,

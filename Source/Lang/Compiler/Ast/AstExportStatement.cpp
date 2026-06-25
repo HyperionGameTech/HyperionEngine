@@ -11,6 +11,8 @@
 #include <Lang/Instructions.hpp>
 #include <Core/Debug/Debug.hpp>
 
+#include <AstExportStatement.generated.inl>
+
 namespace Hyperion {
 
 AstExportStatement::AstExportStatement(

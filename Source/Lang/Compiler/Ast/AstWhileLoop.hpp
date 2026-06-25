@@ -8,8 +8,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstWhileLoop : public AstStatement
 {
+    HYP_OBJECT_BODY(AstWhileLoop);
+
 public:
     AstWhileLoop(
         const RC<AstExpression>& conditional,

@@ -13,8 +13,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstVariableDeclaration : public AstDeclaration
 {
+    HYP_OBJECT_BODY(AstVariableDeclaration);
+
 public:
     AstVariableDeclaration(
         const String& name,

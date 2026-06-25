@@ -5,6 +5,8 @@
 
 #include <Core/Debug/Debug.hpp>
 
+#include <AstDirective.generated.inl>
+
 namespace Hyperion {
 
 AstDirective::AstDirective(

@@ -13,8 +13,11 @@ namespace Hyperion {
 
 class AstTypeRef;
 
+HYP_CLASS()
 class AstTypeOfExpression : public AstTypeSpecifier
 {
+    HYP_OBJECT_BODY(AstTypeOfExpression);
+
 public:
     AstTypeOfExpression(
         const RC<AstExpression>& expr,

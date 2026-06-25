@@ -1,5 +1,7 @@
 #include <Lang/Compiler/Ast/AstExpression.hpp>
 
+#include <AstExpression.generated.inl>
+
 namespace Hyperion {
 
 AstExpression::AstExpression(

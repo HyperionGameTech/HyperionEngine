@@ -10,8 +10,11 @@ namespace Hyperion {
 
 class Scope;
 
+HYP_CLASS()
 class AstBlock : public AstStatement
 {
+    HYP_OBJECT_BODY(AstBlock);
+
 public:
     AstBlock(
         const Array<RC<AstStatement>>& children,

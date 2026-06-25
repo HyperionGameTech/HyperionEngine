@@ -11,8 +11,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstTypeAlias : public AstStatement
 {
+    HYP_OBJECT_BODY(AstTypeAlias);
+
 public:
     AstTypeAlias(
         const String& name,

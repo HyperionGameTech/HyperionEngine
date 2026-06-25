@@ -9,8 +9,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstModuleAccess : public AstExpression
 {
+    HYP_OBJECT_BODY(AstModuleAccess);
+
 public:
     AstModuleAccess(
         const String& target,

@@ -25,6 +25,8 @@
 
 #include <iostream>
 
+#include <AstMember.generated.inl>
+
 namespace Hyperion {
 
 AstMember::AstMember(
@@ -269,7 +271,7 @@ UniquePtr<Buildable> AstMember::Build(AstVisitor* visitor, Module* mod)
     AstMember* targetAsMember = nullptr;
     if (m_accessMode == ACCESS_MODE_STORE && m_target != nullptr)
     {
-        targetAsMember = dynamic_cast<AstMember*>(m_target.Get());
+        targetAsMember = DynamicCast<AstMember>(m_target.Get());
     }
 
     const bool needsWriteback = targetAsMember != nullptr;

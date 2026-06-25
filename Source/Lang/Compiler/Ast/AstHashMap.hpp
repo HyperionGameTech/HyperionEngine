@@ -11,8 +11,11 @@ class AstTypeSpecifier;
 class AstTypeRef;
 class AstBlock;
 
+HYP_CLASS()
 class AstHashMap : public AstExpression
 {
+    HYP_OBJECT_BODY(AstHashMap);
+
 public:
     AstHashMap(
         const Array<RC<AstExpression>>& keys,

@@ -7,8 +7,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstThrowExpression : public AstExpression
 {
+    HYP_OBJECT_BODY(AstThrowExpression);
+
 public:
     AstThrowExpression(
         const RC<AstExpression>& expr,

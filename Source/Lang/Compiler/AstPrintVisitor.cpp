@@ -167,137 +167,137 @@ WideString AstPrintVisitor::Colorize(const WideString& text, const WideString& c
 
 WideString AstPrintVisitor::GetNodeDescription(AstStatement* node) const
 {
-    if (dynamic_cast<AstBinaryExpression*>(node))
+    if ((node)->IsA<AstBinaryExpression>())
     {
         return L"BinaryExpression";
     }
 
-    if (dynamic_cast<AstUnaryExpression*>(node))
+    if ((node)->IsA<AstUnaryExpression>())
     {
         return L"UnaryExpression";
     }
 
-    if (dynamic_cast<AstCallExpression*>(node))
+    if ((node)->IsA<AstCallExpression>())
     {
         return L"CallExpression";
     }
 
-    if (dynamic_cast<AstMemberCallExpression*>(node))
+    if ((node)->IsA<AstMemberCallExpression>())
     {
         return L"MemberCallExpression";
     }
 
-    if (dynamic_cast<AstIdentifier*>(node))
+    if ((node)->IsA<AstIdentifier>())
     {
         return L"Identifier";
     }
 
-    if (dynamic_cast<AstInteger*>(node))
+    if ((node)->IsA<AstInteger>())
     {
         return L"Integer";
     }
 
-    if (dynamic_cast<AstFloat*>(node))
+    if ((node)->IsA<AstFloat>())
     {
         return L"Float";
     }
 
-    if (dynamic_cast<AstString*>(node))
+    if ((node)->IsA<AstString>())
     {
         return L"WideString";
     }
 
-    if (dynamic_cast<AstBlock*>(node))
+    if ((node)->IsA<AstBlock>())
     {
         return L"Block";
     }
 
-    if (dynamic_cast<AstIfStatement*>(node))
+    if ((node)->IsA<AstIfStatement>())
     {
         return L"IfStatement";
     }
 
-    if (dynamic_cast<AstForLoop*>(node))
+    if ((node)->IsA<AstForLoop>())
     {
         return L"ForLoop";
     }
 
-    if (dynamic_cast<AstForEachLoop*>(node))
+    if ((node)->IsA<AstForEachLoop>())
     {
         return L"ForEachLoop";
     }
 
-    if (dynamic_cast<AstWhileLoop*>(node))
+    if ((node)->IsA<AstWhileLoop>())
     {
         return L"WhileLoop";
     }
 
-    if (dynamic_cast<AstFunctionExpression*>(node))
+    if ((node)->IsA<AstFunctionExpression>())
     {
         return L"FunctionExpression";
     }
 
-    if (dynamic_cast<AstClass*>(node))
+    if ((node)->IsA<AstClass>())
     {
         return L"Class";
     }
 
-    if (dynamic_cast<AstVariableDeclaration*>(node))
+    if ((node)->IsA<AstVariableDeclaration>())
     {
         return L"VariableDeclaration";
     }
 
-    if (dynamic_cast<AstReturnStatement*>(node))
+    if ((node)->IsA<AstReturnStatement>())
     {
         return L"ReturnStatement";
     }
 
-    if (dynamic_cast<AstMember*>(node))
+    if ((node)->IsA<AstMember>())
     {
         return L"Member";
     }
 
-    if (dynamic_cast<AstArrayExpression*>(node))
+    if ((node)->IsA<AstArrayExpression>())
     {
         return L"ArrayExpression";
     }
 
-    if (dynamic_cast<AstArrayAccess*>(node))
+    if ((node)->IsA<AstArrayAccess>())
     {
         return L"ArrayAccess";
     }
 
-    if (dynamic_cast<AstHashMap*>(node))
+    if ((node)->IsA<AstHashMap>())
     {
         return L"TMap";
     }
 
-    if (dynamic_cast<AstDirective*>(node))
+    if ((node)->IsA<AstDirective>())
     {
         return L"Directive";
     }
 
-    if (dynamic_cast<AstImport*>(node))
+    if ((node)->IsA<AstImport>())
     {
         return L"Import";
     }
 
-    if (dynamic_cast<AstModuleDeclaration*>(node))
+    if ((node)->IsA<AstModuleDeclaration>())
     {
         return L"ModuleDeclaration";
     }
 
-    if (dynamic_cast<AstBreakStatement*>(node))
+    if ((node)->IsA<AstBreakStatement>())
     {
         return L"BreakStatement";
     }
 
-    if (dynamic_cast<AstContinueStatement*>(node))
+    if ((node)->IsA<AstContinueStatement>())
     {
         return L"ContinueStatement";
     }
 
-    if (dynamic_cast<AstTernaryExpression*>(node))
+    if ((node)->IsA<AstTernaryExpression>())
     {
         return L"TernaryExpression";
     }
@@ -309,23 +309,23 @@ WideString AstPrintVisitor::GetBasicNodeInfo(AstStatement* node) const
 {
     WideString result;
 
-    if (auto* identifier = dynamic_cast<AstIdentifier*>(node))
+    if (auto* identifier = DynamicCast<AstIdentifier>(node))
     {
         result += FormatValue(L"'" + identifier->GetName().ToWide() + L"'");
     }
-    else if (auto* integer = dynamic_cast<AstInteger*>(node))
+    else if (auto* integer = DynamicCast<AstInteger>(node))
     {
         result += FormatValue(integer->ToString().ToWide());
     }
-    else if (auto* floatNode = dynamic_cast<AstFloat*>(node))
+    else if (auto* floatNode = DynamicCast<AstFloat>(node))
     {
         result += FormatValue(floatNode->ToString().ToWide());
     }
-    else if (auto* stringNode = dynamic_cast<AstString*>(node))
+    else if (auto* stringNode = DynamicCast<AstString>(node))
     {
         result += FormatValue(stringNode->ToString().ToWide());
     }
-    else if (auto* varDecl = dynamic_cast<AstVariableDeclaration*>(node))
+    else if (auto* varDecl = DynamicCast<AstVariableDeclaration>(node))
     {
         result += FormatValue(L"'" + varDecl->GetName().ToWide() + L"'");
     }
@@ -344,7 +344,7 @@ WideString AstPrintVisitor::GetBasicNodeInfo(AstStatement* node) const
 
 WideString AstPrintVisitor::GetTypeInfo(AstStatement* node) const
 {
-    if (AstExpression* expr = dynamic_cast<AstExpression*>(node))
+    if (AstExpression* expr = DynamicCast<AstExpression>(node))
     {
         const SymbolType* symbolType = expr->GetExprType();
 
@@ -362,21 +362,21 @@ WideString AstPrintVisitor::GetDetailedInfo(AstStatement* node, size_t depth) co
     WideString result;
     const WideString indentation = GetIndentation(depth + 1);
 
-    if (auto* callExpr = dynamic_cast<AstCallExpression*>(node))
+    if (auto* callExpr = DynamicCast<AstCallExpression>(node))
     {
         result += indentation
             + Colorize(L"│ ", s_colorComment)
             + Colorize(L"Arguments: ", s_colorComment)
             + FormatValue(WideString::ToString(callExpr->GetArguments().Size())) + L"\n";
     }
-    else if (auto* block = dynamic_cast<AstBlock*>(node))
+    else if (auto* block = DynamicCast<AstBlock>(node))
     {
         result += indentation
             + Colorize(L"│ ", s_colorComment)
             + Colorize(L"Statements: ", s_colorComment)
             + FormatValue(WideString::ToString(block->GetChildren().Size())) + L"\n";
     }
-    else if (auto* varDecl = dynamic_cast<AstVariableDeclaration*>(node))
+    else if (auto* varDecl = DynamicCast<AstVariableDeclaration>(node))
     {
         result += indentation
             + Colorize(L"│ ", s_colorComment)
@@ -427,19 +427,19 @@ Array<AstStatement*> AstPrintVisitor::GetChildNodes(AstStatement* node) const
 {
     Array<AstStatement*> children;
 
-    if (auto* moduleDecl = dynamic_cast<AstModuleDeclaration*>(node))
+    if (auto* moduleDecl = DynamicCast<AstModuleDeclaration>(node))
     {
         for (const auto& child : moduleDecl->GetChildren())
         {
             children.PushBack(child.Get());
         }
     }
-    else if (auto* binExpr = dynamic_cast<AstBinaryExpression*>(node))
+    else if (auto* binExpr = DynamicCast<AstBinaryExpression>(node))
     {
         children.PushBack(binExpr->GetLeft().Get());
         children.PushBack(binExpr->GetRight().Get());
     }
-    else if (auto* callExpr = dynamic_cast<AstCallExpression*>(node))
+    else if (auto* callExpr = DynamicCast<AstCallExpression>(node))
     {
         for (const auto& arg : callExpr->GetArguments())
         {
@@ -449,7 +449,7 @@ Array<AstStatement*> AstPrintVisitor::GetChildNodes(AstStatement* node) const
             }
         }
     }
-    else if (auto* memberCall = dynamic_cast<AstMemberCallExpression*>(node))
+    else if (auto* memberCall = DynamicCast<AstMemberCallExpression>(node))
     {
         if (memberCall->GetTarget())
         {
@@ -467,14 +467,14 @@ Array<AstStatement*> AstPrintVisitor::GetChildNodes(AstStatement* node) const
             }
         }
     }
-    else if (auto* block = dynamic_cast<AstBlock*>(node))
+    else if (auto* block = DynamicCast<AstBlock>(node))
     {
         for (const auto& child : block->GetChildren())
         {
             children.PushBack(child.Get());
         }
     }
-    else if (auto* ifStmt = dynamic_cast<AstIfStatement*>(node))
+    else if (auto* ifStmt = DynamicCast<AstIfStatement>(node))
     {
         children.PushBack(ifStmt->GetConditional().Get());
         children.PushBack(ifStmt->GetBlock().Get());
@@ -483,40 +483,40 @@ Array<AstStatement*> AstPrintVisitor::GetChildNodes(AstStatement* node) const
             children.PushBack(ifStmt->GetElseBlock().Get());
         }
     }
-    else if (auto* varDecl = dynamic_cast<AstVariableDeclaration*>(node))
+    else if (auto* varDecl = DynamicCast<AstVariableDeclaration>(node))
     {
         if (varDecl->GetAssignment())
         {
             children.PushBack(varDecl->GetAssignment().Get());
         }
     }
-    else if (auto* returnStmt = dynamic_cast<AstReturnStatement*>(node))
+    else if (auto* returnStmt = DynamicCast<AstReturnStatement>(node))
     {
         if (returnStmt->GetExpression())
         {
             children.PushBack(returnStmt->GetExpression().Get());
         }
     }
-    else if (auto* member = dynamic_cast<AstMember*>(node))
+    else if (auto* member = DynamicCast<AstMember>(node))
     {
         if (member->GetTarget())
         {
             children.PushBack(member->GetTarget());
         }
     }
-    else if (auto* arrayExpr = dynamic_cast<AstArrayExpression*>(node))
+    else if (auto* arrayExpr = DynamicCast<AstArrayExpression>(node))
     {
         for (const auto& element : arrayExpr->GetMembers())
         {
             children.PushBack(element.Get());
         }
     }
-    else if (auto* arrayAccess = dynamic_cast<AstArrayAccess*>(node))
+    else if (auto* arrayAccess = DynamicCast<AstArrayAccess>(node))
     {
         children.PushBack(arrayAccess->GetTarget());
         children.PushBack(arrayAccess->GetIndex());
     }
-    else if (auto* forEachLoop = dynamic_cast<AstForEachLoop*>(node))
+    else if (auto* forEachLoop = DynamicCast<AstForEachLoop>(node))
     {
         // AstForEachLoop doesn't expose getters, but we still list it as a leaf
     }

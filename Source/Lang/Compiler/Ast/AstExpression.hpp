@@ -178,8 +178,11 @@ struct ConstantValue
     }
 };
 
+HYP_CLASS(Abstract)
 class AstExpression : public AstStatement
 {
+    HYP_OBJECT_BODY(AstExpression);
+
 public:
     AstExpression(
         const SourceLocation& location,

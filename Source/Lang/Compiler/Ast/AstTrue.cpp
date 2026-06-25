@@ -8,6 +8,8 @@
 
 #include <Lang/Compiler/Emit/BytecodeUtil.hpp>
 
+#include <AstTrue.generated.inl>
+
 namespace Hyperion {
 
 AstTrue::AstTrue(const SourceLocation& location)

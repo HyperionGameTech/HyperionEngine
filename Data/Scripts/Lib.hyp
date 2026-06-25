@@ -15,6 +15,122 @@ const DBL_MAX : double = 1.7976931348623157e+308
 const DBL_MIN : double = 2.2250738585072014e-308
 const DBL_EPSILON : double = 2.2204460492503131e-16
 
+extern class AstStatement
+end
+extern class AstWhileLoop : AstStatement
+end
+extern class AstTypeAlias : AstStatement
+end
+extern class AstTryCatch : AstStatement
+end
+extern class AstReturnStatement : AstStatement
+end
+extern class AstImport : AstStatement
+end
+extern class AstModuleImportPart : AstStatement
+end
+extern class AstModuleImport : AstImport
+end
+extern class AstFileImport : AstImport
+end
+extern class AstIfStatement : AstStatement
+end
+extern class AstForLoop : AstStatement
+end
+extern class AstForEachLoop : AstStatement
+end
+extern class AstExpression : AstStatement
+end
+extern class AstUnaryExpression : AstExpression
+end
+extern class AstTypeSpecifier : AstExpression
+end
+extern class AstTypeOfExpression : AstTypeSpecifier
+end
+extern class AstTemplateInstantiation : AstTypeSpecifier
+end
+extern class AstTypeRef : AstExpression
+end
+extern class AstThrowExpression : AstExpression
+end
+extern class AstTernaryExpression : AstExpression
+end
+extern class AstSwitchExpression : AstExpression
+end
+extern class AstNewExpression : AstExpression
+end
+extern class AstModuleAccess : AstExpression
+end
+extern class AstMember : AstExpression
+end
+extern class AstMemberCallExpression : AstMember
+end
+extern class AstIsExpression : AstExpression
+end
+extern class AstIdentifier : AstExpression
+end
+extern class AstVariable : AstIdentifier
+end
+extern class AstHashMap : AstExpression
+end
+extern class AstHasExpression : AstExpression
+end
+extern class AstFunctionExpression : AstExpression
+end
+extern class AstConstant : AstExpression
+end
+extern class AstUnsignedInteger : AstConstant
+end
+extern class AstUndefined : AstConstant
+end
+extern class AstTrue : AstConstant
+end
+extern class AstString : AstConstant
+end
+extern class AstNil : AstConstant
+end
+extern class AstName : AstConstant
+end
+extern class AstInteger : AstConstant
+end
+extern class AstFloat : AstConstant
+end
+extern class AstFalse : AstConstant
+end
+extern class AstClass : AstExpression
+end
+extern class AstCallExpression : AstExpression
+end
+extern class AstBinaryExpression : AstExpression
+end
+extern class AstAsExpression : AstExpression
+end
+extern class AstArrayExpression : AstExpression
+end
+extern class AstArrayAccess : AstExpression
+end
+extern class AstArgumentList : AstExpression
+end
+extern class AstArgument : AstExpression
+end
+extern class AstExportStatement : AstStatement
+end
+extern class AstDirective : AstStatement
+end
+extern class AstDeclaration : AstStatement
+end
+extern class AstVariableDeclaration : AstDeclaration
+end
+extern class AstParameter : AstDeclaration
+end
+extern class AstModuleDeclaration : AstDeclaration
+end
+extern class AstContinueStatement : AstStatement
+end
+extern class AstBreakStatement : AstStatement
+end
+extern class AstBlock : AstStatement
+end
 extern struct OctantId
 end
 extern class OverlayBase

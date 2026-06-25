@@ -13,6 +13,8 @@
 
 #include <Core/Debug/Debug.hpp>
 
+#include <AstParameter.generated.inl>
+
 namespace Hyperion {
 
 AstParameter::AstParameter(

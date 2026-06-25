@@ -14,8 +14,11 @@ namespace Hyperion {
 
 class AstClass;
 
+HYP_CLASS()
 class AstFunctionExpression : public AstExpression
 {
+    HYP_OBJECT_BODY(AstFunctionExpression);
+
 public:
     AstFunctionExpression(
         const Array<RC<AstParameter>>& parameters,

@@ -9,8 +9,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstDirective : public AstStatement
 {
+    HYP_OBJECT_BODY(AstDirective);
+
 public:
     AstDirective(
         const String& key,

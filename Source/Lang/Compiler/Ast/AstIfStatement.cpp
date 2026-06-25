@@ -10,6 +10,8 @@
 
 #include <cstdio>
 
+#include <AstIfStatement.generated.inl>
+
 namespace Hyperion {
 
 AstIfStatement::AstIfStatement(

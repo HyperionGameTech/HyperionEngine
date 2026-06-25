@@ -15,6 +15,8 @@
 #include <limits>
 #include <cmath>
 
+#include <AstUnsignedInteger.generated.inl>
+
 namespace Hyperion {
 
 AstUnsignedInteger::AstUnsignedInteger(uint64 value, ConstantBitSize bitSize, const SourceLocation& location)

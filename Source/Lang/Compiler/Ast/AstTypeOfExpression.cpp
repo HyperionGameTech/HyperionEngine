@@ -12,6 +12,8 @@
 
 #include <Core/Debug/Debug.hpp>
 
+#include <AstTypeOfExpression.generated.inl>
+
 namespace Hyperion {
 
 AstTypeOfExpression::AstTypeOfExpression(

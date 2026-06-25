@@ -2,6 +2,8 @@
 
 #include <Lang/Compiler/TypeSystem/BuiltinTypes.hpp>
 
+#include <AstUndefined.generated.inl>
+
 namespace Hyperion {
 
 AstUndefined::AstUndefined(const SourceLocation& location)

@@ -6,8 +6,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstUnsignedInteger final : public AstConstant
 {
+    HYP_OBJECT_BODY(AstUnsignedInteger);
+
 public:
     AstUnsignedInteger(uint64 value, ConstantBitSize bitSize, const SourceLocation& location);
 

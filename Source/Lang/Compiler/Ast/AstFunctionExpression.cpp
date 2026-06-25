@@ -34,6 +34,8 @@
 
 #include <Core/Unicode.hpp>
 
+#include <AstFunctionExpression.generated.inl>
+
 namespace Hyperion {
 
 AstFunctionExpression::AstFunctionExpression(

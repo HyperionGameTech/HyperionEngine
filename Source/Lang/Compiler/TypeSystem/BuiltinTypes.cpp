@@ -26,419 +26,450 @@ static const String s_nameClassName = "Name";
 static const String s_classRefClassName = "ClassRef";
 static const String s_mathClassName = "Math";
 
-const SymbolType* BuiltinTypes::s_primitiveType = new SymbolType(
-    "<primitive>",
-    TYPE_BUILTIN,
-    nullptr,
-    nullptr,
-    {}, {});
-
-const SymbolType* BuiltinTypes::s_errorType = new SymbolType(
-    "<error>",
-    TYPE_BUILTIN,
-    nullptr,
-    nullptr,
-    {}, {});
-
-const SymbolType* BuiltinTypes::s_anyType = new SymbolType(
-    "any",
-    TYPE_BUILTIN,
-    nullptr,
-    nullptr,
-    {}, {});
-
-const SymbolType* BuiltinTypes::s_classType = new SymbolType(
-    "Class",
-    TYPE_BUILTIN,
-    nullptr,
-    nullptr,
-    {}, {});
-
-const SymbolType* BuiltinTypes::s_placeholderType = new SymbolType(
-    "<placeholder>",
-    TYPE_BUILTIN,
-    nullptr,
-    nullptr,
-    {}, {});
-
-const SymbolType* BuiltinTypes::s_voidType = SymbolType::Primitive(
-    "void",
-    RC<AstUndefined>(new AstUndefined(SourceLocation::Eof())));
-
-const SymbolType* BuiltinTypes::s_objectType = new SymbolType(
-    "object",
-    TYPE_BUILTIN,
-    nullptr,
-    nullptr,
-    {}, {});
-
-const SymbolType* BuiltinTypes::s_functionBaseType = SymbolType::Primitive(
-    "FunctionBase",
-    nullptr);
-
-const SymbolType* BuiltinTypes::s_arrayBaseType = SymbolType::Primitive(
-    "ArrayBase",
-    nullptr);
-
-const SymbolType* BuiltinTypes::s_varArgsBaseType = SymbolType::Extend(
-    "VarArgsBase",
-    BuiltinTypes::s_arrayBaseType,
-    {}, {});
-
-const SymbolType* BuiltinTypes::s_mapBaseType = SymbolType::Primitive(
-    "MapBase",
-    nullptr);
-
-const SymbolType* BuiltinTypes::s_int8Type = SymbolType::Primitive(
-    "int8",
-    RC<AstInteger>(new AstInteger(0, CBS_8, SourceLocation::Eof())),
-    CBS_8);
-
-const SymbolType* BuiltinTypes::s_int16Type = SymbolType::Primitive(
-    "int16",
-    RC<AstInteger>(new AstInteger(0, CBS_16, SourceLocation::Eof())),
-    CBS_16);
-
-const SymbolType* BuiltinTypes::s_int32Type = SymbolType::Primitive(
-    "int32",
-    RC<AstInteger>(new AstInteger(0, CBS_32, SourceLocation::Eof())),
-    CBS_32);
-
-const SymbolType* BuiltinTypes::s_int64Type = SymbolType::Primitive(
-    "int64",
-    RC<AstInteger>(new AstInteger(0, CBS_64, SourceLocation::Eof())),
-    CBS_64);
-
-const SymbolType* BuiltinTypes::s_uint8Type = SymbolType::Primitive(
-    "uint8",
-    RC<AstUnsignedInteger>(new AstUnsignedInteger(0, CBS_8, SourceLocation::Eof())),
-    CBS_8);
-
-const SymbolType* BuiltinTypes::s_uint16Type = SymbolType::Primitive(
-    "uint16",
-    RC<AstUnsignedInteger>(new AstUnsignedInteger(0, CBS_16, SourceLocation::Eof())),
-    CBS_16);
-
-const SymbolType* BuiltinTypes::s_uint32Type = SymbolType::Primitive(
-    "uint32",
-    RC<AstUnsignedInteger>(new AstUnsignedInteger(0, CBS_32, SourceLocation::Eof())),
-    CBS_32);
-
-const SymbolType* BuiltinTypes::s_uint64Type = SymbolType::Primitive(
-    "uint64",
-    RC<AstUnsignedInteger>(new AstUnsignedInteger(0, CBS_64, SourceLocation::Eof())),
-    CBS_64);
-
-const SymbolType* BuiltinTypes::s_floatType = SymbolType::Primitive(
-    "float",
-    RC<AstFloat>(new AstFloat(0.0, CBS_32, SourceLocation::Eof())),
-    CBS_32);
-
-const SymbolType* BuiltinTypes::s_doubleType = SymbolType::Primitive(
-    "double",
-    RC<AstFloat>(new AstFloat(0.0, CBS_64, SourceLocation::Eof())),
-    CBS_64);
-
-const SymbolType* BuiltinTypes::s_boolType = SymbolType::Primitive(
-    "bool",
-    RC<AstFalse>(new AstFalse(SourceLocation::Eof())));
-
-const SymbolType* BuiltinTypes::s_stringType = SymbolType::Primitive(
-    "string",
-    RC<AstString>(new AstString("", SourceLocation::Eof())));
-
-const SymbolType* BuiltinTypes::s_nullType = SymbolType::Primitive(
-    "<null>",
-    RC<AstNil>(new AstNil(SourceLocation::Eof())));
-
-const SymbolType* BuiltinTypes::s_nameType = SymbolType::Primitive(
-    "Name",
-    RC<AstName>(new AstName("", SourceLocation::Eof())));
-
-const SymbolType* BuiltinTypes::s_varArgsType = SymbolType::Generic(
-    "VarArgs",
-    s_varArgsBaseType,
-    Array<SymbolTypeMember> {},
-    Array<SymbolTypeMember> {},
-    GenericInstanceTypeInfo {
-        {
-            { "type", SymbolType::GenericParameter("T") }
-        }
-    });
-
-const SymbolType* BuiltinTypes::s_functionType = SymbolType::Generic(
-    "Function",
-    BuiltinTypes::s_functionBaseType,
-    Array<SymbolTypeMember> {},
-    Array<SymbolTypeMember> {},
-    GenericInstanceTypeInfo {
-        {
-            { "@return", SymbolType::GenericParameter("ReturnType") },
-            { "@args", SymbolType::GenericInstance(BuiltinTypes::s_varArgsType, {}, {}, GenericInstanceTypeInfo {}) }
-        }
-    });
-
-// See ScriptArrayWrapper.cpp in Hyperion Engine for implementation of array methods
-const SymbolType* BuiltinTypes::s_arrayType = SymbolType::Generic(
-    "Array",
-    BuiltinTypes::s_arrayBaseType,
-    Array<SymbolTypeMember> {
-        SymbolTypeMember {
-            "operator[]",
-            SymbolType::GenericInstance(
-                BuiltinTypes::s_functionType,
-                {}, {},
-                GenericInstanceTypeInfo {
-                    {
-                        { "@return", SymbolType::GenericParameter("T") },
-                        { "self", SymbolType::Placeholder("SelfType") },
-                        { "index", BuiltinTypes::s_uint64Type }
-                    }
-                })
-            },
-        SymbolTypeMember {
-            "operator[]=",
-            SymbolType::GenericInstance(
-                BuiltinTypes::s_functionType,
-                {}, {},
-                GenericInstanceTypeInfo {
-                    {
-                        { "@return", SymbolType::GenericParameter("T") },
-                        { "self", SymbolType::Placeholder("SelfType") },
-                        { "index", BuiltinTypes::s_uint64Type },
-                        { "value", SymbolType::GenericParameter("T") }
-                    }
-                })
-            },
-        SymbolTypeMember {
-            "PushBack",
-            SymbolType::GenericInstance(
-                BuiltinTypes::s_functionType,
-                {}, {},
-                GenericInstanceTypeInfo {
-                    {
-                        { "@return", SymbolType::GenericParameter("T") },
-                        { "self", SymbolType::Placeholder("SelfType") },
-                        { "value", SymbolType::GenericParameter("T") }
-                    }
-                })
-            },
-        // There is an issue showing up when using this method "Array<string> cannot be passed as Array<any>"
-        SymbolTypeMember {
-            "PopBack",
-            SymbolType::GenericInstance(
-                BuiltinTypes::s_functionType,
-                {}, {},
-                GenericInstanceTypeInfo {
-                    {
-                        { "@return", SymbolType::GenericParameter("T") },
-                        { "self", SymbolType::Placeholder("SelfType") }
-                    }
-                })
-            },
-        SymbolTypeMember {
-            "PushFront",
-            SymbolType::GenericInstance(
-                BuiltinTypes::s_functionType,
-                {}, {},
-                GenericInstanceTypeInfo {
-                    {
-                        { "@return", SymbolType::GenericParameter("T") },
-                        { "self", SymbolType::Placeholder("SelfType") },
-                        { "value", SymbolType::GenericParameter("T") }
-                    }
-                })
-            },
-        SymbolTypeMember {
-            "PopFront",
-            SymbolType::GenericInstance(
-                BuiltinTypes::s_functionType,
-                {}, {},
-                GenericInstanceTypeInfo {
-                    {
-                        { "@return", SymbolType::GenericParameter("T") },
-                        { "self", SymbolType::Placeholder("SelfType") }
-                    }
-                })
-            },
-        SymbolTypeMember {
-            "Add",
-            SymbolType::GenericInstance(
-                BuiltinTypes::s_functionType,
-                {}, {},
-                GenericInstanceTypeInfo {
-                    {
-                        { "@return", SymbolType::GenericParameter("T") },
-                        { "self", SymbolType::Placeholder("SelfType") },
-                        { "value", SymbolType::GenericParameter("T") }
-                    }
-                })
-            },
-        SymbolTypeMember {
-            "Remove",
-            SymbolType::GenericInstance(
-                BuiltinTypes::s_functionType,
-                {}, {},
-                GenericInstanceTypeInfo {
-                    {
-                        { "@return", BuiltinTypes::s_boolType },
-                        { "self", SymbolType::Placeholder("SelfType") },
-                        { "value", SymbolType::GenericParameter("T") }
-                    }
-                })
-            },
-        SymbolTypeMember {
-            "Clear",
-            SymbolType::GenericInstance(
-                BuiltinTypes::s_functionType,
-                {}, {},
-                GenericInstanceTypeInfo {
-                    {
-                        { "@return", BuiltinTypes::s_voidType },
-                        { "self", SymbolType::Placeholder("SelfType") }
-                    }
-                })
-            },
-        SymbolTypeMember {
-            "Resize",
-            SymbolType::GenericInstance(
-                BuiltinTypes::s_functionType,
-                {}, {},
-                GenericInstanceTypeInfo {
-                    {
-                        { "@return", BuiltinTypes::s_voidType },
-                        { "self", SymbolType::Placeholder("SelfType") },
-                        { "newSize", BuiltinTypes::s_uint64Type }
-                    }
-                })
-            },
-        SymbolTypeMember {
-            "Reserve",
-            SymbolType::GenericInstance(
-                BuiltinTypes::s_functionType,
-                {}, {},
-                GenericInstanceTypeInfo {
-                    {
-                        { "@return", BuiltinTypes::s_voidType },
-                        { "self", SymbolType::Placeholder("SelfType") },
-                        { "capacity", BuiltinTypes::s_uint64Type }
-                    }
-                })
-            },
-        SymbolTypeMember {
-            "Empty",
-            SymbolType::GenericInstance(
-                BuiltinTypes::s_functionType,
-                {}, {},
-                GenericInstanceTypeInfo {
-                    {
-                        { "@return", BuiltinTypes::s_boolType },
-                        { "self", SymbolType::Placeholder("SelfType") }
-                    }
-                })
-            },
-        SymbolTypeMember {
-            "Any",
-            SymbolType::GenericInstance(
-                BuiltinTypes::s_functionType,
-                {}, {},
-                GenericInstanceTypeInfo {
-                    {
-                        { "@return", BuiltinTypes::s_boolType },
-                        { "self", SymbolType::Placeholder("SelfType") }
-                    }
-                })
-            },
-        SymbolTypeMember {
-            "Front",
-            SymbolType::GenericInstance(
-                BuiltinTypes::s_functionType,
-                {}, {},
-                GenericInstanceTypeInfo {
-                    {
-                        { "@return", SymbolType::GenericParameter("T") },
-                        { "self", SymbolType::Placeholder("SelfType") }
-                    }
-                })
-            },
-        SymbolTypeMember {
-            "Back",
-            SymbolType::GenericInstance(
-                BuiltinTypes::s_functionType,
-                {}, {},
-                GenericInstanceTypeInfo {
-                    {
-                        { "@return", SymbolType::GenericParameter("T") },
-                        { "self", SymbolType::Placeholder("SelfType") }
-                    }
-                })
-            },
-        SymbolTypeMember {
-            "Size",
-            SymbolType::GenericInstance(
-                BuiltinTypes::s_functionType,
-                {}, {},
-                GenericInstanceTypeInfo {
-                    {
-                        { "@return", BuiltinTypes::s_uint64Type },
-                        { "self", SymbolType::Placeholder("SelfType") }
-                    }
-                })
-            }
-        },
-    Array<SymbolTypeMember> {},
-    GenericInstanceTypeInfo { { { "type", SymbolType::GenericParameter("T") } } });
-
-const SymbolType* BuiltinTypes::s_mapType = SymbolType::Generic(
-    "Map",
-    BuiltinTypes::s_mapBaseType,
-    Array<SymbolTypeMember> {
-        SymbolTypeMember {
-            "operator[]",
-            SymbolType::GenericInstance(
-                BuiltinTypes::s_functionType,
-                {}, {},
-                GenericInstanceTypeInfo {
-                    {
-                        { "@return", SymbolType::GenericParameter("V") },
-                        { "self", /*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::s_anyType },
-                        { "key", SymbolType::GenericParameter("K") }
-                    }
-                })
-            },
-        SymbolTypeMember {
-            "operator[]=",
-            SymbolType::GenericInstance(
-                BuiltinTypes::s_functionType,
-                {}, {},
-                GenericInstanceTypeInfo {
-                    {
-                        { "@return", SymbolType::GenericParameter("V") },
-                        { "self", /*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::s_anyType },
-                        { "key", SymbolType::GenericParameter("K") },
-                        { "value", SymbolType::GenericParameter("V") }
-                    }
-                })
-            }
-        },
-    Array<SymbolTypeMember> {},
-    GenericInstanceTypeInfo {
-        {
-            { "key", SymbolType::GenericParameter("K") },
-            { "value", SymbolType::GenericParameter("V") }
-        }
-    });
-
-const SymbolType* BuiltinTypes::s_mathType = new SymbolType(
-    "Math",
-    TYPE_BUILTIN,
-    nullptr,
-    nullptr,
-    {}, {});
+const SymbolType* BuiltinTypes::s_primitiveType = nullptr;
+const SymbolType* BuiltinTypes::s_errorType = nullptr;
+const SymbolType* BuiltinTypes::s_anyType = nullptr;
+const SymbolType* BuiltinTypes::s_classType = nullptr;
+const SymbolType* BuiltinTypes::s_placeholderType = nullptr;
+const SymbolType* BuiltinTypes::s_voidType = nullptr;
+const SymbolType* BuiltinTypes::s_objectType = nullptr;
+const SymbolType* BuiltinTypes::s_functionBaseType = nullptr;
+const SymbolType* BuiltinTypes::s_arrayBaseType = nullptr;
+const SymbolType* BuiltinTypes::s_varArgsBaseType = nullptr;
+const SymbolType* BuiltinTypes::s_mapBaseType = nullptr;
+const SymbolType* BuiltinTypes::s_int8Type = nullptr;
+const SymbolType* BuiltinTypes::s_int16Type = nullptr;
+const SymbolType* BuiltinTypes::s_int32Type = nullptr;
+const SymbolType* BuiltinTypes::s_int64Type = nullptr;
+const SymbolType* BuiltinTypes::s_uint8Type = nullptr;
+const SymbolType* BuiltinTypes::s_uint16Type = nullptr;
+const SymbolType* BuiltinTypes::s_uint32Type = nullptr;
+const SymbolType* BuiltinTypes::s_uint64Type = nullptr;
+const SymbolType* BuiltinTypes::s_floatType = nullptr;
+const SymbolType* BuiltinTypes::s_doubleType = nullptr;
+const SymbolType* BuiltinTypes::s_boolType = nullptr;
+const SymbolType* BuiltinTypes::s_stringType = nullptr;
+const SymbolType* BuiltinTypes::s_nullType = nullptr;
+const SymbolType* BuiltinTypes::s_nameType = nullptr;
+const SymbolType* BuiltinTypes::s_varArgsType = nullptr;
+const SymbolType* BuiltinTypes::s_functionType = nullptr;
+const SymbolType* BuiltinTypes::s_arrayType = nullptr;
+const SymbolType* BuiltinTypes::s_mapType = nullptr;
+const SymbolType* BuiltinTypes::s_mathType = nullptr;
 
 void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
 {
     Assert(globalCompilationUnit != nullptr);
+
+    s_primitiveType = new SymbolType(
+        "<primitive>",
+        TYPE_BUILTIN,
+        nullptr,
+        nullptr,
+        {}, {});
+
+    s_errorType = new SymbolType(
+        "<error>",
+        TYPE_BUILTIN,
+        nullptr,
+        nullptr,
+        {}, {});
+
+    s_anyType = new SymbolType(
+        "any",
+        TYPE_BUILTIN,
+        nullptr,
+        nullptr,
+        {}, {});
+
+    s_classType = new SymbolType(
+        "Class",
+        TYPE_BUILTIN,
+        nullptr,
+        nullptr,
+        {}, {});
+
+    s_placeholderType = new SymbolType(
+        "<placeholder>",
+        TYPE_BUILTIN,
+        nullptr,
+        nullptr,
+        {}, {});
+
+    s_voidType = SymbolType::Primitive(
+        "void",
+        RC<AstUndefined>(new AstUndefined(SourceLocation::Eof())));
+
+    s_objectType = new SymbolType(
+        "object",
+        TYPE_BUILTIN,
+        nullptr,
+        nullptr,
+        {}, {});
+
+    s_functionBaseType = SymbolType::Primitive(
+        "FunctionBase",
+        nullptr);
+
+    s_arrayBaseType = SymbolType::Primitive(
+        "ArrayBase",
+        nullptr);
+
+    s_varArgsBaseType = SymbolType::Extend(
+        "VarArgsBase",
+        BuiltinTypes::s_arrayBaseType,
+        {}, {});
+
+    s_mapBaseType = SymbolType::Primitive(
+        "MapBase",
+        nullptr);
+
+    s_int8Type = SymbolType::Primitive(
+        "int8",
+        RC<AstInteger>(new AstInteger(0, CBS_8, SourceLocation::Eof())),
+        CBS_8);
+
+    s_int16Type = SymbolType::Primitive(
+        "int16",
+        RC<AstInteger>(new AstInteger(0, CBS_16, SourceLocation::Eof())),
+        CBS_16);
+
+    s_int32Type = SymbolType::Primitive(
+        "int32",
+        RC<AstInteger>(new AstInteger(0, CBS_32, SourceLocation::Eof())),
+        CBS_32);
+
+    s_int64Type = SymbolType::Primitive(
+        "int64",
+        RC<AstInteger>(new AstInteger(0, CBS_64, SourceLocation::Eof())),
+        CBS_64);
+
+    s_uint8Type = SymbolType::Primitive(
+        "uint8",
+        RC<AstUnsignedInteger>(new AstUnsignedInteger(0, CBS_8, SourceLocation::Eof())),
+        CBS_8);
+
+    s_uint16Type = SymbolType::Primitive(
+        "uint16",
+        RC<AstUnsignedInteger>(new AstUnsignedInteger(0, CBS_16, SourceLocation::Eof())),
+        CBS_16);
+
+    s_uint32Type = SymbolType::Primitive(
+        "uint32",
+        RC<AstUnsignedInteger>(new AstUnsignedInteger(0, CBS_32, SourceLocation::Eof())),
+        CBS_32);
+
+    s_uint64Type = SymbolType::Primitive(
+        "uint64",
+        RC<AstUnsignedInteger>(new AstUnsignedInteger(0, CBS_64, SourceLocation::Eof())),
+        CBS_64);
+
+    s_floatType = SymbolType::Primitive(
+        "float",
+        RC<AstFloat>(new AstFloat(0.0, CBS_32, SourceLocation::Eof())),
+        CBS_32);
+
+    s_doubleType = SymbolType::Primitive(
+        "double",
+        RC<AstFloat>(new AstFloat(0.0, CBS_64, SourceLocation::Eof())),
+        CBS_64);
+
+    s_boolType = SymbolType::Primitive(
+        "bool",
+        RC<AstFalse>(new AstFalse(SourceLocation::Eof())));
+
+    s_stringType = SymbolType::Primitive(
+        "string",
+        RC<AstString>(new AstString("", SourceLocation::Eof())));
+
+    s_nullType = SymbolType::Primitive(
+        "<null>",
+        RC<AstNil>(new AstNil(SourceLocation::Eof())));
+
+    s_nameType = SymbolType::Primitive(
+        "Name",
+        RC<AstName>(new AstName("", SourceLocation::Eof())));
+
+    s_varArgsType = SymbolType::Generic(
+        "VarArgs",
+        s_varArgsBaseType,
+        Array<SymbolTypeMember> {},
+        Array<SymbolTypeMember> {},
+        GenericInstanceTypeInfo {
+            {
+                { "type", SymbolType::GenericParameter("T") }
+            }
+        });
+
+    s_functionType = SymbolType::Generic(
+        "Function",
+        BuiltinTypes::s_functionBaseType,
+        Array<SymbolTypeMember> {},
+        Array<SymbolTypeMember> {},
+        GenericInstanceTypeInfo {
+            {
+                { "@return", SymbolType::GenericParameter("ReturnType") },
+                { "@args", SymbolType::GenericInstance(BuiltinTypes::s_varArgsType, {}, {}, GenericInstanceTypeInfo {}) }
+            }
+        });
+
+    // See ScriptArrayWrapper.cpp in Hyperion Engine for implementation of array methods
+    s_arrayType = SymbolType::Generic(
+        "Array",
+        BuiltinTypes::s_arrayBaseType,
+        Array<SymbolTypeMember> {
+            SymbolTypeMember {
+                "operator[]",
+                SymbolType::GenericInstance(
+                    BuiltinTypes::s_functionType,
+                    {}, {},
+                    GenericInstanceTypeInfo {
+                        {
+                            { "@return", SymbolType::GenericParameter("T") },
+                            { "self", SymbolType::Placeholder("SelfType") },
+                            { "index", BuiltinTypes::s_uint64Type }
+                        }
+                    })
+                },
+            SymbolTypeMember {
+                "operator[]=",
+                SymbolType::GenericInstance(
+                    BuiltinTypes::s_functionType,
+                    {}, {},
+                    GenericInstanceTypeInfo {
+                        {
+                            { "@return", SymbolType::GenericParameter("T") },
+                            { "self", SymbolType::Placeholder("SelfType") },
+                            { "index", BuiltinTypes::s_uint64Type },
+                            { "value", SymbolType::GenericParameter("T") }
+                        }
+                    })
+                },
+            SymbolTypeMember {
+                "PushBack",
+                SymbolType::GenericInstance(
+                    BuiltinTypes::s_functionType,
+                    {}, {},
+                    GenericInstanceTypeInfo {
+                        {
+                            { "@return", SymbolType::GenericParameter("T") },
+                            { "self", SymbolType::Placeholder("SelfType") },
+                            { "value", SymbolType::GenericParameter("T") }
+                        }
+                    })
+                },
+            // There is an issue showing up when using this method "Array<string> cannot be passed as Array<any>"
+            SymbolTypeMember {
+                "PopBack",
+                SymbolType::GenericInstance(
+                    BuiltinTypes::s_functionType,
+                    {}, {},
+                    GenericInstanceTypeInfo {
+                        {
+                            { "@return", SymbolType::GenericParameter("T") },
+                            { "self", SymbolType::Placeholder("SelfType") }
+                        }
+                    })
+                },
+            SymbolTypeMember {
+                "PushFront",
+                SymbolType::GenericInstance(
+                    BuiltinTypes::s_functionType,
+                    {}, {},
+                    GenericInstanceTypeInfo {
+                        {
+                            { "@return", SymbolType::GenericParameter("T") },
+                            { "self", SymbolType::Placeholder("SelfType") },
+                            { "value", SymbolType::GenericParameter("T") }
+                        }
+                    })
+                },
+            SymbolTypeMember {
+                "PopFront",
+                SymbolType::GenericInstance(
+                    BuiltinTypes::s_functionType,
+                    {}, {},
+                    GenericInstanceTypeInfo {
+                        {
+                            { "@return", SymbolType::GenericParameter("T") },
+                            { "self", SymbolType::Placeholder("SelfType") }
+                        }
+                    })
+                },
+            SymbolTypeMember {
+                "Add",
+                SymbolType::GenericInstance(
+                    BuiltinTypes::s_functionType,
+                    {}, {},
+                    GenericInstanceTypeInfo {
+                        {
+                            { "@return", SymbolType::GenericParameter("T") },
+                            { "self", SymbolType::Placeholder("SelfType") },
+                            { "value", SymbolType::GenericParameter("T") }
+                        }
+                    })
+                },
+            SymbolTypeMember {
+                "Remove",
+                SymbolType::GenericInstance(
+                    BuiltinTypes::s_functionType,
+                    {}, {},
+                    GenericInstanceTypeInfo {
+                        {
+                            { "@return", BuiltinTypes::s_boolType },
+                            { "self", SymbolType::Placeholder("SelfType") },
+                            { "value", SymbolType::GenericParameter("T") }
+                        }
+                    })
+                },
+            SymbolTypeMember {
+                "Clear",
+                SymbolType::GenericInstance(
+                    BuiltinTypes::s_functionType,
+                    {}, {},
+                    GenericInstanceTypeInfo {
+                        {
+                            { "@return", BuiltinTypes::s_voidType },
+                            { "self", SymbolType::Placeholder("SelfType") }
+                        }
+                    })
+                },
+            SymbolTypeMember {
+                "Resize",
+                SymbolType::GenericInstance(
+                    BuiltinTypes::s_functionType,
+                    {}, {},
+                    GenericInstanceTypeInfo {
+                        {
+                            { "@return", BuiltinTypes::s_voidType },
+                            { "self", SymbolType::Placeholder("SelfType") },
+                            { "newSize", BuiltinTypes::s_uint64Type }
+                        }
+                    })
+                },
+            SymbolTypeMember {
+                "Reserve",
+                SymbolType::GenericInstance(
+                    BuiltinTypes::s_functionType,
+                    {}, {},
+                    GenericInstanceTypeInfo {
+                        {
+                            { "@return", BuiltinTypes::s_voidType },
+                            { "self", SymbolType::Placeholder("SelfType") },
+                            { "capacity", BuiltinTypes::s_uint64Type }
+                        }
+                    })
+                },
+            SymbolTypeMember {
+                "Empty",
+                SymbolType::GenericInstance(
+                    BuiltinTypes::s_functionType,
+                    {}, {},
+                    GenericInstanceTypeInfo {
+                        {
+                            { "@return", BuiltinTypes::s_boolType },
+                            { "self", SymbolType::Placeholder("SelfType") }
+                        }
+                    })
+                },
+            SymbolTypeMember {
+                "Any",
+                SymbolType::GenericInstance(
+                    BuiltinTypes::s_functionType,
+                    {}, {},
+                    GenericInstanceTypeInfo {
+                        {
+                            { "@return", BuiltinTypes::s_boolType },
+                            { "self", SymbolType::Placeholder("SelfType") }
+                        }
+                    })
+                },
+            SymbolTypeMember {
+                "Front",
+                SymbolType::GenericInstance(
+                    BuiltinTypes::s_functionType,
+                    {}, {},
+                    GenericInstanceTypeInfo {
+                        {
+                            { "@return", SymbolType::GenericParameter("T") },
+                            { "self", SymbolType::Placeholder("SelfType") }
+                        }
+                    })
+                },
+            SymbolTypeMember {
+                "Back",
+                SymbolType::GenericInstance(
+                    BuiltinTypes::s_functionType,
+                    {}, {},
+                    GenericInstanceTypeInfo {
+                        {
+                            { "@return", SymbolType::GenericParameter("T") },
+                            { "self", SymbolType::Placeholder("SelfType") }
+                        }
+                    })
+                },
+            SymbolTypeMember {
+                "Size",
+                SymbolType::GenericInstance(
+                    BuiltinTypes::s_functionType,
+                    {}, {},
+                    GenericInstanceTypeInfo {
+                        {
+                            { "@return", BuiltinTypes::s_uint64Type },
+                            { "self", SymbolType::Placeholder("SelfType") }
+                        }
+                    })
+                }
+            },
+        Array<SymbolTypeMember> {},
+        GenericInstanceTypeInfo { { { "type", SymbolType::GenericParameter("T") } } });
+
+    s_mapType = SymbolType::Generic(
+        "Map",
+        BuiltinTypes::s_mapBaseType,
+        Array<SymbolTypeMember> {
+            SymbolTypeMember {
+                "operator[]",
+                SymbolType::GenericInstance(
+                    BuiltinTypes::s_functionType,
+                    {}, {},
+                    GenericInstanceTypeInfo {
+                        {
+                            { "@return", SymbolType::GenericParameter("V") },
+                            { "self", /*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::s_anyType },
+                            { "key", SymbolType::GenericParameter("K") }
+                        }
+                    })
+                },
+            SymbolTypeMember {
+                "operator[]=",
+                SymbolType::GenericInstance(
+                    BuiltinTypes::s_functionType,
+                    {}, {},
+                    GenericInstanceTypeInfo {
+                        {
+                            { "@return", SymbolType::GenericParameter("V") },
+                            { "self", /*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::s_anyType },
+                            { "key", SymbolType::GenericParameter("K") },
+                            { "value", SymbolType::GenericParameter("V") }
+                        }
+                    })
+                }
+            },
+        Array<SymbolTypeMember> {},
+        GenericInstanceTypeInfo {
+            {
+                { "key", SymbolType::GenericParameter("K") },
+                { "value", SymbolType::GenericParameter("V") }
+            }
+        });
+
+    s_mathType = new SymbolType(
+        "Math",
+        TYPE_BUILTIN,
+        nullptr,
+        nullptr,
+        {}, {});
 
 #pragma region Varargs
     SymbolType* varargsTypeNonConst = const_cast<SymbolType*>(BuiltinTypes::s_varArgsType);

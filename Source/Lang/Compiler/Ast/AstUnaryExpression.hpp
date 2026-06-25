@@ -8,8 +8,11 @@ namespace Hyperion {
 class AstBinaryExpression;
 class AstBlock;
 
+HYP_CLASS()
 class AstUnaryExpression : public AstExpression
 {
+    HYP_OBJECT_BODY(AstUnaryExpression);
+
 public:
     AstUnaryExpression(
         const RC<AstExpression>& expr,

@@ -22,6 +22,8 @@
 #include <Lang/Instructions.hpp>
 #include <Core/Debug/Debug.hpp>
 
+#include <AstArrayAccess.generated.inl>
+
 namespace Hyperion {
 
 static constexpr const char* g_tempArrayStoreVarName = "$__arrayStoreValue";

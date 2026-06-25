@@ -39,6 +39,8 @@
 
 #include <Core/Debug/Debug.hpp>
 
+#include <AstClass.generated.inl>
+
 namespace Hyperion {
 
 static const String s_reservedClassMemberNames[] = {

@@ -9,8 +9,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstModuleDeclaration : public AstDeclaration
 {
+    HYP_OBJECT_BODY(AstModuleDeclaration);
+
 public:
     AstModuleDeclaration(
         const String& name,

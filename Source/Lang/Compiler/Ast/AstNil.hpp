@@ -4,8 +4,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstNil final : public AstConstant
 {
+    HYP_OBJECT_BODY(AstNil);
+
 public:
     AstNil(const SourceLocation& location);
 

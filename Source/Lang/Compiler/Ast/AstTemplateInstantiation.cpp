@@ -21,6 +21,8 @@
 
 #include <Core/Unicode.hpp>
 
+#include <AstTemplateInstantiation.generated.inl>
+
 namespace Hyperion {
 
 AstTemplateInstantiation::AstTemplateInstantiation(

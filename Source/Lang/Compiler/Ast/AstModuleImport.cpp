@@ -10,6 +10,8 @@
 
 #include <Core/IO/ByteReader.hpp>
 
+#include <AstModuleImport.generated.inl>
+
 namespace Hyperion {
 
 static constexpr const char* WildcardImport = "*";

@@ -6,8 +6,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstMemberCallExpression : public AstMember
 {
+    HYP_OBJECT_BODY(AstMemberCallExpression);
+
 public:
     AstMemberCallExpression(
         const String& fieldName,

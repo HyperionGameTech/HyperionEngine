@@ -7,8 +7,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class AstForEachLoop : public AstStatement
 {
+    HYP_OBJECT_BODY(AstForEachLoop);
+
 public:
     AstForEachLoop(
         const RC<AstVariableDeclaration>& varDecl,

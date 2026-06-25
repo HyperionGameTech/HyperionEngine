@@ -5,8 +5,11 @@
 namespace Hyperion {
 
 /*! \brief A reference to a type in the AST. Used for type specifiers, e.g. "int", "MyClass", etc. */
+HYP_CLASS()
 class AstTypeRef : public AstExpression
 {
+    HYP_OBJECT_BODY(AstTypeRef);
+
 public:
     AstTypeRef(
         const SymbolType* symbolType,

@@ -11,8 +11,11 @@ namespace Hyperion {
 
 class AstVariableDeclaration;
 
+HYP_CLASS()
 class AstTemplateInstantiation : public AstTypeSpecifier
 {
+    HYP_OBJECT_BODY(AstTemplateInstantiation);
+
 public:
     AstTemplateInstantiation(
         const RC<AstExpression>& expr,

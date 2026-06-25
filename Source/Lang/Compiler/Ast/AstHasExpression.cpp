@@ -19,6 +19,8 @@
 
 #include <iostream>
 
+#include <AstHasExpression.generated.inl>
+
 namespace Hyperion {
 
 AstHasExpression::AstHasExpression(
@@ -41,7 +43,7 @@ void AstHasExpression::Visit(AstVisitor* visitor, Module* mod)
 
     const SymbolType* targetType = nullptr;
 
-    if (auto* ident = dynamic_cast<AstIdentifier*>(m_target.Get()))
+    if (auto* ident = DynamicCast<AstIdentifier>(m_target.Get()))
     {
         if (ident->GetProperties().GetIdentifierType() == IDENTIFIER_TYPE_VARIABLE)
         {
@@ -51,11 +53,11 @@ void AstHasExpression::Visit(AstVisitor* visitor, Module* mod)
         targetType = ident->GetExprType();
         m_hasSideEffects = ident->MayHaveSideEffects();
     }
-    else if (auto* typeSpec = dynamic_cast<AstTypeSpecifier*>(m_target.Get()))
+    else if (auto* typeSpec = DynamicCast<AstTypeSpecifier>(m_target.Get()))
     {
         targetType = typeSpec->GetHeldType();
     }
-    else if (auto* expr = dynamic_cast<AstExpression*>(m_target.Get()))
+    else if (auto* expr = DynamicCast<AstExpression>(m_target.Get()))
     {
         targetType = expr->GetExprType();
         m_isExpr = true;

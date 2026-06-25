@@ -14,6 +14,8 @@
 #include <fstream>
 #include <iostream>
 
+#include <AstFileImport.generated.inl>
+
 namespace Hyperion {
 
 AstFileImport::AstFileImport(

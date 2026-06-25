@@ -18,6 +18,8 @@
 #include <Core/Debug/Debug.hpp>
 #include <Core/Unicode.hpp>
 
+#include <AstNewExpression.generated.inl>
+
 namespace Hyperion {
 
 AstNewExpression::AstNewExpression(

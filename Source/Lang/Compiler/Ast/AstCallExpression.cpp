@@ -21,6 +21,8 @@
 #include <limits>
 #include <iostream>
 
+#include <AstCallExpression.generated.inl>
+
 namespace Hyperion {
 
 AstCallExpression::AstCallExpression(

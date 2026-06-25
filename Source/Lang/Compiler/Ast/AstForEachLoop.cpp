@@ -20,6 +20,8 @@
 #include <Core/Debug/Debug.hpp>
 #include <Core/Unicode.hpp>
 
+#include <AstForEachLoop.generated.inl>
+
 namespace Hyperion {
 
 AstForEachLoop::AstForEachLoop(

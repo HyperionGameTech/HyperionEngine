@@ -18,7 +18,7 @@ include_directories(SYSTEM
 )
 include_directories(
     ${CMAKE_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/Generated/editor
+    ${CMAKE_SOURCE_DIR}/Generated/Editor
     ${CMAKE_SOURCE_DIR}/Engine
     ${CMAKE_SOURCE_DIR}/Editor
 )
@@ -27,7 +27,7 @@ file(GLOB_RECURSE CURRENT_SOURCES "*.cpp" "*.cc" "*.c")
 file(GLOB_RECURSE CURRENT_HEADERS "*.h" "*.hpp")
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Source Code" FILES ${CURRENT_SOURCES} ${CURRENT_HEADERS})
 
-set(HYP_GENERATED_DIR "${CMAKE_SOURCE_DIR}/Generated/editor")
+set(HYP_GENERATED_DIR "${CMAKE_SOURCE_DIR}/Generated/Editor")
 file(GLOB REFLECTION_GENERATED_SOURCES "${HYP_GENERATED_DIR}/*.cpp")
 source_group(TREE ${HYP_GENERATED_DIR} PREFIX "Generated Code" FILES ${REFLECTION_GENERATED_SOURCES})
 

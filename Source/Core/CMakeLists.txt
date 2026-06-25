@@ -99,7 +99,7 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "${BUILD_NAME} Code" FILES 
 if(HYPERION_ENGINE)
   message(STATUS "Adding generated code to core library since HYPERION_ENGINE is set.")
 
-  set(HYP_GENERATED_DIR "${CMAKE_SOURCE_DIR}/Generated/core")
+  set(HYP_GENERATED_DIR "${CMAKE_SOURCE_DIR}/Generated/Core")
   file(GLOB REFLECTION_GENERATED_SOURCES "${HYP_GENERATED_DIR}/*.cpp")
   source_group(TREE ${HYP_GENERATED_DIR} PREFIX "Generated Code" FILES ${REFLECTION_GENERATED_SOURCES})
 
@@ -119,7 +119,7 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../
     ${CMAKE_CURRENT_SOURCE_DIR}/../Engine
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Generated/core
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Generated/Core
 )
 
 message(STATUS "Configuring hyperion-core in ${CMAKE_CURRENT_SOURCE_DIR}")

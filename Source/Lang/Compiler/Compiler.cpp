@@ -21,14 +21,14 @@ void Compiler::MaybeAutoExport(
     AstStatement* stmt,
     UniquePtr<BytecodeChunk>& chunk)
 {
-    AstDeclaration* declaration = dynamic_cast<AstDeclaration*>(stmt);
+    AstDeclaration* declaration = DynamicCast<AstDeclaration>(stmt);
 
     if (!declaration)
     {
         return;
     }
 
-    if (dynamic_cast<AstModuleDeclaration*>(declaration) != nullptr)
+    if ((declaration)->IsA<AstModuleDeclaration>())
     {
         return;
     }
@@ -399,8 +399,8 @@ UniquePtr<Buildable> Compiler::BuildBinOp(
 {
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    AstBinaryExpression* leftAsBinop = dynamic_cast<AstBinaryExpression*>(info.left);
-    AstBinaryExpression* rightAsBinop = dynamic_cast<AstBinaryExpression*>(info.right);
+    AstBinaryExpression* leftAsBinop = DynamicCast<AstBinaryExpression>(info.left);
+    AstBinaryExpression* rightAsBinop = DynamicCast<AstBinaryExpression>(info.right);
 
     uint8 rp;
 

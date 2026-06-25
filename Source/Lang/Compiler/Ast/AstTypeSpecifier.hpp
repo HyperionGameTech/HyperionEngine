@@ -8,8 +8,11 @@
 
 namespace Hyperion {
 
+HYP_CLASS(Abstract)
 class AstTypeSpecifier : public AstExpression
 {
+    HYP_OBJECT_BODY(AstTypeSpecifier);
+
 public:
     AstTypeSpecifier(
         const RC<AstExpression>& expr,

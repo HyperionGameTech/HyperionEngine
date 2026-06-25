@@ -17,8 +17,11 @@ struct CaseClause
     bool m_isDefault = false;
 };
 
+HYP_CLASS()
 class AstSwitchExpression : public AstExpression
 {
+    HYP_OBJECT_BODY(AstSwitchExpression);
+
 public:
     AstSwitchExpression(
         const RC<AstExpression>& expression,

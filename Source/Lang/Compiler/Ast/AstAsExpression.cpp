@@ -22,6 +22,8 @@
 
 #include <iostream>
 
+#include <AstAsExpression.generated.inl>
+
 namespace Hyperion {
 
 AstAsExpression::AstAsExpression(

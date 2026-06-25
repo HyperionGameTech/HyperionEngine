@@ -11,8 +11,11 @@ namespace Hyperion {
 
 class AstVariableDeclaration;
 
+HYP_CLASS()
 class AstArrayAccess : public AstExpression
 {
+    HYP_OBJECT_BODY(AstArrayAccess);
+
 public:
     AstArrayAccess(
         const RC<AstExpression>& target,
