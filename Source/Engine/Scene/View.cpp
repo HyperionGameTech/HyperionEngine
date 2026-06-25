@@ -433,6 +433,8 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
     for (Light* light : allShadowCastingLights)
     {
+        const Vec2u shadowMapDimensions = light->GetShadowMapDimensions();
+
         const bool hasBakedStaticShadows = (light->GetLightFlags() & LightFlags::BakeStaticShadows);
         const bool cacheStaticShadowMaps = !hasBakedStaticShadows && (light->GetLightFlags() & LightFlags::CacheStaticShadowMaps);
 
@@ -456,45 +458,97 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
         BoundingSphere worldBoundsSphere;
         bool isWorldBoundsSphereValid = false;
 
-        if (isDirectional)
+        // Scenes that are applicable to the shadow view
+        Array<Scene*, SceneTempAllocator> shadowViewScenes;
+        shadowViewScenes.Reserve(m_scenes.Size());
+
+        // Collect scenes
+        for (Scene* scene : m_scenes)
         {
-            for (Scene* scene : m_scenes)
+            static constexpr EnumFlags<SceneFlags> SceneFlagFilterMask = (SceneFlags::HAS_OCTREE | SceneFlags::FOREGROUND | SceneFlags::BACKDROP | SceneFlags::DETACHED);
+            static constexpr EnumFlags<SceneFlags> SceneFlagFilterDesired = (SceneFlags::HAS_OCTREE | SceneFlags::FOREGROUND);
+
+            if ((scene->GetSceneFlags() & SceneFlagFilterMask) != SceneFlagFilterDesired)
             {
-                static constexpr EnumFlags<SceneFlags> SceneFlagFilterMask = (SceneFlags::HAS_OCTREE | SceneFlags::FOREGROUND | SceneFlags::BACKDROP | SceneFlags::DETACHED);
-                static constexpr EnumFlags<SceneFlags> SceneFlagFilterDesired = (SceneFlags::HAS_OCTREE | SceneFlags::FOREGROUND);
-
-                if ((scene->GetSceneFlags() & SceneFlagFilterMask) != SceneFlagFilterDesired)
-                {
-                    continue;
-                }
-
-                const BoundingBox& sceneWorldBounds = scene->GetOctree().GetAABB();
-                BoundingSphere sceneWorldBoundsSphere = BoundingSphere(sceneWorldBounds);
-
-                if (!sceneWorldBoundsSphere.IsFinite() || !sceneWorldBoundsSphere.IsValid())
-                {
-                    HYP_LOG_ONCE(Scene, Warning, "Scene has invalid bounding sphere (Scene: {})", scene->GetName());
-                    continue;
-                }
-
-                if (isWorldBoundsSphereValid)
-                {
-                    worldBoundsSphere.Extend(sceneWorldBoundsSphere);
-                }
-                else
-                {
-                    worldBoundsSphere = sceneWorldBoundsSphere;
-                    isWorldBoundsSphereValid = true;
-                }
+                continue;
             }
+
+            const BoundingBox& sceneWorldBounds = scene->GetOctree().GetAABB();
+            BoundingSphere sceneWorldBoundsSphere = BoundingSphere(sceneWorldBounds);
+
+            if (!sceneWorldBoundsSphere.IsFinite() || !sceneWorldBoundsSphere.IsValid())
+            {
+                HYP_LOG_ONCE(Scene, Warning, "Scene has invalid bounding sphere (Scene: {})", scene->GetName());
+                continue;
+            }
+
+            if (isWorldBoundsSphereValid)
+            {
+                worldBoundsSphere.Extend(sceneWorldBoundsSphere);
+            }
+            else
+            {
+                worldBoundsSphere = sceneWorldBoundsSphere;
+                isWorldBoundsSphereValid = true;
+            }
+
+            shadowViewScenes.PushBack(scene);
         }
 
         for (uint32 shadowViewIndex = 0; shadowViewIndex < numShadowViews; shadowViewIndex++)
         {
+            Frustum shadowViewFrustum;
+            BoundingBox shadowViewBounds;
+
+            float depthRange = 0.0f;
+
+            if (isDirectional)
+            {
+                Assert(m_camera != nullptr);
+
+                const Frustum& mainCameraFrustum = m_camera->GetFrustum();
+
+                // calculate view matrix if first cascade
+                if (shadowViewIndex == 0)
+                {
+                    shadowViewMatrix = ShadowCameraHelpers::CalculateShadowViewMatrix(
+                        mainCameraFrustum,
+                        light->GetWorldTranslation().Normalized());
+                }
+
+                const float nearRatio = (shadowViewIndex == 0) ? 0.0f : ShadowCascadeClipDistances[shadowViewIndex - 1];
+                const float farRatio = ShadowCascadeClipDistances[shadowViewIndex];
+
+                const Vec3f lightDir = light->GetWorldTranslation().Normalized();
+
+                shadowViewBounds = ShadowCameraHelpers::CalculateCascadeBounds(
+                    mainCameraFrustum,
+                    worldBoundsSphere,
+                    shadowViewMatrix,
+                    shadowMapDimensions,
+                    nearRatio,
+                    farRatio,
+                    lightDir);
+
+                const Mat4f cascadeProjMatrix = Mat4f::Orthographic(
+                    shadowViewBounds.min.x, shadowViewBounds.max.x,
+                    shadowViewBounds.min.y, shadowViewBounds.max.y,
+                    shadowViewBounds.min.z, shadowViewBounds.max.z);
+
+                shadowInvProjMatrix = cascadeProjMatrix.Inverse();
+                shadowViewProjMatrix = cascadeProjMatrix * shadowViewMatrix;
+
+                shadowViewFrustum.SetFromViewProjectionMatrix(shadowViewProjMatrix);
+
+                depthRange = shadowViewBounds.max.z - shadowViewBounds.min.z;
+            }
+
+            // Create Shadow views
             shadowViewsDynamic[shadowViewIndex] = RI.shadowMapCache->GetOrCreateShadowView(
                 this,
                 light,
                 shadowViewIndex,
+                depthRange,
                 /* isStatic */ false);
 
             if (!shadowViewsDynamic[shadowViewIndex])
@@ -514,71 +568,40 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                     this,
                     light,
                     shadowViewIndex,
+                    depthRange,
                     /* isStatic */ true);
             }
 
-            Camera* shadowCamera = shadowViewsDynamic[0]->GetCamera();
-            Assert(shadowCamera != nullptr);
-
-            // Update shadow map camera
-            if (shadowViewIndex == 0 && !isDirectional)
+            if (!isDirectional)
             {
-                shadowCamera->SetWorldTranslation(light->GetWorldTranslation());
-            }
+                Camera* shadowCamera = shadowViewsDynamic[0]->GetCamera();
+                Assert(shadowCamera != nullptr);
 
-            Frustum shadowViewFrustum;
-            BoundingBox shadowViewBounds;
-
-            if (isOmni)
-            {
-                // Calculate matrices and frustum for this cube face
-
-                shadowViewMatrix = Mat4f::LookAt(Texture::s_cubemapDirections[shadowViewIndex].first, Texture::s_cubemapDirections[shadowViewIndex].second)
-                    * Mat4f::Translation(-shadowCamera->GetWorldTranslation());
-
-                shadowViewProjMatrix = shadowCamera->GetProjectionMatrix() * shadowViewMatrix;
-                shadowInvProjMatrix = shadowCamera->GetProjectionMatrix().Inverse();
-
-                shadowViewFrustum.SetFromViewProjectionMatrix(shadowViewProjMatrix);
-            }
-            else if (isDirectional)
-            {
-                Assert(m_camera != nullptr);
-
-                // calculate view matrix if first cascade
+                // Update shadow map camera on first view seen.
                 if (shadowViewIndex == 0)
                 {
-                    shadowViewMatrix = ShadowCameraHelpers::CalculateShadowViewMatrix(
-                        m_camera->GetFrustum(),
-                        light->GetWorldTranslation().Normalized());
+                    shadowCamera->SetWorldTranslation(light->GetWorldTranslation());
                 }
 
-                shadowViewBounds = ShadowCameraHelpers::CalculateCascadeBounds(
-                    m_camera->GetFrustum(),
-                    worldBoundsSphere,
-                    shadowViewMatrix,
-                    light->GetShadowMapDimensions(),
-                    (shadowViewIndex == 0) ? 0.0f : ShadowCascadeClipDistances[shadowViewIndex - 1],
-                    ShadowCascadeClipDistances[shadowViewIndex],
-                    m_camera->GetFarClip(), // ShadowCascadeMaxDistance / MathUtil::Max(m_camera->GetFarClip(), ShadowCascadeMaxDistance),
-                    light->GetWorldTranslation().Normalized());
+                if (isOmni)
+                {
+                    // Calculate matrices and frustum for this cube face
 
-                const Mat4f cascadeProjMatrix = Mat4f::Orthographic(
-                    shadowViewBounds.min.x, shadowViewBounds.max.x,
-                    shadowViewBounds.min.y, shadowViewBounds.max.y,
-                    shadowViewBounds.min.z, shadowViewBounds.max.z);
+                    shadowViewMatrix = Mat4f::LookAt(Texture::s_cubemapDirections[shadowViewIndex].first, Texture::s_cubemapDirections[shadowViewIndex].second)
+                        * Mat4f::Translation(-shadowCamera->GetWorldTranslation());
 
-                shadowInvProjMatrix = cascadeProjMatrix.Inverse();
-                shadowViewProjMatrix = cascadeProjMatrix * shadowViewMatrix;
+                    shadowViewProjMatrix = shadowCamera->GetProjectionMatrix() * shadowViewMatrix;
+                    shadowInvProjMatrix = shadowCamera->GetProjectionMatrix().Inverse();
 
-                shadowViewFrustum.SetFromViewProjectionMatrix(shadowViewProjMatrix);
-            }
-            else
-            {
-                // @TODO : Matrix calculations for other light types.
-                HYP_LOG_ONCE(Scene, Warning, "Shadow matrix calculation not implemented for light type: {}", EnumToString(light->GetLightType()));
+                    shadowViewFrustum.SetFromViewProjectionMatrix(shadowViewProjMatrix);
+                }
+                else
+                {
+                    // @TODO : Matrix calculations for other light types.
+                    HYP_LOG_ONCE(Scene, Warning, "Shadow matrix calculation not implemented for light type: {}", EnumToString(light->GetLightType()));
 
-                continue;
+                    continue;
+                }
             }
 
             for (View* shadowView : { shadowViewsDynamic[shadowViewIndex], shadowViewsStatic[shadowViewIndex] })
@@ -596,7 +619,8 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
                 shadowView->cachedBounds = shadowViewBounds;
 
-                shadowView->m_scenes = m_scenes;
+                shadowView->m_scenes.Resize(shadowViewScenes.Size());
+                std::copy(shadowViewScenes.Begin(), shadowViewScenes.End(), shadowView->m_scenes.Begin());
 
                 outShadowViews.PushBack(shadowView);
             }
@@ -615,10 +639,11 @@ void View::BeginAsyncCollection(TaskBatch& batch)
 
     if (m_overrideCollectFunctor.IsValid())
     {
-        batch.AddTask([this]()
-                      {
-                          m_overrideCollectFunctor(GetProducerProxyList(this));
-                      });
+        batch.AddTask(
+            [this]()
+            {
+                m_overrideCollectFunctor(GetProducerProxyList(this));
+            });
 
         return;
     }

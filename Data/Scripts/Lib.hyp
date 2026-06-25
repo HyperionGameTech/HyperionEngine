@@ -1963,6 +1963,7 @@ extern enum NodeFlags : uint32
     IgnoreParentRotation = 0x4,
     IgnoreParentTransform = ((IgnoreParentTranslation | IgnoreParentScale) | IgnoreParentRotation),
     ExcludeFromParentBounds = 0x8,
+    ExcludeFromOctree = 0x10,
     HideInSceneOutline = 0x1000,
     Mobility = 0xE000,
     MobilityStatic = 0x2000,

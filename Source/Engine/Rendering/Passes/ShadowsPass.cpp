@@ -223,12 +223,8 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
         for (uint32 viewIndex = cascadeIndex; viewIndex < numViewsToIterate; viewIndex++)
         {
-            bool isFirstCubemapFace = false;
-
             if (isOmni)
             {
-                isFirstCubemapFace = (viewIndex == 0);
-
                 // This would occur only for omni shadow maps upon first initialization.
                 if (HYP_UNLIKELY(!cachedData->shadowViewsDynamic[viewIndex]))
                 {

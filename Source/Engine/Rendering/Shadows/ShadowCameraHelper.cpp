@@ -33,12 +33,11 @@ BoundingBox CalculateCascadeBounds(
     const BoundingSphere& sceneWorldBounds,
     const Mat4f& shadowViewMatrix,
     const Vec2u& shadowMapResolution,
-    float splitNear,
-    float splitFar,
-    float maxFar,
+    const float inNearRatio,
+    const float inFarRatio,
     const Vec3f& lightDir)
 {
-    Frustum cascadeFrustum = mainCameraFrustum.SubFrustum(splitNear, splitFar, maxFar);
+    Frustum cascadeFrustum = mainCameraFrustum.SubFrustum(inNearRatio, inFarRatio);
 
     const FixedArray<Vec3f, 8>& frustumCorners = cascadeFrustum.GetCorners();
 
@@ -74,9 +73,9 @@ BoundingBox CalculateCascadeBounds(
     finalBounds.min.y = centerLS.y - sphereRadius;
     finalBounds.max.y = centerLS.y + sphereRadius;
 
-    Vec4f sceneCenterLS4 = shadowViewMatrix.TransformVector(Vec4f(sceneWorldBounds.GetCenter(), 1.0f));
+    Vec4f sceneCenterLS = shadowViewMatrix.TransformVector(Vec4f(sceneWorldBounds.GetCenter(), 1.0f));
     
-    float sceneMinZ = sceneCenterLS4.z - sceneWorldBounds.GetRadius();
+    float sceneMinZ = sceneCenterLS.z - sceneWorldBounds.GetRadius();
 
     finalBounds.min.z = MathUtil::Min(centerLS.z - sphereRadius, sceneMinZ);
     finalBounds.max.z = centerLS.z + sphereRadius;

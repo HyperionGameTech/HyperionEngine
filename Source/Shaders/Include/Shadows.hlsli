@@ -113,7 +113,7 @@ float GetShadowStandard(float4 shadow_sample, float3 coord, float NdotL)
 
 float GetShadowPCF(in float4 shadowMapCoord, // w = slice
     in float2 atlasUV, in float2 atlasScale,
-    float3 pos, float2 texcoord, float2 screen_dimensions, float NdotL)
+    float3 pos, float2 texcoord, float2 screen_dimensions)
 {
     const float layerIndex = shadowMapCoord.w;
 

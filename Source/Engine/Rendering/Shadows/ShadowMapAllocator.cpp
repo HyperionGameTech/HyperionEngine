@@ -62,12 +62,7 @@ bool ShadowMapAtlas::AddElement(const Vec2u& elementDimensions, ShadowMapAtlasEl
 ShadowMapAllocator::ShadowMapAllocator()
     : m_atlasDimensions(2048, 2048)
 {
-    m_atlases.Reserve(4);
-
-    for (size_t i = 0; i < 4; i++)
-    {
-        m_atlases.PushBack(ShadowMapAtlas(uint32(i), m_atlasDimensions));
-    }
+    m_atlases.EmplaceBack(0, m_atlasDimensions);
 }
 
 ShadowMapAllocator::~ShadowMapAllocator()
@@ -120,6 +115,7 @@ void ShadowMapAllocator::Initialize()
         TWM_CLAMP_TO_EDGE,
         1,
         IU_SAMPLED | IU_ATTACHMENT });
+
     m_clearTexture->SetName(NAME("ShadowMapClearTexture"));
     CheckResult(m_clearTexture->Create());
 

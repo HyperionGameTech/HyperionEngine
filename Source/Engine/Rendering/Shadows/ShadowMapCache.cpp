@@ -27,8 +27,12 @@
 #include <Scene/Camera/OrthoCamera.hpp>
 
 #include <Framework/EngineGlobals.hpp>
+#include <Framework/CVarManager.hpp>
 
 namespace Hyperion {
+
+CVar<float> g_cvBaseDepthBias("Rendering.BaseDepthBias", 0.001f);
+CVar<float> g_cvBaseDepthBiasDirectional("Rendering.BaseDepthBiasDirectional", 0.002f);
 
 static constexpr EnumFlags<ViewFlags> DefaultShadowViewFlags = ViewFlags::SHADOW_VIEW
     | ViewFlags::SKIP_LIGHTS | ViewFlags::SKIP_CAMERAS
@@ -64,13 +68,13 @@ ShadowMapCacheKey MakeShadowMapCacheKey(Light* light, View* view)
     AssertDebug(light != nullptr);
 
     ShadowMapCacheKey key {};
-    key.lightHash = HashCode::GetHashCode(static_cast<void*>(light)).Value();
+    key.lightHash = static_cast<uint32>(std::bit_cast<uint64>(light->Id()) % 0xFFFFFFFFu);
 
     if (IsShadowMapViewDependent(*light))
     {
         AssertDebug(view != nullptr && view->GetCamera() != nullptr);
 
-        key.cameraHash = HashCode::GetHashCode(static_cast<void*>(view->GetCamera())).Value();
+        key.cameraHash = static_cast<uint32>(std::bit_cast<uint64>(view->GetCamera()->Id()) % 0x7FFFFFFFu);
         key.isCameraDependent = 1;
     }
 
@@ -156,14 +160,30 @@ static Camera* CreateShadowCamera(Light* light, uint32 cascadeIndex)
     return shadowMapCamera;
 }
 
-static ViewDesc GetViewDesc(Light* light, bool isStatic, uint32 cascadeIndex, ShadowMap& shadowMap, Camera& camera)
+static ViewDesc GetViewDesc(
+    Light* light,
+    bool isStatic,
+    uint32 cascadeIndex,
+    float depthRange,
+    ShadowMap& shadowMap,
+    Camera& camera)
 {
+    // If no valid range has been passed in, then set it based
+    // on the camera
+    if (depthRange <= 0.001f)
+    {
+        depthRange = (camera.GetFarClip() - camera.GetNearClip());
+    }
+
     const bool isDirectional = (light->GetLightType() == LightType::Directional);
     const bool isOmni = (light->GetLightType() == LightType::Point);
 
     const bool hasBakedStaticShadows = (light->GetLightFlags() & LightFlags::BakeStaticShadows);
     const bool cacheStaticShadowMaps = !hasBakedStaticShadows && (light->GetLightFlags() & LightFlags::CacheStaticShadowMaps);
     const bool splitStaticAndDynamic = cacheStaticShadowMaps || hasBakedStaticShadows;
+
+    const float depthBias = (isDirectional ? g_cvBaseDepthBiasDirectional.Get() : g_cvBaseDepthBias.Get());
+    const float depthBiasScaled = MathUtil::Round(depthBias * depthRange);
 
     ViewDesc viewDesc {};
     viewDesc.flags = DefaultShadowViewFlags | ViewFlags::EXTERNAL_RENDERTARGET; // use atlas as target
@@ -185,9 +205,9 @@ static ViewDesc GetViewDesc(Light* light, bool isStatic, uint32 cascadeIndex, Sh
     materialAttributes.shaderName = shaderDesc.name;
     materialAttributes.shaderProperties = shaderDesc.properties;
     materialAttributes.flags = MAF_DEPTH_WRITE | MAF_DEPTH_TEST | MAF_DEPTH_BIAS | MAF_DEPTH_CLAMP;
-    materialAttributes.depthBias = isDirectional ? 4 : 0;
-    materialAttributes.depthBiasSlope = 0.1f;
-    materialAttributes.cullFaces = FCM_FRONT;
+    materialAttributes.depthBias = depthBiasScaled;
+    materialAttributes.depthBiasSlope = 0.05f;
+    materialAttributes.cullFaces = FCM_BACK;
 
     viewDesc.overrideAttributes = RenderableAttributeSet(MeshAttributes(), materialAttributes);
 
@@ -330,6 +350,7 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
     View* view,
     Light* light,
     uint32 cascadeIndex,
+    float depthRange,
     bool isStatic) const
 {
     Assert(view != nullptr && light != nullptr);
@@ -430,7 +451,7 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
                 return nullptr;
             }
 
-            outView = new View(GetViewDesc(light, isStatic, cascadeIndex, *shadowMap, *entry->camera));
+            outView = new View(GetViewDesc(light, isStatic, cascadeIndex, depthRange, *shadowMap, *entry->camera));
 
             HYP_LOG(Rendering, Debug, "Create new shadow view for Light: {}", light->GetName());
 
@@ -484,7 +505,7 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
                 return nullptr;
             }
 
-            outView = new View(GetViewDesc(light, isStatic, cascadeIndex, *shadowMap, *entry.camera));
+            outView = new View(GetViewDesc(light, isStatic, cascadeIndex, depthRange, *shadowMap, *entry.camera));
 
             HYP_LOG(Rendering, Debug, "Create new shadow view for Light: {}", light->GetName());
 

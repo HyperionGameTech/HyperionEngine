@@ -88,7 +88,7 @@ void DefaultGame::OnLaunch_Impl()
 
     // sky
     GetWorld()->AddSystemT<DynamicSkySystem>();
-    // GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>());
+    GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>());
 
 #ifdef HYP_ANDROID
     GetWorld()->AddSubsystem(MakeHandle<TouchControlsSubsystem>());

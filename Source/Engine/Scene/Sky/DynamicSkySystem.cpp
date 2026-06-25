@@ -158,7 +158,7 @@ void DynamicSkySystem::InitializeSky()
         // add MeshComponent to skybox entity
         m_skyboxEntity->AddComponent<MeshComponent>(MeshComponent { mesh, skyboxMaterialInstance });
 
-#if 1
+#if 0
         // Sky Visibility view
         m_topDownCamera = MakeHandle<Camera>();
         m_topDownCamera->SetDimensions(Vec2i { 256, 256 });

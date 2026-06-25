@@ -27,9 +27,8 @@ BoundingBox CalculateCascadeBounds(
     const BoundingSphere& sceneWorldBounds,
     const Mat4f& shadowViewMatrix,
     const Vec2u& shadowMapResolution,
-    float splitNear,
-    float splitFar,
-    float maxFar,
+    const float inNearRatio,
+    const float inFarRatio,
     const Vec3f& lightDir);
 
 } // namespace ShadowCameraHelpers

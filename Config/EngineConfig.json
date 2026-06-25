@@ -15,7 +15,7 @@
     "IndirectRendering": true,
     "DepthPrepass": false,
     "ParallelCollection": true,
-    "TargetFrameRate": 0,
+    "TargetFrameRate": 60,
     "EnableDebugDraw": true,
     "SSR": {
       "Enabled": true,
@@ -34,7 +34,7 @@
       "Normals": false,
       "AO": false
     },
-    "VSync": false,
+    "VSync": true,
     "EnableGpuStats": true,
     "Vulkan": {
       "DebugLayers": false,

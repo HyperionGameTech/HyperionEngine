@@ -397,10 +397,12 @@ endif()
 
 set(RENDERING_BACKEND "Vulkan")
 
-# set(ENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND true) # TEMP - do not commit to dev branch with this set to true, only for testing the DX12 rendering backend before it's ready to be merged into dev
+if(WIN32)
+  set(ENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND true)
 
-if(ENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND AND WIN32)
-  set(RENDERING_BACKEND "DX12")
+  if(ENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND)
+    set(RENDERING_BACKEND "DX12")
+  endif()
 endif()
 
 if (NOT DEFINED RENDERING_BACKEND)

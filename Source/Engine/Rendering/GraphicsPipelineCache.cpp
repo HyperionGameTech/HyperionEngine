@@ -511,8 +511,7 @@ void GraphicsPipelineCache::ExpirePipelinesForShader(const Shader* shader)
     {
         const PSOCacheKey& key = it->first;
 
-        if (key.shaderName == shader->baseName
-            && key.shaderProperties == shader->properties)
+        if (key.shaderName == shader->baseName && key.shaderProperties == shader->properties)
         {
             auto& pipelines = it->second;
 

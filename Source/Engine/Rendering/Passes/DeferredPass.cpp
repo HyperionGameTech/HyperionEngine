@@ -2572,6 +2572,7 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
     AssertDebug(rs.world);
 
     Array<RenderProxyList*, RenderTempAllocator> renderProxyLists;
+    renderProxyLists.Reserve(rs.world->GetViews().Size());
 
     HYP_DEFER({
         for (RenderProxyList* rpl : renderProxyLists)
@@ -2594,15 +2595,15 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
     };
 
     // --- Collect view-independent renderable types from all views, binned ---
-    FixedArray<TSet<EnvProbe*, RenderTempAllocator>, EPT_MAX> envProbes;
-    TSet<ProbeVolume*, RenderTempAllocator> probeVolumes;
+    FixedArray<TFlatSet<EnvProbe*, RenderTempAllocator>, EPT_MAX> envProbes;
+    TFlatSet<ProbeVolume*, RenderTempAllocator> probeVolumes;
 
     // For rendering ProbeVolumes and EnvProbes, we use a directional light from one of the Views that references it (if found)
-    TMap<ProbeVolume*, Light*, RenderTempAllocator> probeVolumeLights;
-    TMap<EnvProbe*, Light*, RenderTempAllocator> envProbeLights;
+    TFlatMap<ProbeVolume*, Light*, RenderTempAllocator> probeVolumeLights;
+    TFlatMap<EnvProbe*, Light*, RenderTempAllocator> envProbeLights;
 
-    FixedArray<TSet<Light*, RenderTempAllocator>, NumLightTypes> lights;
-    TMap<ShadowMapCacheKey, DrawShadowMapParams, RenderTempAllocator> lightsForShadow;
+    FixedArray<TFlatSet<Light*, RenderTempAllocator>, NumLightTypes> lights;
+    TFlatMap<ShadowMapCacheKey, DrawShadowMapParams, RenderTempAllocator> lightsForShadow;
     // ---
 
     // init view pass data and collect global rendering resources
@@ -2931,8 +2932,6 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     Framebuffer* lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Lightmapped);
     Framebuffer* translucentPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Translucent);
     Framebuffer* debugPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Debug);
-
-    const bool doParticles = true;
 
     const bool useRayTracingReflections = (cvPathTracing.Get() || cvRayTracedReflections.Get())
         && view->GetRayTracingView().IsValid()

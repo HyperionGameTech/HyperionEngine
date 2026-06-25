@@ -78,10 +78,7 @@ struct CORE_API Frustum
 
     Vec3f GetIntersectionPoint(uint32 planeIndex0, uint32 planeIndex1, uint32 planeIndex2) const;
 
-    HYP_NODISCARD Frustum SubFrustum(
-        const float inNear,
-        const float inFar,
-        const float inMaxFar) const;
+    HYP_NODISCARD Frustum SubFrustum(const float inNearRatio, const float inFarRatio) const;
 };
 
 } // namespace Hyperion

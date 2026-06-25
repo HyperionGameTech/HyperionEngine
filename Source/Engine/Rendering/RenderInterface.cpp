@@ -1400,6 +1400,8 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
                 state.framebuffer->GetFramebufferDesc(),
                 cacheHandle);
 
+            AssertDebug(cacheHandle.IsAlive());
+
             pipeline = *cacheHandle;
 
             new (&deferredBindCommandMemory.bindGraphicsCmd) BindGraphicsPipeline(pipeline, state.viewport);
@@ -1484,7 +1486,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         state.dirtyUniforms |= (state.validUniforms | state.dirtyBufferOffsets);
         state.validUniforms = 0;
 
-        Memory::Fill(state.prevBoundDescriptorSets, 0, sizeof(state.prevBoundDescriptorSets));
+        Memory::Zero(state.prevBoundDescriptorSets, sizeof(state.prevBoundDescriptorSets));
     }
 
     const Shader* shader = shaderInstance->GetShader();

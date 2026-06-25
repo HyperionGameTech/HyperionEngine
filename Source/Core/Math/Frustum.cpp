@@ -204,20 +204,14 @@ Vec3f Frustum::GetIntersectionPoint(uint32 planeIndex0, uint32 planeIndex1, uint
     return r * (1.0f / planes[0].GetXYZ().Dot(bxc));
 }
 
-HYP_NODISCARD Frustum Frustum::SubFrustum(
-    const float inNear,
-    const float inFar,
-    const float inMaxFar) const
+HYP_NODISCARD Frustum Frustum::SubFrustum(const float inNearRatio, const float inFarRatio) const
 {
     Frustum sub;
 
-    // const float nearAdjusted = inNear * inMaxFar;
-    // const float farAdjusted = inFar * inMaxFar;
-
     for (int i = 0; i < 4; ++i)
     {
-        sub.corners[i] = MathUtil::Lerp(corners[i], corners[i + 4], inNear);
-        sub.corners[i + 4] = MathUtil::Lerp(corners[i], corners[i + 4], inFar);
+        sub.corners[i] = MathUtil::Lerp(corners[i], corners[i + 4], inNearRatio);
+        sub.corners[i + 4] = MathUtil::Lerp(corners[i], corners[i + 4], inFarRatio);
     }
 
     sub.planes[0] = planes[0];

@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <ScenePch.hpp>
 
@@ -31,7 +31,7 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(WorldGrid);
 #pragma region TerrainWorldGridLayer
 
 TerrainWorldGridLayer::TerrainWorldGridLayer()
-    : m_scene(MakeHandle<Scene>(NAME("TerrainScene"), SceneFlags::FOREGROUND))
+    : m_scene(MakeHandle<Scene>(NAME("TerrainScene"), SceneFlags::FOREGROUND | SceneFlags::HAS_OCTREE))
 {
 }
 
@@ -58,7 +58,7 @@ void TerrainWorldGridLayer::Init()
     parameters.roughness = 0.95f;
     parameters.metalness = 0.0f;
 
-    m_material = g_materialInstanceCache->GetOrCreate(NAME("terrain_material"), attributes, parameters, MaterialTextures{});
+    m_material = g_materialInstanceCache->GetOrCreate(NAME("terrain_material"), attributes, parameters, MaterialTextures {});
 
     GetCurrentAssetRegistry()->PutAsset(m_material);
 

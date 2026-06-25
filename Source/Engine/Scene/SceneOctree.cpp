@@ -228,7 +228,7 @@ SceneOctree::Result SceneOctree::RebuildExtend_Internal(const BoundingBox& exten
     BoundingBox newAabb(m_aabb.Union(extendIncludeAabb));
     // grow our new aabb by a predetermined growth factor,
     // to keep it from constantly resizing
-    newAabb *= GrowthFactor;
+    //newAabb *= GrowthFactor;
 
     return Rebuild(newAabb, /* allowGrow */ false);
 }

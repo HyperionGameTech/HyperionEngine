@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -85,6 +85,7 @@ public:
         View* view,
         Light* light,
         uint32 cascadeIndex,
+        float depthRange,
         bool isStatic) const;
 
     View* TryGetShadowView(

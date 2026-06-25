@@ -464,7 +464,7 @@ PSOutput PSMain(PSInput input)
 
         shadow = GetShadowPCF(shadowMapCoord,
             atlasUV, atlasScale,
-            position.xyz, texcoord, camera.dimensions.xy, NdotL);
+            position.xyz, texcoord, camera.dimensions.xy);
     }
 #endif // LIGHT_TYPE_POINT
 
