@@ -299,8 +299,8 @@ void RenderThread::Update()
     // as we want buffered data to keep being written even as we wait.
     if (targetFrameRate > 0.0f)
     {
-        // s_frameLimiter.SetTargetFPS(static_cast<int>(targetFrameRate));
-        // s_frameLimiter.Wait();
+        s_frameLimiter.SetTargetFPS(static_cast<int>(targetFrameRate));
+        s_frameLimiter.Wait();
     }
 }
 

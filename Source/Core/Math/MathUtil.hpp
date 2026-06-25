@@ -20,6 +20,7 @@
 #include <cfloat>
 #include <limits>
 #include <type_traits>
+#include <utility>
 
 #if defined(__x86_64__) || defined(__i386__)
 #include <immintrin.h>
@@ -119,7 +120,8 @@ static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>&& std::is_float
     using VectorScalarType = NormalizedType<decltype(T::values[0])>;
 
     T result {}; /* doesn't need initialization but gets rid of annoying warnings */
-
+    
+    #pragma unroll
     for (uint32 i = 0; i < HYP_ARRAY_SIZE(result.values); i++)
     {
         result.values[i] = VectorScalarType(NaN<VectorScalarType>());
@@ -137,6 +139,7 @@ static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(std::is_floating_point_v<T>, boo
 template <class T>
 static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>&& std::is_floating_point_v<NormalizedType<decltype(T::values[0])>>, bool) IsNaN(const T& value)
 {
+    #pragma unroll
     for (uint32 i = 0; i < HYP_ARRAY_SIZE(value.values); i++)
     {
         if (IsNaN(value.values[i]))
@@ -160,7 +163,8 @@ static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>&& std::is_float
     using VectorScalarType = NormalizedType<decltype(T::values[0])>;
 
     T result {}; /* doesn't need initialization but gets rid of annoying warnings */
-
+    
+    #pragma unroll
     for (uint32 i = 0; i < HYP_ARRAY_SIZE(result.values); i++)
     {
         result.values[i] = VectorScalarType(Infinity<VectorScalarType>());
@@ -178,6 +182,7 @@ static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(std::is_floating_point_v<T>, boo
 template <class T>
 static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>&& std::is_floating_point_v<NormalizedType<decltype(T::values[0])>>, bool) IsFinite(const T& value)
 {
+    #pragma unroll
     for (uint32 i = 0; i < HYP_ARRAY_SIZE(value.values); i++)
     {
         if (!IsFinite(value.values[i]))
@@ -247,7 +252,8 @@ template <class T>
 static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>, T) Clamp(const T& val, const T& min, const T& max)
 {
     T result;
-
+    
+    #pragma unroll
     for (uint32 i = 0; i < HYP_ARRAY_SIZE(result.values); i++)
     {
         result.values[i] = Clamp(val.values[i], min.values[i], max.values[i]);
@@ -266,7 +272,8 @@ template <class T, class U, class V>
 static HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Lerp(const T& from, const U& to, const V& amt)
 {
     T result;
-
+    
+    #pragma unroll
     for (uint32 i = 0; i < HYP_ARRAY_SIZE(result.values); i++)
     {
         result.values[i] = Lerp(from.values[i], to.values[i], amt);
@@ -286,6 +293,7 @@ static HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Step(const T& edge, c
 {
     T result;
 
+    #pragma unroll
     for (uint32 i = 0; i < HYP_ARRAY_SIZE(result.values); i++)
     {
         result.values[i] = Step(edge.values[i], x.values[i]);
@@ -334,7 +342,8 @@ template <class T>
 static HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Min(const T& a, const T& b)
 {
     T result;
-
+    
+    #pragma unroll
     for (uint32 i = 0; i < HYP_ARRAY_SIZE(result.values); i++)
     {
         result.values[i] = Min(a.values[i], b.values[i]);
@@ -348,6 +357,7 @@ static HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Max(const T& a, const
 {
     T result;
 
+    #pragma unroll
     for (uint32 i = 0; i < HYP_ARRAY_SIZE(result.values); i++)
     {
         result.values[i] = Max(a.values[i], b.values[i]);
@@ -368,7 +378,8 @@ static HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Sign(const T& a)
     using VectorScalarType = NormalizedType<decltype(T::values[0])>;
 
     T result {};
-
+    
+    #pragma unroll
     for (uint32 i = 0; i < HYP_ARRAY_SIZE(result.values); i++)
     {
         result.values[i] = VectorScalarType(Sign<VectorScalarType>(a.values[i]));
@@ -390,6 +401,7 @@ static HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Trunc(const T& a)
 
     T result {}; /* doesn't need initialization but gets rid of annoying warnings */
 
+    #pragma unroll
     for (uint32 i = 0; i < HYP_ARRAY_SIZE(result.values); i++)
     {
         result.values[i] = VectorScalarType(Trunc<VectorScalarType, IntegralType>(a.values[i]));
@@ -410,7 +422,8 @@ static HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Floor(const T& a)
     using VectorScalarType = NormalizedType<decltype(T::values[0])>;
 
     T result {}; /* doesn't need initialization but gets rid of annoying warnings */
-
+    
+    #pragma unroll
     for (uint32 i = 0; i < HYP_ARRAY_SIZE(result.values); i++)
     {
         result.values[i] = VectorScalarType(Floor<VectorScalarType, IntegralType>(a.values[i]));
@@ -431,7 +444,8 @@ static HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Ceil(const T& a)
     using VectorScalarType = NormalizedType<decltype(T::values[0])>;
 
     T result {}; /* doesn't need initialization but gets rid of annoying warnings */
-
+    
+    #pragma unroll
     for (uint32 i = 0; i < HYP_ARRAY_SIZE(result.values); i++)
     {
         result.values[i] = VectorScalarType(Ceil<VectorScalarType, IntegralType>(a.values[i]));
@@ -482,7 +496,8 @@ static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>, T) Abs(const T
     using VectorScalarType = NormalizedType<decltype(T::values[0])>;
 
     T result {}; /* doesn't need initialization but gets rid of annoying warnings */
-
+    
+    #pragma unroll
     for (uint32 i = 0; i < HYP_ARRAY_SIZE(result.values); i++)
     {
         result.values[i] = VectorScalarType(Abs<VectorScalarType>(a.values[i]));
@@ -643,7 +658,7 @@ HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>, T) Pow(const T& value
 {
     T result;
 
-    /// \todo : simd
+    #pragma unroll
     for (uint32 i = 0; i < HYP_ARRAY_SIZE(result.values); i++)
     {
         result.values[i] = Pow(value.values[i], exponent);

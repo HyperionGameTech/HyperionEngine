@@ -94,7 +94,7 @@ void DefaultGame::OnLaunch_Impl()
     GetWorld()->AddSubsystem(MakeHandle<TouchControlsSubsystem>());
 #endif
 
-#if 0
+#if 1
     // Get MainScene
     Handle<AssetObject> mainSceneAsset = GetCurrentAssetRegistry()->GetAsset<Scene>(AssetBuckets::Scenes, "MainScene"_sh);
     Assert(mainSceneAsset.IsValid());

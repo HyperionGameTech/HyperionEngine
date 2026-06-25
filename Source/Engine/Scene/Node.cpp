@@ -840,7 +840,7 @@ BoundingBox Node::GetWorldBounds() const
         return m_localBounds;
     }
 
-    BoundingBox aabb = m_worldMatrix * (m_localBounds.IsValid() ? m_localBounds : BoundingBox::Zero());
+    BoundingBox aabb = m_localBounds.IsValid() ? (m_worldMatrix * m_localBounds) : BoundingBox::Zero();
 
     for (const Handle<Node>& child : GetChildren())
     {
@@ -855,6 +855,13 @@ BoundingBox Node::GetWorldBounds() const
 
             if (childBounds.IsValid() && childBounds.IsFinite() && !childBounds.IsZero())
             {
+                // Check if it would explode the scene bounds, and skip if so.
+                // Nodes that match this criteria should ideally be fixed so they can properly contribute to the scene's world-space bounds.
+                if (MathUtil::Max(MathUtil::Abs(childBounds.min.Min()), MathUtil::Abs(childBounds.max.Max())) > (FLT_MAX * 0.5f))
+                {
+                    continue;
+                }
+
                 aabb = aabb.Union(childBounds);
             }
         }

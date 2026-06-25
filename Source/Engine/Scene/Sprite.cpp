@@ -4,6 +4,7 @@
  *  @licence MIT
  */
 
+#include "Node.hpp"
 #include <ScenePch.hpp>
 
 #include <Scene/Sprite.hpp>
@@ -35,6 +36,8 @@ Sprite::~Sprite() = default;
 void Sprite::Init()
 {
     Entity::Init();
+
+    SetNodeFlags(m_nodeFlags | NodeFlags::ExcludeFromParentBounds | NodeFlags::ExcludeFromOctree);
 }
 
 void Sprite::UpdateRenderProxy(RenderProxySprite* proxy)

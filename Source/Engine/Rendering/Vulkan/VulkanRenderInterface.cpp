@@ -3,7 +3,7 @@
  *  @date 2016-2026
  *  @licence MIT
  *  @note Created by ethan on 2/5/22.
-*/
+ */
 
 #include <VulkanPch.hpp>
 
@@ -44,18 +44,18 @@
 
 #include <System/AppContext.hpp>
 
-#define CHECK_FRAME_RESULT(result)                  \
-    do                                              \
-    {                                               \
-        auto _result = (result);                    \
-                                                    \
-        if (!(_result))                             \
-        {                                           \
-            CrashHandler::Dump();                   \
-                                                    \
-            HYP_UNREACHABLE();                      \
-        }                                           \
-    }                                               \
+#define CHECK_FRAME_RESULT(result) \
+    do                             \
+    {                              \
+        auto _result = (result);   \
+                                   \
+        if (!(_result))            \
+        {                          \
+            CrashHandler::Dump();  \
+                                   \
+            HYP_UNREACHABLE();     \
+        }                          \
+    }                              \
     while (0)
 
 namespace Hyperion {
@@ -203,15 +203,15 @@ static void DestroyVkDescriptorSetLayout(VulkanDevice* device, VkDescriptorSetLa
 
 void VulkanDynamicFunctions::Load(VulkanDevice* device)
 {
-#define HYP_LOAD_FN(function)                                                                                        \
-    do                                                                                                               \
-    {                                                                                                                \
-        function = reinterpret_cast<PFN_##function>(vkGetDeviceProcAddr(device->GetDevice(), #function));            \
-        if (!function)                                                                                               \
-        {                                                                                                            \
-            HYP_LOG(RenderingBackend, Warning, "Failed to load Vulkan function {}", #function);                      \
-        }                                                                                                            \
-    }                                                                                                                \
+#define HYP_LOAD_FN(function)                                                                             \
+    do                                                                                                    \
+    {                                                                                                     \
+        function = reinterpret_cast<PFN_##function>(vkGetDeviceProcAddr(device->GetDevice(), #function)); \
+        if (!function)                                                                                    \
+        {                                                                                                 \
+            HYP_LOG(RenderingBackend, Warning, "Failed to load Vulkan function {}", #function);           \
+        }                                                                                                 \
+    }                                                                                                     \
     while (0)
 
 #if defined(HYP_FEATURES_ENABLE_RAY_TRACING) && defined(HYP_FEATURES_BINDLESS_TEXTURES)
@@ -475,8 +475,8 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(
     const uint32 variableDescriptorCount = (reqs & VDPR_BindlessTextures)
         ? MaxBindlessResources[BindlessStorage_Textures]
         : (reqs & VDPR_BindlessBuffers)
-            ? MaxBindlessResources[BindlessStorage_Buffers]
-            : 0;
+        ? MaxBindlessResources[BindlessStorage_Buffers]
+        : 0;
 
     VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO };
     variableCountInfo.descriptorSetCount = 1;
@@ -553,9 +553,9 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(
     while (shouldRetry);
 
     poolIndex = int(m_pools.IndexOf(m_pools.FindIf([&outVkDescriptorPool](const auto& elem)
-    {
-        return elem.pool == outVkDescriptorPool;
-    })));
+                                                   {
+                                                       return elem.pool == outVkDescriptorPool;
+                                                   })));
 
     Assert(poolIndex >= 0 && poolIndex < int(m_pools.Size()));
 
@@ -570,9 +570,9 @@ RendererResult VulkanDescriptorSetManager::DestroyDescriptorSet(VulkanDevice* de
     Assert(vkDescriptorPool != VK_NULL_HANDLE);
 
     int poolIndex = int(m_pools.IndexOf(m_pools.FindIf([&vkDescriptorPool](const auto& elem)
-    {
-        return elem.pool == vkDescriptorPool;
-    })));
+                                                       {
+                                                           return elem.pool == vkDescriptorPool;
+                                                       })));
 
     Assert(poolIndex >= 0 && poolIndex < int(m_pools.Size()));
 
@@ -733,14 +733,13 @@ RendererResult VulkanRenderInterface::Initialize()
 
     HYP_LOG(RenderingBackend, Info, "Selected Vulkan physical device: {}", physicalDeviceProperties.deviceName);
     HYP_LOG(RenderingBackend, Info, "Vulkan feature support:\n\tBindless Textures? {}\n\tRay Tracing? {}\n\tDynamic Descriptor Indexing? {}",
-        deviceFeatures.SupportsBindlessTextures(),
-        deviceFeatures.IsRayTracingSupported(),
-        deviceFeatures.SupportsDynamicDescriptorIndexing());
+            deviceFeatures.SupportsBindlessTextures(),
+            deviceFeatures.IsRayTracingSupported(),
+            deviceFeatures.SupportsDynamicDescriptorIndexing());
 
     m_descriptorSetManager->Initialize(m_instance->GetDevice());
 
-    const VkDeviceSize minUniformBufferOffsetAlignment = RI.GetDevice()->GetFeatures()
-        .GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment;
+    const VkDeviceSize minUniformBufferOffsetAlignment = RI.GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment;
 
     CheckResultOrReturn(RenderInterface::Initialize());
 
@@ -1021,7 +1020,6 @@ void VulkanRenderInterface::PresentToSwapchain(VulkanSwapchain* swapchain)
     if (swapchain != nullptr)
     {
         AssertDebug(presentQueue != nullptr); // should never be null when presenting, not used in headless mode
-
     }
     else
     {
@@ -1144,8 +1142,6 @@ void VulkanRenderInterface::SubmitTransientCommandBuffer(VulkanCommandBuffer& co
     VulkanDeviceQueue* graphicsQueue = m_instance->GetDevice()->GetGraphicsQueue();
     Assert(graphicsQueue != nullptr);
 
-    VulkanFence* pFence = nullptr;
-
     // Previous transient command buffer semaphore, if applicable.
     VulkanSemaphore* pWaitSemaphore = nullptr;
     VulkanSemaphore* pSignalSemaphore = nullptr;
@@ -1175,7 +1171,7 @@ void VulkanRenderInterface::SubmitTransientCommandBuffer(VulkanCommandBuffer& co
             fence.Create();
         }
 
-        // HYP_LOG_TEMP("Submitting transient command buffer on thread {} for frame {}", renderThreadIndex, frameCounter % NumFramesInFlight);
+        HYP_LOG_TEMP("Submitting transient command buffer on thread {} for frame {}", CurrentRenderThreadIndex(), frameCounter % NumFramesInFlight);
 
         Span<VulkanSemaphore*> waitSemaphoreSpan {};
         if (pWaitSemaphore != nullptr)
@@ -1407,7 +1403,7 @@ RendererResult VulkanRenderInterface::CreateDescriptorSet(
         reqs |= VDPR_RayTracing;
 
     return m_descriptorSetManager->CreateDescriptorSet(m_instance->GetDevice(),
-        vkDescriptorSetLayout, VulkanDescriptorPoolRequirements(reqs), outVkDescriptorSet, outVkDescriptorPool);
+                                                       vkDescriptorSetLayout, VulkanDescriptorPoolRequirements(reqs), outVkDescriptorSet, outVkDescriptorPool);
 }
 
 RendererResult VulkanRenderInterface::DestroyDescriptorSet(VkDescriptorSet vkDescriptorSet, VkDescriptorPool vkDescriptorPool)

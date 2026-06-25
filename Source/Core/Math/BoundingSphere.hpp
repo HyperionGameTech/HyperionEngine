@@ -23,16 +23,63 @@ struct CORE_API BoundingSphere
 
     static const BoundingSphere empty;
     static const BoundingSphere infinity;
+    
+    constexpr BoundingSphere()
+        : center(0.0f, 0.0f, 0.0f),
+          radius(0.0f)
+    {
+    }
 
-    BoundingSphere();
-    BoundingSphere(const Vec3f& center, float radius);
-    BoundingSphere(const BoundingSphere& other);
-    BoundingSphere& operator=(const BoundingSphere& other);
-    BoundingSphere(BoundingSphere&& other) noexcept;
-    BoundingSphere& operator=(BoundingSphere&& other) noexcept;
-    BoundingSphere(const BoundingBox& box);
+    constexpr BoundingSphere(const Vec3f& center, float radius)
+        : center(center),
+          radius(radius)
+    {
+    }
 
-    HYP_FORCE_INLINE const Vec3f& GetCenter() const
+    constexpr BoundingSphere(const BoundingSphere& other)
+        : center(other.center),
+          radius(other.radius)
+    {
+    }
+
+    BoundingSphere& operator=(const BoundingSphere& other)
+    {
+        center = other.center;
+        radius = other.radius;
+
+        return *this;
+    }
+
+    constexpr BoundingSphere(BoundingSphere&& other) noexcept
+        : center(other.center),
+          radius(other.radius)
+    {
+        other.center = Vec3f::Zero();
+        other.radius = 0.0f;
+    }
+
+    BoundingSphere& operator=(BoundingSphere&& other) noexcept
+    {
+        center = other.center;
+        radius = other.radius;
+
+        other.center = Vec3f::Zero();
+        other.radius = 0.0f;
+
+        return *this;
+    }
+
+    constexpr BoundingSphere(const BoundingBox& box)
+        : BoundingSphere()
+    {
+        if (box.IsValid())
+        {
+            center = box.GetCenter();
+            radius = box.GetRadius();
+        }
+    }
+
+    HYP_FORCE_INLINE constexpr const Vec3f& GetCenter() const
     {
         return center;
     }
@@ -42,7 +89,7 @@ struct CORE_API BoundingSphere
         this->center = center;
     }
 
-    HYP_FORCE_INLINE float GetRadius() const
+    HYP_FORCE_INLINE constexpr float GetRadius() const
     {
         return radius;
     }
@@ -60,6 +107,16 @@ struct CORE_API BoundingSphere
     HYP_FORCE_INLINE bool operator!=(const BoundingSphere& other) const
     {
         return !operator==(other);
+    }
+
+    HYP_FORCE_INLINE constexpr bool IsValid() const
+    {
+        return !MathUtil::IsNaN(center) && !MathUtil::IsNaN(radius);
+    }
+
+    HYP_FORCE_INLINE constexpr bool IsFinite() const
+    {
+        return MathUtil::IsFinite(center) && MathUtil::IsFinite(radius);
     }
 
     BoundingSphere& Extend(const BoundingBox& box);

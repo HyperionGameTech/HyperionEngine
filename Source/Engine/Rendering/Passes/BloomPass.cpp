@@ -84,28 +84,28 @@ BloomPass::BloomPass(Vec2u extent, GBuffer* gbuffer)
 
 BloomPass::~BloomPass() = default;
 
-//BloomPass::~BloomPass()
+// BloomPass::~BloomPass()
 //{
-//    m_bloomResult.Reset();
+//     m_bloomResult.Reset();
 //
-//    EnqueueDeletion(FunctionWrapper<Proc<void()>>([
-//        brightExtractTexture = m_brightExtractTexture,
-//        downsamplePasses = std::move(m_downsamplePasses),
-//        upsamplePasses = std::move(m_upsamplePasses)]() mutable -> void
-//    {
-//        brightExtractTexture.Reset();
+//     EnqueueDeletion(FunctionWrapper<Proc<void()>>([
+//         brightExtractTexture = m_brightExtractTexture,
+//         downsamplePasses = std::move(m_downsamplePasses),
+//         upsamplePasses = std::move(m_upsamplePasses)]() mutable -> void
+//     {
+//         brightExtractTexture.Reset();
 //
-//        for (size_t i = 0; i < downsamplePasses.Size(); i++)
-//        {
-//            downsamplePasses[i].Reset();
-//        }
+//         for (size_t i = 0; i < downsamplePasses.Size(); i++)
+//         {
+//             downsamplePasses[i].Reset();
+//         }
 //
-//        for (size_t i = 0; i < upsamplePasses.Size(); i++)
-//        {
-//            upsamplePasses[i].Reset();
-//        }
-//    }));
-//}
+//         for (size_t i = 0; i < upsamplePasses.Size(); i++)
+//         {
+//             upsamplePasses[i].Reset();
+//         }
+//     }));
+// }
 
 void BloomPass::Resize_Internal(Vec2u newSize)
 {
@@ -126,8 +126,7 @@ void BloomPass::Resize_Internal(Vec2u newSize)
         TFM_LINEAR,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_STORAGE | IU_SAMPLED
-    });
+        IU_STORAGE | IU_SAMPLED });
     m_brightExtractTexture->SetIsTransient(true);
     m_brightExtractTexture->SetName(NAME("BloomBrightExtract"));
     CheckResult(m_brightExtractTexture->Create());
@@ -164,8 +163,7 @@ void BloomPass::Create()
         TFM_LINEAR,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_STORAGE | IU_SAMPLED
-    });
+        IU_STORAGE | IU_SAMPLED });
     m_brightExtractTexture->SetIsTransient(true);
     m_brightExtractTexture->SetName(NAME("BloomBrightExtract"));
     CheckResult(m_brightExtractTexture->Create());
@@ -261,7 +259,7 @@ void BloomPass::ExtractBrightAreas(Frame* frame, const RenderSetup& renderSetup,
     cr << SetShaderUniform(numShaderUniforms++, "OutImage"_sh, RI.textureViewCache->GetOrCreate(m_brightExtractTexture));
     cr << SetShaderUniform(numShaderUniforms++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
-    cr << SetShaderUniform(numShaderUniforms++, "DeferredShadingTexture"_sh, dpd->deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "DeferredShadingTexture"_sh, dpd->lightingFramebuffer->GetAttachment(0)->GetImageView());
 
     cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, m_samplerClampToEdge);
     cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());

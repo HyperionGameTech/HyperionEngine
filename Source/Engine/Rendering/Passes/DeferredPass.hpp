@@ -284,10 +284,10 @@ public:
     Handle<Texture> mipChain;
     Array<FramebufferRef, RenderAllocator> mipChainFramebuffers; // One framebuffer per mip level for downsampling
 
-    UniquePtr<LightingPass> ambientLightingPass;
-    UniquePtr<LightingPass> punctualLightingPass;
+    UniquePtr<LightingPass> indirectLightingPass;
+    UniquePtr<LightingPass> directLightingPass;
 
-    FramebufferRef deferredShadingFramebuffer;
+    FramebufferRef lightingFramebuffer;
     FramebufferRef depthPrepassFramebuffer;
 
     UniquePtr<ReflectionsPass> reflectionsPass;

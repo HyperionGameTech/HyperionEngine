@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <ScenePch.hpp>
 
@@ -53,15 +53,14 @@ static NullInputHandler* GetNullInputHandler()
         {
             inputHandler = new NullInputHandler;
 
-            g_engineDriver->GetDelegates().OnShutdown
-                .Bind([this]()
-                {
-                    if (inputHandler != nullptr)
-                    {
-                        inputHandler->Release();
-                        inputHandler = nullptr;
-                    }
-                })
+            g_engineDriver->GetDelegates().OnShutdown.Bind([this]()
+                                                           {
+                                                               if (inputHandler != nullptr)
+                                                               {
+                                                                   inputHandler->Release();
+                                                                   inputHandler = nullptr;
+                                                               }
+                                                           })
                 .Detach();
         }
     } s_initializer;
@@ -79,15 +78,14 @@ static NullCameraController* GetNullCameraController()
         {
             controller = new NullCameraController;
 
-            g_engineDriver->GetDelegates().OnShutdown
-                .Bind([this]()
-                {
-                    if (controller != nullptr)
-                    {
-                        controller->Release();
-                        controller = nullptr;
-                    }
-                })
+            g_engineDriver->GetDelegates().OnShutdown.Bind([this]()
+                                                           {
+                                                               if (controller != nullptr)
+                                                               {
+                                                                   controller->Release();
+                                                                   controller = nullptr;
+                                                               }
+                                                           })
                 .Detach();
         }
     } s_initializer;
@@ -192,13 +190,13 @@ Camera::Camera(int width, int height)
     : Entity(),
       m_cameraFlags(CameraFlags::NONE),
       m_matchWindowSizeRatio(1.0f),
-      m_fov(50.0f),
+      m_direction(Vec3f::UnitZ()),
+      m_up(Vec3f::UnitY()),
       m_width(width),
       m_height(height),
       m_near(0.01f),
       m_far(1000.0f),
-      m_direction(Vec3f::UnitZ()),
-      m_up(Vec3f::UnitY()),
+      m_fov(50.0f),
       m_streamingVolumeAdded(false)
 {
     // make sure there is always at least 1 camera controller
@@ -212,11 +210,11 @@ Camera::Camera(float fov, int width, int height, float _near, float _far)
     : Entity(),
       m_cameraFlags(CameraFlags::NONE),
       m_matchWindowSizeRatio(1.0f),
-      m_fov(fov),
+      m_direction(Vec3f::UnitZ()),
+      m_up(Vec3f::UnitY()),
       m_width(width),
       m_height(height),
-      m_direction(Vec3f::UnitZ()),
-      m_up(Vec3f::UnitY())
+      m_fov(fov)
 {
     // make sure there is always at least 1 camera controller
     m_cameraControllers.PushBack(MakeStrongRef(GetNullCameraController()));
@@ -231,11 +229,11 @@ Camera::Camera(int width, int height, float left, float right, float bottom, flo
     : Entity(),
       m_cameraFlags(CameraFlags::NONE),
       m_matchWindowSizeRatio(1.0f),
-      m_fov(0.0f),
+      m_direction(Vec3f::UnitZ()),
+      m_up(Vec3f::UnitY()),
       m_width(width),
       m_height(height),
-      m_direction(Vec3f::UnitZ()),
-      m_up(Vec3f::UnitY())
+      m_fov(0.0f)
 {
     // make sure there is always at least 1 camera controller
     m_cameraControllers.PushBack(MakeStrongRef(GetNullCameraController()));
@@ -263,6 +261,8 @@ Camera::~Camera()
 void Camera::Init()
 {
     Entity::Init();
+
+    SetNodeFlags(m_nodeFlags | NodeFlags::ExcludeFromParentBounds | NodeFlags::ExcludeFromOctree);
 
     const Vec3f translation = GetWorldTranslation();
 

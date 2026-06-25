@@ -51,6 +51,8 @@ public:
 
     ~Sprite() override;
 
+    virtual void Init() override;
+
     virtual void UpdateRenderProxy(struct RenderProxySprite* proxy);
 
     static Handle<Sprite> CreateEnvProbeSprite(Scene* scene, EnvProbe* envProbe);
@@ -68,9 +70,6 @@ public:
     Handle<EnvProbe> m_envProbe;
     Handle<LightmapVolume> m_lightmapVolume;
     Handle<Camera> m_camera;
-
-protected:
-    void Init() override;
 };
 
 } // namespace Hyperion

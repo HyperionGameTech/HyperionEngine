@@ -38,7 +38,7 @@ struct CORE_API BoundingBox
 
     ~BoundingBox() = default;
 
-    HYP_FORCE_INLINE const Vec3f& GetMin() const
+    HYP_FORCE_INLINE constexpr const Vec3f& GetMin() const
     {
         return min;
     }
@@ -48,7 +48,7 @@ struct CORE_API BoundingBox
         this->min = min;
     }
 
-    HYP_FORCE_INLINE const Vec3f& GetMax() const
+    HYP_FORCE_INLINE constexpr const Vec3f& GetMax() const
     {
         return max;
     }
@@ -60,7 +60,7 @@ struct CORE_API BoundingBox
 
     FixedArray<Vec3f, 8> GetCorners() const;
 
-    HYP_FORCE_INLINE Vec3f GetCenter() const
+    HYP_FORCE_INLINE constexpr Vec3f GetCenter() const
     {
         return (max + min) * 0.5f;
     }
@@ -69,7 +69,7 @@ struct CORE_API BoundingBox
 
     void SetCenter(const Vec3f& center);
 
-    HYP_FORCE_INLINE Vec3f GetExtent() const
+    HYP_FORCE_INLINE constexpr Vec3f GetExtent() const
     {
         return max - min;
     }
@@ -90,12 +90,12 @@ struct CORE_API BoundingBox
     BoundingBox operator*(const Vec3f& scale) const;
     BoundingBox& operator*=(const Vec3f& scale);
 
-    HYP_FORCE_INLINE bool operator==(const BoundingBox& other) const
+    HYP_FORCE_INLINE constexpr bool operator==(const BoundingBox& other) const
     {
         return min == other.min && max == other.max;
     }
 
-    HYP_FORCE_INLINE bool operator!=(const BoundingBox& other) const
+    HYP_FORCE_INLINE constexpr bool operator!=(const BoundingBox& other) const
     {
         return !operator==(other);
     }
@@ -127,19 +127,19 @@ struct CORE_API BoundingBox
 
     float Area() const;
 
-    HYP_FORCE_INLINE bool IsFinite() const
+    HYP_FORCE_INLINE constexpr bool IsFinite() const
     {
         return MathUtil::IsFinite(min) && MathUtil::IsFinite(max);
     }
 
-    HYP_FORCE_INLINE bool IsValid() const
+    HYP_FORCE_INLINE constexpr bool IsValid() const
     {
         return min.x <= max.x && min.y <= max.y && min.z <= max.z;
     }
 
-    HYP_FORCE_INLINE bool IsZero() const
+    HYP_FORCE_INLINE constexpr bool IsZero() const
     {
-        return min == Vec3f::Zero() && max == Vec3f::Zero();
+        return MathUtil::ApproxEqual(Vec3f(0.0f), GetExtent());
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

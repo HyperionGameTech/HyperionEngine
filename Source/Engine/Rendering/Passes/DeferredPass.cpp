@@ -938,7 +938,7 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
         cr << SetShaderUniform(numShaderUniforms++, "TAAResultTexture"_sh, RI.placeholderData->GetImageView2D1x1R8());
     }
 
-    cr << SetShaderUniform(numShaderUniforms++, "DeferredIndirectResultTexture"_sh, dpd->deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "DeferredIndirectResultTexture"_sh, dpd->lightingFramebuffer->GetAttachment(0)->GetImageView());
 
     cr << SetShaderUniform(numShaderUniforms++, "PostProcessingUniforms"_sh, dpd->postProcessing->GetUniformBuffer());
 
@@ -1586,8 +1586,8 @@ DeferredPassData::~DeferredPassData()
     lightmapPass.Reset();
     tonemapPass.Reset();
     mipChain.Reset();
-    ambientLightingPass.Reset();
-    punctualLightingPass.Reset();
+    indirectLightingPass.Reset();
+    directLightingPass.Reset();
 
     rayTracingReflections.Reset();
     ddgi.Reset();
@@ -1606,14 +1606,14 @@ RayTracingPassData::~RayTracingPassData()
 
 #pragma region DeferredPass
 
-static FramebufferRef CreateDeferredShadingFramebuffer(GBuffer* gbuffer)
+static FramebufferRef CreateLightingFramebuffer(GBuffer* gbuffer)
 {
     FramebufferDesc framebufferDesc {};
     framebufferDesc.extent = gbuffer->GetExtent();
 
     FramebufferRef framebuffer = RI.MakeFramebuffer(framebufferDesc);
 #if HYP_DEBUG_MODE
-    framebuffer->SetDebugName(NAME("DeferredShadingFramebuffer"));
+    framebuffer->SetDebugName(NAME("LightingFramebuffer"));
 #endif
 
     AttachmentDesc colorAttachmentDesc {};
@@ -2258,14 +2258,14 @@ PassData* DeferredPass::CreateViewPassData(View* view, PassDataExt&)
         passData.postProcessing = MakeUnique<PostProcessing>();
         passData.postProcessing->Create();
 
-        passData.deferredShadingFramebuffer = CreateDeferredShadingFramebuffer(gbuffer);
+        passData.lightingFramebuffer = CreateLightingFramebuffer(gbuffer);
         passData.depthPrepassFramebuffer = CreateDepthPrepassFramebuffer(gbuffer);
 
-        passData.ambientLightingPass = MakeUnique<LightingPass>(DPM_INDIRECT_LIGHTING, gbuffer->GetExtent(), gbuffer, passData.deferredShadingFramebuffer);
-        passData.ambientLightingPass->Create();
+        passData.indirectLightingPass = MakeUnique<LightingPass>(DPM_INDIRECT_LIGHTING, gbuffer->GetExtent(), gbuffer, passData.lightingFramebuffer);
+        passData.indirectLightingPass->Create();
 
-        passData.punctualLightingPass = MakeUnique<LightingPass>(DPM_DIRECT_LIGHTING, gbuffer->GetExtent(), gbuffer, passData.deferredShadingFramebuffer);
-        passData.punctualLightingPass->Create();
+        passData.directLightingPass = MakeUnique<LightingPass>(DPM_DIRECT_LIGHTING, gbuffer->GetExtent(), gbuffer, passData.lightingFramebuffer);
+        passData.directLightingPass->Create();
 
         passData.depthPyramidRenderer = MakeUnique<DepthPyramidRenderer>(gbuffer);
         passData.depthPyramidRenderer->Create();
@@ -2447,9 +2447,9 @@ void DeferredPass::ResizeView(Viewport viewport, View* view, DeferredPassData& p
 
     Framebuffer* opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
 
-    if (passData.deferredShadingFramebuffer.IsValid())
+    if (passData.lightingFramebuffer.IsValid())
     {
-        EnqueueDeletion(std::move(passData.deferredShadingFramebuffer));
+        EnqueueDeletion(std::move(passData.lightingFramebuffer));
     }
 
     if (passData.depthPrepassFramebuffer.IsValid())
@@ -2457,11 +2457,11 @@ void DeferredPass::ResizeView(Viewport viewport, View* view, DeferredPassData& p
         EnqueueDeletion(std::move(passData.depthPrepassFramebuffer));
     }
 
-    passData.deferredShadingFramebuffer = CreateDeferredShadingFramebuffer(gbuffer);
+    passData.lightingFramebuffer = CreateLightingFramebuffer(gbuffer);
     passData.depthPrepassFramebuffer = CreateDepthPrepassFramebuffer(gbuffer);
 
-    passData.punctualLightingPass->Resize(newSize);
-    passData.ambientLightingPass->Resize(newSize);
+    passData.directLightingPass->Resize(newSize);
+    passData.indirectLightingPass->Resize(newSize);
 
     passData.depthPyramidRenderer.Reset();
     passData.depthPyramidRenderer = MakeUnique<DepthPyramidRenderer>(gbuffer);
@@ -3086,7 +3086,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
         // Pre-transition resources to avoid breaking the render pass for barriers
         frame->cr << InsertBarrier(
-            passData.deferredShadingFramebuffer->GetAttachment(1)->GetGpuImage(),
+            passData.lightingFramebuffer->GetAttachment(1)->GetGpuImage(),
             RS_RENDER_TARGET,
             ShaderModuleType::Pixel,
             /* onlyDepth */ false,
@@ -3097,7 +3097,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         // Transition point light shadow map atlas to shader resource before the pass
         frame->cr << InsertBarrier(RI.shadowMapCache->GetPointLightShadowMapImage(), RS_SHADER_RESOURCE, ShaderModuleType::Pixel);
 
-        frame->cr << SetCurrentFramebuffer(passData.deferredShadingFramebuffer);
+        frame->cr << SetCurrentFramebuffer(passData.lightingFramebuffer);
 
         const bool isPathTracer = cvPathTracing.Get();
 
@@ -3111,22 +3111,28 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
                 // Render the objects to have lightmaps applied into the translucent pass framebuffer with a full screen quad.
                 // Apply lightmaps over the now shaded opaque objects.
-                passData.lightmapPass->RenderToFramebuffer(frame, lightmapPassRS, passData.deferredShadingFramebuffer);
+                passData.lightmapPass->RenderToFramebuffer(frame, lightmapPassRS, passData.lightingFramebuffer);
             }
         }
 
-        passData.ambientLightingPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
+        passData.indirectLightingPass->RenderToFramebuffer(frame, rs, passData.lightingFramebuffer);
 
         if (!isPathTracer)
         {
-            passData.punctualLightingPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
+            passData.directLightingPass->RenderToFramebuffer(frame, rs, passData.lightingFramebuffer);
+        }
+
+        // Draw sky after opaque and lighting, but before translucent objects
+        if (renderCollector.mappingsByBucket[uint32(RenderBucket::Sky)].Any())
+        {
+            renderCollector.ExecuteDrawCalls(frame, rs, passData.lightingFramebuffer, RenderBucketMask<RenderBucket::Sky>);
         }
 
         frame->cr << SetCurrentFramebuffer(nullptr);
     }
 
     { // generate mipchain after rendering opaque objects' lighting, now we can use it for transmission
-        const GpuImageRef& srcImage = passData.deferredShadingFramebuffer->GetAttachment(0)->GetGpuImage();
+        const GpuImageRef& srcImage = passData.lightingFramebuffer->GetAttachment(0)->GetGpuImage();
         GenerateMipChain(frame, rs, renderCollector, srcImage);
     }
 
@@ -3161,7 +3167,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
             frame->cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
             frame->cr << SetShaderUniform(1, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
-            frame->cr << SetShaderUniform(2, "InTexture"_sh, passData.deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
+            frame->cr << SetShaderUniform(2, "InTexture"_sh, passData.lightingFramebuffer->GetAttachment(0)->GetImageView());
 
             frame->cr << CommitDrawState();
 
@@ -3179,11 +3185,6 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         if (renderCollector.mappingsByBucket[uint32(RenderBucket::Translucent)].Any())
         {
             renderCollector.ExecuteDrawCalls(frame, rs, RenderBucketMask<RenderBucket::Translucent>);
-        }
-
-        if (renderCollector.mappingsByBucket[uint32(RenderBucket::Sky)].Any())
-        {
-            renderCollector.ExecuteDrawCalls(frame, rs, RenderBucketMask<RenderBucket::Sky>);
         }
 
         // render fog volumes

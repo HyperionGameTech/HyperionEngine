@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <HyperionPch.hpp>
 
@@ -45,8 +45,11 @@ static bool ProcessEntity(
 
     const BoundingBox worldBounds = entity->GetWorldBounds();
 
-    if (!worldBounds.IsValid() || !worldBounds.IsFinite())
+    if (!worldBounds.IsValid() || !worldBounds.IsFinite() || (entity->GetNodeFlags() & NodeFlags::ExcludeFromOctree))
     {
+        visibilityStateComponent.octantId = OctantId::Invalid();
+        visibilityStateComponent.visibilityState = nullptr;
+
         return false;
     }
 
@@ -204,7 +207,9 @@ void VisThread::Process()
             for (auto [entity, visibilityStateComponent, _] : scene->GetEntityManager()->GetEntitySet<VisibilityStateComponent, TagComponent<EntityTag::UpdateVisibility>>().GetScopedView(DataAccessFlags::ACCESS_RW))
             {
                 if (ProcessEntity(entity, visibilityStateComponent))
+                {
                     m_processedEntities.PushBack(entity);
+                }
             }
         }
     }

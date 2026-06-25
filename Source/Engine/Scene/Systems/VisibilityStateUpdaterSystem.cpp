@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <ScenePch.hpp>
 
@@ -113,15 +113,18 @@ void VisibilityStateUpdaterSystem::Process(float delta, Span<Handle<Scene>> scen
 
             visibilityStateComponent.flags &= ~VisibilityStateFlags::INVALIDATED;
 
+            if (!boundingBoxComponent.worldAabb.IsValid() || !boundingBoxComponent.worldAabb.IsFinite() || (entity->GetNodeFlags() & NodeFlags::ExcludeFromOctree))
+            {
+                visibilityStateComponent.octantId = OctantId::Invalid();
+                visibilityStateComponent.visibilityState = nullptr;
+
+                return;
+            }
+
             // if entity is not in the octree, try to insert it
             if (visibilityStateComponent.octantId == OctantId::Invalid())
             {
                 visibilityStateComponent.visibilityState = nullptr;
-
-                if (!boundingBoxComponent.worldAabb.IsValid())
-                {
-                    return;
-                }
 
                 const SceneOctree::Result insertResult = octree.Insert(entity, boundingBoxComponent.worldAabb);
 
@@ -191,17 +194,17 @@ void VisibilityStateUpdaterSystem::Process(float delta, Span<Handle<Scene>> scen
                 HYP_LOG(Scene, Warning, "Updating visibility states for a lot of entities ({})! This will have a performance impact if it happens frequently."
                                         "\n\tMaybe the Scene's octree should have a different bounding size or be broken into multiple Scenes."
                                         "\n\tScene name: {}, flags: {}",
-                    updatedEntities.Size(), scene->GetName(), uint32(scene->GetSceneFlags()));
+                        updatedEntities.Size(), scene->GetName(), uint32(scene->GetSceneFlags()));
             }
 #endif
 
             AfterProcess([scene, updatedEntities = std::move(updatedEntities)]()
-                {
-                    for (const WeakHandle<Entity>& entityWeak : updatedEntities)
-                    {
-                        scene->GetEntityManager()->RemoveTag<EntityTag::UpdateVisibility>(entityWeak.GetUnsafe());
-                    }
-                });
+                         {
+                             for (const WeakHandle<Entity>& entityWeak : updatedEntities)
+                             {
+                                 scene->GetEntityManager()->RemoveTag<EntityTag::UpdateVisibility>(entityWeak.GetUnsafe());
+                             }
+                         });
         }
     }
 }

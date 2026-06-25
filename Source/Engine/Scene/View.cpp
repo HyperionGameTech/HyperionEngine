@@ -460,13 +460,30 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
         {
             for (Scene* scene : m_scenes)
             {
+                static constexpr EnumFlags<SceneFlags> SceneFlagFilterMask = (SceneFlags::HAS_OCTREE | SceneFlags::FOREGROUND | SceneFlags::BACKDROP | SceneFlags::DETACHED);
+                static constexpr EnumFlags<SceneFlags> SceneFlagFilterDesired = (SceneFlags::HAS_OCTREE | SceneFlags::FOREGROUND);
+
+                if ((scene->GetSceneFlags() & SceneFlagFilterMask) != SceneFlagFilterDesired)
+                {
+                    continue;
+                }
+
+                const BoundingBox& sceneWorldBounds = scene->GetOctree().GetAABB();
+                BoundingSphere sceneWorldBoundsSphere = BoundingSphere(sceneWorldBounds);
+
+                if (!sceneWorldBoundsSphere.IsFinite() || !sceneWorldBoundsSphere.IsValid())
+                {
+                    HYP_LOG_ONCE(Scene, Warning, "Scene has invalid bounding sphere (Scene: {})", scene->GetName());
+                    continue;
+                }
+
                 if (isWorldBoundsSphereValid)
                 {
-                    worldBoundsSphere.Extend(BoundingSphere(scene->GetRoot()->GetWorldBounds()));
+                    worldBoundsSphere.Extend(sceneWorldBoundsSphere);
                 }
                 else
                 {
-                    worldBoundsSphere = BoundingSphere(scene->GetRoot()->GetWorldBounds());
+                    worldBoundsSphere = sceneWorldBoundsSphere;
                     isWorldBoundsSphereValid = true;
                 }
             }

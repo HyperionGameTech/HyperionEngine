@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <ScenePch.hpp>
 
@@ -127,6 +127,7 @@ void DynamicSkySystem::InitializeSky()
         materialAttributes.bucket = RenderBucket::Sky;
         // flip cull faces.
         materialAttributes.cullFaces = FCM_FRONT;
+        materialAttributes.blendFunction = BlendFunction::None();
         // enable depth test but not write. we want skybox to be behind everything else, but rendered last to avoid overdraw.
         materialAttributes.flags = MAF_DEPTH_TEST;
 
@@ -157,6 +158,7 @@ void DynamicSkySystem::InitializeSky()
         // add MeshComponent to skybox entity
         m_skyboxEntity->AddComponent<MeshComponent>(MeshComponent { mesh, skyboxMaterialInstance });
 
+#if 1
         // Sky Visibility view
         m_topDownCamera = MakeHandle<Camera>();
         m_topDownCamera->SetDimensions(Vec2i { 256, 256 });
@@ -187,6 +189,7 @@ void DynamicSkySystem::InitializeSky()
         framebufferDesc.attachments[framebufferDesc.numAttachments++] = depthAttachmentDesc;
 
         m_topDownView = MakeHandle<View>(topDownViewDesc);
+#endif
     }
 }
 
@@ -259,13 +262,13 @@ void DynamicSkySystem::Process(float delta, Span<Handle<Scene>>)
 
     const uint32 currFrame = GetFrameCounter();
 
-    //if (!m_updateTimer.Waiting() || m_lastFrame == UINT32_MAX || (currFrame - m_lastFrame) >= RingBufferDepth)
+    // if (!m_updateTimer.Waiting() || m_lastFrame == UINT32_MAX || (currFrame - m_lastFrame) >= RingBufferDepth)
     //{
-    //    m_updateTimer.NextTick();
+    //     m_updateTimer.NextTick();
 
-        m_envProbe->Update(delta);
+    m_envProbe->Update(delta);
 
-        m_lastFrame = currFrame;
+    m_lastFrame = currFrame;
     //}
 }
 

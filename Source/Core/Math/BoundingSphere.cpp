@@ -16,61 +16,6 @@ namespace Hyperion {
 const BoundingSphere BoundingSphere::empty = BoundingSphere();
 const BoundingSphere BoundingSphere::infinity = BoundingSphere(Vec3f::Zero(), MathUtil::Infinity<float>());
 
-BoundingSphere::BoundingSphere()
-    : center(Vec3f::Zero()),
-      radius(0.0f)
-{
-}
-
-BoundingSphere::BoundingSphere(const Vec3f& center, float radius)
-    : center(center),
-      radius(radius)
-{
-}
-
-BoundingSphere::BoundingSphere(const BoundingSphere& other)
-    : center(other.center),
-      radius(other.radius)
-{
-}
-
-BoundingSphere& BoundingSphere::operator=(const BoundingSphere& other)
-{
-    center = other.center;
-    radius = other.radius;
-
-    return *this;
-}
-
-BoundingSphere::BoundingSphere(BoundingSphere&& other) noexcept
-    : center(other.center),
-      radius(other.radius)
-{
-    other.center = Vec3f::Zero();
-    other.radius = 0.0f;
-}
-
-BoundingSphere& BoundingSphere::operator=(BoundingSphere&& other) noexcept
-{
-    center = other.center;
-    radius = other.radius;
-
-    other.center = Vec3f::Zero();
-    other.radius = 0.0f;
-
-    return *this;
-}
-
-BoundingSphere::BoundingSphere(const BoundingBox& box)
-    : BoundingSphere()
-{
-    if (box.IsValid())
-    {
-        center = box.GetCenter();
-        radius = box.GetRadius();
-    }
-}
-
 BoundingSphere& BoundingSphere::Extend(const BoundingBox& box)
 {
     // https://github.com/openscenegraph/OpenSceneGraph/blob/master/include/osg/BoundingSphere

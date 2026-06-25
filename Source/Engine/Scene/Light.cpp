@@ -75,6 +75,8 @@ Light::Light(LightType type, const Vec3f& position, const Color& color, float in
       m_shadowMapDimensions(DefaultShadowMapDimensions[uint32(type)]),
       m_numShadowMapCascades(1)
 {
+    m_nodeFlags |= NodeFlags::ExcludeFromParentBounds | NodeFlags::ExcludeFromOctree;
+
     m_entityInitInfo.canEverUpdate = true;
     m_entityInitInfo.receivesUpdate = true;
     m_entityInitInfo.bvhDepth = 0; // No BVH for lights
@@ -96,6 +98,8 @@ Light::Light(LightType type, const Vec3f& position, const Vec3f& normal, const V
       m_shadowMapDimensions(DefaultShadowMapDimensions[uint32(type)]),
       m_numShadowMapCascades(1)
 {
+    m_nodeFlags |= NodeFlags::ExcludeFromParentBounds | NodeFlags::ExcludeFromOctree;
+
     m_entityInitInfo.canEverUpdate = true;
     m_entityInitInfo.receivesUpdate = true;
     m_entityInitInfo.bvhDepth = 0; // No BVH for lights

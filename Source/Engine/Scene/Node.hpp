@@ -63,6 +63,7 @@ enum class NodeFlags : uint32
     IgnoreParentTransform = IgnoreParentTranslation | IgnoreParentScale | IgnoreParentRotation, //!< @edithide
 
     ExcludeFromParentBounds = 0x8,                                                              //!< @title="Does not affect parent node's bounds"
+    ExcludeFromOctree = 0x10,                                                                   //!< @title="Not included in the Scene's octree"
 
     HideInSceneOutline = 0x1000,                                                                //!< @edithide
 

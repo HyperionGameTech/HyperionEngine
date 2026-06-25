@@ -402,7 +402,7 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
         cr << SetShaderUniform(numShaderUniforms++, "GBufferMaterialTexture"_sh, inputsFramebuffer->GetAttachment(GTN_MATERIAL)->GetImageView());
         cr << SetShaderUniform(numShaderUniforms++, "GBufferDepthTexture"_sh, inputsFramebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
 
-        cr << SetShaderUniform(numShaderUniforms++, "DeferredShadingTexture"_sh, dpd->deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
+        cr << SetShaderUniform(numShaderUniforms++, "DeferredShadingTexture"_sh, dpd->lightingFramebuffer->GetAttachment(0)->GetImageView());
 
         cr << SetShaderUniform(numShaderUniforms++, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer);
 
