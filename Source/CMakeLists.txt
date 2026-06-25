@@ -173,10 +173,10 @@ endfunction()
 RunCodeGen(0 9)
 
 # set HYP_DEBUG_MODE to 1 for debug builds, 0 for release builds
-# if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-add_definitions(-DHYP_DEBUG_MODE=1)
-set(HYP_DEBUG_MODE 1)
-# endif()
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  add_definitions(-DHYP_DEBUG_MODE=1)
+  set(HYP_DEBUG_MODE 1)
+endif()
 
 # Uncomment to enable release final build optimizations
 # set(HYPERION_BUILD_RELEASE_FINAL 1)
@@ -397,7 +397,7 @@ endif()
 
 set(RENDERING_BACKEND "Vulkan")
 
-set(ENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND true) # TEMP - do not commit to dev branch with this set to true, only for testing the DX12 rendering backend before it's ready to be merged into dev
+# set(ENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND true) # TEMP - do not commit to dev branch with this set to true, only for testing the DX12 rendering backend before it's ready to be merged into dev
 
 if(ENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND AND WIN32)
   set(RENDERING_BACKEND "DX12")

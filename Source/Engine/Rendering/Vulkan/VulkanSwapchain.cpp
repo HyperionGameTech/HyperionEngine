@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <VulkanPch.hpp>
 
@@ -32,7 +32,7 @@ namespace Hyperion {
 
 extern VulkanRenderInterface RI;
 
-extern CVar<bool> g_renderingVSync;
+extern CVar<bool> g_cvEnableVSync;
 
 static constexpr bool UseSRGBFormat = true;
 static constexpr bool UseHDRFormat = false;
@@ -95,9 +95,9 @@ VulkanSwapchain::~VulkanSwapchain()
     if (m_handle != VK_NULL_HANDLE)
     {
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle]()
-            {
-                vkDestroySwapchainKHR(RI.GetDevice()->GetDevice(), handle, nullptr);
-            }));
+                                                      {
+                                                          vkDestroySwapchainKHR(RI.GetDevice()->GetDevice(), handle, nullptr);
+                                                      }));
     }
 
     m_handle = VK_NULL_HANDLE;
@@ -194,7 +194,7 @@ RendererResult VulkanSwapchain::Create()
 
     CheckResultOrReturn(ChooseSurfaceFormat());
 
-    m_presentMode = g_renderingVSync.Get() ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
+    m_presentMode = g_cvEnableVSync.Get() ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
 
     HYP_LOG(RenderingBackend, Verbose, "Vulkan swapchain m_extent = {}", m_extent);
 
@@ -304,7 +304,7 @@ RendererResult VulkanSwapchain::Create()
     AssertDebug(m_framebuffers.Empty());
 
     HYP_LOG(RenderingBackend, Verbose, "Creating {} swapchain framebuffers with extent and format: {}",
-        m_images.Size(), m_extent, EnumToString(m_images[0]->GetTextureFormat()));
+            m_images.Size(), m_extent, EnumToString(m_images[0]->GetTextureFormat()));
 
     for (const VulkanGpuImageRef& image : m_images)
     {
@@ -530,14 +530,14 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
     UniquePtr<SingleTimeCommands> singleTimeCommands = RI.GetSingleTimeCommands();
 
     singleTimeCommands->Push([&](CommandRecorder& cr)
-        {
-            for (const VulkanGpuImageRef& image : m_images)
-            {
-                Assert(image.IsValid());
+                             {
+                                 for (const VulkanGpuImageRef& image : m_images)
+                                 {
+                                     Assert(image.IsValid());
 
-                cr << InsertBarrier(image, RS_PRESENT);
-            }
-        });
+                                     cr << InsertBarrier(image, RS_PRESENT);
+                                 }
+                             });
 
     CheckResultOrReturn(singleTimeCommands->Execute());
 

@@ -685,7 +685,7 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                     Vec4f atlasScaleX;
                     Vec4f atlasScaleY;
 
-                    Vec4u cascadeSlice;
+                    Vec4u atlasSlice;
 
                     Vec4f cascadeScaleX;
                     Vec4f cascadeScaleY;
@@ -755,7 +755,7 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                         const float rawOffsetY = -cascadeBounds.max.y * rawScaleY;
                         const float rawOffsetZ = -cascadeBounds.min.z * rawScaleZ;
 
-                        csmData->cascadeSlice[cascadeIndex] = layerIndex;
+                        csmData->atlasSlice[cascadeIndex] = layerIndex;
 
                         csmData->atlasU[cascadeIndex] = atlasOffset.x;
                         csmData->atlasV[cascadeIndex] = atlasOffset.y;

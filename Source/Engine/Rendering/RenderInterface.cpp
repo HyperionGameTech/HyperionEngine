@@ -140,7 +140,8 @@ ENGINE_API Pool* g_rhiPool;
 ENGINE_API Arena* g_rhiArena;
 /// ========================
 
-CVar<bool> g_renderingVSync("Rendering.VSync", true);
+CVar<bool> g_cvEnableVSync("Rendering.VSync", true);
+CVar<bool> g_cvEnableGpuStats("Rendering.EnableGpuStats", true);
 
 namespace Framework {
 

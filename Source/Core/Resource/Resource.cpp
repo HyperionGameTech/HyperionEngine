@@ -12,11 +12,11 @@
 #include <Core/Utilities/DeferredScope.hpp>
 
 #include <Core/Logging/Logger.hpp>
+#include <Core/Logging/LogChannels.hpp>
 
 namespace Hyperion {
 
-CORE_API HYP_DECLARE_LOG_CHANNEL(Memory);
-CORE_API HYP_DEFINE_LOG_SUBCHANNEL(Resource, Memory);
+CORE_API HYP_DEFINE_LOG_SUBCHANNEL(Resource, Core);
 
 #pragma region ResourceGuard
 
@@ -166,6 +166,8 @@ void ResourceBase::AddWriter(bool doInitialize)
             }
             else
             {
+                HYP_LOG_ONCE(Resource, Warning, "Resource contention!");
+
                 // yield to other threads
                 ThreadSleep(0);
             }

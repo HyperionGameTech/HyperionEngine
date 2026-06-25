@@ -12,11 +12,11 @@
     "RayTracedReflections": false,
     "RayTracedGI": false,
     "RayTracingEnabled": false,
-    "IndirectRendering": true,
+    "IndirectRendering": false,
     "DepthPrepass": false,
-    "ParallelCollection": true,
+    "ParallelCollection": false,
     "TargetFrameRate": 0,
-    "EnableDebugDraw": true,
+    "EnableDebugDraw": false,
     "SSR": {
       "Enabled": true,
       "Quality": 2,
@@ -35,6 +35,7 @@
       "AO": false
     },
     "VSync": false,
+    "EnableGpuStats": false,
     "Vulkan": {
       "DebugLayers": false,
       "TimelineSemaphores": true

@@ -22,7 +22,7 @@
 
 namespace Hyperion {
 
-extern CVar<bool> g_renderingVSync;
+extern CVar<bool> g_cvEnableVSync;
 
 extern DX12RenderInterface RI;
 
@@ -142,8 +142,7 @@ RendererResult DX12Swapchain::Create()
         &swapChainDesc,
         nullptr,
         nullptr,
-        &swapChain1
-    );
+        &swapChain1);
 
     if (FAILED(hr))
     {
@@ -329,7 +328,7 @@ void DX12Swapchain::PresentFrame(DX12Frame* frame)
         return;
     }
 
-    const bool vsync = g_renderingVSync.Get();
+    const bool vsync = g_cvEnableVSync.Get();
     UINT syncInterval = vsync ? 1 : 0;
     UINT flags = 0;
 

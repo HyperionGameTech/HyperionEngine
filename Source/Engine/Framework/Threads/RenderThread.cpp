@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <HyperionPch.hpp>
 
@@ -62,10 +62,12 @@ ENGINE_API extern bool IsOnBatteryPower();
 
 static constexpr float IdleMaxFrameRate = 15.0f;
 static constexpr float BatteryMaxFrameRate = 30.0f;
-static CVar<float> s_cvTargetFrameRate("Rendering.TargetFrameRate", 0);             // 0    = no limit
-static CVar<int> s_cvSkipRenderingWhenIdle("Rendering.SkipRenderingWhenIdle", -1);  // -1   = set dynamically based on if editor mode
+static CVar<float> s_cvTargetFrameRate("Rendering.TargetFrameRate", 0);            // 0    = no limit
+static CVar<int> s_cvSkipRenderingWhenIdle("Rendering.SkipRenderingWhenIdle", -1); // -1   = set dynamically based on if editor mode
 
 static FrameLimiter s_frameLimiter { 0 };
+
+static bool s_wasFocused = true;
 
 RenderThread::RenderThread()
     : Thread(g_renderThread, ThreadPriorityValue::HIGHEST)
@@ -133,9 +135,6 @@ void RenderThread::Update()
 
     ApplicationWindow* mainWindow = g_appContext->GetMainWindow();
 
-    static ClockTimer s_throttleTimer;
-    static bool s_wasFocused = true;
-
     float targetFrameRate = s_cvTargetFrameRate.Get();
 
     if (!mainWindow || !mainWindow->HasFocus())
@@ -144,7 +143,6 @@ void RenderThread::Update()
 
         if (s_wasFocused)
         {
-            s_throttleTimer.Reset();
             s_wasFocused = false;
         }
     }
@@ -156,7 +154,6 @@ void RenderThread::Update()
     {
         if (!s_wasFocused)
         {
-            s_throttleTimer.Reset();
             s_wasFocused = true;
         }
     }
@@ -297,13 +294,13 @@ void RenderThread::Update()
     RI.EndFrame();
 
     g_renderArena->Reset();
-    
+
     // Wait AFTER the frame is rendered to allow sim thread to catch up,
     // as we want buffered data to keep being written even as we wait.
     if (targetFrameRate > 0.0f)
     {
-        s_frameLimiter.SetTargetFPS(static_cast<int>(targetFrameRate));
-        s_frameLimiter.Wait();
+        // s_frameLimiter.SetTargetFPS(static_cast<int>(targetFrameRate));
+        // s_frameLimiter.Wait();
     }
 }
 
@@ -332,11 +329,11 @@ void RenderThread::operator()()
     else
     {
         AddOnExitCallback([]()
-            {
-                RI.Shutdown();
+                          {
+                              RI.Shutdown();
 
-                g_renderInitSignal.Reset();
-            });
+                              g_renderInitSignal.Reset();
+                          });
     }
 }
 

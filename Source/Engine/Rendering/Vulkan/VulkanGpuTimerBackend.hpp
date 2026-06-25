@@ -56,6 +56,7 @@ private:
     FixedArray<PerFrameState, NumFramesInFlight> m_frames;
     double m_timestampPeriod = 0.0;
     bool m_isSupported = false;
+    bool m_isEnabled = false;
 };
 
 } // namespace Hyperion

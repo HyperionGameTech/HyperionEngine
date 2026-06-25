@@ -61,6 +61,7 @@ private:
     uint64 m_timestampFrequency = 0;
     double m_timestampPeriod = 0.0;
     bool m_isSupported = false;
+    bool m_isEnabled = false;
 };
 
 } // namespace Hyperion

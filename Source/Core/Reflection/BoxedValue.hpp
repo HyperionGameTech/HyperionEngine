@@ -49,6 +49,8 @@ using filesystem::FilePath;
 CORE_API extern const Class* GetClass(const TypeId& typeId);
 CORE_API extern bool IsA(const Class* cls, const Class* instanceClass);
 
+CORE_API extern const TypeInfo& Class_GetTypeInfo(const Class& cls);
+
 template <class T, class T2 = void>
 struct BoxedValueHelper;
 
@@ -132,10 +134,11 @@ struct CORE_API BoxedValue
         Name,
         ObjIdBase,
         ClassRef,
+        ObjectBase*,
         Handle<ObjectBase>,
         RC<void>,
-        AnyRef,
         Any,
+        AnyRef,
         InlineData>;
 
     template <class T>
@@ -155,14 +158,16 @@ struct CORE_API BoxedValue
 
         || std::is_same_v<T, ClassRef>
 
+        // ObjectBase or ObjectBase-derived pointer
+        || std::is_pointer_v<T> && std::is_base_of_v<ObjectBase, std::remove_pointer_t<T>>
+
         /*! Handle<T> gets stored as Handle<ObjectBase>, which holds TypeId for conversion */
         || std::is_base_of_v<HandleBase, T> || std::is_same_v<T, Handle<ObjectBase>> || std::is_base_of_v<ObjectBase, T>
 
         /*! RC<T> gets stored as RC<void> and can be converted back */
         || std::is_base_of_v<typename RC<void>::RefCountedPtrBase, T>
 
-        /*! Pointers are stored as AnyRef which holds TypeId for conversion */
-        || std::is_same_v<T, AnyRef> || std::is_pointer_v<T>
+        || std::is_same_v<T, AnyRef> // || std::is_pointer_v<T>
 
         || std::is_same_v<T, Any> || std::is_same_v<T, InlineData>;
 
@@ -266,16 +271,22 @@ struct CORE_API BoxedValue
         value.Reset();
     }
 
-    AnyRef ToRef()
+    HYP_NODISCARD AnyRef ToRef()
     {
         if (!IsValid())
         {
             return AnyRef();
         }
 
-        if (Handle<ObjectBase>* anyHandlePtr = value.TryGet<Handle<ObjectBase>>())
+        if (ObjectBase** ppObjectBase = value.TryGet<ObjectBase*>())
         {
-            return anyHandlePtr->ToRef();
+            ObjectBase* objectBase = *ppObjectBase;
+            return AnyRef(&Class_GetTypeInfo(*objectBase->InstanceClass()), objectBase);
+        }
+
+        if (Handle<ObjectBase>* handlePtr = value.TryGet<Handle<ObjectBase>>())
+        {
+            return handlePtr->ToRef();
         }
 
         if (RC<void>* rcPtr = value.TryGet<RC<void>>())
@@ -283,20 +294,20 @@ struct CORE_API BoxedValue
             return rcPtr->ToRef();
         }
 
-        if (AnyRef* anyRefPtr = value.TryGet<AnyRef>())
-        {
-            return *anyRefPtr;
-        }
-
         if (Any* anyPtr = value.TryGet<Any>())
         {
             return anyPtr->ToRef();
         }
 
+        if (AnyRef* anyRefPtr = value.TryGet<AnyRef>())
+        {
+            return *anyRefPtr;
+        }
+
         return AnyRef(value.GetCurrentTypeInfo(), value.GetPointer());
     }
 
-    HYP_FORCE_INLINE AnyRef ToRef() const
+    HYP_FORCE_INLINE HYP_NODISCARD AnyRef ToRef() const
     {
         return const_cast<BoxedValue*>(this)->ToRef();
     }
@@ -339,9 +350,9 @@ struct CORE_API BoxedValue
 
 #if HYP_DEBUG_MODE
             HYP_CORE_ASSERT(resultValue.HasValue(),
-                "Failed to invoke BoxedValue Get method with T = %s - Mismatched types or T could not be converted to the held type (%s)",
-                TypeName<T>().Data(),
-                *TypeInfo_GetName(*GetTypeInfo()));
+                            "Failed to invoke BoxedValue Get method with T = %s - Mismatched types or T could not be converted to the held type (%s)",
+                            TypeName<T>().Data(),
+                            *TypeInfo_GetName(*GetTypeInfo()));
 #endif
 
             return *resultValue;
@@ -368,9 +379,9 @@ struct CORE_API BoxedValue
 
 #if HYP_DEBUG_MODE
             HYP_CORE_ASSERT(resultValue.HasValue(),
-                "Failed to invoke BoxedValue Get method with T = %s - Mismatched types or T could not be converted to the held type (%s)",
-                TypeName<T>().Data(),
-                *TypeInfo_GetName(*GetTypeInfo()));
+                            "Failed to invoke BoxedValue Get method with T = %s - Mismatched types or T could not be converted to the held type (%s)",
+                            TypeName<T>().Data(),
+                            *TypeInfo_GetName(*GetTypeInfo()));
 #endif
 
             return *resultValue;
@@ -665,7 +676,7 @@ template <>
 struct BoxedValueHelper<void*>
 {
     using StorageType = void*;
-    using ConvertibleFrom = Tuple<AnyRef, Handle<ObjectBase>, RC<void>>;
+    using ConvertibleFrom = Tuple<ObjectBase*, Handle<ObjectBase>, RC<void>>;
 
     HYP_FORCE_INLINE bool Is(void* value) const
     {
@@ -673,7 +684,7 @@ struct BoxedValueHelper<void*>
         HYP_NOT_IMPLEMENTED();
     }
 
-    HYP_FORCE_INLINE bool Is(const AnyRef& value) const
+    HYP_FORCE_INLINE bool Is(ObjectBase* value) const
     {
         return true;
     }
@@ -693,9 +704,9 @@ struct BoxedValueHelper<void*>
         return value;
     }
 
-    HYP_FORCE_INLINE void* Get(const AnyRef& value) const
+    HYP_FORCE_INLINE void* Get(ObjectBase* value) const
     {
-        return value.GetPointer();
+        return value;
     }
 
     HYP_FORCE_INLINE void* Get(const Handle<ObjectBase>& value) const
@@ -847,12 +858,12 @@ struct BoxedValueHelper<Handle<ObjectBase>>
         HYP_NOT_IMPLEMENTED();
     }
 
-    HYP_FORCE_INLINE Handle<ObjectBase>& Get(Handle<ObjectBase>& value) const
+    HYP_FORCE_INLINE constexpr Handle<ObjectBase>& Get(Handle<ObjectBase>& value) const
     {
         return value;
     }
 
-    HYP_FORCE_INLINE const Handle<ObjectBase>& Get(const Handle<ObjectBase>& value) const
+    HYP_FORCE_INLINE constexpr const Handle<ObjectBase>& Get(const Handle<ObjectBase>& value) const
     {
         return value;
     }
@@ -907,8 +918,6 @@ struct BoxedValueHelper<Handle<T>> : BoxedValueHelper<Handle<ObjectBase>, std::e
     }
 };
 
-#if 1
-
 /// Objects can be stored inline via Handle<ObjectBase> like Handle<T>, and converted to/from Handle<T>
 
 template <class T>
@@ -919,7 +928,18 @@ struct BoxedValueHelperDecl<T, std::enable_if_t<std::is_base_of_v<ObjectBase, T>
 template <class T>
 struct BoxedValueHelper<T, std::enable_if_t<std::is_base_of_v<ObjectBase, T>>> : BoxedValueHelper<Handle<T>>
 {
-    using ConvertibleFrom = Tuple<AnyRef>;
+    using ConvertibleFrom = Tuple<ObjectBase*, Handle<ObjectBase>, RC<void>>;
+
+    HYP_FORCE_INLINE bool Is(ObjectBase* value) const
+    {
+        return value != nullptr && value->IsA<T>();
+    }
+
+    HYP_FORCE_INLINE T& Get(ObjectBase* value) const
+    {
+        HYP_CORE_ASSERT(value != nullptr, "Tried to get BoxedValue value from null pointer");
+        return static_cast<T&>(*value);
+    }
 
     HYP_FORCE_INLINE bool Is(const Handle<ObjectBase>& value) const
     {
@@ -931,15 +951,16 @@ struct BoxedValueHelper<T, std::enable_if_t<std::is_base_of_v<ObjectBase, T>>> :
         return *BoxedValueHelper<Handle<T>>::Get(value);
     }
 
-    HYP_FORCE_INLINE bool Is(const AnyRef& value) const
+    HYP_FORCE_INLINE bool Is(const RC<void>& value) const
     {
-        return value.Is<T>();
+        return value && IsA(GetClass(TypeId::ForType<T>()), GetClass(value.GetTypeId()));
     }
 
-    HYP_FORCE_INLINE T& Get(const AnyRef& value) const
+    HYP_FORCE_INLINE T& Get(const RC<void>& value) const
     {
-        HYP_CORE_ASSERT(value.HasValue(), "Tried to get BoxedValue value from null pointer");
-        return value.Get<T>();
+        HYP_CORE_ASSERT(value != nullptr);
+
+        return *static_cast<T*>(value.Get());
     }
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const T& value) const
@@ -947,8 +968,6 @@ struct BoxedValueHelper<T, std::enable_if_t<std::is_base_of_v<ObjectBase, T>>> :
         BoxedValueHelper<Handle<T>>::Set(boxed, value.HandleFromThis());
     }
 };
-
-#endif
 
 /// RefCountedPtr void type can be used to hold any other RefCountedPtr type
 
@@ -1025,6 +1044,8 @@ struct BoxedValueHelper<RC<T>, std::enable_if_t<!std::is_void_v<T>>> : BoxedValu
     }
 };
 
+#if 1
+
 /// AnyRef - type erased reference - @TODO: Add ConstAnyRef support
 
 template <>
@@ -1064,6 +1085,8 @@ struct BoxedValueHelper<AnyRef>
         boxed.Set_Internal(std::move(value));
     }
 };
+
+#if 0 
 
 /// T* - raw pointer (non-owning, non-const) held as AnyRef
 
@@ -1168,6 +1191,10 @@ struct BoxedValueHelper<const T*, std::enable_if_t<!std::is_same_v<T*, void*>>> 
         BoxedValueHelper<T*>::Set(boxed, const_cast<T*>(value));
     }
 };
+
+#endif
+
+#endif
 
 /// Any - type erased value, allocated on the heap
 
@@ -2045,11 +2072,15 @@ struct BoxedValueHelper<Variant<Types...>> : BoxedValueHelper<Any>
     }
 };
 
-#if 1
+template <class T>
+struct BoxedValueHelperDecl<T, std::enable_if_t<!BoxedValue::canStoreDirectly<T> && !implementation_exists_v<BoxedValueHelperDecl<T>>>>
+{
+};
+
 template <class T>
 struct BoxedValueHelper<T, std::enable_if_t<!BoxedValue::canStoreDirectly<T> && !implementation_exists_v<BoxedValueHelperDecl<T>>>> : BoxedValueHelper<Any>
 {
-    using ConvertibleFrom = Tuple<T*, AnyRef, Handle<ObjectBase>, RC<void>>;
+    using ConvertibleFrom = Tuple<T*, ObjectBase*, Handle<ObjectBase>, RC<void>>;
 
     HYP_FORCE_INLINE bool Is(const Any& value) const
     {
@@ -2062,9 +2093,16 @@ struct BoxedValueHelper<T, std::enable_if_t<!BoxedValue::canStoreDirectly<T> && 
         return value != nullptr;
     }
 
-    HYP_FORCE_INLINE bool Is(const AnyRef& value) const
+    HYP_FORCE_INLINE bool Is(ObjectBase* value) const
     {
-        return value.Is<T>();
+        if constexpr (std::is_base_of_v<ObjectBase, T>)
+        {
+            return value && value->IsA<T>();
+        }
+        else
+        {
+            return false;
+        }
     }
 
     HYP_FORCE_INLINE bool Is(const Handle<ObjectBase>& value) const
@@ -2095,9 +2133,16 @@ struct BoxedValueHelper<T, std::enable_if_t<!BoxedValue::canStoreDirectly<T> && 
         return *value;
     }
 
-    HYP_FORCE_INLINE T& Get(const AnyRef& value) const
+    HYP_FORCE_INLINE T& Get(ObjectBase* value) const
     {
-        return value.Get<T>();
+        if constexpr (std::is_base_of_v<ObjectBase, T>)
+        {
+            return *static_cast<T*>(value);
+        }
+        else
+        {
+            HYP_UNREACHABLE();
+        }
     }
 
     HYP_FORCE_INLINE T& Get(const Handle<ObjectBase>& value) const
@@ -2127,7 +2172,123 @@ struct BoxedValueHelper<T, std::enable_if_t<!BoxedValue::canStoreDirectly<T> && 
         BoxedValueHelper<Any>::Set(boxed, Any::Construct<T>(std::move(value)));
     }
 };
-#endif
+template <>
+struct BoxedValueHelperDecl<ObjectBase*>
+{
+};
+
+template <>
+struct BoxedValueHelper<ObjectBase*>
+{
+    using StorageType = ObjectBase*;
+    using ConvertibleFrom = Tuple<Handle<ObjectBase>, RC<void>>;
+
+    HYP_FORCE_INLINE bool Is(ObjectBase* value) const
+    {
+        // should never be hit
+        HYP_NOT_IMPLEMENTED();
+    }
+
+    HYP_FORCE_INLINE constexpr bool Is(const Handle<ObjectBase>& value) const
+    {
+        return true;
+    }
+
+    HYP_FORCE_INLINE bool Is(const RC<void>& value) const
+    {
+        return !value.IsValid() || IsA(GetClass(TypeId::ForType<ObjectBase>()), GetClass(value.GetTypeId()));
+    }
+
+    HYP_FORCE_INLINE constexpr ObjectBase* Get(ObjectBase* value) const
+    {
+        return value;
+    }
+
+    HYP_FORCE_INLINE ObjectBase* Get(const Handle<ObjectBase>& value) const
+    {
+        return value.Get();
+    }
+
+    HYP_FORCE_INLINE ObjectBase* Get(const RC<void>& value) const
+    {
+        if (!value.IsValid())
+        {
+            return nullptr;
+        }
+
+        return static_cast<ObjectBase*>(value.Get());
+    }
+
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, ObjectBase* value) const
+    {
+        boxed.Set_Internal(value);
+    }
+};
+
+template <class T>
+struct BoxedValueHelperDecl<T*, std::enable_if_t<std::is_base_of_v<ObjectBase, T> && !std::is_same_v<T, ObjectBase>>>
+{
+};
+
+template <class T>
+struct BoxedValueHelper<T*, std::enable_if_t<std::is_base_of_v<ObjectBase, T> && !std::is_same_v<T, ObjectBase>>> : BoxedValueHelper<ObjectBase*>
+{
+    using ConvertibleFrom = Tuple<ObjectBase*, Handle<ObjectBase>, RC<void>>;
+
+    HYP_FORCE_INLINE bool Is(ObjectBase* value) const
+    {
+        return !value && value->IsA<T>();
+    }
+
+    HYP_FORCE_INLINE bool Is(const Handle<ObjectBase>& value) const
+    {
+        if constexpr (std::is_base_of_v<ObjectBase, T>)
+        {
+            return !value.IsValid() || IsA(GetClass(TypeId::ForType<T>()), GetClass(value.GetTypeId()));
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    HYP_FORCE_INLINE bool Is(const RC<void>& value) const
+    {
+        return !value.IsValid() || value.Is<T>();
+    }
+
+    HYP_FORCE_INLINE constexpr T* Get(T* value) const
+    {
+        return value;
+    }
+
+    HYP_FORCE_INLINE T* Get(ObjectBase* value) const
+    {
+        return static_cast<T*>(value);
+    }
+
+    HYP_FORCE_INLINE T* Get(const Handle<ObjectBase>& value) const
+    {
+        if constexpr (std::is_base_of_v<ObjectBase, T>)
+        {
+            return static_cast<T*>(value.Get());
+        }
+        else
+        {
+            HYP_UNREACHABLE();
+        }
+    }
+
+    HYP_FORCE_INLINE T* Get(const RC<void>& value) const
+    {
+        return value.CastUnchecked<T>();
+    }
+
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, T* value) const
+    {
+        BoxedValueHelper<ObjectBase*>::Set(boxed, static_cast<ObjectBase*>(value));
+    }
+};
 
 #include <Core/Reflection/GenericArrayWrapper.inc>
 

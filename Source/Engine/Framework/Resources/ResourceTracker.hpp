@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -25,7 +25,7 @@ CORE_API extern const Class* GetClass(const TypeId& typeId);
 CORE_API extern size_t GetNumDescendants(TypeId typeId);
 CORE_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
 
-ENGINE_API extern const TypeInfo& Class_GetTypeInfo(const Class& cls);
+CORE_API extern const TypeInfo& Class_GetTypeInfo(const Class& cls);
 
 class NullProxy;
 
@@ -679,7 +679,7 @@ public:
     {
         return const_cast<ResourceTracker*>(this)->GetProxy(id);
     }
-    
+
     ProxyType* GetProxy(IdType id, ProxyType&& defaultIfNotFound)
     {
         HYP_SCOPE;
@@ -728,7 +728,7 @@ public:
         }
 
         AssertDebug(TypeInfo_GetId(*subclassImpls[subclassIndex]->typeInfo) == typeId,
-            "TypeId mismatch: expected {}, got {}", typeId.Value(), TypeInfo_GetId(*subclassImpls[subclassIndex]->typeInfo).Value());
+                    "TypeId mismatch: expected {}, got {}", typeId.Value(), TypeInfo_GetId(*subclassImpls[subclassIndex]->typeInfo).Value());
 
         return subclassImpls[subclassIndex]->SetProxy(id, proxy);
     }
@@ -758,7 +758,7 @@ public:
         }
 
         AssertDebug(TypeInfo_GetId(*subclassImpls[subclassIndex]->typeInfo) == typeId,
-            "TypeId mismatch: expected {}, got {}", typeId.Value(), TypeInfo_GetId(*subclassImpls[subclassIndex]->typeInfo).Value());
+                    "TypeId mismatch: expected {}, got {}", typeId.Value(), TypeInfo_GetId(*subclassImpls[subclassIndex]->typeInfo).Value());
 
         return subclassImpls[subclassIndex]->SetProxy(id, std::move(proxy));
     }

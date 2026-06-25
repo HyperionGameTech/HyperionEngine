@@ -12,14 +12,17 @@
 
 #include <Framework/EngineStats.hpp>
 #include <Framework/EngineGlobals.hpp>
+#include <Framework/CVarManager.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 
 namespace Hyperion {
 
+extern CVar<bool> g_cvEnableGpuStats;
+
 DX12GpuTimerBackend::DX12GpuTimerBackend()
     : GpuTimerBackendBase(),
-      m_frames { }
+      m_frames {}
 {
 }
 
@@ -30,6 +33,10 @@ DX12GpuTimerBackend::~DX12GpuTimerBackend()
 
 bool DX12GpuTimerBackend::Initialize(DeviceBase* device)
 {
+    m_isEnabled = g_cvEnableGpuStats.Get();
+
+    // Still init even if not enabled, to allow it to be enabled later on
+
     ID3D12Device* dxDevice = RI.GetDevice();
 
     if (!dxDevice)
@@ -184,7 +191,7 @@ void DX12GpuTimerBackend::EnsureResolveRecorded(DX12CommandBuffer* cmd, uint32 f
 
 void DX12GpuTimerBackend::WriteStartTimestamp(DX12CommandBuffer* cmd, EngineStatGpuTimer* timer)
 {
-    if (!m_isSupported || !cmd || !timer)
+    if (!m_isSupported || !m_isEnabled || !cmd || !timer)
     {
         return;
     }
@@ -215,7 +222,7 @@ void DX12GpuTimerBackend::WriteStartTimestamp(DX12CommandBuffer* cmd, EngineStat
 
 void DX12GpuTimerBackend::WriteStopTimestamp(DX12CommandBuffer* cmd, EngineStatGpuTimer* timer)
 {
-    if (!m_isSupported || !cmd || !timer)
+    if (!m_isSupported || !m_isEnabled || !cmd || !timer)
     {
         return;
     }
@@ -258,9 +265,19 @@ double DX12GpuTimerBackend::ComputeDeltaMs(uint64 start, uint64 end) const
 
 void DX12GpuTimerBackend::ResolveFrameResults(uint32 completedFrameIndex)
 {
-    if (!m_isSupported)
+    const bool nextFrameEnabled = m_isSupported && g_cvEnableGpuStats.Get();
+
+    if (!m_isSupported || !m_isEnabled)
     {
+        // Re-check if we should enable.
+        // This will allow us to use gpu stats on the next frame, in the case that it was enabled later on.
+        m_isEnabled = nextFrameEnabled;
+
         return;
+    }
+    else
+    {
+        m_isEnabled = nextFrameEnabled;
     }
 
     PerFrameState& frameState = m_frames[completedFrameIndex];

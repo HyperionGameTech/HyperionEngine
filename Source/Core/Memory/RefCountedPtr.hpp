@@ -383,11 +383,6 @@ public:
         return Get() == ptr;
     }
 
-    HYP_FORCE_INLINE bool operator==(T* ptr) const
-    {
-        return Get() == ptr;
-    }
-
     HYP_FORCE_INLINE bool operator!=(const RefCountedPtr& other) const
     {
         return Get() != other.Get();
@@ -401,11 +396,6 @@ public:
     HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
     {
         return Get() != nullptr;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(T* ptr) const
-    {
-        return Get() != ptr;
     }
 
     HYP_FORCE_INLINE bool operator!=(const T* ptr) const

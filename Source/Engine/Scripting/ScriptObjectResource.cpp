@@ -20,7 +20,11 @@
 #include <Lang/HypScript.hpp>
 #endif
 
+#include <Framework/EngineStats.hpp>
+
 namespace Hyperion {
+
+static EngineStatTimer s_statInitScriptResource("Script/InitScriptResource");
 
 #pragma region ScriptObjectResource
 
@@ -215,6 +219,8 @@ const RC<dotnet::ManagedClass> ScriptObjectResource::GetManagedClass() const
 
 void ScriptObjectResource::Initialize()
 {
+    ENGINE_STAT_SCOPE(&s_statInitScriptResource);
+
 #ifdef HYP_DOTNET
     if (dotNetData.HasValue())
     {

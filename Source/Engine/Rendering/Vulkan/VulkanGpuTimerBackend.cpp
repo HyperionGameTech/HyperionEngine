@@ -14,12 +14,15 @@
 #include <Rendering/RenderInterface.hpp>
 
 #include <Framework/EngineStats.hpp>
+#include <Framework/CVarManager.hpp>
 
 namespace Hyperion {
 
+extern CVar<bool> g_cvEnableGpuStats;
+
 VulkanGpuTimerBackend::VulkanGpuTimerBackend()
     : GpuTimerBackendBase(),
-      m_frames { }
+      m_frames {}
 {
 }
 
@@ -30,6 +33,8 @@ VulkanGpuTimerBackend::~VulkanGpuTimerBackend()
 
 bool VulkanGpuTimerBackend::Initialize(DeviceBase* device)
 {
+    m_isEnabled = g_cvEnableGpuStats.Get();
+
     VulkanDevice* vulkanDevice = static_cast<VulkanDevice*>(device);
     m_device = vulkanDevice;
 
@@ -135,7 +140,7 @@ uint32 VulkanGpuTimerBackend::GetOrCreateQuerySlot(EngineStatGpuTimer* timer)
 
 void VulkanGpuTimerBackend::WriteStartTimestamp(VulkanCommandBuffer* cmd, EngineStatGpuTimer* timer)
 {
-    if (!m_isSupported || !cmd || !timer)
+    if (!m_isSupported || !m_isEnabled || !cmd || !timer)
     {
         return;
     }
@@ -164,7 +169,7 @@ void VulkanGpuTimerBackend::WriteStartTimestamp(VulkanCommandBuffer* cmd, Engine
 
 void VulkanGpuTimerBackend::WriteStopTimestamp(VulkanCommandBuffer* cmd, EngineStatGpuTimer* timer)
 {
-    if (!m_isSupported || !cmd || !timer)
+    if (!m_isSupported || !m_isEnabled || !cmd || !timer)
     {
         return;
     }
@@ -205,9 +210,17 @@ double VulkanGpuTimerBackend::ComputeDeltaMs(uint64 start, uint64 end) const
 
 void VulkanGpuTimerBackend::ResolveFrameResults(uint32 completedFrameIndex)
 {
-    if (!m_isSupported)
+    const bool nextFrameEnabled = m_isSupported && g_cvEnableGpuStats.Get();
+
+    if (!m_isSupported || !m_isEnabled)
     {
+        m_isEnabled = nextFrameEnabled;
+
         return;
+    }
+    else
+    {
+        m_isEnabled = nextFrameEnabled;
     }
 
     PerFrameState& frameState = m_frames[completedFrameIndex];

@@ -14,7 +14,11 @@
 #include <Core/Logging/Logger.hpp>
 #include <Core/Logging/LogChannels.hpp>
 
+#include <Framework/EngineStats.hpp>
+
 namespace Hyperion::dotnet {
+
+static EngineStatTimer s_statCallManagedMethod("DotNET/CallManagedMethod", true);
 
 ManagedObject::ManagedObject()
     : m_managedClass(nullptr),
@@ -97,6 +101,8 @@ void ManagedObject::InvokeMethod_Internal(const ManagedMethod* pMethod, const Bo
 #endif
 
     Assert(assembly != nullptr && assembly->IsLoaded());
+
+    ENGINE_STAT_SCOPE(&s_statCallManagedMethod);
 
     pMethod->Invoke(&m_objectReference, ppArgs, pOutReturn);
 }
