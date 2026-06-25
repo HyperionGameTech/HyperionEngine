@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -129,9 +129,9 @@ protected:
     struct LightmapVolumePassData
     {
         class LightmapVolume* volume = nullptr;
-        Array<Texture*> atlasIrradianceTextures;
-        Array<Texture*> atlasRadianceTextures;
-        Array<GpuBufferRef> uniformBuffers;
+        Array<Texture*, RenderAllocator> atlasIrradianceTextures;
+        Array<Texture*, RenderAllocator> atlasRadianceTextures;
+        Array<GpuBufferRef, RenderAllocator> uniformBuffers;
     };
 
     virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer) override;
@@ -139,9 +139,9 @@ protected:
     LightmapVolumePassData& GetLightmapVolumePassData(LightmapVolume* lightmapVolume)
     {
         auto it = m_lightmapVolumePassData.FindIf([lightmapVolume](auto& item)
-            {
-                return item.volume == lightmapVolume;
-            });
+                                                  {
+                                                      return item.volume == lightmapVolume;
+                                                  });
 
         if (it != m_lightmapVolumePassData.End())
         {
@@ -192,7 +192,8 @@ protected:
 
     FogVolumePassData& GetFogVolumePassData(FogVolume* fogVolume)
     {
-        auto it = m_fogVolumePassData.FindIf([fogVolume](auto& item)
+        auto it = m_fogVolumePassData.FindIf(
+            [fogVolume](auto& item)
             {
                 return item.volume == fogVolume;
             });
@@ -298,7 +299,7 @@ public:
     UniquePtr<TonemapPass> tonemapPass;
 
     UniquePtr<HBAO> hbao;
-    //UniquePtr<SSAO> ssao;
+    // UniquePtr<SSAO> ssao;
 
     UniquePtr<FullScreenPass> combinePass;
     UniquePtr<PostProcessing> postProcessing;
@@ -332,18 +333,17 @@ public:
 class DeferredPass final : public PassBase
 {
 public:
-
     struct RenderedViewOutput
     {
         View* view = nullptr;
         GpuImageViewRef finalImageView;
-        int priority      = 0;
+        int priority = 0;
     };
 
     struct RenderedViewOutputs
     {
         uint8 frameId = uint8(-1);
-        Array<RenderedViewOutput> items;
+        Array<RenderedViewOutput, RenderAllocator> items;
     };
 
     DeferredPass();

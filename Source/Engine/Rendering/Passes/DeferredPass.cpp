@@ -538,7 +538,7 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
             Array<Pair<Light*, uint32>, RenderTempAllocator> shadowCasterLightsInView;
             shadowCasterLightsInView.Reserve(MaxClusteredShadowMaps);
-            
+
             Array<ShadowMapData, RenderTempAllocator> tempShadowMapData;
             tempShadowMapData.Resize(MaxClusteredShadowMaps);
 
@@ -700,7 +700,7 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
                 View* shadowMapViewsDynamic[MaxShadowMapCascades] {};
                 View* shadowMapViewsStatic[MaxShadowMapCascades] {};
-                
+
                 // Initialize shadowMaps / views
                 for (uint32 cascadeIndex = 0; cascadeIndex < numCascadesToWrite; cascadeIndex++)
                 {
@@ -750,7 +750,7 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                         const float rawScaleX = 1.0f / (cascadeBounds.max.x - cascadeBounds.min.x);
                         const float rawScaleY = -1.0f / (cascadeBounds.max.y - cascadeBounds.min.y);
                         const float rawScaleZ = 1.0f / (cascadeBounds.max.z - cascadeBounds.min.z);
-    
+
                         const float rawOffsetX = -cascadeBounds.min.x * rawScaleX;
                         const float rawOffsetY = -cascadeBounds.max.y * rawScaleY;
                         const float rawOffsetZ = -cascadeBounds.min.z * rawScaleZ;
@@ -762,11 +762,11 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
                         csmData->atlasScaleX[cascadeIndex] = atlasScale.x;
                         csmData->atlasScaleY[cascadeIndex] = atlasScale.y;
-                        
+
                         csmData->cascadeScaleX[cascadeIndex] = rawScaleX;
                         csmData->cascadeScaleY[cascadeIndex] = rawScaleY;
-                        csmData->cascadeScaleZ[cascadeIndex] = rawScaleZ; 
-    
+                        csmData->cascadeScaleZ[cascadeIndex] = rawScaleZ;
+
                         csmData->cascadeOffsetX[cascadeIndex] = rawOffsetX;
                         csmData->cascadeOffsetY[cascadeIndex] = rawOffsetY;
                         csmData->cascadeOffsetZ[cascadeIndex] = rawOffsetZ;
@@ -1690,6 +1690,8 @@ public:
     static constexpr uint32 MaxEnvProbesPerTile = 8;
     static constexpr uint32 MaxLightsPerTile = 16;
 
+    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
+
     struct TileGridData
     {
         uint32 indexOffset;
@@ -1719,9 +1721,7 @@ public:
 
     Array<TileDataAllocation, RenderAllocator> tileDataPerView;
 
-    TileProcessor()
-    {
-    }
+    TileProcessor() = default;
 
     TileProcessor(const TileProcessor& other) = delete;
     TileProcessor& operator=(const TileProcessor& other) = delete;

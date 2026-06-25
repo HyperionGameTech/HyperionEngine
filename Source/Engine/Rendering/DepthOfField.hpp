@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -15,6 +15,8 @@ class GBuffer;
 class DOFBlur
 {
 public:
+    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
+
     DOFBlur(const Vec2u& extent, GBuffer* gbuffer);
     DOFBlur(const DOFBlur& other) = delete;
     DOFBlur& operator=(const DOFBlur& other) = delete;

@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <HyperionPch.hpp>
 
@@ -132,24 +132,18 @@ public:
 #pragma region Thread Pool Factories
 
 static const TMap<TaskThreadPoolName, UniquePtr<TaskThreadPool> (*)(void)> s_threadPoolFactories {
-    {
-        TaskThreadPoolName::THREAD_POOL_GENERIC, []() -> UniquePtr<TaskThreadPool>
-        {
-            return MakeUnique<ForegroundWorkerPool>(cvNumForegroundWorkerThreads.Get(), ThreadPriorityValue::HIGHEST);
-        }
-    },
-    {
-        TaskThreadPoolName::THREAD_POOL_RENDER, []() -> UniquePtr<TaskThreadPool>
-        {
-            return MakeUnique<RenderWorkerPool>(NumRendererWorkerThreads, ThreadPriorityValue::HIGHEST);
-        }
-    },
-    {
-        TaskThreadPoolName::THREAD_POOL_BACKGROUND, []() -> UniquePtr<TaskThreadPool>
-        {
-            return MakeUnique<BackgroundWorkerPool>("BackgroundWorker", MaxBackgroundWorkerThreads);
-        }
-    }
+    { TaskThreadPoolName::THREAD_POOL_GENERIC, []() -> UniquePtr<TaskThreadPool>
+      {
+          return MakeUnique<ForegroundWorkerPool>(cvNumForegroundWorkerThreads.Get(), ThreadPriorityValue::HIGHEST);
+      } },
+    { TaskThreadPoolName::THREAD_POOL_RENDER, []() -> UniquePtr<TaskThreadPool>
+      {
+          return MakeUnique<RenderWorkerPool>(NumRendererWorkerThreads, ThreadPriorityValue::HIGHEST);
+      } },
+    { TaskThreadPoolName::THREAD_POOL_BACKGROUND, []() -> UniquePtr<TaskThreadPool>
+      {
+          return MakeUnique<BackgroundWorkerPool>("BackgroundWorker", MaxBackgroundWorkerThreads);
+      } }
 };
 
 #pragma endregion Thread Pool Factories
@@ -287,9 +281,9 @@ void EngineDriver::RemoveWorld(const World* world)
     }
 
     auto it = m_worlds.FindIf([world](const Handle<World>& other)
-        {
-            return other.Get() == world;
-        });
+                              {
+                                  return other.Get() == world;
+                              });
 
     if (it != m_worlds.End())
     {
@@ -338,9 +332,9 @@ bool EngineDriver::StartThreads()
     Assert(m_isInitialized);
 
     Assert(g_renderThreadInstance != nullptr
-        && g_simThreadInstance != nullptr
-        && g_visThreadInstance != nullptr
-        && g_mainThreadInstance != nullptr);
+           && g_simThreadInstance != nullptr
+           && g_visThreadInstance != nullptr
+           && g_mainThreadInstance != nullptr);
 
     Assert(!g_renderThreadInstance->IsRunning(), "Render thread is already running!");
     Assert(!g_simThreadInstance->IsRunning(), "Sim thread is already running!");
@@ -487,20 +481,20 @@ void EngineDriver::UpdateSim(float delta)
 
         g_statViews += views.Size();
 
-        //if (gameState.IsSimulating() || (world->GetWorldFlags() & WorldFlags::EDITOR_WORLD))
+        // if (gameState.IsSimulating() || (world->GetWorldFlags() & WorldFlags::EDITOR_WORLD))
         //{
-            simulatingWorlds.PushBack(world);
+        simulatingWorlds.PushBack(world);
 
-            world->BeginUpdate(*currBatch, delta);
+        world->BeginUpdate(*currBatch, delta);
 
-            if (i != uint32(m_worlds.Size() - 1))
+        if (i != uint32(m_worlds.Size() - 1))
+        {
+            // get the tail to pass to the next world's BeginUpdate()
+            while (currBatch->nextBatch != nullptr)
             {
-                // get the tail to pass to the next world's BeginUpdate()
-                while (currBatch->nextBatch != nullptr)
-                {
-                    currBatch = currBatch->nextBatch;
-                }
+                currBatch = currBatch->nextBatch;
             }
+        }
         //}
 
         if (!worldsToRender.Contains(world))
@@ -573,7 +567,6 @@ void EngineDriver::UpdateSim(float delta)
     {
         g_visThreadInstance->Process();
     }
-    
 
 #if HYP_PROCESS_SUBSYSTEMS_ASYNC
     Array<Task<void>, SceneTempAllocator> updateSubsystemTasks;
@@ -589,11 +582,11 @@ void EngineDriver::UpdateSim(float delta)
         subsystem->PreUpdate(delta);
 
         updateSubsystemTasks.PushBack(TaskSystem::GetInstance().Enqueue([subsystem, delta]
-            {
-                HYP_NAMED_SCOPE_FMT("Update subsystem: {}", subsystem->InstanceClass()->GetName());
+                                                                        {
+                                                                            HYP_NAMED_SCOPE_FMT("Update subsystem: {}", subsystem->InstanceClass()->GetName());
 
-                subsystem->Update(delta);
-            }));
+                                                                            subsystem->Update(delta);
+                                                                        }));
     }
 
     for (Subsystem* subsystem : subsystems)
@@ -673,7 +666,10 @@ void EngineDriver::UpdateSim(float delta)
     }
 
     // remove tags for updates that were applied
-    if (std::any_of(std::begin(updatedEntities), std::end(updatedEntities), [](const auto& arr) { return arr.Any(); }))
+    if (std::any_of(std::begin(updatedEntities), std::end(updatedEntities), [](const auto& arr)
+                    {
+                        return arr.Any();
+                    }))
     {
         for (Entity* entity : updatedEntities[Bucket_RenderProxy])
         {
@@ -748,7 +744,9 @@ void EngineDriver::UpdateSim(float delta)
         bufferData->gameTime = m_currentWorld->GetGameState().gameTime;
     }
 
-    m_viewsPerFrame[slot] = Array<View*>(views);
+    m_viewsPerFrame[slot].Resize(views.Size());
+
+    std::copy(views.Begin(), views.End(), m_viewsPerFrame[slot].Begin());
 }
 
 #pragma endregion EngineDriver

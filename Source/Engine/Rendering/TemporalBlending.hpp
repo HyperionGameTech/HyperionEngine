@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -38,8 +38,6 @@ class TemporalBlending
 {
 public:
     HYP_DEF_POOL_NEW_DELETE(g_renderPool);
-
-    friend struct RecreateTemporalBlendingFramebuffer;
 
     TemporalBlending(
         const Vec2u& extent,
