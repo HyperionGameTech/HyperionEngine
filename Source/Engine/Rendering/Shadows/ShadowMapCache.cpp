@@ -32,7 +32,22 @@
 namespace Hyperion {
 
 CVar<float> g_cvBaseDepthBias("Rendering.BaseDepthBias", 0.001f);
-CVar<float> g_cvBaseDepthBiasDirectional("Rendering.BaseDepthBiasDirectional", 0.008f);
+CVar<float> g_cvBaseDepthBiasDirectional("Rendering.BaseDepthBiasDirectional", 0.018f);
+
+// Set to true to create camera-specific shadow maps for CSM
+// Will cause more shadow maps to be allocated, and specifically other non-main cameras
+// (e.g EnvProbes) will likely not be able to use shadow maps due to running out of slots.
+static constexpr bool IsCSMCameraDependent = false;
+
+// How much does the depth bias constant get scaled per cascade index?
+// This can combat some of the precision artifacts that are seen primarily with higher cascades numbers,
+// as they the scene from farther distances.
+static constexpr float DepthBiasScaleFactor[MaxShadowMapCascades] = {
+    1.0f,
+    1.5f,
+    1.5f,
+    1.75f
+};
 
 static constexpr EnumFlags<ViewFlags> DefaultShadowViewFlags = ViewFlags::SHADOW_VIEW
     | ViewFlags::SKIP_LIGHTS | ViewFlags::SKIP_CAMERAS
@@ -55,12 +70,19 @@ static const Name s_shadowMapCameraNames[MaxShadowMapCascades] = {
     NAME("ShadowMapCamera_Cascade3")
 };
 
-static HYP_FORCE_INLINE bool IsShadowMapViewDependent(Light& light)
+static HYP_FORCE_INLINE bool IsShadowMapCameraDependent(Light& light)
 {
-    // Only directional lights are view dependent due to it being centered
-    // around the view's position.
-    // So we must cache shadow map data per-view
-    return light.GetLightType() == LightType::Directional;
+    if constexpr (IsCSMCameraDependent)
+    {
+        // Only directional lights are view dependent due to it being centered
+        // around the view's position.
+        // So we must cache shadow map data per-view
+        return light.GetLightType() == LightType::Directional;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 ShadowMapCacheKey MakeShadowMapCacheKey(Light* light, View* view)
@@ -70,7 +92,7 @@ ShadowMapCacheKey MakeShadowMapCacheKey(Light* light, View* view)
     ShadowMapCacheKey key {};
     key.lightHash = static_cast<uint32>(std::bit_cast<uint64>(light->Id()) % 0xFFFFFFFFu);
 
-    if (IsShadowMapViewDependent(*light))
+    if (IsShadowMapCameraDependent(*light))
     {
         AssertDebug(view != nullptr && view->GetCamera() != nullptr);
 
@@ -183,7 +205,7 @@ static ViewDesc GetViewDesc(
     const bool splitStaticAndDynamic = cacheStaticShadowMaps || hasBakedStaticShadows;
 
     const float depthBias = (isDirectional ? g_cvBaseDepthBiasDirectional.Get() : g_cvBaseDepthBias.Get());
-    const float depthBiasScaled = MathUtil::Round(depthBias * depthRange);
+    const float depthBiasScaled = depthBias * depthRange * (isDirectional ? DepthBiasScaleFactor[cascadeIndex] : 1.0f);
 
     ViewDesc viewDesc {};
     viewDesc.flags = DefaultShadowViewFlags | ViewFlags::EXTERNAL_RENDERTARGET; // use atlas as target
@@ -205,8 +227,8 @@ static ViewDesc GetViewDesc(
     materialAttributes.shaderName = shaderDesc.name;
     materialAttributes.shaderProperties = shaderDesc.properties;
     materialAttributes.flags = MAF_DEPTH_WRITE | MAF_DEPTH_TEST | MAF_DEPTH_BIAS | MAF_DEPTH_CLAMP;
-    materialAttributes.depthBias = depthBiasScaled;
-    materialAttributes.depthBiasSlope = 0.1f;
+    materialAttributes.depthBias = static_cast<int32>(MathUtil::Round(depthBiasScaled));
+    materialAttributes.depthBiasSlope = 2.0f;
     materialAttributes.cullFaces = FCM_BACK;
 
     viewDesc.overrideAttributes = RenderableAttributeSet(MeshAttributes(), materialAttributes);
@@ -531,12 +553,12 @@ View* ShadowMapCache::TryGetShadowView(
     View* view,
     Light* light,
     uint32 cascadeIndex,
-    bool isStatic) const
+    bool isStatic,
+    bool isLazy) const
 {
     const ShadowMapCacheKey key = MakeShadowMapCacheKey(light, view);
 
     TSharedLock<SharedMutex> sharedLock(m_impl->mutex);
-    TUniqueLock<SharedMutex> uniqueLock; // not locked yet
 
     auto it = m_impl->cache.Find(key);
 
@@ -545,6 +567,11 @@ View* ShadowMapCache::TryGetShadowView(
         auto& shadowViews = isStatic ? it->second.shadowViewsStatic : it->second.shadowViewsDynamic;
 
         return shadowViews[cascadeIndex];
+    }
+
+    if (isLazy)
+    {
+        // try to find one we can borrow from
     }
 
     return nullptr;
@@ -597,6 +624,10 @@ bool ShadowMapCache::Remove(const ShadowMapCacheKey& key)
 
     if (it == m_impl->cache.End())
     {
+        AssertDebug(false, "Entry not found!");
+
+        HYP_LOG(Rendering, Warning, "Failed to remove shadow map, entry not found!");
+
         return false;
     }
 

@@ -4,7 +4,7 @@
 #include "Noise.hlsli"
 #include "Aabb.hlsli"
 
-#define HYP_SHADOW_BIAS 0.001
+#define HYP_SHADOW_BIAS 0.0005
 // #define HYP_SHADOW_VARIABLE_BIAS 1
 #define HYP_SHADOW_PENUMBRA_MIN 0.05
 #define HYP_SHADOW_PENUMBRA_MAX 6.0
@@ -113,7 +113,7 @@ float GetShadowStandard(float4 shadow_sample, float3 coord, float NdotL)
 
 float GetShadowPCF(in float4 shadowMapCoord, // w = slice
     in float2 atlasUV, in float2 atlasScale,
-    float3 pos, float2 texcoord, float2 screen_dimensions)
+    float3 pos, float2 texcoord, float2 screen_dimensions, float NdotL)
 {
     const float layerIndex = shadowMapCoord.w;
 
@@ -124,6 +124,14 @@ float GetShadowPCF(in float4 shadowMapCoord, // w = slice
     float s, c;
     sincos(noise, s, c);
     float2x2 rotationMatrix = float2x2(c, -s, s, c);
+
+    float bias = 0.0;
+
+#ifdef HYP_SHADOW_VARIABLE_BIAS
+    bias = 0.001;
+    bias *= tan(acos(NdotL));
+    bias = clamp(bias, 0.00001, 0.05);
+#endif
 
 #if defined(HYP_SHADOW_SAMPLES_16)
 #define HYP_SHADOW_SAMPLE_COUNT 16
@@ -168,7 +176,7 @@ float GetShadowPCF(in float4 shadowMapCoord, // w = slice
         float4 samples = shadow_maps.GatherRed(HYP_SAMPLER_LINEAR,                                                                  \
             float3(((shadowMapCoord.xy + (vogel_##iter_index0 * shadow_filter_size)) * atlasScale) + atlasUV, layerIndex),   \
             offsets[iter_index0]);                                                                                                  \
-        float4 deltas = max(step(shadowMapCoord.zzzz, samples), (float4)0.0);                                      \
+        float4 deltas = max(step(shadowMapCoord.zzzz - bias, samples), (float4)0.0);                                      \
         shadow_samples[iter_index0] = deltas;                                                                                         \
     }
 
@@ -195,7 +203,7 @@ float GetShadowPCF(in float4 shadowMapCoord, // w = slice
     { \
         float2 rotatedOffset = mul(s_pcfKernel[iter_index], rotationMatrix); \
         float2 sampleUV = ((shadowMapCoord.xy + (rotatedOffset * shadow_filter_size)) * atlasScale) + atlasUV; \
-        shadowness += shadow_maps.SampleCmpLevelZero(HYP_SAMPLER_SHADOW, float3(sampleUV, layerIndex), shadowMapCoord.z); \
+        shadowness += shadow_maps.SampleCmpLevelZero(HYP_SAMPLER_SHADOW, float3(sampleUV, layerIndex), shadowMapCoord.z - bias); \
     }
 
     HYP_FETCH_SHADOW_SAMPLE(0); HYP_FETCH_SHADOW_SAMPLE(1); HYP_FETCH_SHADOW_SAMPLE(2); HYP_FETCH_SHADOW_SAMPLE(3);

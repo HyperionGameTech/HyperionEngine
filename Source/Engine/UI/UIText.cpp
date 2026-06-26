@@ -103,17 +103,15 @@ static void ForEachCharacter(
         atlasPixelSize = Vec2f::One() / Vec2f(mainTextureAtlas->GetExtent().GetXY());
     }
 
-    static thread_local Array<FontAtlasCharacterIterator, ThreadAllocator>* s_currentWordChars = nullptr;
+    static thread_local Array<FontAtlasCharacterIterator>* s_currentWordChars = nullptr;
 
     if (HYP_UNLIKELY(!s_currentWordChars))
     {
-        s_currentWordChars = new Array<FontAtlasCharacterIterator, ThreadAllocator>;
-
-        // This Reserve() is needed, we need it to allocate memory from the ThreadAllocator to initialize it and set up on exit callback,
-        // so we properly delete the array in order.
+        s_currentWordChars = new Array<FontAtlasCharacterIterator>;
         s_currentWordChars->Reserve(16);
 
-        CurrentThreadObject()->AddOnExitCallback([]()
+        CurrentThreadObject()->AddOnExitCallback(
+            []()
             {
                 delete s_currentWordChars;
                 s_currentWordChars = nullptr;
@@ -220,24 +218,24 @@ static BoundingBox CalculateTextAABB(const FontAtlas& fontAtlas, const String& t
     BoundingBox aabb = BoundingBox::Zero();
 
     ForEachCharacter(fontAtlas, text, parentBounds, textSize, outCharacterPlacements, [includeBearing, &aabb](const FontAtlasCharacterIterator& iter)
-        {
-            BoundingBox characterAabb = BoundingBox::Zero();
+                     {
+                         BoundingBox characterAabb = BoundingBox::Zero();
 
-            if (includeBearing)
-            {
-                const float offsetY = (iter.cellDimensions.y - iter.glyphDimensions.y) + iter.bearingY;
+                         if (includeBearing)
+                         {
+                             const float offsetY = (iter.cellDimensions.y - iter.glyphDimensions.y) + iter.bearingY;
 
-                characterAabb = characterAabb.Union(Vec3f(iter.placement.x, iter.placement.y + offsetY, 0.0f));
-                characterAabb = characterAabb.Union(Vec3f(iter.placement.x + iter.glyphDimensions.x, iter.placement.y + offsetY + iter.cellDimensions.y, 0.0f));
-            }
-            else
-            {
-                characterAabb = characterAabb.Union(Vec3f(iter.placement.x, iter.placement.y, 0.0f));
-                characterAabb = characterAabb.Union(Vec3f(iter.placement.x + iter.glyphDimensions.x, iter.placement.y + iter.cellDimensions.y, 0.0f));
-            }
+                             characterAabb = characterAabb.Union(Vec3f(iter.placement.x, iter.placement.y + offsetY, 0.0f));
+                             characterAabb = characterAabb.Union(Vec3f(iter.placement.x + iter.glyphDimensions.x, iter.placement.y + offsetY + iter.cellDimensions.y, 0.0f));
+                         }
+                         else
+                         {
+                             characterAabb = characterAabb.Union(Vec3f(iter.placement.x, iter.placement.y, 0.0f));
+                             characterAabb = characterAabb.Union(Vec3f(iter.placement.x + iter.glyphDimensions.x, iter.placement.y + iter.cellDimensions.y, 0.0f));
+                         }
 
-            aabb = aabb.Union(characterAabb);
-        });
+                         aabb = aabb.Union(characterAabb);
+                     });
 
     return aabb;
 }
@@ -249,34 +247,34 @@ UIText::UIText()
 {
     OnComputedVisibilityChange
         .Bind(this, [this]()
-            {
-                if (GetComputedVisibility())
-                {
-                    UpdateSize(false);
-                    UpdateMaterial(false);
-                    UpdateMeshData(false);
-                }
+              {
+                  if (GetComputedVisibility())
+                  {
+                      UpdateSize(false);
+                      UpdateMaterial(false);
+                      UpdateMeshData(false);
+                  }
 
-                return UIEventHandlerResult::OK;
-            })
+                  return UIEventHandlerResult::OK;
+              })
         .Detach();
 
     OnEnabled
         .Bind(this, [this]()
-            {
-                UpdateMaterial(false);
+              {
+                  UpdateMaterial(false);
 
-                return UIEventHandlerResult::OK;
-            })
+                  return UIEventHandlerResult::OK;
+              })
         .Detach();
 
     OnDisabled
         .Bind(this, [this]()
-            {
-                UpdateMaterial(false);
+              {
+                  UpdateMaterial(false);
 
-                return UIEventHandlerResult::OK;
-            })
+                  return UIEventHandlerResult::OK;
+              })
         .Detach();
 }
 
@@ -410,40 +408,40 @@ void UIText::UpdateMeshData_Internal()
     Array<Vec4u, ThreadAllocator> instanceProperties;
 
     ForEachCharacter(*fontAtlas, m_text, GetParentBounds(), textSize, nullptr, [&](const FontAtlasCharacterIterator& iter)
-        {
-            Transform characterTransform;
-            characterTransform.scale = Vec3f(iter.glyphDimensions.x * textSize, iter.glyphDimensions.y * textSize, 1.0f);
-            characterTransform.translation.y += (iter.cellDimensions.y - iter.glyphDimensions.y) * textSize;
-            characterTransform.translation.y += iter.bearingY * textSize;
-            characterTransform.translation += Vec3f(iter.placement.x, iter.placement.y, 0.0f) * textSize;
+                     {
+                         Transform characterTransform;
+                         characterTransform.scale = Vec3f(iter.glyphDimensions.x * textSize, iter.glyphDimensions.y * textSize, 1.0f);
+                         characterTransform.translation.y += (iter.cellDimensions.y - iter.glyphDimensions.y) * textSize;
+                         characterTransform.translation.y += iter.bearingY * textSize;
+                         characterTransform.translation += Vec3f(iter.placement.x, iter.placement.y, 0.0f) * textSize;
 
-            BoundingBox characterAabb = characterTransform * BoundingBox(Vec3f::Zero(), Vec3f::One());
-            characterAabb.min += Vec3f(position, 0.0f);
-            characterAabb.max += Vec3f(position, 0.0f);
+                         BoundingBox characterAabb = characterTransform * BoundingBox(Vec3f::Zero(), Vec3f::One());
+                         characterAabb.min += Vec3f(position, 0.0f);
+                         characterAabb.max += Vec3f(position, 0.0f);
 
-            BoundingBox characterAabbClamped = characterAabb.Intersection(parentAabbClamped);
+                         BoundingBox characterAabbClamped = characterAabb.Intersection(parentAabbClamped);
 
-            Mat4f instanceTransform;
-            instanceTransform[0][0] = characterAabbClamped.max.x - characterAabbClamped.min.x;
-            instanceTransform[1][1] = characterAabbClamped.max.y - characterAabbClamped.min.y;
-            instanceTransform[2][2] = 1.0f;
-            instanceTransform[0][3] = characterAabbClamped.min.x;
-            instanceTransform[1][3] = characterAabbClamped.min.y;
-            instanceTransform[2][3] = 0.0f;
+                         Mat4f instanceTransform;
+                         instanceTransform[0][0] = characterAabbClamped.max.x - characterAabbClamped.min.x;
+                         instanceTransform[1][1] = characterAabbClamped.max.y - characterAabbClamped.min.y;
+                         instanceTransform[2][2] = 1.0f;
+                         instanceTransform[0][3] = characterAabbClamped.min.x;
+                         instanceTransform[1][3] = characterAabbClamped.min.y;
+                         instanceTransform[2][3] = 0.0f;
 
-            instanceTransforms.PushBack(instanceTransform);
+                         instanceTransforms.PushBack(instanceTransform);
 
-            const Vec2f size = characterAabb.GetExtent().GetXY();
-            const Vec2f clampedSize = characterAabbClamped.GetExtent().GetXY();
-            const Vec2f clampedOffset = characterAabb.min.GetXY() - characterAabbClamped.min.GetXY();
+                         const Vec2f size = characterAabb.GetExtent().GetXY();
+                         const Vec2f clampedSize = characterAabbClamped.GetExtent().GetXY();
+                         const Vec2f clampedOffset = characterAabb.min.GetXY() - characterAabbClamped.min.GetXY();
 
-            Vec2f texcoordStart = Vec2f(iter.charOffset) * iter.atlasPixelSize;
-            Vec2f texcoordEnd = (Vec2f(iter.charOffset) + (iter.glyphDimensions * 64.0f)) * iter.atlasPixelSize;
+                         Vec2f texcoordStart = Vec2f(iter.charOffset) * iter.atlasPixelSize;
+                         Vec2f texcoordEnd = (Vec2f(iter.charOffset) + (iter.glyphDimensions * 64.0f)) * iter.atlasPixelSize;
 
-            instanceTexcoords.PushBack(Vec4f(texcoordStart, texcoordEnd));
-            instanceOffsets.PushBack(Vec4f(clampedOffset, 0.0f, 0.0f));
-            instanceSizes.PushBack(Vec4f(size, clampedSize));
-        });
+                         instanceTexcoords.PushBack(Vec4f(texcoordStart, texcoordEnd));
+                         instanceOffsets.PushBack(Vec4f(clampedOffset, 0.0f, 0.0f));
+                         instanceSizes.PushBack(Vec4f(size, clampedSize));
+                     });
 
     instanceProperties.Resize(instanceTransforms.Size());
 
@@ -552,7 +550,7 @@ void UIText::UpdateSize_Internal(bool updateChildren)
     if (extentWithBearing.y <= MathUtil::epsilonF || extentWithoutBearing.y <= MathUtil::epsilonF)
     {
         HYP_LOG_ONCE(UI, Warning, "Text AABB has zero height, cannot update size for UIText {} (text: \"{}\")\tExtent with bearing: {}\tExtent without bearing: {}",
-            GetName(), GetText(), extentWithBearing, extentWithoutBearing);
+                     GetName(), GetText(), extentWithBearing, extentWithoutBearing);
 
         return;
     }

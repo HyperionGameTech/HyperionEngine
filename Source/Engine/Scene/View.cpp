@@ -396,7 +396,9 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
             bool isLightInFrustum = false;
 
             if (flags & ViewFlags::NO_FRUSTUM_CULLING)
+            {
                 isLightInFrustum = true;
+            }
             else
             {
                 switch (light->GetLightType())
@@ -770,8 +772,8 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
         const VisibilityStateSnapshot visibilityStateSnapshot = scene->GetOctree().GetVisibilityState().GetSnapshot(Id());
 
-        uint32 numCollectedEntities = 0;
-        uint32 numSkippedEntities = 0;
+        [[maybe_unused]] uint32 numCollectedEntities = 0;
+        [[maybe_unused]] uint32 numSkippedEntities = 0;
 
         switch (uint32(flags) & uint32(ViewFlags::COLLECT_ALL_ENTITIES))
         {
@@ -1121,7 +1123,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
         }
 
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
-        HYP_LOG(Scene, Verbose, "Collected {} entities for View {}, {} skipped", numCollectedEntities, Id(), numSkippedEntities);
+        HYP_LOG(Scene, Debug, "Collected {} entities for View {}, {} skipped", numCollectedEntities, GetName(), numSkippedEntities);
 #endif
     }
 }

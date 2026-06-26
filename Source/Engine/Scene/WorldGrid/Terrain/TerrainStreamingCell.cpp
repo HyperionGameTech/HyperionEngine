@@ -7,6 +7,8 @@
 #include <ScenePch.hpp>
 
 #include <Scene/WorldGrid/Terrain/TerrainStreamingCell.hpp>
+#include <Scene/WorldGrid/Terrain/TerrainMeshBuilder.hpp>
+
 #include <Scene/WorldGrid/WorldGrid.hpp>
 
 #include <Scene/EntityManager.hpp>
@@ -39,8 +41,8 @@ namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(WorldGrid);
 
-static constexpr float BaseHeight = 5.0f;
-static constexpr float MountainHeight = 35.0f;
+static constexpr float BaseHeight = 6.0f;
+static constexpr float MountainHeight = 65.0f;
 static constexpr float NoiseScale = 1.0f;
 
 namespace terrain {
@@ -82,9 +84,9 @@ struct TerrainHeightData
 class TerrainErosion
 {
     static constexpr uint32 NumIterations = 250u;
-    static constexpr float ErosionScale = 0.05f;
+    static constexpr float ErosionScale = 0.08f;
     static constexpr float Evaporation = 0.9f;
-    static constexpr float Erosion = 0.004f * ErosionScale;
+    static constexpr float Erosion = 0.008f * ErosionScale;
     static constexpr float Deposition = 0.0000002f * ErosionScale;
 
     static constexpr FixedArray<Pair<int, int>, 8> Offsets = {
@@ -160,165 +162,6 @@ void TerrainErosion::Erode(TerrainHeightData& heightData)
     }
 }
 
-class TerrainMeshBuilder
-{
-public:
-    TerrainMeshBuilder(const StreamingCellInfo& cellInfo);
-    TerrainMeshBuilder(const TerrainMeshBuilder& other) = delete;
-    TerrainMeshBuilder& operator=(const TerrainMeshBuilder& other) = delete;
-    TerrainMeshBuilder(TerrainMeshBuilder&& other) noexcept = delete;
-    TerrainMeshBuilder& operator=(TerrainMeshBuilder&& other) noexcept = delete;
-    ~TerrainMeshBuilder() = default;
-
-    void GenerateHeights(const NoiseCombinator& noiseCombinator);
-    Handle<Mesh> BuildMesh() const;
-
-private:
-    Array<SimpleVertex> BuildVertices() const;
-    Array<uint32> BuildIndices() const;
-
-    TerrainHeightData m_heightData;
-};
-
-TerrainMeshBuilder::TerrainMeshBuilder(const StreamingCellInfo& cellInfo)
-    : m_heightData(cellInfo)
-{
-}
-
-void TerrainMeshBuilder::GenerateHeights(const NoiseCombinator& noiseCombinator)
-{
-    HYP_SCOPE;
-
-    for (int z = 0; z < int(m_heightData.cellInfo.extent.z); z++)
-    {
-        for (int x = 0; x < int(m_heightData.cellInfo.extent.x); x++)
-        {
-            const float xOffset = float(x + (m_heightData.cellInfo.coord.x * int(m_heightData.cellInfo.extent.x - 1))) / float(m_heightData.cellInfo.extent.x);
-            const float zOffset = float(z + (m_heightData.cellInfo.coord.y * int(m_heightData.cellInfo.extent.z - 1))) / float(m_heightData.cellInfo.extent.z);
-
-            const uint32 index = m_heightData.GetHeightIndex(x, z);
-
-            m_heightData.heights[index] = TerrainHeight {
-                .height = noiseCombinator.GetNoise(Vec2f(xOffset, zOffset)),
-                .Erosion = 0.0f,
-                .sediment = 0.0f,
-                .water = 1.0f,
-                .newWater = 0.0f,
-                .displacement = 0.0f
-            };
-        }
-    }
-
-    auto bm = noiseCombinator.CreateBitmap(
-        Vec2f(
-            float(m_heightData.cellInfo.coord.x * int(m_heightData.cellInfo.extent.x - 1)),
-            float(m_heightData.cellInfo.coord.y * int(m_heightData.cellInfo.extent.z - 1))),
-        Vec2u(m_heightData.cellInfo.extent.x, m_heightData.cellInfo.extent.z),
-        NoiseScale);
-
-    FileByteWriter fileWriter { HYP_FORMAT("Temp/terrain_noise_{}_{}.bmp",
-                                           m_heightData.cellInfo.coord.x,
-                                           m_heightData.cellInfo.coord.y) };
-
-    if (!bm.Write(&fileWriter))
-    {
-        HYP_LOG(WorldGrid, Error, "Failed to write terrain noise bitmap!");
-    }
-
-    TerrainErosion::Erode(m_heightData);
-}
-
-Handle<Mesh> TerrainMeshBuilder::BuildMesh() const
-{
-    Array<SimpleVertex> vertices = BuildVertices();
-    Array<uint32> indices = BuildIndices();
-
-    MeshDesc meshDesc;
-    meshDesc.meshAttributes.inputLayout = { VT_Simple };
-    meshDesc.numIndices = uint32(indices.Size());
-    meshDesc.numVertices = uint32(vertices.Size());
-
-    Handle<Mesh> mesh = MakeHandle<Mesh>();
-
-    VertexArrayView vertexArrayView {};
-    vertexArrayView.floatData = reinterpret_cast<const float*>(vertices.Data());
-    vertexArrayView.vertexCount = vertices.Size();
-    vertexArrayView.layoutDesc = meshDesc.meshAttributes.inputLayout;
-
-    mesh->SetMeshData(meshDesc, vertexArrayView, indices.ToByteView());
-
-    mesh->CalculateNormals();
-
-    return mesh;
-}
-
-Array<SimpleVertex> TerrainMeshBuilder::BuildVertices() const
-{
-    Array<SimpleVertex> vertices;
-    vertices.Resize(m_heightData.cellInfo.extent.x * m_heightData.cellInfo.extent.z);
-
-    int i = 0;
-
-    for (int z = 0; z < m_heightData.cellInfo.extent.z; z++)
-    {
-        for (int x = 0; x < m_heightData.cellInfo.extent.x; x++)
-        {
-            const Vec3f position = Vec3f { float(x), m_heightData.heights[i].height, float(z) } * m_heightData.cellInfo.scale;
-
-            const Vec2f texcoord(
-                float(x) / float(m_heightData.cellInfo.extent.x),
-                float(z) / float(m_heightData.cellInfo.extent.z));
-
-            vertices[i++] = SimpleVertex { position, Vec3f::Zero(), texcoord };
-        }
-    }
-
-    return vertices;
-}
-
-Array<uint32> TerrainMeshBuilder::BuildIndices() const
-{
-    Array<uint32> indices;
-    indices.Resize(size_t(6 * (m_heightData.cellInfo.extent.x - 1) * (m_heightData.cellInfo.extent.z - 1)));
-
-    uint32 pitch = uint32(m_heightData.cellInfo.extent.x);
-    uint32 row = 0;
-
-    uint32 i0 = row;
-    uint32 i1 = row + 1;
-    uint32 i2 = pitch + i1;
-    uint32 i3 = pitch + row;
-
-    uint32 i = 0;
-
-    for (uint32 z = 0; z < m_heightData.cellInfo.extent.z - 1; z++)
-    {
-        for (uint32 x = 0; x < m_heightData.cellInfo.extent.x - 1; x++)
-        {
-            indices[i++] = i0;
-            indices[i++] = i1;
-            indices[i++] = i2;
-            indices[i++] = i2;
-            indices[i++] = i3;
-            indices[i++] = i0;
-
-            i0++;
-            i1++;
-            i2++;
-            i3++;
-        }
-
-        row += pitch;
-
-        i0 = row;
-        i1 = row + 1;
-        i2 = pitch + i1;
-        i3 = pitch + row;
-    }
-
-    return indices;
-}
-
 static NoiseCombinator& GetTerrainNoiseCombinator()
 {
     static struct TerrainNoiseCombinatorInitializer
@@ -350,9 +193,14 @@ TerrainStreamingCell::TerrainStreamingCell()
 {
 }
 
-TerrainStreamingCell::TerrainStreamingCell(const StreamingCellInfo& cellInfo, const Handle<Scene>& scene, const Handle<MaterialInstance>& material)
+TerrainStreamingCell::TerrainStreamingCell(
+    const StreamingCellInfo& cellInfo,
+    const Handle<Scene>& scene,
+    const Handle<Mesh>& mesh,
+    const Handle<MaterialInstance>& material)
     : StreamingCell(cellInfo),
       m_scene(scene),
+      m_mesh(mesh),
       m_material(material)
 {
 }
@@ -361,21 +209,6 @@ TerrainStreamingCell::~TerrainStreamingCell() = default;
 
 void TerrainStreamingCell::OnStreamStart_Impl()
 {
-    HYP_SCOPE;
-
-    HYP_LOG(WorldGrid, Verbose, "Generating terrain patch at coord {} with extent {} and scale {} on thread {}", m_cellInfo.coord, m_cellInfo.extent, m_cellInfo.scale, CurrentThreadId().GetName());
-
-    terrain::TerrainMeshBuilder meshBuilder(m_cellInfo);
-    meshBuilder.GenerateHeights(terrain::GetTerrainNoiseCombinator());
-
-    m_mesh = meshBuilder.BuildMesh();
-    m_mesh->Rename(NAME_FMT("Terrain_{}", m_cellInfo.coord));
-
-    GetCurrentAssetRegistry()->PutAsset(m_mesh);
-
-    m_mesh->Rename(NAME_FMT("Terrain_{}_Mesh", m_cellInfo.coord));
-
-    InitObject(m_mesh);
 }
 
 void TerrainStreamingCell::OnLoaded_Impl()
@@ -410,16 +243,18 @@ void TerrainStreamingCell::OnLoaded_Impl()
 
     MeshComponent* meshComponent = entityManager->TryGetComponent<MeshComponent>(entity);
 
-    if (meshComponent)
+    if (!meshComponent)
+    {
+        meshComponent = &entityManager->AddComponent<MeshComponent>(entity, MeshComponent { m_mesh, m_material });
+    }
+    else
     {
         meshComponent->mesh = m_mesh;
         meshComponent->material = m_material;
     }
-    else
-    {
-        // Add MeshComponent to patch entity
-        entityManager->AddComponent<MeshComponent>(entity, MeshComponent { m_mesh, m_material });
-    }
+    
+    // terrain cells share a mesh, we can use instancing for them
+    meshComponent->enableAutoInstancing = true;
 
     entityManager->AddTag<EntityTag::UpdateRenderProxy>(entity);
 

@@ -57,7 +57,11 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.texcoord0 = input.a_texcoord0;
 
     float4x4 view_matrix = camera.view;
-    view_matrix[3] = float4(0.0, 0.0, 0.0, 1.0);
+    
+    // strip the translation from the view matrix
+    view_matrix[0][3] = 0.0;
+    view_matrix[1][3] = 0.0;
+    view_matrix[2][3] = 0.0;
 
 #ifdef INSTANCING
     output.object_index = OBJECT_INDEX;

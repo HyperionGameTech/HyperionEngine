@@ -13,6 +13,7 @@
 namespace Hyperion {
 
 class MaterialInstance;
+class Mesh;
 class Scene;
 
 HYP_CLASS()
@@ -45,6 +46,7 @@ protected:
 
     Handle<Scene> m_scene;
     Handle<MaterialInstance> m_material;
+    Handle<Mesh> m_mesh;
 };
 
 } // namespace Hyperion

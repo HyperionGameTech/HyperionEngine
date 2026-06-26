@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <ScenePch.hpp>
 
@@ -370,7 +370,7 @@ void Entity::SetScene_Internal(Scene* scene, bool moveToDetached)
     // entity->GetScene() and will not expect nullptr to be returned.
     if (scene == nullptr && !moveToDetached && prevEntityManager != nullptr)
     {
-       prevEntityManager->RemoveEntity(this);
+        prevEntityManager->RemoveEntity(this);
     }
 
     Node::SetScene_Internal(scene, moveToDetached);
@@ -437,7 +437,9 @@ void Entity::UpdateRenderProxy(RenderProxyMesh* proxy)
             for (uint32 i = 0; i < uint32(imd->buffers.Size()); i++)
             {
                 if (imd->buffers[i].size == 0)
+                {
                     continue;
+                }
 
                 proxy->instanceData.buffers[i].SetSize(imd->buffers[i].size, false);
 
@@ -529,8 +531,7 @@ void Entity::OnTransformUpdated()
     entityManager->AddTags<
         EntityTag::UpdateVisibility,
         EntityTag::UpdateRenderProxy,
-        EntityTag::UpdateSphericalHarmonicsData
-    >(this);
+        EntityTag::UpdateSphericalHarmonicsData>(this);
 }
 
 void Entity::OnMobilityChanged(bool isStatic)
@@ -637,9 +638,9 @@ Array<EntityTag> Entity::SerializeTags() const
         HYP_NAMED_SCOPE("Awaiting async entity tag serialization");
 
         Task<void> task = GetThreadById(entityManager->GetOwnerThreadId())->GetScheduler().Enqueue(HYP_STATIC_MESSAGE("Serialize Entity Tags"), [&SerializeEntityTags]()
-            {
-                SerializeEntityTags();
-            });
+                                                                                                   {
+                                                                                                       SerializeEntityTags();
+                                                                                                   });
 
         task.Await();
     }
@@ -745,9 +746,9 @@ Array<BoxedValue, DynamicAllocator> Entity::SerializeComponents() const
         HYP_NAMED_SCOPE("Awaiting async entity and component serialization");
 
         Task<void> serializeEntityAndComponentsTask = GetThreadById(entityManager->GetOwnerThreadId())->GetScheduler().Enqueue(HYP_STATIC_MESSAGE("Serialize Entity and Components"), [&SerializeEntityAndComponents]()
-            {
-                SerializeEntityAndComponents();
-            });
+                                                                                                                               {
+                                                                                                                                   SerializeEntityAndComponents();
+                                                                                                                               });
 
         serializeEntityAndComponentsTask.Await();
     }
@@ -809,9 +810,9 @@ void Entity::DeserializeComponents(const Array<BoxedValue, DynamicAllocator>& co
         }
 
         HYP_LOG(Serialization, Verbose, "Adding component '{}' to entity of type {} with id: {}",
-            componentTypeInfo.name,
-            InstanceClass()->GetName(),
-            Id());
+                componentTypeInfo.name,
+                InstanceClass()->GetName(),
+                Id());
 
         m_entityManager->AddComponent(this, componentData);
     }

@@ -142,16 +142,16 @@ Frustum& Frustum::SetFromViewProjectionMatrix(const Mat4f& viewProj)
     planes[3][3] = mat[3][3] - mat[3][1];
     // planes[3].Normalize();
 
-    planes[4][0] = mat[0][3] - mat[0][2];
-    planes[4][1] = mat[1][3] - mat[1][2];
-    planes[4][2] = mat[2][3] - mat[2][2];
-    planes[4][3] = mat[3][3] - mat[3][2];
+    planes[4][0] = mat[0][2];
+    planes[4][1] = mat[1][2];
+    planes[4][2] = mat[2][2];
+    planes[4][3] = mat[3][2];
     // planes[4].Normalize();
 
-    planes[5][0] = mat[0][3] + mat[0][2];
-    planes[5][1] = mat[1][3] + mat[1][2];
-    planes[5][2] = mat[2][3] + mat[2][2];
-    planes[5][3] = mat[3][3] + mat[3][2];
+    planes[5][0] = mat[0][3] - mat[0][2];
+    planes[5][1] = mat[1][3] - mat[1][2];
+    planes[5][2] = mat[2][3] - mat[2][2];
+    planes[5][3] = mat[3][3] - mat[3][2];
     // planes[5].Normalize();
 
     const Mat4f clipToWorld = viewProj.Inverse();
@@ -183,9 +183,9 @@ void Frustum::StoreViewProjectionMatrix(Mat4f& outVP) const
         // planes[3] = mat[][3] - mat[][1]
         mat[j][1] = 0.5f * (planes[2][j] - planes[3][j]);
 
-        // planes[4] = mat[][3] - mat[][2]
-        // planes[5] = mat[][3] + mat[][2]
-        mat[j][2] = 0.5f * (planes[5][j] - planes[4][j]);
+        // planes[4] = mat[][2]             (near plane)
+        // planes[5] = mat[][3] - mat[][2]  (far plane)
+        mat[j][2] = planes[4][j];
     }
 
     outVP = mat.Transpose();

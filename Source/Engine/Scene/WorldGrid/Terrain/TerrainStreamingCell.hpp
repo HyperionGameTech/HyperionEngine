@@ -26,7 +26,13 @@ class TerrainStreamingCell : public StreamingCell
 
 public:
     TerrainStreamingCell();
-    TerrainStreamingCell(const StreamingCellInfo& cellInfo, const Handle<Scene>& scene, const Handle<MaterialInstance>& material);
+
+    TerrainStreamingCell(
+        const StreamingCellInfo& cellInfo,
+        const Handle<Scene>& scene,
+        const Handle<Mesh>& mesh,
+        const Handle<MaterialInstance>& material);
+
     virtual ~TerrainStreamingCell() override;
 
 protected:

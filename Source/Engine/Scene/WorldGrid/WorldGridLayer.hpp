@@ -27,16 +27,10 @@ struct StreamingCellInfo;
 class AssetObject;
 class AssetReference;
 
-HYP_STRUCT(Size = 80)
+HYP_STRUCT(Size = 48)
 struct WorldGridLayerInfo
 {
     HYP_STRUCT_BODY(WorldGridLayerInfo);
-
-    HYP_FIELD()
-    Vec2u gridSize { 64, 64 };
-
-    HYP_FIELD()
-    Vec3u cellSize { 32, 32, 32 };
 
     HYP_FIELD()
     Vec3f offset { 0.0f, 0.0f, 0.0f };
@@ -45,15 +39,17 @@ struct WorldGridLayerInfo
     Vec3f scale { 1.0f, 1.0f, 1.0f };
 
     HYP_FIELD()
+    uint32 cellSize = 32;
+
+    HYP_FIELD()
     float maxDistance = 5.0f;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
-        hc.Add(gridSize);
-        hc.Add(cellSize);
         hc.Add(offset);
         hc.Add(scale);
+        hc.Add(cellSize);
         hc.Add(maxDistance);
 
         return hc;

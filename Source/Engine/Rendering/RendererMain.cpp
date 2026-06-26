@@ -54,6 +54,8 @@
 #include <Core/Threading/Threads.hpp>
 #include <Core/Threading/ThreadLocalStorage.hpp>
 
+#include <Core/Memory/Allocator/ThreadAllocator.hpp>
+
 #include <Core/Util.hpp>
 
 #include <Framework/EngineDriver.hpp>
@@ -388,7 +390,7 @@ static inline Stage GetStage(const RenderSetup& renderSetup, bool isDepthPrepass
     return isDepthPrepass ? DPP_InPrepass : DPP_InMainPass;
 }
 
-static bool ShouldIncludeInPrepass(
+static inline bool ShouldIncludeInPrepass(
     const Viewport& viewport,
     const Mat4f& viewProjMat,
     const RenderProxyMesh& meshProxy)
@@ -397,46 +399,33 @@ static bool ShouldIncludeInPrepass(
     const RenderBucket bucket = mas.bucket;
 
     if (!(mas.flags & MAF_DEPTH_WRITE))
+    {
         return false;
+    }
 
     if (bucket != RenderBucket::Opaque && bucket != RenderBucket::Lightmapped)
+    {
         return false;
+    }
 
     BoundingBox worldBounds;
     worldBounds.min = meshProxy.bufferData.worldAabbMin;
     worldBounds.max = meshProxy.bufferData.worldAabbMax;
 
-    FixedArray<Vec3f, 8> corners = worldBounds.GetCorners();
+    BoundingBox ndcBounds = viewProjMat * worldBounds;
 
-    float minNdcX = MathUtil::MaxSafeValue<float>();
-    float maxNdcX = MathUtil::MinSafeValue<float>();
-    float minNdcY = MathUtil::MaxSafeValue<float>();
-    float maxNdcY = MathUtil::MinSafeValue<float>();
+    const Vec3f ndcMin = ndcBounds.min;
+    const Vec3f ndcMax = ndcBounds.max;
 
-    for (uint32 i = 0; i < 8; i++)
-    {
-        Vec4f clipSpacePos = viewProjMat.TransformVector(Vec4f(corners[i], 1.0f));
-        if (clipSpacePos.w <= 0.01f)
-            return true;
+    const Vec3f ndcHalfExtent = (ndcMax - ndcMin) * 0.5f;
 
-        Vec3f ndc = clipSpacePos.GetXYZ() / clipSpacePos.w;
-
-        minNdcX = MathUtil::Min(minNdcX, ndc.x);
-        maxNdcX = MathUtil::Max(maxNdcX, ndc.x);
-        minNdcY = MathUtil::Min(minNdcY, ndc.y);
-        maxNdcY = MathUtil::Max(maxNdcY, ndc.y);
-    }
-
-    float ndcWidth = maxNdcX - minNdcX;
-    float ndcHeight = maxNdcY - minNdcY;
-
-    float screenSpaceWidth = (ndcWidth * 0.5f) * viewport.extent.x;
-    float screenSpaceHeight = (ndcHeight * 0.5f) * viewport.extent.y;
+    const float screenSpaceWidth = ndcHalfExtent.x * float(viewport.extent.x);
+    const float screenSpaceHeight = ndcHalfExtent.y * float(viewport.extent.y);
 
     constexpr float PrepassPixelThreshold = 1.0f;
 
-    return screenSpaceWidth >= PrepassPixelThreshold
-        && screenSpaceHeight >= PrepassPixelThreshold;
+    return (screenSpaceWidth >= PrepassPixelThreshold
+            && screenSpaceHeight >= PrepassPixelThreshold);
 }
 
 } // namespace DepthPrepass
@@ -525,10 +514,10 @@ static inline void UpdateRefs_Impl(ResourceTracker<AllocatorType, ObjId<ElementT
         return;
     }
 
-    Array<ElementType*> removed;
+    Array<ElementType*, ThreadAllocator> removed;
     resourceTracker.GetRemoved(removed, false);
 
-    Array<ElementType*> added;
+    Array<ElementType*, ThreadAllocator> added;
     resourceTracker.GetAdded(added, false);
 
     for (ElementType* resource : added)
@@ -561,7 +550,7 @@ static inline void UpdateRefs_Impl(ResourceTracker<AllocatorType, ObjId<ElementT
 
     if constexpr (!std::is_same_v<ProxyType, NullProxy> && HYP_HAS_METHOD(ElementType, UpdateRenderProxy))
     {
-        Array<ObjId<ElementType>> changedIds;
+        Array<ObjId<ElementType>, ThreadAllocator> changedIds;
         resourceTracker.GetChanged(changedIds);
 
         for (const ObjId<ElementType> id : changedIds)
@@ -585,10 +574,12 @@ static inline void UpdateRefs(T& renderProxyList)
 {
     AssertDebug(renderProxyList.useRefCounting);
 
-    ForEachResourceTracker(renderProxyList.resourceTrackers.ToSpan(), []<class... Args>(Args&&... args)
-                           {
-                               UpdateRefs_Impl(std::forward<Args>(args)...);
-                           });
+    ForEachResourceTracker(
+        renderProxyList.resourceTrackers.ToSpan(),
+        []<class... Args>(Args&&... args)
+        {
+            UpdateRefs_Impl(std::forward<Args>(args)...);
+        });
 }
 
 #pragma region RenderProxyList
@@ -600,12 +591,14 @@ RenderProxyList::RenderProxyList(bool isShared, bool useRefCounting)
       resourceTrackers {}
 {
     // initialize the resource trackers
-    ForEachResourceTrackerType(resourceTrackers.ToSpan(), [this]<class ResourceTrackerType>(TypeWrapper<ResourceTrackerType>, ResourceTrackerBase<AllocatorType>*& pResourceTracker, size_t idx)
-                               {
-                                   AssertDebug(!pResourceTracker);
+    ForEachResourceTrackerType(
+        resourceTrackers.ToSpan(),
+        [this]<class ResourceTrackerType>(TypeWrapper<ResourceTrackerType>, ResourceTrackerBase<AllocatorType>*& pResourceTracker, size_t idx)
+        {
+            AssertDebug(!pResourceTracker);
 
-                                   pResourceTracker = new ResourceTrackerType();
-                               });
+            pResourceTracker = new ResourceTrackerType();
+        });
 }
 
 RenderProxyList::~RenderProxyList()
@@ -613,14 +606,16 @@ RenderProxyList::~RenderProxyList()
 #if HYP_DEBUG_MODE
     int numRenderProxies = 0;
 
-    ForEachResourceTracker(resourceTrackers.ToSpan(), [&](auto&& resourceTracker)
-                           {
-                               for (Bitset::BitIndex bit : resourceTracker.GetSubclassIndices())
-                               {
-                                   auto&& impl = resourceTracker.GetSubclassImpl(int(bit));
-                                   numRenderProxies += impl.proxies.Count();
-                               }
-                           });
+    ForEachResourceTracker(
+        resourceTrackers.ToSpan(),
+        [&](auto&& resourceTracker)
+        {
+            for (Bitset::BitIndex bit : resourceTracker.GetSubclassIndices())
+            {
+                auto&& impl = resourceTracker.GetSubclassImpl(int(bit));
+                numRenderProxies += impl.proxies.Count();
+            }
+        });
 
     if (numRenderProxies > 0)
         HYP_LOG(Rendering, Verbose, "RenderProxyList destroyed with {} render proxies still in it", numRenderProxies);
@@ -645,10 +640,12 @@ void RenderProxyList::BeginWrite()
 
     // advance all trackers to the next state before we write into them.
     // this clears their 'next' bits and sets their 'previous' bits so we can tell what changed.
-    ForEachResourceTracker(resourceTrackers.ToSpan(), [](auto&& resourceTracker)
-                           {
-                               resourceTracker.Advance(/* clearNextState */ true);
-                           });
+    ForEachResourceTracker(
+        resourceTrackers.ToSpan(),
+        [](auto&& resourceTracker)
+        {
+            resourceTracker.Advance(/* clearNextState */ true);
+        });
 }
 
 void RenderProxyList::EndWrite()
@@ -869,8 +866,8 @@ static void SetForwardShadingConstants(
 
     for (EnvProbe* envProbe : rpl.GetEnvProbes())
     {
-        if (envProbe == renderSetup.envProbe ||                                // if we are drawing an env probe we don't want to use it as fallback
-            (!envProbe->IsA<SkyProbe>() && !envProbe->IsA<ReflectionProbe>())) // only reflection / sky probes.
+        // if we are drawing an env probe we don't want to use it as fallback!
+        if (envProbe == renderSetup.envProbe)
         {
             continue;
         }

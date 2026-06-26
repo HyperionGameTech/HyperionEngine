@@ -6,12 +6,27 @@
 
 using namespace Hyperion;
 
+#ifdef HYP_TESTS
+namespace Hyperion {
+namespace tests {
+namespace profiling {
+HYP_IMPORT void PrintAllocatorProfiling(size_t runsPer = 5, size_t numIterations = 50, size_t runsPerIteration = 10);
+} // namespace profiling
+} // namespace tests
+} // namespace Hyperion
+#endif
+
 int main(int argc, char** argv)
 {
     if (!Hyp_Initialize(argc, argv))
     {
         return 1;
     }
+
+#ifdef HYP_TESTS
+    tests::profiling::PrintAllocatorProfiling(5, 50, 15);
+    return 0;
+#endif
 
     auto defaultGame = MakeUnique<game::DefaultGame>();
 

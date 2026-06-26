@@ -92,7 +92,8 @@ public:
         View* view,
         Light* light,
         uint32 cascadeIndex,
-        bool isStatic) const;
+        bool isStatic,
+        bool isLazy = false) const;
 
     ShadowMap* GetShadowMap(
         Light* light,

@@ -654,10 +654,9 @@ extern class WorldGridLayer
     Init_Impl() -> void
 end
 extern struct WorldGridLayerInfo
-    GridSize : Vec2u
-    CellSize : Vec3u
     Offset : Vec3f
     Scale : Vec3f
+    CellSize : uint32
     MaxDistance : float
 end
 extern class TerrainWorldGridLayer : WorldGridLayer
