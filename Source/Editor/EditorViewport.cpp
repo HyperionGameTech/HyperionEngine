@@ -43,7 +43,7 @@ void EditorViewport::Init()
 
         m_camera->AddTag<EntityTag::EditorCamera>();
 
-        m_camera->SetCameraFlags(CameraFlags::MATCH_WINDOW_SIZE);
+        m_camera->SetCameraFlags(CameraFlags::MatchWindowSize | CameraFlags::HasStreamingVolume);
 
         m_camera->AddCameraController(MakeHandle<EditorCameraController>());
 

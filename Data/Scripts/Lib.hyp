@@ -2057,7 +2057,8 @@ extern class NullCameraController : CameraController
 end
 extern enum CameraFlags : uint32
     NONE = 0x0,
-    MATCH_WINDOW_SIZE = 0x1
+    MatchWindowSize = 0x1,
+    HasStreamingVolume = 0x2
 end
 extern struct CameraOrthoRect
     Left : float

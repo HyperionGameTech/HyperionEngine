@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -40,7 +40,8 @@ HYP_ENUM()
 enum class CameraFlags : uint32
 {
     NONE = 0x0,
-    MATCH_WINDOW_SIZE = 0x1
+    MatchWindowSize = 0x1,
+    HasStreamingVolume = 0x2
 };
 
 HYP_MAKE_ENUM_FLAGS(CameraFlags);
@@ -503,7 +504,8 @@ public:
 protected:
     void Init() override;
 
-    void InitMatchWindowSize();
+    void UpdateMatchWindowSize();
+    void UpdateStreamingVolume();
 
     void OnTransformUpdated() override;
 

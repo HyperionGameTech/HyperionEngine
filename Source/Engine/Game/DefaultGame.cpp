@@ -118,7 +118,7 @@ void DefaultGame::OnLaunch_Impl()
 
             Assert(m_camera.IsValid());
             m_camera->SetWorldTranslation(Vec3f(0.0f, 5.0f, 3.0f));
-            m_camera->SetCameraFlags(m_camera->GetCameraFlags() | CameraFlags::MATCH_WINDOW_SIZE);
+            m_camera->SetCameraFlags(m_camera->GetCameraFlags() | CameraFlags::MatchWindowSize | CameraFlags::HasStreamingVolume);
 
             Vec2u viewportSize = Vec2u(m_camera->GetDimensions());
 
@@ -167,7 +167,7 @@ void DefaultGame::OnLaunch_Impl()
                 if (m_sun.IsValid())
                 {
                     m_sun->SetIntensity(15.0f);
-                    m_sun->SetNumShadowMapCascades(3);
+                    m_sun->SetNumShadowMapCascades(4);
                 }
             }
         }
@@ -184,7 +184,7 @@ void DefaultGame::OnLaunch_Impl()
     m_camera->SetFOV(65.0f);
     m_camera->SetNearClip(0.1f);
     m_camera->SetFarClip(1000.0f);
-    m_camera->SetCameraFlags(CameraFlags::MATCH_WINDOW_SIZE);
+    m_camera->SetCameraFlags(CameraFlags::MatchWindowSize | CameraFlags::HasStreamingVolume);
     m_camera->AddTag<EntityTag::PrimaryCamera>();
 
     InitObject(m_camera);

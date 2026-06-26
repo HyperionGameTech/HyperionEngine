@@ -32,7 +32,7 @@
 namespace Hyperion {
 
 CVar<float> g_cvBaseDepthBias("Rendering.BaseDepthBias", 0.001f);
-CVar<float> g_cvBaseDepthBiasDirectional("Rendering.BaseDepthBiasDirectional", 0.002f);
+CVar<float> g_cvBaseDepthBiasDirectional("Rendering.BaseDepthBiasDirectional", 0.008f);
 
 static constexpr EnumFlags<ViewFlags> DefaultShadowViewFlags = ViewFlags::SHADOW_VIEW
     | ViewFlags::SKIP_LIGHTS | ViewFlags::SKIP_CAMERAS
@@ -206,7 +206,7 @@ static ViewDesc GetViewDesc(
     materialAttributes.shaderProperties = shaderDesc.properties;
     materialAttributes.flags = MAF_DEPTH_WRITE | MAF_DEPTH_TEST | MAF_DEPTH_BIAS | MAF_DEPTH_CLAMP;
     materialAttributes.depthBias = depthBiasScaled;
-    materialAttributes.depthBiasSlope = 0.05f;
+    materialAttributes.depthBiasSlope = 0.1f;
     materialAttributes.cullFaces = FCM_BACK;
 
     viewDesc.overrideAttributes = RenderableAttributeSet(MeshAttributes(), materialAttributes);

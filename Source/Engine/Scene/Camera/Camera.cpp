@@ -266,11 +266,8 @@ void Camera::Init()
 
     const Vec3f translation = GetWorldTranslation();
 
-    m_streamingVolume = MakeHandle<CameraStreamingVolume>();
-    m_streamingVolume->SetBoundingBox(BoundingBox(translation - 10.0f, translation + 10.0f));
-    InitObject(m_streamingVolume);
-
-    InitMatchWindowSize();
+    UpdateStreamingVolume();
+    UpdateMatchWindowSize();
 
     UpdateMouseLocked();
 
@@ -289,12 +286,18 @@ void Camera::SetCameraFlags(EnumFlags<CameraFlags> flags)
     }
 
     const EnumFlags<CameraFlags> flagsBefore = m_cameraFlags;
+    const EnumFlags<CameraFlags> changedFlags = flags ^ flagsBefore;
 
     m_cameraFlags = flags;
 
-    if ((flagsBefore & CameraFlags::MATCH_WINDOW_SIZE) != (flags & CameraFlags::MATCH_WINDOW_SIZE))
+    if (changedFlags & CameraFlags::MatchWindowSize)
     {
-        InitMatchWindowSize();
+        UpdateMatchWindowSize();
+    }
+
+    if (changedFlags & CameraFlags::HasStreamingVolume)
+    {
+        UpdateStreamingVolume();
     }
 
     MarkDirty();
@@ -615,9 +618,9 @@ Vec2f Camera::GetPixelSize() const
     return Vec2f::One() / Vec2f(GetDimensions());
 }
 
-void Camera::InitMatchWindowSize()
+void Camera::UpdateMatchWindowSize()
 {
-    if (m_cameraFlags & CameraFlags::MATCH_WINDOW_SIZE)
+    if (m_cameraFlags & CameraFlags::MatchWindowSize)
     {
         if (m_onMainWindowChangedHandle.IsValid() && m_onWindowResizedHandle.IsValid())
         {
@@ -660,6 +663,35 @@ void Camera::InitMatchWindowSize()
     {
         m_onWindowResizedHandle.Reset();
         m_onMainWindowChangedHandle.Reset();
+    }
+}
+
+void Camera::UpdateStreamingVolume()
+{
+    if (m_cameraFlags & CameraFlags::HasStreamingVolume)
+    {
+        if (!m_streamingVolume.IsValid())
+        {
+            const Vec3f worldTranslation = GetWorldTranslation();
+
+            m_streamingVolume = MakeHandle<CameraStreamingVolume>();
+            m_streamingVolume->SetBoundingBox(BoundingBox(worldTranslation - 10.0f, worldTranslation + 10.0f));
+            InitObject(m_streamingVolume);
+        }
+
+        if (!m_streamingVolumeAdded)
+        {
+            g_streamingManager->AddStreamingVolume(m_streamingVolume);
+            m_streamingVolumeAdded = true;
+        }
+    }
+    else
+    {
+        if (m_streamingVolumeAdded)
+        {
+            m_streamingVolumeAdded = false;
+            g_streamingManager->RemoveStreamingVolume(m_streamingVolume);
+        }
     }
 }
 
@@ -776,24 +808,14 @@ void Camera::UpdateMouseLocked()
 
 void Camera::OnAddedToWorld(World* world)
 {
-    AssertDebug(GetStreamingVolume().IsValid());
-
-    if (!m_streamingVolumeAdded)
-    {
-        g_streamingManager->AddStreamingVolume(GetStreamingVolume());
-        m_streamingVolumeAdded = true;
-    }
+    UpdateStreamingVolume();
 
     Entity::OnAddedToWorld(world);
 }
 
 void Camera::OnRemovedFromWorld(World* world)
 {
-    if (m_streamingVolumeAdded)
-    {
-        m_streamingVolumeAdded = false;
-        g_streamingManager->RemoveStreamingVolume(GetStreamingVolume());
-    }
+    UpdateStreamingVolume();
 
     Entity::OnRemovedFromWorld(world);
 }

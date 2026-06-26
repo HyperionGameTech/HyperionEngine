@@ -60,6 +60,9 @@ namespace Hyperion {
 
 ENGINE_API extern Pool* g_scenePool;
 
+static constexpr float ShadowCascadeClipDistances[] = { 0.05f, 0.1f, 0.3f, 1.0f };
+static constexpr float ShadowCascadeMaxDistance = 500.0f;
+
 // Always mark dirty at this value
 static const int s_dirtyResourceVersion = -1;
 static const int* s_dirtyResourceVersionPtr = &s_dirtyResourceVersion;
@@ -428,9 +431,6 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
     std::sort(allShadowCastingLights.Begin(), allShadowCastingLights.End(), LightSorter(*m_camera, cachedFrustum));
 
-    static constexpr float ShadowCascadeClipDistances[] = { 0.025f, 0.1f, 0.3f, 1.0f };
-    static constexpr float ShadowCascadeMaxDistance = 250.0f;
-
     for (Light* light : allShadowCastingLights)
     {
         const Vec2u shadowMapDimensions = light->GetShadowMapDimensions();
@@ -445,7 +445,6 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
         const bool isDirectional = (light->GetLightType() == LightType::Directional);
 
         const uint32 numCascades = (isDirectional ? light->GetNumShadowMapCascades() : 1);
-        const bool hasCascades = (numCascades > 1);
 
         const uint32 numShadowViews = isOmni ? 6 : numCascades;
 
@@ -453,6 +452,8 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
         Mat4f shadowViewMatrix;
         Mat4f shadowViewProjMatrix;
         Mat4f shadowInvProjMatrix;
+
+        Frustum csmMainCameraFrustum;
 
         // Calculate total world bounds for CSM
         BoundingSphere worldBoundsSphere;
@@ -462,34 +463,59 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
         Array<Scene*, SceneTempAllocator> shadowViewScenes;
         shadowViewScenes.Reserve(m_scenes.Size());
 
+        // Calculate frustum to use for calculating splits
+        if (isDirectional)
+        {
+            Assert(m_camera != nullptr);
+
+            const Frustum& mainCameraFrustum = m_camera->GetFrustum();
+
+            const float mainCameraFarRatio = MathUtil::Clamp(ShadowCascadeMaxDistance / m_camera->GetFarClip(), 0.0f, 1.0f);
+            csmMainCameraFrustum = (mainCameraFarRatio >= 0.9999f ? mainCameraFrustum : mainCameraFrustum.SubFrustum(0.0f, mainCameraFarRatio));
+
+            // Calculate shared view matrix
+            shadowViewMatrix = ShadowCameraHelpers::CalculateShadowViewMatrix(
+                csmMainCameraFrustum,
+                light->GetWorldTranslation().Normalized());
+        }
+
         // Collect scenes
         for (Scene* scene : m_scenes)
         {
-            static constexpr EnumFlags<SceneFlags> SceneFlagFilterMask = (SceneFlags::HAS_OCTREE | SceneFlags::FOREGROUND | SceneFlags::BACKDROP | SceneFlags::DETACHED);
-            static constexpr EnumFlags<SceneFlags> SceneFlagFilterDesired = (SceneFlags::HAS_OCTREE | SceneFlags::FOREGROUND);
+            static constexpr EnumFlags<SceneFlags> SceneFlagFilterMask = (SceneFlags::FOREGROUND | SceneFlags::BACKDROP | SceneFlags::DETACHED);
+            static constexpr EnumFlags<SceneFlags> SceneFlagFilterDesired = (SceneFlags::FOREGROUND);
 
             if ((scene->GetSceneFlags() & SceneFlagFilterMask) != SceneFlagFilterDesired)
             {
                 continue;
             }
 
-            const BoundingBox& sceneWorldBounds = scene->GetOctree().GetAABB();
-            BoundingSphere sceneWorldBoundsSphere = BoundingSphere(sceneWorldBounds);
+            if (isDirectional)
+            {
+                if (!(scene->GetSceneFlags() & SceneFlags::HAS_OCTREE))
+                {
+                    // Only want scenes with an octree for CSM
+                    continue;
+                }
 
-            if (!sceneWorldBoundsSphere.IsFinite() || !sceneWorldBoundsSphere.IsValid())
-            {
-                HYP_LOG_ONCE(Scene, Warning, "Scene has invalid bounding sphere (Scene: {})", scene->GetName());
-                continue;
-            }
+                BoundingBox sceneWorldBounds = scene->GetOctree().GetAABB();
+                BoundingSphere sceneWorldBoundsSphere = BoundingSphere(sceneWorldBounds);
 
-            if (isWorldBoundsSphereValid)
-            {
-                worldBoundsSphere.Extend(sceneWorldBoundsSphere);
-            }
-            else
-            {
-                worldBoundsSphere = sceneWorldBoundsSphere;
-                isWorldBoundsSphereValid = true;
+                if (!sceneWorldBoundsSphere.IsFinite() || !sceneWorldBoundsSphere.IsValid())
+                {
+                    HYP_LOG_ONCE(Scene, Warning, "Scene has invalid bounding sphere (Scene: {})", scene->GetName());
+                    continue;
+                }
+
+                if (isWorldBoundsSphereValid)
+                {
+                    worldBoundsSphere.Extend(sceneWorldBoundsSphere);
+                }
+                else
+                {
+                    worldBoundsSphere = sceneWorldBoundsSphere;
+                    isWorldBoundsSphereValid = true;
+                }
             }
 
             shadowViewScenes.PushBack(scene);
@@ -504,25 +530,13 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
             if (isDirectional)
             {
-                Assert(m_camera != nullptr);
-
-                const Frustum& mainCameraFrustum = m_camera->GetFrustum();
-
-                // calculate view matrix if first cascade
-                if (shadowViewIndex == 0)
-                {
-                    shadowViewMatrix = ShadowCameraHelpers::CalculateShadowViewMatrix(
-                        mainCameraFrustum,
-                        light->GetWorldTranslation().Normalized());
-                }
-
                 const float nearRatio = (shadowViewIndex == 0) ? 0.0f : ShadowCascadeClipDistances[shadowViewIndex - 1];
                 const float farRatio = ShadowCascadeClipDistances[shadowViewIndex];
 
                 const Vec3f lightDir = light->GetWorldTranslation().Normalized();
 
                 shadowViewBounds = ShadowCameraHelpers::CalculateCascadeBounds(
-                    mainCameraFrustum,
+                    csmMainCameraFrustum,
                     worldBoundsSphere,
                     shadowViewMatrix,
                     shadowMapDimensions,

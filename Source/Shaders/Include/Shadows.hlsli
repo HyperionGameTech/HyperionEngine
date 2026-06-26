@@ -168,7 +168,7 @@ float GetShadowPCF(in float4 shadowMapCoord, // w = slice
         float4 samples = shadow_maps.GatherRed(HYP_SAMPLER_LINEAR,                                                                  \
             float3(((shadowMapCoord.xy + (vogel_##iter_index0 * shadow_filter_size)) * atlasScale) + atlasUV, layerIndex),   \
             offsets[iter_index0]);                                                                                                  \
-        float4 deltas = max(step(shadowMapCoord.zzzz - (float4)HYP_SHADOW_BIAS, samples), (float4)0.0);                                      \
+        float4 deltas = max(step(shadowMapCoord.zzzz, samples), (float4)0.0);                                      \
         shadow_samples[iter_index0] = deltas;                                                                                         \
     }
 
@@ -195,7 +195,7 @@ float GetShadowPCF(in float4 shadowMapCoord, // w = slice
     { \
         float2 rotatedOffset = mul(s_pcfKernel[iter_index], rotationMatrix); \
         float2 sampleUV = ((shadowMapCoord.xy + (rotatedOffset * shadow_filter_size)) * atlasScale) + atlasUV; \
-        shadowness += shadow_maps.SampleCmpLevelZero(HYP_SAMPLER_SHADOW, float3(sampleUV, layerIndex), shadowMapCoord.z - HYP_SHADOW_BIAS); \
+        shadowness += shadow_maps.SampleCmpLevelZero(HYP_SAMPLER_SHADOW, float3(sampleUV, layerIndex), shadowMapCoord.z); \
     }
 
     HYP_FETCH_SHADOW_SAMPLE(0); HYP_FETCH_SHADOW_SAMPLE(1); HYP_FETCH_SHADOW_SAMPLE(2); HYP_FETCH_SHADOW_SAMPLE(3);
