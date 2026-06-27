@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <AssetPch.hpp>
 
@@ -300,8 +300,8 @@ Result AssetObject::SaveBlobData(BlobStorage* storage, const Optional<FilePath>&
         const size_t magicLen = magic ? std::strlen(magic) : 0;
 
         AssertDebug(magicLen <= sizeof(BlobHeader::magic) && magicLen != 0,
-            "Blob data reference magic must be non-empty and at most {} characters long",
-            sizeof(BlobHeader::magic));
+                    "Blob data reference magic must be non-empty and at most {} characters long",
+                    sizeof(BlobHeader::magic));
 
         BlobHeader header {};
         Memory::Copy((char*)header.magic, magic, MathUtil::Min(magicLen, sizeof(header.magic)));
@@ -363,11 +363,11 @@ Result AssetObject::Load(
     Handle<AssetObject>& outAssetObject)
 {
     static constexpr uint32 MaxRecursionDepth = 32;
-    static thread_local uint32 s_recursionDepth = 0;
+    thread_local uint32 t_recursionDepth = 0;
 
-    HYP_DEFER({ --s_recursionDepth; });
+    HYP_DEFER({ --t_recursionDepth; });
 
-    if (++s_recursionDepth >= MaxRecursionDepth)
+    if (++t_recursionDepth >= MaxRecursionDepth)
     {
         return HYP_MAKE_ERROR(Error, "Recursion depth limit reached. Is the asset self-referential causing a circular dependency?");
     }
@@ -510,7 +510,6 @@ void AssetObject::LockWriter(bool doInitialize)
     while (!AtomicCompareExchange(&m_rwState, expected, 1))
     {
         expected = 0;
-
 
         // volatile read
         while (m_rwState != 0)

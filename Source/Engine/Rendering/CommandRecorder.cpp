@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -40,7 +40,6 @@
 namespace Hyperion {
 
 #pragma region CommandRecorderBase
-
 
 #pragma endregion CommandRecorderBase
 
@@ -205,7 +204,7 @@ void Blit::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
     {
         HYP_LOG(RenderingBackend, Warning, "Blit: Destination format {} does not support UnorderedAccess, "
                                            "cannot blit as it requires using a compute shader!",
-            EnumToString(dstDesc.format));
+                EnumToString(dstDesc.format));
 
         return;
     }
@@ -333,16 +332,12 @@ void Blit::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
             if (!pipeline)
             {
                 HYP_LOG(RenderingBackend, Error, "Blit: Failed to get compute pipeline. "
-                    "Shader 'GenerateMipmap' may not be compiled or available.");
+                                                 "Shader 'GenerateMipmap' may not be compiled or available.");
 
                 continue;
             }
 
-            pipeline->Dispatch(commandBuffer, {
-                (dstExtent.x + 7) / 8,
-                (dstExtent.y + 7) / 8,
-                1
-            });
+            pipeline->Dispatch(commandBuffer, { (dstExtent.x + 7) / 8, (dstExtent.y + 7) / 8, 1 });
 
 #ifdef HYP_DX12
             tempImage->GetGpuImage()->InsertUAVBarrier(commandBuffer);
@@ -451,7 +446,7 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
     if (!RI.IsSupportedFormat(desc.format, ImageSupport::UnorderedAccess))
     {
         HYP_LOG(RenderingBackend, Warning, "Image format {} does not support UnorderedAccess, cannot generate mipmaps as it requires using a compute shader!",
-            EnumToString(desc.format));
+                EnumToString(desc.format));
 
         return;
     }
@@ -617,15 +612,12 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
             if (!pipeline)
             {
                 HYP_LOG(RenderingBackend, Error, "GenerateMipmaps: Failed to get compute pipeline for mip {}. "
-                    "Shader 'GenerateMipmap' may not be compiled or available.", mip);
+                                                 "Shader 'GenerateMipmap' may not be compiled or available.",
+                        mip);
                 continue;
             }
 
-            pipeline->Dispatch(commandBuffer, {
-                (dstExtent.x + 7) / 8,
-                (dstExtent.y + 7) / 8,
-                1
-            });
+            pipeline->Dispatch(commandBuffer, { (dstExtent.x + 7) / 8, (dstExtent.y + 7) / 8, 1 });
 
 #ifdef HYP_DX12
             tempImage->GetGpuImage()->InsertUAVBarrier(commandBuffer);
@@ -855,7 +847,7 @@ void InsertUAVBarrier::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 
 #pragma region SetCurrentFramebuffer
 
-thread_local Framebuffer* s_currentFramebuffer;
+thread_local Framebuffer* t_currentFramebuffer;
 
 SetCurrentFramebuffer::SetCurrentFramebuffer(Framebuffer* framebuffer)
     : m_framebuffer(framebuffer)
@@ -865,12 +857,12 @@ SetCurrentFramebuffer::SetCurrentFramebuffer(Framebuffer* framebuffer)
         m_framebuffer->SetIsDeferredRecording(true);
     }
 
-    if (s_currentFramebuffer != nullptr && s_currentFramebuffer != m_framebuffer)
+    if (t_currentFramebuffer != nullptr && t_currentFramebuffer != m_framebuffer)
     {
-        s_currentFramebuffer->SetIsDeferredRecording(false);
+        t_currentFramebuffer->SetIsDeferredRecording(false);
     }
 
-    s_currentFramebuffer = m_framebuffer;
+    t_currentFramebuffer = m_framebuffer;
 }
 
 void SetCurrentFramebuffer::PrepareStatic(CmdBase* cmd, Frame* frame)
@@ -986,8 +978,8 @@ void BindGraphicsPipeline::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuff
     state.boundGraphicsPipeline = cmdCasted->m_pipeline;
 
     //// temporary, will be removed once everything operates through CommitDrawState().
-    //RenderInterface::State& state = RI.state;
-    //state.Reset();
+    // RenderInterface::State& state = RI.state;
+    // state.Reset();
 
     static_assert(std::is_trivially_destructible_v<BindGraphicsPipeline>);
     // cmdCasted->~BindGraphicsPipeline();
@@ -1092,9 +1084,9 @@ void DrawQuad::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         g_quadMesh->UploadGpuData();
 
         CurrentThreadObject()->AddOnExitCallback([]()
-            {
-                g_quadMesh.Reset();
-            });
+                                                 {
+                                                     g_quadMesh.Reset();
+                                                 });
     }
 
     commandBuffer->BindIndexBuffer(g_quadMesh->GetIndexBuffer());
@@ -1477,8 +1469,8 @@ void SetShaderUniform::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 
     ShaderUniform& uniform = state.shaderUniforms[cmdCasted->uniformIndex];
 
-    if (uniform != cmdCasted->uniform                                   // uniform packet differs
-        || !(state.validUniforms & (1u << cmdCasted->uniformIndex)))    // previous bound is invalid
+    if (uniform != cmdCasted->uniform                                // uniform packet differs
+        || !(state.validUniforms & (1u << cmdCasted->uniformIndex))) // previous bound is invalid
     {
         uniform = cmdCasted->uniform;
 
@@ -1528,8 +1520,8 @@ void SetShaderUniforms::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 
         ShaderUniform& dstUniform = state.shaderUniforms[i];
 
-        if (dstUniform != srcUniform                                   // uniform packet differs
-            || !(state.validUniforms & (1u << i)))    // previous bound is invalid
+        if (dstUniform != srcUniform               // uniform packet differs
+            || !(state.validUniforms & (1u << i))) // previous bound is invalid
         {
             dstUniform = srcUniform;
 

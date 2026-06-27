@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <Core/Reflection/Class.hpp>
 #include <Core/Reflection/Struct.hpp>
@@ -43,7 +43,6 @@ namespace Hyperion {
 
 #ifdef HYP_SCRIPT
 #endif
-
 
 #ifdef HYP_TOOL
 const Class* g_clsObjectBase = nullptr;
@@ -456,7 +455,7 @@ Property* MakeProperty(const Field* field, const Method* getter, const Method* s
 }
 
 using FormattedStringMap = TMap<TypeId, String, DynamicAllocator, HashTablePolicy::NotPooled>;
-thread_local FormattedStringMap* s_formattedStringMap;
+thread_local FormattedStringMap* t_formattedStringMap;
 
 static void InitFormattedStringMap(void* mem)
 {
@@ -510,7 +509,7 @@ const char* LookupTypeName(const TypeId& typeId)
         return *cls->GetName();
     }
 
-    if (!s_formattedStringMap)
+    if (!t_formattedStringMap)
     {
         ThreadBase* currentThreadObject = CurrentThreadObject();
 
@@ -519,20 +518,20 @@ const char* LookupTypeName(const TypeId& typeId)
             return "<could not lookup type name>";
         }
 
-        s_formattedStringMap = currentThreadObject->GetTLS().Allocate<FormattedStringMap>();
-        InitFormattedStringMap(s_formattedStringMap);
+        t_formattedStringMap = currentThreadObject->GetTLS().Allocate<FormattedStringMap>();
+        InitFormattedStringMap(t_formattedStringMap);
 
         currentThreadObject->AddOnExitCallback([]()
-            {
-                s_formattedStringMap->~FormattedStringMap();
-            });
+                                               {
+                                                   t_formattedStringMap->~FormattedStringMap();
+                                               });
     }
 
-    auto it = s_formattedStringMap->Find(typeId);
+    auto it = t_formattedStringMap->Find(typeId);
 
-    if (it == s_formattedStringMap->End())
+    if (it == t_formattedStringMap->End())
     {
-        it = s_formattedStringMap->Insert(typeId, HYP_FORMAT("TypeId({})", typeId.Value())).first;
+        it = t_formattedStringMap->Insert(typeId, HYP_FORMAT("TypeId({})", typeId.Value())).first;
     }
 
     return *it->second;
@@ -829,8 +828,8 @@ void Class::Initialize()
         }
 
         printf("parent class for %s = %s\n",
-            m_name.LookupString(),
-            m_parentName.LookupString());
+               m_name.LookupString(),
+               m_parentName.LookupString());
 
         HYP_CORE_ASSERT(m_parent != nullptr, "Invalid parent class: {}", m_parentName);
 
@@ -850,9 +849,9 @@ void Class::Initialize()
             const String& attrString = attr.GetString();
 
             auto propertiesToBuildIt = propertiesToBuild.FindIf([&attrString](const auto& item)
-                {
-                    return item.first == attrString;
-                });
+                                                                {
+                                                                    return item.first == attrString;
+                                                                });
 
             if (propertiesToBuildIt == propertiesToBuild.End())
             {
@@ -871,21 +870,21 @@ void Class::Initialize()
         }
 
         const auto findFieldIt = it.second.FindIf([](IMember* member)
-            {
-                return member->GetMemberType() == MemberType::Field;
-            });
+                                                  {
+                                                      return member->GetMemberType() == MemberType::Field;
+                                                  });
 
         const auto findGetterIt = it.second.FindIf([](IMember* member)
-            {
-                return member->GetMemberType() == MemberType::Method
-                    && static_cast<Method*>(member)->GetParameters().Size() == 1;
-            });
+                                                   {
+                                                       return member->GetMemberType() == MemberType::Method
+                                                           && static_cast<Method*>(member)->GetParameters().Size() == 1;
+                                                   });
 
         const auto findSetterIt = it.second.FindIf([](IMember* member)
-            {
-                return member->GetMemberType() == MemberType::Method
-                    && static_cast<Method*>(member)->GetParameters().Size() == 2;
-            });
+                                                   {
+                                                       return member->GetMemberType() == MemberType::Method
+                                                           && static_cast<Method*>(member)->GetParameters().Size() == 2;
+                                                   });
 
         if (findFieldIt != it.second.End() || findGetterIt != it.second.End() || findSetterIt != it.second.End())
         {
@@ -1135,7 +1134,7 @@ void Class::AddProperty(Property* property)
 {
     AssertDebug(property != nullptr, "Cannot add null property to Class {}", GetName());
     AssertDebug(m_propertiesByName.Find(property->GetName()) == m_propertiesByName.End(),
-        "Property with name {} already exists in Class {}", property->GetName(), GetName());
+                "Property with name {} already exists in Class {}", property->GetName(), GetName());
 
     m_properties.PushBack(property);
     m_propertiesByName[property->GetName()] = property;
@@ -1145,7 +1144,7 @@ void Class::AddMethod(Method* method)
 {
     AssertDebug(method != nullptr, "Cannot add null method to Class {}", GetName());
     AssertDebug(m_methodsByName.Find(method->GetName()) == m_methodsByName.End(),
-        "Method with name {} already exists in Class {}", method->GetName(), GetName());
+                "Method with name {} already exists in Class {}", method->GetName(), GetName());
 
     m_methods.PushBack(method);
     m_methodsByName[method->GetName()] = method;
@@ -1155,7 +1154,7 @@ void Class::AddField(Field* field)
 {
     AssertDebug(field != nullptr, "Cannot add null field to Class {}", GetName());
     AssertDebug(m_fieldsByName.Find(field->GetName()) == m_fieldsByName.End(),
-        "Field with name {} already exists in Class {}", field->GetName(), GetName());
+                "Field with name {} already exists in Class {}", field->GetName(), GetName());
 
     m_fields.PushBack(field);
     m_fieldsByName[field->GetName()] = field;
@@ -1165,7 +1164,7 @@ void Class::AddStaticField(StaticField* staticField)
 {
     AssertDebug(staticField != nullptr, "Cannot add null static field to Class {}", GetName());
     AssertDebug(m_staticFieldsByName.Find(staticField->GetName()) == m_staticFieldsByName.End(),
-        "Static field with name {} already exists in Class {}", staticField->GetName(), GetName());
+                "Static field with name {} already exists in Class {}", staticField->GetName(), GetName());
 
     m_staticFields.PushBack(staticField);
     m_staticFieldsByName[staticField->GetName()] = staticField;
@@ -1335,8 +1334,8 @@ DynamicClassInstance::DynamicClassInstance(
 
             AssertDebug(field != nullptr);
             AssertDebug(field->GetOffset() == dynamicSize, "Field offsets don't match expected offset! (field: {}, class: {}), expected {}, got {}",
-                field->GetName(), cls->GetName(),
-                dynamicSize, field->GetOffset());
+                        field->GetName(), cls->GetName(),
+                        dynamicSize, field->GetOffset());
 
             dynamicSize += fieldSize;
 
@@ -1375,16 +1374,16 @@ DynamicClassInstance::DynamicClassInstance(
     m_alignment = MathUtil::Max(alignof(ObjectBase), dynamicAlignment);
 
     m_objectContainer = &GetObjectContainerMap().GetOrCreate(m_typeId, this, [](const Class* thisClass) -> ObjectContainerBase*
-        {
-            ObjectContainer<ObjectBase>* container = new ObjectContainer<ObjectBase>(thisClass);
+                                                             {
+                                                                 ObjectContainer<ObjectBase>* container = new ObjectContainer<ObjectBase>(thisClass);
 
-            // we use the Script pool for allocating instances of dynamic classes when HYP_SCRIPT is enabled
-            Pool* scriptPool = ScriptObjectFunctions::GetScriptPool ? ScriptObjectFunctions::GetScriptPool() : nullptr;
-            Assert(scriptPool != nullptr);
-            container->SetPool(scriptPool);
+                                                                 // we use the Script pool for allocating instances of dynamic classes when HYP_SCRIPT is enabled
+                                                                 Pool* scriptPool = ScriptObjectFunctions::GetScriptPool ? ScriptObjectFunctions::GetScriptPool() : nullptr;
+                                                                 Assert(scriptPool != nullptr);
+                                                                 container->SetPool(scriptPool);
 
-            return container;
-        });
+                                                                 return container;
+                                                             });
 
     Assert(m_objectContainer != nullptr);
 }
@@ -1560,7 +1559,7 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
             {
                 scriptObjectResource->SetScriptObjectData_DotNet(ScriptObjectData_DotNet { .managedClass = managedClass });
             }
-                
+
             scriptObjectResource->AddReader();
 
             int64 readers, writers;
@@ -1593,7 +1592,7 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
             {
                 // stop after first non-dynamic parent class
                 HYP_LOG(Core, Error, "Non-dynamic parent class construction not yet implemented in HypScript for dynamic class {}, Parent class: {}",
-                    GetName(), topParent->GetName());
+                        GetName(), topParent->GetName());
 
                 return isCreated;
             }
@@ -1633,7 +1632,7 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
             fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(BoxedValue));
 
             AssertDebug(fieldOffset + sizeof(BoxedValue) <= m_size,
-                "Field offset out of bounds: {} + {} > {}", fieldOffset, sizeof(BoxedValue), m_size);
+                        "Field offset out of bounds: {} + {} > {}", fieldOffset, sizeof(BoxedValue), m_size);
 
             BoxedValue* fieldPtr = (BoxedValue*)(UIntPtr(target) + fieldOffset);
             new (fieldPtr) BoxedValue();
@@ -1648,7 +1647,7 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
         // align field offset
         fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(BoxedValue));
         AssertDebug(fieldOffset + sizeof(BoxedValue) <= m_size,
-            "Field offset out of bounds: {} + {} > {}", fieldOffset, sizeof(BoxedValue), m_size);
+                    "Field offset out of bounds: {} + {} > {}", fieldOffset, sizeof(BoxedValue), m_size);
 
         BoxedValue* fieldPtr = (BoxedValue*)(UIntPtr(target) + fieldOffset);
         new (fieldPtr) BoxedValue();

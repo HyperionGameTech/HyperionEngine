@@ -307,7 +307,7 @@ void Mesh::UploadGpuData()
     // @TODO fix for non-uint32 indices
     Assert(GpuElemTypeSize(m_meshDesc.meshAttributes.indexBufferElemType) == 4);
 
-    Array<float, ThreadAllocator> vertices;
+    Array<float, DynamicAllocator> vertices;
     BuildVertexBuffer(m_meshDesc.meshAttributes.inputLayout, vertices);
 
     const Span<const ubyte> indexData = GetIndexData();
@@ -318,8 +318,9 @@ void Mesh::UploadGpuData()
         return;
     }
 
-    TByteBuffer<ThreadAllocator> indices;
+    TByteBuffer<DynamicAllocator> indices;
     indices.SetSize(indexData.Size());
+
     Memory::Copy(indices.Data(), indexData.Data(), indexData.Size());
 
     const size_t vertexSize = m_meshDesc.meshAttributes.inputLayout.VertexSize();

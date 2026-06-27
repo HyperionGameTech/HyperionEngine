@@ -151,10 +151,10 @@ static std::counting_semaphore<RingBufferDepth> s_fullSemaphore { 0 };
 static std::counting_semaphore<RingBufferDepth> s_freeSemaphore { RingBufferDepth };
 
 // thread-local frame index for the game and render threads
-static thread_local uint32* s_threadFrameIndex;
+thread_local uint32* t_threadFrameIndex;
 static uint32 s_frameIndex[2] = { 0 };
 
-static thread_local uint32 s_currentRenderThreadIndex;
+thread_local uint32 t_currentRenderThreadIndex;
 
 enum
 {
@@ -321,7 +321,7 @@ static BufferedViewData* GetBufferedViewData(View* view, uint32 slot)
     TUniqueLock<SharedMutex> uniqueLock;
 
     // need to lock IFF on task thread
-    if (Framework::s_threadFrameIndex == nullptr)
+    if (Framework::t_threadFrameIndex == nullptr)
     {
         sharedLock.Reset(bufferedData.viewFrameDataMutex);
     }
@@ -368,15 +368,15 @@ static BufferedViewData* GetBufferedViewData(View* view, uint32 slot)
 
 uint32 GetRingIndex()
 {
-    if (HYP_UNLIKELY(!Framework::s_threadFrameIndex))
+    if (HYP_UNLIKELY(!Framework::t_threadFrameIndex))
     {
         const int threadType = Framework::CurrentThreadType();
         Assert(threadType >= 0, "GetRingIndex called from an invalid thread!");
 
-        Framework::s_threadFrameIndex = &Framework::s_frameIndex[threadType];
+        Framework::t_threadFrameIndex = &Framework::s_frameIndex[threadType];
     }
 
-    return *Framework::s_threadFrameIndex;
+    return *Framework::t_threadFrameIndex;
 }
 
 uint32 GetFrameCounter()
@@ -511,7 +511,7 @@ WorldShaderData* GetWorldBufferData()
 {
     AssertOnThread(g_simThread | g_renderThread);
 
-    return &Framework::s_bufferedData[*Framework::s_threadFrameIndex].worldBufferData;
+    return &Framework::s_bufferedData[*Framework::t_threadFrameIndex].worldBufferData;
 }
 
 void CommitActiveWorlds(Span<World*> activeWorlds)
@@ -526,29 +526,29 @@ Span<World*> GetActiveWorlds()
 {
     AssertOnThread(g_simThread | g_renderThread);
 
-    return Framework::s_bufferedData[*Framework::s_threadFrameIndex].activeWorlds.ToSpan();
+    return Framework::s_bufferedData[*Framework::t_threadFrameIndex].activeWorlds.ToSpan();
 }
 
 Viewport& GetViewport(View* view)
 {
     AssertOnThread(g_simThread | g_renderThread);
 
-    return Framework::GetBufferedViewData(view, *Framework::s_threadFrameIndex)->viewport;
+    return Framework::GetBufferedViewData(view, *Framework::t_threadFrameIndex)->viewport;
 }
 
 uint32 CurrentRenderThreadIndex()
 {
-    if (Framework::s_currentRenderThreadIndex == 0)
+    if (Framework::t_currentRenderThreadIndex == 0)
     {
-        Framework::s_currentRenderThreadIndex = 1 + (IsOnThread(g_renderThread) ? 0 : GetCurrentThreadIndex() + 1);
+        Framework::t_currentRenderThreadIndex = 1 + (IsOnThread(g_renderThread) ? 0 : GetCurrentThreadIndex() + 1);
     }
 
-    return Framework::s_currentRenderThreadIndex - 1;
+    return Framework::t_currentRenderThreadIndex - 1;
 }
 
 void BeginFrameSim(AtomicFlag* pCancelFlag)
 {
-    Framework::s_threadFrameIndex = &Framework::s_frameIndex[Framework::TT_FrameDataProducer];
+    Framework::t_threadFrameIndex = &Framework::s_frameIndex[Framework::TT_FrameDataProducer];
 
     {
         ENGINE_STAT_SCOPE(&g_statSimThreadSync);
@@ -626,7 +626,7 @@ RendererResult RenderInterface::Initialize()
 {
     HYP_LOG(Rendering, Verbose, "Initializing base render interface");
 
-    Framework::s_threadFrameIndex = &Framework::s_frameIndex[Framework::TT_FrameDataConsumer];
+    Framework::t_threadFrameIndex = &Framework::s_frameIndex[Framework::TT_FrameDataConsumer];
 
     gpuBufferHolders = PoolNew<GpuBufferHolderMap>(*g_renderPool);
     cbufferAllocator = PoolNew<CBufferAllocator>(*g_renderPool);

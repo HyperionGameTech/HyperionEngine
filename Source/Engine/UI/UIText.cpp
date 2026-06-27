@@ -70,11 +70,11 @@ static void ForEachCharacter(
 {
     HYP_SCOPE;
 
-    static thread_local bool s_isInFunction = false;
-    Assert(!s_isInFunction, "Re-entry detected");
+    thread_local bool t_isInFunction = false;
+    Assert(!t_isInFunction, "Re-entry detected");
 
-    s_isInFunction = true;
-    HYP_DEFER({ s_isInFunction = false; });
+    t_isInFunction = true;
+    HYP_DEFER({ t_isInFunction = false; });
 
     Vec2f placement = Vec2f::Zero();
 
@@ -103,24 +103,24 @@ static void ForEachCharacter(
         atlasPixelSize = Vec2f::One() / Vec2f(mainTextureAtlas->GetExtent().GetXY());
     }
 
-    static thread_local Array<FontAtlasCharacterIterator>* s_currentWordChars = nullptr;
+    thread_local Array<FontAtlasCharacterIterator>* t_currentWordChars = nullptr;
 
-    if (HYP_UNLIKELY(!s_currentWordChars))
+    if (HYP_UNLIKELY(!t_currentWordChars))
     {
-        s_currentWordChars = new Array<FontAtlasCharacterIterator>;
-        s_currentWordChars->Reserve(16);
+        t_currentWordChars = new Array<FontAtlasCharacterIterator>;
+        t_currentWordChars->Reserve(16);
 
         CurrentThreadObject()->AddOnExitCallback(
             []()
             {
-                delete s_currentWordChars;
-                s_currentWordChars = nullptr;
+                delete t_currentWordChars;
+                t_currentWordChars = nullptr;
             });
     }
 
-    s_currentWordChars->Reserve(static_cast<size_t>(text.Size() * 1.1));
+    t_currentWordChars->Reserve(static_cast<size_t>(text.Size() * 1.1));
 
-    auto& currentWordChars = *s_currentWordChars;
+    auto& currentWordChars = *t_currentWordChars;
 
     const auto iterateCurrentWord = [&currentWordChars, &callback]()
     {

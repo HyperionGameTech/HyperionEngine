@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <AssetPch.hpp>
 
@@ -349,17 +349,17 @@ struct FBXLoaderMemory
     SlabAllocator* objectAllocator;
 };
 
-thread_local FBXLoaderMemory* s_fbxMemory = nullptr;
+thread_local FBXLoaderMemory* t_fbxMemory = nullptr;
 
 static void InitFBXLoaderMemory()
 {
-    if (s_fbxMemory == nullptr)
+    if (t_fbxMemory == nullptr)
     {
-        s_fbxMemory = new FBXLoaderMemory {
+        t_fbxMemory = new FBXLoaderMemory {
             .arena = Arena(16 * 1024 * 1024) // 16 MB
         };
 
-        s_fbxMemory->objectAllocator = new SlabAllocator(sizeof(FBXObject), alignof(FBXObject), 1024);
+        t_fbxMemory->objectAllocator = new SlabAllocator(sizeof(FBXObject), alignof(FBXObject), 1024);
     }
 }
 
@@ -376,7 +376,7 @@ static void DeleteFBXObjectsRecursively(FBXObject* object)
     }
 
     object->~FBXObject();
-    s_fbxMemory->objectAllocator->Free(object);
+    t_fbxMemory->objectAllocator->Free(object);
 }
 
 static Result ReadFBXProperty(ByteReader& reader, FBXProperty& outProperty);
@@ -629,7 +629,7 @@ static uint64 ReadFBXOffset(ByteReader& reader, FBXVersion version)
 
 static Result ReadFBXNode(ByteReader& reader, FBXVersion version, FBXObject*& out)
 {
-    out = (FBXObject*)s_fbxMemory->objectAllocator->Allocate();
+    out = (FBXObject*)t_fbxMemory->objectAllocator->Allocate();
     new (out) FBXObject();
 
     uint64 endPosition = ReadFBXOffset(reader, version);
@@ -1016,7 +1016,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 if (boneIndex == uint32(-1))
                 {
                     HYP_LOG(Assets, Warning, "LimbNode with id {}: Bone with name {} not found in Skeleton",
-                        cluster->limbId, limbNode->name);
+                            cluster->limbId, limbNode->name);
 
                     continue;
                 }
@@ -1033,7 +1033,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     if (size_t(positionIndex) >= mesh.vertexData.Size() / sizeof(FatVertex))
                     {
                         HYP_LOG(Assets, Warning, "Position index {} out of range of vertex count {}",
-                            positionIndex, mesh.vertexData.Size() / sizeof(FatVertex));
+                                positionIndex, mesh.vertexData.Size() / sizeof(FatVertex));
 
                         break;
                     }
@@ -1505,12 +1505,12 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
         }                                                                                                 \
                                                                                                           \
         HYP_LOG(Assets, Warning, "Invalid fbx_node connection: {} \"{}\" ({}) -> {} \"{}\" ({})\n\t" msg, \
-            leftType.Data(),                                                                              \
-            leftName.Data(),                                                                              \
-            connection.left,                                                                              \
-            rightType.Data(),                                                                             \
-            rightName.Data(),                                                                             \
-            connection.right);                                                                            \
+                leftType.Data(),                                                                          \
+                leftName.Data(),                                                                          \
+                connection.left,                                                                          \
+                rightType.Data(),                                                                         \
+                rightName.Data(),                                                                         \
+                connection.right);                                                                        \
         continue;                                                                                         \
     }
 

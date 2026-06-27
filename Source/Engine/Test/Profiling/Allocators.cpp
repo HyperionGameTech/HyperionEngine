@@ -109,7 +109,7 @@ void ProfileDynamicAllocFreeOverAligned()
 
 // ---- ThreadAllocator profiles ----
 
-ThreadAllocator g_thr;
+thread_local ThreadAllocator g_thr;
 
 void ProfileThreadAllocFreeSmall()
 {
@@ -359,12 +359,12 @@ void ProfileSlabBatchAllocFreeLarge()
 
 struct SectionEntry
 {
-    const char *label;
+    const char* label;
     Profile::ProfileFunction function;
 };
 
 template <size_t Count>
-void RunSection(const char *title, const SectionEntry (&entries)[Count], size_t runsPer, size_t numIterations, size_t runsPerIteration)
+void RunSection(const char* title, const SectionEntry (&entries)[Count], size_t runsPer, size_t numIterations, size_t runsPerIteration)
 {
     Array<Profile> profiles;
     profiles.Reserve(Count);
@@ -372,7 +372,7 @@ void RunSection(const char *title, const SectionEntry (&entries)[Count], size_t 
     for (size_t i = 0; i < Count; ++i)
         profiles.EmplaceBack(entries[i].function);
 
-    Array<Profile *> profilePtrs;
+    Array<Profile*> profilePtrs;
     profilePtrs.Reserve(Count);
 
     for (size_t i = 0; i < Count; ++i)
@@ -394,19 +394,19 @@ void RunSection(const char *title, const SectionEntry (&entries)[Count], size_t 
 HYP_EXPORT void PrintAllocatorProfiling(size_t runsPer = 5, size_t numIterations = 50, size_t runsPerIteration = 10)
 {
     const SectionEntry sequentialEntries[] = {
-        { "Dynamic   32B alloc+free",     &ProfileDynamicAllocFreeSmall },
-        { "Thread    32B alloc+free",     &ProfileThreadAllocFreeSmall },
-        { "Pool      32B alloc+free",     &ProfilePoolAllocFreeSmall },
-        { "Dynamic   4KB alloc+free",     &ProfileDynamicAllocFreeLarge },
-        { "Thread    4KB alloc+free",     &ProfileThreadAllocFreeLarge },
-        { "Pool      4KB alloc+free",     &ProfilePoolAllocFreeLarge },
-        { "Dynamic   mixed alloc+free",   &ProfileDynamicAllocFreeMixed },
-        { "Thread    mixed alloc+free",   &ProfileThreadAllocFreeMixed },
-        { "Pool      mixed alloc+free",   &ProfilePoolAllocFreeMixed },
+        { "Dynamic   32B alloc+free", &ProfileDynamicAllocFreeSmall },
+        { "Thread    32B alloc+free", &ProfileThreadAllocFreeSmall },
+        { "Pool      32B alloc+free", &ProfilePoolAllocFreeSmall },
+        { "Dynamic   4KB alloc+free", &ProfileDynamicAllocFreeLarge },
+        { "Thread    4KB alloc+free", &ProfileThreadAllocFreeLarge },
+        { "Pool      4KB alloc+free", &ProfilePoolAllocFreeLarge },
+        { "Dynamic   mixed alloc+free", &ProfileDynamicAllocFreeMixed },
+        { "Thread    mixed alloc+free", &ProfileThreadAllocFreeMixed },
+        { "Pool      mixed alloc+free", &ProfilePoolAllocFreeMixed },
     };
 
     const SectionEntry batchEntries[] = {
-        { "Dynamic 32B batch alloc+free",  &ProfileDynamicBatchAllocFreeSmall },
+        { "Dynamic 32B batch alloc+free", &ProfileDynamicBatchAllocFreeSmall },
         { "Thread   32B batch alloc+free", &ProfileThreadBatchAllocFreeSmall },
         { "Pool     32B batch alloc+free", &ProfilePoolBatchAllocFreeSmall },
     };
@@ -418,19 +418,19 @@ HYP_EXPORT void PrintAllocatorProfiling(size_t runsPer = 5, size_t numIterations
     };
 
     const SectionEntry slabEntries[] = {
-        { "Slab 64B alloc+free",     &ProfileSlabAllocFreeSmall },
-        { "Slab 4KB alloc+free",     &ProfileSlabAllocFreeLarge },
+        { "Slab 64B alloc+free", &ProfileSlabAllocFreeSmall },
+        { "Slab 4KB alloc+free", &ProfileSlabAllocFreeLarge },
     };
 
     const SectionEntry slabBatchEntries[] = {
-        { "Slab 64B batch alloc+free",  &ProfileSlabBatchAllocFreeSmall },
-        { "Slab 4KB batch alloc+free",  &ProfileSlabBatchAllocFreeLarge },
+        { "Slab 64B batch alloc+free", &ProfileSlabBatchAllocFreeSmall },
+        { "Slab 4KB batch alloc+free", &ProfileSlabBatchAllocFreeLarge },
     };
 
     const SectionEntry arenaEntries[] = {
-        { "Arena 32B alloc",    &ProfileArenaAllocSmall },
-        { "Arena 4KB alloc",    &ProfileArenaAllocLarge },
-        { "Arena mixed alloc",  &ProfileArenaAllocMixed },
+        { "Arena 32B alloc", &ProfileArenaAllocSmall },
+        { "Arena 4KB alloc", &ProfileArenaAllocLarge },
+        { "Arena mixed alloc", &ProfileArenaAllocMixed },
     };
 
     std::printf("=== Allocator profiling (N=%zu) ===\n\n", LargeCount);

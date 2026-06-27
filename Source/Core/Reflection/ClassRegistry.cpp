@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <Core/Reflection/ClassRegistry.hpp>
 #include <Core/Reflection/Class.hpp>
@@ -39,7 +39,7 @@ static ThreadLocalCacheMap& GetDummyThreadLocalCache()
     return s_dummy;
 }
 
-thread_local ThreadLocalCacheMap* s_cache;
+thread_local ThreadLocalCacheMap* t_cache;
 
 static void InitThreadLocalCache()
 {
@@ -47,23 +47,23 @@ static void InitThreadLocalCache()
 
     if (thisThread)
     {
-        s_cache = thisThread->GetTLS().Allocate<ThreadLocalCacheMap>();
+        t_cache = thisThread->GetTLS().Allocate<ThreadLocalCacheMap>();
 
-        if (s_cache)
+        if (t_cache)
         {
-            new (s_cache) ThreadLocalCacheMap;
+            new (t_cache) ThreadLocalCacheMap;
 
             thisThread->AddOnExitCallback([]()
-                {
-                    s_cache->~ThreadLocalCacheMap();
-                });
+                                          {
+                                              t_cache->~ThreadLocalCacheMap();
+                                          });
 
             return;
         }
     }
 
     // not mutated, just used as a fallback for searching from (won't return any results)
-    s_cache = &GetDummyThreadLocalCache();
+    t_cache = &GetDummyThreadLocalCache();
 }
 
 #endif
@@ -93,13 +93,13 @@ const Class* ClassRegistry::GetClass(TypeId typeId) const
 #if defined(HYP_CLASS_REGISTRY_USE_TLS) && HYP_CLASS_REGISTRY_USE_TLS
     if (!typeId.IsDynamicType())
     {
-        if (HYP_UNLIKELY(!s_cache))
+        if (HYP_UNLIKELY(!t_cache))
         {
             InitThreadLocalCache();
         }
 
-        auto it = s_cache->Find(typeId);
-        if (it != s_cache->End())
+        auto it = t_cache->Find(typeId);
+        if (it != t_cache->End())
         {
             return it->second;
         }
@@ -128,9 +128,9 @@ const Class* ClassRegistry::GetClass(TypeId typeId) const
     }
 
 #if defined(HYP_CLASS_REGISTRY_USE_TLS) && HYP_CLASS_REGISTRY_USE_TLS
-    if (s_cache && s_cache != &GetDummyThreadLocalCache())
+    if (t_cache && t_cache != &GetDummyThreadLocalCache())
     {
-        (*s_cache)[typeId] = it->second;
+        (*t_cache)[typeId] = it->second;
     }
 #endif
 
@@ -142,16 +142,16 @@ const Class* ClassRegistry::GetClass(StringHash typeName) const
     Mutex::Guard guard(m_mutex);
 
     const auto it = m_classesByTypeId.FindIf([typeName](auto&& item)
-        {
-            return item.second->GetName() == typeName;
-        });
+                                             {
+                                                 return item.second->GetName() == typeName;
+                                             });
 
     if (it == m_classesByTypeId.End())
     {
         auto dynamicIt = m_dynamicClasses.FindIf([typeName](auto&& item)
-            {
-                return item.second->GetName() == typeName;
-            });
+                                                 {
+                                                     return item.second->GetName() == typeName;
+                                                 });
 
         if (dynamicIt != m_dynamicClasses.End())
         {
@@ -177,42 +177,42 @@ const Class* ClassRegistry::GetClass(ANSIStringView typeName, bool ignoreCase) c
     StringHash typeNameHash = StringHash(typeName);
 
     const auto it = m_classesByTypeId.FindIf([typeName, ignoreCase, &typeNameLower, typeNameHash](auto&& item)
-        {
-            if (ignoreCase)
-            {
-                // lazy lower-case conversion
-                if (typeNameLower.Empty())
-                {
-                    typeNameLower = ANSIString(typeName).ToLower();
-                }
+                                             {
+                                                 if (ignoreCase)
+                                                 {
+                                                     // lazy lower-case conversion
+                                                     if (typeNameLower.Empty())
+                                                     {
+                                                         typeNameLower = ANSIString(typeName).ToLower();
+                                                     }
 
-                ANSIString itemNameLower = ANSIString(*item.second->GetName()).ToLower();
+                                                     ANSIString itemNameLower = ANSIString(*item.second->GetName()).ToLower();
 
-                return itemNameLower == typeNameLower;
-            }
+                                                     return itemNameLower == typeNameLower;
+                                                 }
 
-            return item.second->GetName() == typeNameHash;
-        });
+                                                 return item.second->GetName() == typeNameHash;
+                                             });
 
     if (it == m_classesByTypeId.End())
     {
         auto dynamicIt = m_dynamicClasses.FindIf([typeName, ignoreCase, &typeNameLower](auto&& item)
-            {
-                if (ignoreCase)
-                {
-                    // lazy lower-case conversion
-                    if (typeNameLower.Empty())
-                    {
-                        typeNameLower = ANSIString(typeName).ToLower();
-                    }
+                                                 {
+                                                     if (ignoreCase)
+                                                     {
+                                                         // lazy lower-case conversion
+                                                         if (typeNameLower.Empty())
+                                                         {
+                                                             typeNameLower = ANSIString(typeName).ToLower();
+                                                         }
 
-                    ANSIString itemNameLower = ANSIString(*item.second->GetName()).ToLower();
+                                                         ANSIString itemNameLower = ANSIString(*item.second->GetName()).ToLower();
 
-                    return itemNameLower == typeNameLower;
-                }
+                                                         return itemNameLower == typeNameLower;
+                                                     }
 
-                return item.second->GetName() == typeName;
-            });
+                                                     return item.second->GetName() == typeName;
+                                                 });
 
         if (dynamicIt != m_dynamicClasses.End())
         {
@@ -279,13 +279,12 @@ void ClassRegistry::Register(TypeId typeId, Class* cls, bool* outWasRegistered)
         if (m_dynamicClasses.Contains(typeId))
         {
             HYP_LOG(Object, Warning, "Attempted to register dynamic class with name {} but one already exists with that TypeId ({})!",
-                cls->GetName(), typeId.Value());
+                    cls->GetName(), typeId.Value());
 
             if (outWasRegistered)
             {
                 *outWasRegistered = false;
             }
-
 
             return;
         }
@@ -332,14 +331,14 @@ void ClassRegistry::Register(TypeId typeId, Class* cls, bool* outWasRegistered)
     }
 
 #if defined(HYP_CLASS_REGISTRY_USE_TLS) && HYP_CLASS_REGISTRY_USE_TLS
-    if (HYP_UNLIKELY(!s_cache))
+    if (HYP_UNLIKELY(!t_cache))
     {
         InitThreadLocalCache();
     }
 
-    if (s_cache && s_cache != &GetDummyThreadLocalCache())
+    if (t_cache && t_cache != &GetDummyThreadLocalCache())
     {
-        (*s_cache)[typeId] = cls;
+        (*t_cache)[typeId] = cls;
     }
 #endif
 }
@@ -351,9 +350,9 @@ bool ClassRegistry::Unregister(const Class* cls)
     Mutex::Guard guard(m_mutex);
 
     auto it = m_dynamicClasses.FindIf([cls](auto&& item)
-        {
-            return item.second == cls;
-        });
+                                      {
+                                          return item.second == cls;
+                                      });
 
     if (it == m_dynamicClasses.End())
     {
@@ -406,9 +405,9 @@ void ClassRegistry::Initialize()
     m_isInitialized = true;
 
     auto hypObjectBaseClassIt = m_classesByTypeId.FindIf([](auto&& item)
-        {
-            return item.second->GetName() == "ObjectBase"_sh;
-        });
+                                                         {
+                                                             return item.second->GetName() == "ObjectBase"_sh;
+                                                         });
 
     HYP_CORE_ASSERT(hypObjectBaseClassIt != m_classesByTypeId.End(), "ObjectBase class not registered");
 

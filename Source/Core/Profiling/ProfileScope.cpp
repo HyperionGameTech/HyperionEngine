@@ -589,8 +589,8 @@ static ProfileScopeStack* s_allRegisteredProfileScopeStacks[MaxRegisteredProfile
 static volatile int64 s_numRegisteredProfileScopeStacks;
 static volatile int64 s_profileScopeStacksBitMask;
 
-static thread_local ProfileScopeStack* s_profileScopeStack;
-static thread_local uint32 s_profileScopeStackIndex;
+thread_local ProfileScopeStack* t_profileScopeStack;
+thread_local uint32 t_profileScopeStackIndex;
 
 void CollectAllHotFunctions(Array<Pair<ANSIString, double>>& outHotFunctions)
 {
@@ -620,34 +620,32 @@ void CollectAllHotFunctions(Array<Pair<ANSIString, double>>& outHotFunctions)
 
 ProfileScopeStack& ProfileScope::GetProfileScopeStackForCurrentThread()
 {
-    if (HYP_UNLIKELY(!s_profileScopeStack))
+    if (HYP_UNLIKELY(!t_profileScopeStack))
     {
-        s_profileScopeStackIndex = uint32(AtomicAdd(&s_numRegisteredProfileScopeStacks, 1));
-        Assert(s_profileScopeStackIndex < MaxRegisteredProfileScopeStacks, "Too many profile scope stacks registered");
+        t_profileScopeStackIndex = uint32(AtomicAdd(&s_numRegisteredProfileScopeStacks, 1));
+        Assert(t_profileScopeStackIndex < MaxRegisteredProfileScopeStacks, "Too many profile scope stacks registered");
 
         ThreadBase* currThread = CurrentThreadObject();
         if (currThread != nullptr)
         {
             // use thread local allocator
 
-            s_profileScopeStack = new ProfileScopeStack;
-            AssertDebug(s_profileScopeStack != nullptr);
+            t_profileScopeStack = new ProfileScopeStack;
+            AssertDebug(t_profileScopeStack != nullptr);
 
-            new (s_profileScopeStack) ProfileScopeStack;
+            s_allRegisteredProfileScopeStacks[t_profileScopeStackIndex] = t_profileScopeStack;
 
-            s_allRegisteredProfileScopeStacks[s_profileScopeStackIndex] = s_profileScopeStack;
-
-            AtomicBitOr(&s_profileScopeStacksBitMask, int64(1 << s_profileScopeStackIndex));
+            AtomicBitOr(&s_profileScopeStacksBitMask, int64(1 << t_profileScopeStackIndex));
 
             currThread->AddOnExitCallback(
                 []()
                 {
-                    AtomicBitAnd(&s_profileScopeStacksBitMask, ~(1 << s_profileScopeStackIndex));
+                    AtomicBitAnd(&s_profileScopeStacksBitMask, ~(1 << t_profileScopeStackIndex));
 
-                    s_allRegisteredProfileScopeStacks[s_profileScopeStackIndex] = nullptr;
+                    s_allRegisteredProfileScopeStacks[t_profileScopeStackIndex] = nullptr;
 
-                    delete s_profileScopeStack;
-                    s_profileScopeStack = nullptr;
+                    delete t_profileScopeStack;
+                    t_profileScopeStack = nullptr;
                 });
         }
         else
@@ -658,16 +656,16 @@ ProfileScopeStack& ProfileScope::GetProfileScopeStackForCurrentThread()
             // but currently some threads don't have an object assoc'd so i'm adding this for now
             // as a temporary measure :)
 
-            static thread_local ProfileScopeStack s_profileScopeStackInstance;
-            s_profileScopeStack = &s_profileScopeStackInstance;
+            thread_local ProfileScopeStack t_profileScopeStackInstance;
+            t_profileScopeStack = &t_profileScopeStackInstance;
 
-            AtomicBitOr(&s_profileScopeStacksBitMask, int64(1 << s_profileScopeStackIndex));
+            AtomicBitOr(&s_profileScopeStacksBitMask, int64(1 << t_profileScopeStackIndex));
 
-            s_allRegisteredProfileScopeStacks[s_profileScopeStackIndex] = s_profileScopeStack;
+            s_allRegisteredProfileScopeStacks[t_profileScopeStackIndex] = t_profileScopeStack;
         }
     }
 
-    return *s_profileScopeStack;
+    return *t_profileScopeStack;
 }
 
 void ProfileScope::ResetForCurrentThread()

@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <Core/JSON/JSON.hpp>
 #include <Core/JSON/Parser/Lexer.hpp>
@@ -998,16 +998,16 @@ JString Value::ToString(bool representation, uint32 depth) const
 
 JString Value::ToString_Internal(bool representation, uint32 depth) const
 {
-    static thread_local TSet<const Value*> s_serializedObjects;
+    thread_local TSet<const Value*> t_serializedObjects;
 
-    if (!s_serializedObjects.Insert(this).second)
+    if (!t_serializedObjects.Insert(this).second)
     {
         // already serializing this object, circular reference detected
         return "<circular reference>";
     }
 
     HYP_DEFER({
-        s_serializedObjects.Erase(this);
+        t_serializedObjects.Erase(this);
     });
 
     if (IsString())

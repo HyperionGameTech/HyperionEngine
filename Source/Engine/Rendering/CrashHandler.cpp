@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -35,7 +35,7 @@ CORE_API extern FilePath GetExecutablePath();
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Rendering);
 
-thread_local Array<FilePath>* g_savedDumpFiles = nullptr;
+thread_local Array<FilePath>* t_savedDumpFiles = nullptr;
 static Mutex g_savedDumpFilesPerThreadMutex;
 static Array<Array<FilePath>*> g_savedDumpFilesPerThread {};
 
@@ -67,7 +67,7 @@ void CrashHandler::Initialize()
                        dump,
                        size,
                        &decoder)
-                == GFSDK_Aftermath_Result_Success);
+                   == GFSDK_Aftermath_Result_Success);
 
             // Query GPU page fault information.
             GFSDK_Aftermath_GpuCrashDump_PageFaultInfo faultInfo = {};
@@ -85,11 +85,11 @@ void CrashHandler::Initialize()
                 {
                     HYP_LOG(Rendering, Error, "Fault in resource starting at {}", faultInfo.resourceInfo.gpuVa);
                     HYP_LOG(Rendering, Error, "Size of resource: (w x h x d x ml) = ({}, {}, {}, {}) = {} bytes",
-                        faultInfo.resourceInfo.width,
-                        faultInfo.resourceInfo.height,
-                        faultInfo.resourceInfo.depth,
-                        faultInfo.resourceInfo.mipLevels,
-                        faultInfo.resourceInfo.size);
+                            faultInfo.resourceInfo.width,
+                            faultInfo.resourceInfo.height,
+                            faultInfo.resourceInfo.depth,
+                            faultInfo.resourceInfo.mipLevels,
+                            faultInfo.resourceInfo.size);
                     HYP_LOG(Rendering, Error, "Format of resource: {}", faultInfo.resourceInfo.format);
                     HYP_LOG(Rendering, Error, "Resource was destroyed: {}", faultInfo.resourceInfo.bWasDestroyed);
                 }
@@ -111,7 +111,6 @@ void CrashHandler::Initialize()
                     {
                         for (const GFSDK_Aftermath_GpuCrashDump_GpuInfo& info : infos)
                         {
-
                         }
                     }
                 }
@@ -135,9 +134,9 @@ void CrashHandler::Initialize()
                         for (const GFSDK_Aftermath_GpuCrashDump_ShaderInfo& info : infos)
                         {
                             HYP_LOG(Rendering, Error, "Active shader: ShaderHash = {} ShaderInstance = {} Shadertype = {}",
-                                info.shaderHash,
-                                info.shaderInstance,
-                                info.shaderType);
+                                    info.shaderHash,
+                                    info.shaderInstance,
+                                    info.shaderType);
                         }
                     }
                 }
@@ -154,15 +153,15 @@ void CrashHandler::Initialize()
                 writer.Write(bytes.data(), bytes.size());
                 writer.Close();
 
-                if (!g_savedDumpFiles)
+                if (!t_savedDumpFiles)
                 {
-                    g_savedDumpFiles = new Array<FilePath>();
+                    t_savedDumpFiles = new Array<FilePath>();
 
                     Mutex::Guard guard(g_savedDumpFilesPerThreadMutex);
-                    g_savedDumpFilesPerThread.PushBack(g_savedDumpFiles);
+                    g_savedDumpFilesPerThread.PushBack(t_savedDumpFiles);
                 }
 
-                g_savedDumpFiles->PushBack(writer.GetFilePath());
+                t_savedDumpFiles->PushBack(writer.GetFilePath());
             }
         },
         [](const void* info, const uint32 size, void*)
@@ -177,9 +176,9 @@ void CrashHandler::Initialize()
             std::string str = ss.str();
 
             std::transform(str.begin(), str.end(), str.begin(), [](char ch)
-                {
-                    return std::toupper(ch);
-                });
+                           {
+                               return std::toupper(ch);
+                           });
 
             std::vector<char> bytes;
             bytes.resize(size);
@@ -190,15 +189,15 @@ void CrashHandler::Initialize()
             writer.Write(bytes.data(), bytes.size());
             writer.Close();
 
-            if (!g_savedDumpFiles)
+            if (!t_savedDumpFiles)
             {
-                g_savedDumpFiles = new Array<FilePath>();
+                t_savedDumpFiles = new Array<FilePath>();
 
                 Mutex::Guard guard(g_savedDumpFilesPerThreadMutex);
-                g_savedDumpFilesPerThread.PushBack(g_savedDumpFiles);
+                g_savedDumpFilesPerThread.PushBack(t_savedDumpFiles);
             }
 
-            g_savedDumpFiles->PushBack(writer.GetFilePath());
+            t_savedDumpFiles->PushBack(writer.GetFilePath());
         },
         [](PFN_GFSDK_Aftermath_AddGpuCrashDumpDescription, void*)
         {
@@ -255,12 +254,12 @@ void CrashHandler::Dump()
 
     const String message = String("A GPU crash has been detected. The application will now exit.")
         + (g_savedDumpFilesPerThread.Any()
-                ? HYP_FORMAT("\nCrash dump(s) has been saved to: {}\n\nPlease attach these when submitting a bug report.",
-                      String::Join(g_savedDumpFilesPerThread, '\n', [](const Array<FilePath>* item)
-                          {
-                              return item ? String::Join(*item, '\n') : String();
-                          }))
-                : "\nCrash dump state is unknown.");
+               ? HYP_FORMAT("\nCrash dump(s) has been saved to: {}\n\nPlease attach these when submitting a bug report.",
+                            String::Join(g_savedDumpFilesPerThread, '\n', [](const Array<FilePath>* item)
+                                         {
+                                             return item ? String::Join(*item, '\n') : String();
+                                         }))
+               : "\nCrash dump state is unknown.");
 
     HYP_LOG(Rendering, Fatal, "GPU Crash Detected!\n{}", message);
 }

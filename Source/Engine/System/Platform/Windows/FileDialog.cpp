@@ -130,28 +130,29 @@ static void BuildFilterBuffer(Span<const ANSIStringView> extensions, MemoryByteW
     WriteNullTerminator();
 }
 
-thread_local bool s_isCOMInitialized = false;
+thread_local bool t_isCOMInitialized = false;
 
 static void InitializeCOM()
 {
-    if (!s_isCOMInitialized)
+    if (!t_isCOMInitialized)
     {
         HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
         Assert(SUCCEEDED(hr), "Failed to initialize COM library");
 
-        s_isCOMInitialized = true;
+        t_isCOMInitialized = true;
 
         ThreadBase* thread = CurrentThreadObject();
         Assert(thread != nullptr, "CurrentThreadObject returned null");
-        
-        thread->AddOnExitCallback([]()
-        {
-            if (s_isCOMInitialized)
+
+        thread->AddOnExitCallback(
+            []()
             {
-                CoUninitialize();
-                s_isCOMInitialized = false;
-            }
-        });
+                if (t_isCOMInitialized)
+                {
+                    CoUninitialize();
+                    t_isCOMInitialized = false;
+                }
+            });
     }
 }
 
@@ -351,15 +352,15 @@ void ShowSelectFolderDialog(
     // parse filename
     Array<String> parts = baseDir.Split('\\', '/');
     parts = StringUtil::CanonicalizePath(parts);
-    
+
     FilePath canonPath { String::Join(parts, "\\") };
 
     IFileDialog* pFileDialog = NULL;
 
     HRESULT hr = CoCreateInstance(
-        CLSID_FileOpenDialog, 
-        NULL, 
-        CLSCTX_INPROC_SERVER, 
+        CLSID_FileOpenDialog,
+        NULL,
+        CLSCTX_INPROC_SERVER,
         IID_PPV_ARGS(&pFileDialog));
 
     if (!SUCCEEDED(hr))
@@ -377,7 +378,7 @@ void ShowSelectFolderDialog(
 
     DWORD dwOptions;
     hr = pFileDialog->GetOptions(&dwOptions);
-    
+
     if (SUCCEEDED(hr))
     {
         pFileDialog->SetOptions(dwOptions | FOS_PICKFOLDERS);
@@ -446,7 +447,7 @@ void ShowSelectFolderDialog(
         callback(ResultFromHResult(hr));
         return;
     }
-    
+
     FilePath selectedPath = FilePath(WideString(pszFilePath).ToUtf8());
     callback(TResult<FilePath>(std::move(selectedPath)));
 

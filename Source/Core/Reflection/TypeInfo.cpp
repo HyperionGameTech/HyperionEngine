@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <Core/Reflection/BoxedValue.hpp>
 #include <Core/Reflection/Class.hpp>
@@ -20,7 +20,7 @@
 #include <Core/Memory/Pool/Pool.hpp>
 #include <Core/Memory/Allocator/SlabAllocator.hpp>
 
-//#define HYP_TYPE_INFO_USE_TLS 1
+// #define HYP_TYPE_INFO_USE_TLS 1
 
 namespace Hyperion {
 namespace utilities {
@@ -75,7 +75,7 @@ static ThreadLocalCacheMap& GetDummyThreadLocalCache()
     return s_dummy;
 }
 
-thread_local ThreadLocalCacheMap* s_typeInfoThreadLocalCache;
+thread_local ThreadLocalCacheMap* t_typeInfoThreadLocalCache;
 
 static void InitTypeInfoThreadLocalCache()
 {
@@ -83,22 +83,22 @@ static void InitTypeInfoThreadLocalCache()
 
     if (thisThread)
     {
-        s_typeInfoThreadLocalCache = thisThread->GetTLS().Allocate<ThreadLocalCacheMap>();
+        t_typeInfoThreadLocalCache = thisThread->GetTLS().Allocate<ThreadLocalCacheMap>();
 
-        if (s_typeInfoThreadLocalCache)
+        if (t_typeInfoThreadLocalCache)
         {
-            new (s_typeInfoThreadLocalCache) ThreadLocalCacheMap;
+            new (t_typeInfoThreadLocalCache) ThreadLocalCacheMap;
 
             thisThread->AddOnExitCallback([]()
-                {
-                    s_typeInfoThreadLocalCache->~ThreadLocalCacheMap();
-                });
+                                          {
+                                              t_typeInfoThreadLocalCache->~ThreadLocalCacheMap();
+                                          });
 
             return;
         }
     }
 
-    s_typeInfoThreadLocalCache = &GetDummyThreadLocalCache();
+    t_typeInfoThreadLocalCache = &GetDummyThreadLocalCache();
 }
 
 #endif
@@ -120,14 +120,14 @@ CORE_API TypeInfo* TypeInfo_Alloc(
     if (it != typeAttributeCache.End())
     {
 #if defined(HYP_TYPE_INFO_USE_TLS) && HYP_TYPE_INFO_USE_TLS
-        if (HYP_UNLIKELY(!s_typeInfoThreadLocalCache))
+        if (HYP_UNLIKELY(!t_typeInfoThreadLocalCache))
         {
             InitTypeInfoThreadLocalCache();
         }
 
-        if (s_typeInfoThreadLocalCache && s_typeInfoThreadLocalCache != &GetDummyThreadLocalCache())
+        if (t_typeInfoThreadLocalCache && t_typeInfoThreadLocalCache != &GetDummyThreadLocalCache())
         {
-            (*s_typeInfoThreadLocalCache)[typeId] = it->second;
+            (*t_typeInfoThreadLocalCache)[typeId] = it->second;
         }
 #endif
         return it->second;
@@ -139,14 +139,14 @@ CORE_API TypeInfo* TypeInfo_Alloc(
     typeAttributeCache.Insert({ typeId, pTypeInfo });
 
 #if defined(HYP_TYPE_INFO_USE_TLS) && HYP_TYPE_INFO_USE_TLS
-    if (HYP_UNLIKELY(!s_typeInfoThreadLocalCache))
+    if (HYP_UNLIKELY(!t_typeInfoThreadLocalCache))
     {
         InitTypeInfoThreadLocalCache();
     }
 
-    if (s_typeInfoThreadLocalCache && s_typeInfoThreadLocalCache != &GetDummyThreadLocalCache())
+    if (t_typeInfoThreadLocalCache && t_typeInfoThreadLocalCache != &GetDummyThreadLocalCache())
     {
-        (*s_typeInfoThreadLocalCache)[typeId] = pTypeInfo;
+        (*t_typeInfoThreadLocalCache)[typeId] = pTypeInfo;
     }
 #endif
 
@@ -158,13 +158,13 @@ CORE_API TypeInfo* TypeInfo_FetchFromCache(TypeId typeId, uint16 size, uint16 al
     AssertDebug(typeId != TypeId::Void(), "Cannot allocate TypeInfo for void type");
 
 #if defined(HYP_TYPE_INFO_USE_TLS) && HYP_TYPE_INFO_USE_TLS
-    if (HYP_UNLIKELY(!s_typeInfoThreadLocalCache))
+    if (HYP_UNLIKELY(!t_typeInfoThreadLocalCache))
     {
         InitTypeInfoThreadLocalCache();
     }
 
-    auto tlsIt = s_typeInfoThreadLocalCache->Find(typeId);
-    if (tlsIt != s_typeInfoThreadLocalCache->End())
+    auto tlsIt = t_typeInfoThreadLocalCache->Find(typeId);
+    if (tlsIt != t_typeInfoThreadLocalCache->End())
     {
         return tlsIt->second;
     }
@@ -178,9 +178,9 @@ CORE_API TypeInfo* TypeInfo_FetchFromCache(TypeId typeId, uint16 size, uint16 al
     if (it != typeAttributeCache.End())
     {
 #if defined(HYP_TYPE_INFO_USE_TLS) && HYP_TYPE_INFO_USE_TLS
-        if (s_typeInfoThreadLocalCache && s_typeInfoThreadLocalCache != &GetDummyThreadLocalCache())
+        if (t_typeInfoThreadLocalCache && t_typeInfoThreadLocalCache != &GetDummyThreadLocalCache())
         {
-            (*s_typeInfoThreadLocalCache)[typeId] = it->second;
+            (*t_typeInfoThreadLocalCache)[typeId] = it->second;
         }
 #endif
         return it->second;
@@ -354,13 +354,13 @@ const TypeInfo& TypeInfo::ForClass(const Class* cls)
     AssertDebug(!cls->IsDynamic());
 
 #if defined(HYP_TYPE_INFO_USE_TLS) && HYP_TYPE_INFO_USE_TLS
-    if (HYP_UNLIKELY(!s_typeInfoThreadLocalCache))
+    if (HYP_UNLIKELY(!t_typeInfoThreadLocalCache))
     {
         InitTypeInfoThreadLocalCache();
     }
 
-    auto tlsIt = s_typeInfoThreadLocalCache->Find(cls->GetTypeId());
-    if (tlsIt != s_typeInfoThreadLocalCache->End())
+    auto tlsIt = t_typeInfoThreadLocalCache->Find(cls->GetTypeId());
+    if (tlsIt != t_typeInfoThreadLocalCache->End())
     {
         if (s_typeInfoSystemInitialized) // don't check during static initialization
         {
@@ -382,9 +382,9 @@ const TypeInfo& TypeInfo::ForClass(const Class* cls)
         }
 
 #if defined(HYP_TYPE_INFO_USE_TLS) && HYP_TYPE_INFO_USE_TLS
-        if (s_typeInfoThreadLocalCache && s_typeInfoThreadLocalCache != &GetDummyThreadLocalCache())
+        if (t_typeInfoThreadLocalCache && t_typeInfoThreadLocalCache != &GetDummyThreadLocalCache())
         {
-            (*s_typeInfoThreadLocalCache)[cls->GetTypeId()] = it->second;
+            (*t_typeInfoThreadLocalCache)[cls->GetTypeId()] = it->second;
         }
 #endif
         return *it->second;

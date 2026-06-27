@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -28,8 +28,6 @@ namespace Hyperion {
 CORE_API extern const char* LookupTypeName(const TypeId& typeId);
 
 #pragma region StagingBufferPool
-
-static thread_local StagingBufferPool* s_stagingBufferPool = nullptr;
 
 struct StagingBufferPoolImpl
 {
@@ -120,8 +118,8 @@ struct StagingBufferPoolImpl
             bestMatchEntry.lastUsedFrame = currFrame;
 
             Assert(bestMatchEntry.buffer != nullptr
-                && bestMatchEntry.buffer->IsCreated()
-                && bestMatchEntry.buffer->Size() >= bestMatchEntry.size);
+                   && bestMatchEntry.buffer->IsCreated()
+                   && bestMatchEntry.buffer->Size() >= bestMatchEntry.size);
 
             return TBufferCache<CachedStagingBuffer, GpuBufferRef>::MoveToUsed(
                 cachedBuffers, usedBuffers, bestMatchIt, bestMatchEntry);
@@ -254,16 +252,15 @@ void GpuBufferHolderBase::CopyStagingToGpu(
         AssertDebug(stagingBuffer->IsCreated());
         AssertDebug(chunkEnd >= chunkStart);
         AssertDebug(chunkEnd - chunkStart <= stagingBuffer->Size(),
-            "Staging buffer size is too small! Staging buffer size = {}, required size = {}",
-            stagingBuffer->Size(), chunkEnd - chunkStart);
+                    "Staging buffer size is too small! Staging buffer size = {}, required size = {}",
+                    stagingBuffer->Size(), chunkEnd - chunkStart);
 
         cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
 
         cr << CopyBuffer(stagingBuffer, m_gpuBuffer, 0, chunkStart, (chunkEnd - chunkStart));
     }
 
-    cr << InsertBarrier(m_gpuBuffer, (m_gpuBuffer->GetBufferType() == GpuBufferType::RWStructuredBuffer
-        || m_gpuBuffer->GetBufferType() == GpuBufferType::RWByteAddressBuffer) ? RS_UNORDERED_ACCESS : RS_SHADER_RESOURCE);
+    cr << InsertBarrier(m_gpuBuffer, (m_gpuBuffer->GetBufferType() == GpuBufferType::RWStructuredBuffer || m_gpuBuffer->GetBufferType() == GpuBufferType::RWByteAddressBuffer) ? RS_UNORDERED_ACCESS : RS_SHADER_RESOURCE);
 }
 
 #pragma endregion GpuBufferHolderBase

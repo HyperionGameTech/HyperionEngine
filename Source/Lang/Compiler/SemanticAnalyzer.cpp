@@ -33,8 +33,7 @@ const SymbolType* SemanticAnalyzer::Helpers::ResolvePlaceholderType(
     const SymbolType* inputType,
     const SourceLocation& location)
 {
-
-    static thread_local Stack<Pair<SymbolType*, SymbolType*>> s_resolutionStack;
+    thread_local Stack<Pair<SymbolType*, SymbolType*>> t_resolutionStack;
 
     if (!inputType)
     {
@@ -45,7 +44,7 @@ const SymbolType* SemanticAnalyzer::Helpers::ResolvePlaceholderType(
 
     inputType = inputType->GetUnaliased();
 
-    for (const Pair<SymbolType*, SymbolType*>& entry : s_resolutionStack)
+    for (const Pair<SymbolType*, SymbolType*>& entry : t_resolutionStack)
     {
         if (entry.first == inputType && entry.second != nullptr)
         {
@@ -55,12 +54,12 @@ const SymbolType* SemanticAnalyzer::Helpers::ResolvePlaceholderType(
         }
     }
 
-    s_resolutionStack.Push({ const_cast<SymbolType*>(inputType), const_cast<SymbolType*>(inputType) });
+    t_resolutionStack.Push({ const_cast<SymbolType*>(inputType), const_cast<SymbolType*>(inputType) });
 
     HYP_DEFER({
-        AssertDebug(!s_resolutionStack.Empty() && s_resolutionStack.Top().first == inputType);
+        AssertDebug(!t_resolutionStack.Empty() && t_resolutionStack.Top().first == inputType);
 
-        s_resolutionStack.Pop();
+        t_resolutionStack.Pop();
     });
 
     if (!inputType->IsPlaceholderType())
@@ -248,8 +247,8 @@ void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
             resolvedArgType->ToString(),
             resolvedParamType->ToString(),
             (incompatibilities.Size() > 1
-                    ? "\n\t* " + String::Join(Map(incompatibilities, &SymbolTypeIncompatibility::details), "\n\t* ")
-                    : " " + incompatibilities[0].details)));
+                 ? "\n\t* " + String::Join(Map(incompatibilities, &SymbolTypeIncompatibility::details), "\n\t* ")
+                 : " " + incompatibilities[0].details)));
     }
     else
     {
@@ -1033,8 +1032,8 @@ void SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
                 resolvedSymbolType->ToString(),
                 resolvedAssignmentType->ToString(),
                 (incompatibilities.Size() > 1
-                        ? "\n\t* " + String::Join(Map(incompatibilities, &SymbolTypeIncompatibility::details), "\n\t* ")
-                        : " " + incompatibilities[0].details)));
+                     ? "\n\t* " + String::Join(Map(incompatibilities, &SymbolTypeIncompatibility::details), "\n\t* ")
+                     : " " + incompatibilities[0].details)));
         }
         else
         {

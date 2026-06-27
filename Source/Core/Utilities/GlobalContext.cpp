@@ -11,19 +11,19 @@ namespace utilities {
 
 #pragma region GlobalContextRegistry
 
-static thread_local GlobalContextRegistry* s_globalContextRegistry;
-static thread_local ValueStorage<GlobalContextRegistry> s_globalContextRegistryStorage;
+thread_local GlobalContextRegistry* t_globalContextRegistry;
+thread_local ValueStorage<GlobalContextRegistry> t_globalContextRegistryStorage;
 
-static_assert(std::is_trivially_destructible_v<decltype(s_globalContextRegistryStorage)>);
+static_assert(std::is_trivially_destructible_v<decltype(t_globalContextRegistryStorage)>);
 
 CORE_API GlobalContextRegistry* GetGlobalContextRegistryForCurrentThread()
 {
-    if (!s_globalContextRegistry)
+    if (!t_globalContextRegistry)
     {
-        s_globalContextRegistry = new (&s_globalContextRegistryStorage.Get()) GlobalContextRegistry;
+        t_globalContextRegistry = new (&t_globalContextRegistryStorage.Get()) GlobalContextRegistry;
     }
 
-    return s_globalContextRegistry;
+    return t_globalContextRegistry;
 }
 
 GlobalContextRegistry::GlobalContextRegistry()
@@ -38,9 +38,9 @@ GlobalContextRegistry::~GlobalContextRegistry()
         delete it.second;
     }
 
-    if (s_globalContextRegistry == this)
+    if (t_globalContextRegistry == this)
     {
-        s_globalContextRegistry = nullptr;
+        t_globalContextRegistry = nullptr;
     }
 }
 

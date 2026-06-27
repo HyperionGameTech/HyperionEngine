@@ -261,66 +261,66 @@ public:
                     ANDROID_LOG_DEBUG    // Debug
                 };
 
-                static thread_local ByteBuffer* s_androidLogBuffer = nullptr;
-                static thread_local bool s_useAndroidLogger = false;
+                thread_local ByteBuffer* t_androidLogBuffer = nullptr;
+                thread_local bool t_useAndroidLogger = false;
 
-                if (HYP_UNLIKELY(s_androidLogBuffer == nullptr))
+                if (HYP_UNLIKELY(t_androidLogBuffer == nullptr))
                 {
                     ThreadBase* thisThread = CurrentThreadObject();
 
                     if (thisThread)
                     {
-                        s_androidLogBuffer = new ByteBuffer;
+                        t_androidLogBuffer = new ByteBuffer;
 
-                        if (s_androidLogBuffer)
+                        if (t_androidLogBuffer)
                         {
-                            s_androidLogBuffer->SetCapacity(4096);
+                            t_androidLogBuffer->SetCapacity(4096);
 
                             thisThread->AddOnExitCallback(
                                 []()
                                 {
-                                    delete s_androidLogBuffer;
-                                    s_androidLogBuffer = nullptr;
+                                    delete t_androidLogBuffer;
+                                    t_androidLogBuffer = nullptr;
                                 });
 
-                            s_useAndroidLogger = true;
+                            t_useAndroidLogger = true;
                         }
                         else
                         {
                             // alloc failed!
-                            s_useAndroidLogger = false;
+                            t_useAndroidLogger = false;
                         }
                     }
                     else
                     {
                         // no thread object!
-                        s_useAndroidLogger = false;
+                        t_useAndroidLogger = false;
                     }
                 }
 
-                if (HYP_LIKELY(s_useAndroidLogger))
+                if (HYP_LIKELY(t_useAndroidLogger))
                 {
                     size_t offset = 0;
                     for (auto it = message.chunks.Begin(); it != message.chunks.End(); ++it)
                     {
-                        if (s_androidLogBuffer->Size() < offset + it->Size())
+                        if (t_androidLogBuffer->Size() < offset + it->Size())
                         {
-                            s_androidLogBuffer->SetSize((offset + it->Size()) * 2);
+                            t_androidLogBuffer->SetSize((offset + it->Size()) * 2);
                         }
 
-                        Memory::Copy(s_androidLogBuffer->Data() + offset, it->Data(), it->Size());
+                        Memory::Copy(t_androidLogBuffer->Data() + offset, it->Data(), it->Size());
                         offset += it->Size();
                     }
 
                     // ensure null-terminated
-                    if (s_androidLogBuffer->Size() == offset)
+                    if (t_androidLogBuffer->Size() == offset)
                     {
-                        s_androidLogBuffer->SetSize(offset + 1);
+                        t_androidLogBuffer->SetSize(offset + 1);
                     }
 
-                    s_androidLogBuffer->Data()[offset] = '\0';
+                    t_androidLogBuffer->Data()[offset] = '\0';
 
-                    __android_log_write(LogLevelToAndroidLogPriority[uint8(message.level)], "HyperionEngine", reinterpret_cast<const char*>(s_androidLogBuffer->Data()));
+                    __android_log_write(LogLevelToAndroidLogPriority[uint8(message.level)], "HyperionEngine", reinterpret_cast<const char*>(t_androidLogBuffer->Data()));
                 }
             }
             else

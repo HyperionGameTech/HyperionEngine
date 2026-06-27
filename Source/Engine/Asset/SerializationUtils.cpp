@@ -40,7 +40,7 @@ struct LoadAssetsFromReferencesContext
 };
 
 // used to prevent infinite recursion when serializing nested objects
-static thread_local TSet<Pair<TypeId, const void*>> s_serializedObjects;
+thread_local TSet<Pair<TypeId, const void*>> t_serializedObjects;
 
 // If true, class names will always be written when serializing objects IF the type != the declared type.
 // For example, we're serializing an array of Animal and we encounter a Dog object, we need to write the class name
@@ -543,9 +543,9 @@ Result BoxedToJSON(
             return {};
         }
         else if (underlyingTypeInfo->id == TypeId::ForType<int8>()
-            || underlyingTypeInfo->id == TypeId::ForType<int16>()
-            || underlyingTypeInfo->id == TypeId::ForType<int32>()
-            || underlyingTypeInfo->id == TypeId::ForType<int64>())
+                 || underlyingTypeInfo->id == TypeId::ForType<int16>()
+                 || underlyingTypeInfo->id == TypeId::ForType<int32>()
+                 || underlyingTypeInfo->id == TypeId::ForType<int64>())
         {
             if (value.Get<int64>() > MaxDblValue || value.Get<int64>() < -MaxDblValue)
             {
@@ -686,13 +686,13 @@ Result BoxedToJSON(
     {
         Pair<TypeId, const void*> pair = { value.GetTypeId(), value.ToRef().GetPointer() };
 
-        if (!s_serializedObjects.Insert(pair).second)
+        if (!t_serializedObjects.Insert(pair).second)
         {
             return HYP_MAKE_ERROR(Error, "Detected circular reference when serializing BoxedValue to JSON");
         }
 
         HYP_DEFER({
-            s_serializedObjects.Erase(pair);
+            t_serializedObjects.Erase(pair);
         });
 
         JSON::Object jsonObject;
@@ -767,7 +767,7 @@ Result ObjectToJSON(const Class* cls, const BoxedValue& target, JSON::Object& ou
                 else
                 {
                     HYP_LOG(Core, Warning, "Failed to invoke ToJSON method of Class \"{}\", got type {} but expected Value!",
-                        cls->GetName(), returnValue.GetTypeInfo()->name);
+                            cls->GetName(), returnValue.GetTypeInfo()->name);
                 }
             }
         }
@@ -837,7 +837,7 @@ Result ObjectToJSON(const Class* cls, const BoxedValue& target, JSON::Object& ou
                 if (Result result = BoxedToJSON(value, jsonValue, &newOpts); result.HasError())
                 {
                     HYP_LOG(Core, Warning, "Failed to serialize property \"{}\" of Class \"{}\" to json",
-                        member.GetName(), cls->GetName());
+                            member.GetName(), cls->GetName());
 
                     continue;
                 }
@@ -889,7 +889,7 @@ Result ObjectToJSON(const Class* cls, const BoxedValue& target, JSON::Object& ou
                 if (Result result = BoxedToJSON(value, jsonValue, &newOpts); result.HasError())
                 {
                     HYP_LOG(Core, Warning, "Failed to serialize field \"{}\" of Class \"{}\" to json: {}",
-                        member.GetName(), cls->GetName(), result.GetError().GetMessage());
+                            member.GetName(), cls->GetName(), result.GetError().GetMessage());
 
                     continue;
                 }
@@ -943,7 +943,7 @@ Result ObjectToJSON(const Class* cls, const BoxedValue& target, JSON::Object& ou
                 if (Result result = BoxedToJSON(staticField->Get(), jsonValue, &newOpts); result.HasError())
                 {
                     HYP_LOG(Core, Warning, "Failed to serialize static field \"{}\" of Class \"{}\" to json",
-                        member.GetName(), cls->GetName());
+                            member.GetName(), cls->GetName());
 
                     continue;
                 }
@@ -1009,8 +1009,8 @@ Result ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, 
             if (Result result = BoxedFromJSON(value, typeInfo, boxed); result.HasError())
             {
                 HYP_LOG(Core, Warning, "Failed to deserialize property \"{}\" from json: {}",
-                    member.GetName(),
-                    result.GetError().GetMessage());
+                        member.GetName(),
+                        result.GetError().GetMessage());
 
                 return false;
             }
@@ -1035,8 +1035,8 @@ Result ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, 
             if (Result result = BoxedFromJSON(value, typeInfo, boxed); result.HasError())
             {
                 HYP_LOG(Core, Warning, "Failed to deserialize field \"{}\" from json: {}",
-                    member.GetName(),
-                    result.GetError().GetMessage());
+                        member.GetName(),
+                        result.GetError().GetMessage());
 
                 return false;
             }
@@ -1526,7 +1526,7 @@ Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Box
         if (jsonArray.Size() != vectorHandler->GetNumComponents())
         {
             return HYP_MAKE_ERROR(Error, "Expected JSON array of size {} for vector type {}, but got size {}",
-                vectorHandler->GetNumComponents(), typeInfo.name, jsonArray.Size());
+                                  vectorHandler->GetNumComponents(), typeInfo.name, jsonArray.Size());
         }
 
         const TypeInfo* elementTypeInfo = typeInfo.extendedInfo.GetElementType();
@@ -1580,7 +1580,7 @@ Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Box
         if (jsonArray.Size() != matrixHandler->GetNumRows() * matrixHandler->GetNumColumns())
         {
             return HYP_MAKE_ERROR(Error, "Expected JSON array of size {} for matrix type {}, but got size {}",
-                matrixHandler->GetNumRows() * matrixHandler->GetNumColumns(), typeInfo.name, jsonArray.Size());
+                                  matrixHandler->GetNumRows() * matrixHandler->GetNumColumns(), typeInfo.name, jsonArray.Size());
         }
 
         const TypeInfo* elementTypeInfo = typeInfo.extendedInfo.GetElementType();
@@ -1991,8 +1991,8 @@ Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Box
             {
                 if (instanceClass != nullptr
                     && !(derivedClass->IsDerivedFrom(instanceClass)
-                        // We allow $Class to be 'AssetReference', but only for AssetObject classes. (if LoadAssetsFromReferencesContext is active)
-                        || (IsGlobalContextActive<LoadAssetsFromReferencesContext>() && derivedClass == AssetReference::StaticClass() && instanceClass->IsDerivedFrom(AssetObject::StaticClass()))))
+                         // We allow $Class to be 'AssetReference', but only for AssetObject classes. (if LoadAssetsFromReferencesContext is active)
+                         || (IsGlobalContextActive<LoadAssetsFromReferencesContext>() && derivedClass == AssetReference::StaticClass() && instanceClass->IsDerivedFrom(AssetObject::StaticClass()))))
                 {
                     HYP_LOG(Core, Warning, "Class '{}' is not derived from expected class '{}'", derivedClass->GetName(), instanceClass->GetName());
                 }
@@ -2028,7 +2028,7 @@ Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Box
     }
 
     return HYP_MAKE_ERROR(Error, "Failed to deserialize JSON to BoxedValue of type: {}, no handle logic for JSON value: {}",
-        typeInfo.name, jsonValue.ToString(true));
+                          typeInfo.name, jsonValue.ToString(true));
 }
 
 void WalkBoxedValue(

@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <Core/Threading/Threads.hpp>
 #include <Core/Threading/TaskSystem.hpp>
@@ -113,21 +113,13 @@ private:
 static ThreadMap s_staticThreadMap = {};
 static ThreadMap s_dynamicThreadMap = {};
 
-static thread_local ThreadBase* s_currentThread = nullptr;
-
-#ifdef HYP_ENABLE_THREAD_ID
-static thread_local ThreadId s_currentThreadId = ThreadId::Invalid();
-#else
-static const ThreadId s_currentThreadId = ThreadId::Invalid();
-#endif
-
-static thread_local uint32 s_currentThreadIndex = 0;
+thread_local ThreadBase* t_currentThread = nullptr;
+thread_local ThreadId t_currentThreadId = ThreadId::Invalid();
+thread_local uint32 t_currentThreadIndex = 0;
 
 void SetCurrentThreadId(const ThreadId& id)
 {
-#ifdef HYP_ENABLE_THREAD_ID
-    s_currentThreadId = id;
-#endif
+    t_currentThreadId = id;
 
 #if HYP_WINDOWS
     HRESULT setThreadResult = SetThreadDescription(
@@ -162,7 +154,7 @@ void RegisterThread(const ThreadId& id, ThreadBase* thread)
     }
 
     AssertDebug(success, "Thread {} ({}) could not be registered",
-        id.GetValue(), *id.GetName());
+                id.GetValue(), *id.GetName());
 }
 
 void UnregisterThread(const ThreadId& id)
@@ -218,7 +210,7 @@ ThreadBase* GetThreadById(const ThreadId& threadId)
 
 ThreadBase* CurrentThreadObject()
 {
-    return s_currentThread;
+    return t_currentThread;
 }
 
 void SetCurrentThreadObject(ThreadBase* thread)
@@ -226,9 +218,9 @@ void SetCurrentThreadObject(ThreadBase* thread)
     AssertDebug(thread != nullptr);
 
     AssertDebug(IsThreadRegistered(thread->Id()), "Thread %u (%s) is not registered",
-        thread->Id().GetValue(), *thread->Id().GetName());
+                thread->Id().GetValue(), *thread->Id().GetName());
 
-    s_currentThread = thread;
+    t_currentThread = thread;
 
     SetCurrentThreadId(thread->Id());
     SetCurrentThreadPriority(thread->GetPriority());
@@ -236,12 +228,12 @@ void SetCurrentThreadObject(ThreadBase* thread)
 
 uint32 GetCurrentThreadIndex()
 {
-    return s_currentThreadIndex;
+    return t_currentThreadIndex;
 }
 
 void SetCurrentThreadIndex(uint32 threadIndex)
 {
-    s_currentThreadIndex = threadIndex;
+    t_currentThreadIndex = threadIndex;
 }
 
 #if HYP_DEBUG_MODE
@@ -249,7 +241,6 @@ void SetCurrentThreadIndex(uint32 threadIndex)
 void AssertOnThread(ThreadMask mask, const char* message)
 {
 #ifdef HYP_ENABLE_THREAD_ASSERTIONS
-#ifdef HYP_ENABLE_THREAD_ID
     const ThreadId& currentThreadId = CurrentThreadId();
 
     AssertDebug(
@@ -259,17 +250,12 @@ void AssertOnThread(ThreadMask mask, const char* message)
         currentThreadId.GetMask(),
         currentThreadId.GetName().LookupString(),
         message ? message : "(no message)");
-
-#else
-    HYP_LOG(Threading, Error, "AssertOnThread() called but thread IDs are currently disabled");
-#endif
 #endif
 }
 
 void AssertOnThread(const ThreadId& threadId, const char* message)
 {
 #ifdef HYP_ENABLE_THREAD_ASSERTIONS
-#ifdef HYP_ENABLE_THREAD_ID
     const ThreadId& currentThreadId = CurrentThreadId();
 
     AssertDebug(
@@ -280,9 +266,6 @@ void AssertOnThread(const ThreadId& threadId, const char* message)
         currentThreadId.GetName().LookupString(),
         currentThreadId.GetValue(),
         message ? message : "(no message)");
-#else
-    HYP_LOG(Threading, Error, "AssertOnThread() called but thread IDs are currently disabled!");
-#endif
 #endif
 }
 
@@ -295,7 +278,6 @@ bool IsThreadInMask(const ThreadId& threadId, ThreadMask mask)
 
 bool IsOnThread(ThreadMask mask)
 {
-#ifdef HYP_ENABLE_THREAD_ID
     const ThreadId& currentThreadId = CurrentThreadId();
 
     if (mask & currentThreadId.GetMask())
@@ -303,26 +285,17 @@ bool IsOnThread(ThreadMask mask)
         return true;
     }
 
-#else
-    HYP_LOG(Threading, Error, "IsOnThread() called but thread IDs are currently disabled!");
-#endif
-
     return false;
 }
 
 bool IsOnThread(const ThreadId& threadId)
 {
-#ifdef HYP_ENABLE_THREAD_ID
     const ThreadId& currentThreadId = CurrentThreadId();
 
     if (threadId == currentThreadId)
     {
         return true;
     }
-
-#else
-    HYP_LOG(Threading, Error, "IsOnThread() called but thread IDs are currently disabled!");
-#endif
 
     return false;
 }
@@ -332,7 +305,7 @@ const ThreadId& CurrentThreadId()
     // For non-thread object threads (e.g .NET finalizer threads),
     // read the thread name from the OS and allocate a new thread Id.
     // SetCurrentThreadId() should be called before CurrentThreadId() for any threads that should not use the OS-created name.
-    if (!s_currentThreadId.IsValid())
+    if (!t_currentThreadId.IsValid())
     {
 #if HYP_WINDOWS
         PWCHAR threadName[256];
@@ -351,21 +324,21 @@ const ThreadId& CurrentThreadId()
 
         if (SUCCEEDED(result))
         {
-            s_currentThreadId = ThreadId(CreateNameFromDynamicString(&threadNameMb[0]), /* forceUnique */ true);
+            t_currentThreadId = ThreadId(CreateNameFromDynamicString(&threadNameMb[0]), /* forceUnique */ true);
         }
         else
         {
-            s_currentThreadId = ThreadId(NAME("Unknown"), /* forceUnique */ true);
+            t_currentThreadId = ThreadId(NAME("Unknown"), /* forceUnique */ true);
         }
 #elif HYP_UNIX
         char threadName[256];
         pthread_getname_np(pthread_self(), threadName, sizeof(threadName));
 
-        s_currentThreadId = ThreadId(CreateNameFromDynamicString(threadName), /* forceUnique */ true);
+        t_currentThreadId = ThreadId(CreateNameFromDynamicString(threadName), /* forceUnique */ true);
 #endif
     }
 
-    return s_currentThreadId;
+    return t_currentThreadId;
 }
 
 void SetCurrentThreadPriority(ThreadPriorityValue priority)

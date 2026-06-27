@@ -1228,16 +1228,16 @@ void SymbolType::Register(CompilationUnit* compilationUnit) const
 
 String SymbolType::ToString(bool includeParameterNames) const
 {
-    static constexpr int recursionDepthLimit = 10;
+    static constexpr int RecursionDepthLimit = 10;
 
-    static thread_local int s_recursionDepth = 0;
-    ++s_recursionDepth;
+    thread_local int t_recursionDepth = 0;
+    ++t_recursionDepth;
 
     HYP_DEFER({
-        --s_recursionDepth;
+        --t_recursionDepth;
     });
 
-    if (s_recursionDepth == recursionDepthLimit)
+    if (t_recursionDepth == RecursionDepthLimit)
     {
         return "<Recursion Limit Reached>";
     }

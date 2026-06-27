@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <ScenePch.hpp>
 
@@ -68,7 +68,7 @@ private:
     Mutex m_mutex;
 };
 
-static thread_local Scene** s_ppDetachedScene;
+thread_local Scene** t_ppDetachedScene;
 
 static DetachedScenes& GetDetachedScenes()
 {
@@ -83,13 +83,13 @@ void DestroyDetachedScenes()
 
 Scene* GetDetachedSceneForCurrentThread()
 {
-    if (!s_ppDetachedScene)
+    if (!t_ppDetachedScene)
     {
-        s_ppDetachedScene = &GetDetachedScenes().GetDetachedScene(CurrentThreadId());
-        Assert(*s_ppDetachedScene != nullptr);
+        t_ppDetachedScene = &GetDetachedScenes().GetDetachedScene(CurrentThreadId());
+        Assert(*t_ppDetachedScene != nullptr);
     }
 
-    return *s_ppDetachedScene;
+    return *t_ppDetachedScene;
 }
 
 Scene* GetDetachedSceneForThread(const ThreadId& threadId)

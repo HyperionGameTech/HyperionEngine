@@ -133,17 +133,17 @@ void CompilationUnit::RegisterType(SymbolType* symbolType)
         return;
     }
 
-    static thread_local Array<SymbolType*> s_visited;
+    thread_local Array<SymbolType*> t_visited;
 
-    if (s_visited.Find(symbolType) != s_visited.End())
+    if (t_visited.Find(symbolType) != t_visited.End())
     {
         // already visited this type, avoid infinite recursion
         return;
     }
 
-    s_visited.PushBack(symbolType);
+    t_visited.PushBack(symbolType);
     HYP_DEFER({
-        s_visited.PopBack();
+        t_visited.PopBack();
     });
 
     if (const SymbolType* baseType = symbolType->GetBaseType())
