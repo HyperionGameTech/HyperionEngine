@@ -137,7 +137,9 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.object_index = ~0u; // unused
 #endif // INSTANCING
 
-    output.object_mask = GET_OBJECT_BUCKET_MASK(currentEntity);
+    output.object_mask = (currentEntity.bucket == HYP_OBJECT_BUCKET_LIGHTMAPPED)
+        ? OBJECT_MASK_LIGHTMAPPED
+        : 0u;
 
     return output;
 }

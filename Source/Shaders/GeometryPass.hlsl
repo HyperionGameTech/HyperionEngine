@@ -193,7 +193,7 @@ PSOutput PSMain(PSInput input)
 #if SHADING_TYPE_FORWARD
     float3 albedo = output.gbuffer_albedo.rgb;
 
-    const bool drawUnlit = (input.object_mask & OBJECT_MASK_DEBUG) != 0;
+    const bool drawUnlit = (input.object_mask & OBJECT_MASK_UNLIT) != 0;
 
     if (drawUnlit)
     {
@@ -382,9 +382,9 @@ PSOutput PSMain(PSInput input)
     output.gbuffer_normals.x = roughnessAndMetalPacked;
 
 #ifdef SHADING_TYPE_LIGHTMAPPED
-    // 12 bits per channel (0-4095)
-    output.gbuffer_material = ((uint)(input.texcoord1.x * 4096.0) & 0xFFFu)
-        | (((uint)(input.texcoord1.y * 4096.0) & 0xFFFu) << 12u);
+    // 14 bits per channel (0-16383)
+    output.gbuffer_material = ((uint)round(input.texcoord1.x * 16384.0) & 0x3FFFu)
+        | (((uint)round(input.texcoord1.y * 16384.0) & 0x3FFFu) << 14u);
 #else
     //Probe lighting - evaluate SH, store RGB8 in the upper 24 bits of gbuffer_material
     if (HAS_PROBE_LIGHTING)
@@ -400,10 +400,8 @@ PSOutput PSMain(PSInput input)
     }
 #endif
 
-    // Mask is stored in the upper 7 bits of gbuffer_material
-    // Low 24 bits are used for lightmap UVs
-    // (1 bit spare between mask and UVs)
-    output.gbuffer_material |= (maskPacked << 25u);
+    // Mask is stored in the upper 4 bits of gbuffer_material
+    output.gbuffer_material |= (maskPacked << 28u);
 
     output.gbuffer_velocity = velocity;
 

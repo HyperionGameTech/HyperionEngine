@@ -1410,7 +1410,9 @@ String ShaderPropertySet::GetDebugString() const
     for (ShaderPropertyId propertyId : ToArray())
     {
         if (!str.Empty())
+        {
             str += ", ";
+        }
 
         ShaderProperty property;
         if (!GetShaderPropertyById(propertyId, property))

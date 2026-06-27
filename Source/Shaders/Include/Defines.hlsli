@@ -159,15 +159,10 @@
 #define HYP_OBJECT_BUCKET_SKY 3
 #define HYP_OBJECT_BUCKET_DEBUG 4
 
-// Mask - 7 bits
-#define OBJECT_MASK_OPAQUE (0x01u)
+// Mask (4 bits reserved) -- try to reuse slots as much as possible,
+//                           meaning will change depending on context
+#define OBJECT_MASK_UNLIT (0x01u)
 #define OBJECT_MASK_LIGHTMAPPED (0x02u)
-#define OBJECT_MASK_TRANSLUCENT (0x04u)
-#define OBJECT_MASK_SKY (0x08u)
-#define OBJECT_MASK_DEBUG (0x10u)
-
-// Helper to map bucket to mask.
-#define GET_OBJECT_BUCKET_MASK(obj) (1u << (obj).bucket)
 
 // Helper math utilities.
 #define HYP_FMATH_SQR(num) ((num) * (num))

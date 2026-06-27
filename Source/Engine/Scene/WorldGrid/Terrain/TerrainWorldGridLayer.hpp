@@ -23,6 +23,9 @@ class ENGINE_API TerrainWorldGridLayer : public WorldGridLayer
 
 public:
     TerrainWorldGridLayer();
+    
+    explicit TerrainWorldGridLayer(Name name, const WorldGridLayerInfo& layerInfo = {});
+
     virtual ~TerrainWorldGridLayer() override;
 
     HYP_METHOD()
@@ -45,8 +48,8 @@ protected:
     virtual Handle<StreamingCell> CreateStreamingCell_Impl(const StreamingCellInfo& cellInfo) override;
 
     Handle<Scene> m_scene;
-    Handle<Material> m_material;
     Handle<Mesh> m_mesh;
+    Handle<Material> m_material;
 };
 
 } // namespace Hyperion

@@ -166,7 +166,7 @@ PSOutput PSMain(PSInput input)
         (float)((materialBits >> 16u) & 0xFFu) / 255.0);
 
     GBufferMaterialParams materialParams;
-    GBufferUnpackMaterialParams(normalSample.x, materialBits >> 25u, materialParams);
+    GBufferUnpackMaterialParams(normalSample.x, materialBits >> 28u, materialParams);
 
     const float roughness = materialParams.roughness;
     const float metalness = materialParams.metalness;

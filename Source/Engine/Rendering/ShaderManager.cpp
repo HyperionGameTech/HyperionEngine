@@ -776,7 +776,22 @@ public:
         }
 #endif
 
-        HYP_LOG(ShaderCompiler, Info, "Reloading {} shaders...", requests.Size());
+        String shadersText;
+
+        for (CompileShaderRequest& request : requests)
+        {
+            shadersText += "\t";
+            shadersText += request.shaderName.LookupString();
+            shadersText += " - ";
+            shadersText += request.properties.GetDebugString();
+
+            if (&request != requests.Begin() + requests.Size() - 1)
+            {
+                shadersText += "\n";
+            }
+        }
+
+        HYP_LOG(ShaderCompiler, Info, "Reloading {} shaders\n{}", requests.Size(), shadersText);
 
         TSet<Shader*> shadersToExpire;
 

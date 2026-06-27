@@ -115,7 +115,7 @@ PSOutput PSMain(PSInput input)
     uint2 gbufferDimensions;
     gbuffer_albedo_texture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
 
-    const uint2 pixelCoord = uint2(texcoord * max(0, int2(gbufferDimensions) - 1));
+    const uint2 pixelCoord = uint2(clamp(texcoord * int2(gbufferDimensions), (int2)0, int2(gbufferDimensions) - 1));
 
     const float4 albedo = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_albedo_texture, texcoord, 0);
     const float4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_normals_texture, texcoord, 0);
@@ -123,7 +123,7 @@ PSOutput PSMain(PSInput input)
     const uint materialData = gbuffer_material_texture.Load(int3(pixelCoord, 0));
 
     GBufferMaterialParams materialParams;
-    GBufferUnpackMaterialParams(normalSample.x, materialData >> 25u, materialParams);
+    GBufferUnpackMaterialParams(normalSample.x, materialData >> 28u, materialParams);
 
     const float roughness = materialParams.roughness;
     const float metalness = materialParams.metalness;
@@ -136,7 +136,7 @@ PSOutput PSMain(PSInput input)
     const float4x4 inverse_view = camera.invViewMat;
 
     float3 N = GBufferUnpackNormal(SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_normals_texture, texcoord, 0));
-    float2 UV1 = (float2((float)(materialData & 0xFFFu), (float)((materialData >> 12) & 0xFFFu)) + 0.5) / 4096.0;
+    float2 UV1 = (float2((float)(materialData & 0x3FFFu), (float)((materialData >> 14) & 0x3FFFu)) + 0.5) / 16384.0;
 
     const float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_depth_texture, texcoord, 0).r;
     const float3 P = ReconstructWorldSpacePositionFromDepth(inverse_proj, inverse_view, texcoord, depth).xyz;

@@ -30,8 +30,20 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(WorldGrid);
 
 #pragma region TerrainWorldGridLayer
 
+static Handle<Scene> MakeTerrainScene()
+{
+    return MakeHandle<Scene>(NAME("TerrainScene"), SceneFlags::FOREGROUND | SceneFlags::HAS_OCTREE);
+}
+
 TerrainWorldGridLayer::TerrainWorldGridLayer()
-    : m_scene(MakeHandle<Scene>(NAME("TerrainScene"), SceneFlags::FOREGROUND | SceneFlags::HAS_OCTREE))
+    : m_scene(MakeTerrainScene())
+{
+}
+
+
+TerrainWorldGridLayer::TerrainWorldGridLayer(Name name, const WorldGridLayerInfo& layerInfo)
+    : WorldGridLayer(name, layerInfo),
+      m_scene(MakeTerrainScene())
 {
 }
 

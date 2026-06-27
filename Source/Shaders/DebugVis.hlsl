@@ -221,10 +221,10 @@ PSOutput PSMain(PSInput input)
     output.gbuffer_normals = GBufferPackNormal(normal);
     output.gbuffer_velocity = float2(velocity);
 
+    materialParams.mask = OBJECT_MASK_UNLIT;
+
 #ifdef IMMEDIATE_MODE
     output.gbuffer_albedo = float4(input.color.rgb, 1.0);
-
-    materialParams.mask = OBJECT_MASK_TRANSLUCENT | OBJECT_MASK_DEBUG;
 
     if (input.env_probe_index != ~0u)
     {
@@ -257,9 +257,7 @@ PSOutput PSMain(PSInput input)
             output.gbuffer_albedo.rgb = shColor;
         }
     }
-#else
-    materialParams.mask = GET_OBJECT_BUCKET_MASK(entity);
-#endif
+#endif // IMMEDIATE_MODE
 
     float roughnessAndMetalPacked;
     uint maskPacked;
@@ -267,7 +265,8 @@ PSOutput PSMain(PSInput input)
 
     output.gbuffer_normals.x = roughnessAndMetalPacked;
 
-    output.gbuffer_material = (maskPacked << 25u);
+    // mask is stored in last 4 bits
+    output.gbuffer_material = (maskPacked << 28u);
 
     output.gbuffer_velocity = velocity;
 
