@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <HyperionPch.hpp>
 
@@ -16,6 +16,8 @@
 #include <Core/Threading/Threads.hpp>
 #include <Core/Threading/Task.hpp>
 #include <Core/Threading/ThreadSignal.hpp>
+
+#include <Core/Memory/Allocator/ThreadAllocator.hpp>
 
 #include <Core/Math/MathUtil.hpp>
 
@@ -180,7 +182,7 @@ void SimThread::Update()
     }
 
     // execute posted tasks
-    Array<Scheduler::ScheduledTask, SceneAllocator> tasks;
+    Array<Scheduler::ScheduledTask, SceneTempAllocator> tasks;
     if (uint32 numEnqueued = m_scheduler->NumEnqueued())
     {
         m_scheduler->AcceptAll(tasks);
@@ -254,6 +256,13 @@ void SimThread::Update()
 
 void SimThread::operator()()
 {
+    const bool isSimulateOnMainThread = (m_id == g_mainThread);
+
+    if (!isSimulateOnMainThread)
+    {
+        InitThreadAllocator();
+    }
+
 #if HYP_SCRIPT
     HypScript::Initialize();
     AddOnExitCallback(&HypScript::Shutdown);
@@ -264,16 +273,17 @@ void SimThread::operator()()
         LaunchGameAsync { m_gameInstance }();
     }
 
-    // Handle -SimulateOnMainThread
-    if (m_id != g_mainThread)
+    if (!isSimulateOnMainThread)
     {
         g_renderInitSignal.Wait();
-        
+
         while (!m_stopRequested.Load())
         {
             HYP_PROFILE_BEGIN;
 
             Update();
+
+            m_threadAllocator->Reset();
         }
     }
 }

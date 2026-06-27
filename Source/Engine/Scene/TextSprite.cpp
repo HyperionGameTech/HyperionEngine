@@ -15,6 +15,8 @@
 
 #include <Core/Utilities/GlobalContext.hpp>
 
+#include <Core/Memory/Allocator/ThreadAllocator.hpp>
+
 #include <Asset/AssetRegistry.hpp>
 #include <Asset/Assets.hpp>
 
@@ -112,7 +114,7 @@ static void ForEachCharacter(
         atlasPixelSize = Vec2f::One() / Vec2f(mainTextureAtlas->GetExtent().GetXY());
     }
 
-    Array<FontAtlasCharacterIterator> currentWordChars;
+    Array<FontAtlasCharacterIterator, ThreadAllocator> currentWordChars;
 
     const auto iterateCurrentWord = [&currentWordChars, &callback]()
     {
@@ -214,16 +216,16 @@ static BoundingBox CalculateTextAABB(const FontAtlas& fontAtlas, const String& t
     totalSize.x = MathUtil::Max(totalSize.x, placement.x);
 
     ForEachCharacter(fontAtlas, text, textSize, [textSize, &aabb, &totalSize](const FontAtlasCharacterIterator& iter)
-        {
-            BoundingBox characterAabb = BoundingBox::Zero();
+                     {
+                         BoundingBox characterAabb = BoundingBox::Zero();
 
-            const float offsetY = -iter.bearingY;
+                         const float offsetY = -iter.bearingY;
 
-            characterAabb = characterAabb.Union(Vec3f(iter.placement.x - totalSize.x * 0.5f, iter.placement.y + offsetY - totalSize.y * 0.5f, 0.0f));
-            characterAabb = characterAabb.Union(Vec3f(iter.placement.x + iter.glyphDimensions.x - totalSize.x * 0.5f, iter.placement.y + offsetY + iter.glyphDimensions.y - totalSize.y * 0.5f, 0.0f));
+                         characterAabb = characterAabb.Union(Vec3f(iter.placement.x - totalSize.x * 0.5f, iter.placement.y + offsetY - totalSize.y * 0.5f, 0.0f));
+                         characterAabb = characterAabb.Union(Vec3f(iter.placement.x + iter.glyphDimensions.x - totalSize.x * 0.5f, iter.placement.y + offsetY + iter.glyphDimensions.y - totalSize.y * 0.5f, 0.0f));
 
-            aabb = aabb.Union(characterAabb);
-        });
+                         aabb = aabb.Union(characterAabb);
+                     });
 
     return aabb * Vec3f(textSize, textSize, 1.0f);
 }

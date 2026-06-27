@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <HyperionPch.hpp>
 
@@ -15,6 +15,8 @@
 
 #include <Core/Threading/Threads.hpp>
 #include <Core/Threading/ThreadSignal.hpp>
+
+#include <Core/Memory/Allocator/ThreadAllocator.hpp>
 
 #include <Core/CLI/CommandLine.hpp>
 
@@ -36,6 +38,8 @@ extern ThreadSignal g_renderInitSignal;
 MainThread::MainThread()
     : Thread(g_mainThread, ThreadPriorityValue::HIGHEST)
 {
+    // Needs to initialize before Start() is called!
+    InitThreadAllocator();
 }
 
 MainThread::~MainThread()
@@ -72,6 +76,8 @@ void MainThread::Update()
 
     static const bool s_renderOnMainThread = CoreApi::GetCommandLineArguments()["RenderOnMainThread"].ToBool();
     static const bool s_simulateOnMainThread = CoreApi::GetCommandLineArguments()["SimulateOnMainThread"].ToBool();
+
+    HYP_DEFER({ m_threadAllocator->Reset(); });
 
     Queue<Scheduler::ScheduledTask> tasks;
     if (uint32 numEnqueued = m_scheduler->NumEnqueued())

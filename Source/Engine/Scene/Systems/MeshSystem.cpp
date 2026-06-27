@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <ScenePch.hpp>
 
@@ -75,10 +75,10 @@ void UpdateInstancedMeshData(Entity& entity, MeshComponent& meshComponent)
 
     auto scope = imd->GetWriteScope();
 
-    Array<Mat4f, SceneAllocator> transforms;
+    Array<Mat4f, ThreadAllocator> transforms;
     transforms.Resize(instancedMeshProxies.Size());
 
-    Array<Mat4f, SceneAllocator> previousTransforms;
+    Array<Mat4f, ThreadAllocator> previousTransforms;
     previousTransforms.Resize(instancedMeshProxies.Size());
 
     for (size_t i = 0; i < instancedMeshProxies.Size(); i++)
@@ -177,7 +177,7 @@ void MeshSystem::Process(float delta, Span<Handle<Scene>> scenes)
         {
             continue;
         }
-        
+
         m_updatedEntities.Resize(0);
 
 #if HYP_EDITOR
@@ -217,7 +217,8 @@ void MeshSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
         if (m_updatedEntities.Any())
         {
-            AfterProcess([updatedEntities = m_updatedEntities]()
+            AfterProcess(
+                [updatedEntities = m_updatedEntities]()
                 {
                     for (Entity* entity : updatedEntities)
                     {

@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -84,8 +84,8 @@ private:
     RendererResult Rebuild() override;
 
     void BuildVertexAttributes(
-        Array<VkVertexInputAttributeDescription>& outVkVertexAttributes,
-        Array<VkVertexInputBindingDescription>& outVkVertexBindingDescriptions);
+        Array<VkVertexInputAttributeDescription, VulkanTempAllocator>& outVkVertexAttributes,
+        Array<VkVertexInputBindingDescription, VulkanTempAllocator>& outVkVertexBindingDescriptions);
 
     void UpdateViewport(VulkanCommandBuffer* commandBuffer, const Viewport& viewport);
 

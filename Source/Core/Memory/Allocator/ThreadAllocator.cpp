@@ -2,29 +2,28 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <Core/Memory/Allocator/ThreadAllocator.hpp>
 
 #include <Core/Memory/Pool/Pool.hpp>
 
 #include <Core/Threading/Util/ThreadId.hpp>
+#include <Core/Threading/Thread.hpp>
+#include <Core/Threading/Threads.hpp>
 
 namespace Hyperion {
 namespace memory {
 
-static constexpr size_t ThreadAllocatorPoolSize = 1024 * 1024 * 4; // 4 MB per thread for thread allocator pool
-
-static thread_local void* s_currentThreadAllocatorRaw;
-
-CORE_API void** CurrentThreadAllocatorRaw()
+CORE_API ThreadAllocator& DefaultAllocatorInstanceHelper<ThreadAllocator>::operator()() const
 {
-    return &s_currentThreadAllocatorRaw;
-}
+    ThreadBase* currentThread = CurrentThreadObject();
+    Assert(currentThread != nullptr);
 
-void InitThreadAllocatorPool(void* p)
-{
-    new (p) Pool(ThreadAllocatorPoolSize, PF_NONE, ThreadId::Current());
+    ThreadAllocator* threadAllocator = currentThread->GetThreadAllocator();
+    Assert(threadAllocator != nullptr, "No ThreadAllocator for current thread!");
+
+    return *threadAllocator;
 }
 
 } // namespace memory

@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <Core/Profiling/ProfileScope.hpp>
 #include <Core/Profiling/PerformanceClock.hpp>
@@ -613,9 +613,9 @@ void CollectAllHotFunctions(Array<Pair<ANSIString, double>>& outHotFunctions)
     }
 
     std::sort(outHotFunctions.Begin(), outHotFunctions.End(), [](const Pair<ANSIString, double>& a, const Pair<ANSIString, double>& b)
-        {
-            return a.second > b.second;
-        });
+              {
+                  return a.second > b.second;
+              });
 }
 
 ProfileScopeStack& ProfileScope::GetProfileScopeStackForCurrentThread()
@@ -630,7 +630,7 @@ ProfileScopeStack& ProfileScope::GetProfileScopeStackForCurrentThread()
         {
             // use thread local allocator
 
-            s_profileScopeStack = (ProfileScopeStack*)GetDefaultAllocatorInstance<ThreadAllocator>()->Allocate(sizeof(ProfileScopeStack), alignof(ProfileScopeStack));
+            s_profileScopeStack = new ProfileScopeStack;
             AssertDebug(s_profileScopeStack != nullptr);
 
             new (s_profileScopeStack) ProfileScopeStack;
@@ -639,14 +639,14 @@ ProfileScopeStack& ProfileScope::GetProfileScopeStackForCurrentThread()
 
             AtomicBitOr(&s_profileScopeStacksBitMask, int64(1 << s_profileScopeStackIndex));
 
-            currThread->AddOnExitCallback([]()
+            currThread->AddOnExitCallback(
+                []()
                 {
                     AtomicBitAnd(&s_profileScopeStacksBitMask, ~(1 << s_profileScopeStackIndex));
 
                     s_allRegisteredProfileScopeStacks[s_profileScopeStackIndex] = nullptr;
 
-                    s_profileScopeStack->~ProfileScopeStack();
-                    GetDefaultAllocatorInstance<ThreadAllocator>()->Free(s_profileScopeStack);
+                    delete s_profileScopeStack;
                     s_profileScopeStack = nullptr;
                 });
         }

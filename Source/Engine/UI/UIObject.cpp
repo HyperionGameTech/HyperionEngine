@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <UIPch.hpp>
 
@@ -16,6 +16,12 @@
 #include <Rendering/Util/MeshBuilder.hpp>
 
 #include <Core/Math/MathUtil.hpp>
+
+#include <Core/Memory/Allocator/ThreadAllocator.hpp>
+
+#include <Core/Threading/Threads.hpp>
+
+#include <Core/Utilities/DeferredScope.hpp>
 
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>
@@ -33,10 +39,6 @@
 #include <Rendering/InstancedMeshData.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
-
-#include <Core/Threading/Threads.hpp>
-
-#include <Core/Utilities/DeferredScope.hpp>
 
 #include <Framework/EngineDriver.hpp>
 #include <Framework/EngineGlobals.hpp>
@@ -145,9 +147,9 @@ const Handle<Mesh>& UIObjectQuadMeshHelper::GetQuadMesh()
 
             // clean up on engine shutdown
             onShutdownHandle = g_engineDriver->GetDelegates().OnShutdown.Bind([q = &quad]()
-                {
-                    q->Reset();
-                });
+                                                                              {
+                                                                                  q->Reset();
+                                                                              });
         }
     } quadMeshInitializer;
 
@@ -279,7 +281,7 @@ void UIObject::Init()
     UpdateSize();
     UpdatePosition();
 
-	OnInit.Fire(this);
+    OnInit.Fire(this);
 }
 
 void UIObject::Update(float delta)
@@ -306,13 +308,13 @@ void UIObject::Update(float delta)
         Update_Internal(delta);
 
         ForEachChildUIObject([this, delta](UIObject* child)
-            {
-                if (child->NeedsUpdate())
-                    child->Update_Internal(delta);
+                             {
+                                 if (child->NeedsUpdate())
+                                     child->Update_Internal(delta);
 
-                return IterationResult::CONTINUE;
-            },
-            /* deep */ true);
+                                 return IterationResult::CONTINUE;
+                             },
+                             /* deep */ true);
     }
 }
 
@@ -594,12 +596,12 @@ void UIObject::UpdatePosition(bool updateChildren)
     if (updateChildren)
     {
         ForEachChildUIObject([](UIObject* child)
-            {
-                child->UpdatePosition(true);
+                             {
+                                 child->UpdatePosition(true);
 
-                return IterationResult::CONTINUE;
-            },
-            /* deep */ false);
+                                 return IterationResult::CONTINUE;
+                             },
+                             /* deep */ false);
     }
 
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_CLAMPED_SIZE, true);
@@ -672,21 +674,21 @@ void UIObject::UpdateSize(bool updateChildren)
     if (AffectsParentSize())
     {
         ForEachParentUIObject([](UIObject* parent)
-            {
-                if (!parent->UseAutoSizing())
-                {
-                    return IterationResult::STOP;
-                }
+                              {
+                                  if (!parent->UseAutoSizing())
+                                  {
+                                      return IterationResult::STOP;
+                                  }
 
-                parent->SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE, /* updateChildren */ false);
+                                  parent->SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE, /* updateChildren */ false);
 
-                if (!parent->AffectsParentSize())
-                {
-                    return IterationResult::STOP;
-                }
+                                  if (!parent->AffectsParentSize())
+                                  {
+                                      return IterationResult::STOP;
+                                  }
 
-                return IterationResult::CONTINUE;
-            });
+                                  return IterationResult::CONTINUE;
+                              });
     }
 
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY, true);
@@ -709,13 +711,14 @@ void UIObject::UpdateSize_Internal(bool updateChildren)
     // - percentChildren: Children using PERCENT sizing (depend on parent size)
     // - fillChildren: Children using FILL sizing (depend on remaining space after siblings)
     // - Regular children: Process immediately
-    Array<UIObject*> percentChildren;
-    Array<UIObject*> fillChildren;
+    Array<UIObject*, ThreadAllocator> percentChildren;
+    Array<UIObject*, ThreadAllocator> fillChildren;
 
     {
         UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_SIZE);
 
-        ForEachChildUIObject([this, updateChildren, &percentChildren, &fillChildren](UIObject* child)
+        ForEachChildUIObject(
+            [this, updateChildren, &percentChildren, &fillChildren](UIObject* child)
             {
                 const uint64 allFlags = child->GetSize().GetAllFlags();
 
@@ -769,19 +772,19 @@ void UIObject::UpdateSize_Internal(bool updateChildren)
     }
 
     ForEachChildUIObject([](UIObject* child)
-        {
-            if (child->IsPositionDependentOnParentSize())
-            {
-                child->UpdatePosition(/* updateChildren */ true);
-            }
+                         {
+                             if (child->IsPositionDependentOnParentSize())
+                             {
+                                 child->UpdatePosition(/* updateChildren */ true);
+                             }
 
-            return IterationResult::CONTINUE;
-        },
-        /* deep */ false);
+                             return IterationResult::CONTINUE;
+                         },
+                         /* deep */ false);
 
-	OnSizeChange.Fire(this);
+    OnSizeChange.Fire(this);
 
-	SetDeferredUpdate(UIObjectUpdateType::UPDATE_CLAMPED_SIZE, true);
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_CLAMPED_SIZE, true);
 }
 
 void UIObject::UpdateClampedSize(bool updateChildren)
@@ -823,12 +826,12 @@ void UIObject::UpdateClampedSize(bool updateChildren)
     if (updateChildren)
     {
         ForEachChildUIObject([](UIObject* child)
-            {
-                child->UpdateClampedSize(true);
+                             {
+                                 child->UpdateClampedSize(true);
 
-                return IterationResult::CONTINUE;
-            },
-            /* deep */ false);
+                                 return IterationResult::CONTINUE;
+                             },
+                             /* deep */ false);
     }
 }
 
@@ -997,12 +1000,12 @@ void UIObject::UpdateComputedDepth(bool updateChildren)
     if (updateChildren)
     {
         ForEachChildUIObject([](UIObject* uiObject)
-            {
-                uiObject->UpdateComputedDepth(/* updateChildren */ true);
+                             {
+                                 uiObject->UpdateComputedDepth(/* updateChildren */ true);
 
-                return IterationResult::CONTINUE;
-            },
-            false);
+                                 return IterationResult::CONTINUE;
+                             },
+                             false);
     }
 }
 
@@ -1033,21 +1036,21 @@ bool UIObject::AcceptsFocus() const
     const int hasPositiveDepth = m_depth > 0;
 
     ForEachParentUIObject([&acceptsFocus, hasPositiveDepth](UIObject* parent)
-        {
-            if (hasPositiveDepth)
-            {
-                return IterationResult::STOP;
-            }
+                          {
+                              if (hasPositiveDepth)
+                              {
+                                  return IterationResult::STOP;
+                              }
 
-            if (!parent->m_acceptsFocus)
-            {
-                acceptsFocus = false;
+                              if (!parent->m_acceptsFocus)
+                              {
+                                  acceptsFocus = false;
 
-                return IterationResult::STOP;
-            }
+                                  return IterationResult::STOP;
+                              }
 
-            return IterationResult::CONTINUE;
-        });
+                              return IterationResult::CONTINUE;
+                          });
 
     return acceptsFocus;
 }
@@ -1388,18 +1391,18 @@ void UIObject::UpdateComputedVisibility(bool updateChildren)
             }
         }
 
-	OnComputedVisibilityChange.Fire(this);
+        OnComputedVisibilityChange.Fire(this);
     }
 
     if (updateChildren)
     {
         ForEachChildUIObject([](UIObject* child)
-            {
-                child->UpdateComputedVisibility(true);
+                             {
+                                 child->UpdateComputedVisibility(true);
 
-                return IterationResult::CONTINUE;
-            },
-            /* deep */ false);
+                                 return IterationResult::CONTINUE;
+                             },
+                             /* deep */ false);
     }
 }
 
@@ -1419,7 +1422,7 @@ void UIObject::SetIsEnabled(bool isEnabled)
 
     if (isEnabled && !m_isParentDisabled)
     {
-	OnEnabled.Fire(this);
+        OnEnabled.Fire(this);
     }
     else
     {
@@ -1427,21 +1430,21 @@ void UIObject::SetIsEnabled(bool isEnabled)
     }
 
     ForEachChildUIObject([this, isEnabled](UIObject* child)
-        {
-            child->m_isParentDisabled = !isEnabled || m_isParentDisabled;
+                         {
+                             child->m_isParentDisabled = !isEnabled || m_isParentDisabled;
 
-            if (child->m_isEnabled && !child->m_isParentDisabled)
-            {
-                OnEnabled.Fire(child);
-            }
-            else
-            {
-                OnDisabled.Fire(child);
-            }
+                             if (child->m_isEnabled && !child->m_isParentDisabled)
+                             {
+                                 OnEnabled.Fire(child);
+                             }
+                             else
+                             {
+                                 OnDisabled.Fire(child);
+                             }
 
-            return IterationResult::CONTINUE;
-        },
-        /* deep */ true);
+                             return IterationResult::CONTINUE;
+                         },
+                         /* deep */ true);
 }
 
 void UIObject::SetCurrentValue(BoxedValue&& value, bool triggerEvent)
@@ -1450,7 +1453,7 @@ void UIObject::SetCurrentValue(BoxedValue&& value, bool triggerEvent)
 
     if (triggerEvent)
     {
-	OnValueChange.Fire(this, m_currentValue);
+        OnValueChange.Fire(this, m_currentValue);
     }
 }
 
@@ -1505,17 +1508,17 @@ bool UIObject::HasFocus(bool includeChildren) const
 
     // check if any child has focus
     ForEachChildUIObject([&hasFocus](UIObject* child)
-        {
-            // Don't include children in the `HasFocus` check as we're already iterating over them
-            if (child->HasFocus(false))
-            {
-                hasFocus = true;
+                         {
+                             // Don't include children in the `HasFocus` check as we're already iterating over them
+                             if (child->HasFocus(false))
+                             {
+                                 hasFocus = true;
 
-                return IterationResult::STOP;
-            }
+                                 return IterationResult::STOP;
+                             }
 
-            return IterationResult::CONTINUE;
-        });
+                             return IterationResult::CONTINUE;
+                         });
 
     return hasFocus;
 }
@@ -1741,17 +1744,17 @@ Handle<UIObject> UIObject::FindChildUIObject(StringHash name, bool deep) const
     Handle<UIObject> foundObject;
 
     ForEachChildUIObject([name, &foundObject](UIObject* child)
-        {
-            if (child->GetName() == name)
-            {
-                foundObject = MakeStrongRef(child);
+                         {
+                             if (child->GetName() == name)
+                             {
+                                 foundObject = MakeStrongRef(child);
 
-                return IterationResult::STOP;
-            }
+                                 return IterationResult::STOP;
+                             }
 
-            return IterationResult::CONTINUE;
-        },
-        deep);
+                             return IterationResult::CONTINUE;
+                         },
+                         deep);
 
     return foundObject;
 }
@@ -1761,17 +1764,17 @@ Handle<UIObject> UIObject::FindChildUIObject(ProcRef<bool(UIObject*)> predicate,
     Handle<UIObject> foundObject;
 
     ForEachChildUIObject([&foundObject, &predicate](UIObject* child)
-        {
-            if (predicate(child))
-            {
-                foundObject = MakeStrongRef(child);
+                         {
+                             if (predicate(child))
+                             {
+                                 foundObject = MakeStrongRef(child);
 
-                return IterationResult::STOP;
-            }
+                                 return IterationResult::STOP;
+                             }
 
-            return IterationResult::CONTINUE;
-        },
-        deep);
+                             return IterationResult::CONTINUE;
+                         },
+                         deep);
 
     return foundObject;
 }
@@ -1909,7 +1912,7 @@ MaterialAttributes UIObject::GetMaterialAttributes() const
     MaterialAttributes attrs;
     attrs.shaderName = NAME("UIObject");
     attrs.blendFunction = BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA, BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA);
-    attrs.cullFaces = FCM_NONE;//FCM_BACK;
+    attrs.cullFaces = FCM_NONE; // FCM_BACK;
     attrs.flags = MAF_NONE;
 
     return attrs;
@@ -2258,29 +2261,29 @@ void UIObject::ComputeActualSize(const UIObjectSize& inSize, Vec2i& actualSize, 
                 {
                     // Sum up the size of all sibling elements that affect layout
                     parentUiObject->ForEachChildUIObject([this, componentIndex, &usedSpace](UIObject* sibling)
-                        {
-                            // Skip self
-                            if (sibling == this)
-                            {
-                                return IterationResult::CONTINUE;
-                            }
+                                                         {
+                                                             // Skip self
+                                                             if (sibling == this)
+                                                             {
+                                                                 return IterationResult::CONTINUE;
+                                                             }
 
-                            // Skip children that don't affect parent size or are absolutely positioned
-                            if (!sibling->AffectsParentSize() || sibling->IsPositionAbsolute())
-                            {
-                                return IterationResult::CONTINUE;
-                            }
+                                                             // Skip children that don't affect parent size or are absolutely positioned
+                                                             if (!sibling->AffectsParentSize() || sibling->IsPositionAbsolute())
+                                                             {
+                                                                 return IterationResult::CONTINUE;
+                                                             }
 
-                            // Add the sibling's size plus its position offset
-                            const Vec2i siblingSize = sibling->GetActualSize();
-                            const Vec2i siblingPos = sibling->GetPosition();
+                                                             // Add the sibling's size plus its position offset
+                                                             const Vec2i siblingSize = sibling->GetActualSize();
+                                                             const Vec2i siblingPos = sibling->GetPosition();
 
-                            // For horizontal (componentIndex 0) or vertical (componentIndex 1)
-                            usedSpace = MathUtil::Max(usedSpace, siblingPos[componentIndex] + siblingSize[componentIndex]);
+                                                             // For horizontal (componentIndex 0) or vertical (componentIndex 1)
+                                                             usedSpace = MathUtil::Max(usedSpace, siblingPos[componentIndex] + siblingSize[componentIndex]);
 
-                            return IterationResult::CONTINUE;
-                        },
-                        false);
+                                                             return IterationResult::CONTINUE;
+                                                         },
+                                                         false);
                 }
 
                 // Calculate remaining space: parent size - used space by siblings - padding - scrollbars
@@ -2317,15 +2320,15 @@ void UIObject::ComputeActualSize(const UIObjectSize& inSize, Vec2i& actualSize, 
             //   which is then included in the GetLocalAABB() calculation.
             // - now, the parent actual size has its AUTO components set to 0 (or min size), so we update based on that
             ForEachChildUIObject([](UIObject* child)
-                {
-                    if (child->IsPositionDependentOnParentSize())
-                    {
-                        child->UpdatePosition(/* updateChildren */ true);
-                    }
+                                 {
+                                     if (child->IsPositionDependentOnParentSize())
+                                     {
+                                         child->UpdatePosition(/* updateChildren */ true);
+                                     }
 
-                    return IterationResult::CONTINUE;
-                },
-                false);
+                                     return IterationResult::CONTINUE;
+                                 },
+                                 false);
         }
     }
 
@@ -2423,13 +2426,13 @@ void UIObject::UpdateMeshData(bool updateChildren)
     if (updateChildren)
     {
         ForEachChildUIObject([](UIObject* child)
-            {
-                // Do not update children in the next call; ForEachChildUIObject runs for all descendants
-                child->UpdateMeshData(true);
+                             {
+                                 // Do not update children in the next call; ForEachChildUIObject runs for all descendants
+                                 child->UpdateMeshData(true);
 
-                return IterationResult::CONTINUE;
-            },
-            /* deep */ false);
+                                 return IterationResult::CONTINUE;
+                             },
+                             /* deep */ false);
     }
 
     UpdateMeshData_Internal();
@@ -2516,12 +2519,12 @@ void UIObject::UpdateMaterial(bool updateChildren)
     if (updateChildren)
     {
         ForEachChildUIObject([](UIObject* child)
-            {
-                child->UpdateMaterial(true);
+                             {
+                                 child->UpdateMaterial(true);
 
-                return IterationResult::CONTINUE;
-            },
-            /* deep */ false);
+                                 return IterationResult::CONTINUE;
+                             },
+                             /* deep */ false);
     }
 
     UpdateMaterial_Internal();
@@ -2574,9 +2577,9 @@ void UIObject::UpdateMaterial_Internal()
         if (!currentMaterial->GetIsDynamic())
         {
             HYP_LOG(UI, Debug,
-                "UIObject '{}' material is not dynamic, but parameters or textures have changed. Fetching a new material.\n"
-                "Consider setting the material to dynamic if you want to update it at runtime.",
-                GetName());
+                    "UIObject '{}' material is not dynamic, but parameters or textures have changed. Fetching a new material.\n"
+                    "Consider setting the material to dynamic if you want to update it at runtime.",
+                    GetName());
 
             EnqueueDeletion(std::move(currentMaterial));
             meshComponent->material = CreateMaterial();
@@ -2697,19 +2700,19 @@ Handle<UIObject> UIObject::GetChildUIObject(int index) const
     int currentIndex = 0;
 
     ForEachChildUIObject([&foundObject, &currentIndex, index](UIObject* child)
-        {
-            if (currentIndex == index)
-            {
-                foundObject = MakeStrongRef(child);
+                         {
+                             if (currentIndex == index)
+                             {
+                                 foundObject = MakeStrongRef(child);
 
-                return IterationResult::STOP;
-            }
+                                 return IterationResult::STOP;
+                             }
 
-            ++currentIndex;
+                             ++currentIndex;
 
-            return IterationResult::CONTINUE;
-        },
-        /* deep */ false);
+                             return IterationResult::CONTINUE;
+                         },
+                         /* deep */ false);
 
     return foundObject;
 }
@@ -2889,12 +2892,12 @@ Array<UIObject*> UIObject::GetChildUIObjects(bool deep) const
     Array<UIObject*> childObjects;
 
     ForEachChildUIObject([&childObjects](UIObject* child)
-        {
-            childObjects.PushBack(child);
+                         {
+                             childObjects.PushBack(child);
 
-            return IterationResult::CONTINUE;
-        },
-        deep);
+                             return IterationResult::CONTINUE;
+                         },
+                         deep);
 
     return childObjects;
 }
@@ -2915,15 +2918,15 @@ Array<UIObject*> UIObject::FilterChildUIObjects(ProcRef<bool(UIObject*)> predica
     Array<UIObject*> childObjects;
 
     ForEachChildUIObject([&childObjects, &predicate](UIObject* child)
-        {
-            if (predicate(child))
-            {
-                childObjects.PushBack(child);
-            }
+                         {
+                             if (predicate(child))
+                             {
+                                 childObjects.PushBack(child);
+                             }
 
-            return IterationResult::CONTINUE;
-        },
-        deep);
+                             return IterationResult::CONTINUE;
+                         },
+                         deep);
 
     return childObjects;
 }
@@ -3034,18 +3037,18 @@ void UIObject::SetStage_Internal(UIStage* stage)
     UpdatePosition(false);
 
     ForEachChildUIObject([this, stage](UIObject* uiObject)
-        {
-            if (uiObject == this)
-            {
-                return IterationResult::CONTINUE;
-            }
+                         {
+                             if (uiObject == this)
+                             {
+                                 return IterationResult::CONTINUE;
+                             }
 
-            // calls recursively
-            uiObject->SetStage_Internal(stage);
+                             // calls recursively
+                             uiObject->SetStage_Internal(stage);
 
-            return IterationResult::CONTINUE;
-        },
-        /* deep */ false);
+                             return IterationResult::CONTINUE;
+                         },
+                         /* deep */ false);
 }
 
 void UIObject::OnFontAtlasUpdate()
@@ -3054,12 +3057,12 @@ void UIObject::OnFontAtlasUpdate()
 
     // Update font atlas for all children
     ForEachChildUIObject([](UIObject* child)
-        {
-            child->OnFontAtlasUpdate_Internal();
+                         {
+                             child->OnFontAtlasUpdate_Internal();
 
-            return IterationResult::CONTINUE;
-        },
-        /* deep */ true);
+                             return IterationResult::CONTINUE;
+                         },
+                         /* deep */ true);
 }
 
 void UIObject::OnTextSizeUpdate()
@@ -3067,26 +3070,26 @@ void UIObject::OnTextSizeUpdate()
     OnTextSizeUpdate_Internal();
 
     ForEachChildUIObject([](UIObject* child)
-        {
-            child->OnTextSizeUpdate_Internal();
+                         {
+                             child->OnTextSizeUpdate_Internal();
 
-            return IterationResult::CONTINUE;
-        },
-        /* deep */ true);
+                             return IterationResult::CONTINUE;
+                         },
+                         /* deep */ true);
 }
 
 void UIObject::OnScrollOffsetUpdate(Vec2f delta)
 {
     // Update child element's offset positions - they are dependent on parent scroll offset
     ForEachChildUIObject([](UIObject* child)
-        {
-            child->UpdatePosition(/* updateChildren */ true);
+                         {
+                             child->UpdatePosition(/* updateChildren */ true);
 
-            child->SetDeferredUpdate(UIObjectUpdateType::UPDATE_CLAMPED_SIZE, false);
+                             child->SetDeferredUpdate(UIObjectUpdateType::UPDATE_CLAMPED_SIZE, false);
 
-            return IterationResult::CONTINUE;
-        },
-        /* deep */ false);
+                             return IterationResult::CONTINUE;
+                         },
+                         /* deep */ false);
 
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_CLAMPED_SIZE, false);
 

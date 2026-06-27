@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -33,6 +33,14 @@ class Proc;
 
 using functional::Proc;
 
+namespace memory {
+
+class ThreadAllocator;
+
+} // namespace memory
+
+using memory::ThreadAllocator;
+
 namespace threading {
 
 class SchedulerBase;
@@ -61,12 +69,17 @@ public:
 
     /*! \brief Get the thread-local storage for this thread. This is used to store thread-local data that is unique to this thread.
      *  Must only be called from THIS thread */
-    ThreadLocalStorage& GetTLS() const;
+    HYP_DEPRECATED ThreadLocalStorage& GetTLS() const;
 
     /*! \brief Get the priority of this thread. */
     HYP_FORCE_INLINE ThreadPriorityValue GetPriority() const
     {
         return m_priority;
+    }
+
+    HYP_FORCE_INLINE ThreadAllocator* GetThreadAllocator() const
+    {
+        return m_threadAllocator;
     }
 
     /*! \brief Get the scheduler that this thread is associated with. */
@@ -93,12 +106,16 @@ public:
 protected:
     ThreadBase(const ThreadId& id, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
 
+    void InitThreadAllocator();
+
     void OnExit();
 
     const ThreadId m_id;
 
     ThreadPriorityValue m_priority;
     mutable ThreadLocalStorage* m_tls;
+
+    ThreadAllocator* m_threadAllocator;
 
     mutable Mutex m_onExitMutex;
     Array<void (*)(void), DynamicAllocator> m_onExitCallbacks;
@@ -199,7 +216,8 @@ bool Thread<TScheduler, TArgs...>::Start(TArgs... args)
 
     m_isRunning.Store(true);
 
-    m_thread = new std::thread([this, tupleArgs = MakeTuple(args...)](...) -> void
+    m_thread = new std::thread(
+        [this, tupleArgs = MakeTuple(args...)](...) -> void
         {
             SetCurrentThreadObject(this);
 

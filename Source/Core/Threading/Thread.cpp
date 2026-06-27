@@ -2,13 +2,15 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <Core/Threading/Thread.hpp>
 #include <Core/Threading/Threads.hpp>
 #include <Core/Threading/Scheduler.hpp>
 #include <Core/Threading/ThreadLocalStorage.hpp>
 #include <Core/Threading/Mutex.hpp>
+
+#include <Core/Memory/Allocator/ThreadAllocator.hpp>
 
 #include <Core/Functional/Delegate.hpp>
 
@@ -39,7 +41,8 @@ namespace threading {
 ThreadBase::ThreadBase(const ThreadId& id, ThreadPriorityValue priority)
     : m_id(id),
       m_priority(priority),
-      m_tls(nullptr)
+      m_tls(nullptr),
+      m_threadAllocator(nullptr)
 {
     AssertDebug(id.IsValid(), "ThreadId must be valid");
 
@@ -61,6 +64,12 @@ ThreadBase::~ThreadBase()
         delete m_tls;
         m_tls = nullptr;
     }
+
+    if (m_threadAllocator != nullptr)
+    {
+        delete m_threadAllocator;
+        m_threadAllocator = nullptr;
+    }
 }
 
 ThreadLocalStorage& ThreadBase::GetTLS() const
@@ -73,6 +82,16 @@ ThreadLocalStorage& ThreadBase::GetTLS() const
     }
 
     return *m_tls;
+}
+
+void ThreadBase::InitThreadAllocator()
+{
+    if (m_threadAllocator != nullptr)
+    {
+        return;
+    }
+
+    m_threadAllocator = new ThreadAllocator;
 }
 
 void ThreadBase::AddOnExitCallback(void (*callback)(void))
@@ -100,8 +119,8 @@ void ThreadBase::OnExit()
 #pragma endregion ThreadBase
 } // namespace threading
 
-//#ifndef HYP_MSVC
+// #ifndef HYP_MSVC
 template class CORE_API threading::Thread<threading::Scheduler>;
-//#endif // HYP_MSVC
+// #endif // HYP_MSVC
 
 } // namespace Hyperion

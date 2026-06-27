@@ -119,6 +119,7 @@ void ProfileThreadAllocFreeSmall()
         Consume(reinterpret_cast<UIntPtr>(ptr));
         g_thr.Free(ptr);
     }
+    g_thr.Reset();
 }
 
 void ProfileThreadAllocFreeLarge()
@@ -129,6 +130,7 @@ void ProfileThreadAllocFreeLarge()
         Consume(reinterpret_cast<UIntPtr>(ptr));
         g_thr.Free(ptr);
     }
+    g_thr.Reset();
 }
 
 void ProfileThreadBatchAllocFreeSmall()
@@ -145,6 +147,7 @@ void ProfileThreadBatchAllocFreeSmall()
         for (size_t j = 0; j < MaxBatchPtrs; ++j)
             g_thr.Free(ptrs[j]);
     }
+    g_thr.Reset();
 }
 
 void ProfileThreadAllocFreeMixed()
@@ -156,6 +159,7 @@ void ProfileThreadAllocFreeMixed()
         Consume(reinterpret_cast<UIntPtr>(ptr));
         g_thr.Free(ptr);
     }
+    g_thr.Reset();
 }
 
 void ProfileThreadAllocFreeOverAligned()
@@ -168,6 +172,7 @@ void ProfileThreadAllocFreeOverAligned()
         Consume(reinterpret_cast<UIntPtr>(ptr));
         g_thr.Free(ptr);
     }
+    g_thr.Reset();
 }
 
 // ---- Pool profiles ----

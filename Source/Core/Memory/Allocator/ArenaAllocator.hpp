@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -41,7 +41,7 @@ class TArena
     };
 
 public:
-    static constexpr uint32 maxAlign = 16;
+    static constexpr uint32 maxAlign = ~0u;
 
     template <class T>
     struct Allocation : DynamicAllocationBase<T>
@@ -68,7 +68,7 @@ public:
 
             Block* prev = block;
             block = block->next;
-            
+
             if (prev != &m_firstBlock)
             {
                 prev->allocation.Free(m_pAllocator);
@@ -135,7 +135,7 @@ template <class AllocatorType>
 void* TArena<AllocatorType>::Allocate(size_t size, size_t alignment)
 {
     HYP_CORE_ASSERT(alignment != 0 && alignment <= maxAlign && ((alignment & (alignment - 1)) == 0),
-        "Arena requires power-of-two, non-zero alignment and must have alignment requirement <= 16 bytes");
+                    "Arena requires power-of-two, non-zero alignment");
 
     Block* block = &m_firstBlock;
     bool isNewBlock = false;
@@ -176,7 +176,7 @@ void* TArena<AllocatorType>::Allocate(size_t size, size_t alignment)
 
             isNewBlock = true;
         }
-        
+
         block = block->next;
     }
 

@@ -261,7 +261,7 @@ public:
                     ANDROID_LOG_DEBUG    // Debug
                 };
 
-                static thread_local TByteBuffer<ThreadAllocator>* s_androidLogBuffer = nullptr;
+                static thread_local ByteBuffer* s_androidLogBuffer = nullptr;
                 static thread_local bool s_useAndroidLogger = false;
 
                 if (HYP_UNLIKELY(s_androidLogBuffer == nullptr))
@@ -270,17 +270,17 @@ public:
 
                     if (thisThread)
                     {
-                        s_androidLogBuffer = thisThread->GetTLS().Allocate<TByteBuffer<ThreadAllocator>>();
+                        s_androidLogBuffer = new ByteBuffer;
 
                         if (s_androidLogBuffer)
                         {
-                            new (s_androidLogBuffer) TByteBuffer<ThreadAllocator>;
                             s_androidLogBuffer->SetCapacity(4096);
 
                             thisThread->AddOnExitCallback(
                                 []()
                                 {
-                                    s_androidLogBuffer->~TByteBuffer<ThreadAllocator>();
+                                    delete s_androidLogBuffer;
+                                    s_androidLogBuffer = nullptr;
                                 });
 
                             s_useAndroidLogger = true;

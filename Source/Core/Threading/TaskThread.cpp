@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <Core/Threading/TaskThread.hpp>
 #include <Core/Threading/ThreadPool.hpp>
@@ -11,6 +11,8 @@
 
 #include <Core/Profiling/ProfileScope.hpp>
 #include <Core/Profiling/PerformanceClock.hpp>
+
+#include <Core/Memory/Allocator/ThreadAllocator.hpp>
 
 namespace Hyperion {
 
@@ -59,6 +61,8 @@ void TaskThread::SetThreadIndex(uint32 threadIndex)
 
 void TaskThread::operator()()
 {
+    InitThreadAllocator();
+
     SetCurrentThreadIndex(m_threadIndex);
 
     while (!m_stopRequested.Load())
@@ -112,9 +116,9 @@ void TaskThread::operator()()
             if (taskPerformanceClock.ElapsedMs() > TaskThreadSingleTaskLagSpikeThreshold)
             {
                 HYP_LOG(Threading, Warning, "Task thread {} lag spike detected in single task \"{}\": {}ms",
-                    Id().GetName(),
-                    scheduledTask.debugName.value ? scheduledTask.debugName.value : "<unnamed task>",
-                    taskPerformanceClock.ElapsedMs());
+                        Id().GetName(),
+                        scheduledTask.debugName.value ? scheduledTask.debugName.value : "<unnamed task>",
+                        taskPerformanceClock.ElapsedMs());
             }
 #endif
         }
@@ -122,6 +126,8 @@ void TaskThread::operator()()
         AfterExecuteTasks();
 
         m_numTasks.Set(m_scheduler->NumEnqueued(), MemoryOrder::RELEASE);
+
+        m_threadAllocator->Reset();
     }
 }
 } // namespace threading

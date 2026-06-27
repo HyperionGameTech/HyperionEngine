@@ -407,41 +407,47 @@ void UIText::UpdateMeshData_Internal()
     Array<Vec4f, ThreadAllocator> instanceSizes;
     Array<Vec4u, ThreadAllocator> instanceProperties;
 
-    ForEachCharacter(*fontAtlas, m_text, GetParentBounds(), textSize, nullptr, [&](const FontAtlasCharacterIterator& iter)
-                     {
-                         Transform characterTransform;
-                         characterTransform.scale = Vec3f(iter.glyphDimensions.x * textSize, iter.glyphDimensions.y * textSize, 1.0f);
-                         characterTransform.translation.y += (iter.cellDimensions.y - iter.glyphDimensions.y) * textSize;
-                         characterTransform.translation.y += iter.bearingY * textSize;
-                         characterTransform.translation += Vec3f(iter.placement.x, iter.placement.y, 0.0f) * textSize;
+    ForEachCharacter(
+        *fontAtlas,
+        m_text,
+        GetParentBounds(),
+        textSize,
+        nullptr,
+        [&](const FontAtlasCharacterIterator& iter)
+        {
+            Transform characterTransform;
+            characterTransform.scale = Vec3f(iter.glyphDimensions.x * textSize, iter.glyphDimensions.y * textSize, 1.0f);
+            characterTransform.translation.y += (iter.cellDimensions.y - iter.glyphDimensions.y) * textSize;
+            characterTransform.translation.y += iter.bearingY * textSize;
+            characterTransform.translation += Vec3f(iter.placement.x, iter.placement.y, 0.0f) * textSize;
 
-                         BoundingBox characterAabb = characterTransform * BoundingBox(Vec3f::Zero(), Vec3f::One());
-                         characterAabb.min += Vec3f(position, 0.0f);
-                         characterAabb.max += Vec3f(position, 0.0f);
+            BoundingBox characterAabb = characterTransform * BoundingBox(Vec3f::Zero(), Vec3f::One());
+            characterAabb.min += Vec3f(position, 0.0f);
+            characterAabb.max += Vec3f(position, 0.0f);
 
-                         BoundingBox characterAabbClamped = characterAabb.Intersection(parentAabbClamped);
+            BoundingBox characterAabbClamped = characterAabb.Intersection(parentAabbClamped);
 
-                         Mat4f instanceTransform;
-                         instanceTransform[0][0] = characterAabbClamped.max.x - characterAabbClamped.min.x;
-                         instanceTransform[1][1] = characterAabbClamped.max.y - characterAabbClamped.min.y;
-                         instanceTransform[2][2] = 1.0f;
-                         instanceTransform[0][3] = characterAabbClamped.min.x;
-                         instanceTransform[1][3] = characterAabbClamped.min.y;
-                         instanceTransform[2][3] = 0.0f;
+            Mat4f instanceTransform;
+            instanceTransform[0][0] = characterAabbClamped.max.x - characterAabbClamped.min.x;
+            instanceTransform[1][1] = characterAabbClamped.max.y - characterAabbClamped.min.y;
+            instanceTransform[2][2] = 1.0f;
+            instanceTransform[0][3] = characterAabbClamped.min.x;
+            instanceTransform[1][3] = characterAabbClamped.min.y;
+            instanceTransform[2][3] = 0.0f;
 
-                         instanceTransforms.PushBack(instanceTransform);
+            instanceTransforms.PushBack(instanceTransform);
 
-                         const Vec2f size = characterAabb.GetExtent().GetXY();
-                         const Vec2f clampedSize = characterAabbClamped.GetExtent().GetXY();
-                         const Vec2f clampedOffset = characterAabb.min.GetXY() - characterAabbClamped.min.GetXY();
+            const Vec2f size = characterAabb.GetExtent().GetXY();
+            const Vec2f clampedSize = characterAabbClamped.GetExtent().GetXY();
+            const Vec2f clampedOffset = characterAabb.min.GetXY() - characterAabbClamped.min.GetXY();
 
-                         Vec2f texcoordStart = Vec2f(iter.charOffset) * iter.atlasPixelSize;
-                         Vec2f texcoordEnd = (Vec2f(iter.charOffset) + (iter.glyphDimensions * 64.0f)) * iter.atlasPixelSize;
+            Vec2f texcoordStart = Vec2f(iter.charOffset) * iter.atlasPixelSize;
+            Vec2f texcoordEnd = (Vec2f(iter.charOffset) + (iter.glyphDimensions * 64.0f)) * iter.atlasPixelSize;
 
-                         instanceTexcoords.PushBack(Vec4f(texcoordStart, texcoordEnd));
-                         instanceOffsets.PushBack(Vec4f(clampedOffset, 0.0f, 0.0f));
-                         instanceSizes.PushBack(Vec4f(size, clampedSize));
-                     });
+            instanceTexcoords.PushBack(Vec4f(texcoordStart, texcoordEnd));
+            instanceOffsets.PushBack(Vec4f(clampedOffset, 0.0f, 0.0f));
+            instanceSizes.PushBack(Vec4f(size, clampedSize));
+        });
 
     instanceProperties.Resize(instanceTransforms.Size());
 

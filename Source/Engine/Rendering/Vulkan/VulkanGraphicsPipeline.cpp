@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <VulkanPch.hpp>
 
@@ -187,8 +187,10 @@ void VulkanGraphicsPipeline::UpdateDynamicStates(VulkanCommandBuffer* commandBuf
 
 RendererResult VulkanGraphicsPipeline::Rebuild()
 {
-    Array<VkVertexInputAttributeDescription> vkVertexAttributes;
-    Array<VkVertexInputBindingDescription> vkVertexBindingDescriptions;
+    AssertOnThread(g_renderThread);
+
+    Array<VkVertexInputAttributeDescription, VulkanTempAllocator> vkVertexAttributes;
+    Array<VkVertexInputBindingDescription, VulkanTempAllocator> vkVertexBindingDescriptions;
 
     BuildVertexAttributes(vkVertexAttributes, vkVertexBindingDescriptions);
 
@@ -331,8 +333,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
             .srcAlphaBlendFactor = ToVkBlendFactor(pAttachmentBlendFunction->GetSrcAlpha()),
             .dstAlphaBlendFactor = ToVkBlendFactor(pAttachmentBlendFunction->GetDstAlpha()),
             .alphaBlendOp = VK_BLEND_OP_ADD,
-            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
-        });
+            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT });
     }
 
     VkPipelineColorBlendStateCreateInfo colorBlending { VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
@@ -396,11 +397,9 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
 
     /* Push constants */
     const VkPushConstantRange pushConstantRanges[] = {
-        {
-            .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
-            .offset = 0,
-            .size = uint32(RI.GetDevice()->GetFeatures().PaddedSize<PushConstantData>())
-        }
+        { .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
+          .offset = 0,
+          .size = uint32(RI.GetDevice()->GetFeatures().PaddedSize<PushConstantData>()) }
     };
 
     layoutInfo.pushConstantRangeCount = uint32(std::size(pushConstantRanges));
@@ -507,8 +506,8 @@ void VulkanGraphicsPipeline::UpdateViewport(VulkanCommandBuffer* commandBuffer, 
 }
 
 void VulkanGraphicsPipeline::BuildVertexAttributes(
-    Array<VkVertexInputAttributeDescription>& outVkVertexAttributes,
-    Array<VkVertexInputBindingDescription>& outVkVertexBindingDescriptions)
+    Array<VkVertexInputAttributeDescription, VulkanTempAllocator>& outVkVertexAttributes,
+    Array<VkVertexInputBindingDescription, VulkanTempAllocator>& outVkVertexBindingDescriptions)
 {
     static constexpr VkFormat SizeToFormat[] = {
         VK_FORMAT_UNDEFINED,
@@ -588,8 +587,7 @@ void VulkanGraphicsPipeline::BuildVertexAttributes(
         outVkVertexBindingDescriptions.PushBack(VkVertexInputBindingDescription {
             .binding = it.first,
             .stride = it.second,
-            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
-        });
+            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX });
     }
 }
 

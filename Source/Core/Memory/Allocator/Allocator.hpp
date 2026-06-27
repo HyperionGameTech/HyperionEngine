@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -220,9 +220,16 @@ struct DynamicAllocationBase : AllocationBase<T>
     }
 };
 
+// @NOTE This "interface" has no vtable or virtual functions, as we don't want any overhead with allocator types.
+// This type is essentially used pretty much as a void*, casted to the real type
+// directly.
+struct AllocatorBase
+{
+};
+
 // Allocator interface (CRTP)
 template <class Derived>
-struct Allocator
+struct Allocator : AllocatorBase
 {
     HYP_FORCE_INLINE void* Allocate(size_t size, size_t alignment)
     {
@@ -765,6 +772,7 @@ AllocatorType* GetDefaultAllocatorInstance()
 
 using memory::AllocationBase;
 using memory::Allocator;
+using memory::AllocatorBase;
 using memory::AllocatorInstance;
 using memory::DynamicAllocationBase;
 using memory::DynamicAllocator;

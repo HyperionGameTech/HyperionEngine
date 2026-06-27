@@ -36,15 +36,17 @@
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/FrameLimiter.hpp>
 
+#include <Core/Memory/Allocator/ThreadAllocator.hpp>
+
+#include <Core/Threading/Threads.hpp>
+
+#include <Core/Core.hpp>
+
 #include <Asset/Assets.hpp>
 
 #include <Scene/World.hpp>
 
 #include <System/AppContext.hpp>
-
-#include <Core/Core.hpp>
-
-#include <Core/Threading/Threads.hpp>
 
 #include <semaphore>
 
@@ -306,6 +308,14 @@ void RenderThread::Update()
 
 void RenderThread::operator()()
 {
+    const bool isRenderOnMainThread = (m_id == g_mainThread);
+
+    if (!isRenderOnMainThread)
+    {
+        // Init our thread's stack allocator
+        InitThreadAllocator();
+    }
+
     if (!CheckResult(RI.Initialize()))
     {
         HYP_FAIL("Failed to initialize rendering backend");
@@ -313,13 +323,17 @@ void RenderThread::operator()()
 
     g_renderInitSignal.Signal();
 
-    if (m_id != g_mainThread) // !RenderOnMainThread
+    if (!isRenderOnMainThread)
     {
+        InitThreadAllocator();
+
         while (!m_stopRequested.Load())
         {
             HYP_PROFILE_BEGIN;
 
             Update();
+
+            m_threadAllocator->Reset();
         }
 
         RI.Shutdown();
@@ -328,12 +342,13 @@ void RenderThread::operator()()
     }
     else
     {
-        AddOnExitCallback([]()
-                          {
-                              RI.Shutdown();
+        AddOnExitCallback(
+            []()
+            {
+                RI.Shutdown();
 
-                              g_renderInitSignal.Reset();
-                          });
+                g_renderInitSignal.Reset();
+            });
     }
 }
 
