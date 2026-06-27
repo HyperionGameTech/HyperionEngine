@@ -20,8 +20,7 @@
 #include <Rendering/IndirectDraw.hpp>
 #include <Rendering/RenderGroupCache.hpp>
 #include <Rendering/Mesh.hpp>
-#include <Rendering/MaterialDefinition.hpp>
-#include <Rendering/MaterialInstance.hpp>
+#include <Rendering/Material.hpp>
 #include <Rendering/MaterialTextureCache.hpp>
 #include <Rendering/Texture.hpp>
 #include <Rendering/TextureViewCache.hpp>
@@ -266,7 +265,7 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     Mesh* mesh = proxy.mesh;
     AssertDebug(mesh != nullptr);
 
-    MaterialInstance* material = proxy.material;
+    Material* material = proxy.material;
     AssertDebug(material != nullptr);
 
     attributes = proxy.attributes;
@@ -1120,7 +1119,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
 
             FOR_EACH_BIT(materialProxy->bufferData.textureUsage, bit)
             {
-                const StringHash textureUniformName = MaterialDefinition::s_textureNames[bit];
+                const StringHash textureUniformName = Material::s_textureNames[bit];
 
                 cr << SetShaderUniform(numDrawCallUniforms++, textureUniformName, imageViews[materialProxy->boundTextureIndices[bit]]);
             }
@@ -1236,7 +1235,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
 
             FOR_EACH_BIT(materialProxy->bufferData.textureUsage, bit)
             {
-                const StringHash textureUniformName = MaterialDefinition::s_textureNames[bit];
+                const StringHash textureUniformName = Material::s_textureNames[bit];
 
                 cr << SetShaderUniform(
                     numDrawCallUniforms++,

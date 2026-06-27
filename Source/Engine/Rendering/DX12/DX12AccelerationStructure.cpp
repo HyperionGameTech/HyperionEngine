@@ -33,7 +33,7 @@ DX12AccelerationGeometry::DX12AccelerationGeometry(
     const DX12GpuBufferRef& packedVerticesBuffer,
     const DX12GpuBufferRef& packedIndicesBuffer,
     uint32 numVertices, uint32 numIndices,
-    const Handle<MaterialInstance>& material)
+    const Handle<Material>& material)
     : m_isCreated(false),
       m_packedVerticesBuffer(packedVerticesBuffer),
       m_packedIndicesBuffer(packedIndicesBuffer),
@@ -136,7 +136,7 @@ DX12GpuBlas::DX12GpuBlas(
     const DX12GpuBufferRef& packedIndicesBuffer,
     uint32 numVertices,
     uint32 numIndices,
-    const Handle<MaterialInstance>& material,
+    const Handle<Material>& material,
     const Mat4f& transform)
     : GpuBlasBase(),
       DX12AccelerationStructureBase(transform),

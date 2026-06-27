@@ -23,10 +23,10 @@ int main(int argc, char** argv)
         return 1;
     }
 
-#ifdef HYP_TESTS
-    tests::profiling::PrintAllocatorProfiling(5, 50, 15);
-    return 0;
-#endif
+    // #ifdef HYP_TESTS
+    //     tests::profiling::PrintAllocatorProfiling(5, 50, 15);
+    //     return 0;
+    // #endif
 
     auto defaultGame = MakeUnique<game::DefaultGame>();
 

@@ -12,8 +12,7 @@
 #include <Asset/AssetObject.hpp>
 #include <Asset/AssetRegistry.hpp>
 
-#include <Rendering/MaterialDefinition.hpp>
-#include <Rendering/MaterialInstance.hpp>
+#include <Rendering/Material.hpp>
 #include <Rendering/Mesh.hpp>
 
 #include <Scene/World.hpp>
@@ -330,7 +329,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
     Handle<Node> top = MakeHandle<Node>(CreateNameFromDynamicString(model.name));
     top->SetIsDynamic(false);
 
-    TMap<String, Handle<MaterialInstance>> materialLibrary;
+    TMap<String, Handle<Material>> materialLibrary;
 
     if (LoadMaterials && !model.materialLibrary.Empty())
     {
@@ -455,7 +454,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 
         InitObject(mesh);
 
-        Handle<MaterialInstance> material;
+        Handle<Material> material;
 
         if (!objMesh.material.Empty() && !materialLibrary.Empty())
         {
@@ -476,17 +475,14 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 
         if (!material.IsValid())
         {
-            Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(
+            material = MakeHandle<Material>(
                 NAME("BasicOBJMaterial"),
                 materialAttributes,
                 MaterialParameters {},
                 MaterialTextures {});
 
-            InitObject(materialDefinition);
+            InitObject(material);
 
-            GetCurrentAssetRegistry()->PutAsset(materialDefinition);
-
-            material = materialDefinition->CreateInstance();
             GetCurrentAssetRegistry()->PutAsset(material);
         }
         else

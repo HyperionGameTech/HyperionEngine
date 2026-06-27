@@ -21,7 +21,7 @@
 #include <Rendering/Device.hpp>
 #include <Rendering/Frame.hpp>
 #include <Rendering/Mesh.hpp>
-#include <Rendering/MaterialInstance.hpp>
+#include <Rendering/Material.hpp>
 #include <Rendering/Texture.hpp>
 #include <Rendering/Pass.hpp>
 

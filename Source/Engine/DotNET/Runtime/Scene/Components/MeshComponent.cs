@@ -10,7 +10,7 @@ namespace Hyperion
         public static Class Class => Class.GetClass(typeof(MeshComponent));
 
         private Handle<Mesh> _meshHandle;
-        private Handle<MaterialInstance> _materialHandle;
+        private Handle<Material> _materialHandle;
         private Handle<Skeleton> _skeletonHandle;
         private uint _numInstances;
         private bool _enableAutoInstancing;
@@ -44,7 +44,7 @@ namespace Hyperion
             }
         }
 
-        public MaterialInstance? Material
+        public Material? Material
         {
             get => _materialHandle.GetValue();
             set
@@ -53,12 +53,12 @@ namespace Hyperion
 
                 if (value == null)
                 {
-                    _materialHandle = Handle<MaterialInstance>.Empty;
+                    _materialHandle = Handle<Material>.Empty;
                     
                     return;
                 }
 
-                _materialHandle = new Handle<MaterialInstance>(value);
+                _materialHandle = new Handle<Material>(value);
             }
         }
 

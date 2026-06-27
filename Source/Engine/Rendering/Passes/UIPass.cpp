@@ -17,7 +17,7 @@
 #include <Rendering/ShaderManager.hpp>
 #include <Rendering/Frame.hpp>
 #include <Rendering/Mesh.hpp>
-#include <Rendering/MaterialInstance.hpp>
+#include <Rendering/Material.hpp>
 #include <Rendering/RenderGroup.hpp>
 #include <Rendering/RenderGroupCache.hpp>
 
@@ -96,7 +96,7 @@ static void BuildRenderGroupsOrdered(
         }
 
         Mesh* mesh = meshProxy->mesh;
-        MaterialInstance* material = meshProxy->material;
+        Material* material = meshProxy->material;
 
         if (!mesh || !material)
         {

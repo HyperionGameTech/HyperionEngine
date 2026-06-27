@@ -9,7 +9,7 @@
 #include <Baking/LightmapVolume/LightmapVolumeBakeData.hpp>
 
 #include <Rendering/Mesh.hpp>
-#include <Rendering/MaterialInstance.hpp>
+#include <Rendering/Material.hpp>
 
 #include <Scene/LightmapVolume.hpp>
 

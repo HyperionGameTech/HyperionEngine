@@ -24,8 +24,7 @@
 #include <Scene/Components/VisibilityStateComponent.hpp>
 
 #include <Rendering/Mesh.hpp>
-#include <Rendering/MaterialDefinition.hpp>
-#include <Rendering/MaterialInstance.hpp>
+#include <Rendering/Material.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 
@@ -353,12 +352,10 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         parameters.transmission = 0.9f;
         parameters.roughness = 0.2f;
 
-        Handle<MaterialDefinition> materialDef = MakeHandle<MaterialDefinition>(CreateNameFromDynamicString(ANSIString(subMesh.name.Data())), attributes, parameters, MaterialTextures {});
-        GetCurrentAssetRegistry()->PutAsset(materialDef);
+        Handle<Material> material = MakeHandle<Material>(CreateNameFromDynamicString(ANSIString(subMesh.name.Data())), attributes, parameters, MaterialTextures {});
+        GetCurrentAssetRegistry()->PutAsset(material);
 
-        InitObject(materialDef);
-
-        Handle<MaterialInstance> material = materialDef->CreateInstance();
+        InitObject(material);
 
         entity->SetLocalBounds(mesh->GetAABB());
 

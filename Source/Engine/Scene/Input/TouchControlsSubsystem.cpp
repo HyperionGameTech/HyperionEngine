@@ -20,8 +20,7 @@
 
 #include <System/AppContext.hpp>
 
-#include <Rendering/MaterialInstance.hpp>
-#include <Rendering/MaterialDefinition.hpp>
+#include <Rendering/Material.hpp>
 #include <Rendering/Texture.hpp>
 
 #include <Asset/Assets.hpp>

@@ -10,8 +10,7 @@
 #include <Asset/AssetRegistry.hpp>
 
 #include <Rendering/Mesh.hpp>
-#include <Rendering/MaterialDefinition.hpp>
-#include <Rendering/MaterialInstance.hpp>
+#include <Rendering/Material.hpp>
 
 #include <Scene/Entity.hpp>
 #include <Scene/EntityManager.hpp>
@@ -41,18 +40,14 @@ static Handle<Entity> CreateAxisEntity(
     MaterialParameters materialParameters;
     materialParameters.albedo = axisColor;
 
-    Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(
+    Handle<Material> material = MakeHandle<Material>(
         NAME_FMT("{}_Material", entityName),
         materialAttributes,
         materialParameters,
         MaterialTextures {});
-    InitObject(materialDefinition);
-    GetCurrentAssetRegistry()->PutAssetsDeep(materialDefinition);
-
-    Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
-    materialInstance->SetIsDynamic(true);
-    InitObject(materialInstance);
-    GetCurrentAssetRegistry()->PutAssetsDeep(materialInstance);
+    material->SetIsDynamic(true);
+    InitObject(material);
+    GetCurrentAssetRegistry()->PutAssetsDeep(material);
 
     Handle<Entity> axisEntity = MakeHandle<Entity>(NAME_FMT("{}", entityName));
     axisEntity->SetIsDynamic(true);
@@ -64,7 +59,7 @@ static Handle<Entity> CreateAxisEntity(
     axisEntity->Node::AddTag(NodeTag(NAME("TransformWidgetAxis"), axisIndex));
     axisEntity->Node::AddTag(NodeTag(NAME("TransformWidgetElementColor"), axisColor));
 
-    axisEntity->AddComponent<MeshComponent>(MeshComponent { axisMesh, materialInstance });
+    axisEntity->AddComponent<MeshComponent>(MeshComponent { axisMesh, material });
     axisEntity->SetLocalBounds(axisMesh->GetAABB());
 
     return axisEntity;
@@ -82,18 +77,14 @@ static Handle<Entity> CreateCentroidEntity(
     MaterialParameters materialParameters;
     materialParameters.albedo = centroidColor;
 
-    Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(
+    Handle<Material> material = MakeHandle<Material>(
         NAME_FMT("{}_Material", entityName),
         materialAttributes,
         materialParameters,
         MaterialTextures {});
-    InitObject(materialDefinition);
-    GetCurrentAssetRegistry()->PutAssetsDeep(materialDefinition);
-
-    Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
-    materialInstance->SetIsDynamic(true);
-    InitObject(materialInstance);
-    GetCurrentAssetRegistry()->PutAssetsDeep(materialInstance);
+    material->SetIsDynamic(true);
+    InitObject(material);
+    GetCurrentAssetRegistry()->PutAssetsDeep(material);
 
     Handle<Entity> centroidEntity = MakeHandle<Entity>(NAME_FMT("{}", entityName));
     centroidEntity->SetIsDynamic(true);
@@ -102,7 +93,7 @@ static Handle<Entity> CreateCentroidEntity(
     centroidEntity->Node::AddTag(NodeTag(NAME("TransformWidgetAxis"), -1));
     centroidEntity->Node::AddTag(NodeTag(NAME("TransformWidgetElementColor"), centroidColor));
 
-    centroidEntity->AddComponent<MeshComponent>(MeshComponent { centroidMesh, materialInstance });
+    centroidEntity->AddComponent<MeshComponent>(MeshComponent { centroidMesh, material });
     centroidEntity->SetLocalBounds(centroidMesh->GetAABB());
 
     return centroidEntity;

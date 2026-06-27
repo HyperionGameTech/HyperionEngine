@@ -9,8 +9,7 @@
 #include <Asset/ModelLoaders/FBXModelLoader.hpp>
 
 #include <Rendering/Mesh.hpp>
-#include <Rendering/MaterialDefinition.hpp>
-#include <Rendering/MaterialInstance.hpp>
+#include <Rendering/Material.hpp>
 
 #include <Scene/Entity.hpp>
 #include <Scene/World.hpp>
@@ -1677,27 +1676,22 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 parameters.roughness = 0.65f;
                 parameters.metalness = 0.0f;
 
-                Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(
+                Handle<Material> material = MakeHandle<Material>(
                     CreateNameFromDynamicString(fbxNode.name),
                     attributes,
                     parameters,
                     MaterialTextures {});
 
-                InitObject(materialDefinition);
+                InitObject(material);
 
-                GetCurrentAssetRegistry()->PutAssetUnique(materialDefinition);
-
-                Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
-                InitObject(materialInstance);
-
-                GetCurrentAssetRegistry()->PutAssetUnique(materialInstance);
+                GetCurrentAssetRegistry()->PutAssetUnique(material);
 
                 Scene* scene = GetDetachedSceneForCurrentThread();
 
                 const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
                 entity->SetLocalBounds(fbxMesh->bounds);
 
-                entity->AddComponent<MeshComponent>(MeshComponent { mesh, materialInstance });
+                entity->AddComponent<MeshComponent>(MeshComponent { mesh, material });
 
                 //// offset node to center of bounds
                 // node->SetWorldTranslation(node->GetWorldTranslation() + fbxMesh->bounds.GetCenter());

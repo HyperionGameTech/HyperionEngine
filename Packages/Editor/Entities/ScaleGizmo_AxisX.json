@@ -12,7 +12,7 @@
       "Material": {
         "$Class": "AssetReference",
         "AssetPath": {
-          "Value": "Editor://MaterialInstances/ScaleGizmo_AxisX_Material"
+          "Value": "Editor://Materials/ScaleGizmo_AxisX_Material"
         }
       },
       "Skeleton": null,

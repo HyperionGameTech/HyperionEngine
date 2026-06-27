@@ -18,8 +18,7 @@
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
 
-#include <Rendering/MaterialDefinition.hpp>
-#include <Rendering/MaterialInstance.hpp>
+#include <Rendering/Material.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 
@@ -59,7 +58,7 @@ void TerrainWorldGridLayer::Init()
     parameters.roughness = 0.95f;
     parameters.metalness = 0.0f;
 
-    m_material = g_materialInstanceCache->GetOrCreate(NAME("terrain_material"), attributes, parameters, MaterialTextures {});
+    m_material = g_materialCache->GetOrCreate(NAME("terrain_material"), attributes, parameters, MaterialTextures {});
 
     GetCurrentAssetRegistry()->PutAsset(m_material);
 

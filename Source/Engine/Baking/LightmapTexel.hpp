@@ -26,7 +26,7 @@
 namespace Hyperion {
 
 class Mesh;
-class MaterialInstance;
+class Material;
 class Entity;
 
 namespace Baking {
@@ -35,7 +35,7 @@ struct BakeEntity
 {
     Handle<Entity> entity;
     Handle<Mesh> mesh;
-    Handle<MaterialInstance> material;
+    Handle<Material> material;
     Mat4f transformMatrix;
     BoundingBox aabb;
 };
@@ -43,7 +43,7 @@ struct BakeEntity
 struct BakeMesh
 {
     Handle<Mesh> mesh;
-    Handle<MaterialInstance> material;
+    Handle<Material> material;
 
     Mat4f transformMatrix;
 

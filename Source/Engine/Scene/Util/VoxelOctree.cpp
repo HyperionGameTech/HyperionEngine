@@ -16,7 +16,7 @@
 #include <Scene/Components/MeshComponent.hpp>
 #include <Scene/Components/BoundingBoxComponent.hpp>
 
-#include <Rendering/MaterialInstance.hpp>
+#include <Rendering/Material.hpp>
 #include <Rendering/Mesh.hpp>
 #include <Rendering/RenderableAttributes.hpp>
 

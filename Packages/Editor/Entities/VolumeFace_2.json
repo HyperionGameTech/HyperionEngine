@@ -12,7 +12,7 @@
       "Material": {
         "$Class": "AssetReference",
         "AssetPath": {
-          "Value": "Editor://MaterialInstances/VolumeEditMaterial"
+          "Value": "Editor://Materials/VolumeEditMaterial"
         }
       },
       "Skeleton": null,

@@ -29,7 +29,7 @@ class Texture;
 class LightmapVolume;
 class ParticleVolume;
 class FogVolume;
-class MaterialInstance;
+class Material;
 class Skeleton;
 class EnvProbe;
 class ProbeVolume;
@@ -114,7 +114,7 @@ struct RenderProxyMesh final : IRenderProxy
     WeakHandle<Entity> entity;
 
     Mesh* mesh = nullptr;
-    MaterialInstance* material = nullptr;
+    Material* material = nullptr;
     Skeleton* skeleton = nullptr;
 
     uint32 numIndices = 0;
@@ -213,7 +213,7 @@ static_assert(sizeof(LightShaderData) % 64 == 0);
 struct RenderProxyLight : IRenderProxy
 {
     WeakHandle<Light> light;
-    MaterialInstance* lightMaterial = nullptr; // for textured area lights
+    Material* lightMaterial = nullptr; // for textured area lights
     Texture* bakedShadowMap = nullptr;
     uint32 numCascades = 0;
     LightShaderData bufferData {};
@@ -323,11 +323,11 @@ struct RenderProxyMaterial : IRenderProxy
         Memory::Fill(boundTextureIndices.Data(), 0xFFu, boundTextureIndices.ByteSize());
     }
 
-    WeakHandle<MaterialInstance> material;
+    WeakHandle<Material> material;
     MaterialAttributes attributes;
 
     FixedArray<uint32, MaxBoundTextures> boundTextureIndices;
-    Array<Handle<Texture>, RenderAllocator> boundTextures;
+    Array<Texture*> boundTextures;
 
     MaterialShaderData bufferData {};
 };

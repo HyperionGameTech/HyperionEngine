@@ -12,7 +12,7 @@
       "Material": {
         "$Class": "AssetReference",
         "AssetPath": {
-          "Value": "Editor://MaterialInstances/ScaleGizmo_Centroid_Material"
+          "Value": "Editor://Materials/ScaleGizmo_Centroid_Material"
         }
       },
       "Skeleton": null,

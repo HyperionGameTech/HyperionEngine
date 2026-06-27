@@ -9,7 +9,7 @@
 #include <Rendering/BLASCache.hpp>
 #include <Rendering/MeshBlasBuilder.hpp>
 #include <Rendering/Mesh.hpp>
-#include <Rendering/MaterialInstance.hpp>
+#include <Rendering/Material.hpp>
 
 #include <Core/Threading/Mutex.hpp>
 #include <Core/Containers/Map.hpp>
@@ -70,7 +70,7 @@ BLASCache::BLASCache()
 BLASCache::~BLASCache() = default;
 
 void BLASCache::GetOrCreateBLAS(
-    Entity* entity, Mesh* mesh, MaterialInstance* material,
+    Entity* entity, Mesh* mesh, Material* material,
     uint64& outNewKey, uint64& outOldKey,
     GpuBlas*& outBlas)
 {
@@ -88,7 +88,7 @@ void BLASCache::GetOrCreateBLAS(
 
     AssertDebug(entity->InstanceClass() == Entity::StaticClass()); // needed since we use ToIndex() - if we ever want to change this, we need subclassImpls as used elsewhere.
 
-    ObjIdBase ids[] = { entity->Id(), mesh->Id(), material ? material->Id() : ObjId<MaterialInstance>() };
+    ObjIdBase ids[] = { entity->Id(), mesh->Id(), material ? material->Id() : ObjId<Material>() };
 
     const uint64 newKey = MakeBLASKey(Span<const ObjIdBase>(ids, ids + std::size(ids)));
 

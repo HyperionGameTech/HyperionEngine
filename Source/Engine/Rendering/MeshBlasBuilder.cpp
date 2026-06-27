@@ -12,7 +12,7 @@
 #include <Rendering/RenderCommand.hpp>
 #include <Rendering/Frame.hpp>
 #include <Rendering/Mesh.hpp>
-#include <Rendering/MaterialInstance.hpp>
+#include <Rendering/Material.hpp>
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/RenderHelpers.hpp>
 
@@ -33,12 +33,12 @@ struct BuildMeshBlas : public RenderCommand
     GpuBlasRef blas;
     Array<float> packedVertices;
     Array<ubyte> packedIndices;
-    Handle<MaterialInstance> material;
+    Handle<Material> material;
 
     GpuBufferRef packedVerticesBuffer;
     GpuBufferRef packedIndicesBuffer;
 
-    BuildMeshBlas(GpuBlasRef& blas, Array<float>&& packedVertices, Array<ubyte>&& packedIndices, Mesh* mesh, MaterialInstance* material)
+    BuildMeshBlas(GpuBlasRef& blas, Array<float>&& packedVertices, Array<ubyte>&& packedIndices, Mesh* mesh, Material* material)
         : packedVertices(std::move(packedVertices)),
           packedIndices(std::move(packedIndices)),
           material(MakeStrongRef(material))
@@ -109,7 +109,7 @@ struct BuildMeshBlas : public RenderCommand
     }
 };
 
-GpuBlasRef MeshBlasBuilder::Build(Mesh* mesh, MaterialInstance* material)
+GpuBlasRef MeshBlasBuilder::Build(Mesh* mesh, Material* material)
 {
     if (!mesh)
     {

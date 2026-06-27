@@ -12,7 +12,7 @@
       "Material": {
         "$Class": "AssetReference",
         "AssetPath": {
-          "Value": "Editor://MaterialInstances/TranslateGizmo_AxisY_Material"
+          "Value": "Editor://Materials/TranslateGizmo_AxisY_Material"
         }
       },
       "Skeleton": null,

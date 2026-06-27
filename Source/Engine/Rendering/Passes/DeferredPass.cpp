@@ -24,7 +24,7 @@
 #include <Rendering/Passes/BloomPass.hpp>
 #include <Rendering/DepthOfField.hpp>
 #include <Rendering/Mesh.hpp>
-#include <Rendering/MaterialInstance.hpp>
+#include <Rendering/Material.hpp>
 #include <Rendering/Texture.hpp>
 #include <Rendering/PlaceholderData.hpp>
 #include <Rendering/RenderTypes.hpp>

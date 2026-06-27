@@ -714,7 +714,7 @@ extern struct RigidBodyComponent
 end
 extern struct MeshComponent
     Mesh : Mesh
-    Material : MaterialInstance
+    Material : Material
     Skeleton : Skeleton
     NumInstances : uint32
     PreviousModelMatrix : Mat4f
@@ -2231,8 +2231,8 @@ extern class Light : Entity
     SetFalloff(falloff : float) -> void
     GetSpotAngles() -> Vec2f
     SetSpotAngles(spotAngles : Vec2f) -> void
-    GetMaterial() -> MaterialInstance
-    SetMaterial(material : MaterialInstance) -> void
+    GetMaterial() -> Material
+    SetMaterial(material : Material) -> void
     GetShadowMapDimensions() -> Vec2u
     SetShadowMapDimensions(shadowMapDimensions : Vec2u) -> void
     GetNumShadowMapCascades() -> uint32
@@ -2390,20 +2390,18 @@ extern class Mesh : AssetObject
     Bvh : BVHNode
     Flags : MeshFlags
 end
-extern class MaterialInstance : AssetObject
+extern class Material : AssetObject
+    GetBaseMaterial() -> Material
+    SetBaseMaterial(baseMaterial : Material) -> void
     IsStatic() -> bool
     GetIsDynamic() -> bool
     SetIsDynamic(isDynamic : bool) -> void
-    Clone() -> MaterialInstance
-    Definition : MaterialDefinition
+    Clone() -> Material
+    Base : Material
+    Attributes : MaterialAttributes
     Parameters : MaterialParameters
     Textures : MaterialTextures
     IsDynamic : bool
-end
-extern class MaterialDefinition : AssetObject
-    Attributes : MaterialAttributes
-    DefaultParameters : MaterialParameters
-    DefaultTextures : MaterialTextures
 end
 extern class InstancedMeshData : AssetObject
     Buffers : Array<BlobDataReference>

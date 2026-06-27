@@ -24,8 +24,7 @@ namespace Hyperion.Editor.ViewModels
         public string IconKind => _typeName switch
         {
             "Mesh" or "MeshAsset"                  => "Box",
-            "MaterialDefinition"                   => "Palette",
-            "MaterialInstance"                     => "Paintbrush",
+            "Material"                             => "Paintbrush", // @TODO Better icon for Material
             "Texture" or "TextureAsset"            => "Image",
             "DirectionalLight"                     => "Sun",
             "PointLight"                           => "Lightbulb",

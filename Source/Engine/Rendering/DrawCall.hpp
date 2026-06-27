@@ -25,7 +25,7 @@
 namespace Hyperion {
 
 class Mesh;
-class MaterialInstance;
+class Material;
 class Skeleton;
 class Entity;
 class RenderProxyList;
@@ -90,7 +90,7 @@ struct DrawCallID
     {
     }
 
-    constexpr DrawCallID(ObjId<Mesh> meshId, ObjId<MaterialInstance> materialId)
+    constexpr DrawCallID(ObjId<Mesh> meshId, ObjId<Material> materialId)
         : value(uint64(meshId.Value()) | (uint64(materialId.Value()) << 32))
     {
     }

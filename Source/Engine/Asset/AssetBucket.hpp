@@ -17,27 +17,26 @@ class Class;
 
 #define HYP_FOR_EACH_ASSET_BUCKET(X) \
     X(Meshes,               1)       \
-    X(MaterialDefinitions,  2)       \
-    X(MaterialInstances,    3)       \
-    X(Textures,             4)       \
-    X(Lights,               5)       \
-    X(InstancedMeshData,    6)       \
-    X(Animations,           7)       \
-    X(AnimationTracks,      8)       \
-    X(Skeletons,            9)       \
-    X(Worlds,               10)      \
-    X(Scenes,               11)      \
-    X(Nodes,                12)      \
-    X(Entities,             13)     \
-    X(Bones,                14)      \
-    X(EnvProbes,            15)      \
-    X(LightmapVolumes,      16)      \
-    X(Shaders,              17)     \
-    X(ShaderBundles,        18)     \
-    X(FontAtlases,          19)      \
-    X(PhysicsShapes,        20)      \
-    X(Scripts,              21)      \
-    X(Sprites,              22)
+    X(Materials,            2)       \
+    X(Textures,             3)       \
+    X(Lights,               4)       \
+    X(InstancedMeshData,    5)       \
+    X(Animations,           6)       \
+    X(AnimationTracks,      7)       \
+    X(Skeletons,            8)       \
+    X(Worlds,               9)       \
+    X(Scenes,               10)      \
+    X(Nodes,                11)      \
+    X(Entities,             12)      \
+    X(Bones,                13)      \
+    X(EnvProbes,            14)      \
+    X(LightmapVolumes,      15)      \
+    X(Shaders,              16)      \
+    X(ShaderBundles,        17)      \
+    X(FontAtlases,          18)      \
+    X(PhysicsShapes,        19)      \
+    X(Scripts,              20)      \
+    X(Sprites,              21)
 
 const char* GetAssetBucketName(const uint32 bucketIndex);
 

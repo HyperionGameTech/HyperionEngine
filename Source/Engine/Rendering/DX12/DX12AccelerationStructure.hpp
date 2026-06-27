@@ -31,7 +31,7 @@ public:
         const DX12GpuBufferRef& packedIndicesBuffer,
         uint32 numVertices,
         uint32 numIndices,
-        const Handle<MaterialInstance>& material);
+        const Handle<Material>& material);
 
     DX12AccelerationGeometry(DX12AccelerationGeometry&& other) noexcept = default;
     DX12AccelerationGeometry& operator=(DX12AccelerationGeometry&& other) noexcept = default;
@@ -58,7 +58,7 @@ public:
         return m_numIndices;
     }
 
-    HYP_FORCE_INLINE const Handle<MaterialInstance>& GetMaterial() const
+    HYP_FORCE_INLINE const Handle<Material>& GetMaterial() const
     {
         return m_material;
     }
@@ -68,7 +68,7 @@ public:
     RendererResult Create();
 
 private:
-    Handle<MaterialInstance> m_material;
+    Handle<Material> m_material;
 
     DX12GpuBufferRef m_packedVerticesBuffer;
     DX12GpuBufferRef m_packedIndicesBuffer;
@@ -166,7 +166,7 @@ public:
         const DX12GpuBufferRef& packedIndicesBuffer,
         uint32 numVertices,
         uint32 numIndices,
-        const Handle<MaterialInstance>& material,
+        const Handle<Material>& material,
         const Mat4f& transform);
     ~DX12GpuBlas() override;
 

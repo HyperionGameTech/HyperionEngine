@@ -25,8 +25,7 @@
 #include <Rendering/Frame.hpp>
 #include <Rendering/Texture.hpp>
 #include <Rendering/Mesh.hpp>
-#include <Rendering/MaterialDefinition.hpp>
-#include <Rendering/MaterialInstance.hpp>
+#include <Rendering/Material.hpp>
 
 #include <Core/Threading/Scheduler.hpp>
 
@@ -142,21 +141,15 @@ void DynamicSkySystem::InitializeSky()
 
         m_envProbe->SetReceivesUpdate(false); // we will update manually, no automatic updates
 
-        Handle<MaterialDefinition> skyboxMaterialDefinition = MakeHandle<MaterialDefinition>(NAME("SkyboxMaterial"), materialAttributes);
-        skyboxMaterialDefinition->SetIsTransient(true);
-        InitObject(skyboxMaterialDefinition);
+        Handle<Material> skyboxMaterial = MakeHandle<Material>(NAME("SkyboxMaterial"), materialAttributes);
+        skyboxMaterial->SetTexture(MaterialTextureKey::Diffuse, m_envProbe->GetPrefilteredEnvMap());
+        skyboxMaterial->SetIsTransient(true);
+        InitObject(skyboxMaterial);
 
-        GetCurrentAssetRegistry()->PutAssetUnique(skyboxMaterialDefinition);
-
-        Handle<MaterialInstance> skyboxMaterialInstance = MakeHandle<MaterialInstance>(NAME("SkyboxMaterial"), skyboxMaterialDefinition);
-        skyboxMaterialInstance->SetTexture(MaterialTextureKey::Diffuse, m_envProbe->GetPrefilteredEnvMap());
-        skyboxMaterialInstance->SetIsTransient(true);
-        InitObject(skyboxMaterialInstance);
-
-        GetCurrentAssetRegistry()->PutAssetUnique(skyboxMaterialInstance);
+        GetCurrentAssetRegistry()->PutAssetUnique(skyboxMaterial);
 
         // add MeshComponent to skybox entity
-        m_skyboxEntity->AddComponent<MeshComponent>(MeshComponent { mesh, skyboxMaterialInstance });
+        m_skyboxEntity->AddComponent<MeshComponent>(MeshComponent { mesh, skyboxMaterial });
 
 #if 0
         // Sky Visibility view

@@ -18,7 +18,7 @@ class AssetManager;
 class AudioManager;
 class DeletionQueue;
 class ShaderManager;
-class MaterialInstanceCache;
+class MaterialCache;
 class RenderInterface;
 class ShaderCompiler;
 class EditorState;
@@ -48,7 +48,7 @@ ENGINE_API extern Handle<AudioManager> g_audioManager;
 ENGINE_API extern Handle<AppContextBase> g_appContext;
 ENGINE_API extern Handle<StreamingManager> g_streamingManager;
 ENGINE_API extern Handle<EngineStats> g_engineStats;
-ENGINE_API extern MaterialInstanceCache* g_materialInstanceCache;
+ENGINE_API extern MaterialCache* g_materialCache;
 ENGINE_API extern ShaderCompiler* g_shaderCompiler;
 
 #if HYP_EDITOR

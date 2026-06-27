@@ -33,8 +33,7 @@
 #include <Scene/Components/UIComponent.hpp>
 
 #include <Rendering/Mesh.hpp>
-#include <Rendering/MaterialDefinition.hpp>
-#include <Rendering/MaterialInstance.hpp>
+#include <Rendering/Material.hpp>
 
 #include <Rendering/InstancedMeshData.hpp>
 
@@ -1933,7 +1932,7 @@ MaterialTextures UIObject::GetMaterialTextures() const
     return MaterialTextures {};
 }
 
-Handle<MaterialInstance> UIObject::CreateMaterial() const
+Handle<Material> UIObject::CreateMaterial() const
 {
     HYP_SCOPE;
 
@@ -1941,30 +1940,24 @@ Handle<MaterialInstance> UIObject::CreateMaterial() const
 
     if (AllowMaterialUpdate())
     {
-        Handle<MaterialDefinition> definition = MakeHandle<MaterialDefinition>(
+        Handle<Material> material = MakeHandle<Material>(
             m_name,
             GetMaterialAttributes(),
             GetMaterialParameters(),
             materialTextures);
 
-        definition->SetIsTransient(true);
+        material->SetIsDynamic(true);
+        material->SetIsTransient(true);
 
-        GetCurrentAssetRegistry()->PutAsset(definition);
-        InitObject(definition);
+        GetCurrentAssetRegistry()->PutAsset(material);
 
-        Handle<MaterialInstance> instance = definition->CreateInstance();
-        instance->SetIsDynamic(true);
-        instance->SetIsTransient(true);
+        InitObject(material);
 
-        GetCurrentAssetRegistry()->PutAsset(instance);
-
-        InitObject(instance);
-
-        return instance;
+        return material;
     }
     else
     {
-        Handle<MaterialInstance> instance = g_materialInstanceCache->GetOrCreate(
+        Handle<Material> instance = g_materialCache->GetOrCreate(
             GetMaterialAttributes(),
             GetMaterialParameters(),
             materialTextures);
@@ -1973,7 +1966,7 @@ Handle<MaterialInstance> UIObject::CreateMaterial() const
     }
 }
 
-const Handle<MaterialInstance>& UIObject::GetMaterial() const
+const Handle<Material>& UIObject::GetMaterial() const
 {
     HYP_SCOPE;
 
@@ -1982,7 +1975,7 @@ const Handle<MaterialInstance>& UIObject::GetMaterial() const
 
     if (!entity.IsValid() || !scene)
     {
-        return Handle<MaterialInstance>::empty;
+        return Handle<Material>::empty;
     }
 
     if (const MeshComponent* meshComponent = scene->GetEntityManager()->TryGetComponent<MeshComponent>(entity))
@@ -1990,7 +1983,7 @@ const Handle<MaterialInstance>& UIObject::GetMaterial() const
         return meshComponent->material;
     }
 
-    return Handle<MaterialInstance>::empty;
+    return Handle<Material>::empty;
 }
 
 const Handle<Mesh>& UIObject::GetMesh() const
@@ -2549,7 +2542,7 @@ void UIObject::UpdateMaterial_Internal()
         return;
     }
 
-    Handle<MaterialInstance>& currentMaterial = meshComponent->material;
+    Handle<Material>& currentMaterial = meshComponent->material;
 
     MaterialAttributes materialAttributes = GetMaterialAttributes();
     MaterialParameters materialParameters = GetMaterialParameters();
@@ -2560,7 +2553,7 @@ void UIObject::UpdateMaterial_Internal()
         || currentMaterial->GetAttributes() != materialAttributes)
     {
         // need to get a new Material if attributes have changed
-        Handle<MaterialInstance> newMaterial = CreateMaterial();
+        Handle<Material> newMaterial = CreateMaterial();
 
         EnqueueDeletion(std::move(currentMaterial));
         meshComponent->material = std::move(newMaterial);

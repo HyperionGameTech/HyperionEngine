@@ -37,7 +37,7 @@ class PassBase;
 class IRenderProxy;
 class SkyProbe;
 class UIPass;
-class MaterialInstance;
+class Material;
 class MaterialTextureCache;
 class GraphicsPipelineCache;
 class ComputePipelineCache;
@@ -381,7 +381,7 @@ public:
         const GpuBufferRef& packedIndicesBuffer,
         uint32 numVertices,
         uint32 numIndices,
-        const Handle<MaterialInstance>& material,
+        const Handle<Material>& material,
         const Mat4f& transform) = 0;
 
     virtual GpuTlasRef MakeTLAS() = 0;

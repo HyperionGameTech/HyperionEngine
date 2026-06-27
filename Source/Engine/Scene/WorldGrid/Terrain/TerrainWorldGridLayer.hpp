@@ -12,7 +12,7 @@
 
 namespace Hyperion {
 
-class MaterialInstance;
+class Material;
 class Mesh;
 class Scene;
 
@@ -45,7 +45,7 @@ protected:
     virtual Handle<StreamingCell> CreateStreamingCell_Impl(const StreamingCellInfo& cellInfo) override;
 
     Handle<Scene> m_scene;
-    Handle<MaterialInstance> m_material;
+    Handle<Material> m_material;
     Handle<Mesh> m_mesh;
 };
 

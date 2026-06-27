@@ -46,7 +46,7 @@ public:
         const VulkanGpuBufferRef& packedIndicesBuffer,
         uint32 numVertices,
         uint32 numIndices,
-        const Handle<MaterialInstance>& material);
+        const Handle<Material>& material);
 
     VulkanAccelerationGeometry(VulkanAccelerationGeometry&& other) noexcept
         : m_material(std::move(other.m_material)),
@@ -89,7 +89,7 @@ public:
         return m_numIndices;
     }
 
-    HYP_FORCE_INLINE const Handle<MaterialInstance>& GetMaterial() const
+    HYP_FORCE_INLINE const Handle<Material>& GetMaterial() const
     {
         return m_material;
     }
@@ -99,7 +99,7 @@ public:
     RendererResult Create();
 
 private:
-    Handle<MaterialInstance> m_material;
+    Handle<Material> m_material;
 
     VulkanGpuBufferRef m_packedVerticesBuffer;
     VulkanGpuBufferRef m_packedIndicesBuffer;
@@ -220,7 +220,7 @@ public:
         const VulkanGpuBufferRef& packedIndicesBuffer,
         uint32 numVertices,
         uint32 numIndices,
-        const Handle<MaterialInstance>& material,
+        const Handle<Material>& material,
         const Mat4f& transform);
     ~VulkanGpuBlas() override;
 

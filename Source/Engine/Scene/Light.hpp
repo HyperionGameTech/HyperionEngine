@@ -21,7 +21,7 @@
 namespace Hyperion {
 
 class Camera;
-class MaterialInstance;
+class Material;
 class Texture;
 class View;
 struct RenderProxyLight;
@@ -206,7 +206,7 @@ public:
      *
      *  \return The material handle associated with the Light. */
     HYP_METHOD(Property = "Material", Editor = true)
-    const Handle<MaterialInstance>& GetMaterial() const
+    const Handle<Material>& GetMaterial() const
     {
         return m_material;
     }
@@ -214,7 +214,7 @@ public:
      *
      *  \param material The material to set for this Light. */
     HYP_METHOD(Property = "Material", Editor = true)
-    void SetMaterial(Handle<MaterialInstance> material);
+    void SetMaterial(Handle<Material> material);
 
     HYP_METHOD(Property = "ShadowMapDimensions", Editor = true)
     const Vec2u& GetShadowMapDimensions() const
@@ -308,7 +308,7 @@ protected:
     float m_radius;
     float m_falloff;
     Vec2f m_spotAngles;
-    Handle<MaterialInstance> m_material;
+    Handle<Material> m_material;
 
     // Only present if baked
     Handle<Texture> m_shadowMap;

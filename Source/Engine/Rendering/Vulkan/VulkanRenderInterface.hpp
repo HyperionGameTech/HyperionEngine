@@ -162,7 +162,7 @@ public:
         const VulkanGpuBufferRef& packedIndicesBuffer,
         uint32 numVertices,
         uint32 numIndices,
-        const Handle<MaterialInstance>& material,
+        const Handle<Material>& material,
         const Mat4f& transform) override;
 
     VulkanGpuTlasRef MakeTLAS() override;

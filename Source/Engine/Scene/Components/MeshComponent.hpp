@@ -18,7 +18,7 @@
 namespace Hyperion {
 
 class Mesh;
-class MaterialInstance;
+class Material;
 class Skeleton;
 class BVHNode;
 struct RenderProxyMesh;
@@ -37,7 +37,7 @@ struct ENGINE_API MeshComponent
     Handle<Mesh> mesh;
 
     HYP_FIELD(Property = "Material")
-    Handle<MaterialInstance> material;
+    Handle<Material> material;
 
     HYP_FIELD(Property = "Skeleton")
     Handle<Skeleton> skeleton;
@@ -57,7 +57,7 @@ struct ENGINE_API MeshComponent
     HYP_FIELD(NoScriptBindings, Transient)
     MeshComponentUserData userData;
 
-    MeshComponent(const Handle<Mesh>& mesh = nullptr, const Handle<MaterialInstance>& material = nullptr, const Handle<Skeleton>& skeleton = nullptr)
+    MeshComponent(const Handle<Mesh>& mesh = nullptr, const Handle<Material>& material = nullptr, const Handle<Skeleton>& skeleton = nullptr)
         : mesh(mesh),
           material(material),
           skeleton(skeleton),

@@ -22,7 +22,7 @@
 #include <Scene/Components/MeshComponent.hpp>
 
 #include <Rendering/Mesh.hpp>
-#include <Rendering/MaterialInstance.hpp>
+#include <Rendering/Material.hpp>
 #include <Rendering/Texture.hpp>
 #include <Rendering/Vertex.hpp>
 
@@ -197,7 +197,7 @@ TerrainStreamingCell::TerrainStreamingCell(
     const StreamingCellInfo& cellInfo,
     const Handle<Scene>& scene,
     const Handle<Mesh>& mesh,
-    const Handle<MaterialInstance>& material)
+    const Handle<Material>& material)
     : StreamingCell(cellInfo),
       m_scene(scene),
       m_mesh(mesh),

@@ -11,7 +11,7 @@
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/RenderProxy.hpp>
 #include <Rendering/Mesh.hpp>
-#include <Rendering/MaterialInstance.hpp>
+#include <Rendering/Material.hpp>
 #include <Rendering/InstancedMeshData.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>

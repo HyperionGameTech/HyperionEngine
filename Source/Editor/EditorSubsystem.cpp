@@ -77,8 +77,7 @@
 #include <Core/IO/ByteWriter.hpp>
 
 #include <Rendering/Mesh.hpp>
-#include <Rendering/MaterialDefinition.hpp>
-#include <Rendering/MaterialInstance.hpp>
+#include <Rendering/Material.hpp>
 
 #include <Rendering/Util/MeshBuilder.hpp>
 
@@ -1624,14 +1623,10 @@ Handle<Node> VolumeEditorGizmo::Load_Internal() const
     MaterialParameters materialParameters;
     materialParameters.albedo = volumeColor;
 
-    Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(NAME("VolumeEditMaterial"), materialAttributes, materialParameters, MaterialTextures {});
-    InitObject(materialDefinition);
-    GetCurrentAssetRegistry()->PutAssetsDeep(materialDefinition);
-
-    Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
-    materialInstance->SetIsDynamic(true);
-    InitObject(materialInstance);
-    GetCurrentAssetRegistry()->PutAssetsDeep(materialInstance);
+    Handle<Material> material = MakeHandle<Material>(NAME("VolumeEditMaterial"), materialAttributes, materialParameters, MaterialTextures {});
+    material->SetIsDynamic(true);
+    InitObject(material);
+    GetCurrentAssetRegistry()->PutAssetsDeep(material);
 
     for (int i = 0; i < VEF_Max; i++)
     {
@@ -1644,7 +1639,7 @@ Handle<Node> VolumeEditorGizmo::Load_Internal() const
 
         rootNode->AddChild(faceEntity);
 
-        faceEntity->AddComponent<MeshComponent>(MeshComponent { quadMesh, materialInstance });
+        faceEntity->AddComponent<MeshComponent>(MeshComponent { quadMesh, material });
         faceEntity->SetLocalBounds(quadMesh->GetAABB());
 
         VisibilityStateComponent* visibilityState = faceEntity->TryGetComponent<VisibilityStateComponent>();
@@ -2474,7 +2469,7 @@ void EditorSubsystem::CreateHighlightNode()
     // Handle<Mesh> mesh = MeshBuilder::Cube();
     // InitObject(mesh);
 
-    // Handle<MaterialInstance> material = g_materialInstanceCache->GetOrCreate(
+    // Handle<Material> material = g_MaterialCache->GetOrCreate(
     //     {
     //         .shaderDefinition = ShaderDefinition {
     //             NAME("Forward"),

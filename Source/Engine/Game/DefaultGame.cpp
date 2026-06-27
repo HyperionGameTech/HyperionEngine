@@ -37,8 +37,7 @@
 
 #include <Rendering/Mesh.hpp>
 #include <Rendering/Texture.hpp>
-#include <Rendering/MaterialDefinition.hpp>
-#include <Rendering/MaterialInstance.hpp>
+#include <Rendering/Material.hpp>
 
 #include <Core/Config/Config.hpp>
 
@@ -258,22 +257,22 @@ void DefaultGame::OnLaunch_Impl()
     parameters.roughness = 0.3f;
     parameters.metalness = 0.02f;
 
-    Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(NAME("NewMat"), attributes, parameters, MaterialTextures {});
-    materialDefinition->SetIsTransient(true);
-    InitObject(materialDefinition);
-    GetCurrentAssetRegistry()->PutAssetUnique(materialDefinition);
+    Handle<Material> baseMaterial = MakeHandle<Material>(NAME("NewMat"), attributes, parameters, MaterialTextures {});
+    baseMaterial->SetIsTransient(true);
+    InitObject(baseMaterial);
+    GetCurrentAssetRegistry()->PutAssetUnique(baseMaterial);
 
-    Handle<MaterialInstance> materialInstance = MakeHandle<MaterialInstance>(NAME("NewMat"), materialDefinition);
-    materialInstance->SetIsTransient(true);
-    InitObject(materialInstance);
-    GetCurrentAssetRegistry()->PutAssetUnique(materialInstance);
+    Handle<Material> material = baseMaterial->Clone();
+    material->SetIsTransient(true);
+    InitObject(material);
+    GetCurrentAssetRegistry()->PutAssetUnique(material);
 
     scene->GetRoot()->AddChild(cubeEnt);
 
     cubeEnt->Translate(Vec3f(-10.0f, 0.0f, 0.0f));
 
     // add MeshComponent to skybox entity
-    cubeEnt->AddComponent<MeshComponent>(MeshComponent { mesh, materialInstance });
+    cubeEnt->AddComponent<MeshComponent>(MeshComponent { mesh, material });
 
     AssetBatch* batch = g_assetManager->CreateBatch();
     batch->Add("testbed", "Models/testbed/testbed.obj");

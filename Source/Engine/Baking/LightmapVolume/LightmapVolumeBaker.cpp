@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <HyperionPch.hpp>
 
@@ -13,8 +13,7 @@
 #include <Asset/AssetRegistry.hpp>
 
 #include <Rendering/Mesh.hpp>
-#include <Rendering/MaterialDefinition.hpp>
-#include <Rendering/MaterialInstance.hpp>
+#include <Rendering/Material.hpp>
 #include <Rendering/Texture.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
@@ -100,8 +99,7 @@ static void UpdateAtlasTextures(
                 Vec3u { atlas.atlasDimensions, 1 },
                 TFM_LINEAR,
                 TFM_LINEAR,
-                TWM_CLAMP_TO_EDGE
-            },
+                TWM_CLAMP_TO_EDGE },
             atlasBitmap.ToByteView());
 
         atlasTexture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_{}", lmv->GetName(), LightmapAtlasTextureTypeNames[textureTypeIndex]));
@@ -274,8 +272,7 @@ void Baker<LightmapVolume>::Build()
             meshComponent.mesh,
             meshComponent.material,
             Transform(transformComponent.translation, transformComponent.scale, transformComponent.rotation).GetMatrix(),
-            boundingBoxComponent.worldAabb
-        });
+            boundingBoxComponent.worldAabb });
     }
 
     // Build global data
@@ -328,7 +325,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
     GetCurrentAssetRegistry()->PutAssetsDeep(m_volume);
 
     HYP_LOG(Lightmap, Verbose, "Lightmap baking complete! Building element with id {}, UV offset: {}, Scale: {}", m_lightmapElementId,
-        lightmapElement->offsetUV, lightmapElement->scale);
+            lightmapElement->offsetUV, lightmapElement->scale);
 
     // Update meshes
     for (size_t bakeEntityIndex = 0; bakeEntityIndex < m_bakeEntities.Size(); bakeEntityIndex++)
@@ -404,49 +401,42 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
         // update material info
         if (bakeEntity.material && bakeEntity.material->GetBucket() != RenderBucket::Lightmapped)
         {
-            // @TODO Look for material definition that matches what we need rather than creating it right out of the gate.
+            // @TODO Look for material to use as a base that matches what we need rather than creating it right out of the gate.
 
-            const Handle<MaterialDefinition>& currentMaterialDefinition = bakeEntity.material->GetDefinition();
+            const Handle<Material>& currentMaterial = bakeEntity.material;
 
-            MaterialAttributes newAttributes = currentMaterialDefinition->GetAttributes();
+            MaterialAttributes newAttributes = currentMaterial->GetAttributes();
             newAttributes.bucket = RenderBucket::Lightmapped;
 
-            Handle<MaterialDefinition> newMaterialDefinition = MakeHandle<MaterialDefinition>(
-                NAME_FMT("{}_LM", currentMaterialDefinition->GetName()),
+            Handle<Material> lmMaterial = MakeHandle<Material>(
+                NAME_FMT("{}_LM", currentMaterial->GetName()),
                 newAttributes,
-                currentMaterialDefinition->GetDefaultParameters(),
-                currentMaterialDefinition->GetDefaultTextures());
+                currentMaterial->GetParameters(),
+                currentMaterial->GetTextures());
 
-            Assert(newMaterialDefinition != nullptr);
+            Assert(lmMaterial != nullptr);
 
-            InitObject(newMaterialDefinition);
-
-            GetCurrentAssetRegistry()->PutAssetsDeep(newMaterialDefinition);
-
-            Handle<MaterialInstance> newMaterialInstance = newMaterialDefinition->CreateInstance();
-            Assert(newMaterialInstance != nullptr);
-
-            newMaterialInstance->SetParameters(bakeEntity.material->GetParameters());
-            newMaterialInstance->SetTextures(bakeEntity.material->GetTextures());
+            lmMaterial->SetParameters(bakeEntity.material->GetParameters());
+            lmMaterial->SetTextures(bakeEntity.material->GetTextures());
 
             EnqueueDeletion(std::move(bakeEntity.material));
 
-            InitObject(newMaterialInstance);
+            InitObject(lmMaterial);
 
-            GetCurrentAssetRegistry()->PutAssetsDeep(newMaterialInstance);
+            GetCurrentAssetRegistry()->PutAssetsDeep(lmMaterial);
 
-            bakeEntity.material = newMaterialInstance;
+            bakeEntity.material = lmMaterial;
 
             isNewMaterial = true;
         }
 #endif
 
         auto UpdateMeshComponent = [entityManagerWeak = MakeWeakRef(m_scene->GetEntityManager()),
-                                        lightmapElementId = m_lightmapElementId,
-                                        volume = m_volume,
-                                        bakeEntity = bakeEntity,
-                                        material = bakeEntity.material,
-                                        isNewMaterial]()
+                                    lightmapElementId = m_lightmapElementId,
+                                    volume = m_volume,
+                                    bakeEntity = bakeEntity,
+                                    material = bakeEntity.material,
+                                    isNewMaterial]()
         {
             Handle<EntityManager> entityManager = entityManagerWeak.Lock();
 
@@ -511,7 +501,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
     }
 }
 
-#pragma endregion Baker<LightmapVolume>
+#pragma endregion Baker < LightmapVolume>
 
 } // namespace Baking
 } // namespace Hyperion

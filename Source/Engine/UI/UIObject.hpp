@@ -42,7 +42,7 @@ class UISubsystem;
 class UIDataSourceBase;
 class UIDataSource;
 class Mesh;
-class MaterialInstance;
+class Material;
 class Scene;
 
 // Helper function to get the scene from a UIStage
@@ -1052,7 +1052,7 @@ public:
 
     virtual Scene* GetScene() const;
 
-    const Handle<MaterialInstance>& GetMaterial() const;
+    const Handle<Material>& GetMaterial() const;
 
     /*! \brief Get the AABB of the UIObject (calculated with absolute positioning, or world space) */
     HYP_METHOD()
@@ -1498,7 +1498,7 @@ private:
 
     void UpdateNodeTransform();
 
-    Handle<MaterialInstance> CreateMaterial() const;
+    Handle<Material> CreateMaterial() const;
 
     EnumFlags<UIObjectFocusState> m_focusState;
 

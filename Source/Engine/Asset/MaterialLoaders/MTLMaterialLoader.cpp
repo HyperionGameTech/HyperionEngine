@@ -12,8 +12,7 @@
 #include <Asset/AssetRegistry.hpp>
 
 #include <Rendering/Texture.hpp>
-#include <Rendering/MaterialDefinition.hpp>
-#include <Rendering/MaterialInstance.hpp>
+#include <Rendering/Material.hpp>
 
 #include <Core/FileSystem/FsUtil.hpp>
 
@@ -122,7 +121,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
     return { HYP_MAKE_ERROR(AssetLoadError, "MTL files should be loaded via MTLMaterialLoader::ParseMtl()") };
 }
 
-TMap<String, Handle<MaterialInstance>> MTLMaterialLoader::ParseMtl(
+TMap<String, Handle<Material>> MTLMaterialLoader::ParseMtl(
     FilePath filepath,
     AssetManager& assetManager,
     const String& batchIdentifier)
@@ -141,7 +140,7 @@ TMap<String, Handle<MaterialInstance>> MTLMaterialLoader::ParseMtl(
     return ParseMtl_Internal(state);
 }
 
-TMap<String, Handle<MaterialInstance>> MTLMaterialLoader::ParseMtl_Internal(LoaderState& state)
+TMap<String, Handle<Material>> MTLMaterialLoader::ParseMtl_Internal(LoaderState& state)
 {
     Assert(state.assetManager != nullptr);
 
@@ -420,7 +419,7 @@ TMap<String, Handle<MaterialInstance>> MTLMaterialLoader::ParseMtl_Internal(Load
         }
     }
 
-    TMap<String, Handle<MaterialInstance>> result;
+    TMap<String, Handle<Material>> result;
 
     TMap<String, String> textureNamesToPath;
     TSet<String> srgbTextures;
@@ -549,22 +548,17 @@ TMap<String, Handle<MaterialInstance>> MTLMaterialLoader::ParseMtl_Internal(Load
 
         const Name materialName = CreateNameFromDynamicString(item.tag);
 
-        Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(
+        Handle<Material> material = MakeHandle<Material>(
             materialName,
             attributes,
             parameters,
             textures);
 
-        InitObject(materialDefinition);
+        InitObject(material);
 
-        GetCurrentAssetRegistry()->PutAssetUnique(materialDefinition);
+        GetCurrentAssetRegistry()->PutAssetUnique(material);
 
-        Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
-        InitObject(materialInstance);
-
-        GetCurrentAssetRegistry()->PutAssetUnique(materialInstance);
-
-        result.Set(item.tag, std::move(materialInstance));
+        result.Set(item.tag, std::move(material));
     }
 
     return result;
