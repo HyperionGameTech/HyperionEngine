@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -20,7 +20,10 @@ class DX12Fence final : public ObjectBase
     HYP_OBJECT_BODY(DX12Fence);
 
 public:
-    static Pool* GetAllocator() { return g_dx12Pool; }
+    static Pool* GetAllocator()
+    {
+        return g_dx12Pool;
+    }
 
     DX12Fence();
 
@@ -50,7 +53,7 @@ public:
     RendererResult Wait(bool timeoutLoop = false);
     void Increment();
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     void SetDebugName(const WideString& debugName);
 
     HYP_FORCE_INLINE const WideString& GetDebugName() const
@@ -66,7 +69,7 @@ private:
     HANDLE m_eventHandle;
     uint64 m_value;
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     WideString m_debugName;
 #endif
 };

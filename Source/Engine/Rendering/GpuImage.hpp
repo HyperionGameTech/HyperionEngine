@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -40,11 +40,14 @@ public:
     using HANDLE = void*;
 #endif
 
-    static Pool* GetAllocator() { return g_rhiPool; }
+    static Pool* GetAllocator()
+    {
+        return g_rhiPool;
+    }
 
     virtual ~GpuImageBase() override = default;
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     Name GetDebugName() const
     {
         return m_debugName;
@@ -201,7 +204,9 @@ public:
     /*! \brief Inserts a UAV barrier to ensure UAV writes complete before subsequent reads.
      *  Only required on some backends (DX12). Default implementation does nothing.
      *  \param commandBuffer The command buffer to insert the barrier into. */
-    virtual void InsertUAVBarrier(CommandBuffer* commandBuffer) {}
+    virtual void InsertUAVBarrier(CommandBuffer* commandBuffer)
+    {
+    }
 
     virtual void CopyFromBuffer(
         CommandBuffer* commandBuffer,
@@ -258,7 +263,7 @@ protected:
 
     EnumFlags<GpuImageFlags> m_flags;
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     Name m_debugName;
 #endif
 };

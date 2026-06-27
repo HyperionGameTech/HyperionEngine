@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -24,7 +24,10 @@ class CommandBufferBase : public ObjectBase
 public:
     virtual ~CommandBufferBase() override = default;
 
-    static Pool* GetAllocator() { return g_rhiPool; }
+    static Pool* GetAllocator()
+    {
+        return g_rhiPool;
+    }
 
     virtual bool IsCreated() const = 0;
 
@@ -47,7 +50,7 @@ public:
         const GpuBuffer* buffer,
         uint32 bufferOffset) const = 0;
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     HYP_FORCE_INLINE Name GetDebugName() const
     {
         return m_debugName;
@@ -60,7 +63,7 @@ public:
 #endif
 
 protected:
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     Name m_debugName;
 #endif
 };

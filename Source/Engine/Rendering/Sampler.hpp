@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -20,7 +20,10 @@ class SamplerBase : public ObjectBase
     HYP_OBJECT_BODY(SamplerBase);
 
 public:
-    static Pool* GetAllocator() { return g_rhiPool; }
+    static Pool* GetAllocator()
+    {
+        return g_rhiPool;
+    }
 
     virtual ~SamplerBase() override = default;
 
@@ -48,7 +51,7 @@ public:
 
     virtual RendererResult Create() = 0;
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     Name GetDebugName() const
     {
         return m_debugName;
@@ -76,7 +79,7 @@ protected:
     TextureWrapMode m_wrapMode = TWM_CLAMP_TO_EDGE;
     SamplerCompareOp m_compareOp = SamplerCompareOp::None;
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     Name m_debugName;
 #endif
 };

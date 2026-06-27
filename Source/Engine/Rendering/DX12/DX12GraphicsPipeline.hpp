@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -62,11 +62,14 @@ public:
     void Bind(DX12CommandBuffer* cmd) override;
     void Bind(DX12CommandBuffer* cmd, Vec2i viewportOffset, Vec2u viewportExtent) override;
 
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name) override;
 #endif
 
-    static bool CanDynamicallySetDepthState() { return false; }
+    static bool CanDynamicallySetDepthState()
+    {
+        return false;
+    }
 
 private:
     RendererResult Rebuild() override;

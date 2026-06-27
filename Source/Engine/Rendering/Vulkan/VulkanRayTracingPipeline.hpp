@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -47,7 +47,7 @@ public:
     void Bind(VulkanCommandBuffer* commandBuffer) override;
     void TraceRays(VulkanCommandBuffer* commandBuffer, const Vec3u& extent) const override;
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name) override
     {
         VulkanPipelineBase::SetDebugName(name);

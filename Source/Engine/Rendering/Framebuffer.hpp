@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -23,7 +23,10 @@ class FramebufferBase : public ObjectBase
 public:
     virtual ~FramebufferBase() override = default;
 
-    static Pool* GetAllocator() { return g_rhiPool; }
+    static Pool* GetAllocator()
+    {
+        return g_rhiPool;
+    }
 
     HYP_FORCE_INLINE uint32 GetWidth() const
     {
@@ -71,7 +74,7 @@ public:
         }
     }
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     Name GetDebugName() const
     {
         return m_debugName;
@@ -116,7 +119,7 @@ protected:
     FramebufferDesc m_framebufferDesc;
     int m_isRecordingCount;
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     Name m_debugName;
 #endif
 };

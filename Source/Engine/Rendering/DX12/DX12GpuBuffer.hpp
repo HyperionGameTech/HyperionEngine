@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -89,7 +89,7 @@ public:
 
     void Flush(size_t offset, size_t count) override;
 
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name) override;
 #endif
 

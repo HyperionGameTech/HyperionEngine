@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -36,7 +36,7 @@ public:
 
     bool IsCreated() const;
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name);
     void SetDebugNameLayout(Name name);
 #endif

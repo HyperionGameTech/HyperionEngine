@@ -61,7 +61,7 @@ public:
         const DX12GpuBufferRef& indirectBuffer,
         size_t offset = 0) const override;
 
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name) override;
 #endif
 

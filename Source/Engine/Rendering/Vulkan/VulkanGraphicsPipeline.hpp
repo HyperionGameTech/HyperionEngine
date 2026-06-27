@@ -67,7 +67,7 @@ public:
     void Bind(VulkanCommandBuffer* cmd) override;
     void Bind(VulkanCommandBuffer* cmd, Vec2i viewportOffset, Vec2u viewportExtent) override;
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name) override;
 #endif
 

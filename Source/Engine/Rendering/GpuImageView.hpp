@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -20,11 +20,14 @@ class GpuImageViewBase : public ObjectBase
     HYP_OBJECT_BODY(GpuImageViewBase);
 
 public:
-    static Pool* GetAllocator() { return g_rhiPool; }
+    static Pool* GetAllocator()
+    {
+        return g_rhiPool;
+    }
 
     virtual ~GpuImageViewBase() override;
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     Name GetDebugName() const
     {
         return m_debugName;
@@ -34,7 +37,7 @@ public:
     {
         m_debugName = name;
     }
-#endif // HYP_DEBUG_MODE
+#endif // HYP_RHI_DEBUG_NAMES
 
     HYP_FORCE_INLINE const GpuImageRef& GetImage() const
     {
@@ -77,7 +80,7 @@ protected:
     GpuImageRef m_image;
     ImageSubResource m_subResource;
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     Name m_debugName;
 #endif
 };

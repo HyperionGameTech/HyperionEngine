@@ -11,6 +11,12 @@
 
 #include <Core/Name/Name.hpp>
 
+#ifndef HYP_RHI_DEBUG_NAMES
+#ifdef HYP_DEBUG_MODE
+#define HYP_RHI_DEBUG_NAMES
+#endif
+#endif
+
 #include <Core/Utilities/Float16.hpp>
 #include <Core/Utilities/EnumFlags.hpp>
 #include <Core/Utilities/ByteUtil.hpp>

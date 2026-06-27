@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -45,7 +45,7 @@ public:
         const VulkanGpuBufferRef& indirectBuffer,
         size_t offset = 0) const override;
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name) override;
 #endif
 };

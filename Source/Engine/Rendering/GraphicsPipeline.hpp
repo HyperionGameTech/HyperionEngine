@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -69,7 +69,10 @@ class GraphicsPipelineBase : public ObjectBase
 public:
     virtual ~GraphicsPipelineBase() override;
 
-    static Pool* GetAllocator() { return g_rhiPool; }
+    static Pool* GetAllocator()
+    {
+        return g_rhiPool;
+    }
 
     HYP_FORCE_INLINE const VertexInputLayoutDesc& GetInputLayout() const
     {
@@ -215,7 +218,7 @@ public:
 
     void SetFramebufferDesc(const FramebufferDesc& framebufferDesc);
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     Name GetDebugName() const
     {
         return m_debugName;
@@ -293,7 +296,7 @@ protected:
 
     PSOCacheKey m_key;
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     Name m_debugName;
 #endif
 };

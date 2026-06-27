@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -38,12 +38,14 @@ public:
     ~DX12GpuImageView() override;
 
     HYP_FORCE_INLINE TextureType GetViewTextureType() const
-        { return m_viewTextureType; }
+    {
+        return m_viewTextureType;
+    }
 
     bool IsCreated() const override;
     RendererResult Create() override;
 
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name) override;
 #endif
 

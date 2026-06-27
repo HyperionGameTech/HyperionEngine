@@ -3,7 +3,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -16,7 +16,6 @@
 #include <Rendering/RawBuffer.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
-
 
 namespace Hyperion {
 
@@ -57,7 +56,10 @@ class GpuTlasBase : public ObjectBase
     HYP_OBJECT_BODY(GpuTlasBase);
 
 public:
-    static Pool* GetAllocator() { return g_rhiPool; }
+    static Pool* GetAllocator()
+    {
+        return g_rhiPool;
+    }
 
     static constexpr uint32 MaxBlases = 1024;
 
@@ -68,7 +70,7 @@ public:
 
     virtual ~GpuTlasBase() override = default;
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     Name GetDebugName() const
     {
         return m_debugName;
@@ -103,7 +105,7 @@ public:
 protected:
     StructuredBuffer m_meshDescriptionsBuffer;
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     Name m_debugName;
 #endif
 };
@@ -120,11 +122,14 @@ protected:
     }
 
 public:
-    static Pool* GetAllocator() { return g_rhiPool; }
+    static Pool* GetAllocator()
+    {
+        return g_rhiPool;
+    }
 
     virtual ~GpuBlasBase() override = default;
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     Name GetDebugName() const
     {
         return m_debugName;
@@ -166,7 +171,7 @@ protected:
     Handle<Material> m_material;
     uint32 m_materialBinding;
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     Name m_debugName;
 #endif
 };

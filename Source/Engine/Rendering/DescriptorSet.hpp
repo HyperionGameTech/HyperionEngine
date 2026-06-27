@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -254,14 +254,17 @@ public:
 
     virtual ~DescriptorSetBase() override;
 
-    static Pool* GetAllocator() { return g_rhiPool; }
+    static Pool* GetAllocator()
+    {
+        return g_rhiPool;
+    }
 
     HYP_FORCE_INLINE const DescriptorSetLayout& GetLayout() const
     {
         return m_layout;
     }
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     Name GetDebugName() const
     {
         return m_debugName;
@@ -271,6 +274,7 @@ public:
     {
         m_debugName = name;
     }
+#endif // HYP_RHI_DEBUG_NAMES
 
 #ifdef DECLARE_SET_TRACK_FRAME_USAGE
     HYP_FORCE_INLINE TSet<FrameWeakRef>& GetCurrentFrames()
@@ -283,7 +287,6 @@ public:
         return m_currentFrames;
     }
 #endif // DECLARE_SET_TRACK_FRAME_USAGE
-#endif // HYP_DEBUG_MODE
 
     virtual bool IsCreated() const = 0;
 
@@ -378,12 +381,12 @@ protected:
     DescriptorSetLayout m_layout;
     ElementsMap m_elements;
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     Name m_debugName;
+#endif
 
 #ifdef DECLARE_SET_TRACK_FRAME_USAGE
     TSet<FrameWeakRef> m_currentFrames; // frames that are currently using this descriptor set
-#endif
 #endif
 };
 
@@ -403,7 +406,7 @@ public:
         }
     }
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     Name GetDebugName() const
     {
         return m_debugName;
@@ -492,7 +495,7 @@ protected:
     const ShaderInputGroup* m_decl;
     FixedArray<Array<DescriptorSetRef>, NumFramesInFlight> m_sets;
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     Name m_debugName;
 #endif
 };

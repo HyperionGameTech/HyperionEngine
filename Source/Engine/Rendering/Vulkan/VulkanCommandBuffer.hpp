@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -153,7 +153,7 @@ public:
     void DebugMarkerBegin(const char* markerName) const;
     void DebugMarkerEnd() const;
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name);
 #endif
 

@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -20,7 +20,10 @@ class VulkanFence final : public ObjectBase
     HYP_OBJECT_BODY(VulkanFence);
 
 public:
-    static Pool* GetAllocator() { return g_vulkanPool; }
+    static Pool* GetAllocator()
+    {
+        return g_vulkanPool;
+    }
 
     VulkanFence();
 
@@ -52,7 +55,7 @@ public:
     void Wait(bool timeoutLoop = false);
     void Reset();
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name);
 #endif
 
@@ -60,7 +63,7 @@ public:
     VkResult lastFrameResult;
     bool isSubmitted;
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     Name debugName;
 #endif
 };

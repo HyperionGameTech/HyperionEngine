@@ -75,7 +75,7 @@ private:
 
     uint32 m_numVertices;
     uint32 m_numIndices;
-    
+
     bool m_isCreated;
 };
 
@@ -128,7 +128,7 @@ public:
     }
 
 protected:
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name);
 #endif
 
@@ -180,7 +180,7 @@ public:
 
     RendererResult UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags);
 
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name) override;
 #endif
 
@@ -210,7 +210,7 @@ public:
 
     RendererResult UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags) override;
 
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name) override;
 #endif
 

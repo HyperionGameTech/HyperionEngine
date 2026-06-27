@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -18,7 +18,9 @@
 #include <Rendering/DX12/DX12GpuBuffer.hpp>
 
 // Fwd declaration
-namespace D3D12MA { class Allocation; }
+namespace D3D12MA {
+class Allocation;
+}
 
 namespace Hyperion {
 
@@ -132,7 +134,7 @@ public:
 
     DX12GpuImageViewRef MakeLayerImageView(uint32 layerIndex) const override;
 
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name) override;
 #endif
 

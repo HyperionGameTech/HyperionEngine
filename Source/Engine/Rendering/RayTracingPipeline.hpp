@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -22,11 +22,14 @@ class RayTracingPipelineBase : public ObjectBase
     HYP_OBJECT_BODY(RayTracingPipelineBase);
 
 public:
-    static Pool* GetAllocator() { return g_rhiPool; }
+    static Pool* GetAllocator()
+    {
+        return g_rhiPool;
+    }
 
     virtual ~RayTracingPipelineBase() override = default;
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     Name GetDebugName() const
     {
         return m_debugName;
@@ -72,7 +75,7 @@ protected:
 
     ShaderInstanceRef m_shaderInstance;
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     Name m_debugName;
 #endif
 };

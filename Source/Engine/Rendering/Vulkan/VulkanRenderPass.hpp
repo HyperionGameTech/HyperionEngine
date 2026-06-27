@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 #include <Rendering/Vulkan/VulkanGpuImage.hpp>
@@ -30,7 +30,10 @@ class VulkanRenderPass final : public ObjectBase
     HYP_OBJECT_BODY(VulkanRenderPass);
 
 public:
-    static Pool* GetAllocator() { return g_vulkanPool; }
+    static Pool* GetAllocator()
+    {
+        return g_vulkanPool;
+    }
 
     VulkanRenderPass();
 
@@ -73,14 +76,14 @@ public:
 
     RendererResult Create();
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name);
 #endif
 
     void Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* framebuffer);
     void End(VulkanCommandBuffer* cmd);
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     Name debugName;
 #endif
 

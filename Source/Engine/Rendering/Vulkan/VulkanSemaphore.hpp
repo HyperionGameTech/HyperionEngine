@@ -27,7 +27,10 @@ class VulkanSemaphore final : public ObjectBase
     HYP_OBJECT_BODY(VulkanSemaphore);
 
 public:
-    static Pool* GetAllocator() { return g_vulkanPool; }
+    static Pool* GetAllocator()
+    {
+        return g_vulkanPool;
+    }
 
     VulkanSemaphore();
 
@@ -77,7 +80,7 @@ public:
     void WaitForValue(uint64 value, uint64 timeoutNs = UINT64_MAX);
     uint64 GetCounterValue() const;
 
-#if HYP_DEBUG_MODE
+#if HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name);
 
     Name debugName;

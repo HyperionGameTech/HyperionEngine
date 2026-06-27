@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -52,7 +52,7 @@ public:
     void Bind(CommandBuffer* commandBuffer) override;
     void TraceRays(CommandBuffer* commandBuffer, const Vec3u& extent) const override;
 
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name) override;
 #endif
 
