@@ -48,6 +48,7 @@ namespace Hyperion.Editor
             // Loading our own dll is necessary to load HyperionEditorGame into class registry.
             "Hyperion.Editor.dll"
         };
+
         public static void Initialize()
         {
             if (IsInitialized)
@@ -169,12 +170,17 @@ namespace Hyperion.Editor
             _onCurrentProjectChanged?.Remove();
             _onCurrentProjectChanged = editorState.GetOnCurrentProjectChangedDelegate().Bind((EditorProject newProject) =>
             {
-                CurrentProject = newProject;
-
-                Logger.Log(LogLevel.Info, "Current project changed to: " + (CurrentProject != null ? CurrentProject.Name : "null"));
+                Debug.Assert(newProject != CurrentProject);
 
                 _onSceneAddedHandler?.Remove();
                 _onSceneRemovedHandler?.Remove();
+
+                // Won't need the managed object anymore; dispose it early to ensure clean up is done in a timely manner. (as opposed to waiting for GC)
+                CurrentProject?.Dispose();
+
+                CurrentProject = newProject;
+
+                Logger.Log(LogLevel.Info, "Current project changed to: " + (CurrentProject != null ? CurrentProject.Name : "null"));
 
                 if (CurrentProject != null)
                 {

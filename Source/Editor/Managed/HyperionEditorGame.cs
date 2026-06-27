@@ -201,6 +201,8 @@ namespace Hyperion.Editor
 
             _onActionStackStateChanged?.Remove();
             _onActionStackStateChanged = null;
+
+            // Project will not be used from managed code after this point.
         }
     }
 }

@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <ScenePch.hpp>
 
@@ -65,7 +65,6 @@ ScriptableDelegate<void, World*, Scene*> World::OnSceneRemoved;
 
 #define HYP_WORLD_ASYNC_SUBSYSTEM_UPDATES
 #define HYP_WORLD_ASYNC_VIEW_COLLECTION
-
 
 // #define HYP_SYSTEMS_LAG_SPIKE_DETECTION
 // #define HYP_SYSTEM_LOG_PERFORMANCE
@@ -266,8 +265,8 @@ void World::Initialize()
             if (view->m_rayTracingView)
             {
                 HYP_LOG(Scene, Warning,
-                    "View {} already has a rayTracing View set! Was it added to multiple Worlds with rayTracing enabled?",
-                    view->Id());
+                        "View {} already has a rayTracing View set! Was it added to multiple Worlds with rayTracing enabled?",
+                        view->Id());
 
                 view->m_rayTracingView.Reset();
             }
@@ -364,6 +363,9 @@ void World::Shutdown()
     {
         subsystem->OnRemovedFromWorld();
     }
+
+    m_subsystemsArray.Clear();
+    m_subsystems.Clear();
 
     if (m_physicsWorld)
     {
@@ -954,11 +956,11 @@ Subsystem* World::GetSubsystem(TypeId typeId) const
 Subsystem* World::GetSubsystemByName(StringHash name) const
 {
     const auto it = m_subsystemsArray.FindIf([name](Subsystem* subsystem)
-        {
-            const Class* cls = subsystem->InstanceClass();
+                                             {
+                                                 const Class* cls = subsystem->InstanceClass();
 
-            return cls->GetName() == name;
-        });
+                                                 return cls->GetName() == name;
+                                             });
 
     if (it == m_subsystemsArray.End())
     {
@@ -1032,9 +1034,9 @@ void World::AddScene(const Handle<Scene>& scene, bool addToStreamingLayer)
         if (!(scene->GetSceneFlags() & SceneFlags::STREAMED))
         {
             HYP_LOG(Scene, Warning,
-                "Adding Scene {} to World {}'s streaming layer, but the Scene is not marked as STREAMED! ",
-                scene->GetName(),
-                GetName());
+                    "Adding Scene {} to World {}'s streaming layer, but the Scene is not marked as STREAMED! ",
+                    scene->GetName(),
+                    GetName());
 
             addToStreamingLayer = false;
         }
@@ -1125,18 +1127,18 @@ bool World::RemoveScene(Scene* scene, bool removeFromStreamingLayer)
 bool World::HasScene(ObjId<Scene> sceneId) const
 {
     return m_scenes.FindIf([sceneId](const Handle<Scene>& scene)
-               {
-                   return scene.Id() == sceneId;
-               })
+                           {
+                               return scene.Id() == sceneId;
+                           })
         != m_scenes.End();
 }
 
 const Handle<Scene>& World::GetSceneByName(StringHash nameHash) const
 {
     const auto it = m_scenes.FindIf([nameHash](const Handle<Scene>& scene)
-        {
-            return scene->GetName() == nameHash;
-        });
+                                    {
+                                        return scene->GetName() == nameHash;
+                                    });
 
     return it != m_scenes.End() ? *it : Handle<Scene>::Null();
 }
@@ -1170,8 +1172,8 @@ void World::AddView(View* view)
             if (view->m_rayTracingView)
             {
                 HYP_LOG(Scene, Warning,
-                    "View {} already has a rayTracing View set! Was it added to multiple Worlds with rayTracing enabled?",
-                    view->Id());
+                        "View {} already has a rayTracing View set! Was it added to multiple Worlds with rayTracing enabled?",
+                        view->Id());
 
                 view->m_rayTracingView.Reset();
             }
@@ -1358,36 +1360,36 @@ static void BindStreamingDelegates(DelegateHandlerSet& set, World* world, WorldG
     set.Remove(&layer->OnStreamingObjectsUnloaded);
 
     set.Add(layer->OnStreamingObjectsLoaded.Bind([world](StreamingCell* cell, Array<const AssetObject*> objs)
-        {
-            AssertOnThread(g_simThread);
-            for (const AssetObject* obj : objs)
-            {
-                if (obj->IsA(Scene::StaticClass()))
-                {
-                    const Scene* scene = DynamicCast<Scene>(obj);
+                                                 {
+                                                     AssertOnThread(g_simThread);
+                                                     for (const AssetObject* obj : objs)
+                                                     {
+                                                         if (obj->IsA(Scene::StaticClass()))
+                                                         {
+                                                             const Scene* scene = DynamicCast<Scene>(obj);
 
-                    world->AddScene(MakeStrongRef(scene), /* addToStreamingLayer */ false);
+                                                             world->AddScene(MakeStrongRef(scene), /* addToStreamingLayer */ false);
 
-                    continue;
-                }
-            }
-        }));
+                                                             continue;
+                                                         }
+                                                     }
+                                                 }));
 
     set.Add(layer->OnStreamingObjectsUnloaded.Bind([world](StreamingCell* cell, Array<const AssetObject*> objs)
-        {
-            AssertOnThread(g_simThread);
-            for (const AssetObject* obj : objs)
-            {
-                if (obj->IsA(Scene::StaticClass()))
-                {
-                    const Scene* scene = DynamicCast<Scene>(obj);
+                                                   {
+                                                       AssertOnThread(g_simThread);
+                                                       for (const AssetObject* obj : objs)
+                                                       {
+                                                           if (obj->IsA(Scene::StaticClass()))
+                                                           {
+                                                               const Scene* scene = DynamicCast<Scene>(obj);
 
-                    world->RemoveScene(const_cast<Scene*>(scene), /* removeFromStreamingLayer */ false);
+                                                               world->RemoveScene(const_cast<Scene*>(scene), /* removeFromStreamingLayer */ false);
 
-                    continue;
-                }
-            }
-        }));
+                                                               continue;
+                                                           }
+                                                       }
+                                                   }));
 }
 
 Handle<WorldGridLayer> World::GetOrCreateStreamingLayer(Name streamingLayerName)
@@ -1405,9 +1407,9 @@ Handle<WorldGridLayer> World::GetOrCreateStreamingLayer(Name streamingLayerName)
     }
 
     auto it = m_worldGrid->GetLayers().FindIf([streamingLayerName](const Handle<WorldGridLayer>& layer)
-        {
-            return layer->GetName() == streamingLayerName;
-        });
+                                              {
+                                                  return layer->GetName() == streamingLayerName;
+                                              });
 
     if (it != m_worldGrid->GetLayers().End())
     {
@@ -1439,8 +1441,8 @@ void World::DeserializeStreamingLayers(const Array<WGLayerDesc, DynamicAllocator
         if (!(m_worldFlags & WorldFlags::HAS_STREAMING))
         {
             HYP_LOG(Scene, Warning,
-                "Attempted to deserialize streaming layers on World {} which does not have WorldGrid enabled!",
-                GetName());
+                    "Attempted to deserialize streaming layers on World {} which does not have WorldGrid enabled!",
+                    GetName());
 
             return;
         }
@@ -1528,9 +1530,9 @@ SystemBase* World::AddSystem(const Handle<SystemBase>& system)
     Assert(system->m_world == nullptr || system->m_world == this);
 
     auto it = m_systems.FindIf([&system](const Handle<SystemBase>& otherSystem)
-        {
-            return otherSystem->InstanceClass() == system->InstanceClass();
-        });
+                               {
+                                   return otherSystem->InstanceClass() == system->InstanceClass();
+                               });
 
     if (it != m_systems.End())
     {

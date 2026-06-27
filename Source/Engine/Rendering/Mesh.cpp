@@ -100,6 +100,8 @@ Mesh::Mesh(const VertexArrayView& vertexData, const ByteBuffer& indexData, Topol
 
 Mesh::~Mesh()
 {
+    LockWriter(/* doInitialize */ false);
+
     if (m_vertexBuffer.IsValid())
     {
         EnqueueDeletion(std::move(m_vertexBuffer));

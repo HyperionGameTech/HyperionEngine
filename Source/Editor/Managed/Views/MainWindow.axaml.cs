@@ -546,8 +546,8 @@ namespace Hyperion.Editor
 
             try
             {
-                var vm = DataContext as MainWindowViewModel;
-                var project = EngineManager.CurrentProject;
+                MainWindowViewModel vm = DataContext as MainWindowViewModel;
+                EditorProject? project = EngineManager.CurrentProject;
 
                 void SaveProjectSynchronous()
                 {

@@ -262,7 +262,9 @@ public:
         for (auto& header_ptr : m_headers)
         {
             if (header_ptr != nullptr)
+            {
                 callback(header_ptr);
+            }
         }
     }
 

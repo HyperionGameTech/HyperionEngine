@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -64,17 +64,19 @@ void BindlessStorage::AddResource(BindlessStorageSlot slot, uint32 index, const 
         const DescriptorSetRef& descriptorSet = RI.globalDescriptorTable->GetDescriptorSet(BindlessStorageSlotNames[slot], frameIndex);
         AssertDebug(descriptorSet.IsValid());
 
-        if (GpuImageView* imageView = DynamicCast<GpuImageView>(resource.Get()))
+        static constexpr auto TypeIdGpuImageView = CONSTEXPR_TYPE_ID(GpuImageView);
+        static constexpr auto TypeIdGpuBuffer = CONSTEXPR_TYPE_ID(GpuBuffer);
+
+        switch (resource->InstanceClass()->GetTypeId().Value())
         {
-            descriptorSet->SetElement(BindlessStorageDescriptorNames[slot], index, imageView);
-        }
-        else if (GpuBuffer* buffer = DynamicCast<GpuBuffer>(resource.Get()))
-        {
-            descriptorSet->SetElement(BindlessStorageDescriptorNames[slot], index, buffer);
-        }
-        else
-        {
-            HYP_FAIL("Invalid object type {} for bindless resources!", resource->InstanceClass()->GetName());
+        case TypeIdGpuImageView:
+            descriptorSet->SetElement(BindlessStorageDescriptorNames[slot], index, static_cast<GpuImageView*>(resource.Get()));
+            break;
+        case TypeIdGpuBuffer:
+            descriptorSet->SetElement(BindlessStorageDescriptorNames[slot], index, static_cast<GpuBuffer*>(resource.Get()));
+            break;
+        default:
+            HYP_UNREACHABLE();
         }
     }
 }
@@ -97,8 +99,8 @@ void BindlessStorage::RemoveResource(BindlessStorageSlot slot, uint32 index)
 
         if (slot == BindlessStorage_Textures)
         {
-            GpuImageView* placeholder_view = RI.placeholderData->GetImageView2D1x1R8();
-            descriptorSet->SetElement(BindlessStorageDescriptorNames[slot], index, placeholder_view);
+            GpuImageView* placeholderView = RI.placeholderData->GetImageView2D1x1R8();
+            descriptorSet->SetElement(BindlessStorageDescriptorNames[slot], index, placeholderView);
         }
         else
         {

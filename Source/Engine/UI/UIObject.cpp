@@ -2035,7 +2035,8 @@ UIObject* UIObject::GetParentUIObject() const
 
     while (parentNode != nullptr)
     {
-        if (Entity* entity = DynamicCast<Entity>(parentNode))
+        if (Entity* entity = DynamicCast<Entity>(parentNode);
+            entity && entity->GetEntityManager() != nullptr) // check, in case UIObject was removed
         {
             if (UIComponent* uiComponent = entity->TryGetComponent<UIComponent>())
             {

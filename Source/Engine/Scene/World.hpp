@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -10,6 +10,9 @@
 
 #include <Core/Reflection/ObjectBase.hpp>
 #include <Core/Reflection/Handle.hpp>
+
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/FlatMap.hpp>
 
 #include <Core/Memory/Allocator/ArenaAllocator.hpp>
 
@@ -104,7 +107,7 @@ class ENGINE_API World final : public AssetObject
     friend class EngineDriver;
 
 public:
-    using SubsystemsMap = TMap<TypeId, Handle<Subsystem>, SceneAllocator, HashTablePolicy::NotPooled>;
+    using SubsystemsMap = TFlatMap<TypeId, Handle<Subsystem>, SceneAllocator>;
 
     World();
     explicit World(Name name, EnumFlags<WorldFlags> worldFlags = WorldFlags::DEFAULT);
@@ -300,9 +303,9 @@ public:
     SystemType* GetSystem() const
     {
         auto it = m_systems.FindIf([staticClass = SystemType::StaticClass()](const Handle<SystemBase>& system)
-            {
-                return reinterpret_cast<const ObjectBase*>(system.Get())->InstanceClass() == staticClass;
-            });
+                                   {
+                                       return reinterpret_cast<const ObjectBase*>(system.Get())->InstanceClass() == staticClass;
+                                   });
 
         if (it != m_systems.End())
         {
@@ -310,9 +313,9 @@ public:
         }
 
         it = m_systems.FindIf([](const Handle<SystemBase>& system)
-            {
-                return Hyperion::IsA(SystemType::StaticClass(), reinterpret_cast<const ObjectBase*>(system.Get())->InstanceClass());
-            });
+                              {
+                                  return Hyperion::IsA(SystemType::StaticClass(), reinterpret_cast<const ObjectBase*>(system.Get())->InstanceClass());
+                              });
 
         if (it != m_systems.End())
         {
