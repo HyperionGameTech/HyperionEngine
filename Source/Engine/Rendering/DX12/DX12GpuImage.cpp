@@ -979,28 +979,7 @@ void DX12GpuImage::CopyFromBuffer(
 
     D3D12_RESOURCE_STATES state = isDepthStencil ? D3D12_RESOURCE_STATE_DEPTH_WRITE : D3D12_RESOURCE_STATE_COPY_DEST;
 
-    D3D12_PLACED_SUBRESOURCE_FOOTPRINT placedFootprint {};
-    placedFootprint.Offset = srcBufferOffset;
-    placedFootprint.Footprint.Depth = mipExtent.z;
-    placedFootprint.Footprint.Height = mipExtent.y;
-    placedFootprint.Footprint.Width = mipExtent.x;
-    placedFootprint.Footprint.Format = ToDXGIFormat(m_textureDesc.format);
-    placedFootprint.Footprint.RowPitch = alignedRowPitch;
-
-    D3D12_TEXTURE_COPY_LOCATION srcLocation {};
-    srcLocation.pResource = srcBuffer->GetResource();
-    srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-    srcLocation.PlacedFootprint = placedFootprint;
-
-    D3D12_TEXTURE_COPY_LOCATION dstLocation {};
-    dstLocation.pResource = m_resource.Get();
-    dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-    dstLocation.SubresourceIndex = D3D12CalcSubresource(
-        mipIdx,
-        dstArrayLayer == UINT16_MAX ? 0 : dstArrayLayer,
-        0,
-        NumMips(),
-        NumArrayLayers());
+    const uint16 numLayersToCopy = (dstArrayLayer == UINT16_MAX) ? NumArrayLayers() : 1;
 
     D3D12_BOX srcBox {};
     srcBox.left = 0;
@@ -1010,11 +989,39 @@ void DX12GpuImage::CopyFromBuffer(
     srcBox.bottom = mipExtent.y;
     srcBox.back = mipExtent.z;
 
-    commandBuffer->GetCommandList()->CopyTextureRegion(
-        &dstLocation,
-        0, 0, 0,
-        &srcLocation,
-        &srcBox);
+    for (uint16 layerIdx = 0; layerIdx < numLayersToCopy; layerIdx++)
+    {
+        const uint16 actualLayer = (dstArrayLayer == UINT16_MAX) ? layerIdx : dstArrayLayer;
+
+        D3D12_PLACED_SUBRESOURCE_FOOTPRINT placedFootprint {};
+        placedFootprint.Offset = srcBufferOffset + static_cast<uint64>(layerIdx) * mipExtent.y * alignedRowPitch;
+        placedFootprint.Footprint.Depth = mipExtent.z;
+        placedFootprint.Footprint.Height = mipExtent.y;
+        placedFootprint.Footprint.Width = mipExtent.x;
+        placedFootprint.Footprint.Format = ToDXGIFormat(m_textureDesc.format);
+        placedFootprint.Footprint.RowPitch = alignedRowPitch;
+
+        D3D12_TEXTURE_COPY_LOCATION srcLocation {};
+        srcLocation.pResource = srcBuffer->GetResource();
+        srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+        srcLocation.PlacedFootprint = placedFootprint;
+
+        D3D12_TEXTURE_COPY_LOCATION dstLocation {};
+        dstLocation.pResource = m_resource.Get();
+        dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+        dstLocation.SubresourceIndex = D3D12CalcSubresource(
+            mipIdx,
+            actualLayer,
+            0,
+            NumMips(),
+            NumArrayLayers());
+
+        commandBuffer->GetCommandList()->CopyTextureRegion(
+            &dstLocation,
+            0, 0, 0,
+            &srcLocation,
+            &srcBox);
+    }
 }
 
 void DX12GpuImage::CopyToBuffer(

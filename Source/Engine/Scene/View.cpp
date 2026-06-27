@@ -500,7 +500,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                     continue;
                 }
 
-                BoundingBox sceneWorldBounds = scene->GetOctree().GetAABB();
+                const BoundingBox& sceneWorldBounds = scene->GetOctree().GetAABB();
                 BoundingSphere sceneWorldBoundsSphere = BoundingSphere(sceneWorldBounds);
 
                 if (!sceneWorldBoundsSphere.IsFinite() || !sceneWorldBoundsSphere.IsValid())
