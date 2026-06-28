@@ -61,10 +61,12 @@ private:
     virtual void operator()() override
     {
         InitializeLooper();
-        while (!m_stopRequested.Load())
+
+        while (HYP_LIKELY(!m_stopRequested.LoadVolatile()))
         {
             DoWork();
         }
+
         ShutdownLooper();
     }
 

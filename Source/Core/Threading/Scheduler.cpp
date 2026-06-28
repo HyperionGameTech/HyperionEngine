@@ -26,7 +26,7 @@ void SchedulerBase::WaitForTasks(Mutex& mtx, bool* outStopRequested)
 {
     // must be locked before calling this function
 
-    if (m_stopRequested.Load())
+    if (HYP_UNLIKELY(m_stopRequested.LoadVolatile()))
     {
         if (outStopRequested)
         {
@@ -36,14 +36,14 @@ void SchedulerBase::WaitForTasks(Mutex& mtx, bool* outStopRequested)
         return;
     }
 
-    while (!m_stopRequested.Load() && m_numEnqueued.Get(MemoryOrder::ACQUIRE) == 0)
+    while (!m_stopRequested.LoadVolatile() && m_numEnqueued.Get(MemoryOrder::ACQUIRE) == 0)
     {
         m_hasTasksCV.Wait(mtx);
     }
 
     if (outStopRequested)
     {
-        *outStopRequested = m_stopRequested.Load();
+        *outStopRequested = m_stopRequested.LoadVolatile();
     }
 }
 

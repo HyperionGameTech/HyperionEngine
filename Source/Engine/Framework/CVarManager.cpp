@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <HyperionPch.hpp>
 
@@ -51,7 +51,7 @@ void CVar<const char*>::Set(const char* value)
     {
         size_t length = Memory::StrLen(value) + 1;
         char* newValue = (char*)Memory::AllocateZeros(length + 1);
-        Memory::StrCpy(newValue, value, length);
+        Memory::CopyString(newValue, value, length);
         m_value = newValue;
     }
 }
@@ -73,7 +73,7 @@ bool CVar<const char*>::SetFromBoxed(const BoxedValue& boxed)
     }
 
     char* chars = (char*)Memory::AllocateZeros(str.Size() + 1);
-    Memory::StrCpy(chars, str.Data(), str.Size());
+    Memory::CopyString(chars, str.Data(), str.Size());
 
     if (m_value != nullptr)
     {
@@ -100,7 +100,7 @@ bool CVar<const char*>::SetFromConfig(const ConfigValue& cfgValue)
     }
 
     char* chars = (char*)Memory::AllocateZeros(str.Size() + 1);
-    Memory::StrCpy(chars, str.Data(), str.Size());
+    Memory::CopyString(chars, str.Data(), str.Size());
 
     if (m_value != nullptr)
     {
@@ -248,22 +248,70 @@ inline T ReadCVarValue(const CVar<T>& cvar)
     return snapshot.values[cvar.id].template GetUnchecked<T>();
 }
 
-template <> int8 CVar<int8>::Get() const { return ReadCVarValue(*this); }
-template <> int16 CVar<int16>::Get() const { return ReadCVarValue(*this); }
-template <> int32 CVar<int32>::Get() const { return ReadCVarValue(*this); }
-template <> int64 CVar<int64>::Get() const { return ReadCVarValue(*this); }
+template <>
+int8 CVar<int8>::Get() const
+{
+    return ReadCVarValue(*this);
+}
+template <>
+int16 CVar<int16>::Get() const
+{
+    return ReadCVarValue(*this);
+}
+template <>
+int32 CVar<int32>::Get() const
+{
+    return ReadCVarValue(*this);
+}
+template <>
+int64 CVar<int64>::Get() const
+{
+    return ReadCVarValue(*this);
+}
 
-template <> uint8 CVar<uint8>::Get() const { return ReadCVarValue(*this); }
-template <> uint16 CVar<uint16>::Get() const { return ReadCVarValue(*this); }
-template <> uint32 CVar<uint32>::Get() const { return ReadCVarValue(*this); }
-template <> uint64 CVar<uint64>::Get() const { return ReadCVarValue(*this); }
+template <>
+uint8 CVar<uint8>::Get() const
+{
+    return ReadCVarValue(*this);
+}
+template <>
+uint16 CVar<uint16>::Get() const
+{
+    return ReadCVarValue(*this);
+}
+template <>
+uint32 CVar<uint32>::Get() const
+{
+    return ReadCVarValue(*this);
+}
+template <>
+uint64 CVar<uint64>::Get() const
+{
+    return ReadCVarValue(*this);
+}
 
-template <> float CVar<float>::Get() const { return ReadCVarValue(*this); }
-template <> double CVar<double>::Get() const { return ReadCVarValue(*this); }
+template <>
+float CVar<float>::Get() const
+{
+    return ReadCVarValue(*this);
+}
+template <>
+double CVar<double>::Get() const
+{
+    return ReadCVarValue(*this);
+}
 
-template <> bool CVar<bool>::Get() const { return ReadCVarValue(*this); }
+template <>
+bool CVar<bool>::Get() const
+{
+    return ReadCVarValue(*this);
+}
 
-template <> const char* CVar<const char*>::Get() const { return ReadCVarValue(*this); }
+template <>
+const char* CVar<const char*>::Get() const
+{
+    return ReadCVarValue(*this);
+}
 
 #pragma endregion CVar
 
@@ -309,7 +357,7 @@ static void InitCVar(CVarManager* manager, CVarBase* cvar, const UTF8StringView&
         {
             const size_t len = Memory::StrLen(configPath.Data()) + 1;
             char* copiedPath = (char*)Memory::AllocateZeros(len);
-            Memory::StrCpy(copiedPath, configPath.Data(), len);
+            Memory::CopyString(copiedPath, configPath.Data(), len);
             manager->cvarToConfigPath[cvar->id] = copiedPath;
         }
     }

@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -40,7 +40,7 @@ struct CORE_API ClassAttributeValue final
         : type(ClassAttributeType::STRING),
           strValue(new char[value.Size() + 1])
     {
-        Memory::StrCpy(strValue, value.Data(), value.Size() + 1);
+        Memory::CopyString(strValue, value.Data(), value.Size() + 1);
     }
 
     ClassAttributeValue(const char* str)
@@ -52,7 +52,7 @@ struct CORE_API ClassAttributeValue final
             const size_t len = Memory::StrLen(str);
             strValue = new char[len + 1];
 
-            Memory::StrCpy(strValue, str, len + 1);
+            Memory::CopyString(strValue, str, len + 1);
         }
     }
 
@@ -79,7 +79,7 @@ struct CORE_API ClassAttributeValue final
                 const size_t len = Memory::StrLen(other.strValue);
                 strValue = new char[len + 1];
 
-                Memory::StrCpy(strValue, other.strValue, len + 1);
+                Memory::CopyString(strValue, other.strValue, len + 1);
             }
             else
             {
@@ -119,7 +119,7 @@ struct CORE_API ClassAttributeValue final
                     const size_t len = Memory::StrLen(other.strValue);
                     strValue = new char[len + 1];
 
-                    Memory::StrCpy(strValue, other.strValue, len + 1);
+                    Memory::CopyString(strValue, other.strValue, len + 1);
                 }
                 else
                 {

@@ -176,7 +176,7 @@ void SimThread::Update()
 
     BeginFrameSim(&m_stopRequested);
 
-    if (HYP_UNLIKELY(m_stopRequested.Load()))
+    if (HYP_UNLIKELY(m_stopRequested.LoadVolatile()))
     {
         return;
     }
@@ -277,7 +277,7 @@ void SimThread::operator()()
     {
         g_renderInitSignal.Wait();
 
-        while (!m_stopRequested.Load())
+        while (!m_stopRequested.LoadVolatile())
         {
             HYP_PROFILE_BEGIN;
 

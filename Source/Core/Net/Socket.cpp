@@ -298,7 +298,7 @@ void SocketServerThread::operator()(SocketServer* server)
 {
     Queue<Scheduler::ScheduledTask> tasks;
 
-    while (!m_stopRequested.Load())
+    while (HYP_LIKELY(!m_stopRequested.LoadVolatile()))
     {
         // Check for incoming connections
 

@@ -448,7 +448,7 @@ Token Lexer::ReadNumberLiteral()
     }
 
     Token::Flags tokenFlags;
-    Memory::Fill(tokenFlags, 0, sizeof(tokenFlags));
+    Memory::Zero(tokenFlags, sizeof(tokenFlags));
 
     Char32 ch = m_sourceStream.Peek();
 
@@ -536,7 +536,7 @@ Token Lexer::ReadNumberLiteral()
             {
                 isValidSuffix = true;
 
-                Memory::StrCpy(&tokenFlags[0], it.second.flags, sizeof(tokenFlags));
+                Memory::CopyString(tokenFlags, it.second.flags, sizeof(tokenFlags));
 
                 break;
             }
@@ -620,7 +620,7 @@ Token Lexer::ReadHexNumberLiteral()
             {
                 isValidSuffix = true;
 
-                Memory::StrCpy(&tokenFlags[0], it.second.flags, sizeof(tokenFlags));
+                Memory::CopyString(tokenFlags, it.second.flags, sizeof(tokenFlags));
 
                 break;
             }

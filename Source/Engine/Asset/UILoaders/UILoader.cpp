@@ -821,8 +821,8 @@ public:
 
                 ScriptDesc scriptDesc {};
                 scriptDesc.language = ScriptLanguage::CSharp;
-                Memory::StrCpy(scriptDesc.assemblyPath.Data(), assemblyIt->second.Data(), ArraySize(scriptDesc.assemblyPath));
-                Memory::StrCpy(scriptDesc.className.Data(), classIt->second.Data(), ArraySize(scriptDesc.className));
+                Memory::CopyString(scriptDesc.assemblyPath.values, assemblyIt->second.Data(), ArraySize(scriptDesc.assemblyPath));
+                Memory::CopyString(scriptDesc.className.values, classIt->second.Data(), ArraySize(scriptDesc.className));
 
                 Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(CreateNameFromDynamicString(scriptDesc.assemblyPath.Data()), scriptDesc);
                 InitObject(scriptAsset);
@@ -851,8 +851,8 @@ public:
 
                 ScriptDesc scriptDesc {};
                 scriptDesc.language = ScriptLanguage::HypScript;
-                Memory::StrCpy(scriptDesc.path.Data(), pathIt->second.Data(), ArraySize(scriptDesc.path));
-                Memory::StrCpy(scriptDesc.className.Data(), classIt->second.Data(), ArraySize(scriptDesc.className));
+                Memory::CopyString(scriptDesc.path.values, pathIt->second.Data(), ArraySize(scriptDesc.path));
+                Memory::CopyString(scriptDesc.className.values, classIt->second.Data(), ArraySize(scriptDesc.className));
 
                 // \todo Check EntityScripting.cpp for reference implementation
             }
@@ -865,7 +865,7 @@ public:
 
                 ScriptDesc scriptDesc {};
                 scriptDesc.language = ScriptLanguage::Native;
-                Memory::StrCpy(scriptDesc.className.Data(), classIt->second.Data(), ArraySize(scriptDesc.className));
+                Memory::CopyString(scriptDesc.className.values, classIt->second.Data(), ArraySize(scriptDesc.className));
 
                 const String className = classIt->second;
 

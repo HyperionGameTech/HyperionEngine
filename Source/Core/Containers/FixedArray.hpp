@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -36,7 +36,7 @@ class FixedArray
 public:
     static constexpr bool isContiguous = true;
 
-    T m_values[Sz > 1 ? Sz : 1];
+    T values[Sz > 1 ? Sz : 1];
 
     using Iterator = T*;
     using ConstIterator = const T*;
@@ -104,18 +104,18 @@ public:
 
     HYP_FORCE_INLINE bool Contains(const T& value) const
     {
-        const containers::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
+        const containers::FixedArrayImpl<const T, Sz> impl(&values[0]);
         return impl.Contains(value);
     }
 
     HYP_FORCE_INLINE constexpr T& operator[](KeyType index)
     {
-        return m_values[index];
+        return values[index];
     }
 
     HYP_FORCE_INLINE constexpr const T& operator[](KeyType index) const
     {
-        return m_values[index];
+        return values[index];
     }
 
     HYP_FORCE_INLINE constexpr size_t Size() const
@@ -125,7 +125,7 @@ public:
 
     HYP_FORCE_INLINE constexpr size_t ByteSize() const
     {
-        return sizeof(m_values);
+        return sizeof(values);
     }
 
     HYP_FORCE_INLINE constexpr bool Empty() const
@@ -146,7 +146,7 @@ public:
         }
         else
         {
-            const containers::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
+            const containers::FixedArrayImpl<const T, Sz> impl(&values[0]);
 
             return impl.Sum();
         }
@@ -160,7 +160,7 @@ public:
         }
         else
         {
-            const containers::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
+            const containers::FixedArrayImpl<const T, Sz> impl(&values[0]);
             return impl.Avg();
         }
     }
@@ -174,7 +174,7 @@ public:
         }
         else
         {
-            const containers::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
+            const containers::FixedArrayImpl<const T, Sz> impl(&values[0]);
             return impl.IndexOf(iter);
         }
     }
@@ -188,39 +188,39 @@ public:
         }
         else
         {
-            const containers::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
+            const containers::FixedArrayImpl<const T, Sz> impl(&values[0]);
             return impl.CompareBitwise(other);
         }
     }
 
     HYP_FORCE_INLINE constexpr T* Data()
     {
-        return static_cast<T*>(m_values);
+        return static_cast<T*>(values);
     }
 
     HYP_FORCE_INLINE constexpr const T* Data() const
     {
-        return static_cast<const T*>(m_values);
+        return static_cast<const T*>(values);
     }
 
     HYP_FORCE_INLINE constexpr T& Front()
     {
-        return m_values[0];
+        return values[0];
     }
 
     HYP_FORCE_INLINE constexpr const T& Front() const
     {
-        return m_values[0];
+        return values[0];
     }
 
     HYP_FORCE_INLINE constexpr T& Back()
     {
-        return m_values[Sz - 1];
+        return values[Sz - 1];
     }
 
     HYP_FORCE_INLINE constexpr const T& Back() const
     {
-        return m_values[Sz - 1];
+        return values[Sz - 1];
     }
 
     /*! \brief Creates a Span<T> from the FixedArray's data.
@@ -253,16 +253,16 @@ public:
 
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
-        const containers::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
+        const containers::FixedArrayImpl<const T, Sz> impl(&values[0]);
         return impl.GetHashCode();
     }
 
-    HYP_DEF_STL_BEGIN_END_CONSTEXPR(m_values, m_values + Sz)
+    HYP_DEF_STL_BEGIN_END_CONSTEXPR(values, values + Sz)
 };
 
 // template <class T, size_t Sz>
 // FixedArray<T, Sz>::FixedArray()
-//     : m_values{}
+//     : values{}
 // {
 // }
 
@@ -270,7 +270,7 @@ public:
 // FixedArray<T, Sz>::FixedArray(const FixedArray &other)
 // {
 //     for (size_t i = 0; i < Sz; i++) {
-//         m_values[i] = other.m_values[i];
+//         values[i] = other.values[i];
 //     }
 // }
 
@@ -278,7 +278,7 @@ public:
 // auto FixedArray<T, Sz>::operator=(const FixedArray &other) -> FixedArray&
 // {
 //     for (size_t i = 0; i < Sz; i++) {
-//         m_values[i] = other.m_values[i];
+//         values[i] = other.values[i];
 //     }
 
 //     return *this;
@@ -288,7 +288,7 @@ public:
 // FixedArray<T, Sz>::FixedArray(FixedArray &&other) noexcept
 // {
 //     for (size_t i = 0; i < Sz; i++) {
-//         m_values[i] = std::move(other.m_values[i]);
+//         values[i] = std::move(other.values[i]);
 //     }
 // }
 
@@ -296,7 +296,7 @@ public:
 // auto FixedArray<T, Sz>::operator=(FixedArray &&other) noexcept -> FixedArray&
 // {
 //     for (size_t i = 0; i < Sz; i++) {
-//         m_values[i] = std::move(other.m_values[i]);
+//         values[i] = std::move(other.values[i]);
 //     }
 
 //     return *this;

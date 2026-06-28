@@ -361,7 +361,7 @@ private:
         // Set the notifier to the initial value of 1 so it won't block the first call.
         m_notifier.Signal();
 
-        while (!m_stopRequested.Load())
+        while (!m_stopRequested.LoadVolatile())
         {
             do
             {
@@ -373,9 +373,9 @@ private:
                 // NEED to make sure only one manager thread exists and is working on this arena
                 g_streamingArena->Reset();
             }
-            while (m_notifier.IsSignalled() && !m_stopRequested.Load());
+            while (m_notifier.IsSignalled() && !m_stopRequested.LoadVolatile());
 
-            if (m_stopRequested.Load())
+            if (HYP_UNLIKELY(m_stopRequested.LoadVolatile()))
             {
                 return;
             }

@@ -89,8 +89,7 @@ void DefaultGame::OnLaunch_Impl()
     GetWorld()->AddSystemT<DynamicSkySystem>();
     GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>(
         NAME("TerrainLayer"),
-        WorldGridLayerInfo { Vec3f { 0.0f, -5.0f, 0.0f } }
-    ));
+        WorldGridLayerInfo { Vec3f { 0.0f, -5.0f, 0.0f } }));
 
 #ifdef HYP_ANDROID
     GetWorld()->AddSubsystem(MakeHandle<TouchControlsSubsystem>());
@@ -240,8 +239,8 @@ void DefaultGame::OnLaunch_Impl()
 
     ScriptDesc& scriptDesc = scriptAsset->GetScriptDesc();
     scriptDesc.language = ScriptLanguage::HypScript;
-    Memory::StrCpy(scriptDesc.path.Data(), "FPSCounter.hyp", ArraySize(scriptDesc.path));
-    Memory::StrCpy(scriptDesc.className.Data(), "MyClass", ArraySize(scriptDesc.className));
+    Memory::CopyString(scriptDesc.path.values, "FPSCounter.hyp", ArraySize(scriptDesc.path));
+    Memory::CopyString(scriptDesc.className.values, "MyClass", ArraySize(scriptDesc.className));
 
     Handle<Entity> cubeEnt = MakeHandle<Entity>();
     cubeEnt->SetName(NAME("Cube"));

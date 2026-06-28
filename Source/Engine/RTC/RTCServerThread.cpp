@@ -18,7 +18,7 @@ void RTCServerThread::operator()(RTCServer* server)
 {
     Queue<Scheduler::ScheduledTask> tasks;
 
-    while (!m_stopRequested.Load())
+    while (!m_stopRequested.LoadVolatile())
     {
         if (uint32 numEnqueued = m_scheduler->NumEnqueued())
         {

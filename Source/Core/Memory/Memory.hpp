@@ -69,7 +69,9 @@ public:
         std::memset(dest, 0xDEAD, length);
     }
 #else
-    HYP_FORCE_INLINE static void Garble(void* dest, size_t length) { }
+    HYP_FORCE_INLINE static void Garble(void* dest, size_t length)
+    {
+    }
 #endif
 
     HYP_FORCE_INLINE static int StrCmp(const char* lhs, const char* rhs, size_t length = 0)
@@ -110,14 +112,70 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE static char* StrCpy(char* dest, const char* src, size_t length)
+    template <size_t DstBufferSize>
+    static constexpr HYP_FORCE_INLINE size_t CopyString(char (&dst)[DstBufferSize], size_t& offset, const char* __restrict src, size_t len)
     {
-        if (length == 0)
+        if (offset >= DstBufferSize)
         {
-            return dest;
+            return 0;
         }
 
-        return std::strncpy(dest, src, length);
+        size_t maxWrite = DstBufferSize - offset - 1;
+
+        size_t numToCopy = (len < maxWrite) ? len : maxWrite;
+
+        if (numToCopy == 0)
+        {
+            return 0;
+        }
+
+        memcpy(dst + offset, src, numToCopy);
+
+        offset += numToCopy;
+
+        dst[offset] = '\0';
+
+        return numToCopy;
+    }
+
+    template <size_t DstBufferSize>
+    static constexpr HYP_FORCE_INLINE size_t CopyString(char (&dst)[DstBufferSize], const char* __restrict src, size_t len)
+    {
+        [[maybe_unused]] size_t offset = 0;
+        return CopyString<DstBufferSize>(dst, offset, src, len);
+    }
+
+    /// Assumes len of dst and src are the same or dst is larger.
+    static constexpr HYP_FORCE_INLINE size_t CopyString(char* __restrict dst, size_t& offset, const char* __restrict src, size_t len)
+    {
+        if (offset >= len)
+        {
+            return 0;
+        }
+
+        size_t maxWrite = len - offset - 1;
+
+        size_t numToCopy = (len < maxWrite) ? len : maxWrite;
+
+        if (numToCopy == 0)
+        {
+            return 0;
+        }
+
+        memcpy(dst + offset, src, numToCopy);
+
+        offset += numToCopy;
+
+        dst[offset] = '\0';
+
+        return numToCopy;
+    }
+
+    /// Assumes len of dst and src are the same or dst is larger.
+    static constexpr HYP_FORCE_INLINE size_t CopyString(char* __restrict dst, const char* __restrict src, size_t len)
+    {
+        [[maybe_unused]] size_t offset = 0;
+        return CopyString(dst, offset, src, len);
     }
 
     static inline size_t StrLen(const char* str)

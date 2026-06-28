@@ -673,7 +673,7 @@ public:
     {
         Assert(IsLocked() || IsOnThread(m_ownerThreadId));
 
-        const EntitySetId entitySetId = GetEntitySetId<Components...>();
+        constexpr EntitySetId entitySetId = GetEntitySetId<Components...>();
 
         auto entitySetsIt = m_entitySets.Find(entitySetId);
 
@@ -719,7 +719,7 @@ public:
     {
         Assert(IsLocked() || IsOnThread(m_ownerThreadId));
 
-        const EntitySetId entitySetId = GetEntitySetId<Components...>();
+        constexpr EntitySetId entitySetId = GetEntitySetId<Components...>();
 
         auto entitySetsIt = m_entitySets.Find(entitySetId);
 
@@ -874,7 +874,7 @@ private:
     {
         TUniqueLock lock(m_pendingEntitySetsMtx);
 
-        const EntitySetId entitySetId = GetEntitySetId<Components...>();
+        constexpr EntitySetId entitySetId = GetEntitySetId<Components...>();
 
         auto it = m_pendingEntitySets.Find(entitySetId);
 

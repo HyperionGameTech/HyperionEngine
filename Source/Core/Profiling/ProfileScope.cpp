@@ -55,7 +55,7 @@ private:
     {
         if (StartConnection(profilerConnection))
         {
-            while (!m_stopRequested.Load())
+            while (HYP_LIKELY(!m_stopRequested.LoadVolatile()))
             {
                 DoWork(profilerConnection);
             }

@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -47,7 +47,7 @@ public:
     {
         ANSIString message = Format<FormatString>(std::forward<Args>(args)...).ToAnsi();
         m_message = new char[message.Size() + 1];
-        Memory::StrCpy(m_message, message.Data(), message.Size() + 1);
+        Memory::CopyString(m_message, message.Data(), message.Size() + 1);
         m_message[message.Size()] = '\0';
     }
 
@@ -59,7 +59,7 @@ public:
         {
             const size_t length = Memory::StrLen(other.m_message);
             m_message = new char[length + 1];
-            Memory::StrCpy(m_message, other.m_message, length + 1);
+            Memory::CopyString(m_message, other.m_message, length + 1);
         }
     }
 
@@ -82,7 +82,7 @@ public:
         {
             const size_t length = Memory::StrLen(other.m_message);
             m_message = new char[length + 1];
-            Memory::StrCpy(m_message, other.m_message, length + 1);
+            Memory::CopyString(m_message, other.m_message, length + 1);
         }
 
         return *this;
@@ -621,22 +621,22 @@ static inline bool CheckResult(const TResultType& result)
 }
 
 /// On error, exits the current functon returning the result
-#define CheckResultOrReturn(result)                                  \
-    do                                                               \
-    {                                                                \
-        const auto _result = (result);                               \
-        if (!CheckResult(_result))                                   \
-            return _result.GetError();                               \
-    }                                                                \
+#define CheckResultOrReturn(result)    \
+    do                                 \
+    {                                  \
+        const auto _result = (result); \
+        if (!CheckResult(_result))     \
+            return _result.GetError(); \
+    }                                  \
     while (0)
 
 } // namespace utilities
 
+using utilities::CheckResult;
 using utilities::Error;
 using utilities::GetNullError;
+using utilities::IsResultType;
 using utilities::Result;
 using utilities::TResult;
-using utilities::CheckResult;
-using utilities::IsResultType;
 
 } // namespace Hyperion

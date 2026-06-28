@@ -219,13 +219,8 @@ void VisThread::Process()
 
 void VisThread::operator()()
 {
-    while (!m_stopRequested.Load())
+    while (!m_stopRequested.LoadVolatile())
     {
-        if (m_stopRequested.Load())
-        {
-            break;
-        }
-
         HYP_PROFILE_BEGIN;
 
         Process();

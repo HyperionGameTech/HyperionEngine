@@ -65,7 +65,7 @@ void TaskThread::operator()()
 
     SetCurrentThreadIndex(m_threadIndex);
 
-    while (!m_stopRequested.Load())
+    while (HYP_LIKELY(!m_stopRequested.LoadVolatile()))
     {
         Scheduler::ScheduledTask scheduledTask;
         bool gotTask = false;

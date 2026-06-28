@@ -14,12 +14,12 @@ using EntitySetId = uint64;
 struct VoidComponentType;
 
 template <class... Components>
-constexpr EntitySetId GetEntitySetId()
+HYP_CONSTEVAL EntitySetId GetEntitySetId()
 {
     FixedArray<TypeId, sizeof...(Components)> componentTypeIds = { TypeId::ForType<Components>()... };
     std::sort(
-        componentTypeIds.m_values,
-        componentTypeIds.m_values + componentTypeIds.Size(),
+        componentTypeIds.values,
+        componentTypeIds.values + componentTypeIds.Size(),
         [](const TypeId& a, const TypeId& b)
         {
             return a.Value() < b.Value();
@@ -33,7 +33,7 @@ constexpr EntitySetId GetEntitySetId()
             continue;
         }
 
-        hashCode.Add(typeId);
+        hashCode = hashCode.Combine(typeId);
     }
 
     return EntitySetId(hashCode.Value());

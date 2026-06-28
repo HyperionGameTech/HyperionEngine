@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -37,8 +37,8 @@ class ConfigBase;
 using ConfigValue = JSON::Value;
 } // namespace config
 
-using config::ConfigValue;
 using config::ConfigBase;
+using config::ConfigValue;
 
 struct BoxedValue;
 
@@ -124,8 +124,10 @@ private:
 
 // We need specific impls for dtor and Set() for const char* to handle the dynamic memory allocation of the string.
 
-template <> ENGINE_API CVar<const char*>::~CVar();
-template <> ENGINE_API void CVar<const char*>::Set(const char* value);
+template <>
+ENGINE_API CVar<const char*>::~CVar();
+template <>
+ENGINE_API void CVar<const char*>::Set(const char* value);
 
 #pragma endregion const char* CVar specializations
 
@@ -140,28 +142,40 @@ inline void CVar<T>::Set(T value)
     m_value = value;
 }
 
-#pragma endregion Non- const char* impls
+#pragma endregion Non - const char* impls
 
 #pragma region SetFromConfig specializations
 
 // SetFromConfig
 
-template <> ENGINE_API bool CVar<int8>::SetFromConfig(const ConfigValue& cfgValue);
-template <> ENGINE_API bool CVar<int16>::SetFromConfig(const ConfigValue& cfgValue);
-template <> ENGINE_API bool CVar<int32>::SetFromConfig(const ConfigValue& cfgValue);
-template <> ENGINE_API bool CVar<int64>::SetFromConfig(const ConfigValue& cfgValue);
+template <>
+ENGINE_API bool CVar<int8>::SetFromConfig(const ConfigValue& cfgValue);
+template <>
+ENGINE_API bool CVar<int16>::SetFromConfig(const ConfigValue& cfgValue);
+template <>
+ENGINE_API bool CVar<int32>::SetFromConfig(const ConfigValue& cfgValue);
+template <>
+ENGINE_API bool CVar<int64>::SetFromConfig(const ConfigValue& cfgValue);
 
-template <> ENGINE_API bool CVar<uint8>::SetFromConfig(const ConfigValue& cfgValue);
-template <> ENGINE_API bool CVar<uint16>::SetFromConfig(const ConfigValue& cfgValue);
-template <> ENGINE_API bool CVar<uint32>::SetFromConfig(const ConfigValue& cfgValue);
-template <> ENGINE_API bool CVar<uint64>::SetFromConfig(const ConfigValue& cfgValue);
+template <>
+ENGINE_API bool CVar<uint8>::SetFromConfig(const ConfigValue& cfgValue);
+template <>
+ENGINE_API bool CVar<uint16>::SetFromConfig(const ConfigValue& cfgValue);
+template <>
+ENGINE_API bool CVar<uint32>::SetFromConfig(const ConfigValue& cfgValue);
+template <>
+ENGINE_API bool CVar<uint64>::SetFromConfig(const ConfigValue& cfgValue);
 
-template <> ENGINE_API bool CVar<float>::SetFromConfig(const ConfigValue& cfgValue);
-template <> ENGINE_API bool CVar<double>::SetFromConfig(const ConfigValue& cfgValue);
+template <>
+ENGINE_API bool CVar<float>::SetFromConfig(const ConfigValue& cfgValue);
+template <>
+ENGINE_API bool CVar<double>::SetFromConfig(const ConfigValue& cfgValue);
 
-template <> ENGINE_API bool CVar<bool>::SetFromConfig(const ConfigValue& cfgValue);
+template <>
+ENGINE_API bool CVar<bool>::SetFromConfig(const ConfigValue& cfgValue);
 
-template <> ENGINE_API bool CVar<const char*>::SetFromConfig(const ConfigValue& cfgValue);
+template <>
+ENGINE_API bool CVar<const char*>::SetFromConfig(const ConfigValue& cfgValue);
 
 // SetFromBoxed
 
@@ -178,7 +192,8 @@ inline bool CVar<T>::SetFromBoxed(const BoxedValue& boxed)
     return true;
 }
 
-template <> ENGINE_API bool CVar<const char*>::SetFromBoxed(const BoxedValue& boxed);
+template <>
+ENGINE_API bool CVar<const char*>::SetFromBoxed(const BoxedValue& boxed);
 
 // SetFromString
 
@@ -276,7 +291,7 @@ inline bool CVar<const char*>::SetFromString(const String& str)
     }
 
     char* chars = (char*)Memory::AllocateZeros(str.Size() + 1);
-    Memory::StrCpy(chars, str.Data(), str.Size());
+    Memory::CopyString(chars, str.Data(), str.Size());
 
     if (m_value != nullptr)
     {
@@ -292,22 +307,34 @@ inline bool CVar<const char*>::SetFromString(const String& str)
 
 #pragma region Get specializations
 
-template <> int8 CVar<int8>::Get() const;
-template <> int16 CVar<int16>::Get() const;
-template <> int32 CVar<int32>::Get() const;
-template <> int64 CVar<int64>::Get() const;
+template <>
+int8 CVar<int8>::Get() const;
+template <>
+int16 CVar<int16>::Get() const;
+template <>
+int32 CVar<int32>::Get() const;
+template <>
+int64 CVar<int64>::Get() const;
 
-template <> uint8 CVar<uint8>::Get() const;
-template <> uint16 CVar<uint16>::Get() const;
-template <> uint32 CVar<uint32>::Get() const;
-template <> uint64 CVar<uint64>::Get() const;
+template <>
+uint8 CVar<uint8>::Get() const;
+template <>
+uint16 CVar<uint16>::Get() const;
+template <>
+uint32 CVar<uint32>::Get() const;
+template <>
+uint64 CVar<uint64>::Get() const;
 
-template <> float CVar<float>::Get() const;
-template <> double CVar<double>::Get() const;
+template <>
+float CVar<float>::Get() const;
+template <>
+double CVar<double>::Get() const;
 
-template <> bool CVar<bool>::Get() const;
+template <>
+bool CVar<bool>::Get() const;
 
-template <> const char* CVar<const char*>::Get() const;
+template <>
+const char* CVar<const char*>::Get() const;
 
 #pragma endregion Get specializations
 
