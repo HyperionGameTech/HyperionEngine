@@ -41,7 +41,7 @@ namespace Hyperion {
 
 static constexpr float CameraJitterScale = 0.25f;
 
-extern CVar<bool> cvTAA;
+extern CVar<bool> g_cvTAA;
 
 static NullInputHandler* GetNullInputHandler()
 {
@@ -769,7 +769,7 @@ void Camera::UpdateMatrices()
 
     UpdateViewProjectionMatrix();
 
-    if (cvTAA.Get())
+    if (g_cvTAA.Get())
     {
         UpdateJitter();
     }

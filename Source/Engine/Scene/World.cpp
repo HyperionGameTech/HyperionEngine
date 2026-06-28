@@ -72,7 +72,7 @@ ScriptableDelegate<void, World*, Scene*> World::OnSceneRemoved;
 // if the number of systems in a group is less than this value, they will be executed sequentially
 static constexpr double SystemExecutionGroupLagSpikeThreshold = 50.0;
 
-extern CVar<bool> cvRayTracingEnabled;
+extern CVar<bool> g_cvRayTracingEnabled;
 
 EngineStatTimer g_statScriptUpdate("Script/Update");
 static EngineStatTimer s_statPhysicsUpdate("Physics/Update");
@@ -137,7 +137,7 @@ void World::Initialize()
     // Create a View that is intended to collect objects used by RT gi/reflections
     // since we'll need to have resources bound even if they aren't directly in any camera's view frustum.
     // (for example there could be some stuff behind the player we want to see reflections of)
-    if (cvRayTracingEnabled.Get())
+    if (g_cvRayTracingEnabled.Get())
     {
         // dummy output target
         FramebufferDesc framebufferDesc;

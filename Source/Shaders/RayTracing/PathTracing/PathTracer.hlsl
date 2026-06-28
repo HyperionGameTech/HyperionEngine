@@ -322,7 +322,7 @@ void RayGenMain()
 
     // temp debug
 
-    //finalColor = float3(1.0f, 0.0, 1.0);
+    // finalColor = float3(1.0f, 0.0, 1.0);
 
     image[storage_coord] = float4(finalColor, 1.0);
 }

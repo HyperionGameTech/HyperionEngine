@@ -48,7 +48,7 @@ namespace Hyperion {
 static const Name s_shaderNames[] = { NAME("RayTracedReflections"), NAME("PathTracer") };
 static constexpr uint32 MaxLights = 4;
 
-extern CVar<bool> cvPathTracing;
+extern CVar<bool> g_cvPathTracing;
 
 namespace DeferredRendererHelpers {
 
@@ -107,7 +107,7 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
 
     const StructuredBuffer& meshDescriptionsBuffer = tlas->GetMeshDescriptionsBuffer();
 
-    const bool isPathTracer = cvPathTracing.Get();
+    const bool isPathTracer = g_cvPathTracing.Get();
     InitTemporalBlending(isPathTracer);
 
     // Reset progressive blending if the camera view matrix has changed (for path tracing)

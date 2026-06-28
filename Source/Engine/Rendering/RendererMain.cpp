@@ -80,8 +80,8 @@ extern EngineStatTimer g_statTotalStallTime;
 
 static EngineStatTimer s_statProxyListReadWait("Rendering/CPU/ProxyListReadWait");
 
-extern CVar<bool> cvDepthPrepass;
-extern CVar<bool> cvPathTracing;
+extern CVar<bool> g_cvDepthPrepass;
+extern CVar<bool> g_cvPathTracing;
 
 static const Name s_nameShadingType = NAME("SHADING_TYPE");
 static const Name s_nameForward = NAME("FORWARD");
@@ -289,7 +289,7 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     const bool hasAlphaDiscard = bool(attributes.GetMaterialAttributes().flags & MAF_ALPHA_DISCARD);
     const bool hasSkinning = proxy.skeleton != nullptr && proxy.skeleton->GetRootBone() != nullptr;
 
-    const bool isPathTracer = cvPathTracing.Get();
+    const bool isPathTracer = g_cvPathTracing.Get();
 
     const bool isCubemap = IsCubemapShader(attributes.GetMaterialAttributes().shaderName);
 
@@ -381,7 +381,7 @@ static inline Stage GetStage(const RenderSetup& renderSetup, bool isDepthPrepass
 
     if (!renderSetup.passData
         || renderSetup.passData->Id().GetTypeId().Value() != PassDataTypeId
-        || !cvDepthPrepass.Get())
+        || !g_cvDepthPrepass.Get())
     {
         return DPP_NotActive;
     }

@@ -26,7 +26,7 @@
 
 namespace Hyperion {
 
-extern CVar<bool> cvDepthPrepass;
+extern CVar<bool> g_cvDepthPrepass;
 
 #pragma region GBuffer
 
@@ -236,7 +236,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
             AddOwnedAttachment(i, format);
         }
 
-        if (cvDepthPrepass.Get())
+        if (g_cvDepthPrepass.Get())
         {
             // If DepthPrepass is enabled, we don't CLEAR the depth texture as DPP is responsible for clearing it.
             AddOwnedAttachment(GTN_DEPTH, GetImageFormat(GTN_DEPTH), LoadOperation::LOAD, StoreOperation::NONE);
@@ -264,7 +264,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
 
                     continue;
                 }
-                else if (rb == RenderBucket::Lightmapped && cvDepthPrepass.Get())
+                else if (rb == RenderBucket::Lightmapped && g_cvDepthPrepass.Get())
                 {
                     // Lightmapped objects are included in the depth prepass, so we don't want to write to depth when they render.
                     // Therefore we use StoreOperation::NONE as storeOp when DepthPrepass is true.

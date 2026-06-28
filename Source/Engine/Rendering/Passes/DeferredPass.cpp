@@ -160,22 +160,23 @@ EngineStatCounter<uint32> g_statEnvProbes("Rendering/EnvProbes");
 EngineStatCounter<uint32> g_statProbeVolumes("Rendering/ProbeVolumes");
 EngineStatCounter<uint32> g_statDebugDraws("Rendering/DebugDraws");
 
-CVar<int> cvDeferredDebugVis { "Rendering.Deferred.DebugVis", 0 };
+CVar<int> g_cvDeferredDebugVis { "Rendering.Deferred.DebugVis", 0 };
 
-CVar<bool> cvRayTracingEnabled { "Rendering.RayTracingEnabled", true };
-CVar<bool> cvRayTracedGI { "Rendering.RayTracedGI", false };
-CVar<bool> cvRayTracedReflections { "Rendering.RayTracing.RayTracedReflections", false };
-CVar<bool> cvPathTracing { "Rendering.PathTracing", false };
-CVar<bool> cvSSGI { "Rendering.SSGI", true };
-CVar<bool> cvSSR { "Rendering.SSR", true, "Rendering.SSR.Enabled" };
-CVar<bool> cvTAA { "Rendering.TAA", true };
-CVar<bool> cvHBAO { "Rendering.HBAO", true, "Rendering.HBAO.Enabled" };
-CVar<bool> cvBloom { "Rendering.Bloom", true, "Rendering.Bloom.Enabled" };
-CVar<bool> cvEnableLightmapVolumes { "Rendering.LightmapVolumes", true };
-CVar<bool> cvClusteredShading { "Rendering.ClusteredShading", true };
-CVar<float> cvTonemapExposure { "Rendering.Tonemap.Exposure", 1.8f };
-CVar<bool> cvBypassDrawing { "Rendering.BypassDrawing", false };
-CVar<bool> cvDepthPrepass { "Rendering.DepthPrepass", true };
+CVar<bool> g_cvRayTracingEnabled { "Rendering.RayTracingEnabled", true };
+CVar<bool> g_cvDDGI { "Rendering.DDGI", false };
+CVar<bool> g_cvRayTracedReflections { "Rendering.RayTracing.RayTracedReflections", false };
+CVar<bool> g_cvPathTracing { "Rendering.PathTracing", false };
+
+CVar<bool> g_cvSSGI { "Rendering.SSGI", true };
+CVar<bool> g_cvSSR { "Rendering.SSR", true, "Rendering.SSR.Enabled" };
+CVar<bool> g_cvTAA { "Rendering.TAA", true };
+CVar<bool> g_cvHBAO { "Rendering.HBAO", true, "Rendering.HBAO.Enabled" };
+CVar<bool> g_cvBloom { "Rendering.Bloom", true, "Rendering.Bloom.Enabled" };
+CVar<bool> g_cvEnableLightmapVolumes { "Rendering.LightmapVolumes", true };
+CVar<bool> g_cvClusteredShading { "Rendering.ClusteredShading", true };
+CVar<float> g_cvTonemapExposure { "Rendering.Tonemap.Exposure", 1.8f };
+CVar<bool> g_cvBypassDrawing { "Rendering.BypassDrawing", false };
+CVar<bool> g_cvDepthPrepass { "Rendering.DepthPrepass", true };
 
 namespace DeferredRendererHelpers {
 
@@ -196,22 +197,22 @@ void GetDeferredShaderProperties(
 
     MergeGlobalShaderProperties(outShaderProperties);
 
-    if (cvHBAO.Get())
+    if (g_cvHBAO.Get())
     {
         outShaderProperties.Add(s_propHBAOEnabled);
     }
 
     if (mode == DPM_INDIRECT_LIGHTING)
     {
-        outShaderProperties.Set(s_propRayTracingReflections, s_renderConfig.rayTracing && cvRayTracedReflections.Get());
+        outShaderProperties.Set(s_propRayTracingReflections, s_renderConfig.rayTracing && g_cvRayTracedReflections.Get());
 
-        if (s_renderConfig.rayTracing && cvRayTracedGI.Get())
+        if (s_renderConfig.rayTracing && g_cvDDGI.Get())
         {
             outShaderProperties.Add(s_propRayTracingGlobalIllumination);
         }
 
-        outShaderProperties.Set(s_propSSGIEnabled, cvSSGI.Get());
-        outShaderProperties.Set(s_propSSREnabled, cvSSR.Get());
+        outShaderProperties.Set(s_propSSGIEnabled, g_cvSSGI.Get());
+        outShaderProperties.Set(s_propSSREnabled, g_cvSSR.Get());
     }
     else
     {
@@ -221,13 +222,13 @@ void GetDeferredShaderProperties(
         }
     }
 
-    if (s_renderConfig.rayTracing && cvPathTracing.Get())
+    if (s_renderConfig.rayTracing && g_cvPathTracing.Get())
     {
         outShaderProperties.Add(s_propPathTracer);
     }
     else
     {
-        switch (cvDeferredDebugVis.Get())
+        switch (g_cvDeferredDebugVis.Get())
         {
         case 1: // reflections
             outShaderProperties.Add(s_propDebugReflections);
@@ -451,7 +452,7 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     cr << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, RI.textureViewCache->GetOrCreate(dpd->mipChain));
 
-    if (dpd->hbao != nullptr && cvHBAO.Get())
+    if (dpd->hbao != nullptr && g_cvHBAO.Get())
     {
         cr << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, dpd->hbao->GetFinalImageView());
     }
@@ -463,7 +464,7 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     if (dpd->reflectionsPass != nullptr && dpd->reflectionsPass->ssrPass != nullptr)
         cr << SetShaderUniform(numShaderUniforms++, "SSRResultTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->reflectionsPass->ssrPass->GetFinalResultTexture()));
 
-    const bool useClusteredShading = cvClusteredShading.Get();
+    const bool useClusteredShading = g_cvClusteredShading.Get();
 
     if (useClusteredShading || m_mode == DPM_INDIRECT_LIGHTING)
     {
@@ -870,7 +871,7 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
 {
     ShaderPropertySet shaderProperties;
     shaderProperties.Add(s_propOutputSDR);
-    shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("EXPOSURE"), cvTonemapExposure.Get())));
+    shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("EXPOSURE"), g_cvTonemapExposure.Get())));
     m_shaderDesc = ShaderDesc(NAME("Tonemap"), shaderProperties);
 
     Begin(frame, rs);
@@ -902,7 +903,7 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
     cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
     cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
 
-    if (cvBloom.Get() && dpd->bloomPass)
+    if (g_cvBloom.Get() && dpd->bloomPass)
     {
         cr << SetShaderUniform(numShaderUniforms++, "BloomResultTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->bloomPass->GetBloomResult()));
     }
@@ -1076,7 +1077,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     else
         cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes], 0);
 
-    if (dpd->hbao != nullptr && cvHBAO.Get())
+    if (dpd->hbao != nullptr && g_cvHBAO.Get())
     {
         cr << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, dpd->hbao->GetFinalImageView());
     }
@@ -1366,7 +1367,7 @@ void ReflectionsPass::Create()
 
 bool ReflectionsPass::ShouldRenderSSR() const
 {
-    return cvSSR.Get() && !cvRayTracedReflections.Get();
+    return g_cvSSR.Get() && !g_cvRayTracedReflections.Get();
 }
 
 void ReflectionsPass::CreateSSRPass()
@@ -2383,7 +2384,7 @@ void DeferredPass::CreateViewRayTracingPasses(View* view, DeferredPassData& pass
     }
 
     const bool shouldEnableRayTracingForView = view->GetRayTracingView().IsValid()
-        && cvRayTracingEnabled.Get();
+        && g_cvRayTracingEnabled.Get();
 
     if (!shouldEnableRayTracingForView)
     {
@@ -2856,7 +2857,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    if (cvBypassDrawing.Get() || rs.viewport.extent.Volume() == 0)
+    if (g_cvBypassDrawing.Get() || rs.viewport.extent.Volume() == 0)
     {
         return;
     }
@@ -2874,7 +2875,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     Framebuffer* depthPrepassFramebuffer = passData.depthPrepassFramebuffer;
 
     static const bool s_indirectRendering = RI.GetRenderConfig().indirectRendering;
-    const bool performDepthPrepass = s_indirectRendering && cvDepthPrepass.Get();
+    const bool performDepthPrepass = s_indirectRendering && g_cvDepthPrepass.Get();
 
     constexpr uint32 PrepassRenderBucketsMask = RenderBucketMask<RenderBucket::Opaque, RenderBucket::Lightmapped>;
 
@@ -2933,11 +2934,11 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     Framebuffer* translucentPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Translucent);
     Framebuffer* debugPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Debug);
 
-    const bool useRayTracingReflections = (cvPathTracing.Get() || cvRayTracedReflections.Get())
+    const bool useRayTracingReflections = (g_cvPathTracing.Get() || g_cvRayTracedReflections.Get())
         && view->GetRayTracingView().IsValid()
         && passData.rayTracingReflections != nullptr;
 
-    const bool useRayTracingGlobalIllumination = cvRayTracedGI.Get()
+    const bool useRayTracingGlobalIllumination = g_cvDDGI.Get()
         && view->GetRayTracingView().IsValid()
         && passData.ddgi != nullptr;
 
@@ -2952,13 +2953,13 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     // if no opaque objects will be rendered, we need to clear the color target anyway
     // as other passes are using load ops
     if (renderCollector.mappingsByBucket[uint32(RenderBucket::Opaque)].Any()
-        || (!cvEnableLightmapVolumes.Get() && renderCollector.mappingsByBucket[uint32(RenderBucket::Lightmapped)].Any()))
+        || (!g_cvEnableLightmapVolumes.Get() && renderCollector.mappingsByBucket[uint32(RenderBucket::Lightmapped)].Any()))
     {
         ENGINE_STAT_GPU_SCOPE(&s_statFillOpaque);
 
         renderCollector.ExecuteDrawCalls(frame, rs, RenderBucketMask<RenderBucket::Opaque>);
 
-        if (!cvEnableLightmapVolumes.Get())
+        if (!g_cvEnableLightmapVolumes.Get())
         {
             renderCollector.ExecuteDrawCalls(frame, rs, RenderBucketMask<RenderBucket::Lightmapped>);
         }
@@ -2975,7 +2976,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     frame->cr << SetCurrentFramebuffer(nullptr);
 
-    if (cvEnableLightmapVolumes.Get())
+    if (g_cvEnableLightmapVolumes.Get())
     {
         // render objects to be lightmapped, separate from the opaque objects.
         // The lightmap bucket's framebuffer has a color attachment that will write into the opaque framebuffer's color attachment.
@@ -3046,12 +3047,12 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
     }
 
-    if (cvHBAO.Get())
+    if (g_cvHBAO.Get())
     {
         passData.hbao->Render(frame, rs);
     }
 
-    if (cvSSGI.Get())
+    if (g_cvSSGI.Get())
     {
         passData.ssgi->Render(frame, rs);
 
@@ -3065,7 +3066,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
     }
 
-    if (cvSSR.Get())
+    if (g_cvSSR.Get())
     {
         passData.reflectionsPass->ssrPass->Render(frame, rs);
 
@@ -3098,9 +3099,9 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
         frame->cr << SetCurrentFramebuffer(passData.lightingFramebuffer);
 
-        const bool isPathTracer = cvPathTracing.Get();
+        const bool isPathTracer = g_cvPathTracing.Get();
 
-        if (cvEnableLightmapVolumes.Get() && !isPathTracer)
+        if (g_cvEnableLightmapVolumes.Get() && !isPathTracer)
         {
             // apply baked lighting over lightmapped objects
             for (LightmapVolume* lightmapVolume : rpl.GetLightmapVolumes())
@@ -3219,7 +3220,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         frame->cr << SetCurrentFramebuffer(nullptr);
     }
 
-    if (cvBloom.Get())
+    if (g_cvBloom.Get())
     {
         passData.bloomPass->Render(frame, rs);
     }
@@ -3243,7 +3244,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     passData.tonemapPass->Render(frame, rs);
 
-    if (passData.taaPass != nullptr && cvTAA.Get())
+    if (passData.taaPass != nullptr && g_cvTAA.Get())
     {
         passData.taaPass->Render(frame, rs);
     }
@@ -3251,7 +3252,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     // depth of field
     // m_dofBlur->Render(frame);
 
-    GpuImageViewRef finalImageView = (passData.taaPass != nullptr && cvTAA.Get())
+    GpuImageViewRef finalImageView = (passData.taaPass != nullptr && g_cvTAA.Get())
         ? RI.textureViewCache->GetOrCreate(passData.taaPass->GetResultTexture())
         : passData.tonemapPass->GetFinalImageView();
 
