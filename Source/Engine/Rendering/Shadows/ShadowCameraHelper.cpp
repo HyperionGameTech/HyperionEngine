@@ -8,7 +8,7 @@ namespace Hyperion {
 namespace ShadowCameraHelpers {
 
 static constexpr float ZPullback = 1000.0f;
-static constexpr float ZPadding = 150.0f;
+static constexpr float ZPadding = 50.0f;
 
 Mat4f CalculateShadowViewMatrix(
     const Frustum& mainCameraFrustum,

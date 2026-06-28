@@ -13,9 +13,9 @@
     "RayTracedGI": false,
     "RayTracingEnabled": false,
     "IndirectRendering": true,
-    "DepthPrepass": false,
+    "DepthPrepass": true,
     "ParallelCollection": true,
-    "TargetFrameRate": 60,
+    "TargetFrameRate": 0,
     "EnableDebugDraw": true,
     "SSR": {
       "Enabled": true,

@@ -59,33 +59,33 @@ struct alignas(alignof(T) * 2) Vec2
     constexpr Vec2& operator=(Vec2&& other) noexcept = default;
     ~Vec2() = default;
 
-    T GetX() const
+    HYP_FORCE_INLINE constexpr T GetX() const
     {
         return x;
     }
 
-    T& GetX()
+    HYP_FORCE_INLINE constexpr T& GetX()
     {
         return x;
     }
 
-    Vec2& SetX(T x)
+    HYP_FORCE_INLINE constexpr T GetY() const
+    {
+        return y;
+    }
+
+    HYP_FORCE_INLINE constexpr T& GetY()
+    {
+        return y;
+    }
+
+    HYP_FORCE_INLINE Vec2& SetX(T x)
     {
         this->x = x;
         return *this;
     }
 
-    T GetY() const
-    {
-        return y;
-    }
-
-    T& GetY()
-    {
-        return y;
-    }
-
-    Vec2& SetY(T y)
+    HYP_FORCE_INLINE Vec2& SetY(T y)
     {
         this->y = y;
         return *this;
@@ -394,33 +394,33 @@ struct alignas(alignof(float) * 2) CORE_API Vec2<float>
     constexpr Vec2(const Vec2& other) = default;
     constexpr Vec2& operator=(const Vec2& other) = default;
 
-    float GetX() const
+    HYP_FORCE_INLINE constexpr float GetX() const
     {
         return x;
     }
 
-    float& GetX()
+    HYP_FORCE_INLINE constexpr float& GetX()
     {
         return x;
     }
 
-    Vec2& SetX(float x)
+    HYP_FORCE_INLINE constexpr float GetY() const
+    {
+        return y;
+    }
+
+    HYP_FORCE_INLINE constexpr float& GetY()
+    {
+        return y;
+    }
+
+    HYP_FORCE_INLINE Vec2& SetX(float x)
     {
         this->x = x;
         return *this;
     }
 
-    float GetY() const
-    {
-        return y;
-    }
-
-    float& GetY()
-    {
-        return y;
-    }
-
-    Vec2& SetY(float y)
+    HYP_FORCE_INLINE Vec2& SetY(float y)
     {
         this->y = y;
         return *this;

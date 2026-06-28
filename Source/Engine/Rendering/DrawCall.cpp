@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -220,8 +220,8 @@ HYP_NODISCARD uint32 DrawCallCollection::PushEntityToBatch(
                     continue;
 
                 AssertDebug(instanceData.buffers[bufferIndex].Size() % bufferStructSize == 0,
-                    "Buffer size is not a multiple of buffer struct size! Buffer size: {}, Buffer struct size: {}",
-                    instanceData.buffers[bufferIndex].Size(), bufferStructSize);
+                            "Buffer size is not a multiple of buffer struct size! Buffer size: {}, Buffer struct size: {}",
+                            instanceData.buffers[bufferIndex].Size(), bufferStructSize);
 
                 fieldOffset = ByteUtil::AlignAs(fieldOffset, bufferStructAlignment);
 
@@ -230,12 +230,12 @@ HYP_NODISCARD uint32 DrawCallCollection::PushEntityToBatch(
 
                 // sanity checks
                 AssertDebug((UIntPtr(dstPtr) + bufferStructSize) - UIntPtr(batch) <= batchStructSize,
-                    "Buffer struct size is larger than batch size! Buffer struct size: {}, Buffer struct alignment: {}, Batch size: {}, Entity index: {}, Field offset: {}",
-                    bufferStructSize, bufferStructAlignment, batchStructSize, entityIndex, fieldOffset);
+                            "Buffer struct size is larger than batch size! Buffer struct size: {}, Buffer struct alignment: {}, Batch size: {}, Entity index: {}, Field offset: {}",
+                            bufferStructSize, bufferStructAlignment, batchStructSize, entityIndex, fieldOffset);
 
                 AssertDebug(instanceData.buffers[bufferIndex].Size() >= (instanceOffset + 1) * bufferStructSize,
-                    "Buffer size is not large enough to copy data! Buffer size: {}, Buffer struct size: {}, Instance offset: {}",
-                    instanceData.buffers[bufferIndex].Size(), bufferStructSize, instanceOffset);
+                            "Buffer size is not large enough to copy data! Buffer size: {}, Buffer struct size: {}, Instance offset: {}",
+                            instanceData.buffers[bufferIndex].Size(), bufferStructSize, instanceOffset);
 
                 Memory::Copy(dstPtr, srcPtr, bufferStructSize);
 

@@ -23,9 +23,12 @@ CORE_API BoundingBox operator*(const Mat4f& transform, const BoundingBox& aabb)
 
     BoundingBox result;
 
-    for (Vec3f corner : aabb.GetCorners())
+    for (uint8 cornerIndex = 0; cornerIndex < 8; cornerIndex++)
     {
+        Vec3f corner = aabb.GetCorner(cornerIndex);
+
         result = result.Union(transform.TransformVector(corner));
+
     }
 
     return result;
@@ -34,18 +37,6 @@ CORE_API BoundingBox operator*(const Mat4f& transform, const BoundingBox& aabb)
 CORE_API BoundingBox operator*(const Transform& transform, const BoundingBox& aabb)
 {
     return transform.GetMatrix() * aabb;
-}
-
-BoundingBox::BoundingBox()
-    : min(MathUtil::MaxSafeValue<Vec3f>()),
-      max(MathUtil::MinSafeValue<Vec3f>())
-{
-}
-
-BoundingBox::BoundingBox(const Vec3f& min, const Vec3f& max)
-    : min(min),
-      max(max)
-{
 }
 
 FixedArray<Vec3f, 8> BoundingBox::GetCorners() const
@@ -75,7 +66,7 @@ void BoundingBox::SetCorners(const FixedArray<Vec3f, 8>& corners)
     min = corners[0];
     max = corners[0];
 
-    for (uint32 i = 1; i < 8; ++i)
+    for (uint8 i = 1; i < 8; ++i)
     {
         min = Vec3f::Min(min, corners[i]);
         max = Vec3f::Max(max, corners[i]);
@@ -238,23 +229,21 @@ bool BoundingBox::Overlaps(const BoundingBox& other) const
 
 bool BoundingBox::Contains(const BoundingBox& other) const
 {
-    const FixedArray<Vec3f, 8> corners = other.GetCorners();
-
-    if (!ContainsPoint(corners[0]))
+    if (!ContainsPoint(other.GetCorner(0)))
         return false;
-    if (!ContainsPoint(corners[1]))
+    if (!ContainsPoint(other.GetCorner(1)))
         return false;
-    if (!ContainsPoint(corners[2]))
+    if (!ContainsPoint(other.GetCorner(2)))
         return false;
-    if (!ContainsPoint(corners[3]))
+    if (!ContainsPoint(other.GetCorner(3)))
         return false;
-    if (!ContainsPoint(corners[4]))
+    if (!ContainsPoint(other.GetCorner(4)))
         return false;
-    if (!ContainsPoint(corners[5]))
+    if (!ContainsPoint(other.GetCorner(5)))
         return false;
-    if (!ContainsPoint(corners[6]))
+    if (!ContainsPoint(other.GetCorner(6)))
         return false;
-    if (!ContainsPoint(corners[7]))
+    if (!ContainsPoint(other.GetCorner(7)))
         return false;
 
     return true;

@@ -58,9 +58,7 @@
 
 namespace Hyperion {
 
-ENGINE_API extern Pool* g_scenePool;
-
-static constexpr float ShadowCascadeClipDistances[] = { 0.05f, 0.1f, 0.3f, 1.0f };
+static constexpr float ShadowCascadeClipDistances[] = { 0.05f, 0.15f, 0.3f, 1.0f };
 static constexpr float ShadowCascadeMaxDistance = 500.0f;
 
 // Always mark dirty at this value

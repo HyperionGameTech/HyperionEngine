@@ -78,8 +78,8 @@ struct StackDump::Impl
 
             if (SymFromAddr(process, address, &displacementSym, symbol))
             {
-                char line[2000];
-                sprintf_s(line, "%s - 0x%0llX", symbol->Name, symbol->Address);
+                char line[2048];
+                snprintf(line, 2048, "%s - 0x%0llX", symbol->Name, symbol->Address);
                 stringCache.PushBack(line);
             }
             else

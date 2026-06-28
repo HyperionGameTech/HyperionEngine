@@ -50,8 +50,8 @@ protected:
 private:
     Handle<UIListView> m_panel;
     Handle<UIText> m_fpsText;
+    Handle<UIText> m_renderingBackendText;
     Handle<UIText> m_gpuModelText;
-    Handle<UIText> m_gpuVendorText;
     Handle<UIText> m_gpuTypeText;
 };
 

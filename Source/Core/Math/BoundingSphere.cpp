@@ -13,9 +13,6 @@
 
 namespace Hyperion {
 
-const BoundingSphere BoundingSphere::empty = BoundingSphere();
-const BoundingSphere BoundingSphere::infinity = BoundingSphere(Vec3f::Zero(), MathUtil::Infinity<float>());
-
 BoundingSphere& BoundingSphere::Extend(const BoundingBox& box)
 {
     // https://github.com/openscenegraph/OpenSceneGraph/blob/master/include/osg/BoundingSphere
@@ -24,8 +21,10 @@ BoundingSphere& BoundingSphere::Extend(const BoundingBox& box)
 
     Vec3f directionVector;
 
-    for (const Vec3f& corner : box.GetCorners())
+    for (uint8 cornerIndex = 0; cornerIndex < 8; cornerIndex++)
     {
+        const Vec3f corner = box.GetCorner(cornerIndex);
+
         directionVector = (corner - center).Normalized();
         directionVector *= -radius;
         directionVector += center;

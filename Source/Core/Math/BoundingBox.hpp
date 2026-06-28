@@ -26,14 +26,24 @@ HYP_STRUCT(Size = 32)
 struct CORE_API BoundingBox
 {
     HYP_STRUCT_BODY(BoundingBox);
+    
 
-    BoundingBox();
-    BoundingBox(const Vec3f& min, const Vec3f& max);
+    constexpr BoundingBox()
+        : min(MathUtil::MaxSafeValue<Vec3f>()),
+          max(MathUtil::MinSafeValue<Vec3f>())
+    {
+    }
 
-    BoundingBox(const BoundingBox& other) = default;
+    constexpr BoundingBox(const Vec3f& min, const Vec3f& max)
+        : min(min),
+          max(max)
+    {
+    }
+
+    constexpr BoundingBox(const BoundingBox& other) = default;
     BoundingBox& operator=(const BoundingBox& other) = default;
 
-    BoundingBox(BoundingBox&& other) noexcept = default;
+    constexpr BoundingBox(BoundingBox&& other) noexcept = default;
     BoundingBox& operator=(BoundingBox&& other) noexcept = default;
 
     ~BoundingBox() = default;
@@ -59,6 +69,15 @@ struct CORE_API BoundingBox
     }
 
     FixedArray<Vec3f, 8> GetCorners() const;
+
+    HYP_FORCE_INLINE constexpr Vec3f GetCorner(uint8 index) const
+    {
+        return Vec3f {
+            (index & 1) ? max.x : min.x,
+            (index & 2) ? max.y : min.y,
+            (index & 4) ? max.z : min.z
+        };
+    }
 
     HYP_FORCE_INLINE constexpr Vec3f GetCenter() const
     {

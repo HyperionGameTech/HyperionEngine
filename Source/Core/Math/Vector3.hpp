@@ -75,56 +75,56 @@ struct alignas(alignof(T) * 4) Vec3
     constexpr Vec3& operator=(Vec3&& other) noexcept = default;
     ~Vec3() = default;
 
-    Type GetX() const
+    HYP_FORCE_INLINE constexpr Type GetX() const
     {
         return x;
     }
 
-    Type& GetX()
+    HYP_FORCE_INLINE constexpr Type& GetX()
     {
         return x;
     }
 
-    Vec3& SetX(Type x)
+    HYP_FORCE_INLINE constexpr Type GetY() const
+    {
+        return y;
+    }
+
+    HYP_FORCE_INLINE constexpr Type& GetY()
+    {
+        return y;
+    }
+
+    HYP_FORCE_INLINE constexpr Type GetZ() const
+    {
+        return z;
+    }
+
+    HYP_FORCE_INLINE constexpr Type& GetZ()
+    {
+        return z;
+    }
+
+    HYP_FORCE_INLINE Vec3& SetX(Type x)
     {
         this->x = x;
         return *this;
     }
 
-    Type GetY() const
-    {
-        return y;
-    }
-
-    Type& GetY()
-    {
-        return y;
-    }
-
-    Vec3& SetY(Type y)
+    HYP_FORCE_INLINE Vec3& SetY(Type y)
     {
         this->y = y;
         return *this;
     }
 
-    Type GetZ() const
-    {
-        return z;
-    }
-
-    Type& GetZ()
-    {
-        return z;
-    }
-
-    Vec3& SetZ(Type z)
+    HYP_FORCE_INLINE Vec3& SetZ(Type z)
     {
         this->z = z;
         return *this;
     }
 
     /*! \brief Get the XY components of this vector as a Vector2. */
-    HYP_FORCE_INLINE Vec2<Type> GetXY() const
+    HYP_FORCE_INLINE constexpr Vec2<Type> GetXY() const
     {
         return Vec2<Type>(x, y);
     }
@@ -408,49 +408,49 @@ struct alignas(alignof(float) * 4) CORE_API Vec3<float>
     constexpr Vec3& operator=(Vec3&& other) noexcept = default;
     ~Vec3() = default;
 
-    Type GetX() const
+    HYP_FORCE_INLINE constexpr Type GetX() const
     {
         return x;
     }
 
-    Type& GetX()
+    HYP_FORCE_INLINE constexpr Type& GetX()
     {
         return x;
     }
 
-    Vec3& SetX(Type x)
+    HYP_FORCE_INLINE constexpr Type GetY() const
+    {
+        return y;
+    }
+
+    HYP_FORCE_INLINE constexpr Type& GetY()
+    {
+        return y;
+    }
+
+    HYP_FORCE_INLINE constexpr Type GetZ() const
+    {
+        return z;
+    }
+
+    HYP_FORCE_INLINE constexpr Type& GetZ()
+    {
+        return z;
+    }
+
+    HYP_FORCE_INLINE Vec3& SetX(Type x)
     {
         this->x = x;
         return *this;
     }
 
-    Type GetY() const
-    {
-        return y;
-    }
-
-    Type& GetY()
-    {
-        return y;
-    }
-
-    Vec3& SetY(Type y)
+    HYP_FORCE_INLINE Vec3& SetY(Type y)
     {
         this->y = y;
         return *this;
     }
 
-    Type GetZ() const
-    {
-        return z;
-    }
-
-    Type& GetZ()
-    {
-        return z;
-    }
-
-    Vec3& SetZ(Type z)
+    HYP_FORCE_INLINE Vec3& SetZ(Type z)
     {
         this->z = z;
         return *this;
@@ -607,27 +607,27 @@ struct alignas(alignof(float) * 4) CORE_API Vec3<float>
     static Vec3<float> Min(const Vec3<float>& a, const Vec3<float>& b);
     static Vec3<float> Max(const Vec3<float>& a, const Vec3<float>& b);
 
-    static Vec3 Zero()
+    static constexpr Vec3 Zero()
     {
         return { Type(0), Type(0), Type(0) };
     }
 
-    static Vec3 One()
+    static constexpr Vec3 One()
     {
         return { Type(1), Type(1), Type(1) };
     }
 
-    static Vec3 UnitX()
+    static constexpr Vec3 UnitX()
     {
         return { Type(1), Type(0), Type(0) };
     }
 
-    static Vec3 UnitY()
+    static constexpr Vec3 UnitY()
     {
         return { Type(0), Type(1), Type(0) };
     }
 
-    static Vec3 UnitZ()
+    static constexpr Vec3 UnitZ()
     {
         return { Type(0), Type(0), Type(1) };
     }

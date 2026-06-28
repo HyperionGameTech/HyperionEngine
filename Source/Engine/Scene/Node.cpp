@@ -91,9 +91,9 @@ Node::Node(Name name, const Transform& localTransform, Scene* scene)
       m_scene(scene != nullptr ? scene : GetDetachedSceneForCurrentThread()),
       m_transformLocked(false)
 {
-    for (const Handle<Node>& child : m_childNodes)
+    for (Node* child : m_childNodes)
     {
-        if (!child.IsValid())
+        if (!child)
         {
             continue;
         }
@@ -163,9 +163,9 @@ Handle<Node> Node::Clone() const
     }
 
     // Clone children recursively
-    for (const Handle<Node>& child : m_childNodes)
+    for (Node* child : m_childNodes)
     {
-        if (child.IsValid())
+        if (child)
         {
             Handle<Node> clonedChild = child->Clone();
             if (clonedChild.IsValid())
@@ -180,7 +180,7 @@ Handle<Node> Node::Clone() const
 
 void Node::Init()
 {
-    for (const Handle<Node>& child : m_childNodes)
+    for (Node* child : m_childNodes)
     {
         InitObject(child);
     }
@@ -267,13 +267,8 @@ void Node::SetScene_Internal(Scene* scene, bool moveToDetached)
 
         MarkDirty();
 
-        for (const Handle<Node>& child : m_childNodes)
+        for (Node* child : m_childNodes)
         {
-            if (!child.IsValid())
-            {
-                continue;
-            }
-
             child->SetScene_Internal(m_scene, moveToDetached);
         }
     }
@@ -298,25 +293,15 @@ void Node::OnMobilityChanged(bool isStatic)
 {
     if (isStatic)
     {
-        for (const Handle<Node>& child : m_childNodes)
+        for (Node* child : m_childNodes)
         {
-            if (!child.IsValid())
-            {
-                continue;
-            }
-
             child->SetNodeFlags(child->GetNodeFlags() & ~NodeFlags::MobilityStaticByProxy);
         }
     }
     else
     {
-        for (const Handle<Node>& child : m_childNodes)
+        for (Node* child : m_childNodes)
         {
-            if (!child.IsValid())
-            {
-                continue;
-            }
-
             child->SetNodeFlags(child->GetNodeFlags() | NodeFlags::MobilityStaticByProxy);
         }
     }
@@ -440,10 +425,11 @@ bool Node::RemoveChild(const Node* node, bool moveToDetached)
         return false;
     }
 
-    auto it = m_childNodes.FindIf([node](const Handle<Node>& it)
-                                  {
-                                      return it.Get() == node;
-                                  });
+    auto it = m_childNodes.FindIf(
+        [node](Node* otherNode)
+        {
+            return otherNode == node;
+        });
 
     if (it == m_childNodes.End())
     {
@@ -503,9 +489,9 @@ bool Node::RemoveAt(uint32 index, bool moveToDetached)
         return false;
     }
 
-    const Handle<Node>& childNode = m_childNodes[index];
+    Node* childNode = m_childNodes[index];
 
-    return RemoveChild(childNode.Get(), moveToDetached);
+    return RemoveChild(childNode, moveToDetached);
 }
 
 bool Node::Remove(bool moveToDetached)
@@ -524,9 +510,9 @@ void Node::RemoveAllChildren(bool moveToDetached)
 {
     for (auto it = m_childNodes.begin(); it != m_childNodes.end();)
     {
-        if (const Handle<Node>& node = *it)
+        if (Node* node = *it)
         {
-            Assert(node.IsValid());
+            Assert(node != nullptr);
             Assert(node->GetParent() == this);
 
             OnNodeDetached(node);
@@ -667,7 +653,7 @@ Node::NodeList::Iterator Node::FindChild(const char* name)
 {
     const StringHash stringHash { name };
 
-    return m_childNodes.FindIf([stringHash](const Handle<Node>& node)
+    return m_childNodes.FindIf([stringHash](Node* node)
                                {
                                    return node->GetName() == stringHash;
                                });
@@ -677,7 +663,7 @@ Node::NodeList::ConstIterator Node::FindChild(const char* name) const
 {
     const StringHash stringHash { name };
 
-    return m_childNodes.FindIf([stringHash](const Handle<Node>& node)
+    return m_childNodes.FindIf([stringHash](Node* node)
                                {
                                    return node->GetName() == stringHash;
                                });
@@ -690,21 +676,21 @@ Array<Node*> Node::GetDescendantsArray() const
 
     typedef void (*CollectFunc)(Array<Node*>& descendants, const Node& target, void* collectFunc);
 
-    CollectFunc Collect = [](Array<Node*>& descendants, const Node& target, void* collectFunc)
+    CollectFunc collect = [](Array<Node*>& descendants, const Node& target, void* collectFunc)
     {
         descendants.Reserve(descendants.Size() + target.GetChildren().Size());
 
-        for (const Handle<Node>& child : target.GetChildren())
+        for (Node* child : target.GetChildren())
         {
             AssertDebug(child != nullptr);
 
-            descendants.PushBack(child.Get());
+            descendants.PushBack(child);
 
             (*static_cast<CollectFunc*>(collectFunc))(descendants, *child, collectFunc);
         }
     };
 
-    Collect(descendants, *this, &Collect);
+    collect(descendants, *this, &collect);
 
     return descendants;
 }
@@ -713,13 +699,8 @@ void Node::LockTransform()
 {
     m_transformLocked = true;
 
-    for (const Handle<Node>& child : m_childNodes)
+    for (Node* child : m_childNodes)
     {
-        if (!child.IsValid())
-        {
-            continue;
-        }
-
         child->LockTransform();
     }
 }
@@ -728,13 +709,8 @@ void Node::UnlockTransform()
 {
     m_transformLocked = false;
 
-    for (const Handle<Node>& child : m_childNodes)
+    for (Node* child : m_childNodes)
     {
-        if (!child.IsValid())
-        {
-            continue;
-        }
-
         child->UnlockTransform();
     }
 }
@@ -812,13 +788,8 @@ BoundingBox Node::GetLocalBoundsWithChildren() const
 
     BoundingBox aabb = m_localBounds.IsValid() ? m_localBounds : BoundingBox::Zero();
 
-    for (const Handle<Node>& child : GetChildren())
+    for (Node* child : GetChildren())
     {
-        if (!child.IsValid())
-        {
-            continue;
-        }
-
         if (!(child->GetNodeFlags() & NodeFlags::ExcludeFromParentBounds))
         {
             BoundingBox childBounds = child->GetLocalBoundsWithChildren();
@@ -842,13 +813,8 @@ BoundingBox Node::GetWorldBounds() const
 
     BoundingBox aabb = m_localBounds.IsValid() ? (m_worldMatrix * m_localBounds) : BoundingBox::Zero();
 
-    for (const Handle<Node>& child : GetChildren())
+    for (Node* child : GetChildren())
     {
-        if (!child.IsValid())
-        {
-            continue;
-        }
-
         if (!(child->GetNodeFlags() & NodeFlags::ExcludeFromParentBounds))
         {
             BoundingBox childBounds = child->GetWorldBounds();
@@ -1007,7 +973,7 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
 
     if (updateChildTransforms)
     {
-        for (const Handle<Node>& node : m_childNodes)
+        for (Node* node : m_childNodes)
         {
             node->UpdateWorldTransform(true);
         }
@@ -1166,9 +1132,9 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
             }
         }
 
-        for (const Handle<Node>& childNode : m_childNodes)
+        for (Node* childNode : m_childNodes)
         {
-            if (!childNode.IsValid())
+            if (!childNode)
             {
                 continue;
             }
@@ -1183,7 +1149,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
     return hasEntityHit;
 }
 
-Handle<Node> Node::FindChildByName(StringHash name) const
+const Handle<Node>& Node::FindChildByName(StringHash name) const
 {
     // breadth-first search
     Queue<const Node*> queue;
@@ -1195,7 +1161,7 @@ Handle<Node> Node::FindChildByName(StringHash name) const
 
         for (const Handle<Node>& child : parent->GetChildren())
         {
-            if (!child.IsValid())
+            if (!child)
             {
                 continue;
             }
@@ -1209,7 +1175,7 @@ Handle<Node> Node::FindChildByName(StringHash name) const
         }
     }
 
-    return Handle<Node>::empty;
+    return Handle<Node>::Null();
 }
 
 void Node::AddTag(NodeTag&& value)

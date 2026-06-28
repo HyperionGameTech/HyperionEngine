@@ -98,65 +98,65 @@ struct alignas(alignof(T) * 4) Vec4
     Vec4(const Vec4& other) = default;
     Vec4& operator=(const Vec4& other) = default;
 
-    Type GetX() const
+    HYP_FORCE_INLINE constexpr Type GetX() const
     {
         return x;
     }
 
-    Type& GetX()
+    HYP_FORCE_INLINE constexpr Type& GetX()
     {
         return x;
     }
 
-    Vec4& SetX(Type x)
+    HYP_FORCE_INLINE constexpr Vec4& SetX(Type x)
     {
         this->x = x;
         return *this;
     }
 
-    Type GetY() const
+    HYP_FORCE_INLINE constexpr Type GetY() const
     {
         return y;
     }
 
-    Type& GetY()
+    HYP_FORCE_INLINE constexpr Type& GetY()
     {
         return y;
     }
 
-    Vec4& SetY(Type y)
+    HYP_FORCE_INLINE constexpr Vec4& SetY(Type y)
     {
         this->y = y;
         return *this;
     }
 
-    Type GetZ() const
+    HYP_FORCE_INLINE constexpr Type GetZ() const
     {
         return z;
     }
 
-    Type& GetZ()
+    HYP_FORCE_INLINE constexpr Type& GetZ()
     {
         return z;
     }
 
-    Vec4& SetZ(Type z)
+    HYP_FORCE_INLINE constexpr Vec4& SetZ(Type z)
     {
         this->z = z;
         return *this;
     }
 
-    Type GetW() const
+    HYP_FORCE_INLINE constexpr Type GetW() const
     {
         return w;
     }
 
-    Type& GetW()
+    HYP_FORCE_INLINE constexpr Type& GetW()
     {
         return w;
     }
 
-    Vec4& SetW(Type w)
+    HYP_FORCE_INLINE constexpr Vec4& SetW(Type w)
     {
         this->w = w;
         return *this;
@@ -387,65 +387,65 @@ struct alignas(alignof(float) * 4) CORE_API Vec4<float>
     Vec4(const Vec4& other) = default;
     Vec4& operator=(const Vec4& other) = default;
 
-    Type GetX() const
+    HYP_FORCE_INLINE constexpr Type GetX() const
     {
         return x;
     }
 
-    Type& GetX()
+    HYP_FORCE_INLINE constexpr Type& GetX()
     {
         return x;
     }
 
-    Vec4& SetX(Type x)
+    HYP_FORCE_INLINE constexpr Type GetY() const
+    {
+        return y;
+    }
+
+    HYP_FORCE_INLINE constexpr Type& GetY()
+    {
+        return y;
+    }
+
+    HYP_FORCE_INLINE constexpr Type GetZ() const
+    {
+        return z;
+    }
+
+    HYP_FORCE_INLINE constexpr Type& GetZ()
+    {
+        return z;
+    }
+
+    HYP_FORCE_INLINE constexpr Type GetW() const
+    {
+        return w;
+    }
+
+    HYP_FORCE_INLINE constexpr Type& GetW()
+    {
+        return w;
+    }
+
+    HYP_FORCE_INLINE Vec4& SetX(Type x)
     {
         this->x = x;
         return *this;
     }
 
-    Type GetY() const
-    {
-        return y;
-    }
-
-    Type& GetY()
-    {
-        return y;
-    }
-
-    Vec4& SetY(Type y)
+    HYP_FORCE_INLINE Vec4& SetY(Type y)
     {
         this->y = y;
         return *this;
     }
 
-    Type GetZ() const
-    {
-        return z;
-    }
-
-    Type& GetZ()
-    {
-        return z;
-    }
-
-    Vec4& SetZ(Type z)
+    HYP_FORCE_INLINE Vec4& SetZ(Type z)
     {
         this->z = z;
         return *this;
     }
 
-    Type GetW() const
-    {
-        return w;
-    }
-
-    Type& GetW()
-    {
-        return w;
-    }
-
-    Vec4& SetW(Type w)
+    HYP_FORCE_INLINE Vec4& SetW(Type w)
     {
         this->w = w;
         return *this;

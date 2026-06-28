@@ -498,7 +498,7 @@ BoundingSphere Light::GetBoundingSphere(bool worldSpace) const
 {
     if (m_type == LightType::Directional)
     {
-        return BoundingSphere::infinity;
+        return BoundingSphere::Infinity();
     }
 
     return BoundingSphere(worldSpace ? GetWorldTranslation() : Vec3f::Zero(), m_radius);

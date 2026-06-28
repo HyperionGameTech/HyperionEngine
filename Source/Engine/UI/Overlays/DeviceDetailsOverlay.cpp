@@ -23,6 +23,17 @@
 
 namespace Hyperion {
 
+static String GetRenderingBackendText()
+{
+#if HYP_VULKAN
+    return "Vulkan";
+#elif HYP_DX12
+    return "DX12";
+#else
+    return "<unknown>";
+#endif
+}
+
 #pragma region DeviceDetailsOverlay
 
 DeviceDetailsOverlay::DeviceDetailsOverlay()
@@ -41,7 +52,7 @@ Handle<UIObject> DeviceDetailsOverlay::CreateUIObject_Impl(UIObject* spawnParent
     Handle<UIPanel> panelBackdrop = spawnParent->CreateUIObject<UIPanel>(
         NAME_FMT("DeviceDetailsOverlay_PanelBackdrop"),
         Vec2i(2, 2),
-        UIObjectSize({ 450, UIObjectSize::PIXEL }, { 30, UIObjectSize::PIXEL }));
+        UIObjectSize({ 420, UIObjectSize::PIXEL }, { 30, UIObjectSize::PIXEL }));
 
     panelBackdrop->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.7f));
     panelBackdrop->SetPadding(Vec2i(10, 5));
@@ -64,6 +75,16 @@ Handle<UIObject> DeviceDetailsOverlay::CreateUIObject_Impl(UIObject* spawnParent
     m_fpsText->SetPadding(Vec2i(10, 0));
     m_panel->AddChildUIObject(m_fpsText);
 
+    m_renderingBackendText = m_panel->CreateUIObject<UIText>(
+        Vec2i::Zero(),
+        UIObjectSize(UIObjectSize::AUTO));
+
+    m_renderingBackendText->SetTextSize(13.0f);
+    m_renderingBackendText->SetTextColor(Color(0.7f, 0.7f, 0.7f, 1.0f));
+    m_renderingBackendText->SetPadding(Vec2i(10, 0));
+    m_renderingBackendText->SetText(GetRenderingBackendText());
+    m_panel->AddChildUIObject(m_renderingBackendText);
+
     m_gpuModelText = m_panel->CreateUIObject<UIText>(
         Vec2i::Zero(),
         UIObjectSize(UIObjectSize::AUTO));
@@ -74,16 +95,6 @@ Handle<UIObject> DeviceDetailsOverlay::CreateUIObject_Impl(UIObject* spawnParent
     m_gpuModelText->SetText(device.GetGpuModel());
     m_panel->AddChildUIObject(m_gpuModelText);
 
-    m_gpuVendorText = m_panel->CreateUIObject<UIText>(
-        Vec2i::Zero(),
-        UIObjectSize(UIObjectSize::AUTO));
-
-    m_gpuVendorText->SetTextSize(13.0f);
-    m_gpuVendorText->SetTextColor(Color(0.7f, 0.7f, 0.7f, 1.0f));
-    m_gpuVendorText->SetPadding(Vec2i(10, 0));
-    m_gpuVendorText->SetText(device.GetGpuVendorName());
-    m_panel->AddChildUIObject(m_gpuVendorText);
-
     m_gpuTypeText = m_panel->CreateUIObject<UIText>(
         Vec2i::Zero(),
         UIObjectSize(UIObjectSize::AUTO));
@@ -91,7 +102,10 @@ Handle<UIObject> DeviceDetailsOverlay::CreateUIObject_Impl(UIObject* spawnParent
     m_gpuTypeText->SetTextSize(13.0f);
     m_gpuTypeText->SetTextColor(Color(0.7f, 0.7f, 0.7f, 1.0f));
     m_gpuTypeText->SetPadding(Vec2i(10, 0));
-    m_gpuTypeText->SetText(device.IsDiscreteGpu() ? String("Dedicated") : String("Integrated"));
+
+    // dedicated or integrated?
+    m_gpuTypeText->SetText(device.IsDiscreteGpu() ? String("[D]") : String("[I]"));
+
     m_panel->AddChildUIObject(m_gpuTypeText);
 
     panelBackdrop->AddChildUIObject(m_panel);

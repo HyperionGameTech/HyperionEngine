@@ -21,9 +21,12 @@ struct CORE_API BoundingSphere
 {
     HYP_STRUCT_BODY(BoundingSphere);
 
-    static const BoundingSphere empty;
-    static const BoundingSphere infinity;
-    
+    HYP_FIELD(Property = "Center", Serialize = true)
+    Vec3f center;
+
+    HYP_FIELD(Property = "Radius", Serialize = true)
+    float radius;
+
     constexpr BoundingSphere()
         : center(0.0f, 0.0f, 0.0f),
           radius(0.0f)
@@ -147,11 +150,15 @@ struct CORE_API BoundingSphere
         return hc;
     }
 
-    HYP_FIELD(Property = "Center", Serialize = true)
-    Vec3f center;
+    static constexpr BoundingSphere Zero()
+    {
+        return BoundingSphere(Vec3f::Zero(), 0.0f);
+    }
 
-    HYP_FIELD(Property = "Radius", Serialize = true)
-    float radius;
+    static constexpr BoundingSphere Infinity()
+    {
+        return BoundingSphere(Vec3f::Zero(), MathUtil::Infinity<float>());
+    }
 };
 
 } // namespace Hyperion

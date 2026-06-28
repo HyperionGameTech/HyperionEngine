@@ -849,7 +849,7 @@ public:
 
     /*! \brief Search child nodes (breadth-first) until a node with the given name is found. */
     HYP_METHOD()
-    Handle<Node> FindChildByName(StringHash name) const;
+    const Handle<Node>& FindChildByName(StringHash name) const;
 
     HYP_FORCE_INLINE const NodeTagSet& GetTags() const
     {
