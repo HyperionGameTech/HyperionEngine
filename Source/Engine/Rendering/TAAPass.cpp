@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -76,8 +76,7 @@ void TAAPass::CreateTextures()
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_STORAGE | IU_SAMPLED
-    });
+        IU_STORAGE | IU_SAMPLED });
 
     m_resultTexture->SetName(NAME("TAA_ResultTexture"));
     CheckResult(m_resultTexture->Create());
@@ -90,8 +89,7 @@ void TAAPass::CreateTextures()
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_STORAGE | IU_SAMPLED
-    });
+        IU_STORAGE | IU_SAMPLED });
 
     m_historyTexture->SetName(NAME("TAA_HistoryTexture"));
     CheckResult(m_historyTexture->Create());
@@ -118,15 +116,15 @@ void TAAPass::Render(Frame* frame, const RenderSetup& renderSetup)
     { // Set constants
         struct TAAConstants
         {
-            Vec2u dimensions;
-            Vec2u depthTextureDimensions;
-            Vec2f cameraNearFar;
+            Vec4u dimensions;
+            Vec4f jitter;
+            Vec2f nearFarClip;
         };
 
         TAAConstants constants {};
-        constants.dimensions = m_extent;
-        constants.depthTextureDimensions = depthTextureDimensions.GetXY();
-        constants.cameraNearFar = Vec2f { cameraProxy->bufferData.cameraNear, cameraProxy->bufferData.cameraFar };
+        constants.dimensions = Vec4u { m_extent, depthTextureDimensions.GetXY() };
+        constants.jitter = cameraProxy->bufferData.jitter;
+        constants.nearFarClip = Vec2f { cameraProxy->bufferData.cameraNear, cameraProxy->bufferData.cameraFar };
 
         RI.cbufferAllocator->Write(&constants);
         RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
@@ -154,7 +152,7 @@ void TAAPass::Render(Frame* frame, const RenderSetup& renderSetup)
 
     frame->cr << DispatchCompute(Vec3u { (m_extent.x + 7) / 8, (m_extent.y + 7) / 8, 1 });
     frame->cr << InsertBarrier(activeTexture->GetGpuImage(), RS_SHADER_RESOURCE);
-    
+
     m_pingPongIndex ^= 1;
 }
 

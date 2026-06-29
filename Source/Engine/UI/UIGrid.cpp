@@ -96,7 +96,7 @@ bool UIGridRow::RemoveChildUIObject(UIObject* uiObject)
 
     if (uiObjectHandle->IsA<UIGridColumn>())
     {
-        auto it = m_columns.FindAs(uiObject);
+        auto it = m_columns.Find(StaticCast<UIGridColumn>(uiObject));
 
         if (it != m_columns.End())
         {
@@ -413,7 +413,7 @@ bool UIGrid::RemoveChildUIObject(UIObject* uiObject)
     {
         UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_SIZE);
 
-        auto it = m_rows.FindAs(uiObject);
+        auto it = m_rows.Find(StaticCast<UIGridRow>(uiObject));
 
         if (it != m_rows.End())
         {

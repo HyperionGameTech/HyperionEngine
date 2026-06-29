@@ -67,6 +67,12 @@ void DX12Swapchain::Destroy()
 
     m_currentBackBufferIndex = 0;
 
+    if (m_frameLatencyWaitableObject != nullptr)
+    {
+        CloseHandle(m_frameLatencyWaitableObject);
+        m_frameLatencyWaitableObject = nullptr;
+    }
+
     if (m_flushEvent != nullptr)
     {
         CloseHandle(m_flushEvent);
@@ -132,7 +138,11 @@ RendererResult DX12Swapchain::Create()
     swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     swapChainDesc.SampleDesc.Count = 1;
-    swapChainDesc.Flags = m_allowTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
+    swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+    if (m_allowTearing)
+    {
+        swapChainDesc.Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+    }
     swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
 
     ComPtr<IDXGISwapChain1> swapChain1;
@@ -155,6 +165,29 @@ RendererResult DX12Swapchain::Create()
     }
 
     // IDXGISwapChain4 doesn't inherit ID3D12Object, so no SetName. The back buffers get debug names instead.
+
+    // Get the frame latency waitable object for CPU-side frame pacing.
+    // This provides behavior equivalent to Vulkan's vkAcquireNextImageKHR.
+    {
+        ComPtr<IDXGISwapChain2> swapChain2;
+        if (SUCCEEDED(m_swapChain.As(&swapChain2)))
+        {
+            m_frameLatencyWaitableObject = swapChain2->GetFrameLatencyWaitableObject();
+        }
+    }
+
+    // Set maximum frame latency to 1 for lowest possible latency
+    {
+        ComPtr<IDXGIDevice1> dxgiDevice1;
+        if (SUCCEEDED(device->QueryInterface(IID_PPV_ARGS(&dxgiDevice1))))
+        {
+            HRESULT hr = dxgiDevice1->SetMaximumFrameLatency(1);
+            if (FAILED(hr))
+            {
+                HYP_LOG(RenderingBackend, Warning, "Failed to set maximum frame latency: {}", hr);
+            }
+        }
+    }
 
     m_currentBackBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
 
@@ -315,6 +348,15 @@ void DX12Swapchain::PrepareForFrame(DX12Frame* frame)
         Recreate();
     }
 
+    // When vsync is enabled, wait on the frame latency waitable object to
+    // pace the CPU to the display refresh rate. This eliminates jitter from
+    // irregular frame submission intervals (equivalent to Vulkan's
+    // vkAcquireNextImageKHR blocking behavior).
+    if (g_cvEnableVSync.Get() && m_frameLatencyWaitableObject != nullptr)
+    {
+        WaitForSingleObject(m_frameLatencyWaitableObject, INFINITE);
+    }
+
     m_currentBackBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
     m_acquiredImageIndex = m_currentBackBufferIndex;
 
@@ -339,7 +381,7 @@ void DX12Swapchain::PresentFrame(DX12Frame* frame)
 
     HRESULT hr = m_swapChain->Present(syncInterval, flags);
 
-    if (FAILED(hr) && hr != DXGI_ERROR_WAS_STILL_DRAWING)
+    if (FAILED(hr))
     {
         HYP_LOG(RenderingBackend, Error, "Failed to present swapchain! Error: {}", hr);
 

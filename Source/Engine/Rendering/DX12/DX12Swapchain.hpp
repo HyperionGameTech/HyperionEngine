@@ -84,6 +84,10 @@ private:
     ComPtr<ID3D12Fence> m_flushFence;
     HANDLE m_flushEvent = nullptr;
     uint64 m_flushFenceValue = 0;
+
+    // Frame latency waitable object for CPU-side pacing when vsync is enabled.
+    // Provides behavior equivalent to Vulkan's vkAcquireNextImageKHR.
+    HANDLE m_frameLatencyWaitableObject = nullptr;
 };
 
 } // namespace Hyperion

@@ -462,8 +462,6 @@ void Camera::OnTransformUpdated()
 
     m_nextTranslation = translation;
 
-    m_prevViewProjMat = m_viewProjMat;
-
     if (HasActiveCameraController())
     {
         if (const Handle<CameraController>& cameraController = GetCameraController())
@@ -528,7 +526,6 @@ void Camera::Rotate(const Vec3f& axis, float radians)
 
 void Camera::SetViewMatrix(const Mat4f& viewMat)
 {
-    m_prevViewProjMat = m_viewProjMat;
     m_viewMat = viewMat;
 
     UpdateViewProjectionMatrix();
@@ -543,8 +540,6 @@ void Camera::SetProjectionMatrix(const Mat4f& projMat)
 
 void Camera::SetViewProjectionMatrix(const Mat4f& viewMat, const Mat4f& projMat)
 {
-    m_prevViewProjMat = m_viewProjMat;
-
     m_viewMat = viewMat;
     m_projMat = projMat;
 
@@ -719,6 +714,15 @@ void Camera::Update(float delta)
         UpdateMatrices();
     }
 
+    if (g_cvTAA.Get())
+    {
+        UpdateJitter();
+    }
+    else
+    {
+        m_jitter = Vec4f::Zero();
+    }
+
     if (m_streamingVolume.IsValid())
     {
         const Vec3f translation = GetWorldTranslation();
@@ -732,8 +736,6 @@ void Camera::Update(float delta)
 
 void Camera::UpdateViewMatrix()
 {
-    m_prevViewProjMat = m_viewProjMat;
-
     if (HasActiveCameraController())
     {
         if (const Handle<CameraController>& cameraController = GetCameraController())
@@ -756,8 +758,6 @@ void Camera::UpdateProjectionMatrix()
 
 void Camera::UpdateMatrices()
 {
-    m_prevViewProjMat = m_viewProjMat;
-
     if (HasActiveCameraController())
     {
         if (const Handle<CameraController>& cameraController = GetCameraController())
@@ -768,15 +768,6 @@ void Camera::UpdateMatrices()
     }
 
     UpdateViewProjectionMatrix();
-
-    if (g_cvTAA.Get())
-    {
-        UpdateJitter();
-    }
-    else
-    {
-        m_jitter = Vec4f::Zero();
-    }
 }
 
 void Camera::UpdateMouseLocked()
@@ -847,6 +838,9 @@ void Camera::UpdateRenderProxy(RenderProxyCamera* proxy)
     bufferData.cameraFov = m_fov;
 
     bufferData.jitter = m_jitter;
+
+    // Save current view-projection as previous for next frame's velocity
+    m_prevViewProjMat = m_viewProjMat;
 }
 
 #pragma endregion Camera

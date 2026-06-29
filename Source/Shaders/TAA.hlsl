@@ -16,9 +16,9 @@ DECLARE_UAV(TAA, OutColorImage) RWTexture2D<float4> output_image;
 
 DECLARE_BUFFER_DYNAMIC(TAA, TAAConstants) cbuffer TAAConstants
 {
-    uint2 dimensions;
-    uint2 depth_texture_dimensions;
-    float2 camera_near_far;
+    uint4 dimensions; // zw = depth
+    float4 jitter;
+    float2 nearFarClip;
 };
 
 // #define ADJUST_COLOR_HDR
@@ -28,12 +28,20 @@ DECLARE_BUFFER_DYNAMIC(TAA, TAAConstants) cbuffer TAAConstants
 [numthreads(8, 8, 1)]
 void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
-    const uint2 pixel_coord = dispatchThreadID.xy % dimensions;
+    if (dispatchThreadID.x >= dimensions.x || dispatchThreadID.y >= dimensions.y)
+    {
+        return;
+    }
 
-    const float2 uv = (float2(pixel_coord) + 0.5) / float2(dimensions);
+    const uint2 colorDimensions = dimensions.xy;
+    const uint2 depthDimensions = dimensions.zw;
 
-    const float2 texel_size = float2(1.0, 1.0) / float2(dimensions);
-    const float2 depth_texel_size = float2(1.0, 1.0) / float2(depth_texture_dimensions);
+    uint2 pixel_coord = dispatchThreadID.xy;
+
+    const float2 uv = (float2(pixel_coord) + 0.5) / float2(colorDimensions);
+
+    const float2 texel_size = float2(1.0, 1.0) / float2(colorDimensions);
+    const float2 depth_texel_size = float2(1.0, 1.0) / float2(depthDimensions);
 
     // const float3 closest_fragment = ClosestFragment(depth_texture, uv, depth_texel_size);
     // float2 velocity = SAMPLE_TEXTURE_2D(sampler_nearest, velocity_texture, closest_fragment.xy).rg;
@@ -44,10 +52,10 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     InitTemporalParams(
         depth_texture,
         velocity_texture,
-        depth_texture_dimensions,
+        depthDimensions,
         uv,
-        camera_near_far.x,
-        camera_near_far.y,
+        nearFarClip.x,
+        nearFarClip.y,
         velocity,
         view_space_depth);
 
@@ -94,10 +102,10 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
 #endif
 
-    // debugging
-    result = any(isnan(result)) ? float4(0.0, 1.0, 0.0, 1.0) : result;
+    // // debugging
+    // result = any(isnan(result)) ? float4(0.0, 1.0, 0.0, 1.0) : result;
 
-    const uint2 clamped_coord = clamp(pixel_coord, uint2(0, 0), dimensions - uint2(1, 1));
+    const uint2 clamped_coord = clamp(pixel_coord, uint2(0, 0), colorDimensions - uint2(1, 1));
 
     output_image[clamped_coord] = result;
 }

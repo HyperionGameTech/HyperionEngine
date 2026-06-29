@@ -586,7 +586,13 @@ vec4 TemporalBlendRounded(in texture2D input_texture, in texture2D prev_input_te
     return ADJUST_COLOR_GAMMA_OUT(out_rgb);
 }
 
-vec4 TemporalBlendVarying(in texture2D input_texture, in texture2D prev_input_texture, vec2 uv, vec2 velocity, vec2 texel_size, float view_space_depth)
+vec4 TemporalBlendVarying(
+    in Texture2D input_texture,
+    in Texture2D prev_input_texture,
+    float2 uv,
+    float2 velocity,
+    float2 texel_size,
+    float view_space_depth)
 {
     // Read and prepare current and previous pixels: gamma -> HDR/log -> YCoCg
     vec4 color_rgb = ADJUST_COLOR_GAMMA_IN(SAMPLE_TEXTURE_2D(sampler_linear, input_texture, uv));
