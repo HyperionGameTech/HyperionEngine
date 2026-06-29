@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -44,9 +44,9 @@ namespace Hyperion {
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 #if HYP_DEBUG_MODE || HYP_EDITOR
-CVar<bool> cvShowDebugUI("ShowDebugUI", true);
-#else // HYP_DEBUG_MODE || HYP_EDITOR
-CVar<bool> cvShowDebugUI("ShowDebugUI", false);
+CVar<bool> g_cvShowDebugUI("ShowDebugUI", true);
+#else  // HYP_DEBUG_MODE || HYP_EDITOR
+CVar<bool> g_cvShowDebugUI("ShowDebugUI", false);
 #endif // HYP_DEBUG_MODE || HYP_EDITOR
 
 #pragma region FinalPass
@@ -146,7 +146,7 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
         cr << DrawIndexed(6);
     }
 
-    if (cvShowDebugUI.Get())
+    if (g_cvShowDebugUI.Get())
     {
         // draw ui
         UIPass* uiPass = static_cast<UIPass*>(RI.namedPasses[NamedPass::UI][0]);

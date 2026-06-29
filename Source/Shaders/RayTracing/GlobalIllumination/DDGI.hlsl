@@ -1,3 +1,5 @@
+STATIC(MAX_LIGHTS, 4)
+
 #define DDGI
 
 #include "../../include/Defines.hlsli"

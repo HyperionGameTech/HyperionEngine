@@ -2397,7 +2397,7 @@ void DeferredPass::CreateViewRayTracingPasses(View* view, DeferredPassData& pass
     GBuffer* gbuffer = view->GetOutputTarget().GetGBuffer();
     AssertDebug(gbuffer != nullptr);
 
-    passData.rayTracingReflections = MakeUnique<RayTracingReflections>(RayTracingReflectionsConfig::FromConfig(), gbuffer);
+    passData.rayTracingReflections = MakeUnique<RayTracingReflections>(gbuffer);
     passData.rayTracingReflections->Create();
 
     /// FIXME: Proper AABB for DDGI

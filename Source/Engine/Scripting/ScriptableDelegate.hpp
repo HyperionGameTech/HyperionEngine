@@ -207,7 +207,7 @@ public:
             return DelegateHandler();
         }
 
-        return GetOrCreatePerTargetDelegate(target).Bind([methodName = ANSIString(methodName), getFn = std::move(getFn)]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
+        return GetOrCreatePerTargetDelegate(target)->Bind([methodName = ANSIString(methodName), getFn = std::move(getFn)]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
             {
                 ValueStorage<ReturnType> returnValueStorage;
                 if (!ScriptableDelegateHelper::InvokeScriptObjectMethod<BoxedValue, ReturnType>(getFn(), methodName, returnValueStorage.GetPointer(), std::forward<ArgTypes>(args)...))
@@ -233,7 +233,7 @@ public:
             return DelegateHandler();
         }
 
-        return GetOrCreatePerTargetDelegate(target).Bind([methodName = ANSIString(methodName), scriptObjectResource]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
+        return GetOrCreatePerTargetDelegate(target)->Bind([methodName = ANSIString(methodName), scriptObjectResource]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
             {
                 ValueStorage<ReturnType> returnValueStorage;
                 if (!ScriptableDelegateHelper::InvokeScriptObjectMethod<BoxedValue, ReturnType>(scriptObjectResource, methodName, returnValueStorage.GetPointer(), std::forward<ArgTypes>(args)...))
@@ -260,7 +260,7 @@ public:
             return DelegateHandler();
         }
 
-        return GetOrCreatePerTargetDelegate(target).Bind([methodName = ANSIString(methodName), getFn = std::move(getFn), defaultReturn = std::forward<DefaultReturnType>(defaultReturn)]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
+        return GetOrCreatePerTargetDelegate(target)->Bind([methodName = ANSIString(methodName), getFn = std::move(getFn), defaultReturn = std::forward<DefaultReturnType>(defaultReturn)]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
             {
                 ScriptObjectResource* scriptObjectResource = getFn();
 
@@ -294,7 +294,7 @@ public:
             return DelegateHandler();
         }
 
-        return GetOrCreatePerTargetDelegate(target).Bind([methodName = ANSIString(methodName), scriptObjectResource, defaultReturn = std::forward<DefaultReturnType>(defaultReturn)]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
+        return GetOrCreatePerTargetDelegate(target)->Bind([methodName = ANSIString(methodName), scriptObjectResource, defaultReturn = std::forward<DefaultReturnType>(defaultReturn)]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
             {
                 if (!scriptObjectResource)
                 {
@@ -347,7 +347,7 @@ public:
             return DelegateHandler();
         }
 
-        return GetOrCreatePerTargetDelegate(target).Bind([methodName = ANSIString(methodName), object = std::move(object)]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
+        return GetOrCreatePerTargetDelegate(target)->Bind([methodName = ANSIString(methodName), object = std::move(object)]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
             {
                 return object->InvokeMethodByName<ReturnType>(methodName, std::forward<ArgTypes>(args)...);
             });
@@ -359,7 +359,7 @@ public:
         int count = 0;
 
         {
-            TUniqueLock guard(m_targetMutex);
+            TUniqueLock guard(m_perTargetDelegatesMutex);
             for (auto& pair : m_perTargetDelegates)
             {
                 count += pair.second->RemoveAllDetached();
@@ -371,7 +371,7 @@ public:
 
     virtual int RemoveAllForTarget(void* target) override
     {
-        TUniqueLock guard(m_targetMutex);
+        TUniqueLock guard(m_perTargetDelegatesMutex);
 
         auto it = m_perTargetDelegates.Find(target);
         if (it == m_perTargetDelegates.End())
@@ -402,7 +402,7 @@ public:
     {
         int count = 0;
 
-        TSharedLock guard(m_targetMutex);
+        TSharedLock guard(m_perTargetDelegatesMutex);
         for (auto& pair : m_perTargetDelegates)
         {
             count += handlerSet.Remove(pair.second.Get());
@@ -413,19 +413,18 @@ public:
 
     HYP_NODISCARD DelegateHandler Bind(void* target, Proc<ReturnType(Args...)>&& proc)
     {
-        return GetOrCreatePerTargetDelegate(target).Bind(std::move(proc));
+        return GetOrCreatePerTargetDelegate(target)->Bind(std::move(proc));
     }
 
     HYP_NODISCARD DelegateHandler BindThreaded(void* target, Proc<ReturnType(Args...)>&& proc, const ThreadId& callingThreadId)
     {
-        return GetOrCreatePerTargetDelegate(target).BindThreaded(std::move(proc), callingThreadId);
+        return GetOrCreatePerTargetDelegate(target)->BindThreaded(std::move(proc), callingThreadId);
     }
 
     template <class... ArgTypes>
-    HYP_FORCE_INLINE ReturnType Fire(void* target, ArgTypes&&... args)
+    ReturnType Fire(void* target, ArgTypes&&... args)
     {
-        TSharedLock<SharedMutex> guard;
-        Delegate<ReturnType, Args...>* perTargetDelegate = FindPerTargetDelegate(target, guard);
+        RC<Delegate<ReturnType, Args...>> perTargetDelegate = FindPerTargetDelegate(target);
 
         if (!perTargetDelegate)
         {
@@ -442,22 +441,22 @@ public:
     }
 
 private:
-    Delegate<ReturnType, Args...>& GetOrCreatePerTargetDelegate(void* target)
+    RC<Delegate<ReturnType, Args...>> GetOrCreatePerTargetDelegate(void* target)
     {
-        TUniqueLock guard(m_targetMutex);
+        TUniqueLock guard(m_perTargetDelegatesMutex);
 
         auto it = m_perTargetDelegates.Find(target);
         if (it == m_perTargetDelegates.End())
         {
-            it = m_perTargetDelegates.Insert({target, MakeUnique<Delegate<ReturnType, Args...>>()}).first;
+            it = m_perTargetDelegates.Insert({ target, MakeRefCountedPtr<Delegate<ReturnType, Args...>>() }).first;
         }
 
-        return *it->second;
+        return it->second;
     }
 
-    Delegate<ReturnType, Args...>* FindPerTargetDelegate(void* target, TSharedLock<SharedMutex>& guard) const
+    HYP_FORCE_INLINE RC<Delegate<ReturnType, Args...>> FindPerTargetDelegate(void* target) const
     {
-        guard.Reset(m_targetMutex);
+        TSharedLock guard(m_perTargetDelegatesMutex);
 
         auto it = m_perTargetDelegates.Find(target);
         if (it == m_perTargetDelegates.End())
@@ -465,7 +464,7 @@ private:
             return nullptr;
         }
 
-        return it->second.Get();
+        return it->second;
     }
 
     template <class... ArgTypes>
@@ -473,7 +472,7 @@ private:
     {
         if constexpr (std::is_same_v<ReturnType, void>)
         {
-            TSharedLock guard(m_targetMutex);
+            TSharedLock guard(m_perTargetDelegatesMutex);
             for (auto& pair : m_perTargetDelegates)
             {
                 pair.second->Broadcast(std::forward<ArgTypes>(args)...);
@@ -483,7 +482,7 @@ private:
         {
             ReturnType result = ReturnType();
 
-            TSharedLock guard(m_targetMutex);
+            TSharedLock guard(m_perTargetDelegatesMutex);
             for (auto& pair : m_perTargetDelegates)
             {
                 result = pair.second->Broadcast(std::forward<ArgTypes>(args)...);
@@ -493,8 +492,8 @@ private:
         }
     }
 
-    mutable SharedMutex m_targetMutex;
-    TMap<void*, UniquePtr<Delegate<ReturnType, Args...>>> m_perTargetDelegates;
+    mutable SharedMutex m_perTargetDelegatesMutex;
+    TFlatMap<void*, RC<Delegate<ReturnType, Args...>>> m_perTargetDelegates;
 };
 
 template <class ReturnType, class... Args>

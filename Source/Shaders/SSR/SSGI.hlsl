@@ -1,3 +1,6 @@
+STATIC(MAX_LIGHTS, 4)
+STATIC(MAX_ENV_PROBES, 4)
+
 #include "../include/Defines.hlsli"
 #include "../include/Noise.hlsli"
 #include "../include/EnvProbes.hlsli"

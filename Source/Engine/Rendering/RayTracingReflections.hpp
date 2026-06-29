@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -20,22 +20,6 @@ namespace Hyperion {
 class GBuffer;
 class PassData;
 
-HYP_STRUCT(ConfigName = "EngineConfig", JsonPath = "Rendering.RayTracing")
-struct RayTracingReflectionsConfig : public Config<RayTracingReflectionsConfig>
-{
-    HYP_STRUCT_BODY(RayTracingReflectionsConfig);
-
-    HYP_FIELD(JsonIgnore)
-    Vec2u extent = { 1280, 720 };
-
-    virtual ~RayTracingReflectionsConfig() override = default;
-
-    bool Validate() const
-    {
-        return extent.x * extent.y != 0;
-    }
-};
-
 class RayTracingReflections
 {
 public:
@@ -44,9 +28,13 @@ public:
     friend struct DestroyRayTracingReflections;
     friend struct CreateRTRadianceImageOutputs;
 
-    RayTracingReflections(
-        RayTracingReflectionsConfig&& config,
-        GBuffer* gbuffer);
+    explicit RayTracingReflections(GBuffer* gbuffer);
+
+    RayTracingReflections(const RayTracingReflections& other) = delete;
+    RayTracingReflections& operator=(const RayTracingReflections& other) = delete;
+
+    RayTracingReflections(RayTracingReflections&& other) noexcept = delete;
+    RayTracingReflections& operator=(RayTracingReflections&& other) noexcept = delete;
 
     ~RayTracingReflections();
 
@@ -59,8 +47,6 @@ private:
     void CreateImages();
 
     void InitTemporalBlending(bool isPathTracer);
-
-    RayTracingReflectionsConfig m_config;
 
     GBuffer* m_gbuffer;
 

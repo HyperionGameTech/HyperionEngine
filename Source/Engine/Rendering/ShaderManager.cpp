@@ -14,6 +14,7 @@
 #include <Rendering/GraphicsPipelineCache.hpp>
 #include <Rendering/GenericPipelineCache.hpp>
 
+#include <Rendering/Util/ShaderCompiler.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
 #include <Asset/AssetRegistry.hpp>

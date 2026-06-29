@@ -44,20 +44,17 @@
 
 namespace Hyperion {
 
-static constexpr bool UseTemporalBlending = true;
+static constexpr bool SSGIUseTemporalBlending = true;
 static constexpr TextureFormat SSGIFormat = TextureFormat::RGBA8;
-static constexpr uint32 MaxLights = 4;
-static constexpr uint32 MaxEnvProbes = 4;
-static constexpr uint32 NumSamples = 32; // temporal sample count
+static constexpr uint32 SSGIMaxLights = 4;
+static constexpr uint32 SSGIMaxEnvProbes = 4;
+static constexpr uint32 SSGINumSamples = 32; // temporal sample count
 
-static const ShaderPropertyId s_propMaxLights = InternShaderProperty(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxLights)));
-static const ShaderPropertyId s_propMaxEnvProbes = InternShaderProperty(ShaderProperty(NAME("MAX_ENV_PROBES"), int(MaxEnvProbes)));
-
-CVar<float> cvSSGIDepthThreshold { "Rendering.SSGI.DepthThreshold", 0.2f };
-CVar<float> cvSSGINormalPower { "Rendering.SSGI.NormalPower", 8.0f };
-CVar<float> cvSSGIRayStep { "Rendering.SSGI.RayStep", 1.5f };
-CVar<float> cvSSGIDistanceBias { "Rendering.SSGI.DistanceBias", 0.009f };
-CVar<uint32> cvSSGIMaxIterations { "Rendering.SSGI.MaxIterations", 16 };
+CVar<float> g_cvSSGIDepthThreshold { "Rendering.SSGI.DepthThreshold", 0.2f };
+CVar<float> g_cvSSGINormalPower { "Rendering.SSGI.NormalPower", 8.0f };
+CVar<float> g_cvSSGIRayStep { "Rendering.SSGI.RayStep", 1.5f };
+CVar<float> g_cvSSGIDistanceBias { "Rendering.SSGI.DistanceBias", 0.009f };
+CVar<uint32> g_cvSSGIMaxIterations { "Rendering.SSGI.MaxIterations", 16 };
 
 namespace DeferredRendererHelpers {
 
@@ -76,8 +73,6 @@ namespace {
 static ShaderPropertySet GetShaderProperties()
 {
     ShaderPropertySet shaderProperties;
-    shaderProperties.Add(s_propMaxLights);
-    shaderProperties.Add(s_propMaxEnvProbes);
 
     switch (SSGIFormat)
     {
@@ -174,7 +169,7 @@ void SSGI::Create()
         m_upsamplePasses[i]->Create();
     }
 
-    if (UseTemporalBlending)
+    if (SSGIUseTemporalBlending)
     {
         m_temporalBlending = MakeUnique<TemporalBlending>(
             m_extent,
@@ -223,10 +218,10 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
         { // Update constant buffer
             SSGIConstants ssgiConstants {};
             ssgiConstants.dimensions = m_extent;
-            ssgiConstants.rayStep = cvSSGIRayStep.Get();
-            ssgiConstants.maxIterations = cvSSGIMaxIterations.Get();
-            ssgiConstants.distanceBias = cvSSGIDistanceBias.Get();
-            ssgiConstants.numSamples = NumSamples;
+            ssgiConstants.rayStep = g_cvSSGIRayStep.Get();
+            ssgiConstants.maxIterations = g_cvSSGIMaxIterations.Get();
+            ssgiConstants.distanceBias = g_cvSSGIDistanceBias.Get();
+            ssgiConstants.numSamples = SSGINumSamples;
 
             Array<Pair<Light*, LightShaderData*>, RenderAllocator> tempLights;
             Array<Pair<EnvProbe*, EnvProbeShaderData*>, RenderAllocator> tempEnvProbes;
@@ -247,7 +242,7 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
                     continue;
                 }
 
-                if (numBoundLights >= MaxLights)
+                if (numBoundLights >= SSGIMaxLights)
                 {
                     break;
                 }
@@ -264,7 +259,7 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
             {
                 if (envProbe->IsA(ReflectionProbe::StaticClass()) || envProbe->IsA(SkyProbe::StaticClass()))
                 {
-                    if (numBoundEnvProbes >= MaxEnvProbes)
+                    if (numBoundEnvProbes >= SSGIMaxEnvProbes)
                     {
                         break;
                     }
@@ -280,7 +275,7 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
 
             RI.cbufferAllocator->Write(&ssgiConstants);
 
-            for (uint32 i = 0; i < MaxLights; i++)
+            for (uint32 i = 0; i < SSGIMaxLights; i++)
             {
                 if (i < uint32(tempLights.Size()))
                 {
@@ -292,7 +287,7 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
                 RI.cbufferAllocator->Write(&dummy);
             }
 
-            for (uint32 i = 0; i < MaxLights; i++)
+            for (uint32 i = 0; i < SSGIMaxLights; i++)
             {
                 ShadowMapData shadowMapData {};
 
@@ -363,7 +358,7 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
                           return aDistSq < bDistSq;
                       });
 
-            for (uint32 i = 0; i < MaxEnvProbes; i++)
+            for (uint32 i = 0; i < SSGIMaxEnvProbes; i++)
             {
                 const EnvProbeShaderData* pEnvProbeShaderData = nullptr;
 
@@ -470,8 +465,8 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
             SSGIUpsampleConstants upsampleConstants {};
             upsampleConstants.camera = cameraProxy->bufferData;
             upsampleConstants.texelSize = Vec2f::One() / sourceResolution;
-            upsampleConstants.depthThreshold = cvSSGIDepthThreshold.Get();
-            upsampleConstants.normalThreshold = cvSSGINormalPower.Get();
+            upsampleConstants.depthThreshold = g_cvSSGIDepthThreshold.Get();
+            upsampleConstants.normalThreshold = g_cvSSGINormalPower.Get();
 
             RI.cbufferAllocator->Write(&upsampleConstants);
             RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
@@ -509,7 +504,7 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
     // transition sample image back into read state
     cr << InsertBarrier(m_upsamplePasses[NumDownsamplePasses - 1]->GetAttachment(0)->GetGpuImage(), RS_SHADER_RESOURCE);
 
-    if (UseTemporalBlending && m_temporalBlending != nullptr)
+    if (SSGIUseTemporalBlending && m_temporalBlending != nullptr)
     {
         m_temporalBlending->Render(frame, renderSetup);
     }

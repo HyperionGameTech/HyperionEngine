@@ -1,3 +1,5 @@
+STATIC(MAX_LIGHTS, 4)
+
 #include "../include/Defines.hlsli"
 #include "../include/Shared.hlsli"
 
@@ -108,14 +110,16 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
         material = materials[material_index];
     }
 
+    float metalness = GET_MATERIAL_PARAM(material, MATERIAL_PARAM_METALNESS);
+    float roughness = GET_MATERIAL_PARAM(material, MATERIAL_PARAM_ROUGHNESS);
+
+#ifdef HYP_FEATURES_BINDLESS_TEXTURES
     if (HAS_TEXTURE(material, DiffuseMap))
     {
         float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(material, DiffuseMap, float2(texcoord.x, 1.0 - texcoord.y));
 
         material_color *= albedo_texture;
     }
-
-    float metalness = GET_MATERIAL_PARAM(material, MATERIAL_PARAM_METALNESS);
 
     if (HAS_TEXTURE(material, MetalnessMap))
     {
@@ -124,16 +128,15 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
         metalness = metalness_sample;
     }
 
-    float roughness = GET_MATERIAL_PARAM(material, MATERIAL_PARAM_ROUGHNESS);
-
     if (HAS_TEXTURE(material, RoughnessMap))
     {
         float roughness_sample = SAMPLE_MATERIAL_TEXTURE(material, RoughnessMap, float2(texcoord.x, 1.0 - texcoord.y)).r;
 
         roughness = roughness_sample;
     }
+#endif // HYP_FEATURES_BINDLESS_TEXTURES
 
-    const float ambient = 0.001;
+    const float ambient = 0.02;
 
     float4 indirect_lighting = material_color * (1.0 - metalness) * ambient;
 

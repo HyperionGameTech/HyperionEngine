@@ -73,7 +73,9 @@ RendererResult DX12ShaderInstance::Create()
         }
 
         if (blob.Size() == 0)
+        {
             continue;
+        }
 
         ubyte* ownedData = (ubyte*)g_dx12Pool->Allocate(blob.Size());
         Assert(ownedData != nullptr);
@@ -92,7 +94,9 @@ RendererResult DX12ShaderInstance::Create()
 
 #ifdef HYP_DEBUG_MODE
     if (Name debugName = GetDebugName())
+    {
         SetDebugName(debugName);
+    }
 #endif
 
     return {};

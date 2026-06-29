@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -12,9 +12,9 @@
 
 #include <Rendering/RenderTypes.hpp>
 
-#include <Rendering/Util/ShaderCompiler.hpp>
-
 namespace Hyperion {
+
+class Shader;
 
 enum class ShaderCacheId : uint64;
 static constexpr ShaderCacheId InvalidShaderCacheId = ShaderCacheId(0);
@@ -35,10 +35,10 @@ public:
 
 private:
     /*! \brief Gets a unique ShaderCacheId for the given shader info.
-    *   If the shader has already been loaded or if this method has been called before,
-    *   the same ShaderCacheId will be returned.
-    *   However, this value is not persistent across runs.
-    */
+     *   If the shader has already been loaded or if this method has been called before,
+     *   the same ShaderCacheId will be returned.
+     *   However, this value is not persistent across runs.
+     */
     ShaderCacheId GetShaderCacheId(
         Name name,
         const ShaderPropertySet& properties,

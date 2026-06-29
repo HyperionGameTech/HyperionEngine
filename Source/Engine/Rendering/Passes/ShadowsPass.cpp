@@ -443,7 +443,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                     frame->cr << CopyImage(
                         cachedShadowMapTexture->GetGpuImage(),
                         depthTarget->GetGpuImage(),
-                        Vec3u(0, 0, 0),
+                        Vec3u::Zero(),
                         Vec3u(atlasElement.offsetCoords.x, atlasElement.offsetCoords.y, 0),
                         Vec3u(atlasElement.dimensions.x, atlasElement.dimensions.y, 1),
                         srcImageSubResource,
@@ -558,7 +558,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                         resultImage,
                         cachedShadowMapTexture->GetGpuImage(),
                         Vec3u(atlasElement.offsetCoords.x, atlasElement.offsetCoords.y, 0),
-                        Vec3u(0, 0, 0),
+                        Vec3u::Zero(),
                         Vec3u(atlasElement.dimensions.x, atlasElement.dimensions.y, 1),
                         srcImageSubResource,
                         dstImageSubResource);

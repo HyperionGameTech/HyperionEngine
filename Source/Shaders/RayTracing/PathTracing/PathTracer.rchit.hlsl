@@ -94,14 +94,16 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
 
     material_color = material.albedo;
 
+    float metalness = GET_MATERIAL_PARAM(material, MATERIAL_PARAM_METALNESS);
+    float roughness = GET_MATERIAL_PARAM(material, MATERIAL_PARAM_ROUGHNESS);
+
+#ifdef HYP_FEATURES_BINDLESS_TEXTURES
     if (HAS_TEXTURE(material, DiffuseMap))
     {
         float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(material, DiffuseMap, float2(texcoord.x, 1.0 - texcoord.y));
 
         material_color *= albedo_texture;
     }
-
-    float metalness = GET_MATERIAL_PARAM(material, MATERIAL_PARAM_METALNESS);
 
     if (HAS_TEXTURE(material, MetalnessMap))
     {
@@ -110,14 +112,13 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
         metalness = metalness_sample;
     }
 
-    float roughness = GET_MATERIAL_PARAM(material, MATERIAL_PARAM_ROUGHNESS);
-
     if (HAS_TEXTURE(material, RoughnessMap))
     {
         float roughness_sample = SAMPLE_MATERIAL_TEXTURE(material, RoughnessMap, float2(texcoord.x, 1.0 - texcoord.y)).r;
 
         roughness = roughness_sample;
     }
+#endif // HYP_FEATURES_BINDLESS_TEXTURES
 
     // roughness is authorized as "perceptual roughness", we need to convert it to "physical roughness" for the BRDF calculations
     roughness = roughness * roughness;

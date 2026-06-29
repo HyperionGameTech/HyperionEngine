@@ -20,6 +20,7 @@
 #include <Rendering/TextureViewCache.hpp>
 #include <Rendering/DescriptorSet.hpp>
 #include <Rendering/RenderHelpers.hpp>
+#include <Rendering/GBuffer.hpp>
 #include <Rendering/CBufferAllocator.hpp>
 
 #include <Rendering/Passes/DeferredPass.hpp>
@@ -41,12 +42,11 @@
 
 #include <Core/Utilities/DeferredScope.hpp>
 
-#include <RayTracingReflections.generated.inl>
-
 namespace Hyperion {
 
-static const Name s_shaderNames[] = { NAME("RayTracedReflections"), NAME("PathTracer") };
 static constexpr uint32 MaxLights = 4;
+
+static const Name s_shaderNames[] = { NAME("RayTracedReflections"), NAME("PathTracer") };
 
 extern CVar<bool> g_cvPathTracing;
 
@@ -62,9 +62,8 @@ void FillShadowMapData(
 
 } // namespace DeferredRendererHelpers
 
-RayTracingReflections::RayTracingReflections(RayTracingReflectionsConfig&& config, GBuffer* gbuffer)
-    : m_config(std::move(config)),
-      m_gbuffer(gbuffer)
+RayTracingReflections::RayTracingReflections(GBuffer* gbuffer)
+    : m_gbuffer(gbuffer)
 {
 }
 
@@ -134,10 +133,11 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
 
     // Set shader and uniforms
     ShaderPropertySet shaderProperties;
-    shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxLights))));
 
     if (renderSetup.envProbe != nullptr)
+    {
         shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("HAS_ENV_PROBE"))));
+    }
 
     frame->cr << SetCurrentShader(ShaderDesc(s_shaderNames[isPathTracer ? 1 : 0], shaderProperties));
 
@@ -282,12 +282,12 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
 
 void RayTracingReflections::CreateImages()
 {
-    Assert(m_config.extent.Volume() != 0);
+    Assert(m_gbuffer != nullptr && m_gbuffer->GetExtent().Volume() != 0);
 
     m_texture = MakeHandle<Texture>(TextureDesc {
         TextureType::Texture2D,
         TextureFormat::RGBA8,
-        Vec3u { m_config.extent, 1 },
+        Vec3u(m_gbuffer->GetExtent(), 1),
         TFM_NEAREST,
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
@@ -312,7 +312,7 @@ void RayTracingReflections::InitTemporalBlending(bool isPathTracer)
     }
 
     m_temporalBlending = MakeUnique<TemporalBlending>(
-        m_config.extent,
+        m_gbuffer->GetExtent(),
         TextureFormat::RGBA8,
         technique,
         DefaultTemporalBlendingFeedback,

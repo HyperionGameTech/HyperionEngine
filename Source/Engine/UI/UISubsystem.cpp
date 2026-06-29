@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <UIPch.hpp>
 
@@ -63,7 +63,7 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(UI);
 
 HYP_REGISTER_DRAW_BATCH_TYPE(UIEntityInstanceBatch);
 
-extern CVar<bool> cvShowDebugUI;
+extern CVar<bool> g_cvShowDebugUI;
 
 #pragma region Render commands
 
@@ -147,7 +147,7 @@ UISubsystem::UISubsystem(const Handle<UIStage>& uiStage)
 UISubsystem::~UISubsystem()
 {
 
-    //PUSH_RENDER_COMMAND(SetFinalPassImageView, nullptr);
+    // PUSH_RENDER_COMMAND(SetFinalPassImageView, nullptr);
 
     m_onWindowResizedHandle.Reset();
     m_onCurrentWindowChangedHandle.Reset();
@@ -254,7 +254,7 @@ void UISubsystem::Update(float delta)
 {
     HYP_SCOPE;
 
-    if (!cvShowDebugUI.Get())
+    if (!g_cvShowDebugUI.Get())
     {
         return;
     }
@@ -477,7 +477,7 @@ void UISubsystem::AddDebugOverlay(const Handle<OverlayBase>& debugOverlay)
     if (const Handle<UIObject>& object = debugOverlay->GetUIObject())
     {
         Handle<UIListViewItem> listViewItem = m_uiStage->CreateUIObject<UIListViewItem>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
-        //listViewItem->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
+        // listViewItem->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
         listViewItem->AddChildUIObject(object);
 
         m_debugOverlayContainers[placement]->AddChildUIObject(listViewItem);

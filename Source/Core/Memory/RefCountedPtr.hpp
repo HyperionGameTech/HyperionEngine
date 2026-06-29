@@ -201,7 +201,6 @@ template <class T>
 void RefCountedPtrBase<CountType>::Reset(T* ptr)
 {
     detail::ReleaseStrong(m_block);
-
     m_block = nullptr;
 
     if (!ptr)
@@ -209,16 +208,11 @@ void RefCountedPtrBase<CountType>::Reset(T* ptr)
         return;
     }
 
+    m_block = detail::NewExternalOwnedBlock<CountType>(ptr);
+
     if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, NormalizedType<T>>)
     {
-        // share object's block
-        m_block = ptr->template EnableRefCountedPtrFromThisBase<CountType>::m_block;
-
-        detail::IncStrong(m_block);
-    }
-    else
-    {
-        m_block = detail::NewExternalOwnedBlock<CountType>(ptr);
+        ptr->Internal_InitializeWeakRef(m_block);
     }
 }
 
@@ -232,19 +226,18 @@ public:
     using Block = typename Base::Block;
 
     template <class... Args>
-    static RefCountedPtr Construct(Args&&... args)
+    static RefCountedPtr<T, CountType>  Construct(Args&&... args)
     {
         RefCountedPtr result;
 
+        auto* block = detail::NewInlineBlock<CountType, T>(std::forward<Args>(args)...);
+    
+        result.SetBlock_Internal(block, false); 
+
         if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, NormalizedType<T>>)
         {
-            T* obj = new T(std::forward<Args>(args)...);
-
-            result.SetBlock_Internal(obj->template EnableRefCountedPtrFromThisBase<CountType>::m_block, /* incStrong */ false);
-        }
-        else
-        {
-            result.SetBlock_Internal(detail::NewInlineBlock<CountType, T>(std::forward<Args>(args)...), /* incStrong */ false);
+            T* obj = static_cast<T*>(block->pObj);
+            obj->Internal_InitializeWeakRef(block);
         }
 
         return result;
@@ -800,24 +793,26 @@ public:
             return result;
         }
 
-        /// \todo : Fix thread safety issue, check Handle.hpp for proper handling.
-        uint32 count;
-
-        if constexpr (std::is_integral_v<CountType>)
+        if constexpr (std::is_integral_v<CountType>) // not atomic
         {
-            count = block->strong;
+            if (block->strong > 0)
+            {
+                result.RefCountedPtrBase<CountType>::SetBlock_Internal(block, true);
+            }
         }
         else
         {
-            count = block->strong.Get(MemoryOrder::ACQUIRE);
+            uint32 expected = block->strong.Get(MemoryOrder::ACQUIRE);
+        
+            while (expected > 0)
+            {
+                if (block->strong.CompareExchangeWeak(expected, expected + 1, MemoryOrder::ACQUIRE_RELEASE))
+                {
+                    result.RefCountedPtrBase<CountType>::SetBlock_Internal(block, false);
+                    break;
+                }
+            }
         }
-
-        if (count == 0)
-        {
-            return result;
-        }
-
-        result.RefCountedPtrBase<CountType>::SetBlock_Internal(block, true);
 
         return result;
     }
@@ -934,26 +929,35 @@ public:
     }
 };
 
-// enable-from-this using an external owned block pointing at `this`
 template <class T, class CountType>
 class EnableRefCountedPtrFromThis;
 
 template <class CountType>
 class EnableRefCountedPtrFromThisBase
 {
-    template <class OtherCountType>
-    friend class RefCountedPtrBase;
-
-    template <class OtherT, class OtherCountType>
-    friend class RefCountedPtr;
+public:
+    // Called internally by RefCountedPtr when it assumes ownership.
+    void Internal_InitializeWeakRef(ControlBlock<CountType>* block) const
+    {
+        if (!m_weakBlock)
+        {
+            m_weakBlock = block;
+            detail::IncWeak(m_weakBlock);
+        }
+    }
 
 protected:
-    using BlockType = ControlBlock<CountType>;
+    EnableRefCountedPtrFromThisBase() noexcept : m_weakBlock(nullptr) {}
 
-    EnableRefCountedPtrFromThisBase() = default;
-    virtual ~EnableRefCountedPtrFromThisBase() = default;
+    EnableRefCountedPtrFromThisBase(const EnableRefCountedPtrFromThisBase&) noexcept : m_weakBlock(nullptr) {}
+    EnableRefCountedPtrFromThisBase& operator=(const EnableRefCountedPtrFromThisBase&) noexcept { return *this; }
+    
+    virtual ~EnableRefCountedPtrFromThisBase()
+    {
+        detail::ReleaseWeak(m_weakBlock);
+    }
 
-    BlockType* m_block;
+    mutable ControlBlock<CountType>* m_weakBlock;
 };
 
 template <class T, class CountType>
@@ -962,36 +966,21 @@ class EnableRefCountedPtrFromThis : public EnableRefCountedPtrFromThisBase<Count
     using Base = EnableRefCountedPtrFromThisBase<CountType>;
 
 public:
-    EnableRefCountedPtrFromThis()
-    {
-        using BlockType = typename Base::BlockType;
-
-        Base::m_block = (BlockType*)Memory::AllocateAligned(sizeof(BlockType), alignof(BlockType));
-
-        new (Base::m_block) BlockType {
-            static_cast<T*>(this),
-            &TypeOf<T>(),
-            CountType(1),
-            CountType(1),
-            &Memory::Destruct<T>,
-            &detail::DefaultFreeBlock
-        };
-    }
-
-    RefCountedPtr<T, CountType> RefCountedPtrFromThis() const
-    {
-        RefCountedPtr<T, CountType> result;
-        result.RefCountedPtrBase<CountType>::SetBlock_Internal(Base::m_block, /* incStrong */ true);
-
-        return result;
-    }
+    EnableRefCountedPtrFromThis() = default;
 
     WeakRefCountedPtr<T, CountType> WeakRefCountedPtrFromThis() const
     {
         WeakRefCountedPtr<T, CountType> result;
-        result.WeakRefCountedPtrBase<CountType>::SetBlock_Internal(Base::m_block, /* incWeak */ true);
-
+        if (Base::m_weakBlock)
+        {
+            result.SetBlock_Internal(Base::m_weakBlock, /* incWeak */ true);
+        }
         return result;
+    }
+
+    RefCountedPtr<T, CountType> RefCountedPtrFromThis() const
+    {
+        return WeakRefCountedPtrFromThis().Lock();
     }
 };
 

@@ -297,8 +297,6 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << InsertBarrier(m_radianceBuffer, RS_UNORDERED_ACCESS);
 
     ShaderPropertySet shaderProperties;
-    shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("MAX_LIGHTS"), int(DDGIMaxBoundLights))));
-
     frame->cr << SetCurrentShader(ShaderDesc(NAME("DDGI"), shaderProperties));
 
     frame->cr << SetShaderUniform(0, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());

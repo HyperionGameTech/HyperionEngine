@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -162,10 +162,10 @@ struct PassDataExt
     }
 
     // Create a new instance of this PassDataExt (caller owns the allocation)
-    virtual PassDataExt* Clone() = 0;
+    virtual HYP_NODISCARD PassDataExt* Clone() = 0;
 
 protected:
-    PassDataExt(TypeId subtype)
+    explicit PassDataExt(TypeId subtype)
         : typeId(subtype)
     {
     }
@@ -179,7 +179,10 @@ class ENGINE_API PassData : public ObjectBase
     HYP_OBJECT_BODY(PassData);
 
 public:
-    static Pool* GetAllocator() { return g_renderPool; }
+    static Pool* GetAllocator()
+    {
+        return g_renderPool;
+    }
 
     PassData() = default;
 
@@ -230,6 +233,5 @@ private:
     PassDataMap m_viewPassData;
     typename PassDataMap::Iterator m_viewPassDataCleanupIterator;
 };
-
 
 } // namespace Hyperion

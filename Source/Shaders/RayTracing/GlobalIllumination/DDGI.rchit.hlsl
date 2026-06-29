@@ -1,3 +1,5 @@
+STATIC(MAX_LIGHTS, 4)
+
 #define DDGI
 
 #include "../../include/Defines.hlsli"
@@ -85,6 +87,9 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
 
     material_color = material.albedo;
 
+    float metalness = GET_MATERIAL_PARAM(material, MATERIAL_PARAM_METALNESS);
+
+#ifdef HYP_FEATURES_BINDLESS_TEXTURES
     if (HAS_TEXTURE(material, DiffuseMap))
     {
         float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE_LOD(material, DiffuseMap, float2(texcoord.x, 1.0 - texcoord.y), 0.0);
@@ -92,14 +97,13 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
         material_color *= albedo_texture;
     }
 
-    float metalness = GET_MATERIAL_PARAM(material, MATERIAL_PARAM_METALNESS);
-
     if (HAS_TEXTURE(material, MetalnessMap))
     {
         float metalness_sample = SAMPLE_MATERIAL_TEXTURE_LOD(material, MetalnessMap, float2(texcoord.x, 1.0 - texcoord.y), 0.0).r;
 
         metalness = metalness_sample;
     }
+#endif // HYP_FEATURES_BINDLESS_TEXTURES
 
     payload.throughput = float4(material_color.rgb, metalness);
     payload.emissive = float4(GET_MATERIAL_PARAM_FLOAT3(material, MATERIAL_PARAM_EMISSIVE_COLOR), 1.0) * GET_MATERIAL_PARAM(material, MATERIAL_PARAM_EMISSIVE_INTENSITY);
