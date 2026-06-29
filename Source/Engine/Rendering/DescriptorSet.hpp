@@ -264,7 +264,7 @@ public:
         return m_layout;
     }
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     Name GetDebugName() const
     {
         return m_debugName;
@@ -381,7 +381,7 @@ protected:
     DescriptorSetLayout m_layout;
     ElementsMap m_elements;
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     Name m_debugName;
 #endif
 
@@ -406,7 +406,7 @@ public:
         }
     }
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     Name GetDebugName() const
     {
         return m_debugName;
@@ -495,7 +495,7 @@ protected:
     const ShaderInputGroup* m_decl;
     FixedArray<Array<DescriptorSetRef>, NumFramesInFlight> m_sets;
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     Name m_debugName;
 #endif
 };

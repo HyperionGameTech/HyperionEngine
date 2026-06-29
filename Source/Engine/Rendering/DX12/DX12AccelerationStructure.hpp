@@ -128,7 +128,7 @@ public:
     }
 
 protected:
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name);
 #endif
 

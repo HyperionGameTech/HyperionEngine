@@ -253,7 +253,7 @@ public:
     /*! \brief Rebuild IF the rebuild flag has been set. Otherwise this is a no-op. */
     RendererResult UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags);
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name) override
     {
         VulkanAccelerationStructureBase::SetDebugName(name);
@@ -287,7 +287,7 @@ public:
     /*! \brief Rebuild IF the rebuild flag has been set. Otherwise this is a no-op. */
     RendererResult UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags) override;
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name) override
     {
         VulkanAccelerationStructureBase::SetDebugName(name);

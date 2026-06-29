@@ -29,7 +29,7 @@ public:
 
     virtual ~RayTracingPipelineBase() override = default;
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     Name GetDebugName() const
     {
         return m_debugName;
@@ -75,7 +75,7 @@ protected:
 
     ShaderInstanceRef m_shaderInstance;
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     Name m_debugName;
 #endif
 };

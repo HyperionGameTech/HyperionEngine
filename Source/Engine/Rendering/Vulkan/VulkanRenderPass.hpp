@@ -76,14 +76,14 @@ public:
 
     RendererResult Create();
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name);
 #endif
 
     void Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* framebuffer);
     void End(VulkanCommandBuffer* cmd);
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     Name debugName;
 #endif
 

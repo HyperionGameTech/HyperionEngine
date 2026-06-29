@@ -117,7 +117,9 @@ const Handle<Mesh>& TerrainMeshBuilder::GetMesh()
 
     mesh->SetMeshData(meshDesc, vertexArrayView, indices.ToByteView());
 
-    GetCurrentAssetRegistry()->PutAsset(m_mesh);
+    GetCurrentAssetRegistry()->PutAsset(mesh);
+    
+    m_mesh = mesh;
 
     return mesh;
 }

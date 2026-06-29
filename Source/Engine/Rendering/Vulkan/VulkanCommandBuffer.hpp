@@ -153,7 +153,7 @@ public:
     void DebugMarkerBegin(const char* markerName) const;
     void DebugMarkerEnd() const;
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name);
 #endif
 

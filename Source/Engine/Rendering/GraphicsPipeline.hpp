@@ -218,7 +218,7 @@ public:
 
     void SetFramebufferDesc(const FramebufferDesc& framebufferDesc);
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     Name GetDebugName() const
     {
         return m_debugName;
@@ -296,7 +296,7 @@ protected:
 
     PSOCacheKey m_key;
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     Name m_debugName;
 #endif
 };

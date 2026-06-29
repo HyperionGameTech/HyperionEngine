@@ -50,7 +50,7 @@ public:
         const GpuBuffer* buffer,
         uint32 bufferOffset) const = 0;
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     HYP_FORCE_INLINE Name GetDebugName() const
     {
         return m_debugName;
@@ -63,7 +63,7 @@ public:
 #endif
 
 protected:
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     Name m_debugName;
 #endif
 };

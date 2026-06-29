@@ -47,7 +47,7 @@ public:
     void Bind(VulkanCommandBuffer* commandBuffer) override;
     void TraceRays(VulkanCommandBuffer* commandBuffer, const Vec3u& extent) const override;
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name) override
     {
         VulkanPipelineBase::SetDebugName(name);

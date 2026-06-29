@@ -128,7 +128,7 @@ public:
         return m_attachmentMap;
     }
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name) override;
 #endif
 

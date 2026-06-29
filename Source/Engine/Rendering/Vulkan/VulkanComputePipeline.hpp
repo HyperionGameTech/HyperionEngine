@@ -45,7 +45,7 @@ public:
         const VulkanGpuBufferRef& indirectBuffer,
         size_t offset = 0) const override;
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name) override;
 #endif
 };

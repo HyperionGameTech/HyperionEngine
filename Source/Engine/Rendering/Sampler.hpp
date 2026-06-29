@@ -51,7 +51,7 @@ public:
 
     virtual RendererResult Create() = 0;
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     Name GetDebugName() const
     {
         return m_debugName;
@@ -79,7 +79,7 @@ protected:
     TextureWrapMode m_wrapMode = TWM_CLAMP_TO_EDGE;
     SamplerCompareOp m_compareOp = SamplerCompareOp::None;
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     Name m_debugName;
 #endif
 };

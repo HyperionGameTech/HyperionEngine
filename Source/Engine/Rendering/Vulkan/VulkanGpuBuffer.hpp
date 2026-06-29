@@ -91,7 +91,7 @@ public:
 
     void Flush(size_t offset, size_t count) override;
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name) override;
 #endif
 

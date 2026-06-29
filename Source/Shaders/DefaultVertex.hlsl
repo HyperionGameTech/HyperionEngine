@@ -72,11 +72,13 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 #endif // VULKAN
 
     const uint entityIndex = EntityInstanceBatchBuffer.Load<uint>(s_offsetOfIndices + (instanceId * sizeof(uint)));
+    output.object_index = entityIndex;
 
     Entity currentEntity = entities[entityIndex];
     float4x4 model_matrix = mul(currentEntity.model_matrix, transform);
     float3x3 normal_matrix = (float3x3)currentEntity.normal_matrix;//transpose(inverse((float3x3)model_matrix));
 #else // !INSTANCING
+    output.object_index = ~0u; // unused
 
 #define currentEntity entity
 
@@ -140,12 +142,6 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.position_cs.xy += camera.jitter.xy * output.position_cs.w;
 
     output.color = material.albedo;
-
-#ifdef INSTANCING
-    output.object_index = OBJECT_INDEX;
-#else // !INSTANCING
-    output.object_index = ~0u; // unused
-#endif // INSTANCING
 
     output.object_mask = (currentEntity.bucket == HYP_OBJECT_BUCKET_LIGHTMAPPED)
         ? OBJECT_MASK_LIGHTMAPPED

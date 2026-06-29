@@ -80,7 +80,7 @@ public:
     void WaitForValue(uint64 value, uint64 timeoutNs = UINT64_MAX);
     uint64 GetCounterValue() const;
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name);
 
     Name debugName;

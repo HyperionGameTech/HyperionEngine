@@ -53,7 +53,7 @@ public:
     RendererResult Wait(bool timeoutLoop = false);
     void Increment();
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     void SetDebugName(const WideString& debugName);
 
     HYP_FORCE_INLINE const WideString& GetDebugName() const
@@ -69,7 +69,7 @@ private:
     HANDLE m_eventHandle;
     uint64 m_value;
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     WideString m_debugName;
 #endif
 };

@@ -55,7 +55,7 @@ public:
     void Wait(bool timeoutLoop = false);
     void Reset();
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name);
 #endif
 
@@ -63,7 +63,7 @@ public:
     VkResult lastFrameResult;
     bool isSubmitted;
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     Name debugName;
 #endif
 };

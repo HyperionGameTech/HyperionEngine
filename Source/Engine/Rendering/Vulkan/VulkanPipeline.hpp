@@ -36,7 +36,7 @@ public:
 
     bool IsCreated() const;
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name);
     void SetDebugNameLayout(Name name);
 #endif

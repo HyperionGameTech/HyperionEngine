@@ -70,7 +70,7 @@ public:
 
     virtual ~GpuTlasBase() override = default;
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     Name GetDebugName() const
     {
         return m_debugName;
@@ -105,7 +105,7 @@ public:
 protected:
     StructuredBuffer m_meshDescriptionsBuffer;
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     Name m_debugName;
 #endif
 };
@@ -129,7 +129,7 @@ public:
 
     virtual ~GpuBlasBase() override = default;
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     Name GetDebugName() const
     {
         return m_debugName;
@@ -171,7 +171,7 @@ protected:
     Handle<Material> m_material;
     uint32 m_materialBinding;
 
-#if HYP_RHI_DEBUG_NAMES
+#ifdef HYP_RHI_DEBUG_NAMES
     Name m_debugName;
 #endif
 };

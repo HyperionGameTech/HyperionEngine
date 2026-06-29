@@ -36,7 +36,7 @@ DX12Fence::DX12Fence(DX12Fence&& other) noexcept
     other.m_value = 0;
     other.isSubmitted = false;
 
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     m_debugName = std::move(other.m_debugName);
 #endif
 }

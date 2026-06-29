@@ -31,7 +31,7 @@ struct PSOutput
 {
     float4 gbuffer_albedo : SV_Target0;
     float4 gbuffer_normals : SV_Target1;
-    uint gbuffer_material : SV_Target2; // R11G11B10F -- R,G = lightmap uv pixel coords * 2048, B = object mask
+    uint gbuffer_material : SV_Target2;
     float2 gbuffer_velocity : SV_Target3;
 };
 
