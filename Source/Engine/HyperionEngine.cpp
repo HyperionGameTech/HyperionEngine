@@ -884,7 +884,7 @@ extern "C"
 
         if (g_logRedirectId == -1)
         {
-            g_logRedirectId = Logger::GetInstance().GetOutputStream()->AddRedirect(
+            g_logRedirectId = Logger::GetInstance().AddRedirect(
                 Bitset(~0u), // All channels
                 nullptr,
                 HandleLogMessage,
@@ -897,7 +897,9 @@ extern "C"
     HYP_EXPORT int Hyp_ExecuteConsoleCommand(int argc, const char** argv)
     {
         if (argc == 0)
+        {
             return 1; // NO COMMAND!
+        }
 
         // parse command string into cli args
 

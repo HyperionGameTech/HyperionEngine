@@ -153,7 +153,7 @@ UIConsole::UIConsole()
     SetOriginAlignment(UIObjectAlignment::BOTTOM_LEFT);
     SetParentAlignment(UIObjectAlignment::BOTTOM_LEFT);
 
-    m_loggerRedirectId = Logger::GetInstance().GetOutputStream()->AddRedirect(
+    m_loggerRedirectId = Logger::GetInstance().AddRedirect(
         g_logChannel_Console.maskBitset,
         (void*)this,
         [](void* context, const LogChannel& channel, const LogMessage& message)
@@ -198,7 +198,7 @@ UIConsole::~UIConsole()
 {
     if (m_loggerRedirectId != -1)
     {
-        Logger::GetInstance().GetOutputStream()->RemoveRedirect(m_loggerRedirectId);
+        Logger::GetInstance().RemoveRedirect(m_loggerRedirectId);
     }
 }
 

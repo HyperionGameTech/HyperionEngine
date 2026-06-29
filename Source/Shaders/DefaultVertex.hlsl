@@ -52,6 +52,12 @@ DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
     Material material;
 };
 
+#ifdef INSTANCING
+static const uint s_offsetOfIndices = 64; // 64 bytes after header start
+static const uint s_offsetOfTransforms = s_offsetOfIndices + (sizeof(uint4) * (MAX_ENTITIES_PER_INSTANCE_BATCH / 4));
+static const uint s_offsetOfPrevTransforms = s_offsetOfTransforms + (sizeof(float4x4) * MAX_ENTITIES_PER_INSTANCE_BATCH);
+#endif // INSTANCING
+
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 {
     VSOutput output;
@@ -60,18 +66,20 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float4 previous_position;
 
 #ifdef INSTANCING
-    MeshEntityInstanceBatch batch = EntityInstanceBatchBuffer.Load<MeshEntityInstanceBatch>(0);
-
-    float4x4 transform = batch.transforms[instanceId];
+    float4x4 transform = EntityInstanceBatchBuffer.Load<float4x4>(s_offsetOfTransforms + (sizeof(float4x4) * instanceId));
 #ifdef VULKAN
     transform = transpose(transform);
 #endif // VULKAN
 
-    Entity currentEntity = entities[batch.indices[instanceId / 4][instanceId % 4]];
+    const uint entityIndex = EntityInstanceBatchBuffer.Load<uint>(s_offsetOfIndices + (instanceId * sizeof(uint)));
+
+    Entity currentEntity = entities[entityIndex];
     float4x4 model_matrix = mul(currentEntity.model_matrix, transform);
     float3x3 normal_matrix = (float3x3)currentEntity.normal_matrix;//transpose(inverse((float3x3)model_matrix));
 #else // !INSTANCING
-    Entity currentEntity = entity;
+
+#define currentEntity entity
+
     float4x4 model_matrix = entity.model_matrix;
     float3x3 normal_matrix = (float3x3)entity.normal_matrix;//transpose(inverse((float3x3)model_matrix));//
 #endif // INSTANCING
@@ -86,7 +94,9 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     position = mul(model_matrix, float4(input.a_position, 1.0));
 
 #ifdef INSTANCING
-    previous_position = mul(mul(batch.previousTransforms[instanceId], currentEntity.previous_model_matrix), float4(input.a_position, 1.0));
+    const float4x4 previousTransform = EntityInstanceBatchBuffer.Load<float4x4>(s_offsetOfPrevTransforms + (sizeof(float4x4) * instanceId));
+
+    previous_position = mul(mul(currentEntity.previous_model_matrix, previousTransform), float4(input.a_position, 1.0));
 #else // !INSTANCING
     previous_position = mul(currentEntity.previous_model_matrix, float4(input.a_position, 1.0));
 #endif // !SKINNING || !VT_Skeletal
@@ -140,6 +150,10 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.object_mask = (currentEntity.bucket == HYP_OBJECT_BUCKET_LIGHTMAPPED)
         ? OBJECT_MASK_LIGHTMAPPED
         : 0u;
+
+#ifndef INSTANCING
+#undef currentEntity
+#endif // INSTANCING
 
     return output;
 }

@@ -157,7 +157,6 @@ public:
  */
 typedef bool (*LoggerWriteFnPtr)(void* context, const LogChannel& channel, const LogMessage& message);
 
-class LoggerOutputStream;
 class LoggerImpl;
 
 class CORE_API DynamicLogChannelHandle
@@ -222,7 +221,6 @@ public:
     static Handle<Logger> MakeScriptLogger();
 
     Logger();
-    explicit Logger(LoggerOutputStream& outputStream);
 
     Logger(const Logger& other) = delete;
     Logger& operator=(const Logger& other) = delete;
@@ -232,7 +230,8 @@ public:
 
     ~Logger();
 
-    LoggerOutputStream* GetOutputStream() const;
+    int AddRedirect(const Bitset& channelMask, void* context, LoggerWriteFnPtr writeFnptr, LoggerWriteFnPtr writeErrorFnptr);
+    void RemoveRedirect(int id);
 
     void RegisterChannel(LogChannel* channel);
 

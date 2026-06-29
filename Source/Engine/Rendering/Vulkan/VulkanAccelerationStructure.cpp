@@ -718,14 +718,13 @@ RendererResult VulkanGpuTlas::BuildInstancesBuffer(uint32 first, uint32 last)
 
         const uint32 instanceIndex = i; /* Index of mesh in mesh descriptions buffer. */
 
-        instances[i - first] = VkAccelerationStructureInstanceKHR {
-            .transform = ToVkTransform(blas->GetTransform()),
-            .instanceCustomIndex = instanceIndex,
-            .mask = 0xff,
-            .instanceShaderBindingTableRecordOffset = 0,
-            .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR,
-            .accelerationStructureReference = blas->GetDeviceAddress()
-        };
+        VkAccelerationStructureInstanceKHR& desc = instances[i - first];
+        desc.transform = ToVkTransform(blas->GetTransform());
+        desc.instanceCustomIndex = instanceIndex;
+        desc.mask = 0xFFu;
+        desc.instanceShaderBindingTableRecordOffset = 0;
+        desc.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+        desc.accelerationStructureReference = blas->GetDeviceAddress();
     }
 
     Assert(m_instancesBuffer != nullptr);

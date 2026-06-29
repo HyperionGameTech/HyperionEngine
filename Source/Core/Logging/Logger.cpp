@@ -51,7 +51,15 @@ namespace logging {
 static volatile int32 s_maxLogChannelId = -1;
 static bool s_registerAllCalled = false;
 
+static bool s_isOutputStreamInitialized = false;
+
 thread_local bool t_isVerboseLoggingEnabled = false;
+
+thread_local uint64 t_localRedirectMask = 0;
+thread_local uint32 t_localGeneration = 0;
+thread_local void* t_localContexts[Logger::MaxChannels];
+thread_local LoggerWriteFnPtr t_localWriteFnptrTable[Logger::MaxChannels];
+thread_local LoggerWriteFnPtr t_localWriteErrorFnptrTable[Logger::MaxChannels];
 
 CORE_API ANSIStringView GetCurrentThreadName()
 {
@@ -84,8 +92,6 @@ private:
 
 static LogChannelIdGenerator s_logChannelIdGenerator {};
 
-#pragma region LoggerOutputStream
-
 struct LoggerRedirect
 {
     Bitset channelMask;
@@ -94,283 +100,8 @@ struct LoggerRedirect
     LoggerWriteFnPtr writeErrorFn;
 };
 
-class LoggerOutputStream final
+struct LoggerState
 {
-public:
-    static constexpr uint64 WriteFlag = 0x1;
-    static constexpr uint64 ReadMask = UINT64_MAX & ~WriteFlag;
-
-    static LoggerOutputStream& GetDefaultInstance()
-    {
-        static LoggerOutputStream s_instance { stdout, stderr };
-
-        return s_instance;
-    }
-
-    LoggerOutputStream(FILE* output, FILE* outputError)
-        : m_output(output),
-          m_outputError(outputError),
-          m_rwMarker(0),
-          m_redirectEnabledMask(0),
-          m_redirectIdCounter(-1)
-    {
-        Memory::Zero(m_contexts, sizeof(m_contexts));
-        Memory::Zero(m_writeFnptrTable, sizeof(m_writeFnptrTable));
-        Memory::Zero(m_writeErrorFnptrTable, sizeof(m_writeErrorFnptrTable));
-    }
-
-    // @FIXME: Needs to redirect all CHILD channels as well, not parent channels!
-    int AddRedirect(const Bitset& channelMask, void* context, LoggerWriteFnPtr writeFnptr, LoggerWriteFnPtr writeErrorFnptr)
-    {
-        AssertDebug(writeFnptr != nullptr || writeErrorFnptr != nullptr, "At least one of writeFnptr or writeErrorFnptr must be non-null");
-
-        Mutex::Guard guard(m_mutex);
-
-        uint64 state = m_rwMarker.BitOr(WriteFlag, MemoryOrder::ACQUIRE);
-        while (state & ReadMask)
-        {
-            state = m_rwMarker.Get(MemoryOrder::ACQUIRE);
-            ThreadYield();
-        }
-
-        const int id = ++m_redirectIdCounter;
-
-        m_redirects.Emplace(id, LoggerRedirect { channelMask, context, writeFnptr, writeErrorFnptr });
-
-        for (Bitset::BitIndex bitIndex : channelMask)
-        {
-            if (bitIndex >= Logger::MaxChannels)
-            {
-                break;
-            }
-
-            m_contexts[bitIndex] = context;
-            m_writeFnptrTable[bitIndex] = writeFnptr;
-            m_writeErrorFnptrTable[bitIndex] = writeErrorFnptr;
-
-            m_redirectEnabledMask |= (1ull << bitIndex);
-        }
-
-        m_rwMarker.BitAnd(~WriteFlag, MemoryOrder::RELEASE);
-
-        return id;
-    }
-
-    void RemoveRedirect(int id)
-    {
-        Mutex::Guard guard(m_mutex);
-
-        uint64 state = m_rwMarker.BitOr(WriteFlag, MemoryOrder::ACQUIRE);
-        while (state & ReadMask)
-        {
-            state = m_rwMarker.Get(MemoryOrder::ACQUIRE);
-            ThreadYield();
-        }
-
-        auto it = m_redirects.Find(id);
-
-        if (it == m_redirects.End())
-        {
-            return;
-        }
-
-        for (Bitset::BitIndex bitIndex : it->second.channelMask)
-        {
-            if (m_contexts[bitIndex] != it->second.context)
-            {
-                continue;
-            }
-
-            m_contexts[bitIndex] = nullptr;
-            m_writeFnptrTable[bitIndex] = nullptr;
-            m_writeErrorFnptrTable[bitIndex] = nullptr;
-
-            m_redirectEnabledMask &= ~(1ull << bitIndex);
-        }
-
-        m_redirects.Erase(it);
-
-        m_rwMarker.BitAnd(~WriteFlag, MemoryOrder::RELEASE);
-    }
-
-    void Write(const LogChannel& channel, const LogMessage& message)
-    {
-        const LogChannel* channelPtr = &channel;
-
-        if (channel.id >= Logger::MaxChannels)
-        {
-            // log channel overflow! revert to Log_Misc
-            //// \todo : Dynamic channels with ID >= MaxChannels should be checked using a dynamic bitset w/ mutex
-            channelPtr = &g_logChannel_Misc;
-            return;
-        }
-
-        uint64 rwMarkerState;
-
-        do
-        {
-            rwMarkerState = m_rwMarker.Increment(2, MemoryOrder::ACQUIRE);
-
-            if (HYP_UNLIKELY(rwMarkerState & WriteFlag))
-            {
-                m_rwMarker.Decrement(2, MemoryOrder::RELAXED);
-
-                // spin to wait for write flag to be released
-                HYP_WAIT_IDLE();
-            }
-        }
-        while (HYP_UNLIKELY(rwMarkerState & WriteFlag));
-
-        void* redirectContext = nullptr;
-        LoggerWriteFnPtr redirectFunction = nullptr;
-
-        uint32 bitIndex;
-        uint64 mask = channelPtr->maskBitset.ToUInt64();
-
-        while ((bitIndex = ByteUtil::HighestSetBitIndex(mask)) != -1)
-        {
-            if (m_redirectEnabledMask & (1ull << bitIndex))
-            {
-                redirectContext = m_contexts[bitIndex];
-                redirectFunction = m_writeFnptrTable[bitIndex];
-
-                break;
-            }
-
-            mask &= ~(1ull << bitIndex);
-        }
-
-        if (!redirectFunction || redirectFunction(redirectContext, *channelPtr, message))
-        {
-            const bool isError = uint8(message.level) <= uint8(LogLevel::Warning);
-            FILE* file = isError ? m_output : m_outputError;
-            const bool isConsole = file == stdout || file == stderr;
-
-#if HYP_ANDROID
-            if (isConsole)
-            {
-                static constexpr android_LogPriority LogLevelToAndroidLogPriority[NumLogLevels] = {
-
-                    ANDROID_LOG_FATAL,   // Fatal
-                    ANDROID_LOG_ERROR,   // Error
-                    ANDROID_LOG_WARN,    // Warning
-                    ANDROID_LOG_INFO,    // Info
-                    ANDROID_LOG_VERBOSE, // Verbose
-                    ANDROID_LOG_DEBUG    // Debug
-                };
-
-                thread_local ByteBuffer* t_androidLogBuffer = nullptr;
-                thread_local bool t_useAndroidLogger = false;
-
-                if (HYP_UNLIKELY(t_androidLogBuffer == nullptr))
-                {
-                    ThreadBase* thisThread = CurrentThreadObject();
-
-                    if (thisThread)
-                    {
-                        t_androidLogBuffer = new ByteBuffer;
-
-                        if (t_androidLogBuffer)
-                        {
-                            t_androidLogBuffer->SetCapacity(4096);
-
-                            thisThread->AddOnExitCallback(
-                                []()
-                                {
-                                    delete t_androidLogBuffer;
-                                    t_androidLogBuffer = nullptr;
-                                });
-
-                            t_useAndroidLogger = true;
-                        }
-                        else
-                        {
-                            // alloc failed!
-                            t_useAndroidLogger = false;
-                        }
-                    }
-                    else
-                    {
-                        // no thread object!
-                        t_useAndroidLogger = false;
-                    }
-                }
-
-                if (HYP_LIKELY(t_useAndroidLogger))
-                {
-                    size_t offset = 0;
-                    for (auto it = message.chunks.Begin(); it != message.chunks.End(); ++it)
-                    {
-                        if (t_androidLogBuffer->Size() < offset + it->Size())
-                        {
-                            t_androidLogBuffer->SetSize((offset + it->Size()) * 2);
-                        }
-
-                        Memory::Copy(t_androidLogBuffer->Data() + offset, it->Data(), it->Size());
-                        offset += it->Size();
-                    }
-
-                    // ensure null-terminated
-                    if (t_androidLogBuffer->Size() == offset)
-                    {
-                        t_androidLogBuffer->SetSize(offset + 1);
-                    }
-
-                    t_androidLogBuffer->Data()[offset] = '\0';
-
-                    __android_log_write(LogLevelToAndroidLogPriority[uint8(message.level)], "HyperionEngine", reinterpret_cast<const char*>(t_androidLogBuffer->Data()));
-                }
-            }
-            else
-#endif
-            {
-#if HYP_DEBUG_MODE
-                if (isConsole)
-                {
-                    Span<const char> colorCode = LogLevelTermColor(message.level);
-                    std::fwrite(colorCode.Data(), 1, colorCode.Size(), file);
-                }
-#endif
-
-                for (auto it = message.chunks.Begin(); it != message.chunks.End(); ++it)
-                {
-                    std::fwrite(**it, 1, it->Size(), file);
-                }
-
-#if HYP_DEBUG_MODE
-                if (isConsole)
-                {
-                    static constexpr Span<const char> ResetCode = "\033[0m";
-                    std::fwrite(ResetCode.Data(), 1, ResetCode.Size(), file);
-                }
-#endif
-            }
-        }
-
-        m_rwMarker.Decrement(2, MemoryOrder::RELEASE);
-    }
-
-    void WriteError(const LogChannel& channel, const LogMessage& message)
-    {
-        Write(channel, message);
-    }
-
-    HYP_FORCE_INLINE void Flush()
-    {
-        if (m_output)
-        {
-            std::fflush(m_output);
-        }
-
-        if (m_outputError)
-        {
-            std::fflush(m_outputError);
-        }
-    }
-
-private:
-    AtomicVar<uint64> m_rwMarker;
-
     FILE* m_output;
     FILE* m_outputError;
 
@@ -383,9 +114,197 @@ private:
     TMap<int, LoggerRedirect> m_redirects;
     uint64 m_redirectEnabledMask;
     int m_redirectIdCounter;
+
+    AtomicVar<uint32> m_generation { 0 };
+
+    LoggerState()
+    {
+        m_output = stdout;
+        m_outputError = stderr;
+        m_redirectEnabledMask = 0;
+        m_redirectIdCounter = -1;
+
+        Assert(!s_isOutputStreamInitialized, "Only one instance off LoggerOutputStream can be active");
+        s_isOutputStreamInitialized = true;
+
+        Memory::Zero(m_contexts, sizeof(m_contexts));
+        Memory::Zero(m_writeFnptrTable, sizeof(m_writeFnptrTable));
+        Memory::Zero(m_writeErrorFnptrTable, sizeof(m_writeErrorFnptrTable));
+    }
 };
 
-#pragma endregion LoggerOutputStream
+static LoggerState s_loggerState;
+
+static void Write(const LogChannel& channel, const LogMessage& message)
+{
+    const LogChannel* pChannel = &channel;
+
+    if (HYP_UNLIKELY(channel.id >= Logger::MaxChannels))
+    {
+        // log channel overflow! revert to Log_Misc
+        //// \todo : Dynamic channels with ID >= MaxChannels should be checked using a dynamic bitset w/ mutex
+        pChannel = &g_logChannel_Misc;
+        return;
+    }
+
+    const uint32 currentGeneration = s_loggerState.m_generation.Get(MemoryOrder::RELAXED);
+
+    if (HYP_UNLIKELY(t_localGeneration != currentGeneration))
+    {
+        t_localRedirectMask = s_loggerState.m_redirectEnabledMask;
+
+        Memory::Copy(t_localContexts, s_loggerState.m_contexts, sizeof(s_loggerState.m_contexts));
+        Memory::Copy(t_localWriteFnptrTable, s_loggerState.m_writeFnptrTable, sizeof(s_loggerState.m_writeFnptrTable));
+        Memory::Copy(t_localWriteErrorFnptrTable, s_loggerState.m_writeErrorFnptrTable, sizeof(s_loggerState.m_writeErrorFnptrTable));
+
+        t_localGeneration = currentGeneration;
+    }
+
+    void* redirectContext = nullptr;
+    LoggerWriteFnPtr redirectFunction = nullptr;
+
+    const bool isError = uint8(message.level) <= uint8(LogLevel::Warning);
+
+    uint32 bitIndex;
+    uint64 mask = pChannel->maskBitset.ToUInt64();
+
+    while ((bitIndex = ByteUtil::HighestSetBitIndex(mask)) != -1)
+    {
+        if (t_localRedirectMask & (1ull << bitIndex))
+        {
+            redirectContext = t_localContexts[bitIndex];
+            redirectFunction = isError ? t_localWriteErrorFnptrTable[bitIndex] : t_localWriteFnptrTable[bitIndex];
+
+            break;
+        }
+
+        mask &= ~(1ull << bitIndex);
+    }
+
+    if (!redirectFunction || redirectFunction(redirectContext, *pChannel, message))
+    {
+        FILE* file = isError ? s_loggerState.m_output : s_loggerState.m_outputError;
+        const bool isConsole = file == stdout || file == stderr;
+
+#if HYP_ANDROID
+        if (isConsole)
+        {
+            static constexpr android_LogPriority LogLevelToAndroidLogPriority[NumLogLevels] = {
+
+                ANDROID_LOG_FATAL,   // Fatal
+                ANDROID_LOG_ERROR,   // Error
+                ANDROID_LOG_WARN,    // Warning
+                ANDROID_LOG_INFO,    // Info
+                ANDROID_LOG_VERBOSE, // Verbose
+                ANDROID_LOG_DEBUG    // Debug
+            };
+
+            thread_local ByteBuffer* t_androidLogBuffer = nullptr;
+            thread_local bool t_useAndroidLogger = false;
+
+            if (HYP_UNLIKELY(t_androidLogBuffer == nullptr))
+            {
+                ThreadBase* thisThread = CurrentThreadObject();
+
+                if (thisThread)
+                {
+                    t_androidLogBuffer = new ByteBuffer;
+
+                    if (t_androidLogBuffer)
+                    {
+                        t_androidLogBuffer->SetCapacity(4096);
+
+                        thisThread->AddOnExitCallback(
+                            []()
+                            {
+                                delete t_androidLogBuffer;
+                                t_androidLogBuffer = nullptr;
+                            });
+
+                        t_useAndroidLogger = true;
+                    }
+                    else
+                    {
+                        // alloc failed!
+                        t_useAndroidLogger = false;
+                    }
+                }
+                else
+                {
+                    // no thread object!
+                    t_useAndroidLogger = false;
+                }
+            }
+
+            if (HYP_LIKELY(t_useAndroidLogger))
+            {
+                size_t offset = 0;
+                for (auto it = message.chunks.Begin(); it != message.chunks.End(); ++it)
+                {
+                    if (t_androidLogBuffer->Size() < offset + it->Size())
+                    {
+                        t_androidLogBuffer->SetSize((offset + it->Size()) * 2);
+                    }
+
+                    Memory::Copy(t_androidLogBuffer->Data() + offset, it->Data(), it->Size());
+                    offset += it->Size();
+                }
+
+                // ensure null-terminated
+                if (t_androidLogBuffer->Size() == offset)
+                {
+                    t_androidLogBuffer->SetSize(offset + 1);
+                }
+
+                t_androidLogBuffer->Data()[offset] = '\0';
+
+                __android_log_write(LogLevelToAndroidLogPriority[uint8(message.level)], "HyperionEngine", reinterpret_cast<const char*>(t_androidLogBuffer->Data()));
+            }
+        }
+        else
+#endif
+        {
+#if HYP_DEBUG_MODE
+            if (isConsole)
+            {
+                Span<const char> colorCode = LogLevelTermColor(message.level);
+                std::fwrite(colorCode.Data(), 1, colorCode.Size(), file);
+            }
+#endif
+
+            for (auto it = message.chunks.Begin(); it != message.chunks.End(); ++it)
+            {
+                std::fwrite(**it, 1, it->Size(), file);
+            }
+
+#if HYP_DEBUG_MODE
+            if (isConsole)
+            {
+                static constexpr Span<const char> ResetCode = "\033[0m";
+                std::fwrite(ResetCode.Data(), 1, ResetCode.Size(), file);
+            }
+#endif
+        }
+    }
+}
+
+static void WriteError(const LogChannel& channel, const LogMessage& message)
+{
+    Write(channel, message);
+}
+
+static void Flush()
+{
+    if (s_loggerState.m_output)
+    {
+        std::fflush(s_loggerState.m_output);
+    }
+
+    if (s_loggerState.m_outputError)
+    {
+        std::fflush(s_loggerState.m_outputError);
+    }
+}
 
 #pragma region DynamicLogChannelHandle
 
@@ -554,9 +473,8 @@ class LoggerImpl
 public:
     friend class Logger;
 
-    explicit LoggerImpl(LoggerOutputStream& outputStream)
-        : m_logMask(-1),
-          m_outputStream(&outputStream)
+    LoggerImpl()
+        : m_logMask(-1)
     {
         Fill(m_logChannels.Begin(), m_logChannels.End(), nullptr);
     }
@@ -569,8 +487,6 @@ private:
 
     Array<LogChannel*> m_dynamicLogChannels;
     mutable Mutex m_dynamicLogChannelsMutex;
-
-    LoggerOutputStream* m_outputStream;
 };
 
 #pragma endregion LoggerImpl
@@ -593,21 +509,70 @@ Handle<Logger> Logger::MakeScriptLogger()
 }
 
 Logger::Logger()
-    : Logger(LoggerOutputStream::GetDefaultInstance())
-{
-}
-
-Logger::Logger(LoggerOutputStream& outputStream)
-    : m_impl(MakePimpl<LoggerImpl>(outputStream)),
+    : m_impl(MakePimpl<LoggerImpl>()),
       fatalErrorHook(nullptr)
 {
 }
 
 Logger::~Logger() = default;
 
-LoggerOutputStream* Logger::GetOutputStream() const
+int Logger::AddRedirect(const Bitset& channelMask, void* context, LoggerWriteFnPtr writeFnptr, LoggerWriteFnPtr writeErrorFnptr)
 {
-    return m_impl->m_outputStream;
+    AssertDebug(writeFnptr != nullptr || writeErrorFnptr != nullptr, "At least one of writeFnptr or writeErrorFnptr must be non-null");
+
+    Mutex::Guard guard(s_loggerState.m_mutex);
+
+    const int id = ++s_loggerState.m_redirectIdCounter;
+
+    s_loggerState.m_redirects.Emplace(id, LoggerRedirect { channelMask, context, writeFnptr, writeErrorFnptr });
+
+    for (Bitset::BitIndex bitIndex : channelMask)
+    {
+        if (bitIndex >= Logger::MaxChannels)
+        {
+            break;
+        }
+
+        s_loggerState.m_contexts[bitIndex] = context;
+        s_loggerState.m_writeFnptrTable[bitIndex] = writeFnptr;
+        s_loggerState.m_writeErrorFnptrTable[bitIndex] = writeErrorFnptr;
+
+        s_loggerState.m_redirectEnabledMask |= (1ull << bitIndex);
+    }
+
+    s_loggerState.m_generation.Increment(1, MemoryOrder::RELEASE);
+
+    return id;
+}
+
+void Logger::RemoveRedirect(int id)
+{
+    Mutex::Guard guard(s_loggerState.m_mutex);
+
+    auto it = s_loggerState.m_redirects.Find(id);
+
+    if (it == s_loggerState.m_redirects.End())
+    {
+        return;
+    }
+
+    for (Bitset::BitIndex bitIndex : it->second.channelMask)
+    {
+        if (s_loggerState.m_contexts[bitIndex] != it->second.context)
+        {
+            continue;
+        }
+
+        s_loggerState.m_contexts[bitIndex] = nullptr;
+        s_loggerState.m_writeFnptrTable[bitIndex] = nullptr;
+        s_loggerState.m_writeErrorFnptrTable[bitIndex] = nullptr;
+
+        s_loggerState.m_redirectEnabledMask &= ~(1ull << bitIndex);
+    }
+
+    s_loggerState.m_redirects.Erase(it);
+
+    s_loggerState.m_generation.Increment(1, MemoryOrder::RELEASE);
 }
 
 const LogChannel* Logger::FindLogChannel(StringHash name) const
@@ -758,11 +723,11 @@ void Logger::Log(const LogChannel& channel, const LogMessage& message)
 {
     if (uint32(message.level) <= uint32(LogLevel::Warning))
     {
-        m_impl->m_outputStream->WriteError(channel, message);
+        WriteError(channel, message);
     }
     else
     {
-        m_impl->m_outputStream->Write(channel, message);
+        Write(channel, message);
     }
 }
 
@@ -771,7 +736,7 @@ void Logger::LogFatal(const LogChannel& channel, const LogMessage& message)
     Log(channel, message);
 
     // flush the output stream to ensure that the message is written before we call the fatal error hook
-    m_impl->m_outputStream->Flush();
+    Flush();
 
     MemoryByteWriter writer;
 
@@ -800,14 +765,14 @@ void Logger::LogScript(const LogChannel& channel, LogLevel level, const String& 
 {
     constexpr UTF8StringView NewlineChunk = UTF8StringView("\n");
 
-    const LogChannel* channelPtr = &channel;
+    const LogChannel* pChannel = &channel;
 
     if (channel.id == ~0u || channel.id >= Logger::MaxChannels)
     {
-        channelPtr = &g_logChannel_Misc;
+        pChannel = &g_logChannel_Misc;
     }
 
-    if (!IsChannelEnabled(*channelPtr))
+    if (!IsChannelEnabled(*pChannel))
     {
         return;
     }
@@ -821,7 +786,7 @@ void Logger::LogScript(const LogChannel& channel, LogLevel level, const String& 
 
     // don't handle fatal here; scripts shouldn't be able to cause fatal errors
 
-    Log(*channelPtr, lm);
+    Log(*pChannel, lm);
 }
 
 #pragma endregion Logger
