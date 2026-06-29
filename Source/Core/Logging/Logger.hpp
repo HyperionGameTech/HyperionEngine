@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -157,20 +157,7 @@ public:
  */
 typedef bool (*LoggerWriteFnPtr)(void* context, const LogChannel& channel, const LogMessage& message);
 
-class ILoggerOutputStream
-{
-public:
-    virtual ~ILoggerOutputStream() = default;
-
-    virtual int AddRedirect(const Bitset& channelMask, void* context, LoggerWriteFnPtr writeFnptr, LoggerWriteFnPtr writeErrorFnptr) = 0;
-    virtual void RemoveRedirect(int id) = 0;
-
-    virtual void Write(const LogChannel& channel, const LogMessage& message) = 0;
-    virtual void WriteError(const LogChannel& channel, const LogMessage& message) = 0;
-
-    virtual void Flush() = 0;
-};
-
+class LoggerOutputStream;
 class LoggerImpl;
 
 class CORE_API DynamicLogChannelHandle
@@ -235,7 +222,7 @@ public:
     static Handle<Logger> MakeScriptLogger();
 
     Logger();
-    Logger(ILoggerOutputStream& outputStream);
+    explicit Logger(LoggerOutputStream& outputStream);
 
     Logger(const Logger& other) = delete;
     Logger& operator=(const Logger& other) = delete;
@@ -245,7 +232,7 @@ public:
 
     ~Logger();
 
-    ILoggerOutputStream* GetOutputStream() const;
+    LoggerOutputStream* GetOutputStream() const;
 
     void RegisterChannel(LogChannel* channel);
 
@@ -364,13 +351,17 @@ inline void LogDynamic(Logger& logger, const LogChannel& channel, const char* fi
     {
 #ifndef HYP_DEBUG_MODE
         if constexpr (Level == LogLevel::Debug)
+        {
             return;
+        }
 #endif
 
         if constexpr (Level == LogLevel::Verbose)
         {
             if (!IsVerboseLoggingEnabled())
+            {
                 return;
+            }
         }
         else if constexpr (Level == LogLevel::Fatal)
         {
@@ -431,7 +422,6 @@ struct LogChannelRegistration
 } // namespace logging
 
 using logging::DynamicLogChannelHandle;
-using logging::ILoggerOutputStream;
 using logging::LogChannel;
 using logging::LogChannelRegistrar;
 using logging::LogChannelRegistration;
@@ -457,9 +447,9 @@ using logging::LogMessage;
 #undef HYP_LOG_ONCE
 #endif
 
-#define HYP_LOG_ONCE(channel, level, fmt, ...)                                                                                                                                                                                                                                                                         \
-    do                                                                                                                                                                                                                                                                                                                    \
-    {                                                                                                                                                                                                                                                                                                                     \
+#define HYP_LOG_ONCE(channel, level, fmt, ...)                                                                                                                                                                                                                                                            \
+    do                                                                                                                                                                                                                                                                                                    \
+    {                                                                                                                                                                                                                                                                                                     \
         ::Hyperion::logging::LogOnceHelper::ExecuteLogOnce<HYP_STATIC_STRING(__FILE__), __LINE__, HYP_STATIC_STRING(HYP_FUNCTION_NAME_LIT), Hyperion::logging::LogLevel::level, HYP_MAKE_CONST_ARG(&g_logChannel_##channel), HYP_STATIC_STRING(fmt "\n")>(Hyperion::logging::GetLogger(), ##__VA_ARGS__); \
-    }                                                                                                                                                                                                                                                                                                                     \
+    }                                                                                                                                                                                                                                                                                                     \
     while (0)

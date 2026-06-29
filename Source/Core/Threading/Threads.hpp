@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -65,6 +65,7 @@ CORE_API void SetCurrentThreadPriority(ThreadPriorityValue priority);
 CORE_API uint32 NumCores();
 
 CORE_API void ThreadSleep(uint32 milliseconds);
+CORE_API void ThreadYield();
 
 } // namespace threading
 
@@ -73,6 +74,7 @@ using threading::ThreadCategory;
 using threading::AssertOnThread;
 using threading::CurrentThreadId;
 using threading::CurrentThreadObject;
+using threading::GetCurrentThreadIndex;
 using threading::GetThreadById;
 using threading::IsOnThread;
 using threading::IsThreadInMask;
@@ -80,11 +82,11 @@ using threading::IsThreadRegistered;
 using threading::NumCores;
 using threading::RegisterThread;
 using threading::SetCurrentThreadId;
+using threading::SetCurrentThreadIndex;
 using threading::SetCurrentThreadObject;
 using threading::SetCurrentThreadPriority;
-using threading::GetCurrentThreadIndex;
-using threading::SetCurrentThreadIndex;
 using threading::ThreadSleep;
+using threading::ThreadYield;
 using threading::UnregisterThread;
 
 CORE_API extern const StaticThreadId g_mainThread;

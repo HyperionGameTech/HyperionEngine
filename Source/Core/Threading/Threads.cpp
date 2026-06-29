@@ -18,8 +18,11 @@
 #include <immintrin.h>
 #endif
 
-#if HYP_UNIX
+#if HYP_WINDOWS
+#include <winnt.h>
+#elif HYP_UNIX
 #include <unistd.h>
+#include <sched.h>
 #endif
 
 namespace Hyperion {
@@ -420,6 +423,15 @@ void ThreadSleep(uint32 milliseconds)
     ::Sleep(milliseconds);
 #elif HYP_UNIX
     usleep(milliseconds * 1000);
+#endif
+}
+
+void ThreadYield()
+{
+#if HYP_WINDOWS
+    YieldProcessor();
+#elif HYP_UNIX
+    sched_yield();
 #endif
 }
 

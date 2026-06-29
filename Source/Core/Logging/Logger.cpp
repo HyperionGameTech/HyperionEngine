@@ -51,6 +51,8 @@ namespace logging {
 static volatile int32 s_maxLogChannelId = -1;
 static bool s_registerAllCalled = false;
 
+thread_local bool t_isVerboseLoggingEnabled = false;
+
 CORE_API ANSIStringView GetCurrentThreadName()
 {
     return *CurrentThreadId().GetName();
@@ -58,9 +60,7 @@ CORE_API ANSIStringView GetCurrentThreadName()
 
 CORE_API bool IsVerboseLoggingEnabled()
 {
-    static const ConfigValue& s_cfgVerboseLoggingEnabled = CoreApi::GetGlobalConfig().Get("Logging.Verbose");
-
-    return s_cfgVerboseLoggingEnabled.ToBool(false);
+    return (t_isVerboseLoggingEnabled || (t_isVerboseLoggingEnabled = CoreApi::GetGlobalConfig().Get("Logging.Verbose").ToBool(false)));
 }
 
 class LogChannelIdGenerator
@@ -94,35 +94,33 @@ struct LoggerRedirect
     LoggerWriteFnPtr writeErrorFn;
 };
 
-class BasicLoggerOutputStream : public ILoggerOutputStream
+class LoggerOutputStream final
 {
 public:
     static constexpr uint64 WriteFlag = 0x1;
-    static constexpr uint64 ReadMask = uint64(-1) & ~WriteFlag;
+    static constexpr uint64 ReadMask = UINT64_MAX & ~WriteFlag;
 
-    static BasicLoggerOutputStream& GetDefaultInstance()
+    static LoggerOutputStream& GetDefaultInstance()
     {
-        static BasicLoggerOutputStream s_instance { stdout, stderr };
+        static LoggerOutputStream s_instance { stdout, stderr };
 
         return s_instance;
     }
 
-    BasicLoggerOutputStream(FILE* output, FILE* outputError)
+    LoggerOutputStream(FILE* output, FILE* outputError)
         : m_output(output),
           m_outputError(outputError),
           m_rwMarker(0),
           m_redirectEnabledMask(0),
           m_redirectIdCounter(-1)
     {
-        Memory::Fill(m_contexts, 0, sizeof(m_contexts));
-        Memory::Fill(m_writeFnptrTable, 0, sizeof(m_writeFnptrTable));
-        Memory::Fill(m_writeErrorFnptrTable, 0, sizeof(m_writeErrorFnptrTable));
+        Memory::Zero(m_contexts, sizeof(m_contexts));
+        Memory::Zero(m_writeFnptrTable, sizeof(m_writeFnptrTable));
+        Memory::Zero(m_writeErrorFnptrTable, sizeof(m_writeErrorFnptrTable));
     }
 
-    virtual ~BasicLoggerOutputStream() override = default;
-
     // @FIXME: Needs to redirect all CHILD channels as well, not parent channels!
-    virtual int AddRedirect(const Bitset& channelMask, void* context, LoggerWriteFnPtr writeFnptr, LoggerWriteFnPtr writeErrorFnptr) override
+    int AddRedirect(const Bitset& channelMask, void* context, LoggerWriteFnPtr writeFnptr, LoggerWriteFnPtr writeErrorFnptr)
     {
         AssertDebug(writeFnptr != nullptr || writeErrorFnptr != nullptr, "At least one of writeFnptr or writeErrorFnptr must be non-null");
 
@@ -132,7 +130,7 @@ public:
         while (state & ReadMask)
         {
             state = m_rwMarker.Get(MemoryOrder::ACQUIRE);
-            HYP_WAIT_IDLE();
+            ThreadYield();
         }
 
         const int id = ++m_redirectIdCounter;
@@ -158,7 +156,7 @@ public:
         return id;
     }
 
-    virtual void RemoveRedirect(int id) override
+    void RemoveRedirect(int id)
     {
         Mutex::Guard guard(m_mutex);
 
@@ -166,7 +164,7 @@ public:
         while (state & ReadMask)
         {
             state = m_rwMarker.Get(MemoryOrder::ACQUIRE);
-            HYP_WAIT_IDLE();
+            ThreadYield();
         }
 
         auto it = m_redirects.Find(id);
@@ -195,7 +193,7 @@ public:
         m_rwMarker.BitAnd(~WriteFlag, MemoryOrder::RELEASE);
     }
 
-    virtual void Write(const LogChannel& channel, const LogMessage& message) override
+    void Write(const LogChannel& channel, const LogMessage& message)
     {
         const LogChannel* channelPtr = &channel;
 
@@ -352,12 +350,12 @@ public:
         m_rwMarker.Decrement(2, MemoryOrder::RELEASE);
     }
 
-    virtual void WriteError(const LogChannel& channel, const LogMessage& message) override
+    void WriteError(const LogChannel& channel, const LogMessage& message)
     {
         Write(channel, message);
     }
 
-    virtual void Flush() override
+    HYP_FORCE_INLINE void Flush()
     {
         if (m_output)
         {
@@ -556,23 +554,23 @@ class LoggerImpl
 public:
     friend class Logger;
 
-    LoggerImpl(ILoggerOutputStream& outputStream)
+    explicit LoggerImpl(LoggerOutputStream& outputStream)
         : m_logMask(-1),
           m_outputStream(&outputStream)
     {
         Fill(m_logChannels.Begin(), m_logChannels.End(), nullptr);
     }
 
-    ~LoggerImpl()
-    {
-    }
+    ~LoggerImpl() = default;
 
 private:
     AtomicVar<Logger::ChannelMask> m_logMask;
     FixedArray<LogChannel*, Logger::MaxChannels> m_logChannels;
+
     Array<LogChannel*> m_dynamicLogChannels;
     mutable Mutex m_dynamicLogChannelsMutex;
-    NotNullPtr<ILoggerOutputStream> m_outputStream;
+
+    LoggerOutputStream* m_outputStream;
 };
 
 #pragma endregion LoggerImpl
@@ -595,11 +593,11 @@ Handle<Logger> Logger::MakeScriptLogger()
 }
 
 Logger::Logger()
-    : Logger(BasicLoggerOutputStream::GetDefaultInstance())
+    : Logger(LoggerOutputStream::GetDefaultInstance())
 {
 }
 
-Logger::Logger(ILoggerOutputStream& outputStream)
+Logger::Logger(LoggerOutputStream& outputStream)
     : m_impl(MakePimpl<LoggerImpl>(outputStream)),
       fatalErrorHook(nullptr)
 {
@@ -607,7 +605,7 @@ Logger::Logger(ILoggerOutputStream& outputStream)
 
 Logger::~Logger() = default;
 
-ILoggerOutputStream* Logger::GetOutputStream() const
+LoggerOutputStream* Logger::GetOutputStream() const
 {
     return m_impl->m_outputStream;
 }
@@ -696,10 +694,11 @@ void Logger::RemoveDynamicLogChannel(Name name)
 {
     Mutex::Guard guard(m_impl->m_dynamicLogChannelsMutex);
 
-    auto it = m_impl->m_dynamicLogChannels.FindIf([name](LogChannel* channel)
-                                                  {
-                                                      return channel->name == name;
-                                                  });
+    auto it = m_impl->m_dynamicLogChannels.FindIf(
+        [name](LogChannel* channel)
+        {
+            return channel->name == name;
+        });
 
     if (it == m_impl->m_dynamicLogChannels.End())
     {
