@@ -19,7 +19,9 @@ void RawBuffer::Initialize()
     Assert(gpuBuffer);
 
     if (gpuBuffer->IsCreated())
+    {
         return;
+    }
 
     CheckResult(gpuBuffer->Create());
 }
@@ -27,7 +29,9 @@ void RawBuffer::Initialize()
 void RawBuffer::Shutdown()
 {
     if (!gpuBuffer)
+    {
         return;
+    }
 
     delete gpuBuffer;
     gpuBuffer = nullptr;
@@ -40,7 +44,7 @@ void RawBuffer::Shutdown()
 
 void RawBuffer::Write(size_t offset, size_t count, const void* data)
 {
-    AssertDebug(offset + count <= cpuBuffer.Size());
+    Assert(offset + count <= cpuBuffer.Size());
 
     cpuBuffer.Write(count, offset, data);
 

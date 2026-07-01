@@ -6,7 +6,7 @@
 
 #include <RenderingPch.hpp>
 
-#include <Rendering/MeshBlasBuilder.hpp>
+#include <Rendering/BLASBuilder.hpp>
 #include <Rendering/AccelerationStructure.hpp>
 
 #include <Rendering/RenderCommand.hpp>
@@ -28,9 +28,9 @@
 
 namespace Hyperion {
 
-struct BuildMeshBlas
+struct BuildBLASCmd
 {
-    GpuBlasRef blas;
+    BottomLevelASRef blas;
     Array<float> packedVertices;
     Array<ubyte> packedIndices;
     Handle<Material> material;
@@ -38,7 +38,7 @@ struct BuildMeshBlas
     GpuBufferRef packedVerticesBuffer;
     GpuBufferRef packedIndicesBuffer;
 
-    BuildMeshBlas(GpuBlasRef& blas, Array<float>&& packedVertices, Array<ubyte>&& packedIndices, Mesh* mesh, Material* material)
+    BuildBLASCmd(BottomLevelASRef& blas, Array<float>&& packedVertices, Array<ubyte>&& packedIndices, Mesh* mesh, Material* material)
         : packedVertices(std::move(packedVertices)),
           packedIndices(std::move(packedIndices)),
           material(MakeStrongRef(material))
@@ -51,7 +51,7 @@ struct BuildMeshBlas
         packedVerticesBuffer = RI.MakeGpuBuffer(GpuBufferType::RTMeshVertexBuffer, packedVerticesSize);
         packedIndicesBuffer = RI.MakeGpuBuffer(GpuBufferType::RTMeshIndexBuffer, packedIndicesSize);
 
-        blas = RI.MakeGpuBlas(
+        blas = RI.MakeBottomLevelAS(
             packedVerticesBuffer,
             packedIndicesBuffer,
             uint32(packedVerticesSize),
@@ -69,7 +69,7 @@ struct BuildMeshBlas
         this->blas = blas;
     }
 
-    ~BuildMeshBlas()
+    ~BuildBLASCmd()
     {
         EnqueueDeletion(std::move(packedVerticesBuffer));
         EnqueueDeletion(std::move(packedIndicesBuffer));
@@ -111,7 +111,7 @@ struct BuildMeshBlas
     }
 };
 
-GpuBlasRef MeshBlasBuilder::Build(Mesh* mesh, Material* material)
+BottomLevelASRef BLASBuilder::Build(Mesh* mesh, Material* material)
 {
     if (!mesh)
     {
@@ -140,8 +140,8 @@ GpuBlasRef MeshBlasBuilder::Build(Mesh* mesh, Material* material)
         Assert(packedIndicesU32[i] < mesh->GetMeshDesc().numVertices);
     }
 
-    GpuBlasRef blas;
-    BuildMeshBlas command { blas, std::move(packedVertices), std::move(packedIndices), mesh, material };
+    BottomLevelASRef blas;
+    BuildBLASCmd command { blas, std::move(packedVertices), std::move(packedIndices), mesh, material };
 
     command();
 

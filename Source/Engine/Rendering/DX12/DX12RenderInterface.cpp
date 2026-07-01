@@ -1072,7 +1072,7 @@ DX12ShaderInstanceRef DX12RenderInterface::MakeShader(const Shader* shader)
     return MakeHandle<DX12ShaderInstance>(shader);
 }
 
-DX12GpuBlasRef DX12RenderInterface::MakeGpuBlas(
+DX12BottomLevelASRef DX12RenderInterface::MakeBottomLevelAS(
     const DX12GpuBufferRef& packedVerticesBuffer,
     const DX12GpuBufferRef& packedIndicesBuffer,
     uint32 numVertices,
@@ -1080,7 +1080,7 @@ DX12GpuBlasRef DX12RenderInterface::MakeGpuBlas(
     const Handle<Material>& material,
     const Mat4f& transform)
 {
-    return MakeHandle<DX12GpuBlas>(
+    return MakeHandle<DX12BottomLevelAS>(
         packedVerticesBuffer,
         packedIndicesBuffer,
         numVertices,
@@ -1089,9 +1089,9 @@ DX12GpuBlasRef DX12RenderInterface::MakeGpuBlas(
         transform);
 }
 
-DX12GpuTlasRef DX12RenderInterface::MakeTLAS()
+DX12TopLevelASRef DX12RenderInterface::MakeTLAS()
 {
-    return MakeHandle<DX12GpuTlas>();
+    return MakeHandle<DX12TopLevelAS>();
 }
 
 void DX12RenderInterface::PopulateIndirectDrawCommandsBuffer(

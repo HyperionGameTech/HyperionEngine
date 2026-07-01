@@ -148,7 +148,7 @@ RendererResult VulkanAccelerationGeometry::Create()
 
 #pragma region AccelerationStructure
 
-VulkanAccelerationStructureBase::VulkanAccelerationStructureBase(const Mat4f& transform)
+VulkanASBase::VulkanASBase(const Mat4f& transform)
     : m_transform(transform),
       m_accelerationStructure(VK_NULL_HANDLE),
       m_deviceAddress(0),
@@ -156,7 +156,7 @@ VulkanAccelerationStructureBase::VulkanAccelerationStructureBase(const Mat4f& tr
 {
 }
 
-VulkanAccelerationStructureBase::~VulkanAccelerationStructureBase()
+VulkanASBase::~VulkanASBase()
 {
     m_geometries.Clear();
 
@@ -178,7 +178,7 @@ VulkanAccelerationStructureBase::~VulkanAccelerationStructureBase()
     }
 }
 
-RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
+RendererResult VulkanASBase::CreateAccelerationStructure(
     AccelerationStructureType type,
     Span<const VkAccelerationStructureGeometryKHR> geometries,
     Span<const uint32> primitiveCounts,
@@ -451,7 +451,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
 
 #ifdef HYP_RHI_DEBUG_NAMES
 
-void VulkanAccelerationStructureBase::SetDebugName(Name name)
+void VulkanASBase::SetDebugName(Name name)
 {
     m_debugName = name;
 
@@ -479,17 +479,17 @@ void VulkanAccelerationStructureBase::SetDebugName(Name name)
 
 #pragma region TLAS
 
-VulkanGpuTlas::VulkanGpuTlas()
-    : VulkanAccelerationStructureBase()
+VulkanTopLevelAS::VulkanTopLevelAS()
+    : VulkanASBase()
 {
 }
 
-VulkanGpuTlas::~VulkanGpuTlas()
+VulkanTopLevelAS::~VulkanTopLevelAS()
 {
     m_instancesBuffer.Reset();
     m_scratchBuffer.Reset();
 
-    for (VulkanGpuBlas* blas : m_blases)
+    for (VulkanBottomLevelAS* blas : m_blases)
     {
         blas->Release();
     }
@@ -510,12 +510,12 @@ VulkanGpuTlas::~VulkanGpuTlas()
     }
 }
 
-bool VulkanGpuTlas::IsCreated() const
+bool VulkanTopLevelAS::IsCreated() const
 {
     return m_accelerationStructure != VK_NULL_HANDLE;
 }
 
-Array<VkAccelerationStructureGeometryKHR, VulkanTempAllocator> VulkanGpuTlas::GetGeometries() const
+Array<VkAccelerationStructureGeometryKHR, VulkanTempAllocator> VulkanTopLevelAS::GetGeometries() const
 {
     Assert(m_instancesBuffer != nullptr && m_instancesBuffer->IsCreated());
 
@@ -531,12 +531,12 @@ Array<VkAccelerationStructureGeometryKHR, VulkanTempAllocator> VulkanGpuTlas::Ge
     };
 }
 
-Array<uint32, VulkanTempAllocator> VulkanGpuTlas::GetPrimitiveCounts() const
+Array<uint32, VulkanTempAllocator> VulkanTopLevelAS::GetPrimitiveCounts() const
 {
     return { uint32(m_blases.Size()) };
 }
 
-RendererResult VulkanGpuTlas::Create()
+RendererResult VulkanTopLevelAS::Create()
 {
     if (IsCreated())
     {
@@ -549,10 +549,10 @@ RendererResult VulkanGpuTlas::Create()
 
     if (m_blases.Empty())
     {
-        return HYP_MAKE_ERROR(RendererError, "Top level acceleration structure must have at least one GpuBlas");
+        return HYP_MAKE_ERROR(RendererError, "Top level acceleration structure must have at least one BottomLevelAS");
     }
 
-    for (VulkanGpuBlas* blas : m_blases)
+    for (VulkanBottomLevelAS* blas : m_blases)
     {
         Assert(blas != nullptr);
 
@@ -576,20 +576,20 @@ RendererResult VulkanGpuTlas::Create()
     return RendererResult();
 }
 
-void VulkanGpuTlas::AddGpuBlas(uint64 key, VulkanGpuBlas* blas)
+void VulkanTopLevelAS::AddBLAS(uint64 key, VulkanBottomLevelAS* blas)
 {
     Assert(blas != nullptr);
 
     if (m_keyToBlasAndStorageId.Find(key) != m_keyToBlasAndStorageId.End())
     {
-        // already has the GpuBlas
+        // already has the BottomLevelAS
         return;
     }
 
-    AssertDebug(m_blases.Size() < MaxBlases, "Cannot add any more BLASes to TLAS, limit reached");
-
     if (m_blases.Size() == MaxBlases)
     {
+        HYP_LOG(RenderingBackend, Warning, "Cannot add any more BLASes to TLAS, limit reached ({})", MaxBlases);
+
         return;
     }
 
@@ -614,7 +614,7 @@ void VulkanGpuTlas::AddGpuBlas(uint64 key, VulkanGpuBlas* blas)
     SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING);
 }
 
-void VulkanGpuTlas::RemoveGpuBlas(uint64 key)
+void VulkanTopLevelAS::RemoveBLAS(uint64 key)
 {
     auto it = m_keyToBlasAndStorageId.Find(key);
 
@@ -622,7 +622,7 @@ void VulkanGpuTlas::RemoveGpuBlas(uint64 key)
 
     if (it != m_keyToBlasAndStorageId.End())
     {
-        VulkanGpuBlas*& blas = it->second.first;
+        VulkanBottomLevelAS*& blas = it->second.first;
         uint32 storageId = it->second.second;
 
         RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2);
@@ -648,17 +648,17 @@ void VulkanGpuTlas::RemoveGpuBlas(uint64 key)
     }
 }
 
-bool VulkanGpuTlas::HasGpuBlas(uint64 key)
+bool VulkanTopLevelAS::ContainsBLAS(uint64 key)
 {
     return m_keyToBlasAndStorageId.Find(key) != m_keyToBlasAndStorageId.End();
 }
 
-RendererResult VulkanGpuTlas::BuildInstancesBuffer()
+RendererResult VulkanTopLevelAS::BuildInstancesBuffer()
 {
     return BuildInstancesBuffer(0, uint32(m_blases.Size()));
 }
 
-RendererResult VulkanGpuTlas::BuildInstancesBuffer(uint32 first, uint32 last)
+RendererResult VulkanTopLevelAS::BuildInstancesBuffer(uint32 first, uint32 last)
 {
     if (last <= first)
     {
@@ -711,7 +711,7 @@ RendererResult VulkanGpuTlas::BuildInstancesBuffer(uint32 first, uint32 last)
 
     for (uint32 i = first; i < last; i++)
     {
-        VulkanGpuBlas* blas = m_blases[i];
+        VulkanBottomLevelAS* blas = m_blases[i];
         Assert(blas != nullptr);
 
         const uint32 instanceIndex = i; /* Index of mesh in mesh descriptions buffer. */
@@ -736,12 +736,12 @@ RendererResult VulkanGpuTlas::BuildInstancesBuffer(uint32 first, uint32 last)
     return RendererResult();
 }
 
-RendererResult VulkanGpuTlas::BuildMeshDescriptionsBuffer()
+RendererResult VulkanTopLevelAS::BuildMeshDescriptionsBuffer()
 {
     return BuildMeshDescriptionsBuffer(0u, uint32(m_blases.Size()));
 }
 
-RendererResult VulkanGpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 last)
+RendererResult VulkanTopLevelAS::BuildMeshDescriptionsBuffer(uint32 first, uint32 last)
 {
     if (last <= first)
     {
@@ -762,13 +762,13 @@ RendererResult VulkanGpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 l
 
     for (uint32 i = first; i < last; i++)
     {
-        VulkanGpuBlas* blas = m_blases[i];
+        VulkanBottomLevelAS* blas = m_blases[i];
         uint64 key = m_keys[i];
 
         MeshDescription& meshDescription = meshDescriptions[i - first];
         meshDescription = {};
 
-        Assert(blas->GetGeometries().Any(), "No geometries added to GpuBlas node %u!", i);
+        Assert(blas->GetGeometries().Any(), "No geometries added to BottomLevelAS node %u!", i);
 
         Assert(blas->GetGeometries()[0].GetPackedVerticesBuffer().IsValid() && blas->GetGeometries()[0].GetPackedVerticesBuffer()->IsCreated());
         Assert(blas->GetGeometries()[0].GetPackedIndicesBuffer().IsValid() && blas->GetGeometries()[0].GetPackedIndicesBuffer()->IsCreated());
@@ -812,7 +812,7 @@ RendererResult VulkanGpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 l
     return RendererResult();
 }
 
-RendererResult VulkanGpuTlas::UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags)
+RendererResult VulkanTopLevelAS::UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags)
 {
     outUpdateStateFlags = RT_UPDATE_STATE_FLAGS_NONE;
 
@@ -825,7 +825,7 @@ RendererResult VulkanGpuTlas::UpdateStructure(RTUpdateStateFlags& outUpdateState
 
     for (uint32 i = 0; i < uint32(m_blases.Size()); i++)
     {
-        VulkanGpuBlas* blas = m_blases[i];
+        VulkanBottomLevelAS* blas = m_blases[i];
         Assert(blas != nullptr);
 
         RTUpdateStateFlags blasUpdateStateFlags = RT_UPDATE_STATE_FLAGS_NONE;
@@ -853,12 +853,12 @@ RendererResult VulkanGpuTlas::UpdateStructure(RTUpdateStateFlags& outUpdateState
     return RendererResult();
 }
 
-RendererResult VulkanGpuTlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
+RendererResult VulkanTopLevelAS::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
 {
     Assert(m_accelerationStructure != VK_NULL_HANDLE);
 
-    // check each GpuBlas, assert that it is valid.
-    for (VulkanGpuBlas* blas : m_blases)
+    // check each BottomLevelAS, assert that it is valid.
+    for (VulkanBottomLevelAS* blas : m_blases)
     {
         Assert(blas != nullptr);
         Assert(blas->IsCreated());
@@ -891,16 +891,16 @@ RendererResult VulkanGpuTlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
 
 #pragma endregion TLAS
 
-#pragma region GpuBlas
+#pragma region BottomLevelAS
 
-VulkanGpuBlas::VulkanGpuBlas(
+VulkanBottomLevelAS::VulkanBottomLevelAS(
     const VulkanGpuBufferRef& packedVerticesBuffer,
     const VulkanGpuBufferRef& packedIndicesBuffer,
     uint32 numVertices,
     uint32 numIndices,
     const Handle<Material>& material,
     const Mat4f& transform)
-    : VulkanAccelerationStructureBase(transform),
+    : VulkanASBase(transform),
       m_packedVerticesBuffer(packedVerticesBuffer),
       m_packedIndicesBuffer(packedIndicesBuffer)
 {
@@ -914,7 +914,7 @@ VulkanGpuBlas::VulkanGpuBlas(
         m_material);
 }
 
-VulkanGpuBlas::~VulkanGpuBlas()
+VulkanBottomLevelAS::~VulkanBottomLevelAS()
 {
     HYP_LOG_TEMP("DESTROY ACCELERATION STRUCTURE {} {} {}", InstanceClass()->GetName(), Id(), m_packedVerticesBuffer->GetDebugName());
 
@@ -923,12 +923,12 @@ VulkanGpuBlas::~VulkanGpuBlas()
     EnqueueDeletion(std::move(m_packedIndicesBuffer));
 }
 
-bool VulkanGpuBlas::IsCreated() const
+bool VulkanBottomLevelAS::IsCreated() const
 {
     return m_accelerationStructure != VK_NULL_HANDLE;
 }
 
-RendererResult VulkanGpuBlas::Create()
+RendererResult VulkanBottomLevelAS::Create()
 {
     HYP_LOG_TEMP("CREATE ACCELERATION STRUCTURE {} {} {}", InstanceClass()->GetName(), Id(), m_packedVerticesBuffer->GetDebugName());
 
@@ -944,7 +944,7 @@ RendererResult VulkanGpuBlas::Create()
 
     if (m_geometries.Empty())
     {
-        return HYP_MAKE_ERROR(RendererError, "Cannot create GpuBlas with zero geometries");
+        return HYP_MAKE_ERROR(RendererError, "Cannot create BottomLevelAS with zero geometries");
     }
 
     size_t geometryIdx = 0;
@@ -961,7 +961,7 @@ RendererResult VulkanGpuBlas::Create()
 
         if (primitiveCounts[geometryIdx] == 0)
         {
-            return HYP_MAKE_ERROR(RendererError, "Cannot create GpuBlas -- geometry has zero indices");
+            return HYP_MAKE_ERROR(RendererError, "Cannot create BottomLevelAS -- geometry has zero indices");
         }
 
         ++geometryIdx;
@@ -975,7 +975,7 @@ RendererResult VulkanGpuBlas::Create()
     return RendererResult();
 }
 
-RendererResult VulkanGpuBlas::UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags)
+RendererResult VulkanBottomLevelAS::UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags)
 {
     outUpdateStateFlags = RT_UPDATE_STATE_FLAGS_NONE;
 
@@ -1001,7 +1001,7 @@ RendererResult VulkanGpuBlas::UpdateStructure(RTUpdateStateFlags& outUpdateState
     return RendererResult();
 }
 
-RendererResult VulkanGpuBlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
+RendererResult VulkanBottomLevelAS::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
 {
     HYP_NOT_IMPLEMENTED();
 
@@ -1026,6 +1026,6 @@ RendererResult VulkanGpuBlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
 #endif
 }
 
-#pragma endregion GpuBlas
+#pragma endregion BottomLevelAS
 
 } // namespace Hyperion

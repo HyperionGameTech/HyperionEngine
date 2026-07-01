@@ -51,9 +51,9 @@ enum AccelerationStructureFlagBits : AccelerationStructureFlags
 };
 
 HYP_CLASS(Abstract, NoScriptBindings)
-class GpuTlasBase : public ObjectBase
+class TopLevelASBase : public ObjectBase
 {
-    HYP_OBJECT_BODY(GpuTlasBase);
+    HYP_OBJECT_BODY(TopLevelASBase);
 
 public:
     static Pool* GetAllocator()
@@ -61,14 +61,14 @@ public:
         return g_rhiPool;
     }
 
-    static constexpr uint32 MaxBlases = 1024;
+    static constexpr uint32 MaxBlases = 16384;
 
-    GpuTlasBase()
+    TopLevelASBase()
         : m_meshDescriptionsBuffer(MaxBlases, sizeof(MeshDescription))
     {
     }
 
-    virtual ~GpuTlasBase() override = default;
+    virtual ~TopLevelASBase() override = default;
 
 #ifdef HYP_RHI_DEBUG_NAMES
     Name GetDebugName() const
@@ -94,9 +94,9 @@ public:
 
     virtual bool IsCreated() const = 0;
 
-    virtual void AddGpuBlas(uint64 key, GpuBlas* blas) = 0;
-    virtual void RemoveGpuBlas(uint64 key) = 0;
-    virtual bool HasGpuBlas(uint64 key) = 0;
+    virtual void AddBLAS(uint64 key, BottomLevelAS* blas) = 0;
+    virtual void RemoveBLAS(uint64 key) = 0;
+    virtual bool ContainsBLAS(uint64 key) = 0;
 
     virtual RendererResult Create() = 0;
 
@@ -111,12 +111,12 @@ protected:
 };
 
 HYP_CLASS(Abstract, NoScriptBindings)
-class GpuBlasBase : public ObjectBase
+class BottomLevelASBase : public ObjectBase
 {
-    HYP_OBJECT_BODY(GpuBlasBase);
+    HYP_OBJECT_BODY(BottomLevelASBase);
 
 protected:
-    GpuBlasBase()
+    BottomLevelASBase()
         : m_materialBinding(0)
     {
     }
@@ -127,7 +127,7 @@ public:
         return g_rhiPool;
     }
 
-    virtual ~GpuBlasBase() override = default;
+    virtual ~BottomLevelASBase() override = default;
 
 #ifdef HYP_RHI_DEBUG_NAMES
     Name GetDebugName() const

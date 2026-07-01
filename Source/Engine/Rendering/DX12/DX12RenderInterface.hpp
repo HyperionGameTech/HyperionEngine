@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -134,14 +134,14 @@ public:
 
     DX12ShaderInstanceRef MakeShader(const Shader* shader) override;
 
-    DX12GpuBlasRef MakeGpuBlas(
+    DX12BottomLevelASRef MakeBottomLevelAS(
         const DX12GpuBufferRef& packedVerticesBuffer,
         const DX12GpuBufferRef& packedIndicesBuffer,
         uint32 numVertices,
         uint32 numIndices,
         const Handle<Material>& material,
         const Mat4f& transform) override;
-    DX12GpuTlasRef MakeTLAS() override;
+    DX12TopLevelASRef MakeTLAS() override;
 
     void PopulateIndirectDrawCommandsBuffer(
         const DX12GpuBuffer* vertexBuffer,
@@ -216,6 +216,5 @@ private:
     Array<DX12AsyncCompute*, DX12Allocator> m_submittedAsyncComputes;
     Mutex m_asyncComputesMutex;
 };
-
 
 } // namespace Hyperion

@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -15,10 +15,10 @@ namespace Hyperion {
 class Mesh;
 class Material;
 
-class MeshBlasBuilder
+class BLASBuilder
 {
 public:
-    static GpuBlasRef Build(Mesh* mesh, Material* material = nullptr);
+    static BottomLevelASRef Build(Mesh* mesh, Material* material = nullptr);
 };
 
 } // namespace Hyperion

@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -26,18 +26,18 @@ namespace Hyperion {
     using T##BaseWeakRef = WeakHandle<T##Base>;
 
 #if HYP_VULKAN
-#define DECLARE_GFX_TYPE(T)                                                             \
-    DECLARE_GFX_TYPE_BASE(T);                                                           \
-                                                                                        \
-    class Vulkan##T;                                                                    \
-                                                                                        \
-    using T = Vulkan##T;                                                                \
-                                                                                        \
-    using Vulkan##T##Ref = Handle<Vulkan##T>;                                           \
-    using Vulkan##T##WeakRef = WeakHandle<Vulkan##T>;                                   \
-                                                                                        \
-    using T##Ref = Vulkan##T##Ref;                                                      \
-    using T##WeakRef = Vulkan##T##WeakRef;                                              \
+#define DECLARE_GFX_TYPE(T)                           \
+    DECLARE_GFX_TYPE_BASE(T);                         \
+                                                      \
+    class Vulkan##T;                                  \
+                                                      \
+    using T = Vulkan##T;                              \
+                                                      \
+    using Vulkan##T##Ref = Handle<Vulkan##T>;         \
+    using Vulkan##T##WeakRef = WeakHandle<Vulkan##T>; \
+                                                      \
+    using T##Ref = Vulkan##T##Ref;                    \
+    using T##WeakRef = Vulkan##T##WeakRef;
 
 #define DECLARE_VULKAN_GFX_TYPE(T)            \
     class Vulkan##T;                          \
@@ -46,23 +46,23 @@ namespace Hyperion {
     using Vulkan##T##WeakRef = WeakHandle<Vulkan##T>;
 
 #elif HYP_DX12
-#define DECLARE_GFX_TYPE(T)                                                             \
-    DECLARE_GFX_TYPE_BASE(T);                                                           \
-                                                                                        \
-    class DX12##T;                                                                      \
-                                                                                        \
-    using T = DX12##T;                                                                  \
-                                                                                        \
-    using DX12##T##Ref = Handle<DX12##T>;                                               \
-    using DX12##T##WeakRef = WeakHandle<DX12##T>;                                       \
-                                                                                        \
-    using T##Ref = DX12##T##Ref;                                                        \
-    using T##WeakRef = DX12##T##WeakRef;                                                \
+#define DECLARE_GFX_TYPE(T)                       \
+    DECLARE_GFX_TYPE_BASE(T);                     \
+                                                  \
+    class DX12##T;                                \
+                                                  \
+    using T = DX12##T;                            \
+                                                  \
+    using DX12##T##Ref = Handle<DX12##T>;         \
+    using DX12##T##WeakRef = WeakHandle<DX12##T>; \
+                                                  \
+    using T##Ref = DX12##T##Ref;                  \
+    using T##WeakRef = DX12##T##WeakRef;
 
-#define DECLARE_DX12_GFX_TYPE(T)                \
-    class DX12##T;                              \
-                                                \
-    using DX12##T##Ref = Handle<DX12##T>;       \
+#define DECLARE_DX12_GFX_TYPE(T)          \
+    class DX12##T;                        \
+                                          \
+    using DX12##T##Ref = Handle<DX12##T>; \
     using DX12##T##WeakRef = WeakHandle<DX12##T>;
 #endif
 
@@ -83,8 +83,8 @@ DECLARE_GFX_TYPE(RayTracingPipeline);
 DECLARE_GFX_TYPE(ShaderInstance);
 DECLARE_GFX_TYPE(DescriptorSet);
 DECLARE_GFX_TYPE(DescriptorTable);
-DECLARE_GFX_TYPE(GpuBlas);
-DECLARE_GFX_TYPE(GpuTlas);
+DECLARE_GFX_TYPE(BottomLevelAS);
+DECLARE_GFX_TYPE(TopLevelAS);
 DECLARE_GFX_TYPE(TextureViewCache);
 
 #if HYP_VULKAN
@@ -99,8 +99,8 @@ DECLARE_VULKAN_GFX_TYPE(RenderPass);
 
 DECLARE_DX12_GFX_TYPE(Fence);
 DECLARE_DX12_GFX_TYPE(RayTracingPipeline);
-DECLARE_DX12_GFX_TYPE(GpuBlas);
-DECLARE_DX12_GFX_TYPE(GpuTlas);
+DECLARE_DX12_GFX_TYPE(BottomLevelAS);
+DECLARE_DX12_GFX_TYPE(TopLevelAS);
 
 #undef DECLARE_DX12_GFX_TYPE
 

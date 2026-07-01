@@ -178,7 +178,7 @@ VulkanDescriptorSet::VulkanDescriptorSet(const DescriptorSetLayout& layout)
             }
             else if (shaderInput.category == ShaderResourceCategory::AccelerationStructure)
             {
-                PrefillElements<VulkanGpuTlas>(shaderInput.name, shaderInput.count);
+                PrefillElements<VulkanTopLevelAS>(shaderInput.name, shaderInput.count);
             }
             else
             {
@@ -350,9 +350,9 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 }
                 else if (shaderInput->category == ShaderResourceCategory::AccelerationStructure)
                 {
-                    AssertDebug(Hyperion::IsA<VulkanGpuTlas>(ptr), "Invalid TLAS descriptor: {}", name);
+                    AssertDebug(Hyperion::IsA<VulkanTopLevelAS>(ptr), "Invalid TLAS descriptor: {}", name);
 
-                    VulkanGpuTlas* ref = DynamicCast<VulkanGpuTlas>(ptr);
+                    VulkanTopLevelAS* ref = DynamicCast<VulkanTopLevelAS>(ptr);
                     AssertDebug(ref != nullptr, "Invalid TLAS reference for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
                     AssertDebug(ref->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid TLAS for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
 

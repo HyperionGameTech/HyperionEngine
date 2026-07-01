@@ -31,7 +31,7 @@
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/ShaderCompiler.hpp>
 
-#include <Rendering/MeshBlasBuilder.hpp>
+#include <Rendering/BLASBuilder.hpp>
 
 #include <Scene/World.hpp>
 #include <Scene/EnvProbe.hpp>
@@ -208,7 +208,7 @@ void LightmapRenderer_GpuPathTracing::CreateAccelerationStructures()
 
         AssertDebug(meshProxy->mesh != nullptr);
 
-        GpuBlasRef blas = MeshBlasBuilder::Build(meshProxy->mesh, meshProxy->material);
+        BottomLevelASRef blas = BLASBuilder::Build(meshProxy->mesh, meshProxy->material);
         Assert(blas != nullptr);
 
         blas->SetTransform(meshProxy->bufferData.modelMatrix);
@@ -226,9 +226,9 @@ void LightmapRenderer_GpuPathTracing::CreateAccelerationStructures()
 
         const uint64 key = entity->Id().GetHashCode().Value();
 
-        if (!m_tlas->HasGpuBlas(key))
+        if (!m_tlas->ContainsBLAS(key))
         {
-            m_tlas->AddGpuBlas(key, blas);
+            m_tlas->AddBLAS(key, blas);
         }
 
         hasBlas = true;
@@ -380,7 +380,7 @@ bool LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
 
     if (!m_tlas || !m_tlas->IsCreated())
     {
-        // no GpuBlas to process if TLAS not created
+        // no BottomLevelAS to process if TLAS not created
         HYP_LOG(Lightmap, Error, "No top level acceleration structure created, cannot bake lightmap");
         return false;
     }

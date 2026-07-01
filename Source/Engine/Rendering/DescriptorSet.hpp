@@ -70,7 +70,7 @@ struct DescriptorSetElementTypeInfo<Sampler>
 };
 
 template <>
-struct DescriptorSetElementTypeInfo<GpuTlas>
+struct DescriptorSetElementTypeInfo<TopLevelAS>
 {
     static constexpr uint32 mask = (1u << uint32(ShaderInputType::SRV));
 };
@@ -308,8 +308,8 @@ public:
     void SetElement(StringHash name, uint32 index, Sampler* ref);
     void SetElement(StringHash name, Sampler* ref);
 
-    void SetElement(StringHash name, uint32 index, GpuTlas* ref);
-    void SetElement(StringHash name, GpuTlas* ref);
+    void SetElement(StringHash name, uint32 index, TopLevelAS* ref);
+    void SetElement(StringHash name, TopLevelAS* ref);
 
     /*! \brief Only for bindless descriptors; Marks the element at \p index as invalid */
     void DeleteElement(StringHash name, uint32 index);

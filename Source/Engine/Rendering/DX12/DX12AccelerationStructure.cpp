@@ -43,8 +43,8 @@ public:
     BuildDX12AccelerationStructureCmd(
         const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC& buildDesc,
         ID3D12Resource* asResource)
-        : buildDesc(buildDesc)
-        , asResource(asResource)
+        : buildDesc(buildDesc),
+          asResource(asResource)
     {
     }
 
@@ -52,12 +52,12 @@ public:
     {
         auto* self = static_cast<BuildDX12AccelerationStructureCmd*>(cmd);
         auto* dx12Cmd = static_cast<DX12CommandBuffer*>(commandBuffer);
-        
+
         ID3D12GraphicsCommandList* commandList = dx12Cmd->GetCommandList();
 
         ComPtr<ID3D12GraphicsCommandList4> commandList4;
         HRESULT hr = commandList->QueryInterface(IID_PPV_ARGS(&commandList4));
-        
+
         if (SUCCEEDED(hr))
         {
             commandList4->BuildRaytracingAccelerationStructure(&self->buildDesc, 0, nullptr);
@@ -139,56 +139,34 @@ RendererResult DX12AccelerationGeometry::Create()
 
 #pragma endregion DX12AccelerationGeometry
 
-#pragma region DX12AccelerationStructureBase
+#pragma region DX12ASBase
 
-DX12AccelerationStructureBase::DX12AccelerationStructureBase(const Mat4f& transform)
+DX12ASBase::DX12ASBase(const Mat4f& transform)
     : m_transform(transform),
       m_flags(ACCELERATION_STRUCTURE_FLAGS_NONE)
 {
 }
 
-DX12AccelerationStructureBase::~DX12AccelerationStructureBase()
+DX12ASBase::~DX12ASBase()
 {
     m_geometries.Clear();
     m_buffer.Reset();
     m_scratchBuffer.Reset();
 }
 
-#ifdef HYP_RHI_DEBUG_NAMES
-void DX12AccelerationStructureBase::SetDebugName(Name name)
-{
-    m_debugName = name;
+#pragma endregion DX12ASBase
 
-    if (!name.IsValid())
-    {
-        return;
-    }
+#pragma region DX12BottomLevelAS
 
-    if (m_buffer)
-    {
-        m_buffer->SetDebugName(name);
-    }
-
-    if (m_scratchBuffer)
-    {
-        m_scratchBuffer->SetDebugName(NAME_FMT("{}_scratch", *name));
-    }
-}
-#endif
-
-#pragma endregion DX12AccelerationStructureBase
-
-#pragma region DX12GpuBlas
-
-DX12GpuBlas::DX12GpuBlas(
+DX12BottomLevelAS::DX12BottomLevelAS(
     const DX12GpuBufferRef& packedVerticesBuffer,
     const DX12GpuBufferRef& packedIndicesBuffer,
     uint32 numVertices,
     uint32 numIndices,
     const Handle<Material>& material,
     const Mat4f& transform)
-    : GpuBlasBase(),
-      DX12AccelerationStructureBase(transform),
+    : BottomLevelASBase(),
+      DX12ASBase(transform),
       m_packedVerticesBuffer(packedVerticesBuffer),
       m_packedIndicesBuffer(packedIndicesBuffer)
 {
@@ -202,16 +180,16 @@ DX12GpuBlas::DX12GpuBlas(
         m_material);
 }
 
-DX12GpuBlas::~DX12GpuBlas()
+DX12BottomLevelAS::~DX12BottomLevelAS()
 {
 }
 
-bool DX12GpuBlas::IsCreated() const
+bool DX12BottomLevelAS::IsCreated() const
 {
     return m_buffer && m_buffer->IsCreated();
 }
 
-RendererResult DX12GpuBlas::Create()
+RendererResult DX12BottomLevelAS::Create()
 {
     if (IsCreated())
     {
@@ -232,12 +210,12 @@ RendererResult DX12GpuBlas::Create()
     return Rebuild(flags);
 }
 
-void DX12GpuBlas::SetTransform(const Mat4f& transform)
+void DX12BottomLevelAS::SetTransform(const Mat4f& transform)
 {
-    DX12AccelerationStructureBase::SetTransform(transform);
+    DX12ASBase::SetTransform(transform);
 }
 
-void DX12GpuBlas::SetMaterialBinding(uint32 materialBinding)
+void DX12BottomLevelAS::SetMaterialBinding(uint32 materialBinding)
 {
     if (m_materialBinding == materialBinding)
     {
@@ -254,7 +232,7 @@ void DX12GpuBlas::SetMaterialBinding(uint32 materialBinding)
     m_flags |= ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE;
 }
 
-RendererResult DX12GpuBlas::UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags)
+RendererResult DX12BottomLevelAS::UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags)
 {
     outUpdateStateFlags = RT_UPDATE_STATE_FLAGS_NONE;
 
@@ -280,7 +258,7 @@ RendererResult DX12GpuBlas::UpdateStructure(RTUpdateStateFlags& outUpdateStateFl
     return {};
 }
 
-RendererResult DX12GpuBlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
+RendererResult DX12BottomLevelAS::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
 {
     outUpdateStateFlags = RT_UPDATE_STATE_FLAGS_NONE;
 
@@ -341,7 +319,7 @@ RendererResult DX12GpuBlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
 
     D3D12_RAYTRACING_GEOMETRY_DESC* geometryDescCopy = g_dx12Pool->Allocate<D3D12_RAYTRACING_GEOMETRY_DESC>();
     *geometryDescCopy = geometryDesc;
-    
+
     inputs.pGeometryDescs = geometryDescCopy;
 
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc {};
@@ -362,29 +340,38 @@ RendererResult DX12GpuBlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
 }
 
 #ifdef HYP_RHI_DEBUG_NAMES
-void DX12GpuBlas::SetDebugName(Name name)
+void DX12BottomLevelAS::SetDebugName(Name name)
 {
-    GpuBlasBase::SetDebugName(name);
-    DX12AccelerationStructureBase::SetDebugName(name);
+    BottomLevelASBase::SetDebugName(name);
+    
+    if (m_buffer)
+    {
+        m_buffer->SetDebugName(name);
+    }
+
+    if (m_scratchBuffer)
+    {
+        m_scratchBuffer->SetDebugName(NAME_FMT("{}_scratch", *name));
+    }
 }
 #endif
 
-#pragma endregion DX12GpuBlas
+#pragma endregion DX12BottomLevelAS
 
-#pragma region DX12GpuTlas
+#pragma region DX12TopLevelAS
 
-DX12GpuTlas::DX12GpuTlas()
-    : GpuTlasBase(),
-      DX12AccelerationStructureBase()
+DX12TopLevelAS::DX12TopLevelAS()
+    : TopLevelASBase(),
+      DX12ASBase()
 {
 }
 
-DX12GpuTlas::~DX12GpuTlas()
+DX12TopLevelAS::~DX12TopLevelAS()
 {
     m_instancesBuffer.Reset();
     m_scratchBuffer.Reset();
 
-    for (DX12GpuBlas* blas : m_blases)
+    for (DX12BottomLevelAS* blas : m_blases)
     {
         blas->Release();
     }
@@ -405,53 +392,58 @@ DX12GpuTlas::~DX12GpuTlas()
     }
 }
 
-bool DX12GpuTlas::IsCreated() const
+bool DX12TopLevelAS::IsCreated() const
 {
     return m_buffer && m_buffer->IsCreated();
 }
 
-void DX12GpuTlas::AddGpuBlas(uint64 key, GpuBlas* blas)
+void DX12TopLevelAS::AddBLAS(uint64 key, DX12BottomLevelAS* blas)
 {
     if (!blas)
     {
         return;
     }
 
-    DX12GpuBlas* dx12Blas = StaticCast<DX12GpuBlas>(blas);
-
     if (m_keyToBlasAndStorageId.Contains(key))
     {
         return;
     }
 
-    Assert(dx12Blas->IsCreated());
-    Assert(!dx12Blas->GetGeometries().Empty());
+    if (m_blases.Size() == MaxBlases)
+    {
+        HYP_LOG(RenderingBackend, Warning, "Cannot add any more BLASes to TLAS, limit reached ({})", MaxBlases);
 
-    for (const DX12AccelerationGeometry& geometry : dx12Blas->GetGeometries())
+        return;
+    }
+
+    Assert(blas->IsCreated());
+    Assert(!blas->GetGeometries().Empty());
+
+    for (const DX12AccelerationGeometry& geometry : blas->GetGeometries())
     {
         Assert(geometry.GetPackedVerticesBuffer() != nullptr);
         Assert(geometry.GetPackedIndicesBuffer() != nullptr);
     }
 
     auto& entry = m_keyToBlasAndStorageId[key];
-    entry.first = dx12Blas;
+    entry.first = blas;
     entry.second = ~0u;
 
-    dx12Blas->AddRef();
+    blas->AddRef();
 
-    m_blases.PushBack(dx12Blas);
+    m_blases.PushBack(blas);
     m_keys.PushBack(key);
 
     SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING);
 }
 
-void DX12GpuTlas::RemoveGpuBlas(uint64 key)
+void DX12TopLevelAS::RemoveBLAS(uint64 key)
 {
     auto it = m_keyToBlasAndStorageId.Find(key);
 
     if (it != m_keyToBlasAndStorageId.End())
     {
-        DX12GpuBlas* blas = it->second.first;
+        DX12BottomLevelAS* blas = it->second.first;
         uint32 storageId = it->second.second;
 
         RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2);
@@ -475,12 +467,12 @@ void DX12GpuTlas::RemoveGpuBlas(uint64 key)
     }
 }
 
-bool DX12GpuTlas::HasGpuBlas(uint64 key)
+bool DX12TopLevelAS::ContainsBLAS(uint64 key)
 {
     return m_keyToBlasAndStorageId.Contains(key);
 }
 
-RendererResult DX12GpuTlas::Create()
+RendererResult DX12TopLevelAS::Create()
 {
     if (IsCreated())
     {
@@ -489,10 +481,10 @@ RendererResult DX12GpuTlas::Create()
 
     if (m_blases.Empty())
     {
-        return HYP_MAKE_ERROR(RendererError, "Top level acceleration structure must have at least one GpuBlas");
+        return HYP_MAKE_ERROR(RendererError, "Top level acceleration structure must have at least one BottomLevelAS");
     }
 
-    for (DX12GpuBlas* blas : m_blases)
+    for (DX12BottomLevelAS* blas : m_blases)
     {
         Assert(blas != nullptr);
 
@@ -562,7 +554,7 @@ RendererResult DX12GpuTlas::Create()
     return RendererResult();
 }
 
-RendererResult DX12GpuTlas::UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags)
+RendererResult DX12TopLevelAS::UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags)
 {
     outUpdateStateFlags = RT_UPDATE_STATE_FLAGS_NONE;
 
@@ -575,7 +567,7 @@ RendererResult DX12GpuTlas::UpdateStructure(RTUpdateStateFlags& outUpdateStateFl
 
     for (uint32 i = 0; i < uint32(m_blases.Size()); i++)
     {
-        DX12GpuBlas* blas = m_blases[i];
+        DX12BottomLevelAS* blas = m_blases[i];
         Assert(blas != nullptr);
 
         RTUpdateStateFlags blasUpdateStateFlags = RT_UPDATE_STATE_FLAGS_NONE;
@@ -644,7 +636,7 @@ RendererResult DX12GpuTlas::UpdateStructure(RTUpdateStateFlags& outUpdateStateFl
     return RendererResult();
 }
 
-RendererResult DX12GpuTlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
+RendererResult DX12TopLevelAS::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
 {
     outUpdateStateFlags = RT_UPDATE_STATE_FLAGS_NONE;
 
@@ -653,7 +645,7 @@ RendererResult DX12GpuTlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
         return {};
     }
 
-    for (DX12GpuBlas* blas : m_blases)
+    for (DX12BottomLevelAS* blas : m_blases)
     {
         Assert(blas != nullptr);
         Assert(blas->IsCreated());
@@ -733,12 +725,12 @@ RendererResult DX12GpuTlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
     return {};
 }
 
-RendererResult DX12GpuTlas::BuildInstancesBuffer()
+RendererResult DX12TopLevelAS::BuildInstancesBuffer()
 {
     return BuildInstancesBuffer(0, uint32(m_blases.Size()));
 }
 
-RendererResult DX12GpuTlas::BuildInstancesBuffer(uint32 first, uint32 last)
+RendererResult DX12TopLevelAS::BuildInstancesBuffer(uint32 first, uint32 last)
 {
     if (last <= first)
     {
@@ -784,7 +776,7 @@ RendererResult DX12GpuTlas::BuildInstancesBuffer(uint32 first, uint32 last)
 
     for (uint32 i = first; i < last; i++)
     {
-        DX12GpuBlas* blas = m_blases[i];
+        DX12BottomLevelAS* blas = m_blases[i];
         Assert(blas != nullptr);
 
         D3D12_RAYTRACING_INSTANCE_DESC& desc = instances[i - first];
@@ -809,12 +801,12 @@ RendererResult DX12GpuTlas::BuildInstancesBuffer(uint32 first, uint32 last)
     return RendererResult();
 }
 
-RendererResult DX12GpuTlas::BuildMeshDescriptionsBuffer()
+RendererResult DX12TopLevelAS::BuildMeshDescriptionsBuffer()
 {
     return BuildMeshDescriptionsBuffer(0u, uint32(m_blases.Size()));
 }
 
-RendererResult DX12GpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 last)
+RendererResult DX12TopLevelAS::BuildMeshDescriptionsBuffer(uint32 first, uint32 last)
 {
     if (last <= first)
     {
@@ -833,13 +825,13 @@ RendererResult DX12GpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 las
 
     for (uint32 i = first; i < last; i++)
     {
-        DX12GpuBlas* blas = m_blases[i];
+        DX12BottomLevelAS* blas = m_blases[i];
         uint64 key = m_keys[i];
 
         MeshDescription& meshDescription = meshDescriptions[i - first];
         meshDescription = {};
 
-        Assert(blas->GetGeometries().Any(), "No geometries added to GpuBlas node %u!", i);
+        Assert(blas->GetGeometries().Any(), "No geometries added to BottomLevelAS node %u!", i);
 
         Assert(blas->GetGeometries()[0].GetPackedVerticesBuffer()->IsCreated());
         Assert(blas->GetGeometries()[0].GetPackedIndicesBuffer()->IsCreated());
@@ -884,13 +876,22 @@ RendererResult DX12GpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 las
 }
 
 #ifdef HYP_RHI_DEBUG_NAMES
-void DX12GpuTlas::SetDebugName(Name name)
+void DX12TopLevelAS::SetDebugName(Name name)
 {
-    GpuTlasBase::SetDebugName(name);
-    DX12AccelerationStructureBase::SetDebugName(name);
+    TopLevelASBase::SetDebugName(name);
+
+    if (m_buffer)
+    {
+        m_buffer->SetDebugName(name);
+    }
+
+    if (m_scratchBuffer)
+    {
+        m_scratchBuffer->SetDebugName(NAME_FMT("{}_scratch", *name));
+    }
 }
 #endif
 
-#pragma endregion DX12GpuTlas
+#pragma endregion DX12TopLevelAS
 
 } // namespace Hyperion

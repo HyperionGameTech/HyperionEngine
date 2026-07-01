@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -20,9 +20,9 @@
 namespace Hyperion {
 
 static constexpr uint32 ElementTypeToBufferType[uint32(ShaderInputType::MAX)] = {
-    0,                                                          // Unset
-    (1u << uint32(GpuBufferType::ConstantBuffer)),              // CBV
-    (1u << uint32(GpuBufferType::ConstantBuffer)),              // CBV_Dynamic
+    0,                                             // Unset
+    (1u << uint32(GpuBufferType::ConstantBuffer)), // CBV
+    (1u << uint32(GpuBufferType::ConstantBuffer)), // CBV_Dynamic
     (1u << uint32(GpuBufferType::StructuredBuffer))
         | (1u << uint32(GpuBufferType::RWStructuredBuffer))
         | (1u << uint32(GpuBufferType::ByteAddressBuffer))
@@ -31,7 +31,7 @@ static constexpr uint32 ElementTypeToBufferType[uint32(ShaderInputType::MAX)] = 
         | (1u << uint32(GpuBufferType::StagingBuffer))
         | (1u << uint32(GpuBufferType::IndirectArgsBuffer))
         | (1u << uint32(GpuBufferType::RTMeshIndexBuffer))
-        | (1u << uint32(GpuBufferType::RTMeshVertexBuffer)),    // SRV
+        | (1u << uint32(GpuBufferType::RTMeshVertexBuffer)), // SRV
     (1u << uint32(GpuBufferType::StructuredBuffer))
         | (1u << uint32(GpuBufferType::RWStructuredBuffer))
         | (1u << uint32(GpuBufferType::ByteAddressBuffer))
@@ -40,13 +40,13 @@ static constexpr uint32 ElementTypeToBufferType[uint32(ShaderInputType::MAX)] = 
         | (1u << uint32(GpuBufferType::StagingBuffer))
         | (1u << uint32(GpuBufferType::IndirectArgsBuffer))
         | (1u << uint32(GpuBufferType::RTMeshIndexBuffer))
-        | (1u << uint32(GpuBufferType::RTMeshVertexBuffer)),    // SRV_Dynamic
+        | (1u << uint32(GpuBufferType::RTMeshVertexBuffer)), // SRV_Dynamic
     (1u << uint32(GpuBufferType::RWStructuredBuffer))
         | (1u << uint32(GpuBufferType::RWByteAddressBuffer))
-        | (1u << uint32(GpuBufferType::IndirectArgsBuffer)),    // UAV
+        | (1u << uint32(GpuBufferType::IndirectArgsBuffer)), // UAV
     (1u << uint32(GpuBufferType::RWStructuredBuffer))
-        | (1u << uint32(GpuBufferType::RWByteAddressBuffer)),   // UAV_Dynamic
-    0                                                           // Sampler
+        | (1u << uint32(GpuBufferType::RWByteAddressBuffer)), // UAV_Dynamic
+    0                                                         // Sampler
 };
 
 #pragma region ShaderInputSet
@@ -177,11 +177,11 @@ DescriptorSetLayout::DescriptorSetLayout(const ShaderInputSet* decl)
     {
         for (const ShaderInput& shaderInput : slot)
         {
-//#ifdef HYP_VULKAN
+            // #ifdef HYP_VULKAN
             const uint32 binding = m_decl->CalculateFlatIndex(shaderInput.slot, shaderInput.name);
-//#elif HYP_DX12
-//            const uint32 binding = shaderInput.index;
-//#endif
+            // #elif HYP_DX12
+            //             const uint32 binding = shaderInput.index;
+            // #endif
 
             Assert(binding != ~0u);
 
@@ -208,9 +208,9 @@ DescriptorSetLayout::DescriptorSetLayout(const ShaderInputSet* decl)
     }
 
     std::sort(dynamicElementsWithIndex.Begin(), dynamicElementsWithIndex.End(), [](const Pair<Name, uint32>& a, const Pair<Name, uint32>& b)
-        {
-            return a.second < b.second;
-        });
+              {
+                  return a.second < b.second;
+              });
 
     m_dynamicElements.Resize(dynamicElementsWithIndex.Size());
 
@@ -243,7 +243,7 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
 
     // Range check
     AssertDebug(index < shaderInput->count, "Index {} out of range for element {} with count {}",
-        index, Name(name), shaderInput->count);
+                index, Name(name), shaderInput->count);
 
     if constexpr (std::is_base_of_v<GpuBufferBase, T>)
     {
@@ -257,7 +257,7 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
         AssertDebug(Mask & (1u << uint32(shaderInput->type)), "Layout type for {} does not match given type", Name(name));
 
         const bool isByteAddressBuffer = (shaderInput->bufferType == GpuBufferType::ByteAddressBuffer
-            || shaderInput->bufferType == GpuBufferType::RWByteAddressBuffer);
+                                          || shaderInput->bufferType == GpuBufferType::RWByteAddressBuffer);
 
         if (bufferStride == ByteAddressBufferStride)
         {
@@ -288,7 +288,7 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
 
         AssertDebug(Mask & (1u << uint32(shaderInput->type)), "Layout type for {} does not match given type", Name(name));
     }
-    else if constexpr (std::is_base_of_v<GpuTlasBase, T>)
+    else if constexpr (std::is_base_of_v<TopLevelASBase, T>)
     {
         static constexpr uint32 Mask = (1u << uint32(ShaderInputType::SRV));
 
@@ -331,11 +331,11 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
         }
         else
         {
-            //if (element->values[index] == ref)
+            // if (element->values[index] == ref)
             //{
-            //    // same object reference; skip marking dirty; unless TLAS (the tlas can change)
-            //    return *element;
-            //}
+            //     // same object reference; skip marking dirty; unless TLAS (the tlas can change)
+            //     return *element;
+            // }
 
             element->values[index] = ref;
         }
@@ -382,12 +382,12 @@ void DescriptorSetBase::SetElement(StringHash name, Sampler* ref)
     SetElement(name, 0, ref);
 }
 
-void DescriptorSetBase::SetElement(StringHash name, uint32 index, GpuTlas* ref)
+void DescriptorSetBase::SetElement(StringHash name, uint32 index, TopLevelAS* ref)
 {
-    SetElementT<GpuTlas>(name, index, ref);
+    SetElementT<TopLevelAS>(name, index, ref);
 }
 
-void DescriptorSetBase::SetElement(StringHash name, GpuTlas* ref)
+void DescriptorSetBase::SetElement(StringHash name, TopLevelAS* ref)
 {
     SetElement(name, 0, ref);
 }

@@ -7,7 +7,7 @@
 #include <RenderingPch.hpp>
 
 #include <Rendering/BLASCache.hpp>
-#include <Rendering/MeshBlasBuilder.hpp>
+#include <Rendering/BLASBuilder.hpp>
 #include <Rendering/Mesh.hpp>
 #include <Rendering/Material.hpp>
 
@@ -32,7 +32,7 @@ static uint64 MakeBLASKey(Span<const ObjIdBase> ids)
 
 struct Entry
 {
-    GpuBlas* blas;
+    BottomLevelAS* blas;
     uint32 lastUsedFrame;
 };
 
@@ -72,7 +72,7 @@ BLASCache::~BLASCache() = default;
 void BLASCache::GetOrCreateBLAS(
     Entity* entity, Mesh* mesh, Material* material,
     uint64& outNewKey, uint64& outOldKey,
-    GpuBlas*& outBlas)
+    BottomLevelAS*& outBlas)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -149,14 +149,14 @@ void BLASCache::GetOrCreateBLAS(
     it = m_impl->map.Emplace(newKey).first;
     Assert(it->second.blas == nullptr);
 
-    GpuBlasRef gpuBlas = MeshBlasBuilder::Build(mesh, material);
-    CheckResult(gpuBlas->Create());
+    BottomLevelASRef blas = BLASBuilder::Build(mesh, material);
+    CheckResult(blas->Create());
 
     // Build new BLAS
     Entry& entry = it->second;
 
     entry = {};
-    entry.blas = gpuBlas.Release();
+    entry.blas = blas.Release();
     entry.lastUsedFrame = GetFrameCounter();
 
     outBlas = entry.blas;

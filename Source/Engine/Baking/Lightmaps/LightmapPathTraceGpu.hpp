@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -73,7 +73,7 @@ private:
 
     RC<GpuLightmapperReadyNotification> m_readyNotification;
 
-    GpuTlasRef m_tlas;
+    TopLevelASRef m_tlas;
 };
 
 } // namespace Baking

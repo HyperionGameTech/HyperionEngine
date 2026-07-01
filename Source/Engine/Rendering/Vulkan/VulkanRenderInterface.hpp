@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -157,7 +157,7 @@ public:
 
     VulkanShaderInstanceRef MakeShader(const Shader* shader) override;
 
-    VulkanGpuBlasRef MakeGpuBlas(
+    VulkanBottomLevelASRef MakeBottomLevelAS(
         const VulkanGpuBufferRef& packedVerticesBuffer,
         const VulkanGpuBufferRef& packedIndicesBuffer,
         uint32 numVertices,
@@ -165,7 +165,7 @@ public:
         const Handle<Material>& material,
         const Mat4f& transform) override;
 
-    VulkanGpuTlasRef MakeTLAS() override;
+    VulkanTopLevelASRef MakeTLAS() override;
 
     void PopulateIndirectDrawCommandsBuffer(
         const VulkanGpuBuffer* vertexBuffer,

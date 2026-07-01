@@ -41,7 +41,7 @@
 #include <Rendering/BLASCache.hpp>
 #include <Rendering/AccelerationStructure.hpp>
 #include <Rendering/RayTracingPipeline.hpp>
-#include <Rendering/MeshBlasBuilder.hpp>
+#include <Rendering/BLASBuilder.hpp>
 #include <Rendering/RayTracingReflections.hpp>
 #include <Rendering/DDGI.hpp>
 #include <Rendering/CBufferAllocator.hpp>
@@ -2414,15 +2414,15 @@ void DeferredPass::CreateViewTopLevelAccelerationStructures(View* view, RayTraci
     defaultMesh->SetFlags(MeshFlags::ViewIndependent);
     defaultMesh->UploadGpuData();
 
-    GpuBlasRef blas = MeshBlasBuilder::Build(defaultMesh);
+    BottomLevelASRef blas = BLASBuilder::Build(defaultMesh);
     CheckResult(blas->Create());
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        GpuTlasRef& tlas = passData.rayTracingTlases[frameIndex];
+        TopLevelASRef& tlas = passData.rayTracingTlases[frameIndex];
 
         tlas = RI.MakeTLAS();
-        tlas->AddGpuBlas(0, blas);
+        tlas->AddBLAS(0, blas);
 
         CheckResult(tlas->Create());
     }
@@ -3012,7 +3012,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             RayTracingPassData* rayTracingPassData = DynamicCast<RayTracingPassData>(FetchViewPassData(rayTracingView));
             Assert(rayTracingPassData != nullptr);
 
-            const GpuTlasRef& tlas = rayTracingPassData->rayTracingTlases[frameIndex];
+            const TopLevelASRef& tlas = rayTracingPassData->rayTracingTlases[frameIndex];
 
             if (tlas && tlas->IsCreated())
             {
@@ -3294,7 +3294,7 @@ void DeferredPass::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
 
     if (!pd->rayTracingTlases[currentFrameIndex])
     {
-        for (GpuTlasRef& tlas : pd->rayTracingTlases)
+        for (TopLevelASRef& tlas : pd->rayTracingTlases)
         {
             tlas = RI.MakeTLAS();
         }
@@ -3323,7 +3323,7 @@ void DeferredPass::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
 
         uint64 newKey;
         uint64 oldKey;
-        GpuBlas* blas;
+        BottomLevelAS* blas;
 
         RI.blasCache->GetOrCreateBLAS(
             entity, meshProxy->mesh, meshProxy->material,
@@ -3340,7 +3340,7 @@ void DeferredPass::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
         {
             for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
             {
-                pd->rayTracingTlases[frameIndex]->RemoveGpuBlas(oldKey);
+                pd->rayTracingTlases[frameIndex]->RemoveBLAS(oldKey);
             }
         }
 
@@ -3361,11 +3361,11 @@ void DeferredPass::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
             blas->SetTransform(meshProxy->bufferData.modelMatrix);
         }
 
-        if (!pd->rayTracingTlases[currentFrameIndex]->HasGpuBlas(newKey))
+        if (!pd->rayTracingTlases[currentFrameIndex]->ContainsBLAS(newKey))
         {
             for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
             {
-                pd->rayTracingTlases[frameIndex]->AddGpuBlas(newKey, blas);
+                pd->rayTracingTlases[frameIndex]->AddBLAS(newKey, blas);
             }
 
             hasBlas = true;
@@ -3376,7 +3376,7 @@ void DeferredPass::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
     {
         if (hasBlas)
         {
-            for (GpuTlasRef& tlas : pd->rayTracingTlases)
+            for (TopLevelASRef& tlas : pd->rayTracingTlases)
             {
                 CheckResult(tlas->Create());
             }

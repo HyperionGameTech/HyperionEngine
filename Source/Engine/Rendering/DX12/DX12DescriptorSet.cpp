@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <DX12Pch.hpp>
 
@@ -68,7 +68,7 @@ DX12DescriptorSet::DX12DescriptorSet(const DescriptorSetLayout& layout)
             }
             else if (shaderInput.category == ShaderResourceCategory::AccelerationStructure)
             {
-                PrefillElements<DX12GpuTlas>(shaderInput.name, shaderInput.count);
+                PrefillElements<DX12TopLevelAS>(shaderInput.name, shaderInput.count);
             }
             else
             {
@@ -162,8 +162,8 @@ RendererResult DX12DescriptorSet::Create()
             // For bindless elements, use the MaxBindlessResources limit instead of ~0u
             const uint32 elementCount = shaderInput->count == ~0u
                 ? (shaderInput->category == ShaderResourceCategory::Buffer
-                    ? MaxBindlessResources[BindlessStorage_Buffers]
-                    : MaxBindlessResources[BindlessStorage_Textures])
+                       ? MaxBindlessResources[BindlessStorage_Buffers]
+                       : MaxBindlessResources[BindlessStorage_Textures])
                 : shaderInput->count;
 
             if (desc.slot == ShaderRegister::SAMPLER)
@@ -179,19 +179,21 @@ RendererResult DX12DescriptorSet::Create()
 
     // Sort view entries to match D3D12 descriptor range ordering used in BuildRootSignature
     std::sort(viewEntries.Begin(), viewEntries.End(),
-        [](const ViewEntry& a, const ViewEntry& b) {
-            if (a.rangeType != b.rangeType)
-            {
-                return a.rangeType < b.rangeType;
-            }
-            return a.baseShaderRegister < b.baseShaderRegister;
-        });
+              [](const ViewEntry& a, const ViewEntry& b)
+              {
+                  if (a.rangeType != b.rangeType)
+                  {
+                      return a.rangeType < b.rangeType;
+                  }
+                  return a.baseShaderRegister < b.baseShaderRegister;
+              });
 
     // Sort sampler entries to match D3D12 descriptor range ordering
     std::sort(samplerEntries.Begin(), samplerEntries.End(),
-        [](const SamplerEntry& a, const SamplerEntry& b) {
-            return a.baseShaderRegister < b.baseShaderRegister;
-        });
+              [](const SamplerEntry& a, const SamplerEntry& b)
+              {
+                  return a.baseShaderRegister < b.baseShaderRegister;
+              });
 
     // Assign heap offsets in sorted order matching the D3D12 descriptor table layout
     uint32 viewCount = 0;
@@ -342,9 +344,9 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 }
                 else if (shaderInput->category == ShaderResourceCategory::AccelerationStructure)
                 {
-                    AssertDebug(ptr && ptr->IsA<DX12GpuTlas>(), "Invalid TLAS descriptor: {}", name);
+                    AssertDebug(ptr && ptr->IsA<DX12TopLevelAS>(), "Invalid TLAS descriptor: {}", name);
 
-                    DX12GpuTlas* ref = StaticCast<DX12GpuTlas>(ptr);
+                    DX12TopLevelAS* ref = StaticCast<DX12TopLevelAS>(ptr);
                     AssertDebug(ref != nullptr);
 
                     DX12CachedDescriptor& descriptor = localDescriptors.EmplaceBack();
@@ -555,7 +557,7 @@ void DX12DescriptorSet::Update(bool force)
                 }
 
                 AssertDebug(imageView->GetImage()->GetTextureDesc().imageUsage & IU_SAMPLED,
-                    "Cannot create SRV descriptor for image without IU_SAMPLED flag set.");
+                            "Cannot create SRV descriptor for image without IU_SAMPLED flag set.");
 
                 const D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = GetSRVDesc(
                     imageView->GetImage(),
@@ -567,9 +569,9 @@ void DX12DescriptorSet::Update(bool force)
             }
             else if (foundShaderInput->category == ShaderResourceCategory::AccelerationStructure)
             {
-                AssertDebug(ptr && ptr->IsA<DX12GpuTlas>());
+                AssertDebug(ptr && ptr->IsA<DX12TopLevelAS>());
 
-                DX12GpuTlas* tlas = StaticCast<DX12GpuTlas>(ptr);
+                DX12TopLevelAS* tlas = StaticCast<DX12TopLevelAS>(ptr);
                 if (!tlas || !tlas->IsCreated())
                 {
                     continue;
@@ -611,10 +613,10 @@ void DX12DescriptorSet::Update(bool force)
 
                 Assert(
                     buffer->GetBufferType() == GpuBufferType::RWStructuredBuffer
-                    || buffer->GetBufferType() == GpuBufferType::RWByteAddressBuffer
-                    || buffer->GetBufferType() == GpuBufferType::ScratchBuffer
-                    || buffer->GetBufferType() == GpuBufferType::AccelerationStructureBuffer
-                    || buffer->GetBufferType() == GpuBufferType::IndirectArgsBuffer,
+                        || buffer->GetBufferType() == GpuBufferType::RWByteAddressBuffer
+                        || buffer->GetBufferType() == GpuBufferType::ScratchBuffer
+                        || buffer->GetBufferType() == GpuBufferType::AccelerationStructureBuffer
+                        || buffer->GetBufferType() == GpuBufferType::IndirectArgsBuffer,
                     "Creating UAV for buffer type {} (category {}) which lacks ALLOW_UNORDERED_ACCESS. "
                     "Shader input declares bufferType {}.",
                     EnumToString(buffer->GetBufferType()),
@@ -634,7 +636,7 @@ void DX12DescriptorSet::Update(bool force)
                 }
 
                 AssertDebug(imageView->GetImage()->GetTextureDesc().imageUsage & IU_STORAGE,
-                    "Cannot create UAV descriptor for image without IU_STORAGE flag set.");
+                            "Cannot create UAV descriptor for image without IU_STORAGE flag set.");
 
                 const D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = GetUAVDesc(
                     imageView->GetImage(),
@@ -795,9 +797,9 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Graphic
         boundDescriptorSets.Resize(bindIndex + 1);
     }
     else if (boundDescriptorSets[bindIndex].descriptorSet == this
-        && boundDescriptorSets[bindIndex].dynamicEntryCount == dynamicEntryCount
-        && boundDescriptorSets[bindIndex].updateVersion == m_updateVersion
-        && Memory::Compare(boundDescriptorSets[bindIndex].dynamicEntryAddresses, dynamicEntryAddresses, dynamicEntryCount * sizeof(UINT64)) == 0)
+             && boundDescriptorSets[bindIndex].dynamicEntryCount == dynamicEntryCount
+             && boundDescriptorSets[bindIndex].updateVersion == m_updateVersion
+             && Memory::Compare(boundDescriptorSets[bindIndex].dynamicEntryAddresses, dynamicEntryAddresses, dynamicEntryCount * sizeof(UINT64)) == 0)
     {
         return;
     }
@@ -908,9 +910,9 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Compute
         boundDescriptorSets.Resize(bindIndex + 1);
     }
     else if (boundDescriptorSets[bindIndex].descriptorSet == this
-        && boundDescriptorSets[bindIndex].dynamicEntryCount == dynamicEntryCount
-        && boundDescriptorSets[bindIndex].updateVersion == m_updateVersion
-        && Memory::Compare(boundDescriptorSets[bindIndex].dynamicEntryAddresses, dynamicEntryAddresses, dynamicEntryCount * sizeof(UINT64)) == 0)
+             && boundDescriptorSets[bindIndex].dynamicEntryCount == dynamicEntryCount
+             && boundDescriptorSets[bindIndex].updateVersion == m_updateVersion
+             && Memory::Compare(boundDescriptorSets[bindIndex].dynamicEntryAddresses, dynamicEntryAddresses, dynamicEntryCount * sizeof(UINT64)) == 0)
     {
         return;
     }
@@ -1021,9 +1023,9 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RayTrac
         boundDescriptorSets.Resize(bindIndex + 1);
     }
     else if (boundDescriptorSets[bindIndex].descriptorSet == this
-        && boundDescriptorSets[bindIndex].dynamicEntryCount == dynamicEntryCount
-        && boundDescriptorSets[bindIndex].updateVersion == m_updateVersion
-        && Memory::Compare(boundDescriptorSets[bindIndex].dynamicEntryAddresses, dynamicEntryAddresses, dynamicEntryCount * sizeof(UINT64)) == 0)
+             && boundDescriptorSets[bindIndex].dynamicEntryCount == dynamicEntryCount
+             && boundDescriptorSets[bindIndex].updateVersion == m_updateVersion
+             && Memory::Compare(boundDescriptorSets[bindIndex].dynamicEntryAddresses, dynamicEntryAddresses, dynamicEntryCount * sizeof(UINT64)) == 0)
     {
         return;
     }

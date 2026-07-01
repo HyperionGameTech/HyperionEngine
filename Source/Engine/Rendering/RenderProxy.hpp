@@ -45,7 +45,7 @@ struct MeshRayTracingData
     HYP_STRUCT_BODY(MeshRayTracingData);
 
     HYP_FIELD(NoScriptBindings)
-    GpuBlasRef blas;
+    BottomLevelASRef blas;
 
     ~MeshRayTracingData();
 };

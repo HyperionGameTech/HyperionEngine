@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -16,8 +16,6 @@ namespace Hyperion {
 class Entity;
 class Mesh;
 class Material;
-
-using BLASRef = GpuBlasRef;
 
 class BLASCache
 {
@@ -35,7 +33,7 @@ public:
     void GetOrCreateBLAS(
         Entity* entity, Mesh* mesh, Material* material,
         uint64& outNewKey, uint64& outOldKey,
-        GpuBlas*& outBlas);
+        BottomLevelAS*& outBlas);
 
     void RunCleanupCycle(int maxIter);
 

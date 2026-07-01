@@ -37,8 +37,8 @@ extern Pool* g_vulkanPool;
 
 class VulkanAccelerationGeometry final
 {
-    friend class VulkanGpuTlas;
-    friend class VulkanGpuBlas;
+    friend class VulkanTopLevelAS;
+    friend class VulkanBottomLevelAS;
 
 public:
     VulkanAccelerationGeometry(
@@ -112,11 +112,11 @@ private:
     bool m_isCreated : 1;
 };
 
-class VulkanAccelerationStructureBase
+class VulkanASBase
 {
 protected:
-    VulkanAccelerationStructureBase(const Mat4f& transform = Mat4f::Identity());
-    ~VulkanAccelerationStructureBase();
+    VulkanASBase(const Mat4f& transform = Mat4f::Identity());
+    ~VulkanASBase();
 
 public:
     HYP_FORCE_INLINE const VulkanGpuBufferRef& GetBuffer() const
@@ -204,25 +204,25 @@ protected:
     Name m_debugName;
 };
 
-using VulkanAccelerationStructureRef = Handle<VulkanAccelerationStructureBase>;
-using VulkanAccelerationStructureWeakRef = WeakHandle<VulkanAccelerationStructureBase>;
+using VulkanAccelerationStructureRef = Handle<VulkanASBase>;
+using VulkanAccelerationStructureWeakRef = WeakHandle<VulkanASBase>;
 
 HYP_CLASS(NoScriptBindings)
-class VulkanGpuBlas final : public GpuBlasBase, public VulkanAccelerationStructureBase
+class VulkanBottomLevelAS final : public BottomLevelASBase, public VulkanASBase
 {
-    HYP_OBJECT_BODY(VulkanGpuBlas);
+    HYP_OBJECT_BODY(VulkanBottomLevelAS);
 
 public:
-    friend class VulkanGpuTlas;
+    friend class VulkanTopLevelAS;
 
-    VulkanGpuBlas(
+    VulkanBottomLevelAS(
         const VulkanGpuBufferRef& packedVerticesBuffer,
         const VulkanGpuBufferRef& packedIndicesBuffer,
         uint32 numVertices,
         uint32 numIndices,
         const Handle<Material>& material,
         const Mat4f& transform);
-    ~VulkanGpuBlas() override;
+    ~VulkanBottomLevelAS() override;
 
     bool IsCreated() const override;
 
@@ -230,7 +230,7 @@ public:
 
     void SetTransform(const Mat4f& transform) override
     {
-        VulkanAccelerationStructureBase::SetTransform(transform);
+        VulkanASBase::SetTransform(transform);
     }
 
     void SetMaterialBinding(uint32 materialBinding) override
@@ -256,7 +256,7 @@ public:
 #ifdef HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name) override
     {
-        VulkanAccelerationStructureBase::SetDebugName(name);
+        VulkanASBase::SetDebugName(name);
     }
 #endif
 
@@ -268,19 +268,19 @@ private:
 };
 
 HYP_CLASS(NoScriptBindings)
-class VulkanGpuTlas final : public GpuTlasBase, public VulkanAccelerationStructureBase
+class VulkanTopLevelAS final : public TopLevelASBase, public VulkanASBase
 {
-    HYP_OBJECT_BODY(VulkanGpuTlas);
+    HYP_OBJECT_BODY(VulkanTopLevelAS);
 
 public:
-    VulkanGpuTlas();
-    ~VulkanGpuTlas() override;
+    VulkanTopLevelAS();
+    ~VulkanTopLevelAS() override;
 
     bool IsCreated() const override;
 
-    void AddGpuBlas(uint64 key, VulkanGpuBlas* blas) override;
-    void RemoveGpuBlas(uint64 key) override;
-    bool HasGpuBlas(uint64 key) override;
+    void AddBLAS(uint64 key, VulkanBottomLevelAS* blas) override;
+    void RemoveBLAS(uint64 key) override;
+    bool ContainsBLAS(uint64 key) override;
 
     RendererResult Create() override;
 
@@ -290,7 +290,7 @@ public:
 #ifdef HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name) override
     {
-        VulkanAccelerationStructureBase::SetDebugName(name);
+        VulkanASBase::SetDebugName(name);
     }
 #endif
 
@@ -308,10 +308,10 @@ private:
     RendererResult BuildMeshDescriptionsBuffer();
     RendererResult BuildMeshDescriptionsBuffer(uint32 first, uint32 last);
 
-    Array<VulkanGpuBlas*, VulkanAllocator> m_blases;
+    Array<VulkanBottomLevelAS*, VulkanAllocator> m_blases;
     Array<uint64, VulkanAllocator> m_keys;
 
-    TFlatMap<uint64, Pair<VulkanGpuBlas*, uint32>, VulkanAllocator> m_keyToBlasAndStorageId;
+    TFlatMap<uint64, Pair<VulkanBottomLevelAS*, uint32>, VulkanAllocator> m_keyToBlasAndStorageId;
 
     VulkanGpuBufferRef m_instancesBuffer;
 };

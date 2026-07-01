@@ -100,7 +100,7 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
     AssertDebug(parentPass != nullptr);
 
     const uint32 frameIndex = frame->GetFrameIndex();
-    const GpuTlasRef& tlas = pd->rayTracingTlases[frameIndex];
+    const TopLevelASRef& tlas = pd->rayTracingTlases[frameIndex];
     Assert(tlas != nullptr);
 
     const StructuredBuffer& meshDescriptionsBuffer = tlas->GetMeshDescriptionsBuffer();

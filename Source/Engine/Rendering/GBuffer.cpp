@@ -36,39 +36,40 @@ static constexpr const char* TargetNameStrings[GBufferTarget::Max] = {
     "Depth"
 };
 
-#pragma region GBuffer
-
 struct GBufferTargetDesc
 {
-    TextureFormat formats[4];
+    static constexpr size_t MaxFormats = 4;
 
-    GBufferTargetDesc(std::initializer_list<TextureFormat> formatsList)
+    TextureFormat formats[MaxFormats];
+
+    template <size_t N>
+    HYP_CONSTEVAL GBufferTargetDesc(const TextureFormat (&inFormats)[N])
     {
-        Assert(formatsList.size() <= std::size(formats));
+        static_assert(N <= MaxFormats);
 
-        for (uint32 i = 0; i < uint32(formatsList.size()); i++)
+        for (size_t i = 0; i < N; i++)
         {
-            formats[i] = *(formatsList.begin() + i);
+            formats[i] = *(inFormats + i);
         }
 
-        for (uint32 i = uint32(formatsList.size()); i < uint32(std::size(formats)); i++)
+        for (size_t i = N; i < MaxFormats; i++)
         {
             formats[i] = InvalidTextureFormat;
         }
     }
 };
 
-static const GBufferTargetDesc s_targetDescs[GBufferTarget::Max] = {
-    GBufferTargetDesc { TextureFormat::RGBA16F },                       // color
-    GBufferTargetDesc { TextureFormat::R10G10B10A2 },                   // normal: https://johnwhite3d.blogspot.com/2017/10/signed-octahedron-normal-encoding.html
-    GBufferTargetDesc { TextureFormat::R32 },                           // material data
-    GBufferTargetDesc { TextureFormat::RG16F },                         // velocity
-    GBufferTargetDesc { TextureFormat::D24_S8, TextureFormat::D32F_S8 } // depth
+static constexpr GBufferTargetDesc TargetDescs[GBufferTarget::Max] = {
+    GBufferTargetDesc({ TextureFormat::RGBA16F }),                       // Albedo
+    GBufferTargetDesc({ TextureFormat::R10G10B10A2 }),                   // Normals: https://johnwhite3d.blogspot.com/2017/10/signed-octahedron-normal-encoding.html
+    GBufferTargetDesc({ TextureFormat::R32 }),                           // MatData
+    GBufferTargetDesc({ TextureFormat::RG16F }),                         // Velocity
+    GBufferTargetDesc({ TextureFormat::D24_S8, TextureFormat::D32F_S8 }) // Depth
 };
 
 static inline TextureFormat GetImageFormat(GBufferTarget::TargetName targetName)
 {
-    for (auto it = std::begin(s_targetDescs[targetName].formats); it != std::end(s_targetDescs[targetName].formats) && *it != InvalidTextureFormat; ++it)
+    for (auto it = std::begin(TargetDescs[targetName].formats); it != std::end(TargetDescs[targetName].formats) && *it != InvalidTextureFormat; ++it)
     {
         if (RI.IsSupportedFormat(*it, ImageSupport::Attachment))
         {
@@ -80,6 +81,8 @@ static inline TextureFormat GetImageFormat(GBufferTarget::TargetName targetName)
 
     return InvalidTextureFormat;
 }
+
+#pragma region GBuffer
 
 GBuffer::GBuffer(Vec2u extent)
     : m_extent(extent),

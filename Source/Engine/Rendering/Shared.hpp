@@ -2389,7 +2389,7 @@ struct ShaderUniform
         GpuBuffer* buffer;
         GpuImageView* imageView;
         Sampler* sampler;
-        GpuTlas* tlas;
+        TopLevelAS* tlas;
     };
 
     enum : uint32
@@ -2430,7 +2430,7 @@ struct ShaderUniform
     {
     }
 
-    ShaderUniform(StringHash name, GpuTlas* tlas)
+    ShaderUniform(StringHash name, TopLevelAS* tlas)
         : name(name),
           tlas(tlas),
           type(UT_Tlas)
@@ -2490,7 +2490,7 @@ struct ShaderUniforms
         uniforms[index] = ShaderUniform(name, sampler);
     }
 
-    HYP_FORCE_INLINE void SetTlas(StringHash name, GpuTlas* tlas)
+    HYP_FORCE_INLINE void SetTlas(StringHash name, TopLevelAS* tlas)
     {
         uint8 index = count++;
         Assert(index < MaxUniforms);

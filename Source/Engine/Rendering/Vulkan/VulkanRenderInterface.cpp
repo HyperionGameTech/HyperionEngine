@@ -1326,7 +1326,7 @@ VulkanShaderInstanceRef VulkanRenderInterface::MakeShader(const Shader* shader)
     return MakeHandle<VulkanShaderInstance>(shader);
 }
 
-VulkanGpuBlasRef VulkanRenderInterface::MakeGpuBlas(
+VulkanBottomLevelASRef VulkanRenderInterface::MakeBottomLevelAS(
     const VulkanGpuBufferRef& packedVerticesBuffer,
     const VulkanGpuBufferRef& packedIndicesBuffer,
     uint32 numVertices,
@@ -1334,7 +1334,7 @@ VulkanGpuBlasRef VulkanRenderInterface::MakeGpuBlas(
     const Handle<Material>& material,
     const Mat4f& transform)
 {
-    return MakeHandle<VulkanGpuBlas>(
+    return MakeHandle<VulkanBottomLevelAS>(
         VulkanGpuBufferRef(packedVerticesBuffer),
         VulkanGpuBufferRef(packedIndicesBuffer),
         numVertices,
@@ -1343,9 +1343,9 @@ VulkanGpuBlasRef VulkanRenderInterface::MakeGpuBlas(
         transform);
 }
 
-VulkanGpuTlasRef VulkanRenderInterface::MakeTLAS()
+VulkanTopLevelASRef VulkanRenderInterface::MakeTLAS()
 {
-    return MakeHandle<VulkanGpuTlas>();
+    return MakeHandle<VulkanTopLevelAS>();
 }
 
 void VulkanRenderInterface::PopulateIndirectDrawCommandsBuffer(

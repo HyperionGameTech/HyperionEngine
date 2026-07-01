@@ -22,8 +22,8 @@ namespace Hyperion {
 
 class DX12AccelerationGeometry final
 {
-    friend class DX12GpuTlas;
-    friend class DX12GpuBlas;
+    friend class DX12TopLevelAS;
+    friend class DX12BottomLevelAS;
 
 public:
     DX12AccelerationGeometry(
@@ -79,11 +79,11 @@ private:
     bool m_isCreated;
 };
 
-class DX12AccelerationStructureBase
+class DX12ASBase
 {
 protected:
-    DX12AccelerationStructureBase(const Mat4f& transform = Mat4f::Identity());
-    ~DX12AccelerationStructureBase();
+    explicit DX12ASBase(const Mat4f& transform = Mat4f::Identity());
+    ~DX12ASBase();
 
 public:
     HYP_FORCE_INLINE const DX12GpuBufferRef& GetBuffer() const
@@ -128,10 +128,6 @@ public:
     }
 
 protected:
-#ifdef HYP_RHI_DEBUG_NAMES
-    void SetDebugName(Name name);
-#endif
-
     HYP_FORCE_INLINE void SetTransformUpdateFlag()
     {
         SetFlag(ACCELERATION_STRUCTURE_FLAGS_TRANSFORM_UPDATE);
@@ -147,28 +143,27 @@ protected:
     TList<DX12AccelerationGeometry, DX12Allocator> m_geometries;
     Mat4f m_transform;
     AccelerationStructureFlags m_flags;
-
-    Name m_debugName;
 };
 
-using DX12AccelerationStructureRef = Handle<DX12AccelerationStructureBase>;
+using DX12AccelerationStructureRef = Handle<DX12ASBase>;
 
 HYP_CLASS(NoScriptBindings)
-class DX12GpuBlas final : public GpuBlasBase, public DX12AccelerationStructureBase
+class DX12BottomLevelAS final : public BottomLevelASBase, public DX12ASBase
 {
-    HYP_OBJECT_BODY(DX12GpuBlas);
+    HYP_OBJECT_BODY(DX12BottomLevelAS);
 
 public:
-    friend class DX12GpuTlas;
+    friend class DX12TopLevelAS;
 
-    DX12GpuBlas(
+    DX12BottomLevelAS(
         const DX12GpuBufferRef& packedVerticesBuffer,
         const DX12GpuBufferRef& packedIndicesBuffer,
         uint32 numVertices,
         uint32 numIndices,
         const Handle<Material>& material,
         const Mat4f& transform);
-    ~DX12GpuBlas() override;
+
+    ~DX12BottomLevelAS() override;
 
     bool IsCreated() const override;
 
@@ -192,19 +187,19 @@ private:
 };
 
 HYP_CLASS(NoScriptBindings)
-class DX12GpuTlas final : public GpuTlasBase, public DX12AccelerationStructureBase
+class DX12TopLevelAS final : public TopLevelASBase, public DX12ASBase
 {
-    HYP_OBJECT_BODY(DX12GpuTlas);
+    HYP_OBJECT_BODY(DX12TopLevelAS);
 
 public:
-    DX12GpuTlas();
-    ~DX12GpuTlas() override;
+    DX12TopLevelAS();
+    ~DX12TopLevelAS() override;
 
     bool IsCreated() const override;
 
-    void AddGpuBlas(uint64 key, GpuBlas* blas) override;
-    void RemoveGpuBlas(uint64 key) override;
-    bool HasGpuBlas(uint64 key) override;
+    void AddBLAS(uint64 key, DX12BottomLevelAS* blas) override;
+    void RemoveBLAS(uint64 key) override;
+    bool ContainsBLAS(uint64 key) override;
 
     RendererResult Create() override;
 
@@ -225,9 +220,9 @@ private:
     RendererResult BuildMeshDescriptionsBuffer();
     RendererResult BuildMeshDescriptionsBuffer(uint32 first, uint32 last);
 
-    Array<DX12GpuBlas*, DX12Allocator> m_blases;
+    Array<DX12BottomLevelAS*, DX12Allocator> m_blases;
     Array<uint64, DX12Allocator> m_keys;
-    TMap<uint64, Pair<DX12GpuBlas*, uint32>, DX12Allocator> m_keyToBlasAndStorageId;
+    TMap<uint64, Pair<DX12BottomLevelAS*, uint32>, DX12Allocator> m_keyToBlasAndStorageId;
 
     DX12GpuBufferRef m_instancesBuffer;
 };

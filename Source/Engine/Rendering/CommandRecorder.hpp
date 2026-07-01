@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -177,7 +177,7 @@ public:
 
     BindGraphicsPipeline(GraphicsPipeline* pipeline)
         : m_pipeline(pipeline),
-            m_viewport()
+          m_viewport()
     {
     }
 
@@ -334,7 +334,7 @@ public:
     }
 
     Blit(Texture* src, Texture* dst,
-        const Rect<uint32>& srcRect, const Rect<uint32>& dstRect)
+         const Rect<uint32>& srcRect, const Rect<uint32>& dstRect)
         : m_src(src),
           m_dst(dst),
           m_srcRect(srcRect),
@@ -345,8 +345,8 @@ public:
     }
 
     Blit(Texture* src, Texture* dst,
-        const Rect<uint32>& srcRect, const Rect<uint32>& dstRect,
-        const ImageSubResource& srcSubResource, const ImageSubResource& dstSubResource)
+         const Rect<uint32>& srcRect, const Rect<uint32>& dstRect,
+         const ImageSubResource& srcSubResource, const ImageSubResource& dstSubResource)
         : m_src(src),
           m_dst(dst),
           m_srcRect(srcRect),
@@ -539,7 +539,6 @@ public:
         AssertDebug(m_srcBuffer && m_dstBuffer);
         AssertDebug(m_srcOffset + m_count <= m_srcBuffer->Size(), "Source buffer copy range out of bounds: {}", m_srcOffset + m_count);
         AssertDebug(m_dstOffset + m_count <= m_dstBuffer->Size(), "Destination buffer copy range out of bounds {}", m_dstOffset + m_count);
-
     }
 
     static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
@@ -875,7 +874,7 @@ public:
     {
     }
 
-    SetShaderUniform(uint32 uniformIndex, StringHash name, GpuTlas* tlas)
+    SetShaderUniform(uint32 uniformIndex, StringHash name, TopLevelAS* tlas)
         : uniformIndex(uniformIndex),
           uniform { name, tlas }
     {
@@ -955,7 +954,6 @@ protected:
     }
 
 public:
-
     virtual ~CommandRecorderBase() = default;
 
     HYP_FORCE_INLINE bool IsEmpty() const
@@ -976,8 +974,8 @@ public:
 
         AssertDebug(m_writableState.LoadVolatile());
 
-        //static_assert(std::is_trivially_copyable_v<TCmd> && std::is_trivially_destructible_v<TCmd>,
-         //   "CmdType should be trivially copyable and destructible!");
+        // static_assert(std::is_trivially_copyable_v<TCmd> && std::is_trivially_destructible_v<TCmd>,
+        //    "CmdType should be trivially copyable and destructible!");
 
         constexpr size_t CmdSize = sizeof(TCmd);
 

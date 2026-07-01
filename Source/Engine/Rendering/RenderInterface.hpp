@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -376,7 +376,7 @@ public:
 
     virtual ShaderInstanceRef MakeShader(const Shader* shader) = 0;
 
-    virtual GpuBlasRef MakeGpuBlas(
+    virtual BottomLevelASRef MakeBottomLevelAS(
         const GpuBufferRef& packedVerticesBuffer,
         const GpuBufferRef& packedIndicesBuffer,
         uint32 numVertices,
@@ -384,7 +384,7 @@ public:
         const Handle<Material>& material,
         const Mat4f& transform) = 0;
 
-    virtual GpuTlasRef MakeTLAS() = 0;
+    virtual TopLevelASRef MakeTLAS() = 0;
 
     virtual void PopulateIndirectDrawCommandsBuffer(
         const GpuBuffer* vertexBuffer,
@@ -461,7 +461,9 @@ public:
     Resources::ResourceContainer* resources;
 
 protected:
-    virtual void NewFrameIndex() {}
+    virtual void NewFrameIndex()
+    {
+    }
     virtual void PrepareFrame(Frame* frame) = 0;
 
     virtual void ReleaseTransientMemory() = 0;

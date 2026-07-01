@@ -289,7 +289,7 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    GpuTlas* tlas = pd->rayTracingTlases[frameIndex];
+    TopLevelAS* tlas = pd->rayTracingTlases[frameIndex];
     Assert(tlas != nullptr);
 
     const StructuredBuffer& meshDescriptionsBuffer = tlas->GetMeshDescriptionsBuffer();
