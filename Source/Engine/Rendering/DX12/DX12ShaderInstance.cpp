@@ -24,7 +24,7 @@ DX12ShaderInstance::DX12ShaderInstance()
 DX12ShaderInstance::DX12ShaderInstance(const Shader* shader)
     : ShaderInstanceBase(shader)
 {
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     if (shader != nullptr)
     {
         SetDebugName(shader->baseName);
@@ -92,7 +92,7 @@ RendererResult DX12ShaderInstance::Create()
         shaderBlob.ownedBytecode = ownedData;
     }
 
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     if (Name debugName = GetDebugName())
     {
         SetDebugName(debugName);
@@ -102,7 +102,7 @@ RendererResult DX12ShaderInstance::Create()
     return {};
 }
 
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
 void DX12ShaderInstance::SetDebugName(Name name)
 {
     ShaderInstanceBase::SetDebugName(name);

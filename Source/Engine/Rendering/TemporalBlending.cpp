@@ -236,7 +236,7 @@ void TemporalBlending::Render(Frame* frame, const RenderSetup& renderSetup)
     if (!cbuffer)
     {
         cbuffer = RI.MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(TemporalBlendingConstants));
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
         cbuffer->SetDebugName(NAME("TemporalBlendingConstants"));
 #endif
 

@@ -82,8 +82,7 @@ void VulkanFence::Create(bool createSignaled)
 
     VkResult result = vkCreateFence(RI.GetDevice()->GetDevice(), &fenceCreateInfo, nullptr, &handle);
     Assert(result == VK_SUCCESS, "Failed to create Vulkan fence, VkResult: {}", result);
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     SetDebugName(debugName);
 #endif
 }
@@ -149,8 +148,7 @@ void VulkanFence::Reset()
     isSubmitted = false;
 }
 
-#if HYP_DEBUG_MODE
-
+#ifdef HYP_RHI_DEBUG_NAMES
 void VulkanFence::SetDebugName(Name name)
 {
     debugName = name;
@@ -170,7 +168,6 @@ void VulkanFence::SetDebugName(Name name)
         RI.dynamicFunctions.vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
     }
 }
-
 #endif
 
 } // namespace Hyperion

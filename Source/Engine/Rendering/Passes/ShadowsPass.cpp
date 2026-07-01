@@ -27,6 +27,7 @@
 #include <Rendering/TextureViewCache.hpp>
 
 #include <Framework/EngineStats.hpp>
+#include <Framework/CVarManager.hpp>
 
 #include <Scene/Light.hpp>
 #include <Scene/View.hpp>
@@ -44,9 +45,10 @@ namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Rendering);
 
-static EngineStatGpuTimer s_statShadowMaps("Rendering/GPU/ShadowMaps");
-
 static constexpr uint32 BucketMask = RenderBucketMask<RenderBucket::Opaque, RenderBucket::Translucent, RenderBucket::Lightmapped>;
+
+EngineStatGpuTimer g_statShadowMaps("Rendering/GPU/ShadowMaps");
+CVar<bool> g_cvCacheShadowMaps("Rendering.CacheShadowMaps", true);
 
 #pragma region ShadowsPassData
 
@@ -127,7 +129,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     AssertDebug(renderSetup.world && renderSetup.light);
 
-    ENGINE_STAT_GPU_SCOPE(&s_statShadowMaps);
+    ENGINE_STAT_GPU_SCOPE(&g_statShadowMaps);
 
     Light* light = renderSetup.light;
     View* view = renderSetup.view; // may be null if shadow map is not view dependent (e.g non-directional light)
@@ -137,7 +139,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     const bool isVarianceShadowMap = light->GetShadowMapFilter() == ShadowMapFilter::SMF_VSM;
     const bool hasBakedStaticShadowMaps = (light->GetLightFlags() & LightFlags::BakeStaticShadows) && lightProxy->bakedShadowMap != nullptr;
-    const bool cacheStaticShadowMaps = !hasBakedStaticShadowMaps && (light->GetLightFlags() & LightFlags::CacheStaticShadowMaps);
+    const bool cacheStaticShadowMaps = g_cvCacheShadowMaps.Get() && !hasBakedStaticShadowMaps && (light->GetLightFlags() & LightFlags::CacheStaticShadowMaps);
 
     const ShadowMapCacheKey key = MakeShadowMapCacheKey(light, view);
 
@@ -157,8 +159,8 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 GpuBufferRef& buffer = cachedData->blurUniformBuffers[frameIndex];
 
                 buffer = RI.MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(Vec2u) * 3);
-
-#if HYP_DEBUG_MODE
+                
+#ifdef HYP_RHI_DEBUG_NAMES
                 buffer->SetDebugName(NAME_FMT("BlurShadowMap_UniformBuffer_Frame{}", frameIndex));
 #endif
 

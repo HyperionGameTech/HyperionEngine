@@ -127,8 +127,8 @@ void SSRPass::CreatePasses()
         framebufferDesc.numLayers = 1;
 
         FramebufferRef writeUVsFramebuffer = RI.MakeFramebuffer(framebufferDesc);
-
-#if HYP_DEBUG_MODE
+        
+#ifdef HYP_RHI_DEBUG_NAMES
         writeUVsFramebuffer->SetDebugName(NAME("SSRWriteUVsFramebuffer"));
 #endif
 
@@ -165,8 +165,8 @@ void SSRPass::CreatePasses()
         framebufferDesc.numLayers = 1;
 
         FramebufferRef sampleGBufferFramebuffer = RI.MakeFramebuffer(framebufferDesc);
-
-#if HYP_DEBUG_MODE
+        
+#ifdef HYP_RHI_DEBUG_NAMES
         sampleGBufferFramebuffer->SetDebugName(NAME("SSRSampleGBufferFramebuffer"));
 #endif
 

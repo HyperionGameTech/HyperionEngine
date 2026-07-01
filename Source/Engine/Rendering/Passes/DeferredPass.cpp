@@ -177,6 +177,7 @@ CVar<bool> g_cvClusteredShading { "Rendering.ClusteredShading", true };
 CVar<float> g_cvTonemapExposure { "Rendering.Tonemap.Exposure", 1.8f };
 CVar<bool> g_cvBypassDrawing { "Rendering.BypassDrawing", false };
 CVar<bool> g_cvDepthPrepass { "Rendering.DepthPrepass", true };
+CVar<bool> g_cvFogVolumes { "Rendering.FogVolumes", true };
 
 namespace DeferredRendererHelpers {
 
@@ -1212,8 +1213,7 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
     if (data.noiseTexture)
         cr << SetShaderUniform(6, "NoiseMap"_sh, RI.textureViewCache->GetOrCreate(data.noiseTexture));
 
-    // dpd->depthPyramidRenderer->GetResultImageView()
-    cr << SetShaderUniform(7, "DepthPyramidTexture"_sh, framebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
+    cr << SetShaderUniform(7, "DepthTexture"_sh, dpd->depthPyramidRenderer->GetResultImageView());
 
     // Set constants
     FogVolumeShaderData shaderData = proxy->bufferData;
@@ -1613,7 +1613,7 @@ static FramebufferRef CreateLightingFramebuffer(GBuffer* gbuffer)
     framebufferDesc.extent = gbuffer->GetExtent();
 
     FramebufferRef framebuffer = RI.MakeFramebuffer(framebufferDesc);
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     framebuffer->SetDebugName(NAME("LightingFramebuffer"));
 #endif
 
@@ -1644,8 +1644,8 @@ static FramebufferRef CreateLightingFramebuffer(GBuffer* gbuffer)
         depthImageView);
 
     CheckResult(framebuffer->Create());
-
-#if HYP_DEBUG_MODE
+    
+#ifdef HYP_RHI_DEBUG_NAMES
     colorAttachment->GetGpuImage()->SetDebugName(NAME("DeferredShadingTarget_Color"));
 #endif
 
@@ -1658,7 +1658,7 @@ static FramebufferRef CreateDepthPrepassFramebuffer(GBuffer* gbuffer)
     framebufferDesc.extent = gbuffer->GetExtent();
 
     FramebufferRef framebuffer = RI.MakeFramebuffer(framebufferDesc);
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     framebuffer->SetDebugName(NAME("DepthPrepassFramebuffer"));
 #endif
 
@@ -1677,8 +1677,8 @@ static FramebufferRef CreateDepthPrepassFramebuffer(GBuffer* gbuffer)
         depthImageView);
 
     CheckResult(framebuffer->Create());
-
-#if HYP_DEBUG_MODE
+    
+#ifdef HYP_RHI_DEBUG_NAMES
     depthAttachment->GetGpuImage()->SetDebugName(NAME("DepthPrepassAttachment"));
 #endif
 
@@ -2181,7 +2181,7 @@ public:
         }
 
         ByteAddressBuffer& gridBuffer = RI.bufferAllocator->AcquireByteAddressBuffer(gridData.Size() * sizeof(TileGridData));
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
         if (!gridBuffer.gpuBuffer->GetDebugName().IsValid())
         {
             gridBuffer.gpuBuffer->SetDebugName(NAME("ClusterGridBuffer"));
@@ -2189,7 +2189,7 @@ public:
 #endif
 
         ByteAddressBuffer& indexBuffer = RI.bufferAllocator->AcquireByteAddressBuffer(flatIndexData.Size() * sizeof(uint16));
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
         if (!indexBuffer.gpuBuffer->GetDebugName().IsValid())
         {
             indexBuffer.gpuBuffer->SetDebugName(NAME("ClusterIndexBuffer"));
@@ -2304,7 +2304,7 @@ PassData* DeferredPass::CreateViewPassData(View* view, PassDataExt&)
                 framebufferDesc.extent = mipExtent;
 
                 passData.mipChainFramebuffers[mipLevel] = RI.MakeFramebuffer(framebufferDesc);
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
                 passData.mipChainFramebuffers[mipLevel]->SetDebugName(NAME_FMT("DeferredPassMipChain_FB{}", mipLevel));
 #endif
 
@@ -2507,7 +2507,7 @@ void DeferredPass::ResizeView(Viewport viewport, View* view, DeferredPassData& p
             framebufferDesc.extent = mipExtent;
 
             passData.mipChainFramebuffers[mipLevel] = RI.MakeFramebuffer(framebufferDesc);
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
             passData.mipChainFramebuffers[mipLevel]->SetDebugName(NAME_FMT("DeferredPassMipChain_FB{}", mipLevel));
 #endif
 
@@ -3188,12 +3188,15 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
 
         // render fog volumes
-        for (FogVolume* fogVolume : rpl.GetFogVolumes())
+        if (rpl.GetFogVolumes().NumCurrent() > 0 && g_cvFogVolumes.Get())
         {
-            RenderSetup fogVolumeRS = rs.Fork();
-            fogVolumeRS.volume = fogVolume;
+            for (FogVolume* fogVolume : rpl.GetFogVolumes())
+            {
+                RenderSetup fogVolumeRS = rs.Fork();
+                fogVolumeRS.volume = fogVolume;
 
-            passData.fogVolumePass->RenderToFramebuffer(frame, fogVolumeRS, translucentPassFramebuffer);
+                passData.fogVolumePass->RenderToFramebuffer(frame, fogVolumeRS, translucentPassFramebuffer);
+            }
         }
 
         // render particles

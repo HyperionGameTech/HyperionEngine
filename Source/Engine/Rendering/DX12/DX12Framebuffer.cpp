@@ -84,7 +84,7 @@ RendererResult DX12Framebuffer::Create()
 
         if (!image->IsCreated())
         {
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
             if (!image->GetDebugName().IsValid())
             {
                 image->SetDebugName(NAME_FMT("{}_RT_{}", Id().Value(), it.first));
@@ -553,7 +553,7 @@ void DX12Framebuffer::Clear(
     }
 }
 
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
 void DX12Framebuffer::SetDebugName(Name name)
 {
     FramebufferBase::SetDebugName(name);

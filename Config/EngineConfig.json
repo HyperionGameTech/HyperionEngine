@@ -8,6 +8,7 @@
     },
     "SSGI": false,
     "TAA": true,
+    "FogVolumes": true,
     "PathTracing": false,
     "RayTracedReflections": false,
     "DDGI": false,
@@ -16,6 +17,8 @@
     "DepthPrepass": true,
     "ParallelCollection": true,
     "TargetFrameRate": 0,
+    "LimitFrameRateOnBatteryPower": true,
+    "LimitFrameRateWhenIdle": true,
     "EnableDebugDraw": true,
     "SSR": {
       "Enabled": true,
@@ -42,6 +45,7 @@
     }
   },
   "Editor": {
+    "SkipRenderingWhenIdle": true,
     "Camera": {
       "MovementSpeed": 10,
       "LookSensitivity": 50

@@ -408,8 +408,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     VULKAN_CHECK_MSG(
         vkCreatePipelineLayout(RI.GetDevice()->GetDevice(), &layoutInfo, nullptr, &m_layout),
         "Failed to create graphics pipeline layout");
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     if (Name debugName = GetDebugName())
     {
         SetDebugNameLayout(debugName);
@@ -472,7 +471,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
 
     Assert(m_handle != VK_NULL_HANDLE, "We got a null handle on our hands!");
 
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     if (Name debugName = GetDebugName())
     {
         VulkanPipelineBase::SetDebugName(debugName);
@@ -591,8 +590,7 @@ void VulkanGraphicsPipeline::BuildVertexAttributes(
     }
 }
 
-#if HYP_DEBUG_MODE
-
+#ifdef HYP_RHI_DEBUG_NAMES
 void VulkanGraphicsPipeline::SetDebugName(Name name)
 {
     GraphicsPipelineBase::SetDebugName(name);
@@ -605,7 +603,6 @@ void VulkanGraphicsPipeline::SetDebugName(Name name)
     VulkanPipelineBase::SetDebugName(name);
     VulkanPipelineBase::SetDebugNameLayout(name);
 }
-
 #endif
 
 #pragma endregion GraphicsPipeline

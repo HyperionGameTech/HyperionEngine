@@ -38,7 +38,7 @@ VulkanAttachment::VulkanAttachment(
     if (!m_imageView.IsValid())
     {
         m_imageView = MakeHandle<VulkanGpuImageView>(m_gpuImage);
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
         m_imageView->SetDebugName(NAME_FMT("{}_IV", m_gpuImage->GetDebugName()));
 #endif
     }
@@ -59,7 +59,7 @@ VulkanAttachment::VulkanAttachment(
     if (!m_imageView.IsValid())
     {
         m_imageView = MakeHandle<VulkanGpuImageView>(m_gpuImage);
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
         m_imageView->SetDebugName(NAME_FMT("{}_IV", m_gpuImage->GetDebugName()));
 #endif
     }

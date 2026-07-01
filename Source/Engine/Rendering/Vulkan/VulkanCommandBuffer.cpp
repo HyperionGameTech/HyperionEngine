@@ -139,8 +139,7 @@ RendererResult VulkanCommandBuffer::Create()
     VULKAN_CHECK_MSG(
         vkAllocateCommandBuffers(RI.GetDevice()->GetDevice(), &allocInfo, &m_handle),
         "Failed to allocate command buffer");
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     if (Name debugName = GetDebugName())
     {
         SetDebugName(debugName);
@@ -358,7 +357,7 @@ void VulkanCommandBuffer::DrawIndexedIndirect(
 
 void VulkanCommandBuffer::DebugMarkerBegin(const char* markerName) const
 {
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
     if (RI.dynamicFunctions.vkCmdDebugMarkerBeginEXT)
     {
         const VkDebugMarkerMarkerInfoEXT marker {
@@ -374,7 +373,7 @@ void VulkanCommandBuffer::DebugMarkerBegin(const char* markerName) const
 
 void VulkanCommandBuffer::DebugMarkerEnd() const
 {
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
     if (RI.dynamicFunctions.vkCmdDebugMarkerEndEXT)
     {
         RI.dynamicFunctions.vkCmdDebugMarkerEndEXT(m_handle);
@@ -382,8 +381,7 @@ void VulkanCommandBuffer::DebugMarkerEnd() const
 #endif
 }
 
-#if HYP_DEBUG_MODE
-
+#ifdef HYP_RHI_DEBUG_NAMES
 void VulkanCommandBuffer::SetDebugName(Name name)
 {
     CommandBufferBase::SetDebugName(name);
@@ -403,7 +401,6 @@ void VulkanCommandBuffer::SetDebugName(Name name)
         RI.dynamicFunctions.vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
     }
 }
-
 #endif
 
 } // namespace Hyperion

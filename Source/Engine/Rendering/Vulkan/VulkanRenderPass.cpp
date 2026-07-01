@@ -304,16 +304,14 @@ RendererResult VulkanRenderPass::Create()
 #endif
 
     VULKAN_CHECK(vkCreateRenderPass(RI.GetDevice()->GetDevice(), &renderPassInfo, nullptr, &m_handle));
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     SetDebugName(debugName);
 #endif
 
     return {};
 }
 
-#if HYP_DEBUG_MODE
-
+#ifdef HYP_RHI_DEBUG_NAMES
 void VulkanRenderPass::SetDebugName(Name name)
 {
     if (m_handle == VK_NULL_HANDLE)
@@ -331,7 +329,6 @@ void VulkanRenderPass::SetDebugName(Name name)
         RI.dynamicFunctions.vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
     }
 }
-
 #endif
 
 void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* framebuffer)

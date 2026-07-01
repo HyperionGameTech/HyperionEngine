@@ -381,8 +381,8 @@ void PlaceholderData::Initialize()
 #pragma endregion Textures
 
 #pragma region Samplers
-
-#if HYP_DEBUG_MODE
+    
+#ifdef HYP_RHI_DEBUG_NAMES
     m_samplerLinear->SetDebugName(NAME("Placeholder_Sampler_Linear"));
 #endif
 
@@ -393,8 +393,8 @@ void PlaceholderData::Initialize()
 #endif
 
     CheckResult(m_samplerLinearMipmap->Create());
-
-#if HYP_DEBUG_MODE
+    
+#ifdef HYP_RHI_DEBUG_NAMES
     m_samplerNearest->SetDebugName(NAME("Placeholder_Sampler_Nearest"));
 #endif
 
@@ -438,7 +438,7 @@ void PlaceholderData::Shutdown()
 GpuBufferRef PlaceholderData::CreateGpuBuffer(GpuBufferType bufferType, size_t size)
 {
     GpuBufferRef gpuBuffer = RI.MakeGpuBuffer(bufferType, size);
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     gpuBuffer->SetDebugName(NAME("Placeholder_GpuBuffer"));
 #endif
     CheckResult(gpuBuffer->Create());

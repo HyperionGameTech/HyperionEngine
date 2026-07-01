@@ -220,8 +220,7 @@ RendererResult DX12Swapchain::Create()
         {
             return HYP_MAKE_ERROR(RendererError, "Failed to get swapchain back buffer");
         }
-
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
         std::wstring name = L"D3D12 SwapChain Back Buffer " + std::to_wstring(i);
         m_backBuffers[i]->SetName(name.c_str());
 #endif

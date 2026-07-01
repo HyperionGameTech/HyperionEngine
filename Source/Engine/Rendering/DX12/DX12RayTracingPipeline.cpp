@@ -262,8 +262,7 @@ RendererResult DX12RayTracingPipeline::Create()
     {
         return HYP_MAKE_ERROR(RendererError, "Failed to query ID3D12StateObjectProperties", res);
     }
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     if (Name debugName = GetDebugName())
     {
         WideString ws = *debugName;
@@ -494,8 +493,7 @@ RendererResult DX12RayTracingPipeline::BuildShaderBindingTables()
 
         outEntry.buffer = RI.MakeGpuBuffer(GpuBufferType::ShaderBindingTable, sbtEntrySize);
         outEntry.buffer->SetIsCpuAccessible(true);
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
         outEntry.buffer->SetDebugName(CreateNameFromDynamicString(debugName));
 #endif
 
@@ -573,7 +571,7 @@ void DX12RayTracingPipeline::TraceRays(CommandBuffer* commandBuffer, const Vec3u
     commandList4->DispatchRays(&dispatchDesc);
 }
 
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
 void DX12RayTracingPipeline::SetDebugName(Name name)
 {
     RayTracingPipelineBase::SetDebugName(name);

@@ -145,8 +145,7 @@ RendererResult VulkanGpuImageView::Create()
     VULKAN_CHECK_MSG(
         vkCreateImageView(RI.GetDevice()->GetDevice(), &viewInfo, nullptr, &m_handle),
         "Failed to create image view");
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     if (Name debugName = GetDebugName())
     {
         SetDebugName(debugName);
@@ -156,8 +155,7 @@ RendererResult VulkanGpuImageView::Create()
     return {};
 }
 
-#if HYP_DEBUG_MODE
-
+#ifdef HYP_RHI_DEBUG_NAMES
 void VulkanGpuImageView::SetDebugName(Name name)
 {
     GpuImageViewBase::SetDebugName(name);
@@ -179,7 +177,6 @@ void VulkanGpuImageView::SetDebugName(Name name)
         RI.dynamicFunctions.vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
     }
 }
-
 #endif
 
 #pragma endregion VulkanGpuImageView

@@ -231,8 +231,7 @@ void VulkanDynamicFunctions::Load(VulkanDevice* device)
     HYP_LOAD_FN(vkSignalSemaphore);
     HYP_LOAD_FN(vkWaitSemaphores);
     HYP_LOAD_FN(vkGetSemaphoreCounterValue);
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     HYP_LOAD_FN(vkCmdDebugMarkerBeginEXT);
     HYP_LOAD_FN(vkCmdDebugMarkerEndEXT);
     HYP_LOAD_FN(vkCmdDebugMarkerInsertEXT);
@@ -668,8 +667,7 @@ RendererResult VulkanRenderInterface::Initialize()
 
     m_frames.Resize(NumFramesInFlight);
     m_commandBuffers.Resize(NumFramesInFlight);
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     EngineConfig cfg;
     cfg.Load();
 
@@ -1194,7 +1192,7 @@ VulkanDescriptorSetRef VulkanRenderInterface::MakeDescriptorSet(const Descriptor
     newLayout.SetIsReference(false);
 
     VulkanDescriptorSetRef descriptorSet = MakeHandle<VulkanDescriptorSet>(newLayout);
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     descriptorSet->SetDebugName(layout.GetName());
 #endif
 
@@ -1216,8 +1214,7 @@ VulkanGraphicsPipelineRef VulkanRenderInterface::MakeGraphicsPipeline(
     if (shaderInstance.IsValid())
     {
         graphicsPipeline->SetShader(shaderInstance);
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
         graphicsPipeline->SetDebugName(NAME_FMT("GraphicsPipeline_{}", shaderInstance->GetDebugName().IsValid() ? *shaderInstance->GetDebugName() : "<unnamed shader>"));
 #endif
     }
@@ -1280,7 +1277,7 @@ VulkanGpuImageRef VulkanRenderInterface::MakeImage(const TextureDesc& textureDes
 VulkanGpuImageViewRef VulkanRenderInterface::MakeImageView(const VulkanGpuImageRef& image)
 {
     VulkanGpuImageViewRef ref = MakeHandle<VulkanGpuImageView>(image);
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     ref->SetDebugName(NAME_FMT("{}_IV", image->GetDebugName()));
 #endif
 
@@ -1302,7 +1299,7 @@ VulkanGpuImageViewRef VulkanRenderInterface::MakeImageView(
     subResource.numLayers = numLayers;
 
     VulkanGpuImageViewRef ref = MakeHandle<VulkanGpuImageView>(image, subResource, viewType);
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     ref->SetDebugName(NAME_FMT("{}_IV", image->GetDebugName()));
 #endif
 

@@ -352,8 +352,8 @@ RendererResult Texture::Create()
         }
 
         GpuImageRef gpuImage = RI.MakeImage(m_textureDesc);
-
-#if HYP_DEBUG_MODE
+        
+#ifdef HYP_RHI_DEBUG_NAMES
         Name assetName = GetName();
         if (assetName.IsValid())
         {
@@ -728,7 +728,7 @@ void Texture::Readback(GpuBufferRef& outBuffer, bool allMips)
 
     outBuffer = RI.MakeGpuBuffer(GpuBufferType::ReadbackBuffer, readbackSize);
     outBuffer->SetIsCpuAccessible(true);
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     outBuffer->SetDebugName(NAME("Texture_ReadbackBuffer"));
 #endif
 
@@ -819,7 +819,7 @@ void Texture::EnqueueReadback(Proc<void(GpuBuffer&)>&& callback, bool allMips)
 
     GpuBufferRef readbackBuffer = RI.MakeGpuBuffer(GpuBufferType::ReadbackBuffer, readbackSize);
     readbackBuffer->SetIsCpuAccessible(true);
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     readbackBuffer->SetDebugName(NAME("Texture_EnqueueReadbackBuffer"));
 #endif
 

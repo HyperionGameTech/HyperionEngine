@@ -64,22 +64,30 @@ ENGINE_API extern bool IsOnBatteryPower();
 
 static constexpr float IdleMaxFrameRate = 15.0f;
 static constexpr float BatteryMaxFrameRate = 30.0f;
-static CVar<float> s_cvTargetFrameRate("Rendering.TargetFrameRate", 0);            // 0    = no limit
-static CVar<int> s_cvSkipRenderingWhenIdle("Rendering.SkipRenderingWhenIdle", -1); // -1   = set dynamically based on if editor mode
 
-static FrameLimiter s_frameLimiter { 0 };
+CVar<float> g_cvTargetFrameRate("Rendering.TargetFrameRate", 0);                             // 0    = no limit
+CVar<bool> g_cvLimitFrameRateOnBatteryPower("Rendering.LimitFrameRateOnBatteryPower", true); // true = enable framerate cap when on battery
+CVar<bool> g_cvLimitFrameRateWhenIdle("Rendering.LimitFrameRateWhenIdle", true);             // true = enable framerate cap when idling in standalone
 
-static bool s_wasFocused = true;
+#if HYP_EDITOR
+
+CVar<int> g_cvSkipRenderingWhenIdle("Editor.SkipRenderingWhenIdle", -1); // -1   = set dynamically based on if editor mode
+
+#endif // HYP_EDITOR
+
+static FrameLimiter g_frameLimiter { 0 };
+
+static bool g_wasFocused = true;
 
 RenderThread::RenderThread()
     : Thread(g_renderThread, ThreadPriorityValue::HIGHEST)
 {
 #if HYP_EDITOR
-    if (s_cvSkipRenderingWhenIdle.Get() < 0)
+    if (g_cvSkipRenderingWhenIdle.Get() < 0)
     {
         if (CoreApi::GetCommandLineArguments()["Editor"].ToBool())
         {
-            s_cvSkipRenderingWhenIdle.Set(1);
+            g_cvSkipRenderingWhenIdle.Set(1);
         }
     }
 #endif // HYP_EDITOR
@@ -137,37 +145,40 @@ void RenderThread::Update()
 
     ApplicationWindow* mainWindow = g_appContext->GetMainWindow();
 
-    float targetFrameRate = s_cvTargetFrameRate.Get();
+    float targetFrameRate = g_cvTargetFrameRate.Get();
 
-    if (!mainWindow || !mainWindow->HasFocus())
+    if (g_cvLimitFrameRateWhenIdle.Get() && (!mainWindow || !mainWindow->HasFocus()))
     {
         targetFrameRate = (targetFrameRate > 0) ? MathUtil::Min(targetFrameRate, IdleMaxFrameRate) : IdleMaxFrameRate;
 
-        if (s_wasFocused)
+        if (g_wasFocused)
         {
-            s_wasFocused = false;
+            g_wasFocused = false;
         }
     }
-    else if (PlatformUtils::IsOnBatteryPower())
+    else if (g_cvLimitFrameRateOnBatteryPower.Get() && PlatformUtils::IsOnBatteryPower())
     {
         targetFrameRate = (targetFrameRate > 0) ? MathUtil::Min(targetFrameRate, BatteryMaxFrameRate) : BatteryMaxFrameRate;
     }
     else
     {
-        if (!s_wasFocused)
+        if (!g_wasFocused)
         {
-            s_wasFocused = true;
+            g_wasFocused = true;
         }
     }
 
-    Queue<Scheduler::ScheduledTask> tasks;
-    if (uint32 numEnqueued = m_scheduler->NumEnqueued())
-    {
-        m_scheduler->AcceptAll(tasks);
+    { // Execute enqueued tasks
+        Array<Scheduler::ScheduledTask, ThreadAllocator> tasks;
 
-        while (tasks.Any())
+        if (m_scheduler->NumEnqueued())
         {
-            tasks.Pop().Execute();
+            m_scheduler->AcceptAll(tasks);
+
+            for (auto& task : tasks)
+            {
+                task.Execute();
+            }
         }
     }
 
@@ -175,7 +186,7 @@ void RenderThread::Update()
 
 #if HYP_EDITOR
     // @FIXME: We need to check if we are in editor mode, the HYP_EDITOR define is not enough. That just means it is compiled with editor support
-    if ((!mainWindow || !mainWindow->HasFocus()) && s_cvSkipRenderingWhenIdle.Get() > 0)
+    if ((!mainWindow || !mainWindow->HasFocus()) && g_cvSkipRenderingWhenIdle.Get() > 0)
     {
         skipRenderingThisFrame = true;
     }
@@ -301,8 +312,8 @@ void RenderThread::Update()
     // as we want buffered data to keep being written even as we wait.
     if (targetFrameRate > 0.0f)
     {
-        s_frameLimiter.SetTargetFPS(static_cast<int>(targetFrameRate));
-        s_frameLimiter.Wait();
+        g_frameLimiter.SetTargetFPS(static_cast<int>(targetFrameRate));
+        g_frameLimiter.Wait();
     }
 }
 

@@ -107,7 +107,7 @@ void VulkanFeatures::SetDeviceFeatures(VulkanDevice* device)
 
     for (size_t i = 0; i < sz; i++)
     {
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
         mvkConfig[i].debugMode = true;
 #endif
     }

@@ -447,8 +447,7 @@ void DX12GpuImage::InsertBarrier(
             }
         }
     }
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     if (hasStencil && currResourceState != currStencilState)
     {
         // Depth/stencil separate states sanity checks.
@@ -1542,7 +1541,7 @@ DX12GpuImageViewRef DX12GpuImage::MakeLayerImageView(uint32 layerIndex) const
         1);
 }
 
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
 void DX12GpuImage::SetDebugName(Name name)
 {
     GpuImageBase::SetDebugName(name);

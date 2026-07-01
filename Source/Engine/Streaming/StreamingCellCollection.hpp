@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -139,7 +139,7 @@ public:
             return it->cell;
         }
 
-        return Handle<StreamingCell>();
+        return Handle<StreamingCell>::Null();
     }
 
     bool HasCell(const Vec2i& coord) const

@@ -75,7 +75,7 @@ RendererResult VulkanAttachmentMap::Create()
 
         if (!attachment->GetGpuImage()->IsCreated())
         {
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
             if (!attachment->GetGpuImage()->GetDebugName().IsValid())
             {
                 if (framebuffer->GetDebugName().IsValid())
@@ -218,8 +218,7 @@ RendererResult VulkanFramebuffer::Create()
 //
         // cr.Done();
     // }
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     if (Name debugName = GetDebugName())
     {
         SetDebugName(debugName);
@@ -440,7 +439,7 @@ void VulkanFramebuffer::Clear(
     }
 }
 
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
 void VulkanFramebuffer::SetDebugName(Name name)
 {
     FramebufferBase::SetDebugName(name);

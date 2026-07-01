@@ -145,8 +145,7 @@ RendererResult VulkanSampler::Create()
     return {};
 }
 
-#if HYP_DEBUG_MODE
-
+#ifdef HYP_RHI_DEBUG_NAMES
 void VulkanSampler::SetDebugName(Name name)
 {
     SamplerBase::SetDebugName(name);
@@ -168,7 +167,6 @@ void VulkanSampler::SetDebugName(Name name)
         RI.dynamicFunctions.vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
     }
 }
-
 #endif
 
 } // namespace Hyperion

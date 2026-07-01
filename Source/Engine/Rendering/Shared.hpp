@@ -11,12 +11,6 @@
 
 #include <Core/Name/Name.hpp>
 
-#ifndef HYP_RHI_DEBUG_NAMES
-#ifdef HYP_DEBUG_MODE
-#define HYP_RHI_DEBUG_NAMES
-#endif
-#endif
-
 #include <Core/Utilities/Float16.hpp>
 #include <Core/Utilities/EnumFlags.hpp>
 #include <Core/Utilities/ByteUtil.hpp>
@@ -39,6 +33,10 @@
 #elif defined(HYP_DX12)
 #include <Rendering/DX12/DX12Structs.hpp>
 #endif
+
+#ifndef HYPERION_BUILD_RELEASE_FINAL
+#define HYP_RHI_DEBUG_NAMES 1
+#endif // HYPERION_BUILD_RELEASE_FINAL
 
 namespace Hyperion {
 

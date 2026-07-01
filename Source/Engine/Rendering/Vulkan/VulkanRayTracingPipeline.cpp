@@ -129,8 +129,7 @@ RendererResult VulkanRayTracingPipeline::Create()
         &pipelineInfo,
         VK_NULL_HANDLE,
         &m_handle));
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     if (Name debugName = GetDebugName())
     {
         SetDebugNameLayout(debugName);
@@ -256,7 +255,7 @@ RendererResult VulkanRayTracingPipeline::CreateShaderBindingTableEntry(
 
     // Buffer device address must be a multiple of shaderGroupBaseAlignment (VUID-vkCmdTraceRaysKHR-pRayGenShaderBindingTable-03682)
     out.buffer = MakeHandle<VulkanGpuBuffer>(GpuBufferType::ShaderBindingTable, numShaders * handleSize, properties.shaderGroupBaseAlignment);
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     out.buffer->SetDebugName(NAME("ShaderBindingTable"));
 #endif
 

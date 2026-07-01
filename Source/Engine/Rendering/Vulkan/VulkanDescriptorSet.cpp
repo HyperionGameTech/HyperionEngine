@@ -34,9 +34,7 @@
 namespace Hyperion {
 
 extern VulkanRenderInterface RI;
-
-#if HYP_DEBUG_MODE
-
+#ifdef HYP_RHI_DEBUG_NAMES
 static inline void ValidateDynamicOffset(
     uint32 offset,
     const StringHash& dynamicElementName,
@@ -119,8 +117,7 @@ static inline void PopulateDynamicOffsets(
         {
             const uint32 offset = offsets.values[idx];
             outDynamicOffsets[i] = offset;
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
             const ShaderInput* shaderInput = layout.GetElement(Name(dynamicElementName));
             AssertDebug(shaderInput != nullptr);
 
@@ -564,8 +561,7 @@ RendererResult VulkanDescriptorSet::Create()
         m_vkDescriptorPool));
 
     AssertDebug(m_vkDescriptorPool != VK_NULL_HANDLE);
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     if (Name debugName = GetDebugName())
     {
         SetDebugName(debugName);
@@ -837,16 +833,14 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanR
 VulkanDescriptorSetRef VulkanDescriptorSet::Clone() const
 {
     VulkanDescriptorSetRef descriptorSet = MakeHandle<VulkanDescriptorSet>(GetLayout());
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     descriptorSet->SetDebugName(GetDebugName());
 #endif
 
     return descriptorSet;
 }
 
-#if HYP_DEBUG_MODE
-
+#ifdef HYP_RHI_DEBUG_NAMES
 void VulkanDescriptorSet::SetDebugName(Name name)
 {
     DescriptorSetBase::SetDebugName(name);
@@ -868,7 +862,6 @@ void VulkanDescriptorSet::SetDebugName(Name name)
         RI.dynamicFunctions.vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
     }
 }
-
 #endif
 
 #pragma endregion VulkanDescriptorSet

@@ -123,13 +123,16 @@ RendererResult DX12CommandBuffer::Create()
     HRESULT res = device->CreateCommandAllocator(m_type, __uuidof(ID3D12CommandAllocator), &m_allocator);
 
     if (!SUCCEEDED(res))
+    {
         return HYP_MAKE_ERROR(RendererError, "Failed to create command allocator!", res);
+    }
 
-#ifdef HYP_DEBUG_MODE
-    const wchar_t* typeName = (m_type == D3D12_COMMAND_LIST_TYPE_DIRECT)
-        ? L"Direct" : (m_type == D3D12_COMMAND_LIST_TYPE_COMPUTE) ? L"Compute" : L"Copy";
-    std::wstring name = std::wstring(L"D3D12 Command Allocator [") + typeName + L"]";
-    m_allocator->SetName(name.c_str());
+#ifdef HYP_RHI_DEBUG_NAMES
+    const char* typeName = (m_type == D3D12_COMMAND_LIST_TYPE_DIRECT)
+        ? "Direct" : (m_type == D3D12_COMMAND_LIST_TYPE_COMPUTE) ? "Compute" : "Copy";
+    
+    WideString name = WideString(HYP_FORMAT("D3D12 Command Allocator [{}]", typeName));
+    m_allocator->SetName(name.Data());
 #endif
 
     // Create command list
@@ -140,11 +143,13 @@ RendererResult DX12CommandBuffer::Create()
         IID_PPV_ARGS(&m_commandList));
 
     if (!SUCCEEDED(res))
+    {
         return HYP_MAKE_ERROR(RendererError, "Failed to create command list!", res);
+    }
 
-#ifdef HYP_DEBUG_MODE
-    name = std::wstring(L"D3D12 Command List [") + typeName + L"]";
-    m_commandList->SetName(name.c_str());
+#ifdef HYP_RHI_DEBUG_NAMES
+    name = WideString(HYP_FORMAT("D3D12 Command List [{}]", typeName));
+    m_commandList->SetName(name.Data());
 #endif
 
     m_commandList->Close();
@@ -152,9 +157,9 @@ RendererResult DX12CommandBuffer::Create()
     return {};
 }
 
+#ifdef HYP_RHI_DEBUG_NAMES
 void DX12CommandBuffer::SetDebugName(const wchar_t* name)
 {
-#ifdef HYP_DEBUG_MODE
     if (m_allocator != nullptr)
     {
         m_allocator->SetName(name);
@@ -164,8 +169,8 @@ void DX12CommandBuffer::SetDebugName(const wchar_t* name)
     {
         m_commandList->SetName(name);
     }
-#endif
 }
+#endif
 
 void DX12CommandBuffer::Begin()
 {

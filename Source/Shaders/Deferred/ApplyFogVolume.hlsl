@@ -89,7 +89,7 @@ DECLARE_SAMPLER(FogVolume, SamplerNearest) SamplerState SamplerNearest;
 #define HYP_SAMPLER_NEAREST SamplerNearest
 #define HYP_SAMPLER_LINEAR SamplerLinear
 
-DECLARE_SRV(FogVolume, DepthPyramidTexture) Texture2D DepthPyramidTexture;
+DECLARE_SRV(FogVolume, DepthTexture) Texture2D DepthTexture;
 
 #include "../include/Scene.hlsli"
 #include "../include/Material.hlsli"
@@ -303,7 +303,7 @@ PSOutput PSMain(PSInput input)
     float2 screenSpaceUV = (input.positionNdc.xy / input.positionNdc.w) * 0.5 + 0.5;
     screenSpaceUV.y = 1.0 - screenSpaceUV.y;
 
-    float sceneDepth = SAMPLE_TEXTURE_2D_LOD(SamplerNearest, DepthPyramidTexture, screenSpaceUV, 0).r;
+    float sceneDepth = SAMPLE_TEXTURE_2D_LOD(SamplerNearest, DepthTexture, screenSpaceUV, 0).r;
     float4 positionVS = ReconstructViewSpacePositionFromDepth(camera.invProjMat, screenSpaceUV, sceneDepth);
     float linearDepth = length(positionVS.xyz);
 

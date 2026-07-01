@@ -255,8 +255,8 @@ void View::Init()
         else if (desc.framebufferDesc.numAttachments > 0)
         {
             FramebufferRef framebuffer = RI.MakeFramebuffer(desc.framebufferDesc);
-
-#if HYP_DEBUG_MODE
+            
+#ifdef HYP_RHI_DEBUG_NAMES
             if (name.IsValid())
             {
                 framebuffer->SetDebugName(NAME_FMT("{}Framebuffer", name));

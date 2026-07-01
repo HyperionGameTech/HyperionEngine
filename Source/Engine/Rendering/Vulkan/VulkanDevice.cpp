@@ -416,8 +416,7 @@ RendererResult VulkanDevice::Create(VkSurfaceKHR surface)
     }
 
     HYP_LOG(RenderingBackend, Verbose, "-----");
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     if (HasExtensionSupport(VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
     {
         extensionNames.PushBack(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);

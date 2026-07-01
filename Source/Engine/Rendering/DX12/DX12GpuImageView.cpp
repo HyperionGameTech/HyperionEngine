@@ -63,7 +63,7 @@ RendererResult DX12GpuImageView::Create()
     return {};
 }
 
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
 void DX12GpuImageView::SetDebugName(Name name)
 {
     GpuImageViewBase::SetDebugName(name);

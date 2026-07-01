@@ -502,7 +502,7 @@ void ComputeEnvProbeSphericalHarmonics(const EnvProbe& envProbe, const Texture& 
 
         GpuBufferRef readbackBuffer = RI.MakeGpuBuffer(GpuBufferType::ReadbackBuffer, shBuffer->Size());
         readbackBuffer->SetIsCpuAccessible(true);
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
         readbackBuffer->SetDebugName(NAME("ComputeEnvProbeSphericalHarmonics_ReadbackBuffer"));
 #endif // HYP_DEBUG_MODE
         CheckResult(readbackBuffer->Create());

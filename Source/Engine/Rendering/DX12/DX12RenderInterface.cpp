@@ -203,8 +203,7 @@ RendererResult DX12RenderInterface::Initialize()
     m_renderConfig = MakePimplWithAllocator<DX12RenderConfig, DX12Allocator>();
 
     uint32 createFactoryFlags = 0;
-
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     createFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
 #endif
 
@@ -329,8 +328,7 @@ RendererResult DX12RenderInterface::Initialize()
         HYP_LOG(RenderingBackend, Error, "Failed to find a suitable GPU adapter");
         return HYP_MAKE_ERROR(RendererError, "Failed to find suitable GPU", E_FAIL);
     }
-
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
 #ifdef HYP_DX12_ENABLE_DRED
     if (SUCCEEDED(D3D12GetDebugInterface(__uuidof(ID3D12DeviceRemovedExtendedDataSettings), &m_dredSettings)))
     {
@@ -355,8 +353,7 @@ RendererResult DX12RenderInterface::Initialize()
     res = D3D12CreateDevice(m_hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device));
     if (!SUCCEEDED(res))
         return HYP_MAKE_ERROR(RendererError, "Failed to create D3D device!", res);
-
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     m_device->SetName(L"D3D12 Device");
 #endif
 
@@ -383,7 +380,7 @@ RendererResult DX12RenderInterface::Initialize()
 
     DX12QueueData& directQueueData = m_queueData[D3D12_COMMAND_LIST_TYPE_DIRECT];
     m_device->CreateCommandQueue(&directDesc, __uuidof(ID3D12CommandQueue), &directQueueData.commandQueue);
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     directQueueData.commandQueue->SetName(L"D3D12 Direct Command Queue");
 #endif
 
@@ -393,7 +390,7 @@ RendererResult DX12RenderInterface::Initialize()
 
     DX12QueueData& computeQueueData = m_queueData[D3D12_COMMAND_LIST_TYPE_COMPUTE];
     m_device->CreateCommandQueue(&computeDesc, __uuidof(ID3D12CommandQueue), &computeQueueData.commandQueue);
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     computeQueueData.commandQueue->SetName(L"D3D12 Compute Command Queue");
 #endif
 
@@ -402,7 +399,7 @@ RendererResult DX12RenderInterface::Initialize()
 
     DX12QueueData& copyQueueData = m_queueData[D3D12_COMMAND_LIST_TYPE_COPY];
     m_device->CreateCommandQueue(&copyDesc, __uuidof(ID3D12CommandQueue), &copyQueueData.commandQueue);
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     copyQueueData.commandQueue->SetName(L"D3D12 Copy Command Queue");
 #endif
 
@@ -429,8 +426,7 @@ RendererResult DX12RenderInterface::Initialize()
     {
         return HYP_MAKE_ERROR(RendererError, "Failed to create frame fence", hr);
     }
-
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     m_frameFence->SetName(L"D3D12 Frame Fence");
 #endif
 
@@ -457,8 +453,7 @@ RendererResult DX12RenderInterface::Initialize()
     {
         m_commandBuffers[frameIndex] = MakeHandle<DX12CommandBuffer>(D3D12_COMMAND_LIST_TYPE_DIRECT, queueData->commandQueue.Get());
         CheckResultOrReturn(m_commandBuffers[frameIndex]->Create());
-
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
         wchar_t nameBuf[64];
         swprintf(nameBuf, std::size(nameBuf), L"Main CommandBuffer [frame=%u]", frameIndex);
         m_commandBuffers[frameIndex]->SetDebugName(nameBuf);
@@ -847,8 +842,7 @@ DX12CommandBuffer& DX12RenderInterface::GetTransientCommandBuffer()
 
     pCommandBuffer->Begin();
     BindDescriptorHeaps(*pCommandBuffer);
-
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     {
         wchar_t nameBuf[128];
         swprintf(nameBuf, std::size(nameBuf), L"Transient CommandBuffer [thread=%u][frame=%u]",
@@ -884,8 +878,7 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
         else
         {
             fence.Create();
-
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
             wchar_t fenceNameBuf[64];
             swprintf(fenceNameBuf, std::size(fenceNameBuf), L"Transient Fence [frame=%u]", frameIndex);
             fence.SetDebugName(fenceNameBuf);
@@ -976,8 +969,7 @@ DX12GraphicsPipelineRef DX12RenderInterface::MakeGraphicsPipeline(
     if (shaderInstance.IsValid())
     {
         graphicsPipeline->SetShader(shaderInstance);
-
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
         graphicsPipeline->SetDebugName(NAME_FMT("GraphicsPipeline_{}", shaderInstance->GetDebugName().IsValid() ? *shaderInstance->GetDebugName() : "<unnamed shader>"));
 #endif
     }

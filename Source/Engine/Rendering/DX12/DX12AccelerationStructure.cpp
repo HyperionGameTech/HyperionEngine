@@ -154,7 +154,7 @@ DX12AccelerationStructureBase::~DX12AccelerationStructureBase()
     m_scratchBuffer.Reset();
 }
 
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
 void DX12AccelerationStructureBase::SetDebugName(Name name)
 {
     m_debugName = name;
@@ -361,7 +361,7 @@ RendererResult DX12GpuBlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
     return {};
 }
 
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
 void DX12GpuBlas::SetDebugName(Name name)
 {
     GpuBlasBase::SetDebugName(name);
@@ -883,7 +883,7 @@ RendererResult DX12GpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 las
     return RendererResult();
 }
 
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
 void DX12GpuTlas::SetDebugName(Name name)
 {
     GpuTlasBase::SetDebugName(name);

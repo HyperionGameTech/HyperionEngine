@@ -160,7 +160,7 @@ RendererResult VulkanComputePipeline::Create()
         vkCreateComputePipelines(RI.GetDevice()->GetDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_handle),
         "Failed to create compute pipeline");
 
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     if (Name debugName = GetDebugName())
     {
         SetDebugNameLayout(debugName);
@@ -171,8 +171,7 @@ RendererResult VulkanComputePipeline::Create()
     return {};
 }
 
-#if HYP_DEBUG_MODE
-
+#ifdef HYP_RHI_DEBUG_NAMES
 void VulkanComputePipeline::SetDebugName(Name name)
 {
     ComputePipelineBase::SetDebugName(name);
@@ -184,7 +183,6 @@ void VulkanComputePipeline::SetDebugName(Name name)
 
     VulkanPipelineBase::SetDebugName(name);
 }
-
 #endif
 
 #pragma endregion VulkanComputePipeline

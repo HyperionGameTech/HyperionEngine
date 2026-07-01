@@ -390,8 +390,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
             &m_allocation,
             nullptr),
         "Failed to create gpu image!");
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     if (Name debugName = GetDebugName())
     {
         SetDebugName(debugName);
@@ -582,7 +581,7 @@ void VulkanGpuImage::InsertBarrier(
             }
         }
     }
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     if (hasStencil && currResourceState != currStencilState)
     {
         // Depth/stencil separate states sanity checks.
@@ -1364,8 +1363,7 @@ VulkanGpuImageViewRef VulkanGpuImage::MakeLayerImageView(uint32 layerIndex) cons
         1);
 }
 
-#if HYP_DEBUG_MODE
-
+#ifdef HYP_RHI_DEBUG_NAMES
 void VulkanGpuImage::SetDebugName(Name name)
 {
     GpuImageBase::SetDebugName(name);
@@ -1392,7 +1390,6 @@ void VulkanGpuImage::SetDebugName(Name name)
         RI.dynamicFunctions.vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
     }
 }
-
 #endif
 
 #pragma endregion VulkanGpuImage

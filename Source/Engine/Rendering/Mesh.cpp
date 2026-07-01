@@ -359,8 +359,8 @@ void Mesh::UploadGpuData()
 
     GpuBufferRef vertexBuffer = RI.MakeGpuBuffer(GpuBufferType::VertexBuffer, packedVerticesSize);
     GpuBufferRef indexBuffer = RI.MakeGpuBuffer(GpuBufferType::IndexBuffer, packedIndicesSize);
-
-#if HYP_DEBUG_MODE
+    
+#ifdef HYP_RHI_DEBUG_NAMES
     vertexBuffer->SetDebugName(NAME_FMT("{}_VBO", GetName()));
     indexBuffer->SetDebugName(NAME_FMT("{}_IBO", GetName()));
 #endif

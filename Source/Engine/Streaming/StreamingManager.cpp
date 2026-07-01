@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <HyperionPch.hpp>
 
@@ -176,10 +176,10 @@ public:
         else
         {
             m_scheduler->Enqueue([this, volume = volume]()
-                {
-                    m_volumes.PushBack(volume);
-                },
-                TaskEnqueueFlags::FIRE_AND_FORGET);
+                                 {
+                                     m_volumes.PushBack(volume);
+                                 },
+                                 TaskEnqueueFlags::FIRE_AND_FORGET);
 
             m_notifier.Signal();
         }
@@ -202,18 +202,18 @@ public:
         else
         {
             m_scheduler->Enqueue([this, volume]()
-                {
-                    auto it = m_volumes.FindAs(volume);
+                                 {
+                                     auto it = m_volumes.FindAs(volume);
 
-                    if (it == m_volumes.End())
-                    {
-                        HYP_LOG(Streaming, Warning, "StreamingVolume {} not found in streaming manager", volume->Id());
-                        return;
-                    }
+                                     if (it == m_volumes.End())
+                                     {
+                                         HYP_LOG(Streaming, Warning, "StreamingVolume {} not found in streaming manager", volume->Id());
+                                         return;
+                                     }
 
-                    m_volumes.Erase(it);
-                },
-                TaskEnqueueFlags::FIRE_AND_FORGET);
+                                     m_volumes.Erase(it);
+                                 },
+                                 TaskEnqueueFlags::FIRE_AND_FORGET);
 
             m_notifier.Signal();
         }
@@ -229,9 +229,9 @@ public:
         if (!IsRunning() || IsOnThread(Id()))
         {
             auto it = m_layers.FindIf([layer](const LayerData& data)
-                {
-                    return data.layer == layer;
-                });
+                                      {
+                                          return data.layer == layer;
+                                      });
 
             Assert(it == m_layers.End(), "WorldGridLayer already exists in streaming manager!");
 
@@ -240,17 +240,17 @@ public:
         else
         {
             m_scheduler->Enqueue([this, layer = layer]()
-                {
-                    auto it = m_layers.FindIf([layer](const LayerData& data)
-                        {
-                            return data.layer == layer;
-                        });
+                                 {
+                                     auto it = m_layers.FindIf([layer](const LayerData& data)
+                                                               {
+                                                                   return data.layer == layer;
+                                                               });
 
-                    Assert(it == m_layers.End(), "WorldGridLayer already exists in streaming manager!");
+                                     Assert(it == m_layers.End(), "WorldGridLayer already exists in streaming manager!");
 
-                    m_layers.EmplaceBack(layer);
-                },
-                TaskEnqueueFlags::FIRE_AND_FORGET);
+                                     m_layers.EmplaceBack(layer);
+                                 },
+                                 TaskEnqueueFlags::FIRE_AND_FORGET);
 
             m_notifier.Signal();
         }
@@ -261,9 +261,9 @@ public:
         if (!IsRunning() || IsOnThread(Id()))
         {
             auto it = m_layers.FindIf([layer](const LayerData& data)
-                {
-                    return data.layer == layer;
-                });
+                                      {
+                                          return data.layer == layer;
+                                      });
 
             Assert(it != m_layers.End(), "WorldGridLayer not found in streaming manager!");
 
@@ -278,23 +278,23 @@ public:
         else
         {
             m_scheduler->Enqueue([this, layer]()
-                {
-                    auto it = m_layers.FindIf([layer](const LayerData& data)
-                        {
-                            return data.layer == layer;
-                        });
+                                 {
+                                     auto it = m_layers.FindIf([layer](const LayerData& data)
+                                                               {
+                                                                   return data.layer == layer;
+                                                               });
 
-                    Assert(it != m_layers.End(), "WorldGridLayer not found in streaming manager!");
+                                     Assert(it != m_layers.End(), "WorldGridLayer not found in streaming manager!");
 
-                    if (it->IsLocked())
-                    {
-                        it->SetPendingRemoval();
-                        return;
-                    }
+                                     if (it->IsLocked())
+                                     {
+                                         it->SetPendingRemoval();
+                                         return;
+                                     }
 
-                    m_layers.Erase(it);
-                },
-                TaskEnqueueFlags::FIRE_AND_FORGET);
+                                     m_layers.Erase(it);
+                                 },
+                                 TaskEnqueueFlags::FIRE_AND_FORGET);
 
             m_notifier.Signal();
         }
@@ -390,7 +390,7 @@ private:
     void GetDesiredCellsForLayer(
         const LayerData& layerData,
         const Handle<StreamingVolumeBase>& volume,
-        TSet<Vec2i, StreamingTempAllocator>& outCellCoords) const;
+        TFlatSet<Vec2i, StreamingTempAllocator>& outCellCoords) const;
 
     void PostCellUpdate(Handle<StreamingCell> cell, StreamingCellState state)
     {
@@ -399,7 +399,8 @@ private:
         Task<void>& future = m_futures.EmplaceBack();
         TaskPromise<void>* promise = future.Promise();
 
-        g_simThreadInstance->GetScheduler().Enqueue([this, promise, cell = std::move(cell), state]()
+        g_simThreadInstance->GetScheduler().Enqueue(
+            [this, promise, cell = std::move(cell), state]()
             {
                 m_cellUpdatesSim.EmplaceBack(std::move(cell), state);
 
@@ -408,9 +409,9 @@ private:
                 Mutex::Guard guard(m_futuresMutex);
 
                 auto it = m_futures.FindIf([promise](const Task<void>& task)
-                    {
-                        return task.GetTaskExecutor() == promise;
-                    });
+                                           {
+                                               return task.GetTaskExecutor() == promise;
+                                           });
 
                 Assert(it != m_futures.End(), "Task not found in sim thread tasks!");
 
@@ -446,15 +447,17 @@ void StreamingManagerThread::StartWorkerThreadPool()
 
 void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
 {
-    Array<Scheduler::ScheduledTask, StreamingTempAllocator> tasks;
+    { // execute posted tasks
+        Array<Scheduler::ScheduledTask, StreamingTempAllocator> tasks;
 
-    if (uint32 numEnqueued = m_scheduler->NumEnqueued())
-    {
-        m_scheduler->AcceptAll(tasks);
-
-        while (tasks.Any())
+        if (m_scheduler->NumEnqueued())
         {
-            tasks.PopBack().Execute();
+            m_scheduler->AcceptAll(tasks);
+
+            for (auto& task : tasks)
+            {
+                task.Execute();
+            }
         }
     }
 
@@ -489,9 +492,7 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
         StreamingCellCollection<StreamingAllocator>& cells = layerData.cells;
         Array<StreamingCellUpdate, StreamingAllocator>& cellUpdateQueue = layerData.cellUpdateQueue;
 
-        const WorldGridLayerInfo& layerInfo = layer->GetLayerInfo();
-
-        TSet<Vec2i, StreamingTempAllocator> desiredCells;
+        TFlatSet<Vec2i, StreamingTempAllocator> desiredCells;
 
         for (const Handle<StreamingVolumeBase>& volume : m_volumes)
         {
@@ -543,8 +544,8 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
                 }
 
                 AssertDebug(cells.IsCellLocked(cell->GetPatchInfo().coord),
-                    "StreamingCell with coord {} is not locked for unloading!",
-                    cell->GetPatchInfo().coord);
+                            "StreamingCell with coord {} is not locked for unloading!",
+                            cell->GetPatchInfo().coord);
 
                 // Cell is locked here -- request unloading.
                 cellUpdateQueue.PushBack(StreamingCellUpdate { cell->GetPatchInfo().coord, StreamingCellState::UNLOADING });
@@ -619,17 +620,18 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
 
             layerData.Lock();
 
-            deferredUpdates.EmplaceBack([this, &layerData, cell]()
+            deferredUpdates.EmplaceBack(
+                [this, &layerData, cell]()
                 {
                     HYP_LOG(Streaming, Debug, "Loading StreamingCell at coord: {} on thread: {} for layer: {}",
-                         cell->GetPatchInfo().coord, CurrentThreadId().GetName(), layerData.layer->InstanceClass()->GetName());
+                            cell->GetPatchInfo().coord, CurrentThreadId().GetName(), layerData.layer->InstanceClass()->GetName());
 
                     bool isOk = true;
 
                     isOk &= layerData.cells.UpdateCellState(cell->GetPatchInfo().coord, StreamingCellState::LOADING);
                     AssertDebug(isOk, "Failed to update StreamingCell state to LOADING for coord: {} for layer: {}",
-                        cell->GetPatchInfo().coord,
-                        layerData.layer->InstanceClass()->GetName());
+                                cell->GetPatchInfo().coord,
+                                layerData.layer->InstanceClass()->GetName());
 
                     PostCellUpdate(cell, StreamingCellState::LOADING);
 
@@ -637,13 +639,13 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
 
                     isOk &= layerData.cells.UpdateCellState(cell->GetPatchInfo().coord, StreamingCellState::LOADED);
                     AssertDebug(isOk, "Failed to update StreamingCell state to LOADED for coord: {} for layer: {}\tCurrent state: %{}",
-                        cell->GetPatchInfo().coord,
-                        layerData.layer->InstanceClass()->GetName(),
-                        layerData.cells.GetCellState(cell->GetPatchInfo().coord));
+                                cell->GetPatchInfo().coord,
+                                layerData.layer->InstanceClass()->GetName(),
+                                layerData.cells.GetCellState(cell->GetPatchInfo().coord));
 
                     isOk &= layerData.cells.SetCellLockState(cell->GetPatchInfo().coord, false);
                     AssertDebug(isOk, "Failed to unlock StreamingCell with coord: {} for layer: {}",
-                        cell->GetPatchInfo().coord, layerData.layer->InstanceClass()->GetName());
+                                cell->GetPatchInfo().coord, layerData.layer->InstanceClass()->GetName());
 
                     PostCellUpdate(cell, StreamingCellState::LOADED);
 
@@ -663,32 +665,33 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
 
             isOk &= cells.IsCellLocked(update.coord);
             AssertDebug(isOk, "StreamingCell with coord {} for layer {} is not locked for unloading!",
-                update.coord, layerData.layer->InstanceClass()->GetName());
+                        update.coord, layerData.layer->InstanceClass()->GetName());
 
             Handle<StreamingCell> cell = cells.GetCell(update.coord);
             AssertDebug(cell.IsValid(), "StreamingCell with coord {} for layer {} is not valid!",
-                update.coord, layerData.layer->InstanceClass()->GetName());
+                        update.coord, layerData.layer->InstanceClass()->GetName());
 
             isOk &= cells.UpdateCellState(cell->GetPatchInfo().coord, StreamingCellState::UNLOADING);
             AssertDebug(isOk, "Failed to update StreamingCell state to UNLOADING for coord: {} for layer: {}",
-                cell->GetPatchInfo().coord,
-                layerData.layer->InstanceClass()->GetName());
+                        cell->GetPatchInfo().coord,
+                        layerData.layer->InstanceClass()->GetName());
 
             PostCellUpdate(cell, StreamingCellState::UNLOADING);
 
             isOk &= cells.RemoveCell(cell->GetPatchInfo().coord);
             AssertDebug(isOk, "Failed to remove StreamingCell with coord: {} for layer: {}",
-                cell->GetPatchInfo().coord,
-                layerData.layer->InstanceClass()->GetName());
+                        cell->GetPatchInfo().coord,
+                        layerData.layer->InstanceClass()->GetName());
 
             layerData.Lock();
 
             // Call OnStreamEnd on the cell and then Unload it
-            deferredUpdates.EmplaceBack([this, cell = std::move(cell), &layerData]()
+            deferredUpdates.EmplaceBack(
+                [this, cell = std::move(cell), &layerData]()
                 {
                     HYP_LOG(Streaming, Debug, "Unloading StreamingCell at coord: {} for layer: {} on thread: {}",
-                        cell->GetPatchInfo().coord, layerData.layer->InstanceClass()->GetName().LookupString(),
-                        CurrentThreadId().GetName());
+                            cell->GetPatchInfo().coord, layerData.layer->InstanceClass()->GetName().LookupString(),
+                            CurrentThreadId().GetName());
 
                     PostCellUpdate(cell, StreamingCellState::UNLOADED);
 
@@ -714,9 +717,9 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
 void StreamingManagerThread::GetDesiredCellsForLayer(
     const LayerData& layerData,
     const Handle<StreamingVolumeBase>& volume,
-    TSet<Vec2i, StreamingTempAllocator>& outCellCoords) const
+    TFlatSet<Vec2i, StreamingTempAllocator>& outCellCoords) const
 {
-    constexpr Vec2i CellNeighborDirections[4] = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
+    static constexpr Vec2i CellNeighborDirections[4] = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
 
     const WorldGridLayerInfo& layerInfo = layerData.layer->GetLayerInfo();
 
@@ -728,7 +731,10 @@ void StreamingManagerThread::GetDesiredCellsForLayer(
     }
 
     Array<Vec2f, StreamingTempAllocator> queue;
-    TSet<Vec2i, StreamingTempAllocator, HashTablePolicy::NotPooled> visited;
+    queue.Reserve(64);
+
+    TFlatSet<Vec2i, StreamingTempAllocator> visited;
+    visited.Reserve(64);
 
     const Vec2f centerCoord = Vec2f(WorldSpaceToCellCoord(layerInfo, aabb.GetCenter()));
 
@@ -736,6 +742,8 @@ void StreamingManagerThread::GetDesiredCellsForLayer(
     visited.Insert(Vec2i(centerCoord));
 
     const float maxDistSq = layerInfo.maxDistance * layerInfo.maxDistance;
+
+    outCellCoords.Reserve(queue.Size());
 
     while (queue.Any())
     {
@@ -747,7 +755,7 @@ void StreamingManagerThread::GetDesiredCellsForLayer(
             continue;
         }
 
-        outCellCoords.Insert(Vec2i(current));
+        outCellCoords.Add(Vec2i(current));
 
         for (const Vec2i dir : CellNeighborDirections)
         {

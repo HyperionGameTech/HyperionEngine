@@ -262,8 +262,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
     if (!m_buffer)
     {
         m_buffer = RI.MakeGpuBuffer(GpuBufferType::AccelerationStructureBuffer, accelerationStructureSize);
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
         m_buffer->SetDebugName(NAME("ASBuffer"));
 #endif
 
@@ -342,8 +341,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
     if (!m_scratchBuffer)
     {
         m_scratchBuffer = RI.MakeGpuBuffer(GpuBufferType::ScratchBuffer, scratchSize, scratchBufferAlignment);
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
         m_scratchBuffer->SetDebugName(NAME("ASScratchBuffer"));
 #endif
 
@@ -451,11 +449,11 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
     return RendererResult();
 }
 
+#ifdef HYP_RHI_DEBUG_NAMES
+
 void VulkanAccelerationStructureBase::SetDebugName(Name name)
 {
     m_debugName = name;
-
-#if HYP_DEBUG_MODE
 
     if (m_accelerationStructure == VK_NULL_HANDLE)
     {
@@ -473,9 +471,9 @@ void VulkanAccelerationStructureBase::SetDebugName(Name name)
 
         RI.dynamicFunctions.vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
     }
+}
 
 #endif
-}
 
 #pragma endregion AccelerationStructure
 
@@ -689,7 +687,7 @@ RendererResult VulkanGpuTlas::BuildInstancesBuffer(uint32 first, uint32 last)
     if (!m_instancesBuffer)
     {
         m_instancesBuffer = RI.MakeGpuBuffer(GpuBufferType::AccelerationStructureInstanceBuffer, instancesBufferSize);
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
         m_instancesBuffer->SetDebugName(NAME("ASInstancesBuffer"));
 #endif
 

@@ -465,8 +465,7 @@ RendererResult VulkanGpuBuffer::Create()
         // Memset all to zero
         Memory::Fill(m_mapping, 0, m_size);
     }
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     if (Name debugName = GetDebugName())
     {
         SetDebugName(debugName);
@@ -597,8 +596,7 @@ RendererResult VulkanGpuBuffer::CheckCanAllocate(
     return result;
 }
 
-#if HYP_DEBUG_MODE
-
+#ifdef HYP_RHI_DEBUG_NAMES
 void VulkanGpuBuffer::SetDebugName(Name name)
 {
     GpuBufferBase::SetDebugName(name);
@@ -625,7 +623,6 @@ void VulkanGpuBuffer::SetDebugName(Name name)
         RI.dynamicFunctions.vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
     }
 }
-
 #endif
 
 #pragma endregion VulkanGpuBuffer

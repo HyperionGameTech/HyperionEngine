@@ -51,8 +51,7 @@ bool VulkanPipelineBase::IsCreated() const
     return m_handle != VK_NULL_HANDLE;
 }
 
-#if HYP_DEBUG_MODE
-
+#ifdef HYP_RHI_DEBUG_NAMES
 void VulkanPipelineBase::SetDebugName(Name name)
 {
     if (!IsCreated())
@@ -92,7 +91,6 @@ void VulkanPipelineBase::SetDebugNameLayout(Name name)
         RI.dynamicFunctions.vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
     }
 }
-
 #endif
 
 #pragma endregion VulkanPipelineBase

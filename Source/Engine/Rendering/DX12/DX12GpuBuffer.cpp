@@ -195,8 +195,7 @@ RendererResult DX12GpuBuffer::Create()
     m_resourceState = finalState == D3D12_RESOURCE_STATE_GENERIC_READ
         ? RS_READ_GENERIC
         : RS_COMMON;
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     if (m_debugName && m_resource)
     {
         m_resource->SetName(*WideString(*m_debugName));
@@ -318,7 +317,10 @@ void DX12GpuBuffer::CopyFrom(
         return;
     }
 
-    Assert((srcOffset + count <= srcBuffer->Size()) && (dstOffset + count <= Size()), "Copy out of bounds!");
+    // @TODO AssertResourceState calls here.
+
+    Assert((srcOffset + count <= srcBuffer->Size()) && (dstOffset + count <= Size()), "Copy out of bounds! Buffer debug name: {}",
+            GetDebugName());
 
     commandBuffer->GetCommandList()->CopyBufferRegion(
         m_resource.Get(),
@@ -485,7 +487,7 @@ void DX12GpuBuffer::Flush(size_t offset, size_t count)
     /* no-op in D3D */
 }
 
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
 void DX12GpuBuffer::SetDebugName(Name name)
 {
     GpuBufferBase::SetDebugName(name);

@@ -83,16 +83,14 @@ RendererResult VulkanSemaphore::Create()
     VULKAN_CHECK_MSG(
         vkCreateSemaphore(RI.GetDevice()->GetDevice(), &semaphoreInfo, nullptr, &m_handle),
         "Failed to create semaphore");
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     SetDebugName(debugName);
 #endif
 
     return {};
 }
 
-#if HYP_DEBUG_MODE
-
+#ifdef HYP_RHI_DEBUG_NAMES
 void VulkanSemaphore::SetDebugName(Name name)
 {
     if (!IsCreated())
@@ -110,7 +108,6 @@ void VulkanSemaphore::SetDebugName(Name name)
         RI.dynamicFunctions.vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
     }
 }
-
 #endif
 
 void VulkanSemaphore::Signal(uint64 value)

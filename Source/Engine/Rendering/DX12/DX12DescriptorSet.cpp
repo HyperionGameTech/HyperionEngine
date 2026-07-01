@@ -1053,14 +1053,14 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RayTrac
 DescriptorSetRef DX12DescriptorSet::Clone() const
 {
     DescriptorSetRef descriptorSet = MakeHandle<DX12DescriptorSet>(GetLayout());
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     descriptorSet->SetDebugName(GetDebugName());
 #endif
 
     return descriptorSet;
 }
 
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
 void DX12DescriptorSet::SetDebugName(Name name)
 {
     DescriptorSetBase::SetDebugName(name);

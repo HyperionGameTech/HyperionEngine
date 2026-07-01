@@ -43,8 +43,7 @@
 #endif
 
 namespace Hyperion {
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
 constexpr bool EnableVulkanSynchronizationValidation = false;
 constexpr bool EnableVulkanVerboseValidationLogging = false;
 #endif
@@ -184,9 +183,7 @@ static Array<VkPhysicalDevice> EnumeratePhysicalDevices(VkInstance instance)
 
     return devices;
 }
-
-#if HYP_DEBUG_MODE
-
+#ifdef HYP_RHI_DEBUG_NAMES
 // Returns supported vulkan debug layers
 static Array<const char*, VulkanAllocator> CheckValidationLayerSupport(Span<const char*> requestLayers)
 {
@@ -249,8 +246,7 @@ ExtensionMap VulkanInstance::GetExtensionMap()
     map[VK_KHR_SPIRV_1_4_EXTENSION_NAME] = false;
     // req'd for VK_KHR_SPIRV_1_4_EXTENSION_NAME
     map[VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME] = false;
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     map[VK_EXT_DEBUG_UTILS_EXTENSION_NAME] = false;
 #endif
 
@@ -278,9 +274,7 @@ ExtensionMap VulkanInstance::GetExtensionMap()
 
     return map;
 }
-
-#if HYP_DEBUG_MODE
-
+#ifdef HYP_RHI_DEBUG_NAMES
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT severity,
     VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -360,7 +354,7 @@ VulkanInstance::VulkanInstance()
     : m_instance(VK_NULL_HANDLE),
       m_allocator(VK_NULL_HANDLE)
 {
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     m_vkDebugMessenger = VK_NULL_HANDLE;
 #endif
 }
@@ -375,8 +369,7 @@ VulkanInstance::~VulkanInstance()
     m_device->DestroyAllocator();
 
     m_device.Reset();
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     if (m_vkDebugMessenger != VK_NULL_HANDLE)
     {
         DestroyDebugUtilsMessenger(m_instance, m_vkDebugMessenger, nullptr);
@@ -387,8 +380,7 @@ VulkanInstance::~VulkanInstance()
     vkDestroyInstance(m_instance, nullptr);
     m_instance = VK_NULL_HANDLE;
 }
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
 RendererResult VulkanInstance::SetupDebugMessenger()
 {
     Assert(m_vkDebugMessenger == VK_NULL_HANDLE);
@@ -414,7 +406,7 @@ RendererResult VulkanInstance::SetupDebugMessenger()
 
 RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
 {
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     /* Set up our debug and validation layers */
     if (enableDebugLayers)
     {
@@ -434,7 +426,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
 
     VkInstanceCreateInfo createInfo { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
     createInfo.pApplicationInfo = &appInfo;
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     createInfo.enabledLayerCount = uint32(m_validationLayers.Size());
     createInfo.ppEnabledLayerNames = m_validationLayers.Data();
 #endif
@@ -471,8 +463,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     {
         return result;
     }
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     const bool debugUtilsExtAvailable = availableInstanceExtensions.FindIf([](const VkExtensionProperties& ext)
         {
             return std::strcmp(ext.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0;
@@ -551,8 +542,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
 
     delete dummySurfaceContext;
     vkDestroySurfaceKHR(m_instance, surface, nullptr);
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     if (enableDebugLayers && debugUtilsExtAvailable)
     {
         SetupDebugMessenger();

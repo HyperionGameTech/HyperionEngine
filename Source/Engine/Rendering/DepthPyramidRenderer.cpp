@@ -84,8 +84,8 @@ void DepthPyramidRenderer::Create()
         1,
         IU_SAMPLED | IU_STORAGE
     });
-
-#if HYP_DEBUG_MODE
+    
+#ifdef HYP_RHI_DEBUG_NAMES
     m_depthPyramid->SetDebugName(NAME("DepthPyramid"));
 #endif
 
@@ -122,7 +122,7 @@ void DepthPyramidRenderer::Create()
         uniforms.mipLevel = mipLevel;
 
         GpuBufferRef& mipUniformBuffer = m_mipUniformBuffers.PushBack(RI.MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(DepthPyramidUniforms)));
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
         mipUniformBuffer->SetDebugName(NAME_FMT("DepthPyramid_Mip{}_UniformBuffer", mipLevel));
 #endif
         CheckResult(mipUniformBuffer->Create());
@@ -131,7 +131,7 @@ void DepthPyramidRenderer::Create()
         mipUniformBuffer->Flush(0, sizeof(DepthPyramidUniforms));
 
         GpuImageViewRef& mipImageView = m_mipImageViews.PushBack(RI.MakeImageView(m_depthPyramid, mipLevel, 1, 0, m_depthPyramid->NumArrayLayers()));
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
         mipImageView->SetDebugName(NAME_FMT("DepthPyramid_Mip{}_ImageView", mipLevel));
 #endif
 

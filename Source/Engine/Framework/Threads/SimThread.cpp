@@ -181,15 +181,16 @@ void SimThread::Update()
         return;
     }
 
-    // execute posted tasks
-    Array<Scheduler::ScheduledTask, SceneTempAllocator> tasks;
-    if (uint32 numEnqueued = m_scheduler->NumEnqueued())
-    {
-        m_scheduler->AcceptAll(tasks);
-
-        while (tasks.Any())
+    { // execute posted tasks
+        Array<Scheduler::ScheduledTask, ThreadAllocator> tasks;
+        if (m_scheduler->NumEnqueued())
         {
-            tasks.PopBack().Execute();
+            m_scheduler->AcceptAll(tasks);
+
+            for (auto& task : tasks)
+            {
+                task.Execute();
+            }
         }
     }
 

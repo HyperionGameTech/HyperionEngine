@@ -82,8 +82,7 @@ RendererResult DX12ComputePipeline::Create()
     {
         return HYP_MAKE_ERROR(RendererError, "Failed to create compute pipeline state", res);
     }
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     if (Name debugName = GetDebugName())
     {
         WideString ws = *debugName;
@@ -377,7 +376,7 @@ void DX12ComputePipeline::DispatchIndirect(
         0);
 }
 
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
 void DX12ComputePipeline::SetDebugName(Name name)
 {
     ComputePipelineBase::SetDebugName(name);

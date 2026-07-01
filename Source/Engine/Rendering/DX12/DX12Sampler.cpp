@@ -47,7 +47,7 @@ RendererResult DX12Sampler::Create()
     return {};
 }
 
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
 void DX12Sampler::SetDebugName(Name name)
 {
     SamplerBase::SetDebugName(name);

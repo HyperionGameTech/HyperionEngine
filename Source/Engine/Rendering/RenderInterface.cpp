@@ -670,10 +670,8 @@ RendererResult RenderInterface::Initialize()
         if (!sbuffer.cpuBuffer.Empty())
         {
             sbuffer.Initialize();
-
-#if HYP_DEBUG_MODE
-            HYP_LOG(Rendering, Verbose, "Initialized named buffer: {}", NamedBuffer::StringValues[namedBufferIndex]);
-
+            
+#ifdef HYP_RHI_DEBUG_NAMES
             AssertDebug(sbuffer.gpuBuffer != nullptr);
             sbuffer.gpuBuffer->SetDebugName(CreateNameFromDynamicString(NamedBuffer::StringValues[namedBufferIndex]));
 #endif // HYP_DEBUG_MODE

@@ -343,7 +343,7 @@ RendererResult DX12GraphicsPipeline::Rebuild()
 
             if (psoDesc.NumRenderTargets >= 8)
             {
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
                 return HYP_MAKE_ERROR(RendererError, "To many render targets for pipeline {}!", 0, GetDebugName());
 #else
                 return HYP_MAKE_ERROR(RendererError, "To many render targets for pipeline!", 0);
@@ -378,8 +378,7 @@ RendererResult DX12GraphicsPipeline::Rebuild()
         __uuidof(ID3D12PipelineState),
         &m_pipelineState
     );
-
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     if (FAILED(res))
     {
         return HYP_MAKE_ERROR(RendererError, "Failed to create DX12 Pipeline State for {}", res, GetDebugName());
@@ -613,7 +612,7 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
     return {};
 }
 
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
 void DX12GraphicsPipeline::SetDebugName(Name name)
 {
     GraphicsPipelineBase::SetDebugName(name);

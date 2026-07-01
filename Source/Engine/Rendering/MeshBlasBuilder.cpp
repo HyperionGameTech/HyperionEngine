@@ -28,7 +28,7 @@
 
 namespace Hyperion {
 
-struct BuildMeshBlas : public RenderCommand
+struct BuildMeshBlas
 {
     GpuBlasRef blas;
     Array<float> packedVertices;
@@ -59,21 +59,23 @@ struct BuildMeshBlas : public RenderCommand
             this->material,
             Mat4f::identity);
 
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
         packedVerticesBuffer->SetDebugName(NAME_FMT("BLAS_VB_{}", mesh->GetName()));
         packedIndicesBuffer->SetDebugName(NAME_FMT("BLAS_IB_{}", mesh->GetName()));
+
+        blas->SetDebugName(NAME_FMT("MeshBlas_{}", mesh->GetName()));
 #endif
 
         this->blas = blas;
     }
 
-    virtual ~BuildMeshBlas() override
+    ~BuildMeshBlas()
     {
         EnqueueDeletion(std::move(packedVerticesBuffer));
         EnqueueDeletion(std::move(packedIndicesBuffer));
     }
 
-    virtual RendererResult operator()() override
+    RendererResult operator()()
     {
         const size_t packedVerticesSize = this->packedVertices.ByteSize();
         const size_t packedIndicesSize = this->packedIndices.ByteSize();
@@ -139,11 +141,9 @@ GpuBlasRef MeshBlasBuilder::Build(Mesh* mesh, Material* material)
     }
 
     GpuBlasRef blas;
-    PUSH_RENDER_COMMAND(BuildMeshBlas, blas, std::move(packedVertices), std::move(packedIndices), mesh, material);
+    BuildMeshBlas command { blas, std::move(packedVertices), std::move(packedIndices), mesh, material };
 
-#if HYP_DEBUG_MODE
-    blas->SetDebugName(NAME_FMT("MeshBlas_{}", mesh->GetName()));
-#endif
+    command();
 
     return blas;
 }
