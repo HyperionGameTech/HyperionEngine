@@ -50,12 +50,12 @@ DECLARE_BUFFER_DYNAMIC(SSGI, CBuffer) cbuffer CBuffer
     EnvProbe envProbes[MAX_ENV_PROBES];
 };
 
-DECLARE_SRV(SSGI, GBufferAlbedoTexture) Texture2D gbuffer_albedo_texture;
-DECLARE_SRV(SSGI, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
-DECLARE_SRV(SSGI, GBufferMaterialTexture) Texture2D<uint> gbuffer_material_texture;
-DECLARE_SRV(SSGI, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
+DECLARE_SRV(SSGI, GBufferAlbedoTexture) Texture2D GBufferAlbedoTexture;
+DECLARE_SRV(SSGI, GBufferNormalsTexture) Texture2D GBufferNormalsTexture;
+DECLARE_SRV(SSGI, GBufferMaterialTexture) Texture2D<uint> GBufferMaterialTexture;
+DECLARE_SRV(SSGI, GBufferVelocityTexture) Texture2D GBufferVelocityTexture;
 
-DECLARE_SRV(SSGI, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
+DECLARE_SRV(SSGI, GBufferDepthTexture) Texture2D GBufferDepthTexture;
 DECLARE_SRV(SSGI, DeferredShadingTexture) Texture2D DeferredShadingTexture;
 
 DECLARE_SAMPLER(SSGI, SamplerNearest) SamplerState sampler_nearest;
@@ -118,7 +118,7 @@ bool TraceRays(
         marching_position += rayStep;
 
         hit_uv = GetProjectedPositionFromView(camera.projection, marching_position);
-        hit_depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, hit_uv).r;
+        hit_depth = SAMPLE_TEXTURE_2D(sampler_nearest, GBufferDepthTexture, hit_uv).r;
         hit_view_space_position = ReconstructViewSpacePositionFromDepth(camera.invProjMat, hit_uv, hit_depth);
 
         step_delta = marching_position.z - hit_view_space_position.z;
@@ -141,7 +141,7 @@ bool TraceRays(
             marching_position = marching_position - rayStep * sign(step_delta);
 
             hit_uv = GetProjectedPositionFromView(camera.projection, marching_position);
-            hit_depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, hit_uv).r;
+            hit_depth = SAMPLE_TEXTURE_2D(sampler_nearest, GBufferDepthTexture, hit_uv).r;
             hit_view_space_position = ReconstructViewSpacePositionFromDepth(camera.invProjMat, hit_uv, hit_depth);
 
             step_delta = abs(marching_position.z) - hit_view_space_position.z;
@@ -198,14 +198,14 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     const float2 texcoord = saturate((float2(coord) + 0.5) / float2(ssgiConstants.dimension.xy));
 
     uint2 gbufferDimensions;
-    gbuffer_material_texture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
+    GBufferMaterialTexture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
 
-    const float4 normalSample = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, texcoord);
+    const float4 normalSample = SAMPLE_TEXTURE_2D(sampler_nearest, GBufferNormalsTexture, texcoord);
 
     GBufferMaterialParams materialParams;
     GBufferUnpackMaterialParams(normalSample.x, 0, materialParams);
 
-    const float depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
+    const float depth = SAMPLE_TEXTURE_2D(sampler_nearest, GBufferDepthTexture, texcoord).r;
 
     if (depth > 0.9999)
     {
@@ -217,7 +217,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     const float3 V = normalize((float3)0.0 - P);
     const float3 N = GBufferUnpackNormal(normalSample);
     const float3 view_space_normal = normalize(mul(camera.view, float4(N, 0.0)).xyz);
-    const float2 velocity = SAMPLE_TEXTURE_2D(sampler_linear, gbuffer_velocity_texture, texcoord).xy;
+    const float2 velocity = SAMPLE_TEXTURE_2D(sampler_linear, GBufferVelocityTexture, texcoord).xy;
 
     float2 hit_uv;
     float4 hit_view_space_position;
@@ -249,7 +249,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
         if (TraceRays(ray_origin, ray_direction, hit_uv, hit_view_space_position, hit_depth, maxIterations))
         {
-            float3 hit_normal = GBufferUnpackNormal(SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, hit_uv));
+            float3 hit_normal = GBufferUnpackNormal(SAMPLE_TEXTURE_2D(sampler_nearest, GBufferNormalsTexture, hit_uv));
             float alpha = CalculateAlpha(maxIterations, hit_uv, hit_normal, ray_direction);
 
             if (alpha > HYP_FMATH_EPSILON)
@@ -345,7 +345,7 @@ bool TraceScreenSpaceRay(
         marching_position += rayStep;
 
         hit_uv = GetProjectedPositionFromView(camera.projection, marching_position);
-        hit_depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, hit_uv).r;
+        hit_depth = SAMPLE_TEXTURE_2D(sampler_nearest, GBufferDepthTexture, hit_uv).r;
         hit_view_space_position = ReconstructViewSpacePositionFromDepth(camera.invProjMat, hit_uv, hit_depth);
 
         step_delta = marching_position.z - hit_view_space_position.z;
@@ -368,7 +368,7 @@ bool TraceScreenSpaceRay(
             marching_position = marching_position - rayStep * sign(step_delta);
 
             hit_uv = GetProjectedPositionFromView(camera.projection, marching_position);
-            hit_depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, hit_uv).r;
+            hit_depth = SAMPLE_TEXTURE_2D(sampler_nearest, GBufferDepthTexture, hit_uv).r;
             hit_view_space_position = ReconstructViewSpacePositionFromDepth(camera.invProjMat, hit_uv, hit_depth);
 
             step_delta = abs(marching_position.z) - hit_view_space_position.z;
@@ -459,14 +459,14 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     const float2 texcoord = saturate((float2(coord) + 0.5) / float2(ssgiConstants.dimension.xy));
 
     uint2 gbufferDimensions;
-    gbuffer_material_texture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
+    GBufferMaterialTexture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
 
-    const float4 normalSample = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, texcoord);
+    const float4 normalSample = SAMPLE_TEXTURE_2D(sampler_nearest, GBufferNormalsTexture, texcoord);
 
     GBufferMaterialParams materialParams;
     GBufferUnpackMaterialParams(normalSample.x, 0, materialParams);
 
-    const float depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
+    const float depth = SAMPLE_TEXTURE_2D(sampler_nearest, GBufferDepthTexture, texcoord).r;
 
     if (depth >= 0.9999)
     {
@@ -557,8 +557,8 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
             float2 sample_uv = saturate(hit_uv);
 
-            float4 hit_albedo = SAMPLE_TEXTURE_2D(sampler_linear, gbuffer_albedo_texture, sample_uv);
-            float4 hit_normal_sample = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, sample_uv);
+            float4 hit_albedo = SAMPLE_TEXTURE_2D(sampler_linear, GBufferAlbedoTexture, sample_uv);
+            float4 hit_normal_sample = SAMPLE_TEXTURE_2D(sampler_nearest, GBufferNormalsTexture, sample_uv);
 
             float3 hit_N_world = GBufferUnpackNormal(hit_normal_sample);
 

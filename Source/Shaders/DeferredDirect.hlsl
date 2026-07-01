@@ -52,12 +52,12 @@ struct PSOutput
     float4 output_color : SV_Target0;
 };
 
-DECLARE_SRV(DeferredPass, GBufferAlbedoTexture) Texture2D gbuffer_albedo_texture;
-DECLARE_SRV(DeferredPass, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
-DECLARE_SRV(DeferredPass, GBufferMaterialTexture) Texture2D<uint> gbuffer_material_texture;
-DECLARE_SRV(DeferredPass, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
+DECLARE_SRV(DeferredPass, GBufferAlbedoTexture) Texture2D GBufferAlbedoTexture;
+DECLARE_SRV(DeferredPass, GBufferNormalsTexture) Texture2D GBufferNormalsTexture;
+DECLARE_SRV(DeferredPass, GBufferMaterialTexture) Texture2D<uint> GBufferMaterialTexture;
+DECLARE_SRV(DeferredPass, GBufferVelocityTexture) Texture2D GBufferVelocityTexture;
 
-DECLARE_SRV(DeferredPass, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
+DECLARE_SRV(DeferredPass, GBufferDepthTexture) Texture2D GBufferDepthTexture;
 
 DECLARE_SAMPLER(DeferredPass, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(DeferredPass, SamplerLinear) SamplerState sampler_linear;
@@ -177,15 +177,15 @@ PSOutput PSMain(PSInput input)
 
     const uint2 pixelCoord = (uint2)input.position_cs.xy;
 
-    float4 albedo = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_NEAREST, gbuffer_albedo_texture, texcoord, 0);
-    float4 normalSample = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_NEAREST, gbuffer_normals_texture, texcoord, 0);
+    float4 albedo = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_NEAREST, GBufferAlbedoTexture, texcoord, 0);
+    float4 normalSample = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_NEAREST, GBufferNormalsTexture, texcoord, 0);
     float3 normal = GBufferUnpackNormal(normalSample);
 
     float3 tangent;
     float3 bitangent;
     ComputeOrthonormalBasis(normal, tangent, bitangent);
 
-    const float depth = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_NEAREST, gbuffer_depth_texture, texcoord, 0).r;
+    const float depth = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_NEAREST, GBufferDepthTexture, texcoord, 0).r;
 
     float2 unjitteredTexcoord = texcoord - camera.jitter.xy * 0.5;
     float4 positionVS = ReconstructViewSpacePositionFromDepth(camera.invProjMat, unjitteredTexcoord, depth);

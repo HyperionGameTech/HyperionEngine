@@ -81,7 +81,7 @@ float3 CalculateRefraction(
     float absorption = 0.1; // TODO: material parameter
     float3 T = min(float3(1.0, 1.0, 1.0), exp(-absorption * refraction.direction));
 
-    float3 Ft = SAMPLE_TEXTURE_2D_LOD(sampler_linear, gbuffer_mip_chain, refraction_texcoord, lod).rgb;
+    float3 Ft = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferMipChain, refraction_texcoord, lod).rgb;
     Ft *= translucent_color.rgb;
     Ft *= 1.0 - E; // energy conservation: subtract the fraction already lost to reflection
     Ft *= T;

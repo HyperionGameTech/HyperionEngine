@@ -88,7 +88,7 @@ float3 EvaluateSH(float3 N)
 DECLARE_SRV(Default, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
 DECLARE_SRV(Default, EnvProbesDepthTexture) TextureCubeArray<float2> envProbesDepthTexture;
 
-DECLARE_SRV(Default, GBufferMipChain) Texture2D gbuffer_mip_chain;
+DECLARE_SRV(Default, GBufferMipChain) Texture2D GBufferMipChain;
 
 DECLARE_SRV(Default, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(Default, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
@@ -222,11 +222,8 @@ PSOutput PSMain(PSInput input)
                 float4 irradiance = (float4)0;
                 float4 reflections = (float4)0;
 
-                uint2 mipChainDimensions;
-                gbuffer_mip_chain.GetDimensions(mipChainDimensions.x, mipChainDimensions.y);
-
                 float3 Ft = CalculateRefraction(
-                    mipChainDimensions,
+                    camera.dimensions.xy,
                     P, N, V,
                     texcoord,
                     F0, E,

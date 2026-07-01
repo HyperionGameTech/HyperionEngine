@@ -1213,7 +1213,7 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
     if (data.noiseTexture)
         cr << SetShaderUniform(6, "NoiseMap"_sh, RI.textureViewCache->GetOrCreate(data.noiseTexture));
 
-    cr << SetShaderUniform(7, "DepthTexture"_sh, dpd->depthPyramidRenderer->GetResultImageView());
+    cr << SetShaderUniform(7, "DepthTexture"_sh, framebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
 
     // Set constants
     FogVolumeShaderData shaderData = proxy->bufferData;
@@ -1644,7 +1644,7 @@ static FramebufferRef CreateLightingFramebuffer(GBuffer* gbuffer)
         depthImageView);
 
     CheckResult(framebuffer->Create());
-    
+
 #ifdef HYP_RHI_DEBUG_NAMES
     colorAttachment->GetGpuImage()->SetDebugName(NAME("DeferredShadingTarget_Color"));
 #endif
@@ -1677,7 +1677,7 @@ static FramebufferRef CreateDepthPrepassFramebuffer(GBuffer* gbuffer)
         depthImageView);
 
     CheckResult(framebuffer->Create());
-    
+
 #ifdef HYP_RHI_DEBUG_NAMES
     depthAttachment->GetGpuImage()->SetDebugName(NAME("DepthPrepassAttachment"));
 #endif
@@ -2932,6 +2932,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     Framebuffer* lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Lightmapped);
     Framebuffer* translucentPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Translucent);
+    Framebuffer* skyPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Sky);
     Framebuffer* debugPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Debug);
 
     const bool useRayTracingReflections = (g_cvPathTracing.Get() || g_cvRayTracedReflections.Get())
@@ -3195,7 +3196,8 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
                 RenderSetup fogVolumeRS = rs.Fork();
                 fogVolumeRS.volume = fogVolume;
 
-                passData.fogVolumePass->RenderToFramebuffer(frame, fogVolumeRS, translucentPassFramebuffer);
+                // Render into SKY bucket framebuffer as we don't write normals/matdata/velocity
+                passData.fogVolumePass->RenderToFramebuffer(frame, fogVolumeRS, skyPassFramebuffer);
             }
         }
 

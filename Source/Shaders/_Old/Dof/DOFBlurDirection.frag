@@ -38,7 +38,7 @@ void main()
 #ifdef TEMPORAL_AA
 #define INPUT_TEXTURE temporal_aa_result
 #else
-#define INPUT_TEXTURE gbuffer_deferred_result
+#define INPUT_TEXTURE DeferredResult
 #endif
 
     offset = vec2(0.0, 1.0);

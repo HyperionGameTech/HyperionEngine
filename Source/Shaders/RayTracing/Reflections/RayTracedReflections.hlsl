@@ -3,10 +3,10 @@
 #include "../include/Noise.hlsli"
 #include "../include/Packing.hlsli"
 
-DECLARE_SRV(RTReflections, GBufferAlbedoTexture) Texture2D gbuffer_albedo_texture;
-DECLARE_SRV(RTReflections, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
-DECLARE_SRV(RTReflections, GBufferMaterialTexture) Texture2D<uint> gbuffer_material_texture;
-DECLARE_SRV(RTReflections, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
+DECLARE_SRV(RTReflections, GBufferAlbedoTexture) Texture2D GBufferAlbedoTexture;
+DECLARE_SRV(RTReflections, GBufferNormalsTexture) Texture2D GBufferNormalsTexture;
+DECLARE_SRV(RTReflections, GBufferMaterialTexture) Texture2D<uint> GBufferMaterialTexture;
+DECLARE_SRV(RTReflections, GBufferDepthTexture) Texture2D GBufferDepthTexture;
 
 DECLARE_SAMPLER(RTReflections, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(RTReflections, SamplerLinear) SamplerState sampler_linear;
@@ -74,13 +74,13 @@ void RayGenMain()
     const float4x4 view_inverse = camera.invViewMat;
     const float4x4 projection_inverse = camera.invProjMat;
 
-    const float4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_normals_texture, uv, 0.0);
+    const float4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferNormalsTexture, uv, 0.0);
     const float3 normal = GBufferUnpackNormal(normalSample);
-    const float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_depth_texture, uv, 0.0).r;
+    const float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferDepthTexture, uv, 0.0).r;
     const float3 position = ReconstructWorldSpacePositionFromDepth(projection_inverse, view_inverse, uv, depth).xyz;
 
     uint2 gbufferDimensions;
-    gbuffer_normals_texture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
+    GBufferNormalsTexture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
 
     const uint2 gbufferCoord = uint2(uv * max(0, int2(gbufferDimensions) - 1));
 

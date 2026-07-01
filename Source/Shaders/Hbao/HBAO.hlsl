@@ -43,13 +43,13 @@ struct PSInput
 };
 
 
-DECLARE_SRV(HBAO, GBufferAlbedoTexture) Texture2D gbuffer_albedo_texture;
-DECLARE_SRV(HBAO, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
-DECLARE_SRV(HBAO, GBufferMaterialTexture) Texture2D<uint> gbuffer_material_texture;
-DECLARE_SRV(HBAO, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
+DECLARE_SRV(HBAO, GBufferAlbedoTexture) Texture2D GBufferAlbedoTexture;
+DECLARE_SRV(HBAO, GBufferNormalsTexture) Texture2D GBufferNormalsTexture;
+DECLARE_SRV(HBAO, GBufferMaterialTexture) Texture2D<uint> GBufferMaterialTexture;
+DECLARE_SRV(HBAO, GBufferVelocityTexture) Texture2D GBufferVelocityTexture;
 
-DECLARE_SRV(HBAO, GBufferMipChain) Texture2D gbuffer_mip_chain;
-DECLARE_SRV(HBAO, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
+DECLARE_SRV(HBAO, GBufferMipChain) Texture2D GBufferMipChain;
+DECLARE_SRV(HBAO, GBufferDepthTexture) Texture2D GBufferDepthTexture;
 DECLARE_SAMPLER(HBAO, SamplerLinear) SamplerState sampler_linear;
 DECLARE_SAMPLER(HBAO, SamplerNearest) SamplerState sampler_nearest;
 
@@ -87,7 +87,7 @@ float GetOffsets(float2 uv)
 
 float GetDepth(float2 uv)
 {
-    return SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, uv).r;
+    return SAMPLE_TEXTURE_2D(sampler_nearest, GBufferDepthTexture, uv).r;
 }
 
 float3 GetPosition(float2 uv, float depth)
@@ -97,7 +97,7 @@ float3 GetPosition(float2 uv, float depth)
 
 float3 GetNormal(float2 uv)
 {
-    float3 normal = GBufferUnpackNormal(SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, uv));
+    float3 normal = GBufferUnpackNormal(SAMPLE_TEXTURE_2D(sampler_nearest, GBufferNormalsTexture, uv));
     float3 view_normal = mul(camera.view, float4(normal, 0.0)).xyz;
     return view_normal;
 }

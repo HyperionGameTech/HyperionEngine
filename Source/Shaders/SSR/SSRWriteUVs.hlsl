@@ -62,12 +62,12 @@ DECLARE_BUFFER_DYNAMIC(RenderSSR, CBuffer) cbuffer CBuffer
     SSRConstants ssrConstants;
 };
 
-DECLARE_SRV(RenderSSR, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
-DECLARE_SRV(RenderSSR, GBufferMaterialTexture) Texture2D<uint> gbuffer_material_texture;
-DECLARE_SRV(RenderSSR, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
-DECLARE_SRV(RenderSSR, GBufferMipChain) Texture2D gbuffer_mip_chain;
-DECLARE_SRV(RenderSSR, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
-DECLARE_SRV(RenderSSR, DeferredResult) Texture2D gbuffer_deferred_result;
+DECLARE_SRV(RenderSSR, GBufferNormalsTexture) Texture2D GBufferNormalsTexture;
+DECLARE_SRV(RenderSSR, GBufferMaterialTexture) Texture2D<uint> GBufferMaterialTexture;
+DECLARE_SRV(RenderSSR, GBufferVelocityTexture) Texture2D GBufferVelocityTexture;
+DECLARE_SRV(RenderSSR, GBufferMipChain) Texture2D GBufferMipChain;
+DECLARE_SRV(RenderSSR, GBufferDepthTexture) Texture2D GBufferDepthTexture;
+DECLARE_SRV(RenderSSR, DeferredResult) Texture2D DeferredResult;
 
 DECLARE_SAMPLER(RenderSSR, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(RenderSSR, SamplerLinear) SamplerState sampler_linear;
@@ -117,7 +117,7 @@ bool TraceRays(
 
         if (hit_pixel.x != saturate(hit_pixel.x) || hit_pixel.y != saturate(hit_pixel.y)) return false;
 
-        float depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, hit_pixel).r;
+        float depth = SAMPLE_TEXTURE_2D(sampler_nearest, GBufferDepthTexture, hit_pixel).r;
         float4 view_space_position = ReconstructViewSpacePositionFromDepth(camera.invProjMat, hit_pixel, depth);
 
         float step_delta = currPosition.z - view_space_position.z;
@@ -137,7 +137,7 @@ bool TraceRays(
                 currPosition -= currStep * sign(step_delta);
 
                 hit_pixel = GetProjectedPositionFromView(camera.projection, currPosition);
-                depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, hit_pixel).r;
+                depth = SAMPLE_TEXTURE_2D(sampler_nearest, GBufferDepthTexture, hit_pixel).r;
                 view_space_position = ReconstructViewSpacePositionFromDepth(camera.invProjMat, hit_pixel, depth);
 
                 step_delta = currPosition.z - view_space_position.z;
@@ -186,11 +186,11 @@ PSOutput PSMain(PSInput input)
     const float2 texcoord = input.texcoord;
 
     uint2 gbufferDimensions;
-    gbuffer_material_texture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
+    GBufferMaterialTexture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
 
     uint2 pixelCoord = clamp(uint2(texcoord * max(0, int2(gbufferDimensions))), 0, int2(gbufferDimensions) - 1);
 
-    const float4 normalSample = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, texcoord);
+    const float4 normalSample = SAMPLE_TEXTURE_2D(sampler_nearest, GBufferNormalsTexture, texcoord);
 
     GBufferMaterialParams materialParams;
     GBufferUnpackMaterialParams(normalSample.x, 0 /* don't need mask */, materialParams);
@@ -198,7 +198,7 @@ PSOutput PSMain(PSInput input)
     const float roughness = materialParams.roughness;
     const float perceptualRoughness = sqrt(roughness);
 
-    const float depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
+    const float depth = SAMPLE_TEXTURE_2D(sampler_nearest, GBufferDepthTexture, texcoord).r;
 
     if (depth > 0.99999 || perceptualRoughness > MAX_ROUGHNESS)
     {

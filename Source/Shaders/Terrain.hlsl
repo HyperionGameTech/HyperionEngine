@@ -43,7 +43,7 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-DECLARE_SRV(Default, GBufferMipChain) Texture2D gbuffer_mip_chain;
+DECLARE_SRV(Default, GBufferMipChain) Texture2D GBufferMipChain;
 
 DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
 #define camera _cameras_buffer[0]

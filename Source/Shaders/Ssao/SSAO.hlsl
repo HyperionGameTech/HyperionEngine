@@ -50,12 +50,12 @@ struct PSOutput
     float4 out_color : SV_Target0;
 };
 
-DECLARE_SRV(RenderSSAO, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
-DECLARE_SRV(RenderSSAO, GBufferMaterialTexture) Texture2D<uint> gbuffer_material_texture;
-DECLARE_SRV(RenderSSAO, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
-DECLARE_SRV(RenderSSAO, GBufferMipChain) Texture2D gbuffer_mip_chain;
-DECLARE_SRV(RenderSSAO, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
-DECLARE_SRV(RenderSSAO, DeferredResult) Texture2D gbuffer_deferred_result;
+DECLARE_SRV(RenderSSAO, GBufferNormalsTexture) Texture2D GBufferNormalsTexture;
+DECLARE_SRV(RenderSSAO, GBufferMaterialTexture) Texture2D<uint> GBufferMaterialTexture;
+DECLARE_SRV(RenderSSAO, GBufferVelocityTexture) Texture2D GBufferVelocityTexture;
+DECLARE_SRV(RenderSSAO, GBufferMipChain) Texture2D GBufferMipChain;
+DECLARE_SRV(RenderSSAO, GBufferDepthTexture) Texture2D GBufferDepthTexture;
+DECLARE_SRV(RenderSSAO, DeferredResult) Texture2D DeferredResult;
 
 DECLARE_SAMPLER(RenderSSAO, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(RenderSSAO, SamplerLinear) SamplerState sampler_linear;
@@ -83,18 +83,18 @@ PSOutput PSMain(PSInput input)
     const float2 texcoord = input.texcoord;
 
     uint2 gbufferDimensions;
-    gbuffer_material_texture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
+    GBufferMaterialTexture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
 
     uint2 pixelCoord = uint2(texcoord * max(0, int2(gbufferDimensions) - 1));
 
-    const float4 normalSample = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, texcoord);
+    const float4 normalSample = SAMPLE_TEXTURE_2D(sampler_nearest, GBufferNormalsTexture, texcoord);
 
     GBufferMaterialParams materialParams;
     GBufferUnpackMaterialParams(normalSample.x, 0 /* don't need mask */, materialParams);
 
     const float roughness = materialParams.roughness;
 
-    const float depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
+    const float depth = SAMPLE_TEXTURE_2D(sampler_nearest, GBufferDepthTexture, texcoord).r;
 
     if (depth > 0.99999)
     {

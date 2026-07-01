@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -248,9 +248,8 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     size_t cbufferSize;
     RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
-    // this is rendered from translucent pass in DeferredPass
-    Framebuffer* framebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Translucent);
-    Assert(framebuffer != nullptr);
+    Framebuffer* targetFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Sky);
+    Assert(targetFramebuffer != nullptr);
 
     { // update gpu particles pass (compute, done before frame is rendered)
         CommandRecorder& cr = preflightCommands;
@@ -270,11 +269,11 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         cr << SetShaderUniform(3, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
         cr << SetShaderUniform(4, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
 
-        cr << SetShaderUniform(5, "GBufferAlbedoTexture"_sh, framebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
-        cr << SetShaderUniform(6, "GBufferNormalsTexture"_sh, framebuffer->GetAttachment(GTN_NORMALS)->GetImageView());
-        cr << SetShaderUniform(7, "GBufferMaterialTexture"_sh, framebuffer->GetAttachment(GTN_MATERIAL)->GetImageView());
-        cr << SetShaderUniform(8, "GBufferVelocityTexture"_sh, framebuffer->GetAttachment(GTN_VELOCITY)->GetImageView());
-        cr << SetShaderUniform(9, "GBufferDepthTexture"_sh, framebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
+        cr << SetShaderUniform(5, "GBufferAlbedoTexture"_sh, targetFramebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
+        cr << SetShaderUniform(6, "GBufferNormalsTexture"_sh, targetFramebuffer->GetAttachment(GTN_NORMALS)->GetImageView());
+        cr << SetShaderUniform(7, "GBufferMaterialTexture"_sh, targetFramebuffer->GetAttachment(GTN_MATERIAL)->GetImageView());
+        cr << SetShaderUniform(8, "GBufferVelocityTexture"_sh, targetFramebuffer->GetAttachment(GTN_VELOCITY)->GetImageView());
+        cr << SetShaderUniform(9, "GBufferDepthTexture"_sh, targetFramebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
 
         cr << SetShaderUniform(10, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
 

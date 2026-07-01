@@ -60,13 +60,13 @@ struct PSOutput
 DECLARE_SAMPLER(DeferredPass, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(DeferredPass, SamplerLinear) SamplerState sampler_linear;
 
-DECLARE_SRV(DeferredPass, GBufferAlbedoTexture) Texture2D gbuffer_albedo_texture;
-DECLARE_SRV(DeferredPass, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
-DECLARE_SRV(DeferredPass, GBufferMaterialTexture) Texture2D<uint> gbuffer_material_texture;
-DECLARE_SRV(DeferredPass, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
+DECLARE_SRV(DeferredPass, GBufferAlbedoTexture) Texture2D GBufferAlbedoTexture;
+DECLARE_SRV(DeferredPass, GBufferNormalsTexture) Texture2D GBufferNormalsTexture;
+DECLARE_SRV(DeferredPass, GBufferMaterialTexture) Texture2D<uint> GBufferMaterialTexture;
+DECLARE_SRV(DeferredPass, GBufferVelocityTexture) Texture2D GBufferVelocityTexture;
 
-DECLARE_SRV(DeferredPass, GBufferMipChain) Texture2D gbuffer_mip_chain;
-DECLARE_SRV(DeferredPass, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
+DECLARE_SRV(DeferredPass, GBufferMipChain) Texture2D GBufferMipChain;
+DECLARE_SRV(DeferredPass, GBufferDepthTexture) Texture2D GBufferDepthTexture;
 
 DECLARE_SRV(DeferredPass, SSAOResultTexture) Texture2D SSAOResultTexture;
 
@@ -142,15 +142,15 @@ PSOutput PSMain(PSInput input)
     float2 texcoord = input.texcoord;
 
     uint2 gbufferDimensions;
-    gbuffer_albedo_texture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
+    GBufferAlbedoTexture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
 
     const uint2 pixelCoord = uint2(texcoord * gbufferDimensions);
 
-    float4 albedo = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_albedo_texture, texcoord, 0);
-    float4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_normals_texture, texcoord, 0);
+    float4 albedo = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferAlbedoTexture, texcoord, 0);
+    float4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferNormalsTexture, texcoord, 0);
     float3 normal = GBufferUnpackNormal(normalSample);
 
-    float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_depth_texture, texcoord, 0).r;
+    float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferDepthTexture, texcoord, 0).r;
 
     float2 unjitteredTexcoord = texcoord - camera.jitter.xy * 0.5;
     float4 positionVS = ReconstructViewSpacePositionFromDepth(camera.invProjMat, unjitteredTexcoord, depth);
@@ -158,7 +158,7 @@ PSOutput PSMain(PSInput input)
     float4 positionWS = mul(camera.invViewMat, positionVS);
     positionWS /= positionWS.w;
 
-    const uint materialBits = gbuffer_material_texture.Load(int3(pixelCoord, 0));
+    const uint materialBits = GBufferMaterialTexture.Load(int3(pixelCoord, 0));
 
     const float3 probeLighting = float3(
         (float)(materialBits & 0xFFu) / 255.0,
@@ -264,7 +264,7 @@ PSOutput PSMain(PSInput input)
 #elif defined(DEBUG_IRRADIANCE)
     result = irradiance.rgb;
 #elif defined(DEBUG_VELOCITY)
-    float4 velocity = SAMPLE_TEXTURE_2D_LOD(sampler_linear, gbuffer_velocity_texture, texcoord, 0);
+    float4 velocity = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferVelocityTexture, texcoord, 0);
     result = velocity.rgb;
 #elif defined(DEBUG_NORMALS)
     result = normal * 0.5 + 0.5;

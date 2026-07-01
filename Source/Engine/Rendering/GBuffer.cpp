@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -51,10 +51,10 @@ struct GBufferTargetDesc
 };
 
 static const FixedArray<GBufferTargetDesc, GTN_MAX> s_targetDescs = {
-    GBufferTargetDesc { TextureFormat::RGBA16F },                     // color
-    GBufferTargetDesc { TextureFormat::R10G10B10A2 },                 // normal: https://johnwhite3d.blogspot.com/2017/10/signed-octahedron-normal-encoding.html
-    GBufferTargetDesc { TextureFormat::R32 },                          // material data
-    GBufferTargetDesc { TextureFormat::RG16F },                       // velocity
+    GBufferTargetDesc { TextureFormat::RGBA16F },                       // color
+    GBufferTargetDesc { TextureFormat::R10G10B10A2 },                   // normal: https://johnwhite3d.blogspot.com/2017/10/signed-octahedron-normal-encoding.html
+    GBufferTargetDesc { TextureFormat::R32 },                           // material data
+    GBufferTargetDesc { TextureFormat::RG16F },                         // velocity
     GBufferTargetDesc { TextureFormat::D24_S8, TextureFormat::D32F_S8 } // depth
 };
 
@@ -166,9 +166,9 @@ void GBuffer::CreateBucketFramebuffers()
         case RenderBucket::Opaque:
             target.m_framebuffer = CreateFramebuffer(nullptr, m_extent, rb);
             break;
-        case RenderBucket::Lightmapped:    // fallthrough
+        case RenderBucket::Lightmapped: // fallthrough
         case RenderBucket::Translucent: // fallthrough
-        case RenderBucket::Sky:      // fallthrough
+        case RenderBucket::Sky:         // fallthrough
         case RenderBucket::Debug:       // fallthrough
             target.m_framebuffer = CreateFramebuffer(GetBucket(RenderBucket::Opaque).m_framebuffer, m_extent, rb);
             break;
@@ -197,7 +197,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
     framebuffer->SetDebugName(NAME_FMT("{}Framebuffer", EnumToString(rb)));
 #endif
 
-    auto AddOwnedAttachment = [&](uint32 binding, TextureFormat format, LoadOperation loadOp = LoadOperation::CLEAR, StoreOperation storeOp = StoreOperation::STORE) -> Attachment*
+    auto addOwnedAttachment = [&](uint32 binding, TextureFormat format, LoadOperation loadOp = LoadOperation::CLEAR, StoreOperation storeOp = StoreOperation::STORE) -> Attachment*
     {
         return framebuffer->AddAttachment(
             binding,
@@ -205,11 +205,10 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
                 TextureType::Texture2D,
                 format,
                 loadOp,
-                storeOp
-            });
+                storeOp });
     };
 
-    auto AddSharedAttachment = [&](uint32 binding, LoadOperation loadOp = LoadOperation::LOAD, StoreOperation storeOp = StoreOperation::STORE) -> Attachment*
+    auto addSharedAttachment = [&](uint32 binding, LoadOperation loadOp = LoadOperation::LOAD, StoreOperation storeOp = StoreOperation::STORE) -> Attachment*
     {
         Assert(parentFramebuffer != nullptr);
 
@@ -233,18 +232,18 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
         {
             const TextureFormat format = GetImageFormat(GBufferTargetName(i));
 
-            AddOwnedAttachment(i, format);
+            addOwnedAttachment(i, format);
         }
 
         if (g_cvDepthPrepass.Get())
         {
             // If DepthPrepass is enabled, we don't CLEAR the depth texture as DPP is responsible for clearing it.
-            AddOwnedAttachment(GTN_DEPTH, GetImageFormat(GTN_DEPTH), LoadOperation::LOAD, StoreOperation::NONE);
+            addOwnedAttachment(GTN_DEPTH, GetImageFormat(GTN_DEPTH), LoadOperation::LOAD, StoreOperation::NONE);
         }
         else
         {
             // Otherwise, we clear it on render pass start.
-            AddOwnedAttachment(GTN_DEPTH, GetImageFormat(GTN_DEPTH), LoadOperation::CLEAR, StoreOperation::STORE);
+            addOwnedAttachment(GTN_DEPTH, GetImageFormat(GTN_DEPTH), LoadOperation::CLEAR, StoreOperation::STORE);
         }
     }
     else
@@ -254,27 +253,47 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
         // add the attachments shared with opaque bucket (including depth)
         for (uint32 i = 0; i < GTN_MAX; i++)
         {
-            if (i == GTN_DEPTH)
+            switch (rb)
             {
-                if (rb == RenderBucket::Debug)
+            case RenderBucket::Sky:
+                // SKY bucket does not write normals, mat data, velocity, depth...
+                // Use Store op == NONE for those
+                // @TODO: Refactor GBuffer to not use Bucket, use its own enum -- this should be called "Effect", not "Sky"
+                if (i != GTN_ALBEDO)
+                {
+                    addOwnedAttachment(i, GetImageFormat(GBufferTargetName(i)), LoadOperation::LOAD, StoreOperation::NONE);
+
+                    continue;
+                }
+
+                break;
+            case RenderBucket::Debug:
+                if (i == GTN_DEPTH)
                 {
                     // debug bucket creates its own depth attachment
                     const TextureFormat format = GetImageFormat(GBufferTargetName(i));
-                    AddOwnedAttachment(i, format);
+                    addOwnedAttachment(i, format);
 
                     continue;
                 }
-                else if (rb == RenderBucket::Lightmapped && g_cvDepthPrepass.Get())
+
+                break;
+            case RenderBucket::Lightmapped:
+                if (i == GTN_DEPTH && g_cvDepthPrepass.Get())
                 {
                     // Lightmapped objects are included in the depth prepass, so we don't want to write to depth when they render.
                     // Therefore we use StoreOperation::NONE as storeOp when DepthPrepass is true.
-                    AddSharedAttachment(i, LoadOperation::LOAD, StoreOperation::NONE);
+                    addSharedAttachment(i, LoadOperation::LOAD, StoreOperation::NONE);
 
                     continue;
                 }
+
+                break;
+            default:
+                break;
             }
 
-            AddSharedAttachment(i);
+            addSharedAttachment(i);
         }
     }
 

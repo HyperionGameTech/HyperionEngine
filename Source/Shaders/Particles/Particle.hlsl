@@ -87,26 +87,12 @@ struct PSInput
     float4 color : TEXCOORD1;
 };
 
-struct PSOutput
-{
-    float4 gbuffer_albedo : SV_Target0;
-    uint gbuffer_material : SV_Target2;
-};
-
 DECLARE_SRV(ParticleDescriptorSet, ParticleTexture) Texture2D ParticleTexture;
 DECLARE_SAMPLER(ParticleDescriptorSet, SamplerLinear) SamplerState SamplerLinear;
 
-PSOutput PSMain(PSInput input)
+float4 PSMain(PSInput input) : SV_TARGET
 {
-    PSOutput output;
-
-    float4 color = SAMPLE_TEXTURE_2D(SamplerLinear, ParticleTexture, input.texcoord0);
-    // color *= input.color;
-
-    output.gbuffer_albedo = color;
-    output.gbuffer_material = 0;
-
-    return output;
+    return SAMPLE_TEXTURE_2D(SamplerLinear, ParticleTexture, input.texcoord0);
 }
 
 #endif // PIXEL_SHADER

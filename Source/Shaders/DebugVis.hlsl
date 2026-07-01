@@ -168,7 +168,7 @@ DECLARE_SAMPLER(DebugDrawerDescriptorSet, SamplerNearest) SamplerState sampler_n
 #include "include/Scene.hlsli"
 #include "include/Gbuffer.hlsli"
 
-DECLARE_SRV(DebugDrawerDescriptorSet, GBufferMipChain) Texture2D gbuffer_mip_chain;
+DECLARE_SRV(DebugDrawerDescriptorSet, GBufferMipChain) Texture2D GBufferMipChain;
 
 DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
 #define camera _cameras_buffer[0]

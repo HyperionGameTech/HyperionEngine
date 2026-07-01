@@ -70,14 +70,6 @@ struct PSInput
     float4 positionNdc : TEXCOORD0;
 };
 
-struct PSOutput
-{
-    float4 gbuffer_albedo : SV_Target0;
-    float4 gbuffer_normals : SV_Target1;
-    uint gbuffer_material : SV_Target2;
-    float2 gbuffer_velocity : SV_Target3;
-};
-
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 DECLARE_SAMPLER(FogVolume, SamplerLinear) SamplerState SamplerLinear;
@@ -296,10 +288,8 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar, float 
     return float4(max(float3(0.0, 0.0, 0.0), accumulatedColor), alpha);
 }
 
-PSOutput PSMain(PSInput input)
+float4 PSMain(PSInput input) : SV_TARGET
 {
-    PSOutput output;
-
     float2 screenSpaceUV = (input.positionNdc.xy / input.positionNdc.w) * 0.5 + 0.5;
     screenSpaceUV.y = 1.0 - screenSpaceUV.y;
 
@@ -331,12 +321,7 @@ PSOutput PSMain(PSInput input)
 
     float4 fogColor = RayMarch(camera.position.xyz, rayDir, tNear, tFar, 0.25);
 
-    output.gbuffer_albedo = fogColor;
-    output.gbuffer_normals = (float4)0;
-    output.gbuffer_material = 0;
-    output.gbuffer_velocity = (float2)0;
-
-    return output;
+    return fogColor;
 }
 
 #endif // PIXEL_SHADER

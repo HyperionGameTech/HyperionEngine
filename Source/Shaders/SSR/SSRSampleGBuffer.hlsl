@@ -58,11 +58,11 @@ DECLARE_BUFFER_DYNAMIC(RenderSSR, CBuffer) cbuffer CBuffer
     SSRConstants ssrConstants;
 };
 
-DECLARE_SRV(RenderSSR, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
-DECLARE_SRV(RenderSSR, GBufferMaterialTexture) Texture2D<uint> gbuffer_material_texture;
-DECLARE_SRV(RenderSSR, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
-DECLARE_SRV(RenderSSR, GBufferMipChain) Texture2D gbuffer_mip_chain;
-DECLARE_SRV(RenderSSR, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
+DECLARE_SRV(RenderSSR, GBufferNormalsTexture) Texture2D GBufferNormalsTexture;
+DECLARE_SRV(RenderSSR, GBufferMaterialTexture) Texture2D<uint> GBufferMaterialTexture;
+DECLARE_SRV(RenderSSR, GBufferVelocityTexture) Texture2D GBufferVelocityTexture;
+DECLARE_SRV(RenderSSR, GBufferMipChain) Texture2D GBufferMipChain;
+DECLARE_SRV(RenderSSR, GBufferDepthTexture) Texture2D GBufferDepthTexture;
 
 DECLARE_SAMPLER(RenderSSR, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(RenderSSR, SamplerLinear) SamplerState sampler_linear;
@@ -113,7 +113,7 @@ PSOutput PSMain(PSInput input)
     float4 reflection_sample = float4(0.0, 0.0, 0.0, 0.0);
     float roughness = 0.0;
 
-    float depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
+    float depth = SAMPLE_TEXTURE_2D(sampler_nearest, GBufferDepthTexture, texcoord).r;
 
     if (depth > 0.99999)
     {
@@ -122,14 +122,14 @@ PSOutput PSMain(PSInput input)
     }
 
     float3 P = ReconstructWorldSpacePositionFromDepth(camera.invProjMat, camera.invViewMat, texcoord, depth).xyz;
-    const float4 normalSample = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, texcoord);
+    const float4 normalSample = SAMPLE_TEXTURE_2D(sampler_nearest, GBufferNormalsTexture, texcoord);
     float3 N = GBufferUnpackNormal(normalSample);
     float3 V = normalize(camera.position.xyz - P);
 
     if (alpha > HYP_FMATH_EPSILON)
     {
         uint2 gbufferDimensions;
-        gbuffer_material_texture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
+        GBufferMaterialTexture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
 
         uint2 pixelCoord = clamp(uint2(texcoord * max(0, int2(gbufferDimensions))), 0, int2(gbufferDimensions) - 1);
 
@@ -163,7 +163,7 @@ PSOutput PSMain(PSInput input)
 
         float4 accum_color = float4(0.0, 0.0, 0.0, 0.0);
 
-        float2 velocity = SAMPLE_TEXTURE_2D_LOD(sampler_linear, gbuffer_velocity_texture, texcoord, 0).xy;
+        float2 velocity = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferVelocityTexture, texcoord, 0).xy;
 
 #ifdef CONE_TRACING
         for (int i = 0; i < 14; i++)
@@ -174,12 +174,12 @@ PSOutput PSMain(PSInput input)
 
             const float mip_level = clamp(log2(incircle_size * max(ssr_image_dimensions.x, ssr_image_dimensions.y)), 0.0, max_mip_level);
 
-            float4 current_reflection_sample = SAMPLE_TEXTURE_2D_LOD(sampler_linear, gbuffer_mip_chain, clamp(hit_uv - velocity, float2(0.0, 0.0), float2(1.0, 1.0)), mip_level);
+            float4 current_reflection_sample = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferMipChain, clamp(hit_uv - velocity, float2(0.0, 0.0), float2(1.0, 1.0)), mip_level);
 #else
         const float current_radius = length((hit_uv - texcoord) * float2(ssrConstants.dimension.xy)) * tan(cone_angle);
         const float mip_level = clamp(log2(current_radius), 0.0, max_mip_level);
 
-        float4 current_reflection_sample = SAMPLE_TEXTURE_2D_LOD(sampler_linear, gbuffer_mip_chain, clamp(hit_uv - velocity, float2(0.0, 0.0), float2(1.0, 1.0)), mip_level);
+        float4 current_reflection_sample = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferMipChain, clamp(hit_uv - velocity, float2(0.0, 0.0), float2(1.0, 1.0)), mip_level);
 #endif
 
 #ifdef CONE_TRACING

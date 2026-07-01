@@ -65,11 +65,11 @@ PSOutput PSMain(PSInput input)
 
     float2 resolution = float2(camera.dimensions.xy);
 
-    float3 rgbNW = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0 + (float2(-1.0, -1.0) / resolution)).xyz;
-    float3 rgbNE = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0 + (float2(1.0, -1.0) / resolution)).xyz;
-    float3 rgbSW = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0 + (float2(-1.0, 1.0) / resolution)).xyz;
-    float3 rgbSE = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0 + (float2(1.0, 1.0) / resolution)).xyz;
-    float3 rgbM = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0).xyz;
+    float3 rgbNW = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, DeferredResult, v_texcoord0 + (float2(-1.0, -1.0) / resolution)).xyz;
+    float3 rgbNE = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, DeferredResult, v_texcoord0 + (float2(1.0, -1.0) / resolution)).xyz;
+    float3 rgbSW = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, DeferredResult, v_texcoord0 + (float2(-1.0, 1.0) / resolution)).xyz;
+    float3 rgbSE = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, DeferredResult, v_texcoord0 + (float2(1.0, 1.0) / resolution)).xyz;
+    float3 rgbM = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, DeferredResult, v_texcoord0).xyz;
 
     float3 luma = float3(0.299, 0.587, 0.114);
     float lumaNW = dot(rgbNW, luma);
@@ -96,8 +96,8 @@ PSOutput PSMain(PSInput input)
                   dir * rcpDirMin))
         / resolution;
 
-    float3 rgbA = (1.0 / 2.0) * (SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0.xy + dir * (1.0 / 3.0 - 0.5)).xyz + SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0.xy + dir * (2.0 / 3.0 - 0.5)).xyz);
-    float3 rgbB = rgbA * (1.0 / 2.0) + (1.0 / 4.0) * (SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0.xy + dir * (0.0 / 3.0 - 0.5)).xyz + SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0.xy + dir * (3.0 / 3.0 - 0.5)).xyz);
+    float3 rgbA = (1.0 / 2.0) * (SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, DeferredResult, v_texcoord0.xy + dir * (1.0 / 3.0 - 0.5)).xyz + SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, DeferredResult, v_texcoord0.xy + dir * (2.0 / 3.0 - 0.5)).xyz);
+    float3 rgbB = rgbA * (1.0 / 2.0) + (1.0 / 4.0) * (SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, DeferredResult, v_texcoord0.xy + dir * (0.0 / 3.0 - 0.5)).xyz + SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, DeferredResult, v_texcoord0.xy + dir * (3.0 / 3.0 - 0.5)).xyz);
     float lumaB = dot(rgbB, luma);
 
     if ((lumaB < lumaMin) || (lumaB > lumaMax))
@@ -119,7 +119,7 @@ PSOutput PSMain(PSInput input)
 #define TextureSize float2(camera.dimensions.xy)
 #define OutputSize float2(camera.dimensions.xy)
 
-#define Source gbuffer_deferred_result
+#define Source DeferredResult
 #define vTexCoord input.texcoord.xy
 #define SourceSize float4(TextureSize, 1.0 / TextureSize)
 #define outsize float4(OutputSize, 1.0 / OutputSize)

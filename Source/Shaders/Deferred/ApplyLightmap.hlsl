@@ -52,13 +52,13 @@ struct PSOutput
 // In order to keep the same pass going without using LOAD operations and more complex management,
 // we just keep the shader inputs the same as the other deferred shaders, even if some of them are not used.
 
-DECLARE_SRV(LightmapPass, GBufferAlbedoTexture) Texture2D gbuffer_albedo_texture;
-DECLARE_SRV(LightmapPass, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
-DECLARE_SRV(LightmapPass, GBufferMaterialTexture) Texture2D<uint> gbuffer_material_texture;
-DECLARE_SRV(LightmapPass, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
-DECLARE_SRV(LightmapPass, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
+DECLARE_SRV(LightmapPass, GBufferAlbedoTexture) Texture2D GBufferAlbedoTexture;
+DECLARE_SRV(LightmapPass, GBufferNormalsTexture) Texture2D GBufferNormalsTexture;
+DECLARE_SRV(LightmapPass, GBufferMaterialTexture) Texture2D<uint> GBufferMaterialTexture;
+DECLARE_SRV(LightmapPass, GBufferVelocityTexture) Texture2D GBufferVelocityTexture;
+DECLARE_SRV(LightmapPass, GBufferDepthTexture) Texture2D GBufferDepthTexture;
 
-DECLARE_SRV(LightmapPass, GBufferMipChain) Texture2D gbuffer_mip_chain;
+DECLARE_SRV(LightmapPass, GBufferMipChain) Texture2D GBufferMipChain;
 
 DECLARE_SAMPLER(LightmapPass, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(LightmapPass, SamplerLinear) SamplerState sampler_linear;
@@ -113,14 +113,14 @@ PSOutput PSMain(PSInput input)
     const float2 texcoord = input.texcoord;
 
     uint2 gbufferDimensions;
-    gbuffer_albedo_texture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
+    GBufferAlbedoTexture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
 
     const uint2 pixelCoord = uint2(clamp(texcoord * int2(gbufferDimensions), (int2)0, int2(gbufferDimensions) - 1));
 
-    const float4 albedo = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_albedo_texture, texcoord, 0);
-    const float4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_normals_texture, texcoord, 0);
+    const float4 albedo = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferAlbedoTexture, texcoord, 0);
+    const float4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferNormalsTexture, texcoord, 0);
 
-    const uint materialData = gbuffer_material_texture.Load(int3(pixelCoord, 0));
+    const uint materialData = GBufferMaterialTexture.Load(int3(pixelCoord, 0));
 
     GBufferMaterialParams materialParams;
     GBufferUnpackMaterialParams(normalSample.x, materialData >> 28u, materialParams);
@@ -135,10 +135,10 @@ PSOutput PSMain(PSInput input)
     const float4x4 inverse_proj = camera.invProjMat;
     const float4x4 inverse_view = camera.invViewMat;
 
-    float3 N = GBufferUnpackNormal(SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_normals_texture, texcoord, 0));
+    float3 N = GBufferUnpackNormal(SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferNormalsTexture, texcoord, 0));
     float2 UV1 = (float2((float)(materialData & 0x3FFFu), (float)((materialData >> 14) & 0x3FFFu)) + 0.5) / 16384.0;
 
-    const float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_depth_texture, texcoord, 0).r;
+    const float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferDepthTexture, texcoord, 0).r;
     const float3 P = ReconstructWorldSpacePositionFromDepth(inverse_proj, inverse_view, texcoord, depth).xyz;
     const float3 V = normalize(camera.position.xyz - P);
     // const float3 R = normalize(reflect(-V, N));

@@ -20,7 +20,7 @@ void main()
     const float dof_start = 1.35;
     const float dof_end = 15.0;
 
-    const float depth = SampleGBuffer(gbuffer_depth_texture, v_texcoord).r;
+    const float depth = SampleGBuffer(GBufferDepthTexture, v_texcoord).r;
 
 #if 0
     // temp
@@ -29,7 +29,7 @@ void main()
     const vec3 P = ReconstructWorldSpacePositionFromDepth(inverse(camera.projection), inverse(camera.view), v_texcoord, depth).xyz;
 
     const float blur_amount = smoothstep(dof_start, dof_end, distance(P, focal_point));
-    color_output = mix(SAMPLE_TEXTURE_2D(gbuffer_sampler, gbuffer_deferred_result, v_texcoord), SAMPLE_TEXTURE_2D(gbuffer_sampler, dof_blur_vert, v_texcoord), blur_amount);
+    color_output = mix(SAMPLE_TEXTURE_2D(gbuffer_sampler, DeferredResult, v_texcoord), SAMPLE_TEXTURE_2D(gbuffer_sampler, dof_blur_vert, v_texcoord), blur_amount);
 #else
 
     color_output = vec4(1.0, 0.0, 0.0, 1.0);

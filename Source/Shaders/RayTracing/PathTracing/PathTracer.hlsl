@@ -5,13 +5,13 @@
 #include "../../include/Noise.hlsli"
 #include "../../include/Packing.hlsli"
 
-DECLARE_SRV(PathTracer, GBufferAlbedoTexture) Texture2D gbuffer_albedo_texture;
-DECLARE_SRV(PathTracer, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
-DECLARE_SRV(PathTracer, GBufferMaterialTexture) Texture2D<uint> gbuffer_material_texture;
-DECLARE_SRV(PathTracer, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
+DECLARE_SRV(PathTracer, GBufferAlbedoTexture) Texture2D GBufferAlbedoTexture;
+DECLARE_SRV(PathTracer, GBufferNormalsTexture) Texture2D GBufferNormalsTexture;
+DECLARE_SRV(PathTracer, GBufferMaterialTexture) Texture2D<uint> GBufferMaterialTexture;
+DECLARE_SRV(PathTracer, GBufferVelocityTexture) Texture2D GBufferVelocityTexture;
 
-DECLARE_SRV(PathTracer, GBufferMipChain) Texture2D gbuffer_mip_chain;
-DECLARE_SRV(PathTracer, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
+DECLARE_SRV(PathTracer, GBufferMipChain) Texture2D GBufferMipChain;
+DECLARE_SRV(PathTracer, GBufferDepthTexture) Texture2D GBufferDepthTexture;
 
 DECLARE_SRV(PathTracer, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
@@ -89,13 +89,13 @@ void RayGenMain()
     const float4x4 view_inverse = camera.invViewMat;
     const float4x4 projection_inverse = camera.invProjMat;
 
-    const float4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_normals_texture, uv, 0.0);
+    const float4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferNormalsTexture, uv, 0.0);
     const float3 normal = normalize(GBufferUnpackNormal(normalSample));
-    const float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_depth_texture, uv, 0.0).r;
+    const float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferDepthTexture, uv, 0.0).r;
     const float4 worldPosition = ReconstructWorldSpacePositionFromDepth(projection_inverse, view_inverse, uv, depth);
 
     uint2 gbufferDimensions;
-    gbuffer_albedo_texture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
+    GBufferAlbedoTexture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
 
     const uint2 gbufferCoord = uint2(uv * max(0, int2(gbufferDimensions) - 1));
 
@@ -115,7 +115,7 @@ void RayGenMain()
 
     float4 color = (float4)0;
 
-    const float3 albedo = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_albedo_texture, uv, 0.0).rgb;
+    const float3 albedo = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferAlbedoTexture, uv, 0.0).rgb;
     const float3 N0 = normal;
 
     float4 accumRadiance = (float4)0;

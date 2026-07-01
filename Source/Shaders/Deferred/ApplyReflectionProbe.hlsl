@@ -11,11 +11,11 @@ DECLARE_SAMPLER(ReflectionsPass, SamplerLinear) SamplerState sampler_linear;
 
 #define texture_sampler sampler_linear
 
-DECLARE_SRV(ReflectionsPass, GBufferAlbedoTexture) Texture2D gbuffer_albedo_texture;
-DECLARE_SRV(ReflectionsPass, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
-DECLARE_SRV(ReflectionsPass, GBufferMaterialTexture) Texture2D<uint> gbuffer_material_texture;
-DECLARE_SRV(ReflectionsPass, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
-DECLARE_SRV(ReflectionsPass, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
+DECLARE_SRV(ReflectionsPass, GBufferAlbedoTexture) Texture2D GBufferAlbedoTexture;
+DECLARE_SRV(ReflectionsPass, GBufferNormalsTexture) Texture2D GBufferNormalsTexture;
+DECLARE_SRV(ReflectionsPass, GBufferMaterialTexture) Texture2D<uint> GBufferMaterialTexture;
+DECLARE_SRV(ReflectionsPass, GBufferVelocityTexture) Texture2D GBufferVelocityTexture;
+DECLARE_SRV(ReflectionsPass, GBufferDepthTexture) Texture2D GBufferDepthTexture;
 
 DECLARE_SRV_DYNAMIC(ReflectionsPass, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
 #define camera _cameras_buffer[0]
@@ -25,7 +25,7 @@ DECLARE_SRV(ReflectionsPass, WorldsBuffer) StructuredBuffer<WorldShaderData> _wo
 
 DECLARE_SRV(ReflectionsPass, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;
 
-DECLARE_SRV(ReflectionsPass, GBufferMipChain) Texture2D gbuffer_mip_chain;
+DECLARE_SRV(ReflectionsPass, GBufferMipChain) Texture2D GBufferMipChain;
 
 #define HYP_DEFERRED_NO_RT_RADIANCE
 
@@ -97,12 +97,12 @@ PSOutput PSMain(PSInput input)
     float2 texcoord = input.v_texcoord;
 
     uint2 gbufferDimensions;
-    gbuffer_albedo_texture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
+    GBufferAlbedoTexture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
 
     const uint2 pixelCoord = uint2(texcoord * max(0, int2(gbufferDimensions) - 1));
 
-    const float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_depth_texture, texcoord, 0.0).r;
-    const float4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_normals_texture, texcoord, 0.0);
+    const float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferDepthTexture, texcoord, 0.0).r;
+    const float4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferNormalsTexture, texcoord, 0.0);
 
     const float3 N = GBufferUnpackNormal(normalSample);
     const float3 P = ReconstructWorldSpacePositionFromDepth(camera.invProjMat, camera.invViewMat, texcoord, depth).xyz;

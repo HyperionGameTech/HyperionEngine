@@ -4,11 +4,11 @@
 DECLARE_SAMPLER(UpdateParticlesDescriptorSet, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(UpdateParticlesDescriptorSet, SamplerLinear) SamplerState sampler_linear;
 
-DECLARE_SRV(UpdateParticlesDescriptorSet, GBufferAlbedoTexture) Texture2D gbuffer_albedo_texture;
-DECLARE_SRV(UpdateParticlesDescriptorSet, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
-DECLARE_SRV(UpdateParticlesDescriptorSet, GBufferMaterialTexture) Texture2D<uint> gbuffer_material_texture;
-DECLARE_SRV(UpdateParticlesDescriptorSet, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
-DECLARE_SRV(UpdateParticlesDescriptorSet, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
+DECLARE_SRV(UpdateParticlesDescriptorSet, GBufferAlbedoTexture) Texture2D GBufferAlbedoTexture;
+DECLARE_SRV(UpdateParticlesDescriptorSet, GBufferNormalsTexture) Texture2D GBufferNormalsTexture;
+DECLARE_SRV(UpdateParticlesDescriptorSet, GBufferMaterialTexture) Texture2D<uint> GBufferMaterialTexture;
+DECLARE_SRV(UpdateParticlesDescriptorSet, GBufferVelocityTexture) Texture2D GBufferVelocityTexture;
+DECLARE_SRV(UpdateParticlesDescriptorSet, GBufferDepthTexture) Texture2D GBufferDepthTexture;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../include/Scene.hlsli"
@@ -154,14 +154,14 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     const float2 particleUV = float2(posNDC.x * 0.5 + 0.5, 1.0 - (posNDC.y * 0.5 + 0.5));
 
-    const float depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, particleUV).r;
+    const float depth = SAMPLE_TEXTURE_2D(sampler_nearest, GBufferDepthTexture, particleUV).r;
 
     float4 posWS = ReconstructWorldSpacePositionFromDepth(camera.invProjMat, camera.invViewMat, particleUV, depth);
     posWS /= posWS.w;
 
     if (distance(posWS.xyz, particle.position.xyz) <= 1.0)
     {
-        const float3 normal = GBufferUnpackNormal(SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, particleUV));
+        const float3 normal = GBufferUnpackNormal(SAMPLE_TEXTURE_2D(sampler_nearest, GBufferNormalsTexture, particleUV));
 
         particle.velocity.xyz = reflect(normal, normalize(particle.velocity.xyz));
     }
