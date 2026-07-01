@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <HyperionPch.hpp>
 
@@ -23,18 +23,6 @@ namespace Hyperion {
 
 static Pool s_inputPool(1 * 1024 * 1024);
 Pool* g_inputPool = &s_inputPool;
-
-static TSlabAllocator<Pool>& GetMouseLockStateAllocator()
-{
-    static TSlabAllocator<Pool> s_mouseLockStateAllocator(
-        g_inputPool,
-        sizeof(InputMouseLockState),
-        alignof(InputMouseLockState),
-        32,
-        AF_THREAD_SAFE);
-
-    return s_mouseLockStateAllocator;
-}
 
 #pragma region InputEventQueue
 
@@ -192,15 +180,16 @@ InputManager::~InputManager()
 {
     SetIsMouseLocked(false);
 
-    for (int i = 0; i < int(m_mouseLockStates.Size()); i++)
+    for (size_t i = 0; i < m_mouseLockStates.Size(); i++)
     {
         InputMouseLockState* state = m_mouseLockStates[i];
+
         auto it = m_mouseLockStates.Begin() + i;
 
         if (m_mouseLockStates.IndexOf(it) == i)
         {
             state->~InputMouseLockState();
-            GetMouseLockStateAllocator().Free(state);
+            g_inputPool->Free(state);
         }
     }
 
@@ -214,7 +203,7 @@ bool InputManager::IsMouseLocked() const
 
 void InputManager::PushMouseLockState(bool mouseLocked, bool syncToVirtualPosition)
 {
-    InputMouseLockState* mouseLockState = (InputMouseLockState*)GetMouseLockStateAllocator().Allocate();
+    InputMouseLockState* mouseLockState = g_inputPool->Allocate<InputMouseLockState>();
 
     new (mouseLockState) InputMouseLockState;
     mouseLockState->locked = mouseLocked;
@@ -248,13 +237,13 @@ void InputManager::PopMouseLockState()
     if (!m_mouseLockStates.Contains(lastState))
     {
         lastState->~InputMouseLockState();
-        GetMouseLockStateAllocator().Free(lastState);
+        g_inputPool->Free(lastState);
     }
 }
 
 InputMouseLockScope InputManager::AcquireMouseLock(bool syncToVirtualPosition)
 {
-    InputMouseLockState* mouseLockState = (InputMouseLockState*)GetMouseLockStateAllocator().Allocate();
+    InputMouseLockState* mouseLockState = g_inputPool->Allocate<InputMouseLockState>();
 
     new (mouseLockState) InputMouseLockState;
     mouseLockState->locked = true;
@@ -466,7 +455,7 @@ void InputManager::RemoveMouseLockState(InputMouseLockState* mouseLockState)
     if (!m_mouseLockStates.Contains(mouseLockState))
     {
         mouseLockState->~InputMouseLockState();
-        GetMouseLockStateAllocator().Free(mouseLockState);
+        g_inputPool->Free(mouseLockState);
     }
 
     if (eraseIt == m_mouseLockStates.End() && IsOnThread(g_mainThread)) // was it at the end?

@@ -39,7 +39,7 @@
 
 namespace Hyperion {
 
-static constexpr float CameraJitterScale = 0.25f;
+static constexpr float CameraJitterScale = 0.5f;
 
 extern CVar<bool> g_cvTAA;
 
@@ -561,6 +561,8 @@ void Camera::UpdateJitter()
     {
         Mat4f::Jitter(m_jitterFrameCounter++, uint32(MathUtil::Abs(m_width)), uint32(MathUtil::Abs(m_height)), m_jitter);
         m_jitter *= CameraJitterScale;
+
+        SetNeedsRenderProxyUpdate();
     }
 }
 
@@ -718,9 +720,11 @@ void Camera::Update(float delta)
     {
         UpdateJitter();
     }
-    else
+    else if (m_jitter != Vec4f::Zero())
     {
         m_jitter = Vec4f::Zero();
+
+        SetNeedsRenderProxyUpdate();
     }
 
     if (m_streamingVolume.IsValid())
@@ -730,8 +734,6 @@ void Camera::Update(float delta)
         /// \todo: Set a proper bounding box for the streaming volume
         m_streamingVolume->SetBoundingBox(BoundingBox(translation - 10.0f, translation + 10.0f));
     }
-
-    SetNeedsRenderProxyUpdate();
 }
 
 void Camera::UpdateViewMatrix()

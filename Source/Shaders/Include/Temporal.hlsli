@@ -636,6 +636,13 @@ vec4 TemporalBlendVarying(
     const vec4 clipped = ClipAABB(cmin, cmax, clamp(cavg, cmin, cmax), previous_color);
 
     vec4 resolved_yc = TemporalLuminanceResolveYCoCg(color, clipped);
+
+    // Velocity-based anti-ghosting: for fast-moving pixels, bias toward current frame
+    // to reduce ghosting trails. Length of velocity in UV space is proportional to motion.
+    const float velocity_len = length(velocity);
+    const float velocity_factor = saturate((velocity_len - 0.0001) * 4.0);
+    resolved_yc = lerp(resolved_yc, color, velocity_factor);
+
     vec4 resolved_rgb = YCoCgToRGB(resolved_yc);
     vec4 out_rgb = ADJUST_COLOR_OUT(resolved_rgb);
     return ADJUST_COLOR_GAMMA_OUT(out_rgb);
