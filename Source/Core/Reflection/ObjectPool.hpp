@@ -16,7 +16,7 @@
 
 #include <Core/Containers/SparsePagedArray.hpp>
 
-#include <Core/Utilities/IdGenerator.hpp>
+#include <Core/Utilities/IndexAllocator.hpp>
 
 #include <Core/Threading/Mutex.hpp>
 #include <Core/Threading/AtomicVar.hpp>
@@ -97,7 +97,7 @@ protected:
 
     TypeId m_typeId;
     const Class* m_class;
-    IdGenerator m_idGenerator;
+    AtomicIndexAllocator m_indexAllocator;
     Pool* m_pool;
     AtomicFlag m_atomicFlag;
     AtomicVar<uint32> m_generation;
@@ -115,7 +115,7 @@ struct ObjectHeader
 
     ObjectHeader()
         : cls(nullptr),
-          index(~0u),
+          index(AtomicIndexAllocator::InvalidIndex),
           generation(0),
           refCountStrong(0),
           refCountWeak(0)
@@ -132,7 +132,7 @@ struct ObjectHeader
 
     HYP_FORCE_INLINE bool IsNull() const
     {
-        return index == ~0u;
+        return index == AtomicIndexAllocator::InvalidIndex;
     }
 
     HYP_FORCE_INLINE int32 GetRefCountStrong() const
@@ -209,7 +209,7 @@ public:
         constexpr uint32 HeaderOffset = ByteUtil::AlignAs(sizeof(ObjectHeader), MaxObjectAlignment) - sizeof(ObjectHeader);
 
         ObjectHeader* header = reinterpret_cast<ObjectHeader*>(reinterpret_cast<UIntPtr>(mem) + HeaderOffset);
-        header->index = m_idGenerator.Next() - 1;
+        header->index = m_indexAllocator.Allocate();
         header->cls = m_class;
         header->generation = m_generation.Increment(1, MemoryOrder::ACQUIRE_RELEASE) + 1;
         header->refCountStrong = 1;
@@ -222,7 +222,7 @@ public:
 
     virtual ObjectHeader* GetObjectHeader(uint32 index, TLockGuard<AtomicFlag>& outGuard) override
     {
-        if (index == ~0u)
+        if (index == AtomicIndexAllocator::InvalidIndex)
         {
             return nullptr;
         }
@@ -245,9 +245,9 @@ public:
         LockIfNeeded(guard, PF_WRITER | PF_FREE);
 
         const uint32 index = header->index;
-        HYP_CORE_ASSERT(index != ~0u, "Invalid index");
+        HYP_CORE_ASSERT(index != AtomicIndexAllocator::InvalidIndex, "Invalid index");
 
-        m_idGenerator.ReleaseId(index + 1);
+        m_indexAllocator.Free(index);
 
         constexpr uint32 HeaderOffset = ByteUtil::AlignAs(sizeof(ObjectHeader), 16) - sizeof(ObjectHeader);
 

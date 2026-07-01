@@ -17,7 +17,7 @@
 #include <Core/Containers/Map.hpp>
 
 #include <Core/Utilities/GlobalContext.hpp>
-#include <Core/Utilities/IdGenerator.hpp>
+#include <Core/Utilities/IndexAllocator.hpp>
 
 #include <Core/Defines.hpp>
 

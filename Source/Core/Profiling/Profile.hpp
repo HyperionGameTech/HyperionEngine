@@ -18,7 +18,7 @@ namespace profiling {
 class Profile
 {
 public:
-    using ProfileFunction = void (*)(void);
+    using ProfileFunction = void (*)(bool);
 
     static CORE_API Array<double> RunInterleved(Array<Profile*>&&, size_t runsPer = 5, size_t numIterations = 100, size_t runsPerIteration = 100);
 

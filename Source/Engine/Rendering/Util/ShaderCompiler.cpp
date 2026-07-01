@@ -72,9 +72,11 @@ HYP_DEFINE_LOG_SUBCHANNEL(ShaderCompiler, Core);
 // #define HYP_SHADER_COMPILER_LOGGING
 #define HYP_ENABLE_SHADER_DEBUGGING
 
+CVar<bool> g_cvCompileOnTheFly { "ShaderCompiler.CompileOnTheFly", true };
+
 /// Should missing shader variants be compiled when requested, or should we just fail?
 /// Enabling this will cause shader compilation to happen during gameplay / editor.
-CVar<bool> cvShouldCompileMissingVariants { "ShaderCompiler.CompileMissingVariants", false };
+CVar<bool> g_cvShouldCompileMissingVariants { "ShaderCompiler.CompileMissingVariants", false };
 
 #if HYP_DXC
 static IDxcUtils* s_dxcUtils = nullptr;
@@ -945,7 +947,7 @@ static bool IsShaderRequestCoveredByPerms(
     const VertexInputLayoutDesc& requestedInputLayout,
     String* outReason = nullptr)
 {
-    const bool allowCompileAdditionalVariants = cvShouldCompileMissingVariants.Get();
+    const bool allowCompileAdditionalVariants = g_cvShouldCompileMissingVariants.Get();
 
     for (const ShaderProperty& requested : requestedProperties)
     {
@@ -1893,6 +1895,13 @@ bool ShaderCompiler::CanCompileShaders(const ShaderCompileParams& params) const
 #if HYP_ANDROID || HYP_IOS
     return false;
 #endif
+
+    if (!m_isPrecompilingShaders && !g_cvCompileOnTheFly.Get())
+    {
+        // Not precompiling and CompileOnTheFly is false, so we act like we don't know how to compile shaders
+        // Experts call this "weaponized incompetence".
+        return false;
+    }
 
     // Check if we can compile for any of the requested backends
     const bool needsVulkan = params.ShouldCompileVulkan();
@@ -2935,7 +2944,7 @@ bool ShaderCompiler::CompileBundle(
         String coverageFailReason;
         if (!IsShaderRequestCoveredByPerms(declaredPerms, additionalProperties, shaderRequest->inputLayout, &coverageFailReason))
         {
-            if (cvShouldCompileMissingVariants.Get())
+            if (g_cvShouldCompileMissingVariants.Get())
             {
                 HYP_LOG(ShaderCompiler, Warning,
                         "Shader request for bundle '{}' is not covered by the bundle's declared permutations: {}\n"

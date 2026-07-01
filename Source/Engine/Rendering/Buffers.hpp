@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -15,7 +15,7 @@
 #include <Core/Containers/String.hpp>
 #include <Core/Containers/FixedArray.hpp>
 
-#include <Core/Utilities/IdGenerator.hpp>
+#include <Core/Utilities/IndexAllocator.hpp>
 #include <Core/Utilities/Range.hpp>
 
 #include <Core/Reflection/TypeInfoFwd.hpp>
@@ -173,9 +173,9 @@ public:
     {
         AssertDebug(gpuBufferHolder != nullptr);
         AssertDebug(bufferSize == TypeInfo_GetSize(*gpuBufferHolder->m_structTypeInfo),
-            "Size does not match the expected size! Size = %llu, Expected = %llu",
-            bufferSize,
-            TypeInfo_GetSize(*gpuBufferHolder->m_structTypeInfo));
+                    "Size does not match the expected size! Size = %llu, Expected = %llu",
+                    bufferSize,
+                    TypeInfo_GetSize(*gpuBufferHolder->m_structTypeInfo));
 
         gpuBufferHolder->WriteBufferData_Internal(index, bufferDataPtr);
     }
@@ -222,9 +222,9 @@ public:
 
     GpuBufferHolderMemoryPool(Name poolName, uint32 initialCount = InitInfo::numInitialElements)
         : m_allocator(
-            InitInfo::numBytesPerBlock,
-            MathUtil::Max(uint32(alignof(StructType)), 16u),
-            4)
+              InitInfo::numBytesPerBlock,
+              MathUtil::Max(uint32(alignof(StructType)), 16u),
+              4)
     {
         const uint32 numInitialBlocks = (initialCount + numElementsPerBlock - 1) / numElementsPerBlock;
 
@@ -278,7 +278,7 @@ public:
     {
         AssertOnThread(g_renderThread);
 
-        const uint32 index = m_idGenerator.Next() - 1;
+        const uint32 index = m_indexAllocator.Allocate();
         const uint32 blockIndex = index / numElementsPerBlock;
 
         while (blockIndex >= m_blocks.Size())
@@ -296,7 +296,7 @@ public:
 
     void ReleaseIndex(uint32 index)
     {
-        m_idGenerator.ReleaseId(index + 1);
+        m_indexAllocator.Free(index);
     }
 
     void EnsureCapacity(uint32 index)
@@ -375,10 +375,9 @@ public:
             const uint32 bufferSize = numElementsPerBlock * uint32(sizeof(StructType));
 
             dirtyBlocks.PushBack({ blockIndex,
-                bufferOffset,
-                bufferSize,
-                m_blocks[blockIndex]
-            });
+                                   bufferOffset,
+                                   bufferSize,
+                                   m_blocks[blockIndex] });
         }
 
         if (dirtyBlocks.Empty())
@@ -430,7 +429,7 @@ private:
     TSlabAllocator<RenderAllocator> m_allocator;
 
     Array<StructType*> m_blocks;
-    IdGenerator m_idGenerator;
+    AtomicIndexAllocator m_indexAllocator;
 
     FixedArray<Range<uint32>, NumFramesInFlight> m_dirtyRanges;
 };
@@ -543,9 +542,9 @@ public:
     virtual void EnsureCapacity(uint32 index) override
     {
         AssertDebug(index < m_maxCapacity,
-            "EnsureCapacity({}) exceeds max capacity {} for buffer type {}. "
-            "Increase the corresponding MaxBound* constant.",
-            index, m_maxCapacity, TypeInfo_GetName(*m_structTypeInfo));
+                    "EnsureCapacity({}) exceeds max capacity {} for buffer type {}. "
+                    "Increase the corresponding MaxBound* constant.",
+                    index, m_maxCapacity, TypeInfo_GetName(*m_structTypeInfo));
 
         m_pool.EnsureCapacity(index);
     }

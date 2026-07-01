@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <Core/Threading/ThreadPool.hpp>
 
@@ -203,7 +203,7 @@ TaskThread* TaskThreadPool::GetNextTaskThread()
             }
         }
         while (taskThread->Id() == currentThreadId
-            || (currentThreadObject != nullptr && currentThreadObject->GetScheduler().HasWorkAssignedFromThread(taskThread->Id())));
+               || (currentThreadObject != nullptr && currentThreadObject->GetScheduler().HasWorkAssignedFromThread(taskThread->Id())));
     }
     while (!taskThread->IsRunning() && !taskThread->IsFree());
 
@@ -353,7 +353,7 @@ void BackgroundWorkerPool::Stop()
     }
 
     m_threads.Clear();
-    m_workerIdGenerator.Reset();
+    m_workerIndexAllocator.Reset();
     m_threadMask = 0;
     m_activeThreadCount.Set(0, MemoryOrder::RELEASE);
 }
@@ -401,7 +401,7 @@ TaskThread* BackgroundWorkerPool::GetNextTaskThread()
 
 TaskThread* BackgroundWorkerPool::CreateThread()
 {
-    const uint32 threadIndex = m_workerIdGenerator.Next() - 1;
+    const uint32 threadIndex = m_workerIndexAllocator.Allocate();
 
     ThreadId threadId = CreateTaskThreadId(m_baseName, threadIndex);
 
@@ -416,7 +416,7 @@ TaskThread* BackgroundWorkerPool::CreateThread()
     // wait for ready state
     while (!taskThread->IsRunning())
     {
-        ThreadSleep(0);
+        ThreadYield();
     }
 
     if (m_threads.Size() <= threadIndex)
@@ -486,7 +486,7 @@ void BackgroundWorkerPool::CleanupIdleThreads()
         m_threads[index].Reset();
 
         m_activeThreadCount.Decrement(1, MemoryOrder::RELEASE);
-        m_workerIdGenerator.ReleaseId(index + 1);
+        m_workerIndexAllocator.Free(index);
     }
 }
 

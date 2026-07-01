@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <UIPch.hpp>
 
@@ -64,23 +64,21 @@ void UIUpdateManager::RegisterForUpdate(UIObject* uiObject, EnumFlags<UIObjectUp
         return;
     }
 
-    const uint32 entryIndex = m_entryIdGenerator.Next();
+    const uint32 entryIndex = m_entryIndexAllocator.Allocate();
 
-    UpdateEntry* newEntry = &*m_entryPool.Emplace(entryIndex);
-    *newEntry = {
-        .index = int(entryIndex),
-        .depth = uiObject->GetComputedDepth(),
-        .object = weakHandle,
-        .updateTypes = updateTypes
-    };
+    UpdateEntry& newEntry = *m_entryPool.Emplace(entryIndex);
+    newEntry.index = static_cast<int>(entryIndex);
+    newEntry.depth = uiObject->GetComputedDepth();
+    newEntry.object = weakHandle;
+    newEntry.updateTypes = updateTypes;
 
-    m_pendingObjects.Insert(weakHandle, newEntry);
+    m_pendingObjects[weakHandle] = &newEntry;
 
     for (UIObjectUpdateType updateType : s_updateOrder)
     {
         if (updateTypes & updateType)
         {
-            m_updateQueues[updateType].PushBack(newEntry);
+            m_updateQueues[updateType].PushBack(&newEntry);
         }
     }
 }
@@ -111,20 +109,21 @@ void UIUpdateManager::UnregisterFromUpdate(UIObject* uiObject)
         }
 
         auto it = entries.FindIf([&weakHandle](const UpdateEntry* entry)
-            {
-                return entry->object == weakHandle;
-            });
+                                 {
+                                     return entry->object == weakHandle;
+                                 });
 
         if (it != entries.End())
         {
             UpdateEntry* entry = *it;
+
             const int entryIndex = entry->index;
 
             entries.Erase(it);
 
             if (entryIndex != -1)
             {
-                m_entryIdGenerator.ReleaseId((uint32)entry->index);
+                m_entryIndexAllocator.Free(static_cast<uint32>(entry->index));
                 entry->index = -1;
 
                 m_entryPool.EraseAt(entryIndex);
@@ -230,7 +229,7 @@ void UIUpdateManager::Clear()
     HYP_SCOPE;
 
     m_entryPool.Clear(/* freeMemory */ false);
-    m_entryIdGenerator.Reset();
+    m_entryIndexAllocator.Reset();
     m_pendingObjects.Clear();
 
     // don't clear update queues, but remove all entries

@@ -41,7 +41,7 @@ void Consume(uint64 value)
 using TrivialHyp = Variant<int, float, double, uint64>;
 using TrivialStd = std::variant<int, float, double, uint64>;
 
-void ProfileVariantTrivialConstruction()
+void ProfileVariantTrivialConstruction(bool)
 {
     uint64 sum = 0;
 
@@ -57,7 +57,7 @@ void ProfileVariantTrivialConstruction()
     Consume(sum);
 }
 
-void ProfileStdVariantTrivialConstruction()
+void ProfileStdVariantTrivialConstruction(bool)
 {
     uint64 sum = 0;
 
@@ -73,7 +73,7 @@ void ProfileStdVariantTrivialConstruction()
     Consume(sum);
 }
 
-void ProfileVariantTrivialTypeSwitch()
+void ProfileVariantTrivialTypeSwitch(bool)
 {
     TrivialHyp v(0);
     uint64 sum = 0;
@@ -92,7 +92,7 @@ void ProfileVariantTrivialTypeSwitch()
     Consume(sum);
 }
 
-void ProfileStdVariantTrivialTypeSwitch()
+void ProfileStdVariantTrivialTypeSwitch(bool)
 {
     TrivialStd v(0);
     uint64 sum = 0;
@@ -111,7 +111,7 @@ void ProfileStdVariantTrivialTypeSwitch()
     Consume(sum);
 }
 
-void ProfileVariantTrivialVisit()
+void ProfileVariantTrivialVisit(bool)
 {
     TrivialHyp v(0);
     uint64 sum = 0;
@@ -135,7 +135,7 @@ void ProfileVariantTrivialVisit()
     Consume(sum);
 }
 
-void ProfileStdVariantTrivialVisit()
+void ProfileStdVariantTrivialVisit(bool)
 {
     TrivialStd v(0);
     uint64 sum = 0;
@@ -172,7 +172,7 @@ static constexpr const char* s_testStrings[] = {
     "string branch in variant storage"
 };
 
-void ProfileVariantNonTrivialConstruction()
+void ProfileVariantNonTrivialConstruction(bool)
 {
     uint64 sum = 0;
 
@@ -188,7 +188,7 @@ void ProfileVariantNonTrivialConstruction()
     Consume(sum);
 }
 
-void ProfileStdVariantNonTrivialConstruction()
+void ProfileStdVariantNonTrivialConstruction(bool)
 {
     uint64 sum = 0;
 
@@ -204,7 +204,7 @@ void ProfileStdVariantNonTrivialConstruction()
     Consume(sum);
 }
 
-void ProfileVariantNonTrivialTypeSwitch()
+void ProfileVariantNonTrivialTypeSwitch(bool)
 {
     NonTrivialHyp v(0);
     uint64 sum = 0;
@@ -222,7 +222,7 @@ void ProfileVariantNonTrivialTypeSwitch()
     Consume(sum);
 }
 
-void ProfileStdVariantNonTrivialTypeSwitch()
+void ProfileStdVariantNonTrivialTypeSwitch(bool)
 {
     NonTrivialStd v(0);
     uint64 sum = 0;
@@ -240,7 +240,7 @@ void ProfileStdVariantNonTrivialTypeSwitch()
     Consume(sum);
 }
 
-void ProfileVariantNonTrivialVisit()
+void ProfileVariantNonTrivialVisit(bool)
 {
     NonTrivialHyp v(0);
     uint64 sum = 0;
@@ -272,7 +272,7 @@ void ProfileVariantNonTrivialVisit()
     Consume(sum);
 }
 
-void ProfileStdVariantNonTrivialVisit()
+void ProfileStdVariantNonTrivialVisit(bool)
 {
     NonTrivialStd v(0);
     uint64 sum = 0;
@@ -307,7 +307,7 @@ void ProfileStdVariantNonTrivialVisit()
 // ---- Non-trivial copy/move tests ----
 // Tests the overhead of copying and moving variants holding non-trivial types
 
-void ProfileVariantNonTrivialCopy()
+void ProfileVariantNonTrivialCopy(bool)
 {
     uint64 sum = 0;
 
@@ -322,7 +322,7 @@ void ProfileVariantNonTrivialCopy()
     Consume(sum);
 }
 
-void ProfileStdVariantNonTrivialCopy()
+void ProfileStdVariantNonTrivialCopy(bool)
 {
     uint64 sum = 0;
 
@@ -337,7 +337,7 @@ void ProfileStdVariantNonTrivialCopy()
     Consume(sum);
 }
 
-void ProfileVariantNonTrivialMove()
+void ProfileVariantNonTrivialMove(bool)
 {
     uint64 sum = 0;
 
@@ -351,7 +351,7 @@ void ProfileVariantNonTrivialMove()
     Consume(sum);
 }
 
-void ProfileStdVariantNonTrivialMove()
+void ProfileStdVariantNonTrivialMove(bool)
 {
     uint64 sum = 0;
 

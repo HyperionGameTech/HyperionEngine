@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -60,18 +60,18 @@ public:
     TMap(std::initializer_list<KeyValuePair<Key, Value>> initializerList)
         : TMap()
     {
-        Array<KeyValuePair<Key, Value>> temp(initializerList);
-
-        for (auto&& item : temp)
+        for (auto&& item : initializerList)
         {
-            Set(std::move(item.first), std::move(item.second));
+            Set(item.first, item.second);
         }
     }
 
     TMap(const TMap& other);
     TMap& operator=(const TMap& other);
+
     TMap(TMap&& other) noexcept;
     TMap& operator=(TMap&& other) noexcept;
+
     ~TMap();
 
     Value& operator[](const Key& key);

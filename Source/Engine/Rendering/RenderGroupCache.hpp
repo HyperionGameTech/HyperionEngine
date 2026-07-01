@@ -2,14 +2,14 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
 #include <Core/Containers/Map.hpp>
 #include <Core/Containers/Array.hpp>
 
-#include <Core/Utilities/IdGenerator.hpp>
+#include <Core/Utilities/IndexAllocator.hpp>
 
 #include <Rendering/RenderableAttributes.hpp>
 
@@ -43,7 +43,7 @@ public:
 private:
     TMap<HashCode, Array<uint32, RenderAllocator>, RenderAllocator> m_lookupByHash;
     SparsePagedArray<RenderableAttributeSet, 1024, RenderAllocator> m_entries;
-    IdGenerator m_idGenerator;
+    IndexAllocator m_indexAllocator;
 };
 
 } // namespace Hyperion

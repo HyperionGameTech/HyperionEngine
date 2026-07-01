@@ -162,8 +162,10 @@ const Dataset& ActiveDataset()
     return *g_dataset;
 }
 
-void ProfileArrayInsertion()
+void ProfileArrayInsertion(bool setupOnly)
 {
+    if (setupOnly) return;
+
     const Dataset& data = ActiveDataset();
 
     Array<uint32, TestAllocator> array;
@@ -176,43 +178,62 @@ void ProfileArrayInsertion()
     Consume(array.Size());
 }
 
-void ProfileArrayIteration()
+void ProfileArrayIteration(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static Array<uint32, TestAllocator> s_array;
 
-    Array<uint32, TestAllocator> array;
-    array.Reserve(data.elementCount);
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        array.PushBack(data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        Array<uint32, TestAllocator> temp;
+        temp.Reserve(data.elementCount);
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.PushBack(data.keys[i]);
+        }
+
+        s_array = std::move(temp);
+
+        return;
     }
 
     uint64 sum = 0;
-    for (size_t i = 0; i < array.Size(); ++i)
+    for (size_t i = 0; i < s_array.Size(); ++i)
     {
-        sum += array[i];
+        sum += s_array[i];
     }
 
     Consume(sum);
 }
 
-void ProfileArrayFind()
+void ProfileArrayFind(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static Array<uint32, TestAllocator> s_array;
 
-    Array<uint32, TestAllocator> array;
-    array.Reserve(data.elementCount);
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        array.PushBack(data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        Array<uint32, TestAllocator> temp;
+        temp.Reserve(data.elementCount);
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.PushBack(data.keys[i]);
+        }
+
+        s_array = std::move(temp);
+
+        return;
     }
 
+    const Dataset& data = ActiveDataset();
     uint64 hits = 0;
     for (size_t i = 0; i < data.lookupCount; ++i)
     {
-        if (array.Find(data.lookupKeys[i]) != array.End())
+        if (s_array.Find(data.lookupKeys[i]) != s_array.End())
         {
             ++hits;
         }
@@ -221,17 +242,29 @@ void ProfileArrayFind()
     Consume(hits);
 }
 
-void ProfileArrayRemoval()
+void ProfileArrayRemoval(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static Array<uint32, TestAllocator> s_source;
 
-    Array<uint32, TestAllocator> array;
-    array.Reserve(data.elementCount);
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        array.PushBack(data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        Array<uint32, TestAllocator> temp;
+        temp.Reserve(data.elementCount);
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.PushBack(data.keys[i]);
+        }
+
+        s_source = std::move(temp);
+
+        return;
     }
+
+    const Dataset& data = ActiveDataset();
+    Array<uint32, TestAllocator> array = s_source;
 
     for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
@@ -241,8 +274,10 @@ void ProfileArrayRemoval()
     Consume(array.Size());
 }
 
-void ProfileSlimArrayInsertion()
+void ProfileSlimArrayInsertion(bool setupOnly)
 {
+    if (setupOnly) return;
+
     const Dataset& data = ActiveDataset();
 
     TSlimArray<uint32, TestAllocator> array;
@@ -255,43 +290,62 @@ void ProfileSlimArrayInsertion()
     Consume(array.Size());
 }
 
-void ProfileSlimArrayIteration()
+void ProfileSlimArrayIteration(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static TSlimArray<uint32, TestAllocator> s_array;
 
-    TSlimArray<uint32, TestAllocator> array;
-    array.Reserve(static_cast<uint32>(data.elementCount));
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        array.PushBack(data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        TSlimArray<uint32, TestAllocator> temp;
+        temp.Reserve(static_cast<uint32>(data.elementCount));
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.PushBack(data.keys[i]);
+        }
+
+        s_array = std::move(temp);
+
+        return;
     }
 
     uint64 sum = 0;
-    for (size_t i = 0; i < array.Size(); ++i)
+    for (size_t i = 0; i < s_array.Size(); ++i)
     {
-        sum += array[i];
+        sum += s_array[i];
     }
 
     Consume(sum);
 }
 
-void ProfileSlimArrayFind()
+void ProfileSlimArrayFind(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static TSlimArray<uint32, TestAllocator> s_array;
 
-    TSlimArray<uint32, TestAllocator> array;
-    array.Reserve(static_cast<uint32>(data.elementCount));
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        array.PushBack(data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        TSlimArray<uint32, TestAllocator> temp;
+        temp.Reserve(static_cast<uint32>(data.elementCount));
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.PushBack(data.keys[i]);
+        }
+
+        s_array = std::move(temp);
+
+        return;
     }
 
+    const Dataset& data = ActiveDataset();
     uint64 hits = 0;
     for (size_t i = 0; i < data.lookupCount; ++i)
     {
-        if (array.Find(data.lookupKeys[i]) != array.End())
+        if (s_array.Find(data.lookupKeys[i]) != s_array.End())
         {
             ++hits;
         }
@@ -300,17 +354,29 @@ void ProfileSlimArrayFind()
     Consume(hits);
 }
 
-void ProfileSlimArrayRemoval()
+void ProfileSlimArrayRemoval(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static TSlimArray<uint32, TestAllocator> s_source;
 
-    TSlimArray<uint32, TestAllocator> array;
-    array.Reserve(static_cast<uint32>(data.elementCount));
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        array.PushBack(data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        TSlimArray<uint32, TestAllocator> temp;
+        temp.Reserve(static_cast<uint32>(data.elementCount));
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.PushBack(data.keys[i]);
+        }
+
+        s_source = std::move(temp);
+
+        return;
     }
+
+    const Dataset& data = ActiveDataset();
+    TSlimArray<uint32, TestAllocator> array = s_source;
 
     for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
@@ -320,8 +386,10 @@ void ProfileSlimArrayRemoval()
     Consume(array.Size());
 }
 
-void ProfileSparsePagedArrayInsertion()
+void ProfileSparsePagedArrayInsertion(bool setupOnly)
 {
+    if (setupOnly) return;
+
     const Dataset& data = ActiveDataset();
 
     SparsePagedArray<uint32, 64, TestAllocator> array;
@@ -334,19 +402,28 @@ void ProfileSparsePagedArrayInsertion()
     Consume(array.Count());
 }
 
-void ProfileSparsePagedArrayIteration()
+void ProfileSparsePagedArrayIteration(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static SparsePagedArray<uint32, 64, TestAllocator> s_array;
 
-    SparsePagedArray<uint32, 64, TestAllocator> array;
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        array.Set(data.sparseIndices[i], data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        SparsePagedArray<uint32, 64, TestAllocator> temp;
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.Set(data.sparseIndices[i], data.keys[i]);
+        }
+
+        s_array = std::move(temp);
+
+        return;
     }
 
     uint64 sum = 0;
-    for (const auto &value : array)
+    for (const auto &value : s_array)
     {
         sum += value;
     }
@@ -354,21 +431,31 @@ void ProfileSparsePagedArrayIteration()
     Consume(sum);
 }
 
-void ProfileSparsePagedArrayFind()
+void ProfileSparsePagedArrayFind(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static SparsePagedArray<uint32, 64, TestAllocator> s_array;
 
-    SparsePagedArray<uint32, 64, TestAllocator> array;
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        array.Set(data.sparseIndices[i], data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        SparsePagedArray<uint32, 64, TestAllocator> temp;
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.Set(data.sparseIndices[i], data.keys[i]);
+        }
+
+        s_array = std::move(temp);
+
+        return;
     }
 
+    const Dataset& data = ActiveDataset();
     uint64 hits = 0;
     for (size_t i = 0; i < data.lookupCount; ++i)
     {
-        if (array.TryGet(data.lookupIndices[i]) != nullptr)
+        if (s_array.TryGet(data.lookupIndices[i]) != nullptr)
         {
             ++hits;
         }
@@ -377,16 +464,28 @@ void ProfileSparsePagedArrayFind()
     Consume(hits);
 }
 
-void ProfileSparsePagedArrayRemoval()
+void ProfileSparsePagedArrayRemoval(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static SparsePagedArray<uint32, 64, TestAllocator> s_source;
 
-    SparsePagedArray<uint32, 64, TestAllocator> array;
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        array.Set(data.sparseIndices[i], data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        SparsePagedArray<uint32, 64, TestAllocator> temp;
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.Set(data.sparseIndices[i], data.keys[i]);
+        }
+
+        s_source = std::move(temp);
+
+        return;
     }
+
+    const Dataset& data = ActiveDataset();
+    SparsePagedArray<uint32, 64, TestAllocator> array = s_source;
 
     for (size_t i = 0; i < data.removalIndices.Size(); ++i)
     {
@@ -396,8 +495,10 @@ void ProfileSparsePagedArrayRemoval()
     Consume(array.Count());
 }
 
-void ProfileHashMapInsertion()
+void ProfileHashMapInsertion(bool setupOnly)
 {
+    if (setupOnly) return;
+
     const Dataset& data = ActiveDataset();
 
     TMap<uint32, uint32, TestAllocator> map;
@@ -411,8 +512,10 @@ void ProfileHashMapInsertion()
     Consume(map.Size());
 }
 
-void ProfileHashMapDynamicInsertion()
+void ProfileHashMapDynamicInsertion(bool setupOnly)
 {
+    if (setupOnly) return;
+
     const Dataset& data = ActiveDataset();
 
     TMap<uint32, uint32, TestAllocator> map;
@@ -426,20 +529,29 @@ void ProfileHashMapDynamicInsertion()
     Consume(map.Size());
 }
 
-void ProfileHashMapIteration()
+void ProfileHashMapIteration(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static TMap<uint32, uint32, TestAllocator> s_map;
 
-    TMap<uint32, uint32, TestAllocator> map;
-    map.Reserve(data.elementCount);
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        map.Set(data.keys[i], static_cast<uint32>(i));
+        const Dataset& data = ActiveDataset();
+
+        TMap<uint32, uint32, TestAllocator> temp;
+        temp.Reserve(data.elementCount);
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.Set(data.keys[i], static_cast<uint32>(i));
+        }
+
+        s_map = std::move(temp);
+
+        return;
     }
 
     uint64 sum = 0;
-    for (const auto &item : map)
+    for (const auto &item : s_map)
     {
         sum += item.second;
     }
@@ -447,20 +559,29 @@ void ProfileHashMapIteration()
     Consume(sum);
 }
 
-void ProfileHashMapDynamicIteration()
+void ProfileHashMapDynamicIteration(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static TMap<uint32, uint32, TestAllocator> s_map;
 
-    TMap<uint32, uint32, TestAllocator> map;
-    map.Reserve(data.elementCount);
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        map.Set(data.keys[i], static_cast<uint32>(i));
+        const Dataset& data = ActiveDataset();
+
+        TMap<uint32, uint32, TestAllocator> temp;
+        temp.Reserve(data.elementCount);
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.Set(data.keys[i], static_cast<uint32>(i));
+        }
+
+        s_map = std::move(temp);
+
+        return;
     }
 
     uint64 sum = 0;
-    for (const auto &item : map)
+    for (const auto &item : s_map)
     {
         sum += item.second;
     }
@@ -468,22 +589,32 @@ void ProfileHashMapDynamicIteration()
     Consume(sum);
 }
 
-void ProfileHashMapFind()
+void ProfileHashMapFind(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static TMap<uint32, uint32, TestAllocator> s_map;
 
-    TMap<uint32, uint32, TestAllocator> map;
-    map.Reserve(data.elementCount);
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        map.Set(data.keys[i], static_cast<uint32>(i));
+        const Dataset& data = ActiveDataset();
+
+        TMap<uint32, uint32, TestAllocator> temp;
+        temp.Reserve(data.elementCount);
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.Set(data.keys[i], static_cast<uint32>(i));
+        }
+
+        s_map = std::move(temp);
+
+        return;
     }
 
+    const Dataset& data = ActiveDataset();
     uint64 hits = 0;
     for (size_t i = 0; i < data.lookupCount; ++i)
     {
-        if (map.Find(data.lookupKeys[i]) != map.End())
+        if (s_map.Find(data.lookupKeys[i]) != s_map.End())
         {
             ++hits;
         }
@@ -492,22 +623,32 @@ void ProfileHashMapFind()
     Consume(hits);
 }
 
-void ProfileHashMapDynamicFind()
+void ProfileHashMapDynamicFind(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static TMap<uint32, uint32, TestAllocator> s_map;
 
-    TMap<uint32, uint32, TestAllocator> map;
-    map.Reserve(data.elementCount);
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        map.Set(data.keys[i], static_cast<uint32>(i));
+        const Dataset& data = ActiveDataset();
+
+        TMap<uint32, uint32, TestAllocator> temp;
+        temp.Reserve(data.elementCount);
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.Set(data.keys[i], static_cast<uint32>(i));
+        }
+
+        s_map = std::move(temp);
+
+        return;
     }
 
+    const Dataset& data = ActiveDataset();
     uint64 hits = 0;
     for (size_t i = 0; i < data.lookupCount; ++i)
     {
-        if (map.Find(data.lookupKeys[i]) != map.End())
+        if (s_map.Find(data.lookupKeys[i]) != s_map.End())
         {
             ++hits;
         }
@@ -516,17 +657,29 @@ void ProfileHashMapDynamicFind()
     Consume(hits);
 }
 
-void ProfileHashMapRemoval()
+void ProfileHashMapRemoval(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static TMap<uint32, uint32, TestAllocator> s_source;
 
-    TMap<uint32, uint32, TestAllocator> map;
-    map.Reserve(data.elementCount);
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        map.Set(data.keys[i], static_cast<uint32>(i));
+        const Dataset& data = ActiveDataset();
+
+        TMap<uint32, uint32, TestAllocator> temp;
+        temp.Reserve(data.elementCount);
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.Set(data.keys[i], static_cast<uint32>(i));
+        }
+
+        s_source = std::move(temp);
+
+        return;
     }
+
+    const Dataset& data = ActiveDataset();
+    TMap<uint32, uint32, TestAllocator> map = s_source;
 
     for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
@@ -536,17 +689,29 @@ void ProfileHashMapRemoval()
     Consume(map.Size());
 }
 
-void ProfileHashMapDynamicRemoval()
+void ProfileHashMapDynamicRemoval(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static TMap<uint32, uint32, TestAllocator> s_source;
 
-    TMap<uint32, uint32, TestAllocator> map;
-    map.Reserve(data.elementCount);
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        map.Set(data.keys[i], static_cast<uint32>(i));
+        const Dataset& data = ActiveDataset();
+
+        TMap<uint32, uint32, TestAllocator> temp;
+        temp.Reserve(data.elementCount);
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.Set(data.keys[i], static_cast<uint32>(i));
+        }
+
+        s_source = std::move(temp);
+
+        return;
     }
+
+    const Dataset& data = ActiveDataset();
+    TMap<uint32, uint32, TestAllocator> map = s_source;
 
     for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
@@ -556,8 +721,10 @@ void ProfileHashMapDynamicRemoval()
     Consume(map.Size());
 }
 
-void ProfileFlatMapInsertion()
+void ProfileFlatMapInsertion(bool setupOnly)
 {
+    if (setupOnly) return;
+
     const Dataset& data = ActiveDataset();
 
     TFlatMap<uint32, uint32> map;
@@ -571,20 +738,29 @@ void ProfileFlatMapInsertion()
     Consume(map.Size());
 }
 
-void ProfileFlatMapIteration()
+void ProfileFlatMapIteration(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static TFlatMap<uint32, uint32> s_map;
 
-    TFlatMap<uint32, uint32> map;
-    map.Reserve(data.elementCount);
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        map.Set(data.keys[i], static_cast<uint32>(i));
+        const Dataset& data = ActiveDataset();
+
+        TFlatMap<uint32, uint32> temp;
+        temp.Reserve(data.elementCount);
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.Set(data.keys[i], static_cast<uint32>(i));
+        }
+
+        s_map = std::move(temp);
+
+        return;
     }
 
     uint64 sum = 0;
-    for (const auto &item : map)
+    for (const auto &item : s_map)
     {
         sum += item.second;
     }
@@ -592,22 +768,32 @@ void ProfileFlatMapIteration()
     Consume(sum);
 }
 
-void ProfileFlatMapFind()
+void ProfileFlatMapFind(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static TFlatMap<uint32, uint32> s_map;
 
-    TFlatMap<uint32, uint32> map;
-    map.Reserve(data.elementCount);
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        map.Set(data.keys[i], static_cast<uint32>(i));
+        const Dataset& data = ActiveDataset();
+
+        TFlatMap<uint32, uint32> temp;
+        temp.Reserve(data.elementCount);
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.Set(data.keys[i], static_cast<uint32>(i));
+        }
+
+        s_map = std::move(temp);
+
+        return;
     }
 
+    const Dataset& data = ActiveDataset();
     uint64 hits = 0;
     for (size_t i = 0; i < data.lookupCount; ++i)
     {
-        if (map.Find(data.lookupKeys[i]) != map.End())
+        if (s_map.Find(data.lookupKeys[i]) != s_map.End())
         {
             ++hits;
         }
@@ -616,17 +802,29 @@ void ProfileFlatMapFind()
     Consume(hits);
 }
 
-void ProfileFlatMapRemoval()
+void ProfileFlatMapRemoval(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static TFlatMap<uint32, uint32> s_source;
 
-    TFlatMap<uint32, uint32> map;
-    map.Reserve(data.elementCount);
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        map.Set(data.keys[i], static_cast<uint32>(i));
+        const Dataset& data = ActiveDataset();
+
+        TFlatMap<uint32, uint32> temp;
+        temp.Reserve(data.elementCount);
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.Set(data.keys[i], static_cast<uint32>(i));
+        }
+
+        s_source = std::move(temp);
+
+        return;
     }
+
+    const Dataset& data = ActiveDataset();
+    TFlatMap<uint32, uint32> map = s_source;
 
     for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
@@ -636,8 +834,10 @@ void ProfileFlatMapRemoval()
     Consume(map.Size());
 }
 
-void ProfileHashSetInsertion()
+void ProfileHashSetInsertion(bool setupOnly)
 {
+    if (setupOnly) return;
+
     const Dataset& data = ActiveDataset();
 
     TSet<uint32, TestAllocator> set;
@@ -651,8 +851,10 @@ void ProfileHashSetInsertion()
     Consume(set.Size());
 }
 
-void ProfileHashSetDynamicInsertion()
+void ProfileHashSetDynamicInsertion(bool setupOnly)
 {
+    if (setupOnly) return;
+
     const Dataset& data = ActiveDataset();
 
     TSet<uint32, TestAllocator> set;
@@ -666,20 +868,29 @@ void ProfileHashSetDynamicInsertion()
     Consume(set.Size());
 }
 
-void ProfileHashSetIteration()
+void ProfileHashSetIteration(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static TSet<uint32, TestAllocator> s_set;
 
-    TSet<uint32, TestAllocator> set;
-    set.Reserve(data.elementCount);
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        set.Insert(data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        TSet<uint32, TestAllocator> temp;
+        temp.Reserve(data.elementCount);
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.Insert(data.keys[i]);
+        }
+
+        s_set = std::move(temp);
+
+        return;
     }
 
     uint64 sum = 0;
-    for (const auto &item : set)
+    for (const auto &item : s_set)
     {
         sum += item;
     }
@@ -687,20 +898,29 @@ void ProfileHashSetIteration()
     Consume(sum);
 }
 
-void ProfileHashSetDynamicIteration()
+void ProfileHashSetDynamicIteration(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static TSet<uint32, TestAllocator> s_set;
 
-    TSet<uint32, TestAllocator> set;
-    set.Reserve(data.elementCount);
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        set.Insert(data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        TSet<uint32, TestAllocator> temp;
+        temp.Reserve(data.elementCount);
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.Insert(data.keys[i]);
+        }
+
+        s_set = std::move(temp);
+
+        return;
     }
 
     uint64 sum = 0;
-    for (const auto &item : set)
+    for (const auto &item : s_set)
     {
         sum += item;
     }
@@ -708,22 +928,32 @@ void ProfileHashSetDynamicIteration()
     Consume(sum);
 }
 
-void ProfileHashSetFind()
+void ProfileHashSetFind(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static TSet<uint32, TestAllocator> s_set;
 
-    TSet<uint32, TestAllocator> set;
-    set.Reserve(data.elementCount);
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        set.Insert(data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        TSet<uint32, TestAllocator> temp;
+        temp.Reserve(data.elementCount);
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.Insert(data.keys[i]);
+        }
+
+        s_set = std::move(temp);
+
+        return;
     }
 
+    const Dataset& data = ActiveDataset();
     uint64 hits = 0;
     for (size_t i = 0; i < data.lookupCount; ++i)
     {
-        if (set.Find(data.lookupKeys[i]) != set.End())
+        if (s_set.Find(data.lookupKeys[i]) != s_set.End())
         {
             ++hits;
         }
@@ -732,22 +962,32 @@ void ProfileHashSetFind()
     Consume(hits);
 }
 
-void ProfileHashSetDynamicFind()
+void ProfileHashSetDynamicFind(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static TSet<uint32, TestAllocator> s_set;
 
-    TSet<uint32, TestAllocator> set;
-    set.Reserve(data.elementCount);
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        set.Insert(data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        TSet<uint32, TestAllocator> temp;
+        temp.Reserve(data.elementCount);
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.Insert(data.keys[i]);
+        }
+
+        s_set = std::move(temp);
+
+        return;
     }
 
+    const Dataset& data = ActiveDataset();
     uint64 hits = 0;
     for (size_t i = 0; i < data.lookupCount; ++i)
     {
-        if (set.Find(data.lookupKeys[i]) != set.End())
+        if (s_set.Find(data.lookupKeys[i]) != s_set.End())
         {
             ++hits;
         }
@@ -756,17 +996,29 @@ void ProfileHashSetDynamicFind()
     Consume(hits);
 }
 
-void ProfileHashSetRemoval()
+void ProfileHashSetRemoval(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static TSet<uint32, TestAllocator> s_source;
 
-    TSet<uint32, TestAllocator> set;
-    set.Reserve(data.elementCount);
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        set.Insert(data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        TSet<uint32, TestAllocator> temp;
+        temp.Reserve(data.elementCount);
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.Insert(data.keys[i]);
+        }
+
+        s_source = std::move(temp);
+
+        return;
     }
+
+    const Dataset& data = ActiveDataset();
+    TSet<uint32, TestAllocator> set = s_source;
 
     for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
@@ -776,17 +1028,29 @@ void ProfileHashSetRemoval()
     Consume(set.Size());
 }
 
-void ProfileHashSetDynamicRemoval()
+void ProfileHashSetDynamicRemoval(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static TSet<uint32, TestAllocator> s_source;
 
-    TSet<uint32, TestAllocator> set;
-    set.Reserve(data.elementCount);
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        set.Insert(data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        TSet<uint32, TestAllocator> temp;
+        temp.Reserve(data.elementCount);
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.Insert(data.keys[i]);
+        }
+
+        s_source = std::move(temp);
+
+        return;
     }
+
+    const Dataset& data = ActiveDataset();
+    TSet<uint32, TestAllocator> set = s_source;
 
     for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
@@ -796,8 +1060,10 @@ void ProfileHashSetDynamicRemoval()
     Consume(set.Size());
 }
 
-void ProfileFlatSetInsertion()
+void ProfileFlatSetInsertion(bool setupOnly)
 {
+    if (setupOnly) return;
+
     const Dataset& data = ActiveDataset();
 
     TFlatSet<uint32> set;
@@ -811,20 +1077,29 @@ void ProfileFlatSetInsertion()
     Consume(set.Size());
 }
 
-void ProfileFlatSetIteration()
+void ProfileFlatSetIteration(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static TFlatSet<uint32> s_set;
 
-    TFlatSet<uint32> set;
-    set.Reserve(data.elementCount);
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        set.Insert(data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        TFlatSet<uint32> temp;
+        temp.Reserve(data.elementCount);
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.Insert(data.keys[i]);
+        }
+
+        s_set = std::move(temp);
+
+        return;
     }
 
     uint64 sum = 0;
-    for (const auto &item : set)
+    for (const auto &item : s_set)
     {
         sum += item;
     }
@@ -832,22 +1107,32 @@ void ProfileFlatSetIteration()
     Consume(sum);
 }
 
-void ProfileFlatSetFind()
+void ProfileFlatSetFind(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static TFlatSet<uint32> s_set;
 
-    TFlatSet<uint32> set;
-    set.Reserve(data.elementCount);
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        set.Insert(data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        TFlatSet<uint32> temp;
+        temp.Reserve(data.elementCount);
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.Insert(data.keys[i]);
+        }
+
+        s_set = std::move(temp);
+
+        return;
     }
 
+    const Dataset& data = ActiveDataset();
     uint64 hits = 0;
     for (size_t i = 0; i < data.lookupCount; ++i)
     {
-        if (set.Find(data.lookupKeys[i]) != set.End())
+        if (s_set.Find(data.lookupKeys[i]) != s_set.End())
         {
             ++hits;
         }
@@ -856,17 +1141,29 @@ void ProfileFlatSetFind()
     Consume(hits);
 }
 
-void ProfileFlatSetRemoval()
+void ProfileFlatSetRemoval(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static TFlatSet<uint32> s_source;
 
-    TFlatSet<uint32> set;
-    set.Reserve(data.elementCount);
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        set.Insert(data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        TFlatSet<uint32> temp;
+        temp.Reserve(data.elementCount);
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.Insert(data.keys[i]);
+        }
+
+        s_source = std::move(temp);
+
+        return;
     }
+
+    const Dataset& data = ActiveDataset();
+    TFlatSet<uint32> set = s_source;
 
     for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
@@ -876,8 +1173,10 @@ void ProfileFlatSetRemoval()
     Consume(set.Size());
 }
 
-void ProfileStdVectorInsertion()
+void ProfileStdVectorInsertion(bool setupOnly)
 {
+    if (setupOnly) return;
+
     const Dataset& data = ActiveDataset();
 
     std::vector<uint32> vec;
@@ -891,43 +1190,62 @@ void ProfileStdVectorInsertion()
     Consume(vec.size());
 }
 
-void ProfileStdVectorIteration()
+void ProfileStdVectorIteration(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static std::vector<uint32> s_vec;
 
-    std::vector<uint32> vec;
-    vec.reserve(data.elementCount);
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        vec.push_back(data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        std::vector<uint32> temp;
+        temp.reserve(data.elementCount);
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.push_back(data.keys[i]);
+        }
+
+        s_vec = std::move(temp);
+
+        return;
     }
 
     uint64 sum = 0;
-    for (size_t i = 0; i < vec.size(); ++i)
+    for (size_t i = 0; i < s_vec.size(); ++i)
     {
-        sum += vec[i];
+        sum += s_vec[i];
     }
 
     Consume(sum);
 }
 
-void ProfileStdVectorFind()
+void ProfileStdVectorFind(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static std::vector<uint32> s_vec;
 
-    std::vector<uint32> vec;
-    vec.reserve(data.elementCount);
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        vec.push_back(data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        std::vector<uint32> temp;
+        temp.reserve(data.elementCount);
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.push_back(data.keys[i]);
+        }
+
+        s_vec = std::move(temp);
+
+        return;
     }
 
+    const Dataset& data = ActiveDataset();
     uint64 hits = 0;
     for (size_t i = 0; i < data.lookupCount; ++i)
     {
-        if (std::find(vec.begin(), vec.end(), data.lookupKeys[i]) != vec.end())
+        if (std::find(s_vec.begin(), s_vec.end(), data.lookupKeys[i]) != s_vec.end())
         {
             ++hits;
         }
@@ -936,17 +1254,29 @@ void ProfileStdVectorFind()
     Consume(hits);
 }
 
-void ProfileStdVectorRemoval()
+void ProfileStdVectorRemoval(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static std::vector<uint32> s_source;
 
-    std::vector<uint32> vec;
-    vec.reserve(data.elementCount);
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        vec.push_back(data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        std::vector<uint32> temp;
+        temp.reserve(data.elementCount);
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.push_back(data.keys[i]);
+        }
+
+        s_source = std::move(temp);
+
+        return;
     }
+
+    const Dataset& data = ActiveDataset();
+    std::vector<uint32> vec = s_source;
 
     for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
@@ -960,8 +1290,10 @@ void ProfileStdVectorRemoval()
     Consume(vec.size());
 }
 
-void ProfileStdUnorderedMapInsertion()
+void ProfileStdUnorderedMapInsertion(bool setupOnly)
 {
+    if (setupOnly) return;
+
     const Dataset& data = ActiveDataset();
 
     std::unordered_map<uint32, uint32> map;
@@ -975,20 +1307,29 @@ void ProfileStdUnorderedMapInsertion()
     Consume(map.size());
 }
 
-void ProfileStdUnorderedMapIteration()
+void ProfileStdUnorderedMapIteration(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static std::unordered_map<uint32, uint32> s_map;
 
-    std::unordered_map<uint32, uint32> map;
-    map.reserve(static_cast<size_t>(data.elementCount));
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        map.emplace(data.keys[i], static_cast<uint32>(i));
+        const Dataset& data = ActiveDataset();
+
+        std::unordered_map<uint32, uint32> temp;
+        temp.reserve(static_cast<size_t>(data.elementCount));
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.emplace(data.keys[i], static_cast<uint32>(i));
+        }
+
+        s_map = std::move(temp);
+
+        return;
     }
 
     uint64 sum = 0;
-    for (const auto &item : map)
+    for (const auto &item : s_map)
     {
         sum += item.second;
     }
@@ -996,22 +1337,32 @@ void ProfileStdUnorderedMapIteration()
     Consume(sum);
 }
 
-void ProfileStdUnorderedMapFind()
+void ProfileStdUnorderedMapFind(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static std::unordered_map<uint32, uint32> s_map;
 
-    std::unordered_map<uint32, uint32> map;
-    map.reserve(static_cast<size_t>(data.elementCount));
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        map.emplace(data.keys[i], static_cast<uint32>(i));
+        const Dataset& data = ActiveDataset();
+
+        std::unordered_map<uint32, uint32> temp;
+        temp.reserve(static_cast<size_t>(data.elementCount));
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.emplace(data.keys[i], static_cast<uint32>(i));
+        }
+
+        s_map = std::move(temp);
+
+        return;
     }
 
+    const Dataset& data = ActiveDataset();
     uint64 hits = 0;
     for (size_t i = 0; i < data.lookupCount; ++i)
     {
-        if (map.find(data.lookupKeys[i]) != map.end())
+        if (s_map.find(data.lookupKeys[i]) != s_map.end())
         {
             ++hits;
         }
@@ -1020,17 +1371,29 @@ void ProfileStdUnorderedMapFind()
     Consume(hits);
 }
 
-void ProfileStdUnorderedMapRemoval()
+void ProfileStdUnorderedMapRemoval(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static std::unordered_map<uint32, uint32> s_source;
 
-    std::unordered_map<uint32, uint32> map;
-    map.reserve(static_cast<size_t>(data.elementCount));
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        map.emplace(data.keys[i], static_cast<uint32>(i));
+        const Dataset& data = ActiveDataset();
+
+        std::unordered_map<uint32, uint32> temp;
+        temp.reserve(static_cast<size_t>(data.elementCount));
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.emplace(data.keys[i], static_cast<uint32>(i));
+        }
+
+        s_source = std::move(temp);
+
+        return;
     }
+
+    const Dataset& data = ActiveDataset();
+    std::unordered_map<uint32, uint32> map = s_source;
 
     for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
@@ -1040,8 +1403,10 @@ void ProfileStdUnorderedMapRemoval()
     Consume(map.size());
 }
 
-void ProfileStdMapInsertion()
+void ProfileStdMapInsertion(bool setupOnly)
 {
+    if (setupOnly) return;
+
     const Dataset& data = ActiveDataset();
 
     std::map<uint32, uint32> map;
@@ -1054,19 +1419,28 @@ void ProfileStdMapInsertion()
     Consume(map.size());
 }
 
-void ProfileStdMapIteration()
+void ProfileStdMapIteration(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static std::map<uint32, uint32> s_map;
 
-    std::map<uint32, uint32> map;
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        map.emplace(data.keys[i], static_cast<uint32>(i));
+        const Dataset& data = ActiveDataset();
+
+        std::map<uint32, uint32> temp;
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.emplace(data.keys[i], static_cast<uint32>(i));
+        }
+
+        s_map = std::move(temp);
+
+        return;
     }
 
     uint64 sum = 0;
-    for (const auto &item : map)
+    for (const auto &item : s_map)
     {
         sum += item.second;
     }
@@ -1074,21 +1448,31 @@ void ProfileStdMapIteration()
     Consume(sum);
 }
 
-void ProfileStdMapFind()
+void ProfileStdMapFind(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static std::map<uint32, uint32> s_map;
 
-    std::map<uint32, uint32> map;
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        map.emplace(data.keys[i], static_cast<uint32>(i));
+        const Dataset& data = ActiveDataset();
+
+        std::map<uint32, uint32> temp;
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.emplace(data.keys[i], static_cast<uint32>(i));
+        }
+
+        s_map = std::move(temp);
+
+        return;
     }
 
+    const Dataset& data = ActiveDataset();
     uint64 hits = 0;
     for (size_t i = 0; i < data.lookupCount; ++i)
     {
-        if (map.find(data.lookupKeys[i]) != map.end())
+        if (s_map.find(data.lookupKeys[i]) != s_map.end())
         {
             ++hits;
         }
@@ -1097,16 +1481,28 @@ void ProfileStdMapFind()
     Consume(hits);
 }
 
-void ProfileStdMapRemoval()
+void ProfileStdMapRemoval(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static std::map<uint32, uint32> s_source;
 
-    std::map<uint32, uint32> map;
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        map.emplace(data.keys[i], static_cast<uint32>(i));
+        const Dataset& data = ActiveDataset();
+
+        std::map<uint32, uint32> temp;
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.emplace(data.keys[i], static_cast<uint32>(i));
+        }
+
+        s_source = std::move(temp);
+
+        return;
     }
+
+    const Dataset& data = ActiveDataset();
+    std::map<uint32, uint32> map = s_source;
 
     for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
@@ -1116,8 +1512,10 @@ void ProfileStdMapRemoval()
     Consume(map.size());
 }
 
-void ProfileStdUnorderedSetInsertion()
+void ProfileStdUnorderedSetInsertion(bool setupOnly)
 {
+    if (setupOnly) return;
+
     const Dataset& data = ActiveDataset();
 
     std::unordered_set<uint32> set;
@@ -1131,20 +1529,29 @@ void ProfileStdUnorderedSetInsertion()
     Consume(set.size());
 }
 
-void ProfileStdUnorderedSetIteration()
+void ProfileStdUnorderedSetIteration(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static std::unordered_set<uint32> s_set;
 
-    std::unordered_set<uint32> set;
-    set.reserve(static_cast<size_t>(data.elementCount));
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        set.insert(data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        std::unordered_set<uint32> temp;
+        temp.reserve(static_cast<size_t>(data.elementCount));
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.insert(data.keys[i]);
+        }
+
+        s_set = std::move(temp);
+
+        return;
     }
 
     uint64 sum = 0;
-    for (const auto &item : set)
+    for (const auto &item : s_set)
     {
         sum += item;
     }
@@ -1152,22 +1559,32 @@ void ProfileStdUnorderedSetIteration()
     Consume(sum);
 }
 
-void ProfileStdUnorderedSetFind()
+void ProfileStdUnorderedSetFind(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static std::unordered_set<uint32> s_set;
 
-    std::unordered_set<uint32> set;
-    set.reserve(static_cast<size_t>(data.elementCount));
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        set.insert(data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        std::unordered_set<uint32> temp;
+        temp.reserve(static_cast<size_t>(data.elementCount));
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.insert(data.keys[i]);
+        }
+
+        s_set = std::move(temp);
+
+        return;
     }
 
+    const Dataset& data = ActiveDataset();
     uint64 hits = 0;
     for (size_t i = 0; i < data.lookupCount; ++i)
     {
-        if (set.find(data.lookupKeys[i]) != set.end())
+        if (s_set.find(data.lookupKeys[i]) != s_set.end())
         {
             ++hits;
         }
@@ -1176,17 +1593,29 @@ void ProfileStdUnorderedSetFind()
     Consume(hits);
 }
 
-void ProfileStdUnorderedSetRemoval()
+void ProfileStdUnorderedSetRemoval(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static std::unordered_set<uint32> s_source;
 
-    std::unordered_set<uint32> set;
-    set.reserve(static_cast<size_t>(data.elementCount));
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        set.insert(data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        std::unordered_set<uint32> temp;
+        temp.reserve(static_cast<size_t>(data.elementCount));
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.insert(data.keys[i]);
+        }
+
+        s_source = std::move(temp);
+
+        return;
     }
+
+    const Dataset& data = ActiveDataset();
+    std::unordered_set<uint32> set = s_source;
 
     for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
@@ -1196,8 +1625,10 @@ void ProfileStdUnorderedSetRemoval()
     Consume(set.size());
 }
 
-void ProfileStdSetInsertion()
+void ProfileStdSetInsertion(bool setupOnly)
 {
+    if (setupOnly) return;
+
     const Dataset& data = ActiveDataset();
 
     std::set<uint32> set;
@@ -1210,19 +1641,28 @@ void ProfileStdSetInsertion()
     Consume(set.size());
 }
 
-void ProfileStdSetIteration()
+void ProfileStdSetIteration(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static std::set<uint32> s_set;
 
-    std::set<uint32> set;
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        set.insert(data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        std::set<uint32> temp;
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.insert(data.keys[i]);
+        }
+
+        s_set = std::move(temp);
+
+        return;
     }
 
     uint64 sum = 0;
-    for (const auto &item : set)
+    for (const auto &item : s_set)
     {
         sum += item;
     }
@@ -1230,21 +1670,31 @@ void ProfileStdSetIteration()
     Consume(sum);
 }
 
-void ProfileStdSetFind()
+void ProfileStdSetFind(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static std::set<uint32> s_set;
 
-    std::set<uint32> set;
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        set.insert(data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        std::set<uint32> temp;
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.insert(data.keys[i]);
+        }
+
+        s_set = std::move(temp);
+
+        return;
     }
 
+    const Dataset& data = ActiveDataset();
     uint64 hits = 0;
     for (size_t i = 0; i < data.lookupCount; ++i)
     {
-        if (set.find(data.lookupKeys[i]) != set.end())
+        if (s_set.find(data.lookupKeys[i]) != s_set.end())
         {
             ++hits;
         }
@@ -1253,16 +1703,28 @@ void ProfileStdSetFind()
     Consume(hits);
 }
 
-void ProfileStdSetRemoval()
+void ProfileStdSetRemoval(bool setupOnly)
 {
-    const Dataset& data = ActiveDataset();
+    static std::set<uint32> s_source;
 
-    std::set<uint32> set;
-
-    for (size_t i = 0; i < data.elementCount; ++i)
+    if (setupOnly)
     {
-        set.insert(data.keys[i]);
+        const Dataset& data = ActiveDataset();
+
+        std::set<uint32> temp;
+
+        for (size_t i = 0; i < data.elementCount; ++i)
+        {
+            temp.insert(data.keys[i]);
+        }
+
+        s_source = std::move(temp);
+
+        return;
     }
+
+    const Dataset& data = ActiveDataset();
+    std::set<uint32> set = s_source;
 
     for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
@@ -1282,6 +1744,11 @@ template <size_t Count>
 void RunSection(const char *title, const SectionEntry (&entries)[Count], const Dataset& dataset, size_t runsPer, size_t numIterations, size_t runsPerIteration)
 {
     g_dataset = &dataset;
+
+    for (size_t i = 0; i < Count; ++i)
+    {
+        entries[i].function(true);
+    }
 
     Array<Profile> profiles;
     profiles.Reserve(Count);

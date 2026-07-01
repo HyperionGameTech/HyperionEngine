@@ -48,7 +48,7 @@ static constexpr size_t overAlignSizes[] = { 64, 128, 256 };
 static constexpr size_t overAlignments[] = { 64, 128, 4096 };
 static constexpr size_t numOverAlign = sizeof(overAlignSizes) / sizeof(overAlignSizes[0]);
 
-void ProfileDynamicAllocFreeSmall()
+void ProfileDynamicAllocFreeSmall(bool)
 {
     for (size_t i = 0; i < LargeCount; ++i)
     {
@@ -58,7 +58,7 @@ void ProfileDynamicAllocFreeSmall()
     }
 }
 
-void ProfileDynamicAllocFreeLarge()
+void ProfileDynamicAllocFreeLarge(bool)
 {
     for (size_t i = 0; i < LargeCount; ++i)
     {
@@ -68,7 +68,7 @@ void ProfileDynamicAllocFreeLarge()
     }
 }
 
-void ProfileDynamicBatchAllocFreeSmall()
+void ProfileDynamicBatchAllocFreeSmall(bool)
 {
     void* ptrs[MaxBatchPtrs];
 
@@ -84,7 +84,7 @@ void ProfileDynamicBatchAllocFreeSmall()
     }
 }
 
-void ProfileDynamicAllocFreeMixed()
+void ProfileDynamicAllocFreeMixed(bool)
 {
     for (size_t i = 0; i < LargeCount; ++i)
     {
@@ -95,7 +95,7 @@ void ProfileDynamicAllocFreeMixed()
     }
 }
 
-void ProfileDynamicAllocFreeOverAligned()
+void ProfileDynamicAllocFreeOverAligned(bool)
 {
     for (size_t i = 0; i < LargeCount; ++i)
     {
@@ -111,7 +111,7 @@ void ProfileDynamicAllocFreeOverAligned()
 
 thread_local ThreadAllocator g_thr;
 
-void ProfileThreadAllocFreeSmall()
+void ProfileThreadAllocFreeSmall(bool)
 {
     for (size_t i = 0; i < LargeCount; ++i)
     {
@@ -122,7 +122,7 @@ void ProfileThreadAllocFreeSmall()
     g_thr.Reset();
 }
 
-void ProfileThreadAllocFreeLarge()
+void ProfileThreadAllocFreeLarge(bool)
 {
     for (size_t i = 0; i < LargeCount; ++i)
     {
@@ -133,7 +133,7 @@ void ProfileThreadAllocFreeLarge()
     g_thr.Reset();
 }
 
-void ProfileThreadBatchAllocFreeSmall()
+void ProfileThreadBatchAllocFreeSmall(bool)
 {
     void* ptrs[MaxBatchPtrs];
 
@@ -150,7 +150,7 @@ void ProfileThreadBatchAllocFreeSmall()
     g_thr.Reset();
 }
 
-void ProfileThreadAllocFreeMixed()
+void ProfileThreadAllocFreeMixed(bool)
 {
     for (size_t i = 0; i < LargeCount; ++i)
     {
@@ -162,7 +162,7 @@ void ProfileThreadAllocFreeMixed()
     g_thr.Reset();
 }
 
-void ProfileThreadAllocFreeOverAligned()
+void ProfileThreadAllocFreeOverAligned(bool)
 {
     for (size_t i = 0; i < LargeCount; ++i)
     {
@@ -187,7 +187,7 @@ void InitTestPool()
         g_testPool = new Pool(PoolBlockSize, PF_NONE, ThreadId::Current());
 }
 
-void ProfilePoolAllocFreeSmall()
+void ProfilePoolAllocFreeSmall(bool)
 {
     InitTestPool();
 
@@ -199,7 +199,7 @@ void ProfilePoolAllocFreeSmall()
     }
 }
 
-void ProfilePoolAllocFreeLarge()
+void ProfilePoolAllocFreeLarge(bool)
 {
     InitTestPool();
 
@@ -211,7 +211,7 @@ void ProfilePoolAllocFreeLarge()
     }
 }
 
-void ProfilePoolBatchAllocFreeSmall()
+void ProfilePoolBatchAllocFreeSmall(bool)
 {
     InitTestPool();
 
@@ -229,7 +229,7 @@ void ProfilePoolBatchAllocFreeSmall()
     }
 }
 
-void ProfilePoolAllocFreeMixed()
+void ProfilePoolAllocFreeMixed(bool)
 {
     InitTestPool();
 
@@ -242,7 +242,7 @@ void ProfilePoolAllocFreeMixed()
     }
 }
 
-void ProfilePoolAllocFreeOverAligned()
+void ProfilePoolAllocFreeOverAligned(bool)
 {
     InitTestPool();
 
@@ -262,7 +262,7 @@ static constexpr size_t ArenaBlockSize = 1ull << 20;
 
 Arena g_testArena(ArenaBlockSize);
 
-void ProfileArenaAllocSmall()
+void ProfileArenaAllocSmall(bool)
 {
     for (size_t i = 0; i < LargeCount; ++i)
     {
@@ -273,7 +273,7 @@ void ProfileArenaAllocSmall()
     g_testArena.Reset();
 }
 
-void ProfileArenaAllocLarge()
+void ProfileArenaAllocLarge(bool)
 {
     for (size_t i = 0; i < LargeCount; ++i)
     {
@@ -284,7 +284,7 @@ void ProfileArenaAllocLarge()
     g_testArena.Reset();
 }
 
-void ProfileArenaAllocMixed()
+void ProfileArenaAllocMixed(bool)
 {
     for (size_t i = 0; i < LargeCount; ++i)
     {
@@ -305,7 +305,7 @@ static constexpr uint32 SlabBlocksPerSlab = 256;
 SlabAllocator g_slabSmall(SlabBlockSize, 16, SlabBlocksPerSlab, AF_NONE, ThreadId::Current());
 SlabAllocator g_slabLarge(SlabLargeBlockSize, 16, SlabBlocksPerSlab, AF_NONE, ThreadId::Current());
 
-void ProfileSlabAllocFreeSmall()
+void ProfileSlabAllocFreeSmall(bool)
 {
     for (size_t i = 0; i < LargeCount; ++i)
     {
@@ -315,7 +315,7 @@ void ProfileSlabAllocFreeSmall()
     }
 }
 
-void ProfileSlabBatchAllocFreeSmall()
+void ProfileSlabBatchAllocFreeSmall(bool)
 {
     void* ptrs[MaxBatchPtrs];
 
@@ -331,7 +331,7 @@ void ProfileSlabBatchAllocFreeSmall()
     }
 }
 
-void ProfileSlabAllocFreeLarge()
+void ProfileSlabAllocFreeLarge(bool)
 {
     for (size_t i = 0; i < LargeCount; ++i)
     {
@@ -341,7 +341,7 @@ void ProfileSlabAllocFreeLarge()
     }
 }
 
-void ProfileSlabBatchAllocFreeLarge()
+void ProfileSlabBatchAllocFreeLarge(bool)
 {
     void* ptrs[MaxBatchPtrs];
 

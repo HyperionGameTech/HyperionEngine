@@ -60,7 +60,7 @@ public:
     {
         Base::Clear();
 
-        idGenerator.Reset();
+        indexAllocator.Reset();
 
         refCountMap.Clear();
 
@@ -159,7 +159,7 @@ public:
 
     GraphicsPipelineCacheHandle Alloc(size_t& outIndex)
     {
-        outIndex = idGenerator.Next();
+        outIndex = indexAllocator.Allocate();
 
         Assert(!Base::HasIndex(outIndex));
 
@@ -187,7 +187,7 @@ public:
                 Base::EraseAt(index, /* freeMemory */ true);
 
                 // allow this slot to be reused.
-                idGenerator.ReleaseId(index);
+                indexAllocator.Free(index);
             }
         }
     }
@@ -242,7 +242,7 @@ public:
         return SIZE_MAX;
     }
 
-    IdGenerator idGenerator;
+    AtomicIndexAllocator indexAllocator;
 
     RefCountMap refCountMap;
 

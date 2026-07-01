@@ -37,7 +37,7 @@ void GarbageCollector::MoveToTrackedMemory(BoxedValue& inOutRefValue)
     AssertDebug(inOutRefValue.extData.gcIndex == INVALID_GC_INDEX);
     AssertDebug(!IsRef(inOutRefValue));
 
-    uint32 gcIndex = m_idGenerator.Next(); // starts at 1
+    const uint32 gcIndex = m_indexAllocator.Allocate() + 1;
     AssertDebug(gcIndex <= uint32(MAX_GC_INDEX), "Exceeded maximum number of tracked GC objects!");
 
     AssertDebug(!m_trackedObjects.HasIndex(gcIndex));
@@ -92,7 +92,7 @@ void GarbageCollector::Collect()
         {
             toDestroy.PushBack(storage);
         }
-        
+
         ++it;
     }
 
@@ -108,7 +108,7 @@ void GarbageCollector::Collect()
 
         m_trackedObjects.EraseAt(gcIndex);
 
-        m_idGenerator.ReleaseId(gcIndex);
+        m_indexAllocator.Free(gcIndex - 1);
     }
 }
 

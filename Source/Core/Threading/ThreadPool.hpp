@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -18,7 +18,7 @@
 #include <Core/Threading/Mutex.hpp>
 #include <Core/Threading/ConditionVariable.hpp>
 
-#include <Core/Utilities/IdGenerator.hpp>
+#include <Core/Utilities/IndexAllocator.hpp>
 #include <Core/Utilities/Format.hpp>
 
 #include <Core/Math/MathUtil.hpp>
@@ -144,9 +144,9 @@ public:
     HYP_FORCE_INLINE TaskThread* GetTaskThread(ThreadId threadId) const
     {
         const auto it = m_threads.FindIf([threadId](const UniquePtr<ThreadBase>& thread)
-            {
-                return thread->Id() == threadId;
-            });
+                                         {
+                                             return thread->Id() == threadId;
+                                         });
 
         if (it != m_threads.End())
         {
@@ -239,7 +239,7 @@ private:
     ANSIString m_baseName;
     uint32 m_maxThreads;
 
-    IdGenerator m_workerIdGenerator;
+    IndexAllocator m_workerIndexAllocator;
     AtomicVar<uint32> m_activeThreadCount { 0u };
 
     Mutex m_threadCreationMutex;

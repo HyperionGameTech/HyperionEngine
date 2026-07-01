@@ -63,5 +63,8 @@
     "OnlyGenerateUVs": false,
     "NumSamples": 1,
     "MaxTexelsPerFrame": 262144
+  },
+  "ShaderCompiler": {
+    "CompileOnTheFly": true
   }
 }

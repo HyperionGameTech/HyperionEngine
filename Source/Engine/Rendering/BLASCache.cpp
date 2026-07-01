@@ -15,7 +15,7 @@
 
 #include <Core/Containers/Map.hpp>
 
-#include <Core/Utilities/IdGenerator.hpp>
+#include <Core/Utilities/IndexAllocator.hpp>
 
 #include <Scene/Entity.hpp>
 
@@ -69,7 +69,7 @@ public:
     EntityToKeyMap entityToKey;
     StorageIdMap blasKeyToStorageId;
 
-    IdGenerator storageIdGenerator;
+    IndexAllocator storageIndexAllocator;
 };
 
 BLASCache::BLASCache()
@@ -246,7 +246,7 @@ HYP_NODISCARD uint32 BLASCache::AllocateStorageId(uint64 key)
         return it->second.storageId;
     }
 
-    const uint32 newId = m_impl->storageIdGenerator.Next() - 1;
+    const uint32 newId = m_impl->storageIndexAllocator.Allocate();
 
     map[key] = { newId, 1 };
 
@@ -277,7 +277,7 @@ bool BLASCache::ReleaseStorageIdForBLASKey(uint64 key, uint32& outStorageId, uin
 
     if (outNewRefCount == 0)
     {
-        m_impl->storageIdGenerator.ReleaseId(storageId + 1);
+        m_impl->storageIndexAllocator.Free(storageId);
 
         map.Erase(it);
     }

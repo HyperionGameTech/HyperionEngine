@@ -13,7 +13,7 @@
 #include <Core/Memory/UniquePtr.hpp>
 #include <Core/Memory/Pimpl.hpp>
 
-#include <Core/Utilities/IdGenerator.hpp>
+#include <Core/Utilities/IndexAllocator.hpp>
 
 namespace Hyperion {
 
@@ -71,7 +71,7 @@ public:
 
     HYP_FORCE_INLINE String GetAnonClassName()
     {
-        return String("@AnonClass") + String::ToString(m_anonClassIdGenerator.Next());
+        return String("@AnonClass") + String::ToString(m_anonClassIndexAllocator.Allocate() + 1);
     }
 
     /** Looks up the module with the name, taking scope into account.
@@ -97,7 +97,7 @@ private:
     AstNodeBuilder m_astNodeBuilder;
     Pimpl<class SymbolTypeCache> m_symbolTypeCache;
 
-    IdGenerator m_anonClassIdGenerator;
+    IndexAllocator m_anonClassIndexAllocator;
 
     // the global module
     Module* m_globalModule;

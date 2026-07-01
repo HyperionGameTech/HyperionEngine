@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -11,7 +11,7 @@
 #include <Core/Containers/Set.hpp>
 #include <Core/Reflection/Handle.hpp>
 #include <Core/Utilities/EnumFlags.hpp>
-#include <Core/Utilities/IdGenerator.hpp>
+#include <Core/Utilities/IndexAllocator.hpp>
 #include <UI/UIObject.hpp>
 
 namespace Hyperion {
@@ -57,7 +57,7 @@ private:
     };
 
     SparsePagedArray<UpdateEntry, 2048> m_entryPool;
-    IdGenerator m_entryIdGenerator;
+    IndexAllocator m_entryIndexAllocator;
 
     TMap<UIObjectUpdateType, Array<UpdateEntry*>> m_updateQueues;
     TMap<WeakHandle<UIObject>, UpdateEntry*> m_pendingObjects;

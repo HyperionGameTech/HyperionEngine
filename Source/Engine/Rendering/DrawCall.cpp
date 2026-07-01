@@ -312,7 +312,7 @@ void EntityBatchAllocatorBase::Initialize()
 
 void EntityBatchAllocatorBase::ReleaseBatch(EntityInstanceBatch* batch)
 {
-    m_idGenerator.ReleaseId(batch->batchIndex + 1);
+    m_indexAllocator.Free(batch->batchIndex);
 }
 
 void EntityBatchAllocatorBase::MarkBatchDirty(EntityInstanceBatch* batch)

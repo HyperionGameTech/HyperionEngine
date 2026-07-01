@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <Core/Threading/Util/ThreadId.hpp>
 #include <Core/Threading/Threads.hpp>
@@ -11,7 +11,7 @@
 #include <Core/Containers/Map.hpp>
 
 #include <Core/Utilities/GlobalContext.hpp>
-#include <Core/Utilities/IdGenerator.hpp>
+#include <Core/Utilities/IndexAllocator.hpp>
 
 #include <Core/Defines.hpp>
 
@@ -47,7 +47,7 @@ public:
 
     uint32 AllocateIndex(Name name)
     {
-        const uint32 index = m_idGenerator.Next();
+        const uint32 index = m_indexAllocator.Allocate() + 1;
 
         {
             Mutex::Guard guard(m_mutex);
@@ -68,7 +68,7 @@ public:
             return *indexPtr;
         }
 
-        const uint32 index = m_idGenerator.Next();
+        const uint32 index = m_indexAllocator.Allocate() + 1;
 
         m_nameMapping[name].PushBack(index);
         m_reverseNameMapping[index] = name;
@@ -89,7 +89,7 @@ private:
         return nullptr;
     }
 
-    IdGenerator m_idGenerator;
+    AtomicIndexAllocator m_indexAllocator;
 
     TMap<Name, Array<uint32>> m_nameMapping;
     TMap<uint32, Name> m_reverseNameMapping;
@@ -135,8 +135,8 @@ static uint32 AllocateThreadId(Name name, uint32 allocateFlags)
     }
 
     HYP_CORE_ASSERT((((threadIdValue << 4) & ThreadIdMask) >> 4) == threadIdValue,
-        "Thread Id value %u exceeds maximum value!",
-        threadIdValue);
+                    "Thread Id value %u exceeds maximum value!",
+                    threadIdValue);
 
     return threadIdValue;
 }

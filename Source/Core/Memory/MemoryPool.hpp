@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -24,7 +24,7 @@
 
 #include <Core/Profiling/ProfileScope.hpp>
 
-#include <Core/Utilities/IdGenerator.hpp>
+#include <Core/Utilities/IndexAllocator.hpp>
 
 #include <Core/Types.hpp>
 
@@ -129,7 +129,7 @@ protected:
 
     Name m_poolName;
     ThreadId m_ownerThreadId;
-    IdGenerator m_idGenerator;
+    AtomicIndexAllocator m_indexAllocator;
 
 private:
     void RegisterMemoryPool();
@@ -194,8 +194,7 @@ public:
     {
         HYP_SCOPE;
 
-        const uint32 index = m_idGenerator.Next() - 1;
-
+        const uint32 index = m_indexAllocator.Allocate();
         const uint32 blockIndex = index / numElementsPerBlock;
 
         if (blockIndex < m_initialNumBlocks)
@@ -253,7 +252,7 @@ public:
     {
         HYP_SCOPE;
 
-        m_idGenerator.ReleaseId(index + 1);
+        m_indexAllocator.Free(index);
 
         const uint32 blockIndex = index / numElementsPerBlock;
 
@@ -417,7 +416,7 @@ public:
         // // Must be on the owner thread to reset indices.
         // AssertOnThread(m_ownerThreadId);
 
-        m_idGenerator.Reset();
+        m_indexAllocator.Reset();
     }
 
 protected:

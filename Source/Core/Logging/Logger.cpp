@@ -71,15 +71,18 @@ CORE_API bool IsVerboseLoggingEnabled()
     return (t_isVerboseLoggingEnabled || (t_isVerboseLoggingEnabled = CoreApi::GetGlobalConfig().Get("Logging.Verbose").ToBool(false)));
 }
 
-class LogChannelIdGenerator
+class LogChannelIndexAllocator
 {
 public:
-    LogChannelIdGenerator() = default;
-    LogChannelIdGenerator(const LogChannelIdGenerator& other) = delete;
-    LogChannelIdGenerator& operator=(const LogChannelIdGenerator& other) = delete;
-    LogChannelIdGenerator(LogChannelIdGenerator&& other) noexcept = delete;
-    LogChannelIdGenerator& operator=(LogChannelIdGenerator&& other) noexcept = delete;
-    ~LogChannelIdGenerator() = default;
+    LogChannelIndexAllocator() = default;
+
+    LogChannelIndexAllocator(const LogChannelIndexAllocator& other) = delete;
+    LogChannelIndexAllocator& operator=(const LogChannelIndexAllocator& other) = delete;
+
+    LogChannelIndexAllocator(LogChannelIndexAllocator&& other) noexcept = delete;
+    LogChannelIndexAllocator& operator=(LogChannelIndexAllocator&& other) noexcept = delete;
+
+    ~LogChannelIndexAllocator() = default;
 
     HYP_NODISCARD HYP_FORCE_INLINE uint32 Next()
     {
@@ -90,7 +93,7 @@ private:
     AtomicVar<uint32> m_counter { 0 };
 };
 
-static LogChannelIdGenerator s_logChannelIdGenerator {};
+static LogChannelIndexAllocator s_logChannelIndexAllocator {};
 
 struct LoggerRedirect
 {

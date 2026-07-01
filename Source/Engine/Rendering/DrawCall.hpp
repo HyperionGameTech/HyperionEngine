@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -13,7 +13,7 @@
 #include <Core/Reflection/TypeInfoFwd.hpp>
 #include <Core/Reflection/TypeInfo.hpp>
 
-#include <Core/Utilities/IdGenerator.hpp>
+#include <Core/Utilities/IndexAllocator.hpp>
 
 #include <Rendering/RawBuffer.hpp>
 #include <Rendering/RenderMemory.hpp>
@@ -266,7 +266,7 @@ protected:
     explicit EntityBatchAllocatorBase(const TypeInfo* structTypeInfo, uint32 maxBatches);
 
     RWStructuredBuffer m_sbuffer;
-    mutable IdGenerator m_idGenerator;
+    mutable AtomicIndexAllocator m_indexAllocator;
     size_t m_structSize;
     size_t m_structAlignment;
 };
@@ -361,10 +361,10 @@ public:
 
     virtual EntityInstanceBatch* AcquireBatch() override
     {
-        const uint32 batchIndex = m_idGenerator.Next() - 1;
+        const uint32 batchIndex = m_indexAllocator.Allocate();
 
         AssertDebug(batchIndex < MaxEntityInstanceBatches,
-            "Entity instance batch limit ({}) exceeded! Consider increasing MaxEntityInstanceBatches.", MaxEntityInstanceBatches);
+                    "Entity instance batch limit ({}) exceeded! Consider increasing MaxEntityInstanceBatches.", MaxEntityInstanceBatches);
 
         BatchType* batch = reinterpret_cast<BatchType*>(m_sbuffer.cpuBuffer.Data() + batchIndex * m_structSize);
         batch->batchIndex = batchIndex;
@@ -390,19 +390,19 @@ extern void RegisterEntityBatchAllocator(const TypeId& typeId, PFNCreateEntityBa
 
 const TMap<TypeId, EntityBatchAllocatorBase*>& GetAllEntityBatchAllocators();
 
-#define HYP_REGISTER_DRAW_BATCH_TYPE(BatchType)                                                                                             \
-    namespace {                                                                                                                             \
-    struct BatchType##AllocatorRegistrationHelper                                                                                           \
-    {                                                                                                                                       \
-        BatchType##AllocatorRegistrationHelper()                                                                                            \
-        {                                                                                                                                   \
-            RegisterEntityBatchAllocator(TypeId::ForType<BatchType>(), []() -> EntityBatchAllocatorBase*                                    \
-                {                                                                                                                           \
-                    return HYP_POOL_NEW(g_renderPool, TEntityBatchAllocator<BatchType>);                                                    \
-                });                                                                                                                         \
-        }                                                                                                                                   \
-    };                                                                                                                                      \
-    static BatchType##AllocatorRegistrationHelper s_##BatchType##AllocatorRegistrationHelper;                                               \
+#define HYP_REGISTER_DRAW_BATCH_TYPE(BatchType)                                                                   \
+    namespace {                                                                                                   \
+    struct BatchType##AllocatorRegistrationHelper                                                                 \
+    {                                                                                                             \
+        BatchType##AllocatorRegistrationHelper()                                                                  \
+        {                                                                                                         \
+            RegisterEntityBatchAllocator(TypeId::ForType<BatchType>(), []() -> EntityBatchAllocatorBase*          \
+                                         {                                                                        \
+                                             return HYP_POOL_NEW(g_renderPool, TEntityBatchAllocator<BatchType>); \
+                                         });                                                                      \
+        }                                                                                                         \
+    };                                                                                                            \
+    static BatchType##AllocatorRegistrationHelper s_##BatchType##AllocatorRegistrationHelper;                     \
     }
 
 } // namespace Hyperion

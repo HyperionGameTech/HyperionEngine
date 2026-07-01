@@ -9,7 +9,7 @@
 #include <Core/Reflection/ObjId.hpp>
 #include <Core/Reflection/Handle.hpp>
 
-#include <Core/Utilities/IdGenerator.hpp>
+#include <Core/Utilities/IndexAllocator.hpp>
 
 #include <Core/Containers/Map.hpp>
 

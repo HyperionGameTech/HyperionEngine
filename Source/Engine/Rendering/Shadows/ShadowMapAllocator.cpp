@@ -154,12 +154,12 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
             return nullptr;
         }
 
-        const uint32 pointLightIndex = m_pointLightShadowMapIdGenerator.Next() - 1;
+        const uint32 pointLightIndex = m_pointLightShadowMapIndexAllocator.Allocate();
 
         // Cannot allocate if we ran out of IDs
         if (pointLightIndex >= MaxBoundOmniShadowMaps)
         {
-            m_pointLightShadowMapIdGenerator.ReleaseId(pointLightIndex + 1);
+            m_pointLightShadowMapIndexAllocator.Free(pointLightIndex);
 
             HYP_LOG_ONCE(Rendering, Warning, "Too many omni shadow maps allocated; returning NULL for AllocateShadowMap()");
 
@@ -249,7 +249,7 @@ bool ShadowMapAllocator::FreeShadowMap(ShadowMap* shadowMap, bool clearTextureRe
     {
         if (shadowMap->GetShadowMapType() == SMT_OMNI)
         {
-            m_pointLightShadowMapIdGenerator.ReleaseId(atlasElement.layerIndex + 1);
+            m_pointLightShadowMapIndexAllocator.Free(atlasElement.layerIndex);
 
             result = true;
         }

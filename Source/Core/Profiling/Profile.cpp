@@ -53,7 +53,7 @@ Profile& Profile::Run(size_t numIterations, size_t runsPerIteration)
 
         for (int j = 0; j < runsPerIteration; j++)
         {
-            m_profileFunction();
+            m_profileFunction(false);
         }
 
         auto stop = std::chrono::high_resolution_clock::now();

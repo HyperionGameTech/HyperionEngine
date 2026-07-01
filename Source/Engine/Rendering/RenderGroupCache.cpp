@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -46,7 +46,7 @@ RenderableAttributeHandle RenderGroupCache::GetOrCreate(const RenderableAttribut
     if (CreateIfExists())
         return outHandle;
 
-    const uint32 index = m_idGenerator.Next() - 1;
+    const uint32 index = m_indexAllocator.Allocate();
 
     m_entries.Set(index, attributes);
 

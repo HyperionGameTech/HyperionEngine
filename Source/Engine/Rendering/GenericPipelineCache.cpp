@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -85,7 +85,7 @@ auto GenericPipelineCache<PipelineType>::GetOrCreate(Name shaderName, const Shad
     pipeline->lastFrame = GetFrameCounter();
     CheckResult(pipeline->Create());
 
-    const uint32 index = m_idGenerator.Next() - 1;
+    const uint32 index = m_indexAllocator.Allocate();
 
     CachedPipeline cached {};
     cached.pipeline = pipeline;
@@ -177,7 +177,7 @@ void GenericPipelineCache<PipelineType>::ExpirePipelinesForShader(const Shader* 
 
         EnqueueDeletion(std::move(cached.pipeline));
 
-        m_idGenerator.ReleaseId(index + 1);
+        m_indexAllocator.Free(index);
         it = m_keyToIndex.Erase(it);
 
         m_pipelines.EraseAt(index);
@@ -220,7 +220,7 @@ int GenericPipelineCache<PipelineType>::RunCleanupCycle(int maxIter)
             auto keyToIndexIt = m_keyToIndex.Find(cached.key);
             Assert(keyToIndexIt != m_keyToIndex.End());
 
-            m_idGenerator.ReleaseId(keyToIndexIt->second + 1);
+            m_indexAllocator.Free(keyToIndexIt->second);
 
             m_keyToIndex.Erase(keyToIndexIt);
 

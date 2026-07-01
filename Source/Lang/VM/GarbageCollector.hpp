@@ -7,7 +7,7 @@
 
 #include <Core/Reflection/BoxedValue.hpp>
 
-#include <Core/Utilities/IdGenerator.hpp>
+#include <Core/Utilities/IndexAllocator.hpp>
 
 #include <Core/Containers/Bitset.hpp>
 #include <Core/Containers/SparsePagedArray.hpp>
@@ -43,7 +43,7 @@ public:
 private:
     void MarkReachable(BoxedValue& value);
 
-    IdGenerator m_idGenerator;
+    IndexAllocator m_indexAllocator;
 
     using TrackedStorage = ValueStorage<BoxedValue>;
     SparsePagedArray<TrackedStorage, TrackedPageSize, ScriptAllocator> m_trackedObjects;

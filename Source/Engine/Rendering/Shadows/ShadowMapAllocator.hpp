@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -11,7 +11,7 @@
 #include <Core/Math/Mat4f.hpp>
 
 #include <Core/Utilities/EnumFlags.hpp>
-#include <Core/Utilities/IdGenerator.hpp>
+#include <Core/Utilities/IndexAllocator.hpp>
 
 #include <Core/Reflection/ObjectMacros.hpp>
 
@@ -173,7 +173,7 @@ private:
     Handle<Texture> m_pointLightTextureArray;
     Handle<Texture> m_clearTexture;
 
-    IdGenerator m_pointLightShadowMapIdGenerator;
+    AtomicIndexAllocator m_pointLightShadowMapIndexAllocator;
 };
 
 } // namespace Hyperion
