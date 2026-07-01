@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -34,7 +34,7 @@ public:
     DescriptorSet* GetOrCreate(const DescriptorSetLayout& layout);
 
 private:
-    using AllocationsMap = TMap<HashCode, Array<DescriptorSetRef, RenderAllocator>, RenderAllocator>;
+    using AllocationsMap = TFlatMap<uint64, Array<DescriptorSetRef, RenderAllocator>, RenderAllocator>;
 
     AllocationsMap m_allocsByLayout;
 

@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -18,7 +18,6 @@ namespace Hyperion {
 
 DescriptorSetCache::DescriptorSetCache()
 {
-
 }
 
 DescriptorSetCache::~DescriptorSetCache()
@@ -55,8 +54,8 @@ void DescriptorSetCache::OnFrameStart()
 
         const HashCode layoutHashCode = it->descriptorSet->GetLayout().GetHashCode();
 
-        auto mapIt = m_allocsByLayout.Find(layoutHashCode);
-        AssertDebug(mapIt != m_allocsByLayout.End());
+        auto mapIt = m_allocsByLayout.Find(layoutHashCode.Value());
+        Assert(mapIt != m_allocsByLayout.End());
 
         mapIt->second.PushBack(std::move(it->descriptorSet));
 
@@ -75,7 +74,34 @@ void DescriptorSetCache::OnFrameEnd()
 {
     AssertOnThread(g_renderThread);
 
-    // TODO: Remove unused allocs after a certain no. of frames!
+    // Remove unused allocs after being unused in a while.
+    static constexpr uint32 NumFramesBeforeDiscard = 2000;
+
+    const uint32 frameCounter = GetFrameCounter();
+
+    // Note, we don't destroy empty layout slots, as we may need them again for recycling
+    // used descriptor sets
+    for (auto layoutIt = m_allocsByLayout.Begin(); layoutIt != m_allocsByLayout.End(); ++layoutIt)
+    {
+        auto& list = layoutIt->second;
+
+        for (auto jt = list.Begin(); jt != list.End();)
+        {
+            if (frameCounter - (*jt)->frameCounter >= NumFramesBeforeDiscard)
+            {
+                // we don't need to enqueue deletion, it isn't used by the gpu.
+                // We can just delete it by means of Erase(), as NumFramesBeforeDiscard is AT LEAST NumFramesInFlight
+                // And if it isn't... Then that's a problem!
+                static_assert(NumFramesBeforeDiscard >= NumFramesInFlight);
+
+                jt = list.Erase(jt);
+
+                continue;
+            }
+
+            ++jt;
+        }
+    }
 }
 
 DescriptorSet* DescriptorSetCache::GetOrCreate(const DescriptorSetLayout& layout)
@@ -83,12 +109,13 @@ DescriptorSet* DescriptorSetCache::GetOrCreate(const DescriptorSetLayout& layout
     AssertOnThread(g_renderThread);
 
     const HashCode layoutHashCode = layout.GetHashCode();
+    const uint64 layoutHashCodeValue = layoutHashCode.Value();
 
-    auto mapIt = m_allocsByLayout.Find(layoutHashCode);
+    auto mapIt = m_allocsByLayout.Find(layoutHashCodeValue);
 
     if (mapIt == m_allocsByLayout.End())
     {
-        mapIt = m_allocsByLayout.Insert(layoutHashCode, {}).first;
+        mapIt = m_allocsByLayout.Insert(layoutHashCodeValue, {}).first;
     }
 
     if (mapIt->second.Any())
@@ -108,8 +135,6 @@ DescriptorSet* DescriptorSetCache::GetOrCreate(const DescriptorSetLayout& layout
 
     // need to allocate new descriptor set
     DescriptorSetRef newDescriptorSet = RI.MakeDescriptorSet(layout);
-    //RendererResult createResult = newDescriptorSet->Create();
-    //Assert(!createResult.HasError(), "Failed to create new descriptor set! Error: {}", createResult.GetError().GetMessage());
 
     auto& inUseElem = m_descriptorSetsInUse.EmplaceBack();
     inUseElem.frameCounter = GetFrameCounter();
