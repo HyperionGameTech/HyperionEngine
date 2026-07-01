@@ -43,6 +43,8 @@ public:
     {
         m_debugName = name;
     }
+#else
+    static constexpr NoOpFunction<Name> GetDebugName;
 #endif
 
     HYP_FORCE_INLINE GpuBufferType GetBufferType() const

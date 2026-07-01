@@ -343,7 +343,7 @@ RendererResult DX12BottomLevelAS::Rebuild(RTUpdateStateFlags& outUpdateStateFlag
 void DX12BottomLevelAS::SetDebugName(Name name)
 {
     BottomLevelASBase::SetDebugName(name);
-    
+
     if (m_buffer)
     {
         m_buffer->SetDebugName(name);
@@ -390,6 +390,8 @@ DX12TopLevelAS::~DX12TopLevelAS()
             RI.bindlessStorage->ReleaseId(BindlessStorage_Buffers, storageId);
         }
     }
+
+    m_keyToBlasAndStorageId.Clear();
 }
 
 bool DX12TopLevelAS::IsCreated() const
@@ -437,34 +439,38 @@ void DX12TopLevelAS::AddBLAS(uint64 key, DX12BottomLevelAS* blas)
     SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING);
 }
 
-void DX12TopLevelAS::RemoveBLAS(uint64 key)
+bool DX12TopLevelAS::RemoveBLAS(uint64 key)
 {
     auto it = m_keyToBlasAndStorageId.Find(key);
 
-    if (it != m_keyToBlasAndStorageId.End())
+    if (it == m_keyToBlasAndStorageId.End())
     {
-        DX12BottomLevelAS* blas = it->second.first;
-        uint32 storageId = it->second.second;
-
-        RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2);
-        RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2 + 1);
-
-        RI.bindlessStorage->ReleaseId(BindlessStorage_Buffers, storageId);
-
-        auto blasesIt = m_blases.Find(blas);
-        Assert(blasesIt != m_blases.End());
-
-        blas->Release();
-
-        auto keysIt = m_keys.Begin() + std::distance(m_blases.Begin(), blasesIt);
-        m_keys.Erase(keysIt);
-
-        m_blases.Erase(blasesIt);
-
-        m_keyToBlasAndStorageId.Erase(it);
-
-        SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING);
+        return false;
     }
+
+    DX12BottomLevelAS* blas = it->second.first;
+    uint32 storageId = it->second.second;
+
+    RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2);
+    RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2 + 1);
+
+    RI.bindlessStorage->ReleaseId(BindlessStorage_Buffers, storageId);
+
+    auto blasesIt = m_blases.Find(blas);
+    Assert(blasesIt != m_blases.End());
+
+    blas->Release();
+
+    auto keysIt = m_keys.Begin() + std::distance(m_blases.Begin(), blasesIt);
+    m_keys.Erase(keysIt);
+
+    m_blases.Erase(blasesIt);
+
+    m_keyToBlasAndStorageId.Erase(it);
+
+    SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING);
+
+    return true;
 }
 
 bool DX12TopLevelAS::ContainsBLAS(uint64 key)
@@ -839,7 +845,12 @@ RendererResult DX12TopLevelAS::BuildMeshDescriptionsBuffer(uint32 first, uint32 
         uint32 storageId = ~0u;
 
         {
-            storageId = m_keyToBlasAndStorageId[key].second;
+            auto it = m_keyToBlasAndStorageId.Find(key);
+            Assert(it != m_keyToBlasAndStorageId.End());
+
+            Pair<DX12BottomLevelAS*, uint32>& blasAndStorageId = it->second;
+
+            storageId = blasAndStorageId.second;
 
             if (storageId == ~0u)
             {
@@ -852,7 +863,7 @@ RendererResult DX12TopLevelAS::BuildMeshDescriptionsBuffer(uint32 first, uint32 
             {
                 storageId &= ~StorageIdDirtyBit;
 
-                m_keyToBlasAndStorageId[key].second = storageId;
+                blasAndStorageId.second = storageId;
 
                 RI.bindlessStorage->AddResource(BindlessStorage_Buffers, storageId * 2, blas->GetGeometries()[0].GetPackedVerticesBuffer());
                 RI.bindlessStorage->AddResource(BindlessStorage_Buffers, storageId * 2 + 1, blas->GetGeometries()[0].GetPackedIndicesBuffer());

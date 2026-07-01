@@ -2075,6 +2075,11 @@ void RenderInterface::CreateBlueNoiseBuffer()
 
     blueNoiseBuffer = StructuredBuffer(ExpectedSize / sizeof(Vec4i), sizeof(Vec4i));
     blueNoiseBuffer.Initialize();
+
+#ifdef HYP_RHI_DEBUG_NAMES
+    blueNoiseBuffer.gpuBuffer->SetDebugName(NAME("BlueNoiseBuffer"));
+#endif
+
     blueNoiseBuffer.Write(0, ExpectedSize, blobData.Data());
     blueNoiseBuffer.Flush();
 }
@@ -2083,6 +2088,10 @@ void RenderInterface::CreateSphereSamplesBuffer()
 {
     sphereSamplesBuffer = StructuredBuffer(4096, sizeof(Vec4f));
     sphereSamplesBuffer.Initialize();
+
+#ifdef HYP_RHI_DEBUG_NAMES
+    sphereSamplesBuffer.gpuBuffer->SetDebugName(NAME("SphereSamplesBuffer"));
+#endif
 
     Vec4f* sphereSamples = new Vec4f[4096];
 

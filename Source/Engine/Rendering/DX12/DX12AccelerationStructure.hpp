@@ -198,7 +198,7 @@ public:
     bool IsCreated() const override;
 
     void AddBLAS(uint64 key, DX12BottomLevelAS* blas) override;
-    void RemoveBLAS(uint64 key) override;
+    bool RemoveBLAS(uint64 key) override;
     bool ContainsBLAS(uint64 key) override;
 
     RendererResult Create() override;

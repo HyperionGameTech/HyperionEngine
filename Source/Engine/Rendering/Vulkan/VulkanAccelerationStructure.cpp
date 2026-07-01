@@ -508,6 +508,8 @@ VulkanTopLevelAS::~VulkanTopLevelAS()
             RI.bindlessStorage->ReleaseId(BindlessStorage_Buffers, storageId);
         }
     }
+
+    m_keyToBlasAndStorageId.Clear();
 }
 
 bool VulkanTopLevelAS::IsCreated() const
@@ -614,38 +616,42 @@ void VulkanTopLevelAS::AddBLAS(uint64 key, VulkanBottomLevelAS* blas)
     SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING);
 }
 
-void VulkanTopLevelAS::RemoveBLAS(uint64 key)
+bool VulkanTopLevelAS::RemoveBLAS(uint64 key)
 {
     auto it = m_keyToBlasAndStorageId.Find(key);
 
     AssertDebug(it != m_keyToBlasAndStorageId.End());
 
-    if (it != m_keyToBlasAndStorageId.End())
+    if (it == m_keyToBlasAndStorageId.End())
     {
-        VulkanBottomLevelAS*& blas = it->second.first;
-        uint32 storageId = it->second.second;
-
-        RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2);
-        RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2 + 1);
-
-        RI.bindlessStorage->ReleaseId(BindlessStorage_Buffers, storageId);
-
-        auto blasesIt = m_blases.Find(blas);
-        Assert(blasesIt != m_blases.End());
-
-        blas->Release();
-        blas = nullptr;
-
-        const size_t dist = std::distance(m_blases.Begin(), blasesIt);
-        AssertDebug(dist < m_keys.Size());
-
-        m_keys.Erase(m_keys.Begin() + dist);
-        m_blases.Erase(blasesIt);
-
-        m_keyToBlasAndStorageId.Erase(it);
-
-        SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING);
+        return false;
     }
+
+    VulkanBottomLevelAS*& blas = it->second.first;
+    uint32 storageId = it->second.second;
+
+    RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2);
+    RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2 + 1);
+
+    RI.bindlessStorage->ReleaseId(BindlessStorage_Buffers, storageId);
+
+    auto blasesIt = m_blases.Find(blas);
+    Assert(blasesIt != m_blases.End());
+
+    blas->Release();
+    blas = nullptr;
+
+    const size_t dist = std::distance(m_blases.Begin(), blasesIt);
+    AssertDebug(dist < m_keys.Size());
+
+    m_keys.Erase(m_keys.Begin() + dist);
+    m_blases.Erase(blasesIt);
+
+    m_keyToBlasAndStorageId.Erase(it);
+
+    SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING);
+
+    return true;
 }
 
 bool VulkanTopLevelAS::ContainsBLAS(uint64 key)

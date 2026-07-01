@@ -289,6 +289,9 @@ void DX12GpuBuffer::CopyFrom(
         return;
     }
 
+    commandBuffer->AssertResourceState(*this, RS_COPY_DST);
+    commandBuffer->AssertResourceState(*srcBuffer, RS_COPY_SRC);
+
     Assert(count <= Size(), "Copy count exceeds destination buffer size!");
 
     commandBuffer->GetCommandList()->CopyBufferRegion(
@@ -317,7 +320,8 @@ void DX12GpuBuffer::CopyFrom(
         return;
     }
 
-    // @TODO AssertResourceState calls here.
+    commandBuffer->AssertResourceState(*this, RS_COPY_DST);
+    commandBuffer->AssertResourceState(*srcBuffer, RS_COPY_SRC);
 
     Assert((srcOffset + count <= srcBuffer->Size()) && (dstOffset + count <= Size()), "Copy out of bounds! Buffer debug name: {}",
             GetDebugName());

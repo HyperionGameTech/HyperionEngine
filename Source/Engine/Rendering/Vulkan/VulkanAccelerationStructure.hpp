@@ -279,7 +279,7 @@ public:
     bool IsCreated() const override;
 
     void AddBLAS(uint64 key, VulkanBottomLevelAS* blas) override;
-    void RemoveBLAS(uint64 key) override;
+    bool RemoveBLAS(uint64 key) override;
     bool ContainsBLAS(uint64 key) override;
 
     RendererResult Create() override;

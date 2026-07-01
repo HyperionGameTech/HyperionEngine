@@ -3340,7 +3340,14 @@ void DeferredPass::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
         {
             for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
             {
-                pd->rayTracingTlases[frameIndex]->RemoveBLAS(oldKey);
+                const bool removed = pd->rayTracingTlases[frameIndex]->RemoveBLAS(oldKey);
+                AssertDebug(removed);
+
+                if (!removed)
+                {
+                    HYP_LOG(Rendering, Error, "Failed to remove BLAS for Mesh {} from top level acceleration structure!",
+                            meshProxy->mesh->GetName());
+                }
             }
         }
 

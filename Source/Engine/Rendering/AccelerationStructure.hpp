@@ -61,7 +61,7 @@ public:
         return g_rhiPool;
     }
 
-    static constexpr uint32 MaxBlases = 16384;
+    static constexpr uint32 MaxBlases = 8192;
 
     TopLevelASBase()
         : m_meshDescriptionsBuffer(MaxBlases, sizeof(MeshDescription))
@@ -95,7 +95,7 @@ public:
     virtual bool IsCreated() const = 0;
 
     virtual void AddBLAS(uint64 key, BottomLevelAS* blas) = 0;
-    virtual void RemoveBLAS(uint64 key) = 0;
+    virtual bool RemoveBLAS(uint64 key) = 0;
     virtual bool ContainsBLAS(uint64 key) = 0;
 
     virtual RendererResult Create() = 0;

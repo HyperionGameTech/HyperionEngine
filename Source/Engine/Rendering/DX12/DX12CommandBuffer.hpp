@@ -14,6 +14,13 @@
 #undef INCLUDE_FROM_RHI
 #undef INCLUDE_FROM_RHI_BASE
 
+#define HYP_DX12_DEBUG_RESOURCE_STATES
+
+// Disallow in final release build
+#if defined(HYPERION_BUILD_RELEASE_FINAL) && defined(HYP_DX12_DEBUG_RESOURCE_STATES)
+#undef HYP_DX12_DEBUG_RESOURCE_STATES
+#endif
+
 namespace Hyperion {
 
 class DX12GraphicsPipeline;
@@ -94,6 +101,25 @@ public:
         ID3D12Fence* fence = nullptr,
         uint64 fenceValue = 0);
 
+#ifdef HYP_DX12_DEBUG_RESOURCE_STATES
+    void AssertResourceState(
+        const DX12GpuBuffer& buffer,
+        ResourceState expectedState) const;
+
+    void AssertResourceState(
+        const DX12GpuImage& image,
+        ResourceState expectedState) const;
+
+    void AssertResourceState(
+        const DX12GpuImage& image,
+        ResourceState expectedState,
+        const ImageSubResource& subResource,
+        bool onlyDepth = false,
+        bool onlyStencil = false) const;
+#else
+    static constexpr NoOpFunction<void> AssertResourceState;
+#endif
+
     HYP_FORCE_INLINE ID3D12DescriptorHeap* GetBoundViewHeap() const
     {
         return m_boundViewHeap;
@@ -124,13 +150,15 @@ public:
     DX12GraphicsPipeline* m_boundGraphicsPipeline;
 
 private:
+#ifdef HYP_DX12_DEBUG_RESOURCE_STATES
+    ID3D12DebugCommandList* GetDebugCommandList() const;
+#endif
+
     D3D12_COMMAND_LIST_TYPE m_type;
     ID3D12CommandQueue* m_commandQueue;
 
     ComPtr<ID3D12GraphicsCommandList> m_commandList;
     ComPtr<ID3D12CommandAllocator> m_allocator;
-
-    bool m_isRecording;
 
     // Track bound descriptor heaps to avoid redundant SetDescriptorHeaps() calls
     ID3D12DescriptorHeap* m_boundViewHeap;
@@ -140,6 +168,12 @@ private:
     Array<DX12CachedDescriptorSetBinding, DX12Allocator> m_boundDescriptorSets;
 
     ID3D12CommandSignature* m_indirectCommandSignature;
+
+#ifdef HYP_DX12_DEBUG_RESOURCE_STATES
+    ID3D12DebugCommandList mutable* m_debugCommandList;
+#endif
+
+    bool m_isRecording;
 };
 
 } // namespace Hyperion
