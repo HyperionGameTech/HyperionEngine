@@ -81,6 +81,11 @@ struct IdGenerator
     {
         HYP_CORE_ASSERT(index != 0, "Invalid index");
 
+        if (index == 0)
+        {
+            return;
+        }
+
         Mutex::Guard guard(freeIdMutex);
 
         HYP_CORE_ASSERT(!freeIndices.Test(index - 1));

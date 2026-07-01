@@ -3380,7 +3380,7 @@ void DeferredPass::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
             continue;
         }
 
-        if (oldKey != 0)
+        if (oldKey != 0 && oldKey != newKey)
         {
             for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
             {

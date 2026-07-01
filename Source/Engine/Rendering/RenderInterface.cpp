@@ -1947,7 +1947,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         {
             if (!ds->IsCreated())
             {
-                Assert(ds->Create());
+                CheckResult(ds->Create());
             }
             else
             {

@@ -307,12 +307,16 @@ RendererResult DX12BottomLevelAS::Rebuild(RTUpdateStateFlags& outUpdateStateFlag
 
     if (!m_buffer || m_buffer->Size() < accelerationStructureSize)
     {
+        EnqueueDeletion(std::move(m_buffer));
+
         m_buffer = RI.MakeGpuBuffer(GpuBufferType::AccelerationStructureBuffer, accelerationStructureSize, 256);
         CheckResultOrReturn(m_buffer->Create());
     }
 
     if (!m_scratchBuffer || m_scratchBuffer->Size() < scratchBufferSize)
     {
+        EnqueueDeletion(std::move(m_scratchBuffer));
+
         m_scratchBuffer = RI.MakeGpuBuffer(GpuBufferType::ScratchBuffer, scratchBufferSize);
         CheckResultOrReturn(m_scratchBuffer->Create());
     }
@@ -528,12 +532,16 @@ RendererResult DX12TopLevelAS::Create()
 
         if (!m_buffer || m_buffer->Size() < accelerationStructureSize)
         {
+            EnqueueDeletion(std::move(m_buffer));
+
             m_buffer = RI.MakeGpuBuffer(GpuBufferType::AccelerationStructureBuffer, accelerationStructureSize, 256);
             CheckResultOrReturn(m_buffer->Create());
         }
 
         if (!m_scratchBuffer || m_scratchBuffer->Size() < scratchBufferSize)
         {
+            EnqueueDeletion(std::move(m_scratchBuffer));
+
             m_scratchBuffer = RI.MakeGpuBuffer(GpuBufferType::ScratchBuffer, scratchBufferSize);
             CheckResultOrReturn(m_scratchBuffer->Create());
         }
@@ -615,12 +623,16 @@ RendererResult DX12TopLevelAS::UpdateStructure(RTUpdateStateFlags& outUpdateStat
 
         if (!m_buffer || m_buffer->Size() < accelerationStructureSize)
         {
+            EnqueueDeletion(std::move(m_buffer));
+
             m_buffer = RI.MakeGpuBuffer(GpuBufferType::AccelerationStructureBuffer, accelerationStructureSize, 256);
             CheckResultOrReturn(m_buffer->Create());
         }
 
         if (!m_scratchBuffer || m_scratchBuffer->Size() < scratchBufferSize)
         {
+            EnqueueDeletion(std::move(m_scratchBuffer));
+
             m_scratchBuffer = RI.MakeGpuBuffer(GpuBufferType::ScratchBuffer, scratchBufferSize);
             CheckResultOrReturn(m_scratchBuffer->Create());
         }
@@ -691,10 +703,7 @@ RendererResult DX12TopLevelAS::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
 
     if (!m_buffer || m_buffer->Size() < accelerationStructureSize)
     {
-        if (m_buffer.IsValid())
-        {
-            EnqueueDeletion(std::move(m_buffer));
-        }
+        EnqueueDeletion(std::move(m_buffer));
 
         m_buffer = RI.MakeGpuBuffer(GpuBufferType::AccelerationStructureBuffer, accelerationStructureSize, 256);
         CheckResultOrReturn(m_buffer->Create());
@@ -702,10 +711,7 @@ RendererResult DX12TopLevelAS::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
 
     if (!m_scratchBuffer || m_scratchBuffer->Size() < scratchBufferSize)
     {
-        if (m_scratchBuffer.IsValid())
-        {
-            EnqueueDeletion(std::move(m_scratchBuffer));
-        }
+        EnqueueDeletion(std::move(m_scratchBuffer));
 
         m_scratchBuffer = RI.MakeGpuBuffer(GpuBufferType::ScratchBuffer, scratchBufferSize);
         CheckResultOrReturn(m_scratchBuffer->Create());
