@@ -192,7 +192,7 @@ class DX12TopLevelAS final : public TopLevelASBase, public DX12ASBase
     HYP_OBJECT_BODY(DX12TopLevelAS);
 
 public:
-    DX12TopLevelAS();
+    explicit DX12TopLevelAS(const ASResourceCallbacks& callbacks);
     ~DX12TopLevelAS() override;
 
     bool IsCreated() const override;
@@ -222,6 +222,7 @@ private:
 
     Array<DX12BottomLevelAS*, DX12Allocator> m_blases;
     Array<uint64, DX12Allocator> m_keys;
+
     TMap<uint64, Pair<DX12BottomLevelAS*, uint32>, DX12Allocator> m_keyToBlasAndStorageId;
 
     DX12GpuBufferRef m_instancesBuffer;

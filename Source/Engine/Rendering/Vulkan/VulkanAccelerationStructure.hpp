@@ -273,7 +273,7 @@ class VulkanTopLevelAS final : public TopLevelASBase, public VulkanASBase
     HYP_OBJECT_BODY(VulkanTopLevelAS);
 
 public:
-    VulkanTopLevelAS();
+    explicit VulkanTopLevelAS(const ASResourceCallbacks& callbacks);
     ~VulkanTopLevelAS() override;
 
     bool IsCreated() const override;

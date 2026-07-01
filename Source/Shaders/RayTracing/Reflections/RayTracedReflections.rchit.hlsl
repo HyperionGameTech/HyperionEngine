@@ -59,6 +59,13 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
 {
     MeshDescription mesh_description = mesh_descriptions[InstanceIndex()];
 
+    if (mesh_description.bindlessIndex == ~0u)
+    {
+        /// BAD mesh!
+        payload.throughput = 0.0f;
+        return;
+    }
+    
     const uint vbIndex = mesh_description.bindlessIndex * 2;
     const uint ibIndex = mesh_description.bindlessIndex * 2 + 1;
 

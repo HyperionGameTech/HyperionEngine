@@ -30,6 +30,8 @@
 #include <Rendering/Texture.hpp>
 #include <Rendering/RenderableAttributes.hpp>
 #include <Rendering/CBufferAllocator.hpp>
+#include <Rendering/BLASCache.hpp>
+#include <Rendering/Bindless.hpp>
 
 #include <Core/Threading/AtomicFlag.hpp>
 
@@ -1091,7 +1093,53 @@ DX12BottomLevelASRef DX12RenderInterface::MakeBottomLevelAS(
 
 DX12TopLevelASRef DX12RenderInterface::MakeTLAS()
 {
-    return MakeHandle<DX12TopLevelAS>();
+    ASResourceCallbacks callbacks {};
+
+    callbacks.setBLASBuffers = [](uint64 key, DX12GpuBuffer* vb, DX12GpuBuffer* ib) -> uint32
+    {
+        Assert(vb != nullptr && ib != nullptr);
+
+        if (!RI.bindlessStorage)
+        {
+            return BLASCache::InvalidStorageId;
+        }
+
+        uint32 storageId = RI.blasCache->AllocateStorageId(key);
+
+        if (storageId == BLASCache::InvalidStorageId)
+        {
+            return storageId;
+        }
+
+        RI.bindlessStorage->AddResource(BindlessStorage_Buffers, storageId * 2 + 0, MakeStrongRef(vb));
+        RI.bindlessStorage->AddResource(BindlessStorage_Buffers, storageId * 2 + 1, MakeStrongRef(ib));
+
+        return storageId;
+    };
+
+    callbacks.removeBLASBuffers = [](uint64 key) -> bool
+    {
+        if (!RI.bindlessStorage)
+        {
+            return false;
+        }
+
+        uint32 storageId;
+        uint32 refCount;
+
+        if (RI.blasCache->ReleaseStorageIdForBLASKey(key, storageId, refCount))
+        {
+            if (refCount == 0)
+            {
+                RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2 + 0);
+                RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2 + 1);
+            }
+        }
+
+        return true;
+    };
+
+    return MakeHandle<DX12TopLevelAS>(callbacks);
 }
 
 void DX12RenderInterface::PopulateIndirectDrawCommandsBuffer(

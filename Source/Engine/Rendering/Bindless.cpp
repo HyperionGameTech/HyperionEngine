@@ -39,7 +39,6 @@ void BindlessStorage::UnsetAllResources(BindlessStorageSlot slot)
     }
 
     m_resources[slot].Clear();
-    m_idGenerators[slot].Reset();
 }
 
 void BindlessStorage::AddResource(BindlessStorageSlot slot, uint32 index, const Handle<ObjectBase>& resource)

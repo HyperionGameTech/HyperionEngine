@@ -50,6 +50,13 @@ enum AccelerationStructureFlagBits : AccelerationStructureFlags
     ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE = 0x4
 };
 
+struct ASResourceCallbacks
+{
+    /// Returns storage id to set in mesh descriptions buffer, or UINT32_MAX if failed.
+    uint32 (*setBLASBuffers)(uint64 key, GpuBuffer* vb, GpuBuffer* ib);
+    bool (*removeBLASBuffers)(uint64 key);
+};
+
 HYP_CLASS(Abstract, NoScriptBindings)
 class TopLevelASBase : public ObjectBase
 {
@@ -63,8 +70,9 @@ public:
 
     static constexpr uint32 MaxBlases = 8192;
 
-    TopLevelASBase()
-        : m_meshDescriptionsBuffer(MaxBlases, sizeof(MeshDescription))
+    explicit TopLevelASBase(const ASResourceCallbacks& callbacks)
+        : m_callbacks(callbacks),
+          m_meshDescriptionsBuffer(MaxBlases, sizeof(MeshDescription))
     {
     }
 
@@ -103,6 +111,8 @@ public:
     virtual RendererResult UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags) = 0;
 
 protected:
+    ASResourceCallbacks m_callbacks;
+
     StructuredBuffer m_meshDescriptionsBuffer;
 
 #ifdef HYP_RHI_DEBUG_NAMES

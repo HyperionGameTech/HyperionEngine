@@ -360,8 +360,8 @@ void DX12BottomLevelAS::SetDebugName(Name name)
 
 #pragma region DX12TopLevelAS
 
-DX12TopLevelAS::DX12TopLevelAS()
-    : TopLevelASBase(),
+DX12TopLevelAS::DX12TopLevelAS(const ASResourceCallbacks& callbacks)
+    : TopLevelASBase(callbacks),
       DX12ASBase()
 {
 }
@@ -378,17 +378,10 @@ DX12TopLevelAS::~DX12TopLevelAS()
 
     m_blases.Clear();
 
-    if (RI.bindlessStorage != nullptr)
+    for (auto& it : m_keyToBlasAndStorageId)
     {
-        for (auto& it : m_keyToBlasAndStorageId)
-        {
-            const uint32 storageId = it.second.second;
-
-            RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2);
-            RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2 + 1);
-
-            RI.bindlessStorage->ReleaseId(BindlessStorage_Buffers, storageId);
-        }
+        const bool removed = m_callbacks.removeBLASBuffers(it.first);
+        AssertDebug(removed);
     }
 
     m_keyToBlasAndStorageId.Clear();
@@ -427,9 +420,19 @@ void DX12TopLevelAS::AddBLAS(uint64 key, DX12BottomLevelAS* blas)
         Assert(geometry.GetPackedIndicesBuffer() != nullptr);
     }
 
-    auto& entry = m_keyToBlasAndStorageId[key];
-    entry.first = blas;
-    entry.second = ~0u;
+    const uint32 storageId = m_callbacks.setBLASBuffers(
+        key,
+        blas->GetGeometries()[0].GetPackedVerticesBuffer(),
+        blas->GetGeometries()[0].GetPackedIndicesBuffer());
+
+    if (storageId == ~0u)
+    {
+        HYP_LOG(RenderingBackend, Error, "Failed to allocate storage id for BLAS!");
+
+        return;
+    }
+
+    m_keyToBlasAndStorageId[key] = { blas, storageId };
 
     blas->AddRef();
 
@@ -449,12 +452,9 @@ bool DX12TopLevelAS::RemoveBLAS(uint64 key)
     }
 
     DX12BottomLevelAS* blas = it->second.first;
-    uint32 storageId = it->second.second;
 
-    RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2);
-    RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2 + 1);
-
-    RI.bindlessStorage->ReleaseId(BindlessStorage_Buffers, storageId);
+    const bool removedBuffers = m_callbacks.removeBLASBuffers(key);
+    Assert(removedBuffers);
 
     auto blasesIt = m_blases.Find(blas);
     Assert(blasesIt != m_blases.End());
@@ -837,38 +837,18 @@ RendererResult DX12TopLevelAS::BuildMeshDescriptionsBuffer(uint32 first, uint32 
         MeshDescription& meshDescription = meshDescriptions[i - first];
         meshDescription = {};
 
-        Assert(blas->GetGeometries().Any(), "No geometries added to BottomLevelAS node %u!", i);
+        Assert(blas->GetGeometries().Any(), "No geometries added to BottomLevelAS node {}!", i);
 
         Assert(blas->GetGeometries()[0].GetPackedVerticesBuffer()->IsCreated());
         Assert(blas->GetGeometries()[0].GetPackedIndicesBuffer()->IsCreated());
 
-        uint32 storageId = ~0u;
+        auto it = m_keyToBlasAndStorageId.Find(key);
+        Assert(it != m_keyToBlasAndStorageId.End());
 
-        {
-            auto it = m_keyToBlasAndStorageId.Find(key);
-            Assert(it != m_keyToBlasAndStorageId.End());
+        const auto& pair = it->second;
 
-            Pair<DX12BottomLevelAS*, uint32>& blasAndStorageId = it->second;
-
-            storageId = blasAndStorageId.second;
-
-            if (storageId == ~0u)
-            {
-                storageId = RI.bindlessStorage->AllocateId(BindlessStorage_Buffers);
-                AssertDebug(!(storageId & StorageIdDirtyBit));
-                storageId |= StorageIdDirtyBit;
-            }
-
-            if (storageId & StorageIdDirtyBit)
-            {
-                storageId &= ~StorageIdDirtyBit;
-
-                blasAndStorageId.second = storageId;
-
-                RI.bindlessStorage->AddResource(BindlessStorage_Buffers, storageId * 2, blas->GetGeometries()[0].GetPackedVerticesBuffer());
-                RI.bindlessStorage->AddResource(BindlessStorage_Buffers, storageId * 2 + 1, blas->GetGeometries()[0].GetPackedIndicesBuffer());
-            }
-        }
+        const uint32 storageId = pair.second;
+        Assert(storageId != ~0u);
 
         meshDescription.bindlessIndex = storageId;
         meshDescription.materialIndex = blas->GetMaterialBinding();

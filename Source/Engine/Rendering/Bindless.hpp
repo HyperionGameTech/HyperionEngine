@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -54,16 +54,6 @@ public:
     BindlessStorage& operator=(BindlessStorage&& other) noexcept = delete;
     ~BindlessStorage();
 
-    HYP_NODISCARD uint32 AllocateId(BindlessStorageSlot slot)
-    {
-        return m_idGenerators[slot].Next() - 1;
-    }
-
-    void ReleaseId(BindlessStorageSlot slot, uint32 id)
-    {
-        m_idGenerators[slot].ReleaseId(id + 1);
-    }
-
     void UnsetAllResources(BindlessStorageSlot slot);
 
     /*! \brief Add a resource to the bindless storage slot \p slot. */
@@ -75,8 +65,6 @@ public:
 private:
     using ResourceList = SparsePagedArray<WeakHandle<ObjectBase>, 256, RenderAllocator>;
     ResourceList m_resources[BindlessStorage_Max];
-
-    IdGenerator m_idGenerators[BindlessStorage_Max];
 };
 
 } // namespace Hyperion

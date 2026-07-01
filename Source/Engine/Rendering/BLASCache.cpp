@@ -12,7 +12,10 @@
 #include <Rendering/Material.hpp>
 
 #include <Core/Threading/Mutex.hpp>
+
 #include <Core/Containers/Map.hpp>
+
+#include <Core/Utilities/IdGenerator.hpp>
 
 #include <Scene/Entity.hpp>
 
@@ -58,6 +61,16 @@ public:
 
     TMap<uint64, Entry, RenderAllocator> map;
     MeshEntityIdToKeyMap meshEntityIdToKey;
+
+    struct StorageIdAndRefCount
+    {
+        uint32 storageId;
+        uint32 refCount;
+    };
+
+    TFlatMap<uint64, StorageIdAndRefCount, RenderAllocator> blasKeyToStorageId;
+
+    IdGenerator storageIdGenerator;
 
     typename MeshEntityIdToKeyMap::Iterator cleanupIterator;
 };
@@ -160,6 +173,72 @@ void BLASCache::GetOrCreateBLAS(
     entry.lastUsedFrame = GetFrameCounter();
 
     outBlas = entry.blas;
+}
+
+uint32 BLASCache::TranslateBLASKeyToStorageId(uint64 key) const
+{
+    AssertOnThread(g_renderThread);
+
+    auto& map = m_impl->blasKeyToStorageId;
+
+    auto it = map.Find(key);
+
+    if (it == map.End())
+    {
+        return InvalidStorageId;
+    }
+
+    return it->second.storageId;
+}
+
+HYP_NODISCARD uint32 BLASCache::AllocateStorageId(uint64 key)
+{
+    AssertOnThread(g_renderThread);
+
+    auto& map = m_impl->blasKeyToStorageId;
+
+    auto it = map.Find(key);
+
+    if (it != map.End())
+    {
+        ++it->second.refCount;
+        return it->second.storageId;
+    }
+
+    const uint32 newId = m_impl->storageIdGenerator.Next() - 1;
+
+    map[key] = { newId, 1 };
+
+    return newId;
+}
+
+bool BLASCache::ReleaseStorageIdForBLASKey(uint64 key, uint32& outStorageId, uint32& outNewRefCount)
+{
+    AssertOnThread(g_renderThread);
+
+    auto& map = m_impl->blasKeyToStorageId;
+
+    auto it = map.Find(key);
+    AssertDebug(it != map.End());
+
+    if (it == map.End())
+    {
+        return false;
+    }
+
+    outStorageId = it->second.storageId;
+    outNewRefCount = --it->second.refCount;
+
+    if (outNewRefCount == 0)
+    {
+        const uint32 storageId = it->second.storageId;
+
+        m_impl->storageIdGenerator.ReleaseId(storageId + 1);
+
+        map.Erase(it);
+    }
+
+    return true;
 }
 
 void BLASCache::RunCleanupCycle(int maxIter)

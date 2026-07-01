@@ -20,6 +20,8 @@ class Material;
 class BLASCache
 {
 public:
+    static constexpr uint32 InvalidStorageId = UINT32_MAX;
+
     BLASCache();
 
     BLASCache(const BLASCache& other) = delete;
@@ -34,6 +36,11 @@ public:
         Entity* entity, Mesh* mesh, Material* material,
         uint64& outNewKey, uint64& outOldKey,
         BottomLevelAS*& outBlas);
+
+    uint32 TranslateBLASKeyToStorageId(uint64 key) const;
+
+    HYP_NODISCARD uint32 AllocateStorageId(uint64 key);
+    bool ReleaseStorageIdForBLASKey(uint64 key, uint32& outStorageId, uint32& outNewRefCount);
 
     void RunCleanupCycle(int maxIter);
 

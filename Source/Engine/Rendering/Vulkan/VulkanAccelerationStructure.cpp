@@ -479,8 +479,9 @@ void VulkanASBase::SetDebugName(Name name)
 
 #pragma region TLAS
 
-VulkanTopLevelAS::VulkanTopLevelAS()
-    : VulkanASBase()
+VulkanTopLevelAS::VulkanTopLevelAS(const ASResourceCallbacks& callbacks)
+    : TopLevelASBase(callbacks),
+      VulkanASBase()
 {
 }
 
@@ -496,17 +497,10 @@ VulkanTopLevelAS::~VulkanTopLevelAS()
 
     m_blases.Clear();
 
-    if (RI.bindlessStorage != nullptr)
+    for (auto& it : m_keyToBlasAndStorageId)
     {
-        for (auto& it : m_keyToBlasAndStorageId)
-        {
-            const uint32 storageId = it.second.second;
-
-            RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2);     // VB
-            RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2 + 1); // IB
-
-            RI.bindlessStorage->ReleaseId(BindlessStorage_Buffers, storageId);
-        }
+        const bool removed = m_callbacks.removeBLASBuffers(it.first);
+        AssertDebug(removed);
     }
 
     m_keyToBlasAndStorageId.Clear();
@@ -604,9 +598,19 @@ void VulkanTopLevelAS::AddBLAS(uint64 key, VulkanBottomLevelAS* blas)
         Assert(geometry.GetPackedIndicesBuffer().IsValid());
     }
 
-    auto& entry = m_keyToBlasAndStorageId[key];
-    entry.first = blas;
-    entry.second = ~0u;
+    const uint32 storageId = m_callbacks.setBLASBuffers(
+        key,
+        blas->GetGeometries()[0].GetPackedVerticesBuffer(),
+        blas->GetGeometries()[0].GetPackedIndicesBuffer());
+
+    if (storageId == ~0u)
+    {
+        HYP_LOG(RenderingBackend, Warning, "Storage ID for BLAS {} is invalid!", key);
+
+        return;
+    }
+
+    m_keyToBlasAndStorageId[key] = { blas, storageId };
 
     blas->AddRef();
 
@@ -628,12 +632,9 @@ bool VulkanTopLevelAS::RemoveBLAS(uint64 key)
     }
 
     VulkanBottomLevelAS*& blas = it->second.first;
-    uint32 storageId = it->second.second;
 
-    RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2);
-    RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2 + 1);
-
-    RI.bindlessStorage->ReleaseId(BindlessStorage_Buffers, storageId);
+    bool removedBuffers = m_callbacks.removeBLASBuffers(key);
+    Assert(removedBuffers);
 
     auto blasesIt = m_blases.Find(blas);
     Assert(blasesIt != m_blases.End());
@@ -779,28 +780,13 @@ RendererResult VulkanTopLevelAS::BuildMeshDescriptionsBuffer(uint32 first, uint3
         Assert(blas->GetGeometries()[0].GetPackedVerticesBuffer().IsValid() && blas->GetGeometries()[0].GetPackedVerticesBuffer()->IsCreated());
         Assert(blas->GetGeometries()[0].GetPackedIndicesBuffer().IsValid() && blas->GetGeometries()[0].GetPackedIndicesBuffer()->IsCreated());
 
-        uint32 storageId = ~0u;
+        auto it = m_keyToBlasAndStorageId.Find(key);
+        Assert(it != m_keyToBlasAndStorageId.End());
 
-        { // allocate / update resources in bindless storage
-            storageId = m_keyToBlasAndStorageId[key].second;
+        const auto& pair = it->second;
 
-            if (storageId == ~0u)
-            {
-                storageId = RI.bindlessStorage->AllocateId(BindlessStorage_Buffers);
-                AssertDebug(!(storageId & StorageIdDirtyBit));
-                storageId |= StorageIdDirtyBit;
-            }
-
-            if (storageId & StorageIdDirtyBit)
-            {
-                storageId &= ~StorageIdDirtyBit;
-
-                m_keyToBlasAndStorageId[key].second = storageId;
-
-                RI.bindlessStorage->AddResource(BindlessStorage_Buffers, storageId * 2, blas->GetGeometries()[0].GetPackedVerticesBuffer());
-                RI.bindlessStorage->AddResource(BindlessStorage_Buffers, storageId * 2 + 1, blas->GetGeometries()[0].GetPackedIndicesBuffer());
-            }
-        }
+        const uint32 storageId = pair.second;
+        Assert(storageId != ~0u);
 
         meshDescription.bindlessIndex = storageId;
         meshDescription.materialIndex = blas->GetMaterialBinding();
