@@ -159,6 +159,7 @@ void World::Initialize()
             | ViewFlags::SKIP_FOG_VOLUMES
             | ViewFlags::SKIP_PARTICLE_VOLUMES
             | ViewFlags::NO_FRUSTUM_CULLING;
+
         rayTracingViewDesc.framebufferDesc = framebufferDesc;
         rayTracingViewDesc.camera = rayTracingViewCamera;
 

@@ -67,11 +67,13 @@ void DX12Swapchain::Destroy()
 
     m_currentBackBufferIndex = 0;
 
+#ifdef HYP_DX12_USE_FRAME_LATENCY_WAITABLE
     if (m_frameLatencyWaitableObject != nullptr)
     {
         CloseHandle(m_frameLatencyWaitableObject);
         m_frameLatencyWaitableObject = nullptr;
     }
+#endif
 
     if (m_flushEvent != nullptr)
     {
@@ -164,10 +166,7 @@ RendererResult DX12Swapchain::Create()
         return HYP_MAKE_ERROR(RendererError, "Failed to query IDXGISwapChain4");
     }
 
-    // IDXGISwapChain4 doesn't inherit ID3D12Object, so no SetName. The back buffers get debug names instead.
-
-    // Get the frame latency waitable object for CPU-side frame pacing.
-    // This provides behavior equivalent to Vulkan's vkAcquireNextImageKHR.
+#ifdef HYP_DX12_USE_FRAME_LATENCY_WAITABLE
     {
         ComPtr<IDXGISwapChain2> swapChain2;
         if (SUCCEEDED(m_swapChain.As(&swapChain2)))
@@ -175,8 +174,8 @@ RendererResult DX12Swapchain::Create()
             m_frameLatencyWaitableObject = swapChain2->GetFrameLatencyWaitableObject();
         }
     }
+#endif
 
-    // Set maximum frame latency to 1 for lowest possible latency
     {
         ComPtr<IDXGIDevice1> dxgiDevice1;
         if (SUCCEEDED(device->QueryInterface(IID_PPV_ARGS(&dxgiDevice1))))
@@ -347,14 +346,12 @@ void DX12Swapchain::PrepareForFrame(DX12Frame* frame)
         Recreate();
     }
 
-    // When vsync is enabled, wait on the frame latency waitable object to
-    // pace the CPU to the display refresh rate. This eliminates jitter from
-    // irregular frame submission intervals (equivalent to Vulkan's
-    // vkAcquireNextImageKHR blocking behavior).
+#ifdef HYP_DX12_USE_FRAME_LATENCY_WAITABLE
     if (g_cvEnableVSync.Get() && m_frameLatencyWaitableObject != nullptr)
     {
         WaitForSingleObject(m_frameLatencyWaitableObject, INFINITE);
     }
+#endif
 
     m_currentBackBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
     m_acquiredImageIndex = m_currentBackBufferIndex;

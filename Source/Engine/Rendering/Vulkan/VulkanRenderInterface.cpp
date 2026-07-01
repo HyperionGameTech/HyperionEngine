@@ -33,6 +33,7 @@
 #include <Rendering/Bindless.hpp>
 #include <Rendering/CrashHandler.hpp>
 #include <Rendering/CBufferAllocator.hpp>
+#include <Rendering/BLASCache.hpp>
 
 #include <Framework/Config/EngineConfig.hpp>
 
@@ -231,10 +232,14 @@ void VulkanDynamicFunctions::Load(VulkanDevice* device)
     HYP_LOAD_FN(vkSignalSemaphore);
     HYP_LOAD_FN(vkWaitSemaphores);
     HYP_LOAD_FN(vkGetSemaphoreCounterValue);
-#ifdef HYP_RHI_DEBUG_NAMES
+
+#if HYP_DEBUG_MODE
     HYP_LOAD_FN(vkCmdDebugMarkerBeginEXT);
     HYP_LOAD_FN(vkCmdDebugMarkerEndEXT);
     HYP_LOAD_FN(vkCmdDebugMarkerInsertEXT);
+#endif
+
+#ifdef HYP_RHI_DEBUG_NAMES
     HYP_LOAD_FN(vkDebugMarkerSetObjectNameEXT);
     HYP_LOAD_FN(vkSetDebugUtilsObjectNameEXT);
     HYP_LOAD_FN(vkSetDebugUtilsObjectTagEXT);

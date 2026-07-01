@@ -23,6 +23,8 @@
 
 #include <dxgi1_5.h>
 
+// #define HYP_DX12_USE_FRAME_LATENCY_WAITABLE
+
 namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings)
@@ -85,9 +87,9 @@ private:
     HANDLE m_flushEvent = nullptr;
     uint64 m_flushFenceValue = 0;
 
-    // Frame latency waitable object for CPU-side pacing when vsync is enabled.
-    // Provides behavior equivalent to Vulkan's vkAcquireNextImageKHR.
+#ifdef HYP_DX12_USE_FRAME_LATENCY_WAITABLE
     HANDLE m_frameLatencyWaitableObject = nullptr;
+#endif
 };
 
 } // namespace Hyperion

@@ -32,6 +32,9 @@ public:
 
     ~BLASCache();
 
+    /// pOutKey is an optional out param
+    BottomLevelAS* TryGetBLAS(Entity* entity, uint64* pOutKey = nullptr);
+
     void GetOrCreateBLAS(
         Entity* entity, Mesh* mesh, Material* material,
         uint64& outNewKey, uint64& outOldKey,

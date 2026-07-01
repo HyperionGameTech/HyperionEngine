@@ -64,8 +64,8 @@ extern EngineStatGpuTimer g_statGpuFrameTime;
 extern EngineStatTimer g_statTotalStallTime;
 
 // @TODO Make these flags configurable
-#define HYP_DX12_ENABLE_DEBUG_LAYER
-#define HYP_DX12_ENABLE_DRED
+// #define HYP_DX12_ENABLE_DEBUG_LAYER
+// #define HYP_DX12_ENABLE_DRED
 
 #pragma region DX12RenderConfig
 

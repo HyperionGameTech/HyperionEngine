@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -155,7 +155,7 @@ using debug::LogType;
 #if HYP_DEBUG_MODE
 #define AssertDebug(...) Assert(__VA_ARGS__)
 #else
-#define AssertDebug(cond, ...) (::Hyperion::debug::NoOpAssertWrapper(cond) __VA_OPT__(,) __VA_ARGS__)
+#define AssertDebug(cond, ...) (void)(cond)
 #endif
 
 #if HYP_DEBUG_MODE
@@ -175,7 +175,7 @@ using debug::LogType;
     }                                                                                              \
     while (0)
 #else
-#define HYP_CORE_ASSERT(cond, ...) (::Hyperion::debug::NoOpAssertWrapper(cond) __VA_OPT__(,) __VA_ARGS__)
+#define HYP_CORE_ASSERT(cond, ...) (::Hyperion::debug::NoOpAssertWrapper(cond) __VA_OPT__(, ) __VA_ARGS__)
 #endif
 
 #if HYP_DEBUG_MODE

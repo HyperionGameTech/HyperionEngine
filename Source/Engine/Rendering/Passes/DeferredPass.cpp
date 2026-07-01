@@ -3302,6 +3302,50 @@ void DeferredPass::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
 
     bool hasBlas = false;
 
+    Array<Entity*, RenderTempAllocator> removed;
+    rpl.GetMeshEntities().GetRemoved(removed, /* includeChanged */ false);
+
+    // Remove BLASes for mesh entities that were removed from the list
+    for (Entity* entity : removed)
+    {
+        AssertDebug(entity != nullptr);
+
+        RenderProxyMesh* meshProxy = rpl.GetMeshEntities().GetProxy(entity->Id());
+        Assert(meshProxy != nullptr);
+
+        AssertDebug(meshProxy->mesh != nullptr);
+        AssertDebug(meshProxy->material != nullptr && meshProxy->material->IsReady());
+
+        const RenderBucket bucket = meshProxy->material->GetAttributes().bucket;
+
+        if (bucket != RenderBucket::Opaque
+            && bucket != RenderBucket::Lightmapped
+            && bucket != RenderBucket::Translucent)
+        {
+            continue;
+        }
+
+        uint64 key;
+        BottomLevelAS* blas = RI.blasCache->TryGetBLAS(entity, &key);
+
+        if (!blas)
+        {
+            continue;
+        }
+
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+        {
+            const bool removed = pd->rayTracingTlases[frameIndex]->RemoveBLAS(key);
+            AssertDebug(removed);
+
+            if (!removed)
+            {
+                HYP_LOG(Rendering, Error, "Failed to remove BLAS for Mesh Entity {} from top level acceleration structure!",
+                        entity->GetName());
+            }
+        }
+    }
+
     for (Entity* entity : rpl.GetMeshEntities())
     {
         AssertDebug(entity != nullptr);
@@ -3332,7 +3376,7 @@ void DeferredPass::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
 
         if (!blas)
         {
-            HYP_LOG(Rendering, Error, "Failed to build BLAS for Mesh {}", meshProxy->mesh->GetName());
+            HYP_LOG(Rendering, Error, "Failed to build BLAS for Mesh Entity {}", entity->GetName());
             continue;
         }
 

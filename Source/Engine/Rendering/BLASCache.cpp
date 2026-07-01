@@ -21,7 +21,8 @@
 
 namespace Hyperion {
 
-static uint64 MakeBLASKey(Span<const ObjIdBase> ids)
+template <size_t N>
+static HYP_FORCE_INLINE uint64 MakeBLASKey(const ObjIdBase (&ids)[N])
 {
     HashCode hc;
 
@@ -38,41 +39,37 @@ struct Entry
     BottomLevelAS* blas;
     uint32 lastUsedFrame;
 };
+using EntryMap = TFlatMap<uint64, Entry, RenderAllocator>;
 
-using MeshEntityIdToKeyMap = SparsePagedArray<uint64, 128, RenderAllocator>;
+struct StorageIdAndRefCount
+{
+    uint32 storageId;
+    uint32 refCount;
+};
+using StorageIdMap = TFlatMap<uint64, StorageIdAndRefCount, RenderAllocator>;
+
+using EntityToKeyMap = TMap<Entity*, uint64, RenderAllocator>;
 
 class BLASCacheImpl
 {
 public:
-    BLASCacheImpl()
-        : cleanupIterator(meshEntityIdToKey.End())
-    {
-    }
+    BLASCacheImpl() = default;
 
     ~BLASCacheImpl()
     {
-        for (auto& pair : map)
+        for (auto& pair : entryMap)
         {
             EnqueueDeletion(pair.second.blas);
         }
 
-        map.Clear();
+        entryMap.Clear();
     }
 
-    TMap<uint64, Entry, RenderAllocator> map;
-    MeshEntityIdToKeyMap meshEntityIdToKey;
-
-    struct StorageIdAndRefCount
-    {
-        uint32 storageId;
-        uint32 refCount;
-    };
-
-    TFlatMap<uint64, StorageIdAndRefCount, RenderAllocator> blasKeyToStorageId;
+    EntryMap entryMap;
+    EntityToKeyMap entityToKey;
+    StorageIdMap blasKeyToStorageId;
 
     IdGenerator storageIdGenerator;
-
-    typename MeshEntityIdToKeyMap::Iterator cleanupIterator;
 };
 
 BLASCache::BLASCache()
@@ -81,6 +78,43 @@ BLASCache::BLASCache()
 }
 
 BLASCache::~BLASCache() = default;
+
+BottomLevelAS* BLASCache::TryGetBLAS(Entity* entity, uint64* pOutKey)
+{
+    if (!entity)
+    {
+        return nullptr;
+    }
+
+    AssertDebug(entity->InstanceClass() == Entity::StaticClass());
+
+    auto entityToKeyIt = m_impl->entityToKey.Find(entity);
+    if (entityToKeyIt == m_impl->entityToKey.End())
+    {
+        return false;
+    }
+
+    const uint64 key = entityToKeyIt->second;
+
+    if (pOutKey)
+    {
+        *pOutKey = key;
+    }
+
+    if (key == 0)
+    {
+        return nullptr;
+    }
+
+    auto it = m_impl->entryMap.Find(key);
+
+    if (it == m_impl->entryMap.End())
+    {
+        return nullptr;
+    }
+
+    return it->second.blas;
+}
 
 void BLASCache::GetOrCreateBLAS(
     Entity* entity, Mesh* mesh, Material* material,
@@ -101,21 +135,20 @@ void BLASCache::GetOrCreateBLAS(
 
     AssertDebug(entity->InstanceClass() == Entity::StaticClass()); // needed since we use ToIndex() - if we ever want to change this, we need subclassImpls as used elsewhere.
 
-    ObjIdBase ids[] = { entity->Id(), mesh->Id(), material ? material->Id() : ObjId<Material>() };
-
-    const uint64 newKey = MakeBLASKey(Span<const ObjIdBase>(ids, ids + std::size(ids)));
-
+    const uint64 newKey = MakeBLASKey({ entity->Id(), mesh->Id(), material ? material->Id() : ObjId<Material>() });
     outNewKey = newKey;
 
-    if (m_impl->meshEntityIdToKey.HasIndex(entity->Id().ToIndex()))
+    auto entityToKeyIt = m_impl->entityToKey.Find(entity);
+
+    if (entityToKeyIt != m_impl->entityToKey.End())
     {
-        const uint64 oldKey = m_impl->meshEntityIdToKey.Get(entity->Id().ToIndex());
+        const uint64 oldKey = entityToKeyIt->second;
 
         outOldKey = oldKey;
 
         if (newKey == oldKey)
         {
-            Entry& entry = m_impl->map[oldKey];
+            Entry& entry = m_impl->entryMap[oldKey];
             entry.lastUsedFrame = GetFrameCounter();
 
             outBlas = entry.blas;
@@ -123,17 +156,24 @@ void BLASCache::GetOrCreateBLAS(
             return;
         }
 
-        auto it = m_impl->map.Find(oldKey);
-        Assert(it != m_impl->map.End());
+        auto it = m_impl->entryMap.Find(oldKey);
+        Assert(it != m_impl->entryMap.End());
 
         EnqueueDeletion(it->second.blas);
 
-        m_impl->map.Erase(it);
+        m_impl->entryMap.Erase(it);
+
+        // update in Mesh Entity -> Key Map
+        entityToKeyIt->second = newKey;
+    }
+    else
+    {
+        entityToKeyIt = m_impl->entityToKey.Emplace(entity, newKey).first;
     }
 
-    auto it = m_impl->map.Find(newKey);
+    auto it = m_impl->entryMap.Find(newKey);
 
-    if (it != m_impl->map.End())
+    if (it != m_impl->entryMap.End())
     {
         Entry& entry = it->second;
 
@@ -159,7 +199,7 @@ void BLASCache::GetOrCreateBLAS(
         entry.blas = nullptr;
     }
 
-    it = m_impl->map.Emplace(newKey).first;
+    it = m_impl->entryMap.Emplace(newKey).first;
     Assert(it->second.blas == nullptr);
 
     BottomLevelASRef blas = BLASBuilder::Build(mesh, material);
@@ -202,6 +242,7 @@ HYP_NODISCARD uint32 BLASCache::AllocateStorageId(uint64 key)
     if (it != map.End())
     {
         ++it->second.refCount;
+
         return it->second.storageId;
     }
 
@@ -216,6 +257,8 @@ bool BLASCache::ReleaseStorageIdForBLASKey(uint64 key, uint32& outStorageId, uin
 {
     AssertOnThread(g_renderThread);
 
+    Assert(key != 0);
+
     auto& map = m_impl->blasKeyToStorageId;
 
     auto it = map.Find(key);
@@ -225,14 +268,15 @@ bool BLASCache::ReleaseStorageIdForBLASKey(uint64 key, uint32& outStorageId, uin
     {
         return false;
     }
+    
+    const uint32 storageId = it->second.storageId;
+    Assert(storageId != InvalidStorageId);
 
-    outStorageId = it->second.storageId;
+    outStorageId = storageId;
     outNewRefCount = --it->second.refCount;
 
     if (outNewRefCount == 0)
     {
-        const uint32 storageId = it->second.storageId;
-
         m_impl->storageIdGenerator.ReleaseId(storageId + 1);
 
         map.Erase(it);
@@ -241,45 +285,30 @@ bool BLASCache::ReleaseStorageIdForBLASKey(uint64 key, uint32& outStorageId, uin
     return true;
 }
 
-void BLASCache::RunCleanupCycle(int maxIter)
+void BLASCache::RunCleanupCycle(int)
 {
     HYP_SCOPE;
 
-#if 0
-    m_impl->cleanupIterator = typename MeshEntityIdToKeyMap::Iterator(
-        &m_impl->meshEntityIdToKey,
-        m_impl->cleanupIterator.page,
-        m_impl->cleanupIterator.elem);
-
-    if (m_impl->cleanupIterator == m_impl->meshEntityIdToKey.End())
-    {
-        m_impl->cleanupIterator = m_impl->meshEntityIdToKey.Begin();
-    }
-
-    int numIterations = 0;
     const uint32 frameCounter = GetFrameCounter();
 
-    while (numIterations < maxIter && m_impl->cleanupIterator != m_impl->meshEntityIdToKey.End())
+    for (auto it = m_impl->entityToKey.Begin(); it != m_impl->entityToKey.End();)
     {
-        uint64 key = *m_impl->cleanupIterator;
-
-        ++numIterations;
-
-        Entry& entry = m_impl->map[key];
+        uint64 key = it->second;
+        Entry& entry = m_impl->entryMap[key];
 
         if (frameCounter - entry.lastUsedFrame > 100)
         {
             EnqueueDeletion(entry.blas);
 
-            m_impl->map.Erase(key);
-            m_impl->cleanupIterator = m_impl->meshEntityIdToKey.Erase(m_impl->cleanupIterator);
+            m_impl->entryMap.Erase(key);
+
+            it = m_impl->entityToKey.Erase(it);
 
             continue;
         }
 
-        ++m_impl->cleanupIterator;
+        ++it;
     }
-#endif
 }
 
 } // namespace Hyperion

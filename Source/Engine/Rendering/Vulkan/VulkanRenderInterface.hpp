@@ -16,15 +16,16 @@
 
 #include <Rendering/Vulkan/VulkanGpuBuffer.hpp>
 #include <Rendering/Vulkan/VulkanGpuImage.hpp>
+#include <Rendering/Vulkan/VulkanGpuTimerBackend.hpp>
+
+#include <Rendering/Shared.hpp>
 
 #include <Core/Containers/Map.hpp>
 
 #include <Core/Memory/RefCountedPtr.hpp>
 #include <Core/Memory/Pimpl.hpp>
 
-#include <Vulkan/vulkan.h>
-
-#include <Rendering/Vulkan/VulkanGpuTimerBackend.hpp>
+#include <vulkan/vulkan.h>
 
 namespace Hyperion {
 
@@ -64,6 +65,9 @@ struct VulkanDynamicFunctions
     HYP_DECL_FN(vkCmdDebugMarkerBeginEXT);
     HYP_DECL_FN(vkCmdDebugMarkerEndEXT);
     HYP_DECL_FN(vkCmdDebugMarkerInsertEXT);
+#endif
+
+#ifdef HYP_RHI_DEBUG_NAMES
     HYP_DECL_FN(vkDebugMarkerSetObjectNameEXT);
     HYP_DECL_FN(vkSetDebugUtilsObjectNameEXT);
     HYP_DECL_FN(vkSetDebugUtilsObjectTagEXT);

@@ -254,7 +254,7 @@ void TerrainStreamingCell::OnLoaded_Impl()
     }
     
     // terrain cells share a mesh, we can use instancing for them
-    meshComponent->enableAutoInstancing = true;
+    //meshComponent->enableAutoInstancing = true;
 
     entityManager->AddTag<EntityTag::UpdateRenderProxy>(entity);
 
