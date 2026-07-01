@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -127,7 +127,7 @@ void SSRPass::CreatePasses()
         framebufferDesc.numLayers = 1;
 
         FramebufferRef writeUVsFramebuffer = RI.MakeFramebuffer(framebufferDesc);
-        
+
 #ifdef HYP_RHI_DEBUG_NAMES
         writeUVsFramebuffer->SetDebugName(NAME("SSRWriteUVsFramebuffer"));
 #endif
@@ -165,7 +165,7 @@ void SSRPass::CreatePasses()
         framebufferDesc.numLayers = 1;
 
         FramebufferRef sampleGBufferFramebuffer = RI.MakeFramebuffer(framebufferDesc);
-        
+
 #ifdef HYP_RHI_DEBUG_NAMES
         sampleGBufferFramebuffer->SetDebugName(NAME("SSRSampleGBufferFramebuffer"));
 #endif
@@ -234,8 +234,7 @@ void SSRPass::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
             1,
-            IU_ATTACHMENT | IU_SAMPLED
-        });
+            IU_ATTACHMENT | IU_SAMPLED });
 
         m_uvsTexture->SetName(NAME("SSRTexture_UVs"));
         CheckResult(m_uvsTexture->Create());
@@ -248,8 +247,7 @@ void SSRPass::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
             1,
-            IU_ATTACHMENT | IU_SAMPLED
-        });
+            IU_ATTACHMENT | IU_SAMPLED });
 
         m_sampledResultTexture->SetName(NAME("SSRTexture_SampledResult"));
         CheckResult(m_sampledResultTexture->Create());
@@ -310,11 +308,11 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
         uint32 uniformIndex = 0;
 
         cr << SetShaderUniform(uniformIndex++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
-        cr << SetShaderUniform(uniformIndex++, "GBufferNormalsTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_NORMALS)->GetImageView());
-        cr << SetShaderUniform(uniformIndex++, "GBufferMaterialTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_MATERIAL)->GetImageView());
-        cr << SetShaderUniform(uniformIndex++, "GBufferVelocityTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
+        cr << SetShaderUniform(uniformIndex++, "GBufferNormalsTexture"_sh, m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::Normals)->GetImageView());
+        cr << SetShaderUniform(uniformIndex++, "GBufferMaterialTexture"_sh, m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::MatData)->GetImageView());
+        cr << SetShaderUniform(uniformIndex++, "GBufferVelocityTexture"_sh, m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::Velocity)->GetImageView());
+        cr << SetShaderUniform(uniformIndex++, "GBufferDepthTexture"_sh, m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::Depth)->GetImageView());
         cr << SetShaderUniform(uniformIndex++, "GBufferMipChain"_sh, m_mipChainImageView ? m_mipChainImageView : RI.placeholderData->GetImageView2D1x1R8());
-        cr << SetShaderUniform(uniformIndex++, "GBufferDepthTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
         cr << SetShaderUniform(uniformIndex++, "DeferredResult"_sh, m_mipChainImageView ? m_mipChainImageView : RI.placeholderData->GetImageView2D1x1R8());
         cr << SetShaderUniform(uniformIndex++, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
         cr << SetShaderUniform(uniformIndex++, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
@@ -336,11 +334,11 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
         uint32 uniformIndex = 0;
 
         cr << SetShaderUniform(uniformIndex++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
-        cr << SetShaderUniform(uniformIndex++, "GBufferNormalsTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_NORMALS)->GetImageView());
-        cr << SetShaderUniform(uniformIndex++, "GBufferMaterialTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_MATERIAL)->GetImageView());
-        cr << SetShaderUniform(uniformIndex++, "GBufferVelocityTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
+        cr << SetShaderUniform(uniformIndex++, "GBufferNormalsTexture"_sh, m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::Normals)->GetImageView());
+        cr << SetShaderUniform(uniformIndex++, "GBufferMaterialTexture"_sh, m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::MatData)->GetImageView());
+        cr << SetShaderUniform(uniformIndex++, "GBufferVelocityTexture"_sh, m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::Velocity)->GetImageView());
         cr << SetShaderUniform(uniformIndex++, "GBufferMipChain"_sh, m_mipChainImageView ? m_mipChainImageView : RI.placeholderData->GetImageView2D1x1R8());
-        cr << SetShaderUniform(uniformIndex++, "GBufferDepthTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
+        cr << SetShaderUniform(uniformIndex++, "GBufferDepthTexture"_sh, m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::Depth)->GetImageView());
         cr << SetShaderUniform(uniformIndex++, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
         cr << SetShaderUniform(uniformIndex++, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
         cr << SetShaderUniform(uniformIndex++, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer);

@@ -141,13 +141,13 @@ const FramebufferRef& ViewOutputTarget::GetFramebuffer() const
 
     if (m_impl->IsA<GBuffer>())
     {
-        return StaticCast<GBuffer>(m_impl)->GetBucket(RenderBucket::Opaque).GetFramebuffer();
+        return StaticCast<GBuffer>(m_impl)->GetPass(GBufferPass::Opaque).framebuffer;
     }
 
     return StaticCast<Framebuffer>(m_impl);
 }
 
-const FramebufferRef& ViewOutputTarget::GetFramebuffer(RenderBucket rb) const
+const FramebufferRef& ViewOutputTarget::GetFramebuffer(GBufferPass pass) const
 {
     if (!m_impl)
     {
@@ -156,7 +156,7 @@ const FramebufferRef& ViewOutputTarget::GetFramebuffer(RenderBucket rb) const
 
     if (m_impl->IsA<GBuffer>())
     {
-        return StaticCast<GBuffer>(m_impl)->GetBucket(rb).GetFramebuffer();
+        return StaticCast<GBuffer>(m_impl)->GetPass(pass).framebuffer;
     }
 
     return StaticCast<Framebuffer>(m_impl);
@@ -255,7 +255,7 @@ void View::Init()
         else if (desc.framebufferDesc.numAttachments > 0)
         {
             FramebufferRef framebuffer = RI.MakeFramebuffer(desc.framebufferDesc);
-            
+
 #ifdef HYP_RHI_DEBUG_NAMES
             if (name.IsValid())
             {

@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -57,10 +57,10 @@ void DepthPyramidRenderer::Create()
 {
     Assert(m_gbuffer != nullptr);
 
-    const FramebufferRef& opaqueFramebuffer = m_gbuffer->GetBucket(RenderBucket::Opaque).GetFramebuffer();
+    const FramebufferRef& opaqueFramebuffer = m_gbuffer->GetPass(GBufferPass::Opaque).framebuffer;
     Assert(opaqueFramebuffer.IsValid());
 
-    AttachmentBase* depthAttachment = opaqueFramebuffer->GetAttachment(GTN_DEPTH);
+    AttachmentBase* depthAttachment = opaqueFramebuffer->GetAttachment(GBufferTarget::Depth);
     Assert(depthAttachment != nullptr);
 
     m_depthImageView = depthAttachment->GetImageView();
@@ -76,15 +76,13 @@ void DepthPyramidRenderer::Create()
         Vec3u {
             depthImage->GetExtent().x,
             depthImage->GetExtent().y,
-            1
-        },
+            1 },
         TFM_NEAREST_MIPMAP,
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_SAMPLED | IU_STORAGE
-    });
-    
+        IU_SAMPLED | IU_STORAGE });
+
 #ifdef HYP_RHI_DEBUG_NAMES
     m_depthPyramid->SetDebugName(NAME("DepthPyramid"));
 #endif

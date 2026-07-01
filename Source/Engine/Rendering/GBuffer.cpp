@@ -28,6 +28,14 @@ namespace Hyperion {
 
 extern CVar<bool> g_cvDepthPrepass;
 
+static constexpr const char* TargetNameStrings[GBufferTarget::Max] = {
+    "Color",
+    "Normals",
+    "MatData",
+    "Velocity",
+    "Depth"
+};
+
 #pragma region GBuffer
 
 struct GBufferTargetDesc
@@ -50,7 +58,7 @@ struct GBufferTargetDesc
     }
 };
 
-static const FixedArray<GBufferTargetDesc, GTN_MAX> s_targetDescs = {
+static const GBufferTargetDesc s_targetDescs[GBufferTarget::Max] = {
     GBufferTargetDesc { TextureFormat::RGBA16F },                       // color
     GBufferTargetDesc { TextureFormat::R10G10B10A2 },                   // normal: https://johnwhite3d.blogspot.com/2017/10/signed-octahedron-normal-encoding.html
     GBufferTargetDesc { TextureFormat::R32 },                           // material data
@@ -58,7 +66,7 @@ static const FixedArray<GBufferTargetDesc, GTN_MAX> s_targetDescs = {
     GBufferTargetDesc { TextureFormat::D24_S8, TextureFormat::D32F_S8 } // depth
 };
 
-static TextureFormat GetImageFormat(GBufferTargetName targetName)
+static inline TextureFormat GetImageFormat(GBufferTarget::TargetName targetName)
 {
     for (auto it = std::begin(s_targetDescs[targetName].formats); it != std::end(s_targetDescs[targetName].formats) && *it != InvalidTextureFormat; ++it)
     {
@@ -68,7 +76,7 @@ static TextureFormat GetImageFormat(GBufferTargetName targetName)
         }
     }
 
-    HYP_FAIL("Failed to find supported image format for gbuffer target {}", EnumToString(targetName));
+    HYP_FAIL("Failed to find supported image format for gbuffer target {}", TargetNameStrings[targetName]);
 
     return InvalidTextureFormat;
 }
@@ -77,18 +85,18 @@ GBuffer::GBuffer(Vec2u extent)
     : m_extent(extent),
       m_isCreated(false)
 {
-    for (uint32 bucketIndex = 0; bucketIndex < NumRenderBuckets; bucketIndex++)
+    for (uint8 pass = 0; pass < NumGBufferPasses; pass++)
     {
-        m_buckets[bucketIndex].SetGBuffer(this);
-        m_buckets[bucketIndex].SetBucket(RenderBucket(bucketIndex));
+        m_passes[pass].gbuffer = this;
+        m_passes[pass].pass = static_cast<GBufferPass>(pass);
     }
 }
 
 GBuffer::~GBuffer()
 {
-    for (GBufferTarget& it : m_buckets)
+    for (GBufferTarget& it : m_passes)
     {
-        it.SetFramebuffer(nullptr);
+        it.framebuffer = FramebufferRef::Null();
     }
 
     EnqueueDeletion(std::move(m_framebuffers));
@@ -125,14 +133,11 @@ void GBuffer::Resize(Vec2u extent)
 
     m_extent = extent;
 
-    for (GBufferTarget& target : m_buckets)
+    for (GBufferTarget& target : m_passes)
     {
-        if (target.GetFramebuffer().IsValid())
+        if (target.framebuffer.IsValid())
         {
-            FramebufferRef framebuffer = target.GetFramebuffer();
-            target.SetFramebuffer(nullptr);
-
-            EnqueueDeletion(std::move(framebuffer));
+            EnqueueDeletion(std::move(target.framebuffer));
         }
     }
 
@@ -157,31 +162,31 @@ void GBuffer::CreateBucketFramebuffers()
 
     EnqueueDeletion(std::move(m_framebuffers));
 
-    for (GBufferTarget& target : m_buckets)
+    for (GBufferTarget& target : m_passes)
     {
-        const RenderBucket rb = target.GetBucket();
+        const GBufferPass pass = target.pass;
 
-        switch (rb)
+        switch (pass)
         {
-        case RenderBucket::Opaque:
-            target.m_framebuffer = CreateFramebuffer(nullptr, m_extent, rb);
+        case GBufferPass::Opaque:
+            target.framebuffer = CreateFramebuffer(nullptr, m_extent, pass);
             break;
-        case RenderBucket::Lightmapped: // fallthrough
-        case RenderBucket::Translucent: // fallthrough
-        case RenderBucket::Sky:         // fallthrough
-        case RenderBucket::Debug:       // fallthrough
-            target.m_framebuffer = CreateFramebuffer(GetBucket(RenderBucket::Opaque).m_framebuffer, m_extent, rb);
+        case GBufferPass::Lightmapped: // fallthrough
+        case GBufferPass::Translucent: // fallthrough
+        case GBufferPass::Effect:      // fallthrough
+        case GBufferPass::Debug:       // fallthrough
+            target.framebuffer = CreateFramebuffer(m_passes[uint8(GBufferPass::Opaque)].framebuffer, m_extent, pass);
             break;
         default:
             HYP_UNREACHABLE();
             break;
         }
 
-        Assert(target.m_framebuffer != nullptr);
+        Assert(target.framebuffer.IsValid());
     }
 }
 
-FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffer, Vec2u resolution, RenderBucket rb)
+FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffer, Vec2u resolution, GBufferPass pass)
 {
     HYP_SCOPE;
 
@@ -194,7 +199,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
     FramebufferRef framebuffer = RI.MakeFramebuffer(framebufferDesc);
 
 #if HYP_DEBUG_MODE
-    framebuffer->SetDebugName(NAME_FMT("{}Framebuffer", EnumToString(rb)));
+    framebuffer->SetDebugName(NAME_FMT("{}Framebuffer", EnumToString(pass)));
 #endif
 
     auto addOwnedAttachment = [&](uint32 binding, TextureFormat format, LoadOperation loadOp = LoadOperation::CLEAR, StoreOperation storeOp = StoreOperation::STORE) -> Attachment*
@@ -226,11 +231,11 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
     };
 
     // add gbuffer attachments
-    if (rb == RenderBucket::Opaque)
+    if (pass == GBufferPass::Opaque)
     {
-        for (uint32 i = 0; i < GTN_DEPTH; i++)
+        for (uint32 i = 0; i < GBufferTarget::Depth; i++)
         {
-            const TextureFormat format = GetImageFormat(GBufferTargetName(i));
+            const TextureFormat format = GetImageFormat(GBufferTarget::TargetName(i));
 
             addOwnedAttachment(i, format);
         }
@@ -238,48 +243,47 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
         if (g_cvDepthPrepass.Get())
         {
             // If DepthPrepass is enabled, we don't CLEAR the depth texture as DPP is responsible for clearing it.
-            addOwnedAttachment(GTN_DEPTH, GetImageFormat(GTN_DEPTH), LoadOperation::LOAD, StoreOperation::NONE);
+            addOwnedAttachment(GBufferTarget::Depth, GetImageFormat(GBufferTarget::Depth), LoadOperation::LOAD, StoreOperation::NONE);
         }
         else
         {
             // Otherwise, we clear it on render pass start.
-            addOwnedAttachment(GTN_DEPTH, GetImageFormat(GTN_DEPTH), LoadOperation::CLEAR, StoreOperation::STORE);
+            addOwnedAttachment(GBufferTarget::Depth, GetImageFormat(GBufferTarget::Depth), LoadOperation::CLEAR, StoreOperation::STORE);
         }
     }
     else
     {
         Assert(parentFramebuffer != nullptr);
 
-        // add the attachments shared with opaque bucket (including depth)
-        for (uint32 i = 0; i < GTN_MAX; i++)
+        // add the attachments shared with opaque pass (including depth)
+        for (uint8 i = 0; i < GBufferTarget::Max; i++)
         {
-            switch (rb)
+            switch (pass)
             {
-            case RenderBucket::Sky:
-                // SKY bucket does not write normals, mat data, velocity, depth...
+            case GBufferPass::Effect:
+                // EFFECT does not write normals, mat data, velocity, depth...
                 // Use Store op == NONE for those
-                // @TODO: Refactor GBuffer to not use Bucket, use its own enum -- this should be called "Effect", not "Sky"
-                if (i != GTN_ALBEDO)
+                if (i != GBufferTarget::Albedo)
                 {
-                    addOwnedAttachment(i, GetImageFormat(GBufferTargetName(i)), LoadOperation::LOAD, StoreOperation::NONE);
+                    addOwnedAttachment(i, GetImageFormat(GBufferTarget::TargetName(i)), LoadOperation::LOAD, StoreOperation::NONE);
 
                     continue;
                 }
 
                 break;
-            case RenderBucket::Debug:
-                if (i == GTN_DEPTH)
+            case GBufferPass::Debug:
+                if (i == GBufferTarget::Depth)
                 {
                     // debug bucket creates its own depth attachment
-                    const TextureFormat format = GetImageFormat(GBufferTargetName(i));
+                    const TextureFormat format = GetImageFormat(GBufferTarget::TargetName(i));
                     addOwnedAttachment(i, format);
 
                     continue;
                 }
 
                 break;
-            case RenderBucket::Lightmapped:
-                if (i == GTN_DEPTH && g_cvDepthPrepass.Get())
+            case GBufferPass::Lightmapped:
+                if (i == GBufferTarget::Depth && g_cvDepthPrepass.Get())
                 {
                     // Lightmapped objects are included in the depth prepass, so we don't want to write to depth when they render.
                     // Therefore we use StoreOperation::NONE as storeOp when DepthPrepass is true.
@@ -308,22 +312,14 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
 
 #pragma region GBufferTarget
 
-GBuffer::GBufferTarget::GBufferTarget()
-{
-}
-
-GBuffer::GBufferTarget::~GBufferTarget()
-{
-}
-
-AttachmentBase* GBuffer::GBufferTarget::GetGBufferAttachment(GBufferTargetName resourceName) const
+Attachment* GBufferTarget::GetAttachment(TargetName resourceName) const
 {
     HYP_SCOPE;
 
-    Assert(m_framebuffer != nullptr);
-    Assert(uint32(resourceName) < uint32(GTN_MAX));
+    Assert(framebuffer.IsValid());
+    Assert(uint8(resourceName) < uint8(Max));
 
-    return m_framebuffer->GetAttachment(uint32(resourceName));
+    return framebuffer->GetAttachment(uint32(resourceName));
 }
 
 #pragma endregion GBufferTarget

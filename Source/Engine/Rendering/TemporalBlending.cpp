@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -115,9 +115,9 @@ void TemporalBlending::Create()
     CreateImages();
 
     m_onGbufferResolutionChanged = m_gbuffer->OnGBufferResolutionChanged.Bind([this](Vec2u newSize)
-        {
-            Resize_Internal(newSize);
-        });
+                                                                              {
+                                                                                  Resize_Internal(newSize);
+                                                                              });
 
     m_isInitialized = true;
 }
@@ -133,10 +133,10 @@ void TemporalBlending::Resize(Vec2u newSize)
     }
 
     GetThreadById(g_renderThread)->GetScheduler().Enqueue([this, newSize]()
-        {
-            Resize_Internal(newSize);
-        },
-        TaskEnqueueFlags::FIRE_AND_FORGET);
+                                                          {
+                                                              Resize_Internal(newSize);
+                                                          },
+                                                          TaskEnqueueFlags::FIRE_AND_FORGET);
 }
 
 void TemporalBlending::Resize_Internal(Vec2u newSize)
@@ -189,8 +189,7 @@ void TemporalBlending::CreateImages()
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_STORAGE | IU_SAMPLED
-    });
+        IU_STORAGE | IU_SAMPLED });
 
     m_resultTexture->SetName(NAME("TemporalBlendingResult"));
     CheckResult(m_resultTexture->Create());
@@ -203,8 +202,7 @@ void TemporalBlending::CreateImages()
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_STORAGE | IU_SAMPLED
-    });
+        IU_STORAGE | IU_SAMPLED });
 
     m_historyTexture->SetName(NAME("TemporalBlendingHistory"));
     CheckResult(m_historyTexture->Create());
@@ -229,7 +227,7 @@ void TemporalBlending::Render(Frame* frame, const RenderSetup& renderSetup)
 
     const Vec3u& extent = activeTexture->GetExtent();
 
-    const Vec3u depthTextureDimensions = m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetGpuImage()->GetExtent();
+    const Vec3u depthTextureDimensions = m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::Depth)->GetGpuImage()->GetExtent();
 
     GpuBufferRef& cbuffer = m_cbuffers[frame->GetFrameIndex()];
 
@@ -255,18 +253,18 @@ void TemporalBlending::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << SetCurrentShader(ShaderDesc(NAME("TemporalBlending"), shaderProperties));
 
     const GpuImageViewRef& inputImageView = m_inputFramebuffer.IsValid()
-            ? m_inputFramebuffer->GetAttachment(0)->GetImageView()
-            : m_inputImageView;
+        ? m_inputFramebuffer->GetAttachment(0)->GetImageView()
+        : m_inputImageView;
 
     frame->cr << SetShaderUniform(0, "InImage"_sh, inputImageView);
     frame->cr << SetShaderUniform(1, "PrevImage"_sh, RI.textureViewCache->GetOrCreate(prevTexture));
-    frame->cr << SetShaderUniform(2, "VelocityImage"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
+    frame->cr << SetShaderUniform(2, "VelocityImage"_sh, m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::Velocity)->GetImageView());
     frame->cr << SetShaderUniform(3, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
     frame->cr << SetShaderUniform(4, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
     frame->cr << SetShaderUniform(5, "OutImage"_sh, RI.textureViewCache->GetOrCreate(activeTexture));
     frame->cr << SetShaderUniform(6, "TemporalBlendingUniforms"_sh, cbuffer);
 
-    frame->cr << SetShaderUniform(7, "GBufferDepthTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
+    frame->cr << SetShaderUniform(7, "GBufferDepthTexture"_sh, m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::Depth)->GetImageView());
 
     frame->cr << SetShaderUniform(8, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
     frame->cr << SetShaderUniform(9, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(renderSetup.view->GetCamera()));

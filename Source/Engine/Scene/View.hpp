@@ -41,6 +41,8 @@ class GBuffer;
 class EntityBatchAllocatorBase;
 class RenderProxyList;
 
+enum class GBufferPass : uint8;
+
 namespace threading {
 
 class TaskBatch;
@@ -145,7 +147,7 @@ public:
 
     const Handle<GBuffer>& GetGBuffer() const;
     const FramebufferRef& GetFramebuffer() const;
-    const FramebufferRef& GetFramebuffer(RenderBucket rb) const;
+    const FramebufferRef& GetFramebuffer(GBufferPass pass) const;
     Span<const FramebufferRef> GetFramebuffers() const;
 
 private:

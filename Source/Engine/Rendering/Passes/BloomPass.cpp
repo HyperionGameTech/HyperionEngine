@@ -212,7 +212,7 @@ void BloomPass::Render(Frame* frame, const RenderSetup& renderSetup)
     DeferredPassData* dpd = DynamicCast<DeferredPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
 
-    const FramebufferRef& inputsFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
+    const FramebufferRef& inputsFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(GBufferPass::Opaque);
 
     CommandRecorder& cr = frame->cr;
 

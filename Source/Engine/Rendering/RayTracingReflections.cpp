@@ -142,7 +142,7 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
 
     AssertDebug(parentPass->view.IsValid());
 
-    Framebuffer* viewFramebuffer = parentPass->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
+    Framebuffer* viewFramebuffer = parentPass->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(GBufferPass::Opaque);
     AssertDebug(viewFramebuffer != nullptr);
 
     GpuBuffer* cbuffer = nullptr;

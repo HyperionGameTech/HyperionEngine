@@ -1324,13 +1324,13 @@ end
 extern enum GpuImageFlags : uint32
     NONE = 0x0
 end
-extern enum GBufferTargetName : uint32
-    GTN_ALBEDO = 0,
-    GTN_NORMALS,
-    GTN_MATERIAL,
-    GTN_VELOCITY,
-    GTN_DEPTH,
-    GTN_MAX
+extern enum GBufferPass : uint8
+    Opaque,
+    Translucent,
+    Lightmapped,
+    Debug,
+    Effect,
+    Max
 end
 extern class UISubsystem : Subsystem
     AddDebugOverlay(debugOverlay : OverlayBase) -> void

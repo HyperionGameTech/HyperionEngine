@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -18,25 +18,51 @@
 #include <Core/Reflection/ObjectBase.hpp>
 #include <Core/Reflection/Handle.hpp>
 
-#include <Rendering/RenderBucket.hpp>
 #include <Rendering/GpuImage.hpp>
 #include <Rendering/Shared.hpp>
 
 namespace Hyperion {
 
 HYP_ENUM()
-enum GBufferTargetName : uint32
+enum class GBufferPass : uint8
 {
-    GTN_ALBEDO = 0,
-    GTN_NORMALS,
-    GTN_MATERIAL,
-    GTN_VELOCITY,
-    GTN_DEPTH,
-
-    GTN_MAX
+    Opaque,
+    Translucent,
+    Lightmapped,
+    Debug,
+    Effect,
+    Max
 };
 
-static_assert(GTN_MAX == NumGBufferTargets, "GTN_MAX does not match NumGbufferTargets");
+static constexpr uint8 NumGBufferPasses = static_cast<uint8>(GBufferPass::Max);
+
+class GBuffer;
+
+struct GBufferTarget
+{
+    enum TargetName : uint8
+    {
+        Albedo = 0,
+        Normals,
+        MatData,
+        Velocity,
+        Depth,
+        Max
+    };
+
+    static_assert(static_cast<uint8>(Max) == NumGBufferTargets, "Max does not match NumGBufferTargets");
+
+    GBuffer* gbuffer;
+    GBufferPass pass;
+    FramebufferRef framebuffer;
+
+    GBufferTarget() = default;
+
+    GBufferTarget(const GBufferTarget& other) = delete;
+    GBufferTarget& operator=(const GBufferTarget& other) = delete;
+
+    Attachment* GetAttachment(TargetName resourceName) const;
+};
 
 HYP_CLASS(NoScriptBindings)
 class GBuffer : public ObjectBase
@@ -44,60 +70,14 @@ class GBuffer : public ObjectBase
     HYP_OBJECT_BODY(GBuffer);
 
 public:
-    class GBufferTarget
-    {
-        friend class GBuffer;
-
-        GBuffer* m_gbuffer;
-        RenderBucket m_bucket;
-        FramebufferRef m_framebuffer;
-
-    public:
-        GBufferTarget();
-        GBufferTarget(const GBufferTarget& other) = delete;
-        GBufferTarget& operator=(const GBufferTarget& other) = delete;
-        GBufferTarget(GBufferTarget&& other) noexcept = delete;
-        GBufferTarget& operator=(GBufferTarget&& other) noexcept = delete;
-        ~GBufferTarget();
-
-        HYP_FORCE_INLINE GBuffer* GetGBuffer() const
-        {
-            return m_gbuffer;
-        }
-
-        HYP_FORCE_INLINE void SetGBuffer(GBuffer* gbuffer)
-        {
-            m_gbuffer = gbuffer;
-        }
-
-        HYP_FORCE_INLINE RenderBucket GetBucket() const
-        {
-            return m_bucket;
-        }
-
-        HYP_FORCE_INLINE void SetBucket(RenderBucket rb)
-        {
-            m_bucket = rb;
-        }
-
-        HYP_FORCE_INLINE const FramebufferRef& GetFramebuffer() const
-        {
-            return m_framebuffer;
-        }
-
-        HYP_FORCE_INLINE void SetFramebuffer(const FramebufferRef& framebuffer)
-        {
-            m_framebuffer = framebuffer;
-        }
-
-        AttachmentBase* GetGBufferAttachment(GBufferTargetName resourceName) const;
-    };
-
     GBuffer(Vec2u extent);
+
     GBuffer(const GBuffer& other) = delete;
     GBuffer& operator=(const GBuffer& other) = delete;
+
     GBuffer(GBuffer&& other) noexcept = delete;
     GBuffer& operator=(GBuffer&& other) noexcept = delete;
+
     ~GBuffer();
 
     HYP_FORCE_INLINE bool IsCreated() const
@@ -105,14 +85,14 @@ public:
         return m_isCreated;
     }
 
-    HYP_FORCE_INLINE GBufferTarget& GetBucket(RenderBucket rb)
+    HYP_FORCE_INLINE GBufferTarget& GetPass(GBufferPass pass)
     {
-        return m_buckets[uint32(rb)];
+        return m_passes[static_cast<uint8>(pass)];
     }
 
-    HYP_FORCE_INLINE const GBufferTarget& GetBucket(RenderBucket rb) const
+    HYP_FORCE_INLINE const GBufferTarget& GetPass(GBufferPass pass) const
     {
-        return m_buckets[uint32(rb)];
+        return m_passes[static_cast<uint8>(pass)];
     }
 
     HYP_FORCE_INLINE const Array<FramebufferRef>& GetFramebuffers() const
@@ -133,9 +113,9 @@ public:
 
 private:
     void CreateBucketFramebuffers();
-    FramebufferRef CreateFramebuffer(const FramebufferRef& parentFramebuffer, Vec2u resolution, RenderBucket rb);
+    FramebufferRef CreateFramebuffer(const FramebufferRef& parentFramebuffer, Vec2u resolution, GBufferPass pass);
 
-    FixedArray<GBufferTarget, NumRenderBuckets> m_buckets;
+    FixedArray<GBufferTarget, NumGBufferPasses> m_passes;
     Array<FramebufferRef> m_framebuffers;
 
     Vec2u m_extent;

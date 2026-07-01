@@ -127,7 +127,7 @@ static const ShaderPropertyId s_propOutputSDR = InternShaderProperty(ShaderPrope
 
 static const ShaderPropertyId s_propLightTypeClustered = InternShaderProperty(ShaderProperty(NAME("LIGHT_TYPE"), NAME("CLUSTERED")));
 
-static constexpr StringHash GBufferTextureNames[GTN_MAX] = {
+static constexpr StringHash GBufferTextureNames[NumGBufferTargets] = {
     "GBufferAlbedoTexture"_sh,
     "GBufferNormalsTexture"_sh,
     "GBufferMaterialTexture"_sh,
@@ -389,7 +389,7 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     DeferredPassData* dpd = DynamicCast<DeferredPassData>(rs.passData);
     AssertDebug(dpd != nullptr);
 
-    Framebuffer* opaquePassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
+    Framebuffer* opaquePassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(GBufferPass::Opaque);
 
     CommandRecorder& cr = frame->cr;
 
@@ -446,7 +446,7 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     cr << SetShaderUniform(numShaderUniforms++, "EnvProbesColorTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesColorTexture));
     cr << SetShaderUniform(numShaderUniforms++, "EnvProbesDepthTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesDepthTexture));
 
-    for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX; attachmentIndex++)
+    for (uint32 attachmentIndex = 0; attachmentIndex < NumGBufferTargets; attachmentIndex++)
     {
         cr << SetShaderUniform(numShaderUniforms++, GBufferTextureNames[attachmentIndex], opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
     }
@@ -882,20 +882,20 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
     DeferredPassData* dpd = DynamicCast<DeferredPassData>(rs.passData);
     AssertDebug(dpd != nullptr);
 
-    const FramebufferRef& inputsFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
+    const FramebufferRef& inputsFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(GBufferPass::Opaque);
 
     uint32 numShaderUniforms = 0;
 
-    cr << SetShaderUniform(numShaderUniforms++, "GBufferAlbedoTexture"_sh, inputsFramebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
-    cr << SetShaderUniform(numShaderUniforms++, "GBufferNormalsTexture"_sh, inputsFramebuffer->GetAttachment(GTN_NORMALS)->GetImageView());
-    cr << SetShaderUniform(numShaderUniforms++, "GBufferMaterialTexture"_sh, inputsFramebuffer->GetAttachment(GTN_MATERIAL)->GetImageView());
-    cr << SetShaderUniform(numShaderUniforms++, "GBufferVelocityTexture"_sh, inputsFramebuffer->GetAttachment(GTN_VELOCITY)->GetImageView());
-    cr << SetShaderUniform(numShaderUniforms++, "GBufferDepthTexture"_sh, inputsFramebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferAlbedoTexture"_sh, inputsFramebuffer->GetAttachment(GBufferTarget::Albedo)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferNormalsTexture"_sh, inputsFramebuffer->GetAttachment(GBufferTarget::Normals)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferMaterialTexture"_sh, inputsFramebuffer->GetAttachment(GBufferTarget::MatData)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferVelocityTexture"_sh, inputsFramebuffer->GetAttachment(GBufferTarget::Velocity)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferDepthTexture"_sh, inputsFramebuffer->GetAttachment(GBufferTarget::Depth)->GetImageView());
 
-    Framebuffer* translucentPassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Translucent);
+    Framebuffer* translucentPassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(GBufferPass::Translucent);
     AssertDebug(translucentPassFramebuffer != nullptr);
 
-    cr << SetShaderUniform(numShaderUniforms++, "DeferredResult"_sh, translucentPassFramebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "DeferredResult"_sh, translucentPassFramebuffer->GetAttachment(GBufferTarget::Albedo)->GetImageView());
 
     cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, RI.shadowMapCache->GetAtlasImageView());
 
@@ -1009,7 +1009,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     DeferredPassData* dpd = DynamicCast<DeferredPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
 
-    Framebuffer* viewFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
+    Framebuffer* viewFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(GBufferPass::Opaque);
     AssertDebug(viewFramebuffer != nullptr);
 
     CommandRecorder& cr = frame->cr;
@@ -1049,11 +1049,11 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     uint32 numShaderUniforms = 0;
 
     // GBuffer textures
-    cr << SetShaderUniform(numShaderUniforms++, "GBufferAlbedoTexture"_sh, viewFramebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
-    cr << SetShaderUniform(numShaderUniforms++, "GBufferNormalsTexture"_sh, viewFramebuffer->GetAttachment(GTN_NORMALS)->GetImageView());
-    cr << SetShaderUniform(numShaderUniforms++, "GBufferMaterialTexture"_sh, viewFramebuffer->GetAttachment(GTN_MATERIAL)->GetImageView());
-    cr << SetShaderUniform(numShaderUniforms++, "GBufferDepthTexture"_sh, viewFramebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
-    cr << SetShaderUniform(numShaderUniforms++, "GBufferVelocityTexture"_sh, viewFramebuffer->GetAttachment(GTN_VELOCITY)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferAlbedoTexture"_sh, viewFramebuffer->GetAttachment(GBufferTarget::Albedo)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferNormalsTexture"_sh, viewFramebuffer->GetAttachment(GBufferTarget::Normals)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferMaterialTexture"_sh, viewFramebuffer->GetAttachment(GBufferTarget::MatData)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferDepthTexture"_sh, viewFramebuffer->GetAttachment(GBufferTarget::Depth)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferVelocityTexture"_sh, viewFramebuffer->GetAttachment(GBufferTarget::Velocity)->GetImageView());
     cr << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, RI.textureViewCache->GetOrCreate(dpd->mipChain));
 
     // Samplers
@@ -1213,7 +1213,7 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
     if (data.noiseTexture)
         cr << SetShaderUniform(6, "NoiseMap"_sh, RI.textureViewCache->GetOrCreate(data.noiseTexture));
 
-    cr << SetShaderUniform(7, "DepthTexture"_sh, framebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
+    cr << SetShaderUniform(7, "DepthTexture"_sh, framebuffer->GetAttachment(GBufferTarget::Depth)->GetImageView());
 
     // Set constants
     FogVolumeShaderData shaderData = proxy->bufferData;
@@ -1454,24 +1454,24 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
     DeferredPassData* dpd = DynamicCast<DeferredPassData>(rs.passData);
     AssertDebug(dpd != nullptr);
 
-    const FramebufferRef& opaquePassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
+    const FramebufferRef& opaquePassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(GBufferPass::Opaque);
 
-    for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX; attachmentIndex++)
+    for (uint32 attachmentIndex = 0; attachmentIndex < NumGBufferTargets; attachmentIndex++)
     {
         cr << SetShaderUniform(2 + attachmentIndex, GBufferTextureNames[attachmentIndex], opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
     }
 
-    cr << SetShaderUniform(2 + GTN_MAX, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(rs.view->GetCamera()));
-    cr << SetShaderUniform(3 + GTN_MAX, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
-    cr << SetShaderUniform(4 + GTN_MAX, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes]);
+    cr << SetShaderUniform(2 + NumGBufferTargets, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(rs.view->GetCamera()));
+    cr << SetShaderUniform(3 + NumGBufferTargets, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
+    cr << SetShaderUniform(4 + NumGBufferTargets, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes]);
 
-    cr << SetShaderUniform(10 + GTN_MAX, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer.gpuBuffer);
-    cr << SetShaderUniform(11 + GTN_MAX, "SphereSamplesBuffer"_sh, RI.sphereSamplesBuffer.gpuBuffer);
+    cr << SetShaderUniform(10 + NumGBufferTargets, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer.gpuBuffer);
+    cr << SetShaderUniform(11 + NumGBufferTargets, "SphereSamplesBuffer"_sh, RI.sphereSamplesBuffer.gpuBuffer);
 
-    cr << SetShaderUniform(12 + GTN_MAX, "GBufferMipChain"_sh, RI.textureViewCache->GetOrCreate(dpd->mipChain));
+    cr << SetShaderUniform(12 + NumGBufferTargets, "GBufferMipChain"_sh, RI.textureViewCache->GetOrCreate(dpd->mipChain));
 
-    cr << SetShaderUniform(13 + GTN_MAX, "EnvProbesColorTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesColorTexture));
-    cr << SetShaderUniform(14 + GTN_MAX, "EnvProbesDepthTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesDepthTexture));
+    cr << SetShaderUniform(13 + NumGBufferTargets, "EnvProbesColorTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesColorTexture));
+    cr << SetShaderUniform(14 + NumGBufferTargets, "EnvProbesDepthTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesDepthTexture));
 
     uint32 numRenderedEnvProbes = 0;
 
@@ -1495,7 +1495,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
                 break;
             }
 
-            cr << SetShaderUniform(5 + GTN_MAX, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes], Resources::GetBinding(envProbe));
+            cr << SetShaderUniform(5 + NumGBufferTargets, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes], Resources::GetBinding(envProbe));
 
             RenderFullScreenQuad(frame, rs);
 
@@ -1628,7 +1628,7 @@ static FramebufferRef CreateLightingFramebuffer(GBuffer* gbuffer)
         colorAttachmentDesc);
 
     // depth for stencil testing
-    const GpuImageViewRef& depthImageView = gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImageView();
+    const GpuImageViewRef& depthImageView = gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::Depth)->GetImageView();
     Assert(depthImageView.IsValid());
 
     AttachmentDesc depthAttachmentDesc {};
@@ -1662,7 +1662,7 @@ static FramebufferRef CreateDepthPrepassFramebuffer(GBuffer* gbuffer)
     framebuffer->SetDebugName(NAME("DepthPrepassFramebuffer"));
 #endif
 
-    const GpuImageViewRef& depthImageView = gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImageView();
+    const GpuImageViewRef& depthImageView = gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::Depth)->GetImageView();
     Assert(depthImageView.IsValid());
 
     AttachmentDesc depthAttachmentDesc {};
@@ -2248,7 +2248,7 @@ PassData* DeferredPass::CreateViewPassData(View* view, PassDataExt&)
 
         HYP_LOG(Rendering, Verbose, "Creating renderer for view '{}' with GBuffer '{}'", view->Id(), gbuffer->GetExtent());
 
-        Framebuffer* opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
+        Framebuffer* opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(GBufferPass::Opaque);
 
         passData.ssgi = MakeUnique<SSGI>(gbuffer);
         passData.ssgi->Create();
@@ -2446,7 +2446,7 @@ void DeferredPass::ResizeView(Viewport viewport, View* view, DeferredPassData& p
 
     gbuffer->Resize(newSize);
 
-    Framebuffer* opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
+    Framebuffer* opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(GBufferPass::Opaque);
 
     if (passData.lightingFramebuffer.IsValid())
     {
@@ -2871,7 +2871,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         passData.gridTilesBuffer,
         passData.gridIndexBuffer);
 
-    Framebuffer* opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
+    Framebuffer* opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(GBufferPass::Opaque);
     Framebuffer* depthPrepassFramebuffer = passData.depthPrepassFramebuffer;
 
     static const bool s_indirectRendering = RI.GetRenderConfig().indirectRendering;
@@ -2930,10 +2930,10 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         renderCollector.BeginRecordDrawCalls(frame, rs, AllRenderBucketsMask);
     }
 
-    Framebuffer* lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Lightmapped);
-    Framebuffer* translucentPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Translucent);
-    Framebuffer* skyPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Sky);
-    Framebuffer* debugPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Debug);
+    Framebuffer* lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(GBufferPass::Lightmapped);
+    Framebuffer* translucentPassFramebuffer = view->GetOutputTarget().GetFramebuffer(GBufferPass::Translucent);
+    Framebuffer* effectPassFramebuffer = view->GetOutputTarget().GetFramebuffer(GBufferPass::Effect);
+    Framebuffer* debugPassFramebuffer = view->GetOutputTarget().GetFramebuffer(GBufferPass::Debug);
 
     const bool useRayTracingReflections = (g_cvPathTracing.Get() || g_cvRayTracedReflections.Get())
         && view->GetRayTracingView().IsValid()
@@ -3196,8 +3196,8 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
                 RenderSetup fogVolumeRS = rs.Fork();
                 fogVolumeRS.volume = fogVolume;
 
-                // Render into SKY bucket framebuffer as we don't write normals/matdata/velocity
-                passData.fogVolumePass->RenderToFramebuffer(frame, fogVolumeRS, skyPassFramebuffer);
+                // Render into EFFECT framebuffer as we don't write normals/matdata/velocity
+                passData.fogVolumePass->RenderToFramebuffer(frame, fogVolumeRS, effectPassFramebuffer);
             }
         }
 
