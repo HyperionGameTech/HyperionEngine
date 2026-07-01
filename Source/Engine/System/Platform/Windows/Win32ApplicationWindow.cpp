@@ -798,7 +798,7 @@ void Win32ApplicationWindow::Close()
 
     m_isOpen = false;
 
-    m_swapchain.Reset();
+    EnqueueDeletion(std::move(m_swapchain));
 
 #if HYP_VULKAN
     if (m_vkSurface)

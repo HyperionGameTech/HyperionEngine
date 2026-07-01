@@ -1297,9 +1297,6 @@ extern enum MaterialAttributeFlags : uint8
     MAF_STENCIL_TEST = 0x10,
     MAF_ALPHA_DISCARD = 0x20
 end
-extern struct RayTracingReflectionsConfig
-    Extent : Vec2u
-end
 extern struct MaterialTextures
     Values : Array<Texture>
 end
