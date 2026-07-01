@@ -22,12 +22,11 @@
 #include <Rendering/RenderHelpers.hpp>
 #include <Rendering/GBuffer.hpp>
 #include <Rendering/CBufferAllocator.hpp>
-
-#include <Rendering/Passes/DeferredPass.hpp>
-
 #include <Rendering/AccelerationStructure.hpp>
 #include <Rendering/RayTracingReflections.hpp>
 #include <Rendering/DDGI.hpp>
+
+#include <Rendering/Passes/DeferredPass.hpp>
 
 #include <Rendering/Shadows/ShadowMapCache.hpp>
 
