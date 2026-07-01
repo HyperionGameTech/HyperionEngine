@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -419,7 +419,7 @@ public:
 private:
     uint32 m_componentIdCounter = 0;
 
-    TFlatMap<ComponentId, Component, SceneAllocator> m_components;
+    TMap<ComponentId, Component, SceneAllocator> m_components;
 };
 
 template <class Component>

@@ -114,7 +114,7 @@ public:
                 HYP_LOG(Assets, Warning, "Ogre XML parser: `face` tag expected to have 3 attributes.");
             }
 
-            TFlatMap<String, uint32> faceElements;
+            TMap<String, uint32> faceElements;
             faceElements.Reserve(attributes.Size());
 
             for (const Pair<String, String>& it : attributes)
@@ -122,7 +122,7 @@ public:
                 faceElements.Insert({ it.first, StringUtil::Parse<uint32>(it.second) });
             }
 
-            for (const Pair<String, uint32>& it : faceElements)
+            for (const KeyValuePair<String, uint32>& it : faceElements)
             {
                 LastSubMesh().indices.PushBack(it.second);
             }

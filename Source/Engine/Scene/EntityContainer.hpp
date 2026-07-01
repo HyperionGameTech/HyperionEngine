@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -26,7 +26,7 @@ CORE_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
 
 class Entity;
 
-using ComponentMap = TFlatMap<TypeId, ComponentId, SceneAllocator>;
+using ComponentMap = TMap<TypeId, ComponentId, SceneAllocator>;
 
 struct EntityData
 {

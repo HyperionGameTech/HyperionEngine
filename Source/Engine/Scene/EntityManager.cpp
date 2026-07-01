@@ -21,6 +21,8 @@
 #include <Core/Reflection/TypeInfo.hpp>
 #include <Core/Reflection/ClassRegistry.hpp>
 
+#include <Core/Memory/Allocator/ThreadAllocator.hpp>
+
 #include <Core/Profiling/ProfileScope.hpp>
 
 #include <EntityManager.generated.inl>
@@ -139,6 +141,8 @@ void EntityManager::NotifySystemOfExistingEntities(SystemBase* system)
     Assert(m_world != nullptr, "EntityManager must be associated with a World before initializing systems.");
 
     Assert(system != nullptr);
+            
+    Array<TypeId, ThreadAllocator> keys;
 
     for (auto& subtypeData : m_entities.GetSubtypeData())
     {
@@ -150,7 +154,14 @@ void EntityManager::NotifySystemOfExistingEntities(SystemBase* system)
             Assert(entity != nullptr);
 
             const ComponentMap& componentIds = entityData.components;
-            const auto keys = componentIds.Keys();
+
+            keys.Resize(0);
+            keys.Reserve(componentIds.Size());
+
+            for (const auto& it : componentIds)
+            {
+                keys.PushBack(it.first);
+            }
 
             if (system->ActsOnComponents(keys.ToSpan(), true))
             {
@@ -179,6 +190,8 @@ void EntityManager::NotifySystemOfAllEntitiesRemoved(SystemBase* system)
     Assert(m_world != nullptr, "EntityManager must be associated with a World before shutting down systems.");
 
     Assert(system != nullptr);
+    
+    Array<TypeId, ThreadAllocator> keys;
 
     for (auto& subtypeData : m_entities.GetSubtypeData())
     {
@@ -191,7 +204,15 @@ void EntityManager::NotifySystemOfAllEntitiesRemoved(SystemBase* system)
 
             const ComponentMap& componentIds = entityData.components;
 
-            if (system->ActsOnComponents(componentIds.Keys(), true) && IsEntityInitializedForSystem(system, entity))
+            keys.Resize(0);
+            keys.Reserve(componentIds.Size());
+
+            for (const auto& it : componentIds)
+            {
+                keys.PushBack(it.first);
+            }
+
+            if (system->ActsOnComponents(keys, true) && IsEntityInitializedForSystem(system, entity))
             {
                 { // critical section
                     TUniqueLock lock(m_systemEntityMapMutex);
@@ -1429,12 +1450,22 @@ void EntityManager::NotifySystemsOfEntityAdded(const Handle<Entity>& entity, con
     {
         return;
     }
+            
+    Array<TypeId, ThreadAllocator> keys;
 
     for (SystemExecutionGroup* group : m_world->GetSystemExecutionGroups())
     {
         for (auto& systemIt : group->GetSystems())
         {
-            if (systemIt.second->ActsOnComponents(componentIds.Keys(), true))
+            keys.Resize(0);
+            keys.Reserve(componentIds.Size());
+
+            for (const auto& it : componentIds)
+            {
+                keys.PushBack(it.first);
+            }
+
+            if (systemIt.second->ActsOnComponents(keys.ToSpan(), true))
             {
                 { // critical section
                     TUniqueLock lock(m_systemEntityMapMutex);
@@ -1469,12 +1500,22 @@ void EntityManager::NotifySystemsOfEntityRemoved(Entity* entity, const Component
     }
 
     WeakHandle<Entity> entityWeak = MakeWeakRef(entity);
+            
+    Array<TypeId, ThreadAllocator> keys;
 
     for (SystemExecutionGroup* group : m_world->GetSystemExecutionGroups())
     {
         for (auto& systemIt : group->GetSystems())
         {
-            if (systemIt.second->ActsOnComponents(componentIds.Keys(), true))
+            keys.Resize(0);
+            keys.Reserve(componentIds.Size());
+
+            for (const auto& it : componentIds)
+            {
+                keys.PushBack(it.first);
+            }
+
+            if (systemIt.second->ActsOnComponents(keys.ToSpan(), true))
             {
                 { // critical section
                     TUniqueLock lock(m_systemEntityMapMutex);

@@ -2,12 +2,11 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
-#include <Core/Containers/FlatMap.hpp>
-#include <Core/Containers/TypeMap.hpp>
+#include <Core/Containers/Map.hpp>
 
 #include <Core/Reflection/Handle.hpp>
 
@@ -100,67 +99,6 @@ private:                                         \
 public:
     void Initialize();
     void Shutdown();
-
-    /*! \brief Get or create a buffer of at least the given size */
-    const GpuBufferRef& GetOrCreateBuffer(GpuBufferType bufferType, size_t requiredSize, bool exactSize = false)
-    {
-        // AssertOnThread(g_renderThread);
-
-        if (!m_buffers.Contains(bufferType))
-        {
-            m_buffers.Set(bufferType, {});
-        }
-
-        auto& bufferContainer = m_buffers.At(bufferType);
-
-        // typename TFlatMap<size_t, GpuBufferWeakRef>::Iterator it;
-        typename TFlatMap<size_t, GpuBufferRef>::Iterator it;
-
-        if (exactSize)
-        {
-            it = bufferContainer.Find(requiredSize);
-        }
-        else
-        {
-            it = bufferContainer.LowerBound(requiredSize);
-        }
-
-        if (it != bufferContainer.End())
-        {
-            // if (auto ref = it->second.Lock(); ref.IsValid()) {
-            //     return ref;
-            // }
-
-            if (it->second.IsValid())
-            {
-                return it->second;
-            }
-        }
-
-        if (!exactSize)
-        {
-            // use next power of 2 if exact size is not required,
-            // this will allow this placeholder buffer to be re-used more.
-            requiredSize = MathUtil::NextPowerOf2(requiredSize);
-        }
-
-        GpuBufferRef buffer = CreateGpuBuffer(bufferType, requiredSize);
-
-        if (buffer->IsCpuAccessible())
-        {
-            buffer->Memset(requiredSize, 0); // fill with zeros
-        }
-
-        const auto insertResult = bufferContainer.Insert(requiredSize, std::move(buffer));
-        AssertDebug(insertResult.second); // check was inserted
-
-        return insertResult.first->second;
-    }
-
-private:
-    GpuBufferRef CreateGpuBuffer(GpuBufferType bufferType, size_t size);
-
-    TFlatMap<GpuBufferType, TFlatMap<size_t, GpuBufferRef>> m_buffers;
 };
 
 } // namespace Hyperion

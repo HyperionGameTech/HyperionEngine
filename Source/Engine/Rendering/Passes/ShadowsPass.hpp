@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -81,7 +81,7 @@ private:
         uint32 lastUsedFrame;
     };
 
-    TFlatMap<uint64, CachedShadowMapData, RenderAllocator> m_cachedShadowMapData;
+    TMap<uint64, CachedShadowMapData, RenderAllocator> m_cachedShadowMapData;
 };
 
 class PointLightShadowsPass : public ShadowsPassBase

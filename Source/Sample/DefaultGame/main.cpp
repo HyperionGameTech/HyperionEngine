@@ -10,7 +10,7 @@ using namespace Hyperion;
 namespace Hyperion {
 namespace tests {
 namespace profiling {
-HYP_IMPORT void PrintAllocatorProfiling(size_t runsPer = 5, size_t numIterations = 50, size_t runsPerIteration = 10);
+HYP_IMPORT void PrintContainerProfiling(size_t runsPer = 5, size_t numIterations = 50, size_t runsPerIteration = 10);
 } // namespace profiling
 } // namespace tests
 } // namespace Hyperion
@@ -23,10 +23,10 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    // #ifdef HYP_TESTS
-    //     tests::profiling::PrintAllocatorProfiling(5, 50, 15);
-    //     return 0;
-    // #endif
+    //#ifdef HYP_TESTS
+    //    tests::profiling::PrintContainerProfiling(5, 5, 15);
+    //    return 0;
+    //#endif
 
     auto defaultGame = MakeUnique<game::DefaultGame>();
 

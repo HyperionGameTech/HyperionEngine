@@ -39,14 +39,14 @@ struct Entry
     BottomLevelAS* blas;
     uint32 lastUsedFrame;
 };
-using EntryMap = TFlatMap<uint64, Entry, RenderAllocator>;
+using EntryMap = TMap<uint64, Entry, RenderAllocator>;
 
 struct StorageIdAndRefCount
 {
     uint32 storageId;
     uint32 refCount;
 };
-using StorageIdMap = TFlatMap<uint64, StorageIdAndRefCount, RenderAllocator>;
+using StorageIdMap = TMap<uint64, StorageIdAndRefCount, RenderAllocator>;
 
 using EntityToKeyMap = TMap<Entity*, uint64, RenderAllocator>;
 
@@ -268,7 +268,7 @@ bool BLASCache::ReleaseStorageIdForBLASKey(uint64 key, uint32& outStorageId, uin
     {
         return false;
     }
-    
+
     const uint32 storageId = it->second.storageId;
     Assert(storageId != InvalidStorageId);
 

@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -279,9 +279,9 @@ public:
     }
 
 private:
-    TFlatMap<TypeId, UniquePtr<IComponentInterface> (*)()> m_factories;
-    TFlatMap<TypeId, UniquePtr<IComponentInterface>> m_interfaces;
-    
+    TMap<TypeId, UniquePtr<IComponentInterface> (*)()> m_factories;
+    TMap<TypeId, UniquePtr<IComponentInterface>> m_interfaces;
+
     bool m_isInitialized;
 };
 

@@ -296,7 +296,7 @@ private:
     RendererResult CreateDescriptorPool(VulkanDescriptorPoolRequirements reqs, VkDescriptorPool& outDescriptorPool);
 
     SharedMutex m_mutex;
-    TFlatMap<uint64, VkDescriptorSetLayout, VulkanAllocator> m_vkDescriptorSetLayouts;
+    TMap<uint64, VkDescriptorSetLayout, VulkanAllocator> m_vkDescriptorSetLayouts;
 
     struct VulkanDescriptorPool
     {

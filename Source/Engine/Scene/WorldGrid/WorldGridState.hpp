@@ -2,14 +2,13 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
 #include <Streaming/StreamingCell.hpp>
 
-#include <Core/Containers/FlatMap.hpp>
-#include <Core/Containers/FlatSet.hpp>
+#include <Core/Containers/Map.hpp>
 #include <Core/Containers/Queue.hpp>
 
 #include <Core/Memory/UniquePtr.hpp>
@@ -45,13 +44,13 @@ struct WorldGridPatchGenerationQueue
 
 struct WorldGridState
 {
-    TFlatMap<Vec2i, Task<void>> patchGenerationTasks;
+    TMap<Vec2i, Task<void>> patchGenerationTasks;
 
     Queue<StreamingCellUpdate> patchUpdateQueue;
     AtomicVar<uint32> patchUpdateQueueSize { 0 };
     mutable Mutex patchUpdateQueueMutex;
 
-    TFlatMap<Vec2i, Handle<StreamingCell>> patches;
+    TMap<Vec2i, Handle<StreamingCell>> patches;
     mutable Mutex patchesMutex;
 
     // Keep track of the last desired patches to avoid unnecessary comparison and locking

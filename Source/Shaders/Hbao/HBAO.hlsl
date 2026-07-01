@@ -144,7 +144,8 @@ void TraceAO_New(float2 uv, out float occlusion)
     const float fov_rad = HYP_FMATH_DEG2RAD(camera.fov);
     const float tan_half_fov = tan(fov_rad * 0.5);
     const float inv_tan_half_fov = 1.0 / tan_half_fov;
-    uint2 pixel_coord = uint2(clamp(int2(uv * float2(dimension - 1)), int2(0, 0), int2(dimension) - int2(1, 1)));
+    
+    uint2 pixel_coord = clamp(uint2(uv * float2(dimension)), 0, dimension - 1);
 
     const float projected_scale = float(dimension.y) / (tan_half_fov * 2.0);
 
@@ -246,6 +247,11 @@ void TraceAO_New(float2 uv, out float occlusion)
 
 float PSMain(PSInput input) : SV_Target0
 {
+    if (dimension.x == 0 || dimension.y == 0)
+    {
+        return 1.0;
+    }
+    
     float2 texcoord = input.texcoord;
 
     float occlusion;

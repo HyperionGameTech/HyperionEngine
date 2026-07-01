@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -76,16 +76,16 @@ void FillPlaceholderBuffer_Cubemap(Vec2u dimensions, ByteBuffer& outBuffer)
         {
             switch (Pattern)
             {
-                case FillPattern::SolidBlack:
-                    bitmap.SetPixel(x, y, { 0.0f, 0.0f, 0.0f, 1.0f });
-                    break;
-                case FillPattern::SolidWhite:
-                    bitmap.SetPixel(x, y, { 1.0f, 1.0f, 1.0f, 1.0f });
-                    break;
-                case FillPattern::Checkerboard:
-                    const bool isColor = ((x / 16) % 2) == ((y / 16) % 2);
-                    bitmap.SetPixel(x, y, { isColor ? 1.0f : 0.0f, 0.0f, isColor ? 1.0f : 0.0f, 1.0f });
-                    break;
+            case FillPattern::SolidBlack:
+                bitmap.SetPixel(x, y, { 0.0f, 0.0f, 0.0f, 1.0f });
+                break;
+            case FillPattern::SolidWhite:
+                bitmap.SetPixel(x, y, { 1.0f, 1.0f, 1.0f, 1.0f });
+                break;
+            case FillPattern::Checkerboard:
+                const bool isColor = ((x / 16) % 2) == ((y / 16) % 2);
+                bitmap.SetPixel(x, y, { isColor ? 1.0f : 0.0f, 0.0f, isColor ? 1.0f : 0.0f, 1.0f });
+                break;
             }
         }
     }
@@ -184,18 +184,15 @@ PlaceholderData::PlaceholderData()
       m_samplerLinear(RI.MakeSampler(SamplerDesc {
           TFM_LINEAR,
           TFM_LINEAR,
-          TWM_REPEAT
-      })),
+          TWM_REPEAT })),
       m_samplerLinearMipmap(RI.MakeSampler(SamplerDesc {
           TFM_LINEAR_MIPMAP,
           TFM_LINEAR,
-          TWM_REPEAT
-      })),
+          TWM_REPEAT })),
       m_samplerNearest(RI.MakeSampler(SamplerDesc {
           TFM_NEAREST,
           TFM_NEAREST,
-          TWM_CLAMP_TO_EDGE
-      }))
+          TWM_CLAMP_TO_EDGE }))
 {
 }
 
@@ -277,8 +274,7 @@ void PlaceholderData::Initialize()
             TFM_NEAREST,
             TWM_REPEAT,
             1,
-            IU_SAMPLED
-        },
+            IU_SAMPLED },
         placeholderBufferTex2d,
         &FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8, FillPattern::Checkerboard>);
 
@@ -293,8 +289,7 @@ void PlaceholderData::Initialize()
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
             1,
-            IU_SAMPLED
-        },
+            IU_SAMPLED },
         placeholderBufferTex3d,
         &FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8, FillPattern::Checkerboard>);
 
@@ -309,8 +304,7 @@ void PlaceholderData::Initialize()
             TFM_NEAREST,
             TWM_REPEAT,
             1,
-            IU_SAMPLED
-        },
+            IU_SAMPLED },
         placeholderBufferCubemap,
         &FillPlaceholderBuffer_Cubemap<TextureFormat::RGBA8, FillPattern::Checkerboard>);
 
@@ -325,8 +319,7 @@ void PlaceholderData::Initialize()
             TFM_NEAREST,
             TWM_REPEAT,
             1,
-            IU_SAMPLED
-        },
+            IU_SAMPLED },
         placeholderBufferTex2d,
         &FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8, FillPattern::Checkerboard>);
 
@@ -341,8 +334,7 @@ void PlaceholderData::Initialize()
             TFM_NEAREST,
             TWM_REPEAT,
             1,
-            IU_SAMPLED
-        },
+            IU_SAMPLED },
         placeholderBufferCubemap,
         &FillPlaceholderBuffer_Cubemap<TextureFormat::RGBA8, FillPattern::Checkerboard>);
 
@@ -357,8 +349,7 @@ void PlaceholderData::Initialize()
             TFM_NEAREST,
             TWM_REPEAT,
             1,
-            IU_SAMPLED
-        },
+            IU_SAMPLED },
         placeholderBufferTex2d,
         &FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8, FillPattern::SolidWhite>);
 
@@ -373,15 +364,14 @@ void PlaceholderData::Initialize()
             TFM_NEAREST,
             TWM_REPEAT,
             1,
-            IU_SAMPLED
-        },
+            IU_SAMPLED },
         placeholderBufferTex2d,
         &FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8, FillPattern::SolidBlack>);
 
 #pragma endregion Textures
 
 #pragma region Samplers
-    
+
 #ifdef HYP_RHI_DEBUG_NAMES
     m_samplerLinear->SetDebugName(NAME("Placeholder_Sampler_Linear"));
 #endif
@@ -393,7 +383,7 @@ void PlaceholderData::Initialize()
 #endif
 
     CheckResult(m_samplerLinearMipmap->Create());
-    
+
 #ifdef HYP_RHI_DEBUG_NAMES
     m_samplerNearest->SetDebugName(NAME("Placeholder_Sampler_Nearest"));
 #endif
@@ -423,27 +413,6 @@ void PlaceholderData::Shutdown()
     EnqueueDeletion(std::move(m_samplerLinear));
     EnqueueDeletion(std::move(m_samplerLinearMipmap));
     EnqueueDeletion(std::move(m_samplerNearest));
-
-    for (auto& bufferMap : m_buffers)
-    {
-        for (auto& it : bufferMap.second)
-        {
-            EnqueueDeletion(std::move(it.second));
-        }
-    }
-
-    m_buffers.Clear();
-}
-
-GpuBufferRef PlaceholderData::CreateGpuBuffer(GpuBufferType bufferType, size_t size)
-{
-    GpuBufferRef gpuBuffer = RI.MakeGpuBuffer(bufferType, size);
-#ifdef HYP_RHI_DEBUG_NAMES
-    gpuBuffer->SetDebugName(NAME("Placeholder_GpuBuffer"));
-#endif
-    CheckResult(gpuBuffer->Create());
-
-    return gpuBuffer;
 }
 
 #pragma endregion PlaceholderData

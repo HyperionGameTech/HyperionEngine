@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -76,10 +76,10 @@ class ENGINE_API EntityManager final : public ObjectBase
 
 public:
     EntityManager(const ThreadId& ownerThreadId, Scene* scene, EnumFlags<EntityManagerFlags> flags = EntityManagerFlags::DEFAULT);
-    
+
     EntityManager(const EntityManager&) = delete;
     EntityManager& operator=(const EntityManager&) = delete;
-    
+
     EntityManager(EntityManager&&) noexcept = delete;
     EntityManager& operator=(EntityManager&&) noexcept = delete;
 
@@ -834,7 +834,7 @@ private:
     template <uint64 InMask>
     HYP_FORCE_INLINE void GetTagsHelper(const Entity* entity, uint64& outMask) const
     {
-        GetTagsHelper(entity, std::make_integer_sequence<uint64, 64>{}, outMask);
+        GetTagsHelper(entity, std::make_integer_sequence<uint64, 64> {}, outMask);
         outMask &= InMask;
     }
 
@@ -911,21 +911,21 @@ private:
     Scene* m_scene;
     EnumFlags<EntityManagerFlags> m_flags;
 
-    TFlatMap<TypeId, UniquePtr<ComponentContainerBase, SceneAllocator>, SceneAllocator> m_containers;
+    TMap<TypeId, UniquePtr<ComponentContainerBase, SceneAllocator>, SceneAllocator> m_containers;
     mutable SharedMutex m_componentContainersMtx;
 
     EntityContainer m_entities;
 
-    TFlatMap<EntitySetId, UniquePtr<EntitySetBase, SceneAllocator>, SceneAllocator> m_entitySets;
+    TMap<EntitySetId, UniquePtr<EntitySetBase, SceneAllocator>, SceneAllocator> m_entitySets;
 
-    TFlatMap<TypeId, TSet<EntitySetId, SceneAllocator>, SceneAllocator> m_componentEntitySets;
+    TMap<TypeId, TSet<EntitySetId, SceneAllocator>, SceneAllocator> m_componentEntitySets;
 
     // thread safe map of entity sets not yet added to m_entitySets
     // that will be added upon synchronization
-    TFlatMap<EntitySetId, UniquePtr<EntitySetBase, SceneAllocator>, SceneAllocator> m_pendingEntitySets;
+    TMap<EntitySetId, UniquePtr<EntitySetBase, SceneAllocator>, SceneAllocator> m_pendingEntitySets;
     mutable SharedMutex m_pendingEntitySetsMtx;
 
-    TFlatMap<SystemBase*, TSet<Entity*, SceneAllocator>, SceneAllocator> m_systemEntityMap;
+    TMap<SystemBase*, TSet<Entity*, SceneAllocator>, SceneAllocator> m_systemEntityMap;
     mutable SharedMutex m_systemEntityMapMutex;
 
     mutable AtomicFlag m_detachedSceneLocked;
