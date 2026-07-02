@@ -86,7 +86,7 @@ struct SceneOctreePayload
         }
     };
 
-    using EntrySet = THashTable<Entry, &Entry::GetId, SceneAllocator, HashTablePolicy::NotPooled>;
+    using EntrySet = HashTable<Entry, &Entry::GetId, SceneAllocator, HashTablePolicy::NotPooled>;
 
     EntrySet entries;
 
@@ -98,7 +98,7 @@ struct SceneOctreePayload
 
 struct SceneOctreeState : public OctreeState<SceneOctree, SceneOctreePayload>
 {
-    TMap<Entity*, SceneOctree*> entityToOctant;
+    Map<Entity*, SceneOctree*> entityToOctant;
 
     virtual ~SceneOctreeState() override = default;
 };

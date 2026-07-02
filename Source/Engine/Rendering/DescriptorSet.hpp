@@ -85,7 +85,7 @@ struct ShaderInputWithBinding : ShaderInput
 class DescriptorSetLayout
 {
 public:
-    using InputMap = THashTable<ShaderInputWithBinding, &ShaderInputWithBinding::name, RHIAllocator>;
+    using InputMap = HashTable<ShaderInputWithBinding, &ShaderInputWithBinding::name, RHIAllocator>;
 
     explicit DescriptorSetLayout(const ShaderInputSet* decl);
 
@@ -250,7 +250,7 @@ class DescriptorSetBase : public ObjectBase
     HYP_OBJECT_BODY(DescriptorSetBase);
 
 public:
-    using ElementsMap = TMap<Name, DescriptorSetElement, RHIAllocator>;
+    using ElementsMap = Map<Name, DescriptorSetElement, RHIAllocator>;
 
     virtual ~DescriptorSetBase() override;
 
@@ -277,12 +277,12 @@ public:
 #endif // HYP_RHI_DEBUG_NAMES
 
 #ifdef DECLARE_SET_TRACK_FRAME_USAGE
-    HYP_FORCE_INLINE TSet<FrameWeakRef>& GetCurrentFrames()
+    HYP_FORCE_INLINE Set<FrameWeakRef>& GetCurrentFrames()
     {
         return m_currentFrames;
     }
 
-    HYP_FORCE_INLINE const TSet<FrameWeakRef>& GetCurrentFrames() const
+    HYP_FORCE_INLINE const Set<FrameWeakRef>& GetCurrentFrames() const
     {
         return m_currentFrames;
     }
@@ -386,7 +386,7 @@ protected:
 #endif
 
 #ifdef DECLARE_SET_TRACK_FRAME_USAGE
-    TSet<FrameWeakRef> m_currentFrames; // frames that are currently using this descriptor set
+    Set<FrameWeakRef> m_currentFrames; // frames that are currently using this descriptor set
 #endif
 };
 

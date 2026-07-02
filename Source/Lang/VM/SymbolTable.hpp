@@ -12,7 +12,7 @@ namespace Hyperion {
 
 class SymbolTable
 {
-    using SymbolMap = TMap<HashCode::ValueType, BoxedValue*, ScriptAllocator>;
+    using SymbolMap = Map<HashCode::ValueType, BoxedValue*, ScriptAllocator>;
 
 public:
     SymbolTable();

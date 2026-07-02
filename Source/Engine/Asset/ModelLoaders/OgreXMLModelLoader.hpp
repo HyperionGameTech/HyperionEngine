@@ -46,7 +46,7 @@ public:
         Array<float> vertexData;
 
         Array<SubMesh> submeshes;
-        TFlatMap<uint32, Array<BoneAssignment>> boneAssignments;
+        FlatMap<uint32, Array<BoneAssignment>> boneAssignments;
 
         String skeletonName;
     };

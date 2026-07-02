@@ -41,7 +41,7 @@ namespace {
 
 struct Win32WindowRegistry
 {
-    TSet<WideString> registeredClasses;
+    Set<WideString> registeredClasses;
     Mutex mutex;
 
     static Win32WindowRegistry& GetInstance()
@@ -79,7 +79,7 @@ struct Win32WindowRegistry
 
 struct AliveWindows
 {
-    TSet<Win32ApplicationWindow*> set;
+    Set<Win32ApplicationWindow*> set;
     SharedMutex mutex;
 
     static AliveWindows& GetInstance()

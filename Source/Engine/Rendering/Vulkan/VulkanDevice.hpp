@@ -36,7 +36,7 @@ namespace Hyperion {
 class VulkanInstance;
 class VulkanFeatures;
 
-using ExtensionMap = TMap<String, bool>;
+using ExtensionMap = Map<String, bool>;
 
 extern Pool* g_vulkanPool;
 

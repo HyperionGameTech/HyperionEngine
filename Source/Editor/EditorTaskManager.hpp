@@ -85,7 +85,7 @@ private:
     ClockTimer m_timer;
 
     Array<RunningEditorTask> m_tasks;
-    TMap<ObjId<EditorTaskBase>, float> m_taskProgressValues;
+    Map<ObjId<EditorTaskBase>, float> m_taskProgressValues;
     mutable Mutex m_mutex;
 };
 

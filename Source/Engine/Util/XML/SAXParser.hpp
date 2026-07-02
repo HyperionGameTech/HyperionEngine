@@ -19,7 +19,7 @@ class ByteReader;
 
 namespace xml {
 
-using AttributeMap = TMap<String, String>;
+using AttributeMap = Map<String, String>;
 
 class SAXHandler
 {

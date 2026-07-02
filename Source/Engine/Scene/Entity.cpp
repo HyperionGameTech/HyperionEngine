@@ -692,7 +692,7 @@ Array<BoxedValue, DynamicAllocator> Entity::SerializeComponents() const
             return;
         }
 
-        TSet<TypeId> serializedComponents;
+        Set<TypeId> serializedComponents;
 
         for (const auto& it : *allComponentsOpt)
         {

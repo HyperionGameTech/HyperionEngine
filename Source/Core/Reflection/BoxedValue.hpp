@@ -1706,15 +1706,15 @@ struct BoxedValueHelper<Pair<K, V>> : BoxedValueHelper<Any>
     }
 };
 
-/// TMap
+/// Map
 
 template <class K, class V>
-struct BoxedValueHelperDecl<TMap<K, V>>
+struct BoxedValueHelperDecl<Map<K, V>>
 {
 };
 
 template <class K, class V>
-struct BoxedValueHelper<TMap<K, V>> : BoxedValueHelper<GenericArrayWrapper>
+struct BoxedValueHelper<Map<K, V>> : BoxedValueHelper<GenericArrayWrapper>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -1722,24 +1722,24 @@ struct BoxedValueHelper<TMap<K, V>> : BoxedValueHelper<GenericArrayWrapper>
     {
         if (const GenericArrayWrapper* array = value.TryGet<GenericArrayWrapper>())
         {
-            return TypeInfo_GetId(*array->typeInfo) == TypeId::ForType<TMap<K, V>>();
+            return TypeInfo_GetId(*array->typeInfo) == TypeId::ForType<Map<K, V>>();
         }
 
-        return value.GetTypeId() == TypeId::ForType<TMap<K, V>>();
+        return value.GetTypeId() == TypeId::ForType<Map<K, V>>();
     }
 
-    HYP_FORCE_INLINE TMap<K, V>& Get(const Any& value) const
+    HYP_FORCE_INLINE Map<K, V>& Get(const Any& value) const
     {
         if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
-            if (TypeInfo_GetId(*arr->typeInfo) == TypeId::ForType<TMap<K, V>>())
+            if (TypeInfo_GetId(*arr->typeInfo) == TypeId::ForType<Map<K, V>>())
             {
-                return *static_cast<TMap<K, V>*>(arr->pInternalArray);
+                return *static_cast<Map<K, V>*>(arr->pInternalArray);
             }
         }
-        else if (value.GetTypeId() == TypeId::ForType<TMap<K, V>>())
+        else if (value.GetTypeId() == TypeId::ForType<Map<K, V>>())
         {
-            return value.Get<TMap<K, V>>();
+            return value.Get<Map<K, V>>();
         }
 
         HYP_UNREACHABLE();
@@ -1747,20 +1747,20 @@ struct BoxedValueHelper<TMap<K, V>> : BoxedValueHelper<GenericArrayWrapper>
 
     HYP_FORCE_INLINE bool Is(const GenericArrayWrapper& value) const
     {
-        return TypeInfo_GetId(*value.typeInfo) == TypeId::ForType<TMap<K, V>>();
+        return TypeInfo_GetId(*value.typeInfo) == TypeId::ForType<Map<K, V>>();
     }
 
-    HYP_FORCE_INLINE TMap<K, V>& Get(const GenericArrayWrapper& value) const
+    HYP_FORCE_INLINE Map<K, V>& Get(const GenericArrayWrapper& value) const
     {
-        return *static_cast<TMap<K, V>*>(value.pInternalArray);
+        return *static_cast<Map<K, V>*>(value.pInternalArray);
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const TMap<K, V>& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const Map<K, V>& value) const
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, TMap<K, V>&& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, Map<K, V>&& value) const
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }
@@ -1769,12 +1769,12 @@ struct BoxedValueHelper<TMap<K, V>> : BoxedValueHelper<GenericArrayWrapper>
 /// FlatMap
 
 template <class K, class V>
-struct BoxedValueHelperDecl<TFlatMap<K, V>>
+struct BoxedValueHelperDecl<FlatMap<K, V>>
 {
 };
 
 template <class K, class V>
-struct BoxedValueHelper<TFlatMap<K, V>> : BoxedValueHelper<GenericArrayWrapper>
+struct BoxedValueHelper<FlatMap<K, V>> : BoxedValueHelper<GenericArrayWrapper>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -1782,24 +1782,24 @@ struct BoxedValueHelper<TFlatMap<K, V>> : BoxedValueHelper<GenericArrayWrapper>
     {
         if (const GenericArrayWrapper* array = value.TryGet<GenericArrayWrapper>())
         {
-            return TypeInfo_GetId(*array->typeInfo) == TypeId::ForType<TFlatMap<K, V>>();
+            return TypeInfo_GetId(*array->typeInfo) == TypeId::ForType<FlatMap<K, V>>();
         }
 
-        return value.GetTypeId() == TypeId::ForType<TFlatMap<K, V>>();
+        return value.GetTypeId() == TypeId::ForType<FlatMap<K, V>>();
     }
 
-    HYP_FORCE_INLINE TFlatMap<K, V>& Get(const Any& value) const
+    HYP_FORCE_INLINE FlatMap<K, V>& Get(const Any& value) const
     {
         if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
-            if (TypeInfo_GetId(*arr->typeInfo) == TypeId::ForType<TFlatMap<K, V>>())
+            if (TypeInfo_GetId(*arr->typeInfo) == TypeId::ForType<FlatMap<K, V>>())
             {
-                return *static_cast<TFlatMap<K, V>*>(arr->pInternalArray);
+                return *static_cast<FlatMap<K, V>*>(arr->pInternalArray);
             }
         }
-        else if (value.GetTypeId() == TypeId::ForType<TFlatMap<K, V>>())
+        else if (value.GetTypeId() == TypeId::ForType<FlatMap<K, V>>())
         {
-            return value.Get<TFlatMap<K, V>>();
+            return value.Get<FlatMap<K, V>>();
         }
 
         HYP_UNREACHABLE();
@@ -1807,20 +1807,20 @@ struct BoxedValueHelper<TFlatMap<K, V>> : BoxedValueHelper<GenericArrayWrapper>
 
     HYP_FORCE_INLINE bool Is(const GenericArrayWrapper& value) const
     {
-        return TypeInfo_GetId(*value.typeInfo) == TypeId::ForType<TFlatMap<K, V>>();
+        return TypeInfo_GetId(*value.typeInfo) == TypeId::ForType<FlatMap<K, V>>();
     }
 
-    HYP_FORCE_INLINE TFlatMap<K, V>& Get(const GenericArrayWrapper& value) const
+    HYP_FORCE_INLINE FlatMap<K, V>& Get(const GenericArrayWrapper& value) const
     {
-        return *static_cast<TFlatMap<K, V>*>(value.pInternalArray);
+        return *static_cast<FlatMap<K, V>*>(value.pInternalArray);
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const TFlatMap<K, V>& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const FlatMap<K, V>& value) const
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, TFlatMap<K, V>&& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, FlatMap<K, V>&& value) const
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }
@@ -1829,12 +1829,12 @@ struct BoxedValueHelper<TFlatMap<K, V>> : BoxedValueHelper<GenericArrayWrapper>
 /// HashSet
 
 template <class ValueType>
-struct BoxedValueHelperDecl<TSet<ValueType>>
+struct BoxedValueHelperDecl<Set<ValueType>>
 {
 };
 
 template <class ValueType>
-struct BoxedValueHelper<TSet<ValueType>> : BoxedValueHelper<GenericArrayWrapper>
+struct BoxedValueHelper<Set<ValueType>> : BoxedValueHelper<GenericArrayWrapper>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -1842,24 +1842,24 @@ struct BoxedValueHelper<TSet<ValueType>> : BoxedValueHelper<GenericArrayWrapper>
     {
         if (const GenericArrayWrapper* array = value.TryGet<GenericArrayWrapper>())
         {
-            return TypeInfo_GetId(*array->typeInfo) == TypeId::ForType<TSet<ValueType>>();
+            return TypeInfo_GetId(*array->typeInfo) == TypeId::ForType<containers::Set<ValueType>>();
         }
 
-        return value.GetTypeId() == TypeId::ForType<TSet<ValueType>>();
+        return value.GetTypeId() == TypeId::ForType<containers::Set<ValueType>>();
     }
 
-    HYP_FORCE_INLINE TSet<ValueType>& Get(const Any& value) const
+    HYP_FORCE_INLINE containers::Set<ValueType>& Get(const Any& value) const
     {
         if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
-            if (TypeInfo_GetId(*arr->typeInfo) == TypeId::ForType<TSet<ValueType>>())
+            if (TypeInfo_GetId(*arr->typeInfo) == TypeId::ForType<containers::Set<ValueType>>())
             {
-                return *static_cast<TSet<ValueType>*>(arr->pInternalArray);
+                return *static_cast<containers::Set<ValueType>*>(arr->pInternalArray);
             }
         }
-        else if (value.GetTypeId() == TypeId::ForType<TSet<ValueType>>())
+        else if (value.GetTypeId() == TypeId::ForType<containers::Set<ValueType>>())
         {
-            return value.Get<TSet<ValueType>>();
+            return value.Get<containers::Set<ValueType>>();
         }
 
         HYP_UNREACHABLE();
@@ -1867,20 +1867,20 @@ struct BoxedValueHelper<TSet<ValueType>> : BoxedValueHelper<GenericArrayWrapper>
 
     HYP_FORCE_INLINE bool Is(const GenericArrayWrapper& value) const
     {
-        return TypeInfo_GetId(*value.typeInfo) == TypeId::ForType<TSet<ValueType>>();
+        return TypeInfo_GetId(*value.typeInfo) == TypeId::ForType<containers::Set<ValueType>>();
     }
 
-    HYP_FORCE_INLINE TSet<ValueType>& Get(const GenericArrayWrapper& value) const
+    HYP_FORCE_INLINE containers::Set<ValueType>& Get(const GenericArrayWrapper& value) const
     {
-        return *static_cast<TSet<ValueType>*>(value.pInternalArray);
+        return *static_cast<containers::Set<ValueType>*>(value.pInternalArray);
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const TSet<ValueType>& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const containers::Set<ValueType>& value) const
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, TSet<ValueType>&& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, containers::Set<ValueType>&& value) const
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }
@@ -1889,12 +1889,12 @@ struct BoxedValueHelper<TSet<ValueType>> : BoxedValueHelper<GenericArrayWrapper>
 // FlatSet
 
 template <class T>
-struct BoxedValueHelperDecl<TFlatSet<T>>
+struct BoxedValueHelperDecl<FlatSet<T>>
 {
 };
 
 template <class T>
-struct BoxedValueHelper<TFlatSet<T>> : BoxedValueHelper<GenericArrayWrapper>
+struct BoxedValueHelper<FlatSet<T>> : BoxedValueHelper<GenericArrayWrapper>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -1902,24 +1902,24 @@ struct BoxedValueHelper<TFlatSet<T>> : BoxedValueHelper<GenericArrayWrapper>
     {
         if (const GenericArrayWrapper* array = value.TryGet<GenericArrayWrapper>())
         {
-            return TypeInfo_GetId(*array->typeInfo) == TypeId::ForType<TFlatSet<T>>();
+            return TypeInfo_GetId(*array->typeInfo) == TypeId::ForType<FlatSet<T>>();
         }
 
-        return value.GetTypeId() == TypeId::ForType<TFlatSet<T>>();
+        return value.GetTypeId() == TypeId::ForType<FlatSet<T>>();
     }
 
-    HYP_FORCE_INLINE TFlatSet<T>& Get(const Any& value) const
+    HYP_FORCE_INLINE FlatSet<T>& Get(const Any& value) const
     {
         if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
-            if (TypeInfo_GetId(*arr->typeInfo) == TypeId::ForType<TFlatSet<T>>())
+            if (TypeInfo_GetId(*arr->typeInfo) == TypeId::ForType<FlatSet<T>>())
             {
-                return *static_cast<TFlatSet<T>*>(arr->pInternalArray);
+                return *static_cast<FlatSet<T>*>(arr->pInternalArray);
             }
         }
-        else if (value.GetTypeId() == TypeId::ForType<TFlatSet<T>>())
+        else if (value.GetTypeId() == TypeId::ForType<FlatSet<T>>())
         {
-            return value.Get<TFlatSet<T>>();
+            return value.Get<FlatSet<T>>();
         }
 
         HYP_UNREACHABLE();
@@ -1927,34 +1927,34 @@ struct BoxedValueHelper<TFlatSet<T>> : BoxedValueHelper<GenericArrayWrapper>
 
     HYP_FORCE_INLINE bool Is(const GenericArrayWrapper& value) const
     {
-        return TypeInfo_GetId(*value.typeInfo) == TypeId::ForType<TFlatSet<T>>();
+        return TypeInfo_GetId(*value.typeInfo) == TypeId::ForType<FlatSet<T>>();
     }
 
-    HYP_FORCE_INLINE TFlatSet<T>& Get(const GenericArrayWrapper& value) const
+    HYP_FORCE_INLINE FlatSet<T>& Get(const GenericArrayWrapper& value) const
     {
-        return *static_cast<TFlatSet<T>*>(value.pInternalArray);
+        return *static_cast<FlatSet<T>*>(value.pInternalArray);
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const TFlatSet<T>& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const FlatSet<T>& value) const
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, TFlatSet<T>&& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, FlatSet<T>&& value) const
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }
 };
 
-/// TList
+/// List
 
 template <class T>
-struct BoxedValueHelperDecl<TList<T>>
+struct BoxedValueHelperDecl<List<T>>
 {
 };
 
 template <class T>
-struct BoxedValueHelper<TList<T>> : BoxedValueHelper<GenericArrayWrapper>
+struct BoxedValueHelper<List<T>> : BoxedValueHelper<GenericArrayWrapper>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -1962,24 +1962,24 @@ struct BoxedValueHelper<TList<T>> : BoxedValueHelper<GenericArrayWrapper>
     {
         if (const GenericArrayWrapper* array = value.TryGet<GenericArrayWrapper>())
         {
-            return TypeInfo_GetId(*array->typeInfo) == TypeId::ForType<TList<T>>();
+            return TypeInfo_GetId(*array->typeInfo) == TypeId::ForType<List<T>>();
         }
 
-        return value.GetTypeId() == TypeId::ForType<TList<T>>();
+        return value.GetTypeId() == TypeId::ForType<List<T>>();
     }
 
-    HYP_FORCE_INLINE TList<T>& Get(const Any& value) const
+    HYP_FORCE_INLINE List<T>& Get(const Any& value) const
     {
         if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
-            if (TypeInfo_GetId(*arr->typeInfo) == TypeId::ForType<TList<T>>())
+            if (TypeInfo_GetId(*arr->typeInfo) == TypeId::ForType<List<T>>())
             {
-                return *static_cast<TList<T>*>(arr->pInternalArray);
+                return *static_cast<List<T>*>(arr->pInternalArray);
             }
         }
-        else if (value.GetTypeId() == TypeId::ForType<TList<T>>())
+        else if (value.GetTypeId() == TypeId::ForType<List<T>>())
         {
-            return value.Get<TList<T>>();
+            return value.Get<List<T>>();
         }
 
         HYP_UNREACHABLE();
@@ -1987,20 +1987,20 @@ struct BoxedValueHelper<TList<T>> : BoxedValueHelper<GenericArrayWrapper>
 
     HYP_FORCE_INLINE bool Is(const GenericArrayWrapper& value) const
     {
-        return TypeInfo_GetId(*value.typeInfo) == TypeId::ForType<TList<T>>();
+        return TypeInfo_GetId(*value.typeInfo) == TypeId::ForType<List<T>>();
     }
 
-    HYP_FORCE_INLINE TList<T>& Get(const GenericArrayWrapper& value) const
+    HYP_FORCE_INLINE List<T>& Get(const GenericArrayWrapper& value) const
     {
-        return *static_cast<TList<T>*>(value.pInternalArray);
+        return *static_cast<List<T>*>(value.pInternalArray);
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const TList<T>& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const List<T>& value) const
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, TList<T>&& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, List<T>&& value) const
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }

@@ -242,7 +242,7 @@ private:
 
     FixedArray<TypeMap<UniquePtr<PostProcessingEffect>>, 2> m_effects; // only touch from render thread
     FixedArray<TypeMap<UniquePtr<PostProcessingEffect>>, 2> m_effectsPendingAddition;
-    FixedArray<TFlatSet<TypeId>, 2> m_effectsPendingRemoval;
+    FixedArray<FlatSet<TypeId>, 2> m_effectsPendingRemoval;
     std::mutex m_effectsMutex;
     AtomicVar<bool> m_effectsUpdated { false };
 

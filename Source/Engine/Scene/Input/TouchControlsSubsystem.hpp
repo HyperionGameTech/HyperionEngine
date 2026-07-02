@@ -130,7 +130,7 @@ private:
     Handle<UIObject> m_joystickShadow;  // Drop shadow for knob
 
     // Touch tracking
-    TMap<int32, TouchPoint> m_activeTouches;
+    Map<int32, TouchPoint> m_activeTouches;
     int32 m_leftTouchId = -1;   // Touch ID for left side (movement)
     int32 m_rightTouchId = -1;  // Touch ID for right side (look)
 

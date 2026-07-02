@@ -33,9 +33,9 @@ SlabAllocator& GetSymbolTypeAllocator()
 
 SCRIPT_API HYP_DECLARE_LOG_CHANNEL(Script);
 
-static TSet<SymbolType*>& GetUnfreedSymbolTypes()
+static Set<SymbolType*>& GetUnfreedSymbolTypes()
 {
-    static TSet<SymbolType*> s_unfreedSymbolTypes;
+    static Set<SymbolType*> s_unfreedSymbolTypes;
     return s_unfreedSymbolTypes;
 }
 
@@ -49,7 +49,7 @@ void CheckUnfreedSymbolTypes()
 {
     Mutex::Guard guard(GetUnfreedSymbolTypesMutex());
 
-    TSet<SymbolType*>& unfreedSymbolTypes = GetUnfreedSymbolTypes();
+    Set<SymbolType*>& unfreedSymbolTypes = GetUnfreedSymbolTypes();
 
     if (unfreedSymbolTypes.Empty())
     {
@@ -1752,7 +1752,7 @@ void SymbolType::Assign(SymbolType&& other)
 
 void SymbolType::DeleteReferencedTypes()
 {
-    TSet<const SymbolType*> toDelete;
+    Set<const SymbolType*> toDelete;
 
     for (SymbolTypeMember& mem : m_members)
     {
@@ -1825,7 +1825,7 @@ void SymbolType::DeleteReferencedTypes()
     }
 }
 
-HashCode SymbolType::GetHashCodeWithDuplicateRemoval(TSet<String>& duplicateNames) const
+HashCode SymbolType::GetHashCodeWithDuplicateRemoval(Set<String>& duplicateNames) const
 {
     if (IsAlias())
     {

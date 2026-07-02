@@ -61,7 +61,7 @@ using FatVertex = TVertex<VT_Simple | VT_Skeletal>;
 
 static Pair<Array<FatVertex>, Array<uint32>> CalculateIndices(const Array<FatVertex>& vertices)
 {
-    TMap<FatVertex, uint32> indexMap;
+    Map<FatVertex, uint32> indexMap;
 
     Array<uint32> indices;
     indices.Reserve(vertices.Size());
@@ -235,7 +235,7 @@ struct FBXCluster
 
 struct FBXSkin
 {
-    TFlatSet<FBXObjectID> clusterIds;
+    FlatSet<FBXObjectID> clusterIds;
 };
 
 struct FBXPoseNode
@@ -315,7 +315,7 @@ struct FBXNode
 
     FBXObjectID meshId = 0;
 
-    TFlatSet<FBXObjectID> childIds;
+    FlatSet<FBXObjectID> childIds;
 
     Transform localTransform;
 
@@ -740,7 +740,7 @@ static Result ReadBinaryArray(const FBXObject& object, Array<T>& ary)
 }
 
 template <class T>
-static bool GetFBXObjectInMapping(TFlatMap<FBXObjectID, FBXNodeMapping>& mapping, FBXObjectID id, T*& out)
+static bool GetFBXObjectInMapping(FlatMap<FBXObjectID, FBXNodeMapping>& mapping, FBXObjectID id, T*& out)
 {
     out = nullptr;
 
@@ -925,8 +925,8 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
         return matrix;
     };
 
-    TFlatMap<FBXObjectID, FBXNodeMapping> objectMapping;
-    TFlatSet<FBXObjectID> bindPoseIds;
+    FlatMap<FBXObjectID, FBXNodeMapping> objectMapping;
+    FlatSet<FBXObjectID> bindPoseIds;
     Array<FBXConnection> connections;
 
     const auto getFbxObject = [&objectMapping](FBXObjectID id, auto*& out)

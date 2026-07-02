@@ -64,7 +64,7 @@ public:
     static Optional<String> ToString(Keywords keyword);
 
 private:
-    static const TMap<String, Keywords> keywordStrings;
+    static const Map<String, Keywords> keywordStrings;
 };
 
 } // namespace Hyperion

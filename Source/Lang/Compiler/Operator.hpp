@@ -67,8 +67,8 @@ class Operator;
 class Operator
 {
 public:
-    static const TFlatMap<String, Operator*> binaryOperators;
-    static const TFlatMap<String, Operator*> unaryOperators;
+    static const FlatMap<String, Operator*> binaryOperators;
+    static const FlatMap<String, Operator*> unaryOperators;
 
     static inline bool IsBinaryOperator(const String& str, OperatorTypeBits matchBits = 0)
     {

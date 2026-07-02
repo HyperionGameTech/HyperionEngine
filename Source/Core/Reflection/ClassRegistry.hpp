@@ -147,13 +147,13 @@ public:
 private:
     Array<Class*> m_classesByStaticIndex;
 
-    TMap<TypeId, Class*> m_classesByTypeId;
+    Map<TypeId, Class*> m_classesByTypeId;
 
     mutable Mutex m_mutex;
-    TMap<TypeId, Class*> m_dynamicClasses;
+    Map<TypeId, Class*> m_dynamicClasses;
 
-    TMap<Class*, SharedPtr<dotnet::ManagedClass>> m_managedClasses;
-    TMap<dotnet::ManagedClass*, Class*> m_managedClassesReverseMapping;
+    Map<Class*, SharedPtr<dotnet::ManagedClass>> m_managedClasses;
+    Map<dotnet::ManagedClass*, Class*> m_managedClassesReverseMapping;
     mutable Mutex m_managedClassesMutex;
 
     bool m_isInitialized : 1;

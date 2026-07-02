@@ -135,7 +135,7 @@ public:
      */
     static GpuBuffer* MoveToUsed(
         Array<Entry, RenderAllocator>& cachedBuffers,
-        TList<Entry, RenderAllocator>& usedBuffers,
+        List<Entry, RenderAllocator>& usedBuffers,
         typename Array<Entry, RenderAllocator>::Iterator it,
         Entry& entry)
     {
@@ -152,7 +152,7 @@ public:
      *  \param maxFrameIndex Frame index to stop iterating at (no buffers with last use count >= \p{maxFrameIndex} will be recycled this call)
      */
     static void RecycleUsedBuffers(
-        TList<Entry, RenderAllocator>& usedBuffers,
+        List<Entry, RenderAllocator>& usedBuffers,
         Array<Entry, RenderAllocator>& cachedBuffers,
         uint32 maxFrameIndex)
     {

@@ -52,7 +52,7 @@ struct StagingBufferPoolImpl
     };
 
     Array<CachedStagingBuffer, RenderAllocator> cachedBuffers;
-    TList<CachedStagingBuffer, RenderAllocator> usedBuffers;
+    List<CachedStagingBuffer, RenderAllocator> usedBuffers;
     SharedMutex mutex;
 
     ~StagingBufferPoolImpl() = default;

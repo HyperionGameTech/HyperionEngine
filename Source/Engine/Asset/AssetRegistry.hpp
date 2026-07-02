@@ -56,7 +56,7 @@ enum class AssetRegistryId : uint32;
 extern StringHash AssetDesc_KeyByFunction(const AssetDesc& assetDesc);
 extern StringHash AssetObject_KeyByFunction(const Handle<AssetObject>& assetObject);
 
-using AssetDescSet = THashTable<AssetDesc, &AssetDesc_KeyByFunction, AssetAllocator>;
+using AssetDescSet = HashTable<AssetDesc, &AssetDesc_KeyByFunction, AssetAllocator>;
 
 // Maps from AssetDesc id -> AssetObject handle
 using AssetObjectCache = SparsePagedArray<Handle<AssetObject>, 64, AssetAllocator>;

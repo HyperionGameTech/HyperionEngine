@@ -85,7 +85,7 @@ public:
     /** Maps filepath to a vector of modules, so that no module has to be parsed
         and analyze more than once.
     */
-    TMap<String, Array<Module*>> importedModules;
+    Map<String, Array<Module*>> importedModules;
     Array<Module*> ownedModules;
     Tree<Module*> moduleTree;
 

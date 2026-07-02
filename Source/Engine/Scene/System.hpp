@@ -29,14 +29,14 @@ class EntityManager;
 class Scene;
 class World;
 
-class SystemComponentDescriptors : THashTable<ComponentInfo, &ComponentInfo::typeId, SceneAllocator>
+class SystemComponentDescriptors : HashTable<ComponentInfo, &ComponentInfo::typeId, SceneAllocator>
 {
 public:
     EntitySetId entitySetId; // can be 0 if inited dynamically (from Span<ComponentInfo>)
 
     template <class... ComponentDescriptors>
     SystemComponentDescriptors(ComponentDescriptors&&... componentDescriptors)
-        : THashTable({ std::forward<ComponentDescriptors>(componentDescriptors)... }),
+        : HashTable({ std::forward<ComponentDescriptors>(componentDescriptors)... }),
           entitySetId(GetEntitySetId<std::conditional_t<bool(ComponentDescriptors::Access& ComponentAccess::READ_WRITE), typename ComponentDescriptors::Type, VoidComponentType>...>())
     {
         Assert(Size() == sizeof...(ComponentDescriptors), "Duplicate component descriptors found");
@@ -50,9 +50,9 @@ public:
         }
     }
 
-    using THashTable::ToArray;
+    using HashTable::ToArray;
 
-    HYP_DEF_STL_BEGIN_END(THashTable::Begin(), THashTable::End())
+    HYP_DEF_STL_BEGIN_END(HashTable::Begin(), HashTable::End())
 };
 
 /*! \brief A system is attached to a World and batch processes entities with specific components each tick.
@@ -249,7 +249,7 @@ protected:
 private:
     void InitComponentInfos_Internal();
 
-    TSet<WeakHandle<Entity>, SceneAllocator> m_initializedEntities;
+    Set<WeakHandle<Entity>, SceneAllocator> m_initializedEntities;
 
     Array<TypeId, SceneAllocator> m_componentTypeIds;
     Array<ComponentInfo, SceneAllocator> m_componentInfos;

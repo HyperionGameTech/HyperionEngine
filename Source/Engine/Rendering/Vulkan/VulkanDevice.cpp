@@ -36,7 +36,7 @@ VulkanDevice::VulkanDevice(VkPhysicalDevice physical)
 
 VulkanDevice::~VulkanDevice()
 {
-    TSet<VulkanDeviceQueue*> queuesToDestroy;
+    Set<VulkanDeviceQueue*> queuesToDestroy;
     queuesToDestroy.Add(m_queueGraphics);
     queuesToDestroy.Add(m_queueTransfer);
     queuesToDestroy.Add(m_queuePresent);
@@ -461,7 +461,7 @@ RendererResult VulkanDevice::Create(VkSurfaceKHR surface)
         "Could not create Device!");
 
     // Create command pools
-    TSet<VulkanDeviceQueue*> deviceQueues;
+    Set<VulkanDeviceQueue*> deviceQueues;
     deviceQueues.Add(m_queueGraphics);
     deviceQueues.Add(m_queueTransfer);
     deviceQueues.Add(m_queueCompute);
@@ -542,7 +542,7 @@ void VulkanDevice::InitQueueFamilies(VkSurfaceKHR surface)
         queueMembers.PushBack(&m_queuePresent);
     }
 
-    TMap<uint32, VulkanDeviceQueue*> mapFamilyIndexToDeviceQueue;
+    Map<uint32, VulkanDeviceQueue*> mapFamilyIndexToDeviceQueue;
 
     for (int i = 0; i < int(queues.Size()); i++)
     {

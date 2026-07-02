@@ -265,7 +265,7 @@ SceneOctree::Result SceneOctree::Rebuild(const BoundingBox& newAabb, bool allowG
 
     InitOctants();
 
-    TSet<Entity*, SceneTempAllocator> addedEntities;
+    Set<Entity*, SceneTempAllocator> addedEntities;
 
     for (SceneOctreePayload& payload : payloads)
     {

@@ -59,8 +59,8 @@ private:
     SparsePagedArray<UpdateEntry, 2048> m_entryPool;
     IndexAllocator m_entryIndexAllocator;
 
-    TMap<UIObjectUpdateType, Array<UpdateEntry*>> m_updateQueues;
-    TMap<WeakHandle<UIObject>, UpdateEntry*> m_pendingObjects;
+    Map<UIObjectUpdateType, Array<UpdateEntry*>> m_updateQueues;
+    Map<WeakHandle<UIObject>, UpdateEntry*> m_pendingObjects;
 
     static constexpr UIObjectUpdateType s_updateOrder[] = {
         UIObjectUpdateType::UPDATE_SIZE,

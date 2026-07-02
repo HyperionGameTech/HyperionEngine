@@ -2,7 +2,7 @@
 
 namespace Hyperion {
 
-const TMap<ErrorMessage, String> CompilerError::errorMessageStrings {
+const Map<ErrorMessage, String> CompilerError::errorMessageStrings {
     /* Fatal errors */
     { Msg_internal_error, "Internal error" },
     { Msg_custom_error, "%" },

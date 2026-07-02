@@ -900,46 +900,46 @@ private:
 };
 
 /*! \brief Stores a set of DelegateHandlers, intended to hold references to delegates and remove them upon destruction of the owner object. */
-class DelegateHandlerSet : TMap<Name, DelegateHandler, DynamicAllocator, HashTablePolicy::NotPooled>
+class DelegateHandlerSet : Map<Name, DelegateHandler, DynamicAllocator, HashTablePolicy::NotPooled>
 {
 public:
-    using TMap::ConstIterator;
-    using TMap::Iterator;
+    using Map::ConstIterator;
+    using Map::Iterator;
 
     HYP_FORCE_INLINE DelegateHandlerSet& Add(DelegateHandler&& delegateHandler)
     {
-        TMap::Insert({ Name::Unique("DelegateHandler_"), std::move(delegateHandler) });
+        Map::Insert({ Name::Unique("DelegateHandler_"), std::move(delegateHandler) });
         return *this;
     }
 
     HYP_FORCE_INLINE DelegateHandlerSet& Add(Name name, DelegateHandler&& delegateHandler)
     {
-        TMap::Insert({ name, std::move(delegateHandler) });
+        Map::Insert({ name, std::move(delegateHandler) });
         return *this;
     }
 
     HYP_FORCE_INLINE bool Remove(StringHash name)
     {
-        auto it = TMap::FindAs(name);
+        auto it = Map::FindAs(name);
 
-        if (it == TMap::End())
+        if (it == Map::End())
         {
             return false;
         }
 
-        TMap::Erase(it);
+        Map::Erase(it);
 
         return true;
     }
 
     HYP_FORCE_INLINE bool Remove(ConstIterator it)
     {
-        if (it == TMap::End())
+        if (it == Map::End())
         {
             return false;
         }
 
-        TMap::Erase(it);
+        Map::Erase(it);
 
         return true;
     }
@@ -960,13 +960,13 @@ public:
         {
             TUniqueLock guard(delegate->m_mtx);
             
-            for (auto it = TMap::Begin(); it != TMap::End();)
+            for (auto it = Map::Begin(); it != Map::End();)
             {
                 if (it->second.delegateImpl.GetUnsafe() == delegate->m_impl.Get())
                 {
                     delegateHandlers.PushBack(std::move(it->second));
                     
-                    it = TMap::Erase(it);
+                    it = Map::Erase(it);
                     
                     continue;
                 }
@@ -981,20 +981,20 @@ public:
 
     HYP_FORCE_INLINE Iterator Find(StringHash name)
     {
-        return TMap::FindAs(name);
+        return Map::FindAs(name);
     }
 
     HYP_FORCE_INLINE ConstIterator Find(StringHash name) const
     {
-        return TMap::FindAs(name);
+        return Map::FindAs(name);
     }
 
     HYP_FORCE_INLINE bool Contains(StringHash name) const
     {
-        return TMap::FindAs(name) != TMap::End();
+        return Map::FindAs(name) != Map::End();
     }
 
-    HYP_DEF_STL_BEGIN_END(TMap::Begin(), TMap::End())
+    HYP_DEF_STL_BEGIN_END(Map::Begin(), Map::End())
 };
 
 template <class T>

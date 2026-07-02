@@ -55,7 +55,7 @@ public:
 
     /*! \brief Parse a .mtl file and return a map of material name → Handle<Material>.
      *  This can be called directly without going through the asset system. */
-    static TMap<String, Handle<Material>> ParseMtl(
+    static Map<String, Handle<Material>> ParseMtl(
         FilePath filepath,
         AssetManager& assetManager,
         const String& batchIdentifier = String::empty);
@@ -63,7 +63,7 @@ public:
     virtual AssetLoadResult LoadAsset(LoaderState& state) const override;
 
 private:
-    static TMap<String, Handle<Material>> ParseMtl_Internal(LoaderState& state);
+    static Map<String, Handle<Material>> ParseMtl_Internal(LoaderState& state);
 };
 
 } // namespace Hyperion

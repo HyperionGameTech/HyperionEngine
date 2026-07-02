@@ -38,20 +38,20 @@ HYP_DECLARE_LOG_CHANNEL(Tool);
 
 using namespace JSON;
 
-static const TMap<String, ClassDefinitionType> s_classDefinitionTypes = {
+static const Map<String, ClassDefinitionType> s_classDefinitionTypes = {
     { "HYP_CLASS", ClassDefinitionType::Class },
     { "HYP_STRUCT", ClassDefinitionType::Struct },
     { "HYP_ENUM", ClassDefinitionType::Enum }
 };
 
-static const TMap<String, MemberType> s_memberDefinitionTypes = {
+static const Map<String, MemberType> s_memberDefinitionTypes = {
     { "HYP_FIELD", MemberType::Field },
     { "HYP_METHOD", MemberType::Method },
     { "HYP_PROPERTY", MemberType::Property }
 };
 
 // for each path below, if it matches the module path, add the corresponding define(s) to the class condition
-static const TMap<String, String> s_pathConditionalDefines = {
+static const Map<String, String> s_pathConditionalDefines = {
     // platforms
     { "platform/win32", "HYP_WINDOWS" },
     { "platform/linux", "HYP_LINUX" },
@@ -415,7 +415,7 @@ static TResult<Array<Pair<String, ClassAttributeValue>>> BuildClassAttributes(co
 
 template <typename E, typename = std::enable_if_t<std::is_enum_v<E>>>
 static TResult<Pair<E, Array<Pair<String, ClassAttributeValue>>>> ParseHypMacro(
-    const TMap<String, E>& usableMacros,
+    const Map<String, E>& usableMacros,
     const String& line,
     size_t& outStartIndex,
     size_t& outEndIndex,

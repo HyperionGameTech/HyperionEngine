@@ -28,7 +28,7 @@ struct ScriptMapKey
         }
 
         // For inline types (Name, int64, etc.) the Variant comparison works directly.
-        // For Any-wrapped types (String, GenericArrayWrapper), TMap stores independent copies
+        // For Any-wrapped types (String, GenericArrayWrapper), Map stores independent copies
         // via ShallowCopy, but Any::operator== is pointer-based, so two distinct copies
         // with identical content would compare as unequal. Fall through to value comparison.
         if (key.value == other.key.value)
@@ -138,10 +138,10 @@ struct ScriptMapKey
 
 };
 
-class ScriptMap final : public TMap<ScriptMapKey, BoxedValue, ScriptAllocator, HashTablePolicy::NotPooled>
+class ScriptMap final : public Map<ScriptMapKey, BoxedValue, ScriptAllocator, HashTablePolicy::NotPooled>
 {
 public:
-    using Base = TMap;
+    using Base = Map;
 
     ScriptMap() = default;
 

@@ -46,7 +46,7 @@ private:
 
     // Per entity mapping from Entity* -> cached state (num instances, auto instancing enabled)
     // Currently only needed to be able to init/deinit instanced mesh data when changed in editor.
-    TMap<Entity*, CachedInstancedMeshDataState, SceneAllocator> m_cachedStates;
+    Map<Entity*, CachedInstancedMeshDataState, SceneAllocator> m_cachedStates;
 #endif // HYP_EDITOR
 
     // Cached to reduce allocations

@@ -304,7 +304,7 @@ class CORE_API ObjectContainerMap
 {
     // Maps TypeId to object container
     // Use a linked list so that references are never invalidated.
-    TList<Pair<TypeId, ObjectContainerBase*>> m_map;
+    List<Pair<TypeId, ObjectContainerBase*>> m_map;
     Mutex m_mutex;
 
 public:

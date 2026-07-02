@@ -146,7 +146,7 @@ UIntPtr DynamicLibrary::GetFunction(const char* name) const
 struct DynamicLibraryCacheImpl
 {
     Mutex mutex;
-    TMap<PlatformString, UniquePtr<DynamicLibrary>> libraries;
+    Map<PlatformString, UniquePtr<DynamicLibrary>> libraries;
 };
 
 #pragma endregion DynamicLibraryCacheImpl

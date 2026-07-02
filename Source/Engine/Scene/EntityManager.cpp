@@ -360,7 +360,7 @@ void EntityManager::Shutdown()
 
     if (m_world != nullptr)
     {
-        TSet<Handle<Entity>> allEntities;
+        Set<Handle<Entity>> allEntities;
 
         for (SystemExecutionGroup* group : m_world->GetSystemExecutionGroups())
         {
@@ -781,7 +781,7 @@ bool EntityManager::RemoveEntity(Entity* entity, bool calledFromEntityDestructor
     const ObjId<Entity> entityId = entity->Id();
 
     // Components generically stored as BoxedValue by TypeId - to add to other EntityManager
-    TMap<TypeId, BoxedValue> components;
+    Map<TypeId, BoxedValue> components;
 
     EntityData* entityData = m_entities.TryGetEntityData(entityId);
     Assert(entityData != nullptr, "Entity does not exist");

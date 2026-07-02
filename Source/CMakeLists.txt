@@ -262,6 +262,9 @@ else()
   # for full template backtrace
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-backtrace-limit=0")
 
+  # no ast recovery or spelling correction/suggestion
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -fno-recovery-ast -fno-spell-checking")
+
   # # address sanitizer -- uncomment to enable
   # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 

@@ -67,7 +67,7 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(Assets);
         }                                                                                                          \
     }
 
-static const TFlatMap<String, std::add_pointer_t<Pair<Handle<UIObject>, const Class*>(UIObject*, Name, Vec2i, UIObjectSize)>> s_nodeCreateFunctions {
+static const FlatMap<String, std::add_pointer_t<Pair<Handle<UIObject>, const Class*>(UIObject*, Name, Vec2i, UIObjectSize)>> s_nodeCreateFunctions {
     UI_OBJECT_CREATE_FUNCTION(Stage),
     UI_OBJECT_CREATE_FUNCTION(Button),
     UI_OBJECT_CREATE_FUNCTION(Text),
@@ -100,7 +100,7 @@ static const TFlatMap<String, std::add_pointer_t<Pair<Handle<UIObject>, const Cl
         }                                                                   \
     }
 
-static const TFlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult>*(UIObject*)>> s_getDelegateFunctions {
+static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult>*(UIObject*)>> s_getDelegateFunctions {
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnInit),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnAttached),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnRemoved)
@@ -117,7 +117,7 @@ static const TFlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandl
         }                                                                              \
     }
 
-static const TFlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult, UIObject*>*(UIObject*)>> s_getDelegateFunctionsChildren {
+static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult, UIObject*>*(UIObject*)>> s_getDelegateFunctionsChildren {
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnChildAttached),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnChildRemoved)
 };
@@ -133,7 +133,7 @@ static const TFlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandl
         }                                                                                      \
     }
 
-static const TFlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult, const MouseEvent&>*(UIObject*)>> s_getDelegateFunctionsMouse {
+static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult, const MouseEvent&>*(UIObject*)>> s_getDelegateFunctionsMouse {
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnMouseDown),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnMouseUp),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnMouseDrag),
@@ -158,14 +158,14 @@ static const TFlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandl
         }                                                                                         \
     }
 
-static const TFlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult, const KeyboardEvent&>*(UIObject*)>> s_getDelegateFunctionsKeyboard {
+static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult, const KeyboardEvent&>*(UIObject*)>> s_getDelegateFunctionsKeyboard {
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnKeyDown),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnKeyUp)
 };
 
 #undef UI_OBJECT_GET_DELEGATE_FUNCTION
 
-static const TMap<String, UIObjectAlignment> s_uiAlignmentStrings {
+static const Map<String, UIObjectAlignment> s_uiAlignmentStrings {
     { "TOPLEFT", UIObjectAlignment::TOP_LEFT },
     { "TOPRIGHT", UIObjectAlignment::TOP_RIGHT },
     { "CENTER", UIObjectAlignment::CENTER },
@@ -259,7 +259,7 @@ static Optional<Color> ParseColor(const String& str)
         auto fn = FunctionWrapper<String (String::*)() const>(&String::Trimmed);
 
         // Parse rgba if csv
-        Array<String> split = Map(str.Split(','), &String::Trimmed);
+        Array<String> split = MapToArray(str.Split(','), &String::Trimmed);
 
         if (split.Size() == 4)
         {

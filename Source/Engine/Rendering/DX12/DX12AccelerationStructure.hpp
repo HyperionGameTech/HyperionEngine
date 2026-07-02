@@ -106,7 +106,7 @@ public:
         m_flags = AccelerationStructureFlags(m_flags & ~flag);
     }
 
-    HYP_FORCE_INLINE const TList<DX12AccelerationGeometry, DX12Allocator>& GetGeometries() const
+    HYP_FORCE_INLINE const List<DX12AccelerationGeometry, DX12Allocator>& GetGeometries() const
     {
         return m_geometries;
     }
@@ -140,7 +140,7 @@ protected:
 
     DX12GpuBufferRef m_buffer;
     DX12GpuBufferRef m_scratchBuffer;
-    TList<DX12AccelerationGeometry, DX12Allocator> m_geometries;
+    List<DX12AccelerationGeometry, DX12Allocator> m_geometries;
     Mat4f m_transform;
     AccelerationStructureFlags m_flags;
 };
@@ -223,7 +223,7 @@ private:
     Array<DX12BottomLevelAS*, DX12Allocator> m_blases;
     Array<uint64, DX12Allocator> m_keys;
 
-    TMap<uint64, Pair<DX12BottomLevelAS*, uint32>, DX12Allocator> m_keyToBlasAndStorageId;
+    Map<uint64, Pair<DX12BottomLevelAS*, uint32>, DX12Allocator> m_keyToBlasAndStorageId;
 
     DX12GpuBufferRef m_instancesBuffer;
 };

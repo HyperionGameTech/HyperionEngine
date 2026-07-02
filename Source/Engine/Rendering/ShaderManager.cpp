@@ -98,7 +98,7 @@ public:
         ShaderInstanceRef shaderInstance;
     };
 
-    TMap<HashCode, ShaderMapEntry*> m_entryMap;
+    Map<HashCode, ShaderMapEntry*> m_entryMap;
     SharedMutex m_mutex;
 
     // these live forever to keep pointers valid
@@ -111,7 +111,7 @@ public:
 
     Mutex m_compilingShadersMutex; // mutex for tracking shaders we're compiling + editor task
     AtomicVar<uint32> m_numCompilingShaders = 0;
-    TMap<String, Array<CompileShaderRequest*>> m_compilingShaders;
+    Map<String, Array<CompileShaderRequest*>> m_compilingShaders;
     std::binary_semaphore m_spActiveCompilationTask { 0 };
 
 #if HYP_ENABLE_SHADER_RELOAD
@@ -209,7 +209,7 @@ public:
         UpdateEditorTask();
 #endif
 
-        TMap<String, Array<CompileShaderRequest*>> current;
+        Map<String, Array<CompileShaderRequest*>> current;
 
         while (true)
         {
@@ -794,7 +794,7 @@ public:
 
         HYP_LOG(ShaderCompiler, Info, "Reloading {} shaders\n{}", requests.Size(), shadersText);
 
-        TSet<Shader*> shadersToExpire;
+        Set<Shader*> shadersToExpire;
 
         for (CompileShaderRequest& request : requests)
         {

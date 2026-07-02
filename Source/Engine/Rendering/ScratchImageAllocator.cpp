@@ -32,8 +32,8 @@ struct ScratchImageAllocatorImpl
         Handle<Texture> texture;
     };
 
-    TList<CachedScratchImage, RenderAllocator> cachedImages;
-    TList<CachedScratchImage, RenderAllocator> usedImages;
+    List<CachedScratchImage, RenderAllocator> cachedImages;
+    List<CachedScratchImage, RenderAllocator> usedImages;
 
     SharedMutex mutex;
 

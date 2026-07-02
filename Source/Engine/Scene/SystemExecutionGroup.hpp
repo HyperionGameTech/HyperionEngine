@@ -73,7 +73,7 @@ public:
         return m_performanceClock;
     }
 
-    HYP_FORCE_INLINE const TFlatMap<SystemBase*, PerformanceClock>& GetPerformanceClocks() const
+    HYP_FORCE_INLINE const FlatMap<SystemBase*, PerformanceClock>& GetPerformanceClocks() const
     {
         return m_performanceClocks;
     }
@@ -185,7 +185,7 @@ private:
 
 #if HYP_DEBUG_MODE
     PerformanceClock m_performanceClock;
-    TFlatMap<SystemBase*, PerformanceClock> m_performanceClocks;
+    FlatMap<SystemBase*, PerformanceClock> m_performanceClocks;
 #endif
 };
 

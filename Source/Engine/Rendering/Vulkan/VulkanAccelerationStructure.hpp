@@ -149,7 +149,7 @@ public:
         m_flags = AccelerationStructureFlags(m_flags & ~flag);
     }
 
-    HYP_FORCE_INLINE const TList<VulkanAccelerationGeometry, VulkanAllocator>& GetGeometries() const
+    HYP_FORCE_INLINE const List<VulkanAccelerationGeometry, VulkanAllocator>& GetGeometries() const
     {
         return m_geometries;
     }
@@ -194,7 +194,7 @@ protected:
     VulkanGpuBufferRef m_buffer;
     VulkanGpuBufferRef m_scratchBuffer;
 
-    TList<VulkanAccelerationGeometry, VulkanAllocator> m_geometries;
+    List<VulkanAccelerationGeometry, VulkanAllocator> m_geometries;
 
     Mat4f m_transform;
     VkAccelerationStructureKHR m_accelerationStructure;
@@ -311,7 +311,7 @@ private:
     Array<VulkanBottomLevelAS*, VulkanAllocator> m_blases;
     Array<uint64, VulkanAllocator> m_keys;
 
-    TFlatMap<uint64, Pair<VulkanBottomLevelAS*, uint32>, VulkanAllocator> m_keyToBlasAndStorageId;
+    FlatMap<uint64, Pair<VulkanBottomLevelAS*, uint32>, VulkanAllocator> m_keyToBlasAndStorageId;
 
     VulkanGpuBufferRef m_instancesBuffer;
 };

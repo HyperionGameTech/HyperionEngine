@@ -90,8 +90,8 @@ struct GltfLoadContext
     cgltf_data& data;
     Scene* scene;
     Array<GltfMeshResource> meshResources;
-    TMap<const cgltf_material*, Handle<Material>> materialCache;
-    TMap<const cgltf_texture*, Handle<Texture>> textureCache;
+    Map<const cgltf_material*, Handle<Material>> materialCache;
+    Map<const cgltf_texture*, Handle<Texture>> textureCache;
     uint32 unnamedNodeCounter = 0;
     uint32 unnamedMaterialCounter = 0;
     bool loggedMorphTargetWarning = false;

@@ -39,16 +39,16 @@ struct Entry
     BottomLevelAS* blas;
     uint32 lastUsedFrame;
 };
-using EntryMap = TMap<uint64, Entry, RenderAllocator>;
+using EntryMap = Map<uint64, Entry, RenderAllocator>;
 
 struct StorageIdAndRefCount
 {
     uint32 storageId;
     uint32 refCount;
 };
-using StorageIdMap = TMap<uint64, StorageIdAndRefCount, RenderAllocator>;
+using StorageIdMap = Map<uint64, StorageIdAndRefCount, RenderAllocator>;
 
-using EntityToKeyMap = TMap<Entity*, uint64, RenderAllocator>;
+using EntityToKeyMap = Map<Entity*, uint64, RenderAllocator>;
 
 class BLASCacheImpl
 {

@@ -106,7 +106,7 @@ void AstAsExpression::Visit(AstVisitor* visitor, Module* mod)
                 targetType->ToString(),
                 m_resultType->ToString(),
                 (incompatibilities.Size() > 1
-                        ? "\n\t* " + String::Join(Map(incompatibilities, &SymbolTypeIncompatibility::details), "\n\t* ")
+                        ? "\n\t* " + String::Join(MapToArray(incompatibilities, &SymbolTypeIncompatibility::details), "\n\t* ")
                         : " " + incompatibilities[0].details)));
         }
         else

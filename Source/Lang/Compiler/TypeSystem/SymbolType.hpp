@@ -700,7 +700,7 @@ public:
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
-        TSet<String> duplicateNames;
+        Set<String> duplicateNames;
 
         return GetHashCodeWithDuplicateRemoval(duplicateNames);
     }
@@ -742,7 +742,7 @@ public:
 
 private:
     void DeleteReferencedTypes();
-    HashCode GetHashCodeWithDuplicateRemoval(TSet<String>& duplicateNames) const;
+    HashCode GetHashCodeWithDuplicateRemoval(Set<String>& duplicateNames) const;
 
     String m_name;
     SymbolTypeClass m_typeClass;

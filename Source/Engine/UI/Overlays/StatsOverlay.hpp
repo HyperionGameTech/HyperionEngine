@@ -57,7 +57,7 @@ protected:
 private:
     Handle<UIListView> m_panel;
     Handle<UIDataSource> m_dataSource;
-    TMap<EngineStatBase*, UUID> m_statUuids;
+    Map<EngineStatBase*, UUID> m_statUuids;
 
     ClockTimer m_hotFunctionsUpdateTimer; // updates at a slower rate
     Handle<UIListView> m_hotFunctionsPanel;

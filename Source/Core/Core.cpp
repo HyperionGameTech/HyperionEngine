@@ -94,7 +94,7 @@ HYP_NODISCARD CORE_API FilePath CreateTempDirectory()
     return FilePath();
 }
 
-static TList<GlobalConfig> s_globalConfigChain;
+static List<GlobalConfig> s_globalConfigChain;
 static Mutex s_globalConfigMutex;
 
 static CommandLineArguments s_commandLineArguments;
@@ -178,7 +178,7 @@ CORE_API bool Initialize(int argc, char** argv)
     {
         JSON::JString configArgsString = configArgs.ToString();
 
-        Array<String> configArgsStringSplit = Map(
+        Array<String> configArgsStringSplit = MapToArray(
             configArgsString.Split(' '),
             [](auto&& str)
             {

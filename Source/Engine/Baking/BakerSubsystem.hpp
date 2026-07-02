@@ -68,7 +68,7 @@ private:
     Task<void> EnqueueBake_Internal(const Handle<T>& source, Args&&... args);
 
     // Map source to lightmapper instance
-    TMap<ObjectBase*, Handle<Baking::BakerBase>> m_bakers;
+    Map<ObjectBase*, Handle<Baking::BakerBase>> m_bakers;
 };
 
 } // namespace Hyperion

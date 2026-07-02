@@ -21,7 +21,7 @@ public:
         bool hex : 1 = true;
     };
 
-    static const TMap<String, NumericSuffixInfo> s_numericSuffixes;
+    static const Map<String, NumericSuffixInfo> s_numericSuffixes;
 
     Lexer(
         const SourceStream& sourceStream,

@@ -261,7 +261,7 @@ protected:
     ResourceState m_resourceState;
     ResourceState m_stencilState;
 
-    TMap<uint64, ResourceState, RHIAllocator> m_subResourceStates;
+    Map<uint64, ResourceState, RHIAllocator> m_subResourceStates;
 
     EnumFlags<GpuImageFlags> m_flags;
 

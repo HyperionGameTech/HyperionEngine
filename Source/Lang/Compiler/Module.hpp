@@ -39,7 +39,7 @@ public:
         return m_location;
     }
 
-    HYP_FORCE_INLINE const TFlatSet<String>& GetScanPaths() const
+    HYP_FORCE_INLINE const FlatSet<String>& GetScanPaths() const
     {
         return m_scanPaths;
     }
@@ -59,7 +59,7 @@ public:
         importTreeNode = treeLink;
     }
 
-    TFlatSet<String> GenerateAllScanPaths() const;
+    FlatSet<String> GenerateAllScanPaths() const;
     /** Create a string of the module name (including parent module names)
         relative to the global scope */
     String GenerateFullModuleName() const;
@@ -171,7 +171,7 @@ public:
 private:
     String m_name;
     SourceLocation m_location;
-    TFlatSet<String> m_scanPaths;
+    FlatSet<String> m_scanPaths;
 };
 
 struct ScopeGuard : TreeNodeGuard<Scope>

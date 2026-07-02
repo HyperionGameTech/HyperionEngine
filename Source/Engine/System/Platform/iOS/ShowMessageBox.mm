@@ -1,5 +1,11 @@
 #import <UIKit/UIKit.h>
 
+#include <Core/Defines.hpp>
+
+using namespace Hyperion;
+
+extern "C" {
+
 int ShowMessageBox(int type, const char *title, const char *message, int buttons, const char *buttonTexts[3])
 {
     // Come back to this when we want to target iOS
@@ -29,3 +35,5 @@ int ShowMessageBox(int type, const char *title, const char *message, int buttons
     //     }
     // };
 }
+
+} // extern "C"

@@ -285,7 +285,7 @@ protected:
     }
 
     Seed m_seed;
-    TSortedArray<KeyValuePair<int, NoiseGeneratorInstance>> m_generators;
+    SortedArray<KeyValuePair<int, NoiseGeneratorInstance>> m_generators;
 };
 
 struct NoiseGeneratorRefCounter

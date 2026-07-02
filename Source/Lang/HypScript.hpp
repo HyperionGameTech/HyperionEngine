@@ -25,7 +25,7 @@ struct ScriptInstance;
 
 struct HypScriptCompileParams
 {
-    TSet<FilePath> scanPaths;
+    Set<FilePath> scanPaths;
 };
 
 namespace HypScript {

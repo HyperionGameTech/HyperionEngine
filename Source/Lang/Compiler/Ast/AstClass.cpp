@@ -305,7 +305,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         }
 
 #if 0
-        TMap<uint64, Array<String>> revEnumMembers;
+        Map<uint64, Array<String>> revEnumMembers;
 #endif
 
         // ===== STATIC DATA MEMBERS ======

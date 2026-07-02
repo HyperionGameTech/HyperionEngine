@@ -20,8 +20,8 @@ class RTCClient;
 class ENGINE_API RTCClientList
 {
 public:
-    using Iterator = typename TFlatMap<String, SharedPtr<RTCClient>>::Iterator;
-    using ConstIterator = typename TFlatMap<String, SharedPtr<RTCClient>>::ConstIterator;
+    using Iterator = typename FlatMap<String, SharedPtr<RTCClient>>::Iterator;
+    using ConstIterator = typename FlatMap<String, SharedPtr<RTCClient>>::ConstIterator;
 
     RTCClientList() = default;
     RTCClientList(const RTCClientList& other) = delete;
@@ -40,7 +40,7 @@ public:
 private:
     mutable std::mutex m_mutex;
 
-    TFlatMap<String, SharedPtr<RTCClient>> m_clients;
+    FlatMap<String, SharedPtr<RTCClient>> m_clients;
 };
 
 } // namespace Hyperion

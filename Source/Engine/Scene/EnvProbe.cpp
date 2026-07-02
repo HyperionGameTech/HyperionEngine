@@ -668,7 +668,7 @@ void EnvProbe::Update(float delta)
 
     FixedArray<Mat4f, 6> matrices = CreateCubemapMatrices(GetWorldTranslation());
 
-    TSet<Scene*, SceneTempAllocator> allScenes;
+    Set<Scene*, SceneTempAllocator> allScenes;
     for (uint32 viewIndex = 0; viewIndex < 6; viewIndex++)
     {
         // Update face view frustum.

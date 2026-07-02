@@ -111,7 +111,7 @@ public:
     void RegisterFactory(Name actionName, IEditorActionFactory* factory);
 
 private:
-    TMap<Name, IEditorActionFactory*> m_factories;
+    Map<Name, IEditorActionFactory*> m_factories;
 };
 
 class IEditorActionFactory

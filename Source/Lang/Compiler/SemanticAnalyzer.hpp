@@ -36,7 +36,7 @@ public:
     private:
         static size_t FindFreeSlot(
             size_t currentIndex,
-            const TFlatSet<size_t>& usedIndices,
+            const FlatSet<size_t>& usedIndices,
             const Array<GenericInstanceTypeInfo::Arg>& genericArgs,
             bool isVariadic,
             size_t numSuppliedArgs);
@@ -44,7 +44,7 @@ public:
         static size_t ArgIndex(
             size_t currentIndex,
             const ArgInfo& argInfo,
-            const TFlatSet<size_t>& usedIndices,
+            const FlatSet<size_t>& usedIndices,
             const Array<GenericInstanceTypeInfo::Arg>& genericArgs,
             bool isVariadic = false,
             size_t numSuppliedArgs = -1);

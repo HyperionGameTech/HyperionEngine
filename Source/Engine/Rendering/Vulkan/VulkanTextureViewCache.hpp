@@ -24,7 +24,7 @@ namespace Hyperion {
 class VulkanTextureViewCache final : public TextureViewCacheBase
 {
 public:
-    using TextureImageViewMap = TMap<uint64, VulkanGpuImageViewRef, VulkanAllocator>;
+    using TextureImageViewMap = Map<uint64, VulkanGpuImageViewRef, VulkanAllocator>;
 
     struct SubtypeData
     {

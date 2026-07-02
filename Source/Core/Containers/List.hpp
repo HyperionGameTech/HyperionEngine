@@ -35,10 +35,10 @@ struct LinkedListNode
 };
 
 template <class T, class AllocatorType = DynamicAllocator>
-class TList;
+class List;
 
 template <class T, class AllocatorType>
-class TList : public ContainerBase<TList<T, AllocatorType>, size_t>
+class List : public ContainerBase<List<T, AllocatorType>, size_t>
 {
     using Node = containers::LinkedListNode<T, AllocatorType>;
 
@@ -196,24 +196,24 @@ public:
         }
     };
 
-    using Base = ContainerBase<TList<T, AllocatorType>, size_t>;
+    using Base = ContainerBase<List<T, AllocatorType>, size_t>;
     using KeyType = typename Base::KeyType;
     using ValueType = T;
 
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
-    TList()
+    List()
         : m_head(nullptr),
           m_tail(nullptr),
           m_size(0)
     {
     }
 
-    TList(const TList& other);
-    TList(TList&& other) noexcept;
-    ~TList();
+    List(const List& other);
+    List(List&& other) noexcept;
+    ~List();
 
-    TList& operator=(const TList& other);
-    TList& operator=(TList&& other) noexcept;
+    List& operator=(const List& other);
+    List& operator=(List&& other) noexcept;
 
     HYP_FORCE_INLINE size_t Size() const
     {
@@ -250,8 +250,8 @@ public:
         return Size() != 0;
     }
 
-    /*! \brief Access the element at \p index. Note that the TList must be traversed until we reach the element,
-     *  so this is operation is not O(1), but O(n) where n is the number of elements in the TList */
+    /*! \brief Access the element at \p index. Note that the List must be traversed until we reach the element,
+     *  so this is operation is not O(1), but O(n) where n is the number of elements in the List */
     HYP_FORCE_INLINE T& operator[](size_t index)
     {
         HYP_CORE_ASSERT(index < m_size);
@@ -272,11 +272,11 @@ public:
         return node->value.Get();
     }
 
-    /*! \brief Access the element at \p index. Note that the TList must be traversed until we reach the element,
-     *  so this is operation is not O(1), but O(n) where n is the number of elements in the TList */
+    /*! \brief Access the element at \p index. Note that the List must be traversed until we reach the element,
+     *  so this is operation is not O(1), but O(n) where n is the number of elements in the List */
     HYP_FORCE_INLINE const T& operator[](size_t index) const
     {
-        return const_cast<TList<T, AllocatorType>*>(this)->operator[](index);
+        return const_cast<List<T, AllocatorType>*>(this)->operator[](index);
     }
 
     template <class... Args>
@@ -423,7 +423,7 @@ private:
 };
 
 template <class T, class AllocatorType>
-TList<T, AllocatorType>::TList(const TList<T, AllocatorType>& other)
+List<T, AllocatorType>::List(const List<T, AllocatorType>& other)
     : m_head(nullptr),
       m_tail(nullptr),
       m_size(0)
@@ -435,7 +435,7 @@ TList<T, AllocatorType>::TList(const TList<T, AllocatorType>& other)
 }
 
 template <class T, class AllocatorType>
-TList<T, AllocatorType>::TList(TList<T, AllocatorType>&& other) noexcept
+List<T, AllocatorType>::List(List<T, AllocatorType>&& other) noexcept
     : m_head(other.m_head),
       m_tail(other.m_tail),
       m_size(other.m_size)
@@ -446,7 +446,7 @@ TList<T, AllocatorType>::TList(TList<T, AllocatorType>&& other) noexcept
 }
 
 template <class T, class AllocatorType>
-TList<T, AllocatorType>& TList<T, AllocatorType>::operator=(const TList<T, AllocatorType>& other)
+List<T, AllocatorType>& List<T, AllocatorType>::operator=(const List<T, AllocatorType>& other)
 {
     if (this == &other)
     {
@@ -464,7 +464,7 @@ TList<T, AllocatorType>& TList<T, AllocatorType>::operator=(const TList<T, Alloc
 }
 
 template <class T, class AllocatorType>
-TList<T, AllocatorType>& TList<T, AllocatorType>::operator=(TList<T, AllocatorType>&& other) noexcept
+List<T, AllocatorType>& List<T, AllocatorType>::operator=(List<T, AllocatorType>&& other) noexcept
 {
     if (this == &other)
     {
@@ -485,7 +485,7 @@ TList<T, AllocatorType>& TList<T, AllocatorType>::operator=(TList<T, AllocatorTy
 }
 
 template <class T, class AllocatorType>
-TList<T, AllocatorType>::~TList()
+List<T, AllocatorType>::~List()
 {
     Node* node = m_head;
 
@@ -501,7 +501,7 @@ TList<T, AllocatorType>::~TList()
 }
 
 template <class T, class AllocatorType>
-auto TList<T, AllocatorType>::PushBack(const ValueType& value) -> ValueType&
+auto List<T, AllocatorType>::PushBack(const ValueType& value) -> ValueType&
 {
     Node* newNode = (Node*)GetAllocator()->Allocate(sizeof(Node), alignof(Node));
     newNode->previous = m_tail;
@@ -525,7 +525,7 @@ auto TList<T, AllocatorType>::PushBack(const ValueType& value) -> ValueType&
 }
 
 template <class T, class AllocatorType>
-auto TList<T, AllocatorType>::PushBack(ValueType&& value) -> ValueType&
+auto List<T, AllocatorType>::PushBack(ValueType&& value) -> ValueType&
 {
     Node* newNode = (Node*)GetAllocator()->Allocate(sizeof(Node), alignof(Node));
     newNode->previous = m_tail;
@@ -549,7 +549,7 @@ auto TList<T, AllocatorType>::PushBack(ValueType&& value) -> ValueType&
 }
 
 template <class T, class AllocatorType>
-auto TList<T, AllocatorType>::PushFront(const ValueType& value) -> ValueType&
+auto List<T, AllocatorType>::PushFront(const ValueType& value) -> ValueType&
 {
     Node* newNode = (Node*)GetAllocator()->Allocate(sizeof(Node), alignof(Node));
     newNode->previous = nullptr;
@@ -574,7 +574,7 @@ auto TList<T, AllocatorType>::PushFront(const ValueType& value) -> ValueType&
 }
 
 template <class T, class AllocatorType>
-auto TList<T, AllocatorType>::PushFront(ValueType&& value) -> ValueType&
+auto List<T, AllocatorType>::PushFront(ValueType&& value) -> ValueType&
 {
     Node* newNode = (Node*)GetAllocator()->Allocate(sizeof(Node), alignof(Node));
     newNode->previous = nullptr;
@@ -599,7 +599,7 @@ auto TList<T, AllocatorType>::PushFront(ValueType&& value) -> ValueType&
 }
 
 template <class T, class AllocatorType>
-auto TList<T, AllocatorType>::PopBack() -> ValueType
+auto List<T, AllocatorType>::PopBack() -> ValueType
 {
     HYP_CORE_ASSERT(m_size != 0);
 
@@ -626,7 +626,7 @@ auto TList<T, AllocatorType>::PopBack() -> ValueType
 }
 
 template <class T, class AllocatorType>
-auto TList<T, AllocatorType>::PopFront() -> ValueType
+auto List<T, AllocatorType>::PopFront() -> ValueType
 {
     HYP_CORE_ASSERT(m_size != 0);
 
@@ -653,7 +653,7 @@ auto TList<T, AllocatorType>::PopFront() -> ValueType
 }
 
 template <class T, class AllocatorType>
-auto TList<T, AllocatorType>::Erase(Iterator iter) -> Iterator
+auto List<T, AllocatorType>::Erase(Iterator iter) -> Iterator
 {
     if (iter == End())
     {
@@ -694,7 +694,7 @@ auto TList<T, AllocatorType>::Erase(Iterator iter) -> Iterator
 }
 
 template <class T, class AllocatorType>
-auto TList<T, AllocatorType>::Erase(ConstIterator iter) -> Iterator
+auto List<T, AllocatorType>::Erase(ConstIterator iter) -> Iterator
 {
     if (iter == End())
     {
@@ -735,7 +735,7 @@ auto TList<T, AllocatorType>::Erase(ConstIterator iter) -> Iterator
 }
 
 template <class T, class AllocatorType>
-void TList<T, AllocatorType>::Clear()
+void List<T, AllocatorType>::Clear()
 {
     Node* node = m_head;
 
@@ -756,10 +756,10 @@ void TList<T, AllocatorType>::Clear()
 
 } // namespace containers
 
-using containers::TList;
+using containers::List;
 
 template <class T, class AllocatorType>
-struct IsLinkedList<containers::TList<T, AllocatorType>> : std::true_type
+struct IsLinkedList<containers::List<T, AllocatorType>> : std::true_type
 {
 };
 

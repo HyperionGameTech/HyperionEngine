@@ -16,26 +16,26 @@ namespace Hyperion {
 namespace containers {
 
 template <class TAllocator>
-class TStridedBuffer
+class StridedBuffer
 {
 public:
-    TStridedBuffer(size_t elementSize, size_t alignment, size_t blocksPerSlab = 256)
+    StridedBuffer(size_t elementSize, size_t alignment, size_t blocksPerSlab = 256)
         : m_allocator(elementSize, alignment, blocksPerSlab)
     {
     }
 
-    TStridedBuffer(TAllocator* pAllocator, size_t elementSize, size_t alignment, size_t blocksPerSlab = 256)
+    StridedBuffer(TAllocator* pAllocator, size_t elementSize, size_t alignment, size_t blocksPerSlab = 256)
         : m_allocator(pAllocator, elementSize, alignment, blocksPerSlab)
     {
     }
 
-    TStridedBuffer(const TStridedBuffer& other) = delete;
-    TStridedBuffer& operator=(const TStridedBuffer& other) = delete;
+    StridedBuffer(const StridedBuffer& other) = delete;
+    StridedBuffer& operator=(const StridedBuffer& other) = delete;
 
-    TStridedBuffer(TStridedBuffer&& other) noexcept = delete;
-    TStridedBuffer& operator=(TStridedBuffer&& other) noexcept = delete;
+    StridedBuffer(StridedBuffer&& other) noexcept = delete;
+    StridedBuffer& operator=(StridedBuffer&& other) noexcept = delete;
 
-    ~TStridedBuffer() = default;
+    ~StridedBuffer() = default;
 
     template <class T>
     HYP_FORCE_INLINE const T* GetElement(size_t index) const
@@ -170,6 +170,6 @@ private:
 } // namespace containers
 
 template <class TAllocator = DynamicAllocator>
-using StridedBuffer = containers::TStridedBuffer<TAllocator>;
+using StridedBuffer = containers::StridedBuffer<TAllocator>;
 
 } // namespace Hyperion

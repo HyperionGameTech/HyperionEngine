@@ -1464,7 +1464,7 @@ RenderCollector::~RenderCollector()
                         state = nextState;
                     }
 
-                    TSet<ParallelRenderingState_Shared*> deletedSharedData;
+                    Set<ParallelRenderingState_Shared*> deletedSharedData;
 
                     for (size_t i = toDelete.Size(); i > 0; i--)
                     {

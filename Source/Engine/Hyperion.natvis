@@ -123,7 +123,7 @@
     </Expand>
   </Type>
 
-  <Type Name="Hyperion::containers::TList&lt;*,*&gt;">
+  <Type Name="Hyperion::containers::List&lt;*,*&gt;">
     <DisplayString>{{ Count={m_size} }}</DisplayString>
     <Expand>
       <Item Name="[Count]">m_size</Item>
@@ -204,7 +204,7 @@
     </Expand>
   </Type>
 
-  <Type Name="Hyperion::containers::TMap&lt;*,*,*&gt;">
+  <Type Name="Hyperion::containers::Map&lt;*,*,*&gt;">
     <DisplayString>{{ Size={m_size} }}</DisplayString>
 
     <Expand>
@@ -235,7 +235,7 @@
   </Type>
 
 
-  <Type Name="Hyperion::containers::THashTable&lt;*,*,*&gt;">
+  <Type Name="Hyperion::containers::HashTable&lt;*,*,*&gt;">
     <DisplayString>{{ Size={m_size} }}</DisplayString>
 
     <Expand>

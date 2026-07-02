@@ -76,10 +76,10 @@ struct StreamingCellRuntimeInfo
 };
 
 template <class AllocatorType>
-class StreamingCellCollection final : THashTable<StreamingCellRuntimeInfo, &StreamingCellRuntimeInfo::coord, AllocatorType>
+class StreamingCellCollection final : HashTable<StreamingCellRuntimeInfo, &StreamingCellRuntimeInfo::coord, AllocatorType>
 {
 public:
-    using Base = THashTable<StreamingCellRuntimeInfo, &StreamingCellRuntimeInfo::coord, AllocatorType>;
+    using Base = HashTable<StreamingCellRuntimeInfo, &StreamingCellRuntimeInfo::coord, AllocatorType>;
 
     using Iterator = typename Base::Iterator;
     using ConstIterator = typename Base::ConstIterator;

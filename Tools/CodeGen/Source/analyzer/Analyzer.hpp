@@ -95,22 +95,22 @@ public:
         m_hypscriptOutputDirectory = hypscriptOutputDirectory;
     }
 
-    HYP_FORCE_INLINE const TSet<FilePath>& GetExcludeDirectories() const
+    HYP_FORCE_INLINE const Set<FilePath>& GetExcludeDirectories() const
     {
         return m_excludeDirectories;
     }
 
-    HYP_FORCE_INLINE void SetExcludeDirectories(const TSet<FilePath>& excludeDirectories)
+    HYP_FORCE_INLINE void SetExcludeDirectories(const Set<FilePath>& excludeDirectories)
     {
         m_excludeDirectories = excludeDirectories;
     }
 
-    HYP_FORCE_INLINE const TSet<FilePath>& GetExcludeFiles() const
+    HYP_FORCE_INLINE const Set<FilePath>& GetExcludeFiles() const
     {
         return m_excludeFiles;
     }
 
-    HYP_FORCE_INLINE void SetExcludeFiles(const TSet<FilePath>& excludeFiles)
+    HYP_FORCE_INLINE void SetExcludeFiles(const Set<FilePath>& excludeFiles)
     {
         m_excludeFiles = excludeFiles;
     }
@@ -139,22 +139,22 @@ public:
         return nullptr;
     }
 
-    HYP_FORCE_INLINE const TMap<String, String>& GetGlobalDefines() const
+    HYP_FORCE_INLINE const Map<String, String>& GetGlobalDefines() const
     {
         return m_globalDefines;
     }
 
-    HYP_FORCE_INLINE void SetGlobalDefines(TMap<String, String>&& globalDefines)
+    HYP_FORCE_INLINE void SetGlobalDefines(Map<String, String>&& globalDefines)
     {
         m_globalDefines = std::move(globalDefines);
     }
 
-    HYP_FORCE_INLINE const TSet<String>& GetIncludePaths() const
+    HYP_FORCE_INLINE const Set<String>& GetIncludePaths() const
     {
         return m_includePaths;
     }
 
-    HYP_FORCE_INLINE void SetIncludePaths(TSet<String>&& includePaths)
+    HYP_FORCE_INLINE void SetIncludePaths(Set<String>&& includePaths)
     {
         m_includePaths = std::move(includePaths);
     }
@@ -166,12 +166,12 @@ public:
         m_state.errors.PushBack(error);
     }
 
-    HYP_FORCE_INLINE TMap<String, ClassDefinition>& GetBuiltinClasses()
+    HYP_FORCE_INLINE Map<String, ClassDefinition>& GetBuiltinClasses()
     {
         return m_builtinClasses;
     }
 
-    HYP_FORCE_INLINE const TMap<String, ClassDefinition>& GetBuiltinClasses() const
+    HYP_FORCE_INLINE const Map<String, ClassDefinition>& GetBuiltinClasses() const
     {
         return m_builtinClasses;
     }
@@ -193,16 +193,16 @@ private:
     FilePath m_csharpOutputDirectory;
     FilePath m_hypscriptOutputDirectory;
 
-    TSet<FilePath> m_excludeDirectories;
-    TSet<FilePath> m_excludeFiles;
+    Set<FilePath> m_excludeDirectories;
+    Set<FilePath> m_excludeFiles;
 
     AnalyzerState m_state;
     Array<UniquePtr<Module>> m_modules;
     mutable Mutex m_mutex;
-    TMap<String, String> m_globalDefines;
-    TSet<String> m_includePaths;
+    Map<String, String> m_globalDefines;
+    Set<String> m_includePaths;
 
-    TMap<String, ClassDefinition> m_builtinClasses;
+    Map<String, ClassDefinition> m_builtinClasses;
 };
 
 } // namespace CodeGen

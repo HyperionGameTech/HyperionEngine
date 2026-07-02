@@ -384,7 +384,7 @@ void BakerBase::DispatchJobs()
 
         const bool performsRayTracing = PerformsRayTracing();
 
-        TMap<Vec2i, Array<uint32>> tileBuckets;
+        Map<Vec2i, Array<uint32>> tileBuckets;
 
         AssertDebug(bakeData.texels.Any());
 

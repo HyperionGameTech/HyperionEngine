@@ -217,7 +217,7 @@ struct ViewData
     }
 };
 
-static TMap<View*, ViewData*> s_viewData;
+static Map<View*, ViewData*> s_viewData;
 
 static ViewData* GetViewData(View* view, bool createIfNotExist)
 {
@@ -298,7 +298,7 @@ struct BufferedViewData
 
 struct BufferedData
 {
-    TMap<View*, BufferedViewData*> perViewData;
+    Map<View*, BufferedViewData*> perViewData;
     SharedMutex viewFrameDataMutex;
 
     Array<World*> activeWorlds;

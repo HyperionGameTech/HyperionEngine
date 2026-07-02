@@ -269,7 +269,7 @@ WideString AstPrintVisitor::GetNodeDescription(AstStatement* node) const
 
     if ((node)->IsA<AstHashMap>())
     {
-        return L"TMap";
+        return L"Map";
     }
 
     if ((node)->IsA<AstDirective>())

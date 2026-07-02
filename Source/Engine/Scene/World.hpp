@@ -107,7 +107,7 @@ class ENGINE_API World final : public AssetObject
     friend class EngineDriver;
 
 public:
-    using SubsystemsMap = TFlatMap<TypeId, Handle<Subsystem>, SceneAllocator>;
+    using SubsystemsMap = FlatMap<TypeId, Handle<Subsystem>, SceneAllocator>;
 
     World();
     explicit World(Name name, EnumFlags<WorldFlags> worldFlags = WorldFlags::DEFAULT);

@@ -40,7 +40,7 @@ struct LoadAssetsFromReferencesContext
 };
 
 // used to prevent infinite recursion when serializing nested objects
-thread_local TSet<Pair<TypeId, const void*>> t_serializedObjects;
+thread_local Set<Pair<TypeId, const void*>> t_serializedObjects;
 
 // If true, class names will always be written when serializing objects IF the type != the declared type.
 // For example, we're serializing an array of Animal and we encounter a Dog object, we need to write the class name
@@ -725,7 +725,7 @@ Result ObjectToJSON(const Class* cls, const BoxedValue& target, JSON::Object& ou
         opts.writeClassNames = true;
     }
 
-    TSet<Name> usedMembers;
+    Set<Name> usedMembers;
 
     const Class* originalClass = cls;
 
@@ -1080,7 +1080,7 @@ Result ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, 
         GlobalContextScope contextScope { LoadAssetsFromReferencesContext() };
 
         // members with LoadOrder attribute get binned and put here first
-        TSortedArray<KeyValuePair<int, const IMember*>> sortedMembers;
+        SortedArray<KeyValuePair<int, const IMember*>> sortedMembers;
 
         // reoslve jsonpath members first
         for (const IMember& member : instanceClass->GetMembers(MemberType::Field | MemberType::Property))
@@ -2197,7 +2197,7 @@ void StripTransientMembers(BoxedValue& value)
     }
 
     // Build a set of transient member names so we know which to skip
-    TFlatSet<Name> transientMembers;
+    FlatSet<Name> transientMembers;
 
     for (const IMember& member : cls->GetMembers(MemberType::Field | MemberType::Property, /* deep */ false))
     {

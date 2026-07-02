@@ -131,7 +131,7 @@ public:
 
 #pragma region Thread Pool Factories
 
-static const TMap<TaskThreadPoolName, UniquePtr<TaskThreadPool> (*)(void)> s_threadPoolFactories {
+static const Map<TaskThreadPoolName, UniquePtr<TaskThreadPool> (*)(void)> s_threadPoolFactories {
     { TaskThreadPoolName::THREAD_POOL_GENERIC, []() -> UniquePtr<TaskThreadPool>
       {
           return MakeUnique<ForegroundWorkerPool>(cvNumForegroundWorkerThreads.Get(), ThreadPriorityValue::HIGHEST);

@@ -296,7 +296,7 @@ private:
     RendererResult CreateDescriptorPool(VulkanDescriptorPoolRequirements reqs, VkDescriptorPool& outDescriptorPool);
 
     SharedMutex m_mutex;
-    TMap<uint64, VkDescriptorSetLayout, VulkanAllocator> m_vkDescriptorSetLayouts;
+    Map<uint64, VkDescriptorSetLayout, VulkanAllocator> m_vkDescriptorSetLayouts;
 
     struct VulkanDescriptorPool
     {
@@ -974,8 +974,8 @@ void VulkanRenderInterface::PrepareFrame(VulkanFrame* frame)
     for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
     {
         // reset our transient command buffers
-        TList<VulkanCommandBuffer, VulkanAllocator>& freeList = m_transientCommandBuffers[threadIndex][frameCounter % NumFramesInFlight];
-        TList<VulkanCommandBuffer, VulkanAllocator>& pendingList = m_pendingTransientCommandBuffers[threadIndex][frameCounter % NumFramesInFlight];
+        List<VulkanCommandBuffer, VulkanAllocator>& freeList = m_transientCommandBuffers[threadIndex][frameCounter % NumFramesInFlight];
+        List<VulkanCommandBuffer, VulkanAllocator>& pendingList = m_pendingTransientCommandBuffers[threadIndex][frameCounter % NumFramesInFlight];
 
         for (auto it = pendingList.Begin(); it != pendingList.End();)
         {
@@ -1107,8 +1107,8 @@ VulkanCommandBuffer& VulkanRenderInterface::GetTransientCommandBuffer()
     const uint32 frameCounter = GetFrameCounter();
     const uint32 renderThreadIndex = CurrentRenderThreadIndex();
 
-    TList<VulkanCommandBuffer, VulkanAllocator>& freeList = m_transientCommandBuffers[renderThreadIndex][frameCounter % NumFramesInFlight];
-    TList<VulkanCommandBuffer, VulkanAllocator>& pendingList = m_pendingTransientCommandBuffers[renderThreadIndex][frameCounter % NumFramesInFlight];
+    List<VulkanCommandBuffer, VulkanAllocator>& freeList = m_transientCommandBuffers[renderThreadIndex][frameCounter % NumFramesInFlight];
+    List<VulkanCommandBuffer, VulkanAllocator>& pendingList = m_pendingTransientCommandBuffers[renderThreadIndex][frameCounter % NumFramesInFlight];
 
     VulkanDeviceQueue* graphicsQueue = m_instance->GetDevice()->GetGraphicsQueue();
     Assert(graphicsQueue != nullptr);

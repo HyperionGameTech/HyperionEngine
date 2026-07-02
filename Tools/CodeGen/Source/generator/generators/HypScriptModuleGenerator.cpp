@@ -44,7 +44,7 @@ FilePath HypScriptModuleGenerator::GetOutputFilePath(const Analyzer& analyzer, c
 Array<const ClassDefinition*> HypScriptModuleGenerator::SortClassesTopologically(
     const Analyzer& analyzer,
     const Array<const ClassDefinition*>& classes,
-    const TMap<String, size_t>& classNameToIndex) const
+    const Map<String, size_t>& classNameToIndex) const
 {
     const size_t numClasses = classes.Size();
     if (numClasses <= 1)
@@ -131,7 +131,7 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
 {
     // First, collect all classes that will be generated
     Array<const ClassDefinition*> classesToGenerate;
-    TMap<String, size_t> classNameToIndex;
+    Map<String, size_t> classNameToIndex;
 
     for (const Pair<String, ClassDefinition>& pair : mod.GetClasses())
     {
@@ -169,7 +169,7 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
 
         if (cls->type == ClassDefinitionType::Class || cls->type == ClassDefinitionType::Struct)
         {
-            TSet<const ClassDefinition*> baseClassDefinitions;
+            Set<const ClassDefinition*> baseClassDefinitions;
 
             if (cls->baseClassNames.Any())
             {

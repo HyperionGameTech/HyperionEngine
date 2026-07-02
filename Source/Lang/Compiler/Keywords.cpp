@@ -1,7 +1,7 @@
 #include <Lang/Compiler/Keywords.hpp>
 
 namespace Hyperion {
-const TMap<String, Keywords> Keyword::keywordStrings = {
+const Map<String, Keywords> Keyword::keywordStrings = {
     { "module", Keyword_module },
     { "import", Keyword_import },
     { "export", Keyword_export },

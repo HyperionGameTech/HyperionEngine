@@ -641,7 +641,7 @@ public:
         {
             for (Scene* scene : world->GetScenes())
             {
-                TSet<Entity*> entitiesToAddComponent;
+                Set<Entity*> entitiesToAddComponent;
 
                 for (auto&& [entity, meshComponent] : scene->GetEntityManager()->GetEntitySet<MeshComponent>().GetScopedView(DataAccessFlags::ACCESS_RW))
                 {

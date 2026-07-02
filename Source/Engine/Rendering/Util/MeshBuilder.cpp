@@ -20,7 +20,7 @@ namespace MeshBuilder {
 
 static Pair<Array<SimpleVertex>, Array<uint32>> CalculateIndices(const Array<SimpleVertex>& vertices)
 {
-    TMap<SimpleVertex, uint32> indexMap;
+    Map<SimpleVertex, uint32> indexMap;
 
     Array<uint32> indices;
     indices.Reserve(vertices.Size());

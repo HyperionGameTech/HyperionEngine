@@ -54,7 +54,7 @@ struct BakeJobParams
     Handle<View> view;
 
     Span<BakeEntity> bakeEntitiesView;
-    TMap<Handle<Entity>, BakeEntity*>* bakeEntitiesByEntity;
+    Map<Handle<Entity>, BakeEntity*>* bakeEntitiesByEntity;
 
     Array<UniquePtr<ILightmapRenderer>>* renderers = nullptr;
 };

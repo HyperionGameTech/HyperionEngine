@@ -69,7 +69,7 @@ private:
     LightmapShadingType m_shadingType;
     uint32 m_maxTexelsPerFrame;
 
-    TMap<BakeJobBase*, JobData> m_jobData;
+    Map<BakeJobBase*, JobData> m_jobData;
 
     SharedPtr<GpuLightmapperReadyNotification> m_readyNotification;
 

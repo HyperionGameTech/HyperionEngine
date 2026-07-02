@@ -126,7 +126,7 @@ private:
     struct CachedState
     {
         SharedMutex mutex;
-        TMap<WeakHandle<Entity>, int32, SceneAllocator> entityCellCache;
+        Map<WeakHandle<Entity>, int32, SceneAllocator> entityCellCache;
         int32 lastTetHint = 0;
     };
 

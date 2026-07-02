@@ -121,7 +121,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
     return { HYP_MAKE_ERROR(AssetLoadError, "MTL files should be loaded via MTLMaterialLoader::ParseMtl()") };
 }
 
-TMap<String, Handle<Material>> MTLMaterialLoader::ParseMtl(
+Map<String, Handle<Material>> MTLMaterialLoader::ParseMtl(
     FilePath filepath,
     AssetManager& assetManager,
     const String& batchIdentifier)
@@ -140,14 +140,14 @@ TMap<String, Handle<Material>> MTLMaterialLoader::ParseMtl(
     return ParseMtl_Internal(state);
 }
 
-TMap<String, Handle<Material>> MTLMaterialLoader::ParseMtl_Internal(LoaderState& state)
+Map<String, Handle<Material>> MTLMaterialLoader::ParseMtl_Internal(LoaderState& state)
 {
     Assert(state.assetManager != nullptr);
 
     MaterialLibrary library;
     library.filepath = state.filepath;
 
-    const TFlatMap<String, TextureMapping> textureKeys {
+    const FlatMap<String, TextureMapping> textureKeys {
         Pair<String, TextureMapping> { "map_kd", TextureMapping { .key = MaterialTextureKey::Diffuse, .srgb = true, .filterMode = TFM_LINEAR_MIPMAP } },
         Pair<String, TextureMapping> { "map_bump", TextureMapping { .key = MaterialTextureKey::Normals, .srgb = false, .filterMode = TFM_LINEAR_MIPMAP } },
         Pair<String, TextureMapping> { "bump", TextureMapping { .key = MaterialTextureKey::Normals, .srgb = false, .filterMode = TFM_LINEAR_MIPMAP } },
@@ -419,10 +419,10 @@ TMap<String, Handle<Material>> MTLMaterialLoader::ParseMtl_Internal(LoaderState&
         }
     }
 
-    TMap<String, Handle<Material>> result;
+    Map<String, Handle<Material>> result;
 
-    TMap<String, String> textureNamesToPath;
-    TSet<String> srgbTextures;
+    Map<String, String> textureNamesToPath;
+    Set<String> srgbTextures;
 
     for (const auto& item : library.materials)
     {
@@ -441,7 +441,7 @@ TMap<String, Handle<Material>> MTLMaterialLoader::ParseMtl_Internal(LoaderState&
         }
     }
 
-    TMap<String, Handle<Texture>> textureRefs;
+    Map<String, Handle<Texture>> textureRefs;
 
     AssetMap loadedTextures;
     Array<String> allFilepaths;

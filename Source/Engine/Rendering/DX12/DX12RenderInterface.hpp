@@ -184,11 +184,11 @@ private:
 
     FixedArray<DX12CommandBufferRef, NumFramesInFlight> m_commandBuffers;
 
-    TList<DX12CommandBuffer, DX12Allocator> m_transientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
-    TList<DX12CommandBuffer, DX12Allocator> m_pendingTransientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
+    List<DX12CommandBuffer, DX12Allocator> m_transientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
+    List<DX12CommandBuffer, DX12Allocator> m_pendingTransientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
 
-    TList<DX12Fence, DX12Allocator> m_transientCommandBufferFences[NumFramesInFlight];
-    TList<DX12Fence, DX12Allocator> m_recycledTransientCommandBufferFences;
+    List<DX12Fence, DX12Allocator> m_transientCommandBufferFences[NumFramesInFlight];
+    List<DX12Fence, DX12Allocator> m_recycledTransientCommandBufferFences;
     Mutex m_transientCommandBuffersMutex;
 
     ComPtr<ID3D12Fence> m_transientSyncFence;

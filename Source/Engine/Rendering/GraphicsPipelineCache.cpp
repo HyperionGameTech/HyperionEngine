@@ -45,10 +45,11 @@ class CachedPipelinesMap : public SparsePagedArray<GraphicsPipelineRef, 1024, Re
 {
 public:
     using Base = SparsePagedArray<GraphicsPipelineRef, 1024, RenderAllocator>;
-    using RefCountMap = SparsePagedArray<int, 1024, RenderAllocator>;
 
-    using Map = TMap<PSOCacheKey, FatArray<GraphicsPipelineRef*, InlineAllocator<1, RenderAllocator>>, RenderAllocator>;
-    using ReverseMap = TMap<size_t, PSOCacheKey, RenderAllocator>;
+    using RefCountMap = Map<size_t, uint32, RenderAllocator>;
+
+    using CacheKeyToPipelines = Map<PSOCacheKey, FatArray<GraphicsPipelineRef*, InlineAllocator<1, RenderAllocator>>, RenderAllocator>;
+    using IndexToCacheKey = Map<size_t, PSOCacheKey, RenderAllocator>;
 
     CachedPipelinesMap()
         : Base()
@@ -161,11 +162,11 @@ public:
 
     GraphicsPipelineCacheHandle Alloc(size_t& outIndex)
     {
-        outIndex = indexAllocator.Allocate();
+        outIndex = static_cast<size_t>(indexAllocator.Allocate());
 
         Assert(!Base::HasIndex(outIndex));
 
-        refCountMap.Set(outIndex, 0);
+        refCountMap[outIndex] = 0;
 
         return GraphicsPipelineCacheHandle(&*Base::Set(outIndex, GraphicsPipelineRef::Null()));
     }
@@ -174,9 +175,9 @@ public:
     {
         if (Base::HasIndex(index))
         {
-            const int refCount = refCountMap.Get(index);
+            const uint32 refCount = refCountMap[index];
 
-            if (refCount <= 0)
+            if (refCount == 0)
             {
                 GraphicsPipelineRef& graphicsPipeline = Base::Get(index);
 
@@ -248,8 +249,8 @@ public:
 
     RefCountMap refCountMap;
 
-    Map attrMap;
-    ReverseMap reverseAttrMap;
+    CacheKeyToPipelines attrMap;
+    IndexToCacheKey reverseAttrMap;
 
     Iterator cleanupIterator;
 };
@@ -275,8 +276,12 @@ void GraphicsPipelineCacheHandle::UpdateRefCount(GraphicsPipelineCacheHandle& ca
     const size_t index = RI.graphicsPipelineCache->m_cachedPipelines->IndexOf(cacheHandle.m_ptr);
     AssertDebug(index != size_t(-1));
 
-    int& refCount = cachedPipelines->refCountMap.Get(index);
-    refCount += delta;
+    uint32& refCount = cachedPipelines->refCountMap[index];
+
+    const int64 newRefCount = static_cast<int64>(refCount) + delta;
+    AssertDebug(newRefCount >= 0);
+
+    refCount = static_cast<uint32>(newRefCount);
 
     if (lock)
     {

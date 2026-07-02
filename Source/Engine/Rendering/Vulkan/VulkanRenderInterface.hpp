@@ -229,14 +229,14 @@ private:
 
     Array<VulkanCommandBufferRef, VulkanAllocator> m_commandBuffers;
 
-    TList<VulkanCommandBuffer, VulkanAllocator> m_transientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
-    TList<VulkanCommandBuffer, VulkanAllocator> m_pendingTransientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
+    List<VulkanCommandBuffer, VulkanAllocator> m_transientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
+    List<VulkanCommandBuffer, VulkanAllocator> m_pendingTransientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
 
-    TList<VulkanSemaphore, VulkanAllocator> m_transientCommandBufferSemaphores[NumFramesInFlight];
-    TList<VulkanSemaphore, VulkanAllocator> m_recycledTransientCommandBufferSemaphores;
+    List<VulkanSemaphore, VulkanAllocator> m_transientCommandBufferSemaphores[NumFramesInFlight];
+    List<VulkanSemaphore, VulkanAllocator> m_recycledTransientCommandBufferSemaphores;
 
-    TList<VulkanFence, VulkanAllocator> m_transientCommandBufferFences[NumFramesInFlight];
-    TList<VulkanFence, VulkanAllocator> m_recycledTransientCommandBufferFences;
+    List<VulkanFence, VulkanAllocator> m_transientCommandBufferFences[NumFramesInFlight];
+    List<VulkanFence, VulkanAllocator> m_recycledTransientCommandBufferFences;
 
     Mutex m_transientCommandBuffersMutex;
 

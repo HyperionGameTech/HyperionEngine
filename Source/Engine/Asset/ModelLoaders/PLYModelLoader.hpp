@@ -48,8 +48,8 @@ public:
 
     struct PLYModel
     {
-        TMap<String, PLYPropertyDefinition> propertyTypes;
-        TMap<String, ByteBuffer> customData;
+        Map<String, PLYPropertyDefinition> propertyTypes;
+        Map<String, ByteBuffer> customData;
         Array<SimpleVertex> vertices;
         size_t headerLength = 0;
     };

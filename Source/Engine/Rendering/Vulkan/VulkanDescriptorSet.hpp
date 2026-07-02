@@ -77,7 +77,7 @@ class VulkanDescriptorSet final : public DescriptorSetBase
 {
     HYP_OBJECT_BODY(VulkanDescriptorSet);
 
-    using ElementCache = TMap<Name, Array<VulkanCachedDescriptor, VulkanAllocator>, VulkanAllocator>;
+    using ElementCache = Map<Name, Array<VulkanCachedDescriptor, VulkanAllocator>, VulkanAllocator>;
 
 public:
     VulkanDescriptorSet(const DescriptorSetLayout& layout);

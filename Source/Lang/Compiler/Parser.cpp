@@ -2378,13 +2378,13 @@ SharedPtr<AstVariableDeclaration> Parser::ParseVariableDeclaration(
 {
     const SourceLocation location = CurrentLocation();
 
-    static const TMap<Keywords, IdentifierFlags> s_prefixKeywordMap = {
+    static const Map<Keywords, IdentifierFlags> s_prefixKeywordMap = {
         { Keyword_extern, IdentifierFlags::EXTERN },
         { Keyword_const, IdentifierFlags::CONSTANT },
         { Keyword_ref, IdentifierFlags::REF }
     };
 
-    TSet<Keywords> usedSpecifiers;
+    Set<Keywords> usedSpecifiers;
 
     while (Match(TK_KEYWORD, false))
     {

@@ -99,7 +99,7 @@ private:
 
     ManagedGuid m_guid;
 
-    TMap<int32, SharedPtr<ManagedClass>> m_classObjects;
+    Map<int32, SharedPtr<ManagedClass>> m_classObjects;
 
     // Function pointer to invoke a managed method
     InvokeGetterFunction m_invokeGetterFptr;

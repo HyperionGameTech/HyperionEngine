@@ -307,7 +307,7 @@ public:
     }
 
 private:
-    TMap<TypeId, const IClassCallbackWrapper*> m_callbacks;
+    Map<TypeId, const IClassCallbackWrapper*> m_callbacks;
     mutable Mutex m_mutex;
 };
 
@@ -669,16 +669,16 @@ protected:
     size_t m_alignment;
 
     Array<Property*> m_properties;
-    TMap<Name, Property*> m_propertiesByName;
+    Map<Name, Property*> m_propertiesByName;
 
     Array<Method*> m_methods;
-    TMap<Name, Method*> m_methodsByName;
+    Map<Name, Method*> m_methodsByName;
 
     Array<Field*> m_fields;
-    TMap<Name, Field*> m_fieldsByName;
+    Map<Name, Field*> m_fieldsByName;
 
     Array<StaticField*> m_staticFields;
-    TMap<Name, StaticField*> m_staticFieldsByName;
+    Map<Name, StaticField*> m_staticFieldsByName;
 
     EnumFlags<ClassSerializationMode> m_serializationMode;
 

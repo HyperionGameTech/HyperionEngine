@@ -382,7 +382,7 @@ struct ClassAttribute final
 class ClassAttributeSet final
 {
 public:
-    using SetType = THashTable<ClassAttribute, &ClassAttribute::name, DynamicAllocator, HashTablePolicy::NotPooled>;
+    using SetType = HashTable<ClassAttribute, &ClassAttribute::name, DynamicAllocator, HashTablePolicy::NotPooled>;
 
     using Iterator = typename SetType::Iterator;
     using ConstIterator = typename SetType::ConstIterator;

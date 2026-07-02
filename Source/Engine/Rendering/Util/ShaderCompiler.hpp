@@ -636,7 +636,7 @@ public:
     Array<Handle<Shader>> compiledShaders;
 
     HYP_FIELD(Transient)
-    TSet<ShaderPropertyId> staticProperties;
+    Set<ShaderPropertyId> staticProperties;
 
     HYP_FIELD(Transient)
     Array<String> errorMessages;

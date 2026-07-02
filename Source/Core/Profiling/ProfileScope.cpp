@@ -252,7 +252,7 @@ private:
     UUID m_traceId;
     ProfilerConnectionThread m_thread;
 
-    TFlatMap<ThreadId, UniquePtr<JSON::JArray>> m_perThreadValues;
+    FlatMap<ThreadId, UniquePtr<JSON::JArray>> m_perThreadValues;
     mutable Mutex m_valuesMutex;
 
     Array<Task<HTTPResponse>> m_requests;
@@ -307,7 +307,7 @@ struct ProfileScopeEntry
     double measuredTimeMs;
 
     ProfileScopeEntry* parent = nullptr;
-    TList<ProfileScopeEntry> children;
+    List<ProfileScopeEntry> children;
 
     ProfileScopeEntry(ANSIStringView label, ANSIStringView location, ProfileScopeEntry* parent = nullptr)
         : label(label),
@@ -410,7 +410,7 @@ static void DebugLogProfileScopeEntry(ProfileScopeEntry* entry, int depth = 0)
 
 class ProfileScopeStack
 {
-    using TimeByFunctionMap = TMap<ANSIString, double, ThreadAllocator>;
+    using TimeByFunctionMap = Map<ANSIString, double, ThreadAllocator>;
 
 public:
     ProfileScopeStack()

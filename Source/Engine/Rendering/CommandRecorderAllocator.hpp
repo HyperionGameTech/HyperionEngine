@@ -62,7 +62,7 @@ private:
     // for calling on another thread than sim thread / render thread.
     Mutex m_mutex;
 
-    TList<CommandRecorder> m_tempCommandRecorders;
+    List<CommandRecorder> m_tempCommandRecorders;
     volatile int32 m_tempCommandRecordersCount = 0;
 
     bool m_isShuttingDown : 1;

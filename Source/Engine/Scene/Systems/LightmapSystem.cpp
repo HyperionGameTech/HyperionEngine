@@ -79,7 +79,7 @@ void LightmapSystem::Process(float delta, Span<Handle<Scene>> scenes)
         }
     }
 
-    TSet<Entity*> updatedEntities;
+    Set<Entity*> updatedEntities;
 
     for (Scene* scene : scenes)
     {

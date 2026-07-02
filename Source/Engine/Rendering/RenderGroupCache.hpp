@@ -41,7 +41,7 @@ public:
     }
 
 private:
-    TMap<HashCode, Array<uint32, RenderAllocator>, RenderAllocator> m_lookupByHash;
+    Map<HashCode, Array<uint32, RenderAllocator>, RenderAllocator> m_lookupByHash;
     SparsePagedArray<RenderableAttributeSet, 1024, RenderAllocator> m_entries;
     IndexAllocator m_indexAllocator;
 };

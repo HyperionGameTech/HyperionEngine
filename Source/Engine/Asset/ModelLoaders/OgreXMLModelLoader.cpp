@@ -115,7 +115,7 @@ public:
             }
 
             // Use flatmap to ensure sorting of keys
-            TFlatMap<String, uint32> faceElements;
+            FlatMap<String, uint32> faceElements;
             faceElements.Reserve(attributes.Size());
 
             for (const Pair<String, String>& it : attributes)

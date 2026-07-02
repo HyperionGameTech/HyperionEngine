@@ -1672,7 +1672,7 @@ auto Filter(ContainerType&& container, Func&& func)
  *  \param func The function to apply to each element.
  *  \return A new array with the results of the function applied to each element. */
 template <class ContainerType, class Func>
-auto Map(ContainerType&& container, Func&& func)
+auto MapToArray(ContainerType&& container, Func&& func)
 {
     using ContainerElementType = typename NormalizedType<ContainerType>::ValueType;
     using MapResultType = decltype(std::declval<FunctionWrapper<NormalizedType<Func>>>()(std::declval<ContainerElementType>()));
@@ -1693,7 +1693,7 @@ auto Map(ContainerType&& container, Func&& func)
 } // namespace containers
 
 using containers::Filter;
-using containers::Map;
+using containers::MapToArray;
 
 // traits
 template <class T, class AllocatorType>

@@ -286,7 +286,7 @@ protected:
     Handle<Camera> m_camera;
 
     Array<BakeEntity, DynamicAllocator> m_bakeEntities;
-    TMap<Handle<Entity>, BakeEntity*> m_bakeEntitiesByEntity;
+    Map<Handle<Entity>, BakeEntity*> m_bakeEntitiesByEntity;
 
     BakerThreadPool* m_threadPool;
 

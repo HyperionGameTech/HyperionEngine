@@ -45,7 +45,7 @@ void AstSwitchExpression::Visit(AstVisitor* visitor, Module* mod)
 
     bool hasDefault = false;
     int defaultValueIndex = -1;
-    TFlatSet<HashCode> seenCaseValues;
+    FlatSet<HashCode> seenCaseValues;
 
     for (int i = 0; i < int(m_clauses.Size()); i++)
     {

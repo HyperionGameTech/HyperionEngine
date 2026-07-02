@@ -84,7 +84,7 @@ public:
     void ResetTransientStates();
 
 private:
-    using VulkanRenderPassesSet = TSet<
+    using VulkanRenderPassesSet = Set<
         VulkanRenderPass*,
         VulkanAllocator,
         HashTablePolicy::NotPooled>;
@@ -102,7 +102,7 @@ private:
     uint64 m_frameCompleteValue;
     VulkanRenderPassesSet m_renderPasses;
 
-    TMap<const VulkanSwapchain*, VulkanSwapchainData, VulkanAllocator> m_swapchainData;
+    Map<const VulkanSwapchain*, VulkanSwapchainData, VulkanAllocator> m_swapchainData;
 };
 
 } // namespace Hyperion

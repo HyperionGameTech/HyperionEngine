@@ -501,7 +501,7 @@ void ProfileHashMapInsertion(bool setupOnly)
 
     const Dataset& data = ActiveDataset();
 
-    TMap<uint32, uint32, TestAllocator> map;
+    Map<uint32, uint32, TestAllocator> map;
     map.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -518,7 +518,7 @@ void ProfileHashMapDynamicInsertion(bool setupOnly)
 
     const Dataset& data = ActiveDataset();
 
-    TMap<uint32, uint32, TestAllocator> map;
+    Map<uint32, uint32, TestAllocator> map;
     map.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -531,13 +531,13 @@ void ProfileHashMapDynamicInsertion(bool setupOnly)
 
 void ProfileHashMapIteration(bool setupOnly)
 {
-    static TMap<uint32, uint32, TestAllocator> s_map;
+    static Map<uint32, uint32, TestAllocator> s_map;
 
     if (setupOnly)
     {
         const Dataset& data = ActiveDataset();
 
-        TMap<uint32, uint32, TestAllocator> temp;
+        Map<uint32, uint32, TestAllocator> temp;
         temp.Reserve(data.elementCount);
 
         for (size_t i = 0; i < data.elementCount; ++i)
@@ -561,13 +561,13 @@ void ProfileHashMapIteration(bool setupOnly)
 
 void ProfileHashMapDynamicIteration(bool setupOnly)
 {
-    static TMap<uint32, uint32, TestAllocator> s_map;
+    static Map<uint32, uint32, TestAllocator> s_map;
 
     if (setupOnly)
     {
         const Dataset& data = ActiveDataset();
 
-        TMap<uint32, uint32, TestAllocator> temp;
+        Map<uint32, uint32, TestAllocator> temp;
         temp.Reserve(data.elementCount);
 
         for (size_t i = 0; i < data.elementCount; ++i)
@@ -591,13 +591,13 @@ void ProfileHashMapDynamicIteration(bool setupOnly)
 
 void ProfileHashMapFind(bool setupOnly)
 {
-    static TMap<uint32, uint32, TestAllocator> s_map;
+    static Map<uint32, uint32, TestAllocator> s_map;
 
     if (setupOnly)
     {
         const Dataset& data = ActiveDataset();
 
-        TMap<uint32, uint32, TestAllocator> temp;
+        Map<uint32, uint32, TestAllocator> temp;
         temp.Reserve(data.elementCount);
 
         for (size_t i = 0; i < data.elementCount; ++i)
@@ -625,13 +625,13 @@ void ProfileHashMapFind(bool setupOnly)
 
 void ProfileHashMapDynamicFind(bool setupOnly)
 {
-    static TMap<uint32, uint32, TestAllocator> s_map;
+    static Map<uint32, uint32, TestAllocator> s_map;
 
     if (setupOnly)
     {
         const Dataset& data = ActiveDataset();
 
-        TMap<uint32, uint32, TestAllocator> temp;
+        Map<uint32, uint32, TestAllocator> temp;
         temp.Reserve(data.elementCount);
 
         for (size_t i = 0; i < data.elementCount; ++i)
@@ -659,13 +659,13 @@ void ProfileHashMapDynamicFind(bool setupOnly)
 
 void ProfileHashMapRemoval(bool setupOnly)
 {
-    static TMap<uint32, uint32, TestAllocator> s_source;
+    static Map<uint32, uint32, TestAllocator> s_source;
 
     if (setupOnly)
     {
         const Dataset& data = ActiveDataset();
 
-        TMap<uint32, uint32, TestAllocator> temp;
+        Map<uint32, uint32, TestAllocator> temp;
         temp.Reserve(data.elementCount);
 
         for (size_t i = 0; i < data.elementCount; ++i)
@@ -679,7 +679,7 @@ void ProfileHashMapRemoval(bool setupOnly)
     }
 
     const Dataset& data = ActiveDataset();
-    TMap<uint32, uint32, TestAllocator> map = s_source;
+    Map<uint32, uint32, TestAllocator> map = s_source;
 
     for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
@@ -691,13 +691,13 @@ void ProfileHashMapRemoval(bool setupOnly)
 
 void ProfileHashMapDynamicRemoval(bool setupOnly)
 {
-    static TMap<uint32, uint32, TestAllocator> s_source;
+    static Map<uint32, uint32, TestAllocator> s_source;
 
     if (setupOnly)
     {
         const Dataset& data = ActiveDataset();
 
-        TMap<uint32, uint32, TestAllocator> temp;
+        Map<uint32, uint32, TestAllocator> temp;
         temp.Reserve(data.elementCount);
 
         for (size_t i = 0; i < data.elementCount; ++i)
@@ -711,7 +711,7 @@ void ProfileHashMapDynamicRemoval(bool setupOnly)
     }
 
     const Dataset& data = ActiveDataset();
-    TMap<uint32, uint32, TestAllocator> map = s_source;
+    Map<uint32, uint32, TestAllocator> map = s_source;
 
     for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
@@ -727,7 +727,7 @@ void ProfileFlatMapInsertion(bool setupOnly)
 
     const Dataset& data = ActiveDataset();
 
-    TFlatMap<uint32, uint32> map;
+    FlatMap<uint32, uint32> map;
     map.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -740,13 +740,13 @@ void ProfileFlatMapInsertion(bool setupOnly)
 
 void ProfileFlatMapIteration(bool setupOnly)
 {
-    static TFlatMap<uint32, uint32> s_map;
+    static FlatMap<uint32, uint32> s_map;
 
     if (setupOnly)
     {
         const Dataset& data = ActiveDataset();
 
-        TFlatMap<uint32, uint32> temp;
+        FlatMap<uint32, uint32> temp;
         temp.Reserve(data.elementCount);
 
         for (size_t i = 0; i < data.elementCount; ++i)
@@ -770,13 +770,13 @@ void ProfileFlatMapIteration(bool setupOnly)
 
 void ProfileFlatMapFind(bool setupOnly)
 {
-    static TFlatMap<uint32, uint32> s_map;
+    static FlatMap<uint32, uint32> s_map;
 
     if (setupOnly)
     {
         const Dataset& data = ActiveDataset();
 
-        TFlatMap<uint32, uint32> temp;
+        FlatMap<uint32, uint32> temp;
         temp.Reserve(data.elementCount);
 
         for (size_t i = 0; i < data.elementCount; ++i)
@@ -804,13 +804,13 @@ void ProfileFlatMapFind(bool setupOnly)
 
 void ProfileFlatMapRemoval(bool setupOnly)
 {
-    static TFlatMap<uint32, uint32> s_source;
+    static FlatMap<uint32, uint32> s_source;
 
     if (setupOnly)
     {
         const Dataset& data = ActiveDataset();
 
-        TFlatMap<uint32, uint32> temp;
+        FlatMap<uint32, uint32> temp;
         temp.Reserve(data.elementCount);
 
         for (size_t i = 0; i < data.elementCount; ++i)
@@ -824,7 +824,7 @@ void ProfileFlatMapRemoval(bool setupOnly)
     }
 
     const Dataset& data = ActiveDataset();
-    TFlatMap<uint32, uint32> map = s_source;
+    FlatMap<uint32, uint32> map = s_source;
 
     for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
@@ -840,7 +840,7 @@ void ProfileHashSetInsertion(bool setupOnly)
 
     const Dataset& data = ActiveDataset();
 
-    TSet<uint32, TestAllocator> set;
+    Set<uint32, TestAllocator> set;
     set.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -857,7 +857,7 @@ void ProfileHashSetDynamicInsertion(bool setupOnly)
 
     const Dataset& data = ActiveDataset();
 
-    TSet<uint32, TestAllocator> set;
+    Set<uint32, TestAllocator> set;
     set.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -870,13 +870,13 @@ void ProfileHashSetDynamicInsertion(bool setupOnly)
 
 void ProfileHashSetIteration(bool setupOnly)
 {
-    static TSet<uint32, TestAllocator> s_set;
+    static Set<uint32, TestAllocator> s_set;
 
     if (setupOnly)
     {
         const Dataset& data = ActiveDataset();
 
-        TSet<uint32, TestAllocator> temp;
+        Set<uint32, TestAllocator> temp;
         temp.Reserve(data.elementCount);
 
         for (size_t i = 0; i < data.elementCount; ++i)
@@ -900,13 +900,13 @@ void ProfileHashSetIteration(bool setupOnly)
 
 void ProfileHashSetDynamicIteration(bool setupOnly)
 {
-    static TSet<uint32, TestAllocator> s_set;
+    static Set<uint32, TestAllocator> s_set;
 
     if (setupOnly)
     {
         const Dataset& data = ActiveDataset();
 
-        TSet<uint32, TestAllocator> temp;
+        Set<uint32, TestAllocator> temp;
         temp.Reserve(data.elementCount);
 
         for (size_t i = 0; i < data.elementCount; ++i)
@@ -930,13 +930,13 @@ void ProfileHashSetDynamicIteration(bool setupOnly)
 
 void ProfileHashSetFind(bool setupOnly)
 {
-    static TSet<uint32, TestAllocator> s_set;
+    static Set<uint32, TestAllocator> s_set;
 
     if (setupOnly)
     {
         const Dataset& data = ActiveDataset();
 
-        TSet<uint32, TestAllocator> temp;
+        Set<uint32, TestAllocator> temp;
         temp.Reserve(data.elementCount);
 
         for (size_t i = 0; i < data.elementCount; ++i)
@@ -964,13 +964,13 @@ void ProfileHashSetFind(bool setupOnly)
 
 void ProfileHashSetDynamicFind(bool setupOnly)
 {
-    static TSet<uint32, TestAllocator> s_set;
+    static Set<uint32, TestAllocator> s_set;
 
     if (setupOnly)
     {
         const Dataset& data = ActiveDataset();
 
-        TSet<uint32, TestAllocator> temp;
+        Set<uint32, TestAllocator> temp;
         temp.Reserve(data.elementCount);
 
         for (size_t i = 0; i < data.elementCount; ++i)
@@ -998,13 +998,13 @@ void ProfileHashSetDynamicFind(bool setupOnly)
 
 void ProfileHashSetRemoval(bool setupOnly)
 {
-    static TSet<uint32, TestAllocator> s_source;
+    static Set<uint32, TestAllocator> s_source;
 
     if (setupOnly)
     {
         const Dataset& data = ActiveDataset();
 
-        TSet<uint32, TestAllocator> temp;
+        Set<uint32, TestAllocator> temp;
         temp.Reserve(data.elementCount);
 
         for (size_t i = 0; i < data.elementCount; ++i)
@@ -1018,7 +1018,7 @@ void ProfileHashSetRemoval(bool setupOnly)
     }
 
     const Dataset& data = ActiveDataset();
-    TSet<uint32, TestAllocator> set = s_source;
+    Set<uint32, TestAllocator> set = s_source;
 
     for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
@@ -1030,13 +1030,13 @@ void ProfileHashSetRemoval(bool setupOnly)
 
 void ProfileHashSetDynamicRemoval(bool setupOnly)
 {
-    static TSet<uint32, TestAllocator> s_source;
+    static Set<uint32, TestAllocator> s_source;
 
     if (setupOnly)
     {
         const Dataset& data = ActiveDataset();
 
-        TSet<uint32, TestAllocator> temp;
+        Set<uint32, TestAllocator> temp;
         temp.Reserve(data.elementCount);
 
         for (size_t i = 0; i < data.elementCount; ++i)
@@ -1050,7 +1050,7 @@ void ProfileHashSetDynamicRemoval(bool setupOnly)
     }
 
     const Dataset& data = ActiveDataset();
-    TSet<uint32, TestAllocator> set = s_source;
+    Set<uint32, TestAllocator> set = s_source;
 
     for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
@@ -1066,7 +1066,7 @@ void ProfileFlatSetInsertion(bool setupOnly)
 
     const Dataset& data = ActiveDataset();
 
-    TFlatSet<uint32> set;
+    FlatSet<uint32> set;
     set.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -1079,13 +1079,13 @@ void ProfileFlatSetInsertion(bool setupOnly)
 
 void ProfileFlatSetIteration(bool setupOnly)
 {
-    static TFlatSet<uint32> s_set;
+    static FlatSet<uint32> s_set;
 
     if (setupOnly)
     {
         const Dataset& data = ActiveDataset();
 
-        TFlatSet<uint32> temp;
+        FlatSet<uint32> temp;
         temp.Reserve(data.elementCount);
 
         for (size_t i = 0; i < data.elementCount; ++i)
@@ -1109,13 +1109,13 @@ void ProfileFlatSetIteration(bool setupOnly)
 
 void ProfileFlatSetFind(bool setupOnly)
 {
-    static TFlatSet<uint32> s_set;
+    static FlatSet<uint32> s_set;
 
     if (setupOnly)
     {
         const Dataset& data = ActiveDataset();
 
-        TFlatSet<uint32> temp;
+        FlatSet<uint32> temp;
         temp.Reserve(data.elementCount);
 
         for (size_t i = 0; i < data.elementCount; ++i)
@@ -1143,13 +1143,13 @@ void ProfileFlatSetFind(bool setupOnly)
 
 void ProfileFlatSetRemoval(bool setupOnly)
 {
-    static TFlatSet<uint32> s_source;
+    static FlatSet<uint32> s_source;
 
     if (setupOnly)
     {
         const Dataset& data = ActiveDataset();
 
-        TFlatSet<uint32> temp;
+        FlatSet<uint32> temp;
         temp.Reserve(data.elementCount);
 
         for (size_t i = 0; i < data.elementCount; ++i)
@@ -1163,7 +1163,7 @@ void ProfileFlatSetRemoval(bool setupOnly)
     }
 
     const Dataset& data = ActiveDataset();
-    TFlatSet<uint32> set = s_source;
+    FlatSet<uint32> set = s_source;
 
     for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
@@ -1795,8 +1795,8 @@ HYP_EXPORT void PrintContainerProfiling(size_t runsPer = 5, size_t numIterations
         { "Array", &ProfileArrayInsertion },
         { "SlimArray", &ProfileSlimArrayInsertion },
         { "SparsePagedArray", &ProfileSparsePagedArrayInsertion },
-        { "TMap (Pooled)", &ProfileHashMapInsertion },
-        { "TMap (Dynamic)", &ProfileHashMapDynamicInsertion },
+        { "Map (Pooled)", &ProfileHashMapInsertion },
+        { "Map (Dynamic)", &ProfileHashMapDynamicInsertion },
         { "HashSet (Pooled)", &ProfileHashSetInsertion },
         { "HashSet (Dynamic)", &ProfileHashSetDynamicInsertion },
         { "FlatMap", &ProfileFlatMapInsertion },
@@ -1812,8 +1812,8 @@ HYP_EXPORT void PrintContainerProfiling(size_t runsPer = 5, size_t numIterations
         { "Array", &ProfileArrayIteration },
         { "SlimArray", &ProfileSlimArrayIteration },
         { "SparsePagedArray", &ProfileSparsePagedArrayIteration },
-        { "TMap (Pooled)", &ProfileHashMapIteration },
-        { "TMap (Dynamic)", &ProfileHashMapDynamicIteration },
+        { "Map (Pooled)", &ProfileHashMapIteration },
+        { "Map (Dynamic)", &ProfileHashMapDynamicIteration },
         { "HashSet (Pooled)", &ProfileHashSetIteration },
         { "HashSet (Dynamic)", &ProfileHashSetDynamicIteration },
         { "FlatMap", &ProfileFlatMapIteration },
@@ -1829,8 +1829,8 @@ HYP_EXPORT void PrintContainerProfiling(size_t runsPer = 5, size_t numIterations
         { "Array", &ProfileArrayFind },
         { "SlimArray", &ProfileSlimArrayFind },
         { "SparsePagedArray", &ProfileSparsePagedArrayFind },
-        { "TMap (Pooled)", &ProfileHashMapFind },
-        { "TMap (Dynamic)", &ProfileHashMapDynamicFind },
+        { "Map (Pooled)", &ProfileHashMapFind },
+        { "Map (Dynamic)", &ProfileHashMapDynamicFind },
         { "HashSet (Pooled)", &ProfileHashSetFind },
         { "HashSet (Dynamic)", &ProfileHashSetDynamicFind },
         { "FlatMap", &ProfileFlatMapFind },
@@ -1846,8 +1846,8 @@ HYP_EXPORT void PrintContainerProfiling(size_t runsPer = 5, size_t numIterations
         { "Array", &ProfileArrayRemoval },
         { "SlimArray", &ProfileSlimArrayRemoval },
         { "SparsePagedArray", &ProfileSparsePagedArrayRemoval },
-        { "TMap (Pooled)", &ProfileHashMapRemoval },
-        { "TMap (Dynamic)", &ProfileHashMapDynamicRemoval },
+        { "Map (Pooled)", &ProfileHashMapRemoval },
+        { "Map (Dynamic)", &ProfileHashMapDynamicRemoval },
         { "HashSet (Pooled)", &ProfileHashSetRemoval },
         { "HashSet (Dynamic)", &ProfileHashSetDynamicRemoval },
         { "FlatMap", &ProfileFlatMapRemoval },

@@ -170,60 +170,60 @@ struct GenericArrayWrapper
     template <class T, size_t Sz>
     GenericArrayWrapper(AsCopyTag, FixedArray<T, Sz>&& arr);
 
-    // TSet<T, AllocatorType>
+    // Set<T, AllocatorType>
 
     template <class T, class AllocatorType>
-    GenericArrayWrapper(AsReferenceTag, TSet<T, AllocatorType>& set);
+    GenericArrayWrapper(AsReferenceTag, Set<T, AllocatorType>& set);
 
     template <class T, class AllocatorType>
-    GenericArrayWrapper(AsCopyTag, const TSet<T, AllocatorType>& set);
+    GenericArrayWrapper(AsCopyTag, const Set<T, AllocatorType>& set);
 
     template <class T, class AllocatorType>
-    GenericArrayWrapper(AsCopyTag, TSet<T, AllocatorType>&& set);
+    GenericArrayWrapper(AsCopyTag, Set<T, AllocatorType>&& set);
 
-    // TFlatSet<T>
-
-    template <class T>
-    GenericArrayWrapper(AsReferenceTag, TFlatSet<T>& set);
+    // FlatSet<T>
 
     template <class T>
-    GenericArrayWrapper(AsCopyTag, const TFlatSet<T>& set);
+    GenericArrayWrapper(AsReferenceTag, FlatSet<T>& set);
 
     template <class T>
-    GenericArrayWrapper(AsCopyTag, TFlatSet<T>&& set);
+    GenericArrayWrapper(AsCopyTag, const FlatSet<T>& set);
 
-    // TFlatMap<K, V>
+    template <class T>
+    GenericArrayWrapper(AsCopyTag, FlatSet<T>&& set);
+
+    // FlatMap<K, V>
 
     template <class K, class V>
-    GenericArrayWrapper(AsReferenceTag, TFlatMap<K, V>& map);
+    GenericArrayWrapper(AsReferenceTag, FlatMap<K, V>& map);
 
     template <class K, class V>
-    GenericArrayWrapper(AsCopyTag, const TFlatMap<K, V>& map);
+    GenericArrayWrapper(AsCopyTag, const FlatMap<K, V>& map);
 
     template <class K, class V>
-    GenericArrayWrapper(AsCopyTag, TFlatMap<K, V>&& map);
+    GenericArrayWrapper(AsCopyTag, FlatMap<K, V>&& map);
 
-    // TMap<K, V, AllocatorType>
-
-    template <class K, class V, class AllocatorType>
-    GenericArrayWrapper(AsReferenceTag, TMap<K, V, AllocatorType>& map);
+    // Map<K, V, AllocatorType>
 
     template <class K, class V, class AllocatorType>
-    GenericArrayWrapper(AsCopyTag, const TMap<K, V, AllocatorType>& map);
+    GenericArrayWrapper(AsReferenceTag, Map<K, V, AllocatorType>& map);
 
     template <class K, class V, class AllocatorType>
-    GenericArrayWrapper(AsCopyTag, TMap<K, V, AllocatorType>&& map);
+    GenericArrayWrapper(AsCopyTag, const Map<K, V, AllocatorType>& map);
 
-    // TList<T>
+    template <class K, class V, class AllocatorType>
+    GenericArrayWrapper(AsCopyTag, Map<K, V, AllocatorType>&& map);
 
-    template <class T>
-    GenericArrayWrapper(AsReferenceTag, TList<T>& list);
-
-    template <class T>
-    GenericArrayWrapper(AsCopyTag, const TList<T>& list);
+    // List<T>
 
     template <class T>
-    GenericArrayWrapper(AsCopyTag, TList<T>&& list);
+    GenericArrayWrapper(AsReferenceTag, List<T>& list);
+
+    template <class T>
+    GenericArrayWrapper(AsCopyTag, const List<T>& list);
+
+    template <class T>
+    GenericArrayWrapper(AsCopyTag, List<T>&& list);
 
 #if !defined(HYP_USE_SLIM_ARRAY) || !HYP_USE_SLIM_ARRAY
     // SlimArray<TElemType, TAllocator>

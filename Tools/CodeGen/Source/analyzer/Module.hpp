@@ -26,7 +26,7 @@ namespace CodeGen {
 class Module
 {
 public:
-    using ClassDefinitionMap = TMap<String, ClassDefinition, DynamicAllocator, containers::HashTablePolicy::NotPooled>;
+    using ClassDefinitionMap = Map<String, ClassDefinition, DynamicAllocator, containers::HashTablePolicy::NotPooled>;
 
     explicit Module(const FilePath& path);
 

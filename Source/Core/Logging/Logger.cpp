@@ -114,7 +114,7 @@ struct LoggerState
     LoggerWriteFnPtr m_writeErrorFnptrTable[Logger::MaxChannels];
 
     Mutex m_mutex;
-    TMap<int, LoggerRedirect> m_redirects;
+    Map<int, LoggerRedirect> m_redirects;
     uint64 m_redirectEnabledMask;
     int m_redirectIdCounter;
 
@@ -380,8 +380,8 @@ void LogChannelRegistrar::RegisterAll()
     const Array<LogChannel*>& channels = m_channels;
     const uint32 n = uint32(channels.Size());
 
-    TMap<LogChannel*, uint32> indeg;
-    TMap<LogChannel*, Array<LogChannel*>> children;
+    Map<LogChannel*, uint32> indeg;
+    Map<LogChannel*, Array<LogChannel*>> children;
     indeg.Reserve(n);
     children.Reserve(n);
 

@@ -27,7 +27,7 @@ namespace utilities {
 
 #pragma region Cache
 
-using TypeInfoCache = TMap<TypeId, TypeInfo*>;
+using TypeInfoCache = Map<TypeId, TypeInfo*>;
 
 static bool s_typeInfoSystemInitialized = false;
 static TypeInfoCache* s_typeInfoCache = nullptr;
@@ -39,7 +39,7 @@ static Mutex& GetTypeInfoCacheMutex()
     return s_typeInfoCacheMutex;
 }
 
-static TMap<TypeId, TypeInfo*>& GetTypeInfoCache()
+static Map<TypeId, TypeInfo*>& GetTypeInfoCache()
 {
     static struct Initializer
     {
@@ -67,7 +67,7 @@ static SlabAllocator& GetTypeInfoAllocator()
 
 #if defined(HYP_TYPE_INFO_USE_TLS) && HYP_TYPE_INFO_USE_TLS
 
-using ThreadLocalCacheMap = TMap<TypeId, TypeInfo*>;
+using ThreadLocalCacheMap = Map<TypeId, TypeInfo*>;
 
 static ThreadLocalCacheMap& GetDummyThreadLocalCache()
 {

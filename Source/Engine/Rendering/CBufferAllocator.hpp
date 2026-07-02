@@ -92,10 +92,10 @@ private:
     Block* NewBlock(uint32 currentFrameCounter);
     Block* TryGetRecycledBlock(uint32 currentFrameCounter);
 
-    TList<Block, RenderAllocator> m_blocks;
+    List<Block, RenderAllocator> m_blocks;
     size_t m_minAllocationAlignment;
 
-    TList<Block, RenderAllocator> m_currentFrameBlocks[NumRendererWorkerThreads + 1];
+    List<Block, RenderAllocator> m_currentFrameBlocks[NumRendererWorkerThreads + 1];
 
     memory::ByteBuffer<RenderAllocator> m_scratch[NumRendererWorkerThreads + 1];
     size_t m_scratchAlignment[NumRendererWorkerThreads + 1];

@@ -998,7 +998,7 @@ JString Value::ToString(bool representation, uint32 depth) const
 
 JString Value::ToString_Internal(bool representation, uint32 depth) const
 {
-    thread_local TSet<const Value*> t_serializedObjects;
+    thread_local containers::Set<const Value*> t_serializedObjects;
 
     if (!t_serializedObjects.Insert(this).second)
     {

@@ -84,19 +84,19 @@ template <int TStringType, class TAllocator>
 class String;
 
 template <class T, class AllocatorType>
-class TList;
+class List;
 
 template <class Key, class Value, class AllocatorType, class Policy>
-class TMap;
+class Map;
 
 template <class Value, class AllocatorType, class Policy>
-class TSet;
+class Set;
 
 template <class Key, class Value, class AllocatorType>
-class TFlatMap;
+class FlatMap;
 
 template <class T, class AllocatorType>
-class TFlatSet;
+class FlatSet;
 
 template <class Key, class Value>
 class ArrayMap;
@@ -521,7 +521,7 @@ struct TypeInfoImpl<containers::FixedArray<T, Size>, TBoxed>
 };
 
 template <class T, class AllocatorType, class TBoxed>
-struct TypeInfoImpl<containers::TList<T, AllocatorType>, TBoxed>
+struct TypeInfoImpl<containers::List<T, AllocatorType>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
@@ -539,25 +539,25 @@ struct TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, filesystem::Fi
 };
 
 template <class Key, class Value, class AllocatorType, class TBoxed>
-struct TypeInfoImpl<containers::TMap<Key, Value, AllocatorType>, TBoxed>
+struct TypeInfoImpl<containers::Map<Key, Value, AllocatorType>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
 
 template <class Value, class AllocatorType, class TBoxed>
-struct TypeInfoImpl<containers::TSet<Value, AllocatorType>, TBoxed>
+struct TypeInfoImpl<containers::Set<Value, AllocatorType>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
 
 template <class Key, class Value, class AllocatorType, class TBoxed>
-struct TypeInfoImpl<containers::TFlatMap<Key, Value, AllocatorType>, TBoxed>
+struct TypeInfoImpl<containers::FlatMap<Key, Value, AllocatorType>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
 
 template <class T, class AllocatorType, class TBoxed>
-struct TypeInfoImpl<containers::TFlatSet<T, AllocatorType>, TBoxed>
+struct TypeInfoImpl<containers::FlatSet<T, AllocatorType>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
@@ -917,7 +917,7 @@ struct CORE_API TypeInfo
         return flags & TypeInfoFlags::HANDLE_TYPE;
     }
 
-    /*! \brief Get element type for Array, String, TSet, TFlatSet, or key type for TMap/TFlatMap */
+    /*! \brief Get element type for Array, String, Set, FlatSet, or key type for Map/FlatMap */
     HYP_FORCE_INLINE const TypeInfo* GetElementType() const
     {
         return extendedInfo.GetElementType();
@@ -962,7 +962,7 @@ struct CORE_API TypeInfo
         return nullptr;
     }
 
-    /*! \brief Get value type for TMap/FlatMap (stored in extendedInfo.next->data) */
+    /*! \brief Get value type for Map/FlatMap (stored in extendedInfo.next->data) */
     HYP_FORCE_INLINE const TypeInfo* GetValueType() const
     {
         if (!extendedInfo.next)
@@ -973,7 +973,7 @@ struct CORE_API TypeInfo
         return extendedInfo.next->GetElementType();
     }
 
-    /*! \brief Get key type for TMap/FlatMap (same as GetElementType for these types) */
+    /*! \brief Get key type for Map/FlatMap (same as GetElementType for these types) */
     HYP_FORCE_INLINE const TypeInfo* GetKeyType() const
     {
         if (IsMapType())
@@ -1204,9 +1204,9 @@ void TypeInfoImpl<containers::FixedArray<T, Size>, TBoxed>::operator()(TypeInfo&
 }
 
 template <class T, class AllocatorType, class TBoxed>
-void TypeInfoImpl<containers::TList<T, AllocatorType>, TBoxed>::operator()(TypeInfo& result) const
+void TypeInfoImpl<containers::List<T, AllocatorType>, TBoxed>::operator()(TypeInfo& result) const
 {
-    using ListType = containers::TList<T, AllocatorType>;
+    using ListType = containers::List<T, AllocatorType>;
 
     class LinkedListHandler final : public ITypeInfoLinkedListHandler
     {
@@ -1307,9 +1307,9 @@ void TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, filesystem::File
 }
 
 template <class Key, class Value, class AllocatorType, class TBoxed>
-void TypeInfoImpl<containers::TMap<Key, Value, AllocatorType>, TBoxed>::operator()(TypeInfo& result) const
+void TypeInfoImpl<containers::Map<Key, Value, AllocatorType>, TBoxed>::operator()(TypeInfo& result) const
 {
-    using MapType = containers::TMap<Key, Value, AllocatorType>;
+    using MapType = containers::Map<Key, Value, AllocatorType>;
 
     class HashMapHandler final : public ITypeInfoMapHandler
     {
@@ -1454,9 +1454,9 @@ void TypeInfoImpl<containers::TMap<Key, Value, AllocatorType>, TBoxed>::operator
 }
 
 template <class Key, class Value, class AllocatorType, class TBoxed>
-void TypeInfoImpl<containers::TFlatMap<Key, Value, AllocatorType>, TBoxed>::operator()(TypeInfo& result) const
+void TypeInfoImpl<containers::FlatMap<Key, Value, AllocatorType>, TBoxed>::operator()(TypeInfo& result) const
 {
-    using MapType = containers::TFlatMap<Key, Value, AllocatorType>;
+    using MapType = containers::FlatMap<Key, Value, AllocatorType>;
 
     class FlatMapHandler final : public ITypeInfoMapHandler
     {
@@ -1748,9 +1748,9 @@ void TypeInfoImpl<containers::ArrayMap<Key, Value>, TBoxed>::operator()(TypeInfo
 }
 
 template <class Value, class AllocatorType, class TBoxed>
-void TypeInfoImpl<containers::TFlatSet<Value, AllocatorType>, TBoxed>::operator()(TypeInfo& result) const
+void TypeInfoImpl<containers::FlatSet<Value, AllocatorType>, TBoxed>::operator()(TypeInfo& result) const
 {
-    using SetType = containers::TFlatSet<Value, AllocatorType>;
+    using SetType = containers::FlatSet<Value, AllocatorType>;
 
     class FlatSetHandler final : public ITypeInfoSetHandler
     {
@@ -1858,9 +1858,9 @@ void TypeInfoImpl<containers::TFlatSet<Value, AllocatorType>, TBoxed>::operator(
 }
 
 template <class Value, class AllocatorType, class TBoxed>
-void TypeInfoImpl<containers::TSet<Value, AllocatorType>, TBoxed>::operator()(TypeInfo& result) const
+void TypeInfoImpl<containers::Set<Value, AllocatorType>, TBoxed>::operator()(TypeInfo& result) const
 {
-    using SetType = containers::TSet<Value, AllocatorType>;
+    using SetType = containers::Set<Value, AllocatorType>;
 
     class HashSetHandler final : public ITypeInfoSetHandler
     {

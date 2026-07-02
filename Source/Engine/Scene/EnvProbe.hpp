@@ -265,7 +265,7 @@ protected:
     FixedArray<Handle<View>, 6> m_views;
     FixedArray<FramebufferRef, 6> m_framebuffers;
 
-    TMap<ObjId<Scene>, HashCode, SceneAllocator> m_cachedOctantHashCodes;
+    Map<ObjId<Scene>, HashCode, SceneAllocator> m_cachedOctantHashCodes;
 
     Handle<Texture> m_texture;
     Handle<Texture> m_visibilityTexture;

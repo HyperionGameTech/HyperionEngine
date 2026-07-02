@@ -445,7 +445,7 @@ class EDITOR_API EditorSubsystem : public Subsystem
     HYP_OBJECT_BODY(EditorSubsystem);
 
 public:
-    using EditorGizmoSet = THashTable<Handle<EditorGizmoBase>, &EditorGizmoBase::GetManipulationMode>;
+    using EditorGizmoSet = HashTable<Handle<EditorGizmoBase>, &EditorGizmoBase::GetManipulationMode>;
 
     EditorSubsystem();
     virtual ~EditorSubsystem() override;
@@ -645,7 +645,7 @@ private:
     // the actual node that displays the highlight for the focused item
     Handle<Node> m_highlightNode;
 
-    TSet<Handle<Node>> m_selectedNodes;
+    Set<Handle<Node>> m_selectedNodes;
 
     bool m_editorCameraEnabled;
     bool m_shouldCancelNextClick;

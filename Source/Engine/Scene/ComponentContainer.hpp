@@ -419,7 +419,7 @@ public:
 private:
     uint32 m_componentIdCounter = 0;
 
-    TMap<ComponentId, Component, SceneAllocator> m_components;
+    Map<ComponentId, Component, SceneAllocator> m_components;
 };
 
 template <class Component>

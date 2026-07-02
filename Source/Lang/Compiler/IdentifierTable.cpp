@@ -9,7 +9,7 @@ namespace Hyperion {
 
 int IdentifierTable::CountUsedVariables() const
 {
-    TSet<int> usedVariables;
+    Set<int> usedVariables;
 
     for (auto& ident : identifiers)
     {

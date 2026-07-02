@@ -338,7 +338,7 @@ void UIConsole::Init()
                 }
 
                 Array<String> args = text.Split(' ');
-                Array<const char*> argsCharV = Map(args, [](const String& str) { return str.Data(); });
+                Array<const char*> argsCharV = MapToArray(args, [](const String& str) { return str.Data(); });
 
                 int result = Hyp_ExecuteConsoleCommand(int(args.Size()), argsCharV.Data());
                 if (result != 0)
@@ -384,7 +384,7 @@ void UIConsole::Init()
                     }
 
                     Array<String> args = text.Split(' ');
-                    Array<const char*> argsCharV = Map(args, [](const String& str) { return str.Data(); });
+                    Array<const char*> argsCharV = MapToArray(args, [](const String& str) { return str.Data(); });
 
                     int result = Hyp_ExecuteConsoleCommand(int(args.Size()), argsCharV.Data());
                     if (result != 0)

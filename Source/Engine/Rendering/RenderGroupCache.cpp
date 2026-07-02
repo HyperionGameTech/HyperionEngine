@@ -22,7 +22,7 @@ RenderableAttributeHandle RenderGroupCache::GetOrCreate(const RenderableAttribut
 
     RenderableAttributeHandle outHandle;
 
-    typename TMap<HashCode, Array<uint32, RenderAllocator>, RenderAllocator>::Iterator it = m_lookupByHash.End();
+    typename Map<HashCode, Array<uint32, RenderAllocator>, RenderAllocator>::Iterator it = m_lookupByHash.End();
 
     auto CreateIfExists = [&]() -> bool
     {

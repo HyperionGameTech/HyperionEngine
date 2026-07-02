@@ -507,7 +507,7 @@ TResult<CommandLineArguments> CommandLineParser::Parse(ANSIStringView command, c
 
     CommandLineArguments result { command };
 
-    TSet<String> usedArguments;
+    Set<String> usedArguments;
 
     for (size_t i = 0; i < args.Size(); i++)
     {

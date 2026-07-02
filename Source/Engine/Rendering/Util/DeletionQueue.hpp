@@ -365,7 +365,7 @@ private:
     // for calling on another thread than sim thread / render thread.
     Mutex m_mutex;
 
-    TList<EntryList<DynamicAllocator>> m_tempEntryLists;
+    List<EntryList<DynamicAllocator>> m_tempEntryLists;
     volatile int32 m_tempEntryListCount = 0;
 
     FixedArray<EntryList<DynamicAllocator>*, RingBufferDepth> m_entryLists;
@@ -456,7 +456,7 @@ static inline void EnqueueDeletion(FixedArray<T, Sz>&& value)
 
 /*! \see EnqueueDeletion(T&& value) */
 template <class T>
-static inline void EnqueueDeletion(TSet<T>&& value)
+static inline void EnqueueDeletion(Set<T>&& value)
 {
     for (auto& it : value)
     {

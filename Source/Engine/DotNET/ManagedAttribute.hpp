@@ -77,7 +77,7 @@ public:
 
 private:
     Array<UniquePtr<ManagedObject>> m_values;
-    TMap<String, ManagedObject*> m_valuesByName;
+    Map<String, ManagedObject*> m_valuesByName;
 };
 
 } // namespace Hyperion::dotnet

@@ -30,13 +30,13 @@ HYP_DECLARE_LOG_CHANNEL(Tool);
 
 static constexpr bool AddIncludesForDependencies = true;
 
-static const TMap<ClassDefinitionType, String> s_startMacroNames = {
+static const Map<ClassDefinitionType, String> s_startMacroNames = {
     { ClassDefinitionType::Class, "HYP_BEGIN_CLASS" },
     { ClassDefinitionType::Struct, "HYP_BEGIN_STRUCT" },
     { ClassDefinitionType::Enum, "HYP_BEGIN_ENUM" }
 };
 
-static const TMap<ClassDefinitionType, String> s_endMacroNames = {
+static const Map<ClassDefinitionType, String> s_endMacroNames = {
     { ClassDefinitionType::Class, "HYP_END_CLASS" },
     { ClassDefinitionType::Struct, "HYP_END_STRUCT" },
     { ClassDefinitionType::Enum, "HYP_END_ENUM" }
@@ -137,7 +137,7 @@ Result CXXModuleGenerator::GenerateClassDeclHeader(const Analyzer& analyzer, Byt
     };
 
     Array<ClassInfo> allClasses;
-    TSet<String> processedNames;
+    Set<String> processedNames;
 
     for (const auto& it : analyzer.GetBuiltinClasses())
     {
@@ -270,7 +270,7 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
     };
 
     Array<ClassInfo> allClasses;
-    TSet<String> processedNames;
+    Set<String> processedNames;
 
     // Add builtins, routing each to the appropriate API macro
     bool wroteBuiltinsRegion = false;
@@ -609,7 +609,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
 
         writer.WriteString(HYP_FORMAT("{}({}, {}, {}", s_startMacroNames.At(cls.type), cls.name, cls.staticIndex, cls.numDescendants));
 
-        TSet<const ClassDefinition*> baseClassDefinitions;
+        Set<const ClassDefinition*> baseClassDefinitions;
 
         if (cls.baseClassNames.Any())
         {
@@ -886,7 +886,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
 {
     const String apiMacro = GetAPIMacroForModule(analyzer, mod);
 
-    TSet<String> addedIncludes;
+    Set<String> addedIncludes;
     const auto addInclude = [&writer, &addedIncludes](const String& include)
     {
         if (addedIncludes.Contains(include))
@@ -1021,7 +1021,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
 
         writer.WriteString(HYP_FORMAT("{}({}, {}, {}", s_startMacroNames.At(cls.type), cls.name, cls.staticIndex, cls.numDescendants));
 
-        TSet<const ClassDefinition*> baseClassDefinitions;
+        Set<const ClassDefinition*> baseClassDefinitions;
 
         if (cls.baseClassNames.Any())
         {

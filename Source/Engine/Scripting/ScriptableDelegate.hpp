@@ -498,7 +498,7 @@ private:
     }
 
     mutable SharedMutex m_perTargetDelegatesMutex;
-    TFlatMap<void*, SharedPtr<Delegate<ReturnType, Args...>>> m_perTargetDelegates;
+    FlatMap<void*, SharedPtr<Delegate<ReturnType, Args...>>> m_perTargetDelegates;
 };
 
 template <class ReturnType, class... Args>

@@ -22,7 +22,7 @@
 namespace Hyperion {
 namespace CodeGen {
 
-static const TMap<String, String> s_getValueOverloads = {
+static const Map<String, String> s_getValueOverloads = {
     { "bool", "ReadBool" },
     { "sbyte", "ReadInt8" },
     { "byte", "ReadUInt8" },

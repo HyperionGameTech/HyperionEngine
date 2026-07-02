@@ -911,21 +911,21 @@ private:
     Scene* m_scene;
     EnumFlags<EntityManagerFlags> m_flags;
 
-    TMap<TypeId, UniquePtr<ComponentContainerBase, SceneAllocator>, SceneAllocator> m_containers;
+    Map<TypeId, UniquePtr<ComponentContainerBase, SceneAllocator>, SceneAllocator> m_containers;
     mutable SharedMutex m_componentContainersMtx;
 
     EntityContainer m_entities;
 
-    TMap<EntitySetId, UniquePtr<EntitySetBase, SceneAllocator>, SceneAllocator> m_entitySets;
+    Map<EntitySetId, UniquePtr<EntitySetBase, SceneAllocator>, SceneAllocator> m_entitySets;
 
-    TMap<TypeId, TSet<EntitySetId, SceneAllocator>, SceneAllocator> m_componentEntitySets;
+    Map<TypeId, Set<EntitySetId, SceneAllocator>, SceneAllocator> m_componentEntitySets;
 
     // thread safe map of entity sets not yet added to m_entitySets
     // that will be added upon synchronization
-    TMap<EntitySetId, UniquePtr<EntitySetBase, SceneAllocator>, SceneAllocator> m_pendingEntitySets;
+    Map<EntitySetId, UniquePtr<EntitySetBase, SceneAllocator>, SceneAllocator> m_pendingEntitySets;
     mutable SharedMutex m_pendingEntitySetsMtx;
 
-    TMap<SystemBase*, TSet<Entity*, SceneAllocator>, SceneAllocator> m_systemEntityMap;
+    Map<SystemBase*, Set<Entity*, SceneAllocator>, SceneAllocator> m_systemEntityMap;
     mutable SharedMutex m_systemEntityMapMutex;
 
     mutable AtomicFlag m_detachedSceneLocked;

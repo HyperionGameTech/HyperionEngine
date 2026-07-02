@@ -329,7 +329,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
     Handle<Node> top = MakeHandle<Node>(CreateNameFromDynamicString(model.name));
     top->SetIsDynamic(false);
 
-    TMap<String, Handle<Material>> materialLibrary;
+    Map<String, Handle<Material>> materialLibrary;
 
     if (LoadMaterials && !model.materialLibrary.Empty())
     {
@@ -362,7 +362,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
         Array<uint32> indices;
         indices.Reserve(objMesh.indices.Size());
 
-        TMap<OBJIndex, uint32> indexMap;
+        Map<OBJIndex, uint32> indexMap;
 
         const bool hasIndices = !objMesh.indices.Empty();
 

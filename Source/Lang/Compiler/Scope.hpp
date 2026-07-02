@@ -117,7 +117,7 @@ public:
     }
 
 private:
-    using CacheMap = TMap<Key, SymbolType*, DynamicAllocator, HashTablePolicy::NotPooled>;
+    using CacheMap = Map<Key, SymbolType*, DynamicAllocator, HashTablePolicy::NotPooled>;
 
     mutable Mutex m_mutex;
     CacheMap m_cache;
@@ -170,7 +170,7 @@ public:
     ScopeType scopeType;
     int scopeFlags;
     Array<const SymbolType*> returnTypes;
-    TMap<String, SharedPtr<Identifier>> closureCaptures;
+    Map<String, SharedPtr<Identifier>> closureCaptures;
     TypeInstanceCache typeInstanceCache;
 };
 

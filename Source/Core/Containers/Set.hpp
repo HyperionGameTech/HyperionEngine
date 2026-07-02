@@ -518,12 +518,12 @@ struct NodeAllocator
     };
 };
 
-#pragma region THashTable
+#pragma region HashTable
 
-/*! \brief An THashTable is a hash table that uses a KeyBy function to extract a key from the value, and uses that key for hashing and equality comparison
+/*! \brief An HashTable is a hash table that uses a KeyBy function to extract a key from the value, and uses that key for hashing and equality comparison
  */
 template <class Value, auto KeyBy, class AllocatorType = DynamicAllocator, class Policy = HashTablePolicy::NodePooling>
-class THashTable : public ContainerBase<THashTable<Value, KeyBy, AllocatorType, Policy>, decltype(std::declval<FunctionWrapper<decltype(KeyBy)>>()(std::declval<const Value&>()))>
+class HashTable : public ContainerBase<HashTable<Value, KeyBy, AllocatorType, Policy>, decltype(std::declval<FunctionWrapper<decltype(KeyBy)>>()(std::declval<const Value&>()))>
 {
     using NodeAllocatorType = std::conditional_t<(Policy{}() == HashTablePolicy::NodePooling{}()), PooledNodeAllocator<AllocatorType>, NodeAllocator<AllocatorType>>;
 
@@ -571,16 +571,16 @@ public:
     using KeyType = decltype(std::declval<FunctionWrapper<decltype(KeyBy)>>()(std::declval<const Value&>()));
     using ValueType = Value;
 
-    using Base = ContainerBase<THashTable<Value, KeyBy, AllocatorType, Policy>, KeyType>;
+    using Base = ContainerBase<HashTable<Value, KeyBy, AllocatorType, Policy>, KeyType>;
 
     struct ConstIterator;
 
     struct Iterator
     {
-        THashTable* map;
+        HashTable* map;
         typename Bucket::Iterator bucketIter;
 
-        Iterator(THashTable* map, typename Bucket::Iterator bucketIter)
+        Iterator(HashTable* map, typename Bucket::Iterator bucketIter)
             : map(map),
               bucketIter(bucketIter)
         {
@@ -650,16 +650,16 @@ public:
 
         HYP_FORCE_INLINE operator ConstIterator() const
         {
-            return ConstIterator { const_cast<const THashTable*>(map), typename Bucket::ConstIterator(bucketIter) };
+            return ConstIterator { const_cast<const HashTable*>(map), typename Bucket::ConstIterator(bucketIter) };
         }
     };
 
     struct ConstIterator
     {
-        const THashTable* map;
+        const HashTable* map;
         typename Bucket::ConstIterator bucketIter;
 
-        ConstIterator(const THashTable* map, typename Bucket::ConstIterator bucketIter)
+        ConstIterator(const HashTable* map, typename Bucket::ConstIterator bucketIter)
             : map(map),
               bucketIter(bucketIter)
         {
@@ -730,20 +730,20 @@ public:
 
     using InsertResult = Pair<Iterator, bool>;
 
-    THashTable();
-    THashTable(std::initializer_list<Value> initializerList);
+    HashTable();
+    HashTable(std::initializer_list<Value> initializerList);
 
-    THashTable(const Value* iterBegin, const Value* iterEnd);
+    HashTable(const Value* iterBegin, const Value* iterEnd);
     
-    explicit THashTable(AllocatorType* pAllocator);
+    explicit HashTable(AllocatorType* pAllocator);
 
-    THashTable(const THashTable& other);
-    THashTable& operator=(const THashTable& other);
+    HashTable(const HashTable& other);
+    HashTable& operator=(const HashTable& other);
 
-    THashTable(THashTable&& other) noexcept;
-    THashTable& operator=(THashTable&& other) noexcept;
+    HashTable(HashTable&& other) noexcept;
+    HashTable& operator=(HashTable&& other) noexcept;
 
-    ~THashTable();
+    ~HashTable();
 
     HYP_FORCE_INLINE bool Any() const
     {
@@ -767,8 +767,8 @@ public:
         return *Begin();
     }
 
-    HYP_FORCE_INLINE bool operator==(const THashTable& other) const = delete;
-    HYP_FORCE_INLINE bool operator!=(const THashTable& other) const = delete;
+    HYP_FORCE_INLINE bool operator==(const HashTable& other) const = delete;
+    HYP_FORCE_INLINE bool operator!=(const HashTable& other) const = delete;
 
     HYP_FORCE_INLINE size_t Size() const
     {
@@ -947,7 +947,7 @@ public:
     void Clear();
 
     template <class OtherContainerType>
-    THashTable& Merge(const OtherContainerType& other)
+    HashTable& Merge(const OtherContainerType& other)
     {
         for (const auto& item : other)
         {
@@ -958,7 +958,7 @@ public:
     }
 
     template <class OtherContainerType, typename = std::enable_if_t<std::is_rvalue_reference_v<OtherContainerType>>>
-    THashTable& Merge(OtherContainerType&& other)
+    HashTable& Merge(OtherContainerType&& other)
     {
         for (auto& item : other)
         {
@@ -1076,20 +1076,20 @@ protected:
 };
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-THashTable<Value, KeyBy, AllocatorType, Policy>::THashTable()
+HashTable<Value, KeyBy, AllocatorType, Policy>::HashTable()
     : m_size(0)
 {
     m_buckets.ResizeZeroed(InitialBucketSize);
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-THashTable<Value, KeyBy, AllocatorType, Policy>::THashTable(std::initializer_list<Value> initializerList)
-    : THashTable(initializerList.begin(), initializerList.end())
+HashTable<Value, KeyBy, AllocatorType, Policy>::HashTable(std::initializer_list<Value> initializerList)
+    : HashTable(initializerList.begin(), initializerList.end())
 {
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-THashTable<Value, KeyBy, AllocatorType, Policy>::THashTable(const Value* iterBegin, const Value* iterEnd)
+HashTable<Value, KeyBy, AllocatorType, Policy>::HashTable(const Value* iterBegin, const Value* iterEnd)
     : m_size(0)
 {
     m_buckets.ResizeZeroed(InitialBucketSize);
@@ -1108,7 +1108,7 @@ THashTable<Value, KeyBy, AllocatorType, Policy>::THashTable(const Value* iterBeg
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-THashTable<Value, KeyBy, AllocatorType, Policy>::THashTable(AllocatorType* pAllocator)
+HashTable<Value, KeyBy, AllocatorType, Policy>::HashTable(AllocatorType* pAllocator)
     : m_size(0),
       m_nodeAllocator(pAllocator)
 {
@@ -1116,7 +1116,7 @@ THashTable<Value, KeyBy, AllocatorType, Policy>::THashTable(AllocatorType* pAllo
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-THashTable<Value, KeyBy, AllocatorType, Policy>::THashTable(const THashTable& other)
+HashTable<Value, KeyBy, AllocatorType, Policy>::HashTable(const HashTable& other)
     : m_size(other.m_size)
 {
     m_nodeAllocator.Reserve(m_size, m_buckets);
@@ -1140,7 +1140,7 @@ THashTable<Value, KeyBy, AllocatorType, Policy>::THashTable(const THashTable& ot
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-auto THashTable<Value, KeyBy, AllocatorType, Policy>::operator=(const THashTable& other) -> THashTable&
+auto HashTable<Value, KeyBy, AllocatorType, Policy>::operator=(const HashTable& other) -> HashTable&
 {
     if (this == &other)
     {
@@ -1183,7 +1183,7 @@ auto THashTable<Value, KeyBy, AllocatorType, Policy>::operator=(const THashTable
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-THashTable<Value, KeyBy, AllocatorType, Policy>::THashTable(THashTable&& other) noexcept
+HashTable<Value, KeyBy, AllocatorType, Policy>::HashTable(HashTable&& other) noexcept
     : m_buckets(std::move(other.m_buckets)),
       m_size(other.m_size)
 {
@@ -1194,7 +1194,7 @@ THashTable<Value, KeyBy, AllocatorType, Policy>::THashTable(THashTable&& other) 
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-auto THashTable<Value, KeyBy, AllocatorType, Policy>::operator=(THashTable&& other) noexcept -> THashTable&
+auto HashTable<Value, KeyBy, AllocatorType, Policy>::operator=(HashTable&& other) noexcept -> HashTable&
 {
     if (&other == this)
     {
@@ -1226,7 +1226,7 @@ auto THashTable<Value, KeyBy, AllocatorType, Policy>::operator=(THashTable&& oth
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-THashTable<Value, KeyBy, AllocatorType, Policy>::~THashTable()
+HashTable<Value, KeyBy, AllocatorType, Policy>::~HashTable()
 {
     for (auto bucketsIt = m_buckets.Begin(); bucketsIt != m_buckets.End(); ++bucketsIt)
     {
@@ -1243,7 +1243,7 @@ THashTable<Value, KeyBy, AllocatorType, Policy>::~THashTable()
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-void THashTable<Value, KeyBy, AllocatorType, Policy>::Reserve(size_t capacity)
+void HashTable<Value, KeyBy, AllocatorType, Policy>::Reserve(size_t capacity)
 {
     m_nodeAllocator.Reserve(capacity, m_buckets);
 
@@ -1278,7 +1278,7 @@ void THashTable<Value, KeyBy, AllocatorType, Policy>::Reserve(size_t capacity)
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-void THashTable<Value, KeyBy, AllocatorType, Policy>::CheckAndRebuildBuckets(size_t neededCapacity)
+void HashTable<Value, KeyBy, AllocatorType, Policy>::CheckAndRebuildBuckets(size_t neededCapacity)
 {
     // Check load factor, if currently load factor is greater than `loadFactor`, then rehash so that the load factor becomes <= `loadFactor` constant.
 
@@ -1293,7 +1293,7 @@ void THashTable<Value, KeyBy, AllocatorType, Policy>::CheckAndRebuildBuckets(siz
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-auto THashTable<Value, KeyBy, AllocatorType, Policy>::Find(const KeyType& value) -> Iterator
+auto HashTable<Value, KeyBy, AllocatorType, Policy>::Find(const KeyType& value) -> Iterator
 {
     const HashCode::ValueType hashCode = HashCode::GetHashCode(value).Value();
     Bucket* bucket = GetBucketForHash(hashCode);
@@ -1309,7 +1309,7 @@ auto THashTable<Value, KeyBy, AllocatorType, Policy>::Find(const KeyType& value)
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-auto THashTable<Value, KeyBy, AllocatorType, Policy>::Find(const KeyType& value) const -> ConstIterator
+auto HashTable<Value, KeyBy, AllocatorType, Policy>::Find(const KeyType& value) const -> ConstIterator
 {
     const HashCode::ValueType hashCode = HashCode::GetHashCode(value).Value();
     const Bucket* bucket = GetBucketForHash(hashCode);
@@ -1325,7 +1325,7 @@ auto THashTable<Value, KeyBy, AllocatorType, Policy>::Find(const KeyType& value)
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-auto THashTable<Value, KeyBy, AllocatorType, Policy>::FindByHashCode(HashCode hashCode) -> Iterator
+auto HashTable<Value, KeyBy, AllocatorType, Policy>::FindByHashCode(HashCode hashCode) -> Iterator
 {
     Bucket* bucket = GetBucketForHash(hashCode.Value());
 
@@ -1340,7 +1340,7 @@ auto THashTable<Value, KeyBy, AllocatorType, Policy>::FindByHashCode(HashCode ha
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-auto THashTable<Value, KeyBy, AllocatorType, Policy>::FindByHashCode(HashCode hashCode) const -> ConstIterator
+auto HashTable<Value, KeyBy, AllocatorType, Policy>::FindByHashCode(HashCode hashCode) const -> ConstIterator
 {
     const Bucket* bucket = GetBucketForHash(hashCode.Value());
 
@@ -1355,7 +1355,7 @@ auto THashTable<Value, KeyBy, AllocatorType, Policy>::FindByHashCode(HashCode ha
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-auto THashTable<Value, KeyBy, AllocatorType, Policy>::Erase(ConstIterator iter) -> Iterator
+auto HashTable<Value, KeyBy, AllocatorType, Policy>::Erase(ConstIterator iter) -> Iterator
 {
     if (iter == End())
     {
@@ -1389,7 +1389,7 @@ auto THashTable<Value, KeyBy, AllocatorType, Policy>::Erase(ConstIterator iter) 
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-bool THashTable<Value, KeyBy, AllocatorType, Policy>::Erase(const KeyType& value)
+bool HashTable<Value, KeyBy, AllocatorType, Policy>::Erase(const KeyType& value)
 {
     const Iterator it = Find(value);
 
@@ -1404,7 +1404,7 @@ bool THashTable<Value, KeyBy, AllocatorType, Policy>::Erase(const KeyType& value
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-auto THashTable<Value, KeyBy, AllocatorType, Policy>::Set(const Value& value) -> InsertResult
+auto HashTable<Value, KeyBy, AllocatorType, Policy>::Set(const Value& value) -> InsertResult
 {
     const HashCode::ValueType hashCode = GetHashCodeForValue(value).Value();
 
@@ -1436,7 +1436,7 @@ auto THashTable<Value, KeyBy, AllocatorType, Policy>::Set(const Value& value) ->
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-auto THashTable<Value, KeyBy, AllocatorType, Policy>::Set(Value&& value) -> InsertResult
+auto HashTable<Value, KeyBy, AllocatorType, Policy>::Set(Value&& value) -> InsertResult
 {
     const HashCode::ValueType hashCode = GetHashCodeForValue(value).Value();
 
@@ -1467,7 +1467,7 @@ auto THashTable<Value, KeyBy, AllocatorType, Policy>::Set(Value&& value) -> Inse
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-auto THashTable<Value, KeyBy, AllocatorType, Policy>::Insert(const Value& value) -> InsertResult
+auto HashTable<Value, KeyBy, AllocatorType, Policy>::Insert(const Value& value) -> InsertResult
 {
     // Have to rehash before any insertion, so we don't invalidate the iterator or bucket pointer.
     CheckAndRebuildBuckets(m_size + 1);
@@ -1495,7 +1495,7 @@ auto THashTable<Value, KeyBy, AllocatorType, Policy>::Insert(const Value& value)
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-auto THashTable<Value, KeyBy, AllocatorType, Policy>::Insert(Value&& value) -> InsertResult
+auto HashTable<Value, KeyBy, AllocatorType, Policy>::Insert(Value&& value) -> InsertResult
 {
     // Have to rehash before any insertion, so we don't invalidate the iterator or bucket pointer.
     CheckAndRebuildBuckets(m_size + 1);
@@ -1522,7 +1522,7 @@ auto THashTable<Value, KeyBy, AllocatorType, Policy>::Insert(Value&& value) -> I
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-void THashTable<Value, KeyBy, AllocatorType, Policy>::Clear()
+void HashTable<Value, KeyBy, AllocatorType, Policy>::Clear()
 {
     for (auto bucketsIt = m_buckets.Begin(); bucketsIt != m_buckets.End(); ++bucketsIt)
     {
@@ -1545,33 +1545,33 @@ void THashTable<Value, KeyBy, AllocatorType, Policy>::Clear()
     m_size = 0;
 }
 
-#pragma endregion THashTable
+#pragma endregion HashTable
 
-#pragma region TSet
+#pragma region Set
 
 template <class Value, class AllocatorType = DynamicAllocator, class Policy = HashTablePolicy::NodePooling>
-class TSet : public THashTable<Value, &KeyBy_Identity<Value>, AllocatorType, Policy>
+class Set : public HashTable<Value, &KeyBy_Identity<Value>, AllocatorType, Policy>
 {
 public:
-    using Base = THashTable<Value, &KeyBy_Identity<Value>, AllocatorType, Policy>;
+    using Base = HashTable<Value, &KeyBy_Identity<Value>, AllocatorType, Policy>;
 
     using Base::Base;
 
-    HYP_FORCE_INLINE bool operator==(const TSet& other) const = delete;
-    HYP_FORCE_INLINE bool operator!=(const TSet& other) const = delete;
+    HYP_FORCE_INLINE bool operator==(const Set& other) const = delete;
+    HYP_FORCE_INLINE bool operator!=(const Set& other) const = delete;
 };
 
-#pragma endregion TSet
+#pragma endregion Set
 
 } // namespace containers
 
-using containers::TSet;
-using containers::THashTable;
+using containers::Set;
+using containers::HashTable;
 
 using containers::HashTablePolicy;
 
 template <class Value, class NodeAllocatorType>
-struct IsHashSet<TSet<Value, NodeAllocatorType>> : std::true_type
+struct IsHashSet<Set<Value, NodeAllocatorType>> : std::true_type
 {
 };
 

@@ -48,7 +48,7 @@ private:
         };
     }
 
-    TMap<Skeleton*, Array<UniquePtr<TSharedResLock<AssetObject>>, SceneAllocator>, SceneAllocator> m_resourceHandles;
+    Map<Skeleton*, Array<UniquePtr<TSharedResLock<AssetObject>>, SceneAllocator>, SceneAllocator> m_resourceHandles;
 };
 
 } // namespace Hyperion

@@ -31,7 +31,7 @@ CORE_API const Class* g_hypObjectBaseClass = nullptr;
 
 #if defined(HYP_CLASS_REGISTRY_USE_TLS) && HYP_CLASS_REGISTRY_USE_TLS
 
-using ThreadLocalCacheMap = TMap<TypeId, const Class*>;
+using ThreadLocalCacheMap = Map<TypeId, const Class*>;
 
 static ThreadLocalCacheMap& GetDummyThreadLocalCache()
 {

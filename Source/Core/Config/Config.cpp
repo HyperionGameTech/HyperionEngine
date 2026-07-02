@@ -33,7 +33,7 @@ namespace config {
 
 static const ConfigValue s_invalidConfigValue {};
 
-static TMap<String, JSON::Value> s_configCache;
+static Map<String, JSON::Value> s_configCache;
 static SharedMutex s_configCacheMutex;
 
 #pragma region ConfigBase

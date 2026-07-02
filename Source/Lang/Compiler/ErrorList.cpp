@@ -58,7 +58,7 @@ bool ErrorList::HasFatalErrors() const
 
 std::ostream& ErrorList::WriteOutput(std::ostream& os) const
 {
-    TFlatSet<String> errorFilenames;
+    FlatSet<String> errorFilenames;
     Array<String> currentFileLines;
 
     for (const CompilerError& error : m_errors)

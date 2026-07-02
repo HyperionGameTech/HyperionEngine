@@ -390,7 +390,7 @@ private:
     void GetDesiredCellsForLayer(
         const LayerData& layerData,
         const Handle<StreamingVolumeBase>& volume,
-        TFlatSet<Vec2i, StreamingTempAllocator>& outCellCoords) const;
+        FlatSet<Vec2i, StreamingTempAllocator>& outCellCoords) const;
 
     void PostCellUpdate(Handle<StreamingCell> cell, StreamingCellState state)
     {
@@ -423,10 +423,10 @@ private:
     UniquePtr<StreamingThreadPool> m_threadPool;
 
     Array<Handle<StreamingVolumeBase>, StreamingAllocator> m_volumes;
-    TList<LayerData, StreamingAllocator> m_layers;
+    List<LayerData, StreamingAllocator> m_layers;
 
     Array<Pair<Handle<StreamingCell>, StreamingCellState>> m_cellUpdatesSim;
-    TList<Task<void>> m_futures;
+    List<Task<void>> m_futures;
     Mutex m_futuresMutex;
 
     StreamingNotifier m_notifier;
@@ -492,7 +492,7 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
         StreamingCellCollection<StreamingAllocator>& cells = layerData.cells;
         Array<StreamingCellUpdate, StreamingAllocator>& cellUpdateQueue = layerData.cellUpdateQueue;
 
-        TFlatSet<Vec2i, StreamingTempAllocator> desiredCells;
+        FlatSet<Vec2i, StreamingTempAllocator> desiredCells;
 
         for (const Handle<StreamingVolumeBase>& volume : m_volumes)
         {
@@ -717,7 +717,7 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
 void StreamingManagerThread::GetDesiredCellsForLayer(
     const LayerData& layerData,
     const Handle<StreamingVolumeBase>& volume,
-    TFlatSet<Vec2i, StreamingTempAllocator>& outCellCoords) const
+    FlatSet<Vec2i, StreamingTempAllocator>& outCellCoords) const
 {
     static constexpr Vec2i CellNeighborDirections[4] = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
 
@@ -733,7 +733,7 @@ void StreamingManagerThread::GetDesiredCellsForLayer(
     Array<Vec2f, StreamingTempAllocator> queue;
     queue.Reserve(64);
 
-    TFlatSet<Vec2i, StreamingTempAllocator> visited;
+    FlatSet<Vec2i, StreamingTempAllocator> visited;
     visited.Reserve(64);
 
     const Vec2f centerCoord = Vec2f(WorldSpaceToCellCoord(layerInfo, aabb.GetCenter()));

@@ -193,7 +193,7 @@ public:
     }
 
 private:
-    TMap<HashCode, WeakHandle<Material>> m_map;
+    Map<HashCode, WeakHandle<Material>> m_map;
     Mutex m_mutex;
 };
 

@@ -290,7 +290,7 @@ RendererResult DX12RayTracingPipeline::BuildRootSignature()
 
     Array<D3D12_ROOT_PARAMETER, DX12TempAllocator> rootParams;
 
-    TList<Array<D3D12_DESCRIPTOR_RANGE, DX12TempAllocator>, DX12TempAllocator> rangeAllocations;
+    List<Array<D3D12_DESCRIPTOR_RANGE, DX12TempAllocator>, DX12TempAllocator> rangeAllocations;
 
     auto AllocateRangeStorage = [&](Array<D3D12_DESCRIPTOR_RANGE, DX12TempAllocator>&& newRanges) -> const D3D12_DESCRIPTOR_RANGE*
     {

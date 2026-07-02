@@ -3681,7 +3681,7 @@ void EditorSubsystem::SetSelectedNodes(const Array<Handle<Node>>& nodes)
         return;
     }
 
-    m_selectedNodes = TSet<Handle<Node>>(nodes.Begin(), nodes.End());
+    m_selectedNodes = Set<Handle<Node>>(nodes.Begin(), nodes.End());
     
     OnSelectionChanged();
 }

@@ -30,8 +30,8 @@ struct BufferAllocatorImpl
         RawBuffer buffer;
     };
 
-    TList<CachedStructuredBuffer, RenderAllocator> cachedBuffers;
-    TList<CachedStructuredBuffer, RenderAllocator> usedBuffers;
+    List<CachedStructuredBuffer, RenderAllocator> cachedBuffers;
+    List<CachedStructuredBuffer, RenderAllocator> usedBuffers;
 
     SharedMutex mutex;
 

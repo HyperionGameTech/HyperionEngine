@@ -279,8 +279,8 @@ public:
     }
 
 private:
-    TMap<TypeId, UniquePtr<IComponentInterface> (*)()> m_factories;
-    TMap<TypeId, UniquePtr<IComponentInterface>> m_interfaces;
+    Map<TypeId, UniquePtr<IComponentInterface> (*)()> m_factories;
+    Map<TypeId, UniquePtr<IComponentInterface>> m_interfaces;
 
     bool m_isInitialized;
 };

@@ -60,7 +60,7 @@ class DX12DescriptorSet final : public DescriptorSetBase
 {
     HYP_OBJECT_BODY(DX12DescriptorSet);
 
-    using ElementCache = TMap<Name, Array<DX12CachedDescriptor, DX12Allocator>, DX12Allocator>;
+    using ElementCache = Map<Name, Array<DX12CachedDescriptor, DX12Allocator>, DX12Allocator>;
 
 public:
     explicit DX12DescriptorSet(const DescriptorSetLayout& layout);
@@ -95,9 +95,9 @@ private:
     Array<DX12CachedDescriptor, RHIAllocator> m_pendingDescriptors;
 
     // Binding index -> heap offset (packed) for views (CBV/SRV/UAV)
-    TMap<uint32, uint32, RHIAllocator> m_viewBindingToHeapOffset;
+    Map<uint32, uint32, RHIAllocator> m_viewBindingToHeapOffset;
     // Binding index -> heap offset (packed) for samplers
-    TMap<uint32, uint32, RHIAllocator> m_samplerBindingToHeapOffset;
+    Map<uint32, uint32, RHIAllocator> m_samplerBindingToHeapOffset;
 
     // Allocated descriptor handles
     DX12DescriptorHandle m_viewDescriptorHandle;

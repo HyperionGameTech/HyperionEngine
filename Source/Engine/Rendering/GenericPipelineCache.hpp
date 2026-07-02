@@ -70,7 +70,7 @@ private:
         HashCode key;
     };
 
-    using PipelineMap = TMap<HashCode, size_t, RenderAllocator>;
+    using PipelineMap = Map<HashCode, size_t, RenderAllocator>;
     using PipelineStorage = SparsePagedArray<CachedPipeline, 64, RenderAllocator>;
 
     PipelineStorage m_pipelines;

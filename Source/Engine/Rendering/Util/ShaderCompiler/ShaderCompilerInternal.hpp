@@ -20,7 +20,7 @@ struct DescriptorUsage
     Name descriptorName;
     ShaderStruct shaderStruct;
     EnumFlags<DescriptorUsageFlags> flags;
-    TMap<String, String> params;
+    Map<String, String> params;
 
     HYP_FORCE_INLINE bool operator==(const DescriptorUsage& other) const
     {
@@ -161,7 +161,7 @@ struct DescriptorUsage
 
 struct DescriptorUsageSet
 {
-    TFlatSet<DescriptorUsage> elements;
+    FlatSet<DescriptorUsage> elements;
 
     void BuildDescriptorTableDeclaration(ShaderInputGroup& table) const;
 

@@ -249,7 +249,7 @@ public:
      *
      *  \return A reference to the map of methods.
      */
-    HYP_FORCE_INLINE const TMap<ANSIString, ManagedMethod>& GetMethods() const
+    HYP_FORCE_INLINE const Map<ANSIString, ManagedMethod>& GetMethods() const
     {
         return m_methods;
     }
@@ -313,7 +313,7 @@ public:
      *
      *  \return A reference to the map of properties.
      */
-    HYP_FORCE_INLINE const TMap<ANSIString, ManagedProperty>& GetProperties() const
+    HYP_FORCE_INLINE const Map<ANSIString, ManagedProperty>& GetProperties() const
     {
         return m_properties;
     }
@@ -432,8 +432,8 @@ private:
     const Class* m_class;
     ManagedClass* m_parentClass;
     EnumFlags<ManagedClassFlags> m_flags;
-    TMap<ANSIString, ManagedMethod> m_methods;
-    TMap<ANSIString, ManagedProperty> m_properties;
+    Map<ANSIString, ManagedMethod> m_methods;
+    Map<ANSIString, ManagedProperty> m_properties;
 
     WeakPtr<Assembly> m_assembly;
 

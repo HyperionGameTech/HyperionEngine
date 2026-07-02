@@ -67,7 +67,7 @@ public:
     void TriggerProc(Name eventName, Array<SocketProcArgument>&& args);
 
 protected:
-    TMap<Name, Proc<void(Array<SocketProcArgument>&&)>> m_eventProcs;
+    Map<Name, Proc<void(Array<SocketProcArgument>&&)>> m_eventProcs;
 };
 
 class CORE_API SocketServerThread final : public Thread<Scheduler, SocketServer*>
@@ -135,7 +135,7 @@ private:
     UniquePtr<SocketServerThread> m_thread;
 
     // SocketServerThread controls the connections list
-    TMap<Name, SharedPtr<SocketClient>> m_connections;
+    Map<Name, SharedPtr<SocketClient>> m_connections;
     Mutex m_connectionsMutex;
 };
 

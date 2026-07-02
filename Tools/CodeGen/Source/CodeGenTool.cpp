@@ -100,8 +100,8 @@ public:
         const FilePath& cxxOutputDirectory,
         const FilePath& csharpOutputDirectory,
         const FilePath& hypscriptOutputDirectory,
-        const TSet<FilePath>& excludeDirectories,
-        const TSet<FilePath>& excludeFiles,
+        const Set<FilePath>& excludeDirectories,
+        const Set<FilePath>& excludeFiles,
         CXXGenerationMode cxxMode = CXXGenerationMode::CPP)
     {
         m_analyzer.SetWorkingDirectory(workingDirectory);
@@ -178,7 +178,7 @@ public:
     }
 
 private:
-    TMap<String, String> GetGlobalDefines() const
+    Map<String, String> GetGlobalDefines() const
     {
         return {
             { "HYP_TOOL", "1" },
@@ -201,7 +201,7 @@ private:
         };
     }
 
-    TSet<String> GetIncludePaths() const
+    Set<String> GetIncludePaths() const
     {
         const FilePath& workingDirectory = m_analyzer.GetWorkingDirectory();
 
@@ -300,7 +300,7 @@ private:
         return TaskSystem::GetInstance().Enqueue([this]()
             {
                 Array<ClassDefinition*> classDefinitions;
-                TMap<String, uint32> classDefinitionIds;
+                Map<String, uint32> classDefinitionIds;
 
                 for (auto& it : m_analyzer.GetBuiltinClasses())
                 {
@@ -330,7 +330,7 @@ private:
                 // init ids and add dependency modules
                 for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
                 {
-                    TSet<Module*> dependencyModules;
+                    Set<Module*> dependencyModules;
 
                     Proc<void(const ClassDefinition& srcClassDef, const ASTType* type)> AddDependenciesRecur;
                     AddDependenciesRecur = [&](const ClassDefinition& srcClassDef, const ASTType* type)
@@ -660,7 +660,7 @@ private:
         }
 
         // Determine all unique API macros used across modules (always include ENGINE_API for builtins/fallback)
-        TSet<String> apiMacros;
+        Set<String> apiMacros;
         apiMacros.Insert("ENGINE_API");
 
         for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
@@ -708,8 +708,8 @@ private:
         if (m_cxxMode == CXXGenerationMode::INL)
         {
             // Pre-scan for duplicate flattened .inl filenames (e.g., Foo.generated.inl)
-            TMap<String, FilePath> seenInlNames; // maps inl filename to first header path encountered
-            TSet<String> duplicateInlNames;      // set of filenames that collide
+            Map<String, FilePath> seenInlNames; // maps inl filename to first header path encountered
+            Set<String> duplicateInlNames;      // set of filenames that collide
 
             for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
             {
@@ -1674,8 +1674,8 @@ private:
     Array<Module*> SortModulesTopologically()
     {
         // Build a map from class names to modules that contain them
-        TMap<String, Module*> classToModule;
-        TMap<Module*, uint32> moduleToIndex;
+        Map<String, Module*> classToModule;
+        Map<Module*, uint32> moduleToIndex;
         Array<Module*> moduleArray;
 
         for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
@@ -1712,7 +1712,7 @@ private:
             Module* currentModule = moduleArray[i];
 
             // Collect all base classes used by this module
-            TSet<Module*> dependencyModules;
+            Set<Module*> dependencyModules;
 
             for (const auto& classEntry : currentModule->GetClasses())
             {
@@ -1908,8 +1908,8 @@ int main(int argc, char** argv)
         const FilePath csharpOutputDirectory = FilePath(parseResult.GetValue()["CSharpOutputDirectory"].AsString());
         const FilePath hypscriptOutputDirectory = FilePath(parseResult.GetValue()["HypScriptOutputDirectory"].AsString());
 
-        TSet<FilePath> excludeDirectories;
-        TSet<FilePath> excludeFiles;
+        Set<FilePath> excludeDirectories;
+        Set<FilePath> excludeFiles;
 
         if (parseResult.GetValue().Contains("ExcludeDirectories"))
         {

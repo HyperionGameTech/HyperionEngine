@@ -1823,15 +1823,15 @@ class ShaderVariantPerms
 public:
     HYP_STRUCT_BODY(ShaderVariantPerms);
 
-    using Iterator = typename TSet<ShaderProperty>::Iterator;
-    using ConstIterator = typename TSet<ShaderProperty>::ConstIterator;
+    using Iterator = typename Set<ShaderProperty>::Iterator;
+    using ConstIterator = typename Set<ShaderProperty>::ConstIterator;
 
     ShaderVariantPerms()
         : m_needsHashCodeRecalculation(true)
     {
     }
 
-    explicit ShaderVariantPerms(const TSet<ShaderProperty>& props)
+    explicit ShaderVariantPerms(const Set<ShaderProperty>& props)
         : m_needsHashCodeRecalculation(true)
     {
         for (const ShaderProperty& property : props)
@@ -1994,7 +1994,7 @@ public:
         return result;
     }
 
-    HYP_FORCE_INLINE const TSet<ShaderProperty>& GetPropertySet() const
+    HYP_FORCE_INLINE const containers::Set<ShaderProperty>& GetPropertySet() const
     {
         return m_props;
     }
@@ -2203,7 +2203,7 @@ private:
     }
 
     HYP_FIELD()
-    TSet<ShaderProperty> m_props;
+    containers::Set<ShaderProperty> m_props;
 
     HYP_FIELD()
     VertexTypeMask m_requiredVertexAttributes;
@@ -2544,7 +2544,7 @@ static constexpr inline bool IsRayTracingShaderModule(ShaderModuleType type)
 struct ShaderBundleDecl // combination of shader files, .frag, .vert etc. in .ini definitions file.
 {
     Name name;
-    TFlatMap<ShaderModuleType, String> sources;
+    FlatMap<ShaderModuleType, String> sources;
     ShaderVariantPerms variantPerms;
 
     bool HasRTShaders() const

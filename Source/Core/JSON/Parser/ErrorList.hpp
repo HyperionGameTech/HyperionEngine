@@ -85,7 +85,7 @@ public:
     bool HasFatalErrors() const;
 
 private:
-    TFlatSet<CompilerError> m_errors;
+    FlatSet<CompilerError> m_errors;
     uint32 m_errorSuppressionDepth;
 };
 

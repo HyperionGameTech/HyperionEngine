@@ -279,7 +279,7 @@ const AssetLoaderDefinition* AssetManager::GetLoaderDefinition(const FilePath& p
 
     AssetLoaderBase* loader = nullptr;
 
-    TSortedArray<KeyValuePair<uint32, const AssetLoaderDefinition*>> loaderPtrs;
+    SortedArray<KeyValuePair<uint32, const AssetLoaderDefinition*>> loaderPtrs;
 
     for (const AssetLoaderDefinition& assetLoaderDefinition : m_loaders)
     {

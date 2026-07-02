@@ -26,7 +26,7 @@ CORE_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
 
 class Entity;
 
-using ComponentMap = TMap<TypeId, ComponentId, SceneAllocator>;
+using ComponentMap = Map<TypeId, ComponentId, SceneAllocator>;
 
 struct EntityData
 {

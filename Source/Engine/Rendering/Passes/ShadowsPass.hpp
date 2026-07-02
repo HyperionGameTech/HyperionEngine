@@ -81,7 +81,7 @@ private:
         uint32 lastUsedFrame;
     };
 
-    TMap<uint64, CachedShadowMapData, RenderAllocator> m_cachedShadowMapData;
+    Map<uint64, CachedShadowMapData, RenderAllocator> m_cachedShadowMapData;
 };
 
 class PointLightShadowsPass : public ShadowsPassBase

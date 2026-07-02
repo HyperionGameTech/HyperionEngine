@@ -29,7 +29,7 @@ class DX12TextureViewCache final : public TextureViewCacheBase
 public:
     struct SubtypeData
     {
-        SparsePagedArray<TMap<uint64, DX12GpuImageViewRef, DX12Allocator>, 32, DX12Allocator> imageViews;
+        SparsePagedArray<Map<uint64, DX12GpuImageViewRef, DX12Allocator>, 32, DX12Allocator> imageViews;
         SparsePagedArray<WeakHandle<Texture>, 32, DX12Allocator> weakTextureHandles;
     };
 

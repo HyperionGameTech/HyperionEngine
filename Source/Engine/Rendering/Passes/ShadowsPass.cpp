@@ -68,7 +68,7 @@ void ShadowsPassBase::Initialize()
 
 void ShadowsPassBase::Shutdown()
 {
-    TSet<ShadowMapCacheKey> cacheKeys;
+    Set<ShadowMapCacheKey> cacheKeys;
 
     for (KeyValuePair<uint64, CachedShadowMapData>& pair : m_cachedShadowMapData)
     {

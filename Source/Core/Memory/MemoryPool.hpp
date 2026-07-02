@@ -374,10 +374,10 @@ public:
 
         Mutex::Guard guard(m_blocksMutex);
 
-        typename TList<Block>::Iterator beginIt = m_blocks.Begin();
-        typename TList<Block>::Iterator endIt = m_blocks.End();
+        typename List<Block>::Iterator beginIt = m_blocks.Begin();
+        typename List<Block>::Iterator endIt = m_blocks.End();
 
-        Array<typename TList<Block>::Iterator> toRemove;
+        Array<typename List<Block>::Iterator> toRemove;
 
         for (uint32 blockIndex = 0; blockIndex < m_numBlocks.Get(MemoryOrder::ACQUIRE) && beginIt != endIt; ++blockIndex, ++beginIt)
         {
@@ -422,7 +422,7 @@ public:
 protected:
     uint32 m_initialNumBlocks;
 
-    TList<Block> m_blocks;
+    List<Block> m_blocks;
     AtomicVar<uint32> m_numBlocks;
     // Needs to be locked when accessing blocks beyond initialNumBlocks or adding/removing blocks.
     Mutex m_blocksMutex;

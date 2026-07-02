@@ -137,7 +137,7 @@ public:
     {
         TSharedLock lock(m_mutex);
 
-        TSet<IdType> visited;
+        Set<IdType> visited;
         visited.Reserve(m_forwardMap.Size());
 
         const uint32 headerOffset = stream.Position();
@@ -274,7 +274,7 @@ protected:
     bool m_initialized = false;
 
 private:
-    TMap<HashCode, IdType> m_forwardMap;
+    Map<HashCode, IdType> m_forwardMap;
     SparsePagedArray<Value, PageSize> m_reverseMap;
     mutable SharedMutex m_mutex;
 };

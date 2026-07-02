@@ -62,7 +62,7 @@ enum ErrorMessage
 
 class CompilerError
 {
-    static const TMap<ErrorMessage, String> errorMessageStrings;
+    static const Map<ErrorMessage, String> errorMessageStrings;
 
 public:
     template <typename... Args>

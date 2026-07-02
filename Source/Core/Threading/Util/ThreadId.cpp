@@ -91,8 +91,8 @@ private:
 
     AtomicIndexAllocator m_indexAllocator;
 
-    TMap<Name, Array<uint32>> m_nameMapping;
-    TMap<uint32, Name> m_reverseNameMapping;
+    Map<Name, Array<uint32>> m_nameMapping;
+    Map<uint32, Name> m_reverseNameMapping;
 
     mutable Mutex m_mutex;
 };

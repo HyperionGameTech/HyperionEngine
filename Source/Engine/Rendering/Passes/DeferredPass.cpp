@@ -2588,15 +2588,15 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
     };
 
     // --- Collect view-independent renderable types from all views, binned ---
-    FixedArray<TSet<EnvProbe*, RenderTempAllocator>, EPT_MAX> envProbes;
-    TSet<ProbeVolume*, RenderTempAllocator> probeVolumes;
+    FixedArray<Set<EnvProbe*, RenderTempAllocator>, EPT_MAX> envProbes;
+    Set<ProbeVolume*, RenderTempAllocator> probeVolumes;
 
     // For rendering ProbeVolumes and EnvProbes, we use a directional light from one of the Views that references it (if found)
-    TMap<ProbeVolume*, Light*, RenderTempAllocator> probeVolumeLights;
-    TMap<EnvProbe*, Light*, RenderTempAllocator> envProbeLights;
+    Map<ProbeVolume*, Light*, RenderTempAllocator> probeVolumeLights;
+    Map<EnvProbe*, Light*, RenderTempAllocator> envProbeLights;
 
-    FixedArray<TSet<Light*, RenderTempAllocator>, NumLightTypes> lights;
-    TMap<ShadowMapCacheKey, DrawShadowMapParams, RenderTempAllocator> lightsForShadow;
+    FixedArray<Set<Light*, RenderTempAllocator>, NumLightTypes> lights;
+    Map<ShadowMapCacheKey, DrawShadowMapParams, RenderTempAllocator> lightsForShadow;
     // ---
 
     // init view pass data and collect global rendering resources

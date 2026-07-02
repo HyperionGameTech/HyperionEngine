@@ -454,7 +454,7 @@ Property* MakeProperty(const Field* field, const Method* getter, const Method* s
     return pResult;
 }
 
-using FormattedStringMap = TMap<TypeId, String, DynamicAllocator, HashTablePolicy::NotPooled>;
+using FormattedStringMap = Map<TypeId, String, DynamicAllocator, HashTablePolicy::NotPooled>;
 thread_local FormattedStringMap* t_formattedStringMap;
 
 static void InitFormattedStringMap(void* mem)
@@ -998,7 +998,7 @@ Array<Property*> Class::GetPropertiesInherited() const
 {
     if (const Class* parent = GetParent())
     {
-        TFlatSet<Property*> properties { GetProperties().Begin(), GetProperties().End() };
+        FlatSet<Property*> properties { GetProperties().Begin(), GetProperties().End() };
 
         Array<Property*> inheritedProperties = parent->GetPropertiesInherited();
 
@@ -1037,7 +1037,7 @@ Array<Method*> Class::GetMethodsInherited() const
 {
     if (const Class* parent = GetParent())
     {
-        TFlatSet<Method*> methods { m_methods.Begin(), m_methods.End() };
+        FlatSet<Method*> methods { m_methods.Begin(), m_methods.End() };
 
         Array<Method*> inheritedMethods = parent->GetMethodsInherited();
 
@@ -1076,7 +1076,7 @@ Array<Field*> Class::GetFieldsInherited() const
 {
     if (const Class* parent = GetParent())
     {
-        TFlatSet<Field*> fields { m_fields.Begin(), m_fields.End() };
+        FlatSet<Field*> fields { m_fields.Begin(), m_fields.End() };
 
         Array<Field*> inheritedFields = parent->GetFieldsInherited();
 
@@ -1115,7 +1115,7 @@ Array<StaticField*> Class::GetStaticFieldsInherited() const
 {
     if (const Class* parent = GetParent())
     {
-        TFlatSet<StaticField*> staticFields { m_staticFields.Begin(), m_staticFields.End() };
+        FlatSet<StaticField*> staticFields { m_staticFields.Begin(), m_staticFields.End() };
 
         Array<StaticField*> inheritedConstants = parent->GetStaticFieldsInherited();
 

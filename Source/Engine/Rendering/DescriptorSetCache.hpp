@@ -33,7 +33,7 @@ public:
     DescriptorSet* GetOrCreate(const DescriptorSetLayout& layout);
 
 private:
-    using AllocationsMap = TMap<uint64, Array<DescriptorSetRef, RenderAllocator>, RenderAllocator>;
+    using AllocationsMap = Map<uint64, Array<DescriptorSetRef, RenderAllocator>, RenderAllocator>;
 
     AllocationsMap m_allocsByLayout;
 

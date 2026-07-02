@@ -118,7 +118,7 @@ private:
     size_t m_pageSize;
     bool m_readOnly;
 
-    TMap<ANSIString, MemoryMappedFile*> m_mappedFiles;
+    Map<ANSIString, MemoryMappedFile*> m_mappedFiles;
     SharedMutex m_mutex;
 };
 

@@ -60,7 +60,7 @@ public:
         }
     };
 
-    using Section = TMap<String, Value>;
+    using Section = Map<String, Value>;
 
     INIFile(const FilePath& path);
     ~INIFile() = default;
@@ -75,7 +75,7 @@ public:
         return m_path;
     }
 
-    HYP_FORCE_INLINE const TMap<String, Section>& GetSections() const
+    HYP_FORCE_INLINE const Map<String, Section>& GetSections() const
     {
         return m_sections;
     }
@@ -96,7 +96,7 @@ private:
     bool m_isValid;
     FilePath m_path;
 
-    TMap<String, Section> m_sections;
+    Map<String, Section> m_sections;
 };
 
 } // namespace Hyperion

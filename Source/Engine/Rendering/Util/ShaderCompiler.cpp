@@ -85,7 +85,7 @@ static IDxcCompiler3* s_dxcCompiler = nullptr;
 
 static constexpr uint32 NumPrecompileShadersThreads = 8;
 
-static const TMap<VertexType, Array<const char*>> s_vertexTypeToVertexAttributes = {
+static const Map<VertexType, Array<const char*>> s_vertexTypeToVertexAttributes = {
     { VT_Position, { "a_position" } },
     { VT_Normal, { "a_normal" } },
     { VT_UV0, { "a_texcoord0" } },
@@ -274,7 +274,7 @@ static String BuildAttributesDefines(const ShaderVariantPerms& perm)
     // instantiated at this point in time. before compiling the shader, they
     // should have all been made Required.
 
-    TSet<StringHash> definedNames;
+    Set<StringHash> definedNames;
 
     for (const ShaderProperty& property : perm.GetPropertySet())
     {
@@ -853,7 +853,7 @@ struct LoadedSourceFile
     }
 };
 
-static const TFlatMap<String, ShaderModuleType> s_shaderTypeNames = {
+static const FlatMap<String, ShaderModuleType> s_shaderTypeNames = {
     { "vs", ShaderModuleType::Vertex },
     { "ps", ShaderModuleType::Pixel },
     { "gs", ShaderModuleType::Geometry },
@@ -1104,7 +1104,7 @@ static void ForEachPermutation(
 
     for (size_t i = 0; i < numPermutations; i++)
     {
-        TSet<ShaderProperty> currentProperties;
+        Set<ShaderProperty> currentProperties;
         currentProperties.Reserve(ByteUtil::BitCount(i) + staticProperties.Size());
         currentProperties.Merge(staticProperties);
 
@@ -1839,7 +1839,7 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders, const ShaderC
 
     pool.Start();
 
-    TMap<const ShaderBundleDecl*, bool> results;
+    Map<const ShaderBundleDecl*, bool> results;
 
     // Compile all shaders ahead of time
     for (const ShaderBundleDecl& decl : m_shaderBundleDecls)
@@ -2092,10 +2092,12 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
         preprocessResult = false;
 #endif
 
-        result.errors.Concat(Map(preprocessErrorMessages, [](const String& errorMessage)
-                                 {
-                                     return ProcessError { errorMessage };
-                                 }));
+        result.errors.Concat(MapToArray(
+            preprocessErrorMessages,
+            [](const String& errorMessage)
+            {
+                return ProcessError { errorMessage };
+            }));
 
         if (!preprocessResult)
         {
@@ -2436,7 +2438,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
 
                 String descriptorName, setName, slotStr;
 
-                TMap<String, String> params;
+                Map<String, String> params;
 
                 auto parseResult = parseCustomStatement(commandStr, line);
 
@@ -2983,7 +2985,7 @@ bool ShaderCompiler::CompileBundle(
     uint32 numErroredPermutations = 0;
 
     Array<Handle<Shader>> existingShadersToRemove;
-    TSet<Name> usedNames;
+    Set<Name> usedNames;
 
 #if HYP_ENABLE_SHADER_RELOAD
     Time maxSourceFileLastModified = Time(0);
@@ -3040,7 +3042,7 @@ bool ShaderCompiler::CompileBundle(
         return {};
     };
 
-    TSet<Shader*> newShaders;
+    Set<Shader*> newShaders;
 
     auto CompilePermFunctor = [&](const ShaderVariantPerms& perm)
     {
@@ -3134,7 +3136,7 @@ bool ShaderCompiler::CompileBundle(
                     }
 
                     Mutex::Guard guard(errorMessagesMutex);
-                    outBundle->errorMessages.Concat(Map(processResult.errors, &ProcessError::errorMessage));
+                    outBundle->errorMessages.Concat(MapToArray(processResult.errors, &ProcessError::errorMessage));
 
                     ++numErrored;
 

@@ -17,14 +17,14 @@
 namespace Hyperion {
 namespace containers {
 
-/*! \brief TFlatSet is a sorted set container that stores unique elements in a flat contiguous array, based on the TSortedArray implementation.
+/*! \brief FlatSet is a sorted set container that stores unique elements in a flat contiguous array, based on the SortedArray implementation.
  *  It provides fast lookup and insertion while maintaining order.
  *  \tparam T The type of elements stored in the flat set. */
 template <class T, class AllocatorType = DynamicAllocator>
-class TFlatSet : public TSortedArray<T, AllocatorType>
+class FlatSet : public SortedArray<T, AllocatorType>
 {
 protected:
-    using Base = TSortedArray<T, AllocatorType>;
+    using Base = SortedArray<T, AllocatorType>;
 
 public:
     using Iterator = typename Base::Iterator;
@@ -35,9 +35,9 @@ public:
 
     using InsertResult = Pair<Iterator, bool>; // iterator, was inserted
 
-    TFlatSet();
+    FlatSet();
 
-    TFlatSet(std::initializer_list<T> initializerList)
+    FlatSet(std::initializer_list<T> initializerList)
         : Base()
     {
         Reserve(initializerList.size());
@@ -48,7 +48,7 @@ public:
         }
     }
 
-    TFlatSet(const T* begin, const T* end)
+    FlatSet(const T* begin, const T* end)
         : Base()
     {
         if (begin && end)
@@ -67,13 +67,13 @@ public:
         }
     }
 
-    TFlatSet(const TFlatSet& other);
-    TFlatSet& operator=(const TFlatSet& other);
+    FlatSet(const FlatSet& other);
+    FlatSet& operator=(const FlatSet& other);
     
-    TFlatSet(TFlatSet&& other) noexcept;
-    TFlatSet& operator=(TFlatSet&& other) noexcept;
+    FlatSet(FlatSet&& other) noexcept;
+    FlatSet& operator=(FlatSet&& other) noexcept;
 
-    ~TFlatSet();
+    ~FlatSet();
 
     Iterator Find(const T& value);
     ConstIterator Find(const T& value) const;
@@ -81,7 +81,7 @@ public:
     template <class TFindAsType>
     HYP_FORCE_INLINE auto FindAs(const TFindAsType& value) -> Iterator
     {
-        const auto it = TFlatSet<T, AllocatorType>::Base::LowerBound(value);
+        const auto it = FlatSet<T, AllocatorType>::Base::LowerBound(value);
 
         if (it == End())
         {
@@ -94,7 +94,7 @@ public:
     template <class TFindAsType>
     HYP_FORCE_INLINE auto FindAs(const TFindAsType& value) const -> ConstIterator
     {
-        const auto it = TFlatSet<T, AllocatorType>::Base::LowerBound(value);
+        const auto it = FlatSet<T, AllocatorType>::Base::LowerBound(value);
 
         if (it == End())
         {
@@ -178,7 +178,7 @@ public:
     }
 
     template <class OtherContainerType>
-    TFlatSet& Merge(const OtherContainerType& other)
+    FlatSet& Merge(const OtherContainerType& other)
     {
         for (const auto& item : other)
         {
@@ -189,7 +189,7 @@ public:
     }
 
     template <class OtherContainerType>
-    TFlatSet& Merge(OtherContainerType&& other)
+    FlatSet& Merge(OtherContainerType&& other)
     {
         for (auto& item : other)
         {
@@ -202,27 +202,27 @@ public:
     }
 
     template <class OtherContainerType>
-    TFlatSet Union(const OtherContainerType& other) const
+    FlatSet Union(const OtherContainerType& other) const
     {
-        TFlatSet result(*this);
+        FlatSet result(*this);
         result.Merge(other);
 
         return result;
     }
 
     template <class OtherContainerType>
-    TFlatSet Union(OtherContainerType&& other) const
+    FlatSet Union(OtherContainerType&& other) const
     {
-        TFlatSet result(*this);
+        FlatSet result(*this);
         result.Merge(std::move(other));
 
         return result;
     }
 
     template <class OtherContainerType>
-    TFlatSet Intersection(const OtherContainerType& other) const
+    FlatSet Intersection(const OtherContainerType& other) const
     {
-        TFlatSet result;
+        FlatSet result;
 
         for (auto it = Begin(); it != End(); ++it)
         {
@@ -244,19 +244,19 @@ public:
 };
 
 template <class T, class AllocatorType>
-TFlatSet<T, AllocatorType>::TFlatSet()
+FlatSet<T, AllocatorType>::FlatSet()
     : Base()
 {
 }
 
 template <class T, class AllocatorType>
-TFlatSet<T, AllocatorType>::TFlatSet(const TFlatSet& other)
+FlatSet<T, AllocatorType>::FlatSet(const FlatSet& other)
     : Base(other)
 {
 }
 
 template <class T, class AllocatorType>
-auto TFlatSet<T, AllocatorType>::operator=(const TFlatSet& other) -> TFlatSet&
+auto FlatSet<T, AllocatorType>::operator=(const FlatSet& other) -> FlatSet&
 {
     Base::operator=(other);
 
@@ -264,13 +264,13 @@ auto TFlatSet<T, AllocatorType>::operator=(const TFlatSet& other) -> TFlatSet&
 }
 
 template <class T, class AllocatorType>
-TFlatSet<T, AllocatorType>::TFlatSet(TFlatSet&& other) noexcept
+FlatSet<T, AllocatorType>::FlatSet(FlatSet&& other) noexcept
     : Base(std::move(other))
 {
 }
 
 template <class T, class AllocatorType>
-auto TFlatSet<T, AllocatorType>::operator=(TFlatSet&& other) noexcept -> TFlatSet&
+auto FlatSet<T, AllocatorType>::operator=(FlatSet&& other) noexcept -> FlatSet&
 {
     Base::operator=(std::move(other));
 
@@ -278,10 +278,10 @@ auto TFlatSet<T, AllocatorType>::operator=(TFlatSet&& other) noexcept -> TFlatSe
 }
 
 template <class T, class AllocatorType>
-TFlatSet<T, AllocatorType>::~TFlatSet() = default;
+FlatSet<T, AllocatorType>::~FlatSet() = default;
 
 template <class T, class AllocatorType>
-auto TFlatSet<T, AllocatorType>::Find(const T& value) -> Iterator
+auto FlatSet<T, AllocatorType>::Find(const T& value) -> Iterator
 {
     const auto it = Base::LowerBound(value);
 
@@ -294,7 +294,7 @@ auto TFlatSet<T, AllocatorType>::Find(const T& value) -> Iterator
 }
 
 template <class T, class AllocatorType>
-auto TFlatSet<T, AllocatorType>::Find(const T& value) const -> ConstIterator
+auto FlatSet<T, AllocatorType>::Find(const T& value) const -> ConstIterator
 {
     const auto it = Base::LowerBound(value);
 
@@ -307,7 +307,7 @@ auto TFlatSet<T, AllocatorType>::Find(const T& value) const -> ConstIterator
 }
 
 template <class T, class AllocatorType>
-auto TFlatSet<T, AllocatorType>::Insert(const T& value) -> InsertResult
+auto FlatSet<T, AllocatorType>::Insert(const T& value) -> InsertResult
 {
     Iterator it = Base::LowerBound(value);
 
@@ -322,7 +322,7 @@ auto TFlatSet<T, AllocatorType>::Insert(const T& value) -> InsertResult
 }
 
 template <class T, class AllocatorType>
-auto TFlatSet<T, AllocatorType>::Insert(T&& value) -> InsertResult
+auto FlatSet<T, AllocatorType>::Insert(T&& value) -> InsertResult
 {
     Iterator it = Base::LowerBound(value);
 
@@ -337,13 +337,13 @@ auto TFlatSet<T, AllocatorType>::Insert(T&& value) -> InsertResult
 }
 
 template <class T, class AllocatorType>
-auto TFlatSet<T, AllocatorType>::Erase(ConstIterator it) -> Iterator
+auto FlatSet<T, AllocatorType>::Erase(ConstIterator it) -> Iterator
 {
     return Base::Erase(it);
 }
 
 template <class T, class AllocatorType>
-auto TFlatSet<T, AllocatorType>::Erase(const T& value) -> Iterator
+auto FlatSet<T, AllocatorType>::Erase(const T& value) -> Iterator
 {
     const auto it = Find(value);
 
@@ -357,10 +357,10 @@ auto TFlatSet<T, AllocatorType>::Erase(const T& value) -> Iterator
 
 } // namespace containers
 
-using containers::TFlatSet;
+using containers::FlatSet;
 
 template <class T, class AllocatorType>
-struct IsFlatSet<TFlatSet<T, AllocatorType>> : std::true_type
+struct IsFlatSet<FlatSet<T, AllocatorType>> : std::true_type
 {
 };
 

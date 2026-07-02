@@ -65,7 +65,7 @@ struct AssetLoaderDefinition
     TypeId loaderTypeId;
     TypeId resultTypeId;
     const Class* resultClass = nullptr;
-    TFlatSet<String> extensions;
+    FlatSet<String> extensions;
     Handle<AssetLoaderBase> loader;
 
     HYP_FORCE_INLINE bool HandlesResultType(TypeId typeId) const
@@ -231,7 +231,7 @@ public:
         assetLoaderDefinition.loaderTypeId = TypeId::ForType<Loader>();
         assetLoaderDefinition.resultTypeId = TypeId::ForType<ResultType>();
         assetLoaderDefinition.resultClass = GetClass(TypeId::ForType<ResultType>());
-        assetLoaderDefinition.extensions = TFlatSet<String>(formatStrings.Begin(), formatStrings.End());
+        assetLoaderDefinition.extensions = FlatSet<String>(formatStrings.Begin(), formatStrings.End());
         assetLoaderDefinition.loader = MakeHandle<Loader>();
 
         m_functorFactories.Set<Loader>([](

@@ -247,7 +247,7 @@ void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
             resolvedArgType->ToString(),
             resolvedParamType->ToString(),
             (incompatibilities.Size() > 1
-                 ? "\n\t* " + String::Join(Map(incompatibilities, &SymbolTypeIncompatibility::details), "\n\t* ")
+                 ? "\n\t* " + String::Join(MapToArray(incompatibilities, &SymbolTypeIncompatibility::details), "\n\t* ")
                  : " " + incompatibilities[0].details)));
     }
     else
@@ -263,7 +263,7 @@ void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
 
 size_t SemanticAnalyzer::Helpers::FindFreeSlot(
     size_t currentIndex,
-    const TFlatSet<size_t>& usedIndices,
+    const FlatSet<size_t>& usedIndices,
     const Array<GenericInstanceTypeInfo::Arg>& genericArgs,
     bool isVariadic,
     size_t numSuppliedArgs)
@@ -295,7 +295,7 @@ size_t SemanticAnalyzer::Helpers::FindFreeSlot(
 size_t SemanticAnalyzer::Helpers::ArgIndex(
     size_t currentIndex,
     const ArgInfo& argInfo,
-    const TFlatSet<size_t>& usedIndices,
+    const FlatSet<size_t>& usedIndices,
     const Array<GenericInstanceTypeInfo::Arg>& genericArgs,
     bool isVariadic,
     size_t numSuppliedArgs)
@@ -698,7 +698,7 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
         }
     }
 
-    TFlatSet<size_t> usedIndices;
+    FlatSet<size_t> usedIndices;
 
     Array<SubstitutionResult> substitutionResults;
     substitutionResults.Resize(numArgs);
@@ -1032,7 +1032,7 @@ void SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
                 resolvedSymbolType->ToString(),
                 resolvedAssignmentType->ToString(),
                 (incompatibilities.Size() > 1
-                     ? "\n\t* " + String::Join(Map(incompatibilities, &SymbolTypeIncompatibility::details), "\n\t* ")
+                     ? "\n\t* " + String::Join(MapToArray(incompatibilities, &SymbolTypeIncompatibility::details), "\n\t* ")
                      : " " + incompatibilities[0].details)));
         }
         else

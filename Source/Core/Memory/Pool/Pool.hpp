@@ -118,7 +118,7 @@ public:
 protected:
     TlsfAllocator m_tlsf;
 
-    TList<Block> m_blocks;
+    List<Block> m_blocks;
     size_t m_blockSize;
     EnumFlags<PoolFlags> m_flags;
     AtomicFlag m_atomicFlag;

@@ -323,7 +323,7 @@ public:
     ShadowMapAllocator allocator;
 
     /// Cached (per-light/view combination) shadow map rendering data that is cleaned up when no longer used
-    TMap<ShadowMapCacheKey, CachedShadowMapData, RenderAllocator> cache;
+    Map<ShadowMapCacheKey, CachedShadowMapData, RenderAllocator> cache;
 
     SlimArray<Camera*> deferredDeletionCameras;
     AtomicFlag hasDeferredDeletionCameras;

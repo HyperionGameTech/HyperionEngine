@@ -46,7 +46,7 @@ static const ThreadId& ThreadSet_KeyBy(ThreadBase* thread)
 class ThreadMap
 {
 public:
-    using ThreadSetType = THashTable<ThreadBase*, &ThreadSet_KeyBy>;
+    using ThreadSetType = HashTable<ThreadBase*, &ThreadSet_KeyBy>;
 
     ThreadMap() = default;
 

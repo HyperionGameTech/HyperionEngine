@@ -747,8 +747,8 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
 
     for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
     {
-        TList<DX12CommandBuffer, DX12Allocator>& freeList = m_transientCommandBuffers[threadIndex][frameIndex];
-        TList<DX12CommandBuffer, DX12Allocator>& pendingList = m_pendingTransientCommandBuffers[threadIndex][frameIndex];
+        List<DX12CommandBuffer, DX12Allocator>& freeList = m_transientCommandBuffers[threadIndex][frameIndex];
+        List<DX12CommandBuffer, DX12Allocator>& pendingList = m_pendingTransientCommandBuffers[threadIndex][frameIndex];
 
         for (auto it = pendingList.Begin(); it != pendingList.End();)
         {
@@ -824,8 +824,8 @@ DX12CommandBuffer& DX12RenderInterface::GetTransientCommandBuffer()
 
     const uint32 renderThreadIndex = CurrentRenderThreadIndex();
 
-    TList<DX12CommandBuffer, DX12Allocator>& freeList = m_transientCommandBuffers[renderThreadIndex][frameIndex];
-    TList<DX12CommandBuffer, DX12Allocator>& pendingList = m_pendingTransientCommandBuffers[renderThreadIndex][frameIndex];
+    List<DX12CommandBuffer, DX12Allocator>& freeList = m_transientCommandBuffers[renderThreadIndex][frameIndex];
+    List<DX12CommandBuffer, DX12Allocator>& pendingList = m_pendingTransientCommandBuffers[renderThreadIndex][frameIndex];
 
     DX12CommandBuffer* pCommandBuffer = nullptr;
 
