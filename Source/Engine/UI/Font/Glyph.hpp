@@ -11,7 +11,7 @@
 #include <Core/Utilities/Result.hpp>
 
 #include <Core/Memory/UniquePtr.hpp>
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Math/Vector2.hpp>
 
@@ -63,7 +63,7 @@ struct GlyphMetrics
 class Glyph
 {
 public:
-    Glyph(RC<FontFace> face, FontFace::GlyphIndex index, float scale);
+    Glyph(SharedPtr<FontFace> face, FontFace::GlyphIndex index, float scale);
 
     Glyph(const Glyph& other) = default;
     Glyph& operator=(const Glyph& other) = default;
@@ -89,7 +89,7 @@ public:
     Vec2i GetMin();
 
 private:
-    RC<FontFace> m_face;
+    SharedPtr<FontFace> m_face;
     FontFace::GlyphIndex m_index;
     float m_scale;
 

@@ -52,23 +52,23 @@ void NullPhysicsAdapter::ApplyForceToBody(const RigidBody* rigidBody, const Vec3
 {
 }
 
-void NullPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerConfig& config, RC<void>& outPhysicsHandle)
+void NullPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerConfig& config, SharedPtr<void>& outPhysicsHandle)
 {
 }
 
-void NullPhysicsAdapter::OnCharacterControllerRemoved(RC<void>& physicsHandle)
+void NullPhysicsAdapter::OnCharacterControllerRemoved(SharedPtr<void>& physicsHandle)
 {
 }
 
-void NullPhysicsAdapter::SetCharacterWalkDirection(const RC<void>& physicsHandle, const Vec3f& velocity)
+void NullPhysicsAdapter::SetCharacterWalkDirection(const SharedPtr<void>& physicsHandle, const Vec3f& velocity)
 {
 }
 
-void NullPhysicsAdapter::ApplyCharacterJump(const RC<void>& physicsHandle)
+void NullPhysicsAdapter::ApplyCharacterJump(const SharedPtr<void>& physicsHandle)
 {
 }
 
-void NullPhysicsAdapter::GetCharacterState(const RC<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround)
+void NullPhysicsAdapter::GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround)
 {
 }
 

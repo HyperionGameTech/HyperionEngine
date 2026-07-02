@@ -2,7 +2,7 @@
 
 #include <Core/Defines.hpp>
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 #include <Core/Memory/UniquePtr.hpp>
 
 #include <Core/Containers/String.hpp>
@@ -71,7 +71,7 @@ public:
         return GetName();
     }
 
-    virtual RC<AstStatement> Clone() const = 0;
+    virtual SharedPtr<AstStatement> Clone() const = 0;
 
 protected:
     SourceLocation m_location;
@@ -79,8 +79,8 @@ protected:
 };
 
 template <typename T>
-typename std::enable_if<std::is_base_of_v<AstStatement, T>, RC<T>>::type
-CloneAstNode(const RC<T>& stmt)
+typename std::enable_if<std::is_base_of_v<AstStatement, T>, SharedPtr<T>>::type
+CloneAstNode(const SharedPtr<T>& stmt)
 {
     return (stmt != nullptr)
         ? stmt->Clone().template CastUnchecked<T>()
@@ -88,7 +88,7 @@ CloneAstNode(const RC<T>& stmt)
 }
 
 template <typename T>
-typename std::enable_if<std::is_base_of_v<AstStatement, T>, RC<T>>::type
+typename std::enable_if<std::is_base_of_v<AstStatement, T>, SharedPtr<T>>::type
 CloneAstNode(const T* stmt)
 {
     return (stmt != nullptr)
@@ -97,10 +97,10 @@ CloneAstNode(const T* stmt)
 }
 
 template <typename T>
-typename std::enable_if<std::is_base_of_v<AstStatement, T>, Array<RC<T>>>::type
-CloneAllAstNodes(const Array<RC<T>>& stmts)
+typename std::enable_if<std::is_base_of_v<AstStatement, T>, Array<SharedPtr<T>>>::type
+CloneAllAstNodes(const Array<SharedPtr<T>>& stmts)
 {
-    Array<RC<T>> res;
+    Array<SharedPtr<T>> res;
     res.Reserve(stmts.Size());
     for (auto& stmt : stmts)
     {
@@ -110,10 +110,10 @@ CloneAllAstNodes(const Array<RC<T>>& stmts)
 }
 
 template <typename T>
-typename std::enable_if<std::is_base_of_v<AstStatement, T>, Array<RC<T>>>::type
+typename std::enable_if<std::is_base_of_v<AstStatement, T>, Array<SharedPtr<T>>>::type
 CloneAllAstNodes(const Array<T*>& stmts)
 {
-    Array<RC<T>> res;
+    Array<SharedPtr<T>> res;
     res.Reserve(stmts.Size());
     for (auto& stmt : stmts)
     {

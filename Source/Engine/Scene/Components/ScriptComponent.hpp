@@ -42,7 +42,7 @@ struct ScriptComponent
     Handle<ScriptAsset> script;
 
     HYP_FIELD(NoScriptBindings, Transient)
-    RC<dotnet::Assembly> assembly;
+    SharedPtr<dotnet::Assembly> assembly;
 
     HYP_FIELD(NoScriptBindings, Transient)
     ScriptObjectResource* scriptObjectResource = nullptr;

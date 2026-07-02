@@ -11,7 +11,7 @@
 #include <Core/Utilities/EnumFlags.hpp>
 #include <Core/Utilities/ForEach.hpp>
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Containers/TypeMap.hpp>
 
@@ -152,7 +152,7 @@ private:
     mutable Mutex m_mutex;
     TMap<TypeId, Class*> m_dynamicClasses;
 
-    TMap<Class*, RC<dotnet::ManagedClass>> m_managedClasses;
+    TMap<Class*, SharedPtr<dotnet::ManagedClass>> m_managedClasses;
     TMap<dotnet::ManagedClass*, Class*> m_managedClassesReverseMapping;
     mutable Mutex m_managedClassesMutex;
 

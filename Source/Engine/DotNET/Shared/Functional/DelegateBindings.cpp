@@ -26,7 +26,7 @@ extern "C"
         Assert(pObjectReference != nullptr);
         Assert(pClass != nullptr);
 
-        return new DelegateHandler(pDelegate->BindMethod(targetPtr, "DynamicInvoke", MakeUnique<ManagedObject>(pClass->RefCountedPtrFromThis(), *pObjectReference, ObjectFlags::CREATED_FROM_MANAGED)));
+        return new DelegateHandler(pDelegate->BindMethod(targetPtr, "DynamicInvoke", MakeUnique<ManagedObject>(pClass->SharedThis(), *pObjectReference, ObjectFlags::CREATED_FROM_MANAGED)));
     }
 #endif
 

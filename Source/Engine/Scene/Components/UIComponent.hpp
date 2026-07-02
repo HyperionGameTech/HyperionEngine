@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Utilities/EnumFlags.hpp>
 #include <Core/Utilities/Optional.hpp>

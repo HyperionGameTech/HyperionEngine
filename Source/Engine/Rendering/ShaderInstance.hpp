@@ -6,7 +6,7 @@
 
 #pragma once
 #include <Core/Memory/ByteBuffer.hpp>
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/String.hpp>

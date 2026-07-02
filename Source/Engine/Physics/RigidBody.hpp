@@ -74,7 +74,7 @@ public:
 
     /*! \brief Set the internal handle of the RigidBody. Only to be used
         by a PhysicsAdapter. */
-    HYP_FORCE_INLINE void SetHandle(RC<void>&& handle)
+    HYP_FORCE_INLINE void SetHandle(SharedPtr<void>&& handle)
     {
         m_handle = std::move(handle);
     }
@@ -87,7 +87,7 @@ private:
 
     bool m_isKinematic;
 
-    RC<void> m_handle;
+    SharedPtr<void> m_handle;
 };
 
 } // namespace Hyperion

@@ -58,7 +58,7 @@ void RTCServer::EnqueueClientRemoval(String clientId)
 
     m_thread->GetScheduler().Enqueue([this, id = std::move(clientId)]() mutable
         {
-            Optional<RC<RTCClient>> client = m_clientList.Get(id);
+            Optional<SharedPtr<RTCClient>> client = m_clientList.Get(id);
 
             if (!client.HasValue())
             {
@@ -89,9 +89,9 @@ void NullRTCServer::Stop()
     // Do nothing
 }
 
-RC<RTCClient> NullRTCServer::CreateClient(String id)
+SharedPtr<RTCClient> NullRTCServer::CreateClient(String id)
 {
-    RC<RTCClient> client = MakeRefCountedPtr<NullRTCClient>(id, this);
+    SharedPtr<RTCClient> client = MakeShared<NullRTCClient>(id, this);
     m_clientList.Add(id, client);
 
     return client;
@@ -212,9 +212,9 @@ void LibDataChannelRTCServer::Stop()
     }
 }
 
-RC<RTCClient> LibDataChannelRTCServer::CreateClient(String id)
+SharedPtr<RTCClient> LibDataChannelRTCServer::CreateClient(String id)
 {
-    RC<RTCClient> client = MakeRefCountedPtr<LibDataChannelRTCClient>(id, this);
+    SharedPtr<RTCClient> client = MakeShared<LibDataChannelRTCClient>(id, this);
     m_clientList.Add(id, client);
 
     return client;
@@ -232,7 +232,7 @@ void LibDataChannelRTCServer::SendToSignallingServer(ByteBuffer bytes)
         return;
     }
 
-    m_thread->GetScheduler().Enqueue([this, byteBuffer = MakeRefCountedPtr<ByteBuffer>(std::move(bytes))]() mutable
+    m_thread->GetScheduler().Enqueue([this, byteBuffer = MakeShared<ByteBuffer>(std::move(bytes))]() mutable
         {
             rtc::binary bin;
             bin.resize(byteBuffer->Size());
@@ -252,7 +252,7 @@ void LibDataChannelRTCServer::SendToClient(String clientId, const ByteBuffer& by
 {
     Assert(m_thread->IsRunning(), "LibDataChannelRTCServer::SendToClient() called, but server is not running!");
 
-    // if (Optional<RC<RTCClient>> client = m_clientList.Get(clientId)) {
+    // if (Optional<SharedPtr<RTCClient>> client = m_clientList.Get(clientId)) {
     //     client.Get()->Send(bytes);
     // }
 }

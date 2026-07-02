@@ -28,11 +28,11 @@ public:
 
     void ApplyForceToBody(const RigidBody* rigidBody, const Vec3f& force);
 
-    void OnCharacterControllerAdded(const CharacterControllerConfig& config, RC<void>& outPhysicsHandle);
-    void OnCharacterControllerRemoved(RC<void>& physicsHandle);
-    void SetCharacterWalkDirection(const RC<void>& physicsHandle, const Vec3f& velocity);
-    void ApplyCharacterJump(const RC<void>& physicsHandle);
-    void GetCharacterState(const RC<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround);
+    void OnCharacterControllerAdded(const CharacterControllerConfig& config, SharedPtr<void>& outPhysicsHandle);
+    void OnCharacterControllerRemoved(SharedPtr<void>& physicsHandle);
+    void SetCharacterWalkDirection(const SharedPtr<void>& physicsHandle, const Vec3f& velocity);
+    void ApplyCharacterJump(const SharedPtr<void>& physicsHandle);
+    void GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround);
 };
 
 } // namespace Hyperion

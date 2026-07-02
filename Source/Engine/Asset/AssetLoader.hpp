@@ -97,12 +97,12 @@ struct LoadedAsset
 
         const BoxedValue& bv = valueOrError.GetUnchecked<BoxedValue>();
 
-        if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>)
+        if constexpr (std::is_base_of_v<SharedFromThisBase<>, T>)
         {
-            if (bv.Is<RC<T>>())
-                return bv.Get<RC<T>>();
+            if (bv.Is<SharedPtr<T>>())
+                return bv.Get<SharedPtr<T>>();
             else
-                return RC<T> {}; // return null
+                return SharedPtr<T> {}; // return null
         }
         else if constexpr (std::is_base_of_v<ObjectBase, T>)
         {

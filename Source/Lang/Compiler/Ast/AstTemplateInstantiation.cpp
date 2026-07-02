@@ -26,9 +26,9 @@
 namespace Hyperion {
 
 AstTemplateInstantiation::AstTemplateInstantiation(
-    const RC<AstExpression>& expr,
-    const Array<RC<AstTypeSpecifier>>& genericArgs,
-    const RC<AstTypeSpecifier>& functionReturnType,
+    const SharedPtr<AstExpression>& expr,
+    const Array<SharedPtr<AstTypeSpecifier>>& genericArgs,
+    const SharedPtr<AstTypeSpecifier>& functionReturnType,
     const SourceLocation& location)
     : AstTypeSpecifier(expr, location),
       m_functionReturnType(functionReturnType),
@@ -131,7 +131,7 @@ void AstTemplateInstantiation::Optimize(AstVisitor* visitor, Module* mod)
 {
 }
 
-RC<AstStatement> AstTemplateInstantiation::Clone() const
+SharedPtr<AstStatement> AstTemplateInstantiation::Clone() const
 {
     return CloneImpl();
 }

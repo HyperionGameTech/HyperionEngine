@@ -11,7 +11,7 @@
 
 #include <Core/Containers/String.hpp>
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 namespace Hyperion {
 

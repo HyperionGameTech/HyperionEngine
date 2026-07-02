@@ -3,39 +3,39 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    public static class RefCountedPtrNativeBindings
+    public static class SharedPtrNativeBindings
     {
-        [DllImport("hyperion", EntryPoint = "RefCountedPtr_IncRef")]
-        internal static extern void RefCountedPtr_IncRef(IntPtr address);
+        [DllImport("hyperion", EntryPoint = "SharedPtr_IncRef")]
+        internal static extern void SharedPtr_IncRef(IntPtr address);
 
-        [DllImport("hyperion", EntryPoint = "RefCountedPtr_DecRef")]
-        internal static extern void RefCountedPtr_DecRef(IntPtr address);
+        [DllImport("hyperion", EntryPoint = "SharedPtr_DecRef")]
+        internal static extern void SharedPtr_DecRef(IntPtr address);
 
-        [DllImport("hyperion", EntryPoint = "RefCountedPtr_Get")]
-        internal static extern void RefCountedPtr_Get(IntPtr address, [Out] out BoxedValueInternal outBoxed);
+        [DllImport("hyperion", EntryPoint = "SharedPtr_Get")]
+        internal static extern void SharedPtr_Get(IntPtr address, [Out] out BoxedValueInternal outBoxed);
 
-        [DllImport("hyperion", EntryPoint = "WeakRefCountedPtr_IncRef")]
-        internal static extern void WeakRefCountedPtr_IncRef(IntPtr address);
+        [DllImport("hyperion", EntryPoint = "WeakPtr_IncRef")]
+        internal static extern void WeakPtr_IncRef(IntPtr address);
 
-        [DllImport("hyperion", EntryPoint = "WeakRefCountedPtr_DecRef")]
-        internal static extern void WeakRefCountedPtr_DecRef(IntPtr address);
+        [DllImport("hyperion", EntryPoint = "WeakPtr_DecRef")]
+        internal static extern void WeakPtr_DecRef(IntPtr address);
 
-        [DllImport("hyperion", EntryPoint = "WeakRefCountedPtr_Lock")]
-        internal static extern uint WeakRefCountedPtr_Lock(IntPtr address);
+        [DllImport("hyperion", EntryPoint = "WeakPtr_Lock")]
+        internal static extern uint WeakPtr_Lock(IntPtr address);
     }
 
     [StructLayout(LayoutKind.Sequential, Size = 8, Pack = 8)]
-    public struct RefCountedPtr
+    public struct SharedPtr
     {
-        public static readonly RefCountedPtr Null = new RefCountedPtr();
+        public static readonly SharedPtr Null = new SharedPtr();
 
         private IntPtr ptr = IntPtr.Zero;
 
-        public RefCountedPtr()
+        public SharedPtr()
         {
         }
 
-        public RefCountedPtr(IntPtr ptr)
+        public SharedPtr(IntPtr ptr)
         {
             this.ptr = ptr;
         }
@@ -60,35 +60,35 @@ namespace Hyperion
         {
             if (IsNull)
             {
-                throw new Exception("RefCountedPtr is null");
+                throw new Exception("SharedPtr is null");
             }
 
-            RefCountedPtrNativeBindings.RefCountedPtr_IncRef(ptr);
+            SharedPtrNativeBindings.SharedPtr_IncRef(ptr);
         }
 
         public void DecRef()
         {
             if (IsNull)
             {
-                throw new Exception("RefCountedPtr is null");
+                throw new Exception("SharedPtr is null");
             }
 
-            RefCountedPtrNativeBindings.RefCountedPtr_DecRef(ptr);
+            SharedPtrNativeBindings.SharedPtr_DecRef(ptr);
         }
     }
 
     [StructLayout(LayoutKind.Sequential, Size = 8, Pack = 8)]
-    public struct RefCountedPtr<T>
+    public struct SharedPtr<T>
     {
-        public static readonly RefCountedPtr<T> Null = new RefCountedPtr<T>();
+        public static readonly SharedPtr<T> Null = new SharedPtr<T>();
 
         private IntPtr ptr = IntPtr.Zero;
 
-        public RefCountedPtr()
+        public SharedPtr()
         {
         }
 
-        public RefCountedPtr(IntPtr ptr)
+        public SharedPtr(IntPtr ptr)
         {
             this.ptr = ptr;
         }
@@ -113,20 +113,20 @@ namespace Hyperion
         {
             if (IsNull)
             {
-                throw new Exception("RefCountedPtr is null");
+                throw new Exception("SharedPtr is null");
             }
             
-            RefCountedPtrNativeBindings.RefCountedPtr_IncRef(ptr);
+            SharedPtrNativeBindings.SharedPtr_IncRef(ptr);
         }
 
         public void DecRef()
         {
             if (IsNull)
             {
-                throw new Exception("RefCountedPtr is null");
+                throw new Exception("SharedPtr is null");
             }
 
-            RefCountedPtrNativeBindings.RefCountedPtr_DecRef(ptr);
+            SharedPtrNativeBindings.SharedPtr_DecRef(ptr);
         }
 
         public T? GetValue()
@@ -139,7 +139,7 @@ namespace Hyperion
             }
 
             BoxedValueInternal boxedInternal;
-            RefCountedPtrNativeBindings.RefCountedPtr_Get(ptr, out boxedInternal);
+            SharedPtrNativeBindings.SharedPtr_Get(ptr, out boxedInternal);
 
             T? value = (T?)boxedInternal.GetValue();
 
@@ -150,15 +150,15 @@ namespace Hyperion
     }
 
     [StructLayout(LayoutKind.Sequential, Size = 8, Pack = 8)]
-    public struct WeakRefCountedPtr
+    public struct WeakPtr
     {
         private IntPtr ptr = IntPtr.Zero;
 
-        public WeakRefCountedPtr()
+        public WeakPtr()
         {
         }
 
-        public WeakRefCountedPtr(IntPtr ptr)
+        public WeakPtr(IntPtr ptr)
         {
             this.ptr = ptr;
         }
@@ -183,50 +183,50 @@ namespace Hyperion
         {
             if (IsNull)
             {
-                throw new Exception("WeakRefCountedPtr is null");
+                throw new Exception("WeakPtr is null");
             }
 
-            RefCountedPtrNativeBindings.WeakRefCountedPtr_IncRef(ptr);
+            SharedPtrNativeBindings.WeakPtr_IncRef(ptr);
         }
 
         public void DecRef()
         {
             if (IsNull)
             {
-                throw new Exception("WeakRefCountedPtr is null");
+                throw new Exception("WeakPtr is null");
             }
 
-            RefCountedPtrNativeBindings.WeakRefCountedPtr_DecRef(ptr);
+            SharedPtrNativeBindings.WeakPtr_DecRef(ptr);
         }
 
-        public RefCountedPtr Lock()
+        public SharedPtr Lock()
         {
             if (ptr == IntPtr.Zero)
             {
-                return RefCountedPtr.Null;
+                return SharedPtr.Null;
             }
 
-            uint refCount = RefCountedPtrNativeBindings.WeakRefCountedPtr_Lock(ptr);
+            uint refCount = SharedPtrNativeBindings.WeakPtr_Lock(ptr);
 
             if (refCount == 0)
             {
-                return RefCountedPtr.Null;
+                return SharedPtr.Null;
             }
 
-            return new RefCountedPtr(ptr);
+            return new SharedPtr(ptr);
         }
     }
 
     [StructLayout(LayoutKind.Sequential, Size = 8, Pack = 8)]
-    public struct WeakRefCountedPtr<T>
+    public struct WeakPtr<T>
     {
         private IntPtr ptr = IntPtr.Zero;
 
-        public WeakRefCountedPtr()
+        public WeakPtr()
         {
         }
 
-        public WeakRefCountedPtr(IntPtr ptr)
+        public WeakPtr(IntPtr ptr)
         {
             this.ptr = ptr;
         }
@@ -251,37 +251,37 @@ namespace Hyperion
         {
             if (IsNull)
             {
-                throw new Exception("WeakRefCountedPtr is null");
+                throw new Exception("WeakPtr is null");
             }
 
-            RefCountedPtrNativeBindings.WeakRefCountedPtr_IncRef(ptr);
+            SharedPtrNativeBindings.WeakPtr_IncRef(ptr);
         }
 
         public void DecRef()
         {
             if (IsNull)
             {
-                throw new Exception("WeakRefCountedPtr is null");
+                throw new Exception("WeakPtr is null");
             }
 
-            RefCountedPtrNativeBindings.WeakRefCountedPtr_DecRef(ptr);
+            SharedPtrNativeBindings.WeakPtr_DecRef(ptr);
         }
 
-        public RefCountedPtr<T> Lock()
+        public SharedPtr<T> Lock()
         {
             if (ptr == IntPtr.Zero)
             {
-                return RefCountedPtr<T>.Null;
+                return SharedPtr<T>.Null;
             }
 
-            uint refCount = RefCountedPtrNativeBindings.WeakRefCountedPtr_Lock(ptr);
+            uint refCount = SharedPtrNativeBindings.WeakPtr_Lock(ptr);
 
             if (refCount == 0)
             {
-                return RefCountedPtr<T>.Null;
+                return SharedPtr<T>.Null;
             }
 
-            return new RefCountedPtr<T>(ptr);
+            return new SharedPtr<T>(ptr);
         }
     }
 }

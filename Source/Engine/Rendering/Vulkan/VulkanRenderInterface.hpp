@@ -22,7 +22,7 @@
 
 #include <Core/Containers/Map.hpp>
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 #include <Core/Memory/Pimpl.hpp>
 
 #include <vulkan/vulkan.h>

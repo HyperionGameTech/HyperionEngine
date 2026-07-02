@@ -17,7 +17,7 @@
 
 namespace Hyperion {
 
-RC<AstConstant> Optimizer::ConstantFold(
+SharedPtr<AstConstant> Optimizer::ConstantFold(
     AstExpression* left,
     AstExpression* right,
     Operators opType,
@@ -37,7 +37,7 @@ RC<AstConstant> Optimizer::ConstantFold(
         ? right->GetValueOf()->GetConstantValue()
         : ConstantValue(INVALID_CONSTANT_NUMBER);
 
-    RC<AstConstant> result;
+    SharedPtr<AstConstant> result;
 
     if (leftValue.IsValid())
     {
@@ -53,17 +53,17 @@ RC<AstConstant> Optimizer::ConstantFold(
             if (leftValue.IsFloat() || rightValue.IsFloat())
             {
                 const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize, CBS_32);
-                result = RC<AstFloat>(new AstFloat(leftValue.AsFloat() + rightValue.AsFloat(), bitSize, left->GetLocation()));
+                result = SharedPtr<AstFloat>(new AstFloat(leftValue.AsFloat() + rightValue.AsFloat(), bitSize, left->GetLocation()));
             }
             else if (leftValue.IsUInt() || rightValue.IsUInt())
             {
                 const ConstantBitSize bitSize = MathUtil::Min(leftValue.bitSize > rightValue.bitSize ? leftValue.bitSize : ConstantBitSize(rightValue.bitSize << 1), CBS_64);
-                result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() + rightValue.AsUInt(), bitSize, left->GetLocation()));
+                result = SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() + rightValue.AsUInt(), bitSize, left->GetLocation()));
             }
             else if (leftValue.IsNumber() && rightValue.IsNumber())
             {
                 const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
-                result = RC<AstInteger>(new AstInteger(leftValue.AsInt() + rightValue.AsInt(), bitSize, left->GetLocation()));
+                result = SharedPtr<AstInteger>(new AstInteger(leftValue.AsInt() + rightValue.AsInt(), bitSize, left->GetLocation()));
             }
             break;
 
@@ -71,17 +71,17 @@ RC<AstConstant> Optimizer::ConstantFold(
             if (leftValue.IsFloat() || rightValue.IsFloat())
             {
                 const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize, CBS_32);
-                result = RC<AstFloat>(new AstFloat(leftValue.AsFloat() - rightValue.AsFloat(), bitSize, left->GetLocation()));
+                result = SharedPtr<AstFloat>(new AstFloat(leftValue.AsFloat() - rightValue.AsFloat(), bitSize, left->GetLocation()));
             }
             else if (leftValue.IsUInt() || rightValue.IsUInt())
             {
                 const ConstantBitSize bitSize = MathUtil::Min(leftValue.bitSize > rightValue.bitSize ? leftValue.bitSize : ConstantBitSize(rightValue.bitSize << 1), CBS_64);
-                result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() - rightValue.AsUInt(), bitSize, left->GetLocation()));
+                result = SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() - rightValue.AsUInt(), bitSize, left->GetLocation()));
             }
             else if (leftValue.IsNumber() && rightValue.IsNumber())
             {
                 const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
-                result = RC<AstInteger>(new AstInteger(leftValue.AsInt() - rightValue.AsInt(), bitSize, left->GetLocation()));
+                result = SharedPtr<AstInteger>(new AstInteger(leftValue.AsInt() - rightValue.AsInt(), bitSize, left->GetLocation()));
             }
 
             break;
@@ -90,17 +90,17 @@ RC<AstConstant> Optimizer::ConstantFold(
             if (leftValue.IsFloat() || rightValue.IsFloat())
             {
                 const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize, CBS_32);
-                result = RC<AstFloat>(new AstFloat(leftValue.AsFloat() * rightValue.AsFloat(), bitSize, left->GetLocation()));
+                result = SharedPtr<AstFloat>(new AstFloat(leftValue.AsFloat() * rightValue.AsFloat(), bitSize, left->GetLocation()));
             }
             else if (leftValue.IsUInt() || rightValue.IsUInt())
             {
                 const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
-                result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() * rightValue.AsUInt(), bitSize, left->GetLocation()));
+                result = SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() * rightValue.AsUInt(), bitSize, left->GetLocation()));
             }
             else if (leftValue.IsNumber() && rightValue.IsNumber())
             {
                 const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
-                result = RC<AstInteger>(new AstInteger(leftValue.AsInt() * rightValue.AsInt(), bitSize, left->GetLocation()));
+                result = SharedPtr<AstInteger>(new AstInteger(leftValue.AsInt() * rightValue.AsInt(), bitSize, left->GetLocation()));
             }
             break;
 
@@ -113,17 +113,17 @@ RC<AstConstant> Optimizer::ConstantFold(
             if (leftValue.IsFloat() || rightValue.IsFloat())
             {
                 const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize, CBS_32);
-                result = RC<AstFloat>(new AstFloat(leftValue.AsFloat() / rightValue.AsFloat(), bitSize, left->GetLocation()));
+                result = SharedPtr<AstFloat>(new AstFloat(leftValue.AsFloat() / rightValue.AsFloat(), bitSize, left->GetLocation()));
             }
             else if (leftValue.IsUInt() || rightValue.IsUInt())
             {
                 const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
-                result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() / rightValue.AsUInt(), bitSize, left->GetLocation()));
+                result = SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() / rightValue.AsUInt(), bitSize, left->GetLocation()));
             }
             else if (leftValue.IsNumber() && rightValue.IsNumber())
             {
                 const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
-                result = RC<AstInteger>(new AstInteger(leftValue.AsInt() / rightValue.AsInt(), bitSize, left->GetLocation()));
+                result = SharedPtr<AstInteger>(new AstInteger(leftValue.AsInt() / rightValue.AsInt(), bitSize, left->GetLocation()));
             }
             break;
 
@@ -136,17 +136,17 @@ RC<AstConstant> Optimizer::ConstantFold(
             if (leftValue.IsFloat() || rightValue.IsFloat())
             {
                 const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize, CBS_32);
-                result = RC<AstFloat>(new AstFloat(std::fmod(leftValue.AsFloat(), rightValue.AsFloat()), bitSize, left->GetLocation()));
+                result = SharedPtr<AstFloat>(new AstFloat(std::fmod(leftValue.AsFloat(), rightValue.AsFloat()), bitSize, left->GetLocation()));
             }
             else if (leftValue.IsUInt() || rightValue.IsUInt())
             {
                 const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
-                result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() % rightValue.AsUInt(), bitSize, left->GetLocation()));
+                result = SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() % rightValue.AsUInt(), bitSize, left->GetLocation()));
             }
             else if (leftValue.IsNumber() && rightValue.IsNumber())
             {
                 const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
-                result = RC<AstInteger>(new AstInteger(leftValue.AsInt() % rightValue.AsInt(), bitSize, left->GetLocation()));
+                result = SharedPtr<AstInteger>(new AstInteger(leftValue.AsInt() % rightValue.AsInt(), bitSize, left->GetLocation()));
             }
             break;
 
@@ -155,44 +155,44 @@ RC<AstConstant> Optimizer::ConstantFold(
             {
                 if (leftValue.AsFloat() == rightValue.AsFloat())
                 {
-                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                    result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
                 }
                 else
                 {
-                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                    result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
                 }
             }
             else if (leftValue.IsBool() && rightValue.IsBool())
             {
                 if (leftValue.AsBool() == rightValue.AsBool())
                 {
-                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                    result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
                 }
                 else
                 {
-                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                    result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
                 }
             }
             else if (leftValue.IsUInt() || rightValue.IsUInt())
             {
                 if (leftValue.AsUInt() == rightValue.AsUInt())
                 {
-                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                    result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
                 }
                 else
                 {
-                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                    result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
                 }
             }
             else if (leftValue.IsNumber() && rightValue.IsNumber())
             {
                 if (leftValue.AsInt() == rightValue.AsInt())
                 {
-                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                    result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
                 }
                 else
                 {
-                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                    result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
                 }
             }
             break;
@@ -202,44 +202,44 @@ RC<AstConstant> Optimizer::ConstantFold(
             {
                 if (leftValue.AsFloat() != rightValue.AsFloat())
                 {
-                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                    result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
                 }
                 else
                 {
-                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                    result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
                 }
             }
             else if (leftValue.IsBool() && rightValue.IsBool())
             {
                 if (leftValue.AsBool() != rightValue.AsBool())
                 {
-                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                    result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
                 }
                 else
                 {
-                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                    result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
                 }
             }
             else if (leftValue.IsUInt() || rightValue.IsUInt())
             {
                 if (leftValue.AsUInt() != rightValue.AsUInt())
                 {
-                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                    result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
                 }
                 else
                 {
-                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                    result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
                 }
             }
             else if (leftValue.IsNumber() && rightValue.IsNumber())
             {
                 if (leftValue.AsInt() != rightValue.AsInt())
                 {
-                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                    result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
                 }
                 else
                 {
-                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                    result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
                 }
             }
             break;
@@ -249,33 +249,33 @@ RC<AstConstant> Optimizer::ConstantFold(
             {
                 if (leftValue.AsFloat() < rightValue.AsFloat())
                 {
-                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                    result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
                 }
                 else
                 {
-                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                    result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
                 }
             }
             else if (leftValue.IsUInt() || rightValue.IsUInt())
             {
                 if (leftValue.AsUInt() < rightValue.AsUInt())
                 {
-                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                    result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
                 }
                 else
                 {
-                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                    result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
                 }
             }
             else if (leftValue.IsNumber() && rightValue.IsNumber())
             {
                 if (leftValue.AsInt() < rightValue.AsInt())
                 {
-                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                    result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
                 }
                 else
                 {
-                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                    result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
                 }
             }
             else if (leftValue.IsBool() && rightValue.IsBool())
@@ -283,11 +283,11 @@ RC<AstConstant> Optimizer::ConstantFold(
                 // false < true
                 if (!leftValue.AsBool() && rightValue.AsBool())
                 {
-                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                    result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
                 }
                 else
                 {
-                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                    result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
                 }
             }
             break;
@@ -297,33 +297,33 @@ RC<AstConstant> Optimizer::ConstantFold(
             {
                 if (leftValue.AsFloat() > rightValue.AsFloat())
                 {
-                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                    result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
                 }
                 else
                 {
-                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                    result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
                 }
             }
             else if (leftValue.IsUInt() || rightValue.IsUInt())
             {
                 if (leftValue.AsUInt() > rightValue.AsUInt())
                 {
-                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                    result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
                 }
                 else
                 {
-                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                    result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
                 }
             }
             else if (leftValue.IsNumber() && rightValue.IsNumber())
             {
                 if (leftValue.AsInt() > rightValue.AsInt())
                 {
-                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                    result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
                 }
                 else
                 {
-                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                    result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
                 }
             }
             else if (leftValue.IsBool() && rightValue.IsBool())
@@ -331,11 +331,11 @@ RC<AstConstant> Optimizer::ConstantFold(
                 // true > false
                 if (leftValue.AsBool() && !rightValue.AsBool())
                 {
-                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                    result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
                 }
                 else
                 {
-                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                    result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
                 }
             }
             break;
@@ -345,33 +345,33 @@ RC<AstConstant> Optimizer::ConstantFold(
             {
                 if (leftValue.AsFloat() <= rightValue.AsFloat())
                 {
-                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                    result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
                 }
                 else
                 {
-                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                    result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
                 }
             }
             else if (leftValue.IsUInt() || rightValue.IsUInt())
             {
                 if (leftValue.AsUInt() <= rightValue.AsUInt())
                 {
-                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                    result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
                 }
                 else
                 {
-                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                    result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
                 }
             }
             else if (leftValue.IsNumber() && rightValue.IsNumber())
             {
                 if (leftValue.AsInt() <= rightValue.AsInt())
                 {
-                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                    result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
                 }
                 else
                 {
-                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                    result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
                 }
             }
             else if (leftValue.IsBool() && rightValue.IsBool())
@@ -379,11 +379,11 @@ RC<AstConstant> Optimizer::ConstantFold(
                 // false <= true and false <= false and true <= true
                 if ((!leftValue.AsBool() && rightValue.AsBool()) || (leftValue.AsBool() == rightValue.AsBool()))
                 {
-                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                    result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
                 }
                 else
                 {
-                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                    result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
                 }
             }
             break;
@@ -393,33 +393,33 @@ RC<AstConstant> Optimizer::ConstantFold(
             {
                 if (leftValue.AsFloat() >= rightValue.AsFloat())
                 {
-                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                    result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
                 }
                 else
                 {
-                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                    result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
                 }
             }
             else if (leftValue.IsUInt() || rightValue.IsUInt())
             {
                 if (leftValue.AsUInt() >= rightValue.AsUInt())
                 {
-                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                    result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
                 }
                 else
                 {
-                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                    result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
                 }
             }
             else if (leftValue.IsNumber() && rightValue.IsNumber())
             {
                 if (leftValue.AsInt() >= rightValue.AsInt())
                 {
-                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                    result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
                 }
                 else
                 {
-                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                    result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
                 }
             }
             else if (leftValue.IsBool() && rightValue.IsBool())
@@ -427,11 +427,11 @@ RC<AstConstant> Optimizer::ConstantFold(
                 // true >= false and false >= false and true >= true
                 if ((leftValue.AsBool() && !rightValue.AsBool()) || (leftValue.AsBool() == rightValue.AsBool()))
                 {
-                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                    result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
                 }
                 else
                 {
-                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                    result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
                 }
             }
             break;
@@ -443,12 +443,12 @@ RC<AstConstant> Optimizer::ConstantFold(
                 if (leftValue.IsUInt() || rightValue.IsUInt())
                 {
                     const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
-                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() & rightValue.AsUInt(), bitSize, left->GetLocation()));
+                    result = SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() & rightValue.AsUInt(), bitSize, left->GetLocation()));
                 }
                 else if (leftValue.IsInt() || rightValue.IsInt())
                 {
                     const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
-                    result = RC<AstInteger>(new AstInteger(leftValue.AsInt() & rightValue.AsInt(), bitSize, left->GetLocation()));
+                    result = SharedPtr<AstInteger>(new AstInteger(leftValue.AsInt() & rightValue.AsInt(), bitSize, left->GetLocation()));
                 }
             }
             break;
@@ -459,12 +459,12 @@ RC<AstConstant> Optimizer::ConstantFold(
                 if (leftValue.IsUInt() || rightValue.IsUInt())
                 {
                     const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
-                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() | rightValue.AsUInt(), bitSize, left->GetLocation()));
+                    result = SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() | rightValue.AsUInt(), bitSize, left->GetLocation()));
                 }
                 else if (leftValue.IsInt() || rightValue.IsInt())
                 {
                     const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
-                    result = RC<AstInteger>(new AstInteger(leftValue.AsInt() | rightValue.AsInt(), bitSize, left->GetLocation()));
+                    result = SharedPtr<AstInteger>(new AstInteger(leftValue.AsInt() | rightValue.AsInt(), bitSize, left->GetLocation()));
                 }
             }
             break;
@@ -475,12 +475,12 @@ RC<AstConstant> Optimizer::ConstantFold(
                 if (leftValue.IsUInt() || rightValue.IsUInt())
                 {
                     const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
-                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() ^ rightValue.AsUInt(), bitSize, left->GetLocation()));
+                    result = SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() ^ rightValue.AsUInt(), bitSize, left->GetLocation()));
                 }
                 else if (leftValue.IsInt() || rightValue.IsInt())
                 {
                     const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
-                    result = RC<AstInteger>(new AstInteger(leftValue.AsInt() ^ rightValue.AsInt(), bitSize, left->GetLocation()));
+                    result = SharedPtr<AstInteger>(new AstInteger(leftValue.AsInt() ^ rightValue.AsInt(), bitSize, left->GetLocation()));
                 }
             }
             break;
@@ -492,11 +492,11 @@ RC<AstConstant> Optimizer::ConstantFold(
 
                 if (leftValue.IsUInt())
                 {
-                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() << rightValue.AsUInt(), bitSize, left->GetLocation()));
+                    result = SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() << rightValue.AsUInt(), bitSize, left->GetLocation()));
                 }
                 else if (leftValue.IsInt())
                 {
-                    result = RC<AstInteger>(new AstInteger(leftValue.AsInt() << rightValue.AsInt(), bitSize, left->GetLocation()));
+                    result = SharedPtr<AstInteger>(new AstInteger(leftValue.AsInt() << rightValue.AsInt(), bitSize, left->GetLocation()));
                 }
             }
             break;
@@ -508,11 +508,11 @@ RC<AstConstant> Optimizer::ConstantFold(
 
                 if (leftValue.IsUInt())
                 {
-                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() >> rightValue.AsUInt(), bitSize, left->GetLocation()));
+                    result = SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() >> rightValue.AsUInt(), bitSize, left->GetLocation()));
                 }
                 else if (leftValue.IsInt())
                 {
-                    result = RC<AstInteger>(new AstInteger(leftValue.AsInt() >> rightValue.AsInt(), bitSize, left->GetLocation()));
+                    result = SharedPtr<AstInteger>(new AstInteger(leftValue.AsInt() >> rightValue.AsInt(), bitSize, left->GetLocation()));
                 }
             }
             break;
@@ -524,11 +524,11 @@ RC<AstConstant> Optimizer::ConstantFold(
             const bool rightBool = rightValue.AsBool();
             if (leftBool && rightBool)
             {
-                result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
             }
             else
             {
-                result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
             }
         }
         break;
@@ -539,11 +539,11 @@ RC<AstConstant> Optimizer::ConstantFold(
             const bool rightBool = rightValue.AsBool();
             if (leftBool || rightBool)
             {
-                result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
             }
             else
             {
-                result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
             }
         }
         break;
@@ -552,18 +552,18 @@ RC<AstConstant> Optimizer::ConstantFold(
             const bool leftBool = leftValue.AsBool();
             if (!leftBool)
             {
-                result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                result = SharedPtr<AstTrue>(new AstTrue(left->GetLocation()));
             }
             else
             {
-                result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                result = SharedPtr<AstFalse>(new AstFalse(left->GetLocation()));
             }
         }
         case OP_negative:
             if (leftValue.IsFloat())
             {
                 const ConstantBitSize bitSize = leftValue.bitSize;
-                result = RC<AstFloat>(new AstFloat(-leftValue.AsFloat(), bitSize, left->GetLocation()));
+                result = SharedPtr<AstFloat>(new AstFloat(-leftValue.AsFloat(), bitSize, left->GetLocation()));
             }
             else if (leftValue.IsUInt())
             {
@@ -571,16 +571,16 @@ RC<AstConstant> Optimizer::ConstantFold(
                 switch (bitSize)
                 {
                 case CBS_8:
-                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(-uint8(leftValue.AsUInt()), bitSize, left->GetLocation()));
+                    result = SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(-uint8(leftValue.AsUInt()), bitSize, left->GetLocation()));
                     break;
                 case CBS_16:
-                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(-uint16(leftValue.AsUInt()), bitSize, left->GetLocation()));
+                    result = SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(-uint16(leftValue.AsUInt()), bitSize, left->GetLocation()));
                     break;
                 case CBS_32:
-                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(-uint32(leftValue.AsUInt()), bitSize, left->GetLocation()));
+                    result = SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(-uint32(leftValue.AsUInt()), bitSize, left->GetLocation()));
                     break;
                 case CBS_64:
-                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(-uint64(leftValue.AsUInt()), bitSize, left->GetLocation()));
+                    result = SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(-uint64(leftValue.AsUInt()), bitSize, left->GetLocation()));
                     break;
                 default:
                     HYP_UNREACHABLE();
@@ -590,14 +590,14 @@ RC<AstConstant> Optimizer::ConstantFold(
             else if (leftValue.IsInt())
             {
                 const ConstantBitSize bitSize = leftValue.bitSize;
-                result = RC<AstInteger>(new AstInteger(-leftValue.AsInt(), bitSize, left->GetLocation()));
+                result = SharedPtr<AstInteger>(new AstInteger(-leftValue.AsInt(), bitSize, left->GetLocation()));
             }
             break;
         case OP_positive:
             if (leftValue.IsFloat())
             {
                 const ConstantBitSize bitSize = leftValue.bitSize;
-                result = RC<AstFloat>(new AstFloat(+leftValue.AsFloat(), bitSize, left->GetLocation()));
+                result = SharedPtr<AstFloat>(new AstFloat(+leftValue.AsFloat(), bitSize, left->GetLocation()));
             }
             else if (leftValue.IsUInt())
             {
@@ -605,16 +605,16 @@ RC<AstConstant> Optimizer::ConstantFold(
                 switch (bitSize)
                 {
                 case CBS_8:
-                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(+uint8(leftValue.AsUInt()), bitSize, left->GetLocation()));
+                    result = SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(+uint8(leftValue.AsUInt()), bitSize, left->GetLocation()));
                     break;
                 case CBS_16:
-                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(+uint16(leftValue.AsUInt()), bitSize, left->GetLocation()));
+                    result = SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(+uint16(leftValue.AsUInt()), bitSize, left->GetLocation()));
                     break;
                 case CBS_32:
-                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(+uint32(leftValue.AsUInt()), bitSize, left->GetLocation()));
+                    result = SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(+uint32(leftValue.AsUInt()), bitSize, left->GetLocation()));
                     break;
                 case CBS_64:
-                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(+uint64(leftValue.AsUInt()), bitSize, left->GetLocation()));
+                    result = SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(+uint64(leftValue.AsUInt()), bitSize, left->GetLocation()));
                     break;
                 default:
                     HYP_UNREACHABLE();
@@ -624,19 +624,19 @@ RC<AstConstant> Optimizer::ConstantFold(
             else if (leftValue.IsInt())
             {
                 const ConstantBitSize bitSize = leftValue.bitSize;
-                result = RC<AstInteger>(new AstInteger(+leftValue.AsInt(), bitSize, left->GetLocation()));
+                result = SharedPtr<AstInteger>(new AstInteger(+leftValue.AsInt(), bitSize, left->GetLocation()));
             }
             break;
         case OP_bitwise_complement:
             if (leftValue.IsUInt())
             {
                 const ConstantBitSize bitSize = leftValue.bitSize;
-                result = RC<AstUnsignedInteger>(new AstUnsignedInteger(~leftValue.AsUInt(), bitSize, left->GetLocation()));
+                result = SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(~leftValue.AsUInt(), bitSize, left->GetLocation()));
             }
             else if (leftValue.IsInt())
             {
                 const ConstantBitSize bitSize = leftValue.bitSize;
-                result = RC<AstInteger>(new AstInteger(~leftValue.AsInt(), bitSize, left->GetLocation()));
+                result = SharedPtr<AstInteger>(new AstInteger(~leftValue.AsInt(), bitSize, left->GetLocation()));
             }
             break;
         default:
@@ -648,8 +648,8 @@ RC<AstConstant> Optimizer::ConstantFold(
     return result;
 }
 
-RC<AstExpression> Optimizer::OptimizeExpr(
-    const RC<AstExpression>& expr,
+SharedPtr<AstExpression> Optimizer::OptimizeExpr(
+    const SharedPtr<AstExpression>& expr,
     AstVisitor* visitor,
     Module* mod)
 {
@@ -662,9 +662,9 @@ RC<AstExpression> Optimizer::OptimizeExpr(
         // only if it is literal.
         if (exprAsIdentifier->IsLiteral())
         {
-            if (const RC<Identifier>& ident = exprAsIdentifier->GetProperties().GetIdentifier())
+            if (const SharedPtr<Identifier>& ident = exprAsIdentifier->GetProperties().GetIdentifier())
             {
-                if (const RC<AstExpression>& currentValue = ident->GetCurrentValue())
+                if (const SharedPtr<AstExpression>& currentValue = ident->GetCurrentValue())
                 {
                     // decrement use count because it would have been incremented by Visit()
                     ident->DecUseCount();
@@ -700,7 +700,7 @@ void Optimizer::Optimize(bool expectModuleDecl)
 {
     /*if (expectModuleDecl) {
         if (m_astIterator->HasNext()) {
-            RC<AstStatement> firstStmt = m_astIterator->Next();
+            SharedPtr<AstStatement> firstStmt = m_astIterator->Next();
 
             if (AstModuleDeclaration *modDecl = DynamicCast<AstModuleDeclaration>(firstStmt.Get())) {
                 // all files must begin with a module declaration

@@ -52,7 +52,7 @@ void Compiler::MaybeAutoExport(
 UniquePtr<Buildable> Compiler::BuildArgumentsStart(
     AstVisitor* visitor,
     Module* mod,
-    const Array<RC<AstArgument>>& args,
+    const Array<SharedPtr<AstArgument>>& args,
     uint16& outNumArgs)
 {
     outNumArgs = 0;
@@ -64,7 +64,7 @@ UniquePtr<Buildable> Compiler::BuildArgumentsStart(
     // push a copy of each argument to the stack
     for (size_t index = 0; index < args.Size(); index++)
     {
-        const RC<AstArgument>& arg = args[index];
+        const SharedPtr<AstArgument>& arg = args[index];
         Assert(arg != nullptr);
 
         if (arg->IsPlaceholderArgument())
@@ -130,7 +130,7 @@ UniquePtr<Buildable> Compiler::BuildArgumentsEnd(
 UniquePtr<Buildable> Compiler::BuildCall(
     AstVisitor* visitor,
     Module* mod,
-    const RC<AstExpression>& target,
+    const SharedPtr<AstExpression>& target,
     uint16 numArgs)
 {
     Assert(numArgs <= UINT8_MAX);

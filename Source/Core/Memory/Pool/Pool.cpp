@@ -9,7 +9,13 @@ namespace memory {
 
 Pool::Block::Block(size_t capacity)
 {
-    buffer.SetSize(capacity);
+    memory = Memory::AllocateAligned(capacity, alignof(std::max_align_t));
+    Assert(memory != nullptr, "Failed to allocate {} bytes of memory from the system", capacity);
+}
+
+Pool::Block::~Block()
+{
+    Memory::FreeAligned(memory);
 }
 
 #pragma endregion Block
@@ -38,7 +44,7 @@ HYP_NODISCARD void* Pool::Allocate(size_t size, size_t alignment)
         m_blocks.EmplaceBack(m_blockSize);
 
         Block& newBlock = m_blocks.Back();
-        m_tlsf.AddPool(newBlock.buffer.Data(), newBlock.buffer.GetCapacity());
+        m_tlsf.AddPool(newBlock.memory, m_blockSize);
 
         p = m_tlsf.Allocate(size, alignment);
         Assert(p != nullptr, "Failed to allocate from newly created memory block! Out of system memory or pool overflow!");
@@ -89,7 +95,7 @@ void Pool::Reset()
 
     for (Block& block : m_blocks)
     {
-        m_tlsf.RemovePool(block.buffer.Data());
+        m_tlsf.RemovePool(block.memory);
     }
 
     m_blocks.Clear();

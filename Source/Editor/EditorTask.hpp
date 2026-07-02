@@ -9,7 +9,7 @@
 #include <Core/Types.hpp>
 #include <Core/Name/Name.hpp>
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Threading/Task.hpp>
 #include <Core/Threading/AtomicVar.hpp>

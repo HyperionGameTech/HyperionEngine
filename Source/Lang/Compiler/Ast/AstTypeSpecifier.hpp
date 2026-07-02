@@ -15,7 +15,7 @@ class AstTypeSpecifier : public AstExpression
 
 public:
     AstTypeSpecifier(
-        const RC<AstExpression>& expr,
+        const SharedPtr<AstExpression>& expr,
         const SourceLocation& location);
     virtual ~AstTypeSpecifier() = default;
 
@@ -23,12 +23,12 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual const RC<AstExpression>& GetExpr() const
+    virtual const SharedPtr<AstExpression>& GetExpr() const
     {
         return m_expr;
     }
 
-    virtual RC<AstStatement> Clone() const override;
+    virtual SharedPtr<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -47,15 +47,15 @@ public:
     }
 
 protected:
-    RC<AstExpression> m_expr;
+    SharedPtr<AstExpression> m_expr;
 
     /** Set while analyzing */
     const SymbolType* m_symbolType;
 
 private:
-    RC<AstTypeSpecifier> CloneImpl() const
+    SharedPtr<AstTypeSpecifier> CloneImpl() const
     {
-        return RC<AstTypeSpecifier>(new AstTypeSpecifier(
+        return SharedPtr<AstTypeSpecifier>(new AstTypeSpecifier(
             CloneAstNode(m_expr),
             m_location));
     }

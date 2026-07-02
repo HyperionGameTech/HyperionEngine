@@ -9,7 +9,7 @@
 #include <Core/Utilities/StringView.hpp>
 #include <Core/Utilities/EnumFlags.hpp>
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Threading/AtomicVar.hpp>
 #include <Core/Threading/DataRaceDetector.hpp>
@@ -61,7 +61,7 @@ class ENGINE_API ManagedObject final
 {
 public:
     ManagedObject();
-    ManagedObject(const RC<ManagedClass>& managedClass, ObjectReference objectReference, EnumFlags<ObjectFlags> objectFlags = ObjectFlags::NONE);
+    ManagedObject(const SharedPtr<ManagedClass>& managedClass, ObjectReference objectReference, EnumFlags<ObjectFlags> objectFlags = ObjectFlags::NONE);
 
     ManagedObject(const ManagedObject&) = delete;
     ManagedObject& operator=(const ManagedObject&) = delete;
@@ -72,7 +72,7 @@ public:
     // Destructor frees the managed object unless CREATED_FROM_MANAGED is set.
     ~ManagedObject();
 
-    HYP_FORCE_INLINE const RC<ManagedClass>& GetClass() const
+    HYP_FORCE_INLINE const SharedPtr<ManagedClass>& GetClass() const
     {
         return m_managedClass;
     }
@@ -192,11 +192,11 @@ private:
 
     const ManagedProperty* GetProperty(ANSIStringView methodName) const;
 
-    RC<ManagedClass> m_managedClass;
+    SharedPtr<ManagedClass> m_managedClass;
 #ifdef HYP_DOTNET_OBJECT_KEEP_ASSEMBLY_ALIVE
-    RC<Assembly> m_assembly; // Keep a reference to the assembly to prevent it from being unloaded while this object is alive.
+    SharedPtr<Assembly> m_assembly; // Keep a reference to the assembly to prevent it from being unloaded while this object is alive.
 #else
-    Weak<Assembly> m_assembly;
+    WeakPtr<Assembly> m_assembly;
 #endif
     ObjectReference m_objectReference;
     EnumFlags<ObjectFlags> m_objectFlags;

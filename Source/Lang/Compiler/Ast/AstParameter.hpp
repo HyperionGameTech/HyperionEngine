@@ -15,20 +15,20 @@ class AstParameter : public AstDeclaration
 public:
     AstParameter(
         const String& name,
-        const RC<AstTypeSpecifier>& typeSpec,
-        const RC<AstExpression>& defaultParam,
+        const SharedPtr<AstTypeSpecifier>& typeSpec,
+        const SharedPtr<AstExpression>& defaultParam,
         bool isVariadic,
         EnumFlags<IdentifierFlags> flags,
         const SourceLocation& location);
 
     virtual ~AstParameter() override = default;
 
-    HYP_FORCE_INLINE const RC<AstExpression>& GetDefaultValue() const
+    HYP_FORCE_INLINE const SharedPtr<AstExpression>& GetDefaultValue() const
     {
         return m_defaultParam;
     }
 
-    HYP_FORCE_INLINE void SetDefaultValue(const RC<AstExpression>& defaultParam)
+    HYP_FORCE_INLINE void SetDefaultValue(const SharedPtr<AstExpression>& defaultParam)
     {
         m_defaultParam = defaultParam;
     }
@@ -39,12 +39,12 @@ public:
     }
 
     // used by AstTemplateExpression
-    HYP_FORCE_INLINE const RC<AstTypeSpecifier>& GetTypeSpecifier() const
+    HYP_FORCE_INLINE const SharedPtr<AstTypeSpecifier>& GetTypeSpecifier() const
     {
         return m_typeSpec;
     }
 
-    HYP_FORCE_INLINE void SetTypeSpecifier(const RC<AstTypeSpecifier>& typeSpec)
+    HYP_FORCE_INLINE void SetTypeSpecifier(const SharedPtr<AstTypeSpecifier>& typeSpec)
     {
         m_typeSpec = typeSpec;
     }
@@ -58,7 +58,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual RC<AstStatement> Clone() const override;
+    virtual SharedPtr<AstStatement> Clone() const override;
 
     virtual HashCode GetHashCode() const override
     {
@@ -71,17 +71,17 @@ public:
     }
 
 private:
-    RC<AstTypeSpecifier> m_typeSpec;
-    RC<AstExpression> m_defaultParam;
+    SharedPtr<AstTypeSpecifier> m_typeSpec;
+    SharedPtr<AstExpression> m_defaultParam;
     bool m_isVariadic : 1;
 
     // Set while analyzing
     const SymbolType* m_symbolType;
-    RC<AstExpression> m_varargsTypeSpec;
+    SharedPtr<AstExpression> m_varargsTypeSpec;
 
-    RC<AstParameter> CloneImpl() const
+    SharedPtr<AstParameter> CloneImpl() const
     {
-        return RC<AstParameter>(new AstParameter(
+        return SharedPtr<AstParameter>(new AstParameter(
             m_name,
             CloneAstNode(m_typeSpec),
             CloneAstNode(m_defaultParam),

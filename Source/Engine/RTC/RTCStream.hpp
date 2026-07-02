@@ -10,7 +10,7 @@
 
 #include <Core/Memory/ByteBuffer.hpp>
 #include <Core/Memory/UniquePtr.hpp>
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 namespace Hyperion {
 namespace threading {
@@ -31,7 +31,7 @@ enum RTCStreamType
 
 struct RTCStreamDestination
 {
-    Array<RC<RTCTrackBase>> tracks;
+    Array<SharedPtr<RTCTrackBase>> tracks;
 };
 
 struct RTCStreamParams

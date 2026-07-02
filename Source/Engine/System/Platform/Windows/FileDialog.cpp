@@ -169,7 +169,7 @@ void ShowOpenFileDialog(
     WideString titleWide = String(title).ToWide();
     WideString baseDirWide = String(baseDir).ToWide();
 
-    MemoryByteWriter filterBufferWriter;
+    MemoryByteWriter<DynamicAllocator> filterBufferWriter;
     BuildFilterBuffer(extensions, filterBufferWriter);
 
     ByteBuffer fileNameBufferData;
@@ -281,7 +281,7 @@ void ShowSaveFileDialog(
     WideString titleWide = String(title).ToWide();
     WideString baseDirWide = String(baseDir).ToWide();
 
-    MemoryByteWriter filterBufferWriter;
+    MemoryByteWriter<DynamicAllocator> filterBufferWriter;
     BuildFilterBuffer(extensions, filterBufferWriter);
 
     ByteBuffer fileNameBufferData;

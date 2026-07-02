@@ -1289,7 +1289,7 @@ DynamicClassInstance::DynamicClassInstance(TypeId typeId, Name name, const Class
 
     if (pManagedClass != nullptr)
     {
-        SetManagedClass(ScriptObjectFunctions::ManagedClassRefCountedPtrFromThis(pManagedClass));
+        SetManagedClass(ScriptObjectFunctions::ManagedClassSharedThis(pManagedClass));
     }
 
     m_parent = parentClass != nullptr ? parentClass : g_clsObjectBase;
@@ -1456,7 +1456,7 @@ bool DynamicClassInstance::GetManagedObject(const void* objectPtr, dotnet::Objec
 bool DynamicClassInstance::CanCreateInstance() const
 {
 #ifdef HYP_DOTNET
-    RC<dotnet::ManagedClass> managedClass = GetManagedClass();
+    SharedPtr<dotnet::ManagedClass> managedClass = GetManagedClass();
 
     if (managedClass != nullptr)
     {
@@ -1500,7 +1500,7 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
     bool isCreated = false;
 
 #ifdef HYP_DOTNET
-    RC<dotnet::ManagedClass> managedClass = GetManagedClass();
+    SharedPtr<dotnet::ManagedClass> managedClass = GetManagedClass();
 
     if (managedClass != nullptr)
     {

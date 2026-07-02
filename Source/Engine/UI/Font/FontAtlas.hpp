@@ -72,7 +72,7 @@ public:
     {
     }
 
-    FontAtlas(Name name, const RC<FontFace>& face);
+    FontAtlas(Name name, const SharedPtr<FontFace>& face);
 
     FontAtlas(
         Name name,
@@ -117,9 +117,9 @@ public:
         JSON::Value GenerateMetadataJSON(const String& outputDirectory) const;
 
 private:
-    Vec2i FindMaxDimensions(const RC<FontFace>& face) const;
+    Vec2i FindMaxDimensions(const SharedPtr<FontFace>& face) const;
 
-    RC<FontFace> m_face;
+    SharedPtr<FontFace> m_face;
 
     HYP_FIELD()
     FontAtlasTextureSet m_atlasTextures;

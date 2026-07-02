@@ -13,7 +13,7 @@
 #include <Core/Reflection/ObjectFwd.hpp>
 
 #include <Core/Resource/Resource.hpp>
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Utilities/EnumFlags.hpp>
 #include <Core/Utilities/Variant.hpp>
@@ -42,7 +42,7 @@ struct ScriptObjectData_DotNet final
     static constexpr ScriptLanguage Language = ScriptLanguage::CSharp;
 
     dotnet::ManagedObject* objectPtr = nullptr;
-    RC<dotnet::ManagedClass> managedClass = nullptr;
+    SharedPtr<dotnet::ManagedClass> managedClass = nullptr;
 };
 
 #endif
@@ -72,10 +72,10 @@ public:
     explicit ScriptObjectResource(const Handle<ObjectBase>& nativeObject);
 
 #ifdef HYP_DOTNET
-    ScriptObjectResource(dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass);
-    ScriptObjectResource(ObjectBase* ptr, const RC<dotnet::ManagedClass>& managedClass);
-    ScriptObjectResource(ObjectBase* ptr, dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass);
-    ScriptObjectResource(ObjectBase* ptr, const RC<dotnet::ManagedClass>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags);
+    ScriptObjectResource(dotnet::ManagedObject* objectPtr, const SharedPtr<dotnet::ManagedClass>& managedClass);
+    ScriptObjectResource(ObjectBase* ptr, const SharedPtr<dotnet::ManagedClass>& managedClass);
+    ScriptObjectResource(ObjectBase* ptr, dotnet::ManagedObject* objectPtr, const SharedPtr<dotnet::ManagedClass>& managedClass);
+    ScriptObjectResource(ObjectBase* ptr, const SharedPtr<dotnet::ManagedClass>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags);
 #endif
 
 #ifdef HYP_SCRIPT
@@ -93,7 +93,7 @@ public:
     uint32 GetScriptLanguageMask() const;
 
     dotnet::ManagedObject* GetManagedObject() const;
-    const RC<dotnet::ManagedClass> GetManagedClass() const;
+    const SharedPtr<dotnet::ManagedClass> GetManagedClass() const;
 
     ScriptObjectData_Native* GetScriptObjectData_Native()
     {

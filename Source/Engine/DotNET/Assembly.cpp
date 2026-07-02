@@ -53,7 +53,7 @@ bool Assembly::Unload()
 
     for (const auto& it : m_classObjects)
     {
-        const RC<ManagedClass>& classObject = it.second;
+        const SharedPtr<ManagedClass>& classObject = it.second;
 
         if (!classObject)
         {
@@ -72,7 +72,7 @@ bool Assembly::Unload()
 #endif
 }
 
-RC<ManagedClass> Assembly::NewClass(const Class* cls, int32 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, ManagedClass* parentClass, uint32 flags)
+SharedPtr<ManagedClass> Assembly::NewClass(const Class* cls, int32 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, ManagedClass* parentClass, uint32 flags)
 {
 #ifdef HYP_DOTNET
     auto it = m_classObjects.Find(typeHash);
@@ -84,7 +84,7 @@ RC<ManagedClass> Assembly::NewClass(const Class* cls, int32 typeHash, const char
         return it->second;
     }
 
-    it = m_classObjects.Insert(typeHash, MakeRefCountedPtr<ManagedClass>(WeakRefCountedPtrFromThis(), typeName, typeSize, typeId, cls, parentClass, EnumFlags<ManagedClassFlags>(flags))).first;
+    it = m_classObjects.Insert(typeHash, MakeShared<ManagedClass>(WeakThis(), typeName, typeSize, typeId, cls, parentClass, EnumFlags<ManagedClassFlags>(flags))).first;
 
     if (cls != nullptr)
     {
@@ -97,7 +97,7 @@ RC<ManagedClass> Assembly::NewClass(const Class* cls, int32 typeHash, const char
 #endif
 }
 
-RC<ManagedClass> Assembly::FindClassByName(const char* typeName)
+SharedPtr<ManagedClass> Assembly::FindClassByName(const char* typeName)
 {
 #ifdef HYP_DOTNET
     for (auto& pair : m_classObjects)
@@ -114,7 +114,7 @@ RC<ManagedClass> Assembly::FindClassByName(const char* typeName)
 #endif
 }
 
-RC<ManagedClass> Assembly::FindClassByTypeHash(int32 typeHash)
+SharedPtr<ManagedClass> Assembly::FindClassByTypeHash(int32 typeHash)
 {
 #ifdef HYP_DOTNET
     auto it = m_classObjects.Find(typeHash);

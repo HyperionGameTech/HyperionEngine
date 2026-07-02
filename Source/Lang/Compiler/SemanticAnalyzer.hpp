@@ -17,7 +17,7 @@ class Module;
 
 struct SubstitutionResult
 {
-    Variant<const SymbolType*, RC<AstArgument>> value;
+    Variant<const SymbolType*, SharedPtr<AstArgument>> value;
     size_t index = size_t(-1);
 };
 
@@ -84,16 +84,16 @@ public:
             AstVisitor* visitor,
             Module* mod,
             const SymbolType* symbolType,
-            const Array<RC<AstArgument>>& args,
+            const Array<SharedPtr<AstArgument>>& args,
             const SourceLocation& location,
             const SymbolType*& outReturnType,
-            Array<RC<AstArgument>>& outArgs);
+            Array<SharedPtr<AstArgument>>& outArgs);
 
         static void EnsureFunctionArgCompatibility(
             AstVisitor* visitor,
             Module* mod,
             const SymbolType* symbolType,
-            const Array<RC<AstArgument>>& args,
+            const Array<SharedPtr<AstArgument>>& args,
             const SourceLocation& location);
 
         static void EnsureTypeAssignmentCompatibility(

@@ -109,7 +109,7 @@ LightmapRenderer_GpuPathTracing::LightmapRenderer_GpuPathTracing(
       m_shadingType(shadingType),
       m_maxTexelsPerFrame(maxTexelsPerFrame)
 {
-    m_readyNotification = MakeRefCountedPtr<GpuLightmapperReadyNotification>();
+    m_readyNotification = MakeShared<GpuLightmapperReadyNotification>();
 }
 
 LightmapRenderer_GpuPathTracing::~LightmapRenderer_GpuPathTracing()

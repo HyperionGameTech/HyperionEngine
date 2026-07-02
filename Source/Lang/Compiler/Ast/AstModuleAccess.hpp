@@ -17,7 +17,7 @@ class AstModuleAccess : public AstExpression
 public:
     AstModuleAccess(
         const String& target,
-        const RC<AstExpression>& expr,
+        const SharedPtr<AstExpression>& expr,
         const SourceLocation& location);
     virtual ~AstModuleAccess() override = default;
 
@@ -31,12 +31,12 @@ public:
         return m_target;
     }
 
-    HYP_FORCE_INLINE const RC<AstExpression>& GetExpression() const
+    HYP_FORCE_INLINE const SharedPtr<AstExpression>& GetExpression() const
     {
         return m_expr;
     }
 
-    HYP_FORCE_INLINE void SetExpression(const RC<AstExpression>& expr)
+    HYP_FORCE_INLINE void SetExpression(const SharedPtr<AstExpression>& expr)
     {
         m_expr = expr;
     }
@@ -52,7 +52,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual RC<AstStatement> Clone() const override;
+    virtual SharedPtr<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -75,7 +75,7 @@ public:
 
 private:
     String m_target;
-    RC<AstExpression> m_expr;
+    SharedPtr<AstExpression> m_expr;
 
     // set while analyzing
     Module* m_modAccess;
@@ -83,9 +83,9 @@ private:
     bool m_isChained : 1;
     bool m_lookedUp : 1;
 
-    RC<AstModuleAccess> CloneImpl() const
+    SharedPtr<AstModuleAccess> CloneImpl() const
     {
-        return RC<AstModuleAccess>(new AstModuleAccess(
+        return SharedPtr<AstModuleAccess>(new AstModuleAccess(
             m_target,
             CloneAstNode(m_expr),
             m_location));

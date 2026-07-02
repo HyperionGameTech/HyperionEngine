@@ -29,19 +29,19 @@ class AstClass : public AstExpression
 public:
     AstClass(
         const String& name,
-        const RC<AstTypeSpecifier>& baseSpec,
-        const Array<RC<AstVariableDeclaration>>& dataMembers,
-        const Array<RC<AstVariableDeclaration>>& functionMembers,
-        const Array<RC<AstVariableDeclaration>>& staticMembers,
+        const SharedPtr<AstTypeSpecifier>& baseSpec,
+        const Array<SharedPtr<AstVariableDeclaration>>& dataMembers,
+        const Array<SharedPtr<AstVariableDeclaration>>& functionMembers,
+        const Array<SharedPtr<AstVariableDeclaration>>& staticMembers,
         EnumFlags<AstClassFlags> classFlags,
         const SourceLocation& location);
 
     AstClass(
         const String& name,
         const SymbolType* baseType,
-        const Array<RC<AstVariableDeclaration>>& dataMembers,
-        const Array<RC<AstVariableDeclaration>>& functionMembers,
-        const Array<RC<AstVariableDeclaration>>& staticMembers,
+        const Array<SharedPtr<AstVariableDeclaration>>& dataMembers,
+        const Array<SharedPtr<AstVariableDeclaration>>& functionMembers,
+        const Array<SharedPtr<AstVariableDeclaration>>& staticMembers,
         EnumFlags<AstClassFlags> classFlags,
         const SourceLocation& location);
 
@@ -53,32 +53,32 @@ public:
         m_name = name;
     }
 
-    HYP_FORCE_INLINE Array<RC<AstVariableDeclaration>>& GetDataMembers()
+    HYP_FORCE_INLINE Array<SharedPtr<AstVariableDeclaration>>& GetDataMembers()
     {
         return m_dataMembers;
     }
 
-    HYP_FORCE_INLINE const Array<RC<AstVariableDeclaration>>& GetDataMembers() const
+    HYP_FORCE_INLINE const Array<SharedPtr<AstVariableDeclaration>>& GetDataMembers() const
     {
         return m_dataMembers;
     }
 
-    HYP_FORCE_INLINE Array<RC<AstVariableDeclaration>>& GetFunctionMembers()
+    HYP_FORCE_INLINE Array<SharedPtr<AstVariableDeclaration>>& GetFunctionMembers()
     {
         return m_functionMembers;
     }
 
-    HYP_FORCE_INLINE const Array<RC<AstVariableDeclaration>>& GetFunctionMembers() const
+    HYP_FORCE_INLINE const Array<SharedPtr<AstVariableDeclaration>>& GetFunctionMembers() const
     {
         return m_functionMembers;
     }
 
-    HYP_FORCE_INLINE Array<RC<AstVariableDeclaration>>& GetStaticMembers()
+    HYP_FORCE_INLINE Array<SharedPtr<AstVariableDeclaration>>& GetStaticMembers()
     {
         return m_staticMembers;
     }
 
-    HYP_FORCE_INLINE const Array<RC<AstVariableDeclaration>>& GetStaticMembers() const
+    HYP_FORCE_INLINE const Array<SharedPtr<AstVariableDeclaration>>& GetStaticMembers() const
     {
         return m_staticMembers;
     }
@@ -123,7 +123,7 @@ public:
         return m_symbolType;
     }
 
-    HYP_FORCE_INLINE const RC<AstVariableDeclaration>& GetClassRefDecl() const
+    HYP_FORCE_INLINE const SharedPtr<AstVariableDeclaration>& GetClassRefDecl() const
     {
         return m_refDecl;
     }
@@ -133,7 +133,7 @@ public:
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
     virtual bool IsLiteral() const override;
-    virtual RC<AstStatement> Clone() const override;
+    virtual SharedPtr<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -174,29 +174,29 @@ public:
 
 protected:
     String m_name;
-    RC<AstTypeSpecifier> m_baseSpec;
+    SharedPtr<AstTypeSpecifier> m_baseSpec;
     const SymbolType* m_baseType;
-    Array<RC<AstVariableDeclaration>> m_dataMembers;
-    Array<RC<AstVariableDeclaration>> m_functionMembers;
-    Array<RC<AstVariableDeclaration>> m_staticMembers;
+    Array<SharedPtr<AstVariableDeclaration>> m_dataMembers;
+    Array<SharedPtr<AstVariableDeclaration>> m_functionMembers;
+    Array<SharedPtr<AstVariableDeclaration>> m_staticMembers;
     EnumFlags<AstClassFlags> m_flags;
 
     SymbolType* m_symbolType;
 
-    RC<AstTypeRef> m_typeRef;
-    Array<RC<AstVariableDeclaration>> m_outsideMembers;
-    Array<RC<AstVariableDeclaration>> m_combinedMembers;
+    SharedPtr<AstTypeRef> m_typeRef;
+    Array<SharedPtr<AstVariableDeclaration>> m_outsideMembers;
+    Array<SharedPtr<AstVariableDeclaration>> m_combinedMembers;
     bool m_preRegister;
 
     // ClassRef variable decl, lives on the stack
-    RC<AstVariableDeclaration> m_refDecl;
-    RC<AstTypeRef> m_baseTypeRef;
+    SharedPtr<AstVariableDeclaration> m_refDecl;
+    SharedPtr<AstTypeRef> m_baseTypeRef;
 
-    RC<AstClass> CloneImpl() const
+    SharedPtr<AstClass> CloneImpl() const
     {
         if (m_baseType != nullptr)
         {
-            return RC<AstClass>(new AstClass(
+            return SharedPtr<AstClass>(new AstClass(
                 m_name,
                 m_baseType,
                 CloneAllAstNodes(m_dataMembers),
@@ -206,7 +206,7 @@ protected:
                 m_location));
         }
 
-        return RC<AstClass>(new AstClass(
+        return SharedPtr<AstClass>(new AstClass(
             m_name,
             CloneAstNode(m_baseSpec),
             CloneAllAstNodes(m_dataMembers),

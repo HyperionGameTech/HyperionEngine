@@ -173,7 +173,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     cachedData->lastUsedFrame = GetFrameCounter();
 
-    TFatArray<RenderProxyList*, FixedAllocator<6 * 2>> renderProxyLists;
+    FatArray<RenderProxyList*, FixedAllocator<6 * 2>> renderProxyLists;
     HYP_DEFER({ for (RenderProxyList* rpl : renderProxyLists) rpl->EndRead(); });
 
     const bool isOmni = lightProxy->light.GetUnsafe()->IsA<PointLight>();

@@ -62,7 +62,7 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
         {
             m_selfMemberAccess.Reset(new AstMember(
                 m_name,
-                RC<AstVariable>(new AstVariable("self", m_location)),
+                SharedPtr<AstVariable>(new AstVariable("self", m_location)),
                 m_location));
 
             m_selfMemberAccess->Visit(visitor, mod);
@@ -149,7 +149,7 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
                         // we use the variable as 'self.<variable name>'
                         m_closureMemberAccess.Reset(new AstMember(
                             m_name,
-                            RC<AstVariable>(new AstVariable("$functor", m_location)),
+                            SharedPtr<AstVariable>(new AstVariable("$functor", m_location)),
                             m_location));
 
                         m_closureMemberAccess->Visit(visitor, mod);
@@ -382,7 +382,7 @@ void AstVariable::Optimize(AstVisitor* visitor, Module* mod)
     }
 }
 
-RC<AstStatement> AstVariable::Clone() const
+SharedPtr<AstStatement> AstVariable::Clone() const
 {
     return CloneImpl();
 }
@@ -496,7 +496,7 @@ bool AstVariable::IsMutable() const
         return m_selfMemberAccess->IsMutable();
     }
 
-    if (const RC<Identifier>& ident = m_properties.GetIdentifier())
+    if (const SharedPtr<Identifier>& ident = m_properties.GetIdentifier())
     {
         const Identifier* identUnaliased = ident->Unalias();
         Assert(identUnaliased != nullptr);

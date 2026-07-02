@@ -25,19 +25,19 @@ public:
     int CountUsedVariables() const;
 
     /** Constructs an identifier with the given name, as an alias to the given identifier. */
-    const RC<Identifier>& AddAlias(const String& name, Identifier* aliasee);
+    const SharedPtr<Identifier>& AddAlias(const String& name, Identifier* aliasee);
 
     /** Constructs an identifier with the given name, and assigns an index to it. */
-    const RC<Identifier>& AddIdentifier(
+    const SharedPtr<Identifier>& AddIdentifier(
         const String& name,
         int flags = 0,
-        const RC<AstExpression>& currentValue = nullptr,
+        const SharedPtr<AstExpression>& currentValue = nullptr,
         const SymbolType* symbolType = nullptr);
 
-    bool AddIdentifier(const RC<Identifier>& identifier);
+    bool AddIdentifier(const SharedPtr<Identifier>& identifier);
 
     /** Look up an identifier by name. Returns nullptr if not found */
-    RC<Identifier> LookUpIdentifier(const String& name);
+    SharedPtr<Identifier> LookUpIdentifier(const String& name);
 
     /** Look up symbol type by name */
     const SymbolType* LookupSymbolType(const String& name, bool includePlaceholderTypes = true) const;
@@ -48,7 +48,7 @@ public:
     /** To be incremented every time a new identifier is added */
     int identifierIndex;
     /** List of all identifiers in the table */
-    Array<RC<Identifier>> identifiers;
+    Array<SharedPtr<Identifier>> identifiers;
 
     /** All types that are defined in this identifier table */
     Array<const SymbolType*> symbolTypes;

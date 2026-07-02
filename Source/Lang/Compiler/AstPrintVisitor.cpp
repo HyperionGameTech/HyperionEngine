@@ -456,7 +456,7 @@ Array<AstStatement*> AstPrintVisitor::GetChildNodes(AstStatement* node) const
             children.PushBack(memberCall->GetTarget());
         }
 
-        if (const RC<AstArgumentList>& argumentList = memberCall->GetArguments())
+        if (const SharedPtr<AstArgumentList>& argumentList = memberCall->GetArguments())
         {
             for (const auto& arg : argumentList->GetArguments())
             {

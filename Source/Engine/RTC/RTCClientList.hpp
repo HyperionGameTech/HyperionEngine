@@ -8,7 +8,7 @@
 
 #include <Core/Containers/String.hpp>
 #include <Core/Containers/FlatMap.hpp>
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 #include <Core/Utilities/Optional.hpp>
 
 #include <mutex>
@@ -20,8 +20,8 @@ class RTCClient;
 class ENGINE_API RTCClientList
 {
 public:
-    using Iterator = typename TFlatMap<String, RC<RTCClient>>::Iterator;
-    using ConstIterator = typename TFlatMap<String, RC<RTCClient>>::ConstIterator;
+    using Iterator = typename TFlatMap<String, SharedPtr<RTCClient>>::Iterator;
+    using ConstIterator = typename TFlatMap<String, SharedPtr<RTCClient>>::ConstIterator;
 
     RTCClientList() = default;
     RTCClientList(const RTCClientList& other) = delete;
@@ -30,9 +30,9 @@ public:
     RTCClientList& operator=(RTCClientList&& other) noexcept = delete;
     ~RTCClientList() = default;
 
-    void Add(const String& id, RC<RTCClient> client);
+    void Add(const String& id, SharedPtr<RTCClient> client);
     void Remove(String id);
-    Optional<RC<RTCClient>> Get(const String& id) const;
+    Optional<SharedPtr<RTCClient>> Get(const String& id) const;
     bool Has(const String& id) const;
 
     HYP_DEF_STL_BEGIN_END(m_clients.Begin(), m_clients.End())
@@ -40,7 +40,7 @@ public:
 private:
     mutable std::mutex m_mutex;
 
-    TFlatMap<String, RC<RTCClient>> m_clients;
+    TFlatMap<String, SharedPtr<RTCClient>> m_clients;
 };
 
 } // namespace Hyperion

@@ -818,10 +818,10 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, TList<T>&& list)
 
 #if !defined(HYP_USE_SLIM_ARRAY) || !HYP_USE_SLIM_ARRAY
 
-// TSlimArray<TElemType, TAllocator>
+// SlimArray<TElemType, TAllocator>
 
 template <class TElemType, class TAllocator>
-GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, TSlimArray<TElemType, TAllocator>& arr)
+GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, SlimArray<TElemType, TAllocator>& arr)
     : GenericArrayWrapper()
 {
     pInternalArray = &arr;
@@ -833,7 +833,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, TSlimArray<TElemType, T
 
     functionTable.pushBack = [](GenericArrayWrapper& array, BoxedValue&& value) -> AnyRef
     {
-        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+        auto& arr = *static_cast<SlimArray<TElemType, TAllocator>*>(array.pInternalArray);
 
         if constexpr (IsBoxedValueV<TElemType>)
         {
@@ -847,7 +847,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, TSlimArray<TElemType, T
 
     functionTable.getElementAt = [](GenericArrayWrapper& array, size_t index) -> AnyRef
     {
-        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+        auto& arr = *static_cast<SlimArray<TElemType, TAllocator>*>(array.pInternalArray);
 
         if (index >= arr.Size())
         {
@@ -859,7 +859,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, TSlimArray<TElemType, T
 
     functionTable.getElementAt2 = [](GenericArrayWrapper& array, size_t index, BoxedValue& outValue) -> bool
     {
-        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+        auto& arr = *static_cast<SlimArray<TElemType, TAllocator>*>(array.pInternalArray);
 
         if (index >= arr.Size())
         {
@@ -873,7 +873,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, TSlimArray<TElemType, T
 
     functionTable.setElementAt = [](GenericArrayWrapper& array, size_t index, BoxedValue&& value) -> bool
     {
-        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+        auto& arr = *static_cast<SlimArray<TElemType, TAllocator>*>(array.pInternalArray);
 
         if (index >= arr.Size())
         {
@@ -894,13 +894,13 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, TSlimArray<TElemType, T
 
     functionTable.size = [](const GenericArrayWrapper& array) -> size_t
     {
-        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+        auto& arr = *static_cast<SlimArray<TElemType, TAllocator>*>(array.pInternalArray);
         return arr.Size();
     };
 
     functionTable.resize = [](GenericArrayWrapper& array, size_t newSize) -> bool
     {
-        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+        auto& arr = *static_cast<SlimArray<TElemType, TAllocator>*>(array.pInternalArray);
         arr.Resize(static_cast<uint32>(newSize));
 
         return true;
@@ -908,7 +908,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, TSlimArray<TElemType, T
 }
 
 template <class TElemType, class TAllocator>
-GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const TSlimArray<TElemType, TAllocator>& arr)
+GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const SlimArray<TElemType, TAllocator>& arr)
     : GenericArrayWrapper()
 {
     pInternalArray = new std::remove_cvref_t<decltype(arr)>(arr);
@@ -923,7 +923,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const TSlimArray<TElemType, 
 
     functionTable.pushBack = [](GenericArrayWrapper& array, BoxedValue&& value) -> AnyRef
     {
-        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+        auto& arr = *static_cast<SlimArray<TElemType, TAllocator>*>(array.pInternalArray);
 
         if constexpr (IsBoxedValueV<TElemType>)
         {
@@ -937,7 +937,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const TSlimArray<TElemType, 
 
     functionTable.getElementAt = [](GenericArrayWrapper& array, size_t index) -> AnyRef
     {
-        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+        auto& arr = *static_cast<SlimArray<TElemType, TAllocator>*>(array.pInternalArray);
 
         if (index >= arr.Size())
         {
@@ -949,7 +949,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const TSlimArray<TElemType, 
 
     functionTable.getElementAt2 = [](GenericArrayWrapper& array, size_t index, BoxedValue& outValue) -> bool
     {
-        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+        auto& arr = *static_cast<SlimArray<TElemType, TAllocator>*>(array.pInternalArray);
 
         if (index >= arr.Size())
         {
@@ -963,7 +963,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const TSlimArray<TElemType, 
 
     functionTable.setElementAt = [](GenericArrayWrapper& array, size_t index, BoxedValue&& value) -> bool
     {
-        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+        auto& arr = *static_cast<SlimArray<TElemType, TAllocator>*>(array.pInternalArray);
 
         if (index >= arr.Size())
         {
@@ -984,13 +984,13 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const TSlimArray<TElemType, 
 
     functionTable.size = [](const GenericArrayWrapper& array) -> size_t
     {
-        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+        auto& arr = *static_cast<SlimArray<TElemType, TAllocator>*>(array.pInternalArray);
         return arr.Size();
     };
 
     functionTable.resize = [](GenericArrayWrapper& array, size_t newSize) -> bool
     {
-        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+        auto& arr = *static_cast<SlimArray<TElemType, TAllocator>*>(array.pInternalArray);
         arr.Resize(static_cast<uint32>(newSize));
 
         return true;
@@ -998,7 +998,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const TSlimArray<TElemType, 
 }
 
 template <class TElemType, class TAllocator>
-GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, TSlimArray<TElemType, TAllocator>&& arr)
+GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, SlimArray<TElemType, TAllocator>&& arr)
     : GenericArrayWrapper()
 {
     pInternalArray = new std::remove_cvref_t<decltype(arr)>(std::move(arr));
@@ -1013,7 +1013,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, TSlimArray<TElemType, TAlloc
 
     functionTable.pushBack = [](GenericArrayWrapper& array, BoxedValue&& value) -> AnyRef
     {
-        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+        auto& arr = *static_cast<SlimArray<TElemType, TAllocator>*>(array.pInternalArray);
 
         if constexpr (IsBoxedValueV<TElemType>)
         {
@@ -1027,7 +1027,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, TSlimArray<TElemType, TAlloc
 
     functionTable.getElementAt = [](GenericArrayWrapper& array, size_t index) -> AnyRef
     {
-        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+        auto& arr = *static_cast<SlimArray<TElemType, TAllocator>*>(array.pInternalArray);
 
         if (index >= arr.Size())
         {
@@ -1039,7 +1039,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, TSlimArray<TElemType, TAlloc
 
     functionTable.getElementAt2 = [](GenericArrayWrapper& array, size_t index, BoxedValue& outValue) -> bool
     {
-        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+        auto& arr = *static_cast<SlimArray<TElemType, TAllocator>*>(array.pInternalArray);
 
         if (index >= arr.Size())
         {
@@ -1053,7 +1053,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, TSlimArray<TElemType, TAlloc
 
     functionTable.setElementAt = [](GenericArrayWrapper& array, size_t index, BoxedValue&& value) -> bool
     {
-        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+        auto& arr = *static_cast<SlimArray<TElemType, TAllocator>*>(array.pInternalArray);
 
         if (index >= arr.Size())
         {
@@ -1074,13 +1074,13 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, TSlimArray<TElemType, TAlloc
 
     functionTable.size = [](const GenericArrayWrapper& array) -> size_t
     {
-        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+        auto& arr = *static_cast<SlimArray<TElemType, TAllocator>*>(array.pInternalArray);
         return arr.Size();
     };
 
     functionTable.resize = [](GenericArrayWrapper& array, size_t newSize) -> bool
     {
-        auto& arr = *static_cast<TSlimArray<TElemType, TAllocator>*>(array.pInternalArray);
+        auto& arr = *static_cast<SlimArray<TElemType, TAllocator>*>(array.pInternalArray);
         arr.Resize(static_cast<uint32>(newSize));
 
         return true;

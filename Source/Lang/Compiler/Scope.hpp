@@ -5,7 +5,7 @@
 #include <Lang/SourceLocation.hpp>
 
 #include <Core/Containers/Map.hpp>
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 #include <Core/Utilities/Optional.hpp>
 
 #include <Core/HashCode.hpp>
@@ -161,7 +161,7 @@ public:
         return it != closureCaptures.End() ? it->second : nullptr;
     }
 
-    void AddClosureCapture(const String& name, const RC<Identifier>& ident)
+    void AddClosureCapture(const String& name, const SharedPtr<Identifier>& ident)
     {
         closureCaptures.Insert(name, ident);
     }
@@ -170,7 +170,7 @@ public:
     ScopeType scopeType;
     int scopeFlags;
     Array<const SymbolType*> returnTypes;
-    TMap<String, RC<Identifier>> closureCaptures;
+    TMap<String, SharedPtr<Identifier>> closureCaptures;
     TypeInstanceCache typeInstanceCache;
 };
 

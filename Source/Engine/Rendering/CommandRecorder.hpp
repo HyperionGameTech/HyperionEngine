@@ -1187,7 +1187,7 @@ private:
         m_headerCapacity = m_headersPtr ? newCapacity : 0;
     }
 
-    TByteBuffer<AllocatorType> m_buffer;
+    memory::ByteBuffer<AllocatorType> m_buffer;
 };
 
 template <class AllocatorType>

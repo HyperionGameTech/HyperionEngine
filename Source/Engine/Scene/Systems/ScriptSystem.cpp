@@ -65,10 +65,10 @@ public:
             return;
         }
 
-        RC<dotnet::Assembly> managedAssembly = DotNETHost::GetInstance().LoadAssembly("Hyperion.NET.Scripting.dll");
+        SharedPtr<dotnet::Assembly> managedAssembly = DotNETHost::GetInstance().LoadAssembly("Hyperion.NET.Scripting.dll");
         Assert(managedAssembly != nullptr, "Failed to load Hyperion.NET.Scripting assembly");
 
-        RC<dotnet::ManagedClass> managedClass = managedAssembly->FindClassByName("ScriptTracker");
+        SharedPtr<dotnet::ManagedClass> managedClass = managedAssembly->FindClassByName("ScriptTracker");
         Assert(managedClass != nullptr, "Failed to load ScriptTracker class from Hyperion.NET.Scripting assembly (Guid: {})",
             managedAssembly->GetGuid());
 
@@ -125,7 +125,7 @@ public:
         assembly.Reset();
     }
 
-    RC<dotnet::Assembly> assembly;
+    SharedPtr<dotnet::Assembly> assembly;
     UniquePtr<dotnet::ManagedObject> object;
 };
 

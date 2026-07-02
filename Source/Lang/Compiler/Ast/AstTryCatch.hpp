@@ -15,8 +15,8 @@ class AstTryCatch : public AstStatement
 
 public:
     AstTryCatch(
-        const RC<AstBlock>& tryBlock,
-        const RC<AstBlock>& catchBlock,
+        const SharedPtr<AstBlock>& tryBlock,
+        const SharedPtr<AstBlock>& catchBlock,
         const SourceLocation& location);
     virtual ~AstTryCatch() = default;
 
@@ -24,7 +24,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual RC<AstStatement> Clone() const override;
+    virtual SharedPtr<AstStatement> Clone() const override;
 
     virtual HashCode GetHashCode() const override
     {
@@ -37,12 +37,12 @@ public:
     }
 
 private:
-    RC<AstBlock> m_tryBlock;
-    RC<AstBlock> m_catchBlock;
+    SharedPtr<AstBlock> m_tryBlock;
+    SharedPtr<AstBlock> m_catchBlock;
 
-    RC<AstTryCatch> CloneImpl() const
+    SharedPtr<AstTryCatch> CloneImpl() const
     {
-        return RC<AstTryCatch>(new AstTryCatch(
+        return SharedPtr<AstTryCatch>(new AstTryCatch(
             CloneAstNode(m_tryBlock),
             CloneAstNode(m_catchBlock),
             m_location));

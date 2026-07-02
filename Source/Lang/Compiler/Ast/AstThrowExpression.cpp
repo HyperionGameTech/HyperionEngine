@@ -18,7 +18,7 @@
 namespace Hyperion {
 
 AstThrowExpression::AstThrowExpression(
-    const RC<AstExpression>& expr,
+    const SharedPtr<AstExpression>& expr,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_expr(expr)
@@ -60,7 +60,7 @@ void AstThrowExpression::Optimize(AstVisitor* visitor, Module* mod)
     m_expr->Optimize(visitor, mod);
 }
 
-RC<AstStatement> AstThrowExpression::Clone() const
+SharedPtr<AstStatement> AstThrowExpression::Clone() const
 {
     return CloneImpl();
 }

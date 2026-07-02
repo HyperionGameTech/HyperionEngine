@@ -395,6 +395,7 @@ extern class EditorSubsystem : Subsystem
     AddToSelection(node : Node) -> void
     RemoveFromSelection(node : Node) -> void
     ClearSelection() -> void
+    SetSelectedNodes(nodes : Array<Node>) -> void
     IsNodeSelected(node : Node) -> bool
     GetSelectedNodes() -> Array<Node>
     GetActiveScene() -> Scene

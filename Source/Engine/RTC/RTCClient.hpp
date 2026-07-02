@@ -10,7 +10,7 @@
 #include <Core/Containers/FlatMap.hpp>
 #include <Core/Containers/Array.hpp>
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Functional/Delegate.hpp>
 
@@ -92,7 +92,7 @@ public:
         return m_state;
     }
 
-    const Array<RC<RTCTrackBase>>& GetTracks() const
+    const Array<SharedPtr<RTCTrackBase>>& GetTracks() const
     {
         return m_tracks;
     }
@@ -107,15 +107,15 @@ public:
         return m_callbacks;
     }
 
-    virtual RC<RTCDataChannel> CreateDataChannel(Name name = Name::Invalid()) = 0;
-    Optional<RC<RTCDataChannel>> GetDataChannel(Name name) const;
+    virtual SharedPtr<RTCDataChannel> CreateDataChannel(Name name = Name::Invalid()) = 0;
+    Optional<SharedPtr<RTCDataChannel>> GetDataChannel(Name name) const;
 
     virtual void Connect() = 0;
     virtual void Disconnect() = 0;
 
     virtual void SetRemoteDescription(const String& type, const String& sdp) = 0;
 
-    virtual void AddTrack(RC<RTCTrackBase> track);
+    virtual void AddTrack(SharedPtr<RTCTrackBase> track);
 
 protected:
     virtual void PrepareTracks();
@@ -123,8 +123,8 @@ protected:
     String m_id;
     RTCServer* m_server;
     RTCClientState m_state;
-    Array<RC<RTCTrackBase>> m_tracks;
-    TFlatMap<Name, RC<RTCDataChannel>> m_dataChannels;
+    Array<SharedPtr<RTCTrackBase>> m_tracks;
+    TFlatMap<Name, SharedPtr<RTCDataChannel>> m_dataChannels;
     RTCClientCallbacks m_callbacks;
 };
 
@@ -141,7 +141,7 @@ public:
     virtual void Connect() override;
     virtual void Disconnect() override;
 
-    virtual RC<RTCDataChannel> CreateDataChannel(Name name = Name::Invalid()) override;
+    virtual SharedPtr<RTCDataChannel> CreateDataChannel(Name name = Name::Invalid()) override;
 
     virtual void SetRemoteDescription(const String& type, const String& sdp) override;
 };
@@ -160,7 +160,7 @@ public:
     LibDataChannelRTCClient& operator=(LibDataChannelRTCClient&& other) noexcept = delete;
     virtual ~LibDataChannelRTCClient() override = default;
 
-    virtual RC<RTCDataChannel> CreateDataChannel(Name name = Name::Invalid()) override;
+    virtual SharedPtr<RTCDataChannel> CreateDataChannel(Name name = Name::Invalid()) override;
 
     virtual void Connect() override;
     virtual void Disconnect() override;
@@ -168,7 +168,7 @@ public:
     virtual void SetRemoteDescription(const String& type, const String& sdp) override;
 
 private:
-    RC<rtc::PeerConnection> m_peerConnection;
+    SharedPtr<rtc::PeerConnection> m_peerConnection;
     std::shared_ptr<rtc::DataChannel> m_dataChannel;
 };
 

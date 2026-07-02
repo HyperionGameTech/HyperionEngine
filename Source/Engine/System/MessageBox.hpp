@@ -11,7 +11,7 @@
 #include <Core/Containers/String.hpp>
 #include <Core/Containers/Array.hpp>
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Functional/Proc.hpp>
 
@@ -59,7 +59,7 @@ private:
     MessageBoxType m_type;
     String m_title;
     String m_message;
-    Array<RC<MessageBoxButton>> m_buttons;
+    Array<SharedPtr<MessageBoxButton>> m_buttons;
 };
 
 } // namespace Hyperion

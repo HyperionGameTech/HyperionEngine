@@ -99,7 +99,7 @@ extern "C"
     {
         Assert(assembly != nullptr);
 
-        RC<dotnet::ManagedClass> managedClass = assembly->FindClassByTypeHash(typeHash);
+        SharedPtr<dotnet::ManagedClass> managedClass = assembly->FindClassByTypeHash(typeHash);
 
         if (!managedClass)
         {

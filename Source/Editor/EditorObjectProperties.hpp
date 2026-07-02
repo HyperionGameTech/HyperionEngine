@@ -12,7 +12,7 @@
 #include <Core/Math/Vector3.hpp>
 #include <Core/Math/Vector4.hpp>
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 namespace Hyperion {
 

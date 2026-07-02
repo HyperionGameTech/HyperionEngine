@@ -190,7 +190,7 @@ bool SocketServer::Stop()
     return false;
 }
 
-bool SocketServer::PollForConnections(Array<RC<SocketClient>>& outConnections)
+bool SocketServer::PollForConnections(Array<SharedPtr<SocketClient>>& outConnections)
 {
     if (m_impl == nullptr)
     {
@@ -219,7 +219,7 @@ bool SocketServer::PollForConnections(Array<RC<SocketClient>>& outConnections)
             continue;
         }
 
-        outConnections.PushBack(MakeRefCountedPtr<SocketClient>(clientName, SocketID { newSocket }));
+        outConnections.PushBack(MakeShared<SocketClient>(clientName, SocketID { newSocket }));
     }
 
     return true;
@@ -229,7 +229,7 @@ bool SocketServer::PollForConnections(Array<RC<SocketClient>>& outConnections)
     return false;
 }
 
-void SocketServer::AddConnection(RC<SocketClient>&& connection)
+void SocketServer::AddConnection(SharedPtr<SocketClient>&& connection)
 {
     if (!connection)
     {
@@ -302,7 +302,7 @@ void SocketServerThread::operator()(SocketServer* server)
     {
         // Check for incoming connections
 
-        Array<RC<SocketClient>> newConnections;
+        Array<SharedPtr<SocketClient>> newConnections;
 
         if (server->PollForConnections(newConnections))
         {
@@ -312,7 +312,7 @@ void SocketServerThread::operator()(SocketServer* server)
             }
         }
 
-        Array<RC<SocketClient>> removedConnections;
+        Array<SharedPtr<SocketClient>> removedConnections;
 
         { // Check for incoming data
             ByteBuffer receivedData;

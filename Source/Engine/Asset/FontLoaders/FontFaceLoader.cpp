@@ -16,7 +16,7 @@ AssetLoadResult FontFaceLoader::LoadAsset(LoaderState& state) const
 {
     FontEngine& fontEngine = FontEngine::GetInstance();
 
-    RC<FontFace> fontFace = MakeRefCountedPtr<FontFace>(
+    SharedPtr<FontFace> fontFace = MakeShared<FontFace>(
         fontEngine.GetFontBackend(),
         state.filepath);
 

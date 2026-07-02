@@ -14,11 +14,11 @@ class AstExportStatement : public AstStatement
 
 public:
     AstExportStatement(
-        const RC<AstStatement>& stmt,
+        const SharedPtr<AstStatement>& stmt,
         const SourceLocation& location);
     virtual ~AstExportStatement() = default;
 
-    const RC<AstStatement>& GetStatement() const
+    const SharedPtr<AstStatement>& GetStatement() const
     {
         return m_stmt;
     }
@@ -27,7 +27,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual RC<AstStatement> Clone() const override;
+    virtual SharedPtr<AstStatement> Clone() const override;
 
     virtual HashCode GetHashCode() const override
     {
@@ -39,14 +39,14 @@ public:
     }
 
 private:
-    RC<AstStatement> m_stmt;
+    SharedPtr<AstStatement> m_stmt;
 
     // set while analyzing
     String m_exportedSymbolName;
 
-    RC<AstExportStatement> CloneImpl() const
+    SharedPtr<AstExportStatement> CloneImpl() const
     {
-        return RC<AstExportStatement>(new AstExportStatement(
+        return SharedPtr<AstExportStatement>(new AstExportStatement(
             CloneAstNode(m_stmt),
             m_location));
     }

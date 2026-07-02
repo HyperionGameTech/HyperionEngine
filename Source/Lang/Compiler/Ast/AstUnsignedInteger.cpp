@@ -44,7 +44,7 @@ UniquePtr<Buildable> AstUnsignedInteger::Build(AstVisitor* visitor, Module* mod)
     }
 }
 
-RC<AstStatement> AstUnsignedInteger::Clone() const
+SharedPtr<AstStatement> AstUnsignedInteger::Clone() const
 {
     return CloneImpl();
 }

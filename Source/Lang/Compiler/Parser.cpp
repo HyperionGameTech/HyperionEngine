@@ -328,7 +328,7 @@ void Parser::Parse(bool expectModuleDecl)
 
         realFilename = StringUtil::StripExtension(realFilename);
 
-        RC<AstModuleDeclaration> moduleAst(new AstModuleDeclaration(
+        SharedPtr<AstModuleDeclaration> moduleAst(new AstModuleDeclaration(
             realFilename.Data(),
             SourceLocation(0, 0, filepath)));
 
@@ -342,7 +342,7 @@ void Parser::Parse(bool expectModuleDecl)
             }
 
             // parse at top level, to allow for nested modules
-            if (RC<AstStatement> stmt = ParseStatement(true))
+            if (SharedPtr<AstStatement> stmt = ParseStatement(true))
             {
                 moduleAst->AddChild(stmt);
             }
@@ -362,7 +362,7 @@ void Parser::Parse(bool expectModuleDecl)
             }
 
             // parse at top level, to allow for nested modules
-            if (RC<AstStatement> stmt = ParseStatement(true))
+            if (SharedPtr<AstStatement> stmt = ParseStatement(true))
             {
                 m_astIterator->Push(stmt);
             }
@@ -396,11 +396,11 @@ int Parser::OperatorPrecedence(const Operator*& out)
     return -1;
 }
 
-RC<AstStatement> Parser::ParseStatement(
+SharedPtr<AstStatement> Parser::ParseStatement(
     bool topLevel,
     bool readTerminators)
 {
-    RC<AstStatement> res;
+    SharedPtr<AstStatement> res;
 
     if (Match(TK_KEYWORD, false))
     {
@@ -517,7 +517,7 @@ RC<AstStatement> Parser::ParseStatement(
     return res;
 }
 
-RC<AstModuleDeclaration> Parser::ParseModuleDeclaration()
+SharedPtr<AstModuleDeclaration> Parser::ParseModuleDeclaration()
 {
     if (Token moduleDecl = ExpectKeyword(Keyword_module, true))
     {
@@ -526,7 +526,7 @@ RC<AstModuleDeclaration> Parser::ParseModuleDeclaration()
             // expect open brace
             if (Expect(TK_OPEN_BRACE, true))
             {
-                RC<AstModuleDeclaration> moduleAst(new AstModuleDeclaration(
+                SharedPtr<AstModuleDeclaration> moduleAst(new AstModuleDeclaration(
                     moduleName.GetValue(),
                     moduleDecl.GetLocation()));
 
@@ -538,7 +538,7 @@ RC<AstModuleDeclaration> Parser::ParseModuleDeclaration()
                     {
 
                         // parse at top level, to allow for nested modules
-                        if (RC<AstStatement> stmt = ParseStatement(true))
+                        if (SharedPtr<AstStatement> stmt = ParseStatement(true))
                         {
                             moduleAst->AddChild(stmt);
                         }
@@ -557,7 +557,7 @@ RC<AstModuleDeclaration> Parser::ParseModuleDeclaration()
     return nullptr;
 }
 
-RC<AstDirective> Parser::ParseDirective()
+SharedPtr<AstDirective> Parser::ParseDirective()
 {
     if (Token token = Expect(TK_NAME_LITERAL, true))
     {
@@ -572,7 +572,7 @@ RC<AstDirective> Parser::ParseDirective()
             m_tokenStream->Next();
         }
 
-        return RC<AstDirective>(new AstDirective(
+        return SharedPtr<AstDirective>(new AstDirective(
             token.GetValue(),
             args,
             token.GetLocation()));
@@ -581,7 +581,7 @@ RC<AstDirective> Parser::ParseDirective()
     return nullptr;
 }
 
-RC<AstExpression> Parser::ParseTerm(
+SharedPtr<AstExpression> Parser::ParseTerm(
     bool overrideCommas,
     bool overrideFatArrows,
     bool overrideAngleBrackets,
@@ -613,7 +613,7 @@ RC<AstExpression> Parser::ParseTerm(
         return nullptr;
     }
 
-    RC<AstExpression> expr;
+    SharedPtr<AstExpression> expr;
 
     if (Match(TK_OPEN_PARENTH))
     {
@@ -772,10 +772,10 @@ RC<AstExpression> Parser::ParseTerm(
     return expr;
 }
 
-RC<AstExpression> Parser::ParseParentheses()
+SharedPtr<AstExpression> Parser::ParseParentheses()
 {
     SourceLocation location = CurrentLocation();
-    RC<AstExpression> expr;
+    SharedPtr<AstExpression> expr;
     const size_t beforePos = m_tokenStream->GetPosition();
 
     Expect(TK_OPEN_PARENTH, true);
@@ -793,7 +793,7 @@ RC<AstExpression> Parser::ParseParentheses()
             // allow ParseFunctionParameters() to handle parentheses
             m_tokenStream->SetPosition(beforePos);
 
-            Array<RC<AstParameter>> params;
+            Array<SharedPtr<AstParameter>> params;
 
             if (Match(TK_OPEN_PARENTH, true))
             {
@@ -845,7 +845,7 @@ RC<AstExpression> Parser::ParseParentheses()
                 // to allow ParseFunctionParameters() to handle it
                 m_tokenStream->SetPosition(beforePos);
 
-                Array<RC<AstParameter>> params;
+                Array<SharedPtr<AstParameter>> params;
 
                 if (Match(TK_OPEN_PARENTH, true))
                 {
@@ -868,7 +868,7 @@ RC<AstExpression> Parser::ParseParentheses()
                     // if '{' found after ')', it is a function
                     m_tokenStream->SetPosition(beforePos);
 
-                    Array<RC<AstParameter>> params;
+                    Array<SharedPtr<AstParameter>> params;
 
                     if (Match(TK_OPEN_PARENTH, true))
                     {
@@ -888,7 +888,7 @@ RC<AstExpression> Parser::ParseParentheses()
     return expr;
 }
 
-RC<AstTemplateInstantiation> Parser::ParseTemplateInstantiation(RC<AstExpression> expr)
+SharedPtr<AstTemplateInstantiation> Parser::ParseTemplateInstantiation(SharedPtr<AstExpression> expr)
 {
     if (!expr)
     {
@@ -899,15 +899,15 @@ RC<AstTemplateInstantiation> Parser::ParseTemplateInstantiation(RC<AstExpression
     SourceLocation location = CurrentLocation();
     const size_t beforePos = m_tokenStream->GetPosition();
 
-    Array<RC<AstTypeSpecifier>> args;
+    Array<SharedPtr<AstTypeSpecifier>> args;
 
-    auto parseFunctionReturnType = [&]() -> RC<AstTypeSpecifier>
+    auto parseFunctionReturnType = [&]() -> SharedPtr<AstTypeSpecifier>
     {
         // right arrow for function return type is part of the generic args
         if (Match(TK_RIGHT_ARROW, true))
         {
             // parse return type, add as first argument
-            if (RC<AstTypeSpecifier> returnType = ParseTypeSpecifier())
+            if (SharedPtr<AstTypeSpecifier> returnType = ParseTypeSpecifier())
             {
                 return returnType;
             }
@@ -936,7 +936,7 @@ RC<AstTemplateInstantiation> Parser::ParseTemplateInstantiation(RC<AstExpression
 
         if (MatchOperator(">", true))
         {
-            return RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
+            return SharedPtr<AstTemplateInstantiation>(new AstTemplateInstantiation(
                 expr,
                 args,
                 parseFunctionReturnType(),
@@ -972,7 +972,7 @@ RC<AstTemplateInstantiation> Parser::ParseTemplateInstantiation(RC<AstExpression
                 }
             }
 
-            if (RC<AstTypeSpecifier> arg = ParseTypeSpecifier())
+            if (SharedPtr<AstTypeSpecifier> arg = ParseTypeSpecifier())
             { // override commas
                 args.PushBack(std::move(arg));
             }
@@ -1006,7 +1006,7 @@ RC<AstTemplateInstantiation> Parser::ParseTemplateInstantiation(RC<AstExpression
 
             if (MatchOperator(">", true))
             {
-                return RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
+                return SharedPtr<AstTemplateInstantiation>(new AstTemplateInstantiation(
                     expr,
                     args,
                     parseFunctionReturnType(),
@@ -1021,7 +1021,7 @@ RC<AstTemplateInstantiation> Parser::ParseTemplateInstantiation(RC<AstExpression
     return nullptr;
 }
 
-RC<AstConstant> Parser::ParseIntegerLiteral()
+SharedPtr<AstConstant> Parser::ParseIntegerLiteral()
 {
     if (Token token = Expect(TK_INTEGER, true))
     {
@@ -1047,7 +1047,7 @@ RC<AstConstant> Parser::ParseIntegerLiteral()
                     return nullptr;
                 }
 
-                return RC<AstInteger>(new AstInteger(
+                return SharedPtr<AstInteger>(new AstInteger(
                     value,
                     suffixIt->second.cbs,
                     token.GetLocation()));
@@ -1069,7 +1069,7 @@ RC<AstConstant> Parser::ParseIntegerLiteral()
                     return nullptr;
                 }
 
-                return RC<AstUnsignedInteger>(new AstUnsignedInteger(
+                return SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(
                     value,
                     suffixIt->second.cbs,
                     token.GetLocation()));
@@ -1091,7 +1091,7 @@ RC<AstConstant> Parser::ParseIntegerLiteral()
                     return nullptr;
                 }
 
-                return RC<AstFloat>(new AstFloat(
+                return SharedPtr<AstFloat>(new AstFloat(
                     value,
                     suffixIt->second.cbs,
                     token.GetLocation()));
@@ -1122,7 +1122,7 @@ RC<AstConstant> Parser::ParseIntegerLiteral()
                 return nullptr;
             }
 
-            return RC<AstInteger>(new AstInteger(
+            return SharedPtr<AstInteger>(new AstInteger(
                 value,
                 CBS_32,
                 token.GetLocation()));
@@ -1132,7 +1132,7 @@ RC<AstConstant> Parser::ParseIntegerLiteral()
     return nullptr;
 }
 
-RC<AstFloat> Parser::ParseFloatLiteral()
+SharedPtr<AstFloat> Parser::ParseFloatLiteral()
 {
     if (Token token = Expect(TK_FLOAT, true))
     {
@@ -1140,13 +1140,13 @@ RC<AstFloat> Parser::ParseFloatLiteral()
 
         if (token.GetFlags()[0] == 'f')
         {
-            return RC<AstFloat>(new AstFloat(
+            return SharedPtr<AstFloat>(new AstFloat(
                 value,
                 CBS_32,
                 token.GetLocation()));
         }
 
-        return RC<AstFloat>(new AstFloat(
+        return SharedPtr<AstFloat>(new AstFloat(
             value,
             CBS_64,
             token.GetLocation()));
@@ -1155,11 +1155,11 @@ RC<AstFloat> Parser::ParseFloatLiteral()
     return nullptr;
 }
 
-RC<AstString> Parser::ParseStringLiteral()
+SharedPtr<AstString> Parser::ParseStringLiteral()
 {
     if (Token token = Expect(TK_STRING, true))
     {
-        return RC<AstString>(new AstString(
+        return SharedPtr<AstString>(new AstString(
             token.GetValue(),
             token.GetLocation()));
     }
@@ -1167,11 +1167,11 @@ RC<AstString> Parser::ParseStringLiteral()
     return nullptr;
 }
 
-RC<AstName> Parser::ParseNameLiteral()
+SharedPtr<AstName> Parser::ParseNameLiteral()
 {
     if (Token token = Expect(TK_NAME_LITERAL, true))
     {
-        return RC<AstName>(new AstName(
+        return SharedPtr<AstName>(new AstName(
             token.GetValue(),
             token.GetLocation()));
     }
@@ -1179,7 +1179,7 @@ RC<AstName> Parser::ParseNameLiteral()
     return nullptr;
 }
 
-RC<AstIdentifier> Parser::ParseIdentifier(bool allowKeyword)
+SharedPtr<AstIdentifier> Parser::ParseIdentifier(bool allowKeyword)
 {
     if (Token token = ExpectIdentifier(allowKeyword, false))
     {
@@ -1190,7 +1190,7 @@ RC<AstIdentifier> Parser::ParseIdentifier(bool allowKeyword)
         }
 
         // return variable
-        return RC<AstVariable>(new AstVariable(
+        return SharedPtr<AstVariable>(new AstVariable(
             token.GetValue(),
             token.GetLocation()));
     }
@@ -1198,7 +1198,7 @@ RC<AstIdentifier> Parser::ParseIdentifier(bool allowKeyword)
     return nullptr;
 }
 
-RC<AstArgument> Parser::ParseArgument(RC<AstExpression> expr)
+SharedPtr<AstArgument> Parser::ParseArgument(SharedPtr<AstExpression> expr)
 {
     SourceLocation location = CurrentLocation();
 
@@ -1231,7 +1231,7 @@ RC<AstArgument> Parser::ParseArgument(RC<AstExpression> expr)
 
     if (expr != nullptr)
     {
-        return RC<AstArgument>(new AstArgument(
+        return SharedPtr<AstArgument>(new AstArgument(
             expr,
             isSplatArg,
             isNamedArg,
@@ -1249,11 +1249,11 @@ RC<AstArgument> Parser::ParseArgument(RC<AstExpression> expr)
     return nullptr;
 }
 
-RC<AstArgumentList> Parser::ParseArguments(bool requireParentheses)
+SharedPtr<AstArgumentList> Parser::ParseArguments(bool requireParentheses)
 {
     const SourceLocation location = CurrentLocation();
 
-    Array<RC<AstArgument>> args;
+    Array<SharedPtr<AstArgument>> args;
 
     if (requireParentheses)
     {
@@ -1282,18 +1282,18 @@ RC<AstArgumentList> Parser::ParseArguments(bool requireParentheses)
         Expect(TK_CLOSE_PARENTH, true);
     }
 
-    return RC<AstArgumentList>(new AstArgumentList(
+    return SharedPtr<AstArgumentList>(new AstArgumentList(
         args,
         location));
 }
 
-RC<AstCallExpression> Parser::ParseCallExpression(RC<AstExpression> target, bool requireParentheses)
+SharedPtr<AstCallExpression> Parser::ParseCallExpression(SharedPtr<AstExpression> target, bool requireParentheses)
 {
     if (target != nullptr)
     {
         if (auto args = ParseArguments(requireParentheses))
         {
-            return RC<AstCallExpression>(new AstCallExpression(
+            return SharedPtr<AstCallExpression>(new AstCallExpression(
                 target,
                 args->GetArguments(),
                 true, // allow 'self' to be inserted
@@ -1304,7 +1304,7 @@ RC<AstCallExpression> Parser::ParseCallExpression(RC<AstExpression> target, bool
     return nullptr;
 }
 
-RC<AstModuleAccess> Parser::ParseModuleAccess()
+SharedPtr<AstModuleAccess> Parser::ParseModuleAccess()
 {
     const SourceLocation location = CurrentLocation();
 
@@ -1324,7 +1324,7 @@ RC<AstModuleAccess> Parser::ParseModuleAccess()
 
     if (token || globalModuleAccess)
     {
-        RC<AstExpression> expr;
+        SharedPtr<AstExpression> expr;
 
         if (MatchAhead(TK_DOUBLE_COLON, 1))
         {
@@ -1337,7 +1337,7 @@ RC<AstModuleAccess> Parser::ParseModuleAccess()
 
         if (expr != nullptr)
         {
-            return RC<AstModuleAccess>(new AstModuleAccess(
+            return SharedPtr<AstModuleAccess>(new AstModuleAccess(
                 globalModuleAccess
                     ? ScriptConfig::GlobalModuleName
                     : token.GetValue(),
@@ -1349,7 +1349,7 @@ RC<AstModuleAccess> Parser::ParseModuleAccess()
     return nullptr;
 }
 
-RC<AstExpression> Parser::ParseMemberExpression(RC<AstExpression> target)
+SharedPtr<AstExpression> Parser::ParseMemberExpression(SharedPtr<AstExpression> target)
 {
     Expect(TK_DOT, true);
 
@@ -1358,11 +1358,11 @@ RC<AstExpression> Parser::ParseMemberExpression(RC<AstExpression> target)
         ? m_tokenStream->Next()
         : ExpectIdentifier(true, true);
 
-    RC<AstExpression> expr;
+    SharedPtr<AstExpression> expr;
 
     if (ident)
     {
-        expr = RC<AstMember>(new AstMember(
+        expr = SharedPtr<AstMember>(new AstMember(
             ident.GetValue(),
             target,
             ident.GetLocation()));
@@ -1371,8 +1371,8 @@ RC<AstExpression> Parser::ParseMemberExpression(RC<AstExpression> target)
     return expr;
 }
 
-RC<AstArrayAccess> Parser::ParseArrayAccess(
-    RC<AstExpression> target,
+SharedPtr<AstArrayAccess> Parser::ParseArrayAccess(
+    SharedPtr<AstExpression> target,
     bool overrideCommas,
     bool overrideFatArrows,
     bool overrideAngleBrackets,
@@ -1382,8 +1382,8 @@ RC<AstArrayAccess> Parser::ParseArrayAccess(
 {
     if (Token token = Expect(TK_OPEN_BRACKET, true))
     {
-        RC<AstExpression> expr;
-        // RC<AstExpression> rhs;
+        SharedPtr<AstExpression> expr;
+        // SharedPtr<AstExpression> rhs;
 
         if (Match(TK_CLOSE_BRACKET, true))
         {
@@ -1418,7 +1418,7 @@ RC<AstArrayAccess> Parser::ParseArrayAccess(
 
         if (expr != nullptr)
         {
-            return RC<AstArrayAccess>(new AstArrayAccess(
+            return SharedPtr<AstArrayAccess>(new AstArrayAccess(
                 target,
                 expr,
                 true, // allow operator overloading for []
@@ -1429,13 +1429,13 @@ RC<AstArrayAccess> Parser::ParseArrayAccess(
     return nullptr;
 }
 
-RC<AstHasExpression> Parser::ParseHasExpression(RC<AstExpression> target)
+SharedPtr<AstHasExpression> Parser::ParseHasExpression(SharedPtr<AstExpression> target)
 {
     if (Token token = ExpectKeyword(Keyword_has, true))
     {
         if (Token field = Expect(TK_STRING, true))
         {
-            return RC<AstHasExpression>(new AstHasExpression(
+            return SharedPtr<AstHasExpression>(new AstHasExpression(
                 target,
                 field.GetValue(),
                 target->GetLocation()));
@@ -1445,13 +1445,13 @@ RC<AstHasExpression> Parser::ParseHasExpression(RC<AstExpression> target)
     return nullptr;
 }
 
-RC<AstIsExpression> Parser::ParseIsExpression(RC<AstExpression> target)
+SharedPtr<AstIsExpression> Parser::ParseIsExpression(SharedPtr<AstExpression> target)
 {
     if (Token token = ExpectKeyword(Keyword_is, true))
     {
         if (auto typeExpression = ParseTypeSpecifier())
         {
-            return RC<AstIsExpression>(new AstIsExpression(
+            return SharedPtr<AstIsExpression>(new AstIsExpression(
                 target,
                 typeExpression,
                 target->GetLocation()));
@@ -1461,13 +1461,13 @@ RC<AstIsExpression> Parser::ParseIsExpression(RC<AstExpression> target)
     return nullptr;
 }
 
-RC<AstAsExpression> Parser::ParseAsExpression(RC<AstExpression> target)
+SharedPtr<AstAsExpression> Parser::ParseAsExpression(SharedPtr<AstExpression> target)
 {
     if (Token token = ExpectKeyword(Keyword_as, true))
     {
         if (auto typeExpression = ParseTypeSpecifier())
         {
-            return RC<AstAsExpression>(new AstAsExpression(
+            return SharedPtr<AstAsExpression>(new AstAsExpression(
                 target,
                 typeExpression,
                 target->GetLocation()));
@@ -1477,13 +1477,13 @@ RC<AstAsExpression> Parser::ParseAsExpression(RC<AstExpression> target)
     return nullptr;
 }
 
-RC<AstNewExpression> Parser::ParseNewExpression()
+SharedPtr<AstNewExpression> Parser::ParseNewExpression()
 {
     if (Token token = ExpectKeyword(Keyword_new, true))
     {
         if (auto proto = ParseTypeSpecifier())
         {
-            RC<AstArgumentList> argList;
+            SharedPtr<AstArgumentList> argList;
 
             if (Match(TK_OPEN_PARENTH, false))
             {
@@ -1491,7 +1491,7 @@ RC<AstNewExpression> Parser::ParseNewExpression()
                 argList = ParseArguments();
             }
 
-            return RC<AstNewExpression>(new AstNewExpression(
+            return SharedPtr<AstNewExpression>(new AstNewExpression(
                 proto,
                 argList,
                 true, // enable construct call
@@ -1502,40 +1502,40 @@ RC<AstNewExpression> Parser::ParseNewExpression()
     return nullptr;
 }
 
-RC<AstTrue> Parser::ParseTrue()
+SharedPtr<AstTrue> Parser::ParseTrue()
 {
     if (Token token = ExpectKeyword(Keyword_true, true))
     {
-        return RC<AstTrue>(new AstTrue(
+        return SharedPtr<AstTrue>(new AstTrue(
             token.GetLocation()));
     }
 
     return nullptr;
 }
 
-RC<AstFalse> Parser::ParseFalse()
+SharedPtr<AstFalse> Parser::ParseFalse()
 {
     if (Token token = ExpectKeyword(Keyword_false, true))
     {
-        return RC<AstFalse>(new AstFalse(
+        return SharedPtr<AstFalse>(new AstFalse(
             token.GetLocation()));
     }
 
     return nullptr;
 }
 
-RC<AstNil> Parser::ParseNil()
+SharedPtr<AstNil> Parser::ParseNil()
 {
     if (Token token = ExpectKeyword(Keyword_null, true))
     {
-        return RC<AstNil>(new AstNil(
+        return SharedPtr<AstNil>(new AstNil(
             token.GetLocation()));
     }
 
     return nullptr;
 }
 
-RC<AstBlock> Parser::ParseBlock(bool requireBraces, bool skipEnd, bool endOnCatch)
+SharedPtr<AstBlock> Parser::ParseBlock(bool requireBraces, bool skipEnd, bool endOnCatch)
 {
     SourceLocation location = CurrentLocation();
 
@@ -1549,7 +1549,7 @@ RC<AstBlock> Parser::ParseBlock(bool requireBraces, bool skipEnd, bool endOnCatc
         }
     }
 
-    RC<AstBlock> block(new AstBlock(location));
+    SharedPtr<AstBlock> block(new AstBlock(location));
 
     while (requireBraces ? !Match(TK_CLOSE_BRACE, false) : (!MatchKeyword(Keyword_end, false) && !MatchKeyword(Keyword_else, false) && !(endOnCatch && MatchKeyword(Keyword_catch, false))))
     {
@@ -1579,7 +1579,7 @@ RC<AstBlock> Parser::ParseBlock(bool requireBraces, bool skipEnd, bool endOnCatc
     return block;
 }
 
-RC<AstIfStatement> Parser::ParseIfStatement()
+SharedPtr<AstIfStatement> Parser::ParseIfStatement()
 {
     if (Token token = ExpectKeyword(Keyword_if, true))
     {
@@ -1590,7 +1590,7 @@ RC<AstIfStatement> Parser::ParseIfStatement()
             hasParentheses = true;
         }
 
-        RC<AstExpression> conditional;
+        SharedPtr<AstExpression> conditional;
         if (!(conditional = ParseExpression()))
         {
             return nullptr;
@@ -1614,13 +1614,13 @@ RC<AstIfStatement> Parser::ParseIfStatement()
 
         bool useBraces = !Match(TK_OPEN_BRACE, false).Empty();
 
-        RC<AstBlock> block;
+        SharedPtr<AstBlock> block;
         if (!(block = ParseBlock(/* requireBraces */ useBraces, /* skipEnd */ true)))
         {
             return nullptr;
         }
 
-        RC<AstBlock> elseBlock = nullptr;
+        SharedPtr<AstBlock> elseBlock = nullptr;
         bool isElseIfChain = false; // true if this if has an else-if, so 'end' is consumed by the inner if
         // parse else statement if the "else" keyword is found
         if (Token elseToken = MatchKeyword(Keyword_else, true))
@@ -1630,7 +1630,7 @@ RC<AstIfStatement> Parser::ParseIfStatement()
             {
                 isElseIfChain = true;
 
-                elseBlock = RC<AstBlock>(new AstBlock(
+                elseBlock = SharedPtr<AstBlock>(new AstBlock(
                     elseToken.GetLocation()));
 
                 if (auto elseIfBlock = ParseIfStatement())
@@ -1658,7 +1658,7 @@ RC<AstIfStatement> Parser::ParseIfStatement()
             }
         }
 
-        return RC<AstIfStatement>(new AstIfStatement(
+        return SharedPtr<AstIfStatement>(new AstIfStatement(
             conditional,
             block,
             elseBlock,
@@ -1668,7 +1668,7 @@ RC<AstIfStatement> Parser::ParseIfStatement()
     return nullptr;
 }
 
-RC<AstSwitchExpression> Parser::ParseSwitchExpression()
+SharedPtr<AstSwitchExpression> Parser::ParseSwitchExpression()
 {
     if (Token token = ExpectKeyword(Keyword_switch, true))
     {
@@ -1679,7 +1679,7 @@ RC<AstSwitchExpression> Parser::ParseSwitchExpression()
             hasParentheses = true;
         }
 
-        RC<AstExpression> expression;
+        SharedPtr<AstExpression> expression;
         if (!(expression = ParseExpression()))
         {
             return nullptr;
@@ -1724,7 +1724,7 @@ RC<AstSwitchExpression> Parser::ParseSwitchExpression()
                 {
                     Token caseTok = ExpectKeyword(Keyword_case, true);
 
-                    RC<AstExpression> caseValue;
+                    SharedPtr<AstExpression> caseValue;
                     if (!(caseValue = ParseExpression()))
                     {
                         return nullptr;
@@ -1741,7 +1741,7 @@ RC<AstSwitchExpression> Parser::ParseSwitchExpression()
                         return nullptr;
                     }
 
-                    RC<AstBlock> caseBlock(new AstBlock(caseTok.GetLocation()));
+                    SharedPtr<AstBlock> caseBlock(new AstBlock(caseTok.GetLocation()));
 
                     while (useBraces
                         ? !Match(TK_CLOSE_BRACE, false)
@@ -1790,7 +1790,7 @@ RC<AstSwitchExpression> Parser::ParseSwitchExpression()
                         return nullptr;
                     }
 
-                    RC<AstBlock> defaultBlock(new AstBlock(defaultTok.GetLocation()));
+                    SharedPtr<AstBlock> defaultBlock(new AstBlock(defaultTok.GetLocation()));
 
                     while (useBraces
                         ? !Match(TK_CLOSE_BRACE, false)
@@ -1847,7 +1847,7 @@ RC<AstSwitchExpression> Parser::ParseSwitchExpression()
             ExpectKeyword(Keyword_end, true);
         }
 
-        return RC<AstSwitchExpression>(new AstSwitchExpression(
+        return SharedPtr<AstSwitchExpression>(new AstSwitchExpression(
             expression,
             clauses,
             token.GetLocation()));
@@ -1856,7 +1856,7 @@ RC<AstSwitchExpression> Parser::ParseSwitchExpression()
     return nullptr;
 }
 
-RC<AstWhileLoop> Parser::ParseWhileLoop()
+SharedPtr<AstWhileLoop> Parser::ParseWhileLoop()
 {
     if (Token token = ExpectKeyword(Keyword_while, true))
     {
@@ -1865,7 +1865,7 @@ RC<AstWhileLoop> Parser::ParseWhileLoop()
             return nullptr;
         }
 
-        RC<AstExpression> conditional;
+        SharedPtr<AstExpression> conditional;
         if (!(conditional = ParseExpression()))
         {
             return nullptr;
@@ -1878,13 +1878,13 @@ RC<AstWhileLoop> Parser::ParseWhileLoop()
 
         const bool useBraces = !Match(TK_OPEN_BRACE, false).Empty();
 
-        RC<AstBlock> block;
+        SharedPtr<AstBlock> block;
         if (!(block = ParseBlock(/* requireBraces */ useBraces, /* skipEnd */ false)))
         {
             return nullptr;
         }
 
-        return RC<AstWhileLoop>(new AstWhileLoop(
+        return SharedPtr<AstWhileLoop>(new AstWhileLoop(
             conditional,
             block,
             token.GetLocation()));
@@ -1893,7 +1893,7 @@ RC<AstWhileLoop> Parser::ParseWhileLoop()
     return nullptr;
 }
 
-RC<AstStatement> Parser::ParseForLoop()
+SharedPtr<AstStatement> Parser::ParseForLoop()
 {
     if (Token token = ExpectKeyword(Keyword_for, true))
     {
@@ -1902,7 +1902,7 @@ RC<AstStatement> Parser::ParseForLoop()
             return nullptr;
         }
 
-        RC<AstStatement> declPart;
+        SharedPtr<AstStatement> declPart;
 
         if (!Match(TK_SEMICOLON))
         {
@@ -1922,7 +1922,7 @@ RC<AstStatement> Parser::ParseForLoop()
             return nullptr;
         }
 
-        RC<AstExpression> conditionPart;
+        SharedPtr<AstExpression> conditionPart;
 
         if (!Match(TK_SEMICOLON))
         {
@@ -1937,7 +1937,7 @@ RC<AstStatement> Parser::ParseForLoop()
             return nullptr;
         }
 
-        RC<AstExpression> incrementPart;
+        SharedPtr<AstExpression> incrementPart;
 
         if (!Match(TK_CLOSE_PARENTH))
         {
@@ -1956,13 +1956,13 @@ RC<AstStatement> Parser::ParseForLoop()
 
         const bool useBraces = !Match(TK_OPEN_BRACE, false).Empty();
 
-        RC<AstBlock> block;
+        SharedPtr<AstBlock> block;
         if (!(block = ParseBlock(/* requireBraces */ useBraces, /* skipEnd */ false)))
         {
             return nullptr;
         }
 
-        return RC<AstForLoop>(new AstForLoop(
+        return SharedPtr<AstForLoop>(new AstForLoop(
             declPart,
             conditionPart,
             incrementPart,
@@ -1973,8 +1973,8 @@ RC<AstStatement> Parser::ParseForLoop()
     return nullptr;
 }
 
-static RC<AstVariableDeclaration> MakeVarDeclFromExpression(
-    const RC<AstStatement>& stmt,
+static SharedPtr<AstVariableDeclaration> MakeVarDeclFromExpression(
+    const SharedPtr<AstStatement>& stmt,
     const SourceLocation& location)
 {
     if (stmt->IsA<AstVariableDeclaration>())
@@ -1984,7 +1984,7 @@ static RC<AstVariableDeclaration> MakeVarDeclFromExpression(
 
     if (auto* variable = DynamicCast<AstVariable>(stmt.Get()))
     {
-        return RC<AstVariableDeclaration>(new AstVariableDeclaration(
+        return SharedPtr<AstVariableDeclaration>(new AstVariableDeclaration(
             variable->GetName(),
             nullptr,
             nullptr,
@@ -1995,7 +1995,7 @@ static RC<AstVariableDeclaration> MakeVarDeclFromExpression(
     return nullptr;
 }
 
-RC<AstStatement> Parser::ParseForEachLoop(const Token& forToken, const RC<AstStatement>& declPart)
+SharedPtr<AstStatement> Parser::ParseForEachLoop(const Token& forToken, const SharedPtr<AstStatement>& declPart)
 {
     // We've already consumed: for ( <declPart>
     // Now we need to consume: in <iterable> ) <body>
@@ -2005,7 +2005,7 @@ RC<AstStatement> Parser::ParseForEachLoop(const Token& forToken, const RC<AstSta
         return nullptr;
     }
 
-    RC<AstVariableDeclaration> varDecl = MakeVarDeclFromExpression(declPart, forToken.GetLocation());
+    SharedPtr<AstVariableDeclaration> varDecl = MakeVarDeclFromExpression(declPart, forToken.GetLocation());
 
     if (varDecl == nullptr)
     {
@@ -2017,7 +2017,7 @@ RC<AstStatement> Parser::ParseForEachLoop(const Token& forToken, const RC<AstSta
         return nullptr;
     }
 
-    RC<AstExpression> iterable;
+    SharedPtr<AstExpression> iterable;
     if (!(iterable = ParseExpression()))
     {
         return nullptr;
@@ -2032,49 +2032,49 @@ RC<AstStatement> Parser::ParseForEachLoop(const Token& forToken, const RC<AstSta
 
     const bool useBraces = !Match(TK_OPEN_BRACE, false).Empty();
 
-    RC<AstBlock> block;
+    SharedPtr<AstBlock> block;
     if (!(block = ParseBlock(/* requireBraces */ useBraces, /* skipEnd */ false)))
     {
         return nullptr;
     }
 
-    return RC<AstForEachLoop>(new AstForEachLoop(
+    return SharedPtr<AstForEachLoop>(new AstForEachLoop(
         varDecl,
         iterable,
         block,
         forToken.GetLocation()));
 }
 
-RC<AstStatement> Parser::ParseBreakStatement()
+SharedPtr<AstStatement> Parser::ParseBreakStatement()
 {
     if (Token token = ExpectKeyword(Keyword_break, true))
     {
-        return RC<AstBreakStatement>(new AstBreakStatement(
+        return SharedPtr<AstBreakStatement>(new AstBreakStatement(
             token.GetLocation()));
     }
 
     return nullptr;
 }
 
-RC<AstStatement> Parser::ParseContinueStatement()
+SharedPtr<AstStatement> Parser::ParseContinueStatement()
 {
     if (Token token = ExpectKeyword(Keyword_continue, true))
     {
-        return RC<AstContinueStatement>(new AstContinueStatement(
+        return SharedPtr<AstContinueStatement>(new AstContinueStatement(
             token.GetLocation()));
     }
 
     return nullptr;
 }
 
-RC<AstTryCatch> Parser::ParseTryCatchStatement()
+SharedPtr<AstTryCatch> Parser::ParseTryCatchStatement()
 {
     if (Token token = ExpectKeyword(Keyword_try, true))
     {
         bool useBraces = !Match(TK_OPEN_BRACE, false).Empty();
 
-        RC<AstBlock> tryBlock = ParseBlock(/* requireBraces */ useBraces, /* skipEnd */ true, /* endOnCatch */ !useBraces);
-        RC<AstBlock> catchBlock;
+        SharedPtr<AstBlock> tryBlock = ParseBlock(/* requireBraces */ useBraces, /* skipEnd */ true, /* endOnCatch */ !useBraces);
+        SharedPtr<AstBlock> catchBlock;
 
         SkipStatementTerminators();
 
@@ -2098,7 +2098,7 @@ RC<AstTryCatch> Parser::ParseTryCatchStatement()
 
         if (tryBlock != nullptr && catchBlock != nullptr)
         {
-            return RC<AstTryCatch>(new AstTryCatch(
+            return SharedPtr<AstTryCatch>(new AstTryCatch(
                 tryBlock,
                 catchBlock,
                 token.GetLocation()));
@@ -2108,13 +2108,13 @@ RC<AstTryCatch> Parser::ParseTryCatchStatement()
     return nullptr;
 }
 
-RC<AstThrowExpression> Parser::ParseThrowExpression()
+SharedPtr<AstThrowExpression> Parser::ParseThrowExpression()
 {
     if (Token token = ExpectKeyword(Keyword_throw, true))
     {
         if (auto expr = ParseExpression())
         {
-            return RC<AstThrowExpression>(new AstThrowExpression(
+            return SharedPtr<AstThrowExpression>(new AstThrowExpression(
                 expr,
                 token.GetLocation()));
         }
@@ -2123,9 +2123,9 @@ RC<AstThrowExpression> Parser::ParseThrowExpression()
     return nullptr;
 }
 
-RC<AstExpression> Parser::ParseBinaryExpression(
+SharedPtr<AstExpression> Parser::ParseBinaryExpression(
     int exprPrec,
-    RC<AstExpression> left)
+    SharedPtr<AstExpression> left)
 {
     while (true)
     {
@@ -2142,7 +2142,7 @@ RC<AstExpression> Parser::ParseBinaryExpression(
         // read the operator token
         Token token = Expect(TK_OPERATOR, true);
 
-        if (RC<AstExpression> right = ParseTerm())
+        if (SharedPtr<AstExpression> right = ParseTerm())
         {
             // next part of expression's precedence
             const Operator* nextOp = nullptr;
@@ -2159,7 +2159,7 @@ RC<AstExpression> Parser::ParseBinaryExpression(
                 }
             }
 
-            left = RC<AstBinaryExpression>(new AstBinaryExpression(
+            left = SharedPtr<AstBinaryExpression>(new AstBinaryExpression(
                 left,
                 right,
                 op,
@@ -2170,7 +2170,7 @@ RC<AstExpression> Parser::ParseBinaryExpression(
     return nullptr;
 }
 
-RC<AstExpression> Parser::ParseUnaryExpressionPrefix()
+SharedPtr<AstExpression> Parser::ParseUnaryExpressionPrefix()
 {
     // read the operator token
     if (Token token = Expect(TK_OPERATOR, true))
@@ -2180,7 +2180,7 @@ RC<AstExpression> Parser::ParseUnaryExpressionPrefix()
         {
             if (auto term = ParseTerm())
             {
-                return RC<AstUnaryExpression>(new AstUnaryExpression(
+                return SharedPtr<AstUnaryExpression>(new AstUnaryExpression(
                     term,
                     op,
                     false, // postfix version
@@ -2203,7 +2203,7 @@ RC<AstExpression> Parser::ParseUnaryExpressionPrefix()
     return nullptr;
 }
 
-RC<AstExpression> Parser::ParseUnaryExpressionPostfix(const RC<AstExpression>& expr)
+SharedPtr<AstExpression> Parser::ParseUnaryExpressionPostfix(const SharedPtr<AstExpression>& expr)
 {
     // read the operator token
     if (Token token = Expect(TK_OPERATOR, true))
@@ -2211,7 +2211,7 @@ RC<AstExpression> Parser::ParseUnaryExpressionPostfix(const RC<AstExpression>& e
         const Operator* op = nullptr;
         if (Operator::IsUnaryOperator(token.GetValue(), /*OperatorType::POSTFIX,*/ op))
         {
-            return RC<AstUnaryExpression>(new AstUnaryExpression(
+            return SharedPtr<AstUnaryExpression>(new AstUnaryExpression(
                 expr,
                 op,
                 true, // postfix version
@@ -2231,7 +2231,7 @@ RC<AstExpression> Parser::ParseUnaryExpressionPostfix(const RC<AstExpression>& e
     return nullptr;
 }
 
-RC<AstExpression> Parser::ParseTernaryExpression(const RC<AstExpression>& conditional)
+SharedPtr<AstExpression> Parser::ParseTernaryExpression(const SharedPtr<AstExpression>& conditional)
 {
     if (Token token = Expect(TK_QUESTION_MARK, true))
     {
@@ -2256,7 +2256,7 @@ RC<AstExpression> Parser::ParseTernaryExpression(const RC<AstExpression>& condit
             return nullptr;
         }
 
-        return RC<AstTernaryExpression>(new AstTernaryExpression(
+        return SharedPtr<AstTernaryExpression>(new AstTernaryExpression(
             conditional,
             trueExpr,
             falseExpr,
@@ -2266,7 +2266,7 @@ RC<AstExpression> Parser::ParseTernaryExpression(const RC<AstExpression>& condit
     return nullptr;
 }
 
-RC<AstExpression> Parser::ParseExpression(
+SharedPtr<AstExpression> Parser::ParseExpression(
     bool overrideCommas,
     bool overrideFatArrows,
     bool overrideAngleBrackets,
@@ -2306,7 +2306,7 @@ RC<AstExpression> Parser::ParseExpression(
     return nullptr;
 }
 
-RC<AstTypeSpecifier> Parser::ParseTypeSpecifier()
+SharedPtr<AstTypeSpecifier> Parser::ParseTypeSpecifier()
 {
     const SourceLocation location = CurrentLocation();
 
@@ -2321,12 +2321,12 @@ RC<AstTypeSpecifier> Parser::ParseTypeSpecifier()
         // if (Token token = Match(TK_OPEN_BRACKET, true))
         // {
         //     // array braces at the end of a type are syntactical sugar for `Array<T>`
-        //     term = RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
-        //         RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+        //     term = SharedPtr<AstTemplateInstantiation>(new AstTemplateInstantiation(
+        //         SharedPtr<AstPrototypeSpecification>(new AstPrototypeSpecification(
         //             term,
         //             term->GetLocation())),
-        //         { RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
-        //             RC<AstUnsignedInteger>(new AstUnsignedInteger(
+        //         { SharedPtr<AstPrototypeSpecification>(new AstPrototypeSpecification(
+        //             SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(
         //                 0,
         //                 token.GetLocation())),
         //             token.GetLocation())) },
@@ -2341,19 +2341,19 @@ RC<AstTypeSpecifier> Parser::ParseTypeSpecifier()
         // check for template instantiation
         if (Token lt = MatchOperator("<", false))
         {
-            if (RC<AstTemplateInstantiation> templateInstantiation = ParseTemplateInstantiation(term))
+            if (SharedPtr<AstTemplateInstantiation> templateInstantiation = ParseTemplateInstantiation(term))
             {
                 return templateInstantiation;
             }
         }
 
-        return RC<AstTypeSpecifier>(new AstTypeSpecifier(term, location));
+        return SharedPtr<AstTypeSpecifier>(new AstTypeSpecifier(term, location));
     }
 
     return nullptr;
 }
 
-RC<AstExpression> Parser::ParseAssignment()
+SharedPtr<AstExpression> Parser::ParseAssignment()
 {
     // read assignment expression
     const SourceLocation exprLocation = CurrentLocation();
@@ -2371,7 +2371,7 @@ RC<AstExpression> Parser::ParseAssignment()
     return nullptr;
 }
 
-RC<AstVariableDeclaration> Parser::ParseVariableDeclaration(
+SharedPtr<AstVariableDeclaration> Parser::ParseVariableDeclaration(
     bool allowKeywordNames,
     bool allowQuotedNames,
     EnumFlags<IdentifierFlags> flags)
@@ -2442,8 +2442,8 @@ RC<AstVariableDeclaration> Parser::ParseVariableDeclaration(
 
     if (!identifier.Empty())
     {
-        RC<AstTypeSpecifier> typeSpec;
-        RC<AstExpression> assignment;
+        SharedPtr<AstTypeSpecifier> typeSpec;
+        SharedPtr<AstExpression> assignment;
 
         // if extern, we can't assign it
         bool requiresAssignmentOperator = !isExtern;
@@ -2471,7 +2471,7 @@ RC<AstVariableDeclaration> Parser::ParseVariableDeclaration(
             assignment = ParseAssignment();
         }
 
-        return RC<AstVariableDeclaration>(new AstVariableDeclaration(
+        return SharedPtr<AstVariableDeclaration>(new AstVariableDeclaration(
             identifier.GetValue(),
             typeSpec,
             assignment,
@@ -2482,7 +2482,7 @@ RC<AstVariableDeclaration> Parser::ParseVariableDeclaration(
     return nullptr;
 }
 
-RC<AstStatement> Parser::ParseFunctionDefinition(bool requireKeyword)
+SharedPtr<AstStatement> Parser::ParseFunctionDefinition(bool requireKeyword)
 {
     const SourceLocation location = CurrentLocation();
 
@@ -2509,8 +2509,8 @@ RC<AstStatement> Parser::ParseFunctionDefinition(bool requireKeyword)
 
     if (Token identifier = Expect(TK_IDENT, true))
     {
-        RC<AstExpression> assignment;
-        Array<RC<AstParameter>> params;
+        SharedPtr<AstExpression> assignment;
+        Array<SharedPtr<AstParameter>> params;
 
         if (Match(TK_OPEN_PARENTH, true))
         {
@@ -2528,7 +2528,7 @@ RC<AstStatement> Parser::ParseFunctionDefinition(bool requireKeyword)
             return nullptr;
         }
 
-        return RC<AstVariableDeclaration>(new AstVariableDeclaration(
+        return SharedPtr<AstVariableDeclaration>(new AstVariableDeclaration(
             identifier.GetValue(),
             nullptr, // type specifier
             assignment,
@@ -2539,10 +2539,10 @@ RC<AstStatement> Parser::ParseFunctionDefinition(bool requireKeyword)
     return nullptr;
 }
 
-RC<AstFunctionExpression> Parser::ParseFunctionExpression(
+SharedPtr<AstFunctionExpression> Parser::ParseFunctionExpression(
     bool requireKeyword,
     bool parseBody,
-    Array<RC<AstParameter>> params)
+    Array<SharedPtr<AstParameter>> params)
 {
     const Token token = requireKeyword
         ? ExpectKeyword(Keyword_func, true)
@@ -2564,7 +2564,7 @@ RC<AstFunctionExpression> Parser::ParseFunctionExpression(
             }
         }
 
-        RC<AstTypeSpecifier> typeSpec;
+        SharedPtr<AstTypeSpecifier> typeSpec;
 
         if (Match(TK_RIGHT_ARROW, true))
         {
@@ -2574,18 +2574,18 @@ RC<AstFunctionExpression> Parser::ParseFunctionExpression(
 
         if (!parseBody)
         {
-            return RC<AstFunctionExpression>(new AstFunctionExpression(
+            return SharedPtr<AstFunctionExpression>(new AstFunctionExpression(
                 params,
                 typeSpec,
                 nullptr, // no body
                 location));
         }
 
-        RC<AstBlock> block;
+        SharedPtr<AstBlock> block;
 
         if (Match(TK_FAT_ARROW, true))
         {
-            RC<AstReturnStatement> returnStatement(new AstReturnStatement(
+            SharedPtr<AstReturnStatement> returnStatement(new AstReturnStatement(
                 ParseExpression(),
                 location));
 
@@ -2604,7 +2604,7 @@ RC<AstFunctionExpression> Parser::ParseFunctionExpression(
 
         if (block != nullptr)
         {
-            return RC<AstFunctionExpression>(new AstFunctionExpression(
+            return SharedPtr<AstFunctionExpression>(new AstFunctionExpression(
                 params,
                 typeSpec,
                 block,
@@ -2615,11 +2615,11 @@ RC<AstFunctionExpression> Parser::ParseFunctionExpression(
     return nullptr;
 }
 
-RC<AstArrayExpression> Parser::ParseArrayExpression()
+SharedPtr<AstArrayExpression> Parser::ParseArrayExpression()
 {
     if (Token token = Expect(TK_OPEN_BRACKET, true))
     {
-        Array<RC<AstExpression>> members;
+        Array<SharedPtr<AstExpression>> members;
 
         do
         {
@@ -2637,7 +2637,7 @@ RC<AstArrayExpression> Parser::ParseArrayExpression()
 
         Expect(TK_CLOSE_BRACKET, true);
 
-        return RC<AstArrayExpression>(new AstArrayExpression(
+        return SharedPtr<AstArrayExpression>(new AstArrayExpression(
             members,
             token.GetLocation()));
     }
@@ -2645,12 +2645,12 @@ RC<AstArrayExpression> Parser::ParseArrayExpression()
     return nullptr;
 }
 
-RC<AstHashMap> Parser::ParseHashMap()
+SharedPtr<AstHashMap> Parser::ParseHashMap()
 {
     if (Token token = Expect(TK_OPEN_BRACE, true))
     {
-        Array<RC<AstExpression>> keys;
-        Array<RC<AstExpression>> values;
+        Array<SharedPtr<AstExpression>> keys;
+        Array<SharedPtr<AstExpression>> values;
 
         do
         {
@@ -2671,7 +2671,7 @@ RC<AstHashMap> Parser::ParseHashMap()
                 m_tokenStream->Next(); // eat the token
                 m_tokenStream->Next(); // eat the colon
 
-                keys.PushBack(RC<AstString>(new AstString(
+                keys.PushBack(SharedPtr<AstString>(new AstString(
                     identToken.GetValue(),
                     identToken.GetLocation())));
             }
@@ -2714,7 +2714,7 @@ RC<AstHashMap> Parser::ParseHashMap()
 
         Expect(TK_CLOSE_BRACE, true);
 
-        return RC<AstHashMap>(new AstHashMap(
+        return SharedPtr<AstHashMap>(new AstHashMap(
             keys,
             values,
             token.GetLocation()));
@@ -2723,7 +2723,7 @@ RC<AstHashMap> Parser::ParseHashMap()
     return nullptr;
 }
 
-RC<AstTypeOfExpression> Parser::ParseTypeOfExpression()
+SharedPtr<AstTypeOfExpression> Parser::ParseTypeOfExpression()
 {
     const SourceLocation location = CurrentLocation();
 
@@ -2732,7 +2732,7 @@ RC<AstTypeOfExpression> Parser::ParseTypeOfExpression()
         SourceLocation exprLocation = CurrentLocation();
         if (auto term = ParseTerm())
         {
-            return RC<AstTypeOfExpression>(new AstTypeOfExpression(
+            return SharedPtr<AstTypeOfExpression>(new AstTypeOfExpression(
                 term,
                 location));
         }
@@ -2748,9 +2748,9 @@ RC<AstTypeOfExpression> Parser::ParseTypeOfExpression()
     return nullptr;
 }
 
-Array<RC<AstParameter>> Parser::ParseFunctionParameters()
+Array<SharedPtr<AstParameter>> Parser::ParseFunctionParameters()
 {
-    Array<RC<AstParameter>> parameters;
+    Array<SharedPtr<AstParameter>> parameters;
 
     bool foundVariadic = false;
     bool keepReading = true;
@@ -2779,8 +2779,8 @@ Array<RC<AstParameter>> Parser::ParseFunctionParameters()
 
         if ((token = ExpectIdentifier(true, true)))
         {
-            RC<AstTypeSpecifier> typeSpec;
-            RC<AstExpression> defaultParam;
+            SharedPtr<AstTypeSpecifier> typeSpec;
+            SharedPtr<AstExpression> defaultParam;
 
             // check if parameter type has been declared
             if (Match(TK_COLON, true))
@@ -2812,7 +2812,7 @@ Array<RC<AstParameter>> Parser::ParseFunctionParameters()
                 defaultParam = ParseExpression(true);
             }
 
-            parameters.PushBack(RC<AstParameter>(new AstParameter(
+            parameters.PushBack(SharedPtr<AstParameter>(new AstParameter(
                 token.GetValue(),
                 typeSpec,
                 defaultParam,
@@ -2834,7 +2834,7 @@ Array<RC<AstParameter>> Parser::ParseFunctionParameters()
     return parameters;
 }
 
-RC<AstClass> Parser::ParseClassDefinition()
+SharedPtr<AstClass> Parser::ParseClassDefinition()
 {
     EnumFlags<AstClassFlags> classFlags = CLASS_FLAG_NONE;
 
@@ -2879,7 +2879,7 @@ RC<AstClass> Parser::ParseClassDefinition()
     return nullptr;
 }
 
-RC<AstClass> Parser::ParseClass(
+SharedPtr<AstClass> Parser::ParseClass(
     bool requireKeyword,
     bool allowIdentifier,
     EnumFlags<AstClassFlags> classFlags,
@@ -2907,7 +2907,7 @@ RC<AstClass> Parser::ParseClass(
         }
     }
 
-    RC<AstTypeSpecifier> baseSpec;
+    SharedPtr<AstTypeSpecifier> baseSpec;
 
     if (Match(TK_COLON, true))
     {
@@ -2915,11 +2915,11 @@ RC<AstClass> Parser::ParseClass(
     }
 
     // for hoisting, so functions can use later declared members
-    Array<RC<AstVariableDeclaration>> memberFunctions;
-    Array<RC<AstVariableDeclaration>> memberVariables;
+    Array<SharedPtr<AstVariableDeclaration>> memberFunctions;
+    Array<SharedPtr<AstVariableDeclaration>> memberVariables;
 
-    Array<RC<AstVariableDeclaration>> staticFunctions;
-    Array<RC<AstVariableDeclaration>> staticVariables;
+    Array<SharedPtr<AstVariableDeclaration>> staticFunctions;
+    Array<SharedPtr<AstVariableDeclaration>> staticVariables;
 
     String currentAccessSpecifier = Keyword::ToString(Keyword_private).Get();
 
@@ -3006,7 +3006,7 @@ RC<AstClass> Parser::ParseClass(
 
         // read generic params after identifier
 
-        RC<AstExpression> assignment;
+        SharedPtr<AstExpression> assignment;
 
         if (currentAccessSpecifier == Keyword::ToString(Keyword_public).Get())
         {
@@ -3023,7 +3023,7 @@ RC<AstClass> Parser::ParseClass(
 
         if (!isVariable && (isFunction || Match(TK_OPEN_PARENTH)))
         { // it is a member function
-            Array<RC<AstParameter>> params;
+            Array<SharedPtr<AstParameter>> params;
 
 #if HYP_SCRIPT_AUTO_SELF_INSERTION
             params.Reserve(1); // reserve at least 1 for 'self' parameter
@@ -3033,11 +3033,11 @@ RC<AstClass> Parser::ParseClass(
                 SymbolType* selfTypePlaceholder = SymbolType::Placeholder("SelfType");
                 selfTypePlaceholder->Register(m_compilationUnit);
 
-                RC<AstTypeSpecifier> selfTypeSpec(new AstTypeSpecifier(
-                    RC<AstTypeRef>(new AstTypeRef(selfTypePlaceholder, location)),
+                SharedPtr<AstTypeSpecifier> selfTypeSpec(new AstTypeSpecifier(
+                    SharedPtr<AstTypeRef>(new AstTypeRef(selfTypePlaceholder, location)),
                     location));
 
-                params.PushBack(RC<AstParameter>(new AstParameter(
+                params.PushBack(SharedPtr<AstParameter>(new AstParameter(
                     "self",
                     selfTypeSpec,
                     nullptr,
@@ -3063,7 +3063,7 @@ RC<AstClass> Parser::ParseClass(
                 return nullptr;
             }
 
-            RC<AstVariableDeclaration> member(new AstVariableDeclaration(
+            SharedPtr<AstVariableDeclaration> member(new AstVariableDeclaration(
                 identifier.GetValue(),
                 nullptr, // type specifier
                 assignment,
@@ -3088,7 +3088,7 @@ RC<AstClass> Parser::ParseClass(
             // rollback
             m_tokenStream->SetPosition(positionBefore);
 
-            if (RC<AstVariableDeclaration> member = ParseVariableDeclaration(
+            if (SharedPtr<AstVariableDeclaration> member = ParseVariableDeclaration(
                     true, // allow keyword names
                     true, // allow quoted names
                     flags))
@@ -3124,12 +3124,12 @@ RC<AstClass> Parser::ParseClass(
         SkipStatementTerminators();
     }
 
-    Array<RC<AstVariableDeclaration>> allFunctions;
+    Array<SharedPtr<AstVariableDeclaration>> allFunctions;
     allFunctions.Reserve(staticFunctions.Size() + memberFunctions.Size());
     allFunctions.Concat(staticFunctions);
     allFunctions.Concat(memberFunctions);
 
-    return RC<AstClass>(new AstClass(
+    return SharedPtr<AstClass>(new AstClass(
         typeName,
         baseSpec,
         memberVariables,
@@ -3139,7 +3139,7 @@ RC<AstClass> Parser::ParseClass(
         location));
 }
 
-RC<AstStatement> Parser::ParseEnumDefinition()
+SharedPtr<AstStatement> Parser::ParseEnumDefinition()
 {
     String enumName;
     EnumFlags<AstClassFlags> classFlags = CLASS_FLAG_IS_ENUM;
@@ -3160,7 +3160,7 @@ RC<AstStatement> Parser::ParseEnumDefinition()
         enumName = ident.GetValue();
     }
 
-    RC<AstTypeSpecifier> underlyingType;
+    SharedPtr<AstTypeSpecifier> underlyingType;
 
     if (Match(TK_COLON, true))
     {
@@ -3170,7 +3170,7 @@ RC<AstStatement> Parser::ParseEnumDefinition()
 
     SkipStatementTerminators();
 
-    Array<RC<AstVariableDeclaration>> entries;
+    Array<SharedPtr<AstVariableDeclaration>> entries;
 
     const bool useBraces = !Match(TK_OPEN_BRACE, true).Empty();
 
@@ -3181,18 +3181,18 @@ RC<AstStatement> Parser::ParseEnumDefinition()
             SymbolType* selfTypePlaceholder = SymbolType::Placeholder("SelfType");
             selfTypePlaceholder->Register(m_compilationUnit);
 
-            RC<AstTypeSpecifier> typeSpec(new AstTypeSpecifier(
-                RC<AstTypeRef>(new AstTypeRef(selfTypePlaceholder, ident.GetLocation())),
+            SharedPtr<AstTypeSpecifier> typeSpec(new AstTypeSpecifier(
+                SharedPtr<AstTypeRef>(new AstTypeRef(selfTypePlaceholder, ident.GetLocation())),
                 ident.GetLocation()));
 
-            RC<AstExpression> assignment;
+            SharedPtr<AstExpression> assignment;
 
             if (const Token op = MatchOperator("=", true))
             {
                 assignment = ParseExpression(/* overrideCommas */ true);
             }
 
-            RC<AstVariableDeclaration> entry(new AstVariableDeclaration(
+            SharedPtr<AstVariableDeclaration> entry(new AstVariableDeclaration(
                 ident.GetValue(),
                 typeSpec,
                 assignment,
@@ -3218,7 +3218,7 @@ RC<AstStatement> Parser::ParseEnumDefinition()
         }
     }
 
-    return RC<AstClass>(new AstClass(
+    return SharedPtr<AstClass>(new AstClass(
         enumName,
         underlyingType,
         {}, // no member variables
@@ -3228,7 +3228,7 @@ RC<AstStatement> Parser::ParseEnumDefinition()
         location));
 }
 
-RC<AstImport> Parser::ParseImport()
+SharedPtr<AstImport> Parser::ParseImport()
 {
     if (ExpectKeyword(Keyword_import))
     {
@@ -3245,13 +3245,13 @@ RC<AstImport> Parser::ParseImport()
     return nullptr;
 }
 
-RC<AstExportStatement> Parser::ParseExportStatement()
+SharedPtr<AstExportStatement> Parser::ParseExportStatement()
 {
     if (Token exportToken = ExpectKeyword(Keyword_export, true))
     {
         if (auto stmt = ParseStatement())
         {
-            return RC<AstExportStatement>(new AstExportStatement(
+            return SharedPtr<AstExportStatement>(new AstExportStatement(
                 stmt,
                 exportToken.GetLocation()));
         }
@@ -3260,13 +3260,13 @@ RC<AstExportStatement> Parser::ParseExportStatement()
     return nullptr;
 }
 
-RC<AstFileImport> Parser::ParseFileImport()
+SharedPtr<AstFileImport> Parser::ParseFileImport()
 {
     if (Token token = ExpectKeyword(Keyword_import, true))
     {
         if (Token file = Expect(TK_STRING, true))
         {
-            RC<AstFileImport> result(new AstFileImport(
+            SharedPtr<AstFileImport> result(new AstFileImport(
                 file.GetValue(),
                 token.GetLocation()));
 
@@ -3277,13 +3277,13 @@ RC<AstFileImport> Parser::ParseFileImport()
     return nullptr;
 }
 
-RC<AstModuleImportPart> Parser::ParseModuleImportPart(bool allowBraces)
+SharedPtr<AstModuleImportPart> Parser::ParseModuleImportPart(bool allowBraces)
 {
     static const String s_wildcardImportToken = "*";
 
     const SourceLocation location = CurrentLocation();
 
-    Array<RC<AstModuleImportPart>> parts;
+    Array<SharedPtr<AstModuleImportPart>> parts;
 
     Token ident = Match(TK_IDENT, true);
 
@@ -3314,7 +3314,7 @@ RC<AstModuleImportPart> Parser::ParseModuleImportPart(bool allowBraces)
             {
                 while (!Match(TK_CLOSE_BRACE, false))
                 {
-                    RC<AstModuleImportPart> part = ParseModuleImportPart(false);
+                    SharedPtr<AstModuleImportPart> part = ParseModuleImportPart(false);
 
                     if (part == nullptr)
                     {
@@ -3334,7 +3334,7 @@ RC<AstModuleImportPart> Parser::ParseModuleImportPart(bool allowBraces)
             else
             {
                 // match next
-                RC<AstModuleImportPart> part = ParseModuleImportPart(true);
+                SharedPtr<AstModuleImportPart> part = ParseModuleImportPart(true);
 
                 if (part == nullptr)
                 {
@@ -3345,7 +3345,7 @@ RC<AstModuleImportPart> Parser::ParseModuleImportPart(bool allowBraces)
             }
         }
 
-        return RC<AstModuleImportPart>(new AstModuleImportPart(
+        return SharedPtr<AstModuleImportPart>(new AstModuleImportPart(
             ident.GetValue(),
             parts,
             location));
@@ -3354,17 +3354,17 @@ RC<AstModuleImportPart> Parser::ParseModuleImportPart(bool allowBraces)
     return nullptr;
 }
 
-RC<AstModuleImport> Parser::ParseModuleImport()
+SharedPtr<AstModuleImport> Parser::ParseModuleImport()
 {
     if (Token token = ExpectKeyword(Keyword_import, true))
     {
-        Array<RC<AstModuleImportPart>> parts;
+        Array<SharedPtr<AstModuleImportPart>> parts;
 
         if (auto part = ParseModuleImportPart(false))
         {
             parts.PushBack(part);
 
-            return RC<AstModuleImport>(new AstModuleImport(
+            return SharedPtr<AstModuleImport>(new AstModuleImport(
                 parts,
                 token.GetLocation()));
         }
@@ -3373,20 +3373,20 @@ RC<AstModuleImport> Parser::ParseModuleImport()
     return nullptr;
 }
 
-RC<AstReturnStatement> Parser::ParseReturnStatement()
+SharedPtr<AstReturnStatement> Parser::ParseReturnStatement()
 {
     const SourceLocation location = CurrentLocation();
 
     if (Token token = ExpectKeyword(Keyword_return, true))
     {
-        RC<AstExpression> expr;
+        SharedPtr<AstExpression> expr;
 
         if (!Match(TK_SEMICOLON, true))
         {
             expr = ParseExpression();
         }
 
-        return RC<AstReturnStatement>(new AstReturnStatement(
+        return SharedPtr<AstReturnStatement>(new AstReturnStatement(
             expr,
             location));
     }

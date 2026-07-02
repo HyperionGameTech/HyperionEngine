@@ -17,7 +17,7 @@
 namespace Hyperion {
 
 AstTypeOfExpression::AstTypeOfExpression(
-    const RC<AstExpression>& expr,
+    const SharedPtr<AstExpression>& expr,
     const SourceLocation& location)
     : AstTypeSpecifier(expr, location),
 #if HYP_SCRIPT_TYPEOF_RETURN_OBJECT
@@ -101,7 +101,7 @@ void AstTypeOfExpression::Optimize(AstVisitor* visitor, Module* mod)
 #endif
 }
 
-RC<AstStatement> AstTypeOfExpression::Clone() const
+SharedPtr<AstStatement> AstTypeOfExpression::Clone() const
 {
     return CloneImpl();
 }

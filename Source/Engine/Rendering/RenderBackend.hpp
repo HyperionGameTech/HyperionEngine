@@ -19,7 +19,7 @@
 #include <Core/Functional/Delegate.hpp>
 
 #include <Core/Memory/ByteBuffer.hpp>
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 namespace Hyperion {
 

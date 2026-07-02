@@ -66,7 +66,7 @@ public:
     virtual void Start() = 0;
     virtual void Stop() = 0;
 
-    virtual RC<RTCClient> CreateClient(String id) = 0;
+    virtual SharedPtr<RTCClient> CreateClient(String id) = 0;
 
     void EnqueueClientRemoval(String clientId);
 
@@ -118,7 +118,7 @@ public:
     virtual void Start() override;
     virtual void Stop() override;
 
-    virtual RC<RTCClient> CreateClient(String id) override;
+    virtual SharedPtr<RTCClient> CreateClient(String id) override;
 
     virtual void SendToSignallingServer(ByteBuffer bytes) override;
     virtual void SendToClient(String clientId, const ByteBuffer& bytes) override;
@@ -139,7 +139,7 @@ public:
     virtual void Start() override;
     virtual void Stop() override;
 
-    virtual RC<RTCClient> CreateClient(String id) override;
+    virtual SharedPtr<RTCClient> CreateClient(String id) override;
 
     virtual void SendToSignallingServer(ByteBuffer bytes) override;
     virtual void SendToClient(String clientId, const ByteBuffer& bytes) override;

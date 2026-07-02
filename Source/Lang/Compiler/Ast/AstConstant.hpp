@@ -32,7 +32,7 @@ public:
         return m_constantValue.bitSize;
     }
 
-    virtual RC<AstStatement> Clone() const override = 0;
+    virtual SharedPtr<AstStatement> Clone() const override = 0;
 
     virtual Tribool IsTrue() const override = 0;
     virtual bool MayHaveSideEffects() const override;

@@ -10,17 +10,17 @@
 
 namespace Hyperion::net {
 
-static RC<NetRequestThread> g_globalNetRequestThread;
+static SharedPtr<NetRequestThread> g_globalNetRequestThread;
 static Mutex g_globalNetRequestThreadMutex;
 
-CORE_API void SetGlobalNetRequestThread(const RC<NetRequestThread>& netRequestThread)
+CORE_API void SetGlobalNetRequestThread(const SharedPtr<NetRequestThread>& netRequestThread)
 {
     Mutex::Guard guard(g_globalNetRequestThreadMutex);
 
     g_globalNetRequestThread = netRequestThread;
 }
 
-CORE_API const RC<NetRequestThread>& GetGlobalNetRequestThread()
+CORE_API const SharedPtr<NetRequestThread>& GetGlobalNetRequestThread()
 {
     Mutex::Guard guard(g_globalNetRequestThreadMutex);
 

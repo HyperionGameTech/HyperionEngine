@@ -267,7 +267,7 @@ void AssetManager::RegisterDefaultLoaders()
     // Register<PLYModelLoader, PLYModel>("ply");
     Register<JSONLoader, Value>("json");
     // freetype font loader
-    Register<FontFaceLoader, RC<FontFace>>(
+    Register<FontFaceLoader, SharedPtr<FontFace>>(
         "ttf", "otf", "ttc", "dfont");
     Register<FontAtlasLoader, FontAtlas>();
     Register<UILoader, UIObject>();

@@ -74,7 +74,7 @@ extern "C"
 
         ScriptObjectResource* scriptObjectResource = new ScriptObjectResource(
             ptr,
-            pClass->RefCountedPtrFromThis(),
+            pClass->SharedThis(),
             *objectReference,
             ObjectFlags::CREATED_FROM_MANAGED);
 

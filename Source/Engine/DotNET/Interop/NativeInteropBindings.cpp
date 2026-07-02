@@ -49,7 +49,7 @@ static ManagedAttributeSet InternManagedAttributeHolder(ManagedAttributeHolder* 
         Assert(managedAttributeHolderPtr->managedAttributesPtr[i].classPtr != nullptr);
 
         attributes.PushBack(MakeUnique<ManagedObject>(
-            managedAttributeHolderPtr->managedAttributesPtr[i].classPtr->RefCountedPtrFromThis(),
+            managedAttributeHolderPtr->managedAttributesPtr[i].classPtr->SharedThis(),
             managedAttributeHolderPtr->managedAttributesPtr[i].objectReference,
             ObjectFlags::CREATED_FROM_MANAGED));
     }
@@ -168,7 +168,7 @@ extern "C"
 
         *pOutAssembly = nullptr;
 
-        RC<Assembly> assembly = MakeRefCountedPtr<Assembly>(guid);
+        SharedPtr<Assembly> assembly = MakeShared<Assembly>(guid);
         *pOutAssembly = assembly.Get();
         memory::detail::IncStrong(assembly.GetBlock_Internal()); // keep alive after this function returns
 
@@ -179,8 +179,8 @@ extern "C"
     {
         Assert(pAssembly != nullptr);
 
-        Weak w = pAssembly->WeakRefCountedPtrFromThis();
-        memory::detail::ReleaseStrong(w.GetBlock_Internal()); // release the strong reference created by NewAssembly
+        WeakPtr<Assembly> assemblyWeak = pAssembly->WeakThis();
+        memory::detail::ReleaseStrong(assemblyWeak.GetBlock_Internal()); // release the strong reference created by NewAssembly
     }
 
     HYP_EXPORT void ManagedClass_Create(ManagedGuid* assemblyGuid, Assembly* pAssembly, const Class* cls, int32 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, ManagedClass* parentClass, uint32 flags, ManagedClassDesc* outDesc)
@@ -191,7 +191,7 @@ extern "C"
 
         HYP_LOG(DotNET, Verbose, "Registering .NET managed class {} for Assembly {}", typeName, pAssembly->GetGuid());
 
-        RC<ManagedClass> classObject = pAssembly->NewClass(cls, typeHash, typeName, typeSize, typeId, parentClass, flags);
+        SharedPtr<ManagedClass> classObject = pAssembly->NewClass(cls, typeHash, typeName, typeSize, typeId, parentClass, flags);
 
         if (cls != nullptr && cls->IsDynamic())
         {
@@ -225,7 +225,7 @@ extern "C"
 
         Assert(outClass != nullptr);
 
-        RC<ManagedClass> classObject = pAssembly->FindClassByTypeHash(typeHash);
+        SharedPtr<ManagedClass> classObject = pAssembly->FindClassByTypeHash(typeHash);
 
         if (!classObject)
         {

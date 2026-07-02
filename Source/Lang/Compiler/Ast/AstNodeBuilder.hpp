@@ -37,7 +37,7 @@ public:
     ModuleBuilder Module(const String& name);
     FunctionBuilder Function(const String& name);
 
-    RC<AstModuleAccess> Build(const RC<AstExpression>& expr);
+    SharedPtr<AstModuleAccess> Build(const SharedPtr<AstExpression>& expr);
 
 private:
     String m_name;
@@ -54,7 +54,7 @@ public:
         const String& name,
         ModuleBuilder* parent);
 
-    RC<AstExpression> Call(const Array<RC<AstArgument>>& args);
+    SharedPtr<AstExpression> Call(const Array<SharedPtr<AstArgument>>& args);
 
     const String& GetName() const
     {

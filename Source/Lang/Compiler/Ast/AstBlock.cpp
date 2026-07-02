@@ -15,7 +15,7 @@
 namespace Hyperion {
 
 AstBlock::AstBlock(
-    const Array<RC<AstStatement>>& children,
+    const Array<SharedPtr<AstStatement>>& children,
     const SourceLocation& location)
     : AstStatement(location),
       m_children(children),
@@ -42,7 +42,7 @@ void AstBlock::Visit(AstVisitor* visitor, Module* mod)
     m_scope = &mod->scopeTree.Top();
 
     // visit all children in the block
-    for (RC<AstStatement>& child : m_children)
+    for (SharedPtr<AstStatement>& child : m_children)
     {
         Assert(child != nullptr);
 
@@ -76,7 +76,7 @@ UniquePtr<Buildable> AstBlock::Build(AstVisitor* visitor, Module* mod)
 
     const int stackSizeBefore = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
 
-    for (const RC<AstStatement>& stmt : m_children)
+    for (const SharedPtr<AstStatement>& stmt : m_children)
     {
         Assert(stmt != nullptr);
 
@@ -115,7 +115,7 @@ void AstBlock::Optimize(AstVisitor* visitor, Module* mod)
     }
 }
 
-RC<AstStatement> AstBlock::Clone() const
+SharedPtr<AstStatement> AstBlock::Clone() const
 {
     return CloneImpl();
 }

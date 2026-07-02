@@ -360,7 +360,7 @@ private:
 
                         if (type->isTemplate)
                         {
-                            for (const RC<ASTTemplateArgument>& templateArgument : type->templateArguments)
+                            for (const SharedPtr<ASTTemplateArgument>& templateArgument : type->templateArguments)
                             {
                                 Assert(templateArgument != nullptr);
 
@@ -380,7 +380,7 @@ private:
 
                             AddDependenciesRecur(srcClassDef, functionType->returnType.Get());
 
-                            for (const RC<ASTMemberDecl>& param : functionType->parameters)
+                            for (const SharedPtr<ASTMemberDecl>& param : functionType->parameters)
                             {
                                 AddDependenciesRecur(srcClassDef, param->type.Get());
                             }
@@ -537,7 +537,7 @@ private:
                 })
             .Detach();
 
-        RC<Module> builtinsModule = MakeRefCountedPtr<Module>(FilePath());
+        SharedPtr<Module> builtinsModule = MakeShared<Module>(FilePath());
 
         // add all builtins to a fake module for generation
         for (auto& it : m_analyzer.GetBuiltinClasses())
@@ -617,7 +617,7 @@ private:
                     continue;
                 }
 
-                MemoryByteWriter writer;
+                MemoryByteWriter<DynamicAllocator> writer;
 
                 if (Result res = hypscriptModuleGenerator.Generate(m_analyzer, *mod, writer); res.HasError())
                 {

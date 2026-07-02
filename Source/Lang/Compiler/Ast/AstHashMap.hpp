@@ -18,8 +18,8 @@ class AstHashMap : public AstExpression
 
 public:
     AstHashMap(
-        const Array<RC<AstExpression>>& keys,
-        const Array<RC<AstExpression>>& values,
+        const Array<SharedPtr<AstExpression>>& keys,
+        const Array<SharedPtr<AstExpression>>& values,
         const SourceLocation& location);
 
     virtual ~AstHashMap() = default;
@@ -28,7 +28,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual RC<AstStatement> Clone() const override;
+    virtual SharedPtr<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -56,23 +56,23 @@ public:
     }
 
 private:
-    Array<RC<AstExpression>> m_keys;
-    Array<RC<AstExpression>> m_values;
+    Array<SharedPtr<AstExpression>> m_keys;
+    Array<SharedPtr<AstExpression>> m_values;
 
     // set while analyzing
-    Array<RC<AstExpression>> m_replacedKeys;
-    Array<RC<AstExpression>> m_replacedValues;
-    RC<AstTypeSpecifier> m_mapTypeExpr;
-    RC<AstTypeRef> m_resolvedMapTypeRef;
-    RC<AstExpression> m_arrayExpr;
+    Array<SharedPtr<AstExpression>> m_replacedKeys;
+    Array<SharedPtr<AstExpression>> m_replacedValues;
+    SharedPtr<AstTypeSpecifier> m_mapTypeExpr;
+    SharedPtr<AstTypeRef> m_resolvedMapTypeRef;
+    SharedPtr<AstExpression> m_arrayExpr;
     const SymbolType* m_keyType;
     const SymbolType* m_valueType;
     const SymbolType* m_exprType;
-    RC<AstBlock> m_block;
+    SharedPtr<AstBlock> m_block;
 
-    RC<AstHashMap> CloneImpl() const
+    SharedPtr<AstHashMap> CloneImpl() const
     {
-        return RC<AstHashMap>(new AstHashMap(
+        return SharedPtr<AstHashMap>(new AstHashMap(
             CloneAllAstNodes(m_keys),
             CloneAllAstNodes(m_values),
             m_location));

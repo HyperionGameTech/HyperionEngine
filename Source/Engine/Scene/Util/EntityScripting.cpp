@@ -232,7 +232,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                         }
                     }
 
-                    if (RC<dotnet::Assembly> assembly = DotNETHost::GetInstance().LoadAssembly(assemblyPath.Data()))
+                    if (SharedPtr<dotnet::Assembly> assembly = DotNETHost::GetInstance().LoadAssembly(assemblyPath.Data()))
                     {
                         scriptComponent.assembly = std::move(assembly);
 
@@ -248,7 +248,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                     }
                 }
 
-                if (RC<dotnet::ManagedClass> classPtr = scriptComponent.assembly->FindClassByName(scriptDesc.className.Data()))
+                if (SharedPtr<dotnet::ManagedClass> classPtr = scriptComponent.assembly->FindClassByName(scriptDesc.className.Data()))
                 {
                     HYP_LOG(Scripting, Info, "ScriptSystem::OnEntityAdded: Loaded class '{}' from assembly '{}'", scriptDesc.className.Data(), scriptDesc.assemblyPath.Data());
 
@@ -436,7 +436,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                     scriptDesc.lastModifiedTimestamp = uint64(sourcePath.LastModifiedTimestamp());
 
                     { // Save bytecode.
-                        MemoryByteWriter bytecodeStream;
+                        MemoryByteWriter<DynamicAllocator> bytecodeStream;
                         HS::WriteBytecodeToStream(instance, bytecodeStream);
 
                         readScope.Reset();

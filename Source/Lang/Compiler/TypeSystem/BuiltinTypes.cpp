@@ -98,7 +98,7 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
 
     s_voidType = SymbolType::Primitive(
         "void",
-        RC<AstUndefined>(new AstUndefined(SourceLocation::Eof())));
+        SharedPtr<AstUndefined>(new AstUndefined(SourceLocation::Eof())));
 
     s_objectType = new SymbolType(
         "object",
@@ -126,69 +126,69 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
 
     s_int8Type = SymbolType::Primitive(
         "int8",
-        RC<AstInteger>(new AstInteger(0, CBS_8, SourceLocation::Eof())),
+        SharedPtr<AstInteger>(new AstInteger(0, CBS_8, SourceLocation::Eof())),
         CBS_8);
 
     s_int16Type = SymbolType::Primitive(
         "int16",
-        RC<AstInteger>(new AstInteger(0, CBS_16, SourceLocation::Eof())),
+        SharedPtr<AstInteger>(new AstInteger(0, CBS_16, SourceLocation::Eof())),
         CBS_16);
 
     s_int32Type = SymbolType::Primitive(
         "int32",
-        RC<AstInteger>(new AstInteger(0, CBS_32, SourceLocation::Eof())),
+        SharedPtr<AstInteger>(new AstInteger(0, CBS_32, SourceLocation::Eof())),
         CBS_32);
 
     s_int64Type = SymbolType::Primitive(
         "int64",
-        RC<AstInteger>(new AstInteger(0, CBS_64, SourceLocation::Eof())),
+        SharedPtr<AstInteger>(new AstInteger(0, CBS_64, SourceLocation::Eof())),
         CBS_64);
 
     s_uint8Type = SymbolType::Primitive(
         "uint8",
-        RC<AstUnsignedInteger>(new AstUnsignedInteger(0, CBS_8, SourceLocation::Eof())),
+        SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(0, CBS_8, SourceLocation::Eof())),
         CBS_8);
 
     s_uint16Type = SymbolType::Primitive(
         "uint16",
-        RC<AstUnsignedInteger>(new AstUnsignedInteger(0, CBS_16, SourceLocation::Eof())),
+        SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(0, CBS_16, SourceLocation::Eof())),
         CBS_16);
 
     s_uint32Type = SymbolType::Primitive(
         "uint32",
-        RC<AstUnsignedInteger>(new AstUnsignedInteger(0, CBS_32, SourceLocation::Eof())),
+        SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(0, CBS_32, SourceLocation::Eof())),
         CBS_32);
 
     s_uint64Type = SymbolType::Primitive(
         "uint64",
-        RC<AstUnsignedInteger>(new AstUnsignedInteger(0, CBS_64, SourceLocation::Eof())),
+        SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(0, CBS_64, SourceLocation::Eof())),
         CBS_64);
 
     s_floatType = SymbolType::Primitive(
         "float",
-        RC<AstFloat>(new AstFloat(0.0, CBS_32, SourceLocation::Eof())),
+        SharedPtr<AstFloat>(new AstFloat(0.0, CBS_32, SourceLocation::Eof())),
         CBS_32);
 
     s_doubleType = SymbolType::Primitive(
         "double",
-        RC<AstFloat>(new AstFloat(0.0, CBS_64, SourceLocation::Eof())),
+        SharedPtr<AstFloat>(new AstFloat(0.0, CBS_64, SourceLocation::Eof())),
         CBS_64);
 
     s_boolType = SymbolType::Primitive(
         "bool",
-        RC<AstFalse>(new AstFalse(SourceLocation::Eof())));
+        SharedPtr<AstFalse>(new AstFalse(SourceLocation::Eof())));
 
     s_stringType = SymbolType::Primitive(
         "string",
-        RC<AstString>(new AstString("", SourceLocation::Eof())));
+        SharedPtr<AstString>(new AstString("", SourceLocation::Eof())));
 
     s_nullType = SymbolType::Primitive(
         "<null>",
-        RC<AstNil>(new AstNil(SourceLocation::Eof())));
+        SharedPtr<AstNil>(new AstNil(SourceLocation::Eof())));
 
     s_nameType = SymbolType::Primitive(
         "Name",
-        RC<AstName>(new AstName("", SourceLocation::Eof())));
+        SharedPtr<AstName>(new AstName("", SourceLocation::Eof())));
 
     s_varArgsType = SymbolType::Generic(
         "VarArgs",

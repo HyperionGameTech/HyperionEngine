@@ -46,7 +46,7 @@ public:
     virtual ~DotNetImplBase() = default;
 
     virtual void Initialize(const FilePath& basePath, bool initFromManaged = false, InitFromManagedCallback initFromManagedCb = nullptr) = 0;
-    virtual RC<Assembly> LoadAssembly(const char* path) = 0;
+    virtual SharedPtr<Assembly> LoadAssembly(const char* path) = 0;
     virtual bool UnloadAssembly(ManagedGuid guid) = 0;
     virtual bool IsCoreAssembly(ManagedGuid guid) const = 0;
     virtual bool IsCoreAssembly(const Assembly* assembly) const = 0;
@@ -202,7 +202,7 @@ public:
 
         for (const Pair<String, FilePath>& entry : s_coreAssemblies)
         {
-            RC<Assembly> assembly = MakeRefCountedPtr<Assembly>(
+            SharedPtr<Assembly> assembly = MakeShared<Assembly>(
                 ManagedGuid { 0, 0 },
                 AssemblyFlags::CORE_ASSEMBLY);
 
@@ -227,7 +227,7 @@ public:
         LoadAssembly("Hyperion.NET.Runtime.dll");
     }
 
-    virtual RC<Assembly> LoadAssembly(const char* path) override
+    virtual SharedPtr<Assembly> LoadAssembly(const char* path) override
     {
         constexpr ManagedGuid EmptyGuid { 0, 0 };
 
@@ -247,7 +247,7 @@ public:
             return nullptr;
         }
 
-        RC<Assembly> assembly = MakeRefCountedPtr<Assembly>(EmptyGuid);
+        SharedPtr<Assembly> assembly = MakeShared<Assembly>(EmptyGuid);
 
         Assert(m_managedDelegates.initializeAssembly != nullptr);
 
@@ -525,7 +525,7 @@ private:
 
     ManagedDelegates m_managedDelegates;
 
-    TMap<FilePath, RC<Assembly>> m_assembliesByPath;
+    TMap<FilePath, SharedPtr<Assembly>> m_assembliesByPath;
     TMap<String, ManagedGuid> m_coreAssemblies;
 
     hostfxr_handle m_cxt;
@@ -548,7 +548,7 @@ public:
     {
     }
 
-    virtual RC<Assembly> LoadAssembly(const char* path) override
+    virtual SharedPtr<Assembly> LoadAssembly(const char* path) override
     {
         return nullptr;
     }
@@ -619,7 +619,7 @@ bool DotNETHost::EnsureInitialized() const
     return true;
 }
 
-RC<Assembly> DotNETHost::LoadAssembly(const char* path) const
+SharedPtr<Assembly> DotNETHost::LoadAssembly(const char* path) const
 {
     if (!m_impl)
     {

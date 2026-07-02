@@ -624,7 +624,7 @@ protected:
     Impl* m_baseImpl;
 
     // per-subtype implementations (only constructed and setup on first Consider() call with that type)
-    TFatArray<ValueStorage<Impl>, FixedAllocator<32>> m_subclassImpls;
+    FatArray<ValueStorage<Impl>, FixedAllocator<32>> m_subclassImpls;
     TBitset<FixedAllocator<32>> m_subclassImplsInitialized;
 
     BitsetType* m_emptyBitset;

@@ -31,7 +31,7 @@ namespace Hyperion {
 
 AstMember::AstMember(
     const String& fieldName,
-    const RC<AstExpression>& target,
+    const SharedPtr<AstExpression>& target,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD | ACCESS_MODE_STORE),
       m_fieldName(fieldName),
@@ -365,7 +365,7 @@ void AstMember::Optimize(AstVisitor* visitor, Module* mod)
     m_target->Optimize(visitor, mod);
 }
 
-RC<AstStatement> AstMember::Clone() const
+SharedPtr<AstStatement> AstMember::Clone() const
 {
     return CloneImpl();
 }
@@ -459,7 +459,7 @@ ConstantValue AstMember::GetConstantValue() const
     {
         if (member.IsConst())
         {
-            if (const RC<AstExpression>& expr = member.GetExpr())
+            if (const SharedPtr<AstExpression>& expr = member.GetExpr())
             {
                 return expr->GetConstantValue();
             }

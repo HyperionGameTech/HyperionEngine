@@ -6,7 +6,7 @@
 #include <Core/Reflection/ObjectFwd.hpp>
 #include <Core/Reflection/BoxedValue.hpp>
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Reflection/Handle.hpp>
 #include <Core/Reflection/ObjId.hpp>

@@ -226,16 +226,16 @@ struct GenericArrayWrapper
     GenericArrayWrapper(AsCopyTag, TList<T>&& list);
 
 #if !defined(HYP_USE_SLIM_ARRAY) || !HYP_USE_SLIM_ARRAY
-    // TSlimArray<TElemType, TAllocator>
+    // SlimArray<TElemType, TAllocator>
 
     template <class TElemType, class TAllocator>
-    GenericArrayWrapper(AsReferenceTag, TSlimArray<TElemType, TAllocator>& arr);
+    GenericArrayWrapper(AsReferenceTag, SlimArray<TElemType, TAllocator>& arr);
 
     template <class TElemType, class TAllocator>
-    GenericArrayWrapper(AsCopyTag, const TSlimArray<TElemType, TAllocator>& arr);
+    GenericArrayWrapper(AsCopyTag, const SlimArray<TElemType, TAllocator>& arr);
 
     template <class TElemType, class TAllocator>
-    GenericArrayWrapper(AsCopyTag, TSlimArray<TElemType, TAllocator>&& arr);
+    GenericArrayWrapper(AsCopyTag, SlimArray<TElemType, TAllocator>&& arr);
 #endif // !HYP_USE_SLIM_ARRAY
 
     ~GenericArrayWrapper()

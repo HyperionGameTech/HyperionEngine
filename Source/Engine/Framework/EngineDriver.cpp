@@ -210,7 +210,7 @@ void EngineDriver::Initialize()
         return;
     }
 
-    RC<NetRequestThread> netRequestThread = MakeRefCountedPtr<NetRequestThread>();
+    SharedPtr<NetRequestThread> netRequestThread = MakeShared<NetRequestThread>();
     SetGlobalNetRequestThread(netRequestThread);
     netRequestThread->Start();
 
@@ -427,7 +427,7 @@ void EngineDriver::FinalizeStop()
     // must stop before net request thread
     StopProfilerConnectionThread();
 
-    if (RC<NetRequestThread> netRequestThread = GetGlobalNetRequestThread())
+    if (SharedPtr<NetRequestThread> netRequestThread = GetGlobalNetRequestThread())
     {
         if (netRequestThread->IsRunning())
         {

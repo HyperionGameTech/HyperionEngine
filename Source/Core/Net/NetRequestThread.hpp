@@ -8,7 +8,7 @@
 
 #include <Core/Threading/TaskThread.hpp>
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 namespace Hyperion {
 namespace net {
@@ -20,8 +20,8 @@ public:
     virtual ~NetRequestThread() override;
 };
 
-CORE_API void SetGlobalNetRequestThread(const RC<NetRequestThread>& netRequestThread);
-CORE_API const RC<NetRequestThread>& GetGlobalNetRequestThread();
+CORE_API void SetGlobalNetRequestThread(const SharedPtr<NetRequestThread>& netRequestThread);
+CORE_API const SharedPtr<NetRequestThread>& GetGlobalNetRequestThread();
 
 } // namespace net
 

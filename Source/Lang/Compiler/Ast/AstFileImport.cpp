@@ -47,7 +47,7 @@ void AstFileImport::Visit(AstVisitor* visitor, Module* mod)
     AstImport::PerformImport(visitor, mod, filepath);
 }
 
-RC<AstStatement> AstFileImport::Clone() const
+SharedPtr<AstStatement> AstFileImport::Clone() const
 {
     return CloneImpl();
 }

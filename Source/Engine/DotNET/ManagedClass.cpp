@@ -17,9 +17,9 @@ namespace Hyperion::dotnet {
 
 ManagedClass::~ManagedClass() = default;
 
-RC<Assembly> ManagedClass::GetAssembly() const
+SharedPtr<Assembly> ManagedClass::GetAssembly() const
 {
-    RC<Assembly> assembly = m_assembly.Lock();
+    SharedPtr<Assembly> assembly = m_assembly.Lock();
 
     if (!assembly || !assembly->IsLoaded())
     {
@@ -35,7 +35,7 @@ ManagedObject* ManagedClass::NewObject()
 
     ObjectReference objectReference = m_newObjectFptr(/* keepAlive */ true, nullptr, nullptr, nullptr, nullptr);
 
-    return new ManagedObject(RefCountedPtrFromThis(), objectReference);
+    return new ManagedObject(SharedThis(), objectReference);
 }
 
 ManagedObject* ManagedClass::NewObject(const Class* cls, void* owner)
@@ -47,7 +47,7 @@ ManagedObject* ManagedClass::NewObject(const Class* cls, void* owner)
 
     ObjectReference objectReference = m_newObjectFptr(/* keepAlive */ true, cls, owner, nullptr, nullptr);
 
-    return new ManagedObject(RefCountedPtrFromThis(), objectReference);
+    return new ManagedObject(SharedThis(), objectReference);
 }
 
 ObjectReference ManagedClass::NewManagedObject(void* pCtx, InitializeObjectCallbackFunction pCallback)
@@ -93,7 +93,7 @@ bool ManagedClass::HasParentClass(const ManagedClass* parentClass) const
 
 void ManagedClass::InvokeStaticMethod_Internal(const ManagedMethod* method, const BoxedValue** args, BoxedValue* outReturn)
 {
-    RC<Assembly> assembly = m_assembly.Lock();
+    SharedPtr<Assembly> assembly = m_assembly.Lock();
 
     if (!assembly || !assembly->IsLoaded())
     {

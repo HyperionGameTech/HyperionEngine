@@ -109,7 +109,7 @@ static TResult<Handle<FontAtlas>> CreateFontAtlas()
         return fontAtlas;
     }
 
-    auto fontFaceAsset = g_assetManager->Load<RC<FontFace>>("Fonts/Roboto/Roboto-Regular.ttf");
+    auto fontFaceAsset = g_assetManager->Load<SharedPtr<FontFace>>("Fonts/Roboto/Roboto-Regular.ttf");
 
     if (fontFaceAsset.HasError())
     {

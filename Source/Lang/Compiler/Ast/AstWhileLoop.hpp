@@ -15,8 +15,8 @@ class AstWhileLoop : public AstStatement
 
 public:
     AstWhileLoop(
-        const RC<AstExpression>& conditional,
-        const RC<AstBlock>& block,
+        const SharedPtr<AstExpression>& conditional,
+        const SharedPtr<AstBlock>& block,
         const SourceLocation& location);
     virtual ~AstWhileLoop() = default;
 
@@ -24,7 +24,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual RC<AstStatement> Clone() const override;
+    virtual SharedPtr<AstStatement> Clone() const override;
 
     virtual HashCode GetHashCode() const override
     {
@@ -37,15 +37,15 @@ public:
     }
 
 private:
-    RC<AstExpression> m_conditional;
-    RC<AstBlock> m_block;
+    SharedPtr<AstExpression> m_conditional;
+    SharedPtr<AstBlock> m_block;
 
     // set while analyzing
     int m_numLocals;
 
-    RC<AstWhileLoop> CloneImpl() const
+    SharedPtr<AstWhileLoop> CloneImpl() const
     {
-        return RC<AstWhileLoop>(new AstWhileLoop(
+        return SharedPtr<AstWhileLoop>(new AstWhileLoop(
             CloneAstNode(m_conditional),
             CloneAstNode(m_block),
             m_location));

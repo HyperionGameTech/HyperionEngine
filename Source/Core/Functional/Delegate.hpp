@@ -18,7 +18,7 @@
 #include <Core/Utilities/ForEach.hpp>
 #include <Core/Utilities/DeferredScope.hpp>
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Name/Name.hpp>
 
@@ -111,7 +111,7 @@ struct DelegateHandler
 {
     DelegateHandlerEntryBase* entry;
     
-    Weak<void> delegateImpl;
+    WeakPtr<void> delegateImpl;
 
     void (*removeFn)(void*, DelegateHandlerEntryBase*);
     void (*detachFn)(void*, DelegateHandler&& delegateHandler);
@@ -123,7 +123,7 @@ struct DelegateHandler
     {
     }
 
-    DelegateHandler(DelegateHandlerEntryBase* entry, Weak<void> delegateImpl, void (*removeFn)(void*, DelegateHandlerEntryBase*), void (*detachFn)(void*, DelegateHandler&& delegateHandler))
+    DelegateHandler(DelegateHandlerEntryBase* entry, WeakPtr<void> delegateImpl, void (*removeFn)(void*, DelegateHandlerEntryBase*), void (*detachFn)(void*, DelegateHandler&& delegateHandler))
         : entry(entry),
           delegateImpl(std::move(delegateImpl)),
           removeFn(removeFn),
@@ -177,14 +177,14 @@ struct DelegateHandler
         {
             HYP_CORE_ASSERT(removeFn != nullptr);
 
-            RC<void> strongRef = delegateImpl.Lock();
+            SharedPtr<void> strongRef = delegateImpl.Lock();
             if (strongRef != nullptr)
             {
                 removeFn(strongRef.Get(), entry);
             }
         }
 
-        delegateImpl = Weak<void>();
+        delegateImpl = WeakPtr<void>();
 
         entry = nullptr;
         removeFn = nullptr;
@@ -197,7 +197,7 @@ struct DelegateHandler
         {
             HYP_CORE_ASSERT(detachFn != nullptr);
 
-            RC<void> strongRef = delegateImpl.Lock();
+            SharedPtr<void> strongRef = delegateImpl.Lock();
             if (strongRef != nullptr)
             {
                 detachFn(strongRef.Get(), std::move(*this));
@@ -226,7 +226,7 @@ struct DelegateHandler
  *  \tparam ReturnType The return type of the handler functions.
  *  \tparam Args The argument types of the handler functions. */
 template <class ReturnType, class... Args>
-class DelegateImpl final : public EnableRefCountedPtrFromThis<DelegateImpl<ReturnType, Args...>>
+class DelegateImpl final : public SharedFromThis<DelegateImpl<ReturnType, Args...>>
 {
     using ProcType = Proc<ReturnType(Args...)>;
     using ProcList = Array<DelegateHandlerEntry<ProcType>*>;
@@ -392,7 +392,7 @@ public:
 
         if (removeResult)
         {
-            handle.delegateImpl = Weak<void>();
+            handle.delegateImpl = WeakPtr<void>();
 
             handle.entry = nullptr;
             handle.removeFn = nullptr;
@@ -668,7 +668,7 @@ protected:
     {
         return DelegateHandler(
             entry,
-            Weak<void>(EnableRefCountedPtrFromThis<DelegateImpl<ReturnType, Args...>>::WeakRefCountedPtrFromThis()),
+            WeakPtr<void>(SharedFromThis<DelegateImpl<ReturnType, Args...>>::WeakThis()),
             RemoveDelegateHandlerCallback,
             DetachDelegateHandlerCallback
         );
@@ -787,7 +787,7 @@ public:
                 // check still nullptr after acquiring unique lock
                 if (!m_impl)
                 {
-                    m_impl = MakeRefCountedPtr<DelegateImpl<ReturnType, Args...>>();
+                    m_impl = MakeShared<DelegateImpl<ReturnType, Args...>>();
                 }
             }
 
@@ -818,7 +818,7 @@ public:
                 // check still nullptr after acquiring unique lock
                 if (!m_impl)
                 {
-                    m_impl = MakeRefCountedPtr<DelegateImpl<ReturnType, Args...>>();
+                    m_impl = MakeShared<DelegateImpl<ReturnType, Args...>>();
                 }
             }
 
@@ -893,7 +893,7 @@ private:
     using DelegateImplType = DelegateImpl<ReturnType, Args...>;
 
     // keep implementation pointer to reduce static memory footprint as many delegates will not have any handlers bound
-    RC<DelegateImplType> m_impl;
+    SharedPtr<DelegateImplType> m_impl;
 
     // spinlock to protect against multiple threads creating / reading from m_impl pointer
     SharedMutex m_mtx;

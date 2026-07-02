@@ -484,7 +484,7 @@ void TranslateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEv
                 text,
                 [focusedNode, node = m_node, focusedFinalPosition, focusedOrigin, nodeData = std::move(nodeData)]() -> EditorActionFunctions
                 {
-                    auto nodeDataPtr = MakeRefCountedPtr<decltype(nodeData)>(std::move(nodeData));
+                    auto nodeDataPtr = MakeShared<decltype(nodeData)>(std::move(nodeData));
 
                     return {
                         [focusedNode, node, focusedFinalPosition, focusedOrigin, nodeDataPtr](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
@@ -951,7 +951,7 @@ void RotateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
                     : HYP_FORMAT("Rotate {} nodes", nodeData.Size()),
                 [focusedNode, finalRotation, originRotation, deltaRotation, nodeData]() -> EditorActionFunctions
                 {
-                    auto nodeDataPtr = MakeRefCountedPtr<decltype(nodeData)>(std::move(nodeData));
+                    auto nodeDataPtr = MakeShared<decltype(nodeData)>(std::move(nodeData));
 
                     return {
                         [focusedNode, deltaRotation, nodeDataPtr](EditorSubsystem* editorSubsystem, EditorProject*)
@@ -1292,7 +1292,7 @@ void ScaleEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent&
                     : HYP_FORMAT("Scale {} nodes", nodeData.Size()),
                 [focusedNode, finalScale, originScale, scaleFactor, nodeData]() -> EditorActionFunctions
                 {
-                    auto nodeDataPtr = MakeRefCountedPtr<decltype(nodeData)>(std::move(nodeData));
+                    auto nodeDataPtr = MakeShared<decltype(nodeData)>(std::move(nodeData));
 
                     return {
                         [focusedNode, scaleFactor, nodeDataPtr](EditorSubsystem* editorSubsystem, EditorProject*)

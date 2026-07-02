@@ -10,7 +10,7 @@
 #include <Core/Reflection/ObjectMacros.hpp>
 
 #include <Core/Math/Vector3.hpp>
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Physics/RigidBody.hpp>
 
@@ -33,7 +33,7 @@ struct CharacterControllerComponent
     Handle<InputHandlerBase> inputHandler;
 
     HYP_FIELD(Transient)
-    RC<void> physicsHandle;
+    SharedPtr<void> physicsHandle;
 
     HYP_FIELD(Property = "ViewDirection", Serialize)
     Vec3f viewDirection = Vec3f(0.0f, 0.0f, 1.0f);

@@ -41,7 +41,7 @@ Result GeneratorBase::Generate(const Analyzer& analyzer, const Module& mod) cons
         return HYP_MAKE_ERROR(Error, "Failed to create output directory");
     }
 
-    MemoryByteWriter memoryWriter;
+    MemoryByteWriter<DynamicAllocator> memoryWriter;
 
     Result res = Generate(analyzer, mod, memoryWriter);
 

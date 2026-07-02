@@ -23,7 +23,7 @@
 
 namespace Hyperion {
 
-Optional<RC<RTCDataChannel>> RTCClient::GetDataChannel(Name name) const
+Optional<SharedPtr<RTCDataChannel>> RTCClient::GetDataChannel(Name name) const
 {
     const auto it = m_dataChannels.Find(name);
 
@@ -35,7 +35,7 @@ Optional<RC<RTCDataChannel>> RTCClient::GetDataChannel(Name name) const
     return it->second;
 }
 
-void RTCClient::AddTrack(RC<RTCTrackBase> track)
+void RTCClient::AddTrack(SharedPtr<RTCTrackBase> track)
 {
     if (m_state == RTC_CLIENT_STATE_CONNECTED || m_state == RTC_CLIENT_STATE_CONNECTING)
     {
@@ -48,7 +48,7 @@ void RTCClient::AddTrack(RC<RTCTrackBase> track)
 
 void RTCClient::PrepareTracks()
 {
-    for (const RC<RTCTrackBase>& track : m_tracks)
+    for (const SharedPtr<RTCTrackBase>& track : m_tracks)
     {
         track->PrepareTrack(this);
     }
@@ -59,9 +59,9 @@ NullRTCClient::NullRTCClient(String id, RTCServer* server)
 {
 }
 
-RC<RTCDataChannel> NullRTCClient::CreateDataChannel(Name name)
+SharedPtr<RTCDataChannel> NullRTCClient::CreateDataChannel(Name name)
 {
-    RC<NullRTCDataChannel> dataChannel = MakeRefCountedPtr<NullRTCDataChannel>();
+    SharedPtr<NullRTCDataChannel> dataChannel = MakeShared<NullRTCDataChannel>();
 
     m_dataChannels.Insert(name, dataChannel);
 
@@ -91,7 +91,7 @@ LibDataChannelRTCClient::LibDataChannelRTCClient(String id, RTCServer* server)
     rtcConfiguration.iceServers.emplaceBack(stunServer);
     rtcConfiguration.disableAutoNegotiation = true;
 
-    RC<rtc::PeerConnection> peerConnection = MakeRefCountedPtr<rtc::PeerConnection>(rtcConfiguration);
+    SharedPtr<rtc::PeerConnection> peerConnection = MakeShared<rtc::PeerConnection>(rtcConfiguration);
 
     peerConnection->onStateChange([this, id = m_id](rtc::PeerConnection::State state)
         {
@@ -144,7 +144,7 @@ LibDataChannelRTCClient::LibDataChannelRTCClient(String id, RTCServer* server)
             }
         });
 
-    peerConnection->onGatheringStateChange([this, id = m_id, pcWeak = Weak<rtc::PeerConnection>(peerConnection)](rtc::PeerConnection::GatheringState state)
+    peerConnection->onGatheringStateChange([this, id = m_id, pcWeak = WeakPtr<rtc::PeerConnection>(peerConnection)](rtc::PeerConnection::GatheringState state)
         {
             DebugLog(LogType::Debug, "Gathering state changed for Client with Id %s: %d\n", id.Data(), int(state));
 
@@ -172,7 +172,7 @@ LibDataChannelRTCClient::LibDataChannelRTCClient(String id, RTCServer* server)
     m_peerConnection = peerConnection;
 }
 
-RC<RTCDataChannel> LibDataChannelRTCClient::CreateDataChannel(Name name)
+SharedPtr<RTCDataChannel> LibDataChannelRTCClient::CreateDataChannel(Name name)
 {
     Assert(m_peerConnection != nullptr);
 
@@ -181,11 +181,11 @@ RC<RTCDataChannel> LibDataChannelRTCClient::CreateDataChannel(Name name)
         name = CreateNameFromDynamicString(ANSIString("dc_") + ANSIString::ToString(m_dataChannels.Size()));
     }
 
-    RC<LibDataChannelRTCDataChannel> dataChannel = MakeRefCountedPtr<LibDataChannelRTCDataChannel>();
+    SharedPtr<LibDataChannelRTCDataChannel> dataChannel = MakeShared<LibDataChannelRTCDataChannel>();
 
     dataChannel->m_dataChannel = m_peerConnection->createDataChannel(name.LookupString());
 
-    dataChannel->m_dataChannel->onOpen([dataChannelWeak = Weak<LibDataChannelRTCDataChannel>(dataChannel)](...) mutable
+    dataChannel->m_dataChannel->onOpen([dataChannelWeak = WeakPtr<LibDataChannelRTCDataChannel>(dataChannel)](...) mutable
         {
             if (auto dataChannel = dataChannelWeak.Lock())
             {

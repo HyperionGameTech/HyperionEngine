@@ -15,8 +15,8 @@ class AstIsExpression : public AstExpression
 
 public:
     AstIsExpression(
-        const RC<AstExpression>& target,
-        const RC<AstTypeSpecifier>& typeSpec,
+        const SharedPtr<AstExpression>& target,
+        const SharedPtr<AstTypeSpecifier>& typeSpec,
         const SourceLocation& location);
 
     virtual ~AstIsExpression() = default;
@@ -25,7 +25,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual RC<AstStatement> Clone() const override;
+    virtual SharedPtr<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -41,16 +41,16 @@ public:
     }
 
 protected:
-    RC<AstExpression> m_target;
-    RC<AstTypeSpecifier> m_typeSpec;
+    SharedPtr<AstExpression> m_target;
+    SharedPtr<AstTypeSpecifier> m_typeSpec;
 
     // set while analyzing
     Tribool m_isType;
 
 private:
-    RC<AstIsExpression> CloneImpl() const
+    SharedPtr<AstIsExpression> CloneImpl() const
     {
-        return RC<AstIsExpression>(new AstIsExpression(
+        return SharedPtr<AstIsExpression>(new AstIsExpression(
             CloneAstNode(m_target),
             CloneAstNode(m_typeSpec),
             m_location));

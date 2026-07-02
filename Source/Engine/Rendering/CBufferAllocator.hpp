@@ -97,7 +97,7 @@ private:
 
     TList<Block, RenderAllocator> m_currentFrameBlocks[NumRendererWorkerThreads + 1];
 
-    TByteBuffer<RenderAllocator> m_scratch[NumRendererWorkerThreads + 1];
+    memory::ByteBuffer<RenderAllocator> m_scratch[NumRendererWorkerThreads + 1];
     size_t m_scratchAlignment[NumRendererWorkerThreads + 1];
 
     SharedMutex m_mutex;

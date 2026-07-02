@@ -217,7 +217,7 @@ public:
     class EntryList final : public EntryListBase
     {
     public:
-        TByteBuffer<AllocatorType> buffer;
+        memory::ByteBuffer<AllocatorType> buffer;
 
         EntryList()
             : EntryList(~0u)

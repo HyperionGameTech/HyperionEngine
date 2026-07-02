@@ -20,10 +20,10 @@
 namespace Hyperion {
 
 AstForLoop::AstForLoop(
-    const RC<AstStatement>& declPart,
-    const RC<AstExpression>& conditionPart,
-    const RC<AstExpression>& incrementPart,
-    const RC<AstBlock>& block,
+    const SharedPtr<AstStatement>& declPart,
+    const SharedPtr<AstExpression>& conditionPart,
+    const SharedPtr<AstExpression>& incrementPart,
+    const SharedPtr<AstBlock>& block,
     const SourceLocation& location)
     : AstStatement(location),
       m_declPart(declPart),
@@ -291,7 +291,7 @@ void AstForLoop::Optimize(AstVisitor* visitor, Module* mod)
     }
 }
 
-RC<AstStatement> AstForLoop::Clone() const
+SharedPtr<AstStatement> AstForLoop::Clone() const
 {
     return CloneImpl();
 }

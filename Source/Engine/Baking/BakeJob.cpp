@@ -123,7 +123,7 @@ public:
 
             size_t readbackDataOffset = 0;
 
-            RC<Array<LightmapRay>> raysRc = MakeRefCountedPtr<Array<LightmapRay>>(std::move(rays));
+            SharedPtr<Array<LightmapRay>> raysRc = MakeShared<Array<LightmapRay>>(std::move(rays));
 
             for (const UniquePtr<ILightmapRenderer>& lightmapRenderer : *job->GetParams().renderers)
             {

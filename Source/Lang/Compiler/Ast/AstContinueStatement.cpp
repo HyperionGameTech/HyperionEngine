@@ -76,7 +76,7 @@ void AstContinueStatement::Optimize(AstVisitor* visitor, Module* mod)
 {
 }
 
-RC<AstStatement> AstContinueStatement::Clone() const
+SharedPtr<AstStatement> AstContinueStatement::Clone() const
 {
     return CloneImpl();
 }

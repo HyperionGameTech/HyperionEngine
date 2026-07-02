@@ -12,7 +12,7 @@
 #include <RTC/RTCStream.hpp>
 #include <RTC/RTCStreamEncoder.hpp>
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 #include <Core/Memory/UniquePtr.hpp>
 
 namespace Hyperion {
@@ -27,16 +27,16 @@ public:
     RTCInstance& operator=(RTCInstance&& other) = delete;
     ~RTCInstance() = default;
 
-    const RC<RTCServer>& GetServer() const
+    const SharedPtr<RTCServer>& GetServer() const
     {
         return m_server;
     }
 
-    RC<RTCTrackBase> CreateTrack(RTCTrackType trackType);
-    RC<RTCStream> CreateStream(RTCStreamType streamType, UniquePtr<RTCStreamEncoder>&& encoder);
+    SharedPtr<RTCTrackBase> CreateTrack(RTCTrackType trackType);
+    SharedPtr<RTCStream> CreateStream(RTCStreamType streamType, UniquePtr<RTCStreamEncoder>&& encoder);
 
 private:
-    RC<RTCServer> m_server;
+    SharedPtr<RTCServer> m_server;
 };
 
 } // namespace Hyperion

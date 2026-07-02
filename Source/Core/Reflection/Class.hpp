@@ -574,14 +574,14 @@ public:
     Array<StaticField*> GetStaticFieldsInherited() const;
 
 #ifdef HYP_DOTNET
-    HYP_FORCE_INLINE RC<dotnet::ManagedClass> GetManagedClass() const
+    HYP_FORCE_INLINE SharedPtr<dotnet::ManagedClass> GetManagedClass() const
     {
         Mutex::Guard guard(m_managedClassMutex);
 
         return m_managedClass.Lock();
     }
 
-    HYP_FORCE_INLINE void SetManagedClass(const RC<dotnet::ManagedClass>& managedClass) const
+    HYP_FORCE_INLINE void SetManagedClass(const SharedPtr<dotnet::ManagedClass>& managedClass) const
     {
         Mutex::Guard guard(m_managedClassMutex);
 
@@ -685,7 +685,7 @@ protected:
     ObjectContainerBase* m_objectContainer;
 
 private:
-    mutable Weak<dotnet::ManagedClass> m_managedClass;
+    mutable WeakPtr<dotnet::ManagedClass> m_managedClass;
     mutable Mutex m_managedClassMutex;
 };
 
@@ -825,9 +825,9 @@ protected:
 
                 return true;
             }
-            else if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>)
+            else if constexpr (std::is_base_of_v<SharedFromThisBase<>, T>)
             {
-                out = BoxedValue(MakeRefCountedPtr<T>());
+                out = BoxedValue(MakeShared<T>());
 
                 return true;
             }
@@ -863,19 +863,19 @@ protected:
 
             return true;
         }
-        else if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>)
+        else if constexpr (std::is_base_of_v<SharedFromThisBase<>, T>)
         {
-            Array<RC<T>> array;
+            Array<SharedPtr<T>> array;
             array.Reserve(elements.Size());
 
             for (size_t i = 0; i < elements.Size(); i++)
             {
-                if (!elements[i].Is<RC<T>>())
+                if (!elements[i].Is<SharedPtr<T>>())
                 {
                     return false;
                 }
 
-                array.PushBack(std::move(elements[i].Get<RC<T>>()));
+                array.PushBack(std::move(elements[i].Get<SharedPtr<T>>()));
             }
 
             out = BoxedValue(std::move(array));

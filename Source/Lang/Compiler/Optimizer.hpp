@@ -16,15 +16,15 @@ class Optimizer : public AstVisitor
 {
 public:
     /** Attemps to evaluate the optimized expression at compile-time. */
-    static RC<AstConstant> ConstantFold(
+    static SharedPtr<AstConstant> ConstantFold(
         AstExpression* left,
         AstExpression* right,
         Operators opType,
         AstVisitor* visitor);
 
     /** Attemps to reduce a variable that is const literal to the actual value. */
-    static RC<AstExpression> OptimizeExpr(
-        const RC<AstExpression>& expr,
+    static SharedPtr<AstExpression> OptimizeExpr(
+        const SharedPtr<AstExpression>& expr,
         AstVisitor* visitor,
         Module* mod);
 

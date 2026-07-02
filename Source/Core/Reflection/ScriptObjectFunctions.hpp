@@ -20,7 +20,7 @@ class ManagedObject;
 
 namespace memory {
 template <class T, class RefCountType>
-class RefCountedPtr;
+class SharedPtr;
 } // namespace memory
 
 namespace threading {
@@ -33,7 +33,7 @@ struct CORE_API ScriptObjectFunctions
     static void (*IncScriptObjectRef)(ObjectBase*);
     static void (*DecScriptObjectRef)(ObjectBase*);
 
-    static ScriptObjectResource* (*CreateScriptObjectResource_DotNet)(ObjectBase*, const memory::RefCountedPtr<dotnet::ManagedClass, threading::AtomicVar<unsigned int, void>>&);
+    static ScriptObjectResource* (*CreateScriptObjectResource_DotNet)(ObjectBase*, const memory::SharedPtr<dotnet::ManagedClass, threading::AtomicVar<unsigned int, void>>&);
     static ScriptObjectResource* (*CreateScriptObjectResource_Script)(ScriptInstance*, ObjectBase*);
     static void (*DestroyScriptObjectResource)(ScriptObjectResource*);
 
@@ -42,7 +42,7 @@ struct CORE_API ScriptObjectFunctions
     static unsigned int (*GetScriptLanguageMask)(const ScriptObjectResource*);
     static dotnet::ManagedObject* (*GetManagedObject)(const ScriptObjectResource*);
 
-    static memory::RefCountedPtr<dotnet::ManagedClass, threading::AtomicVar<unsigned int, void>> (*ManagedClassRefCountedPtrFromThis)(dotnet::ManagedClass*);
+    static memory::SharedPtr<dotnet::ManagedClass, threading::AtomicVar<unsigned int, void>> (*ManagedClassSharedThis)(dotnet::ManagedClass*);
     static void (*ManagedClassNewManagedObject)(dotnet::ManagedClass*, void* contextPtr, void (*copyCallback)(void*, void*, unsigned int), dotnet::ObjectReference* outRef);
 
     static memory::Pool* (*GetScriptPool)();

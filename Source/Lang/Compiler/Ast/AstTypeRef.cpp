@@ -42,7 +42,7 @@ UniquePtr<Buildable> AstTypeRef::Build(AstVisitor* visitor, Module* mod)
     const SymbolType* unaliased = m_symbolType->GetUnaliased();
 
     // User-defined types have a ClassRef stored as a local
-    if (const RC<AstVariableDeclaration>& classRefDecl = unaliased->GetClassRefDecl())
+    if (const SharedPtr<AstVariableDeclaration>& classRefDecl = unaliased->GetClassRefDecl())
     {
         const Identifier* identifier = classRefDecl->GetIdentifier();
         Assert(identifier != nullptr);
@@ -79,7 +79,7 @@ void AstTypeRef::Optimize(AstVisitor* visitor, Module* mod)
     // do nothing
 }
 
-RC<AstStatement> AstTypeRef::Clone() const
+SharedPtr<AstStatement> AstTypeRef::Clone() const
 {
     return CloneImpl();
 }

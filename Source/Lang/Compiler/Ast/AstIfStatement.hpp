@@ -15,23 +15,23 @@ class AstIfStatement : public AstStatement
 
 public:
     AstIfStatement(
-        const RC<AstExpression>& conditional,
-        const RC<AstBlock>& block,
-        const RC<AstBlock>& elseBlock,
+        const SharedPtr<AstExpression>& conditional,
+        const SharedPtr<AstBlock>& block,
+        const SharedPtr<AstBlock>& elseBlock,
         const SourceLocation& location);
     virtual ~AstIfStatement() = default;
 
-    HYP_FORCE_INLINE const RC<AstExpression>& GetConditional() const
+    HYP_FORCE_INLINE const SharedPtr<AstExpression>& GetConditional() const
     {
         return m_conditional;
     }
 
-    HYP_FORCE_INLINE const RC<AstBlock>& GetBlock() const
+    HYP_FORCE_INLINE const SharedPtr<AstBlock>& GetBlock() const
     {
         return m_block;
     }
 
-    HYP_FORCE_INLINE const RC<AstBlock>& GetElseBlock() const
+    HYP_FORCE_INLINE const SharedPtr<AstBlock>& GetElseBlock() const
     {
         return m_elseBlock;
     }
@@ -40,7 +40,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual RC<AstStatement> Clone() const override;
+    virtual SharedPtr<AstStatement> Clone() const override;
 
     virtual String ToString() const override;
 
@@ -56,13 +56,13 @@ public:
     }
 
 private:
-    RC<AstExpression> m_conditional;
-    RC<AstBlock> m_block;
-    RC<AstBlock> m_elseBlock;
+    SharedPtr<AstExpression> m_conditional;
+    SharedPtr<AstBlock> m_block;
+    SharedPtr<AstBlock> m_elseBlock;
 
-    RC<AstIfStatement> CloneImpl() const
+    SharedPtr<AstIfStatement> CloneImpl() const
     {
-        return RC<AstIfStatement>(new AstIfStatement(
+        return SharedPtr<AstIfStatement>(new AstIfStatement(
             CloneAstNode(m_conditional),
             CloneAstNode(m_block),
             CloneAstNode(m_elseBlock),

@@ -28,7 +28,7 @@ ManagedObject::ManagedObject()
 {
 }
 
-ManagedObject::ManagedObject(const RC<ManagedClass>& managedClass, ObjectReference objectReference, EnumFlags<ObjectFlags> objectFlags)
+ManagedObject::ManagedObject(const SharedPtr<ManagedClass>& managedClass, ObjectReference objectReference, EnumFlags<ObjectFlags> objectFlags)
     : m_managedClass(managedClass),
       m_objectReference(objectReference),
       m_objectFlags(objectFlags),
@@ -95,9 +95,9 @@ void ManagedObject::InvokeMethod_Internal(const ManagedMethod* pMethod, const Bo
     Assert(IsValid());
 
 #ifdef HYP_DOTNET_OBJECT_KEEP_ASSEMBLY_ALIVE
-    const RC<Assembly>& assembly = m_assembly;
+    const SharedPtr<Assembly>& assembly = m_assembly;
 #else
-    RC<Assembly> assembly = m_assembly.Lock();
+    SharedPtr<Assembly> assembly = m_assembly.Lock();
 #endif
 
     Assert(assembly != nullptr && assembly->IsLoaded());

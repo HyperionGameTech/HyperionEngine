@@ -15,8 +15,8 @@ class AstAsExpression : public AstExpression
 
 public:
     AstAsExpression(
-        const RC<AstExpression>& target,
-        const RC<AstTypeSpecifier>& typeSpecification,
+        const SharedPtr<AstExpression>& target,
+        const SharedPtr<AstTypeSpecifier>& typeSpecification,
         const SourceLocation& location);
 
     virtual ~AstAsExpression() = default;
@@ -33,7 +33,7 @@ public:
 
     virtual const SymbolType* GetExprType() const override;
 
-    virtual RC<AstStatement> Clone() const override;
+    virtual SharedPtr<AstStatement> Clone() const override;
 
     virtual HashCode GetHashCode() const override
     {
@@ -45,18 +45,18 @@ public:
     }
 
 protected:
-    RC<AstExpression> m_target;
-    RC<AstTypeSpecifier> m_typeSpecification;
+    SharedPtr<AstExpression> m_target;
+    SharedPtr<AstTypeSpecifier> m_typeSpecification;
 
     // set while analyzing
-    RC<AstTypeRef> m_typeRef;
+    SharedPtr<AstTypeRef> m_typeRef;
     const SymbolType* m_resultType;
     Tribool m_isType;
 
 private:
-    RC<AstAsExpression> CloneImpl() const
+    SharedPtr<AstAsExpression> CloneImpl() const
     {
-        return RC<AstAsExpression>(new AstAsExpression(
+        return SharedPtr<AstAsExpression>(new AstAsExpression(
             CloneAstNode(m_target),
             CloneAstNode(m_typeSpecification),
             m_location));

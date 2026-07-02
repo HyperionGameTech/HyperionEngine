@@ -245,7 +245,7 @@ LoadedAsset PLYModelLoader::BuildModel(LoaderState& state, PLYModel& model)
 {
     Assert(state.assetManager != nullptr);
 
-    RC<PLYModel> plyModelPtr = MakeRefCountedPtr<PLYModel>(model);
+    SharedPtr<PLYModel> plyModelPtr = MakeShared<PLYModel>(model);
 
     return LoadedAsset { plyModelPtr };
 }

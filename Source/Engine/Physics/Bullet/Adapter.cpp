@@ -46,35 +46,35 @@ static inline Quat4f FromBtQuaternion(const btQuaternion& quat)
 
 struct RigidBodyInternalData
 {
-    RC<btRigidBody> rigidBody;
-    RC<btMotionState> motionState;
+    SharedPtr<btRigidBody> rigidBody;
+    SharedPtr<btMotionState> motionState;
 };
 
 struct CharacterControllerInternalData
 {
-    RC<btPairCachingGhostObject> ghostObject;
-    RC<btCapsuleShape> capsuleShape;
-    RC<btKinematicCharacterController> kcc;
+    SharedPtr<btPairCachingGhostObject> ghostObject;
+    SharedPtr<btCapsuleShape> capsuleShape;
+    SharedPtr<btKinematicCharacterController> kcc;
 };
 
-static RC<btCollisionShape> CreatePhysicsShapeHandle(PhysicsShape* physicsShape)
+static SharedPtr<btCollisionShape> CreatePhysicsShapeHandle(PhysicsShape* physicsShape)
 {
     Assert(physicsShape != nullptr);
 
     switch (physicsShape->GetType())
     {
     case PhysicsShapeType::BOX:
-        return MakeRefCountedPtr<btBoxShape>(ToBtVector(static_cast<BoxPhysicsShape*>(physicsShape)->GetAABB().GetExtent() * 0.5f));
+        return MakeShared<btBoxShape>(ToBtVector(static_cast<BoxPhysicsShape*>(physicsShape)->GetAABB().GetExtent() * 0.5f));
     case PhysicsShapeType::SPHERE:
-        return MakeRefCountedPtr<btSphereShape>(static_cast<SpherePhysicsShape*>(physicsShape)->GetSphere().GetRadius());
+        return MakeShared<btSphereShape>(static_cast<SpherePhysicsShape*>(physicsShape)->GetSphere().GetRadius());
     case PhysicsShapeType::PLANE:
-        return MakeRefCountedPtr<btStaticPlaneShape>(
+        return MakeShared<btStaticPlaneShape>(
             ToBtVector(static_cast<PlanePhysicsShape*>(physicsShape)->GetPlane().GetXYZ()),
             static_cast<PlanePhysicsShape*>(physicsShape)->GetPlane().w);
     case PhysicsShapeType::CONVEX_HULL:
         static_assert(sizeof(btScalar) == sizeof(float), "sizeof(btScalar) must be sizeof(float) for reinterpret_cast to be safe");
 
-        return MakeRefCountedPtr<btConvexHullShape>(
+        return MakeShared<btConvexHullShape>(
             reinterpret_cast<const btScalar*>(static_cast<ConvexHullPhysicsShape*>(physicsShape)->GetVertexData()),
             static_cast<ConvexHullPhysicsShape*>(physicsShape)->NumVertices(),
             sizeof(float) * 3);
@@ -187,13 +187,13 @@ void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
             ->calculateLocalInertia(rigidBody->physicsMaterial->GetMass(), localInertia);
     }
 
-    RC<RigidBodyInternalData> internalData = MakeRefCountedPtr<RigidBodyInternalData>();
+    SharedPtr<RigidBodyInternalData> internalData = MakeShared<RigidBodyInternalData>();
 
     btTransform btTransform;
     btTransform.setIdentity();
     btTransform.setOrigin(ToBtVector(rigidBody->GetTransform().GetTranslation()));
     btTransform.setRotation(ToBtQuaternion(rigidBody->GetTransform().GetRotation()));
-    internalData->motionState = MakeRefCountedPtr<btDefaultMotionState>(btTransform);
+    internalData->motionState = MakeShared<btDefaultMotionState>(btTransform);
 
     btRigidBody::btRigidBodyConstructionInfo constructionInfo(
         rigidBody->physicsMaterial->GetMass(),
@@ -201,7 +201,7 @@ void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
         static_cast<btCollisionShape*>(rigidBody->shape->GetHandle()),
         localInertia);
 
-    internalData->rigidBody = MakeRefCountedPtr<btRigidBody>(constructionInfo);
+    internalData->rigidBody = MakeShared<btRigidBody>(constructionInfo);
     internalData->rigidBody->setActivationState(DISABLE_DEACTIVATION); // TEMP
     internalData->rigidBody->setWorldTransform(btTransform);
 
@@ -295,7 +295,7 @@ void BulletPhysicsAdapter::ApplyForceToBody(const RigidBody* rigidBody, const Ve
     internalData->rigidBody->applyCentralForce(ToBtVector(force));
 }
 
-void BulletPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerConfig& config, RC<void>& outPhysicsHandle)
+void BulletPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerConfig& config, SharedPtr<void>& outPhysicsHandle)
 {
     Assert(m_dynamicsWorld != nullptr);
 
@@ -307,9 +307,9 @@ void BulletPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerC
 
     CapsulePhysicsShape* capsuleShape = static_cast<CapsulePhysicsShape*>(config.shape.Get());
 
-    RC<CharacterControllerInternalData> internalData = MakeRefCountedPtr<CharacterControllerInternalData>();
-    internalData->capsuleShape = MakeRefCountedPtr<btCapsuleShape>(capsuleShape->GetRadius(), capsuleShape->GetHeight());
-    internalData->ghostObject = MakeRefCountedPtr<btPairCachingGhostObject>();
+    SharedPtr<CharacterControllerInternalData> internalData = MakeShared<CharacterControllerInternalData>();
+    internalData->capsuleShape = MakeShared<btCapsuleShape>(capsuleShape->GetRadius(), capsuleShape->GetHeight());
+    internalData->ghostObject = MakeShared<btPairCachingGhostObject>();
 
     btTransform startTransform;
     startTransform.setIdentity();
@@ -318,7 +318,7 @@ void BulletPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerC
     internalData->ghostObject->setCollisionShape(internalData->capsuleShape.Get());
     internalData->ghostObject->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
 
-    internalData->kcc = MakeRefCountedPtr<btKinematicCharacterController>(
+    internalData->kcc = MakeShared<btKinematicCharacterController>(
         internalData->ghostObject.Get(),
         internalData->capsuleShape.Get(),
         config.stepHeight);
@@ -338,7 +338,7 @@ void BulletPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerC
     outPhysicsHandle = std::move(internalData);
 }
 
-void BulletPhysicsAdapter::OnCharacterControllerRemoved(RC<void>& physicsHandle)
+void BulletPhysicsAdapter::OnCharacterControllerRemoved(SharedPtr<void>& physicsHandle)
 {
     Assert(m_dynamicsWorld != nullptr);
 
@@ -354,7 +354,7 @@ void BulletPhysicsAdapter::OnCharacterControllerRemoved(RC<void>& physicsHandle)
     physicsHandle.Reset();
 }
 
-void BulletPhysicsAdapter::SetCharacterWalkDirection(const RC<void>& physicsHandle, const Vec3f& velocity)
+void BulletPhysicsAdapter::SetCharacterWalkDirection(const SharedPtr<void>& physicsHandle, const Vec3f& velocity)
 {
     CharacterControllerInternalData* internalData = static_cast<CharacterControllerInternalData*>(physicsHandle.GetVoid());
 
@@ -366,7 +366,7 @@ void BulletPhysicsAdapter::SetCharacterWalkDirection(const RC<void>& physicsHand
     internalData->kcc->setWalkDirection(ToBtVector(velocity));
 }
 
-void BulletPhysicsAdapter::ApplyCharacterJump(const RC<void>& physicsHandle)
+void BulletPhysicsAdapter::ApplyCharacterJump(const SharedPtr<void>& physicsHandle)
 {
     CharacterControllerInternalData* internalData = static_cast<CharacterControllerInternalData*>(physicsHandle.GetVoid());
 
@@ -381,7 +381,7 @@ void BulletPhysicsAdapter::ApplyCharacterJump(const RC<void>& physicsHandle)
     }
 }
 
-void BulletPhysicsAdapter::GetCharacterState(const RC<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround)
+void BulletPhysicsAdapter::GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround)
 {
     CharacterControllerInternalData* internalData = static_cast<CharacterControllerInternalData*>(physicsHandle.GetVoid());
 

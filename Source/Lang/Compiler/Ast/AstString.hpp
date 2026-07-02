@@ -22,7 +22,7 @@ public:
 
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
 
-    virtual RC<AstStatement> Clone() const override;
+    virtual SharedPtr<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool IsNumber() const override;
@@ -45,9 +45,9 @@ public:
 private:
     String m_value;
 
-    RC<AstString> CloneImpl() const
+    SharedPtr<AstString> CloneImpl() const
     {
-        return RC<AstString>(new AstString(
+        return SharedPtr<AstString>(new AstString(
             m_value,
             m_location));
     }

@@ -22,8 +22,8 @@
 namespace Hyperion {
 
 AstIsExpression::AstIsExpression(
-    const RC<AstExpression>& target,
-    const RC<AstTypeSpecifier>& typeSpec,
+    const SharedPtr<AstExpression>& target,
+    const SharedPtr<AstTypeSpecifier>& typeSpec,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_target(target),
@@ -143,7 +143,7 @@ void AstIsExpression::Optimize(AstVisitor* visitor, Module* mod)
     m_typeSpec->Optimize(visitor, mod);
 }
 
-RC<AstStatement> AstIsExpression::Clone() const
+SharedPtr<AstStatement> AstIsExpression::Clone() const
 {
     return CloneImpl();
 }

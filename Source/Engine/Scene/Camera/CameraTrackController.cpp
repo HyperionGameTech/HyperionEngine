@@ -17,7 +17,7 @@ CameraTrackController::CameraTrackController()
 {
 }
 
-CameraTrackController::CameraTrackController(RC<CameraTrack> cameraTrack)
+CameraTrackController::CameraTrackController(SharedPtr<CameraTrack> cameraTrack)
     : PerspectiveCameraController(),
       m_cameraTrack(std::move(cameraTrack)),
       m_trackTime(0.0)

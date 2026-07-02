@@ -113,7 +113,7 @@ const Handle<Texture>& FontAtlasTextureSet::GetAtlasForPixelSize(uint32 pixelSiz
 
 #pragma region FontAtlas
 
-FontAtlas::FontAtlas(Name name, const RC<FontFace>& face)
+FontAtlas::FontAtlas(Name name, const SharedPtr<FontFace>& face)
     : AssetObject(name),
       m_face(face),
       m_symbolList(GetDefaultSymbolList())
@@ -286,7 +286,7 @@ Result FontAtlas::RenderAtlasTextures(float mainAtlasScale, float maxScale, floa
     return {};
 }
 
-Vec2i FontAtlas::FindMaxDimensions(const RC<FontFace>& face) const
+Vec2i FontAtlas::FindMaxDimensions(const SharedPtr<FontFace>& face) const
 {
     Vec2i highestDimensions = { 0, 0 };
 

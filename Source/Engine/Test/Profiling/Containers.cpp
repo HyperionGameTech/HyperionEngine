@@ -280,7 +280,7 @@ void ProfileSlimArrayInsertion(bool setupOnly)
 
     const Dataset& data = ActiveDataset();
 
-    TSlimArray<uint32, TestAllocator> array;
+    SlimArray<uint32, TestAllocator> array;
 
     for (size_t i = 0; i < data.elementCount; ++i)
     {
@@ -292,13 +292,13 @@ void ProfileSlimArrayInsertion(bool setupOnly)
 
 void ProfileSlimArrayIteration(bool setupOnly)
 {
-    static TSlimArray<uint32, TestAllocator> s_array;
+    static SlimArray<uint32, TestAllocator> s_array;
 
     if (setupOnly)
     {
         const Dataset& data = ActiveDataset();
 
-        TSlimArray<uint32, TestAllocator> temp;
+        SlimArray<uint32, TestAllocator> temp;
         temp.Reserve(static_cast<uint32>(data.elementCount));
 
         for (size_t i = 0; i < data.elementCount; ++i)
@@ -322,13 +322,13 @@ void ProfileSlimArrayIteration(bool setupOnly)
 
 void ProfileSlimArrayFind(bool setupOnly)
 {
-    static TSlimArray<uint32, TestAllocator> s_array;
+    static SlimArray<uint32, TestAllocator> s_array;
 
     if (setupOnly)
     {
         const Dataset& data = ActiveDataset();
 
-        TSlimArray<uint32, TestAllocator> temp;
+        SlimArray<uint32, TestAllocator> temp;
         temp.Reserve(static_cast<uint32>(data.elementCount));
 
         for (size_t i = 0; i < data.elementCount; ++i)
@@ -356,13 +356,13 @@ void ProfileSlimArrayFind(bool setupOnly)
 
 void ProfileSlimArrayRemoval(bool setupOnly)
 {
-    static TSlimArray<uint32, TestAllocator> s_source;
+    static SlimArray<uint32, TestAllocator> s_source;
 
     if (setupOnly)
     {
         const Dataset& data = ActiveDataset();
 
-        TSlimArray<uint32, TestAllocator> temp;
+        SlimArray<uint32, TestAllocator> temp;
         temp.Reserve(static_cast<uint32>(data.elementCount));
 
         for (size_t i = 0; i < data.elementCount; ++i)
@@ -376,7 +376,7 @@ void ProfileSlimArrayRemoval(bool setupOnly)
     }
 
     const Dataset& data = ActiveDataset();
-    TSlimArray<uint32, TestAllocator> array = s_source;
+    SlimArray<uint32, TestAllocator> array = s_source;
 
     for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {

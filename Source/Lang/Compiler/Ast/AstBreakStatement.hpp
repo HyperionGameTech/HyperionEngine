@@ -21,7 +21,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual RC<AstStatement> Clone() const override;
+    virtual SharedPtr<AstStatement> Clone() const override;
 
     virtual HashCode GetHashCode() const override
     {
@@ -31,9 +31,9 @@ public:
 private:
     uint32 m_numPops;
 
-    RC<AstBreakStatement> CloneImpl() const
+    SharedPtr<AstBreakStatement> CloneImpl() const
     {
-        return RC<AstBreakStatement>(new AstBreakStatement(
+        return SharedPtr<AstBreakStatement>(new AstBreakStatement(
             m_location));
     }
 };

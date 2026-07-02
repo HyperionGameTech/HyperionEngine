@@ -190,7 +190,7 @@ SymbolType::SymbolType(
     const String& name,
     SymbolTypeClass typeClass,
     const SymbolType* base,
-    const RC<AstExpression>& defaultValue,
+    const SharedPtr<AstExpression>& defaultValue,
     Array<SymbolTypeMember>&& members,
     Array<SymbolTypeMember>&& staticMembers)
     : m_name(name),
@@ -1145,7 +1145,7 @@ SymbolType* SymbolType::Placeholder(const String& name)
 
 SymbolType* SymbolType::Primitive(
     const String& name,
-    const RC<AstExpression>& defaultValue,
+    const SharedPtr<AstExpression>& defaultValue,
     ConstantBitSize bitSize,
     Array<SymbolTypeMember>&& members,
     Array<SymbolTypeMember>&& staticMembers)
@@ -1502,7 +1502,7 @@ SymbolType* SymbolType::GenericInstance(
 
     if (genericType)
     {
-        RC<AstExpression> defaultValue = CloneAstNode(genericType->GetDefaultValue());
+        SharedPtr<AstExpression> defaultValue = CloneAstNode(genericType->GetDefaultValue());
         result->SetDefaultValue(defaultValue);
 
         result->SetFlags(genericType->GetFlags());

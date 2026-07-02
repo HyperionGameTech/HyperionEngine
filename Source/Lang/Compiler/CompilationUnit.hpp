@@ -9,7 +9,7 @@
 #include <Core/Containers/String.hpp>
 #include <Core/Containers/Map.hpp>
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 #include <Core/Memory/UniquePtr.hpp>
 #include <Core/Memory/Pimpl.hpp>
 

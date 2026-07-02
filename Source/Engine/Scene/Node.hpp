@@ -9,7 +9,7 @@
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/String.hpp>
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Utilities/Uuid.hpp>
 #include <Core/Utilities/EnumFlags.hpp>

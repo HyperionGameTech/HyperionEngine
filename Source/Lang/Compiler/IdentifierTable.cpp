@@ -25,24 +25,24 @@ int IdentifierTable::CountUsedVariables() const
     return (int)usedVariables.Size();
 }
 
-const RC<Identifier>& IdentifierTable::AddAlias(const String& name, Identifier* aliasee)
+const SharedPtr<Identifier>& IdentifierTable::AddAlias(const String& name, Identifier* aliasee)
 {
     Assert(aliasee != nullptr);
 
-    return identifiers.PushBack(RC<Identifier>(new Identifier(
+    return identifiers.PushBack(SharedPtr<Identifier>(new Identifier(
         name,
         aliasee->GetIndex(),
         aliasee->GetFlags() | IdentifierFlags::ALIAS,
         aliasee)));
 }
 
-const RC<Identifier>& IdentifierTable::AddIdentifier(
+const SharedPtr<Identifier>& IdentifierTable::AddIdentifier(
     const String& name,
     int flags,
-    const RC<AstExpression>& currentValue,
+    const SharedPtr<AstExpression>& currentValue,
     const SymbolType* symbolType)
 {
-    RC<Identifier> identifier(new Identifier(
+    SharedPtr<Identifier> identifier(new Identifier(
         name,
         identifierIndex++,
         flags));
@@ -72,7 +72,7 @@ const RC<Identifier>& IdentifierTable::AddIdentifier(
     return identifiers.PushBack(identifier);
 }
 
-bool IdentifierTable::AddIdentifier(const RC<Identifier>& identifier)
+bool IdentifierTable::AddIdentifier(const SharedPtr<Identifier>& identifier)
 {
     if (!identifier)
     {
@@ -95,9 +95,9 @@ bool IdentifierTable::AddIdentifier(const RC<Identifier>& identifier)
     return true;
 }
 
-RC<Identifier> IdentifierTable::LookUpIdentifier(const String& name)
+SharedPtr<Identifier> IdentifierTable::LookUpIdentifier(const String& name)
 {
-    for (const RC<Identifier>& identifier : identifiers)
+    for (const SharedPtr<Identifier>& identifier : identifiers)
     {
         if (identifier != nullptr)
         {

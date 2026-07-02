@@ -36,18 +36,18 @@ FunctionBuilder ModuleBuilder::Function(const String& name)
     return FunctionBuilder(name, this);
 }
 
-RC<AstModuleAccess> ModuleBuilder::Build(const RC<AstExpression>& expr)
+SharedPtr<AstModuleAccess> ModuleBuilder::Build(const SharedPtr<AstExpression>& expr)
 {
     if (m_parent != nullptr)
     {
-        return RC<AstModuleAccess>(new AstModuleAccess(
+        return SharedPtr<AstModuleAccess>(new AstModuleAccess(
             m_name,
             m_parent->Build(expr),
             SourceLocation::Eof()));
     }
     else
     {
-        return RC<AstModuleAccess>(new AstModuleAccess(
+        return SharedPtr<AstModuleAccess>(new AstModuleAccess(
             m_name,
             expr,
             SourceLocation::Eof()));
@@ -69,10 +69,10 @@ FunctionBuilder::FunctionBuilder(
 {
 }
 
-RC<AstExpression> FunctionBuilder::Call(const Array<RC<AstArgument>>& args)
+SharedPtr<AstExpression> FunctionBuilder::Call(const Array<SharedPtr<AstArgument>>& args)
 {
-    RC<AstCallExpression> call(new AstCallExpression(
-        RC<AstVariable>(new AstVariable(
+    SharedPtr<AstCallExpression> call(new AstCallExpression(
+        SharedPtr<AstVariable>(new AstVariable(
             m_name,
             SourceLocation::Eof())),
         args,

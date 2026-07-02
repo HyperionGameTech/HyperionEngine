@@ -70,7 +70,7 @@
     </Expand>
   </Type>
 
-  <Type Name="Hyperion::containers::TFatArray&lt;*,*&gt;">
+  <Type Name="Hyperion::containers::FatArray&lt;*,*&gt;">
     <DisplayString>{{ Size={m_size - m_startOffset} Dynamic={m_allocation.isDynamic} }}</DisplayString>
 
     <Expand>
@@ -110,7 +110,7 @@
 
 
 
-  <Type Name="Hyperion::containers::TSlimArray&lt;*,*&gt;">
+  <Type Name="Hyperion::containers::SlimArray&lt;*,*&gt;">
     <DisplayString>{{ Size={size} }}</DisplayString>
     <Expand>
       <Item Name="[Count]">(size)</Item>
@@ -284,7 +284,7 @@
     </Expand>
   </Type>
 
-  <Type Name="Hyperion::memory::RefCountedPtr&lt;*,*&gt;">
+  <Type Name="Hyperion::memory::SharedPtr&lt;*,*&gt;">
     <DisplayString>{{ {($T1 *)((Hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;pObj} }}</DisplayString>
     <Expand>
       <Item Name="[Strong Refs]">((Hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;strong</Item>
@@ -293,7 +293,7 @@
     </Expand>
   </Type>
 
-  <Type Name="Hyperion::memory::WeakRefCountedPtr&lt;*,*&gt;">
+  <Type Name="Hyperion::memory::WeakPtr&lt;*,*&gt;">
     <DisplayString>{{ {($T1 *)((Hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;pObj} }}</DisplayString>
     <Expand>
       <Item Name="[Strong Refs]">((Hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;strong</Item>
@@ -381,7 +381,7 @@
     </Expand>
   </Type>
 
-  <Type Name="Hyperion::memory::TByteBuffer&lt;*,*&gt;">
+  <Type Name="Hyperion::memory::ByteBuffer&lt;*,*&gt;">
     <DisplayString>{{ Size={m_size} }}</DisplayString>
     <Expand>
       <Item Name="[Size]">m_size</Item>

@@ -9,7 +9,7 @@
 #include <Core/Name/Name.hpp>
 
 #include <Core/Memory/ByteBuffer.hpp>
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 #include <Core/Memory/UniquePtr.hpp>
 
 #include <Core/Reflection/Class.hpp>

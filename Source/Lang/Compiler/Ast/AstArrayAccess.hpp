@@ -18,13 +18,13 @@ class AstArrayAccess : public AstExpression
 
 public:
     AstArrayAccess(
-        const RC<AstExpression>& target,
-        const RC<AstExpression>& index,
+        const SharedPtr<AstExpression>& target,
+        const SharedPtr<AstExpression>& index,
         bool operatorOverloadingEnabled,
         const SourceLocation& location);
     virtual ~AstArrayAccess() = default;
 
-    HYP_FORCE_INLINE const RC<AstExpression>& GetIndex() const
+    HYP_FORCE_INLINE const SharedPtr<AstExpression>& GetIndex() const
     {
         return m_index;
     }
@@ -43,7 +43,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual RC<AstStatement> Clone() const override;
+    virtual SharedPtr<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -65,18 +65,18 @@ public:
     }
 
 private:
-    RC<AstExpression> m_target;
-    RC<AstExpression> m_index;
+    SharedPtr<AstExpression> m_target;
+    SharedPtr<AstExpression> m_index;
     bool m_operatorOverloadingEnabled;
 
     // set while analyzing
-    RC<AstExpression> m_overrideExpr;
-    RC<AstVariableDeclaration> m_tempArrayStoreVarDecl;
+    SharedPtr<AstExpression> m_overrideExpr;
+    SharedPtr<AstVariableDeclaration> m_tempArrayStoreVarDecl;
     const SymbolType* m_exprType;
 
-    RC<AstArrayAccess> CloneImpl() const
+    SharedPtr<AstArrayAccess> CloneImpl() const
     {
-        return RC<AstArrayAccess>(new AstArrayAccess(
+        return SharedPtr<AstArrayAccess>(new AstArrayAccess(
             CloneAstNode(m_target),
             CloneAstNode(m_index),
             m_operatorOverloadingEnabled,

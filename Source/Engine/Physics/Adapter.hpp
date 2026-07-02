@@ -8,7 +8,7 @@
 
 #include <Core/Reflection/Handle.hpp>
 #include <Core/Math/Vector3.hpp>
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 namespace Hyperion {
 
@@ -80,27 +80,27 @@ public:
         GetDerivedAdapter()->DerivedAdapter::ApplyForceToBody(rigidBody, force);
     }
 
-    void OnCharacterControllerAdded(const CharacterControllerConfig& config, RC<void>& outPhysicsHandle)
+    void OnCharacterControllerAdded(const CharacterControllerConfig& config, SharedPtr<void>& outPhysicsHandle)
     {
         GetDerivedAdapter()->DerivedAdapter::OnCharacterControllerAdded(config, outPhysicsHandle);
     }
 
-    void OnCharacterControllerRemoved(RC<void>& physicsHandle)
+    void OnCharacterControllerRemoved(SharedPtr<void>& physicsHandle)
     {
         GetDerivedAdapter()->DerivedAdapter::OnCharacterControllerRemoved(physicsHandle);
     }
 
-    void SetCharacterWalkDirection(const RC<void>& physicsHandle, const Vec3f& velocity)
+    void SetCharacterWalkDirection(const SharedPtr<void>& physicsHandle, const Vec3f& velocity)
     {
         GetDerivedAdapter()->DerivedAdapter::SetCharacterWalkDirection(physicsHandle, velocity);
     }
 
-    void ApplyCharacterJump(const RC<void>& physicsHandle)
+    void ApplyCharacterJump(const SharedPtr<void>& physicsHandle)
     {
         GetDerivedAdapter()->DerivedAdapter::ApplyCharacterJump(physicsHandle);
     }
 
-    void GetCharacterState(const RC<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround)
+    void GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround)
     {
         GetDerivedAdapter()->DerivedAdapter::GetCharacterState(physicsHandle, outTranslation, outIsOnGround);
     }

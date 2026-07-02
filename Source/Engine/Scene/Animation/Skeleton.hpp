@@ -9,7 +9,7 @@
 #include <Asset/AssetObject.hpp>
 #include <Asset/AssetReference.hpp>
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Containers/Array.hpp>
 

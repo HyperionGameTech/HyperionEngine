@@ -16,7 +16,7 @@
 #include <Core/Containers/Map.hpp>
 
 #include <Core/Memory/UniquePtr.hpp>
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 #include <Core/Memory/ByteBuffer.hpp>
 
 #include <Core/Functional/Proc.hpp>
@@ -124,10 +124,10 @@ public:
 
 private:
     // for the thread
-    bool PollForConnections(Array<RC<SocketClient>>& outConnections);
+    bool PollForConnections(Array<SharedPtr<SocketClient>>& outConnections);
 
     // for the thread
-    void AddConnection(RC<SocketClient>&& connection);
+    void AddConnection(SharedPtr<SocketClient>&& connection);
     bool RemoveConnection(Name clientName);
 
     String m_name;
@@ -135,7 +135,7 @@ private:
     UniquePtr<SocketServerThread> m_thread;
 
     // SocketServerThread controls the connections list
-    TMap<Name, RC<SocketClient>> m_connections;
+    TMap<Name, SharedPtr<SocketClient>> m_connections;
     Mutex m_connectionsMutex;
 };
 

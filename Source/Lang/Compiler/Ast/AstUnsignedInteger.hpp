@@ -16,7 +16,7 @@ public:
 
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
 
-    virtual RC<AstStatement> Clone() const override;
+    virtual SharedPtr<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool IsNumber() const override;
@@ -29,9 +29,9 @@ public:
     }
 
 private:
-    RC<AstUnsignedInteger> CloneImpl() const
+    SharedPtr<AstUnsignedInteger> CloneImpl() const
     {
-        return RC<AstUnsignedInteger>(new AstUnsignedInteger(
+        return SharedPtr<AstUnsignedInteger>(new AstUnsignedInteger(
             m_constantValue.AsUInt(),
             m_constantValue.bitSize,
             m_location));

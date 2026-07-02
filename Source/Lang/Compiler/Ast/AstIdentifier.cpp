@@ -37,11 +37,11 @@ void AstIdentifier::PerformLookup(AstVisitor* visitor, Module* mod)
         return;
     }
 
-    if (Variant<RC<Identifier>, const SymbolType*> identifierOrSymbolType = mod->LookUpIdentifierOrSymbolType(m_name); identifierOrSymbolType.HasValue())
+    if (Variant<SharedPtr<Identifier>, const SymbolType*> identifierOrSymbolType = mod->LookUpIdentifierOrSymbolType(m_name); identifierOrSymbolType.HasValue())
     {
-        if (identifierOrSymbolType.Is<RC<Identifier>>())
+        if (identifierOrSymbolType.Is<SharedPtr<Identifier>>())
         {
-            m_properties.m_identifier = identifierOrSymbolType.Get<RC<Identifier>>();
+            m_properties.m_identifier = identifierOrSymbolType.Get<SharedPtr<Identifier>>();
             m_properties.SetIdentifierType(IDENTIFIER_TYPE_VARIABLE);
         }
         else if (identifierOrSymbolType.Is<const SymbolType*>())
@@ -117,7 +117,7 @@ int AstIdentifier::GetStackOffset(int stackSize) const
 
 const AstExpression* AstIdentifier::GetValueOf() const
 {
-    if (const RC<Identifier>& ident = m_properties.GetIdentifier())
+    if (const SharedPtr<Identifier>& ident = m_properties.GetIdentifier())
     {
         if (((ident->GetFlags() & IdentifierFlags::CONSTANT) || (ident->GetFlags() & IdentifierFlags::GENERIC))
             && !(ident->GetFlags() & IdentifierFlags::ARGUMENT))
@@ -139,7 +139,7 @@ const AstExpression* AstIdentifier::GetValueOf() const
 
 const AstExpression* AstIdentifier::GetDeepValueOf() const
 {
-    if (const RC<Identifier>& ident = m_properties.GetIdentifier())
+    if (const SharedPtr<Identifier>& ident = m_properties.GetIdentifier())
     {
         if (((ident->GetFlags() & IdentifierFlags::CONSTANT) || (ident->GetFlags() & IdentifierFlags::GENERIC))
             && !(ident->GetFlags() & IdentifierFlags::ARGUMENT))
@@ -166,7 +166,7 @@ const String& AstIdentifier::GetName() const
 
 ConstantValue AstIdentifier::GetConstantValue() const
 {
-    if (const RC<Identifier>& identifier = m_properties.GetIdentifier())
+    if (const SharedPtr<Identifier>& identifier = m_properties.GetIdentifier())
     {
         const Identifier* unaliased = identifier->Unalias();
         Assert(unaliased != nullptr);
@@ -183,7 +183,7 @@ ConstantValue AstIdentifier::GetConstantValue() const
             return ConstantValue(INVALID_CONSTANT_NUMBER);
         }
 
-        if (const RC<AstExpression>& currentValue = unaliased->GetCurrentValue())
+        if (const SharedPtr<AstExpression>& currentValue = unaliased->GetCurrentValue())
         {
             return currentValue->GetConstantValue();
         }

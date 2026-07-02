@@ -476,7 +476,7 @@ extern "C"
             return false;
         }
 
-        if (RC<dotnet::ManagedClass> managedClass = cls->GetManagedClass())
+        if (SharedPtr<dotnet::ManagedClass> managedClass = cls->GetManagedClass())
         {
             Assert(managedClass->GetMarshalObjectFunction() != nullptr);
 

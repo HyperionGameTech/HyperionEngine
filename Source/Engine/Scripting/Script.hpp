@@ -7,7 +7,7 @@
 #include <Core/Utilities/EnumFlags.hpp>
 #include <Core/Utilities/Uuid.hpp>
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 #include <Core/Memory/UniquePtr.hpp>
 
 #include <Core/Reflection/ObjectMacros.hpp>

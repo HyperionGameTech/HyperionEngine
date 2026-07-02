@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/FileSystem/FilePath.hpp>
 
@@ -99,7 +99,7 @@ public:
         return m_isShuttingDown;
     }
 
-    RC<dotnet::Assembly> LoadAssembly(const char* path) const;
+    SharedPtr<dotnet::Assembly> LoadAssembly(const char* path) const;
     bool UnloadAssembly(dotnet::ManagedGuid guid) const;
     bool IsCoreAssembly(const dotnet::Assembly* assembly) const;
 

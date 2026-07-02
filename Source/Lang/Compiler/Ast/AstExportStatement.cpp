@@ -16,7 +16,7 @@
 namespace Hyperion {
 
 AstExportStatement::AstExportStatement(
-    const RC<AstStatement>& stmt,
+    const SharedPtr<AstStatement>& stmt,
     const SourceLocation& location)
     : AstStatement(location),
       m_stmt(stmt)
@@ -77,7 +77,7 @@ void AstExportStatement::Optimize(AstVisitor* visitor, Module* mod)
     m_stmt->Optimize(visitor, mod);
 }
 
-RC<AstStatement> AstExportStatement::Clone() const
+SharedPtr<AstStatement> AstExportStatement::Clone() const
 {
     return CloneImpl();
 }

@@ -28,8 +28,8 @@ namespace Hyperion {
 
 AstVariableDeclaration::AstVariableDeclaration(
     const String& name,
-    const RC<AstTypeSpecifier>& typeSpec,
-    const RC<AstExpression>& assignment,
+    const SharedPtr<AstTypeSpecifier>& typeSpec,
+    const SharedPtr<AstExpression>& assignment,
     EnumFlags<IdentifierFlags> flags,
     const SourceLocation& location)
     : AstDeclaration(name, flags, location),
@@ -97,7 +97,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
                 // generic/non-concrete types that have default values
                 // will get assigned to their default value without causing
                 // an error
-                if (const RC<AstExpression>& defaultValue = m_symbolType->GetDefaultValue())
+                if (const SharedPtr<AstExpression>& defaultValue = m_symbolType->GetDefaultValue())
                 {
                     // Assign variable to the default value for the specified type.
                     m_realAssignment = CloneAstNode(defaultValue);
@@ -178,8 +178,8 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
                         {
                             member.Reset(new AstAsExpression(
                                 CloneAstNode(member),
-                                RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                                    RC<AstTypeRef>(new AstTypeRef(dstElemType, member->GetLocation())),
+                                SharedPtr<AstTypeSpecifier>(new AstTypeSpecifier(
+                                    SharedPtr<AstTypeRef>(new AstTypeRef(dstElemType, member->GetLocation())),
                                     member->GetLocation())),
                                 member->GetLocation()));
                         }
@@ -283,7 +283,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
                     // insert cast if needed
                     if ((doLiteralConversion || !m_realAssignment->GetExprType()->TypeEqual(*m_symbolType)) && !(m_flags & IdentifierFlags::LAX))
                     {
-                        RC<AstAsExpression> asExpr(new AstAsExpression(
+                        SharedPtr<AstAsExpression> asExpr(new AstAsExpression(
                             CloneAstNode(m_realAssignment),
                             m_typeSpec,
                             m_realAssignment->GetLocation()));
@@ -427,7 +427,7 @@ void AstVariableDeclaration::Optimize(AstVisitor* visitor, Module* mod)
     }
 }
 
-RC<AstStatement> AstVariableDeclaration::Clone() const
+SharedPtr<AstStatement> AstVariableDeclaration::Clone() const
 {
     return CloneImpl();
 }

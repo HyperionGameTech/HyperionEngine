@@ -34,7 +34,7 @@
 namespace Hyperion {
 
 AstArrayExpression::AstArrayExpression(
-    const Array<RC<AstExpression>>& members,
+    const Array<SharedPtr<AstExpression>>& members,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_members(members),
@@ -116,8 +116,8 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
                 // replace with a cast to the held type
                 replacedMember.Reset(new AstAsExpression(
                     replacedMember,
-                    RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                        RC<AstTypeRef>(new AstTypeRef(m_heldType, member->GetLocation())),
+                    SharedPtr<AstTypeSpecifier>(new AstTypeSpecifier(
+                        SharedPtr<AstTypeRef>(new AstTypeRef(m_heldType, member->GetLocation())),
                         member->GetLocation())),
                     member->GetLocation()));
             }
@@ -127,8 +127,8 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
     }
 
     AstTemplateInstantiation genericInst(
-        RC<AstTypeRef>(new AstTypeRef(BuiltinTypes::s_arrayType, m_location)),
-        { RC<AstTypeSpecifier>(new AstTypeSpecifier(RC<AstTypeRef>(new AstTypeRef(m_heldType, m_location)), m_location)) },
+        SharedPtr<AstTypeRef>(new AstTypeRef(BuiltinTypes::s_arrayType, m_location)),
+        { SharedPtr<AstTypeSpecifier>(new AstTypeSpecifier(SharedPtr<AstTypeRef>(new AstTypeRef(m_heldType, m_location)), m_location)) },
         nullptr, // no function return type
         m_location);
 
@@ -270,7 +270,7 @@ void AstArrayExpression::Optimize(AstVisitor* visitor, Module* mod)
     }
 }
 
-RC<AstStatement> AstArrayExpression::Clone() const
+SharedPtr<AstStatement> AstArrayExpression::Clone() const
 {
     return CloneImpl();
 }

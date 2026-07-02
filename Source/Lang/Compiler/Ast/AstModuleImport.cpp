@@ -18,7 +18,7 @@ static constexpr const char* WildcardImport = "*";
 
 AstModuleImportPart::AstModuleImportPart(
     const String& left,
-    const Array<RC<AstModuleImportPart>>& rightParts,
+    const Array<SharedPtr<AstModuleImportPart>>& rightParts,
     const SourceLocation& location)
     : AstStatement(location),
       m_left(left),
@@ -46,7 +46,7 @@ void AstModuleImportPart::Visit(AstVisitor* visitor, Module* mod)
         // Import all identifiers and types
         Scope& scope = mod->scopeTree.Top();
 
-        for (const RC<Identifier>& ident : scope.identifierTable.identifiers)
+        for (const SharedPtr<Identifier>& ident : scope.identifierTable.identifiers)
         {
             m_foundSymbols.PushBack(Symbol(ident));
         }
@@ -74,7 +74,7 @@ void AstModuleImportPart::Visit(AstVisitor* visitor, Module* mod)
         else
         {
             // get nested items
-            for (const RC<AstModuleImportPart>& part : m_rightParts)
+            for (const SharedPtr<AstModuleImportPart>& part : m_rightParts)
             {
                 Assert(part != nullptr);
                 part->Visit(visitor, thisModule);
@@ -114,13 +114,13 @@ void AstModuleImportPart::Optimize(AstVisitor* visitor, Module* mod)
 {
 }
 
-RC<AstStatement> AstModuleImportPart::Clone() const
+SharedPtr<AstStatement> AstModuleImportPart::Clone() const
 {
     return CloneImpl();
 }
 
 AstModuleImport::AstModuleImport(
-    const Array<RC<AstModuleImportPart>>& parts,
+    const Array<SharedPtr<AstModuleImportPart>>& parts,
     const SourceLocation& location)
     : AstImport(location),
       m_parts(parts)
@@ -131,7 +131,7 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
 {
     Assert(!m_parts.Empty());
 
-    const RC<AstModuleImportPart>& first = m_parts[0];
+    const SharedPtr<AstModuleImportPart>& first = m_parts[0];
     Assert(first != nullptr);
 
     bool opened = false;
@@ -236,7 +236,7 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
     {
         Array<Symbol> pulledInSymbols;
 
-        for (const RC<AstModuleImportPart>& part : m_parts)
+        for (const SharedPtr<AstModuleImportPart>& part : m_parts)
         {
             Assert(part != nullptr);
             part->Visit(visitor, mod);
@@ -246,9 +246,9 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
 
         for (const Symbol& symbol : pulledInSymbols)
         {
-            if (symbol.Is<RC<Identifier>>())
+            if (symbol.Is<SharedPtr<Identifier>>())
             {
-                const RC<Identifier>& identifier = symbol.Get<RC<Identifier>>();
+                const SharedPtr<Identifier>& identifier = symbol.Get<SharedPtr<Identifier>>();
 
                 if (!mod->scopeTree.Top().identifierTable.AddIdentifier(identifier))
                 {
@@ -308,7 +308,7 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
     }
 }
 
-RC<AstStatement> AstModuleImport::Clone() const
+SharedPtr<AstStatement> AstModuleImport::Clone() const
 {
     return CloneImpl();
 }

@@ -85,7 +85,7 @@ ObjectInitializerGuardBase::~ObjectInitializerGuardBase()
             ScriptObjectResource* scriptObjectResource = target->GetScriptObjectResource();
 
 #ifdef HYP_DOTNET
-            if (RC<dotnet::ManagedClass> managedClass = cls->GetManagedClass())
+            if (SharedPtr<dotnet::ManagedClass> managedClass = cls->GetManagedClass())
             {
                 if (!scriptObjectResource)
                 {

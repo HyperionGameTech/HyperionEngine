@@ -164,7 +164,7 @@ Task<HTTPResponse> HTTPRequest::Send()
 {
     HYP_SCOPE;
 
-    RC<NetRequestThread> netRequestThread = GetGlobalNetRequestThread();
+    SharedPtr<NetRequestThread> netRequestThread = GetGlobalNetRequestThread();
 
     if (!netRequestThread)
     {

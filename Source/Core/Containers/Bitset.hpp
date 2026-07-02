@@ -88,7 +88,7 @@ private:
     };
 
 public:
-    using Blocks = TFatArray<BlockType, AllocatorType>;
+    using Blocks = FatArray<BlockType, AllocatorType>;
 
     struct ConstIterator : IteratorBase<true>
     {

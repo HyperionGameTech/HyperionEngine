@@ -106,7 +106,7 @@ public:
     void FlushBatched();
 
     GpuBuffer* gpuBuffer;
-    TByteBuffer<RenderAllocator> cpuBuffer;
+    memory::ByteBuffer<RenderAllocator> cpuBuffer;
 
     size_t elementSize;
 

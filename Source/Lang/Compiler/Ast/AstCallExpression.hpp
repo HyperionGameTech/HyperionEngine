@@ -16,18 +16,18 @@ class AstCallExpression : public AstExpression
 
 public:
     AstCallExpression(
-        const RC<AstExpression>& expr,
-        const Array<RC<AstArgument>>& args,
+        const SharedPtr<AstExpression>& expr,
+        const Array<SharedPtr<AstArgument>>& args,
         bool insertSelf,
         const SourceLocation& location);
     virtual ~AstCallExpression() = default;
 
-    HYP_FORCE_INLINE Array<RC<AstArgument>>& GetArguments()
+    HYP_FORCE_INLINE Array<SharedPtr<AstArgument>>& GetArguments()
     {
         return m_args;
     }
 
-    HYP_FORCE_INLINE const Array<RC<AstArgument>>& GetArguments() const
+    HYP_FORCE_INLINE const Array<SharedPtr<AstArgument>>& GetArguments() const
     {
         return m_args;
     }
@@ -41,7 +41,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual RC<AstStatement> Clone() const override;
+    virtual SharedPtr<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -66,18 +66,18 @@ public:
     }
 
 protected:
-    RC<AstExpression> m_expr;
-    Array<RC<AstArgument>> m_args;
+    SharedPtr<AstExpression> m_expr;
+    Array<SharedPtr<AstArgument>> m_args;
     bool m_insertSelf;
 
     // set while analyzing
-    RC<AstExpression> m_overrideExpr;
-    Array<RC<AstArgument>> m_substitutedArgs;
+    SharedPtr<AstExpression> m_overrideExpr;
+    Array<SharedPtr<AstArgument>> m_substitutedArgs;
     const SymbolType* m_returnType;
 
-    RC<AstCallExpression> CloneImpl() const
+    SharedPtr<AstCallExpression> CloneImpl() const
     {
-        return RC<AstCallExpression>(new AstCallExpression(
+        return SharedPtr<AstCallExpression>(new AstCallExpression(
             CloneAstNode(m_expr),
             CloneAllAstNodes(m_args),
             m_insertSelf,

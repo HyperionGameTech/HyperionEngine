@@ -85,7 +85,7 @@ public:
         If thisScopeOnly is set to true, only the current scope will be
         searched.
     */
-    RC<Identifier> LookUpIdentifier(
+    SharedPtr<Identifier> LookUpIdentifier(
         const String& name,
         bool thisScopeOnly,
         bool outsideModules = HYP_SCRIPT_ALLOW_IDENTIFIERS_OTHER_MODULES);
@@ -94,7 +94,7 @@ public:
         Will only search the number of depth levels it is given.
         Pass `1` for this scope only.
     */
-    RC<Identifier> LookUpIdentifierDepth(const String& name, int depthLevel);
+    SharedPtr<Identifier> LookUpIdentifierDepth(const String& name, int depthLevel);
 
     /** Look up a symbol in this module by name */
     const SymbolType* LookupSymbolType(
@@ -102,7 +102,7 @@ public:
         bool includePlaceholderTypes = true,
         bool thisScopeOnly = false);
 
-    Variant<RC<Identifier>, const SymbolType*> LookUpIdentifierOrSymbolType(
+    Variant<SharedPtr<Identifier>, const SymbolType*> LookUpIdentifierOrSymbolType(
         const String& name,
         bool includePlaceholderTypes = true,
         bool thisScopeOnly = false,

@@ -741,7 +741,7 @@ void Logger::LogFatal(const LogChannel& channel, const LogMessage& message)
     // flush the output stream to ensure that the message is written before we call the fatal error hook
     Flush();
 
-    MemoryByteWriter writer;
+    MemoryByteWriter<DynamicAllocator> writer;
 
     for (const auto& chunk : message.chunks)
     {

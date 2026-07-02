@@ -392,7 +392,7 @@ public:
             return false;
         }
         
-        RC<void> strongRef = handle.delegateImpl.Lock();
+        SharedPtr<void> strongRef = handle.delegateImpl.Lock();
         if (strongRef != nullptr)
         {
             handle.removeFn(strongRef.Get(), handle.entry);
@@ -429,7 +429,7 @@ public:
     template <class... ArgTypes>
     ReturnType Fire(void* target, ArgTypes&&... args)
     {
-        RC<Delegate<ReturnType, Args...>> perTargetDelegate = FindPerTargetDelegate(target);
+        SharedPtr<Delegate<ReturnType, Args...>> perTargetDelegate = FindPerTargetDelegate(target);
 
         if (!perTargetDelegate)
         {
@@ -446,20 +446,20 @@ public:
     }
 
 private:
-    RC<Delegate<ReturnType, Args...>> GetOrCreatePerTargetDelegate(void* target)
+    SharedPtr<Delegate<ReturnType, Args...>> GetOrCreatePerTargetDelegate(void* target)
     {
         TUniqueLock guard(m_perTargetDelegatesMutex);
 
         auto it = m_perTargetDelegates.Find(target);
         if (it == m_perTargetDelegates.End())
         {
-            it = m_perTargetDelegates.Insert({ target, MakeRefCountedPtr<Delegate<ReturnType, Args...>>() }).first;
+            it = m_perTargetDelegates.Insert({ target, MakeShared<Delegate<ReturnType, Args...>>() }).first;
         }
 
         return it->second;
     }
 
-    HYP_FORCE_INLINE RC<Delegate<ReturnType, Args...>> FindPerTargetDelegate(void* target) const
+    HYP_FORCE_INLINE SharedPtr<Delegate<ReturnType, Args...>> FindPerTargetDelegate(void* target) const
     {
         TSharedLock guard(m_perTargetDelegatesMutex);
 
@@ -498,7 +498,7 @@ private:
     }
 
     mutable SharedMutex m_perTargetDelegatesMutex;
-    TFlatMap<void*, RC<Delegate<ReturnType, Args...>>> m_perTargetDelegates;
+    TFlatMap<void*, SharedPtr<Delegate<ReturnType, Args...>>> m_perTargetDelegates;
 };
 
 template <class ReturnType, class... Args>

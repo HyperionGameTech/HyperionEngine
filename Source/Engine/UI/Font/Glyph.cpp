@@ -39,7 +39,7 @@ UniquePtr<GlyphBitmap> GlyphImageData::CreateBitmap() const
 
 #pragma region Glyph
 
-Glyph::Glyph(RC<FontFace> face, FontFace::GlyphIndex index, float scale)
+Glyph::Glyph(SharedPtr<FontFace> face, FontFace::GlyphIndex index, float scale)
     : m_face(std::move(face)),
       m_index(index),
       m_scale(scale)

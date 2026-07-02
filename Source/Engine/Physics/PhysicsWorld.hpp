@@ -54,11 +54,11 @@ public:
     virtual void AddRigidBody(const Handle<RigidBody>& rigidBody) = 0;
     virtual void RemoveRigidBody(const Handle<RigidBody>& rigidBody) = 0;
 
-    virtual void AddCharacterController(const CharacterControllerConfig& config, RC<void>& outPhysicsHandle) = 0;
-    virtual void RemoveCharacterController(RC<void>& physicsHandle) = 0;
-    virtual void SetCharacterWalkDirection(const RC<void>& physicsHandle, const Vec3f& velocity) = 0;
-    virtual void ApplyCharacterJump(const RC<void>& physicsHandle) = 0;
-    virtual void GetCharacterState(const RC<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround) = 0;
+    virtual void AddCharacterController(const CharacterControllerConfig& config, SharedPtr<void>& outPhysicsHandle) = 0;
+    virtual void RemoveCharacterController(SharedPtr<void>& physicsHandle) = 0;
+    virtual void SetCharacterWalkDirection(const SharedPtr<void>& physicsHandle, const Vec3f& velocity) = 0;
+    virtual void ApplyCharacterJump(const SharedPtr<void>& physicsHandle) = 0;
+    virtual void GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround) = 0;
 
 protected:
     Vec3f m_gravity = EarthGravity;
@@ -115,27 +115,27 @@ public:
         m_rigidBodies.Erase(rigidBody);
     }
 
-    void AddCharacterController(const CharacterControllerConfig& config, RC<void>& outPhysicsHandle) override
+    void AddCharacterController(const CharacterControllerConfig& config, SharedPtr<void>& outPhysicsHandle) override
     {
         m_adapter.OnCharacterControllerAdded(config, outPhysicsHandle);
     }
 
-    void RemoveCharacterController(RC<void>& physicsHandle) override
+    void RemoveCharacterController(SharedPtr<void>& physicsHandle) override
     {
         m_adapter.OnCharacterControllerRemoved(physicsHandle);
     }
 
-    void SetCharacterWalkDirection(const RC<void>& physicsHandle, const Vec3f& velocity) override
+    void SetCharacterWalkDirection(const SharedPtr<void>& physicsHandle, const Vec3f& velocity) override
     {
         m_adapter.SetCharacterWalkDirection(physicsHandle, velocity);
     }
 
-    void ApplyCharacterJump(const RC<void>& physicsHandle) override
+    void ApplyCharacterJump(const SharedPtr<void>& physicsHandle) override
     {
         m_adapter.ApplyCharacterJump(physicsHandle);
     }
 
-    void GetCharacterState(const RC<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround) override
+    void GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround) override
     {
         m_adapter.GetCharacterState(physicsHandle, outTranslation, outIsOnGround);
     }

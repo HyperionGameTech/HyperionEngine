@@ -599,7 +599,7 @@ void SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
     AstVisitor* visitor,
     Module* mod,
     const SymbolType* symbolType,
-    const Array<RC<AstArgument>>& args,
+    const Array<SharedPtr<AstArgument>>& args,
     const SourceLocation& location)
 {
     const Array<GenericInstanceTypeInfo::Arg>& genericArgs = symbolType->GetGenericInstanceInfo().m_genericArgs;
@@ -622,7 +622,7 @@ void SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
 
     for (size_t index = 0; index < args.Size(); index++)
     {
-        const RC<AstArgument>& arg = args[index];
+        const SharedPtr<AstArgument>& arg = args[index];
 
         if (!arg || arg->IsPlaceholderArgument())
         {
@@ -662,10 +662,10 @@ void SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
 bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
     AstVisitor* visitor, Module* mod,
     const SymbolType* symbolType,
-    const Array<RC<AstArgument>>& args,
+    const Array<SharedPtr<AstArgument>>& args,
     const SourceLocation& location,
     const SymbolType*& outReturnType,
-    Array<RC<AstArgument>>& outArgs)
+    Array<SharedPtr<AstArgument>>& outArgs)
 {
     outReturnType = nullptr;
 
@@ -708,7 +708,7 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
         struct ArgDataPair
         {
             ArgInfo argInfo;
-            RC<AstArgument> argument;
+            SharedPtr<AstArgument> argument;
         };
 
         Array<ArgDataPair> namedArgs;
@@ -885,9 +885,9 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
             const bool isRef = argTypesWithoutReturn[unusedIndex].m_isRef;
             const bool isConst = argTypesWithoutReturn[unusedIndex].m_isConst;
 
-            RC<AstArgument> substitutedArg;
+            SharedPtr<AstArgument> substitutedArg;
 
-            RC<AstExpression> expr;
+            SharedPtr<AstExpression> expr;
 
             if (hasDefaultValue)
             {
@@ -984,9 +984,9 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
         }
 
         Assert(substitutionResult.index < outArgs.Size());
-        Assert(substitutionResult.value.Is<RC<AstArgument>>());
+        Assert(substitutionResult.value.Is<SharedPtr<AstArgument>>());
 
-        outArgs[substitutionResult.index] = CloneAstNode(substitutionResult.value.Get<RC<AstArgument>>());
+        outArgs[substitutionResult.index] = CloneAstNode(substitutionResult.value.Get<SharedPtr<AstArgument>>());
     }
 
     return true;

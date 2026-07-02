@@ -29,7 +29,7 @@ void AstDeclaration::Visit(AstVisitor* visitor, Module* mod)
     // only this scope matters, variables with the same name outside
     // of this scope are fine
 
-    if (RC<Identifier> existingLocalIdentifier = mod->LookUpIdentifier(m_name, true))
+    if (SharedPtr<Identifier> existingLocalIdentifier = mod->LookUpIdentifier(m_name, true))
     {
         // a collision was found, add an error
         compilationUnit->GetErrorList().AddError(CompilerError(
@@ -50,7 +50,7 @@ void AstDeclaration::Visit(AstVisitor* visitor, Module* mod)
 
     if (!skipShadowingCheck)
     {
-        if (RC<Identifier> shadowedIdentifier = mod->LookUpIdentifier(m_name, false))
+        if (SharedPtr<Identifier> shadowedIdentifier = mod->LookUpIdentifier(m_name, false))
         {
             // allow shadowing only if the found identifier is in global scope
             if (shadowedIdentifier->GetDeclScope() != &mod->scopeTree.Root())

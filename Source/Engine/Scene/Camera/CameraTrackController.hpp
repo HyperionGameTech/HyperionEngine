@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Scene/Camera/PerspectiveCamera.hpp>
 #include <Scene/Camera/CameraTrack.hpp>
@@ -20,15 +20,15 @@ class CameraTrackController : public PerspectiveCameraController
 
 public:
     CameraTrackController();
-    CameraTrackController(RC<CameraTrack> cameraTrack);
+    CameraTrackController(SharedPtr<CameraTrack> cameraTrack);
     virtual ~CameraTrackController() = default;
 
-    const RC<CameraTrack>& GetCameraTrack() const
+    const SharedPtr<CameraTrack>& GetCameraTrack() const
     {
         return m_cameraTrack;
     }
 
-    void SetCameraTrack(RC<CameraTrack> cameraTrack)
+    void SetCameraTrack(SharedPtr<CameraTrack> cameraTrack)
     {
         m_cameraTrack = std::move(cameraTrack);
     }
@@ -36,7 +36,7 @@ public:
     virtual void UpdateLogic(double delta) override;
 
 protected:
-    RC<CameraTrack> m_cameraTrack;
+    SharedPtr<CameraTrack> m_cameraTrack;
     double m_trackTime;
 };
 

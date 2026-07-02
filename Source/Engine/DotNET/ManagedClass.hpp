@@ -8,7 +8,7 @@
 
 #include <Core/Types.hpp>
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Containers/Map.hpp>
 #include <Core/Containers/String.hpp>
@@ -59,7 +59,7 @@ struct ManagedClassDesc
     uint32 flags;
 };
 
-class ENGINE_API ManagedClass : public EnableRefCountedPtrFromThis<ManagedClass>
+class ENGINE_API ManagedClass : public SharedFromThis<ManagedClass>
 {
 public:
     /*! \brief Function to create a new object of this class.
@@ -75,7 +75,7 @@ public:
     using NewObjectFunction = ObjectReference (*)(bool keepAlive, const Class* cls, void* nativeObjectPtr, void* contextPtr, InitializeObjectCallbackFunction callback);
     using MarshalObjectFunction = ObjectReference (*)(const void* intptr, uint32 size);
 
-    ManagedClass(const Weak<Assembly>& assembly, const ANSIString& name, uint32 size, TypeId typeId, const Class* cls, ManagedClass* parentClass, EnumFlags<ManagedClassFlags> flags)
+    ManagedClass(const WeakPtr<Assembly>& assembly, const ANSIString& name, uint32 size, TypeId typeId, const Class* cls, ManagedClass* parentClass, EnumFlags<ManagedClassFlags> flags)
         : m_assembly(assembly),
           m_name(name),
           m_size(size),
@@ -318,7 +318,7 @@ public:
         return m_properties;
     }
 
-    RC<Assembly> GetAssembly() const;
+    SharedPtr<Assembly> GetAssembly() const;
 
     /*! \brief Create a new managed object of this class.
      *  The new object will be removed from the managed object cache when the object goes out of scope, allowing for the .NET runtime to collect it.
@@ -435,7 +435,7 @@ private:
     TMap<ANSIString, ManagedMethod> m_methods;
     TMap<ANSIString, ManagedProperty> m_properties;
 
-    Weak<Assembly> m_assembly;
+    WeakPtr<Assembly> m_assembly;
 
     NewObjectFunction m_newObjectFptr;
     MarshalObjectFunction m_marshalObjectFptr;

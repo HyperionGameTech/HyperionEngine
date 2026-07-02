@@ -64,7 +64,7 @@ SystemMessageBox::SystemMessageBox(
             break;
         }
 
-        m_buttons[i] = MakeRefCountedPtr<MessageBoxButton>(std::move(buttons[i]));
+        m_buttons[i] = MakeShared<MessageBoxButton>(std::move(buttons[i]));
     }
 }
 
@@ -114,7 +114,7 @@ SystemMessageBox& SystemMessageBox::Button(const String& text, Proc<void()>&& on
         return *this;
     }
 
-    m_buttons.PushBack(MakeRefCountedPtr<MessageBoxButton>(MessageBoxButton { text, std::move(onClick) }));
+    m_buttons.PushBack(MakeShared<MessageBoxButton>(MessageBoxButton { text, std::move(onClick) }));
 
     return *this;
 }

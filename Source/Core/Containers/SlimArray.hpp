@@ -35,56 +35,56 @@ namespace Hyperion {
 namespace containers {
 
 template <class TElemType, class TAllocator = DynamicAllocator>
-class TSlimArray : public ContainerBase<TSlimArray<TElemType, TAllocator>, size_t>
+class SlimArray : public ContainerBase<SlimArray<TElemType, TAllocator>, size_t>
 {
 public:
     static constexpr bool isContiguous = true;
 
     using ValueType = TElemType;
-    using Base = ContainerBase<TSlimArray<TElemType, TAllocator>, size_t>;
+    using Base = ContainerBase<SlimArray<TElemType, TAllocator>, size_t>;
     using KeyType = typename Base::KeyType;
 
-    // Allow other TSlimArray types to access private members
+    // Allow other SlimArray types to access private members
     template <class, class>
-    friend class TSlimArray;
+    friend class SlimArray;
 
     using Iterator = TElemType*;
     using ConstIterator = const TElemType*;
     using InsertResult = Pair<Iterator, bool>;
 
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<TAllocator>, typename = std::enable_if_t<ConditionalEnable>>
-    TSlimArray()
+    SlimArray()
         : data(nullptr),
           size(0),
           capacity(0)
     {
     }
 
-    TSlimArray(const TSlimArray& other);
-    TSlimArray(TSlimArray&& other) noexcept;
+    SlimArray(const SlimArray& other);
+    SlimArray(SlimArray&& other) noexcept;
 
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<TAllocator>, typename = std::enable_if_t<ConditionalEnable>>
-    explicit TSlimArray(uint32 size)
-        : TSlimArray()
+    explicit SlimArray(uint32 size)
+        : SlimArray()
     {
         Resize(size);
     }
 
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<TAllocator>, typename = std::enable_if_t<ConditionalEnable>>
-    TSlimArray(Span<TElemType> span)
-        : TSlimArray(span.Data(), span.Size())
+    SlimArray(Span<TElemType> span)
+        : SlimArray(span.Data(), span.Size())
     {
     }
 
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<TAllocator>, typename = std::enable_if_t<ConditionalEnable>>
-    TSlimArray(Span<const TElemType> span)
-        : TSlimArray(span.Data(), span.Size())
+    SlimArray(Span<const TElemType> span)
+        : SlimArray(span.Data(), span.Size())
     {
     }
 
     template <uint32 Sz, bool ConditionalEnable = HasDefaultAllocatorInstance<TAllocator>, typename = std::enable_if_t<ConditionalEnable>>
-    TSlimArray(TElemType const (&items)[Sz])
-        : TSlimArray()
+    SlimArray(TElemType const (&items)[Sz])
+        : SlimArray()
     {
         ResizeUninitialized(Sz);
 
@@ -95,8 +95,8 @@ public:
     }
 
     template <uint32 Sz, bool ConditionalEnable = HasDefaultAllocatorInstance<TAllocator>, typename = std::enable_if_t<ConditionalEnable>>
-    TSlimArray(TElemType (&&items)[Sz])
-        : TSlimArray()
+    SlimArray(TElemType (&&items)[Sz])
+        : SlimArray()
     {
         ResizeUninitialized(Sz);
 
@@ -107,8 +107,8 @@ public:
     }
 
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<TAllocator>, typename = std::enable_if_t<ConditionalEnable>>
-    TSlimArray(TElemType* ptr, uint32 size)
-        : TSlimArray()
+    SlimArray(TElemType* ptr, uint32 size)
+        : SlimArray()
     {
         ResizeUninitialized(size);
 
@@ -119,8 +119,8 @@ public:
     }
 
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<TAllocator>, typename = std::enable_if_t<ConditionalEnable>>
-    TSlimArray(Iterator first, Iterator last)
-        : TSlimArray()
+    SlimArray(Iterator first, Iterator last)
+        : SlimArray()
     {
         const uint32 dist = static_cast<uint32>(last - first);
         ResizeUninitialized(dist);
@@ -132,8 +132,8 @@ public:
     }
 
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<TAllocator>, typename = std::enable_if_t<ConditionalEnable>>
-    TSlimArray(ConstIterator first, ConstIterator last)
-        : TSlimArray()
+    SlimArray(ConstIterator first, ConstIterator last)
+        : SlimArray()
     {
         const uint32 dist = static_cast<uint32>(last - first);
         ResizeUninitialized(dist);
@@ -145,20 +145,20 @@ public:
     }
 
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<TAllocator>, typename = std::enable_if_t<ConditionalEnable>>
-    TSlimArray(const TElemType* ptr, uint32 size)
-        : TSlimArray(ptr, ptr + size)
+    SlimArray(const TElemType* ptr, uint32 size)
+        : SlimArray(ptr, ptr + size)
     {
     }
 
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<TAllocator>, typename = std::enable_if_t<ConditionalEnable>>
-    TSlimArray(std::initializer_list<TElemType> initializerList)
-        : TSlimArray(initializerList.begin(), initializerList.end())
+    SlimArray(std::initializer_list<TElemType> initializerList)
+        : SlimArray(initializerList.begin(), initializerList.end())
     {
     }
 
     template <class TOtherAllocator, typename = std::enable_if_t<!std::is_same_v<TOtherAllocator, TAllocator> && HasDefaultAllocatorInstance<TAllocator>>>
-    explicit TSlimArray(const TSlimArray<TElemType, TOtherAllocator>& other)
-        : TSlimArray()
+    explicit SlimArray(const SlimArray<TElemType, TOtherAllocator>& other)
+        : SlimArray()
     {
         size = other.Size();
 
@@ -170,18 +170,18 @@ public:
     }
 
     template <class TOtherAllocator, typename = std::enable_if_t<!std::is_same_v<TOtherAllocator, TAllocator>>>
-    TSlimArray(TSlimArray<TElemType, TOtherAllocator>&& other) noexcept = delete;
+    SlimArray(SlimArray<TElemType, TOtherAllocator>&& other) noexcept = delete;
 
-    ~TSlimArray();
+    ~SlimArray();
 
-    TSlimArray& operator=(const TSlimArray& other);
-    TSlimArray& operator=(TSlimArray&& other) noexcept;
-
-    template <class TOtherAllocator, typename = std::enable_if_t<!std::is_same_v<TOtherAllocator, TAllocator>>>
-    TSlimArray& operator=(const TSlimArray<TElemType, TOtherAllocator>& other);
+    SlimArray& operator=(const SlimArray& other);
+    SlimArray& operator=(SlimArray&& other) noexcept;
 
     template <class TOtherAllocator, typename = std::enable_if_t<!std::is_same_v<TOtherAllocator, TAllocator>>>
-    TSlimArray& operator=(TSlimArray<TElemType, TOtherAllocator>&& other) noexcept = delete;
+    SlimArray& operator=(const SlimArray<TElemType, TOtherAllocator>& other);
+
+    template <class TOtherAllocator, typename = std::enable_if_t<!std::is_same_v<TOtherAllocator, TAllocator>>>
+    SlimArray& operator=(SlimArray<TElemType, TOtherAllocator>&& other) noexcept = delete;
 
     HYP_FORCE_INLINE uint32 Size() const
     {
@@ -314,10 +314,10 @@ public:
 
     void Shift(uint32 count);
 
-    HYP_NODISCARD TSlimArray<TElemType, TAllocator> Slice(int first, int last) const;
+    HYP_NODISCARD SlimArray<TElemType, TAllocator> Slice(int first, int last) const;
 
     template <class TOtherAllocator>
-    void Concat(const TSlimArray<TElemType, TOtherAllocator>& other)
+    void Concat(const SlimArray<TElemType, TOtherAllocator>& other)
     {
         if ((void*)this == (void*)&other)
         {
@@ -364,7 +364,7 @@ public:
     void Reverse();
 
     template <class TOtherAllocator>
-    void Reverse(TSlimArray<TElemType, TOtherAllocator>& outArray) const
+    void Reverse(SlimArray<TElemType, TOtherAllocator>& outArray) const
     {
         const uint32 sz = Size();
 
@@ -393,7 +393,7 @@ public:
     void Clear();
 
     template <class TOtherAllocator>
-    HYP_FORCE_INLINE bool operator==(const TSlimArray<TElemType, TOtherAllocator>& other) const
+    HYP_FORCE_INLINE bool operator==(const SlimArray<TElemType, TOtherAllocator>& other) const
     {
         if (this == &other)
         {
@@ -426,7 +426,7 @@ public:
     }
 
     template <class TOtherAllocator>
-    HYP_FORCE_INLINE bool operator!=(const TSlimArray<TElemType, TOtherAllocator>& other) const
+    HYP_FORCE_INLINE bool operator!=(const SlimArray<TElemType, TOtherAllocator>& other) const
     {
         if (this == &other)
         {
@@ -675,7 +675,7 @@ protected:
 };
 
 template <class TElemType, class TAllocator>
-TSlimArray<TElemType, TAllocator>::TSlimArray(const TSlimArray& other)
+SlimArray<TElemType, TAllocator>::SlimArray(const SlimArray& other)
     : data(nullptr),
       size(0),
       capacity(0)
@@ -692,7 +692,7 @@ TSlimArray<TElemType, TAllocator>::TSlimArray(const TSlimArray& other)
 }
 
 template <class TElemType, class TAllocator>
-TSlimArray<TElemType, TAllocator>::TSlimArray(TSlimArray&& other) noexcept
+SlimArray<TElemType, TAllocator>::SlimArray(SlimArray&& other) noexcept
     : data(nullptr),
       size(0),
       capacity(0)
@@ -709,7 +709,7 @@ TSlimArray<TElemType, TAllocator>::TSlimArray(TSlimArray&& other) noexcept
 }
 
 template <class TElemType, class TAllocator>
-TSlimArray<TElemType, TAllocator>::~TSlimArray()
+SlimArray<TElemType, TAllocator>::~SlimArray()
 {
     if (data != nullptr)
     {
@@ -722,7 +722,7 @@ TSlimArray<TElemType, TAllocator>::~TSlimArray()
 }
 
 template <class TElemType, class TAllocator>
-auto TSlimArray<TElemType, TAllocator>::operator=(const TSlimArray& other) -> TSlimArray&
+auto SlimArray<TElemType, TAllocator>::operator=(const SlimArray& other) -> SlimArray&
 {
     if (this == &other)
     {
@@ -744,7 +744,7 @@ auto TSlimArray<TElemType, TAllocator>::operator=(const TSlimArray& other) -> TS
 }
 
 template <class TElemType, class TAllocator>
-auto TSlimArray<TElemType, TAllocator>::operator=(TSlimArray&& other) noexcept -> TSlimArray&
+auto SlimArray<TElemType, TAllocator>::operator=(SlimArray&& other) noexcept -> SlimArray&
 {
     if (this == &other)
     {
@@ -767,7 +767,7 @@ auto TSlimArray<TElemType, TAllocator>::operator=(TSlimArray&& other) noexcept -
 
 template <class TElemType, class TAllocator>
 template <class TOtherAllocator, typename>
-auto TSlimArray<TElemType, TAllocator>::operator=(const TSlimArray<TElemType, TOtherAllocator>& other) -> TSlimArray&
+auto SlimArray<TElemType, TAllocator>::operator=(const SlimArray<TElemType, TOtherAllocator>& other) -> SlimArray&
 {
     DestructElements();
     Free();
@@ -784,7 +784,7 @@ auto TSlimArray<TElemType, TAllocator>::operator=(const TSlimArray<TElemType, TO
 }
 
 template <class TElemType, class TAllocator>
-void TSlimArray<TElemType, TAllocator>::Reserve(uint32 capacityValue)
+void SlimArray<TElemType, TAllocator>::Reserve(uint32 capacityValue)
 {
     if (capacity >= capacityValue)
     {
@@ -795,7 +795,7 @@ void TSlimArray<TElemType, TAllocator>::Reserve(uint32 capacityValue)
 }
 
 template <class TElemType, class TAllocator>
-void TSlimArray<TElemType, TAllocator>::Resize(uint32 newSize)
+void SlimArray<TElemType, TAllocator>::Resize(uint32 newSize)
 {
     if (newSize == size)
     {
@@ -839,7 +839,7 @@ void TSlimArray<TElemType, TAllocator>::Resize(uint32 newSize)
 }
 
 template <class TElemType, class TAllocator>
-void TSlimArray<TElemType, TAllocator>::ResizeUninitialized(uint32 newSize)
+void SlimArray<TElemType, TAllocator>::ResizeUninitialized(uint32 newSize)
 {
     if (newSize == size)
     {
@@ -871,7 +871,7 @@ void TSlimArray<TElemType, TAllocator>::ResizeUninitialized(uint32 newSize)
 }
 
 template <class TElemType, class TAllocator>
-void TSlimArray<TElemType, TAllocator>::ResizeZeroed(uint32 newSize)
+void SlimArray<TElemType, TAllocator>::ResizeZeroed(uint32 newSize)
 {
     static_assert(std::is_fundamental_v<TElemType> || std::is_trivially_constructible_v<TElemType>,
         "ResizeZeroed can only be used for fundamental or trivially constructible types");
@@ -892,7 +892,7 @@ void TSlimArray<TElemType, TAllocator>::ResizeZeroed(uint32 newSize)
 }
 
 template <class TElemType, class TAllocator>
-void TSlimArray<TElemType, TAllocator>::Refit()
+void SlimArray<TElemType, TAllocator>::Refit()
 {
     if (capacity == size)
     {
@@ -903,7 +903,7 @@ void TSlimArray<TElemType, TAllocator>::Refit()
 }
 
 template <class TElemType, class TAllocator>
-void TSlimArray<TElemType, TAllocator>::SetCapacity(uint32 newCapacity)
+void SlimArray<TElemType, TAllocator>::SetCapacity(uint32 newCapacity)
 {
     if (newCapacity == capacity)
     {
@@ -945,7 +945,7 @@ void TSlimArray<TElemType, TAllocator>::SetCapacity(uint32 newCapacity)
 }
 
 template <class TElemType, class TAllocator>
-auto TSlimArray<TElemType, TAllocator>::PushBack(const ValueType& value) -> ValueType&
+auto SlimArray<TElemType, TAllocator>::PushBack(const ValueType& value) -> ValueType&
 {
     if (size + 1 > capacity)
     {
@@ -960,7 +960,7 @@ auto TSlimArray<TElemType, TAllocator>::PushBack(const ValueType& value) -> Valu
 }
 
 template <class TElemType, class TAllocator>
-auto TSlimArray<TElemType, TAllocator>::PushBack(ValueType&& value) -> ValueType&
+auto SlimArray<TElemType, TAllocator>::PushBack(ValueType&& value) -> ValueType&
 {
     if (size + 1 > capacity)
     {
@@ -975,7 +975,7 @@ auto TSlimArray<TElemType, TAllocator>::PushBack(ValueType&& value) -> ValueType
 }
 
 template <class TElemType, class TAllocator>
-auto TSlimArray<TElemType, TAllocator>::PushFront(const ValueType& value) -> ValueType&
+auto SlimArray<TElemType, TAllocator>::PushFront(const ValueType& value) -> ValueType&
 {
     if (size + 1 > capacity)
     {
@@ -992,7 +992,7 @@ auto TSlimArray<TElemType, TAllocator>::PushFront(const ValueType& value) -> Val
 }
 
 template <class TElemType, class TAllocator>
-auto TSlimArray<TElemType, TAllocator>::PushFront(ValueType&& value) -> ValueType&
+auto SlimArray<TElemType, TAllocator>::PushFront(ValueType&& value) -> ValueType&
 {
     if (size + 1 > capacity)
     {
@@ -1009,13 +1009,13 @@ auto TSlimArray<TElemType, TAllocator>::PushFront(ValueType&& value) -> ValueTyp
 }
 
 template <class TElemType, class TAllocator>
-void TSlimArray<TElemType, TAllocator>::Shift(uint32 count)
+void SlimArray<TElemType, TAllocator>::Shift(uint32 count)
 {
     ShiftElementsLeft(count);
 }
 
 template <class TElemType, class TAllocator>
-TSlimArray<TElemType, TAllocator> TSlimArray<TElemType, TAllocator>::Slice(int first, int last) const
+SlimArray<TElemType, TAllocator> SlimArray<TElemType, TAllocator>::Slice(int first, int last) const
 {
     if (first < 0)
     {
@@ -1039,12 +1039,12 @@ TSlimArray<TElemType, TAllocator> TSlimArray<TElemType, TAllocator>::Slice(int f
 
     if (first > last)
     {
-        return TSlimArray<TElemType, TAllocator>();
+        return SlimArray<TElemType, TAllocator>();
     }
 
     if (first >= static_cast<int>(Size()))
     {
-        return TSlimArray<TElemType, TAllocator>();
+        return SlimArray<TElemType, TAllocator>();
     }
 
     if (last >= static_cast<int>(Size()))
@@ -1052,7 +1052,7 @@ TSlimArray<TElemType, TAllocator> TSlimArray<TElemType, TAllocator>::Slice(int f
         last = Size() - 1;
     }
 
-    TSlimArray<TElemType, TAllocator> result;
+    SlimArray<TElemType, TAllocator> result;
     result.ResizeUninitialized(last - first + 1);
 
     for (uint32 i = 0; i < result.size; ++i)
@@ -1064,7 +1064,7 @@ TSlimArray<TElemType, TAllocator> TSlimArray<TElemType, TAllocator>::Slice(int f
 }
 
 template <class TElemType, class TAllocator>
-void TSlimArray<TElemType, TAllocator>::Reverse()
+void SlimArray<TElemType, TAllocator>::Reverse()
 {
     if (size < 2)
     {
@@ -1084,7 +1084,7 @@ void TSlimArray<TElemType, TAllocator>::Reverse()
 }
 
 template <class TElemType, class TAllocator>
-auto TSlimArray<TElemType, TAllocator>::Erase(ConstIterator iter) -> Iterator
+auto SlimArray<TElemType, TAllocator>::Erase(ConstIterator iter) -> Iterator
 {
     const Iterator begin = Begin();
     const Iterator end = End();
@@ -1131,7 +1131,7 @@ auto TSlimArray<TElemType, TAllocator>::Erase(ConstIterator iter) -> Iterator
 }
 
 template <class TElemType, class TAllocator>
-auto TSlimArray<TElemType, TAllocator>::Erase(const TElemType& value) -> Iterator
+auto SlimArray<TElemType, TAllocator>::Erase(const TElemType& value) -> Iterator
 {
     ConstIterator iter = Base::Find(value);
 
@@ -1144,13 +1144,13 @@ auto TSlimArray<TElemType, TAllocator>::Erase(const TElemType& value) -> Iterato
 }
 
 template <class TElemType, class TAllocator>
-auto TSlimArray<TElemType, TAllocator>::EraseAt(typename Base::KeyType index) -> Iterator
+auto SlimArray<TElemType, TAllocator>::EraseAt(typename Base::KeyType index) -> Iterator
 {
     return Erase(Begin() + index);
 }
 
 template <class TElemType, class TAllocator>
-auto TSlimArray<TElemType, TAllocator>::Insert(ConstIterator where, const ValueType& value) -> Iterator
+auto SlimArray<TElemType, TAllocator>::Insert(ConstIterator where, const ValueType& value) -> Iterator
 {
     const uint32 dist = static_cast<uint32>(where - Begin());
 
@@ -1205,7 +1205,7 @@ auto TSlimArray<TElemType, TAllocator>::Insert(ConstIterator where, const ValueT
 }
 
 template <class TElemType, class TAllocator>
-auto TSlimArray<TElemType, TAllocator>::Insert(ConstIterator where, ValueType&& value) -> Iterator
+auto SlimArray<TElemType, TAllocator>::Insert(ConstIterator where, ValueType&& value) -> Iterator
 {
     const uint32 dist = static_cast<uint32>(where - Begin());
 
@@ -1260,7 +1260,7 @@ auto TSlimArray<TElemType, TAllocator>::Insert(ConstIterator where, ValueType&& 
 }
 
 template <class TElemType, class TAllocator>
-auto TSlimArray<TElemType, TAllocator>::PopFront() -> ValueType
+auto SlimArray<TElemType, TAllocator>::PopFront() -> ValueType
 {
     HYP_CORE_ASSERT(size != 0);
 
@@ -1272,7 +1272,7 @@ auto TSlimArray<TElemType, TAllocator>::PopFront() -> ValueType
 }
 
 template <class TElemType, class TAllocator>
-auto TSlimArray<TElemType, TAllocator>::PopBack() -> ValueType
+auto SlimArray<TElemType, TAllocator>::PopBack() -> ValueType
 {
     HYP_CORE_ASSERT(size != 0);
 
@@ -1286,7 +1286,7 @@ auto TSlimArray<TElemType, TAllocator>::PopBack() -> ValueType
 }
 
 template <class TElemType, class TAllocator>
-void TSlimArray<TElemType, TAllocator>::Clear()
+void SlimArray<TElemType, TAllocator>::Clear()
 {
     DestructElements();
 
@@ -1297,12 +1297,12 @@ void TSlimArray<TElemType, TAllocator>::Clear()
 
 } // namespace containers
 
-using containers::TSlimArray;
+using containers::SlimArray;
 
 // traits
 
 template <class T, class TAllocator>
-struct IsArray<containers::TSlimArray<T, TAllocator>> : std::true_type
+struct IsArray<containers::SlimArray<T, TAllocator>> : std::true_type
 {
 };
 

@@ -13,7 +13,7 @@
 #include <Core/Utilities/Variant.hpp>
 #include <Core/Utilities/StringUtil.hpp>
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Defines.hpp>
 
@@ -34,8 +34,8 @@ class Object;
 using JString = String;
 using Number = double;
 using JArray = Array<Value, DynamicAllocator>;
-using JArrayRef = RC<JArray>;
-using ObjectRef = RC<Object>;
+using JArrayRef = SharedPtr<JArray>;
+using ObjectRef = SharedPtr<Object>;
 
 struct JSNull
 {

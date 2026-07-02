@@ -11,7 +11,7 @@
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/RawBuffer.hpp>
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 namespace Hyperion {
 
@@ -71,7 +71,7 @@ private:
 
     TMap<BakeJobBase*, JobData> m_jobData;
 
-    RC<GpuLightmapperReadyNotification> m_readyNotification;
+    SharedPtr<GpuLightmapperReadyNotification> m_readyNotification;
 
     TopLevelASRef m_tlas;
 };

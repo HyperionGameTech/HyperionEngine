@@ -47,7 +47,8 @@ HYP_NODISCARD AnyRef BoxedValue::ToRef()
         // Null object
         if (!object)
         {
-            return AnyRef(&Class_GetTypeInfo(*ObjectBase::StaticClass()), nullptr);
+            extern const Class* g_clsObjectBase;
+            return AnyRef(&Class_GetTypeInfo(*g_clsObjectBase), nullptr);
         }
         
         return AnyRef(&Class_GetTypeInfo(*object->InstanceClass()), object);
@@ -58,9 +59,9 @@ HYP_NODISCARD AnyRef BoxedValue::ToRef()
         return pHandle->ToRef();
     }
 
-    if (RC<void>* pRefCounted = value.TryGet<RC<void>>())
+    if (SharedPtr<void>* pShared = value.TryGet<SharedPtr<void>>())
     {
-        return pRefCounted->ToRef();
+        return pShared->ToRef();
     }
 
     if (Any* pAny = value.TryGet<Any>())

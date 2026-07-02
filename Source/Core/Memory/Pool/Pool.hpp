@@ -13,7 +13,6 @@
 
 #include <Core/Utilities/EnumFlags.hpp>
 
-#include <Core/Memory/ByteBuffer.hpp>
 #include <Core/Memory/MemoryMetrics.hpp>
 
 #include <Core/Memory/Allocator/Allocator.hpp>
@@ -51,10 +50,14 @@ public:
 
     struct Block
     {
-        ByteBuffer buffer;
+        void* memory;
 
         explicit Block(size_t capacity);
-        ~Block() = default;
+
+        Block(const Block& other) = delete;
+        Block& operator=(const Block& other) = delete;
+
+        ~Block();
     };
 
     explicit Pool(size_t blockSize, EnumFlags<PoolFlags> flags = PF_DEFAULT, const ThreadId& ownerThreadId = ThreadId::Invalid())

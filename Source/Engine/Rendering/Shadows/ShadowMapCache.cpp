@@ -280,7 +280,7 @@ public:
     {
         TUniqueLock lock(mutex);
 
-        TFatArray<View*, FixedAllocator<MaxShadowMapCascades * 2>> allViews;
+        FatArray<View*, FixedAllocator<MaxShadowMapCascades * 2>> allViews;
 
         for (auto& pair : cache)
         {
@@ -325,7 +325,7 @@ public:
     /// Cached (per-light/view combination) shadow map rendering data that is cleaned up when no longer used
     TMap<ShadowMapCacheKey, CachedShadowMapData, RenderAllocator> cache;
 
-    TSlimArray<Camera*> deferredDeletionCameras;
+    SlimArray<Camera*> deferredDeletionCameras;
     AtomicFlag hasDeferredDeletionCameras;
 
     SharedMutex mutex;

@@ -120,8 +120,8 @@ TResult<CSharpTypeMapping> MapToCSharpType(const Analyzer& analyzer, const ASTTy
             const String templateName = type->typeName->parts.Back();
 
             if (templateName == "Array"
-                || templateName == "TSlimArray"
-                || templateName == "TFatArray")
+                || templateName == "SlimArray"
+                || templateName == "FatArray")
             {
                 return CSharpTypeMapping { "Array" };
             }
@@ -131,7 +131,7 @@ TResult<CSharpTypeMapping> MapToCSharpType(const Analyzer& analyzer, const ASTTy
             //     return
             // }
 
-            if (templateName == "RC" || templateName == "Handle")
+            if (templateName == "SharedPtr" || templateName == "Handle")
             {
                 if (type->templateArguments.Empty())
                 {
@@ -310,8 +310,8 @@ TResult<HypScriptTypeMapping> MapToHypScriptType(const Analyzer& analyzer, const
 
             // hypscript uses Array<T> for arrays
             if (templateName == "Array"
-                || templateName == "TSlimArray"
-                || templateName == "TFatArray"
+                || templateName == "SlimArray"
+                || templateName == "FatArray"
                 || templateName == "FixedArray")
             {
                 if (type->templateArguments.Empty())
@@ -334,7 +334,7 @@ TResult<HypScriptTypeMapping> MapToHypScriptType(const Analyzer& analyzer, const
                 }
             }
 
-            if (templateName == "RC"
+            if (templateName == "SharedPtr"
                 || templateName == "Handle"
                 || templateName == "EnumFlags")
             {
@@ -555,7 +555,7 @@ void ASTInitializerExpr::ToJSON(JSON::Value& out) const
 
     JSON::JArray valuesArray;
 
-    for (const RC<ASTExpr>& value : values)
+    for (const SharedPtr<ASTExpr>& value : values)
     {
         JSON::Value valueJson;
         value->ToJSON(valueJson);
@@ -933,7 +933,7 @@ void ASTType::ToJSON(JSON::Value& out) const
     {
         JSON::JArray templateArgumentsArray;
 
-        for (const RC<ASTTemplateArgument>& templateArgument : templateArguments)
+        for (const SharedPtr<ASTTemplateArgument>& templateArgument : templateArguments)
         {
             JSON::Value templateArgumentJson;
             templateArgument->ToJSON(templateArgumentJson);
@@ -1133,7 +1133,7 @@ void ASTFunctionType::ToJSON(JSON::Value& out) const
 
     JSON::JArray parametersArray;
 
-    for (const RC<ASTMemberDecl>& parameter : parameters)
+    for (const SharedPtr<ASTMemberDecl>& parameter : parameters)
     {
         JSON::Value parameterJson;
         parameter->ToJSON(parameterJson);
@@ -1447,9 +1447,9 @@ QualifiedName Parser::ReadQualifiedName()
     return qualifiedName;
 }
 
-RC<ASTExpr> Parser::ParseExpr()
+SharedPtr<ASTExpr> Parser::ParseExpr()
 {
-    RC<ASTExpr> term = ParseTerm();
+    SharedPtr<ASTExpr> term = ParseTerm();
 
     if (Match(TK_OPERATOR, false))
     {
@@ -1473,7 +1473,7 @@ RC<ASTExpr> Parser::ParseExpr()
     return term;
 }
 
-RC<ASTExpr> Parser::ParseTerm()
+SharedPtr<ASTExpr> Parser::ParseTerm()
 {
     Token token = m_tokenStream->Peek();
 
@@ -1492,7 +1492,7 @@ RC<ASTExpr> Parser::ParseTerm()
         return nullptr;
     }
 
-    RC<ASTExpr> expr;
+    SharedPtr<ASTExpr> expr;
 
     if (Match(TK_OPEN_PARENTH))
     {
@@ -1512,13 +1512,13 @@ RC<ASTExpr> Parser::ParseTerm()
     }
     else if (MatchIdentifier("true", true))
     {
-        auto value = MakeRefCountedPtr<ASTLiteralBool>();
+        auto value = MakeShared<ASTLiteralBool>();
         value->value = true;
         expr = value;
     }
     else if (MatchIdentifier("false", true))
     {
-        auto value = MakeRefCountedPtr<ASTLiteralBool>();
+        auto value = MakeShared<ASTLiteralBool>();
         value->value = false;
         expr = value;
     }
@@ -1564,7 +1564,7 @@ RC<ASTExpr> Parser::ParseTerm()
     return expr;
 }
 
-RC<ASTExpr> Parser::ParseUnaryExprPrefix()
+SharedPtr<ASTExpr> Parser::ParseUnaryExprPrefix()
 {
     // read the operator token
     if (Token token = Expect(TK_OPERATOR, true))
@@ -1572,9 +1572,9 @@ RC<ASTExpr> Parser::ParseUnaryExprPrefix()
         const Operator* op = nullptr;
         if (Operator::IsUnaryOperator(token.GetValue(), op))
         {
-            if (RC<ASTExpr> term = ParseTerm())
+            if (SharedPtr<ASTExpr> term = ParseTerm())
             {
-                RC<ASTUnaryExpr> expr = MakeRefCountedPtr<ASTUnaryExpr>();
+                SharedPtr<ASTUnaryExpr> expr = MakeShared<ASTUnaryExpr>();
                 expr->expr = term;
                 expr->op = op;
                 expr->isPrefix = true;
@@ -1598,7 +1598,7 @@ RC<ASTExpr> Parser::ParseUnaryExprPrefix()
     return nullptr;
 }
 
-RC<ASTExpr> Parser::ParseUnaryExprPostfix(const RC<ASTExpr>& innerExpr)
+SharedPtr<ASTExpr> Parser::ParseUnaryExprPostfix(const SharedPtr<ASTExpr>& innerExpr)
 {
     // read the operator token
     if (Token token = Expect(TK_OPERATOR, true))
@@ -1606,7 +1606,7 @@ RC<ASTExpr> Parser::ParseUnaryExprPostfix(const RC<ASTExpr>& innerExpr)
         const Operator* op = nullptr;
         if (Operator::IsUnaryOperator(token.GetValue(), op))
         {
-            RC<ASTUnaryExpr> expr = MakeRefCountedPtr<ASTUnaryExpr>();
+            SharedPtr<ASTUnaryExpr> expr = MakeShared<ASTUnaryExpr>();
             expr->expr = innerExpr;
             expr->op = op;
             expr->isPrefix = false;
@@ -1627,7 +1627,7 @@ RC<ASTExpr> Parser::ParseUnaryExprPostfix(const RC<ASTExpr>& innerExpr)
     return nullptr;
 }
 
-RC<ASTExpr> Parser::ParseBinaryExpr(int exprPrecedence, RC<ASTExpr> left)
+SharedPtr<ASTExpr> Parser::ParseBinaryExpr(int exprPrecedence, SharedPtr<ASTExpr> left)
 {
     while (true)
     {
@@ -1657,7 +1657,7 @@ RC<ASTExpr> Parser::ParseBinaryExpr(int exprPrecedence, RC<ASTExpr> left)
                 }
             }
 
-            RC<ASTBinExpr> binExpr = MakeRefCountedPtr<ASTBinExpr>();
+            SharedPtr<ASTBinExpr> binExpr = MakeShared<ASTBinExpr>();
             binExpr->left = left;
             binExpr->right = right;
             binExpr->op = op;
@@ -1669,13 +1669,13 @@ RC<ASTExpr> Parser::ParseBinaryExpr(int exprPrecedence, RC<ASTExpr> left)
     return nullptr;
 }
 
-RC<ASTExpr> Parser::ParseTernaryExpr(const RC<ASTExpr>& conditional)
+SharedPtr<ASTExpr> Parser::ParseTernaryExpr(const SharedPtr<ASTExpr>& conditional)
 {
     if (Token token = Expect(TK_QUESTION_MARK, true))
     {
         // parse next ('true' part)
 
-        RC<ASTExpr> trueExpr = ParseExpr();
+        SharedPtr<ASTExpr> trueExpr = ParseExpr();
 
         if (trueExpr == nullptr)
         {
@@ -1687,14 +1687,14 @@ RC<ASTExpr> Parser::ParseTernaryExpr(const RC<ASTExpr>& conditional)
             return nullptr;
         }
 
-        RC<ASTExpr> falseExpr = ParseExpr();
+        SharedPtr<ASTExpr> falseExpr = ParseExpr();
 
         if (falseExpr == nullptr)
         {
             return nullptr;
         }
 
-        RC<ASTTernaryExpr> ternary = MakeRefCountedPtr<ASTTernaryExpr>();
+        SharedPtr<ASTTernaryExpr> ternary = MakeShared<ASTTernaryExpr>();
         ternary->conditional = conditional;
         ternary->trueExpr = trueExpr;
         ternary->falseExpr = falseExpr;
@@ -1705,24 +1705,24 @@ RC<ASTExpr> Parser::ParseTernaryExpr(const RC<ASTExpr>& conditional)
     return nullptr;
 }
 
-RC<ASTExpr> Parser::ParseParentheses()
+SharedPtr<ASTExpr> Parser::ParseParentheses()
 {
     SourceLocation location = CurrentLocation();
 
     Expect(TK_OPEN_PARENTH, true);
 
-    RC<ASTExpr> expr = ParseExpr();
+    SharedPtr<ASTExpr> expr = ParseExpr();
 
     Expect(TK_CLOSE_PARENTH, true);
 
     return expr;
 }
 
-RC<ASTExpr> Parser::ParseLiteralString()
+SharedPtr<ASTExpr> Parser::ParseLiteralString()
 {
     if (Token token = Expect(TK_STRING, true))
     {
-        RC<ASTLiteralString> value = MakeRefCountedPtr<ASTLiteralString>();
+        SharedPtr<ASTLiteralString> value = MakeShared<ASTLiteralString>();
         value->value = token.GetValue();
 
         return value;
@@ -1731,11 +1731,11 @@ RC<ASTExpr> Parser::ParseLiteralString()
     return nullptr;
 }
 
-RC<ASTExpr> Parser::ParseLiteralInt()
+SharedPtr<ASTExpr> Parser::ParseLiteralInt()
 {
     if (Token token = Expect(TK_INTEGER, true))
     {
-        RC<ASTLiteralInt> value = MakeRefCountedPtr<ASTLiteralInt>();
+        SharedPtr<ASTLiteralInt> value = MakeShared<ASTLiteralInt>();
         value->value = StringUtil::Parse<int64>(token.GetValue());
         value->originalString = token.GetValue();
 
@@ -1745,11 +1745,11 @@ RC<ASTExpr> Parser::ParseLiteralInt()
     return nullptr;
 }
 
-RC<ASTExpr> Parser::ParseLiteralFloat()
+SharedPtr<ASTExpr> Parser::ParseLiteralFloat()
 {
     if (Token token = Expect(TK_FLOAT, true))
     {
-        RC<ASTLiteralFloat> value = MakeRefCountedPtr<ASTLiteralFloat>();
+        SharedPtr<ASTLiteralFloat> value = MakeShared<ASTLiteralFloat>();
         value->value = StringUtil::Parse<double>(token.GetValue());
         value->originalString = token.GetValue();
 
@@ -1759,17 +1759,17 @@ RC<ASTExpr> Parser::ParseLiteralFloat()
     return nullptr;
 }
 
-RC<ASTIdentifier> Parser::ParseIdentifier()
+SharedPtr<ASTIdentifier> Parser::ParseIdentifier()
 {
-    RC<ASTIdentifier> identifier = MakeRefCountedPtr<ASTIdentifier>();
+    SharedPtr<ASTIdentifier> identifier = MakeShared<ASTIdentifier>();
     identifier->name = ReadQualifiedName();
 
     return identifier;
 }
 
-RC<ASTInitializerExpr> Parser::ParseInitializerExpr()
+SharedPtr<ASTInitializerExpr> Parser::ParseInitializerExpr()
 {
-    RC<ASTInitializerExpr> initializerExpr = MakeRefCountedPtr<ASTInitializerExpr>();
+    SharedPtr<ASTInitializerExpr> initializerExpr = MakeShared<ASTInitializerExpr>();
 
     if (Expect(TK_OPEN_BRACE, true))
     {
@@ -1792,13 +1792,13 @@ RC<ASTInitializerExpr> Parser::ParseInitializerExpr()
     return initializerExpr;
 }
 
-RC<ASTMemberDecl> Parser::ParseMemberDecl()
+SharedPtr<ASTMemberDecl> Parser::ParseMemberDecl()
 {
     // skip leading doc comment tokens
     while (Match(TK_DOC_COMMENT, true))
         ;
 
-    RC<ASTMemberDecl> memberDecl = MakeRefCountedPtr<ASTMemberDecl>();
+    SharedPtr<ASTMemberDecl> memberDecl = MakeShared<ASTMemberDecl>();
 
     bool isInline = false;
     bool isVirtual = false;
@@ -1873,7 +1873,7 @@ RC<ASTMemberDecl> Parser::ParseMemberDecl()
     }
     else if (Match(TK_OPEN_BRACKET, true))
     {
-        RC<ASTType> arrayType = MakeRefCountedPtr<ASTType>();
+        SharedPtr<ASTType> arrayType = MakeShared<ASTType>();
         arrayType->arrayOf = memberDecl->type;
         arrayType->isArray = true;
 
@@ -1909,18 +1909,18 @@ RC<ASTMemberDecl> Parser::ParseMemberDecl()
     return memberDecl;
 }
 
-RC<ASTMemberDecl> Parser::ParseEnumMemberDecl(const RC<ASTType>& underlyingType)
+SharedPtr<ASTMemberDecl> Parser::ParseEnumMemberDecl(const SharedPtr<ASTType>& underlyingType)
 {
     // skip leading doc comment tokens
     while (Match(TK_DOC_COMMENT, true))
         ;
 
-    RC<ASTMemberDecl> memberDecl = MakeRefCountedPtr<ASTMemberDecl>();
+    SharedPtr<ASTMemberDecl> memberDecl = MakeShared<ASTMemberDecl>();
     memberDecl->type = underlyingType;
 
     if (!memberDecl->type)
     {
-        memberDecl->type = MakeRefCountedPtr<ASTType>();
+        memberDecl->type = MakeShared<ASTType>();
         memberDecl->type->typeName = QualifiedName { { "int" } };
     }
 
@@ -1937,10 +1937,10 @@ RC<ASTMemberDecl> Parser::ParseEnumMemberDecl(const RC<ASTType>& underlyingType)
     return memberDecl;
 }
 
-RC<ASTType> Parser::ParseType()
+SharedPtr<ASTType> Parser::ParseType()
 {
     // Start by creating our root type instance
-    RC<ASTType> rootType = MakeRefCountedPtr<ASTType>();
+    SharedPtr<ASTType> rootType = MakeShared<ASTType>();
 
     bool keepReading = true;
     while (keepReading)
@@ -1995,7 +1995,7 @@ RC<ASTType> Parser::ParseType()
         {
             while (true)
             {
-                RC<ASTTemplateArgument> templateArgument = MakeRefCountedPtr<ASTTemplateArgument>();
+                SharedPtr<ASTTemplateArgument> templateArgument = MakeShared<ASTTemplateArgument>();
 
                 if (Match(TK_INTEGER, false))
                 {
@@ -2048,7 +2048,7 @@ RC<ASTType> Parser::ParseType()
         // Reference
         if (MatchOperator("&", true))
         {
-            RC<ASTType> refType = MakeRefCountedPtr<ASTType>();
+            SharedPtr<ASTType> refType = MakeShared<ASTType>();
             refType->isLvalueReference = true;
             refType->refTo = rootType;
             // Optional cv-qualifiers after '&'
@@ -2072,7 +2072,7 @@ RC<ASTType> Parser::ParseType()
         }
         else if (MatchOperator("&&", true))
         {
-            RC<ASTType> refType = MakeRefCountedPtr<ASTType>();
+            SharedPtr<ASTType> refType = MakeShared<ASTType>();
             refType->isRvalueReference = true;
             refType->refTo = rootType;
             // Optional cv-qualifiers after '&&'
@@ -2096,7 +2096,7 @@ RC<ASTType> Parser::ParseType()
         }
         else if (MatchOperator("*", true))
         {
-            RC<ASTType> ptrType = MakeRefCountedPtr<ASTType>();
+            SharedPtr<ASTType> ptrType = MakeShared<ASTType>();
             ptrType->isPointer = true;
             ptrType->ptrTo = rootType;
             // Optional cv-qualifiers after '*'
@@ -2127,7 +2127,7 @@ RC<ASTType> Parser::ParseType()
     // if (Match(TK_OPEN_PARENTH, false)) {
     //     if (MatchOperatorAhead("*", 1)) {
     //         // Function pointer
-    //         RC<ASTType> funcPtrType = MakeRefCountedPtr<ASTType>();
+    //         SharedPtr<ASTType> funcPtrType = MakeShared<ASTType>();
     //         funcPtrType->isFunctionPointer = true;
     //         funcPtrType->ptrTo = rootType;
     //         rootType = funcPtrType;
@@ -2140,11 +2140,11 @@ RC<ASTType> Parser::ParseType()
     return rootType;
 }
 
-RC<ASTFunctionType> Parser::ParseFunctionType(const RC<ASTType>& returnType)
+SharedPtr<ASTFunctionType> Parser::ParseFunctionType(const SharedPtr<ASTType>& returnType)
 {
     Assert(returnType != nullptr);
 
-    RC<ASTFunctionType> funcType = MakeRefCountedPtr<ASTFunctionType>();
+    SharedPtr<ASTFunctionType> funcType = MakeShared<ASTFunctionType>();
     funcType->returnType = returnType;
 
     if (Expect(TK_OPEN_PARENTH, true))

@@ -12,11 +12,11 @@ class AstReturnStatement final : public AstStatement
 
 public:
     AstReturnStatement(
-        const RC<AstExpression>& expr,
+        const SharedPtr<AstExpression>& expr,
         const SourceLocation& location);
     virtual ~AstReturnStatement() = default;
 
-    const RC<AstExpression>& GetExpression() const
+    const SharedPtr<AstExpression>& GetExpression() const
     {
         return m_expr;
     }
@@ -25,7 +25,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual RC<AstStatement> Clone() const override;
+    virtual SharedPtr<AstStatement> Clone() const override;
 
     virtual HashCode GetHashCode() const override
     {
@@ -37,17 +37,17 @@ public:
     }
 
 private:
-    RC<AstExpression> m_expr;
+    SharedPtr<AstExpression> m_expr;
 
     // set while analyzing
-    RC<AstExpression> m_overrideExpr;
+    SharedPtr<AstExpression> m_overrideExpr;
     const SymbolType* m_exprType;
     uint32 m_numPops;
     bool m_isConstructor : 1;
 
-    RC<AstReturnStatement> CloneImpl() const
+    SharedPtr<AstReturnStatement> CloneImpl() const
     {
-        return RC<AstReturnStatement>(new AstReturnStatement(
+        return SharedPtr<AstReturnStatement>(new AstReturnStatement(
             CloneAstNode(m_expr),
             m_location));
     }

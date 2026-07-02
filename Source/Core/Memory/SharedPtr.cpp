@@ -4,7 +4,7 @@
  *  @licence MIT
 */
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Reflection/BoxedValue.hpp>
 
@@ -135,23 +135,23 @@ template CORE_API uint32 ReleaseWeak<uint32>(ControlBlock<uint32>*);
 template CORE_API uint32 ReleaseWeak<AtomicVar<uint32>>(ControlBlock<AtomicVar<uint32>>*);
 } // namespace detail
 
-// RefCountedPtrBase implementations
+// SharedPtrBase implementations
 
 template <class CountType>
-RefCountedPtrBase<CountType>::RefCountedPtrBase()
+SharedPtrBase<CountType>::SharedPtrBase()
     : m_block(nullptr)
 {
 }
 
 template <class CountType>
-RefCountedPtrBase<CountType>::RefCountedPtrBase(const RefCountedPtrBase& other)
+SharedPtrBase<CountType>::SharedPtrBase(const SharedPtrBase& other)
     : m_block(other.m_block)
 {
     detail::IncStrong(m_block);
 }
 
 template <class CountType>
-RefCountedPtrBase<CountType>& RefCountedPtrBase<CountType>::operator=(const RefCountedPtrBase& other)
+SharedPtrBase<CountType>& SharedPtrBase<CountType>::operator=(const SharedPtrBase& other)
 {
     if (this == &other || m_block == other.m_block)
         return *this;
@@ -166,14 +166,14 @@ RefCountedPtrBase<CountType>& RefCountedPtrBase<CountType>::operator=(const RefC
 }
 
 template <class CountType>
-RefCountedPtrBase<CountType>::RefCountedPtrBase(RefCountedPtrBase&& other) noexcept
+SharedPtrBase<CountType>::SharedPtrBase(SharedPtrBase&& other) noexcept
     : m_block(other.m_block)
 {
     other.m_block = nullptr;
 }
 
 template <class CountType>
-RefCountedPtrBase<CountType>& RefCountedPtrBase<CountType>::operator=(RefCountedPtrBase&& other) noexcept
+SharedPtrBase<CountType>& SharedPtrBase<CountType>::operator=(SharedPtrBase&& other) noexcept
 {
     if (this == &other || m_block == other.m_block)
         return *this;
@@ -187,37 +187,37 @@ RefCountedPtrBase<CountType>& RefCountedPtrBase<CountType>::operator=(RefCounted
 }
 
 template <class CountType>
-RefCountedPtrBase<CountType>::~RefCountedPtrBase()
+SharedPtrBase<CountType>::~SharedPtrBase()
 {
     detail::ReleaseStrong(m_block);
 }
 
 template <class CountType>
-bool RefCountedPtrBase<CountType>::IsValid() const
+bool SharedPtrBase<CountType>::IsValid() const
 {
     return m_block != nullptr;
 }
 
 template <class CountType>
-void* RefCountedPtrBase<CountType>::GetVoid() const
+void* SharedPtrBase<CountType>::GetVoid() const
 {
     return m_block ? m_block->pObj : nullptr;
 }
 
 template <class CountType>
-const TypeInfo& RefCountedPtrBase<CountType>::GetTypeInfo() const
+const TypeInfo& SharedPtrBase<CountType>::GetTypeInfo() const
 {
     return m_block ? *m_block->typeInfo : TypeInfo_Void();
 }
 
 template <class CountType>
-const TypeId& RefCountedPtrBase<CountType>::GetTypeId() const
+const TypeId& SharedPtrBase<CountType>::GetTypeId() const
 {
     return TypeInfo_GetId(GetTypeInfo());
 }
 
 template <class CountType>
-void RefCountedPtrBase<CountType>::Reset()
+void SharedPtrBase<CountType>::Reset()
 {
     detail::ReleaseStrong(m_block);
 
@@ -225,19 +225,19 @@ void RefCountedPtrBase<CountType>::Reset()
 }
 
 template <class CountType>
-AnyRef RefCountedPtrBase<CountType>::ToRef() const
+AnyRef SharedPtrBase<CountType>::ToRef() const
 {
     return AnyRef(&GetTypeInfo(), GetVoid());
 }
 
 template <class CountType>
-typename RefCountedPtrBase<CountType>::Block* RefCountedPtrBase<CountType>::GetBlock_Internal() const
+typename SharedPtrBase<CountType>::Block* SharedPtrBase<CountType>::GetBlock_Internal() const
 {
     return m_block;
 }
 
 template <class CountType>
-void RefCountedPtrBase<CountType>::SetBlock_Internal(Block* block, bool incStrong)
+void SharedPtrBase<CountType>::SetBlock_Internal(Block* block, bool incStrong)
 {
     if (m_block == block)
     {
@@ -254,30 +254,30 @@ void RefCountedPtrBase<CountType>::SetBlock_Internal(Block* block, bool incStron
     }
 }
 
-// WeakRefCountedPtrBase implementations
+// WeakPtrBase implementations
 
 template <class CountType>
-WeakRefCountedPtrBase<CountType>::WeakRefCountedPtrBase()
+WeakPtrBase<CountType>::WeakPtrBase()
     : m_block(nullptr)
 {
 }
 
 template <class CountType>
-WeakRefCountedPtrBase<CountType>::WeakRefCountedPtrBase(const RefCountedPtrBase<CountType>& other)
+WeakPtrBase<CountType>::WeakPtrBase(const SharedPtrBase<CountType>& other)
     : m_block(other.m_block)
 {
     detail::IncWeak(m_block);
 }
 
 template <class CountType>
-WeakRefCountedPtrBase<CountType>::WeakRefCountedPtrBase(const WeakRefCountedPtrBase& other)
+WeakPtrBase<CountType>::WeakPtrBase(const WeakPtrBase& other)
     : m_block(other.m_block)
 {
     detail::IncWeak(m_block);
 }
 
 template <class CountType>
-WeakRefCountedPtrBase<CountType>& WeakRefCountedPtrBase<CountType>::operator=(const WeakRefCountedPtrBase& other)
+WeakPtrBase<CountType>& WeakPtrBase<CountType>::operator=(const WeakPtrBase& other)
 {
     if (this == &other || m_block == other.m_block)
         return *this;
@@ -292,14 +292,14 @@ WeakRefCountedPtrBase<CountType>& WeakRefCountedPtrBase<CountType>::operator=(co
 }
 
 template <class CountType>
-WeakRefCountedPtrBase<CountType>::WeakRefCountedPtrBase(WeakRefCountedPtrBase&& other) noexcept
+WeakPtrBase<CountType>::WeakPtrBase(WeakPtrBase&& other) noexcept
     : m_block(other.m_block)
 {
     other.m_block = nullptr;
 }
 
 template <class CountType>
-WeakRefCountedPtrBase<CountType>& WeakRefCountedPtrBase<CountType>::operator=(WeakRefCountedPtrBase&& other) noexcept
+WeakPtrBase<CountType>& WeakPtrBase<CountType>::operator=(WeakPtrBase&& other) noexcept
 {
     if (this == &other || m_block == other.m_block)
         return *this;
@@ -313,19 +313,19 @@ WeakRefCountedPtrBase<CountType>& WeakRefCountedPtrBase<CountType>::operator=(We
 }
 
 template <class CountType>
-WeakRefCountedPtrBase<CountType>::~WeakRefCountedPtrBase()
+WeakPtrBase<CountType>::~WeakPtrBase()
 {
     detail::ReleaseWeak(m_block);
 }
 
 template <class CountType>
-bool WeakRefCountedPtrBase<CountType>::IsValid() const
+bool WeakPtrBase<CountType>::IsValid() const
 {
     return m_block != nullptr;
 }
 
 template <class CountType>
-void WeakRefCountedPtrBase<CountType>::SetBlock_Internal(Block* block, bool incWeak)
+void WeakPtrBase<CountType>::SetBlock_Internal(Block* block, bool incWeak)
 {
     if (m_block == block)
     {
@@ -343,17 +343,17 @@ void WeakRefCountedPtrBase<CountType>::SetBlock_Internal(Block* block, bool incW
 }
 
 template <class CountType>
-typename WeakRefCountedPtrBase<CountType>::Block* WeakRefCountedPtrBase<CountType>::GetBlock_Internal() const
+typename WeakPtrBase<CountType>::Block* WeakPtrBase<CountType>::GetBlock_Internal() const
 {
     return m_block;
 }
 
 // Explicit instantiations
-template class CORE_API RefCountedPtrBase<uint32>;
-template class CORE_API RefCountedPtrBase<AtomicVar<uint32>>;
+template class CORE_API SharedPtrBase<uint32>;
+template class CORE_API SharedPtrBase<AtomicVar<uint32>>;
 
-template class CORE_API WeakRefCountedPtrBase<uint32>;
-template class CORE_API WeakRefCountedPtrBase<AtomicVar<uint32>>;
+template class CORE_API WeakPtrBase<uint32>;
+template class CORE_API WeakPtrBase<AtomicVar<uint32>>;
 
 } // namespace memory
 } // namespace Hyperion

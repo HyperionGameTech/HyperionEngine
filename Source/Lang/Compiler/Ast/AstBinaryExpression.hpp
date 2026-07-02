@@ -14,17 +14,17 @@ class AstBinaryExpression : public AstExpression
 
 public:
     AstBinaryExpression(
-        const RC<AstExpression>& left,
-        const RC<AstExpression>& right,
+        const SharedPtr<AstExpression>& left,
+        const SharedPtr<AstExpression>& right,
         const Operator* op,
         const SourceLocation& location);
 
-    HYP_FORCE_INLINE const RC<AstExpression>& GetLeft() const
+    HYP_FORCE_INLINE const SharedPtr<AstExpression>& GetLeft() const
     {
         return m_left;
     }
 
-    HYP_FORCE_INLINE const RC<AstExpression>& GetRight() const
+    HYP_FORCE_INLINE const SharedPtr<AstExpression>& GetRight() const
     {
         return m_right;
     }
@@ -38,7 +38,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual RC<AstStatement> Clone() const override;
+    virtual SharedPtr<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -60,22 +60,22 @@ public:
     }
 
 private:
-    RC<AstExpression> m_left;
-    RC<AstExpression> m_right;
+    SharedPtr<AstExpression> m_left;
+    SharedPtr<AstExpression> m_right;
     const Operator* m_op;
 
-    RC<AstExpression> m_overrideExpr;
+    SharedPtr<AstExpression> m_overrideExpr;
     bool m_enableOverrideExpr : 1;
 
 #if HYP_SCRIPT_ENABLE_LAZY_DECLARATIONS
     // if the expression is lazy declaration
-    RC<AstVariableDeclaration> m_variableDeclaration;
-    RC<AstVariableDeclaration> CheckLazyDeclaration(AstVisitor* visitor, Module* mod);
+    SharedPtr<AstVariableDeclaration> m_variableDeclaration;
+    SharedPtr<AstVariableDeclaration> CheckLazyDeclaration(AstVisitor* visitor, Module* mod);
 #endif
 
-    RC<AstBinaryExpression> CloneImpl() const
+    SharedPtr<AstBinaryExpression> CloneImpl() const
     {
-        return RC<AstBinaryExpression>(
+        return SharedPtr<AstBinaryExpression>(
             new AstBinaryExpression(
                 CloneAstNode(m_left),
                 CloneAstNode(m_right),

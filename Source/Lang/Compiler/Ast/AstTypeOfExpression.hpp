@@ -20,7 +20,7 @@ class AstTypeOfExpression : public AstTypeSpecifier
 
 public:
     AstTypeOfExpression(
-        const RC<AstExpression>& expr,
+        const SharedPtr<AstExpression>& expr,
         const SourceLocation& location);
     virtual ~AstTypeOfExpression() = default;
 
@@ -28,7 +28,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual RC<AstStatement> Clone() const override;
+    virtual SharedPtr<AstStatement> Clone() const override;
 
     virtual const SymbolType* GetExprType() const override;
     virtual const SymbolType* GetHeldType() const override;
@@ -38,15 +38,15 @@ public:
 
 private:
 #if HYP_SCRIPT_TYPEOF_RETURN_OBJECT
-    RC<AstTypeRef> m_typeRef;
+    SharedPtr<AstTypeRef> m_typeRef;
     const SymbolType* m_heldType;
 #else
-    RC<AstExpression> m_stringExpr;
+    SharedPtr<AstExpression> m_stringExpr;
 #endif
 
-    inline RC<AstTypeOfExpression> CloneImpl() const
+    inline SharedPtr<AstTypeOfExpression> CloneImpl() const
     {
-        return RC<AstTypeOfExpression>(new AstTypeOfExpression(
+        return SharedPtr<AstTypeOfExpression>(new AstTypeOfExpression(
             CloneAstNode(m_expr),
             m_location));
     }

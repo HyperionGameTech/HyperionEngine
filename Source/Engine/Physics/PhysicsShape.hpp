@@ -11,7 +11,7 @@
 
 #include <Core/Reflection/Handle.hpp>
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Math/Transform.hpp>
 #include <Core/Math/BoundingBox.hpp>
@@ -63,7 +63,7 @@ public:
 
     /*! \brief Set the internal handle of the PhysicsShape. Only to be used
         by a PhysicsAdapter. */
-    HYP_FORCE_INLINE void SetHandle(RC<void>&& handle)
+    HYP_FORCE_INLINE void SetHandle(SharedPtr<void>&& handle)
     {
         m_handle = std::move(handle);
     }
@@ -71,7 +71,7 @@ public:
 protected:
     PhysicsShapeType m_type;
 
-    RC<void> m_handle;
+    SharedPtr<void> m_handle;
 };
 
 HYP_CLASS()

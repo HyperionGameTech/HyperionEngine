@@ -30,7 +30,7 @@ UniquePtr<Buildable> AstString::Build(AstVisitor* visitor, Module* mod)
     return instrString;
 }
 
-RC<AstStatement> AstString::Clone() const
+SharedPtr<AstStatement> AstString::Clone() const
 {
     return CloneImpl();
 }

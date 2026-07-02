@@ -12,8 +12,8 @@ namespace Hyperion {
 
 struct CaseClause
 {
-    RC<AstExpression> m_value;
-    RC<AstBlock> m_block;
+    SharedPtr<AstExpression> m_value;
+    SharedPtr<AstBlock> m_block;
     bool m_isDefault = false;
 };
 
@@ -24,13 +24,13 @@ class AstSwitchExpression : public AstExpression
 
 public:
     AstSwitchExpression(
-        const RC<AstExpression>& expression,
+        const SharedPtr<AstExpression>& expression,
         const Array<CaseClause>& clauses,
         const SourceLocation& location);
 
     virtual ~AstSwitchExpression() = default;
 
-    HYP_FORCE_INLINE const RC<AstExpression>& GetExpression() const
+    HYP_FORCE_INLINE const SharedPtr<AstExpression>& GetExpression() const
     {
         return m_expression;
     }
@@ -44,7 +44,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual RC<AstStatement> Clone() const override;
+    virtual SharedPtr<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -67,12 +67,12 @@ public:
     }
 
 private:
-    RC<AstExpression> m_expression;
+    SharedPtr<AstExpression> m_expression;
     Array<CaseClause> m_clauses;
     int m_numPops = 0;
     const SymbolType* m_exprType = nullptr;
 
-    RC<AstSwitchExpression> CloneImpl() const;
+    SharedPtr<AstSwitchExpression> CloneImpl() const;
 };
 
 } // namespace Hyperion

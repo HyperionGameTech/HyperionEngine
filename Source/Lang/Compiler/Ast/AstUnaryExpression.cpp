@@ -27,7 +27,7 @@
 namespace Hyperion {
 
 AstUnaryExpression::AstUnaryExpression(
-    const RC<AstExpression>& expr,
+    const SharedPtr<AstExpression>& expr,
     const Operator* op,
     bool isPostfixVersion,
     const SourceLocation& location)
@@ -44,7 +44,7 @@ void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
     // use a bin op for operators that modify their argument
     if (m_op->ModifiesValue())
     {
-        RC<AstExpression> expr;
+        SharedPtr<AstExpression> expr;
         const Operator* binOp = nullptr;
 
         switch (m_op->GetOperatorType())
@@ -70,7 +70,7 @@ void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
         if (m_isPostfixVersion)
         {
             // need to preserve the original value as a temporary variable
-            RC<AstVariableDeclaration> tempVarDecl(new AstVariableDeclaration(
+            SharedPtr<AstVariableDeclaration> tempVarDecl(new AstVariableDeclaration(
                 tempVarName,
                 nullptr,
                 CloneAstNode(m_expr),
@@ -88,7 +88,7 @@ void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
         if (m_isPostfixVersion)
         {
             // return the temp variable
-            m_overrideBlock->AddChild(RC<AstVariable>(new AstVariable(tempVarName, m_location)));
+            m_overrideBlock->AddChild(SharedPtr<AstVariable>(new AstVariable(tempVarName, m_location)));
         }
 
         m_overrideBlock->Visit(visitor, mod);
@@ -149,10 +149,10 @@ void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
 
         // if (!type->IsBoolean())
         // {
-        //     m_expr = RC<AstAsExpression>(new AstAsExpression(
+        //     m_expr = SharedPtr<AstAsExpression>(new AstAsExpression(
         //         CloneAstNode(m_expr),
-        //         RC<AstTypeSpecifier>(new AstTypeSpecifier(
-        //             RC<AstTypeRef>(new AstTypeRef(BuiltinTypes::s_boolType, m_location)),
+        //         SharedPtr<AstTypeSpecifier>(new AstTypeSpecifier(
+        //             SharedPtr<AstTypeRef>(new AstTypeRef(BuiltinTypes::s_boolType, m_location)),
         //             m_location)),
         //         m_location));
 
@@ -282,7 +282,7 @@ void AstUnaryExpression::Optimize(AstVisitor* visitor, Module* mod)
 
             m_folded = true;
         }
-        else if (RC<AstConstant> constantValue = Optimizer::ConstantFold(m_expr, nullptr, m_op->GetOperatorType(), visitor))
+        else if (SharedPtr<AstConstant> constantValue = Optimizer::ConstantFold(m_expr, nullptr, m_op->GetOperatorType(), visitor))
         {
             m_expr = constantValue;
 
@@ -291,7 +291,7 @@ void AstUnaryExpression::Optimize(AstVisitor* visitor, Module* mod)
     }
 }
 
-RC<AstStatement> AstUnaryExpression::Clone() const
+SharedPtr<AstStatement> AstUnaryExpression::Clone() const
 {
     return CloneImpl();
 }

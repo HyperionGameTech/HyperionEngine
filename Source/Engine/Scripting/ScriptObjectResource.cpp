@@ -43,7 +43,7 @@ ScriptObjectResource::ScriptObjectResource(const Handle<ObjectBase>& nativeObjec
 }
 
 #ifdef HYP_DOTNET
-ScriptObjectResource::ScriptObjectResource(dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass)
+ScriptObjectResource::ScriptObjectResource(dotnet::ManagedObject* objectPtr, const SharedPtr<dotnet::ManagedClass>& managedClass)
     : m_ptr(nullptr)
 {
     if (!dotNetData)
@@ -58,12 +58,12 @@ ScriptObjectResource::ScriptObjectResource(dotnet::ManagedObject* objectPtr, con
     AssertDebug(data.objectPtr && data.managedClass);
 }
 
-ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, const RC<dotnet::ManagedClass>& managedClass)
+ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, const SharedPtr<dotnet::ManagedClass>& managedClass)
     : ScriptObjectResource(ptr, managedClass, {}, ObjectFlags::NONE)
 {
 }
 
-ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass)
+ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, dotnet::ManagedObject* objectPtr, const SharedPtr<dotnet::ManagedClass>& managedClass)
     : m_ptr(ptr)
 {
     if (!dotNetData)
@@ -78,7 +78,7 @@ ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, dotnet::ManagedObjec
     AssertDebug(data.objectPtr && data.managedClass);
 }
 
-ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, const RC<dotnet::ManagedClass>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags)
+ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, const SharedPtr<dotnet::ManagedClass>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags)
     : m_ptr(ptr)
 {
     if (!dotNetData)
@@ -96,7 +96,7 @@ ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, const RC<dotnet::Man
     {
         if (objectFlags & ObjectFlags::CREATED_FROM_MANAGED)
         {
-            data.objectPtr = new dotnet::ManagedObject(managedClass->RefCountedPtrFromThis(), objectReference, ObjectFlags::CREATED_FROM_MANAGED);
+            data.objectPtr = new dotnet::ManagedObject(managedClass->SharedThis(), objectReference, ObjectFlags::CREATED_FROM_MANAGED);
         }
         else
         {
@@ -204,7 +204,7 @@ dotnet::ManagedObject* ScriptObjectResource::GetManagedObject() const
     return nullptr;
 }
 
-const RC<dotnet::ManagedClass> ScriptObjectResource::GetManagedClass() const
+const SharedPtr<dotnet::ManagedClass> ScriptObjectResource::GetManagedClass() const
 {
 #ifdef HYP_DOTNET
     // only valid to call on .NET script objects
@@ -368,12 +368,12 @@ static struct ScriptObjectFunctionsDependencyInject
 
         ScriptObjectFunctions::ReleaseDotNetGCHandle = &Object_ReleaseDotNetGCHandle;
 
-        ScriptObjectFunctions::CreateScriptObjectResource_DotNet = [](ObjectBase* target, const RC<dotnet::ManagedClass>& managedClass) -> ScriptObjectResource* {
+        ScriptObjectFunctions::CreateScriptObjectResource_DotNet = [](ObjectBase* target, const SharedPtr<dotnet::ManagedClass>& managedClass) -> ScriptObjectResource* {
             return new ScriptObjectResource(target, managedClass);
         };
 
-        ScriptObjectFunctions::ManagedClassRefCountedPtrFromThis = [](dotnet::ManagedClass* mc) -> RC<dotnet::ManagedClass> {
-            return mc->RefCountedPtrFromThis();
+        ScriptObjectFunctions::ManagedClassSharedThis = [](dotnet::ManagedClass* mc) -> SharedPtr<dotnet::ManagedClass> {
+            return mc->SharedThis();
         };
 
         ScriptObjectFunctions::ManagedClassNewManagedObject = [](dotnet::ManagedClass* mc, void* contextPtr, void (*copyCallback)(void*, void*, unsigned int), dotnet::ObjectReference* outRef) {

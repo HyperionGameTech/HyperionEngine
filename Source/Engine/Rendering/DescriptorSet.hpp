@@ -10,7 +10,7 @@
 
 #include <Core/Utilities/Optional.hpp>
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Containers/Map.hpp>
 #include <Core/Containers/ArrayMap.hpp>

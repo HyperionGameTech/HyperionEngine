@@ -15,9 +15,9 @@
 namespace Hyperion {
 
 AstTernaryExpression::AstTernaryExpression(
-    const RC<AstExpression>& conditional,
-    const RC<AstExpression>& left,
-    const RC<AstExpression>& right,
+    const SharedPtr<AstExpression>& conditional,
+    const SharedPtr<AstExpression>& left,
+    const SharedPtr<AstExpression>& right,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD | ((right && left) ? (left->GetAccessOptions() & right->GetAccessOptions()) : 0)),
       m_conditional(conditional),
@@ -121,7 +121,7 @@ void AstTernaryExpression::Optimize(AstVisitor* visitor, Module* mod)
     m_right->Optimize(visitor, mod);
 }
 
-RC<AstStatement> AstTernaryExpression::Clone() const
+SharedPtr<AstStatement> AstTernaryExpression::Clone() const
 {
     return CloneImpl();
 }

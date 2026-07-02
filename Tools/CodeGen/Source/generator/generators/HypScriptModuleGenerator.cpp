@@ -335,7 +335,7 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
                             {
                                 if (clsMember.name == refMemberName && clsMember.cxxType != nullptr)
                                 {
-                                    RC<ASTType> typeToMap = clsMember.cxxType;
+                                    SharedPtr<ASTType> typeToMap = clsMember.cxxType;
 
                                     if (auto* funcType = dynamic_cast<ASTFunctionType*>(clsMember.cxxType.Get()))
                                     {

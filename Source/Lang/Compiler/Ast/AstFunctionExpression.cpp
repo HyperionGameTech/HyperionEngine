@@ -39,9 +39,9 @@
 namespace Hyperion {
 
 AstFunctionExpression::AstFunctionExpression(
-    const Array<RC<AstParameter>>& parameters,
-    const RC<AstTypeSpecifier>& returnTypeSpecification,
-    const RC<AstBlock>& block,
+    const Array<SharedPtr<AstParameter>>& parameters,
+    const SharedPtr<AstTypeSpecifier>& returnTypeSpecification,
+    const SharedPtr<AstBlock>& block,
     const SourceLocation& location)
     : AstFunctionExpression(
           parameters,
@@ -53,9 +53,9 @@ AstFunctionExpression::AstFunctionExpression(
 }
 
 AstFunctionExpression::AstFunctionExpression(
-    const Array<RC<AstParameter>>& parameters,
-    const RC<AstTypeSpecifier>& returnTypeSpecification,
-    const RC<AstBlock>& block,
+    const Array<SharedPtr<AstParameter>>& parameters,
+    const SharedPtr<AstTypeSpecifier>& returnTypeSpecification,
+    const SharedPtr<AstBlock>& block,
     bool enableClosure,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
@@ -148,8 +148,8 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         if (m_isConstructorDefinition)
         {
             // add implicit 'return self' at the end
-            m_blockWithParameters->AddChild(RC<AstReturnStatement>(new AstReturnStatement(
-                RC<AstVariable>(new AstVariable("self", m_blockWithParameters->GetLocation())),
+            m_blockWithParameters->AddChild(SharedPtr<AstReturnStatement>(new AstReturnStatement(
+                SharedPtr<AstVariable>(new AstVariable("self", m_blockWithParameters->GetLocation())),
                 m_blockWithParameters->GetLocation())));
         }
 
@@ -161,7 +161,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
     Array<GenericInstanceTypeInfo::Arg> paramSymbolTypes;
     paramSymbolTypes.Reserve(m_parameters.Size());
 
-    for (const RC<AstParameter>& param : m_parameters)
+    for (const SharedPtr<AstParameter>& param : m_parameters)
     {
         if (!param || !param->GetIdentifier())
         {
@@ -371,7 +371,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
     for (const auto& it : functionScope->closureCaptures)
     {
         const String& name = it.first;
-        const RC<Identifier>& identifier = it.second;
+        const SharedPtr<Identifier>& identifier = it.second;
 
         Assert(identifier != nullptr);
         Assert(identifier->GetSymbolType() != nullptr);
@@ -379,7 +379,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         closureObjMembers.PushBack(SymbolTypeMember {
             identifier->GetName(),
             const_cast<SymbolType*>(identifier->GetSymbolType()),
-            RC<AstVariable>(new AstVariable(name, m_location)) });
+            SharedPtr<AstVariable>(new AstVariable(name, m_location)) });
     }
 
     // close parameter scope
@@ -450,7 +450,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         closureSelfAliasType->Register(visitor->GetCompilationUnit());
         closureScope->identifierTable.AddSymbolType(closureSelfAliasType);
 
-        Array<RC<AstParameter>> closureParams;
+        Array<SharedPtr<AstParameter>> closureParams;
         closureParams.Reserve(m_parameters.Size() + 1);
         closureParams.PushBack(CloneAstNode(m_closureSelfParam));
 
@@ -460,17 +460,17 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         }
 
         // add $invoke to call this object
-        RC<AstClass> closureClassDecl(new AstClass(
+        SharedPtr<AstClass> closureClassDecl(new AstClass(
             visitor->GetCompilationUnit()->GetAnonClassName(),
             nullptr,
             {},
             {
-                RC<AstVariableDeclaration>(new AstVariableDeclaration(
+                SharedPtr<AstVariableDeclaration>(new AstVariableDeclaration(
                     "$invoke",
-                    RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                        RC<AstTypeRef>(new AstTypeRef(functionType, m_location)),
+                    SharedPtr<AstTypeSpecifier>(new AstTypeSpecifier(
+                        SharedPtr<AstTypeRef>(new AstTypeRef(functionType, m_location)),
                         m_location)),
-                    RC<AstFunctionExpression>(new AstFunctionExpression(
+                    SharedPtr<AstFunctionExpression>(new AstFunctionExpression(
                         closureParams,
                         CloneAstNode(m_returnTypeSpecification),
                         CloneAstNode(m_block),
@@ -485,10 +485,10 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
 
         for (const SymbolTypeMember& member : closureObjMembers)
         {
-            closureClassDecl->GetDataMembers().PushBack(RC<AstVariableDeclaration>(new AstVariableDeclaration(
+            closureClassDecl->GetDataMembers().PushBack(SharedPtr<AstVariableDeclaration>(new AstVariableDeclaration(
                 member.GetName(),
-                RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                    RC<AstTypeRef>(new AstTypeRef(member.GetType(), m_location)),
+                SharedPtr<AstTypeSpecifier>(new AstTypeSpecifier(
+                    SharedPtr<AstTypeRef>(new AstTypeRef(member.GetType(), m_location)),
                     m_location)),
                 nullptr,                                             // placeholder; set later
                 IdentifierFlags::PLACEHOLDER | IdentifierFlags::LAX, // don't emit errors for null assignment
@@ -507,12 +507,12 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         m_closureBlock.Reset(new AstBlock(m_location));
 
         // create new instance of closure class
-        m_closureBlock->AddChild(RC<AstVariableDeclaration>(new AstVariableDeclaration(
+        m_closureBlock->AddChild(SharedPtr<AstVariableDeclaration>(new AstVariableDeclaration(
             "$__closure_instance",
             nullptr,
-            RC<AstNewExpression>(new AstNewExpression(
-                RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                    RC<AstTypeRef>(new AstTypeRef(closureSelfType, m_location)),
+            SharedPtr<AstNewExpression>(new AstNewExpression(
+                SharedPtr<AstTypeSpecifier>(new AstTypeSpecifier(
+                    SharedPtr<AstTypeRef>(new AstTypeRef(closureSelfType, m_location)),
                     m_location)),
                 nullptr, // no constructor args
                 false,   // enable constructor call
@@ -524,10 +524,10 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         for (const SymbolTypeMember& member : closureObjMembers)
         {
             // $__closure_instance.<member> = <value>;
-            m_closureBlock->AddChild(RC<AstBinaryExpression>(new AstBinaryExpression(
-                RC<AstMember>(new AstMember(
+            m_closureBlock->AddChild(SharedPtr<AstBinaryExpression>(new AstBinaryExpression(
+                SharedPtr<AstMember>(new AstMember(
                     member.GetName(),
-                    RC<AstVariable>(new AstVariable("$__closure_instance", m_location)),
+                    SharedPtr<AstVariable>(new AstVariable("$__closure_instance", m_location)),
                     m_location)),
                 CloneAstNode(member.GetExpr()),
                 Operator::FindBinaryOperator(Operators::OP_assign),
@@ -535,7 +535,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         }
 
         // return the closure instance as the value of this expression
-        m_closureBlock->AddChild(RC<AstVariable>(new AstVariable("$__closure_instance", m_location)));
+        m_closureBlock->AddChild(SharedPtr<AstVariable>(new AstVariable("$__closure_instance", m_location)));
         m_closureBlock->Visit(visitor, mod);
 
         m_closureBlock->PrependChild(closureClassDecl);
@@ -600,7 +600,7 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
     // Find variadic parameter, reserve stack location for the array that will be created:
     for (size_t index = m_parameters.Size(); index > 0; index--)
     {
-        const RC<AstParameter>& param = m_parameters[index - 1];
+        const SharedPtr<AstParameter>& param = m_parameters[index - 1];
         Assert(param != nullptr);
 
         if (param->IsVariadic())
@@ -623,7 +623,7 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
 
     for (size_t index = 0; index < m_parameters.Size(); index++, numArgs++)
     {
-        const RC<AstParameter>& param = m_parameters[index];
+        const SharedPtr<AstParameter>& param = m_parameters[index];
         Assert(param != nullptr);
 
         chunk->Append(param->Build(visitor, mod));
@@ -637,7 +637,7 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
 
     if (variadicParam)
     {
-        const RC<AstParameter>& last = m_parameters.Back();
+        const SharedPtr<AstParameter>& last = m_parameters.Back();
         Assert(last != nullptr);
 
         methodFlags |= MethodFlags::VARIADIC;
@@ -735,7 +735,7 @@ void AstFunctionExpression::Optimize(AstVisitor* visitor, Module* mod)
     }
 }
 
-RC<AstStatement> AstFunctionExpression::Clone() const
+SharedPtr<AstStatement> AstFunctionExpression::Clone() const
 {
     return CloneImpl();
 }

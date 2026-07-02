@@ -48,7 +48,7 @@ void RTCStream::SendSample(const RTCStreamDestination& destination)
 
     while (auto sample = m_encoder->PullData())
     {
-        for (const RC<RTCTrackBase>& track : destination.tracks)
+        for (const SharedPtr<RTCTrackBase>& track : destination.tracks)
         {
             if (!track->IsOpen())
             {

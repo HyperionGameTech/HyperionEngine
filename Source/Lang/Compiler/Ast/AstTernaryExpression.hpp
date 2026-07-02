@@ -14,9 +14,9 @@ class AstTernaryExpression : public AstExpression
 
 public:
     AstTernaryExpression(
-        const RC<AstExpression>& conditional,
-        const RC<AstExpression>& left,
-        const RC<AstExpression>& right,
+        const SharedPtr<AstExpression>& conditional,
+        const SharedPtr<AstExpression>& left,
+        const SharedPtr<AstExpression>& right,
         const SourceLocation& location);
     virtual ~AstTernaryExpression() = default;
 
@@ -24,7 +24,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual RC<AstStatement> Clone() const override;
+    virtual SharedPtr<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -46,13 +46,13 @@ public:
     }
 
 private:
-    RC<AstExpression> m_conditional;
-    RC<AstExpression> m_left;
-    RC<AstExpression> m_right;
+    SharedPtr<AstExpression> m_conditional;
+    SharedPtr<AstExpression> m_left;
+    SharedPtr<AstExpression> m_right;
 
-    RC<AstTernaryExpression> CloneImpl() const
+    SharedPtr<AstTernaryExpression> CloneImpl() const
     {
-        return RC<AstTernaryExpression>(
+        return SharedPtr<AstTernaryExpression>(
             new AstTernaryExpression(
                 CloneAstNode(m_conditional),
                 CloneAstNode(m_left),

@@ -11,7 +11,7 @@
 
 #include <Core/Reflection/ObjectMacros.hpp>
 
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Utilities/EnumFlags.hpp>
 

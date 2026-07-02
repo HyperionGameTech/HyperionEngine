@@ -19,8 +19,8 @@ namespace Hyperion {
 
 AstParameter::AstParameter(
     const String& name,
-    const RC<AstTypeSpecifier>& typeSpec,
-    const RC<AstExpression>& defaultParam,
+    const SharedPtr<AstTypeSpecifier>& typeSpec,
+    const SharedPtr<AstExpression>& defaultParam,
     bool isVariadic,
     EnumFlags<IdentifierFlags> flags,
     const SourceLocation& location)
@@ -102,9 +102,9 @@ void AstParameter::Visit(AstVisitor* visitor, Module* mod)
     if (m_isVariadic)
     {
         m_varargsTypeSpec.Reset(new AstTemplateInstantiation(
-            RC<AstTypeRef>(new AstTypeRef(BuiltinTypes::s_varArgsType, m_location)),
-            { RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                RC<AstTypeRef>(new AstTypeRef(m_symbolType, m_location)),
+            SharedPtr<AstTypeRef>(new AstTypeRef(BuiltinTypes::s_varArgsType, m_location)),
+            { SharedPtr<AstTypeSpecifier>(new AstTypeSpecifier(
+                SharedPtr<AstTypeRef>(new AstTypeRef(m_symbolType, m_location)),
                 m_location)) },
             nullptr, // no function return type
             m_location));
@@ -159,7 +159,7 @@ void AstParameter::Optimize(AstVisitor* visitor, Module* mod)
     }
 }
 
-RC<AstStatement> AstParameter::Clone() const
+SharedPtr<AstStatement> AstParameter::Clone() const
 {
     return CloneImpl();
 }

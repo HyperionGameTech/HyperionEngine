@@ -18,8 +18,8 @@ class AstNewExpression : public AstExpression
 
 public:
     AstNewExpression(
-        const RC<AstTypeSpecifier>& typeSpec,
-        const RC<AstArgumentList>& argList,
+        const SharedPtr<AstTypeSpecifier>& typeSpec,
+        const SharedPtr<AstArgumentList>& argList,
         bool enableConstructorCall,
         const SourceLocation& location);
     virtual ~AstNewExpression() override = default;
@@ -28,7 +28,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual RC<AstStatement> Clone() const override;
+    virtual SharedPtr<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -46,18 +46,18 @@ public:
     }
 
 private:
-    RC<AstTypeSpecifier> m_typeSpec;
-    RC<AstArgumentList> m_argList;
+    SharedPtr<AstTypeSpecifier> m_typeSpec;
+    SharedPtr<AstArgumentList> m_argList;
     bool m_enableConstructorCall : 1;
 
     /** Set while analyzing */
     const SymbolType* m_instanceType;
-    RC<AstBlock> m_constructorBlock; // create a block to store temporary vars
-    RC<AstExpression> m_constructorCall;
+    SharedPtr<AstBlock> m_constructorBlock; // create a block to store temporary vars
+    SharedPtr<AstExpression> m_constructorCall;
 
-    RC<AstNewExpression> CloneImpl() const
+    SharedPtr<AstNewExpression> CloneImpl() const
     {
-        return RC<AstNewExpression>(new AstNewExpression(
+        return SharedPtr<AstNewExpression>(new AstNewExpression(
             CloneAstNode(m_typeSpec),
             CloneAstNode(m_argList),
             m_enableConstructorCall,

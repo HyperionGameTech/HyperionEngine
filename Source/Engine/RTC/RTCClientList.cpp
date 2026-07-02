@@ -10,7 +10,7 @@
 
 namespace Hyperion {
 
-void RTCClientList::Add(const String& id, RC<RTCClient> client)
+void RTCClientList::Add(const String& id, SharedPtr<RTCClient> client)
 {
     std::lock_guard guard(m_mutex);
 
@@ -24,7 +24,7 @@ void RTCClientList::Remove(String id)
     m_clients.Erase(id);
 }
 
-Optional<RC<RTCClient>> RTCClientList::Get(const String& id) const
+Optional<SharedPtr<RTCClient>> RTCClientList::Get(const String& id) const
 {
     std::lock_guard guard(m_mutex);
 
@@ -32,7 +32,7 @@ Optional<RC<RTCClient>> RTCClientList::Get(const String& id) const
 
     if (it == m_clients.End())
     {
-        return Optional<RC<RTCClient>>();
+        return Optional<SharedPtr<RTCClient>>();
     }
 
     return it->second;

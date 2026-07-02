@@ -5,7 +5,7 @@ namespace Hyperion
 {
     public class UIObjectHelpers
     {
-        public static UIObject? MarshalUIObject(RefCountedPtr rc)
+        public static UIObject? MarshalUIObject(SharedPtr rc)
         {
             throw new NotImplementedException();
         }

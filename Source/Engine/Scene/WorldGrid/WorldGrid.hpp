@@ -18,7 +18,7 @@
 #include <Core/Containers/Queue.hpp>
 
 #include <Core/Memory/UniquePtr.hpp>
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Threading/Task.hpp>
 #include <Core/Threading/Mutex.hpp>

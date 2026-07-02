@@ -11,7 +11,7 @@
 #include <Core/Containers/Array.hpp>
 
 #include <Core/Memory/UniquePtr.hpp>
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Utilities/EnumFlags.hpp>
 #include <Core/Utilities/StringView.hpp>
@@ -49,8 +49,8 @@ struct MemberDef
     String friendlyName;
     String condition;
     Array<Pair<String, ClassAttributeValue>> attributes;
-    RC<ASTType> cxxType;
-    RC<ASTMemberDecl> cxxDecl;
+    SharedPtr<ASTType> cxxType;
+    SharedPtr<ASTMemberDecl> cxxDecl;
     String source;
 
     bool HasAttribute(const String& key) const

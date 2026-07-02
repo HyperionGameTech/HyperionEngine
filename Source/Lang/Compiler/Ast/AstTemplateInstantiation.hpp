@@ -18,9 +18,9 @@ class AstTemplateInstantiation : public AstTypeSpecifier
 
 public:
     AstTemplateInstantiation(
-        const RC<AstExpression>& expr,
-        const Array<RC<AstTypeSpecifier>>& genericArgs,
-        const RC<AstTypeSpecifier>& functionReturnType, // optional
+        const SharedPtr<AstExpression>& expr,
+        const Array<SharedPtr<AstTypeSpecifier>>& genericArgs,
+        const SharedPtr<AstTypeSpecifier>& functionReturnType, // optional
         const SourceLocation& location);
     virtual ~AstTemplateInstantiation() = default;
 
@@ -28,15 +28,15 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual RC<AstStatement> Clone() const override;
+    virtual SharedPtr<AstStatement> Clone() const override;
 
 private:
-    Array<RC<AstTypeSpecifier>> m_genericArgs;
-    RC<AstTypeSpecifier> m_functionReturnType; // optional
+    Array<SharedPtr<AstTypeSpecifier>> m_genericArgs;
+    SharedPtr<AstTypeSpecifier> m_functionReturnType; // optional
 
-    RC<AstTemplateInstantiation> CloneImpl() const
+    SharedPtr<AstTemplateInstantiation> CloneImpl() const
     {
-        return RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
+        return SharedPtr<AstTemplateInstantiation>(new AstTemplateInstantiation(
             CloneAstNode(m_expr),
             CloneAllAstNodes(m_genericArgs),
             CloneAstNode(m_functionReturnType),

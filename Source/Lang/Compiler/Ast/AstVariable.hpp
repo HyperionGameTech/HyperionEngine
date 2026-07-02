@@ -32,22 +32,22 @@ public:
     virtual const AstExpression* GetDeepValueOf() const override;
     virtual AstExpression* GetTarget() const override;
 
-    virtual RC<AstStatement> Clone() const override;
+    virtual SharedPtr<AstStatement> Clone() const override;
 
 private:
     // set while analyzing
     // used to get locals from outer function in a closure
-    RC<AstMember> m_closureMemberAccess;
-    RC<AstMember> m_selfMemberAccess;
-    RC<AstTypeRef> m_typeRef;
-    RC<AstExpression> m_inlineValue;
+    SharedPtr<AstMember> m_closureMemberAccess;
+    SharedPtr<AstMember> m_selfMemberAccess;
+    SharedPtr<AstTypeRef> m_typeRef;
+    SharedPtr<AstExpression> m_inlineValue;
     bool m_shouldInline : 1;
     bool m_isInRefAssignment : 1;
     bool m_isInConstAssignment : 1;
 
-    RC<AstVariable> CloneImpl() const
+    SharedPtr<AstVariable> CloneImpl() const
     {
-        return RC<AstVariable>(new AstVariable(
+        return SharedPtr<AstVariable>(new AstVariable(
             m_name,
             m_location));
     }

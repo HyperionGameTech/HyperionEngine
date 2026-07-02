@@ -7,7 +7,7 @@
 #pragma once
 
 #include <Core/Memory/UniquePtr.hpp>
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Utilities/EnumFlags.hpp>
 
@@ -34,7 +34,7 @@ class ManagedClass;
 class Assembly;
 class ManagedMethod;
 
-class ENGINE_API Assembly : public EnableRefCountedPtrFromThis<Assembly>
+class ENGINE_API Assembly : public SharedFromThis<Assembly>
 {
 public:
     explicit Assembly(const ManagedGuid& guid);
@@ -63,9 +63,9 @@ public:
         return m_flags;
     }
 
-    RC<ManagedClass> NewClass(const Class* cls, int32 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, ManagedClass* parentClass, uint32 flags);
-    RC<ManagedClass> FindClassByName(const char* typeName);
-    RC<ManagedClass> FindClassByTypeHash(int32 typeHash);
+    SharedPtr<ManagedClass> NewClass(const Class* cls, int32 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, ManagedClass* parentClass, uint32 flags);
+    SharedPtr<ManagedClass> FindClassByName(const char* typeName);
+    SharedPtr<ManagedClass> FindClassByTypeHash(int32 typeHash);
 
     HYP_FORCE_INLINE InvokeGetterFunction GetInvokeGetterFunction() const
     {
@@ -99,7 +99,7 @@ private:
 
     ManagedGuid m_guid;
 
-    TMap<int32, RC<ManagedClass>> m_classObjects;
+    TMap<int32, SharedPtr<ManagedClass>> m_classObjects;
 
     // Function pointer to invoke a managed method
     InvokeGetterFunction m_invokeGetterFptr;

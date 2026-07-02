@@ -51,7 +51,7 @@ struct Formatter<StringType, float>
 {
     auto operator()(float value) const
     {
-        TFatArray<ubyte, InlineAllocator<16>> buf;
+        FatArray<ubyte, InlineAllocator<16>> buf;
         buf.Resize(16);
 
         int resultSize = std::snprintf(reinterpret_cast<char*>(buf.Data()), buf.Size(), "%g", value) + 1;
@@ -72,7 +72,7 @@ struct Formatter<StringType, double>
 {
     auto operator()(double value) const
     {
-        TFatArray<ubyte, InlineAllocator<16>> buf;
+        FatArray<ubyte, InlineAllocator<16>> buf;
         buf.Resize(16);
 
         int resultSize = std::snprintf(reinterpret_cast<char*>(buf.Data()), buf.Size(), "%g", value) + 1;
@@ -131,7 +131,7 @@ struct PrintfFormatter
 {
     auto operator()(T value) const
     {
-        TFatArray<ubyte, InlineAllocator<256>> buf;
+        FatArray<ubyte, InlineAllocator<256>> buf;
         buf.Resize(256);
 
         int resultSize = std::snprintf(reinterpret_cast<char*>(buf.Data()), buf.Size(), FormatString.data, value) + 1;

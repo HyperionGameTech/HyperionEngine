@@ -17,21 +17,21 @@ class AstModuleDeclaration : public AstDeclaration
 public:
     AstModuleDeclaration(
         const String& name,
-        const Array<RC<AstStatement>>& children,
+        const Array<SharedPtr<AstStatement>>& children,
         const SourceLocation& location);
     AstModuleDeclaration(const String& name, const SourceLocation& location);
 
-    void AddChild(const RC<AstStatement>& child)
+    void AddChild(const SharedPtr<AstStatement>& child)
     {
         m_children.PushBack(child);
     }
 
-    Array<RC<AstStatement>>& GetChildren()
+    Array<SharedPtr<AstStatement>>& GetChildren()
     {
         return m_children;
     }
 
-    const Array<RC<AstStatement>>& GetChildren() const
+    const Array<SharedPtr<AstStatement>>& GetChildren() const
     {
         return m_children;
     }
@@ -47,7 +47,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual RC<AstStatement> Clone() const override;
+    virtual SharedPtr<AstStatement> Clone() const override;
 
     virtual HashCode GetHashCode() const override
     {
@@ -65,12 +65,12 @@ private:
     /** Pre-register all class types for forward reference support */
     void PreRegisterClassTypes(AstVisitor* visitor, Module* mod);
 
-    Array<RC<AstStatement>> m_children;
+    Array<SharedPtr<AstStatement>> m_children;
     Module* m_module;
 
-    RC<AstModuleDeclaration> CloneImpl() const
+    SharedPtr<AstModuleDeclaration> CloneImpl() const
     {
-        return RC<AstModuleDeclaration>(new AstModuleDeclaration(
+        return SharedPtr<AstModuleDeclaration>(new AstModuleDeclaration(
             m_name,
             CloneAllAstNodes(m_children),
             m_location));

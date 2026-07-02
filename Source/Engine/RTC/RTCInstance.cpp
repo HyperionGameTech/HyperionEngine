@@ -13,27 +13,27 @@ namespace Hyperion {
 RTCInstance::RTCInstance(RTCServerParams serverParams)
 {
 #ifdef HYP_LIBDATACHANNEL
-    m_server = MakeRefCountedPtr<LibDataChannelRTCServer>(std::move(serverParams));
+    m_server = MakeShared<LibDataChannelRTCServer>(std::move(serverParams));
 #else
-    m_server = MakeRefCountedPtr<NullRTCServer>(std::move(serverParams));
+    m_server = MakeShared<NullRTCServer>(std::move(serverParams));
 #endif // HYP_LIBDATACHANNEL
 }
 
-RC<RTCTrackBase> RTCInstance::CreateTrack(RTCTrackType trackType)
+SharedPtr<RTCTrackBase> RTCInstance::CreateTrack(RTCTrackType trackType)
 {
 #ifdef HYP_LIBDATACHANNEL
-    return MakeRefCountedPtr<LibDataChannelRTCTrack>(trackType);
+    return MakeShared<LibDataChannelRTCTrack>(trackType);
 #else
-    return MakeRefCountedPtr<NullRTCTrack>(trackType);
+    return MakeShared<NullRTCTrack>(trackType);
 #endif // HYP_LIBDATACHANNEL
 }
 
-RC<RTCStream> RTCInstance::CreateStream(RTCStreamType streamType, UniquePtr<RTCStreamEncoder>&& encoder)
+SharedPtr<RTCStream> RTCInstance::CreateStream(RTCStreamType streamType, UniquePtr<RTCStreamEncoder>&& encoder)
 {
 #ifdef HYP_LIBDATACHANNEL
-    return MakeRefCountedPtr<LibDataChannelRTCStream>(streamType, std::move(encoder));
+    return MakeShared<LibDataChannelRTCStream>(streamType, std::move(encoder));
 #else
-    return MakeRefCountedPtr<NullRTCStream>(streamType, std::move(encoder));
+    return MakeShared<NullRTCStream>(streamType, std::move(encoder));
 #endif // HYP_LIBDATACHANNEL
 }
 

@@ -120,92 +120,25 @@ protected:
     virtual void WriteBytes(const char* ptr, size_t size) = 0;
 };
 
-class CORE_API MemoryByteWriter final : public ByteWriter
+template <class AllocatorType>
+class MemoryByteWriter final : public ByteWriter
 {
 public:
     MemoryByteWriter()
-        : m_pos(0)
-    {
-    }
-
-    virtual ~MemoryByteWriter() override = default;
-
-    virtual size_t Position() const override
-    {
-        return m_pos;
-    }
-
-    virtual void Seek(size_t position, bool truncate = false) override
-    {
-        m_pos = position;
-
-        if (position >= m_buffer.Size() || truncate)
-        {
-            m_buffer.SetSize(position);
-        }
-    }
-
-    virtual void Close() override
-    {
-        m_pos = 0;
-        // fit buffer to size
-        m_buffer.SetCapacity(m_buffer.Size());
-    }
-
-    virtual void Flush() override
-    {
-        // do nothing
-    }
-
-    HYP_FORCE_INLINE ByteBuffer& GetBuffer()
-    {
-        return m_buffer;
-    }
-
-    HYP_FORCE_INLINE const ByteBuffer& GetBuffer() const
-    {
-        return m_buffer;
-    }
-
-private:
-    ByteBuffer m_buffer;
-    size_t m_pos;
-
-    virtual void WriteBytes(const char* ptr, size_t size) override
-    {
-        const size_t requiredCapacity = m_buffer.Size() + size;
-
-        if (m_buffer.GetCapacity() < requiredCapacity)
-        {
-            // Add some padding to reduce number of allocations we need to do
-            m_buffer.SetCapacity(size_t(double(requiredCapacity) * 1.5));
-        }
-
-        m_buffer.SetSize(m_buffer.Size() + size);
-        m_buffer.Write(size, m_pos, ptr);
-        m_pos += size;
-    }
-};
-
-template <class AllocatorType>
-class TMemoryByteWriter final : public ByteWriter
-{
-public:
-    TMemoryByteWriter()
-        : m_buffer(new TByteBuffer<AllocatorType>),
+        : m_buffer(new memory::ByteBuffer<AllocatorType>),
           m_pos(0),
           m_ownsBuffer(true)
     {
     }
 
-    explicit TMemoryByteWriter(TByteBuffer<AllocatorType>* buffer)
+    explicit MemoryByteWriter(memory::ByteBuffer<AllocatorType>* buffer)
         : m_buffer(buffer),
           m_pos(0),
           m_ownsBuffer(false)
     {
     }
 
-    virtual ~TMemoryByteWriter() override
+    virtual ~MemoryByteWriter() override
     {
         if (m_ownsBuffer)
         {
@@ -241,18 +174,18 @@ public:
         // do nothing
     }
 
-    HYP_FORCE_INLINE TByteBuffer<AllocatorType>& GetBuffer()
+    HYP_FORCE_INLINE memory::ByteBuffer<AllocatorType>& GetBuffer()
     {
         return *m_buffer;
     }
 
-    HYP_FORCE_INLINE const TByteBuffer<AllocatorType>& GetBuffer() const
+    HYP_FORCE_INLINE const memory::ByteBuffer<AllocatorType>& GetBuffer() const
     {
         return *m_buffer;
     }
 
 private:
-    TByteBuffer<AllocatorType>* m_buffer;
+    memory::ByteBuffer<AllocatorType>* m_buffer;
     size_t m_pos;
     bool m_ownsBuffer;
 

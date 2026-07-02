@@ -22,7 +22,7 @@ namespace Hyperion
 
         public Handle<PhysicsShape> Shape;
         public Handle<InputHandlerBase> InputHandler;
-        public RefCountedPtr PhysicsHandle; // RC<void> - internal, do not access directly
+        public SharedPtr PhysicsHandle; // SharedPtr<void> - internal, do not access directly
 
         public Vec3f ViewDirection;
         public Vec3f Translation;

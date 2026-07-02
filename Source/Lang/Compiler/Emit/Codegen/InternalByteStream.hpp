@@ -52,7 +52,7 @@ public:
     void Bake(const BuildParams& buildParams);
 
 private:
-    MemoryByteWriter m_writer;
+    MemoryByteWriter<DynamicAllocator> m_writer;
     Array<Fixup> m_fixups;
 };
 

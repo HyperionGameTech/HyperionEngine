@@ -327,7 +327,7 @@ static bool DeserializeBVHNodeFrom(ByteReader& reader, BVHNode& node)
 
 ByteBuffer BVHNode::Serialize(const BVHNode& node)
 {
-    MemoryByteWriter writer;
+    MemoryByteWriter<DynamicAllocator> writer;
     SerializeBVHNodeInto(writer, node);
     writer.Close();
     return std::move(writer.GetBuffer());

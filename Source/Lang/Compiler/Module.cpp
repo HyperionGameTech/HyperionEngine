@@ -167,13 +167,13 @@ Array<Module*> Module::CollectNestedModules() const
     return nestedModules;
 }
 
-RC<Identifier> Module::LookUpIdentifier(const String& name, bool thisScopeOnly, bool outsideModules)
+SharedPtr<Identifier> Module::LookUpIdentifier(const String& name, bool thisScopeOnly, bool outsideModules)
 {
     TreeNode<Scope>* top = scopeTree.TopNode();
 
     while (top != nullptr)
     {
-        if (RC<Identifier> result = top->Get().identifierTable.LookUpIdentifier(name))
+        if (SharedPtr<Identifier> result = top->Get().identifierTable.LookUpIdentifier(name))
         {
             // a result was found
             return result;
@@ -219,13 +219,13 @@ RC<Identifier> Module::LookUpIdentifier(const String& name, bool thisScopeOnly, 
     return nullptr;
 }
 
-RC<Identifier> Module::LookUpIdentifierDepth(const String& name, int depthLevel)
+SharedPtr<Identifier> Module::LookUpIdentifierDepth(const String& name, int depthLevel)
 {
     TreeNode<Scope>* top = scopeTree.TopNode();
 
     for (int i = 0; top != nullptr && i < depthLevel; i++)
     {
-        if (RC<Identifier> result = top->Get().identifierTable.LookUpIdentifier(name))
+        if (SharedPtr<Identifier> result = top->Get().identifierTable.LookUpIdentifier(name))
         {
             return result;
         }
@@ -259,7 +259,7 @@ const SymbolType* Module::LookupSymbolType(
         });
 }
 
-Variant<RC<Identifier>, const SymbolType*> Module::LookUpIdentifierOrSymbolType(
+Variant<SharedPtr<Identifier>, const SymbolType*> Module::LookUpIdentifierOrSymbolType(
     const String& name,
     bool includePlaceholderTypes,
     bool thisScopeOnly,
@@ -267,15 +267,15 @@ Variant<RC<Identifier>, const SymbolType*> Module::LookUpIdentifierOrSymbolType(
 {
     TreeNode<Scope>* top = scopeTree.TopNode();
 
-    return PerformLookup<Variant<RC<Identifier>, const SymbolType*>>(
-        [&name, includePlaceholderTypes, thisScopeOnly, top](TreeNode<Scope>* node) -> Variant<RC<Identifier>, const SymbolType*>
+    return PerformLookup<Variant<SharedPtr<Identifier>, const SymbolType*>>(
+        [&name, includePlaceholderTypes, thisScopeOnly, top](TreeNode<Scope>* node) -> Variant<SharedPtr<Identifier>, const SymbolType*>
         {
             if (thisScopeOnly && node != top)
             {
                 return {};
             }
 
-            if (RC<Identifier> result = node->Get().identifierTable.LookUpIdentifier(name))
+            if (SharedPtr<Identifier> result = node->Get().identifierTable.LookUpIdentifier(name))
             {
                 return std::move(result);
             }
@@ -287,7 +287,7 @@ Variant<RC<Identifier>, const SymbolType*> Module::LookUpIdentifierOrSymbolType(
 
             return {};
         },
-        [&name, includePlaceholderTypes, thisScopeOnly, outsideModules](Module* mod) -> Variant<RC<Identifier>, const SymbolType*>
+        [&name, includePlaceholderTypes, thisScopeOnly, outsideModules](Module* mod) -> Variant<SharedPtr<Identifier>, const SymbolType*>
         {
             if (!outsideModules)
             {

@@ -29,7 +29,7 @@
 #include <Core/Utilities/Uuid.hpp>
 
 #include <Core/Memory/Any.hpp>
-#include <Core/Memory/RefCountedPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 #include <Core/Memory/ByteBuffer.hpp>
 
 #include <Core/Profiling/ProfileScope.hpp>
@@ -91,7 +91,7 @@ static constexpr GCIndex GARBAGE_GC_INDEX = GCIndex((1u << 31) - 1);
 static constexpr GCIndex MAX_GC_INDEX = GCIndex((1u << 31) - 2);
 #endif // HYP_SCRIPT
 
-/*! \brief A type-safe union that can store multiple different types of run-time data, abstracting away internal engine structures such as Handle<T>, RC<T>, etc.
+/*! \brief A type-safe union that can store multiple different types of run-time data, abstracting away internal engine structures such as Handle<T>, SharedPtr<T>, etc.
  *  Providing a unified way of accessing the data via Get<T>() and TryGet<T>() methods.
  *  \note Used in serialization, reflection, scripting, and other systems where data needs to be stored in a generic way.
  */
@@ -136,7 +136,7 @@ struct CORE_API BoxedValue
         ClassRef,
         ObjectBase*,
         Handle<ObjectBase>,
-        RC<void>,
+        SharedPtr<void>,
         Any,
         AnyRef,
         InlineData>;
@@ -164,8 +164,8 @@ struct CORE_API BoxedValue
         /*! Handle<T> gets stored as Handle<ObjectBase>, which holds TypeId for conversion */
         || std::is_base_of_v<HandleBase, T> || std::is_same_v<T, Handle<ObjectBase>> || std::is_base_of_v<ObjectBase, T>
 
-        /*! RC<T> gets stored as RC<void> and can be converted back */
-        || std::is_base_of_v<typename RC<void>::RefCountedPtrBase, T>
+        /*! SharedPtr<T> gets stored as SharedPtr<void> and can be converted back */
+        || std::is_base_of_v<typename SharedPtr<void>::SharedPtrBase, T>
 
         || std::is_same_v<T, AnyRef> // || std::is_pointer_v<T>
 
@@ -646,7 +646,7 @@ template <>
 struct BoxedValueHelper<void*>
 {
     using StorageType = void*;
-    using ConvertibleFrom = Tuple<ObjectBase*, Handle<ObjectBase>, RC<void>>;
+    using ConvertibleFrom = Tuple<ObjectBase*, Handle<ObjectBase>, SharedPtr<void>>;
 
     HYP_FORCE_INLINE bool Is(void* value) const
     {
@@ -664,7 +664,7 @@ struct BoxedValueHelper<void*>
         return true;
     }
 
-    HYP_FORCE_INLINE bool Is(const RC<void>& value) const
+    HYP_FORCE_INLINE bool Is(const SharedPtr<void>& value) const
     {
         return true;
     }
@@ -684,7 +684,7 @@ struct BoxedValueHelper<void*>
         return value.ToRef().GetPointer();
     }
 
-    HYP_FORCE_INLINE void* Get(const RC<void>& value) const
+    HYP_FORCE_INLINE void* Get(const SharedPtr<void>& value) const
     {
         return value.Get();
     }
@@ -898,7 +898,7 @@ struct BoxedValueHelperDecl<T, std::enable_if_t<std::is_base_of_v<ObjectBase, T>
 template <class T>
 struct BoxedValueHelper<T, std::enable_if_t<std::is_base_of_v<ObjectBase, T>>> : BoxedValueHelper<Handle<T>>
 {
-    using ConvertibleFrom = Tuple<ObjectBase*, Handle<ObjectBase>, RC<void>>;
+    using ConvertibleFrom = Tuple<ObjectBase*, Handle<ObjectBase>, SharedPtr<void>>;
 
     HYP_FORCE_INLINE bool Is(ObjectBase* value) const
     {
@@ -921,12 +921,12 @@ struct BoxedValueHelper<T, std::enable_if_t<std::is_base_of_v<ObjectBase, T>>> :
         return *BoxedValueHelper<Handle<T>>::Get(value);
     }
 
-    HYP_FORCE_INLINE bool Is(const RC<void>& value) const
+    HYP_FORCE_INLINE bool Is(const SharedPtr<void>& value) const
     {
         return value && IsA(GetClass(TypeId::ForType<T>()), GetClass(value.GetTypeId()));
     }
 
-    HYP_FORCE_INLINE T& Get(const RC<void>& value) const
+    HYP_FORCE_INLINE T& Get(const SharedPtr<void>& value) const
     {
         HYP_CORE_ASSERT(value != nullptr);
 
@@ -939,78 +939,78 @@ struct BoxedValueHelper<T, std::enable_if_t<std::is_base_of_v<ObjectBase, T>>> :
     }
 };
 
-/// RefCountedPtr void type can be used to hold any other RefCountedPtr type
+/// SharedPtr void type can be used to hold any other SharedPtr type
 
 template <>
-struct BoxedValueHelperDecl<RC<void>>
+struct BoxedValueHelperDecl<SharedPtr<void>>
 {
 };
 
 template <>
-struct BoxedValueHelper<RC<void>>
+struct BoxedValueHelper<SharedPtr<void>>
 {
-    using StorageType = RC<void>;
+    using StorageType = SharedPtr<void>;
     using ConvertibleFrom = Tuple<>;
 
-    HYP_FORCE_INLINE bool Is(const RC<void>& value) const
+    HYP_FORCE_INLINE bool Is(const SharedPtr<void>& value) const
     {
         // should never be hit
         HYP_NOT_IMPLEMENTED();
     }
 
-    HYP_FORCE_INLINE RC<void>& Get(RC<void>& value) const
+    HYP_FORCE_INLINE SharedPtr<void>& Get(SharedPtr<void>& value) const
     {
         return value;
     }
 
-    HYP_FORCE_INLINE const RC<void>& Get(const RC<void>& value) const
+    HYP_FORCE_INLINE const SharedPtr<void>& Get(const SharedPtr<void>& value) const
     {
         return value;
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const RC<void>& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const SharedPtr<void>& value) const
     {
         boxed.Set_Internal(value);
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, RC<void>&& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, SharedPtr<void>&& value) const
     {
         boxed.Set_Internal(std::move(value));
     }
 };
 
 template <class T>
-struct BoxedValueHelperDecl<RC<T>, std::enable_if_t<!std::is_void_v<T>>>
+struct BoxedValueHelperDecl<SharedPtr<T>, std::enable_if_t<!std::is_void_v<T>>>
 {
 };
 
 template <class T>
-struct BoxedValueHelper<RC<T>, std::enable_if_t<!std::is_void_v<T>>> : BoxedValueHelper<RC<void>>
+struct BoxedValueHelper<SharedPtr<T>, std::enable_if_t<!std::is_void_v<T>>> : BoxedValueHelper<SharedPtr<void>>
 {
-    HYP_FORCE_INLINE bool Is(const RC<void>& value) const
+    HYP_FORCE_INLINE bool Is(const SharedPtr<void>& value) const
     {
         // allow null pointers
         return !value || value.Is<T>();
     }
 
-    HYP_FORCE_INLINE RC<T>& Get(RC<void>& value) const
+    HYP_FORCE_INLINE SharedPtr<T>& Get(SharedPtr<void>& value) const
     {
-        return *reinterpret_cast<RC<T>*>(&value);
+        return *reinterpret_cast<SharedPtr<T>*>(&value);
     }
 
-    HYP_FORCE_INLINE const RC<T>& Get(const RC<void>& value) const
+    HYP_FORCE_INLINE const SharedPtr<T>& Get(const SharedPtr<void>& value) const
     {
-        return *reinterpret_cast<const RC<T>*>(&value);
+        return *reinterpret_cast<const SharedPtr<T>*>(&value);
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const RC<T>& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const SharedPtr<T>& value) const
     {
-        BoxedValueHelper<RC<void>>::Set(boxed, value);
+        BoxedValueHelper<SharedPtr<void>>::Set(boxed, value);
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, RC<T>&& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, SharedPtr<T>&& value) const
     {
-        BoxedValueHelper<RC<void>>::Set(boxed, std::move(value));
+        BoxedValueHelper<SharedPtr<void>>::Set(boxed, std::move(value));
     }
 };
 
@@ -1068,7 +1068,7 @@ struct BoxedValueHelperDecl<T*, std::enable_if_t<!is_const_pointer_v<T*> && !std
 template <class T>
 struct BoxedValueHelper<T*, std::enable_if_t<!is_const_pointer_v<T*> && !std::is_same_v<T*, void*>>> : BoxedValueHelper<AnyRef>
 {
-    using ConvertibleFrom = Tuple<Handle<ObjectBase>, RC<void>>;
+    using ConvertibleFrom = Tuple<Handle<ObjectBase>, SharedPtr<void>>;
 
     HYP_FORCE_INLINE bool Is(const AnyRef& value) const
     {
@@ -1081,7 +1081,7 @@ struct BoxedValueHelper<T*, std::enable_if_t<!is_const_pointer_v<T*> && !std::is
         return !value || IsA(GetClass(TypeId::ForType<T>()), GetClass(value.GetTypeId()));
     }
 
-    HYP_FORCE_INLINE bool Is(const RC<void>& value) const
+    HYP_FORCE_INLINE bool Is(const SharedPtr<void>& value) const
     {
         return !value || value.Is<T>();
     }
@@ -1108,7 +1108,7 @@ struct BoxedValueHelper<T*, std::enable_if_t<!is_const_pointer_v<T*> && !std::is
         return nullptr;
     }
 
-    HYP_FORCE_INLINE T* Get(const RC<void>& value) const
+    HYP_FORCE_INLINE T* Get(const SharedPtr<void>& value) const
     {
         if (!value)
         {
@@ -1151,7 +1151,7 @@ struct BoxedValueHelper<const T*, std::enable_if_t<!std::is_same_v<T*, void*>>> 
         return BoxedValueHelper<T*>::Get(value);
     }
 
-    HYP_FORCE_INLINE const T* Get(const RC<void>& value) const
+    HYP_FORCE_INLINE const T* Get(const SharedPtr<void>& value) const
     {
         return BoxedValueHelper<T*>::Get(value);
     }
@@ -1520,21 +1520,21 @@ struct BoxedValueHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const
 
 #if !defined(HYP_USE_SLIM_ARRAY) || !HYP_USE_SLIM_ARRAY
 
-/// TSlimArray
+/// SlimArray
 
 template <class TElemType, class TAllocator>
-struct BoxedValueHelperDecl<TSlimArray<TElemType, TAllocator>, std::enable_if_t<!std::is_const_v<TElemType>>>
+struct BoxedValueHelperDecl<SlimArray<TElemType, TAllocator>, std::enable_if_t<!std::is_const_v<TElemType>>>
 {
 };
 
 template <class TElemType, class TAllocator>
-struct BoxedValueHelper<TSlimArray<TElemType, TAllocator>, std::enable_if_t<!std::is_const_v<TElemType>>> : BoxedValueHelper<GenericArrayWrapper>
+struct BoxedValueHelper<SlimArray<TElemType, TAllocator>, std::enable_if_t<!std::is_const_v<TElemType>>> : BoxedValueHelper<GenericArrayWrapper>
 {
     using ConvertibleFrom = Tuple<>;
 
     HYP_FORCE_INLINE bool Is(const Any& value) const
     {
-        const TypeId arrayTypeId = TypeId::ForType<TSlimArray<TElemType, TAllocator>>();
+        const TypeId arrayTypeId = TypeId::ForType<SlimArray<TElemType, TAllocator>>();
 
         if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
@@ -1544,9 +1544,9 @@ struct BoxedValueHelper<TSlimArray<TElemType, TAllocator>, std::enable_if_t<!std
         return value.GetTypeId() == arrayTypeId;
     }
 
-    HYP_FORCE_INLINE TSlimArray<TElemType, TAllocator>& Get(const Any& value) const
+    HYP_FORCE_INLINE SlimArray<TElemType, TAllocator>& Get(const Any& value) const
     {
-        const TypeId arrayTypeId = TypeId::ForType<TSlimArray<TElemType, TAllocator>>();
+        const TypeId arrayTypeId = TypeId::ForType<SlimArray<TElemType, TAllocator>>();
 
         HYP_CORE_ASSERT(this->Is(value));
 
@@ -1554,20 +1554,20 @@ struct BoxedValueHelper<TSlimArray<TElemType, TAllocator>, std::enable_if_t<!std
         {
             HYP_CORE_ASSERT(TypeInfo_GetId(*arr->typeInfo) == arrayTypeId);
 
-            return *static_cast<TSlimArray<TElemType, TAllocator>*>(arr->pInternalArray);
+            return *static_cast<SlimArray<TElemType, TAllocator>*>(arr->pInternalArray);
         }
 
         HYP_CORE_ASSERT(value.GetTypeId() == arrayTypeId);
 
-        return value.Get<TSlimArray<TElemType, TAllocator>>();
+        return value.Get<SlimArray<TElemType, TAllocator>>();
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const TSlimArray<TElemType, TAllocator>& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const SlimArray<TElemType, TAllocator>& value) const
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, TSlimArray<TElemType, TAllocator>&& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, SlimArray<TElemType, TAllocator>&& value) const
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }
@@ -2050,7 +2050,7 @@ struct BoxedValueHelperDecl<T, std::enable_if_t<!BoxedValue::canStoreDirectly<T>
 template <class T>
 struct BoxedValueHelper<T, std::enable_if_t<!BoxedValue::canStoreDirectly<T> && !implementation_exists_v<BoxedValueHelperDecl<T>>>> : BoxedValueHelper<Any>
 {
-    using ConvertibleFrom = Tuple<T*, ObjectBase*, Handle<ObjectBase>, RC<void>>;
+    using ConvertibleFrom = Tuple<T*, ObjectBase*, Handle<ObjectBase>, SharedPtr<void>>;
 
     HYP_FORCE_INLINE bool Is(const Any& value) const
     {
@@ -2088,7 +2088,7 @@ struct BoxedValueHelper<T, std::enable_if_t<!BoxedValue::canStoreDirectly<T> && 
         }
     }
 
-    HYP_FORCE_INLINE bool Is(const RC<void>& value) const
+    HYP_FORCE_INLINE bool Is(const SharedPtr<void>& value) const
     {
         return value.Is<T>();
     }
@@ -2127,7 +2127,7 @@ struct BoxedValueHelper<T, std::enable_if_t<!BoxedValue::canStoreDirectly<T> && 
         }
     }
 
-    HYP_FORCE_INLINE T& Get(const RC<void>& value) const
+    HYP_FORCE_INLINE T& Get(const SharedPtr<void>& value) const
     {
         return *value.CastUnchecked<T>();
     }
@@ -2151,7 +2151,7 @@ template <>
 struct BoxedValueHelper<ObjectBase*>
 {
     using StorageType = ObjectBase*;
-    using ConvertibleFrom = Tuple<Handle<ObjectBase>, RC<void>>;
+    using ConvertibleFrom = Tuple<Handle<ObjectBase>, SharedPtr<void>>;
 
     HYP_FORCE_INLINE bool Is(ObjectBase* value) const
     {
@@ -2164,7 +2164,7 @@ struct BoxedValueHelper<ObjectBase*>
         return true;
     }
 
-    HYP_FORCE_INLINE bool Is(const RC<void>& value) const
+    HYP_FORCE_INLINE bool Is(const SharedPtr<void>& value) const
     {
         return !value.IsValid() || IsA(GetClass(TypeId::ForType<ObjectBase>()), GetClass(value.GetTypeId()));
     }
@@ -2179,7 +2179,7 @@ struct BoxedValueHelper<ObjectBase*>
         return value.Get();
     }
 
-    HYP_FORCE_INLINE ObjectBase* Get(const RC<void>& value) const
+    HYP_FORCE_INLINE ObjectBase* Get(const SharedPtr<void>& value) const
     {
         if (!value.IsValid())
         {
@@ -2203,7 +2203,7 @@ struct BoxedValueHelperDecl<T*, std::enable_if_t<std::is_base_of_v<ObjectBase, T
 template <class T>
 struct BoxedValueHelper<T*, std::enable_if_t<std::is_base_of_v<ObjectBase, T> && !std::is_same_v<T, ObjectBase>>> : BoxedValueHelper<ObjectBase*>
 {
-    using ConvertibleFrom = Tuple<ObjectBase*, Handle<ObjectBase>, RC<void>>;
+    using ConvertibleFrom = Tuple<ObjectBase*, Handle<ObjectBase>, SharedPtr<void>>;
 
     HYP_FORCE_INLINE bool Is(ObjectBase* value) const
     {
@@ -2222,7 +2222,7 @@ struct BoxedValueHelper<T*, std::enable_if_t<std::is_base_of_v<ObjectBase, T> &&
         }
     }
 
-    HYP_FORCE_INLINE bool Is(const RC<void>& value) const
+    HYP_FORCE_INLINE bool Is(const SharedPtr<void>& value) const
     {
         return !value.IsValid() || value.Is<T>();
     }
@@ -2249,7 +2249,7 @@ struct BoxedValueHelper<T*, std::enable_if_t<std::is_base_of_v<ObjectBase, T> &&
         }
     }
 
-    HYP_FORCE_INLINE T* Get(const RC<void>& value) const
+    HYP_FORCE_INLINE T* Get(const SharedPtr<void>& value) const
     {
         return value.CastUnchecked<T>();
     }
