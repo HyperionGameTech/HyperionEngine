@@ -288,6 +288,8 @@ if(CMAKE_GENERATOR STREQUAL "Xcode")
   # disable xcode code signing
   set(CMAKE_TRY_COMPILE_PLATFORM_VARIABLES "CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED")
   set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO")
+  set(CMAKE_XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.hyperion.\${PRODUCT_NAME:rfc1034identifier}")
+  set(CMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "")
 
   # for VS solutions, we want to add some files as a custom solution item
 elseif(HYP_MSVC OR HYP_CLANG_WINDOWS)
@@ -340,7 +342,7 @@ set(HYP_GENERATED_DIR "${CMAKE_SOURCE_DIR}/Generated")
 set(CSHARP_PROJECTS_DIR "${CMAKE_SOURCE_DIR}/../Build/CSharpProjects")
 file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR})
 
-if(NOT HYP_ANDROID)
+if(NOT HYP_ANDROID AND NOT HYP_IOS)
   # TODO if not final release build check.
   # for final release follow the android technique
 
@@ -453,40 +455,28 @@ if (RENDERING_BACKEND STREQUAL "Vulkan")
       find_library(UIKIT_LIB UIKit)
       find_library(COREMEDIA_LIB CoreMedia)
       find_library(METAL_LIB Metal)
-
-      # # These are all SDL requirements - we should remove the SDL dependency for iOS.
-      # find_library(IOSURFACE_LIB IOSurface)
-      # find_library(AVFOUNDATION_LIB AVFoundation)
-      # find_library(GAMECONTROLLER_LIB GameController)
-      # find_library(AUDIOTOOLBOX_LIB AudioToolbox)
-      # find_library(QUARTZCORE_LIB QuartzCore)
-      # find_library(COREHAPTICS_LIB CoreHaptics)
-      # find_library(COREGRAPHICS_LIB CoreGraphics)
-      # find_library(COREMOTION_LIB CoreMotion)
-      # find_library(OPENGLES_LIB OpenGLES)
+      find_library(IOSURFACE_LIB IOSurface)
+      find_library(QUARTZCORE_LIB QuartzCore)
+      find_library(COREGRAPHICS_LIB CoreGraphics)
+      find_library(FOUNDATION_LIB Foundation)
 
       set(RENDERER_LIBRARIES
             ${UIKIT_LIB}
             ${COREMEDIA_LIB}
             ${METAL_LIB}
-
-            # # Begin SDL stuff
-            # ${IOSURFACE_LIB}
-            # ${AVFOUNDATION_LIB}
-            # ${GAMECONTROLLER_LIB}
-            # ${AUDIOTOOLBOX_LIB}
-            # ${QUARTZCORE_LIB}
-            # ${COREHAPTICS_LIB}
-            # ${COREGRAPHICS_LIB}
-            # ${COREMOTION_LIB}
-            # ${OPENGLES_LIB}
+            ${IOSURFACE_LIB}
+            ${QUARTZCORE_LIB}
+            ${COREGRAPHICS_LIB}
+            ${FOUNDATION_LIB}
         )
     endif()
 
 
     add_definitions(-DHYP_VULKAN=1)
     set(HYP_VULKAN 1)
-    set(RENDERER_LIBRARIES ${RENDERER_LIBRARIES} vulkan)
+    if(NOT IOS)
+      set(RENDERER_LIBRARIES ${RENDERER_LIBRARIES} vulkan)
+    endif()
     find_package(Vulkan QUIET)
     if(Vulkan_FOUND)
       include_directories(BEFORE SYSTEM ${Vulkan_INCLUDE_DIRS})
