@@ -49,6 +49,23 @@ if(CMAKE_GENERATOR MATCHES "Xcode")
   set_target_properties(${BUILD_NAME} PROPERTIES XCODE_SCHEME_LAUNCH_CONFIGURATION_NAME "${HYP_BUILD_TYPE}")
   set_target_properties(${BUILD_NAME} PROPERTIES XCODE_SCHEME_HIDE_BUILDABLE_NAME OFF)
   set_target_properties(${BUILD_NAME} PROPERTIES XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.hyperion.${BUILD_NAME}")
+  set_target_properties(${BUILD_NAME} PROPERTIES MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info.plist")
+  set_target_properties(${BUILD_NAME} PROPERTIES XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/Frameworks")
+endif()
+
+if(APPLE AND CMAKE_GENERATOR STREQUAL "Xcode")
+  add_custom_command(TARGET ${BUILD_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${BUILD_NAME}>/Frameworks"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "$<TARGET_FILE:hyperion>"
+      "$<TARGET_FILE_DIR:${BUILD_NAME}>/Frameworks"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "$<TARGET_FILE:hyperion-core>"
+      "$<TARGET_FILE_DIR:${BUILD_NAME}>/Frameworks"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "$<TARGET_FILE:hyperion-script>"
+      "$<TARGET_FILE_DIR:${BUILD_NAME}>/Frameworks"
+  )
 endif()
 
 # link with shared library hyperion
