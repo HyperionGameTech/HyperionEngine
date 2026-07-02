@@ -79,6 +79,13 @@ struct AndroidEvent
 };
 #endif
 
+#ifdef HYP_IOS
+struct iOSEvent
+{
+    void* uiEvent; // UIEvent* (bridged)
+};
+#endif
+
 HYP_STRUCT()
 struct MotionData
 {
@@ -150,6 +157,10 @@ union PlatformEvent
 
 #ifdef HYP_ANDROID
     AndroidEvent androidEvent;
+#endif
+
+#ifdef HYP_IOS
+    iOSEvent iosEvent;
 #endif
 };
 

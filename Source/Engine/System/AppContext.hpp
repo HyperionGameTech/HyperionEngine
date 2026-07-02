@@ -38,6 +38,10 @@
 #include <System/Platform/Mac/CocoaFwd.h>
 #endif
 
+#ifdef HYP_IOS
+#include <System/Platform/iOS/iOSFwd.h>
+#endif
+
 namespace Hyperion {
 
 #ifndef HYP_WINDOWS
@@ -518,7 +522,6 @@ private:
     bool m_mouseLocked = false;
 
     Vec2f m_touchPosition;
-    Vec2f m_prevTouchPosition;
 
     // Track previous touch positions per pointer for multi-touch support
     FixedArray<Vec2f, 10> m_touchPrevPositions {};
@@ -552,6 +555,106 @@ private:
 };
 
 #endif // HYP_ANDROID
+
+#ifdef HYP_IOS
+
+HYP_CLASS(Condition = "HYP_IOS")
+class ENGINE_API iOSApplicationWindow final : public ApplicationWindow
+{
+    HYP_OBJECT_BODY(iOSApplicationWindow);
+
+public:
+    iOSApplicationWindow(ANSIString title, Vec2i size);
+    ~iOSApplicationWindow() override;
+
+    void Initialize(WindowOptions windowOptions);
+
+    HYP_METHOD()
+    void SetMousePosition(Vec2i position) override;
+
+    HYP_METHOD()
+    Vec2i GetMousePosition() const override;
+
+    HYP_METHOD()
+    Vec2i GetDimensions() const override;
+
+    HYP_METHOD()
+    void SetIsMouseLocked(bool locked) override;
+
+    HYP_METHOD()
+    bool IsMouseLocked() const override
+    {
+        return m_mouseLocked;
+    }
+
+    HYP_METHOD()
+    bool HasMouseFocus() const override;
+
+    HYP_METHOD()
+    float GetContentScaleFactor() const override;
+
+    HYP_METHOD()
+    float GetRenderTargetScale() const override;
+
+    HYP_METHOD()
+    void Close() override;
+
+    HYP_FORCE_INLINE void* GetUIWindow() const
+    {
+        return m_hwnd;
+    }
+
+    HYP_FORCE_INLINE void* GetUIView() const
+    {
+        return m_uiView;
+    }
+
+    void* GetCAMetalLayer() const
+    {
+        return m_metalLayer;
+    }
+
+    void SetNativeWindow(void* nativeWindow);
+
+    bool HandleTouchEvent(void* touches, void* uiEvent, Event& outEvent);
+
+private:
+    void* m_metalLayer = nullptr;
+    void* m_uiView = nullptr;
+    bool m_mouseLocked = false;
+
+    Vec2f m_touchPosition;
+
+    FixedArray<Vec2f, 10> m_touchPrevPositions {};
+};
+
+HYP_CLASS(Condition = "HYP_IOS")
+class ENGINE_API iOSAppContext final : public AppContextBase
+{
+    HYP_OBJECT_BODY(iOSAppContext);
+
+public:
+    iOSAppContext(ANSIString name, const CommandLineArguments& arguments);
+    ~iOSAppContext() override;
+
+    HYP_METHOD()
+    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions) override;
+
+    int PollEvents(Event& event) override;
+
+    void EnqueueEvent(Event&& event);
+
+#if HYP_VULKAN
+    static VkSurfaceKHR CreateVulkanSurface(
+        iOSApplicationWindow* window,
+        IDummyVulkanSurfaceContext** ppOutDummySurfaceContext);
+#endif
+
+private:
+    class iOSEventQueue* m_eventQueue;
+};
+
+#endif // HYP_IOS
 
 #ifdef HYP_WINDOWS
 ENGINE_API void Win32_CleanupWindowClasses();

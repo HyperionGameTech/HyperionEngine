@@ -581,12 +581,13 @@ void EngineDriver::UpdateSim(float delta)
 
         subsystem->PreUpdate(delta);
 
-        updateSubsystemTasks.PushBack(TaskSystem::GetInstance().Enqueue([subsystem, delta]
-                                                                        {
-                                                                            HYP_NAMED_SCOPE_FMT("Update subsystem: {}", subsystem->InstanceClass()->GetName());
+        updateSubsystemTasks.PushBack(TaskSystem::GetInstance().Enqueue(
+            [subsystem, delta]
+            {
+                HYP_NAMED_SCOPE_FMT("Update subsystem: {}", subsystem->InstanceClass()->GetName());
 
-                                                                            subsystem->Update(delta);
-                                                                        }));
+                subsystem->Update(delta);
+            }));
     }
 
     for (Subsystem* subsystem : subsystems)

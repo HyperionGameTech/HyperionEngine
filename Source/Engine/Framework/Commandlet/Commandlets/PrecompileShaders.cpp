@@ -145,7 +145,25 @@ protected:
         }
         else
         {
-            params.SetTargetBackends(ShaderCompileTargetBackend::AllBackends);
+            // No explicit backends given — compute effective backends from the selected platforms.
+            // Vulkan is available on all platforms; DX12 is Windows-only.
+            EnumFlags<ShaderCompileTargetBackend> effectiveBackends = ShaderCompileTargetBackend::None;
+
+            // Determine which platforms to consider
+            EnumFlags<ShaderCompileTargetPlatform> effectivePlatforms = platformFlags;
+            if (effectivePlatforms == ShaderCompileTargetPlatform::None)
+            {
+                effectivePlatforms = ShaderCompileTargetPlatform::AllPlatforms;
+            }
+
+            effectiveBackends |= ShaderCompileTargetBackend::Vulkan;
+
+            if (effectivePlatforms & ShaderCompileTargetPlatform::Windows)
+            {
+                effectiveBackends |= ShaderCompileTargetBackend::DX12;
+            }
+
+            params.SetTargetBackends(effectiveBackends);
         }
 
         // Parse shader filters

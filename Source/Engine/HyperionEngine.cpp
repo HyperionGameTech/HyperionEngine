@@ -160,13 +160,18 @@ HYP_EXPORT const FilePath& GetLibraryDirectory()
     static DirectoryInitializer<HYP_STATIC_STRING("Packages"), /* RelativeToExecutablePath */ false> s_resourceDirectory;
     return s_resourceDirectory.path;
 #else  // !HYP_EDITOR
-    // shouldn't be used in non-editor builds, so just return executable path to avoid issues with appending paths
-    HYP_LOG(Engine, Warning, "GetLibraryDirectory() called in non-editor build; returning executable path instead");
+    // Use DirectoryInitializer just like the editor path, so resource directories
+    // (Engine, Editor, Game packages) resolve under Packages/ relative to the executable.
+    // This is needed for packaged builds (iOS, shipping) where data lives in Packages/.
+    static DirectoryInitializer<HYP_STATIC_STRING("Packages"), /* RelativeToExecutablePath */ true> s_resourceDirectory;
 
-    static const FilePath s_exePath = CoreApi::GetExecutablePath();
-    Assert(s_exePath.Length() != 0); // don't want to return empty path which will cause appending to give root-level paths.
+    if (!s_resourceDirectory.path.Exists())
+    {
+        HYP_LOG(Engine, Warning, "GetLibraryDirectory() called but Packages directory does not exist: {}",
+            s_resourceDirectory.path.Data());
+    }
 
-    return s_exePath;
+    return s_resourceDirectory.path;
 #endif // HYP_EDITOR
 }
 
@@ -436,9 +441,11 @@ extern "C"
         g_appContext = MakeHandle<CocoaAppContext>("Hyperion", cliArgs);
 #elif HYP_ANDROID
         g_appContext = MakeHandle<AndroidAppContext>("Hyperion", cliArgs);
-#else  // !HYP_WINDOWS && !HYP_MACOS && !HYP_ANDROID
+#elif HYP_IOS
+        g_appContext = MakeHandle<iOSAppContext>("Hyperion", cliArgs);
+#else  // !HYP_WINDOWS && !HYP_MACOS && !HYP_ANDROID && !HYP_IOS
         HYP_FAIL("AppContext not implemented for this platform");
-#endif // HYP_WINDOWS || HYP_MACOS || HYP_ANDROID
+#endif // HYP_WINDOWS || HYP_MACOS || HYP_ANDROID || HYP_IOS
 
         g_engineDriver->Initialize();
 

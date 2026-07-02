@@ -897,7 +897,6 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
 
     pTransientFence->Increment();
 
-    // HYP_LOG_TEMP("Submitting transient command buffer {} with value {} on frame {}", pTransientFence->GetDebugName(), pTransientFence->GetValue(), frameIndex);
 
     HRESULT hr = commandQueue->Signal(pTransientFence->GetD3D12Fence(), pTransientFence->GetValue());
     if (FAILED(hr))

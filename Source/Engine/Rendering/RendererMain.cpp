@@ -102,9 +102,7 @@ static HYP_FORCE_INLINE bool IsCubemapShader(StringHash shaderNameHash)
 #pragma region ParallelRenderingState
 
 // per-thread CommandRecorder
-// Wtf is this crash?
-// using ThreadedCommandRecorder = TCommandRecorder<ThreadAllocator>;
-
+//using ThreadedCommandRecorder = TCommandRecorder<ThreadAllocator>;
 using ThreadedCommandRecorder = TCommandRecorder<DynamicAllocator>;
 
 // Holds shared data for ParallelRenderingState instances to reduce memory usage

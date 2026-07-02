@@ -997,14 +997,16 @@ extern class Win32ApplicationWindow : ApplicationWindow
     HasMouseFocus() -> bool
     Close() -> void
 end
-extern struct WindowOptions
-end
-extern enum WindowFlags : uint32
-    NONE = 0x0,
-    HEADLESS = 0x1,
-    NO_GFX = 0x2,
-    HIGH_DPI = 0x4,
-    EVENTS_POLLING = 0x8
+extern class iOSApplicationWindow : ApplicationWindow
+    SetMousePosition(position : Vec2i) -> void
+    GetMousePosition() -> Vec2i
+    GetDimensions() -> Vec2i
+    SetIsMouseLocked(locked : bool) -> void
+    IsMouseLocked() -> bool
+    HasMouseFocus() -> bool
+    GetContentScaleFactor() -> float
+    GetRenderTargetScale() -> float
+    Close() -> void
 end
 extern class AppContextBase
     static GetInstance() -> AppContextBase
@@ -1020,11 +1022,23 @@ end
 extern class Win32AppContext : AppContextBase
     CreateSystemWindow(windowOptions : WindowOptions) -> ApplicationWindow
 end
+extern class AndroidAppContext : AppContextBase
+    CreateSystemWindow(windowOptions : WindowOptions) -> ApplicationWindow
+end
 extern class CocoaAppContext : AppContextBase
     CreateSystemWindow(windowOptions : WindowOptions) -> ApplicationWindow
 end
-extern class AndroidAppContext : AppContextBase
+extern class iOSAppContext : AppContextBase
     CreateSystemWindow(windowOptions : WindowOptions) -> ApplicationWindow
+end
+extern struct WindowOptions
+end
+extern enum WindowFlags : uint32
+    NONE = 0x0,
+    HEADLESS = 0x1,
+    NO_GFX = 0x2,
+    HIGH_DPI = 0x4,
+    EVENTS_POLLING = 0x8
 end
 extern class StreamingVolumeBase
     GetShape() -> StreamingVolumeShape

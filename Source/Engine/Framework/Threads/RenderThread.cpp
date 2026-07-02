@@ -69,12 +69,7 @@ CVar<float> g_cvTargetFrameRate("Rendering.TargetFrameRate", 0);                
 CVar<bool> g_cvLimitFrameRateOnBatteryPower("Rendering.LimitFrameRateOnBatteryPower", true); // true = enable framerate cap when on battery
 CVar<bool> g_cvLimitFrameRateWhenIdle("Rendering.LimitFrameRateWhenIdle", true);             // true = enable framerate cap when idling in standalone
 CVar<int> g_cvSkipRendering("Rendering.SkipRendering", 0); // -1 = True, set by SkipRenderingWhenIdle, 0 = False, 1 = True (manually set)
-
-#if HYP_EDITOR
-
 CVar<int> g_cvSkipRenderingWhenIdle("Editor.SkipRenderingWhenIdle", -1); // -1   = set dynamically based on if editor mode
-
-#endif // HYP_EDITOR
 
 static FrameLimiter g_frameLimiter { 0 };
 
@@ -83,15 +78,10 @@ static bool g_wasFocused = true;
 RenderThread::RenderThread()
     : Thread(g_renderThread, ThreadPriorityValue::HIGHEST)
 {
-#if HYP_EDITOR
     if (g_cvSkipRenderingWhenIdle.Get() < 0)
     {
-        if (CoreApi::GetCommandLineArguments()["Editor"].ToBool())
-        {
-            g_cvSkipRenderingWhenIdle.Set(1);
-        }
+        g_cvSkipRenderingWhenIdle.Set(EngineGlobals::IsEditor() ? 1 : 0);
     }
-#endif // HYP_EDITOR
 }
 
 RenderThread::~RenderThread() = default;
@@ -183,23 +173,23 @@ void RenderThread::Update()
         }
     }
 
-#if HYP_EDITOR
-    const int skipRenderingValue = g_cvSkipRendering.Get();
-    
-    if (skipRenderingValue < 1)
+    if (EngineGlobals::IsEditor())
     {
-        // @FIXME: We need to check if we are in editor mode, the HYP_EDITOR define is not enough. That just means it is compiled with editor support
-        if (g_cvSkipRenderingWhenIdle.Get() > 0)
+        const int skipRenderingValue = g_cvSkipRendering.Get();
+        
+        if (skipRenderingValue < 1)
         {
-            const bool skipRenderingThisFrame = (!mainWindow || !mainWindow->HasFocus());
-
-            if ((skipRenderingValue != 0) != skipRenderingThisFrame)
+            if (g_cvSkipRenderingWhenIdle.Get() > 0)
             {
-                g_cvSkipRendering.Set(skipRenderingThisFrame ? -1 : 0);
+                const bool skipRenderingThisFrame = (!mainWindow || !mainWindow->HasFocus());
+
+                if ((skipRenderingValue != 0) != skipRenderingThisFrame)
+                {
+                    g_cvSkipRendering.Set(skipRenderingThisFrame ? -1 : 0);
+                }
             }
         }
     }
-#endif
 
     Frame* frame = RI.GetCurrentFrame();
     Assert(frame != nullptr);

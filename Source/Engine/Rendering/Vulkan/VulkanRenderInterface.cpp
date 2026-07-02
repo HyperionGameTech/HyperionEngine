@@ -1174,8 +1174,6 @@ void VulkanRenderInterface::SubmitTransientCommandBuffer(VulkanCommandBuffer& co
             fence.Create();
         }
 
-        HYP_LOG_TEMP("Submitting transient command buffer on thread {} for frame {}", CurrentRenderThreadIndex(), frameCounter % NumFramesInFlight);
-
         Span<VulkanSemaphore*> waitSemaphoreSpan {};
         if (pWaitSemaphore != nullptr)
         {
@@ -1501,8 +1499,6 @@ void VulkanRenderInterface::SubmitAsyncCompute(VulkanAsyncCompute* asyncCompute)
     Mutex::Guard guard(m_asyncComputesMutex);
     Assert(!m_submittedAsyncComputes.Contains(asyncCompute));
 
-    // HYP_LOG_TEMP("Submitting async compute task on thread {} for frame {}", CurrentRenderThreadIndex(), GetFrameCounter());
-
     asyncCompute->Submit();
 
     m_submittedAsyncComputes.PushBack(asyncCompute);
@@ -1563,6 +1559,15 @@ VkSurfaceKHR VulkanRenderInterface::CreateSurface(ApplicationWindow* window, IDu
     }
 
     return CocoaAppContext::CreateVulkanSurface(cocoaWindow, ppOutDummySurfaceContext);
+#elif HYP_IOS
+    iOSApplicationWindow* iosWindow = nullptr;
+    if (window != nullptr)
+    {
+        iosWindow = DynamicCast<iOSApplicationWindow>(window);
+        Assert(iosWindow != nullptr);
+    }
+
+    return iOSAppContext::CreateVulkanSurface(iosWindow, ppOutDummySurfaceContext);
 #elif HYP_ANDROID
     if (!window)
     {
@@ -1670,6 +1675,46 @@ RendererResult VulkanRenderInterface::GetVkExtensions(Array<const char*>& outExt
         static const char* RequiredExtensions[] = {
             VK_KHR_SURFACE_EXTENSION_NAME,
             VK_KHR_ANDROID_SURFACE_EXTENSION_NAME
+        };
+
+        uint32_t count = 0;
+        vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
+
+        Array<VkExtensionProperties> vkProperties(count);
+        vkEnumerateInstanceExtensionProperties(nullptr, &count, vkProperties.Data());
+
+        for (const char* requiredExtension : RequiredExtensions)
+        {
+            bool found = false;
+
+            for (VkExtensionProperties& it : vkProperties)
+            {
+                if (!std::strcmp(it.extensionName, requiredExtension))
+                {
+                    found = true;
+
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                return HYP_MAKE_ERROR(RendererError, "Required Vulkan extension '{}' is not supported by the system", 0, requiredExtension);
+            }
+
+            outExtensions.PushBack(requiredExtension);
+        }
+
+        return {};
+    }
+#endif
+
+#if HYP_IOS
+    if (g_appContext->IsA(iOSAppContext::StaticClass()))
+    {
+        static constexpr const char* RequiredExtensions[] = {
+            VK_KHR_SURFACE_EXTENSION_NAME,
+            VK_EXT_METAL_SURFACE_EXTENSION_NAME
         };
 
         uint32_t count = 0;

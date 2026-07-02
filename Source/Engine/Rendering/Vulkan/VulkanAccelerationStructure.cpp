@@ -908,8 +908,6 @@ VulkanBottomLevelAS::VulkanBottomLevelAS(
 
 VulkanBottomLevelAS::~VulkanBottomLevelAS()
 {
-    HYP_LOG_TEMP("DESTROY ACCELERATION STRUCTURE {} {} {}", InstanceClass()->GetName(), Id(), m_packedVerticesBuffer->GetDebugName());
-
     EnqueueDeletion(std::move(m_material));
     EnqueueDeletion(std::move(m_packedVerticesBuffer));
     EnqueueDeletion(std::move(m_packedIndicesBuffer));
@@ -922,8 +920,6 @@ bool VulkanBottomLevelAS::IsCreated() const
 
 RendererResult VulkanBottomLevelAS::Create()
 {
-    HYP_LOG_TEMP("CREATE ACCELERATION STRUCTURE {} {} {}", InstanceClass()->GetName(), Id(), m_packedVerticesBuffer->GetDebugName());
-
     if (IsCreated())
     {
         return {};

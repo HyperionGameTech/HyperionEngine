@@ -1658,23 +1658,23 @@ bool ShaderCompiler::HandleBundle(
 
         if (!requestedFound)
         {
-            HYP_LOG(ShaderCompiler, Verbose,
+            HYP_LOG(ShaderCompiler, Warning,
                     "Bundle {} does not contain a shader satisfying the requested shader with properties: {} and vertex attributes: {}",
                     *decl.name,
                     shaderRequest->properties.GetDebugString(),
                     (shaderRequest->inputLayout.mask ? InputLayoutToString(shaderRequest->inputLayout) : "<none>"));
 
-            HYP_LOG(ShaderCompiler, Verbose, "Other shaders in the bundle:\n===============================");
+            HYP_LOG(ShaderCompiler, Warning, "Other shaders in the bundle:\n===============================");
 
             for (const Handle<Shader>& shader : inOutBundle->compiledShaders)
             {
                 String shaderString = "\tProperties: " + shader->properties.GetDebugString();
                 shaderString += "\n\tVertex attributes: " + (shader->inputLayout.mask ? InputLayoutToString(shader->inputLayout) : "<none>");
 
-                HYP_LOG(ShaderCompiler, Verbose, "{}", shaderString);
+                HYP_LOG(ShaderCompiler, Warning, "{}", shaderString);
             }
 
-            HYP_LOG(ShaderCompiler, Verbose, "===============================");
+            HYP_LOG(ShaderCompiler, Warning, "===============================");
 
             if (CanCompileShaders())
             {

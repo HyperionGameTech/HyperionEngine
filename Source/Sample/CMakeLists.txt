@@ -65,6 +65,20 @@ if(APPLE AND CMAKE_GENERATOR STREQUAL "Xcode")
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
       "$<TARGET_FILE:hyperion-script>"
       "$<TARGET_FILE_DIR:${BUILD_NAME}>/Frameworks"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+      "${CMAKE_SOURCE_DIR}/../Packages"
+      "$<TARGET_FILE_DIR:${BUILD_NAME}>/Packages"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+      "${CMAKE_SOURCE_DIR}/../Config"
+      "$<TARGET_FILE_DIR:${BUILD_NAME}>/Config"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+      "${CMAKE_SOURCE_DIR}/../Data"
+      "$<TARGET_FILE_DIR:${BUILD_NAME}>/Data"
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+      "$<TARGET_FILE_DIR:${BUILD_NAME}>/Source/Shaders"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "${CMAKE_SOURCE_DIR}/Shaders/Shaders.ini"
+      "$<TARGET_FILE_DIR:${BUILD_NAME}>/Source/Shaders/Shaders.ini"
   )
 endif()
 

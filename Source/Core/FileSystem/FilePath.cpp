@@ -441,7 +441,7 @@ Time FilePath::LastModifiedTimestamp() const
 
     // Time is in ms
 
-#ifdef HYP_MACOS
+#if defined(HYP_MACOS) || defined(HYP_IOS)
     return Time(st.st_mtimespec.tv_sec * 1000 + st.st_mtimespec.tv_nsec / 1000000);
 #else
     return Time(st.st_mtime * 1000);

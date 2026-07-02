@@ -681,6 +681,7 @@ void World::UpdateCSMState()
         }
     }
 #if HYP_EDITOR
+    // @FIXME: EditMode isn't used to signify editing a world anymore, and will be removed.
     else if (gameState.IsEditMode())
     {
         bool found = false;

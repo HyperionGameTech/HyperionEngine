@@ -55,7 +55,8 @@ void TCommandRecorder<RenderAllocator>::Prepare(Frame* frame)
         CmdHeader& header = m_headersPtr[i];
 
         CmdBase* cmdDataPtr = reinterpret_cast<CmdBase*>(m_buffer.Data() + header.offset);
-        AssertDebug(header.offset < m_buffer.Size());
+        AssertDebug(header.offset < m_buffer.Size(), "Header has offset {} which is greater or equal to the buffer's size ({})",
+            header.offset, m_buffer.Size());
 
         if (header.prepareFnPtr != nullptr)
         {
@@ -72,6 +73,9 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
     for (size_t i = 0; i < m_headerCount; i++)
     {
         CmdHeader& header = m_headersPtr[i];
+        
+        AssertDebug(header.offset < m_buffer.Size(), "Header has offset {} which is greater or equal to the buffer's size ({})",
+            header.offset, m_buffer.Size());
 
         CmdBase* cmdDataPtr = reinterpret_cast<CmdBase*>(m_buffer.Data() + header.offset);
 

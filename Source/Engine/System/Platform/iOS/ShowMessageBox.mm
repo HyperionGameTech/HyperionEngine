@@ -1,39 +1,81 @@
+#include <SystemPch.hpp>
+
 #import <UIKit/UIKit.h>
 
-#include <Core/Defines.hpp>
-
-using namespace Hyperion;
-
-extern "C" {
-
-int ShowMessageBox(int type, const char *title, const char *message, int buttons, const char *buttonTexts[3])
+extern "C"
 {
-    // Come back to this when we want to target iOS
+    int ShowMessageBox(int type, const char* title, const char* message, int buttons, const char* buttonTexts[3])
+    {
+        @autoreleasepool
+        {
+            NSString* nsTitle = [NSString stringWithUTF8String:title ? title : ""];
+            NSString* nsMessage = [NSString stringWithUTF8String:message ? message : ""];
 
-    HYP_NOT_IMPLEMENTED();
+            UIAlertController* alert = [UIAlertController alertControllerWithTitle:nsTitle
+                                                                           message:nsMessage
+                                                                    preferredStyle:UIAlertControllerStyleAlert];
 
-    // __block int returnValue = -1;
+            // Add buttons
+            if (buttons > 0 && buttonTexts != nullptr)
+            {
+                for (int i = 0; i < buttons && i < 3; i++)
+                {
+                    if (buttonTexts[i] == nullptr)
+                        break;
 
-    // void (^alertBlock)(void) = ^{
-    //     @autoreleasepool {
-    //         UIAlertController *alert = [UIAlertController alertControllerWithTitle:[NSString stringWithUTF8String:title]
-    //                                                                        message:[NSString stringWithUTF8String:message]
-    //                                                                 preferredStyle:UIAlertControllerStyleAlert];
+                    NSString* buttonTitle = [NSString stringWithUTF8String:buttonTexts[i]];
+                    UIAlertActionStyle style = (i == buttons - 1)
+                        ? UIAlertActionStyleCancel
+                        : UIAlertActionStyleDefault;
 
-    //         for (int i = 0; i < buttons && i < 3; i++) {
-    //             UIAlertAction *action = [UIAlertAction actionWithTitle:[NSString stringWithUTF8String:buttonTexts[i]]
-    //                                                             style:UIAlertActionStyleDefault
-    //                                                           handler:^(UIAlertAction * _Nonnull action) {
-    //                 returnValue = i;
-    //             }];
-    //             [alert addAction:action];
-    //         }
+                    UIAlertAction* action = [UIAlertAction actionWithTitle:buttonTitle
+                                                                     style:style
+                                                                   handler:nil];
+                    [alert addAction:action];
+                }
+            }
+            else
+            {
+                UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"OK"
+                                                                   style:UIAlertActionStyleDefault
+                                                                 handler:nil];
+                [alert addAction:okAction];
+            }
 
-    //         // Present the alert
-    //         UIViewController *rootViewController = [UIApplication sharedApplication].keyWindow.rootViewController;
-    //         [rootViewController presentViewController:alert animated:YES completion:nil];
-    //     }
-    // };
+            // Get the key window to present from
+            UIWindow* keyWindow = nil;
+            if (@available(iOS 13.0, *))
+            {
+                NSSet<UIScene*>* scenes = [UIApplication sharedApplication].connectedScenes;
+                for (UIScene* scene in scenes)
+                {
+                    if (scene.activationState == UISceneActivationStateForegroundActive)
+                    {
+                        UIWindowScene* windowScene = (UIWindowScene*)scene;
+                        for (UIWindow* window in windowScene.windows)
+                        {
+                            if (window.isKeyWindow)
+                            {
+                                keyWindow = window;
+                                break;
+                            }
+                        }
+                        if (keyWindow) break;
+                    }
+                }
+            }
+            else
+            {
+                keyWindow = [UIApplication sharedApplication].keyWindow;
+            }
+
+            UIViewController* rootVC = keyWindow.rootViewController;
+            if (rootVC)
+            {
+                [rootVC presentViewController:alert animated:YES completion:nil];
+            }
+        }
+
+        return 0;
+    }
 }
-
-} // extern "C"

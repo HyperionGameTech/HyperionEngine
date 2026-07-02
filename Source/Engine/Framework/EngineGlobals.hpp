@@ -10,6 +10,8 @@
 
 #include <Core/Types.hpp>
 
+#include <type_traits>
+
 namespace Hyperion {
 
 class AppContextBase;
@@ -53,7 +55,18 @@ ENGINE_API extern ShaderCompiler* g_shaderCompiler;
 
 #if HYP_EDITOR
 extern Handle<EditorState> g_editorState;
-#endif
+
+namespace EngineGlobals {
+ENGINE_API bool IsEditor();
+} // namepsace EngineGlobals
+
+#else // !HYP_EDITOR
+
+namespace EngineGlobals {
+static constexpr std::false_type IsEditor;
+} // namespace EngineGlobals
+
+#endif // HYP_EDITOR
 
 extern MainThread* g_mainThreadInstance;
 extern SimThread* g_simThreadInstance;
@@ -66,8 +79,8 @@ extern Game* g_gameInstance;
 extern VulkanRenderInterface RI;
 #elif HYP_DX12
 extern DX12RenderInterface RI;
-#endif
+#endif // HYP_VULKAN || HYP_DX12
 
-#endif
+#endif // HYPERION_ENGINE
 
 } // namespace Hyperion

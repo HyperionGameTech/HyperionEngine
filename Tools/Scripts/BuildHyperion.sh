@@ -116,7 +116,7 @@ if [[ $DO_CMAKE -eq 1 ]]; then
 
         if [[ $XCODE -eq 1 ]]; then
             printf "Building with Xcode...\n"
-            cmake -G Xcode ../../../Source -DHYP_PLATFORM_NAME=iOS -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 $HYP_CMAKE_PARAMS
+            cmake -G Xcode ../../../Source -DHYP_PLATFORM_NAME=iOS -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 -DCMAKE_BUILD_TYPE="$CONFIG" $HYP_CMAKE_PARAMS
         else
             printf "Building with Ninja...\n"
             cmake -G Ninja ../../../Source -DHYP_PLATFORM_NAME=iOS -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 $HYP_CMAKE_PARAMS

@@ -57,4 +57,12 @@ namespace Hyperion
         {
         }
     }
+
+    [ClassBinding(Name = "iOSAppContext", Condition = "IsIOS")]
+    public class iOSAppContext : AppContextBase
+    {
+        public iOSAppContext()
+        {
+        }
+    }
 }

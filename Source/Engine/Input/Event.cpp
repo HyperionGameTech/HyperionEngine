@@ -18,6 +18,10 @@ namespace Hyperion {
 extern void DestroyCocoaEvent(CocoaEvent& cocoaEvent);
 #endif
 
+#ifdef HYP_IOS
+extern void DestroyiOSEvent(iOSEvent& iosEvent);
+#endif
+
 #pragma region Helper methods
 
 MouseEvent Event::ToMouseEvent() const
@@ -152,6 +156,33 @@ Event::~Event()
     }
 
     cocoaEvent = {};
+#endif
+
+#ifdef HYP_IOS
+    if (m_eventType == EventType::INVALID)
+    {
+        return;
+    }
+
+    iOSEvent& iosEvent = m_platformEvent.iosEvent;
+
+    if (iosEvent.uiEvent != nullptr)
+    {
+        if (IsOnThread(g_mainThread))
+        {
+            DestroyiOSEvent(iosEvent);
+        }
+        else
+        {
+            g_mainThreadInstance->GetScheduler().Enqueue([iosEvent = std::move(iosEvent)]() mutable
+                {
+                    DestroyiOSEvent(iosEvent);
+                },
+                TaskEnqueueFlags::FIRE_AND_FORGET);
+        }
+    }
+
+    iosEvent = {};
 #endif
 }
 

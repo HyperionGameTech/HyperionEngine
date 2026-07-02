@@ -174,6 +174,8 @@ RunCodeGen(0 9)
 
 # set HYP_DEBUG_MODE to 1 for debug builds, 0 for release builds
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  message(STATUS "Configuring for a Debug build, setting HYP_DEBUG_MODE=1")
+
   add_definitions(-DHYP_DEBUG_MODE=1)
   set(HYP_DEBUG_MODE 1)
 endif()
