@@ -416,9 +416,71 @@ if (NOT DEFINED RENDERING_BACKEND)
 endif()
 
 if (RENDERING_BACKEND STREQUAL "Vulkan")
-  if(HYP_ANDROID)
-    # On Android, Vulkan (API 24+) is provided by the platform — link against the
-    # system libvulkan.so directly. NDK sysroot includes the headers.
+  if(HYP_ANDROID OR HYP_IOS)
+    # iOS stuff - set up based on VULKAN_SDK
+    if(IOS)
+      if (${CMAKE_OSX_SYSROOT} STREQUAL "iphonesimulator")
+        set(IOS_SIMULATOR true)
+        set(MVK_PACKAGE_NAME "ios-arm64_x86_64-simulator")
+      else()
+        set(MVK_PACKAGE_NAME "ios-arm64")
+      endif()
+
+      # ensure VULKAN_SDK is set
+      if(NOT DEFINED ENV{VULKAN_SDK})
+        message(FATAL_ERROR "VULKAN_SDK environment variable is not set. Please set it to the path of your Vulkan SDK.")
+      else()
+        message(STATUS "VULKAN_SDK environment variable is set to: $ENV{VULKAN_SDK}")
+      endif()
+
+      set(CMAKE_SYSTEM_NAME iOS)
+      set(NO_CMAKE_SYSTEM_PATH TRUE)
+      set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE NEVER)
+      set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY BOTH)
+      set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE BOTH)
+      set(CMAKE_XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2")
+
+      set(VULKAN_SDK $ENV{VULKAN_SDK})
+      set(Vulkan_INCLUDE_DIR "${VULKAN_SDK}/include")
+      set(Vulkan_INCLUDE_DIRS "${VULKAN_SDK}/include")
+      set(Vulkan_LIBRARY "${VULKAN_SDK}/../MoltenVK/static/MoltenVK.xcframework/${MVK_PACKAGE_NAME}/libMoltenVK.a")
+      set(Vulkan_LIBRARIES "${VULKAN_SDK}/../MoltenVK/static/MoltenVK.xcframework/${MVK_PACKAGE_NAME}/libMoltenVK.a")
+      set(Vulkan_FOUND TRUE)
+
+      find_library(UIKIT_LIB UIKit)
+      find_library(COREMEDIA_LIB CoreMedia)
+      find_library(METAL_LIB Metal)
+
+      # # These are all SDL requirements - we should remove the SDL dependency for iOS.
+      # find_library(IOSURFACE_LIB IOSurface)
+      # find_library(AVFOUNDATION_LIB AVFoundation)
+      # find_library(GAMECONTROLLER_LIB GameController)
+      # find_library(AUDIOTOOLBOX_LIB AudioToolbox)
+      # find_library(QUARTZCORE_LIB QuartzCore)
+      # find_library(COREHAPTICS_LIB CoreHaptics)
+      # find_library(COREGRAPHICS_LIB CoreGraphics)
+      # find_library(COREMOTION_LIB CoreMotion)
+      # find_library(OPENGLES_LIB OpenGLES)
+
+      set(RENDERER_LIBRARIES
+            ${UIKIT_LIB}
+            ${COREMEDIA_LIB}
+            ${METAL_LIB}
+
+            # # Begin SDL stuff
+            # ${IOSURFACE_LIB}
+            # ${AVFOUNDATION_LIB}
+            # ${GAMECONTROLLER_LIB}
+            # ${AUDIOTOOLBOX_LIB}
+            # ${QUARTZCORE_LIB}
+            # ${COREHAPTICS_LIB}
+            # ${COREGRAPHICS_LIB}
+            # ${COREMOTION_LIB}
+            # ${OPENGLES_LIB}
+        )
+    endif()
+
+
     add_definitions(-DHYP_VULKAN=1)
     set(HYP_VULKAN 1)
     set(RENDERER_LIBRARIES ${RENDERER_LIBRARIES} vulkan)
@@ -426,7 +488,7 @@ if (RENDERING_BACKEND STREQUAL "Vulkan")
     if(Vulkan_FOUND)
       include_directories(BEFORE SYSTEM ${Vulkan_INCLUDE_DIRS})
     endif()
-    message(STATUS "Android: using platform-provided Vulkan (libvulkan.so)")
+    message(STATUS "Using platform-provided Vulkan")
   else()
     find_package(Vulkan REQUIRED)
     add_definitions(-DHYP_VULKAN=1)
@@ -961,10 +1023,6 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/Engine
 )
 
-if(NOT HYP_WINDOWS AND NOT HYP_ANDROID)
-  include_directories(SYSTEM ${SDL2_INCLUDE_DIRS})
-endif()
-
 file(GLOB REFLECTION_GENERATED_SOURCES "${HYP_GENERATED_DIR}/*.cpp")
 source_group(TREE ${HYP_GENERATED_DIR} PREFIX "Generated Code" FILES ${REFLECTION_GENERATED_SOURCES})
 
@@ -1008,13 +1066,6 @@ set(COMMON_LIBRARIES
     ${COMMON_LIBRARIES}
     ${CMAKE_THREADS_LIBS_INIT}
 )
-
-if(NOT HYP_WINDOWS AND NOT HYP_ANDROID)
-  set(COMMON_LIBRARIES
-        ${COMMON_LIBRARIES}
-        ${SDL2_LIBRARIES}
-    )
-endif()
 
 set(SUB_LIBRARIES ${SUB_LIBRARIES} ${THIRD_PARTY_LIBRARIES})
 

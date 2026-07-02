@@ -111,7 +111,6 @@ if(HYPERION_ENGINE)
 endif()
 
 include_directories(SYSTEM
-    ${SDL2_INCLUDE_DIRS}
     ${Vulkan_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/../../External/ThirdParty/Source
 )

@@ -34,17 +34,6 @@ RUN apt-get update && apt-get install -y \
 ENV CC=gcc
 ENV CXX=g++
 
-# Compile SDL2 from source
-WORKDIR /tmp
-RUN wget https://libsdl.org/release/SDL2-2.0.20.tar.gz \
-    && tar -zxvf SDL2-2.0.20.tar.gz
-WORKDIR /tmp/SDL2-2.0.20
-RUN ./configure \
-    && make \
-    && make install
-# Cleanup SDL2 source
-RUN rm -rf /tmp/SDL2-2.0.20.tar.gz /tmp/SDL2-2.0.20
-
 WORKDIR /app
 
 ENV SIGNALLING_SERVER_IP=ws://127.0.0.1

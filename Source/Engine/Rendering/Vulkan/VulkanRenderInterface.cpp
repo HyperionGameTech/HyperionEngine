@@ -1563,15 +1563,6 @@ VkSurfaceKHR VulkanRenderInterface::CreateSurface(ApplicationWindow* window, IDu
     }
 
     return CocoaAppContext::CreateVulkanSurface(cocoaWindow, ppOutDummySurfaceContext);
-#elif HYP_SDL
-    SDLApplicationWindow* sdlWindow = nullptr;
-    if (window != nullptr)
-    {
-        sdlWindow = DynamicCast<SDLApplicationWindow>(window);
-        Assert(sdlWindow != nullptr);
-    }
-
-    return SDLAppContext::CreateVulkanSurface(sdlWindow, ppOutDummySurfaceContext);
 #elif HYP_ANDROID
     if (!window)
     {
@@ -1625,28 +1616,6 @@ RendererResult VulkanRenderInterface::GetVkExtensions(Array<const char*>& outExt
             }
 
             outExtensions.PushBack(ext);
-        }
-
-        return {};
-    }
-#endif
-
-#if HYP_SDL
-    if (const SDLAppContext* sdlAppContext = DynamicCast<SDLAppContext>(g_appContext))
-    {
-        uint32 numExtensions = 0;
-        SDL_Window* sdlWindow = static_cast<SDL_Window*>(static_cast<SDLApplicationWindow*>(sdlAppContext->GetMainWindow())->GetHWND());
-
-        if (!SDL_Vulkan_GetInstanceExtensions(sdlWindow, &numExtensions, nullptr))
-        {
-            return HYP_MAKE_ERROR(RendererError, "Failed to get Vulkan instance extensions from SDL: {}", 0, SDL_GetError());
-        }
-
-        outExtensions.Resize(numExtensions);
-
-        if (!SDL_Vulkan_GetInstanceExtensions(sdlWindow, &numExtensions, outExtensions.Data()))
-        {
-            return HYP_MAKE_ERROR(RendererError, "Failed to get Vulkan instance extensions from SDL: {}", 0, SDL_GetError());
         }
 
         return {};

@@ -6,11 +6,6 @@
 
 #pragma once
 
-#ifdef HYP_SDL
-#include <SDL2/SDL_vulkan.h>
-#include <SDL2/SDL.h>
-#endif
-
 #ifdef HYP_ANDROID
 #include <android/looper.h>
 #endif

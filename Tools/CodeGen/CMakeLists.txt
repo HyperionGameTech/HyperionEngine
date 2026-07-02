@@ -94,7 +94,6 @@ link_directories(${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY})
 
 add_definitions(-DHYP_ROOT_DIR="${CMAKE_CURRENT_LIST_DIR}")
 add_definitions(-DHYP_DEBUG_MODE=1)
-add_definitions(-DSDL_MAIN_HANDLED=1)
 add_definitions(-DVMA_DYNAMIC_VULKAN_FUNCTIONS=1)
 
 add_definitions(-DHYP_VULKAN=1)

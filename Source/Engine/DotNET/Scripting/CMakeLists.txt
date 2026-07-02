@@ -23,7 +23,6 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "${BUILD_NAME} Code" FILES 
 add_definitions(-DHYP_BUILD_LIBRARY=1)
 
 include_directories(SYSTEM
-    ${SDL2_INCLUDE_DIRS}
     ${Vulkan_INCLUDE_DIRS}
     ${THIRD_PARTY_INCLUDE_DIR}
 )

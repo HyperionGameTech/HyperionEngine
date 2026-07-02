@@ -30,7 +30,6 @@ set(HEADERS "${HEADERS}" ${REFLECTION_GENERATED_HEADERS})
 add_definitions(-DHYP_SCRIPT=1)
 
 include_directories(SYSTEM
-    ${SDL2_INCLUDE_DIRS}
     ${Vulkan_INCLUDE_DIRS}
     ${THIRD_PARTY_INCLUDE_DIR}
 )

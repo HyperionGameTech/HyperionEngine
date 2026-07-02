@@ -434,13 +434,11 @@ extern "C"
         g_appContext = MakeHandle<Win32AppContext>("Hyperion", cliArgs);
 #elif HYP_MACOS
         g_appContext = MakeHandle<CocoaAppContext>("Hyperion", cliArgs);
-#elif HYP_SDL
-        g_appContext = MakeHandle<SDLAppContext>("Hyperion", cliArgs);
 #elif HYP_ANDROID
         g_appContext = MakeHandle<AndroidAppContext>("Hyperion", cliArgs);
-#else  // !HYP_WINDOWS && !HYP_MACOS && !HYP_SDL && !HYP_ANDROID
+#else  // !HYP_WINDOWS && !HYP_MACOS && !HYP_ANDROID
         HYP_FAIL("AppContext not implemented for this platform");
-#endif // HYP_WINDOWS || HYP_MACOS || HYP_SDL || HYP_ANDROID
+#endif // HYP_WINDOWS || HYP_MACOS || HYP_ANDROID
 
         g_engineDriver->Initialize();
 

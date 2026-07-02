@@ -13,7 +13,6 @@ set(CMAKE_BUILD_PARALLEL_LEVEL 8)
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 
 include_directories(SYSTEM
-    ${SDL2_INCLUDE_DIRS}
     ${THIRD_PARTY_INCLUDE_DIR}
 )
 include_directories(

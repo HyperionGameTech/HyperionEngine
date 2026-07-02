@@ -133,7 +133,7 @@ void SetCurrentThreadId(const ThreadId& id)
     {
         HYP_LOG(Threading, Error, "Failed to set Win32 thread name for thread {}", id.GetName());
     }
-#elif HYP_MACOS
+#elif HYP_MACOS || HYP_IOS
     pthread_setname_np(id.GetName().LookupString());
 #elif HYP_UNIX
     pthread_setname_np(pthread_self(), id.GetName().LookupString());
