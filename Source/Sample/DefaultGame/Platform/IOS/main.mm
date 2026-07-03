@@ -1,5 +1,5 @@
 #import <UIKit/UIKit.h>
-#import "AppDelegate.h"
+#import <System/Platform/iOS/AppDelegate.h>
 
 int main(int argc, char* argv[])
 {
