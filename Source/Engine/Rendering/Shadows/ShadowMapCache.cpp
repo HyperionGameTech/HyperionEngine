@@ -31,7 +31,7 @@
 
 namespace Hyperion {
 
-CVar<float> g_cvBaseDepthBias("Rendering.BaseDepthBias", 0.0005f);
+CVar<float> g_cvBaseDepthBias("Rendering.BaseDepthBias", 0.0015f);
 CVar<float> g_cvBaseDepthBiasDirectional("Rendering.BaseDepthBiasDirectional", 0.01f);
 
 // Set to true to create camera-specific shadow maps for CSM
