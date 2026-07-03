@@ -997,7 +997,7 @@ extern class Win32ApplicationWindow : ApplicationWindow
     HasMouseFocus() -> bool
     Close() -> void
 end
-extern class iOSApplicationWindow : ApplicationWindow
+extern class IOSApplicationWindow : ApplicationWindow
     SetMousePosition(position : Vec2i) -> void
     GetMousePosition() -> Vec2i
     GetDimensions() -> Vec2i
@@ -1028,7 +1028,7 @@ end
 extern class CocoaAppContext : AppContextBase
     CreateSystemWindow(windowOptions : WindowOptions) -> ApplicationWindow
 end
-extern class iOSAppContext : AppContextBase
+extern class IOSAppContext : AppContextBase
     CreateSystemWindow(windowOptions : WindowOptions) -> ApplicationWindow
 end
 extern struct WindowOptions

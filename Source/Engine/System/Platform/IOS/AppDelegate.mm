@@ -1,4 +1,4 @@
-#import <System/Platform/iOS/AppDelegate.h>
+#import <System/Platform/IOS/AppDelegate.h>
 
 #include <HyperionEngine.hpp>
 

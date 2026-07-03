@@ -115,7 +115,7 @@ protected:
             else if (platform == "android")
                 platformFlags |= ShaderCompileTargetPlatform::Android;
             else if (platform == "ios")
-                platformFlags |= ShaderCompileTargetPlatform::iOS;
+                platformFlags |= ShaderCompileTargetPlatform::IOS;
         }
 
         if (platformFlags != ShaderCompileTargetPlatform::None)

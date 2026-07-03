@@ -39,7 +39,7 @@
 #endif
 
 #ifdef HYP_IOS
-#include <System/Platform/iOS/iOSFwd.h>
+#include <System/Platform/IOS/IOSFwd.h>
 #endif
 
 namespace Hyperion {
@@ -559,13 +559,13 @@ private:
 #ifdef HYP_IOS
 
 HYP_CLASS(Condition = "HYP_IOS")
-class ENGINE_API iOSApplicationWindow final : public ApplicationWindow
+class ENGINE_API IOSApplicationWindow final : public ApplicationWindow
 {
-    HYP_OBJECT_BODY(iOSApplicationWindow);
+    HYP_OBJECT_BODY(IOSApplicationWindow);
 
 public:
-    iOSApplicationWindow(ANSIString title, Vec2i size);
-    ~iOSApplicationWindow() override;
+    IOSApplicationWindow(ANSIString title, Vec2i size);
+    ~IOSApplicationWindow() override;
 
     void Initialize(WindowOptions windowOptions);
 
@@ -629,13 +629,13 @@ private:
 };
 
 HYP_CLASS(Condition = "HYP_IOS")
-class ENGINE_API iOSAppContext final : public AppContextBase
+class ENGINE_API IOSAppContext final : public AppContextBase
 {
-    HYP_OBJECT_BODY(iOSAppContext);
+    HYP_OBJECT_BODY(IOSAppContext);
 
 public:
-    iOSAppContext(ANSIString name, const CommandLineArguments& arguments);
-    ~iOSAppContext() override;
+    IOSAppContext(ANSIString name, const CommandLineArguments& arguments);
+    ~IOSAppContext() override;
 
     HYP_METHOD()
     Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions) override;
@@ -646,12 +646,12 @@ public:
 
 #if HYP_VULKAN
     static VkSurfaceKHR CreateVulkanSurface(
-        iOSApplicationWindow* window,
+        IOSApplicationWindow* window,
         IDummyVulkanSurfaceContext** ppOutDummySurfaceContext);
 #endif
 
 private:
-    class iOSEventQueue* m_eventQueue;
+    class IOSEventQueue* m_eventQueue;
 };
 
 #endif // HYP_IOS

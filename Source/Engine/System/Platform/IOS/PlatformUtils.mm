@@ -53,7 +53,7 @@ void PumpSystemEvents()
 
 /// Maps UIKeyboardHIDUsage values (USB HID keyboard usage page) to engine KeyCode.
 /// Reference: https://developer.apple.com/documentation/uikit/uikeyboardhidusage
-KeyCode MapiOSKeyCodeToKeyCode(unsigned short hidUsage)
+KeyCode MapIOSKeyCodeToKeyCode(unsigned short hidUsage)
 {
     switch (hidUsage)
     {

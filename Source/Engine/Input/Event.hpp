@@ -80,7 +80,7 @@ struct AndroidEvent
 #endif
 
 #ifdef HYP_IOS
-struct iOSEvent
+struct IOSEvent
 {
     void* uiEvent; // UIEvent* (bridged)
 };
@@ -160,7 +160,7 @@ union PlatformEvent
 #endif
 
 #ifdef HYP_IOS
-    iOSEvent iosEvent;
+    IOSEvent iosEvent;
 #endif
 };
 

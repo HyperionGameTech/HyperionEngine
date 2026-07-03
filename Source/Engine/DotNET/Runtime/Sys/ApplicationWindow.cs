@@ -65,10 +65,10 @@ namespace Hyperion
         }
     }
 
-    [ClassBinding(Name = "iOSApplicationWindow", Condition = "IsIOS")]
-    public class iOSApplicationWindow : ApplicationWindow
+    [ClassBinding(Name = "IOSApplicationWindow", Condition = "IsIOS")]
+    public class IOSApplicationWindow : ApplicationWindow
     {
-        public iOSApplicationWindow()
+        public IOSApplicationWindow()
         {
         }
     }

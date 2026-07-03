@@ -1562,14 +1562,14 @@ VkSurfaceKHR VulkanRenderInterface::CreateSurface(ApplicationWindow* window, IDu
 
     return CocoaAppContext::CreateVulkanSurface(cocoaWindow, ppOutDummySurfaceContext);
 #elif HYP_IOS
-    iOSApplicationWindow* iosWindow = nullptr;
+    IOSApplicationWindow* iosWindow = nullptr;
     if (window != nullptr)
     {
-        iosWindow = DynamicCast<iOSApplicationWindow>(window);
+        iosWindow = DynamicCast<IOSApplicationWindow>(window);
         Assert(iosWindow != nullptr);
     }
 
-    return iOSAppContext::CreateVulkanSurface(iosWindow, ppOutDummySurfaceContext);
+    return IOSAppContext::CreateVulkanSurface(iosWindow, ppOutDummySurfaceContext);
 #elif HYP_ANDROID
     if (!window)
     {
@@ -1712,7 +1712,7 @@ RendererResult VulkanRenderInterface::GetVkExtensions(Array<const char*>& outExt
 #endif
 
 #if HYP_IOS
-    if (g_appContext->IsA(iOSAppContext::StaticClass()))
+    if (g_appContext->IsA(IOSAppContext::StaticClass()))
     {
         static constexpr const char* RequiredExtensions[] = {
             VK_KHR_SURFACE_EXTENSION_NAME,

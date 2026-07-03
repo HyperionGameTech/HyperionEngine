@@ -19,7 +19,7 @@ extern void DestroyCocoaEvent(CocoaEvent& cocoaEvent);
 #endif
 
 #ifdef HYP_IOS
-extern void DestroyiOSEvent(iOSEvent& iosEvent);
+extern void DestroyIOSEvent(IOSEvent& iosEvent);
 #endif
 
 #pragma region Helper methods
@@ -164,19 +164,19 @@ Event::~Event()
         return;
     }
 
-    iOSEvent& iosEvent = m_platformEvent.iosEvent;
+    IOSEvent& iosEvent = m_platformEvent.iosEvent;
 
     if (iosEvent.uiEvent != nullptr)
     {
         if (IsOnThread(g_mainThread))
         {
-            DestroyiOSEvent(iosEvent);
+            DestroyIOSEvent(iosEvent);
         }
         else
         {
             g_mainThreadInstance->GetScheduler().Enqueue([iosEvent = std::move(iosEvent)]() mutable
                 {
-                    DestroyiOSEvent(iosEvent);
+                    DestroyIOSEvent(iosEvent);
                 },
                 TaskEnqueueFlags::FIRE_AND_FORGET);
         }

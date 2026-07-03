@@ -36,7 +36,7 @@ using namespace Hyperion;
 namespace Hyperion {
 namespace PlatformUtils {
 
-KeyCode MapiOSKeyCodeToKeyCode(unsigned short keyCode);
+KeyCode MapIOSKeyCodeToKeyCode(unsigned short keyCode);
 bool IsHardwareKeyboardAvailable();
 
 } // namespace PlatformUtils
@@ -45,7 +45,7 @@ bool IsHardwareKeyboardAvailable();
 #pragma mark - HyperionMetalView
 
 @interface HyperionMetalView : UIView
-@property (nonatomic, assign) iOSApplicationWindow* hyperionWindow;
+@property (nonatomic, assign) IOSApplicationWindow* hyperionWindow;
 @end
 
 @implementation HyperionMetalView
@@ -217,7 +217,7 @@ bool IsHardwareKeyboardAvailable();
 
     for (UIPress* press in presses)
     {
-        KeyCode keyCode = PlatformUtils::MapiOSKeyCodeToKeyCode(press.key.keyCode);
+        KeyCode keyCode = PlatformUtils::MapIOSKeyCodeToKeyCode(press.key.keyCode);
         if (keyCode != KeyCode::KEY_UNKNOWN)
         {
             PlatformEvent platformEvent {};
@@ -237,7 +237,7 @@ bool IsHardwareKeyboardAvailable();
 
     for (UIPress* press in presses)
     {
-        KeyCode keyCode = PlatformUtils::MapiOSKeyCodeToKeyCode(press.key.keyCode);
+        KeyCode keyCode = PlatformUtils::MapIOSKeyCodeToKeyCode(press.key.keyCode);
         if (keyCode != KeyCode::KEY_UNKNOWN)
         {
             PlatformEvent platformEvent {};
@@ -257,7 +257,7 @@ bool IsHardwareKeyboardAvailable();
 
     for (UIPress* press in presses)
     {
-        KeyCode keyCode = PlatformUtils::MapiOSKeyCodeToKeyCode(press.key.keyCode);
+        KeyCode keyCode = PlatformUtils::MapIOSKeyCodeToKeyCode(press.key.keyCode);
         if (keyCode != KeyCode::KEY_UNKNOWN)
         {
             PlatformEvent platformEvent {};
@@ -273,7 +273,7 @@ bool IsHardwareKeyboardAvailable();
 #pragma mark - HyperionWindowDelegate
 
 @interface HyperionWindowDelegate : NSObject
-@property (nonatomic, assign) iOSApplicationWindow* hyperionWindow;
+@property (nonatomic, assign) IOSApplicationWindow* hyperionWindow;
 @end
 
 @implementation HyperionWindowDelegate
@@ -303,7 +303,7 @@ bool IsHardwareKeyboardAvailable();
 #pragma mark - HyperionViewController
 
 @interface HyperionViewController : UIViewController
-@property (nonatomic, assign) iOSApplicationWindow* hyperionWindow;
+@property (nonatomic, assign) IOSApplicationWindow* hyperionWindow;
 @end
 
 @implementation HyperionViewController
@@ -355,7 +355,7 @@ static constexpr int32 IOS_ACTION_MOVE = 1;
 static constexpr int32 IOS_ACTION_UP = 2;
 static constexpr int32 IOS_ACTION_CANCELLED = 3;
 
-iOSApplicationWindow::iOSApplicationWindow(ANSIString title, Vec2i size)
+IOSApplicationWindow::IOSApplicationWindow(ANSIString title, Vec2i size)
     : ApplicationWindow(std::move(title), size),
       m_metalLayer(nullptr),
       m_uiView(nullptr),
@@ -363,7 +363,7 @@ iOSApplicationWindow::iOSApplicationWindow(ANSIString title, Vec2i size)
 {
 }
 
-iOSApplicationWindow::~iOSApplicationWindow()
+IOSApplicationWindow::~IOSApplicationWindow()
 {
     if (m_metalLayer)
     {
@@ -389,7 +389,7 @@ iOSApplicationWindow::~iOSApplicationWindow()
     }
 }
 
-void iOSApplicationWindow::Initialize(WindowOptions windowOptions)
+void IOSApplicationWindow::Initialize(WindowOptions windowOptions)
 {
     AssertOnThread(g_mainThread);
 
@@ -469,7 +469,7 @@ void iOSApplicationWindow::Initialize(WindowOptions windowOptions)
                        int(metalView.bounds.size.height * metalLayer.contentsScale)));
 }
 
-void iOSApplicationWindow::SetNativeWindow(void* nativeWindow)
+void IOSApplicationWindow::SetNativeWindow(void* nativeWindow)
 {
     Vec2i newSize = m_size;
 
@@ -532,7 +532,7 @@ void iOSApplicationWindow::SetNativeWindow(void* nativeWindow)
     HandleResize(newSize);
 }
 
-bool iOSApplicationWindow::HandleTouchEvent(void* touchPtr, void* eventPtr, Event& outEvent)
+bool IOSApplicationWindow::HandleTouchEvent(void* touchPtr, void* eventPtr, Event& outEvent)
 {
     UITouch* uiTouch = (__bridge UITouch*)touchPtr;
     UIEvent* uiEvent = (__bridge UIEvent*)eventPtr;
@@ -627,7 +627,7 @@ bool iOSApplicationWindow::HandleTouchEvent(void* touchPtr, void* eventPtr, Even
     return false;
 }
 
-void iOSApplicationWindow::Close()
+void IOSApplicationWindow::Close()
 {
     TUniqueLock lock(m_mtx);
 
@@ -666,18 +666,18 @@ void iOSApplicationWindow::Close()
 #endif
 }
 
-void iOSApplicationWindow::SetMousePosition(Vec2i position)
+void IOSApplicationWindow::SetMousePosition(Vec2i position)
 {
     // NO-OP
 }
 
-Vec2i iOSApplicationWindow::GetMousePosition() const
+Vec2i IOSApplicationWindow::GetMousePosition() const
 {
     TSharedLock lock(m_mtx);
     return Vec2i(m_touchPosition);
 }
 
-Vec2i iOSApplicationWindow::GetDimensions() const
+Vec2i IOSApplicationWindow::GetDimensions() const
 {
     TSharedLock lock(m_mtx);
 
@@ -693,12 +693,12 @@ Vec2i iOSApplicationWindow::GetDimensions() const
     return m_size;
 }
 
-void iOSApplicationWindow::SetIsMouseLocked(bool locked)
+void IOSApplicationWindow::SetIsMouseLocked(bool locked)
 {
     m_mouseLocked = locked;
 }
 
-bool iOSApplicationWindow::HasMouseFocus() const
+bool IOSApplicationWindow::HasMouseFocus() const
 {
     if (m_hwnd)
     {
@@ -709,7 +709,7 @@ bool iOSApplicationWindow::HasMouseFocus() const
     return m_uiView != nullptr;
 }
 
-float iOSApplicationWindow::GetContentScaleFactor() const
+float IOSApplicationWindow::GetContentScaleFactor() const
 {
     if (m_metalLayer)
     {
@@ -719,7 +719,7 @@ float iOSApplicationWindow::GetContentScaleFactor() const
     return float([UIScreen mainScreen].nativeScale);
 }
 
-float iOSApplicationWindow::GetRenderTargetScale() const
+float IOSApplicationWindow::GetRenderTargetScale() const
 {
     // Render at 65% of native res
     return 0.65f;

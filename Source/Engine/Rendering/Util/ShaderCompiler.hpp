@@ -89,8 +89,8 @@ enum class ShaderCompileTargetPlatform : uint32
     Mac = 0x00000002,     // Bit 1
     Linux = 0x00000004,   // Bit 2
     Android = 0x00000008, // Bit 3
-    iOS = 0x00000010,     // Bit 4
-    AllPlatforms = Windows | Mac | Linux | Android | iOS
+    IOS = 0x00000010,     // Bit 4
+    AllPlatforms = Windows | Mac | Linux | Android | IOS
 };
 
 HYP_MAKE_ENUM_FLAGS(ShaderCompileTargetPlatform);

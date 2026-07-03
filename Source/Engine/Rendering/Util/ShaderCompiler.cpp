@@ -2798,7 +2798,7 @@ bool ShaderCompiler::CompileBundle(
         if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::Android])
             platformValues.PushBack(ShaderProperty::Value(NAME("ANDROID")));
 
-        if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::iOS])
+        if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::IOS])
             platformValues.PushBack(ShaderProperty::Value(NAME("IOS")));
 
         if (platformValues.Any())
@@ -3037,7 +3037,7 @@ bool ShaderCompiler::CompileBundle(
                 return ShaderCompileTargetPlatform::Android;
 
             if (platformName == "IOS"_sh)
-                return ShaderCompileTargetPlatform::iOS;
+                return ShaderCompileTargetPlatform::IOS;
         }
 
         return {};

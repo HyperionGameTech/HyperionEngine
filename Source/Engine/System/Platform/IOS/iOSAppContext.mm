@@ -43,13 +43,13 @@ namespace Hyperion {
 
 CORE_API HYP_DECLARE_LOG_CHANNEL(Core);
 
-#pragma mark - iOSEventQueue
+#pragma mark - IOSEventQueue
 
-class iOSEventQueue final
+class IOSEventQueue final
 {
 public:
-    iOSEventQueue() = default;
-    ~iOSEventQueue() = default;
+    IOSEventQueue() = default;
+    ~IOSEventQueue() = default;
 
     void Enqueue(Event&& event)
     {
@@ -77,7 +77,7 @@ private:
     Array<Event> m_queue;
 };
 
-void DestroyiOSEvent(iOSEvent& iosEvent)
+void DestroyIOSEvent(IOSEvent& iosEvent)
 {
     if (iosEvent.uiEvent != nullptr)
     {
@@ -87,11 +87,11 @@ void DestroyiOSEvent(iOSEvent& iosEvent)
     }
 }
 
-#pragma mark - iOSAppContext
+#pragma mark - IOSAppContext
 
-iOSAppContext::iOSAppContext(ANSIString name, const CommandLineArguments& arguments)
+IOSAppContext::IOSAppContext(ANSIString name, const CommandLineArguments& arguments)
     : AppContextBase(std::move(name), arguments),
-      m_eventQueue(new iOSEventQueue)
+      m_eventQueue(new IOSEventQueue)
 {
     if (![NSThread isMainThread])
     {
@@ -106,15 +106,15 @@ iOSAppContext::iOSAppContext(ANSIString name, const CommandLineArguments& argume
     }
 }
 
-iOSAppContext::~iOSAppContext()
+IOSAppContext::~IOSAppContext()
 {
     delete m_eventQueue;
     m_eventQueue = nullptr;
 }
 
-Handle<ApplicationWindow> iOSAppContext::CreateSystemWindow(WindowOptions windowOptions)
+Handle<ApplicationWindow> IOSAppContext::CreateSystemWindow(WindowOptions windowOptions)
 {
-    Handle<iOSApplicationWindow> window = MakeHandle<iOSApplicationWindow>(windowOptions.title, windowOptions.dimensions);
+    Handle<IOSApplicationWindow> window = MakeHandle<IOSApplicationWindow>(windowOptions.title, windowOptions.dimensions);
     m_windows.PushBack(window);
 
     window->Initialize(windowOptions);
@@ -122,7 +122,7 @@ Handle<ApplicationWindow> iOSAppContext::CreateSystemWindow(WindowOptions window
     return window;
 }
 
-int iOSAppContext::PollEvents(Event& event)
+int IOSAppContext::PollEvents(Event& event)
 {
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
@@ -138,7 +138,7 @@ int iOSAppContext::PollEvents(Event& event)
     return 0;
 }
 
-void iOSAppContext::EnqueueEvent(Event&& event)
+void IOSAppContext::EnqueueEvent(Event&& event)
 {
     if (m_eventQueue != nullptr)
     {
@@ -148,8 +148,8 @@ void iOSAppContext::EnqueueEvent(Event&& event)
 
 #if HYP_VULKAN
 
-VkSurfaceKHR iOSAppContext::CreateVulkanSurface(
-    iOSApplicationWindow* window,
+VkSurfaceKHR IOSAppContext::CreateVulkanSurface(
+    IOSApplicationWindow* window,
     IDummyVulkanSurfaceContext** ppOutDummySurfaceContext)
 {
     VkSurfaceKHR surface = VK_NULL_HANDLE;
@@ -158,7 +158,7 @@ VkSurfaceKHR iOSAppContext::CreateVulkanSurface(
 
     if (window)
     {
-        iOSApplicationWindow* iosWindow = DynamicCast<iOSApplicationWindow>(window);
+        IOSApplicationWindow* iosWindow = DynamicCast<IOSApplicationWindow>(window);
         Assert(iosWindow != nullptr);
         __block CAMetalLayer* layer = (CAMetalLayer*)iosWindow->GetCAMetalLayer();
 
@@ -199,15 +199,15 @@ VkSurfaceKHR iOSAppContext::CreateVulkanSurface(
             dispatch_sync(dispatch_get_main_queue(), createDummyWindow);
         }
 
-        class iOSDummyVulkanSurfaceContext : public IDummyVulkanSurfaceContext
+        class IOSDummyVulkanSurfaceContext : public IDummyVulkanSurfaceContext
         {
         public:
-            iOSDummyVulkanSurfaceContext(UIWindow* window)
+            IOSDummyVulkanSurfaceContext(UIWindow* window)
                 : m_window(window)
             {
             }
 
-            virtual ~iOSDummyVulkanSurfaceContext() override
+            virtual ~IOSDummyVulkanSurfaceContext() override
             {
                 if (m_window)
                 {
@@ -234,7 +234,7 @@ VkSurfaceKHR iOSAppContext::CreateVulkanSurface(
             UIWindow* m_window;
         };
 
-        *ppOutDummySurfaceContext = new iOSDummyVulkanSurfaceContext(dummyWindow);
+        *ppOutDummySurfaceContext = new IOSDummyVulkanSurfaceContext(dummyWindow);
 
         createInfo.pLayer = layer;
     }

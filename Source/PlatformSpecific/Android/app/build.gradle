@@ -174,7 +174,7 @@ tasks.register('stagePackageAssets', Copy) {
         into 'Config'
         include '*.json'
         exclude '*.Android.json'
-        exclude '*.iOS.json'
+        exclude '*.IOS.json'
         exclude '*.Windows.json'
         exclude '*.Mac.json'
         exclude '*.Linux.json'

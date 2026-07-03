@@ -160,9 +160,6 @@ HYP_EXPORT const FilePath& GetLibraryDirectory()
     static DirectoryInitializer<HYP_STATIC_STRING("Packages"), /* RelativeToExecutablePath */ false> s_resourceDirectory;
     return s_resourceDirectory.path;
 #else  // !HYP_EDITOR
-    // Use DirectoryInitializer just like the editor path, so resource directories
-    // (Engine, Editor, Game packages) resolve under Packages/ relative to the executable.
-    // This is needed for packaged builds (iOS, shipping) where data lives in Packages/.
     static DirectoryInitializer<HYP_STATIC_STRING("Packages"), /* RelativeToExecutablePath */ true> s_resourceDirectory;
 
     if (!s_resourceDirectory.path.Exists())
@@ -440,7 +437,7 @@ extern "C"
 #elif HYP_ANDROID
         g_appContext = MakeHandle<AndroidAppContext>("Hyperion", cliArgs);
 #elif HYP_IOS
-        g_appContext = MakeHandle<iOSAppContext>("Hyperion", cliArgs);
+        g_appContext = MakeHandle<IOSAppContext>("Hyperion", cliArgs);
 #else  // !HYP_WINDOWS && !HYP_MACOS && !HYP_ANDROID && !HYP_IOS
         HYP_FAIL("AppContext not implemented for this platform");
 #endif // HYP_WINDOWS || HYP_MACOS || HYP_ANDROID || HYP_IOS
