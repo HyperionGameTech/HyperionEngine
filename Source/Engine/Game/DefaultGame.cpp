@@ -96,10 +96,10 @@ void DefaultGame::OnLaunch_Impl()
     }
 
     // sky
-    //GetWorld()->AddSystemT<DynamicSkySystem>();
-    //GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>(
-    //    NAME("TerrainLayer"),
-     //   WorldGridLayerInfo { Vec3f { 0.0f, -5.0f, 0.0f } }));
+    GetWorld()->AddSystemT<DynamicSkySystem>();
+    GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>(
+       NAME("TerrainLayer"),
+       WorldGridLayerInfo { Vec3f { 0.0f, -5.0f, 0.0f } }));
 
 #if HYP_ANDROID || HYP_IOS
     GetWorld()->AddSubsystem(MakeHandle<TouchControlsSubsystem>());

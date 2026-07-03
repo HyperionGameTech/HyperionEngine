@@ -1,0 +1,33 @@
+{
+  "Rendering": {
+    "HBAO": {
+      "Enabled": false
+    },
+    "SSGI": false,
+    "TAA": false,
+    "FogVolumes": false,
+    "PathTracing": false,
+    "RayTracedReflections": false,
+    "DDGI": false,
+    "RayTracingEnabled": false,
+    "IndirectRendering": false,
+    "DepthPrepass": false,
+    "ParallelCollection": false,
+    "TargetFrameRate": 30,
+    "LimitFrameRateOnBatteryPower": true,
+    "LimitFrameRateWhenIdle": true,
+    "EnableDebugDraw": true,
+    "SSR": {
+      "Enabled": false
+    },
+    "VSync": true,
+    "EnableGpuStats": true,
+    "Vulkan": {
+      "DebugLayers": true,
+      "TimelineSemaphores": true
+    }
+  },
+  "Threads": {
+    "NumForegroundWorkers": 1
+  }
+}

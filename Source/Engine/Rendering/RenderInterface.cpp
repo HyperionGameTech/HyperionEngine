@@ -691,18 +691,6 @@ RendererResult RenderInterface::Initialize()
 
         bool shouldDisableRayTracing = !GetRenderConfig().rayTracing;
 
-#if HYP_ANDROID || HYP_IOS
-        shouldDisableRayTracing = true;
-
-        // For Android leave these rendering settings off.
-        cfg.Set("Rendering.IndirectRendering", false);
-        cfg.Set("Rendering.DepthPrepass", false);
-        cfg.Set("Rendering.SSGI", false);
-        cfg.Set("Rendering.TAA", false);
-        cfg.Set("Rendering.SSR.Enabled", false);
-        cfg.Set("Rendering.HBAO.Enabled", false);
-#endif
-
         // if ray tracing is not supported, we need to update the configuration
         if (shouldDisableRayTracing)
         {
