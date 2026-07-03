@@ -73,11 +73,6 @@ struct VulkanDynamicFunctions
     HYP_DECL_FN(vkSetDebugUtilsObjectTagEXT);
 #endif
 
-#if defined(HYP_MOLTENVK) && HYP_MOLTENVK && HYP_MOLTENVK_LINKED
-    HYP_DECL_FN(vkGetMoltenVKConfigurationMVK);
-    HYP_DECL_FN(vkSetMoltenVKConfigurationMVK);
-#endif
-
     // extended dynamic state (VK_EXT_extended_dynamic_state)
     HYP_DECL_FN(vkCmdSetDepthWriteEnableEXT);
     HYP_DECL_FN(vkCmdSetDepthTestEnableEXT);

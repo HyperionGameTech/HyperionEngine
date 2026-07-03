@@ -61,7 +61,7 @@ PSOutput PSMain(PSInput input)
 
     float2 texcoord = input.texcoord;
 
-    output.color_output = SAMPLE_TEXTURE_2D_LOD(sampler_linear, src_image, texcoord, 0.0);
+    output.color_output = float4(1.0, 0.0, 0.0,1.0);//SAMPLE_TEXTURE_2D_LOD(sampler_linear, src_image, texcoord, 0.0);
 
     return output;
 }

@@ -167,7 +167,7 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
     return device;
 }
 
-static Array<VkPhysicalDevice> EnumeratePhysicalDevices(VkInstance instance)
+static Array<VkPhysicalDevice, VulkanTempAllocator> EnumeratePhysicalDevices(VkInstance instance)
 {
     uint32 deviceCount = 0;
 
@@ -176,7 +176,7 @@ static Array<VkPhysicalDevice> EnumeratePhysicalDevices(VkInstance instance)
     Assert(deviceCount != 0, "No devices with Vulkan support found! "
                              "Please update your graphics drivers or install a Vulkan compatible device.\n");
 
-    Array<VkPhysicalDevice> devices;
+    Array<VkPhysicalDevice, VulkanTempAllocator> devices;
     devices.Resize(deviceCount);
 
     vkEnumeratePhysicalDevices(instance, &deviceCount, devices.Data());
@@ -194,7 +194,7 @@ static Array<const char*, VulkanAllocator> CheckValidationLayerSupport(Span<cons
     uint32 layersCount;
     vkEnumerateInstanceLayerProperties(&layersCount, nullptr);
 
-    Array<VkLayerProperties> availableLayers;
+    Array<VkLayerProperties, VulkanTempAllocator> availableLayers;
     availableLayers.Resize(layersCount);
 
     vkEnumerateInstanceLayerProperties(&layersCount, availableLayers.Data());
@@ -219,7 +219,9 @@ static Array<const char*, VulkanAllocator> CheckValidationLayerSupport(Span<cons
         }
         else
         {
+#if !defined(HYP_MOLTENVK) || !HYP_MOLTENVK
             HYP_LOG(RenderingBackend, Warning, "Validation layer {} is unavailable", request);
+#endif
         }
     }
 
@@ -447,7 +449,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     uint32 availableInstanceExtensionCount = 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &availableInstanceExtensionCount, nullptr);
 
-    Array<VkExtensionProperties> availableInstanceExtensions;
+    Array<VkExtensionProperties, VulkanTempAllocator> availableInstanceExtensions;
     availableInstanceExtensions.Resize(availableInstanceExtensionCount);
 
     if (availableInstanceExtensionCount != 0)
@@ -535,11 +537,32 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     VkResult instanceResult = vkCreateInstance(&createInfo, nullptr, &m_instance);
     VULKAN_CHECK_MSG(instanceResult, "Failed to create Vulkan Instance!");
 
+#if defined(HYP_MOLTENVK) && HYP_MOLTENVK && HYP_DEBUG_MODE
+    if (enableDebugLayers)
+    {
+        PFN_vkGetMoltenVKConfigurationMVK mvkGetConfig = reinterpret_cast<PFN_vkGetMoltenVKConfigurationMVK>(vkGetInstanceProcAddr(m_instance, "vkGetMoltenVKConfigurationMVK"));
+        PFN_vkSetMoltenVKConfigurationMVK mvkSetConfig = reinterpret_cast<PFN_vkSetMoltenVKConfigurationMVK>(vkGetInstanceProcAddr(m_instance, "vkSetMoltenVKConfigurationMVK"));
+
+        if (mvkGetConfig && mvkSetConfig)
+        {
+            MVKConfiguration mvkConfig {};
+            size_t configSize = sizeof(mvkConfig);
+
+            mvkGetConfig(m_instance, &mvkConfig, &configSize);
+            mvkConfig.debugMode = VK_TRUE;
+            
+            mvkSetConfig(m_instance, &mvkConfig, &configSize);
+
+            HYP_LOG(RenderingBackend, Info, "Enabled MoltenVK debug mode");
+        }
+    }
+#endif
+
     IDummyVulkanSurfaceContext* dummySurfaceContext = nullptr;
     VkSurfaceKHR surface = RI.CreateSurface(nullptr, &dummySurfaceContext);
 
-    Array<VkPhysicalDevice> devices = EnumeratePhysicalDevices(m_instance);
-    VkPhysicalDevice physicalDevice = PickPhysicalDevice(Span<VkPhysicalDevice>(devices.Begin(), devices.End()));
+    Array<VkPhysicalDevice, VulkanTempAllocator> devices = EnumeratePhysicalDevices(m_instance);
+    VkPhysicalDevice physicalDevice = PickPhysicalDevice(devices.ToSpan());
 
     /* Find and set up an adequate GPU for rendering and presentation */
     CheckResultOrReturn(CreateDevice(physicalDevice, surface));

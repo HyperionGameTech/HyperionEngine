@@ -127,10 +127,29 @@ FilePath ConfigBase::GetFilePath() const
     return configPath;
 }
 
+FilePath ConfigBase::GetPlatformFilePath() const
+{
+#if defined(HYP_PLATFORM_NAME_STR)
+    String name = m_name;
+
+    if (name.EndsWith(".json"))
+    {
+        name = name.Substr(0, name.Length() - 5);
+    }
+
+    return CoreApi::GetConfigDirectory() / (name + "." HYP_PLATFORM_NAME_STR ".json");
+#else
+    return GetFilePath();
+#endif
+}
+
 Result ConfigBase::Read(JSON::Value& outValue) const
 {
-    const FilePath configPath = GetFilePath();
+    return Read(GetFilePath(), outValue);
+}
 
+Result ConfigBase::Read(const FilePath& configPath, JSON::Value& outValue) const
+{
     if (!configPath.Exists())
     {
         return HYP_MAKE_ERROR(Error, "Configuration file does not exist at {}", configPath);
@@ -249,10 +268,17 @@ bool ConfigBase::Load()
     }
 
     // Cache miss, read from file.
-    if (Result result = Read(m_rootObject); result.HasError())
+
+    const FilePath platformPath = GetPlatformFilePath();
+
+    if (Result result = Read(platformPath, m_rootObject); result.HasError())
     {
-        m_errors.PushBack(result.GetError());
-        return false;
+        // Fall back to default
+        if (Result fallbackResult = Read(m_rootObject); fallbackResult.HasError())
+        {
+            m_errors.PushBack(fallbackResult.GetError());
+            return false;
+        }
     }
 
     // Store in cache

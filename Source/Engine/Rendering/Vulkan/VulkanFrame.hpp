@@ -66,7 +66,7 @@ public:
         return m_queueSubmitFence;
     }
 
-    HYP_FORCE_INLINE VulkanSemaphoreRef GetFrameCompleteSemaphore() const
+    HYP_FORCE_INLINE VulkanSemaphore* GetFrameCompleteSemaphore() const
     {
         return m_frameCompleteSemaphore;
     }
@@ -91,7 +91,7 @@ private:
 
     struct VulkanSwapchainData
     {
-        VulkanSwapchainWeakRef swapchainWeak; // always keep a weak ref so we can check validatity when iterating
+        VulkanSwapchainWeakRef swapchainWeak; // always keep a weak ref so we can check validity when iterating
         VulkanSemaphore* imageAvailableSemaphore = nullptr;
     };
 

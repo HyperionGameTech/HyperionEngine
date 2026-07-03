@@ -92,12 +92,13 @@ public:
 
         bindlessTextures = renderBackend->GetDevice()->GetFeatures().SupportsBindlessTextures();
         rayTracing = renderBackend->GetDevice()->GetFeatures().IsRayTracingSupported();
-#ifndef HYP_ANDROID
-        indirectRendering = cfg.Get("Rendering.IndirectRendering").ToBool(/* defaultValue */ true);
-#endif
-        parallelRendering = cfg.Get("Rendering.ParallelCollection").ToBool(/* defaultValue */ true);
         timelineSemaphores = cfg.Get("Rendering.Vulkan.TimelineSemaphores").ToBool(/* defaultValue */ false);
         dynamicDescriptorIndexing = renderBackend->GetDevice()->GetFeatures().SupportsDynamicDescriptorIndexing();
+        
+#if !HYP_ANDROID && !HYP_IOS
+        indirectRendering = cfg.Get("Rendering.IndirectRendering").ToBool(/* defaultValue */ true);
+        parallelRendering = cfg.Get("Rendering.ParallelCollection").ToBool(/* defaultValue */ true);
+#endif
     }
 };
 
@@ -247,11 +248,6 @@ void VulkanDynamicFunctions::Load(VulkanDevice* device)
     HYP_LOAD_FN(vkDebugMarkerSetObjectNameEXT);
     HYP_LOAD_FN(vkSetDebugUtilsObjectNameEXT);
     HYP_LOAD_FN(vkSetDebugUtilsObjectTagEXT);
-#endif
-
-#if defined(HYP_MOLTENVK) && HYP_MOLTENVK && HYP_MOLTENVK_LINKED
-    HYP_LOAD_FN(vkGetMoltenVKConfigurationMVK);
-    HYP_LOAD_FN(vkSetMoltenVKConfigurationMVK);
 #endif
 
     // extended dynamic state (VK_EXT_extended_dynamic_state)
@@ -879,7 +875,7 @@ void VulkanRenderInterface::PrepareFrame(VulkanFrame* frame)
 
         if (frame->IsUsingTimelineSemaphore())
         {
-            VulkanSemaphoreRef timelineSemaphore = frame->GetFrameCompleteSemaphore();
+            VulkanSemaphore* timelineSemaphore = frame->GetFrameCompleteSemaphore();
             const uint64 waitValue = frame->GetFrameCompleteValue();
 
             if (waitValue > 0)
@@ -1073,7 +1069,7 @@ void VulkanRenderInterface::PresentToSwapchain(VulkanSwapchain* swapchain)
             signalCount++;
         }
 
-        signalSemaphores[signalCount] = frame->GetFrameCompleteSemaphore().Get();
+        signalSemaphores[signalCount] = frame->GetFrameCompleteSemaphore();
         signalValues[signalCount] = frame->GetFrameCompleteValue();
         signalCount++;
 

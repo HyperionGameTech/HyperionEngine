@@ -143,8 +143,10 @@ protected:
     static UTF8StringView GetDefaultConfigName(const Class* cls);
 
     FilePath GetFilePath() const;
+    FilePath GetPlatformFilePath() const;
 
     Result Read(JSON::Value& outValue) const;
+    Result Read(const FilePath& filePath, JSON::Value& outValue) const;
     Result Write(const JSON::Value& value) const;
 
     bool SetClassFields(const Class* cls, const void* ptr);

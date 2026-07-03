@@ -1,0 +1,13 @@
+{
+  "App": {
+    "Name": "DefaultGame",
+    "Args": "-ResX=2622 -ResY=1206 -HighDPI=true -RenderOnMainThread=true -SimulateOnMainThread=false -Detached=true",
+    "Cache": {
+      "BaseDirectory": "Cache",
+      "PageSize": 268435456
+    }
+  },
+  "Logging": {
+    "Verbose": true
+  }
+}

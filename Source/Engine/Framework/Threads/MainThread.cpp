@@ -33,12 +33,6 @@ namespace CoreApi {
 CORE_API extern const CommandLineArguments& GetCommandLineArguments();
 } // namespace CoreApi
 
-#if HYP_IOS
-namespace PlatformUtils {
-void PumpSystemEvents();
-} // namespace PlatformUtils
-#endif // HYP_IOS
-
 extern ThreadSignal g_renderInitSignal;
 
 MainThread::MainThread()
@@ -155,10 +149,6 @@ void MainThread::operator()()
         while (m_isRunning.Load())
         {
             Update();
-            
-#if HYP_IOS
-            PlatformUtils::PumpSystemEvents();
-#endif
         }
     }
 }

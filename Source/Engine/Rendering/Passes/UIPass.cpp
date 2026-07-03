@@ -174,7 +174,7 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
 
     using IteratorType = BinnedDrawCallCollections::Iterator;
 
-    Array<IteratorType, RenderAllocator> iterators;
+    Array<IteratorType, RenderTempAllocator> iterators;
 
     for (BinnedDrawCallCollections& mappings : mappingsByBucket)
     {

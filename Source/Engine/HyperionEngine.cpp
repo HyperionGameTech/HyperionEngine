@@ -340,6 +340,13 @@ extern "C"
         InitializeModule_Script();
 #endif // HYP_SCRIPT
 
+#if HYP_ANDROID
+        const FilePath basePath = FilePath(AndroidAssetPathPrefix);
+#else
+        const FilePath basePath = FilePath(PlatformUtils::GetExecutableAbsolutePath().ToUtf8()).BasePath();
+#endif
+
+        CoreApi::SetExecutablePath(basePath);
         CoreApi::SetConfigDirectory(GetConfigDirectory());
 
         if (!CoreApi::Initialize(argc, argv))
@@ -361,15 +368,6 @@ extern "C"
         InitLogger();
 
         const CommandLineArguments& cliArgs = CoreApi::GetCommandLineArguments();
-
-#if HYP_ANDROID
-        // use asset manager for all assets
-        const FilePath basePath = FilePath(AndroidAssetPathPrefix);
-#else  // !HYP_ANDROID
-        const FilePath basePath = FilePath(PlatformUtils::GetExecutableAbsolutePath().ToUtf8()).BasePath();
-#endif // HYP_ANDROID
-
-        CoreApi::SetExecutablePath(basePath);
 
         const bool isEditor = cliArgs["Editor"].ToBool();
         const bool isCommandlet = cliArgs["exec"].ToBool();

@@ -98,24 +98,6 @@ void VulkanFeatures::SetPhysicalDevice(VkPhysicalDevice physicalDevice)
 
 void VulkanFeatures::SetDeviceFeatures(VulkanDevice* device)
 {
-#if defined(HYP_MOLTENVK) && HYP_MOLTENVK && HYP_MOLTENVK_LINKED
-    MVKConfiguration* mvkConfig = nullptr;
-    size_t sz = 1;
-    RI.dynamicFunctions.vkGetMoltenVKConfigurationMVK(VK_NULL_HANDLE, mvkConfig, &sz);
-
-    mvkConfig = new MVKConfiguration[sz];
-
-    for (size_t i = 0; i < sz; i++)
-    {
-#ifdef HYP_RHI_DEBUG_NAMES
-        mvkConfig[i].debugMode = true;
-#endif
-    }
-
-    RI.dynamicFunctions.vkSetMoltenVKConfigurationMVK(VK_NULL_HANDLE, mvkConfig, &sz);
-
-    delete[] mvkConfig;
-#endif
 }
 
 } // namespace Hyperion

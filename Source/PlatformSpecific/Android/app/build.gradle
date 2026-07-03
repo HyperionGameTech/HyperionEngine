@@ -152,6 +152,8 @@ def assetsDestDir = file('src/main/assets')
 tasks.register('stagePackageAssets', Copy) {
     description 'Stage Hyperion AssetPackage manifests'
 
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
     // Engine package manifests and non-blob assets
     from(basePackagesDir) {
         // FOR TESTING - i've commented out the exclusion of .blob files,
@@ -165,6 +167,17 @@ tasks.register('stagePackageAssets', Copy) {
 
     from(baseConfigDir) {
         into 'Config'
+        include '*.Android.json'
+        rename '(.+)\\.Android\\.json$', '$1.json'
+    }
+    from(baseConfigDir) {
+        into 'Config'
+        include '*.json'
+        exclude '*.Android.json'
+        exclude '*.iOS.json'
+        exclude '*.Windows.json'
+        exclude '*.Mac.json'
+        exclude '*.Linux.json'
     }
     from(fontsDir) {
         into 'Data/Fonts'

@@ -68,9 +68,12 @@ if(APPLE AND CMAKE_GENERATOR STREQUAL "Xcode")
     COMMAND ${CMAKE_COMMAND} -E copy_directory
       "${CMAKE_SOURCE_DIR}/../Packages"
       "$<TARGET_FILE_DIR:${BUILD_NAME}>/Packages"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-      "${CMAKE_SOURCE_DIR}/../Config"
-      "$<TARGET_FILE_DIR:${BUILD_NAME}>/Config"
+    COMMAND ${CMAKE_COMMAND} -D CONFIG_SRC_DIR="${CMAKE_SOURCE_DIR}/../Config"
+      -D CONFIG_DST_DIR="$<TARGET_FILE_DIR:${BUILD_NAME}>/Config"
+      -D PLATFORM="${HYP_PLATFORM_NAME}"
+      -P "${CMAKE_SOURCE_DIR}/cmake/CopyPlatformConfigs.cmake"
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+      "$<TARGET_FILE_DIR:${BUILD_NAME}>/Cache"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
       "${CMAKE_SOURCE_DIR}/../Data"
       "$<TARGET_FILE_DIR:${BUILD_NAME}>/Data"

@@ -65,6 +65,7 @@ bool IsHardwareKeyboardAvailable();
         
         CAMetalLayer* metalLayer = (CAMetalLayer*)self.layer;
         metalLayer.presentsWithTransaction = NO;
+        metalLayer.opaque = YES;
         metalLayer.contentsScale = [UIScreen mainScreen].nativeScale;
     }
     return self;
@@ -129,6 +130,13 @@ bool IsHardwareKeyboardAvailable();
 
 - (void)setContentScaleFactor:(CGFloat)contentScaleFactor
 {
+    //AssertDebug(contentScaleFactor > 0.0);
+    
+    if (contentScaleFactor <= 0.0f)
+    {
+        contentScaleFactor = 1.0f;
+    }
+    
     [super setContentScaleFactor:contentScaleFactor];
 
     CAMetalLayer* metalLayer = (CAMetalLayer*)self.layer;
@@ -300,6 +308,16 @@ bool IsHardwareKeyboardAvailable();
 
 @implementation HyperionViewController
 
+- (void)loadView
+{
+    HyperionMetalView *metalView = [[HyperionMetalView alloc] initWithFrame:[UIScreen mainScreen].bounds];
+    metalView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    metalView.hyperionWindow = self.hyperionWindow;
+    
+    self.view = metalView;
+    [metalView release];
+}
+
 - (void)viewDidLoad
 {
     [super viewDidLoad];
@@ -385,55 +403,6 @@ void iOSApplicationWindow::Initialize(WindowOptions windowOptions)
     CGRect screenBounds = [UIScreen mainScreen].bounds;
     CGFloat screenScale = [UIScreen mainScreen].nativeScale;
 
-    if (windowOptions.parentHwnd != nullptr)
-    {
-        id parentObject = (id)windowOptions.parentHwnd;
-        UIView* parentView = nil;
-
-        if ([parentObject isKindOfClass:[UIView class]])
-        {
-            parentView = (UIView*)parentObject;
-        }
-        else
-        {
-            String className = [[[parentObject class] description] UTF8String];
-            HYP_FAIL("iOSApplicationWindow: parentHwnd is not a UIView! Got: {}", className);
-            return;
-        }
-
-        CGRect frame = CGRectMake(0, 0, windowOptions.dimensions.x, windowOptions.dimensions.y);
-
-        HyperionMetalView* metalView = [[HyperionMetalView alloc] initWithFrame:frame];
-        metalView.hyperionWindow = this;
-        metalView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-
-        [parentView addSubview:metalView];
-
-        Assert(frame.size.width * frame.size.height > 0);
-
-        CAMetalLayer* metalLayer = (CAMetalLayer*)metalView.layer;
-        metalLayer.contentsScale = (windowOptions.flags & uint32(WindowFlags::HIGH_DPI))
-            ? screenScale
-            : 1.0;
-        metalLayer.drawableSize = CGSizeMake(
-            frame.size.width * metalLayer.contentsScale,
-            frame.size.height * metalLayer.contentsScale);
-
-        m_uiView = metalView;
-        m_metalLayer = [metalLayer retain];
-        m_hwnd = nil; // no standalone window in embedded mode
-
-        // Trigger resize with initial dimensions
-        if (frame.size.width > 0.0f && frame.size.height > 0.0f)
-        {
-            HandleResize(Vec2i(int(frame.size.width * metalLayer.contentsScale),
-                               int(frame.size.height * metalLayer.contentsScale)));
-        }
-
-        return;
-    }
-
-    // Standalone window creation
     CGRect frame = CGRectMake(0, 0,
                               windowOptions.dimensions.x > 0 ? windowOptions.dimensions.x : screenBounds.size.width,
                               windowOptions.dimensions.y > 0 ? windowOptions.dimensions.y : screenBounds.size.height);
@@ -441,15 +410,25 @@ void iOSApplicationWindow::Initialize(WindowOptions windowOptions)
     UIWindow* window = [[UIWindow alloc] initWithFrame:frame];
     window.backgroundColor = [UIColor blackColor];
 
-    // Create metal view as the root view
-    HyperionMetalView* metalView = [[HyperionMetalView alloc] initWithFrame:window.bounds];
-    metalView.hyperionWindow = this;
-    metalView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    if (@available(iOS 13.0, *))
+    {
+        // window scene
+        for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes)
+        {
+            if (scene.activationState == UISceneActivationStateForegroundActive
+                || scene.activationState == UISceneActivationStateForegroundInactive)
+            {
+                window.windowScene = scene;
+                break;
+            }
+        }
+    }
 
-    // Create view controller to manage the view
     HyperionViewController* viewController = [[HyperionViewController alloc] init];
     viewController.hyperionWindow = this;
-    viewController.view = metalView;
+
+    // accessing .view triggers load!
+    HyperionMetalView* metalView = (HyperionMetalView*)viewController.view;
 
     window.rootViewController = viewController;
     [viewController release];
@@ -480,11 +459,12 @@ void iOSApplicationWindow::Initialize(WindowOptions windowOptions)
     m_uiView = metalView;
     m_hwnd = [window retain];
 
-    if (!(windowOptions.flags & uint32(WindowFlags::HEADLESS)))
-    {
-        [window makeKeyAndVisible];
-    }
-
+    NSLog(@"[DEBUG] Window Scene: %@", window.windowScene);
+    NSLog(@"[DEBUG] Window Key Status: %d", window.isKeyWindow);
+    NSLog(@"[DEBUG] Metal View Frame: %@", NSStringFromCGRect(metalView.frame));
+    
+    [window makeKeyAndVisible];
+    
     HandleResize(Vec2i(int(metalView.bounds.size.width * metalLayer.contentsScale),
                        int(metalView.bounds.size.height * metalLayer.contentsScale)));
 }
