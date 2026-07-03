@@ -38,7 +38,7 @@
       "AO": false
     },
     "VSync": true,
-    "EnableGpuStats": true,
+    "EnableGpuStats": false,
     "Vulkan": {
       "DebugLayers": true,
       "TimelineSemaphores": true

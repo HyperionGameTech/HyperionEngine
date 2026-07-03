@@ -203,10 +203,20 @@ void ApplicationWindow::CreateSwapchain()
     Assert(m_vkSurface != VK_NULL_HANDLE);
 #endif
 
-    if (IsOnThread(g_renderThread)) // if -RenderOnMainThread is set this will be the case
+#if HYP_IOS
+    const bool isIOS = true;
+#else
+    const bool isIOS = false;
+#endif
+
+    const bool shouldCreateOnCurrentThread = (g_renderThread == g_mainThread) || isIOS;
+
+    if (shouldCreateOnCurrentThread)
     {
         if (m_swapchain.IsValid())
+        {
             EnqueueDeletion(std::move(m_swapchain));
+        }
 
         const Vec2u swapchainSize = Vec2u(Vec2f(m_size) * SwapchainScale);
 

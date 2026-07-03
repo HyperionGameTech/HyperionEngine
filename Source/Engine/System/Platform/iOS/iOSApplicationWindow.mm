@@ -62,9 +62,10 @@ bool IsHardwareKeyboardAvailable();
     {
         self.multipleTouchEnabled = YES;
         self.userInteractionEnabled = YES;
-
+        
         CAMetalLayer* metalLayer = (CAMetalLayer*)self.layer;
         metalLayer.presentsWithTransaction = NO;
+        metalLayer.contentsScale = [UIScreen mainScreen].nativeScale;
     }
     return self;
 }
@@ -79,7 +80,18 @@ bool IsHardwareKeyboardAvailable();
     [super setFrame:frame];
 
     CAMetalLayer* metalLayer = (CAMetalLayer*)self.layer;
+    Assert(metalLayer != nil);
+    
     CGFloat scale = metalLayer.contentsScale;
+    
+    if (scale <= 0.0f)
+    {
+        scale = [UIScreen mainScreen].nativeScale;
+        metalLayer.contentsScale = scale;
+    }
+
+    Assert(frame.size.width * frame.size.height > 0 && scale > 0);
+
     metalLayer.drawableSize = CGSizeMake(frame.size.width * scale, frame.size.height * scale);
 
     if (_hyperionWindow)
@@ -93,7 +105,19 @@ bool IsHardwareKeyboardAvailable();
     [super layoutSubviews];
 
     CAMetalLayer* metalLayer = (CAMetalLayer*)self.layer;
+    Assert(metalLayer != nil);
+    
     CGFloat scale = metalLayer.contentsScale;
+
+    if (scale <= 0.0f)
+    {
+        scale = [UIScreen mainScreen].nativeScale;
+        metalLayer.contentsScale = scale;
+    }
+
+    Assert(self.bounds.size.width * self.bounds.size.height > 0 && scale > 0);
+
+
     metalLayer.drawableSize = CGSizeMake(self.bounds.size.width * scale, self.bounds.size.height * scale);
 
     if (_hyperionWindow)
@@ -385,6 +409,8 @@ void iOSApplicationWindow::Initialize(WindowOptions windowOptions)
 
         [parentView addSubview:metalView];
 
+        Assert(frame.size.width * frame.size.height > 0);
+
         CAMetalLayer* metalLayer = (CAMetalLayer*)metalView.layer;
         metalLayer.contentsScale = (windowOptions.flags & uint32(WindowFlags::HIGH_DPI))
             ? screenScale
@@ -398,8 +424,11 @@ void iOSApplicationWindow::Initialize(WindowOptions windowOptions)
         m_hwnd = nil; // no standalone window in embedded mode
 
         // Trigger resize with initial dimensions
-        HandleResize(Vec2i(int(frame.size.width * metalLayer.contentsScale),
-                           int(frame.size.height * metalLayer.contentsScale)));
+        if (frame.size.width > 0.0f && frame.size.height > 0.0f)
+        {
+            HandleResize(Vec2i(int(frame.size.width * metalLayer.contentsScale),
+                               int(frame.size.height * metalLayer.contentsScale)));
+        }
 
         return;
     }
@@ -437,6 +466,7 @@ void iOSApplicationWindow::Initialize(WindowOptions windowOptions)
                                              selector:@selector(windowDidResignKey:)
                                                  name:UIWindowDidResignKeyNotification
                                                object:window];
+    Assert(metalView.bounds.size.width * metalView.bounds.size.height > 0);
 
     CAMetalLayer* metalLayer = (CAMetalLayer*)metalView.layer;
     metalLayer.contentsScale = (windowOptions.flags & uint32(WindowFlags::HIGH_DPI))

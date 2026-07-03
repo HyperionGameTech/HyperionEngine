@@ -28,6 +28,10 @@
 
 #include <VulkanSwapchain.generated.inl>
 
+#if HYP_IOS || HYP_MACOS
+#include <dispatch/dispatch.h>
+#endif
+
 namespace Hyperion {
 
 extern VulkanRenderInterface RI;
@@ -273,8 +277,10 @@ RendererResult VulkanSwapchain::Create()
     }
 
     createInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-#if HYP_ANDROID
-    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
+#if HYP_ANDROID || HYP_IOS
+    createInfo.compositeAlpha = (m_supportDetails.capabilities.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR)
+        ? VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR
+        : VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 #else
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 #endif

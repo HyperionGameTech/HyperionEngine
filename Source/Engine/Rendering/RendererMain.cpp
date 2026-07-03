@@ -99,6 +99,11 @@ static HYP_FORCE_INLINE bool IsCubemapShader(StringHash shaderNameHash)
         && shaderNameHash != CubemapShaderNames[1];
 }
 
+static HYP_FORCE_INLINE bool IsGeometryPassShader(StringHash shaderNameHash)
+{
+    return shaderNameHash == "GeometryPass"_sh;
+}
+
 #pragma region ParallelRenderingState
 
 // per-thread CommandRecorder
@@ -278,6 +283,8 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
         attributes.SetMaterialAttributes(newMaterialAttributes);
     }
 
+    const StringHash shaderNameHash = attributes.GetMaterialAttributes().shaderName;
+
     const RenderBucket bucket = attributes.GetMaterialAttributes().bucket;
 
     const bool hasForwardLighting = (bucket == RenderBucket::Translucent || bucket == RenderBucket::Sky || bucket == RenderBucket::Debug);
@@ -292,7 +299,8 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
 
     const bool isPathTracer = g_cvPathTracing.Get();
 
-    const bool isCubemap = IsCubemapShader(attributes.GetMaterialAttributes().shaderName);
+    const bool isCubemap = IsCubemapShader(shaderNameHash);
+    const bool isGeometryPass = IsGeometryPassShader(shaderNameHash);
 
     uint8 stencilReferenceValue = 0;
 
@@ -334,6 +342,10 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
         newShaderProperties.Set(Props::s_propInstancing, hasInstancing);
     }
 
+    // @TODO DRY this up
+    // Shouldn't depend on the names of shaders to conditionally handle stuff!
+
+    if (shaderNameHash == "GeometryPass"_sh)
     {
         if (hasDeferredLighting != currentShaderProperties.Test(Props::s_propShadingTypeDeferred))
         {

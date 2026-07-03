@@ -81,17 +81,17 @@ void DefaultGame::OnLaunch_Impl()
 {
     if (UISubsystem* uiSubsystem = GetUISubsystem())
     {
-        uiSubsystem->AddDebugOverlay(MakeHandle<StatsOverlay>());
-        uiSubsystem->AddDebugOverlay(MakeHandle<ConsoleOverlay>());
+       uiSubsystem->AddDebugOverlay(MakeHandle<StatsOverlay>());
+       uiSubsystem->AddDebugOverlay(MakeHandle<ConsoleOverlay>());
     }
 
-    // sky
-    GetWorld()->AddSystemT<DynamicSkySystem>();
-    GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>(
-        NAME("TerrainLayer"),
-        WorldGridLayerInfo { Vec3f { 0.0f, -5.0f, 0.0f } }));
+    // // sky
+    // GetWorld()->AddSystemT<DynamicSkySystem>();
+    // GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>(
+    //     NAME("TerrainLayer"),
+    //     WorldGridLayerInfo { Vec3f { 0.0f, -5.0f, 0.0f } }));
 
-#ifdef HYP_ANDROID
+#if HYP_ANDROID || HYP_IOS
     GetWorld()->AddSubsystem(MakeHandle<TouchControlsSubsystem>());
 #endif
 

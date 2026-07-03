@@ -171,8 +171,12 @@ static VkDescriptorSetLayout CreateVkDescriptorSetLayout(VulkanDevice* device, c
     VkDescriptorSetLayoutCreateInfo layoutInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
     layoutInfo.pBindings = bindings.Data();
     layoutInfo.bindingCount = uint32(bindings.Size());
-    layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
     layoutInfo.pNext = &extendedInfo;
+
+    if (isBindlessTextures || isBindlessBuffers)
+    {
+        layoutInfo.flags |= VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+    }
 
     VkDescriptorSetLayout handle = VK_NULL_HANDLE;
 
@@ -419,7 +423,7 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VulkanDescriptor
     }
 
     Array<VkDescriptorPoolSize, VulkanTempAllocator> descriptorPoolSizes = {
-        { VK_DESCRIPTOR_TYPE_SAMPLER, 16 },
+        { VK_DESCRIPTOR_TYPE_SAMPLER, 1000, },
         { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, (reqs & VDPR_BindlessTextures) ? MaxBindlessResources[BindlessStorage_Textures] : 1000 },
         { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
@@ -442,11 +446,15 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VulkanDescriptor
     dp.frameCounter = GetFrameCounter();
 
     VkDescriptorPoolCreateInfo poolInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-    poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT
-        | (!UseResetDescriptorPool ? VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT : 0);
+    poolInfo.flags = (!UseResetDescriptorPool ? VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT : 0);
     poolInfo.maxSets = MaxDescriptorSets;
     poolInfo.poolSizeCount = uint32(descriptorPoolSizes.Size());
     poolInfo.pPoolSizes = descriptorPoolSizes.Data();
+
+    if (reqs & VDPR_Bindless)
+    {
+        poolInfo.flags |= VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+    }
 
     VULKAN_CHECK(vkCreateDescriptorPool(
         RI.GetDevice()->GetDevice(),
@@ -995,8 +1003,6 @@ void VulkanRenderInterface::PrepareFrame(VulkanFrame* frame)
 
 VulkanSwapchainRef VulkanRenderInterface::CreateSwapchain(ApplicationWindow* window, const Vec2u& extent)
 {
-    AssertOnThread(g_renderThread);
-
     VkSurfaceKHR surface = window->GetVkSurface();
     Assert(surface != VK_NULL_HANDLE);
 

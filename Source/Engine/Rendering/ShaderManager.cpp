@@ -442,18 +442,16 @@ public:
                 entry->shader = nullptr;
                 entry->threadSignal.Reset();
             }
-            else if (EnsureMatch(properties, inputLayout, *entry->shaderInstance->GetShader()))
+            else if (!EnsureMatch(properties, inputLayout, *entry->shaderInstance->GetShader()))
             {
-                return entry->shaderInstance;
-            }
-            else
-            {
-                HYP_LOG(Shader, Error, "Loaded shader from cache (Name: {}) does not contain the requested properties! "
+                HYP_LOG(Shader, Warning, "Loaded shader from cache (Name: {}) does not contain the requested properties! "
                                        "Expected properties: {}, Expected Input Layout: {} "
                                        "Actual properties: {}, Actual Input Layout: {}",
                         name, properties.GetDebugString(), inputLayout.GetDebugString(),
                         entry->shaderInstance->GetShader()->properties.GetDebugString(), entry->shaderInstance->GetShader()->inputLayout.GetDebugString());
             }
+            
+            return entry->shaderInstance;
         }
 
         if (!entry)

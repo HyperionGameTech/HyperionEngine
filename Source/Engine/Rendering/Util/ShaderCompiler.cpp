@@ -1651,7 +1651,8 @@ bool ShaderCompiler::HandleBundle(
                     shaderRequest->properties,
                     shaderRequest->inputLayout,
                     *shader,
-                    /* matchAllProperties */ CanCompileShaders());
+                    true);
+                    // /* matchAllProperties */ CanCompileShaders());
             });
 
         requestedFound = requestedIt != inOutBundle->compiledShaders.End();

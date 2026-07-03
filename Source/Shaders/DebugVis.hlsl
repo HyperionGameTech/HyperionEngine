@@ -57,10 +57,12 @@ DECLARE_SRV(DebugDrawerDescriptorSet, ImmediateDrawsBuffer) StructuredBuffer<Imm
 
 #ifdef INSTANCING
 DECLARE_SRV(DebugDrawerDescriptorSet, EntitiesBuffer) StructuredBuffer<Entity> entities;
+DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer EntityInstanceBatchBuffer;
 #endif // INSTANCING
 
 #define MODEL_MATRIX (entity.model_matrix)
 #define PREV_MODEL_MATRIX (entity.previous_model_matrix)
+
 #endif // IMMEDIATE_MODE
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
@@ -89,6 +91,8 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 
 #ifdef IMMEDIATE_MODE
     ImmediateDraw immediateDraw = ImmediateDrawsBuffer[immediateDrawOffset + instanceId];
+#elif defined(INSTANCING)
+    MeshEntityInstanceBatch batch = EntityInstanceBatchBuffer.Load<MeshEntityInstanceBatch>(0);
 #endif // IMMEDIATE_MODE
 
     float4 position = mul(MODEL_MATRIX, float4(input.a_position, 1.0));
@@ -167,6 +171,7 @@ DECLARE_SAMPLER(DebugDrawerDescriptorSet, SamplerNearest) SamplerState sampler_n
 #include "include/Packing.hlsli"
 #include "include/Scene.hlsli"
 #include "include/Gbuffer.hlsli"
+#include "include/Entity.hlsli"
 
 DECLARE_SRV(DebugDrawerDescriptorSet, GBufferMipChain) Texture2D GBufferMipChain;
 

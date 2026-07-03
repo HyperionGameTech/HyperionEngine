@@ -526,7 +526,8 @@ TResult<CommandLineArguments> CommandLineParser::Parse(ANSIStringView command, c
         }
         else
         {
-            return HYP_MAKE_ERROR(Error, "Invalid argument: {}", arg);
+            //return HYP_MAKE_ERROR(Error, "Invalid argument: {}", arg);
+            continue;
         }
 
         auto it = m_definitions->Find(arg);
