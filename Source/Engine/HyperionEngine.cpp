@@ -552,7 +552,7 @@ extern "C"
         {
             windowFlags |= WindowFlags::HEADLESS;
         }
-        
+
         if (cliArgs["HighDPI"].ToBool())
         {
             windowFlags |= WindowFlags::HIGH_DPI;
@@ -560,7 +560,7 @@ extern "C"
 
         if (!(windowFlags & WindowFlags::HEADLESS))
         {
-            Vec2i resolution = { 1280, 720 };
+            Vec2i resolution = { 1920, 1080 };
 
             if (cliArgs["ResX"].IsNumber())
             {

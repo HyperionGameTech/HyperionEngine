@@ -63,7 +63,11 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(UI);
 
 HYP_REGISTER_DRAW_BATCH_TYPE(UIEntityInstanceBatch);
 
-extern CVar<bool> g_cvShowDebugUI;
+#if HYP_DEBUG_MODE || HYP_EDITOR
+CVar<bool> g_cvShowDebugUI("Debug.ShowDebugUI", true);
+#else  // HYP_DEBUG_MODE || HYP_EDITOR
+CVar<bool> g_cvShowDebugUI("Debug.ShowDebugUI", false);
+#endif // HYP_DEBUG_MODE || HYP_EDITOR
 
 #pragma region Render commands
 
@@ -140,7 +144,8 @@ UISubsystem::UISubsystem()
 UISubsystem::UISubsystem(const Handle<UIStage>& uiStage)
     : m_uiStage(uiStage),
       m_uiRenderer(nullptr),
-      m_wasProcessedLastFrame(false)
+      m_wasProcessedLastFrame(false),
+      m_wasDebugUIEnabled(false)
 {
 }
 
@@ -164,7 +169,7 @@ void UISubsystem::Init()
 
     InitFont();
 
-    const auto HandleWindowResize = [this, weakThis = MakeWeakRef(this)](Vec2i windowSize)
+    const auto handleWindowResize = [this, weakThis = MakeWeakRef(this)](Vec2i windowSize)
     {
         Handle<UISubsystem> strongThis = weakThis.Lock();
 
@@ -183,12 +188,12 @@ void UISubsystem::Init()
     {
         windowSize = Vec2u(g_appContext->GetMainWindow()->GetSize());
 
-        m_onWindowResizedHandle = g_appContext->GetMainWindow()->OnWindowSizeChanged.BindThreaded(g_appContext->GetMainWindow(), HandleWindowResize, g_simThread);
+        m_onWindowResizedHandle = g_appContext->GetMainWindow()->OnWindowSizeChanged.BindThreaded(g_appContext->GetMainWindow(), handleWindowResize, g_simThread);
     }
 
     m_onCurrentWindowChangedHandle = g_appContext->OnCurrentWindowChanged.BindThreaded(
         g_appContext,
-        [this, weakThis = MakeWeakRef(this), HandleWindowResize](ApplicationWindow* window)
+        [this, weakThis = MakeWeakRef(this), handleWindowResize](ApplicationWindow* window)
         {
             Handle<UISubsystem> strongThis = weakThis.Lock();
 
@@ -205,9 +210,9 @@ void UISubsystem::Init()
 
             if (window != nullptr)
             {
-                m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(window, HandleWindowResize, g_simThread);
+                m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(window, handleWindowResize, g_simThread);
 
-                HandleWindowResize(Vec2i(window->GetSize()));
+                handleWindowResize(Vec2i(window->GetSize()));
             }
         },
         g_simThread);
@@ -254,12 +259,22 @@ void UISubsystem::Update(float delta)
 {
     HYP_SCOPE;
 
-    if (!g_cvShowDebugUI.Get())
+    const bool enableDebugUI = g_cvShowDebugUI.Get();
+    
+    if (enableDebugUI != m_wasDebugUIEnabled)
     {
-        return;
+        for (auto& container : m_debugOverlayContainers)
+        {
+            container->SetIsVisible(enableDebugUI);
+        }
+        
+        m_wasDebugUIEnabled = enableDebugUI;
     }
-
-    UpdateDebugOverlays();
+    
+    if (enableDebugUI)
+    {
+        UpdateDebugOverlays();
+    }
 
     m_uiStage->Update(delta);
 
@@ -267,7 +282,7 @@ void UISubsystem::Update(float delta)
 
     // render UI if there are non-debug overlay objects in the stage,
     // or if there are debug overlays we have to draw.
-    if (hasOtherChildUIObjects || m_debugOverlays.Any())
+    if (hasOtherChildUIObjects || (enableDebugUI && m_debugOverlays.Any()))
     {
         m_view->SetOverrideCollectFunctor(ProcRef<void(RenderProxyList&)>(*this, ValueWrapper<&UISubsystem::RenderCollect>()));
 
@@ -379,6 +394,7 @@ void UISubsystem::InitDebugOverlays()
         debugOverlayContainer->SetParentAlignment(Alignments[i]);
         debugOverlayContainer->SetOriginAlignment(Alignments[i]);
         debugOverlayContainer->SetAcceptsFocus(false); // so we dlon't steal focus from the viewport
+        debugOverlayContainer->SetIsVisible(m_wasDebugUIEnabled);
 
         debugOverlayContainer->OnClick.RemoveAllDetached();
         debugOverlayContainer->OnKeyDown.RemoveAllDetached();

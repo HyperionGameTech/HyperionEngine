@@ -80,7 +80,7 @@ public:
         bindlessTextures = false;
         rayTracing = false;
         indirectRendering = cfg.Get("Rendering.IndirectRendering").ToBool(/* defaultValue */ true);
-        parallelRendering = cfg.Get("Rendering.ParallelCollection").ToBool(/* defaultValue */ true);
+        parallelRendering = cfg.Get("Rendering.ParallelRendering").ToBool(/* defaultValue */ true);
         dynamicDescriptorIndexing = true;
     }
 

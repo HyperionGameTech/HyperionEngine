@@ -114,6 +114,7 @@ private:
     DelegateHandler m_onCurrentWindowChangedHandle;
 
     bool m_wasProcessedLastFrame;
+    bool m_wasDebugUIEnabled;
 };
 
 } // namespace Hyperion

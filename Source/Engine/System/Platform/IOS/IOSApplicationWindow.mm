@@ -482,22 +482,26 @@ void IOSApplicationWindow::Initialize(WindowOptions windowOptions)
 
     CGRect frame = screenBounds;
 
-    UIWindow* window = [[UIWindow alloc] initWithFrame:frame];
-    window.backgroundColor = [UIColor blackColor];
+    UIWindow* window = nil;
 
     if (@available(iOS 13.0, *))
     {
-        // window scene
         for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes)
         {
             if (scene.activationState == UISceneActivationStateForegroundActive
                 || scene.activationState == UISceneActivationStateForegroundInactive)
             {
-                window.windowScene = scene;
+                window = [[UIWindow alloc] initWithWindowScene:scene];
                 break;
             }
         }
     }
+
+    if (!window) {
+        window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
+    }
+
+    window.backgroundColor = [UIColor blackColor];
 
     HyperionViewController* viewController = [[HyperionViewController alloc] init];
     viewController.hyperionWindow = this;
@@ -624,9 +628,7 @@ bool IOSApplicationWindow::HandleTouchEvent(void* touchPtr, void* eventPtr, Even
     }
 
     PlatformEvent platformEvent {};
-#ifdef HYP_IOS
     platformEvent.iosEvent.uiEvent = (__bridge void*)[uiEvent retain];
-#endif
 
     switch (uiTouch.phase)
     {
@@ -676,12 +678,11 @@ bool IOSApplicationWindow::HandleTouchEvent(void* touchPtr, void* eventPtr, Even
     }
 
     default:
-#ifdef HYP_IOS
         if (platformEvent.iosEvent.uiEvent != nullptr)
         {
             [(UIEvent*)platformEvent.iosEvent.uiEvent release];
         }
-#endif
+
         break;
     }
 

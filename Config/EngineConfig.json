@@ -15,7 +15,7 @@
     "RayTracingEnabled": false,
     "IndirectRendering": true,
     "DepthPrepass": true,
-    "ParallelCollection": true,
+    "ParallelRendering": true,
     "TargetFrameRate": 0,
     "LimitFrameRateOnBatteryPower": true,
     "LimitFrameRateWhenIdle": true,

@@ -348,7 +348,16 @@ bool EngineDriver::StartThreads()
             const TaskThreadPoolName name = pair.first;
             const auto& createFn = pair.second;
 
-            TaskSystem::GetInstance().RegisterPool(name, createFn());
+            auto pool = createFn();
+
+            if (!pool)
+            {
+                // skip, could be disabled:
+                // e.g render worker thread pool when ParallelRendering is off
+                continue;
+            }
+
+            TaskSystem::GetInstance().RegisterPool(name, std::move(pool));
         }
 
         Assert(m_viewCollectionBatch != nullptr);

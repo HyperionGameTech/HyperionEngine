@@ -97,7 +97,7 @@ public:
         
 #if !HYP_ANDROID && !HYP_IOS
         indirectRendering = cfg.Get("Rendering.IndirectRendering").ToBool(/* defaultValue */ true);
-        parallelRendering = cfg.Get("Rendering.ParallelCollection").ToBool(/* defaultValue */ true);
+        parallelRendering = cfg.Get("Rendering.ParallelRendering").ToBool(/* defaultValue */ true);
 #endif
     }
 };

@@ -12,7 +12,7 @@
     "RayTracingEnabled": false,
     "IndirectRendering": false,
     "DepthPrepass": false,
-    "ParallelCollection": false,
+    "ParallelRendering": false,
     "TargetFrameRate": 30,
     "LimitFrameRateOnBatteryPower": true,
     "LimitFrameRateWhenIdle": true,
@@ -24,10 +24,13 @@
     "EnableGpuStats": true,
     "Vulkan": {
       "DebugLayers": true,
-      "TimelineSemaphores": true
+      "TimelineSemaphores": false
     }
   },
   "Threads": {
     "NumForegroundWorkers": 1
+  },
+  "Debug": {
+    "ShowDebugUI": false
   }
 }

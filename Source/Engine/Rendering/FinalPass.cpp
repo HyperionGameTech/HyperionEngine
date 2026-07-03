@@ -43,12 +43,6 @@ namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Rendering);
 
-#if HYP_DEBUG_MODE || HYP_EDITOR
-CVar<bool> g_cvShowDebugUI("ShowDebugUI", true);
-#else  // HYP_DEBUG_MODE || HYP_EDITOR
-CVar<bool> g_cvShowDebugUI("ShowDebugUI", false);
-#endif // HYP_DEBUG_MODE || HYP_EDITOR
-
 #pragma region FinalPass
 
 FinalPass::FinalPass()
@@ -146,9 +140,7 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
         cr << DrawIndexed(6);
     }
 
-    if (g_cvShowDebugUI.Get())
-    {
-        // draw ui
+    { // draw ui
         UIPass* uiPass = static_cast<UIPass*>(RI.namedPasses[NamedPass::UI][0]);
 
         if (uiPass != nullptr)

@@ -12,7 +12,7 @@
     "RayTracingEnabled": false,
     "IndirectRendering": false,
     "DepthPrepass": false,
-    "ParallelCollection": false,
+    "ParallelRendering": false,
     "TargetFrameRate": 30,
     "LimitFrameRateOnBatteryPower": true,
     "LimitFrameRateWhenIdle": true,
@@ -29,5 +29,8 @@
   },
   "Threads": {
     "NumForegroundWorkers": 1
+  },
+  "Debug": {
+    "ShowDebugUI": false
   }
 }
