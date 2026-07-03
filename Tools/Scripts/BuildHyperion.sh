@@ -21,7 +21,7 @@ for arg in "$@"; do
     if [[ "$arg" == "IOS" ]]; then
         IOS=1
         CURR_PLATFORM="IOS"
-    elif [[ "$arg" == "iOSSimulator" ]]; then
+    elif [[ "$arg" == "IOSSimulator" ]]; then
         IOS=1
         IOS_SIMULATOR=1
         CURR_PLATFORM="IOS"

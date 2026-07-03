@@ -2017,8 +2017,8 @@ extern enum ShaderCompileTargetPlatform : uint32
     Mac = 0x00000002,
     Linux = 0x00000004,
     Android = 0x00000008,
-    iOS = 0x00000010,
-    AllPlatforms = ((((Windows | Mac) | Linux) | Android) | iOS)
+    IOS = 0x00000010,
+    AllPlatforms = ((((Windows | Mac) | Linux) | Android) | IOS)
 end
 extern enum ShaderCompileTargetBackend : uint32
     None = 0x00000000,
