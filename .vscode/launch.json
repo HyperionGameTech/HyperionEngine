@@ -3,7 +3,7 @@
   "configurations": [
 
     {
-      "name": "Launch (macOS)",
+      "name": "Launch Editor (macOS)",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/Binaries/Mac/Release/Hyperion.Editor",
@@ -11,11 +11,23 @@
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}/Binaries/Mac/Release",
       "environment": [],
-      "externalConsole": false,
+      "console": "internalConsole",
+      "MIMode": "lldb",
+    },
+    {
+      "name": "Launch Sample (macOS)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/Binaries/Mac/Release/hyperion-sample",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}/Binaries/Mac/Release",
+      "environment": [],
+      "console": "internalConsole",
       "MIMode": "lldb",
     },
       {
-        "name": "Launch (Windows)",
+        "name": "Launch Editor (Windows)",
         "type": "cppvsdbg",
         "request": "launch",
         "program": "${workspaceFolder}/Binaries/Windows/Release/Hyperion.Editor.exe",
@@ -23,7 +35,18 @@
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}/Binaries/Windows/Release",
         "environment": [],
-        "externalConsole": false,
+        "console": "internalConsole",
+      },
+      {
+        "name": "Launch Sample (Windows)",
+        "type": "cppvsdbg",
+        "request": "launch",
+        "program": "${workspaceFolder}/Binaries/Windows/Release/hyperion-sample.exe",
+        "args": [],
+        "stopAtEntry": false,
+        "cwd": "${workspaceFolder}/Binaries/Windows/Release",
+        "environment": [],
+        "console": "internalConsole",
       }
   ],
 }

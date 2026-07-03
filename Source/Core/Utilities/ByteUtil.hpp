@@ -179,6 +179,9 @@ uint64 ByteUtil::BitCount(uint64 value)
 {
 #if HYP_WINDOWS
     return __popcnt64(value);
+#elif HYP_UNIX
+    // @TODO profile profile profile versus the bithacks one
+    return __builtin_popcountll(value);
 #else
     // https://graphics.stanford.edu/~seander/bithacks.html
     value = value - ((value >> 1) & (uint64) ~(uint64)0 / 3);
