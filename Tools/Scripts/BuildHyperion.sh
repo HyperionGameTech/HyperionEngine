@@ -18,13 +18,13 @@ if [[ "$CURR_PLATFORM" == "Darwin" ]]; then
 fi
 
 for arg in "$@"; do
-    if [[ "$arg" == "iOS" ]]; then
+    if [[ "$arg" == "IOS" ]]; then
         IOS=1
-        CURR_PLATFORM="iOS"
+        CURR_PLATFORM="IOS"
     elif [[ "$arg" == "iOSSimulator" ]]; then
         IOS=1
         IOS_SIMULATOR=1
-        CURR_PLATFORM="iOS"
+        CURR_PLATFORM="IOS"
     elif [[ "$arg" == "Xcode" ]]; then
         XCODE=1
     elif [[ "$arg" == "android" ]]; then
