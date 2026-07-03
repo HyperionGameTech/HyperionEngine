@@ -591,6 +591,9 @@ public:
     bool HasMouseFocus() const override;
 
     HYP_METHOD()
+    bool IsHighDPI() const override;
+
+    HYP_METHOD()
     float GetContentScaleFactor() const override;
 
     HYP_METHOD()
@@ -626,6 +629,7 @@ private:
     Vec2f m_touchPosition;
 
     FixedArray<Vec2f, 10> m_touchPrevPositions {};
+    class TouchIdMapper* m_touchIdMapper = nullptr;
 };
 
 HYP_CLASS(Condition = "HYP_IOS")

@@ -607,13 +607,13 @@ void EngineDriver::UpdateSim(float delta)
     }
 
     updateSubsystemTasks.Clear();
-#else
+#else // !HYP_PROCESS_SUBSYSTEMS_ASYNC
     for (Subsystem* subsystem : m_subsystemsArray)
     {
         subsystem->PreUpdate(delta);
         subsystem->Update(delta);
     }
-#endif
+#endif // HYP_PROCESS_SUBSYSTEMS_ASYNC
 
     for (Scene* scene : scenes)
     {
@@ -699,9 +699,9 @@ void EngineDriver::UpdateSim(float delta)
 
 #if HYP_PROCESS_VIEWS_ASYNC
         view->BeginAsyncCollection(*m_viewCollectionBatch);
-#else
+#else // !HYP_PROCESS_VIEWS_ASYNC
         view->CollectSync();
-#endif
+#endif // HYP_PROCESS_VIEWS_ASYNC
     }
 
 #if HYP_PROCESS_VIEWS_ASYNC
@@ -712,14 +712,12 @@ void EngineDriver::UpdateSim(float delta)
     {
         views[index]->EndAsyncCollection();
     }
-#endif
-
-#if HYP_PROCESS_VIEWS_ASYNC
+    
     AssertDebug(m_viewCollectionBatch != nullptr);
     AssertDebug(m_viewCollectionBatch->IsCompleted());
 
     m_viewCollectionBatch->ResetState();
-#endif
+#endif // HYP_PROCESS_VIEWS_ASYNC
 
     for (Scene* scene : scenes)
     {

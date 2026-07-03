@@ -24,15 +24,15 @@ DescriptorSetCache::~DescriptorSetCache()
 {
     for (auto& it : m_allocsByLayout)
     {
-        for (auto& jt : it.second)
+        for (AllocatedDescriptorSet& allocated : it.second)
         {
-            EnqueueDeletion(std::move(jt));
+            EnqueueDeletion(std::move(allocated.descriptorSet));
         }
     }
 
-    for (auto& it : m_descriptorSetsInUse)
+    for (AllocatedDescriptorSet& allocated : m_descriptorSetsInUse)
     {
-        EnqueueDeletion(std::move(it.descriptorSet));
+        EnqueueDeletion(std::move(allocated.descriptorSet));
     }
 }
 
@@ -47,17 +47,24 @@ void DescriptorSetCache::OnFrameStart()
     // recycle descriptor sets no longer in use
     for (auto it = m_descriptorSetsInUse.Begin(); it != m_descriptorSetsInUse.End(); ++it)
     {
-        if (frameCounter - it->frameCounter < NumFramesInFlight)
+        AllocatedDescriptorSet& allocated = *it;
+        AssertDebug(frameCounter >= allocated.frameCounter);
+        
+        if (frameCounter - allocated.frameCounter < NumFramesInFlight)
         {
             break;
         }
 
-        const HashCode layoutHashCode = it->descriptorSet->GetLayout().GetHashCode();
+        const HashCode layoutHashCode = allocated.descriptorSet->GetLayout().GetHashCode();
 
         auto mapIt = m_allocsByLayout.Find(layoutHashCode.Value());
         Assert(mapIt != m_allocsByLayout.End());
 
-        mapIt->second.PushBack(std::move(it->descriptorSet));
+        auto& recycledElems = mapIt->second;
+        // @TODO: Use LowerBound() or change to SortedArray sorted by last used frame (lower first)
+        // then we can stop iterating a specific layouts' recycled sets in OnFrameEnd()
+        // on the first one that is >= currFrame - NumFramesBeforeDiscard
+        recycledElems.PushBack(std::move(allocated));
 
         chompIndexStart = m_descriptorSetsInUse.IndexOf(it) + 1;
     }
@@ -65,7 +72,7 @@ void DescriptorSetCache::OnFrameStart()
     if (chompIndexStart != SIZE_MAX)
     {
         auto tmp = std::move(m_descriptorSetsInUse);
-        m_descriptorSetsInUse.Clear();
+        m_descriptorSetsInUse.Resize(0);
         m_descriptorSetsInUse.Concat(tmp.ToSpan().Slice(chompIndexStart, tmp.Size() - chompIndexStart));
     }
 }
@@ -87,7 +94,10 @@ void DescriptorSetCache::OnFrameEnd()
 
         for (auto jt = list.Begin(); jt != list.End();)
         {
-            if (frameCounter - (*jt)->frameCounter >= NumFramesBeforeDiscard)
+            AllocatedDescriptorSet& allocated = *jt;
+            AssertDebug(frameCounter >= allocated.frameCounter);
+            
+            if (frameCounter - allocated.frameCounter >= NumFramesBeforeDiscard)
             {
                 // we don't need to enqueue deletion, it isn't used by the gpu.
                 // We can just delete it by means of Erase(), as NumFramesBeforeDiscard is AT LEAST NumFramesInFlight
@@ -122,25 +132,22 @@ DescriptorSet* DescriptorSetCache::GetOrCreate(const DescriptorSetLayout& layout
     {
         auto it = mapIt->second.Begin();
 
-        DescriptorSetRef& ds = *it;
+        AllocatedDescriptorSet& allocated = *it;
 
-        auto& inUseElem = m_descriptorSetsInUse.EmplaceBack();
-        inUseElem.frameCounter = GetFrameCounter();
-        inUseElem.descriptorSet = std::move(ds);
+        AllocatedDescriptorSet& newAllocated = m_descriptorSetsInUse.EmplaceBack(std::move(allocated));
+        newAllocated.frameCounter = GetFrameCounter(); // refresh frame counter
 
         mapIt->second.Erase(it);
 
-        return inUseElem.descriptorSet;
+        return newAllocated.descriptorSet;
     }
 
     // need to allocate new descriptor set
-    DescriptorSetRef newDescriptorSet = RI.MakeDescriptorSet(layout);
+    AllocatedDescriptorSet& allocated = m_descriptorSetsInUse.EmplaceBack();
+    allocated.frameCounter = GetFrameCounter();
+    allocated.descriptorSet = RI.MakeDescriptorSet(layout);
 
-    auto& inUseElem = m_descriptorSetsInUse.EmplaceBack();
-    inUseElem.frameCounter = GetFrameCounter();
-    inUseElem.descriptorSet = std::move(newDescriptorSet);
-
-    return inUseElem.descriptorSet;
+    return allocated.descriptorSet;
 }
 
 } // namespace Hyperion

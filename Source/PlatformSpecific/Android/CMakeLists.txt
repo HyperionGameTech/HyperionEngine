@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 project(hyperion-android)
 
+# TODO Check this over, for mobile we want static
 add_library(hyperion-android SHARED
     ${CMAKE_CURRENT_SOURCE_DIR}/app/src/main/cpp/hyperion_jni.cpp
 )
@@ -17,7 +18,9 @@ else()
                     "or ensure CMAKE_SYSROOT is set. ANDROID_NDK_SYSROOT=${ANDROID_NDK_SYSROOT}  CMAKE_SYSROOT=${CMAKE_SYSROOT}")
 endif()
 
+# TODO Check this over, for mobile we want static
 add_library(hyperion SHARED IMPORTED)
+
 set_target_properties(hyperion PROPERTIES
     IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/app/src/main/jniLibs/${CMAKE_ANDROID_ARCH_ABI}/libhyperion.so"
 )

@@ -390,7 +390,7 @@ private:
     void GetDesiredCellsForLayer(
         const LayerData& layerData,
         const Handle<StreamingVolumeBase>& volume,
-        FlatSet<Vec2i, StreamingTempAllocator>& outCellCoords) const;
+        Set<Vec2i, StreamingTempAllocator>& outCellCoords) const;
 
     void PostCellUpdate(Handle<StreamingCell> cell, StreamingCellState state)
     {
@@ -492,7 +492,7 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
         StreamingCellCollection<StreamingAllocator>& cells = layerData.cells;
         Array<StreamingCellUpdate, StreamingAllocator>& cellUpdateQueue = layerData.cellUpdateQueue;
 
-        FlatSet<Vec2i, StreamingTempAllocator> desiredCells;
+        Set<Vec2i, StreamingTempAllocator> desiredCells;
 
         for (const Handle<StreamingVolumeBase>& volume : m_volumes)
         {
@@ -717,7 +717,7 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
 void StreamingManagerThread::GetDesiredCellsForLayer(
     const LayerData& layerData,
     const Handle<StreamingVolumeBase>& volume,
-    FlatSet<Vec2i, StreamingTempAllocator>& outCellCoords) const
+    Set<Vec2i, StreamingTempAllocator>& outCellCoords) const
 {
     static constexpr Vec2i CellNeighborDirections[4] = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
 
@@ -733,13 +733,12 @@ void StreamingManagerThread::GetDesiredCellsForLayer(
     Array<Vec2f, StreamingTempAllocator> queue;
     queue.Reserve(64);
 
-    FlatSet<Vec2i, StreamingTempAllocator> visited;
-    visited.Reserve(64);
+    Set<Vec2i, StreamingTempAllocator> visited;
 
     const Vec2f centerCoord = Vec2f(WorldSpaceToCellCoord(layerInfo, aabb.GetCenter()));
 
     queue.PushBack(centerCoord);
-    visited.Insert(Vec2i(centerCoord));
+    visited.Add(Vec2i(centerCoord));
 
     const float maxDistSq = layerInfo.maxDistance * layerInfo.maxDistance;
 

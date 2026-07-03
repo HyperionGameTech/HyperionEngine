@@ -21,11 +21,6 @@ static const AssetPath s_invalidAssetPath;
 
 static_assert(sizeof(AssetPath) == 12);
 
-const Handle<AssetObject>& ResolveAssetImpl(const AssetReference& assetReference)
-{
-    return assetReference.Resolve();
-}
-
 AssetReference::AssetReference(const Handle<AssetObject>& assetObject)
 {
     if (assetObject)

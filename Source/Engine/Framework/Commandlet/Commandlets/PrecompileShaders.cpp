@@ -145,12 +145,13 @@ protected:
         }
         else
         {
-            // No explicit backends given — compute effective backends from the selected platforms.
-            // Vulkan is available on all platforms; DX12 is Windows-only.
+            // Compute effective backends to enable based on the enabled platforms
+            // (e.g only ios means NO dx12 enablement)
             EnumFlags<ShaderCompileTargetBackend> effectiveBackends = ShaderCompileTargetBackend::None;
 
             // Determine which platforms to consider
             EnumFlags<ShaderCompileTargetPlatform> effectivePlatforms = platformFlags;
+            
             if (effectivePlatforms == ShaderCompileTargetPlatform::None)
             {
                 effectivePlatforms = ShaderCompileTargetPlatform::AllPlatforms;

@@ -121,7 +121,7 @@ class MaterialTextures
 public:
     HYP_STRUCT_BODY(MaterialTextures);
 
-    static constexpr uint32 MaxTextures = 32u;
+    static constexpr uint32 MaxTextures = 8;
 
     using Iterator = FixedArray<Handle<Texture>, MaxTextures>::Iterator;
     using ConstIterator = FixedArray<Handle<Texture>, MaxTextures>::ConstIterator;
@@ -132,7 +132,9 @@ public:
     {
         for (const auto& it : initializerList)
         {
-            m_values[EnumOptions<MaterialTextureKey, Handle<Texture>, MaxTextures>::EnumToOrdinal(it.first)] = it.second;
+            const size_t ord = EnumOptions<MaterialTextureKey, Handle<Texture>, MaxTextures>::EnumToOrdinal(it.first);
+            
+            m_values[ord] = it.second;
         }
     }
 
@@ -154,19 +156,44 @@ public:
         return m_values != other.m_values;
     }
 
+    HYP_FORCE_INLINE Iterator Find(MaterialTextureKey key)
+    {
+        const size_t ord = EnumOptions<MaterialTextureKey, Handle<Texture>, MaxTextures>::EnumToOrdinal(key);
+
+        if (ord >= m_values.Size())
+        {
+            return End();
+        }
+
+        return m_values.Begin() + ord;
+    }
+
+    HYP_FORCE_INLINE ConstIterator Find(MaterialTextureKey key) const
+    {
+        return const_cast<MaterialTextures*>(this)->Find(key);
+    }
+
     HYP_FORCE_INLINE Handle<Texture>& operator[](MaterialTextureKey key)
     {
-        return m_values[EnumOptions<MaterialTextureKey, Handle<Texture>, MaxTextures>::EnumToOrdinal(key)];
+        const size_t ord = EnumOptions<MaterialTextureKey, Handle<Texture>, MaxTextures>::EnumToOrdinal(key);
+        return m_values[ord];
     }
 
     HYP_FORCE_INLINE const Handle<Texture>& operator[](MaterialTextureKey key) const
     {
-        return m_values[EnumOptions<MaterialTextureKey, Handle<Texture>, MaxTextures>::EnumToOrdinal(key)];
+        return (*const_cast<MaterialTextures*>(this))[key];
     }
 
     HYP_FORCE_INLINE bool Has(MaterialTextureKey key) const
     {
-        return bool(m_values[EnumOptions<MaterialTextureKey, Handle<Texture>, MaxTextures>::EnumToOrdinal(key)]);
+        const size_t ord = EnumOptions<MaterialTextureKey, Handle<Texture>, MaxTextures>::EnumToOrdinal(key);
+
+        if (ord >= m_values.Size())
+        {
+            return false;
+        }
+
+        return bool(m_values[ord]);
     }
 
     HYP_FORCE_INLINE Handle<Texture>& AtIndex(size_t index)

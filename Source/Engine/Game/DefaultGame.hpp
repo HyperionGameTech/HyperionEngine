@@ -33,6 +33,8 @@ public:
     virtual ~DefaultGame() override;
 
 protected:
+    void InitializeWorld() override;
+
     virtual void OnLaunch_Impl() override;
     virtual void OnUpdate_Impl(float delta) override;
     

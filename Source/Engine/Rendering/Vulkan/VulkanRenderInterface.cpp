@@ -523,30 +523,14 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(
                     return HYP_MAKE_ERROR(RendererError, "Failed to allocate descriptor set!", int(vkResult));
                 }
 
-                // descend down the list of existing descriptor pools. we start trying to allocate from the last descriptor pool (see GetDescriptorPool())
-                --poolIndex;
+                poolIndex = -1;
 
-                // we need a pool that matches our requirements.
-                if (reqs)
-                {
-                    while (poolIndex >= 0 && (m_pools[poolIndex].reqs & reqs) != reqs)
-                    {
-                        --poolIndex;
-                    }
-                }
+                HYP_LOG(RenderingBackend, Debug, "Out of pool memory; allocating a new descriptor pool");
 
-                // create a new descriptor pool if we're out of existing pools to try with
-                if (poolIndex >= 0)
+                if (RendererResult createDescriptorPoolResult = CreateDescriptorPool(reqs, outVkDescriptorPool); createDescriptorPoolResult.HasError())
                 {
-                    outVkDescriptorPool = m_pools[poolIndex].pool;
-                }
-                else
-                {
-                    if (RendererResult createDescriptorPoolResult = CreateDescriptorPool(reqs, outVkDescriptorPool); createDescriptorPoolResult.HasError())
-                    {
-                        // failed to allocate new descriptor pool
-                        return createDescriptorPoolResult;
-                    }
+                    // failed to allocate new descriptor pool
+                    return createDescriptorPoolResult;
                 }
 
                 shouldRetry = true;
@@ -560,10 +544,11 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(
     }
     while (shouldRetry);
 
-    poolIndex = int(m_pools.IndexOf(m_pools.FindIf([&outVkDescriptorPool](const auto& elem)
-                                                   {
-                                                       return elem.pool == outVkDescriptorPool;
-                                                   })));
+    poolIndex = int(m_pools.IndexOf(m_pools.FindIf(
+        [&outVkDescriptorPool](const auto& elem)
+        {
+            return elem.pool == outVkDescriptorPool;
+        })));
 
     Assert(poolIndex >= 0 && poolIndex < int(m_pools.Size()));
 

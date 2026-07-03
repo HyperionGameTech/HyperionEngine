@@ -549,18 +549,28 @@ extern "C"
         EnumFlags<WindowFlags> windowFlags = WindowFlags::EVENTS_POLLING;
 
         if (cliArgs["Headless"].ToBool())
+        {
             windowFlags |= WindowFlags::HEADLESS;
+        }
+        
         if (cliArgs["HighDPI"].ToBool())
+        {
             windowFlags |= WindowFlags::HIGH_DPI;
+        }
 
         if (!(windowFlags & WindowFlags::HEADLESS))
         {
             Vec2i resolution = { 1280, 720 };
 
             if (cliArgs["ResX"].IsNumber())
+            {
                 resolution.x = cliArgs["ResX"].ToInt32();
+            }
+
             if (cliArgs["ResY"].IsNumber())
+            {
                 resolution.y = cliArgs["ResY"].ToInt32();
+            }
 
             HYP_LOG(Engine, Info, "Running in windowed mode: {}x{}", resolution.x, resolution.y);
 
@@ -570,13 +580,14 @@ extern "C"
                 .Bind(window, []()
                       {
                           // shut down application on main window close.
-                          g_mainThreadInstance->GetScheduler().Enqueue([]()
-                                                                       {
-                                                                           Hyp_Shutdown();
+                          g_mainThreadInstance->GetScheduler().Enqueue(
+                            []()
+                            {
+                                Hyp_Shutdown();
 
-                                                                           std::exit(0);
-                                                                       },
-                                                                       TaskEnqueueFlags::FIRE_AND_FORGET);
+                                std::exit(0);
+                            },
+                            TaskEnqueueFlags::FIRE_AND_FORGET);
                       })
                 .Detach();
 
@@ -605,6 +616,18 @@ extern "C"
 #endif // HYP_DOTNET
 
         g_mainThreadInstance->Stop();
+        
+        { // shut down AssetRegistry instances
+            ClearAssetRegistryStack();
+            
+            GetEngineAssetRegistry()->Shutdown();
+            SetEngineAssetRegistry(Handle<AssetRegistry>::Null());
+            
+#ifdef HYP_EDITOR
+            GetEditorAssetRegistry()->Shutdown();
+            SetEditorAssetRegistry(Handle<AssetRegistry>::Null());
+#endif // HYP_EDITOR
+        }
 
         g_renderThreadInstance->Join();
         g_renderThread = g_mainThread;
@@ -619,16 +642,6 @@ extern "C"
 
         g_audioManager->Shutdown();
         g_audioManager.Reset();
-
-        ClearAssetRegistryStack();
-
-        GetEngineAssetRegistry()->Shutdown();
-        SetEngineAssetRegistry(Handle<AssetRegistry>::Null());
-
-#ifdef HYP_EDITOR
-        GetEditorAssetRegistry()->Shutdown();
-        SetEditorAssetRegistry(Handle<AssetRegistry>::Null());
-#endif // HYP_EDITOR
 
         g_assetManager.Reset();
         g_engineDriver.Reset();
@@ -993,7 +1006,7 @@ extern "C"
 
                     if (editorSubsystem.IsValid())
                     {
-                        command->SetArguments(Map(commandLine.Split(' '), &String::Trimmed));
+                        command->SetArguments(MapToArray(commandLine.Split(' '), &String::Trimmed));
 
                         // Editor commands should be executed on the simulation thread
                         if (IsOnThread(g_simThread))
@@ -1002,11 +1015,12 @@ extern "C"
                         }
                         else
                         {
-                            g_simThreadInstance->GetScheduler().Enqueue([editorSubsystem, command]()
-                                                                        {
-                                                                            command->Execute(editorSubsystem);
-                                                                        },
-                                                                        TaskEnqueueFlags::FIRE_AND_FORGET);
+                            g_simThreadInstance->GetScheduler().Enqueue(
+                                [editorSubsystem, command]()
+                                {
+                                    command->Execute(editorSubsystem);
+                                },
+                                TaskEnqueueFlags::FIRE_AND_FORGET);
                         }
 
                         return 0;

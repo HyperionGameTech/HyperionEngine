@@ -2,7 +2,7 @@
   "$Class": "Material",
   "BaseMaterial": null,
   "Textures": {
-    "Values": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+    "Values": [null, null, null, null, null, null, null, null]
   },
   "Attributes": {
     "ShaderName": "GeometryPass",

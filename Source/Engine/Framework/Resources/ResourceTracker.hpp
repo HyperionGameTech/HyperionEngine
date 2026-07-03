@@ -280,13 +280,12 @@ public:
         CHANGED = CHANGED_ADDED | CHANGED_MODIFIED
     };
 
-    // use a sparse array so we can use IDs as indices
-    // without worring about hashing for lookups and allowing us to
-    // still iterate over the elements (mostly) linearly.
-    using ElementArrayType = SparsePagedArray<ElementType, 256, AllocatorType>;
-    using VersionArrayType = SparsePagedArray<int, 256, AllocatorType>; // mirrors elements array
+    static constexpr uint32 NumElementsPerPage = 16;
 
-    using ProxyArrayType = SparsePagedArray<ProxyType, 256, AllocatorType>;
+    // use a sparse array so we can use IDs as indices
+    using ElementArrayType = SparsePagedArray<ElementType, NumElementsPerPage, AllocatorType>;
+    using VersionArrayType = SparsePagedArray<int, NumElementsPerPage, AllocatorType>; // mirrors elements array
+    using ProxyArrayType = SparsePagedArray<ProxyType, NumElementsPerPage, AllocatorType>;
 
     static_assert(std::is_base_of_v<ObjIdBase, IdType>, "IdType must be derived from ObjIdBase (must use numeric id)");
 

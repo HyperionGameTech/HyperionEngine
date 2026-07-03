@@ -38,6 +38,18 @@ public:
     Game();
     virtual ~Game();
 
+    HYP_METHOD(Property = "PackageName")
+    Name GetPackageName() const
+    {
+        return m_packageName;
+    }
+
+    HYP_METHOD(Property = "PackageName")
+    void SetPackageName(Name packageName)
+    {
+        m_packageName = packageName;
+    }
+
     HYP_METHOD(Property = "AssetRegistry", Transient)
     const Handle<AssetRegistry>& GetAssetRegistry() const
     {
@@ -102,6 +114,8 @@ public:
     static ScriptableDelegate<void, Game*, GameStateMode, GameStateMode> OnGameStateChange;
 
 protected:
+    virtual void InitializeWorld();
+
     virtual bool OnInputEvent(const Event& event);
 
     HYP_METHOD(Scriptable)
@@ -129,6 +143,9 @@ protected:
     {
         return m_uiSubsystem;
     }
+
+    HYP_FIELD(Property = "PackageName", Serialize)
+    Name m_packageName;
 
     HYP_FIELD(Property = "World", Serialize)
     Handle<World> m_world;

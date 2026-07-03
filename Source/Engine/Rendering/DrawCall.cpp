@@ -64,10 +64,6 @@ void DrawCallCollection::PushInstancedDrawCall(DrawCallID id, const RenderProxyM
     {
         indexMapIt = indexMap.Insert(uint64(id), {}).first;
     }
-    else
-    {
-        HYP_LOG(Rendering, Verbose, "Auto instancing applied on {}", renderProxy->mesh->GetName());
-    }
 
     const uint32 initialIndexMapSize = uint32(indexMapIt->second.Size());
 

@@ -17,7 +17,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <debugapi.h>
-#elif HYP_MACOS
+#elif HYP_APPLE
 #include <sys/sysctl.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -116,7 +116,7 @@ CORE_API bool IsDebuggerAttached()
 {
 #if HYP_WINDOWS
     return ::IsDebuggerPresent();
-#elif HYP_MACOS
+#elif HYP_APPLE
     int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
     struct kinfo_proc info {};
     size_t size = sizeof(info);

@@ -33,6 +33,8 @@ protected:
     struct Page
     {
         ValueStorage<T, PageSize, alignof(T)> storage;
+        
+        // @TODO use plain uint64 array + FOR_EACH_BIT -- elem count is compile time known
         TBitset<AllocatorType> initializedBits;
 
         Page()
@@ -60,7 +62,8 @@ protected:
         }
     };
 
-    static constexpr uint32 PagesPerBlock = 64;
+    static constexpr size_t IdealBlockSizeBytes = 16 * 1024; // 16 KiB
+    static constexpr size_t PagesPerBlock = (sizeof(Page) + IdealBlockSizeBytes - 1) / IdealBlockSizeBytes;
 
     struct PageBlock
     {

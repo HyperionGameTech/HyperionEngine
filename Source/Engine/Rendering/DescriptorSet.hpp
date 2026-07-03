@@ -323,12 +323,9 @@ public:
     virtual void Bind(CommandBuffer* commandBuffer, const RayTracingPipeline* pipeline, uint32 bindIndex) const = 0;
     virtual void Bind(CommandBuffer* commandBuffer, const RayTracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const = 0;
 
-    uint32 frameCounter; // last used
-
 protected:
     DescriptorSetBase(const DescriptorSetLayout& layout)
-        : frameCounter(0),
-          m_layout(layout)
+        : m_layout(layout)
     {
     }
 

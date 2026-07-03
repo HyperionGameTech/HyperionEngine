@@ -45,11 +45,13 @@ ScriptableDelegate<void> Game::OnLaunched;
 ScriptableDelegate<void, Game*, GameStateMode, GameStateMode> Game::OnGameStateChange;
 
 static const Name s_nameMainWorld = NAME("World");
+static const Name s_nameDefault = NAME("Default");
 
 ENGINE_API extern const FilePath& GetLibraryDirectory();
 
 Game::Game()
-    : m_isInitialized(false),
+    : m_packageName(s_nameDefault),
+      m_isInitialized(false),
       m_assetRegistryActive(false),
       m_isLaunched(false)
 {
@@ -85,7 +87,7 @@ void Game::Initialize()
     {
         m_assetRegistry = MakeHandle<AssetRegistry>(
             AssetRegistryId::Game,
-            GetLibraryDirectory() / *InstanceClass()->GetName());
+            GetLibraryDirectory() / *GetPackageName());
     }
 
     if (!m_assetRegistryActive)
@@ -96,12 +98,7 @@ void Game::Initialize()
         m_assetRegistryActive = true;
     }
 
-    Assert(m_world != nullptr);
-
-    AssertDebug(m_world->m_gameInstance == nullptr || m_world->m_gameInstance == this);
-    m_world->m_gameInstance = this;
-
-    m_world->Initialize();
+    InitializeWorld();
 
     m_assetRegistry->PutAssetsDeep(m_world);
 
@@ -111,6 +108,16 @@ void Game::Initialize()
     }
 
     m_isInitialized = true;
+}
+
+void Game::InitializeWorld()
+{
+    Assert(m_world != nullptr);
+
+    AssertDebug(m_world->m_gameInstance == nullptr || m_world->m_gameInstance == this);
+    m_world->m_gameInstance = this;
+
+    m_world->Initialize();
 }
 
 void Game::Shutdown(bool shutdownWorld)
@@ -227,9 +234,9 @@ void Game::HandleEvent(Event&& event)
     AssertOnThread(g_simThread);
 
     // Pass touch events to TouchControlsSubsystem if available
-    if (event.GetType() == EventType::TOUCH_DOWN ||
-        event.GetType() == EventType::TOUCH_UP ||
-        event.GetType() == EventType::TOUCH_MOVE)
+    if (event.GetType() == EventType::TOUCH_DOWN
+        || event.GetType() == EventType::TOUCH_UP
+        || event.GetType() == EventType::TOUCH_MOVE)
     {
         if (m_world != nullptr)
         {

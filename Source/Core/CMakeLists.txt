@@ -125,6 +125,10 @@ message(STATUS "Configuring hyperion-core in ${CMAKE_CURRENT_SOURCE_DIR}")
 
 set(SOURCES ${SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/../../External/ThirdParty/Source/tlsf/tlsf.c)
 
+if(HYP_BUILD_STATIC)
+  set(HYP_BUILD_CORE_LIBRARY_STATIC 1)
+endif()
+
 if(HYP_BUILD_CORE_LIBRARY_STATIC)
   add_library(${BUILD_NAME} STATIC ${SOURCES} ${HEADERS})
 else()

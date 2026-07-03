@@ -38,7 +38,16 @@ include_directories(
     ${HYP_GENERATED_DIR}
 )
 
-add_library(${BUILD_NAME} SHARED ${SOURCES} ${HEADERS})
+if(HYP_BUILD_STATIC)
+  set(HYP_BUILD_LANG_LIBRARY_STATIC 1)
+endif()
+
+if(HYP_BUILD_LANG_LIBRARY_STATIC)
+    add_library(${BUILD_NAME} STATIC ${SOURCES} ${HEADERS})
+else()
+    add_library(${BUILD_NAME} SHARED ${SOURCES} ${HEADERS})
+endif()
+
 target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_SCRIPT=1)
 
 if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")

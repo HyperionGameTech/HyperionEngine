@@ -571,7 +571,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     vkDestroySurfaceKHR(m_instance, surface, nullptr);
 
 #if HYP_DEBUG_MODE
-    if (enableDebugLayers && debugUtilsExtAvailable)
+    if (enableDebugLayers)
     {
         SetupDebugMessenger();
     }

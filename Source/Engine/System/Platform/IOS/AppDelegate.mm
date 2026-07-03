@@ -5,6 +5,14 @@
 #include <Framework/Threads/MainThread.hpp>
 #include <Framework/EngineGlobals.hpp>
 
+using namespace Hyperion;
+
+namespace Hyperion {
+
+ENGINE_API Game* g_gameToLaunch;
+
+} // namespace Hyperion
+
 @interface AppDelegate ()
 @property (nonatomic, strong) CADisplayLink *displayLink;
 @end
@@ -12,15 +20,44 @@
 @implementation AppDelegate
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    if (g_gameToLaunch == nullptr)
+    {
+        HYP_LOG(Engine, Error, "No global game instance set!");
+        return NO;
+    }
+    
+    NSArray<NSString *> *arguments = [[NSProcessInfo processInfo] arguments];
+    int argc = (int)arguments.count;
+    
+    char **argv = (char**)malloc((argc + 1) * sizeof(char *));
+    
+    for (int i = 0; i < argc; i++)
+    {
+        argv[i] = strdup([arguments[i] UTF8String]);
+    }
+
+    argv[argc] = NULL;
+
+    auto cleanupArgsMemory = [&]()
+        {
+            for (int i = 0; i < argc; i++)
+            {
+                free(argv[i]);
+            }
+
+            free(argv);
+            argv = NULL;
+        };
 
     if (!Hyp_Initialize(argc, argv))
     {
+        cleanupArgsMemory();
         return NO;
     }
 
-    // @TODO !!! Don't just hardcode DefaultGame.
-    auto gameInstance = MakeUnique<game::DefaultGame>();
-    Hyp_SetGame(gameInstance.Get());
+    cleanupArgsMemory();
+    
+    Hyp_SetGame(g_gameToLaunch);
 
     if (!Hyp_LaunchThreads())
     {

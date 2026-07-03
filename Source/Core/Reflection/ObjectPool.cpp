@@ -57,9 +57,6 @@ bool ObjectHeader::TryIncRefStrong()
 int32 ObjectHeader::IncRefStrong()
 {
     const int32 count = AtomicIncrement(&refCountStrong);
-
-    // If count == 1, refCountStrong was 0 before the increment — the object was already
-    // destructed and this would resurrect a dead object.
     AssertDebug(count > 1, "IncRefStrong called on an object with no strong references");
 
 #ifdef HYP_DOTNET

@@ -108,7 +108,7 @@ TouchEvent Event::ToTouchEvent() const
     Vec2f screenSize = Vec2f::Zero();
     if (m_window != nullptr)
     {
-        screenSize = Vec2f(m_window->GetDimensions());
+        screenSize = Vec2f(m_window->GetSize());
     }
 
     if (!screenSize.IsZero())

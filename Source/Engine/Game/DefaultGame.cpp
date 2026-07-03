@@ -70,11 +70,21 @@ namespace game {
 DefaultGame::DefaultGame()
     : Game()
 {
-    m_world = MakeHandle<World>(NAME("MainWorld"), WorldFlags::DEFAULT);
+    m_packageName = NAME("DefaultGame");
 }
 
 DefaultGame::~DefaultGame()
 {
+}
+
+void DefaultGame::InitializeWorld()
+{
+    if (!m_world.IsValid())
+    {
+        m_world = MakeHandle<World>(NAME("MainWorld"), WorldFlags::DEFAULT);
+    }
+
+    Game::InitializeWorld();
 }
 
 void DefaultGame::OnLaunch_Impl()
@@ -85,17 +95,17 @@ void DefaultGame::OnLaunch_Impl()
        uiSubsystem->AddDebugOverlay(MakeHandle<ConsoleOverlay>());
     }
 
-    // // sky
-    // GetWorld()->AddSystemT<DynamicSkySystem>();
-    // GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>(
-    //     NAME("TerrainLayer"),
-    //     WorldGridLayerInfo { Vec3f { 0.0f, -5.0f, 0.0f } }));
+    // sky
+    //GetWorld()->AddSystemT<DynamicSkySystem>();
+    //GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>(
+    //    NAME("TerrainLayer"),
+     //   WorldGridLayerInfo { Vec3f { 0.0f, -5.0f, 0.0f } }));
 
 #if HYP_ANDROID || HYP_IOS
     GetWorld()->AddSubsystem(MakeHandle<TouchControlsSubsystem>());
 #endif
 
-#if 0
+#if 1
     // Get MainScene
     Handle<AssetObject> mainSceneAsset = GetCurrentAssetRegistry()->GetAsset<Scene>(AssetBuckets::Scenes, "MainScene"_sh);
     Assert(mainSceneAsset.IsValid());

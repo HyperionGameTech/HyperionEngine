@@ -16,6 +16,9 @@
 
 #include <Core/Debug/Debug.hpp>
 
+#include <Core/Containers/Map.hpp>
+#include <Core/Utilities/IndexAllocator.hpp>
+
 #include <Input/InputManager.hpp>
 #include <Input/Event.hpp>
 
@@ -66,7 +69,7 @@ bool IsHardwareKeyboardAvailable();
         CAMetalLayer* metalLayer = (CAMetalLayer*)self.layer;
         metalLayer.presentsWithTransaction = NO;
         metalLayer.opaque = YES;
-        metalLayer.contentsScale = [UIScreen mainScreen].nativeScale;
+        metalLayer.contentsScale = 1.0;
     }
     return self;
 }
@@ -140,7 +143,23 @@ bool IsHardwareKeyboardAvailable();
     [super setContentScaleFactor:contentScaleFactor];
 
     CAMetalLayer* metalLayer = (CAMetalLayer*)self.layer;
+    
+    if (metalLayer.contentsScale == contentScaleFactor)
+    {
+        return;
+    }
+    
     metalLayer.contentsScale = contentScaleFactor;
+    metalLayer.drawableSize = CGSizeMake(
+        self.bounds.size.width * contentScaleFactor,
+        self.bounds.size.height * contentScaleFactor);
+
+    if (_hyperionWindow)
+    {
+        _hyperionWindow->HandleResize(Vec2i(
+            int(self.bounds.size.width * contentScaleFactor),
+            int(self.bounds.size.height * contentScaleFactor)));
+    }
 }
 
 #pragma mark - Touch Handling
@@ -148,7 +167,9 @@ bool IsHardwareKeyboardAvailable();
 - (void)touchesBegan:(NSSet<UITouch*>*)touches withEvent:(UIEvent*)event
 {
     if (!_hyperionWindow)
+    {
         return;
+    }
 
     for (UITouch* touch in touches)
     {
@@ -163,7 +184,9 @@ bool IsHardwareKeyboardAvailable();
 - (void)touchesMoved:(NSSet<UITouch*>*)touches withEvent:(UIEvent*)event
 {
     if (!_hyperionWindow)
+    {
         return;
+    }
 
     for (UITouch* touch in touches)
     {
@@ -178,7 +201,9 @@ bool IsHardwareKeyboardAvailable();
 - (void)touchesEnded:(NSSet<UITouch*>*)touches withEvent:(UIEvent*)event
 {
     if (!_hyperionWindow)
+    {
         return;
+    }
 
     for (UITouch* touch in touches)
     {
@@ -193,7 +218,9 @@ bool IsHardwareKeyboardAvailable();
 - (void)touchesCancelled:(NSSet<UITouch*>*)touches withEvent:(UIEvent*)event
 {
     if (!_hyperionWindow)
+    {
         return;
+    }
 
     // Treat cancelled touches as TOUCH_UP
     for (UITouch* touch in touches)
@@ -211,7 +238,9 @@ bool IsHardwareKeyboardAvailable();
 - (void)pressesBegan:(NSSet<UIPress*>*)presses withEvent:(UIPressesEvent*)event
 {
     if (!_hyperionWindow)
+    {
         return;
+    }
 
     [super pressesBegan:presses withEvent:event];
 
@@ -231,7 +260,9 @@ bool IsHardwareKeyboardAvailable();
 - (void)pressesEnded:(NSSet<UIPress*>*)presses withEvent:(UIPressesEvent*)event
 {
     if (!_hyperionWindow)
+    {
         return;
+    }
 
     [super pressesEnded:presses withEvent:event];
 
@@ -251,7 +282,9 @@ bool IsHardwareKeyboardAvailable();
 - (void)pressesCancelled:(NSSet<UIPress*>*)presses withEvent:(UIPressesEvent*)event
 {
     if (!_hyperionWindow)
+    {
         return;
+    }
 
     [super pressesCancelled:presses withEvent:event];
 
@@ -348,6 +381,46 @@ bool IsHardwareKeyboardAvailable();
 
 namespace Hyperion {
 
+// Map UITouch* -> integer ID
+class TouchIdMapper
+{
+public:
+    Map<void*, int32> map;
+    IndexAllocator allocator;
+
+    int32 GetId(void* touchPtr)
+    {
+        auto it = map.Find(touchPtr);
+        if (it != map.End())
+        {
+            return it->second - 1;
+        }
+
+        const uint32 index = allocator.Allocate();
+        map[touchPtr] = static_cast<int32>(index + 1);
+        return static_cast<int32>(index);
+    }
+
+    void FreeId(void* touchPtr)
+    {
+        auto it = map.Find(touchPtr);
+        if (it == map.End())
+        {
+            return;
+        }
+
+        const int32 stored = it->second;
+        allocator.Free(static_cast<uint32>(stored - 1));
+        map.Erase(it);
+    }
+
+    void Reset()
+    {
+        map.Clear();
+        allocator.Reset();
+    }
+};
+
 CORE_API HYP_DECLARE_LOG_CHANNEL(Core);
 
 static constexpr int32 IOS_ACTION_DOWN = 0;
@@ -359,12 +432,16 @@ IOSApplicationWindow::IOSApplicationWindow(ANSIString title, Vec2i size)
     : ApplicationWindow(std::move(title), size),
       m_metalLayer(nullptr),
       m_uiView(nullptr),
-      m_mouseLocked(false)
+      m_mouseLocked(false),
+      m_touchIdMapper(new TouchIdMapper())
 {
 }
 
 IOSApplicationWindow::~IOSApplicationWindow()
 {
+    delete m_touchIdMapper;
+    m_touchIdMapper = nullptr;
+
     if (m_metalLayer)
     {
         [(id)m_metalLayer release];
@@ -403,9 +480,7 @@ void IOSApplicationWindow::Initialize(WindowOptions windowOptions)
     CGRect screenBounds = [UIScreen mainScreen].bounds;
     CGFloat screenScale = [UIScreen mainScreen].nativeScale;
 
-    CGRect frame = CGRectMake(0, 0,
-                              windowOptions.dimensions.x > 0 ? windowOptions.dimensions.x : screenBounds.size.width,
-                              windowOptions.dimensions.y > 0 ? windowOptions.dimensions.y : screenBounds.size.height);
+    CGRect frame = screenBounds;
 
     UIWindow* window = [[UIWindow alloc] initWithFrame:frame];
     window.backgroundColor = [UIColor blackColor];
@@ -541,7 +616,7 @@ bool IOSApplicationWindow::HandleTouchEvent(void* touchPtr, void* eventPtr, Even
     CGFloat scale = m_metalLayer ? ((CAMetalLayer*)m_metalLayer).contentsScale : 1.0;
 
     const Vec2f currentPos = Vec2f(location.x * scale, location.y * scale);
-    const int32 pointerId = (int32)(uintptr_t)uiTouch;
+    const int32 pointerId = m_touchIdMapper->GetId((__bridge void*)uiTouch);
 
     {
         TUniqueLock lock(m_mtx);
@@ -559,13 +634,12 @@ bool IOSApplicationWindow::HandleTouchEvent(void* touchPtr, void* eventPtr, Even
     {
         outEvent = Event(EventType::TOUCH_DOWN, this, platformEvent);
 
+        Assert(pointerId < static_cast<int32>(m_touchPrevPositions.Size()));
+
         MotionData motionData { currentPos, Vec2f::Zero(), /* isAbsolute */ false };
         outEvent.GetEventData().Set(TouchEventData { pointerId, motionData });
 
-        if (pointerId >= 0 && pointerId < static_cast<int32>(m_touchPrevPositions.Size()))
-        {
-            m_touchPrevPositions[pointerId] = currentPos;
-        }
+        m_touchPrevPositions[pointerId] = currentPos;
 
         return true;
     }
@@ -574,20 +648,13 @@ bool IOSApplicationWindow::HandleTouchEvent(void* touchPtr, void* eventPtr, Even
     {
         outEvent = Event(EventType::TOUCH_MOVE, this, platformEvent);
 
-        Vec2f prevPos = currentPos;
-        if (pointerId >= 0 && pointerId < static_cast<int32>(m_touchPrevPositions.Size()))
-        {
-            prevPos = m_touchPrevPositions[pointerId];
-        }
+        const Vec2f prevPos = m_touchPrevPositions[pointerId];
 
         Vec2f delta = currentPos - prevPos;
         MotionData motionData { currentPos, delta, /* isAbsolute */ false };
         outEvent.GetEventData().Set(TouchEventData { pointerId, motionData });
 
-        if (pointerId >= 0 && pointerId < static_cast<int32>(m_touchPrevPositions.Size()))
-        {
-            m_touchPrevPositions[pointerId] = currentPos;
-        }
+        m_touchPrevPositions[pointerId] = currentPos;
 
         return true;
     }
@@ -597,19 +664,13 @@ bool IOSApplicationWindow::HandleTouchEvent(void* touchPtr, void* eventPtr, Even
     {
         outEvent = Event(EventType::TOUCH_UP, this, platformEvent);
 
-        Vec2f prevPos = currentPos;
-        if (pointerId >= 0 && pointerId < static_cast<int32>(m_touchPrevPositions.Size()))
-        {
-            prevPos = m_touchPrevPositions[pointerId];
-        }
+        const Vec2f prevPos = m_touchPrevPositions[pointerId];
 
         MotionData motionData { currentPos, currentPos - prevPos, /* isAbsolute */ false };
         outEvent.GetEventData().Set(TouchEventData { pointerId, motionData });
 
-        if (pointerId >= 0 && pointerId < static_cast<int32>(m_touchPrevPositions.Size()))
-        {
-            m_touchPrevPositions[pointerId] = Vec2f::Zero();
-        }
+        m_touchPrevPositions[pointerId] = Vec2f::Zero();
+        m_touchIdMapper->FreeId((__bridge void*)uiTouch);
 
         return true;
     }
@@ -709,6 +770,11 @@ bool IOSApplicationWindow::HasMouseFocus() const
     return m_uiView != nullptr;
 }
 
+bool IOSApplicationWindow::IsHighDPI() const
+{
+    return GetContentScaleFactor() > 1.0f;
+}
+
 float IOSApplicationWindow::GetContentScaleFactor() const
 {
     if (m_metalLayer)
@@ -721,8 +787,7 @@ float IOSApplicationWindow::GetContentScaleFactor() const
 
 float IOSApplicationWindow::GetRenderTargetScale() const
 {
-    // Render at 65% of native res
-    return 0.65f;
+    return IsHighDPI() ? 0.7f : 1.0f;
 }
 
 } // namespace Hyperion

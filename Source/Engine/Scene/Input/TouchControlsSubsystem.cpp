@@ -220,11 +220,6 @@ void TouchControlsSubsystem::ProcessTouchEvent(const TouchEvent& touchEvent)
         return;
     }
 
-    if (!m_joystickBase.IsValid())
-    {
-        return;
-    }
-
     const int32 pointerId = touchEvent.pointerId;
 
     // Convert from physical to logical coordinates using content scale factor

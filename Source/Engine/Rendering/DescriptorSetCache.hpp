@@ -33,15 +33,15 @@ public:
     DescriptorSet* GetOrCreate(const DescriptorSetLayout& layout);
 
 private:
-    using AllocationsMap = Map<uint64, Array<DescriptorSetRef, RenderAllocator>, RenderAllocator>;
-
-    AllocationsMap m_allocsByLayout;
-
     struct AllocatedDescriptorSet
     {
-        uint32 frameCounter; // last used frame counter
+        uint32 frameCounter = UINT32_MAX; // last used frame counter
         DescriptorSetRef descriptorSet;
     };
+    
+    using AllocationsMap = Map<uint64, Array<AllocatedDescriptorSet, RenderAllocator>, RenderAllocator>;
+
+    AllocationsMap m_allocsByLayout;
 
     Array<AllocatedDescriptorSet, RenderAllocator> m_descriptorSetsInUse;
 };

@@ -282,17 +282,25 @@ void Material::SetTexture(MaterialTextureKey key, const Handle<Texture>& texture
         HYP_LOG(Material, Warning, "Setting texture on static material with Id {} (name: {})", Id(), GetName());
     }
 
-    if (m_textures[key] == texture)
+    auto textureIt = m_textures.Find(key);
+    if (textureIt != m_textures.End())
     {
-        return;
-    }
+        if (*textureIt == texture)
+        {
+            return;
+        }
 
-    if (m_textures[key] != nullptr)
+        if (textureIt->IsValid())
+        {
+            EnqueueDeletion(std::move(*textureIt));
+        }
+
+        *textureIt = texture;
+    }
+    else
     {
-        EnqueueDeletion(std::move(m_textures[key]));
+        m_textures[key] = texture;
     }
-
-    m_textures[key] = texture;
 
     CheckResult(texture->Create());
 

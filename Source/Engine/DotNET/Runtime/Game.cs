@@ -16,6 +16,12 @@ namespace Hyperion
             base.Dispose(isDisposing);
         }
 
+        public Name PackageName
+        {
+            get => this.GetPackageName();
+            set => this.SetPackageName(value);
+        }
+
         public World? World
         {
             get => this.GetWorld();

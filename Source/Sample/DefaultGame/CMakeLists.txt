@@ -19,11 +19,18 @@ set(CMAKE_BUILD_PARALLEL_LEVEL 8)
 file(GLOB_RECURSE SOURCES "*.cpp" "*.c" "*.mm" "*.m")
 file(GLOB_RECURSE HEADERS "*.h" "*.hpp" "*.hh" "*.inl")
 
+# remove Platform/**/* files from the sources/headers before we add specific platforms
+list(FILTER SOURCES EXCLUDE REGEX ".*/Platform/.*")
+list(FILTER HEADERS EXCLUDE REGEX ".*/Platform/.*")
+
 set(HYP_PLATFORM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Platform/${HYP_PLATFORM_NAME}")
 
 if(NOT EXISTS "${HYP_PLATFORM_DIR}")
   set(HYP_PLATFORM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Platform/Default")
 endif()
+
+message(STATUS "Using platform dir: ${HYP_PLATFORM_DIR}")
+
 if(EXISTS "${HYP_PLATFORM_DIR}")
   file(GLOB PLATFORM_SOURCES "${HYP_PLATFORM_DIR}/*.cpp" "${HYP_PLATFORM_DIR}/*.c" "${HYP_PLATFORM_DIR}/*.mm" "${HYP_PLATFORM_DIR}/*.m")
   list(APPEND SOURCES ${PLATFORM_SOURCES})
@@ -52,7 +59,7 @@ if(CMAKE_GENERATOR MATCHES "Xcode")
   set_target_properties(${BUILD_NAME} PROPERTIES XCODE_SCHEME_LAUNCH_CONFIGURATION_NAME "${HYP_BUILD_TYPE}")
   set_target_properties(${BUILD_NAME} PROPERTIES XCODE_SCHEME_HIDE_BUILDABLE_NAME OFF)
   set_target_properties(${BUILD_NAME} PROPERTIES XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.hyperion.${BUILD_NAME}")
-  set_target_properties(${BUILD_NAME} PROPERTIES MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/Info.plist")
+  set_target_properties(${BUILD_NAME} PROPERTIES MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/../Info.plist")
   set_target_properties(${BUILD_NAME} PROPERTIES XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/Frameworks")
 endif()
 
