@@ -86,6 +86,7 @@ Binaries/**/*
 Build/**/*
 
 Projects/**/*
+PackagedBuilds/**/*
 
 Source/Generated/**/*
 .opencode
