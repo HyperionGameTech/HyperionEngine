@@ -2060,6 +2060,8 @@ void RenderInterface::CreateBlueNoiseBuffer()
         return;
     }
 
+    auto readScope = blueNoiseAsset->GetReadScope();
+
     ConstByteView blobData = blueNoiseAsset->GetData();
 
     constexpr size_t ExpectedSize = (sizeof(uint32) * 256 * 256)
