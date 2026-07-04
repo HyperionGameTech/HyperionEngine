@@ -81,12 +81,14 @@ if(APPLE AND CMAKE_GENERATOR STREQUAL "Xcode")
   )
 endif()
 
+message(STATUS "Source dir: ${CMAKE_SOURCE_DIR}")
+
 if(HYP_PLATFORM_NAME STREQUAL "IOS")
   add_custom_command(TARGET ${BUILD_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -D CONFIG_SRC_DIR="${CMAKE_SOURCE_DIR}/../Config"
       -D CONFIG_DST_DIR="$<TARGET_FILE_DIR:${BUILD_NAME}>/Config"
       -D PLATFORM="${HYP_PLATFORM_NAME}"
-      -P "${CMAKE_SOURCE_DIR}/cmake/CopyPlatformConfigs.cmake"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/../CopyPlatformConfigs.cmake"
     COMMAND ${CMAKE_COMMAND} -E make_directory
       "$<TARGET_FILE_DIR:${BUILD_NAME}>/Source/Shaders"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -98,7 +100,7 @@ else()
     COMMAND ${CMAKE_COMMAND} -D CONFIG_SRC_DIR="${CMAKE_SOURCE_DIR}/../Config"
       -D CONFIG_DST_DIR="$<TARGET_FILE_DIR:${BUILD_NAME}>"
       -D PLATFORM="${HYP_PLATFORM_NAME}"
-      -P "${CMAKE_SOURCE_DIR}/cmake/CopyPlatformConfigs.cmake"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/../CopyPlatformConfigs.cmake"
   )
 endif()
 

@@ -10,8 +10,9 @@
     "TAA": true,
     "FogVolumes": true,
     "PathTracing": false,
-    "RayTracedReflections": false,
     "DDGI": false,
+    "RayTracedGI": false,
+    "RayTracedReflections": false,
     "RayTracingEnabled": false,
     "IndirectRendering": true,
     "DepthPrepass": true,
@@ -42,8 +43,7 @@
     "Vulkan": {
       "DebugLayers": true,
       "TimelineSemaphores": true
-    },
-    "RayTracedGI": false
+    }
   },
   "Editor": {
     "SkipRenderingWhenIdle": true,
@@ -57,7 +57,7 @@
   },
   "System": {
     "SelectedGpu": {
-      "Index": 0
+      "Index": 1
     }
   },
   "Baker": {
