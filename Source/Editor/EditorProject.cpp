@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <EditorPch.hpp>
 
@@ -12,6 +12,7 @@
 #include <Editor/EditorState.hpp>
 
 #include <Framework/Game.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
@@ -41,7 +42,9 @@
 
 namespace Hyperion {
 
-struct EditorProjectSaveContext { };
+struct EditorProjectSaveContext
+{
+};
 
 EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 
@@ -51,7 +54,7 @@ static const ANSIString s_defaultProjectName = "Project";
 
 static Name GetUniqueProjectName()
 {
-    const FilePath projectsDir = ::Hyperion::GetProjectsDirectory();
+    const FilePath projectsDir = EngineGlobals::GetProjectsDirectory();
 
     ANSIString candidateName = s_defaultProjectName;
     uint32 counter = 0;
@@ -141,7 +144,7 @@ void EditorProject::RemoveScene(Scene* scene)
 
 FilePath EditorProject::GetProjectsDirectory() const
 {
-    return ::Hyperion::GetProjectsDirectory();
+    return EngineGlobals::GetProjectsDirectory();
 }
 
 bool EditorProject::IsSaved() const
@@ -167,7 +170,7 @@ Result EditorProject::SaveAs(FilePath filepath)
     // Ensure we have a valid name, unique among existing project subdirs.
     if (!m_name.IsValid())
     {
-        const FilePath projectsDir = GetProjectsDirectory();
+        const FilePath projectsDir = EngineGlobals::GetProjectsDirectory();
         ANSIString candidateName = s_defaultProjectName;
         uint32 counter = 0;
 
@@ -184,7 +187,7 @@ Result EditorProject::SaveAs(FilePath filepath)
 
     if (filepath.Empty())
     {
-        dir = GetProjectsDirectory() / String(*m_name);
+        dir = EngineGlobals::GetProjectsDirectory() / String(*m_name);
         filepath = dir / (String(*m_name) + ".hypproject");
     }
     else if (filepath.GetExtension().Any())
@@ -374,7 +377,7 @@ Handle<EditorProject> EditorProject::CreateNew()
     Handle<World> world = MakeHandle<World>(NAME("MainWorld"), WorldFlags::DEFAULT);
     gameInstance->SetWorld(world);
 
-    const FilePath projectDir = ::Hyperion::GetProjectsDirectory() / *projectName;
+    const FilePath projectDir = EngineGlobals::GetProjectsDirectory() / *projectName;
 
     Handle<AssetRegistry> registry = MakeHandle<AssetRegistry>(AssetRegistryId::Game, projectDir);
     registry->Initialize();

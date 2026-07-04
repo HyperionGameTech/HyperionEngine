@@ -41,12 +41,6 @@ struct ManagedDelegates;
 using InitFromManagedCallback = void (*)(struct ManagedDelegates*);
 #endif
 
-ENGINE_API const FilePath& GetLibraryDirectory();
-ENGINE_API const FilePath& GetProjectsDirectory();
-ENGINE_API const FilePath& GetDataDirectory();
-ENGINE_API const FilePath& GetCacheDirectory();
-ENGINE_API const FilePath& GetTempDirectory();
-
 #if !HYP_WINDOWS
 using HWND = void*;
 #endif

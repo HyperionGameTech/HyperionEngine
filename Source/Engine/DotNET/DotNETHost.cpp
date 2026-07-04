@@ -2,9 +2,11 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <HyperionPch.hpp>
+
+#include <Framework/EngineGlobals.hpp>
 
 #include <DotNET/DotNETHost.hpp>
 
@@ -94,7 +96,7 @@ public:
 
     FilePath GetDotNetPath() const
     {
-        return GetCacheDirectory() / "DotNET";
+        return EngineGlobals::GetCacheDirectory() / "DotNET";
     }
 
     FilePath GetLibraryPath() const
@@ -187,7 +189,7 @@ public:
 
         static const Array<Pair<String, FilePath>> s_coreAssemblies = {
             Pair<String, FilePath> { "interop", *interopAssemblyPath }
-            //Pair<String, FilePath> { "runtime", FindAssemblyFilePath(m_basePath, "Hyperion.NET.Runtime.dll").GetOr(FilePath()) }
+            // Pair<String, FilePath> { "runtime", FindAssemblyFilePath(m_basePath, "Hyperion.NET.Runtime.dll").GetOr(FilePath()) }
         };
 
         int result = int(LoadAssemblyResult::OK);

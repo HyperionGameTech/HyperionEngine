@@ -10,8 +10,9 @@
 
 #include <Framework/EngineDriver.hpp>
 #include <Framework/EngineStats.hpp>
-#include <Framework/Game.hpp>
+#include <Framework/EngineGlobals.hpp>
 #include <Framework/CVarManager.hpp>
+#include <Framework/Game.hpp>
 
 #include <Framework/Threads/MainThread.hpp>
 #include <Framework/Threads/SimThread.hpp>
@@ -154,95 +155,6 @@ static void HandleFatalError(const char* message)
     debug::TerminateProgram();
 }
 
-HYP_EXPORT const FilePath& GetLibraryDirectory()
-{
-#ifdef HYP_EDITOR
-    static DirectoryInitializer<HYP_STATIC_STRING("Packages"), /* RelativeToExecutablePath */ false> s_resourceDirectory;
-    return s_resourceDirectory.path;
-#else  // !HYP_EDITOR
-    static DirectoryInitializer<HYP_STATIC_STRING("Packages"), /* RelativeToExecutablePath */ true> s_resourceDirectory;
-
-    if (!s_resourceDirectory.path.Exists())
-    {
-        HYP_LOG(Engine, Warning, "GetLibraryDirectory() called but Packages directory does not exist: {}",
-                s_resourceDirectory.path.Data());
-    }
-
-    return s_resourceDirectory.path;
-#endif // HYP_EDITOR
-}
-
-#ifdef HYP_EDITOR
-HYP_EXPORT const FilePath& GetProjectsDirectory()
-{
-    // @TODO Use configuration value for this path. can be in Documents folder eg
-
-    static DirectoryInitializer<HYP_STATIC_STRING("Projects"), /* RelativeToExecutablePath */ false> s_projectsDirectory;
-    return s_projectsDirectory.path;
-}
-#endif // HYP_EDITOR
-
-// Directory for cached data (shader bundles, compiled scripts, etc.) Expected to be compiled into the asset registry in production builds
-static bool s_cacheDirectoryInit = false;
-static SharedMutex s_cacheDirectoryMutex;
-
-HYP_EXPORT const FilePath& GetCacheDirectory()
-{
-    static const ConfigValue& s_cfgCacheDirectory = CoreApi::GetGlobalConfig().Get("App.Cache.BaseDirectory");
-    static const ConfigValue& s_cfgCachePageSize = CoreApi::GetGlobalConfig().Get("App.Cache.PageSize");
-
-    static const FilePath s_cacheDirectory = CoreApi::GetExecutablePath() / s_cfgCacheDirectory.ToString().ToUtf8();
-
-    TSharedLock sharedLock(s_cacheDirectoryMutex);
-
-    if (s_cacheDirectoryInit)
-        return s_cacheDirectory;
-
-    sharedLock.Reset();
-
-    TUniqueLock uniqueLock(s_cacheDirectoryMutex);
-
-    if (s_cacheDirectoryInit)
-        return s_cacheDirectory;
-
-    if (!s_cfgCachePageSize.IsNumber() || s_cfgCachePageSize.AsNumber() < 1024 * 1024)
-    {
-        ConfigBase newConfigurationTable;
-        newConfigurationTable.Set("App.Cache.PageSize", ConfigValue(BlobStorage::DefaultPageSize));
-
-        CoreApi::UpdateGlobalConfig(newConfigurationTable);
-    }
-
-    if (s_cacheDirectory.Empty() || (!s_cacheDirectory.Exists() && !s_cacheDirectory.MkDir()))
-    {
-        HYP_FAIL("Failed to initialize cache storage directory {}!", s_cacheDirectory);
-    }
-
-    s_cacheDirectoryInit = true;
-
-    return s_cacheDirectory;
-}
-
-// Editor build only
-HYP_EXPORT const FilePath& GetTempDirectory()
-{
-#if HYP_ANDROID
-    // not used in Android build.
-    static const FilePath s_emptyPath;
-    return s_emptyPath;
-#else  // !HYP_ANDROID
-    static DirectoryInitializer<HYP_STATIC_STRING("Temp"), /* RelativeToExecutablePath */ true> s_tempDirectory;
-    return s_tempDirectory.path;
-#endif // HYP_ANDROID
-}
-
-// Editor build only
-HYP_EXPORT const FilePath& GetDataDirectory()
-{
-    static DirectoryInitializer<HYP_STATIC_STRING("Data"), /* RelativeToExecutablePath */ false> s_dataDirectory;
-    return s_dataDirectory.path;
-}
-
 #if HYP_DOTNET
 static InitFromManagedCallback s_initFromManagedCallback = nullptr;
 #endif
@@ -300,7 +212,7 @@ static void LoadShaderPropertyDictionary()
 {
     InitShaderPropertyDictionary();
 
-    FileByteReader stream { GetCacheDirectory() / "ShaderProperties.bin" };
+    FileByteReader stream { EngineGlobals::GetCacheDirectory() / "ShaderProperties.bin" };
 
     if (!stream.Eof())
     {
@@ -385,7 +297,7 @@ extern "C"
         {
             Handle<AssetRegistry> engineRegistry = MakeHandle<AssetRegistry>(
                 AssetRegistryId::Engine,
-                GetLibraryDirectory() / "Engine");
+                EngineGlobals::GetLibraryDirectory() / "Engine");
 
             engineRegistry->Initialize();
 
@@ -397,7 +309,7 @@ extern "C"
         {
             Handle<AssetRegistry> editorRegistry = MakeHandle<AssetRegistry>(
                 AssetRegistryId::Editor,
-                GetLibraryDirectory() / "Editor");
+                EngineGlobals::GetLibraryDirectory() / "Editor");
 
             editorRegistry->Initialize();
 

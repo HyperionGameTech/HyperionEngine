@@ -23,7 +23,10 @@ To get started, check out the [Compiling the Engine](Documentation/CompilingTheE
 
 ## Contributing
 
-If you want to contribute please feel free to submit a pull request! We are open to contributions of all kinds, from bug fixes and documentation improvements to new features and systems. We ask that if you use AI tools to assist with your contribution, please disclose that in your pull request and ensure that the contribution meets the same quality standards as a human written contribution. Thanks!
+If you want to contribute please feel free to submit a pull request! We are open to contributions of all kinds, from bug fixes and documentation improvements to new features and systems.
+
+### Note on AI usage!
+Usage of AI tools for contributions should be *explicitly noted*, and should only be used for things like small, non-invasive bugfixes, small QOL fixes and reviewing code before submission. Use your intuition. We won't accept pull requests that have "that vibe-coded smell" - not a quantitative assessment I know, but one knows it when they see it.
 
 ## Getting started
 [Definitions and Terminology](Documentation/Definitions.md) provides definitions and explanations for various terms and concepts used within the engine. - This is slightly outdated and/or incomplete, but it is a good starting point.

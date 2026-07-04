@@ -2,13 +2,14 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <HyperionPch.hpp>
 
 #include <Framework/Game.hpp>
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/EngineDriver.hpp>
+
 #include <Rendering/DebugDrawer.hpp>
 #include <Rendering/Util/DeletionQueue.hpp>
 
@@ -46,8 +47,6 @@ ScriptableDelegate<void, Game*, GameStateMode, GameStateMode> Game::OnGameStateC
 
 static const Name s_nameMainWorld = NAME("World");
 static const Name s_nameDefault = NAME("Default");
-
-ENGINE_API extern const FilePath& GetLibraryDirectory();
 
 Game::Game()
     : m_packageName(s_nameDefault),
@@ -87,7 +86,7 @@ void Game::Initialize()
     {
         m_assetRegistry = MakeHandle<AssetRegistry>(
             AssetRegistryId::Game,
-            GetLibraryDirectory() / *GetPackageName());
+            EngineGlobals::GetLibraryDirectory() / *GetPackageName());
     }
 
     if (!m_assetRegistryActive)

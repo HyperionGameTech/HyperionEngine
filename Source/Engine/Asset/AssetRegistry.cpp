@@ -46,11 +46,8 @@ namespace Hyperion {
 
 namespace CoreApi {
 CORE_API extern const FilePath& GetExecutablePath();
-CORE_API extern HYP_NODISCARD FilePath CreateTempDirectory();
 CORE_API extern const GlobalConfig& GetGlobalConfig();
 } // namespace CoreApi
-
-ENGINE_API extern const FilePath& GetCacheDirectory();
 
 #ifdef HYP_ANDROID
 CORE_API extern bool IsAndroidAssetPath(const FilePath& filepath);
@@ -180,12 +177,6 @@ static constexpr const char* BlobStorageName = "Storage";
 // If true, all mutation operations will be forced to run on the sim thread,
 // otherwise a mutex will be used to allow multi-threaded access.
 static constexpr bool UseSingleThread = false;
-
-ENGINE_API extern const FilePath& GetLibraryDirectory();
-
-#if HYP_EDITOR
-ENGINE_API extern const FilePath& GetProjectsDirectory();
-#endif
 
 StringHash AssetDesc_KeyByFunction(const AssetDesc& assetDesc)
 {

@@ -1,4 +1,3 @@
-#include "Core/IO/ByteWriter.hpp"
 #include <Editor/EditorCommand.hpp>
 #include <Editor/EditorSubsystem.hpp>
 #include <Editor/EditorProject.hpp>
@@ -62,9 +61,6 @@ extern Handle<EditorState> g_editorState;
 namespace CoreApi {
 CORE_API extern const FilePath& GetExecutablePath();
 } // namespace CoreApi
-
-ENGINE_API extern const FilePath& GetProjectsDirectory();
-ENGINE_API extern const FilePath& GetDataDirectory();
 
 #define DEFINE_EDITOR_COMMAND(name)                                        \
     const Class* g_clsEditorCommand##name = nullptr;                       \
@@ -157,7 +153,7 @@ public:
     {
         HYP_SCOPE;
 
-        const FilePath dir = GetProjectsDirectory();
+        const FilePath dir = EngineGlobals::GetProjectsDirectory();
         dir.MkDir();
 
         ShowOpenFileDialog(
@@ -179,36 +175,39 @@ public:
                     return;
                 }
 
-                GetThreadById(g_simThread)->GetScheduler().Enqueue([weakSubsystem = std::move(weakSubsystem), projectFilepath = std::move(result.GetValue()[0])]() mutable
-                                                                   {
-                                                                       Handle<EditorSubsystem> subsystem = weakSubsystem.Lock();
-                                                                       if (!subsystem)
-                                                                       {
-                                                                           HYP_LOG(Editor, Error, "Failed to lock EditorSubsystem from weak reference in ShowOpenProjectDialog");
-                                                                           return;
-                                                                       }
+                // clang-format off
+                GetThreadById(g_simThread)->GetScheduler().Enqueue(
+                    [weakSubsystem = std::move(weakSubsystem), projectFilepath = std::move(result.GetValue()[0])]() mutable
+                    {
+                        Handle<EditorSubsystem> subsystem = weakSubsystem.Lock();
+                        if (!subsystem)
+                        {
+                            HYP_LOG(Editor, Error, "Failed to lock EditorSubsystem from weak reference in ShowOpenProjectDialog");
+                            return;
+                        }
 
-                                                                       subsystem->CloseProject();
+                        subsystem->CloseProject();
 
-                                                                       TResult<Handle<EditorProject>> loadProjectResult = EditorProject::Load(projectFilepath);
+                        TResult<Handle<EditorProject>> loadProjectResult = EditorProject::Load(projectFilepath);
 
-                                                                       if (loadProjectResult.HasError())
-                                                                       {
-                                                                           HYP_LOG(Editor, Error, "Failed to load project: {}", loadProjectResult.GetError().GetMessage());
-                                                                           return;
-                                                                       }
+                        if (loadProjectResult.HasError())
+                        {
+                            HYP_LOG(Editor, Error, "Failed to load project: {}", loadProjectResult.GetError().GetMessage());
+                            return;
+                        }
 
-                                                                       Handle<EditorProject> project = loadProjectResult.GetValue();
+                        Handle<EditorProject> project = loadProjectResult.GetValue();
 
-                                                                       if (!project.IsValid())
-                                                                       {
-                                                                           HYP_LOG(Editor, Error, "Loaded project is invalid.");
-                                                                           return;
-                                                                       }
+                        if (!project.IsValid())
+                        {
+                            HYP_LOG(Editor, Error, "Loaded project is invalid.");
+                            return;
+                        }
 
-                                                                       subsystem->OpenProject(project);
-                                                                   },
-                                                                   TaskEnqueueFlags::FIRE_AND_FORGET);
+                        subsystem->OpenProject(project);
+                    },
+                    TaskEnqueueFlags::FIRE_AND_FORGET);
+                // clang-format on
             });
     }
 };
@@ -276,7 +275,7 @@ public:
             }
             else
             {
-                dir = GetProjectsDirectory() / *project->GetName();
+                dir = EngineGlobals::GetProjectsDirectory() / *project->GetName();
             }
 
             dir.MkDir();
@@ -1179,7 +1178,7 @@ public:
     {
         ShowOpenFileDialog(
             "Select the file(s) to import into the project",
-            GetDataDirectory(),
+            EngineGlobals::GetDataDirectory(),
             { "obj", "fbx", "jpg", "jpeg", "png", "tga", "bmp", "ogre.xml" },
             /* allowMultiple */ true, /* allowDirectories */ false,
             [this](TResult<Array<FilePath>>&& result)

@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -55,18 +55,27 @@ ENGINE_API extern ShaderCompiler* g_shaderCompiler;
 
 #if HYP_EDITOR
 extern Handle<EditorState> g_editorState;
-
-namespace EngineGlobals {
-ENGINE_API bool IsEditor();
-} // namepsace EngineGlobals
-
-#else // !HYP_EDITOR
-
-namespace EngineGlobals {
-static constexpr std::false_type IsEditor;
-} // namespace EngineGlobals
-
 #endif // HYP_EDITOR
+
+namespace EngineGlobals {
+
+#if HYP_EDITOR
+ENGINE_API bool IsEditor();
+#else  // !HYP_EDITOR
+static constexpr std::false_type IsEditor;
+#endif // HYP_EDITOR
+
+#if HYP_EDITOR
+ENGINE_API const FilePath& GetProjectsDirectory();
+ENGINE_API const FilePath& GetDataDirectory();
+#endif // HYP_EDITOR
+
+ENGINE_API const FilePath& GetLibraryDirectory();
+ENGINE_API const FilePath& GetCacheDirectory();
+ENGINE_API const FilePath& GetTempDirectory();
+ENGINE_API extern HYP_NODISCARD FilePath CreateTempDirectory();
+
+} // namespace EngineGlobals
 
 extern MainThread* g_mainThreadInstance;
 extern SimThread* g_simThreadInstance;

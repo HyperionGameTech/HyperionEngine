@@ -101,37 +101,6 @@ CORE_API const FilePath& GetBaseDirectory()
     return s_initializer.baseDir;
 }
 
-HYP_NODISCARD CORE_API FilePath CreateTempDirectory()
-{
-    Mutex::Guard guard(s_globalsMutex);
-
-    FilePath basePath = s_executablePath / "Temp";
-
-    if (basePath.Empty())
-    {
-        return FilePath();
-    }
-
-    if (!basePath.Exists() && !basePath.MkDir())
-    {
-        return FilePath();
-    }
-
-    for (uint32 attempt = 0; attempt < 16; ++attempt)
-    {
-        const String uuidString = UUID().ToString().ReplaceAll("-", "");
-        const String randomSuffix = String(uuidString.Substr(0, 6));
-        const FilePath tempPath = basePath / randomSuffix;
-
-        if (tempPath.MkDir())
-        {
-            return tempPath;
-        }
-    }
-
-    return FilePath();
-}
-
 static List<GlobalConfig> s_globalConfigChain;
 static Mutex s_globalConfigMutex;
 

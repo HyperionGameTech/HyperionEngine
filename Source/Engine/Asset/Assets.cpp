@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <AssetPch.hpp>
 
@@ -151,9 +151,9 @@ void AssetManager::SetBasePath(const FilePath& basePath)
     Handle<AssetCollector> assetCollector;
 
     auto assetCollectorsIt = m_assetCollectors.FindIf([basePath](const Handle<AssetCollector>& assetCollector)
-        {
-            return assetCollector->GetBasePath() == basePath;
-        });
+                                                      {
+                                                          return assetCollector->GetBasePath() == basePath;
+                                                      });
 
     if (assetCollectorsIt != m_assetCollectors.End())
     {
@@ -251,7 +251,13 @@ AssetBatch* AssetManager::CreateBatch(const String& identifier)
 
 void AssetManager::RegisterDefaultLoaders()
 {
-    SetBasePath(GetDataDirectory());
+#if HYP_EDITOR
+    /// ./Data
+    SetBasePath(EngineGlobals::GetDataDirectory());
+#else  // !HYP_EDITOR
+    /// ./
+    SetBasePath(CoreApi::GetBaseDirectory());
+#endif // HYP_EDITOR
 
     HYP_LOG(Assets, Verbose, "AssetManager Base Path: {}", GetBasePath());
 

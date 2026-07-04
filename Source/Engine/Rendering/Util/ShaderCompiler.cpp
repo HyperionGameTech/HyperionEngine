@@ -46,6 +46,7 @@
 #include <System/DirectoryInitializer.hpp>
 
 #include <Framework/EngineDriver.hpp>
+#include <Framework/EngineGlobals.hpp>
 #include <Framework/CVarManager.hpp>
 
 #if HYP_DXC
@@ -837,7 +838,7 @@ struct LoadedSourceFile
     {
         const FilePath path = FilePath(file);
 
-        return GetTempDirectory() / (FilePath(path.StripExtension()).Basename() + "_" + String::ToString(shader.properties.GetHashCode().Value()) + ShaderLanguageToBinaryExtension(backend));
+        return EngineGlobals::GetTempDirectory() / (FilePath(path.StripExtension()).Basename() + "_" + String::ToString(shader.properties.GetHashCode().Value()) + ShaderLanguageToBinaryExtension(backend));
     }
 
     HashCode GetHashCode() const
@@ -3431,7 +3432,7 @@ bool ShaderCompiler::CompileBundle(
 
     { // Save the shader property DB
 
-        const FilePath shaderPropertyDbPath = GetCacheDirectory() / "ShaderProperties.bin";
+        const FilePath shaderPropertyDbPath = EngineGlobals::GetCacheDirectory() / "ShaderProperties.bin";
 
         FileByteWriter shaderPropertyDbWriter { shaderPropertyDbPath };
         WriteShaderPropertyDictionary(shaderPropertyDbWriter);

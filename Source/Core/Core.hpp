@@ -16,8 +16,6 @@ namespace CoreApi {
 CORE_API const FilePath& GetExecutablePath();
 CORE_API void SetExecutablePath(const FilePath& path);
 
-HYP_NODISCARD CORE_API FilePath CreateTempDirectory();
-
 CORE_API const FilePath& GetBaseDirectory();
 
 CORE_API bool Initialize(int argc, char** argv);

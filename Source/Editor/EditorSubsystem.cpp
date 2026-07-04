@@ -3486,7 +3486,7 @@ void EditorSubsystem::ShowImportContentDialog()
 {
     ShowOpenFileDialog(
         "Select the file(s) to import into the project",
-        GetDataDirectory(),
+        EngineGlobals::GetDataDirectory(),
         { "obj", "fbx", "jpg", "jpeg", "png", "tga", "bmp", "ogre.xml" },
         /* allowMultiple */ true, /* allowDirectories */ false,
         [](TResult<Array<FilePath>>&& result)

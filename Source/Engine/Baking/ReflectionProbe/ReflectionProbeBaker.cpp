@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <HyperionPch.hpp>
 
@@ -119,7 +119,7 @@ void Baker<ReflectionProbe>::OnCompleted_Internal()
     ByteBuffer buffer = ByteBuffer(bitmap.ToByteView());
 
     //// temp
-    FileByteWriter tempWriter(GetTempDirectory() / "TempEnvProbe.bmp");
+    FileByteWriter tempWriter(EngineGlobals::GetTempDirectory() / "TempEnvProbe.bmp");
     bitmap.Write(&tempWriter);
     tempWriter.Close();
 
@@ -152,7 +152,6 @@ void Baker<ReflectionProbe>::OnCompleted_Internal()
         explicit ProcessReflectionProbe(ProcessReflectionProbePayload* payload)
             : payload(payload)
         {
-
         }
 
         static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)

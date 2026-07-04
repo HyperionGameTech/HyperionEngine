@@ -24,8 +24,6 @@ namespace Hyperion {
 
 ENGINE_API extern ShaderCompiler* g_shaderCompiler;
 
-ENGINE_API extern const FilePath& GetLibraryDirectory();
-
 class PrecompileShaders : public CommandletBase
 {
     HYP_OBJECT_BODY(PrecompileShaders);

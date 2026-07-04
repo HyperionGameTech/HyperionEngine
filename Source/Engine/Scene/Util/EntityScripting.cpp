@@ -49,8 +49,6 @@ namespace CoreApi {
 CORE_API extern const FilePath& GetExecutablePath();
 } // namespace CoreApi
 
-extern const FilePath& GetDataDirectory();
-
 namespace EntityScripting {
 
 template <class ReturnType, class... ArgTypes>
@@ -403,7 +401,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
                     HypScriptCompileParams compileParams;
                     // Add data / scripts path as scan path so we pick up Lib.hyp
-                    compileParams.scanPaths.Add(GetDataDirectory() / "Scripts");
+                    compileParams.scanPaths.Add(EngineGlobals::GetDataDirectory() / "Scripts");
 
                     ErrorList errorList;
                     instance = HS::Compile(sourceFile, errorList, compileParams);
