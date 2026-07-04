@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -13,13 +13,12 @@
 namespace Hyperion {
 namespace CoreApi {
 
-CORE_API FilePath GetExecutablePath();
+CORE_API const FilePath& GetExecutablePath();
 CORE_API void SetExecutablePath(const FilePath& path);
 
-CORE_API FilePath GetConfigDirectory();
-CORE_API void SetConfigDirectory(const FilePath& configDirectory);
-
 HYP_NODISCARD CORE_API FilePath CreateTempDirectory();
+
+CORE_API const FilePath& GetBaseDirectory();
 
 CORE_API bool Initialize(int argc, char** argv);
 

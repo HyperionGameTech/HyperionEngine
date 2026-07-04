@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -13,7 +13,8 @@
 namespace Hyperion {
 
 namespace CoreApi {
-CORE_API extern FilePath GetExecutablePath();
+CORE_API extern const FilePath& GetExecutablePath();
+CORE_API extern const FilePath& GetBaseDirectory();
 } // namespace CoreApi
 
 template <auto DirectoryStaticString, bool RelativeToExecutablePath = true>
@@ -23,14 +24,12 @@ struct DirectoryInitializer
 
     inline DirectoryInitializer()
     {
-#ifdef HYP_ROOT_DIR
         // In non-debug modes, we always want resource directories to be relative to the executable path
         if (!RelativeToExecutablePath)
         {
-            path = FilePath(HYP_ROOT_DIR) / String(DirectoryStaticString.Data());
+            path = CoreApi::GetBaseDirectory() / String(DirectoryStaticString.Data());
         }
         else
-#endif
         {
 #if HYP_ANDROID
             path = FilePath(AndroidAssetPathPrefix) / String(DirectoryStaticString.Data());

@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <ScenePch.hpp>
 
@@ -46,7 +46,7 @@ namespace Hyperion {
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Scripting);
 
 namespace CoreApi {
-CORE_API extern FilePath GetExecutablePath();
+CORE_API extern const FilePath& GetExecutablePath();
 } // namespace CoreApi
 
 extern const FilePath& GetDataDirectory();
@@ -414,8 +414,8 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                             .Title("Script Compilation Error")
                             .Text(HYP_FORMAT("Failed to compile script file '{}'. See the log for details.", sourcePath))
                             .Button("Close", []()
-                                {
-                                })
+                                    {
+                                    })
                             .Show(/* showBlocking */ false);
 
                         return;
@@ -549,12 +549,12 @@ void ShutdownEntityScript(Entity* entity, ScriptComponent& scriptComponent, cons
 void UpdateScriptedEntities(World& world, float delta)
 {
     QueryScriptedEntities(world, [delta](Entity* entity, ScriptComponent& scriptComponent)
-        {
-            if (!(scriptComponent.flags & ScriptComponentFlags::ACTIVATED))
-                return;
+                          {
+                              if (!(scriptComponent.flags & ScriptComponentFlags::ACTIVATED))
+                                  return;
 
-            InvokeScriptMethodT<void>(nullptr, scriptComponent.scriptObjectResource, "Update", delta);
-        });
+                              InvokeScriptMethodT<void>(nullptr, scriptComponent.scriptObjectResource, "Update", delta);
+                          });
 }
 
 } // namespace EntityScripting

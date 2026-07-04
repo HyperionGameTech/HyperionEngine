@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <AssetPch.hpp>
 
@@ -62,8 +62,8 @@ namespace Hyperion {
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Assets);
 
 namespace CoreApi {
-CORE_API extern FilePath GetExecutablePath();
-}// namespace CoreApi
+CORE_API extern const FilePath& GetExecutablePath();
+} // namespace CoreApi
 
 namespace {
 
@@ -288,9 +288,10 @@ Handle<Texture> AcquireTexture(GltfLoadContext& ctx, const cgltf_texture_view& t
             }
 
             if (auto textureResult = ctx.state.assetManager->Load<Texture>(
-                candidate,
-                ctx.state.batchIdentifier,
-                srgb ? AssetLoadHint::TextureLoader_LoadAsSRGB : AssetLoadHint::NoHint); textureResult.HasValue())
+                    candidate,
+                    ctx.state.batchIdentifier,
+                    srgb ? AssetLoadHint::TextureLoader_LoadAsSRGB : AssetLoadHint::NoHint);
+                textureResult.HasValue())
             {
                 const Handle<Texture>& texture = textureResult->Result();
                 CheckResult(texture->Create());
@@ -482,10 +483,11 @@ Transform BuildTransformFromNode(const cgltf_node& node)
     if (node.has_rotation)
     {
         rotation = Quat4f(
-            float(node.rotation[0]),
-            float(node.rotation[1]),
-            float(node.rotation[2]),
-            float(node.rotation[3])).Inverse();
+                       float(node.rotation[0]),
+                       float(node.rotation[1]),
+                       float(node.rotation[2]),
+                       float(node.rotation[3]))
+                       .Inverse();
         rotation.Normalize();
     }
 
@@ -738,11 +740,11 @@ struct PrimitiveBuildOutput
 };
 
 bool BuildPrimitive(GltfLoadContext& ctx,
-    const cgltf_mesh& gltfMesh,
-    const cgltf_primitive& primitive,
-    uint32 meshIndex,
-    uint32 primitiveIndex,
-    PrimitiveBuildOutput& out)
+                    const cgltf_mesh& gltfMesh,
+                    const cgltf_primitive& primitive,
+                    uint32 meshIndex,
+                    uint32 primitiveIndex,
+                    PrimitiveBuildOutput& out)
 {
     Topology topology;
     switch (primitive.type)
@@ -758,8 +760,8 @@ bool BuildPrimitive(GltfLoadContext& ctx,
         break;
     default:
         HYP_LOG(Assets, Warning, "GLTF primitive skipped due to unsupported topology {} on mesh '{}'",
-            int(primitive.type),
-            gltfMesh.name ? gltfMesh.name : "<unnamed>");
+                int(primitive.type),
+                gltfMesh.name ? gltfMesh.name : "<unnamed>");
         return false;
     }
 
@@ -767,7 +769,7 @@ bool BuildPrimitive(GltfLoadContext& ctx,
     if (!positionsAccessor)
     {
         HYP_LOG(Assets, Warning, "GLTF primitive skipped: missing POSITION attribute on mesh '{}'",
-            gltfMesh.name ? gltfMesh.name : "<unnamed>");
+                gltfMesh.name ? gltfMesh.name : "<unnamed>");
         return false;
     }
 
@@ -794,7 +796,7 @@ bool BuildPrimitive(GltfLoadContext& ctx,
     if (UnpackAccessorFloats(positionsAccessor, positionsData) == 0)
     {
         HYP_LOG(Assets, Warning, "Failed to unpack POSITION data from buffer view for mesh '{}'",
-            gltfMesh.name ? gltfMesh.name : "<unnamed>");
+                gltfMesh.name ? gltfMesh.name : "<unnamed>");
         return false;
     }
 
@@ -867,11 +869,11 @@ bool BuildPrimitive(GltfLoadContext& ctx,
 
         // Disabled UV1 in loader for now.
 
-        //if (hasTexcoord1)
+        // if (hasTexcoord1)
         //{
-        //    const cgltf_size base = vertexIndex * 2;
-        //    vertex.SetUV1(Vec2f(texcoord1Data[base], 1.0f - texcoord1Data[base + 1]));
-        //}
+        //     const cgltf_size base = vertexIndex * 2;
+        //     vertex.SetUV1(Vec2f(texcoord1Data[base], 1.0f - texcoord1Data[base + 1]));
+        // }
 
         if (hasSkinning)
         {
@@ -907,7 +909,7 @@ bool BuildPrimitive(GltfLoadContext& ctx,
         if (UnpackAccessorIndices(primitive.indices, indices) == 0)
         {
             HYP_LOG(Assets, Warning, "Failed to unpack index data from buffer view for mesh '{}'",
-                gltfMesh.name ? gltfMesh.name : "<unnamed>");
+                    gltfMesh.name ? gltfMesh.name : "<unnamed>");
             return false;
         }
     }
@@ -945,7 +947,7 @@ bool BuildPrimitive(GltfLoadContext& ctx,
         mesh->CalculateNormals();
     }
 
-   // mesh->SetOriginalFilepath(FilePath::Relative(ctx.state.filepath, ctx.state.assetManager->GetBasePath()));
+    // mesh->SetOriginalFilepath(FilePath::Relative(ctx.state.filepath, ctx.state.assetManager->GetBasePath()));
     InitObject(mesh);
 
     GetCurrentAssetRegistry()->PutAssetUnique(mesh);
@@ -1075,14 +1077,13 @@ LoadedAsset BuildModel(LoaderState& state, cgltf_data& data)
                 .mesh = output.mesh,
                 .material = material,
                 .localTranslation = output.localTranslation,
-                .gltfPrimitiveIndex = uint32(primitiveIndex)
-            });
+                .gltfPrimitiveIndex = uint32(primitiveIndex) });
         }
 
         if (meshResource.primitives.Empty())
         {
             HYP_LOG(Assets, Warning, "GLTF mesh '{}' produced no renderable primitives",
-                gltfMesh.name ? gltfMesh.name : "<unnamed>");
+                    gltfMesh.name ? gltfMesh.name : "<unnamed>");
         }
     }
 

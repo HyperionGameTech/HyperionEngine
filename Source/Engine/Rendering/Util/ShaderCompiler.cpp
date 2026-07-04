@@ -1479,6 +1479,7 @@ ShaderCompiler::ShaderCompiler()
     : m_definitions(nullptr),
       m_isPrecompilingShaders(false)
 {
+    HYP_LOG(ShaderCompiler, Info, "BaseDir = {}", CoreApi::GetBaseDirectory());
 #if HYP_DXC
     if (!s_dxcUtils)
         DxcCreateInstance(CLSID_DxcUtils, __uuidof(IDxcUtils), (void**)&s_dxcUtils);
@@ -1652,7 +1653,7 @@ bool ShaderCompiler::HandleBundle(
                     shaderRequest->inputLayout,
                     *shader,
                     true);
-                    // /* matchAllProperties */ CanCompileShaders());
+                // /* matchAllProperties */ CanCompileShaders());
             });
 
         requestedFound = requestedIt != inOutBundle->compiledShaders.End();
@@ -1826,7 +1827,7 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders, const ShaderC
         return true;
     }
 
-    HYP_LOG(ShaderCompiler, Verbose, "Precompiling shaders...");
+    HYP_LOG(ShaderCompiler, Info, "Precompiling shaders...");
     HYP_LOG(ShaderCompiler, Info, "Target platforms: {}", EnumToString(params.targetPlatforms));
     HYP_LOG(ShaderCompiler, Info, "Target backends: {}", EnumToString(params.targetBackends));
 

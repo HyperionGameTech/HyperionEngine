@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <Core/Config/Config.hpp>
 
@@ -26,7 +26,7 @@
 namespace Hyperion {
 
 namespace CoreApi {
-CORE_API extern FilePath GetConfigDirectory();
+CORE_API const FilePath& GetExecutablePath();
 } // namespace CoreApi
 
 namespace config {
@@ -39,8 +39,8 @@ static SharedMutex s_configCacheMutex;
 #pragma region ConfigBase
 
 // Set externally for DI
-CORE_API Result(*ConfigBase::s_ObjectFromJSON)(const JSON::Object& jsonObject, const Class* targetClass, BoxedValue& target) = nullptr;
-CORE_API Result(*ConfigBase::s_ObjectToJSON)(const Class* cls, const BoxedValue& target, JSON::Object& outJson, struct ToJSONOptions* pOptions) = nullptr;
+CORE_API Result (*ConfigBase::s_ObjectFromJSON)(const JSON::Object& jsonObject, const Class* targetClass, BoxedValue& target) = nullptr;
+CORE_API Result (*ConfigBase::s_ObjectToJSON)(const Class* cls, const BoxedValue& target, JSON::Object& outJson, struct ToJSONOptions* pOptions) = nullptr;
 
 ConfigBase::ConfigBase()
     : m_rootObject(JSON::Object())
@@ -117,7 +117,7 @@ bool ConfigBase::IsChanged() const
 
 FilePath ConfigBase::GetFilePath() const
 {
-    FilePath configPath = CoreApi::GetConfigDirectory() / m_name;
+    FilePath configPath = CoreApi::GetExecutablePath() / m_name;
 
     if (!configPath.EndsWith(".json"))
     {
@@ -137,7 +137,7 @@ FilePath ConfigBase::GetPlatformFilePath() const
         name = name.Substr(0, name.Length() - 5);
     }
 
-    return CoreApi::GetConfigDirectory() / (name + "." HYP_PLATFORM_NAME_STR ".json");
+    return CoreApi::GetExecutablePath() / (name + "." HYP_PLATFORM_NAME_STR ".json");
 #else
     return GetFilePath();
 #endif

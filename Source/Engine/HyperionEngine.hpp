@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -44,7 +44,6 @@ using InitFromManagedCallback = void (*)(struct ManagedDelegates*);
 ENGINE_API const FilePath& GetLibraryDirectory();
 ENGINE_API const FilePath& GetProjectsDirectory();
 ENGINE_API const FilePath& GetDataDirectory();
-ENGINE_API const FilePath& GetConfigDirectory();
 ENGINE_API const FilePath& GetCacheDirectory();
 ENGINE_API const FilePath& GetTempDirectory();
 

@@ -30,12 +30,13 @@
 namespace Hyperion {
 
 namespace CoreApi {
-CORE_API extern FilePath GetExecutablePath();
+CORE_API extern const FilePath& GetExecutablePath();
 } // namespace CoreApi
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 thread_local Array<FilePath>* t_savedDumpFiles = nullptr;
+
 static Mutex g_savedDumpFilesPerThreadMutex;
 static Array<Array<FilePath>*> g_savedDumpFilesPerThread {};
 
@@ -207,7 +208,12 @@ void CrashHandler::Initialize()
         },
         nullptr);
 
-    Assert(res == GFSDK_Aftermath_Result_Success);
+    if (res != GFSDK_Aftermath_Result_Success)
+    {
+        HYP_LOG(Rendering, Error, "Aftermath could not be initialized (res = {}). Continuing with it disabled.", res);
+
+        s_isInitialized = false;
+    }
 #endif
 }
 
@@ -232,8 +238,12 @@ void CrashHandler::Shutdown()
 
 void CrashHandler::Dump()
 {
-#if defined(HYP_AFTERMATH) && HYP_AFTERMATH
+    if (!s_isInitialized)
+    {
+        return;
+    }
 
+#if defined(HYP_AFTERMATH) && HYP_AFTERMATH
     GFSDK_Aftermath_CrashDump_Status status = GFSDK_Aftermath_CrashDump_Status_Unknown;
     Assert(GFSDK_Aftermath_GetCrashDumpStatus(&status) == GFSDK_Aftermath_Result_Success);
 

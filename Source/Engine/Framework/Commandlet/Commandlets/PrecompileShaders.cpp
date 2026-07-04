@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <HyperionPch.hpp>
 
@@ -151,7 +151,7 @@ protected:
 
             // Determine which platforms to consider
             EnumFlags<ShaderCompileTargetPlatform> effectivePlatforms = platformFlags;
-            
+
             if (effectivePlatforms == ShaderCompileTargetPlatform::None)
             {
                 effectivePlatforms = ShaderCompileTargetPlatform::AllPlatforms;
@@ -191,12 +191,10 @@ protected:
 
         if (!g_shaderCompiler->CanCompileShaders(params))
         {
-            HYP_LOG(Engine, Error, "Cannot compile shaders for the requested targets. "
-                "Ensure the engine was compiled with the necessary compiler support (HYP_GLSLANG for Vulkan, HYP_DXC for DX12)");
             return HYP_MAKE_ERROR(Error, "Shader compilation not supported for requested targets");
         }
 
-        HYP_LOG(Engine, Info,  "Precompiling shaders...");
+        HYP_LOG(Engine, Info, "Precompiling shaders...");
 
         const bool success = g_shaderCompiler->LoadShaderDefinitions(/* precompileShaders */ true, params);
 
@@ -220,8 +218,8 @@ const Class* PrecompileShaders::StaticClass()
 }
 
 HYP_BEGIN_CLASS(PrecompileShaders, -1, 0, NAME("CommandletBase"), ClassAttribute("command", "precompileshaders"))
-    Method(NAME("GetArgumentDefinitions"), &Type::GetArgumentDefinitions)
-HYP_END_CLASS
+Method(NAME("GetArgumentDefinitions"), &Type::GetArgumentDefinitions)
+    HYP_END_CLASS
 
 HYP_REGISTER_STATIC_CLASS(PrecompileShaders);
 

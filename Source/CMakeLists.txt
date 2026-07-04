@@ -382,38 +382,40 @@ add_definitions(-DHYP_SCRIPT=1)
 
 set(HYP_GENERATE_CSHARP_LIBRARIES true)
 
-# if dotnet headers exist, set HYP_DOTNET to 1
-# TODO: Get working on Android
-if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dotnetcore/hostfxr.h" AND NOT HYP_ANDROID)
-  message(STATUS ".NET headers found")
-  set(HYP_DOTNET 1)
+if(FALSE)
+  # if dotnet headers exist, set HYP_DOTNET to 1
+  # TODO: Get working on Android, iOS, Steam Deck...
+  if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dotnetcore/hostfxr.h" AND NOT HYP_ANDROID)
+    message(STATUS ".NET headers found")
+    set(HYP_DOTNET 1)
 
-  if(HYP_DOTNET)
-    if(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/libnethost.a")
-      message(STATUS ".NET core found, setting HYP_DOTNET to 1")
+    if(HYP_DOTNET)
+      if(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/libnethost.a")
+        message(STATUS ".NET core found, setting HYP_DOTNET to 1")
 
-      set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/libnethost.a")
+        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/libnethost.a")
 
-      set(HYP_DOTNET 1)
+        set(HYP_DOTNET 1)
 
-      add_definitions(-DHYP_DOTNET=1)
-    elseif(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/nethost.lib")
-      message(STATUS ".NET core found, setting HYP_DOTNET to 1")
+        add_definitions(-DHYP_DOTNET=1)
+      elseif(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/nethost.lib")
+        message(STATUS ".NET core found, setting HYP_DOTNET to 1")
 
-      set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/nethost.lib")
+        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/nethost.lib")
 
-      # copy the dll to the build directory
-      file(COPY "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/nethost.dll" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+        # copy the dll to the build directory
+        file(COPY "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/nethost.dll" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
-      set(HYP_DOTNET 1)
+        set(HYP_DOTNET 1)
 
-      add_definitions(-DHYP_DOTNET=1)
-    else()
-      message(STATUS ".NET core not found, expected to find libnethost.a or nethost.lib in ${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}")
+        add_definitions(-DHYP_DOTNET=1)
+      else()
+        message(STATUS ".NET core not found, expected to find libnethost.a or nethost.lib in ${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}")
+      endif()
     endif()
+  else()
+    message(STATUS ".NET headers not found, skipping .NET core runtime")
   endif()
-else()
-  message(STATUS ".NET headers not found, skipping .NET core runtime")
 endif()
 
 set(RENDERING_BACKEND "Vulkan")
@@ -525,7 +527,6 @@ else()
   message(FATAL_ERROR "No rendering backend found!")
 endif()
 
-# link glslang if vulkan rendering backend:
 if (RENDERING_BACKEND STREQUAL "Vulkan")
   if (HYP_CLANG_WINDOWS)
     message(STATUS "Building with Clang on Windows - not including glslang due to build issues with Clang on Windows. If you want to use glslang, build with MSVC or on another platform.")

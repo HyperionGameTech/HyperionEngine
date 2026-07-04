@@ -54,9 +54,12 @@ protected:
         {
             if constexpr (!std::is_trivially_destructible_v<T>)
             {
-                for (size_t bit : initializedBits)
+                if (initializedBits.CountOnes() != 0)
                 {
-                    storage.GetPointer()[bit].~T();
+                    for (size_t bit : initializedBits)
+                    {
+                        storage.GetPointer()[bit].~T();
+                    }
                 }
             }
         }

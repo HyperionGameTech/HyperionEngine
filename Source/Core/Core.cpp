@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <Core/Core.hpp>
 
@@ -27,10 +27,10 @@ namespace CoreApi {
 
 static Mutex s_globalsMutex;
 static FilePath s_executablePath;
-static FilePath s_configDirectory;
 static Array<void (*)()> s_onShutdownFuncs;
 
-extern "C" {
+extern "C"
+{
     HYP_EXPORT void Hyp_TlsfAssert(int cond)
     {
         using namespace Hyperion;
@@ -39,28 +39,66 @@ extern "C" {
     }
 }
 
-CORE_API FilePath GetExecutablePath()
+CORE_API const FilePath& GetExecutablePath()
 {
-    Mutex::Guard guard(s_globalsMutex);
     return s_executablePath;
 }
 
 CORE_API void SetExecutablePath(const FilePath& path)
 {
-    Mutex::Guard guard(s_globalsMutex);
+    // set once at the beginning of the application lifecycle,
+    // so we don't guard it under a mutex
+
     s_executablePath = path;
 }
 
-CORE_API FilePath GetConfigDirectory()
+CORE_API const FilePath& GetBaseDirectory()
 {
-    Mutex::Guard guard(s_globalsMutex);
-    return s_configDirectory;
-}
+    static struct BaseDirectoryInitializer
+    {
+        FilePath baseDir;
 
-CORE_API void SetConfigDirectory(const FilePath& configDirectory)
-{
-    Mutex::Guard guard(s_globalsMutex);
-    s_configDirectory = configDirectory;
+        BaseDirectoryInitializer()
+        {
+            const CommandLineArguments& cliArgs = GetCommandLineArguments();
+
+            auto it = cliArgs.Find("BaseDir");
+            if (it != cliArgs.End())
+            {
+                const auto& value = it->second;
+                AssertDebug(value.IsString(), "Expected a string value for BaseDir");
+
+                const String valueString = value.ToString();
+                const bool isRelativePath = valueString.StartsWith(".");
+
+                if (isRelativePath)
+                {
+                    Array<String> pathParts = GetExecutablePath().Split('\\', '/');
+                    pathParts.Concat(valueString.Split('\\', '/'));
+
+                    // canonicalize the path
+                    pathParts = StringUtil::CanonicalizePath(pathParts);
+
+#if HYP_WINDOWS
+                    baseDir = String::Join(pathParts, '\\');
+#else
+                    baseDir = String::Join(pathParts, '/');
+#endif
+                }
+                else
+                {
+                    baseDir = valueString;
+                }
+
+                return;
+            }
+
+            baseDir = GetExecutablePath();
+        }
+
+    } s_initializer;
+
+    return s_initializer.baseDir;
 }
 
 HYP_NODISCARD CORE_API FilePath CreateTempDirectory()
@@ -109,6 +147,7 @@ CORE_API const CommandLineArgumentDefinitions& DefaultCommandLineArgumentDefinit
         {
             definitions.Add("Profile", {}, "Enable collection of profiling data for functions that opt in using HYP_SCOPE.", CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
             definitions.Add("TraceURL", {}, "The endpoint url that profiling data will be submitted to (this url will have /start appended to it to start the session and /results to add results)", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
+            definitions.Add("BaseDir", {}, "Base directory for content (e.g Data/, Packages/, ...)", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
             definitions.Add("ResX", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::INTEGER);
             definitions.Add("ResY", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::INTEGER);
             definitions.Add("Headless", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
@@ -118,25 +157,25 @@ CORE_API const CommandLineArgumentDefinitions& DefaultCommandLineArgumentDefinit
             definitions.Add("exec", "", "Execute the commandlet with the given name immediately following --exec. The program will end immediately after running the commandlet and return 0 upon success or otherwise on failure", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
 
             definitions.Add("RenderOnMainThread",
-                {},
-                "Run rendering on the main thread instead of using dedicated render thread.",
-                CommandLineArgumentFlags::NONE,
-                CommandLineArgumentType::BOOLEAN,
-                false);
+                            {},
+                            "Run rendering on the main thread instead of using dedicated render thread.",
+                            CommandLineArgumentFlags::NONE,
+                            CommandLineArgumentType::BOOLEAN,
+                            false);
 
             definitions.Add("SimulateOnMainThread",
-                {},
-                "Simulate game logic on the main thread. Not compatible with -RenderOnMainThread.",
-                CommandLineArgumentFlags::NONE,
-                CommandLineArgumentType::BOOLEAN,
-                true);
+                            {},
+                            "Simulate game logic on the main thread. Not compatible with -RenderOnMainThread.",
+                            CommandLineArgumentFlags::NONE,
+                            CommandLineArgumentType::BOOLEAN,
+                            true);
 
             definitions.Add("DedicatedVisThread",
-                {},
-                "Use a dedicated thread for setting visibility states. If set to false, visibility will be computed on the simulation thread during normal frame processing.",
-                CommandLineArgumentFlags::NONE,
-                CommandLineArgumentType::BOOLEAN,
-                false);
+                            {},
+                            "Use a dedicated thread for setting visibility states. If set to false, visibility will be computed on the simulation thread during normal frame processing.",
+                            CommandLineArgumentFlags::NONE,
+                            CommandLineArgumentType::BOOLEAN,
+                            false);
 
             definitions.Add("Mode", "m", {}, CommandLineArgumentFlags::NONE, Array<String> { "precompile_shaders", "editor" }, String("editor"));
         }

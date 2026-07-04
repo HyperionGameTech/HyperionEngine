@@ -60,7 +60,7 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(Console);
 extern Handle<EditorState> g_editorState;
 
 namespace CoreApi {
-CORE_API extern FilePath GetExecutablePath();
+CORE_API extern const FilePath& GetExecutablePath();
 } // namespace CoreApi
 
 ENGINE_API extern const FilePath& GetProjectsDirectory();
@@ -179,37 +179,36 @@ public:
                     return;
                 }
 
-                GetThreadById(g_simThread)->GetScheduler().Enqueue(
-                    [weakSubsystem = std::move(weakSubsystem), projectFilepath = std::move(result.GetValue()[0])]() mutable
-                    {
-                        Handle<EditorSubsystem> subsystem = weakSubsystem.Lock();
-                        if (!subsystem)
-                        {
-                            HYP_LOG(Editor, Error, "Failed to lock EditorSubsystem from weak reference in ShowOpenProjectDialog");
-                            return;
-                        }
+                GetThreadById(g_simThread)->GetScheduler().Enqueue([weakSubsystem = std::move(weakSubsystem), projectFilepath = std::move(result.GetValue()[0])]() mutable
+                                                                   {
+                                                                       Handle<EditorSubsystem> subsystem = weakSubsystem.Lock();
+                                                                       if (!subsystem)
+                                                                       {
+                                                                           HYP_LOG(Editor, Error, "Failed to lock EditorSubsystem from weak reference in ShowOpenProjectDialog");
+                                                                           return;
+                                                                       }
 
-                        subsystem->CloseProject();
+                                                                       subsystem->CloseProject();
 
-                        TResult<Handle<EditorProject>> loadProjectResult = EditorProject::Load(projectFilepath);
+                                                                       TResult<Handle<EditorProject>> loadProjectResult = EditorProject::Load(projectFilepath);
 
-                        if (loadProjectResult.HasError())
-                        {
-                            HYP_LOG(Editor, Error, "Failed to load project: {}", loadProjectResult.GetError().GetMessage());
-                            return;
-                        }
+                                                                       if (loadProjectResult.HasError())
+                                                                       {
+                                                                           HYP_LOG(Editor, Error, "Failed to load project: {}", loadProjectResult.GetError().GetMessage());
+                                                                           return;
+                                                                       }
 
-                        Handle<EditorProject> project = loadProjectResult.GetValue();
+                                                                       Handle<EditorProject> project = loadProjectResult.GetValue();
 
-                        if (!project.IsValid())
-                        {
-                            HYP_LOG(Editor, Error, "Loaded project is invalid.");
-                            return;
-                        }
+                                                                       if (!project.IsValid())
+                                                                       {
+                                                                           HYP_LOG(Editor, Error, "Loaded project is invalid.");
+                                                                           return;
+                                                                       }
 
-                        subsystem->OpenProject(project);
-                    },
-                    TaskEnqueueFlags::FIRE_AND_FORGET);
+                                                                       subsystem->OpenProject(project);
+                                                                   },
+                                                                   TaskEnqueueFlags::FIRE_AND_FORGET);
             });
     }
 };
@@ -309,30 +308,29 @@ public:
                         selectedPath = selectedPath.BasePath();
                     }
 
-                    GetThreadById(g_simThread)->GetScheduler().Enqueue(
-                        [weakSubsystem = std::move(weakSubsystem), selectedPath = std::move(selectedPath)]() mutable
-                        {
-                            Handle<EditorSubsystem> subsystem = weakSubsystem.Lock();
-                            if (!subsystem)
-                            {
-                                HYP_LOG(Editor, Error, "Failed to lock EditorSubsystem from weak reference in ShowSaveProjectDialog");
-                                return;
-                            }
+                    GetThreadById(g_simThread)->GetScheduler().Enqueue([weakSubsystem = std::move(weakSubsystem), selectedPath = std::move(selectedPath)]() mutable
+                                                                       {
+                                                                           Handle<EditorSubsystem> subsystem = weakSubsystem.Lock();
+                                                                           if (!subsystem)
+                                                                           {
+                                                                               HYP_LOG(Editor, Error, "Failed to lock EditorSubsystem from weak reference in ShowSaveProjectDialog");
+                                                                               return;
+                                                                           }
 
-                            EditorProject* project = subsystem->GetCurrentProject();
-                            if (!project)
-                            {
-                                HYP_LOG(Editor, Error, "No current project in EditorSubsystem; cannot save project as.");
-                                return;
-                            }
+                                                                           EditorProject* project = subsystem->GetCurrentProject();
+                                                                           if (!project)
+                                                                           {
+                                                                               HYP_LOG(Editor, Error, "No current project in EditorSubsystem; cannot save project as.");
+                                                                               return;
+                                                                           }
 
-                            Result saveResult = project->SaveAs(selectedPath);
-                            if (!saveResult)
-                            {
-                                HYP_LOG(Editor, Error, "Failed to save project as '{}': {}", selectedPath, saveResult.GetError().GetMessage());
-                            }
-                        },
-                        TaskEnqueueFlags::FIRE_AND_FORGET);
+                                                                           Result saveResult = project->SaveAs(selectedPath);
+                                                                           if (!saveResult)
+                                                                           {
+                                                                               HYP_LOG(Editor, Error, "Failed to save project as '{}': {}", selectedPath, saveResult.GetError().GetMessage());
+                                                                           }
+                                                                       },
+                                                                       TaskEnqueueFlags::FIRE_AND_FORGET);
                 });
         }
     }
@@ -1926,7 +1924,7 @@ public:
 
             shouldCreateFile = false;
         }
-        
+
         FilePath scriptFilePath;
 
         if (shouldCreateFile)
@@ -1942,15 +1940,15 @@ public:
 
         if (shouldCreateFile)
         {
-            static constexpr const char ScriptTemplateCode[] = "import Lib.*\n\n" \
-                "func OnAdded(entity : Entity)\n" \
-                "    // Called when added to the scene, entity is the target this script is attached to.\n" \
-                "end\n" \
-                "\n" \
-                "func Update(deltaTime : float)\n" \
-                "    // This gets called each frame when the script is active.\n" \
-                "end\n" \
-                "\n";
+            static constexpr const char ScriptTemplateCode[] = "import Lib.*\n\n"
+                                                               "func OnAdded(entity : Entity)\n"
+                                                               "    // Called when added to the scene, entity is the target this script is attached to.\n"
+                                                               "end\n"
+                                                               "\n"
+                                                               "func Update(deltaTime : float)\n"
+                                                               "    // This gets called each frame when the script is active.\n"
+                                                               "end\n"
+                                                               "\n";
 
             FileByteWriter writer { scriptFilePath };
             writer.WriteString(ScriptTemplateCode);
@@ -1970,7 +1968,6 @@ public:
 
         Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(Name::Unique("NewScript"), ScriptDesc());
         InitObject(scriptAsset);
-
 
         // scriptAsset->SetSourceCode(HYP_FORMAT("// {}\n\nexport func Update(DeltaTime : float)\nend\n", scriptAsset->GetName()));
 

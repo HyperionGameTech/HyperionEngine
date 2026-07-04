@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <AssetPch.hpp>
 
@@ -45,7 +45,7 @@
 namespace Hyperion {
 
 namespace CoreApi {
-CORE_API extern FilePath GetExecutablePath();
+CORE_API extern const FilePath& GetExecutablePath();
 CORE_API extern HYP_NODISCARD FilePath CreateTempDirectory();
 CORE_API extern const GlobalConfig& GetGlobalConfig();
 } // namespace CoreApi
@@ -61,7 +61,6 @@ static Handle<AssetRegistry> s_engineAssetRegistry;
 #if HYP_EDITOR
 static Handle<AssetRegistry> s_editorAssetRegistry;
 #endif // HYP_EDITOR
-
 
 static Mutex& GetCurrentAssetRegistryMutex()
 {
@@ -308,7 +307,7 @@ static Result ReadManifest(ByteReader& stream, const FilePath& manifestPath, JSO
     if (!manifestJson.IsObject())
     {
         return HYP_MAKE_ERROR(Error, "Manifest JSON at path {} is not a valid JSON object:\n{}",
-            manifestPath, manifestJson.ToString(true));
+                              manifestPath, manifestJson.ToString(true));
     }
 
     outManifestData = std::move(manifestJson.AsObject());
@@ -764,7 +763,6 @@ void AssetRegistry::SetRootPath(const FilePath& rootPath)
 
     // @TODO - Move blob storage data?
 
-
     m_rootPath = rootPath;
 }
 
@@ -843,7 +841,7 @@ Handle<AssetObject> AssetRegistry::GetAsset(const AssetBucket& bucket, StringHas
 
     InitObject(assetObject);
     assetObject->OnLoaded();
-    
+
     AssertDebug(assetObject->m_assetIndex != AssetDesc::InvalidIndex);
 
     return assetObject;
@@ -861,7 +859,7 @@ void AssetRegistry::MarkAssetDirty(const AssetObject& assetObject)
     if (!assetPath.IsValid())
     {
         HYP_LOG(Assets, Warning, "Attempted to mark asset '{}' dirty, but it does not have a valid asset path",
-            assetObject.GetName());
+                assetObject.GetName());
 
         return;
     }
@@ -871,7 +869,7 @@ void AssetRegistry::MarkAssetDirty(const AssetObject& assetObject)
     if (bucket == AssetBuckets::None)
     {
         HYP_LOG(Assets, Warning, "Attempted to mark asset '{}' dirty, but it does not have a valid bucket",
-            assetObject.GetName());
+                assetObject.GetName());
 
         return;
     }
@@ -1063,7 +1061,7 @@ void AssetRegistry::PutAssetsDeep(const Handle<AssetObject>& targetAsset)
             if (object && !visited.Insert(object).second)
             {
                 HYP_LOG(Assets, Verbose, "Already visited {} with ID {}, skipping to avoid infinite recursion",
-                    object->InstanceClass() ? *object->InstanceClass()->GetName() : "<no class>", object->Id());
+                        object->InstanceClass() ? *object->InstanceClass()->GetName() : "<no class>", object->Id());
 
                 return;
             }
@@ -1246,11 +1244,11 @@ void AssetRegistry::PutAssetsDeep(const Handle<AssetObject>& targetAsset)
         {
             if (assetObject->m_assetIndex == AssetDesc::InvalidIndex)
             {
-                //if (assetObject->GetPath().IsValid())
+                // if (assetObject->GetPath().IsValid())
                 //{
-                    PutAsset(assetObject);
+                PutAsset(assetObject);
                 //}
-                //else
+                // else
                 //{
                 //    PutAssetUnique(assetObject);
                 //}
@@ -1399,7 +1397,7 @@ void AssetRegistry::LoadAssetDescs()
                 if (data.assetDescs.Contains(assetDesc.name))
                 {
                     HYP_LOG(Assets, Verbose, "Asset '{}' already present in bucket '{}', skipping",
-                        assetDesc.name, bucket->GetName());
+                            assetDesc.name, bucket->GetName());
 
                     continue;
                 }
@@ -1519,7 +1517,7 @@ void AssetRegistry::SaveDirtyAssets()
 
         for (AssetObject* assetObject : dirtyAssets)
         {
-            //auto readScope = assetObject->GetReadScope();
+            // auto readScope = assetObject->GetReadScope();
 
             const Name assetName = assetObject->GetName();
             AssertDebug(assetName.IsValid());
@@ -1534,7 +1532,7 @@ void AssetRegistry::SaveDirtyAssets()
             if (Result saveBlobResult = assetObject->SaveBlobData(blobStorage, bucketDir); saveBlobResult.HasError())
             {
                 HYP_LOG(Assets, Warning, "Failed to save blob data for asset '{}' in bucket '{}': {}",
-                    assetName, bucketName, saveBlobResult.GetError().GetMessage());
+                        assetName, bucketName, saveBlobResult.GetError().GetMessage());
 
                 continue;
             }
@@ -1551,7 +1549,7 @@ void AssetRegistry::SaveDirtyAssets()
                 if (Result saveManifestResult = assetObject->SaveManifest(manifestWriter); saveManifestResult.HasError())
                 {
                     HYP_LOG(Assets, Warning, "Failed to save manifest for asset '{}' in bucket '{}': {}",
-                        assetName, bucketName, saveManifestResult.GetError().GetMessage());
+                            assetName, bucketName, saveManifestResult.GetError().GetMessage());
                     continue;
                 }
 
@@ -1562,7 +1560,6 @@ void AssetRegistry::SaveDirtyAssets()
         }
     }
 }
-
 
 void AssetRegistry::RemoveCached()
 {
@@ -1633,8 +1630,7 @@ void AssetRegistry::InitBlobStorage(const FilePath& blobStorageDir)
 
     Assert(blobStorageDir.Exists(), "Blob storage directory '{}' does not exist", blobStorageDir);
 
-    const uint64 s_blobStoragePageSize = CoreApi::GetGlobalConfig().Get("App.Cache.PageSize")
-        .ToUInt64(/* defaultValue */ BlobStorage::DefaultPageSize);
+    const uint64 s_blobStoragePageSize = CoreApi::GetGlobalConfig().Get("App.Cache.PageSize").ToUInt64(/* defaultValue */ BlobStorage::DefaultPageSize);
 
     m_blobStorage = new BlobStorage(blobStorageDir, s_blobStoragePageSize);
 }
@@ -1647,14 +1643,14 @@ void AssetRegistry::Update()
 #if HYP_EDITOR
     if (!m_pruneTimer.Waiting())
     {
-       m_pruneTimer.NextTick();
+        m_pruneTimer.NextTick();
 
-       // @TODO
+        // @TODO
     }
 
-    //if (!m_saveBlobCacheTimer.Waiting())
+    // if (!m_saveBlobCacheTimer.Waiting())
     //{
-    //    m_saveBlobCacheTimer.NextTick();
+    //     m_saveBlobCacheTimer.NextTick();
 
     //    SaveBlobCache(/* async */ true);
     //}
@@ -1706,18 +1702,18 @@ void AssetRegistry::PostTask(Func&& fn, Task<FutureType>* pOutFuture)
         *pOutFuture = Task<FutureType>();
 
         m_scheduler->Enqueue([promise = pOutFuture->Promise(), fn = std::forward<Func>(fn)]() mutable
-            {
-                if constexpr (std::is_void_v<FutureType>)
-                {
-                    fn();
-                    promise->Fulfill();
-                }
-                else
-                {
-                    promise->Fulfill(fn());
-                }
-            },
-            TaskEnqueueFlags::FIRE_AND_FORGET);
+                             {
+                                 if constexpr (std::is_void_v<FutureType>)
+                                 {
+                                     fn();
+                                     promise->Fulfill();
+                                 }
+                                 else
+                                 {
+                                     promise->Fulfill(fn());
+                                 }
+                             },
+                             TaskEnqueueFlags::FIRE_AND_FORGET);
     }
     else
     {

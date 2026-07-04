@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <AssetPch.hpp>
 
@@ -16,7 +16,7 @@ namespace Hyperion {
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Assets);
 
 namespace CoreApi {
-CORE_API extern FilePath GetExecutablePath();
+CORE_API extern const FilePath& GetExecutablePath();
 } // namespace CoreApi
 
 ENGINE_API void OnPostLoad_Impl(const Class* cls, void* objectPtr)

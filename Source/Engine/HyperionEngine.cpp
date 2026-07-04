@@ -243,12 +243,6 @@ HYP_EXPORT const FilePath& GetDataDirectory()
     return s_dataDirectory.path;
 }
 
-HYP_EXPORT const FilePath& GetConfigDirectory()
-{
-    static DirectoryInitializer<HYP_STATIC_STRING("Config"), /* RelativeToExecutablePath */ false> s_configDirectory;
-    return s_configDirectory.path;
-}
-
 #if HYP_DOTNET
 static InitFromManagedCallback s_initFromManagedCallback = nullptr;
 #endif
@@ -344,7 +338,6 @@ extern "C"
 #endif
 
         CoreApi::SetExecutablePath(basePath);
-        CoreApi::SetConfigDirectory(GetConfigDirectory());
 
         if (!CoreApi::Initialize(argc, argv))
         {
