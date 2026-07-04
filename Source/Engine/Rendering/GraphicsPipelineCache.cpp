@@ -156,7 +156,7 @@ public:
 
             return true;
         }
-        
+
         return false;
     }
 
@@ -365,11 +365,17 @@ GraphicsPipelineCache::~GraphicsPipelineCache()
 void GraphicsPipelineCache::GetOrCreate(
     RenderableAttributeSet& inOutAttributes,
     const FramebufferDesc& framebufferDesc,
+    uint8 stencilWriteMask,
+    uint8 stencilCompareMask,
     GraphicsPipelineCacheHandle& outCacheHandle)
 {
     HYP_SCOPE;
 
-    GraphicsPipelineCacheHandle cacheHandle = FindGraphicsPipeline(inOutAttributes, framebufferDesc);
+    GraphicsPipelineCacheHandle cacheHandle = FindGraphicsPipeline(
+        inOutAttributes,
+        framebufferDesc,
+        stencilWriteMask,
+        stencilCompareMask);
 
     if (cacheHandle.IsAlive())
     {
@@ -410,7 +416,9 @@ void GraphicsPipelineCache::GetOrCreate(
     GraphicsPipelineRef graphicsPipeline = RI.MakeGraphicsPipeline(
         shader,
         framebufferDesc,
-        inOutAttributes);
+        inOutAttributes,
+        stencilWriteMask,
+        stencilCompareMask);
 
     TUniqueLock guard(m_mutex);
 
@@ -457,7 +465,9 @@ void GraphicsPipelineCache::GetOrCreate(
 
 GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
     const RenderableAttributeSet& attributes,
-    const FramebufferDesc& framebufferDesc)
+    const FramebufferDesc& framebufferDesc,
+    uint8 stencilWriteMask,
+    uint8 stencilCompareMask)
 {
     HYP_SCOPE;
 
@@ -484,7 +494,7 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
     {
         Assert(pPipeline != nullptr);
 
-        if ((*pPipeline)->MatchesSignature(attributes, framebufferDesc))
+        if ((*pPipeline)->MatchesSignature(attributes, framebufferDesc, stencilWriteMask, stencilCompareMask))
         {
 #if HYP_GRAPHICS_PIPELINE_TIMING_DEBUG
             HYP_LOG(Rendering, Verbose, "GraphicsPipelineCache cache hit ({}) ({} ms)", attributes.GetHashCode().Value(), clock.ElapsedMs());

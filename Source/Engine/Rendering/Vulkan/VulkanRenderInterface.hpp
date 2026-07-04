@@ -129,7 +129,9 @@ public:
     VulkanGraphicsPipelineRef MakeGraphicsPipeline(
         const VulkanShaderInstanceRef& shaderInstance,
         const FramebufferDesc& framebufferDesc,
-        const RenderableAttributeSet& attributes) override;
+        const RenderableAttributeSet& attributes,
+        uint8 stencilWriteMask,
+        uint8 stencilCompareMask) override;
 
     VulkanComputePipelineRef MakeComputePipeline(const VulkanShaderInstanceRef& shaderInstance) override;
 

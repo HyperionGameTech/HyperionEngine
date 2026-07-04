@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <DX12Pch.hpp>
 
@@ -32,27 +32,6 @@ namespace Hyperion {
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
 extern DX12RenderInterface RI;
-
-static D3D12_DEPTH_STENCIL_DESC GetDefaultDepthStencilDesc(DepthCompareOp depthCompareOp = DCO_LESS)
-{
-    D3D12_DEPTH_STENCIL_DESC desc {};
-    desc.DepthEnable = TRUE;
-    desc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-    desc.DepthFunc = ToDX12DepthCompareOp(depthCompareOp);
-    desc.StencilEnable = FALSE;
-    desc.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
-    desc.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
-
-    desc.FrontFace = {
-        D3D12_STENCIL_OP_KEEP,
-        D3D12_STENCIL_OP_KEEP,
-        D3D12_STENCIL_OP_KEEP,
-        D3D12_COMPARISON_FUNC_ALWAYS
-    };
-    desc.BackFace = desc.FrontFace;
-
-    return desc;
-}
 
 void DX12GraphicsPipeline::BuildVertexAttributes(
     Array<D3D12_INPUT_ELEMENT_DESC>& outInputElementDescs,
@@ -296,15 +275,20 @@ RendererResult DX12GraphicsPipeline::Rebuild()
     psoDesc.RasterizerState.SlopeScaledDepthBias = m_depthBiasSlope;
     psoDesc.RasterizerState.DepthClipEnable = m_depthClamp ? FALSE : TRUE;
 
-    psoDesc.DepthStencilState = GetDefaultDepthStencilDesc(m_depthCompareOp);
+    psoDesc.DepthStencilState = {};
+    psoDesc.DepthStencilState.DepthFunc = ToDX12DepthCompareOp(m_depthCompareOp);
     psoDesc.DepthStencilState.DepthEnable = m_depthTest;
     psoDesc.DepthStencilState.DepthWriteMask = m_depthWrite ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
+
+    psoDesc.DepthStencilState.StencilEnable = FALSE;
+    psoDesc.DepthStencilState.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
+    psoDesc.DepthStencilState.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
 
     if (m_stencilFunction.HasValue())
     {
         psoDesc.DepthStencilState.StencilEnable = TRUE;
-        psoDesc.DepthStencilState.StencilReadMask = 0xFF;
-        psoDesc.DepthStencilState.StencilWriteMask = 0xFF;
+        psoDesc.DepthStencilState.StencilReadMask = m_stencilCompareMask;
+        psoDesc.DepthStencilState.StencilWriteMask = m_stencilWriteMask;
 
         D3D12_DEPTH_STENCILOP_DESC stencilOp {};
         stencilOp.StencilFailOp = ToDX12StencilOp(m_stencilFunction->failOp);
@@ -376,8 +360,7 @@ RendererResult DX12GraphicsPipeline::Rebuild()
     HRESULT res = RI.GetDevice()->CreateGraphicsPipelineState(
         &psoDesc,
         __uuidof(ID3D12PipelineState),
-        &m_pipelineState
-    );
+        &m_pipelineState);
 #ifdef HYP_RHI_DEBUG_NAMES
     if (FAILED(res))
     {
@@ -507,24 +490,27 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
         }
 
         std::sort(viewRanges.Begin(), viewRanges.End(),
-            [](const D3D12_DESCRIPTOR_RANGE& a, const D3D12_DESCRIPTOR_RANGE& b) {
-                if (a.RangeType != b.RangeType)
-                {
-                    return a.RangeType < b.RangeType;
-                }
-                return a.BaseShaderRegister < b.BaseShaderRegister;
-            });
+                  [](const D3D12_DESCRIPTOR_RANGE& a, const D3D12_DESCRIPTOR_RANGE& b)
+                  {
+                      if (a.RangeType != b.RangeType)
+                      {
+                          return a.RangeType < b.RangeType;
+                      }
+                      return a.BaseShaderRegister < b.BaseShaderRegister;
+                  });
 
         std::sort(samplerRanges.Begin(), samplerRanges.End(),
-            [](const D3D12_DESCRIPTOR_RANGE& a, const D3D12_DESCRIPTOR_RANGE& b) {
-                return a.BaseShaderRegister < b.BaseShaderRegister;
-            });
+                  [](const D3D12_DESCRIPTOR_RANGE& a, const D3D12_DESCRIPTOR_RANGE& b)
+                  {
+                      return a.BaseShaderRegister < b.BaseShaderRegister;
+                  });
 
         // Sort dynamic declarations by flat index to match DescriptorSetLayout::GetDynamicElements() order
         std::sort(dynamicDeclarations.Begin(), dynamicDeclarations.End(),
-            [pSetDecl](const ShaderInput* a, const ShaderInput* b) {
-                return pSetDecl->CalculateFlatIndex(a->slot, a->name) < pSetDecl->CalculateFlatIndex(b->slot, b->name);
-            });
+                  [pSetDecl](const ShaderInput* a, const ShaderInput* b)
+                  {
+                      return pSetDecl->CalculateFlatIndex(a->slot, a->name) < pSetDecl->CalculateFlatIndex(b->slot, b->name);
+                  });
 
         DescriptorSetRootIndices& rootIndices = m_descriptorSetRootIndices[setDecl.setIndex];
         rootIndices.viewRootIndex = ~0u;
@@ -539,8 +525,8 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
             const D3D12_ROOT_PARAMETER_TYPE rootParamType = descDecl.type == ShaderInputType::CBV_Dynamic
                 ? D3D12_ROOT_PARAMETER_TYPE_CBV
                 : descDecl.type == ShaderInputType::UAV_Dynamic
-                    ? D3D12_ROOT_PARAMETER_TYPE_UAV
-                    : D3D12_ROOT_PARAMETER_TYPE_SRV;
+                ? D3D12_ROOT_PARAMETER_TYPE_UAV
+                : D3D12_ROOT_PARAMETER_TYPE_SRV;
 
             D3D12_ROOT_PARAMETER& param = rootParams.EmplaceBack();
             param = {};

@@ -94,7 +94,7 @@ public:
         rayTracing = renderBackend->GetDevice()->GetFeatures().IsRayTracingSupported();
         timelineSemaphores = cfg.Get("Rendering.Vulkan.TimelineSemaphores").ToBool(/* defaultValue */ false);
         dynamicDescriptorIndexing = renderBackend->GetDevice()->GetFeatures().SupportsDynamicDescriptorIndexing();
-        
+
 #if !HYP_ANDROID && !HYP_IOS
         indirectRendering = cfg.Get("Rendering.IndirectRendering").ToBool(/* defaultValue */ true);
         parallelRendering = cfg.Get("Rendering.ParallelRendering").ToBool(/* defaultValue */ true);
@@ -419,7 +419,10 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VulkanDescriptor
     }
 
     Array<VkDescriptorPoolSize, VulkanTempAllocator> descriptorPoolSizes = {
-        { VK_DESCRIPTOR_TYPE_SAMPLER, 1000, },
+        {
+            VK_DESCRIPTOR_TYPE_SAMPLER,
+            1000,
+        },
         { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, (reqs & VDPR_BindlessTextures) ? MaxBindlessResources[BindlessStorage_Textures] : 1000 },
         { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
@@ -1197,7 +1200,9 @@ VulkanDescriptorTableRef VulkanRenderInterface::MakeDescriptorTable(const Shader
 VulkanGraphicsPipelineRef VulkanRenderInterface::MakeGraphicsPipeline(
     const VulkanShaderInstanceRef& shaderInstance,
     const FramebufferDesc& framebufferDesc,
-    const RenderableAttributeSet& attributes)
+    const RenderableAttributeSet& attributes,
+    uint8 stencilWriteMask,
+    uint8 stencilCompareMask)
 {
     VulkanGraphicsPipelineRef pipeline = MakeHandle<VulkanGraphicsPipeline>();
 
@@ -1216,6 +1221,7 @@ VulkanGraphicsPipelineRef VulkanRenderInterface::MakeGraphicsPipeline(
     pipeline->SetCullMode(attributes.GetMaterialAttributes().cullFaces);
     pipeline->SetFillMode(attributes.GetMaterialAttributes().fillMode);
     pipeline->SetBlendFunction(attributes.GetMaterialAttributes().blendFunction);
+
     pipeline->SetDepthTest(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST));
     pipeline->SetDepthWrite(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE));
     pipeline->SetDepthCompareOp(attributes.GetMaterialAttributes().depthCompareOp);
@@ -1230,6 +1236,8 @@ VulkanGraphicsPipelineRef VulkanRenderInterface::MakeGraphicsPipeline(
     if (attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST)
     {
         pipeline->SetStencilFunction(attributes.GetMaterialAttributes().stencilFunction);
+        pipeline->SetStencilWriteMask(stencilWriteMask);
+        pipeline->SetStencilCompareMask(stencilCompareMask);
     }
 
     // for materials that write a stencil reference value

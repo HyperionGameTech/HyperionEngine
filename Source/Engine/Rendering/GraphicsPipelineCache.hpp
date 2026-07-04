@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -101,6 +101,8 @@ public:
     void GetOrCreate(
         RenderableAttributeSet& inOutAttributes,
         const FramebufferDesc& framebufferDesc,
+        uint8 stencilWriteMask,
+        uint8 stencilCompareMask,
         GraphicsPipelineCacheHandle& outCacheHandle);
 
     void ExpirePipelinesForShader(const Shader* shader);
@@ -110,7 +112,9 @@ public:
 private:
     GraphicsPipelineCacheHandle FindGraphicsPipeline(
         const RenderableAttributeSet& attributes,
-        const FramebufferDesc& framebufferDesc);
+        const FramebufferDesc& framebufferDesc,
+        uint8 stencilWriteMask,
+        uint8 stencilCompareMask);
 
     CachedPipelinesMap* m_cachedPipelines;
     SharedMutex m_mutex;

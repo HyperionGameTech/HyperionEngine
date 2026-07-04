@@ -84,14 +84,14 @@ static TResult<FilePath> ResultFromHResult(HRESULT hr)
     }
 }
 
-static void BuildFilterBuffer(Span<const ANSIStringView> extensions, MemoryByteWriter& filterBufferWriter)
+static void BuildFilterBuffer(Span<const ANSIStringView> extensions, MemoryByteWriter<DynamicAllocator>& filterBufferWriter)
 {
-    auto WriteWideString = [&](const WideString& str)
+    auto writeWideString = [&](WideStringView sv)
     {
-        filterBufferWriter.Write(str.Data(), str.Size() * sizeof(wchar_t));
+        filterBufferWriter.Write(sv.Data(), sv.Size() * sizeof(wchar_t));
     };
 
-    auto WriteNullTerminator = [&]()
+    auto writeNullTerminator = [&]()
     {
         filterBufferWriter.Write(L'\0');
     };
@@ -112,22 +112,22 @@ static void BuildFilterBuffer(Span<const ANSIStringView> extensions, MemoryByteW
 
         WideString displayName = L"Supported Files (" + patternString + L")";
 
-        WriteWideString(displayName);
-        WriteNullTerminator();
-        WriteWideString(patternString);
-        WriteNullTerminator();
+        writeWideString(displayName);
+        writeNullTerminator();
+        writeWideString(patternString);
+        writeNullTerminator();
     }
 
     static const WideString s_allFilesDisplay = L"All Files (*.*)";
     static const WideString s_allFilesPattern = L"*.*";
 
-    WriteWideString(s_allFilesDisplay);
-    WriteNullTerminator();
-    WriteWideString(s_allFilesPattern);
-    WriteNullTerminator();
+    writeWideString(s_allFilesDisplay);
+    writeNullTerminator();
+    writeWideString(s_allFilesPattern);
+    writeNullTerminator();
 
     // Double-null terminator required by Windows to signal the end of the filter list
-    WriteNullTerminator();
+    writeNullTerminator();
 }
 
 thread_local bool t_isCOMInitialized = false;

@@ -80,6 +80,11 @@ public:
 
     static bool CanDynamicallySetDepthState();
 
+    static bool CanDynamicallySetStencilMasks()
+    {
+        return true;
+    }
+
 private:
     RendererResult Rebuild() override;
 

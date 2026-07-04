@@ -56,7 +56,7 @@ void TCommandRecorder<RenderAllocator>::Prepare(Frame* frame)
 
         CmdBase* cmdDataPtr = reinterpret_cast<CmdBase*>(m_buffer.Data() + header.offset);
         AssertDebug(header.offset < m_buffer.Size(), "Header has offset {} which is greater or equal to the buffer's size ({})",
-            header.offset, m_buffer.Size());
+                    header.offset, m_buffer.Size());
 
         if (header.prepareFnPtr != nullptr)
         {
@@ -73,9 +73,9 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
     for (size_t i = 0; i < m_headerCount; i++)
     {
         CmdHeader& header = m_headersPtr[i];
-        
+
         AssertDebug(header.offset < m_buffer.Size(), "Header has offset {} which is greater or equal to the buffer's size ({})",
-            header.offset, m_buffer.Size());
+                    header.offset, m_buffer.Size());
 
         CmdBase* cmdDataPtr = reinterpret_cast<CmdBase*>(m_buffer.Data() + header.offset);
 
@@ -1127,7 +1127,7 @@ void SetStencilState::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         state.dirtyUniforms |= (state.validUniforms | state.dirtyBufferOffsets);
         state.validUniforms = 0;
 
-        Memory::Fill(state.prevBoundDescriptorSets, 0, sizeof(state.prevBoundDescriptorSets));
+        Memory::Zero(state.prevBoundDescriptorSets, sizeof(state.prevBoundDescriptorSets));
     }
 
     static_assert(std::is_trivially_destructible_v<SetStencilState>);

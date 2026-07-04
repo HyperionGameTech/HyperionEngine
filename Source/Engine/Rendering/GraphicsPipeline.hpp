@@ -204,6 +204,26 @@ public:
         m_stencilWrite = stencilWrite;
     }
 
+    HYP_FORCE_INLINE uint8 GetStencilWriteMask() const
+    {
+        return m_stencilWriteMask;
+    }
+
+    HYP_FORCE_INLINE void SetStencilWriteMask(uint8 stencilWriteMask)
+    {
+        m_stencilWriteMask = stencilWriteMask;
+    }
+
+    HYP_FORCE_INLINE uint8 GetStencilCompareMask() const
+    {
+        return m_stencilCompareMask;
+    }
+
+    HYP_FORCE_INLINE void SetStencilCompareMask(uint8 stencilCompareMask)
+    {
+        m_stencilCompareMask = stencilCompareMask;
+    }
+
     HYP_FORCE_INLINE const ShaderInstanceRef& GetShader() const
     {
         return m_shaderInstance;
@@ -251,7 +271,9 @@ public:
 
     bool MatchesSignature(
         const RenderableAttributeSet& attributes,
-        const FramebufferDesc& framebufferDesc) const;
+        const FramebufferDesc& framebufferDesc,
+        uint8 stencilWriteMask,
+        uint8 stencilCompareMask) const;
 
     virtual void UpdateDynamicStates(CommandBuffer* cmd)
     {
@@ -287,6 +309,8 @@ protected:
     DepthCompareOp m_depthCompareOp = DCO_LESS;
 
     Optional<StencilFunction> m_stencilFunction;
+    uint8 m_stencilWriteMask = 0;
+    uint8 m_stencilCompareMask = 0;
 
     int m_depthBias = 0;
     float m_depthBiasSlope = 0.0f;

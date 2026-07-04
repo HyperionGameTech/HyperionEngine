@@ -670,7 +670,7 @@ RendererResult RenderInterface::Initialize()
         if (!sbuffer.cpuBuffer.Empty())
         {
             sbuffer.Initialize();
-            
+
 #ifdef HYP_RHI_DEBUG_NAMES
             AssertDebug(sbuffer.gpuBuffer != nullptr);
             sbuffer.gpuBuffer->SetDebugName(CreateNameFromDynamicString(NamedBuffer::StringValues[namedBufferIndex]));
@@ -1372,9 +1372,12 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
         GraphicsPipeline* pipeline = nullptr;
 
-        if (!state.boundGraphicsPipeline
-            || state.boundShaderDesc.properties != state.attributes.GetShaderProperties()
-            || !state.boundGraphicsPipeline->MatchesSignature(state.attributes, state.framebuffer->GetFramebufferDesc()))
+        if (!state.boundGraphicsPipeline || state.boundShaderDesc.properties != state.attributes.GetShaderProperties()
+            || !state.boundGraphicsPipeline->MatchesSignature(
+                state.attributes,
+                state.framebuffer->GetFramebufferDesc(),
+                state.stencilWriteMask,
+                state.stencilCompareMask))
         {
             AssertDebug(state.attributes.GetMeshAttributes().inputLayout.mask != 0,
                         "Input layout cannot be empty for graphics pipeline");
@@ -1382,6 +1385,8 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             graphicsPipelineCache->GetOrCreate(
                 state.attributes,
                 state.framebuffer->GetFramebufferDesc(),
+                state.stencilWriteMask,
+                state.stencilCompareMask,
                 cacheHandle);
 
             AssertDebug(cacheHandle.IsAlive());

@@ -137,15 +137,25 @@ void VulkanGraphicsPipeline::UpdateDynamicStates(VulkanCommandBuffer* commandBuf
 
     if (m_stencilFunction.HasValue())
     {
-        vkCmdSetStencilCompareMask(
-            commandBuffer->GetVulkanHandle(),
-            VK_STENCIL_FRONT_AND_BACK,
-            RI.state.stencilCompareMask);
+        if (!onlyChanged || RI.state.stencilCompareMask != m_stencilCompareMask)
+        {
+            vkCmdSetStencilCompareMask(
+                commandBuffer->GetVulkanHandle(),
+                VK_STENCIL_FRONT_AND_BACK,
+                RI.state.stencilCompareMask);
 
-        vkCmdSetStencilWriteMask(
-            commandBuffer->GetVulkanHandle(),
-            VK_STENCIL_FRONT_AND_BACK,
-            RI.state.stencilWriteMask);
+            m_stencilCompareMask = RI.state.stencilCompareMask;
+        }
+
+        if (!onlyChanged || RI.state.stencilWriteMask != m_stencilWriteMask)
+        {
+            vkCmdSetStencilWriteMask(
+                commandBuffer->GetVulkanHandle(),
+                VK_STENCIL_FRONT_AND_BACK,
+                RI.state.stencilWriteMask);
+
+            m_stencilWriteMask = RI.state.stencilWriteMask;
+        }
     }
 
     if (m_dynamicStates.Contains(VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE))
@@ -586,8 +596,7 @@ void VulkanGraphicsPipeline::BuildVertexAttributes(
         outVkVertexBindingDescriptions.PushBack(VkVertexInputBindingDescription {
             .binding = it.first,
             .stride = it.second,
-            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
-        });
+            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX });
     }
 }
 

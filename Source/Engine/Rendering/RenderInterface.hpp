@@ -349,7 +349,9 @@ public:
     virtual GraphicsPipelineRef MakeGraphicsPipeline(
         const ShaderInstanceRef& shader,
         const FramebufferDesc& framebufferDesc,
-        const RenderableAttributeSet& attributes) = 0;
+        const RenderableAttributeSet& attributes,
+        uint8 stencilWriteMask,
+        uint8 stencilCompareMask) = 0;
 
     virtual ComputePipelineRef MakeComputePipeline(const ShaderInstanceRef& shader) = 0;
 

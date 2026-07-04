@@ -404,7 +404,7 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     cr << SetDepthTest(false);
 
     // static constexpr uint8 StencilFilterMask = (0xFF & ~LightmapStencilMask);
-    
+
     // frame->cr << SetStencilTest(true);
     // frame->cr << SetStencilFunction(StencilFunction { SO_KEEP, SO_KEEP, SO_KEEP, SCO_EQUAL });
     // frame->cr << SetStencilState(0, StencilFilterMask, 0x0);
@@ -2826,7 +2826,6 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 {
     AssertDebug(rs.world && rs.view);
 
-
     View* view = rs.view;
     Assert(view->GetFlags() & ViewFlags::GBUFFER);
 
@@ -2996,11 +2995,10 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
     }
 
-    
     if (renderCollector.mappingsByBucket[uint32(RenderBucket::Sky)].Any())
     {
         frame->cr << SetCurrentFramebuffer(translucentPassFramebuffer);
-        
+
         renderCollector.ExecuteDrawCalls(frame, rs, translucentPassFramebuffer, RenderBucketMask<RenderBucket::Sky>);
 
         frame->cr << SetCurrentFramebuffer(nullptr);
@@ -3144,7 +3142,6 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         passData.cullData.depthPyramidDimensions = passData.depthPyramidRenderer->GetExtent();
     }
 
-
     { // Render the deferred lighting into the color target with a full screen quad.
         frame->cr << SetCurrentFramebuffer(effectPassFramebuffer);
 
@@ -3157,7 +3154,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         frame->cr << SetDepthTest(false);
         frame->cr << SetDepthWrite(false);
 
-        static constexpr uint8 StencilFilterMask = (0xFF & ~LightmapStencilMask);
+        static constexpr uint8 StencilFilterMask = SkyStencilMask;
 
         // frame->cr << SetStencilTest(false);
         frame->cr << SetStencilTest(true);

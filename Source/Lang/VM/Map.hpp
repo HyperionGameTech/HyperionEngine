@@ -49,10 +49,9 @@ struct ScriptMapKey
         return GetHashCodeStatic(key);
     }
 
-    static HashCode GetHashCodeStatic(const BoxedValue& key);
+    SCRIPT_API static HashCode GetHashCodeStatic(const BoxedValue& key);
     
-    static bool ValuesEqual(const BoxedValue& a, const BoxedValue& b);
-
+    SCRIPT_API static bool ValuesEqual(const BoxedValue& a, const BoxedValue& b);
 };
 
 class ScriptMap final : public Map<ScriptMapKey, BoxedValue, ScriptAllocator, HashTablePolicy::NotPooled>

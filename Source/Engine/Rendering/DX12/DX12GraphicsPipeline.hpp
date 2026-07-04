@@ -71,6 +71,11 @@ public:
         return false;
     }
 
+    static bool CanDynamicallySetStencilMasks()
+    {
+        return false;
+    }
+
 private:
     RendererResult Rebuild() override;
 

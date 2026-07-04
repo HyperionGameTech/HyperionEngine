@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <RenderingPch.hpp>
 
@@ -27,7 +27,7 @@ PSOCacheKey::PSOCacheKey(
     const FramebufferDesc& framebufferDesc)
 {
     hashCode = HashCode::GetHashCode(attributes.GetHashCode())
-        .Combine(framebufferDesc.GetHashCode());
+                   .Combine(framebufferDesc.GetHashCode());
 
     shaderName = attributes.GetMaterialAttributes().shaderName;
     shaderProperties = attributes.GetMaterialAttributes().shaderProperties;
@@ -80,20 +80,26 @@ void GraphicsPipelineBase::SetFramebufferDesc(const FramebufferDesc& framebuffer
 
 bool GraphicsPipelineBase::MatchesSignature(
     const RenderableAttributeSet& attributes,
-    const FramebufferDesc& framebufferDesc) const
+    const FramebufferDesc& framebufferDesc,
+    uint8 stencilWriteMask,
+    uint8 stencilCompareMask) const
 {
-    //if (!m_framebufferDesc.IsPSOCompatible(framebufferDesc))
     if (m_framebufferDesc != framebufferDesc)
+    {
         return false;
+    }
 
     const MeshAttributes& meshAttributes = attributes.GetMeshAttributes();
 
     if (meshAttributes.topology != m_topology || meshAttributes.inputLayout != m_inputLayout)
+    {
         return false;
+    }
 
     const MaterialAttributes& materialAttributes = attributes.GetMaterialAttributes();
 
     const bool canDynamicallySetDepthState = GraphicsPipeline::CanDynamicallySetDepthState();
+    const bool canDynamicallySetStencilMasks = GraphicsPipeline::CanDynamicallySetStencilMasks();
 
     if (materialAttributes.blendFunction != m_blendFunction
         || materialAttributes.cullFaces != m_faceCullMode
@@ -106,38 +112,62 @@ bool GraphicsPipelineBase::MatchesSignature(
     if (!canDynamicallySetDepthState)
     {
         if (bool(materialAttributes.flags & MAF_DEPTH_WRITE) != m_depthWrite)
+        {
             return false;
+        }
 
         if (bool(materialAttributes.flags & MAF_DEPTH_TEST) != m_depthTest)
+        {
             return false;
+        }
 
         if (materialAttributes.depthCompareOp != m_depthCompareOp)
+        {
             return false;
+        }
     }
 
     if (materialAttributes.flags & MAF_DEPTH_BIAS)
     {
         if (m_depthBias != materialAttributes.depthBias || !MathUtil::ApproxEqual(m_depthBiasSlope, materialAttributes.depthBiasSlope))
+        {
             return false;
+        }
     }
     else
     {
         if (m_depthBias != 0)
+        {
             return false;
+        }
     }
 
     if (materialAttributes.flags & MAF_STENCIL_TEST)
     {
         if (!m_stencilFunction.HasValue())
+        {
             return false;
+        }
 
         if (*m_stencilFunction != materialAttributes.stencilFunction)
+        {
             return false;
+        }
+
+        if (!canDynamicallySetStencilMasks)
+        {
+            if (m_stencilWriteMask != stencilWriteMask || m_stencilCompareMask != stencilCompareMask)
+            {
+                return false;
+            }
+        }
     }
     else
     {
         if (m_stencilFunction.HasValue())
+        {
             return false;
+        }
     }
 
     const Shader& shader = *m_shaderInstance->GetShader();

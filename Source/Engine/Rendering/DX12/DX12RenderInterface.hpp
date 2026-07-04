@@ -107,7 +107,9 @@ public:
     DX12GraphicsPipelineRef MakeGraphicsPipeline(
         const DX12ShaderInstanceRef& shaderInstance,
         const FramebufferDesc& framebufferDesc,
-        const RenderableAttributeSet& attributes) override;
+        const RenderableAttributeSet& attributes,
+        uint8 stencilWriteMask,
+        uint8 stencilCompareMask) override;
 
     DX12ComputePipelineRef MakeComputePipeline(const DX12ShaderInstanceRef& shaderInstance) override;
 

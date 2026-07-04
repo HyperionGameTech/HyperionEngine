@@ -897,7 +897,6 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
 
     pTransientFence->Increment();
 
-
     HRESULT hr = commandQueue->Signal(pTransientFence->GetD3D12Fence(), pTransientFence->GetValue());
     if (FAILED(hr))
     {
@@ -963,7 +962,9 @@ DX12DescriptorTableRef DX12RenderInterface::MakeDescriptorTable(const ShaderInpu
 DX12GraphicsPipelineRef DX12RenderInterface::MakeGraphicsPipeline(
     const DX12ShaderInstanceRef& shaderInstance,
     const FramebufferDesc& framebufferDesc,
-    const RenderableAttributeSet& attributes)
+    const RenderableAttributeSet& attributes,
+    uint8 stencilWriteMask,
+    uint8 stencilCompareMask)
 {
     DX12GraphicsPipelineRef pipeline = MakeHandle<DX12GraphicsPipeline>();
 
@@ -983,6 +984,7 @@ DX12GraphicsPipelineRef DX12RenderInterface::MakeGraphicsPipeline(
     pipeline->SetCullMode(attributes.GetMaterialAttributes().cullFaces);
     pipeline->SetFillMode(attributes.GetMaterialAttributes().fillMode);
     pipeline->SetBlendFunction(attributes.GetMaterialAttributes().blendFunction);
+
     pipeline->SetDepthTest(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST));
     pipeline->SetDepthWrite(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE));
     pipeline->SetDepthCompareOp(attributes.GetMaterialAttributes().depthCompareOp);
@@ -997,6 +999,8 @@ DX12GraphicsPipelineRef DX12RenderInterface::MakeGraphicsPipeline(
     if (attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST)
     {
         pipeline->SetStencilFunction(attributes.GetMaterialAttributes().stencilFunction);
+        pipeline->SetStencilWriteMask(stencilWriteMask);
+        pipeline->SetStencilCompareMask(stencilCompareMask);
     }
 
     // for materials that write a stencil reference value
@@ -1006,7 +1010,7 @@ DX12GraphicsPipelineRef DX12RenderInterface::MakeGraphicsPipeline(
     }
 
     // sanity check: newly created pipeline must match or caching will fail.
-    AssertDebug(pipeline->MatchesSignature(attributes, framebufferDesc));
+    AssertDebug(pipeline->MatchesSignature(attributes, framebufferDesc, stencilWriteMask, stencilCompareMask));
 
     return pipeline;
 }
