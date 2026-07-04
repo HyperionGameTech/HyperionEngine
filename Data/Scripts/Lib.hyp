@@ -2449,6 +2449,9 @@ extern enum PhysicsShapeType : uint8
     CONVEX_HULL,
     CAPSULE
 end
+extern class RawDataAsset : AssetObject
+    Data : BlobDataReference
+end
 extern class AssetLoaderBase
 end
 extern struct AssetBucket

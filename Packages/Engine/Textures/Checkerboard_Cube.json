@@ -1,0 +1,20 @@
+{
+  "$Class": "Texture",
+  "TextureDesc": {
+    "Type": 2,
+    "Format": 3,
+    "Extent": [8, 8, 1],
+    "MinFilterMode": 0,
+    "MagFilterMode": 0,
+    "TextureWrapMode": 2,
+    "NumLayers": 1,
+    "ImageUsage": 1,
+    "MipOffsets": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  },
+  "ImageData": {
+    "Key": "Engine://Textures/Checkerboard_Cube.TEX",
+    "Size": 1536
+  },
+  "Name": "Checkerboard_Cube",
+  "FriendlyName": "CheckerboardCube"
+}

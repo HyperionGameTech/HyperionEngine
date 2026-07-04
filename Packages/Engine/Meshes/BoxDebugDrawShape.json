@@ -1,0 +1,33 @@
+{
+  "$Class": "Mesh",
+  "AABB": {
+    "Min": [-1, -1, -1],
+    "Max": [1, 1, 1]
+  },
+  "MeshDesc": {
+    "MeshAttributes": {
+      "InputLayout": {
+        "Mask": 7
+      },
+      "Topology": 0,
+      "IndexBufferElemType": 4
+    },
+    "NumVertices": 24,
+    "NumIndices": 36
+  },
+  "VertexData": {
+    "Key": "Engine://Meshes/BoxDebugDrawShape.VB",
+    "Size": 768
+  },
+  "IndexData": {
+    "Key": "Engine://Meshes/BoxDebugDrawShape.IB",
+    "Size": 144
+  },
+  "BvhData": {
+    "Key": "",
+    "Size": 0
+  },
+  "Flags": 1,
+  "Name": "BoxDebugDrawShape",
+  "FriendlyName": "BoxDebugDrawShape"
+}

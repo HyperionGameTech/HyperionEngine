@@ -1,0 +1,20 @@
+{
+  "$Class": "Texture",
+  "TextureDesc": {
+    "Type": 4,
+    "Format": 34,
+    "Extent": [256, 256, 1],
+    "MinFilterMode": 0,
+    "MagFilterMode": 0,
+    "TextureWrapMode": 0,
+    "NumLayers": 48,
+    "ImageUsage": 5,
+    "MipOffsets": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  },
+  "ImageData": {
+    "Key": "",
+    "Size": 0
+  },
+  "Name": "PointLightShadowMapImage",
+  "FriendlyName": "PointLightShadowMapImage"
+}

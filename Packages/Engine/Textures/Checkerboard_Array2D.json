@@ -1,0 +1,20 @@
+{
+  "$Class": "Texture",
+  "TextureDesc": {
+    "Type": 3,
+    "Format": 3,
+    "Extent": [8, 8, 1],
+    "MinFilterMode": 0,
+    "MagFilterMode": 0,
+    "TextureWrapMode": 2,
+    "NumLayers": 1,
+    "ImageUsage": 1,
+    "MipOffsets": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  },
+  "ImageData": {
+    "Key": "Engine://Textures/Checkerboard_Array2D.TEX",
+    "Size": 256
+  },
+  "Name": "Checkerboard_Array2D",
+  "FriendlyName": "CheckerboardArray2D"
+}

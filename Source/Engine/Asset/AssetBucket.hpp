@@ -36,7 +36,8 @@ class Class;
     X(FontAtlases,          18)      \
     X(PhysicsShapes,        19)      \
     X(Scripts,              20)      \
-    X(Sprites,              21)
+    X(Sprites,              21)      \
+    X(RawData,              22)
 
 const char* GetAssetBucketName(const uint32 bucketIndex);
 

@@ -1,0 +1,33 @@
+{
+  "$Class": "Mesh",
+  "AABB": {
+    "Min": [-1, -1, -1],
+    "Max": [1, 1, 1]
+  },
+  "MeshDesc": {
+    "MeshAttributes": {
+      "InputLayout": {
+        "Mask": 7
+      },
+      "Topology": 0,
+      "IndexBufferElemType": 4
+    },
+    "NumVertices": 150,
+    "NumIndices": 576
+  },
+  "VertexData": {
+    "Key": "Engine://Meshes/SphereDebugDrawShape.VB",
+    "Size": 4800
+  },
+  "IndexData": {
+    "Key": "Engine://Meshes/SphereDebugDrawShape.IB",
+    "Size": 2304
+  },
+  "BvhData": {
+    "Key": "",
+    "Size": 0
+  },
+  "Flags": 1,
+  "Name": "SphereDebugDrawShape",
+  "FriendlyName": "SphereDebugDrawShape"
+}

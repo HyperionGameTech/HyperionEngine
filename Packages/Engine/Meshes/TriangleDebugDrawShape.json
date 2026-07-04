@@ -1,0 +1,33 @@
+{
+  "$Class": "Mesh",
+  "AABB": {
+    "Min": [0, 0, 0],
+    "Max": [1, 1, 0]
+  },
+  "MeshDesc": {
+    "MeshAttributes": {
+      "InputLayout": {
+        "Mask": 7
+      },
+      "Topology": 0,
+      "IndexBufferElemType": 4
+    },
+    "NumVertices": 3,
+    "NumIndices": 3
+  },
+  "VertexData": {
+    "Key": "Engine://Meshes/TriangleDebugDrawShape.VB",
+    "Size": 96
+  },
+  "IndexData": {
+    "Key": "Engine://Meshes/TriangleDebugDrawShape.IB",
+    "Size": 12
+  },
+  "BvhData": {
+    "Key": "",
+    "Size": 0
+  },
+  "Flags": 1,
+  "Name": "TriangleDebugDrawShape",
+  "FriendlyName": "TriangleDebugDrawShape"
+}

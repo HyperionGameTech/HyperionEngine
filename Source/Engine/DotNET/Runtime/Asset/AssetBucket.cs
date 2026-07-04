@@ -48,8 +48,9 @@ namespace Hyperion
         public static readonly AssetBucket PhysicsShapes        = new(19);
         public static readonly AssetBucket Scripts              = new(20);
         public static readonly AssetBucket Sprites              = new(21);
+        public static readonly AssetBucket RawData              = new(22);
 
-        public static readonly uint MaxAssetBuckets = 22;
+        public static readonly uint MaxAssetBuckets = 23;
 
         public static readonly AssetBucket[] AllBuckets =
         [
@@ -57,7 +58,7 @@ namespace Hyperion
             InstancedMeshData, Animations, AnimationTracks, Skeletons, Worlds,
             Scenes, Nodes, Entities, Bones, EnvProbes,
             LightmapVolumes, Shaders, ShaderBundles, FontAtlases,
-            PhysicsShapes, Scripts, Sprites
+            PhysicsShapes, Scripts, Sprites, RawData
         ];
 
         public static string GetAssetBucketName(uint bucketIndex)

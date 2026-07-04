@@ -382,7 +382,7 @@ add_definitions(-DHYP_SCRIPT=1)
 
 set(HYP_GENERATE_CSHARP_LIBRARIES true)
 
-if(FALSE)
+if(TRUE)
   # if dotnet headers exist, set HYP_DOTNET to 1
   # TODO: Get working on Android, iOS, Steam Deck...
   if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dotnetcore/hostfxr.h" AND NOT HYP_ANDROID)

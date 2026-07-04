@@ -35,6 +35,9 @@ echo Copying config files...
 copy "%HYP_ROOT_DIR%Config\*Config.json" "%OUT_DIR%\" >nul 2>nul
 copy "%HYP_ROOT_DIR%Config\*Config.Windows.json" "%OUT_DIR%\" >nul 2>nul
 
+echo Updating GlobalConfig.json for packaged build...
+powershell -NoProfile -Command "(Get-Content '%OUT_DIR%\GlobalConfig.json') -replace '-BaseDir=[\w/.-]+', '-BaseDir=./' | Set-Content '%OUT_DIR%\GlobalConfig.json'" >nul
+
 echo Copying packages...
 xcopy "%HYP_ROOT_DIR%Packages\Engine" "%OUT_DIR%\Packages\Engine" /E /I /Y /Q >nul
 xcopy "%HYP_ROOT_DIR%Packages\%GAME_PACKAGE%" "%OUT_DIR%\Packages\%GAME_PACKAGE%" /E /I /Y /Q >nul

@@ -165,7 +165,7 @@ HYP_EXPORT const FilePath& GetLibraryDirectory()
     if (!s_resourceDirectory.path.Exists())
     {
         HYP_LOG(Engine, Warning, "GetLibraryDirectory() called but Packages directory does not exist: {}",
-            s_resourceDirectory.path.Data());
+                s_resourceDirectory.path.Data());
     }
 
     return s_resourceDirectory.path;
@@ -574,13 +574,13 @@ extern "C"
                       {
                           // shut down application on main window close.
                           g_mainThreadInstance->GetScheduler().Enqueue(
-                            []()
-                            {
-                                Hyp_Shutdown();
+                              []()
+                              {
+                                  Hyp_Shutdown();
 
-                                std::exit(0);
-                            },
-                            TaskEnqueueFlags::FIRE_AND_FORGET);
+                                  std::exit(0);
+                              },
+                              TaskEnqueueFlags::FIRE_AND_FORGET);
                       })
                 .Detach();
 
@@ -609,13 +609,13 @@ extern "C"
 #endif // HYP_DOTNET
 
         g_mainThreadInstance->Stop();
-        
+
         { // shut down AssetRegistry instances
             ClearAssetRegistryStack();
-            
+
             GetEngineAssetRegistry()->Shutdown();
             SetEngineAssetRegistry(Handle<AssetRegistry>::Null());
-            
+
 #ifdef HYP_EDITOR
             GetEditorAssetRegistry()->Shutdown();
             SetEditorAssetRegistry(Handle<AssetRegistry>::Null());

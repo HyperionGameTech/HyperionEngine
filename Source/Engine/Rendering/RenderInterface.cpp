@@ -97,6 +97,9 @@
 #include <Framework/EngineDriver.hpp>
 #include <Framework/CVarManager.hpp>
 
+#include <Asset/AssetRegistry.hpp>
+#include <Asset/RawDataAsset.hpp>
+
 #include <Framework/Config/EngineConfig.hpp>
 
 #include <System/AppContext.hpp>
@@ -2042,16 +2045,22 @@ void RenderInterface::DeferFlushBuffer(RawBuffer* buffer)
 
 void RenderInterface::CreateBlueNoiseBuffer()
 {
-    const FilePath blobPath = GetDataDirectory() / "Noise" / "BlueNoise.blob";
-
-    FileByteReader reader(blobPath);
-    if (reader.Eof())
+    Handle<AssetRegistry> registry = GetEngineAssetRegistry();
+    if (!registry.IsValid())
     {
-        HYP_FAIL("Failed to load BlueNoise blob from {}", blobPath);
+        HYP_FAIL("Engine asset registry not available, cannot load BlueNoise");
         return;
     }
 
-    ByteBuffer blobData = reader.Read(reader.Max());
+    Handle<RawDataAsset> blueNoiseAsset = registry->GetAsset<RawDataAsset>(AssetBuckets::RawData, NAME("BlueNoise"));
+
+    if (!blueNoiseAsset.IsValid())
+    {
+        HYP_FAIL("Failed to load BlueNoise asset from engine asset registry");
+        return;
+    }
+
+    ConstByteView blobData = blueNoiseAsset->GetData();
 
     constexpr size_t ExpectedSize = (sizeof(uint32) * 256 * 256)
         + (sizeof(uint32) * 128 * 128 * 8)

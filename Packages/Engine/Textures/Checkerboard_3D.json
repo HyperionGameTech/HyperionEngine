@@ -1,0 +1,20 @@
+{
+  "$Class": "Texture",
+  "TextureDesc": {
+    "Type": 1,
+    "Format": 3,
+    "Extent": [1, 1, 1],
+    "MinFilterMode": 0,
+    "MagFilterMode": 0,
+    "TextureWrapMode": 0,
+    "NumLayers": 1,
+    "ImageUsage": 1,
+    "MipOffsets": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  },
+  "ImageData": {
+    "Key": "Engine://Textures/Checkerboard_3D.TEX",
+    "Size": 4
+  },
+  "Name": "Checkerboard_3D",
+  "FriendlyName": "Checkerboard3D"
+}

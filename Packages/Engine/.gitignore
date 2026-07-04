@@ -1,0 +1,3 @@
+# Keeping shaders out of Source Control as they change frequently.
+Shaders/**/*
+ShaderBundles/**/*

@@ -69,17 +69,14 @@ Source/PlatformSpecific/Android/app/**/assets/**/*
 Source/Generated/**/*
 
 Packages/SampleGame/**/*
+Packages/**/Cache/**/*
+Packages/DefaultGame/**/*
+Packages/HyperionEditorGame/**/*
 
 Data/Models/Sponza/**/*
 Data/Models/NewSponza/**/*
 Data/Models/lostempire/**/*
 Data/Models/SponzaGltf/**/*
-
-Packages/**/Cache/**/*
-
-Packages/Engine/**/*
-Packages/DefaultGame/**/*
-Packages/HyperionEditorGame/**/*
 
 Binaries/**/*
 

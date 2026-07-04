@@ -1,0 +1,32 @@
+{
+  "$Class": "MaterialInstance",
+  "Textures": {
+    "Values": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+  },
+  "Definition": {
+    "$Class": "AssetReference",
+    "AssetPath": {
+      "Value": "Engine://MaterialDefinitions/BasicOBJMaterial"
+    }
+  },
+  "Parameters": {
+    "Albedo": [1, 1, 1, 1],
+    "Metalness": 0,
+    "Roughness": 1,
+    "AlphaThreshold": 0,
+    "ParallaxHeightScale": 0.020000,
+    "Transmission": 0,
+    "IOR": 1.500000,
+    "EmissiveColor": {
+      "Red": 0,
+      "Green": 0,
+      "Blue": 0,
+      "Alpha": 0
+    },
+    "EmissiveIntensity": 0,
+    "UserParams": [0, 0, 0, 0]
+  },
+  "IsDynamic": false,
+  "Name": "BasicOBJMaterial",
+  "FriendlyName": "BasicOBJMaterial"
+}
