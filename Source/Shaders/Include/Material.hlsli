@@ -75,9 +75,9 @@ float4 UnpackMaterialParamFloat4(uint4 uValue, uint index)
 
 // Individual bits are stored in the last vector
 // ex:
-// GET_MATERIAL_PARAM_BIT(mat, 0) loads the first bit from the first component
-// GET_MATERIAL_PARAM_BIT(mat, 60) loads the fourth bit from the second component.
-#define GET_MATERIAL_PARAM_BIT(mat, bitIndex) ((((mat).packed_params)[3][bitIndex >> 5]) & (1u << (bitIndex & 31)))
+// - GET_MATERIAL_PARAM_BIT(mat, 0) loads the first bit from the first component
+// - GET_MATERIAL_PARAM_BIT(mat, 60) loads the fourth bit from the second component.
+#define GET_MATERIAL_PARAM_BIT(mat, bitIndex) ((((mat).packed_params)[3]) & (1u << bitIndex))
 
 #define MATERIAL_TEXTURE_DiffuseMap 0
 #define MATERIAL_TEXTURE_NormalMap 1

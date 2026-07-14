@@ -824,8 +824,6 @@ void VulkanRenderInterface::Shutdown()
 
     RenderInterface::Shutdown();
 
-    DeletionQueue::GetInstance().Shutdown();
-
     m_descriptorSetManager->Shutdown(m_instance->GetDevice());
 
     delete m_descriptorSetManager;

@@ -107,7 +107,8 @@ void DeletionQueueElem<Handle<ObjectBase>>::DestroyObject()
 
 DeletionQueue::DeletionQueue()
     : m_entryLists { nullptr },
-      m_tempEntryListCount(0)
+      m_tempEntryListCount(0),
+      m_isInitialized(false)
 {
     for (uint32 i = 0; i < RingBufferDepth; i++)
     {
@@ -115,11 +116,31 @@ DeletionQueue::DeletionQueue()
     }
 }
 
-DeletionQueue::~DeletionQueue() = default;
+DeletionQueue::~DeletionQueue()
+{
+    Shutdown();
+}
+
+void DeletionQueue::Initialize()
+{
+    if (m_isInitialized)
+    {
+        return;
+    }
+
+    m_isInitialized = true;
+}
 
 void DeletionQueue::Shutdown()
 {
     AssertOnThread(g_renderThread);
+
+    if (!m_isInitialized)
+    {
+        return;
+    }
+
+    m_isInitialized = false;
 
     const uint32 bufferIndex = GetRingIndex();
     AssertDebug(bufferIndex < m_entryLists.Size());

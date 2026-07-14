@@ -730,6 +730,7 @@ RendererResult RenderInterface::Initialize()
     placeholderData->Initialize();
     shadowMapCache->Initialize();
 
+    DeletionQueue::GetInstance().Initialize();
     DebugDrawer::GetInstance().Initialize();
 
     CreateSphereSamplesBuffer();
@@ -905,6 +906,8 @@ void RenderInterface::Shutdown()
 
     PoolDelete(*g_renderPool, renderGroupCache);
     renderGroupCache = nullptr;
+
+    DeletionQueue::GetInstance().Shutdown();
 }
 
 void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)

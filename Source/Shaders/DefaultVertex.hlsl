@@ -54,7 +54,7 @@ DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
 
 #ifdef INSTANCING
 static const uint s_offsetOfIndices = 64; // 64 bytes after header start
-static const uint s_offsetOfTransforms = s_offsetOfIndices + (sizeof(uint4) * (MAX_ENTITIES_PER_INSTANCE_BATCH / 4));
+static const uint s_offsetOfTransforms = s_offsetOfIndices + (sizeof(uint4) * (MAX_ENTITIES_PER_INSTANCE_BATCH >> 2));
 static const uint s_offsetOfPrevTransforms = s_offsetOfTransforms + (sizeof(float4x4) * MAX_ENTITIES_PER_INSTANCE_BATCH);
 #endif // INSTANCING
 
@@ -126,25 +126,13 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.position_ndc = mul(camera.viewProjMat, position);
     output.previous_position_ndc = mul(camera.prevViewProjMat, previous_position);
 
-    // // Jitter
-    // float4x4 jitterMat = {
-    //     1, 0, 0, 0,
-    //     0, 1, 0, 0,
-    //     0, 0, 1, 0,
-    //     0, 0, 0, 1
-    // };
-    // jitterMat[0][3] += camera.jitter.x;
-    // jitterMat[1][3] += camera.jitter.y;
-
-    // output.position_cs = mul(jitterMat, output.position_ndc);
-
     output.position_cs = output.position_ndc;
     output.position_cs.xy += camera.jitter.xy * output.position_cs.w;
 
     output.color = material.albedo;
 
-    output.object_mask = ((float)(currentEntity.bucket == HYP_OBJECT_BUCKET_LIGHTMAPPED) * OBJECT_MASK_LIGHTMAPPED)
-        | (min(1.0, (float)GET_MATERIAL_PARAM_BIT(material, 0)) * OBJECT_MASK_UNLIT);
+    output.object_mask = ((uint)(currentEntity.bucket == HYP_OBJECT_BUCKET_LIGHTMAPPED) * OBJECT_MASK_LIGHTMAPPED)
+        | (min(1u, GET_MATERIAL_PARAM_BIT(material, 0)) * OBJECT_MASK_UNLIT);
 
 #ifndef INSTANCING
 #undef currentEntity

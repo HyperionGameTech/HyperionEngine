@@ -316,6 +316,12 @@ public:
 
     ~DeletionQueue();
 
+    HYP_FORCE_INLINE bool IsInitialized() const
+    {
+        return m_isInitialized;
+    }
+
+    void Initialize();
     void Shutdown();
 
     /*! \brief Read the counter values for the last n frames, accumulated (n = num multi buffers).
@@ -403,23 +409,40 @@ private:
 
     FixedArray<EntryList<DynamicAllocator>*, RingBufferDepth> m_entryLists;
     Counter m_counters[RingBufferDepth];
+
+    bool m_isInitialized;
 };
 
 template <class TFunction>
 static inline void EnqueueDeletion(FunctionWrapper<TFunction>&& func)
 {
+    if (!func.func)
+    {
+        return;
+    }
+
+    DeletionQueue& instance = DeletionQueue::GetInstance();
+    if (!instance.IsInitialized())
+    {
+        // just destruct it
+        func();
+
+        return;
+    }
+
     Mutex::Guard* pGuard = nullptr;
 
-    FunctionWrapper<TFunction>** ppPayload = DeletionQueue::GetInstance().AllocCustom<FunctionWrapper<TFunction>*>([](void* ptr)
-                                                                                                                   {
-                                                                                                                       FunctionWrapper<TFunction>* pPayload = *reinterpret_cast<FunctionWrapper<TFunction>**>(ptr);
-                                                                                                                       AssertDebug(pPayload != nullptr);
+    FunctionWrapper<TFunction>** ppPayload = instance.AllocCustom<FunctionWrapper<TFunction>*>(
+        [](void* ptr)
+        {
+            FunctionWrapper<TFunction>* pPayload = *reinterpret_cast<FunctionWrapper<TFunction>**>(ptr);
+            AssertDebug(pPayload != nullptr);
 
-                                                                                                                       (*pPayload)();
+            (*pPayload)();
 
-                                                                                                                       delete pPayload;
-                                                                                                                   },
-                                                                                                                   &pGuard);
+            delete pPayload;
+        },
+        &pGuard);
 
     *ppPayload = new FunctionWrapper<TFunction>(std::move(func));
 
@@ -435,8 +458,16 @@ static inline void EnqueueDeletion(FunctionWrapper<TFunction>&& func)
 template <class T>
 static inline void EnqueueDeletion(T&& value)
 {
+    DeletionQueue& instance = DeletionQueue::GetInstance();
+    if (!instance.IsInitialized())
+    {
+        // just destruct it
+        DeletionQueueElem<T>(std::forward<T>(value));
+        return;
+    }
+
     Mutex::Guard* pGuard = nullptr;
-    DeletionQueueElem<T>* ptr = DeletionQueue::GetInstance().Alloc<T>(&pGuard);
+    DeletionQueueElem<T>* ptr = instance.Alloc<T>(&pGuard);
     new (ptr) DeletionQueueElem<T>(std::forward<T>(value));
 
     if (pGuard) // if locking was needed then we can delete the guard now to unlock.
@@ -448,8 +479,16 @@ static inline void EnqueueDeletion(T&& value)
 template <class T>
 static inline void EnqueueDeletion(T* value)
 {
+    DeletionQueue& instance = DeletionQueue::GetInstance();
+    if (!instance.IsInitialized())
+    {
+        // just destruct it
+        DeletionQueueElem<std::remove_const_t<T>*> { value };
+        return;
+    }
+
     Mutex::Guard* pGuard = nullptr;
-    DeletionQueueElem<std::remove_const_t<T>*>* ptr = DeletionQueue::GetInstance().Alloc<std::remove_const_t<T>*>(&pGuard);
+    DeletionQueueElem<std::remove_const_t<T>*>* ptr = instance.Alloc<std::remove_const_t<T>*>(&pGuard);
     new (ptr) DeletionQueueElem<std::remove_const_t<T>*>(value);
 
     if (pGuard) // if locking was needed then we can delete the guard now to unlock.
@@ -462,6 +501,11 @@ static inline void EnqueueDeletion(T* value)
 template <class T, class AllocatorType>
 static inline void EnqueueDeletion(Array<T, AllocatorType>&& value)
 {
+    if (value.Empty())
+    {
+        return;
+    }
+
     for (auto& item : value)
     {
         EnqueueDeletion(std::move(item));
@@ -476,11 +520,6 @@ static inline void EnqueueDeletion(FixedArray<T, Sz>&& value)
 {
     for (auto& it : value)
     {
-        if (!it.IsValid())
-        {
-            continue;
-        }
-
         EnqueueDeletion(std::move(it));
     }
 
@@ -493,11 +532,6 @@ static inline void EnqueueDeletion(Set<T>&& value)
 {
     for (auto& it : value)
     {
-        if (!it.IsValid())
-        {
-            continue;
-        }
-
         EnqueueDeletion(std::move(it));
     }
 

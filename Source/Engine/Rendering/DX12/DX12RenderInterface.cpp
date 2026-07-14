@@ -590,8 +590,6 @@ void DX12RenderInterface::Shutdown()
 
     RenderInterface::Shutdown();
 
-    DeletionQueue::GetInstance().Shutdown();
-
     descriptorHeapManager->Shutdown();
     delete descriptorHeapManager;
     descriptorHeapManager = nullptr;
