@@ -10,6 +10,9 @@
 
 #include <Framework/Game.hpp>
 
+#include <Scene/World.hpp>
+#include <Scene/Input/TouchControlsSubsystem.hpp>
+
 #include <FirstPersonCamera.generated.inl>
 
 namespace Hyperion {
@@ -98,9 +101,34 @@ bool FirstPersonCameraInputHandler::OnMouseMove(const MouseEvent& evt)
     return true;
 }
 
+bool FirstPersonCameraInputHandler::OnTouchDown(const TouchEvent& evt)
+{
+    if (!ShouldProcessTouch(evt))
+    {
+        return false;
+    }
+
+    return InputHandlerBase::OnTouchDown(evt);
+}
+
+bool FirstPersonCameraInputHandler::OnTouchUp(const TouchEvent& evt)
+{
+    if (!ShouldProcessTouch(evt))
+    {
+        return false;
+    }
+
+    return InputHandlerBase::OnTouchUp(evt);
+}
+
 bool FirstPersonCameraInputHandler::OnTouchMove(const TouchEvent& evt)
 {
     HYP_SCOPE;
+
+    if (!ShouldProcessTouch(evt))
+    {
+        return false;
+    }
 
     if (!m_controller)
     {
@@ -125,6 +153,37 @@ bool FirstPersonCameraInputHandler::OnTouchMove(const TouchEvent& evt)
     if (camera->GetDirection().y > 0.98f || camera->GetDirection().y < -0.98f)
     {
         camera->Rotate(dirCrossY, MathUtil::DegToRad(touchDelta.y));
+    }
+
+    return true;
+}
+
+bool FirstPersonCameraInputHandler::ShouldProcessTouch(const TouchEvent& evt) const
+{
+    if (!g_gameInstance)
+    {
+        return false;
+    }
+
+    World* world = g_gameInstance->GetWorld().Get();
+
+    if (!world)
+    {
+        return false;
+    }
+
+    TouchControlsSubsystem* tcs = world->GetSubsystem<TouchControlsSubsystem>();
+
+    if (!tcs)
+    {
+        return false;
+    }
+
+    TouchPoint touchPoint;
+
+    if (!tcs->GetTouchPoint(evt.pointerId, touchPoint) || touchPoint.isLeftSide)
+    {
+        return false;
     }
 
     return true;

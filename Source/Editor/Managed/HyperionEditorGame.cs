@@ -149,18 +149,6 @@ namespace Hyperion.Editor
                     guyNode.LocalScale = new Vec3f(0.5f);
                 }
 
-                // Camera for simulation rendering.
-                Camera camera = new Camera();
-                camera.Name = new Name("PrimaryCamera");
-                rootNode.AddChild(camera);
-                camera.LocalTranslation = new Vec3f(0.0f, 5.0f, 10.0f);
-                camera.SetCameraFlags(CameraFlags.MatchWindowSize);
-                camera.SetFOV(65.0f);
-                camera.SetNearClip(0.1f);
-                camera.SetFarClip(1000.0f);
-                camera.SetTarget(new Vec3f(0.0f, 1.0f, 0.0f));
-                camera.AddTag(EntityTag.PrimaryCamera);
-
                 // Sponza test model.
                 var testModelAsset = assetMap["test_model"];
 

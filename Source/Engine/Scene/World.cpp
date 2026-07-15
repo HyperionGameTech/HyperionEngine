@@ -21,6 +21,7 @@
 #include <Scene/Systems/AnimationSystem.hpp>
 #include <Scene/Systems/AudioSystem.hpp>
 #include <Scene/Systems/PhysicsSystem.hpp>
+#include <Scene/Systems/CameraSystem.hpp>
 #include <Scene/Systems/CharacterControllerSystem.hpp>
 #include <Scene/Systems/ScriptSystem.hpp>
 #include <Scene/Systems/MeshSystem.hpp>
@@ -239,6 +240,9 @@ void World::Initialize()
 
     if (!HasSystem<MeshSystem>())
         AddSystem(MakeHandle<MeshSystem>());
+
+    if (!HasSystem<CameraSystem>())
+        AddSystem(MakeHandle<CameraSystem>());
 
     m_isInitialized = true;
 

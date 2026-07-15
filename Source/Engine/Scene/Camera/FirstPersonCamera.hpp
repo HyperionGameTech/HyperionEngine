@@ -31,23 +31,33 @@ class ENGINE_API FirstPersonCameraInputHandler : public InputHandlerBase
 public:
     FirstPersonCameraInputHandler();
     explicit FirstPersonCameraInputHandler(FirstPersonCameraController* controller);
+    
     virtual ~FirstPersonCameraInputHandler() override = default;
 
     virtual bool OnKeyDown(const KeyboardEvent& evt) override;
     virtual bool OnKeyUp(const KeyboardEvent& evt) override;
+
     virtual bool OnMouseDown(const MouseEvent& evt) override;
     virtual bool OnMouseUp(const MouseEvent& evt) override;
     virtual bool OnMouseMove(const MouseEvent& evt) override;
-    virtual bool OnTouchMove(const TouchEvent& evt) override;
+
     virtual bool OnMouseDrag(const MouseEvent& evt) override;
     virtual bool OnMouseLeave(const MouseEvent& evt) override;
+    
+    virtual bool OnTouchDown(const TouchEvent& evt) override;
+    virtual bool OnTouchUp(const TouchEvent& evt) override;
+    virtual bool OnTouchMove(const TouchEvent& evt) override;
+    
     virtual bool OnClick(const MouseEvent& evt) override;
     virtual bool OnGainFocus(const MouseEvent& evt) override;
     virtual bool OnLoseFocus(const MouseEvent& evt) override;
+
     virtual bool OnControllerButtonDown(ControllerButton btn) override;
     virtual bool OnControllerAnalogMove(const ControllerAnalogData& data) override;
 
 private:
+    bool ShouldProcessTouch(const TouchEvent& evt) const;
+
     FirstPersonCameraController* m_controller;
 };
 

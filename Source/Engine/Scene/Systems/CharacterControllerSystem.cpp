@@ -119,8 +119,10 @@ bool CharacterControllerInputHandler::OnKeyUp(const KeyboardEvent& evt)
         m_jump = false;
         return true;
     default:
-        return false;
+        break;
     }
+
+    return false;
 }
 
 #pragma endregion CharacterControllerInputHandler

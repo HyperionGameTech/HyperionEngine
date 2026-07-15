@@ -20,8 +20,27 @@ class ENGINE_API CharacterControllerInputHandler final : public InputHandlerBase
     HYP_OBJECT_BODY(CharacterControllerInputHandler);
 
 public:
-    CharacterControllerInputHandler() = default;
+    CharacterControllerInputHandler()
+        : m_forward(0.0f),
+          m_strafe(0.0f),
+          m_jump(false)
+    {
+    }
+
+    explicit CharacterControllerInputHandler(const Handle<InputHandlerBase>& parentInputHandler)
+        : m_parentInputHandler(parentInputHandler),
+          m_forward(0.0f),
+          m_strafe(0.0f),
+          m_jump(false)
+    {
+    }
+
     ~CharacterControllerInputHandler() override = default;
+
+    HYP_FORCE_INLINE const Handle<InputHandlerBase>& GetParentInputHandler() const
+    {
+        return m_parentInputHandler;
+    }
 
     Vec2f GetMovementInput() const;
     bool IsJumpPressed() const;
@@ -30,9 +49,12 @@ public:
     bool OnKeyUp(const KeyboardEvent& evt) override;
 
 private:
-    float m_forward = 0.0f;
-    float m_strafe = 0.0f;
-    bool m_jump = false;
+    HYP_FIELD(Serialize)
+    Handle<InputHandlerBase> m_parentInputHandler;
+
+    float m_forward;
+    float m_strafe;
+    bool m_jump;
 };
 
 HYP_CLASS(NoScriptBindings)
