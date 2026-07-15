@@ -72,12 +72,21 @@ static SharedPtr<btCollisionShape> CreatePhysicsShapeHandle(PhysicsShape* physic
             ToBtVector(static_cast<PlanePhysicsShape*>(physicsShape)->GetPlane().GetXYZ()),
             static_cast<PlanePhysicsShape*>(physicsShape)->GetPlane().w);
     case PhysicsShapeType::CONVEX_HULL:
+    {
         static_assert(sizeof(btScalar) == sizeof(float), "sizeof(btScalar) must be sizeof(float) for reinterpret_cast to be safe");
 
+        ConvexHullPhysicsShape* shapeCasted = static_cast<ConvexHullPhysicsShape*>(physicsShape);
+
+        // ensure data remains resident while we copy it
+        TSharedResLock lock(*shapeCasted);
+
+        AssertDebug(shapeCasted->NumVertices() > 0);
+
         return MakeShared<btConvexHullShape>(
-            reinterpret_cast<const btScalar*>(static_cast<ConvexHullPhysicsShape*>(physicsShape)->GetVertexData()),
-            static_cast<ConvexHullPhysicsShape*>(physicsShape)->NumVertices(),
+            shapeCasted->GetVertexData(),
+            shapeCasted->NumVertices(),
             sizeof(float) * 3);
+    }
     default:
         HYP_UNREACHABLE();
     }
@@ -154,7 +163,7 @@ void BulletPhysicsAdapter::Tick(PhysicsWorldBase* world, double delta)
 
     for (Handle<RigidBody>& rigidBody : world->GetRigidBodies())
     {
-        RigidBodyInternalData* internalData = static_cast<RigidBodyInternalData*>(rigidBody->GetHandle());
+        RigidBodyInternalData* internalData = static_cast<RigidBodyInternalData*>(rigidBody->GetInternalData());
 
         btTransform btTransform;
         internalData->motionState->getWorldTransform(btTransform);
@@ -174,16 +183,16 @@ void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
     Assert(rigidBody.IsValid());
     Assert(rigidBody->shape != nullptr, "No PhysicsShape on RigidBody!");
 
-    if (!rigidBody->shape->GetHandle())
+    if (!rigidBody->shape->GetInternalData())
     {
-        rigidBody->shape->SetHandle(CreatePhysicsShapeHandle(rigidBody->shape));
+        rigidBody->shape->SetInternalData(CreatePhysicsShapeHandle(rigidBody->shape));
     }
 
     btVector3 localInertia(0, 0, 0);
 
     if (rigidBody->IsKinematic() && rigidBody->physicsMaterial->GetMass() != 0.0f)
     {
-        static_cast<btCollisionShape*>(rigidBody->shape->GetHandle())
+        static_cast<btCollisionShape*>(rigidBody->shape->GetInternalData())
             ->calculateLocalInertia(rigidBody->physicsMaterial->GetMass(), localInertia);
     }
 
@@ -198,7 +207,7 @@ void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
     btRigidBody::btRigidBodyConstructionInfo constructionInfo(
         rigidBody->physicsMaterial->GetMass(),
         internalData->motionState.Get(),
-        static_cast<btCollisionShape*>(rigidBody->shape->GetHandle()),
+        static_cast<btCollisionShape*>(rigidBody->shape->GetInternalData()),
         localInertia);
 
     internalData->rigidBody = MakeShared<btRigidBody>(constructionInfo);
@@ -207,7 +216,7 @@ void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
 
     m_dynamicsWorld->addRigidBody(internalData->rigidBody.Get());
 
-    rigidBody->SetHandle(std::move(internalData));
+    rigidBody->SetInternalData(std::move(internalData));
 }
 
 void BulletPhysicsAdapter::OnRigidBodyRemoved(const Handle<RigidBody>& rigidBody)
@@ -219,7 +228,7 @@ void BulletPhysicsAdapter::OnRigidBodyRemoved(const Handle<RigidBody>& rigidBody
 
     Assert(m_dynamicsWorld != nullptr);
 
-    RigidBodyInternalData* internalData = static_cast<RigidBodyInternalData*>(rigidBody->GetHandle());
+    RigidBodyInternalData* internalData = static_cast<RigidBodyInternalData*>(rigidBody->GetInternalData());
     Assert(internalData != nullptr);
 
     m_dynamicsWorld->removeRigidBody(internalData->rigidBody.Get());
@@ -234,18 +243,18 @@ void BulletPhysicsAdapter::OnChangePhysicsShape(RigidBody* rigidBody)
 
     Assert(m_dynamicsWorld != nullptr);
 
-    RigidBodyInternalData* internalData = static_cast<RigidBodyInternalData*>(rigidBody->GetHandle());
+    RigidBodyInternalData* internalData = static_cast<RigidBodyInternalData*>(rigidBody->GetInternalData());
     Assert(internalData != nullptr);
 
     Assert(internalData->rigidBody != nullptr);
 
     btVector3 localInertia = internalData->rigidBody->getLocalInertia();
 
-    if (rigidBody->shape != nullptr && rigidBody->shape->GetHandle() != nullptr)
+    if (rigidBody->shape != nullptr && rigidBody->shape->GetInternalData() != nullptr)
     {
         if (rigidBody->IsKinematic() && rigidBody->physicsMaterial->GetMass() >= 0.00001f)
         {
-            static_cast<btCollisionShape*>(rigidBody->shape->GetHandle())
+            static_cast<btCollisionShape*>(rigidBody->shape->GetInternalData())
                 ->calculateLocalInertia(rigidBody->physicsMaterial->GetMass(), localInertia);
         }
     }
@@ -264,17 +273,17 @@ void BulletPhysicsAdapter::OnChangePhysicsMaterial(RigidBody* rigidBody)
 
     Assert(m_dynamicsWorld != nullptr);
 
-    RigidBodyInternalData* internalData = static_cast<RigidBodyInternalData*>(rigidBody->GetHandle());
+    RigidBodyInternalData* internalData = static_cast<RigidBodyInternalData*>(rigidBody->GetInternalData());
     Assert(internalData != nullptr);
 
     Assert(internalData->rigidBody != nullptr);
 
-    if (!rigidBody->shape->GetHandle())
+    if (!rigidBody->shape->GetInternalData())
     {
-        rigidBody->shape->SetHandle(CreatePhysicsShapeHandle(rigidBody->shape));
+        rigidBody->shape->SetInternalData(CreatePhysicsShapeHandle(rigidBody->shape));
     }
 
-    internalData->rigidBody->setCollisionShape(static_cast<btCollisionShape*>(rigidBody->shape->GetHandle()));
+    internalData->rigidBody->setCollisionShape(static_cast<btCollisionShape*>(rigidBody->shape->GetInternalData()));
 }
 
 void BulletPhysicsAdapter::ApplyForceToBody(const RigidBody* rigidBody, const Vec3f& force)
@@ -286,7 +295,7 @@ void BulletPhysicsAdapter::ApplyForceToBody(const RigidBody* rigidBody, const Ve
 
     Assert(m_dynamicsWorld != nullptr);
 
-    RigidBodyInternalData* internalData = static_cast<RigidBodyInternalData*>(rigidBody->GetHandle());
+    RigidBodyInternalData* internalData = static_cast<RigidBodyInternalData*>(rigidBody->GetInternalData());
     Assert(internalData != nullptr);
 
     Assert(internalData->rigidBody != nullptr);

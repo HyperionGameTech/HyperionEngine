@@ -482,13 +482,13 @@ void MaterialCache::Add(const Handle<Material>& material)
         return;
     }
 
-    Mutex::Guard guard(m_mutex);
-
     const HashCode hc = GetMaterialHashCode(
         material->GetBaseMaterial().Get(),
         material->GetAttributes(),
         material->GetParameters(),
         material->GetTextures());
+
+    TUniqueLock lock(m_mutex);
 
     m_map.Set(hc, material);
 }
@@ -544,7 +544,7 @@ Handle<Material> MaterialCache::GetOrCreate(
     Handle<Material> strongRef;
 
     {
-        Mutex::Guard guard(m_mutex);
+        TSharedLock sharedLock(m_mutex);
 
         const auto it = m_map.FindByHashCode(hc);
 
@@ -560,7 +560,7 @@ Handle<Material> MaterialCache::GetOrCreate(
 
         if (!name.IsValid())
         {
-            name = Name::Unique(ANSIString("cached_material_") + ANSIString::ToString(hc.Value()));
+            name = NAME_FMT("Mat_{}", hc.Value());
         }
 
         Handle<Material> material = MakeHandle<Material>(
@@ -569,9 +569,13 @@ Handle<Material> MaterialCache::GetOrCreate(
             parameters,
             textures);
 
-        GetCurrentAssetRegistry()->PutAsset(material);
+        material->SetIsTransient(true);
 
         strongRef = std::move(material);
+
+        sharedLock.Reset();
+
+        TUniqueLock uniqueLock(m_mutex);
 
         m_map.Set(hc, strongRef);
     }

@@ -40,7 +40,6 @@ TerrainWorldGridLayer::TerrainWorldGridLayer()
 {
 }
 
-
 TerrainWorldGridLayer::TerrainWorldGridLayer(Name name, const WorldGridLayerInfo& layerInfo)
     : WorldGridLayer(name, layerInfo),
       m_scene(MakeTerrainScene())
@@ -70,8 +69,7 @@ void TerrainWorldGridLayer::Init()
     parameters.roughness = 0.95f;
     parameters.metalness = 0.0f;
 
-    m_material = g_materialCache->GetOrCreate(NAME("terrain_material"), attributes, parameters, MaterialTextures {});
-
+    m_material = MakeHandle<Material>(NAME("TerrainMaterial"), attributes, parameters, MaterialTextures {});
     GetCurrentAssetRegistry()->PutAsset(m_material);
 
     TerrainMeshBuilder meshBuilder(m_layerInfo.cellSize);

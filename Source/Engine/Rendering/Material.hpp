@@ -194,7 +194,7 @@ public:
 
 private:
     Map<HashCode, WeakHandle<Material>> m_map;
-    Mutex m_mutex;
+    SharedMutex m_mutex;
 };
 
 } // namespace Hyperion

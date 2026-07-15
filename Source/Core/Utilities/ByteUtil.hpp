@@ -145,34 +145,34 @@ public:
 uint32 ByteUtil::LowestSetBitIndex(uint64 bits)
 {
 #ifdef HYP_CLANG_OR_GCC
-    const int bitIndex = bits != 0 ? (__builtin_ffsll(bits) - 1) : uint32(-1);
+    const int bitIndex = bits != 0 ? __builtin_ctzll(bits) : -1;
 #elif defined(HYP_MSVC)
     unsigned long bitIndex = 0;
     if (!_BitScanForward64(&bitIndex, bits))
     {
-        return uint32(-1);
+        return static_cast<uint32>(-1);
     }
 #else
 #error "ByteUtil::LowestSetBitIndex() not implemented for this platform"
 #endif
 
-    return uint32(bitIndex);
+    return static_cast<uint32>(bitIndex);
 }
 
 uint32 ByteUtil::HighestSetBitIndex(uint64 bits)
 {
 #ifdef HYP_CLANG_OR_GCC
-    const int bitIndex = bits != 0 ? (63 - __builtin_clzll(bits)) : uint32(-1);
+    const int bitIndex = bits != 0 ? (63 - __builtin_clzll(bits)) : -1;
 #elif defined(HYP_MSVC)
     unsigned long bitIndex = 0;
     if (!_BitScanReverse64(&bitIndex, bits))
     {
-        return uint32(-1);
+        return static_cast<uint32>(-1);
     }
 #else
 #error "ByteUtil::HighestSetBitIndex() not implemented for this platform"
 #endif
-    return uint32(bitIndex);
+    return static_cast<uint32>(bitIndex);
 }
 
 uint64 ByteUtil::BitCount(uint64 value)
@@ -199,9 +199,13 @@ uint64 ByteUtil::BitCount(uint64 value)
  *  \return The value of type \ref From converted to type \ref To.
  */
 template <class To, class From>
-static HYP_FORCE_INLINE To BitCast(const From& from)
+static HYP_FORCE_INLINE decltype(auto) BitCast(From&& from)
 {
-    return ValueStorage<To>(&from).Get();
+    static_assert(std::is_trivial_v<To>
+        && std::is_trivially_copyable_v<NormalizedType<From>>
+        && std::is_trivially_destructible_v<NormalizedType<From>>);
+
+    return std::bit_cast<To>(std::forward<From>(from));
 }
 
 /// Endian swap functions - Free functions so new overloads can be easily added
@@ -276,7 +280,7 @@ static inline constexpr int64 SwapEndian(int64 value)
     return i;
 }
 
-#define FOR_EACH_BIT(_num, _iter) for (uint64 ITER_BITMASK = (_num), _iter; (_iter = ByteUtil::LowestSetBitIndex(ITER_BITMASK)) != uint32(-1); (ITER_BITMASK &= ~(uint64(1) << _iter)))
+#define FOR_EACH_BIT(_num, _iter) for (uint64 ITER_BITMASK = (_num), _iter; (_iter = ByteUtil::LowestSetBitIndex(ITER_BITMASK)) != uint32(-1); (ITER_BITMASK &= ~(1ull << _iter)))
 
 } // namespace utilities
 

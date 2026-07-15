@@ -56,22 +56,22 @@ public:
     }
 
     /*! \brief Return the handle specific to the physics engine in use */
-    HYP_FORCE_INLINE void* GetHandle() const
+    HYP_FORCE_INLINE void* GetInternalData() const
     {
-        return m_handle.Get();
+        return m_internalData.Get();
     }
 
     /*! \brief Set the internal handle of the PhysicsShape. Only to be used
         by a PhysicsAdapter. */
-    HYP_FORCE_INLINE void SetHandle(SharedPtr<void>&& handle)
+    HYP_FORCE_INLINE void SetInternalData(SharedPtr<void>&& internalData)
     {
-        m_handle = std::move(handle);
+        m_internalData = std::move(internalData);
     }
 
 protected:
     PhysicsShapeType m_type;
 
-    SharedPtr<void> m_handle;
+    SharedPtr<void> m_internalData;
 };
 
 HYP_CLASS()
@@ -160,35 +160,31 @@ class ConvexHullPhysicsShape final : public PhysicsShape
 public:
     ConvexHullPhysicsShape() = default;
 
-    ConvexHullPhysicsShape(Name name, const Array<Vec3f>& vertices)
-        : PhysicsShape(name, PhysicsShapeType::CONVEX_HULL)
-    {
-        m_vertices.Resize(vertices.Size() * 3);
+    ConvexHullPhysicsShape(Name name, const struct VertexArrayView& vertexData);
 
-        for (size_t index = 0; index < vertices.Size(); index++)
-        {
-            m_vertices[index * 3] = vertices[index].x;
-            m_vertices[index * 3 + 1] = vertices[index].y;
-            m_vertices[index * 3 + 2] = vertices[index].z;
-        }
-    }
+    ConvexHullPhysicsShape(const ConvexHullPhysicsShape&) = delete;
+    ConvexHullPhysicsShape& operator=(const ConvexHullPhysicsShape&) = delete;
 
-    ~ConvexHullPhysicsShape() override = default;
+    ConvexHullPhysicsShape(ConvexHullPhysicsShape&&) noexcept = delete;
+    ConvexHullPhysicsShape& operator=(ConvexHullPhysicsShape&&) noexcept = delete;
+
+    ~ConvexHullPhysicsShape() override;
 
     HYP_FORCE_INLINE const float* GetVertexData() const
     {
-        return m_vertices.Data();
+        return reinterpret_cast<const float*>(m_vertexData.raw);
     }
 
     HYP_FORCE_INLINE size_t NumVertices() const
     {
-        return m_vertices.Size() / 3;
+        return m_vertexData.size / (sizeof(float) * 3);
     }
 
-protected:
-    // @TODO Use blob data for this to serialize.
+    void SetVertexData(const struct VertexArrayView& vertexData);
 
-    Array<float> m_vertices;
+protected:
+    HYP_FIELD(Property = "VertexData", Serialize)
+    BlobDataReference m_vertexData;
 };
 
 HYP_CLASS()

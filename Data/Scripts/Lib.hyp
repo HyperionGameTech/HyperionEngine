@@ -1704,6 +1704,7 @@ extern struct MaterialParameters
     EmissiveColor : Color
     EmissiveIntensity : float
     UserParams : Vec4f
+    Unlit : bool
 end
 extern enum MaterialTextureKey : uint64
     NONE = 0,
@@ -2482,6 +2483,7 @@ extern class BoxPhysicsShape : PhysicsShape
     Aabb : BoundingBox
 end
 extern class ConvexHullPhysicsShape : PhysicsShape
+    VertexData : BlobDataReference
 end
 extern class SpherePhysicsShape : PhysicsShape
     Sphere : BoundingSphere

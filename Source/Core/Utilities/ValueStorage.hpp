@@ -69,8 +69,10 @@ struct alignas(Alignment) ValueStorage<T, 1, Alignment, std::enable_if_t<!std::i
 
     constexpr ValueStorage(const ValueStorage& other) = default;
     ValueStorage& operator=(const ValueStorage& other) = default;
+    
     constexpr ValueStorage(ValueStorage&& other) noexcept = default;
     ValueStorage& operator=(ValueStorage&& other) noexcept = default;
+
     ~ValueStorage() = default;
 
     template <class... Args>

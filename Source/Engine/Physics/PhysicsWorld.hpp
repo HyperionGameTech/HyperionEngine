@@ -63,7 +63,7 @@ public:
 protected:
     Vec3f m_gravity = EarthGravity;
 
-    FlatSet<Handle<RigidBody>> m_rigidBodies;
+    Array<Handle<RigidBody>> m_rigidBodies;
 };
 
 template <class Adapter>
@@ -96,12 +96,13 @@ public:
             return;
         }
 
-        const auto insertResult = m_rigidBodies.Insert(rigidBody);
-
-        if (insertResult.second)
+        if (m_rigidBodies.Contains(rigidBody))
         {
-            m_adapter.OnRigidBodyAdded(rigidBody);
+            return;
         }
+
+        m_rigidBodies.PushBack(rigidBody);
+        m_adapter.OnRigidBodyAdded(rigidBody);
     }
 
     void RemoveRigidBody(const Handle<RigidBody>& rigidBody) override
@@ -111,8 +112,16 @@ public:
             return;
         }
 
+        auto it = m_rigidBodies.Find(rigidBody);
+
+        if (it == m_rigidBodies.End())
+        {
+            return;
+        }
+
         m_adapter.OnRigidBodyRemoved(rigidBody);
-        m_rigidBodies.Erase(rigidBody);
+        
+        m_rigidBodies.Erase(it);
     }
 
     void AddCharacterController(const CharacterControllerConfig& config, SharedPtr<void>& outPhysicsHandle) override

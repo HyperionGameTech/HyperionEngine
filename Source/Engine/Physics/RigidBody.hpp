@@ -67,16 +67,16 @@ public:
     }
 
     /*! \brief Return the handle specific to the physics engine in use */
-    HYP_FORCE_INLINE void* GetHandle() const
+    HYP_FORCE_INLINE void* GetInternalData() const
     {
-        return m_handle.Get();
+        return m_internalData.Get();
     }
 
     /*! \brief Set the internal handle of the RigidBody. Only to be used
         by a PhysicsAdapter. */
-    HYP_FORCE_INLINE void SetHandle(SharedPtr<void>&& handle)
+    HYP_FORCE_INLINE void SetInternalData(SharedPtr<void>&& internalData)
     {
-        m_handle = std::move(handle);
+        m_internalData = std::move(internalData);
     }
 
     PhysicsShape* shape;
@@ -87,7 +87,7 @@ private:
 
     bool m_isKinematic;
 
-    SharedPtr<void> m_handle;
+    SharedPtr<void> m_internalData;
 };
 
 } // namespace Hyperion

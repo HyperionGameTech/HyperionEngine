@@ -72,8 +72,8 @@ private:
 
 InputEventQueue::~InputEventQueue()
 {
-    const uint32 head = std::bit_cast<uint32>(AtomicAdd(&m_head, 0));
-    uint32 tail = std::bit_cast<uint32>(AtomicAdd(&m_tail, 0));
+    const uint32 head = static_cast<uint32>(AtomicAdd(&m_head, 0));
+    uint32 tail = static_cast<uint32>(AtomicAdd(&m_tail, 0));
 
     while (tail != head)
     {
@@ -85,8 +85,8 @@ InputEventQueue::~InputEventQueue()
 
 bool InputEventQueue::Push(Event&& evt)
 {
-    const uint32 head = std::bit_cast<uint32>(AtomicAdd(&m_head, 0));
-    const uint32 tail = std::bit_cast<uint32>(AtomicAdd(&m_tail, 0));
+    const uint32 head = static_cast<uint32>(AtomicAdd(&m_head, 0));
+    const uint32 tail = static_cast<uint32>(AtomicAdd(&m_tail, 0));
 
     if (Full(head, tail))
     {
@@ -102,8 +102,8 @@ bool InputEventQueue::Push(Event&& evt)
 
 bool InputEventQueue::Pop(Event& outEvent)
 {
-    const uint32 head = std::bit_cast<uint32>(AtomicAdd(&m_head, 0));
-    const uint32 tail = std::bit_cast<uint32>(AtomicAdd(&m_tail, 0));
+    const uint32 head = static_cast<uint32>(AtomicAdd(&m_head, 0));
+    const uint32 tail = static_cast<uint32>(AtomicAdd(&m_tail, 0));
 
     if (Empty(head, tail))
     {

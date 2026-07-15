@@ -90,13 +90,13 @@ ShadowMapCacheKey MakeShadowMapCacheKey(Light* light, View* view)
     AssertDebug(light != nullptr);
 
     ShadowMapCacheKey key {};
-    key.lightHash = static_cast<uint32>(std::bit_cast<uint64>(light->Id()) % 0xFFFFFFFFu);
+    key.lightHash = static_cast<uint32>(BitCast<uint64>(light->Id()) % 0xFFFFFFFFu);
 
     if (IsShadowMapCameraDependent(*light))
     {
         AssertDebug(view != nullptr && view->GetCamera() != nullptr);
 
-        key.cameraHash = static_cast<uint32>(std::bit_cast<uint64>(view->GetCamera()->Id()) % 0x7FFFFFFFu);
+        key.cameraHash = static_cast<uint32>(BitCast<uint64>(view->GetCamera()->Id()) % 0x7FFFFFFFu);
         key.isCameraDependent = 1;
     }
 
