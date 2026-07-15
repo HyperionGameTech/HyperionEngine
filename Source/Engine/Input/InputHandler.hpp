@@ -8,11 +8,14 @@
 
 #include <Input/Keyboard.hpp>
 #include <Input/Mouse.hpp>
+#include <Input/InputConstants.hpp>
 
 #include <Core/Math/Vector2.hpp>
 
 #include <Core/Reflection/ObjectBase.hpp>
 #include <Core/Reflection/Handle.hpp>
+
+#include <Core/Utilities/BitField.hpp>
 
 #include <Core/Memory/Pimpl.hpp>
 
@@ -30,13 +33,16 @@ class ENGINE_API InputHandlerBase : public ObjectBase
 
 public:
     InputHandlerBase();
+    
     InputHandlerBase(const InputHandlerBase& other) = delete;
     InputHandlerBase& operator=(const InputHandlerBase& other) = delete;
+
     InputHandlerBase(InputHandlerBase&& other) noexcept = delete;
     InputHandlerBase& operator=(InputHandlerBase&& other) noexcept = delete;
+
     virtual ~InputHandlerBase();
 
-    HYP_FORCE_INLINE const Bitset& GetKeyStates() const
+    HYP_FORCE_INLINE const BitField<NumKeyboardKeys>& GetKeyStates() const
     {
         return m_keyStates;
     }
@@ -155,7 +161,7 @@ public:
     }
 
 private:
-    Bitset m_keyStates;
+    BitField<NumKeyboardKeys> m_keyStates;
     EnumFlags<MouseButtonState> m_mouseButtonStates;
 
     Vec2f m_touchMovementDelta;

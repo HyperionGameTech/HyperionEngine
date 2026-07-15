@@ -34,7 +34,6 @@ class View;
 class DrawCallCollection;
 class DescriptorSetLayout;
 class PassBase;
-class IRenderProxy;
 class SkyProbe;
 class UIPass;
 class Material;
@@ -70,6 +69,8 @@ class GpuTimerBackendBase;
 class CBufferAllocator;
 class BufferAllocator;
 class ScratchImageAllocator;
+
+struct IRenderProxy;
 
 enum class GpuBufferType : uint8;
 enum RenderTargetType : uint8;

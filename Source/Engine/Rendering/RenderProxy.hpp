@@ -50,16 +50,13 @@ struct MeshRayTracingData
     ~MeshRayTracingData();
 };
 
-class IRenderProxy
+struct IRenderProxy
 {
-public:
     bool forceRebind = false;
 };
 
-class NullProxy final : public IRenderProxy
+struct NullProxy final : IRenderProxy
 {
-private:
-    NullProxy() = default;
 };
 
 struct WorldShaderData

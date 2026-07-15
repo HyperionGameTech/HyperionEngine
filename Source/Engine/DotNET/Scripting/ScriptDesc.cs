@@ -55,6 +55,7 @@ namespace Hyperion
             set => guid = value;
         }
 
+        // @TODO Change to ReadOnlySpan<char>
         public string Path
         {
             get
@@ -74,6 +75,7 @@ namespace Hyperion
             }
         }
 
+        // @TODO Change to ReadOnlySpan<char>
         public string AssemblyPath
         {
             get
@@ -93,6 +95,7 @@ namespace Hyperion
             }
         }
 
+        // @TODO Change to ReadOnlySpan<char>
         public string ClassName
         {
             get

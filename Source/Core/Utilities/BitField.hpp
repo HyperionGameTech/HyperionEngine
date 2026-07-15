@@ -213,23 +213,133 @@ struct BitField
         return count;
     }
 
+    constexpr HYP_FORCE_INLINE BitField operator&(const BitField &other) const
+    {
+        BitField result;
+
+        for (size_t i = 0; i < NumWords; i++)
+        {
+            result.words[i] = words[i] & other.words[i];
+        }
+
+        return result;
+    }
+    
+    constexpr HYP_FORCE_INLINE BitField operator&(uint64 other) const
+    {
+        BitField result;
+        result.words[0] = words[0] & other;
+
+        for (size_t i = 1; i < NumWords; i++)
+        {
+            result.words[i] = WordType(0);
+        }
+
+        return result;
+    }
+
+    constexpr HYP_FORCE_INLINE BitField& operator&=(const BitField &other)
+    {
+        for (size_t i = 0; i < NumWords; i++)
+        {
+            words[i] &= other.words[i];
+        }
+
+        return *this;
+    }
+
+    constexpr HYP_FORCE_INLINE BitField operator|(const BitField &other) const
+    {
+        BitField result;
+
+        for (size_t i = 0; i < NumWords; i++)
+        {
+            result.words[i] = words[i] | other.words[i];
+        }
+
+        return result;
+    }
+
+    constexpr HYP_FORCE_INLINE BitField operator|(uint64 other) const
+    {
+        BitField result;
+        result.words[0] = words[0] | other;
+
+        for (size_t i = 1; i < NumWords; i++)
+        {
+            result.words[i] = words[i];
+        }
+
+        return result;
+    }
+
+    HYP_FORCE_INLINE BitField& operator|=(const BitField &other)
+    {
+        for (size_t i = 0; i < NumWords; i++)
+        {
+            words[i] |= other.words[i];
+        }
+
+        return *this;
+    }
+
+    constexpr HYP_FORCE_INLINE BitField operator^(const BitField &other) const
+    {
+        BitField result;
+
+        for (size_t i = 0; i < NumWords; i++)
+        {
+            result.words[i] = words[i] ^ other.words[i];
+        }
+
+        return result;
+    }
+
+    constexpr HYP_FORCE_INLINE BitField operator^(uint64 other) const
+    {
+        BitField result;
+        result.words[0] = words[0] ^ other;
+
+        for (size_t i = 1; i < NumWords; i++)
+        {
+            result.words[i] = words[i];
+        }
+    }
+
+    constexpr HYP_FORCE_INLINE BitField& operator^=(const BitField &other)
+    {
+        for (size_t i = 0; i < NumWords; i++)
+        {
+            words[i] ^= other.words[i];
+        }
+
+        return *this;
+    }
+
+    constexpr HYP_FORCE_INLINE BitField operator~() const
+    {
+        BitField result;
+
+        for (size_t i = 0; i < NumWords; i++)
+        {
+            result.words[i] = ~words[i];
+        }
+
+        return result;
+    }
+
     constexpr HYP_FORCE_INLINE bool Test(size_t bitIndex) const
     {
-        const size_t wordIndex = GetWordIndex(bitIndex);
-
-        return wordIndex < NumWords && (words[wordIndex] & GetBitMask(bitIndex));
+        return (words[GetWordIndex(bitIndex)] & GetBitMask(bitIndex));
     }
 
     constexpr HYP_FORCE_INLINE void Set(size_t bitIndex, bool value)
     {
         const size_t wordIndex = GetWordIndex(bitIndex);
 
-        if (wordIndex < NumWords)
-        {
-            words[wordIndex] = (value)
-                ? (words[wordIndex] | GetBitMask(bitIndex))
-                : (words[wordIndex] & ~GetBitMask(bitIndex));
-        }
+        words[wordIndex] = (value)
+            ? (words[wordIndex] | GetBitMask(bitIndex))
+            : (words[wordIndex] & ~GetBitMask(bitIndex));
     }
 
     HYP_FORCE_INLINE Iterator Begin()

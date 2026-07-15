@@ -663,9 +663,10 @@
                                                     Grid.Column="4"
                                                     Padding="8,2"
                                                     VerticalAlignment="Center"
-                                                    Content="New content...">
+                                                    Content="New...">
                                                     <Button.Flyout>
                                                         <MenuFlyout>
+                                                            <MenuItem Command="{Binding ContentBrowser.NewPhysicsShapeCommand}" Header="Physics Shape" />
                                                             <MenuItem Command="{Binding ContentBrowser.NewScriptCommand}" Header="New Script" />
                                                         </MenuFlyout>
                                                     </Button.Flyout>

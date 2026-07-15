@@ -22,9 +22,9 @@ static constexpr double InitialDeltaTime = 1.0 / 60.0;
 
 InputHandlerBase::InputHandlerBase()
     : m_mouseButtonStates(0),
-      m_deltaTime(InitialDeltaTime)
+      m_deltaTime(InitialDeltaTime),
+      m_keyStates {}
 {
-    m_keyStates.SetNumBits(NUM_KEYBOARD_KEYS);
 }
 
 InputHandlerBase::~InputHandlerBase()
@@ -53,7 +53,7 @@ bool InputHandlerBase::IsMouseButtonUp(MouseButtonKey btn) const
 
 bool InputHandlerBase::OnKeyDown(const KeyboardEvent& evt)
 {
-    if (uint32(evt.keyCode) < NUM_KEYBOARD_KEYS)
+    if (uint32(evt.keyCode) < NumKeyboardKeys)
     {
         m_keyStates.Set(uint32(evt.keyCode), true);
     }
@@ -64,7 +64,7 @@ bool InputHandlerBase::OnKeyDown(const KeyboardEvent& evt)
 
 bool InputHandlerBase::OnKeyUp(const KeyboardEvent& evt)
 {
-    if (uint32(evt.keyCode) < NUM_KEYBOARD_KEYS)
+    if (uint32(evt.keyCode) < NumKeyboardKeys)
     {
         m_keyStates.Set(uint32(evt.keyCode), false);
     }

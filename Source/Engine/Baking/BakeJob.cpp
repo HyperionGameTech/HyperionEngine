@@ -18,6 +18,7 @@
 #include <Rendering/RenderConfig.hpp>
 #include <Rendering/Device.hpp>
 #include <Rendering/Frame.hpp>
+#include <Rendering/RenderProxy.hpp>
 #include <Rendering/RenderProxyList.hpp>
 #include <Rendering/Mesh.hpp>
 #include <Rendering/Material.hpp>

@@ -1,0 +1,50 @@
+<Window
+    x:Class="Hyperion.Editor.Views.NewPhysicsShapeDialog"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:inspector="clr-namespace:Hyperion.Editor.Views.Inspector;assembly=Hyperion.Editor"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+    Width="420"
+    MaxHeight="640"
+    SizeToContent="Height"
+    x:DataType="vm:NewPhysicsShapeDialogViewModel"
+    CanResize="False"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    mc:Ignorable="d">
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,1,0,0" Padding="12,8">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Padding="20,6" Click="OnCancel" Content="Cancel" />
+                <Button Padding="20,6" Click="OnConfirm" Classes="Primary" Content="Create" />
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Padding="4,0">
+            <StackPanel Margin="12,12,12,8" Spacing="12">
+                <TextBlock FontSize="14" FontWeight="SemiBold" Text="New Physics Shape" />
+
+                <StackPanel Spacing="4">
+                    <TextBlock FontSize="11" Opacity="0.7" Text="Shape Type" />
+                    <ComboBox
+                        ItemsSource="{Binding ShapeTypes}"
+                        SelectedItem="{Binding SelectedShapeType, Mode=TwoWay}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ShapeTypeEntry">
+                                <TextBlock Text="{Binding DisplayName}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </StackPanel>
+
+                <Separator />
+
+                <inspector:InspectorPropertyItemsControl
+                    IsVisible="{Binding ShapeSubObject.HasProperties}"
+                    ItemsSource="{Binding ShapeSubObject.Properties}" />
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

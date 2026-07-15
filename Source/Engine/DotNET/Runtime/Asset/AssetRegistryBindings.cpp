@@ -7,7 +7,7 @@
 #include <HyperionPch.hpp>
 
 #include <Asset/AssetRegistry.hpp>
-#include <Asset/AssetBucket.hpp>
+#include <Asset/AssetObject.hpp>
 
 using namespace Hyperion;
 
@@ -41,5 +41,21 @@ extern "C"
     HYP_EXPORT const char* AssetRegistry_GetBucketName(uint32 bucketIndex)
     {
         return GetAssetBucketName(bucketIndex);
+    }
+
+    HYP_EXPORT void AssetRegistry_PutAsset(AssetRegistry* pRegistry, AssetObject* pAsset)
+    {
+        Assert(pRegistry != nullptr);
+        Assert(pAsset != nullptr);
+
+        pRegistry->PutAsset(MakeStrongRef(pAsset));
+    }
+
+    HYP_EXPORT void AssetRegistry_PutAssetUnique(AssetRegistry* pRegistry, AssetObject* pAsset)
+    {
+        Assert(pRegistry != nullptr);
+        Assert(pAsset != nullptr);
+
+        pRegistry->PutAssetUnique(MakeStrongRef(pAsset));
     }
 } // extern "C"

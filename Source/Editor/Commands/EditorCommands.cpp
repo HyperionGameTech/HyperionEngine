@@ -27,7 +27,12 @@
 
 #include <Scripting/Asset/ScriptAsset.hpp>
 
+#include <Physics/PhysicsShape.hpp>
+
 #include <Core/Reflection/ClassUtils.hpp>
+#include <Core/Reflection/ClassRegistry.hpp>
+
+#include <Core/Reflection/Enum.hpp>
 
 #include <Core/Utilities/StringUtil.hpp>
 
@@ -2170,6 +2175,114 @@ public:
 DEFINE_EDITOR_COMMAND(AddAsset);
 
 #pragma endregion AddAsset
+
+#pragma region NewPhysicsShape
+
+class EditorCommandNewPhysicsShape final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandNewPhysicsShape);
+
+public:
+    virtual ~EditorCommandNewPhysicsShape() override = default;
+
+    virtual String GetText() const override
+    {
+        return "New Physics Shape";
+    }
+
+    static PhysicsShapeType ParseShapeType(const String& str)
+    {
+        for (uint8 i = 0; i < static_cast<uint8>(PhysicsShapeType::Max); i++)
+        {
+            if (EnumToString(static_cast<PhysicsShapeType>(i)) == str)
+            {
+                return static_cast<PhysicsShapeType>(i);
+            }
+        }
+
+        return PhysicsShapeType::Box;
+    }
+
+    static const Class* GetPhysicsShapeClass(PhysicsShapeType type)
+    {
+        static const Class* s_classes[static_cast<uint8>(PhysicsShapeType::Max)] = {
+            BoxPhysicsShape::StaticClass(),
+            SpherePhysicsShape::StaticClass(),
+            PlanePhysicsShape::StaticClass(),
+            ConvexHullPhysicsShape::StaticClass(),
+            CapsulePhysicsShape::StaticClass()
+        };
+
+        const uint8 index = static_cast<uint8>(type);
+
+        return index < std::size(s_classes)
+            ? s_classes[index]
+            : nullptr;
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No project loaded; cannot create physics shape!");
+
+            return;
+        }
+
+        const PhysicsShapeType shapeType = NumArguments() > 0
+            ? ParseShapeType(GetArgument(0))
+            : PhysicsShapeType::Box;
+
+        const Class* shapeClass = GetPhysicsShapeClass(shapeType);
+        if (!shapeClass)
+        {
+            HYP_LOG(Editor, Warning, "No class registered for physics shape type '{}'", EnumToString(shapeType));
+
+            return;
+        }
+
+        BoxedValue boxed;
+        if (!shapeClass->CreateInstance(boxed))
+        {
+            HYP_LOG(Editor, Error, "Failed to create instance of physics shape class '{}'", shapeClass->GetName().LookupString());
+
+            return;
+        }
+
+        Handle<PhysicsShape> shape = boxed.Get<Handle<PhysicsShape>>();
+
+        shape->SetName(NAME_FMT("New{}", shapeClass->GetName()));
+        InitObject(shape);
+
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+            GetText(),
+            Proc<EditorActionFunctions()>(
+                [shape]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [shape](EditorSubsystem*, EditorProject*)
+                            {
+                                GetCurrentAssetRegistry()->PutAssetUnique(shape);
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [shape](EditorSubsystem*, EditorProject*)
+                            {
+                                GetCurrentAssetRegistry()->RemoveAsset(shape);
+                            })
+                    };
+                }));
+
+        InitObject(action);
+
+        currentProject->GetActionStack()->PushAction(action);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(NewPhysicsShape);
+
+#pragma endregion NewPhysicsShape
 
 #undef DEFINE_EDITOR_COMMAND
 

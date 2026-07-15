@@ -15,6 +15,9 @@
 #include <Physics/PhysicsWorld.hpp>
 
 #include <Input/Keyboard.hpp>
+#include <Input/InputManager.hpp>
+
+#include <System/AppContext.hpp>
 
 #include <Framework/Game.hpp>
 
@@ -26,12 +29,44 @@ namespace Hyperion {
 
 Vec2f CharacterControllerInputHandler::GetMovementInput() const
 {
-    return Vec2f(m_strafe, m_forward);
+    float forward = 0.0f;
+    float strafe = 0.0f;
+
+    if (g_appContext != nullptr)
+    {
+        if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
+        {
+            if (InputManager* inputManager = mainWindow->GetInputManager())
+            {
+                if (inputManager->IsKeyDown(KeyCode::KEY_W))
+                    forward += 1.0f;
+                if (inputManager->IsKeyDown(KeyCode::KEY_S))
+                    forward -= 1.0f;
+                if (inputManager->IsKeyDown(KeyCode::KEY_A))
+                    strafe -= 1.0f;
+                if (inputManager->IsKeyDown(KeyCode::KEY_D))
+                    strafe += 1.0f;
+            }
+        }
+    }
+
+    return Vec2f(strafe, forward);
 }
 
 bool CharacterControllerInputHandler::IsJumpPressed() const
 {
-    return m_jump;
+    if (g_appContext != nullptr)
+    {
+        if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
+        {
+            if (InputManager* inputManager = mainWindow->GetInputManager())
+            {
+                return inputManager->IsKeyDown(KeyCode::KEY_SPACE);
+            }
+        }
+    }
+
+    return false;
 }
 
 bool CharacterControllerInputHandler::OnKeyDown(const KeyboardEvent& evt)
@@ -112,6 +147,8 @@ void CharacterControllerSystem::OnEntityAdded(Entity* entity)
     {
         component.inputHandler = MakeHandle<CharacterControllerInputHandler>();
         InitObject(component.inputHandler);
+
+        GetWorld()->GetGame()->RegisterInputHandler(component.inputHandler);
     }
 
     TransformComponent& transformComponent = entity->GetComponent<TransformComponent>();
@@ -126,6 +163,11 @@ void CharacterControllerSystem::OnEntityAdded(Entity* entity)
     config.fallSpeed = component.fallSpeed;
 
     entity->GetWorld()->GetPhysicsWorld()->AddCharacterController(config, component.physicsHandle);
+
+    if (!component.physicsHandle)
+    {
+        HYP_LOG(Scene, Error, "Failed to add CharacterController to physics world (physicsHandle was null) - Entity = {}", entity->GetName());
+    }
 }
 
 void CharacterControllerSystem::OnEntityRemoved(Entity* entity)
@@ -137,6 +179,11 @@ void CharacterControllerSystem::OnEntityRemoved(Entity* entity)
 
     CharacterControllerComponent& component = entity->GetComponent<CharacterControllerComponent>();
 
+    if (component.inputHandler)
+    {
+        GetWorld()->GetGame()->UnregisterInputHandler(component.inputHandler);
+    }
+
     if (component.physicsHandle)
     {
         entity->GetWorld()->GetPhysicsWorld()->RemoveCharacterController(component.physicsHandle);
@@ -147,6 +194,11 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     HYP_SCOPE;
 
+    if (!GetWorld()->GetGameState().IsSimulating())
+    {
+        return;
+    }
+
     for (Scene* scene : scenes)
     {
         if (!ShouldProcessScene(scene))
@@ -154,42 +206,40 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
             continue;
         }
 
-        for (auto [entity, component, transformComponent] : scene->GetEntityManager()->GetEntitySet<CharacterControllerComponent, TransformComponent>().GetScopedView(GetComponentInfos()))
+        for (auto [entity, component] : scene->GetEntityManager()->GetEntitySet<CharacterControllerComponent>().GetScopedView(GetComponentInfos()))
         {
             if (!component.physicsHandle)
             {
+                HYP_LOG_ONCE(Scene, Warning, "physicsHandle is null for Entity {}'s character controller.", entity->GetName());
                 continue;
             }
 
-            Vec3f walkDirection = Vec3f::Zero();
+            Vec3f walkDirection;
 
             if (component.inputHandler)
             {
-                CharacterControllerInputHandler* inputHandler = DynamicCast<CharacterControllerInputHandler>(component.inputHandler.Get());
+                CharacterControllerInputHandler* inputHandler = StaticCast<CharacterControllerInputHandler>(component.inputHandler.Get());
 
-                if (inputHandler)
+                Vec2f movementInput = inputHandler->GetMovementInput();
+
+                if (movementInput.LengthSquared() > 0.0001f)
                 {
-                    Vec2f movementInput = inputHandler->GetMovementInput();
+                    Vec3f forward = Vec3f(component.viewDirection.x, 0.0f, component.viewDirection.z).Normalize();
+                    Vec3f right = Vec3f(0.0f, 1.0f, 0.0f).Cross(forward).Normalize();
 
-                    if (movementInput.LengthSquared() > 0.0001f)
-                    {
-                        Vec3f forward = Vec3f(component.viewDirection.x, 0.0f, component.viewDirection.z).Normalize();
-                        Vec3f right = forward.Cross(Vec3f(0.0f, 1.0f, 0.0f)).Normalize();
+                    walkDirection = (forward * movementInput.y + right * movementInput.x) * component.moveSpeed;
+                }
 
-                        walkDirection = (forward * movementInput.y + right * movementInput.x) * component.moveSpeed;
-                    }
-
-                    if (inputHandler->IsJumpPressed())
-                    {
-                        entity->GetWorld()->GetPhysicsWorld()->ApplyCharacterJump(component.physicsHandle);
-                    }
+                if (inputHandler->IsJumpPressed())
+                {
+                    entity->GetWorld()->GetPhysicsWorld()->ApplyCharacterJump(component.physicsHandle);
                 }
             }
 
             entity->GetWorld()->GetPhysicsWorld()->SetCharacterWalkDirection(component.physicsHandle, walkDirection);
             entity->GetWorld()->GetPhysicsWorld()->GetCharacterState(component.physicsHandle, component.translation, component.isOnGround);
 
-            transformComponent.translation = component.translation;
+            entity->SetWorldTranslation(component.translation, TransformChangeType::Simulation);
         }
     }
 }

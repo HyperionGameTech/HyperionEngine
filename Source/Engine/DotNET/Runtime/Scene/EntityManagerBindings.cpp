@@ -93,11 +93,11 @@ extern "C"
         return i;
     }
 
+    /// Adds component, if pComponent is null it will create a new instance.
     HYP_EXPORT void EntityManager_AddComponent(EntityManager* pManager, Entity* pEntity, uint32 componentTypeIdValue, void* pComponent)
     {
         Assert(pManager != nullptr);
         Assert(pEntity != nullptr);
-        Assert(pComponent != nullptr);
 
         const TypeId componentTypeId { componentTypeIdValue };
 
@@ -106,8 +106,34 @@ extern "C"
 
         const TypeInfo& typeInfo = pContainer->GetComponentTypeInfo();
 
-        BoxedValue boxed(AnyRef(&typeInfo, pComponent));
-        pManager->AddComponent(pEntity, boxed);
+        if (pComponent != nullptr)
+        {
+            pManager->AddComponent(pEntity, BoxedValue(AnyRef(&typeInfo, pComponent)));
+        }
+        else
+        {
+            // Make instance if pComponent is null
+
+            const Class* cls = typeInfo.GetClass();
+            Assert(cls != nullptr, "No Class for component: {}", typeInfo.name);
+
+            if (!cls)
+            {
+                return;
+            }
+
+            BoxedValue boxed;
+            bool created = cls->CreateInstance(boxed);
+            
+            Assert(created, "Failed to create instance of {}!", cls->GetName());
+
+            if (!created)
+            {
+                return;
+            }
+
+            pManager->AddComponent(pEntity, std::move(boxed));
+        }
     }
 
     HYP_EXPORT int8 EntityManager_AddTypedEntity(EntityManager* pManager, const Class* pClass, BoxedValue* pOutBoxed)

@@ -26,11 +26,13 @@ namespace Hyperion {
 HYP_ENUM()
 enum class PhysicsShapeType : uint8
 {
-    BOX,
-    SPHERE,
-    PLANE,
-    CONVEX_HULL,
-    CAPSULE
+    Box,
+    Sphere,
+    Plane,
+    ConvexHull,
+    Capsule,
+
+    Max
 };
 
 HYP_CLASS(Abstract, AssetBucket = "PhysicsShapes")
@@ -40,7 +42,6 @@ class PhysicsShape : public AssetObject
 
 protected:
     PhysicsShape() = default;
-
     PhysicsShape(Name name, PhysicsShapeType type)
         : AssetObject(name),
           m_type(type)
@@ -50,7 +51,8 @@ protected:
 public:
     ~PhysicsShape() override = default;
 
-    HYP_FORCE_INLINE PhysicsShapeType GetType() const
+    HYP_METHOD()
+    PhysicsShapeType GetType() const
     {
         return m_type;
     }
@@ -69,7 +71,7 @@ public:
     }
 
 protected:
-    PhysicsShapeType m_type;
+    const PhysicsShapeType m_type;
 
     SharedPtr<void> m_internalData;
 };
@@ -80,10 +82,14 @@ class BoxPhysicsShape final : public PhysicsShape
     HYP_OBJECT_BODY(BoxPhysicsShape);
 
 public:
-    BoxPhysicsShape() = default;
+    BoxPhysicsShape()
+        : PhysicsShape(Name::Invalid(), PhysicsShapeType::Box),
+          m_aabb(Vec3f(-1.0f), Vec3f(1.0f))
+    {
+    }
 
     BoxPhysicsShape(Name name, const BoundingBox& aabb)
-        : PhysicsShape(name, PhysicsShapeType::BOX),
+        : PhysicsShape(name, PhysicsShapeType::Box),
           m_aabb(aabb)
     {
     }
@@ -106,10 +112,14 @@ class SpherePhysicsShape final : public PhysicsShape
     HYP_OBJECT_BODY(SpherePhysicsShape);
 
 public:
-    SpherePhysicsShape() = default;
+    SpherePhysicsShape()
+        : PhysicsShape(Name::Invalid(), PhysicsShapeType::Sphere),
+          m_sphere(Vec3f::Zero(), 1.0f)
+    {
+    }
 
     SpherePhysicsShape(Name name, const BoundingSphere& sphere)
-        : PhysicsShape(name, PhysicsShapeType::SPHERE),
+        : PhysicsShape(name, PhysicsShapeType::Sphere),
           m_sphere(sphere)
     {
     }
@@ -132,10 +142,14 @@ class PlanePhysicsShape final : public PhysicsShape
     HYP_OBJECT_BODY(PlanePhysicsShape);
 
 public:
-    PlanePhysicsShape() = default;
+    PlanePhysicsShape()
+        : PhysicsShape(Name::Invalid(), PhysicsShapeType::Plane),
+          m_plane(0.0f, 1.0f, 0.0f, 0.0f)
+    {
+    }
 
     PlanePhysicsShape(Name name, const Vec4f& plane)
-        : PhysicsShape(name, PhysicsShapeType::PLANE),
+        : PhysicsShape(name, PhysicsShapeType::Plane),
           m_plane(plane)
     {
     }
@@ -158,7 +172,10 @@ class ConvexHullPhysicsShape final : public PhysicsShape
     HYP_OBJECT_BODY(ConvexHullPhysicsShape);
 
 public:
-    ConvexHullPhysicsShape() = default;
+    ConvexHullPhysicsShape()
+        : PhysicsShape(Name::Invalid(), PhysicsShapeType::ConvexHull)
+    {
+    }
 
     ConvexHullPhysicsShape(Name name, const struct VertexArrayView& vertexData);
 
@@ -193,10 +210,15 @@ class CapsulePhysicsShape final : public PhysicsShape
     HYP_OBJECT_BODY(CapsulePhysicsShape);
 
 public:
-    CapsulePhysicsShape() = default;
+    CapsulePhysicsShape()
+        : PhysicsShape(Name::Invalid(), PhysicsShapeType::Capsule),
+          m_radius(0.2f),
+          m_height(1.7f) // Avg. height of a human :)
+    {
+    }
 
     CapsulePhysicsShape(Name name, float radius, float height)
-        : PhysicsShape(name, PhysicsShapeType::CAPSULE),
+        : PhysicsShape(name, PhysicsShapeType::Capsule),
           m_radius(radius),
           m_height(height)
     {

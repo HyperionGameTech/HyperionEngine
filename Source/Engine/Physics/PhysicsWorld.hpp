@@ -141,7 +141,7 @@ public:
 
     void ApplyCharacterJump(const SharedPtr<void>& physicsHandle) override
     {
-        m_adapter.ApplyCharacterJump(physicsHandle);
+         m_adapter.ApplyCharacterJump(physicsHandle);
     }
 
     void GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround) override

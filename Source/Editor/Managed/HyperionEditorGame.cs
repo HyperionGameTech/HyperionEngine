@@ -100,16 +100,68 @@ namespace Hyperion.Editor
             {
                 AssetMap assetMap = _assetBatchTask.Result;
 
+                Scene activeScene = _editorSubsystem!.GetActiveScene();
+
+                activeScene.World!.AddSystem(new CharacterControllerSystem());
+
+                Node rootNode = activeScene.RootNode!;
+
+                // Ground: a static floor for the character controller to walk on.
+                Entity groundEntity = new Entity();
+                groundEntity.Name = new Name("Ground");
+                rootNode.AddChild(groundEntity);
+
+                BoxPhysicsShape groundShape = new BoxPhysicsShape();
+                groundShape.GetProperty(new Name("Bounds")).Set(groundShape,
+                    new BoxedValue(new BoundingBox(new Vec3f(-50.0f, -0.5f, -50.0f), new Vec3f(50.0f, 0.5f, 50.0f))));
+
+                RigidBodyComponent groundRbc = new RigidBodyComponent();
+                groundRbc.PhysicsMaterial = new PhysicsMaterial();
+                groundRbc.Shape = new Handle<PhysicsShape>(groundShape);
+                groundEntity.AddComponent(ref groundRbc);
+                groundRbc.Dispose();
+
+                // Player: character controller driven by WASD + Space.
+                Entity playerEntity = new Entity();
+                playerEntity.Name = new Name("Player");
+                rootNode.AddChild(playerEntity);
+                playerEntity.LocalTranslation = new Vec3f(0.0f, 3.0f, 0.0f);
+
+                CapsulePhysicsShape capsuleShape = new CapsulePhysicsShape();
+                capsuleShape.Radius = 0.4f;
+                capsuleShape.Height = 1.0f;
+
+                // CharacterControllerComponent cc = new CharacterControllerComponent();
+                // cc.Shape = new Handle<PhysicsShape>(capsuleShape);
+                // cc.MoveSpeed = 5.0f;
+                // cc.ViewDirection = new Vec3f(0.0f, 0.0f, 1.0f);
+                // playerEntity.AddComponent(ref cc);
+                // cc.Dispose();
+
+                // Attach guy mesh to the player so it visually follows the controller.
                 var guy = assetMap["guy"];
 
                 if (guy != null && guy.IsValid)
                 {
                     Assert.Throw(guy.Value != null);
 
-                    Node n = _editorSubsystem!.GetActiveScene().RootNode.AddChild(((Prefab)guy.Value).Root);
-                    n.LocalScale = new Vec3f(0.5f);
+                    Node guyNode = playerEntity.AddChild(((Prefab)guy.Value).Root);
+                    guyNode.LocalScale = new Vec3f(0.5f);
                 }
 
+                // Camera for simulation rendering.
+                Camera camera = new Camera();
+                camera.Name = new Name("PrimaryCamera");
+                rootNode.AddChild(camera);
+                camera.LocalTranslation = new Vec3f(0.0f, 5.0f, 10.0f);
+                camera.SetCameraFlags(CameraFlags.MatchWindowSize);
+                camera.SetFOV(65.0f);
+                camera.SetNearClip(0.1f);
+                camera.SetFarClip(1000.0f);
+                camera.SetTarget(new Vec3f(0.0f, 1.0f, 0.0f));
+                camera.AddTag(EntityTag.PrimaryCamera);
+
+                // Sponza test model.
                 var testModelAsset = assetMap["test_model"];
 
                 if (testModelAsset != null && testModelAsset.IsValid)
@@ -117,7 +169,7 @@ namespace Hyperion.Editor
                     Logger.Log(LogLevel.Debug, "Test model asset loaded successfully.");
                     Assert.Throw(testModelAsset.Value != null);
 
-                    Node n = _editorSubsystem!.GetActiveScene().RootNode.AddChild(((Prefab)testModelAsset.Value).Root);
+                    Node n = rootNode.AddChild(((Prefab)testModelAsset.Value).Root);
                     n.LocalScale = new Vec3f(3.0f);
                 }
                 else

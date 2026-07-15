@@ -63,15 +63,15 @@ static SharedPtr<btCollisionShape> CreatePhysicsShapeHandle(PhysicsShape* physic
 
     switch (physicsShape->GetType())
     {
-    case PhysicsShapeType::BOX:
+    case PhysicsShapeType::Box:
         return MakeShared<btBoxShape>(ToBtVector(static_cast<BoxPhysicsShape*>(physicsShape)->GetAABB().GetExtent() * 0.5f));
-    case PhysicsShapeType::SPHERE:
+    case PhysicsShapeType::Sphere:
         return MakeShared<btSphereShape>(static_cast<SpherePhysicsShape*>(physicsShape)->GetSphere().GetRadius());
-    case PhysicsShapeType::PLANE:
+    case PhysicsShapeType::Plane:
         return MakeShared<btStaticPlaneShape>(
             ToBtVector(static_cast<PlanePhysicsShape*>(physicsShape)->GetPlane().GetXYZ()),
             static_cast<PlanePhysicsShape*>(physicsShape)->GetPlane().w);
-    case PhysicsShapeType::CONVEX_HULL:
+    case PhysicsShapeType::ConvexHull:
     {
         static_assert(sizeof(btScalar) == sizeof(float), "sizeof(btScalar) must be sizeof(float) for reinterpret_cast to be safe");
 
@@ -308,13 +308,13 @@ void BulletPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerC
 {
     Assert(m_dynamicsWorld != nullptr);
 
-    if (!config.shape || config.shape->GetType() != PhysicsShapeType::CAPSULE)
+    if (!config.shape || !config.shape->IsA<CapsulePhysicsShape>())
     {
         HYP_LOG(Physics, Error, "CharacterController requires a valid CapsulePhysicsShape");
         return;
     }
 
-    CapsulePhysicsShape* capsuleShape = static_cast<CapsulePhysicsShape*>(config.shape.Get());
+    CapsulePhysicsShape* capsuleShape = StaticCast<CapsulePhysicsShape>(config.shape);
 
     SharedPtr<CharacterControllerInternalData> internalData = MakeShared<CharacterControllerInternalData>();
     internalData->capsuleShape = MakeShared<btCapsuleShape>(capsuleShape->GetRadius(), capsuleShape->GetHeight());
@@ -344,7 +344,7 @@ void BulletPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerC
 
     m_dynamicsWorld->addAction(internalData->kcc.Get());
 
-    outPhysicsHandle = std::move(internalData);
+    outPhysicsHandle = internalData;
 }
 
 void BulletPhysicsAdapter::OnCharacterControllerRemoved(SharedPtr<void>& physicsHandle)

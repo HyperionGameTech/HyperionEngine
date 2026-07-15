@@ -14,6 +14,8 @@
 
 namespace Hyperion {
 
+CORE_API extern const Class* g_clsObjectBase;
+
 CORE_API const TypeInfo& Class_GetTypeInfo(const Class& cls)
 {
     return *cls.GetTypeInfo();
@@ -47,7 +49,6 @@ HYP_NODISCARD AnyRef BoxedValue::ToRef()
         // Null object
         if (!object)
         {
-            extern const Class* g_clsObjectBase;
             return AnyRef(&Class_GetTypeInfo(*g_clsObjectBase), nullptr);
         }
         

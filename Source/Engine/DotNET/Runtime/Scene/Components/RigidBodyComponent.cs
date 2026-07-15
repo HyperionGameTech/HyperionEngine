@@ -20,11 +20,13 @@ namespace Hyperion
             }
         }
 
-        public Handle<RigidBody> RigidBody;
         public PhysicsMaterial PhysicsMaterial;
+        public Handle<PhysicsShape> Shape;
+        public Handle<RigidBody> RigidBody;
 
         public void Dispose()
         {
+            Shape.Dispose();
             RigidBody.Dispose();
         }
     }

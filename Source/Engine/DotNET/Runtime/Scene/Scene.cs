@@ -61,6 +61,8 @@ namespace Hyperion
 
         public Node? RootNode => this.GetRoot();
 
+        public World? World => this.GetWorld();
+
         public SceneFlags SceneFlags
         {
             get => this.GetSceneFlags();

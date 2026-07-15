@@ -708,7 +708,7 @@ bool TranslateEditorGizmo::OnKeyPress(const Handle<Camera>& camera, const Keyboa
     case KeyCode::KEY_UP:
     case KeyCode::KEY_DOWN: // fallthrough
     {
-        const Bitset& keyStates = camera->GetCameraController()->GetInputHandler()->GetKeyStates();
+        const BitField<NumKeyboardKeys>& keyStates = camera->GetCameraController()->GetInputHandler()->GetKeyStates();
 
         const bool snapMovement = keyStates.Test(uint32(KeyCode::KEY_LALT)) || keyStates.Test(uint32(KeyCode::KEY_RALT));
 

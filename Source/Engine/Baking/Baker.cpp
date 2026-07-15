@@ -59,6 +59,7 @@
 
 #include <Core/Math/Triangle.hpp>
 
+#include <Rendering/RenderProxy.hpp>
 #include <Rendering/RenderProxyList.hpp>
 
 #include <Rendering/Util/MeshBuilder.hpp>

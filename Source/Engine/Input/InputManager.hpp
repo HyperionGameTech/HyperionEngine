@@ -6,9 +6,6 @@
 
 #pragma once
 
-#define NUM_KEYBOARD_KEYS 350
-#define NUM_MOUSE_BUTTONS 3
-
 #include <Core/Defines.hpp>
 
 #include <Core/Reflection/ObjectBase.hpp>
@@ -23,18 +20,20 @@
 #include <Input/Keyboard.hpp>
 #include <Input/Mouse.hpp>
 #include <Input/Controller.hpp>
+#include <Input/InputConstants.hpp>
 
 namespace Hyperion {
 
 class ApplicationWindow;
 class Event;
+class InputHandlerBase;
 
 extern Pool* g_inputPool;
 using InputAllocator = AllocatorInstance<Pool, &g_inputPool>;
 
 struct InputState
 {
-    mutable volatile int32 keyStates[NUM_KEYBOARD_KEYS / 32 + 1];
+    mutable volatile int32 keyStates[NumKeyboardKeys / 32 + 1];
     mutable volatile int32 mouseButtonStates;
 
     InputState()
@@ -170,7 +169,7 @@ public:
     {
         return ByteUtil::BitCount(m_validControllersMask);
     }
-
+    
     HYP_METHOD()
     HYP_FORCE_INLINE ApplicationWindow* GetWindow() const
     {
@@ -263,6 +262,9 @@ private:
 
     Array<InputMouseLockState*, InputAllocator> m_mouseLockStates;
     Mutex m_mouseLockStatesMutex;
+
+    // Array<InputHandlerBase*, InputAllocator> m_inputHandlers;
+    // SharedMutex m_inputHandlersMutex;
 
     ApplicationWindow* m_ownerWindow;
 

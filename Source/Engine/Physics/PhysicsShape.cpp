@@ -15,7 +15,7 @@ namespace Hyperion {
 #pragma region ConvexHullPhysicsShape
 
 ConvexHullPhysicsShape::ConvexHullPhysicsShape(Name name, const VertexArrayView& vertexData)
-    : PhysicsShape(name, PhysicsShapeType::CONVEX_HULL)
+    : PhysicsShape(name, PhysicsShapeType::ConvexHull)
 {
     // Must only have position component
     Assert(vertexData.layoutDesc == StaticVertexInputLayout<VT_Position>);

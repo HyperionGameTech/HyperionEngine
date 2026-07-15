@@ -27,7 +27,7 @@ CORE_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
 
 CORE_API extern const TypeInfo& Class_GetTypeInfo(const Class& cls);
 
-class NullProxy;
+struct NullProxy;
 
 namespace Resources {
 

@@ -11,6 +11,7 @@
 #include <Core/Containers/SparsePagedArray.hpp>
 
 #include <Rendering/RendererMain.hpp>
+#include <Rendering/RenderProxy.hpp>
 #include <Rendering/RenderProxyList.hpp>
 #include <Rendering/Mesh.hpp>
 
@@ -50,7 +51,8 @@ struct EditorPickCacheImpl
 
 static int ComputeResidency(const EditorPickCacheEntry& entry)
 {
-    const int fc = GetFrameCounter();
+    // @TODO Just keep a timestamp. Don't need to assume based on frame count.
+    const uint32 fc = GetFrameCounter();
 
     int residency = MinResidency;
 

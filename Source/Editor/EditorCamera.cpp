@@ -32,10 +32,9 @@ static constexpr double MovementSpeed = 10.0;
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Camera);
 
-template <class AllocatorType>
-static TBitset<AllocatorType> GetMovementKeys(bool includeArrowKeys = true)
+static constexpr BitField<NumKeyboardKeys> GetMovementKeys(bool includeArrowKeys = true)
 {
-    TBitset<AllocatorType> bits;
+    BitField<NumKeyboardKeys> bits {};
     bits.Set(uint32(KeyCode::KEY_W), true);
     bits.Set(uint32(KeyCode::KEY_A), true);
     bits.Set(uint32(KeyCode::KEY_S), true);
@@ -53,7 +52,7 @@ static TBitset<AllocatorType> GetMovementKeys(bool includeArrowKeys = true)
 }
 
 // Max key enum value (KEY_W) < (32*4)
-static const auto s_movementKeys = GetMovementKeys<FixedAllocator<(128 / Bitset::NumBitsPerBlock)>>(true);
+static constexpr BitField<NumKeyboardKeys> MovementKeys = GetMovementKeys(true);
 
 #pragma region EditorCameraInputHandler
 
@@ -144,8 +143,6 @@ bool EditorCameraInputHandler::OnMouseMove(const MouseEvent& evt)
 
 bool EditorCameraInputHandler::OnMouseDrag(const MouseEvent& evt)
 {
-    HYP_SCOPE;
-
     Camera* camera = m_controller->GetCamera();
     Assert(camera != nullptr);
 
@@ -159,7 +156,7 @@ bool EditorCameraInputHandler::OnMouseDrag(const MouseEvent& evt)
 
     const bool isAltPressed = IsKeyDown(KeyCode::KEY_LALT) || IsKeyDown(KeyCode::KEY_RALT);
     const bool isCtrlPressed = IsKeyDown(KeyCode::KEY_LCTRL) || IsKeyDown(KeyCode::KEY_RCTRL);
-    const bool isMoveKeyPressed = (GetKeyStates() & s_movementKeys).Count() != 0;
+    const bool isMoveKeyPressed = (GetKeyStates() & MovementKeys).CountOnes() != 0;
 
     constexpr EnumFlags<MouseButtonState> ButtonsLR = MouseButtonState::LEFT | MouseButtonState::RIGHT;
 

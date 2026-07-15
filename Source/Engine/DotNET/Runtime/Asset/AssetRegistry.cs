@@ -58,10 +58,28 @@ namespace Hyperion
             }
         }
 
+        public void PutAsset(AssetObject asset)
+        {
+            Debug.Assert(asset.NativeAddress != IntPtr.Zero);
+            AssetRegistry_PutAsset(NativeAddress, asset.NativeAddress);
+        }
+
+        public void PutAssetUnique(AssetObject asset)
+        {
+            Debug.Assert(asset.NativeAddress != IntPtr.Zero);
+            AssetRegistry_PutAssetUnique(NativeAddress, asset.NativeAddress);
+        }
+
         [DllImport("hyperion", EntryPoint = "AssetRegistry_GetBucketAssetDescs")]
         private static extern uint AssetRegistry_GetBucketAssetDescs(IntPtr pRegistry, uint bucketIndex, IntPtr pOutAssetDescs, uint maxCount);
 
         [DllImport("hyperion", EntryPoint = "AssetRegistry_GetAssetBoxed")]
         private static extern bool AssetRegistry_GetAssetBoxed([In] IntPtr pRegistry, uint bucketIndex, [In] ref Name name, [Out] out BoxedValueInternal outBoxed);
+
+        [DllImport("hyperion", EntryPoint = "AssetRegistry_PutAsset")]
+        private static extern void AssetRegistry_PutAsset([In] IntPtr pRegistry, [In] IntPtr pAsset);
+
+        [DllImport("hyperion", EntryPoint = "AssetRegistry_PutAssetUnique")]
+        private static extern void AssetRegistry_PutAssetUnique([In] IntPtr pRegistry, [In] IntPtr pAsset);
     }
 }

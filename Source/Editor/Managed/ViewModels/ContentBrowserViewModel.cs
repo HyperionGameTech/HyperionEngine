@@ -6,9 +6,11 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using System.Diagnostics;
 using Avalonia.Threading;
 using Hyperion;
 using Hyperion.Editor.Commands;
+using Hyperion.Editor.Views;
 
 namespace Hyperion.Editor.ViewModels
 {
@@ -45,7 +47,6 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        // ── sort ──────────────────────────────────────────────────────────────
 
         public IReadOnlyList<string> SortModeLabels { get; } = new[] { "Name", "Date Modified", "Type" };
 
@@ -65,7 +66,6 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        // ─────────────────────────────────────────────────────────────────────
 
         private DelegateHandler? _onSelectedBucketChangedHandler;
         private uint _pendingFocusBucket;
@@ -73,6 +73,7 @@ namespace Hyperion.Editor.ViewModels
 
         public ICommand ImportCommand { get; }
         public ICommand NewScriptCommand { get; }
+        public ICommand NewPhysicsShapeCommand { get; }
 
         public ContentBrowserViewModel(EditorSubsystem editorSubsystem)
         {
@@ -83,6 +84,41 @@ namespace Hyperion.Editor.ViewModels
             {
                 _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandNewScript"));
                 FocusAsset(AssetBucket.Scripts.Value, "NewScript");
+            });
+
+            NewPhysicsShapeCommand = new AsyncRelayCommand(async _ =>
+            {
+                var lifetime = Avalonia.Application.Current?.ApplicationLifetime
+                    as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime;
+
+                if (lifetime?.MainWindow == null)
+                    return;
+
+                var dialog = new NewPhysicsShapeDialog();
+                await dialog.ShowDialog(lifetime.MainWindow);
+
+                if (!dialog.Result || dialog.ViewModel.CreatedShape == null)
+                {
+                    Logger.Log(LogLevel.Warning, "Physics shape creation cancelled or failed?");
+                    return;
+                }
+
+                PhysicsShape? shape = dialog.ViewModel.CreatedShape;
+                Debug.Assert(shape != null);
+
+                // Task hell...
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    AssetRegistry? registry = EngineManager.EditorGame?.AssetRegistry;
+                    Debug.Assert(registry != null);
+
+                    registry.PutAssetUnique(shape);
+                    
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        FocusAsset(AssetBucket.PhysicsShapes.Value, shape.GetName().ToString());
+                    });
+                });
             });
 
             Instance = this;

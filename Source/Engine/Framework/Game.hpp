@@ -23,6 +23,7 @@ class UISubsystem;
 class World;
 class Scene;
 class Event;
+class InputHandlerBase;
 
 HYP_CLASS()
 class ENGINE_API Game : public ObjectBase
@@ -87,7 +88,7 @@ public:
     HYP_METHOD(EditorOnly)
     void SetToEditMode();
 #else
-    void SetToEditMode() { }
+    static constexpr NoOpFunction<void> SetToEditMode;
 #endif
 
     void HandleEvent(Event&& event);
@@ -106,6 +107,12 @@ public:
 
     HYP_METHOD()
     void PauseSimulation();
+
+    HYP_METHOD()
+    void RegisterInputHandler(InputHandlerBase* inputHandler);
+
+    HYP_METHOD()
+    void UnregisterInputHandler(InputHandlerBase* inputHandler);
 
     HYP_FIELD()
     static ScriptableDelegate<void> OnLaunched;
@@ -155,6 +162,8 @@ protected:
 
     Handle<AssetRegistry> m_assetRegistry;
     Handle<UISubsystem> m_uiSubsystem;
+
+    Array<InputHandlerBase*> m_inputHandlers;
 
     bool m_assetRegistryActive;
     bool m_isInitialized;

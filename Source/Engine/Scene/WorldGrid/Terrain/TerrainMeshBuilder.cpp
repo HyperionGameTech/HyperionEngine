@@ -125,7 +125,7 @@ const Handle<Mesh>& TerrainMeshBuilder::GetMesh()
     
     m_mesh = mesh;
 
-    return mesh;
+    return m_mesh;
 }
 
 #pragma endregion TerrainMeshBuilder

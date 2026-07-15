@@ -106,7 +106,7 @@ struct CORE_API BoundingBox
         );
     }
 
-    HYP_FORCE_INLINE constexpr Vec3f GetCenter() const
+    HYP_FORCE_INLINE Vec3f GetCenter() const
     {
         return (max + min) * 0.5f;
     }
@@ -115,7 +115,7 @@ struct CORE_API BoundingBox
 
     void SetCenter(const Vec3f& center);
 
-    HYP_FORCE_INLINE constexpr Vec3f GetExtent() const
+    HYP_FORCE_INLINE Vec3f GetExtent() const
     {
         return max - min;
     }
@@ -136,12 +136,12 @@ struct CORE_API BoundingBox
     BoundingBox operator*(const Vec3f& scale) const;
     BoundingBox& operator*=(const Vec3f& scale);
 
-    HYP_FORCE_INLINE constexpr bool operator==(const BoundingBox& other) const
+    HYP_FORCE_INLINE bool operator==(const BoundingBox& other) const
     {
         return min == other.min && max == other.max;
     }
 
-    HYP_FORCE_INLINE constexpr bool operator!=(const BoundingBox& other) const
+    HYP_FORCE_INLINE bool operator!=(const BoundingBox& other) const
     {
         return !operator==(other);
     }

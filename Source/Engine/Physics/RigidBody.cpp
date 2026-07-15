@@ -28,7 +28,7 @@ PhysicsMaterial& GetDefaultPhysicsMaterial()
 
 const Handle<PhysicsShape>& GetDefaultPhysicsShape()
 {
-    static Handle<BoxPhysicsShape> s_defaultPhysicsShape = MakeHandle<BoxPhysicsShape>(Name::Invalid(), BoundingBox());
+    static Handle<PhysicsShape> s_defaultPhysicsShape = MakeHandle<BoxPhysicsShape>(Name::Invalid(), BoundingBox());
     return s_defaultPhysicsShape;
 }
 

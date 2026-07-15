@@ -28,7 +28,7 @@ namespace Hyperion
         internal static extern void WeakHandle_Destruct(IntPtr ptr);
     }
 
-    [StructLayout(LayoutKind.Sequential, Size = 8)]
+    [StructLayout(LayoutKind.Sequential, Size = 8, Pack = 8)]
     public struct Handle : IDisposable
     {
         internal IntPtr ptr;
@@ -76,7 +76,7 @@ namespace Hyperion
         }
     }
 
-    [StructLayout(LayoutKind.Sequential, Size = 8)]
+    [StructLayout(LayoutKind.Sequential, Size = 8, Pack = 8)]
     public struct WeakHandle : IDisposable
     {
         internal IntPtr ptr;
@@ -145,7 +145,7 @@ namespace Hyperion
         }
     }
 
-    [StructLayout(LayoutKind.Sequential, Size = 8)]
+    [StructLayout(LayoutKind.Sequential, Size = 8, Pack = 8)]
     public struct Handle<T> : IDisposable where T : ObjectBase
     {
         public static readonly Handle<T> Empty = new Handle<T>();
@@ -233,7 +233,7 @@ namespace Hyperion
         }
     }
 
-    [StructLayout(LayoutKind.Sequential, Size = 8)]
+    [StructLayout(LayoutKind.Sequential, Size = 8, Pack = 8)]
     public struct WeakHandle<T> : IDisposable where T : ObjectBase
     {
         public static readonly WeakHandle<T> Empty = new WeakHandle<T>();
