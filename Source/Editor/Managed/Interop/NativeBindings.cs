@@ -19,7 +19,7 @@ namespace Hyperion.Editor
         [MarshalAs(UnmanagedType.LPStr)] string text);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    public delegate void CNameCallbackDelegate(
+    public delegate void NameCallbackDelegate(
         [MarshalAs(UnmanagedType.LPStr)] string name,
         IntPtr userData);
 
@@ -64,12 +64,18 @@ namespace Hyperion.Editor
         public static extern int Hyp_ExecuteConsoleCommand(int argc, IntPtr argv);
 
         [DllImport("hyperion")]
-        public static extern void Hyp_GetAllCVarNames(CNameCallbackDelegate callback, IntPtr userData);
+        public static extern void Hyp_GetAllCVarNames(NameCallbackDelegate callback, IntPtr userData);
 
         [DllImport("hyperion")]
-        public static extern void Hyp_GetAllCommandletNames(CNameCallbackDelegate callback, IntPtr userData);
+        public static extern void Hyp_GetAllCommandletNames(NameCallbackDelegate callback, IntPtr userData);
 
         [DllImport("hyperion")]
-        public static extern void Hyp_GetAllEditorCommandNames(CNameCallbackDelegate callback, IntPtr userData);
+        public static extern void Hyp_GetAllEditorCommandNames(NameCallbackDelegate callback, IntPtr userData);
+
+        [DllImport("hyperion")]
+        public static extern void Hyp_GetAllDerivedClassNames(string baseClassName, NameCallbackDelegate callback, IntPtr userData);
+
+        [DllImport("hyperion")]
+        public static extern bool Hyp_CreateInstanceOfClass(string className, out BoxedValueInternal outBoxed);
     }
 }

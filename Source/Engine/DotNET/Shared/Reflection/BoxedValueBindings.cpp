@@ -633,4 +633,33 @@ extern "C"
         return arrayWrapper.Resize(size_t(newSize)) ? 1 : 0;
     }
 
+    HYP_EXPORT int8 BoxedValue_RemoveArrayElement(BoxedValue* pBoxed, int32 index)
+    {
+        if (!pBoxed || index < 0 || !pBoxed->IsArray())
+            return false;
+
+        GenericArrayWrapper& arrayWrapper = pBoxed->Get<GenericArrayWrapper>();
+
+        const size_t size = arrayWrapper.Size();
+
+        if (size_t(index) >= size)
+            return false;
+
+        // Shift elements left to fill the gap, then shrink.
+        for (size_t i = size_t(index); i + 1 < size; ++i)
+        {
+            BoxedValue elem;
+
+            if (arrayWrapper.GetElementAt(i + 1, elem))
+            {
+                arrayWrapper.SetElementAt(i, std::move(elem));
+            }
+        }
+
+        if (arrayWrapper.CanResize())
+            return arrayWrapper.Resize(size - 1) ? 1 : 0;
+
+        return false;
+    }
+
 } // extern "C"

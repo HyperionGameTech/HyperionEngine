@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -29,7 +31,11 @@ namespace Hyperion.Editor.ViewModels
         public bool HasSubObject
         {
             get => _hasSubObject;
-            private set => SetProperty(ref _hasSubObject, value);
+            private set
+            {
+                if (SetProperty(ref _hasSubObject, value))
+                    OnPropertyChanged(nameof(ShowSubclassPicker));
+            }
         }
 
         public bool IsAssetObject => _isAssetObjectType;
@@ -48,14 +54,9 @@ namespace Hyperion.Editor.ViewModels
             private set => SetProperty(ref _canSelectFromContentBrowser, value);
         }
 
-        // ── Asset object picker (filterable drop-down) ───────────────────────
 
         private string _pickerFilter = string.Empty;
 
-        /// <summary>
-        /// Bound to the picker text box. Acts as both the display of the current
-        /// selection and the filter string (Unreal-style object reference field).
-        /// </summary>
         public string PickerFilter
         {
             get => _pickerFilter;
@@ -69,37 +70,76 @@ namespace Hyperion.Editor.ViewModels
         public ICommand SelectCommand { get; }
         public ICommand ClearCommand { get; }
 
+
+        public ObservableCollection<string> AvailableSubclasses { get; } = new();
+
+        public bool IsPolymorphic => AvailableSubclasses.Count > 0;
+
+        public bool ShowSubclassPicker => IsPolymorphic && !HasSubObject;
+
+        private string? _selectedSubclass;
+        public string? SelectedSubclass
+        {
+            get => _selectedSubclass;
+            set
+            {
+                if (SetProperty(ref _selectedSubclass, value) && !string.IsNullOrEmpty(value))
+                {
+                    CommitSubclass(value);
+                }
+            }
+        }
+
+        private string _subclassFilter = string.Empty;
+        public string SubclassFilter
+        {
+            get => _subclassFilter;
+            set => SetProperty(ref _subclassFilter, value);
+        }
+
         public ObjectPropertyViewModel(ObjectBase target, Property property, bool isReadOnly, int depth = 0)
             : base(target, property, isReadOnly)
         {
             _depth = depth;
+            
             _isAssetObjectType = DetectIsAssetObjectType(property.TypeInfo);
             _propertyTypeClass = GetPropertyTypeClass(property.TypeInfo);
+            
             SelectCommand = new RelayCommand(OnSelect);
             ClearCommand = new RelayCommand(OnClear);
+
             HookContentBrowser();
+            PopulateSubclasses();
         }
 
         public ObjectPropertyViewModel(IntPtr classAddress, Func<IntPtr> targetAddressResolver, Property property, bool isReadOnly, int depth = 0)
             : base(classAddress, targetAddressResolver, property, isReadOnly)
         {
             _depth = depth;
+            
             _isAssetObjectType = DetectIsAssetObjectType(property.TypeInfo);
             _propertyTypeClass = GetPropertyTypeClass(property.TypeInfo);
+            
             SelectCommand = new RelayCommand(OnSelect);
             ClearCommand = new RelayCommand(OnClear);
+
             HookContentBrowser();
+            PopulateSubclasses();
         }
 
         public ObjectPropertyViewModel(string label, TypeInfo typeInfo, Func<BoxedValue> getter, Action<BoxedValue> setter, bool isReadOnly, int depth = 0)
             : base(label, typeInfo, getter, setter, isReadOnly)
         {
             _depth = depth;
+            
             _isAssetObjectType = DetectIsAssetObjectType(typeInfo);
             _propertyTypeClass = GetPropertyTypeClass(typeInfo);
+            
             SelectCommand = new RelayCommand(OnSelect);
             ClearCommand = new RelayCommand(OnClear);
+
             HookContentBrowser();
+            PopulateSubclasses();
         }
 
         public override bool ShowInlineLabel => false;
@@ -130,6 +170,56 @@ namespace Hyperion.Editor.ViewModels
             }
 
             return typeInfo.Class.Value;
+        }
+
+        private void PopulateSubclasses()
+        {
+            if (_isAssetObjectType || _propertyTypeClass == null)
+                return;
+
+            string className = _propertyTypeClass.Value.Name.ToString();
+
+            List<string> names = [];
+            NameCallbackDelegate callback = (name, _) => names.Add(name);
+
+            NativeBindings.Hyp_GetAllDerivedClassNames(className, callback, IntPtr.Zero);
+
+            foreach (string name in names)
+                AvailableSubclasses.Add(name);
+
+            if (AvailableSubclasses.Count > 0)
+                OnPropertyChanged(nameof(ShowSubclassPicker));
+        }
+
+        private void CommitSubclass(string className)
+        {
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                try
+                {
+                    BoxedValueInternal result;
+
+                    unsafe
+                    {
+                        if (!Hyp_CreateInstanceOfClass(className, &result))
+                        {
+                            Logger.Log(LogLevel.Warning, $"Failed to create instance of class '{className}'");
+                            return;
+                        }
+                    }
+
+                    using BoxedValue boxed = BoxedValue.FromBuffer(result);
+                    SetPropertyValue(boxed);
+
+                    // Re-read the value so HasSubObject / ShowSubclassPicker update
+                    // and the instance's properties appear inline.
+                    Dispatcher.UIThread.Post(() => RefreshValue());
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogLevel.Warning, $"Failed to create subclass instance '{className}': {ex.Message}");
+                }
+            });
         }
 
         private void HookContentBrowser()
@@ -395,7 +485,8 @@ namespace Hyperion.Editor.ViewModels
 
                     if (val is ObjectBase obj && obj.IsValid && _depth < MaxDepth)
                     {
-                        subObjectVm = new ComponentSubObjectViewModel(_property.Name.ToString(), obj, _depth + 1, PostWriteCallback);
+                        string subLabel = _property != null ? _property.Name.ToString() : Label;
+                        subObjectVm = new ComponentSubObjectViewModel(subLabel, obj, _depth + 1, PostWriteCallback);
                         displayName = obj.Class.Name.ToString();
 
                         if (obj is AssetObject assetObj)
@@ -437,5 +528,9 @@ namespace Hyperion.Editor.ViewModels
                 }
             });
         }
+
+
+        [DllImport("hyperion")]
+        private static extern unsafe bool Hyp_CreateInstanceOfClass(string className, BoxedValueInternal* pOutBoxed);
     }
 }

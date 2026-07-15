@@ -1861,6 +1861,7 @@ end
 extern class NullInputHandler : InputHandlerBase
 end
 extern class CharacterControllerInputHandler : InputHandlerBase
+    ParentInputHandler : InputHandlerBase
 end
 extern class FirstPersonCameraController : PerspectiveCameraController
     GetMode() -> FirstPersonCameraControllerMode
@@ -1983,6 +1984,8 @@ extern class Game
     StartSimulating() -> void
     StopSimulating() -> void
     PauseSimulation() -> void
+    RegisterInputHandler(inputHandler : InputHandlerBase) -> void
+    UnregisterInputHandler(inputHandler : InputHandlerBase) -> void
     static OnLaunched : any
     static OnGameStateChange : any
     OnLaunch() -> void
@@ -2475,6 +2478,7 @@ extern class InstancedMeshData : AssetObject
     BufferStructAlignments : Array<uint32>
 end
 extern class PhysicsShape : AssetObject
+    GetType() -> PhysicsShapeType
 end
 extern class PlanePhysicsShape : PhysicsShape
     Plane : Vec4f
@@ -2493,11 +2497,12 @@ extern class CapsulePhysicsShape : PhysicsShape
     Height : float
 end
 extern enum PhysicsShapeType : uint8
-    BOX,
-    SPHERE,
-    PLANE,
-    CONVEX_HULL,
-    CAPSULE
+    Box,
+    Sphere,
+    Plane,
+    ConvexHull,
+    Capsule,
+    Max
 end
 extern class RawDataAsset : AssetObject
     Data : BlobDataReference

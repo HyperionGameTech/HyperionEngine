@@ -12,7 +12,7 @@
 
 namespace Hyperion {
 
-FollowCameraController::FollowCameraController(const Vector3& target, const Vector3& offset)
+FollowCameraController::FollowCameraController(const Vec3f& target, const Vec3f& offset)
     : PerspectiveCameraController(),
       m_target(target),
       m_offset(offset),

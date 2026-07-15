@@ -210,8 +210,6 @@ namespace Hyperion.Editor.ViewModels
             });
         }
 
-        // ── sort helpers ──────────────────────────────────────────────────────
-
         private void ApplySort()
         {
             if (Assets.Count == 0)
@@ -243,6 +241,7 @@ namespace Hyperion.Editor.ViewModels
         /// without fully parsing the document. Returns null if not found or on any error.
         ///
         /// @FIXME: THIS IS A TEMP HACK! It's currently used to extract the class name from manifest files, shouldn't really need to parse or read the json files for this.
+        /// Actual hot dogshit below.
         /// </summary>
         private static string? ExtractClassFromManifest(string filePath)
         {

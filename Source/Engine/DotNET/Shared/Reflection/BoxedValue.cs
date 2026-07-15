@@ -1132,6 +1132,10 @@ namespace Hyperion
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool BoxedValue_ResizeArray([In] ref BoxedValueInternal boxed, int newSize);
 
+        [DllImport("hyperion", EntryPoint = "BoxedValue_RemoveArrayElement")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        internal static extern bool BoxedValue_RemoveArrayElement([In] ref BoxedValueInternal boxed, int index);
+
         [DllImport("hyperion", EntryPoint = "BoxedValue_SetString")]
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool BoxedValue_SetString([In] ref BoxedValueInternal boxed, [In] IntPtr stringPtr);
@@ -1337,6 +1341,15 @@ namespace Hyperion
 
             if (!BoxedValueInternal.BoxedValue_ResizeArray(ref _data, newSize))
                 throw new InvalidOperationException($"Failed to resize array to {newSize}");
+        }
+
+        public void RemoveArrayElement(int index)
+        {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(BoxedValue));
+
+            if (!BoxedValueInternal.BoxedValue_RemoveArrayElement(ref _data, index))
+                throw new InvalidOperationException($"Failed to remove array element at index {index}");
         }
     }
 }

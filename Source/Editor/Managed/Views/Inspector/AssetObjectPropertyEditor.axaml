@@ -22,7 +22,7 @@
                 VerticalAlignment="Center"
                 FontSize="22"
                 Opacity="0.3"
-                Text="☐" />
+                Text="" /> <!-- TODO -->
         </Border>
 
         <StackPanel Grid.Column="1" Spacing="4">
@@ -40,7 +40,7 @@
                     Watermark="(None)"
                     FontSize="11"
                     Text="{Binding PickerFilter, Mode=TwoWay}"
-                    ToolTip.Tip="Type to filter assets of this type, then select one to assign it">
+                    ToolTip.Tip="Filter assets by name">
                     <AutoCompleteBox.ItemTemplate>
                         <DataTemplate x:DataType="vm:AssetPickerItemViewModel">
                             <StackPanel Margin="2,1" Spacing="0">

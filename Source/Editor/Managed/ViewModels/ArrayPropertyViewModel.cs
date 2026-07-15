@@ -156,34 +156,25 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    BoxedValue? newElem = _elementTypeInfo.CreateDefaultValue();
-
-                    if (newElem == null)
-                    {
-                        Logger.Log(LogLevel.Warning, "ArrayPropertyViewModel: Cannot create default element, element type does not support default construction");
-                        return;
-                    }
-
-                    using (newElem)
-                    {
-                        _currentArrayValue!.PushBackArrayElement(newElem);
-                    }
+                    // Resize by 1 — the underlying container default-constructs
+                    // the new element (null handle, zero float, etc.).
+                    int currentSize = _currentArrayValue!.GetArraySize();
+                    _currentArrayValue.ResizeArray(currentSize + 1);
 
                     WriteArrayToParent();
 
                     // Re-read the array to get the canonical copy from the engine.
                     BoxedValue refreshed = GetPropertyValue();
 
-                    int newIndex = refreshed.GetArraySize() - 1;
-
                     Dispatcher.UIThread.Post(() =>
                     {
                         _currentArrayValue = refreshed;
 
-                        if (newIndex >= 0)
+                        // Full rebuild — keeps indices and labels consistent.
+                        RebuildElementVMs(_currentArrayValue);
+
+                        foreach (var vm in Elements)
                         {
-                            var vm = CreateElementViewModel(newIndex);
-                            Elements.Add(vm);
                             vm.RefreshValue();
                         }
 
@@ -207,30 +198,21 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    int size = _currentArrayValue!.GetArraySize();
-
-                    if (index < 0 || index >= size)
-                        return;
-
-                    // Shift elements left by copying, then resize.
-                    for (int i = index; i < size - 1; i++)
-                    {
-                        using BoxedValue next = _currentArrayValue.GetArrayElement(i + 1);
-                        _currentArrayValue.SetArrayElement(i, next);
-                    }
-
-                    _currentArrayValue.ResizeArray(size - 1);
+                    _currentArrayValue!.RemoveArrayElement(index);
                     WriteArrayToParent();
 
-                    // Re-read canonical copy.
                     BoxedValue refreshed = GetPropertyValue();
 
                     Dispatcher.UIThread.Post(() =>
                     {
                         _currentArrayValue = refreshed;
 
-                        // Rebuild element VMs from scratch (indices shifted).
                         RebuildElementVMs(_currentArrayValue);
+
+                        foreach (var vm in Elements)
+                        {
+                            vm.RefreshValue();
+                        }
 
                         HasElements = Elements.Count > 0;
                         Value = $"(array, {Elements.Count} elem{(Elements.Count != 1 ? "s" : "")})";

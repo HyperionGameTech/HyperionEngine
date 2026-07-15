@@ -115,6 +115,7 @@
                     <local:AssetObjectPropertyEditor IsVisible="{Binding IsAssetObject}" />
                     <StackPanel IsVisible="{Binding !IsAssetObject}" Margin="0,2,0,0" Spacing="0">
                         <TextBlock Text="{Binding Label}" FontWeight="SemiBold" FontSize="13" Margin="4,0,0,2" />
+                        <local:SubclassPropertyEditor IsVisible="{Binding ShowSubclassPicker}" />
                         <local:InspectorPropertyItemsControl IsVisible="{Binding HasSubObject}" ItemsSource="{Binding SubObject.Properties}" />
                     </StackPanel>
                 </StackPanel>

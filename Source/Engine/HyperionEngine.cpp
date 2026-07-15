@@ -1069,6 +1069,42 @@ extern "C"
 
         ClassRegistry::GetInstance().ForEachClass(Predicate);
     }
+
+    HYP_EXPORT void Hyp_GetAllDerivedClassNames(const char* baseClassName, void* callback, void* userData)
+    {
+        using CallbackType = void (*)(const char*, void*);
+        auto callbackFn = reinterpret_cast<CallbackType>(callback);
+
+        const Class* baseClass = ClassRegistry::GetInstance().GetClass(ANSIStringView(baseClassName));
+
+        if (!baseClass)
+            return;
+
+        auto Predicate = [&](const Class* cls) -> IterationResult
+        {
+            if (cls->IsDerivedFrom(baseClass) && !cls->IsAbstract())
+            {
+                callbackFn(cls->GetName().LookupString(), userData);
+            }
+
+            return IterationResult::CONTINUE;
+        };
+
+        ClassRegistry::GetInstance().ForEachClass(Predicate);
+    }
+
+    HYP_EXPORT bool Hyp_CreateInstanceOfClass(const char* className, BoxedValue* outBoxed)
+    {
+        Assert(outBoxed != nullptr);
+
+        const Class* cls = ClassRegistry::GetInstance().GetClass(ANSIStringView(className));
+
+        if (!cls)
+            return false;
+
+        return cls->CreateInstance(*outBoxed);
+    }
+
 #endif // HYP_EDITOR
 }
 
