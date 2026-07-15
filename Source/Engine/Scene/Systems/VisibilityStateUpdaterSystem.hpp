@@ -15,23 +15,31 @@
 
 namespace Hyperion {
 
-HYP_CLASS(NoScriptBindings, Serialize=false)
-class VisibilityStateUpdaterSystem : public SystemBase
+HYP_CLASS(NoScriptBindings, Serialize = false)
+class VisibilityStateUpdaterSystem final : public SystemBase
 {
     HYP_OBJECT_BODY(VisibilityStateUpdaterSystem);
 
 public:
-    virtual ~VisibilityStateUpdaterSystem() override = default;
+    ~VisibilityStateUpdaterSystem() override = default;
 
-    virtual bool ShouldProcessScene(Scene* scene) const override;
+    bool AllowUpdate() const override
+    {
+        return false;
+    }
 
-    virtual void OnEntityAdded(Entity* entity) override;
-    virtual void OnEntityRemoved(Entity* entity) override;
+    bool ShouldProcessScene(Scene* scene) const override;
 
-    virtual void Process(float delta, Span<Handle<Scene>> scenes) override;
+    void OnEntityAdded(Entity* entity) override;
+    void OnEntityRemoved(Entity* entity) override;
+
+    void Process(float delta, Span<Handle<Scene>> scenes) override
+    {
+        // No-op
+    }
 
 private:
-    virtual SystemComponentDescriptors GetComponentDescriptors() const override
+    SystemComponentDescriptors GetComponentDescriptors() const override
     {
         return {
             ComponentDescriptor<VisibilityStateComponent, ComponentAccess::READ_WRITE> {},

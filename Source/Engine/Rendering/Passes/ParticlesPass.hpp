@@ -54,7 +54,7 @@ private:
 
     VolumeState& EnsureVolumeState(RenderProxyParticleVolume* proxy);
 
-    Map<ObjId<ParticleVolume>, VolumeState> m_volumeStates;
+    Map<ParticleVolume*, VolumeState, RenderAllocator> m_volumeStates;
 
     uint32 m_counter = 0u;
 };

@@ -17,6 +17,8 @@
 
 #include <Util/AtlasPacker.hpp>
 
+#include <Rendering/Shared.hpp>
+
 namespace Hyperion {
 
 class Texture;
@@ -105,17 +107,16 @@ class ENGINE_API LightmapVolume final : public VolumeBase
     HYP_OBJECT_BODY(LightmapVolume);
 
 public:
-    // maximum number of atlases per LightmapVolume
-    static constexpr uint32 MaxAtlases = 4;
     static constexpr Vec2u DefaultAtlasDimensions = Vec2u(2048, 2048);
-
-    static constexpr uint32 NumAtlasTextureTypes = 2;
 
     enum AtlasTextureType : uint8
     {
         RadianceTexture = 0,
-        IrradianceTexture
+        IrradianceTexture,
+        Max
     };
+
+    static constexpr uint32 NumAtlasTextureTypes = static_cast<uint8>(AtlasTextureType::Max);
 
     LightmapVolume();
 
@@ -180,15 +181,15 @@ private:
     void Init() override;
 
     HYP_FIELD(Property = "RadianceAtlasTextures")
-    Array<Handle<Texture>> m_radianceAtlasTextures;
+    FixedArray<Handle<Texture>, MaxAtlasesPerLightmapVolume> m_radianceAtlasTextures;
 
     HYP_FIELD(Property = "IrradianceAtlasTextures")
-    Array<Handle<Texture>> m_irradianceAtlasTextures;
+    FixedArray<Handle<Texture>, MaxAtlasesPerLightmapVolume> m_irradianceAtlasTextures;
 
     HYP_FIELD(Property = "Atlases")
     Array<LightmapVolumeAtlas> m_atlases;
 };
 
-constexpr uint8 LightmapStencilMask = (1u << LightmapVolume::MaxAtlases) - 1;
+constexpr uint8 LightmapStencilMask = (1u << MaxAtlasesPerLightmapVolume) - 1;
 
 } // namespace Hyperion

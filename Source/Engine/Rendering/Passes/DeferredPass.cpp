@@ -2890,24 +2890,12 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         AssertDebug(depthPrepassFramebuffer != nullptr);
 
         renderCollector.BeginRecordDrawCalls(frame, rs, PrepassRenderBucketsMask, true);
-    }
-    else
-    {
-        {
-            ENGINE_STAT_GPU_SCOPE(&s_statOcclusionCulling);
-
-            renderCollector.PerformOcclusionCulling(frame, rs, AllRenderBucketsMask);
-        }
-
-        renderCollector.BeginRecordDrawCalls(frame, rs, AllRenderBucketsMask);
-    }
-
-    if (performDepthPrepass)
-    {
+        
         { // Render prepass
             ENGINE_STAT_GPU_SCOPE(&s_statDepthPrepass);
 
-            if (renderCollector.mappingsByBucket[uint32(RenderBucket::Opaque)].Any() || renderCollector.mappingsByBucket[uint32(RenderBucket::Lightmapped)].Any())
+            if (renderCollector.mappingsByBucket[uint32(RenderBucket::Opaque)].Any()
+                || renderCollector.mappingsByBucket[uint32(RenderBucket::Lightmapped)].Any())
             {
                 renderCollector.ExecuteDrawCalls(frame, rs, depthPrepassFramebuffer, PrepassRenderBucketsMask, true);
             }
@@ -2918,23 +2906,23 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
                 frame->cr << SetCurrentFramebuffer(nullptr);
             }
         }
-
-        { // Build hi-z
-            ENGINE_STAT_GPU_SCOPE(&s_statBuildHiZ);
-
-            passData.depthPyramidRenderer->Render(frame);
-            passData.cullData.depthPyramidImageView = passData.depthPyramidRenderer->GetResultImageView();
-            passData.cullData.depthPyramidDimensions = passData.depthPyramidRenderer->GetExtent();
-        }
-
-        {
-            ENGINE_STAT_GPU_SCOPE(&s_statOcclusionCulling);
-
-            renderCollector.PerformOcclusionCulling(frame, rs, AllRenderBucketsMask);
-        }
-
-        renderCollector.BeginRecordDrawCalls(frame, rs, AllRenderBucketsMask);
     }
+    
+    { // Build hi-z with depth from prepass or prev frame depth
+        ENGINE_STAT_GPU_SCOPE(&s_statBuildHiZ);
+
+        passData.depthPyramidRenderer->Render(frame);
+        passData.cullData.depthPyramidImageView = passData.depthPyramidRenderer->GetResultImageView();
+        passData.cullData.depthPyramidDimensions = passData.depthPyramidRenderer->GetExtent();
+    }
+
+    {
+        ENGINE_STAT_GPU_SCOPE(&s_statOcclusionCulling);
+
+        renderCollector.PerformOcclusionCulling(frame, rs, AllRenderBucketsMask);
+    }
+            
+    renderCollector.BeginRecordDrawCalls(frame, rs, AllRenderBucketsMask);
 
     Framebuffer* lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(GBufferPass::Lightmapped);
     Framebuffer* translucentPassFramebuffer = view->GetOutputTarget().GetFramebuffer(GBufferPass::Translucent);
@@ -3141,16 +3129,6 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     { // generate mipchain after rendering opaque objects' lighting, now we can use it for transmission
         const GpuImageRef& srcImage = passData.lightingFramebuffer->GetAttachment(0)->GetGpuImage();
         GenerateMipChain(frame, rs, renderCollector, srcImage);
-    }
-
-    if (!performDepthPrepass)
-    { // render Hi-Z
-        ENGINE_STAT_GPU_SCOPE(&s_statBuildHiZ);
-
-        passData.depthPyramidRenderer->Render(frame);
-
-        passData.cullData.depthPyramidImageView = passData.depthPyramidRenderer->GetResultImageView();
-        passData.cullData.depthPyramidDimensions = passData.depthPyramidRenderer->GetExtent();
     }
 
     { // Render the deferred lighting into the color target with a full screen quad.

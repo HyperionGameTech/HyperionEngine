@@ -885,7 +885,7 @@ void EnvProbe::EnqueueViewsUpdate()
 
 void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
 {
-    proxy->envProbe = WeakHandleFromThis();
+    proxy->envProbe = this;
 
     if (proxy->texture != m_texture)
     {

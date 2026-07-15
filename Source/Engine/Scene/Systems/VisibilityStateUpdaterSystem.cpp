@@ -93,9 +93,12 @@ void VisibilityStateUpdaterSystem::OnEntityRemoved(Entity* entity)
     visibilityStateComponent.visibilityState = nullptr;
 }
 
+// This has been replaced by VisThread
+// @TODO Remove
+#if 0
+
 void VisibilityStateUpdaterSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
-    return;
     for (Scene* scene : scenes)
     {
         if (!ShouldProcessScene(scene))
@@ -198,15 +201,18 @@ void VisibilityStateUpdaterSystem::Process(float delta, Span<Handle<Scene>> scen
             }
 #endif
 
-            AfterProcess([scene, updatedEntities = std::move(updatedEntities)]()
-                         {
-                             for (const WeakHandle<Entity>& entityWeak : updatedEntities)
-                             {
-                                 scene->GetEntityManager()->RemoveTag<EntityTag::UpdateVisibility>(entityWeak.GetUnsafe());
-                             }
-                         });
+            AfterProcess(
+                [scene, updatedEntities = std::move(updatedEntities)]()
+                {
+                    for (const WeakHandle<Entity>& entityWeak : updatedEntities)
+                    {
+                        scene->GetEntityManager()->RemoveTag<EntityTag::UpdateVisibility>(entityWeak.GetUnsafe());
+                    }
+                });
         }
     }
 }
+
+#endif
 
 } // namespace Hyperion

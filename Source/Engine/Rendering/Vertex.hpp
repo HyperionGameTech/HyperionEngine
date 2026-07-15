@@ -419,9 +419,9 @@ static inline const char* ToString(VertexType vt)
         return "UV1";
     case VertexType::VT_Skeletal:
         return "Skeletal";
-    default:
-        HYP_UNREACHABLE();
     }
+
+    return "";
 }
 
 static constexpr inline size_t PacketSize(VertexType vt)

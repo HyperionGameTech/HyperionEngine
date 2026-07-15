@@ -25,7 +25,7 @@
 namespace Hyperion {
 
 extern PhysicsMaterial& GetDefaultPhysicsMaterial();
-extern PhysicsShape& GetDefaultPhysicsShape();
+extern const Handle<PhysicsShape>& GetDefaultPhysicsShape();
 
 void PhysicsSystem::OnEntityAdded(Entity* entity)
 {
@@ -90,7 +90,7 @@ void PhysicsSystem::OnEntityRemoved(Entity* entity)
         }
 
         rigidBody->physicsMaterial = &GetDefaultPhysicsMaterial();
-        rigidBody->shape = &GetDefaultPhysicsShape();
+        rigidBody->shape = GetDefaultPhysicsShape();
 
         rigidBody.Reset();
     }

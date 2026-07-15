@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia.Threading;
 using Hyperion;
@@ -16,7 +18,6 @@ namespace Hyperion.Editor.ViewModels
         private readonly int _depth;
         private readonly bool _isAssetObjectType;
 
-        // Sub-object expansion
         private ComponentSubObjectViewModel? _subObject;
         public ComponentSubObjectViewModel? SubObject
         {
@@ -46,6 +47,22 @@ namespace Hyperion.Editor.ViewModels
             get => _canSelectFromContentBrowser;
             private set => SetProperty(ref _canSelectFromContentBrowser, value);
         }
+
+        // ── Asset object picker (filterable drop-down) ───────────────────────
+
+        private string _pickerFilter = string.Empty;
+
+        /// <summary>
+        /// Bound to the picker text box. Acts as both the display of the current
+        /// selection and the filter string (Unreal-style object reference field).
+        /// </summary>
+        public string PickerFilter
+        {
+            get => _pickerFilter;
+            set => SetProperty(ref _pickerFilter, value);
+        }
+
+        private string _currentSelectedName = string.Empty;
 
         private readonly Class? _propertyTypeClass;
 
@@ -247,6 +264,116 @@ namespace Hyperion.Editor.ViewModels
             });
         }
 
+        public async Task<IEnumerable<object>> QueryMatchingAssetsAsync(string? search, int maxResults)
+        {
+            if (!_isAssetObjectType || _propertyTypeClass == null)
+            {
+                return Array.Empty<object>();
+            }
+
+            Class expectedClass = _propertyTypeClass.Value;
+            string filter = search ?? string.Empty;
+
+            List<AssetPickerItemViewModel> results = await EngineManager.PostToSimThread(() =>
+            {
+                var found = new List<AssetPickerItemViewModel>();
+
+                try
+                {
+                    AssetRegistry registry = AssetManager.Instance.AssetRegistry;
+
+                    foreach (AssetBucket bucket in AssetBucket.AllBuckets)
+                    {
+                        foreach (AssetDesc desc in registry.GetBucketAssetDescs(bucket.Value))
+                        {
+                            try
+                            {
+                                string nameStr = desc.Name.ToString();
+
+                                if (filter.Length != 0 &&
+                                    !nameStr.Contains(filter, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    continue;
+                                }
+
+                                AssetObject? obj = registry.GetAsset(bucket.Value, desc.Name);
+
+                                if (obj == null || !obj.IsValid)
+                                {
+                                    continue;
+                                }
+
+                                Class objClass = obj.Class;
+
+                                if (objClass == expectedClass || objClass.IsSubclassOf(expectedClass))
+                                {
+                                    found.Add(new AssetPickerItemViewModel(desc.Name, bucket.Value, nameStr, objClass.Name.ToString()));
+                                }
+                            }
+                            catch
+                            {
+                                // Skip any asset we can't resolve.
+                            }
+
+                            if (found.Count >= maxResults)
+                            {
+                                break;
+                            }
+                        }
+
+                        if (found.Count >= maxResults)
+                        {
+                            break;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogLevel.Warning, $"Failed to query assets for picker: {ex.Message}");
+                }
+
+                found.Sort((a, b) => string.CompareOrdinal(a.DisplayName, b.DisplayName));
+                return found;
+            });
+
+            return results;
+        }
+
+        public void CommitPickerItem(AssetPickerItemViewModel item)
+        {
+            uint bucketIndex = item.BucketIndex;
+            Name assetName = item.AssetName;
+
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                try
+                {
+                    AssetObject? obj = AssetManager.Instance.AssetRegistry.GetAsset(bucketIndex, assetName);
+
+                    if (obj == null || !obj.IsValid)
+                    {
+                        return;
+                    }
+
+                    using BoxedValue boxed = new BoxedValue(obj);
+                    CommitPropertyChange($"Set {_property.Name}", boxed);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogLevel.Warning, $"Failed to set asset property '{_property.Name}': {ex.Message}");
+                }
+            });
+        }
+
+        /// <summary>
+        /// Restores the picker text to the currently assigned asset's name, e.g. when
+        /// the user typed a filter but clicked away without selecting anything.
+        /// </summary>
+        public void ResetFilterToSelection()
+        {
+            PickerFilter = _currentSelectedName;
+        }
+
         public override void RefreshValue()
         {
             if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
@@ -264,6 +391,7 @@ namespace Hyperion.Editor.ViewModels
                     ComponentSubObjectViewModel? subObjectVm = null;
                     string assetPathDisplay = "(None)";
                     string displayName = "(None)";
+                    string pickerName = string.Empty;
 
                     if (val is ObjectBase obj && obj.IsValid && _depth < MaxDepth)
                     {
@@ -275,6 +403,7 @@ namespace Hyperion.Editor.ViewModels
                             if (assetObj.IsRegistered())
                             {
                                 assetPathDisplay = assetObj.Path.ToString();
+                                pickerName = assetObj.Name.ToString();
                             }
                             else
                             {
@@ -294,6 +423,8 @@ namespace Hyperion.Editor.ViewModels
 
                         if (_isAssetObjectType)
                         {
+                            _currentSelectedName = pickerName;
+                            PickerFilter = pickerName;
                             OnContentBrowserSelectionChanged();
                         }
                     });

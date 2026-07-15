@@ -815,7 +815,7 @@ void Camera::OnRemovedFromWorld(World* world)
 
 void Camera::UpdateRenderProxy(RenderProxyCamera* proxy)
 {
-    proxy->camera = WeakHandleFromThis();
+    proxy->camera = this;
 
     proxy->viewFrustum = m_frustum;
 

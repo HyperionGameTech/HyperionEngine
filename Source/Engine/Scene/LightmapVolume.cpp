@@ -50,13 +50,12 @@ LightmapVolume::LightmapVolume()
 }
 
 LightmapVolume::LightmapVolume(const BoundingBox& localBounds)
-    : VolumeBase(localBounds)
+    : VolumeBase(localBounds),
+      m_irradianceAtlasTextures {},
+      m_radianceAtlasTextures {}
 {
-    m_atlases.Reserve(MaxAtlases);
+    m_atlases.Reserve(MaxAtlasesPerLightmapVolume);
     m_atlases.EmplaceBack(DefaultAtlasDimensions);
-
-    m_irradianceAtlasTextures.Resize(1);
-    m_radianceAtlasTextures.Resize(1);
 }
 
 LightmapVolume::~LightmapVolume()
@@ -74,7 +73,7 @@ bool LightmapVolume::AddElement(Vec2u dimensions, LightmapElement*& outElement, 
 
     Optional<LightmapVolumeAtlas> tmpAtlas;
 
-    for (uint32 atlasIndex = 0; atlasIndex < MaxAtlases; atlasIndex++)
+    for (uint32 atlasIndex = 0; atlasIndex < MaxAtlasesPerLightmapVolume; atlasIndex++)
     {
         LightmapVolumeAtlas* atlas = nullptr;
         bool isNewAtlas = false;
@@ -100,8 +99,6 @@ bool LightmapVolume::AddElement(Vec2u dimensions, LightmapElement*& outElement, 
             if (isNewAtlas)
             {
                 m_atlases.Resize(MathUtil::Max(m_atlases.Size(), atlasIndex + 1));
-                m_radianceAtlasTextures.Resize(m_atlases.Size());
-                m_irradianceAtlasTextures.Resize(m_atlases.Size());
 
                 m_atlases[atlasIndex] = std::move(*atlas);
             }
@@ -169,11 +166,8 @@ void LightmapVolume::RemoveAllElements()
     m_atlases.Clear();
     m_atlases.EmplaceBack(DefaultAtlasDimensions);
 
-    m_radianceAtlasTextures.Clear();
-    m_radianceAtlasTextures.Resize(1);
-
-    m_irradianceAtlasTextures.Clear();
-    m_irradianceAtlasTextures.Resize(1);
+    m_radianceAtlasTextures = {};
+    m_irradianceAtlasTextures = {};
 
     MarkDirty();
     SetNeedsRenderProxyUpdate();
@@ -308,18 +302,16 @@ void LightmapVolume::OnRemovedFromWorld(World* world)
 
 void LightmapVolume::UpdateRenderProxy(RenderProxyLightmapVolume* proxy)
 {
-    proxy->lightmapVolume = WeakHandleFromThis();
+    proxy->lightmapVolume = this;
 
-    proxy->atlasRadianceTextures.Clear();
-    proxy->atlasIrradianceTextures.Resize(m_irradianceAtlasTextures.Size());
+    proxy->atlasIrradianceTextures = {};
 
     for (uint32 i = 0; i < uint32(m_irradianceAtlasTextures.Size()); i++)
     {
         proxy->atlasIrradianceTextures[i] = m_irradianceAtlasTextures[i].Get();
     }
 
-    proxy->atlasRadianceTextures.Clear();
-    proxy->atlasRadianceTextures.Resize(m_radianceAtlasTextures.Size());
+    proxy->atlasRadianceTextures = {};
 
     for (uint32 i = 0; i < uint32(m_radianceAtlasTextures.Size()); i++)
     {

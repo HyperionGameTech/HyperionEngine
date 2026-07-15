@@ -506,7 +506,7 @@ BoundingSphere Light::GetBoundingSphere(bool worldSpace) const
 
 void Light::UpdateRenderProxy(RenderProxyLight* proxy)
 {
-    proxy->light = MakeWeakRef(this);
+    proxy->light = this;
     proxy->lightMaterial = m_material.Get();
     proxy->bakedShadowMap = m_shadowMap.Get();
     proxy->numCascades = m_numShadowMapCascades;

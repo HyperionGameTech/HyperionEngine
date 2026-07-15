@@ -28,7 +28,7 @@ enum ShadowMapFilter : uint32
     SMF_STANDARD = 0,
     SMF_PCF,
     SMF_CONTACT_HARDENED,
-    SMF_VSM,
+    SMF_VSM,                /// @deprecated
 
     SMF_MAX
 };

@@ -81,6 +81,8 @@ constexpr uint32 MaxBonesPerSkeleton = 64;
 constexpr uint32 MaxGpuTimers = 64;
 constexpr uint32 MaxGpuTimestampQueriesPerFrame = MaxGpuTimers * 2;
 
+constexpr uint32 MaxAtlasesPerLightmapVolume = 4;
+
 #if HYP_ANDROID
 constexpr const char AndroidAssetPathPrefix[] = "$Android";
 #endif

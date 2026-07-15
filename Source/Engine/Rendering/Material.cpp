@@ -374,10 +374,7 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
 {
     const bool useBindlessTextures = RI.GetRenderConfig().bindlessTextures;
 
-    if (proxy->material.GetUnsafe() != this)
-    {
-        proxy->material = MakeWeakRef(this);
-    }
+    proxy->material = this;
 
     proxy->attributes = GetAttributes();
 
@@ -396,8 +393,7 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
             m_parameters.emissiveColor.GetGreen(),
             m_parameters.emissiveColor.GetBlue(),
             m_parameters.emissiveIntensity }),
-        ByteUtil::PackVec4f(Vec4f::Zero()),
-        ByteUtil::PackVec4f(Vec4f::Zero()));
+        0, 0);
 
     union
     {

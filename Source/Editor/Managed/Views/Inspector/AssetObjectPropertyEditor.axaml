@@ -31,17 +31,38 @@
                 FontWeight="SemiBold"
                 Text="{Binding Label}" />
 
-            <Border
-                Background="{DynamicResource Brush.PanelAlt}"
-                BorderBrush="{DynamicResource Brush.Border}"
-                BorderThickness="1"
-                CornerRadius="4"
-                Padding="6,5">
-                <TextBlock
+            <Grid ColumnDefinitions="*,Auto">
+                <AutoCompleteBox
+                    x:Name="PART_PickerBox"
+                    MinWidth="120"
+                    MinimumPrefixLength="0"
+                    MinimumPopulateDelay="0:0:0.15"
+                    Watermark="(None)"
                     FontSize="11"
-                    Text="{Binding AssetPathDisplay}"
-                    TextTrimming="CharacterEllipsis" />
-            </Border>
+                    Text="{Binding PickerFilter, Mode=TwoWay}"
+                    ToolTip.Tip="Type to filter assets of this type, then select one to assign it">
+                    <AutoCompleteBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AssetPickerItemViewModel">
+                            <StackPanel Margin="2,1" Spacing="0">
+                                <TextBlock FontSize="11" Text="{Binding DisplayName}" />
+                                <TextBlock
+                                    FontSize="9"
+                                    Foreground="{DynamicResource Brush.TextMuted}"
+                                    Text="{Binding TypeName}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </AutoCompleteBox.ItemTemplate>
+                </AutoCompleteBox>
+
+                <Button
+                    x:Name="PART_PickerToggle"
+                    Grid.Column="1"
+                    Margin="2,0,0,0"
+                    Padding="6,2"
+                    FontSize="9"
+                    ToolTip.Tip="Browse..."
+                    Content="&#x25BC;" />
+            </Grid>
 
             <StackPanel Orientation="Horizontal" Spacing="4">
                 <Button

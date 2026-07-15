@@ -13,21 +13,21 @@
 namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings, Serialize=false)
-class AudioSystem : public SystemBase
+class AudioSystem final : public SystemBase
 {
     HYP_OBJECT_BODY(AudioSystem);
 
 public:
-    virtual ~AudioSystem() override = default;
+    ~AudioSystem() override = default;
 
-    virtual bool ShouldProcessScene(Scene* scene) const override;
+    bool ShouldProcessScene(Scene* scene) const override;
 
-    virtual void OnEntityAdded(Entity* entity) override;
+    void OnEntityAdded(Entity* entity) override;
 
-    virtual void Process(float delta, Span<Handle<Scene>> scenes) override;
+    void Process(float delta, Span<Handle<Scene>> scenes) override;
 
 private:
-    virtual SystemComponentDescriptors GetComponentDescriptors() const override
+    SystemComponentDescriptors GetComponentDescriptors() const override
     {
         return {
             ComponentDescriptor<AudioComponent, ComponentAccess::READ_WRITE> {},

@@ -25,22 +25,22 @@ class Skeleton;
 struct MeshComponent;
 
 HYP_CLASS(NoScriptBindings, Serialize=false)
-class AnimationSystem : public SystemBase
+class AnimationSystem final : public SystemBase
 {
     HYP_OBJECT_BODY(AnimationSystem);
 
 public:
-    virtual ~AnimationSystem() override = default;
+    ~AnimationSystem() override = default;
 
-    virtual bool ShouldProcessScene(Scene* scene) const override;
+    bool ShouldProcessScene(Scene* scene) const override;
 
-    virtual void OnEntityAdded(Entity* entity) override;
-    virtual void OnEntityRemoved(Entity* entity) override;
+    void OnEntityAdded(Entity* entity) override;
+    void OnEntityRemoved(Entity* entity) override;
 
-    virtual void Process(float delta, Span<Handle<Scene>> scenes) override;
+    void Process(float delta, Span<Handle<Scene>> scenes) override;
 
 private:
-    virtual SystemComponentDescriptors GetComponentDescriptors() const override
+    SystemComponentDescriptors GetComponentDescriptors() const override
     {
         return {
             ComponentDescriptor<AnimationComponent, ComponentAccess::READ_WRITE> {},

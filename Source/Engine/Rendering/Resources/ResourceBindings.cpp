@@ -78,7 +78,7 @@ void OnBindingChanged_EnvProbe(EnvProbe* envProbe, uint32 prev, uint32 next)
         }
 
         RenderProxyEnvProbe* proxyCasted = static_cast<RenderProxyEnvProbe*>(proxy);
-        AssertDebug(proxyCasted->envProbe.GetUnsafe() == envProbe);
+        AssertDebug(proxyCasted->envProbe == envProbe);
 
         // depth
         if (proxyCasted->visibilityTexture != nullptr)
@@ -134,9 +134,10 @@ void WriteBufferData_EnvProbe(StructuredBuffer& sbuffer, uint32 idx, IRenderProx
 
     proxyCasted->bufferData.textureIndex = 0;
 
-    if (proxyCasted->envProbe.GetUnsafe()->IsA<SkyProbe>() || proxyCasted->envProbe.GetUnsafe()->IsA<ReflectionProbe>())
+    if (proxyCasted->envProbe->IsA<SkyProbe>()
+        || proxyCasted->envProbe->IsA<ReflectionProbe>())
     {
-        const uint32 colorTextureBinding = Resources::g_reflectionProbeTextureBinder->GetBindingForObject(proxyCasted->envProbe.GetUnsafe());
+        const uint32 colorTextureBinding = Resources::g_reflectionProbeTextureBinder->GetBindingForObject(proxyCasted->envProbe);
         AssertDebug(colorTextureBinding != ~0u);
         AssertDebug(colorTextureBinding < 0xFFFFu); // we consider anything >= 0xFFFFu to be invalid
 
@@ -171,7 +172,7 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
         }
 
         RenderProxyEnvProbe* proxyCasted = static_cast<RenderProxyEnvProbe*>(proxy);
-        AssertDebug(proxyCasted->envProbe.GetUnsafe() == envProbe);
+        AssertDebug(proxyCasted->envProbe == envProbe);
 
         if (!proxyCasted->texture)
         {

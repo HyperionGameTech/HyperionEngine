@@ -29,6 +29,7 @@ public:
 
     bool AllowUpdate() const override
     {
+        // Process() is a No-op
         return false;
     }
 

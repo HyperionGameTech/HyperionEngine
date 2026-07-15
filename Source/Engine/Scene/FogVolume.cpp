@@ -120,7 +120,7 @@ void FogVolume::UpdateRenderProxy(RenderProxyFogVolume* proxy)
 
     const BoundingBox worldAabb = GetWorldBounds();
 
-    proxy->fogVolume = WeakHandleFromThis();
+    proxy->fogVolume = this;
     proxy->worldAabb = worldAabb;
 
     if (proxy->volumeTexture != m_volumeTexture)

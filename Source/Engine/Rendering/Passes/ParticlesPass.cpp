@@ -75,6 +75,7 @@ void ParticlesPass::Initialize()
 
 void ParticlesPass::Shutdown()
 {
+    m_volumeStates.Clear();
 }
 
 PassData* ParticlesPass::CreateViewPassData(View* view, PassDataExt&)
@@ -109,14 +110,14 @@ static void CreateNoiseMap(Handle<Texture>& tex)
 
 ParticlesPass::VolumeState& ParticlesPass::EnsureVolumeState(RenderProxyParticleVolume* proxy)
 {
-    auto it = m_volumeStates.Find(proxy->particleVolume.Id());
+    auto it = m_volumeStates.Find(proxy->particleVolume);
 
     if (it != m_volumeStates.End())
     {
         return it->second;
     }
 
-    VolumeState& state = m_volumeStates.Emplace(proxy->particleVolume.Id()).first->second;
+    VolumeState& state = m_volumeStates.Emplace(proxy->particleVolume).first->second;
 
     state.maxParticles = proxy->bufferData.maxParticles;
 
@@ -128,7 +129,7 @@ ParticlesPass::VolumeState& ParticlesPass::EnsureVolumeState(RenderProxyParticle
 
     CreateNoiseMap(state.noiseMap);
 
-    state.hasPhysics = proxy->particleVolume.GetUnsafe()->hasPhysics;
+    state.hasPhysics = proxy->particleVolume->hasPhysics;
 
     // compute shader properties
     ShaderPropertySet properties;

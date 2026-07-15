@@ -53,7 +53,7 @@ void ParticleVolume::UpdateRenderProxy(RenderProxyParticleVolume* proxy)
 {
     AssertDebug(proxy != nullptr);
 
-    proxy->particleVolume = WeakHandleFromThis();
+    proxy->particleVolume = this;
 
     if (proxy->particleTexture != texture)
     {

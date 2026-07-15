@@ -16,21 +16,21 @@ namespace Hyperion {
 class LightmapVolume;
 class ProbeVolume;
 
-HYP_CLASS(NoScriptBindings, Serialize=false)
-class LightmapSystem : public SystemBase
+HYP_CLASS(NoScriptBindings, Serialize = false)
+class LightmapSystem final : public SystemBase
 {
     HYP_OBJECT_BODY(LightmapSystem);
 
 public:
-    virtual ~LightmapSystem() override = default;
+    ~LightmapSystem() override = default;
 
-    virtual void OnEntityAdded(Entity* entity) override;
-    virtual void OnEntityRemoved(Entity* entity) override;
+    void OnEntityAdded(Entity* entity) override;
+    void OnEntityRemoved(Entity* entity) override;
 
-    virtual void Process(float delta, Span<Handle<Scene>> scenes) override;
+    void Process(float delta, Span<Handle<Scene>> scenes) override;
 
 private:
-    virtual SystemComponentDescriptors GetComponentDescriptors() const override
+    SystemComponentDescriptors GetComponentDescriptors() const override
     {
         return {
             // writes to entities with these components

@@ -42,7 +42,7 @@ void Sprite::Init()
 
 void Sprite::UpdateRenderProxy(RenderProxySprite* proxy)
 {
-    proxy->sprite = WeakHandleFromThis();
+    proxy->sprite = this;
     proxy->texture = texture.Get();
 
     SpriteShaderData& bufferData = proxy->bufferData;

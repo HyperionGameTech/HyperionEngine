@@ -428,7 +428,7 @@ static inline bool ShouldIncludeInPrepass(
         return false;
     }
 
-    if (bucket != RenderBucket::Opaque && bucket != RenderBucket::Lightmapped)
+    if (static_cast<uint8>(bucket) >= static_cast<uint8>(RenderBucket::Translucent))
     {
         return false;
     }
@@ -447,10 +447,10 @@ static inline bool ShouldIncludeInPrepass(
     const float screenSpaceWidth = ndcHalfExtent.x * float(viewport.extent.x);
     const float screenSpaceHeight = ndcHalfExtent.y * float(viewport.extent.y);
 
-    constexpr float PrepassPixelThreshold = 1.0f;
+    constexpr float PrepassPixelCutoff = 32.0f;
 
-    return (screenSpaceWidth >= PrepassPixelThreshold
-            && screenSpaceHeight >= PrepassPixelThreshold);
+    return (screenSpaceWidth >= PrepassPixelCutoff
+            && screenSpaceHeight >= PrepassPixelCutoff);
 }
 
 } // namespace DepthPrepass

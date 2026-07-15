@@ -130,7 +130,7 @@ void ProbeVolume::OnTransformUpdated()
 void ProbeVolume::UpdateRenderProxy(RenderProxyProbeVolume* proxy)
 {
     *proxy = {};
-    proxy->probeVolume = MakeWeakRef(this);
+    proxy->probeVolume = this;
     proxy->bufferData = {};
 }
 

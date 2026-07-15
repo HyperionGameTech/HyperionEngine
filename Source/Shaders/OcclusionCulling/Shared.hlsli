@@ -25,7 +25,7 @@ uint GetCullBits(vec4 pos)
         | (uint(pos.x > pos.w) << 1)
         | (uint(pos.y < -pos.w) << 2)
         | (uint(pos.y > pos.w) << 3)
-        | (uint(pos.z < -pos.w) << 4)
+        | (uint(pos.z < 0) << 4)
         | (uint(pos.z > pos.w) << 5)
         | (uint(pos.w <= 0) << 6);
 }

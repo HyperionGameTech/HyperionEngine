@@ -153,7 +153,8 @@ static_assert(sizeof(EnvProbeShaderData));
 
 struct RenderProxyEnvProbe : IRenderProxy
 {
-    WeakHandle<EnvProbe> envProbe;
+    EnvProbe* envProbe = nullptr;
+
     Texture* texture = nullptr;           // baked cubemap texture or prefiltered env
     Texture* visibilityTexture = nullptr; // only relevant if envprobe has HAS_VISIBILITY flag set.
     EnvProbeShaderData bufferData {};
@@ -168,7 +169,7 @@ struct ProbeVolumeShaderData
 
 struct RenderProxyProbeVolume : IRenderProxy
 {
-    WeakHandle<ProbeVolume> probeVolume;
+    ProbeVolume* probeVolume = nullptr;
     ProbeVolumeShaderData bufferData {};
 };
 
@@ -214,7 +215,7 @@ static_assert(sizeof(LightShaderData) % 64 == 0);
 
 struct RenderProxyLight : IRenderProxy
 {
-    WeakHandle<Light> light;
+    Light* light = nullptr;
     Material* lightMaterial = nullptr; // for textured area lights
     Texture* bakedShadowMap = nullptr;
     uint32 numCascades = 0;
@@ -238,9 +239,9 @@ static_assert(sizeof(LightmapVolumeShaderData) % 64 == 0);
 
 struct RenderProxyLightmapVolume : IRenderProxy
 {
-    WeakHandle<LightmapVolume> lightmapVolume;
-    Array<Texture*> atlasIrradianceTextures;
-    Array<Texture*> atlasRadianceTextures;
+    LightmapVolume* lightmapVolume = nullptr;
+    FixedArray<Texture*, MaxAtlasesPerLightmapVolume> atlasIrradianceTextures {};
+    FixedArray<Texture*, MaxAtlasesPerLightmapVolume> atlasRadianceTextures {};
     uint32 numAtlases = 0;
     LightmapVolumeShaderData bufferData {};
 };
@@ -264,7 +265,7 @@ struct ParticleVolumeShaderData
 
 struct RenderProxyParticleVolume : IRenderProxy
 {
-    WeakHandle<ParticleVolume> particleVolume;
+    ParticleVolume* particleVolume = nullptr;
 
     Texture* particleTexture = nullptr;
     Mesh* particleMesh = nullptr;
@@ -290,7 +291,7 @@ struct FogVolumeShaderData
 
 struct RenderProxyFogVolume : IRenderProxy
 {
-    WeakHandle<FogVolume> fogVolume;
+    FogVolume* fogVolume = nullptr;
     Texture* volumeTexture = nullptr;
     Texture* noiseTexture = nullptr;
     BoundingBox worldAabb;
@@ -325,7 +326,7 @@ struct RenderProxyMaterial : IRenderProxy
         Memory::Fill(boundTextureIndices.Data(), 0xFFu, boundTextureIndices.ByteSize());
     }
 
-    WeakHandle<Material> material;
+    Material* material = nullptr;
     MaterialAttributes attributes;
 
     FixedArray<uint32, MaxBoundTextures> boundTextureIndices;
@@ -384,7 +385,7 @@ static_assert(sizeof(CameraShaderData) % 64 == 0);
 
 struct RenderProxyCamera : IRenderProxy
 {
-    WeakHandle<Camera> camera;
+    Camera* camera = nullptr;
     CameraShaderData bufferData {};
     Frustum viewFrustum;
 };
@@ -404,7 +405,7 @@ struct SpriteShaderData
 
 struct RenderProxySprite : IRenderProxy
 {
-    WeakHandle<class Sprite> sprite;
+    class Sprite* sprite = nullptr;
     Texture* texture = nullptr;
     class FontAtlas* fontAtlas = nullptr;
     String text;
