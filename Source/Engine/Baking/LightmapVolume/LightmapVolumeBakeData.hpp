@@ -50,11 +50,16 @@ public:
 
     virtual Result Build() override;
 
+    HYP_FORCE_INLINE uint32 GetAtlasCount() const
+    {
+        return atlasCount;
+    }
+
     void Blur();
     void Dilate();
 
-    BitmapType ToBitmapIrradiance() const;
-    BitmapType ToBitmapRadiance() const;
+    BitmapType ToBitmapIrradiance(uint32 atlasIndex) const;
+    BitmapType ToBitmapRadiance(uint32 atlasIndex) const;
 
 private:
     LightmapVolume* m_volume;
@@ -62,6 +67,8 @@ private:
     Array<BakeMesh> m_meshData;
 
     Array<LightmapRay> m_rays;
+
+    uint32 atlasCount = 1;
 
     // Per element mesh data used for building the UV map
     Array<MeshFloatDataArray, DynamicAllocator> m_meshVertexPositions;

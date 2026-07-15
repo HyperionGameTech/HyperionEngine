@@ -49,6 +49,9 @@ struct BakeMesh
 
     Array<float> vertices;
     Array<uint32> indices;
+
+    // xatlas sub-atlas index, -1 if the vertex isn't in any atlas.
+    Array<int32> vertexAtlasIndices;
 };
 
 struct LightmapRay

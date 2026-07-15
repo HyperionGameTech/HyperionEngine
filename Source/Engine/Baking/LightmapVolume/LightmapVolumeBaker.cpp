@@ -118,7 +118,8 @@ static void UpdateAtlasTextures(
 static bool BuildElementTextures(
     LightmapVolume* lmv,
     const BakeData<LightmapVolume>& bakeData,
-    LightmapElementId elementId)
+    LightmapElementId elementId,
+    uint32 bakeAtlasIndex)
 {
     AssertOnThread(g_simThread);
 
@@ -141,8 +142,8 @@ static bool BuildElementTextures(
     const Vec2u elementDimensions = element.dimensions;
 
     FixedArray<typename Baking::BakeData<LightmapVolume>::BitmapType, LightmapVolume::NumAtlasTextureTypes> bitmaps = {
-        bakeData.ToBitmapRadiance(),  /* RADIANCE */
-        bakeData.ToBitmapIrradiance() /* IRRADIANCE */
+        bakeData.ToBitmapRadiance(bakeAtlasIndex),  /* RADIANCE */
+        bakeData.ToBitmapIrradiance(bakeAtlasIndex) /* IRRADIANCE */
     };
 
     FixedArray<typename Baking::BakeData<LightmapVolume>::BitmapType, LightmapVolume::NumAtlasTextureTypes> elementBitmaps;
@@ -186,8 +187,7 @@ static bool BuildElementTextures(
 
 Baker<LightmapVolume>::Baker(BakerConfig&& config, const Handle<LightmapVolume>& volume)
     : BakerBase(std::move(config), volume, MakeStrongRef(volume->GetScene()), volume->GetWorldBounds()),
-      m_volume(volume),
-      m_lightmapElementId(InvalidLightmapElementId)
+      m_volume(volume)
 {
 }
 
@@ -307,18 +307,25 @@ void Baker<LightmapVolume>::OnBuildReady()
 
     m_volume->RemoveAllElements();
 
-    LightmapElement* lightmapElement = nullptr;
-    if (!m_volume->AddElement({ m_bakeData.GetWidth(), m_bakeData.GetHeight() }, lightmapElement, /* shrinkToFit */ true, /* downscaleLimit */ 0.1f))
+    m_lightmapElementIds.Clear();
+    m_lightmapElementIds.Reserve(m_bakeData.GetAtlasCount());
+
+    for (uint32 atlasIndex = 0; atlasIndex < m_bakeData.GetAtlasCount(); atlasIndex++)
     {
-        HYP_LOG(Lightmap, Error, "Failed to add element to volume!");
+        LightmapElement* lightmapElement = nullptr;
 
-        return;
+        if (!m_volume->AddElement({ m_bakeData.GetWidth(), m_bakeData.GetHeight() }, lightmapElement, /* shrinkToFit */ true, /* downscaleLimit */ 0.1f))
+        {
+            HYP_LOG(Lightmap, Error, "Failed to add element to volume for atlas {}!", atlasIndex);
+
+            return;
+        }
+
+        AssertDebug(lightmapElement != nullptr);
+        AssertDebug(lightmapElement->id != InvalidLightmapElementId);
+
+        m_lightmapElementIds.PushBack(lightmapElement->id);
     }
-
-    AssertDebug(lightmapElement != nullptr);
-
-    m_lightmapElementId = lightmapElement->id;
-    AssertDebug(m_lightmapElementId != InvalidLightmapElementId);
 
     if (!m_config.onlyGenerateUVs)
     {
@@ -328,30 +335,82 @@ void Baker<LightmapVolume>::OnBuildReady()
 
 void Baker<LightmapVolume>::OnCompleted_Internal()
 {
-    AssertDebug(m_lightmapElementId != InvalidLightmapElementId);
+    AssertDebug(!m_lightmapElementIds.Empty());
 
     m_bakeData.Blur();
     m_bakeData.Dilate();
 
-    if (!BuildElementTextures(m_volume, m_bakeData, m_lightmapElementId))
+    for (uint32 atlasIndex = 0; atlasIndex < m_lightmapElementIds.Size(); atlasIndex++)
     {
-        HYP_LOG(Lightmap, Error, "Failed to build LightmapElement textures for LightmapVolume, element id: {}", m_lightmapElementId);
-        return;
+        if (!BuildElementTextures(m_volume, m_bakeData, m_lightmapElementIds[atlasIndex], atlasIndex))
+        {
+            HYP_LOG(Lightmap, Error, "Failed to build LightmapElement textures for LightmapVolume, atlas {}, element id: {}",
+                atlasIndex, m_lightmapElementIds[atlasIndex]);
+
+            return;
+        }
     }
 
-    const LightmapElement* lightmapElement = m_volume->GetElement(m_lightmapElementId);
-    Assert(lightmapElement != nullptr);
+    // Look up all elements once for UV transform
+    Array<const LightmapElement*> lightmapElements;
+    lightmapElements.Resize(m_lightmapElementIds.Size());
+
+    for (uint32 i = 0; i < m_lightmapElementIds.Size(); i++)
+    {
+        lightmapElements[i] = m_volume->GetElement(m_lightmapElementIds[i]);
+        Assert(lightmapElements[i] != nullptr);
+    }
 
     // Ensure references to texture assets are saved properly.
     m_volume->MarkDirty();
 
-    HYP_LOG(Lightmap, Verbose, "Lightmap baking complete! Building element with id {}, UV offset: {}, Scale: {}", m_lightmapElementId,
-            lightmapElement->offsetUV, lightmapElement->scale);
+    HYP_LOG(Lightmap, Verbose, "Lightmap baking complete! {} atlas(es)", m_lightmapElementIds.Size());
 
     // Update meshes
     for (size_t bakeEntityIndex = 0; bakeEntityIndex < m_bakeEntities.Size(); bakeEntityIndex++)
     {
         BakeEntity& bakeEntity = m_bakeEntities[bakeEntityIndex];
+
+        Assert(bakeEntityIndex < m_bakeData.GetMeshData().Size());
+
+        const BakeMesh& bakeMeshForAtlasCount = m_bakeData.GetMeshData()[bakeEntityIndex];
+
+        // Determine the dominant atlas index for this entity (for the element component assignment,
+        // since a single entity can only reference one element/atlas for stencil routing).
+        uint32 dominantAtlasIndex = 0;
+        {
+            Array<uint32> atlasVertexCounts;
+            atlasVertexCounts.Resize(m_lightmapElementIds.Size());
+
+            for (int32 vAtlasIndex : bakeMeshForAtlasCount.vertexAtlasIndices)
+            {
+                if (vAtlasIndex >= 0 && uint32(vAtlasIndex) < atlasVertexCounts.Size())
+                {
+                    atlasVertexCounts[vAtlasIndex]++;
+                }
+            }
+
+            for (uint32 i = 1; i < atlasVertexCounts.Size(); i++)
+            {
+                if (atlasVertexCounts[i] > atlasVertexCounts[dominantAtlasIndex])
+                {
+                    dominantAtlasIndex = i;
+                }
+            }
+
+            for (uint32 i = 0; i < m_lightmapElementIds.Size(); i++)
+            {
+                if (i != dominantAtlasIndex && atlasVertexCounts[i] > 0)
+                {
+                    HYP_LOG_ONCE(Lightmap, Warning, "Entity {} mesh spans multiple lightmap atlases; rendering may be incorrect for vertices not in the dominant atlas",
+                        bakeEntity.entity.IsValid() ? bakeEntity.entity->Id() : ObjIdBase());
+
+                    break;
+                }
+            }
+        }
+
+        const LightmapElementId entityElementId = m_lightmapElementIds[dominantAtlasIndex];
 
         auto UpdateMeshData = [&]()
         {
@@ -359,8 +418,6 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
             Assert(mesh.IsValid());
 
             auto readScope = mesh->GetReadScope();
-
-            Assert(bakeEntityIndex < m_bakeData.GetMeshData().Size());
 
             BakeMesh& bakeMesh = m_bakeData.GetMeshData()[bakeEntityIndex];
             Assert(bakeMesh.mesh == mesh);
@@ -383,16 +440,28 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
 
             AssertDebug(bakeMesh.vertices.Size() % vertexStrideFloats == 0);
 
-            for (size_t i = 0; i < bakeMesh.vertices.Size(); i += vertexStrideFloats)
+            for (size_t i = 0, vertexIndex = 0; i < bakeMesh.vertices.Size(); i += vertexStrideFloats, vertexIndex++)
             {
                 float* vertexDataFloat = bakeMesh.vertices.Data() + i;
 
                 TVertexPacket<VT_UV1>* packet = reinterpret_cast<TVertexPacket<VT_UV1>*>(vertexDataFloat + uv1Offset);
 
-                // Scale UV1 to atlas section
                 Vec2f uv1 = packet->GetUV1();
-                uv1 *= lightmapElement->scale;
-                uv1 += Vec2f(lightmapElement->offsetUV.x, lightmapElement->offsetUV.y);
+
+                int32 vertexAtlasIndex = (vertexIndex < bakeMesh.vertexAtlasIndices.Size())
+                    ? bakeMesh.vertexAtlasIndices[vertexIndex]
+                    : int32(dominantAtlasIndex);
+
+                if (vertexAtlasIndex < 0 || uint32(vertexAtlasIndex) >= lightmapElements.Size())
+                {
+                    vertexAtlasIndex = int32(dominantAtlasIndex);
+                }
+
+                const LightmapElement* element = lightmapElements[vertexAtlasIndex];
+
+                // Scale UV1 to atlas section
+                uv1 *= element->scale;
+                uv1 += Vec2f(element->offsetUV.x, element->offsetUV.y);
                 packet->SetUV1(uv1);
             }
 
@@ -457,7 +526,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
 #endif
 
         auto UpdateMeshComponent = [entityManagerWeak = MakeWeakRef(m_scene->GetEntityManager()),
-                                    lightmapElementId = m_lightmapElementId,
+                                    entityElementId,
                                     volume = m_volume,
                                     bakeEntity = bakeEntity,
                                     material = bakeEntity.material,
@@ -495,7 +564,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
 
                 lightmapElementComponent.lightmapVolume = MakeWeakRef(volume);
                 lightmapElementComponent.lightmapVolumeName = volume->GetName();
-                lightmapElementComponent.lightmapElementId = lightmapElementId;
+                lightmapElementComponent.lightmapElementId = entityElementId;
             }
             else
             {
@@ -503,7 +572,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
 
                 lightmapElementComponent.lightmapVolume = MakeWeakRef(volume);
                 lightmapElementComponent.lightmapVolumeName = volume->GetName();
-                lightmapElementComponent.lightmapElementId = lightmapElementId;
+                lightmapElementComponent.lightmapElementId = entityElementId;
 
                 entityManager->AddComponent<LightmapElementComponent>(entity, std::move(lightmapElementComponent));
             }

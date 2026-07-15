@@ -178,7 +178,7 @@ void DefaultGame::OnLaunch_Impl()
 
                 if (m_sun.IsValid())
                 {
-                    m_sun->SetIntensity(15.0f);
+                    m_sun->SetIntensity(100.0f);
                     m_sun->SetNumShadowMapCascades(4);
                 }
             }

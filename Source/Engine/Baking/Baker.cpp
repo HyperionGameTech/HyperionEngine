@@ -397,6 +397,9 @@ void BakerBase::DispatchJobs()
 
         const bool performsRayTracing = PerformsRayTracing();
 
+        const uint32 texelsPerAtlas = dimensions.x * dimensions.y;
+        const uint32 tilesPerAtlasY = (dimensions.y + TileSize - 1) / TileSize;
+
         Map<Vec2i, Array<uint32>> tileBuckets;
 
         AssertDebug(bakeData.texels.Any());
@@ -410,11 +413,13 @@ void BakerBase::DispatchJobs()
                 continue;
             }
 
-            // calculate tile coord based on texel index
-            const uint32 x = i % dimensions.x;
-            const uint32 y = i / dimensions.y;
+            const uint32 localIndex = (texelsPerAtlas > 0) ? (i % texelsPerAtlas) : i;
+            const uint32 atlasIndex = (texelsPerAtlas > 0) ? (i / texelsPerAtlas) : 0;
 
-            const Vec2i tileCoord = Vec2i(int32(x / TileSize), int32(y / TileSize));
+            const uint32 x = localIndex % dimensions.x;
+            const uint32 y = localIndex / dimensions.x;
+
+            const Vec2i tileCoord = Vec2i(int32(x / TileSize), int32(y / TileSize) + int32(atlasIndex * tilesPerAtlasY));
             tileBuckets[tileCoord].PushBack(i);
         }
 

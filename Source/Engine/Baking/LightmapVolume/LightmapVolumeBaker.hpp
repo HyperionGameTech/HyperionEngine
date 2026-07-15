@@ -81,7 +81,7 @@ protected:
 
     Handle<LightmapVolume> m_volume;
     BakeData<LightmapVolume> m_bakeData;
-    LightmapElementId m_lightmapElementId;
+    Array<LightmapElementId> m_lightmapElementIds;
 
     Task<BakeData<LightmapVolume>> m_atlasBuildTask;
 };
