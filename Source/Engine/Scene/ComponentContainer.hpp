@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Math/MathUtil.hpp"
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/FlatMap.hpp>
 
@@ -30,7 +31,7 @@ namespace Hyperion {
 class Entity;
 
 enum class ComponentId : uint32;
-static constexpr ComponentId InvalidComponentId = ComponentId(0);
+static constexpr ComponentId InvalidComponentId = ComponentId(UINT32_MAX);
 
 HYP_ENUM()
 enum class ComponentAccess : uint8
@@ -122,6 +123,11 @@ public:
         return m_dataRaceDetector;
     }
 #endif
+
+    /// The below virtual functions are generally intended for serialization
+    /// and return type-erased references -- for proper runtime usage, you should *almost always*
+    /// have a concrete derived instance, marked final, of this which has inlinable GetComponent()
+    /// and other functions.
 
     /*! \brief Gets the TypeInfo of the component type stored in this component container. */
     virtual const TypeInfo& GetComponentTypeInfo() const = 0;
@@ -267,35 +273,31 @@ public:
     {
         HYP_MT_CHECK_READ(m_dataRaceDetector);
 
-        return m_components.Contains(id);
+        return m_componentBits.Test(static_cast<uint32>(id));
     }
 
     virtual AnyRef TryGetComponent(ComponentId id) override
     {
         HYP_MT_CHECK_READ(m_dataRaceDetector);
 
-        auto it = m_components.Find(id);
-
-        if (it == m_components.End())
+        if (m_componentBits.Test(static_cast<uint32>(id)))
         {
-            return AnyRef::Empty();
+            return AnyRef(&m_components[static_cast<uint32>(id)]);
         }
 
-        return AnyRef(&it->second);
+        return AnyRef::Empty();
     }
 
     virtual ConstAnyRef TryGetComponent(ComponentId id) const override
     {
         HYP_MT_CHECK_READ(m_dataRaceDetector);
 
-        auto it = m_components.Find(id);
-
-        if (it == m_components.End())
+        if (m_componentBits.Test(static_cast<uint32>(id)))
         {
-            return ConstAnyRef::Empty();
+            return ConstAnyRef(&m_components[static_cast<uint32>(id)]);
         }
 
-        return ConstAnyRef(&it->second);
+        return ConstAnyRef::Empty();
     }
 
     HYP_FORCE_INLINE Component& GetComponent(ComponentId id)
@@ -304,7 +306,7 @@ public:
 
         Assert(HasComponent(id), "Component of type `{}` with ID {} does not exist", TypeNameWithoutNamespace<Component>().Data(), id);
 
-        return m_components.At(id);
+        return m_components[static_cast<uint32>(id)];
     }
 
     HYP_FORCE_INLINE const Component& GetComponent(ComponentId id) const
@@ -313,29 +315,45 @@ public:
 
         Assert(HasComponent(id), "Component of type `{}` with ID {} does not exist", TypeNameWithoutNamespace<Component>().Data(), id);
 
-        return m_components.At(id);
+        return m_components[static_cast<uint32>(id)];
     }
 
     HYP_FORCE_INLINE Pair<ComponentId, Component&> AddComponent(const Component& component)
     {
         HYP_MT_CHECK_RW(m_dataRaceDetector);
 
-        ComponentId id = ComponentId(++m_componentIdCounter);
+        ComponentId id = static_cast<ComponentId>(m_componentIdCounter++);
 
-        auto insertResult = m_components.Set(id, component);
+        if (m_components.Size() < m_componentIdCounter)
+        {
+            m_components.Resize(MathUtil::NextPowerOf2(m_componentIdCounter));
+        }
 
-        return Pair<ComponentId, Component&> { id, insertResult.first->second };
+        Component& value = m_components[static_cast<uint32>(id)];
+        value = component;
+
+        m_componentBits.Set(static_cast<uint32>(id), true);
+
+        return Pair<ComponentId, Component&> { id, value };
     }
 
     HYP_FORCE_INLINE Pair<ComponentId, Component&> AddComponent(Component&& component)
     {
         HYP_MT_CHECK_RW(m_dataRaceDetector);
 
-        ComponentId id = ComponentId(++m_componentIdCounter);
+        ComponentId id = static_cast<ComponentId>(m_componentIdCounter++);
 
-        auto insertResult = m_components.Set(id, std::move(component));
+        if (m_components.Size() < m_componentIdCounter)
+        {
+            m_components.Resize(MathUtil::NextPowerOf2(m_componentIdCounter));
+        }
 
-        return Pair<ComponentId, Component&> { id, insertResult.first->second };
+        Component& value = m_components[static_cast<uint32>(id)];
+        value = std::move(component);
+
+        m_componentBits.Set(static_cast<uint32>(id), true);
+
+        return Pair<ComponentId, Component&> { id, value };
     }
 
     virtual ComponentId AddComponent(const BoxedValue& componentData) override
@@ -358,34 +376,31 @@ public:
     {
         HYP_MT_CHECK_RW(m_dataRaceDetector);
 
-        auto it = m_components.Find(id);
-
-        if (it != m_components.End())
+        if (!m_componentBits.Test(static_cast<uint32>(id)))
         {
-            m_components.Erase(it);
-
-            return true;
+            return false;
         }
 
-        return false;
+        m_components[static_cast<uint32>(id)] = {}; // unset to free up any resources used by it
+        m_componentBits.Set(static_cast<uint32>(id), false);
+
+        return true;
     }
 
     virtual bool RemoveComponent(ComponentId id, BoxedValue& outBoxed) override
     {
         HYP_MT_CHECK_RW(m_dataRaceDetector);
 
-        auto it = m_components.Find(id);
-
-        if (it != m_components.End())
+        if (!m_componentBits.Test(static_cast<uint32>(id)))
         {
-            outBoxed = BoxedValue(std::move(it->second));
-
-            m_components.Erase(it);
-
-            return true;
+            return false;
         }
 
-        return false;
+        outBoxed = BoxedValue(std::move(m_components[static_cast<uint32>(id)]));
+        
+        m_componentBits.Set(static_cast<uint32>(id), false);
+
+        return true;
     }
 
     virtual Optional<ComponentId> MoveComponent(ComponentId id, ComponentContainerBase& other) override
@@ -394,20 +409,18 @@ public:
 
         HYP_MT_CHECK_RW(m_dataRaceDetector);
 
-        auto it = m_components.Find(id);
-
-        if (it != m_components.End())
+        if (!m_componentBits.Test(static_cast<uint32>(id)))
         {
-            Component& component = it->second;
-
-            const ComponentId newComponentId = static_cast<ComponentContainer<Component>&>(other).AddComponent(std::move(component)).first;
-
-            m_components.Erase(it);
-
-            return newComponentId;
+            return {};
         }
 
-        return {};
+        Component& component = m_components[static_cast<uint32>(id)];
+
+        const ComponentId newComponentId = static_cast<ComponentContainer<Component>&>(other).AddComponent(std::move(component)).first;
+
+        m_componentBits.Set(static_cast<uint32>(id), false);
+
+        return newComponentId;
     }
 
     HYP_FORCE_INLINE size_t Size() const
@@ -419,8 +432,8 @@ public:
 
 private:
     uint32 m_componentIdCounter = 0;
-
-    Map<ComponentId, Component, SceneAllocator> m_components;
+    Array<Component, SceneAllocator> m_components;
+    TBitset<SceneAllocator> m_componentBits;
 };
 
 template <class Component>
