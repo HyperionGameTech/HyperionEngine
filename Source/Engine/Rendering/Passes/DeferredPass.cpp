@@ -193,6 +193,67 @@ void FillShadowMapData(
     outShadowMapData.splitDistance = 0.0f; // @TODO
 }
 
+void FillShadowMapDataCSM(
+    DirectionalLightCSMData* outCSMData,
+    View** shadowMapViews,
+    ShadowMap** shadowMaps,
+    uint32 numCascades)
+{
+    for (uint32 cascadeIndex = 0; cascadeIndex < numCascades; cascadeIndex++)
+    {
+        View* shadowMapView = shadowMapViews[cascadeIndex];
+
+        if (!shadowMapView)
+        {
+            break;
+        }
+
+        RenderProxyList& shadowViewRpl = GetConsumerProxyList(shadowMapView);
+        shadowViewRpl.BeginRead();
+
+        HYP_DEFER({ shadowViewRpl.EndRead(); });
+
+        if (cascadeIndex == 0)
+        {
+            // Shared view matrix for all cascades
+            outCSMData->shadowViewMat = shadowViewRpl.cachedMatrices.view;
+        }
+
+        ShadowMap* shadowMap = shadowMaps[cascadeIndex];
+        AssertDebug(shadowMap != nullptr);
+
+        const Vec2f& atlasScale = shadowMap->GetAtlasElement()->scale;
+        const Vec2f& atlasOffset = shadowMap->GetAtlasElement()->offsetUV;
+        const uint32 layerIndex = shadowMap->GetAtlasElement()->layerIndex;
+
+        const BoundingBox& cascadeBounds = shadowViewRpl.cachedBounds;
+
+        const float rawScaleX = 1.0f / (cascadeBounds.max.x - cascadeBounds.min.x);
+        const float rawScaleY = -1.0f / (cascadeBounds.max.y - cascadeBounds.min.y);
+        const float rawScaleZ = 1.0f / (cascadeBounds.max.z - cascadeBounds.min.z);
+
+        const float rawOffsetX = -cascadeBounds.min.x * rawScaleX;
+        const float rawOffsetY = -cascadeBounds.max.y * rawScaleY;
+        const float rawOffsetZ = -cascadeBounds.min.z * rawScaleZ;
+
+        outCSMData->atlasSlice[cascadeIndex] = layerIndex;
+
+        outCSMData->atlasU[cascadeIndex] = atlasOffset.x;
+        outCSMData->atlasV[cascadeIndex] = atlasOffset.y;
+
+        outCSMData->atlasScaleX[cascadeIndex] = atlasScale.x;
+        outCSMData->atlasScaleY[cascadeIndex] = atlasScale.y;
+
+        outCSMData->cascadeScaleX[cascadeIndex] = rawScaleX;
+        outCSMData->cascadeScaleY[cascadeIndex] = rawScaleY;
+        outCSMData->cascadeScaleZ[cascadeIndex] = rawScaleZ;
+
+        outCSMData->cascadeOffsetX[cascadeIndex] = rawOffsetX;
+        outCSMData->cascadeOffsetY[cascadeIndex] = rawOffsetY;
+        outCSMData->cascadeOffsetZ[cascadeIndex] = rawOffsetZ;
+    }
+}
+
 } // namespace DeferredRendererHelpers
 
 #pragma region DeferredPassData

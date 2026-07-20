@@ -69,7 +69,7 @@ void DepthPyramidRenderer::Create()
     // create depth pyramid image
     m_hzbTexture = MakeHandle<Texture>(TextureDesc {
         TextureType::Texture2D,
-        TextureFormat::R32F,
+        TextureFormat::RG32F,   // store both min and maxes.
         depthImage->GetExtent(),
         TFM_NEAREST_MIPMAP,
         TFM_NEAREST,
@@ -174,7 +174,7 @@ void DepthPyramidRenderer::Render(Frame* frame)
         }
 
         frame->cr << SetShaderUniform(1, "OutImage"_sh, m_mipImageViews[mipLevel]);
-        frame->cr << SetShaderUniform(2, "UniformBuffer"_sh, m_mipUniformBuffers[mipLevel]);
+        frame->cr << SetShaderUniform(2, "CBuffer"_sh, m_mipUniformBuffers[mipLevel]);
         frame->cr << SetShaderUniform(3, "DepthPyramidSampler"_sh, depthPyramidSampler);
 
         frame->cr << DispatchCompute({ (mipWidth + 7) / 8, (mipHeight + 7) / 8, 1 });

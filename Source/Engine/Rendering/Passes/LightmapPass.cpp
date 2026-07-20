@@ -136,7 +136,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     uint32 numShaderUniforms = 0;
 
     // GBuffer textures
-    cr << SetShaderUniform(numShaderUniforms++, "GBufferAlbedoTexture"_sh, viewFramebuffer->GetAttachment(GBufferTarget::Albedo)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferAlbedoTexture"_sh, viewFramebuffer->GetAttachment(GBufferTarget::Color)->GetImageView());
     cr << SetShaderUniform(numShaderUniforms++, "GBufferNormalsTexture"_sh, viewFramebuffer->GetAttachment(GBufferTarget::Normals)->GetImageView());
     cr << SetShaderUniform(numShaderUniforms++, "GBufferMaterialTexture"_sh, viewFramebuffer->GetAttachment(GBufferTarget::MatData)->GetImageView());
     cr << SetShaderUniform(numShaderUniforms++, "GBufferDepthTexture"_sh, viewFramebuffer->GetAttachment(GBufferTarget::Depth)->GetImageView());

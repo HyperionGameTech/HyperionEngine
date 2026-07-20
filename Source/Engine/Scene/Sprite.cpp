@@ -4,7 +4,6 @@
  *  @licence MIT
  */
 
-#include "Node.hpp"
 #include <ScenePch.hpp>
 
 #include <Scene/Sprite.hpp>

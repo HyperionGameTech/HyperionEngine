@@ -3,17 +3,17 @@
 #include "../include/Shared.hlsli"
 #include "./Shared.hlsli"
 
-DECLARE_SRV(DepthPyramidDescriptorSet, InImage) Texture2D mip_in;
-DECLARE_UAV(DepthPyramidDescriptorSet, OutImage) RWTexture2D<float4> mip_out;
-DECLARE_SAMPLER(DepthPyramidDescriptorSet, DepthPyramidSampler) SamplerState depth_pyramid_sampler;
-DECLARE_BUFFER(DepthPyramidDescriptorSet, UniformBuffer) cbuffer DepthPyramidUniforms
+DECLARE_SRV(DepthPyramidDescriptorSet, InImage) Texture2D InImage;
+DECLARE_UAV(DepthPyramidDescriptorSet, OutImage) RWTexture2D<float2> OutImage;
+DECLARE_SAMPLER(DepthPyramidDescriptorSet, DepthPyramidSampler) SamplerState InSampler;
+DECLARE_BUFFER(DepthPyramidDescriptorSet, CBuffer) cbuffer CBuffer
 {
     uint2 mip_dimensions;
     uint2 prev_mip_dimensions;
     uint mip_level;
 };
 
-float GetDepthAtTexel(float2 texcoord, int2 offset)
+float2 GetDepthAtTexel(float2 texcoord, int2 offset)
 {
     const int2 texel_coord = clamp(
         int2((texcoord * float2(prev_mip_dimensions)) + float2(offset)),
@@ -21,7 +21,7 @@ float GetDepthAtTexel(float2 texcoord, int2 offset)
         int2(prev_mip_dimensions) - int2(1, 1)
     );
 
-    return TEXEL_FETCH_2D_LOD(depth_pyramid_sampler, mip_in, texel_coord, 0).r;
+    return TEXEL_FETCH_2D_LOD(InSampler, InImage, texel_coord, 0).rg;
 }
 
 [numthreads(8, 8, 1)]
@@ -33,21 +33,22 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         return;
     }
 
-    const float2 texcoord = float2(coord) / float2(mip_dimensions);
+    const float2 texcoord = (float2(coord)) / float2(mip_dimensions);
 
-    float depth = 0.0;
+    float2 depths = HYP_DEPTHS_INIT;
 
     if (mip_level == 0)
     {
-       depth = GetDepthAtTexel(texcoord, int2(0, 0));
+       depths = GetDepthAtTexel(texcoord, int2(0, 0));
     }
     else
     {
         for (int i = 0; i < HYP_NUM_DEPTH_PYRAMID_OFFSETS; i++)
         {
-            depth = HYP_DEPTH_CMP(depth, GetDepthAtTexel(texcoord, depth_pyramid_offsets[i]));
+            float2 d = GetDepthAtTexel(texcoord, depth_pyramid_offsets[i]);
+            depths = float2(HYP_DEPTH_CMP(depths.x, d.x), HYP_DEPTH_CMP_INV(depths.y, d.y));
         }
     }
 
-    mip_out[coord] = depth.xxxx;
+    OutImage[coord] = depths;
 }

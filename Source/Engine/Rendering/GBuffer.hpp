@@ -42,7 +42,7 @@ struct GBufferTarget
 {
     enum TargetName : uint8
     {
-        Albedo = 0,
+        Color = 0,
         Normals,
         MatData,
         Velocity,

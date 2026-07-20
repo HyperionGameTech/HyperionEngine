@@ -60,7 +60,7 @@ struct GBufferTargetDesc
 };
 
 static constexpr GBufferTargetDesc TargetDescs[GBufferTarget::Max] = {
-    GBufferTargetDesc({ TextureFormat::RGBA16F }),                       // Albedo
+    GBufferTargetDesc({ TextureFormat::RGBA16F }),                       // Color
     GBufferTargetDesc({ TextureFormat::R10G10B10A2 }),                   // Normals: https://johnwhite3d.blogspot.com/2017/10/signed-octahedron-normal-encoding.html
     GBufferTargetDesc({ TextureFormat::R32 }),                           // MatData
     GBufferTargetDesc({ TextureFormat::RG16F }),                         // Velocity
@@ -266,7 +266,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
             case GBufferPass::Effect:
                 // EFFECT does not write normals, mat data, velocity, depth...
                 // Use Store op == NONE for those
-                if (i != GBufferTarget::Albedo)
+                if (i != GBufferTarget::Color)
                 {
                     addSharedAttachment(i, LoadOperation::LOAD, StoreOperation::NONE);
 

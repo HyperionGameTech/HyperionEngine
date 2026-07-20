@@ -69,8 +69,7 @@ DECLARE_SRV(RenderSSR, GBufferNormalsTexture) Texture2D GBufferNormalsTexture;
 DECLARE_SRV(RenderSSR, GBufferMaterialTexture) Texture2D<uint> GBufferMaterialTexture;
 DECLARE_SRV(RenderSSR, GBufferVelocityTexture) Texture2D GBufferVelocityTexture;
 DECLARE_SRV(RenderSSR, GBufferMipChain) Texture2D GBufferMipChain;
-DECLARE_SRV(RenderSSR, GBufferDepthTexture) Texture2D GBufferDepthTexture;
-DECLARE_SRV(RenderSSR, DeferredResult) Texture2D DeferredResult;
+DECLARE_SRV(RenderSSR, HiZTexture) Texture2D HiZTexture;
 
 DECLARE_SAMPLER(RenderSSR, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(RenderSSR, SamplerLinear) SamplerState sampler_linear;
@@ -82,7 +81,7 @@ DECLARE_SRV(RenderSSR, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;
 #include "../include/Temporal.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#define MAX_ROUGHNESS 0.4
+#define MAX_ROUGHNESS 0.6
 
 bool TraceRays(
     float3 ray_origin,
@@ -91,9 +90,9 @@ bool TraceRays(
     float surface_roughness,
     out float2 hit_pixel,
     out float3 hit_point,
-    out float hit_weight,
     out float num_iterations)
 {
+
     ray_direction = normalize(ray_direction);
     float3 currStep = ssrConstants.ray_step * ray_direction;
     float3 currPosition = ray_origin;
@@ -101,7 +100,6 @@ bool TraceRays(
     const int max_iterations = int(ssrConstants.num_iterations);
 
     num_iterations = 0.0;
-    hit_weight = 0.0;
     hit_pixel = float2(0.0, 0.0);
     hit_point = float3(0.0, 0.0, 0.0);
 
@@ -112,9 +110,13 @@ bool TraceRays(
 
         hit_pixel = GetProjectedPositionFromView(camera.projection, currPosition);
 
-        if (hit_pixel.x != saturate(hit_pixel.x) || hit_pixel.y != saturate(hit_pixel.y)) return false;
+        if (hit_pixel.x != saturate(hit_pixel.x) || hit_pixel.y != saturate(hit_pixel.y))
+        {
+            return false;
+        }
 
-        float depth = SAMPLE_TEXTURE_2D(sampler_nearest, GBufferDepthTexture, hit_pixel).r;
+        // @TODO Make use of the hi z bricks to skip empty spaces!
+        float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, HiZTexture, hit_pixel, 0).r;
         float4 view_space_position = ReconstructViewSpacePositionFromDepth(camera.invProjMat, hit_pixel, depth);
 
         float step_delta = currPosition.z - view_space_position.z;
@@ -122,31 +124,38 @@ bool TraceRays(
 
         if (ssrConstants.max_ray_distance > 0.0)
         {
-            float traveled = distance(ray_origin, currPosition);
-            if (traveled > ssrConstants.max_ray_distance) break;
+            float t = distance(ray_origin, currPosition);
+            if (t > ssrConstants.max_ray_distance)
+            {
+                break;
+            }
         }
 
         if (step_delta > 0.0)
         {
-            for (int j = 0; j < 4; j++)
+            if (step_delta < ssrConstants.thickness) 
             {
-                currStep *= 0.5;
-                currPosition -= currStep * sign(step_delta);
-
-                hit_pixel = GetProjectedPositionFromView(camera.projection, currPosition);
-                depth = SAMPLE_TEXTURE_2D(sampler_nearest, GBufferDepthTexture, hit_pixel).r;
-                view_space_position = ReconstructViewSpacePositionFromDepth(camera.invProjMat, hit_pixel, depth);
-
-                step_delta = currPosition.z - view_space_position.z;
-
-                if (abs(step_delta) < ssrConstants.distance_bias)
+                for (int j = 0; j < 4; j++)
                 {
-                    hit_point = view_space_position.xyz;
-                    return true;
+                    currStep *= 0.5;
+                    currPosition -= currStep * sign(step_delta);
+
+                    hit_pixel = GetProjectedPositionFromView(camera.projection, currPosition);
+                    depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, HiZTexture, hit_pixel, 0).r;
+                    view_space_position = ReconstructViewSpacePositionFromDepth(camera.invProjMat, hit_pixel, depth);
+
+                    step_delta = currPosition.z - view_space_position.z;
+
+                    if (abs(step_delta) < ssrConstants.distance_bias)
+                    {
+                        hit_point = view_space_position.xyz;
+                        return true;
+                    }
                 }
             }
 
             hit_point = view_space_position.xyz;
+
             return true;
         }
     }
@@ -166,7 +175,6 @@ float CalculateAlpha(
 
     // Fade hits that hit outside the screen
     float2 hit_pixel_ndc = hit_pixel * 2.0 - 1.0;
-    alpha *= saturate(1.0 - max(abs(hit_pixel_ndc.x), abs(hit_pixel_ndc.y)) / ssrConstants.screen_edge_fade_start);
 
     // // Fade hits that approach the viewer's eye
     // float dp = dot(ray_direction, hit_point);
@@ -195,7 +203,7 @@ PSOutput PSMain(PSInput input)
     const float roughness = materialParams.roughness;
     const float perceptualRoughness = sqrt(roughness);
 
-    const float depth = SAMPLE_TEXTURE_2D(sampler_nearest, GBufferDepthTexture, texcoord).r;
+    const float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, HiZTexture, texcoord, 0).r;
 
     if (depth > 0.99999 || perceptualRoughness > MAX_ROUGHNESS)
     {
@@ -234,18 +242,17 @@ PSOutput PSMain(PSInput input)
 
     ray_origin = P + ray_direction * 0.001;
 
-    if (dot(ray_direction, -V) < 0.0)
-    {
-        output.out_color = (float4)0.0;
-        return output;
-    }
+    // if (dot(ray_direction, -V) < 0.0)
+    // {
+    //     output.out_color = (float4)0.0;
+    //     return output;
+    // }
 
     float2 hit_pixel;
     float3 hit_point;
-    float hit_weight;
     float num_iterations;
 
-    bool intersect = TraceRays(ray_origin, ray_direction, rnd.x, perceptualRoughness, hit_pixel, hit_point, hit_weight, num_iterations);
+    bool intersect = TraceRays(ray_origin, ray_direction, rnd.x, perceptualRoughness, hit_pixel, hit_point, num_iterations);
 
     float dist = distance(ray_origin, hit_point);
 

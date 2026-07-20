@@ -64,7 +64,7 @@ DECLARE_SRV(RenderSSR, GBufferNormalsTexture) Texture2D GBufferNormalsTexture;
 DECLARE_SRV(RenderSSR, GBufferMaterialTexture) Texture2D<uint> GBufferMaterialTexture;
 DECLARE_SRV(RenderSSR, GBufferVelocityTexture) Texture2D GBufferVelocityTexture;
 DECLARE_SRV(RenderSSR, GBufferMipChain) Texture2D GBufferMipChain;
-DECLARE_SRV(RenderSSR, GBufferDepthTexture) Texture2D GBufferDepthTexture;
+DECLARE_SRV(RenderSSR, HiZTexture) Texture2D HiZTexture;
 
 DECLARE_SAMPLER(RenderSSR, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(RenderSSR, SamplerLinear) SamplerState sampler_linear;
@@ -109,7 +109,7 @@ PSOutput PSMain(PSInput input)
     float4 reflection_sample = float4(0.0, 0.0, 0.0, 0.0);
     float roughness = 0.0;
 
-    float depth = SAMPLE_TEXTURE_2D(sampler_nearest, GBufferDepthTexture, texcoord).r;
+    float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, HiZTexture, texcoord, 0).r;
 
     if (depth > 0.99999)
     {

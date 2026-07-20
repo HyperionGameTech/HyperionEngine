@@ -528,26 +528,6 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 uint32 numCascadesToWrite = (lightType == LightType::Directional) ? lightProxy->numCascades : 1;
                 numCascadesToWrite = MathUtil::Clamp(numCascadesToWrite, 1u, MaxShadowMapCascades);
 
-                struct DirectionalLightCSMData
-                {
-                    Mat4f shadowViewMat;
-
-                    Vec4f atlasU;
-                    Vec4f atlasV;
-                    Vec4f atlasScaleX;
-                    Vec4f atlasScaleY;
-
-                    Vec4u atlasSlice;
-
-                    Vec4f cascadeScaleX;
-                    Vec4f cascadeScaleY;
-                    Vec4f cascadeScaleZ;
-
-                    Vec4f cascadeOffsetX;
-                    Vec4f cascadeOffsetY;
-                    Vec4f cascadeOffsetZ;
-                };
-
                 ShadowMap* shadowMaps[MaxShadowMapCascades] {};
 
                 View* shadowMapViewsDynamic[MaxShadowMapCascades] {};
@@ -571,58 +551,11 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                     DirectionalLightCSMData* csmData = RI.cbufferAllocator->Allocate<DirectionalLightCSMData>();
                     Memory::Zero(csmData, sizeof(DirectionalLightCSMData));
 
-                    for (uint32 cascadeIndex = 0; cascadeIndex < numCascadesToWrite; cascadeIndex++)
-                    {
-                        View* shadowMapView = shadowMapViewsDynamic[cascadeIndex];
-
-                        if (!shadowMapView)
-                        {
-                            break;
-                        }
-
-                        RenderProxyList& shadowViewRpl = GetConsumerProxyList(shadowMapView);
-                        shadowViewRpl.BeginRead();
-                        HYP_DEFER({ shadowViewRpl.EndRead(); });
-
-                        if (cascadeIndex == 0)
-                        {
-                            // Shared view matrix for all cascades
-                            csmData->shadowViewMat = shadowViewRpl.cachedMatrices.view;
-                        }
-
-                        ShadowMap* shadowMap = shadowMaps[cascadeIndex];
-                        AssertDebug(shadowMap != nullptr);
-
-                        const Vec2f& atlasScale = shadowMap->GetAtlasElement()->scale;
-                        const Vec2f& atlasOffset = shadowMap->GetAtlasElement()->offsetUV;
-                        const uint32 layerIndex = shadowMap->GetAtlasElement()->layerIndex;
-
-                        const BoundingBox& cascadeBounds = shadowViewRpl.cachedBounds;
-
-                        const float rawScaleX = 1.0f / (cascadeBounds.max.x - cascadeBounds.min.x);
-                        const float rawScaleY = -1.0f / (cascadeBounds.max.y - cascadeBounds.min.y);
-                        const float rawScaleZ = 1.0f / (cascadeBounds.max.z - cascadeBounds.min.z);
-
-                        const float rawOffsetX = -cascadeBounds.min.x * rawScaleX;
-                        const float rawOffsetY = -cascadeBounds.max.y * rawScaleY;
-                        const float rawOffsetZ = -cascadeBounds.min.z * rawScaleZ;
-
-                        csmData->atlasSlice[cascadeIndex] = layerIndex;
-
-                        csmData->atlasU[cascadeIndex] = atlasOffset.x;
-                        csmData->atlasV[cascadeIndex] = atlasOffset.y;
-
-                        csmData->atlasScaleX[cascadeIndex] = atlasScale.x;
-                        csmData->atlasScaleY[cascadeIndex] = atlasScale.y;
-
-                        csmData->cascadeScaleX[cascadeIndex] = rawScaleX;
-                        csmData->cascadeScaleY[cascadeIndex] = rawScaleY;
-                        csmData->cascadeScaleZ[cascadeIndex] = rawScaleZ;
-
-                        csmData->cascadeOffsetX[cascadeIndex] = rawOffsetX;
-                        csmData->cascadeOffsetY[cascadeIndex] = rawOffsetY;
-                        csmData->cascadeOffsetZ[cascadeIndex] = rawOffsetZ;
-                    }
+                    DeferredRendererHelpers::FillShadowMapDataCSM(
+                        csmData,
+                        shadowMapViewsDynamic,
+                        shadowMaps,
+                        numCascadesToWrite);
                 }
                 else
                 {

@@ -270,7 +270,7 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         cr << SetShaderUniform(3, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
         cr << SetShaderUniform(4, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
 
-        cr << SetShaderUniform(5, "GBufferAlbedoTexture"_sh, targetFramebuffer->GetAttachment(GBufferTarget::Albedo)->GetImageView());
+        cr << SetShaderUniform(5, "GBufferAlbedoTexture"_sh, targetFramebuffer->GetAttachment(GBufferTarget::Color)->GetImageView());
         cr << SetShaderUniform(6, "GBufferNormalsTexture"_sh, targetFramebuffer->GetAttachment(GBufferTarget::Normals)->GetImageView());
         cr << SetShaderUniform(7, "GBufferMaterialTexture"_sh, targetFramebuffer->GetAttachment(GBufferTarget::MatData)->GetImageView());
         cr << SetShaderUniform(8, "GBufferVelocityTexture"_sh, targetFramebuffer->GetAttachment(GBufferTarget::Velocity)->GetImageView());

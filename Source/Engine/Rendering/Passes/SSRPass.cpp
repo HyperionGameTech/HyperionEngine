@@ -7,6 +7,8 @@
 #include <RenderingPch.hpp>
 
 #include <Rendering/Passes/SSRPass.hpp>
+#include <Rendering/Passes/DeferredPass.hpp>
+
 #include <Rendering/Pass.hpp>
 #include <Rendering/ShaderManager.hpp>
 #include <Rendering/PlaceholderData.hpp>
@@ -22,6 +24,7 @@
 #include <Rendering/RenderProxy.hpp>
 #include <Rendering/RenderHelpers.hpp>
 #include <Rendering/CBufferAllocator.hpp>
+#include <Rendering/DepthPyramidRenderer.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
 
@@ -52,6 +55,7 @@ CVar<float> cvSSRResolutionScale { "Rendering.SSR.ResolutionScale", 1.0f };
 
 CVar<float> cvSSRRayStep { "Rendering.SSR.RayStep", 2.0f };
 CVar<float> cvSSRDistanceBias { "Rendering.SSR.DistanceBias", 0.01f };
+CVar<float> cvSSRThickness { "Rendering.SSR.Thickness", 0.2f };
 CVar<float> cvSSRMaxDistance { "Rendering.SSR.MaxDistance", 1000.0f };
 CVar<uint32> cvSSRMaxIterations { "Rendering.SSR.MaxIterations", 128 };
 
@@ -67,6 +71,7 @@ struct SSRConstants
     float eyeFadeEnd;
     float screenEdgeFadeStart;
     float screenEdgeFadeEnd;
+    float thickness;
 };
 
 #pragma region SSRPass
@@ -292,11 +297,12 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
         constants->numIterations = cvSSRMaxIterations.Get();
         constants->maxRayDistance = cvSSRMaxDistance.Get();
         constants->distanceBias = cvSSRDistanceBias.Get();
+        constants->thickness = cvSSRThickness.Get();
         constants->offset = 0.25f;
         constants->eyeFadeStart = 0.98f;
         constants->eyeFadeEnd = 0.99f;
-        constants->screenEdgeFadeStart = 0.98f;
-        constants->screenEdgeFadeEnd = 0.99f;
+        constants->screenEdgeFadeStart = 0.99f;
+        constants->screenEdgeFadeEnd = 1.0f;
 
         // Write camera shader data 
         RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
@@ -310,6 +316,17 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
 
         RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
     }
+    
+    DeferredPassData* dpd = DynamicCast<DeferredPassData>(renderSetup.passData);
+    AssertDebug(dpd != nullptr);
+
+    GpuImageView* hiZTextureView = RI.textureViewCache->GetOrCreate(dpd->depthPyramidRenderer->GetHZBTexture());
+    
+    const bool useMipChain = cvSSRConeTracing.Get();
+
+    GpuImageView* sampleSourceTargetView = useMipChain
+        ? (m_mipChainImageView ? m_mipChainImageView : RI.placeholderData->GetImageView2D1x1R8())
+        : m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::Color)->GetImageView();
 
     { // PASS 1 -- write UVs
         ENGINE_STAT_GPU_SCOPE(&s_statSSRTracePass);
@@ -322,9 +339,8 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
         cr << SetShaderUniform(uniformIndex++, "GBufferNormalsTexture"_sh, m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::Normals)->GetImageView());
         cr << SetShaderUniform(uniformIndex++, "GBufferMaterialTexture"_sh, m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::MatData)->GetImageView());
         cr << SetShaderUniform(uniformIndex++, "GBufferVelocityTexture"_sh, m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::Velocity)->GetImageView());
-        cr << SetShaderUniform(uniformIndex++, "GBufferDepthTexture"_sh, m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::Depth)->GetImageView());
-        cr << SetShaderUniform(uniformIndex++, "GBufferMipChain"_sh, m_mipChainImageView ? m_mipChainImageView : RI.placeholderData->GetImageView2D1x1R8());
-        cr << SetShaderUniform(uniformIndex++, "DeferredResult"_sh, m_mipChainImageView ? m_mipChainImageView : RI.placeholderData->GetImageView2D1x1R8());
+        cr << SetShaderUniform(uniformIndex++, "HiZTexture"_sh, hiZTextureView);
+        cr << SetShaderUniform(uniformIndex++, "GBufferMipChain"_sh, sampleSourceTargetView);
         cr << SetShaderUniform(uniformIndex++, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
         cr << SetShaderUniform(uniformIndex++, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
         cr << SetShaderUniform(uniformIndex++, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer);
@@ -346,8 +362,8 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
         cr << SetShaderUniform(uniformIndex++, "GBufferNormalsTexture"_sh, m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::Normals)->GetImageView());
         cr << SetShaderUniform(uniformIndex++, "GBufferMaterialTexture"_sh, m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::MatData)->GetImageView());
         cr << SetShaderUniform(uniformIndex++, "GBufferVelocityTexture"_sh, m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::Velocity)->GetImageView());
-        cr << SetShaderUniform(uniformIndex++, "GBufferMipChain"_sh, m_mipChainImageView ? m_mipChainImageView : RI.placeholderData->GetImageView2D1x1R8());
-        cr << SetShaderUniform(uniformIndex++, "GBufferDepthTexture"_sh, m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::Depth)->GetImageView());
+        cr << SetShaderUniform(uniformIndex++, "GBufferMipChain"_sh, sampleSourceTargetView);
+        cr << SetShaderUniform(uniformIndex++, "HiZTexture"_sh, hiZTextureView);
         cr << SetShaderUniform(uniformIndex++, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
         cr << SetShaderUniform(uniformIndex++, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
         cr << SetShaderUniform(uniformIndex++, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer);

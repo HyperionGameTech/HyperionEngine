@@ -408,7 +408,7 @@ float GetPointShadowPCF(in ShadowMap shadowMap, float3 worldToLight, float NdotL
 
     const float dist = max(max(abs(worldToLight.x), abs(worldToLight.y)), abs(worldToLight.z));
 
-    const float shadow_filter_size = 0.05;
+    const float shadow_filter_size = 0.1;
 
     float3 dir = normalize(worldToLight);
     float3 up = abs(dir.y) < 0.999 ? float3(0.0, 1.0, 0.0) : float3(1.0, 0.0, 0.0);

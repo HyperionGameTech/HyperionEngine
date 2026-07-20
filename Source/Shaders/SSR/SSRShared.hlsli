@@ -32,4 +32,5 @@ struct SSRConstants
     float eye_fade_end;
     float screen_edge_fade_start;
     float screen_edge_fade_end;
+    float thickness;
 };
