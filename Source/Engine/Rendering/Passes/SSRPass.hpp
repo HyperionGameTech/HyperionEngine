@@ -29,17 +29,17 @@ public:
     SSRPass(GBuffer* gbuffer, const GpuImageViewRef& mipChainImageView);
     ~SSRPass();
 
-    HYP_FORCE_INLINE const Handle<Texture>& GetUVsTexture() const
+    HYP_FORCE_INLINE Texture* GetUVsTexture() const
     {
         return m_uvsTexture;
     }
 
-    HYP_FORCE_INLINE const Handle<Texture>& GetSampledResultTexture() const
+    HYP_FORCE_INLINE Texture* GetSampledResultTexture() const
     {
         return m_sampledResultTexture;
     }
 
-    const Handle<Texture>& GetFinalResultTexture() const;
+    Texture* GetFinalResultTexture() const;
 
     HYP_FORCE_INLINE bool IsRendered() const
     {

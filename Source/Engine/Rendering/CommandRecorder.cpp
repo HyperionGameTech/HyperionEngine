@@ -27,8 +27,6 @@
 #include <Rendering/Sampler.hpp>
 #include <Rendering/TextureViewCache.hpp>
 
-#include <Rendering/Util/ShaderCompiler.hpp>
-
 #include <Rendering/GpuTimerBackend.hpp>
 
 #include <Core/Reflection/Enum.hpp>
@@ -40,6 +38,8 @@
 namespace Hyperion {
 
 static Handle<Mesh> g_quadMesh;
+
+void MergeGlobalShaderProperties(ShaderPropertySet& out);
 
 #pragma region TCommandRecorder
 

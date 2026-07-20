@@ -310,8 +310,6 @@ bool EngineDriver::StartThreads()
 
             if (!pool)
             {
-                // skip, could be disabled:
-                // e.g render worker thread pool when ParallelRendering is off
                 continue;
             }
 

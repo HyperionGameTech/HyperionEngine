@@ -381,7 +381,7 @@ static inline bool ShouldIncludeInPrepass(
     const float screenSpaceWidth = ndcHalfExtent.x * float(viewport.extent.x);
     const float screenSpaceHeight = ndcHalfExtent.y * float(viewport.extent.y);
 
-    constexpr float PrepassPixelCutoff = 8.0f;
+    constexpr float PrepassPixelCutoff = 64.0f;
 
     return (screenSpaceWidth >= PrepassPixelCutoff
             && screenSpaceHeight >= PrepassPixelCutoff);
@@ -1256,7 +1256,7 @@ static void PerformRenderingImpl(Frame* frame, const TPerformRenderingPayload<TC
     static const bool s_indirectRenderingEnabled = RI.GetRenderConfig().indirectRendering;
 
     DeferredPassData* dpd = DynamicCast<DeferredPassData>(renderSetup.passData);
-    
+
     const bool useIndirectRendering = indirectRenderer != nullptr
         && prepassStage != DepthPrepass::DPP_InPrepass
         && s_indirectRenderingEnabled

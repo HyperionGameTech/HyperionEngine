@@ -155,7 +155,7 @@ DX12RenderInterface RI;
 
 namespace {
 
-static void HandleFatalError(const char* message)
+void HandleFatalError(const char* message)
 {
     SystemMessageBox(MessageBoxType::CRITICAL)
         .Title("Fatal error logged!")
@@ -169,7 +169,7 @@ static void HandleFatalError(const char* message)
 static InitFromManagedCallback s_initFromManagedCallback = nullptr;
 #endif
 
-static void InitThreads()
+void InitThreads()
 {
     // Handle -RenderOnMainThread, -SimulateOnMainThread cli args
     const uint32 mainThreadIndex = g_mainThread.GetStaticThreadIndex();
@@ -218,14 +218,75 @@ static void InitThreads()
 #endif // !HYP_IOS && !HYP_ANDROID
 }
 
-static void InitLogger()
+void InitLogger()
 {
     Logger::GetInstance().fatalErrorHook = &HandleFatalError;
 
     LogChannelRegistrar::GetInstance().RegisterAll();
 }
 
-static void LoadShaderPropertyDictionary()
+void InitMainWindow()
+{
+    Assert(g_appContext.IsValid());
+    
+    const CommandLineArguments& cliArgs = CoreApi::GetCommandLineArguments();
+
+    EnumFlags<WindowFlags> windowFlags = WindowFlags::EVENTS_POLLING;
+
+    if (cliArgs["Headless"].ToBool())
+    {
+        windowFlags |= WindowFlags::HEADLESS;
+    }
+
+    if (cliArgs["HighDPI"].ToBool())
+    {
+        windowFlags |= WindowFlags::HIGH_DPI;
+    }
+
+    if (!(windowFlags & WindowFlags::HEADLESS))
+    {
+        Vec2i resolution = { 1920, 1080 };
+
+        if (cliArgs["ResX"].IsNumber())
+        {
+            resolution.x = cliArgs["ResX"].ToInt32();
+        }
+
+        if (cliArgs["ResY"].IsNumber())
+        {
+            resolution.y = cliArgs["ResY"].ToInt32();
+        }
+
+        HYP_LOG(Engine, Info, "Running in windowed mode: {}x{}", resolution.x, resolution.y);
+
+        Handle<ApplicationWindow> window = g_appContext->CreateSystemWindow({ "Hyperion Engine", resolution, windowFlags });
+
+        window->OnClose
+            .Bind(window, []()
+                    {
+                        // shut down application on main window close.
+                        g_mainThreadInstance->GetScheduler().Enqueue(
+                            []()
+                            {
+                                Hyp_Shutdown();
+
+                                std::exit(0);
+                            },
+                            TaskEnqueueFlags::FIRE_AND_FORGET);
+                    })
+            .Detach();
+
+        Assert(window.IsValid());
+
+        g_appContext->SetMainWindow(window);
+    }
+    else
+    {
+        HYP_LOG(Engine, Info, "Running in headless mode");
+    }
+}
+
+void LoadShaderPropertyDictionary()
 {
     InitShaderPropertyDictionary();
 
@@ -312,7 +373,6 @@ extern "C"
         InitLogger();
 
         const CommandLineArguments& cliArgs = CoreApi::GetCommandLineArguments();
-
         const bool isEditor = cliArgs["Editor"].ToBool();
         const bool isCommandlet = cliArgs["exec"].ToBool();
 
@@ -504,6 +564,7 @@ extern "C"
         HYP_FAIL("AppContext not implemented for this platform");
 #endif // HYP_WINDOWS || HYP_MACOS || HYP_ANDROID || HYP_IOS
         
+        InitMainWindow();
 
 #ifdef HYP_STEAM_SDK
         if (!isCommandlet)
@@ -523,60 +584,6 @@ extern "C"
         }
 
         g_engineDriver->Initialize();
-
-        EnumFlags<WindowFlags> windowFlags = WindowFlags::EVENTS_POLLING;
-
-        if (cliArgs["Headless"].ToBool())
-        {
-            windowFlags |= WindowFlags::HEADLESS;
-        }
-
-        if (cliArgs["HighDPI"].ToBool())
-        {
-            windowFlags |= WindowFlags::HIGH_DPI;
-        }
-
-        if (!(windowFlags & WindowFlags::HEADLESS))
-        {
-            Vec2i resolution = { 1920, 1080 };
-
-            if (cliArgs["ResX"].IsNumber())
-            {
-                resolution.x = cliArgs["ResX"].ToInt32();
-            }
-
-            if (cliArgs["ResY"].IsNumber())
-            {
-                resolution.y = cliArgs["ResY"].ToInt32();
-            }
-
-            HYP_LOG(Engine, Info, "Running in windowed mode: {}x{}", resolution.x, resolution.y);
-
-            Handle<ApplicationWindow> window = g_appContext->CreateSystemWindow({ "Hyperion Engine", resolution, windowFlags });
-
-            window->OnClose
-                .Bind(window, []()
-                      {
-                          // shut down application on main window close.
-                          g_mainThreadInstance->GetScheduler().Enqueue(
-                              []()
-                              {
-                                  Hyp_Shutdown();
-
-                                  std::exit(0);
-                              },
-                              TaskEnqueueFlags::FIRE_AND_FORGET);
-                      })
-                .Detach();
-
-            Assert(window.IsValid());
-
-            g_appContext->SetMainWindow(window);
-        }
-        else
-        {
-            HYP_LOG(Engine, Info, "Running in headless mode");
-        }
 
         return 1;
     }

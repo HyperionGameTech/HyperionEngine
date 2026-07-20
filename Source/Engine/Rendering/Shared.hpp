@@ -44,7 +44,8 @@ class ObjectBase;
 
 namespace Resources {
 static constexpr uint32 InvalidBinding = ~0u;
-extern uint32 GetBinding(const ObjectBase* resource);
+
+extern uint32 GetBinding(const void* resource);
 } // namespace Resources
 
 HYP_ENUM()

@@ -56,6 +56,8 @@ DECLARE_SRV(RenderSSR, UVImage) Texture2D ssr_uv_image;
 DECLARE_BUFFER_DYNAMIC(RenderSSR, CBuffer) cbuffer CBuffer
 {
     SSRConstants ssrConstants;
+
+    Camera camera;
 };
 
 DECLARE_SRV(RenderSSR, GBufferNormalsTexture) Texture2D GBufferNormalsTexture;
@@ -67,12 +69,6 @@ DECLARE_SRV(RenderSSR, GBufferDepthTexture) Texture2D GBufferDepthTexture;
 DECLARE_SAMPLER(RenderSSR, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(RenderSSR, SamplerLinear) SamplerState sampler_linear;
 DECLARE_SRV(RenderSSR, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;
-
-DECLARE_SRV(RenderSSR, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
-#define world_shader_data _worlds_buffer[0]
-
-DECLARE_SRV_DYNAMIC(RenderSSR, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
-#define camera _cameras_buffer[0]
 
 #include "../include/Noise.hlsli"
 #include "../include/Shared.hlsli"

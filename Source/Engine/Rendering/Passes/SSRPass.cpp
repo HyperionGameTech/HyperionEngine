@@ -37,7 +37,7 @@
 
 namespace Hyperion {
 
-static constexpr bool UseTemporalBlending = true;
+static constexpr bool UseTemporalBlending = false;//true;
 static constexpr TextureFormat SSRColorFormat = TextureFormat::RGBA16F;
 static constexpr TextureFormat SSRTraceFormat = TextureFormat::RGBA16F; // store hit UVs in RG, and mask / alpha in B
 static constexpr double TraceResolutionScale = 0.65;
@@ -99,7 +99,7 @@ void SSRPass::Create()
 {
 }
 
-const Handle<Texture>& SSRPass::GetFinalResultTexture() const
+Texture* SSRPass::GetFinalResultTexture() const
 {
     return m_temporalBlending
         ? m_temporalBlending->GetResultTexture()
@@ -234,7 +234,8 @@ void SSRPass::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
             1,
-            IU_ATTACHMENT | IU_SAMPLED });
+            IU_ATTACHMENT | IU_SAMPLED
+        });
 
         m_uvsTexture->SetName(NAME("SSRTexture_UVs"));
         Check(m_uvsTexture->Create());
@@ -247,7 +248,8 @@ void SSRPass::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
             1,
-            IU_ATTACHMENT | IU_SAMPLED });
+            IU_ATTACHMENT | IU_SAMPLED
+        });
 
         m_sampledResultTexture->SetName(NAME("SSRTexture_SampledResult"));
         Check(m_sampledResultTexture->Create());
@@ -283,20 +285,29 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
     size_t cbufferOffset = 0;
     size_t cbufferSize = 0;
 
-    { // Update cbuffer
-        SSRConstants constants {};
-        constants.dimensions = Vec4u(m_currentExtent, 0, 0);
-        constants.rayStep = cvSSRRayStep.Get();
-        constants.numIterations = cvSSRMaxIterations.Get();
-        constants.maxRayDistance = cvSSRMaxDistance.Get();
-        constants.distanceBias = cvSSRDistanceBias.Get();
-        constants.offset = 0.25f;
-        constants.eyeFadeStart = 0.98f;
-        constants.eyeFadeEnd = 0.99f;
-        constants.screenEdgeFadeStart = 0.98f;
-        constants.screenEdgeFadeEnd = 0.99f;
+    { // Update cbuffer data
+        SSRConstants* constants = RI.cbufferAllocator->Allocate<SSRConstants>();
+        constants->dimensions = Vec4u(m_currentExtent, 0, 0);
+        constants->rayStep = cvSSRRayStep.Get();
+        constants->numIterations = cvSSRMaxIterations.Get();
+        constants->maxRayDistance = cvSSRMaxDistance.Get();
+        constants->distanceBias = cvSSRDistanceBias.Get();
+        constants->offset = 0.25f;
+        constants->eyeFadeStart = 0.98f;
+        constants->eyeFadeEnd = 0.99f;
+        constants->screenEdgeFadeStart = 0.98f;
+        constants->screenEdgeFadeEnd = 0.99f;
 
-        RI.cbufferAllocator->Write(&constants);
+        // Write camera shader data 
+        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
+        AssertDebug(cameraProxy != nullptr);
+
+        CameraShaderData* cameraShaderData = RI.cbufferAllocator->Allocate<CameraShaderData>();
+        *cameraShaderData = cameraProxy->bufferData;
+
+        const uint32 frameCounter = GetFrameCounter();
+        RI.cbufferAllocator->Write(&frameCounter);
+
         RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
     }
 
@@ -317,8 +328,6 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
         cr << SetShaderUniform(uniformIndex++, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
         cr << SetShaderUniform(uniformIndex++, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
         cr << SetShaderUniform(uniformIndex++, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer);
-        cr << SetShaderUniform(uniformIndex++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
-        cr << SetShaderUniform(uniformIndex++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(renderSetup.view->GetCamera()));
 
         m_writeUvs->RenderFullScreenQuad(frame, renderSetup);
         m_writeUvs->End(frame, renderSetup);
@@ -342,8 +351,6 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
         cr << SetShaderUniform(uniformIndex++, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
         cr << SetShaderUniform(uniformIndex++, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
         cr << SetShaderUniform(uniformIndex++, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer);
-        cr << SetShaderUniform(uniformIndex++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
-        cr << SetShaderUniform(uniformIndex++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(renderSetup.view->GetCamera()));
         cr << SetShaderUniform(uniformIndex++, "UVImage"_sh, RI.textureViewCache->GetOrCreate(m_uvsTexture));
 
         m_sampleGbuffer->RenderFullScreenQuad(frame, renderSetup);

@@ -60,6 +60,9 @@ struct PSOutput
 DECLARE_BUFFER_DYNAMIC(RenderSSR, CBuffer) cbuffer CBuffer
 {
     SSRConstants ssrConstants;
+    Camera camera;
+
+    uint frameCounter;
 };
 
 DECLARE_SRV(RenderSSR, GBufferNormalsTexture) Texture2D GBufferNormalsTexture;
@@ -72,12 +75,6 @@ DECLARE_SRV(RenderSSR, DeferredResult) Texture2D DeferredResult;
 DECLARE_SAMPLER(RenderSSR, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(RenderSSR, SamplerLinear) SamplerState sampler_linear;
 DECLARE_SRV(RenderSSR, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;
-
-DECLARE_SRV(RenderSSR, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
-#define world_shader_data _worlds_buffer[0]
-
-DECLARE_SRV_DYNAMIC(RenderSSR, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
-#define camera _cameras_buffer[0]
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../include/Gbuffer.hlsli"
@@ -223,8 +220,8 @@ PSOutput PSMain(PSInput input)
 
 #define NUM_SAMPLES 32
     float2 rnd = float2(
-        SampleBlueNoise(int(coord.x), int(coord.y), int(world_shader_data.frame_counter % NUM_SAMPLES) * 2, NUM_SAMPLES * 2),
-        SampleBlueNoise(int(coord.x), int(coord.y), int(world_shader_data.frame_counter % NUM_SAMPLES) * 2 + 1, NUM_SAMPLES * 2));
+        SampleBlueNoise(int(coord.x), int(coord.y), int(frameCounter % NUM_SAMPLES) * 2, NUM_SAMPLES * 2),
+        SampleBlueNoise(int(coord.x), int(coord.y), int(frameCounter % NUM_SAMPLES) * 2 + 1, NUM_SAMPLES * 2));
 #ifdef ROUGHNESS_SCATTERING
     float3 H = ImportanceSampleGGX(rnd, view_space_normal, perceptualRoughness);
     H = tangent * H.x + bitangent * H.y + view_space_normal * H.z;

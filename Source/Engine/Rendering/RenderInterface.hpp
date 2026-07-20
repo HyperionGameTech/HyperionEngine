@@ -128,20 +128,13 @@ RenderProxyList& GetConsumerProxyList(View* view);
 RenderCollector& GetRenderCollector(View* view);
 
 // Call on render thread or render thread tasks only (consumer threads)
-IRenderProxy* GetRenderProxy(const ObjectBase* resource);
+IRenderProxy* GetRenderProxy(const void* resource);
 
 /*! \brief Render thread only - update GPU data to match RenderProxy's buffer data for the resource */
-void UpdateGpuData(const ObjectBase* resource);
+void UpdateGpuData(const void* resource);
 
 // used on render thread only - set whether the given resource should be forced to rebind on next ApplyUpdates() call
 void SetForceRebind(ObjectBase* resource, bool forceRebind = true);
-
-namespace Resources {
-// used on render thread only - assigns all render proxy for the given object to the given binding
-void SetBinding(ObjectBase* resource, uint32 binding);
-// used on render thread only - retrieves the binding set for the given resource (~0u if unset)
-uint32 GetBinding(const ObjectBase* resource);
-} // namespace Resources
 
 WorldShaderData* GetWorldBufferData();
 

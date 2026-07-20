@@ -57,16 +57,18 @@ static inline SubtypeResourceBindings& GetSubtypeBindings(const Class* cls)
     return *bindings;
 }
 
-void SetBinding(ObjectBase* resource, uint32 binding)
+void SetBinding(const void* resource, uint32 binding)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
     AssertDebug(resource != nullptr);
 
-    SubtypeResourceBindings& bindings = GetSubtypeBindings(resource->InstanceClass());
+    const ObjectBase* resourceCasted = static_cast<const ObjectBase*>(resource);
 
-    ObjIdBase resourceId = resource->Id();
+    SubtypeResourceBindings& bindings = GetSubtypeBindings(resourceCasted->InstanceClass());
+
+    ObjIdBase resourceId = resourceCasted->Id();
     AssertDebug(resourceId.IsValid());
 
     if (binding == UINT32_MAX)
@@ -79,7 +81,7 @@ void SetBinding(ObjectBase* resource, uint32 binding)
     bindings.bindingIndices.Emplace(resourceId.ToIndex(), binding);
 }
 
-uint32 GetBinding(const ObjectBase* resource)
+uint32 GetBinding(const void* resource)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -89,9 +91,11 @@ uint32 GetBinding(const ObjectBase* resource)
         return UINT32_MAX; // invalid resource
     }
 
-    const SubtypeResourceBindings& bindings = GetSubtypeBindings(resource->InstanceClass());
+    const ObjectBase* resourceCasted = static_cast<const ObjectBase*>(resource);
 
-    const ObjIdBase resourceId = resource->Id();
+    const SubtypeResourceBindings& bindings = GetSubtypeBindings(resourceCasted->InstanceClass());
+
+    const ObjIdBase resourceId = resourceCasted->Id();
 
     const uint32* elem = bindings.bindingIndices.TryGet(resourceId.ToIndex());
 

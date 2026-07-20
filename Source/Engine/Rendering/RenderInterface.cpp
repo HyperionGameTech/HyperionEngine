@@ -443,7 +443,7 @@ RenderCollector& GetRenderCollector(View* view)
     return vd->renderCollector;
 }
 
-IRenderProxy* GetRenderProxy(const ObjectBase* resource)
+IRenderProxy* GetRenderProxy(const void* resource)
 {
     AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
@@ -454,12 +454,14 @@ IRenderProxy* GetRenderProxy(const ObjectBase* resource)
         return nullptr;
     }
 
-    ResourceSubtypeData& subtypeData = RI.resources->GetSubtypeData(resource->InstanceClass());
+    const ObjectBase* resourceCasted = static_cast<const ObjectBase*>(resource);
+
+    ResourceSubtypeData& subtypeData = RI.resources->GetSubtypeData(resourceCasted->InstanceClass());
     AssertDebug(subtypeData.hasProxyData,
                 "Cannot use GetRenderProxy() for type which does not have a RenderProxy! Type name: {}",
                 subtypeData.typeInfo->name);
 
-    const ObjIdBase resourceId = resource->Id();
+    const ObjIdBase resourceId = resourceCasted->Id();
     AssertDebug(resourceId.GetTypeId() == subtypeData.typeInfo->id);
 
     if (!subtypeData.proxies.HasIndex(resourceId.ToIndex()))
@@ -475,15 +477,17 @@ IRenderProxy* GetRenderProxy(const ObjectBase* resource)
     return const_cast<IRenderProxy*>(proxy);
 }
 
-void UpdateGpuData(const ObjectBase* resource)
+void UpdateGpuData(const void* resource)
 {
     AssertOnThread(g_renderThread);
 
     AssertDebug(resource != nullptr);
 
-    const ObjIdBase resourceId = resource->Id();
+    const ObjectBase* resourceCasted = static_cast<const ObjectBase*>(resource);
 
-    ResourceSubtypeData& subtypeData = RI.resources->GetSubtypeData(resource->InstanceClass());
+    const ObjIdBase resourceId = resourceCasted->Id();
+
+    ResourceSubtypeData& subtypeData = RI.resources->GetSubtypeData(resourceCasted->InstanceClass());
     AssertDebug(resourceId.GetTypeId() == subtypeData.typeInfo->id);
 
     AssertDebug(subtypeData.sbuffer != nullptr,

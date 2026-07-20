@@ -24,6 +24,8 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 namespace Resources {
 
+extern void SetBinding(const void*, uint32);
+
 template <class T>
 void OnBindingChanged_Default(T* resource, uint32 prev, uint32 next)
 {
