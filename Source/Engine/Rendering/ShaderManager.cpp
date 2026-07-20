@@ -185,13 +185,18 @@ public:
                 isValid &= request.entry->shader->IsValid();
 
                 Assert(isValid, "Shader compilation failed and fallback shader could not be loaded!");
-
-                return;
             }
+            else
+            {
+                HYP_LOG(Shader, Error, "Failed to compile shader '{}'", request.shaderName);
 
-            HYP_LOG(Shader, Error, "Failed to compile shader '{}'", request.shaderName);
+                Assert(false, "Compiled shader '{}' is not a valid compiled shader", request.shaderName);
+            }
+        }
 
-            Assert(false, "Compiled shader '{}' is not a valid compiled shader", request.shaderName);
+        if (!isValid)
+        {
+            return;
         }
 
         ShaderInstanceRef si = RI.MakeShader(request.entry->shader);

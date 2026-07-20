@@ -21,6 +21,8 @@
 #endif
 
 #include <Framework/EngineStats.hpp>
+#include <Framework/EngineDriver.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 namespace Hyperion {
 
@@ -81,29 +83,34 @@ ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, dotnet::ManagedObjec
 ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, const SharedPtr<dotnet::ManagedClass>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags)
     : m_ptr(ptr)
 {
-    if (!dotNetData)
+    const DotNETHost& dnh = DotNETHost::GetInstance();
+
+    if (dnh.IsInitialized() && !dnh.IsShuttingDown())
     {
-        dotNetData.Emplace(ScriptObjectData_DotNet());
-    }
-
-    ScriptObjectData_DotNet& data = *dotNetData;
-    data.objectPtr = nullptr;
-    data.managedClass = managedClass;
-
-    AssertDebug(m_ptr && managedClass);
-
-    if (m_ptr && managedClass)
-    {
-        if (objectFlags & ObjectFlags::CREATED_FROM_MANAGED)
+        if (!dotNetData)
         {
-            data.objectPtr = new dotnet::ManagedObject(managedClass->SharedThis(), objectReference, ObjectFlags::CREATED_FROM_MANAGED);
-        }
-        else
-        {
-            data.objectPtr = managedClass->NewObject(m_ptr->InstanceClass(), m_ptr);
+            dotNetData.Emplace(ScriptObjectData_DotNet());
         }
 
-        Assert(data.objectPtr != nullptr);
+        ScriptObjectData_DotNet& data = *dotNetData;
+        data.objectPtr = nullptr;
+        data.managedClass = managedClass;
+
+        AssertDebug(m_ptr && managedClass);
+    
+        if (m_ptr && managedClass)
+        {
+            if (objectFlags & ObjectFlags::CREATED_FROM_MANAGED)
+            {
+                data.objectPtr = new dotnet::ManagedObject(managedClass->SharedThis(), objectReference, ObjectFlags::CREATED_FROM_MANAGED);
+            }
+            else
+            {
+                data.objectPtr = managedClass->NewObject(m_ptr->InstanceClass(), m_ptr);
+            }
+
+            Assert(data.objectPtr != nullptr);
+        }
     }
 }
 #endif

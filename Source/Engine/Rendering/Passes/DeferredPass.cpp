@@ -1149,7 +1149,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 static constexpr uint32 MaxBoundLightsPerFogVolume = 4;
 
 FogVolumePass::FogVolumePass(Vec2u extent, GBuffer* gbuffer)
-    : FullScreenPass(TextureFormat::RGBA16F, extent / 4, gbuffer)
+    : FullScreenPass(TextureFormat::RGBA16F, MathUtil::Max(extent / 4, Vec2u::One()), gbuffer)
 {
     SetPassName(NAME("FogVolume"));
 }
@@ -1177,15 +1177,20 @@ void FogVolumePass::Create()
     {
         const bool isLast = i == NumUpsamplePasses - 1;
 
-        const Vec2u targetExtent = isLast
-            ? m_gbuffer->GetExtent()
-            : m_gbuffer->GetExtent() / (2 * (NumUpsamplePasses - i - 1));
+        Vec2u targetExtent = m_gbuffer->GetExtent();
+
+        if (!isLast)
+        {
+            targetExtent /= (2 * (NumUpsamplePasses - i - 1));
+        }
+
+        targetExtent = MathUtil::Max(targetExtent, Vec2u::One());
 
         const TextureFormat format = GetFormat();
 
         m_upsamplePasses[i] = MakeUnique<FullScreenPass>(
             format,
-            MathUtil::Max(targetExtent, Vec2u::One()),
+            targetExtent,
             nullptr,
             isLast ? FSP_EXTERNAL_RENDERTARGET : FSP_NONE);
 
@@ -1201,17 +1206,17 @@ void FogVolumePass::Resize_Internal(Vec2u newSize)
 
 void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
 {
-    AssertDebug(renderSetup.world && renderSetup.volume && renderSetup.view && renderSetup.framebuffer);
-    AssertDebug(renderSetup.volume->IsA<FogVolume>());
+    AssertDebug(renderSetup.world && renderSetup.view && renderSetup.framebuffer);
+    
+    RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
+    rpl.BeginRead();
 
-    DeferredPassData* dpd = DynamicCast<DeferredPassData>(renderSetup.passData);
-    AssertDebug(dpd != nullptr);
+    HYP_DEFER({ rpl.EndRead(); });
 
-    FogVolume* volume = StaticCast<FogVolume>(renderSetup.volume);
-    AssertDebug(volume != nullptr);
-
-    RenderProxyFogVolume* proxy = static_cast<RenderProxyFogVolume*>(GetRenderProxy(volume));
-    Assert(proxy != nullptr);
+    if (rpl.GetFogVolumes().NumCurrent() == 0)
+    {
+        return;
+    }
 
     RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
     if (!cameraProxy)
@@ -1219,10 +1224,9 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
         return;
     }
 
-    FogVolumePassData& data = GetFogVolumePassData(volume);
-    data.noiseTexture = proxy->noiseTexture;
-    data.volumeTexture = proxy->volumeTexture;
-
+    DeferredPassData* dpd = DynamicCast<DeferredPassData>(renderSetup.passData);
+    AssertDebug(dpd != nullptr);
+    
     Attachment* normalsAttachment = m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::Normals);
 
     CommandRecorder& cr = frame->cr;
@@ -1233,143 +1237,168 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
     cr << SetStencilTest(false);
     cr << SetCurrentBlendFunction(BlendFunction::None());
 
+    cr << SetCurrentViewport(Viewport { m_extent, renderSetup.viewport.position });
+
+    cr << SetCurrentFramebuffer(m_framebuffer);
+
+    cr << SetTopology(m_volumeMesh->GetMeshAttributes().topology);
+    cr << SetInputLayout(m_volumeMesh->GetMeshAttributes().inputLayout);
+
+    cr << SetFaceCullMode(FCM_FRONT); // cull front faces to render inside of the volume
+
+    cr << SetCurrentShader(m_shaderDesc);
+
+    cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinearMipmap());
+    cr << SetShaderUniform(1, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
+
+    cr << SetShaderUniform(2, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(renderSetup.view->GetCamera()));
+
+    cr << SetShaderUniform(3, "ShadowMapsTextureArray"_sh, RI.shadowMapCache->GetAtlasImageView());
+    cr << SetShaderUniform(4, "PointLightShadowMapsTextureArray"_sh, RI.shadowMapCache->GetPointLightShadowMapImageView());
+        
+    // Select second mip - since we're quarter res
+    cr << SetShaderUniform(5, "DepthTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->depthPyramidRenderer->GetHZBTexture(), 2, 1));
+
+    cr << SetShaderUniform(6, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer);
+
+    cr << SetShaderUniform(7, "LightsBuffer"_sh, RI.namedBuffers[NamedBuffer::Lights]);
+    cr << SetShaderUniform(8, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes]);
+    
+    cr << SetShaderUniform(9, "ClusterGridBuffer"_sh, *dpd->gridTilesBuffer);
+    cr << SetShaderUniform(10, "ClusterIndexBuffer"_sh, *dpd->gridIndexBuffer);
+
+    for (FogVolume* volume : rpl.GetFogVolumes())
     {
-        cr << SetCurrentViewport(Viewport { m_extent, renderSetup.viewport.position });
 
-        cr << SetCurrentFramebuffer(m_framebuffer);
+        RenderProxyFogVolume* proxy = static_cast<RenderProxyFogVolume*>(GetRenderProxy(volume));
+        Assert(proxy != nullptr);
 
-        cr << SetTopology(m_volumeMesh->GetMeshAttributes().topology);
-        cr << SetInputLayout(m_volumeMesh->GetMeshAttributes().inputLayout);
+        FogVolumePassData& data = GetFogVolumePassData(volume);
+        data.noiseTexture = proxy->noiseTexture;
+        data.volumeTexture = proxy->volumeTexture;
 
-        cr << SetFaceCullMode(FCM_FRONT); // cull front faces to render inside of the volume
-
-        cr << SetCurrentShader(m_shaderDesc);
-
-        cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinearMipmap());
-        cr << SetShaderUniform(1, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
-
-        cr << SetShaderUniform(2, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(renderSetup.view->GetCamera()));
-
-        cr << SetShaderUniform(3, "ShadowMapsTextureArray"_sh, RI.shadowMapCache->GetAtlasImageView());
-        cr << SetShaderUniform(4, "PointLightShadowMapsTextureArray"_sh, RI.shadowMapCache->GetPointLightShadowMapImageView());
-
-        if (data.volumeTexture)
-            cr << SetShaderUniform(5, "DataMap"_sh, RI.textureViewCache->GetOrCreate(data.volumeTexture));
-
-        if (data.noiseTexture)
-            cr << SetShaderUniform(6, "NoiseMap"_sh, RI.textureViewCache->GetOrCreate(data.noiseTexture));
-
-        // Select second mip
-        cr << SetShaderUniform(7, "DepthTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->depthPyramidRenderer->GetHZBTexture(), 2, 1));
-
-        // Set constants
-        FogVolumeShaderData shaderData = proxy->bufferData;
-
-        uint32& numBoundLights = shaderData.numBoundLights;
-        numBoundLights = 0;
-
-        uint32* lightIndicesU32 = reinterpret_cast<uint32*>(shaderData.lightIndices);
-
-        RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
-
-        Array<Pair<Light*, LightShaderData*>, RenderAllocator> tempLightsArray;
-
-        for (Light* light : rpl.GetLights())
         {
-            const LightType lightType = light->GetLightType();
-
-            if (lightType != LightType::Directional && lightType != LightType::Point)
+            if (data.volumeTexture)
             {
-                continue;
+                cr << SetShaderUniform(11, "DataMap"_sh, RI.textureViewCache->GetOrCreate(data.volumeTexture));
             }
 
-            if (numBoundLights >= MaxBoundLightsPerFogVolume)
+            if (data.noiseTexture)
             {
-                break;
+                cr << SetShaderUniform(12, "NoiseMap"_sh, RI.textureViewCache->GetOrCreate(data.noiseTexture));
             }
 
-            RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
-            Assert(lightProxy != nullptr);
+            // Set constants
+            FogVolumeShaderData shaderData = proxy->bufferData;
 
-            tempLightsArray.EmplaceBack(light, &lightProxy->bufferData);
+            uint32& numBoundLights = shaderData.numBoundLights;
+            numBoundLights = 0;
 
-            lightIndicesU32[numBoundLights++] = Resources::GetBinding(light);
-        }
+            uint32* lightIndicesU32 = reinterpret_cast<uint32*>(shaderData.lightIndices);
 
-        GpuBuffer* cbuffer = nullptr;
-        size_t cbufferOffset = 0;
-        size_t cbufferSize = 0;
+            RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
 
-        RI.cbufferAllocator->Write(&shaderData);
+            Array<Pair<Light*, LightShaderData*>, RenderAllocator> tempLightsArray;
 
-        for (uint32 i = 0; i < MaxBoundLightsPerFogVolume; i++)
-        {
-            if (i < uint32(tempLightsArray.Size()))
+            for (Light* light : rpl.GetLights())
             {
-                RI.cbufferAllocator->Write(tempLightsArray[i].second);
-                continue;
-            }
+                const LightType lightType = light->GetLightType();
 
-            LightShaderData dummy {};
-            RI.cbufferAllocator->Write(&dummy);
-        }
-
-        for (uint32 i = 0; i < MaxBoundLightsPerFogVolume; i++)
-        {
-            ShadowMapData shadowMapData {};
-
-            if (i < uint32(tempLightsArray.Size()))
-            {
-                View* shadowMapViewDynamic;
-                View* shadowMapViewStatic;
-
-                Light* light = tempLightsArray[i].first;
-
-                const uint32 cascadeIndex = 0;
-
-                ShadowMap* shadowMap = RI.shadowMapCache->GetShadowMap(
-                    light,
-                    renderSetup.view,
-                    cascadeIndex,
-                    shadowMapViewDynamic,
-                    shadowMapViewStatic);
-
-                if (shadowMap != nullptr)
+                if (lightType != LightType::Directional && lightType != LightType::Point)
                 {
-                    DeferredRendererHelpers::FillShadowMapData(
-                        shadowMapData,
-                        *shadowMap,
+                    continue;
+                }
+
+                if (numBoundLights >= MaxBoundLightsPerFogVolume)
+                {
+                    break;
+                }
+
+                RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
+                Assert(lightProxy != nullptr);
+
+                tempLightsArray.EmplaceBack(light, &lightProxy->bufferData);
+
+                lightIndicesU32[numBoundLights++] = Resources::GetBinding(light);
+            }
+
+            GpuBuffer* cbuffer = nullptr;
+            size_t cbufferOffset = 0;
+            size_t cbufferSize = 0;
+
+            RI.cbufferAllocator->Write(&shaderData);
+
+            for (uint32 i = 0; i < MaxBoundLightsPerFogVolume; i++)
+            {
+                if (i < uint32(tempLightsArray.Size()))
+                {
+                    RI.cbufferAllocator->Write(tempLightsArray[i].second);
+                    continue;
+                }
+
+                LightShaderData dummy {};
+                RI.cbufferAllocator->Write(&dummy);
+            }
+            
+            // @TODO Change to use cluster grid instead.
+            // Then we can have the same (point) lights we have for deferred rendering,
+            // as well as env probes for sampling irradiance for the fog.
+            for (uint32 i = 0; i < MaxBoundLightsPerFogVolume; i++)
+            {
+                ShadowMapData shadowMapData {};
+
+                if (i < uint32(tempLightsArray.Size()))
+                {
+                    View* shadowMapViewDynamic;
+                    View* shadowMapViewStatic;
+
+                    Light* light = tempLightsArray[i].first;
+
+                    const uint32 cascadeIndex = 0;
+
+                    ShadowMap* shadowMap = RI.shadowMapCache->GetShadowMap(
+                        light,
+                        renderSetup.view,
                         cascadeIndex,
                         shadowMapViewDynamic,
                         shadowMapViewStatic);
+
+                    if (shadowMap != nullptr)
+                    {
+                        DeferredRendererHelpers::FillShadowMapData(
+                            shadowMapData,
+                            *shadowMap,
+                            cascadeIndex,
+                            shadowMapViewDynamic,
+                            shadowMapViewStatic);
+                    }
                 }
+
+                RI.cbufferAllocator->Write(&shadowMapData);
             }
 
-            RI.cbufferAllocator->Write(&shadowMapData);
+            const Vec2i screenDimensions = Vec2i(m_extent);
+            RI.cbufferAllocator->Write(&screenDimensions);
+
+            const float stepSize = 0.125f;
+            RI.cbufferAllocator->Write(&stepSize);
+
+            const uint32 maxSteps = 256;
+            RI.cbufferAllocator->Write(&maxSteps);
+
+            const uint32 frameCounter = GetFrameCounter();
+            RI.cbufferAllocator->Write(&frameCounter);
+
+            RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+
+            cr << SetShaderUniform(13, "FogVolumeConstants"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
+
+            cr << CommitDrawState();
+
+            cr << BindVertexBuffer(m_volumeMesh->GetVertexBuffer());
+            cr << BindIndexBuffer(m_volumeMesh->GetIndexBuffer());
+            cr << DrawIndexed(36); // draw cube
         }
-
-        const Vec2i screenDimensions = Vec2i(m_extent);
-        RI.cbufferAllocator->Write(&screenDimensions);
-
-        const float stepSize = 0.125f;
-        RI.cbufferAllocator->Write(&stepSize);
-
-        const uint32 maxSteps = 256;
-        RI.cbufferAllocator->Write(&maxSteps);
-
-        const uint32 frameCounter = GetFrameCounter();
-        RI.cbufferAllocator->Write(&frameCounter);
-
-        RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
-
-        cr << SetShaderUniform(8, "FogVolumeConstants"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
-        cr << SetShaderUniform(9, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer);
-
-        cr << CommitDrawState();
-
-        cr << BindVertexBuffer(m_volumeMesh->GetVertexBuffer());
-        cr << BindIndexBuffer(m_volumeMesh->GetIndexBuffer());
-        cr << DrawIndexed(36); // draw cube
     }
 
     cr << SetFaceCullMode(FCM_NONE);
@@ -1435,11 +1464,16 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
 
         // GBuffer textures
         cr << SetShaderUniform(numShaderUniforms++, "NormalsTexture"_sh, normalsAttachment->GetImageView());
-        cr << SetShaderUniform(numShaderUniforms++, "DepthTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->depthPyramidRenderer->GetHZBTexture(), NumUpsamplePasses - i - 1, 1));
 
-        cr << SetShaderUniform(numShaderUniforms++, "PrevPassTexture"_sh,
-                               i == 0 ? m_framebuffer->GetAttachment(0)->GetImageView()
-                                      : m_upsamplePasses[i - 1]->GetAttachment(0)->GetImageView());
+        cr << SetShaderUniform(
+            numShaderUniforms++,
+            "DepthTexture"_sh,
+            RI.textureViewCache->GetOrCreate(dpd->depthPyramidRenderer->GetHZBTexture(), NumUpsamplePasses - i - 1, 1));
+
+        cr << SetShaderUniform(
+            numShaderUniforms++,
+            "PrevPassTexture"_sh,
+            isFirst ? m_framebuffer->GetAttachment(0)->GetImageView() : m_upsamplePasses[i - 1]->GetAttachment(0)->GetImageView());
 
         cr << SetShaderUniform(numShaderUniforms++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
@@ -1447,11 +1481,6 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
 
         // Draw quad
         pass->RenderFullScreenQuad(frame, renderSetup);
-
-        if (i == 0)
-        {
-            cr << InsertBarrier(pass->GetAttachment(0)->GetGpuImage(), RS_SHADER_RESOURCE);
-        }
     }
 
     // reset states
@@ -2993,6 +3022,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     RenderProxyList& rpl = GetConsumerProxyList(view);
     rpl.BeginRead();
+
     HYP_DEFER({ rpl.EndRead(); });
 
     RenderCollector& renderCollector = GetRenderCollector(view);
@@ -3328,18 +3358,12 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
 
         // render fog volumes
-        if (rpl.GetFogVolumes().NumCurrent() > 0 && g_cvFogVolumes.Get())
+        if (g_cvFogVolumes.Get())
         {
-            for (FogVolume* fogVolume : rpl.GetFogVolumes())
-            {
-                RenderSetup fogVolumeRS = rs.Fork();
-                fogVolumeRS.volume = fogVolume;
-                fogVolumeRS.framebuffer = effectPassFramebuffer;
+            RenderSetup fogVolumeRS = rs.Fork();
+            fogVolumeRS.framebuffer = effectPassFramebuffer;
 
-                // @TODO We should do upsample all together!!!!!!
-                // This sucks butts if we have multiple fog vols
-                passData.fogVolumePass->Render(frame, fogVolumeRS);
-            }
+            passData.fogVolumePass->Render(frame, fogVolumeRS);
         }
 
         // render particles

@@ -29,7 +29,6 @@ namespace Hyperion {
 
 /// Use a ring buffer for writing proxy data from simulation thread which the render thread reads after N frames.
 static constexpr bool UseRingBuffer = false;
-
 static constexpr uint32 RingBufferDepth = UseRingBuffer ? 2 : 1;
 
 constexpr uint8 EngineVersionMajor = HYP_VERSION_MAJOR;
@@ -38,7 +37,7 @@ constexpr uint8 EngineVersionPatch = HYP_VERSION_PATCH;
 constexpr uint32 EngineVersion = (EngineVersionMajor << 16) | (EngineVersionMinor << 8) | EngineVersionPatch;
 constexpr uint64 EngineBinaryMagicNumber = (uint64(0x505948) << 32) | EngineVersion;
 
-constexpr uint32 NumFramesInFlight = 2;
+constexpr uint32 NumFramesInFlight = 3;
 
 constexpr uint32 NumRendererWorkerThreads = 3;
 constexpr uint32 MaxBackgroundWorkerThreads = 4;

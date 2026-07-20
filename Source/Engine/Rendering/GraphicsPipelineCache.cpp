@@ -440,6 +440,7 @@ void GraphicsPipelineCache::GetOrCreate(
 
     if (!Check(graphicsPipeline->Create()))
     {
+        outCacheHandle = {};
         return;
     }
 

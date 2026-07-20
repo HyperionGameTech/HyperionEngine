@@ -1457,9 +1457,16 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
                 state.stencilCompareMask,
                 cacheHandle);
 
-            // @TODO We need to be able to skip drawing something if the shader is compiling async.
+            if (!cacheHandle.IsAlive())
+            {
+                HYP_LOG(Rendering, Error,
+                        "Failed to create graphics pipeline for shader '{}' (shader may still be compiling or compilation failed).",
+                        state.attributes.GetShaderName());
 
-            AssertDebug(cacheHandle.IsAlive());
+                state.boundGraphicsPipeline = nullptr;
+
+                return;
+            }
 
             pipeline = *cacheHandle;
 

@@ -31,23 +31,6 @@ void RefractionSolidSphere(
 
 #ifndef HYP_DEFERRED_NO_REFRACTION
 
-// Compute attenuated light as it travels through a volume.
-float3 ApplyVolumeAttenuation(float3 radiance, float transmission_distance, float3 attenuation_color, float attenuation_distance)
-{
-    if (attenuation_distance == 0.0)
-    {
-        // Attenuation distance is +∞ (which we indicate by zero), i.e. the transmitted color is not attenuated at all.
-        return radiance;
-    }
-    else
-    {
-        // Compute light attenuation using Beer's law.
-        float3 attenuation_coefficient = -log(attenuation_color) / attenuation_distance;
-        float3 transmittance = exp(-attenuation_coefficient * transmission_distance); // Beer's law
-        return transmittance * radiance;
-    }
-}
-
 float3 CalculateRefraction(
     uint2 image_dimensions,
     float3 P, float3 N, float3 V, float2 texcoord,

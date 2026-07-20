@@ -104,8 +104,6 @@ public:
 
     Span<View* const> GetCurrentFrameViews() const;
 
-    bool IsRenderLoopActive() const;
-
     bool StartThreads();
 
     HYP_METHOD()
@@ -117,11 +115,6 @@ public:
     EngineConfig& GetConfig();
 
     void Initialize();
-
-    /// Notify threads and begin shutting down
-    void RequestStop();
-
-    /// Finalize shutdown procedures
     void Shutdown();
 
     Delegate<void, World*> OnCurrentWorldChanged;
@@ -129,7 +122,7 @@ public:
 private:
     void SyncConfig();
 
-    void UpdateSim(float delta, Game* gameInstance);
+    void Simulate(float delta, Game* gameInstance);
 
     Array<Handle<World>> m_worlds; // Sim thread only
     World* m_currentWorld;         // Sim thread only

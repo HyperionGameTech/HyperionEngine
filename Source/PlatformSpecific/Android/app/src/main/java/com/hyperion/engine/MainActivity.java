@@ -118,7 +118,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
 
         HyperionBridge.nativeSetAssetManager(null);
 
-        HyperionBridge.nativeStopThreads();
+        HyperionBridge.nativeShutdown();
 
         synchronized (m_surfaceLock) {
             m_surfaceLock.notifyAll();

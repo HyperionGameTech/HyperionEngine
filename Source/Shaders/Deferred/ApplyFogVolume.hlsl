@@ -2,6 +2,9 @@
 
 STATIC(MAX_LIGHTS, 4);
 
+STATIC(TILE_Z_BINS, 16);
+STATIC(TILE_SIZE, 32);
+
 
 #ifdef VERTEX_SHADER
 
@@ -88,14 +91,21 @@ DECLARE_SRV(FogVolume, DepthTexture) Texture2D DepthTexture;
 #include "../include/Entity.hlsli"
 #include "../include/Packing.hlsli"
 #include "../include/Shared.hlsli"
-
 #include "../include/Gbuffer.hlsli"
+#include "../include/EnvProbes.hlsli"
 
 DECLARE_SRV_DYNAMIC(FogVolume, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
 #define camera _cameras_buffer[0]
 
 DECLARE_SRV(FogVolume, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(FogVolume, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
+
+DECLARE_SRV(DeferredPass, EnvProbesBuffer) StructuredBuffer<EnvProbe> EnvProbesBuffer;
+DECLARE_SRV(DeferredPass, LightsBuffer) StructuredBuffer<Light> LightsBuffer;
+DECLARE_SRV(DeferredPass, ClusterGridBuffer) ByteAddressBuffer ClusterGridBuffer;
+DECLARE_SRV(DeferredPass, ClusterIndexBuffer) ByteAddressBuffer ClusterIndexBuffer;
+
+#include "./ClusteredShading.hlsli"
 
 #include "../include/BRDF.hlsli"
 

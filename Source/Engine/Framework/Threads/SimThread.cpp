@@ -223,7 +223,7 @@ void SimThread::Update()
         }
     }
 
-    g_engineDriver->UpdateSim(m_counter.delta, m_gameInstance);
+    g_engineDriver->Simulate(m_counter.delta, m_gameInstance);
 
     if constexpr (UseRingBuffer)
     {

@@ -26,7 +26,7 @@ extern "C"
     void Hyp_DestroyGame(Game* game);
     void Hyp_SetGame(Game* game);
     void Hyp_LaunchThreads();
-    void Hyp_StopThreads();
+    void Hyp_Shutdown();
     void Hyp_SetAssetManager(void* mgr);
     void Hyp_SetNativeWindow(void* nativeWindow);
     void Hyp_InputEvent(int type, int action, float x, float y, int iParam);
@@ -79,9 +79,9 @@ Java_com_hyperion_engine_HyperionBridge_nativeLaunchThreads(JNIEnv* env, jclass 
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_hyperion_engine_HyperionBridge_nativeStopThreads(JNIEnv* /*env*/, jclass /*clazz*/)
+Java_com_hyperion_engine_HyperionBridge_nativeShutdown(JNIEnv* /*env*/, jclass /*clazz*/)
 {
-    Hyp_StopThreads();
+    Hyp_Shutdown();
 }
 
 extern "C" JNIEXPORT void JNICALL

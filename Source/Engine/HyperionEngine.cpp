@@ -40,6 +40,8 @@
 
 #include <Core/CLI/CommandLine.hpp>
 
+#include <Core/Net/NetRequestThread.hpp>
+
 #include <System/MessageBox.hpp>
 #include <System/AppContext.hpp>
 #include <System/DirectoryInitializer.hpp>
@@ -63,7 +65,7 @@
 
 #include <Audio/AudioManager.hpp>
 
-#if HYP_VULKAN
+#ifdef HYP_VULKAN
 #include <Rendering/Vulkan/VulkanRenderInterface.hpp>
 #endif // HYP_VULKAN
 
@@ -76,11 +78,16 @@
 #include <Scene/Scene.hpp>
 #endif // HYP_EDITOR
 
-#if HYP_DOTNET
+#ifdef HYP_DOTNET
 #include <DotNET/DotNETHost.hpp>
 #endif // HYP_DOTNET
 
-#if HYP_ANDROID
+#ifdef HYP_STEAM_SDK
+#include <Steam/Steam.hpp>
+#include <Steam/SteamInput.hpp>
+#endif // HYP_STEAM_SDK
+
+#ifdef HYP_ANDROID
 #include <android/asset_manager.h>
 #endif // HYP_ANDROID
 
@@ -145,6 +152,8 @@ VulkanRenderInterface RI;
 #elif HYP_DX12
 DX12RenderInterface RI;
 #endif // HYP_VULKAN || HYP_DX12
+
+namespace {
 
 static void HandleFatalError(const char* message)
 {
@@ -228,6 +237,26 @@ static void LoadShaderPropertyDictionary()
     }
 }
 
+void HandleExit()
+{
+#ifdef HYP_STEAM_SDK
+    Steam::SteamInputManager::GetInstance().Shutdown();
+    Steam::Shutdown();
+#endif // HYP_STEAM_SDK
+
+#ifdef HYP_WINDOWS
+    Win32_CleanupWindowClasses();
+#endif // HYP_WINDOWS
+}
+
+void HandleSignal(int signum)
+{
+    // Call atexit functions
+    exit(signum);
+}
+
+} // namespace
+
 extern "C"
 {
     HYP_EXPORT int Hyp_Initialize(int argc, char** argv)
@@ -237,6 +266,11 @@ extern "C"
             // we need argc/argv to be passed by the caller
             return 0;
         }
+
+        // Init signal handlers
+        signal(SIGINT, HandleSignal);
+        signal(SIGSEGV, HandleSignal);
+        atexit(HandleExit);
 
         SetCurrentThreadId(g_mainThread);
 
@@ -298,9 +332,13 @@ extern "C"
         }
 #endif // HYP_DOTNET
 
-        g_engineDriver = MakeHandle<EngineDriver>();
-
         ComponentInterfaceRegistry::GetInstance().Initialize();
+
+        SharedPtr<NetRequestThread> netRequestThread = MakeShared<NetRequestThread>();
+        SetGlobalNetRequestThread(netRequestThread);
+        netRequestThread->Start();
+
+        g_engineDriver = MakeHandle<EngineDriver>();
 
         g_engineStats = MakeHandle<EngineStats>();
 
@@ -465,6 +503,24 @@ extern "C"
 #else  // !HYP_WINDOWS && !HYP_MACOS && !HYP_ANDROID && !HYP_IOS
         HYP_FAIL("AppContext not implemented for this platform");
 #endif // HYP_WINDOWS || HYP_MACOS || HYP_ANDROID || HYP_IOS
+        
+
+#ifdef HYP_STEAM_SDK
+        if (!isCommandlet)
+        {
+            Steam::Initialize();
+            Steam::SteamInputManager::GetInstance().Initialize();
+        }
+#endif // HYP_STEAM_SDK
+
+        // must start after net request thread
+        if (CoreApi::IsProfilingEnabled())
+        {
+            StartProfilerConnectionThread(ProfilerConnectionParams {
+                /* endpointUrl */ CoreApi::GetCommandLineArguments()["TraceURL"].ToString(),
+                /* enabled */ true
+            });
+        }
 
         g_engineDriver->Initialize();
 
@@ -531,17 +587,62 @@ extern "C"
 
         Assert(g_engineDriver != nullptr, "Hyperion not initialized!");
 
-        g_engineDriver->RequestStop();
+        g_engineDriver->Shutdown();
+    
+#ifdef HYP_STEAM_SDK
+        Steam::SteamInputManager::GetInstance().Shutdown();
+        Steam::Shutdown();
+#endif // HYP_STEAM_SDK
 
+#if HYP_DOTNET
+        DotNETHost::GetInstance().Shutdown();
+#endif // HYP_DOTNET
+    
+        if (g_renderThreadInstance != nullptr && g_renderThreadInstance->IsRunning())
+        {
+            g_renderThreadInstance->Stop();
+        }
+
+        if (g_simThreadInstance != nullptr && g_simThreadInstance->IsRunning())
+        {
+            g_simThreadInstance->Stop();
+        }
+        
         g_mainThreadInstance->Stop();
-
+        
         g_renderThreadInstance->Join();
         g_renderThread = g_mainThread;
 
         g_simThreadInstance->Join();
         g_simThread = g_mainThread;
+        
+        if (g_renderWorkerThreadPool != nullptr && g_renderWorkerThreadPool->IsRunning())
+        {
+            g_renderWorkerThreadPool->Stop();
+        }
 
-        g_engineDriver->Shutdown();
+        if (TaskSystem::GetInstance().IsRunning())
+        {
+            TaskSystem::GetInstance().Stop();
+        }
+
+        // must stop before net request thread
+        StopProfilerConnectionThread();
+
+        if (SharedPtr<NetRequestThread> netRequestThread = GetGlobalNetRequestThread())
+        {
+            if (netRequestThread->IsRunning())
+            {
+                netRequestThread->Stop();
+            }
+
+            if (netRequestThread->CanJoin())
+            {
+                netRequestThread->Join();
+            }
+
+            SetGlobalNetRequestThread(nullptr);
+        }
 
         { // shut down AssetRegistry instances
             ClearAssetRegistryStack();
@@ -570,10 +671,6 @@ extern "C"
 #endif // HYP_EDITOR
 
         g_appContext.Reset();
-
-#if HYP_DOTNET
-        DotNETHost::GetInstance().Shutdown();
-#endif // HYP_DOTNET
 
         ComponentInterfaceRegistry::GetInstance().Shutdown();
 
@@ -658,19 +755,6 @@ extern "C"
         }
 
         return 0;
-    }
-
-    HYP_EXPORT void Hyp_StopThreads()
-    {
-        if (g_mainThreadInstance != nullptr)
-        {
-            g_mainThreadInstance->Stop();
-        }
-
-        if (g_engineDriver != nullptr)
-        {
-            g_engineDriver->RequestStop();
-        }
     }
 
     HYP_EXPORT AppContextBase* Hyp_GetAppContext()

@@ -336,10 +336,16 @@ struct BitField
     constexpr HYP_FORCE_INLINE void Set(size_t bitIndex, bool value)
     {
         const size_t wordIndex = GetWordIndex(bitIndex);
+        const size_t mask = GetBitMask(bitIndex);
 
-        words[wordIndex] = (value)
-            ? (words[wordIndex] | GetBitMask(bitIndex))
-            : (words[wordIndex] & ~GetBitMask(bitIndex));
+        const WordType currValue = words[wordIndex];
+
+        const WordType possibleValues[2] = {
+            (currValue & ~mask),
+            (currValue | mask)
+        };
+
+        words[wordIndex] = possibleValues[value];
     }
 
     HYP_FORCE_INLINE Iterator Begin()

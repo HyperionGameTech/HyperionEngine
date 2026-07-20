@@ -57,7 +57,7 @@ extern "C"
     ENGINE_API void Hyp_SetGame(Game* pGame);
 
     ENGINE_API int Hyp_LaunchThreads();
-    ENGINE_API void Hyp_StopThreads();
+    ENGINE_API void Hyp_Shutdown();
 
     // Only for use in detached mode (-Detached CLI flag)
     ENGINE_API void Hyp_MainThreadUpdate();

@@ -62,8 +62,6 @@
 
 #include <Core/CLI/CommandLine.hpp>
 
-#include <Core/Net/NetRequestThread.hpp>
-
 #include <Core/Threading/Threads.hpp>
 #include <Core/Threading/TaskSystem.hpp>
 
@@ -76,10 +74,9 @@
 
 #include <Input/Event.hpp>
 
-#ifdef HYP_STEAM_SDK
-#include <Steam/Steam.hpp>
-#include <Steam/SteamInput.hpp>
-#endif // HYP_STEAM_SDK
+#if HYP_DOTNET
+#include <DotNET/DotNETHost.hpp>
+#endif // HYP_DOTNET
 
 #include <System/AppContext.hpp>
 #include <System/DirectoryInitializer.hpp>
@@ -134,24 +131,6 @@ static const Map<TaskThreadPoolName, UniquePtr<TaskThreadPool> (*)(void)> s_thre
 
 #pragma endregion Thread Pool Factories
 
-void HandleExit()
-{
-#ifdef HYP_STEAM_SDK
-    Steam::SteamInputManager::GetInstance().Shutdown();
-    Steam::Shutdown();
-#endif // HYP_STEAM_SDK
-
-#ifdef HYP_WINDOWS
-    Win32_CleanupWindowClasses();
-#endif // HYP_WINDOWS
-}
-
-void HandleSignal(int signum)
-{
-    // Call atexit functions
-    exit(signum);
-}
-
 namespace MeshEntityHelpers {
 
 template <class AllocatorType>
@@ -205,34 +184,9 @@ void EngineDriver::Initialize()
         return;
     }
 
-    signal(SIGINT, HandleSignal);
-    signal(SIGSEGV, HandleSignal);
-    atexit(HandleExit);
-
-    const CommandLineArguments& cliArgs = CoreApi::GetCommandLineArguments();
-    const bool isCommandlet = cliArgs["exec"].ToBool();
-
-#ifdef HYP_STEAM_SDK
-    if (!isCommandlet)
-    {
-        Steam::Initialize();
-        Steam::SteamInputManager::GetInstance().Initialize();
-    }
-#endif // HYP_STEAM_SDK
-
-    SharedPtr<NetRequestThread> netRequestThread = MakeShared<NetRequestThread>();
-    SetGlobalNetRequestThread(netRequestThread);
-    netRequestThread->Start();
-
-    // must start after net request thread
-    if (CoreApi::IsProfilingEnabled())
-    {
-        StartProfilerConnectionThread(ProfilerConnectionParams {
-            /* endpointUrl */ CoreApi::GetCommandLineArguments()["TraceURL"].ToString(),
-            /* enabled */ true });
-    }
-
     m_viewCollectionBatch = new TaskBatch();
+    
+    m_isShuttingDown.Store(false);
 
     m_isInitialized = true;
 }
@@ -310,12 +264,6 @@ void EngineDriver::RemoveWorld(const World* world)
 Span<View* const> EngineDriver::GetCurrentFrameViews() const
 {
     return m_viewsPerFrame[GetRingIndex()].ToSpan();
-}
-
-bool EngineDriver::IsRenderLoopActive() const
-{
-    return g_renderThreadInstance != nullptr
-        && g_renderThreadInstance->IsRunning();
 }
 
 void EngineDriver::SetGameInstance(Game* gameInstance)
@@ -417,39 +365,19 @@ bool EngineDriver::StartThreads()
     return success;
 }
 
-void EngineDriver::RequestStop()
-{
-    m_delegates.OnShutdown();
-
-#ifdef HYP_STEAM_SDK
-    Steam::SteamInputManager::GetInstance().Shutdown();
-    Steam::Shutdown();
-#endif // HYP_STEAM_SDK
-
-    if (!m_isShuttingDown.Store(true))
-    {
-        if (g_renderWorkerThreadPool != nullptr && g_renderWorkerThreadPool->IsRunning())
-        {
-            g_renderWorkerThreadPool->Stop();
-        }
-
-        if (g_renderThreadInstance != nullptr && g_renderThreadInstance->IsRunning())
-        {
-            g_renderThreadInstance->Stop();
-        }
-
-        if (g_simThreadInstance != nullptr && g_simThreadInstance->IsRunning())
-        {
-            g_simThreadInstance->Stop();
-        }
-    }
-}
-
 void EngineDriver::Shutdown()
 {
     AssertOnThread(g_mainThread);
 
+    if (m_isShuttingDown.Store(true) == true)
+    {
+        HYP_LOG(Engine, Warning, "Already shutting down!");
+        return;
+    }
+
     HYP_LOG(Engine, Info, "Stopping all engine processes");
+
+    m_delegates.OnShutdown();
 
     if (m_viewCollectionBatch)
     {
@@ -459,36 +387,10 @@ void EngineDriver::Shutdown()
         m_viewCollectionBatch = nullptr;
     }
 
-    if (TaskSystem::GetInstance().IsRunning())
-    {
-        TaskSystem::GetInstance().Stop();
-    }
-
     m_worlds.Clear();
-
-    // must stop before net request thread
-    StopProfilerConnectionThread();
-
-    if (SharedPtr<NetRequestThread> netRequestThread = GetGlobalNetRequestThread())
-    {
-        if (netRequestThread->IsRunning())
-        {
-            netRequestThread->Stop();
-        }
-
-        if (netRequestThread->CanJoin())
-        {
-            netRequestThread->Join();
-        }
-
-        SetGlobalNetRequestThread(nullptr);
-    }
-
-    // Expecting m_isShuttingDown to be in true state
-    Assert(m_isShuttingDown.Store(false));
 }
 
-void EngineDriver::UpdateSim(float delta, Game* gameInstance)
+void EngineDriver::Simulate(float delta, Game* gameInstance)
 {
     static const bool s_dedicatedVisThread = CoreApi::GetCommandLineArguments()["DedicatedVisThread"].ToBool();
 
@@ -804,10 +706,6 @@ void EngineDriver::UpdateSim(float delta, Game* gameInstance)
         m_viewsPerFrame[slot].Resize(views.Size());
         std::copy(views.Begin(), views.End(), m_viewsPerFrame[slot].Begin());
 
-        // Publish debug drawer updates during the sync point: DebugDrawer::Update() merges
-        // pending command lists and flips its internal pending/ready buffers. The flip itself
-        // is cheap (index swap); doing it inside the sync block is what makes the swap safe,
-        // since the render thread is parked until EndSimRenderSyncBlock().
         DebugDrawer::GetInstance().Update();
 
         if constexpr (!UseRingBuffer)
