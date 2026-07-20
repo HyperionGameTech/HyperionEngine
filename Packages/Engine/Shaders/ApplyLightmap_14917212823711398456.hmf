@@ -404,11 +404,11 @@ Shader "ApplyLightmap_14917212823711398456" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/ApplyLightmap_14917212823711398456.VS"
-            Size = 776
+            Size = 13076
         }
         BlobDataReference {
             Key = "Engine://Shaders/ApplyLightmap_14917212823711398456.PS"
-            Size = 6636
+            Size = 154484
         }
     ]
     PropertySetHashCode = {

@@ -109,11 +109,11 @@ Shader "Fallback_14917212823711398455" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/Fallback_14917212823711398455.VS"
-            Size = 2284
+            Size = 57432
         }
         BlobDataReference {
             Key = "Engine://Shaders/Fallback_14917212823711398455.PS"
-            Size = 852
+            Size = 43524
         }
     ]
     PropertySetHashCode = {

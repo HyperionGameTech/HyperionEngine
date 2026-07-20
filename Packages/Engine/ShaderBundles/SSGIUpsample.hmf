@@ -1,7 +1,0 @@
-ShaderBundle "SSGIUpsample" {
-    StaticProperties = []
-    CompiledShaders = [
-        @"Engine://Shaders/SSGIUpsample_14917212823711398456"
-    ]
-    FriendlyName = "SSGIUpsample"
-}

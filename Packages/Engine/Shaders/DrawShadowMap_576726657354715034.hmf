@@ -144,11 +144,11 @@ Shader "DrawShadowMap_576726657354715034" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/DrawShadowMap_576726657354715034.VS"
-            Size = 3972
+            Size = 57644
         }
         BlobDataReference {
             Key = "Engine://Shaders/DrawShadowMap_576726657354715034.PS"
-            Size = 728
+            Size = 54204
         }
     ]
     PropertySetHashCode = {

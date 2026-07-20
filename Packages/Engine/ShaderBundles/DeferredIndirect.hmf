@@ -4,15 +4,8 @@ ShaderBundle "DeferredIndirect" {
         ("TILE_Z_BINS", 16)
     ]
     CompiledShaders = [
-        @"Engine://Shaders/DeferredIndirect_9138883043362269244"
         @"Engine://Shaders/DeferredIndirect_6595342441040247352"
-        @"Engine://Shaders/DeferredIndirect_5825072310337376286"
-        @"Engine://Shaders/DeferredIndirect_5628388961569238371"
         @"Engine://Shaders/DeferredIndirect_550347893117742388"
-        @"Engine://Shaders/DeferredIndirect_2801075153600088316"
-        @"Engine://Shaders/DeferredIndirect_16927378161519639042"
-        @"Engine://Shaders/DeferredIndirect_13883276821209638970"
-        @"Engine://Shaders/DeferredIndirect_11566826703940459458"
     ]
     FriendlyName = "DeferredIndirect"
 }

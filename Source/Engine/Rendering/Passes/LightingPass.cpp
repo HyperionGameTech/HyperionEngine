@@ -368,6 +368,8 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         return;
     }
 
+    dpd->numClusteredShadowMaps = 0;
+
     if (useClusteredShading)
     {
         ShaderPropertySet shaderProperties;
@@ -462,6 +464,10 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
             shadowMapIndexBuffer.FlushBatched();
 
+            dpd->clusteredShadowMapIndexBuffer = &shadowMapIndexBuffer;
+            dpd->numClusteredShadowMaps = shadowMapIndex;
+            Memory::Copy(dpd->clusteredShadowMaps, tempShadowMapData.Data(), shadowMapIndex * sizeof(ShadowMapData));
+
             cr << SetShaderUniform(localNumShaderUniforms++, "ShadowMapIndexBuffer"_sh, shadowMapIndexBuffer);
 
             RI.cbufferAllocator->Write(tempShadowMapData.Data(), MaxClusteredShadowMaps * sizeof(ShadowMapData), alignof(ShadowMapData));
@@ -475,6 +481,12 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         cr << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
         cr << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
         cr << DrawIndexed(6);
+    }
+
+    if (dpd->clusteredShadowMapIndexBuffer == nullptr)
+    {
+        ByteAddressBuffer& dummyIndexBuffer = RI.bufferAllocator->AcquireByteAddressBuffer(sizeof(uint32));
+        dpd->clusteredShadowMapIndexBuffer = &dummyIndexBuffer;
     }
 
     // last LightType we rendered

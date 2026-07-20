@@ -111,6 +111,26 @@ float GetShadowStandard(float4 shadow_sample, float3 coord, float NdotL)
     return max(step(coord.z - bias, shadow_depth), 0.0);
 }
 
+float GetShadowCSM(in float4 shadowMapCoord, // w = slice
+    in float2 atlasUV, in float2 atlasScale,
+    float3 pos, float2 texcoord, float2 screen_dimensions, float NdotL)
+{
+    const float layerIndex = shadowMapCoord.w;
+
+    float bias = HYP_SHADOW_BIAS;
+
+#ifdef HYP_SHADOW_VARIABLE_BIAS
+    bias *= tan(acos(NdotL));
+    bias = clamp(bias, 0.0, 0.005);
+#endif
+
+    const float2 uv = (shadowMapCoord.xy * atlasScale) + atlasUV;
+    const float4 shadow_sample = SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(uv, layerIndex), 0);
+    const float shadow_depth = shadow_sample.r;
+
+    return max(step(shadowMapCoord.z - bias, shadow_depth), 0.0);
+}
+
 float GetShadowPCF(in float4 shadowMapCoord, // w = slice
     in float2 atlasUV, in float2 atlasScale,
     float3 pos, float2 texcoord, float2 screen_dimensions, float NdotL)

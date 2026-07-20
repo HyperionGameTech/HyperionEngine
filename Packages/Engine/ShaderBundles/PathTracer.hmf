@@ -1,9 +1,0 @@
-ShaderBundle "PathTracer" {
-    StaticProperties = [
-        ("MAX_LIGHTS", 4)
-    ]
-    CompiledShaders = [
-        @"Engine://Shaders/PathTracer_348120736054116462"
-    ]
-    FriendlyName = "PathTracer"
-}

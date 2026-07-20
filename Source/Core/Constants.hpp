@@ -55,7 +55,7 @@ constexpr uint32 MaxBoundSkeletons = 64;
 constexpr uint32 MaxBoundReflectionProbes = 16;
 constexpr uint32 MaxBoundProbeVolumes = 16;
 constexpr uint32 MaxBoundAmbientProbes = 4096;
-constexpr uint32 MaxBoundOmniShadowMaps = 8;
+constexpr uint32 MaxBoundOmniShadowMaps = 16;
 constexpr uint32 MaxBoundLightmapVolumes = 4;
 
 // Types that do not have a global structured buffer.

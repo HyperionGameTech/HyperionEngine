@@ -20,7 +20,7 @@
     "TargetFrameRate": 60,
     "LimitFrameRateOnBatteryPower": true,
     "LimitFrameRateWhenIdle": true,
-    "EnableDebugDrawer": false,
+    "EnableDebugDrawer": true,
     "SSR": {
       "Enabled": true,
       "Quality": 2,
@@ -41,7 +41,7 @@
     "VSync": true,
     "EnableGpuStats": true,
     "Vulkan": {
-      "DebugLayers": true,
+      "DebugLayers": false,
       "TimelineSemaphores": true
     }
   },
@@ -57,7 +57,7 @@
   },
   "System": {
     "SelectedGpu": {
-      "Index": 1
+      "Index": 0
     }
   },
   "Baker": {

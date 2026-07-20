@@ -13,6 +13,7 @@
 #include <Rendering/TAAPass.hpp>
 #include <Rendering/GraphicsPipelineCache.hpp>
 #include <Rendering/RenderTypes.hpp>
+#include <Rendering/RenderProxy.hpp>
 
 #include <Core/Reflection/ObjectBase.hpp>
 #include <Core/Reflection/Handle.hpp>
@@ -102,6 +103,10 @@ public:
 
     ByteAddressBuffer* gridTilesBuffer = nullptr;
     ByteAddressBuffer* gridIndexBuffer = nullptr;
+
+    ByteAddressBuffer* clusteredShadowMapIndexBuffer = nullptr;
+    ShadowMapData clusteredShadowMaps[MaxClusteredShadowMaps] {};
+    uint32 numClusteredShadowMaps = 0;
 };
 
 HYP_CLASS(NoScriptBindings)

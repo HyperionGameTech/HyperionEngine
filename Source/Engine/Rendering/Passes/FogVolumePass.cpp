@@ -38,10 +38,15 @@
 #include <Core/Utilities/DeferredScope.hpp>
 
 #include <Framework/EngineDriver.hpp>
+#include <Framework/CVarManager.hpp>
 
 namespace Hyperion {
 
-static constexpr uint32 MaxBoundLightsPerFogVolume = 4;
+static constexpr uint32 MaxFogLights = 4;
+
+static const ShaderPropertyId s_propUseClusteredLights = InternShaderProperty(ShaderProperty(NAME("CLUSTERED_LIGHTS")));
+
+extern CVar<bool> g_cvFogVolumesClusteredLights;
 
 #pragma region FogVolumePass
 
@@ -143,7 +148,18 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
 
     cr << SetFaceCullMode(FCM_FRONT); // cull front faces to render inside of the volume
 
-    cr << SetCurrentShader(m_shaderDesc);
+    const bool useClusteredLights = g_cvFogVolumesClusteredLights.Get();
+
+    {
+        ShaderPropertySet fogShaderProperties;
+
+        if (useClusteredLights)
+        {
+            fogShaderProperties.Add(s_propUseClusteredLights);
+        }
+
+        cr << SetCurrentShader(ShaderDesc(NAME("ApplyFogVolume"), fogShaderProperties));
+    }
 
     cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinearMipmap());
     cr << SetShaderUniform(1, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
@@ -153,7 +169,6 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
     cr << SetShaderUniform(3, "ShadowMapsTextureArray"_sh, RI.shadowMapCache->GetAtlasImageView());
     cr << SetShaderUniform(4, "PointLightShadowMapsTextureArray"_sh, RI.shadowMapCache->GetPointLightShadowMapImageView());
 
-    // Select second mip - since we're quarter res
     cr << SetShaderUniform(5, "DepthTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->depthPyramidRenderer->GetHZBTexture(), 2, 1));
 
     cr << SetShaderUniform(6, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer);
@@ -163,6 +178,100 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
 
     cr << SetShaderUniform(9, "ClusterGridBuffer"_sh, *dpd->gridTilesBuffer);
     cr << SetShaderUniform(10, "ClusterIndexBuffer"_sh, *dpd->gridIndexBuffer);
+
+    LightShaderData directionalLightShaderData {};
+    DirectionalLightCSMData directionalCSMData {};
+
+    for (Light* light : rpl.GetLights())
+    {
+        if (light->GetLightType() == LightType::Directional)
+        {
+            RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
+            AssertDebug(lightProxy != nullptr);
+
+            directionalLightShaderData = lightProxy->bufferData;
+
+            ShadowMap* shadowMaps[MaxShadowMapCascades] {};
+            View* shadowMapViewsDynamic[MaxShadowMapCascades] {};
+            View* shadowMapViewsStatic[MaxShadowMapCascades] {};
+
+            uint32 numCascades = MathUtil::Clamp(lightProxy->numCascades, 1u, MaxShadowMapCascades);
+
+            for (uint32 cascadeIndex = 0; cascadeIndex < numCascades; cascadeIndex++)
+            {
+                shadowMaps[cascadeIndex] = RI.shadowMapCache->GetShadowMap(
+                    light,
+                    renderSetup.view,
+                    cascadeIndex,
+                    shadowMapViewsDynamic[cascadeIndex],
+                    shadowMapViewsStatic[cascadeIndex]);
+            }
+
+            DeferredRendererHelpers::FillShadowMapDataCSM(
+                &directionalCSMData,
+                shadowMapViewsDynamic,
+                shadowMaps,
+                numCascades);
+
+            break;
+        }
+    }
+
+    cr << SetShaderUniform(11, "ShadowMapIndexBuffer"_sh, *dpd->clusteredShadowMapIndexBuffer);
+
+    LightShaderData fogLightData[MaxFogLights] {};
+    ShadowMapData fogShadowMapData[MaxFogLights] {};
+    uint32 numFogLights = 0;
+
+    if (!useClusteredLights)
+    {
+        for (Light* light : rpl.GetLights())
+        {
+            const LightType lightType = light->GetLightType();
+
+            if (lightType == LightType::Directional)
+            {
+                continue;
+            }
+
+            if (lightType != LightType::Point && lightType != LightType::Spot)
+            {
+                continue;
+            }
+
+            if (numFogLights >= MaxFogLights)
+            {
+                break;
+            }
+
+            RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
+            AssertDebug(lightProxy != nullptr);
+
+            fogLightData[numFogLights] = lightProxy->bufferData;
+
+            View* shadowMapViewDynamic;
+            View* shadowMapViewStatic;
+
+            ShadowMap* shadowMap = RI.shadowMapCache->GetShadowMap(
+                light,
+                renderSetup.view,
+                0,
+                shadowMapViewDynamic,
+                shadowMapViewStatic);
+
+            if (shadowMap != nullptr)
+            {
+                DeferredRendererHelpers::FillShadowMapData(
+                    fogShadowMapData[numFogLights],
+                    *shadowMap,
+                    0,
+                    shadowMapViewDynamic,
+                    shadowMapViewStatic);
+            }
+
+            ++numFogLights;
+        }
+    }
 
     for (FogVolume* volume : rpl.GetFogVolumes())
     {
@@ -177,46 +286,19 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
         {
             if (data.volumeTexture)
             {
-                cr << SetShaderUniform(11, "DataMap"_sh, RI.textureViewCache->GetOrCreate(data.volumeTexture));
+                cr << SetShaderUniform(12, "DataMap"_sh, RI.textureViewCache->GetOrCreate(data.volumeTexture));
             }
 
             if (data.noiseTexture)
             {
-                cr << SetShaderUniform(12, "NoiseMap"_sh, RI.textureViewCache->GetOrCreate(data.noiseTexture));
+                cr << SetShaderUniform(13, "NoiseMap"_sh, RI.textureViewCache->GetOrCreate(data.noiseTexture));
             }
 
-            // Set constants
             FogVolumeShaderData shaderData = proxy->bufferData;
 
-            uint32& numBoundLights = shaderData.numBoundLights;
-            numBoundLights = 0;
-
-            uint32* lightIndicesU32 = reinterpret_cast<uint32*>(shaderData.lightIndices);
-
-            RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
-
-            Array<Pair<Light*, LightShaderData*>, RenderAllocator> tempLightsArray;
-
-            for (Light* light : rpl.GetLights())
+            if (!useClusteredLights)
             {
-                const LightType lightType = light->GetLightType();
-
-                if (lightType != LightType::Directional && lightType != LightType::Point)
-                {
-                    continue;
-                }
-
-                if (numBoundLights >= MaxBoundLightsPerFogVolume)
-                {
-                    break;
-                }
-
-                RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
-                Assert(lightProxy != nullptr);
-
-                tempLightsArray.EmplaceBack(light, &lightProxy->bufferData);
-
-                lightIndicesU32[numBoundLights++] = Resources::GetBinding(light);
+                shaderData.numBoundLights = numFogLights;
             }
 
             GpuBuffer* cbuffer = nullptr;
@@ -224,54 +306,35 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
             size_t cbufferSize = 0;
 
             RI.cbufferAllocator->Write(&shaderData);
+            RI.cbufferAllocator->Write(&directionalLightShaderData);
+            RI.cbufferAllocator->Write(&directionalCSMData);
 
-            for (uint32 i = 0; i < MaxBoundLightsPerFogVolume; i++)
+            if (useClusteredLights)
             {
-                if (i < uint32(tempLightsArray.Size()))
+                for (uint32 i = 0; i < MaxClusteredShadowMaps; i++)
                 {
-                    RI.cbufferAllocator->Write(tempLightsArray[i].second);
-                    continue;
-                }
-
-                LightShaderData dummy {};
-                RI.cbufferAllocator->Write(&dummy);
-            }
-
-            // @TODO Change to use cluster grid instead.
-            // Then we can have the same (point) lights we have for deferred rendering,
-            // as well as env probes for sampling irradiance for the fog.
-            for (uint32 i = 0; i < MaxBoundLightsPerFogVolume; i++)
-            {
-                ShadowMapData shadowMapData {};
-
-                if (i < uint32(tempLightsArray.Size()))
-                {
-                    View* shadowMapViewDynamic;
-                    View* shadowMapViewStatic;
-
-                    Light* light = tempLightsArray[i].first;
-
-                    const uint32 cascadeIndex = 0;
-
-                    ShadowMap* shadowMap = RI.shadowMapCache->GetShadowMap(
-                        light,
-                        renderSetup.view,
-                        cascadeIndex,
-                        shadowMapViewDynamic,
-                        shadowMapViewStatic);
-
-                    if (shadowMap != nullptr)
+                    if (i < dpd->numClusteredShadowMaps)
                     {
-                        DeferredRendererHelpers::FillShadowMapData(
-                            shadowMapData,
-                            *shadowMap,
-                            cascadeIndex,
-                            shadowMapViewDynamic,
-                            shadowMapViewStatic);
+                        RI.cbufferAllocator->Write(&dpd->clusteredShadowMaps[i]);
+                    }
+                    else
+                    {
+                        ShadowMapData dummy {};
+                        RI.cbufferAllocator->Write(&dummy);
                     }
                 }
+            }
+            else
+            {
+                for (uint32 i = 0; i < MaxFogLights; i++)
+                {
+                    RI.cbufferAllocator->Write(&fogLightData[i]);
+                }
 
-                RI.cbufferAllocator->Write(&shadowMapData);
+                for (uint32 i = 0; i < MaxFogLights; i++)
+                {
+                    RI.cbufferAllocator->Write(&fogShadowMapData[i]);
+                }
             }
 
             const Vec2i screenDimensions = Vec2i(m_extent);
@@ -288,7 +351,7 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
 
             RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
-            cr << SetShaderUniform(13, "FogVolumeConstants"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
+            cr << SetShaderUniform(14, "FogVolumeConstants"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
             cr << CommitDrawState();
 

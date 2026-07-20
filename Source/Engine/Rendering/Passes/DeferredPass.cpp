@@ -138,6 +138,7 @@ CVar<bool> g_cvClusteredShading { "Rendering.ClusteredShading", true };
 CVar<float> g_cvTonemapExposure { "Rendering.Tonemap.Exposure", 1.8f };
 CVar<bool> g_cvDepthPrepass { "Rendering.DepthPrepass", true };
 CVar<bool> g_cvFogVolumes { "Rendering.FogVolumes", true };
+CVar<bool> g_cvFogVolumesClusteredLights { "Rendering.FogVolumesClusteredLights", true };
 
 extern CVar<int> g_cvSkipRendering;
 

@@ -257,11 +257,11 @@ Shader "HBAO_6156939509620219352" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/HBAO_6156939509620219352.VS"
-            Size = 776
+            Size = 12476
         }
         BlobDataReference {
             Key = "Engine://Shaders/HBAO_6156939509620219352.PS"
-            Size = 10992
+            Size = 139212
         }
     ]
     PropertySetHashCode = {

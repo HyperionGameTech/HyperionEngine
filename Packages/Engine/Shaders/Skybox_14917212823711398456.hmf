@@ -109,11 +109,11 @@ Shader "Skybox_14917212823711398456" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/Skybox_14917212823711398456.VS"
-            Size = 4244
+            Size = 58028
         }
         BlobDataReference {
             Key = "Engine://Shaders/Skybox_14917212823711398456.PS"
-            Size = 3732
+            Size = 56924
         }
     ]
     PropertySetHashCode = {

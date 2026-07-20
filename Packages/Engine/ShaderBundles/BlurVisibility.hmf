@@ -1,7 +1,0 @@
-ShaderBundle "BlurVisibility" {
-    StaticProperties = []
-    CompiledShaders = [
-        @"Engine://Shaders/BlurVisibility_14204662585483772359"
-    ]
-    FriendlyName = "BlurVisibility"
-}

@@ -78,7 +78,7 @@ Shader "GenerateDepthPyramid_14917212823711398449" {
                         ShaderInput {
                             Register = BUFFER
                             ElementType = CBV
-                            Name = "UniformBuffer"
+                            Name = "CBuffer"
                             Count = 1
                             Size = 4294967295
                             IsDynamic = false
@@ -130,7 +130,7 @@ Shader "GenerateDepthPyramid_14917212823711398449" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/GenerateDepthPyramid_14917212823711398449.CS"
-            Size = 2800
+            Size = 38824
         }
     ]
     PropertySetHashCode = {

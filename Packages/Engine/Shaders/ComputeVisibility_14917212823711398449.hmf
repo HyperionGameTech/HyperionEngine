@@ -215,7 +215,7 @@ Shader "ComputeVisibility_14917212823711398449" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/ComputeVisibility_14917212823711398449.CS"
-            Size = 10320
+            Size = 68620
         }
     ]
     PropertySetHashCode = {

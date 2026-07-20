@@ -6,7 +6,7 @@ Texture "PointLightShadowMapImage" {
         MinFilterMode = TFM_NEAREST
         MagFilterMode = TFM_NEAREST
         TextureWrapMode = TWM_CLAMP_TO_EDGE
-        NumLayers = 48
+        NumLayers = 16
         ImageUsage = IU_SAMPLED|IU_ATTACHMENT
         MipOffsets = [
             0

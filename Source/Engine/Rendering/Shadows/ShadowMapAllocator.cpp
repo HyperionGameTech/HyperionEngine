@@ -97,8 +97,9 @@ void ShadowMapAllocator::Initialize()
         TFM_NEAREST,
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
-        MaxBoundOmniShadowMaps * 6,
-        IU_SAMPLED | IU_ATTACHMENT });
+        MaxBoundOmniShadowMaps,
+        IU_SAMPLED | IU_ATTACHMENT
+    });
 
     m_pointLightTextureArray->SetName(NAME("PointLightShadowMapImage"));
     m_atlasTextureArray->SetIsTransient(true);

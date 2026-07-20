@@ -46,7 +46,7 @@ Shader "SSRSampleGBuffer_6826059799620415254" {
                         ShaderInput {
                             Register = SRV
                             ElementType = SRV
-                            Name = "WorldsBuffer"
+                            Name = "BlueNoiseBuffer"
                             Count = 1
                             Size = 4294967295
                             IsDynamic = false
@@ -63,40 +63,6 @@ Shader "SSRSampleGBuffer_6826059799620415254" {
                         ShaderInput {
                             Register = SRV
                             ElementType = SRV
-                            Name = "BlueNoiseBuffer"
-                            Count = 1
-                            Size = 4294967295
-                            IsDynamic = false
-                            BufferType = StructuredBuffer
-                            StructInfo = {
-                                Name = ""
-                                Size = 4294967295
-                                FieldNames = []
-                                FieldTypes = []
-                            }
-                            Category = Buffer
-                            Index = 1
-                        }
-                        ShaderInput {
-                            Register = SRV
-                            ElementType = SRV
-                            Name = "GBufferDepthTexture"
-                            Count = 1
-                            Size = 4294967295
-                            IsDynamic = false
-                            BufferType = NONE
-                            StructInfo = {
-                                Name = ""
-                                Size = 4294967295
-                                FieldNames = []
-                                FieldTypes = []
-                            }
-                            Category = Image
-                            Index = 2
-                        }
-                        ShaderInput {
-                            Register = SRV
-                            ElementType = SRV
                             Name = "GBufferMipChain"
                             Count = 1
                             Size = 4294967295
@@ -109,7 +75,7 @@ Shader "SSRSampleGBuffer_6826059799620415254" {
                                 FieldTypes = []
                             }
                             Category = Image
-                            Index = 3
+                            Index = 1
                         }
                         ShaderInput {
                             Register = SRV
@@ -126,7 +92,24 @@ Shader "SSRSampleGBuffer_6826059799620415254" {
                                 FieldTypes = []
                             }
                             Category = Image
-                            Index = 4
+                            Index = 2
+                        }
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "HiZTexture"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Image
+                            Index = 3
                         }
                         ShaderInput {
                             Register = SRV
@@ -143,7 +126,7 @@ Shader "SSRSampleGBuffer_6826059799620415254" {
                                 FieldTypes = []
                             }
                             Category = Image
-                            Index = 5
+                            Index = 4
                         }
                         ShaderInput {
                             Register = SRV
@@ -160,7 +143,7 @@ Shader "SSRSampleGBuffer_6826059799620415254" {
                                 FieldTypes = []
                             }
                             Category = Image
-                            Index = 6
+                            Index = 5
                         }
                         ShaderInput {
                             Register = SRV
@@ -177,24 +160,7 @@ Shader "SSRSampleGBuffer_6826059799620415254" {
                                 FieldTypes = []
                             }
                             Category = Image
-                            Index = 7
-                        }
-                        ShaderInput {
-                            Register = SRV
-                            ElementType = SRV_Dynamic
-                            Name = "CamerasBuffer"
-                            Count = 1
-                            Size = 4294967295
-                            IsDynamic = true
-                            BufferType = StructuredBuffer
-                            StructInfo = {
-                                Name = ""
-                                Size = 4294967295
-                                FieldNames = []
-                                FieldTypes = []
-                            }
-                            Category = Buffer
-                            Index = 8
+                            Index = 6
                         }
                     ]
                     []
@@ -274,11 +240,11 @@ Shader "SSRSampleGBuffer_6826059799620415254" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/SSRSampleGBuffer_6826059799620415254.VS"
-            Size = 776
+            Size = 12468
         }
         BlobDataReference {
             Key = "Engine://Shaders/SSRSampleGBuffer_6826059799620415254.PS"
-            Size = 5052
+            Size = 112584
         }
     ]
     PropertySetHashCode = {

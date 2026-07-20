@@ -1,9 +1,16 @@
 #include "../include/Defines.hlsli"
 
-STATIC(MAX_LIGHTS, 4);
+PERMUTE(CLUSTERED_LIGHTS)
 
+STATIC(MAX_CLUSTERED_SHADOW_MAPS, 16);
+STATIC(MAX_FOG_LIGHTS, 4);
 STATIC(TILE_Z_BINS, 16);
 STATIC(TILE_SIZE, 32);
+
+// Looks good, crushes performance with any number of lights > 3 or so
+// #define POINT_LIGHT_FOG
+
+#define FOG_VOLUME_USE_SDF
 
 
 #ifdef VERTEX_SHADER
@@ -100,10 +107,12 @@ DECLARE_SRV_DYNAMIC(FogVolume, CamerasBuffer) StructuredBuffer<Camera> _cameras_
 DECLARE_SRV(FogVolume, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(FogVolume, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
-DECLARE_SRV(DeferredPass, EnvProbesBuffer) StructuredBuffer<EnvProbe> EnvProbesBuffer;
-DECLARE_SRV(DeferredPass, LightsBuffer) StructuredBuffer<Light> LightsBuffer;
-DECLARE_SRV(DeferredPass, ClusterGridBuffer) ByteAddressBuffer ClusterGridBuffer;
-DECLARE_SRV(DeferredPass, ClusterIndexBuffer) ByteAddressBuffer ClusterIndexBuffer;
+DECLARE_SRV(FogVolume, EnvProbesBuffer) StructuredBuffer<EnvProbe> EnvProbesBuffer;
+DECLARE_SRV(FogVolume, LightsBuffer) StructuredBuffer<Light> LightsBuffer;
+DECLARE_SRV(FogVolume, ClusterGridBuffer) ByteAddressBuffer ClusterGridBuffer;
+DECLARE_SRV(FogVolume, ClusterIndexBuffer) ByteAddressBuffer ClusterIndexBuffer;
+
+DECLARE_SRV(FogVolume, ShadowMapIndexBuffer) ByteAddressBuffer LightToShadowMapIndex;
 
 #include "./ClusteredShading.hlsli"
 
@@ -126,24 +135,90 @@ DECLARE_SRV(DeferredPass, ClusterIndexBuffer) ByteAddressBuffer ClusterIndexBuff
 #include "./FogVolume.inl"
 
 /// Blue noise
-DECLARE_SRV(PathTracer, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;
+DECLARE_SRV(FogVolume, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;
 
 #include "../include/BlueNoise.hlsli"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
+DECLARE_SRV(FogVolume, DataMap) Texture3D<float> DataMap;
 DECLARE_SRV(FogVolume, NoiseMap) Texture3D<float> NoiseMap;
+
+#ifdef CLUSTERED_LIGHTS
+
 DECLARE_BUFFER_DYNAMIC(FogVolume, FogVolumeConstants) cbuffer FogVolumeConstants
 {
     FogVolume fogVolume;
-    Light lights[MAX_LIGHTS];
-    ShadowMap shadowMaps[MAX_LIGHTS];
+    
+    Light directionalLight;
+
+    float4x4 shadowViewMat;
+
+    float4 atlasU;
+    float4 atlasV;
+    
+    float4 atlasScaleX;
+    float4 atlasScaleY;
+    
+    uint4 atlasSlice;
+    
+    float4 cascadeScaleX;
+    float4 cascadeScaleY;
+    float4 cascadeScaleZ;
+    
+    float4 cascadeOffsetX;
+    float4 cascadeOffsetY;
+    float4 cascadeOffsetZ;
+
+    ShadowMap shadowMaps[MAX_CLUSTERED_SHADOW_MAPS];
 
     int2 screenDimensions;
     float stepSize;
     uint maxSteps;
     uint frameCounter;
 };
+
+uint GetShadowMapIndexForLight(uint lightIndex)
+{
+    return LightToShadowMapIndex.Load(lightIndex * sizeof(uint));
+}
+
+#else // !CLUSTERED_LIGHTS
+
+DECLARE_BUFFER_DYNAMIC(FogVolume, FogVolumeConstants) cbuffer FogVolumeConstants
+{
+    FogVolume fogVolume;
+
+    Light directionalLight;
+
+    float4x4 shadowViewMat;
+
+    float4 atlasU;
+    float4 atlasV;
+    
+    float4 atlasScaleX;
+    float4 atlasScaleY;
+    
+    uint4 atlasSlice;
+    
+    float4 cascadeScaleX;
+    float4 cascadeScaleY;
+    float4 cascadeScaleZ;
+    
+    float4 cascadeOffsetX;
+    float4 cascadeOffsetY;
+    float4 cascadeOffsetZ;
+
+    Light fogLights[MAX_FOG_LIGHTS];
+    ShadowMap fogLightShadowMaps[MAX_FOG_LIGHTS];
+
+    int2 screenDimensions;
+    float stepSize;
+    uint maxSteps;
+    uint frameCounter;
+};
+
+#endif // CLUSTERED_LIGHTS
 
 float2 RayBoxIntersect(float3 rayOrigin, float3 rayDir, float3 boxMin, float3 boxMax)
 {
@@ -189,10 +264,46 @@ float HenyeyGreenstein(float g, float cosTheta)
 
 float GetFogDensity(float3 uvw)
 {
-    return SAMPLE_TEXTURE_3D(texture_sampler, NoiseMap, uvw).r;
+    return SAMPLE_TEXTURE_3D_LOD(texture_sampler, NoiseMap, uvw, 0).r;
 }
 
-float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar)
+float GetDirectionalLightCSMShadow(float3 currentPos, float2 screenSpaceUV)
+{
+    float4 positionLS = mul(shadowViewMat, float4(currentPos, 1.0));
+    positionLS /= positionLS.w;
+
+    float4 uvX = positionLS.x * cascadeScaleX + cascadeOffsetX;
+    float4 uvY = positionLS.y * cascadeScaleY + cascadeOffsetY;
+    float4 uvZ = positionLS.z * cascadeScaleZ + cascadeOffsetZ;
+
+    float4 distX = abs(uvX - 0.5);
+    float4 distY = abs(uvY - 0.5);
+    float4 distZ = abs(uvZ - 0.5);
+
+    float4 maxDist = max(distX, max(distY, distZ));
+    float4 insideMask = step(maxDist, (float4)0.5);
+
+    int cascadeIndex = 4 - (int)dot(insideMask, (float4)1.0);
+    cascadeIndex = min(cascadeIndex, 3);
+
+    float4 shadowMapCoord;
+    shadowMapCoord.x = uvX[cascadeIndex];
+    shadowMapCoord.y = uvY[cascadeIndex];
+    shadowMapCoord.z = uvZ[cascadeIndex];
+    shadowMapCoord.w = (float)atlasSlice[cascadeIndex];
+
+    float2 atlasUV = float2(atlasU[cascadeIndex], atlasV[cascadeIndex]);
+    float2 atlasScale = float2(atlasScaleX[cascadeIndex], atlasScaleY[cascadeIndex]);
+
+    return GetShadowCSM(shadowMapCoord, atlasUV, atlasScale, currentPos, screenSpaceUV, camera.dimensions.xy, 1.0);
+}
+
+float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar,
+    float2 screenSpaceUV
+#ifdef CLUSTERED_LIGHTS
+    , uint clusterIndexOffset, uint numClusteredLights
+#endif
+)
 {
     float t = tNear;
 
@@ -212,6 +323,8 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar)
 
     float3 albedo = (Extinction > 1e-6) ? float3(Scattering / Extinction, Scattering / Extinction, Scattering / Extinction) : float3(0.0, 0.0, 0.0);
 
+    bool hasDirectionalLight = (directionalLight.type == HYP_LIGHT_TYPE_DIRECTIONAL);
+
     for (int i = 0; i < maxSteps; i++)
     {
         if (t >= tFar || transmittance < 0.001)
@@ -222,10 +335,10 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar)
         float3 currentPos = rayOrigin + rayDir * t;
         float3 uvw = WorldToTexCoord(currentPos, fogVolume.aabbMin.xyz, fogVolume.aabbMax.xyz);
 
-#if FOG_VOLUME_USE_SDF
-        float sdf = SAMPLE_TEXTURE_3D(texture_sampler, DataMap, uvw).r;
+#ifdef FOG_VOLUME_USE_SDF
+        float sdf = SAMPLE_TEXTURE_3D_LOD(texture_sampler, DataMap, uvw, 0).r;
 
-        if (sdf < -0.01)
+        if (sdf < -0.001)
         {
             break;
         }
@@ -242,23 +355,40 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar)
 
         float3 stepLightEnergy = AmbientLight;
 
-        for (uint lightIndex = 0u; lightIndex < fogVolume.numBoundLights; lightIndex++)
+        if (hasDirectionalLight)
         {
-            Light light = lights[lightIndex];
-            ShadowMap shadowMap = shadowMaps[lightIndex];
+            float3 lightDir = normalize(-directionalLight.position_intensity.xyz);
+
+            float cosTheta = dot(lightDir, rayDir);
+            float phase = HenyeyGreenstein(phaseG, cosTheta);
+
+            float shadow = 1.0;
+
+            if ((directionalLight.flags & LF_SHADOW_CASTER) != 0)
+            {
+                shadow = GetDirectionalLightCSMShadow(currentPos, screenSpaceUV);
+            }
+
+            stepLightEnergy += directionalLight.color.rgb * directionalLight.position_intensity.w * phase * shadow;
+        }
+
+#ifdef POINT_LIGHT_FOG
+
+#ifdef CLUSTERED_LIGHTS
+        for (uint ci = 0; ci < numClusteredLights; ++ci)
+        {
+            uint lightIndex = Cluster_LoadLightIndex(clusterIndexOffset, ci);
+            Light light = LightsBuffer[lightIndex];
 
             float3 lightDir;
             float phase;
-
-            float shadow;
+            float shadow = 1.0;
             float attenuation = 1.0;
-
 
             switch (light.type)
             {
                 case HYP_LIGHT_TYPE_POINT:
                 {
-                    uint flags = light.flags;
                     float3 worldToLight = currentPos - light.position_intensity.xyz;
 
                     lightDir = normalize(-worldToLight);
@@ -268,29 +398,84 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar)
 
                     const float2 radiusFalloff = float2(f16tof32(light.radiusFalloffPacked), f16tof32(light.radiusFalloffPacked >> 16));
                     const float radius = radiusFalloff.x;
-                    const float falloff = radiusFalloff.y;
+
+                    if ((light.flags & LF_SHADOW_CASTER) != 0)
+                    {
+                        uint shadowMapIndex = GetShadowMapIndexForLight(lightIndex);
+
+                        if (shadowMapIndex < MAX_CLUSTERED_SHADOW_MAPS)
+                        {
+                            ShadowMap shadowMapData = shadowMaps[shadowMapIndex];
+                            shadow = GetPointShadow(shadowMapData, light.flags, worldToLight, 0.0);
+                        }
+                    }
+
+                    attenuation = GetSquareFalloffAttenuation(currentPos, light.position_intensity.xyz, radius);
+                    break;
+                }
+                case HYP_LIGHT_TYPE_SPOT:
+                {
+                    float3 worldToLight = currentPos - light.position_intensity.xyz;
+
+                    lightDir = normalize(-worldToLight);
+
+                    float cosTheta = dot(lightDir, rayDir);
+                    phase = HenyeyGreenstein(phaseG, cosTheta);
+
+                    const float2 radiusFalloff = float2(f16tof32(light.radiusFalloffPacked), f16tof32(light.radiusFalloffPacked >> 16));
+                    const float radius = radiusFalloff.x;
+
+                    attenuation = GetSquareFalloffAttenuation(currentPos, light.position_intensity.xyz, radius);
+
+                    float theta = max(dot(-lightDir, normalize(light.normal.xyz)), 0.0);
+                    float2 spot_angles = light.area_size.xy;
+
+                    attenuation *= saturate((theta - spot_angles[0]) / (spot_angles[1] - spot_angles[0])) * step(spot_angles[0], theta);
+                    break;
+                }
+                default: continue;
+            }
+
+            stepLightEnergy += light.color.rgb * light.position_intensity.w * attenuation * phase * shadow;
+        }
+#else // !CLUSTERED_LIGHTS
+        for (uint lightIndex = 0u; lightIndex < fogVolume.numBoundLights; lightIndex++)
+        {
+            Light light = fogLights[lightIndex];
+            ShadowMap shadowMap = fogLightShadowMaps[lightIndex];
+
+            float3 lightDir;
+            float phase;
+            float shadow = 1.0;
+            float attenuation = 1.0;
+
+            switch (light.type)
+            {
+                case HYP_LIGHT_TYPE_POINT:
+                {
+                    float3 worldToLight = currentPos - light.position_intensity.xyz;
+
+                    lightDir = normalize(-worldToLight);
+
+                    float cosTheta = dot(lightDir, rayDir);
+                    phase = HenyeyGreenstein(phaseG, cosTheta);
+
+                    const float2 radiusFalloff = float2(f16tof32(light.radiusFalloffPacked), f16tof32(light.radiusFalloffPacked >> 16));
+                    const float radius = radiusFalloff.x;
 
                     shadow = GetPointShadowStandard(shadowMap, worldToLight, 0.0);
 
                     attenuation = GetSquareFalloffAttenuation(currentPos, light.position_intensity.xyz, radius);
                     break;
                 }
-                case HYP_LIGHT_TYPE_DIRECTIONAL:
-                {
-                    lightDir = normalize(-light.position_intensity.xyz);
-
-                    float cosTheta = dot(lightDir, rayDir);
-                    phase = HenyeyGreenstein(phaseG, cosTheta);
-
-                    shadow = GetShadowStandard(shadowMap, currentPos, float2(0.0, 0.0), 1.0);
-
-                    break;
-                }
-                default: break;
+                default: continue;
             }
 
             stepLightEnergy += light.color.rgb * light.position_intensity.w * attenuation * phase * shadow;
         }
+#endif // CLUSTERED_LIGHTS
+
+#endif // POINT_LIGHT_FOG
 
         float stepExtinction = Extinction * localDensity * stepSize;
         float stepTransmittance = exp(-stepExtinction);
@@ -337,7 +522,7 @@ float4 PSMain(PSInput input) : SV_TARGET
     {
         discard;
     }
-    
+
 #define NUM_TEMPORAL_SAMPLES 32
 
     int2 coord = int2(screenSpaceUV * screenDimensions);
@@ -347,13 +532,28 @@ float4 PSMain(PSInput input) : SV_TARGET
 
     float temporalNoise = fract(noise + (frameCounter * s_goldenRatio));
 
-    // static const float s_farDistance = 100.0;
-    // // scale the jitter so it is less prevalent as we move the camera farther away.
-    // float depthFade = 1.0 - smoothstep(0.2, 1.0, clamp(linearDepth / s_farDistance, 0.0, 1.0));
+    tNear += temporalNoise * stepSize;
 
-    tNear += temporalNoise * stepSize;// * depthFade;
+#ifdef CLUSTERED_LIGHTS
+    float viewSpaceZ = positionVS.z;
 
-    float4 fogColor = RayMarch(camera.position.xyz, rayDir, tNear, tFar);
+    uint2 viewportExtent = camera.dimensions.xy;
+    uint2 viewportPixelCoord = uint2(screenSpaceUV * (float2)viewportExtent);
+
+    uint gridIndex = Cluster_GetGridIndex(
+        viewportExtent, viewportPixelCoord,
+        viewSpaceZ,
+        camera.near, camera.far);
+
+    uint2 clusterData = ClusterGridBuffer.Load2(gridIndex * sizeof(uint2));
+    uint clusterIndexOffset = clusterData.x;
+    uint numClusteredLights = (clusterData.y & 0xFFFFu);
+
+    float4 fogColor = RayMarch(camera.position.xyz, rayDir, tNear, tFar,
+        screenSpaceUV, clusterIndexOffset, numClusteredLights);
+#else
+    float4 fogColor = RayMarch(camera.position.xyz, rayDir, tNear, tFar, screenSpaceUV);
+#endif
 
     return fogColor;
 }

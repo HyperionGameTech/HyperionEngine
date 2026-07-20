@@ -4,17 +4,9 @@ ShaderBundle "DrawCubemap" {
     ]
     CompiledShaders = [
         @"Engine://Shaders/DrawCubemap_4709760780686944188"
-        @"Engine://Shaders/DrawCubemap_2079409056984439647"
-        @"Engine://Shaders/DrawCubemap_2079409056984439639"
         @"Engine://Shaders/DrawCubemap_4709760780686944164"
-        @"Engine://Shaders/DrawCubemap_2079409056984439631"
-        @"Engine://Shaders/DrawCubemap_2079409056984439623"
         @"Engine://Shaders/DrawCubemap_4709760780686944180"
         @"Engine://Shaders/DrawCubemap_4709760780686944172"
-        @"Engine://Shaders/DrawCubemap_1383361745091999258"
-        @"Engine://Shaders/DrawCubemap_1383361745091999250"
-        @"Engine://Shaders/DrawCubemap_1383361745091999242"
-        @"Engine://Shaders/DrawCubemap_1383361745091999234"
     ]
     FriendlyName = "DrawCubemap"
 }

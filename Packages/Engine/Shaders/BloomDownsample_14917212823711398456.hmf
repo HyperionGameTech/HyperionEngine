@@ -132,11 +132,11 @@ Shader "BloomDownsample_14917212823711398456" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/BloomDownsample_14917212823711398456.VS"
-            Size = 776
+            Size = 45020
         }
         BlobDataReference {
             Key = "Engine://Shaders/BloomDownsample_14917212823711398456.PS"
-            Size = 2956
+            Size = 50900
         }
     ]
     PropertySetHashCode = {

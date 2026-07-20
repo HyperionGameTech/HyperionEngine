@@ -397,12 +397,8 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
 
         const ShadowMapType shadowMapType = LightTypeToShadowMapType[uint32(light->GetLightType())];
 
-        const ShadowMapFilter filterMode = (light->GetLightType() == LightType::Directional)
-            ? SMF_CONTACT_HARDENED
-            : SMF_STANDARD;
-
         ShadowMap* newShadowMap = m_impl->allocator.AllocateShadowMap(
-            shadowMapType, filterMode, light->GetShadowMapDimensions());
+            shadowMapType, SMF_PCF, light->GetShadowMapDimensions());
 
         ShadowMap*& outShadowMap = isOmni
             ? entry.shadowMaps[0]

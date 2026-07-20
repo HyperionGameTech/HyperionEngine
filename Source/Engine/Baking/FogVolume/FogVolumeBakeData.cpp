@@ -94,7 +94,7 @@ Result BakeData<FogVolume>::Build()
     VoxelOctreeParams octreeParams;
     octreeParams.aabb = voxelOctreeAabb;
     octreeParams.allowResize = false;
-    octreeParams.maxDepth = 3;
+    octreeParams.maxDepth = 10;
 
     m_voxelOctree = MakeUnique<VoxelOctree>();
 
