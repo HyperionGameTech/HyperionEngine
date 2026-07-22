@@ -1,0 +1,365 @@
+Shader "LightmapPathTracer_11708491026104534049" {
+    PropertySet = [
+        ShaderProperty {
+            Name = "TARGET"
+            Flags = SPF_NONE
+            Value = "WINDOWS"
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "BACKEND"
+            Flags = SPF_NONE
+            Value = "VULKAN"
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "NUM_GBUFFER_TEXTURES"
+            Flags = SPF_NONE
+            Value = 5
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "HYP_FEATURES_BINDLESS_TEXTURES"
+            Flags = SPF_NONE
+            Value = null
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "MAX_LIGHTS"
+            Flags = SPF_NONE
+            Value = 16
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "MAX_ENV_PROBES"
+            Flags = SPF_NONE
+            Value = 4
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "MODE"
+            Flags = SPF_NONE
+            Value = "IRRADIANCE"
+            EnumValues = []
+        }
+    ]
+    RevisionNumber = 940922443
+    BaseName = "LightmapPathTracer"
+    InputLayout = {
+        Mask = 0
+    }
+    ShaderInputGroup = {
+        Elements = [
+            ShaderInputSet {
+                SetIndex = 0
+                Name = "LightmapPathTracer"
+                Slots = [
+                    [
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "EntitiesBuffer"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = StructuredBuffer
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Buffer
+                            Index = 0
+                        }
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "WorldsBuffer"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = StructuredBuffer
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Buffer
+                            Index = 1
+                        }
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "BlueNoiseBuffer"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = StructuredBuffer
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Buffer
+                            Index = 2
+                        }
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "RaysBuffer"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = StructuredBuffer
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Buffer
+                            Index = 3
+                        }
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "MeshDescriptionsBuffer"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = StructuredBuffer
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Buffer
+                            Index = 4
+                        }
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "MaterialsBuffer"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = StructuredBuffer
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Buffer
+                            Index = 5
+                        }
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "PointLightShadowMapsTextureArray"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Image
+                            Index = 6
+                        }
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "EnvProbesColorTexture"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Image
+                            Index = 7
+                        }
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "ShadowMapsTextureArray"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Image
+                            Index = 8
+                        }
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "TLAS"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = AccelerationStructure
+                            Index = 9
+                        }
+                    ]
+                    [
+                        ShaderInput {
+                            Register = UAV
+                            ElementType = UAV
+                            Name = "HitsBuffer"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = RWStructuredBuffer
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Buffer
+                            Index = 0
+                        }
+                    ]
+                    [
+                        ShaderInput {
+                            Register = BUFFER
+                            ElementType = CBV
+                            Name = "CBuffer"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = ConstantBuffer
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Buffer
+                            Index = 0
+                        }
+                    ]
+                    [
+                        ShaderInput {
+                            Register = SAMPLER
+                            ElementType = Sampler
+                            Name = "SamplerNearest"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Sampler
+                            Index = 0
+                        }
+                        ShaderInput {
+                            Register = SAMPLER
+                            ElementType = Sampler
+                            Name = "SamplerLinear"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Sampler
+                            Index = 1
+                        }
+                    ]
+                    []
+                ]
+                Flags = None
+            }
+            ShaderInputSet {
+                SetIndex = 1
+                Name = "BindlessResources1"
+                Slots = [
+                    []
+                    []
+                    []
+                    []
+                    []
+                ]
+                Flags = Reference
+            }
+            ShaderInputSet {
+                SetIndex = 2
+                Name = "BindlessResources0"
+                Slots = [
+                    []
+                    []
+                    []
+                    []
+                    []
+                ]
+                Flags = Reference
+            }
+        ]
+    }
+    ShaderModuleTypes = [
+        RayGen
+        ClosestHit
+        Miss
+    ]
+    ShaderModuleNames = [
+        "LightmapPathTracer.hlsl"
+        "LightmapPathTracer.rchit.hlsl"
+        "LightmapPathTracer.rmiss.hlsl"
+    ]
+    EntryPointNames = [
+        "RayGenMain"
+        "ClosestHitMain"
+        "MissMain"
+    ]
+    ShaderBlobs = [
+        BlobDataReference {
+            Key = "Engine://Shaders/LightmapPathTracer_11708491026104534049.RGS"
+            Size = 111176
+        }
+        BlobDataReference {
+            Key = "Engine://Shaders/LightmapPathTracer_11708491026104534049.CHS"
+            Size = 136520
+        }
+        BlobDataReference {
+            Key = "Engine://Shaders/LightmapPathTracer_11708491026104534049.MS"
+            Size = 36036
+        }
+    ]
+    PropertySetHashCode = {
+    }
+    FriendlyName = "LightmapPathTracer_11708491026104534049"
+}

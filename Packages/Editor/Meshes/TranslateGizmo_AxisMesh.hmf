@@ -11,60 +11,70 @@ Mesh "TranslateGizmo_AxisMesh" {
             Topology = TOP_TRIANGLES
             IndexBufferElemType = GET_UNSIGNED_INT
         }
-        Lods = [MeshLodDesc {
-            NumVertices = 167
-            NumIndices = 336
-        }, MeshLodDesc {
-            NumVertices = 0
-            NumIndices = 0
-        }, MeshLodDesc {
-            NumVertices = 0
-            NumIndices = 0
-        }, MeshLodDesc {
-            NumVertices = 0
-            NumIndices = 0
-        }]
+        Lods = [
+            MeshLodDesc {
+                NumVertices = 167
+                NumIndices = 336
+            }
+            MeshLodDesc {
+                NumVertices = 0
+                NumIndices = 0
+            }
+            MeshLodDesc {
+                NumVertices = 0
+                NumIndices = 0
+            }
+            MeshLodDesc {
+                NumVertices = 0
+                NumIndices = 0
+            }
+        ]
     }
-    LodData = [MeshLodData {
-        VertexData = {
-            Key = "Editor://Meshes/TranslateGizmo_AxisMesh.VB"
-            Size = 5344
+    LodData = [
+        MeshLodData {
+            VertexData = {
+                Key = "Editor://Meshes/TranslateGizmo_AxisMesh.VB"
+                Size = 5344
+            }
+            IndexData = {
+                Key = "Editor://Meshes/TranslateGizmo_AxisMesh.IB"
+                Size = 1344
+            }
         }
-        IndexData = {
-            Key = "Editor://Meshes/TranslateGizmo_AxisMesh.IB"
-            Size = 1344
+        MeshLodData {
+            VertexData = {
+                Key = ""
+                Size = 0
+            }
+            IndexData = {
+                Key = ""
+                Size = 0
+            }
         }
-    }, MeshLodData {
-        VertexData = {
-            Key = ""
-            Size = 0
+        MeshLodData {
+            VertexData = {
+                Key = ""
+                Size = 0
+            }
+            IndexData = {
+                Key = ""
+                Size = 0
+            }
         }
-        IndexData = {
-            Key = ""
-            Size = 0
+        MeshLodData {
+            VertexData = {
+                Key = ""
+                Size = 0
+            }
+            IndexData = {
+                Key = ""
+                Size = 0
+            }
         }
-    }, MeshLodData {
-        VertexData = {
-            Key = ""
-            Size = 0
-        }
-        IndexData = {
-            Key = ""
-            Size = 0
-        }
-    }, MeshLodData {
-        VertexData = {
-            Key = ""
-            Size = 0
-        }
-        IndexData = {
-            Key = ""
-            Size = 0
-        }
-    }]
+    ]
     BvhData = {
         Key = "Editor://Meshes/TranslateGizmo_AxisMesh.BVH"
-        Size = 14421
+        Size = 14485
     }
     Flags = None
     FriendlyName = "TranslateGizmoAxisMesh"

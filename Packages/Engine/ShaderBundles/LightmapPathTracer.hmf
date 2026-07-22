@@ -1,0 +1,10 @@
+ShaderBundle "LightmapPathTracer" {
+    StaticProperties = []
+    CompiledShaders = [
+        @"Engine://Shaders/LightmapPathTracer_151121983386895400"
+        @"Engine://Shaders/LightmapPathTracer_11708491026104534049"
+        @"Engine://Shaders/LightmapPathTracer_11406509907598041877"
+        @"Engine://Shaders/LightmapPathTracer_1094868450165832236"
+    ]
+    FriendlyName = "LightmapPathTracer"
+}

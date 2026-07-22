@@ -1,0 +1,220 @@
+Shader "DrawCubemap_2079409056984439623" {
+    PropertySet = [
+        ShaderProperty {
+            Name = "TARGET"
+            Flags = SPF_NONE
+            Value = "WINDOWS"
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "BACKEND"
+            Flags = SPF_NONE
+            Value = "VULKAN"
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "NUM_GBUFFER_TEXTURES"
+            Flags = SPF_NONE
+            Value = 5
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "HYP_FEATURES_BINDLESS_TEXTURES"
+            Flags = SPF_NONE
+            Value = null
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "FORWARD_SHADING"
+            Flags = SPF_NONE
+            Value = null
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "WRITE_MOMENTS"
+            Flags = SPF_NONE
+            Value = null
+            EnumValues = []
+        }
+    ]
+    RevisionNumber = 940922443
+    BaseName = "DrawCubemap"
+    InputLayout = {
+        Mask = 15
+    }
+    ShaderInputGroup = {
+        Elements = [
+            ShaderInputSet {
+                SetIndex = 0
+                Name = "Default"
+                Slots = [
+                    [
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "PointLightShadowMapsTextureArray"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Image
+                            Index = 0
+                        }
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "EnvProbesColorTexture"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Image
+                            Index = 1
+                        }
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "ShadowMapsTextureArray"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Image
+                            Index = 2
+                        }
+                    ]
+                    []
+                    [
+                        ShaderInput {
+                            Register = BUFFER
+                            ElementType = CBV_Dynamic
+                            Name = "CBuffer"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = true
+                            BufferType = ConstantBuffer
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Buffer
+                            Index = 0
+                        }
+                        ShaderInput {
+                            Register = BUFFER
+                            ElementType = CBV_Dynamic
+                            Name = "ForwardShadingConstants"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = true
+                            BufferType = ConstantBuffer
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Buffer
+                            Index = 1
+                        }
+                    ]
+                    [
+                        ShaderInput {
+                            Register = SAMPLER
+                            ElementType = Sampler
+                            Name = "SamplerNearest"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Sampler
+                            Index = 0
+                        }
+                        ShaderInput {
+                            Register = SAMPLER
+                            ElementType = Sampler
+                            Name = "SamplerLinear"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Sampler
+                            Index = 1
+                        }
+                    ]
+                    []
+                ]
+                Flags = None
+            }
+            ShaderInputSet {
+                SetIndex = 1
+                Name = "BindlessResources0"
+                Slots = [
+                    []
+                    []
+                    []
+                    []
+                    []
+                ]
+                Flags = Reference
+            }
+        ]
+    }
+    ShaderModuleTypes = [
+        Vertex
+        Pixel
+    ]
+    ShaderModuleNames = [
+        "DrawCubemap.hlsl"
+        "DrawCubemap.hlsl"
+    ]
+    EntryPointNames = [
+        "VSMain"
+        "PSMain"
+    ]
+    ShaderBlobs = [
+        BlobDataReference {
+            Key = "Engine://Shaders/DrawCubemap_2079409056984439623.VS"
+            Size = 52408
+        }
+        BlobDataReference {
+            Key = "Engine://Shaders/DrawCubemap_2079409056984439623.PS"
+            Size = 149148
+        }
+    ]
+    PropertySetHashCode = {
+    }
+    FriendlyName = "DrawCubemap_2079409056984439623"
+}

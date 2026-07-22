@@ -1,0 +1,70 @@
+Material "VolumeFace_4" {
+    BaseMaterial = null
+    Parameters = {
+        Albedo = (0.3, 0, 0.28, 0.25)
+        Metalness = 0
+        Roughness = 1
+        AlphaThreshold = 0
+        ParallaxHeightScale = 0.02
+        Transmission = 0
+        IOR = 1.5
+        EmissiveColor = {
+            Red = 0
+            Green = 0
+            Blue = 0
+            Alpha = 0
+        }
+        EmissiveIntensity = 0
+        UserParams = (0, 0, 0, 0)
+        Unlit = true
+    }
+    Textures = {
+        Values = [
+            null
+            null
+            null
+            null
+            null
+            null
+            null
+            null
+        ]
+    }
+    Attributes = {
+        ShaderName = "GeometryPass"
+        ShaderProperties = {
+            Chunks = [
+                0
+                0
+                0
+                0
+                0
+                0
+                0
+                0
+            ]
+        }
+        Bucket = Debug
+        FillMode = FM_FILL
+        BlendFunction = {
+            SrcColor = One
+            DstColor = One
+            SrcAlpha = One
+            DstAlpha = One
+        }
+        CullFaces = FCM_NONE
+        Flags = MAF_DEPTH_WRITE|MAF_DEPTH_TEST
+        StencilFunction = {
+            PassOp = SO_REPLACE
+            FailOp = SO_KEEP
+            DepthFailOp = SO_KEEP
+            CompareOp = SCO_ALWAYS
+        }
+        DepthCompareOp = DCO_LESS
+        StencilReference = 0
+        DepthBias = 0
+        DepthBiasSlope = 0
+    }
+    IsDynamic = true
+    FriendlyName = "VolumeFace_4"
+}

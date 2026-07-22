@@ -4,6 +4,7 @@ ShaderBundle "TAA" {
     ]
     CompiledShaders = [
         @"Engine://Shaders/TAA_16305269418513385892"
+        @"Engine://Shaders/TAA_12061958747793825926"
     ]
     FriendlyName = "TAA"
 }

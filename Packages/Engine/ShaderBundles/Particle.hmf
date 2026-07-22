@@ -1,0 +1,8 @@
+ShaderBundle "Particle" {
+    StaticProperties = []
+    CompiledShaders = [
+        @"Engine://Shaders/Particle_5964599670083616780"
+        @"Engine://Shaders/Particle_1315150856762085264"
+    ]
+    FriendlyName = "Particle"
+}

@@ -1,0 +1,179 @@
+Shader "Upsample_13803781059551201557" {
+    PropertySet = [
+        ShaderProperty {
+            Name = "TARGET"
+            Flags = SPF_NONE
+            Value = "WINDOWS"
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "BACKEND"
+            Flags = SPF_NONE
+            Value = "DX12"
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "NUM_GBUFFER_TEXTURES"
+            Flags = SPF_NONE
+            Value = 5
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "HYP_FEATURES_BINDLESS_TEXTURES"
+            Flags = SPF_NONE
+            Value = null
+            EnumValues = []
+        }
+    ]
+    RevisionNumber = 940922443
+    BaseName = "Upsample"
+    InputLayout = {
+        Mask = 7
+    }
+    ShaderInputGroup = {
+        Elements = [
+            ShaderInputSet {
+                SetIndex = 0
+                Name = "Upsample"
+                Slots = [
+                    [
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "NormalsTexture"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Image
+                            Index = 0
+                        }
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "DepthTexture"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Image
+                            Index = 1
+                        }
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "PrevPassTexture"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Image
+                            Index = 2
+                        }
+                    ]
+                    []
+                    [
+                        ShaderInput {
+                            Register = BUFFER
+                            ElementType = CBV_Dynamic
+                            Name = "CBuffer"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = true
+                            BufferType = ConstantBuffer
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Buffer
+                            Index = 0
+                        }
+                    ]
+                    [
+                        ShaderInput {
+                            Register = SAMPLER
+                            ElementType = Sampler
+                            Name = "SamplerNearest"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Sampler
+                            Index = 0
+                        }
+                        ShaderInput {
+                            Register = SAMPLER
+                            ElementType = Sampler
+                            Name = "SamplerLinear"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Sampler
+                            Index = 1
+                        }
+                    ]
+                    []
+                ]
+                Flags = None
+            }
+        ]
+    }
+    ShaderModuleTypes = [
+        Vertex
+        Pixel
+    ]
+    ShaderModuleNames = [
+        "Upsample.hlsl"
+        "Upsample.hlsl"
+    ]
+    EntryPointNames = [
+        "VSMain"
+        "PSMain"
+    ]
+    ShaderBlobs = [
+        BlobDataReference {
+            Key = "Engine://Shaders/Upsample_13803781059551201557.VS"
+            Size = 18572
+        }
+        BlobDataReference {
+            Key = "Engine://Shaders/Upsample_13803781059551201557.PS"
+            Size = 40860
+        }
+    ]
+    PropertySetHashCode = {
+    }
+    FriendlyName = "Upsample_13803781059551201557"
+}

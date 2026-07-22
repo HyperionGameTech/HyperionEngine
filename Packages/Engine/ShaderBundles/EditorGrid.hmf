@@ -1,0 +1,7 @@
+ShaderBundle "EditorGrid" {
+    StaticProperties = []
+    CompiledShaders = [
+        @"Engine://Shaders/EditorGrid_13803781059551201557"
+    ]
+    FriendlyName = "EditorGrid"
+}

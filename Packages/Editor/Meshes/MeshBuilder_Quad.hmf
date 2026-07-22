@@ -11,57 +11,67 @@ Mesh "MeshBuilder_Quad" {
             Topology = TOP_TRIANGLES
             IndexBufferElemType = GET_UNSIGNED_INT
         }
-        Lods = [MeshLodDesc {
-            NumVertices = 4
-            NumIndices = 6
-        }, MeshLodDesc {
-            NumVertices = 0
-            NumIndices = 0
-        }, MeshLodDesc {
-            NumVertices = 0
-            NumIndices = 0
-        }, MeshLodDesc {
-            NumVertices = 0
-            NumIndices = 0
-        }]
+        Lods = [
+            MeshLodDesc {
+                NumVertices = 4
+                NumIndices = 6
+            }
+            MeshLodDesc {
+                NumVertices = 0
+                NumIndices = 0
+            }
+            MeshLodDesc {
+                NumVertices = 0
+                NumIndices = 0
+            }
+            MeshLodDesc {
+                NumVertices = 0
+                NumIndices = 0
+            }
+        ]
     }
-    LodData = [MeshLodData {
-        VertexData = {
-            Key = "Editor://Meshes/MeshBuilder_Quad.VB"
-            Size = 128
+    LodData = [
+        MeshLodData {
+            VertexData = {
+                Key = "Editor://Meshes/MeshBuilder_Quad.VB"
+                Size = 128
+            }
+            IndexData = {
+                Key = "Editor://Meshes/MeshBuilder_Quad.IB"
+                Size = 24
+            }
         }
-        IndexData = {
-            Key = "Editor://Meshes/MeshBuilder_Quad.IB"
-            Size = 24
+        MeshLodData {
+            VertexData = {
+                Key = ""
+                Size = 0
+            }
+            IndexData = {
+                Key = ""
+                Size = 0
+            }
         }
-    }, MeshLodData {
-        VertexData = {
-            Key = ""
-            Size = 0
+        MeshLodData {
+            VertexData = {
+                Key = ""
+                Size = 0
+            }
+            IndexData = {
+                Key = ""
+                Size = 0
+            }
         }
-        IndexData = {
-            Key = ""
-            Size = 0
+        MeshLodData {
+            VertexData = {
+                Key = ""
+                Size = 0
+            }
+            IndexData = {
+                Key = ""
+                Size = 0
+            }
         }
-    }, MeshLodData {
-        VertexData = {
-            Key = ""
-            Size = 0
-        }
-        IndexData = {
-            Key = ""
-            Size = 0
-        }
-    }, MeshLodData {
-        VertexData = {
-            Key = ""
-            Size = 0
-        }
-        IndexData = {
-            Key = ""
-            Size = 0
-        }
-    }]
+    ]
     BvhData = {
         Key = "Editor://Meshes/MeshBuilder_Quad.BVH"
         Size = 26737

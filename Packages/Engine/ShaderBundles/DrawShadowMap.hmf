@@ -9,6 +9,10 @@ ShaderBundle "DrawShadowMap" {
         @"Engine://Shaders/DrawShadowMap_15987334744914022597"
         @"Engine://Shaders/DrawShadowMap_576726657354715026"
         @"Engine://Shaders/DrawShadowMap_576726657354715018"
+        @"Engine://Shaders/DrawShadowMap_16912012062162454923"
+        @"Engine://Shaders/DrawShadowMap_16912012062162454915"
+        @"Engine://Shaders/DrawShadowMap_16912012062162454963"
+        @"Engine://Shaders/DrawShadowMap_16912012062162454939"
     ]
     FriendlyName = "DrawShadowMap"
 }

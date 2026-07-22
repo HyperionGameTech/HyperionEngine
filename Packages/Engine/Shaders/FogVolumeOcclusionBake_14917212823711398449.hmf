@@ -1,0 +1,173 @@
+Shader "FogVolumeOcclusionBake_14917212823711398449" {
+    PropertySet = [
+        ShaderProperty {
+            Name = "TARGET"
+            Flags = SPF_NONE
+            Value = "WINDOWS"
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "BACKEND"
+            Flags = SPF_NONE
+            Value = "VULKAN"
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "NUM_GBUFFER_TEXTURES"
+            Flags = SPF_NONE
+            Value = 5
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "HYP_FEATURES_BINDLESS_TEXTURES"
+            Flags = SPF_NONE
+            Value = null
+            EnumValues = []
+        }
+    ]
+    RevisionNumber = 940922443
+    BaseName = "FogVolumeOcclusionBake"
+    InputLayout = {
+        Mask = 0
+    }
+    ShaderInputGroup = {
+        Elements = [
+            ShaderInputSet {
+                SetIndex = 0
+                Name = "FogVolumeOcclusionBake"
+                Slots = [
+                    [
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "Lights"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = StructuredBuffer
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Buffer
+                            Index = 0
+                        }
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "EnvProbes"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = StructuredBuffer
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Buffer
+                            Index = 1
+                        }
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "OcclusionSDF"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Image
+                            Index = 2
+                        }
+                    ]
+                    [
+                        ShaderInput {
+                            Register = UAV
+                            ElementType = UAV
+                            Name = "OutputBuffer"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = RWStructuredBuffer
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Buffer
+                            Index = 0
+                        }
+                    ]
+                    [
+                        ShaderInput {
+                            Register = BUFFER
+                            ElementType = CBV
+                            Name = "CBuffer"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = ConstantBuffer
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Buffer
+                            Index = 0
+                        }
+                    ]
+                    [
+                        ShaderInput {
+                            Register = SAMPLER
+                            ElementType = Sampler
+                            Name = "SamplerLinear"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Sampler
+                            Index = 0
+                        }
+                    ]
+                    []
+                ]
+                Flags = None
+            }
+        ]
+    }
+    ShaderModuleTypes = [
+        Compute
+    ]
+    ShaderModuleNames = [
+        "FogVolumeOcclusionBake.hlsl"
+    ]
+    EntryPointNames = [
+        "CSMain"
+    ]
+    ShaderBlobs = [
+        BlobDataReference {
+            Key = "Engine://Shaders/FogVolumeOcclusionBake_14917212823711398449.CS"
+            Size = 89052
+        }
+    ]
+    PropertySetHashCode = {
+    }
+    FriendlyName = "FogVolumeOcclusionBake_14917212823711398449"
+}

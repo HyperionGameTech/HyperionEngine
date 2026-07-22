@@ -16,147 +16,172 @@ Prefab "ScaleGizmo" {
                 W = 1
             }
         }
-        Children = [Entity {
-            Tags = []
-            Components = [MeshComponent {
-                Mesh = @"Editor://Meshes/ScaleGizmo_AxisMesh"
-                Material = @"Editor://Materials/ScaleGizmo_AxisX_Material"
-                Skeleton = null
-                EnableAutoInstancing = false
-                InstanceData = null
-            }]
-            Name = "ScaleGizmo_AxisX"
-            NodeFlags = MobilityStaticByProxy|MobilityDynamic
-            LocalBounds = {
-                Min = (-0.12, 0, -0.12)
-                Max = (0.12, 0.94, 0.12)
-            }
-            LocalTransform = {
-                Translation = (0, 0, 0)
-                Scale = (1, 1, 1)
-                Rotation = {
-                    X = 0
-                    Y = 0
-                    Z = 0.707107
-                    W = 0.707107
+        Children = [
+            Entity {
+                Tags = []
+                Components = [
+                    MeshComponent {
+                        Mesh = @"Editor://Meshes/ScaleGizmo_AxisMesh"
+                        Material = @"Editor://Materials/ScaleGizmo_AxisX_Material"
+                        Skeleton = null
+                        EnableAutoInstancing = false
+                        InstanceData = null
+                    }
+                ]
+                Name = "ScaleGizmo_AxisX"
+                NodeFlags = MobilityStaticByProxy|MobilityDynamic
+                LocalBounds = {
+                    Min = (-0.12, 0, -0.12)
+                    Max = (0.12, 0.94, 0.12)
+                }
+                LocalTransform = {
+                    Translation = (0, 0, 0)
+                    Scale = (1, 1, 1)
+                    Rotation = {
+                        X = 0
+                        Y = 0
+                        Z = 0.707107
+                        W = 0.707107
+                    }
+                }
+                Children = []
+                NodeTags = {
+                    Values = [
+                        NodeTag {
+                            Name = "TransformWidgetElementColor"
+                            Data = (1, 0.02, 0.02, 1)
+                        }
+                        NodeTag {
+                            Name = "TransformWidgetAxis"
+                            Data = 0
+                        }
+                    ]
                 }
             }
-            Children = []
-            NodeTags = {
-                Values = [NodeTag {
-                    Name = "TransformWidgetElementColor"
-                    Data = (1, 0.02, 0.02, 1)
-                }, NodeTag {
-                    Name = "TransformWidgetAxis"
-                    Data = 0
-                }]
-            }
-        }, Entity {
-            Tags = []
-            Components = [MeshComponent {
-                Mesh = @"Editor://Meshes/ScaleGizmo_AxisMesh"
-                Material = @"Editor://Materials/ScaleGizmo_AxisY_Material"
-                Skeleton = null
-                EnableAutoInstancing = false
-                InstanceData = null
-            }]
-            Name = "ScaleGizmo_AxisY"
-            NodeFlags = MobilityStaticByProxy|MobilityDynamic
-            LocalBounds = {
-                Min = (-0.12, 0, -0.12)
-                Max = (0.12, 0.94, 0.12)
-            }
-            LocalTransform = {
-                Translation = (0, 0, 0)
-                Scale = (1, 1, 1)
-                Rotation = {
-                    X = 0
-                    Y = 0
-                    Z = 0
-                    W = 1
+            Entity {
+                Tags = []
+                Components = [
+                    MeshComponent {
+                        Mesh = @"Editor://Meshes/ScaleGizmo_AxisMesh"
+                        Material = @"Editor://Materials/ScaleGizmo_AxisY_Material"
+                        Skeleton = null
+                        EnableAutoInstancing = false
+                        InstanceData = null
+                    }
+                ]
+                Name = "ScaleGizmo_AxisY"
+                NodeFlags = MobilityStaticByProxy|MobilityDynamic
+                LocalBounds = {
+                    Min = (-0.12, 0, -0.12)
+                    Max = (0.12, 0.94, 0.12)
+                }
+                LocalTransform = {
+                    Translation = (0, 0, 0)
+                    Scale = (1, 1, 1)
+                    Rotation = {
+                        X = 0
+                        Y = 0
+                        Z = 0
+                        W = 1
+                    }
+                }
+                Children = []
+                NodeTags = {
+                    Values = [
+                        NodeTag {
+                            Name = "TransformWidgetElementColor"
+                            Data = (0.02, 1, 0.02, 1)
+                        }
+                        NodeTag {
+                            Name = "TransformWidgetAxis"
+                            Data = 1
+                        }
+                    ]
                 }
             }
-            Children = []
-            NodeTags = {
-                Values = [NodeTag {
-                    Name = "TransformWidgetElementColor"
-                    Data = (0.02, 1, 0.02, 1)
-                }, NodeTag {
-                    Name = "TransformWidgetAxis"
-                    Data = 1
-                }]
-            }
-        }, Entity {
-            Tags = []
-            Components = [MeshComponent {
-                Mesh = @"Editor://Meshes/ScaleGizmo_AxisMesh"
-                Material = @"Editor://Materials/ScaleGizmo_AxisZ_Material"
-                Skeleton = null
-                EnableAutoInstancing = false
-                InstanceData = null
-            }]
-            Name = "ScaleGizmo_AxisZ"
-            NodeFlags = MobilityStaticByProxy|MobilityDynamic
-            LocalBounds = {
-                Min = (-0.12, 0, -0.12)
-                Max = (0.12, 0.94, 0.12)
-            }
-            LocalTransform = {
-                Translation = (0, 0, 0)
-                Scale = (1, 1, 1)
-                Rotation = {
-                    X = -0.707107
-                    Y = -0
-                    Z = -0
-                    W = 0.707107
+            Entity {
+                Tags = []
+                Components = [
+                    MeshComponent {
+                        Mesh = @"Editor://Meshes/ScaleGizmo_AxisMesh"
+                        Material = @"Editor://Materials/ScaleGizmo_AxisZ_Material"
+                        Skeleton = null
+                        EnableAutoInstancing = false
+                        InstanceData = null
+                    }
+                ]
+                Name = "ScaleGizmo_AxisZ"
+                NodeFlags = MobilityStaticByProxy|MobilityDynamic
+                LocalBounds = {
+                    Min = (-0.12, 0, -0.12)
+                    Max = (0.12, 0.94, 0.12)
+                }
+                LocalTransform = {
+                    Translation = (0, 0, 0)
+                    Scale = (1, 1, 1)
+                    Rotation = {
+                        X = -0.707107
+                        Y = -0
+                        Z = -0
+                        W = 0.707107
+                    }
+                }
+                Children = []
+                NodeTags = {
+                    Values = [
+                        NodeTag {
+                            Name = "TransformWidgetElementColor"
+                            Data = (0.02, 0.02, 1, 1)
+                        }
+                        NodeTag {
+                            Name = "TransformWidgetAxis"
+                            Data = 2
+                        }
+                    ]
                 }
             }
-            Children = []
-            NodeTags = {
-                Values = [NodeTag {
-                    Name = "TransformWidgetElementColor"
-                    Data = (0.02, 0.02, 1, 1)
-                }, NodeTag {
-                    Name = "TransformWidgetAxis"
-                    Data = 2
-                }]
-            }
-        }, Entity {
-            Tags = []
-            Components = [MeshComponent {
-                Mesh = @"Editor://Meshes/ScaleGizmo_CentroidMesh"
-                Material = @"Editor://Materials/ScaleGizmo_Centroid_Material"
-                Skeleton = null
-                EnableAutoInstancing = false
-                InstanceData = null
-            }]
-            Name = "ScaleGizmo_Centroid"
-            NodeFlags = MobilityStaticByProxy|MobilityDynamic
-            LocalBounds = {
-                Min = (-0.1, -0.1, -0.1)
-                Max = (0.1, 0.1, 0.1)
-            }
-            LocalTransform = {
-                Translation = (0, 0, 0)
-                Scale = (1, 1, 1)
-                Rotation = {
-                    X = 0
-                    Y = 0
-                    Z = 0
-                    W = 1
+            Entity {
+                Tags = []
+                Components = [
+                    MeshComponent {
+                        Mesh = @"Editor://Meshes/ScaleGizmo_CentroidMesh"
+                        Material = @"Editor://Materials/ScaleGizmo_Centroid_Material"
+                        Skeleton = null
+                        EnableAutoInstancing = false
+                        InstanceData = null
+                    }
+                ]
+                Name = "ScaleGizmo_Centroid"
+                NodeFlags = MobilityStaticByProxy|MobilityDynamic
+                LocalBounds = {
+                    Min = (-0.1, -0.1, -0.1)
+                    Max = (0.1, 0.1, 0.1)
+                }
+                LocalTransform = {
+                    Translation = (0, 0, 0)
+                    Scale = (1, 1, 1)
+                    Rotation = {
+                        X = 0
+                        Y = 0
+                        Z = 0
+                        W = 1
+                    }
+                }
+                Children = []
+                NodeTags = {
+                    Values = [
+                        NodeTag {
+                            Name = "TransformWidgetElementColor"
+                            Data = (0.8, 0.8, 0.8, 1)
+                        }
+                        NodeTag {
+                            Name = "TransformWidgetAxis"
+                            Data = -1
+                        }
+                    ]
                 }
             }
-            Children = []
-            NodeTags = {
-                Values = [NodeTag {
-                    Name = "TransformWidgetElementColor"
-                    Data = (0.8, 0.8, 0.8, 1)
-                }, NodeTag {
-                    Name = "TransformWidgetAxis"
-                    Data = -1
-                }]
-            }
-        }]
+        ]
         NodeTags = {
             Values = []
         }

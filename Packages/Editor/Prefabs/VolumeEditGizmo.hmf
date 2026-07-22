@@ -16,217 +16,254 @@ Prefab "VolumeEditGizmo" {
                 W = 1
             }
         }
-        Children = [Entity {
-            Tags = []
-            Components = [MeshComponent {
-                Mesh = @"Editor://Meshes/MeshBuilder_Quad"
-                Material = @"Editor://Materials/VolumeEditMaterial"
-                Skeleton = null
-                EnableAutoInstancing = false
-                InstanceData = null
-            }]
-            Name = "VolumeFace_0"
-            NodeFlags = MobilityStaticByProxy|MobilityDynamic
-            LocalBounds = {
-                Min = (-1, -1, 0)
-                Max = (1, 1, 0)
-            }
-            LocalTransform = {
-                Translation = (0, 0, 0)
-                Scale = (1, 1, 1)
-                Rotation = {
-                    X = -0
-                    Y = -0.707107
-                    Z = -0
-                    W = 0.707107
+        Children = [
+            Entity {
+                Tags = []
+                Components = [
+                    MeshComponent {
+                        Mesh = @"Editor://Meshes/MeshBuilder_Quad"
+                        Material = @"Editor://Materials/VolumeFace_0"
+                        Skeleton = null
+                        EnableAutoInstancing = false
+                        InstanceData = null
+                    }
+                ]
+                Name = "VolumeFace_0"
+                NodeFlags = MobilityStaticByProxy|MobilityDynamic
+                LocalBounds = {
+                    Min = (-1, -1, 0)
+                    Max = (1, 1, 0)
+                }
+                LocalTransform = {
+                    Translation = (0, 0, 0)
+                    Scale = (1, 1, 1)
+                    Rotation = {
+                        X = -0
+                        Y = -0.707107
+                        Z = -0
+                        W = 0.707107
+                    }
+                }
+                Children = []
+                NodeTags = {
+                    Values = [
+                        NodeTag {
+                            Name = "TransformWidgetElementColor"
+                            Data = (0.3, 0, 0.28, 0.25)
+                        }
+                        NodeTag {
+                            Name = "VolumeFaceIndex"
+                            Data = 0
+                        }
+                    ]
                 }
             }
-            Children = []
-            NodeTags = {
-                Values = [NodeTag {
-                    Name = "TransformWidgetElementColor"
-                    Data = (0.3, 0, 0.28, 0.25)
-                }, NodeTag {
-                    Name = "VolumeFaceIndex"
-                    Data = 0
-                }]
-            }
-        }, Entity {
-            Tags = []
-            Components = [MeshComponent {
-                Mesh = @"Editor://Meshes/MeshBuilder_Quad"
-                Material = @"Editor://Materials/VolumeEditMaterial"
-                Skeleton = null
-                EnableAutoInstancing = false
-                InstanceData = null
-            }]
-            Name = "VolumeFace_1"
-            NodeFlags = MobilityStaticByProxy|MobilityDynamic
-            LocalBounds = {
-                Min = (-1, -1, 0)
-                Max = (1, 1, 0)
-            }
-            LocalTransform = {
-                Translation = (0, 0, 0)
-                Scale = (1, 1, 1)
-                Rotation = {
-                    X = 0
-                    Y = 0.707107
-                    Z = 0
-                    W = 0.707107
+            Entity {
+                Tags = []
+                Components = [
+                    MeshComponent {
+                        Mesh = @"Editor://Meshes/MeshBuilder_Quad"
+                        Material = @"Editor://Materials/VolumeFace_1"
+                        Skeleton = null
+                        EnableAutoInstancing = false
+                        InstanceData = null
+                    }
+                ]
+                Name = "VolumeFace_1"
+                NodeFlags = MobilityStaticByProxy|MobilityDynamic
+                LocalBounds = {
+                    Min = (-1, -1, 0)
+                    Max = (1, 1, 0)
+                }
+                LocalTransform = {
+                    Translation = (0, 0, 0)
+                    Scale = (1, 1, 1)
+                    Rotation = {
+                        X = 0
+                        Y = 0.707107
+                        Z = 0
+                        W = 0.707107
+                    }
+                }
+                Children = []
+                NodeTags = {
+                    Values = [
+                        NodeTag {
+                            Name = "TransformWidgetElementColor"
+                            Data = (0.3, 0, 0.28, 0.25)
+                        }
+                        NodeTag {
+                            Name = "VolumeFaceIndex"
+                            Data = 1
+                        }
+                    ]
                 }
             }
-            Children = []
-            NodeTags = {
-                Values = [NodeTag {
-                    Name = "TransformWidgetElementColor"
-                    Data = (0.3, 0, 0.28, 0.25)
-                }, NodeTag {
-                    Name = "VolumeFaceIndex"
-                    Data = 1
-                }]
-            }
-        }, Entity {
-            Tags = []
-            Components = [MeshComponent {
-                Mesh = @"Editor://Meshes/MeshBuilder_Quad"
-                Material = @"Editor://Materials/VolumeEditMaterial"
-                Skeleton = null
-                EnableAutoInstancing = false
-                InstanceData = null
-            }]
-            Name = "VolumeFace_2"
-            NodeFlags = MobilityStaticByProxy|MobilityDynamic
-            LocalBounds = {
-                Min = (-1, -1, 0)
-                Max = (1, 1, 0)
-            }
-            LocalTransform = {
-                Translation = (0, 0, 0)
-                Scale = (1, 1, 1)
-                Rotation = {
-                    X = 0.707107
-                    Y = 0
-                    Z = 0
-                    W = 0.707107
+            Entity {
+                Tags = []
+                Components = [
+                    MeshComponent {
+                        Mesh = @"Editor://Meshes/MeshBuilder_Quad"
+                        Material = @"Editor://Materials/VolumeFace_2"
+                        Skeleton = null
+                        EnableAutoInstancing = false
+                        InstanceData = null
+                    }
+                ]
+                Name = "VolumeFace_2"
+                NodeFlags = MobilityStaticByProxy|MobilityDynamic
+                LocalBounds = {
+                    Min = (-1, -1, 0)
+                    Max = (1, 1, 0)
+                }
+                LocalTransform = {
+                    Translation = (0, 0, 0)
+                    Scale = (1, 1, 1)
+                    Rotation = {
+                        X = 0.707107
+                        Y = 0
+                        Z = 0
+                        W = 0.707107
+                    }
+                }
+                Children = []
+                NodeTags = {
+                    Values = [
+                        NodeTag {
+                            Name = "TransformWidgetElementColor"
+                            Data = (0.3, 0, 0.28, 0.25)
+                        }
+                        NodeTag {
+                            Name = "VolumeFaceIndex"
+                            Data = 2
+                        }
+                    ]
                 }
             }
-            Children = []
-            NodeTags = {
-                Values = [NodeTag {
-                    Name = "TransformWidgetElementColor"
-                    Data = (0.3, 0, 0.28, 0.25)
-                }, NodeTag {
-                    Name = "VolumeFaceIndex"
-                    Data = 2
-                }]
-            }
-        }, Entity {
-            Tags = []
-            Components = [MeshComponent {
-                Mesh = @"Editor://Meshes/MeshBuilder_Quad"
-                Material = @"Editor://Materials/VolumeEditMaterial"
-                Skeleton = null
-                EnableAutoInstancing = false
-                InstanceData = null
-            }]
-            Name = "VolumeFace_3"
-            NodeFlags = MobilityStaticByProxy|MobilityDynamic
-            LocalBounds = {
-                Min = (-1, -1, 0)
-                Max = (1, 1, 0)
-            }
-            LocalTransform = {
-                Translation = (0, 0, 0)
-                Scale = (1, 1, 1)
-                Rotation = {
-                    X = -0.707107
-                    Y = -0
-                    Z = -0
-                    W = 0.707107
+            Entity {
+                Tags = []
+                Components = [
+                    MeshComponent {
+                        Mesh = @"Editor://Meshes/MeshBuilder_Quad"
+                        Material = @"Editor://Materials/VolumeFace_3"
+                        Skeleton = null
+                        EnableAutoInstancing = false
+                        InstanceData = null
+                    }
+                ]
+                Name = "VolumeFace_3"
+                NodeFlags = MobilityStaticByProxy|MobilityDynamic
+                LocalBounds = {
+                    Min = (-1, -1, 0)
+                    Max = (1, 1, 0)
+                }
+                LocalTransform = {
+                    Translation = (0, 0, 0)
+                    Scale = (1, 1, 1)
+                    Rotation = {
+                        X = -0.707107
+                        Y = -0
+                        Z = -0
+                        W = 0.707107
+                    }
+                }
+                Children = []
+                NodeTags = {
+                    Values = [
+                        NodeTag {
+                            Name = "TransformWidgetElementColor"
+                            Data = (0.3, 0, 0.28, 0.25)
+                        }
+                        NodeTag {
+                            Name = "VolumeFaceIndex"
+                            Data = 3
+                        }
+                    ]
                 }
             }
-            Children = []
-            NodeTags = {
-                Values = [NodeTag {
-                    Name = "TransformWidgetElementColor"
-                    Data = (0.3, 0, 0.28, 0.25)
-                }, NodeTag {
-                    Name = "VolumeFaceIndex"
-                    Data = 3
-                }]
-            }
-        }, Entity {
-            Tags = []
-            Components = [MeshComponent {
-                Mesh = @"Editor://Meshes/MeshBuilder_Quad"
-                Material = @"Editor://Materials/VolumeEditMaterial"
-                Skeleton = null
-                EnableAutoInstancing = false
-                InstanceData = null
-            }]
-            Name = "VolumeFace_4"
-            NodeFlags = MobilityStaticByProxy|MobilityDynamic
-            LocalBounds = {
-                Min = (-1, -1, 0)
-                Max = (1, 1, 0)
-            }
-            LocalTransform = {
-                Translation = (0, 0, 0)
-                Scale = (1, 1, 1)
-                Rotation = {
-                    X = 0
-                    Y = 1
-                    Z = 0
-                    W = -4.37114e-08
+            Entity {
+                Tags = []
+                Components = [
+                    MeshComponent {
+                        Mesh = @"Editor://Meshes/MeshBuilder_Quad"
+                        Material = @"Editor://Materials/VolumeFace_4"
+                        Skeleton = null
+                        EnableAutoInstancing = false
+                        InstanceData = null
+                    }
+                ]
+                Name = "VolumeFace_4"
+                NodeFlags = MobilityStaticByProxy|MobilityDynamic
+                LocalBounds = {
+                    Min = (-1, -1, 0)
+                    Max = (1, 1, 0)
+                }
+                LocalTransform = {
+                    Translation = (0, 0, 0)
+                    Scale = (1, 1, 1)
+                    Rotation = {
+                        X = 0
+                        Y = 1
+                        Z = 0
+                        W = -4.37114e-08
+                    }
+                }
+                Children = []
+                NodeTags = {
+                    Values = [
+                        NodeTag {
+                            Name = "TransformWidgetElementColor"
+                            Data = (0.3, 0, 0.28, 0.25)
+                        }
+                        NodeTag {
+                            Name = "VolumeFaceIndex"
+                            Data = 4
+                        }
+                    ]
                 }
             }
-            Children = []
-            NodeTags = {
-                Values = [NodeTag {
-                    Name = "TransformWidgetElementColor"
-                    Data = (0.3, 0, 0.28, 0.25)
-                }, NodeTag {
-                    Name = "VolumeFaceIndex"
-                    Data = 4
-                }]
-            }
-        }, Entity {
-            Tags = []
-            Components = [MeshComponent {
-                Mesh = @"Editor://Meshes/MeshBuilder_Quad"
-                Material = @"Editor://Materials/VolumeEditMaterial"
-                Skeleton = null
-                EnableAutoInstancing = false
-                InstanceData = null
-            }]
-            Name = "VolumeFace_5"
-            NodeFlags = MobilityStaticByProxy|MobilityDynamic
-            LocalBounds = {
-                Min = (-1, -1, 0)
-                Max = (1, 1, 0)
-            }
-            LocalTransform = {
-                Translation = (0, 0, 0)
-                Scale = (1, 1, 1)
-                Rotation = {
-                    X = 0
-                    Y = 0
-                    Z = 0
-                    W = 1
+            Entity {
+                Tags = []
+                Components = [
+                    MeshComponent {
+                        Mesh = @"Editor://Meshes/MeshBuilder_Quad"
+                        Material = @"Editor://Materials/VolumeFace_5"
+                        Skeleton = null
+                        EnableAutoInstancing = false
+                        InstanceData = null
+                    }
+                ]
+                Name = "VolumeFace_5"
+                NodeFlags = MobilityStaticByProxy|MobilityDynamic
+                LocalBounds = {
+                    Min = (-1, -1, 0)
+                    Max = (1, 1, 0)
+                }
+                LocalTransform = {
+                    Translation = (0, 0, 0)
+                    Scale = (1, 1, 1)
+                    Rotation = {
+                        X = 0
+                        Y = 0
+                        Z = 0
+                        W = 1
+                    }
+                }
+                Children = []
+                NodeTags = {
+                    Values = [
+                        NodeTag {
+                            Name = "TransformWidgetElementColor"
+                            Data = (0.3, 0, 0.28, 0.25)
+                        }
+                        NodeTag {
+                            Name = "VolumeFaceIndex"
+                            Data = 5
+                        }
+                    ]
                 }
             }
-            Children = []
-            NodeTags = {
-                Values = [NodeTag {
-                    Name = "TransformWidgetElementColor"
-                    Data = (0.3, 0, 0.28, 0.25)
-                }, NodeTag {
-                    Name = "VolumeFaceIndex"
-                    Data = 5
-                }]
-            }
-        }]
+        ]
         NodeTags = {
             Values = []
         }

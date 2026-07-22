@@ -28,6 +28,14 @@ ShaderBundle "GeometryPass" {
         @"Engine://Shaders/GeometryPass_3548372025915056800"
         @"Engine://Shaders/GeometryPass_3548372025915056792"
         @"Engine://Shaders/GeometryPass_3548372025915056784"
+        @"Engine://Shaders/GeometryPass_10171633532458418473"
+        @"Engine://Shaders/GeometryPass_15148598798467519691"
+        @"Engine://Shaders/GeometryPass_15148598798467519683"
+        @"Engine://Shaders/GeometryPass_10171633532458418465"
+        @"Engine://Shaders/GeometryPass_10171633532458418457"
+        @"Engine://Shaders/GeometryPass_15148598798467519707"
+        @"Engine://Shaders/GeometryPass_15148598798467519539"
+        @"Engine://Shaders/GeometryPass_10171633532458418449"
     ]
     FriendlyName = "GeometryPass"
 }

@@ -11,57 +11,67 @@ Mesh "TranslateGizmo_CentroidMesh" {
             Topology = TOP_TRIANGLES
             IndexBufferElemType = GET_UNSIGNED_INT
         }
-        Lods = [MeshLodDesc {
-            NumVertices = 24
-            NumIndices = 36
-        }, MeshLodDesc {
-            NumVertices = 0
-            NumIndices = 0
-        }, MeshLodDesc {
-            NumVertices = 0
-            NumIndices = 0
-        }, MeshLodDesc {
-            NumVertices = 0
-            NumIndices = 0
-        }]
+        Lods = [
+            MeshLodDesc {
+                NumVertices = 24
+                NumIndices = 36
+            }
+            MeshLodDesc {
+                NumVertices = 0
+                NumIndices = 0
+            }
+            MeshLodDesc {
+                NumVertices = 0
+                NumIndices = 0
+            }
+            MeshLodDesc {
+                NumVertices = 0
+                NumIndices = 0
+            }
+        ]
     }
-    LodData = [MeshLodData {
-        VertexData = {
-            Key = "Editor://Meshes/TranslateGizmo_CentroidMesh.VB"
-            Size = 768
+    LodData = [
+        MeshLodData {
+            VertexData = {
+                Key = "Editor://Meshes/TranslateGizmo_CentroidMesh.VB"
+                Size = 768
+            }
+            IndexData = {
+                Key = "Editor://Meshes/TranslateGizmo_CentroidMesh.IB"
+                Size = 144
+            }
         }
-        IndexData = {
-            Key = "Editor://Meshes/TranslateGizmo_CentroidMesh.IB"
-            Size = 144
+        MeshLodData {
+            VertexData = {
+                Key = ""
+                Size = 0
+            }
+            IndexData = {
+                Key = ""
+                Size = 0
+            }
         }
-    }, MeshLodData {
-        VertexData = {
-            Key = ""
-            Size = 0
+        MeshLodData {
+            VertexData = {
+                Key = ""
+                Size = 0
+            }
+            IndexData = {
+                Key = ""
+                Size = 0
+            }
         }
-        IndexData = {
-            Key = ""
-            Size = 0
+        MeshLodData {
+            VertexData = {
+                Key = ""
+                Size = 0
+            }
+            IndexData = {
+                Key = ""
+                Size = 0
+            }
         }
-    }, MeshLodData {
-        VertexData = {
-            Key = ""
-            Size = 0
-        }
-        IndexData = {
-            Key = ""
-            Size = 0
-        }
-    }, MeshLodData {
-        VertexData = {
-            Key = ""
-            Size = 0
-        }
-        IndexData = {
-            Key = ""
-            Size = 0
-        }
-    }]
+    ]
     BvhData = {
         Key = "Editor://Meshes/TranslateGizmo_CentroidMesh.BVH"
         Size = 16625

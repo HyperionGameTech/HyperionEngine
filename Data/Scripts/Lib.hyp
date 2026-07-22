@@ -915,6 +915,7 @@ extern class Node
     Select(selector : string) -> Node
     GetDeepPath() -> Array<Name>
     SetLocalTransform(transform : Transform, changeType : TransformChangeType) -> void
+    SetLocalTransform_EditorOnly(transform : Transform) -> void
     GetLocalTransform() -> Transform
     GetLocalTranslation() -> Vec3f
     SetLocalTranslation(translation : Vec3f, changeType : TransformChangeType) -> void
@@ -1109,10 +1110,9 @@ extern class ParticleVolume : VolumeBase
     MaxParticles : uint32
     Origin : Vec3f
     StartSize : float
-    Radius : float
     Randomness : float
     Lifespan : float
-    HasPhysics : bool
+    EnableCollision : bool
 end
 extern class LightmapVolume : VolumeBase
     Rebake() -> void
