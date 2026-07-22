@@ -26,8 +26,8 @@
 namespace Hyperion {
 
 AstBinaryExpression::AstBinaryExpression(
-    const SharedPtr<AstExpression>& left,
-    const SharedPtr<AstExpression>& right,
+    const Handle<AstExpression>& left,
+    const Handle<AstExpression>& right,
     const Operator* op,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
@@ -87,15 +87,15 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
                 // ensure it won't cause infinite recursion due to creating nested override exprs:
                 Assert(!nonAssignmentOp->ModifiesValue());
 
-                SharedPtr<AstBinaryExpression> subBinExpr(new AstBinaryExpression(
+                Handle<AstBinaryExpression> subBinExpr = MakeHandle<AstBinaryExpression>(
                     CloneAstNode(m_left),
-                    SharedPtr<AstBinaryExpression>(new AstBinaryExpression(
+                    MakeHandle<AstBinaryExpression>(
                         CloneAstNode(m_left),
                         CloneAstNode(m_right),
                         nonAssignmentOp,
-                        m_location)),
+                        m_location),
                     Operator::FindBinaryOperator(Operators::OP_assign),
-                    m_location));
+                    m_location);
 
                 m_overrideExpr = std::move(subBinExpr);
             }
@@ -110,40 +110,44 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
             const String operatorString = m_op->LookupStringValue();
             const String overloadFunctionName = "operator" + operatorString;
 
-            SharedPtr<AstExpression> callOperatorOverloadExpr;
+            Handle<AstExpression> callOperatorOverloadExpr;
 
-            callOperatorOverloadExpr.Reset(new AstMemberCallExpression(
+            callOperatorOverloadExpr = MakeHandle<AstMemberCallExpression>(
                 overloadFunctionName,
                 CloneAstNode(m_left),
-                SharedPtr<AstArgumentList>(new AstArgumentList(
-                    { SharedPtr<AstArgument>(new AstArgument(
-                        CloneAstNode(m_right),
-                        false,
-                        false,
-                        false,
-                        false,
-                        "other",
-                        m_location)) },
-                    m_location)), // use right hand side as arg
-                m_location));
+                MakeHandle<AstArgumentList>(
+                    Array<Handle<AstArgument>> {
+                        MakeHandle<AstArgument>(
+                            CloneAstNode(m_right),
+                            false,
+                            false,
+                            false,
+                            false,
+                            "other",
+                            m_location)
+                    },
+                    m_location), // use right hand side as arg
+                m_location);
 
             if (targetType->IsProxyClass() && targetType->FindMember(overloadFunctionName))
             {
-                m_overrideExpr.Reset(new AstCallExpression(
-                    SharedPtr<AstMember>(new AstMember(
+                m_overrideExpr = MakeHandle<AstCallExpression>(
+                    MakeHandle<AstMember>(
                         overloadFunctionName,
                         CloneAstNode(m_left),
-                        m_location)),
-                    { SharedPtr<AstArgument>(new AstArgument(
-                        CloneAstNode(m_right),
-                        false,
-                        false,
-                        false,
-                        false,
-                        "other",
-                        m_location)) },
+                        m_location),
+                    Array<Handle<AstArgument>> {
+                        MakeHandle<AstArgument>(
+                            CloneAstNode(m_right),
+                            false,
+                            false,
+                            false,
+                            false,
+                            "other",
+                            m_location)
+                    },
                     true,
-                    m_location));
+                    m_location);
             }
 
             // for ANY type we conditionally build in a check
@@ -151,17 +155,17 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
             // we build in the condition as well
             else if (targetType->IsAnyType())
             {
-                SharedPtr<AstBinaryExpression> subBinExpr = Clone().CastUnchecked<AstBinaryExpression>();
+                Handle<AstBinaryExpression> subBinExpr = StaticCast<AstBinaryExpression>(Clone());
                 subBinExpr->SetEnableOverrideExpr(false);
 
-                m_overrideExpr.Reset(new AstTernaryExpression(
-                    SharedPtr<AstHasExpression>(new AstHasExpression(
+                m_overrideExpr = MakeHandle<AstTernaryExpression>(
+                    MakeHandle<AstHasExpression>(
                         CloneAstNode(m_left),
                         overloadFunctionName,
-                        m_location)),
+                        m_location),
                     callOperatorOverloadExpr,
                     subBinExpr,
-                    m_location));
+                    m_location);
             }
             else if (targetType->FindMemberDeep(overloadFunctionName))
             {
@@ -323,8 +327,8 @@ UniquePtr<Buildable> AstBinaryExpression::Build(AstVisitor* visitor, Module* mod
     }
     else if (m_op->GetType() & LOGICAL)
     {
-        SharedPtr<AstExpression> first = nullptr;
-        SharedPtr<AstExpression> second = nullptr;
+        Handle<AstExpression> first = nullptr;
+        Handle<AstExpression> second = nullptr;
 
         AstBinaryExpression* leftAsBinop = DynamicCast<AstBinaryExpression>(m_left.Get());
         AstBinaryExpression* rightAsBinop = DynamicCast<AstBinaryExpression>(m_right.Get());
@@ -359,9 +363,9 @@ UniquePtr<Buildable> AstBinaryExpression::Build(AstVisitor* visitor, Module* mod
             { // do first part of expression
                 bool folded = false;
                 // attempt to constant fold the values
-                SharedPtr<AstExpression> tmp(new AstFalse(SourceLocation::Eof()));
+                Handle<AstExpression> tmp = MakeHandle<AstFalse>(SourceLocation::Eof());
 
-                if (SharedPtr<AstConstant> constantFolded = Optimizer::ConstantFold(first, tmp, Operators::OP_equals, visitor))
+                if (Handle<AstConstant> constantFolded = Optimizer::ConstantFold(first, tmp, Operators::OP_equals, visitor); constantFolded.IsValid())
                 {
                     foldedValues[0] = constantFolded->IsTrue();
                     folded = foldedValues[0] == 1 || foldedValues[1] == 0;
@@ -399,9 +403,9 @@ UniquePtr<Buildable> AstBinaryExpression::Build(AstVisitor* visitor, Module* mod
             {
                 bool folded = false;
                 // attempt to constant fold the values
-                SharedPtr<AstExpression> tmp(new AstFalse(SourceLocation::Eof()));
+                Handle<AstExpression> tmp = MakeHandle<AstFalse>(SourceLocation::Eof());
 
-                if (SharedPtr<AstConstant> constantFolded = Optimizer::ConstantFold(second, tmp, Operators::OP_equals, visitor))
+                if (Handle<AstConstant> constantFolded = Optimizer::ConstantFold(second, tmp, Operators::OP_equals, visitor); constantFolded.IsValid())
                 {
                     foldedValues[1] = constantFolded->IsTrue();
                     folded = foldedValues[1] == 1 || foldedValues[1] == 0;
@@ -461,9 +465,9 @@ UniquePtr<Buildable> AstBinaryExpression::Build(AstVisitor* visitor, Module* mod
             { // do first part of expression
                 bool folded = false;
                 // attempt to constant fold the values
-                SharedPtr<AstExpression> tmp(new AstFalse(SourceLocation::Eof()));
+                Handle<AstExpression> tmp = MakeHandle<AstFalse>(SourceLocation::Eof());
 
-                if (SharedPtr<AstConstant> constantFolded = Optimizer::ConstantFold(first, tmp, Operators::OP_equals, visitor))
+                if (Handle<AstConstant> constantFolded = Optimizer::ConstantFold(first, tmp, Operators::OP_equals, visitor); constantFolded.IsValid())
                 {
                     int foldedValue = constantFolded->IsTrue();
                     folded = foldedValue == 1 || foldedValue == 0;
@@ -497,9 +501,9 @@ UniquePtr<Buildable> AstBinaryExpression::Build(AstVisitor* visitor, Module* mod
             {
                 bool folded = false;
                 { // attempt to constant fold the values
-                    SharedPtr<AstExpression> tmp(new AstFalse(SourceLocation::Eof()));
+                    Handle<AstExpression> tmp = MakeHandle<AstFalse>(SourceLocation::Eof());
 
-                    if (SharedPtr<AstConstant> constantFolded = Optimizer::ConstantFold(second, tmp, Operators::OP_equals, visitor))
+                    if (Handle<AstConstant> constantFolded = Optimizer::ConstantFold(second, tmp, Operators::OP_equals, visitor); constantFolded.IsValid())
                     {
                         Tribool foldedValue = constantFolded->IsTrue();
 
@@ -751,7 +755,7 @@ void AstBinaryExpression::Optimize(AstVisitor* visitor, Module* mod)
     // binary expression by optimizing away the right
     // side, and combining the resulting value into
     // the left side of the operation.
-    SharedPtr<AstConstant> constantValue = Optimizer::ConstantFold(
+    Handle<AstConstant> constantValue = Optimizer::ConstantFold(
         m_left,
         m_right,
         m_op->GetOperatorType(),
@@ -765,7 +769,7 @@ void AstBinaryExpression::Optimize(AstVisitor* visitor, Module* mod)
     }
 }
 
-SharedPtr<AstStatement> AstBinaryExpression::Clone() const
+Handle<AstStatement> AstBinaryExpression::Clone() const
 {
     return CloneImpl();
 }
@@ -867,7 +871,7 @@ const SymbolType* AstBinaryExpression::GetExprType() const
 }
 
 #if HYP_SCRIPT_ENABLE_LAZY_DECLARATIONS
-SharedPtr<AstVariableDeclaration> AstBinaryExpression::CheckLazyDeclaration(AstVisitor* visitor, Module* mod)
+Handle<AstVariableDeclaration> AstBinaryExpression::CheckLazyDeclaration(AstVisitor* visitor, Module* mod)
 {
     if (m_op->GetOperatorType() == Operators::OP_assign)
     {
@@ -892,13 +896,13 @@ SharedPtr<AstVariableDeclaration> AstBinaryExpression::CheckLazyDeclaration(AstV
                 return nullptr;
             }
 
-            return SharedPtr<AstVariableDeclaration>(new AstVariableDeclaration(
+            return MakeHandle<AstVariableDeclaration>(
                 varName,
                 nullptr,
                 m_right,
                 false, // not const
                 false, // not generic
-                m_left->GetLocation()));
+                m_left->GetLocation());
         }
     }
 

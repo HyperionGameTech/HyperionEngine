@@ -27,7 +27,7 @@
 namespace Hyperion {
 
 AstUnaryExpression::AstUnaryExpression(
-    const SharedPtr<AstExpression>& expr,
+    const Handle<AstExpression>& expr,
     const Operator* op,
     bool isPostfixVersion,
     const SourceLocation& location)
@@ -44,18 +44,18 @@ void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
     // use a bin op for operators that modify their argument
     if (m_op->ModifiesValue())
     {
-        SharedPtr<AstExpression> expr;
+        Handle<AstExpression> expr;
         const Operator* binOp = nullptr;
 
         switch (m_op->GetOperatorType())
         {
         case OP_increment:
-            expr.Reset(new AstInteger(1, CBS_32, m_location));
+            expr = MakeHandle<AstInteger>(1, CBS_32, m_location);
             binOp = Operator::FindBinaryOperator(Operators::OP_add_assign);
 
             break;
         case OP_decrement:
-            expr.Reset(new AstInteger(1, CBS_32, m_location));
+            expr = MakeHandle<AstInteger>(1, CBS_32, m_location);
             binOp = Operator::FindBinaryOperator(Operators::OP_subtract_assign);
 
             break;
@@ -63,32 +63,32 @@ void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
             HYP_UNREACHABLE();
         }
 
-        m_overrideBlock.Reset(new AstBlock(m_location));
+        m_overrideBlock = MakeHandle<AstBlock>(m_location);
 
         static const String tempVarName = "$__tempPostfixOperand";
 
         if (m_isPostfixVersion)
         {
             // need to preserve the original value as a temporary variable
-            SharedPtr<AstVariableDeclaration> tempVarDecl(new AstVariableDeclaration(
+            Handle<AstVariableDeclaration> tempVarDecl = MakeHandle<AstVariableDeclaration>(
                 tempVarName,
                 nullptr,
                 CloneAstNode(m_expr),
                 IdentifierFlags::NONE,
-                m_location));
+                m_location);
 
             // add the variable declaration to the block so  it gets stored
             m_overrideBlock->AddChild(tempVarDecl);
         }
 
-        m_binExpr.Reset(new AstBinaryExpression(m_expr, expr, binOp, m_location));
+        m_binExpr = MakeHandle<AstBinaryExpression>(m_expr, expr, binOp, m_location);
 
         m_overrideBlock->AddChild(m_binExpr);
 
         if (m_isPostfixVersion)
         {
             // return the temp variable
-            m_overrideBlock->AddChild(SharedPtr<AstVariable>(new AstVariable(tempVarName, m_location)));
+            m_overrideBlock->AddChild(MakeHandle<AstVariable>(tempVarName, m_location));
         }
 
         m_overrideBlock->Visit(visitor, mod);
@@ -149,10 +149,10 @@ void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
 
         // if (!type->IsBoolean())
         // {
-        //     m_expr = SharedPtr<AstAsExpression>(new AstAsExpression(
+        //     m_expr = Handle<AstAsExpression>(new AstAsExpression(
         //         CloneAstNode(m_expr),
-        //         SharedPtr<AstTypeSpecifier>(new AstTypeSpecifier(
-        //             SharedPtr<AstTypeRef>(new AstTypeRef(BuiltinTypes::s_boolType, m_location)),
+        //         Handle<AstTypeSpecifier>(new AstTypeSpecifier(
+        //             MakeHandle<AstTypeRef>(BuiltinTypes::s_boolType, m_location),
         //             m_location)),
         //         m_location));
 
@@ -282,7 +282,7 @@ void AstUnaryExpression::Optimize(AstVisitor* visitor, Module* mod)
 
             m_folded = true;
         }
-        else if (SharedPtr<AstConstant> constantValue = Optimizer::ConstantFold(m_expr, nullptr, m_op->GetOperatorType(), visitor))
+        else if (Handle<AstConstant> constantValue = Optimizer::ConstantFold(m_expr, nullptr, m_op->GetOperatorType(), visitor))
         {
             m_expr = constantValue;
 
@@ -291,7 +291,7 @@ void AstUnaryExpression::Optimize(AstVisitor* visitor, Module* mod)
     }
 }
 
-SharedPtr<AstStatement> AstUnaryExpression::Clone() const
+Handle<AstStatement> AstUnaryExpression::Clone() const
 {
     return CloneImpl();
 }

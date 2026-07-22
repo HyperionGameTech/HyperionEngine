@@ -26,8 +26,8 @@
 namespace Hyperion {
 
 AstCallExpression::AstCallExpression(
-    const SharedPtr<AstExpression>& expr,
-    const Array<SharedPtr<AstArgument>>& args,
+    const Handle<AstExpression>& expr,
+    const Array<Handle<AstArgument>>& args,
     bool insertSelf,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
@@ -50,7 +50,7 @@ void AstCallExpression::Visit(AstVisitor* visitor, Module* mod)
     const SymbolType* targetType = m_expr->GetExprType();
     Assert(targetType != nullptr);
 
-    Array<SharedPtr<AstArgument>> argsWithSelf = m_args;
+    Array<Handle<AstArgument>> argsWithSelf = m_args;
 
     if (m_insertSelf)
     {
@@ -72,17 +72,17 @@ void AstCallExpression::Visit(AstVisitor* visitor, Module* mod)
             else
             {
                 /// \todo : Store self in a temporary variable instead of cloning so we don't evaluate it multiple times
-                SharedPtr<AstExpression> selfTarget = CloneAstNode(target);
+                Handle<AstExpression> selfTarget = CloneAstNode(target);
                 Assert(selfTarget != nullptr);
 
-                SharedPtr<AstArgument> selfArg(new AstArgument(
+                Handle<AstArgument> selfArg = MakeHandle<AstArgument>(
                     selfTarget,
                     false,
                     false,
                     false,
                     false,
                     "self",
-                    selfTarget->GetLocation()));
+                    selfTarget->GetLocation());
 
                 argsWithSelf.PushFront(std::move(selfArg));
             }
@@ -98,11 +98,11 @@ void AstCallExpression::Visit(AstVisitor* visitor, Module* mod)
         if (heldType->FindStaticMember("$invoke", member, memberIndex))
         {
             // transform into static member call
-            m_overrideExpr.Reset(new AstCallExpression(
-                SharedPtr<AstMember>(new AstMember("$invoke", CloneAstNode(m_expr), m_location)),
+            m_overrideExpr = MakeHandle<AstCallExpression>(
+                MakeHandle<AstMember>("$invoke", CloneAstNode(m_expr), m_location),
                 CloneAllAstNodes(argsWithSelf),
                 false,
-                m_location));
+                m_location);
         }
     }
 
@@ -117,23 +117,23 @@ void AstCallExpression::Visit(AstVisitor* visitor, Module* mod)
         if (callMemberType != nullptr)
         {
             // closure objects have a self parameter for the '$invoke' call.
-            SharedPtr<AstArgument> closureSelfArg(new AstArgument(
+            Handle<AstArgument> closureSelfArg = MakeHandle<AstArgument>(
                 CloneAstNode(m_expr),
                 false,
                 false,
                 false,
                 false,
                 "$functor",
-                m_expr->GetLocation()));
+                m_expr->GetLocation());
 
             // insert at front
             argsWithSelf.PushFront(std::move(closureSelfArg));
 
-            m_overrideExpr.Reset(new AstCallExpression(
-                SharedPtr<AstMember>(new AstMember("$invoke", CloneAstNode(m_expr), m_location)),
+            m_overrideExpr = MakeHandle<AstCallExpression>(
+                MakeHandle<AstMember>("$invoke", CloneAstNode(m_expr), m_location),
                 CloneAllAstNodes(argsWithSelf),
                 false,
-                m_location));
+                m_location);
 
             unaliased = callMemberType->GetUnaliased();
             Assert(unaliased != nullptr);
@@ -148,7 +148,7 @@ void AstCallExpression::Visit(AstVisitor* visitor, Module* mod)
     }
 
     // visit each argument
-    for (const SharedPtr<AstArgument>& arg : argsWithSelf)
+    for (const Handle<AstArgument>& arg : argsWithSelf)
     {
         Assert(arg != nullptr);
 
@@ -205,7 +205,7 @@ void AstCallExpression::Visit(AstVisitor* visitor, Module* mod)
 
         Assert(m_returnType != nullptr);
 
-        for (const SharedPtr<AstArgument>& arg : m_substitutedArgs)
+        for (const Handle<AstArgument>& arg : m_substitutedArgs)
         {
             if (!arg || arg->IsPlaceholderArgument())
             {
@@ -287,7 +287,7 @@ void AstCallExpression::Optimize(AstVisitor* visitor, Module* mod)
     }
 }
 
-SharedPtr<AstStatement> AstCallExpression::Clone() const
+Handle<AstStatement> AstCallExpression::Clone() const
 {
     return CloneImpl();
 }

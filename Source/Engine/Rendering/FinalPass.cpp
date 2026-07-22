@@ -94,7 +94,9 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
     if (!m_quadMesh)
     {
         m_quadMesh = MeshBuilder::Quad();
+        m_quadMesh->SetName(NAME("FinalPassQuad"));
         m_quadMesh->SetFlags(MeshFlags::ViewIndependent);
+        m_quadMesh->SetIsTransient(true);
         m_quadMesh->UploadGpuData();
     }
 

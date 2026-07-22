@@ -14,7 +14,7 @@ class AstThrowExpression : public AstExpression
 
 public:
     AstThrowExpression(
-        const SharedPtr<AstExpression>& expr,
+        const Handle<AstExpression>& expr,
         const SourceLocation& location);
     virtual ~AstThrowExpression() = default;
 
@@ -22,7 +22,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual SharedPtr<AstStatement> Clone() const override;
+    virtual Handle<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -37,14 +37,14 @@ public:
     }
 
 protected:
-    SharedPtr<AstExpression> m_expr;
+    Handle<AstExpression> m_expr;
 
 private:
-    SharedPtr<AstThrowExpression> CloneImpl() const
+    Handle<AstThrowExpression> CloneImpl() const
     {
-        return SharedPtr<AstThrowExpression>(new AstThrowExpression(
+        return MakeHandle<AstThrowExpression>(
             CloneAstNode(m_expr),
-            m_location));
+            m_location);
     }
 };
 

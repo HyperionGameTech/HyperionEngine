@@ -27,8 +27,8 @@
 namespace Hyperion {
 
 AstAsExpression::AstAsExpression(
-    const SharedPtr<AstExpression>& target,
-    const SharedPtr<AstTypeSpecifier>& typeSpecification,
+    const Handle<AstExpression>& target,
+    const Handle<AstTypeSpecifier>& typeSpecification,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_target(target),
@@ -55,7 +55,7 @@ void AstAsExpression::Visit(AstVisitor* visitor, Module* mod)
 
     m_resultType = resolvedType->GetUnaliased();
 
-    m_typeRef.Reset(new AstTypeRef(m_resultType, m_location));
+    m_typeRef = MakeHandle<AstTypeRef>(m_resultType, m_location);
     m_typeRef->Visit(visitor, mod);
 
     if (m_resultType->IsAnyType())
@@ -381,7 +381,7 @@ ConstantValue AstAsExpression::GetConstantValue() const
     return ConstantValue(INVALID_CONSTANT_NUMBER);
 }
 
-SharedPtr<AstStatement> AstAsExpression::Clone() const
+Handle<AstStatement> AstAsExpression::Clone() const
 {
     return CloneImpl();
 }

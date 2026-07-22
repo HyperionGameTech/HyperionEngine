@@ -21,7 +21,7 @@ class AstModuleImportPart : public AstStatement
 public:
     AstModuleImportPart(
         const String& left,
-        const Array<SharedPtr<AstModuleImportPart>>& rightParts,
+        const Array<Handle<AstModuleImportPart>>& rightParts,
         const SourceLocation& location);
     virtual ~AstModuleImportPart() = default;
 
@@ -30,7 +30,7 @@ public:
         return m_left;
     }
 
-    HYP_FORCE_INLINE const Array<SharedPtr<AstModuleImportPart>>& GetParts() const
+    HYP_FORCE_INLINE const Array<Handle<AstModuleImportPart>>& GetParts() const
     {
         return m_rightParts;
     }
@@ -49,7 +49,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual SharedPtr<AstStatement> Clone() const override;
+    virtual Handle<AstStatement> Clone() const override;
 
     virtual HashCode GetHashCode() const override
     {
@@ -67,18 +67,18 @@ public:
 
 private:
     String m_left;
-    Array<SharedPtr<AstModuleImportPart>> m_rightParts;
+    Array<Handle<AstModuleImportPart>> m_rightParts;
 
     // set while analyzing
     Array<Symbol> m_foundSymbols;
     bool m_pullInModules : 1;
 
-    SharedPtr<AstModuleImportPart> CloneImpl() const
+    Handle<AstModuleImportPart> CloneImpl() const
     {
-        return SharedPtr<AstModuleImportPart>(new AstModuleImportPart(
+        return MakeHandle<AstModuleImportPart>(
             m_left,
             CloneAllAstNodes(m_rightParts),
-            m_location));
+            m_location);
     }
 };
 
@@ -89,12 +89,12 @@ class AstModuleImport : public AstImport
 
 public:
     AstModuleImport(
-        const Array<SharedPtr<AstModuleImportPart>>& parts,
+        const Array<Handle<AstModuleImportPart>>& parts,
         const SourceLocation& location);
 
     virtual void Visit(AstVisitor* visitor, Module* mod) override;
 
-    virtual SharedPtr<AstStatement> Clone() const override;
+    virtual Handle<AstStatement> Clone() const override;
 
     virtual HashCode GetHashCode() const override
     {
@@ -109,13 +109,13 @@ public:
     }
 
 protected:
-    Array<SharedPtr<AstModuleImportPart>> m_parts;
+    Array<Handle<AstModuleImportPart>> m_parts;
 
-    SharedPtr<AstModuleImport> CloneImpl() const
+    Handle<AstModuleImport> CloneImpl() const
     {
-        return SharedPtr<AstModuleImport>(new AstModuleImport(
+        return MakeHandle<AstModuleImport>(
             CloneAllAstNodes(m_parts),
-            m_location));
+            m_location);
     }
 };
 

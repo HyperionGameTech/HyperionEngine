@@ -106,12 +106,12 @@ public:
         m_flags = flags;
     }
 
-    HYP_FORCE_INLINE const SharedPtr<AstExpression>& GetCurrentValue() const
+    HYP_FORCE_INLINE const Handle<AstExpression>& GetCurrentValue() const
     {
         return Unalias()->m_currentValue;
     }
 
-    HYP_FORCE_INLINE void SetCurrentValue(const SharedPtr<AstExpression>& expr)
+    HYP_FORCE_INLINE void SetCurrentValue(const Handle<AstExpression>& expr)
     {
         Unalias()->m_currentValue = expr;
     }
@@ -153,7 +153,7 @@ private:
     mutable int m_usecount;
     EnumFlags<IdentifierFlags> m_flags;
     Identifier* m_aliasee;
-    SharedPtr<AstExpression> m_currentValue;
+    Handle<AstExpression> m_currentValue;
     const SymbolType* m_symbolType;
     Scope* m_declScope;
 };

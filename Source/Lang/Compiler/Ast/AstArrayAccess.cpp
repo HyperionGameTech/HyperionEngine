@@ -29,8 +29,8 @@ namespace Hyperion {
 static constexpr const char* g_tempArrayStoreVarName = "$__arrayStoreValue";
 
 AstArrayAccess::AstArrayAccess(
-    const SharedPtr<AstExpression>& target,
-    const SharedPtr<AstExpression>& index,
+    const Handle<AstExpression>& target,
+    const Handle<AstExpression>& index,
     bool operatorOverloadingEnabled,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD | ACCESS_MODE_STORE),
@@ -116,67 +116,71 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
 
         bool needsTemporaryVar = false;
 
-        SharedPtr<AstArgumentList> argumentList(new AstArgumentList(
-            { SharedPtr<AstArgument>(new AstArgument(
-                CloneAstNode(m_index),
-                false,
-                false,
-                false,
-                false,
-                "index",
-                m_location)) },
-            m_location));
-
-        if (m_accessMode == ACCESS_MODE_STORE)
-        {
-            needsTemporaryVar = true;
-
-            argumentList->GetArguments().PushBack(SharedPtr<AstArgument>(new AstArgument(
-                SharedPtr<AstVariable>(new AstVariable(g_tempArrayStoreVarName, m_location)), // temporary variable to be stored into the array
-                false,
-                false,
-                false,
-                false,
-                "value",
-                m_location)));
-        }
-
-        SharedPtr<AstMemberCallExpression> operatorOverloadMemberCall(new AstMemberCallExpression(
-            overloadFunctionName,
-            CloneAstNode(m_target),
-            argumentList, // use right hand side as arg
-            m_location));
-
-        if (targetType->IsProxyClass() && targetType->FindMember(overloadFunctionName))
-        {
-            SharedPtr<AstCallExpression> callExpr(new AstCallExpression(
-                SharedPtr<AstMember>(new AstMember(
-                    overloadFunctionName,
-                    CloneAstNode(m_target),
-                    m_location)),
-                { SharedPtr<AstArgument>(new AstArgument(
+        Handle<AstArgumentList> argumentList = MakeHandle<AstArgumentList>(
+            Array<Handle<AstArgument>> {
+                MakeHandle<AstArgument>(
                     CloneAstNode(m_index),
                     false,
                     false,
                     false,
                     false,
                     "index",
-                    m_location)) },
-                true,
+                    m_location)
+            },
+            m_location);
+
+        if (m_accessMode == ACCESS_MODE_STORE)
+        {
+            needsTemporaryVar = true;
+
+            argumentList->GetArguments().PushBack(MakeHandle<AstArgument>(
+                MakeHandle<AstVariable>(g_tempArrayStoreVarName, m_location), // temporary variable to be stored into the array
+                false,
+                false,
+                false,
+                false,
+                "value",
                 m_location));
+        }
+
+        Handle<AstMemberCallExpression> operatorOverloadMemberCall = MakeHandle<AstMemberCallExpression>(
+            overloadFunctionName,
+            CloneAstNode(m_target),
+            argumentList, // use right hand side as arg
+            m_location);
+
+        if (targetType->IsProxyClass() && targetType->FindMember(overloadFunctionName))
+        {
+            Handle<AstCallExpression> callExpr = MakeHandle<AstCallExpression>(
+                MakeHandle<AstMember>(
+                    overloadFunctionName,
+                    CloneAstNode(m_target),
+                    m_location),
+                Array<Handle<AstArgument>> {
+                    MakeHandle<AstArgument>(
+                        CloneAstNode(m_index),
+                        false,
+                        false,
+                        false,
+                        false,
+                        "index",
+                        m_location)
+                },
+                true,
+                m_location);
 
             if (m_accessMode == ACCESS_MODE_STORE)
             {
                 needsTemporaryVar = true;
 
-                callExpr->GetArguments().PushBack(SharedPtr<AstArgument>(new AstArgument(
-                    SharedPtr<AstVariable>(new AstVariable(g_tempArrayStoreVarName, m_location)), // temporary variable to be stored into the array
+                callExpr->GetArguments().PushBack(MakeHandle<AstArgument>(
+                    MakeHandle<AstVariable>(g_tempArrayStoreVarName, m_location), // temporary variable to be stored into the array
                     false,
                     false,
                     false,
                     false,
                     "value",
-                    m_location)));
+                    m_location));
             }
 
             m_overrideExpr = std::move(callExpr);
@@ -185,14 +189,14 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
         {
             // if target is ANY, we need to clone this (without operator overloading enabled)
             // and conditionally call the operator overload if it exists
-            SharedPtr<AstArrayAccess> subExpr = Clone().CastUnchecked<AstArrayAccess>();
+            Handle<AstArrayAccess> subExpr = StaticCast<AstArrayAccess>(Clone());
             subExpr->SetIsOperatorOverloadingEnabled(false); // don't look for operator[] again
 
-            m_overrideExpr.Reset(new AstTernaryExpression(
-                SharedPtr<AstHasExpression>(new AstHasExpression(CloneAstNode(m_target), overloadFunctionName, m_location)),
+            m_overrideExpr = MakeHandle<AstTernaryExpression>(
+                MakeHandle<AstHasExpression>(CloneAstNode(m_target), overloadFunctionName, m_location),
                 operatorOverloadMemberCall,
                 subExpr,
-                m_location));
+                m_location);
         }
         else if (targetType->FindMemberDeep(overloadFunctionName) != nullptr)
         {
@@ -211,14 +215,14 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
         if (needsTemporaryVar)
         {
             // create a temporary variable to hold the value to be stored into the array
-            m_tempArrayStoreVarDecl.Reset(new AstVariableDeclaration(
+            m_tempArrayStoreVarDecl = MakeHandle<AstVariableDeclaration>(
                 g_tempArrayStoreVarName,
-                SharedPtr<AstTypeSpecifier>(new AstTypeSpecifier(
-                    SharedPtr<AstTypeRef>(new AstTypeRef(BuiltinTypes::s_anyType, m_location)),
-                    m_location)),
+                MakeHandle<AstTypeSpecifier>(
+                    MakeHandle<AstTypeRef>(BuiltinTypes::s_anyType, m_location),
+                    m_location),
                 nullptr, // no initializer
                 IdentifierFlags::LAX,
-                m_location));
+                m_location);
 
             m_tempArrayStoreVarDecl->Visit(visitor, mod);
         }
@@ -437,7 +441,7 @@ void AstArrayAccess::Optimize(AstVisitor* visitor, Module* mod)
     m_index->Optimize(visitor, mod);
 }
 
-SharedPtr<AstStatement> AstArrayAccess::Clone() const
+Handle<AstStatement> AstArrayAccess::Clone() const
 {
     return CloneImpl();
 }

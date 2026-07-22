@@ -14,7 +14,7 @@ namespace Hyperion {
 
 AstModuleAccess::AstModuleAccess(
     const String& target,
-    const SharedPtr<AstExpression>& expr,
+    const Handle<AstExpression>& expr,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD | ACCESS_MODE_STORE),
       m_target(target),
@@ -81,7 +81,7 @@ void AstModuleAccess::Optimize(AstVisitor* visitor, Module* mod)
     m_expr->Optimize(visitor, m_modAccess);
 }
 
-SharedPtr<AstStatement> AstModuleAccess::Clone() const
+Handle<AstStatement> AstModuleAccess::Clone() const
 {
     return CloneImpl();
 }

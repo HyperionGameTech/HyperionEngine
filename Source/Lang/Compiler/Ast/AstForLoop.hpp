@@ -15,10 +15,10 @@ class AstForLoop : public AstStatement
 
 public:
     AstForLoop(
-        const SharedPtr<AstStatement>& declPart,
-        const SharedPtr<AstExpression>& conditionPart,
-        const SharedPtr<AstExpression>& incrementPart,
-        const SharedPtr<AstBlock>& block,
+        const Handle<AstStatement>& declPart,
+        const Handle<AstExpression>& conditionPart,
+        const Handle<AstExpression>& incrementPart,
+        const Handle<AstBlock>& block,
         const SourceLocation& location);
     virtual ~AstForLoop() override = default;
 
@@ -26,7 +26,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual SharedPtr<AstStatement> Clone() const override;
+    virtual Handle<AstStatement> Clone() const override;
 
     virtual String ToString() const override;
 
@@ -43,25 +43,25 @@ public:
     }
 
 private:
-    SharedPtr<AstStatement> m_declPart;
-    SharedPtr<AstExpression> m_conditionPart;
-    SharedPtr<AstExpression> m_incrementPart;
-    SharedPtr<AstBlock> m_block;
+    Handle<AstStatement> m_declPart;
+    Handle<AstExpression> m_conditionPart;
+    Handle<AstExpression> m_incrementPart;
+    Handle<AstBlock> m_block;
 
     // set while analyzing
     int m_numLocals;
     int m_numUsedInitializers;
 
-    SharedPtr<AstExpression> m_expr;
+    Handle<AstExpression> m_expr;
 
-    SharedPtr<AstForLoop> CloneImpl() const
+    Handle<AstForLoop> CloneImpl() const
     {
-        return SharedPtr<AstForLoop>(new AstForLoop(
+        return MakeHandle<AstForLoop>(
             CloneAstNode(m_declPart),
             CloneAstNode(m_conditionPart),
             CloneAstNode(m_incrementPart),
             CloneAstNode(m_block),
-            m_location));
+            m_location);
     }
 };
 

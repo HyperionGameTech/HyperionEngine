@@ -15,7 +15,7 @@ class AstArgument : public AstExpression
 
 public:
     AstArgument(
-        const SharedPtr<AstExpression>& expr,
+        const Handle<AstExpression>& expr,
         bool isSplat,
         bool isNamed,
         bool isPassByRef,
@@ -24,7 +24,7 @@ public:
         const SourceLocation& location);
     virtual ~AstArgument() override = default;
 
-    const SharedPtr<AstExpression>& GetExpr() const
+    const Handle<AstExpression>& GetExpr() const
     {
         return m_expr;
     }
@@ -68,7 +68,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual SharedPtr<AstStatement> Clone() const override;
+    virtual Handle<AstStatement> Clone() const override;
 
     // virtual const AstExpression *GetValueOf() const override { return m_expr.Get(); }
 
@@ -96,23 +96,23 @@ public:
     }
 
 private:
-    SharedPtr<AstExpression> m_expr;
+    Handle<AstExpression> m_expr;
     bool m_isSplat : 1;
     bool m_isNamed : 1;
     bool m_isPassByRef : 1;
     bool m_isPassConst : 1;
     String m_name;
 
-    SharedPtr<AstArgument> CloneImpl() const
+    Handle<AstArgument> CloneImpl() const
     {
-        return SharedPtr<AstArgument>(new AstArgument(
+        return MakeHandle<AstArgument>(
             CloneAstNode(m_expr),
             m_isSplat,
             m_isNamed,
             m_isPassByRef,
             m_isPassConst,
             m_name,
-            m_location));
+            m_location);
     }
 };
 

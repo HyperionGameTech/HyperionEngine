@@ -13,16 +13,16 @@ class AstArrayExpression : public AstExpression
 
 public:
     AstArrayExpression(
-        const Array<SharedPtr<AstExpression>>& members,
+        const Array<Handle<AstExpression>>& members,
         const SourceLocation& location);
     virtual ~AstArrayExpression() = default;
 
-    HYP_FORCE_INLINE Array<SharedPtr<AstExpression>>& GetMembers()
+    HYP_FORCE_INLINE Array<Handle<AstExpression>>& GetMembers()
     {
         return m_members;
     }
 
-    HYP_FORCE_INLINE const Array<SharedPtr<AstExpression>>& GetMembers() const
+    HYP_FORCE_INLINE const Array<Handle<AstExpression>>& GetMembers() const
     {
         return m_members;
     }
@@ -31,7 +31,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual SharedPtr<AstStatement> Clone() const override;
+    virtual Handle<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -51,19 +51,19 @@ public:
     }
 
 protected:
-    Array<SharedPtr<AstExpression>> m_members;
+    Array<Handle<AstExpression>> m_members;
 
     // set while analyzing
-    Array<SharedPtr<AstExpression>> m_replacedMembers;
+    Array<Handle<AstExpression>> m_replacedMembers;
     const SymbolType* m_heldType;
     const SymbolType* m_exprType;
-    SharedPtr<AstExpression> m_arrayFromCall;
+    Handle<AstExpression> m_arrayFromCall;
 
-    SharedPtr<AstArrayExpression> CloneImpl() const
+    Handle<AstArrayExpression> CloneImpl() const
     {
-        return SharedPtr<AstArrayExpression>(new AstArrayExpression(
+        return MakeHandle<AstArrayExpression>(
             CloneAllAstNodes(m_members),
-            m_location));
+            m_location);
     }
 };
 

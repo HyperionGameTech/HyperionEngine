@@ -19,7 +19,7 @@
 namespace Hyperion {
 
 AstReturnStatement::AstReturnStatement(
-    const SharedPtr<AstExpression>& expr,
+    const Handle<AstExpression>& expr,
     const SourceLocation& location)
     : AstStatement(location),
       m_expr(expr),
@@ -71,12 +71,12 @@ void AstReturnStatement::Visit(AstVisitor* visitor, Module* mod)
                         /* strictDownCasting */ true))
                 {
                     // insert cast
-                    m_overrideExpr.Reset(new AstAsExpression(
+                    m_overrideExpr = MakeHandle<AstAsExpression>(
                         CloneAstNode(m_expr),
-                        SharedPtr<AstTypeSpecifier>(new AstTypeSpecifier(
-                            SharedPtr<AstTypeRef>(new AstTypeRef(returnType, m_location)),
-                            m_location)),
-                        m_location));
+                        MakeHandle<AstTypeSpecifier>(
+                            MakeHandle<AstTypeRef>(returnType, m_location),
+                            m_location),
+                        m_location);
 
                     m_overrideExpr->Visit(visitor, mod);
 
@@ -130,7 +130,7 @@ UniquePtr<Buildable> AstReturnStatement::Build(AstVisitor* visitor, Module* mod)
 {
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    const SharedPtr<AstExpression>& expr = m_overrideExpr ? m_overrideExpr : m_expr;
+    const Handle<AstExpression>& expr = m_overrideExpr ? m_overrideExpr : m_expr;
 
     if (expr != nullptr)
     {
@@ -161,7 +161,7 @@ void AstReturnStatement::Optimize(AstVisitor* visitor, Module* mod)
     }
 }
 
-SharedPtr<AstStatement> AstReturnStatement::Clone() const
+Handle<AstStatement> AstReturnStatement::Clone() const
 {
     return CloneImpl();
 }

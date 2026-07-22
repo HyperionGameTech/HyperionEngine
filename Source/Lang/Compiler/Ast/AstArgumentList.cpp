@@ -14,7 +14,7 @@
 namespace Hyperion {
 
 AstArgumentList::AstArgumentList(
-    const Array<SharedPtr<AstArgument>>& args,
+    const Array<Handle<AstArgument>>& args,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_args(args)
@@ -26,7 +26,7 @@ void AstArgumentList::Visit(AstVisitor* visitor, Module* mod)
     Assert(visitor != nullptr);
     Assert(mod != nullptr);
 
-    for (const SharedPtr<AstArgument>& arg : m_args)
+    for (const Handle<AstArgument>& arg : m_args)
     {
         Assert(arg != nullptr);
 
@@ -46,7 +46,7 @@ UniquePtr<Buildable> AstArgumentList::Build(AstVisitor* visitor, Module* mod)
 
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    for (const SharedPtr<AstArgument>& arg : m_args)
+    for (const Handle<AstArgument>& arg : m_args)
     {
         Assert(arg != nullptr);
 
@@ -66,7 +66,7 @@ void AstArgumentList::Optimize(AstVisitor* visitor, Module* mod)
     Assert(visitor != nullptr);
     Assert(mod != nullptr);
 
-    for (const SharedPtr<AstArgument>& arg : m_args)
+    for (const Handle<AstArgument>& arg : m_args)
     {
         Assert(arg != nullptr);
 
@@ -79,7 +79,7 @@ void AstArgumentList::Optimize(AstVisitor* visitor, Module* mod)
     }
 }
 
-SharedPtr<AstStatement> AstArgumentList::Clone() const
+Handle<AstStatement> AstArgumentList::Clone() const
 {
     return CloneImpl();
 }
@@ -91,7 +91,7 @@ Tribool AstArgumentList::IsTrue() const
 
 bool AstArgumentList::MayHaveSideEffects() const
 {
-    for (const SharedPtr<AstArgument>& arg : m_args)
+    for (const Handle<AstArgument>& arg : m_args)
     {
         Assert(arg != nullptr);
 

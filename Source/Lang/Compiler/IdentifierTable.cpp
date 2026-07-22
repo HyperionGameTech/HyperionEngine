@@ -39,7 +39,7 @@ const SharedPtr<Identifier>& IdentifierTable::AddAlias(const String& name, Ident
 const SharedPtr<Identifier>& IdentifierTable::AddIdentifier(
     const String& name,
     int flags,
-    const SharedPtr<AstExpression>& currentValue,
+    const Handle<AstExpression>& currentValue,
     const SymbolType* symbolType)
 {
     SharedPtr<Identifier> identifier(new Identifier(

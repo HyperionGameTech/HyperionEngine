@@ -70,7 +70,7 @@ struct ASTUnaryExpr : ASTExpr
 {
     virtual ~ASTUnaryExpr() override = default;
 
-    SharedPtr<ASTExpr> expr;
+    Handle<AstExpr> expr;
     const Operator* op;
     bool isPrefix;
 
@@ -82,8 +82,8 @@ struct ASTBinExpr : ASTExpr
 {
     virtual ~ASTBinExpr() override = default;
 
-    SharedPtr<ASTExpr> left;
-    SharedPtr<ASTExpr> right;
+    Handle<AstExpr> left;
+    Handle<AstExpr> right;
     const Operator* op;
 
     virtual void ToJSON(JSON::Value& out) const override;
@@ -94,9 +94,9 @@ struct ASTTernaryExpr : ASTExpr
 {
     virtual ~ASTTernaryExpr() override = default;
 
-    SharedPtr<ASTExpr> conditional;
-    SharedPtr<ASTExpr> trueExpr;
-    SharedPtr<ASTExpr> falseExpr;
+    Handle<AstExpr> conditional;
+    Handle<AstExpr> trueExpr;
+    Handle<AstExpr> falseExpr;
 
     virtual void ToJSON(JSON::Value& out) const override;
     virtual String ToString() const override;
@@ -166,7 +166,7 @@ struct ASTInitializerExpr : ASTExpr
 {
     virtual ~ASTInitializerExpr() override = default;
 
-    Array<SharedPtr<ASTExpr>> values;
+    Array<Handle<AstExpr>> values;
 
     virtual void ToJSON(JSON::Value& out) const override;
     virtual String ToString() const override;
@@ -176,8 +176,8 @@ struct ASTTemplateArgument : ASTNode
 {
     virtual ~ASTTemplateArgument() override = default;
 
-    SharedPtr<ASTType> type;
-    SharedPtr<ASTExpr> expr;
+    Handle<AstType> type;
+    Handle<AstExpr> expr;
 
     virtual void ToJSON(JSON::Value& out) const override;
     virtual String ToString() const override;
@@ -204,15 +204,15 @@ struct ASTType : ASTNode
     bool isFunction = false;
 
     // One of the below is set
-    SharedPtr<ASTType> ptrTo;
-    SharedPtr<ASTType> refTo;
-    SharedPtr<ASTType> arrayOf;
+    Handle<AstType> ptrTo;
+    Handle<AstType> refTo;
+    Handle<AstType> arrayOf;
     Optional<QualifiedName> typeName;
 
     // Inner value for array - may be null
-    SharedPtr<ASTExpr> arrayExpr;
+    Handle<AstExpr> arrayExpr;
 
-    Array<SharedPtr<ASTTemplateArgument>> templateArguments;
+    Array<Handle<AstTemplateArgument>> templateArguments;
 
     HYP_FORCE_INLINE bool IsVoid() const
     {
@@ -248,8 +248,8 @@ struct ASTMemberDecl : ASTNode
     virtual ~ASTMemberDecl() override = default;
 
     String name;
-    SharedPtr<ASTType> type;
-    SharedPtr<ASTExpr> value;
+    Handle<AstType> type;
+    Handle<AstExpr> value;
 
     virtual void ToJSON(JSON::Value& out) const override;
     virtual String ToString() const override;
@@ -273,8 +273,8 @@ struct ASTFunctionType : ASTType
     bool isRvalueMethod = false;
     bool isLvalueMethod = false;
 
-    SharedPtr<ASTType> returnType;
-    Array<SharedPtr<ASTMemberDecl>> parameters;
+    Handle<AstType> returnType;
+    Array<Handle<AstMemberDecl>> parameters;
 
     virtual String Format(bool useCsharpSyntax = false) const override;
     virtual String FormatDecl(const String& declName, bool useCsharpSyntax = false) const override;
@@ -295,22 +295,22 @@ public:
 
     QualifiedName ReadQualifiedName();
 
-    SharedPtr<ASTExpr> ParseExpr();
-    SharedPtr<ASTExpr> ParseTerm();
-    SharedPtr<ASTExpr> ParseUnaryExprPrefix();
-    SharedPtr<ASTExpr> ParseUnaryExprPostfix(const SharedPtr<ASTExpr>& innerExpr);
-    SharedPtr<ASTExpr> ParseBinaryExpr(int exprPrecedence, SharedPtr<ASTExpr> left);
-    SharedPtr<ASTExpr> ParseTernaryExpr(const SharedPtr<ASTExpr>& conditional);
-    SharedPtr<ASTExpr> ParseParentheses();
-    SharedPtr<ASTExpr> ParseLiteralString();
-    SharedPtr<ASTExpr> ParseLiteralInt();
-    SharedPtr<ASTExpr> ParseLiteralFloat();
-    SharedPtr<ASTIdentifier> ParseIdentifier();
-    SharedPtr<ASTInitializerExpr> ParseInitializerExpr();
-    SharedPtr<ASTMemberDecl> ParseMemberDecl();
-    SharedPtr<ASTMemberDecl> ParseEnumMemberDecl(const SharedPtr<ASTType>& underlyingType);
-    SharedPtr<ASTType> ParseType();
-    SharedPtr<ASTFunctionType> ParseFunctionType(const SharedPtr<ASTType>& returnType);
+    Handle<AstExpr> ParseExpr();
+    Handle<AstExpr> ParseTerm();
+    Handle<AstExpr> ParseUnaryExprPrefix();
+    Handle<AstExpr> ParseUnaryExprPostfix(const Handle<AstExpr>& innerExpr);
+    Handle<AstExpr> ParseBinaryExpr(int exprPrecedence, Handle<AstExpr> left);
+    Handle<AstExpr> ParseTernaryExpr(const Handle<AstExpr>& conditional);
+    Handle<AstExpr> ParseParentheses();
+    Handle<AstExpr> ParseLiteralString();
+    Handle<AstExpr> ParseLiteralInt();
+    Handle<AstExpr> ParseLiteralFloat();
+    Handle<AstIdentifier> ParseIdentifier();
+    Handle<AstInitializerExpr> ParseInitializerExpr();
+    Handle<AstMemberDecl> ParseMemberDecl();
+    Handle<AstMemberDecl> ParseEnumMemberDecl(const Handle<AstType>& underlyingType);
+    Handle<AstType> ParseType();
+    Handle<AstFunctionType> ParseFunctionType(const Handle<AstType>& returnType);
 
     Token Match(TokenClass tokenClass, bool read = false);
     Token MatchAhead(TokenClass tokenClass, int n);

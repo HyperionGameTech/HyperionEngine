@@ -19,7 +19,7 @@ class AstTypeAlias : public AstStatement
 public:
     AstTypeAlias(
         const String& name,
-        const SharedPtr<AstTypeSpecifier>& aliasee,
+        const Handle<AstTypeSpecifier>& aliasee,
         const SourceLocation& location);
     virtual ~AstTypeAlias() = default;
 
@@ -27,7 +27,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual SharedPtr<AstStatement> Clone() const override;
+    virtual Handle<AstStatement> Clone() const override;
 
     virtual HashCode GetHashCode() const override
     {
@@ -41,14 +41,14 @@ public:
 
 private:
     String m_name;
-    SharedPtr<AstTypeSpecifier> m_aliasee;
+    Handle<AstTypeSpecifier> m_aliasee;
 
-    SharedPtr<AstTypeAlias> CloneImpl() const
+    Handle<AstTypeAlias> CloneImpl() const
     {
-        return SharedPtr<AstTypeAlias>(new AstTypeAlias(
+        return MakeHandle<AstTypeAlias>(
             m_name,
             CloneAstNode(m_aliasee),
-            m_location));
+            m_location);
     }
 };
 

@@ -23,7 +23,7 @@
 namespace Hyperion {
 
 AstTypeSpecifier::AstTypeSpecifier(
-    const SharedPtr<AstExpression>& expr,
+    const Handle<AstExpression>& expr,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_expr(expr),
@@ -75,7 +75,7 @@ void AstTypeSpecifier::Optimize(AstVisitor* visitor, Module* mod)
     m_expr->Optimize(visitor, mod);
 }
 
-SharedPtr<AstStatement> AstTypeSpecifier::Clone() const
+Handle<AstStatement> AstTypeSpecifier::Clone() const
 {
     return CloneImpl();
 }

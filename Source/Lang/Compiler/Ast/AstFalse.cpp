@@ -27,7 +27,7 @@ UniquePtr<Buildable> AstFalse::Build(AstVisitor* visitor, Module* mod)
     return BytecodeUtil::Make<ConstBool>(rp, false);
 }
 
-SharedPtr<AstStatement> AstFalse::Clone() const
+Handle<AstStatement> AstFalse::Clone() const
 {
     return CloneImpl();
 }

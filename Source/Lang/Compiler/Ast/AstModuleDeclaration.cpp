@@ -19,7 +19,7 @@ namespace Hyperion {
 
 AstModuleDeclaration::AstModuleDeclaration(
     const String& name,
-    const Array<SharedPtr<AstStatement>>& children,
+    const Array<Handle<AstStatement>>& children,
     const SourceLocation& location)
     : AstDeclaration(name, IdentifierFlags::MODULE, location),
       m_children(children),
@@ -55,7 +55,7 @@ void AstModuleDeclaration::PerformLookup(AstVisitor* visitor)
 
 void AstModuleDeclaration::PreRegisterClassTypes(AstVisitor* visitor, Module* mod)
 {
-    for (const SharedPtr<AstStatement>& child : m_children)
+    for (const Handle<AstStatement>& child : m_children)
     {
         Assert(child != nullptr);
 
@@ -115,7 +115,7 @@ void AstModuleDeclaration::Visit(AstVisitor* visitor, Module* mod)
         PreRegisterClassTypes(visitor, mod);
 
         // visit all children
-        for (const SharedPtr<AstStatement>& child : m_children)
+        for (const Handle<AstStatement>& child : m_children)
         {
             Assert(child != nullptr);
 
@@ -134,7 +134,7 @@ UniquePtr<Buildable> AstModuleDeclaration::Build(AstVisitor* visitor, Module* mo
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
     // build all children
-    for (const SharedPtr<AstStatement>& child : m_children)
+    for (const Handle<AstStatement>& child : m_children)
     {
         if (child != nullptr)
         {
@@ -152,7 +152,7 @@ void AstModuleDeclaration::Optimize(AstVisitor* visitor, Module* mod)
     Assert(m_module != nullptr);
 
     // optimize all children
-    for (const SharedPtr<AstStatement>& child : m_children)
+    for (const Handle<AstStatement>& child : m_children)
     {
         if (child)
         {
@@ -161,7 +161,7 @@ void AstModuleDeclaration::Optimize(AstVisitor* visitor, Module* mod)
     }
 }
 
-SharedPtr<AstStatement> AstModuleDeclaration::Clone() const
+Handle<AstStatement> AstModuleDeclaration::Clone() const
 {
     return CloneImpl();
 }

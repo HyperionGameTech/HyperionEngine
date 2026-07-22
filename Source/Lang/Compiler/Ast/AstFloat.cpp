@@ -39,7 +39,7 @@ UniquePtr<Buildable> AstFloat::Build(AstVisitor* visitor, Module* mod)
     }
 }
 
-SharedPtr<AstStatement> AstFloat::Clone() const
+Handle<AstStatement> AstFloat::Clone() const
 {
     return CloneImpl();
 }

@@ -17,29 +17,29 @@ class AstBlock : public AstStatement
 
 public:
     AstBlock(
-        const Array<SharedPtr<AstStatement>>& children,
+        const Array<Handle<AstStatement>>& children,
         const SourceLocation& location);
 
     AstBlock(const SourceLocation& location);
 
     virtual ~AstBlock() = default;
 
-    HYP_FORCE_INLINE void PrependChild(const SharedPtr<AstStatement>& stmt)
+    HYP_FORCE_INLINE void PrependChild(const Handle<AstStatement>& stmt)
     {
         m_children.PushFront(stmt);
     }
 
-    HYP_FORCE_INLINE void AddChild(const SharedPtr<AstStatement>& stmt)
+    HYP_FORCE_INLINE void AddChild(const Handle<AstStatement>& stmt)
     {
         m_children.PushBack(stmt);
     }
 
-    HYP_FORCE_INLINE Array<SharedPtr<AstStatement>>& GetChildren()
+    HYP_FORCE_INLINE Array<Handle<AstStatement>>& GetChildren()
     {
         return m_children;
     }
 
-    HYP_FORCE_INLINE const Array<SharedPtr<AstStatement>>& GetChildren() const
+    HYP_FORCE_INLINE const Array<Handle<AstStatement>>& GetChildren() const
     {
         return m_children;
     }
@@ -93,7 +93,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual SharedPtr<AstStatement> Clone() const override;
+    virtual Handle<AstStatement> Clone() const override;
 
     virtual HashCode GetHashCode() const override
     {
@@ -109,7 +109,7 @@ public:
     }
 
 protected:
-    Array<SharedPtr<AstStatement>> m_children;
+    Array<Handle<AstStatement>> m_children;
 
     // set while analyzing
     int m_numLocals;
@@ -120,11 +120,11 @@ protected:
     ScopeType m_scopeType = ScopeType::SCOPE_TYPE_NORMAL;
     int m_scopeFlags = 0;
 
-    SharedPtr<AstBlock> CloneImpl() const
+    Handle<AstBlock> CloneImpl() const
     {
-        return SharedPtr<AstBlock>(new AstBlock(
+        return MakeHandle<AstBlock>(
             CloneAllAstNodes(m_children),
-            m_location));
+            m_location);
     }
 };
 

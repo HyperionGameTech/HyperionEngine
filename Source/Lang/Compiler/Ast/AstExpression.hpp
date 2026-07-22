@@ -208,7 +208,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override = 0;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override = 0;
 
-    virtual SharedPtr<AstStatement> Clone() const override = 0;
+    virtual Handle<AstStatement> Clone() const override = 0;
 
     /**
      * Overridden by derived classes to allow "constexpr"-type functionality.

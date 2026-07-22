@@ -18,7 +18,7 @@ public:
     void Prepend(AstIterator&& other, bool resetPosition = false);
     void Append(AstIterator&& other);
 
-    HYP_FORCE_INLINE void Push(const SharedPtr<AstStatement>& statement)
+    HYP_FORCE_INLINE void Push(const Handle<AstStatement>& statement)
     {
         m_list.PushBack(statement);
     }
@@ -80,7 +80,7 @@ public:
 
 private:
     size_t m_position;
-    Array<SharedPtr<AstStatement>> m_list;
+    Array<Handle<AstStatement>> m_list;
 };
 
 } // namespace Hyperion

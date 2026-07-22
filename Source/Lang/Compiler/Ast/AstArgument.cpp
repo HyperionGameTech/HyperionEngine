@@ -12,7 +12,7 @@
 namespace Hyperion {
 
 AstArgument::AstArgument(
-    const SharedPtr<AstExpression>& expr,
+    const Handle<AstExpression>& expr,
     bool isSplat,
     bool isNamed,
     bool isPassByRef,
@@ -104,7 +104,7 @@ void AstArgument::Optimize(AstVisitor* visitor, Module* mod)
     m_expr->Optimize(visitor, mod);
 }
 
-SharedPtr<AstStatement> AstArgument::Clone() const
+Handle<AstStatement> AstArgument::Clone() const
 {
     return CloneImpl();
 }

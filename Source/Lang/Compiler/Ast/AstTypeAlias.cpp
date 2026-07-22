@@ -11,7 +11,7 @@ namespace Hyperion {
 
 AstTypeAlias::AstTypeAlias(
     const String& name,
-    const SharedPtr<AstTypeSpecifier>& aliasee,
+    const Handle<AstTypeSpecifier>& aliasee,
     const SourceLocation& location)
     : AstStatement(location),
       m_name(name),
@@ -58,7 +58,7 @@ void AstTypeAlias::Optimize(AstVisitor* visitor, Module* mod)
 {
 }
 
-SharedPtr<AstStatement> AstTypeAlias::Clone() const
+Handle<AstStatement> AstTypeAlias::Clone() const
 {
     return CloneImpl();
 }

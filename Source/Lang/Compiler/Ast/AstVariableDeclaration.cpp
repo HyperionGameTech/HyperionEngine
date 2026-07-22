@@ -28,8 +28,8 @@ namespace Hyperion {
 
 AstVariableDeclaration::AstVariableDeclaration(
     const String& name,
-    const SharedPtr<AstTypeSpecifier>& typeSpec,
-    const SharedPtr<AstExpression>& assignment,
+    const Handle<AstTypeSpecifier>& typeSpec,
+    const Handle<AstExpression>& assignment,
     EnumFlags<IdentifierFlags> flags,
     const SourceLocation& location)
     : AstDeclaration(name, flags, location),
@@ -97,7 +97,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
                 // generic/non-concrete types that have default values
                 // will get assigned to their default value without causing
                 // an error
-                if (const SharedPtr<AstExpression>& defaultValue = m_symbolType->GetDefaultValue())
+                if (const Handle<AstExpression>& defaultValue = m_symbolType->GetDefaultValue())
                 {
                     // Assign variable to the default value for the specified type.
                     m_realAssignment = CloneAstNode(defaultValue);
@@ -114,7 +114,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
         if (m_realAssignment == nullptr)
         {
             // no assignment found - set to undefined (instead of a null pointer)
-            m_realAssignment.Reset(new AstUndefined(m_location));
+            m_realAssignment = MakeHandle<AstUndefined>(m_location);
         }
 
         // do this only within the scope of the assignment being visited.
@@ -176,12 +176,12 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
                     {
                         for (auto& member : arrayExpr->GetMembers())
                         {
-                            member.Reset(new AstAsExpression(
+                            member = MakeHandle<AstAsExpression>(
                                 CloneAstNode(member),
-                                SharedPtr<AstTypeSpecifier>(new AstTypeSpecifier(
-                                    SharedPtr<AstTypeRef>(new AstTypeRef(dstElemType, member->GetLocation())),
-                                    member->GetLocation())),
-                                member->GetLocation()));
+                                MakeHandle<AstTypeSpecifier>(
+                                    MakeHandle<AstTypeRef>(dstElemType, member->GetLocation()),
+                                    member->GetLocation()),
+                                member->GetLocation());
                         }
                     }
                 }
@@ -283,10 +283,10 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
                     // insert cast if needed
                     if ((doLiteralConversion || !m_realAssignment->GetExprType()->TypeEqual(*m_symbolType)) && !(m_flags & IdentifierFlags::LAX))
                     {
-                        SharedPtr<AstAsExpression> asExpr(new AstAsExpression(
+                        Handle<AstAsExpression> asExpr = MakeHandle<AstAsExpression>(
                             CloneAstNode(m_realAssignment),
                             m_typeSpec,
-                            m_realAssignment->GetLocation()));
+                            m_realAssignment->GetLocation());
 
                         asExpr->Visit(visitor, mod);
 
@@ -427,7 +427,7 @@ void AstVariableDeclaration::Optimize(AstVisitor* visitor, Module* mod)
     }
 }
 
-SharedPtr<AstStatement> AstVariableDeclaration::Clone() const
+Handle<AstStatement> AstVariableDeclaration::Clone() const
 {
     return CloneImpl();
 }

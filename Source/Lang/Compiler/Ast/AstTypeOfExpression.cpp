@@ -17,7 +17,7 @@
 namespace Hyperion {
 
 AstTypeOfExpression::AstTypeOfExpression(
-    const SharedPtr<AstExpression>& expr,
+    const Handle<AstExpression>& expr,
     const SourceLocation& location)
     : AstTypeSpecifier(expr, location),
 #if HYP_SCRIPT_TYPEOF_RETURN_OBJECT
@@ -45,7 +45,7 @@ void AstTypeOfExpression::Visit(AstVisitor* visitor, Module* mod)
         Assert(m_heldType != nullptr);
     }
 
-    m_typeRef.Reset(new AstTypeRef(m_heldType, m_location));
+    m_typeRef = MakeHandle<AstTypeRef>(m_heldType, m_location);
     m_typeRef->Visit(visitor, mod);
 #else
     m_symbolType = BuiltinTypes::s_stringType;
@@ -55,15 +55,15 @@ void AstTypeOfExpression::Visit(AstVisitor* visitor, Module* mod)
 
     if ((exprType = m_expr->GetExprType()) && (unaliased = exprType->GetUnaliased()))
     {
-        m_stringExpr.Reset(new AstString(
+        m_stringExpr = MakeHandle<AstString>(
             unaliased->ToString(false),
-            m_location));
+            m_location);
     }
     else
     {
-        m_stringExpr.Reset(new AstString(
+        m_stringExpr = MakeHandle<AstString>(
             BuiltinTypes::s_errorType->ToString(),
-            m_location));
+            m_location);
     }
 
     m_stringExpr->Visit(visitor, mod);
@@ -101,7 +101,7 @@ void AstTypeOfExpression::Optimize(AstVisitor* visitor, Module* mod)
 #endif
 }
 
-SharedPtr<AstStatement> AstTypeOfExpression::Clone() const
+Handle<AstStatement> AstTypeOfExpression::Clone() const
 {
     return CloneImpl();
 }

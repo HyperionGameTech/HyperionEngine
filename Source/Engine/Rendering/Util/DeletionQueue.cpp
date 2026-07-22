@@ -257,7 +257,7 @@ void DeletionQueue::OnFrameEnd(uint32 prevFrameIndex)
     {
         EntryHeader header = *it;
 
-        if ((int64(prevFrameIndex) - int64(header.fc)) < MinSafeDeleteCycles)
+        if ((static_cast<int64>(prevFrameIndex) - static_cast<int64>(header.fc)) < MathUtil::Max(RingBufferDepth, NumFramesInFlight))
         {
             ++it;
             continue; // skip this entry, it will be processed again next frame

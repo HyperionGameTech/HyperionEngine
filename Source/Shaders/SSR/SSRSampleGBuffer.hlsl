@@ -152,7 +152,7 @@ PSOutput PSMain(PSInput input)
         const float2 delta_p = (hit_uv - texcoord);
 
         float adjacent_length = length(delta_p);
-        float2 adjacent_unit = normalize(delta_p);
+        float2 adjacent_unit = adjacent_length > HYP_FMATH_EPSILON ? (delta_p / adjacent_length) : float2(0.0, 0.0);
 
         float remaining_alpha = 1.0;
         float gloss_multiplier = gloss;

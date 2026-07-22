@@ -1,11 +1,12 @@
 #pragma once
 
-#include <Core/Memory/SharedPtr.hpp>
 #include <Core/Memory/Allocator/SlabAllocator.hpp>
 
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/Set.hpp>
 #include <Core/Containers/String.hpp>
+
+#include <Core/Reflection/Handle.hpp>
 
 #include <Core/Types.hpp>
 
@@ -36,7 +37,7 @@ public:
     {
     }
 
-    SymbolTypeMember(const String& name, SymbolType* type, const SharedPtr<AstExpression>& expr = nullptr, bool isConst = false)
+    SymbolTypeMember(const String& name, SymbolType* type, const Handle<AstExpression>& expr = nullptr, bool isConst = false)
         : m_name(name),
           m_type(type),
           m_expr(expr),
@@ -69,17 +70,17 @@ public:
         m_type = type;
     }
 
-    HYP_FORCE_INLINE const SharedPtr<AstExpression>& GetExpr() const
+    HYP_FORCE_INLINE const Handle<AstExpression>& GetExpr() const
     {
         return m_expr;
     }
 
-    HYP_FORCE_INLINE void SetExpr(const SharedPtr<AstExpression>& expr)
+    HYP_FORCE_INLINE void SetExpr(const Handle<AstExpression>& expr)
     {
         m_expr = expr;
     }
 
-    HYP_FORCE_INLINE void SetExpr(SharedPtr<AstExpression>&& expr)
+    HYP_FORCE_INLINE void SetExpr(Handle<AstExpression>&& expr)
     {
         m_expr = std::move(expr);
     }
@@ -97,7 +98,7 @@ public:
 private:
     String m_name;
     SymbolType* m_type;
-    SharedPtr<AstExpression> m_expr;
+    Handle<AstExpression> m_expr;
     bool m_isConst : 1;
 };
 
@@ -261,7 +262,7 @@ struct GenericInstanceTypeInfo
     {
         String m_name;
         const SymbolType* m_type;
-        SharedPtr<AstExpression> m_defaultValue;
+        Handle<AstExpression> m_defaultValue;
         bool m_isRef : 1;
         bool m_isConst : 1;
 
@@ -272,12 +273,12 @@ struct GenericInstanceTypeInfo
         {
         }
 
-        Arg(const String& name, const SymbolType* type, const SharedPtr<AstExpression>& defaultValue = nullptr)
+        Arg(const String& name, const SymbolType* type, const Handle<AstExpression>& defaultValue = nullptr)
             : Arg(name, type, defaultValue, /* isRef */ false, /* isConst */ false)
         {
         }
 
-        Arg(const String& name, const SymbolType* type, const SharedPtr<AstExpression>& defaultValue, bool isRef, bool isConst)
+        Arg(const String& name, const SymbolType* type, const Handle<AstExpression>& defaultValue, bool isRef, bool isConst)
             : m_name(name),
               m_type(type),
               m_defaultValue(defaultValue),
@@ -361,7 +362,7 @@ public:
 
     static HYP_NODISCARD SymbolType* Primitive(
         const String& name,
-        const SharedPtr<AstExpression>& defaultValue,
+        const Handle<AstExpression>& defaultValue,
         ConstantBitSize bitSize = CBS_INVALID,
         Array<SymbolTypeMember>&& members = {},
         Array<SymbolTypeMember>&& staticMembers = {});
@@ -430,7 +431,7 @@ public:
         const String& name,
         SymbolTypeClass typeClass,
         const SymbolType* base,
-        const SharedPtr<AstExpression>& defaultValue,
+        const Handle<AstExpression>& defaultValue,
         Array<SymbolTypeMember>&& members,
         Array<SymbolTypeMember>&& staticMembers);
 
@@ -472,22 +473,22 @@ public:
         m_base = base ? base->GetUnaliased() : nullptr;
     }
 
-    HYP_FORCE_INLINE const SharedPtr<AstExpression>& GetDefaultValue() const
+    HYP_FORCE_INLINE const Handle<AstExpression>& GetDefaultValue() const
     {
         return m_defaultValue;
     }
 
-    HYP_FORCE_INLINE void SetDefaultValue(const SharedPtr<AstExpression>& defaultValue)
+    HYP_FORCE_INLINE void SetDefaultValue(const Handle<AstExpression>& defaultValue)
     {
         m_defaultValue = defaultValue;
     }
 
-    HYP_FORCE_INLINE const SharedPtr<AstVariableDeclaration>& GetClassRefDecl() const
+    HYP_FORCE_INLINE const Handle<AstVariableDeclaration>& GetClassRefDecl() const
     {
         return m_classRefDecl;
     }
 
-    HYP_FORCE_INLINE void SetClassRefDecl(const SharedPtr<AstVariableDeclaration>& classRefDecl)
+    HYP_FORCE_INLINE void SetClassRefDecl(const Handle<AstVariableDeclaration>& classRefDecl)
     {
         m_classRefDecl = classRefDecl;
     }
@@ -746,7 +747,7 @@ private:
 
     String m_name;
     SymbolTypeClass m_typeClass;
-    SharedPtr<AstExpression> m_defaultValue;
+    Handle<AstExpression> m_defaultValue;
     Array<SymbolTypeMember> m_members;
     Array<SymbolTypeMember> m_staticMembers;
 
@@ -764,7 +765,7 @@ private:
     EnumFlags<SymbolTypeFlags> m_flags;
     Scope* m_declScope;
 
-    SharedPtr<AstVariableDeclaration> m_classRefDecl;
+    Handle<AstVariableDeclaration> m_classRefDecl;
 
     // set to default empty registration upon creation so we can delete all unregistered types
     mutable SymbolTypeRegistration* m_registration;

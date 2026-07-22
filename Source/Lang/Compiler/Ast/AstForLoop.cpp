@@ -20,10 +20,10 @@
 namespace Hyperion {
 
 AstForLoop::AstForLoop(
-    const SharedPtr<AstStatement>& declPart,
-    const SharedPtr<AstExpression>& conditionPart,
-    const SharedPtr<AstExpression>& incrementPart,
-    const SharedPtr<AstBlock>& block,
+    const Handle<AstStatement>& declPart,
+    const Handle<AstExpression>& conditionPart,
+    const Handle<AstExpression>& incrementPart,
+    const Handle<AstBlock>& block,
     const SourceLocation& location)
     : AstStatement(location),
       m_declPart(declPart),
@@ -38,7 +38,7 @@ void AstForLoop::Visit(AstVisitor* visitor, Module* mod)
     // if no condition has been provided, replace it with AstTrue
     if (m_conditionPart == nullptr)
     {
-        m_incrementPart.Reset(new AstTrue(m_location));
+        m_incrementPart = MakeHandle<AstTrue>(m_location);
     }
 
     // open scope for variable decl
@@ -291,7 +291,7 @@ void AstForLoop::Optimize(AstVisitor* visitor, Module* mod)
     }
 }
 
-SharedPtr<AstStatement> AstForLoop::Clone() const
+Handle<AstStatement> AstForLoop::Clone() const
 {
     return CloneImpl();
 }

@@ -14,7 +14,7 @@ class AstHasExpression : public AstExpression
 
 public:
     AstHasExpression(
-        const SharedPtr<AstStatement>& target,
+        const Handle<AstStatement>& target,
         const String& fieldName,
         const SourceLocation& location);
     virtual ~AstHasExpression() override = default;
@@ -23,7 +23,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual SharedPtr<AstStatement> Clone() const override;
+    virtual Handle<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -39,7 +39,7 @@ public:
     }
 
 protected:
-    SharedPtr<AstStatement> m_target;
+    Handle<AstStatement> m_target;
     String m_fieldName;
 
     // set while analyzing
@@ -50,12 +50,12 @@ protected:
     bool m_hasSideEffects : 1;
 
 private:
-    SharedPtr<AstHasExpression> CloneImpl() const
+    Handle<AstHasExpression> CloneImpl() const
     {
-        return SharedPtr<AstHasExpression>(new AstHasExpression(
+        return MakeHandle<AstHasExpression>(
             CloneAstNode(m_target),
             m_fieldName,
-            m_location));
+            m_location);
     }
 };
 

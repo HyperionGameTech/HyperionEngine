@@ -32,7 +32,7 @@ public:
     static UniquePtr<Buildable> BuildArgumentsStart(
         AstVisitor* visitor,
         Module* mod,
-        const Array<SharedPtr<AstArgument>>& args,
+        const Array<Handle<AstArgument>>& args,
         uint16& outNumArgs);
 
     static UniquePtr<Buildable> BuildArgumentsEnd(
@@ -43,7 +43,7 @@ public:
     static UniquePtr<Buildable> BuildCall(
         AstVisitor* visitor,
         Module* mod,
-        const SharedPtr<AstExpression>& target,
+        const Handle<AstExpression>& target,
         uint16 numArgs);
 
     static UniquePtr<Buildable> LoadMemberFromHash(AstVisitor* visitor, Module* mod, HashCode::ValueType hash);

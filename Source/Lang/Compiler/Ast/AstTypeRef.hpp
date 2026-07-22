@@ -21,7 +21,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual SharedPtr<AstStatement> Clone() const override;
+    virtual Handle<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -40,11 +40,11 @@ public:
 private:
     const SymbolType* m_symbolType;
 
-    SharedPtr<AstTypeRef> CloneImpl() const
+    Handle<AstTypeRef> CloneImpl() const
     {
-        return SharedPtr<AstTypeRef>(new AstTypeRef(
+        return MakeHandle<AstTypeRef>(
             m_symbolType,
-            m_location));
+            m_location);
     }
 };
 

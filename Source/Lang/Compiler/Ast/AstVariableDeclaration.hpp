@@ -21,34 +21,34 @@ class AstVariableDeclaration : public AstDeclaration
 public:
     AstVariableDeclaration(
         const String& name,
-        const SharedPtr<AstTypeSpecifier>& typeSpec,
-        const SharedPtr<AstExpression>& assignment,
+        const Handle<AstTypeSpecifier>& typeSpec,
+        const Handle<AstExpression>& assignment,
         EnumFlags<IdentifierFlags> flags,
         const SourceLocation& location);
 
     virtual ~AstVariableDeclaration() = default;
 
-    HYP_FORCE_INLINE const SharedPtr<AstTypeSpecifier>& GetTypeSpecifier() const
+    HYP_FORCE_INLINE const Handle<AstTypeSpecifier>& GetTypeSpecifier() const
     {
         return m_typeSpec;
     }
 
-    HYP_FORCE_INLINE void SetTypeSpecifier(const SharedPtr<AstTypeSpecifier>& typeSpec)
+    HYP_FORCE_INLINE void SetTypeSpecifier(const Handle<AstTypeSpecifier>& typeSpec)
     {
         m_typeSpec = typeSpec;
     }
 
-    HYP_FORCE_INLINE const SharedPtr<AstExpression>& GetAssignment() const
+    HYP_FORCE_INLINE const Handle<AstExpression>& GetAssignment() const
     {
         return m_assignment;
     }
 
-    HYP_FORCE_INLINE void SetAssignment(const SharedPtr<AstExpression>& assignment)
+    HYP_FORCE_INLINE void SetAssignment(const Handle<AstExpression>& assignment)
     {
         m_assignment = assignment;
     }
 
-    HYP_FORCE_INLINE const SharedPtr<AstExpression>& GetRealAssignment() const
+    HYP_FORCE_INLINE const Handle<AstExpression>& GetRealAssignment() const
     {
         return m_realAssignment;
     }
@@ -57,7 +57,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual SharedPtr<AstStatement> Clone() const override;
+    virtual Handle<AstStatement> Clone() const override;
 
     HYP_FORCE_INLINE const SymbolType* GetSymbolType() const
     {
@@ -75,22 +75,22 @@ public:
     }
 
 protected:
-    SharedPtr<AstTypeSpecifier> m_typeSpec;
-    SharedPtr<AstExpression> m_assignment;
+    Handle<AstTypeSpecifier> m_typeSpec;
+    Handle<AstExpression> m_assignment;
 
     // set while analyzing
-    SharedPtr<AstExpression> m_realAssignment;
+    Handle<AstExpression> m_realAssignment;
 
     const SymbolType* m_symbolType;
 
-    SharedPtr<AstVariableDeclaration> CloneImpl() const
+    Handle<AstVariableDeclaration> CloneImpl() const
     {
-        return SharedPtr<AstVariableDeclaration>(new AstVariableDeclaration(
+        return MakeHandle<AstVariableDeclaration>(
             m_name,
             CloneAstNode(m_typeSpec),
             CloneAstNode(m_assignment),
             m_flags,
-            m_location));
+            m_location);
     }
 };
 

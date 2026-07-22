@@ -14,8 +14,8 @@
 
 namespace Hyperion {
 
-AstTryCatch::AstTryCatch(const SharedPtr<AstBlock>& tryBlock,
-    const SharedPtr<AstBlock>& catchBlock,
+AstTryCatch::AstTryCatch(const Handle<AstBlock>& tryBlock,
+    const Handle<AstBlock>& catchBlock,
     const SourceLocation& location)
     : AstStatement(location),
       m_tryBlock(tryBlock),
@@ -93,7 +93,7 @@ void AstTryCatch::Optimize(AstVisitor* visitor, Module* mod)
     m_catchBlock->Optimize(visitor, mod);
 }
 
-SharedPtr<AstStatement> AstTryCatch::Clone() const
+Handle<AstStatement> AstTryCatch::Clone() const
 {
     return CloneImpl();
 }

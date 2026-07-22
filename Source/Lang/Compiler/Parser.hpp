@@ -74,97 +74,97 @@ public:
 
     void Parse(bool expectModuleDecl = true);
 
-    SharedPtr<AstStatement> ParseStatement(
+    Handle<AstStatement> ParseStatement(
         bool topLevel = false,
         bool readTerminators = true);
-    SharedPtr<AstModuleDeclaration> ParseModuleDeclaration();
-    SharedPtr<AstDirective> ParseDirective();
-    SharedPtr<AstExpression> ParseTerm(
+    Handle<AstModuleDeclaration> ParseModuleDeclaration();
+    Handle<AstDirective> ParseDirective();
+    Handle<AstExpression> ParseTerm(
         bool overrideCommas = false,
         bool overrideFatArrows = false,
         bool overrideAngleBrackets = false,
         bool overrideSquareBrackets = false,
         bool overrideParentheses = false,
         bool overrideQuestionMark = false);
-    SharedPtr<AstExpression> ParseParentheses();
-    SharedPtr<AstTemplateInstantiation> ParseTemplateInstantiation(SharedPtr<AstExpression> expr);
-    SharedPtr<AstConstant> ParseIntegerLiteral();
-    SharedPtr<AstFloat> ParseFloatLiteral();
-    SharedPtr<AstString> ParseStringLiteral();
-    SharedPtr<AstName> ParseNameLiteral();
-    SharedPtr<AstIdentifier> ParseIdentifier(bool allowKeyword = false);
-    SharedPtr<AstArgument> ParseArgument(SharedPtr<AstExpression> expr);
-    SharedPtr<AstArgumentList> ParseArguments(bool requireParentheses = true);
-    SharedPtr<AstCallExpression> ParseCallExpression(
-        SharedPtr<AstExpression> target,
+    Handle<AstExpression> ParseParentheses();
+    Handle<AstTemplateInstantiation> ParseTemplateInstantiation(Handle<AstExpression> expr);
+    Handle<AstConstant> ParseIntegerLiteral();
+    Handle<AstFloat> ParseFloatLiteral();
+    Handle<AstString> ParseStringLiteral();
+    Handle<AstName> ParseNameLiteral();
+    Handle<AstIdentifier> ParseIdentifier(bool allowKeyword = false);
+    Handle<AstArgument> ParseArgument(Handle<AstExpression> expr);
+    Handle<AstArgumentList> ParseArguments(bool requireParentheses = true);
+    Handle<AstCallExpression> ParseCallExpression(
+        Handle<AstExpression> target,
         bool requireParentheses = true);
-    SharedPtr<AstModuleAccess> ParseModuleAccess();
-    SharedPtr<AstExpression> ParseMemberExpression(SharedPtr<AstExpression> target);
-    SharedPtr<AstArrayAccess> ParseArrayAccess(
-        SharedPtr<AstExpression> target,
+    Handle<AstModuleAccess> ParseModuleAccess();
+    Handle<AstExpression> ParseMemberExpression(Handle<AstExpression> target);
+    Handle<AstArrayAccess> ParseArrayAccess(
+        Handle<AstExpression> target,
         bool overrideCommas = false,
         bool overrideFatArrows = false,
         bool overrideAngleBrackets = false,
         bool overrideSquareBrackets = false,
         bool overrideParentheses = false,
         bool overrideQuestionMark = false);
-    SharedPtr<AstHasExpression> ParseHasExpression(SharedPtr<AstExpression> target);
-    SharedPtr<AstIsExpression> ParseIsExpression(SharedPtr<AstExpression> target);
-    SharedPtr<AstAsExpression> ParseAsExpression(SharedPtr<AstExpression> target);
-    SharedPtr<AstNewExpression> ParseNewExpression();
-    SharedPtr<AstTrue> ParseTrue();
-    SharedPtr<AstFalse> ParseFalse();
-    SharedPtr<AstNil> ParseNil();
-    SharedPtr<AstBlock> ParseBlock(bool requireBraces, bool skipEnd = false, bool endOnCatch = false);
-    SharedPtr<AstIfStatement> ParseIfStatement();
-    SharedPtr<AstSwitchExpression> ParseSwitchExpression();
-    SharedPtr<AstWhileLoop> ParseWhileLoop();
-    SharedPtr<AstStatement> ParseForLoop();
-    SharedPtr<AstStatement> ParseForEachLoop(const Token& forToken, const SharedPtr<AstStatement>& declPart);
-    SharedPtr<AstStatement> ParseBreakStatement();
-    SharedPtr<AstStatement> ParseContinueStatement();
-    SharedPtr<AstTryCatch> ParseTryCatchStatement();
-    SharedPtr<AstThrowExpression> ParseThrowExpression();
-    SharedPtr<AstExpression> ParseBinaryExpression(
+    Handle<AstHasExpression> ParseHasExpression(Handle<AstExpression> target);
+    Handle<AstIsExpression> ParseIsExpression(Handle<AstExpression> target);
+    Handle<AstAsExpression> ParseAsExpression(Handle<AstExpression> target);
+    Handle<AstNewExpression> ParseNewExpression();
+    Handle<AstTrue> ParseTrue();
+    Handle<AstFalse> ParseFalse();
+    Handle<AstNil> ParseNil();
+    Handle<AstBlock> ParseBlock(bool requireBraces, bool skipEnd = false, bool endOnCatch = false);
+    Handle<AstIfStatement> ParseIfStatement();
+    Handle<AstSwitchExpression> ParseSwitchExpression();
+    Handle<AstWhileLoop> ParseWhileLoop();
+    Handle<AstStatement> ParseForLoop();
+    Handle<AstStatement> ParseForEachLoop(const Token& forToken, const Handle<AstStatement>& declPart);
+    Handle<AstStatement> ParseBreakStatement();
+    Handle<AstStatement> ParseContinueStatement();
+    Handle<AstTryCatch> ParseTryCatchStatement();
+    Handle<AstThrowExpression> ParseThrowExpression();
+    Handle<AstExpression> ParseBinaryExpression(
         int exprPrec,
-        SharedPtr<AstExpression> left);
-    SharedPtr<AstExpression> ParseUnaryExpressionPrefix();
-    SharedPtr<AstExpression> ParseUnaryExpressionPostfix(const SharedPtr<AstExpression>& expr);
-    SharedPtr<AstExpression> ParseTernaryExpression(
-        const SharedPtr<AstExpression>& conditional);
-    SharedPtr<AstExpression> ParseExpression(
+        Handle<AstExpression> left);
+    Handle<AstExpression> ParseUnaryExpressionPrefix();
+    Handle<AstExpression> ParseUnaryExpressionPostfix(const Handle<AstExpression>& expr);
+    Handle<AstExpression> ParseTernaryExpression(
+        const Handle<AstExpression>& conditional);
+    Handle<AstExpression> ParseExpression(
         bool overrideCommas = false,
         bool overrideFatArrows = false,
         bool overrideAngleBrackets = false,
         bool overrideQuestionMark = false);
-    SharedPtr<AstTypeSpecifier> ParseTypeSpecifier();
-    SharedPtr<AstExpression> ParseAssignment();
-    SharedPtr<AstVariableDeclaration> ParseVariableDeclaration(
+    Handle<AstTypeSpecifier> ParseTypeSpecifier();
+    Handle<AstExpression> ParseAssignment();
+    Handle<AstVariableDeclaration> ParseVariableDeclaration(
         bool allowKeywordNames = false,
         bool allowQuotedNames = false,
         EnumFlags<IdentifierFlags> flags = IdentifierFlags::NONE);
-    SharedPtr<AstStatement> ParseFunctionDefinition(bool requireKeyword = true);
-    SharedPtr<AstFunctionExpression> ParseFunctionExpression(
+    Handle<AstStatement> ParseFunctionDefinition(bool requireKeyword = true);
+    Handle<AstFunctionExpression> ParseFunctionExpression(
         bool requireKeyword = true,
         bool parseBody = true,
-        Array<SharedPtr<AstParameter>> params = {});
-    SharedPtr<AstArrayExpression> ParseArrayExpression();
-    SharedPtr<AstHashMap> ParseHashMap();
-    SharedPtr<AstTypeOfExpression> ParseTypeOfExpression();
-    Array<SharedPtr<AstParameter>> ParseFunctionParameters();
-    SharedPtr<AstClass> ParseClassDefinition();
-    SharedPtr<AstClass> ParseClass(
+        Array<Handle<AstParameter>> params = {});
+    Handle<AstArrayExpression> ParseArrayExpression();
+    Handle<AstHashMap> ParseHashMap();
+    Handle<AstTypeOfExpression> ParseTypeOfExpression();
+    Array<Handle<AstParameter>> ParseFunctionParameters();
+    Handle<AstClass> ParseClassDefinition();
+    Handle<AstClass> ParseClass(
         bool requireKeyword = true,
         bool allowIdentifier = true,
         EnumFlags<AstClassFlags> classFlags = CLASS_FLAG_NONE,
         String typeName = "<Anonymous Type>");
-    SharedPtr<AstStatement> ParseEnumDefinition();
-    SharedPtr<AstImport> ParseImport();
-    SharedPtr<AstExportStatement> ParseExportStatement();
-    SharedPtr<AstFileImport> ParseFileImport();
-    SharedPtr<AstModuleImport> ParseModuleImport();
-    SharedPtr<AstModuleImportPart> ParseModuleImportPart(bool allowBraces = false);
-    SharedPtr<AstReturnStatement> ParseReturnStatement();
+    Handle<AstStatement> ParseEnumDefinition();
+    Handle<AstImport> ParseImport();
+    Handle<AstExportStatement> ParseExportStatement();
+    Handle<AstFileImport> ParseFileImport();
+    Handle<AstModuleImport> ParseModuleImport();
+    Handle<AstModuleImportPart> ParseModuleImportPart(bool allowBraces = false);
+    Handle<AstReturnStatement> ParseReturnStatement();
 
 private:
     int m_templateArgumentDepth = 0; // until a better way is found..

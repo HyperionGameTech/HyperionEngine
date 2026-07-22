@@ -21,15 +21,15 @@ class AstFunctionExpression : public AstExpression
 
 public:
     AstFunctionExpression(
-        const Array<SharedPtr<AstParameter>>& parameters,
-        const SharedPtr<AstTypeSpecifier>& returnTypeSpecification,
-        const SharedPtr<AstBlock>& block,
+        const Array<Handle<AstParameter>>& parameters,
+        const Handle<AstTypeSpecifier>& returnTypeSpecification,
+        const Handle<AstBlock>& block,
         const SourceLocation& location);
 
     AstFunctionExpression(
-        const Array<SharedPtr<AstParameter>>& parameters,
-        const SharedPtr<AstTypeSpecifier>& returnTypeSpecification,
-        const SharedPtr<AstBlock>& block,
+        const Array<Handle<AstParameter>>& parameters,
+        const Handle<AstTypeSpecifier>& returnTypeSpecification,
+        const Handle<AstBlock>& block,
         bool enableClosure,
         const SourceLocation& location);
 
@@ -49,7 +49,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual SharedPtr<AstStatement> Clone() const override;
+    virtual Handle<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -82,16 +82,16 @@ public:
     }
 
 protected:
-    Array<SharedPtr<AstParameter>> m_parameters;
-    SharedPtr<AstTypeSpecifier> m_returnTypeSpecification;
-    SharedPtr<AstBlock> m_block;
+    Array<Handle<AstParameter>> m_parameters;
+    Handle<AstTypeSpecifier> m_returnTypeSpecification;
+    Handle<AstBlock> m_block;
 
     bool m_enableClosure;
     bool m_isClosure;
 
-    SharedPtr<AstParameter> m_closureSelfParam;
-    SharedPtr<AstBlock> m_closureBlock;
-    SharedPtr<AstBlock> m_blockWithParameters;
+    Handle<AstParameter> m_closureSelfParam;
+    Handle<AstBlock> m_closureBlock;
+    Handle<AstBlock> m_blockWithParameters;
 
     bool m_isConstructorDefinition;
 
@@ -103,13 +103,13 @@ protected:
     int m_staticId;
 
     UniquePtr<Buildable> BuildFunctionBody(AstVisitor* visitor, Module* mod);
-    SharedPtr<AstFunctionExpression> CloneImpl() const
+    Handle<AstFunctionExpression> CloneImpl() const
     {
-        return SharedPtr<AstFunctionExpression>(new AstFunctionExpression(
+        return MakeHandle<AstFunctionExpression>(
             CloneAllAstNodes(m_parameters),
             CloneAstNode(m_returnTypeSpecification),
             CloneAstNode(m_block),
-            m_location));
+            m_location);
     }
 };
 

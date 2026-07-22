@@ -33,8 +33,8 @@ namespace Hyperion {
 /// @TODO: Should be reworked to use intrinsic bytecode instructions rather than constructing nested arrays and using Map.FromArray!
 
 AstHashMap::AstHashMap(
-    const Array<SharedPtr<AstExpression>>& keys,
-    const Array<SharedPtr<AstExpression>>& values,
+    const Array<Handle<AstExpression>>& keys,
+    const Array<Handle<AstExpression>>& values,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_keys(keys),
@@ -57,7 +57,7 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
     m_keyType = BuiltinTypes::s_errorType;
     m_valueType = BuiltinTypes::s_errorType;
 
-    Array<Pair<SharedPtr<AstExpression>, SharedPtr<AstExpression>>> keyValuePairs;
+    Array<Pair<Handle<AstExpression>, Handle<AstExpression>>> keyValuePairs;
     keyValuePairs.Reserve(m_keys.Size());
 
     for (size_t i = 0; i < m_keys.Size(); ++i)
@@ -149,14 +149,14 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
             if (!keyType->TypeEqual(*m_keyType))
             {
                 // Add cast
-                replacedKey.Reset(new AstAsExpression(
+                replacedKey = MakeHandle<AstAsExpression>(
                     replacedKey,
-                    SharedPtr<AstTypeSpecifier>(new AstTypeSpecifier(
-                        SharedPtr<AstTypeRef>(new AstTypeRef(
+                    MakeHandle<AstTypeSpecifier>(
+                        MakeHandle<AstTypeRef>(
                             m_keyType,
-                            key->GetLocation())),
-                        key->GetLocation())),
-                    key->GetLocation()));
+                            key->GetLocation()),
+                        key->GetLocation()),
+                    key->GetLocation());
             }
         }
 
@@ -165,25 +165,27 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
             if (!valueType->TypeEqual(*m_valueType))
             {
                 // Add cast
-                replacedValue.Reset(new AstAsExpression(
+                replacedValue = MakeHandle<AstAsExpression>(
                     replacedValue,
-                    SharedPtr<AstTypeSpecifier>(new AstTypeSpecifier(
-                        SharedPtr<AstTypeRef>(new AstTypeRef(
+                    MakeHandle<AstTypeSpecifier>(
+                        MakeHandle<AstTypeRef>(
                             m_valueType,
-                            value->GetLocation())),
-                        value->GetLocation())),
-                    value->GetLocation()));
+                            value->GetLocation()),
+                        value->GetLocation()),
+                    value->GetLocation());
             }
         }
     }
 
     /// \todo : Cache generic instance types
-    m_mapTypeExpr.Reset(new AstTemplateInstantiation(
-        SharedPtr<AstTypeSpecifier>(new AstTypeSpecifier(SharedPtr<AstTypeRef>(new AstTypeRef(BuiltinTypes::s_mapType, m_location)), m_location)),
-        { SharedPtr<AstTypeSpecifier>(new AstTypeSpecifier(SharedPtr<AstTypeRef>(new AstTypeRef(m_keyType, m_location)), m_location)),
-            SharedPtr<AstTypeSpecifier>(new AstTypeSpecifier(SharedPtr<AstTypeRef>(new AstTypeRef(m_valueType, m_location)), m_location)) },
+    m_mapTypeExpr = MakeHandle<AstTemplateInstantiation>(
+        MakeHandle<AstTypeSpecifier>(MakeHandle<AstTypeRef>(BuiltinTypes::s_mapType, m_location), m_location),
+        Array<Handle<AstTypeSpecifier>> {
+            MakeHandle<AstTypeSpecifier>(MakeHandle<AstTypeRef>(m_keyType, m_location), m_location),
+            MakeHandle<AstTypeSpecifier>(MakeHandle<AstTypeRef>(m_valueType, m_location), m_location)
+        },
         nullptr, // no function return type
-        m_location));
+        m_location);
 
     m_mapTypeExpr->Visit(visitor, mod);
 
@@ -200,10 +202,10 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
 
     m_exprType = mapType;
 
-    m_resolvedMapTypeRef.Reset(new AstTypeRef(m_exprType, m_location));
+    m_resolvedMapTypeRef = MakeHandle<AstTypeRef>(m_exprType, m_location);
     m_resolvedMapTypeRef->Visit(visitor, mod);
 
-    Array<SharedPtr<AstExpression>> keyValueArrayExpressions;
+    Array<Handle<AstExpression>> keyValueArrayExpressions;
     keyValueArrayExpressions.Reserve(m_replacedKeys.Size());
 
     for (size_t i = 0; i < m_replacedKeys.Size(); ++i)
@@ -214,20 +216,20 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
         auto& value = m_replacedValues[i];
         Assert(value != nullptr);
 
-        Array<SharedPtr<AstExpression>> keyValuePair;
+        Array<Handle<AstExpression>> keyValuePair;
         keyValuePair.Reserve(2);
 
         keyValuePair.PushBack(key);
         keyValuePair.PushBack(value);
 
-        keyValueArrayExpressions.PushBack(SharedPtr<AstArrayExpression>(new AstArrayExpression(
+        keyValueArrayExpressions.PushBack(MakeHandle<AstArrayExpression>(
             keyValuePair,
-            m_location)));
+            m_location));
     }
 
-    m_arrayExpr.Reset(new AstArrayExpression(
+    m_arrayExpr = MakeHandle<AstArrayExpression>(
         keyValueArrayExpressions,
-        m_location));
+        m_location);
 
     m_arrayExpr->Visit(visitor, mod);
 }
@@ -326,7 +328,7 @@ void AstHashMap::Optimize(AstVisitor* visitor, Module* mod)
     }
 }
 
-SharedPtr<AstStatement> AstHashMap::Clone() const
+Handle<AstStatement> AstHashMap::Clone() const
 {
     return CloneImpl();
 }

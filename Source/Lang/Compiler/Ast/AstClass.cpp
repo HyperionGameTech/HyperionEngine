@@ -49,10 +49,10 @@ static const String s_reservedClassMemberNames[] = {
 
 AstClass::AstClass(
     const String& name,
-    const SharedPtr<AstTypeSpecifier>& baseSpec,
-    const Array<SharedPtr<AstVariableDeclaration>>& dataMembers,
-    const Array<SharedPtr<AstVariableDeclaration>>& functionMembers,
-    const Array<SharedPtr<AstVariableDeclaration>>& staticMembers,
+    const Handle<AstTypeSpecifier>& baseSpec,
+    const Array<Handle<AstVariableDeclaration>>& dataMembers,
+    const Array<Handle<AstVariableDeclaration>>& functionMembers,
+    const Array<Handle<AstVariableDeclaration>>& staticMembers,
     EnumFlags<AstClassFlags> flags,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
@@ -71,14 +71,14 @@ AstClass::AstClass(
 AstClass::AstClass(
     const String& name,
     const SymbolType* baseType,
-    const Array<SharedPtr<AstVariableDeclaration>>& dataMembers,
-    const Array<SharedPtr<AstVariableDeclaration>>& functionMembers,
-    const Array<SharedPtr<AstVariableDeclaration>>& staticMembers,
+    const Array<Handle<AstVariableDeclaration>>& dataMembers,
+    const Array<Handle<AstVariableDeclaration>>& functionMembers,
+    const Array<Handle<AstVariableDeclaration>>& staticMembers,
     EnumFlags<AstClassFlags> flags,
     const SourceLocation& location)
     : AstClass(
           name,
-          SharedPtr<AstTypeSpecifier>(),
+          Handle<AstTypeSpecifier>(),
           dataMembers,
           functionMembers,
           staticMembers,
@@ -115,14 +115,14 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
     if (!m_refDecl)
     {
         // Create local to store the ClassRef
-        m_refDecl.Reset(new AstVariableDeclaration(
+        m_refDecl = MakeHandle<AstVariableDeclaration>(
             "$" + m_name + "Ref",
-            SharedPtr<AstTypeSpecifier>(new AstTypeSpecifier(
-                SharedPtr<AstTypeRef>(new AstTypeRef(BuiltinTypes::s_classType, m_location)),
-                m_location)),
+            MakeHandle<AstTypeSpecifier>(
+                MakeHandle<AstTypeRef>(BuiltinTypes::s_classType, m_location),
+                m_location),
             nullptr, // no initializer
             IdentifierFlags::LAX,
-            m_location));
+            m_location);
 
         m_refDecl->Visit(visitor, mod);
     }
@@ -235,13 +235,13 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
     {
         if (!m_baseTypeRef)
         {
-            m_baseTypeRef.Reset(new AstTypeRef(m_baseType, m_location));
+            m_baseTypeRef = MakeHandle<AstTypeRef>(m_baseType, m_location);
         }
 
         m_baseTypeRef->Visit(visitor, mod);
     }
 
-    const Array<SharedPtr<AstVariableDeclaration>>* allMembers[] = {
+    const Array<Handle<AstVariableDeclaration>>* allMembers[] = {
         &m_dataMembers,
         &m_functionMembers,
         &m_staticMembers
@@ -249,9 +249,9 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
     for (const String& reserved : s_reservedClassMemberNames)
     {
-        for (const Array<SharedPtr<AstVariableDeclaration>>* members : allMembers)
+        for (const Array<Handle<AstVariableDeclaration>>* members : allMembers)
         {
-            for (const SharedPtr<AstVariableDeclaration>& member : *members)
+            for (const Handle<AstVariableDeclaration>& member : *members)
             {
                 if (member->GetIdentifierFlags() & IdentifierFlags::LAX)
                 {
@@ -310,7 +310,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
         // ===== STATIC DATA MEMBERS ======
         {
-            for (const SharedPtr<AstVariableDeclaration>& decl : m_staticMembers)
+            for (const Handle<AstVariableDeclaration>& decl : m_staticMembers)
             {
                 if (!decl)
                 {
@@ -326,17 +326,17 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                         // auto assign the next value
                         if (m_baseType->IsUnsignedIntegral())
                         {
-                            decl->SetAssignment(SharedPtr<AstExpression>(new AstUnsignedInteger(
+                            decl->SetAssignment(MakeHandle<AstUnsignedInteger>(
                                 nextEnumValue.AsUInt(),
                                 nextEnumValue.bitSize,
-                                decl->GetLocation())));
+                                decl->GetLocation()));
                         }
                         else
                         {
-                            decl->SetAssignment(SharedPtr<AstExpression>(new AstInteger(
+                            decl->SetAssignment(MakeHandle<AstInteger>(
                                 nextEnumValue.AsInt(),
                                 nextEnumValue.bitSize,
-                                decl->GetLocation())));
+                                decl->GetLocation()));
                         }
                     }
                 }
@@ -352,7 +352,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                 // Update the next enum value
                 if (!m_preRegister && IsEnum())
                 {
-                    const SharedPtr<AstExpression>& realAssignment = decl->GetRealAssignment();
+                    const Handle<AstExpression>& realAssignment = decl->GetRealAssignment();
                     Assert(realAssignment != nullptr);
 
                     // so we can pre-evaluate the constant value
@@ -442,7 +442,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
             for (size_t i = 0; i < m_dataMembers.Size(); i++)
             {
-                const SharedPtr<AstVariableDeclaration>& decl = m_dataMembers[i];
+                const Handle<AstVariableDeclaration>& decl = m_dataMembers[i];
                 Assert(decl != nullptr);
 
                 if (IsExternClass())
@@ -473,7 +473,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
             for (size_t i = 0; i < m_functionMembers.Size(); i++)
             {
-                const SharedPtr<AstVariableDeclaration>& decl = m_functionMembers[i];
+                const Handle<AstVariableDeclaration>& decl = m_functionMembers[i];
                 Assert(decl != nullptr);
 
                 if (IsExternClass())
@@ -530,18 +530,18 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                 constructorSelfTypePlaceholder->Register(visitor->GetCompilationUnit());
 
                 // add constructor
-                Array<SharedPtr<AstParameter>> constructorParams;
+                Array<Handle<AstParameter>> constructorParams;
 
                 // add `self: typeof SelfType` parameter
-                constructorParams.PushBack(SharedPtr<AstParameter>(new AstParameter(
+                constructorParams.PushBack(MakeHandle<AstParameter>(
                     "self",
-                    SharedPtr<AstTypeSpecifier>(new AstTypeSpecifier(
-                        SharedPtr<AstTypeRef>(new AstTypeRef(constructorSelfTypePlaceholder, m_location)),
-                        m_location)),
+                    MakeHandle<AstTypeSpecifier>(
+                        MakeHandle<AstTypeRef>(constructorSelfTypePlaceholder, m_location),
+                        m_location),
                     nullptr,
                     false, /* variadic */
                     IdentifierFlags::CONSTANT,
-                    m_location)));
+                    m_location));
 
                 // If there is a user-defined constructor, add its extra parameters to $construct
                 if (userDefinedConstructorMember.HasValue())
@@ -557,34 +557,34 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                     {
                         const GenericInstanceTypeInfo::Arg& arg = ctorGenericArgs[i];
 
-                        constructorParams.PushBack(SharedPtr<AstParameter>(new AstParameter(
+                        constructorParams.PushBack(MakeHandle<AstParameter>(
                             arg.m_name,
-                            SharedPtr<AstTypeSpecifier>(new AstTypeSpecifier(
-                                SharedPtr<AstTypeRef>(new AstTypeRef(arg.m_type, m_location)),
-                                m_location)),
+                            MakeHandle<AstTypeSpecifier>(
+                                MakeHandle<AstTypeRef>(arg.m_type, m_location),
+                                m_location),
                             CloneAstNode(arg.m_defaultValue),
                             false, /* variadic */
                             arg.m_isConst ? IdentifierFlags::CONSTANT : IdentifierFlags::NONE,
-                            m_location)));
+                            m_location));
                     }
                 }
 
-                SharedPtr<AstBlock> constructorBody(new AstBlock(m_location));
+                Handle<AstBlock> constructorBody = MakeHandle<AstBlock>(m_location);
                 // initialize data members to default values
-                for (const SharedPtr<AstVariableDeclaration>& dataMember : m_dataMembers)
+                for (const Handle<AstVariableDeclaration>& dataMember : m_dataMembers)
                 {
                     Assert(dataMember != nullptr);
 
                     if (dataMember->GetRealAssignment() != nullptr)
                     {
-                        SharedPtr<AstExpression> expr(new AstBinaryExpression(
-                            SharedPtr<AstMember>(new AstMember(
+                        Handle<AstExpression> expr = MakeHandle<AstBinaryExpression>(
+                            MakeHandle<AstMember>(
                                 dataMember->GetName(),
-                                SharedPtr<AstVariable>(new AstVariable("self", m_location)),
-                                m_location)),
+                                MakeHandle<AstVariable>("self", m_location),
+                                m_location),
                             CloneAstNode(dataMember->GetRealAssignment()),
                             Operator::FindBinaryOperator(Operators::OP_assign),
-                            m_location));
+                            m_location);
 
                         constructorBody->AddChild(expr);
                     }
@@ -596,50 +596,50 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                     const SymbolTypeMember& userDefinedConstructorMemberRef = userDefinedConstructorMember.Get();
                     Assert(userDefinedConstructorMemberRef.GetType() != nullptr);
 
-                    Array<SharedPtr<AstArgument>> constructorArgs;
+                    Array<Handle<AstArgument>> constructorArgs;
                     constructorArgs.Reserve(constructorParams.Size());
 
                     // Pass each parameter as an argument to the constructor
                     for (size_t i = 0; i < constructorParams.Size(); i++)
                     {
-                        const SharedPtr<AstParameter>& param = constructorParams[i];
+                        const Handle<AstParameter>& param = constructorParams[i];
                         Assert(param != nullptr);
 
-                        constructorArgs.PushBack(SharedPtr<AstArgument>(new AstArgument(
-                            SharedPtr<AstVariable>(new AstVariable(
+                        constructorArgs.PushBack(MakeHandle<AstArgument>(
+                            MakeHandle<AstVariable>(
                                 param->GetName(),
-                                m_location)),
+                                m_location),
                             false,
                             false,
                             param->IsRef(),
                             param->IsConst(),
                             param->GetName(),
-                            m_location)));
+                            m_location));
                     }
 
-                    constructorBody->AddChild(SharedPtr<AstExpression>(new AstCallExpression(
-                        SharedPtr<AstMember>(new AstMember(
+                    constructorBody->AddChild(MakeHandle<AstCallExpression>(
+                        MakeHandle<AstMember>(
                             userDefinedConstructorMemberRef.GetName(),
-                            SharedPtr<AstVariable>(new AstVariable("self", m_location)),
-                            m_location)),
+                            MakeHandle<AstVariable>("self", m_location),
+                            m_location),
                         constructorArgs,
                         false, /* insertSelf */
-                        m_location)));
+                        m_location));
                 }
 
                 // add return self to the constructor function body
-                constructorBody->AddChild(SharedPtr<AstReturnStatement>(new AstReturnStatement(
-                    SharedPtr<AstVariable>(new AstVariable("self", m_location)),
-                    m_location)));
+                constructorBody->AddChild(MakeHandle<AstReturnStatement>(
+                    MakeHandle<AstVariable>("self", m_location),
+                    m_location));
 
-                SharedPtr<AstFunctionExpression> constructorExpr(new AstFunctionExpression(
+                Handle<AstFunctionExpression> constructorExpr = MakeHandle<AstFunctionExpression>(
                     constructorParams,
                     nullptr,
                     constructorBody,
-                    m_location));
+                    m_location);
 
                 // add the constructor expression to the AST
-                SharedPtr<AstVariableDeclaration>& constructMemberDecl = m_functionMembers.EmplaceBack(new AstVariableDeclaration(
+                Handle<AstVariableDeclaration>& constructMemberDecl = m_functionMembers.EmplaceBack(MakeHandle<AstVariableDeclaration>(
                     "$construct",
                     nullptr,
                     constructorExpr,
@@ -674,7 +674,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
     }
 
     { // create a type ref for the symbol type
-        m_typeRef.Reset(new AstTypeRef(m_symbolType, m_location));
+        m_typeRef = MakeHandle<AstTypeRef>(m_symbolType, m_location);
         m_typeRef->Visit(visitor, mod);
     }
 }
@@ -732,7 +732,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
 
     Array<ClassTable::StaticFieldInfo> staticFields;
 
-    for (const SharedPtr<AstVariableDeclaration>& decl : m_staticMembers)
+    for (const Handle<AstVariableDeclaration>& decl : m_staticMembers)
     {
         Assert(decl != nullptr);
 
@@ -756,7 +756,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
     // Add all fields from our class
     for (size_t functionMemberIndex = 0; functionMemberIndex < m_functionMembers.Size(); functionMemberIndex++)
     {
-        const SharedPtr<AstVariableDeclaration>& decl = m_functionMembers[functionMemberIndex];
+        const Handle<AstVariableDeclaration>& decl = m_functionMembers[functionMemberIndex];
         Assert(decl != nullptr);
 
         ClassTable::MethodInfo methodInfo {};
@@ -961,7 +961,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
         {
             Assert(index < MathUtil::MaxSafeValue<uint8>(), "Argument out of bouds of max arguments");
 
-            const SharedPtr<AstExpression>& mem = m_memberExpressions[index];
+            const Handle<AstExpression>& mem = m_memberExpressions[index];
             Assert(mem != nullptr);
 
             chunk->Append(mem->Build(visitor, mod));
@@ -1044,7 +1044,7 @@ void AstClass::Optimize(AstVisitor* visitor, Module* mod)
     m_typeRef->Optimize(visitor, mod);
 }
 
-SharedPtr<AstStatement> AstClass::Clone() const
+Handle<AstStatement> AstClass::Clone() const
 {
     return CloneImpl();
 }

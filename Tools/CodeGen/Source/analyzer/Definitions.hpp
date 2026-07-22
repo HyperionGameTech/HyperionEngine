@@ -49,8 +49,8 @@ struct MemberDef
     String friendlyName;
     String condition;
     Array<Pair<String, ClassAttributeValue>> attributes;
-    SharedPtr<ASTType> cxxType;
-    SharedPtr<ASTMemberDecl> cxxDecl;
+    Handle<AstType> cxxType;
+    Handle<AstMemberDecl> cxxDecl;
     String source;
 
     bool HasAttribute(const String& key) const

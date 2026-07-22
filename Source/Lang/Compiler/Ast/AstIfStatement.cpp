@@ -15,9 +15,9 @@
 namespace Hyperion {
 
 AstIfStatement::AstIfStatement(
-    const SharedPtr<AstExpression>& conditional,
-    const SharedPtr<AstBlock>& block,
-    const SharedPtr<AstBlock>& elseBlock,
+    const Handle<AstExpression>& conditional,
+    const Handle<AstBlock>& block,
+    const Handle<AstBlock>& elseBlock,
     const SourceLocation& location)
     : AstStatement(location),
       m_conditional(conditional),
@@ -114,7 +114,7 @@ void AstIfStatement::Optimize(AstVisitor* visitor, Module* mod)
     }
 }
 
-SharedPtr<AstStatement> AstIfStatement::Clone() const
+Handle<AstStatement> AstIfStatement::Clone() const
 {
     return CloneImpl();
 }

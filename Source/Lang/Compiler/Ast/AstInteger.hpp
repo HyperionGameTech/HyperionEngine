@@ -19,7 +19,7 @@ public:
 
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
 
-    virtual SharedPtr<AstStatement> Clone() const override;
+    virtual Handle<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool IsNumber() const override;
@@ -32,12 +32,12 @@ public:
     }
 
 private:
-    SharedPtr<AstInteger> CloneImpl() const
+    Handle<AstInteger> CloneImpl() const
     {
-        return SharedPtr<AstInteger>(new AstInteger(
+        return MakeHandle<AstInteger>(
             m_constantValue.AsInt(),
             m_constantValue.bitSize,
-            m_location));
+            m_location);
     }
 };
 

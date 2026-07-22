@@ -31,7 +31,7 @@ public:
     const SharedPtr<Identifier>& AddIdentifier(
         const String& name,
         int flags = 0,
-        const SharedPtr<AstExpression>& currentValue = nullptr,
+        const Handle<AstExpression>& currentValue = nullptr,
         const SymbolType* symbolType = nullptr);
 
     bool AddIdentifier(const SharedPtr<Identifier>& identifier);

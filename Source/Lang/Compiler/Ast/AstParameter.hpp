@@ -15,20 +15,20 @@ class AstParameter : public AstDeclaration
 public:
     AstParameter(
         const String& name,
-        const SharedPtr<AstTypeSpecifier>& typeSpec,
-        const SharedPtr<AstExpression>& defaultParam,
+        const Handle<AstTypeSpecifier>& typeSpec,
+        const Handle<AstExpression>& defaultParam,
         bool isVariadic,
         EnumFlags<IdentifierFlags> flags,
         const SourceLocation& location);
 
     virtual ~AstParameter() override = default;
 
-    HYP_FORCE_INLINE const SharedPtr<AstExpression>& GetDefaultValue() const
+    HYP_FORCE_INLINE const Handle<AstExpression>& GetDefaultValue() const
     {
         return m_defaultParam;
     }
 
-    HYP_FORCE_INLINE void SetDefaultValue(const SharedPtr<AstExpression>& defaultParam)
+    HYP_FORCE_INLINE void SetDefaultValue(const Handle<AstExpression>& defaultParam)
     {
         m_defaultParam = defaultParam;
     }
@@ -39,12 +39,12 @@ public:
     }
 
     // used by AstTemplateExpression
-    HYP_FORCE_INLINE const SharedPtr<AstTypeSpecifier>& GetTypeSpecifier() const
+    HYP_FORCE_INLINE const Handle<AstTypeSpecifier>& GetTypeSpecifier() const
     {
         return m_typeSpec;
     }
 
-    HYP_FORCE_INLINE void SetTypeSpecifier(const SharedPtr<AstTypeSpecifier>& typeSpec)
+    HYP_FORCE_INLINE void SetTypeSpecifier(const Handle<AstTypeSpecifier>& typeSpec)
     {
         m_typeSpec = typeSpec;
     }
@@ -58,7 +58,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual SharedPtr<AstStatement> Clone() const override;
+    virtual Handle<AstStatement> Clone() const override;
 
     virtual HashCode GetHashCode() const override
     {
@@ -71,23 +71,23 @@ public:
     }
 
 private:
-    SharedPtr<AstTypeSpecifier> m_typeSpec;
-    SharedPtr<AstExpression> m_defaultParam;
+    Handle<AstTypeSpecifier> m_typeSpec;
+    Handle<AstExpression> m_defaultParam;
     bool m_isVariadic : 1;
 
     // Set while analyzing
     const SymbolType* m_symbolType;
-    SharedPtr<AstExpression> m_varargsTypeSpec;
+    Handle<AstExpression> m_varargsTypeSpec;
 
-    SharedPtr<AstParameter> CloneImpl() const
+    Handle<AstParameter> CloneImpl() const
     {
-        return SharedPtr<AstParameter>(new AstParameter(
+        return MakeHandle<AstParameter>(
             m_name,
             CloneAstNode(m_typeSpec),
             CloneAstNode(m_defaultParam),
             m_isVariadic,
             m_flags,
-            m_location));
+            m_location);
     }
 };
 

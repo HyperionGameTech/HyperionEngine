@@ -36,21 +36,21 @@ FunctionBuilder ModuleBuilder::Function(const String& name)
     return FunctionBuilder(name, this);
 }
 
-SharedPtr<AstModuleAccess> ModuleBuilder::Build(const SharedPtr<AstExpression>& expr)
+Handle<AstModuleAccess> ModuleBuilder::Build(const Handle<AstExpression>& expr)
 {
     if (m_parent != nullptr)
     {
-        return SharedPtr<AstModuleAccess>(new AstModuleAccess(
+        return MakeHandle<AstModuleAccess>(
             m_name,
             m_parent->Build(expr),
-            SourceLocation::Eof()));
+            SourceLocation::Eof());
     }
     else
     {
-        return SharedPtr<AstModuleAccess>(new AstModuleAccess(
+        return MakeHandle<AstModuleAccess>(
             m_name,
             expr,
-            SourceLocation::Eof()));
+            SourceLocation::Eof());
     }
 }
 
@@ -69,15 +69,15 @@ FunctionBuilder::FunctionBuilder(
 {
 }
 
-SharedPtr<AstExpression> FunctionBuilder::Call(const Array<SharedPtr<AstArgument>>& args)
+Handle<AstExpression> FunctionBuilder::Call(const Array<Handle<AstArgument>>& args)
 {
-    SharedPtr<AstCallExpression> call(new AstCallExpression(
-        SharedPtr<AstVariable>(new AstVariable(
+    Handle<AstCallExpression> call = MakeHandle<AstCallExpression>(
+        MakeHandle<AstVariable>(
             m_name,
-            SourceLocation::Eof())),
+            SourceLocation::Eof()),
         args,
         false,
-        SourceLocation::Eof()));
+        SourceLocation::Eof());
 
     if (m_parent != nullptr)
     {

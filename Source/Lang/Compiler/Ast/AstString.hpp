@@ -22,7 +22,7 @@ public:
 
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
 
-    virtual SharedPtr<AstStatement> Clone() const override;
+    virtual Handle<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool IsNumber() const override;
@@ -45,11 +45,11 @@ public:
 private:
     String m_value;
 
-    SharedPtr<AstString> CloneImpl() const
+    Handle<AstString> CloneImpl() const
     {
-        return SharedPtr<AstString>(new AstString(
+        return MakeHandle<AstString>(
             m_value,
-            m_location));
+            m_location);
     }
 };
 

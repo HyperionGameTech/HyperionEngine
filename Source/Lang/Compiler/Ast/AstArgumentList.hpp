@@ -15,16 +15,16 @@ class AstArgumentList : public AstExpression
 
 public:
     AstArgumentList(
-        const Array<SharedPtr<AstArgument>>& args,
+        const Array<Handle<AstArgument>>& args,
         const SourceLocation& location);
     virtual ~AstArgumentList() = default;
 
-    HYP_FORCE_INLINE Array<SharedPtr<AstArgument>>& GetArguments()
+    HYP_FORCE_INLINE Array<Handle<AstArgument>>& GetArguments()
     {
         return m_args;
     }
 
-    HYP_FORCE_INLINE const Array<SharedPtr<AstArgument>>& GetArguments() const
+    HYP_FORCE_INLINE const Array<Handle<AstArgument>>& GetArguments() const
     {
         return m_args;
     }
@@ -33,7 +33,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual SharedPtr<AstStatement> Clone() const override;
+    virtual Handle<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -52,13 +52,13 @@ public:
     }
 
 private:
-    Array<SharedPtr<AstArgument>> m_args;
+    Array<Handle<AstArgument>> m_args;
 
-    SharedPtr<AstArgumentList> CloneImpl() const
+    Handle<AstArgumentList> CloneImpl() const
     {
-        return SharedPtr<AstArgumentList>(new AstArgumentList(
+        return MakeHandle<AstArgumentList>(
             CloneAllAstNodes(m_args),
-            m_location));
+            m_location);
     }
 };
 

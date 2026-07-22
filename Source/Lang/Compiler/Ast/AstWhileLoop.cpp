@@ -19,8 +19,8 @@
 
 namespace Hyperion {
 
-AstWhileLoop::AstWhileLoop(const SharedPtr<AstExpression>& conditional,
-    const SharedPtr<AstBlock>& block,
+AstWhileLoop::AstWhileLoop(const Handle<AstExpression>& conditional,
+    const Handle<AstBlock>& block,
     const SourceLocation& location)
     : AstStatement(location),
       m_conditional(conditional),
@@ -182,7 +182,7 @@ void AstWhileLoop::Optimize(AstVisitor* visitor, Module* mod)
     m_block->Optimize(visitor, mod);
 }
 
-SharedPtr<AstStatement> AstWhileLoop::Clone() const
+Handle<AstStatement> AstWhileLoop::Clone() const
 {
     return CloneImpl();
 }

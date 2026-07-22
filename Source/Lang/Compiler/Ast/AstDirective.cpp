@@ -66,7 +66,7 @@ void AstDirective::Optimize(AstVisitor* visitor, Module* mod)
 {
 }
 
-SharedPtr<AstStatement> AstDirective::Clone() const
+Handle<AstStatement> AstDirective::Clone() const
 {
     return CloneImpl();
 }

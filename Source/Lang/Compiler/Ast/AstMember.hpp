@@ -15,7 +15,7 @@ class AstMember : public AstExpression
 public:
     AstMember(
         const String& fieldName,
-        const SharedPtr<AstExpression>& target,
+        const Handle<AstExpression>& target,
         const SourceLocation& location);
     virtual ~AstMember() = default;
 
@@ -33,7 +33,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual SharedPtr<AstStatement> Clone() const override;
+    virtual Handle<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -60,25 +60,25 @@ public:
 
 protected:
     String m_fieldName;
-    SharedPtr<AstExpression> m_target;
+    Handle<AstExpression> m_target;
 
     // set while analyzing
     const SymbolType* m_symbolType;
     const SymbolType* m_targetType;
     const SymbolType* m_heldType;
 
-    SharedPtr<AstTypeRef> m_typeRef;
+    Handle<AstTypeRef> m_typeRef;
     uint32 m_foundIndex;
     bool m_isStaticField : 1;
     bool m_isStaticMethod : 1;
     bool m_isConst : 1;
 
-    SharedPtr<AstMember> CloneImpl() const
+    Handle<AstMember> CloneImpl() const
     {
-        return SharedPtr<AstMember>(new AstMember(
+        return MakeHandle<AstMember>(
             m_fieldName,
             CloneAstNode(m_target),
-            m_location));
+            m_location);
     }
 };
 

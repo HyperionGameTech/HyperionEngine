@@ -183,7 +183,7 @@ ConstantValue AstIdentifier::GetConstantValue() const
             return ConstantValue(INVALID_CONSTANT_NUMBER);
         }
 
-        if (const SharedPtr<AstExpression>& currentValue = unaliased->GetCurrentValue())
+        if (const Handle<AstExpression>& currentValue = unaliased->GetCurrentValue())
         {
             return currentValue->GetConstantValue();
         }

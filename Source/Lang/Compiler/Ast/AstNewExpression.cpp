@@ -23,8 +23,8 @@
 namespace Hyperion {
 
 AstNewExpression::AstNewExpression(
-    const SharedPtr<AstTypeSpecifier>& typeSpec,
-    const SharedPtr<AstArgumentList>& argList,
+    const Handle<AstTypeSpecifier>& typeSpec,
+    const Handle<AstArgumentList>& argList,
     bool enableConstructorCall,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
@@ -87,19 +87,19 @@ void AstNewExpression::Visit(AstVisitor* visitor, Module* mod)
 
         if (isAny || hasConstructMember)
         {
-            m_constructorBlock.Reset(new AstBlock(m_location));
+            m_constructorBlock = MakeHandle<AstBlock>(m_location);
 
             if (hasConstructMember)
             {
-                m_constructorCall.Reset(new AstMemberCallExpression(
+                m_constructorCall = MakeHandle<AstMemberCallExpression>(
                     constructMethodName,
-                    SharedPtr<AstNewExpression>(new AstNewExpression(
+                    MakeHandle<AstNewExpression>(
                         CloneAstNode(m_typeSpec),
                         nullptr, // no args
                         false,   // do not enable constructor call
-                        m_location)),
+                        m_location),
                     m_argList,
-                    m_location));
+                    m_location);
             }
             else
             {
@@ -107,37 +107,37 @@ void AstNewExpression::Visit(AstVisitor* visitor, Module* mod)
                 // to do this, we need to store a temporary variable holding the left hand side
                 // expression
 
-                SharedPtr<AstVariableDeclaration> tempVarDecl(new AstVariableDeclaration(
+                Handle<AstVariableDeclaration> tempVarDecl = MakeHandle<AstVariableDeclaration>(
                     tempVarName,
                     nullptr,
-                    SharedPtr<AstNewExpression>(new AstNewExpression(
+                    MakeHandle<AstNewExpression>(
                         CloneAstNode(m_typeSpec),
                         nullptr, // no args
                         false,   // do not enable constructor call
-                        m_location)),
+                        m_location),
                     IdentifierFlags::CONSTANT,
-                    m_location));
+                    m_location);
 
                 m_constructorBlock->AddChild(tempVarDecl);
 
-                m_constructorCall.Reset(new AstTernaryExpression(
-                    SharedPtr<AstHasExpression>(new AstHasExpression(
-                        SharedPtr<AstVariable>(new AstVariable(tempVarName, m_location)),
+                m_constructorCall = MakeHandle<AstTernaryExpression>(
+                    MakeHandle<AstHasExpression>(
+                        MakeHandle<AstVariable>(tempVarName, m_location),
                         constructMethodName,
-                        m_location)),
-                    SharedPtr<AstMemberCallExpression>(new AstMemberCallExpression(
+                        m_location),
+                    MakeHandle<AstMemberCallExpression>(
                         constructMethodName,
-                        SharedPtr<AstNewExpression>(new AstNewExpression(
-                            SharedPtr<AstTypeSpecifier>(new AstTypeSpecifier(
-                                SharedPtr<AstVariable>(new AstVariable(tempVarName, m_location)),
-                                m_location)),
+                        MakeHandle<AstNewExpression>(
+                            MakeHandle<AstTypeSpecifier>(
+                                MakeHandle<AstVariable>(tempVarName, m_location),
+                                m_location),
                             nullptr, // no args
                             false,   // do not enable constructor call
-                            m_location)),
+                            m_location),
                         m_argList,
-                        m_location)),
-                    SharedPtr<AstVariable>(new AstVariable(tempVarName, m_location)),
-                    m_location));
+                        m_location),
+                    MakeHandle<AstVariable>(tempVarName, m_location),
+                    m_location);
             }
 
             m_constructorBlock->AddChild(m_constructorCall);
@@ -188,7 +188,7 @@ void AstNewExpression::Optimize(AstVisitor* visitor, Module* mod)
     m_typeSpec->Optimize(visitor, mod);
 }
 
-SharedPtr<AstStatement> AstNewExpression::Clone() const
+Handle<AstStatement> AstNewExpression::Clone() const
 {
     return CloneImpl();
 }

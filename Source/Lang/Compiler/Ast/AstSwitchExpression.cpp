@@ -24,7 +24,7 @@
 namespace Hyperion {
 
 AstSwitchExpression::AstSwitchExpression(
-    const SharedPtr<AstExpression>& expression,
+    const Handle<AstExpression>& expression,
     const Array<CaseClause>& clauses,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
@@ -324,12 +324,12 @@ void AstSwitchExpression::Optimize(AstVisitor* visitor, Module* mod)
     }
 }
 
-SharedPtr<AstStatement> AstSwitchExpression::Clone() const
+Handle<AstStatement> AstSwitchExpression::Clone() const
 {
     return CloneImpl();
 }
 
-SharedPtr<AstSwitchExpression> AstSwitchExpression::CloneImpl() const
+Handle<AstSwitchExpression> AstSwitchExpression::CloneImpl() const
 {
     Array<CaseClause> clonedClauses;
     clonedClauses.Resize(m_clauses.Size());
@@ -343,10 +343,10 @@ SharedPtr<AstSwitchExpression> AstSwitchExpression::CloneImpl() const
         clonedClauses.PushBack(clonedClause);
     }
 
-    SharedPtr<AstSwitchExpression> cloned(new AstSwitchExpression(
+    Handle<AstSwitchExpression> cloned = MakeHandle<AstSwitchExpression>(
         CloneAstNode(m_expression),
         clonedClauses,
-        m_location));
+        m_location);
 
     cloned->m_exprType = m_exprType;
     cloned->m_numPops = m_numPops;

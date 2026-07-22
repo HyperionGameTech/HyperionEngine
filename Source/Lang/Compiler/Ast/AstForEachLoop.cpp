@@ -25,9 +25,9 @@
 namespace Hyperion {
 
 AstForEachLoop::AstForEachLoop(
-    const SharedPtr<AstVariableDeclaration>& varDecl,
-    const SharedPtr<AstExpression>& iterable,
-    const SharedPtr<AstBlock>& block,
+    const Handle<AstVariableDeclaration>& varDecl,
+    const Handle<AstExpression>& iterable,
+    const Handle<AstBlock>& block,
     const SourceLocation& location)
     : AstStatement(location),
       m_varDecl(varDecl),
@@ -82,9 +82,9 @@ void AstForEachLoop::Visit(AstVisitor* visitor, Module* mod)
 
     if (m_varDecl->GetTypeSpecifier() == nullptr)
     {
-        m_varDecl->SetTypeSpecifier(SharedPtr<AstTypeSpecifier>(new AstTypeSpecifier(
-            SharedPtr<AstTypeRef>(new AstTypeRef(elementType, m_varDecl->GetLocation())),
-            m_varDecl->GetLocation())));
+        m_varDecl->SetTypeSpecifier(MakeHandle<AstTypeSpecifier>(
+            MakeHandle<AstTypeRef>(elementType, m_varDecl->GetLocation()),
+            m_varDecl->GetLocation()));
     }
 
     m_varDecl->Visit(visitor, mod);
@@ -325,7 +325,7 @@ void AstForEachLoop::Optimize(AstVisitor* visitor, Module* mod)
     }
 }
 
-SharedPtr<AstStatement> AstForEachLoop::Clone() const
+Handle<AstStatement> AstForEachLoop::Clone() const
 {
     return CloneImpl();
 }

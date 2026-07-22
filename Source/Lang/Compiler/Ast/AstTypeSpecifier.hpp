@@ -15,7 +15,7 @@ class AstTypeSpecifier : public AstExpression
 
 public:
     AstTypeSpecifier(
-        const SharedPtr<AstExpression>& expr,
+        const Handle<AstExpression>& expr,
         const SourceLocation& location);
     virtual ~AstTypeSpecifier() = default;
 
@@ -23,12 +23,12 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual const SharedPtr<AstExpression>& GetExpr() const
+    virtual const Handle<AstExpression>& GetExpr() const
     {
         return m_expr;
     }
 
-    virtual SharedPtr<AstStatement> Clone() const override;
+    virtual Handle<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -47,17 +47,17 @@ public:
     }
 
 protected:
-    SharedPtr<AstExpression> m_expr;
+    Handle<AstExpression> m_expr;
 
     /** Set while analyzing */
     const SymbolType* m_symbolType;
 
 private:
-    SharedPtr<AstTypeSpecifier> CloneImpl() const
+    Handle<AstTypeSpecifier> CloneImpl() const
     {
-        return SharedPtr<AstTypeSpecifier>(new AstTypeSpecifier(
+        return MakeHandle<AstTypeSpecifier>(
             CloneAstNode(m_expr),
-            m_location));
+            m_location);
     }
 };
 

@@ -599,7 +599,7 @@ void SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
     AstVisitor* visitor,
     Module* mod,
     const SymbolType* symbolType,
-    const Array<SharedPtr<AstArgument>>& args,
+    const Array<Handle<AstArgument>>& args,
     const SourceLocation& location)
 {
     const Array<GenericInstanceTypeInfo::Arg>& genericArgs = symbolType->GetGenericInstanceInfo().m_genericArgs;
@@ -622,7 +622,7 @@ void SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
 
     for (size_t index = 0; index < args.Size(); index++)
     {
-        const SharedPtr<AstArgument>& arg = args[index];
+        const Handle<AstArgument>& arg = args[index];
 
         if (!arg || arg->IsPlaceholderArgument())
         {
@@ -662,10 +662,10 @@ void SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
 bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
     AstVisitor* visitor, Module* mod,
     const SymbolType* symbolType,
-    const Array<SharedPtr<AstArgument>>& args,
+    const Array<Handle<AstArgument>>& args,
     const SourceLocation& location,
     const SymbolType*& outReturnType,
-    Array<SharedPtr<AstArgument>>& outArgs)
+    Array<Handle<AstArgument>>& outArgs)
 {
     outReturnType = nullptr;
 
@@ -708,7 +708,7 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
         struct ArgDataPair
         {
             ArgInfo argInfo;
-            SharedPtr<AstArgument> argument;
+            Handle<AstArgument> argument;
         };
 
         Array<ArgDataPair> namedArgs;
@@ -885,9 +885,9 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
             const bool isRef = argTypesWithoutReturn[unusedIndex].m_isRef;
             const bool isConst = argTypesWithoutReturn[unusedIndex].m_isConst;
 
-            SharedPtr<AstArgument> substitutedArg;
+            Handle<AstArgument> substitutedArg;
 
-            SharedPtr<AstExpression> expr;
+            Handle<AstExpression> expr;
 
             if (hasDefaultValue)
             {
@@ -895,17 +895,17 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
             }
             else
             {
-                expr.Reset(new AstUndefined(location));
+                expr = MakeHandle<AstUndefined>(location);
             }
 
-            substitutedArg.Reset(new AstArgument(
+            substitutedArg = MakeHandle<AstArgument>(
                 expr,
                 false,
                 true,
                 isRef,
                 isConst,
                 argTypesWithoutReturn[unusedIndex].m_name,
-                location));
+                location);
 
             expr.Reset();
 
@@ -984,9 +984,9 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
         }
 
         Assert(substitutionResult.index < outArgs.Size());
-        Assert(substitutionResult.value.Is<SharedPtr<AstArgument>>());
+        Assert(substitutionResult.value.Is<Handle<AstArgument>>());
 
-        outArgs[substitutionResult.index] = CloneAstNode(substitutionResult.value.Get<SharedPtr<AstArgument>>());
+        outArgs[substitutionResult.index] = CloneAstNode(substitutionResult.value.Get<Handle<AstArgument>>());
     }
 
     return true;

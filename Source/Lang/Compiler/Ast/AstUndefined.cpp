@@ -16,7 +16,7 @@ UniquePtr<Buildable> AstUndefined::Build(AstVisitor* visitor, Module* mod)
     return nullptr;
 }
 
-SharedPtr<AstStatement> AstUndefined::Clone() const
+Handle<AstStatement> AstUndefined::Clone() const
 {
     return CloneImpl();
 }

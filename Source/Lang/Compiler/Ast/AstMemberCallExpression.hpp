@@ -14,12 +14,12 @@ class AstMemberCallExpression : public AstMember
 public:
     AstMemberCallExpression(
         const String& fieldName,
-        const SharedPtr<AstExpression>& target,
-        const SharedPtr<AstArgumentList>& arguments,
+        const Handle<AstExpression>& target,
+        const Handle<AstArgumentList>& arguments,
         const SourceLocation& location);
     virtual ~AstMemberCallExpression() override = default;
 
-    HYP_FORCE_INLINE const SharedPtr<AstArgumentList>& GetArguments() const
+    HYP_FORCE_INLINE const Handle<AstArgumentList>& GetArguments() const
     {
         return m_arguments;
     }
@@ -28,7 +28,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual SharedPtr<AstStatement> Clone() const override;
+    virtual Handle<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -41,19 +41,19 @@ public:
     virtual String ToString() const override;
 
 protected:
-    SharedPtr<AstArgumentList> m_arguments;
+    Handle<AstArgumentList> m_arguments;
 
     // set while analyzing
-    Array<SharedPtr<AstArgument>> m_substitutedArgs;
+    Array<Handle<AstArgument>> m_substitutedArgs;
     const SymbolType* m_returnType;
 
-    SharedPtr<AstMemberCallExpression> CloneImpl() const
+    Handle<AstMemberCallExpression> CloneImpl() const
     {
-        return SharedPtr<AstMemberCallExpression>(new AstMemberCallExpression(
+        return MakeHandle<AstMemberCallExpression>(
             m_fieldName,
             CloneAstNode(m_target),
             CloneAstNode(m_arguments),
-            m_location));
+            m_location);
     }
 };
 

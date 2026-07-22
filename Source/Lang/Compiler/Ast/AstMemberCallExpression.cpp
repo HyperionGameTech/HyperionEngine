@@ -28,8 +28,8 @@ namespace Hyperion {
 
 AstMemberCallExpression::AstMemberCallExpression(
     const String& fieldName,
-    const SharedPtr<AstExpression>& target,
-    const SharedPtr<AstArgumentList>& arguments,
+    const Handle<AstExpression>& target,
+    const Handle<AstArgumentList>& arguments,
     const SourceLocation& location)
     : AstMember(fieldName, target, location),
       m_arguments(arguments),
@@ -41,35 +41,35 @@ void AstMemberCallExpression::Visit(AstVisitor* visitor, Module* mod)
 {
     AstMember::Visit(visitor, mod);
 
-    SharedPtr<AstExpression> selfTarget = CloneAstNode(m_target);
+    Handle<AstExpression> selfTarget = CloneAstNode(m_target);
 
-    SharedPtr<AstArgument> selfArg(new AstArgument(
+    Handle<AstArgument> selfArg = MakeHandle<AstArgument>(
         selfTarget,
         /* isSplat */ false,
         /* isNamed */ false,
         /* isPassByRef */ false,
         /* isPassConst */ false,
         "self",
-        selfTarget->GetLocation()));
+        selfTarget->GetLocation());
 
     const size_t numArguments = m_arguments != nullptr
         ? m_arguments->GetArguments().Size() + 1
         : 1;
 
-    Array<SharedPtr<AstArgument>> argsWithSelf;
+    Array<Handle<AstArgument>> argsWithSelf;
     argsWithSelf.Reserve(numArguments);
     argsWithSelf.PushBack(selfArg);
 
     if (m_arguments != nullptr)
     {
-        for (const SharedPtr<AstArgument>& arg : m_arguments->GetArguments())
+        for (const Handle<AstArgument>& arg : m_arguments->GetArguments())
         {
             argsWithSelf.PushBack(arg);
         }
     }
 
     // visit each argument
-    for (const SharedPtr<AstArgument>& arg : argsWithSelf)
+    for (const Handle<AstArgument>& arg : argsWithSelf)
     {
         Assert(arg != nullptr);
 
@@ -117,7 +117,7 @@ void AstMemberCallExpression::Visit(AstVisitor* visitor, Module* mod)
         Assert(m_returnType != nullptr);
 
         // visit each argument (again, substituted)
-        for (const SharedPtr<AstArgument>& arg : m_substitutedArgs)
+        for (const Handle<AstArgument>& arg : m_substitutedArgs)
         {
             Assert(arg != nullptr);
 
@@ -233,7 +233,7 @@ void AstMemberCallExpression::Optimize(AstVisitor* visitor, Module* mod)
 {
     AstMember::Optimize(visitor, mod);
 
-    for (const SharedPtr<AstArgument>& arg : m_substitutedArgs)
+    for (const Handle<AstArgument>& arg : m_substitutedArgs)
     {
         Assert(arg != nullptr);
 
@@ -249,7 +249,7 @@ void AstMemberCallExpression::Optimize(AstVisitor* visitor, Module* mod)
     // be optimized
 }
 
-SharedPtr<AstStatement> AstMemberCallExpression::Clone() const
+Handle<AstStatement> AstMemberCallExpression::Clone() const
 {
     return CloneImpl();
 }

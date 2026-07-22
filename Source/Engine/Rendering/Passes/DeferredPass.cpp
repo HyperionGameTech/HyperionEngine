@@ -1300,7 +1300,9 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
     if (!m_quadMesh)
     {
         m_quadMesh = MeshBuilder::Quad();
+        m_quadMesh->SetName(NAME("DeferredPassQuad"));
         m_quadMesh->SetFlags(MeshFlags::ViewIndependent);
+        m_quadMesh->SetIsTransient(true);
         m_quadMesh->UploadGpuData();
     }
 
@@ -2241,7 +2243,9 @@ void DeferredPass::GenerateMipChain(Frame* frame, const RenderSetup& rs, RenderC
         if (!m_quadMesh)
         {
             m_quadMesh = MeshBuilder::Quad();
+            m_quadMesh->SetName(NAME("DeferredPassQuad"));
             m_quadMesh->SetFlags(MeshFlags::ViewIndependent);
+            m_quadMesh->SetIsTransient(true);
             m_quadMesh->UploadGpuData();
         }
 

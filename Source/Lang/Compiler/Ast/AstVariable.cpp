@@ -60,10 +60,10 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
 
         if (isMember) // add 'self' prefix for member access
         {
-            m_selfMemberAccess.Reset(new AstMember(
+            m_selfMemberAccess = MakeHandle<AstMember>(
                 m_name,
-                SharedPtr<AstVariable>(new AstVariable("self", m_location)),
-                m_location));
+                MakeHandle<AstVariable>("self", m_location),
+                m_location);
 
             m_selfMemberAccess->Visit(visitor, mod);
         }
@@ -147,10 +147,10 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
                         // closures are objects with a method named '$invoke',
                         // because we are in the '$invoke' method currently,
                         // we use the variable as 'self.<variable name>'
-                        m_closureMemberAccess.Reset(new AstMember(
+                        m_closureMemberAccess = MakeHandle<AstMember>(
                             m_name,
-                            SharedPtr<AstVariable>(new AstVariable("$functor", m_location)),
-                            m_location));
+                            MakeHandle<AstVariable>("$functor", m_location),
+                            m_location);
 
                         m_closureMemberAccess->Visit(visitor, mod);
                     }
@@ -183,7 +183,7 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
     {
         heldType = heldType->GetUnaliased();
 
-        m_typeRef.Reset(new AstTypeRef(heldType, m_location));
+        m_typeRef = MakeHandle<AstTypeRef>(heldType, m_location);
         m_typeRef->Visit(visitor, mod);
     }
 }
@@ -382,7 +382,7 @@ void AstVariable::Optimize(AstVisitor* visitor, Module* mod)
     }
 }
 
-SharedPtr<AstStatement> AstVariable::Clone() const
+Handle<AstStatement> AstVariable::Clone() const
 {
     return CloneImpl();
 }

@@ -27,7 +27,7 @@ void AstIterator::Prepend(AstIterator&& other, bool resetPosition)
         m_position += other.m_list.Size();
     }
 
-    Array<SharedPtr<AstStatement>> newList = std::move(other.m_list);
+    Array<Handle<AstStatement>> newList = std::move(other.m_list);
     newList.Concat(m_list);
     m_list = std::move(newList);
 

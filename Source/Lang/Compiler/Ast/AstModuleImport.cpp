@@ -18,7 +18,7 @@ static constexpr const char* WildcardImport = "*";
 
 AstModuleImportPart::AstModuleImportPart(
     const String& left,
-    const Array<SharedPtr<AstModuleImportPart>>& rightParts,
+    const Array<Handle<AstModuleImportPart>>& rightParts,
     const SourceLocation& location)
     : AstStatement(location),
       m_left(left),
@@ -74,7 +74,7 @@ void AstModuleImportPart::Visit(AstVisitor* visitor, Module* mod)
         else
         {
             // get nested items
-            for (const SharedPtr<AstModuleImportPart>& part : m_rightParts)
+            for (const Handle<AstModuleImportPart>& part : m_rightParts)
             {
                 Assert(part != nullptr);
                 part->Visit(visitor, thisModule);
@@ -114,13 +114,13 @@ void AstModuleImportPart::Optimize(AstVisitor* visitor, Module* mod)
 {
 }
 
-SharedPtr<AstStatement> AstModuleImportPart::Clone() const
+Handle<AstStatement> AstModuleImportPart::Clone() const
 {
     return CloneImpl();
 }
 
 AstModuleImport::AstModuleImport(
-    const Array<SharedPtr<AstModuleImportPart>>& parts,
+    const Array<Handle<AstModuleImportPart>>& parts,
     const SourceLocation& location)
     : AstImport(location),
       m_parts(parts)
@@ -131,7 +131,7 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
 {
     Assert(!m_parts.Empty());
 
-    const SharedPtr<AstModuleImportPart>& first = m_parts[0];
+    const Handle<AstModuleImportPart>& first = m_parts[0];
     Assert(first != nullptr);
 
     bool opened = false;
@@ -236,7 +236,7 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
     {
         Array<Symbol> pulledInSymbols;
 
-        for (const SharedPtr<AstModuleImportPart>& part : m_parts)
+        for (const Handle<AstModuleImportPart>& part : m_parts)
         {
             Assert(part != nullptr);
             part->Visit(visitor, mod);
@@ -308,7 +308,7 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
     }
 }
 
-SharedPtr<AstStatement> AstModuleImport::Clone() const
+Handle<AstStatement> AstModuleImport::Clone() const
 {
     return CloneImpl();
 }

@@ -25,7 +25,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual SharedPtr<AstStatement> Clone() const override;
+    virtual Handle<AstStatement> Clone() const override;
 
     virtual HashCode GetHashCode() const override
     {
@@ -45,12 +45,12 @@ private:
     String m_key;
     Array<String> m_args;
 
-    SharedPtr<AstDirective> CloneImpl() const
+    Handle<AstDirective> CloneImpl() const
     {
-        return SharedPtr<AstDirective>(new AstDirective(
+        return MakeHandle<AstDirective>(
             m_key,
             m_args,
-            m_location));
+            m_location);
     }
 };
 

@@ -16,18 +16,18 @@ class AstCallExpression : public AstExpression
 
 public:
     AstCallExpression(
-        const SharedPtr<AstExpression>& expr,
-        const Array<SharedPtr<AstArgument>>& args,
+        const Handle<AstExpression>& expr,
+        const Array<Handle<AstArgument>>& args,
         bool insertSelf,
         const SourceLocation& location);
     virtual ~AstCallExpression() = default;
 
-    HYP_FORCE_INLINE Array<SharedPtr<AstArgument>>& GetArguments()
+    HYP_FORCE_INLINE Array<Handle<AstArgument>>& GetArguments()
     {
         return m_args;
     }
 
-    HYP_FORCE_INLINE const Array<SharedPtr<AstArgument>>& GetArguments() const
+    HYP_FORCE_INLINE const Array<Handle<AstArgument>>& GetArguments() const
     {
         return m_args;
     }
@@ -41,7 +41,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual SharedPtr<AstStatement> Clone() const override;
+    virtual Handle<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -66,22 +66,22 @@ public:
     }
 
 protected:
-    SharedPtr<AstExpression> m_expr;
-    Array<SharedPtr<AstArgument>> m_args;
+    Handle<AstExpression> m_expr;
+    Array<Handle<AstArgument>> m_args;
     bool m_insertSelf;
 
     // set while analyzing
-    SharedPtr<AstExpression> m_overrideExpr;
-    Array<SharedPtr<AstArgument>> m_substitutedArgs;
+    Handle<AstExpression> m_overrideExpr;
+    Array<Handle<AstArgument>> m_substitutedArgs;
     const SymbolType* m_returnType;
 
-    SharedPtr<AstCallExpression> CloneImpl() const
+    Handle<AstCallExpression> CloneImpl() const
     {
-        return SharedPtr<AstCallExpression>(new AstCallExpression(
+        return MakeHandle<AstCallExpression>(
             CloneAstNode(m_expr),
             CloneAllAstNodes(m_args),
             m_insertSelf,
-            m_location));
+            m_location);
     }
 };
 

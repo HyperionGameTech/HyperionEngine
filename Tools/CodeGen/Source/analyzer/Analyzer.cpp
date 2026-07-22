@@ -967,7 +967,7 @@ static TResult<Array<MemberDef>, AnalyzerError> BuildClassMembers(const Analyzer
         const String contentToEnd = String(line.Substr(macroEndIndex)) + "\n" + String::Join(lines.Slice(i + 1, lines.Size()), '\n');
         ParseInnerContent(contentToEnd, result.source);
 
-        SharedPtr<ASTMemberDecl> decl;
+        Handle<AstMemberDecl> decl;
 
         auto res = CreateParser(analyzer, mod, result.source, [&](Parser& parser) -> TResult<void, AnalyzerError>
             {
@@ -1113,7 +1113,7 @@ static TResult<Array<MemberDef>, AnalyzerError> BuildEnumMembers(const Analyzer&
 
     auto res = CreateParser(analyzer, mod, innerContent, [&](Parser& parser) -> TResult<void, AnalyzerError>
         {
-            SharedPtr<ASTMemberDecl> memberDecl;
+            Handle<AstMemberDecl> memberDecl;
 
             uint32 member_index = 0;
 

@@ -33,7 +33,7 @@ UniquePtr<Buildable> AstNil::Build(AstVisitor* visitor, Module* mod)
     return BytecodeUtil::Make<ConstNull>(rp);
 }
 
-SharedPtr<AstStatement> AstNil::Clone() const
+Handle<AstStatement> AstNil::Clone() const
 {
     return CloneImpl();
 }

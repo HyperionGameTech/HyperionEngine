@@ -31,7 +31,7 @@ namespace Hyperion {
 
 AstMember::AstMember(
     const String& fieldName,
-    const SharedPtr<AstExpression>& target,
+    const Handle<AstExpression>& target,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD | ACCESS_MODE_STORE),
       m_fieldName(fieldName),
@@ -129,7 +129,7 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
         if (isProxyClass)
         {
             // load the type by name
-            m_typeRef.Reset(new AstTypeRef(m_targetType, m_location));
+            m_typeRef = MakeHandle<AstTypeRef>(m_targetType, m_location);
             m_typeRef->Visit(visitor, mod);
 
             // if it is a proxy class,
@@ -224,7 +224,7 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
             mod->scopeTree.Open(SCOPE_TYPE_NORMAL, REF_VARIABLE_FLAG);
         }
 
-        m_typeRef.Reset(new AstTypeRef(m_targetType, m_location));
+        m_typeRef = MakeHandle<AstTypeRef>(m_targetType, m_location);
         m_typeRef->Visit(visitor, mod);
 
         if (m_accessMode == ACCESS_MODE_STORE)
@@ -365,7 +365,7 @@ void AstMember::Optimize(AstVisitor* visitor, Module* mod)
     m_target->Optimize(visitor, mod);
 }
 
-SharedPtr<AstStatement> AstMember::Clone() const
+Handle<AstStatement> AstMember::Clone() const
 {
     return CloneImpl();
 }
@@ -459,7 +459,7 @@ ConstantValue AstMember::GetConstantValue() const
     {
         if (member.IsConst())
         {
-            if (const SharedPtr<AstExpression>& expr = member.GetExpr())
+            if (const Handle<AstExpression>& expr = member.GetExpr())
             {
                 return expr->GetConstantValue();
             }

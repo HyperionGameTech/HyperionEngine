@@ -84,7 +84,7 @@ void AstBreakStatement::Optimize(AstVisitor* visitor, Module* mod)
 {
 }
 
-SharedPtr<AstStatement> AstBreakStatement::Clone() const
+Handle<AstStatement> AstBreakStatement::Clone() const
 {
     return CloneImpl();
 }

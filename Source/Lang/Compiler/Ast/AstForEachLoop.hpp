@@ -14,9 +14,9 @@ class AstForEachLoop : public AstStatement
 
 public:
     AstForEachLoop(
-        const SharedPtr<AstVariableDeclaration>& varDecl,
-        const SharedPtr<AstExpression>& iterable,
-        const SharedPtr<AstBlock>& block,
+        const Handle<AstVariableDeclaration>& varDecl,
+        const Handle<AstExpression>& iterable,
+        const Handle<AstBlock>& block,
         const SourceLocation& location);
     virtual ~AstForEachLoop() override = default;
 
@@ -24,7 +24,7 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual SharedPtr<AstStatement> Clone() const override;
+    virtual Handle<AstStatement> Clone() const override;
 
     virtual String ToString() const override;
 
@@ -40,19 +40,19 @@ public:
     }
 
 private:
-    SharedPtr<AstVariableDeclaration> m_varDecl;
-    SharedPtr<AstExpression> m_iterable;
-    SharedPtr<AstBlock> m_block;
+    Handle<AstVariableDeclaration> m_varDecl;
+    Handle<AstExpression> m_iterable;
+    Handle<AstBlock> m_block;
 
     int m_numLocals;
 
-    SharedPtr<AstForEachLoop> CloneImpl() const
+    Handle<AstForEachLoop> CloneImpl() const
     {
-        return SharedPtr<AstForEachLoop>(new AstForEachLoop(
+        return MakeHandle<AstForEachLoop>(
             CloneAstNode(m_varDecl),
             CloneAstNode(m_iterable),
             CloneAstNode(m_block),
-            m_location));
+            m_location);
     }
 };
 

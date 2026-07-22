@@ -27,21 +27,23 @@ AstName::AstName(const String& value, const SourceLocation& location)
 
 void AstName::Visit(AstVisitor* visitor, Module* mod)
 {
-    m_callExpr.Reset(new AstCallExpression(
-        SharedPtr<AstMember>(new AstMember(
+    m_callExpr = MakeHandle<AstCallExpression>(
+        MakeHandle<AstMember>(
             "FromString",
-            SharedPtr<AstTypeRef>(new AstTypeRef(BuiltinTypes::s_nameType, m_location)),
-            m_location)),
-        { SharedPtr<AstArgument>(new AstArgument(
-            SharedPtr<AstString>(new AstString(m_value, m_location)),
-            false, /* isSplat */
-            false, /* isNamed */
-            false, /* isPassByRef */
-            false, /* isPassConst */
-            "",    /* name */
-            m_location)) },
+            MakeHandle<AstTypeRef>(BuiltinTypes::s_nameType, m_location),
+            m_location),
+        Array<Handle<AstArgument>> {
+            MakeHandle<AstArgument>(
+                MakeHandle<AstString>(m_value, m_location),
+                false, /* isSplat */
+                false, /* isNamed */
+                false, /* isPassByRef */
+                false, /* isPassConst */
+                "",    /* name */
+                m_location)
+        },
         false, /* insertSelf */
-        m_location));
+        m_location);
 
     m_callExpr->Visit(visitor, mod);
 }
@@ -53,7 +55,7 @@ UniquePtr<Buildable> AstName::Build(AstVisitor* visitor, Module* mod)
     return m_callExpr->Build(visitor, mod);
 }
 
-SharedPtr<AstStatement> AstName::Clone() const
+Handle<AstStatement> AstName::Clone() const
 {
     return CloneImpl();
 }

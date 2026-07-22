@@ -20,7 +20,7 @@ class AstVisitor;
 class Module;
 class SymbolType;
 
-HYP_CLASS(Abstract)
+HYP_CLASS(Abstract, NoScriptBindings)
 class AstStatement : public ObjectBase
 {
     friend class AstIterator;
@@ -31,6 +31,8 @@ protected:
     static const String s_unnamed;
 
 public:
+    static Pool* GetAllocator();
+
     AstStatement(const SourceLocation& location);
     virtual ~AstStatement() = default;
 
@@ -71,7 +73,7 @@ public:
         return GetName();
     }
 
-    virtual SharedPtr<AstStatement> Clone() const = 0;
+    virtual Handle<AstStatement> Clone() const = 0;
 
 protected:
     SourceLocation m_location;
@@ -79,28 +81,28 @@ protected:
 };
 
 template <typename T>
-typename std::enable_if<std::is_base_of_v<AstStatement, T>, SharedPtr<T>>::type
-CloneAstNode(const SharedPtr<T>& stmt)
+typename std::enable_if<std::is_base_of_v<AstStatement, T>, Handle<T>>::type
+CloneAstNode(const Handle<T>& stmt)
 {
     return (stmt != nullptr)
-        ? stmt->Clone().template CastUnchecked<T>()
+        ? StaticCast<T>(stmt->Clone())
         : nullptr;
 }
 
 template <typename T>
-typename std::enable_if<std::is_base_of_v<AstStatement, T>, SharedPtr<T>>::type
+typename std::enable_if<std::is_base_of_v<AstStatement, T>, Handle<T>>::type
 CloneAstNode(const T* stmt)
 {
     return (stmt != nullptr)
-        ? stmt->Clone().template CastUnchecked<T>()
+        ? StaticCast<T>(stmt->Clone())
         : nullptr;
 }
 
 template <typename T>
-typename std::enable_if<std::is_base_of_v<AstStatement, T>, Array<SharedPtr<T>>>::type
-CloneAllAstNodes(const Array<SharedPtr<T>>& stmts)
+typename std::enable_if<std::is_base_of_v<AstStatement, T>, Array<Handle<T>>>::type
+CloneAllAstNodes(const Array<Handle<T>>& stmts)
 {
-    Array<SharedPtr<T>> res;
+    Array<Handle<T>> res;
     res.Reserve(stmts.Size());
     for (auto& stmt : stmts)
     {
@@ -110,10 +112,10 @@ CloneAllAstNodes(const Array<SharedPtr<T>>& stmts)
 }
 
 template <typename T>
-typename std::enable_if<std::is_base_of_v<AstStatement, T>, Array<SharedPtr<T>>>::type
+typename std::enable_if<std::is_base_of_v<AstStatement, T>, Array<Handle<T>>>::type
 CloneAllAstNodes(const Array<T*>& stmts)
 {
-    Array<SharedPtr<T>> res;
+    Array<Handle<T>> res;
     res.Reserve(stmts.Size());
     for (auto& stmt : stmts)
     {

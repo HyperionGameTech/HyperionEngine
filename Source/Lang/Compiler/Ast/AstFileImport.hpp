@@ -26,16 +26,16 @@ public:
 
     virtual void Visit(AstVisitor* visitor, Module* mod) override;
 
-    virtual SharedPtr<AstStatement> Clone() const override;
+    virtual Handle<AstStatement> Clone() const override;
 
 protected:
     String m_path;
 
-    SharedPtr<AstFileImport> CloneImpl() const
+    Handle<AstFileImport> CloneImpl() const
     {
-        return SharedPtr<AstFileImport>(new AstFileImport(
+        return MakeHandle<AstFileImport>(
             m_path,
-            m_location));
+            m_location);
     }
 };
 

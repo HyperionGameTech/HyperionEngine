@@ -40,7 +40,7 @@ UniquePtr<Buildable> AstInteger::Build(AstVisitor* visitor, Module* mod)
     }
 }
 
-SharedPtr<AstStatement> AstInteger::Clone() const
+Handle<AstStatement> AstInteger::Clone() const
 {
     return CloneImpl();
 }
