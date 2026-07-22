@@ -16,8 +16,12 @@
 #include <Rendering/Passes/LightmapPass.hpp>
 #include <Rendering/Passes/FogVolumePass.hpp>
 #include <Rendering/Passes/ReflectionsPass.hpp>
+#if HYP_EDITOR
+#include <Rendering/Passes/EditorGridPass.hpp>
+#endif
 
 #include <Rendering/RenderGroup.hpp>
+#include <Rendering/RenderSetup.hpp>
 #include <Rendering/ShaderManager.hpp>
 #include <Rendering/GBuffer.hpp>
 #include <Rendering/DepthPyramidRenderer.hpp>
@@ -55,6 +59,9 @@
 
 #include <Scene/World.hpp>
 #include <Scene/View.hpp>
+#if HYP_EDITOR
+#include <Framework/GameState.hpp>
+#endif
 #include <Scene/ProbeVolume.hpp>
 #include <Scene/EnvProbe.hpp>
 #include <Scene/FogVolume.hpp>
@@ -136,6 +143,10 @@ CVar<float> g_cvTonemapExposure { "Rendering.Tonemap.Exposure", 1.8f };
 CVar<bool> g_cvDepthPrepass { "Rendering.DepthPrepass", true };
 CVar<bool> g_cvFogVolumes { "Rendering.FogVolumes", true };
 CVar<bool> g_cvFogVolumesClusteredLights { "Rendering.FogVolumesClusteredLights", true };
+
+#if HYP_EDITOR
+CVar<bool> g_cvEditorGrid { "Editor.ShowGrid", true };
+#endif // HYP_EDITOR
 
 extern CVar<int> g_cvSkipRendering;
 
@@ -1048,6 +1059,11 @@ PassData* DeferredPass::CreateViewPassData(View* view, PassDataExt&)
         passData.fogVolumePass = MakeUnique<FogVolumePass>(gbuffer->GetExtent(), gbuffer);
         passData.fogVolumePass->Create();
 
+#if HYP_EDITOR
+        passData.editorGridPass = MakeUnique<EditorGridPass>();
+        passData.editorGridPass->Create();
+#endif
+
         passData.taaPass = MakeUnique<TAAPass>(passData.tonemapPass->GetFinalImageView(), gbuffer->GetExtent(), gbuffer);
         passData.taaPass->Create();
 
@@ -1253,6 +1269,11 @@ void DeferredPass::ResizeView(Viewport viewport, View* view, DeferredPassData& p
 
     passData.fogVolumePass = MakeUnique<FogVolumePass>(viewport.extent, gbuffer);
     passData.fogVolumePass->Create();
+
+#if HYP_EDITOR
+    passData.editorGridPass = MakeUnique<EditorGridPass>();
+    passData.editorGridPass->Create();
+#endif
 
     passData.taaPass = MakeUnique<TAAPass>(passData.tonemapPass->GetFinalImageView(), newSize, gbuffer);
     passData.taaPass->Create();
@@ -1883,6 +1904,17 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
             passData.fogVolumePass->Render(frame, fogVolumeRS);
         }
+
+#if HYP_EDITOR
+        // render the editor-only infinite grid, only while editing (never while simulating/paused)
+        if (g_cvEditorGrid.Get() && rs.world && rs.world->GetGameState().IsEditMode())
+        {
+            RenderSetup gridRS = rs.Fork();
+            gridRS.framebuffer = effectPassFramebuffer;
+
+            passData.editorGridPass->Render(frame, gridRS);
+        }
+#endif
 
         // render particles
         if (rpl.GetParticleVolumes().NumCurrent())

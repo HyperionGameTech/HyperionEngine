@@ -3578,6 +3578,7 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
     Assert(gameInstance != nullptr);
 
     gameInstance->Initialize();
+    gameInstance->SetToEditMode();
 
     OnProjectOpened(m_currentProject);
 

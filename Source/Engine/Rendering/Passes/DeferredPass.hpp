@@ -54,6 +54,9 @@ class ReflectionsPass;
 class LightmapPass;
 class FogVolumePass;
 class TonemapPass;
+#if HYP_EDITOR
+class EditorGridPass;
+#endif
 
 struct RenderSetup;
 
@@ -84,6 +87,10 @@ public:
     UniquePtr<LightmapPass> lightmapPass;
 
     UniquePtr<FogVolumePass> fogVolumePass;
+
+#if HYP_EDITOR
+    UniquePtr<EditorGridPass> editorGridPass;
+#endif
 
     UniquePtr<TonemapPass> tonemapPass;
 

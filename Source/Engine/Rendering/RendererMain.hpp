@@ -6,8 +6,6 @@
 
 #pragma once
 
-#include <Core/Containers/SparseArray2.hpp>
-
 #include <Core/Resource/Resource.hpp>
 
 #include <Core/Memory/Allocator/ThreadAllocator.hpp>
