@@ -22,6 +22,9 @@ EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 
 namespace Baking {
 
+static constexpr float OccSdfTargetVoxelSize = 0.25f;
+static constexpr uint32 OccSdfTargetExtent = 128;
+
 static void GenerateNoiseBitmap(typename BakeData<FogVolume>::NoiseBitmap& noiseBitmap)
 {
     class FogVolumeNoiseCombinator : public NoiseCombinator
@@ -93,6 +96,13 @@ Result BakeData<FogVolume>::Build()
 
                 break;
             }
+
+            m_pointLights.Clear();
+
+            for (auto [entity, _] : entityManager->GetEntitySet<EntityType<PointLight>>())
+            {
+                m_pointLights.PushBack(MakeStrongRef(StaticCast<PointLight>(entity)));
+            }
         }
 
         if (!foundSun)
@@ -101,10 +111,7 @@ Result BakeData<FogVolume>::Build()
         }
     }
 
-    m_volumeBitmap = VolumeBitmap(
-        dimensions.x,
-        dimensions.y,
-        dimensions.z);
+    m_volumeBitmap = VolumeBitmap(dimensions.x, dimensions.y, dimensions.z);
 
     const Vec3f extentWS = m_fogVolume->GetWorldBounds().GetExtent();
     const Vec3f texelSizeWS = extentWS / Vec3f(dimensions);
@@ -132,6 +139,46 @@ Result BakeData<FogVolume>::Build()
         return buildResult.GetError();
     }
 
+    Vec3u occDimensions;
+
+    if (maxExtent < MathUtil::epsilonF)
+    {
+        occDimensions = Vec3u::One();
+    }
+    else
+    {
+        static constexpr float OccScale = 1.0f / OccSdfTargetVoxelSize;
+
+        occDimensions = Vec3u(MathUtil::Min(
+            Vec3f(float(OccSdfTargetExtent)),
+            MathUtil::Max(Vec3f(1.0f), MathUtil::Ceil(extentWS * OccScale))));
+    }
+
+    m_occSdfBitmap = OccSdfBitmap(
+        occDimensions.x, occDimensions.y, occDimensions.z);
+
+    const Vec3f occTexelHalfSizeWS = extentWS * (Vec3f(0.5f) / Vec3f(occDimensions));
+    const float occSdfMaxDistance = extentWS.Length() * 4.0f;
+
+    for (uint32 z = 0; z < occDimensions.z; z++)
+    {
+        for (uint32 y = 0; y < occDimensions.y; y++)
+        {
+            for (uint32 x = 0; x < occDimensions.x; x++)
+            {
+                const Vec3f posWS = voxelOctreeAabb.GetMin()
+                    + (extentWS * (Vec3f(float(x), float(y), float(z)) / Vec3f(occDimensions)))
+                    + occTexelHalfSizeWS;
+
+                const double sdf = m_voxelOctree->GetSignedDistanceAtPoint(posWS);
+
+                const float clampedSdf = MathUtil::Min(float(sdf), occSdfMaxDistance);
+
+                m_occSdfBitmap.GetPixelReference(x, y, z).SetComponentFloat(0, clampedSdf);
+            }
+        }
+    }
+
     m_noiseBitmap = NoiseBitmap(
         FogVolume::MaxNoiseTextureExtent,
         FogVolume::MaxNoiseTextureExtent,
@@ -140,18 +187,6 @@ Result BakeData<FogVolume>::Build()
     GenerateNoiseBitmap(m_noiseBitmap);
 
     return {};
-}
-
-float BakeData<FogVolume>::ComputeDirectionalShadow(const Vec3f& posWS) const
-{
-    if (m_voxelOctree == nullptr)
-    {
-        return 1.0f;
-    }
-
-    const Vec3f sunDir = m_sunDirection.Normalized();
-
-    return m_voxelOctree->RayCastOccluded(posWS, sunDir, 1000.0f) ? 0.0f : 1.0f;
 }
 
 } // namespace Baking

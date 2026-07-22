@@ -142,7 +142,7 @@ DECLARE_SRV(FogVolume, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-DECLARE_SRV(FogVolume, DataMap) Texture3D<float2> DataMap;
+DECLARE_SRV(FogVolume, DataMap) Texture3D<float4> DataMap;
 DECLARE_SRV(FogVolume, NoiseMap) Texture3D<float> NoiseMap;
 
 #ifdef CLUSTERED_LIGHTS
@@ -337,18 +337,10 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar,
         float3 currentPos = rayOrigin + rayDir * t;
         float3 uvw = WorldToTexCoord(currentPos, fogVolume.aabbMin.xyz, fogVolume.aabbMax.xyz);
 
-        float2 dataMapSample = SAMPLE_TEXTURE_3D_LOD(texture_sampler, DataMap, uvw, 0).rg;
+        float4 dataMapSample = SAMPLE_TEXTURE_3D_LOD(texture_sampler, DataMap, uvw, 0);
 
-#ifdef FOG_VOLUME_USE_SDF
-        float sdf = dataMapSample.x;
-
-        // if (sdf < -0.001)
-        // {
-        //     break;
-        // }
-#endif
-
-        // float prebakedShadow = dataMapSample.y;
+        float3 bakedPointLightColor = dataMapSample.rgb;
+        float bakedPointLightShadow = dataMapSample.a;
 
         float noise = GetFogDensity(uvw);
         float localDensity = noise * DensityScale;
@@ -368,8 +360,6 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar,
             float cosTheta = dot(lightDir, rayDir);
             float phase = HenyeyGreenstein(phaseG, cosTheta);
 
-            // float shadow = prebakedShadow;
-            
             float shadow = 1.0;
 
             if ((directionalLight.flags & LF_SHADOW_CASTER) != 0)
@@ -379,6 +369,8 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar,
 
             stepLightEnergy += directionalLight.color.rgb * directionalLight.position_intensity.w * phase * shadow;
         }
+
+        stepLightEnergy += bakedPointLightColor * bakedPointLightShadow;
 
 #ifdef POINT_LIGHT_FOG
 
