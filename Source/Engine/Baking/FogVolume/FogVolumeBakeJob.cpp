@@ -82,8 +82,10 @@ uint32 BakeJob<FogVolume>::ProcessTexels(Span<LightmapTexel*> texels, uint32 tex
         const Vec3f posWS = worldAabb.GetMin() + (extentWS * (Vec3f(texelCoord) / Vec3f(bitmapExtent))) + texelHalfSizeWS;
 
         const double dist = m_bakeData->GetVoxelOctree()->GetSignedDistanceAtPoint(posWS);
+        const float shadow = m_bakeData->ComputeDirectionalShadow(posWS);
 
         texel->color0.x = float(dist);
+        texel->color0.y = shadow;
         texel->color0.w = 1.0f;
     }
 

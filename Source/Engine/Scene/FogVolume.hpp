@@ -18,7 +18,9 @@ class ENGINE_API FogVolume final : public VolumeBase
     HYP_OBJECT_BODY(FogVolume);
 
 public:
-    static constexpr uint32 MaxVolumeTextureExtent = 32;
+    static constexpr uint32 MaxVolumeTextureExtent = 64;
+    static constexpr uint32 MaxNoiseTextureExtent = 32;
+
 
     FogVolume();
 
@@ -42,7 +44,7 @@ public:
 
     void UpdateRenderProxy(struct RenderProxyFogVolume* proxy);
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     HYP_METHOD(EditorOnly, EditAction = "Rebake")
     void Rebake();
 #endif

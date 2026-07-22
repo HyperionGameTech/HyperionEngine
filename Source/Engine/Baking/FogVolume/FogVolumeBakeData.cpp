@@ -9,11 +9,16 @@
 #include <Baking/FogVolume/FogVolumeBakeData.hpp>
 
 #include <Scene/FogVolume.hpp>
+#include <Scene/Light.hpp>
+#include <Scene/EntityManager.hpp>
+
 #include <Scene/Util/VoxelOctree.hpp>
 
 #include <Util/NoiseFactory.hpp>
 
 namespace Hyperion {
+
+EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 
 namespace Baking {
 
@@ -74,6 +79,28 @@ Result BakeData<FogVolume>::Build()
         dimensions = Vec3u::One();
     }
 
+    {
+        bool foundSun = false;
+
+        EntityManager* entityManager = m_fogVolume->GetEntityManager();
+
+        if (entityManager != nullptr)
+        {
+            for (auto [entity, _] : entityManager->GetEntitySet<EntityType<DirectionalLight>>())
+            {
+                m_sunDirection = StaticCast<DirectionalLight>(entity)->GetDirection();
+                foundSun = true;
+
+                break;
+            }
+        }
+
+        if (!foundSun)
+        {
+            HYP_LOG(Editor, Warning, "No directional lights found in scene for fog volume");
+        }
+    }
+
     m_volumeBitmap = VolumeBitmap(
         dimensions.x,
         dimensions.y,
@@ -106,13 +133,25 @@ Result BakeData<FogVolume>::Build()
     }
 
     m_noiseBitmap = NoiseBitmap(
-        MaxNoiseBitmapExtent,
-        MaxNoiseBitmapExtent,
-        MaxNoiseBitmapExtent);
+        FogVolume::MaxNoiseTextureExtent,
+        FogVolume::MaxNoiseTextureExtent,
+        FogVolume::MaxNoiseTextureExtent);
 
     GenerateNoiseBitmap(m_noiseBitmap);
 
     return {};
+}
+
+float BakeData<FogVolume>::ComputeDirectionalShadow(const Vec3f& posWS) const
+{
+    if (m_voxelOctree == nullptr)
+    {
+        return 1.0f;
+    }
+
+    const Vec3f sunDir = m_sunDirection.Normalized();
+
+    return m_voxelOctree->RayCastOccluded(posWS, sunDir, 1000.0f) ? 0.0f : 1.0f;
 }
 
 } // namespace Baking

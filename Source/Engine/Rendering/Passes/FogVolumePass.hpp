@@ -57,6 +57,8 @@ private:
         class FogVolume* volume = nullptr;
         Texture* volumeTexture = nullptr;
         Texture* noiseTexture = nullptr;
+        
+        Handle<Texture> froxelGridTexture;
     };
 
     FogVolumePassData& GetFogVolumePassData(FogVolume* fogVolume)

@@ -1,4 +1,4 @@
-Shader "ApplyFogVolume_9313628481488194512" {
+Shader "ApplyFogVolume_5618955676417922366" {
     PropertySet = [
         ShaderProperty {
             Name = "TARGET"
@@ -26,6 +26,12 @@ Shader "ApplyFogVolume_9313628481488194512" {
         }
         ShaderProperty {
             Name = "CLUSTERED_LIGHTS"
+            Flags = SPF_NONE
+            Value = null
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "FOG_VOLUME_USE_SDF"
             Flags = SPF_NONE
             Value = null
             EnumValues = []
@@ -324,15 +330,15 @@ Shader "ApplyFogVolume_9313628481488194512" {
     ]
     ShaderBlobs = [
         BlobDataReference {
-            Key = "Engine://Shaders/ApplyFogVolume_9313628481488194512.VS"
-            Size = 41880
+            Key = "Engine://Shaders/ApplyFogVolume_5618955676417922366.VS"
+            Size = 41908
         }
         BlobDataReference {
-            Key = "Engine://Shaders/ApplyFogVolume_9313628481488194512.PS"
-            Size = 238428
+            Key = "Engine://Shaders/ApplyFogVolume_5618955676417922366.PS"
+            Size = 230308
         }
     ]
     PropertySetHashCode = {
     }
-    FriendlyName = "ApplyFogVolume_9313628481488194512"
+    FriendlyName = "ApplyFogVolume_5618955676417922366"
 }

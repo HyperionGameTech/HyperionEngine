@@ -624,6 +624,25 @@ Handle<Node> Node::Select(ANSIStringView selector) const
     return result;
 }
 
+Array<Name> Node::GetDeepPath() const
+{
+    Array<Name> path = { m_name };
+
+    Node* current = m_parentNode;
+    while (current != nullptr)
+    {
+        path.PushBack(current->GetName());
+        current = current->m_parentNode;
+    }
+
+    // pop root.
+    path.PopFront();
+    // reverse order to have higher parents first.
+    path.Reverse();
+
+    return path;
+}
+
 Node::NodeList::Iterator Node::FindChild(const Node* node)
 {
     return m_childNodes.FindIf([node](const auto& it)

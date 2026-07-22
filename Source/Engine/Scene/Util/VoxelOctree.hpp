@@ -123,6 +123,9 @@ public:
      */
     double GetSignedDistanceAtPoint(const Vec3f& point) const;
 
+    /*! \brief Traces a ray through the octree. */
+    bool RayCastOccluded(const Vec3f& start, const Vec3f& direction, float maxDistance) const;
+
 protected:
     VoxelOctree* CreateChildOctant(const BoundingBox& aabb, uint8 index)
     {

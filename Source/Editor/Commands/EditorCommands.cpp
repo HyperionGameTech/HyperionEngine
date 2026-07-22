@@ -59,6 +59,8 @@
 #include <UI/UISubsystem.hpp>
 #include <UI/Overlays/Overlay.hpp>
 
+#include <Baking/BakerScene.hpp>
+
 namespace Hyperion {
 
 EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
@@ -398,6 +400,8 @@ public:
                         .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
                             [lightmapVolume, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
                             {
+                                project->GetBakerScene().Add<Baking::BakerSceneCategory::LightReceiver>(*lightmapVolume);
+
                                 activeScene->GetRoot()->AddChild(lightmapVolume);
 
                                 editorSubsystem->SetFocusedNode(lightmapVolume, true);
@@ -405,6 +409,8 @@ public:
                         .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
                             [lightmapVolume, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
                             {
+                                project->GetBakerScene().Remove<Baking::BakerSceneCategory::LightReceiver>(*lightmapVolume);
+
                                 lightmapVolume->Remove();
 
                                 if (editorSubsystem->GetFocusedNode() == lightmapVolume)
@@ -491,6 +497,8 @@ public:
                         .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
                             [reflectionProbe, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
                             {
+                                project->GetBakerScene().Add<Baking::BakerSceneCategory::LightReceiver>(*reflectionProbe);
+
                                 activeScene->GetRoot()->AddChild(reflectionProbe);
 
                                 editorSubsystem->SetFocusedNode(reflectionProbe, true);
@@ -498,6 +506,8 @@ public:
                         .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
                             [reflectionProbe, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
                             {
+                                project->GetBakerScene().Remove<Baking::BakerSceneCategory::LightReceiver>(*reflectionProbe);
+
                                 reflectionProbe->Remove();
 
                                 if (editorSubsystem->GetFocusedNode() == reflectionProbe)
@@ -584,6 +594,8 @@ public:
                         .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
                             [irradianceProbe, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
                             {
+                                project->GetBakerScene().Add<Baking::BakerSceneCategory::LightReceiver>(*irradianceProbe);
+
                                 activeScene->GetRoot()->AddChild(irradianceProbe);
 
                                 editorSubsystem->SetFocusedNode(irradianceProbe, true);
@@ -591,6 +603,8 @@ public:
                         .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
                             [irradianceProbe, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
                             {
+                                project->GetBakerScene().Remove<Baking::BakerSceneCategory::LightReceiver>(*irradianceProbe);
+
                                 irradianceProbe->Remove();
 
                                 if (editorSubsystem->GetFocusedNode() == irradianceProbe)
@@ -872,10 +886,14 @@ public:
                             {
                                 activeScene->GetRoot()->AddChild(fogVolume);
                                 editorSubsystem->SetFocusedNode(fogVolume, true);
+
+                                project->GetBakerScene().Add<Baking::BakerSceneCategory::LightReceiver>(*fogVolume);
                             }),
                         .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
                             [fogVolume, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
                             {
+                                project->GetBakerScene().Remove<Baking::BakerSceneCategory::LightReceiver>(*fogVolume);
+
                                 fogVolume->Remove();
 
                                 if (editorSubsystem->GetFocusedNode() == fogVolume)
@@ -961,6 +979,11 @@ static void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
                     .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
                         [n, currentFocusedNode, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
                         {
+                            if constexpr (std::is_base_of_v<Light, T>)
+                            {
+                                project->GetBakerScene().Add<Baking::BakerSceneCategory::LightProvider>(*n);
+                            }
+
                             if constexpr (ShouldAddNodeAsChild<T>())
                             {
                                 Handle<Node> parentNode = currentFocusedNode.Lock();
@@ -983,6 +1006,11 @@ static void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
                     .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
                         [n, currentFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
                         {
+                            if constexpr (std::is_base_of_v<Light, T>)
+                            {
+                                project->GetBakerScene().Remove<Baking::BakerSceneCategory::LightProvider>(*n);
+                            }
+
                             n->Remove();
 
                             if (editorSubsystem->GetFocusedNode() == n)

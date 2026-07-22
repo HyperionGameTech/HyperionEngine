@@ -1,6 +1,7 @@
 #include "../include/Defines.hlsli"
 
 PERMUTE(CLUSTERED_LIGHTS)
+PERMUTE(FOG_VOLUME_USE_SDF)
 
 STATIC(MAX_CLUSTERED_SHADOW_MAPS, 16);
 STATIC(MAX_FOG_LIGHTS, 4);
@@ -10,7 +11,7 @@ STATIC(TILE_SIZE, 32);
 // Looks good, crushes performance with any number of lights > 3 or so
 // #define POINT_LIGHT_FOG
 
-#define FOG_VOLUME_USE_SDF
+// #define FOG_VOLUME_USE_SDF
 
 
 #ifdef VERTEX_SHADER
@@ -141,7 +142,7 @@ DECLARE_SRV(FogVolume, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-DECLARE_SRV(FogVolume, DataMap) Texture3D<float> DataMap;
+DECLARE_SRV(FogVolume, DataMap) Texture3D<float2> DataMap;
 DECLARE_SRV(FogVolume, NoiseMap) Texture3D<float> NoiseMap;
 
 #ifdef CLUSTERED_LIGHTS
@@ -262,12 +263,7 @@ float HenyeyGreenstein(float g, float cosTheta)
     return (1.0 / (4.0 * HYP_FMATH_PI)) * (num / max(denom, 0.0001));
 }
 
-float GetFogDensity(float3 uvw)
-{
-    return SAMPLE_TEXTURE_3D_LOD(texture_sampler, NoiseMap, uvw, 0).r;
-}
-
-float GetDirectionalLightCSMShadow(float3 currentPos, float2 screenSpaceUV)
+float GetDirectionalLightCSMShadow(float3 currentPos)
 {
     float4 positionLS = mul(shadowViewMat, float4(currentPos, 1.0));
     positionLS /= positionLS.w;
@@ -295,7 +291,13 @@ float GetDirectionalLightCSMShadow(float3 currentPos, float2 screenSpaceUV)
     float2 atlasUV = float2(atlasU[cascadeIndex], atlasV[cascadeIndex]);
     float2 atlasScale = float2(atlasScaleX[cascadeIndex], atlasScaleY[cascadeIndex]);
 
-    return GetShadowCSM(shadowMapCoord, atlasUV, atlasScale, currentPos, screenSpaceUV, camera.dimensions.xy, 1.0);
+    return GetShadowCSM(shadowMapCoord, atlasUV, atlasScale);
+}
+
+
+float GetFogDensity(float3 uvw)
+{
+    return SAMPLE_TEXTURE_3D_LOD(texture_sampler, NoiseMap, uvw, 0).r;
 }
 
 float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar,
@@ -311,7 +313,7 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar,
     float3 accumulatedColor = float3(0.0, 0.0, 0.0);
 
     // @TODO Make these configurable
-    const float DensityScale = 0.3;
+    const float DensityScale = 0.2;
     const float Scattering = 0.2 * DensityScale;
     const float Absorption = 0.2 * DensityScale;
     const float Extinction = Scattering + Absorption;
@@ -335,14 +337,18 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar,
         float3 currentPos = rayOrigin + rayDir * t;
         float3 uvw = WorldToTexCoord(currentPos, fogVolume.aabbMin.xyz, fogVolume.aabbMax.xyz);
 
-#ifdef FOG_VOLUME_USE_SDF
-        float sdf = SAMPLE_TEXTURE_3D_LOD(texture_sampler, DataMap, uvw, 0).r;
+        float2 dataMapSample = SAMPLE_TEXTURE_3D_LOD(texture_sampler, DataMap, uvw, 0).rg;
 
-        if (sdf < -0.001)
-        {
-            break;
-        }
+#ifdef FOG_VOLUME_USE_SDF
+        float sdf = dataMapSample.x;
+
+        // if (sdf < -0.001)
+        // {
+        //     break;
+        // }
 #endif
+
+        // float prebakedShadow = dataMapSample.y;
 
         float noise = GetFogDensity(uvw);
         float localDensity = noise * DensityScale;
@@ -362,11 +368,13 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar,
             float cosTheta = dot(lightDir, rayDir);
             float phase = HenyeyGreenstein(phaseG, cosTheta);
 
+            // float shadow = prebakedShadow;
+            
             float shadow = 1.0;
 
             if ((directionalLight.flags & LF_SHADOW_CASTER) != 0)
             {
-                shadow = GetDirectionalLightCSMShadow(currentPos, screenSpaceUV);
+                shadow = GetDirectionalLightCSMShadow(currentPos);
             }
 
             stepLightEnergy += directionalLight.color.rgb * directionalLight.position_intensity.w * phase * shadow;

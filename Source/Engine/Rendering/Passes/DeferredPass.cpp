@@ -85,9 +85,6 @@
 
 namespace Hyperion {
 
-static constexpr uint32 TileSize = 32;
-static constexpr uint32 TileZBins = 16;
-
 const StringHash GBufferTextureNames[NumGBufferTargets] = {
     "GBufferAlbedoTexture"_sh,
     "GBufferNormalsTexture"_sh,

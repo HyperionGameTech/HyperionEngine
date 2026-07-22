@@ -4,6 +4,7 @@
  *  @licence MIT
  */
 
+#include "CommandRecorder.hpp"
 #include <RenderingPch.hpp>
 
 #include <Rendering/Passes/FogVolumePass.hpp>
@@ -45,6 +46,7 @@ namespace Hyperion {
 static constexpr uint32 MaxFogLights = 4;
 
 static const ShaderPropertyId s_propUseClusteredLights = InternShaderProperty(ShaderProperty(NAME("CLUSTERED_LIGHTS")));
+static const ShaderPropertyId s_propFogVolumeUseSDF = InternShaderProperty(ShaderProperty(NAME("FOG_VOLUME_USE_SDF")));
 
 extern CVar<bool> g_cvFogVolumesClusteredLights;
 
@@ -131,54 +133,7 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
 
     Attachment* normalsAttachment = m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::Normals);
 
-    CommandRecorder& cr = frame->cr;
-
-    cr << SetFillMode(FM_FILL);
-    cr << SetDepthWrite(false);
-    cr << SetDepthTest(false);
-    cr << SetStencilTest(false);
-    cr << SetCurrentBlendFunction(BlendFunction::None());
-
-    cr << SetCurrentViewport(Viewport { m_extent, renderSetup.viewport.position });
-
-    cr << SetCurrentFramebuffer(m_framebuffer);
-
-    cr << SetTopology(m_volumeMesh->GetMeshAttributes().topology);
-    cr << SetInputLayout(m_volumeMesh->GetMeshAttributes().inputLayout);
-
-    cr << SetFaceCullMode(FCM_FRONT); // cull front faces to render inside of the volume
-
-    const bool useClusteredLights = g_cvFogVolumesClusteredLights.Get();
-
-    {
-        ShaderPropertySet fogShaderProperties;
-
-        if (useClusteredLights)
-        {
-            fogShaderProperties.Add(s_propUseClusteredLights);
-        }
-
-        cr << SetCurrentShader(ShaderDesc(NAME("ApplyFogVolume"), fogShaderProperties));
-    }
-
-    cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinearMipmap());
-    cr << SetShaderUniform(1, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
-
-    cr << SetShaderUniform(2, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(renderSetup.view->GetCamera()));
-
-    cr << SetShaderUniform(3, "ShadowMapsTextureArray"_sh, RI.shadowMapCache->GetAtlasImageView());
-    cr << SetShaderUniform(4, "PointLightShadowMapsTextureArray"_sh, RI.shadowMapCache->GetPointLightShadowMapImageView());
-
-    cr << SetShaderUniform(5, "DepthTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->depthPyramidRenderer->GetHZBTexture(), 2, 1));
-
-    cr << SetShaderUniform(6, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer);
-
-    cr << SetShaderUniform(7, "LightsBuffer"_sh, RI.namedBuffers[NamedBuffer::Lights]);
-    cr << SetShaderUniform(8, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes]);
-
-    cr << SetShaderUniform(9, "ClusterGridBuffer"_sh, *dpd->gridTilesBuffer);
-    cr << SetShaderUniform(10, "ClusterIndexBuffer"_sh, *dpd->gridIndexBuffer);
-
+    // Directional light
     LightShaderData directionalLightShaderData {};
     DirectionalLightCSMData directionalCSMData {};
 
@@ -216,6 +171,159 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
             break;
         }
     }
+
+    CommandRecorder& cr = frame->cr;
+    
+    // Compute Volumetric fog using cluster data
+    cr << SetCurrentShader(ShaderDesc(NAME("VolFogInjection")));
+    
+    cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinearMipmap());
+    cr << SetShaderUniform(1, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
+
+    cr << SetShaderUniform(2, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(renderSetup.view->GetCamera()));
+
+    cr << SetShaderUniform(3, "ShadowMapsTextureArray"_sh, RI.shadowMapCache->GetAtlasImageView());
+    cr << SetShaderUniform(4, "PointLightShadowMapsTextureArray"_sh, RI.shadowMapCache->GetPointLightShadowMapImageView());
+
+    cr << SetShaderUniform(5, "DepthTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->depthPyramidRenderer->GetHZBTexture(), 2, 1));
+
+    cr << SetShaderUniform(6, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer);
+
+    cr << SetShaderUniform(7, "LightsBuffer"_sh, RI.namedBuffers[NamedBuffer::Lights]);
+    cr << SetShaderUniform(8, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes]);
+
+    cr << SetShaderUniform(9, "ClusterGridBuffer"_sh, *dpd->gridTilesBuffer);
+    cr << SetShaderUniform(10, "ClusterIndexBuffer"_sh, *dpd->gridIndexBuffer);
+
+    cr << SetShaderUniform(11, "ShadowMapIndexBuffer"_sh, *dpd->clusteredShadowMapIndexBuffer);
+
+    for (FogVolume* volume : rpl.GetFogVolumes())
+    {
+        RenderProxyFogVolume* proxy = static_cast<RenderProxyFogVolume*>(GetRenderProxy(volume));
+        Assert(proxy != nullptr);
+
+        FogVolumePassData& data = GetFogVolumePassData(volume);
+        data.noiseTexture = proxy->noiseTexture;
+        data.volumeTexture = proxy->volumeTexture;
+        
+        if (!data.froxelGridTexture.IsValid())
+        {
+            Vec3u froxelGridDimensions = Vec3u(TileSize, TileSize, TileZBins);
+
+            data.froxelGridTexture = MakeHandle<Texture>(TextureDesc {
+                TextureType::Texture3D,
+                TextureFormat::RGBA16F,
+                froxelGridDimensions,
+                TFM_NEAREST,
+                TFM_NEAREST,
+                TWM_REPEAT,
+                1,
+                IU_SAMPLED | IU_STORAGE
+            });
+
+            Check(data.froxelGridTexture->Create());
+        }
+    
+        cr << SetShaderUniform(12, "FroxelGrid"_sh, RI.textureViewCache->GetOrCreate(data.froxelGridTexture));
+
+        FogVolumeShaderData shaderData = proxy->bufferData;
+
+        GpuBuffer* cbuffer = nullptr;
+        size_t cbufferOffset = 0;
+        size_t cbufferSize = 0;
+
+        RI.cbufferAllocator->Write(&shaderData);
+        RI.cbufferAllocator->Write(&directionalLightShaderData);
+        RI.cbufferAllocator->Write(&directionalCSMData);
+
+        for (uint32 i = 0; i < MaxClusteredShadowMaps; i++)
+        {
+            if (i < dpd->numClusteredShadowMaps)
+            {
+                RI.cbufferAllocator->Write(&dpd->clusteredShadowMaps[i]);
+            }
+            else
+            {
+                ShadowMapData dummy {};
+                RI.cbufferAllocator->Write(&dummy);
+            }
+        }
+
+        // Construct froxel-to-world matrix
+        const Mat4f froxelToWS = Mat4f::Scaling(Vec3f::One() / Vec3f(static_cast<float>(TileSize), static_cast<float>(TileSize), static_cast<float>(TileZBins)))
+            * Mat4f::Translation(Vec3f(-0.5f))
+            * volume->GetWorldMatrix();
+
+        RI.cbufferAllocator->Write(&froxelToWS);
+
+        const Vec2i screenDimensions = Vec2i(m_extent);
+        RI.cbufferAllocator->Write(&screenDimensions);
+
+        const float stepSize = 0.125f;
+        RI.cbufferAllocator->Write(&stepSize);
+
+        const uint32 maxSteps = 256;
+        RI.cbufferAllocator->Write(&maxSteps);
+
+        const uint32 frameCounter = GetFrameCounter();
+        RI.cbufferAllocator->Write(&frameCounter);
+
+        RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+
+        cr << SetShaderUniform(13, "FogVolumeConstants"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
+
+        // Injection Pass
+        cr << DispatchCompute(Vec3u(TileSize, TileSize, TileZBins));
+    }
+
+    // Sample fog
+    cr << SetFillMode(FM_FILL);
+    cr << SetDepthWrite(false);
+    cr << SetDepthTest(false);
+    cr << SetStencilTest(false);
+    cr << SetCurrentBlendFunction(BlendFunction::None());
+
+    cr << SetCurrentViewport(Viewport { m_extent, renderSetup.viewport.position });
+
+    cr << SetCurrentFramebuffer(m_framebuffer);
+
+    cr << SetTopology(m_volumeMesh->GetMeshAttributes().topology);
+    cr << SetInputLayout(m_volumeMesh->GetMeshAttributes().inputLayout);
+
+    cr << SetFaceCullMode(FCM_FRONT); // cull front faces to render inside of the volume
+
+    const bool useClusteredLights = g_cvFogVolumesClusteredLights.Get();
+
+    {
+        ShaderPropertySet fogShaderProperties;
+
+        // fogShaderProperties.Add(s_propFogVolumeUseSDF);
+
+        if (useClusteredLights)
+        {
+            fogShaderProperties.Add(s_propUseClusteredLights);
+        }
+
+        cr << SetCurrentShader(ShaderDesc(NAME("ApplyFogVolume"), fogShaderProperties));
+    }
+
+    cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinearMipmap());
+    cr << SetShaderUniform(1, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
+
+    cr << SetShaderUniform(2, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(renderSetup.view->GetCamera()));
+
+    cr << SetShaderUniform(3, "ShadowMapsTextureArray"_sh, RI.shadowMapCache->GetAtlasImageView());
+    cr << SetShaderUniform(4, "PointLightShadowMapsTextureArray"_sh, RI.shadowMapCache->GetPointLightShadowMapImageView());
+
+    cr << SetShaderUniform(5, "DepthTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->depthPyramidRenderer->GetHZBTexture(), 2, 1));
+
+    cr << SetShaderUniform(6, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer);
+
+    cr << SetShaderUniform(7, "LightsBuffer"_sh, RI.namedBuffers[NamedBuffer::Lights]);
+    cr << SetShaderUniform(8, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes]);
+
+    cr << SetShaderUniform(9, "ClusterGridBuffer"_sh, *dpd->gridTilesBuffer);
+    cr << SetShaderUniform(10, "ClusterIndexBuffer"_sh, *dpd->gridIndexBuffer);
 
     cr << SetShaderUniform(11, "ShadowMapIndexBuffer"_sh, *dpd->clusteredShadowMapIndexBuffer);
 
@@ -275,7 +383,6 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
 
     for (FogVolume* volume : rpl.GetFogVolumes())
     {
-
         RenderProxyFogVolume* proxy = static_cast<RenderProxyFogVolume*>(GetRenderProxy(volume));
         Assert(proxy != nullptr);
 

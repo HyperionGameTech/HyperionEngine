@@ -16,6 +16,9 @@ class ShadowMap;
 struct ShadowMapData;
 class RenderProxyList;
 
+static constexpr uint32 TileSize = 32;
+static constexpr uint32 TileZBins = 16;
+
 extern const StringHash GBufferTextureNames[NumGBufferTargets];
 
 struct DirectionalLightCSMData

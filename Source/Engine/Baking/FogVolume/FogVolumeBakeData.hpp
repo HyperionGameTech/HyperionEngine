@@ -21,8 +21,6 @@ template <>
 class BakeData<FogVolume> : public BakeDataBase
 {
 public:
-    static constexpr uint32 MaxNoiseBitmapExtent = 32;
-
     using VolumeBitmap = Bitmap3D_RG16F;
     using NoiseBitmap = Bitmap3D_R8;
 
@@ -70,6 +68,18 @@ public:
         return m_noiseBitmap;
     }
 
+    HYP_FORCE_INLINE const Vec3f& GetSunDirection() const
+    {
+        return m_sunDirection;
+    }
+
+    HYP_FORCE_INLINE void SetSunDirection(const Vec3f& direction)
+    {
+        m_sunDirection = direction;
+    }
+
+    float ComputeDirectionalShadow(const Vec3f& posWS) const;
+
     virtual Result Build() override;
 
 protected:
@@ -77,6 +87,8 @@ protected:
     UniquePtr<VoxelOctree> m_voxelOctree;
     VolumeBitmap m_volumeBitmap;
     NoiseBitmap m_noiseBitmap;
+
+    Vec3f m_sunDirection;
 };
 
 } // namespace Baking

@@ -13,13 +13,16 @@
 #include <Core/Reflection/ObjectBase.hpp>
 
 #include <Core/Functional/Delegate.hpp>
-#include <Scripting/ScriptableDelegate.hpp>
 
 #include <Core/Utilities/Result.hpp>
 
 #include <Core/Utilities/Time.hpp>
 
 #include <Core/Name/Name.hpp>
+
+#include <Scripting/ScriptableDelegate.hpp>
+
+#include <Baking/BakerScene.hpp>
 
 namespace Hyperion {
 
@@ -28,6 +31,8 @@ class World;
 class Game;
 class EditorActionStack;
 class EditorSubsystem;
+
+using Baking::BakerScene;
 
 HYP_CLASS()
 class EditorProject final : public ObjectBase
@@ -109,6 +114,16 @@ public:
         return m_actionStack;
     }
 
+    HYP_FORCE_INLINE BakerScene& GetBakerScene()
+    {
+        return m_bakerScene;
+    }
+
+    HYP_FORCE_INLINE const BakerScene& GetBakerScene() const
+    {
+        return m_bakerScene;
+    }
+
     static TResult<Handle<EditorProject>> Load(const FilePath& filepath);
     static Handle<EditorProject> CreateNew();
 
@@ -137,6 +152,9 @@ private:
 
     HYP_FIELD(Property = "GameInstance")
     Handle<Game> m_gameInstance;
+
+    HYP_FIELD(Property = "BakerScene")
+    BakerScene m_bakerScene;
 
     HYP_FIELD(Transient)
     Handle<EditorActionStack> m_actionStack;

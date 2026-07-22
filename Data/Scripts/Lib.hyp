@@ -913,6 +913,7 @@ extern class Node
     NumChildren() -> uint32
     GetChild(index : uint32) -> Node
     Select(selector : string) -> Node
+    GetDeepPath() -> Array<Name>
     SetLocalTransform(transform : Transform, changeType : TransformChangeType) -> void
     GetLocalTransform() -> Transform
     GetLocalTranslation() -> Vec3f
@@ -2043,6 +2044,14 @@ extern enum GpuVendor : uint8
     Apple,
     Microsoft
 end
+extern struct BakerSceneCategory
+    Name : Name
+    Epoch : uint64
+    Assets : Array<any>
+end
+extern struct BakerScene
+    Categories : Array<BakerSceneCategory>
+end
 extern class BakerBase
 end
 extern enum BakerState : uint8
@@ -2675,6 +2684,7 @@ extern class EditorProject
     LastSavedTime : any
     Filepath : string
     GameInstance : Game
+    BakerScene : BakerScene
     ActionStack : EditorActionStack
 end
 extern class EditorCommandBase

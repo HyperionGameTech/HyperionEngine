@@ -665,6 +665,9 @@ public:
     HYP_METHOD()
     Handle<Node> Select(ANSIStringView selector) const;
 
+    HYP_METHOD()
+    Array<Name> GetDeepPath() const;
+
     /*! \brief Get an iterator for the given child Node from this Node's child list
      * \param node The node to find in this Node's child list
      * \returns The resulting iterator */

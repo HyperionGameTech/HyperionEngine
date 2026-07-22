@@ -29,99 +29,6 @@
 
 namespace Hyperion {
 
-static BoundingBox SnapAabbToVoxel(const BoundingBox& aabb, float voxelSize)
-{
-
-    Vec3f extent = aabb.GetExtent();
-    Vec3f newExtent = Vec3f(
-        MathUtil::Ceil(extent.x / voxelSize) * voxelSize,
-        MathUtil::Ceil(extent.y / voxelSize) * voxelSize,
-        MathUtil::Ceil(extent.z / voxelSize) * voxelSize);
-
-    BoundingBox newAabb = aabb;
-    newAabb.SetExtent(newExtent);
-
-    return newAabb;
-}
-
-class VoxelOctreeBlas
-{
-public:
-    VoxelOctreeBlas(const VoxelOctreeElement& element, const BVHNode* bvh)
-        : m_element(element),
-          m_root(bvh)
-    {
-        Assert(m_root != nullptr);
-    }
-
-    VoxelOctreeBlas(const VoxelOctreeBlas& other) = delete;
-    VoxelOctreeBlas& operator=(const VoxelOctreeBlas& other) = delete;
-
-    VoxelOctreeBlas(VoxelOctreeBlas&& other) noexcept
-        : m_element(other.m_element),
-          m_root(other.m_root)
-    {
-        other.m_root = nullptr;
-    }
-
-    VoxelOctreeBlas& operator=(VoxelOctreeBlas&& other) noexcept
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        m_element = std::move(other.m_element);
-        m_root = std::move(other.m_root);
-
-        other.m_root = nullptr;
-
-        return *this;
-    }
-
-    ~VoxelOctreeBlas() = default;
-
-    HYP_FORCE_INLINE const VoxelOctreeElement& GetElement() const
-    {
-        return m_element;
-    }
-
-    HYP_FORCE_INLINE const BVHNode* GetRoot() const
-    {
-        return m_root;
-    }
-
-private:
-    VoxelOctreeElement m_element;
-    const BVHNode* m_root;
-};
-
-struct VoxelOctreeTlas
-{
-    HYP_FORCE_INLINE const Transform& GetTransform() const
-    {
-        return Transform::identity;
-    }
-
-    HYP_FORCE_INLINE const Array<VoxelOctreeBlas>& GetAccelerationStructures() const
-    {
-        return m_accelerationStructures;
-    }
-
-    void Add(const VoxelOctreeElement& element, const BVHNode* bvh)
-    {
-        m_accelerationStructures.EmplaceBack(element, bvh);
-    }
-
-    void RemoveAll()
-    {
-        m_accelerationStructures.Clear();
-    }
-
-private:
-    Array<VoxelOctreeBlas> m_accelerationStructures;
-};
-
 VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, EntityManager& entityManager)
 {
     m_params = params;
@@ -208,9 +115,7 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
 
     InitOctants();
 
-    Proc<bool(const VoxelOctreeElement&, const MeshDesc&, const VertexArrayView&, Span<const ubyte>)> InsertIntoOctree;
-
-    InsertIntoOctree = [&](const VoxelOctreeElement& element, const MeshDesc& meshDesc, const VertexArrayView& vertexData, Span<const ubyte> indexData) -> bool
+    auto insertIntoOctree = [&](const VoxelOctreeElement& element, const MeshDesc& meshDesc, const VertexArrayView& vertexData, Span<const ubyte> indexData) -> bool
     {
         if (meshDesc.lods[0].numIndices > 0)
         {
@@ -258,7 +163,7 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
                     continue;
                 }
 
-                (void)OctreeBase::Insert(VoxelOctreePayload { .occupiedBit = 1 }, triangleBounds);
+                (void)OctreeBase::Insert(VoxelOctreePayload { 1 }, triangleBounds);
             }
         }
 
@@ -272,7 +177,7 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
         const VertexArrayView& vertexData = tup.GetElement<2>();
         const Span<const ubyte> indexData = tup.GetElement<3>();
 
-        InsertIntoOctree(element, meshDesc, vertexData, indexData);
+        insertIntoOctree(element, meshDesc, vertexData, indexData);
     }
 
     return {};
@@ -388,6 +293,29 @@ double VoxelOctree::GetSignedDistanceAtPoint(const Vec3f& point) const
     }
 
     return INFINITY;
+}
+
+bool VoxelOctree::RayCastOccluded(const Vec3f& start, const Vec3f& direction, float maxDistance) const
+{
+    float t = 0.0f;
+    
+    constexpr uint32 MaxRaySteps = 1000;
+
+    for (uint32 i = 0; i < MaxRaySteps && t < maxDistance; i++)
+    {
+        const Vec3f pos = start + direction * t;
+        const double sdf = GetSignedDistanceAtPoint(pos);
+
+        if (sdf < -0.001)
+        {
+            return true;
+        }
+
+        const float step = MathUtil::Max(float(sdf), 0.01f);
+        t += step;
+    }
+
+    return false;
 }
 
 } // namespace Hyperion
