@@ -17,6 +17,7 @@ namespace Hyperion {
 class FogVolume;
 class VoxelOctree;
 class Light;
+class EnvProbe;
 
 namespace Baking {
 
@@ -87,9 +88,14 @@ public:
         m_sunDirection = direction;
     }
 
-    HYP_FORCE_INLINE const Array<Handle<Light>>& GetPointLights() const
+    HYP_FORCE_INLINE const Array<Handle<Light>>& GetLights() const
     {
-        return m_pointLights;
+        return m_lights;
+    }
+
+    HYP_FORCE_INLINE const Array<Handle<EnvProbe>>& GetEnvProbes() const
+    {
+        return m_envProbes;
     }
 
     virtual Result Build() override;
@@ -102,7 +108,8 @@ protected:
     OccSdfBitmap m_occSdfBitmap;
 
     Vec3f m_sunDirection;
-    Array<Handle<Light>> m_pointLights;
+    Array<Handle<Light>> m_lights;
+    Array<Handle<EnvProbe>> m_envProbes;
 };
 
 } // namespace Baking

@@ -10,6 +10,7 @@
 
 #include <Scene/FogVolume.hpp>
 #include <Scene/Light.hpp>
+#include <Scene/EnvProbe.hpp>
 #include <Scene/EntityManager.hpp>
 
 #include <Scene/Util/VoxelOctree.hpp>
@@ -97,11 +98,30 @@ Result BakeData<FogVolume>::Build()
                 break;
             }
 
-            m_pointLights.Clear();
+            m_lights.Clear();
 
             for (auto [entity, _] : entityManager->GetEntitySet<EntityType<PointLight>>())
             {
-                m_pointLights.PushBack(MakeStrongRef(StaticCast<PointLight>(entity)));
+                m_lights.PushBack(MakeStrongRef(StaticCast<PointLight>(entity)));
+            }
+
+            for (auto [entity, _] : entityManager->GetEntitySet<EntityType<SpotLight>>())
+            {
+                m_lights.PushBack(MakeStrongRef(StaticCast<SpotLight>(entity)));
+            }
+
+            m_envProbes.Clear();
+
+            for (auto [entity, _] : entityManager->GetEntitySet<EntityType<EnvProbe>>())
+            {
+                EnvProbe* envProbe = StaticCast<EnvProbe>(entity);
+
+                if (!envProbe->IsAmbientProbe())
+                {
+                    continue;
+                }
+
+                m_envProbes.PushBack(MakeStrongRef(envProbe));
             }
         }
 

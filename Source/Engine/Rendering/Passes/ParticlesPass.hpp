@@ -10,6 +10,7 @@
 
 #include <Rendering/Pass.hpp>
 #include <Rendering/RenderableAttributes.hpp>
+#include <Rendering/RenderHelpers.hpp>
 
 namespace Hyperion {
 
@@ -44,15 +45,15 @@ private:
         RenderableAttributeSet renderableAttributes;
 
         size_t maxParticles = 0;
-        bool hasPhysics = false;
+        bool enableCollision = false;
 
         // last frame this volume was used for rendering
-        uint32 fc = uint32(-1);
+        uint32 lastFrame = UINT32_MAX;
 
         ~VolumeState();
     };
 
-    VolumeState& EnsureVolumeState(RenderProxyParticleVolume* proxy);
+    VolumeState& EnsureVolumeState(RenderProxyParticleVolume* proxy, CommandRecorder& cr);
 
     Map<ParticleVolume*, VolumeState, RenderAllocator> m_volumeStates;
 

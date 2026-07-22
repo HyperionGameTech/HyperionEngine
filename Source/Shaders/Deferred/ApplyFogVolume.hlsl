@@ -327,6 +327,22 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar,
 
     bool hasDirectionalLight = (directionalLight.type == HYP_LIGHT_TYPE_DIRECTIONAL);
 
+    uint3 dataMapDimension;
+    DataMap.GetDimensions(dataMapDimension.x, dataMapDimension.y, dataMapDimension.z);
+
+    int2 pixelCoord = int2(screenSpaceUV * screenDimensions);
+    int temporalSampleIndex = int(frameCounter % 32u);
+
+    static const float s_dataMapJitterScale = 0.35;
+
+    float3 dataMapJitter = (float3(
+        SampleBlueNoise(pixelCoord.x, pixelCoord.y, temporalSampleIndex, 33),
+        SampleBlueNoise(pixelCoord.x, pixelCoord.y, temporalSampleIndex, 34),
+        SampleBlueNoise(pixelCoord.x, pixelCoord.y, temporalSampleIndex, 35)) - 0.5)
+        * (s_dataMapJitterScale / float3(dataMapDimension));
+
+    const float cameraFadeDistance = max(0.5, length(fogVolume.aabbMax.xyz - fogVolume.aabbMin.xyz) * 0.15);
+
     for (int i = 0; i < maxSteps; i++)
     {
         if (t >= tFar || transmittance < 0.001)
@@ -337,9 +353,12 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar,
         float3 currentPos = rayOrigin + rayDir * t;
         float3 uvw = WorldToTexCoord(currentPos, fogVolume.aabbMin.xyz, fogVolume.aabbMax.xyz);
 
-        float4 dataMapSample = SAMPLE_TEXTURE_3D_LOD(texture_sampler, DataMap, uvw, 0);
+        float cameraFade = smoothstep(0.0, cameraFadeDistance, t);
 
-        float3 bakedPointLightColor = dataMapSample.rgb;
+        float3 dataMapUvw = clamp(uvw + dataMapJitter, 0.0, 1.0);
+        float4 dataMapSample = SAMPLE_TEXTURE_3D_LOD(texture_sampler, DataMap, dataMapUvw, 0);
+
+        float3 bakedPointLightColor = dataMapSample.rgb * cameraFade;
         float bakedPointLightShadow = dataMapSample.a;
 
         float noise = GetFogDensity(uvw);

@@ -108,7 +108,34 @@ static void CreateNoiseMap(Handle<Texture>& tex)
     Check(tex->Create());
 }
 
-ParticlesPass::VolumeState& ParticlesPass::EnsureVolumeState(RenderProxyParticleVolume* proxy)
+static void ZeroizeBuffer(CommandRecorder& cr, GpuBuffer* dstBuffer)
+{
+    AssertDebug(dstBuffer != nullptr);
+
+    const size_t bufferSize = dstBuffer->Size();
+
+    if (dstBuffer->IsCpuAccessible())
+    {
+        dstBuffer->Memset(bufferSize, 0);
+        dstBuffer->Flush(0, bufferSize);
+
+        return;
+    }
+
+    GpuBuffer* stagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(bufferSize);
+    Assert(stagingBuffer != nullptr);
+
+    stagingBuffer->Memset(bufferSize, 0);
+
+    cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
+    cr << InsertBarrier(dstBuffer, RS_COPY_DST);
+
+    cr << CopyBuffer(stagingBuffer, dstBuffer, bufferSize);
+
+    cr << InsertBarrier(dstBuffer, RS_UNORDERED_ACCESS);
+}
+
+ParticlesPass::VolumeState& ParticlesPass::EnsureVolumeState(RenderProxyParticleVolume* proxy, CommandRecorder& cr)
 {
     auto it = m_volumeStates.Find(proxy->particleVolume);
 
@@ -123,18 +150,19 @@ ParticlesPass::VolumeState& ParticlesPass::EnsureVolumeState(RenderProxyParticle
 
     state.particleBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, state.maxParticles * sizeof(ParticleShaderData));
     Check(state.particleBuffer->Create());
+    ZeroizeBuffer(cr, state.particleBuffer);
 
     state.indirectBuffer = RI.MakeGpuBuffer(GpuBufferType::IndirectArgsBuffer, sizeof(IndirectDrawCommand));
     Check(state.indirectBuffer->Create());
 
     CreateNoiseMap(state.noiseMap);
 
-    state.hasPhysics = proxy->particleVolume->hasPhysics;
+    state.enableCollision = proxy->particleVolume->enableCollision;
 
     // compute shader properties
     ShaderPropertySet properties;
     properties.Add(InternShaderProperty(ShaderProperty(NAME("MAX_PARTICLES"), int(state.maxParticles))));
-    properties.Set(s_propHasPhysics, state.hasPhysics);
+    properties.Set(s_propHasPhysics, state.enableCollision);
 
     // set default particle graphics attributes (translucent)
     MaterialAttributes materialAttributes {};
@@ -181,7 +209,7 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     GpuBuffer* stagingBuffer = nullptr;
 
-    CommandRecorder& preflightCommands = RI.commandRecorderAllocator.GetCommandRecorder();
+    CommandRecorder& preflightCommands = frame->preRenderCommands;
 
     { // set buffer to cleared state
         Array<IndirectDrawCommand, RHIAllocator> indirectDrawCommandsBuffer;
@@ -200,7 +228,7 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     // Reset zero staging buffer state
     preflightCommands << InsertBarrier(stagingBuffer, RS_COPY_SRC);
 
-    VolumeState& state = EnsureVolumeState(proxy);
+    VolumeState& state = EnsureVolumeState(proxy, preflightCommands);
 
     // zero indirect arguments (instance count)
     Assert(state.indirectBuffer->Size() == sizeof(IndirectDrawCommand));
@@ -214,9 +242,9 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     // bind and dispatch compute
     struct ComputeShaderConstants
     {
-        Vec4f origin;
+        Mat4f transformMatrix;
 
-        float spawnRadius;
+        float startSize;
         float randomness;
         float avgLifespan;
         uint32 maxParticles;
@@ -228,12 +256,12 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     };
 
     ComputeShaderConstants csConstants {};
-    csConstants.origin = proxy->bufferData.originStartSize;
-    csConstants.spawnRadius = proxy->bufferData.spawnRadius;
+    csConstants.transformMatrix = proxy->bufferData.transformMatrix;
+    csConstants.startSize = proxy->bufferData.startSize;
     csConstants.randomness = proxy->bufferData.randomness;
     csConstants.avgLifespan = proxy->bufferData.avgLifespan;
     csConstants.maxParticles = proxy->bufferData.maxParticles;
-    csConstants.maxParticlesSqrt = proxy->bufferData.maxParticlesSqrt;
+    csConstants.maxParticlesSqrt = MathUtil::Sqrt(static_cast<float>(proxy->bufferData.maxParticles));
     csConstants.deltaTime = 0.016f; // TODO: real render delta
     csConstants.globalCounter = m_counter++;
 
@@ -259,7 +287,7 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
         ShaderPropertySet properties;
         properties.Add(InternShaderProperty(ShaderProperty(NAME("MAX_PARTICLES"), int(state.maxParticles))));
-        properties.Set(s_propHasPhysics, state.hasPhysics);
+        properties.Set(s_propHasPhysics, state.enableCollision);
 
         cr << SetCurrentShader(ShaderDesc(NAME("UpdateParticles"), properties));
 
@@ -286,9 +314,7 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         cr << InsertBarrier(state.indirectBuffer, RS_INDIRECT_ARG);
     }
 
-    preflightCommands.Submit();
-
-    state.fc = GetFrameCounter();
+    state.lastFrame = GetFrameCounter();
 
     { // draw particles pass
         ENGINE_STAT_GPU_SCOPE(&s_statDrawParticles);
@@ -344,19 +370,15 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
 void ParticlesPass::OnFrameEnd(uint32 prevFrameIndex)
 {
-    int numCycles = 0;
-
     for (auto it = m_volumeStates.Begin(); it != m_volumeStates.End();)
     {
         VolumeState& state = it->second;
 
-        const int64 frameDiff = int64(prevFrameIndex) - int64(state.fc);
+        const int64 frameDiff = static_cast<int64>(prevFrameIndex) - static_cast<int64>(state.lastFrame);
 
         if (frameDiff >= DiscardFrames)
         {
             it = m_volumeStates.Erase(it);
-
-            ++numCycles;
 
             continue;
         }

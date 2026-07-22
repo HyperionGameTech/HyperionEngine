@@ -136,9 +136,7 @@ PSOutput PSMain(PSInput input)
     const float4x4 inverse_view = camera.invViewMat;
 
     float3 N = GBufferUnpackNormal(SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferNormalsTexture, texcoord, 0));
-    float2 UV1 = (float2((float)(materialData & 0x3FFFu), (float)((materialData >> 14) & 0x3FFFu)) + 0.5) / 16384.0;
-    // UV1.x = 1.0 - UV1.x;
-    // UV1.y = 1.0 - UV1.y;
+    float2 UV1 = (float2((float)(materialData & 0x3FFFu), 1.0 - (float)((materialData >> 14) & 0x3FFFu)) + 0.5) / 16384.0;
 
     const float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferDepthTexture, texcoord, 0).r;
     const float3 P = ReconstructWorldSpacePositionFromDepth(inverse_proj, inverse_view, texcoord, depth).xyz;

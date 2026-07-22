@@ -93,7 +93,7 @@ struct LoadObjectWrapper
                 callbacks->OnItemFailed(AssetBatchCallbackData(key, &asset));
             }
 
-            asset.valueOrError.Reset();
+            asset = {};
         }
     }
 };
@@ -169,8 +169,7 @@ private:
                 callbacks->OnItemFailed(AssetBatchCallbackData(key, &asset));
             }
 
-            // @TODO remove me
-            asset.valueOrError.Reset();
+            asset = {};
         }
 
         return {};

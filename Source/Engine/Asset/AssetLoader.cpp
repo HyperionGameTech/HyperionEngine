@@ -33,7 +33,7 @@ ENGINE_API void LoadedAsset::OnPostLoad()
         return;
     }
 
-    BoxedValue& bv = valueOrError.GetUnchecked<BoxedValue>();
+    BoxedValue& bv = GetValue();
 
     /// \todo : Change to use T::InstanceClass() from TLoadedAsset<T>, as types might not be an exact match
     const Class* cls = GetClass(bv.GetTypeId());

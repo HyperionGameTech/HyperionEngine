@@ -243,23 +243,6 @@ struct RenderProxyLightmapVolume : IRenderProxy
     LightmapVolumeShaderData bufferData {};
 };
 
-struct ParticleVolumeShaderData
-{
-    Vec4f originStartSize; // xyz = origin, w = start size
-
-    float spawnRadius = 0.0f;
-    float randomness = 0.0f;
-    float avgLifespan = 0.0f;
-    uint32 maxParticles = 0;
-
-    float maxParticlesSqrt = 0.0f;
-    float _pad0 = 0.0f;
-    float _pad1 = 0.0f;
-    float _pad2 = 0.0f;
-
-    Vec4f _pad3;
-};
-
 struct RenderProxyParticleVolume : IRenderProxy
 {
     ParticleVolume* particleVolume = nullptr;
@@ -268,7 +251,15 @@ struct RenderProxyParticleVolume : IRenderProxy
     Mesh* particleMesh = nullptr;
 
     BoundingBox worldAabb; // for culling/debug
-    ParticleVolumeShaderData bufferData {};
+
+    struct {
+        Mat4f transformMatrix;
+
+        float startSize = 0.0f;
+        float randomness = 0.0f;
+        float avgLifespan = 0.0f;
+        uint32 maxParticles = 0;
+    } bufferData;
 };
 
 struct FogVolumeShaderData

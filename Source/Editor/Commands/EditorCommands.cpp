@@ -785,7 +785,7 @@ public:
         particleVolume->mesh = MeshBuilder::Quad();
         particleVolume->origin = Vec3f(0.0f, 10.0f, 0.0f); // temp
         particleVolume->maxParticles = 2048;
-        particleVolume->hasPhysics = true;
+        particleVolume->enableCollision = true;
         particleVolume->lifespan = 3.5f;
         particleVolume->startSize = 0.05f;
         particleVolume->randomness = 0.8f;

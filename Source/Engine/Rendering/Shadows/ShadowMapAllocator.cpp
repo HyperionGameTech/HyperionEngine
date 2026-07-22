@@ -188,6 +188,41 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
 
         Check(atlasImageView->Create());
 
+        Frame* frame = RI.GetCurrentFrame();
+        if (frame != nullptr)
+        {
+            ImageSubResource srcSubResource {};
+            srcSubResource.baseArrayLayer = 0;
+            srcSubResource.numLayers = 1;
+            srcSubResource.baseMipLevel = 0;
+            srcSubResource.numLevels = 1;
+
+            const Vec3u extent = Vec3u(dimensions, 1);
+
+            frame->cr << InsertBarrier(
+                m_pointLightTextureArray->GetGpuImage(),
+                RS_COPY_DST,
+                subResource);
+
+            for (uint32 face = 0; face < 6; face++)
+            {
+                ImageSubResource dstSubResource {};
+                dstSubResource.baseArrayLayer = atlasElement.layerIndex * 6 + face;
+                dstSubResource.numLayers = 1;
+                dstSubResource.baseMipLevel = 0;
+                dstSubResource.numLevels = 1;
+
+                frame->cr << CopyImage(
+                    m_clearTexture->GetGpuImage(),
+                    m_pointLightTextureArray->GetGpuImage(),
+                    Vec3u::Zero(),
+                    Vec3u::Zero(),
+                    extent,
+                    srcSubResource,
+                    dstSubResource);
+            }
+        }
+
         ShadowMap* shadowMap = new ShadowMap(
             shadowMapType,
             filterMode,

@@ -707,8 +707,17 @@ public:
     Array<Node*> GetDescendantsArray() const;
 
     /*! \brief Set the local-space translation, scale, rotation of this Node (not influenced by the parent Node) */
-    HYP_METHOD(Property = "LocalTransform")
+    HYP_METHOD()
     void SetLocalTransform(const Transform& transform, TransformChangeType changeType = TransformChangeType::Default);
+
+#ifdef HYP_EDITOR
+    /*! \brief Needed to have changes reflected from editor */
+    HYP_METHOD(Property = "LocalTransform", EditorOnly)
+    HYP_FORCE_INLINE void SetLocalTransform_EditorOnly(const Transform& transform)
+    {
+        SetLocalTransform(transform);
+    }
+#endif // HYP_EDITOR
 
     /*! \returns The local-space translation, scale, rotation of this Node. */
     HYP_METHOD(Property = "LocalTransform")

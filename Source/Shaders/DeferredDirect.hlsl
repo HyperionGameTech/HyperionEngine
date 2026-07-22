@@ -448,9 +448,16 @@ PSOutput PSMain(PSInput input)
         float4 maxDist = max(distX, max(distY, distZ));
         
         float4 insideMask = step(maxDist, (float4)0.5);
-        
-        int cascadeIndex = 4 - (int)dot(insideMask, (float4)1.0);
-        cascadeIndex = min(cascadeIndex, 3);
+
+        // Pick the tightest (smallest-index) cascade that actually contains the
+        // point. Cascade AABBs are fit independently per sub-frustum and are not
+        // guaranteed to nest strictly inside one another, so counting set bits
+        // (old approach) could select a cascade whose insideMask bit was false,
+        // pulling an out-of-[0,1] extrapolated UV and producing a seam at splits.
+        int cascadeIndex = 3;
+        cascadeIndex = (insideMask.z > 0.5) ? 2 : cascadeIndex;
+        cascadeIndex = (insideMask.y > 0.5) ? 1 : cascadeIndex;
+        cascadeIndex = (insideMask.x > 0.5) ? 0 : cascadeIndex;
         
         float4 shadowMapCoord;
         shadowMapCoord.x = uvX[cascadeIndex];

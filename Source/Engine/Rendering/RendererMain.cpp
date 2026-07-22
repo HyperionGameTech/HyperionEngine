@@ -381,7 +381,7 @@ static inline bool ShouldIncludeInPrepass(
     const float screenSpaceWidth = ndcHalfExtent.x * float(viewport.extent.x);
     const float screenSpaceHeight = ndcHalfExtent.y * float(viewport.extent.y);
 
-    constexpr float PrepassPixelCutoff = 64.0f;
+    constexpr float PrepassPixelCutoff = 1.0f;
 
     return (screenSpaceWidth >= PrepassPixelCutoff
             && screenSpaceHeight >= PrepassPixelCutoff);
@@ -892,7 +892,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
     const RenderableAttributeSet& ras = drawCallCollection.attributes;
     const MaterialAttributes& mas = ras.GetMaterialAttributes();
 
-    const bool isForwardClustered = mas.shaderProperties.Test(s_propShadingTypeForward); // s_propForwardClustered);
+    const bool isForwardClustered = mas.shaderProperties.Test(s_propShadingTypeForward);
     const bool isForwardNonClustered = mas.shaderProperties.Test(s_propForwardShading);
 
     const bool shouldWriteSHData = (mas.shaderName == GeometryPass::DefaultShaderName);

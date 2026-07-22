@@ -28,10 +28,12 @@ extern "C"
         if (!pLoadedAsset || !pOutData)
             return;
 
-        if (pLoadedAsset->valueOrError.Is<BoxedValue>())
-            *pOutData = std::move(pLoadedAsset->valueOrError.GetUnchecked<BoxedValue>());
+        if (pLoadedAsset->IsValid())
+        {
+            *pOutData = std::move(pLoadedAsset->Unwrap());
+        }
 
-        pLoadedAsset->valueOrError.Reset();
+        *pLoadedAsset = {};
     }
 
     HYP_EXPORT int8 AssetRegistry_GetAssetBoxed(AssetRegistry* pRegistry, uint32 bucketIndex, const Name* pName, BoxedValue* pOutBoxed)

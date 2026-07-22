@@ -236,7 +236,10 @@ Result BakeData<LightmapVolume>::Build()
         for (uint32 i = 0; i < atlasMesh.indexCount; i += 3)
         {
             bool skip = false;
+            
             int atlasIndex = -1;
+            int chartIndex = -1;
+
             FixedArray<Pair<uint32, Vec2i>, 3> verts;
 
             for (uint32 j = 0; j < 3; j++)
@@ -252,9 +255,12 @@ Result BakeData<LightmapVolume>::Build()
                 }
 
                 atlasIndex = v.atlasIndex;
+                chartIndex = v.chartIndex;
 
                 verts[j] = { v.xref, { int(v.uv[0]), int(v.uv[1]) } };
             }
+
+            const uint32 chartId = (uint32(meshIndex) << 20) | (uint32(atlasIndex) << 16) | (uint32(chartIndex) & 0xFFFFu);
 
             if (skip)
             {
@@ -319,7 +325,7 @@ Result BakeData<LightmapVolume>::Build()
                     const Vec3f normal = (normalMatrix.TransformVector(Vec4f((vertexNormals[0] * barycentricCoords.x + vertexNormals[1] * barycentricCoords.y + vertexNormals[2] * barycentricCoords.z), 0.0f))).GetXYZ().Normalize();
 
                     const uint32 texelIdx = ((point.x + atlas->width) % atlas->width
-                        + (atlas->height - point.y + atlas->height) % atlas->height * atlas->width)
+                        + (point.y + atlas->height) % atlas->height * atlas->width)
                         + uint32(atlasIndex) * texelsPerAtlas;
 
                     LightmapRay& ray = m_rays[texelIdx];
@@ -332,6 +338,7 @@ Result BakeData<LightmapVolume>::Build()
 
                     LightmapTexel& texel = texels[texelIdx];
                     texel.pRay = &ray;
+                    texel.chartId = chartId;
 
                     currentUvIndices.PushBack(texelIdx);
                 }
@@ -566,28 +573,34 @@ void BakeData<LightmapVolume>::Dilate()
         { -1, -1 }, { 0, -1 }, { 1, -1 }, { -1, 0 }, { 1, 0 }, { -1, 1 }, { 0, 1 }, { 1, 1 }
     };
 
+    static constexpr uint32 InvalidChartId = ~0u;
+
     for (uint32 atlasIndex = 0; atlasIndex < atlasCount; atlasIndex++)
     {
         const uint32 baseOffset = atlasIndex * numTexels;
 
-        Array<Vec4f> cur0(numTexels);
-        Array<Vec4f> cur1(numTexels);
+        Array<Vec4f> curr0(numTexels);
+        Array<Vec4f> curr1(numTexels);
+        Array<uint32> currChartId(numTexels);
 
         for (uint32 i = 0; i < numTexels; i++)
         {
-            cur0[i] = texels[baseOffset + i].color0;
-            cur1[i] = texels[baseOffset + i].color1;
+            curr0[i] = texels[baseOffset + i].color0;
+            curr1[i] = texels[baseOffset + i].color1;
+            currChartId[i] = texels[baseOffset + i].chartId;
         }
 
         for (int pass = 0; pass < NumPasses; pass++)
         {
             Array<Vec4f> next0(numTexels);
             Array<Vec4f> next1(numTexels);
+            Array<uint32> nextChartId(numTexels);
 
             for (uint32 i = 0; i < numTexels; i++)
             {
-                next0[i] = cur0[i];
-                next1[i] = cur1[i];
+                next0[i] = curr0[i];
+                next1[i] = curr1[i];
+                nextChartId[i] = currChartId[i];
             }
 
             bool anyChanged = false;
@@ -603,7 +616,36 @@ void BakeData<LightmapVolume>::Dilate()
                         continue;
                     }
 
-                    if (cur0[idx].w > 0.0f)
+                    if (curr0[idx].w > 0.0f)
+                    {
+                        continue;
+                    }
+
+                    uint32 targetChartId = InvalidChartId;
+
+                    for (int k = 0; k < 8; k++)
+                    {
+                        const int nx = int(cx) + offsets[k][0];
+                        const int ny = int(cy) + offsets[k][1];
+
+                        if (nx < 0 || ny < 0 || nx >= int(width) || ny >= int(height))
+                        {
+                            continue;
+                        }
+
+                        const uint32 nbIdx = uint32(nx) + uint32(ny) * width;
+
+                        if (curr0[nbIdx].w <= 0.0f)
+                        {
+                            continue;
+                        }
+
+                        targetChartId = currChartId[nbIdx];
+
+                        break;
+                    }
+
+                    if (targetChartId == InvalidChartId)
                     {
                         continue;
                     }
@@ -624,13 +666,13 @@ void BakeData<LightmapVolume>::Dilate()
 
                         const uint32 nbIdx = uint32(nx) + uint32(ny) * width;
 
-                        if (cur0[nbIdx].w <= 0.0f)
+                        if (curr0[nbIdx].w <= 0.0f || currChartId[nbIdx] != targetChartId)
                         {
                             continue;
                         }
 
-                        accum0 += cur0[nbIdx];
-                        accum1 += cur1[nbIdx];
+                        accum0 += curr0[nbIdx];
+                        accum1 += curr1[nbIdx];
                         ++count;
                     }
 
@@ -638,13 +680,15 @@ void BakeData<LightmapVolume>::Dilate()
                     {
                         next0[idx] = accum0 / float(count);
                         next1[idx] = accum1 / float(count);
+                        nextChartId[idx] = targetChartId;
                         anyChanged = true;
                     }
                 }
             }
 
-            cur0 = std::move(next0);
-            cur1 = std::move(next1);
+            curr0 = std::move(next0);
+            curr1 = std::move(next1);
+            currChartId = std::move(nextChartId);
 
             if (!anyChanged)
             {
@@ -656,8 +700,9 @@ void BakeData<LightmapVolume>::Dilate()
         {
             if (texels[baseOffset + i].pRay == nullptr)
             {
-                texels[baseOffset + i].color0 = cur0[i];
-                texels[baseOffset + i].color1 = cur1[i];
+                texels[baseOffset + i].color0 = curr0[i];
+                texels[baseOffset + i].color1 = curr1[i];
+                texels[baseOffset + i].chartId = currChartId[i];
             }
         }
     }

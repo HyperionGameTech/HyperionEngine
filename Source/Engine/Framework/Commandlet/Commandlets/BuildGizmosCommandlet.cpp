@@ -263,9 +263,7 @@ static void BuildVolumeGizmo(Handle<AssetRegistry>& assetRegistry)
 {
     GlobalContextScope assetRegistryScope { AssetRegistryContext { assetRegistry } };
 
-    constexpr int volume_face_count = 6;
-
-    static const Quat4f s_faceRotations[volume_face_count] = {
+    static const Quat4f s_faceRotations[6] = {
         Quat4f::AxisAngles(Vec3f::UnitY(), -MathUtil::pi<float> * 0.5f),
         Quat4f::AxisAngles(Vec3f::UnitY(), MathUtil::pi<float> * 0.5f),
         Quat4f::AxisAngles(Vec3f::UnitX(), MathUtil::pi<float> * 0.5f),
@@ -283,27 +281,29 @@ static void BuildVolumeGizmo(Handle<AssetRegistry>& assetRegistry)
     materialAttributes.bucket = RenderBucket::Debug;
     materialAttributes.blendFunction = BlendFunction::Additive();
     materialAttributes.cullFaces = FCM_NONE;
-    materialAttributes.flags = MAF_NONE;
+    materialAttributes.flags = MAF_DEPTH_WRITE | MAF_DEPTH_TEST;
 
     MaterialParameters materialParameters;
     materialParameters.albedo = volumeColor;
     materialParameters.unlit = true;
 
-    Handle<Material> material = MakeHandle<Material>(
-        NAME("VolumeEditMaterial"),
-        materialAttributes,
-        materialParameters,
-        MaterialTextures {});
-    material->SetIsDynamic(true);
-    InitObject(material);
-    GetCurrentAssetRegistry()->PutAssetsDeep(material, /* overwriteExisting */ true);
-
     Handle<Node> rootNode = MakeHandle<Node>();
     rootNode->SetName(NAME("VolumeEditGizmo"));
     rootNode->SetNodeFlags(rootNode->GetNodeFlags() | NodeFlags::HideInSceneOutline);
 
-    for (int i = 0; i < volume_face_count; i++)
+    for (int i = 0; i < 6; i++)
     {
+        Handle<Material> material = MakeHandle<Material>(
+            NAME_FMT("VolumeFace_{}", i),
+            materialAttributes,
+            materialParameters,
+            MaterialTextures {});
+
+        material->SetIsDynamic(true);
+        InitObject(material);
+
+        GetCurrentAssetRegistry()->PutAssetsDeep(material, /* overwriteExisting */ true);
+
         Handle<Entity> faceEntity = MakeHandle<Entity>(NAME_FMT("VolumeFace_{}", i));
         faceEntity->SetIsDynamic(true);
         faceEntity->SetLocalRotation(s_faceRotations[i]);

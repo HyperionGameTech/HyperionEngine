@@ -84,6 +84,8 @@ struct LightmapTexel
     Vec4f color1 = Vec4f::Zero();
 
     LightmapRay* pRay = nullptr;
+
+    uint32 chartId = ~0u;
 };
 
 } // namespace Baking

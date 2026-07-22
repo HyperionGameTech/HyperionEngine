@@ -51,8 +51,6 @@ ParticleVolume::~ParticleVolume()
 
 void ParticleVolume::UpdateRenderProxy(RenderProxyParticleVolume* proxy)
 {
-    AssertDebug(proxy != nullptr);
-
     proxy->particleVolume = this;
 
     if (proxy->particleTexture != texture)
@@ -71,12 +69,15 @@ void ParticleVolume::UpdateRenderProxy(RenderProxyParticleVolume* proxy)
 
     proxy->worldAabb = GetWorldBounds();
 
-    proxy->bufferData.originStartSize = Vec4f(origin, startSize);
-    proxy->bufferData.spawnRadius = radius;
+
+    const Vec3f boxCenter = GetLocalBounds().GetCenter() + origin;
+    const Vec3f boxHalfExtent = GetLocalBounds().GetExtent() * 0.5f;
+
+    proxy->bufferData.transformMatrix = GetWorldMatrix() * Mat4f::Translation(boxCenter) * Mat4f::Scaling(boxHalfExtent);
+    proxy->bufferData.startSize = startSize;
     proxy->bufferData.randomness = randomness;
     proxy->bufferData.avgLifespan = lifespan;
-    proxy->bufferData.maxParticles = uint32(maxParticles);
-    proxy->bufferData.maxParticlesSqrt = MathUtil::Sqrt(float(maxParticles));
+    proxy->bufferData.maxParticles = maxParticles;
 }
 
 } // namespace Hyperion

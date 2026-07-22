@@ -220,13 +220,12 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 {
                     cachedData->shadowViewsDynamic[viewIndex] = RI.shadowMapCache->TryGetShadowView(view, light, viewIndex, /* isStatic */ false);
                     Assert(cachedData->shadowViewsDynamic[viewIndex] != nullptr);
+                }
 
-                    // If we got here, the static one should also be initialized.
-                    if (cacheStaticShadowMaps)
-                    {
-                        cachedData->shadowViewsStatic[viewIndex] = RI.shadowMapCache->TryGetShadowView(view, light, viewIndex, /* isStatic */ true);
-                        Assert(cachedData->shadowViewsStatic[viewIndex] != nullptr);
-                    }
+                if (cacheStaticShadowMaps && HYP_UNLIKELY(!cachedData->shadowViewsStatic[viewIndex]))
+                {
+                    cachedData->shadowViewsStatic[viewIndex] = RI.shadowMapCache->TryGetShadowView(view, light, viewIndex, /* isStatic */ true);
+                    Assert(cachedData->shadowViewsStatic[viewIndex] != nullptr);
                 }
             }
 

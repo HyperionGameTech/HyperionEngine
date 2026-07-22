@@ -82,14 +82,15 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 
 #ifdef INSTANCING
     MeshEntityInstanceBatch batch = EntityInstanceBatchBuffer.Load<MeshEntityInstanceBatch>(0);
+    Entity currentEntity = entities[batch.indices[instanceId / 4][instanceId % 4]];
 
     float4x4 transform = batch.transforms[instanceId];
 #ifdef VULKAN
-    transform = transpose(transform);
+    float4x4 model_matrix = mul(currentEntity.model_matrix, transform);
+#else
+    float4x4 model_matrix = mul(transform, currentEntity.model_matrix);
 #endif
 
-    Entity currentEntity = entities[batch.indices[instanceId / 4][instanceId % 4]];
-    float4x4 model_matrix = mul(transform, currentEntity.model_matrix);
 #else
     float4x4 model_matrix = entity.model_matrix;
 #endif

@@ -71,11 +71,11 @@ namespace Hyperion.Editor
                 HandleProjectOpened(project);
             }
 
-            // tmp debug
-            AssetBatch ab = new();
-            ab.Add("test_model", "Models/SponzaGltf/Sponza.gltf");//"Models/SanMiguel/san-miguel-low-poly.obj");//LivingRoom/living_room.obj");//// //"Models/testbed/testbed.obj");
-            ab.Add("guy", "models/ZombieGuy/guy.mesh.xml");
-            _assetBatchTask = ab.Load();
+            // // tmp debug
+            // AssetBatch ab = new();
+            // ab.Add("test_model", "Models/SponzaGltf/Sponza.gltf");//"Models/SanMiguel/san-miguel-low-poly.obj");//LivingRoom/living_room.obj");//// //"Models/testbed/testbed.obj");
+            // ab.Add("guy", "models/ZombieGuy/guy.mesh.xml");
+            // _assetBatchTask = ab.Load();
         }
 
         protected override void BeforeShutdown()

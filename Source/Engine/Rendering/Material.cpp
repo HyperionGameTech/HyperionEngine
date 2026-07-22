@@ -405,7 +405,9 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
         };
     } flags;
 
+    flags.bits = 0;
     flags.unlit = m_parameters.unlit;
+    
     bufferData.packedParams.w = flags.bits;
 
     bufferData.uvScale = 1.0f;

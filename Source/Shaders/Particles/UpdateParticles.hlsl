@@ -53,9 +53,9 @@ DECLARE_SRV(UpdateParticlesDescriptorSet, WorldsBuffer) StructuredBuffer<WorldSh
 
 DECLARE_BUFFER_DYNAMIC(UpdateParticlesDescriptorSet, CBuffer) cbuffer CBuffer
 {
-    float4 origin;
+    float4x4 transform_matrix;
 
-    float spawn_radius;
+    float start_size;
     float randomness;
     float avg_lifespan;
     uint max_particles;
@@ -89,7 +89,6 @@ float3 GetNoiseValue(uint id)
     return noiseValue;
 }
 
-static const float s_maxParticlesSqrt = sqrt(max(float(MAX_PARTICLES), 1.0));
 static const bool s_fadeAlpha = false;
 
 [numthreads(256, 1, 1)]
@@ -116,14 +115,8 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     float3 randDir = normalize(noiseValue);
     float3 startingVelocity = randDir;
 
-    float3 startingPos = origin.xyz;
 
-    float2 posIdx = float2(fmod(float(id), s_maxParticlesSqrt), float(id) / s_maxParticlesSqrt);
-
-    startingPos += float3(sin(posIdx.x / float(MAX_PARTICLES) * HYP_FMATH_PI), 0.0, cos(posIdx.y / float(MAX_PARTICLES) * HYP_FMATH_PI))
-        * randomness
-        * (noiseValue.y * 0.5 + 0.5)
-        * spawn_radius;
+    float3 startingPos = mul(transform_matrix, float4(noiseValue, 1.0)).xyz;
 
     float startingLifetime = avg_lifespan_value;
     startingLifetime += noiseValue.z * randomness * (avg_lifespan_value * 0.5);
@@ -134,7 +127,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     const float currentScale = particle.position.w;
     const float finalScale = particle.velocity.w;
-    const float startingScale = origin.w;
+    const float startingScale = start_size;
     const float startingFinalScale = startingScale * ((noiseValue.y + 1.0) * randomness);
     const float nextScale = lerp(currentScale, finalScale, lifetime_ratio);
 

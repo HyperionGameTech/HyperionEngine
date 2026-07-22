@@ -40,7 +40,7 @@
 
 namespace Hyperion {
 
-static constexpr bool UseTemporalBlending = false;//true;
+static constexpr bool UseTemporalBlending = false;
 static constexpr TextureFormat SSRColorFormat = TextureFormat::RGBA16F;
 static constexpr TextureFormat SSRTraceFormat = TextureFormat::RGBA16F; // store hit UVs in RG, and mask / alpha in B
 static constexpr double TraceResolutionScale = 0.65;
@@ -53,11 +53,11 @@ CVar<bool> cvSSRRoughnessScattering { "Rendering.SSR.RoughnessScattering", false
 
 CVar<float> cvSSRResolutionScale { "Rendering.SSR.ResolutionScale", 1.0f };
 
-CVar<float> cvSSRRayStep { "Rendering.SSR.RayStep", 2.0f };
+CVar<float> cvSSRRayStep { "Rendering.SSR.RayStep", 0.2f };
 CVar<float> cvSSRDistanceBias { "Rendering.SSR.DistanceBias", 0.01f };
 CVar<float> cvSSRThickness { "Rendering.SSR.Thickness", 0.2f };
 CVar<float> cvSSRMaxDistance { "Rendering.SSR.MaxDistance", 1000.0f };
-CVar<uint32> cvSSRMaxIterations { "Rendering.SSR.MaxIterations", 128 };
+CVar<uint32> cvSSRMaxIterations { "Rendering.SSR.MaxIterations", 256 };
 
 struct SSRConstants
 {

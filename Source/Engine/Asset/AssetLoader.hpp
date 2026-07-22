@@ -38,32 +38,36 @@ struct TLoadedAsset;
 
 ENGINE_API extern void OnPostLoad_Impl(const Class* cls, void* objectPtr);
 
-struct LoadedAsset
+class LoadedAsset : TResult<BoxedValue, AssetLoadError>
 {
-    Variant<BoxedValue, AssetLoadError> valueOrError;
-
-    LoadedAsset() = default;
+public:
+    LoadedAsset()
+        : TResult(BoxedValue())
+    {
+    }
 
     explicit LoadedAsset(BoxedValue&& value)
-        : valueOrError(std::move(value))
+        : TResult(std::move(value))
     {
     }
 
     explicit LoadedAsset(AssetLoadError&& error)
-        : valueOrError(std::move(error))
+        : TResult(std::move(error))
     {
     }
 
     template <class T, typename = std::enable_if_t<!std::is_base_of_v<LoadedAsset, T> && !IsBoxedValueV<T> && !std::is_same_v<T, TResult<LoadedAsset, AssetLoadError>>>>
     explicit LoadedAsset(T&& value)
+        : TResult(BoxedValue(std::forward<T>(value)))
     {
-        valueOrError.Emplace<BoxedValue>(std::forward<T>(value));
     }
 
     LoadedAsset(const LoadedAsset& other) = delete;
     LoadedAsset& operator=(const LoadedAsset& other) = delete;
+    
     LoadedAsset(LoadedAsset&& other) noexcept = default;
     LoadedAsset& operator=(LoadedAsset&& other) noexcept = default;
+
     virtual ~LoadedAsset() = default;
 
     HYP_FORCE_INLINE explicit operator bool() const
@@ -78,30 +82,31 @@ struct LoadedAsset
 
     HYP_FORCE_INLINE bool IsValid() const
     {
-        return valueOrError.Is<BoxedValue>()
-            && valueOrError.GetUnchecked<BoxedValue>().IsValid();
+        return HasValue() && GetValue().IsValid();
     }
 
     const AssetLoadError* GetErrorIfFailed() const&
     {
-        if (!valueOrError.Is<AssetLoadError>())
+        if (!HasError())
+        {
             return nullptr;
+        }
 
-        return &valueOrError.GetUnchecked<AssetLoadError>();
+        return &GetError();
     }
 
     BoxedValue& Unwrap()
     {
         Assert(IsValid(), "Unwrapping errored LoadedAsset!");
 
-        return valueOrError.GetUnchecked<BoxedValue>();
+        return GetValue();
     }
 
     const BoxedValue& Unwrap() const
     {
         Assert(IsValid(), "Unwrapping errored LoadedAsset!");
 
-        return valueOrError.GetUnchecked<BoxedValue>();
+        return GetValue();
     }
 
     template <class T>
@@ -109,7 +114,7 @@ struct LoadedAsset
     {
         Assert(IsValid(), "Extracting errored LoadedAsset!");
 
-        const BoxedValue& bv = valueOrError.GetUnchecked<BoxedValue>();
+        const BoxedValue& bv = GetValue();
 
         if constexpr (std::is_base_of_v<SharedFromThisBase<>, T>)
         {

@@ -17,6 +17,10 @@
 
 namespace Hyperion {
 
+struct IRenderProxy;
+
+class StructuredBuffer;
+
 CORE_API extern size_t GetNumDescendants(TypeId typeId);
 CORE_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
 

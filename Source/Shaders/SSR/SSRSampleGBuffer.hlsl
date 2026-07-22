@@ -159,7 +159,7 @@ PSOutput PSMain(PSInput input)
 
         float4 accum_color = float4(0.0, 0.0, 0.0, 0.0);
 
-        float2 velocity = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferVelocityTexture, texcoord, 0).xy;
+        float2 velocity = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferVelocityTexture, hit_uv, 0).xy;
 
 #ifdef CONE_TRACING
         for (int i = 0; i < 14; i++)

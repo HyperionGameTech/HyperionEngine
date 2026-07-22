@@ -326,8 +326,7 @@ static BufferedViewData* GetBufferedViewData(View* view, uint8 ringIndex)
     AssertDebug(view != nullptr);
 
     RenderingData& bufferedData = s_renderingData[ringIndex];
-
-    Assert(bufferedData.threadSyncStates[TT_FrameDataConsumer] == IsOnThread(g_renderThread));
+    AssertDebug(bufferedData.threadSyncStates[TT_FrameDataConsumer] == IsOnThread(g_renderThread));
 
     TSharedLock<SharedMutex> sharedLock;
     TUniqueLock<SharedMutex> uniqueLock;
