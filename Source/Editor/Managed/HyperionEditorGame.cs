@@ -34,8 +34,6 @@ namespace Hyperion.Editor
         {
             Logger.Log(LogLevel.Debug, "HyperionEditorGame Launched");
 
-            this.SetToEditMode();
-
             Debug.Assert(World != null);
 
             // get or create UISubsystem instance.

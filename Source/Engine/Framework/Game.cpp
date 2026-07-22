@@ -502,27 +502,27 @@ void Game::PauseSimulation()
     OnGameStateChange.Fire(this, this, previousGameStateMode, GameStateMode::PAUSED);
 }
 
-#if HYP_EDITOR
-
-void Game::SetToEditMode()
-{
-    if (m_gameState.mode == GameStateMode::EDIT_MODE)
-    {
-        return;
-    }
-
-    const GameStateMode previousGameStateMode = m_gameState.mode;
-
-    m_gameState.gameTime = 0.0f;
-    m_gameState.deltaTime = 0.0f;
-    m_gameState.mode = GameStateMode::EDIT_MODE;
-
-    OnGameStateChange.Fire(this, this, previousGameStateMode, GameStateMode::EDIT_MODE);
-
-    HYP_LOG(Engine, Verbose, "Game set to Edit Mode");
-}
-
-#endif
+//#if HYP_EDITOR
+//
+//void Game::SetToEditMode()
+//{
+//    if (m_gameState.mode == GameStateMode::EDIT_MODE)
+//    {
+//        return;
+//    }
+//
+//    const GameStateMode previousGameStateMode = m_gameState.mode;
+//
+//    m_gameState.gameTime = 0.0f;
+//    m_gameState.deltaTime = 0.0f;
+//    m_gameState.mode = GameStateMode::EDIT_MODE;
+//
+//    OnGameStateChange.Fire(this, this, previousGameStateMode, GameStateMode::EDIT_MODE);
+//
+//    HYP_LOG(Engine, Verbose, "Game set to Edit Mode");
+//}
+//
+//#endif
 
 void Game::RegisterInputHandler(const Handle<InputHandlerBase>& inputHandler)
 {

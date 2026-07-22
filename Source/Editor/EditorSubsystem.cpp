@@ -2684,7 +2684,7 @@ void EditorSubsystem::InitViewport()
             //     return UIEventHandlerResult::STOP_BUBBLING;
             // }
 
-            if (GetWorld()->GetGameState().IsEditMode())
+            // if (GetWorld()->GetGameState().IsEditMode())
             {
                 if (IsHoveringGizmo())
                 {
@@ -2763,7 +2763,7 @@ void EditorSubsystem::InitViewport()
         backdropPanel.Get(),
         [this](const MouseEvent& event)
         {
-            if (!GetWorld()->GetGameState().IsEditMode())
+            if (false) // if (!GetWorld()->GetGameState().IsEditMode())
             {
                 return UIEventHandlerResult::OK;
             }
@@ -2799,7 +2799,7 @@ void EditorSubsystem::InitViewport()
         backdropPanel.Get(),
         [this, uiStage = uiSubsystem->GetUIStage().Get()](const MouseEvent& event)
         {
-            if (!GetWorld()->GetGameState().IsEditMode())
+            if (false) // if (!GetWorld()->GetGameState().IsEditMode())
             {
                 return UIEventHandlerResult::OK;
             }
@@ -2863,7 +2863,7 @@ void EditorSubsystem::InitViewport()
 
             // Hover over a manipulation widget when mouse is not down
             if (!event.mouseButtons[MouseButtonState::LEFT]
-                && GetWorld()->GetGameState().IsEditMode()
+                //&& GetWorld()->GetGameState().IsEditMode()
                 && GetSelectedManipulationMode() != EditorManipulationMode::NONE)
             {
                 // Ray test the widget
@@ -2927,7 +2927,7 @@ void EditorSubsystem::InitViewport()
         backdropPanel.Get(),
         [this, uiStageWeak = uiSubsystem->GetUIStage().ToWeak()](const MouseEvent& event)
         {
-            if (!GetWorld()->GetGameState().IsEditMode())
+            if (false) // if (!GetWorld()->GetGameState().IsEditMode())
             {
                 return UIEventHandlerResult::OK;
             }
@@ -2989,7 +2989,7 @@ void EditorSubsystem::InitViewport()
         backdropPanel.Get(),
         [this](const MouseEvent& event)
         {
-            if (!GetWorld()->GetGameState().IsEditMode())
+            if (false) // if (!GetWorld()->GetGameState().IsEditMode())
             {
                 return UIEventHandlerResult::OK;
             }
@@ -3027,7 +3027,7 @@ void EditorSubsystem::InitViewport()
         backdropPanel.Get(),
         [this](const KeyboardEvent& event)
         {
-            if (!GetWorld()->GetGameState().IsEditMode())
+            if (false) // if (!GetWorld()->GetGameState().IsEditMode())
             {
                 return UIEventHandlerResult::OK;
             }
@@ -3061,7 +3061,7 @@ void EditorSubsystem::InitViewport()
         backdropPanel.Get(),
         [this](const KeyboardEvent& event)
         {
-            if (!GetWorld()->GetGameState().IsEditMode())
+            if (false) // if (!GetWorld()->GetGameState().IsEditMode())
             {
                 return UIEventHandlerResult::OK;
             }
@@ -3092,7 +3092,7 @@ void EditorSubsystem::InitViewport()
         backdropPanel.Get(),
         [this](const MouseEvent& event)
         {
-            if (!GetWorld()->GetGameState().IsEditMode())
+            if (false) // if (!GetWorld()->GetGameState().IsEditMode())
             {
                 return UIEventHandlerResult::OK;
             }
@@ -3128,7 +3128,7 @@ void EditorSubsystem::InitViewport()
         backdropPanel.Get(),
         [this](const MouseEvent& event)
         {
-            if (!GetWorld()->GetGameState().IsEditMode())
+            if (false) // if (!GetWorld()->GetGameState().IsEditMode())
             {
                 return UIEventHandlerResult::OK;
             }
@@ -3259,7 +3259,7 @@ void EditorSubsystem::UpdateWatchedNodes()
         return;
     }
 
-    if (GetWorld()->GetGameState().IsEditMode())
+    // if (GetWorld()->GetGameState().IsEditMode())
     {
         if (ShowOnlyActiveScene)
         {
@@ -3578,7 +3578,6 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
     Assert(gameInstance != nullptr);
 
     gameInstance->Initialize();
-    gameInstance->SetToEditMode();
 
     OnProjectOpened(m_currentProject);
 

@@ -291,9 +291,7 @@ void RenderThread::Update()
     RI.commandRecorderAllocator.UpdateQueue();
 
     RI.WriteCommandBuffer();
-
     RI.PresentToSwapchain(swapchain);
-
     RI.EndFrame();
 
     g_renderArena->Reset();

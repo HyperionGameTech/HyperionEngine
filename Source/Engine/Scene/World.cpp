@@ -696,9 +696,8 @@ void World::UpdateCSMState()
             }
         }
     }
-#if HYP_EDITOR
-    // @FIXME: EditMode isn't used to signify editing a world anymore, and will be removed.
-    else if (gameState.IsEditMode())
+#ifdef HYP_EDITOR
+    else if (m_worldFlags & WorldFlags::EDITOR_WORLD)
     {
         bool found = false;
 
@@ -721,7 +720,7 @@ void World::UpdateCSMState()
             }
         }
     }
-#endif
+#endif // HYP_EDITOR
 }
 
 void World::SyncPhysicsToEntities()

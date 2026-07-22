@@ -1963,8 +1963,7 @@ end
 extern enum GameStateMode : uint32
     STOPPED = 0,
     SIMULATING,
-    PAUSED,
-    EDIT_MODE
+    PAUSED
 end
 extern struct GameState
     Mode : GameStateMode
@@ -1973,7 +1972,6 @@ extern struct GameState
     IsStopped() -> bool
     IsSimulating() -> bool
     IsPaused() -> bool
-    IsEditMode() -> bool
 end
 extern class Game
     GetPackageName() -> Name
@@ -1986,7 +1984,6 @@ extern class Game
     OnUpdate(delta : float) -> void
     Initialize() -> void
     Shutdown(shutdownWorld : bool) -> void
-    SetToEditMode() -> void
     IsLaunched() -> bool
     StartSimulating() -> void
     StopSimulating() -> void

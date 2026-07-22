@@ -1906,8 +1906,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
 
 #if HYP_EDITOR
-        // render the editor-only infinite grid, only while editing (never while simulating/paused)
-        if (g_cvEditorGrid.Get() && rs.world && rs.world->GetGameState().IsEditMode())
+        if (g_cvEditorGrid.Get() && rs.world && (rs.world->GetWorldFlags() & WorldFlags::EDITOR_WORLD))
         {
             RenderSetup gridRS = rs.Fork();
             gridRS.framebuffer = effectPassFramebuffer;

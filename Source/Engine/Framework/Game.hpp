@@ -84,13 +84,6 @@ public:
     HYP_METHOD()
     void Shutdown(bool shutdownWorld = true);
 
-#if HYP_EDITOR
-    HYP_METHOD(EditorOnly)
-    void SetToEditMode();
-#else
-    static constexpr NoOpFunction<void> SetToEditMode;
-#endif
-
     void HandleEvent(Event&& event);
 
     HYP_METHOD(Property = "IsLaunched", Transient)
