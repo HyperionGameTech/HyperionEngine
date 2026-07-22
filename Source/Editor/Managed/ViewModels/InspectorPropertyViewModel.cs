@@ -132,7 +132,58 @@ namespace Hyperion.Editor.ViewModels
 
             PostWriteCallback?.Invoke();
         }
-        
+
+        protected bool HasObjectContext => _valueGetter == null;
+
+        protected Property? FindSiblingProperty(Name name)
+        {
+            if (_componentTargetResolver != null)
+            {
+                return new Class(_componentClassAddress).GetProperty(name);
+            }
+
+            if (_target != null)
+            {
+                return _target.Class.GetProperty(name);
+            }
+
+            return null;
+        }
+
+        protected BoxedValue GetSiblingPropertyValue(Property property)
+        {
+            if (_componentTargetResolver != null)
+            {
+                return property.Get(_componentClassAddress, _componentTargetResolver());
+            }
+
+            if (_target != null)
+            {
+                return property.Get(_target);
+            }
+
+            throw new InvalidOperationException("No object context is available to read a sibling property.");
+        }
+
+        protected void SetSiblingPropertyValue(Property property, BoxedValue value)
+        {
+            if (_componentTargetResolver != null)
+            {
+                property.Set(_componentClassAddress, _componentTargetResolver(), value);
+            }
+            else if (_target != null)
+            {
+                property.Set(_target, value);
+            }
+            else
+            {
+                throw new InvalidOperationException("No object context is available to write a sibling property.");
+            }
+
+            PostWriteCallback?.Invoke();
+        }
+
+
         protected void CommitPropertyChange(string actionText, BoxedValue newValue)
         {
             // Capture old value for undo (we are already on the sim thread).

@@ -1897,7 +1897,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
 
 #if HYP_EDITOR
-        if (g_cvEditorGrid.Get() && rs.world && (rs.world->GetWorldFlags() & WorldFlags::EDITOR_WORLD))
+        if (g_cvEditorGrid.Get() && rs.view && (rs.view->GetFlags() & ViewFlags::EDITOR_VIEW))
         {
             RenderSetup gridRS = rs.Fork();
             gridRS.framebuffer = effectPassFramebuffer;

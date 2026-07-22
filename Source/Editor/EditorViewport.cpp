@@ -54,7 +54,10 @@ void EditorViewport::Init()
     InitObject(m_camera);
 
     ViewDesc viewDesc {};
-    viewDesc.flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER | ViewFlags::MATCH_CAMERA_DIMENSIONS;
+    viewDesc.flags = ViewFlags::DEFAULT
+        | ViewFlags::GBUFFER
+        | ViewFlags::MATCH_CAMERA_DIMENSIONS
+        | ViewFlags::EDITOR_VIEW;
 
     viewDesc.framebufferDesc = {};
     viewDesc.framebufferDesc.extent = Vec2u(m_camera->GetDimensions());

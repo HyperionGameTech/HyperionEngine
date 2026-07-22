@@ -93,6 +93,8 @@ enum class ViewFlags : uint32
     ENV_PROBE_VIEW = 0x2000000,    //!< Used by an EnvProbe for rendering a cubemap face - skips shadows and other fancy things that normally allocate per-view.
     CUBEMAP_FACE_VIEW = 0x4000000, //!< This View corresponds to a face in a cubemap - will not automatically update sub-frustum
 
+    EDITOR_VIEW = 0x8000000,       //!< This view is for the editor camera
+
     EXTERNAL_RENDERTARGET = 0x10000000, //!< Will not create its own render target data, expected to draw using externally supplied target
 
     NO_SHADOW_VIEWS = 0x20000000, //!< No shadow view collection for this view will happen

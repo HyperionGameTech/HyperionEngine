@@ -280,7 +280,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
     BuildVertices(model);
 
-    Handle<Node> top = MakeHandle<Node>();
+    Handle<Node> top = MakeHandle<Node>(CreateNameFromDynamicString(StringUtil::StripExtension(FilePath(model.filepath).Basename())));
 
     Handle<Skeleton> skeleton;
 

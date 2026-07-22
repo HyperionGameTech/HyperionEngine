@@ -11,130 +11,85 @@
 #define VEC4_TO_UINT(_value) packUnorm4x8((_value))
 #define VEC2_TO_UINT(_value) packUnorm2x16((_value))
 
-#ifdef LANG_GLSL
-    // HLSL Compat
-    #define lerp mix
-    #define float2 vec2
-    #define float3 vec3
-    #define float4 vec4
-    #define int2 ivec2
-    #define int3 ivec3
-    #define int4 ivec4
-    #define uint2 uvec2
-    #define uint3 uvec3
-    #define uint4 uvec4
-    #define float2x2 mat2
-    #define float3x3 mat3
-    #define float4x4 mat4
-    #define static
+#pragma pack_matrix(row_major)
 
-    // Sampling
+// For porting GLSL to HLSL
+#define vec2 float2
+#define vec3 float3
+#define vec4 float4
+#define ivec2 int2
+#define ivec3 int3
+#define ivec4 int4
+#define uvec2 uint2
+#define uvec3 uint3
+#define uvec4 uint4
+#define mat3 float3x3
+#define mat4 float4x4
+#define texture2D Texture2D
+#define texture3D Texture3D
+#define textureCube TextureCube
+#define texture2DArray Texture2DArray
+#define textureCubeArray TextureCubeArray
+#define uniform
+#define atan atan2
+#define fract frac
+#define mod fmod
+#define dFdx ddx
+#define dFdy ddy
+#define inversesqrt rsqrt
+#define lessThan(a, b) ((a) < (b))
+#define greaterThan(a, b) ((a) > (b))
 
-    #define SAMPLE_TEXTURE_2D(samp, tex, texcoord) texture(sampler2D(tex, samp), texcoord)
-    #define SAMPLE_TEXTURE_2D_LOD(samp, tex, texcoord, lod) textureLod(sampler2D(tex, samp), texcoord, lod)
+// Sampling
 
-    #define SAMPLE_TEXTURE_2D_ARRAY(samp, tex, texcoord) texture(sampler2DArray(tex, samp), texcoord)
-    #define SAMPLE_TEXTURE_2D_ARRAY_LOD(samp, tex, texcoord, lod) textureLod(sampler2DArray(tex, samp), texcoord, lod)
-
-    #define SAMPLE_TEXTURE_3D(samp, tex, texcoord) texture(sampler3D(tex, samp), texcoord)
-    #define SAMPLE_TEXTURE_3D_LOD(samp, tex, texcoord, lod) textureLod(sampler3D(tex, samp), texcoord, lod)
-
-    #define SAMPLE_TEXTURE_CUBE(samp, tex, texcoord) texture(samplerCube(tex, samp), texcoord)
-    #define SAMPLE_TEXTURE_CUBE_LOD(samp, tex, texcoord, lod) textureLod(samplerCube(tex, samp), texcoord, lod)
-
-    #define SAMPLE_TEXTURE_CUBE_ARRAY(samp, tex, texcoord) texture(samplerCubeArray(tex, samp), texcoord)
-    #define SAMPLE_TEXTURE_CUBE_ARRAY_LOD(samp, tex, texcoord, lod) textureLod(samplerCubeArray(tex, samp), texcoord, lod)
-
-    #define TEXEL_FETCH_2D(tex, coord) texelFetch(tex, coord, 0)
-    #define TEXEL_FETCH_2D_LOD(samp, tex, coord, lod) texelFetch(sampler2D(tex, samp), coord, lod)
-
-    // Utility
-
-    #define FLOAT_BITS_TO_UINT(value) floatBitsToUint(value)
-    #define UINT_BITS_TO_FLOAT(value) uintBitsToFloat(value)
-
-#elif defined(LANG_HLSL)
-    #pragma pack_matrix(row_major)
-
-    // For porting GLSL to HLSL
-    #define vec2 float2
-    #define vec3 float3
-    #define vec4 float4
-    #define ivec2 int2
-    #define ivec3 int3
-    #define ivec4 int4
-    #define uvec2 uint2
-    #define uvec3 uint3
-    #define uvec4 uint4
-    #define mat3 float3x3
-    #define mat4 float4x4
-    #define texture2D Texture2D
-    #define texture3D Texture3D
-    #define textureCube TextureCube
-    #define texture2DArray Texture2DArray
-    #define textureCubeArray TextureCubeArray
-    #define uniform
-    #define atan atan2
-    #define fract frac
-    #define mod fmod
-    #define dFdx ddx
-    #define dFdy ddy
-    #define inversesqrt rsqrt
-    #define lessThan(a, b) ((a) < (b))
-    #define greaterThan(a, b) ((a) > (b))
-
-    // Sampling
-
-    #define SAMPLE_TEXTURE_2D_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
+#define SAMPLE_TEXTURE_2D_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
 #ifdef PIXEL_SHADER
-    #define SAMPLE_TEXTURE_2D(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
+#define SAMPLE_TEXTURE_2D(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
 #else
-    // we don't have on screen derivatives in other shader stages so just sample LOD0
-    #define SAMPLE_TEXTURE_2D(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
+// we don't have on screen derivatives in other shader stages so just sample LOD0
+#define SAMPLE_TEXTURE_2D(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
 #endif
 
-    #define SAMPLE_TEXTURE_2D_ARRAY_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
+#define SAMPLE_TEXTURE_2D_ARRAY_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
 #ifdef PIXEL_SHADER
-    #define SAMPLE_TEXTURE_2D_ARRAY(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
+#define SAMPLE_TEXTURE_2D_ARRAY(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
 #else
-    // we don't have on screen derivatives in other shader stages so just sample LOD0
-    #define SAMPLE_TEXTURE_2D_ARRAY(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
+// we don't have on screen derivatives in other shader stages so just sample LOD0
+#define SAMPLE_TEXTURE_2D_ARRAY(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
 #endif
 
-    #define SAMPLE_TEXTURE_3D_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
+#define SAMPLE_TEXTURE_3D_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
 
 #ifdef PIXEL_SHADER
-    #define SAMPLE_TEXTURE_3D(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
+#define SAMPLE_TEXTURE_3D(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
 #else
-    // we don't have on screen derivatives in other shader stages so just sample LOD0
-    #define SAMPLE_TEXTURE_3D(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
+// we don't have on screen derivatives in other shader stages so just sample LOD0
+#define SAMPLE_TEXTURE_3D(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
 #endif
 
-    #define SAMPLE_TEXTURE_CUBE_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
+#define SAMPLE_TEXTURE_CUBE_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
 #ifdef PIXEL_SHADER
-    #define SAMPLE_TEXTURE_CUBE(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
+#define SAMPLE_TEXTURE_CUBE(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
 #else
-    // we don't have on screen derivatives in other shader stages so just sample LOD0
-    #define SAMPLE_TEXTURE_CUBE(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
+// we don't have on screen derivatives in other shader stages so just sample LOD0
+#define SAMPLE_TEXTURE_CUBE(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
 #endif
 
-    #define SAMPLE_TEXTURE_CUBE_ARRAY_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
+#define SAMPLE_TEXTURE_CUBE_ARRAY_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
 #ifdef PIXEL_SHADER
-    #define SAMPLE_TEXTURE_CUBE_ARRAY(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
+#define SAMPLE_TEXTURE_CUBE_ARRAY(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
 #else
-    // we don't have on screen derivatives in other shader stages so just sample LOD0
-    #define SAMPLE_TEXTURE_CUBE_ARRAY(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
+// we don't have on screen derivatives in other shader stages so just sample LOD0
+#define SAMPLE_TEXTURE_CUBE_ARRAY(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
 #endif
 
-    #define TEXEL_FETCH_2D(tex, coord) (tex).Load(int3((coord), 0))
-    #define TEXEL_FETCH_2D_LOD(samp, tex, coord, lod) (tex).Load(int3((coord), (lod)))
+#define TEXEL_FETCH_2D(tex, coord) (tex).Load(int3((coord), 0))
+#define TEXEL_FETCH_2D_LOD(samp, tex, coord, lod) (tex).Load(int3((coord), (lod)))
 
-    // Utility
+// Utility
 
-    #define FLOAT_BITS_TO_UINT(value) asuint(value)
-    #define UINT_BITS_TO_FLOAT(value) asfloat(value)
-
-#endif
+#define FLOAT_BITS_TO_UINT(value) asuint(value)
+#define UINT_BITS_TO_FLOAT(value) asfloat(value)
 
 #define HYP_MATERIAL_CUBEMAP_TEXTURES 1
 

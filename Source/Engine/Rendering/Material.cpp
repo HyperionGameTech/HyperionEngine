@@ -402,21 +402,29 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
         struct
         {
             bool unlit : 1;
+            bool normalMapFlipY : 1;
+            uint32 roughnessChannel : 2;
+            uint32 metalnessChannel : 2;
+            uint32 aoChannel : 2;
         };
     } flags;
 
     flags.bits = 0;
     flags.unlit = m_parameters.unlit;
-    
+    flags.normalMapFlipY = m_parameters.IsNormalMapFlipY();
+    flags.roughnessChannel = uint32(m_parameters.GetRoughnessChannel());
+    flags.metalnessChannel = uint32(m_parameters.GetMetalnessChannel());
+    flags.aoChannel = uint32(m_parameters.GetAmbientOcclusionChannel());
+
     bufferData.packedParams.w = flags.bits;
 
-    bufferData.uvScale = 1.0f;
+    bufferData.uvScale = m_parameters.uvScale;
     bufferData.parallaxHeight = m_parameters.parallaxHeightScale;
 
     bufferData.textureUsage = 0;
 
     uint32* textureIndicesU32 = reinterpret_cast<uint32*>(bufferData.textureIndices);
-    Memory::Fill(textureIndicesU32, 0, sizeof(bufferData.textureIndices));
+    Memory::Zero(textureIndicesU32, sizeof(bufferData.textureIndices));
 
     const uint32 numTextureSlots = MathUtil::Min(
         MaterialTextures::MaxTextures,

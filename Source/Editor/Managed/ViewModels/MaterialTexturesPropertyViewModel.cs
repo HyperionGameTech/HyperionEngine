@@ -10,14 +10,32 @@ namespace Hyperion.Editor.ViewModels
     {
         private const string ValuesPropertyName = "Values";
         private const string TextureKeyEnumName = "MaterialTextureKey";
+        private const string ParametersPropertyName = "Parameters";
+        private const string NormalMapFlipYPropertyName = "NormalMapFlipY";
+        private const string RoughnessChannelPropertyName = "RoughnessChannel";
+        private const string MetalnessChannelPropertyName = "MetalnessChannel";
+        private const string AmbientOcclusionChannelPropertyName = "AmbientOcclusionChannel";
+
+        private const string NormalsSlotName = "Normals";
+        private const string RoughnessSlotName = "Roughness";
+        private const string MetalnessSlotName = "Metalness";
+        private const string AmbientOcclusionSlotName = "AmbientOcclusion";
 
         private readonly Class _structClass;
         private readonly Property? _valuesProperty;
 
+        private readonly Property? _parametersProperty;
+        private Class? _parametersClass;
+        private readonly Property? _flipYProperty;
+        private readonly Property? _roughnessChannelProperty;
+        private readonly Property? _metalnessChannelProperty;
+        private readonly Property? _aoChannelProperty;
+
         private BoxedValue? _currentStructValue;
         private BoxedValue? _currentValuesArray;
+        private BoxedValue? _currentParametersValue;
 
-        public ObservableCollection<InspectorPropertyViewModelBase> Slots { get; } = new();
+        public ObservableCollection<MaterialTextureSlotViewModel> Slots { get; } = new();
 
         private bool _hasSlots;
         public bool HasSlots
@@ -41,6 +59,8 @@ namespace Hyperion.Editor.ViewModels
             _structClass = property.TypeInfo.Class!.Value;
             Value = _structClass.Name.ToString();
             _valuesProperty = FindValuesProperty();
+
+            (_parametersProperty, _flipYProperty, _roughnessChannelProperty, _metalnessChannelProperty, _aoChannelProperty) = FindParametersProperties();
         }
 
         public MaterialTexturesPropertyViewModel(IntPtr classAddress, Func<IntPtr> targetAddressResolver, Property property, bool isReadOnly, int depth = 0)
@@ -49,6 +69,8 @@ namespace Hyperion.Editor.ViewModels
             _structClass = property.TypeInfo.Class!.Value;
             Value = _structClass.Name.ToString();
             _valuesProperty = FindValuesProperty();
+
+            (_parametersProperty, _flipYProperty, _roughnessChannelProperty, _metalnessChannelProperty, _aoChannelProperty) = FindParametersProperties();
         }
 
         public MaterialTexturesPropertyViewModel(string label, TypeInfo typeInfo, Func<BoxedValue> getter, Action<BoxedValue> setter, bool isReadOnly, int depth = 0)
@@ -57,6 +79,9 @@ namespace Hyperion.Editor.ViewModels
             _structClass = typeInfo.Class!.Value;
             Value = _structClass.Name.ToString();
             _valuesProperty = FindValuesProperty();
+
+            // No object context in this mode (bare getter/setter delegate) - inline controls stay unavailable.
+            (_parametersProperty, _flipYProperty, _roughnessChannelProperty, _metalnessChannelProperty, _aoChannelProperty) = (null, null, null, null, null);
         }
 
         private Property? FindValuesProperty()
@@ -79,7 +104,44 @@ namespace Hyperion.Editor.ViewModels
             return null;
         }
 
+        private (Property?, Property?, Property?, Property?, Property?) FindParametersProperties()
+        {
+            try
+            {
+                Property? parametersProperty = FindSiblingProperty(new Name(ParametersPropertyName));
+
+                if (parametersProperty == null)
+                {
+                    return (null, null, null, null, null);
+                }
+
+                Class? parametersClass = parametersProperty.Value.TypeInfo.Class;
+
+                if (parametersClass == null)
+                {
+                    return (null, null, null, null, null);
+                }
+
+                _parametersClass = parametersClass;
+
+                Property? flipYProperty = parametersClass.Value.GetProperty(new Name(NormalMapFlipYPropertyName));
+                Property? roughnessChannelProperty = parametersClass.Value.GetProperty(new Name(RoughnessChannelPropertyName));
+                Property? metalnessChannelProperty = parametersClass.Value.GetProperty(new Name(MetalnessChannelPropertyName));
+                Property? aoChannelProperty = parametersClass.Value.GetProperty(new Name(AmbientOcclusionChannelPropertyName));
+
+                return (parametersProperty, flipYProperty, roughnessChannelProperty, metalnessChannelProperty, aoChannelProperty);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Warning, $"MaterialTexturesPropertyViewModel: failed to find '{ParametersPropertyName}' property/accessors: {ex.Message}");
+
+                return (null, null, null, null, null);
+            }
+        }
+
         private IntPtr GetCurrentStructPointer() => _currentStructValue?.Pointer ?? IntPtr.Zero;
+
+        private IntPtr GetCurrentParametersPointer() => _currentParametersValue?.Pointer ?? IntPtr.Zero;
 
         private BoxedValue GetValuesArray()
         {
@@ -104,6 +166,92 @@ namespace Hyperion.Editor.ViewModels
 
             _valuesProperty.Value.Set(_structClass.Address, GetCurrentStructPointer(), _currentValuesArray);
             SetPropertyValue(_currentStructValue);
+        }
+
+        private void WriteBackParameters()
+        {
+            if (_parametersProperty == null || _currentParametersValue == null)
+            {
+                return;
+            }
+
+            SetSiblingPropertyValue(_parametersProperty.Value, _currentParametersValue);
+        }
+
+        private InspectorPropertyViewModelBase? BuildInlineControl(string slotLabel)
+        {
+            if (_parametersProperty == null || _parametersClass == null || _currentParametersValue == null)
+            {
+                return null;
+            }
+
+            Class parametersClass = _parametersClass.Value;
+
+            switch (slotLabel)
+            {
+                case NormalsSlotName when _flipYProperty != null:
+                {
+                    Property prop = _flipYProperty.Value;
+
+                    return InspectorViewModelFactory.CreateForValue(
+                        "Flip Y",
+                        prop.TypeInfo,
+                        getter: () => prop.Get(parametersClass.Address, GetCurrentParametersPointer()),
+                        setter: v => prop.Set(parametersClass.Address, GetCurrentParametersPointer(), v),
+                        isReadOnly: _isReadOnly,
+                        depth: 0,
+                        initialize: false,
+                        postWriteCallback: WriteBackParameters);
+                }
+
+                case RoughnessSlotName when _roughnessChannelProperty != null:
+                {
+                    Property prop = _roughnessChannelProperty.Value;
+
+                    return InspectorViewModelFactory.CreateForValue(
+                        "Channel",
+                        prop.TypeInfo,
+                        getter: () => prop.Get(parametersClass.Address, GetCurrentParametersPointer()),
+                        setter: v => prop.Set(parametersClass.Address, GetCurrentParametersPointer(), v),
+                        isReadOnly: _isReadOnly,
+                        depth: 0,
+                        initialize: false,
+                        postWriteCallback: WriteBackParameters);
+                }
+
+                case MetalnessSlotName when _metalnessChannelProperty != null:
+                {
+                    Property prop = _metalnessChannelProperty.Value;
+
+                    return InspectorViewModelFactory.CreateForValue(
+                        "Channel",
+                        prop.TypeInfo,
+                        getter: () => prop.Get(parametersClass.Address, GetCurrentParametersPointer()),
+                        setter: v => prop.Set(parametersClass.Address, GetCurrentParametersPointer(), v),
+                        isReadOnly: _isReadOnly,
+                        depth: 0,
+                        initialize: false,
+                        postWriteCallback: WriteBackParameters);
+                }
+
+                case AmbientOcclusionSlotName when _aoChannelProperty != null:
+                {
+                    Property prop = _aoChannelProperty.Value;
+
+                    return InspectorViewModelFactory.CreateForValue(
+                        "Channel",
+                        prop.TypeInfo,
+                        getter: () => prop.Get(parametersClass.Address, GetCurrentParametersPointer()),
+                        setter: v => prop.Set(parametersClass.Address, GetCurrentParametersPointer(), v),
+                        isReadOnly: _isReadOnly,
+                        depth: 0,
+                        initialize: false,
+                        postWriteCallback: WriteBackParameters);
+                }
+
+                default:
+                    return null;
+            }
         }
 
         private void BuildSlots()
@@ -173,7 +321,9 @@ namespace Hyperion.Editor.ViewModels
                     initialize: false,
                     postWriteCallback: WriteBack);
 
-                Slots.Add(vm);
+                InspectorPropertyViewModelBase? inlineControl = BuildInlineControl(slotLabel);
+
+                Slots.Add(new MaterialTextureSlotViewModel(vm, inlineControl));
             }
 
             HasSlots = Slots.Count > 0;
@@ -193,12 +343,17 @@ namespace Hyperion.Editor.ViewModels
                     BoxedValue newStructValue = GetPropertyValue();
                     BoxedValue? newValuesArray = _valuesProperty?.Get(_structClass.Address, newStructValue.Pointer);
 
+                    BoxedValue? newParametersValue = _parametersProperty != null
+                        ? GetSiblingPropertyValue(_parametersProperty.Value)
+                        : null;
+
                     Dispatcher.UIThread.Post(() =>
                     {
                         _isRefreshing = 0;
 
                         _currentStructValue = newStructValue;
                         _currentValuesArray = newValuesArray;
+                        _currentParametersValue = newParametersValue;
 
                         BuildSlots();
 

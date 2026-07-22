@@ -39,12 +39,26 @@ enum class MaterialTextureKey : uint64
     AmbientOcclusion = 0x20
 };
 
+HYP_ENUM()
+enum class MaterialTextureChannel : uint8
+{
+    R = 0,
+    G = 1,
+    B = 2,
+    A = 3
+};
 
 HYP_STRUCT()
 class MaterialParameters
 {
 public:
     HYP_STRUCT_BODY(MaterialParameters);
+
+    static constexpr uint8 FlagBit_NormalMapFlipY = 0x1u;
+    static constexpr uint8 FlagShift_RoughnessChannel = 1;
+    static constexpr uint8 FlagShift_MetalnessChannel = 3;
+    static constexpr uint8 FlagShift_AmbientOcclusionChannel = 5;
+    static constexpr uint8 FlagMask_Channel = 0x3u;
 
     HYP_FIELD(Property = "Albedo", Editor, Serialize)
     Vec4f albedo;
@@ -76,8 +90,14 @@ public:
     HYP_FIELD(Property = "UserParams", Editor, Serialize)
     Vec4f userParams;
 
+    HYP_FIELD(Property = "UVScale", Editor, Serialize)
+    Vec2f uvScale;
+
     HYP_FIELD(Property = "Unlit", Editor, Serialize)
     bool unlit;
+
+    HYP_FIELD(Property = "Flags", Serialize, Editor = false)
+    uint8 flags;
 
     enum NoInitTag { NoInit };
 
@@ -109,15 +129,69 @@ public:
         return HashCode::GetHashCode((const ubyte*)this, (const ubyte*)this + sizeof(MaterialParameters));
     }
 
+    HYP_METHOD(Property = "NormalMapFlipY", Editor = false)
+    HYP_FORCE_INLINE bool IsNormalMapFlipY() const
+    {
+        return (flags & FlagBit_NormalMapFlipY) != 0;
+    }
+
+    HYP_METHOD(Property = "NormalMapFlipY", Editor = false)
+    HYP_FORCE_INLINE void SetNormalMapFlipY(bool value)
+    {
+        flags = value
+            ? static_cast<uint8>(flags | FlagBit_NormalMapFlipY)
+            : static_cast<uint8>(flags & ~FlagBit_NormalMapFlipY);
+    }
+
+    HYP_METHOD(Property = "RoughnessChannel", Editor = false)
+    HYP_FORCE_INLINE MaterialTextureChannel GetRoughnessChannel() const
+    {
+        return MaterialTextureChannel((flags >> FlagShift_RoughnessChannel) & FlagMask_Channel);
+    }
+
+    HYP_METHOD(Property = "RoughnessChannel", Editor = false)
+    HYP_FORCE_INLINE void SetRoughnessChannel(MaterialTextureChannel channel)
+    {
+        flags = static_cast<uint8>((flags & ~(FlagMask_Channel << FlagShift_RoughnessChannel))
+            | ((uint8(channel) & FlagMask_Channel) << FlagShift_RoughnessChannel));
+    }
+
+    HYP_METHOD(Property = "MetalnessChannel", Editor = false)
+    HYP_FORCE_INLINE MaterialTextureChannel GetMetalnessChannel() const
+    {
+        return MaterialTextureChannel((flags >> FlagShift_MetalnessChannel) & FlagMask_Channel);
+    }
+
+    HYP_METHOD(Property = "MetalnessChannel", Editor = false)
+    HYP_FORCE_INLINE void SetMetalnessChannel(MaterialTextureChannel channel)
+    {
+        flags = static_cast<uint8>((flags & ~(FlagMask_Channel << FlagShift_MetalnessChannel))
+            | ((uint8(channel) & FlagMask_Channel) << FlagShift_MetalnessChannel));
+    }
+
+    HYP_METHOD(Property = "AmbientOcclusionChannel", Editor = false)
+    HYP_FORCE_INLINE MaterialTextureChannel GetAmbientOcclusionChannel() const
+    {
+        return MaterialTextureChannel((flags >> FlagShift_AmbientOcclusionChannel) & FlagMask_Channel);
+    }
+
+    HYP_METHOD(Property = "AmbientOcclusionChannel", Editor = false)
+    HYP_FORCE_INLINE void SetAmbientOcclusionChannel(MaterialTextureChannel channel)
+    {
+        flags = static_cast<uint8>((flags & ~(FlagMask_Channel << FlagShift_AmbientOcclusionChannel))
+            | ((uint8(channel) & FlagMask_Channel) << FlagShift_AmbientOcclusionChannel));
+    }
+
     static MaterialParameters Defaults()
     {
         MaterialParameters defaults(NoInit);
         memset(&defaults, 0, sizeof(MaterialParameters));
 
-        defaults.albedo = 1.0f;
+        defaults.albedo = Vec4f::One();
         defaults.roughness = 1.0f;
         defaults.parallaxHeightScale = 0.02f;
         defaults.ior = 1.5f;
+        defaults.uvScale = Vec2f::One();
 
         return defaults;
     }

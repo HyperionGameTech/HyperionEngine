@@ -168,20 +168,28 @@ PSOutput PSMain(PSInput input)
     if (HAS_TEXTURE(CURRENT_MATERIAL, NormalMap))
     {
         normals_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, NormalMap, texcoord) * 2.0 - 1.0;
+
+        if (GET_MATERIAL_PARAM_BIT(CURRENT_MATERIAL, MATERIAL_FLAG_NORMAL_MAP_FLIP_Y))
+        {
+            normals_texture.y = -normals_texture.y;
+        }
+
         N = normalize(mul(normals_texture.xyz, tbn_matrix));
     }
  #endif
 
     if (HAS_TEXTURE(CURRENT_MATERIAL, MetalnessMap))
     {
-        float metalness_sample = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, MetalnessMap, texcoord).r;
+        float4 metalness_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, MetalnessMap, texcoord);
+        float metalness_sample = SelectMaterialChannel(metalness_texture, GET_MATERIAL_METALNESS_CHANNEL(CURRENT_MATERIAL));
 
         metalness = metalness_sample;
     }
 
     if (HAS_TEXTURE(CURRENT_MATERIAL, RoughnessMap))
     {
-        float roughness_sample = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, RoughnessMap, texcoord).r;
+        float4 roughness_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, RoughnessMap, texcoord);
+        float roughness_sample = SelectMaterialChannel(roughness_texture, GET_MATERIAL_ROUGHNESS_CHANNEL(CURRENT_MATERIAL));
 
         roughness = roughness_sample;
     }

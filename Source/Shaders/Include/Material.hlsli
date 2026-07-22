@@ -76,6 +76,23 @@ float4 UnpackMaterialParamFloat4(uint4 uValue, uint index)
 // Individual bits are stored in the last vector.
 #define GET_MATERIAL_PARAM_BIT(mat, bitIndex) ((((mat).packed_params)[3]) & (1u << (bitIndex & 31)))
 
+#define MATERIAL_FLAG_UNLIT 0
+#define MATERIAL_FLAG_NORMAL_MAP_FLIP_Y 1
+#define MATERIAL_CHANNEL_BIT_ROUGHNESS 2
+#define MATERIAL_CHANNEL_BIT_METALNESS 4
+#define MATERIAL_CHANNEL_BIT_AO 6
+
+#define GET_MATERIAL_CHANNEL(mat, bitOffset) ((((mat).packed_params[3]) >> (bitOffset)) & 0x3u)
+
+#define GET_MATERIAL_ROUGHNESS_CHANNEL(mat) GET_MATERIAL_CHANNEL(mat, MATERIAL_CHANNEL_BIT_ROUGHNESS)
+#define GET_MATERIAL_METALNESS_CHANNEL(mat) GET_MATERIAL_CHANNEL(mat, MATERIAL_CHANNEL_BIT_METALNESS)
+#define GET_MATERIAL_AO_CHANNEL(mat) GET_MATERIAL_CHANNEL(mat, MATERIAL_CHANNEL_BIT_AO)
+
+float SelectMaterialChannel(float4 v, uint channel)
+{
+    return v[channel];
+}
+
 #define MATERIAL_TEXTURE_DiffuseMap 0
 #define MATERIAL_TEXTURE_NormalMap 1
 #define MATERIAL_TEXTURE_ParallaxMap 2

@@ -152,7 +152,19 @@
                             <TextBlock Opacity="0.55" Text="{Binding Value}" />
                         </StackPanel>
                     </Expander.Header>
-                    <local:InspectorPropertyItemsControl IsVisible="{Binding HasSlots}" ItemsSource="{Binding Slots}" />
+                    <ItemsControl IsVisible="{Binding HasSlots}" ItemsSource="{Binding Slots}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:MaterialTextureSlotViewModel">
+                                <StackPanel Margin="0,1,0,1" Orientation="Vertical" Spacing="0">
+                                    <local:InspectorPropertyItemsControl ItemsSource="{Binding TextureEditorItems}" />
+                                    <local:InspectorPropertyItemsControl
+                                        Margin="16,0,0,0"
+                                        IsVisible="{Binding HasInlineControl}"
+                                        ItemsSource="{Binding InlineControlItems}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                 </Expander>
             </DataTemplate>
             <DataTemplate x:DataType="vm:StructPropertyViewModel">

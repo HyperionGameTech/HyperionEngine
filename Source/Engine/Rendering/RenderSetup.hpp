@@ -28,7 +28,6 @@ struct RenderSetup
     World* world = nullptr;
     View* view = nullptr;
     EnvProbe* envProbe = nullptr;
-    ProbeVolume* probeVolume = nullptr;
     Light* light = nullptr;
     VolumeBase* volume = nullptr;
 

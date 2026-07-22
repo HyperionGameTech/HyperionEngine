@@ -44,6 +44,7 @@
 #include <Core/Memory/Memory.hpp>
 #include <Core/Memory/Allocator/ArenaAllocator.hpp>
 #include <Core/Memory/Allocator/SlabAllocator.hpp>
+#include <Core/Utilities/StringUtil.hpp>
 
 #include <Framework/EngineDriver.hpp>
 
@@ -983,13 +984,13 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
     InitFBXLoaderMemory();
 
-    Handle<Node> top = MakeHandle<Node>();
-    Handle<Skeleton> rootSkeleton = MakeHandle<Skeleton>();
-
     // Include our root dir as part of the path
     const String path = state.filepath;
     const FilePath currentDir = FilePath::Current();
     const FilePath basePath = FilePath(path).BasePath();
+
+    Handle<Node> top = MakeHandle<Node>(CreateNameFromDynamicString(StringUtil::StripExtension(FilePath(path).Basename())));
+    Handle<Skeleton> rootSkeleton = MakeHandle<Skeleton>();
 
     FileByteReader fbr { FilePath::Join(basePath, FilePath(path).Basename()) };
 
@@ -1589,9 +1590,6 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                         for (size_t index = 0; index < uvFlat.Size() / 2; ++index)
                         {
                             Vec2f uv { float(uvFlat[index * 2 + 0]), float(uvFlat[index * 2 + 1]) };
-                            // FBX stores V with a bottom-up origin
-                            uv.y = 1.0f - uv.y;
-
                             verticesUnpacked[index].SetUV0(uv);
                         }
                     }

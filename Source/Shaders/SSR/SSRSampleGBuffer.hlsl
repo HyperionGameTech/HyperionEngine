@@ -171,6 +171,7 @@ PSOutput PSMain(PSInput input)
             const float mip_level = clamp(log2(incircle_size * max(ssr_image_dimensions.x, ssr_image_dimensions.y)), 0.0, max_mip_level);
 
             float4 current_reflection_sample = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferMipChain, clamp(hit_uv - velocity, float2(0.0, 0.0), float2(1.0, 1.0)), mip_level);
+            // current_reflection_sample = any(isnan(current_reflection_sample)) ? float4(0.0, 0.0, 1.0, 1.0) : current_reflection_sample;
 #else
         const float current_radius = length((hit_uv - texcoord) * float2(ssrConstants.dimension.xy)) * tan(cone_angle);
         const float mip_level = clamp(log2(current_radius), 0.0, max_mip_level);
@@ -203,13 +204,13 @@ PSOutput PSMain(PSInput input)
         accum_color = current_reflection_sample;
 #endif
 
-        reflection_sample = accum_color;
         reflection_sample.a = min(accum_color.a, 1.0);
+        // reflection_sample = any(isnan(accum_color)) ? float4(0.0, 0.0, 1.0, 1.0) : accum_color;
 
         reflection_sample.a *= alpha;
     }
 
-    output.out_color = any(isnan(reflection_sample)) ? float4(0.0, 1.0, 0.0, 1.0) : reflection_sample;
+    output.out_color = reflection_sample;
 
     return output;
 }

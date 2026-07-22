@@ -549,7 +549,7 @@ float4 PSMain(PSInput input) : SV_TARGET
     const float noise = SampleBlueNoise(coord.x, coord.y, int(frameCounter % NUM_TEMPORAL_SAMPLES), NUM_TEMPORAL_SAMPLES);
     static const float s_goldenRatio = 0.61803398875;
 
-    float temporalNoise = fract(noise + (frameCounter * s_goldenRatio));
+    float temporalNoise = frac(noise + (frameCounter * s_goldenRatio));
 
     tNear += temporalNoise * stepSize;
 

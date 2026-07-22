@@ -15,10 +15,14 @@
 #include <Rendering/GpuBuffer.hpp>
 #include <Rendering/RenderSetup.hpp>
 
+#include <Framework/EngineStats.hpp>
+
 #include <Scene/View.hpp>
 #include <Scene/Camera/Camera.hpp>
 
 namespace Hyperion {
+
+static EngineStatGpuTimer s_statDrawEditorGrid("Rendering/GPU/EditorGrid");
 
 #pragma region EditorGridPass
 
@@ -55,6 +59,8 @@ void EditorGridPass::Render(Frame* frame, const RenderSetup& renderSetup)
     }
 
     CommandRecorder& cr = frame->cr;
+
+    ENGINE_STAT_GPU_SCOPE(&s_statDrawEditorGrid, &cr);
 
     cr << SetFillMode(FM_FILL);
     cr << SetDepthWrite(false);
