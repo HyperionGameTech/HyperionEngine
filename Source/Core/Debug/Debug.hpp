@@ -30,7 +30,6 @@ enum class LogType : int
     RenDebug,
 };
 
-#if !HYP_DEBUG_MODE
 constexpr struct
 {
     template <class TCond>
@@ -44,7 +43,6 @@ constexpr struct
     {
     }
 } NoOpAssertWrapper = {};
-#endif
 
 #if HYP_DEBUG_MODE
 // #define DebugLog(type, fmt) DebugLog(type, HYP_DEBUG_FUNC_SHORT, HYP_DEBUG_LINE, fmt)

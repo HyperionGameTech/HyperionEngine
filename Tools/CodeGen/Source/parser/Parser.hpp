@@ -12,11 +12,13 @@
 #include <Core/Utilities/Variant.hpp>
 #include <Core/Utilities/Result.hpp>
 
-namespace Hyperion::JSON {
+namespace Hyperion::DataProcessing::JSON {
 class Value;
-} // namespace Hyperion::JSON
+} // namespace Hyperion::DataProcessing::JSON
 
 namespace Hyperion::CodeGen {
+
+namespace JSON = DataProcessing::JSON;
 
 class Analyzer;
 
@@ -52,6 +54,7 @@ struct ASTNode
     virtual ~ASTNode() = default;
 
     virtual void ToJSON(JSON::Value& out) const = 0;
+    
     virtual String ToString() const
     {
         return String::empty;
@@ -70,7 +73,7 @@ struct ASTUnaryExpr : ASTExpr
 {
     virtual ~ASTUnaryExpr() override = default;
 
-    Handle<AstExpr> expr;
+    SharedPtr<ASTExpr> expr;
     const Operator* op;
     bool isPrefix;
 
@@ -82,8 +85,8 @@ struct ASTBinExpr : ASTExpr
 {
     virtual ~ASTBinExpr() override = default;
 
-    Handle<AstExpr> left;
-    Handle<AstExpr> right;
+    SharedPtr<ASTExpr> left;
+    SharedPtr<ASTExpr> right;
     const Operator* op;
 
     virtual void ToJSON(JSON::Value& out) const override;
@@ -94,9 +97,9 @@ struct ASTTernaryExpr : ASTExpr
 {
     virtual ~ASTTernaryExpr() override = default;
 
-    Handle<AstExpr> conditional;
-    Handle<AstExpr> trueExpr;
-    Handle<AstExpr> falseExpr;
+    SharedPtr<ASTExpr> conditional;
+    SharedPtr<ASTExpr> trueExpr;
+    SharedPtr<ASTExpr> falseExpr;
 
     virtual void ToJSON(JSON::Value& out) const override;
     virtual String ToString() const override;
@@ -166,7 +169,7 @@ struct ASTInitializerExpr : ASTExpr
 {
     virtual ~ASTInitializerExpr() override = default;
 
-    Array<Handle<AstExpr>> values;
+    Array<SharedPtr<ASTExpr>> values;
 
     virtual void ToJSON(JSON::Value& out) const override;
     virtual String ToString() const override;
@@ -176,8 +179,8 @@ struct ASTTemplateArgument : ASTNode
 {
     virtual ~ASTTemplateArgument() override = default;
 
-    Handle<AstType> type;
-    Handle<AstExpr> expr;
+    SharedPtr<ASTType> type;
+    SharedPtr<ASTExpr> expr;
 
     virtual void ToJSON(JSON::Value& out) const override;
     virtual String ToString() const override;
@@ -204,15 +207,15 @@ struct ASTType : ASTNode
     bool isFunction = false;
 
     // One of the below is set
-    Handle<AstType> ptrTo;
-    Handle<AstType> refTo;
-    Handle<AstType> arrayOf;
+    SharedPtr<ASTType> ptrTo;
+    SharedPtr<ASTType> refTo;
+    SharedPtr<ASTType> arrayOf;
     Optional<QualifiedName> typeName;
 
     // Inner value for array - may be null
-    Handle<AstExpr> arrayExpr;
+    SharedPtr<ASTExpr> arrayExpr;
 
-    Array<Handle<AstTemplateArgument>> templateArguments;
+    Array<SharedPtr<ASTTemplateArgument>> templateArguments;
 
     HYP_FORCE_INLINE bool IsVoid() const
     {
@@ -248,8 +251,8 @@ struct ASTMemberDecl : ASTNode
     virtual ~ASTMemberDecl() override = default;
 
     String name;
-    Handle<AstType> type;
-    Handle<AstExpr> value;
+    SharedPtr<ASTType> type;
+    SharedPtr<ASTExpr> value;
 
     virtual void ToJSON(JSON::Value& out) const override;
     virtual String ToString() const override;
@@ -273,8 +276,8 @@ struct ASTFunctionType : ASTType
     bool isRvalueMethod = false;
     bool isLvalueMethod = false;
 
-    Handle<AstType> returnType;
-    Array<Handle<AstMemberDecl>> parameters;
+    SharedPtr<ASTType> returnType;
+    Array<SharedPtr<ASTMemberDecl>> parameters;
 
     virtual String Format(bool useCsharpSyntax = false) const override;
     virtual String FormatDecl(const String& declName, bool useCsharpSyntax = false) const override;
@@ -295,22 +298,22 @@ public:
 
     QualifiedName ReadQualifiedName();
 
-    Handle<AstExpr> ParseExpr();
-    Handle<AstExpr> ParseTerm();
-    Handle<AstExpr> ParseUnaryExprPrefix();
-    Handle<AstExpr> ParseUnaryExprPostfix(const Handle<AstExpr>& innerExpr);
-    Handle<AstExpr> ParseBinaryExpr(int exprPrecedence, Handle<AstExpr> left);
-    Handle<AstExpr> ParseTernaryExpr(const Handle<AstExpr>& conditional);
-    Handle<AstExpr> ParseParentheses();
-    Handle<AstExpr> ParseLiteralString();
-    Handle<AstExpr> ParseLiteralInt();
-    Handle<AstExpr> ParseLiteralFloat();
-    Handle<AstIdentifier> ParseIdentifier();
-    Handle<AstInitializerExpr> ParseInitializerExpr();
-    Handle<AstMemberDecl> ParseMemberDecl();
-    Handle<AstMemberDecl> ParseEnumMemberDecl(const Handle<AstType>& underlyingType);
-    Handle<AstType> ParseType();
-    Handle<AstFunctionType> ParseFunctionType(const Handle<AstType>& returnType);
+    SharedPtr<ASTExpr> ParseExpr();
+    SharedPtr<ASTExpr> ParseTerm();
+    SharedPtr<ASTExpr> ParseUnaryExprPrefix();
+    SharedPtr<ASTExpr> ParseUnaryExprPostfix(const SharedPtr<ASTExpr>& innerExpr);
+    SharedPtr<ASTExpr> ParseBinaryExpr(int exprPrecedence, SharedPtr<ASTExpr> left);
+    SharedPtr<ASTExpr> ParseTernaryExpr(const SharedPtr<ASTExpr>& conditional);
+    SharedPtr<ASTExpr> ParseParentheses();
+    SharedPtr<ASTExpr> ParseLiteralString();
+    SharedPtr<ASTExpr> ParseLiteralInt();
+    SharedPtr<ASTExpr> ParseLiteralFloat();
+    SharedPtr<ASTIdentifier> ParseIdentifier();
+    SharedPtr<ASTInitializerExpr> ParseInitializerExpr();
+    SharedPtr<ASTMemberDecl> ParseMemberDecl();
+    SharedPtr<ASTMemberDecl> ParseEnumMemberDecl(const SharedPtr<ASTType>& underlyingType);
+    SharedPtr<ASTType> ParseType();
+    SharedPtr<ASTFunctionType> ParseFunctionType(const SharedPtr<ASTType>& returnType);
 
     Token Match(TokenClass tokenClass, bool read = false);
     Token MatchAhead(TokenClass tokenClass, int n);

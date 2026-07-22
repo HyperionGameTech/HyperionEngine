@@ -184,6 +184,10 @@ public:
 
     bool HasBaseClass(const ClassDefinition& classDefinition, UTF8StringView baseClassName) const;
 
+    /// Checks whether the given class, or any class it inherits from (directly or transitively),
+    /// has the NoScriptBindings attribute set
+    bool HasAttrInHierarchy(const ClassDefinition& classDefinition, StringHash attrName) const;
+
 private:
     const ClassDefinition* FindClassDefinition_Internal(UTF8StringView className) const;
 

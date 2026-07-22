@@ -4,6 +4,7 @@
  *  @licence MIT
 */
 
+#include "Core/Reflection/Class.hpp"
 #include <analyzer/Analyzer.hpp>
 #include <analyzer/Module.hpp>
 
@@ -25,7 +26,7 @@
 
 #include <Core/IO/BufferedByteReader.hpp>
 
-#include <Core/json/JSON.hpp>
+#include <Core/DataProcessing/JSON/JSON.hpp>
 
 #include <Util/Util.hpp>
 
@@ -87,7 +88,7 @@ static void ExtractConditionAttribute(String& condition, Array<Pair<String, Clas
 
     auto conditionIt = attributes.FindIf([](const Pair<String, ClassAttributeValue>& pair)
         {
-            return pair.first.ToLower() == "condition";
+            return StringHash(pair.first.ToLower()) == "condition"_sh;
         });
 
     if (conditionIt != attributes.End())
@@ -967,7 +968,7 @@ static TResult<Array<MemberDef>, AnalyzerError> BuildClassMembers(const Analyzer
         const String contentToEnd = String(line.Substr(macroEndIndex)) + "\n" + String::Join(lines.Slice(i + 1, lines.Size()), '\n');
         ParseInnerContent(contentToEnd, result.source);
 
-        Handle<AstMemberDecl> decl;
+        SharedPtr<ASTMemberDecl> decl;
 
         auto res = CreateParser(analyzer, mod, result.source, [&](Parser& parser) -> TResult<void, AnalyzerError>
             {
@@ -1113,7 +1114,7 @@ static TResult<Array<MemberDef>, AnalyzerError> BuildEnumMembers(const Analyzer&
 
     auto res = CreateParser(analyzer, mod, innerContent, [&](Parser& parser) -> TResult<void, AnalyzerError>
         {
-            Handle<AstMemberDecl> memberDecl;
+            SharedPtr<ASTMemberDecl> memberDecl;
 
             uint32 member_index = 0;
 
@@ -1333,6 +1334,35 @@ bool Analyzer::HasBaseClass(const ClassDefinition& classDefinition, UTF8StringVi
     };
 
     return performCheck(classDefinition, baseClassName);
+}
+
+bool Analyzer::HasAttrInHierarchy(const ClassDefinition& classDefinition, StringHash attrName) const
+{
+    Mutex::Guard guard(m_mutex);
+
+    Proc<bool(const ClassDefinition&)> performCheck;
+
+    performCheck = [this, &performCheck, attrName](const ClassDefinition& classDefinition) -> bool
+    {
+        if (classDefinition.GetAttribute(attrName).GetBool())
+        {
+            return true;
+        }
+
+        for (const String& baseClassName : classDefinition.baseClassNames)
+        {
+            const ClassDefinition* baseClass = FindClassDefinition_Internal(baseClassName);
+
+            if (baseClass && performCheck(*baseClass))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+    return performCheck(classDefinition);
 }
 
 #pragma endregion Analyzer

@@ -209,7 +209,7 @@ PSOutput PSMain(PSInput input)
         reflection_sample.a *= alpha;
     }
 
-    output.out_color = reflection_sample;
+    output.out_color = any(isnan(reflection_sample)) ? float4(0.0, 1.0, 0.0, 1.0) : reflection_sample;
 
     return output;
 }

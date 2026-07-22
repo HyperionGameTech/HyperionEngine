@@ -4,6 +4,7 @@
  *  @licence MIT
 */
 
+#include "Core/Reflection/Class.hpp"
 #include <generator/generators/HypScriptModuleGenerator.hpp>
 
 #include <analyzer/Analyzer.hpp>
@@ -137,12 +138,12 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
     {
         const ClassDefinition& cls = pair.second;
 
-        if (const ClassAttributeValue& attr = cls.GetAttribute("NoScriptBindings"); attr.GetBool())
+        if (analyzer.HasAttrInHierarchy(cls, Attributes::g_attrNoScriptBindings))
         {
             continue;
         }
 
-        if (const ClassAttributeValue& attr = cls.GetAttribute("OnlyLanguages"); attr.IsValid() && attr.IsString())
+        if (const ClassAttributeValue& attr = cls.GetAttribute(Attributes::g_attrOnlyLanguages); attr.IsValid() && attr.IsString())
         {
             if (!CheckAttrCSV(attr, "hypscript"))
             {
@@ -210,13 +211,13 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
             {
                 const MemberDef& member = cls->members[i];
 
-                if (const ClassAttributeValue& attr = member.GetAttribute("NoScriptBindings"); attr.GetBool())
+                if (const ClassAttributeValue& attr = member.GetAttribute(Attributes::g_attrNoScriptBindings); attr.GetBool())
                 {
                     // skip generating script bindings for this
                     continue;
                 }
 
-                if (const ClassAttributeValue& attr = member.GetAttribute("OnlyLanguages"); attr.IsValid() && attr.IsString())
+                if (const ClassAttributeValue& attr = member.GetAttribute(Attributes::g_attrOnlyLanguages); attr.IsValid() && attr.IsString())
                 {
                     if (!CheckAttrCSV(attr, "hypscript"))
                     {
@@ -226,7 +227,7 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
 
                 String managedName = member.friendlyName;
 
-                if (const ClassAttributeValue& attr = member.GetAttribute("ManagedName"); attr.IsValid() && attr.IsString())
+                if (const ClassAttributeValue& attr = member.GetAttribute(Attributes::g_attrManagedName); attr.IsValid() && attr.IsString())
                 {
                     managedName = attr.GetString();
                 }
@@ -335,7 +336,7 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
                             {
                                 if (clsMember.name == refMemberName && clsMember.cxxType != nullptr)
                                 {
-                                    Handle<AstType> typeToMap = clsMember.cxxType;
+                                    SharedPtr<ASTType> typeToMap = clsMember.cxxType;
 
                                     if (auto* funcType = dynamic_cast<ASTFunctionType*>(clsMember.cxxType.Get()))
                                     {
@@ -390,13 +391,13 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
             {
                 const MemberDef& member = cls->members[i];
 
-                if (const ClassAttributeValue& attr = member.GetAttribute("NoScriptBindings"); attr.GetBool())
+                if (const ClassAttributeValue& attr = member.GetAttribute(Attributes::g_attrNoScriptBindings); attr.GetBool())
                 {
                     // skip generating script bindings for this
                     continue;
                 }
 
-                if (const ClassAttributeValue& attr = member.GetAttribute("OnlyLanguages"); attr.IsValid() && attr.IsString())
+                if (const ClassAttributeValue& attr = member.GetAttribute(Attributes::g_attrOnlyLanguages); attr.IsValid() && attr.IsString())
                 {
                     if (!CheckAttrCSV(attr, "hypscript"))
                     {
@@ -406,7 +407,7 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
 
                 String managedName = member.friendlyName;
 
-                if (const ClassAttributeValue& attr = member.GetAttribute("ManagedName"); attr.IsValid() && attr.IsString())
+                if (const ClassAttributeValue& attr = member.GetAttribute(Attributes::g_attrManagedName); attr.IsValid() && attr.IsString())
                 {
                     managedName = attr.GetString();
                 }

@@ -57,8 +57,10 @@ CORE_API const Name g_attrDeserialize = NAME("deserialize");
 CORE_API const Name g_attrTransient = NAME("transient");
 CORE_API const Name g_attrComponent = NAME("component");
 CORE_API const Name g_attrSize = NAME("size");
+CORE_API const Name g_attrPostLoad = NAME("postload");
 CORE_API const Name g_attrNoScriptBindings = NAME("noscriptbindings");
 CORE_API const Name g_attrOnlyLanguages = NAME("onlylanguages");
+CORE_API const Name g_attrManagedName = NAME("managedname");
 CORE_API const Name g_attrCommand = NAME("command");
 CORE_API const Name g_attrAbstract = NAME("abstract");
 CORE_API const Name g_attrCompressed = NAME("compressed");
@@ -669,7 +671,7 @@ Class::Class(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, N
 
     // @NOTE: Can't reliably use the Attributes namespace values, as they might noe be
     // initialized yet by the time this constructor is called (static init order fiasco)
-    static const ArrayMap<StringHash, ClassFlags> s_attributeToFlags = {
+    static const Map<StringHash, ClassFlags> s_attributeToFlags = {
         { "abstract"_sh, ClassFlags::ABSTRACT },
         { "noscriptbindings"_sh, ClassFlags::NO_SCRIPT_BINDINGS }
     };

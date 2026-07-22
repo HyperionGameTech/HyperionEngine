@@ -49,8 +49,8 @@ struct MemberDef
     String friendlyName;
     String condition;
     Array<Pair<String, ClassAttributeValue>> attributes;
-    Handle<AstType> cxxType;
-    Handle<AstMemberDecl> cxxDecl;
+    SharedPtr<ASTType> cxxType;
+    SharedPtr<ASTMemberDecl> cxxDecl;
     String source;
 
     bool HasAttribute(const String& key) const
@@ -77,6 +77,23 @@ struct MemberDef
         return it != attributes.End()
             ? it->second
             : ClassAttributeValue::empty;
+    }
+
+    const ClassAttributeValue& GetAttribute(StringHash nameHash) const
+    {
+        auto it = attributes.FindIf([nameHash](const auto& item)
+            {
+                return StringHash(item.first.ToLower()) == nameHash;
+            });
+
+        return it != attributes.End()
+            ? it->second
+            : ClassAttributeValue::empty;
+    }
+
+    const ClassAttributeValue& GetAttribute(Name name) const
+    {
+        return GetAttribute(StringHash(name));
     }
 
     bool AddAttribute(const String& key, const ClassAttributeValue& value)
@@ -153,6 +170,23 @@ struct ClassDefinition
         return it != attributes.End()
             ? it->second
             : ClassAttributeValue::empty;
+    }
+    
+    const ClassAttributeValue& GetAttribute(StringHash nameHash) const
+    {
+        auto it = attributes.FindIf([nameHash](const auto& item)
+            {
+                return StringHash(item.first.ToLower()) == nameHash;
+            });
+
+        return it != attributes.End()
+            ? it->second
+            : ClassAttributeValue::empty;
+    }
+
+    const ClassAttributeValue& GetAttribute(Name name) const
+    {
+        return GetAttribute(StringHash(name));
     }
 
     bool HasScriptableMethods() const

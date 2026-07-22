@@ -23,6 +23,8 @@
 
 #include <Core/Math/MathUtil.hpp>
 
+#include <Core/Memory/Allocator/ArenaAllocator.hpp>
+
 #include <algorithm>
 #include <cstring>
 
@@ -66,16 +68,7 @@ PFN_D3DReflect GetD3DReflect()
  *  This is used to pad the PSO's \c NumRenderTargets / \c RTVFormats so the D3D12 debug
  *  layer does not emit CREATEGRAPHICSPIPELINESTATE_RENDERTARGETVIEW_NOT_SET (#679) when
  *  a shader writes to render target slots that the active framebuffer does not provide.
- *  Writes to the unbound slots are discarded at draw time, which is the intended behavior.
- *
- *  \param  shaderBytecode  The compiled pixel shader bytecode to reflect.
- *  \param  outFormats      Optional output buffer (must hold at least 8 entries) that,
- *                          on return, contains a type-compatible DXGI format for each
- *                          SV_Target slot declared by the shader. Entries for slots that
- *                          are not declared are left untouched.
- *
- *  \return The number of SV_Target outputs declared by the shader (highest index + 1),
- *          or 0 if reflection failed or the shader has no render target outputs. */
+ *  Writes to the unbound slots are discarded at draw time, which is the intended behavior. */
 uint32 ReflectPixelShaderOutputCount(
     const D3D12_SHADER_BYTECODE& shaderBytecode,
     DXGI_FORMAT* outFormats = nullptr)
@@ -166,8 +159,8 @@ uint32 ReflectPixelShaderOutputCount(
 } // anonymous namespace
 
 void DX12GraphicsPipeline::BuildVertexAttributes(
-    Array<D3D12_INPUT_ELEMENT_DESC>& outInputElementDescs,
-    Array<uint32>& outBindingStrides)
+    Array<D3D12_INPUT_ELEMENT_DESC, DX12TempAllocator>& outInputElementDescs,
+    Array<uint32, DX12TempAllocator>& outBindingStrides)
 {
     static constexpr DXGI_FORMAT SizeToFormat[] = {
         DXGI_FORMAT_UNKNOWN,
@@ -272,7 +265,7 @@ void DX12GraphicsPipeline::BuildVertexAttributes(
 
     Assert(offset == vertexSize);
 
-    outBindingStrides.Clear();
+    outBindingStrides.Resize(0);
     outBindingStrides.PushBack(uint32(offset));
 }
 
@@ -370,8 +363,8 @@ void DX12GraphicsPipeline::UpdateViewport(DX12CommandBuffer* commandBuffer, cons
 
 RendererResult DX12GraphicsPipeline::Rebuild()
 {
-    Array<D3D12_INPUT_ELEMENT_DESC> inputElementDescs;
-    Array<uint32> bindingStrides;
+    Array<D3D12_INPUT_ELEMENT_DESC, DX12TempAllocator> inputElementDescs;
+    Array<uint32, DX12TempAllocator> bindingStrides;
 
     BuildVertexAttributes(inputElementDescs, bindingStrides);
 
@@ -557,15 +550,18 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
 
     const_cast<ShaderInputGroup*>(decl)->RecalculateAllIndices();
 
-    Array<D3D12_ROOT_PARAMETER> rootParams;
+    Array<D3D12_ROOT_PARAMETER, DX12TempAllocator> rootParams;
+    rootParams.Reserve(16);
 
     // use LL so we never invalid ptrs
-    List<Array<D3D12_DESCRIPTOR_RANGE>> rangeAllocations;
+    List<Array<D3D12_DESCRIPTOR_RANGE, DX12TempAllocator>, DX12TempAllocator> rangeAllocations;
 
-    auto AllocateRangeStorage = [&](Array<D3D12_DESCRIPTOR_RANGE>&& newRanges) -> const D3D12_DESCRIPTOR_RANGE*
+    auto allocateRangeStorage = [&](Array<D3D12_DESCRIPTOR_RANGE, DX12TempAllocator>&& newRanges) -> const D3D12_DESCRIPTOR_RANGE*
     {
         if (newRanges.Empty())
+        {
             return nullptr;
+        }
 
         rangeAllocations.PushBack(std::move(newRanges));
         return rangeAllocations.Back().Data();
@@ -611,11 +607,11 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
             pSetDecl = refSetDecl;
         }
 
-        Array<D3D12_DESCRIPTOR_RANGE> viewRanges;
-        Array<D3D12_DESCRIPTOR_RANGE> samplerRanges;
+        Array<D3D12_DESCRIPTOR_RANGE, DX12TempAllocator> viewRanges;
+        Array<D3D12_DESCRIPTOR_RANGE, DX12TempAllocator> samplerRanges;
 
         // Collect dynamic buffer entries (CBV_Dynamic / SRV_Dynamic / UAV_Dynamic) to create as root descriptor params
-        Array<const ShaderInput*> dynamicDeclarations;
+        Array<const ShaderInput*, DX12TempAllocator> dynamicDeclarations;
 
         for (uint8 slotIndex = 0; slotIndex < NumDescriptorSlots; slotIndex++)
         {
@@ -640,7 +636,7 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
                     continue;
                 }
 
-                Array<D3D12_DESCRIPTOR_RANGE>* currRanges = (descDecl.slot == ShaderRegister::SAMPLER ? &samplerRanges : &viewRanges);
+                Array<D3D12_DESCRIPTOR_RANGE, DX12TempAllocator>* currRanges = (descDecl.slot == ShaderRegister::SAMPLER ? &samplerRanges : &viewRanges);
 
                 D3D12_DESCRIPTOR_RANGE& range = currRanges->EmplaceBack();
                 range.RangeType = ToDX12DescriptorRangeType(descDecl.slot);
@@ -710,7 +706,7 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
             param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
             param.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
             param.DescriptorTable.NumDescriptorRanges = (UINT)viewRanges.Size();
-            param.DescriptorTable.pDescriptorRanges = AllocateRangeStorage(std::move(viewRanges));
+            param.DescriptorTable.pDescriptorRanges = allocateRangeStorage(std::move(viewRanges));
         }
 
         if (samplerRanges.Any())
@@ -722,7 +718,7 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
             param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
             param.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
             param.DescriptorTable.NumDescriptorRanges = (UINT)samplerRanges.Size();
-            param.DescriptorTable.pDescriptorRanges = AllocateRangeStorage(std::move(samplerRanges));
+            param.DescriptorTable.pDescriptorRanges = allocateRangeStorage(std::move(samplerRanges));
         }
     }
 

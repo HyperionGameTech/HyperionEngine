@@ -55,9 +55,8 @@ constexpr FixedArray<CubemapType, CMT_MAX> CubemapTypes {
 
 #pragma region ReflectionsPass
 
-ReflectionsPass::ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const GpuImageViewRef& mipChainImageView)
+ReflectionsPass::ReflectionsPass(Vec2u extent, GBuffer* gbuffer)
     : FullScreenPass(TextureFormat::RGBA16F, extent, gbuffer),
-      m_mipChainImageView(mipChainImageView),
       m_isFirstFrame(true)
 {
     SetPassName(NAME("Reflections"));
@@ -69,8 +68,6 @@ ReflectionsPass::ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const GpuImageV
 
 ReflectionsPass::~ReflectionsPass()
 {
-    EnqueueDeletion(std::move(m_mipChainImageView));
-
     ssrPass.Reset();
 }
 
@@ -88,7 +85,7 @@ bool ReflectionsPass::ShouldRenderSSR() const
 
 void ReflectionsPass::CreateSSRPass()
 {
-    ssrPass = MakeUnique<SSRPass>(m_gbuffer, m_mipChainImageView);
+    ssrPass = MakeUnique<SSRPass>(m_extent, m_gbuffer);
     ssrPass->Create();
 }
 

@@ -27,9 +27,11 @@ class DX12GpuImageView final : public GpuImageViewBase
 
 public:
     explicit DX12GpuImageView(const DX12GpuImageRef& image);
+    
     DX12GpuImageView(
         const DX12GpuImageRef& image,
         const ImageSubResource& subResource);
+
     DX12GpuImageView(
         const DX12GpuImageRef& image,
         const ImageSubResource& subResource,

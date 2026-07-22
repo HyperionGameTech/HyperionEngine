@@ -11,6 +11,8 @@
 
 #include <parser/Parser.hpp>
 
+#include <Core/Reflection/Class.hpp>
+
 #include <Core/IO/ByteWriter.hpp>
 
 #include <Core/Containers/Set.hpp>
@@ -526,8 +528,8 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
         const bool isEntity = analyzer.HasBaseClass(cls, "Entity");
         const bool hasScriptableMethods = cls.HasScriptableMethods();
 
-        const ClassAttributeValue& structSizeAttributeValue = cls.GetAttribute("size");
-        const ClassAttributeValue& postLoadAttributeValue = cls.GetAttribute("postload");
+        const ClassAttributeValue& structSizeAttributeValue = cls.GetAttribute(Attributes::g_attrSize);
+        const ClassAttributeValue& postLoadAttributeValue = cls.GetAttribute(Attributes::g_attrPostLoad);
 
         // Add minimal feature-specific includes when needed
         if (isComponent || isEntity)
@@ -938,8 +940,8 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
         const bool isEntity = analyzer.HasBaseClass(cls, "Entity");
         const bool hasScriptableMethods = cls.HasScriptableMethods();
 
-        const ClassAttributeValue& structSizeAttributeValue = cls.GetAttribute("size");
-        const ClassAttributeValue& postLoadAttributeValue = cls.GetAttribute("postload");
+        const ClassAttributeValue& structSizeAttributeValue = cls.GetAttribute(Attributes::g_attrSize);
+        const ClassAttributeValue& postLoadAttributeValue = cls.GetAttribute(Attributes::g_attrPostLoad);
 
         if (isComponent || isEntity)
         {

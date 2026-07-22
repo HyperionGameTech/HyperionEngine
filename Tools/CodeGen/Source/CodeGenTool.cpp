@@ -360,7 +360,7 @@ private:
 
                         if (type->isTemplate)
                         {
-                            for (const Handle<AstTemplateArgument>& templateArgument : type->templateArguments)
+                            for (const SharedPtr<ASTTemplateArgument>& templateArgument : type->templateArguments)
                             {
                                 Assert(templateArgument != nullptr);
 
@@ -380,7 +380,7 @@ private:
 
                             AddDependenciesRecur(srcClassDef, functionType->returnType.Get());
 
-                            for (const Handle<AstMemberDecl>& param : functionType->parameters)
+                            for (const SharedPtr<ASTMemberDecl>& param : functionType->parameters)
                             {
                                 AddDependenciesRecur(srcClassDef, param->type.Get());
                             }

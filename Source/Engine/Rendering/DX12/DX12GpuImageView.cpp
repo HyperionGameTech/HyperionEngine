@@ -49,7 +49,7 @@ DX12GpuImageView::~DX12GpuImageView() = default;
 
 bool DX12GpuImageView::IsCreated() const
 {
-    return m_image != nullptr;
+    return m_image.IsValid();
 }
 
 RendererResult DX12GpuImageView::Create()

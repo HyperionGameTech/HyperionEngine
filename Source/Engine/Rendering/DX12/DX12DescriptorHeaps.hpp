@@ -59,7 +59,7 @@ public:
     void Initialize();
     void Shutdown();
 
-    DX12DescriptorHandle Allocate(DX12DescriptorHeapType heapType, uint32 count);
+    HYP_NODISCARD DX12DescriptorHandle Allocate(DX12DescriptorHeapType heapType, uint32 count);
     void Free(DX12DescriptorHeapType heapType, DX12DescriptorHandle&& handle);
 
     bool CheckIsValidDescriptor(DX12DescriptorHeapType heapType, const DX12DescriptorHandle& handle) const;

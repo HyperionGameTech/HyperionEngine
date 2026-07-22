@@ -1042,11 +1042,7 @@ PassData* DeferredPass::CreateViewPassData(View* view, PassDataExt&)
         // m_dofBlur = MakeUnique<DOFBlur>(gbuffer->GetResolution(), gbuffer);
         // m_dofBlur->Create();
 
-        passData.reflectionsPass = MakeUnique<ReflectionsPass>(
-            gbuffer->GetExtent(),
-            gbuffer,
-            RI.textureViewCache->GetOrCreate(passData.mipChain));
-
+        passData.reflectionsPass = MakeUnique<ReflectionsPass>(gbuffer->GetExtent(), gbuffer);
         passData.reflectionsPass->Create();
 
         passData.tonemapPass = MakeUnique<TonemapPass>(gbuffer->GetExtent(), gbuffer);
@@ -1242,35 +1238,28 @@ void DeferredPass::ResizeView(Viewport viewport, View* view, DeferredPassData& p
         }
     }
 
-    passData.hbao = MakeUnique<HBAO>(viewport.extent, gbuffer);
+    passData.hbao = MakeUnique<HBAO>(newSize, gbuffer);
     passData.hbao->Create();
 
-    passData.ssgi.Reset();
     passData.ssgi = MakeUnique<SSGI>(gbuffer);
     passData.ssgi->Create();
 
-    passData.bloomPass.Reset();
-    passData.bloomPass = MakeUnique<BloomPass>(viewport.extent, gbuffer);
+    passData.bloomPass = MakeUnique<BloomPass>(newSize, gbuffer);
     passData.bloomPass->Create();
 
-    passData.reflectionsPass.Reset();
-    passData.reflectionsPass = MakeUnique<ReflectionsPass>(
-        newSize,
-        gbuffer,
-        RI.textureViewCache->GetOrCreate(passData.mipChain));
-
+    passData.reflectionsPass = MakeUnique<ReflectionsPass>(newSize, gbuffer);
     passData.reflectionsPass->Create();
 
-    passData.tonemapPass = MakeUnique<TonemapPass>(viewport.extent, gbuffer);
+    passData.tonemapPass = MakeUnique<TonemapPass>(newSize, gbuffer);
     passData.tonemapPass->Create();
 
     passData.lightmapPass = MakeUnique<LightmapPass>();
     passData.lightmapPass->Create();
 
-    passData.fogVolumePass = MakeUnique<FogVolumePass>(viewport.extent, gbuffer);
+    passData.fogVolumePass = MakeUnique<FogVolumePass>(newSize, gbuffer);
     passData.fogVolumePass->Create();
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     passData.editorGridPass = MakeUnique<EditorGridPass>();
     passData.editorGridPass->Create();
 #endif

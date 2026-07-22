@@ -25,15 +25,11 @@ enum CubemapType : uint32
 class ReflectionsPass final : public FullScreenPass
 {
 public:
-    ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const GpuImageViewRef& mipChainImageView);
+    ReflectionsPass(Vec2u extent, GBuffer* gbuffer);
     ReflectionsPass(const ReflectionsPass& other) = delete;
     ReflectionsPass& operator=(const ReflectionsPass& other) = delete;
     virtual ~ReflectionsPass() override;
 
-    HYP_FORCE_INLINE const GpuImageViewRef& GetMipChainImageView() const
-    {
-        return m_mipChainImageView;
-    }
 
     bool ShouldRenderSSR() const;
 
@@ -61,8 +57,6 @@ private:
     }
 
     virtual void Resize_Internal(Vec2u newSize) override;
-
-    GpuImageViewRef m_mipChainImageView;
 
     bool m_isFirstFrame;
 };

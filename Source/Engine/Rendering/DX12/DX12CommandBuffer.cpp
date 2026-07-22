@@ -216,7 +216,7 @@ void DX12CommandBuffer::Begin()
     Assert(SUCCEEDED(m_allocator->Reset()));
     Assert(SUCCEEDED(m_commandList->Reset(m_allocator.Get(), nullptr)));
 
-    m_boundDescriptorSets.Clear();
+    m_boundDescriptorSets.Resize(0);
     m_boundGraphicsPipeline = nullptr;
 
     m_isRecording = true;

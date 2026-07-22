@@ -26,7 +26,7 @@ class SSRPass final : public FullScreenPass
 public:
     HYP_DEF_POOL_NEW_DELETE(g_renderPool);
 
-    SSRPass(GBuffer* gbuffer, const GpuImageViewRef& mipChainImageView);
+    explicit SSRPass(Vec2u extent, GBuffer* gbuffer);
     ~SSRPass();
 
     HYP_FORCE_INLINE Texture* GetUVsTexture() const
@@ -56,17 +56,11 @@ private:
 
     void UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup);
 
-    GBuffer* m_gbuffer;
-
-    GpuImageViewRef m_mipChainImageView;
-
     Handle<Texture> m_uvsTexture;
     Handle<Texture> m_sampledResultTexture;
 
-    Vec2u m_currentExtent;
-
-    FullScreenPass* m_writeUvs;
-    FullScreenPass* m_sampleGbuffer;
+    FullScreenPass* m_tracePass;
+    FullScreenPass* m_samplePass;
 
     UniquePtr<TemporalBlending> m_temporalBlending;
 

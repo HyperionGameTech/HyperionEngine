@@ -4,6 +4,7 @@
  *  @licence MIT
 */
 
+#include "Core/Reflection/Class.hpp"
 #include <generator/generators/CSharpModuleGenerator.hpp>
 
 #include <analyzer/Analyzer.hpp>
@@ -56,12 +57,12 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
 {
     static const auto noScriptBindingsPredicate = []<class T>(const T& item)
     {
-        return item.GetAttribute("NoScriptBindings").GetBool();
+        return item.GetAttribute(Attributes::g_attrNoScriptBindings).GetBool();
     };
 
     static const auto noScriptBindingsPredicateInv = []<class T>(const T& item)
     {
-        return !item.GetAttribute("NoScriptBindings").GetBool();
+        return !item.GetAttribute(Attributes::g_attrNoScriptBindings).GetBool();
     };
 
     {
@@ -72,12 +73,12 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
         {
             const ClassDefinition& cls = pair.second;
 
-            if (noScriptBindingsPredicate(cls))
+            if (analyzer.HasAttrInHierarchy(cls, Attributes::g_attrNoScriptBindings))
             {
                 continue;
             }
 
-            if (const ClassAttributeValue& attr = cls.GetAttribute("OnlyLanguages"); attr.IsValid() && attr.IsString())
+            if (const ClassAttributeValue& attr = cls.GetAttribute(Attributes::g_attrOnlyLanguages); attr.IsValid() && attr.IsString())
             {
                 if (!CheckAttrCSV(attr, "csharp"))
                 {
@@ -131,12 +132,12 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
             }
         });
 
-        if (noScriptBindingsPredicate(cls))
+        if (analyzer.HasAttrInHierarchy(cls, Attributes::g_attrNoScriptBindings))
         {
             continue;
         }
 
-        if (const ClassAttributeValue& attr = cls.GetAttribute("OnlyLanguages"); attr.IsValid() && attr.IsString())
+        if (const ClassAttributeValue& attr = cls.GetAttribute(Attributes::g_attrOnlyLanguages); attr.IsValid() && attr.IsString())
         {
             if (!CheckAttrCSV(attr, "csharp"))
             {
@@ -162,7 +163,7 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
                 continue;
             }
 
-            if (const ClassAttributeValue& attr = member.GetAttribute("OnlyLanguages"); attr.IsValid() && attr.IsString())
+            if (const ClassAttributeValue& attr = member.GetAttribute(Attributes::g_attrOnlyLanguages); attr.IsValid() && attr.IsString())
             {
                 if (!CheckAttrCSV(attr, "csharp"))
                 {
@@ -172,7 +173,7 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
 
             String managedName = member.friendlyName;
 
-            if (const ClassAttributeValue& attr = member.GetAttribute("ManagedName"); attr.IsValid() && attr.IsString())
+            if (const ClassAttributeValue& attr = member.GetAttribute(Attributes::g_attrManagedName); attr.IsValid() && attr.IsString())
             {
                 managedName = attr.GetString();
             }

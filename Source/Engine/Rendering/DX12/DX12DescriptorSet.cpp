@@ -199,14 +199,24 @@ RendererResult DX12DescriptorSet::Create()
     uint32 viewCount = 0;
     for (const ViewEntry& entry : viewEntries)
     {
-        m_viewBindingToHeapOffset.Set(entry.binding, viewCount);
+        if (entry.binding >= m_viewBindingToHeapOffset.Size())
+        {
+            m_viewBindingToHeapOffset.Resize(entry.binding + 1);
+        }
+
+        m_viewBindingToHeapOffset[entry.binding] = viewCount;
         viewCount += entry.count;
     }
 
     uint32 samplerCount = 0;
     for (const SamplerEntry& entry : samplerEntries)
     {
-        m_samplerBindingToHeapOffset.Set(entry.binding, samplerCount);
+        if (entry.binding >= m_samplerBindingToHeapOffset.Size())
+        {
+            m_samplerBindingToHeapOffset.Resize(entry.binding + 1);
+        }
+
+        m_samplerBindingToHeapOffset[entry.binding] = samplerCount;
         samplerCount += entry.count;
     }
 
@@ -683,10 +693,9 @@ void DX12DescriptorSet::Update(bool force)
 
 D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorSet::GetViewCpuHandle(uint32 binding) const
 {
-    auto it = m_viewBindingToHeapOffset.Find(binding);
-    Assert(it != m_viewBindingToHeapOffset.End(), "Binding {} not found in view binding map", binding);
+    AssertDebug(binding < m_viewBindingToHeapOffset.Size());
 
-    const uint32 offset = it->second;
+    const uint32 offset = m_viewBindingToHeapOffset[binding];
     const uint32 incrementSize = RI.GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
     D3D12_CPU_DESCRIPTOR_HANDLE handle = m_viewDescriptorHandle.cpuHandle;
@@ -697,10 +706,9 @@ D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorSet::GetViewCpuHandle(uint32 binding) 
 
 D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorSet::GetSamplerCpuHandle(uint32 binding) const
 {
-    auto it = m_samplerBindingToHeapOffset.Find(binding);
-    Assert(it != m_samplerBindingToHeapOffset.End(), "Binding {} not found in sampler binding map", binding);
+    AssertDebug(binding < m_samplerBindingToHeapOffset.Size());
 
-    const uint32 offset = it->second;
+    const uint32 offset = m_samplerBindingToHeapOffset[binding];
     const uint32 incrementSize = RI.GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
     D3D12_CPU_DESCRIPTOR_HANDLE handle = m_samplerDescriptorHandle.cpuHandle;

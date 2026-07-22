@@ -43,7 +43,6 @@ namespace Hyperion {
 static constexpr bool UseTemporalBlending = false;
 static constexpr TextureFormat SSRColorFormat = TextureFormat::RGBA16F;
 static constexpr TextureFormat SSRTraceFormat = TextureFormat::RGBA16F; // store hit UVs in RG, and mask / alpha in B
-static constexpr double TraceResolutionScale = 0.65;
 
 static EngineStatGpuTimer s_statSSRTracePass("Rendering/GPU/SSRTrace");
 static EngineStatGpuTimer s_statSSRColorPass("Rendering/GPU/SSRColor");
@@ -51,12 +50,11 @@ static EngineStatGpuTimer s_statSSRColorPass("Rendering/GPU/SSRColor");
 CVar<bool> cvSSRConeTracing { "Rendering.SSR.ConeTracing", true };
 CVar<bool> cvSSRRoughnessScattering { "Rendering.SSR.RoughnessScattering", false };
 
-CVar<float> cvSSRResolutionScale { "Rendering.SSR.ResolutionScale", 1.0f };
-
 CVar<float> cvSSRRayStep { "Rendering.SSR.RayStep", 0.2f };
 CVar<float> cvSSRDistanceBias { "Rendering.SSR.DistanceBias", 0.01f };
 CVar<float> cvSSRThickness { "Rendering.SSR.Thickness", 0.2f };
 CVar<float> cvSSRMaxDistance { "Rendering.SSR.MaxDistance", 1000.0f };
+CVar<float> cvSSRTraceResolutionScale { "Rendering.SSR.TraceResolutionScale", 0.65 };
 CVar<uint32> cvSSRMaxIterations { "Rendering.SSR.MaxIterations", 256 };
 
 struct SSRConstants
@@ -76,11 +74,10 @@ struct SSRConstants
 
 #pragma region SSRPass
 
-SSRPass::SSRPass(GBuffer* gbuffer, const GpuImageViewRef& mipChainImageView)
-    : m_gbuffer(gbuffer),
-      m_mipChainImageView(mipChainImageView),
-      m_writeUvs(nullptr),
-      m_sampleGbuffer(nullptr),
+SSRPass::SSRPass(Vec2u extent, GBuffer* gbuffer)
+    : FullScreenPass(TextureFormat::R8, extent, gbuffer, FSP_EXTERNAL_RENDERTARGET),
+      m_tracePass(nullptr),
+      m_samplePass(nullptr),
       m_isRendered(false)
 {
     SetPassName(NAME("SSR"));
@@ -88,8 +85,8 @@ SSRPass::SSRPass(GBuffer* gbuffer, const GpuImageViewRef& mipChainImageView)
 
 SSRPass::~SSRPass()
 {
-    delete m_writeUvs;
-    delete m_sampleGbuffer;
+    delete m_tracePass;
+    delete m_samplePass;
 
     EnqueueDeletion(std::move(m_uvsTexture));
     EnqueueDeletion(std::move(m_sampledResultTexture));
@@ -150,16 +147,16 @@ void SSRPass::CreatePasses()
 
         Check(writeUVsFramebuffer->Create());
 
-        delete m_writeUvs;
+        delete m_tracePass;
 
-        m_writeUvs = new FullScreenPass(
+        m_tracePass = new FullScreenPass(
             ShaderDesc(NAME("SSRWriteUVs"), shaderProperties),
             writeUVsFramebuffer,
             m_uvsTexture->GetFormat(),
             m_uvsTexture->GetExtent().GetXY(),
             nullptr);
 
-        m_writeUvs->Create();
+        m_tracePass->Create();
     }
 
     // Sample pass - renders to m_sampledResultTexture
@@ -188,16 +185,16 @@ void SSRPass::CreatePasses()
 
         Check(sampleGBufferFramebuffer->Create());
 
-        delete m_sampleGbuffer;
+        delete m_samplePass;
 
-        m_sampleGbuffer = new FullScreenPass(
+        m_samplePass = new FullScreenPass(
             ShaderDesc(NAME("SSRSampleGBuffer"), shaderProperties),
             sampleGBufferFramebuffer,
             SSRColorFormat,
             m_sampledResultTexture->GetExtent().GetXY(),
             nullptr);
 
-        m_sampleGbuffer->Create();
+        m_samplePass->Create();
     }
 }
 
@@ -205,25 +202,20 @@ void SSRPass::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
 
-    const Vec2u renderTargetExtent = Vec2u(Vec2f(renderSetup.view->GetOutputTarget().GetFramebuffer()->GetExtent()) * cvSSRResolutionScale.Get());
-
     // Check if we need to recreate textures and passes
-    const bool needsRecreate = !m_writeUvs
-        || !m_sampleGbuffer
+    const bool needsRecreate = !m_tracePass
+        || !m_samplePass
         || !m_uvsTexture
-        || !m_sampledResultTexture
-        || m_currentExtent != renderTargetExtent;
+        || !m_sampledResultTexture;
 
     if (needsRecreate)
     {
-        m_currentExtent = renderTargetExtent;
-
         // Clean up old resources
-        delete m_writeUvs;
-        m_writeUvs = nullptr;
+        delete m_tracePass;
+        m_tracePass = nullptr;
 
-        delete m_sampleGbuffer;
-        m_sampleGbuffer = nullptr;
+        delete m_samplePass;
+        m_samplePass = nullptr;
 
         if (m_temporalBlending)
         {
@@ -234,7 +226,7 @@ void SSRPass::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
         m_uvsTexture = MakeHandle<Texture>(TextureDesc {
             TextureType::Texture2D,
             SSRTraceFormat,
-            Vec3u { uint32(MathUtil::Ceil(m_currentExtent.x * TraceResolutionScale)), uint32(MathUtil::Ceil(m_currentExtent.y * TraceResolutionScale)), 1 },
+            Vec3u(Vec2u(Vec2f(m_extent) * cvSSRTraceResolutionScale.Get()), 1),
             TFM_NEAREST,
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
@@ -248,7 +240,7 @@ void SSRPass::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
         m_sampledResultTexture = MakeHandle<Texture>(TextureDesc {
             TextureType::Texture2D,
             SSRColorFormat,
-            Vec3u(m_currentExtent, 1),
+            Vec3u(m_extent, 1),
             TFM_NEAREST,
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
@@ -263,7 +255,7 @@ void SSRPass::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
         if (UseTemporalBlending)
         {
             m_temporalBlending = MakeUnique<TemporalBlending>(
-                m_currentExtent,
+                m_extent,
                 TextureFormat::RGBA8,
                 TemporalBlendTechnique::TECHNIQUE_1,
                 0.95,
@@ -292,7 +284,7 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
 
     { // Update cbuffer data
         SSRConstants* constants = RI.cbufferAllocator->Allocate<SSRConstants>();
-        constants->dimensions = Vec4u(m_currentExtent, 0, 0);
+        constants->dimensions = Vec4u(m_extent, 0, 0);
         constants->rayStep = cvSSRRayStep.Get();
         constants->numIterations = cvSSRMaxIterations.Get();
         constants->maxRayDistance = cvSSRMaxDistance.Get();
@@ -324,14 +316,14 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
     
     const bool useMipChain = cvSSRConeTracing.Get();
 
-    GpuImageView* sampleSourceTargetView = useMipChain
-        ? (m_mipChainImageView ? m_mipChainImageView : RI.placeholderData->GetImageView2D1x1R8())
+    GpuImageView* sampleSourceTargetView = useMipChain && dpd->mipChain.IsValid()
+        ? RI.textureViewCache->GetOrCreate(dpd->mipChain)
         : m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::Color)->GetImageView();
 
     { // PASS 1 -- write UVs
         ENGINE_STAT_GPU_SCOPE(&s_statSSRTracePass);
 
-        m_writeUvs->Begin(frame, renderSetup);
+        m_tracePass->Begin(frame, renderSetup);
 
         uint32 uniformIndex = 0;
 
@@ -345,8 +337,8 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
         cr << SetShaderUniform(uniformIndex++, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
         cr << SetShaderUniform(uniformIndex++, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer);
 
-        m_writeUvs->RenderFullScreenQuad(frame, renderSetup);
-        m_writeUvs->End(frame, renderSetup);
+        m_tracePass->RenderFullScreenQuad(frame, renderSetup);
+        m_tracePass->End(frame, renderSetup);
 
         cr << InsertBarrier(m_uvsTexture->GetGpuImage(), RS_SHADER_RESOURCE);
     }
@@ -354,7 +346,7 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
     { // PASS 2 -- fill color buffer using mip chain to sample based on roughness
         ENGINE_STAT_GPU_SCOPE(&s_statSSRColorPass);
 
-        m_sampleGbuffer->Begin(frame, renderSetup);
+        m_samplePass->Begin(frame, renderSetup);
 
         uint32 uniformIndex = 0;
 
@@ -369,8 +361,8 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
         cr << SetShaderUniform(uniformIndex++, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer);
         cr << SetShaderUniform(uniformIndex++, "UVImage"_sh, RI.textureViewCache->GetOrCreate(m_uvsTexture));
 
-        m_sampleGbuffer->RenderFullScreenQuad(frame, renderSetup);
-        m_sampleGbuffer->End(frame, renderSetup);
+        m_samplePass->RenderFullScreenQuad(frame, renderSetup);
+        m_samplePass->End(frame, renderSetup);
     }
 
     if (UseTemporalBlending && m_temporalBlending != nullptr)
