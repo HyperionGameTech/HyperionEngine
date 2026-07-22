@@ -43,7 +43,7 @@ static void InitMemoryPools()
 {
     g_objectPool = new Pool(ObjectPoolBlockSize); // Defined in core lib, initialized here
     g_scenePool = new Pool(ScenePoolBlockSize);
-    g_assetPool = new Pool(AssetPoolBlockSize);
+    g_assetPool = new Pool(AssetPoolBlockSize, PF_THREAD_SAFE | PF_FALLBACK);
     g_streamingPool = new Pool(StreamingPoolBlockSize);
 
     g_sceneArena = new Arena(SceneArenaSize);

@@ -137,11 +137,13 @@ namespace Hyperion.Editor.ViewModels
         {
             // Capture old value for undo (we are already on the sim thread).
             object? oldValueObj = null;
+            bool oldValueCaptured = false;
 
             try
             {
                 using BoxedValue old = GetPropertyValue();
                 oldValueObj = old.GetValue();
+                oldValueCaptured = true;
             }
             catch
             {
@@ -150,7 +152,7 @@ namespace Hyperion.Editor.ViewModels
 
             object? newValueObj = newValue.GetValue();
 
-            if (oldValueObj != null && oldValueObj.Equals(newValueObj))
+            if (oldValueCaptured && Equals(oldValueObj, newValueObj))
             {
                 return;
             }
@@ -168,9 +170,9 @@ namespace Hyperion.Editor.ViewModels
             Action? capturedPostWrite = PostWriteCallback;
             InspectorPropertyViewModelBase capturedThis = this;
 
-            void ApplyValue(object? valueObj)
+            void ApplyValue(object? valueObj, bool hasValue)
             {
-                if (valueObj == null)
+                if (!hasValue)
                 {
                     return;
                 }
@@ -204,8 +206,8 @@ namespace Hyperion.Editor.ViewModels
 
             EditorAction action = new EditorAction(
                 actionText,
-                execute: (_, _) => ApplyValue(newValueObj),
-                revert:  (_, _) => ApplyValue(oldValueObj)
+                execute: (_, _) => ApplyValue(newValueObj, hasValue: true),
+                revert:  (_, _) => ApplyValue(oldValueObj, hasValue: oldValueCaptured)
             );
 
             project.ActionStack.PushAction(action);

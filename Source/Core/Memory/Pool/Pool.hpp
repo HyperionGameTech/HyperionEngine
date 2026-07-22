@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Core/Containers/List.hpp>
+#include <Core/Containers/Map.hpp>
 
 #include <Core/Threading/Util/ThreadId.hpp>
 #include <Core/Threading/AtomicFlag.hpp>
@@ -28,6 +29,7 @@ enum PoolFlags : uint32
 {
     PF_NONE = AF_NONE,
     PF_THREAD_SAFE = AF_THREAD_SAFE,
+    PF_FALLBACK = 2, //!< Fallback to system memory allocator if an allocation fails (larger than block size)
 
     PF_DEFAULT = PF_THREAD_SAFE
 };
@@ -122,6 +124,8 @@ protected:
     size_t m_blockSize;
     EnumFlags<PoolFlags> m_flags;
     AtomicFlag m_atomicFlag;
+
+    Map<void*, size_t> m_fallbackAllocations;
 
     const ThreadId& m_ownerThreadId;
 };

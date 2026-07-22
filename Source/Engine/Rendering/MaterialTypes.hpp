@@ -39,7 +39,6 @@ enum class MaterialTextureKey : uint64
     AmbientOcclusion = 0x20
 };
 
-#pragma pack(push, 1)
 
 HYP_STRUCT()
 class MaterialParameters
@@ -74,24 +73,21 @@ public:
     HYP_FIELD(Property = "EmissiveIntensity", Editor, Serialize)
     float emissiveIntensity;
 
-    HYP_FIELD(Property = "UserParams", Serialize)
+    HYP_FIELD(Property = "UserParams", Editor, Serialize)
     Vec4f userParams;
 
-    HYP_FIELD(Property = "Unlit", Serialize)
+    HYP_FIELD(Property = "Unlit", Editor, Serialize)
     bool unlit;
 
+    enum NoInitTag { NoInit };
+
     MaterialParameters()
-        : albedo(1.0f),
-          metalness(0.0f),
-          roughness(1.0f),
-          alphaThreshold(0.0f),
-          parallaxHeightScale(0.02f),
-          transmission(0.0f),
-          ior(1.5f),
-          emissiveColor(),
-          emissiveIntensity(0.0f),
-          userParams(0.0f),
-          unlit(false)
+    {
+        static const MaterialParameters s_defaults = Defaults();
+        memcpy(this, &s_defaults, sizeof(MaterialParameters));
+    }
+
+    explicit MaterialParameters(NoInitTag)
     {
     }
 
@@ -112,11 +108,23 @@ public:
     {
         return HashCode::GetHashCode((const ubyte*)this, (const ubyte*)this + sizeof(MaterialParameters));
     }
+
+    static MaterialParameters Defaults()
+    {
+        MaterialParameters defaults(NoInit);
+        memset(&defaults, 0, sizeof(MaterialParameters));
+
+        defaults.albedo = 1.0f;
+        defaults.roughness = 1.0f;
+        defaults.parallaxHeightScale = 0.02f;
+        defaults.ior = 1.5f;
+
+        return defaults;
+    }
 };
 
 static_assert(std::is_trivially_destructible_v<MaterialParameters> && std::is_trivially_copyable_v<MaterialParameters>);
 
-#pragma pack(pop)
 
 HYP_STRUCT()
 class MaterialTextures
@@ -236,7 +244,7 @@ public:
     HYP_DEF_STL_BEGIN_END(m_values.Begin(), m_values.End());
 
 private:
-    HYP_FIELD(Serialize)
+    HYP_FIELD(Property = "Values", Serialize, Editor)
     FixedArray<Handle<Texture>, MaxTextures> m_values;
 };
 

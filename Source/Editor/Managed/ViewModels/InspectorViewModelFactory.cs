@@ -17,6 +17,7 @@ namespace Hyperion.Editor.ViewModels
         private const string Vec4uName = "Vec4u";
         private const string TransformName = "Transform";
         private const string BoundingBoxName = "BoundingBox";
+        private const string MaterialTexturesName = "MaterialTextures";
         private const string BoolName = "bool";
 
         public static InspectorPropertyViewModelBase Create(ObjectBase? target, Property property, bool isReadOnly, int depth = 0, Action? postWriteCallback = null)
@@ -90,6 +91,10 @@ namespace Hyperion.Editor.ViewModels
             else if (typeInfo.Class?.Name == BoundingBoxName)
             {
                 vm = new BoundingBoxPropertyViewModel(target, property, isReadOnly);
+            }
+            else if (typeInfo.Class?.Name == MaterialTexturesName)
+            {
+                vm = new MaterialTexturesPropertyViewModel(target, property, isReadOnly, depth);
             }
             else if (typeInfo.IsFundamental && typeInfo.IsIntegral && typeInfo.Name == BoolName)
             {
@@ -188,6 +193,10 @@ namespace Hyperion.Editor.ViewModels
             {
                 vm = new BoundingBoxPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly);
             }
+            else if (typeInfo.Class?.Name == MaterialTexturesName)
+            {
+                vm = new MaterialTexturesPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, depth);
+            }
             else if (typeInfo.IsFundamental && typeInfo.IsIntegral && typeInfo.Name == BoolName)
             {
                 vm = new BoolPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly);
@@ -284,6 +293,10 @@ namespace Hyperion.Editor.ViewModels
             else if (typeInfo.Class?.Name == BoundingBoxName)
             {
                 vm = new BoundingBoxPropertyViewModel(label, typeInfo, getter, setter, isReadOnly);
+            }
+            else if (typeInfo.Class?.Name == MaterialTexturesName)
+            {
+                vm = new MaterialTexturesPropertyViewModel(label, typeInfo, getter, setter, isReadOnly, depth);
             }
             else if (typeInfo.IsFundamental && typeInfo.IsIntegral && typeInfo.Name == BoolName)
             {

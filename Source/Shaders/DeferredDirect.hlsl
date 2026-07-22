@@ -195,8 +195,17 @@ PSOutput PSMain(PSInput input)
     float4 position = mul(camera.invViewMat, positionVS);
     position /= position.w;
 
+    const uint materialBits = GBufferMaterialTexture.Load(int3(pixelCoord, 0));
+
     GBufferMaterialParams materialParams;
-    GBufferUnpackMaterialParams(normalSample.x, 0 /* don't need mask */, materialParams);
+    GBufferUnpackMaterialParams(normalSample.x, materialBits >> 28u, materialParams);
+
+    if ((materialParams.mask & OBJECT_MASK_UNLIT) != 0)
+    {
+        output.output_color = float4(0.0, 0.0, 0.0, 0.0);
+
+        return output;
+    }
 
     const float roughness = materialParams.roughness;
     const float metalness = materialParams.metalness;

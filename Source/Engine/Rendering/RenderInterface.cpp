@@ -1767,6 +1767,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         AssertDebug(imageView != nullptr, "Invalid image view for uniform {}", uniform.name);
 
         GpuImage* image = imageView->GetImage();
+        AssertDebug(image != nullptr);
 
         const ShaderRegister reg = uniformMappings[uniformIndex].reg;
         AssertDebug(reg == ShaderRegister::SRV || reg == ShaderRegister::UAV);

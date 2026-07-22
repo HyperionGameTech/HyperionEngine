@@ -265,11 +265,10 @@ namespace Hyperion.Editor.ViewModels
             Node draggedNode = dragged.Node;
             Node newParentNode = newParent.Node;
 
-            // @FIXME - Use IDs instead of names to avoid issues, could run into issues with duplicate names or name changes
             EngineManager.EditorGame?.EditorSubsystem?.ExecuteCommandByName(
                 new Name("EditorCommandReparentNode"),
-                draggedNode.Name.ToString(),
-                newParentNode.Name.ToString());
+                draggedNode.NativeAddress.ToString(),
+                newParentNode.NativeAddress.ToString());
 
             return true;
         }

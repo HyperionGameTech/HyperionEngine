@@ -744,18 +744,8 @@ namespace Hyperion.Editor.ViewModels
 
             _ = EngineManager.PostToSimThread(() =>
             {
-                try
-                {
-                    _editorSubsystem.SetFocusedNode(node!, false);
-
-                    // Normal click replaces the entire selection with just this node
-                    _editorSubsystem.ClearSelection();
-                    _editorSubsystem.AddToSelection(node!);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Log(LogLevel.Warning, $"Failed to set focused node: {ex.Message}");
-                }
+                _editorSubsystem.SetSelectedNodes(new Node[] { node! });
+                _editorSubsystem.SetFocusedNode(node!, false);
             });
 
             bool isRootNode = SceneHierarchy.IsRootNode(node);
@@ -828,20 +818,8 @@ namespace Hyperion.Editor.ViewModels
             // Push the range selection to the engine on the sim thread
             _ = EngineManager.PostToSimThread(() =>
             {
-                try
-                {
-                    _editorSubsystem.SetFocusedNode(clickedNodeRef, false);
-
-                    _editorSubsystem.ClearSelection();
-                    foreach (Node node in nodesInRange)
-                    {
-                        _editorSubsystem.AddToSelection(node);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.Log(LogLevel.Warning, $"Failed to handle shift-click range selection: {ex.Message}");
-                }
+                _editorSubsystem.SetSelectedNodes(new Node[] { clickedNodeRef });
+                _editorSubsystem.SetFocusedNode(clickedNodeRef, false);
             });
 
             // Update the inspector for the new focused node
@@ -1065,6 +1043,31 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
+        public void SelectSingleNodeExclusive(NodeViewModel clicked)
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            Node? clickedNode = clicked.Node;
+
+            SceneHierarchy.SelectedNodes.Clear();
+            SceneHierarchy.SelectedNodes.Add(clicked);
+            SceneHierarchy.NotifySelectedNodesChanged();
+            UpdateCopyDeleteHeaders();
+
+            if (clickedNode != null)
+            {
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    _editorSubsystem.SetSelectedNodes(new Node[] { clickedNode });
+                    _editorSubsystem.SetFocusedNode(clickedNode, false);
+                });
+
+                bool isRootNode = SceneHierarchy.IsRootNode(clickedNode);
+                Inspector.SetSelectedNode(clickedNode, SceneHierarchy.Scene, isRootNode);
+                CanAddInstance = clickedNode is Entity;
+            }
+        }
+
         public void HandleTreeSelectionChanged(List<NodeViewModel> added, List<NodeViewModel> removed)
         {
             Dispatcher.UIThread.VerifyAccess();
@@ -1083,34 +1086,7 @@ namespace Hyperion.Editor.ViewModels
             if (isReplace)
             {
                 // Normal click: replace selection with the single clicked node
-                NodeViewModel clicked = added[0];
-                Node? clickedNode = clicked.Node;
-
-                SceneHierarchy.SelectedNodes.Clear();
-                SceneHierarchy.SelectedNodes.Add(clicked);
-                SceneHierarchy.NotifySelectedNodesChanged();
-                UpdateCopyDeleteHeaders();
-
-                if (clickedNode != null)
-                {
-                    _ = EngineManager.PostToSimThread(() =>
-                    {
-                        try
-                        {
-                            _editorSubsystem.SetFocusedNode(clickedNode, false);
-                            _editorSubsystem.ClearSelection();
-                            _editorSubsystem.AddToSelection(clickedNode);
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Log(LogLevel.Warning, $"Failed to set selection: {ex.Message}");
-                        }
-                    });
-
-                    bool isRootNode = SceneHierarchy.IsRootNode(clickedNode);
-                    Inspector.SetSelectedNode(clickedNode, SceneHierarchy.Scene, isRootNode);
-                    CanAddInstance = clickedNode is Entity;
-                }
+                SelectSingleNodeExclusive(added[0]);
             }
             else if (isToggleAdd)
             {
@@ -1169,13 +1145,15 @@ namespace Hyperion.Editor.ViewModels
             }
             else
             {
-                // Bulk change (programmatic): sync SelectedNodes to match tree selection
                 SceneHierarchy.SelectedNodes.Clear();
+                
                 foreach (NodeViewModel vm in added)
                 {
                     SceneHierarchy.SelectedNodes.Add(vm);
                 }
+                
                 SceneHierarchy.NotifySelectedNodesChanged();
+                
                 UpdateCopyDeleteHeaders();
 
                 // Sync to engine
@@ -1187,23 +1165,18 @@ namespace Hyperion.Editor.ViewModels
                 if (nodes.Count > 0 && added.Count > 0)
                 {
                     Node? first = nodes[0];
+
                     _ = EngineManager.PostToSimThread(() =>
                     {
-                        try
+                        _editorSubsystem.ClearSelection();
+                        if (first != null)
+                        {
+                            _editorSubsystem.SetSelectedNodes(new Node[] { first });
+                            _editorSubsystem.SetFocusedNode(first, false);
+                        }
+                        else
                         {
                             _editorSubsystem.ClearSelection();
-                            foreach (Node node in nodes)
-                            {
-                                _editorSubsystem.AddToSelection(node);
-                            }
-                            if (first != null)
-                            {
-                                _editorSubsystem.SetFocusedNode(first, false);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Log(LogLevel.Warning, $"Failed to sync bulk selection: {ex.Message}");
                         }
                     });
                 }

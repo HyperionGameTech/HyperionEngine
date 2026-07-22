@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Core/Memory/Pimpl.hpp>
+#include <Core/Reflection/ObjId.hpp>
 
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/AccelerationStructure.hpp>
@@ -32,13 +33,14 @@ public:
 
     ~BLASCache();
 
-    /// pOutKey is an optional out param
-    BottomLevelAS* TryGetBLAS(Entity* entity, uint64* pOutKey = nullptr);
-
     void GetOrCreateBLAS(
-        Entity* entity, Mesh* mesh, Material* material,
+        ObjId<Entity> entityId, Mesh* mesh, Material* material,
         uint64& outNewKey, uint64& outOldKey,
         BottomLevelAS*& outBlas);
+
+    static uint64 MakeKey(ObjId<Entity> entityId, ObjId<Mesh> meshId, ObjId<Material> materialId);
+
+    bool RemoveBLAS(ObjId<Entity> entityId, uint64 expectedKey);
 
     uint32 TranslateBLASKeyToStorageId(uint64 key) const;
 

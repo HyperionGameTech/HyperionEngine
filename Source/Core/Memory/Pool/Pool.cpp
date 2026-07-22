@@ -36,18 +36,30 @@ HYP_NODISCARD void* Pool::Allocate(size_t size, size_t alignment)
         AssertOnThread(m_ownerThreadId, "Pool allocation from wrong thread!");
     }
     
-    void* p = m_tlsf.Allocate(size, alignment);
+    void* p = nullptr;
 
-    if (!p)
+    if ((m_flags & PF_FALLBACK) && size > m_blockSize)
     {
-        // make a new block and hand it to the TLSF
-        m_blocks.EmplaceBack(m_blockSize);
+        p = Memory::AllocateAligned(size, alignment);
+        Assert(p != nullptr, "Failed to allocate {} bytes from the system allocator (fallback)", size);
 
-        Block& newBlock = m_blocks.Back();
-        m_tlsf.AddPool(newBlock.memory, m_blockSize);
-
+        m_fallbackAllocations.Insert(p, size);
+    }
+    else
+    {
         p = m_tlsf.Allocate(size, alignment);
-        Assert(p != nullptr, "Failed to allocate from newly created memory block! Out of system memory or pool overflow!");
+
+        if (!p)
+        {
+            // make a new block and hand it to the TLSF
+            m_blocks.EmplaceBack(m_blockSize);
+
+            Block& newBlock = m_blocks.Back();
+            m_tlsf.AddPool(newBlock.memory, m_blockSize);
+
+            p = m_tlsf.Allocate(size, alignment);
+            Assert(p != nullptr, "Failed to allocate from newly created memory block! Out of system memory or pool overflow!");
+        }
     }
 
     if (m_flags & PF_THREAD_SAFE)
@@ -74,7 +86,14 @@ void Pool::Free(void* ptr)
         AssertOnThread(m_ownerThreadId, "Freeing from wrong thread!");
     }
 
-    m_tlsf.Free(ptr);
+    if ((m_flags & PF_FALLBACK) && m_fallbackAllocations.Erase(ptr))
+    {
+        Memory::FreeAligned(ptr);
+    }
+    else
+    {
+        m_tlsf.Free(ptr);
+    }
 
     if (m_flags & PF_THREAD_SAFE)
     {
@@ -100,6 +119,13 @@ void Pool::Reset()
 
     m_blocks.Clear();
 
+    for (const auto& it : m_fallbackAllocations)
+    {
+        Memory::FreeAligned(it.first);
+    }
+
+    m_fallbackAllocations.Clear();
+
     if (m_flags & PF_THREAD_SAFE)
     {
         m_atomicFlag.Release();
@@ -114,6 +140,13 @@ MemoryMetrics Pool::GetMemoryMetrics() const
     }
 
     MemoryMetrics metrics = m_tlsf.GetMemoryMetrics();
+
+    for (const auto& it : m_fallbackAllocations)
+    {
+        metrics[MemoryMetrics::MM_BYTES_COMMITTED] += it.second;
+        metrics[MemoryMetrics::MM_BYTES_USED] += it.second;
+        ++metrics[MemoryMetrics::MM_ALLOCATIONS_ACTIVE];
+    }
 
     if (m_flags & PF_THREAD_SAFE)
     {

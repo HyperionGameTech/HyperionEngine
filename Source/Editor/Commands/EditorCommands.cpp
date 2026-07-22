@@ -55,6 +55,7 @@
 #include <System/OpenFileDialog.hpp>
 #include <System/SaveFileDialog.hpp>
 #include <System/SelectFolderDialog.hpp>
+#include <System/MessageBox.hpp>
 
 #include <UI/UISubsystem.hpp>
 #include <UI/Overlays/Overlay.hpp>
@@ -1258,7 +1259,7 @@ public:
 
                 for (const FilePath& file : result.GetValue())
                 {
-                    batch->Add(file.Basename(), FilePath::Relative(file, CoreApi::GetExecutablePath()));
+                    batch->Add(file.Basename(), (CoreApi::GetExecutablePath() / file.ToRelative(CoreApi::GetExecutablePath())).ToCanonical());
                 }
 
                 batch->OnComplete
@@ -1326,10 +1327,22 @@ public:
     {
         AssertOnThread(g_simThread);
 
-        Handle<Node> node = subsystem->GetActiveScene()->FindNodeByName(StringHash(GetArgument(0)));
-        Handle<Node> newParent = subsystem->GetActiveScene()->FindNodeByName(StringHash(GetArgument(1)));
+        uint64 nodeAddress = 0;
+        uint64 newParentAddress = 0;
 
-        if (!node.IsValid() || !newParent.IsValid())
+        if (!StringUtil::Parse(GetArgument(0), &nodeAddress) || !StringUtil::Parse(GetArgument(1), &newParentAddress)
+            || nodeAddress == 0 || newParentAddress == 0)
+        {
+            HYP_LOG(Editor, Error, "EditorCommandReparentNode: invalid node or new parent address");
+            return;
+        }
+
+        Handle<Node> node = MakeStrongRef(reinterpret_cast<Node*>(nodeAddress));
+        Handle<Node> newParent = MakeStrongRef(reinterpret_cast<Node*>(newParentAddress));
+
+        if (!node.IsValid() || !newParent.IsValid()
+            || node->GetScene() != subsystem->GetActiveScene().Get()
+            || newParent->GetScene() != subsystem->GetActiveScene().Get())
         {
             HYP_LOG(Editor, Error, "EditorCommandReparentNode: invalid node or new parent");
             return;
@@ -2198,6 +2211,110 @@ public:
 DEFINE_EDITOR_COMMAND(AddAsset);
 
 #pragma endregion AddAsset
+
+#pragma region DeleteAsset
+
+class EditorCommandDeleteAsset final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandDeleteAsset);
+
+public:
+    virtual ~EditorCommandDeleteAsset() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Delete Asset";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        if (NumArguments() < 2)
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandDeleteAsset requires bucket index and asset name");
+            return;
+        }
+
+        uint32 bucketIndex = 0;
+        if (!StringUtil::Parse(GetArgument(0).Data(), &bucketIndex) || bucketIndex == AssetBuckets::None.GetIndex())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandDeleteAsset: invalid bucket index '{}'", GetArgument(0));
+            return;
+        }
+
+        const String& assetName = GetArgument(1);
+        const AssetBucket& bucket = *AssetBuckets::AllBuckets[bucketIndex];
+
+        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandDeleteAsset: no project loaded");
+            return;
+        }
+
+        Handle<AssetObject> asset = GetCurrentAssetRegistry()->GetAsset(bucket, CreateNameFromDynamicString(assetName));
+        if (!asset.IsValid())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandDeleteAsset: asset '{}' in bucket {} is not valid", assetName, GetAssetBucketName(bucketIndex));
+            return;
+        }
+
+        bool cancelled = false;
+
+        // Show confirm box
+        SystemMessageBox(MessageBoxType::INFO)
+            .Title("Confirm Delete")
+            .Text("Are you sure you want to delete the asset " + assetName + "?")
+            .Button("Delete", []()
+                    {
+                    })
+            .Button("Cancel", [&cancelled]()
+                    {
+                        cancelled = true;
+                    })
+            .Show();
+
+        if (cancelled)
+        {
+            return;
+        }
+
+        const FilePath manifestPath = GetCurrentAssetRegistry()->GetManifestPath(asset->GetPath());
+
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+            HYP_FORMAT("Delete {}", assetName),
+            Proc<EditorActionFunctions()>(
+                [asset, &bucket, manifestPath]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [asset, &bucket, manifestPath](EditorSubsystem* editorSubsystem, EditorProject*)
+                            {
+                                GetCurrentAssetRegistry()->RemoveAsset(bucket, asset->GetName());
+
+                                if (manifestPath.Exists())
+                                {
+                                    manifestPath.Remove();
+                                }
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [asset, &bucket](EditorSubsystem* editorSubsystem, EditorProject*)
+                            {
+                                GetCurrentAssetRegistry()->PutAsset(bucket, asset);
+                            })
+                    };
+                }));
+
+        InitObject(action);
+
+        currentProject->GetActionStack()->PushAction(action);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(DeleteAsset);
+
+#pragma endregion DeleteAsset
 
 #pragma region NewPhysicsShape
 

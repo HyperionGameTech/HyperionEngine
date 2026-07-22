@@ -282,7 +282,8 @@ void AssetManager::RegisterDefaultLoaders()
 
 const AssetLoaderDefinition* AssetManager::GetLoaderDefinition(const FilePath& path, TypeId desiredTypeId)
 {
-    const String extension = StringUtil::GetExtension(path).ToLower();
+    const String pathLower = path.ToLower();
+    const String extension = StringUtil::GetExtension(pathLower);
 
     AssetLoaderBase* loader = nullptr;
 
@@ -306,7 +307,7 @@ const AssetLoaderDefinition* AssetManager::GetLoaderDefinition(const FilePath& p
             }
         }
 
-        if (!extension.Empty() && assetLoaderDefinition.HandlesExtension(path))
+        if (!extension.Empty() && assetLoaderDefinition.HandlesExtension(pathLower))
         {
             rank += 2;
         }

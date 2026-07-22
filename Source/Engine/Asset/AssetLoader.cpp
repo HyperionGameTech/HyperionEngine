@@ -66,8 +66,12 @@ Array<FilePath> AssetLoaderBase::GetTryFilepaths(const FilePath& originalFilepat
 {
     const FilePath currentPath = CoreApi::GetExecutablePath();
 
+    
+
     Array<FilePath> paths {
-        FilePath::Relative(originalFilepath, currentPath)
+        originalFilepath.IsAbsolute()
+            ? originalFilepath
+            : FilePath::Relative(originalFilepath, currentPath)
     };
 
     auto AddRebasedFilepath = [&paths, &originalFilepath, &currentPath](const FilePath& basePath)

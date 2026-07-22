@@ -65,7 +65,7 @@ struct AssetLoaderDefinition
     TypeId loaderTypeId;
     TypeId resultTypeId;
     const Class* resultClass = nullptr;
-    FlatSet<String> extensions;
+    Set<String> extensions;
     Handle<AssetLoaderBase> loader;
 
     HYP_FORCE_INLINE bool HandlesResultType(TypeId typeId) const
@@ -85,7 +85,10 @@ struct AssetLoaderDefinition
 
     HYP_FORCE_INLINE bool IsWildcardExtensionLoader() const
     {
-        return extensions.Empty() || extensions.Find("*") != extensions.End();
+        static constexpr UTF8StringView WildcardStringView = "*";
+        
+        return extensions.Empty()
+            || extensions.FindAs(WildcardStringView) != extensions.End();
     }
 };
 
@@ -231,7 +234,7 @@ public:
         assetLoaderDefinition.loaderTypeId = TypeId::ForType<Loader>();
         assetLoaderDefinition.resultTypeId = TypeId::ForType<ResultType>();
         assetLoaderDefinition.resultClass = GetClass(TypeId::ForType<ResultType>());
-        assetLoaderDefinition.extensions = FlatSet<String>(formatStrings.Begin(), formatStrings.End());
+        assetLoaderDefinition.extensions = Set<String>(formatStrings.Begin(), formatStrings.End());
         assetLoaderDefinition.loader = MakeHandle<Loader>();
 
         m_functorFactories.Set<Loader>([](

@@ -144,6 +144,17 @@
                     <local:InspectorPropertyItemsControl IsVisible="{Binding HasSubProperties}" ItemsSource="{Binding SubProperties}" />
                 </Expander>
             </DataTemplate>
+            <DataTemplate x:DataType="vm:MaterialTexturesPropertyViewModel">
+                <Expander Margin="0,1,0,1" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
+                    <Expander.Header>
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Classes="inspector-name" Text="{Binding Label}" />
+                            <TextBlock Opacity="0.55" Text="{Binding Value}" />
+                        </StackPanel>
+                    </Expander.Header>
+                    <local:InspectorPropertyItemsControl IsVisible="{Binding HasSlots}" ItemsSource="{Binding Slots}" />
+                </Expander>
+            </DataTemplate>
             <DataTemplate x:DataType="vm:StructPropertyViewModel">
                 <Expander Margin="0,1,0,1" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
                     <Expander.Header>

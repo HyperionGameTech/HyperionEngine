@@ -740,6 +740,14 @@
                                                                     TextTrimming="CharacterEllipsis"
                                                                     MaxWidth="72" />
                                                             </StackPanel>
+                                                            <Border.ContextMenu>
+                                                                <ContextMenu>
+                                                                    <MenuItem
+                                                                        Command="{Binding DataContext.ContentBrowser.DeleteAssetCommand, ElementName=Root}"
+                                                                        CommandParameter="{Binding}"
+                                                                        Header="_Delete" />
+                                                                </ContextMenu>
+                                                            </Border.ContextMenu>
                                                         </Border>
                                                     </DataTemplate>
                                                 </ListBox.ItemTemplate>

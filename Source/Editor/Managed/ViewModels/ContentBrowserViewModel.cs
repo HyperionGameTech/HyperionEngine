@@ -75,12 +75,22 @@ namespace Hyperion.Editor.ViewModels
         public ICommand ImportCommand { get; }
         public ICommand NewScriptCommand { get; }
         public ICommand NewPhysicsShapeCommand { get; }
+        public ICommand DeleteAssetCommand { get; }
 
         public ContentBrowserViewModel(EditorSubsystem editorSubsystem)
         {
             _editorSubsystem = editorSubsystem ?? throw new ArgumentNullException(nameof(editorSubsystem));
 
             ImportCommand = new EditorCommand("ImportContent");
+            DeleteAssetCommand = new RelayCommand<AssetObjectViewModel>(asset =>
+            {
+                if (asset?.Bucket == null)
+                {
+                    return;
+                }
+
+                _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandDeleteAsset"), $"{asset.Bucket.BucketIndex} {asset.AssetDesc.Name}");
+            });
             NewScriptCommand = new RelayCommand(() =>
             {
                 _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandNewScript"));

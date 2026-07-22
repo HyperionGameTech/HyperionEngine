@@ -40,6 +40,7 @@ namespace Hyperion.Editor
         private NodeViewModel? _dragCandidate;
         private Point _dragStartPoint;
         private bool _isDragging;
+        private bool _suppressTreeSelectionHandling;
 
         // Content browser drag tracking
         private ListBox? _contentBrowserAssetList;
@@ -176,7 +177,24 @@ namespace Hyperion.Editor
 
             if (point.Properties.IsRightButtonPressed)
             {
-                // Let the TreeView handle context menu natively; do not alter selection
+                var nodeVm = FindNodeViewModelInEventSource(e.Source);
+                if (nodeVm != null
+                    && DataContext is MainWindowViewModel mvm
+                    && !mvm.SceneHierarchy.SelectedNodes.Contains(nodeVm))
+                {
+                    mvm.SelectSingleNodeExclusive(nodeVm);
+
+                    _suppressTreeSelectionHandling = true;
+                    try
+                    {
+                        _sceneTree.SelectedItem = nodeVm;
+                    }
+                    finally
+                    {
+                        _suppressTreeSelectionHandling = false;
+                    }
+                }
+
                 return;
             }
 
@@ -186,7 +204,6 @@ namespace Hyperion.Editor
 
                 if ((keyModifiers & KeyModifiers.Shift) != 0)
                 {
-                    // Shift+click: range selection
                     var nodeVm = FindNodeViewModelInEventSource(e.Source);
                     if (nodeVm != null)
                     {
@@ -357,6 +374,12 @@ namespace Hyperion.Editor
             var mvm = DataContext as MainWindowViewModel;
             if (mvm == null)
                 return;
+
+            if (_suppressTreeSelectionHandling)
+            {
+                mvm.SceneHierarchy.SetSuppressSelectionNotifications(false);
+                return;
+            }
 
             var added = e.AddedItems.OfType<NodeViewModel>().ToList();
             var removed = e.RemovedItems.OfType<NodeViewModel>().ToList();

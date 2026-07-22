@@ -50,7 +50,7 @@ struct StorageIdAndRefCount
 };
 using StorageIdMap = Map<uint64, StorageIdAndRefCount, RenderAllocator>;
 
-using EntityToKeyMap = Map<Entity*, uint64, RenderAllocator>;
+using EntityToKeyMap = Map<ObjId<Entity>, uint64, RenderAllocator>;
 
 class BLASCacheImpl
 {
@@ -81,45 +81,8 @@ BLASCache::BLASCache()
 
 BLASCache::~BLASCache() = default;
 
-BottomLevelAS* BLASCache::TryGetBLAS(Entity* entity, uint64* pOutKey)
-{
-    if (!entity)
-    {
-        return nullptr;
-    }
-
-    AssertDebug(entity->InstanceClass() == Entity::StaticClass());
-
-    auto entityToKeyIt = m_impl->entityToKey.Find(entity);
-    if (entityToKeyIt == m_impl->entityToKey.End())
-    {
-        return nullptr;
-    }
-
-    const uint64 key = entityToKeyIt->second;
-
-    if (pOutKey)
-    {
-        *pOutKey = key;
-    }
-
-    if (key == 0)
-    {
-        return nullptr;
-    }
-
-    auto it = m_impl->entryMap.Find(key);
-
-    if (it == m_impl->entryMap.End())
-    {
-        return nullptr;
-    }
-
-    return it->second.blas;
-}
-
 void BLASCache::GetOrCreateBLAS(
-    Entity* entity, Mesh* mesh, Material* material,
+    ObjId<Entity> entityId, Mesh* mesh, Material* material,
     uint64& outNewKey, uint64& outOldKey,
     BottomLevelAS*& outBlas)
 {
@@ -130,17 +93,15 @@ void BLASCache::GetOrCreateBLAS(
     outOldKey = 0;
     outBlas = nullptr;
 
-    if (!entity || !mesh)
+    if (!entityId.IsValid() || !mesh)
     {
         return;
     }
 
-    AssertDebug(entity->InstanceClass() == Entity::StaticClass()); // needed since we use ToIndex() - if we ever want to change this, we need subclassImpls as used elsewhere.
-
-    const uint64 newKey = MakeBLASKey({ entity->Id(), mesh->Id(), material ? material->Id() : ObjId<Material>() });
+    const uint64 newKey = MakeBLASKey({ entityId, mesh->Id(), material ? material->Id() : ObjId<Material>() });
     outNewKey = newKey;
 
-    auto entityToKeyIt = m_impl->entityToKey.Find(entity);
+    auto entityToKeyIt = m_impl->entityToKey.Find(entityId);
 
     if (entityToKeyIt != m_impl->entityToKey.End())
     {
@@ -170,7 +131,7 @@ void BLASCache::GetOrCreateBLAS(
     }
     else
     {
-        entityToKeyIt = m_impl->entityToKey.Emplace(entity, newKey).first;
+        entityToKeyIt = m_impl->entityToKey.Emplace(entityId, newKey).first;
     }
 
     auto it = m_impl->entryMap.Find(newKey);
@@ -215,6 +176,41 @@ void BLASCache::GetOrCreateBLAS(
     entry.lastUsedFrame = GetFrameCounter();
 
     outBlas = entry.blas;
+}
+
+uint64 BLASCache::MakeKey(ObjId<Entity> entityId, ObjId<Mesh> meshId, ObjId<Material> materialId)
+{
+    return MakeBLASKey({ entityId, meshId, materialId });
+}
+
+bool BLASCache::RemoveBLAS(ObjId<Entity> entityId, uint64 expectedKey)
+{
+    AssertOnThread(g_renderThread);
+
+    if (!entityId.IsValid() || expectedKey == 0)
+    {
+        return false;
+    }
+
+    auto entityToKeyIt = m_impl->entityToKey.Find(entityId);
+
+    if (entityToKeyIt == m_impl->entityToKey.End() || entityToKeyIt->second != expectedKey)
+    {
+        return false;
+    }
+
+    m_impl->entityToKey.Erase(entityToKeyIt);
+
+    auto entryIt = m_impl->entryMap.Find(expectedKey);
+
+    if (entryIt != m_impl->entryMap.End())
+    {
+        EnqueueDeletion(entryIt->second.blas);
+
+        m_impl->entryMap.Erase(entryIt);
+    }
+
+    return true;
 }
 
 uint32 BLASCache::TranslateBLASKeyToStorageId(uint64 key) const

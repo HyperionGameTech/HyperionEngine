@@ -56,21 +56,77 @@ namespace Hyperion
         D32F_S8
     }
 
-    public enum TextureFilterMode : uint
+    [ClassBinding(Name = "TextureFilterMode")]
+    public enum TextureFilterMode : byte
     {
         Nearest,
         Linear,
-        NearestMipmap,
-        LinearMipmap,
+        NearestMipmapLinear,
+        NearestMipmapNearest,
+        LinearMipmapLinear,
         MinMaxMipmap
     }
 
-    public enum TextureType : uint
+    [ClassBinding(Name = "TextureWrapMode")]
+    public enum TextureWrapMode : byte
     {
-        Image2D,
-        Image3D,
-        ImageCube
+        ClampToEdge,
+        ClampToBorder,
+        Repeat
     }
+
+    [ClassBinding(Name = "TextureType")]
+    public enum TextureType : byte
+    {
+        Texture2D,
+        Texture3D,
+        Cubemap,
+        Texture2DArray,
+        CubemapArray,
+
+        Count
+    }
+    [ClassBinding(Name = "ImageUsage")]
+    [Flags]
+    public enum ImageUsage : byte
+    {
+        None = 0x0,
+        Sampled = 0x1,
+        Storage = 0x2,
+        Attachment = 0x4,
+        Blended = 0x8,
+        External = 0x10
+    }
+
+
+    [ClassBinding(Name = "TextureDesc")]
+    public unsafe struct TextureDesc
+    {
+        public const int MaxMips = 16;
+
+        public TextureType type;
+        public TextureFormat format;
+        public Vec3u extent;
+        public TextureFilterMode filterModeMin;
+        public TextureFilterMode filterModeMag;
+        public TextureWrapMode wrapMode;
+        public ushort numLayers;
+        public ImageUsage imageUsage;
+        public fixed uint mipOffsets[MaxMips];
+
+        public TextureDesc()
+        {
+            type = TextureType.Texture2D;
+            format = TextureFormat.RGBA8;
+            extent = new Vec3u(1, 1, 1);
+            filterModeMin = TextureFilterMode.Nearest;
+            filterModeMag = TextureFilterMode.Nearest;
+            wrapMode = TextureWrapMode.ClampToEdge;
+            numLayers = 1;
+            imageUsage = ImageUsage.Sampled;
+        }
+    }
+
 
     [ClassBinding(Name = "Texture")]
     public class Texture : AssetObject

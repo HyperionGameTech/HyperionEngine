@@ -172,6 +172,13 @@ PSOutput PSMain(PSInput input)
     const float metalness = materialParams.metalness;
     const uint mask = materialParams.mask;
 
+    if ((mask & OBJECT_MASK_UNLIT) != 0)
+    {
+        output.output_color = float4(albedo.rgb, 1.0);
+
+        return output;
+    }
+
     const float perceptualRoughness = sqrt(roughness);
 
     float3 N = normalize(normal);

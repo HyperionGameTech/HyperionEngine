@@ -180,7 +180,7 @@ RendererResult DX12Swapchain::Create()
         ComPtr<IDXGIDevice1> dxgiDevice1;
         if (SUCCEEDED(device->QueryInterface(IID_PPV_ARGS(&dxgiDevice1))))
         {
-            HRESULT hr = dxgiDevice1->SetMaximumFrameLatency(1);
+            HRESULT hr = dxgiDevice1->SetMaximumFrameLatency(NumFramesInFlight);
             if (FAILED(hr))
             {
                 HYP_LOG(RenderingBackend, Warning, "Failed to set maximum frame latency: {}", hr);

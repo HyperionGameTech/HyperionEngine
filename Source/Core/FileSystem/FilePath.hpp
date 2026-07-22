@@ -67,51 +67,51 @@ public:
     using Base = String;
 
     FilePath()
-        : String()
+        : Base()
     {
     }
 
-    FilePath(const String::ValueType* str)
-        : String(str)
+    FilePath(const typename Base::CharType* str)
+        : Base(str)
     {
     }
 
     template <int TStringType>
     FilePath(const utilities::StringView<TStringType>& stringView)
-        : String(stringView)
+        : Base(stringView)
     {
     }
 
     FilePath(const String& str)
-        : String(str)
+        : Base(str)
     {
     }
 
     FilePath(String&& str) noexcept
-        : String(std::move(str))
+        : Base(std::move(str))
     {
     }
 
     FilePath(const FilePath& other)
-        : String(other)
+        : Base(other)
     {
     }
 
     FilePath& operator=(const FilePath& other)
     {
-        String::operator=(other);
+        Base::operator=(other);
 
         return *this;
     }
 
     FilePath(FilePath&& other) noexcept
-        : String(std::move(other))
+        : Base(std::move(other))
     {
     }
 
     FilePath& operator=(FilePath&& other) noexcept
     {
-        String::operator=(std::move(other));
+        Base::operator=(std::move(other));
 
         return *this;
     }
@@ -123,7 +123,7 @@ public:
         return FilePath(Base::operator+(other));
     }
 
-    FilePath operator+(const String& other) const
+    FilePath operator+(const Base& other) const
     {
         return FilePath(Base::operator+(other));
     }
@@ -138,7 +138,7 @@ public:
         return *this = Base::operator+=(other);
     }
 
-    FilePath& operator+=(const String& other)
+    FilePath& operator+=(const Base& other)
     {
         return *this = Base::operator+=(other);
     }
@@ -153,12 +153,12 @@ public:
         return Join(Data(), other.Data());
     }
 
-    FilePath operator/(const String& other) const
+    FilePath operator/(const Base& other) const
     {
         return Join(Data(), other.Data());
     }
 
-    FilePath operator/(const char* str) const
+    FilePath operator/(const typename Base::CharType* str) const
     {
         return Join(Data(), str);
     }
@@ -168,12 +168,12 @@ public:
         return *this = Join(Data(), other.Data());
     }
 
-    FilePath& operator/=(const String& other)
+    FilePath& operator/=(const Base& other)
     {
         return *this = Join(Data(), other.Data());
     }
 
-    FilePath& operator/=(const char* str)
+    FilePath& operator/=(const typename Base::CharType* str)
     {
         return *this = Join(Data(), str);
     }
@@ -203,6 +203,23 @@ public:
     CORE_API bool Remove() const;
 
     CORE_API bool Rename(const FilePath& newPath) const;
+
+    bool IsAbsolute() const
+    {
+#ifdef HYP_WINDOWS
+        if (Size() >= 3 && (Data()[0] >= 'A' && Data()[0] <= 'Z' && Data()[1] == ':' && (Data()[2] == '/' || Data()[2] == '\\')))
+        {
+            return true;
+        }
+#endif // HYP_WINDOWS
+
+        if (Empty())
+        {
+            return false;
+        }
+
+        return (Data()[0] == '/' || Data()[0] == '\\');
+    }
 
     static inline FilePath Current()
     {
@@ -246,11 +263,35 @@ public:
             }
         }
 
-        return FilePath(String::Join(argsArray, HYP_FILESYSTEM_SEPARATOR));
+        return FilePath(Base::Join(argsArray, HYP_FILESYSTEM_SEPARATOR));
+    }
+    
+    HYP_NODISCARD FilePath ToRelative(const FilePath& other) const
+    {
+        return Relative(*this, other);
+    }
+    
+    HYP_NODISCARD FilePath ToCanonical() const
+    {
+        containers::FatArray<String, InlineAllocator<8>> res;
+
+        for (const auto& str : Split('/', '\\'))
+        {
+            if (str == ".." && !res.Empty())
+            {
+                res.PopBack();
+            }
+            else if (str != ".")
+            {
+                res.PushBack(str);
+            }
+        }
+
+        return FilePath(Base::Join(res, HYP_FILESYSTEM_SEPARATOR));
     }
 
-    CORE_API Hyperion::containers::Array<FilePath, DynamicAllocator> GetAllFilesInDirectory() const;
-    CORE_API Hyperion::containers::Array<FilePath, DynamicAllocator> GetSubdirectories() const;
+    CORE_API containers::Array<FilePath, DynamicAllocator> GetAllFilesInDirectory() const;
+    CORE_API containers::Array<FilePath, DynamicAllocator> GetSubdirectories() const;
 
     /*! \brief Open the directory for iteration. Returns a DirectoryIterator positioned at the first entry.
      *  On Android, asset paths (prefixed with AndroidAssetPathPrefix) are iterated via the AssetManager.

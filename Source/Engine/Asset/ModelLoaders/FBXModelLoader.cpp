@@ -10,6 +10,7 @@
 
 #include <Rendering/Mesh.hpp>
 #include <Rendering/Material.hpp>
+#include <Rendering/Texture.hpp>
 
 #include <Scene/Entity.hpp>
 #include <Scene/World.hpp>
@@ -20,6 +21,7 @@
 
 #include <Scene/Animation/Bone.hpp>
 #include <Scene/Animation/Skeleton.hpp>
+#include <Scene/Animation/Animation.hpp>
 
 #include <Scene/EntityManager.hpp>
 #include <Scene/Components/MeshComponent.hpp>
@@ -30,6 +32,8 @@
 
 #include <Asset/AssetRegistry.hpp>
 #include <Asset/Assets.hpp>
+#include <Asset/AssetBatch.hpp>
+#include <Asset/Loader.hpp>
 
 #include <Core/Functional/Proc.hpp>
 
@@ -57,6 +61,7 @@ namespace Hyperion {
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Assets);
 
 using FatVertex = TVertex<VT_Simple | VT_Skeletal>;
+using FBXTempAllocator = ThreadAllocator;
 
 #pragma region Helpers
 
@@ -219,8 +224,78 @@ struct FBXDefinitionProperty
 
 struct FBXConnection
 {
+    String type;
     FBXObjectID left;
     FBXObjectID right;
+    String propertyName; // only valid for "OP" connections
+};
+
+struct FBXTexture
+{
+    String name;
+    String filename;
+};
+
+struct FBXMaterial
+{
+    String name;
+    Vec4f diffuseColor { 1.0f, 1.0f, 1.0f, 1.0f };
+    double transparencyFactor = 0.0;
+    Map<String, FBXObjectID> textureConnections; // FBX property name (e.g. "DiffuseColor") -> Texture object id
+};
+
+// 1 second, expressed in FBX's internal time units
+static constexpr int64 FBXTimeUnitsPerSecond = 46186158000LL;
+
+struct FBXAnimCurve
+{
+    Array<int64> keyTimes;
+    Array<float> keyValues;
+
+    float Evaluate(float timeSeconds, float defaultValue) const
+    {
+        if (keyTimes.Empty())
+        {
+            return defaultValue;
+        }
+
+        const int64 timeUnits = int64(double(timeSeconds) * double(FBXTimeUnitsPerSecond));
+
+        if (timeUnits <= keyTimes.Front())
+        {
+            return keyValues.Front();
+        }
+
+        if (timeUnits >= keyTimes.Back())
+        {
+            return keyValues.Back();
+        }
+
+        for (size_t index = 1; index < keyTimes.Size(); ++index)
+        {
+            if (timeUnits <= keyTimes[index])
+            {
+                const int64 prevTime = keyTimes[index - 1];
+                const int64 nextTime = keyTimes[index];
+
+                const float alpha = nextTime != prevTime
+                    ? float(double(timeUnits - prevTime) / double(nextTime - prevTime))
+                    : 0.0f;
+
+                return MathUtil::Lerp(keyValues[index - 1], keyValues[index], alpha);
+            }
+        }
+
+        return keyValues.Back();
+    }
+};
+
+struct FBXAnimCurveNode
+{
+    Map<String, FBXObjectID> curveIds; // component name (e.g. "d|X") -> AnimationCurve id
+
+    FBXObjectID targetNodeId = 0;
+    String targetProperty; // "Lcl Translation", "Lcl Rotation", "Lcl Scaling"
 };
 
 struct FBXCluster
@@ -236,7 +311,7 @@ struct FBXCluster
 
 struct FBXSkin
 {
-    FlatSet<FBXObjectID> clusterIds;
+    Set<FBXObjectID> clusterIds;
 };
 
 struct FBXPoseNode
@@ -263,6 +338,8 @@ struct FBXMesh
 
     Array<uint32> indices;
 
+    Map<int32, Array<uint32>> controlPointToVertices;
+
     BoundingBox bounds;
 
     Optional<Handle<Mesh>> result;
@@ -283,17 +360,6 @@ struct FBXMesh
             meshDesc.lods[0].numVertices = uint32(vertexArrayView.vertexCount);
             meshDesc.lods[0].numIndices = uint32(indices.Size());
 
-            /*bounds = meshData.CalculateAABB();
-
-            const Vec3f boundsMin = bounds.GetMin();
-            const Vec3f boundsCenter = bounds.GetCenter();*/
-
-            //// offset all vertices by the AABB's center
-            // for (Vertex& vertex : meshData.vertexData)
-            //{
-            //     vertex.SetPosition(vertex.GetPosition() - boundsCenter);
-            // }
-
             MeshDataView data {};
             data.vertices[0] = vertexArrayView;
             data.indices[0] = indices.ToByteView();
@@ -301,6 +367,8 @@ struct FBXMesh
             Handle<Mesh> mesh = MakeHandle<Mesh>();
             mesh->SetName(CreateNameFromDynamicString(name));
             mesh->SetMeshData(meshDesc, data);
+
+            bounds = mesh->GetAABB();
 
             result.Set(std::move(mesh));
         }
@@ -319,8 +387,9 @@ struct FBXNode
     FBXObjectID skeletonHolderNodeId = 0;
 
     FBXObjectID meshId = 0;
+    FBXObjectID materialId = 0;
 
-    FlatSet<FBXObjectID> childIds;
+    Set<FBXObjectID> childIds;
 
     Transform localTransform;
 
@@ -339,7 +408,11 @@ struct FBXNodeMapping
         FBXNode,
         FBXCluster,
         FBXSkin,
-        FBXBindPose>
+        FBXBindPose,
+        FBXMaterial,
+        FBXTexture,
+        FBXAnimCurve,
+        FBXAnimCurveNode>
         data;
 };
 
@@ -719,6 +792,27 @@ static FBXVertexMappingType GetVertexMappingType(const FBXObject& object)
     return mappingType;
 }
 
+enum FBXReferenceType
+{
+    REFERENCE_DIRECT,
+    REFERENCE_INDEX_TO_DIRECT
+};
+
+static FBXReferenceType GetReferenceType(const FBXObject& object)
+{
+    String referenceTypeStr;
+
+    if (object.GetFBXPropertyValue<String>(0, referenceTypeStr))
+    {
+        if (referenceTypeStr == "IndexToDirect" || referenceTypeStr == "Index")
+        {
+            return REFERENCE_INDEX_TO_DIRECT;
+        }
+    }
+
+    return REFERENCE_DIRECT;
+}
+
 template <class T>
 static Result ReadBinaryArray(const FBXObject& object, Array<T>& ary)
 {
@@ -744,8 +838,123 @@ static Result ReadBinaryArray(const FBXObject& object, Array<T>& ary)
     return {};
 }
 
+static Result ReadIndexedLayer(
+    const FBXObject& layerElementNode,
+    const char* dataChildName,
+    const char* indexChildName,
+    uint32 numComponents,
+    size_t numPolygonVertices,
+    Array<double>& outFlat)
+{
+    outFlat.Clear();
+
+    if (!layerElementNode)
+    {
+        return {};
+    }
+
+    const FBXVertexMappingType mappingType = GetVertexMappingType(layerElementNode["MappingInformationType"]);
+
+    if (mappingType != BY_POLYGON_VERTEX)
+    {
+        HYP_LOG(Assets, Warning, "FBX layer element mapping type is not supported (only ByPolygonVertex is handled), skipping layer");
+
+        return {};
+    }
+
+    const FBXReferenceType referenceType = GetReferenceType(layerElementNode["ReferenceInformationType"]);
+
+    Array<double> rawData;
+
+    if (const FBXObject& dataNode = layerElementNode[dataChildName])
+    {
+        Result result = ReadBinaryArray<double>(dataNode, rawData);
+
+        if (!result)
+        {
+            return result;
+        }
+    }
+    else
+    {
+        return {};
+    }
+
+    if (rawData.Empty() || numComponents == 0 || rawData.Size() % numComponents != 0)
+    {
+        HYP_LOG(Assets, Warning, "FBX layer element data has an invalid element count, skipping layer");
+
+        return {};
+    }
+
+    if (referenceType == REFERENCE_INDEX_TO_DIRECT)
+    {
+        Array<int32> indices;
+
+        if (const FBXObject& indexNode = layerElementNode[indexChildName])
+        {
+            Result result = ReadBinaryArray<int32>(indexNode, indices);
+
+            if (!result)
+            {
+                return result;
+            }
+        }
+
+        if (indices.Size() != numPolygonVertices)
+        {
+            HYP_LOG(Assets, Warning, "FBX layer element index count ({}) does not match polygon-vertex count ({}), skipping layer",
+                    indices.Size(), numPolygonVertices);
+
+            return {};
+        }
+
+        const size_t numDirectElements = rawData.Size() / numComponents;
+
+        outFlat.Resize(numPolygonVertices * numComponents);
+
+        for (size_t index = 0; index < numPolygonVertices; ++index)
+        {
+            int32 elementIndex = indices[index];
+
+            if (elementIndex < 0)
+            {
+                elementIndex = (elementIndex * -1) - 1;
+            }
+
+            if (size_t(elementIndex) >= numDirectElements)
+            {
+                HYP_LOG(Assets, Warning, "FBX layer element index {} out of range ({} elements), skipping layer", elementIndex, numDirectElements);
+
+                outFlat.Clear();
+
+                return {};
+            }
+
+            for (uint32 component = 0; component < numComponents; ++component)
+            {
+                outFlat[index * numComponents + component] = rawData[size_t(elementIndex) * numComponents + component];
+            }
+        }
+    }
+    else
+    {
+        if (rawData.Size() != numPolygonVertices * numComponents)
+        {
+            HYP_LOG(Assets, Warning, "FBX layer element data count ({}) does not match polygon-vertex count ({}) for direct reference, skipping layer",
+                    rawData.Size(), numPolygonVertices);
+
+            return {};
+        }
+
+        outFlat = std::move(rawData);
+    }
+
+    return {};
+}
+
 template <class T>
-static bool GetFBXObjectInMapping(FlatMap<FBXObjectID, FBXNodeMapping>& mapping, FBXObjectID id, T*& out)
+static bool GetFBXObjectInMapping(Map<FBXObjectID, FBXNodeMapping>& mapping, FBXObjectID id, T*& out)
 {
     out = nullptr;
 
@@ -765,23 +974,6 @@ static bool GetFBXObjectInMapping(FlatMap<FBXObjectID, FBXNodeMapping>& mapping,
 
     return false;
 }
-
-// static void AddSkeletonToEntities(const Handle<Skeleton> &skeleton, Node *fbxNode)
-// {
-//     Assert(fbxNode != nullptr);
-
-//     if (Handle<Entity> &entity = fbxNode->GetEntity()) {
-//         entity->SetSkeleton(skeleton);
-
-//         g_engineDriver->GetComponents() << AnimationController>(entity, MakeUnique<AnimationController());
-//     }
-
-//     for (auto &child : fbxNode->GetChildren()) {
-//         if (child) {
-//             AddSkeletonToEntities(skeleton, child.Get());
-//         }
-//     }
-// }
 
 FBXModelLoader::FBXModelLoader() = default;
 
@@ -930,8 +1122,19 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
         return matrix;
     };
 
-    FlatMap<FBXObjectID, FBXNodeMapping> objectMapping;
-    FlatSet<FBXObjectID> bindPoseIds;
+    const auto readVec3Property = [](const FBXObject& object) -> Vec3f
+    {
+        double x, y, z;
+
+        object.GetFBXPropertyValue<double>(4, x);
+        object.GetFBXPropertyValue<double>(5, y);
+        object.GetFBXPropertyValue<double>(6, z);
+
+        return { float(x), float(y), float(z) };
+    };
+
+    Map<FBXObjectID, FBXNodeMapping> objectMapping;
+    Set<FBXObjectID> bindPoseIds;
     Array<FBXConnection> connections;
 
     const auto getFbxObject = [&objectMapping](FBXObjectID id, auto*& out)
@@ -1025,23 +1228,11 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     continue;
                 }
 
+                const size_t numVertices = mesh.vertexData.ByteSize() / sizeof(FatVertex);
+                FatVertex* vertices = reinterpret_cast<FatVertex*>(mesh.vertexData.Data());
+
                 for (size_t index = 0; index < cluster->vertexIndices.Size(); ++index)
                 {
-                    int32 positionIndex = cluster->vertexIndices[index];
-
-                    if (positionIndex < 0)
-                    {
-                        positionIndex = (positionIndex * -1) - 1;
-                    }
-
-                    if (size_t(positionIndex) >= mesh.vertexData.Size() / sizeof(FatVertex))
-                    {
-                        HYP_LOG(Assets, Warning, "Position index {} out of range of vertex count {}",
-                                positionIndex, mesh.vertexData.Size() / sizeof(FatVertex));
-
-                        break;
-                    }
-
                     if (index >= cluster->boneWeights.Size())
                     {
                         HYP_LOG(Assets, Warning, "Index {} out of range of bone weights", index);
@@ -1049,18 +1240,48 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                         break;
                     }
 
-                    if (index >= MAX_BONE_INDICES)
+                    int32 controlPointIndex = cluster->vertexIndices[index];
+
+                    if (controlPointIndex < 0)
                     {
-                        HYP_LOG(Assets, Warning, "Too many bone indices!");
+                        controlPointIndex = (controlPointIndex * -1) - 1;
+                    }
+
+                    const float weight = float(cluster->boneWeights[index]);
+
+                    const auto controlPointIt = mesh.controlPointToVertices.Find(controlPointIndex);
+
+                    if (controlPointIt == mesh.controlPointToVertices.End())
+                    {
+                        HYP_LOG(Assets, Warning, "FBX control point index {} has no corresponding mesh vertices", controlPointIndex);
 
                         continue;
                     }
 
-                    const double weight = cluster->boneWeights[index];
+                    for (const uint32 expandedVertexIndex : controlPointIt->second)
+                    {
+                        if (expandedVertexIndex >= numVertices)
+                        {
+                            HYP_LOG(Assets, Warning, "Expanded vertex index {} out of range of vertex count {}", expandedVertexIndex, numVertices);
 
-                    FatVertex& vertex = reinterpret_cast<FatVertex*>(mesh.vertexData.Data())[positionIndex];
-                    vertex.SetBoneIndex(index, uint8(boneIndex));
-                    vertex.SetBoneWeight(index, float(weight));
+                            continue;
+                        }
+
+                        FatVertex& vertex = vertices[expandedVertexIndex];
+
+                        const uint32 boneSlot = vertex.NumBoneIndices();
+
+                        if (boneSlot >= MAX_BONE_INDICES)
+                        {
+                            HYP_LOG(Assets, Warning, "Vertex {} already has the maximum number ({}) of bone influences, skipping additional influence",
+                                    expandedVertexIndex, MAX_BONE_INDICES);
+
+                            continue;
+                        }
+
+                        vertex.SetBoneIndex(boneSlot, uint8(boneIndex));
+                        vertex.SetBoneWeight(boneSlot, weight);
+                    }
                 }
             }
         }
@@ -1074,6 +1295,8 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
         {
             FBXConnection connection {};
 
+            child->GetFBXPropertyValue<String>(0, connection.type);
+
             if (!child->GetFBXPropertyValue<FBXObjectID>(1, connection.left))
             {
                 HYP_LOG(Assets, Warning, "Invalid FBX Node connection, cannot get left id value");
@@ -1084,6 +1307,11 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
             {
                 HYP_LOG(Assets, Warning, "Invalid FBX Node connection, cannot get right id value");
                 continue;
+            }
+
+            if (connection.type == "OP")
+            {
+                child->GetFBXPropertyValue<String>(3, connection.propertyName);
             }
 
             connections.PushBack(connection);
@@ -1350,60 +1578,38 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 {
                     if (name == "LayerElementUV")
                     {
-                        if (const FBXObject& uvNode = (*childObject)[name]["UV"])
+                        Array<double> uvFlat;
+                        Result result = ReadIndexedLayer((*childObject)[name], "UV", "UVIndex", 2, modelIndices.Size(), uvFlat);
+
+                        if (!result)
                         {
-                            const size_t count = uvNode.GetProperty(0).arrayElements.Size();
+                            HYP_LOG(Assets, Warning, "Failed to read FBX UV layer: {}", result.GetError().GetMessage());
+                        }
+
+                        for (size_t index = 0; index < uvFlat.Size() / 2; ++index)
+                        {
+                            Vec2f uv { float(uvFlat[index * 2 + 0]), float(uvFlat[index * 2 + 1]) };
+                            // FBX stores V with a bottom-up origin
+                            uv.y = 1.0f - uv.y;
+
+                            verticesUnpacked[index].SetUV0(uv);
                         }
                     }
                     else if (name == "LayerElementNormal")
                     {
-                        const FBXVertexMappingType mappingType = GetVertexMappingType((*childObject)[name]["MappingInformationType"]);
+                        Array<double> normalFlat;
+                        Result result = ReadIndexedLayer((*childObject)[name], "Normals", "NormalsIndex", 3, modelIndices.Size(), normalFlat);
 
-                        if (const FBXObject& normalsNode = (*childObject)[name]["Normals"])
+                        if (!result)
                         {
-                            const FBXProperty& normalsProperty = normalsNode.GetProperty(0);
-                            const uint32 numNormals = uint32(normalsProperty.arrayElements.Size()) / 3;
+                            HYP_LOG(Assets, Warning, "Failed to read FBX normal layer: {}", result.GetError().GetMessage());
+                        }
 
-                            if (numNormals % 3 != 0)
-                            {
-                                HYP_LOG(Assets, Warning, "Not a valid triangle mesh -- invalid normal count");
+                        for (size_t index = 0; index < normalFlat.Size() / 3; ++index)
+                        {
+                            Vec3f normal { float(normalFlat[index * 3 + 0]), float(normalFlat[index * 3 + 1]), float(normalFlat[index * 3 + 2]) };
 
-                                continue; // continue on, but skip normals
-                            }
-
-                            for (uint32 triangleIndex = 0; triangleIndex < numNormals / 3; ++triangleIndex)
-                            {
-                                for (uint32 normalIndex = 0; normalIndex < 3; ++normalIndex)
-                                {
-                                    Vec3f normal;
-
-                                    for (uint32 elementIndex = 0; elementIndex < 3; elementIndex++)
-                                    {
-                                        const FBXPropertyValue& elem = normalsProperty.arrayElements[triangleIndex * 9 + normalIndex * 3 + elementIndex];
-
-                                        union
-                                        {
-                                            float floatValue;
-                                            double doubleValue;
-                                        };
-
-                                        if (elem.Get<float>(&floatValue))
-                                        {
-                                            normal[elementIndex] = floatValue;
-                                        }
-                                        else if (elem.Get<double>(&doubleValue))
-                                        {
-                                            normal[elementIndex] = float(doubleValue);
-                                        }
-                                        else
-                                        {
-                                            return HYP_MAKE_ERROR(AssetLoadError, "Invalid type for vertex position element -- must be float or double");
-                                        }
-                                    }
-
-                                    verticesUnpacked[triangleIndex * 3 + normalIndex].SetNormal(normal);
-                                }
-                            }
+                            verticesUnpacked[index].SetNormal(normal);
                         }
                     }
                 }
@@ -1414,7 +1620,27 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 fbxMesh.srcObject = childObject;
                 fbxMesh.name = nodeName;
                 fbxMesh.vertexData = Array<float>(reinterpret_cast<const float*>(newVertsAndIndices.first.Data()), newVertsAndIndices.first.ByteSize() / sizeof(float));
+
+                for (size_t index = 0; index < modelIndices.Size(); ++index)
+                {
+                    const int32 controlPointIndex = int32(modelIndices[index]);
+                    const uint32 expandedVertexIndex = newVertsAndIndices.second[index];
+
+                    Array<uint32>& expandedIndices = fbxMesh.controlPointToVertices[controlPointIndex];
+
+                    if (!expandedIndices.Contains(expandedVertexIndex))
+                    {
+                        expandedIndices.PushBack(expandedVertexIndex);
+                    }
+                }
+
                 fbxMesh.indices = std::move(newVertsAndIndices.second);
+
+                // Fix coordinate space
+                for (size_t index = 0; index + 2 < fbxMesh.indices.Size(); index += 3)
+                {
+                    std::swap(fbxMesh.indices[index + 1], fbxMesh.indices[index + 2]);
+                }
 
                 mapping.data.Set(std::move(fbxMesh));
             }
@@ -1438,28 +1664,17 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                                 continue;
                             }
 
-                            const auto ReadVec3f = [](const FBXObject& object) -> Vector3
-                            {
-                                double x, y, z;
-
-                                object.GetFBXPropertyValue<double>(4, x);
-                                object.GetFBXPropertyValue<double>(5, y);
-                                object.GetFBXPropertyValue<double>(6, z);
-
-                                return { float(x), float(y), float(z) };
-                            };
-
                             if (propertiesChildName == "Lcl Translation")
                             {
-                                transform.SetTranslation(ReadVec3f(*propertiesChild));
+                                transform.SetTranslation(readVec3Property(*propertiesChild));
                             }
                             else if (propertiesChildName == "Lcl Scaling")
                             {
-                                transform.SetScale(ReadVec3f(*propertiesChild));
+                                transform.SetScale(readVec3Property(*propertiesChild));
                             }
                             else if (propertiesChildName == "Lcl Rotation")
                             {
-                                Vec3f degrees = ReadVec3f(*propertiesChild);
+                                Vec3f degrees = readVec3Property(*propertiesChild);
                                 Vec3f radians;
                                 radians.x = MathUtil::DegToRad(degrees.x);
                                 radians.y = MathUtil::DegToRad(degrees.y);
@@ -1476,6 +1691,112 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 fbxNode.localTransform = transform;
 
                 mapping.data.Set(fbxNode);
+            }
+            else if (fbxTemplate->name == "Material")
+            {
+                FBXMaterial material;
+                material.name = nodeName;
+
+                for (FBXObject* materialChild : childObject->children)
+                {
+                    if (!materialChild->name.StartsWith("Properties"))
+                    {
+                        continue;
+                    }
+
+                    for (FBXObject* propertiesChild : materialChild->children)
+                    {
+                        String propertiesChildName;
+
+                        if (!propertiesChild->GetFBXPropertyValue<String>(0, propertiesChildName))
+                        {
+                            continue;
+                        }
+
+                        if (propertiesChildName == "DiffuseColor")
+                        {
+                            const Vec3f color = readVec3Property(*propertiesChild);
+                            material.diffuseColor = Vec4f(color.x, color.y, color.z, material.diffuseColor.w);
+                        }
+                        else if (propertiesChildName == "TransparencyFactor" || propertiesChildName == "Opacity")
+                        {
+                            double transparencyFactor;
+
+                            if (propertiesChild->GetFBXPropertyValue<double>(4, transparencyFactor))
+                            {
+                                material.transparencyFactor = transparencyFactor;
+                            }
+                        }
+                    }
+                }
+
+                mapping.data.Set(std::move(material));
+            }
+            else if (fbxTemplate->name == "Texture")
+            {
+                FBXTexture texture;
+                texture.name = nodeName;
+
+                if (const FBXObject& relativeFilenameNode = childObject->FindChild("RelativeFilename"))
+                {
+                    relativeFilenameNode.GetFBXPropertyValue<String>(0, texture.filename);
+                }
+
+                if (texture.filename.Empty())
+                {
+                    if (const FBXObject& filenameNode = childObject->FindChild("FileName"))
+                    {
+                        filenameNode.GetFBXPropertyValue<String>(0, texture.filename);
+                    }
+                }
+
+                mapping.data.Set(std::move(texture));
+            }
+            else if (fbxTemplate->name == "AnimationCurve")
+            {
+                FBXAnimCurve curve;
+                bool curveValid = true;
+
+                if (const FBXObject& keyTimeNode = childObject->FindChild("KeyTime"))
+                {
+                    Result result = ReadBinaryArray<int64>(keyTimeNode, curve.keyTimes);
+
+                    if (!result)
+                    {
+                        HYP_LOG(Assets, Warning, "Failed to read FBX animation curve key times: {}", result.GetError().GetMessage());
+
+                        curveValid = false;
+                    }
+                }
+
+                if (curveValid)
+                {
+                    if (const FBXObject& keyValueNode = childObject->FindChild("KeyValueFloat"))
+                    {
+                        Array<float> keyValues;
+                        Result result = ReadBinaryArray<float>(keyValueNode, keyValues);
+
+                        if (!result)
+                        {
+                            HYP_LOG(Assets, Warning, "Failed to read FBX animation curve key values: {}", result.GetError().GetMessage());
+
+                            curveValid = false;
+                        }
+                        else
+                        {
+                            curve.keyValues = std::move(keyValues);
+                        }
+                    }
+                }
+
+                if (curveValid && curve.keyTimes.Size() == curve.keyValues.Size() && curve.keyTimes.Any())
+                {
+                    mapping.data.Set(std::move(curve));
+                }
+            }
+            else if (fbxTemplate->name == "AnimationCurveNode")
+            {
+                mapping.data.Set(FBXAnimCurveNode {});
             }
 
             objectMapping[objectId] = std::move(mapping);
@@ -1617,6 +1938,48 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 continue;
             }
         }
+        else if (auto* leftMaterial = leftIt->second.data.TryGet<FBXMaterial>())
+        {
+            if (auto* rightNode = rightIt->second.data.TryGet<FBXNode>())
+            {
+                if (!rightNode->materialId)
+                {
+                    rightNode->materialId = leftIt->first;
+                }
+
+                continue;
+            }
+        }
+        else if (auto* leftTexture = leftIt->second.data.TryGet<FBXTexture>())
+        {
+            if (auto* rightMaterial = rightIt->second.data.TryGet<FBXMaterial>())
+            {
+                rightMaterial->textureConnections[connection.propertyName] = leftIt->first;
+
+                continue;
+            }
+        }
+        else if (auto* leftCurve = leftIt->second.data.TryGet<FBXAnimCurve>())
+        {
+            if (auto* rightCurveNode = rightIt->second.data.TryGet<FBXAnimCurveNode>())
+            {
+                rightCurveNode->curveIds[connection.propertyName] = leftIt->first;
+
+                continue;
+            }
+        }
+        else if (auto* leftCurveNode = leftIt->second.data.TryGet<FBXAnimCurveNode>())
+        {
+            if (auto* rightNode = rightIt->second.data.TryGet<FBXNode>())
+            {
+                leftCurveNode->targetNodeId = rightIt->first;
+                leftCurveNode->targetProperty = connection.propertyName;
+
+                continue;
+            }
+
+            continue;
+        }
 
         INVALID_NODE_CONNECTION("Unhandled connection type");
 
@@ -1627,6 +1990,164 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
     rootSkeleton->SetRootBone(rootBone);
 
     bool foundFirstBone = false;
+
+    Map<FBXObjectID, Handle<Material>> materialCache;
+    Map<FBXObjectID, Handle<Texture>> textureCache;
+
+    {
+        Map<FBXObjectID, String> texturePathsById;
+
+        for (auto& mappingIt : objectMapping)
+        {
+            auto* fbxTexture = mappingIt.second.data.TryGet<FBXTexture>();
+
+            if (!fbxTexture || fbxTexture->filename.Empty())
+            {
+                continue;
+            }
+
+            const String normalizedFilename = fbxTexture->filename.ReplaceAll("\\", "/");
+
+            String resolvedPath;
+
+            for (const String& candidate : Array<String> {
+                     FilePath::Join(basePath, FilePath(normalizedFilename).Basename()),
+                     FilePath::Join(basePath, normalizedFilename),
+                     normalizedFilename })
+            {
+                if (candidate.Any() && FilePath(candidate).Exists())
+                {
+                    resolvedPath = candidate;
+
+                    break;
+                }
+            }
+
+            if (resolvedPath.Empty())
+            {
+                HYP_LOG(Assets, Warning, "FBX texture '{}' could not be resolved to an existing file relative to '{}'", fbxTexture->filename, basePath);
+
+                continue;
+            }
+
+            texturePathsById[mappingIt.first] = resolvedPath;
+        }
+
+        if (texturePathsById.Any())
+        {
+            AssetBatch* texturesBatch = state.assetManager->CreateBatch(state.batchIdentifier);
+
+            for (auto& it : texturePathsById)
+            {
+                texturesBatch->Add(String::ToString(it.first), it.second);
+            }
+
+            AssetMap loadedTextures = texturesBatch->ForceLoad();
+            delete texturesBatch;
+
+            for (auto& it : texturePathsById)
+            {
+                const String key = String::ToString(it.first);
+
+                const auto loadedIt = loadedTextures.Find(key);
+
+                if (loadedIt == loadedTextures.End() || !loadedIt->second.IsValid())
+                {
+                    HYP_LOG(Assets, Warning, "FBX texture failed to load from '{}'", it.second);
+
+                    continue;
+                }
+
+                Handle<Texture> texture = loadedIt->second.ExtractAs<Texture>();
+
+                if (!texture || !texture->IsCreated())
+                {
+                    HYP_LOG(Assets, Warning, "FBX texture loaded from '{}' has no valid GPU image, skipping", it.second);
+
+                    continue;
+                }
+
+                FBXTexture* fbxTexture;
+
+                if (getFbxObject(it.first, fbxTexture) && fbxTexture->name.Any())
+                {
+                    texture->SetName(CreateNameFromDynamicString(fbxTexture->name));
+                }
+
+                GetCurrentAssetRegistry()->PutAssetUnique(texture);
+
+                textureCache[it.first] = std::move(texture);
+            }
+        }
+    }
+
+    const auto acquireTexture = [&](FBXObjectID textureId) -> Handle<Texture>
+    {
+        const auto it = textureCache.Find(textureId);
+
+        return it != textureCache.End() ? it->second : Handle<Texture>::empty;
+    };
+
+    const auto acquireMaterial = [&](FBXObjectID materialId) -> Handle<Material>
+    {
+        if (const auto it = materialCache.Find(materialId); it != materialCache.End())
+        {
+            return it->second;
+        }
+
+        Handle<Material> result;
+
+        FBXMaterial* fbxMaterial;
+
+        if (getFbxObject(materialId, fbxMaterial))
+        {
+            MaterialAttributes attributes;
+            attributes.shaderName = NAME("GeometryPass");
+            attributes.shaderProperties = {};
+            attributes.bucket = RenderBucket::Opaque;
+
+            MaterialParameters parameters;
+            parameters.albedo = Vec4f(fbxMaterial->diffuseColor.x, fbxMaterial->diffuseColor.y, fbxMaterial->diffuseColor.z, 1.0f);
+            parameters.roughness = 0.65f;
+            parameters.metalness = 0.0f;
+
+
+            MaterialTextures textures {};
+
+            const auto assignTexture = [&](const char* fbxPropertyName, MaterialTextureKey key)
+            {
+                const auto textureConnectionIt = fbxMaterial->textureConnections.Find(fbxPropertyName);
+
+                if (textureConnectionIt == fbxMaterial->textureConnections.End())
+                {
+                    return;
+                }
+
+                if (Handle<Texture> texture = acquireTexture(textureConnectionIt->second); texture.IsValid())
+                {
+                    textures[key] = texture;
+                }
+            };
+
+            assignTexture("DiffuseColor", MaterialTextureKey::Diffuse);
+            assignTexture("NormalMap", MaterialTextureKey::Normals);
+            assignTexture("Bump", MaterialTextureKey::Normals);
+
+            result = MakeHandle<Material>(
+                CreateNameFromDynamicString(fbxMaterial->name),
+                attributes,
+                parameters,
+                textures);
+
+            InitObject(result);
+
+            GetCurrentAssetRegistry()->PutAssetUnique(result);
+        }
+
+        materialCache[materialId] = result;
+
+        return result;
+    };
 
     Proc<void(FBXNode&, Node*)> buildNodes;
 
@@ -1665,38 +2186,59 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
             if (getFbxObject(fbxNode.meshId, fbxMesh))
             {
-                applyClustersToMesh(*fbxMesh);
+                const Handle<Skeleton> meshSkeleton = applyClustersToMesh(*fbxMesh);
 
                 Handle<Mesh> mesh = fbxMesh->GetResultObject();
 
                 GetCurrentAssetRegistry()->PutAssetUnique(mesh);
 
-                MaterialAttributes attributes;
-                attributes.shaderName = NAME("GeometryPass");
-                attributes.shaderProperties = {};
-                attributes.bucket = RenderBucket::Opaque;
+                Handle<Material> material = fbxNode.materialId ? acquireMaterial(fbxNode.materialId) : Handle<Material>::empty;
 
-                MaterialParameters parameters;
-                parameters.albedo = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
-                parameters.roughness = 0.65f;
-                parameters.metalness = 0.0f;
+                if (!material.IsValid())
+                {
+                    MaterialAttributes attributes;
+                    attributes.shaderName = NAME("GeometryPass");
+                    attributes.shaderProperties = {};
+                    attributes.bucket = RenderBucket::Opaque;
 
-                Handle<Material> material = MakeHandle<Material>(
-                    CreateNameFromDynamicString(fbxNode.name),
-                    attributes,
-                    parameters,
-                    MaterialTextures {});
+                    MaterialParameters parameters;
+                    parameters.albedo = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
+                    parameters.roughness = 0.65f;
+                    parameters.metalness = 0.0f;
 
-                InitObject(material);
+                    material = MakeHandle<Material>(
+                        CreateNameFromDynamicString(fbxNode.name),
+                        attributes,
+                        parameters,
+                        MaterialTextures {});
 
-                GetCurrentAssetRegistry()->PutAssetUnique(material);
+                    InitObject(material);
+
+                    GetCurrentAssetRegistry()->PutAssetUnique(material);
+                }
 
                 Scene* scene = GetDetachedSceneForCurrentThread();
 
                 const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
                 entity->SetLocalBounds(fbxMesh->bounds);
 
-                entity->AddComponent<MeshComponent>(MeshComponent { mesh, material });
+                entity->AddComponent<MeshComponent>(MeshComponent { mesh, material, meshSkeleton });
+
+                if (meshSkeleton.IsValid())
+                {
+                    entity->SetIsDynamic(true);
+
+                    AnimationComponent animationComponent {};
+                    animationComponent.playbackState = {
+                        .animationIndex = 0,
+                        .status = AnimationPlaybackStatus::PLAYING,
+                        .loopMode = AnimationLoopMode::REPEAT,
+                        .speed = 1.0f,
+                        .currentTime = 0.0f
+                    };
+
+                    entity->AddComponent<AnimationComponent>(animationComponent);
+                }
 
                 //// offset node to center of bounds
                 // node->SetWorldTranslation(node->GetWorldTranslation() + fbxMesh->bounds.GetCenter());
@@ -1901,8 +2443,157 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
     if (foundFirstBone)
     {
-        // Add Skeleton and AnimationController to Entities
-        // AddSkeletonToEntities(rootSkeleton, top.Get());
+        GetCurrentAssetRegistry()->PutAssetUnique(rootSkeleton);
+        InitObject(rootSkeleton);
+
+        Map<FBXObjectID, Array<FBXAnimCurveNode*>> curveNodesByTarget;
+
+        for (auto& mappingIt : objectMapping)
+        {
+            if (auto* curveNode = mappingIt.second.data.TryGet<FBXAnimCurveNode>())
+            {
+                if (curveNode->targetNodeId)
+                {
+                    curveNodesByTarget[curveNode->targetNodeId].PushBack(curveNode);
+                }
+            }
+        }
+
+        if (curveNodesByTarget.Any())
+        {
+            Handle<Animation> animation = MakeHandle<Animation>(NAME("Take"));
+
+            static const char* const componentNames[3] = { "d|X", "d|Y", "d|Z" };
+
+            const auto getComponentCurves = [&](const Array<FBXAnimCurveNode*>& curveNodes, const char* propertyName, FBXAnimCurve** outCurves)
+            {
+                for (FBXAnimCurveNode* curveNode : curveNodes)
+                {
+                    if (curveNode->targetProperty != propertyName)
+                    {
+                        continue;
+                    }
+
+                    for (int component = 0; component < 3; ++component)
+                    {
+                        const auto curveIdIt = curveNode->curveIds.Find(componentNames[component]);
+
+                        if (curveIdIt == curveNode->curveIds.End())
+                        {
+                            continue;
+                        }
+
+                        FBXAnimCurve* curve;
+
+                        if (getFbxObject(curveIdIt->second, curve))
+                        {
+                            outCurves[component] = curve;
+                        }
+                    }
+                }
+            };
+
+            for (auto& targetIt : curveNodesByTarget)
+            {
+                FBXNode* targetNode;
+
+                if (!getFbxObject(targetIt.first, targetNode) || !targetNode->srcObject->IsFBXType("FbxLimbNode"))
+                {
+                    continue;
+                }
+
+                FBXAnimCurve* translationCurves[3] = {};
+                FBXAnimCurve* rotationCurves[3] = {};
+                FBXAnimCurve* scalingCurves[3] = {};
+
+                getComponentCurves(targetIt.second, "Lcl Translation", translationCurves);
+                getComponentCurves(targetIt.second, "Lcl Rotation", rotationCurves);
+                getComponentCurves(targetIt.second, "Lcl Scaling", scalingCurves);
+
+                Array<int64> allKeyTimes;
+
+                const auto collectTimes = [&](FBXAnimCurve* const (&curves)[3])
+                {
+                    for (int component = 0; component < 3; ++component)
+                    {
+                        if (curves[component])
+                        {
+                            allKeyTimes.Concat(curves[component]->keyTimes);
+                        }
+                    }
+                };
+
+                collectTimes(translationCurves);
+                collectTimes(rotationCurves);
+                collectTimes(scalingCurves);
+
+                if (allKeyTimes.Empty())
+                {
+                    continue;
+                }
+
+                std::sort(allKeyTimes.Begin(), allKeyTimes.End());
+
+                Array<int64> uniqueKeyTimes;
+                uniqueKeyTimes.Reserve(allKeyTimes.Size());
+
+                for (const int64 timeUnits : allKeyTimes)
+                {
+                    if (uniqueKeyTimes.Empty() || uniqueKeyTimes.Back() != timeUnits)
+                    {
+                        uniqueKeyTimes.PushBack(timeUnits);
+                    }
+                }
+
+                const Vec3f defaultTranslation = targetNode->localTransform.GetTranslation();
+                const Vec3f defaultScale = targetNode->localTransform.GetScale();
+
+                Array<Keyframe> keyframes;
+                keyframes.Reserve(uniqueKeyTimes.Size());
+
+                for (const int64 timeUnits : uniqueKeyTimes)
+                {
+                    const float timeSeconds = float(double(timeUnits) / double(FBXTimeUnitsPerSecond));
+
+                    const Vec3f translation(
+                        translationCurves[0] ? translationCurves[0]->Evaluate(timeSeconds, defaultTranslation.x) : defaultTranslation.x,
+                        translationCurves[1] ? translationCurves[1]->Evaluate(timeSeconds, defaultTranslation.y) : defaultTranslation.y,
+                        translationCurves[2] ? translationCurves[2]->Evaluate(timeSeconds, defaultTranslation.z) : defaultTranslation.z);
+
+                    const Vec3f scale(
+                        scalingCurves[0] ? scalingCurves[0]->Evaluate(timeSeconds, defaultScale.x) : defaultScale.x,
+                        scalingCurves[1] ? scalingCurves[1]->Evaluate(timeSeconds, defaultScale.y) : defaultScale.y,
+                        scalingCurves[2] ? scalingCurves[2]->Evaluate(timeSeconds, defaultScale.z) : defaultScale.z);
+
+                    const Vec3f degrees(
+                        rotationCurves[0] ? rotationCurves[0]->Evaluate(timeSeconds, 0.0f) : 0.0f,
+                        rotationCurves[1] ? rotationCurves[1]->Evaluate(timeSeconds, 0.0f) : 0.0f,
+                        rotationCurves[2] ? rotationCurves[2]->Evaluate(timeSeconds, 0.0f) : 0.0f);
+
+                    const Vec3f radians(MathUtil::DegToRad(degrees.x), MathUtil::DegToRad(degrees.y), MathUtil::DegToRad(degrees.z));
+                    const Quat4f rotation = Quat4f(radians).Inverse();
+
+                    keyframes.EmplaceBack(timeSeconds, Transform(translation, scale, rotation));
+                }
+
+                Handle<AnimationTrack> track = MakeHandle<AnimationTrack>(
+                    NAME_FMT("Take_{}", targetNode->name),
+                    CreateNameFromDynamicString(targetNode->name));
+
+                track->SetKeyframes(keyframes);
+
+                GetCurrentAssetRegistry()->PutAssetUnique(track);
+
+                animation->AddTrack(track);
+            }
+
+            if (animation->NumTracks() > 0)
+            {
+                GetCurrentAssetRegistry()->PutAssetUnique(animation);
+
+                rootSkeleton->SetAnimations({ animation });
+            }
+        }
     }
 
     if (Skeleton* skeleton = rootSkeleton.Get())

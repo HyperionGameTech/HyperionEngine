@@ -471,9 +471,9 @@ FilePath FilePath::BasePath() const
     return FilePath(StringUtil::BasePath(*this));
 }
 
-Hyperion::containers::Array<FilePath, DynamicAllocator> FilePath::GetAllFilesInDirectory() const
+containers::Array<FilePath, DynamicAllocator> FilePath::GetAllFilesInDirectory() const
 {
-    Hyperion::containers::Array<FilePath, DynamicAllocator> files;
+    containers::Array<FilePath, DynamicAllocator> files;
 
     for (const auto& entry : std::filesystem::directory_iterator(Data()))
     {
@@ -490,9 +490,9 @@ Hyperion::containers::Array<FilePath, DynamicAllocator> FilePath::GetAllFilesInD
     return files;
 }
 
-Hyperion::containers::Array<FilePath, DynamicAllocator> FilePath::GetSubdirectories() const
+containers::Array<FilePath, DynamicAllocator> FilePath::GetSubdirectories() const
 {
-    Hyperion::containers::Array<FilePath, DynamicAllocator> files;
+    containers::Array<FilePath, DynamicAllocator> files;
 
     for (const auto& entry : std::filesystem::directory_iterator(Data()))
     {

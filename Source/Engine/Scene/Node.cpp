@@ -796,7 +796,7 @@ BoundingBox Node::GetLocalBoundsWithChildren() const
         return m_localBounds;
     }
 
-    BoundingBox aabb = m_localBounds.IsValid() ? m_localBounds : BoundingBox::Zero();
+    BoundingBox aabb = m_localBounds.IsValid() ? m_localBounds : BoundingBox::Empty();
 
     for (Node* child : GetChildren())
     {
@@ -821,7 +821,7 @@ BoundingBox Node::GetWorldBounds() const
         return m_localBounds;
     }
 
-    BoundingBox aabb = m_localBounds.IsValid() ? (m_worldMatrix * m_localBounds) : BoundingBox::Zero();
+    BoundingBox aabb = m_localBounds.IsValid() ? (m_worldMatrix * m_localBounds) : BoundingBox::Empty();
 
     for (Node* child : GetChildren())
     {

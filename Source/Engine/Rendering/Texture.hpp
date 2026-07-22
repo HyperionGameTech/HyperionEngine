@@ -49,11 +49,13 @@ public:
     HYP_METHOD()
     virtual Result Rename(Name name) override;
 
+    HYP_METHOD(Property = "TextureDesc", Editor, Serialize)
     HYP_FORCE_INLINE const TextureDesc& GetTextureDesc() const
     {
         return m_textureDesc;
     }
 
+    HYP_METHOD(Property = "TextureDesc", Editor, Serialize)
     HYP_FORCE_INLINE void SetTextureDesc(const TextureDesc& textureDesc)
     {
         m_textureDesc = textureDesc;
@@ -158,7 +160,7 @@ protected:
         outReferences.EmplaceBack("TEX", 1, &m_imageData);
     }
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD(Property = "TextureDesc", Editor, Serialize)
     TextureDesc m_textureDesc;
 
     HYP_FIELD(Serialize)
