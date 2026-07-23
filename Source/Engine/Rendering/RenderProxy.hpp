@@ -55,7 +55,7 @@ struct IRenderProxy
     bool forceRebind = false;
 };
 
-struct NullProxy final : IRenderProxy
+struct NullProxy final
 {
 };
 

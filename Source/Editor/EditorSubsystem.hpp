@@ -44,6 +44,7 @@ class EditorViewport;
 class LightmapVolume;
 class VolumeBase;
 class AppContextBase;
+struct Ray;
 
 HYP_CLASS()
 class GenerateLightmapsEditorTask : public TickableEditorTask
@@ -106,14 +107,28 @@ private:
 };
 
 HYP_ENUM()
-enum class EditorManipulationMode
+enum class EditorManipulationMode : uint8
 {
-    NONE = 0,
+    None = 0,
 
-    TRANSLATE,
-    ROTATE,
-    SCALE,
-    VOLUME_EDIT
+    Translate,
+    Rotate,
+    Scale,
+    ReshapeVolume
+};
+
+HYP_ENUM()
+enum class MeshEditFaceMode : uint8
+{
+    Triangle = 0,
+    Quad
+};
+
+struct MeshEditFaceSelection
+{
+    WeakHandle<Node> node;
+    Array<uint32> vertexIndices;
+    uint8 lodIndex = 0;
 };
 
 /*! \brief A widget that can manipulate the selected object. (e.g translate, rotate, scale) */
@@ -225,7 +240,7 @@ public:
 
     virtual EditorManipulationMode GetManipulationMode() const override
     {
-        return EditorManipulationMode::NONE;
+        return EditorManipulationMode::None;
     }
 
 protected:
@@ -245,7 +260,7 @@ public:
 
     virtual EditorManipulationMode GetManipulationMode() const override
     {
-        return EditorManipulationMode::TRANSLATE;
+        return EditorManipulationMode::Translate;
     }
 
     virtual String GetMenuText() const override
@@ -293,7 +308,7 @@ public:
 
     virtual EditorManipulationMode GetManipulationMode() const override
     {
-        return EditorManipulationMode::ROTATE;
+        return EditorManipulationMode::Rotate;
     }
 
     virtual String GetMenuText() const override
@@ -341,7 +356,7 @@ public:
 
     virtual EditorManipulationMode GetManipulationMode() const override
     {
-        return EditorManipulationMode::SCALE;
+        return EditorManipulationMode::Scale;
     }
 
     virtual String GetMenuText() const override
@@ -394,7 +409,7 @@ public:
 
     virtual EditorManipulationMode GetManipulationMode() const override
     {
-        return EditorManipulationMode::VOLUME_EDIT;
+        return EditorManipulationMode::ReshapeVolume;
     }
 
     virtual String GetMenuText() const override
@@ -545,6 +560,18 @@ public:
     const EditorGizmoSet& GetGizmos() const;
 
     HYP_METHOD()
+    bool IsMeshEditModeEnabled() const;
+
+    HYP_METHOD()
+    void SetMeshEditModeEnabled(bool enabled);
+
+    HYP_METHOD()
+    MeshEditFaceMode GetMeshEditFaceMode() const;
+
+    HYP_METHOD()
+    void SetMeshEditFaceMode(MeshEditFaceMode faceMode);
+
+    HYP_METHOD()
     void SetSelectedBucket(uint32 bucketIndex);
 
     /*! \brief Calculate an appropriate position for inserting a new object into the scene.
@@ -588,6 +615,9 @@ public:
     HYP_FIELD()
     ScriptableDelegate<void> OnSelectionChanged;
 
+    HYP_FIELD()
+    ScriptableDelegate<void> OnMeshEditSelectionChanged;
+
 private:
     void CreateHighlightNode();
 
@@ -621,6 +651,32 @@ private:
         return m_hoveredGizmo.IsValid() && m_hoveredGizmoNode.IsValid();
     }
 
+    struct MeshEditDragData
+    {
+        Array<uint32> affectedVertexIndices;
+        Array<Vec3f> vertexOriginalPositions;
+        Vec3f faceCentroidWorldOrigin;
+        Vec3f planeNormal;
+        Vec3f hitpointOrigin;
+        Vec3f currentLocalDelta;
+        int lockedAxis = -1;
+    };
+
+    bool TryPickMeshEditFace(const Ray& ray, MeshEditFaceSelection& outSelection, bool ensureUniqueMesh);
+    void SetSelectedMeshEditFace(Optional<MeshEditFaceSelection> selection);
+    void UpdateHoveredMeshEditFace(const Ray& ray);
+    void DebugDrawMeshEditSelection(class DebugDrawCommandList& debugDrawCommandList);
+
+    void StartMeshEditDrag(const Handle<Camera>& camera, const MouseEvent& mouseEvent);
+    void UpdateMeshEditDrag(const Handle<Camera>& camera, const MouseEvent& mouseEvent);
+    void EndMeshEditDrag();
+    void SetMeshEditDragLockedAxis(const Handle<Camera>& camera, const KeyboardEvent& keyboardEvent, int axis);
+
+    HYP_FORCE_INLINE bool IsMeshEditDragActive() const
+    {
+        return m_meshEditDragData.HasValue();
+    }
+
     SubsystemUpdatePhase GetUpdatePhase_Internal() const override
     {
         return SubsystemUpdatePhase::AfterVis;
@@ -637,6 +693,12 @@ private:
 
     EditorManipulationMode m_selectedManipulationMode;
     EditorGizmoSet m_gizmos;
+
+    bool m_meshEditModeEnabled;
+    MeshEditFaceMode m_meshEditFaceMode;
+    Optional<MeshEditFaceSelection> m_selectedMeshEditFace;
+    Optional<MeshEditFaceSelection> m_hoveredMeshEditFace;
+    Optional<MeshEditDragData> m_meshEditDragData;
 
     WeakHandle<EditorGizmoBase> m_hoveredGizmo;
     WeakHandle<Node> m_hoveredGizmoNode;

@@ -3,7 +3,14 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [ClassBinding(Name="EditorSubsystem")]
+    [ClassBinding(Name = "MeshEditFaceMode")]
+    public enum MeshEditFaceMode : byte
+    {
+        Triangle = 0,
+        Quad
+    }
+
+    [ClassBinding(Name = "EditorSubsystem")]
     public class EditorSubsystem : Subsystem
     {
         public EditorSubsystem()

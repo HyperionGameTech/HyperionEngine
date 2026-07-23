@@ -101,6 +101,7 @@ struct RayHit
     Vec3f barycentricCoords;
     float distance = 0.0f;
     RayHitID id = ~0u;
+    uint32 triangleIndex = ~0u;
     class Node* node = nullptr;
 
     bool operator<(const RayHit& other) const

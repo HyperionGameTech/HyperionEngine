@@ -89,6 +89,38 @@
         <Style Selector="RadioButton.gizmo:pointerover">
             <Setter Property="Background" Value="{DynamicResource Brush.Panel}" />
         </Style>
+
+        <Style Selector="ToggleButton.gizmo">
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="4">
+                        <ContentPresenter
+                            Margin="{TemplateBinding Padding}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Content="{TemplateBinding Content}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+
+        <Style Selector="ToggleButton.gizmo:checked">
+            <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+
+        <Style Selector="ToggleButton.gizmo:pointerover">
+            <Setter Property="Background" Value="{DynamicResource Brush.Panel}" />
+        </Style>
     </Window.Styles>
 
     <Grid>
@@ -173,6 +205,38 @@
                             ToolTip.Tip="Scale">
                             <LucideIcon Kind="Maximize" Size="16" />
                         </Button>
+                        <ToggleButton
+                            x:Name="MeshEditModeToggle"
+                            Classes="gizmo"
+                            Margin="12,0,0,0"
+                            Command="{Binding ToggleMeshEditMode}"
+                            IsChecked="{Binding IsMeshEditModeEnabled, Mode=OneWay}"
+                            IsEnabled="{Binding CanToggleMeshEditMode}"
+                            ToolTip.Tip="Mesh Edit Mode">
+                            <LucideIcon Kind="Pencil" Size="16" />
+                        </ToggleButton>
+                        <StackPanel
+                            Orientation="Horizontal"
+                            Spacing="4"
+                            Margin="8,0,0,0"
+                            IsVisible="{Binding IsMeshEditModeEnabled}">
+                            <ToggleButton
+                                x:Name="MeshEditFaceModeTriangle"
+                                Classes="gizmo"
+                                Command="{Binding SelectMeshEditFaceTriangle}"
+                                IsChecked="{Binding !IsMeshEditFaceModeQuad, Mode=OneWay}"
+                                ToolTip.Tip="Select Triangles">
+                                <TextBlock Text="Tri" FontSize="11" />
+                            </ToggleButton>
+                            <ToggleButton
+                                x:Name="MeshEditFaceModeQuad"
+                                Classes="gizmo"
+                                Command="{Binding SelectMeshEditFaceQuad}"
+                                IsChecked="{Binding IsMeshEditFaceModeQuad, Mode=OneWay}"
+                                ToolTip.Tip="Select Quads">
+                                <TextBlock Text="Quad" FontSize="11" />
+                            </ToggleButton>
+                        </StackPanel>
                     </StackPanel>
 
                     <StackPanel

@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [ClassBinding(Name = "EditorManipulationMode")]
-    public enum EditorManipulationMode
+    public enum EditorManipulationMode : byte
     {
         None = 0,
         Translate = 1,

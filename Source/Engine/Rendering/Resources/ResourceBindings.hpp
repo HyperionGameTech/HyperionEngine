@@ -181,7 +181,7 @@ struct ResourceSubtypeData final
         }
 
         // if ProxyType != NullProxy then we setup proxy pool
-        if constexpr (!std::is_same_v<ProxyType, NullProxy>)
+        if constexpr (CONSTEXPR_TYPE_ID(ProxyType) != CONSTEXPR_TYPE_ID(NullProxy))
         {
             hasProxyData = true;
 
@@ -389,7 +389,7 @@ static void SyncResources(
 
         ++rd->useCount;
 
-        if constexpr (!std::is_same_v<ProxyType, NullProxy>)
+        if constexpr (CONSTEXPR_TYPE_ID(ProxyType) != CONSTEXPR_TYPE_ID(NullProxy))
         {
             const ProxyType* pSrcProxy = src.GetProxy(resourceId);
             AssertDebug(pSrcProxy != nullptr);
@@ -427,7 +427,7 @@ static void SyncResources(
 
     Array<ElementType*, RenderTempAllocator> changed;
 
-    if constexpr (!std::is_same_v<ProxyType, NullProxy>)
+    if constexpr (CONSTEXPR_TYPE_ID(ProxyType) != CONSTEXPR_TYPE_ID(NullProxy))
     {
         dst.GetChanged(changed);
 

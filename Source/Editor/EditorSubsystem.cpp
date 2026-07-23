@@ -1904,6 +1904,8 @@ void EditorSubsystem::SetSelectedManipulationMode(EditorManipulationMode mode)
 {
     AssertOnThread(g_simThread);
 
+    SetMeshEditModeEnabled(false);
+
     if (mode == m_selectedManipulationMode)
     {
         return;
@@ -1911,7 +1913,7 @@ void EditorSubsystem::SetSelectedManipulationMode(EditorManipulationMode mode)
 
     if (!m_gizmos.Contains(mode))
     {
-        SetSelectedManipulationMode(EditorManipulationMode::NONE);
+        SetSelectedManipulationMode(EditorManipulationMode::None);
         return;
     }
 
@@ -1949,6 +1951,770 @@ const EditorSubsystem::EditorGizmoSet& EditorSubsystem::GetGizmos() const
     return m_gizmos;
 }
 
+bool EditorSubsystem::IsMeshEditModeEnabled() const
+{
+    AssertOnThread(g_simThread);
+
+    return m_meshEditModeEnabled;
+}
+
+void EditorSubsystem::SetMeshEditModeEnabled(bool enabled)
+{
+    AssertOnThread(g_simThread);
+
+    if (enabled == m_meshEditModeEnabled)
+    {
+        return;
+    }
+
+    m_meshEditModeEnabled = enabled;
+
+    if (!enabled)
+    {
+        EndMeshEditDrag();
+        SetSelectedMeshEditFace({});
+    }
+}
+
+MeshEditFaceMode EditorSubsystem::GetMeshEditFaceMode() const
+{
+    AssertOnThread(g_simThread);
+
+    return m_meshEditFaceMode;
+}
+
+void EditorSubsystem::SetMeshEditFaceMode(MeshEditFaceMode faceMode)
+{
+    AssertOnThread(g_simThread);
+
+    if (faceMode == m_meshEditFaceMode)
+    {
+        return;
+    }
+
+    m_meshEditFaceMode = faceMode;
+
+    SetSelectedMeshEditFace({});
+}
+
+#pragma region MeshEditMode
+
+static Vec3f ReadMeshVertexPosition(const VertexArrayView& vertexView, size_t vertexSizeInFloats, uint32 vertexIndex)
+{
+    const TVertexPacket<VT_Position>* packet = reinterpret_cast<const TVertexPacket<VT_Position>*>(
+        vertexView.floatData + (vertexIndex * vertexSizeInFloats));
+
+    return Vec3f(packet->posX, packet->posY, packet->posZ);
+}
+
+static Optional<uint32> FindCoplanarAdjacentTriangle(
+    Mesh* mesh,
+    uint8 lodIndex,
+    uint32 triangleIndex,
+    const Array<uint32>& triangleVertexIndices)
+{
+    auto readScope = mesh->GetReadScope();
+
+    const VertexArrayView vertexView = mesh->GetVertexData(lodIndex);
+    const size_t vertexSizeInFloats = vertexView.layoutDesc.VertexSize() / sizeof(float);
+
+    const Vec3f trianglePositions[3] = {
+        ReadMeshVertexPosition(vertexView, vertexSizeInFloats, triangleVertexIndices[0]),
+        ReadMeshVertexPosition(vertexView, vertexSizeInFloats, triangleVertexIndices[1]),
+        ReadMeshVertexPosition(vertexView, vertexSizeInFloats, triangleVertexIndices[2])
+    };
+
+    const Vec3f triangleNormal = (trianglePositions[1] - trianglePositions[0])
+                                      .Cross(trianglePositions[2] - trianglePositions[0])
+                                      .Normalized();
+
+    const Span<const ubyte> indexData = mesh->GetIndexData(lodIndex);
+    const Span<const uint32> indices(reinterpret_cast<const uint32*>(indexData.Data()), indexData.Size() / sizeof(uint32));
+
+    const uint32 numTriangles = uint32(indices.Size() / 3);
+
+    // Vertex-normal deviation allowed for a neighboring triangle to still be considered part of the same quad.
+    constexpr float coplanarNormalEpsilon = 0.01f;
+
+    for (uint32 candidateTriangleIndex = 0; candidateTriangleIndex < numTriangles; candidateTriangleIndex++)
+    {
+        if (candidateTriangleIndex == triangleIndex)
+        {
+            continue;
+        }
+
+        const uint32 candidateVertexIndices[3] = {
+            indices[candidateTriangleIndex * 3 + 0],
+            indices[candidateTriangleIndex * 3 + 1],
+            indices[candidateTriangleIndex * 3 + 2]
+        };
+
+        uint32 sharedVertexCount = 0;
+
+        for (uint32 candidateVertexIndex : candidateVertexIndices)
+        {
+            if (triangleVertexIndices.Contains(candidateVertexIndex))
+            {
+                sharedVertexCount++;
+            }
+        }
+
+        // A quad neighbor shares exactly one edge (two vertices) with the picked triangle.
+        if (sharedVertexCount != 2)
+        {
+            continue;
+        }
+
+        const Vec3f candidatePositions[3] = {
+            ReadMeshVertexPosition(vertexView, vertexSizeInFloats, candidateVertexIndices[0]),
+            ReadMeshVertexPosition(vertexView, vertexSizeInFloats, candidateVertexIndices[1]),
+            ReadMeshVertexPosition(vertexView, vertexSizeInFloats, candidateVertexIndices[2])
+        };
+
+        const Vec3f candidateNormal = (candidatePositions[1] - candidatePositions[0])
+                                           .Cross(candidatePositions[2] - candidatePositions[0])
+                                           .Normalized();
+
+        if (candidateNormal.Dot(triangleNormal) >= 1.0f - coplanarNormalEpsilon)
+        {
+            return candidateTriangleIndex;
+        }
+    }
+
+    return {};
+}
+
+static Array<uint32> FindWeldedVertexIndices(
+    Mesh* mesh,
+    uint8 lodIndex,
+    const Array<uint32>& faceVertexIndices)
+{
+    auto readScope = mesh->GetReadScope();
+
+    const VertexArrayView vertexView = mesh->GetVertexData(lodIndex);
+    const size_t vertexSizeInFloats = vertexView.layoutDesc.VertexSize() / sizeof(float);
+
+    Array<Vec3f> faceVertexPositions;
+    faceVertexPositions.Reserve(faceVertexIndices.Size());
+
+    for (uint32 vertexIndex : faceVertexIndices)
+    {
+        faceVertexPositions.PushBack(ReadMeshVertexPosition(vertexView, vertexSizeInFloats, vertexIndex));
+    }
+
+    Array<uint32> affectedVertexIndices = faceVertexIndices;
+
+    static constexpr float WeldDistanceSquared = 0.0001f * 0.0001f;
+
+    for (uint32 candidateVertexIndex = 0; candidateVertexIndex < vertexView.vertexCount; candidateVertexIndex++)
+    {
+        if (affectedVertexIndices.Contains(candidateVertexIndex))
+        {
+            continue;
+        }
+
+        const Vec3f candidatePosition = ReadMeshVertexPosition(vertexView, vertexSizeInFloats, candidateVertexIndex);
+
+        for (const Vec3f& faceVertexPosition : faceVertexPositions)
+        {
+            if ((candidatePosition - faceVertexPosition).LengthSquared() <= WeldDistanceSquared)
+            {
+                affectedVertexIndices.PushBack(candidateVertexIndex);
+                break;
+            }
+        }
+    }
+
+    return affectedVertexIndices;
+}
+
+static void ApplyMeshEditVertexPositions(
+    const Handle<Node>& node,
+    uint8 lodIndex,
+    const Array<uint32>& vertexIndices,
+    const Array<Vec3f>& localPositions,
+    bool recomputeDerivedData)
+{
+    Entity* entity = DynamicCast<Entity>(node.Get());
+    MeshComponent* meshComponent = entity ? entity->TryGetComponent<MeshComponent>() : nullptr;
+
+    if (!meshComponent || !meshComponent->mesh.IsValid())
+    {
+        return;
+    }
+
+    Mesh* mesh = meshComponent->mesh;
+
+    {
+        auto writeScope = mesh->GetWriteScope();
+
+        const VertexArrayView vertexView = mesh->GetVertexData(lodIndex);
+        const size_t vertexSizeInFloats = vertexView.layoutDesc.VertexSize() / sizeof(float);
+
+        Array<float> mutableVertexData(vertexView.floatData, vertexView.vertexCount * vertexSizeInFloats);
+
+        for (size_t i = 0; i < vertexIndices.Size(); i++)
+        {
+            TVertexPacket<VT_Position>* packet = reinterpret_cast<TVertexPacket<VT_Position>*>(
+                mutableVertexData.Data() + (vertexIndices[i] * vertexSizeInFloats));
+
+            packet->posX = localPositions[i].x;
+            packet->posY = localPositions[i].y;
+            packet->posZ = localPositions[i].z;
+        }
+
+        VertexArrayView newVertexView {};
+        newVertexView.floatData = mutableVertexData.Data();
+        newVertexView.vertexCount = vertexView.vertexCount;
+        newVertexView.layoutDesc = vertexView.layoutDesc;
+
+        mesh->SetVertexData(lodIndex, newVertexView);
+
+        if (recomputeDerivedData)
+        {
+            mesh->CalculateNormals(true);
+            mesh->SetAABB(mesh->CalculateAABB());
+        }
+    }
+
+    if (recomputeDerivedData)
+    {
+        mesh->BuildBVH();
+    }
+
+    mesh->UploadGpuData();
+}
+
+static void EnsureUniqueMeshEditTarget(const Handle<Node>& node, MeshComponent* meshComponent)
+{
+    if (node->GetTag("HYP_MeshEditUniqueMesh"_sh))
+    {
+        return;
+    }
+
+    Mesh* sourceMesh = meshComponent->mesh;
+
+    Handle<Mesh> clonedMesh = MakeHandle<Mesh>();
+    clonedMesh->SetName(NAME("MeshEditClone"));
+
+    {
+        auto readScope = sourceMesh->GetReadScope();
+
+        const MeshDesc meshDesc = sourceMesh->GetMeshDesc();
+        const VertexArrayView vertexData = sourceMesh->GetVertexData(0);
+        const Span<const ubyte> indexData = sourceMesh->GetIndexData(0);
+
+        MeshDataView meshData {};
+        meshData.vertices[0] = vertexData;
+        meshData.indices[0] = ConstByteView(indexData.Data(), indexData.Data() + indexData.Size());
+
+        clonedMesh->SetMeshData(meshDesc, meshData);
+    }
+
+    InitObject(clonedMesh);
+
+    clonedMesh->BuildBVH();
+    clonedMesh->UploadGpuData();
+
+    meshComponent->mesh = clonedMesh;
+
+    node->AddTag(NodeTag(NAME("HYP_MeshEditUniqueMesh"), int(1)));
+
+    if (Entity* entity = DynamicCast<Entity>(node.Get()))
+    {
+        entity->AddTag<EntityTag::UpdateRenderProxy>();
+    }
+}
+
+bool EditorSubsystem::TryPickMeshEditFace(const Ray& ray, MeshEditFaceSelection& outSelection, bool ensureUniqueMesh)
+{
+    AssertOnThread(g_simThread);
+
+    RayTestResults results;
+
+    for (const Handle<EditorViewport>& viewport : m_editorViewports)
+    {
+        viewport->GetView()->TestRay(ray, results, RayTestFlags::TestBVH | RayTestFlags::EditorPick);
+    }
+
+    const RayHit* closestHit = nullptr;
+    Handle<Node> hitNode;
+    MeshComponent* meshComponent = nullptr;
+
+    for (const RayHit& hit : results)
+    {
+        if (!hit.node || hit.triangleIndex == ~0u)
+        {
+            continue;
+        }
+
+        Handle<Node> candidateNode = MakeStrongRef(hit.node);
+        Entity* candidateEntity = DynamicCast<Entity>(candidateNode.Get());
+
+        if (!candidateEntity)
+        {
+            continue;
+        }
+
+        MeshComponent* candidateMeshComponent = candidateEntity->TryGetComponent<MeshComponent>();
+
+        if (!candidateMeshComponent || !candidateMeshComponent->mesh.IsValid())
+        {
+            continue;
+        }
+
+        closestHit = &hit;
+        hitNode = std::move(candidateNode);
+        meshComponent = candidateMeshComponent;
+        break;
+    }
+
+    if (!closestHit)
+    {
+        return false;
+    }
+
+    if (ensureUniqueMesh)
+    {
+        EnsureUniqueMeshEditTarget(hitNode, meshComponent);
+    }
+
+    Mesh* mesh = meshComponent->mesh;
+    const uint8 lodIndex = 0;
+
+    auto readScope = mesh->GetReadScope();
+
+    const Span<const ubyte> indexData = mesh->GetIndexData(lodIndex);
+    const Span<const uint32> indices(reinterpret_cast<const uint32*>(indexData.Data()), indexData.Size() / sizeof(uint32));
+
+    const uint32 triangleIndex = closestHit->triangleIndex;
+
+    Array<uint32> vertexIndices {
+        indices[triangleIndex * 3 + 0],
+        indices[triangleIndex * 3 + 1],
+        indices[triangleIndex * 3 + 2]
+    };
+
+    if (m_meshEditFaceMode == MeshEditFaceMode::Quad)
+    {
+        if (Optional<uint32> adjacentTriangleIndex = FindCoplanarAdjacentTriangle(mesh, lodIndex, triangleIndex, vertexIndices))
+        {
+            for (uint32 i = 0; i < 3; i++)
+            {
+                const uint32 vertexIndex = indices[(*adjacentTriangleIndex) * 3 + i];
+
+                if (!vertexIndices.Contains(vertexIndex))
+                {
+                    vertexIndices.PushBack(vertexIndex);
+                }
+            }
+        }
+    }
+
+    outSelection.node = hitNode.ToWeak();
+    outSelection.vertexIndices = std::move(vertexIndices);
+    outSelection.lodIndex = lodIndex;
+
+    return true;
+}
+
+void EditorSubsystem::SetSelectedMeshEditFace(Optional<MeshEditFaceSelection> selection)
+{
+    AssertOnThread(g_simThread);
+
+    EndMeshEditDrag();
+
+    m_selectedMeshEditFace = std::move(selection);
+
+    OnMeshEditSelectionChanged();
+}
+
+void EditorSubsystem::UpdateHoveredMeshEditFace(const Ray& ray)
+{
+    AssertOnThread(g_simThread);
+
+    MeshEditFaceSelection hoveredFace;
+
+    if (TryPickMeshEditFace(ray, hoveredFace, /* ensureUniqueMesh */ false))
+    {
+        m_hoveredMeshEditFace = hoveredFace;
+    }
+    else
+    {
+        m_hoveredMeshEditFace.Unset();
+    }
+}
+
+static void DrawMeshEditFaceHighlight(
+    DebugDrawCommandList& debugDrawCommandList,
+    const Handle<Node>& node,
+    const Array<uint32>& vertexIndices,
+    uint8 lodIndex,
+    const Color& color)
+{
+    Entity* entity = DynamicCast<Entity>(node.Get());
+    MeshComponent* meshComponent = entity ? entity->TryGetComponent<MeshComponent>() : nullptr;
+
+    if (!meshComponent || !meshComponent->mesh.IsValid())
+    {
+        return;
+    }
+
+    Mesh* mesh = meshComponent->mesh;
+
+    auto readScope = mesh->GetReadScope();
+
+    const VertexArrayView vertexView = mesh->GetVertexData(lodIndex);
+    const size_t vertexSizeInFloats = vertexView.layoutDesc.VertexSize() / sizeof(float);
+
+    const Mat4f& worldMatrix = node->GetWorldMatrix();
+
+    Array<Vec3f> worldPositions;
+    worldPositions.Reserve(vertexIndices.Size());
+
+    for (uint32 vertexIndex : vertexIndices)
+    {
+        const Vec3f localPosition = ReadMeshVertexPosition(vertexView, vertexSizeInFloats, vertexIndex);
+
+        Vec4f transformedPosition = worldMatrix.TransformVector(Vec4f(localPosition, 1.0f));
+        transformedPosition /= transformedPosition.w;
+
+        worldPositions.PushBack(transformedPosition.GetXYZ());
+    }
+
+    debugDrawCommandList.triangle(worldPositions[0], worldPositions[1], worldPositions[2], color);
+
+    if (worldPositions.Size() == 4)
+    {
+        debugDrawCommandList.triangle(worldPositions[0], worldPositions[2], worldPositions[3], color);
+    }
+}
+
+void EditorSubsystem::DebugDrawMeshEditSelection(DebugDrawCommandList& debugDrawCommandList)
+{
+    if (m_hoveredMeshEditFace
+        && (!m_selectedMeshEditFace
+            || m_hoveredMeshEditFace->node != m_selectedMeshEditFace->node
+            || m_hoveredMeshEditFace->vertexIndices != m_selectedMeshEditFace->vertexIndices))
+    {
+        if (Handle<Node> hoveredNode = m_hoveredMeshEditFace->node.Lock(); hoveredNode.IsValid())
+        {
+            const Color hoverColor = Color(1.0f, 1.0f, 1.0f, 0.4f);
+
+            DrawMeshEditFaceHighlight(debugDrawCommandList, hoveredNode, m_hoveredMeshEditFace->vertexIndices, m_hoveredMeshEditFace->lodIndex, hoverColor);
+        }
+    }
+    if (!m_selectedMeshEditFace)
+    {
+        return;
+    }
+
+    Handle<Node> node = m_selectedMeshEditFace->node.Lock();
+
+    if (!node.IsValid())
+    {
+        return;
+    }
+
+    Entity* entity = DynamicCast<Entity>(node.Get());
+    MeshComponent* meshComponent = entity ? entity->TryGetComponent<MeshComponent>() : nullptr;
+
+    if (!meshComponent || !meshComponent->mesh.IsValid())
+    {
+        return;
+    }
+
+    Mesh* mesh = meshComponent->mesh;
+
+    const Mat4f& worldMatrix = node->GetWorldMatrix();
+    const uint32 faceVertexCount = uint32(m_selectedMeshEditFace->vertexIndices.Size());
+
+    Array<Vec3f> worldPositions;
+    worldPositions.Reserve(faceVertexCount);
+
+    if (m_meshEditDragData)
+    {
+        for (uint32 i = 0; i < faceVertexCount; i++)
+        {
+            const Vec3f localPosition = m_meshEditDragData->vertexOriginalPositions[i] + m_meshEditDragData->currentLocalDelta;
+
+            Vec4f transformedPosition = worldMatrix.TransformVector(Vec4f(localPosition, 1.0f));
+            transformedPosition /= transformedPosition.w;
+
+            worldPositions.PushBack(transformedPosition.GetXYZ());
+        }
+    }
+    else
+    {
+        auto readScope = mesh->GetReadScope();
+
+        const VertexArrayView vertexView = mesh->GetVertexData(m_selectedMeshEditFace->lodIndex);
+        const size_t vertexSizeInFloats = vertexView.layoutDesc.VertexSize() / sizeof(float);
+
+        for (uint32 vertexIndex : m_selectedMeshEditFace->vertexIndices)
+        {
+            const Vec3f localPosition = ReadMeshVertexPosition(vertexView, vertexSizeInFloats, vertexIndex);
+
+            Vec4f transformedPosition = worldMatrix.TransformVector(Vec4f(localPosition, 1.0f));
+            transformedPosition /= transformedPosition.w;
+
+            worldPositions.PushBack(transformedPosition.GetXYZ());
+        }
+    }
+
+    const Color highlightColor = Color(1.0f, 0.8f, 0.0f, 1.0f);
+
+    debugDrawCommandList.triangle(worldPositions[0], worldPositions[1], worldPositions[2], highlightColor);
+
+    if (worldPositions.Size() == 4)
+    {
+        debugDrawCommandList.triangle(worldPositions[0], worldPositions[2], worldPositions[3], highlightColor);
+    }
+}
+
+void EditorSubsystem::StartMeshEditDrag(const Handle<Camera>& camera, const MouseEvent& mouseEvent)
+{
+    if (!m_selectedMeshEditFace)
+    {
+        return;
+    }
+
+    Handle<Node> node = m_selectedMeshEditFace->node.Lock();
+
+    if (!node.IsValid())
+    {
+        return;
+    }
+
+    Entity* entity = DynamicCast<Entity>(node.Get());
+    MeshComponent* meshComponent = entity ? entity->TryGetComponent<MeshComponent>() : nullptr;
+
+    if (!meshComponent || !meshComponent->mesh.IsValid())
+    {
+        return;
+    }
+
+    Mesh* mesh = meshComponent->mesh;
+    const uint8 lodIndex = m_selectedMeshEditFace->lodIndex;
+
+    const Array<uint32> affectedVertexIndices = FindWeldedVertexIndices(mesh, lodIndex, m_selectedMeshEditFace->vertexIndices);
+
+    MeshEditDragData dragData;
+    dragData.affectedVertexIndices = affectedVertexIndices;
+    dragData.vertexOriginalPositions.Reserve(affectedVertexIndices.Size());
+
+    {
+        auto readScope = mesh->GetReadScope();
+
+        const VertexArrayView vertexView = mesh->GetVertexData(lodIndex);
+        const size_t vertexSizeInFloats = vertexView.layoutDesc.VertexSize() / sizeof(float);
+
+        for (uint32 vertexIndex : affectedVertexIndices)
+        {
+            dragData.vertexOriginalPositions.PushBack(ReadMeshVertexPosition(vertexView, vertexSizeInFloats, vertexIndex));
+        }
+    }
+
+    // The picked face's own vertices always come first in affectedVertexIndices (see FindWeldedVertexIndices),
+    // so this covers exactly the selected face when computing the drag pivot.
+    Vec3f centroidLocalPosition = Vec3f::Zero();
+
+    for (uint32 i = 0; i < m_selectedMeshEditFace->vertexIndices.Size(); i++)
+    {
+        centroidLocalPosition += dragData.vertexOriginalPositions[i];
+    }
+
+    centroidLocalPosition /= float(m_selectedMeshEditFace->vertexIndices.Size());
+
+    const Mat4f& worldMatrix = node->GetWorldMatrix();
+    Vec4f transformedCentroid = worldMatrix.TransformVector(Vec4f(centroidLocalPosition, 1.0f));
+    transformedCentroid /= transformedCentroid.w;
+
+    dragData.faceCentroidWorldOrigin = transformedCentroid.GetXYZ();
+    dragData.planeNormal = -camera->GetDirection();
+    dragData.currentLocalDelta = Vec3f::Zero();
+    dragData.lockedAxis = -1;
+
+    const Vec4f mouseWorld = camera->TransformScreenToWorld(mouseEvent.relativePos);
+    const Vec4f rayDirection = mouseWorld.Normalized();
+    const Ray ray { camera->GetWorldTranslation(), rayDirection.GetXYZ() };
+
+    if (Optional<RayHit> planeHit = ray.TestPlane(dragData.faceCentroidWorldOrigin, dragData.planeNormal))
+    {
+        dragData.hitpointOrigin = planeHit->hitpoint;
+    }
+    else
+    {
+        dragData.hitpointOrigin = dragData.faceCentroidWorldOrigin;
+    }
+
+    m_meshEditDragData = dragData;
+}
+
+void EditorSubsystem::UpdateMeshEditDrag(const Handle<Camera>& camera, const MouseEvent& mouseEvent)
+{
+    if (!m_meshEditDragData || !m_selectedMeshEditFace)
+    {
+        return;
+    }
+
+    Handle<Node> node = m_selectedMeshEditFace->node.Lock();
+
+    if (!node.IsValid())
+    {
+        return;
+    }
+
+    const Vec4f mouseWorld = camera->TransformScreenToWorld(mouseEvent.relativePos);
+    const Vec4f rayDirection = mouseWorld.Normalized();
+    const Ray ray { camera->GetWorldTranslation(), rayDirection.GetXYZ() };
+
+    Optional<RayHit> planeHit = ray.TestPlane(m_meshEditDragData->faceCentroidWorldOrigin, m_meshEditDragData->planeNormal);
+
+    if (!planeHit)
+    {
+        return;
+    }
+
+    Vec3f worldDelta;
+
+    if (m_meshEditDragData->lockedAxis == -1)
+    {
+        worldDelta = planeHit->hitpoint - m_meshEditDragData->hitpointOrigin;
+    }
+    else
+    {
+        Vec3f axisDirection = Vec3f::Zero();
+        axisDirection[m_meshEditDragData->lockedAxis] = 1.0f;
+
+        const float t = (planeHit->hitpoint - m_meshEditDragData->hitpointOrigin).Dot(axisDirection);
+        worldDelta = axisDirection * t;
+    }
+
+    const Mat4f inverseWorldMatrix = node->GetWorldMatrix().Inverse();
+
+    m_meshEditDragData->currentLocalDelta = inverseWorldMatrix.TransformVector(Vec4f(worldDelta, 0.0f)).GetXYZ();
+}
+
+void EditorSubsystem::EndMeshEditDrag()
+{
+    if (!m_meshEditDragData)
+    {
+        return;
+    }
+
+    if (!m_selectedMeshEditFace)
+    {
+        m_meshEditDragData.Unset();
+        return;
+    }
+
+    Handle<Node> node = m_selectedMeshEditFace->node.Lock();
+
+    if (!node.IsValid())
+    {
+        m_meshEditDragData.Unset();
+        return;
+    }
+
+    Entity* entity = DynamicCast<Entity>(node.Get());
+    MeshComponent* meshComponent = entity ? entity->TryGetComponent<MeshComponent>() : nullptr;
+
+    if (!meshComponent || !meshComponent->mesh.IsValid())
+    {
+        m_meshEditDragData.Unset();
+        return;
+    }
+
+    const uint8 lodIndex = m_selectedMeshEditFace->lodIndex;
+
+    if (m_meshEditDragData->currentLocalDelta == Vec3f::Zero())
+    {
+        m_meshEditDragData.Unset();
+        return;
+    }
+
+    Array<Vec3f> updatedLocalPositions;
+    updatedLocalPositions.Reserve(m_meshEditDragData->vertexOriginalPositions.Size());
+
+    for (const Vec3f& originalPosition : m_meshEditDragData->vertexOriginalPositions)
+    {
+        updatedLocalPositions.PushBack(originalPosition + m_meshEditDragData->currentLocalDelta);
+    }
+
+    ApplyMeshEditVertexPositions(node, lodIndex, m_meshEditDragData->affectedVertexIndices, updatedLocalPositions, /* recomputeDerivedData */ true);
+
+    if (Handle<EditorProject> project = GetCurrentProject(); project.IsValid())
+    {
+        Array<uint32> vertexIndices = m_meshEditDragData->affectedVertexIndices;
+        Array<Vec3f> originalPositions = m_meshEditDragData->vertexOriginalPositions;
+
+        project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
+            "Move mesh vertices",
+            [nodeWeak = node.ToWeak(), lodIndex, vertexIndices, originalPositions, updatedLocalPositions]() -> EditorActionFunctions
+            {
+                return {
+                    [nodeWeak, lodIndex, vertexIndices, updatedLocalPositions](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
+                    {
+                        if (Handle<Node> node = nodeWeak.Lock(); node.IsValid())
+                        {
+                            ApplyMeshEditVertexPositions(node, lodIndex, vertexIndices, updatedLocalPositions, /* recomputeDerivedData */ true);
+                        }
+                    },
+                    [nodeWeak, lodIndex, vertexIndices, originalPositions](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
+                    {
+                        if (Handle<Node> node = nodeWeak.Lock(); node.IsValid())
+                        {
+                            ApplyMeshEditVertexPositions(node, lodIndex, vertexIndices, originalPositions, /* recomputeDerivedData */ true);
+                        }
+                    }
+                };
+            }));
+    }
+
+    m_meshEditDragData.Unset();
+}
+
+void EditorSubsystem::SetMeshEditDragLockedAxis(const Handle<Camera>& camera, const KeyboardEvent& keyboardEvent, int axis)
+{
+    if (!m_meshEditDragData)
+    {
+        return;
+    }
+
+    const int newLockedAxis = (m_meshEditDragData->lockedAxis == axis) ? -1 : axis;
+    m_meshEditDragData->lockedAxis = newLockedAxis;
+
+    if (newLockedAxis == -1)
+    {
+        m_meshEditDragData->planeNormal = -camera->GetDirection();
+    }
+    else
+    {
+        Vec3f axisDirection = Vec3f::Zero();
+        axisDirection[newLockedAxis] = 1.0f;
+
+        m_meshEditDragData->planeNormal = newLockedAxis == 1
+            ? axisDirection.Cross(camera->GetSideVector()).Normalize()
+            : axisDirection.Cross(camera->GetUpVector()).Normalize();
+    }
+
+    AssertDebug(keyboardEvent.inputManager != nullptr);
+    
+    // Needs re-anchoring
+    const Vec2f screenPosition = Vec2f(keyboardEvent.inputManager->GetVirtualMousePosition()) / Vec2f(camera->GetDimensions());
+    const Vec4f mouseWorld = camera->TransformScreenToWorld(screenPosition);
+    const Vec4f rayDirection = mouseWorld.Normalized();
+    const Ray ray { camera->GetWorldTranslation(), rayDirection.GetXYZ() };
+
+    if (Optional<RayHit> planeHit = ray.TestPlane(m_meshEditDragData->faceCentroidWorldOrigin, m_meshEditDragData->planeNormal))
+    {
+        m_meshEditDragData->hitpointOrigin = planeHit->hitpoint;
+    }
+}
+
+#pragma endregion MeshEditMode
+
 void EditorSubsystem::InitializeGizmos()
 {
     AssertOnThread(g_simThread);
@@ -1966,12 +2732,12 @@ void EditorSubsystem::ShutdownGizmos()
 {
     AssertOnThread(g_simThread);
 
-    if (m_selectedManipulationMode != EditorManipulationMode::NONE)
+    if (m_selectedManipulationMode != EditorManipulationMode::None)
     {
-        m_selectedManipulationMode = EditorManipulationMode::NONE;
+        m_selectedManipulationMode = EditorManipulationMode::None;
 
         OnSelectedGizmoChanged(
-            m_gizmos.At(EditorManipulationMode::NONE),
+            m_gizmos.At(EditorManipulationMode::None),
             m_gizmos.At(m_selectedManipulationMode));
     }
 
@@ -1990,7 +2756,9 @@ static constexpr bool ShowOnlyActiveScene = true; /// \todo : Make this configur
 #if HYP_EDITOR
 
 EditorSubsystem::EditorSubsystem()
-    : m_selectedManipulationMode(EditorManipulationMode::NONE),
+    : m_selectedManipulationMode(EditorManipulationMode::None),
+      m_meshEditModeEnabled(false),
+      m_meshEditFaceMode(MeshEditFaceMode::Triangle),
       m_editorCameraEnabled(false),
       m_shouldCancelNextClick(false)
 {
@@ -2170,7 +2938,7 @@ EditorSubsystem::EditorSubsystem()
               {
                   SetHoveredGizmo(MouseEvent {}, nullptr, Handle<Node>::Null());
 
-                  if (prevGizmo && prevGizmo->GetManipulationMode() != EditorManipulationMode::NONE)
+                  if (prevGizmo && prevGizmo->GetManipulationMode() != EditorManipulationMode::None)
                   {
                       if (prevGizmo->GetNode().IsValid())
                       {
@@ -2180,7 +2948,7 @@ EditorSubsystem::EditorSubsystem()
                       prevGizmo->SetFocusedNode(Handle<Node>::Null());
                   }
 
-                  if (newGizmo && newGizmo->GetManipulationMode() != EditorManipulationMode::NONE)
+                  if (newGizmo && newGizmo->GetManipulationMode() != EditorManipulationMode::None)
                   {
                       newGizmo->SetFocusedNode(m_focusedNode.Lock());
 
@@ -2286,6 +3054,8 @@ void EditorSubsystem::Update(float delta)
     m_editorDelegates->Update();
 
     DebugDrawCommandList& dbg = DebugDrawer::GetInstance().CreateCommandList();
+
+    DebugDrawMeshEditSelection(dbg);
 
     // Debug draw probes
     for (Scene* scene : GetCurrentProject()->GetWorld()->GetScenes())
@@ -2493,6 +3263,8 @@ bool EditorSubsystem::StartSimulation()
         return false;
     }
 
+    SetMeshEditModeEnabled(false);
+
     const GameState& gameState = m_currentProject->GetGame()->GetGameState();
 
     const bool isSimulatingOrPaused = gameState.mode == GameStateMode::SIMULATING
@@ -2684,6 +3456,32 @@ void EditorSubsystem::InitViewport()
             //     return UIEventHandlerResult::STOP_BUBBLING;
             // }
 
+            if (m_meshEditModeEnabled)
+            {
+                const Vec4f mouseWorld = activeViewport->GetCamera()->TransformScreenToWorld(event.relativePos);
+                const Vec4f rayDirection = mouseWorld.Normalized();
+
+                const Ray ray { activeViewport->GetCamera()->GetWorldTranslation(), rayDirection.GetXYZ() };
+
+                MeshEditFaceSelection faceSelection;
+
+                if (TryPickMeshEditFace(ray, faceSelection, /* ensureUniqueMesh */ true))
+                {
+                    if (Handle<Node> pickedNode = faceSelection.node.Lock(); pickedNode.IsValid())
+                    {
+                        SetFocusedNode(pickedNode, true);
+                    }
+
+                    SetSelectedMeshEditFace(faceSelection);
+                }
+                else
+                {
+                    SetSelectedMeshEditFace({});
+                }
+
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
+
             // if (GetWorld()->GetGameState().IsEditMode())
             {
                 if (IsHoveringGizmo())
@@ -2813,6 +3611,13 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::OK;
             }
 
+            if (IsMeshEditDragActive())
+            {
+                UpdateMeshEditDrag(activeViewport->GetCamera(), event);
+
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
+
             if (IsHoveringGizmo())
             {
                 // If the mouse is currently over a manipulation widget, don't allow camera to handle the event
@@ -2861,10 +3666,22 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::OK;
             }
 
+            if (m_meshEditModeEnabled && !event.mouseButtons[MouseButtonState::LEFT] && !IsMeshEditDragActive())
+            {
+                const Vec4f mouseWorld = activeViewport->GetCamera()->TransformScreenToWorld(event.relativePos);
+                const Vec4f rayDirection = mouseWorld.Normalized();
+
+                const Ray ray { activeViewport->GetCamera()->GetWorldTranslation(), rayDirection.GetXYZ() };
+
+                UpdateHoveredMeshEditFace(ray);
+
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
+
             // Hover over a manipulation widget when mouse is not down
             if (!event.mouseButtons[MouseButtonState::LEFT]
                 //&& GetWorld()->GetGameState().IsEditMode()
-                && GetSelectedManipulationMode() != EditorManipulationMode::NONE)
+                && GetSelectedManipulationMode() != EditorManipulationMode::None)
             {
                 // Ray test the widget
 
@@ -2938,6 +3755,13 @@ void EditorSubsystem::InitViewport()
             if (!activeViewport)
             {
                 return UIEventHandlerResult::OK;
+            }
+
+            if (m_meshEditModeEnabled && m_selectedMeshEditFace)
+            {
+                StartMeshEditDrag(activeViewport->GetCamera(), event);
+
+                return UIEventHandlerResult::STOP_BUBBLING;
             }
 
             if (IsHoveringGizmo())
@@ -3019,6 +3843,11 @@ void EditorSubsystem::InitViewport()
                 gizmo->OnDragEnd(activeViewport->GetCamera(), event);
             }
 
+            if (IsMeshEditDragActive())
+            {
+                EndMeshEditDrag();
+            }
+
             return UIEventHandlerResult::OK;
         }));
 
@@ -3038,8 +3867,35 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::OK;
             }
 
+            if (IsMeshEditDragActive())
+            {
+                int lockedAxis = -1;
+
+                switch (event.keyCode)
+                {
+                case KeyCode::KEY_X:
+                    lockedAxis = 0;
+                    break;
+                case KeyCode::KEY_Y:
+                    lockedAxis = 1;
+                    break;
+                case KeyCode::KEY_Z:
+                    lockedAxis = 2;
+                    break;
+                default:
+                    break;
+                }
+
+                if (lockedAxis != -1)
+                {
+                    SetMeshEditDragLockedAxis(activeViewport->GetCamera(), event, lockedAxis);
+
+                    return UIEventHandlerResult::STOP_BUBBLING;
+                }
+            }
+
             CameraController* controller = activeViewport->GetCamera()->GetCameraController();
-            
+
             if (controller != nullptr)
             {
                 InputHandlerBase* inputHandler = controller->GetInputHandler();
@@ -3656,14 +4512,17 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
         HYP_LOG(Editor, Verbose, "Set focused node: {}\t{}\t is static ? {}", focusedNode->GetName(), focusedNode->GetWorldTranslation(),
                 focusedNode->IsStatic());
 
-        if (focusedNode->IsA<VolumeBase>() && StaticCast<VolumeBase>(focusedNode)->useVolumeEditTool)
+        if (!m_meshEditModeEnabled)
         {
-            SetSelectedManipulationMode(EditorManipulationMode::VOLUME_EDIT);
-        }
-        else if (GetSelectedManipulationMode() == EditorManipulationMode::NONE
-                 || GetSelectedManipulationMode() == EditorManipulationMode::VOLUME_EDIT)
-        {
-            SetSelectedManipulationMode(EditorManipulationMode::TRANSLATE);
+            if (focusedNode->IsA<VolumeBase>() && StaticCast<VolumeBase>(focusedNode)->useVolumeEditTool)
+            {
+                SetSelectedManipulationMode(EditorManipulationMode::ReshapeVolume);
+            }
+            else if (GetSelectedManipulationMode() == EditorManipulationMode::None
+                     || GetSelectedManipulationMode() == EditorManipulationMode::ReshapeVolume)
+            {
+                SetSelectedManipulationMode(EditorManipulationMode::Translate);
+            }
         }
 
         EditorGizmoBase* gizmo = GetSelectedGizmo();

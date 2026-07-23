@@ -1177,11 +1177,7 @@ namespace Hyperion
         public BoxedValue(object? value)
         {
             BoxedValueInternal.BoxedValue_Construct(ref _data);
-
-            if (value != null)
-            {
-                _data.SetValue(value);
-            }
+            _data.SetValue(value);
         }
 
         public static BoxedValue FromBuffer(BoxedValueInternal data)

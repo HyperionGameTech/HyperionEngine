@@ -481,7 +481,7 @@ static inline void UpdateRefs_Impl(ResourceTracker<AllocatorType, ObjId<ElementT
 
     for (ElementType* resource : added)
     {
-        if constexpr (!std::is_same_v<ProxyType, NullProxy>)
+        if constexpr (CONSTEXPR_TYPE_ID(ProxyType) != CONSTEXPR_TYPE_ID(NullProxy))
         {
             ProxyType* pProxy = resourceTracker.GetProxy(ObjId<ElementType>(resource->Id()));
 
@@ -501,13 +501,13 @@ static inline void UpdateRefs_Impl(ResourceTracker<AllocatorType, ObjId<ElementT
 
     for (ElementType* resource : removed)
     {
-        if constexpr (!std::is_same_v<ProxyType, NullProxy>)
+        if constexpr (CONSTEXPR_TYPE_ID(ProxyType) != CONSTEXPR_TYPE_ID(NullProxy))
         {
             resourceTracker.RemoveProxy(ObjId<ElementType>(resource->Id()));
         }
     }
 
-    if constexpr (!std::is_same_v<ProxyType, NullProxy> && HYP_HAS_METHOD(ElementType, UpdateRenderProxy))
+    if constexpr (CONSTEXPR_TYPE_ID(ProxyType) != CONSTEXPR_TYPE_ID(NullProxy) && HYP_HAS_METHOD(ElementType, UpdateRenderProxy))
     {
         Array<ObjId<ElementType>, ThreadAllocator> changedIds;
         resourceTracker.GetChanged(changedIds);

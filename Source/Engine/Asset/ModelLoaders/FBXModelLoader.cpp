@@ -142,7 +142,7 @@ struct FBXObject
     Array<FBXObject*> children;
     const FBXTemplate* fbxTemplate = nullptr;
 
-    const FBXProperty& GetProperty(uint32 index) const
+    HYP_FORCE_INLINE const FBXProperty& GetProperty(uint32 index) const
     {
         if (index >= properties.Size())
         {
@@ -170,7 +170,7 @@ struct FBXObject
         return false;
     }
 
-    const FBXObject& FindChild(const String& childName) const
+    const FBXObject& FindChild(const UTF8StringView& childName) const
     {
         for (FBXObject* child : children)
         {
@@ -188,12 +188,12 @@ struct FBXObject
         return s_empty;
     }
 
-    HYP_FORCE_INLINE FBXObject& operator[](const String& childName)
+    HYP_FORCE_INLINE FBXObject& operator[](const UTF8StringView& childName)
     {
         return const_cast<FBXObject&>(static_cast<const FBXObject&>(*this)[childName]);
     }
 
-    HYP_FORCE_INLINE const FBXObject& operator[](const String& childName) const
+    HYP_FORCE_INLINE const FBXObject& operator[](const UTF8StringView& childName) const
     {
         return FindChild(childName);
     }
@@ -434,11 +434,22 @@ static void InitFBXLoaderMemory()
     if (t_fbxMemory == nullptr)
     {
         t_fbxMemory = new FBXLoaderMemory {
-            .arena = Arena(16 * 1024 * 1024) // 16 MB
+            Arena(4 * 1024 * 1024), // 4 MB
+            new SlabAllocator(sizeof(FBXObject), alignof(FBXObject), 1024)
         };
-
-        t_fbxMemory->objectAllocator = new SlabAllocator(sizeof(FBXObject), alignof(FBXObject), 1024);
     }
+}
+
+static void ShutdownFBXLoaderMemory()
+{
+    if (!t_fbxMemory)
+    {
+        return;
+    }
+
+    delete t_fbxMemory->objectAllocator;
+    delete t_fbxMemory;
+    t_fbxMemory = nullptr;
 }
 
 static void DeleteFBXObjectsRecursively(FBXObject* object)
@@ -982,8 +993,6 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 {
     Assert(state.assetManager != nullptr);
 
-    InitFBXLoaderMemory();
-
     // Include our root dir as part of the path
     const String path = state.filepath;
     const FilePath currentDir = FilePath::Current();
@@ -1003,6 +1012,9 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
     {
         return HYP_MAKE_ERROR(AssetLoadError, "Invalid magic header");
     }
+
+    InitFBXLoaderMemory();
+    HYP_DEFER({ ShutdownFBXLoaderMemory(); });
 
     FBXVersion version;
     fbr.Read(&version, sizeof(FBXVersion));
@@ -2105,16 +2117,15 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
             attributes.bucket = RenderBucket::Opaque;
 
             MaterialParameters parameters;
-            parameters.albedo = Vec4f(fbxMaterial->diffuseColor.x, fbxMaterial->diffuseColor.y, fbxMaterial->diffuseColor.z, 1.0f);
+            parameters.albedo = Vec4f(fbxMaterial->diffuseColor.GetXYZ(), 1.0f);
             parameters.roughness = 0.65f;
             parameters.metalness = 0.0f;
 
-
             MaterialTextures textures {};
 
-            const auto assignTexture = [&](const char* fbxPropertyName, MaterialTextureKey key)
+            const auto assignTexture = [&](const UTF8StringView& fbxPropertyName, MaterialTextureKey key)
             {
-                const auto textureConnectionIt = fbxMaterial->textureConnections.Find(fbxPropertyName);
+                const auto textureConnectionIt = fbxMaterial->textureConnections.FindAs(fbxPropertyName);
 
                 if (textureConnectionIt == fbxMaterial->textureConnections.End())
                 {
@@ -2461,7 +2472,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
         {
             Handle<Animation> animation = MakeHandle<Animation>(NAME("Take"));
 
-            static const char* const componentNames[3] = { "d|X", "d|Y", "d|Z" };
+            constexpr UTF8StringView const ComponentNames[3] = { "d|X", "d|Y", "d|Z" };
 
             const auto getComponentCurves = [&](const Array<FBXAnimCurveNode*>& curveNodes, const char* propertyName, FBXAnimCurve** outCurves)
             {
@@ -2472,9 +2483,9 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                         continue;
                     }
 
-                    for (int component = 0; component < 3; ++component)
+                    for (int component = 0; component < 3; component++)
                     {
-                        const auto curveIdIt = curveNode->curveIds.Find(componentNames[component]);
+                        const auto curveIdIt = curveNode->curveIds.FindAs(ComponentNames[component]);
 
                         if (curveIdIt == curveNode->curveIds.End())
                         {
@@ -2512,7 +2523,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                 const auto collectTimes = [&](FBXAnimCurve* const (&curves)[3])
                 {
-                    for (int component = 0; component < 3; ++component)
+                    for (int component = 0; component < 3; component++)
                     {
                         if (curves[component])
                         {
@@ -2610,8 +2621,8 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
         }
     }
 
-    // temp hack
-    top->SetLocalRotation(Quat4f::AxisAngles(Vec3f(1.0f, 0.0f, 0.0f), MathUtil::DegToRad(-90.0f)));
+    // align it to the engine's expectations.
+    top->SetLocalRotation(Quat4f::AxisAngles(Vec3f(1.0f, 0.0f, 0.0f), MathUtil::DegToRad(90.0f)));
     top->Scale(0.01f);
 
     return LoadedAsset { MakeHandle<Prefab>(top->GetName(), top) };

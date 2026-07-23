@@ -1315,7 +1315,7 @@ void RenderInterface::CleanupUnusedResources(uint32 prevFrameIndex)
             viewData->renderCollector.RemoveEmptyRenderGroups();
 
             // Clear out data for views that haven't been written to for a while
-            if (static_cast<int64>(prevFrameIndex) - int64(viewData->lastUsedFrame) >= MaxFramesBeforeDiscard)
+            if (static_cast<int64>(prevFrameIndex) - static_cast<int64>(viewData->lastUsedFrame) >= MaxFramesBeforeDiscard)
             {
                 // Decrement ref count on the ViewData,
                 // if we hit zero there are no more BufferedViewData holding refs to the ViewData so we delete it

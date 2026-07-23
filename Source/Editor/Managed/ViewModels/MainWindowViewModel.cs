@@ -169,6 +169,27 @@ namespace Hyperion.Editor.ViewModels
 
         public bool CanSelectGizmo = true; // temp hax
 
+        public ICommand ToggleMeshEditMode { get; private set; }
+        public bool IsMeshEditModeEnabled => _editorSubsystem?.IsMeshEditModeEnabled() ?? false;
+        public bool CanToggleMeshEditMode
+        {
+            get
+            {
+                EditorProject? project = EngineManager.CurrentProject;
+
+                if (project == null)
+                {
+                    return false;
+                }
+
+                return CanSelectGizmo && project.World.GetGameState().Mode != GameStateMode.Simulating;
+            }
+        }
+
+        public ICommand SelectMeshEditFaceTriangle { get; private set; }
+        public ICommand SelectMeshEditFaceQuad { get; private set; }
+        public bool IsMeshEditFaceModeQuad => _editorSubsystem?.GetMeshEditFaceMode() == MeshEditFaceMode.Quad;
+
         public ICommand SetGameModePlaying { get; private set; }
         public bool CanSetGameModePlaying
         {
@@ -277,6 +298,36 @@ namespace Hyperion.Editor.ViewModels
             SetGameModePlaying = new SetGameModeCommand(GameStateMode.Simulating);
             SetGameModePaused = new SetGameModeCommand(GameStateMode.Paused);
             SetGameModeStopped = new SetGameModeCommand(GameStateMode.Stopped);
+
+            ToggleMeshEditMode = new RelayCommand(() =>
+            {
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    _editorSubsystem.SetMeshEditModeEnabled(!_editorSubsystem.IsMeshEditModeEnabled());
+
+                    Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(IsMeshEditModeEnabled)));
+                });
+            });
+
+            SelectMeshEditFaceTriangle = new RelayCommand(() =>
+            {
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    _editorSubsystem.SetMeshEditFaceMode(MeshEditFaceMode.Triangle);
+
+                    Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(IsMeshEditFaceModeQuad)));
+                });
+            });
+
+            SelectMeshEditFaceQuad = new RelayCommand(() =>
+            {
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    _editorSubsystem.SetMeshEditFaceMode(MeshEditFaceMode.Quad);
+
+                    Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(IsMeshEditFaceModeQuad)));
+                });
+            });
 
             SetActiveSceneCommand = new RelayCommand<SceneViewModel>(sceneViewModel =>
             {
@@ -676,6 +727,10 @@ namespace Hyperion.Editor.ViewModels
                             OnPropertyChanged(nameof(CanSelectTransformModeTranslate));
                             OnPropertyChanged(nameof(CanSelectTransformModeRotate));
                             OnPropertyChanged(nameof(CanSelectTransformModeScale));
+
+                            (ToggleMeshEditMode as RelayCommand)?.RaiseCanExecuteChanged();
+                            OnPropertyChanged(nameof(CanToggleMeshEditMode));
+                            OnPropertyChanged(nameof(IsMeshEditModeEnabled));
                         });
                     });
             }
@@ -709,6 +764,10 @@ namespace Hyperion.Editor.ViewModels
                 OnPropertyChanged(nameof(CanSelectTransformModeTranslate));
                 OnPropertyChanged(nameof(CanSelectTransformModeRotate));
                 OnPropertyChanged(nameof(CanSelectTransformModeScale));
+
+                OnPropertyChanged(nameof(CanToggleMeshEditMode));
+                OnPropertyChanged(nameof(IsMeshEditModeEnabled));
+                OnPropertyChanged(nameof(IsMeshEditFaceModeQuad));
 
                 // Update scenes list
                 Scenes.Clear();

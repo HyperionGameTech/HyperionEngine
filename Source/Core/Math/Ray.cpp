@@ -185,7 +185,7 @@ bool Ray::TestTriangle(const Triangle& triangle, RayHitID hitId, RayTestResults&
     float det = v0v1.Dot(pvec);
 
     // ray and triangle are parallel if det is close to 0
-    if (std::fabs(det) < MathUtil::epsilonF)
+    if (MathUtil::Abs(det) < MathUtil::epsilonF)
     {
         return false;
     }
@@ -210,16 +210,17 @@ bool Ray::TestTriangle(const Triangle& triangle, RayHitID hitId, RayTestResults&
 
     t = v0v2.Dot(qvec) * invDet;
 
-    const Vec3f barycentricCoords = Vec3f(1.0f - u - v, u, v);
+    const Vec3f bary { 1.0f - u - v, u, v };
 
     if (t > 0.0f)
     {
         outResults.AddHit({
-            .hitpoint = position + (direction * t),
-            .normal = triangle.GetNormal(),
-            .barycentricCoords = barycentricCoords,
-            .distance = t,
-            .id = hitId
+            position + (direction * t),
+            triangle.GetNormal(),
+            bary,
+            t,
+            hitId,
+            hitId
         });
 
         return true;
