@@ -62,7 +62,6 @@ namespace Hyperion {
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Assets);
 
 using FatVertex = TVertex<VT_Simple | VT_Skeletal>;
-using FBXTempAllocator = ThreadAllocator;
 
 #pragma region Helpers
 
@@ -104,6 +103,51 @@ static Pair<Array<FatVertex>, Array<uint32>> CalculateIndices(const Array<FatVer
 
 #pragma endregion Helpers
 
+#pragma region Allocation
+
+
+
+class FBXAllocator : public TArena<DynamicAllocator>
+{
+public:
+    static constexpr size_t BlockSize = 4 * 1024 * 1024; // 4 MB
+
+    FBXAllocator()
+        : TArena(BlockSize)
+    {
+    }
+};
+
+struct FBXLoaderMemory
+{
+    FBXAllocator allocator;
+    SlabAllocator* objectAllocator;
+};
+
+thread_local FBXLoaderMemory* t_fbxMemory = nullptr;
+
+void InitFBXLoaderMemory();
+void ShutdownFBXLoaderMemory();
+
+namespace memory {
+
+template <class T, class T2>
+struct DefaultAllocatorInstanceHelper;
+
+template <>
+struct DefaultAllocatorInstanceHelper<FBXAllocator, void>
+{
+    FBXAllocator& DefaultAllocatorInstanceHelper::operator()() const
+    {
+        return t_fbxMemory->allocator;
+    }
+};
+
+} // namespace memory
+
+
+#pragma endregion Allocation
+
 constexpr char HeaderString[] = "Kaydara FBX Binary  ";
 constexpr uint8 HeaderBytes[] = { 0x1A, 0x00 };
 
@@ -115,7 +159,7 @@ struct FBXProperty
     static const FBXProperty s_empty;
 
     FBXPropertyValue value;
-    Array<FBXPropertyValue> arrayElements;
+    Array<FBXPropertyValue, FBXAllocator> arrayElements;
 
     explicit operator bool() const
     {
@@ -130,7 +174,7 @@ struct FBXTemplate
 {
     String name;
     int32 count = 0;
-    Array<struct FBXDefinitionProperty, DynamicAllocator> properties;
+    Array<struct FBXDefinitionProperty, FBXAllocator> properties;
 };
 
 struct FBXObject
@@ -138,8 +182,8 @@ struct FBXObject
     static const FBXObject s_empty;
 
     String name;
-    Array<FBXProperty> properties;
-    Array<FBXObject*> children;
+    Array<FBXProperty, FBXAllocator> properties;
+    Array<FBXObject*, FBXAllocator> children;
     const FBXTemplate* fbxTemplate = nullptr;
 
     HYP_FORCE_INLINE const FBXProperty& GetProperty(uint32 index) const
@@ -242,7 +286,7 @@ struct FBXMaterial
     String name;
     Vec4f diffuseColor { 1.0f, 1.0f, 1.0f, 1.0f };
     double transparencyFactor = 0.0;
-    Map<String, FBXObjectID> textureConnections; // FBX property name (e.g. "DiffuseColor") -> Texture object id
+    Map<String, FBXObjectID, FBXAllocator> textureConnections; // FBX property name (e.g. "DiffuseColor") -> Texture object id
 };
 
 // 1 second, expressed in FBX's internal time units
@@ -250,8 +294,8 @@ static constexpr int64 FBXTimeUnitsPerSecond = 46186158000LL;
 
 struct FBXAnimCurve
 {
-    Array<int64> keyTimes;
-    Array<float> keyValues;
+    Array<int64, FBXAllocator> keyTimes;
+    Array<float, FBXAllocator> keyValues;
 
     float Evaluate(float timeSeconds, float defaultValue) const
     {
@@ -304,15 +348,15 @@ struct FBXCluster
     String name;
     Mat4f transform;
     Mat4f transformLink;
-    Array<int32> vertexIndices;
-    Array<double> boneWeights;
+    Array<int32, FBXAllocator> vertexIndices;
+    Array<double, FBXAllocator> boneWeights;
 
     FBXObjectID limbId = 0;
 };
 
 struct FBXSkin
 {
-    Set<FBXObjectID> clusterIds;
+    Set<FBXObjectID, FBXAllocator> clusterIds;
 };
 
 struct FBXPoseNode
@@ -324,7 +368,7 @@ struct FBXPoseNode
 struct FBXBindPose
 {
     String name;
-    Array<FBXPoseNode> poseNodes;
+    Array<FBXPoseNode, FBXAllocator> poseNodes;
 };
 
 struct FBXMesh
@@ -336,10 +380,9 @@ struct FBXMesh
     FBXObjectID skinId = 0;
 
     Array<float> vertexData;
-
     Array<uint32> indices;
 
-    Map<int32, Array<uint32>> controlPointToVertices;
+    Map<int32, Array<uint32, FBXAllocator>, FBXAllocator> controlPointToVertices;
 
     BoundingBox bounds;
 
@@ -390,7 +433,7 @@ struct FBXNode
     FBXObjectID meshId = 0;
     FBXObjectID materialId = 0;
 
-    Set<FBXObjectID> childIds;
+    Set<FBXObjectID, FBXAllocator> childIds;
 
     Transform localTransform;
 
@@ -417,40 +460,9 @@ struct FBXNodeMapping
         data;
 };
 
-const FBXObject FBXObject::s_empty = {};
+const FBXObject FBXObject::s_empty;
 
 using FBXVersion = uint32;
-
-struct FBXLoaderMemory
-{
-    Arena arena;
-    SlabAllocator* objectAllocator;
-};
-
-thread_local FBXLoaderMemory* t_fbxMemory = nullptr;
-
-static void InitFBXLoaderMemory()
-{
-    if (t_fbxMemory == nullptr)
-    {
-        t_fbxMemory = new FBXLoaderMemory {
-            Arena(4 * 1024 * 1024), // 4 MB
-            new SlabAllocator(sizeof(FBXObject), alignof(FBXObject), 1024)
-        };
-    }
-}
-
-static void ShutdownFBXLoaderMemory()
-{
-    if (!t_fbxMemory)
-    {
-        return;
-    }
-
-    delete t_fbxMemory->objectAllocator;
-    delete t_fbxMemory;
-    t_fbxMemory = nullptr;
-}
 
 static void DeleteFBXObjectsRecursively(FBXObject* object)
 {
@@ -825,8 +837,8 @@ static FBXReferenceType GetReferenceType(const FBXObject& object)
     return REFERENCE_DIRECT;
 }
 
-template <class T>
-static Result ReadBinaryArray(const FBXObject& object, Array<T>& ary)
+template <class T, class AllocatorType>
+static Result ReadBinaryArray(const FBXObject& object, Array<T, AllocatorType>& ary)
 {
     if (FBXProperty property = object.GetProperty(0))
     {
@@ -1636,7 +1648,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     const int32 controlPointIndex = int32(modelIndices[index]);
                     const uint32 expandedVertexIndex = newVertsAndIndices.second[index];
 
-                    Array<uint32>& expandedIndices = fbxMesh.controlPointToVertices[controlPointIndex];
+                    Array<uint32, FBXAllocator>& expandedIndices = fbxMesh.controlPointToVertices[controlPointIndex];
 
                     if (!expandedIndices.Contains(expandedVertexIndex))
                     {
@@ -1783,7 +1795,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 {
                     if (const FBXObject& keyValueNode = childObject->FindChild("KeyValueFloat"))
                     {
-                        Array<float> keyValues;
+                        Array<float, FBXAllocator> keyValues;
                         Result result = ReadBinaryArray<float>(keyValueNode, keyValues);
 
                         if (!result)
@@ -2455,7 +2467,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
         GetCurrentAssetRegistry()->PutAssetUnique(rootSkeleton);
         InitObject(rootSkeleton);
 
-        Map<FBXObjectID, Array<FBXAnimCurveNode*>> curveNodesByTarget;
+        Map<FBXObjectID, Array<FBXAnimCurveNode*, FBXAllocator>, FBXAllocator> curveNodesByTarget;
 
         for (auto& mappingIt : objectMapping)
         {
@@ -2474,7 +2486,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
             constexpr UTF8StringView const ComponentNames[3] = { "d|X", "d|Y", "d|Z" };
 
-            const auto getComponentCurves = [&](const Array<FBXAnimCurveNode*>& curveNodes, const char* propertyName, FBXAnimCurve** outCurves)
+            const auto getComponentCurves = [&](const Array<FBXAnimCurveNode*, FBXAllocator>& curveNodes, const char* propertyName, FBXAnimCurve** outCurves)
             {
                 for (FBXAnimCurveNode* curveNode : curveNodes)
                 {
@@ -2519,7 +2531,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 getComponentCurves(targetIt.second, "Lcl Rotation", rotationCurves);
                 getComponentCurves(targetIt.second, "Lcl Scaling", scalingCurves);
 
-                Array<int64> allKeyTimes;
+                Array<int64, FBXAllocator> allKeyTimes;
 
                 const auto collectTimes = [&](FBXAnimCurve* const (&curves)[3])
                 {
@@ -2543,7 +2555,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                 std::sort(allKeyTimes.Begin(), allKeyTimes.End());
 
-                Array<int64> uniqueKeyTimes;
+                Array<int64, FBXAllocator> uniqueKeyTimes;
                 uniqueKeyTimes.Reserve(allKeyTimes.Size());
 
                 for (const int64 timeUnits : allKeyTimes)
@@ -2557,7 +2569,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 const Vec3f defaultTranslation = targetNode->localTransform.GetTranslation();
                 const Vec3f defaultScale = targetNode->localTransform.GetScale();
 
-                Array<Keyframe> keyframes;
+                Array<Keyframe, FBXAllocator> keyframes;
                 keyframes.Reserve(uniqueKeyTimes.Size());
 
                 for (const int64 timeUnits : uniqueKeyTimes)
@@ -2626,6 +2638,29 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
     top->Scale(0.01f);
 
     return LoadedAsset { MakeHandle<Prefab>(top->GetName(), top) };
+}
+
+void InitFBXLoaderMemory()
+{
+    if (t_fbxMemory == nullptr)
+    {
+        t_fbxMemory = new FBXLoaderMemory {
+            FBXAllocator(),
+            new SlabAllocator(sizeof(FBXObject), alignof(FBXObject), 1024)
+        };
+    }
+}
+
+void ShutdownFBXLoaderMemory()
+{
+    if (!t_fbxMemory)
+    {
+        return;
+    }
+
+    delete t_fbxMemory->objectAllocator;
+    delete t_fbxMemory;
+    t_fbxMemory = nullptr;
 }
 
 } // namespace Hyperion
