@@ -19,6 +19,9 @@
 
 #include <Scene/Camera/Camera.hpp>
 
+// Temp
+#include <Scene/Volume.hpp>
+
 #include <Rendering/Mesh.hpp>
 
 #if HYP_EDITOR
@@ -1016,7 +1019,9 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<
     {
         for (const SceneOctreePayload::Entry& entry : m_payload.entries)
         {
-            if (!entry.value)
+            if (!entry.value
+                || entry.value->IsA<VolumeBase>()
+                || entry.value->IsA<Camera>())
             {
                 continue;
             }

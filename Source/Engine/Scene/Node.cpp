@@ -1035,7 +1035,8 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
 
     bool hasEntityHit = false;
 
-    if (ray.TestAABB(worldAabb))
+    const bool worldAabbHit = ray.TestAABB(worldAabb).HasValue();
+
     {
         const Class* entityClass = Entity::StaticClass();
         if (IsA(entityClass))
@@ -1077,6 +1078,10 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
                 modelMatrix = entity->GetWorldMatrix();
             }
 
+            // The BVH carries its own always-current root AABB (rebuilt from live vertex
+            // data whenever the mesh changes), so it's authoritative for rejection - don't
+            // additionally gate on worldAabb, which is derived from the entity's separately
+            // maintained local bounds and can be stale relative to the actual geometry.
             if (bvh)
             {
                 RayTestResults localBvhResults;
@@ -1136,12 +1141,15 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
                     hasEntityHit = true;
                 }
             }
-            else
+            else if (worldAabbHit)
             {
                 hasEntityHit = ray.TestAABB(worldAabb, entity->Id().Value(), outResults);
             }
         }
+    }
 
+    if (worldAabbHit)
+    {
         for (Node* childNode : m_childNodes)
         {
             if (!childNode)

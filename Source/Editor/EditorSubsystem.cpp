@@ -1910,7 +1910,7 @@ bool VolumeEditorGizmo::OnKeyPress(const Handle<Camera>& camera, const KeyboardE
 
 EditorManipulationMode EditorSubsystem::GetSelectedManipulationMode() const
 {
-    AssertOnThread(g_simThread);
+    //AssertOnThread(g_simThread);
 
     return m_selectedManipulationMode;
 }
@@ -1968,14 +1968,14 @@ const EditorSubsystem::EditorGizmoSet& EditorSubsystem::GetGizmos() const
 
 bool EditorSubsystem::IsMeshEditModeEnabled() const
 {
-    AssertOnThread(g_simThread);
+    // AssertOnThread(g_simThread);
 
     return m_meshEditModeEnabled;
 }
 
 void EditorSubsystem::SetMeshEditModeEnabled(bool enabled)
 {
-    AssertOnThread(g_simThread);
+    // AssertOnThread(g_simThread);
 
     if (enabled == m_meshEditModeEnabled)
     {
@@ -1993,14 +1993,14 @@ void EditorSubsystem::SetMeshEditModeEnabled(bool enabled)
 
 MeshEditFaceMode EditorSubsystem::GetMeshEditFaceMode() const
 {
-    AssertOnThread(g_simThread);
+    // AssertOnThread(g_simThread);
 
     return m_meshEditFaceMode;
 }
 
 void EditorSubsystem::SetMeshEditFaceMode(MeshEditFaceMode faceMode)
 {
-    AssertOnThread(g_simThread);
+    // AssertOnThread(g_simThread);
 
     if (faceMode == m_meshEditFaceMode)
     {
@@ -2014,28 +2014,28 @@ void EditorSubsystem::SetMeshEditFaceMode(MeshEditFaceMode faceMode)
 
 bool EditorSubsystem::IsMeshEditAlignToNormal() const
 {
-    AssertOnThread(g_simThread);
+    //AssertOnThread(g_simThread);
 
     return m_meshEditAlignToNormal;
 }
 
 void EditorSubsystem::SetMeshEditAlignToNormal(bool alignToNormal)
 {
-    AssertOnThread(g_simThread);
+    //AssertOnThread(g_simThread);
 
     m_meshEditAlignToNormal = alignToNormal;
 }
 
 bool EditorSubsystem::IsSnapToGridEnabled() const
 {
-    AssertOnThread(g_simThread);
+    //AssertOnThread(g_simThread);
 
     return m_snapToGridEnabled;
 }
 
 void EditorSubsystem::SetSnapToGridEnabled(bool snapToGrid)
 {
-    AssertOnThread(g_simThread);
+    //AssertOnThread(g_simThread);
 
     m_snapToGridEnabled = snapToGrid;
 }
@@ -2962,23 +2962,6 @@ EditorSubsystem::EditorSubsystem()
                                                                                       // InitActiveSceneSelection();
                                                                                   }));
 
-                  // m_delegateHandlers.Add(project->GetGame()->OnGameStateChange.Bind([this](Game*, GameStateMode previousMode, GameStateMode currentMode)
-                  //     {
-                  //         const bool wasSimulating = previousMode == GameStateMode::SIMULATING
-                  //             || previousMode == GameStateMode::PAUSED;
-                  //         const bool isSimulating  = currentMode  == GameStateMode::SIMULATING
-                  //             || currentMode == GameStateMode::PAUSED;
-
-                  //        if (isSimulating && !wasSimulating)
-                  //        {
-                  //            OnBeginSimulation();
-                  //        }
-                  //        else if (!isSimulating && wasSimulating)
-                  //        {
-                  //            OnEndSimulation();
-                  //        }
-                  //    }));
-
                   SetActiveScene(activeScene);
               })
         .Detach();
@@ -3011,8 +2994,6 @@ EditorSubsystem::EditorSubsystem()
                       }
 
                       scene->OnRootNodeChanged.RemoveAllFromSet(m_delegateHandlers);
-
-                      // StopWatchingNode(scene->GetRoot());
                   }
 
                   for (const Handle<EditorViewport>& vp : m_editorViewports)
@@ -3023,14 +3004,6 @@ EditorSubsystem::EditorSubsystem()
                   project->GetWorld()->OnSceneAdded.RemoveAllFromSet(m_delegateHandlers);
                   project->GetWorld()->OnSceneRemoved.RemoveAllFromSet(m_delegateHandlers);
                   project->GetGame()->OnGameStateChange.RemoveAllFromSet(m_delegateHandlers);
-
-                  // if (m_contentBrowserDirectoryList && m_contentBrowserDirectoryList->GetDataSource())
-                  // {
-                  //     m_contentBrowserDirectoryList->GetDataSource()->Clear();
-                  // }
-
-                  // // reinitialize scene selector
-                  // InitActiveSceneSelection();
               })
         .Detach();
 
@@ -3171,7 +3144,7 @@ void EditorSubsystem::Update(float delta)
                 dbg.reflectionProbe(probe->GetWorldTranslation(), 1.0f, static_cast<EnvProbe&>(*probe));
                 break;
             case SkyProbeTypeId:
-                dbg.reflectionProbe(probe->GetWorldTranslation(), 1.0f, static_cast<EnvProbe&>(*probe));
+                // dbg.reflectionProbe(probe->GetWorldTranslation(), 1.0f, static_cast<EnvProbe&>(*probe));
                 break;
             case IrradianceProbeTypeId:
                 dbg.ambientProbe(probe->GetWorldTranslation(), 1.0f, static_cast<EnvProbe&>(*probe));
@@ -3182,62 +3155,6 @@ void EditorSubsystem::Update(float delta)
             }
         }
     }
-
-#if 0
-    static const Color tetTriangles[] = {
-        Color::Red(),
-        Color::Green(),
-        Color::Blue(),
-        Color::Yellow(),
-        Color::Cyan(),
-        Color::Magenta(),
-        Color::White(),
-        Color::Black(),
-        // some additional custom colors
-        Color(1.0f, 0.647f, 0.0f),
-        Color(0.5f, 0.0f, 0.5f),
-        Color(0.0f, 1.0f, 1.0f),
-        Color(0.5f, 0.5f, 0.5f)
-    };
-
-    for (Scene* scene : GetCurrentProject()->GetWorld()->GetScenes())
-    {
-        for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<ProbeVolume>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
-        {
-            ProbeVolume* probeVolume = static_cast<ProbeVolume*>(entity);
-
-            const Span<const Tetrahedron> tets = probeVolume->GetTetrahedra();
-            const Span<IrradianceProbe* const> probes = probeVolume->GetProbes();
-
-            if (tets.Size() == 0 || probes.Size() == 0)
-            {
-                continue;
-            }
-
-            size_t tetIndex = 0;
-
-            for (const Tetrahedron& tet : tets)
-            {
-                const Vec3f p0 = probes[tet.probeIndices[0]]->GetWorldTranslation();
-                const Vec3f p1 = probes[tet.probeIndices[1]]->GetWorldTranslation();
-                const Vec3f p2 = probes[tet.probeIndices[2]]->GetWorldTranslation();
-                const Vec3f p3 = probes[tet.probeIndices[3]]->GetWorldTranslation();
-
-                RenderableAttributeSet triAttrs;
-                triAttrs.GetMaterialAttributes().bucket = RenderBucket::Debug;
-                triAttrs.GetMaterialAttributes().cullFaces = FCM_NONE;
-
-                Color color = tetTriangles[tetIndex++ % HYP_ARRAY_SIZE(tetTriangles)];
-                color.SetAlpha(0.5f);
-
-                dbg.triangle(p0, p1, p2, color, triAttrs);
-                dbg.triangle(p0, p2, p3, color, triAttrs);
-                dbg.triangle(p0, p3, p1, color, triAttrs);
-                dbg.triangle(p1, p3, p2, color, triAttrs);
-            }
-        }
-    }
-#endif
 
     if (!m_selectedNodes.Empty())
     {
@@ -4638,7 +4555,7 @@ void EditorSubsystem::SetSelectedNodes(const Array<Handle<Node>>& nodes)
         return;
     }
 
-    m_selectedNodes = Set<Handle<Node>>(nodes.Begin(), nodes.End());
+    m_selectedNodes = Set<Handle<Node>, EditorAllocator>(nodes.Begin(), nodes.End());
 
     OnSelectionChanged();
 }

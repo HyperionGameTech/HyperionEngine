@@ -11,7 +11,6 @@
 #include <Scene/DetachedScene.hpp>
 
 #include <Framework/EngineGlobals.hpp>
-#include <Framework/EngineDriver.hpp>
 
 #include <Prefab.generated.inl>
 
@@ -19,7 +18,7 @@ namespace Hyperion {
 
 void Prefab_OnPostLoad(Prefab& prefab)
 {
-    if (!g_engineDriver->IsShuttingDown())
+    if (!EngineGlobals::IsShuttingDown())
     {
         const Handle<Node>& root = prefab.GetRoot();
 

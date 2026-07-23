@@ -47,7 +47,22 @@ class DotNetImplBase
 public:
     virtual ~DotNetImplBase() = default;
 
-    virtual void Initialize(const FilePath& basePath, bool initFromManaged = false, InitFromManagedCallback initFromManagedCb = nullptr) = 0;
+    virtual bool Initialize(const FilePath& basePath, bool initFromManaged = false, InitFromManagedCallback initFromManagedCb = nullptr)
+    {
+        m_basePath = basePath;
+
+        if (initFromManaged)
+        {
+            Assert(initFromManagedCb != nullptr);
+            initFromManagedCb(&m_managedDelegates);
+
+            Assert(m_managedDelegates.initializeAssembly != nullptr);
+            Assert(m_managedDelegates.unloadAssembly != nullptr);
+        }
+
+        return false;
+    }
+
     virtual SharedPtr<Assembly> LoadAssembly(const char* path) = 0;
     virtual bool UnloadAssembly(ManagedGuid guid) = 0;
     virtual bool IsCoreAssembly(ManagedGuid guid) const = 0;
@@ -58,6 +73,10 @@ public:
         const TChar* typeName,
         const TChar* methodName,
         const TChar* delegateTypeName) const = 0;
+
+protected:
+    FilePath m_basePath;
+    ManagedDelegates m_managedDelegates;
 };
 
 static Optional<FilePath> FindAssemblyFilePath(const FilePath& basePath, const char* path)
@@ -73,7 +92,8 @@ static Optional<FilePath> FindAssemblyFilePath(const FilePath& basePath, const c
 }
 
 #ifdef HYP_DOTNET_HOST
-class DotNetImpl : public DotNetImplBase
+
+class DotNetImpl final : public DotNetImplBase
 {
 public:
     DotNetImpl()
@@ -86,7 +106,7 @@ public:
     {
     }
 
-    virtual ~DotNetImpl() override
+    ~DotNetImpl() override
     {
         if (!ShutdownDotNetRuntime())
         {
@@ -109,21 +129,11 @@ public:
         return GetDotNetPath() / "runtimeconfig.json";
     }
 
-    virtual void Initialize(const FilePath& basePath, bool initFromManaged = false, InitFromManagedCallback initFromManagedCb = nullptr) override
+    bool Initialize(const FilePath& basePath, bool initFromManaged = false, InitFromManagedCallback initFromManagedCb = nullptr) override
     {
-        m_basePath = basePath;
-
-        if (initFromManaged)
+        if (!DotNetImplBase::Initialize(basePath, initFromManaged, initFromManagedCb))
         {
-            Assert(initFromManagedCb != nullptr);
-            initFromManagedCb(&m_managedDelegates);
-
-            // @NOTE initializeRuntime will be null when initializing from managed code
-
-            Assert(m_managedDelegates.initializeAssembly != nullptr);
-            Assert(m_managedDelegates.unloadAssembly != nullptr);
-
-            return;
+            return false;
         }
 
         FileSystem::MkDir(GetDotNetPath().Data());
@@ -227,9 +237,11 @@ public:
         }
 
         LoadAssembly("Hyperion.NET.Runtime.dll");
+
+        return true;
     }
 
-    virtual SharedPtr<Assembly> LoadAssembly(const char* path) override
+    SharedPtr<Assembly> LoadAssembly(const char* path) override
     {
         constexpr ManagedGuid EmptyGuid { 0, 0 };
 
@@ -271,7 +283,7 @@ public:
         return assembly;
     }
 
-    virtual bool UnloadAssembly(ManagedGuid assemblyGuid) override
+    bool UnloadAssembly(ManagedGuid assemblyGuid) override
     {
         if (IsCoreAssembly(assemblyGuid))
         {
@@ -288,7 +300,7 @@ public:
         return bool(result);
     }
 
-    virtual bool IsCoreAssembly(ManagedGuid assemblyGuid) const override
+    bool IsCoreAssembly(ManagedGuid assemblyGuid) const override
     {
         if (!assemblyGuid.IsValid())
         {
@@ -306,7 +318,7 @@ public:
         return false;
     }
 
-    virtual bool IsCoreAssembly(const Assembly* assembly) const override
+    bool IsCoreAssembly(const Assembly* assembly) const override
     {
         if (!assembly)
         {
@@ -316,7 +328,7 @@ public:
         return IsCoreAssembly(assembly->GetGuid());
     }
 
-    virtual void* GetDelegate(
+    void* GetDelegate(
         const TChar* assemblyPath,
         const TChar* typeName,
         const TChar* methodName,
@@ -521,11 +533,7 @@ private:
         return true;
     }
 
-    FilePath m_basePath;
-
     DynamicLibrary m_dll;
-
-    ManagedDelegates m_managedDelegates;
 
     Map<FilePath, SharedPtr<Assembly>> m_assembliesByPath;
     Map<String, ManagedGuid> m_coreAssemblies;
@@ -538,39 +546,35 @@ private:
     bool m_shouldInitializeRuntime;
 };
 
-#else
+#else   // !HYP_DOTNET_HOST
 
-class DotNetImpl : public DotNetImplBase
+class DotNetImpl final : public DotNetImplBase
 {
 public:
     DotNetImpl() = default;
-    virtual ~DotNetImpl() override = default;
+    ~DotNetImpl() = default;
 
-    virtual void Initialize(const FilePath& basePath, bool initFromManaged = false, InitFromManagedCallback initFromManagedCb = nullptr) override
-    {
-    }
-
-    virtual SharedPtr<Assembly> LoadAssembly(const char* path) override
+    SharedPtr<Assembly> LoadAssembly(const char* path) override
     {
         return nullptr;
     }
 
-    virtual bool UnloadAssembly(ManagedGuid guid) override
+    bool UnloadAssembly(ManagedGuid guid) override
     {
         return false;
     }
 
-    virtual bool IsCoreAssembly(ManagedGuid guid) const override
+    bool IsCoreAssembly(ManagedGuid guid) const override
     {
         return false;
     }
 
-    virtual bool IsCoreAssembly(const Assembly* assembly) const override
+    bool IsCoreAssembly(const Assembly* assembly) const override
     {
         return false;
     }
 
-    virtual void* GetDelegate(
+    void* GetDelegate(
         const TChar* assemblyPath,
         const TChar* typeName,
         const TChar* methodName,
@@ -580,7 +584,7 @@ public:
     }
 };
 
-#endif
+#endif  // HYP_DOTNET_HOST
 
 DotNETHost& DotNETHost::GetInstance()
 {
@@ -606,11 +610,6 @@ DotNETHost::~DotNETHost()
 
 bool DotNETHost::EnsureInitialized() const
 {
-    if (!IsEnabled())
-    {
-        return false;
-    }
-
     if (!IsInitialized())
     {
         return false;
@@ -651,15 +650,6 @@ bool DotNETHost::IsCoreAssembly(const Assembly* assembly) const
     return m_impl->IsCoreAssembly(assembly);
 }
 
-bool DotNETHost::IsEnabled() const
-{
-#ifndef HYP_DOTNET_HOST
-    return false;
-#else
-    return true;
-#endif
-}
-
 bool DotNETHost::IsInitialized() const
 {
     return m_isInitialized;
@@ -667,11 +657,6 @@ bool DotNETHost::IsInitialized() const
 
 void DotNETHost::Initialize(const FilePath& basePath, bool initFromManaged, InitFromManagedCallback initFromManagedCb)
 {
-    if (!IsEnabled())
-    {
-        return;
-    }
-
     if (IsInitialized())
     {
         return;
@@ -687,11 +672,6 @@ void DotNETHost::Initialize(const FilePath& basePath, bool initFromManaged, Init
 
 void DotNETHost::Shutdown()
 {
-    if (!IsEnabled())
-    {
-        return;
-    }
-
     if (!IsInitialized())
     {
         return;

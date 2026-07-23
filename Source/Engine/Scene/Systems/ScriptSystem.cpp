@@ -59,7 +59,7 @@ class ScriptTracker
 public:
     ScriptTracker()
     {
-        // @TODO will this be an issue, if running from Editor?
+#ifdef HYP_DOTNET_HOST
         if (!DotNETHost::GetInstance().IsInitialized())
         {
             return;
@@ -74,6 +74,7 @@ public:
 
         object = UniquePtr<dotnet::ManagedObject>(managedClass->NewObject());
         assembly = std::move(managedAssembly);
+#endif // HYP_DOTNET_HOST
     }
 
     ~ScriptTracker()

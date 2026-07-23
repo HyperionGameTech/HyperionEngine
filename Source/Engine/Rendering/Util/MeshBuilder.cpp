@@ -352,31 +352,31 @@ ENGINE_API Handle<Mesh> Cube(bool originOnBottom)
 ENGINE_API Handle<Mesh> NormalizedCubeSphere(uint32 numDivisions){
     const float step = 1.0f / float(numDivisions);
 
-    static const Vec3f origins[6] = {
-        Vector3(-1.0f, -1.0f, -1.0f),
-        Vector3(1.0f, -1.0f, -1.0f),
-        Vector3(1.0f, -1.0f, 1.0f),
-        Vector3(-1.0f, -1.0f, 1.0f),
-        Vector3(-1.0f, 1.0f, -1.0f),
-        Vector3(-1.0f, -1.0f, 1.0f)
+    static constexpr Vec3f Origins[6] = {
+        Vec3f(-1.0f, -1.0f, -1.0f),
+        Vec3f(1.0f, -1.0f, -1.0f),
+        Vec3f(1.0f, -1.0f, 1.0f),
+        Vec3f(-1.0f, -1.0f, 1.0f),
+        Vec3f(-1.0f, 1.0f, -1.0f),
+        Vec3f(-1.0f, -1.0f, 1.0f)
     };
 
-    static const Vec3f rights[6] = {
-        Vector3(2.0f, 0.0f, 0.0f),
-        Vector3(0.0f, 0.0f, 2.0f),
-        Vector3(-2.0f, 0.0f, 0.0f),
-        Vector3(0.0f, 0.0f, -2.0f),
-        Vector3(2.0f, 0.0f, 0.0f),
-        Vector3(2.0f, 0.0f, 0.0f)
+    static constexpr Vec3f Rights[6] = {
+        Vec3f(2.0f, 0.0f, 0.0f),
+        Vec3f(0.0f, 0.0f, 2.0f),
+        Vec3f(-2.0f, 0.0f, 0.0f),
+        Vec3f(0.0f, 0.0f, -2.0f),
+        Vec3f(2.0f, 0.0f, 0.0f),
+        Vec3f(2.0f, 0.0f, 0.0f)
     };
 
-    static const Vec3f ups[6] = {
-        Vector3(0.0f, 2.0f, 0.0f),
-        Vector3(0.0f, 2.0f, 0.0f),
-        Vector3(0.0f, 2.0f, 0.0f),
-        Vector3(0.0f, 2.0f, 0.0f),
-        Vector3(0.0f, 0.0f, 2.0f),
-        Vector3(0.0f, 0.0f, -2.0f)
+    static constexpr Vec3f Ups[6] = {
+        Vec3f(0.0f, 2.0f, 0.0f),
+        Vec3f(0.0f, 2.0f, 0.0f),
+        Vec3f(0.0f, 2.0f, 0.0f),
+        Vec3f(0.0f, 2.0f, 0.0f),
+        Vec3f(0.0f, 0.0f, 2.0f),
+        Vec3f(0.0f, 0.0f, -2.0f)
     };
 
     Array<SimpleVertex> vertices;
@@ -390,9 +390,9 @@ ENGINE_API Handle<Mesh> NormalizedCubeSphere(uint32 numDivisions){
 
     for (uint32 face = 0; face < 6; face++)
     {
-        const Vec3f& origin = origins[face];
-        const Vec3f& right = rights[face];
-        const Vec3f& up = ups[face];
+        const Vec3f& origin = Origins[face];
+        const Vec3f& right = Rights[face];
+        const Vec3f& up = Ups[face];
 
         for (uint32 j = 0; j < numDivisions + 1; j++)
         {

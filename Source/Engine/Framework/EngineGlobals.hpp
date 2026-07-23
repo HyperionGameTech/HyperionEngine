@@ -73,7 +73,9 @@ ENGINE_API const FilePath& GetDataDirectory();
 ENGINE_API const FilePath& GetLibraryDirectory();
 ENGINE_API const FilePath& GetCacheDirectory();
 ENGINE_API const FilePath& GetTempDirectory();
-ENGINE_API extern HYP_NODISCARD FilePath CreateTempDirectory();
+ENGINE_API HYP_NODISCARD FilePath CreateTempDirectory();
+
+ENGINE_API bool IsShuttingDown();
 
 } // namespace EngineGlobals
 

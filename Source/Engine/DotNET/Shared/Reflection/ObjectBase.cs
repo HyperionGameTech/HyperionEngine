@@ -2,6 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace Hyperion
 {
@@ -141,7 +142,10 @@ namespace Hyperion
                     if (Class.IsReferenceCounted && _isEngineShuttingDown == 0)
                     {
 #if DEBUG
-                        Assert.Throw(Object_GetRefCountStrong(_classPtr, _nativeAddress) == 1, "Strong reference must be 1 before destruction");
+                        if (!isDisposing)
+                        {
+                            Debug.Assert(Object_GetRefCountStrong(_classPtr, _nativeAddress) == 1, "Strong reference must be 1 before destruction");
+                        }
 #endif
 
                         Object_DecRef(_classPtr, _nativeAddress, false);

@@ -19,6 +19,7 @@
 #include <Asset/BlobStorage.hpp>
 
 #include <Framework/EngineGlobals.hpp>
+#include <Framework/EngineDriver.hpp>
 
 namespace Hyperion {
 namespace EngineGlobals {
@@ -148,6 +149,12 @@ HYP_EXPORT const FilePath& GetLibraryDirectory()
 
     return s_resourceDirectory.path;
 #endif // HYP_EDITOR
+}
+
+HYP_EXPORT bool IsShuttingDown()
+{
+    return g_engineDriver.IsValid()
+        && g_engineDriver->IsShuttingDown();
 }
 
 } // namespace EngineGlobals

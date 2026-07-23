@@ -382,10 +382,13 @@ DX12TopLevelAS::~DX12TopLevelAS()
 
     m_blases.Clear();
 
-    for (auto& it : m_keyToBlasAndStorageId)
+    if (!EngineGlobals::IsShuttingDown())
     {
-        const bool removed = m_callbacks.removeBLASBuffers(it.first);
-        AssertDebug(removed);
+        for (auto& it : m_keyToBlasAndStorageId)
+        {
+            const bool removed = m_callbacks.removeBLASBuffers(it.first);
+            AssertDebug(removed);
+        }
     }
 
     m_keyToBlasAndStorageId.Clear();

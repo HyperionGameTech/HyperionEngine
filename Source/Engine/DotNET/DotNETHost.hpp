@@ -102,7 +102,6 @@ public:
     bool UnloadAssembly(dotnet::ManagedGuid guid) const;
     bool IsCoreAssembly(const dotnet::Assembly* assembly) const;
 
-    bool IsEnabled() const;
     bool IsInitialized() const;
 
     /*! \brief Initializes the .NET runtime and loads core assemblies.

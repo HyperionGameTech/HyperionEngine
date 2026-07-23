@@ -20,7 +20,7 @@
 
 #include <Core/Math/Halton.hpp>
 
-#include <Framework/EngineDriver.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 // #define HYP_VISIBILITY_CHECK_DEBUG
 
@@ -36,7 +36,7 @@ static const Name s_nameSceneRoot = NAME("<ROOT>");
 
 void Scene_OnPostLoad(Scene& scene)
 {
-    if (!g_engineDriver->IsShuttingDown())
+    if (!EngineGlobals::IsShuttingDown())
     {
         scene.SetOwnerThreadId(g_simThread);
     }

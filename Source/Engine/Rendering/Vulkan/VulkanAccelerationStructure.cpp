@@ -23,6 +23,8 @@
 
 #include <Rendering/Util/DeletionQueue.hpp>
 
+#include <Framework/EngineGlobals.hpp>
+
 #include <Core/Utilities/Range.hpp>
 
 #include <Core/Math/MathUtil.hpp>
@@ -497,10 +499,13 @@ VulkanTopLevelAS::~VulkanTopLevelAS()
 
     m_blases.Clear();
 
-    for (auto& it : m_keyToBlasAndStorageId)
+    if (!EngineGlobals::IsShuttingDown())
     {
-        const bool removed = m_callbacks.removeBLASBuffers(it.first);
-        AssertDebug(removed);
+        for (auto& it : m_keyToBlasAndStorageId)
+        {
+            const bool removed = m_callbacks.removeBLASBuffers(it.first);
+            AssertDebug(removed);
+        }
     }
 
     m_keyToBlasAndStorageId.Clear();

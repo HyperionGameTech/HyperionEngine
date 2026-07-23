@@ -478,7 +478,7 @@ class EDITOR_API EditorSubsystem : public Subsystem
     HYP_OBJECT_BODY(EditorSubsystem);
 
 public:
-    using EditorGizmoSet = HashTable<Handle<EditorGizmoBase>, &EditorGizmoBase::GetManipulationMode>;
+    using EditorGizmoSet = HashTable<Handle<EditorGizmoBase>, &EditorGizmoBase::GetManipulationMode, EditorAllocator>;
     
     static Pool* GetAllocator() { return g_editorPool; }
 
@@ -747,6 +747,7 @@ private:
     bool m_meshEditModeEnabled;
     MeshEditFaceMode m_meshEditFaceMode;
     bool m_meshEditAlignToNormal;
+
     Optional<MeshEditFaceSelection> m_selectedMeshEditFace;
     Optional<MeshEditFaceSelection> m_hoveredMeshEditFace;
     Optional<MeshEditDragData> m_meshEditDragData;
@@ -758,14 +759,13 @@ private:
     // the actual node that displays the highlight for the focused item
     Handle<Node> m_highlightNode;
 
-    Set<Handle<Node>> m_selectedNodes;
+    Set<Handle<Node>, EditorAllocator> m_selectedNodes;
 
     bool m_editorCameraEnabled;
     bool m_shouldCancelNextClick;
 
     EditorDelegates* m_editorDelegates;
 
-    Handle<UIListView> m_contentBrowserDirectoryList;
     uint32 m_selectedBucketIndex;
 
     Array<Handle<EditorViewport>, EditorAllocator> m_editorViewports;
