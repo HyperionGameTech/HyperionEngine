@@ -96,11 +96,13 @@ CORE_API Ray operator*(const Mat4f& transform, const Ray& ray);
 
 struct RayHit
 {
+    RayHitID id = ~0u;
+    float distance = 0.0f;
+    
     Vec3f hitpoint;
     Vec3f normal;
     Vec3f barycentricCoords;
-    float distance = 0.0f;
-    RayHitID id = ~0u;
+
     uint32 triangleIndex = ~0u;
     class Node* node = nullptr;
 
@@ -112,10 +114,10 @@ struct RayHit
     bool operator==(const RayHit& other) const
     {
         return distance == other.distance
+            && id == other.id
             && hitpoint == other.hitpoint
             && normal == other.normal
-            && barycentricCoords == other.barycentricCoords
-            && id == other.id;
+            && barycentricCoords == other.barycentricCoords;
     }
 
     HashCode GetHashCode() const
@@ -123,10 +125,10 @@ struct RayHit
         HashCode hc;
 
         hc.Add(distance);
+        hc.Add(id);
         hc.Add(hitpoint.GetHashCode());
         hc.Add(normal.GetHashCode());
         hc.Add(barycentricCoords.GetHashCode());
-        hc.Add(id);
 
         return hc;
     }

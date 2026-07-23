@@ -7,6 +7,7 @@
 #include <EditorPch.hpp>
 
 #include <Editor/EditorPickCache.hpp>
+#include <Editor/EditorMemory.hpp>
 
 #include <Core/Containers/SparsePagedArray.hpp>
 
@@ -29,14 +30,19 @@ static constexpr int MaxResidency = 10;
 constexpr size_t IdealHeadroom = 1 * 1024 * 1024;
 constexpr size_t MaxMemoryUsageBytes = 256 * 1024 * 1024;
 
+static constexpr size_t BlockSize = (16 * 1024 * 1024);
+
+Pool s_editorPickCachePool { BlockSize, PF_NONE };
+HYP_EXPORT Pool* g_editorPickCachePool = &s_editorPickCachePool;
+
 // @TOOD Would be nice to compute screenspace size for each object using viewport camera and use that as part of residency computation?
 // so small objects are worth less, and if less than some pixel threshold, discard it entirely.
 
 struct EditorPickCacheImpl
 {
     // uses SparsePagedArray so iterators remain valid even when entries are evicted
-    using Cache = SparsePagedArray<EditorPickCacheEntry, 32>;
-    using ResidencySet = Bitset;
+    using Cache = SparsePagedArray<EditorPickCacheEntry, 32, EditorAllocator>;
+    using ResidencySet = TBitset<EditorAllocator>;
 
     Cache cache;
     FixedArray<ResidencySet, MaxResidency + 1> residencyMap;
@@ -103,7 +109,7 @@ bool EditorPickCache::HasEntry(const Mesh* mesh) const
     return m_impl->cache.HasIndex(mesh->Id().ToIndex());
 }
 
-void EditorPickCache::PutEntry(const Mesh* mesh)
+void EditorPickCache::PutEntry(const Mesh* mesh, bool invalidate)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -119,31 +125,40 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
 
     const uint32 fc = GetFrameCounter();
 
+    bool existsButInvalidating = false;
+
     if (m_impl->cache.HasIndex(mesh->Id().ToIndex()))
     {
-        EditorPickCacheEntry& entry = m_impl->cache[mesh->Id().ToIndex()];
-
-        const int currResidency = entry.residency;
-
-        // update last frame visible
-        entry.frameVisible = fc;
-
-        const int newResidency = ComputeResidency(entry);
-
-        if (newResidency != currResidency)
+        if (invalidate)
         {
-            // update residency map
-            AssertDebug(currResidency < m_impl->residencyMap.Size() && newResidency < m_impl->residencyMap.Size());
-
-            auto& arr = m_impl->residencyMap[currResidency];
-            arr.Set(mesh->Id().ToIndex(), false);
-
-            entry.residency = newResidency;
-
-            m_impl->residencyMap[newResidency].Set(mesh->Id().ToIndex(), true);
+            existsButInvalidating = true;
         }
+        else
+        {            
+            EditorPickCacheEntry& entry = m_impl->cache[mesh->Id().ToIndex()];
 
-        return; // already exists
+            const int currResidency = entry.residency;
+
+            // update last frame visible
+            entry.frameVisible = fc;
+
+            const int newResidency = ComputeResidency(entry);
+
+            if (newResidency != currResidency)
+            {
+                // update residency map
+                AssertDebug(currResidency < m_impl->residencyMap.Size() && newResidency < m_impl->residencyMap.Size());
+
+                auto& arr = m_impl->residencyMap[currResidency];
+                arr.Set(mesh->Id().ToIndex(), false);
+
+                entry.residency = newResidency;
+
+                m_impl->residencyMap[newResidency].Set(mesh->Id().ToIndex(), true);
+            }
+
+            return; // already exists and we aren't invalidating.
+        }
     }
 
     auto resGuard = mesh->GetReadScope();
@@ -163,16 +178,33 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
     const uint32 indexSize = GpuElemTypeSize(meshDesc.meshAttributes.indexBufferElemType);
     const size_t numIndices = indexData.Size() / indexSize;
 
-    // make sure we have enough memory before adding, otherwise fail
-    if (!HasFreeSpace((vertexData.vertexCount * sizeof(Vec3f)) + numIndices * indexSize))
+    if (!existsButInvalidating)
     {
-        HYP_LOG_ONCE(Editor, Error, "Not enough headroom in editor pick cache; cannot add mesh {} (id: {}) to editor pick cache", mesh->GetName(), mesh->Id());
+        // make sure we have enough memory before adding, otherwise fail
+        if (!HasFreeSpace((vertexData.vertexCount * sizeof(Vec3f)) + numIndices * indexSize))
+        {
+            HYP_LOG_ONCE(Editor, Error, "Not enough headroom in editor pick cache; cannot add mesh {} (id: {}) to editor pick cache", mesh->GetName(), mesh->Id());
 
-        return;
+            return;
+        }
     }
 
-    EditorPickCacheEntry entry {};
+    EditorPickCacheEntry& entry = m_impl->cache[mesh->Id().ToIndex()];
     entry.frameVisible = fc;
+    
+    const int newResidency = ComputeResidency(entry);
+    
+    if (existsButInvalidating)
+    {
+        const int oldResidency = entry.residency;
+        
+        if (oldResidency != newResidency)
+        {
+            m_impl->residencyMap[oldResidency].Set(mesh->Id().ToIndex(), false);
+        }
+    }
+
+    entry.residency = newResidency;
 
     entry.positions.Resize(vertexData.vertexCount);
 
@@ -194,11 +226,7 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
     entry.indices.Resize(numIndices);
     Memory::Copy(entry.indices.Data(), indexData.Data(), numIndices * indexSize);
 
-    entry.residency = ComputeResidency(entry);
-
-    auto& set = m_impl->residencyMap[entry.residency];
-    auto iter = m_impl->cache.Emplace(mesh->Id().ToIndex(), std::move(entry));
-    set.Set(mesh->Id().ToIndex(), true);
+    m_impl->residencyMap[newResidency].Set(mesh->Id().ToIndex(), true);
 }
 
 void EditorPickCache::RemoveEntry(const Mesh* mesh)

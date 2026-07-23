@@ -11,6 +11,8 @@
 #include <Core/Reflection/ObjectBase.hpp>
 #include <Core/Reflection/Handle.hpp>
 
+#include <Editor/EditorMemory.hpp>
+
 namespace Hyperion {
 
 class EditorSubsystem;
@@ -21,6 +23,8 @@ class EditorCommandBase : public ObjectBase
     HYP_OBJECT_BODY(EditorCommandBase);
 
 public:
+    static Pool* GetAllocator() { return g_editorPool; }
+
     virtual ~EditorCommandBase() = default;
 
     HYP_METHOD()

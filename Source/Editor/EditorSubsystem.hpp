@@ -10,6 +10,7 @@
 
 #include <Editor/EditorActionStack.hpp>
 #include <Editor/EditorTask.hpp>
+#include <Editor/EditorMemory.hpp>
 
 #include <Scene/Subsystem.hpp>
 
@@ -24,6 +25,9 @@ class Game;
 class World;
 class Scene;
 class Camera;
+class Entity;
+class Mesh;
+class Material;
 class Texture;
 class EnvProbe;
 class InputManager;
@@ -99,11 +103,11 @@ public:
     virtual void Tick() override;
 
 private:
-    Array<Handle<ObjectBase>> m_sources;
+    Array<Handle<ObjectBase>, EditorAllocator> m_sources;
     Handle<World> m_world;
     Handle<Scene> m_scene;
 
-    Array<Task<void>> m_tasks;
+    Array<Task<void>, EditorAllocator> m_tasks;
 };
 
 HYP_ENUM()
@@ -127,8 +131,21 @@ enum class MeshEditFaceMode : uint8
 struct MeshEditFaceSelection
 {
     WeakHandle<Node> node;
-    Array<uint32> vertexIndices;
+    Array<uint32, EditorAllocator> vertexIndices;
     uint8 lodIndex = 0;
+
+    HYP_FORCE_INLINE bool operator==(const MeshEditFaceSelection& other) const
+    {
+        return node == other.node
+            && vertexIndices.Size() == other.vertexIndices.Size()
+            && Memory::Compare(vertexIndices.Data(), other.vertexIndices.Data(), sizeof(uint32) * vertexIndices.Size()) == 0
+            && lodIndex == other.lodIndex;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const MeshEditFaceSelection& other) const
+    {
+        return !(*this == other);
+    }
 };
 
 /*! \brief A widget that can manipulate the selected object. (e.g translate, rotate, scale) */
@@ -138,6 +155,8 @@ class EDITOR_API EditorGizmoBase : public ObjectBase
     HYP_OBJECT_BODY(EditorGizmoBase);
 
 public:
+    static Pool* GetAllocator() { return g_editorPool; }
+
     EditorGizmoBase();
     virtual ~EditorGizmoBase();
 
@@ -456,11 +475,12 @@ private:
 HYP_CLASS()
 class EDITOR_API EditorSubsystem : public Subsystem
 {
-
     HYP_OBJECT_BODY(EditorSubsystem);
 
 public:
     using EditorGizmoSet = HashTable<Handle<EditorGizmoBase>, &EditorGizmoBase::GetManipulationMode>;
+    
+    static Pool* GetAllocator() { return g_editorPool; }
 
     EditorSubsystem();
     virtual ~EditorSubsystem() override;
@@ -572,6 +592,18 @@ public:
     void SetMeshEditFaceMode(MeshEditFaceMode faceMode);
 
     HYP_METHOD()
+    bool IsMeshEditAlignToNormal() const;
+
+    HYP_METHOD()
+    void SetMeshEditAlignToNormal(bool alignToNormal);
+
+    HYP_METHOD()
+    bool IsSnapToGridEnabled() const;
+
+    HYP_METHOD()
+    void SetSnapToGridEnabled(bool snapToGrid);
+
+    HYP_METHOD()
     void SetSelectedBucket(uint32 bucketIndex);
 
     /*! \brief Calculate an appropriate position for inserting a new object into the scene.
@@ -585,6 +617,22 @@ public:
      */
     HYP_METHOD()
     Vec3f CalculateSceneInsertionPoint(float desiredDistance = 5.0f, float offsetFromSurface = 0.5f) const;
+
+    /*! \brief Create or update an in-progress, non-undoable preview entity showing a normalized cube sphere
+     *  with the given number of subdivisions. Used to live-preview a shape while a creation dialog is open.
+     *  Call \ref{CommitMeshPreview} to turn the preview into a permanent, undoable scene entity, or
+     *  \ref{CancelMeshPreview} to discard it. */
+    HYP_METHOD()
+    void UpdateNormalizedCubeSpherePreview(uint32 numDivisions);
+
+    /*! \brief Commit the current mesh preview entity (if any) as a permanent scene entity, pushing an
+     *  undoable "Add" action onto the current project's action stack. No-op if there is no active preview. */
+    HYP_METHOD()
+    void CommitMeshPreview();
+
+    /*! \brief Discard the current mesh preview entity (if any), removing it from the scene. */
+    HYP_METHOD()
+    void CancelMeshPreview();
 
     HYP_FORCE_INLINE EditorDelegates* GetEditorDelegates()
     {
@@ -619,8 +667,6 @@ public:
     ScriptableDelegate<void> OnMeshEditSelectionChanged;
 
 private:
-    void CreateHighlightNode();
-
     void InitViewport();
     void InitActiveSceneSelection();
 
@@ -653,13 +699,15 @@ private:
 
     struct MeshEditDragData
     {
-        Array<uint32> affectedVertexIndices;
-        Array<Vec3f> vertexOriginalPositions;
+        Array<uint32, EditorAllocator> affectedVertexIndices;
+        Array<Vec3f, EditorAllocator> vertexOriginalPositions;
+
         Vec3f faceCentroidWorldOrigin;
         Vec3f planeNormal;
         Vec3f hitpointOrigin;
         Vec3f currentLocalDelta;
-        int lockedAxis = -1;
+        Vec3f axisDirection;
+        Vec3f defaultAxisDirection;
     };
 
     bool TryPickMeshEditFace(const Ray& ray, MeshEditFaceSelection& outSelection, bool ensureUniqueMesh);
@@ -694,8 +742,11 @@ private:
     EditorManipulationMode m_selectedManipulationMode;
     EditorGizmoSet m_gizmos;
 
+    bool m_snapToGridEnabled;
+
     bool m_meshEditModeEnabled;
     MeshEditFaceMode m_meshEditFaceMode;
+    bool m_meshEditAlignToNormal;
     Optional<MeshEditFaceSelection> m_selectedMeshEditFace;
     Optional<MeshEditFaceSelection> m_hoveredMeshEditFace;
     Optional<MeshEditDragData> m_meshEditDragData;
@@ -717,10 +768,13 @@ private:
     Handle<UIListView> m_contentBrowserDirectoryList;
     uint32 m_selectedBucketIndex;
 
-    Array<Handle<EditorViewport>> m_editorViewports;
+    Array<Handle<EditorViewport>, EditorAllocator> m_editorViewports;
 
     Handle<View> m_simulationView;
     FilePath m_simulationSnapshotPath;
+
+    Handle<Entity> m_meshPreviewEntity;
+    Handle<Material> m_meshPreviewMaterial;
 
     DelegateHandlerSet m_delegateHandlers;
 };

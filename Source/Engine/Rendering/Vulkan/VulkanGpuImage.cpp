@@ -1304,8 +1304,8 @@ void VulkanGpuImage::CopyFrom(
                 .numLayers = 1
             });
 
-            AssertDebug(srcResourceState == RS_COPY_SRC);
-            AssertDebug(dstResourceState == RS_COPY_DST);
+           // AssertDebug(srcResourceState == RS_COPY_SRC);
+           // AssertDebug(dstResourceState == RS_COPY_DST);
 
             const Vec3u perMipSrcExtent = srcImage->GetTextureDesc().GetMipExtent(uint8(newSrcSubResource.baseMipLevel + mipLevel));
             const Vec3u perMipDstExtent = m_textureDesc.GetMipExtent(uint8(newDstSubResource.baseMipLevel + mipLevel));

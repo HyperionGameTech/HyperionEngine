@@ -105,8 +105,6 @@ static Pair<Array<FatVertex>, Array<uint32>> CalculateIndices(const Array<FatVer
 
 #pragma region Allocation
 
-
-
 class FBXAllocator : public TArena<DynamicAllocator>
 {
 public:
@@ -137,14 +135,13 @@ struct DefaultAllocatorInstanceHelper;
 template <>
 struct DefaultAllocatorInstanceHelper<FBXAllocator, void>
 {
-    FBXAllocator& DefaultAllocatorInstanceHelper::operator()() const
+    HYP_FORCE_INLINE FBXAllocator& operator()() const
     {
         return t_fbxMemory->allocator;
     }
 };
 
 } // namespace memory
-
 
 #pragma endregion Allocation
 
@@ -2486,7 +2483,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
             constexpr UTF8StringView const ComponentNames[3] = { "d|X", "d|Y", "d|Z" };
 
-            const auto getComponentCurves = [&](const Array<FBXAnimCurveNode*, FBXAllocator>& curveNodes, const char* propertyName, FBXAnimCurve** outCurves)
+            const auto getComponentCurves = [&](const Array<FBXAnimCurveNode*, FBXAllocator>& curveNodes, const UTF8StringView& propertyName, FBXAnimCurve** outCurves)
             {
                 for (FBXAnimCurveNode* curveNode : curveNodes)
                 {

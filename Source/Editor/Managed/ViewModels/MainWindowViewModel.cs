@@ -146,9 +146,9 @@ namespace Hyperion.Editor.ViewModels
         public EditorCommand NewScript => new EditorCommand("NewScript");
 
         // Shapes
-        public EditorCommand AddCube => new EditorCommand("AddCube");
-        public EditorCommand AddNormalizedCubeSphere => new EditorCommand("AddNormalizedCubeSphere");
         public EditorCommand AddPlane => new EditorCommand("AddPlane");
+        public EditorCommand AddCube => new EditorCommand("AddCube");
+        public ICommand AddNormalizedCubeSphereCommand { get; private set; }
         public EditorCommand AddCylinder => new EditorCommand("AddCylinder");
 
         private string GetSelectedNodeName() => SceneHierarchy.SelectedNode?.Node?.Name.ToString() ?? string.Empty;
@@ -167,14 +167,26 @@ namespace Hyperion.Editor.ViewModels
         public bool CanSelectTransformModeRotate => CanSelectGizmo;// && _editorSubsystem.GetSelectedGizmo()?.ManipulationMode != EditorManipulationMode.Rotate;
         public bool CanSelectTransformModeScale => CanSelectGizmo;// && _editorSubsystem.GetSelectedGizmo()?.ManipulationMode != EditorManipulationMode.Scale;
 
+        public bool IsTransformModeTranslateActive => _editorSubsystem?.GetSelectedManipulationMode() == EditorManipulationMode.Translate;
+        public bool IsTransformModeRotateActive => _editorSubsystem?.GetSelectedManipulationMode() == EditorManipulationMode.Rotate;
+        public bool IsTransformModeScaleActive => _editorSubsystem?.GetSelectedManipulationMode() == EditorManipulationMode.Scale;
+
         public bool CanSelectGizmo = true; // temp hax
 
-        public ICommand ToggleMeshEditMode { get; private set; }
+        public ICommand ToggleSnapToGrid { get; private set; }
+        public bool IsSnapToGridEnabled => _editorSubsystem?.IsSnapToGridEnabled() ?? false;
+
+        public ICommand EnableMeshEditMode { get; private set; }
         public bool IsMeshEditModeEnabled => _editorSubsystem?.IsMeshEditModeEnabled() ?? false;
-        public bool CanToggleMeshEditMode
+        public bool CanEnableMeshEditMode
         {
             get
             {
+                if (IsMeshEditModeEnabled)
+                {
+                    return false;
+                }
+
                 EditorProject? project = EngineManager.CurrentProject;
 
                 if (project == null)
@@ -186,9 +198,14 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
+        public ICommand ExitMeshEditMode { get; private set; }
+
         public ICommand SelectMeshEditFaceTriangle { get; private set; }
         public ICommand SelectMeshEditFaceQuad { get; private set; }
         public bool IsMeshEditFaceModeQuad => _editorSubsystem?.GetMeshEditFaceMode() == MeshEditFaceMode.Quad;
+
+        public ICommand ToggleMeshEditAlignToNormal { get; private set; }
+        public bool IsMeshEditAlignToNormal => _editorSubsystem?.IsMeshEditAlignToNormal() ?? true;
 
         public ICommand SetGameModePlaying { get; private set; }
         public bool CanSetGameModePlaying
@@ -295,15 +312,35 @@ namespace Hyperion.Editor.ViewModels
             SelectTransformModeRotate = new SetGizmoCommand(EditorManipulationMode.Rotate);
             SelectTransformModeScale = new SetGizmoCommand(EditorManipulationMode.Scale);
 
+            ToggleSnapToGrid = new RelayCommand(() =>
+            {
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    _editorSubsystem.SetSnapToGridEnabled(!_editorSubsystem.IsSnapToGridEnabled());
+
+                    Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(IsSnapToGridEnabled)));
+                });
+            });
+
             SetGameModePlaying = new SetGameModeCommand(GameStateMode.Simulating);
             SetGameModePaused = new SetGameModeCommand(GameStateMode.Paused);
             SetGameModeStopped = new SetGameModeCommand(GameStateMode.Stopped);
 
-            ToggleMeshEditMode = new RelayCommand(() =>
+            EnableMeshEditMode = new RelayCommand(() =>
             {
                 _ = EngineManager.PostToSimThread(() =>
                 {
-                    _editorSubsystem.SetMeshEditModeEnabled(!_editorSubsystem.IsMeshEditModeEnabled());
+                    _editorSubsystem.SetMeshEditModeEnabled(true);
+
+                    Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(IsMeshEditModeEnabled)));
+                });
+            });
+
+            ExitMeshEditMode = new RelayCommand(() =>
+            {
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    _editorSubsystem.SetMeshEditModeEnabled(false);
 
                     Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(IsMeshEditModeEnabled)));
                 });
@@ -326,6 +363,16 @@ namespace Hyperion.Editor.ViewModels
                     _editorSubsystem.SetMeshEditFaceMode(MeshEditFaceMode.Quad);
 
                     Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(IsMeshEditFaceModeQuad)));
+                });
+            });
+
+            ToggleMeshEditAlignToNormal = new RelayCommand(() =>
+            {
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    _editorSubsystem.SetMeshEditAlignToNormal(!_editorSubsystem.IsMeshEditAlignToNormal());
+
+                    Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(IsMeshEditAlignToNormal)));
                 });
             });
 
@@ -379,6 +426,13 @@ namespace Hyperion.Editor.ViewModels
                         }
                     });
                 });
+
+                PanelService.Instance.OpenPanel(panel);
+            });
+
+            AddNormalizedCubeSphereCommand = new RelayCommand(() =>
+            {
+                var panel = new AddNormalizedCubeSpherePanelViewModel(_editorSubsystem, confirmed => { });
 
                 PanelService.Instance.OpenPanel(panel);
             });
@@ -728,8 +782,12 @@ namespace Hyperion.Editor.ViewModels
                             OnPropertyChanged(nameof(CanSelectTransformModeRotate));
                             OnPropertyChanged(nameof(CanSelectTransformModeScale));
 
-                            (ToggleMeshEditMode as RelayCommand)?.RaiseCanExecuteChanged();
-                            OnPropertyChanged(nameof(CanToggleMeshEditMode));
+                            OnPropertyChanged(nameof(IsTransformModeTranslateActive));
+                            OnPropertyChanged(nameof(IsTransformModeRotateActive));
+                            OnPropertyChanged(nameof(IsTransformModeScaleActive));
+
+                            (EnableMeshEditMode as RelayCommand)?.RaiseCanExecuteChanged();
+                            OnPropertyChanged(nameof(CanEnableMeshEditMode));
                             OnPropertyChanged(nameof(IsMeshEditModeEnabled));
                         });
                     });
@@ -749,6 +807,10 @@ namespace Hyperion.Editor.ViewModels
                         OnPropertyChanged(nameof(CanSelectTransformModeTranslate));
                         OnPropertyChanged(nameof(CanSelectTransformModeRotate));
                         OnPropertyChanged(nameof(CanSelectTransformModeScale));
+
+                        OnPropertyChanged(nameof(IsTransformModeTranslateActive));
+                        OnPropertyChanged(nameof(IsTransformModeRotateActive));
+                        OnPropertyChanged(nameof(IsTransformModeScaleActive));
                     });
                 });
 
@@ -765,9 +827,16 @@ namespace Hyperion.Editor.ViewModels
                 OnPropertyChanged(nameof(CanSelectTransformModeRotate));
                 OnPropertyChanged(nameof(CanSelectTransformModeScale));
 
-                OnPropertyChanged(nameof(CanToggleMeshEditMode));
+                OnPropertyChanged(nameof(IsTransformModeTranslateActive));
+                OnPropertyChanged(nameof(IsTransformModeRotateActive));
+                OnPropertyChanged(nameof(IsTransformModeScaleActive));
+
+                OnPropertyChanged(nameof(IsSnapToGridEnabled));
+
+                OnPropertyChanged(nameof(CanEnableMeshEditMode));
                 OnPropertyChanged(nameof(IsMeshEditModeEnabled));
                 OnPropertyChanged(nameof(IsMeshEditFaceModeQuad));
+                OnPropertyChanged(nameof(IsMeshEditAlignToNormal));
 
                 // Update scenes list
                 Scenes.Clear();

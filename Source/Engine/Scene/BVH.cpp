@@ -283,6 +283,7 @@ static void SerializeBVHNodeInto(ByteWriter& writer, const BVHNode& node)
 
     const uint32 numChildren = uint32(node.children.Size());
     writer.Write(&numChildren, sizeof(uint32));
+    
     for (const BVHNode& child : node.children)
     {
         SerializeBVHNodeInto(writer, child);
@@ -301,11 +302,14 @@ static bool DeserializeBVHNodeFrom(ByteReader& reader, BVHNode& node)
 
     int8 isLeafNode = 0;
     reader.Read(&isLeafNode, sizeof(int8));
+
     node.isLeafNode = bool(isLeafNode);
 
     uint32 numTriangles = 0;
     reader.Read(&numTriangles, sizeof(uint32));
+
     node.triangleIds.Resize(numTriangles);
+
     for (uint32 i = 0; i < numTriangles; i++)
     {
         reader.Read(&node.triangleIds[i], sizeof(uint32));
@@ -313,7 +317,9 @@ static bool DeserializeBVHNodeFrom(ByteReader& reader, BVHNode& node)
 
     uint32 numChildren = 0;
     reader.Read(&numChildren, sizeof(uint32));
+
     node.children.Resize(numChildren);
+
     for (uint32 i = 0; i < numChildren; i++)
     {
         if (!DeserializeBVHNodeFrom(reader, node.children[i]))

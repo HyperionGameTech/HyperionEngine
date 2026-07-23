@@ -57,7 +57,7 @@ static_assert(sizeof(ObjectReference) == 16, "ObjectReference size mismatch with
  *
  *  \details To create a new ManagedObject, use the ManagedClass::NewObject method.
  * */
-class ENGINE_API ManagedObject final
+class ManagedObject final
 {
 public:
     ManagedObject();

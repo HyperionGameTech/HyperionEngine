@@ -23,6 +23,8 @@
 
 #include <Scripting/ScriptableDelegate.hpp>
 
+#include <Editor/EditorMemory.hpp>
+
 namespace Hyperion {
 
 class UIObject;
@@ -36,6 +38,8 @@ class EDITOR_API EditorTaskBase : public ObjectBase
     friend class EditorTaskScope;
 
 public:
+    static Pool* GetAllocator() { return g_editorPool; }
+
     virtual ~EditorTaskBase() = default;
 
     HYP_METHOD()

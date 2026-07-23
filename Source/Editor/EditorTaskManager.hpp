@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Editor/EditorTask.hpp>
+#include <Editor/EditorMemory.hpp>
 
 #include <Core/Containers/Array.hpp>
 
@@ -84,8 +85,8 @@ public:
 private:
     ClockTimer m_timer;
 
-    Array<RunningEditorTask> m_tasks;
-    Map<ObjId<EditorTaskBase>, float> m_taskProgressValues;
+    Array<RunningEditorTask, EditorAllocator> m_tasks;
+    Map<ObjId<EditorTaskBase>, float, EditorAllocator> m_taskProgressValues;
     mutable Mutex m_mutex;
 };
 

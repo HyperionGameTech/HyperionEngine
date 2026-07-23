@@ -226,7 +226,7 @@ void SSRPass::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
         m_uvsTexture = MakeHandle<Texture>(TextureDesc {
             TextureType::Texture2D,
             SSRTraceFormat,
-            Vec3u(Vec2u(Vec2f(m_extent) * cvSSRTraceResolutionScale.Get()), 1),
+            Vec3u(MathUtil::Max(Vec2u::One(), Vec2u(Vec2f(m_extent) * cvSSRTraceResolutionScale.Get())), 1),
             TFM_NEAREST,
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,

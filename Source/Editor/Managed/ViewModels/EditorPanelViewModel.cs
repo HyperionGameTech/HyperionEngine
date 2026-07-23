@@ -6,7 +6,7 @@ namespace Hyperion.Editor.ViewModels
     {
         public string Title { get; }
 
-        public Action? OnClosed { get; }
+        public Action? OnClosed { get; protected set; }
 
         protected EditorPanelViewModel(string title, Action? onClosed = null)
         {

@@ -8,6 +8,7 @@
 
 #include <Editor/EditorPickCache.hpp>
 #include <Editor/EditorTaskManager.hpp>
+#include <Editor/EditorMemory.hpp>
 
 #include <Scene/Node.hpp>
 
@@ -16,9 +17,10 @@
 
 #include <Core/Threading/Mutex.hpp>
 
+#include <Core/Types.hpp>
+
 #include <Scripting/ScriptableDelegate.hpp>
 
-#include <Core/Types.hpp>
 
 namespace Hyperion {
 
@@ -32,6 +34,8 @@ class EDITOR_API EditorState : public ObjectBase
     HYP_OBJECT_BODY(EditorState);
 
 public:
+    static Pool* GetAllocator() { return g_editorPool; }
+
     HYP_METHOD()
     static const Handle<EditorState>& GetInstance();
 

@@ -25,11 +25,6 @@ EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 
 #if HYP_EDITOR
 
-static constexpr size_t BlockSize = (16 * 1024 * 1024);
-
-Pool s_editorPickCachePool { BlockSize };
-HYP_EXPORT Pool* g_editorPickCachePool = &s_editorPickCachePool;
-
 const Handle<EditorState>& EditorState::GetInstance()
 {
     return g_editorState;

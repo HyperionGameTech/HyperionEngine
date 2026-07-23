@@ -16,7 +16,24 @@
 #if defined(__F16C__) || (defined(_MSC_VER) && defined(__AVX2__))
 #define HYP_USE_F16C
 #include <immintrin.h>
-#endif
+
+#if defined(_MSC_VER) && defined(__AVX2__)
+inline float _cvtsh_ss(unsigned short h)
+{
+    __m128i v = _mm_set1_epi16(h);
+    __m128 f = _mm_cvtph_ps(v);
+    return _mm_cvtss_f32(f);
+}
+
+inline unsigned short _cvtss_sh(float f, int /* ignored */)
+{
+    __m128 vec = _mm_set_ss(f);
+    __m128i packed = _mm_cvtps_ph(vec, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
+    return _mm_extract_epi16(packed, 0);
+}
+#endif // _MSC_VER && __AVX2__
+
+#endif // __F16C__ || (_MSC_VER && __AVX2__)
 
 namespace Hyperion {
 

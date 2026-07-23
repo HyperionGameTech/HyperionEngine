@@ -15,6 +15,9 @@
         <DataTemplate DataType="vm:AddNewScenePanelViewModel">
             <panels:AddNewScenePanelView />
         </DataTemplate>
+        <DataTemplate DataType="vm:AddNormalizedCubeSpherePanelViewModel">
+            <panels:AddNormalizedCubeSpherePanelView />
+        </DataTemplate>
         <DataTemplate DataType="vm:AssetObjectEditPanelViewModel">
             <panels:AssetObjectEditPanelView />
         </DataTemplate>

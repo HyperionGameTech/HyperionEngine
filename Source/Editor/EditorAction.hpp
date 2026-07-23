@@ -16,6 +16,7 @@
 #include <Core/Reflection/ObjectBase.hpp>
 #include <Core/Reflection/Handle.hpp>
 
+#include <Editor/EditorMemory.hpp>
 namespace Hyperion {
 
 class EditorSubsystem;
@@ -27,6 +28,8 @@ class EDITOR_API EditorActionBase : public ObjectBase
     HYP_OBJECT_BODY(EditorActionBase);
 
 public:
+    static Pool* GetAllocator() { return g_editorPool; }
+
     virtual ~EditorActionBase() = default;
 
     HYP_METHOD(Scriptable)
@@ -100,61 +103,4 @@ private:
     EditorActionFunctions m_getStateProcResult;
 };
 
-class IEditorActionFactory;
-
-class EDITOR_API EditorActionFactoryRegistry
-{
-public:
-    static EditorActionFactoryRegistry& GetInstance();
-
-    IEditorActionFactory* GetFactoryByName(Name actionName) const;
-    void RegisterFactory(Name actionName, IEditorActionFactory* factory);
-
-private:
-    Map<Name, IEditorActionFactory*> m_factories;
-};
-
-class IEditorActionFactory
-{
-public:
-    virtual ~IEditorActionFactory() = default;
-
-    virtual UniquePtr<EditorActionBase> CreateEditorActionInstance() const = 0;
-};
-
-template <class T>
-class EDITOR_API EditorActionFactory final : public IEditorActionFactory
-{
-public:
-    virtual ~EditorActionFactory() override = default;
-
-    virtual UniquePtr<EditorActionBase> CreateEditorActionInstance() const override
-    {
-        return MakeUnique<T>();
-    }
-};
-
-struct EDITOR_API EditorActionFactoryRegistrationBase
-{
-protected:
-    IEditorActionFactory* m_factory;
-
-    EditorActionFactoryRegistrationBase(Name actionName, IEditorActionFactory* factory);
-    ~EditorActionFactoryRegistrationBase();
-};
-
-template <class EditorActionClass>
-struct EditorActionFactoryRegistration : public EditorActionFactoryRegistrationBase
-{
-    EditorActionFactoryRegistration()
-        : EditorActionFactoryRegistrationBase(EditorActionClass::GetName_Static(), new EditorActionFactory<EditorActionClass>())
-    {
-    }
-};
-
 } // namespace Hyperion
-
-#define HYP_DEFINE_EDITOR_ACTION(actionName)                                                                           \
-    class EditorAction_##actionName;                                                                                   \
-    static ::Hyperion::EditorActionFactoryRegistration<EditorAction_##actionName> EditorActionFactory_##actionName {}; \
-    class EditorAction_##actionName : public ::Hyperion::EditorAction

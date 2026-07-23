@@ -6,16 +6,14 @@
 
 #pragma once
 
-#include <Core/Reflection/Handle.hpp>
-
 #include <Core/FileSystem/FilePath.hpp>
 
+#include <Core/Reflection/Handle.hpp>
 #include <Core/Reflection/ObjectBase.hpp>
 
 #include <Core/Functional/Delegate.hpp>
 
 #include <Core/Utilities/Result.hpp>
-
 #include <Core/Utilities/Time.hpp>
 
 #include <Core/Name/Name.hpp>
@@ -23,6 +21,8 @@
 #include <Scripting/ScriptableDelegate.hpp>
 
 #include <Baking/BakerScene.hpp>
+
+#include <Editor/EditorMemory.hpp>
 
 namespace Hyperion {
 
@@ -41,6 +41,8 @@ class EditorProject final : public ObjectBase
 
 public:
     friend class EditorSubsystem;
+
+    static Pool* GetAllocator() { return g_editorPool; }
 
     EditorProject();
 

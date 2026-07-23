@@ -28,6 +28,8 @@ namespace Hyperion {
 
 static EngineStatTimer s_statVisUpdate("Vis/Update");
 
+EngineStatCounter<uint32> g_statViews("Rendering/Views");
+
 static bool ProcessEntity(
     Entity* entity,
     VisibilityStateComponent& visibilityStateComponent)
@@ -153,6 +155,8 @@ void VisThread::OnFrameStart(uint32 frameCounter)
     m_frameCounter = frameCounter;
 
     m_simSemaphore.release();
+
+    g_statViews += m_views.Size();
 }
 
 void VisThread::OnFrameEnd(Array<Entity*, SceneTempAllocator>& outProcessedEntities)

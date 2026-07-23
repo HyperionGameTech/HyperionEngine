@@ -94,12 +94,11 @@ void HandleExit();
 void HandleSignal(int signum);
 
 EngineStatTimer g_statRenderUpdate("RenderThread");
-EngineStatCounter<uint32> g_statViews("Rendering/Views");
 
 ThreadSignal g_renderInitSignal { 0 };
 
 // We generally don't have more than 3 Systems running concurrently
-CVar<uint32> cvNumForegroundWorkerThreads("Threads.NumForegroundWorkers", 3);
+CVar<uint32> g_cvNumForegroundWorkerThreads("Threads.NumForegroundWorkers", 3);
 
 #pragma region ForegroundWorkerPool
 
@@ -121,7 +120,7 @@ public:
 static const Map<TaskThreadPoolName, UniquePtr<TaskThreadPool> (*)(void)> s_threadPoolFactories {
     { TaskThreadPoolName::THREAD_POOL_GENERIC, []() -> UniquePtr<TaskThreadPool>
       {
-          return MakeUnique<ForegroundWorkerPool>(cvNumForegroundWorkerThreads.Get(), ThreadPriorityValue::HIGHEST);
+          return MakeUnique<ForegroundWorkerPool>(g_cvNumForegroundWorkerThreads.Get(), ThreadPriorityValue::HIGHEST);
       } },
     { TaskThreadPoolName::THREAD_POOL_BACKGROUND, []() -> UniquePtr<TaskThreadPool>
       {
@@ -414,16 +413,10 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
 
         const GameState& gameState = world->GetGameState();
 
-        // if (!gameState.IsStopped())
-        // {
         world->CollectScenes(scenes);
         world->CollectViews(views);
         world->CollectSubsystems(subsystems);
 
-        g_statViews += views.Size();
-
-        // if (gameState.IsSimulating() || (world->GetWorldFlags() & WorldFlags::EDITOR_WORLD))
-        //{
         simulatingWorlds.PushBack(world);
 
         world->BeginUpdate(*currBatch, delta);
@@ -436,7 +429,6 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
                 currBatch = currBatch->nextBatch;
             }
         }
-        //}
 
         if (!worldsToRender.Contains(world))
         {
@@ -450,7 +442,6 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
                 worldsToRender.PushBack(world);
             }
         }
-        // }
     }
 
     // Update Worlds and Systems - execution order/batching defined by component descriptors on systems.
@@ -694,6 +685,7 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
     {
         // write buffered render data
         WorldShaderData* bufferData = GetWorldBufferData();
+        *bufferData = {};
         bufferData->frameCounter = GetFrameCounter();
 
         if (m_currentWorld)
@@ -720,10 +712,8 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
         scene->GetEntityManager()->AddPendingEntitySets();
     }
 
-    // AfterVis subsystems run after the render thread has been released. Any DebugDrawCommandLists
-    // created here (e.g. EditorSubsystem's probe gizmos) accumulate in DebugDrawer's pending buffer
-    // and are published to the render thread next frame via Update(). This keeps the sync block
-    // (and thus the render-thread stall) as short as possible.
+    // AfterVis subsystems run after EndSimRenderSyncBlock(), so any debug draws committed (e.g EditorSubsystem, displaying probes)
+    // will be seen by the render thread in the next frame.
     for (Subsystem* subsystem : subsystems)
     {
         if (subsystem->GetUpdatePhase() == SubsystemUpdatePhase::AfterVis)

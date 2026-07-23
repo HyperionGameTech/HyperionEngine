@@ -28,7 +28,7 @@
 
 #include <DotNET/ManagedClass.hpp>
 
-#ifdef HYP_DOTNET
+#ifdef HYP_DOTNET_HOST
 #include <dotnetcore/hostfxr.h>
 #include <dotnetcore/nethost.h>
 #include <dotnetcore/coreclr_delegates.h>
@@ -72,7 +72,7 @@ static Optional<FilePath> FindAssemblyFilePath(const FilePath& basePath, const c
     return filepath;
 }
 
-#ifdef HYP_DOTNET
+#ifdef HYP_DOTNET_HOST
 class DotNetImpl : public DotNetImplBase
 {
 public:
@@ -653,7 +653,7 @@ bool DotNETHost::IsCoreAssembly(const Assembly* assembly) const
 
 bool DotNETHost::IsEnabled() const
 {
-#ifndef HYP_DOTNET
+#ifndef HYP_DOTNET_HOST
     return false;
 #else
     return true;

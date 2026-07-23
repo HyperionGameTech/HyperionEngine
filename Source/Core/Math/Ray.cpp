@@ -103,10 +103,10 @@ bool Ray::TestAABB(const BoundingBox& aabb, RayHitID hitId, RayTestResults& outR
     const Vec3f hitpoint = position + (direction * distance);
 
     outResults.AddHit(RayHit {
-        .hitpoint = hitpoint,
-        .normal = -direction.Normalized(), // TODO: change to be box normal
-        .distance = distance,
-        .id = hitId
+        hitId,
+        distance,
+        hitpoint,
+        -direction.Normalized(), // TODO: change to be box normal
     });
 
     return true;
@@ -148,10 +148,10 @@ bool Ray::TestPlane(const Vec3f& position, const Vec3f& normal, RayHitID hitId, 
     const Vec3f hitpoint = this->position + (direction * t);
 
     outResults.AddHit(RayHit {
-        .hitpoint = hitpoint,
-        .normal = normal,
-        .distance = t,
-        .id = hitId
+        hitId,
+        t,
+        hitpoint,
+        normal
     });
 
     return true;
@@ -215,12 +215,13 @@ bool Ray::TestTriangle(const Triangle& triangle, RayHitID hitId, RayTestResults&
     if (t > 0.0f)
     {
         outResults.AddHit({
+            hitId,
+            t,
             position + (direction * t),
             triangle.GetNormal(),
             bary,
-            t,
             hitId,
-            hitId
+            nullptr
         });
 
         return true;

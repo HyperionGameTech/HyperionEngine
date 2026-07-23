@@ -48,7 +48,7 @@ public:
     RenderProxyList& GetRenderProxyList() const;
 
     bool HasEntry(const Mesh* mesh) const;
-    void PutEntry(const Mesh* mesh);
+    void PutEntry(const Mesh* mesh, bool invalidate = false);
     void RemoveEntry(const Mesh* mesh);
     EditorPickCacheEntry* GetEntry(const Mesh* mesh);
     void Clear();

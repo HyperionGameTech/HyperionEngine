@@ -59,7 +59,7 @@ struct ManagedClassDesc
     uint32 flags;
 };
 
-class ENGINE_API ManagedClass : public SharedFromThis<ManagedClass>
+class ManagedClass : public SharedFromThis<ManagedClass>
 {
 public:
     /*! \brief Function to create a new object of this class.

@@ -36,6 +36,8 @@
 
 #include <Core/Utilities/StringUtil.hpp>
 
+#include <Core/Math/MathUtil.hpp>
+
 #include <Core/Logging/Logger.hpp>
 
 #include <Asset/Assets.hpp>
@@ -2426,6 +2428,97 @@ DEFINE_EDITOR_COMMAND(NewPhysicsShape);
 
 // Shapes
 
+#pragma region AddPlane
+
+class EditorCommandAddPlane final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandAddPlane);
+
+public:
+    virtual ~EditorCommandAddPlane() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Add Plane";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        Handle<EditorProject> currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No project loaded; cannot add plane!");
+
+            return;
+        }
+
+        const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
+
+        Handle<Mesh> planeMesh = MeshBuilder::Quad();
+        planeMesh->SetName(NAME("PlaneMesh"));
+
+        MaterialAttributes attributes;
+        attributes.shaderName = NAME("GeometryPass");
+
+        Handle<Material> material = MakeHandle<Material>(NAME("PlaneMaterial"), attributes);
+
+        Handle<Entity> entity = MakeHandle<Entity>();
+        entity->SetName(NAME("PlaneEntity"));
+
+        entity->SetWorldTranslation(insertionPoint);
+
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+            GetText(),
+            Proc<EditorActionFunctions()>(
+                [planeMesh, entity, material]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [&](EditorSubsystem* subsystem, EditorProject* project)
+                            {
+                                GetCurrentAssetRegistry()->PutAsset(planeMesh);
+
+                                // Make an entity, assign MeshComponent w/ Mesh and a base Material
+
+                                Handle<Scene> activeScene = subsystem->GetActiveScene();
+
+                                if (activeScene.IsValid())
+                                {
+                                    activeScene->GetRoot()->AddChild(entity);
+
+                                    GetCurrentAssetRegistry()->PutAsset(planeMesh);
+                                    GetCurrentAssetRegistry()->PutAsset(material);
+
+                                    // assign mesh component
+                                    MeshComponent meshComponent;
+                                    meshComponent.mesh = planeMesh;
+                                    meshComponent.material = material;
+                                    entity->AddComponent<MeshComponent>(meshComponent);
+
+                                    entity->SetLocalBounds(planeMesh->GetAABB());
+                                }
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [&](EditorSubsystem*, EditorProject* project)
+                            {
+                                GetCurrentAssetRegistry()->RemoveAsset(planeMesh);
+                                GetCurrentAssetRegistry()->RemoveAsset(material);
+
+                                entity->Remove();
+                            })
+                    };
+                }));
+
+        InitObject(action);
+
+        currentProject->GetActionStack()->PushAction(action);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(AddPlane);
+
+#pragma endregion AddPlane
+
 #pragma region AddCube
 
 class EditorCommandAddCube final : public EditorCommandBase
@@ -2450,6 +2543,8 @@ public:
             return;
         }
 
+        const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
+
         // Use mesh builder to create cube mesh
 
         Handle<Mesh> cubeMesh = MeshBuilder::Cube();
@@ -2462,6 +2557,8 @@ public:
 
         Handle<Entity> entity = MakeHandle<Entity>();
         entity->SetName(NAME("CubeEntity"));
+        
+        entity->SetWorldTranslation(insertionPoint);
 
         Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
             GetText(),
@@ -2514,6 +2611,106 @@ public:
 DEFINE_EDITOR_COMMAND(AddCube);
 
 #pragma endregion AddCube
+
+#pragma region AddNormalizedCubeSphere
+
+class EditorCommandAddNormalizedCubeSphere final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandAddNormalizedCubeSphere);
+
+public:
+    virtual ~EditorCommandAddNormalizedCubeSphere() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Add Normalized Cube Sphere";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        Handle<EditorProject> currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No project loaded; cannot add normalized cube sphere!");
+
+            return;
+        }
+
+        uint32 numDivisions = 8;
+        if (NumArguments() > 0)
+        {
+            StringUtil::Parse(GetArgument(0), &numDivisions);
+        }
+        numDivisions = MathUtil::Max(numDivisions, 1u);
+
+        const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
+
+        // Use mesh builder to create the normalized cube sphere mesh
+
+        Handle<Mesh> cubeSphereMesh = MeshBuilder::NormalizedCubeSphere(numDivisions);
+        cubeSphereMesh->SetName(NAME("NormalizedCubeSphereMesh"));
+
+        MaterialAttributes attributes;
+        attributes.shaderName = NAME("GeometryPass");
+
+        Handle<Material> material = MakeHandle<Material>(NAME("NormalizedCubeSphereMaterial"), attributes);
+
+        Handle<Entity> entity = MakeHandle<Entity>();
+        entity->SetName(NAME("NormalizedCubeSphereEntity"));
+
+        entity->SetWorldTranslation(insertionPoint);
+
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+            GetText(),
+            Proc<EditorActionFunctions()>(
+                [cubeSphereMesh, entity, material]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [&](EditorSubsystem* subsystem, EditorProject* project)
+                            {
+                                GetCurrentAssetRegistry()->PutAsset(cubeSphereMesh);
+
+                                // Make an entity, assign MeshComponent w/ Mesh and a base Material
+
+                                Handle<Scene> activeScene = subsystem->GetActiveScene();
+
+                                if (activeScene.IsValid())
+                                {
+                                    activeScene->GetRoot()->AddChild(entity);
+
+                                    GetCurrentAssetRegistry()->PutAsset(cubeSphereMesh);
+                                    GetCurrentAssetRegistry()->PutAsset(material);
+
+                                    // assign mesh component
+                                    MeshComponent meshComponent;
+                                    meshComponent.mesh = cubeSphereMesh;
+                                    meshComponent.material = material;
+                                    entity->AddComponent<MeshComponent>(meshComponent);
+
+                                    entity->SetLocalBounds(cubeSphereMesh->GetAABB());
+                                }
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [&](EditorSubsystem*, EditorProject* project)
+                            {
+                                GetCurrentAssetRegistry()->RemoveAsset(cubeSphereMesh);
+                                GetCurrentAssetRegistry()->RemoveAsset(material);
+
+                                entity->Remove();
+                            })
+                    };
+                }));
+
+        InitObject(action);
+
+        currentProject->GetActionStack()->PushAction(action);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(AddNormalizedCubeSphere);
+
+#pragma endregion AddNormalizedCubeSphere
 
 #undef DEFINE_EDITOR_COMMAND
 

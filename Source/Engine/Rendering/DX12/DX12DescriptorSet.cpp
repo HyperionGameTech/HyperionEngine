@@ -134,8 +134,8 @@ RendererResult DX12DescriptorSet::Create()
         uint32 baseShaderRegister;
     };
 
-    Array<ViewEntry> viewEntries;
-    Array<SamplerEntry> samplerEntries;
+    Array<ViewEntry, DX12TempAllocator> viewEntries;
+    Array<SamplerEntr, DX12TempAllocatory> samplerEntries;
 
     for (uint8 slotIndex = 0; slotIndex < NumDescriptorSlots; slotIndex++)
     {

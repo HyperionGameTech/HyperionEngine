@@ -393,19 +393,13 @@ set(HYP_GENERATE_CSHARP_LIBRARIES true)
 
 # Set to true if C# is not planned on being used for scripting
 # .NET is necessary for the editor, but for a leaner build this is recommended to disable if not using C# for scripts.
+
 set(HYP_DOTNET_ONLY_FOR_EDITOR true)
-
-if(NOT HYP_DOTNET_ONLY_FOR_EDITOR OR HYP_EDITOR)
-  if(NOT DEFINED HYP_COMPILE_WITH_DOTNET)
-    set(HYP_COMPILE_WITH_DOTNET 1)
-  endif()
+if(NOT HYP_DOTNET_ONLY_FOR_EDITOR AND NOT DEFINED HYP_DOTNET_HOST)
+  set(HYP_DOTNET_HOST 1)
 endif()
 
-if(HYP_DOTNET_ONLY_FOR_EDITOR)
-  add_definitions(-DHYP_DOTNET_ONLY_FOR_EDITOR=1)
-endif()
-
-if(HYP_COMPILE_WITH_DOTNET)
+if(HYP_DOTNET_HOST)
   # if dotnet headers exist, set HYP_DOTNET to 1
   # TODO: Get working on Android, iOS, Steam Deck...
   if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dotnetcore/hostfxr.h")
@@ -440,6 +434,20 @@ if(HYP_COMPILE_WITH_DOTNET)
     message(STATUS ".NET headers not found, skipping .NET core runtime")
   endif()
 endif()
+
+if(HYP_EDITOR)
+  # for editor build, we don't actually need .NET host as the managed application (Hyperion.Editor.exe)
+  # will call into the engine via InitFromManaged.
+  if(HYP_DOTNET_HOST)
+    add_definitions(-DHYP_DOTNET_HOST=1)
+  else()
+    add_definitions(-DHYP_DOTNET_ONLY_FOR_EDITOR=1)
+  endif()
+
+  set(HYP_DOTNET 1)
+  add_definitions(-DHYP_DOTNET=1)
+endif()
+
 
 set(RENDERING_BACKEND "Vulkan")
 

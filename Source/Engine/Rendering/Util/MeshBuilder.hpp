@@ -39,10 +39,6 @@ ENGINE_API Handle<Mesh> DoubleSidedQuad();
     */
 ENGINE_API Handle<Mesh> Cube(bool originOnBottom = false);
 
-/*! \brief Build a UV sphere mesh with \p numSlices slices and \p numStacks stacks.
-    *  \param numSlices Number of slices (longitude divisions).
-    *  \param numStacks Number of stacks (latitude divisions).
-    */
 ENGINE_API Handle<Mesh> NormalizedCubeSphere(uint32 numDivisions);
 
 ENGINE_API Handle<Mesh> ApplyTransform(const Mesh* mesh, const Transform& transform);

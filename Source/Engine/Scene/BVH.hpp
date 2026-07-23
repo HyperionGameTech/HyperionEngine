@@ -15,12 +15,13 @@
 
 #include <Core/Math/BoundingBox.hpp>
 #include <Core/Math/Triangle.hpp>
-#include <Rendering/Vertex.hpp>
 #include <Core/Math/Ray.hpp>
 
 #include <Core/Defines.hpp>
 #include <Core/IO/ByteWriter.hpp>
 #include <Core/IO/ByteReader.hpp>
+
+#include <Rendering/Vertex.hpp>
 
 namespace Hyperion {
 

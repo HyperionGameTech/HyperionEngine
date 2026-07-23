@@ -181,37 +181,49 @@
                         VerticalAlignment="Center"
                         Orientation="Horizontal"
                         Spacing="4">
-                        <Button
+                        <ToggleButton
                             x:Name="TransformModeTranslate"
                             Classes="gizmo"
                             Command="{Binding SelectTransformModeTranslate}"
+                            IsChecked="{Binding IsTransformModeTranslateActive, Mode=OneWay}"
                             IsEnabled="{Binding CanSelectTransformModeTranslate}"
                             ToolTip.Tip="Translate">
                             <LucideIcon Kind="Move" Size="16" />
-                        </Button>
-                        <Button
+                        </ToggleButton>
+                        <ToggleButton
                             x:Name="TransformModeRotate"
                             Classes="gizmo"
                             Command="{Binding SelectTransformModeRotate}"
+                            IsChecked="{Binding IsTransformModeRotateActive, Mode=OneWay}"
                             IsEnabled="{Binding CanSelectTransformModeRotate}"
                             ToolTip.Tip="Rotate">
                             <LucideIcon Kind="RotateCw" Size="16" />
-                        </Button>
-                        <Button
+                        </ToggleButton>
+                        <ToggleButton
                             x:Name="TransformModeScale"
                             Classes="gizmo"
                             Command="{Binding SelectTransformModeScale}"
+                            IsChecked="{Binding IsTransformModeScaleActive, Mode=OneWay}"
                             IsEnabled="{Binding CanSelectTransformModeScale}"
                             ToolTip.Tip="Scale">
                             <LucideIcon Kind="Maximize" Size="16" />
-                        </Button>
+                        </ToggleButton>
+                        <ToggleButton
+                            x:Name="SnapToGridToggle"
+                            Classes="gizmo"
+                            Margin="12,0,0,0"
+                            Command="{Binding ToggleSnapToGrid}"
+                            IsChecked="{Binding IsSnapToGridEnabled, Mode=OneWay}"
+                            ToolTip.Tip="Snap Movement To Grid (1 Unit)">
+                            <LucideIcon Kind="Magnet" Size="16" />
+                        </ToggleButton>
                         <ToggleButton
                             x:Name="MeshEditModeToggle"
                             Classes="gizmo"
                             Margin="12,0,0,0"
-                            Command="{Binding ToggleMeshEditMode}"
+                            Command="{Binding EnableMeshEditMode}"
                             IsChecked="{Binding IsMeshEditModeEnabled, Mode=OneWay}"
-                            IsEnabled="{Binding CanToggleMeshEditMode}"
+                            IsEnabled="{Binding CanEnableMeshEditMode}"
                             ToolTip.Tip="Mesh Edit Mode">
                             <LucideIcon Kind="Pencil" Size="16" />
                         </ToggleButton>
@@ -226,7 +238,7 @@
                                 Command="{Binding SelectMeshEditFaceTriangle}"
                                 IsChecked="{Binding !IsMeshEditFaceModeQuad, Mode=OneWay}"
                                 ToolTip.Tip="Select Triangles">
-                                <TextBlock Text="Tri" FontSize="11" />
+                                <LucideIcon Kind="Triangle" Size="16" />
                             </ToggleButton>
                             <ToggleButton
                                 x:Name="MeshEditFaceModeQuad"
@@ -234,8 +246,25 @@
                                 Command="{Binding SelectMeshEditFaceQuad}"
                                 IsChecked="{Binding IsMeshEditFaceModeQuad, Mode=OneWay}"
                                 ToolTip.Tip="Select Quads">
-                                <TextBlock Text="Quad" FontSize="11" />
+                                <LucideIcon Kind="Square" Size="16" />
                             </ToggleButton>
+                            <ToggleButton
+                                x:Name="MeshEditAlignToNormal"
+                                Classes="gizmo"
+                                Margin="8,0,0,0"
+                                Command="{Binding ToggleMeshEditAlignToNormal}"
+                                IsChecked="{Binding IsMeshEditAlignToNormal, Mode=OneWay}"
+                                ToolTip.Tip="Align Movement To Normal">
+                                <LucideIcon Kind="MoveVertical" Size="16" />
+                            </ToggleButton>
+                            <Button
+                                x:Name="ExitMeshEditModeButton"
+                                Classes="gizmo"
+                                Margin="8,0,0,0"
+                                Command="{Binding ExitMeshEditMode}"
+                                ToolTip.Tip="Exit Mesh Edit Mode">
+                                <LucideIcon Kind="X" Size="16" />
+                            </Button>
                         </StackPanel>
                     </StackPanel>
 
@@ -403,9 +432,9 @@
                                                     Header="Shapes"
                                                     IsEnabled="False" />
 
-                                                <MenuItem Command="{Binding AddCube}" Header="Cube" />
-                                                <MenuItem Command="{Binding AddNormalizedCubeSphere}" Header="Normalized Cube Sphere" />
                                                 <MenuItem Command="{Binding AddPlane}" Header="Plane" />
+                                                <MenuItem Command="{Binding AddCube}" Header="Cube" />
+                                                <MenuItem Command="{Binding AddNormalizedCubeSphereCommand}" Header="Normalized Cube Sphere" />
                                                 <MenuItem Command="{Binding AddCylinder}" Header="Cylinder" />
 
                                             </MenuFlyout>
