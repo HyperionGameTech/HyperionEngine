@@ -181,6 +181,34 @@ static bool BuildElementTextures(
     return true;
 }
 
+/// @TODO remove when we have a Mesh::Clone()
+static Handle<Mesh> CloneMeshForLightmapBake(const Handle<Mesh>& sourceMesh)
+{
+    Handle<Mesh> clonedMesh = MakeHandle<Mesh>();
+    clonedMesh->SetName(NAME_FMT("{}_LightmapBakeClone", sourceMesh->GetName()));
+
+    {
+        auto readScope = sourceMesh->GetReadScope();
+
+        const MeshDesc meshDesc = sourceMesh->GetMeshDesc();
+        const VertexArrayView vertexData = sourceMesh->GetVertexData(0);
+        const Span<const ubyte> indexData = sourceMesh->GetIndexData(0);
+
+        MeshDataView meshData {};
+        meshData.vertices[0] = vertexData;
+        meshData.indices[0] = ConstByteView(indexData.Data(), indexData.Data() + indexData.Size());
+
+        clonedMesh->SetMeshData(meshDesc, meshData);
+    }
+
+    InitObject(clonedMesh);
+
+    clonedMesh->BuildBVH();
+    clonedMesh->UploadGpuData();
+
+    return clonedMesh;
+}
+
 #pragma endregion LightmapVolume baking helpers
 
 #pragma region Baker<LightmapVolume>
@@ -243,6 +271,8 @@ void Baker<LightmapVolume>::Build()
 
     const bool onlyOverlappingElements = BakerBase::OnlyOverlappingElements();
 
+    Set<Mesh*> seenMeshes;
+
     for (auto [entity, meshComponent, transformComponent, boundingBoxComponent, _] : mgr.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, TagComponent<EntityTag::MobStatic>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
     {
         if (entity->InstanceClass() != Entity::StaticClass())
@@ -268,9 +298,23 @@ void Baker<LightmapVolume>::Build()
             continue;
         }
 
+        Handle<Mesh> bakeMesh = meshComponent.mesh;
+
+        // We need to dedupe if we'll be writing to UV1.
+        // To do this we maintain a set of visited meshes; then clone the mesh if 
+        // it has already been updated to prevent setting incorrectly shared UV1s.
+        if (seenMeshes.Contains(bakeMesh.Get()))
+        {
+            bakeMesh = CloneMeshForLightmapBake(bakeMesh);
+        }
+        else
+        {
+            seenMeshes.Add(bakeMesh.Get());
+        }
+
         m_bakeEntities.PushBack(BakeEntity {
             MakeStrongRef(entity),
-            meshComponent.mesh,
+            bakeMesh,
             meshComponent.material,
             Transform(transformComponent.translation, transformComponent.scale, transformComponent.rotation).GetMatrix(),
             boundingBoxComponent.worldAabb });
@@ -550,6 +594,15 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
                     EnqueueDeletion(std::move(meshComponent.material));
 
                     meshComponent.material = bakeEntity.material;
+
+                    entity->MarkDirty();
+                }
+
+                // It has changed -- ie cloned.
+                if (meshComponent.mesh.Get() != bakeEntity.mesh.Get())
+                {
+                    meshComponent.mesh = bakeEntity.mesh;
+
                     entity->MarkDirty();
                 }
             }

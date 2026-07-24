@@ -173,8 +173,7 @@ float CalculateAlpha(
     float alpha = 1.0;
     alpha *= saturate(1.0 - (num_iterations / ssrConstants.num_iterations));
 
-    // Fade hits that hit outside the screen
-    float2 hit_pixel_ndc = hit_pixel * 2.0 - 1.0;
+    // Fade hits that are against the screen edge
 
     // // Fade hits that approach the viewer's eye
     // float dp = dot(ray_direction, hit_point);

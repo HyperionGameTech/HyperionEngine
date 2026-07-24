@@ -205,7 +205,7 @@ PSOutput PSMain(PSInput input)
 #endif
 
         reflection_sample.a = min(accum_color.a, 1.0);
-        // reflection_sample = any(isnan(accum_color)) ? float4(0.0, 0.0, 1.0, 1.0) : accum_color;
+        reflection_sample = any(isnan(accum_color)) ? float4(0.0, 0.0, 1.0, 1.0) : accum_color;
 
         reflection_sample.a *= alpha;
     }

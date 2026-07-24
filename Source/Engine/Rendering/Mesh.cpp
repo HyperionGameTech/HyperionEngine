@@ -741,18 +741,6 @@ void Mesh::BuildVertexBuffer(
 template void Mesh::BuildVertexBuffer<ThreadAllocator>(const VertexInputLayoutDesc& inputLayout, uint8 lodIndex, Array<float, ThreadAllocator>& outData) const;
 template void Mesh::BuildVertexBuffer<DynamicAllocator>(const VertexInputLayoutDesc& inputLayout, uint8 lodIndex, Array<float, DynamicAllocator>& outData) const;
 
-#define ADD_NORMAL(ary, idx, normal)     \
-    do                                   \
-    {                                    \
-        auto* idx_it = ary.TryGet(idx);  \
-        if (!idx_it)                     \
-        {                                \
-            idx_it = &*ary.Emplace(idx); \
-        }                                \
-        idx_it->PushBack(normal);        \
-    }                                    \
-    while (0)
-
 void Mesh::CalculateNormals(bool weighted)
 {
     // @TODO: Support calculating normals for arbitrary LOD; for now LOD 0
@@ -762,197 +750,90 @@ void Mesh::CalculateNormals(bool weighted)
     AssertDebug(((VT_Position | VT_Normal) & vertexData.layoutDesc.mask) == (VT_Position | VT_Normal),
                 "Vertex data must have VT_Position and VT_Normal at least in order to calculate normals");
 
-    Span<ubyte> indexData = GetIndexData(lodIndex);
+    const Span<ubyte> indexData = GetIndexData(lodIndex);
+
+    const uint32 indexElemSize = GpuElemTypeSize(m_meshDesc.meshAttributes.indexBufferElemType);
+    AssertDebug(indexElemSize == 2 || indexElemSize == 4, "CalculateNormals only supports 16- or 32-bit indices");
 
     const uint32 numVertices = uint32(vertexData.vertexCount);
-    const uint32 numIndices = uint32(indexData.Size() / sizeof(uint32));
-
-    // @TODO fix for non-uint32 indices
-
-    uint32* uIndexData = reinterpret_cast<uint32*>(&indexData[0]);
-
-    SparsePagedArray<FatArray<Vec3f, InlineAllocator<3>>, 64> normals;
+    const uint32 numIndices = uint32(indexData.Size() / indexElemSize);
 
     const size_t vertexSizeInFloats = vertexData.layoutDesc.VertexSize() / sizeof(float);
 
-    // compute per-face normals (facet normals)
-    for (size_t i = 0; i < numIndices; i += 3)
+    const auto readIndex = [&](size_t i) -> uint32
     {
-        const uint32 i0 = uIndexData[i];
-        const uint32 i1 = uIndexData[i + 1];
-        const uint32 i2 = uIndexData[i + 2];
+        return indexElemSize == 4
+            ? reinterpret_cast<const uint32*>(indexData.Data())[i]
+            : uint32(reinterpret_cast<const uint16*>(indexData.Data())[i]);
+    };
 
-        const float* floatDataOffset0 = vertexData.floatData + (i0 * vertexSizeInFloats);
-        const float* floatDataOffset1 = vertexData.floatData + (i1 * vertexSizeInFloats);
-        const float* floatDataOffset2 = vertexData.floatData + (i2 * vertexSizeInFloats);
-
-        const TVertexPacket<VT_Position>* packet0 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset0);
-        const TVertexPacket<VT_Position>* packet1 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset1);
-        const TVertexPacket<VT_Position>* packet2 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset2);
-
-        const Vec3f p0 = packet0->GetPosition();
-        const Vec3f p1 = packet1->GetPosition();
-        const Vec3f p2 = packet2->GetPosition();
-
-        const Vec3f u = p2 - p0;
-        const Vec3f v = p1 - p0;
-        const Vec3f n = u.Cross(v).Normalize();
-
-        ADD_NORMAL(normals, i0, n);
-        ADD_NORMAL(normals, i1, n);
-        ADD_NORMAL(normals, i2, n);
-    }
-
-    for (size_t i = 0; i < numVertices; i++)
+    const auto getPosition = [&](uint32 idx) -> Vec3f
     {
-        AssertDebug(normals.HasIndex(uint32(i)));
+        const float* floatDataOffset = vertexData.floatData + (idx * vertexSizeInFloats);
+        return reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset)->GetPosition();
+    };
 
-        float* floatDataOffset = const_cast<float*>(vertexData.floatData + (i * vertexSizeInFloats));
+    const auto setNormal = [&](uint32 idx, const Vec3f& normal)
+    {
+        float* floatDataOffset = const_cast<float*>(vertexData.floatData + (idx * vertexSizeInFloats));
         TVertexPacket<VT_Normal>* packet = reinterpret_cast<TVertexPacket<VT_Normal>*>(floatDataOffset + (sizeof(TVertexPacket<VT_Position>) / sizeof(float)));
+        packet->SetNormal(normal);
+    };
+
+    Array<Vec3f> accumulated;
+    accumulated.Resize(numVertices);
+
+    for (size_t i = 0; i + 2 < numIndices; i += 3)
+    {
+        const uint32 i0 = readIndex(i);
+        const uint32 i1 = readIndex(i + 1);
+        const uint32 i2 = readIndex(i + 2);
+
+        const Vec3f p0 = getPosition(i0);
+        const Vec3f p1 = getPosition(i1);
+        const Vec3f p2 = getPosition(i2);
+
+        const Vec3f faceNormalScaled = (p2 - p0).Cross(p1 - p0);
+        const float doubleArea = faceNormalScaled.Length();
+
+        if (doubleArea <= MathUtil::epsilonF)
+        {
+            continue; // degenerate triangle.
+        }
+
+        const Vec3f faceNormal = faceNormalScaled / doubleArea;
 
         if (weighted)
         {
-            packet->SetNormal(normals.Get(uint32(i)).Sum());
+            const float area = 0.5f * doubleArea;
+
+            const float angle0 = (p1 - p0).AngleBetween(p2 - p0);
+            const float angle1 = (p0 - p1).AngleBetween(p2 - p1);
+            const float angle2 = (p0 - p2).AngleBetween(p1 - p2);
+
+            accumulated[i0] += faceNormal * (area * angle0);
+            accumulated[i1] += faceNormal * (area * angle1);
+            accumulated[i2] += faceNormal * (area * angle2);
         }
         else
         {
-            packet->SetNormal(normals.Get(uint32(i)).Sum().Normalize());
+            accumulated[i0] += faceNormal;
+            accumulated[i1] += faceNormal;
+            accumulated[i2] += faceNormal;
         }
     }
 
-    if (!weighted)
+    for (uint32 i = 0; i < numVertices; i++)
     {
-        return;
+        const float magnitude = accumulated[i].Length();
+
+        const Vec3f normal = magnitude > MathUtil::epsilonF
+            ? accumulated[i] / magnitude
+            : Vec3f { 0.0f, 1.0f, 0.0f };
+
+        setNormal(i, normal);
     }
-
-    normals.Clear();
-
-    // weighted (smooth) normals
-
-    for (size_t i = 0; i < numIndices; i += 3)
-    {
-        const uint32 i0 = uIndexData[i];
-        const uint32 i1 = uIndexData[i + 1];
-        const uint32 i2 = uIndexData[i + 2];
-
-        const float* floatDataOffset0 = vertexData.floatData + (i0 * vertexSizeInFloats);
-        const float* floatDataOffset1 = vertexData.floatData + (i1 * vertexSizeInFloats);
-        const float* floatDataOffset2 = vertexData.floatData + (i2 * vertexSizeInFloats);
-
-        const TVertexPacket<VT_Position>* posPacket0 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset0);
-        const TVertexPacket<VT_Position>* posPacket1 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset1);
-        const TVertexPacket<VT_Position>* posPacket2 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset2);
-
-        const Vec3f p0 = posPacket0->GetPosition();
-        const Vec3f p1 = posPacket1->GetPosition();
-        const Vec3f p2 = posPacket2->GetPosition();
-
-        const TVertexPacket<VT_Normal>* normPacket0 = reinterpret_cast<const TVertexPacket<VT_Normal>*>(posPacket0 + 1);
-        const TVertexPacket<VT_Normal>* normPacket1 = reinterpret_cast<const TVertexPacket<VT_Normal>*>(posPacket1 + 1);
-        const TVertexPacket<VT_Normal>* normPacket2 = reinterpret_cast<const TVertexPacket<VT_Normal>*>(posPacket2 + 1);
-
-        const Vec3f n0 = normPacket0->GetNormal();
-        const Vec3f n1 = normPacket1->GetNormal();
-        const Vec3f n2 = normPacket2->GetNormal();
-
-        // Vector3 n = FixedArray { n0, n1, n2 }.Avg();
-
-        FixedArray<Vec3f, 3> weightedNormals { n0, n1, n2 };
-
-        // nested loop through faces to get weighted neighbours
-        // any code that uses this really should bake the normals in;
-        // especially for any production code. this is an expensive process
-        for (size_t j = 0; j < numIndices; j += 3)
-        {
-            if (j == i)
-            {
-                continue;
-            }
-
-            const uint32 j0 = uIndexData[j];
-            const uint32 j1 = uIndexData[j + 1];
-            const uint32 j2 = uIndexData[j + 2];
-
-            floatDataOffset0 = vertexData.floatData + (j0 * vertexSizeInFloats);
-            floatDataOffset1 = vertexData.floatData + (j1 * vertexSizeInFloats);
-            floatDataOffset2 = vertexData.floatData + (j2 * vertexSizeInFloats);
-
-            posPacket0 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset0);
-            posPacket1 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset1);
-            posPacket2 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset2);
-
-            normPacket0 = reinterpret_cast<const TVertexPacket<VT_Normal>*>(posPacket0 + 1);
-            normPacket1 = reinterpret_cast<const TVertexPacket<VT_Normal>*>(posPacket1 + 1);
-            normPacket2 = reinterpret_cast<const TVertexPacket<VT_Normal>*>(posPacket2 + 1);
-
-            const FixedArray<Vec3f, 3> facePositions {
-                posPacket0->GetPosition(),
-                posPacket1->GetPosition(),
-                posPacket2->GetPosition()
-            };
-
-            const FixedArray<Vec3f, 3> faceNormals {
-                normPacket0->GetNormal(),
-                normPacket1->GetNormal(),
-                normPacket2->GetNormal()
-            };
-
-            const Vec3f a = p1 - p0;
-            const Vec3f b = p2 - p0;
-            const Vec3f c = a.Cross(b);
-
-            const float area = 0.5f * MathUtil::Sqrt(c.Dot(c));
-
-            if (facePositions.Contains(p0))
-            {
-                const float angle = (p0 - p1).AngleBetween(p0 - p2);
-                weightedNormals[0] += faceNormals.Avg() * area * angle;
-            }
-
-            if (facePositions.Contains(p1))
-            {
-                const float angle = (p1 - p0).AngleBetween(p1 - p2);
-                weightedNormals[1] += faceNormals.Avg() * area * angle;
-            }
-
-            if (facePositions.Contains(p2))
-            {
-                const float angle = (p2 - p0).AngleBetween(p2 - p1);
-                weightedNormals[2] += faceNormals.Avg() * area * angle;
-            }
-
-            // if (facePositions.Contains(p0)) {
-            //     weightedNormals[0] += faceNormals.Avg();
-            // }
-
-            // if (facePositions.Contains(p1)) {
-            //     weightedNormals[1] += faceNormals.Avg();
-            // }
-
-            // if (facePositions.Contains(p2)) {
-            //     weightedNormals[2] += faceNormals.Avg();
-            // }
-        }
-
-        ADD_NORMAL(normals, i0, weightedNormals[0].Normalized());
-        ADD_NORMAL(normals, i1, weightedNormals[1].Normalized());
-        ADD_NORMAL(normals, i2, weightedNormals[2].Normalized());
-    }
-
-    for (size_t i = 0; i < numVertices; i++)
-    {
-        AssertDebug(normals.HasIndex(i));
-
-        float* floatDataOffset = const_cast<float*>(vertexData.floatData + (i * vertexSizeInFloats));
-        TVertexPacket<VT_Normal>* packet = reinterpret_cast<TVertexPacket<VT_Normal>*>(floatDataOffset + (sizeof(TVertexPacket<VT_Position>) / sizeof(float)));
-
-        packet->SetNormal(normals.Get(i).Sum().Normalized());
-    }
-
-    normals.Clear();
 }
-
-#undef ADD_NORMAL
 
 
 #ifdef HYP_EDITOR

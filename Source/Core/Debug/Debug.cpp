@@ -136,36 +136,8 @@ CORE_API bool IsDebuggerAttached()
 
 void LogAssert(const char* str)
 {
-    //if (HYP_UNLIKELY(!Logger::GetInstance())) // logger system not yet initialized
-    //{
-        std::fprintf(HYP_DEBUG_OUTPUT_STREAM, "%s\n", str);
-        std::fflush(HYP_DEBUG_OUTPUT_STREAM);
-
-    //    if (IsDebuggerAttached())
-    //    {
-    //        HYP_BREAKPOINT;
-
-    //        return;
-    //    }
-
-    //    TerminateProgram();
-
-    //    return;
-    //}
-
-#if HYP_DEBUG_MODE
     HYP_LOG_DYNAMIC(Core, Error, str);
     std::fflush(HYP_DEBUG_OUTPUT_STREAM);
-
-    if (IsDebuggerAttached())
-    {
-        HYP_BREAKPOINT;
-    }
-    // allow continuation
-    return;
-#endif
-
-    HYP_LOG_DYNAMIC(Core, Fatal, str);
 }
 
 void TerminateProgram()

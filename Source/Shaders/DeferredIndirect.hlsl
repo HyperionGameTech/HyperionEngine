@@ -129,6 +129,8 @@ DECLARE_SRV(DeferredPass, PointLightShadowMapsTextureArray) TextureCubeArray poi
 
 #define DDGI_MULTIPLIER 1.0
 
+// #define DEBUG_NORMALS
+
 DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
 {
     Camera camera;
@@ -211,6 +213,8 @@ PSOutput PSMain(PSInput input)
         /* inout */ irradiance);
 
     irradiance.a = saturate(irradiance.a);
+    reflections.a = saturate(reflections.a);
+    
     // irradiance *= invLightmappedWeight;
 
     // if the object is lightmapped, probeLighting contains lightmap UVs
@@ -220,7 +224,8 @@ PSOutput PSMain(PSInput input)
 
 #ifdef SSR_ENABLED
     float4 ssrResult = SAMPLE_TEXTURE_2D_LOD(sampler_linear, SSRResultTexture, texcoord, 0);
-    reflections = (reflections * (1.0 - ssrResult.a)) + (ssrResult * ssrResult.a);
+    ssrResult.a = saturate(ssrResult.a);
+    reflections = (reflections * (1.0 - ssrResult.a)) + ssrResult;
 #endif // SSR_ENABLED
 
 #ifdef RT_REFLECTIONS

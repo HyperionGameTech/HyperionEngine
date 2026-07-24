@@ -279,9 +279,15 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
                     mipBlockStart = mipOffsets[mipIndex - 1];
                     AssertDebug(mipBlockStart != 0);
                 }
+#endif
 
                 AssertDebug(mipBlockStart + mipSize <= imageData.Size());
-#endif
+
+                // Guard against writing out of bounds, in the case of corrupted image data
+                if (mipBlockStart + mipSize > imageData.Size())
+                {
+                    continue;
+                }
 
                 cr << CopyBufferToImage(
                     stagingBuffer,

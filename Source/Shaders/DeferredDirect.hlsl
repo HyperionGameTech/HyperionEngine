@@ -69,6 +69,8 @@ DECLARE_SRV(DeferredPass, SSAOResultTexture) Texture2D SSAOResultTexture;
 
 #define HYP_SAMPLER_SHADOW SamplerShadow
 
+// #define DEBUG_NORMALS
+
 #include "include/EnvProbes.hlsli"
 #include "include/Shared.hlsli"
 #include "include/Gbuffer.hlsli"

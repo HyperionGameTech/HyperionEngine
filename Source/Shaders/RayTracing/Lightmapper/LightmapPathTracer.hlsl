@@ -78,7 +78,6 @@ DECLARE_BUFFER(LightmapPathTracer, CBuffer) cbuffer CBuffer
 #ifdef MODE_FULL
 #define MAX_SAMPLE_LUMINANCE 1.0
 #define MAX_THROUGHPUT_LUMINANCE 1.0
-#define ROUGHNESS_FLOOR 0.001
 
 float3 ClampLuminance(in float3 c, float max_lum)
 {
@@ -130,7 +129,8 @@ float3 DebugTest_Albedo(in float3 position, in float3 normal, inout RayPayload p
     return albedo;
 }
 
-#ifdef MODE_IRRADIANCE
+#if defined(MODE_IRRADIANCE) || defined(MODE_FULL)
+
 float3 SampleDirectLighting(in float3 hitPos, in float3 N)
 {
     float3 result = float3(0.0, 0.0, 0.0);
@@ -189,84 +189,6 @@ float3 SampleDirectLighting(in float3 hitPos, in float3 N)
             result += light_color * NdotL * attenuation * shadow;
         }
         // TODO: area lights
-    }
-
-    return result;
-}
-#endif
-
-#ifdef MODE_FULL
-float3 SampleDirectLightingFull(in float3 hitPos, in float3 N, in float3 V, in float3 diffuseColor, in float3 F0, in float alpha)
-{
-    float3 result = float3(0.0, 0.0, 0.0);
-    const float NdotV = max(dot(N, V), 0.0);
-
-    for (uint light_index = 0; light_index < rayTracingConstants.numBoundLights; light_index++)
-    {
-        const Light light = lights[light_index];
-        const float3 light_color = light.color.rgb * light.position_intensity.w;
-
-        float3 L;
-        float visibility;
-        float attenuation = 1.0;
-
-        if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL)
-        {
-            L = normalize(light.position_intensity.xyz);
-            visibility = 1.0 - CheckInShadow(hitPos, N, L);
-        }
-        else if (light.type == HYP_LIGHT_TYPE_POINT || light.type == HYP_LIGHT_TYPE_SPOT)
-        {
-            const float3 toLight = light.position_intensity.xyz - hitPos;
-            const float d2 = max(dot(toLight, toLight), 1e-6);
-            const float d = sqrt(d2);
-            L = toLight / d;
-
-            const float2 radiusFalloff = float2(f16tof32(light.radiusFalloffPacked), f16tof32(light.radiusFalloffPacked >> 16));
-            const float radius = radiusFalloff.x;
-
-            attenuation = GetSquareFalloffAttenuation(hitPos, light.position_intensity.xyz, radius);
-
-            if (light.type == HYP_LIGHT_TYPE_SPOT)
-            {
-                const float theta = max(dot(-L, normalize(light.normal.xyz)), 0.0);
-                const float2 spot_angles = light.area_size.xy;
-
-                attenuation *= saturate((theta - spot_angles[0]) / (spot_angles[1] - spot_angles[0])) * step(spot_angles[0], theta);
-            }
-
-            if (attenuation <= 0.0)
-            {
-                continue;
-            }
-
-            visibility = 1.0 - CheckInShadow(hitPos, N, L, max(0.0, d - RAY_OFFSET));
-        }
-        else
-        {
-            // TODO: area lights
-            continue;
-        }
-
-        const float NdotL = max(dot(N, L), 0.0);
-
-        if (NdotL <= 0.0 || visibility <= 0.0)
-        {
-            continue;
-        }
-
-        const float3 H = normalize(V + L);
-        const float NdotH = max(dot(N, H), 0.0);
-        const float LdotH = max(dot(L, H), 0.0);
-
-        const float3 F = F_Schlick(F0, LdotH);
-        const float D = DistributionGGX(NdotH, alpha);
-        const float G = V_SmithGGXCorrelated(alpha * alpha, NdotV, NdotL);
-
-        result += visibility * attenuation * light_color * NdotL * (
-            (1.0 - F) * diffuseColor * HYP_FMATH_ONE_OVER_PI +
-            F * G * D
-        );
     }
 
     return result;
@@ -362,7 +284,7 @@ void RayGenMain()
                         }
                     }
 
-                    radiance += beta * (environmentRadiance.rgb * environmentRadiance.a);
+                    radiance += beta * environmentRadiance.rgb;
                 }
 
                 break;
@@ -443,7 +365,7 @@ void RayGenMain()
 
     float4 finalColor = float4(radiance, 1.0);
 #elif defined(MODE_FULL)
-    // full path tracing with diffuse/specular bounces
+    // path traced diffuse-only light.
     float4 accumRadiance = (float4)0.0;
 
 #if 1 // path traced ver
@@ -482,14 +404,32 @@ void RayGenMain()
 
                 for (uint envProbeIdx = 0; envProbeIdx < rayTracingConstants.numBoundEnvProbes && environmentRadiance.a < 1.0; envProbeIdx++)
                 {
-                    const uint envProbeTextureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(envProbes[envProbeIdx]);
+                    // if (envProbeTextureIndex != INVALID_ENV_PROBE_TEXTURE)
+                    // {
+                    //     float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, envProbeTextureIndex, direction, 0.0);
+                    //     env *= (1.0 - environmentRadiance.a);
+                    //     environmentRadiance += env * ENVIRONMENT_INTENSITY;
+                    // }
 
-                    if (envProbeTextureIndex != INVALID_ENV_PROBE_TEXTURE)
-                    {
-                        float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, envProbeTextureIndex, direction, 0.0);
-                        env *= (1.0 - environmentRadiance.a);
-                        environmentRadiance += env * ENVIRONMENT_INTENSITY;
-                    }
+                    
+                        EnvProbe currentEnvProbe = envProbes[envProbeIdx];
+                        
+                        const uint textureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(currentEnvProbe);
+
+                        const uint probeType = GET_ENV_PROBE_TYPE(currentEnvProbe);
+                        const bool isSky = (probeType == EPT_SKY);
+                        
+                        const float4 aabbMin = currentEnvProbe.aabb_min;
+                        const float4 aabbMax = currentEnvProbe.aabb_max;
+                        
+                        const float4 worldPosition = currentEnvProbe.world_position;
+                        const float3 worldPosition3 = worldPosition.xyz;
+                        const float diffuseStrength = worldPosition.w;
+
+                        const float weight = (isSky ? 1.0 : CalculateEnvProbeWeight(origin, aabbMin.xyz, aabbMax.xyz)) * diffuseStrength * (1.0 - environmentRadiance.a);
+
+                        const float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, textureIndex, direction, 6.0);//EnvProbeSH(currentEnvProbe, direction, /* order */ 2);
+                        environmentRadiance += env * weight;
                 }
 
                 Li += float4(beta * environmentRadiance.rgb, 1.0);
@@ -507,7 +447,6 @@ void RayGenMain()
             float3 N = normalize(payload.normal);
             float3 baseColor = clamp(payload.throughput.rgb, float3(0.0, 0.0, 0.0), float3(1.0, 1.0, 1.0));
             float metalness = clamp(payload.throughput.a, 0.0, 1.0);
-            float alpha = max(payload.roughness * payload.roughness, ROUGHNESS_FLOOR);
 
             // emissive contribution
             if (any(payload.emissive.rgb > float3(0.0, 0.0, 0.0)))
@@ -516,10 +455,8 @@ void RayGenMain()
             }
 
             float3 diffuseColor = baseColor * (1.0 - metalness);
-            float3 V = normalize(-direction);
-            float3 F0 = lerp(float3(0.04, 0.04, 0.04), baseColor, metalness);
 
-            Li += float4(beta * SampleDirectLightingFull(hitPos, N, V, diffuseColor, F0, alpha), 1.0);
+            Li += float4(beta * diffuseColor * HYP_FMATH_ONE_OVER_PI * SampleDirectLighting(hitPos, N), 1.0);
 
             // Russian roulette
             if (bounceIndex >= 3)
