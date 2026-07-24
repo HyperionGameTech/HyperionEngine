@@ -68,8 +68,6 @@ struct CORE_API Ray
             || direction != other.direction;
     }
 
-    Ray operator*(const Mat4f& transform) const;
-
     Optional<RayHit> TestAABB(const BoundingBox& aabb) const;
     bool TestAABB(const BoundingBox& aabb, RayTestResults& outResults) const;
     bool TestAABB(const BoundingBox& aabb, RayHitID hitId, RayTestResults& outResults) const;
@@ -108,7 +106,17 @@ struct RayHit
 
     bool operator<(const RayHit& other) const
     {
-        return distance < other.distance;
+        if (distance != other.distance)
+        {
+            return distance < other.distance;
+        }
+
+        if (triangleIndex != other.triangleIndex)
+        {
+            return triangleIndex < other.triangleIndex;
+        }
+
+        return id < other.id;
     }
 
     bool operator==(const RayHit& other) const

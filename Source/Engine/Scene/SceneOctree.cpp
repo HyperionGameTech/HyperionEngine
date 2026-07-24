@@ -1078,31 +1078,32 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<
                     {
                         RayTestResults bvhResults;
 
-                        for (RayHit& hit : localBvhResults)
+                        for (const RayHit& hit : localBvhResults)
                         {
-                            hit.id = entry.value->Id().Value();
-                            hit.node = entry.value;
+                            RayHit newHit = hit;
+                            newHit.id = entry.value->Id().Value();
+                            newHit.node = entry.value;
 
-                            Vec4f transformedNormal = normalMatrix.TransformVector(Vec4f(hit.normal, 0.0f));
-                            hit.normal = transformedNormal.GetXYZ().Normalized();
+                            Vec4f transformedNormal = normalMatrix.TransformVector(Vec4f(newHit.normal, 0.0f));
+                            newHit.normal = transformedNormal.GetXYZ().Normalized();
 
-                            Vec4f transformedPosition = modelMatrix.TransformVector(Vec4f(hit.hitpoint, 1.0f));
+                            Vec4f transformedPosition = modelMatrix.TransformVector(Vec4f(newHit.hitpoint, 1.0f));
                             transformedPosition /= transformedPosition.w;
 
-                            hit.hitpoint = transformedPosition.GetXYZ();
+                            newHit.hitpoint = transformedPosition.GetXYZ();
 
-                            hit.distance = (hit.hitpoint - ray.position).Length();
+                            newHit.distance = (newHit.hitpoint - ray.position).Length();
 
-                            bvhResults.AddHit(hit);
+                            bvhResults.AddHit(newHit);
                         }
 
                         outResults.Merge(std::move(bvhResults));
 
                         hasHit = true;
                     }
-                }
 
-                continue;
+                    continue;
+                }
             }
 
             if (ray.TestAABB(entry.aabb, entry.value->Id().Value(), aabbResult))

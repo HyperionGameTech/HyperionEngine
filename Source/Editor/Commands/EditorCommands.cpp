@@ -1333,7 +1333,7 @@ public:
         uint64 newParentAddress = 0;
 
         if (!StringUtil::Parse(GetArgument(0), &nodeAddress) || !StringUtil::Parse(GetArgument(1), &newParentAddress)
-            || nodeAddress == 0 || newParentAddress == 0)
+            || nodeAddress == NULL || newParentAddress == NULL)
         {
             HYP_LOG(Editor, Error, "EditorCommandReparentNode: invalid node or new parent address");
             return;
@@ -1409,6 +1409,103 @@ private:
 DEFINE_EDITOR_COMMAND(ReparentNode);
 
 #pragma endregion EditorCommandReparentNode
+
+#pragma region RenameNode
+
+class EditorCommandRenameNode final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandRenameNode);
+
+public:
+    virtual ~EditorCommandRenameNode() override = default;
+
+    virtual String GetText() const override
+    {
+        return m_text.Length() ? m_text : EditorCommandBase::GetText();
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        uint64 nodeAddress = 0;
+
+        if (!StringUtil::Parse(GetArgument(0), &nodeAddress) || nodeAddress == NULL)
+        {
+            HYP_LOG(Editor, Error, "EditorCommandRenameNode: invalid node address");
+            return;
+        }
+
+        if (NumArguments() < 2)
+        {
+            HYP_LOG(Editor, Error, "EditorCommandRenameNode: no new name provided");
+            return;
+        }
+
+        String newNameString = GetArgument(1);
+
+        for (int argumentIndex = 2; argumentIndex < NumArguments(); argumentIndex++)
+        {
+            newNameString += " ";
+            newNameString += GetArgument(argumentIndex);
+        }
+
+        Handle<Node> node = MakeStrongRef(reinterpret_cast<Node*>(nodeAddress));
+
+        if (!node.IsValid() || node->GetScene() != subsystem->GetActiveScene().Get())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandRenameNode: invalid node");
+            return;
+        }
+
+        const Name previousName = node->GetName();
+        const Name newName = CreateNameFromDynamicString(newNameString);
+
+        if (newName == previousName)
+        {
+            return;
+        }
+
+        m_text = HYP_FORMAT("Rename node \"{}\"", newName);
+
+        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandRenameNode: no project loaded");
+            return;
+        }
+
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+            GetText(),
+            Proc<EditorActionFunctions()>(
+                [node, previousName, newName]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [node, newName](EditorSubsystem*, EditorProject*)
+                            {
+                                node->SetName(newName);
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [node, previousName](EditorSubsystem*, EditorProject*)
+                            {
+                                node->SetName(previousName);
+                            })
+                    };
+                }));
+
+        InitObject(action);
+
+        currentProject->GetActionStack()->PushAction(action);
+    }
+
+private:
+    String m_text;
+};
+
+DEFINE_EDITOR_COMMAND(RenameNode);
+
+#pragma endregion RenameNode
 
 #pragma region DeleteNode
 

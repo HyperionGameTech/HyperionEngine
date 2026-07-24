@@ -18,26 +18,26 @@
 
 namespace Hyperion {
 
+namespace {
+
+static HYP_FORCE_INLINE float SafeInvDirectionComponent(float x)
+{
+    if (MathUtil::Abs(x) < MathUtil::epsilonF)
+    {
+        return 1.0f / (x < 0.0f ? -MathUtil::epsilonF : MathUtil::epsilonF);
+    }
+
+    return 1.0f / x;
+}
+
+} // namespace
+
 CORE_API Ray operator*(const Mat4f& transform, const Ray& ray)
 {
     Vec4f transformedPosition = transform.TransformVector(Vec4f(ray.position, 1.0f));
     transformedPosition /= transformedPosition.w;
 
     Vec4f transformedDirection = transform.TransformVector(Vec4f(ray.direction, 0.0f));
-
-    Ray result;
-    result.position = transformedPosition.GetXYZ();
-    result.direction = transformedDirection.GetXYZ().Normalized();
-
-    return result;
-}
-
-Ray Ray::operator*(const Mat4f& transform) const
-{
-    Vec4f transformedPosition = Vec4f(position, 1.0f) * transform;
-    transformedPosition /= transformedPosition.w;
-
-    Vec4f transformedDirection = Vec4f(direction, 0.0f) * transform;
 
     Ray result;
     result.position = transformedPosition.GetXYZ();
@@ -71,12 +71,18 @@ bool Ray::TestAABB(const BoundingBox& aabb, RayHitID hitId, RayTestResults& outR
         return false;
     }
 
-    const float t1 = (aabb.min.x - position.x) / direction.x;
-    const float t2 = (aabb.max.x - position.x) / direction.x;
-    const float t3 = (aabb.min.y - position.y) / direction.y;
-    const float t4 = (aabb.max.y - position.y) / direction.y;
-    const float t5 = (aabb.min.z - position.z) / direction.z;
-    const float t6 = (aabb.max.z - position.z) / direction.z;
+    const Vec3f invDir {
+        SafeInvDirectionComponent(direction.x),
+        SafeInvDirectionComponent(direction.y),
+        SafeInvDirectionComponent(direction.z)
+    };
+
+    const float t1 = (aabb.min.x - position.x) * invDir.x;
+    const float t2 = (aabb.max.x - position.x) * invDir.x;
+    const float t3 = (aabb.min.y - position.y) * invDir.y;
+    const float t4 = (aabb.max.y - position.y) * invDir.y;
+    const float t5 = (aabb.min.z - position.z) * invDir.z;
+    const float t6 = (aabb.max.z - position.z) * invDir.z;
 
     const float tmin = MathUtil::Max(MathUtil::Max(MathUtil::Min(t1, t2), MathUtil::Min(t3, t4)), MathUtil::Min(t5, t6));
     const float tmax = MathUtil::Min(MathUtil::Min(MathUtil::Max(t1, t2), MathUtil::Max(t3, t4)), MathUtil::Max(t5, t6));

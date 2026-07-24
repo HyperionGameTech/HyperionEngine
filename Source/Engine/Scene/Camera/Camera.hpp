@@ -15,6 +15,7 @@
 #include <Core/Math/Mat4f.hpp>
 #include <Core/Math/Frustum.hpp>
 #include <Core/Math/Extent.hpp>
+#include <Core/Math/Ray.hpp>
 
 #include <Input/InputHandler.hpp>
 
@@ -238,9 +239,11 @@ public:
     friend class FollowCameraController;
 
     Camera();
+    
     Camera(int width, int height);
     Camera(float fov, int width, int height, float _near, float _far);
     Camera(int width, int height, float left, float right, float bottom, float top, float _near, float _far);
+
     ~Camera() override;
 
     HYP_METHOD(Property = "Flags", Editor = true, Serialize = true)
@@ -495,6 +498,9 @@ public:
 
     HYP_METHOD()
     Vec2f GetPixelSize() const;
+
+    HYP_METHOD()
+    Ray GetPickRay(const Vec2f& screen) const;
 
     void Update(float delta) override;
     void UpdateMatrices();

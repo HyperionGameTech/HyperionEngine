@@ -43,6 +43,7 @@ class EditorCommandBase;
 class ApplicationWindow;
 struct MouseEvent;
 struct KeyboardEvent;
+struct MeshComponent;
 class View;
 class EditorViewport;
 class LightmapVolume;
@@ -583,7 +584,25 @@ public:
     bool IsMeshEditModeEnabled() const;
 
     HYP_METHOD()
-    void SetMeshEditModeEnabled(bool enabled);
+    void EnterMeshEditMode();
+
+    HYP_METHOD()
+    void ExitMeshEditMode(bool saveEdits);
+
+    HYP_METHOD()
+    bool CanEnableMeshEditMode() const;
+
+    HYP_METHOD()
+    Node* GetMeshEditTargetNode() const;
+
+    HYP_METHOD()
+    bool HasMeshEditFaceSelected() const;
+
+    HYP_METHOD()
+    bool IsMeshEditDragActive() const;
+
+    HYP_METHOD()
+    int GetMeshEditLockedAxis() const;
 
     HYP_METHOD()
     MeshEditFaceMode GetMeshEditFaceMode() const;
@@ -666,6 +685,9 @@ public:
     HYP_FIELD()
     ScriptableDelegate<void> OnMeshEditSelectionChanged;
 
+    HYP_FIELD()
+    ScriptableDelegate<void> OnMeshEditStateChanged;
+
 private:
     void InitViewport();
 
@@ -702,7 +724,12 @@ private:
         Vec3f currentLocalDelta;
         Vec3f axisDirection;
         Vec3f defaultAxisDirection;
+
+        // 0/1/2 when constrained to a world X/Y/Z axis via the keyboard, -1 when following defaultAxisDirection
+        int lockedAxis = -1;
     };
+
+    Node* ResolveMeshEditTarget(MeshComponent** outMeshComponent = nullptr) const;
 
     bool TryPickMeshEditFace(const Ray& ray, MeshEditFaceSelection& outSelection, bool ensureUniqueMesh);
     void SetSelectedMeshEditFace(Optional<MeshEditFaceSelection> selection);
@@ -711,13 +738,10 @@ private:
 
     void StartMeshEditDrag(const Handle<Camera>& camera, const MouseEvent& mouseEvent);
     void UpdateMeshEditDrag(const Handle<Camera>& camera, const MouseEvent& mouseEvent);
-    void EndMeshEditDrag();
+    void EndMeshEditDrag(bool saveEdits);
     void SetMeshEditDragLockedAxis(const Handle<Camera>& camera, const KeyboardEvent& keyboardEvent, int axis);
 
-    HYP_FORCE_INLINE bool IsMeshEditDragActive() const
-    {
-        return m_meshEditDragData.HasValue();
-    }
+    bool BackOutOfMeshEditState();
 
     SubsystemUpdatePhase GetUpdatePhase_Internal() const override
     {
@@ -741,6 +765,11 @@ private:
     bool m_meshEditModeEnabled;
     MeshEditFaceMode m_meshEditFaceMode;
     bool m_meshEditAlignToNormal;
+
+    WeakHandle<Node> m_meshEditTargetNode;
+    // Hacky gross gross
+    EditorManipulationMode m_manipulationModeBeforeMeshEdit;
+    bool m_isChangingMeshEditMode;
 
     Optional<MeshEditFaceSelection> m_selectedMeshEditFace;
     Optional<MeshEditFaceSelection> m_hoveredMeshEditFace;

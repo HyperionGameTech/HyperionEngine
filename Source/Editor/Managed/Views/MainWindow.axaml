@@ -121,6 +121,38 @@
         <Style Selector="ToggleButton.gizmo:pointerover">
             <Setter Property="Background" Value="{DynamicResource Brush.Panel}" />
         </Style>
+
+        <Style Selector="Border.mode-strip">
+            <Setter Property="Background" Value="{DynamicResource Brush.PanelAlt}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="6,2" />
+        </Style>
+
+        <Style Selector="TextBlock.mode-label">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Margin" Value="4,0,0,0" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+        </Style>
+
+        <Style Selector="TextBlock.mode-target">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Margin" Value="2,0,4,0" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextMuted}" />
+        </Style>
+
+        <Style Selector="Border.mode-separator">
+            <Setter Property="Width" Value="1" />
+            <Setter Property="Margin" Value="2,3" />
+            <Setter Property="Background" Value="{DynamicResource Brush.Border}" />
+        </Style>
+
+        <Style Selector="TextBlock.status-hint">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+        </Style>
     </Window.Styles>
 
     <Grid>
@@ -221,51 +253,75 @@
                             x:Name="MeshEditModeToggle"
                             Classes="gizmo"
                             Margin="12,0,0,0"
-                            Command="{Binding EnableMeshEditMode}"
+                            Command="{Binding ToggleMeshEditMode}"
                             IsChecked="{Binding IsMeshEditModeEnabled, Mode=OneWay}"
                             IsEnabled="{Binding CanEnableMeshEditMode}"
-                            ToolTip.Tip="Mesh Edit Mode">
+                            ToolTip.Tip="{Binding MeshEditModeTooltip}">
                             <LucideIcon Kind="Pencil" Size="16" />
                         </ToggleButton>
-                        <StackPanel
-                            Orientation="Horizontal"
-                            Spacing="4"
+
+                        <Border
+                            Classes="mode-strip"
                             Margin="8,0,0,0"
                             IsVisible="{Binding IsMeshEditModeEnabled}">
-                            <ToggleButton
-                                x:Name="MeshEditFaceModeTriangle"
-                                Classes="gizmo"
-                                Command="{Binding SelectMeshEditFaceTriangle}"
-                                IsChecked="{Binding !IsMeshEditFaceModeQuad, Mode=OneWay}"
-                                ToolTip.Tip="Select Triangles">
-                                <LucideIcon Kind="Triangle" Size="16" />
-                            </ToggleButton>
-                            <ToggleButton
-                                x:Name="MeshEditFaceModeQuad"
-                                Classes="gizmo"
-                                Command="{Binding SelectMeshEditFaceQuad}"
-                                IsChecked="{Binding IsMeshEditFaceModeQuad, Mode=OneWay}"
-                                ToolTip.Tip="Select Quads">
-                                <LucideIcon Kind="Square" Size="16" />
-                            </ToggleButton>
-                            <ToggleButton
-                                x:Name="MeshEditAlignToNormal"
-                                Classes="gizmo"
-                                Margin="8,0,0,0"
-                                Command="{Binding ToggleMeshEditAlignToNormal}"
-                                IsChecked="{Binding IsMeshEditAlignToNormal, Mode=OneWay}"
-                                ToolTip.Tip="Align Movement To Normal">
-                                <LucideIcon Kind="MoveVertical" Size="16" />
-                            </ToggleButton>
-                            <Button
-                                x:Name="ExitMeshEditModeButton"
-                                Classes="gizmo"
-                                Margin="8,0,0,0"
-                                Command="{Binding ExitMeshEditMode}"
-                                ToolTip.Tip="Exit Mesh Edit Mode">
-                                <LucideIcon Kind="X" Size="16" />
-                            </Button>
-                        </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                <LucideIcon Kind="Waypoints" Size="13" Margin="2,0,0,0" VerticalAlignment="Center" />
+                                <TextBlock
+                                    Classes="mode-target"
+                                    VerticalAlignment="Center"
+                                    MaxWidth="160"
+                                    TextTrimming="CharacterEllipsis"
+                                    Text="{Binding MeshEditTargetName}"
+                                    ToolTip.Tip="{Binding MeshEditTargetName}" />
+
+                                <Border Classes="mode-separator" />
+
+                                <ToggleButton
+                                    x:Name="MeshEditFaceModeTriangle"
+                                    Classes="gizmo"
+                                    Command="{Binding SelectMeshEditFaceTriangle}"
+                                    IsChecked="{Binding !IsMeshEditFaceModeQuad, Mode=OneWay}"
+                                    ToolTip.Tip="Edit triangle faces">
+                                    <LucideIcon Kind="TriangleRight" Size="16" />
+                                </ToggleButton>
+                                <ToggleButton
+                                    x:Name="MeshEditFaceModeQuad"
+                                    Classes="gizmo"
+                                    Command="{Binding SelectMeshEditFaceQuad}"
+                                    IsChecked="{Binding IsMeshEditFaceModeQuad, Mode=OneWay}"
+                                    ToolTip.Tip="Edit as quads">
+                                    <LucideIcon Kind="Square" Size="16" />
+                                </ToggleButton>
+
+                                <Border Classes="mode-separator" />
+
+                                <ToggleButton
+                                    x:Name="MeshEditAlignToNormal"
+                                    Classes="gizmo"
+                                    Command="{Binding ToggleMeshEditAlignToNormal}"
+                                    IsChecked="{Binding IsMeshEditAlignToNormal, Mode=OneWay}"
+                                    ToolTip.Tip="Constrain movement to surface normal">
+                                    <LucideIcon Kind="Axis3d" Size="16" />
+                                </ToggleButton>
+
+                                <Border Classes="mode-separator" />
+
+                                <Button
+                                    x:Name="SaveMeshEditsButton"
+                                    Classes="gizmo"
+                                    Command="{Binding SaveMeshEdits}"
+                                    ToolTip.Tip="Save Edits">
+                                    <LucideIcon Kind="Check" Size="16" />
+                                </Button>
+                                <Button
+                                    x:Name="DiscardMeshEditsButton"
+                                    Classes="gizmo"
+                                    Command="{Binding DiscardMeshEdits}"
+                                    ToolTip.Tip="Discard Edits">
+                                    <LucideIcon Kind="X" Size="16" />
+                                </Button>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
 
                     <StackPanel
@@ -468,13 +524,21 @@
                                             <StackPanel Margin="2,2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                                                 <Ellipse Width="6" Height="6" Fill="White" IsVisible="{Binding IsDirty}" VerticalAlignment="Center" />
                                                 <LucideIcon Kind="{Binding IconKind}" Size="14" Opacity="0.7" VerticalAlignment="Center" />
-                                                <TextBlock FontStyle="{Binding NameFontStyle}" Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                                                <TextBlock FontStyle="{Binding NameFontStyle}" IsVisible="{Binding !IsEditingName}" Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                                                <TextBox
+                                                    Name="NodeRenameTextBox"
+                                                    MinWidth="80"
+                                                    Padding="2,0"
+                                                    IsVisible="{Binding IsEditingName}"
+                                                    Text="{Binding EditingName, Mode=TwoWay}"
+                                                    VerticalAlignment="Center" />
                                             </StackPanel>
                                             <Grid.ContextMenu>
                                                 <ContextMenu>
                                                     <MenuItem Command="{Binding DataContext.Copy, ElementName=Root}" Header="{Binding DataContext.CopyHeader, ElementName=Root}" />
                                                     <MenuItem Command="{Binding DataContext.Paste, ElementName=Root}" Header="{Binding DataContext.PasteHeader, ElementName=Root}" />
                                                     <Separator />
+                                                    <MenuItem Click="OnRenameNodeMenuItemClick" Header="Rename" />
                                                     <MenuItem Command="{Binding DataContext.TeleportToNode, ElementName=Root}" CommandParameter="{Binding Name}" Header="Teleport to" />
                                                     <Separator />
                                                     <MenuItem Command="{Binding DataContext.DeleteNode, ElementName=Root}" Header="{Binding DataContext.DeleteHeader, ElementName=Root}" />
@@ -973,9 +1037,10 @@
                 <Border Grid.Row="3" Classes="status-bar">
                     <Grid ColumnDefinitions="*, Auto">
                         <TextBlock
+                            Classes="status-hint"
                             VerticalAlignment="Center"
-                            FontSize="12"
-                            Text="Ready" />
+                            TextTrimming="CharacterEllipsis"
+                            Text="{Binding StatusText}" />
                         <ItemsControl
                             Grid.Column="1"
                             ItemsSource="{Binding Tasks}">

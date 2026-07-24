@@ -19,19 +19,10 @@ namespace Hyperion.Editor.ViewModels
         public string Name
         {
             get => _name;
-            set
+            private set
             {
                 if (SetProperty(ref _name, value))
                 {
-                    try
-                    {
-                        _node.Name = new Name(value);
-                    }
-                    catch
-                    {
-                        Logger.Log(LogLevel.Error, $"Failed to set node name to '{value}'.");
-                    }
-
                     // Update derived properties when name changes
                     OnPropertyChanged(nameof(DisplayName));
                     OnPropertyChanged(nameof(IsUnnamed));
@@ -43,6 +34,36 @@ namespace Hyperion.Editor.ViewModels
         public string DisplayName => string.IsNullOrEmpty(_name) ? $"Unnamed {_node.GetType().Name}" : _name;
         public bool IsUnnamed => string.IsNullOrEmpty(_name);
         public FontStyle NameFontStyle => IsUnnamed ? FontStyle.Italic : FontStyle.Normal;
+
+        public void RefreshNameFromEngine()
+        {
+            Name = _node.Name.ToString();
+        }
+
+        private bool _isEditingName;
+        public bool IsEditingName
+        {
+            get => _isEditingName;
+            set => SetProperty(ref _isEditingName, value);
+        }
+
+        private string _editingName = string.Empty;
+        public string EditingName
+        {
+            get => _editingName;
+            set => SetProperty(ref _editingName, value);
+        }
+
+        public void BeginRename()
+        {
+            EditingName = _name;
+            IsEditingName = true;
+        }
+
+        public void CancelRename()
+        {
+            IsEditingName = false;
+        }
 
         public string IconKind => _node switch
         {

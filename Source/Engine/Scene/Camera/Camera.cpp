@@ -569,13 +569,23 @@ Vec2f Camera::TransformNDCToScreen(const Vec3f& ndc) const
 {
     return {
         (0.5f * ndc.x) + 0.5f,
-        (0.5f * ndc.y) + 0.5f
+        0.5f - (0.5f * ndc.y)
     };
 }
 
 Vec4f Camera::TransformScreenToWorld(const Vec2f& screen) const
 {
     return TransformNDCToWorld(TransformScreenToNDC(screen));
+}
+
+Ray Camera::GetPickRay(const Vec2f& screen) const
+{
+    const Vec2f pixelCenterScreen = screen + (GetPixelSize() * 0.5f);
+
+    const Vec4f mouseWorld = TransformScreenToWorld(pixelCenterScreen);
+    const Vec3f rayDirection = (mouseWorld.GetXYZ() - GetWorldTranslation()).Normalized();
+
+    return Ray { GetWorldTranslation(), rayDirection };
 }
 
 Vec2f Camera::GetPixelSize() const

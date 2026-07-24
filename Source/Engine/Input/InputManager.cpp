@@ -168,6 +168,7 @@ void InputMouseLockScope::Reset()
 
 InputManager::InputManager(ApplicationWindow* ownerWindow)
     : m_eventQueue(new InputEventQueue),
+      m_virtualMousePositionAccum(Vec2f::Zero()),
       m_mouseLockStates(),
       m_ownerWindow(ownerWindow),
       m_controllers {},
@@ -288,6 +289,7 @@ void InputManager::SetIsMouseLocked(bool locked)
 
     m_previousVirtualMousePosition = m_previousMousePosition;
     m_virtualMousePosition = m_mousePosition;
+    m_virtualMousePositionAccum = Vec2f(m_mousePosition);
 
     m_isMouseLocked = locked;
 }
@@ -308,10 +310,13 @@ void InputManager::UpdateMousePosition(Event& event)
             : event.GetMousePositionDeltas();
 
         // if locked, only update the virtual position
-        Vec2i newVirtualMousePosition = Vec2i(Vec2f(m_virtualMousePosition) + deltas);
+        m_virtualMousePositionAccum += deltas;
+
+        Vec2i newVirtualMousePosition = Vec2i(MathUtil::Round(m_virtualMousePositionAccum));
         newVirtualMousePosition = MathUtil::Clamp(newVirtualMousePosition, Vec2i::Zero(), m_ownerWindow->GetDimensions() - 1);
 
         m_virtualMousePosition = newVirtualMousePosition;
+        m_virtualMousePositionAccum = Vec2f(newVirtualMousePosition);
 
         return;
     }
@@ -322,6 +327,19 @@ void InputManager::UpdateMousePosition(Event& event)
 
     // not locked, keep virtual position synced with the physical one.
     m_virtualMousePosition = m_mousePosition;
+    m_virtualMousePositionAccum = Vec2f(m_mousePosition);
+}
+
+Vec2f InputManager::GetVirtualMousePositionNormalized() const
+{
+    if (!m_ownerWindow)
+    {
+        return Vec2f::Zero();
+    }
+
+    const Vec2i windowDimensions = MathUtil::Max(m_ownerWindow->GetDimensions(), Vec2i::One());
+
+    return Vec2f(m_virtualMousePosition) / Vec2f(windowDimensions);
 }
 
 void InputManager::UpdateWindowSize(Vec2i newSize)

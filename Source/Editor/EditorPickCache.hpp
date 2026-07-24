@@ -19,6 +19,8 @@
 
 #include <Core/Math/Vector3.hpp>
 
+#include <Core/Reflection/Handle.hpp>
+
 namespace Hyperion {
 
 class Mesh;
@@ -29,6 +31,7 @@ using EpcAllocator = AllocatorInstance<Pool, &g_editorPickCachePool>;
 
 struct EditorPickCacheEntry
 {
+    WeakHandle<Mesh> mesh;
     int residency = 0;
     uint32 frameVisible = 0;
     Array<Vec3f, EpcAllocator> positions;
@@ -58,6 +61,7 @@ public:
 private:
     bool EvictEntries(size_t bytesNeeded);
     bool HasFreeSpace(size_t bytes);
+    void RemoveEntryAtIndex(uint32 index);
 
     Pimpl<struct EditorPickCacheImpl> m_impl;
 };

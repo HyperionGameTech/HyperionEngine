@@ -257,6 +257,27 @@ namespace Hyperion.Editor.ViewModels
             return null;
         }
 
+        public void RenameNode(NodeViewModel nodeViewModel, string newName)
+        {
+            if (nodeViewModel == null || nodeViewModel.Node == null || string.IsNullOrEmpty(newName))
+                return;
+
+            EngineManager.EditorGame?.EditorSubsystem?.ExecuteCommandByName(
+                new Name("EditorCommandRenameNode"),
+                nodeViewModel.Node.NativeAddress.ToString(),
+                newName);
+        }
+
+        public void RefreshAllNames()
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            foreach (NodeViewModel nodeViewModel in GetFlattenedNodes())
+            {
+                nodeViewModel.RefreshNameFromEngine();
+            }
+        }
+
         public bool ReparentNode(NodeViewModel dragged, NodeViewModel newParent)
         {
             if (dragged == null || newParent == null)

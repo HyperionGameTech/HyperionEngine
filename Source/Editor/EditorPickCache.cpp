@@ -178,20 +178,19 @@ void EditorPickCache::PutEntry(const Mesh* mesh, bool invalidate)
     const uint32 indexSize = GpuElemTypeSize(meshDesc.meshAttributes.indexBufferElemType);
     const size_t numIndices = indexData.Size() / indexSize;
 
-    if (!existsButInvalidating)
-    {
-        // make sure we have enough memory before adding, otherwise fail
-        if (!HasFreeSpace((vertexData.vertexCount * sizeof(Vec3f)) + numIndices * indexSize))
-        {
-            HYP_LOG_ONCE(Editor, Error, "Not enough headroom in editor pick cache; cannot add mesh {} (id: {}) to editor pick cache", mesh->GetName(), mesh->Id());
+    const size_t bytesNeeded = (vertexData.vertexCount * sizeof(Vec3f)) + numIndices * indexSize;
 
-            return;
-        }
+    if (!HasFreeSpace(bytesNeeded) && !EvictEntries(bytesNeeded))
+    {
+        HYP_LOG_ONCE(Editor, Error, "Not enough headroom in editor pick cache; cannot add mesh {} (id: {}) to editor pick cache", mesh->GetName(), mesh->Id());
+
+        return;
     }
 
     EditorPickCacheEntry& entry = m_impl->cache[mesh->Id().ToIndex()];
+    entry.mesh = MakeWeakRef(mesh);
     entry.frameVisible = fc;
-    
+
     const int newResidency = ComputeResidency(entry);
     
     if (existsButInvalidating)
@@ -243,15 +242,19 @@ void EditorPickCache::RemoveEntry(const Mesh* mesh)
 
     if (m_impl->cache.HasIndex(mesh->Id().ToIndex()))
     {
-        EditorPickCacheEntry& entry = m_impl->cache[mesh->Id().ToIndex()];
-
-        const int residency = entry.residency;
-
-        auto& arr = m_impl->residencyMap[residency];
-        arr.Set(mesh->Id().ToIndex(), false);
-
-        m_impl->cache.EraseAt(mesh->Id().ToIndex());
+        RemoveEntryAtIndex(mesh->Id().ToIndex());
     }
+}
+
+void EditorPickCache::RemoveEntryAtIndex(uint32 index)
+{
+    AssertDebug(m_impl->cache.HasIndex(index));
+
+    EditorPickCacheEntry& entry = m_impl->cache.Get(index);
+
+    m_impl->residencyMap[entry.residency].Set(index, false);
+
+    m_impl->cache.EraseAt(index);
 }
 
 EditorPickCacheEntry* EditorPickCache::GetEntry(const Mesh* mesh)
@@ -268,7 +271,12 @@ EditorPickCacheEntry* EditorPickCache::GetEntry(const Mesh* mesh)
 
     if (m_impl->cache.HasIndex(mesh->Id().ToIndex()))
     {
-        return &m_impl->cache.Get(mesh->Id().ToIndex());
+        EditorPickCacheEntry& entry = m_impl->cache.Get(mesh->Id().ToIndex());
+
+        AssertDebug(entry.mesh.GetUnsafe() == mesh,
+            "Editor pick cache entry mesh mismatch - stale entry was not reaped");
+
+        return &entry;
     }
 
     return nullptr;
@@ -291,14 +299,17 @@ bool EditorPickCache::EvictEntries(size_t bytesNeeded)
 {
     const MemoryMetrics metrics = g_editorPickCachePool->GetMemoryMetrics();
 
-    if (metrics[MemoryMetrics::MM_BYTES_USED] <= MaxMemoryUsageBytes - bytesNeeded)
+    if (metrics[MemoryMetrics::MM_BYTES_USED] + bytesNeeded <= MaxMemoryUsageBytes)
     {
         // we have enough headroom, no need to evict entries
         return true;
     }
 
     size_t currentMemoryUsageBytes = metrics[MemoryMetrics::MM_BYTES_USED];
-    const size_t targetMemoryUsageBytes = MaxMemoryUsageBytes - bytesNeeded;
+
+    const size_t targetMemoryUsageBytes = bytesNeeded <= MaxMemoryUsageBytes
+        ? MaxMemoryUsageBytes - bytesNeeded
+        : 0;
 
     for (int residency = MinResidency; residency <= MaxResidency; ++residency)
     {
@@ -351,7 +362,7 @@ bool EditorPickCache::HasFreeSpace(size_t bytes)
 {
     const MemoryMetrics metrics = g_editorPickCachePool->GetMemoryMetrics();
 
-    return metrics[MemoryMetrics::MM_BYTES_USED] <= MaxMemoryUsageBytes - bytes;
+    return metrics[MemoryMetrics::MM_BYTES_USED] + bytes <= MaxMemoryUsageBytes;
 }
 
 void EditorPickCache::Update(float delta)
@@ -366,7 +377,6 @@ void EditorPickCache::Update(float delta)
 
     m_impl->timer.NextTick();
 
-    // update residencies
     for (int residency = MinResidency; residency <= MaxResidency; ++residency)
     {
         auto& entrySet = m_impl->residencyMap[residency];
@@ -375,6 +385,13 @@ void EditorPickCache::Update(float delta)
         {
             AssertDebug(m_impl->cache.HasIndex(bit));
             EditorPickCacheEntry& entry = m_impl->cache.Get(bit);
+
+            if (!entry.mesh.Lock())
+            {
+                RemoveEntryAtIndex(bit);
+
+                continue;
+            }
 
             const int newResidency = ComputeResidency(entry);
 

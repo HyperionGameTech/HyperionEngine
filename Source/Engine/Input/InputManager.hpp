@@ -101,6 +101,9 @@ public:
     }
 
     HYP_METHOD()
+    Vec2f GetVirtualMousePositionNormalized() const;
+
+    HYP_METHOD()
     HYP_FORCE_INLINE Vec2i GetWindowSize() const
     {
         return m_windowSize;
@@ -258,13 +261,12 @@ private:
     AtomicVec2i m_virtualMousePosition;
     AtomicVec2i m_previousVirtualMousePosition;
 
+    Vec2f m_virtualMousePositionAccum;
+
     AtomicVec2i m_windowSize;
 
     Array<InputMouseLockState*, InputAllocator> m_mouseLockStates;
     Mutex m_mouseLockStatesMutex;
-
-    // Array<InputHandlerBase*, InputAllocator> m_inputHandlers;
-    // SharedMutex m_inputHandlersMutex;
 
     ApplicationWindow* m_ownerWindow;
 

@@ -119,6 +119,9 @@ namespace Hyperion.Editor
             AddHandler(InputElement.LostFocusEvent, OnInspectorTextBoxLostFocus, RoutingStrategies.Bubble);
             AddHandler(InputElement.KeyDownEvent, OnInspectorTextBoxKeyDown, RoutingStrategies.Bubble);
 
+            AddHandler(InputElement.LostFocusEvent, OnNodeRenameTextBoxLostFocus, RoutingStrategies.Bubble);
+            AddHandler(InputElement.KeyDownEvent, OnNodeRenameTextBoxKeyDown, RoutingStrategies.Bubble);
+
             if (IsRenderingOnMainThread)
             {
                 Opened += (s, e) =>
@@ -143,6 +146,72 @@ namespace Hyperion.Editor
             {
                 vm.CommitValue();
                 e.Handled = true;
+            }
+        }
+
+        private void OnRenameNodeMenuItemClick(object? sender, RoutedEventArgs e)
+        {
+            if ((sender as MenuItem)?.DataContext is not NodeViewModel nodeViewModel)
+                return;
+
+            nodeViewModel.BeginRename();
+
+            Dispatcher.UIThread.Post(() => FocusNodeRenameTextBox(nodeViewModel), DispatcherPriority.Loaded);
+        }
+
+        private void FocusNodeRenameTextBox(NodeViewModel nodeViewModel)
+        {
+            if (_sceneTree == null)
+                return;
+
+            TextBox? textBox = _sceneTree.GetVisualDescendants()
+                .OfType<TextBox>()
+                .FirstOrDefault(t => t.DataContext == nodeViewModel);
+
+            if (textBox != null)
+            {
+                textBox.Focus();
+                textBox.SelectAll();
+            }
+        }
+
+        private void OnNodeRenameTextBoxKeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.Source is not TextBox { DataContext: NodeViewModel nodeViewModel } textBox)
+                return;
+
+            if (e.Key == Key.Return)
+            {
+                CommitNodeRename(nodeViewModel, textBox.Text ?? string.Empty);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Escape)
+            {
+                nodeViewModel.CancelRename();
+                e.Handled = true;
+            }
+        }
+
+        private void OnNodeRenameTextBoxLostFocus(object? sender, RoutedEventArgs e)
+        {
+            if (e.Source is TextBox { DataContext: NodeViewModel nodeViewModel } textBox && nodeViewModel.IsEditingName)
+            {
+                CommitNodeRename(nodeViewModel, textBox.Text ?? string.Empty);
+            }
+        }
+
+        private void CommitNodeRename(NodeViewModel nodeViewModel, string newName)
+        {
+            nodeViewModel.IsEditingName = false;
+
+            string trimmedName = newName.Trim();
+            
+            if (string.IsNullOrEmpty(trimmedName) || trimmedName == nodeViewModel.Name)
+                return;
+
+            if (DataContext is MainWindowViewModel mvm)
+            {
+                mvm.SceneHierarchy.RenameNode(nodeViewModel, trimmedName);
             }
         }
 
