@@ -616,8 +616,7 @@ void CheckCurrentThreadSynced()
 #pragma region RenderInterface
 
 RenderInterface::RenderInterface()
-    : gpuBufferHolders(nullptr),
-      cbufferAllocator(nullptr),
+    : cbufferAllocator(nullptr),
       bufferAllocator(nullptr),
       scratchImageAllocator(nullptr),
       shaderManager(nullptr),
@@ -662,7 +661,6 @@ RendererResult RenderInterface::Initialize()
 
     Framework::t_thisThreadRingIndex = &Framework::s_ringIndex[Framework::TT_FrameDataConsumer];
 
-    gpuBufferHolders = PoolNew<GpuBufferHolderMap>(*g_renderPool);
     cbufferAllocator = PoolNew<CBufferAllocator>(*g_renderPool);
     bufferAllocator = PoolNew<BufferAllocator>(*g_renderPool);
     scratchImageAllocator = PoolNew<ScratchImageAllocator>(*g_renderPool);
@@ -911,9 +909,6 @@ void RenderInterface::Shutdown()
 
     PoolDelete(*g_renderPool, descriptorSetCache);
     descriptorSetCache = nullptr;
-
-    PoolDelete(*g_renderPool, gpuBufferHolders);
-    gpuBufferHolders = nullptr;
 
     PoolDelete(*g_renderPool, placeholderData);
     placeholderData = nullptr;

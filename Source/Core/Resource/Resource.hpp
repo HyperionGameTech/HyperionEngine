@@ -27,11 +27,6 @@ namespace Hyperion {
 
 class ResourceBase;
 
-class IResourceMemoryPool;
-
-template <class T>
-class ResourceMemoryPool;
-
 struct CORE_API ResourceGuard
 {
     enum

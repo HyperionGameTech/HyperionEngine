@@ -27,7 +27,6 @@
 namespace Hyperion {
 
 class Entity;
-class GpuBufferHolderMap;
 class PlaceholderData;
 class RenderProxyList;
 class View;
@@ -53,7 +52,6 @@ class Texture;
 class ApplicationWindow;
 class SingleTimeCommands;
 class Shader;
-class GpuBufferHolderBase;
 class StagingBufferPool;
 class ShaderManager;
 class DeletionQueue;
@@ -407,8 +405,6 @@ public:
     BindlessStorage* bindlessStorage;
 
     PlaceholderData* placeholderData;
-
-    GpuBufferHolderMap* gpuBufferHolders;
 
     CBufferAllocator* cbufferAllocator;
     BufferAllocator* bufferAllocator;

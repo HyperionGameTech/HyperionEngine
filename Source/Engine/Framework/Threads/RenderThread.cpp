@@ -67,7 +67,7 @@ static constexpr float BatteryMaxFrameRate = 30.0f;
 CVar<float> g_cvTargetFrameRate("Rendering.TargetFrameRate", 0);                             // 0    = no limit
 CVar<bool> g_cvLimitFrameRateOnBatteryPower("Rendering.LimitFrameRateOnBatteryPower", true); // true = enable framerate cap when on battery
 CVar<bool> g_cvLimitFrameRateWhenIdle("Rendering.LimitFrameRateWhenIdle", true);             // true = enable framerate cap when idling in standalone
-CVar<int> g_cvSkipRendering("Rendering.SkipRendering", 0);                                   // -1 = True, set by SkipRenderingWhenIdle, 0 = False, 1 = True (manually set)
+CVar<int> g_cvSkipRendering("Rendering.SkipRendering", 0);                                   // -1   = True, set by SkipRenderingWhenIdle, 0 = False, 1 = True (manually set)
 CVar<int> g_cvSkipRenderingWhenIdle("Editor.SkipRenderingWhenIdle", -1);                     // -1   = set dynamically based on if editor mode
 
 static FrameLimiter g_frameLimiter { 0 };
@@ -228,7 +228,7 @@ void RenderThread::Update()
         {
             renderSetup.swapchain = swapchain;
 
-            const Vec2u swapchainExtent = swapchain->GetExtent();
+            const Vec2u& swapchainExtent = swapchain->GetExtent();
 
             const float renderTargetScale = mainWindow->GetRenderTargetScale();
             const Vec2u renderExtent = Vec2u(Vec2f(swapchainExtent) * renderTargetScale);

@@ -14,7 +14,6 @@
 
 #include <Core/Memory/UniquePtr.hpp>
 #include <Core/Memory/AnyRef.hpp>
-#include <Core/Memory/MemoryPool.hpp>
 
 #include <Core/Threading/DataRaceDetector.hpp>
 

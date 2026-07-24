@@ -59,8 +59,6 @@ public:
     template <class T, class AllocatorType = DynamicAllocator>
     static void* BlockCopyConstruct(void* /* ctx */, const void* block)
     {
-        static AllocatorType* s_allocator = GetDefaultAllocatorInstance<AllocatorType>();
-
         const Block* src = static_cast<const Block*>(block);
         const T& val = *static_cast<const T*>(src->objectPtr);
 
@@ -70,7 +68,7 @@ public:
         constexpr size_t objOffset = ByteUtil::AlignAs(headerSize, objAlign);
         constexpr size_t totalSize = ByteUtil::AlignAs(objOffset + sizeof(T), align);
 
-        void* raw = s_allocator->Allocate(totalSize, align);
+        void* raw = GetDefaultAllocatorInstance<AllocatorType>()->Allocate(totalSize, align);
         HYP_CORE_ASSERT(raw != nullptr);
 
         char* base = static_cast<char*>(raw);
@@ -95,15 +93,13 @@ public:
     template <class AllocatorType = DynamicAllocator>
     static void* BlockCopyConstruct(void* ctx, const void* block)
     {
-        static AllocatorType* s_allocator = GetDefaultAllocatorInstance<AllocatorType>();
-
         const Block* src = static_cast<const Block*>(block);
 
         const size_t totalAlign = (alignof(Block) > src->objAlign ? alignof(Block) : src->objAlign);
         const size_t objOffset = ByteUtil::AlignAs(sizeof(Block), src->objAlign);
         const size_t totalSize = ByteUtil::AlignAs(objOffset + src->objSize, totalAlign);
 
-        void* raw = s_allocator->Allocate(totalSize, totalAlign);
+        void* raw = GetDefaultAllocatorInstance<AllocatorType>()->Allocate(totalSize, totalAlign);
         HYP_CORE_ASSERT(raw != nullptr);
 
         char* base = static_cast<char*>(raw);
@@ -129,26 +125,22 @@ public:
     template <class T, class AllocatorType = DynamicAllocator>
     static void BlockDeleter(void* /* ctx */, void* block)
     {
-        static AllocatorType* s_allocator = GetDefaultAllocatorInstance<AllocatorType>();
-
         Block* hdr = static_cast<Block*>(block);
         static_cast<T*>(hdr->objectPtr)->~T();
 
-        s_allocator->Free(block);
+        GetDefaultAllocatorInstance<AllocatorType>()->Free(block);
     }
 
     template <class AllocatorType = DynamicAllocator>
     static void ExternalBlockDeleter(void* /* ctx */, void* block)
     {
-        static AllocatorType* s_allocator = GetDefaultAllocatorInstance<AllocatorType>();
-
         Block* hdr = static_cast<Block*>(block);
         if (hdr->objectPtr && hdr->objectDtor)
         {
             hdr->objectDtor(hdr->ctx, hdr->objectPtr);
         }
 
-        s_allocator->Free(block);
+        GetDefaultAllocatorInstance<AllocatorType>()->Free(block);
     }
 
 public:
@@ -196,7 +188,7 @@ public:
 
         if (HasValue())
         {
-            Block* block = reinterpret_cast<Block*>(m_block);
+            Block* block = static_cast<Block*>(m_block);
             block->dtor(block->ctx, m_block);
         }
 
@@ -229,7 +221,7 @@ public:
 
         if (HasValue())
         {
-            Block* block = reinterpret_cast<Block*>(m_block);
+            Block* block = static_cast<Block*>(m_block);
             block->dtor(block->ctx, m_block);
         }
 
@@ -242,8 +234,8 @@ public:
     {
         if (other.HasValue())
         {
-            const Block* ob = reinterpret_cast<const Block*>(other.m_block);
-            m_block = ob->copyCtor ? ob->copyCtor(ob->ctx, other.m_block) : nullptr;
+            const Block* otherBlock = static_cast<const Block*>(other.m_block);
+            m_block = otherBlock->copyCtor ? otherBlock->copyCtor(otherBlock->ctx, other.m_block) : nullptr;
         }
     }
 
@@ -256,14 +248,14 @@ public:
 
         if (HasValue())
         {
-            Block* block = reinterpret_cast<Block*>(m_block);
+            Block* block = static_cast<Block*>(m_block);
             block->dtor(block->ctx, m_block);
         }
 
         if (other.HasValue())
         {
-            const Block* ob = reinterpret_cast<const Block*>(other.m_block);
-            m_block = ob->copyCtor ? ob->copyCtor(ob->ctx, other.m_block) : nullptr;
+            const Block* otherBlock = static_cast<const Block*>(other.m_block);
+            m_block = otherBlock->copyCtor ? otherBlock->copyCtor(otherBlock->ctx, other.m_block) : nullptr;
         }
         else
         {
@@ -288,7 +280,7 @@ public:
 
         if (HasValue())
         {
-            Block* block = reinterpret_cast<Block*>(m_block);
+            Block* block = static_cast<Block*>(m_block);
             block->dtor(block->ctx, m_block);
         }
 
@@ -302,7 +294,7 @@ public:
     {
         if (HasValue())
         {
-            Block* block = reinterpret_cast<Block*>(m_block);
+            Block* block = static_cast<Block*>(m_block);
             block->dtor(block->ctx, m_block);
         }
     }
@@ -338,19 +330,19 @@ public:
     /*! \brief Get a raw pointer to the held object. */
     HYP_FORCE_INLINE void* GetPointer()
     {
-        return HasValue() ? reinterpret_cast<Block*>(m_block)->objectPtr : nullptr;
+        return HasValue() ? static_cast<Block*>(m_block)->objectPtr : nullptr;
     }
 
     /*! \brief Get a raw pointer to the held object. */
     HYP_FORCE_INLINE const void* GetPointer() const
     {
-        return HasValue() ? reinterpret_cast<const Block*>(m_block)->objectPtr : nullptr;
+        return HasValue() ? static_cast<const Block*>(m_block)->objectPtr : nullptr;
     }
 
     /*! \returns The TypeInfo for the internally held object. */
     HYP_FORCE_INLINE const TypeInfo* GetTypeInfo() const
     {
-        return HasValue() ? reinterpret_cast<const Block*>(m_block)->typeInfo : &TypeInfo_Void();
+        return HasValue() ? static_cast<const Block*>(m_block)->typeInfo : &TypeInfo_Void();
     }
 
     /*! \returns The TypeId of the held object; If no object is held, TypeId::Void() will be returned. */
@@ -385,7 +377,7 @@ public:
     {
         HYP_CORE_ASSERT(Is<T>(), "Held type not equal to requested type!");
 
-        return *static_cast<NormalizedType<T>*>(reinterpret_cast<Block*>(m_block)->objectPtr);
+        return *static_cast<NormalizedType<T>*>(static_cast<Block*>(m_block)->objectPtr);
     }
 
     /*! \brief Attempts to get the held object as a pointer to type T. If the held object is not of type T, nullptr is returned. */
@@ -394,7 +386,7 @@ public:
     {
         if (Is<T>())
         {
-            return static_cast<NormalizedType<T>*>(reinterpret_cast<Block*>(m_block)->objectPtr);
+            return static_cast<NormalizedType<T>*>(static_cast<Block*>(m_block)->objectPtr);
         }
 
         return nullptr;
@@ -406,7 +398,7 @@ public:
         using U = NormalizedType<T>;
         if (HasValue())
         {
-            Block* block = reinterpret_cast<Block*>(m_block);
+            Block* block = static_cast<Block*>(m_block);
             block->dtor(block->ctx, m_block);
         }
 
@@ -419,7 +411,7 @@ public:
         using U = NormalizedType<T>;
         if (HasValue())
         {
-            Block* block = reinterpret_cast<Block*>(m_block);
+            Block* block = static_cast<Block*>(m_block);
             block->dtor(block->ctx, m_block);
         }
 
@@ -433,12 +425,11 @@ public:
         using U = NormalizedType<T>;
 
         using AllocatorType = DynamicAllocator;
-        static AllocatorType* s_allocator = GetDefaultAllocatorInstance<AllocatorType>();
 
 
         if (HasValue())
         {
-            Block* block = reinterpret_cast<Block*>(m_block);
+            Block* block = static_cast<Block*>(m_block);
             block->dtor(block->ctx, m_block);
         }
 
@@ -448,7 +439,7 @@ public:
         constexpr size_t objOffset = ByteUtil::AlignAs(headerSize, objAlign);
         constexpr size_t totalSize = ByteUtil::AlignAs(objOffset + sizeof(U), align);
 
-        void* raw = s_allocator->Allocate(totalSize, align);
+        void* raw = GetDefaultAllocatorInstance<AllocatorType>()->Allocate(totalSize, align);
         HYP_CORE_ASSERT(raw != nullptr);
 
         char* base = static_cast<char*>(raw);
@@ -482,15 +473,13 @@ public:
 
         if (HasValue())
         {
-            Block* block = reinterpret_cast<Block*>(m_block);
+            Block* block = static_cast<Block*>(m_block);
             block->dtor(block->ctx, m_block);
         }
 
         if (ptr)
         {
-            static AllocatorType* s_allocator = GetDefaultAllocatorInstance<AllocatorType>();
-
-            void* raw = s_allocator->Allocate(sizeof(Block), alignof(Block));
+            void* raw = GetDefaultAllocatorInstance<AllocatorType>()->Allocate(sizeof(Block), alignof(Block));
             HYP_CORE_ASSERT(raw != nullptr);
 
             Block* hdr = new (raw) Block {
@@ -501,7 +490,7 @@ public:
                 [](void* ctx, void* ptr)
                 {
                     static_cast<U*>(ptr)->~U();
-                    s_allocator->Free(ptr);
+                    GetDefaultAllocatorInstance<AllocatorType>()->Free(ptr);
                 },
                 &Any::ExternalBlockDeleter<AllocatorType>,
                 sizeof(U),
@@ -519,15 +508,13 @@ public:
     template <class AllocatorType>
     static Any FromVoidPointer(const TypeInfo* typeInfo, void* ptr, CopyConstructor copyCtor, DeleteFunction dtor, void* ctx = nullptr, size_t objSize = 0, size_t objAlign = 0)
     {
-        HYP_CORE_ASSERT(typeInfo != nullptr, "typeInfo must not be null");
+        HYP_CORE_ASSERT(typeInfo != nullptr);
 
         Any result;
 
         if (ptr)
         {
-            static AllocatorType* s_allocator = GetDefaultAllocatorInstance<AllocatorType>();
-
-            void* raw = s_allocator->Allocate(sizeof(Block), alignof(Block));
+            void* raw = GetDefaultAllocatorInstance<AllocatorType>()->Allocate(sizeof(Block), alignof(Block));
             HYP_CORE_ASSERT(raw != nullptr);
 
             Block* hdr = new (raw) Block {
@@ -552,7 +539,7 @@ public:
     {
         if (HasValue())
         {
-            Block* block = reinterpret_cast<Block*>(m_block);
+            Block* block = static_cast<Block*>(m_block);
             block->dtor(block->ctx, m_block);
         }
 
