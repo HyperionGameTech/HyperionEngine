@@ -668,12 +668,6 @@ public:
 
 private:
     void InitViewport();
-    void InitActiveSceneSelection();
-
-    void StartWatchingNode(const Handle<Node>& node);
-    void StopWatchingNode(const Handle<Node>& node);
-    void ClearWatchedNodes();
-    void UpdateWatchedNodes();
 
     void InitializeGizmos();
     void ShutdownGizmos();
