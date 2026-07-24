@@ -257,7 +257,7 @@
                             IsChecked="{Binding IsMeshEditModeEnabled, Mode=OneWay}"
                             IsEnabled="{Binding CanEnableMeshEditMode}"
                             ToolTip.Tip="{Binding MeshEditModeTooltip}">
-                            <LucideIcon Kind="Pencil" Size="16" />
+                            <LucideIcon Kind="Waypoints" Size="16" />
                         </ToggleButton>
 
                         <Border
@@ -265,7 +265,6 @@
                             Margin="8,0,0,0"
                             IsVisible="{Binding IsMeshEditModeEnabled}">
                             <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                                <LucideIcon Kind="Waypoints" Size="13" Margin="2,0,0,0" VerticalAlignment="Center" />
                                 <TextBlock
                                     Classes="mode-target"
                                     VerticalAlignment="Center"
@@ -317,6 +316,7 @@
                                     x:Name="DiscardMeshEditsButton"
                                     Classes="gizmo"
                                     Command="{Binding DiscardMeshEdits}"
+                                    IsEnabled="{Binding HasPendingMeshEdits}"
                                     ToolTip.Tip="Discard Edits">
                                     <LucideIcon Kind="X" Size="16" />
                                 </Button>

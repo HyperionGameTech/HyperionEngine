@@ -590,6 +590,9 @@ public:
     void ExitMeshEditMode(bool saveEdits);
 
     HYP_METHOD()
+    bool IsSimulating() const;
+
+    HYP_METHOD()
     bool CanEnableMeshEditMode() const;
 
     HYP_METHOD()
@@ -602,7 +605,12 @@ public:
     bool IsMeshEditDragActive() const;
 
     HYP_METHOD()
+    bool HasPendingMeshEdits() const;
+
+    HYP_METHOD()
     int GetMeshEditLockedAxis() const;
+
+    EditorActionStack* GetActiveActionStack() const;
 
     HYP_METHOD()
     MeshEditFaceMode GetMeshEditFaceMode() const;
@@ -731,6 +739,19 @@ private:
 
     Node* ResolveMeshEditTarget(MeshComponent** outMeshComponent = nullptr) const;
 
+    /*! \brief Record the target mesh's LOD 0 vertex positions as they were before any edit, if not
+     *  already recorded. This is the "before" half of the single action pushed on save, and what
+     *  Discard restores. Called lazily at the first edit so entering and leaving the mode without
+     *  touching anything costs nothing. */
+    void CaptureMeshEditBaseline();
+
+    /*! \brief Collapse every edit made this session into one action on the project's action stack,
+     *  then reset the per-session stack. No-op when nothing has been edited. */
+    void CommitMeshEdits();
+
+    /*! \brief Roll the target mesh back to the captured baseline and drop the per-session stack. */
+    void DiscardMeshEdits();
+
     bool TryPickMeshEditFace(const Ray& ray, MeshEditFaceSelection& outSelection, bool ensureUniqueMesh);
     void SetSelectedMeshEditFace(Optional<MeshEditFaceSelection> selection);
     void UpdateHoveredMeshEditFace(const Ray& ray);
@@ -770,6 +791,16 @@ private:
     // Hacky gross gross
     EditorManipulationMode m_manipulationModeBeforeMeshEdit;
     bool m_isChangingMeshEditMode;
+
+    // Per-session undo stack for individual face moves. Kept separate from the project's stack so a
+    // mesh editing session lands in project history as one entry once committed, while still
+    // supporting step-by-step undo *within* the session.
+    Handle<EditorActionStack> m_meshEditActionStack;
+
+    // LOD 0 vertex positions of the target mesh before this session's first edit, plus the mesh they
+    // belong to. Empty until the first edit is made.
+    Array<Vec3f, EditorAllocator> m_meshEditBaselinePositions;
+    WeakHandle<Mesh> m_meshEditBaselineMesh;
 
     Optional<MeshEditFaceSelection> m_selectedMeshEditFace;
     Optional<MeshEditFaceSelection> m_hoveredMeshEditFace;

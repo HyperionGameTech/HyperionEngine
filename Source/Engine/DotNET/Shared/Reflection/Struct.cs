@@ -101,7 +101,9 @@ namespace Hyperion
         ~DynamicStruct()
         {
             if (ownsClass)
+            {
                 Struct_DestroyDynamicStruct(cls.Address);
+            }
 
             destructFunctionHandle?.Free();
         }

@@ -385,7 +385,7 @@
 
       <ArrayItems>
         <Size>m_size</Size>
-        <ValuePointer>(std::byte*)(m_allocation.dynamicAllocation.buffer)</ValuePointer>
+        <ValuePointer>(unsigned char*)(m_allocation.dynamicAllocation.buffer)</ValuePointer>
       </ArrayItems>
     </Expand>
   </Type>

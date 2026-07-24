@@ -1745,6 +1745,8 @@ public:
                         reinterpret_cast<BoxedValue*>(ptrRaw + field->GetOffset())->~BoxedValue();
                     }
                 }
+
+                GetDefaultAllocatorInstance<DynamicAllocator>()->Free(ptr);
             };
 
             newClass = new DynamicStructInstance(

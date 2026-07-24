@@ -326,7 +326,6 @@ static BufferedViewData* GetBufferedViewData(View* view, uint8 ringIndex)
     AssertDebug(view != nullptr);
 
     RenderingData& bufferedData = s_renderingData[ringIndex];
-    AssertDebug(bool(bufferedData.threadSyncStates[TT_FrameDataConsumer]) == IsOnThread(g_renderThread));
 
     TSharedLock<SharedMutex> sharedLock;
     TUniqueLock<SharedMutex> uniqueLock;
@@ -538,7 +537,7 @@ void CommitActiveWorlds(Span<World*> activeWorlds)
     AssertOnThread(g_simThread);
 
     Framework::RenderingData& bufferedData = Framework::s_renderingData[Framework::s_ringIndex[Framework::TT_FrameDataProducer]];
-    Assert(bufferedData.threadSyncStates[Framework::TT_FrameDataProducer]);
+    AssertDebug(bufferedData.threadSyncStates[Framework::TT_FrameDataProducer]);
 
     bufferedData.activeWorlds.Resize(activeWorlds.Size());
     std::copy(activeWorlds.Begin(), activeWorlds.End(), bufferedData.activeWorlds.Begin());
@@ -549,7 +548,7 @@ Span<World*> GetActiveWorlds()
     AssertOnThread(g_simThread | g_renderThread);
     
     Framework::RenderingData& bufferedData = Framework::s_renderingData[*Framework::t_thisThreadRingIndex];
-    Assert(bufferedData.threadSyncStates[Framework::TT_FrameDataConsumer] == IsOnThread(g_renderThread));
+    AssertDebug(bufferedData.threadSyncStates[Framework::TT_FrameDataConsumer] == IsOnThread(g_renderThread));
 
     return bufferedData.activeWorlds.ToSpan();
 }
@@ -608,10 +607,10 @@ void CheckCurrentThreadSynced()
     AssertOnThread(g_simThread | g_renderThread);
     
     const int threadType = Framework::CurrentThreadType();
-    Assert(threadType >= 0, "AssertCurrentThreadSynced called from an invalid thread!");
+    AssertDebug(threadType >= 0, "AssertCurrentThreadSynced called from an invalid thread!");
     
     Framework::RenderingData& bufferedData = Framework::s_renderingData[*Framework::t_thisThreadRingIndex];
-    Assert(bufferedData.threadSyncStates[threadType] == 1);
+    AssertDebug(bufferedData.threadSyncStates[threadType] == 1);
 }
 
 #pragma region RenderInterface
@@ -1067,7 +1066,7 @@ void RenderInterface::EndFrame()
     state.Reset();
 }
 
-bool RenderInterface::WaitForSync(AtomicFlag* pCancelFlag)
+HYP_NODISCARD bool RenderInterface::WaitForSync(AtomicFlag* pCancelFlag)
 {
     ENGINE_STAT_SCOPE(&g_statRenderThreadSync);
     ENGINE_STAT_SCOPE(&g_statTotalStallTime);

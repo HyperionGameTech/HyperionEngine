@@ -176,22 +176,47 @@ namespace Hyperion.Editor.ViewModels
         public ICommand ToggleSnapToGrid { get; private set; }
         public bool IsSnapToGridEnabled => _editorSubsystem?.IsSnapToGridEnabled() ?? false;
 
-        public ICommand ToggleMeshEditMode { get; private set; }
-        public bool IsMeshEditModeEnabled => _editorSubsystem?.IsMeshEditModeEnabled() ?? false;
+        /// <summary>
+        /// Cached mirror of the engine's mesh edit state.
+        /// </summary>
+        private struct MeshEditStateSnapshot
+        {
+            public bool Enabled;
+            public bool CanEnable;
+            public bool FaceModeQuad;
+            public bool AlignToNormal = true;
+            public bool FaceSelected;
+            public bool DragActive;
+            public bool HasPendingEdits;
+            public bool Simulating;
+            public int LockedAxis = -1;
+            public string TargetName = string.Empty;
 
-        public bool CanEnableMeshEditMode => _editorSubsystem?.CanEnableMeshEditMode() ?? false;
+            public MeshEditStateSnapshot()
+            {
+            }
+        }
+
+        private MeshEditStateSnapshot _meshEditState = new MeshEditStateSnapshot();
+
+        public ICommand ToggleMeshEditMode { get; private set; }
+        public bool IsMeshEditModeEnabled => _meshEditState.Enabled;
+
+        public bool CanEnableMeshEditMode => _meshEditState.CanEnable;
 
         public ICommand DiscardMeshEdits { get; private set; }
         public ICommand SaveMeshEdits { get; private set; }
 
+        public bool HasPendingMeshEdits => _meshEditState.HasPendingEdits;
+
         public ICommand SelectMeshEditFaceTriangle { get; private set; }
         public ICommand SelectMeshEditFaceQuad { get; private set; }
-        public bool IsMeshEditFaceModeQuad => _editorSubsystem?.GetMeshEditFaceMode() == MeshEditFaceMode.Quad;
+        public bool IsMeshEditFaceModeQuad => _meshEditState.FaceModeQuad;
 
         public ICommand ToggleMeshEditAlignToNormal { get; private set; }
-        public bool IsMeshEditAlignToNormal => _editorSubsystem?.IsMeshEditAlignToNormal() ?? true;
+        public bool IsMeshEditAlignToNormal => _meshEditState.AlignToNormal;
 
-        public string MeshEditTargetName => _editorSubsystem?.GetMeshEditTargetNode()?.Name.ToString() ?? string.Empty;
+        public string MeshEditTargetName => _meshEditState.TargetName;
 
         public string MeshEditModeTooltip
         {
@@ -202,7 +227,7 @@ namespace Hyperion.Editor.ViewModels
                     return "Exit mesh edit (Esc)";
                 }
 
-                if (EngineManager.CurrentProject?.World.GetGameState().Mode == GameStateMode.Simulating)
+                if (_meshEditState.Simulating)
                 {
                     return "Cannot edit mesh while in simulation";
                 }
@@ -218,7 +243,7 @@ namespace Hyperion.Editor.ViewModels
 
         public string StatusText
         {
-            get => "Ready"; // TODO
+            get => "Ready";
         }
 
         public ICommand SetGameModePlaying { get; private set; }
@@ -345,12 +370,16 @@ namespace Hyperion.Editor.ViewModels
             {
                 _ = EngineManager.PostToSimThread(() =>
                 {
-                    if (!_editorSubsystem.IsMeshEditModeEnabled())
+                    if (_editorSubsystem.IsMeshEditModeEnabled())
+                    {
+                        _editorSubsystem.ExitMeshEditMode(/* saveEdits */ true);
+                    }
+                    else
                     {
                         _editorSubsystem.EnterMeshEditMode();
-
-                        Dispatcher.UIThread.Post(NotifyMeshEditStateChanged);
                     }
+
+                    RefreshMeshEditState();
                 });
             });
 
@@ -358,21 +387,23 @@ namespace Hyperion.Editor.ViewModels
             {
                 _ = EngineManager.PostToSimThread(() =>
                 {
-                    _editorSubsystem.ExitMeshEditMode(true);
+                    _editorSubsystem.ExitMeshEditMode(/* saveEdits */ true);
 
-                    Dispatcher.UIThread.Post(NotifyMeshEditStateChanged);
+                    RefreshMeshEditState();
                 });
             });
 
-            DiscardMeshEdits = new RelayCommand(() =>
-            {
-                _ = EngineManager.PostToSimThread(() =>
+            DiscardMeshEdits = new RelayCommand(
+                () =>
                 {
-                    _editorSubsystem.ExitMeshEditMode(false);
+                    _ = EngineManager.PostToSimThread(() =>
+                    {
+                        _editorSubsystem.ExitMeshEditMode(/* saveEdits */ false);
 
-                    Dispatcher.UIThread.Post(NotifyMeshEditStateChanged);
-                });
-            });
+                        RefreshMeshEditState();
+                    });
+                },
+                () => HasPendingMeshEdits);
 
             SelectMeshEditFaceTriangle = new RelayCommand(() =>
             {
@@ -380,7 +411,7 @@ namespace Hyperion.Editor.ViewModels
                 {
                     _editorSubsystem.SetMeshEditFaceMode(MeshEditFaceMode.Triangle);
 
-                    Dispatcher.UIThread.Post(NotifyMeshEditStateChanged);
+                    RefreshMeshEditState();
                 });
             });
 
@@ -390,7 +421,7 @@ namespace Hyperion.Editor.ViewModels
                 {
                     _editorSubsystem.SetMeshEditFaceMode(MeshEditFaceMode.Quad);
 
-                    Dispatcher.UIThread.Post(NotifyMeshEditStateChanged);
+                    RefreshMeshEditState();
                 });
             });
 
@@ -400,7 +431,7 @@ namespace Hyperion.Editor.ViewModels
                 {
                     _editorSubsystem.SetMeshEditAlignToNormal(!_editorSubsystem.IsMeshEditAlignToNormal());
 
-                    Dispatcher.UIThread.Post(NotifyMeshEditStateChanged);
+                    RefreshMeshEditState();
                 });
             });
 
@@ -817,7 +848,7 @@ namespace Hyperion.Editor.ViewModels
                             OnPropertyChanged(nameof(IsTransformModeRotateActive));
                             OnPropertyChanged(nameof(IsTransformModeScaleActive));
 
-                            NotifyMeshEditStateChanged();
+                            _ = EngineManager.PostToSimThread(RefreshMeshEditState);
                         });
                     });
             }
@@ -862,7 +893,7 @@ namespace Hyperion.Editor.ViewModels
 
                 OnPropertyChanged(nameof(IsSnapToGridEnabled));
 
-                NotifyMeshEditStateChanged();
+                _ = EngineManager.PostToSimThread(RefreshMeshEditState);
 
                 // Update scenes list
                 Scenes.Clear();
@@ -1088,9 +1119,7 @@ namespace Hyperion.Editor.ViewModels
                         && validNode.GetType() == typeof(Entity);
                     //&& ((Entity)validNode).HasComponent<MeshComponent>();
 
-                    // Whether mesh edit mode is available depends entirely on what's focused, so the
-                    // toggle and its tooltip have to re-evaluate on every focus change.
-                    NotifyMeshEditStateChanged();
+                    _ = EngineManager.PostToSimThread(RefreshMeshEditState);
                 }
                 finally
                 {
@@ -1175,7 +1204,6 @@ namespace Hyperion.Editor.ViewModels
             WeakReference<MainWindowViewModel> weakThis = new WeakReference<MainWindowViewModel>(this);
 
             _meshEditStateChangedHandler?.Remove();
-
             _meshEditStateChangedHandler = _editorSubsystem.GetOnMeshEditStateChangedDelegate()
                 .Bind(() =>
                 {
@@ -1184,8 +1212,48 @@ namespace Hyperion.Editor.ViewModels
                         return;
                     }
 
-                    Dispatcher.UIThread.Post(target.NotifyMeshEditStateChanged);
+                    target.RefreshMeshEditState();
                 });
+        }
+
+        /// <summary>
+        /// Reads the engine's mesh edit state and publishes it to the UI thread.
+        /// </summary>
+        private void RefreshMeshEditState()
+        {
+            if (_editorSubsystem == null)
+            {
+                return;
+            }
+
+            MeshEditStateSnapshot snapshot = new MeshEditStateSnapshot();
+
+            try
+            {
+                snapshot.Enabled = _editorSubsystem.IsMeshEditModeEnabled();
+                snapshot.CanEnable = _editorSubsystem.CanEnableMeshEditMode();
+                snapshot.FaceModeQuad = _editorSubsystem.GetMeshEditFaceMode() == MeshEditFaceMode.Quad;
+                snapshot.AlignToNormal = _editorSubsystem.IsMeshEditAlignToNormal();
+                snapshot.FaceSelected = _editorSubsystem.HasMeshEditFaceSelected();
+                snapshot.DragActive = _editorSubsystem.IsMeshEditDragActive();
+                snapshot.HasPendingEdits = _editorSubsystem.HasPendingMeshEdits();
+                snapshot.Simulating = _editorSubsystem.IsSimulating();
+                snapshot.LockedAxis = _editorSubsystem.GetMeshEditLockedAxis();
+                snapshot.TargetName = _editorSubsystem.GetMeshEditTargetNode()?.Name.ToString() ?? string.Empty;
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Warning, $"Failed to read mesh edit state from engine: {ex.Message}");
+
+                return;
+            }
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                _meshEditState = snapshot;
+
+                NotifyMeshEditStateChanged();
+            });
         }
 
         private void NotifyMeshEditStateChanged()
@@ -1194,6 +1262,7 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(CanEnableMeshEditMode));
             OnPropertyChanged(nameof(IsMeshEditFaceModeQuad));
             OnPropertyChanged(nameof(IsMeshEditAlignToNormal));
+            OnPropertyChanged(nameof(HasPendingMeshEdits));
             OnPropertyChanged(nameof(MeshEditTargetName));
             OnPropertyChanged(nameof(MeshEditModeTooltip));
             OnPropertyChanged(nameof(StatusText));
@@ -1203,6 +1272,8 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(IsTransformModeScaleActive));
 
             (ToggleMeshEditMode as RelayCommand)?.RaiseCanExecuteChanged();
+            (SaveMeshEdits as RelayCommand)?.RaiseCanExecuteChanged();
+            (DiscardMeshEdits as RelayCommand)?.RaiseCanExecuteChanged();
         }
 
         private void HandleSelectionUpdate()

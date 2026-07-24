@@ -22,24 +22,40 @@
 
 namespace Hyperion {
 
+/*! \brief Destructor for an Any holding a DynamicStructInstance  */
+static void DynamicStructInstance_Destruct(void* ctx, void* ptr)
+{
+    DynamicStructInstance* pStruct = static_cast<DynamicStructInstance*>(ctx);
+
+    if (pStruct->GetFunctions().destruct != nullptr)
+    {
+        pStruct->GetFunctions().destruct(ctx, ptr);
+    }
+
+    pStruct->Release();
+}
+
 static void* DynamicStructInstance_CopyCtor(void* ctx, const void* block)
 {
     const Any::Block* src = static_cast<const Any::Block*>(block);
-    const DynamicStructInstance* pStruct = static_cast<const DynamicStructInstance*>(ctx);
+    DynamicStructInstance* pStruct = static_cast<DynamicStructInstance*>(ctx);
 
     void* objCopy = pStruct->GetFunctions().copy(const_cast<void*>(ctx), src->objectPtr);
 
-    static auto* s_allocator = GetDefaultAllocatorInstance<DynamicAllocator>();
+    DynamicAllocator* allocator = GetDefaultAllocatorInstance<DynamicAllocator>();
 
-    void* raw = s_allocator->Allocate(sizeof(Any::Block), alignof(Any::Block));
+    void* raw = allocator->Allocate(sizeof(Any::Block), alignof(Any::Block));
     HYP_CORE_ASSERT(raw != nullptr);
+
+    // the new block keeps its own reference on the struct
+    pStruct->AddRef();
 
     Any::Block* hdr = new (raw) Any::Block {
         src->typeInfo,
         objCopy,
         ctx,
         &DynamicStructInstance_CopyCtor,
-        pStruct->GetFunctions().destruct,
+        &DynamicStructInstance_Destruct,
         src->dtor,
         src->objSize,
         src->objAlign
@@ -144,7 +160,9 @@ DynamicStructInstance::DynamicStructInstance(
     : Struct(typeId, name, -1, 0, Name::Invalid(), attributes, flags, members),
       m_functions(functions)
 {
-    m_refCount = 0;
+    // starts at 1 for the caller that created it (released via Struct_DestroyDynamicStruct);
+    // boxed instances of this struct take their own references on top of that.
+    m_refCount = 1;
     Assert(size > 0);
 
     m_size = size;
@@ -184,7 +202,10 @@ bool DynamicStructInstance::ToBoxed(ByteView memory, BoxedValue& out) const
     const TypeInfo* pTypeInfo = GetTypeInfo();
     AssertDebug(pTypeInfo != nullptr);
 
-    out = BoxedValue(Any::FromVoidPointer<DynamicAllocator>(pTypeInfo, data, &DynamicStructInstance_CopyCtor, m_functions.destruct, const_cast<void*>(static_cast<const void*>(this)), m_size, m_alignment));
+    // the boxed value keeps a reference on this struct; released in DynamicStructInstance_Destruct
+    const_cast<DynamicStructInstance*>(this)->AddRef();
+
+    out = BoxedValue(Any::FromVoidPointer<DynamicAllocator>(pTypeInfo, data, &DynamicStructInstance_CopyCtor, &DynamicStructInstance_Destruct, const_cast<void*>(static_cast<const void*>(this)), m_size, m_alignment));
 
     return true;
 }
@@ -200,7 +221,10 @@ bool DynamicStructInstance::CreateInstance_Internal(BoxedValue& out) const
     const TypeInfo* pTypeInfo = GetTypeInfo();
     AssertDebug(pTypeInfo != nullptr);
 
-    out = BoxedValue(Any::FromVoidPointer<DynamicAllocator>(pTypeInfo, data, &DynamicStructInstance_CopyCtor, m_functions.destruct, const_cast<void*>(static_cast<const void*>(this)), m_size, m_alignment));
+    // the boxed value keeps a reference on this struct; released in DynamicStructInstance_Destruct
+    const_cast<DynamicStructInstance*>(this)->AddRef();
+
+    out = BoxedValue(Any::FromVoidPointer<DynamicAllocator>(pTypeInfo, data, &DynamicStructInstance_CopyCtor, &DynamicStructInstance_Destruct, const_cast<void*>(static_cast<const void*>(this)), m_size, m_alignment));
 
     return true;
 }

@@ -99,10 +99,9 @@ public:
 
     virtual void Execute(EditorSubsystem* subsystem) override
     {
-        EditorProject* project = subsystem->GetCurrentProject();
-        if (project != nullptr)
+        if (EditorActionStack* actionStack = subsystem->GetActiveActionStack())
         {
-            project->GetActionStack()->Undo();
+            actionStack->Undo();
         }
     }
 };
@@ -122,10 +121,9 @@ public:
 
     virtual void Execute(EditorSubsystem* subsystem) override
     {
-        EditorProject* project = subsystem->GetCurrentProject();
-        if (project != nullptr)
+        if (EditorActionStack* actionStack = subsystem->GetActiveActionStack())
         {
-            project->GetActionStack()->Redo();
+            actionStack->Redo();
         }
     }
 };

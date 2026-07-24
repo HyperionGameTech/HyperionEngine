@@ -263,7 +263,7 @@ void SteamInputManager::UpdateControllers(const ActionSet& set)
 
     SteamInput()->RunFrame();
 
-    InputHandle_t steamControllers[MaxConnectedControllers];
+    InputHandle_t steamControllers[STEAM_INPUT_MAX_COUNT];
     const int controllerCount = SteamInput()->GetConnectedControllers(steamControllers);
 
     BitField<MaxConnectedControllers> mask {};

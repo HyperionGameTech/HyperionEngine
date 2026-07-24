@@ -1903,7 +1903,7 @@ void EditorSubsystem::SetSelectedManipulationMode(EditorManipulationMode mode)
 
     if (!m_isChangingMeshEditMode)
     {
-        ExitMeshEditMode(false);
+        ExitMeshEditMode(/* saveEdits */ true);
     }
 
     if (mode == m_selectedManipulationMode)
@@ -1953,7 +1953,7 @@ const EditorSubsystem::EditorGizmoSet& EditorSubsystem::GetGizmos() const
 
 bool EditorSubsystem::IsMeshEditModeEnabled() const
 {
-    // AssertOnThread(g_simThread);
+    AssertOnThread(g_simThread);
 
     return m_meshEditModeEnabled;
 }
@@ -1998,7 +1998,7 @@ bool EditorSubsystem::CanEnableMeshEditMode() const
         return true;
     }
 
-    if (!m_currentProject.IsValid() || m_currentProject->GetWorld()->GetGameState().mode == GameStateMode::SIMULATING)
+    if (!m_currentProject.IsValid() || IsSimulating())
     {
         return false;
     }
@@ -2036,11 +2036,42 @@ int EditorSubsystem::GetMeshEditLockedAxis() const
     return m_meshEditDragData->lockedAxis;
 }
 
+bool EditorSubsystem::HasPendingMeshEdits() const
+{
+    return m_meshEditBaselinePositions.Any();
+}
+
+EditorActionStack* EditorSubsystem::GetActiveActionStack() const
+{
+    if (m_meshEditModeEnabled && m_meshEditActionStack.IsValid())
+    {
+        return m_meshEditActionStack.Get();
+    }
+
+    if (!m_currentProject.IsValid())
+    {
+        return nullptr;
+    }
+
+    return m_currentProject->GetActionStack().Get();
+}
+
+bool EditorSubsystem::IsSimulating() const
+{
+    return m_currentProject.IsValid()
+        && m_currentProject->GetWorld()->GetGameState().mode == GameStateMode::SIMULATING;
+}
+
 void EditorSubsystem::EnterMeshEditMode()
 {
-    // AssertOnThread(g_simThread);
+    AssertOnThread(g_simThread);
 
     if (m_meshEditModeEnabled)
+    {
+        return;
+    }
+
+    if (!m_currentProject.IsValid())
     {
         return;
     }
@@ -2049,7 +2080,7 @@ void EditorSubsystem::EnterMeshEditMode()
 
     if (!target)
     {
-        HYP_LOG(Editor, Warning, "Cannot enter mesh edit mode");
+        HYP_LOG(Editor, Warning, "Cannot enter mesh edit mode: the focused node has no editable mesh");
 
         return;
     }
@@ -2060,6 +2091,11 @@ void EditorSubsystem::EnterMeshEditMode()
 
     m_meshEditModeEnabled = true;
 
+    m_meshEditActionStack = MakeHandle<EditorActionStack>(m_currentProject.ToWeak());
+
+    m_meshEditBaselinePositions.Clear();
+    m_meshEditBaselineMesh.Reset();
+
     m_isChangingMeshEditMode = true;
     SetSelectedManipulationMode(EditorManipulationMode::None);
     m_isChangingMeshEditMode = false;
@@ -2069,20 +2105,31 @@ void EditorSubsystem::EnterMeshEditMode()
 
 void EditorSubsystem::ExitMeshEditMode(bool saveEdits)
 {
-    // AssertOnThread(g_simThread);
+    AssertOnThread(g_simThread);
 
     if (!m_meshEditModeEnabled)
     {
         return;
     }
 
+    EndMeshEditDrag(/* saveEdits */ true);
+
+    if (saveEdits)
+    {
+        CommitMeshEdits();
+    }
+    else
+    {
+        DiscardMeshEdits();
+    }
+
     m_meshEditModeEnabled = false;
 
-    EndMeshEditDrag(saveEdits);
     SetSelectedMeshEditFace({});
 
     m_hoveredMeshEditFace.Unset();
     m_meshEditTargetNode.Reset();
+    m_meshEditActionStack.Reset();
 
     m_isChangingMeshEditMode = true;
     SetSelectedManipulationMode(m_manipulationModeBeforeMeshEdit);
@@ -2112,21 +2159,21 @@ bool EditorSubsystem::BackOutOfMeshEditState()
         return true;
     }
 
-    ExitMeshEditMode(false);
+    ExitMeshEditMode(/* saveEdits */ true);
 
     return true;
 }
 
 MeshEditFaceMode EditorSubsystem::GetMeshEditFaceMode() const
 {
-    // AssertOnThread(g_simThread);
+    AssertOnThread(g_simThread);
 
     return m_meshEditFaceMode;
 }
 
 void EditorSubsystem::SetMeshEditFaceMode(MeshEditFaceMode faceMode)
 {
-    // AssertOnThread(g_simThread);
+    AssertOnThread(g_simThread);
 
     if (faceMode == m_meshEditFaceMode)
     {
@@ -2142,14 +2189,14 @@ void EditorSubsystem::SetMeshEditFaceMode(MeshEditFaceMode faceMode)
 
 bool EditorSubsystem::IsMeshEditAlignToNormal() const
 {
-    //AssertOnThread(g_simThread);
+    AssertOnThread(g_simThread);
 
     return m_meshEditAlignToNormal;
 }
 
 void EditorSubsystem::SetMeshEditAlignToNormal(bool alignToNormal)
 {
-    //AssertOnThread(g_simThread);
+    AssertOnThread(g_simThread);
 
     if (alignToNormal == m_meshEditAlignToNormal)
     {
@@ -2366,6 +2413,178 @@ static void ApplyMeshEditVertexPositions(
     g_editorState->GetPickCache().PutEntry(mesh, /* invalidate */ true);
 
     mesh->UploadGpuData();
+}
+
+static bool ReadAllMeshVertexPositions(Mesh* mesh, uint8 lodIndex, Array<Vec3f, EditorAllocator>& outPositions)
+{
+    if (!mesh)
+    {
+        return false;
+    }
+
+    auto readScope = mesh->GetReadScope();
+
+    if (!readScope)
+    {
+        return false;
+    }
+
+    const VertexArrayView vertexView = mesh->GetVertexData(lodIndex);
+    const size_t vertexSizeInFloats = vertexView.layoutDesc.VertexSize() / sizeof(float);
+
+    outPositions.Clear();
+    outPositions.Reserve(vertexView.vertexCount);
+
+    for (uint32 vertexIndex = 0; vertexIndex < vertexView.vertexCount; vertexIndex++)
+    {
+        outPositions.PushBack(ReadMeshVertexPosition(vertexView, vertexSizeInFloats, vertexIndex));
+    }
+
+    return true;
+}
+
+static void WriteAllMeshVertexPositions(
+    const Handle<Node>& node,
+    uint8 lodIndex,
+    const Array<Vec3f, EditorAllocator>& positions)
+{
+    Entity* entity = DynamicCast<Entity>(node.Get());
+    MeshComponent* meshComponent = entity ? entity->TryGetComponent<MeshComponent>() : nullptr;
+
+    if (!meshComponent || !meshComponent->mesh.IsValid())
+    {
+        return;
+    }
+
+    Array<uint32, EditorAllocator> vertexIndices;
+    vertexIndices.Reserve(positions.Size());
+
+    for (uint32 i = 0; i < uint32(positions.Size()); i++)
+    {
+        vertexIndices.PushBack(i);
+    }
+
+    ApplyMeshEditVertexPositions(node, lodIndex, vertexIndices, positions, /* recomputeDerivedData */ true);
+}
+
+void EditorSubsystem::CaptureMeshEditBaseline()
+{
+    AssertOnThread(g_simThread);
+
+    if (m_meshEditBaselinePositions.Any())
+    {
+        return;
+    }
+
+    MeshComponent* meshComponent = nullptr;
+    Node* target = ResolveMeshEditTarget(&meshComponent);
+
+    if (!target || !meshComponent)
+    {
+        return;
+    }
+
+    Mesh* mesh = meshComponent->mesh;
+
+    if (!ReadAllMeshVertexPositions(mesh, /* lodIndex */ 0, m_meshEditBaselinePositions))
+    {
+        HYP_LOG(Editor, Warning, "Failed to capture mesh edit baseline for {}; edits will not be undoable as a unit", target->GetName());
+
+        return;
+    }
+
+    m_meshEditBaselineMesh = MakeWeakRef(mesh);
+}
+
+void EditorSubsystem::CommitMeshEdits()
+{
+    AssertOnThread(g_simThread);
+
+    if (!HasPendingMeshEdits())
+    {
+        return;
+    }
+
+    Handle<EditorProject> project = GetCurrentProject();
+    Handle<Node> node = m_meshEditTargetNode.Lock();
+    Handle<Mesh> baselineMesh = m_meshEditBaselineMesh.Lock();
+
+    Array<Vec3f, EditorAllocator> baselinePositions = std::move(m_meshEditBaselinePositions);
+
+    m_meshEditBaselinePositions.Clear();
+    m_meshEditBaselineMesh.Reset();
+
+    if (!project.IsValid() || !node.IsValid() || !baselineMesh.IsValid())
+    {
+        return;
+    }
+
+    Array<Vec3f, EditorAllocator> finalPositions;
+
+    if (!ReadAllMeshVertexPositions(baselineMesh.Get(), /* lodIndex */ 0, finalPositions))
+    {
+        HYP_LOG(Editor, Warning, "Failed to read final mesh state for {}; mesh edits will not be undoable", node->GetName());
+
+        return;
+    }
+
+    if (finalPositions.Size() != baselinePositions.Size())
+    {
+        HYP_LOG(Editor, Warning, "Mesh {} changed vertex count during editing; cannot record an undoable action", node->GetName());
+
+        return;
+    }
+
+    if (finalPositions == baselinePositions)
+    {
+        return;
+    }
+
+    project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
+        "Apply Mesh Edits",
+        [nodeWeak = node.ToWeak(), baselinePositions, finalPositions]() -> EditorActionFunctions
+        {
+            return {
+                [nodeWeak, finalPositions](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
+                {
+                    if (Handle<Node> node = nodeWeak.Lock(); node.IsValid())
+                    {
+                        WriteAllMeshVertexPositions(node, /* lodIndex */ 0, finalPositions);
+                    }
+                },
+                [nodeWeak, baselinePositions](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
+                {
+                    if (Handle<Node> node = nodeWeak.Lock(); node.IsValid())
+                    {
+                        WriteAllMeshVertexPositions(node, /* lodIndex */ 0, baselinePositions);
+                    }
+                }
+            };
+        }));
+}
+
+void EditorSubsystem::DiscardMeshEdits()
+{
+    AssertOnThread(g_simThread);
+
+    if (!HasPendingMeshEdits())
+    {
+        return;
+    }
+
+    Handle<Node> node = m_meshEditTargetNode.Lock();
+
+    Array<Vec3f, EditorAllocator> baselinePositions = std::move(m_meshEditBaselinePositions);
+
+    m_meshEditBaselinePositions.Clear();
+    m_meshEditBaselineMesh.Reset();
+
+    if (!node.IsValid())
+    {
+        return;
+    }
+
+    WriteAllMeshVertexPositions(node, /* lodIndex */ 0, baselinePositions);
 }
 
 static void EnsureUniqueMeshEditTarget(const Handle<Node>& node, MeshComponent* meshComponent)
@@ -2937,8 +3156,10 @@ void EditorSubsystem::EndMeshEditDrag(bool saveEdits)
         return;
     }
 
-    if (saveEdits)
+    if (saveEdits && m_meshEditActionStack.IsValid())
     {
+        CaptureMeshEditBaseline();
+
         Array<Vec3f, EditorAllocator> updatedLocalPositions;
         updatedLocalPositions.Reserve(m_meshEditDragData->vertexOriginalPositions.Size());
 
@@ -2950,8 +3171,8 @@ void EditorSubsystem::EndMeshEditDrag(bool saveEdits)
         Array<uint32, EditorAllocator> vertexIndices = m_meshEditDragData->affectedVertexIndices;
         Array<Vec3f, EditorAllocator> originalPositions = m_meshEditDragData->vertexOriginalPositions;
 
-        project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
-            "Mesh Edit",
+        m_meshEditActionStack->PushAction(MakeHandle<FunctionalEditorAction>(
+            "Move Face",
             [nodeWeak = node.ToWeak(), lodIndex, vertexIndices, originalPositions, updatedLocalPositions]() -> EditorActionFunctions
             {
                 return {
@@ -3410,7 +3631,8 @@ bool EditorSubsystem::StartSimulation()
         return false;
     }
 
-    ExitMeshEditMode(false);
+    // Save the edits to meshes before simulating.
+    ExitMeshEditMode(/* saveEdits */ true);
 
     const GameState& gameState = m_currentProject->GetGame()->GetGameState();
 
@@ -4342,7 +4564,12 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
 
         if (meshComponent && meshComponent->mesh.IsValid())
         {
+            EndMeshEditDrag(/* saveEdits */ true);
+            CommitMeshEdits();
+
             m_meshEditTargetNode = focusedNode.ToWeak();
+
+            m_meshEditActionStack = MakeHandle<EditorActionStack>(m_currentProject.ToWeak());
 
             SetSelectedMeshEditFace({});
             m_hoveredMeshEditFace.Unset();
@@ -4351,7 +4578,7 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
         }
         else
         {
-            ExitMeshEditMode(false);
+            ExitMeshEditMode(/* saveEdits */ true);
         }
     }
 
