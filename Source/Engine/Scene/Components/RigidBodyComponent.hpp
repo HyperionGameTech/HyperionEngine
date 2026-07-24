@@ -30,7 +30,7 @@ struct RigidBodyComponent
     HYP_FIELD(Property = "CollisionShape", Serialize, Editor)
     Handle<PhysicsShape> shape;
 
-    HYP_FIELD(Property = "RigidBody", Transient)
+    HYP_FIELD(Property = "RigidBody", Transient, Editor = false)
     Handle<RigidBody> rigidBody;
 };
 

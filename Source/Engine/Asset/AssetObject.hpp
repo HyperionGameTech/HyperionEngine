@@ -31,29 +31,13 @@ namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Assets);
 
-enum class ChunkId : uint32;
+#define HYP_ASSET_OBJECT_THREAD_SAFE
 
-class AssetObject;
 class AssetRegistry;
 class ByteWriter;
 class BlobStorage;
 
-class BufferedReader;
-using BufferedByteReader = BufferedReader;
-
 struct BoxedValue;
-
-namespace functional {
-
-template <class FunctionSignature>
-class ProcRef;
-
-} // namespace functional
-
-using functional::ProcRef;
-
-ENGINE_API extern Pool* g_assetPool;
-using AssetAllocator = AllocatorInstance<Pool, &g_assetPool>;
 
 HYP_CLASS(Abstract)
 class ENGINE_API AssetObject : public ObjectBase
@@ -75,7 +59,7 @@ public:
 
     virtual ~AssetObject();
 
-    HYP_METHOD(Property = "Name", Serialize, EditOrder = 1)
+    HYP_METHOD(Property = "Name", Serialize, EditorOrder = 1)
     Name GetName() const
     {
         return m_name;
@@ -92,18 +76,6 @@ public:
 
     HYP_METHOD()
     void MarkDirty();
-
-    HYP_METHOD(Property = "FriendlyName")
-    Name GetFriendlyName() const
-    {
-        return m_friendlyName.IsValid() ? m_friendlyName : m_name;
-    }
-
-    HYP_METHOD(Property = "FriendlyName")
-    void SetFriendlyName(Name friendlyName)
-    {
-        m_friendlyName = friendlyName;
-    }
 
     HYP_METHOD()
     uint32 GetAssetIndex() const
@@ -157,8 +129,8 @@ public:
     TUniqueResLock<AssetObject> GetWriteScope() const;
     TSharedResLock<AssetObject> GetReadScope() const;
 
-    void LockWriter(bool doInitialize = true);
-    void UnlockWriter(bool doDeinitialize = true);
+    void LockWriter();
+    void UnlockWriter();
 
     void LockReader();
     void UnlockReader();
@@ -214,23 +186,23 @@ protected:
     HYP_FIELD(Property = "Name")
     Name m_name;
 
-    HYP_FIELD(Property = "FriendlyName")
-    Name m_friendlyName;
-
     HYP_FIELD(Property = "AssetFlags", Transient, Editor = false)
     EnumFlags<AssetObjectFlags> m_flags;
 
     HYP_FIELD(Property = "AssetIndex", Transient, Editor = false)
     uint32 m_assetIndex;
 
-    mutable volatile int64 m_rwState;
-
-    mutable Mutex m_initMutex;
-    ConditionVariable m_initCV;
-    bool m_isBlobLoaded;
-
     HYP_FIELD(Transient)
     AssetPath m_assetPath;
+    
+#ifdef HYP_ASSET_OBJECT_THREAD_SAFE
+    mutable volatile int64 m_rwState;
+
+    AtomicVar<bool> m_isInit;
+    AtomicVar<bool> m_isBlobLoaded;
+#else
+    uint32 m_numReaders;
+#endif // HYP_ASSET_OBJECT_THREAD_SAFE
 };
 
 } // namespace Hyperion

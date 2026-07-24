@@ -29,62 +29,62 @@ namespace Hyperion {
 
 /// Use a ring buffer for writing proxy data from simulation thread which the render thread reads after N frames.
 static constexpr bool UseRingBuffer = false;
-static constexpr uint32 RingBufferDepth = UseRingBuffer ? 2 : 1;
+static constexpr uint32 RingBufferDepth = UseRingBuffer ? 3 : 1;
 
-constexpr uint8 EngineVersionMajor = HYP_VERSION_MAJOR;
-constexpr uint8 EngineVersionMinor = HYP_VERSION_MINOR;
-constexpr uint8 EngineVersionPatch = HYP_VERSION_PATCH;
-constexpr uint32 EngineVersion = (EngineVersionMajor << 16) | (EngineVersionMinor << 8) | EngineVersionPatch;
-constexpr uint64 EngineBinaryMagicNumber = (uint64(0x505948) << 32) | EngineVersion;
+static constexpr uint8 EngineVersionMajor = HYP_VERSION_MAJOR;
+static constexpr uint8 EngineVersionMinor = HYP_VERSION_MINOR;
+static constexpr uint8 EngineVersionPatch = HYP_VERSION_PATCH;
+static constexpr uint32 EngineVersion = (EngineVersionMajor << 16) | (EngineVersionMinor << 8) | EngineVersionPatch;
+static constexpr uint64 EngineBinaryMagicNumber = (uint64(0x505948) << 32) | EngineVersion;
 
-constexpr uint32 NumFramesInFlight = 3;
+static constexpr uint32 NumFramesInFlight = 3;
 
-constexpr uint32 NumRendererWorkerThreads = 3;
-constexpr uint32 MaxBackgroundWorkerThreads = 4;
+static constexpr uint32 NumRendererWorkerThreads = 3;
+static constexpr uint32 MaxBackgroundWorkerThreads = 4;
 
 // Constants for types that have a global structured buffer.
 // These are the maximum number of elements that can be stored in the corresponding global structured buffer or bound for rendering at any given time.
-constexpr uint32 MaxBoundWorlds = 16;
-constexpr uint32 MaxBoundCameras = 1024;
-constexpr uint32 MaxBoundLights = 1024;
-constexpr uint32 MaxBoundEntities = 1u << 14;  // 16384
-constexpr uint32 MaxBoundMaterials = 1u << 10; // 1024
-constexpr uint32 MaxBoundSprites = 1u << 14;   // 16384
-constexpr uint32 MaxBoundEnvProbes = 1024;
-constexpr uint32 MaxBoundSkeletons = 64;
-constexpr uint32 MaxBoundReflectionProbes = 16;
-constexpr uint32 MaxBoundProbeVolumes = 16;
-constexpr uint32 MaxBoundAmbientProbes = 4096;
-constexpr uint32 MaxBoundOmniShadowMaps = 16;
-constexpr uint32 MaxBoundLightmapVolumes = 4;
+static constexpr uint32 MaxBoundEntities = 1u << 14;  // 16384
+static constexpr uint32 MaxBoundMaterials = 1u << 10; // 1024
+static constexpr uint32 MaxBoundSprites = 1u << 14;   // 16384
+static constexpr uint32 MaxBoundWorlds = 16;
+static constexpr uint32 MaxBoundCameras = 64;
+static constexpr uint32 MaxBoundLights = 4096;
+static constexpr uint32 MaxBoundEnvProbes = 16;
+static constexpr uint32 MaxBoundReflectionProbes = 16;
+static constexpr uint32 MaxBoundAmbientProbes = 16;
+static constexpr uint32 MaxBoundSkeletons = 64;
+static constexpr uint32 MaxBoundProbeVolumes = 16;
+static constexpr uint32 MaxBoundOmniShadowMaps = 16;
+static constexpr uint32 MaxBoundLightmapVolumes = 16;
 
 // Types that do not have a global structured buffer.
-constexpr uint32 MaxBoundMeshes = 1u << 15;           // 32768
-constexpr uint32 MaxBoundResourceTextures = 1u << 14; // 16384
-constexpr uint32 MaxBoundParticleVolumes = 256;
-constexpr uint32 MaxBoundFogVolumes = 256;
+static constexpr uint32 MaxBoundMeshes = 1u << 15;           // 32768
+static constexpr uint32 MaxBoundResourceTextures = 1u << 14; // 16384
+static constexpr uint32 MaxBoundParticleVolumes = 256;
+static constexpr uint32 MaxBoundFogVolumes = 256;
 
 // Per-material texture slots.
-constexpr uint32 MaxBoundTextures = 16;
-constexpr uint32 MaxBoundLightsForwardShading = 4;
+static constexpr uint32 MaxBoundTextures = 16;
+static constexpr uint32 MaxBoundLightsForwardShading = 4;
 
-constexpr uint32 MaxShadowMapCascades = 4;
-constexpr uint32 MaxClusteredShadowMaps = 16;
+static constexpr uint32 MaxShadowMapCascades = 4;
+static constexpr uint32 MaxClusteredShadowMaps = 16;
 
-constexpr uint32 NumGBufferTargets = 5;
+static constexpr uint32 NumGBufferTargets = 5;
 
-constexpr uint32 MaxEntitiesPerBatch = 16;
-constexpr uint32 MaxEntityInstanceBatches = 4096;
+static constexpr uint32 MaxEntitiesPerBatch = 16;
+static constexpr uint32 MaxEntityInstanceBatches = 4096;
 
-constexpr uint32 MaxBonesPerSkeleton = 64;
+static constexpr uint32 MaxBonesPerSkeleton = 64;
 
-constexpr uint32 MaxGpuTimers = 64;
-constexpr uint32 MaxGpuTimestampQueriesPerFrame = MaxGpuTimers * 2;
+static constexpr uint32 MaxGpuTimers = 64;
+static constexpr uint32 MaxGpuTimestampQueriesPerFrame = MaxGpuTimers * 2;
 
-constexpr uint32 MaxAtlasesPerLightmapVolume = 4;
+static constexpr uint32 MaxAtlasesPerLightmapVolume = 4;
 
 #if HYP_ANDROID
-constexpr const char AndroidAssetPathPrefix[] = "$Android";
+static constexpr const char AndroidAssetPathPrefix[] = "$Android";
 #endif
 
 } // namespace Hyperion

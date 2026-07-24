@@ -45,7 +45,7 @@ public:
     void UpdateRenderProxy(struct RenderProxyFogVolume* proxy);
 
 #ifdef HYP_EDITOR
-    HYP_METHOD(EditorOnly, EditAction = "Rebake")
+    HYP_METHOD(EditorOnly, EditorAction = "Bake Fog Texture")
     void Rebake();
 #endif
 

@@ -189,8 +189,7 @@ namespace Hyperion.Editor.ViewModels
                         if (val is ScriptAsset scriptAsset && scriptAsset.IsValid)
                         {
                             hasScript = true;
-                            string friendly = scriptAsset.FriendlyName.ToString();
-                            displayName = string.IsNullOrEmpty(friendly) ? scriptAsset.Name.ToString() : friendly;
+                            displayName = scriptAsset.Name.ToString() ;
 
                             if (scriptAsset.IsRegistered())
                             {
@@ -331,9 +330,7 @@ namespace Hyperion.Editor.ViewModels
                         execute: (_, _) => ApplyValue(newValue),
                         revert: (_, _) => ApplyValue(capturedOldValue)));
 
-                    // Update display
-                    string friendly = scriptAsset.FriendlyName.ToString();
-                    string displayName = string.IsNullOrEmpty(friendly) ? scriptAsset.Name.ToString() : friendly;
+                    string displayName = scriptAsset.Name.ToString();
                     string pathDisplay = scriptAsset.IsRegistered() ? scriptAsset.Path.ToString() : "(Unregistered)";
 
                     Dispatcher.UIThread.Post(() =>

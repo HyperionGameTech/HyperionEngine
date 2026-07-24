@@ -2183,7 +2183,7 @@ void RenderInterface::CreateSphereSamplesBuffer()
 void RenderInterface::CreateEnvProbesColorTexture()
 {
     TextureDesc textureDesc;
-    textureDesc.format = TextureFormat::RGBA16F;
+    textureDesc.format = TextureFormat::RGBA8;
     textureDesc.extent = Vec3u { 128, 128, 1 };
     textureDesc.imageUsage = IU_SAMPLED;
     textureDesc.type = TextureType::CubemapArray;

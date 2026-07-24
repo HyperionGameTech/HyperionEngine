@@ -61,8 +61,13 @@ static Name GetUniqueName(Name baseName, T&& elements)
 AssetObject::AssetObject()
     : m_flags(AssetObjectFlags::None),
       m_assetIndex(AssetDesc::InvalidIndex),
+#ifdef HYP_ASSET_OBJECT_THREAD_SAFE
       m_rwState(0),
+      m_isInit(false),
       m_isBlobLoaded(false)
+#else // !HYP_ASSET_OBJECT_THREAD_SAFE
+      m_numReaders(0)
+#endif // HYP_ASSET_OBJECT_THREAD_SAFE
 {
 }
 
@@ -70,19 +75,26 @@ AssetObject::AssetObject(Name name)
     : m_name(SanitizeName(name)),
       m_flags(AssetObjectFlags::None),
       m_assetIndex(AssetDesc::InvalidIndex),
+#ifdef HYP_ASSET_OBJECT_THREAD_SAFE
       m_rwState(0),
+      m_isInit(false),
       m_isBlobLoaded(false)
+#else // !HYP_ASSET_OBJECT_THREAD_SAFE
+      m_numReaders(0)
+#endif // HYP_ASSET_OBJECT_THREAD_SAFE
 {
 }
 
 AssetObject::~AssetObject()
 {
+#ifdef HYP_ASSET_OBJECT_THREAD_SAFE
     if (!(m_rwState & 0x1)) // check not locked from derived dtor
     {
         // add writer here to wait for all reads to complete and
         // block new readers/writers from acquiring the resource while we're destroying it.
-        LockWriter(/* doInitialize */ false);
+        LockWriter();
     }
+#endif // HYP_ASSET_OBJECT_THREAD_SAFE
 }
 
 void AssetObject::SetAssetFlags(EnumFlags<AssetObjectFlags> flags)
@@ -170,7 +182,6 @@ Result AssetObject::Rename(Name name)
     // @TODO Need to invoke on AssetRegistry, so it updates the AssetDesc
 
     m_name = name;
-    m_friendlyName = CreateFriendlyName(name);
 
     MarkDirty();
 
@@ -466,8 +477,9 @@ TSharedResLock<AssetObject> AssetObject::GetReadScope() const
     return TSharedResLock<AssetObject> { const_cast<AssetObject&>(*this) };
 }
 
-void AssetObject::LockWriter(bool doInitialize)
+void AssetObject::LockWriter()
 {
+#ifdef HYP_ASSET_OBJECT_THREAD_SAFE
     uint32 numSpins = 0;
 
     int64 expected = 0;
@@ -489,15 +501,19 @@ void AssetObject::LockWriter(bool doInitialize)
             }
         }
     }
+#endif // HYP_ASSET_OBJECT_THREAD_SAFE
 }
 
-void AssetObject::UnlockWriter(bool doDeinitialize)
+void AssetObject::UnlockWriter()
 {
+#ifdef HYP_ASSET_OBJECT_THREAD_SAFE
     AtomicBitAnd(&m_rwState, ~0x1);
+#endif // HYP_ASSET_OBJECT_THREAD_SAFE
 }
 
 void AssetObject::LockReader()
 {
+#ifdef HYP_ASSET_OBJECT_THREAD_SAFE
     uint32 numSpins = 0;
 
     union
@@ -508,20 +524,20 @@ void AssetObject::LockReader()
 
     auto MaybeInitialize = [this](int64 state)
     {
-        bool blobLoaded = false;
-
         if (state == 0)
         {
-            // successfully acquired read lock
-            Mutex::Guard initGuard(m_initMutex);
-
-            blobLoaded = m_isBlobLoaded;
-
-            if (!blobLoaded)
+            if (!m_flags[AssetObjectFlags::Persistent] || !m_isBlobLoaded.Get(MemoryOrder::ACQUIRE))
             {
-                // need to do initialize here, since we're the first reader
-                m_isBlobLoaded = true;
-                blobLoaded = true;
+                // Wait for m_isBlobLoaded to be false.
+                // Another thread may be tearing down.
+
+                while (m_isBlobLoaded.Get(MemoryOrder::ACQUIRE))
+                {
+                    m_isBlobLoaded.Wait(true, MemoryOrder::ACQUIRE);
+                }
+
+                // We're the initializing thread.
+                m_isBlobLoaded.Exchange(true, MemoryOrder::RELEASE);
 
                 PageBlobData();
 
@@ -529,20 +545,18 @@ void AssetObject::LockReader()
                 {
                     SetBlobDataResident(true);
                 }
-
-                m_initCV.NotifyAll();
             }
+
+            m_isInit.Set(true, MemoryOrder::RELEASE);
+            m_isInit.NotifyAll();
         }
-
-        if (!blobLoaded)
+        else
         {
-            // successfully acquired read lock
-            Mutex::Guard initGuard(m_initMutex);
+            // Wait for another thread to initialize.
 
-            // wait for initialization to complete
-            while (!m_isBlobLoaded)
+            while (!m_isInit.Get(MemoryOrder::ACQUIRE))
             {
-                m_initCV.Wait(m_initMutex);
+                m_isInit.Wait(false, MemoryOrder::ACQUIRE);
             }
         }
     };
@@ -590,30 +604,62 @@ void AssetObject::LockReader()
 
         AtomicSub(&m_rwState, 2);
     }
+#else // !HYP_ASSET_OBJECT_THREAD_SAFE
+    if (++m_numReaders == 1)
+    {
+        PageBlobData();
+
+        if (m_flags[AssetObjectFlags::Persistent])
+        {
+            SetBlobDataResident(true);
+        }
+    }
+#endif // HYP_ASSET_OBJECT_THREAD_SAFE
 }
 
 void AssetObject::UnlockReader()
 {
-    Mutex::Guard initGuard(m_initMutex);
+#ifdef HYP_ASSET_OBJECT_THREAD_SAFE
+    if (AtomicSub(&m_rwState, 2) == 2)
+    {
+        bool expected = true;
 
-    if (AtomicSub(&m_rwState, 2) == 2 && m_isBlobLoaded)
+        if (m_isInit.CompareExchangeStrong(expected, false, MemoryOrder::ACQUIRE_RELEASE))
+        {
+            if (!m_flags[AssetObjectFlags::Persistent])
+            {
+                SetBlobDataResident(false);
+                UnpageBlobData();
+
+                m_isBlobLoaded.Exchange(false, MemoryOrder::RELEASE);
+                m_isBlobLoaded.NotifyAll();
+            }
+        }
+    }
+#else !HYP_ASSET_OBJECT_THREAD_SAFE
+    if (--m_numReaders == 0)
     {
         if (!m_flags[AssetObjectFlags::Persistent])
         {
             SetBlobDataResident(false);
             UnpageBlobData();
-
-            m_isBlobLoaded = false;
         }
     }
+#endif
 }
 
 void AssetObject::GetNumUsers(int64& outReaders, int64& outWriters) const
 {
+#ifdef HYP_ASSET_OBJECT_THREAD_SAFE
     int64 state = AtomicAdd(const_cast<volatile int64*>(&m_rwState), 0);
 
     outReaders = state >> 1;
     outWriters = state & 0x1;
+#else // !HYP_ASSET_OBJECT_THREAD_SAFE
+    // We don't have number of writers in this mode
+    outReaders = static_cast<int64>(m_numReaders);
+    outWriters = 0;
+#endif // HYP_ASSET_OBJECT_THREAD_SAFE
 }
 
 Handle<AssetRegistry> AssetObject::GetAssetRegistry()

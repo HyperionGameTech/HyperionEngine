@@ -981,15 +981,14 @@ CORE_API extern const Name g_attrFollowAssetPath;
 CORE_API extern const Name g_attrSaveAsReference;
 
 /// ===== Editor-specific attributes =====
-CORE_API extern const Name g_attrEditor;        //!< legacy (deprecated) indicates that a property is editable in the editor
-CORE_API extern const Name g_attrEditorOnly;    //!< this field/method/property is only available in editor builds (future proof - right now it has no effect)
+CORE_API extern const Name g_attrEditor;        //!< Indicates that a property is editable in the editor.
+CORE_API extern const Name g_attrEditorOnly;    //!< this field/method/property is only available in editor builds. Reflection will not be compiled into non HYP_EDITOR builds.
 CORE_API extern const Name g_attrEditOrder;     //!< order in which properties are displayed in the editor
-CORE_API extern const Name g_attrEditEnabled;   //!< is editable in editor
-CORE_API extern const Name g_attrEditHide;      //!< hide in editor
-CORE_API extern const Name g_attrLabel;         //!< display name in editor (overrides property name)
-CORE_API extern const Name g_attrDescription;   //!< help text for a property in inspector
-CORE_API extern const Name g_attrEditAction;    //!< marks a method as an action button in the editor (e.g. "Bake Lighting")
-CORE_API extern const Name g_attrEditCondition; //!< condition for editability or action availability in the editor (should be a method that returns bool)
+CORE_API extern const Name g_attrEditEnabled;   //!< is editable in editor -- Disabled/greyed out otherwise if set to false explicitly.
+CORE_API extern const Name g_attrLabel;         //!< The surfaced display name in editor. Otherwise will default to the property's Name.
+CORE_API extern const Name g_attrDescription;   //!< help text for a property in inspector.
+CORE_API extern const Name g_attrEditorAction;  //!< marks a method as an action button in the editor (e.g. "Bake Lighting"). User can click to invoke.
+CORE_API extern const Name g_attrEditCondition; //!< condition for editability or action availability in the editor (should be a method that returns bool).
 /// ======================================
 
 } // namespace Attributes

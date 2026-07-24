@@ -110,7 +110,7 @@ Mesh::Mesh(const MeshDataView& meshData, Topology topology, const VertexInputLay
 
 Mesh::~Mesh()
 {
-    LockWriter(/* doInitialize */ false);
+    LockWriter();
 
     for (uint8 lodIndex = 0; lodIndex < MaxMeshLods; lodIndex++)
     {
@@ -153,8 +153,6 @@ VertexArrayView Mesh::GetVertexData(uint8 lodIndex) const
 
 void Mesh::SetVertexData(uint8 lodIndex, const VertexArrayView& view)
 {
-    Assert(AtomicAdd(&m_rwState, 0) & 0x1);
-
     size_t vertexSize = view.layoutDesc.VertexSize();
     Assert(vertexSize != 0);
 
@@ -168,8 +166,6 @@ void Mesh::SetVertexData(uint8 lodIndex, const VertexArrayView& view)
 
 void Mesh::SetIndexData(uint8 lodIndex, Span<const ubyte> indexData)
 {
-    Assert(AtomicAdd(&m_rwState, 0) & 0x1);
-
     FreeBlobData(m_lodData[lodIndex].indexData);
     AllocateBlobData(m_lodData[lodIndex].indexData, indexData.Data(), indexData.Size(), alignof(uint32));
 
@@ -957,6 +953,21 @@ void Mesh::CalculateNormals(bool weighted)
 }
 
 #undef ADD_NORMAL
+
+
+#ifdef HYP_EDITOR
+
+void Mesh::RegenerateNormals()
+{
+    {
+        auto writeScope = GetWriteScope();
+        CalculateNormals();
+    }
+
+    UploadGpuData();
+}
+
+#endif // HYP_EDITOR
 
 #pragma endregion Mesh
 

@@ -204,7 +204,9 @@ struct BitField
     {
         size_t count = 0;
 
-        #pragma unroll
+#ifdef HYP_CLANG_OR_GCC
+#pragma unroll
+#endif // HYP_CLANG_OR_GCC
         for (WordType value : words)
         {
             count += ByteUtil::BitCount(value);

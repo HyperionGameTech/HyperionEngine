@@ -102,7 +102,6 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     }
 
     const uint2 coord = dispatchThreadID.xy;
-    float2 uv = (float2(coord) + 0.5) / float2(out_image_dimensions);
 
     float4 color = ConvolveProbe(coord, dispatchThreadID.z);
 

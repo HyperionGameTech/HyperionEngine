@@ -219,7 +219,7 @@ RendererResult VulkanCommandBuffer::Submit(
     }
 
     VkSemaphore* waitSemaphoresVk = waitSemaphores.Size() > 0 ? (VkSemaphore*)StackAlloc(sizeof(VkSemaphore) * waitSemaphores.Size()) : nullptr;
-    VkPipelineStageFlags* waitStages = (VkPipelineStageFlags*)StackAlloc(sizeof(VkPipelineStageFlags) * waitSemaphores.Size());
+    VkPipelineStageFlags* waitStages = waitSemaphores.Size() > 0 ? (VkPipelineStageFlags*)StackAlloc(sizeof(VkPipelineStageFlags) * waitSemaphores.Size()) : nullptr;
 
     for (uint32 i = 0; i < uint32(waitSemaphores.Size()); i++)
     {

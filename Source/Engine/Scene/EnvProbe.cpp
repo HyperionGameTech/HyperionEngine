@@ -40,9 +40,9 @@ static const ShaderPropertyId s_propForwardShading = InternShaderProperty(Shader
 static const ShaderPropertyId s_propWriteMoments = InternShaderProperty(ShaderProperty(NAME("WRITE_MOMENTS")));
 
 static constexpr EnumFlags<EnvProbeFlags> DefaultEnvProbeFlags[EPT_MAX] {
-    EPF_ORIGIN_FROM_CENTER | EPF_DIFFUSE,                          // sky
-    EPF_ORIGIN_FROM_CENTER | EPF_PARALLAX_CORRECTED | EPF_DIFFUSE, // reflection
-    EPF_ORIGIN_FROM_CENTER | EPF_VISIBILITY | EPF_DIFFUSE          // irradiance
+    EPF_ORIGIN_FROM_CENTER | EPF_DIFFUSE,                   // sky
+    EPF_ORIGIN_FROM_CENTER | EPF_PARALLAX_CORRECTED,        // reflection
+    EPF_ORIGIN_FROM_CENTER | EPF_VISIBILITY | EPF_DIFFUSE   // irradiance
 };
 
 static constexpr float EnvProbeCameraNearClip = 0.025f;
@@ -363,7 +363,7 @@ void EnvProbe::OnAddedToWorld(World* world)
             {
                 m_texture = MakeHandle<Texture>(TextureDesc {
                     TextureType::Texture2D,
-                    TextureFormat::RGBA16F,
+                    TextureFormat::RGBA8,
                     Vec3u { m_dimensions, 1 },
                     TFM_LINEAR_MIPMAP,
                     TFM_LINEAR,
@@ -475,7 +475,7 @@ void EnvProbe::CreateViewData()
     // Color target
     AttachmentDesc& colorDesc = attachmentDescs.PushBack(AttachmentDesc {
         TextureType::Cubemap,
-        TextureFormat::RGBA16F,
+        TextureFormat::RGBA8,
         LoadOperation::CLEAR,
         StoreOperation::STORE });
 
@@ -1033,7 +1033,7 @@ void SkyProbe::Init()
 {
     m_texture = MakeHandle<Texture>(TextureDesc {
         TextureType::Cubemap,
-        TextureFormat::RGBA16F,
+        TextureFormat::RGBA8,
         Vec3u { m_dimensions.x, m_dimensions.y, 1 },
         TFM_LINEAR_MIPMAP,
         TFM_LINEAR,

@@ -59,6 +59,21 @@ float4 EnvProbeSample(
     return color;
 }
 
+// @TODO Make configurable.
+static const float s_envProbeBlendFactor = 0.1;
+
+float CalculateEnvProbeWeight(float3 positionWS, float3 aabbMin, float3 aabbMax)
+{
+    const float3 aabbExtent = aabbMax - aabbMin;
+
+    const float3 blend = aabbExtent * s_envProbeBlendFactor;
+    const float3 distToMin = (positionWS.xyz - aabbMin) / blend;
+    const float3 distToMax = (aabbMax - positionWS.xyz) / blend;
+    const float minBlend = min(distToMin.x, min(distToMin.y, min(distToMin.z, min(distToMax.x, min(distToMax.y, distToMax.z)))));
+
+    return smoothstep(0.0, 1.0, minBlend);
+}
+
 float3 EnvProbeCoordParallaxCorrected(
     float3 probe_world_position,
     float3 aabb_min, float3 aabb_max,

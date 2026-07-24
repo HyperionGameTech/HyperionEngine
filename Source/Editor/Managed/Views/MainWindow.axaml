@@ -525,6 +525,12 @@
                                                 <Ellipse Width="6" Height="6" Fill="White" IsVisible="{Binding IsDirty}" VerticalAlignment="Center" />
                                                 <LucideIcon Kind="{Binding IconKind}" Size="14" Opacity="0.7" VerticalAlignment="Center" />
                                                 <TextBlock FontStyle="{Binding NameFontStyle}" IsVisible="{Binding !IsEditingName}" Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                                                <!-- <TextBlock
+                                                    FontSize="8"
+                                                    Foreground="{DynamicResource Brush.TextMuted}"
+                                                    IsVisible="{Binding !IsEditingName}"
+                                                    Text="{Binding ClassName}"
+                                                    VerticalAlignment="Center" /> -->
                                                 <TextBox
                                                     Name="NodeRenameTextBox"
                                                     MinWidth="80"
@@ -992,14 +998,6 @@
                                         Classes="header"
                                         FontSize="12"
                                         Text="{Binding ActivePanel.Title}" />
-                                    <Button
-                                        x:Name="CollapseRightPanel"
-                                        Grid.Column="1"
-                                        Width="26" Height="26" Padding="0"
-                                        VerticalAlignment="Center"
-                                        ToolTip.Tip="Collapse">
-                                        <LucideIcon Kind="ChevronsRight" Size="14" />
-                                    </Button>
                                     <Button
                                         Grid.Column="2"
                                         Width="26" Height="26" Padding="0"

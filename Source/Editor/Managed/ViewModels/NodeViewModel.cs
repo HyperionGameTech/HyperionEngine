@@ -35,6 +35,8 @@ namespace Hyperion.Editor.ViewModels
         public bool IsUnnamed => string.IsNullOrEmpty(_name);
         public FontStyle NameFontStyle => IsUnnamed ? FontStyle.Italic : FontStyle.Normal;
 
+        public string ClassName => _node.Class.Name.ToString();
+
         public void RefreshNameFromEngine()
         {
             Name = _node.Name.ToString();

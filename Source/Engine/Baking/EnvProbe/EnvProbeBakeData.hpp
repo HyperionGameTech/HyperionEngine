@@ -18,7 +18,7 @@ template <>
 class BakeData<EnvProbe> : public BakeDataBase
 {
 public:
-    using BitmapType = Bitmap_RGBA16F;
+    using BitmapType = Bitmap_RGBA8;
     using VisibilityBitmapType = Bitmap_RG16F;
 
     BakeData()

@@ -32,6 +32,29 @@
                 Margin="8,4"
                 Opacity="0.5"
                 Text="No editable properties." />
+
+            <Grid Margin="0,12,0,0" IsVisible="{Binding SubObject.HasActions}" RowDefinitions="Auto, Auto">
+                <TextBlock
+                    Grid.Row="0"
+                    Margin="8,0,8,2"
+                    FontSize="14"
+                    FontWeight="SemiBold"
+                    Text="Actions" />
+                <ItemsControl Grid.Row="1" VerticalAlignment="Top" ItemsSource="{Binding SubObject.Actions}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:InspectorActionViewModel">
+                            <Button
+                                Padding="10,4"
+                                Margin="8,6,8,0"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Center"
+                                Command="{Binding ExecuteActionCommand}"
+                                Content="{Binding Label}"
+                                IsEnabled="{Binding IsEnabled}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

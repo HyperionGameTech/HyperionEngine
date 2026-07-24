@@ -31,38 +31,40 @@
                 FontWeight="SemiBold"
                 Text="{Binding Label}" />
 
-            <Grid ColumnDefinitions="*,Auto">
-                <AutoCompleteBox
-                    x:Name="PART_PickerBox"
-                    MinWidth="120"
-                    MinimumPrefixLength="0"
-                    MinimumPopulateDelay="0:0:0.15"
-                    Watermark="(None)"
-                    FontSize="11"
-                    Text="{Binding PickerFilter, Mode=TwoWay}"
-                    ToolTip.Tip="Filter assets by name">
-                    <AutoCompleteBox.ItemTemplate>
-                        <DataTemplate x:DataType="vm:AssetPickerItemViewModel">
-                            <StackPanel Margin="2,1" Spacing="0">
-                                <TextBlock FontSize="11" Text="{Binding DisplayName}" />
-                                <TextBlock
-                                    FontSize="9"
-                                    Foreground="{DynamicResource Brush.TextMuted}"
-                                    Text="{Binding TypeName}" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </AutoCompleteBox.ItemTemplate>
-                </AutoCompleteBox>
+            <Border Classes="picker-box">
+                <Grid ColumnDefinitions="*,Auto,Auto">
+                    <AutoCompleteBox
+                        x:Name="PART_PickerBox"
+                        MinWidth="120"
+                        MinimumPrefixLength="0"
+                        MinimumPopulateDelay="0:0:0.15"
+                        Watermark="(None)"
+                        FontSize="11"
+                        Text="{Binding PickerFilter, Mode=TwoWay}"
+                        ToolTip.Tip="Filter assets by name">
+                        <AutoCompleteBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:AssetPickerItemViewModel">
+                                <StackPanel Margin="2,1" Spacing="0">
+                                    <TextBlock FontSize="11" Text="{Binding DisplayName}" />
+                                    <TextBlock
+                                        FontSize="9"
+                                        Foreground="{DynamicResource Brush.TextMuted}"
+                                        Text="{Binding TypeName}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </AutoCompleteBox.ItemTemplate>
+                    </AutoCompleteBox>
 
-                <Button
-                    x:Name="PART_PickerToggle"
-                    Grid.Column="1"
-                    Margin="2,0,0,0"
-                    Padding="6,2"
-                    FontSize="9"
-                    ToolTip.Tip="Browse..."
-                    Content="&#x25BC;" />
-            </Grid>
+                    <Border Grid.Column="1" Classes="picker-divider" />
+
+                    <Button
+                        x:Name="PART_PickerToggle"
+                        Grid.Column="2"
+                        Classes="picker-toggle"
+                        ToolTip.Tip="Browse..."
+                        Content="&#x25BC;" />
+                </Grid>
+            </Border>
 
             <StackPanel Orientation="Horizontal" Spacing="4">
                 <Button

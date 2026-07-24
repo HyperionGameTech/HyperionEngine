@@ -2397,7 +2397,6 @@ static void ApplyMeshEditVertexPositions(
 
         if (recomputeDerivedData)
         {
-            mesh->CalculateNormals(true);
             mesh->SetAABB(mesh->CalculateAABB());
         }
     }

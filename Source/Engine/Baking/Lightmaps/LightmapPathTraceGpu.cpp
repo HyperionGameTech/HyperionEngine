@@ -431,8 +431,10 @@ bool LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
 
         for (EnvProbe* envProbe : rpl.GetEnvProbes())
         {
-            if ((envProbe->IsA(SkyProbe::StaticClass()) /* || envProbe->IsA(ReflectionProbe::StaticClass()) */)
-                && envProbe != m_baker->GetSource()) // we don't want to bind a probe if it is being baked!
+            const bool contributesDiffuseLighting = (envProbe->IsAmbientProbe() || (envProbe->GetEnvProbeFlags() & EPF_DIFFUSE))
+                && envProbe->GetDiffuseStrength() > 0.0f;
+
+            if (envProbe != m_baker->GetSource() && contributesDiffuseLighting) // we don't want to bind a probe if it is being baked!
             {
                 if (numBoundEnvProbes >= LightmapVolumeMaxBoundEnvProbes)
                 {
@@ -452,15 +454,16 @@ bool LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
             && renderSetup.envProbe != m_baker->GetSource()
             && numBoundEnvProbes < LightmapVolumeMaxBoundEnvProbes)
         {
-            auto it = tempEnvProbes.FindIf([envProbe = renderSetup.envProbe](const auto& pair)
-                                           {
-                                               if (pair.first == envProbe)
-                                               {
-                                                   return true;
-                                               }
+            auto it = tempEnvProbes.FindIf(
+                [envProbe = renderSetup.envProbe](const auto& pair)
+                {
+                    if (pair.first == envProbe)
+                    {
+                        return true;
+                    }
 
-                                               return false;
-                                           });
+                    return false;
+                });
 
             if (it == tempEnvProbes.End())
             {

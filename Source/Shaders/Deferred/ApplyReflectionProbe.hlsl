@@ -31,11 +31,11 @@ DECLARE_SRV(ReflectionsPass, GBufferMipChain) Texture2D GBufferMipChain;
 
 #include "../include/BlueNoise.hlsli"
 
+DECLARE_SRV(ReflectionsPass, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
+
 #include "../include/EnvProbes.hlsli"
 DECLARE_SRV_DYNAMIC(ReflectionsPass, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
 #define current_env_probe current_env_probe_buffer[0]
-
-DECLARE_SRV(ReflectionsPass, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
 
 DECLARE_SRV(ReflectionsPass, EnvProbesBuffer) StructuredBuffer<EnvProbe> env_probes;
 

@@ -149,7 +149,7 @@ Material::Material(
 
 Material::~Material()
 {
-    LockWriter(/* doInitialize */ false);
+    LockWriter();
 
     for (size_t i = 0; i < m_textures.Size(); i++)
     {

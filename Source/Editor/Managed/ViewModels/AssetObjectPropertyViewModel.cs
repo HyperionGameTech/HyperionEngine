@@ -150,8 +150,7 @@ namespace Hyperion.Editor.ViewModels
                     using BoxedValue boxed = new BoxedValue(obj);
                     SetPropertyValue(boxed);
 
-                    string friendly = obj.FriendlyName.ToString();
-                    string displayName = string.IsNullOrEmpty(friendly) ? obj.Name.ToString() : friendly;
+                    string displayName = obj.Name.ToString();
 
                     Dispatcher.UIThread.Post(() =>
                     {
@@ -206,8 +205,7 @@ namespace Hyperion.Editor.ViewModels
 
                     if (val is AssetObject obj && obj.IsValid)
                     {
-                        string friendly = obj.FriendlyName.ToString();
-                        displayName = string.IsNullOrEmpty(friendly) ? obj.Name.ToString() : friendly;
+                        displayName = obj.Name.ToString();
                     }
                     else
                     {

@@ -101,18 +101,51 @@
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Margin" Value="2,1" />
         </Style>
-        <Style Selector="MenuItem /template/ Border#PART_PopupBorder">
-            <Setter Property="CornerRadius" Value="4" />
-        </Style>
-        <Style Selector="MenuItem:over /template/ Border#PART_LayoutRoot">
+
+        <Style Selector="MenuItem:pointerover /template/ Border#root">
             <Setter Property="Background" Value="{StaticResource Brush.MenuHover}" />
-            <Setter Property="CornerRadius" Value="4" />
         </Style>
-        <!-- Top-level menu items -->
-        <Style Selector="MenuItem:over:selected /template/ Border#PART_LayoutRoot">
+        <Style Selector="MenuItem:selected /template/ Border#root">
             <Setter Property="Background" Value="{StaticResource Brush.MenuHover}" />
-            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="MenuItem /template/ Path#rightArrow">
+            <Setter Property="Fill" Value="{StaticResource Brush.TextMuted}" />
+        </Style>
+        <Style Selector="MenuItem /template/ TextBlock#PART_InputGestureText">
+            <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Margin" Value="16,0,0,0" />
+        </Style>
+        <Style Selector="MenuItem /template/ Popup#PART_Popup > Border">
+            <Setter Property="Background" Value="{StaticResource Brush.Panel}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="4" />
+        </Style>
+
+        <Style Selector="ContextMenu">
+            <Setter Property="Background" Value="{StaticResource Brush.Panel}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="4" />
+        </Style>
+        <Style Selector="MenuFlyoutPresenter">
+            <Setter Property="Background" Value="{StaticResource Brush.Panel}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="4" />
+        </Style>
+
+        <Style Selector="Separator">
+            <Setter Property="Background" Value="{StaticResource Brush.Border}" />
+            <Setter Property="Margin" Value="8,4" />
+            <Setter Property="Height" Value="1" />
         </Style>
 
         <!--  TabControl  -->
@@ -224,6 +257,8 @@
         <Style Selector="Button.reset-icon:pointerover Path">
             <Setter Property="Fill" Value="{StaticResource Brush.Text}" />
         </Style>
+        
+        <!--  Textbox  -->
 
         <Style Selector="TextBox">
             <Setter Property="Background" Value="#1E1F22" />
@@ -233,7 +268,102 @@
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="FontSize" Value="12" />
 		    <Setter Property="FontFamily" Value="Segoe UI, Helvetica, Arial, sans-serif" />
-            <Setter Property="Padding" Value="4,2" />
+            <Setter Property="Padding" Value="6,4" />
+        </Style>
+
+        <!--  Drop-downs (ComboBox / AutoCompleteBox)  -->
+        <Style Selector="ComboBox">
+            <Setter Property="Background" Value="#1E1F22" />
+            <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+            <Setter Property="PlaceholderForeground" Value="{StaticResource Brush.TextMuted}" />
+            <Setter Property="BorderBrush" Value="#2B2D30" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontFamily" Value="Segoe UI, Helvetica, Arial, sans-serif" />
+            <Setter Property="Padding" Value="8,5" />
+        </Style>
+        <Style Selector="ComboBox /template/ Border#border">
+            <Setter Property="CornerRadius" Value="5" />
+        </Style>
+        <Style Selector="ComboBox:pointerover /template/ Border#border">
+            <Setter Property="Background" Value="{StaticResource Brush.BorderLight}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.BorderLight}" />
+        </Style>
+        <!--  The built-in arrow toggle paints its own flat, square highlight on
+              pointerover/pressed/checked - suppress it so the whole rounded box
+              (styled above) is what visually reacts instead.  -->
+        <Style Selector="ComboBox /template/ ToggleButton#toggle /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="ComboBox /template/ Popup#PART_Popup > Border">
+            <Setter Property="Background" Value="{StaticResource Brush.Panel}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+        <Style Selector="ComboBoxItem">
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="FontFamily" Value="Segoe UI, Helvetica, Arial, sans-serif" />
+        </Style>
+        <Style Selector="ComboBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource Brush.MenuHover}" />
+        </Style>
+        <Style Selector="ComboBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource Brush.AccentMuted}" />
+        </Style>
+
+        <Style Selector="AutoCompleteBox">
+            <Setter Property="Background" Value="#1E1F22" />
+            <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+            <Setter Property="BorderBrush" Value="#2B2D30" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="FontFamily" Value="Segoe UI, Helvetica, Arial, sans-serif" />
+            <Setter Property="Padding" Value="6,4" />
+        </Style>
+        <Style Selector="AutoCompleteBox /template/ Popup#PART_Popup > Border">
+            <Setter Property="Background" Value="{StaticResource Brush.Panel}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+        <Style Selector="AutoCompleteBox /template/ ListBox#PART_SelectingItemsControl">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="AutoCompleteBox /template/ ListBoxItem">
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="Padding" Value="8,5" />
+        </Style>
+
+        <!--  Joined text-box-plus-toggle drop-down (asset/subclass pickers)  -->
+        <Style Selector="Border.picker-box">
+            <Setter Property="Background" Value="#1E1F22" />
+            <Setter Property="BorderBrush" Value="#2B2D30" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="5" />
+        </Style>
+        <Style Selector="Border.picker-box AutoCompleteBox">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="6,4" />
+        </Style>
+        <Style Selector="Border.picker-box Border.picker-divider">
+            <Setter Property="Background" Value="{StaticResource Brush.Border}" />
+            <Setter Property="Width" Value="1" />
+            <Setter Property="Margin" Value="0,4" />
+        </Style>
+        <Style Selector="Button.picker-toggle">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="0,5,5,0" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="FontSize" Value="9" />
+        </Style>
+        <Style Selector="Button.picker-toggle:pointerover">
+            <Setter Property="Background" Value="{StaticResource Brush.BorderLight}" />
         </Style>
 
         <Style Selector="ToggleButton.panel-toggle">

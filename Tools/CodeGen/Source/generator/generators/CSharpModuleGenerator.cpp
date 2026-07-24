@@ -4,7 +4,6 @@
  *  @licence MIT
 */
 
-#include "Core/Reflection/Class.hpp"
 #include <generator/generators/CSharpModuleGenerator.hpp>
 
 #include <analyzer/Analyzer.hpp>
@@ -13,6 +12,8 @@
 #include <parser/Parser.hpp>
 
 #include <Core/Name/Name.hpp>
+
+#include <Core/Reflection/Class.hpp>
 
 #include <Core/Utilities/StringUtil.hpp>
 

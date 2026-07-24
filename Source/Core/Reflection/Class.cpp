@@ -74,11 +74,11 @@ CORE_API const Name g_attrSaveAsReference = NAME("saveasreference");
 
 CORE_API const Name g_attrEditor = NAME("editor");
 CORE_API const Name g_attrEditorOnly = NAME("editoronly");
-CORE_API const Name g_attrEditOrder = NAME("editorder");
+CORE_API const Name g_attrEditOrder = NAME("editororder");
 CORE_API const Name g_attrEditEnabled = NAME("editenabled");
 CORE_API const Name g_attrLabel = NAME("label");
 CORE_API const Name g_attrDescription = NAME("description");
-CORE_API const Name g_attrEditAction = NAME("editaction");
+CORE_API const Name g_attrEditorAction = NAME("editoraction");
 CORE_API const Name g_attrEditCondition = NAME("editcondition");
 
 } // namespace Attributes

@@ -328,7 +328,7 @@ public:
     ~ReflectionProbe() override = default;
 
 #if HYP_EDITOR
-    HYP_METHOD(EditorOnly, EditAction = "Bake Cubemap", EditCondition = "IsBaked")
+    HYP_METHOD(EditorOnly, EditorAction = "Bake Reflection Probe", EditCondition = "IsBaked")
     void BakeCubemap();
 #endif
 };
@@ -396,7 +396,7 @@ public:
 
 private:
 #if HYP_EDITOR
-    HYP_METHOD(EditorOnly, EditAction = "Recompute Irradiance")
+    HYP_METHOD(EditorOnly, EditorAction = "Recompute Irradiance")
     void RecomputeIrradiance();
 #endif // HYP_EDITOR
 

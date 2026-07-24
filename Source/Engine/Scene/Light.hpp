@@ -264,10 +264,10 @@ public:
     void UpdateRenderProxy(RenderProxyLight* proxy);
 
 #if HYP_EDITOR
-    HYP_METHOD(EditorOnly, EditAction = "Bake shadows for static objects", EditCondition = "CanBakeStaticShadows")
+    HYP_METHOD(EditorOnly, EditorAction = "Bake Shadow Map", EditCondition = "CanBakeStaticShadows")
     void BakeStaticShadows();
 
-    HYP_METHOD(EditorOnly, EditAction = "Remove baked shadows", EditCondition = "CanBakeStaticShadows")
+    HYP_METHOD(EditorOnly, EditorAction = "Remove Baked Shadow Map", EditCondition = "CanBakeStaticShadows")
     void RemoveBakedShadows()
     {
         SetBakedShadowMap(Handle<Texture>::Null());

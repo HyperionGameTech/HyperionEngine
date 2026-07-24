@@ -345,7 +345,7 @@ Texture::Texture(const TextureDesc& textureDesc, ConstByteView imageData)
 
 Texture::~Texture()
 {
-    LockWriter(/* doInitialize */ false);
+    LockWriter();
 
     if (m_gpuImage.IsValid())
     {

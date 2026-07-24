@@ -217,6 +217,11 @@ public:
 
     bool BuildBVH(BVHNode& bvhNode, int maxDepth = 3) const;
 
+#ifdef HYP_EDITOR
+    HYP_METHOD(EditorOnly, EditorAction = "Regenerate Normals")
+    void RegenerateNormals();
+#endif // HYP_EDITOR
+
     AtomicFlag isUploaded;
 
 protected:

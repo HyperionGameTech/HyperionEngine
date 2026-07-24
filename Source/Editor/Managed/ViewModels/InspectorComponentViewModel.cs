@@ -158,7 +158,7 @@ namespace Hyperion.Editor.ViewModels
                         })
                         .OrderBy(p =>
                         {
-                            ClassAttribute? attrEditOrder = p.GetAttribute("editorder");
+                            ClassAttribute? attrEditOrder = p.GetAttribute("editororder");
 
                             if (attrEditOrder != null)
                             {

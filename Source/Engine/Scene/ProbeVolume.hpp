@@ -101,7 +101,7 @@ public:
     HYP_METHOD(Property = "GridSize", EditorOnly)
     void SetGridSize(const Vec3u& gridSize);
 
-    HYP_METHOD(EditorOnly, EditAction = "Rebuild Connectivity")
+    HYP_METHOD(EditorOnly, EditorAction = "Rebuild Connectivity")
     void CreateProbes();
 
     void BakeTetrahedra();

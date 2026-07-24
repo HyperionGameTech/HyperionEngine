@@ -164,7 +164,7 @@ namespace Hyperion.Editor.ViewModels
 
             Class nodeClass = SelectedNode.Class;
 
-            // sort by editorder attribute (if present), then by name
+            // sort by editororder attribute (if present), then by name
             List<Property> properties = nodeClass.Properties
                 .Where(p =>
                 {
@@ -174,7 +174,7 @@ namespace Hyperion.Editor.ViewModels
                 })
                 .OrderBy(p =>
                 {
-                    ClassAttribute? attrEditOrder = p.GetAttribute("editorder");
+                    ClassAttribute? attrEditOrder = p.GetAttribute("editororder");
 
                     if (attrEditOrder != null)
                     {
@@ -254,14 +254,14 @@ namespace Hyperion.Editor.ViewModels
                 addMobility();
             }
 
-            // collect actions (methods with editaction attribute)
+            // collect actions (methods with editoraction attribute)
             List<Method> actions = nodeClass.Methods
                 .Where(m => m.IsMemberFunction)
-                .Where(m => m.GetAttribute("editaction") != null)
+                .Where(m => m.GetAttribute("editoraction") != null)
                 .Where(m => EvaluateEditCondition(nodeClass, m.GetAttribute("editcondition"), m.Name.ToString()))
                 .OrderBy(m =>
                 {
-                    ClassAttribute? attrEditOrder = m.GetAttribute("editorder");
+                    ClassAttribute? attrEditOrder = m.GetAttribute("editororder");
 
                     if (attrEditOrder != null)
                     {
@@ -287,11 +287,11 @@ namespace Hyperion.Editor.ViewModels
                     }
 
                     string label = method.Name.ToString();
-                    ClassAttribute? attrEditAction = method.GetAttribute("editaction");
+                    ClassAttribute? attrEditorAction = method.GetAttribute("editoraction");
 
-                    if (attrEditAction != null && attrEditAction.Value.IsString)
+                    if (attrEditorAction != null && attrEditorAction.Value.IsString)
                     {
-                        label = attrEditAction.Value.GetString();
+                        label = attrEditorAction.Value.GetString();
                     }
 
                     bool isEnabled = true;
@@ -384,11 +384,11 @@ namespace Hyperion.Editor.ViewModels
 
             List<Method> actions = nodeClass.Methods
                 .Where(m => m.IsMemberFunction)
-                .Where(m => m.GetAttribute("editaction") != null)
+                .Where(m => m.GetAttribute("editoraction") != null)
                 .Where(m => EvaluateEditCondition(nodeClass, m.GetAttribute("editcondition"), m.Name.ToString()))
                 .OrderBy(m =>
                 {
-                    ClassAttribute? attrEditOrder = m.GetAttribute("editorder");
+                    ClassAttribute? attrEditOrder = m.GetAttribute("editororder");
                     return attrEditOrder != null ? attrEditOrder.Value.GetInt() : int.MaxValue;
                 })
                 .ThenBy(m => m.Name.ToString())
@@ -406,9 +406,9 @@ namespace Hyperion.Editor.ViewModels
                     }
 
                     string label = method.Name.ToString();
-                    ClassAttribute? attrEditAction = method.GetAttribute("editaction");
-                    if (attrEditAction != null && attrEditAction.Value.IsString)
-                        label = attrEditAction.Value.GetString();
+                    ClassAttribute? attrEditorAction = method.GetAttribute("editoraction");
+                    if (attrEditorAction != null && attrEditorAction.Value.IsString)
+                        label = attrEditorAction.Value.GetString();
 
                     bool isEnabled = true;
                     ClassAttribute? attrEditEnabled = method.GetAttribute("editenabled");
@@ -468,7 +468,7 @@ namespace Hyperion.Editor.ViewModels
                 })
                 .OrderBy(p =>
                 {
-                    ClassAttribute? attrEditOrder = p.GetAttribute("editorder");
+                    ClassAttribute? attrEditOrder = p.GetAttribute("editororder");
                     if (attrEditOrder != null)
                     {
                         return attrEditOrder.Value.GetInt();

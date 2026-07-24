@@ -29,10 +29,10 @@ DECLARE_SRV(LightmapPathTracer, TLAS) RaytracingAccelerationStructure tlas;
 /// Blue noise
 DECLARE_SRV(LightmapPathTracer, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;
 
+DECLARE_SRV(LightmapPathTracer, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
+
 #include "../../include/BlueNoise.hlsli"
 #include "../../include/EnvProbes.hlsli"
-
-DECLARE_SRV(LightmapPathTracer, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
 
 DECLARE_SRV(LightmapPathTracer, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
 #define world_shader_data _worlds_buffer[0]
@@ -59,7 +59,7 @@ DECLARE_BUFFER(LightmapPathTracer, CBuffer) cbuffer CBuffer
     EnvProbe envProbes[MAX_ENV_PROBES];
 };
 
-#define RAY_OFFSET 0.05
+#define RAY_OFFSET 0.025
 
 #ifdef MODE_IRRADIANCE
 #define NUM_BOUNCES 8
@@ -130,6 +130,149 @@ float3 DebugTest_Albedo(in float3 position, in float3 normal, inout RayPayload p
     return albedo;
 }
 
+#ifdef MODE_IRRADIANCE
+float3 SampleDirectLighting(in float3 hitPos, in float3 N)
+{
+    float3 result = float3(0.0, 0.0, 0.0);
+
+    for (uint light_index = 0; light_index < min(rayTracingConstants.numBoundLights, 16); light_index++)
+    {
+        const Light light = lights[light_index];
+        const float3 light_color = light.color.rgb * light.position_intensity.w;
+
+        if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL)
+        {
+            const float3 L = normalize(light.position_intensity.xyz);
+            const float NdotL = max(dot(N, L), 0.0);
+
+            if (NdotL <= 0.0)
+            {
+                continue;
+            }
+
+            const float shadow = 1.0 - CheckInShadow(hitPos, N, L);
+            result += light_color * NdotL * shadow;
+        }
+        else if (light.type == HYP_LIGHT_TYPE_POINT || light.type == HYP_LIGHT_TYPE_SPOT)
+        {
+            const float3 toLight = light.position_intensity.xyz - hitPos;
+            const float d2 = max(dot(toLight, toLight), 1e-6);
+            const float d = sqrt(d2);
+            const float3 L = toLight / d;
+
+            const float NdotL = max(dot(N, L), 0.0);
+
+            if (NdotL <= 0.0)
+            {
+                continue;
+            }
+
+            const float2 radiusFalloff = float2(f16tof32(light.radiusFalloffPacked), f16tof32(light.radiusFalloffPacked >> 16));
+            const float radius = radiusFalloff.x;
+
+            float attenuation = GetSquareFalloffAttenuation(hitPos, light.position_intensity.xyz, radius);
+
+            if (light.type == HYP_LIGHT_TYPE_SPOT)
+            {
+                const float theta = max(dot(-L, normalize(light.normal.xyz)), 0.0);
+                const float2 spot_angles = light.area_size.xy;
+
+                attenuation *= saturate((theta - spot_angles[0]) / (spot_angles[1] - spot_angles[0])) * step(spot_angles[0], theta);
+            }
+
+            if (attenuation <= 0.0)
+            {
+                continue;
+            }
+
+            const float shadow = 1.0 - CheckInShadow(hitPos, N, L, max(0.0, d - RAY_OFFSET));
+            result += light_color * NdotL * attenuation * shadow;
+        }
+        // TODO: area lights
+    }
+
+    return result;
+}
+#endif
+
+#ifdef MODE_FULL
+float3 SampleDirectLightingFull(in float3 hitPos, in float3 N, in float3 V, in float3 diffuseColor, in float3 F0, in float alpha)
+{
+    float3 result = float3(0.0, 0.0, 0.0);
+    const float NdotV = max(dot(N, V), 0.0);
+
+    for (uint light_index = 0; light_index < rayTracingConstants.numBoundLights; light_index++)
+    {
+        const Light light = lights[light_index];
+        const float3 light_color = light.color.rgb * light.position_intensity.w;
+
+        float3 L;
+        float visibility;
+        float attenuation = 1.0;
+
+        if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL)
+        {
+            L = normalize(light.position_intensity.xyz);
+            visibility = 1.0 - CheckInShadow(hitPos, N, L);
+        }
+        else if (light.type == HYP_LIGHT_TYPE_POINT || light.type == HYP_LIGHT_TYPE_SPOT)
+        {
+            const float3 toLight = light.position_intensity.xyz - hitPos;
+            const float d2 = max(dot(toLight, toLight), 1e-6);
+            const float d = sqrt(d2);
+            L = toLight / d;
+
+            const float2 radiusFalloff = float2(f16tof32(light.radiusFalloffPacked), f16tof32(light.radiusFalloffPacked >> 16));
+            const float radius = radiusFalloff.x;
+
+            attenuation = GetSquareFalloffAttenuation(hitPos, light.position_intensity.xyz, radius);
+
+            if (light.type == HYP_LIGHT_TYPE_SPOT)
+            {
+                const float theta = max(dot(-L, normalize(light.normal.xyz)), 0.0);
+                const float2 spot_angles = light.area_size.xy;
+
+                attenuation *= saturate((theta - spot_angles[0]) / (spot_angles[1] - spot_angles[0])) * step(spot_angles[0], theta);
+            }
+
+            if (attenuation <= 0.0)
+            {
+                continue;
+            }
+
+            visibility = 1.0 - CheckInShadow(hitPos, N, L, max(0.0, d - RAY_OFFSET));
+        }
+        else
+        {
+            // TODO: area lights
+            continue;
+        }
+
+        const float NdotL = max(dot(N, L), 0.0);
+
+        if (NdotL <= 0.0 || visibility <= 0.0)
+        {
+            continue;
+        }
+
+        const float3 H = normalize(V + L);
+        const float NdotH = max(dot(N, H), 0.0);
+        const float LdotH = max(dot(L, H), 0.0);
+
+        const float3 F = F_Schlick(F0, LdotH);
+        const float D = DistributionGGX(NdotH, alpha);
+        const float G = V_SmithGGXCorrelated(alpha * alpha, NdotV, NdotL);
+
+        result += visibility * attenuation * light_color * NdotL * (
+            (1.0 - F) * diffuseColor * HYP_FMATH_ONE_OVER_PI +
+            F * G * D
+        );
+    }
+
+    return result;
+}
+#endif
+
 [shader("raygeneration")]
 void RayGenMain()
 {
@@ -185,68 +328,63 @@ void RayGenMain()
 
             if (payload.distance < 0.0)
             {
-                float4 environmentRadiance = (float4)0.0;
-
-                for (uint envProbeIdx = 0; envProbeIdx < min(rayTracingConstants.numBoundEnvProbes, 16) && environmentRadiance.a < 1.0; envProbeIdx++)
+                if (payload.distance < -1.0)
                 {
-                    const uint envProbeTextureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(envProbes[envProbeIdx]);
+                    float4 environmentRadiance = (float4)0.0;
 
-                    if (envProbeTextureIndex != INVALID_ENV_PROBE_TEXTURE)
+                    for (uint envProbeIdx = 0; envProbeIdx < min(rayTracingConstants.numBoundEnvProbes, 16) && environmentRadiance.a < 1.0; envProbeIdx++)
                     {
-                        float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, envProbeTextureIndex, direction, 0.0) * (1.0 - environmentRadiance.a);
-                        environmentRadiance += env * ENVIRONMENT_INTENSITY;
-                    }
-                }
+                        // EnvProbe currentEnvProbe = envProbes[envProbeIdx];
 
-                radiance += beta * environmentRadiance.rgb;
+                        // const uint probeType = GET_ENV_PROBE_TYPE(currentEnvProbe);
+                        // const bool isSky = (probeType == EPT_SKY);
+                        
+                        // const float4 aabbMin = currentEnvProbe.aabb_min;
+                        // const float4 aabbMax = currentEnvProbe.aabb_max;
+                        
+                        // const float4 worldPosition = currentEnvProbe.world_position;
+                        // const float3 worldPosition3 = worldPosition.xyz;
+                        // const float diffuseStrength = worldPosition.w;
+
+                        // const float weight = (isSky ? 1.0 : CalculateEnvProbeWeight(origin, aabbMin.xyz, aabbMax.xyz)) * diffuseStrength * (1.0 - environmentRadiance.a);
+
+                        // const float3 env = EnvProbeSH(currentEnvProbe, direction, /* order */ 2);
+                        // environmentRadiance += float4(env, 1.0) * weight;
+
+                        
+                        const uint envProbeTextureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(envProbes[envProbeIdx]);
+
+                        if (envProbeTextureIndex != INVALID_ENV_PROBE_TEXTURE)
+                        {
+                            float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, envProbeTextureIndex, direction, 0.0);
+                            env *= (1.0 - environmentRadiance.a);
+                            environmentRadiance += env * ENVIRONMENT_INTENSITY;
+                        }
+                    }
+
+                    radiance += beta * (environmentRadiance.rgb * environmentRadiance.a);
+                }
 
                 break;
             }
 
             float3 albedo = clamp(payload.throughput.rgb, float3(0.0, 0.0, 0.0), float3(1.0, 1.0, 1.0));
-            float metalness = payload.throughput.a;
+            float metalness = clamp(payload.throughput.a, 0.0, 1.0);
 
             float3 hitPos = origin + direction * payload.distance;
             float3 N = normalize(payload.normal);
 
             // emissive
-            if (length(payload.emissive.rgb) > 0.0)
+            if (any(payload.emissive.rgb > float3(0.0, 0.0, 0.0)))
             {
                 radiance += beta * payload.emissive.rgb;
             }
 
-            beta *= albedo * (1.0 - metalness) * HYP_FMATH_ONE_OVER_PI;
+            float3 diffuseColor = albedo * (1.0 - metalness);
+            
+            radiance += beta * diffuseColor * HYP_FMATH_ONE_OVER_PI * SampleDirectLighting(hitPos, N);
 
-            for (uint light_index = 0; light_index < min(rayTracingConstants.numBoundLights, 16); light_index++)
-            {
-                const Light light = lights[light_index];
-                float3 light_color = light.color.rgb * light.position_intensity.w;
-
-                if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL)
-                {
-                    float3 light_direction = normalize(light.position_intensity.xyz);
-                    float3 L = light_direction;
-
-                    // shadow check
-                    float shadow = 1.0 - CheckInShadow(hitPos, N, L);
-
-                    float NdotL = max(dot(N, L), 0.0);
-                    radiance += beta * NdotL * shadow * light_color;
-                }
-                else if (light.type == HYP_LIGHT_TYPE_POINT)
-                {
-                    float3 L = normalize(light.position_intensity.xyz - hitPos);
-                    float d = length(light.position_intensity.xyz - hitPos);
-                    float attenuation = 1.0 / (d * d);
-
-                    float NdotL = max(dot(N, L), 0.0);
-                    radiance += beta * NdotL * light_color * attenuation;
-                }
-                else
-                {
-                    /// ... TODO
-                }
-            }
+            beta *= diffuseColor;
 
             if (bounceIndex >= 3)
             {
@@ -348,7 +486,7 @@ void RayGenMain()
 
                     if (envProbeTextureIndex != INVALID_ENV_PROBE_TEXTURE)
                     {
-                        float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, envProbeTextureIndex, direction, 6.0);
+                        float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, envProbeTextureIndex, direction, 0.0);
                         env *= (1.0 - environmentRadiance.a);
                         environmentRadiance += env * ENVIRONMENT_INTENSITY;
                     }
@@ -369,7 +507,7 @@ void RayGenMain()
             float3 N = normalize(payload.normal);
             float3 baseColor = clamp(payload.throughput.rgb, float3(0.0, 0.0, 0.0), float3(1.0, 1.0, 1.0));
             float metalness = clamp(payload.throughput.a, 0.0, 1.0);
-            float roughness = clamp(payload.roughness * payload.roughness, 0.0, 1.0);
+            float alpha = max(payload.roughness * payload.roughness, ROUGHNESS_FLOOR);
 
             // emissive contribution
             if (any(payload.emissive.rgb > float3(0.0, 0.0, 0.0)))
@@ -379,75 +517,9 @@ void RayGenMain()
 
             float3 diffuseColor = baseColor * (1.0 - metalness);
             float3 V = normalize(-direction);
-            float NdotV = max(dot(N, V), 0.0);
             float3 F0 = lerp(float3(0.04, 0.04, 0.04), baseColor, metalness);
 
-            for (uint light_index = 0; light_index < rayTracingConstants.numBoundLights; light_index++)
-            {
-                const Light light = lights[light_index];
-
-                if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL)
-                {
-                    float3 L = normalize(light.position_intensity.xyz);
-                    float visibility = 1.0 - CheckInShadow(hitPos, N, L);
-                    float NdotL = max(dot(N, L), 0.0);
-                    if (NdotL > 0.0 && visibility > 0.0)
-                    {
-                        float3 light_color = light.color.rgb * light.position_intensity.w;
-
-                        float3 H = normalize(V + L);
-
-                        float NdotH = max(dot(N, H), 0.0);
-                        float HdotV = max(dot(H, V), 0.0);
-                        float LdotH = max(dot(L, H), 0.0);
-
-                        float3 F = F_Schlick(F0, LdotH);
-                        float D = DistributionGGX(NdotH, sqrt(roughness));
-                        float G = V_SmithGGXCorrelated(roughness, NdotV, NdotL);
-
-                        Li += float4(beta * visibility * light_color * NdotL * (
-                            (1.0 - F) * diffuseColor * HYP_FMATH_ONE_OVER_PI +
-                            F * G * D
-                        ), 1.0);
-                    }
-                }
-                else if (light.type == HYP_LIGHT_TYPE_POINT)
-                {
-                    float3 toLight = light.position_intensity.xyz - hitPos;
-                    float d2 = max(dot(toLight, toLight), 1e-6);
-                    float d = sqrt(d2);
-                    float3 L = toLight / d;
-                    float visibility = 1.0 - CheckInShadow(hitPos, N, L, max(0.0, d - RAY_OFFSET));
-
-                    float NdotL = max(dot(N, L), 0.0);
-
-                    if (NdotL > 0.0 && visibility > 0.0)
-                    {
-                        float3 light_color = light.color.rgb * light.position_intensity.w;
-
-                        float attenuation = 1.0 / d2;
-
-                        float3 H = normalize(-direction + L);
-
-                        float NdotH = max(dot(N, H), 0.0);
-                        float LdotH = max(dot(L, H), 0.0);
-                        float NdotV = max(dot(N, -direction), 0.0);
-
-                        float3 F = F_Schlick(F0, LdotH);
-                        float G = V_SmithGGXCorrelated(roughness, NdotV, NdotL);
-                        float D = DistributionGGX(NdotH, sqrt(roughness));
-
-                        Li += float4(beta * light_color * attenuation * visibility * NdotL * (
-                            (1.0 - F) * diffuseColor * HYP_FMATH_ONE_OVER_PI +
-                            F * G * D
-                        ), 1.0);
-                    }
-                }
-                else
-                {
-                    // TODO: area/spotlights
-                }
-            }
+            Li += float4(beta * SampleDirectLightingFull(hitPos, N, V, diffuseColor, F0, alpha), 1.0);
 
             // Russian roulette
             if (bounceIndex >= 3)
@@ -674,5 +746,6 @@ void RayGenMain()
     float4 finalColor = float4(0.0, 1.0, 0.0, 1.0);
 #endif
 
+    finalColor.a = saturate(finalColor.a);
     hits[ray_index] = finalColor;
 }

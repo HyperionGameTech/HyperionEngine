@@ -78,8 +78,6 @@ float3 CalculateRefraction(
 
 #include "../include/EnvProbes.hlsli"
 
-static const float s_envProbeBlendFactor = 0.1;
-
 void ApplyReflectionProbe(uint probe_texture_index, float3 R, float lod, inout float4 ibl)
 {
     ibl = float4(0.0, 0.0, 0.0, 0.0);
@@ -130,18 +128,6 @@ float4 CalculateReflectionProbe(in EnvProbe probe, float3 P, float3 N, float3 R,
     }
 
     return ibl;
-}
-
-float CalculateEnvProbeWeight(float3 positionWS, float3 aabbMin, float3 aabbMax)
-{
-    const float3 aabbExtent = aabbMax - aabbMin;
-
-    const float3 blend = aabbExtent * s_envProbeBlendFactor;
-    const float3 distToMin = (positionWS.xyz - aabbMin) / blend;
-    const float3 distToMax = (aabbMax - positionWS.xyz) / blend;
-    const float minBlend = min(distToMin.x, min(distToMin.y, min(distToMin.z, min(distToMax.x, min(distToMax.y, distToMax.z)))));
-
-    return smoothstep(0.0, 1.0, minBlend);
 }
 
 // Must include ClusteredShading.hlsli before including this if you want

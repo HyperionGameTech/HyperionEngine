@@ -103,12 +103,6 @@ namespace Hyperion.Editor
             _rightPanelHost = this.FindControl<Control>("RightPanelHost");
             _rightPanelCollapsedStrip = this.FindControl<Border>("RightPanelCollapsedStrip");
 
-            var collapseRightPanel = this.FindControl<Button>("CollapseRightPanel");
-            var expandRightPanel = this.FindControl<Button>("ExpandRightPanel");
-
-            if (collapseRightPanel != null) collapseRightPanel.Click += OnCollapseRightPanel;
-            if (expandRightPanel != null) expandRightPanel.Click += OnExpandRightPanel;
-
             PanelService.Instance.ActivePanelChanged += OnActivePanelChanged;
             UpdateRightPanelLayout();
 
@@ -205,7 +199,7 @@ namespace Hyperion.Editor
             nodeViewModel.IsEditingName = false;
 
             string trimmedName = newName.Trim();
-            
+
             if (string.IsNullOrEmpty(trimmedName) || trimmedName == nodeViewModel.Name)
                 return;
 
@@ -636,9 +630,6 @@ namespace Hyperion.Editor
         private void OnExpandContentBrowser(object? sender, RoutedEventArgs e) { _contentBrowserExpanded = true; UpdateBottomPanelLayout(); }
         private void OnCollapseConsole(object? sender, RoutedEventArgs e) { _consoleExpanded = false; UpdateBottomPanelLayout(); }
         private void OnExpandConsole(object? sender, RoutedEventArgs e) { _consoleExpanded = true; UpdateBottomPanelLayout(); }
-
-        private void OnCollapseRightPanel(object? sender, RoutedEventArgs e) { _rightPanelExpanded = false; UpdateRightPanelLayout(); }
-        private void OnExpandRightPanel(object? sender, RoutedEventArgs e) { _rightPanelExpanded = true; UpdateRightPanelLayout(); }
 
         private void OnActivePanelChanged(object? sender, EventArgs e)
         {
