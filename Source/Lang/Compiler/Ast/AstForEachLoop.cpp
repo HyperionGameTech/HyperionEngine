@@ -133,10 +133,10 @@ UniquePtr<Buildable> AstForEachLoop::Build(AstVisitor* visitor, Module* mod)
     uint8 sizeFuncReg = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
     {
-        HashCode::ValueType sizeHash = HashCode::GetHashCode("Size").Value();
+        constexpr HashCode::ValueType SizeHash = HashCode::GetHashCode("Size").Value();
 
         auto instrLoadSize = BytecodeUtil::Make<StorageOperation>();
-        instrLoadSize->GetBuilder().Load(sizeFuncReg).Member(arrayReg).ByHash(sizeHash);
+        instrLoadSize->GetBuilder().Load(sizeFuncReg).Member(arrayReg).ByHash(SizeHash);
         chunk->Append(std::move(instrLoadSize));
     }
 

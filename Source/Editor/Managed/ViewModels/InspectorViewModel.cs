@@ -255,60 +255,12 @@ namespace Hyperion.Editor.ViewModels
             }
 
             // collect actions (methods with editoraction attribute)
-            List<Method> actions = nodeClass.Methods
-                .Where(m => m.IsMemberFunction)
-                .Where(m => m.GetAttribute("editoraction") != null)
-                .Where(m => EvaluateEditCondition(nodeClass, m.GetAttribute("editcondition"), m.Name.ToString()))
-                .OrderBy(m =>
-                {
-                    ClassAttribute? attrEditOrder = m.GetAttribute("editororder");
-
-                    if (attrEditOrder != null)
-                    {
-                        return attrEditOrder.Value.GetInt();
-                    }
-
-                    return int.MaxValue;
-                })
-                .ThenBy(m => m.Name.ToString())
-                .ToList();
-
-            Logger.Log(LogLevel.Debug, $"Inspector found {actions.Count} actions for node '{SelectedNode.Name}'");
-
-            foreach (Method method in actions)
+            foreach (InspectorActionViewModel actionVm in InspectorActionsHelper.GetActions(SelectedNode))
             {
-                try
-                {
-                    ClassAttribute? attrEditor = method.GetAttribute("editor");
-
-                    if (attrEditor != null && attrEditor.Value.GetBool() == false)
-                    {
-                        continue;
-                    }
-
-                    string label = method.Name.ToString();
-                    ClassAttribute? attrEditorAction = method.GetAttribute("editoraction");
-
-                    if (attrEditorAction != null && attrEditorAction.Value.IsString)
-                    {
-                        label = attrEditorAction.Value.GetString();
-                    }
-
-                    bool isEnabled = true;
-                    ClassAttribute? attrEditEnabled = method.GetAttribute("editenabled");
-
-                    if (attrEditEnabled != null && attrEditEnabled.Value.IsBool && attrEditEnabled.Value.GetBool() == false)
-                    {
-                        isEnabled = false;
-                    }
-
-                    Actions.Add(new InspectorActionViewModel(SelectedNode, method, label, isEnabled));
-                }
-                catch (Exception ex)
-                {
-                    Logger.Log(LogLevel.Warning, $"Inspector failed to create view model for action '{method.Name}': {ex.Message}");
-                }
+                Actions.Add(actionVm);
             }
+
+            Logger.Log(LogLevel.Debug, $"Inspector found {Actions.Count} actions for node '{SelectedNode.Name}'");
 
             HasActions = Actions.Count > 0;
 
@@ -380,47 +332,9 @@ namespace Hyperion.Editor.ViewModels
 
             Actions.Clear();
 
-            Class nodeClass = SelectedNode.Class;
-
-            List<Method> actions = nodeClass.Methods
-                .Where(m => m.IsMemberFunction)
-                .Where(m => m.GetAttribute("editoraction") != null)
-                .Where(m => EvaluateEditCondition(nodeClass, m.GetAttribute("editcondition"), m.Name.ToString()))
-                .OrderBy(m =>
-                {
-                    ClassAttribute? attrEditOrder = m.GetAttribute("editororder");
-                    return attrEditOrder != null ? attrEditOrder.Value.GetInt() : int.MaxValue;
-                })
-                .ThenBy(m => m.Name.ToString())
-                .ToList();
-
-            foreach (Method method in actions)
+            foreach (InspectorActionViewModel actionVm in InspectorActionsHelper.GetActions(SelectedNode))
             {
-                try
-                {
-                    ClassAttribute? attrEditor = method.GetAttribute("editor");
-
-                    if (attrEditor != null && attrEditor.Value.GetBool() == false)
-                    {
-                        continue;
-                    }
-
-                    string label = method.Name.ToString();
-                    ClassAttribute? attrEditorAction = method.GetAttribute("editoraction");
-                    if (attrEditorAction != null && attrEditorAction.Value.IsString)
-                        label = attrEditorAction.Value.GetString();
-
-                    bool isEnabled = true;
-                    ClassAttribute? attrEditEnabled = method.GetAttribute("editenabled");
-                    if (attrEditEnabled != null && attrEditEnabled.Value.IsBool && attrEditEnabled.Value.GetBool() == false)
-                        isEnabled = false;
-
-                    Actions.Add(new InspectorActionViewModel(SelectedNode, method, label, isEnabled));
-                }
-                catch (Exception ex)
-                {
-                    Logger.Log(LogLevel.Warning, $"Inspector failed to create view model for action '{method.Name}': {ex.Message}");
-                }
+                Actions.Add(actionVm);
             }
 
             HasActions = Actions.Count > 0;
@@ -642,7 +556,7 @@ namespace Hyperion.Editor.ViewModels
             if (SelectedNode is not Entity entity || entity.EntityManager == null)
                 return;
 
-            MessageBox.Info("Remove Component", $"Remove '{componentVm.Label}' component?")
+            MessageBox.Info("Remove Component", $"Are you sure you want to remove the {componentVm.Label} component from {entity.Name}?")
                 .Button("Remove", () => _ = RemoveComponentConfirmed(componentVm, entity))
                 .Button("Cancel", () => { })
                 .Show();

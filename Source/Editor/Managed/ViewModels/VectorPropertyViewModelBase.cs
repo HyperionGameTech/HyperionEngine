@@ -284,7 +284,7 @@ namespace Hyperion.Editor.ViewModels
         // Blocking wait on sim thread to read the struct value.
         private TStruct ReadStructFromProperty()
         {
-            Task<TStruct> task = EngineManager.PostToSimThread<TStruct>(() =>
+            var task = EngineManager.PostToSimThread<TStruct>(() =>
             {
                 using BoxedValue boxed = GetPropertyValue();
                 IntPtr ptr = boxed.Pointer;
@@ -296,9 +296,6 @@ namespace Hyperion.Editor.ViewModels
 
                 return Marshal.PtrToStructure<TStruct>(ptr);
             });
-
-            // @FIXME Make async and use task.ConfigureAwait(false) to avoid deadlock
-            task.Wait();
 
             return task.Result;
         }

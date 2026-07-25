@@ -40,11 +40,9 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 ShadowMap::ShadowMap(
     ShadowMapType type,
-    ShadowMapFilter filterMode,
     const ShadowMapAtlasElement& atlasElement,
     const GpuImageViewRef& imageView)
     : m_type(type),
-      m_filterMode(filterMode),
       m_atlasElement(new ShadowMapAtlasElement(atlasElement)),
       m_imageView(imageView)
 {

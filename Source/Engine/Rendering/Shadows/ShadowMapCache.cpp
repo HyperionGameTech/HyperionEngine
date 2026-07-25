@@ -31,8 +31,8 @@
 
 namespace Hyperion {
 
-CVar<float> g_cvBaseDepthBias("Rendering.BaseDepthBias", 0.0015f);
-CVar<float> g_cvBaseDepthBiasDirectional("Rendering.BaseDepthBiasDirectional", 0.01f);
+CVar<float> g_cvShadowDepthBias("Rendering.ShadowDepthBias", 0.05f);
+CVar<float> g_cvShadowDepthBiasDirectional("Rendering.ShadowDepthBiasDirectional", 0.05f);
 
 // Set to true to create camera-specific shadow maps for CSM
 // Will cause more shadow maps to be allocated, and specifically other non-main cameras
@@ -193,7 +193,7 @@ static ViewDesc GetViewDesc(
     const bool cacheStaticShadowMaps = !hasBakedStaticShadows && (light->GetLightFlags() & LightFlags::CacheStaticShadowMaps);
     const bool splitStaticAndDynamic = cacheStaticShadowMaps || hasBakedStaticShadows;
 
-    const float depthBias = (isDirectional ? g_cvBaseDepthBiasDirectional.Get() : g_cvBaseDepthBias.Get());
+    const float depthBias = (isDirectional ? g_cvShadowDepthBiasDirectional.Get() : g_cvShadowDepthBias.Get());
     const float depthBiasScaled = depthBias * depthRange * (isDirectional ? DepthBiasScaleFactor[cascadeIndex] : 1.0f);
 
     ViewDesc viewDesc {};
@@ -387,8 +387,7 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
 
         const ShadowMapType shadowMapType = LightTypeToShadowMapType[uint32(light->GetLightType())];
 
-        ShadowMap* newShadowMap = m_impl->allocator.AllocateShadowMap(
-            shadowMapType, SMF_PCF, light->GetShadowMapDimensions());
+        ShadowMap* newShadowMap = m_impl->allocator.AllocateShadowMap(shadowMapType, light->GetShadowMapDimensions());
 
         ShadowMap*& outShadowMap = isOmni
             ? entry.shadowMaps[0]

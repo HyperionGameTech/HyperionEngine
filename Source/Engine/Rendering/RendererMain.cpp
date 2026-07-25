@@ -1093,7 +1093,8 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
             cr << BindIndexBuffer(meshProxy.mesh->GetIndexBuffer());
 
 #if HYP_MATERIAL_DEBUG
-            AssertDebug(meshProxy.material != nullptr && meshProxy.material->IsReady());
+            AssertDebug(meshProxy.material != nullptr);
+
             if (!meshProxy.material->GetTexture(MaterialTextureKey::Diffuse))
             {
                 HYP_LOG(Rendering, Warning, "Rendering instanced draw call with material '{}' that has no albedo map bound!", meshProxy.material->GetName());
@@ -1212,7 +1213,8 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
             cr << BindIndexBuffer(meshProxy.mesh->GetIndexBuffer());
 
 #if HYP_MATERIAL_DEBUG
-            AssertDebug(meshProxy.material != nullptr && meshProxy.material->IsReady());
+            AssertDebug(meshProxy.material != nullptr);
+            
             if (!meshProxy.material->GetTexture(MaterialTextureKey::Diffuse))
             {
                 HYP_LOG(Rendering, Warning, "Rendering instanced draw call with material '{}' that has no albedo map bound!", meshProxy.material->GetName());

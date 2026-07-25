@@ -19,7 +19,7 @@ struct BoundingSphere;
 namespace ShadowCameraHelpers {
 
 Mat4f CalculateShadowViewMatrix(
-    const Frustum& mainCameraFrustum,
+    const BoundingSphere& sceneWorldBounds,
     const Vec3f& lightDir);
 
 BoundingBox CalculateCascadeBounds(

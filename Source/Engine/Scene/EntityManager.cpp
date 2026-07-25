@@ -1517,7 +1517,7 @@ void EntityManager::NotifySystemsOfEntityRemoved(Entity* entity, const Component
 
             if (systemIt.second->ActsOnComponents(keys.ToSpan(), true))
             {
-                { // critical section
+                {
                     TUniqueLock lock(m_systemEntityMapMutex);
 
                     auto systemEntityIt = m_systemEntityMap.Find(systemIt.second);

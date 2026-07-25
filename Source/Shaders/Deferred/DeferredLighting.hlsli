@@ -258,7 +258,9 @@ void EvaluateEnvProbes(
         const float skyIrradianceWeight = isSky ? (1.0 - lightmappedWeight) : 1.0;
         const float diffuseContributionWeight = diffuseStrength;
 
-        float reflectionsWeight = isSky ? 1.0 : CalculateEnvProbeWeight(positionWS, aabbMin.xyz, aabbMax.xyz);
+        const float boundsWeight = isSky ? 1.0 : CalculateEnvProbeWeight(positionWS, aabbMin.xyz, aabbMax.xyz);
+
+        float reflectionsWeight = boundsWeight;
         reflectionsWeight *= visibility;
         reflectionsWeight *= (1.0 - irradianceOnlyWeight);
 
@@ -266,7 +268,7 @@ void EvaluateEnvProbes(
         static const float s_irradianceFalloffPower = 0.5;
         static const float s_irradianceFalloffBeginDist = 6.0;
 
-        float irradianceWeight = pow(max(1.0f - smoothstep(max(0.001, s_irradianceFalloffBeginDist), far, dist), 0.0001), s_irradianceFalloffPower);
+        float irradianceWeight = boundsWeight;//pow(max(1.0f - smoothstep(max(0.001, s_irradianceFalloffBeginDist), far, dist), 0.0001), s_irradianceFalloffPower);
         irradianceWeight *= visibility;
         irradianceWeight *= skyIrradianceWeight;
         irradianceWeight *= diffuseContributionWeight;

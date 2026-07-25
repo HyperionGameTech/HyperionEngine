@@ -85,6 +85,29 @@ namespace Hyperion.Editor.ViewModels
 
         public ObservableCollection<NodeViewModel> Children { get; } = new ObservableCollection<NodeViewModel>();
 
+        public ObservableCollection<InspectorActionViewModel> Actions { get; } = new ObservableCollection<InspectorActionViewModel>();
+
+        private bool _hasActions;
+        public bool HasActions
+        {
+            get => _hasActions;
+            private set => SetProperty(ref _hasActions, value);
+        }
+
+        public void RefreshActions()
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            Actions.Clear();
+
+            foreach (InspectorActionViewModel actionVm in InspectorActionsHelper.GetActions(_node))
+            {
+                Actions.Add(actionVm);
+            }
+
+            HasActions = Actions.Count > 0;
+        }
+
         private bool _isExpanded;
         public bool IsExpanded
         {

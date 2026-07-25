@@ -142,7 +142,7 @@ void ShadowMapAllocator::Shutdown()
     EnqueueDeletion(std::move(m_pointLightTextureArray));
 }
 
-ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, ShadowMapFilter filterMode, const Vec2u& dimensions)
+ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, const Vec2u& dimensions)
 {
     HYP_SCOPE;
 
@@ -225,7 +225,6 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
 
         ShadowMap* shadowMap = new ShadowMap(
             shadowMapType,
-            filterMode,
             atlasElement,
             atlasImageView);
 
@@ -256,7 +255,6 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
 
             ShadowMap* shadowMap = new ShadowMap(
                 shadowMapType,
-                filterMode,
                 *atlasElement,
                 atlasImageView);
 

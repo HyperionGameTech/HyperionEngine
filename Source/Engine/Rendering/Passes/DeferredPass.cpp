@@ -496,7 +496,7 @@ public:
 
         Mat4f projMatrix = cameraProxy->bufferData.projMat;
 
-        auto CalculateZBin = [scale, bias](float viewSpaceZ) -> int32
+        auto calculateZBin = [scale, bias](float viewSpaceZ) -> int32
         {
             const float z = MathUtil::Max(viewSpaceZ, 0.0001f);
             const int32 zBin = int32(std::log2(z) * scale + bias);
@@ -504,8 +504,11 @@ public:
             return MathUtil::Clamp(zBin, 0, int32(TileZBins) - 1);
         };
 
-        auto ProjectSphereToScreenAABB = [&projMatrix, &extent, cameraNear, numTilesX, numTilesY](
-                                             const Vec3f& centerVS, float radius, uint32& outMinX, uint32& outMinY, uint32& outMaxX, uint32& outMaxY) -> bool
+        auto projectSphereToScreenAABB = [&projMatrix, &extent, cameraNear, numTilesX, numTilesY](
+            const Vec3f& centerVS,
+            float radius,
+            uint32& outMinX, uint32& outMinY,
+            uint32& outMaxX, uint32& outMaxY) -> bool
         {
             const float dist = centerVS.z;
 
@@ -554,8 +557,11 @@ public:
             return true;
         };
 
-        auto ProjectAABBToScreenTiles = [&viewMatrix, &projMatrix, &extent, cameraNear, numTilesX, numTilesY](
-                                            const Vec3f& aabbMinWS, const Vec3f& aabbMaxWS, uint32& outMinX, uint32& outMinY, uint32& outMaxX, uint32& outMaxY, float& outMinVSZ, float& outMaxVSZ) -> bool
+        auto projectAABBToScreenTiles = [&viewMatrix, &projMatrix, &extent, cameraNear, numTilesX, numTilesY](
+            const Vec3f& aabbMinWS, const Vec3f& aabbMaxWS,
+            uint32& outMinX, uint32& outMinY,
+            uint32& outMaxX, uint32& outMaxY,
+            float& outMinVSZ, float& outMaxVSZ) -> bool
         {
             const Vec3f corners[8] = {
                 { aabbMinWS.x, aabbMinWS.y, aabbMinWS.z },
@@ -677,14 +683,14 @@ public:
                 uint32 tileMaxX;
                 uint32 tileMaxY;
 
-                if (!ProjectSphereToScreenAABB(lightPosVS, lightRadius, tileMinX, tileMinY, tileMaxX, tileMaxY))
+                if (!projectSphereToScreenAABB(lightPosVS, lightRadius, tileMinX, tileMinY, tileMaxX, tileMaxY))
                 {
                     continue;
                 }
 
                 const float lightDistVS = lightPosVS.z;
-                const int32 zBinMin = CalculateZBin(MathUtil::Max(lightDistVS - lightRadius, cameraNear));
-                const int32 zBinMax = CalculateZBin(MathUtil::Min(lightDistVS + lightRadius, cameraFar));
+                const int32 zBinMin = calculateZBin(MathUtil::Max(lightDistVS - lightRadius, cameraNear));
+                const int32 zBinMax = calculateZBin(MathUtil::Min(lightDistVS + lightRadius, cameraFar));
 
                 for (int32 z = zBinMin; z <= zBinMax; z++)
                 {
@@ -812,13 +818,13 @@ public:
             float probeVSZMin;
             float probeVSZMax;
 
-            if (!ProjectAABBToScreenTiles(aabbMinWS, aabbMaxWS, tileMinX, tileMinY, tileMaxX, tileMaxY, probeVSZMin, probeVSZMax))
+            if (!projectAABBToScreenTiles(aabbMinWS, aabbMaxWS, tileMinX, tileMinY, tileMaxX, tileMaxY, probeVSZMin, probeVSZMax))
             {
                 continue;
             }
 
-            const int32 zBinMin = CalculateZBin(MathUtil::Max(probeVSZMin, cameraNear));
-            const int32 zBinMax = CalculateZBin(MathUtil::Min(probeVSZMax, cameraFar));
+            const int32 zBinMin = calculateZBin(MathUtil::Max(probeVSZMin, cameraNear));
+            const int32 zBinMax = calculateZBin(MathUtil::Min(probeVSZMax, cameraFar));
 
             for (int32 z = zBinMin; z <= zBinMax; z++)
             {

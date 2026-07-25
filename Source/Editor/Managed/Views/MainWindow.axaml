@@ -540,12 +540,20 @@
                                                     VerticalAlignment="Center" />
                                             </StackPanel>
                                             <Grid.ContextMenu>
-                                                <ContextMenu>
+                                                <ContextMenu Opened="OnNodeContextMenuOpened">
                                                     <MenuItem Command="{Binding DataContext.Copy, ElementName=Root}" Header="{Binding DataContext.CopyHeader, ElementName=Root}" />
                                                     <MenuItem Command="{Binding DataContext.Paste, ElementName=Root}" Header="{Binding DataContext.PasteHeader, ElementName=Root}" />
                                                     <Separator />
                                                     <MenuItem Click="OnRenameNodeMenuItemClick" Header="Rename" />
                                                     <MenuItem Command="{Binding DataContext.TeleportToNode, ElementName=Root}" CommandParameter="{Binding Name}" Header="Teleport to" />
+                                                    <Separator IsVisible="{Binding HasActions}" />
+                                                    <MenuItem Header="Actions" IsVisible="{Binding HasActions}" ItemsSource="{Binding Actions}">
+                                                        <MenuItem.ItemTemplate>
+                                                            <DataTemplate x:DataType="vm:InspectorActionViewModel">
+                                                                <MenuItem Command="{Binding ExecuteActionCommand}" Header="{Binding Label}" IsEnabled="{Binding IsEnabled}" />
+                                                            </DataTemplate>
+                                                        </MenuItem.ItemTemplate>
+                                                    </MenuItem>
                                                     <Separator />
                                                     <MenuItem Command="{Binding DataContext.DeleteNode, ElementName=Root}" Header="{Binding DataContext.DeleteHeader, ElementName=Root}" />
                                                 </ContextMenu>

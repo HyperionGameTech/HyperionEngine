@@ -20,20 +20,17 @@ class Light;
 class View;
 class ShadowMap;
 
-enum ShadowMapType : uint32;
+enum ShadowMapType : uint8;
 
-struct ShadowMapCacheKey
+union ShadowMapCacheKey
 {
-    union
-    {
-        uint64 hash;
+    uint64 hash;
 
-        struct
-        {
-            uint32 lightHash : 32;
-            uint32 cameraHash : 31;
-            uint32 isCameraDependent : 1;
-        };
+    struct
+    {
+        uint32 lightHash : 32;
+        uint32 cameraHash : 31;
+        uint32 isCameraDependent : 1;
     };
 
     HYP_FORCE_INLINE bool IsCameraDependent() const

@@ -97,7 +97,7 @@ bool TraceRays(
     float3 currStep = ssrConstants.ray_step * ray_direction;
     float3 currPosition = ray_origin;
 
-    const int max_iterations = int(ssrConstants.num_iterations);
+    const int max_iterations = 512;//int(ssrConstants.num_iterations);
 
     num_iterations = 0.0;
     hit_pixel = float2(0.0, 0.0);
@@ -171,7 +171,7 @@ float CalculateAlpha(
     float3 ray_direction)
 {
     float alpha = 1.0;
-    alpha *= saturate(1.0 - (num_iterations / ssrConstants.num_iterations));
+    // alpha *= saturate(1.0 - (num_iterations / ssrConstants.num_iterations));
 
     // Fade hits that are against the screen edge
 
