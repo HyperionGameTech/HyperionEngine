@@ -33,9 +33,9 @@
 
 #include <Framework/Threads/RenderThread.hpp>
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 #include <Editor/EditorTask.hpp>
-#endif
+#endif // HYP_EDITOR
 
 #include <semaphore>
 

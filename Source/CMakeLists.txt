@@ -807,6 +807,12 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
     return()
   endif()
 
+  # skip Baking if HYP_EDITOR is not defined
+  if(${dir} MATCHES "${CMAKE_SOURCE_DIR}/Engine/Baking" AND NOT HYP_EDITOR)
+    message(STATUS "Skipping Baking directory (HYP_EDITOR not defined)")
+    return()
+  endif()
+
   file(GLOB current_sources RELATIVE ${CMAKE_SOURCE_DIR}
         "${dir}/*.cpp" "${dir}/*.cxx" "${dir}/*.cc" "${dir}/*.c" "${dir}/*.mm" "${dir}/*.m")
   list(APPEND local_sources ${current_sources})
@@ -1203,7 +1209,6 @@ if(HYP_EDITOR)
 
   if(APPLE)
     target_link_libraries(${BUILD_NAME} PRIVATE "-force_load $<TARGET_FILE:hyperion-editor>")
-    # target_link_libraries(${BUILD_NAME} PRIVATE -force_load $<TARGET_FILE:hyperion-editor>)
   elseif(MSVC)
     target_link_options(${BUILD_NAME} PRIVATE "/WHOLEARCHIVE:$<TARGET_FILE:hyperion-editor>")
   else()
