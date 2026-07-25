@@ -32,6 +32,8 @@ static constexpr uint16 NumReservedStatIds = 5;
 
 static AtomicVar<int> s_nextStatId { NumReservedStatIds };
 
+static constexpr uint32 NumStatSnapshots = 2;
+
 struct EngineStatsRecorderImpl
 {
     EngineStatsSnapshot* snapshots;
@@ -42,6 +44,8 @@ struct EngineStatsRecorderImpl
     uint32 numSamples;
     uint32 sampleIndex;
 
+    AtomicVar<uint32> publishedSnapshotIndex { 0 };
+
     EngineStatsRecorderImpl()
         : snapshots(nullptr),
           statsBuffer(nullptr),
@@ -51,7 +55,7 @@ struct EngineStatsRecorderImpl
     {
         counter.delta = 1.0;
 
-        snapshots = new EngineStatsSnapshot[RingBufferDepth];
+        snapshots = new EngineStatsSnapshot[NumStatSnapshots];
 
         statsBuffer = new float[EngineStatsMaxStats * EngineStatsNumSamples];
     }
@@ -297,19 +301,17 @@ float EngineStats::QueryStatValue(UTF8StringView path, float valueIfNotFound) co
         return valueIfNotFound;
     }
 
-    return stat->GetValue();
+    return GetCurrentSnapshot()[*stat].value;
 }
 
 EngineStatsSnapshot& EngineStats::GetCurrentSnapshot()
 {
-    AssertOnThread(g_renderThread | g_simThread);
-    return m_impl->snapshots[GetRingIndex()];
+    return m_impl->snapshots[m_impl->publishedSnapshotIndex.Get(MemoryOrder::ACQUIRE)];
 }
 
 const EngineStatsSnapshot& EngineStats::GetCurrentSnapshot() const
 {
-    AssertOnThread(g_renderThread | g_simThread);
-    return m_impl->snapshots[GetRingIndex()];
+    return m_impl->snapshots[m_impl->publishedSnapshotIndex.Get(MemoryOrder::ACQUIRE)];
 }
 
 void EngineStats::SetSampleData(uint16 statId, uint32 sampleIdx, float value)
@@ -404,7 +406,8 @@ void EngineStats::Publish()
         m_impl->deltaAccum = 0.0;
     }
 
-    EngineStatsSnapshot& snapshot = m_impl->snapshots[GetRingIndex()];
+    const uint32 writeIndex = 1 - m_impl->publishedSnapshotIndex.Get(MemoryOrder::RELAXED);
+    EngineStatsSnapshot& snapshot = m_impl->snapshots[writeIndex];
 
     const float msPerFrame = m_impl->counter.delta * 1000.0;
 
@@ -487,6 +490,8 @@ void EngineStats::Publish()
 
     m_impl->numSamples = MathUtil::Min<uint32>(m_impl->numSamples + 1u, EngineStatsNumSamples);
     m_impl->sampleIndex = (m_impl->sampleIndex + 1) % EngineStatsNumSamples;
+
+    m_impl->publishedSnapshotIndex.Set(writeIndex, MemoryOrder::RELEASE);
 }
 
 void EngineStats::RecordValueSet(const EngineStatsValueSet& valueSet)

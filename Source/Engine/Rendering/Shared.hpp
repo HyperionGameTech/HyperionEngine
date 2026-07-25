@@ -804,7 +804,7 @@ struct BlendFunction
     HYP_METHOD(Property = "SrcColor", Serialize)
     HYP_FORCE_INLINE void SetSrcColor(BlendModeFactor src)
     {
-        value |= uint32(src);
+        value = (value & ~uint32(0xF)) | uint32(src);
     }
 
     HYP_METHOD(Property = "DstColor", Serialize)
@@ -816,7 +816,7 @@ struct BlendFunction
     HYP_METHOD(Property = "DstColor", Serialize)
     HYP_FORCE_INLINE void SetDstColor(BlendModeFactor dst)
     {
-        value |= uint32(dst) << 4;
+        value = (value & ~(uint32(0xF) << 4)) | (uint32(dst) << 4);
     }
 
     HYP_METHOD(Property = "SrcAlpha", Serialize)
@@ -828,7 +828,7 @@ struct BlendFunction
     HYP_METHOD(Property = "SrcAlpha", Serialize)
     HYP_FORCE_INLINE void SetSrcAlpha(BlendModeFactor src)
     {
-        value |= uint32(src) << 8;
+        value = (value & ~(uint32(0xF) << 8)) | (uint32(src) << 8);
     }
 
     HYP_METHOD(Property = "DstAlpha", Serialize)
@@ -840,7 +840,7 @@ struct BlendFunction
     HYP_METHOD(Property = "DstAlpha", Serialize)
     HYP_FORCE_INLINE void SetDstAlpha(BlendModeFactor dst)
     {
-        value |= uint32(dst) << 12;
+        value = (value & ~(uint32(0xF) << 12)) | (uint32(dst) << 12);
     }
 
     HYP_FORCE_INLINE constexpr bool operator==(const BlendFunction& other) const

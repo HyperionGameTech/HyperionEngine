@@ -22,6 +22,9 @@
 
 #include <Rendering/Bindless.hpp>
 #include <Rendering/PlaceholderData.hpp>
+#include <Rendering/RenderMemory.hpp>
+
+#include <Core/Memory/Allocator/ArenaAllocator.hpp>
 
 #include <algorithm>
 
@@ -114,11 +117,6 @@ RendererResult DX12DescriptorSet::Create()
 
     const ShaderInputSet* decl = m_layout.GetDeclaration();
 
-    // Build sorted entries that match D3D12 descriptor range ordering from BuildRootSignature.
-    // View ranges are sorted by (RangeType, BaseShaderRegister).
-    // Sampler ranges are sorted by (BaseShaderRegister).
-    // This ordering must match the D3D12 descriptor table layout so that
-    // D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND resolves each range to the correct heap offset.
     struct ViewEntry
     {
         uint32 binding;
@@ -134,8 +132,8 @@ RendererResult DX12DescriptorSet::Create()
         uint32 baseShaderRegister;
     };
 
-    Array<ViewEntry, DX12TempAllocator> viewEntries;
-    Array<SamplerEntr, DX12TempAllocatory> samplerEntries;
+    Array<ViewEntry, DX12Allocator> viewEntries;
+    Array<SamplerEntry, DX12Allocator> samplerEntries;
 
     for (uint8 slotIndex = 0; slotIndex < NumDescriptorSlots; slotIndex++)
     {

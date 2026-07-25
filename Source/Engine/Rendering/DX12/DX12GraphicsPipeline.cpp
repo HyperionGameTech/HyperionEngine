@@ -40,11 +40,8 @@ extern DX12RenderInterface RI;
 
 namespace {
 
-/*! \brief Function pointer type for D3DReflect, dynamically loaded from d3dcompiler.dll
- *  to avoid adding a static linker dependency on legacy d3dcompiler.lib. */
 using PFN_D3DReflect = HRESULT(WINAPI*)(LPCVOID, SIZE_T, REFIID, void**);
 
-/*! \brief Lazily load D3DReflect from d3dcompiler.dll. Returns null if unavailable. */
 PFN_D3DReflect GetD3DReflect()
 {
     static PFN_D3DReflect s_pfnD3DReflect = []() -> PFN_D3DReflect
@@ -62,13 +59,6 @@ PFN_D3DReflect GetD3DReflect()
     return s_pfnD3DReflect;
 }
 
-/*! \brief Inspect the pixel shader bytecode via reflection and return the highest
- *  SV_Target output slot index (+1) declared by the shader.
- *
- *  This is used to pad the PSO's \c NumRenderTargets / \c RTVFormats so the D3D12 debug
- *  layer does not emit CREATEGRAPHICSPIPELINESTATE_RENDERTARGETVIEW_NOT_SET (#679) when
- *  a shader writes to render target slots that the active framebuffer does not provide.
- *  Writes to the unbound slots are discarded at draw time, which is the intended behavior. */
 uint32 ReflectPixelShaderOutputCount(
     const D3D12_SHADER_BYTECODE& shaderBytecode,
     DXGI_FORMAT* outFormats = nullptr)
@@ -472,8 +462,8 @@ RendererResult DX12GraphicsPipeline::Rebuild()
                 rtBlend.SrcBlend = ToDX12Blend(m_blendFunction.GetSrcColor());
                 rtBlend.DestBlend = ToDX12Blend(m_blendFunction.GetDstColor());
                 rtBlend.BlendOp = D3D12_BLEND_OP_ADD;
-                rtBlend.SrcBlendAlpha = ToDX12Blend(m_blendFunction.GetSrcAlpha());
-                rtBlend.DestBlendAlpha = ToDX12Blend(m_blendFunction.GetDstAlpha());
+                rtBlend.SrcBlendAlpha = ToDX12Blend(m_blendFunction.GetSrcAlpha(), /* isAlpha */ true);
+                rtBlend.DestBlendAlpha = ToDX12Blend(m_blendFunction.GetDstAlpha(), /* isAlpha */ true);
                 rtBlend.BlendOpAlpha = D3D12_BLEND_OP_ADD;
                 rtBlend.LogicOpEnable = FALSE;
             }
@@ -483,9 +473,7 @@ RendererResult DX12GraphicsPipeline::Rebuild()
     }
 
     // If the framebuffer does not provide a depth-stencil attachment, force depth/stencil
-    // operations off. Otherwise the debug layer emits
-    // CREATEGRAPHICSPIPELINESTATE_DEPTHSTENCILVIEW_NOT_SET (#680) because the PSO enables
-    // depth testing (m_depthTest defaults to true) while DSVFormat is UNKNOWN.
+    // operations off. Otherwise the debug layer emits: CREATEGRAPHICSPIPELINESTATE_DEPTHSTENCILVIEW_NOT_SET (#680)
     if (!hasDSV)
     {
         psoDesc.DepthStencilState.DepthEnable = FALSE;
@@ -494,9 +482,7 @@ RendererResult DX12GraphicsPipeline::Rebuild()
     }
 
     // If the pixel shader declares more SV_Target outputs than the framebuffer provides color
-    // attachments, pad NumRenderTargets / RTVFormats to cover them. The debug layer otherwise
-    // emits CREATEGRAPHICSPIPELINESTATE_RENDERTARGETVIEW_NOT_SET (#679). Writes to the
-    // unbound slots are discarded at draw time, which matches the existing behavior.
+    // attachments, pad NumRenderTargets / RTVFormats to cover them. (Fixes: CREATEGRAPHICSPIPELINESTATE_RENDERTARGETVIEW_NOT_SET)
     {
         DXGI_FORMAT shaderOutputFormats[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
 

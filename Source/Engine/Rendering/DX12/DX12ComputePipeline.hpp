@@ -72,7 +72,7 @@ private:
     ComPtr<ID3D12PipelineState> m_pipelineState;
 
     // Maps descriptor set index (bindIndex) to root parameter indices
-    Array<DescriptorSetRootIndices> m_descriptorSetRootIndices;
+    Array<DescriptorSetRootIndices, DX12Allocator> m_descriptorSetRootIndices;
 
     // Lazy-created command signature for DispatchIndirect
     mutable ComPtr<ID3D12CommandSignature> m_dispatchCommandSignature;

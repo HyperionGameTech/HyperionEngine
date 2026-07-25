@@ -235,7 +235,7 @@ RendererResult DX12Swapchain::Create()
         rtvHandle.ptr += rtvIncrement;
     }
 
-    // Create framebuffers for each back buffer
+    // Create framebuffers for each backbuffer
     m_framebuffers.Clear();
     m_framebuffers.Resize(swapChainDesc.BufferCount);
 
@@ -277,15 +277,12 @@ void DX12Swapchain::Recreate()
         return;
     }
 
-    // Don't release or resize if extent is zero (e.g. window is minimized).
-    // Wait for a valid extent before proceeding.
+    // Don't release or resize if extent is zero
     if (m_extent.Volume() == 0)
     {
         return;
     }
 
-    // Flush the GPU and wait for all pending operations before releasing resources.
-    // This prevents ERROR #921 OBJECT_DELETED_WHILE_STILL_IN_USE.
     FlushGPU();
 
     // Destroy old resources
@@ -309,6 +306,7 @@ void DX12Swapchain::FlushGPU()
         D3D12_COMMAND_LIST_TYPE_DIRECT,
         __uuidof(ID3D12CommandAllocator),
         &m_flushAllocator);
+
     Assert(SUCCEEDED(hr));
 
     hr = RI.GetDevice()->CreateCommandList(
@@ -316,6 +314,7 @@ void DX12Swapchain::FlushGPU()
         m_flushAllocator.Get(),
         nullptr,
         IID_PPV_ARGS(&m_flushCommandList));
+
     Assert(SUCCEEDED(hr));
 
     m_flushCommandList->Close();
@@ -325,6 +324,7 @@ void DX12Swapchain::FlushGPU()
 
     hr = queueData->commandQueue->Signal(m_flushFence.Get(), m_flushFenceValue + 1);
     Assert(SUCCEEDED(hr));
+
     m_flushFenceValue++;
 
     if (m_flushFence->GetCompletedValue() < m_flushFenceValue)

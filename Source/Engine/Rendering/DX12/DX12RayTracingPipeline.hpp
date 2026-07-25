@@ -28,7 +28,7 @@ class DX12RayTracingPipeline final : public RayTracingPipelineBase
 
 public:
     DX12RayTracingPipeline();
-    DX12RayTracingPipeline(const DX12ShaderInstanceRef& shaderInstance);
+    explicit DX12RayTracingPipeline(const DX12ShaderInstanceRef& shaderInstance);
     ~DX12RayTracingPipeline() override;
 
     /*! \brief Get the root parameter indices for a descriptor set at the given bind index.
