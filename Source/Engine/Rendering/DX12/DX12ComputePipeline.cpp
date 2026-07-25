@@ -105,15 +105,17 @@ RendererResult DX12ComputePipeline::BuildRootSignature()
 
     const_cast<ShaderInputGroup*>(decl)->RecalculateAllIndices();
 
-    Array<D3D12_ROOT_PARAMETER> rootParams;
+    Array<D3D12_ROOT_PARAMETER, DX12Allocator> rootParams;
 
     // use LL so we never invalid ptrs
-    List<Array<D3D12_DESCRIPTOR_RANGE>> rangeAllocations;
+    List<Array<D3D12_DESCRIPTOR_RANGE, DX12Allocator>, DX12Allocator> rangeAllocations;
 
-    auto AllocateRangeStorage = [&](Array<D3D12_DESCRIPTOR_RANGE>&& newRanges) -> const D3D12_DESCRIPTOR_RANGE*
+    auto AllocateRangeStorage = [&](Array<D3D12_DESCRIPTOR_RANGE, DX12Allocator>&& newRanges) -> const D3D12_DESCRIPTOR_RANGE*
     {
         if (newRanges.Empty())
+        {
             return nullptr;
+        }
 
         rangeAllocations.PushBack(std::move(newRanges));
         return rangeAllocations.Back().Data();
@@ -159,11 +161,11 @@ RendererResult DX12ComputePipeline::BuildRootSignature()
             pSetDecl = refSetDecl;
         }
 
-        Array<D3D12_DESCRIPTOR_RANGE> viewRanges;
-        Array<D3D12_DESCRIPTOR_RANGE> samplerRanges;
+        Array<D3D12_DESCRIPTOR_RANGE, DX12Allocator> viewRanges;
+        Array<D3D12_DESCRIPTOR_RANGE, DX12Allocator> samplerRanges;
 
         // Collect dynamic buffer entries (CBV_Dynamic / SRV_Dynamic / UAV_Dynamic) to create as root descriptor params
-        Array<const ShaderInput*> dynamicDeclarations;
+        Array<const ShaderInput*, DX12Allocator> dynamicDeclarations;
 
         for (uint8 slotIndex = 0; slotIndex < NumDescriptorSlots; slotIndex++)
         {
@@ -188,7 +190,7 @@ RendererResult DX12ComputePipeline::BuildRootSignature()
                     continue;
                 }
 
-                Array<D3D12_DESCRIPTOR_RANGE>* currRanges = (descDecl.slot == ShaderRegister::SAMPLER ? &samplerRanges : &viewRanges);
+                Array<D3D12_DESCRIPTOR_RANGE, DX12Allocator>* currRanges = (descDecl.slot == ShaderRegister::SAMPLER ? &samplerRanges : &viewRanges);
 
                 D3D12_DESCRIPTOR_RANGE& range = currRanges->EmplaceBack();
                 range.RangeType = ToDX12DescriptorRangeType(descDecl.slot);
@@ -200,7 +202,8 @@ RendererResult DX12ComputePipeline::BuildRootSignature()
         }
 
         std::sort(viewRanges.Begin(), viewRanges.End(),
-            [](const D3D12_DESCRIPTOR_RANGE& a, const D3D12_DESCRIPTOR_RANGE& b) {
+            [](const D3D12_DESCRIPTOR_RANGE& a, const D3D12_DESCRIPTOR_RANGE& b)
+            {
                 if (a.RangeType != b.RangeType)
                 {
                     return a.RangeType < b.RangeType;
@@ -209,7 +212,8 @@ RendererResult DX12ComputePipeline::BuildRootSignature()
             });
 
         std::sort(samplerRanges.Begin(), samplerRanges.End(),
-            [](const D3D12_DESCRIPTOR_RANGE& a, const D3D12_DESCRIPTOR_RANGE& b) {
+            [](const D3D12_DESCRIPTOR_RANGE& a, const D3D12_DESCRIPTOR_RANGE& b)
+            {
                 return a.BaseShaderRegister < b.BaseShaderRegister;
             });
 

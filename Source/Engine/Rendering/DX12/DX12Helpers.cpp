@@ -179,8 +179,33 @@ D3D12_RESOURCE_STATES ToDX12ResourceStates(ResourceState state)
     }
 }
 
-D3D12_BLEND ToDX12Blend(BlendModeFactor factor)
+D3D12_BLEND ToDX12Blend(BlendModeFactor factor, bool isAlpha)
 {
+    // D3D12 disallows color-manipulating blend factors (SRC_COLOR, INV_SRC_COLOR, DEST_COLOR,
+    // INV_DEST_COLOR) in the alpha slots (SrcBlendAlpha/DestBlendAlpha) - only ZERO, ONE, and the
+    // *_ALPHA variants are valid there. Vulkan has no such restriction, so remap to the alpha
+    // equivalent here rather than emitting an invalid CreateBlendState call.
+    if (isAlpha)
+    {
+        switch (factor)
+        {
+        case BlendModeFactor::SrcColor:
+            factor = BlendModeFactor::SrcAlpha;
+            break;
+        case BlendModeFactor::DstColor:
+            factor = BlendModeFactor::DstAlpha;
+            break;
+        case BlendModeFactor::OneMinusSrcColor:
+            factor = BlendModeFactor::OneMinusSrcAlpha;
+            break;
+        case BlendModeFactor::OneMinusDstColor:
+            factor = BlendModeFactor::OneMinusDstAlpha;
+            break;
+        default:
+            break;
+        }
+    }
+
     switch (factor)
     {
     case BlendModeFactor::One:
@@ -530,6 +555,12 @@ D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuImage* image, uint32 mipIndex,
     {
         srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
     }
+    // If we need to view a single cube starting at a nonzero array layer,
+    // then we use the TEXTURECUBEARRAY dimension, with NumCubes = 1 instead, so First2DArrayFace can be honored.
+    else if (effectiveType == TextureType::Cubemap && layerIndex != 0)
+    {
+        srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
+    }
 
     switch (srvDesc.ViewDimension)
     {
@@ -561,7 +592,9 @@ D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuImage* image, uint32 mipIndex,
         srvDesc.TextureCubeArray.MostDetailedMip = mipIndex;
         srvDesc.TextureCubeArray.MipLevels = numMips;
         srvDesc.TextureCubeArray.First2DArrayFace = layerIndex;
-        srvDesc.TextureCubeArray.NumCubes = textureDesc.NumArrayLayers() / 6;
+        srvDesc.TextureCubeArray.NumCubes = (effectiveType == TextureType::Cubemap)
+            ? 1
+            : (numLayers / 6);
         srvDesc.TextureCubeArray.ResourceMinLODClamp = 0.0f;
         break;
     default:

@@ -1090,13 +1090,13 @@ void RenderInterface::EndFrame()
     if constexpr (UseRingBuffer)
     { // Let simulation thread back in
         s_statRenderExclusiveWindow.RecordElapsedMs(static_cast<float>(Framework::s_renderExclusiveWindowStart.ElapsedMs()));
-        
-        g_engineStats->Publish();
 
         bufferedData.threadSyncStates[Framework::TT_FrameDataConsumer] = 0;
         Framework::s_frameSubmitted.release();
     }
-    
+
+    g_engineStats->Publish();
+
     ReleaseTransientMemory();
 
     state.Reset();
@@ -1251,8 +1251,6 @@ void RenderInterface::UpdateResources(AtomicFlag* pCancelFlag)
     if constexpr (!UseRingBuffer)
     { // Let sim thread back in
         s_statRenderExclusiveWindow.RecordElapsedMs(static_cast<float>(Framework::s_renderExclusiveWindowStart.ElapsedMs()));
-        
-        g_engineStats->Publish();
 
         bufferedData.threadSyncStates[Framework::TT_FrameDataConsumer] = 0;
         Framework::s_frameSubmitted.release();

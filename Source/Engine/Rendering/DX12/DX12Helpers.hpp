@@ -40,7 +40,7 @@ enum class DX12ViewType
 
 DXGI_FORMAT ToDXGIFormat(TextureFormat format, DX12ViewType getForViewType = DX12ViewType::None);
 D3D12_RESOURCE_STATES ToDX12ResourceStates(ResourceState state);
-D3D12_BLEND ToDX12Blend(BlendModeFactor factor);
+D3D12_BLEND ToDX12Blend(BlendModeFactor factor, bool isAlpha = false);
 D3D12_CULL_MODE ToDX12CullMode(FaceCullMode mode);
 D3D12_PRIMITIVE_TOPOLOGY_TYPE ToDX12TopologyType(Topology topology);
 D3D12_PRIMITIVE_TOPOLOGY ToDX12PrimitiveTopology(Topology topology);

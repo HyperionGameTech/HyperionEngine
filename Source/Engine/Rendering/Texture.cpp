@@ -268,10 +268,11 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
         {
             for (uint8 mipIndex = 0; mipIndex < numMips; mipIndex++)
             {
+                const uint32 mipSize = textureDesc.GetMipByteSize(mipIndex, /* includeArrayLayers */ true);
+
 #ifdef HYP_DX12
                 uint32 mipBlockStart = paddedMipOffsets[mipIndex];
 #else
-                const uint32 mipSize = textureDesc.GetMipByteSize(mipIndex, /* includeArrayLayers */ true);
                 uint32 mipBlockStart = 0;
 
                 if (mipIndex != 0)
