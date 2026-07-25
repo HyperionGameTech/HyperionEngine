@@ -332,11 +332,12 @@ public:
             {
                 if (useTask)
                 {
-                    task = TaskSystem::GetInstance().Enqueue([&taskFunction]
-                                                             {
-                                                                 taskFunction();
-                                                             },
-                                                             TaskThreadPoolName::THREAD_POOL_BACKGROUND);
+                    task = TaskSystem::GetInstance().Enqueue(
+                        [&fn = taskFunction]
+                        {
+                            fn();
+                        },
+                        TaskThreadPoolName::THREAD_POOL_BACKGROUND);
                 }
                 else
                 {
@@ -349,11 +350,12 @@ public:
 
                 if (useTask)
                 {
-                    task = TaskSystem::GetInstance().Enqueue([impl]
-                                                             {
-                                                                 impl->CompileShaders();
-                                                             },
-                                                             TaskThreadPoolName::THREAD_POOL_BACKGROUND);
+                    task = TaskSystem::GetInstance().Enqueue(
+                        [impl]
+                        {
+                            impl->CompileShaders();
+                        },
+                        TaskThreadPoolName::THREAD_POOL_BACKGROUND);
                 }
                 else
                 {

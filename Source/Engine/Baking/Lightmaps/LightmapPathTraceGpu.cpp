@@ -507,27 +507,30 @@ bool LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
 
         // sort so sky is last
         std::sort(tempEnvProbes.Begin(), tempEnvProbes.End(),
-                  [](const Pair<EnvProbe*, EnvProbeShaderData*>& a, const Pair<EnvProbe*, EnvProbeShaderData*>& b)
+                  [&](const Pair<EnvProbe*, EnvProbeShaderData*>& a, const Pair<EnvProbe*, EnvProbeShaderData*>& b)
                   {
                       const bool aIsSky = a.first->IsA(SkyProbe::StaticClass());
                       const bool bIsSky = b.first->IsA(SkyProbe::StaticClass());
 
-                      if (aIsSky && !bIsSky)
+                      if (aIsSky ^ bIsSky)
                       {
-                          return false;
+                          return !aIsSky;
+                      }
+                      
+                      const Vec3f aProbePosition = a.second->worldPosition.GetXYZ();
+                      const Vec3f bProbePosition = b.second->worldPosition.GetXYZ();
+
+                      const Vec3f center = m_baker->GetView()->cachedBounds.GetCenter();
+
+                      const float aDistSq = (aProbePosition - center).LengthSquared();
+                      const float bDistSq = (bProbePosition - center).LengthSquared();
+
+                      if (aDistSq == bDistSq)
+                      {
+                          return a.first->Id() < b.first->Id();
                       }
 
-                      if (!aIsSky && bIsSky)
-                      {
-                          return true;
-                      }
-
-                      if (aIsSky && bIsSky)
-                      {
-                          return false;
-                      }
-
-                      return true;
+                      return aDistSq < bDistSq;
                   });
 
         for (uint32 i = 0; i < LightmapVolumeMaxBoundEnvProbes; i++)

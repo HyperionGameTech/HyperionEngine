@@ -473,15 +473,7 @@ float GetPointShadowPCF(in ShadowMap shadowMap, float3 worldToLight, float NdotL
 
 float GetPointShadow(in ShadowMap shadowMap, uint lightFlags, float3 worldToLight, float NdotL)
 {
-    switch (lightFlags & LF_SHADOW_FILTER_MASK)
-    {
-    case LF_SHADOW_VSM:
-        return GetPointShadowVariance(shadowMap, worldToLight, NdotL);
-    case LF_SHADOW_PCF:
-        return GetPointShadowPCF(shadowMap, worldToLight, NdotL);
-    default:
-        return GetPointShadowStandard(shadowMap, worldToLight, NdotL);
-    }
+    return GetPointShadowPCF(shadowMap, worldToLight, NdotL);
 }
 
 #endif

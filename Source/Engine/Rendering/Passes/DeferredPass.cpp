@@ -16,9 +16,10 @@
 #include <Rendering/Passes/LightmapPass.hpp>
 #include <Rendering/Passes/FogVolumePass.hpp>
 #include <Rendering/Passes/ReflectionsPass.hpp>
-#if HYP_EDITOR
+
+#ifdef HYP_EDITOR
 #include <Rendering/Passes/EditorGridPass.hpp>
-#endif
+#endif // HYP_EDITOR
 
 #include <Rendering/RenderGroup.hpp>
 #include <Rendering/RenderSetup.hpp>
@@ -59,9 +60,6 @@
 
 #include <Scene/World.hpp>
 #include <Scene/View.hpp>
-#if HYP_EDITOR
-#include <Framework/GameState.hpp>
-#endif
 #include <Scene/ProbeVolume.hpp>
 #include <Scene/EnvProbe.hpp>
 #include <Scene/FogVolume.hpp>
@@ -69,6 +67,10 @@
 #include <Scene/LightmapVolume.hpp>
 
 #include <Framework/CVarManager.hpp>
+
+#ifdef HYP_EDITOR
+#include <Framework/GameState.hpp>
+#endif // HYP_EDITOR
 
 #include <Framework/Config/EngineConfig.hpp>
 
@@ -144,7 +146,7 @@ CVar<bool> g_cvDepthPrepass { "Rendering.DepthPrepass", true };
 CVar<bool> g_cvFogVolumes { "Rendering.FogVolumes", true };
 CVar<bool> g_cvFogVolumesClusteredLights { "Rendering.FogVolumesClusteredLights", true };
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 CVar<bool> g_cvEditorGrid { "Editor.ShowGrid", true };
 #endif // HYP_EDITOR
 
@@ -1055,10 +1057,10 @@ PassData* DeferredPass::CreateViewPassData(View* view, PassDataExt&)
         passData.fogVolumePass = MakeUnique<FogVolumePass>(gbuffer->GetExtent(), gbuffer);
         passData.fogVolumePass->Create();
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
         passData.editorGridPass = MakeUnique<EditorGridPass>();
         passData.editorGridPass->Create();
-#endif
+#endif // HYP_EDITOR
 
         passData.taaPass = MakeUnique<TAAPass>(passData.tonemapPass->GetFinalImageView(), gbuffer->GetExtent(), gbuffer);
         passData.taaPass->Create();
@@ -1896,7 +1898,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             passData.fogVolumePass->Render(frame, fogVolumeRS);
         }
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
         if (g_cvEditorGrid.Get() && rs.view && (rs.view->GetFlags() & ViewFlags::EDITOR_VIEW))
         {
             RenderSetup gridRS = rs.Fork();
@@ -1904,7 +1906,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
             passData.editorGridPass->Render(frame, gridRS);
         }
-#endif
+#endif // HYP_EDITOR
 
         // render particles
         if (rpl.GetParticleVolumes().NumCurrent())
@@ -1934,21 +1936,26 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     {
         passData.bloomPass->Render(frame, rs);
     }
-
-    // debug draw
-    if (renderCollector.mappingsByBucket[uint32(RenderBucket::Debug)].Any()
-        || DebugDrawer::GetInstance().NumEnqueuedDrawCommands() > 0)
+    
+#ifdef HYP_EDITOR
+    if (rs.view && (rs.view->GetFlags() & ViewFlags::EDITOR_VIEW))
     {
-        ENGINE_STAT_GPU_SCOPE(&s_statFillDebug);
+        // debug draw - editor only
+        if (renderCollector.mappingsByBucket[uint32(RenderBucket::Debug)].Any()
+            || DebugDrawer::GetInstance().NumEnqueuedDrawCommands() > 0)
+        {
+            ENGINE_STAT_GPU_SCOPE(&s_statFillDebug);
 
-        frame->cr << SetCurrentFramebuffer(debugPassFramebuffer);
+            frame->cr << SetCurrentFramebuffer(debugPassFramebuffer);
 
-        ExecuteDrawCalls(frame, rs, renderCollector, RenderBucketMask<RenderBucket::Debug>);
+            ExecuteDrawCalls(frame, rs, renderCollector, RenderBucketMask<RenderBucket::Debug>);
 
-        DebugDrawer::GetInstance().Render(frame, rs);
+            DebugDrawer::GetInstance().Render(frame, rs);
 
-        frame->cr << SetCurrentFramebuffer(nullptr);
+            frame->cr << SetCurrentFramebuffer(nullptr);
+        }
     }
+#endif // HYP_EDITOR
 
     passData.postProcessing->RenderPost(frame, rs);
 

@@ -173,7 +173,7 @@ bool GraphicsPipelineBase::MatchesSignature(
     const Shader& shader = *m_shaderInstance->GetShader();
 
     if (materialAttributes.shaderName != shader.baseName
-        || ((shader.properties & materialAttributes.shaderProperties) != shader.properties)
+        || shader.properties != materialAttributes.shaderProperties // ((shader.properties & materialAttributes.shaderProperties) != shader.properties)
         || meshAttributes.inputLayout.mask != shader.inputLayout.mask)
     {
         return false;

@@ -49,15 +49,10 @@ enum class LightFlags : uint32
 
     ShadowCaster = 0x1,
 
-    ShadowPCF = 0x2,
-    ShadowContactHardening = 0x4,
-    ShadowVariance = 0x8,
-    ShadowFilterMask = (ShadowPCF | ShadowContactHardening | ShadowVariance),
-
     CacheStaticShadowMaps = 0x10,
     BakeStaticShadows = 0x20,
 
-    Default = ShadowCaster | ShadowPCF
+    Default = ShadowCaster | CacheStaticShadowMaps
 };
 
 HYP_MAKE_ENUM_FLAGS(LightFlags);
@@ -245,17 +240,6 @@ public:
 
     HYP_METHOD(Property = "BakedShadowMap")
     void SetBakedShadowMap(const Handle<Texture>& shadowMap);
-
-    HYP_METHOD(Property = "ShadowMapFilter", Editor = true, Transient)
-    ShadowMapFilter GetShadowMapFilter() const
-    {
-        return (ShadowMapFilter)((m_lightFlags & LightFlags::ShadowFilterMask)
-                                     ? MathUtil::FastLog2(m_lightFlags & LightFlags::ShadowFilterMask)
-                                     : 0);
-    }
-
-    HYP_METHOD(Property = "ShadowMapFilter", Editor = true, Transient)
-    void SetShadowMapFilter(ShadowMapFilter shadowMapFilter);
 
     BoundingSphere GetBoundingSphere(bool worldSpace) const;
 

@@ -328,34 +328,29 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
             const Vec4f& cameraPosition = cameraProxy->bufferData.cameraPosition;
 
             std::sort(tempEnvProbes.Begin(), tempEnvProbes.End(),
-                      [&cameraPosition](const Pair<EnvProbe*, EnvProbeShaderData*>& a, const Pair<EnvProbe*, EnvProbeShaderData*>& b)
+                      [cam = cameraPosition.GetXYZ()](const Pair<EnvProbe*, EnvProbeShaderData*>& a, const Pair<EnvProbe*, EnvProbeShaderData*>& b)
                       {
-                          const bool aIsSky = a.first->IsA(SkyProbe::StaticClass());
-                          const bool bIsSky = b.first->IsA(SkyProbe::StaticClass());
+                        const bool aIsSky = a.first->IsA(SkyProbe::StaticClass());
+                        const bool bIsSky = b.first->IsA(SkyProbe::StaticClass());
 
-                          if (aIsSky && !bIsSky)
-                          {
-                              return false;
-                          }
+                        if (aIsSky ^ bIsSky)
+                        {
+                            return !aIsSky;
+                        }
+                        
+                        const Vec3f aProbePosition = a.second->worldPosition.GetXYZ();
+                        const Vec3f bProbePosition = b.second->worldPosition.GetXYZ();
 
-                          if (!aIsSky && bIsSky)
-                          {
-                              return true;
-                          }
+                        const float aDistSq = (aProbePosition - cam).LengthSquared();
+                        const float bDistSq = (bProbePosition - cam).LengthSquared();
 
-                          if (aIsSky && bIsSky)
-                          {
-                              return false;
-                          }
+                        // This is to satisfy strict weak ordering requirements.
+                        if (aDistSq == bDistSq)
+                        {
+                            return a.first->Id() < b.first->Id();
+                        }
 
-                          // both are reflection probes, sort by distance to camera
-                          const Vec4f& aProbePosition = a.second->worldPosition;
-                          const Vec4f& bProbePosition = b.second->worldPosition;
-
-                          const float aDistSq = (aProbePosition - cameraPosition).LengthSquared();
-                          const float bDistSq = (bProbePosition - cameraPosition).LengthSquared();
-
-                          return aDistSq < bDistSq;
+                        return aDistSq < bDistSq;
                       });
 
             for (uint32 i = 0; i < SSGIMaxEnvProbes; i++)

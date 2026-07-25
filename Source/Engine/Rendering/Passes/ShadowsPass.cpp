@@ -135,8 +135,6 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     
     const bool isOmni = (static_cast<LightType>(lightProxy->bufferData.lightType) == LightType::Point);
 
-    const bool isVarianceShadowMap = light->GetShadowMapFilter() == ShadowMapFilter::SMF_VSM;
-
     const bool hasBakedStaticShadowMaps = (light->GetLightFlags() & LightFlags::BakeStaticShadows) && lightProxy->bakedShadowMap != nullptr;
     const bool cacheStaticShadowMaps = g_cvCacheShadowMaps.Get() && !hasBakedStaticShadowMaps && (light->GetLightFlags() & LightFlags::CacheStaticShadowMaps);
 
@@ -557,76 +555,6 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 // transition atlas section back to shader read
                 frame->cr << InsertBarrier(resultImage, RS_SHADER_RESOURCE, target->GetImageView()->GetImageSubResource());
             }
-
-#if 0 // FIXME
-        if (isVarianceShadowMap)
-        {
-            AssertDebug(shadowMap != nullptr);
-
-            View* shadowView = shouldCombineShadowMaps
-                ? cachedData->shadowViewsStatic[cascadeIndex]
-                : cachedData->shadowViewsDynamic[cascadeIndex];
-
-            GpuImageView* inputImageView = cachedData->cachedShadowMapTexture.IsValid()
-                ? RI.textureViewCache->GetOrCreate(cachedData->cachedShadowMapTexture)
-                : framebuffer->GetAttachment(0)->GetImageView();
-
-            GpuImageView* outputImageView = shadowMap->GetImageView();
-
-            AssertDebug(inputImageView != nullptr && outputImageView != nullptr);
-
-            struct alignas(16)
-            {
-                Vec2u imageDimensions;
-                Vec2u dimensions;
-                Vec2u offset;
-            } uniformData;
-
-            uniformData.imageDimensions = shadowMapImage->GetExtent().GetXY();
-            uniformData.dimensions = atlasElement.dimensions;
-            uniformData.offset = atlasElement.offsetCoords;
-
-            const uint32 frameIndex = frame->GetFrameIndex();
-
-            cachedData->blurUniformBuffers[frameIndex]->Copy(sizeof(uniformData), &uniformData);
-            cachedData->blurUniformBuffers[frameIndex]->Flush(0, sizeof(uniformData));
-
-            CommandRecorder& cr = frame->cr;
-
-            cr << SetCurrentShader(ShaderDesc(NAME("BlurShadowMap")));
-
-            uint32 numShaderUniforms = 0;
-
-            cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
-            cr << SetShaderUniform(numShaderUniforms++, "InputTexture"_sh, inputImageView);
-            cr << SetShaderUniform(numShaderUniforms++, "OutputTexture"_sh, outputImageView);
-            cr << SetShaderUniform(numShaderUniforms++, "BlurShadowMapUniforms"_sh, cachedData->blurUniformBuffers[frameIndex]);
-
-            // put our shadow map in a state for writing
-            cr << InsertBarrier(
-                shadowMapImage,
-                RS_UNORDERED_ACCESS,
-                ImageSubResource {
-                    .baseMipLevel = 0,
-                    .numLevels = 1,
-                    .baseArrayLayer = uint8(atlasElement.layerIndex),
-                    .numLayers = 1
-                });
-
-            cr << DispatchCompute(Vec3u { (atlasElement.dimensions.x + 7) / 8, (atlasElement.dimensions.y + 7) / 8, 1 });
-
-            // put shadow map back into readable state
-            cr << InsertBarrier(
-                shadowMapImage,
-                RS_SHADER_RESOURCE,
-                ImageSubResource {
-                    .baseMipLevel = 0,
-                    .numLevels = 1,
-                    .baseArrayLayer = uint8(atlasElement.layerIndex),
-                    .numLayers = 1
-                });
-        }
-#endif
         }
     }
 

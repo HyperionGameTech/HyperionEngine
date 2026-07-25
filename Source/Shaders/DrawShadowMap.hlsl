@@ -1,7 +1,7 @@
 #include "include/Defines.hlsli"
 #include "include/Shared.hlsli"
 
-PERMUTE(MODE, STANDARD, VSM, PCF, CONTACT_HARDENED);
+PERMUTE(VSM);
 PERMUTE(INSTANCING);
 PERMUTE(SKINNING);
 PERMUTE(ALPHA_DISCARD);
@@ -151,7 +151,7 @@ PSOutput PSMain(PSInput input)
 
     const float depth = input.position_cs.z / input.position_cs.w;
 
-#ifdef MODE_VSM
+#ifdef VSM
     float2 moments = float2(depth, HYP_FMATH_SQR(depth));
 
     float dx = ddx(depth);

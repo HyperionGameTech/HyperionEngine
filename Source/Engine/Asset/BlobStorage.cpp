@@ -590,8 +590,8 @@ bool BlobStorage::GetData(StringHash key, size_t size, void*& outRawData)
 
     BlobPageData& pd = m_pageData[tocValue.page];
 
-    void* address = reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(pd.view->Data()) + tocValue.offset);
-    AssertDebug(reinterpret_cast<UIntPtr>(address) - reinterpret_cast<UIntPtr>(pd.view->Data()) + size <= pd.file->FileSize());
+    uint8* address = reinterpret_cast<uint8*>(pd.view->Data()) + tocValue.offset;
+    AssertDebug(address - reinterpret_cast<uint8*>(pd.view->Data()) + size <= pd.file->FileSize());
 
     outRawData = address;
 

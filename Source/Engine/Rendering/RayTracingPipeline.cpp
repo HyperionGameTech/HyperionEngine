@@ -27,7 +27,8 @@ bool RayTracingPipelineBase::MatchesSignature(const ShaderDesc& shaderDesc) cons
 
     const Shader& shader = *m_shaderInstance->GetShader();
 
-    if (shaderDesc.name != shader.baseName || ((shader.properties & shaderDesc.properties) != shader.properties))
+    if (shaderDesc.name != shader.baseName
+        || shader.properties != shaderDesc.properties) //((shader.properties & shaderDesc.properties) != shader.properties))
     {
         return false;
     }

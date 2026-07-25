@@ -369,22 +369,6 @@ void Light::SetNumShadowMapCascades(uint32 numShadowMapCascades)
     MarkDirty();
 }
 
-void Light::SetShadowMapFilter(ShadowMapFilter shadowMapFilter)
-{
-    if (shadowMapFilter == GetShadowMapFilter())
-    {
-        return;
-    }
-
-    m_lightFlags &= ~LightFlags::ShadowFilterMask;
-
-    // ShadowMapFilter enum members are sequentially ordered so turn it into a flag
-    m_lightFlags |= EnumFlags<LightFlags>(1u << shadowMapFilter);
-
-    SetNeedsRenderProxyUpdate();
-    MarkDirty();
-}
-
 void Light::SetBakedShadowMap(const Handle<Texture>& shadowMap)
 {
     if (!CanBakeStaticShadows())

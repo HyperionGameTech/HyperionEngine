@@ -54,13 +54,6 @@ static constexpr EnumFlags<ViewFlags> DefaultShadowViewFlags = ViewFlags::SHADOW
     | ViewFlags::SKIP_LIGHTMAP_VOLUMES | ViewFlags::SKIP_PARTICLE_VOLUMES | ViewFlags::SKIP_FOG_VOLUMES
     | ViewFlags::SKIP_ENV_PROBES | ViewFlags::SKIP_PROBE_VOLUMES;
 
-static const ShaderPropertyId s_shadowMapFilterProperties[SMF_MAX] = {
-    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("STANDARD"))),
-    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("PCF"))),
-    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("CONTACT_HARDENED"))),
-    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("VSM")))
-};
-
 static const ShaderPropertyId s_propModeShadows = InternShaderProperty(ShaderProperty(NAME("MODE_SHADOWS")));
 
 static const Name s_shadowMapCameraNames[MaxShadowMapCascades] = {
@@ -111,10 +104,7 @@ static FramebufferDesc GetFramebufferDesc(Light* light, ShaderDesc& outShaderDes
     framebufferDesc.extent = atlasElement.dimensions;
     framebufferDesc.offset = Vec2i(atlasElement.offsetCoords);
 
-    const ShadowMapFilter shadowMapFilter = light->GetShadowMapFilter();
-
     outShaderDesc.name = NAME("DrawShadowMap");
-    outShaderDesc.properties.Add(s_shadowMapFilterProperties[shadowMapFilter]);
 
     switch (light->GetLightType())
     {

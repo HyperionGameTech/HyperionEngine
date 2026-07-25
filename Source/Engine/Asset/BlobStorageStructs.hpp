@@ -25,8 +25,6 @@ struct BlobHeader
     uint64 payloadSize;
 };
 
-constexpr uint64 InvalidBufferOffset = uint64(-1);
-
 HYP_STRUCT()
 struct BlobDataReference
 {
