@@ -781,30 +781,29 @@ private:
     EditorManipulationMode m_selectedManipulationMode;
     EditorGizmoSet m_gizmos;
 
+    struct MeshEditState
+    {
+        bool enabled = false;
+        MeshEditFaceMode faceMode = MeshEditFaceMode::Quad;
+        bool alignToNormal = true;
+
+        WeakHandle<Node> targetNode;
+
+        // Hacky gross gross
+        EditorManipulationMode manipulationModeBeforeMeshEdit = EditorManipulationMode::Translate;
+        bool isChanging = false;
+
+        Handle<EditorActionStack> actionStack;
+
+        Array<Vec3f, EditorAllocator> baselinePositions;
+        WeakHandle<Mesh> baselineMesh;
+
+        Optional<MeshEditFaceSelection> selectedFace;
+        Optional<MeshEditFaceSelection> hoveredFace;
+        Optional<MeshEditDragData> dragData;
+    } m_meshEditState;
+
     bool m_snapToGridEnabled;
-
-    bool m_meshEditModeEnabled;
-    MeshEditFaceMode m_meshEditFaceMode;
-    bool m_meshEditAlignToNormal;
-
-    WeakHandle<Node> m_meshEditTargetNode;
-    // Hacky gross gross
-    EditorManipulationMode m_manipulationModeBeforeMeshEdit;
-    bool m_isChangingMeshEditMode;
-
-    // Per-session undo stack for individual face moves. Kept separate from the project's stack so a
-    // mesh editing session lands in project history as one entry once committed, while still
-    // supporting step-by-step undo *within* the session.
-    Handle<EditorActionStack> m_meshEditActionStack;
-
-    // LOD 0 vertex positions of the target mesh before this session's first edit, plus the mesh they
-    // belong to. Empty until the first edit is made.
-    Array<Vec3f, EditorAllocator> m_meshEditBaselinePositions;
-    WeakHandle<Mesh> m_meshEditBaselineMesh;
-
-    Optional<MeshEditFaceSelection> m_selectedMeshEditFace;
-    Optional<MeshEditFaceSelection> m_hoveredMeshEditFace;
-    Optional<MeshEditDragData> m_meshEditDragData;
 
     WeakHandle<EditorGizmoBase> m_hoveredGizmo;
     WeakHandle<Node> m_hoveredGizmoNode;

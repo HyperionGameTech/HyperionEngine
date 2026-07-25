@@ -123,7 +123,6 @@ namespace Hyperion.Editor.ViewModels
                 {
                     object? enumValue = staticField.ReadObject();
                     _enumEntries.Add(new EnumEntry(staticField.Name.ToString(), enumValue));
-                    Logger.Log(LogLevel.Debug, $"Inspector added enum static field '{staticField.Name}' to enum values for property '{_property.Name}'");
                 }
                 catch (Exception ex)
                 {

@@ -23,18 +23,7 @@ struct ShadowMapAtlasElement;
 class FullScreenPass;
 
 HYP_ENUM()
-enum ShadowMapFilter : uint32
-{
-    SMF_STANDARD = 0,
-    SMF_PCF,
-    SMF_CONTACT_HARDENED,
-    SMF_VSM,                /// @deprecated
-
-    SMF_MAX
-};
-
-HYP_ENUM()
-enum ShadowMapType : uint32
+enum ShadowMapType : uint8
 {
     SMT_DIRECTIONAL,
     SMT_SPOT,
@@ -46,7 +35,6 @@ class ShadowMap
 public:
     ShadowMap(
         ShadowMapType type,
-        ShadowMapFilter filterMode,
         const ShadowMapAtlasElement& atlasElement,
         const GpuImageViewRef& imageView);
 
@@ -58,11 +46,6 @@ public:
     HYP_FORCE_INLINE ShadowMapType GetShadowMapType() const
     {
         return m_type;
-    }
-
-    HYP_FORCE_INLINE ShadowMapFilter GetFilterMode() const
-    {
-        return m_filterMode;
     }
 
     HYP_FORCE_INLINE ShadowMapAtlasElement* GetAtlasElement() const
@@ -77,7 +60,6 @@ public:
 
 private:
     ShadowMapType m_type;
-    ShadowMapFilter m_filterMode;
     ShadowMapAtlasElement* m_atlasElement;
 
     GpuImageViewRef m_imageView;

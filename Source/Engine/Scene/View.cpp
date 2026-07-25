@@ -58,8 +58,8 @@
 
 namespace Hyperion {
 
-static constexpr float ShadowCascadeClipDistances[] = { 0.025f, 0.1f, 0.3f, 1.0f };
-static constexpr float ShadowCascadeMaxDistance = 300.0f;
+static constexpr float ShadowCascadeClipDistances[] = { 0.075f, 0.15f, 0.3f, 1.0f };
+static constexpr float ShadowCascadeMaxDistance = 150.0f;
 
 // Always mark dirty at this value
 static const int s_dirtyResourceVersion = -1;
@@ -472,11 +472,6 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
             const float mainCameraFarRatio = MathUtil::Clamp(ShadowCascadeMaxDistance / m_camera->GetFarClip(), 0.0f, 1.0f);
             csmMainCameraFrustum = (mainCameraFarRatio >= 0.9999f ? mainCameraFrustum : mainCameraFrustum.SubFrustum(0.0f, mainCameraFarRatio));
-
-            // Calculate shared view matrix
-            shadowViewMatrix = ShadowCameraHelpers::CalculateShadowViewMatrix(
-                csmMainCameraFrustum,
-                light->GetWorldTranslation().Normalized());
         }
 
         // Collect scenes
@@ -519,6 +514,14 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
             }
 
             shadowViewScenes.PushBack(scene);
+        }
+
+        // Shared CSM view matrix, anchored to the scene bounds so it is stable as the camera moves.
+        if (isDirectional && isWorldBoundsSphereValid)
+        {
+            shadowViewMatrix = ShadowCameraHelpers::CalculateShadowViewMatrix(
+                worldBoundsSphere,
+                light->GetWorldTranslation().Normalized());
         }
 
         for (uint32 shadowViewIndex = 0; shadowViewIndex < numShadowViews; shadowViewIndex++)

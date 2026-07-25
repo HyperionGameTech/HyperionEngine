@@ -387,8 +387,6 @@ public:
         BoundingBox lightmapVolumeAabb(Vec3f(-60.0f, -5.0f, -60.0f), Vec3f(60.0f, 40.0f, 60.0f));
 
         Handle<LightmapVolume> lightmapVolume = MakeHandle<LightmapVolume>(lightmapVolumeAabb);
-        lightmapVolume->SetName(Name::Unique("LightmapVolume"));
-        InitObject(lightmapVolume);
 
         WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
 

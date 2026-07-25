@@ -2655,10 +2655,10 @@ void UIObject::SetScriptComponent(ScriptComponent&& scriptComponent)
     }
 
     const Handle<Entity>& entity = GetEntity();
-    Assert(entity != nullptr && entity->IsReady());
+    Assert(entity.IsValid());
 
     const Handle<EntityManager>& entityManager = scene->GetEntityManager();
-    Assert(entityManager != nullptr && entityManager->IsReady());
+    Assert(entityManager.IsValid());
 
     if (entityManager->HasComponent<ScriptComponent>(entity))
     {

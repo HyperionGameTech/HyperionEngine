@@ -84,14 +84,11 @@ DECLARE_SRV(LightmapPass, PointLightShadowMapsTextureArray) TextureCubeArray poi
 // #include "../include/Shadows.hlsli"
 
 DECLARE_SRV(LightmapPass, IrradianceTexture) Texture2D IrradianceTexture;
-DECLARE_SRV(LightmapPass, RadianceTexture) Texture2D RadianceTexture;
 DECLARE_SAMPLER(LightmapPass, LightmapSampler) SamplerState LightmapSampler;
 
 DECLARE_BUFFER(LightmapPass, LightmapVolumeUniforms) cbuffer LightmapVolumeUniforms
 {
     float irradianceWeight;
-    float radianceWeight;
-
     uint numAtlases;
 };
 
@@ -147,10 +144,7 @@ PSOutput PSMain(PSInput input)
 
     float2 lightmapUV = UV1;
 
-    float4 irradiance = SAMPLE_TEXTURE_2D_LOD(LightmapSampler, IrradianceTexture, lightmapUV, 0) * irradianceWeight;
-
-    // float4 radiance = SAMPLE_TEXTURE_2D_LOD(LightmapSampler, RadianceTexture, lightmapUV, 0) * radianceWeight;
-    // radiance.a = 1.0;
+    const float4 irradiance = SAMPLE_TEXTURE_2D_LOD(LightmapSampler, IrradianceTexture, lightmapUV, 0) * irradianceWeight;
 
     const float3 diffuse_color = CalculateDiffuseColor(albedo.rgb, metalness);
 
@@ -161,7 +155,7 @@ PSOutput PSMain(PSInput input)
 
     float3 diffuseIndirect = diffuse_color.rgb * irradiance.rgb * (1.0 - E) * ao;
 
-    output.color_output.rgb = diffuseIndirect;//SAMPLE_TEXTURE_2D_LOD(LightmapSampler, IrradianceTexture, texcoord, 0).rgb;;
+    output.color_output.rgb = diffuseIndirect;
     output.color_output.a = 1.0;
 
     return output;

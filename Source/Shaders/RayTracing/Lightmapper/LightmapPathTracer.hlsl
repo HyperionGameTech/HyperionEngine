@@ -61,6 +61,10 @@ DECLARE_BUFFER(LightmapPathTracer, CBuffer) cbuffer CBuffer
 
 #define RAY_OFFSET 0.025
 
+#define VSM_DEPTH_BIAS_CONSTANT 0.05
+#define VSM_DEPTH_BIAS_SLOPE_SCALE 0.02
+#define VSM_DEPTH_BIAS_SLOPE_MAX 8.0
+
 #ifdef MODE_IRRADIANCE
 #define NUM_BOUNCES 8
 #define NUM_SAMPLES 64
@@ -418,6 +422,11 @@ void RayGenMain()
 
                         const uint probeType = GET_ENV_PROBE_TYPE(currentEnvProbe);
                         const bool isSky = (probeType == EPT_SKY);
+
+                        if (!isSky)
+                        {
+                            continue;
+                        }
                         
                         const float4 aabbMin = currentEnvProbe.aabb_min;
                         const float4 aabbMax = currentEnvProbe.aabb_max;
@@ -649,8 +658,6 @@ void RayGenMain()
         finalColor = float4(0.0, 0.0, 0.0, 1.0);
     }
 #elif defined(MODE_DISTANCE)
-    // Trace a single ray per texel and record the hit distance as VSM moments (dist, dist^2).
-    // Used to bake visibility textures for reflection probes.
     payload.distance = -1.0;
     payload.throughput = float4(1.0, 1.0, 1.0, 1.0);
     payload.emissive = float4(0.0, 0.0, 0.0, 0.0);
@@ -668,7 +675,12 @@ void RayGenMain()
 
     if (payload.distance > 0.0)
     {
-        float dist = payload.distance;
+        const float3 hitNormal = normalize(payload.normal);
+        const float cosTheta = saturate(-dot(hitNormal, ray.direction));
+        const float slope = sqrt(saturate(1.0 - cosTheta * cosTheta)) / max(cosTheta, 1e-3);
+        const float bias = VSM_DEPTH_BIAS_CONSTANT + VSM_DEPTH_BIAS_SLOPE_SCALE * min(slope, VSM_DEPTH_BIAS_SLOPE_MAX);
+
+        float dist = payload.distance + bias;
         finalColor = float4(dist, dist * dist, 0.0, 1.0);
     }
     else

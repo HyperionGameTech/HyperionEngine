@@ -143,6 +143,14 @@ namespace Hyperion.Editor
             }
         }
 
+        private void OnNodeContextMenuOpened(object? sender, RoutedEventArgs e)
+        {
+            if ((sender as ContextMenu)?.DataContext is NodeViewModel nodeViewModel)
+            {
+                nodeViewModel.RefreshActions();
+            }
+        }
+
         private void OnRenameNodeMenuItemClick(object? sender, RoutedEventArgs e)
         {
             if ((sender as MenuItem)?.DataContext is not NodeViewModel nodeViewModel)

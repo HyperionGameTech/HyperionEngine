@@ -178,8 +178,6 @@ protected:
     void OnRemovedFromWorld(World* world) override;
 
 private:
-    void Init() override;
-
     HYP_FIELD(Property = "RadianceAtlasTextures")
     FixedArray<Handle<Texture>, MaxAtlasesPerLightmapVolume> m_radianceAtlasTextures;
 

@@ -10,21 +10,14 @@ namespace ShadowCameraHelpers {
 static constexpr float ZPullback = 1000.0f;
 
 Mat4f CalculateShadowViewMatrix(
-    const Frustum& mainCameraFrustum,
+    const BoundingSphere& sceneWorldBounds,
     const Vec3f& lightDir)
 {
-    const FixedArray<Vec3f, 8>& corners = mainCameraFrustum.GetCorners();
+    // Anchor the light-space frame to the scene center, not the camera, so it stays fixed in
+    // world space as the camera moves. This is what lets texel snapping actually stop the swim.
+    const Vec3f center = sceneWorldBounds.GetCenter();
 
-    Vec3f frustumCenter = Vec3f::Zero();
-
-    for (uint32 i = 0; i < 8; ++i)
-    {
-        frustumCenter += corners[i];
-    }
-
-    frustumCenter *= (1.0f / 8.0f);
-
-    return Mat4f::LookAt(frustumCenter, frustumCenter - lightDir * ZPullback, Vec3f::UnitY());
+    return Mat4f::LookAt(center, center - lightDir * ZPullback, Vec3f::UnitY());
 }
 
 BoundingBox CalculateCascadeBounds(
@@ -61,10 +54,15 @@ BoundingBox CalculateCascadeBounds(
     Vec4f centerLS = shadowViewMatrix.TransformVector(Vec4f(frustumCenter, 1.0f));
     centerLS /= centerLS.w;
 
-    float worldUnitsPerTexel = (sphereRadius * 2.0f) / static_cast<float>(shadowMapResolution.Max());
+    // Snap the cascade center to whole shadow-map texels so the shadows don't shimmer as the
+    // camera moves. Only stable because shadowViewMatrix is anchored to the scene, not the camera.
+    const float worldUnitsPerTexel = (sphereRadius * 2.0f) / static_cast<float>(shadowMapResolution.Max());
 
-    //centerLS.x = MathUtil::Floor(centerLS.x / worldUnitsPerTexel) * worldUnitsPerTexel;
-    //centerLS.y = MathUtil::Floor(centerLS.y / worldUnitsPerTexel) * worldUnitsPerTexel;
+    centerLS.x = MathUtil::Floor(centerLS.x / worldUnitsPerTexel) * worldUnitsPerTexel;
+    centerLS.y = MathUtil::Floor(centerLS.y / worldUnitsPerTexel) * worldUnitsPerTexel;
+
+    Vec4f sceneCenterLS = shadowViewMatrix.TransformVector(Vec4f(sceneWorldBounds.GetCenter(), 1.0f));
+    sceneCenterLS /= sceneCenterLS.w;
 
     BoundingBox finalBounds;
     finalBounds.min.x = centerLS.x - sphereRadius;
@@ -72,8 +70,6 @@ BoundingBox CalculateCascadeBounds(
     finalBounds.min.y = centerLS.y - sphereRadius;
     finalBounds.max.y = centerLS.y + sphereRadius;
 
-    Vec4f sceneCenterLS = shadowViewMatrix.TransformVector(Vec4f(sceneWorldBounds.GetCenter(), 1.0f));
-    
     float sceneMinZ = sceneCenterLS.z - sceneWorldBounds.GetRadius();
 
     finalBounds.min.z = MathUtil::Min(centerLS.z - sphereRadius, sceneMinZ);

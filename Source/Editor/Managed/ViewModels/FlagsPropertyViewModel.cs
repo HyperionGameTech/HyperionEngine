@@ -110,8 +110,6 @@ namespace Hyperion.Editor.ViewModels
                     BuildEnumFlagEntryTitleAndDescription(staticField, out title, out description);
 
                     _enumFlagEntries.Add(new EnumFlagEntry(title, description, flagValue, OnFlagEntryChanged));
-
-                    Logger.Log(LogLevel.Debug, $"Inspector added enum flag static field '{staticField.Name}' to enum flag values for property '{_property.Name}'");
                 }
                 catch (Exception ex)
                 {

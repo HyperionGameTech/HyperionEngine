@@ -39,8 +39,6 @@ extern CVar<bool> g_cvHBAO;
 struct LightmapVolumeUniforms
 {
     float irradianceWeight;
-    float radianceWeight;
-
     uint32 numAtlases;
 };
 
@@ -182,12 +180,10 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     for (uint32 atlasIndex = 0; atlasIndex < proxy->numAtlases; atlasIndex++)
     {
         Texture* irradianceTexture = proxy->atlasIrradianceTextures[atlasIndex];
-        Texture* radianceTexture = proxy->atlasRadianceTextures[atlasIndex];
 
         LightmapVolumeUniforms uniforms {};
         uniforms.numAtlases = proxy->numAtlases;
         uniforms.irradianceWeight = irradianceTexture ? 1.0f : 0.0f;
-        uniforms.radianceWeight = radianceTexture ? 1.0f : 0.0f;
 
         GpuBufferRef& uniformBuffer = data.uniformBuffers[atlasIndex];
 
@@ -204,8 +200,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
         uint32 localNumShaderUniforms = numShaderUniforms;
 
-        cr << SetShaderUniform(localNumShaderUniforms++, "IrradianceTexture"_sh, RI.textureViewCache->GetOrCreate(irradianceTexture != nullptr ? irradianceTexture : RI.placeholderData->defaultTexture2d));
-        cr << SetShaderUniform(localNumShaderUniforms++, "RadianceTexture"_sh, RI.textureViewCache->GetOrCreate(radianceTexture != nullptr ? radianceTexture : RI.placeholderData->defaultTexture2d));
+        cr << SetShaderUniform(localNumShaderUniforms++, "IrradianceTexture"_sh, RI.textureViewCache->GetOrCreate(irradianceTexture != nullptr ? irradianceTexture : RI.placeholderData->textureSolidBlack));
         cr << SetShaderUniform(localNumShaderUniforms++, "LightmapSampler"_sh, RI.placeholderData->GetSamplerLinear());
         cr << SetShaderUniform(localNumShaderUniforms++, "LightmapVolumeUniforms"_sh, uniformBuffer);
 

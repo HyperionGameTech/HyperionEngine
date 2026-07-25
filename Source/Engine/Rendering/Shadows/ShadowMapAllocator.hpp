@@ -23,8 +23,8 @@ namespace Hyperion {
 
 class FullScreenPass;
 class ShadowMap;
-enum ShadowMapFilter : uint32;
-enum ShadowMapType : uint32;
+
+enum ShadowMapType : uint8;
 
 HYP_STRUCT()
 struct ShadowMapAtlasElement
@@ -160,7 +160,6 @@ public:
 
     ShadowMap* AllocateShadowMap(
         ShadowMapType shadowMapType,
-        ShadowMapFilter filterMode,
         const Vec2u& dimensions);
 
     bool FreeShadowMap(ShadowMap* shadowMap, bool clearTextureRegion = false);

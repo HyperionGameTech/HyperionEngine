@@ -231,7 +231,8 @@ void EnvProbe::CreateVisibilityTexture()
         TFM_LINEAR,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_SAMPLED | IU_STORAGE });
+        IU_SAMPLED | IU_STORAGE
+    });
 
     m_visibilityTexture->SetName(NAME_FMT("{}_VisibilityMap", GetName()));
 

@@ -61,10 +61,14 @@ LightmapVolume::LightmapVolume(const BoundingBox& localBounds)
 LightmapVolume::~LightmapVolume()
 {
     if (AnyOf(m_radianceAtlasTextures, &Handle<Texture>::IsValid))
+    {
         EnqueueDeletion(std::move(m_radianceAtlasTextures));
+    }
 
     if (AnyOf(m_irradianceAtlasTextures, &Handle<Texture>::IsValid))
+    {
         EnqueueDeletion(std::move(m_irradianceAtlasTextures));
+    }
 }
 
 bool LightmapVolume::AddElement(Vec2u dimensions, LightmapElement*& outElement, bool shrinkToFit, float downscaleLimit)
@@ -173,29 +177,6 @@ void LightmapVolume::RemoveAllElements()
     SetNeedsRenderProxyUpdate();
 }
 
-void LightmapVolume::Init()
-{
-    VolumeBase::Init();
-
-    for (const Handle<Texture>& texture : m_radianceAtlasTextures)
-    {
-        if (texture)
-        {
-            Check(texture->Create());
-        }
-    }
-
-    for (const Handle<Texture>& texture : m_irradianceAtlasTextures)
-    {
-        if (texture)
-        {
-            Check(texture->Create());
-        }
-    }
-
-    SetReady(true);
-}
-
 const Handle<Texture>& LightmapVolume::GetAtlasTexture(uint16 atlasIndex, AtlasTextureType type) const
 {
     if (atlasIndex >= m_atlases.Size())
@@ -228,23 +209,27 @@ void LightmapVolume::SetAtlasTexture(uint16 atlasIndex, AtlasTextureType type, c
     switch (type)
     {
     case RadianceTexture:
+        if (texture == m_radianceAtlasTextures[atlasIndex])
+        {
+            return;
+        }
+
         EnqueueDeletion(std::move(m_radianceAtlasTextures[atlasIndex]));
         m_radianceAtlasTextures[atlasIndex] = texture;
 
-        if (IsInitCalled())
-        {
-            Check(texture->Create());
-        }
+        Check(texture->Create());
 
         break;
     case IrradianceTexture:
+        if (texture == m_irradianceAtlasTextures[atlasIndex])
+        {
+            return;
+        }
+
         EnqueueDeletion(std::move(m_irradianceAtlasTextures[atlasIndex]));
         m_irradianceAtlasTextures[atlasIndex] = texture;
 
-        if (IsInitCalled())
-        {
-            Check(texture->Create());
-        }
+        Check(texture->Create());
 
         break;
     default:
