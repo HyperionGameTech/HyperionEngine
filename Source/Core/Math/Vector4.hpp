@@ -344,6 +344,13 @@ struct alignas(alignof(float) * 4) CORE_API Vec4<float>
     {
     }
 
+#if HYP_VEC4F_HAS_SSE
+    explicit Vec4(__m128 value)
+        : _value(value)
+    {
+    }
+#endif
+
     Vec4(Type xyzw)
         : x(xyzw),
           y(xyzw),
@@ -473,26 +480,94 @@ struct alignas(alignof(float) * 4) CORE_API Vec4<float>
         return values[index];
     }
 
-    Vec4 operator+(const Vec4& other) const;
-
-    Vec4& operator+=(const Vec4& other);
-
-    Vec4 operator-(const Vec4& other) const;
-
-    Vec4& operator-=(const Vec4& other);
-
-    Vec4 operator*(const Vec4& other) const;
-
-    Vec4& operator*=(const Vec4& other);
-
-    Vec4 operator/(const Vec4& other) const;
-
-    Vec4& operator/=(const Vec4& other)
+    HYP_FORCE_INLINE Vec4 operator+(const Vec4& other) const
     {
+#if HYP_VEC4F_HAS_SSE
+        return Vec4(_mm_add_ps(_value, other._value));
+#else
+        return { x + other.x, y + other.y, z + other.z, w + other.w };
+#endif
+    }
+
+    HYP_FORCE_INLINE Vec4& operator+=(const Vec4& other)
+    {
+#if HYP_VEC4F_HAS_SSE
+        _value = _mm_add_ps(_value, other._value);
+#else
+        x += other.x;
+        y += other.y;
+        z += other.z;
+        w += other.w;
+#endif
+
+        return *this;
+    }
+
+    HYP_FORCE_INLINE Vec4 operator-(const Vec4& other) const
+    {
+#if HYP_VEC4F_HAS_SSE
+        return Vec4(_mm_sub_ps(_value, other._value));
+#else
+        return { x - other.x, y - other.y, z - other.z, w - other.w };
+#endif
+    }
+
+    HYP_FORCE_INLINE Vec4& operator-=(const Vec4& other)
+    {
+#if HYP_VEC4F_HAS_SSE
+        _value = _mm_sub_ps(_value, other._value);
+#else
+        x -= other.x;
+        y -= other.y;
+        z -= other.z;
+        w -= other.w;
+#endif
+
+        return *this;
+    }
+
+    HYP_FORCE_INLINE Vec4 operator*(const Vec4& other) const
+    {
+#if HYP_VEC4F_HAS_SSE
+        return Vec4(_mm_mul_ps(_value, other._value));
+#else
+        return { x * other.x, y * other.y, z * other.z, w * other.w };
+#endif
+    }
+
+    HYP_FORCE_INLINE Vec4& operator*=(const Vec4& other)
+    {
+#if HYP_VEC4F_HAS_SSE
+        _value = _mm_mul_ps(_value, other._value);
+#else
+        x *= other.x;
+        y *= other.y;
+        z *= other.z;
+        w *= other.w;
+#endif
+
+        return *this;
+    }
+
+    HYP_FORCE_INLINE Vec4 operator/(const Vec4& other) const
+    {
+#if HYP_VEC4F_HAS_SSE
+        return Vec4(_mm_div_ps(_value, other._value));
+#else
+        return { x / other.x, y / other.y, z / other.z, w / other.w };
+#endif
+    }
+
+    HYP_FORCE_INLINE Vec4& operator/=(const Vec4& other)
+    {
+#if HYP_VEC4F_HAS_SSE
+        _value = _mm_div_ps(_value, other._value);
+#else
         x /= other.x;
         y /= other.y;
         z /= other.z;
         w /= other.w;
+#endif
 
         return *this;
     }
@@ -500,7 +575,14 @@ struct alignas(alignof(float) * 4) CORE_API Vec4<float>
     bool operator==(const Vec4& other) const;
     bool operator!=(const Vec4& other) const;
 
-    Vec4 operator-() const;
+    HYP_FORCE_INLINE Vec4 operator-() const
+    {
+#if HYP_VEC4F_HAS_SSE
+        return Vec4(_mm_sub_ps(_mm_setzero_ps(), _value));
+#else
+        return { -x, -y, -z, -w };
+#endif
+    }
 
     bool operator<(const Vec4& other) const
     {
@@ -516,9 +598,17 @@ struct alignas(alignof(float) * 4) CORE_API Vec4<float>
         return false;
     }
 
-    Type LengthSquared() const;
+    HYP_FORCE_INLINE Type LengthSquared() const
+    {
+#if HYP_VEC4F_HAS_SSE
+        // Mask 0xF1: Src=1111 (all lanes), Dest=0001 (result written to lane 0 only).
+        return _mm_cvtss_f32(_mm_dp_ps(_value, _value, 0xF1));
+#else
+        return x * x + y * y + z * z + w * w;
+#endif
+    }
 
-    Type Length() const
+    HYP_FORCE_INLINE Type Length() const
     {
         return std::sqrt(LengthSquared());
     }
@@ -564,7 +654,22 @@ struct alignas(alignof(float) * 4) CORE_API Vec4<float>
     Vec4 operator*(const Quat4f& quat) const;
     Vec4& operator*=(const Quat4f& quat);
 
-    Type DistanceSquared(const Vec4& other) const;
+    HYP_FORCE_INLINE Type DistanceSquared(const Vec4& other) const
+    {
+#if HYP_VEC4F_HAS_SSE
+        const __m128 diff = _mm_sub_ps(_value, other._value);
+
+        return _mm_cvtss_f32(_mm_dp_ps(diff, diff, 0xF1));
+#else
+        const float dx = x - other.x;
+        const float dy = y - other.y;
+        const float dz = z - other.z;
+        const float dw = w - other.w;
+
+        return dx * dx + dy * dy + dz * dz + dw * dw;
+#endif
+    }
+
     Type Distance(const Vec4& other) const;
 
     Vec4 Normalized() const;
@@ -573,7 +678,16 @@ struct alignas(alignof(float) * 4) CORE_API Vec4<float>
     /*! \brief 3-component rotation by quaternion. The w component is preserved. */
     Vec4& Rotate(const Quat4f& quaternion);
     Vec4& Lerp(const Vec4& to, float amt);
-    float Dot(const Vec4& other) const;
+
+    HYP_FORCE_INLINE float Dot(const Vec4& other) const
+    {
+#if HYP_VEC4F_HAS_SSE
+        // Mask 0xF1: Src=1111 (all lanes), Dest=0001 (result written to lane 0 only).
+        return _mm_cvtss_f32(_mm_dp_ps(_value, other._value, 0xF1));
+#else
+        return x * other.x + y * other.y + z * other.z + w * other.w;
+#endif
+    }
 
     /*! \brief 3-component cross product. The w component is set to 0 in the result. */
     Vec4 Cross(const Vec4& other) const;

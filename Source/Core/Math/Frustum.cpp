@@ -34,28 +34,18 @@ Frustum::Frustum(const Mat4f& viewProj)
 
 bool Frustum::ContainsAABB(const BoundingBox& aabb) const
 {
-    const FixedArray<Vec3f, 8> corners = aabb.GetCorners();
-
     for (const Vec4f& plane : planes)
     {
-        if (plane.Dot(Vec4f(corners[0], 1.0f)) > 0.0f)
-            continue;
-        if (plane.Dot(Vec4f(corners[1], 1.0f)) > 0.0f)
-            continue;
-        if (plane.Dot(Vec4f(corners[2], 1.0f)) > 0.0f)
-            continue;
-        if (plane.Dot(Vec4f(corners[3], 1.0f)) > 0.0f)
-            continue;
-        if (plane.Dot(Vec4f(corners[4], 1.0f)) > 0.0f)
-            continue;
-        if (plane.Dot(Vec4f(corners[5], 1.0f)) > 0.0f)
-            continue;
-        if (plane.Dot(Vec4f(corners[6], 1.0f)) > 0.0f)
-            continue;
-        if (plane.Dot(Vec4f(corners[7], 1.0f)) > 0.0f)
-            continue;
+        const Vec4f positiveVertex(
+            plane.x >= 0.0f ? aabb.max.x : aabb.min.x,
+            plane.y >= 0.0f ? aabb.max.y : aabb.min.y,
+            plane.z >= 0.0f ? aabb.max.z : aabb.min.z,
+            1.0f);
 
-        return false;
+        if (plane.Dot(positiveVertex) <= 0.0f)
+        {
+            return false;
+        }
     }
 
     return true;
@@ -63,26 +53,20 @@ bool Frustum::ContainsAABB(const BoundingBox& aabb) const
 
 bool Frustum::FullyContainsAABB(const BoundingBox& aabb) const
 {
-    const FixedArray<Vec3f, 8> corners = aabb.GetCorners();
-
     for (const Vec4f& plane : planes)
     {
-        if (plane.Dot(Vec4f(corners[0], 1.0f)) < 0.0f)
+        // Mirror of ContainsAABB: the corner that minimizes dot(plane, corner). If it is in front of
+        // the plane, all eight corners are.
+        const Vec4f negativeVertex(
+            plane.x >= 0.0f ? aabb.min.x : aabb.max.x,
+            plane.y >= 0.0f ? aabb.min.y : aabb.max.y,
+            plane.z >= 0.0f ? aabb.min.z : aabb.max.z,
+            1.0f);
+
+        if (plane.Dot(negativeVertex) < 0.0f)
+        {
             return false;
-        if (plane.Dot(Vec4f(corners[1], 1.0f)) < 0.0f)
-            return false;
-        if (plane.Dot(Vec4f(corners[2], 1.0f)) < 0.0f)
-            return false;
-        if (plane.Dot(Vec4f(corners[3], 1.0f)) < 0.0f)
-            return false;
-        if (plane.Dot(Vec4f(corners[4], 1.0f)) < 0.0f)
-            return false;
-        if (plane.Dot(Vec4f(corners[5], 1.0f)) < 0.0f)
-            return false;
-        if (plane.Dot(Vec4f(corners[6], 1.0f)) < 0.0f)
-            return false;
-        if (plane.Dot(Vec4f(corners[7], 1.0f)) < 0.0f)
-            return false;
+        }
     }
 
     return true;

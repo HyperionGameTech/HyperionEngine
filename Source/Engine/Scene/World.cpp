@@ -1264,7 +1264,22 @@ Span<View* const> World::GetViews() const
 {
     AssertOnThread(g_renderThread | g_simThread);
 
+    if (IsOnThread(g_renderThread))
+    {
+        return m_viewsRenderSnapshot.ToSpan();
+    }
+
     return m_viewsPerFrame[GetRingIndex()].ToSpan();
+}
+
+void World::SnapshotViewsForRender()
+{
+    AssertOnThread(g_renderThread);
+
+    const Array<View*>& views = m_viewsPerFrame[GetRingIndex()];
+
+    m_viewsRenderSnapshot.Resize(views.Size());
+    std::copy(views.Begin(), views.End(), m_viewsRenderSnapshot.Begin());
 }
 
 void World::DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes)

@@ -36,7 +36,9 @@ struct VisibilityState
 {
     HYP_STRUCT_BODY(VisibilityState);
 
-    FatArray<VisibilityStateSnapshot, InlineAllocator<8>> snapshots;
+    static constexpr uint32 MaxViews = 256;
+
+    FixedArray<VisibilityStateSnapshot, MaxViews> snapshots;
     uint16 validityMarker { 0u };
 
     VisibilityState() = default;
@@ -56,7 +58,7 @@ struct VisibilityState
 
     HYP_FORCE_INLINE VisibilityStateSnapshot GetSnapshot(ObjId<View> id) const
     {
-        if (id.ToIndex() >= snapshots.Size())
+        if (id.ToIndex() >= MaxViews)
         {
             return {};
         }
@@ -66,9 +68,9 @@ struct VisibilityState
 
     HYP_FORCE_INLINE void MarkAsValid(ObjId<View> id)
     {
-        if (id.ToIndex() >= snapshots.Size())
+        if (id.ToIndex() >= MaxViews)
         {
-            snapshots.Resize(id.ToIndex() + 1);
+            return;
         }
 
         VisibilityStateSnapshot& snapshot = snapshots[id.ToIndex()];

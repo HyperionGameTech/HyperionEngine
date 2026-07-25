@@ -325,7 +325,7 @@ void View::UpdateViewport()
 void View::UpdateVisibility()
 {
     HYP_SCOPE;
-    AssertOnThread(g_simThread | g_visThread);
+    //AssertOnThread(g_simThread | g_visThread);
     AssertReady();
 
     if (!(flags & ViewFlags::SHADOW_VIEW))
@@ -659,6 +659,8 @@ void View::BeginAsyncCollection(TaskBatch& batch)
         batch.AddTask(
             [this]()
             {
+                UpdateVisibility();
+
                 m_overrideCollectFunctor(GetProducerProxyList(this));
             });
 
@@ -668,6 +670,8 @@ void View::BeginAsyncCollection(TaskBatch& batch)
     batch.AddTask(
         [this]()
         {
+            UpdateVisibility();
+
             RenderProxyList& rpl = GetProducerProxyList(this);
 
             rpl.BeginWrite();

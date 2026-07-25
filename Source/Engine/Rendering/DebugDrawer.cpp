@@ -799,12 +799,19 @@ void DebugDrawer::Update()
     std::swap(m_pendingIndex, m_readyIndex);
 }
 
+void DebugDrawer::AcquireRenderCommands()
+{
+    AssertOnThread(g_renderThread);
+
+    std::swap(m_readyIndex, m_renderIndex);
+}
+
 void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    const uint32 idx = m_readyIndex;
+    const uint32 idx = m_renderIndex;
 
     if (!IsEnabled() || m_headers[idx].Empty())
     {
@@ -1036,7 +1043,7 @@ void DebugDrawer::ClearCommands()
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    const uint32 idx = m_readyIndex;
+    const uint32 idx = m_renderIndex;
 
     for (DebugDrawCommandHeader& header : m_headers[idx])
     {
@@ -1065,10 +1072,6 @@ void DebugDrawer::ClearCommands()
     m_bufferOffsets[idx] = 0;
 
     m_bufferSizeHistory[0] = m_buffers[idx].Size();
-
-    // Destroy the command list objects for this slot now that rendering is done. This MUST
-    // happen after rendering because the DebugDrawCommand data above contained raw `shape`
-    // pointers into these objects' shape members (sphere, box, etc.).
     m_commandLists[idx].Clear();
 }
 

@@ -239,7 +239,7 @@ void BakerBase::Initialize()
         InitObject(m_view);
 
         m_view->UpdateViewport();
-        m_view->UpdateVisibility();
+        
         m_view->CollectSync();
 
         // don't want to collect again, just keep the view data around until we're done with it.
