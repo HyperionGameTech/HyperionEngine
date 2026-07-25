@@ -83,8 +83,8 @@
 
 #include <HyperionEngine.hpp>
 
-#define HYP_PROCESS_VIEWS_ASYNC 1
-#define HYP_PROCESS_SUBSYSTEMS_ASYNC 1
+#define HYP_PROCESS_VIEWS_ASYNC
+#define HYP_PROCESS_SUBSYSTEMS_ASYNC
 
 #include <EngineDriver.generated.inl>
 
@@ -96,6 +96,9 @@ void HandleSignal(int signum);
 EngineStatTimer g_statRenderUpdate("RenderThread");
 
 static EngineStatTimer s_statViewCollection("Sim/ViewCollection");
+
+static EngineStatCounter<uint32> s_statViewsCollected("Sim/ViewsCollected");
+static EngineStatCounter<uint32> s_statViewsSkipped("Sim/ViewsSkipped");
 
 ThreadSignal g_renderInitSignal { 0 };
 
@@ -518,7 +521,7 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
         g_visThreadInstance->Process();
     }
 
-#if HYP_PROCESS_SUBSYSTEMS_ASYNC
+#ifdef HYP_PROCESS_SUBSYSTEMS_ASYNC
     Array<Task<void>, SceneTempAllocator> updateSubsystemTasks;
     updateSubsystemTasks.Reserve(subsystems.Size());
 
@@ -558,7 +561,7 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
 
     updateSubsystemTasks.Clear();
 #else  // !HYP_PROCESS_SUBSYSTEMS_ASYNC
-    for (Subsystem* subsystem : m_subsystemsArray)
+    for (Subsystem* subsystem : subsystems)
     {
         subsystem->PreUpdate(delta);
         subsystem->Update(delta);
@@ -663,19 +666,33 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
 
             View* view = views[viewIndex];
 
-#if HYP_PROCESS_VIEWS_ASYNC
+            if (view->collectionState.skipNext)
+            {
+                ++s_statViewsSkipped;
+
+                continue;
+            }
+
+            ++s_statViewsCollected;
+
+#ifdef HYP_PROCESS_VIEWS_ASYNC
             view->BeginAsyncCollection(*m_viewCollectionBatch);
 #else  // !HYP_PROCESS_VIEWS_ASYNC
             view->CollectSync();
 #endif // HYP_PROCESS_VIEWS_ASYNC
         }
 
-#if HYP_PROCESS_VIEWS_ASYNC
+#ifdef HYP_PROCESS_VIEWS_ASYNC
         TaskSystem::GetInstance().EnqueueBatch(m_viewCollectionBatch);
         m_viewCollectionBatch->AwaitCompletion();
 
         for (size_t index = 0; index < views.Size(); index++)
         {
+            if (views[index]->collectionState.skipNext)
+            {
+                continue;
+            }
+
             views[index]->EndAsyncCollection();
         }
 

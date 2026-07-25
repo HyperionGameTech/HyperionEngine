@@ -639,6 +639,26 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                 shadowView->m_scenes.Resize(shadowViewScenes.Size());
                 std::copy(shadowViewScenes.Begin(), shadowViewScenes.End(), shadowView->m_scenes.Begin());
 
+                const bool shouldSkipUnchangedViews = (shadowView == shadowViewsStatic[shadowViewIndex]);
+
+                if (shouldSkipUnchangedViews)
+                {
+                    HashCode inputHash = HashCode::GetHashCode(*light->GetRenderProxyVersionPtr())
+                        .Combine(shadowViewProjMatrix.GetHashCode());
+
+                    for (Scene* shadowViewScene : shadowViewScenes)
+                    {
+                        if (!shadowViewScene || !(shadowViewScene->GetSceneFlags() & SceneFlags::HAS_OCTREE))
+                        {
+                            continue;
+                        }
+
+                        inputHash = inputHash.Combine(shadowViewScene->GetOctree().GetEntryListHash<EntityTag::MobStatic>());
+                    }
+
+                    shadowView->collectionState.UpdateInputs(inputHash, GetFrameCounter());
+                }
+
                 outShadowViews.PushBack(shadowView);
             }
         }
