@@ -372,9 +372,8 @@ public:
     template <typename T>
     T GetVar(StringHash nameHash) const;
 
-    /*! \brief Publishes the cvar states so they're visible to other threads.
-     *  Call once per frame at end of frame. */
-    void OnFrameEnd(uint32 prevFrameIndex);
+    /*! \brief Publishes the cvar states so they're visible to other threads */
+    void Publish(uint8 ringIndex);
 
     const CVarSnapshot& GetCurrentSnapshot() const;
 
@@ -386,8 +385,6 @@ private:
     HYP_NODISCARD int FindVarIndex(StringHash nameHash) const;
 
     CVarSnapshot m_snapshots[RingBufferDepth];
-
-    Mutex m_mutex;
 };
 
 } // namespace Hyperion

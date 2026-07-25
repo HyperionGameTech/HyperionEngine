@@ -501,12 +501,10 @@ T CVarManager::GetVar(StringHash nameHash) const
     return snapshot.values[idx].Get<T>();
 }
 
-void CVarManager::OnFrameEnd(uint32 prevFrameIndex)
+void CVarManager::Publish(uint8 ringIndex)
 {
-    Mutex::Guard lock(m_mutex);
-
-    const uint32 currentIdx = prevFrameIndex % RingBufferDepth;
-    const uint32 nextIdx = (prevFrameIndex + 1) % RingBufferDepth;
+    const uint32 currentIdx = ringIndex;
+    const uint32 nextIdx = (ringIndex + 1) % RingBufferDepth;
 
     CVarSnapshot& next = m_snapshots[nextIdx];
 

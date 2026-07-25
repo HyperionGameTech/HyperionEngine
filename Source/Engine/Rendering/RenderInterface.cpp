@@ -133,7 +133,7 @@ EngineStatTimer g_statTotalStallTime("Rendering/CPU/TotalStallTime");
 
 // Windows during which one thread holds the shared sim/render data region.
 // These span two functions each, so they're timed manually rather than with ENGINE_STAT_SCOPE.
-static EngineStatTimer s_statSimCommitWindow("Rendering/CPU/SimCommitWindow");
+static EngineStatTimer s_statSimCommitWindow("Rendering/CPU/SimCommitWindow", /* resetPerFrame */ false);
 static EngineStatTimer s_statRenderExclusiveWindow("Rendering/CPU/RenderExclusiveWindow");
 
 static EngineStatTimer s_statCopyDependencies("Rendering/CPU/CopyDependencies");
@@ -621,6 +621,8 @@ void BeginSimRenderSyncBlock(AtomicFlag* pCancelFlag)
         }
     }
 
+    CVarManager::GetInstance().Publish(Framework::s_ringIndex[Framework::TT_FrameDataProducer]);
+
     Framework::s_simCommitWindowStart.Start();
 
     Framework::RenderingData& bufferedData = Framework::s_renderingData[*Framework::t_thisThreadRingIndex];
@@ -631,12 +633,14 @@ void EndSimRenderSyncBlock()
 {
     AssertOnThread(g_simThread);
 
-    s_statSimCommitWindow.RecordElapsedMs(static_cast<float>(Framework::s_simCommitWindowStart.ElapsedMs()));
+    const uint8 ringIndex = Framework::s_ringIndex[Framework::TT_FrameDataProducer];
+
+    s_statSimCommitWindow.RecordElapsedMs(static_cast<float>(Framework::s_simCommitWindowStart.ElapsedMs()), /* accum */ false);
 
     Framework::RenderingData& bufferedData = Framework::s_renderingData[*Framework::t_thisThreadRingIndex];
     bufferedData.threadSyncStates[Framework::TT_FrameDataProducer] = 0;
 
-    Framework::s_ringIndex[Framework::TT_FrameDataProducer] = (Framework::s_ringIndex[Framework::TT_FrameDataProducer] + 1) % RingBufferDepth;
+    Framework::s_ringIndex[Framework::TT_FrameDataProducer] = (ringIndex + 1) % RingBufferDepth;
     Framework::s_dataProduced.release();
 }
 
@@ -990,14 +994,14 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
     const uint32 newFrameIndex = GetFrameCounter();
 
     PrepareFrame(GetCurrentFrame());
+    
+    g_engineStats->Prepare();
 
     cbufferAllocator->OnFrameStart(newFrameIndex);
     bufferAllocator->OnFrameStart(newFrameIndex);
     scratchImageAllocator->OnFrameStart(newFrameIndex);
     descriptorSetCache->OnFrameStart(newFrameIndex);
     stagingBufferPool->OnFrameStart(newFrameIndex);
-
-    g_engineStats->Prepare();
 
     RenderCommands::Flush();
 
@@ -1072,10 +1076,6 @@ void RenderInterface::EndFrame()
     DeletionQueue::GetInstance().UpdateEntryListQueue();
     DeletionQueue::GetInstance().OnFrameEnd(prevFrameIndex);
 
-    g_engineStats->OnFrameEnd(prevFrameIndex);
-
-    CVarManager::GetInstance().OnFrameEnd(prevFrameIndex);
-
     cbufferAllocator->OnFrameEnd(prevFrameIndex);
     bufferAllocator->OnFrameEnd(prevFrameIndex);
     scratchImageAllocator->OnFrameEnd(prevFrameIndex);
@@ -1085,11 +1085,13 @@ void RenderInterface::EndFrame()
     textureViewCache->OnFrameEnd(prevFrameIndex);
 
     const uint32 nextFrameIndex = (Framework::s_ringIndex[Framework::TT_FrameDataConsumer] + 1) % RingBufferDepth;
-    Framework::s_ringIndex[Framework::TT_FrameDataConsumer] = nextFrameIndex;
+    Framework::s_ringIndex[Framework::TT_FrameDataConsumer] = static_cast<uint8>(nextFrameIndex);
 
     if constexpr (UseRingBuffer)
     { // Let simulation thread back in
         s_statRenderExclusiveWindow.RecordElapsedMs(static_cast<float>(Framework::s_renderExclusiveWindowStart.ElapsedMs()));
+        
+        g_engineStats->Publish();
 
         bufferedData.threadSyncStates[Framework::TT_FrameDataConsumer] = 0;
         Framework::s_frameSubmitted.release();
@@ -1249,6 +1251,8 @@ void RenderInterface::UpdateResources(AtomicFlag* pCancelFlag)
     if constexpr (!UseRingBuffer)
     { // Let sim thread back in
         s_statRenderExclusiveWindow.RecordElapsedMs(static_cast<float>(Framework::s_renderExclusiveWindowStart.ElapsedMs()));
+        
+        g_engineStats->Publish();
 
         bufferedData.threadSyncStates[Framework::TT_FrameDataConsumer] = 0;
         Framework::s_frameSubmitted.release();

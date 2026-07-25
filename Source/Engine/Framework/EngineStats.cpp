@@ -373,9 +373,6 @@ float EngineStats::CalculateFps() const
 
 void EngineStats::Prepare()
 {
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
     const uint32 sampleIdx = m_impl->sampleIndex % EngineStatsNumSamples;
 
     // clear sample data for this sample index
@@ -385,31 +382,8 @@ void EngineStats::Prepare()
     }
 }
 
-void EngineStats::RecordValueSet(const EngineStatsValueSet& valueSet)
+void EngineStats::Publish()
 {
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
-    const uint32 sampleIdx = m_impl->sampleIndex % EngineStatsNumSamples;
-
-    for (uint16 statId = 0; statId < EngineStatsMaxStats; ++statId)
-    {
-        const float value = valueSet.values[statId];
-
-        if (value != 0.0)
-        {
-            // Add to existing sample value (accumulate values from multiple sources)
-            const float currentValue = GetSampleData(statId, sampleIdx);
-            SetSampleData(statId, sampleIdx, currentValue + value);
-        }
-    }
-}
-
-void EngineStats::OnFrameEnd(uint32 prevFrameIndex)
-{
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
     m_impl->counter.NextTick();
     m_impl->deltaAccum += m_impl->counter.delta;
 
@@ -513,6 +487,26 @@ void EngineStats::OnFrameEnd(uint32 prevFrameIndex)
 
     m_impl->numSamples = MathUtil::Min<uint32>(m_impl->numSamples + 1u, EngineStatsNumSamples);
     m_impl->sampleIndex = (m_impl->sampleIndex + 1) % EngineStatsNumSamples;
+}
+
+void EngineStats::RecordValueSet(const EngineStatsValueSet& valueSet)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_renderThread);
+
+    const uint32 sampleIdx = m_impl->sampleIndex % EngineStatsNumSamples;
+
+    for (uint16 statId = 0; statId < EngineStatsMaxStats; ++statId)
+    {
+        const float value = valueSet.values[statId];
+
+        if (value != 0.0)
+        {
+            // Add to existing sample value (accumulate values from multiple sources)
+            const float currentValue = GetSampleData(statId, sampleIdx);
+            SetSampleData(statId, sampleIdx, currentValue + value);
+        }
+    }
 }
 
 #pragma endregion EngineStats
