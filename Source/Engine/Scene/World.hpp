@@ -339,6 +339,11 @@ public:
     /*! \brief Get Views attached to this World. Buffered so it is safe to access from either the render thread or sim thread. */
     Span<View* const> GetViews() const;
 
+    /*! \brief Copy this frame's Views into render thread owned storage, so the sim thread is free to collect
+     *  the next frame's Views while this one is still being drawn.
+     *  Call from the render thread while the sim/render exclusive window is held. */
+    void SnapshotViewsForRender();
+
     /*! \brief Gets the View responsible for collecting objects used in ray tracing. Will return nullptr if ray tracing is not enabled. */
     HYP_FORCE_INLINE View* GetRayTracingView() const
     {
@@ -422,6 +427,10 @@ private:
 
     // Views, buffered so the render thread can safely read from it
     Array<View*> m_viewsPerFrame[RingBufferDepth];
+
+    // Render thread's own copy, taken during the exclusive window. The sim starts collecting the next
+    // frame's Views before this frame is submitted, so it can't read m_viewsPerFrame during passes.
+    Array<View*> m_viewsRenderSnapshot;
 
     View* m_rayTracingView;
 

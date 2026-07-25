@@ -231,7 +231,7 @@ class DebugDrawer
     friend class DebugDrawCommandList;
 
 public:
-    static constexpr uint32 BufferCount = 2;
+    static constexpr uint32 BufferCount = 3;
 
     static DebugDrawer& GetInstance();
 
@@ -246,13 +246,19 @@ public:
 
     HYP_FORCE_INLINE uint32 NumEnqueuedDrawCommands() const
     {
-        return uint32(m_headers[m_readyIndex].Size());
+        return uint32(m_headers[m_renderIndex].Size());
     }
 
     void Initialize();
     void Shutdown();
 
     void Update();
+
+    /*! \brief Take ownership of the slot the sim thread most recently finished, so the sim is free to
+     *  swap its own slots again while this frame is still being drawn.
+     *  Call from the render thread while the sim/render exclusive window is held. */
+    void AcquireRenderCommands();
+
     void Render(Frame* frame, const RenderSetup& renderSetup);
 
     DebugDrawCommandList& CreateCommandList();
@@ -267,15 +273,17 @@ private:
 
     uint32 m_pendingIndex = 0;
     uint32 m_readyIndex = 1;
+    uint32 m_renderIndex = 2;
 
     // buffer sizes over the last X frames. we max() this to determine if we should compact the buffer
     FixedArray<size_t, 10> m_bufferSizeHistory;
 
-    // Double-buffered: the slot at m_pendingIndex accumulates per-caller command list objects
-    // (CreateCommandList appends here, sim thread). The slot at m_readyIndex is kept alive
-    // until ClearCommands() destroys it (render thread, after rendering), because the merged
-    // DebugDrawCommand data in m_headers/m_buffers contains raw `shape` pointers that point
-    // into the shape MEMBERS (sphere, box, etc.) of these list objects.
+    // Triple-buffered list of debug draw command lists.
+    //  - the slot at m_pendingIndex accumulates per-caller command list objects
+    //    - (CreateCommandList appends here from sim thread).
+    //    - Update() swaps pending/ready
+    //    - the render thread then swaps ready/render inside the sim/render exclusive window, so the sim can keep swapping
+    //      its own two slots while a frame is still being drawn from m_renderIndex.
     FixedArray<List<DebugDrawCommandList>, BufferCount> m_commandLists;
 
     typedef Array<ImmediateDrawShaderData, RenderAllocator> CachedPartitionedShaderData[MaxDebugDrawShapeTypes];

@@ -22,19 +22,6 @@
 #define HYP_VECTOR4_USE_SSE 0
 #endif
 
-namespace {
-
-#if HYP_VECTOR4_USE_SSE
-static HYP_FORCE_INLINE Hyperion::math::Vec4<float> StoreVec4f(__m128 value)
-{
-    Hyperion::math::Vec4<float> result;
-    result._value = value;
-    return result;
-}
-#endif
-
-} // namespace
-
 namespace Hyperion {
 
 CORE_API const Class* g_clsVec4f = nullptr;
@@ -90,166 +77,6 @@ bool math::Vec4<float>::operator!=(const Vec4<float>& other) const
     return !operator==(other);
 }
 
-Vec4<float> math::Vec4<float>::operator+(const Vec4<float>& other) const
-{
-#if HYP_VECTOR4_USE_SSE
-    // Adapted from Foxtrot SIMD vector paths:
-    // Math/Impl/Vector/FxVec4_AVX.inl
-    return StoreVec4f(_mm_add_ps(_value, other._value));
-#else
-    return {
-        x + other.x,
-        y + other.y,
-        z + other.z,
-        w + other.w
-    };
-#endif
-}
-
-Vec4<float>& math::Vec4<float>::operator+=(const Vec4<float>& other)
-{
-#if HYP_VECTOR4_USE_SSE
-    // Adapted from Foxtrot SIMD vector paths:
-    // Math/Impl/Vector/FxVec4_AVX.inl
-    _value = _mm_add_ps(_value, other._value);
-
-    return *this;
-#else
-    x += other.x;
-    y += other.y;
-    z += other.z;
-    w += other.w;
-
-    return *this;
-#endif
-}
-
-Vec4<float> math::Vec4<float>::operator-(const Vec4<float>& other) const
-{
-#if HYP_VECTOR4_USE_SSE
-    // Adapted from Foxtrot SIMD vector paths:
-    // Math/Impl/Vector/FxVec4_AVX.inl
-    return StoreVec4f(_mm_sub_ps(_value, other._value));
-#else
-    return {
-        x - other.x,
-        y - other.y,
-        z - other.z,
-        w - other.w
-    };
-#endif
-}
-
-Vec4<float>& math::Vec4<float>::operator-=(const Vec4<float>& other)
-{
-#if HYP_VECTOR4_USE_SSE
-    // Adapted from Foxtrot SIMD vector paths:
-    // Math/Impl/Vector/FxVec4_AVX.inl
-    _value = _mm_sub_ps(_value, other._value);
-
-    return *this;
-#else
-    x -= other.x;
-    y -= other.y;
-    z -= other.z;
-    w -= other.w;
-
-    return *this;
-#endif
-}
-
-Vec4<float> math::Vec4<float>::operator*(const Vec4<float>& other) const
-{
-#if HYP_VECTOR4_USE_SSE
-    // Adapted from Foxtrot SIMD vector paths:
-    // Math/Impl/Vector/FxVec4_AVX.inl
-    return StoreVec4f(_mm_mul_ps(_value, other._value));
-#else
-    return {
-        x * other.x,
-        y * other.y,
-        z * other.z,
-        w * other.w
-    };
-#endif
-}
-
-Vec4<float>& math::Vec4<float>::operator*=(const Vec4<float>& other)
-{
-#if HYP_VECTOR4_USE_SSE
-    // Adapted from Foxtrot SIMD vector paths:
-    // Math/Impl/Vector/FxVec4_AVX.inl
-    _value = _mm_mul_ps(_value, other._value);
-
-    return *this;
-#else
-    x *= other.x;
-    y *= other.y;
-    z *= other.z;
-    w *= other.w;
-
-    return *this;
-#endif
-}
-
-Vec4<float> math::Vec4<float>::operator/(const Vec4<float>& other) const
-{
-#if HYP_VECTOR4_USE_SSE
-    // Adapted from Foxtrot SIMD vector paths:
-    // Math/Impl/Vector/FxVec4_AVX.inl
-    return StoreVec4f(_mm_div_ps(_value, other._value));
-#else
-    return {
-        x / other.x,
-        y / other.y,
-        z / other.z,
-        w / other.w
-    };
-#endif
-}
-
-Vec4<float> math::Vec4<float>::operator-() const
-{
-#if HYP_VECTOR4_USE_SSE
-    // Adapted from Foxtrot SIMD vector paths:
-    // Math/Impl/Vector/FxVec4_AVX.inl
-    return StoreVec4f(_mm_sub_ps(_mm_setzero_ps(), _value));
-#else
-    return {
-        -x,
-        -y,
-        -z,
-        -w
-    };
-#endif
-}
-
-float math::Vec4<float>::LengthSquared() const
-{
-#if HYP_VECTOR4_USE_SSE
-    // Adapted from Foxtrot SIMD vector paths:
-    // Math/Impl/Vector/FxVec4_AVX.inl
-    // Mask 0xFF: Src=1111 (all lanes), Dest=1111 (broadcast to all lanes).
-    return _mm_cvtss_f32(_mm_dp_ps(_value, _value, 0xFF));
-#else
-    return x * x + y * y + z * z + w * w;
-#endif
-}
-
-float math::Vec4<float>::DistanceSquared(const Vec4& other) const
-{
-#if HYP_VECTOR4_USE_SSE
-    const __m128 diff = _mm_sub_ps(_value, other._value);
-    return _mm_cvtss_f32(_mm_dp_ps(diff, diff, 0xFF));
-#else
-    float dx = x - other.x;
-    float dy = y - other.y;
-    float dz = z - other.z;
-    float dw = w - other.w;
-    return dx * dx + dy * dy + dz * dz + dw * dw;
-#endif
-}
-
 /* Euclidean distance */
 float math::Vec4<float>::Distance(const Vec4& other) const
 {
@@ -262,7 +89,7 @@ Vec4<float> math::Vec4<float>::Normalized() const
     const float len = MathUtil::Max(Length(), MathUtil::epsilonF);
     const __m128 invLen = _mm_set1_ps(1.0f / len);
 
-    return StoreVec4f(_mm_mul_ps(_value, invLen));
+    return Vec4f(_mm_mul_ps(_value, invLen));
 #else
     return *this / MathUtil::Max(Length(), MathUtil::epsilonF);
 #endif
@@ -302,18 +129,6 @@ Vec4<float>& math::Vec4<float>::Lerp(const Vec4<float>& to, float amt)
 #endif
 
     return *this;
-}
-
-float math::Vec4<float>::Dot(const Vec4<float>& other) const
-{
-#if HYP_VECTOR4_USE_SSE
-    // Adapted from Foxtrot SIMD vector paths:
-    // Math/FxSSEUtil.hpp
-    // Mask 0xFF: Src=1111 (all lanes), Dest=1111 (broadcast to all lanes).
-    return _mm_cvtss_f32(_mm_dp_ps(_value, other._value, 0xFF));
-#else
-    return x * other.x + y * other.y + z * other.z + w * other.w;
-#endif
 }
 
 template <>
@@ -386,7 +201,7 @@ Vec4<float> math::Vec4<float>::Abs(const Vec4<float>& vec)
 {
 #if HYP_VECTOR4_USE_SSE
     const __m128 signMask = _mm_set1_ps(-0.0f);
-    return StoreVec4f(_mm_andnot_ps(signMask, vec._value));
+    return Vec4f(_mm_andnot_ps(signMask, vec._value));
 #else
     return {
         MathUtil::Abs(vec.x),
@@ -415,7 +230,7 @@ Vec4<float> math::Vec4<float>::Clamp(const Vec4<float>& vec, float minValue, flo
 Vec4<float> math::Vec4<float>::Min(const Vec4<float>& a, const Vec4<float>& b)
 {
 #if HYP_VECTOR4_USE_SSE
-    return StoreVec4f(_mm_min_ps(a._value, b._value));
+    return Vec4f(_mm_min_ps(a._value, b._value));
 #else
     return {
         MathUtil::Min(a.x, b.x),
@@ -429,7 +244,7 @@ Vec4<float> math::Vec4<float>::Min(const Vec4<float>& a, const Vec4<float>& b)
 Vec4<float> math::Vec4<float>::Max(const Vec4<float>& a, const Vec4<float>& b)
 {
 #if HYP_VECTOR4_USE_SSE
-    return StoreVec4f(_mm_max_ps(a._value, b._value));
+    return Vec4f(_mm_max_ps(a._value, b._value));
 #else
     return {
         MathUtil::Max(a.x, b.x),
@@ -509,7 +324,7 @@ Vec4<float> math::Vec4<float>::Cross(const Vec4<float>& other) const
 
     const __m128 result_yzxw = _mm_sub_ps(_mm_mul_ps(_value, b_yzxw), _mm_mul_ps(a_yzxw, other._value));
 
-    return StoreVec4f(_mm_shuffle_ps(result_yzxw, result_yzxw, _MM_SHUFFLE(3, 0, 2, 1)));
+    return Vec4f(_mm_shuffle_ps(result_yzxw, result_yzxw, _MM_SHUFFLE(3, 0, 2, 1)));
 #else
     return {
         y * other.z - z * other.y,

@@ -28,19 +28,6 @@
 #define HYP_MAT4F_USE_AVX 0
 #endif
 
-namespace {
-
-#if HYP_MAT4F_USE_SSE
-static HYP_FORCE_INLINE Hyperion::math::Vec4<float> StoreVec4f(__m128 value)
-{
-    Hyperion::math::Vec4<float> result;
-    result._value = value;
-    return result;
-}
-#endif
-
-} // namespace
-
 namespace Hyperion {
 
 const Mat4f Mat4f::identity = Mat4f::Identity();
@@ -520,7 +507,7 @@ Vec3f Mat4f::TransformVector(const Vec3f& vec) const
     const __m128 y = _mm_dp_ps(_mm_load_ps(values + 4), v, 0xF2);
     const __m128 z = _mm_dp_ps(_mm_load_ps(values + 8), v, 0xF4);
     const __m128 w = _mm_dp_ps(_mm_load_ps(values + 12), v, 0xF8);
-    const Vec4f product = StoreVec4f(_mm_or_ps(_mm_or_ps(x, y), _mm_or_ps(z, w)));
+    const Vec4f product = Vec4f(_mm_or_ps(_mm_or_ps(x, y), _mm_or_ps(z, w)));
 
     return product.GetXYZ() / product.w;
 #else
@@ -548,7 +535,7 @@ Vec4f Mat4f::TransformVector(const Vec4f& vec) const
     const __m128 z = _mm_dp_ps(_mm_load_ps(values + 8), v, 0xF4);
     const __m128 w = _mm_dp_ps(_mm_load_ps(values + 12), v, 0xF8);
 
-    return StoreVec4f(_mm_or_ps(_mm_or_ps(x, y), _mm_or_ps(z, w)));
+    return Vec4f(_mm_or_ps(_mm_or_ps(x, y), _mm_or_ps(z, w)));
 #else
     return {
         vec.x * values[0] + vec.y * values[1] + vec.z * values[2] + vec.w * values[3],

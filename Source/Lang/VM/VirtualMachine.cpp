@@ -134,8 +134,58 @@ BoxedValue MakeValue(const ScriptObjectData& value)
     return BoxedValue(resultData);
 }
 
+namespace {
+
+using BoxedValueCtor = BoxedValue (*)(const Number& number);
+
+template <typename T>
+static BoxedValue ConstructBoxedValue_Float(const Number& number)
+{
+    return BoxedValue(T(number.f));
+}
+
+template <typename T>
+static BoxedValue ConstructBoxedValue_Signed(const Number& number)
+{
+    return BoxedValue(T(number.i));
+}
+
+template <typename T>
+static BoxedValue ConstructBoxedValue_Unsigned(const Number& number)
+{
+    return BoxedValue(T(number.u));
+}
+
+static constexpr uint32 NumericFlagsMask = 0x7Fu;
+static constexpr size_t NumericTableSize = NumericFlagsMask + 1;
+
+static constexpr FixedArray<BoxedValueCtor, NumericTableSize> BoxedValueCtorTable = []
+{
+    FixedArray<BoxedValueCtor, NumericTableSize> t {};
+
+    t[Number::FLAG_FLOATING_POINT | Number::FLAG_32_BIT] = &ConstructBoxedValue_Float<float32>;
+    t[Number::FLAG_FLOATING_POINT | Number::FLAG_64_BIT] = &ConstructBoxedValue_Float<float64>;
+
+    t[Number::FLAG_SIGNED | Number::FLAG_8_BIT]  = &ConstructBoxedValue_Signed<int8>;
+    t[Number::FLAG_SIGNED | Number::FLAG_16_BIT] = &ConstructBoxedValue_Signed<int16>;
+    t[Number::FLAG_SIGNED | Number::FLAG_32_BIT] = &ConstructBoxedValue_Signed<int32>;
+    t[Number::FLAG_SIGNED | Number::FLAG_64_BIT] = &ConstructBoxedValue_Signed<int64>;
+
+    t[Number::FLAG_UNSIGNED | Number::FLAG_8_BIT]  = &ConstructBoxedValue_Unsigned<uint8>;
+    t[Number::FLAG_UNSIGNED | Number::FLAG_16_BIT] = &ConstructBoxedValue_Unsigned<uint16>;
+    t[Number::FLAG_UNSIGNED | Number::FLAG_32_BIT] = &ConstructBoxedValue_Unsigned<uint32>;
+    t[Number::FLAG_UNSIGNED | Number::FLAG_64_BIT] = &ConstructBoxedValue_Unsigned<uint64>;
+
+    return t;
+}();
+
+} // anonymous namespace
+
 BoxedValue MakeValue(const Number& number)
 {
+    return BoxedValueCtorTable[number.flags](number);
+
+#if 0
     ValueStorage<BoxedValue> resultStorage;
     BoxedValue* ptr = resultStorage.GetPointer();
 
@@ -194,6 +244,7 @@ BoxedValue MakeValue(const Number& number)
     }
 
     return reinterpret_cast<BoxedValue&&>(*ptr);
+#endif
 }
 
 /*! \brief Use for loading into registers - does not promote to tracked memory so the lifetime of `refValue` must be managed by the caller */
@@ -1844,8 +1895,8 @@ public:
             }
             else if (lhs->Is<Name>() && rhs->Is<Name>())
             {
-                const Name& lname = lhs->Get<Name>();
-                const Name& rname = rhs->Get<Name>();
+                const Name lname = lhs->Get<Name>();
+                const Name rname = rhs->Get<Name>();
 
                 if (lname == rname)
                     instance->thread.m_regs.flags = CF_EQUAL;
@@ -2437,7 +2488,7 @@ public:
         }
 
         Number result;
-        result.flags = Number::FLAG_UNSIGNED;
+        result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;
 
         if (num.flags & Number::FLAG_UNSIGNED)
         {
@@ -2561,7 +2612,7 @@ public:
         }
 
         Number result;
-        result.flags = Number::FLAG_SIGNED;
+        result.flags = Number::FLAG_SIGNED | Number::FLAG_64_BIT;
 
         if (num.flags & Number::FLAG_UNSIGNED)
         {
@@ -2625,7 +2676,7 @@ public:
         }
 
         Number result;
-        result.flags = Number::FLAG_FLOATING_POINT;
+        result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_64_BIT;
 
         if (num.flags & Number::FLAG_UNSIGNED)
         {
@@ -2650,6 +2701,7 @@ public:
 
         // use same logic as CmpZ to determine truthiness
         bool result = false;
+
         Number num;
 
         if (GetSignedOrUnsigned(value, &num))

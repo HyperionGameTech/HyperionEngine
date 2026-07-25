@@ -478,7 +478,8 @@ void EnvProbe::CreateViewData()
         TextureType::Cubemap,
         TextureFormat::RGBA8,
         LoadOperation::CLEAR,
-        StoreOperation::STORE });
+        StoreOperation::STORE
+    });
 
     attachmentImages.PushBack(RI.MakeImage(TextureDesc {
         colorDesc.imageType,

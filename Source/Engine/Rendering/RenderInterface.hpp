@@ -139,8 +139,6 @@ WorldShaderData* GetWorldBufferData();
 void CommitActiveWorlds(Span<World*> activeWorlds);
 Span<World*> GetActiveWorlds();
 
-Viewport& GetViewport(View* view);
-
 struct NamedPass
 {
     enum Name : uint8
@@ -475,7 +473,7 @@ private:
     HYP_NODISCARD bool WaitForSync(AtomicFlag* pCancelFlag);
 
     void UpdateResources(AtomicFlag* pCancelFlag);
-    void CleanupUnusedResources(uint32 prevFrameIndex);
+    void CleanupUnusedResources(uint32 frameIndex);
 };
 
 } // namespace Hyperion

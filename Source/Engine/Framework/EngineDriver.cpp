@@ -95,6 +95,8 @@ void HandleSignal(int signum);
 
 EngineStatTimer g_statRenderUpdate("RenderThread");
 
+static EngineStatTimer s_statViewCollection("Sim/ViewCollection");
+
 ThreadSignal g_renderInitSignal { 0 };
 
 // We generally don't have more than 3 Systems running concurrently
@@ -652,35 +654,37 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
         CommitActiveWorlds(worldsToRender.ToSpan());
     }
 
-    for (size_t viewIndex = 0; viewIndex < views.Size(); viewIndex++)
-    {
-        HYP_NAMED_SCOPE("Per-view entity collection");
+    { // View collection needs to be in sync with render thread as it will read the committed data
+        ENGINE_STAT_SCOPE(&s_statViewCollection);
 
-        View* view = views[viewIndex];
+        for (size_t viewIndex = 0; viewIndex < views.Size(); viewIndex++)
+        {
+            HYP_NAMED_SCOPE("Per-view entity collection");
 
-        view->UpdateVisibility();
+            View* view = views[viewIndex];
 
 #if HYP_PROCESS_VIEWS_ASYNC
-        view->BeginAsyncCollection(*m_viewCollectionBatch);
+            view->BeginAsyncCollection(*m_viewCollectionBatch);
 #else  // !HYP_PROCESS_VIEWS_ASYNC
-        view->CollectSync();
+            view->CollectSync();
 #endif // HYP_PROCESS_VIEWS_ASYNC
-    }
+        }
 
 #if HYP_PROCESS_VIEWS_ASYNC
-    TaskSystem::GetInstance().EnqueueBatch(m_viewCollectionBatch);
-    m_viewCollectionBatch->AwaitCompletion();
+        TaskSystem::GetInstance().EnqueueBatch(m_viewCollectionBatch);
+        m_viewCollectionBatch->AwaitCompletion();
 
-    for (size_t index = 0; index < views.Size(); index++)
-    {
-        views[index]->EndAsyncCollection();
-    }
+        for (size_t index = 0; index < views.Size(); index++)
+        {
+            views[index]->EndAsyncCollection();
+        }
 
-    AssertDebug(m_viewCollectionBatch != nullptr);
-    AssertDebug(m_viewCollectionBatch->IsCompleted());
+        AssertDebug(m_viewCollectionBatch != nullptr);
+        AssertDebug(m_viewCollectionBatch->IsCompleted());
 
-    m_viewCollectionBatch->ResetState();
+        m_viewCollectionBatch->ResetState();
 #endif // HYP_PROCESS_VIEWS_ASYNC
+    }
 
     {
         // write buffered render data
