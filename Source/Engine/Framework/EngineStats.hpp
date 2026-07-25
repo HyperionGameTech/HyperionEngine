@@ -177,11 +177,17 @@ public:
         EngineStatBase::resetPerFrame = resetPerFrame;
     }
 
-    /*! \brief Atomically record elapsed time in milliseconds.
-     *  Called by EngineStatScope on its destructor. Thread-safe - can be called from any thread. */
-    void RecordElapsedMs(float ms)
+    /*! \brief Atomically record elapsed time in milliseconds. If accum is true, will be added to total count. Otherwise will replace the current value. */
+    void RecordElapsedMs(float ms, bool accum = true)
     {
-        m_totalMicroseconds.Increment(static_cast<uint64>(ms * 1000.0), MemoryOrder::RELAXED);
+        if (accum)
+        {
+            m_totalMicroseconds.Increment(static_cast<uint64>(ms * 1000.0), MemoryOrder::RELAXED);
+        }
+        else
+        {
+            m_totalMicroseconds.Exchange(static_cast<uint64>(ms * 1000.0), MemoryOrder::RELAXED);
+        }
     }
 
     virtual float GetValue() const override
@@ -367,7 +373,7 @@ public:
     float QueryStatValue(UTF8StringView path, float valueIfNotFound = 0.0) const;
 
     void Prepare();
-    void OnFrameEnd(uint32 prevFrameIndex);
+    void Publish();
 
     /*! \brief Record a value set to be integrated into samples.
      *  Call this to add values that will be included in the next OnFrameEnd() calculation.
