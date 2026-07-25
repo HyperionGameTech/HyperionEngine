@@ -577,6 +577,7 @@ void EnvProbe::CreateViewData()
         viewDesc.flags = (OnlyCollectStaticEntities() ? ViewFlags::COLLECT_STATIC_ENTITIES : ViewFlags::COLLECT_ALL_ENTITIES)
             | ViewFlags::CUBEMAP_FACE_VIEW | ViewFlags::ENV_PROBE_VIEW
             | ViewFlags::SKIP_PROBE_VOLUMES
+            | ViewFlags::NO_SHADOW_VIEWS
             | ViewFlags::EXTERNAL_RENDERTARGET;
 
         if (!IsRealtime())

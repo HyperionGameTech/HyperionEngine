@@ -60,6 +60,7 @@ BoundingBox CalculateCascadeBounds(
 
     centerLS.x = MathUtil::Floor(centerLS.x / worldUnitsPerTexel) * worldUnitsPerTexel;
     centerLS.y = MathUtil::Floor(centerLS.y / worldUnitsPerTexel) * worldUnitsPerTexel;
+    centerLS.z = MathUtil::Floor(centerLS.z / worldUnitsPerTexel) * worldUnitsPerTexel;
 
     Vec4f sceneCenterLS = shadowViewMatrix.TransformVector(Vec4f(sceneWorldBounds.GetCenter(), 1.0f));
     sceneCenterLS /= sceneCenterLS.w;

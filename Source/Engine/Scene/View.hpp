@@ -156,6 +156,27 @@ private:
     Handle<ObjectBase> m_impl;
 };
 
+struct ViewCollectionState
+{
+    HashCode inputHash = HashCode(HashCode::ValueType(0));
+    uint32 frame = 0;
+
+    bool skipNext = false;
+
+    void UpdateInputs(HashCode inInputHash, uint32 inFrame)
+    {
+        const bool sameHashAndFrame = inputHash.Value() != 0
+            && inputHash == inInputHash
+            && frame + 1 == inFrame;
+
+        // Update state for new inputs.
+        inputHash = inInputHash;
+        frame = inFrame;
+
+        skipNext = sameHashAndFrame;
+    }
+};
+
 HYP_CLASS()
 class ENGINE_API View final : public ObjectBase
 {
@@ -293,6 +314,8 @@ public:
     BoundingBox cachedBounds; // Used for CSM only (SHADOW_VIEW)
 
     int priority;
+
+    ViewCollectionState collectionState;
 
 protected:
     void Init() override;

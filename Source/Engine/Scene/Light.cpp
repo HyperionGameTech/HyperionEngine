@@ -168,10 +168,6 @@ void Light::OnTransformUpdated()
 
 void Light::Update(float delta)
 {
-    if (m_lightFlags & LightFlags::ShadowCaster)
-    {
-        SetNeedsRenderProxyUpdate();
-    }
 }
 
 void Light::SetLightFlags(EnumFlags<LightFlags> flags)
