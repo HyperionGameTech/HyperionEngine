@@ -33,7 +33,9 @@
 
 #include <Framework/Game.hpp>
 
+#ifdef HYP_EDITOR
 #include <Editor/EditorTask.hpp>
+#endif // HYP_EDITOR
 
 #ifdef HYP_SCRIPT
 #include <Lang/HypScript.hpp>

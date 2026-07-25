@@ -61,7 +61,9 @@ static const Map<String, String> s_pathConditionalDefines = {
     { "rendering/vulkan", "HYP_VULKAN" },
     { "rendering/dx12", "HYP_DX12" },
 
-    { "editor", "HYP_EDITOR" }
+    // Editor-only paths.
+    { "editor", "HYP_EDITOR" },
+    { "baking", "HYP_EDITOR" }
 };
 
 static void ExtractConditionAttribute(String& condition, Array<Pair<String, ClassAttributeValue>>& attributes)

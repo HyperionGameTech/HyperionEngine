@@ -79,12 +79,6 @@ Java_com_hyperion_engine_HyperionBridge_nativeLaunchThreads(JNIEnv* env, jclass 
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_hyperion_engine_HyperionBridge_nativeShutdown(JNIEnv* /*env*/, jclass /*clazz*/)
-{
-    Hyp_Shutdown();
-}
-
-extern "C" JNIEXPORT void JNICALL
 Java_com_hyperion_engine_HyperionBridge_nativeSetAssetManager(JNIEnv* env, jclass /*clazz*/,  jobject javaAssetManager)
 {
     static jobject s_assetManagerRef {};
