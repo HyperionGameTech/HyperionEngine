@@ -50,8 +50,10 @@ void CVar<const char*>::Set(const char* value)
     if (value != nullptr)
     {
         size_t length = Memory::StrLen(value) + 1;
+        
         char* newValue = (char*)Memory::AllocateZeros(length + 1);
         Memory::CopyString(newValue, value, length);
+
         m_value = newValue;
     }
 }
@@ -89,7 +91,9 @@ template <>
 bool CVar<const char*>::SetFromConfig(const ConfigValue& cfgValue)
 {
     if (!cfgValue.IsString())
+    {
         return false;
+    }
 
     String str = cfgValue.ToString();
 
@@ -118,7 +122,9 @@ template <>
 bool CVar<int8>::SetFromConfig(const ConfigValue& cfgValue)
 {
     if (!cfgValue.IsNumber())
+    {
         return false;
+    }
 
     m_value = cfgValue.ToInt8();
 
@@ -129,7 +135,9 @@ template <>
 bool CVar<int16>::SetFromConfig(const ConfigValue& cfgValue)
 {
     if (!cfgValue.IsNumber())
+    {
         return false;
+    }
 
     m_value = cfgValue.ToInt16();
 
@@ -140,7 +148,9 @@ template <>
 bool CVar<int32>::SetFromConfig(const ConfigValue& cfgValue)
 {
     if (!cfgValue.IsNumber())
+    {
         return false;
+    }
 
     m_value = cfgValue.ToInt32();
 
@@ -151,7 +161,9 @@ template <>
 bool CVar<int64>::SetFromConfig(const ConfigValue& cfgValue)
 {
     if (!cfgValue.IsNumber())
+    {
         return false;
+    }
 
     m_value = cfgValue.ToInt64();
 
@@ -162,7 +174,9 @@ template <>
 bool CVar<uint8>::SetFromConfig(const ConfigValue& cfgValue)
 {
     if (!cfgValue.IsNumber())
+    {
         return false;
+    }
 
     m_value = cfgValue.ToUInt8();
 
@@ -173,7 +187,9 @@ template <>
 bool CVar<uint16>::SetFromConfig(const ConfigValue& cfgValue)
 {
     if (!cfgValue.IsNumber())
+    {
         return false;
+    }
 
     m_value = cfgValue.ToUInt16();
 
@@ -184,7 +200,9 @@ template <>
 bool CVar<uint32>::SetFromConfig(const ConfigValue& cfgValue)
 {
     if (!cfgValue.IsNumber())
+    {
         return false;
+    }
 
     m_value = cfgValue.ToUInt32();
 
@@ -195,7 +213,9 @@ template <>
 bool CVar<uint64>::SetFromConfig(const ConfigValue& cfgValue)
 {
     if (!cfgValue.IsNumber())
+    {
         return false;
+    }
 
     m_value = cfgValue.ToUInt64();
 
@@ -206,7 +226,9 @@ template <>
 bool CVar<float>::SetFromConfig(const ConfigValue& cfgValue)
 {
     if (!cfgValue.IsNumber())
+    {
         return false;
+    }
 
     m_value = cfgValue.ToFloat();
 
@@ -217,7 +239,9 @@ template <>
 bool CVar<double>::SetFromConfig(const ConfigValue& cfgValue)
 {
     if (!cfgValue.IsNumber())
+    {
         return false;
+    }
 
     m_value = cfgValue.ToDouble();
 
@@ -228,7 +252,9 @@ template <>
 bool CVar<bool>::SetFromConfig(const ConfigValue& cfgValue)
 {
     if (!cfgValue.IsBool())
+    {
         return false;
+    }
 
     m_value = cfgValue.ToBool();
 
@@ -356,8 +382,10 @@ static void InitCVar(CVarManager* manager, CVarBase* cvar, const UTF8StringView&
         if (configPath)
         {
             const size_t len = Memory::StrLen(configPath.Data()) + 1;
+            
             char* copiedPath = (char*)Memory::AllocateZeros(len);
             Memory::CopyString(copiedPath, configPath.Data(), len);
+
             manager->cvarToConfigPath[cvar->id] = copiedPath;
         }
     }
@@ -461,8 +489,11 @@ void CVarManager::InitFromConfig(const ConfigBase& config)
 HYP_NODISCARD CVarBase* CVarManager::FindVar(const ANSIString& name) const
 {
     const int idx = FindVarIndex(name);
+
     if (idx < 0)
+    {
         return nullptr;
+    }
 
     return cvars[idx];
 }
@@ -470,7 +501,7 @@ HYP_NODISCARD CVarBase* CVarManager::FindVar(const ANSIString& name) const
 template <typename T>
 void CVarManager::SetVar(StringHash nameHash, T value)
 {
-    int idx = FindVarIndex(nameHash);
+    const int idx = FindVarIndex(nameHash);
 
     if (idx < 0)
     {
@@ -483,7 +514,7 @@ void CVarManager::SetVar(StringHash nameHash, T value)
 template <typename T>
 T CVarManager::GetVar(StringHash nameHash) const
 {
-    int idx = FindVarIndex(nameHash);
+    const int idx = FindVarIndex(nameHash);
 
     if (idx < 0)
     {
@@ -534,18 +565,24 @@ HYP_NODISCARD int CVarManager::FindVarIndex(const ANSIString& name) const
     for (uint32 i = 0; i < MaxCVars; i++)
     {
         if (!cvars[i])
+        {
             continue;
+        }
 
         const ANSIString varNameLower = ANSIString(*cvars[i]->name).ToLower();
 
         if (varNameLower == inNameLower)
-            return int(i);
+        {
+            return static_cast<int>(i);
+        }
 
         // 'Foo.Bar.Test' should match with 'Test' as input name.
         const size_t lastSeparatorIndex = varNameLower.FindLastIndex('.');
 
         if (lastSeparatorIndex != ANSIString::NotFound && varNameLower.Substr(lastSeparatorIndex + 1) == inNameLower)
+        {
             return int(i);
+        }
     }
 
     return -1;
@@ -557,7 +594,7 @@ HYP_NODISCARD int CVarManager::FindVarIndex(StringHash nameHash) const
     {
         if (cvars[i] && cvars[i]->name == nameHash)
         {
-            return int(i);
+            return static_cast<int>(i);
         }
     }
 

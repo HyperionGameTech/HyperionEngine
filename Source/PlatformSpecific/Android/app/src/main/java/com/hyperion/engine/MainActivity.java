@@ -145,7 +145,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
             surface = m_pendingSurface;
         }
 
-        HyperionBridge.nativeSetSurface(surface);
+        HyperionBridge.nativeSetSurface(surface, 0, 0);
 
         m_engineReady = true;
 
@@ -197,7 +197,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
 
         if (!isFinishing()) {
             // treat as a config change (recreates swapchain)
-            HyperionBridge.nativeSetSurface(null);
+            HyperionBridge.nativeSetSurface(null, 0, 0);
             return;
         }
 
@@ -235,14 +235,14 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
         }
 
         if (m_engineReady) {
-            HyperionBridge.nativeSetSurface(holder.getSurface());
+            HyperionBridge.nativeSetSurface(holder.getSurface(), 0, 0);
         }
     }
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
         if (m_engineReady) {
-            HyperionBridge.nativeSetSurface(holder.getSurface());
+            HyperionBridge.nativeSetSurface(holder.getSurface(), width, height);
         }
     }
 
@@ -253,7 +253,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
         }
 
         if (m_engineReady) {
-            HyperionBridge.nativeSetSurface(null);
+            HyperionBridge.nativeSetSurface(null, 0, 0);
         }
     }
 

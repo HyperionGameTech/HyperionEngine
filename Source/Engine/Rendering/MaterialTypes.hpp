@@ -59,6 +59,7 @@ public:
     static constexpr uint8 FlagShift_MetalnessChannel = 3;
     static constexpr uint8 FlagShift_AmbientOcclusionChannel = 5;
     static constexpr uint8 FlagMask_Channel = 0x3u;
+    static constexpr uint8 FlagBit_ParallaxInverseHeight = 0x80u;
 
     HYP_FIELD(Property = "Albedo", Editor, Serialize)
     Vec4f albedo;
@@ -180,6 +181,20 @@ public:
     {
         flags = static_cast<uint8>((flags & ~(FlagMask_Channel << FlagShift_AmbientOcclusionChannel))
             | ((uint8(channel) & FlagMask_Channel) << FlagShift_AmbientOcclusionChannel));
+    }
+
+    HYP_METHOD(Property = "InverseHeight", Editor = false)
+    HYP_FORCE_INLINE bool IsParallaxInverseHeight() const
+    {
+        return (flags & FlagBit_ParallaxInverseHeight) != 0;
+    }
+
+    HYP_METHOD(Property = "InverseHeight", Editor = false)
+    HYP_FORCE_INLINE void SetParallaxInverseHeight(bool value)
+    {
+        flags = value
+            ? static_cast<uint8>(flags | FlagBit_ParallaxInverseHeight)
+            : static_cast<uint8>(flags & ~FlagBit_ParallaxInverseHeight);
     }
 
     static MaterialParameters Defaults()

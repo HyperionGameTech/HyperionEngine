@@ -381,16 +381,25 @@ void UIStage::Init()
             return;
         }
 
-        m_contentScaleFactor = window->GetContentScaleFactor();
         const Vec2i physicalSize = window->GetSize();
 
-        m_surfaceSize = Vec2i(Vec2f(physicalSize) / m_contentScaleFactor);
-
-        if (m_camera.IsValid())
+        if (IsInitCalled())
         {
-            m_camera->SetDimensions(physicalSize);
+            // switching windows after Init() needs the same relayout a resize does
+            SetSurfaceSize(physicalSize);
+        }
+        else
+        {
+            m_contentScaleFactor = window->GetContentScaleFactor();
 
-            UpdateCameraControllerStack();
+            m_surfaceSize = Vec2i(Vec2f(physicalSize) / m_contentScaleFactor);
+
+            if (m_camera.IsValid())
+            {
+                m_camera->SetDimensions(physicalSize);
+
+                UpdateCameraControllerStack();
+            }
         }
 
         m_onWindowResizedHandler = window->OnWindowSizeChanged.BindThreaded(

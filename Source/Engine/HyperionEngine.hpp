@@ -62,13 +62,13 @@ extern "C"
     // Only for use in detached mode (-Detached CLI flag)
     ENGINE_API void Hyp_MainThreadUpdate();
 
-#if HYP_DOTNET
+#ifdef HYP_DOTNET
     ENGINE_API void Hyp_SetInitFromManagedCallback(InitFromManagedCallback callback);
 #endif
 
-#if HYP_ANDROID
+#ifdef HYP_ANDROID
     ENGINE_API void Hyp_SetAssetManager(void* mgr);
-    ENGINE_API void Hyp_SetNativeWindow(void* nativeWindow);
+    ENGINE_API void Hyp_SetNativeWindow(void* nativeWindow, int width, int height);
     ENGINE_API void Hyp_InputEvent(int type, int action, float x, float y, int iParam);
 #endif
 }

@@ -529,7 +529,7 @@ public:
         return m_nativeWindow;
     }
 
-    void SetNativeWindow(void* nativeWindow);
+    void SetNativeWindow(void* nativeWindow, Vec2i size = Vec2i::Zero());
 
     bool HandleInputEvent(int32 type, int32 action, float x, float y, int32 intParam, Event& outEvent);
     bool HandleTextInputEvent(const String& text, Event& outEvent);
@@ -558,7 +558,7 @@ public:
 
     int PollEvents(Event& event) override;
 
-    void SetNativeWindow(void* nativeWindow);
+    void SetNativeWindow(void* nativeWindow, Vec2i size = Vec2i::Zero());
     void EnqueueEvent(Event&& event);
 
 #if HYP_VULKAN

@@ -12,11 +12,13 @@ namespace Hyperion.Editor.ViewModels
         private const string TextureKeyEnumName = "MaterialTextureKey";
         private const string ParametersPropertyName = "Parameters";
         private const string NormalMapFlipYPropertyName = "NormalMapFlipY";
+        private const string InverseHeightPropertyName = "InverseHeight";
         private const string RoughnessChannelPropertyName = "RoughnessChannel";
         private const string MetalnessChannelPropertyName = "MetalnessChannel";
         private const string AmbientOcclusionChannelPropertyName = "AmbientOcclusionChannel";
 
         private const string NormalsSlotName = "Normals";
+        private const string ParallaxSlotName = "Parallax";
         private const string RoughnessSlotName = "Roughness";
         private const string MetalnessSlotName = "Metalness";
         private const string AmbientOcclusionSlotName = "AmbientOcclusion";
@@ -27,6 +29,7 @@ namespace Hyperion.Editor.ViewModels
         private readonly Property? _parametersProperty;
         private Class? _parametersClass;
         private readonly Property? _flipYProperty;
+        private readonly Property? _inverseHeightProperty;
         private readonly Property? _roughnessChannelProperty;
         private readonly Property? _metalnessChannelProperty;
         private readonly Property? _aoChannelProperty;
@@ -60,7 +63,7 @@ namespace Hyperion.Editor.ViewModels
             Value = _structClass.Name.ToString();
             _valuesProperty = FindValuesProperty();
 
-            (_parametersProperty, _flipYProperty, _roughnessChannelProperty, _metalnessChannelProperty, _aoChannelProperty) = FindParametersProperties();
+            (_parametersProperty, _flipYProperty, _inverseHeightProperty, _roughnessChannelProperty, _metalnessChannelProperty, _aoChannelProperty) = FindParametersProperties();
         }
 
         public MaterialTexturesPropertyViewModel(IntPtr classAddress, Func<IntPtr> targetAddressResolver, Property property, bool isReadOnly, int depth = 0)
@@ -70,7 +73,7 @@ namespace Hyperion.Editor.ViewModels
             Value = _structClass.Name.ToString();
             _valuesProperty = FindValuesProperty();
 
-            (_parametersProperty, _flipYProperty, _roughnessChannelProperty, _metalnessChannelProperty, _aoChannelProperty) = FindParametersProperties();
+            (_parametersProperty, _flipYProperty, _inverseHeightProperty, _roughnessChannelProperty, _metalnessChannelProperty, _aoChannelProperty) = FindParametersProperties();
         }
 
         public MaterialTexturesPropertyViewModel(string label, TypeInfo typeInfo, Func<BoxedValue> getter, Action<BoxedValue> setter, bool isReadOnly, int depth = 0)
@@ -104,7 +107,7 @@ namespace Hyperion.Editor.ViewModels
             return null;
         }
 
-        private (Property?, Property?, Property?, Property?, Property?) FindParametersProperties()
+        private (Property?, Property?, Property?, Property?, Property?, Property?) FindParametersProperties()
         {
             try
             {
@@ -112,30 +115,31 @@ namespace Hyperion.Editor.ViewModels
 
                 if (parametersProperty == null)
                 {
-                    return (null, null, null, null, null);
+                    return (null, null, null, null, null, null);
                 }
 
                 Class? parametersClass = parametersProperty.Value.TypeInfo.Class;
 
                 if (parametersClass == null)
                 {
-                    return (null, null, null, null, null);
+                    return (null, null, null, null, null, null);
                 }
 
                 _parametersClass = parametersClass;
 
                 Property? flipYProperty = parametersClass.Value.GetProperty(new Name(NormalMapFlipYPropertyName));
+                Property? inverseHeightProperty = parametersClass.Value.GetProperty(new Name(InverseHeightPropertyName));
                 Property? roughnessChannelProperty = parametersClass.Value.GetProperty(new Name(RoughnessChannelPropertyName));
                 Property? metalnessChannelProperty = parametersClass.Value.GetProperty(new Name(MetalnessChannelPropertyName));
                 Property? aoChannelProperty = parametersClass.Value.GetProperty(new Name(AmbientOcclusionChannelPropertyName));
 
-                return (parametersProperty, flipYProperty, roughnessChannelProperty, metalnessChannelProperty, aoChannelProperty);
+                return (parametersProperty, flipYProperty, inverseHeightProperty, roughnessChannelProperty, metalnessChannelProperty, aoChannelProperty);
             }
             catch (Exception ex)
             {
                 Logger.Log(LogLevel.Warning, $"MaterialTexturesPropertyViewModel: failed to find '{ParametersPropertyName}' property/accessors: {ex.Message}");
 
-                return (null, null, null, null, null);
+                return (null, null, null, null, null, null);
             }
         }
 
@@ -203,7 +207,20 @@ namespace Hyperion.Editor.ViewModels
                         initialize: false,
                         postWriteCallback: WriteBackParameters);
                 }
+                case ParallaxSlotName when _inverseHeightProperty != null:
+                {
+                    Property prop = _inverseHeightProperty.Value;
 
+                    return InspectorViewModelFactory.CreateForValue(
+                        "Inverse Height",
+                        prop.TypeInfo,
+                        getter: () => prop.Get(parametersClass.Address, GetCurrentParametersPointer()),
+                        setter: v => prop.Set(parametersClass.Address, GetCurrentParametersPointer(), v),
+                        isReadOnly: _isReadOnly,
+                        depth: 0,
+                        initialize: false,
+                        postWriteCallback: WriteBackParameters);
+                }
                 case RoughnessSlotName when _roughnessChannelProperty != null:
                 {
                     Property prop = _roughnessChannelProperty.Value;

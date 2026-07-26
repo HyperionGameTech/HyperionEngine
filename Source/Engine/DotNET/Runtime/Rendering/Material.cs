@@ -19,6 +19,7 @@ namespace Hyperion
         const int FlagShift_MetalnessChannel = 3;
         const int FlagShift_AmbientOcclusionChannel = 5;
         const byte FlagMask_Channel = 0x3;
+        const byte FlagBit_ParallaxInverseHeight = 0x80;
 
         public Vec4f albedo = Vec4f.One;
         
@@ -74,9 +75,17 @@ namespace Hyperion
         public MaterialTextureChannel AmbientOcclusionChannel
         {
             readonly get => (MaterialTextureChannel)((flags >> FlagShift_AmbientOcclusionChannel) & FlagMask_Channel);
-            
+
             set => flags = (byte)((flags & ~(FlagMask_Channel << FlagShift_AmbientOcclusionChannel))
                 | (((byte)value & FlagMask_Channel) << FlagShift_AmbientOcclusionChannel));
+        }
+
+        public bool InverseHeight
+        {
+            readonly get => (flags & FlagBit_ParallaxInverseHeight) != 0;
+            set => flags = value
+                ? (byte)(flags | FlagBit_ParallaxInverseHeight)
+                : (byte)(flags & ~FlagBit_ParallaxInverseHeight);
         }
     }
 

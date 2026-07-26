@@ -401,20 +401,22 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
 
         struct
         {
-            bool unlit : 1;
-            bool normalMapFlipY : 1;
+            uint32 unlit : 1;
+            uint32 normalMapFlipY : 1;
             uint32 roughnessChannel : 2;
             uint32 metalnessChannel : 2;
             uint32 aoChannel : 2;
+            uint32 parallaxInverseHeight : 1;
         };
     } flags;
 
     flags.bits = 0;
-    flags.unlit = m_parameters.unlit;
-    flags.normalMapFlipY = m_parameters.IsNormalMapFlipY();
-    flags.roughnessChannel = uint32(m_parameters.GetRoughnessChannel());
-    flags.metalnessChannel = uint32(m_parameters.GetMetalnessChannel());
-    flags.aoChannel = uint32(m_parameters.GetAmbientOcclusionChannel());
+    flags.unlit = static_cast<uint32>(m_parameters.unlit);
+    flags.normalMapFlipY = static_cast<uint32>(m_parameters.IsNormalMapFlipY());
+    flags.roughnessChannel = static_cast<uint32>(m_parameters.GetRoughnessChannel());
+    flags.metalnessChannel = static_cast<uint32>(m_parameters.GetMetalnessChannel());
+    flags.aoChannel = static_cast<uint32>(m_parameters.GetAmbientOcclusionChannel());
+    flags.parallaxInverseHeight = static_cast<uint32>(m_parameters.IsParallaxInverseHeight());
 
     bufferData.packedParams.w = flags.bits;
 

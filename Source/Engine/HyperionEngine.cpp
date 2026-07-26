@@ -1056,19 +1056,19 @@ extern "C"
         return 1;
     }
 
-#if HYP_ANDROID
+#ifdef HYP_ANDROID
     HYP_EXPORT void Hyp_SetAssetManager(void* assetManager)
     {
         g_androidAssetManager = (AAssetManager*)assetManager;
     }
 
-    HYP_EXPORT void Hyp_SetNativeWindow(void* nativeWindow)
+    HYP_EXPORT void Hyp_SetNativeWindow(void* nativeWindow, int width, int height)
     {
         Assert(g_appContext.IsValid());
 
         if (AndroidAppContext* androidAppContext = DynamicCast<AndroidAppContext>(g_appContext))
         {
-            androidAppContext->SetNativeWindow(nativeWindow);
+            androidAppContext->SetNativeWindow(nativeWindow, Vec2i { width, height });
         }
     }
 

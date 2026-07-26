@@ -270,9 +270,9 @@ void AndroidApplicationWindow::Initialize(WindowOptions windowOptions)
     m_size = windowOptions.dimensions;
 }
 
-void AndroidApplicationWindow::SetNativeWindow(void* nativeWindow)
+void AndroidApplicationWindow::SetNativeWindow(void* nativeWindow, Vec2i size)
 {
-    Vec2i newSize = m_size;
+    Vec2i newSize = GetSize();
 
     {
         TUniqueLock lock(m_mtx);
@@ -288,10 +288,28 @@ void AndroidApplicationWindow::SetNativeWindow(void* nativeWindow)
         {
             ANativeWindow_acquire(static_cast<ANativeWindow*>(m_nativeWindow));
 
-            newSize = Vec2i {
-                ANativeWindow_getWidth(static_cast<ANativeWindow*>(m_nativeWindow)),
-                ANativeWindow_getHeight(static_cast<ANativeWindow*>(m_nativeWindow))
-            };
+            if (size.x > 0 && size.y > 0)
+            {
+                // dimensions reported by surfaceChanged(); these are authoritative
+                newSize = size;
+
+                const Vec2i readbackSize {
+                    ANativeWindow_getWidth(static_cast<ANativeWindow*>(m_nativeWindow)),
+                    ANativeWindow_getHeight(static_cast<ANativeWindow*>(m_nativeWindow))
+                };
+
+                if (readbackSize != newSize)
+                {
+                    HYP_LOG(Core, Verbose, "Native window reports {} but the surface reports {}; using the surface's size", readbackSize, newSize);
+                }
+            }
+            else
+            {
+                newSize = Vec2i {
+                    ANativeWindow_getWidth(static_cast<ANativeWindow*>(m_nativeWindow)),
+                    ANativeWindow_getHeight(static_cast<ANativeWindow*>(m_nativeWindow))
+                };
+            }
 
             m_hwnd = m_nativeWindow;
         }

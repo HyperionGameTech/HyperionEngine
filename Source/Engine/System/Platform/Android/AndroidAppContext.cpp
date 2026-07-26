@@ -278,7 +278,7 @@ Handle<ApplicationWindow> AndroidAppContext::CreateSystemWindow(WindowOptions wi
     return window;
 }
 
-void AndroidAppContext::SetNativeWindow(void* nativeWindow)
+void AndroidAppContext::SetNativeWindow(void* nativeWindow, Vec2i size)
 {
     if (m_mainWindow == nullptr)
     {
@@ -289,7 +289,7 @@ void AndroidAppContext::SetNativeWindow(void* nativeWindow)
     AndroidApplicationWindow* androidWindow = DynamicCast<AndroidApplicationWindow>(m_mainWindow);
     Assert(androidWindow != nullptr);
 
-    androidWindow->SetNativeWindow(nativeWindow);
+    androidWindow->SetNativeWindow(nativeWindow, size);
 }
 
 int AndroidAppContext::PollEvents(Event& event)

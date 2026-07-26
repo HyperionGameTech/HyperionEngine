@@ -81,6 +81,7 @@ float4 UnpackMaterialParamFloat4(uint4 uValue, uint index)
 #define MATERIAL_CHANNEL_BIT_ROUGHNESS 2
 #define MATERIAL_CHANNEL_BIT_METALNESS 4
 #define MATERIAL_CHANNEL_BIT_AO 6
+#define MATERIAL_FLAG_PARALLAX_INVERSE_HEIGHT 8
 
 #define GET_MATERIAL_CHANNEL(mat, bitOffset) ((((mat).packed_params[3]) >> (bitOffset)) & 0x3u)
 

@@ -28,7 +28,7 @@ extern "C"
     void Hyp_LaunchThreads();
     void Hyp_Shutdown();
     void Hyp_SetAssetManager(void* mgr);
-    void Hyp_SetNativeWindow(void* nativeWindow);
+    void Hyp_SetNativeWindow(void* nativeWindow, int width, int height);
     void Hyp_InputEvent(int type, int action, float x, float y, int iParam);
     void Hyp_TextInputEvent(const char* text);
 
@@ -107,18 +107,18 @@ Java_com_hyperion_engine_HyperionBridge_nativeSetAssetManager(JNIEnv* env, jclas
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_hyperion_engine_HyperionBridge_nativeSetSurface(JNIEnv* env, jclass /*clazz*/, jobject javaSurface)
+Java_com_hyperion_engine_HyperionBridge_nativeSetSurface(JNIEnv* env, jclass /*clazz*/, jobject javaSurface, jint width, jint height)
 {
     if (javaSurface != nullptr)
     {
         ANativeWindow* nativeWindow = ANativeWindow_fromSurface(env, javaSurface);
-        Hyp_SetNativeWindow(nativeWindow);
+        Hyp_SetNativeWindow(nativeWindow, int(width), int(height));
         // the engine will acquire its own ref, release this
         ANativeWindow_release(nativeWindow);
     }
     else
     {
-        Hyp_SetNativeWindow(nullptr);
+        Hyp_SetNativeWindow(nullptr, 0, 0);
     }
 }
 

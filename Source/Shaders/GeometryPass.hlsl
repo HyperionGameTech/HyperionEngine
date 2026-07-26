@@ -141,11 +141,14 @@ PSOutput PSMain(PSInput input)
 
     if (HAS_TEXTURE(CURRENT_MATERIAL, ParallaxMap))
     {
+        bool flipHeight = bool(GET_MATERIAL_PARAM_BIT(CURRENT_MATERIAL, MATERIAL_FLAG_PARALLAX_INVERSE_HEIGHT));
+
         float3 tangent_view = mul(tbn_matrix, view_vector);
         float2 parallax_texcoord = ParallaxMappedTexCoords(
             CURRENT_MATERIAL.parallax_height,
             texcoord,
-            normalize(tangent_view));
+            normalize(tangent_view),
+            flipHeight);
 
         texcoord = parallax_texcoord;
     }
