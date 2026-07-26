@@ -63,6 +63,11 @@ public:
         return m_presentSemaphores[m_acquiredImageIndex];
     }
 
+    HYP_FORCE_INLINE bool HasAcquiredImage() const
+    {
+        return m_handle != VK_NULL_HANDLE && m_acquiredImageIndex < m_presentSemaphores.Size();
+    }
+
     bool IsCreated() const override;
 
     void PrepareForFrame(VulkanFrame* frame);

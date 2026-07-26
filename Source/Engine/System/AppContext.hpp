@@ -151,6 +151,16 @@ public:
     virtual bool HasMouseFocus() const = 0;
 
     HYP_METHOD()
+    virtual void ShowVirtualKeyboard()
+    {
+    }
+
+    HYP_METHOD()
+    virtual void HideVirtualKeyboard()
+    {
+    }
+
+    HYP_METHOD()
     HYP_FORCE_INLINE bool HasFocus() const
     {
         return m_hasFocus.Get(MemoryOrder::RELAXED);
@@ -508,6 +518,12 @@ public:
     HYP_METHOD()
     void Close() override;
 
+    HYP_METHOD()
+    void ShowVirtualKeyboard() override;
+
+    HYP_METHOD()
+    void HideVirtualKeyboard() override;
+
     HYP_FORCE_INLINE void* GetNativeWindow() const
     {
         return m_nativeWindow;
@@ -516,6 +532,7 @@ public:
     void SetNativeWindow(void* nativeWindow);
 
     bool HandleInputEvent(int32 type, int32 action, float x, float y, int32 intParam, Event& outEvent);
+    bool HandleTextInputEvent(const String& text, Event& outEvent);
 
 private:
     void* m_nativeWindow = nullptr;
@@ -601,6 +618,12 @@ public:
 
     HYP_METHOD()
     void Close() override;
+
+    HYP_METHOD()
+    void ShowVirtualKeyboard() override;
+
+    HYP_METHOD()
+    void HideVirtualKeyboard() override;
 
     HYP_FORCE_INLINE void* GetUIWindow() const
     {

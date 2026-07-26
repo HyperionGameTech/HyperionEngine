@@ -11,6 +11,8 @@
 #include <Input/InputManager.hpp>
 #include <Input/Mouse.hpp>
 
+#include <System/AppContext.hpp>
+
 #include <UITextbox.generated.inl>
 
 namespace Hyperion {
@@ -119,16 +121,7 @@ UITextbox::UITextbox()
                     }
                     else if (keyChar != '\0')
                     {
-                        if (m_characterIndex > 0)
-                        {
-                            SetText_Internal(String(text.Substr(0, m_characterIndex)) + keyChar + text.Substr(m_characterIndex));
-                        }
-                        else
-                        {
-                            SetText_Internal(String::empty + keyChar + text);
-                        }
-
-                        ++m_characterIndex;
+                        InsertText(String::empty + keyChar);
                     }
                 }
 
@@ -139,6 +132,30 @@ UITextbox::UITextbox()
     OnKeyUp
         .Bind(this, [this](const KeyboardEvent& eventData) -> UIEventHandlerResult
             {
+                return UIEventHandlerResult::STOP_BUBBLING;
+            })
+        .Detach();
+
+    OnTextInput
+        .Bind(this, [this](const String& text) -> UIEventHandlerResult
+            {
+                m_cursorBlinkBlendVar.SetValue(1.0f);
+                m_cursorBlinkBlendVar.SetTarget(1.0f);
+
+                InsertText(text);
+
+                return UIEventHandlerResult::STOP_BUBBLING;
+            })
+        .Detach();
+
+    OnMouseDown
+        .Bind(this, [this](const MouseEvent& eventData) -> UIEventHandlerResult
+            {
+                if (m_textElement != nullptr)
+                {
+                    m_characterIndex = uint32(MathUtil::Max(0, m_textElement->GetClosestCharacterIndex(eventData.relativePos)));
+                }
+
                 return UIEventHandlerResult::STOP_BUBBLING;
             })
         .Detach();
@@ -280,10 +297,20 @@ void UITextbox::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focusState)
         if (focusState & UIObjectFocusState::FOCUSED)
         {
             m_characterIndex = uint32(text.Length());
+
+            if (g_appContext != nullptr && g_appContext->GetMainWindow() != nullptr)
+            {
+                g_appContext->GetMainWindow()->ShowVirtualKeyboard();
+            }
         }
         else
         {
             SubmitTextChange();
+
+            if (g_appContext != nullptr && g_appContext->GetMainWindow() != nullptr)
+            {
+                g_appContext->GetMainWindow()->HideVirtualKeyboard();
+            }
         }
 
         UpdateCursor();
@@ -339,6 +366,29 @@ void UITextbox::UpdateTextColor()
     {
         m_textElement->SetTextColor(m_textColor);
     }
+}
+
+void UITextbox::InsertText(const String& textToInsert)
+{
+    HYP_SCOPE;
+
+    if (textToInsert.Empty())
+    {
+        return;
+    }
+
+    const String& text = GetText();
+
+    if (m_characterIndex > 0)
+    {
+        SetText_Internal(String(text.Substr(0, m_characterIndex)) + textToInsert + text.Substr(m_characterIndex));
+    }
+    else
+    {
+        SetText_Internal(textToInsert + text);
+    }
+
+    m_characterIndex += uint32(textToInsert.Length());
 }
 
 void UITextbox::SubmitTextChange()

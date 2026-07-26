@@ -1296,6 +1296,9 @@ public:
     static ScriptableDelegate<UIEventHandlerResult, const KeyboardEvent&> OnKeyUp;
 
     HYP_FIELD()
+    static ScriptableDelegate<UIEventHandlerResult, const String&> OnTextInput;
+
+    HYP_FIELD()
     static ScriptableDelegate<UIEventHandlerResult, const String&> OnTextChange;
 
     HYP_FIELD()

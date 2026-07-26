@@ -1,7 +1,9 @@
 package com.hyperion.engine;
 
 import android.app.Activity;
+import android.content.Context;
 import android.os.Bundle;
+import android.text.InputType;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -10,11 +12,21 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.inputmethod.BaseInputConnection;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputConnection;
+import android.view.inputmethod.InputMethodManager;
 
 public class MainActivity extends Activity implements SurfaceHolder.Callback {
 
     private static final String TAG = "HyperionMain";
     private static final long NULL = 0;
+
+    private static MainActivity s_instance;
+
+    static MainActivity getInstance() {
+        return s_instance;
+    }
 
     private SurfaceView m_surfaceView;
     private Thread m_engineThread;
@@ -30,6 +42,80 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
     private float m_touchDownX = 0.0f;
     private float m_touchDownY = 0.0f;
     private boolean m_touchMoved = false;
+
+    private class HyperionSurfaceView extends SurfaceView {
+        HyperionSurfaceView(Context context) {
+            super(context);
+
+            setFocusable(true);
+            setFocusableInTouchMode(true);
+        }
+
+        @Override
+        public boolean onCheckIsTextEditor() {
+            return true;
+        }
+
+        @Override
+        public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
+            outAttrs.inputType = InputType.TYPE_CLASS_TEXT;
+            outAttrs.imeOptions = EditorInfo.IME_ACTION_DONE | EditorInfo.IME_FLAG_NO_EXTRACT_UI;
+
+            return new BaseInputConnection(this, false) {
+                @Override
+                public boolean commitText(CharSequence text, int newCursorPosition) {
+                    if (m_engineReady && text != null && text.length() > 0) {
+                        HyperionBridge.nativeTextInputEvent(text.toString());
+                    }
+
+                    return true;
+                }
+
+                @Override
+                public boolean deleteSurroundingText(int beforeLength, int afterLength) {
+                    if (m_engineReady) {
+                        for (int i = 0; i < beforeLength; i++) {
+                            HyperionBridge.nativeKeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL);
+                            HyperionBridge.nativeKeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL);
+                        }
+                    }
+
+                    return true;
+                }
+
+                @Override
+                public boolean sendKeyEvent(KeyEvent event) {
+                    if (m_engineReady) {
+                        HyperionBridge.nativeKeyEvent(event.getAction(), event.getKeyCode());
+                    }
+
+                    return true;
+                }
+            };
+        }
+    }
+
+    void showSoftKeyboardInternal() {
+        runOnUiThread(() -> {
+            m_surfaceView.requestFocus();
+
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+
+            if (imm != null) {
+                imm.showSoftInput(m_surfaceView, InputMethodManager.SHOW_FORCED);
+            }
+        });
+    }
+
+    void hideSoftKeyboardInternal() {
+        runOnUiThread(() -> {
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+
+            if (imm != null) {
+                imm.hideSoftInputFromWindow(m_surfaceView.getWindowToken(), 0);
+            }
+        });
+    }
 
     private void runEngineLoop() {
         Log.i(TAG, "Hyperion runEngineLoop()");
@@ -87,7 +173,9 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
 
         HyperionBridge.nativeSetAssetManager(getAssets());
 
-        m_surfaceView = new SurfaceView(this);
+        s_instance = this;
+
+        m_surfaceView = new HyperionSurfaceView(this);
         m_surfaceView.getHolder().addCallback(this);
         setContentView(m_surfaceView);
 
@@ -102,6 +190,10 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
         super.onDestroy();
 
         Log.i(TAG, "Surface onDestroy()");
+
+        if (s_instance == this) {
+            s_instance = null;
+        }
 
         if (!isFinishing()) {
             // treat as a config change (recreates swapchain)

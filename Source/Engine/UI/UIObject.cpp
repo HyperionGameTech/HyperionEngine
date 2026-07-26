@@ -63,6 +63,7 @@ ScriptableDelegate<UIEventHandlerResult, const MouseEvent&> UIObject::OnClick;
 ScriptableDelegate<UIEventHandlerResult, const MouseEvent&> UIObject::OnRightClick;
 ScriptableDelegate<UIEventHandlerResult, const KeyboardEvent&> UIObject::OnKeyDown;
 ScriptableDelegate<UIEventHandlerResult, const KeyboardEvent&> UIObject::OnKeyUp;
+ScriptableDelegate<UIEventHandlerResult, const String&> UIObject::OnTextInput;
 ScriptableDelegate<UIEventHandlerResult, const String&> UIObject::OnTextChange;
 ScriptableDelegate<UIEventHandlerResult> UIObject::OnSizeChange;
 ScriptableDelegate<UIEventHandlerResult> UIObject::OnComputedVisibilityChange;

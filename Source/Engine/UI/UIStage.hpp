@@ -219,6 +219,10 @@ private:
 
     bool Remove(const Entity* entity);
 
+    UIEventHandlerResult HandlePointerDown(const Event& event, Vec2f mousePosition, Vec2f previousMousePosition, EnumFlags<MouseButtonState> buttons);
+    UIEventHandlerResult HandlePointerMove(const Event& event, Vec2f mousePosition, Vec2f previousMousePosition, EnumFlags<MouseButtonState> buttons);
+    UIEventHandlerResult HandlePointerUp(const Event& event, Vec2f mousePosition, Vec2f previousMousePosition, EnumFlags<MouseButtonState> buttons, EnumFlags<MouseButtonState> otherHeldButtons, bool allowClick);
+
     Vec2i m_surfaceSize;
     float m_contentScaleFactor = 1.0f;
     float m_uiScaleFactor = 1.0f;
@@ -242,6 +246,14 @@ private:
     SparsePagedArray<Map<WeakHandle<UIObject>, UIObjectKeyState>, 16> m_keyedDownObjects;
 
     WeakHandle<UIObject> m_focusedObject;
+
+    int32 m_primaryTouchPointerId = -1;
+    Vec2f m_touchGestureOrigin;
+    Vec2f m_touchLastPosition;
+    bool m_touchIsScrolling = false;
+    WeakHandle<UIObject> m_touchScrollTarget;
+    Array<Handle<UIObject>> m_touchDownRayTestResults;
+    Vec2f m_touchScrollRemainder;
 
     DelegateHandler m_onCurrentWindowChangedHandler;
     DelegateHandler m_onWindowResizedHandler;

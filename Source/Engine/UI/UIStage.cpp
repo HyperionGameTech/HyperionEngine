@@ -638,6 +638,8 @@ void UIStage::ComputeActualSize(const UIObjectSize& inSize, Vec2i& outActualSize
     outActualSize = m_surfaceSize;
 }
 
+static constexpr float TouchScrollSlop = 12.0f;
+
 UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
 {
     HYP_SCOPE;
@@ -733,410 +735,152 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
     }
     case EventType::MOUSEMOTION:
     {
-        // check intersects with objects on mouse movement.
-        // for any objects that had mouse held on them,
-        // if the mouse is on them, signal mouse movement
-
-        // project a ray into the scene and test if it hits any objects
-
         const EnumFlags<MouseButtonState> mouseButtons = inputManager->GetButtonStates();
 
         const Vec2f mousePosition = ToLogicalCoords(event.IsAbsoluteMousePosition()
             ? event.GetMousePosition()
             : event.GetMousePositionDeltas() + previousMousePosition);
 
-        const Vec2f mouseScreen = mousePosition / Vec2f(m_surfaceSize);
-        const Vec2f invSurfaceSize = Vec2f::One() / Vec2f(m_surfaceSize);
-
-        if (mouseButtons != MouseButtonState::NONE)
-        { // mouse drag event
-            UIEventHandlerResult mouseDragEventHandlerResult = UIEventHandlerResult::OK;
-
-            for (const Pair<WeakHandle<UIObject>, UIObjectMouseState>& it : m_objectMouseStates)
-            {
-                if (it.second.mouseButtons & mouseButtons)
-                {
-                    // signal mouse drag
-                    if (Handle<UIObject> uiObject = it.first.Lock(); uiObject.IsValid())
-                    {
-                        MouseEvent mouseEvent {
-                            .baseEvent = &event,
-                            .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
-                            .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
-                            .absolutePos = mousePosition,
-                            .absolutePrevPos = previousMousePosition,
-                            .mouseButtons = mouseButtons
-                        };
-
-                        if (MathUtil::Abs(it.second.originalMousePosition - mouseScreen).LengthSquared() < invSurfaceSize.LengthSquared())
-                        {
-                            // If the mouse position hasn't changed significantly, don't trigger a drag event
-                            continue;
-                        }
-
-                        UIEventHandlerResult currentResult = OnMouseDrag.Fire(uiObject, mouseEvent);
-
-                        mouseDragEventHandlerResult |= currentResult;
-
-                        if (mouseDragEventHandlerResult & UIEventHandlerResult::STOP_BUBBLING)
-                        {
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        Array<Handle<UIObject>> rayTestResults;
-
-        if (TestRay(mouseScreen, rayTestResults))
-        {
-            UIObject* firstHit = nullptr;
-
-            UIEventHandlerResult mouseHoverEventHandlerResult = UIEventHandlerResult::OK;
-            UIEventHandlerResult mouseMoveEventHandlerResult = UIEventHandlerResult::OK;
-
-            for (auto it = rayTestResults.Begin(); it != rayTestResults.End(); ++it)
-            {
-                if (const Handle<UIObject>& uiObject = *it)
-                {
-                    if (firstHit != nullptr)
-                    {
-                        // We don't want to check the current object if it's not a child of the first hit object,
-                        // since it would be behind the first hit object.
-                        if (!firstHit->IsOrHasParent(uiObject))
-                        {
-                            continue;
-                        }
-                    }
-                    else
-                    {
-                        firstHit = uiObject;
-                    }
-
-                    if (m_hoveredUiObjects.Contains(uiObject))
-                    {
-                        // Already hovered, trigger mouse move event instead
-                        UIEventHandlerResult currentResult = OnMouseMove.Fire(uiObject, MouseEvent {
-                            .baseEvent = &event,
-                            .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
-                            .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
-                            .absolutePos = Vec2f(mousePosition),
-                            .absolutePrevPos = Vec2f(previousMousePosition),
-                            .mouseButtons = mouseButtons
-                        });
-
-                        mouseMoveEventHandlerResult |= currentResult;
-
-                        if (mouseMoveEventHandlerResult & UIEventHandlerResult::STOP_BUBBLING)
-                        {
-                            break;
-                        }
-                    }
-                }
-            }
-
-            firstHit = nullptr;
-
-            for (auto it = rayTestResults.Begin(); it != rayTestResults.End(); ++it)
-            {
-                if (const Handle<UIObject>& uiObject = *it)
-                {
-                    if (firstHit != nullptr)
-                    {
-                        // We don't want to check the current object if it's not a child of the first hit object,
-                        // since it would be behind the first hit object.
-                        if (!firstHit->IsOrHasParent(uiObject))
-                        {
-                            continue;
-                        }
-                    }
-                    else
-                    {
-                        firstHit = uiObject;
-                    }
-
-                    if (!uiObject->AcceptsFocus() || !uiObject->IsEnabled())
-                    {
-                        continue;
-                    }
-
-                    if (!m_hoveredUiObjects.Insert(uiObject).second)
-                    {
-                        continue;
-                    }
-
-                    uiObject->SetFocusState(uiObject->GetFocusState() | UIObjectFocusState::HOVER);
-
-                    UIEventHandlerResult currentResult = OnMouseHover.Fire(uiObject, MouseEvent {
-                        .baseEvent = &event,
-                        .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
-                        .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
-                        .absolutePos = Vec2f(mousePosition),
-                        .absolutePrevPos = Vec2f(previousMousePosition),
-                        .mouseButtons = mouseButtons
-                    });
-
-                    mouseHoverEventHandlerResult |= currentResult;
-
-                    if (mouseHoverEventHandlerResult & UIEventHandlerResult::STOP_BUBBLING)
-                    {
-                        break;
-                    }
-                }
-            }
-        }
-
-        for (auto it = m_hoveredUiObjects.Begin(); it != m_hoveredUiObjects.End();)
-        {
-            const bool isInBounds = mouseScreen.x >= 0.0f && mouseScreen.y >= 0.0f
-                && mouseScreen.x < 1.0f && mouseScreen.y < 1.0f;
-
-            const auto rayTestResultsIt = isInBounds ? rayTestResults.FindAs(*it) : rayTestResults.End();
-
-            if (rayTestResultsIt == rayTestResults.End())
-            {
-                if (Handle<UIObject> uiObject = it->Lock(); uiObject.IsValid())
-                {
-                    auto mouseStatesIt = m_objectMouseStates.Find(uiObject);
-                    if (mouseStatesIt != m_objectMouseStates.End())
-                    {
-                        EnumFlags<MouseButtonState>& stateMouseButtons = mouseStatesIt->second.mouseButtons;
-
-                        if (stateMouseButtons != MouseButtonState::NONE) // no overlap; skip
-                        {
-                            // trigger mouse up
-                            uiObject->SetFocusState(uiObject->GetFocusState() & ~UIObjectFocusState::PRESSED);
-
-                            UIEventHandlerResult currentResult = OnMouseUp.Fire(uiObject.Get(), MouseEvent {
-                                .baseEvent = &event,
-                                .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
-                                .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
-                                .absolutePos = mousePosition,
-                                .absolutePrevPos = previousMousePosition,
-                                .mouseButtons = stateMouseButtons
-                            });
-
-                            eventHandlerResult |= currentResult;
-                            mouseStatesIt = m_objectMouseStates.Erase(mouseStatesIt);
-                        }
-                    }
-
-                    uiObject->SetFocusState(uiObject->GetFocusState() & ~UIObjectFocusState::HOVER);
-
-                    OnMouseLeave.Fire(uiObject, MouseEvent {
-                        .baseEvent = &event,
-                        .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
-                        .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
-                        .absolutePos = mousePosition,
-                        .absolutePrevPos = previousMousePosition,
-                        .mouseButtons = inputManager->GetButtonStates()
-                    });
-                }
-
-                it = m_hoveredUiObjects.Erase(it);
-            }
-            else
-            {
-                ++it;
-            }
-        }
+        eventHandlerResult |= HandlePointerMove(event, mousePosition, previousMousePosition, mouseButtons);
 
         break;
     }
     case EventType::MOUSEBUTTON_DOWN:
     {
         const Vec2f mousePosition = ToLogicalCoords(Vec2f(inputManager->GetMousePosition()));
-        const Vec2f mouseScreen = mousePosition / Vec2f(m_surfaceSize);
-        const Vec2f invSurfaceSize = Vec2f::One() / Vec2f(m_surfaceSize);
 
-        // project a ray into the scene and test if it hits any objects
-        RayHit hit;
-
-        Array<Handle<UIObject>> rayTestResults;
-
-        if (TestRay(mouseScreen, rayTestResults))
-        {
-            UIObject* firstHit = nullptr;
-
-            for (auto it = rayTestResults.Begin(); it != rayTestResults.End(); ++it)
-            {
-                const Handle<UIObject>& uiObject = *it;
-
-                auto mouseButtonPressedStatesIt = m_objectMouseStates.FindAs(uiObject);
-
-                if (mouseButtonPressedStatesIt != m_objectMouseStates.End())
-                {
-                    if ((mouseButtonPressedStatesIt->second.mouseButtons & event.GetMouseButtons()) == event.GetMouseButtons())
-                    {
-                        // already holding buttons, go to next
-                        continue;
-                    }
-
-                    mouseButtonPressedStatesIt->second.mouseButtons |= event.GetMouseButtons();
-                }
-                else
-                {
-                    if (!uiObject->AcceptsFocus() || !uiObject->IsEnabled())
-                    {
-                        continue;
-                    }
-
-                    if (!firstHit)
-                    {
-                        firstHit = uiObject.Get();
-
-                        uiObject->Focus();
-                    }
-
-                    mouseButtonPressedStatesIt = m_objectMouseStates.Set(uiObject, { event.GetMouseButtons(), 0.0f }).first;
-                }
-
-                mouseButtonPressedStatesIt->second.originalMousePosition = mouseScreen;
-                mouseButtonPressedStatesIt->second.heldTime = 0.0f; // reset held time
-
-                if (event.GetMouseButtons() & MouseButtonState::LEFT)
-                {
-                    uiObject->SetFocusState(uiObject->GetFocusState() | UIObjectFocusState::PRESSED);
-                }
-
-                const UIEventHandlerResult onMouseDownResult = OnMouseDown.Fire(uiObject, MouseEvent {
-                    .baseEvent = &event,
-                    .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
-                    .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
-                    .absolutePos = Vec2f(mousePosition),
-                    .absolutePrevPos = Vec2f(previousMousePosition),
-                    .mouseButtons = mouseButtonPressedStatesIt->second.mouseButtons
-                });
-
-                eventHandlerResult |= onMouseDownResult;
-
-                if (eventHandlerResult & UIEventHandlerResult::STOP_BUBBLING)
-                {
-                    break;
-                }
-            }
-        }
+        eventHandlerResult |= HandlePointerDown(event, mousePosition, previousMousePosition, event.GetMouseButtons());
 
         break;
     }
     case EventType::MOUSEBUTTON_UP:
     {
         const Vec2f mousePosition = ToLogicalCoords(Vec2f(inputManager->GetMousePosition()));
-        const Vec2f mouseScreen = mousePosition / Vec2f(m_surfaceSize);
-        const Vec2f invSurfaceSize = Vec2f::One() / Vec2f(m_surfaceSize);
 
-        Array<Handle<UIObject>> rayTestResults;
-        TestRay(mouseScreen, rayTestResults);
+        eventHandlerResult |= HandlePointerUp(event, mousePosition, previousMousePosition, event.GetMouseButtons(), inputManager->GetButtonStates(), /* allowClick */ true);
 
-        const EnumFlags<MouseButtonState> buttons = event.GetMouseButtons();
-
-        // Check LMB/RMB clicking if only one bit (mouse button) was pressed.
-        if (ByteUtil::BitCount(inputManager->GetButtonStates() | buttons) == 1)
+        break;
+    }
+    case EventType::TOUCH_DOWN:
+    {
+        if (m_primaryTouchPointerId != -1)
         {
-            const auto checkClickEvent = [&](MouseButtonState mouseButtonToCheck, ScriptableDelegate<UIEventHandlerResult, const MouseEvent&>* delegatePtr = nullptr)
-            {
-                if (buttons != mouseButtonToCheck)
-                {
-                    return;
-                }
-
-                for (auto it = rayTestResults.Begin(); it != rayTestResults.End(); ++it)
-                {
-                    const Handle<UIObject>& uiObject = *it;
-
-                    auto stateIt = m_objectMouseStates.Find(uiObject);
-
-                    if (stateIt == m_objectMouseStates.End() || !(stateIt->second.mouseButtons & mouseButtonToCheck))
-                    {
-                        continue;
-                    }
-
-                    const EnumFlags<MouseButtonState> currentState = stateIt->second.mouseButtons;
-
-                    // check if we should trigger a click event
-                    if (uiObject->IsEnabled())
-                    {
-                        if (delegatePtr != nullptr)
-                        {
-                            const UIEventHandlerResult result = delegatePtr->Fire(uiObject.Get(), MouseEvent {
-                                .baseEvent = &event,
-                                .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
-                                .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
-                                .absolutePos = Vec2f(mousePosition),
-                                .absolutePrevPos = Vec2f(previousMousePosition),
-                                .mouseButtons = buttons
-                            });
-
-                            eventHandlerResult |= result;
-
-                            if (result & UIEventHandlerResult::ERR)
-                            {
-                                HYP_LOG(UI, Error, "OnClick returned error: {}", result.GetMessage().GetOr("<No message>"));
-
-                                break;
-                            }
-
-                            if (result & UIEventHandlerResult::STOP_BUBBLING)
-                            {
-                                break;
-                            }
-                        }
-                    }
-                }
-            };
-
-            checkClickEvent(MouseButtonState::LEFT, &UIObject::OnClick);
-            checkClickEvent(MouseButtonState::RIGHT, &UIObject::OnRightClick);
+            break;
         }
 
-        for (auto it = m_objectMouseStates.Begin(); it != m_objectMouseStates.End();)
+        m_primaryTouchPointerId = event.GetTouchPointerId();
+
+        const Vec2f mousePosition = ToLogicalCoords(event.GetTouchPosition());
+
+        m_touchGestureOrigin = mousePosition;
+        m_touchLastPosition = mousePosition;
+        m_touchIsScrolling = false;
+        m_touchScrollTarget = WeakHandle<UIObject>();
+        m_touchScrollRemainder = Vec2f::Zero();
+        m_touchDownRayTestResults.Clear();
+
+        TestRay(mousePosition / Vec2f(m_surfaceSize), m_touchDownRayTestResults);
+
+        eventHandlerResult |= HandlePointerDown(event, mousePosition, mousePosition, MouseButtonState::LEFT);
+
+        break;
+    }
+    case EventType::TOUCH_MOVE:
+    {
+        if (event.GetTouchPointerId() != m_primaryTouchPointerId)
         {
-            EnumFlags<MouseButtonState>& stateMouseButtons = it->second.mouseButtons;
+            break;
+        }
 
-            if ((stateMouseButtons & buttons) == MouseButtonState::NONE) // no overlap; skip
+        const Vec2f mousePosition = ToLogicalCoords(event.GetTouchPosition());
+        const Vec2f prevPosition = m_touchLastPosition;
+        m_touchLastPosition = mousePosition;
+
+        if (!m_touchIsScrolling)
+        {
+            const Vec2f totalDelta = mousePosition - m_touchGestureOrigin;
+
+            if (MathUtil::Abs(totalDelta.x) > TouchScrollSlop || MathUtil::Abs(totalDelta.y) > TouchScrollSlop)
             {
-                ++it;
+                const bool horizontalDominant = MathUtil::Abs(totalDelta.x) > MathUtil::Abs(totalDelta.y);
+                const ScrollAxis dominantAxis = horizontalDominant ? SA_HORIZONTAL : SA_VERTICAL;
 
-                continue;
-            }
+                Handle<UIObject> scrollTarget;
 
-            // trigger mouse up
-            if (Handle<UIObject> uiObject = it->first.Lock(); uiObject.IsValid())
-            {
-                // No longer pressed if left mouse btn was released
-                if ((buttons & MouseButtonState::LEFT) && (stateMouseButtons & MouseButtonState::LEFT))
+                for (const Handle<UIObject>& uiObject : m_touchDownRayTestResults)
                 {
-                    uiObject->SetFocusState(uiObject->GetFocusState() & ~UIObjectFocusState::PRESSED);
+                    if (uiObject && uiObject->CanScrollOnAxis(dominantAxis))
+                    {
+                        scrollTarget = uiObject;
+
+                        break;
+                    }
                 }
 
-                UIEventHandlerResult currentResult = OnMouseUp.Fire(uiObject.Get(), MouseEvent {
+                if (scrollTarget)
+                {
+                    m_touchIsScrolling = true;
+                    m_touchScrollTarget = scrollTarget;
+
+                    // Cancel the press on whatever was pressed down without triggering a click
+                    HandlePointerUp(event, mousePosition, prevPosition, MouseButtonState::LEFT, MouseButtonState::NONE, /* allowClick */ false);
+                }
+            }
+        }
+
+        if (m_touchIsScrolling)
+        {
+            if (Handle<UIObject> uiObject = m_touchScrollTarget.Lock(); uiObject.IsValid())
+            {
+                const Vec2f delta = mousePosition - prevPosition + m_touchScrollRemainder;
+                const Vec2i wheel = Vec2i(int32(delta.x), int32(delta.y));
+                m_touchScrollRemainder = delta - Vec2f(wheel);
+
+                UIEventHandlerResult scrollResult = OnScroll.Fire(uiObject, MouseEvent {
                     .baseEvent = &event,
                     .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
-                    .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
-                    .absolutePos = Vec2f(mousePosition),
-                    .absolutePrevPos = Vec2f(previousMousePosition),
-                    .mouseButtons = stateMouseButtons & buttons
+                    .relativePrevPos = uiObject->TransformScreenCoordsToRelative(prevPosition),
+                    .absolutePos = mousePosition,
+                    .absolutePrevPos = prevPosition,
+                    .mouseButtons = MouseButtonState::LEFT,
+                    .wheel = wheel,
+                    .isTouch = true
                 });
 
-                eventHandlerResult |= currentResult;
-
-                stateMouseButtons &= (~buttons);
+                eventHandlerResult |= scrollResult;
             }
             else
             {
-                stateMouseButtons = MouseButtonState::NONE;
+                m_touchIsScrolling = false;
             }
-
-            if (stateMouseButtons == MouseButtonState::NONE) // now empty after update; remove from the map
-            {
-                it = m_objectMouseStates.Erase(it);
-
-                continue;
-            }
-
-            ++it;
         }
+        else
+        {
+            eventHandlerResult |= HandlePointerMove(event, mousePosition, prevPosition, MouseButtonState::LEFT);
+        }
+
+        break;
+    }
+    case EventType::TOUCH_UP:
+    {
+        if (event.GetTouchPointerId() != m_primaryTouchPointerId)
+        {
+            break;
+        }
+
+        const Vec2f mousePosition = ToLogicalCoords(event.GetTouchPosition());
+        const Vec2f prevPosition = m_touchLastPosition;
+
+        if (!m_touchIsScrolling)
+        {
+            eventHandlerResult |= HandlePointerUp(event, mousePosition, prevPosition, MouseButtonState::LEFT, MouseButtonState::NONE, /* allowClick */ true);
+        }
+
+        m_primaryTouchPointerId = -1;
+        m_touchIsScrolling = false;
+        m_touchScrollTarget = WeakHandle<UIObject>();
+        m_touchDownRayTestResults.Clear();
+        m_touchScrollRemainder = Vec2f::Zero();
 
         break;
     }
@@ -1266,8 +1010,421 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
 
         break;
     }
+    case EventType::TEXT_INPUT:
+    {
+        if (Handle<UIObject> uiObject = m_focusedObject.Lock(); uiObject.IsValid())
+        {
+            eventHandlerResult |= OnTextInput.Fire(uiObject, event.GetTextInput());
+        }
+
+        break;
+    }
     default:
         break;
+    }
+
+    return eventHandlerResult;
+}
+
+UIEventHandlerResult UIStage::HandlePointerDown(const Event& event, Vec2f mousePosition, Vec2f previousMousePosition, EnumFlags<MouseButtonState> buttons)
+{
+    UIEventHandlerResult eventHandlerResult = UIEventHandlerResult::OK;
+
+    const Vec2f mouseScreen = mousePosition / Vec2f(m_surfaceSize);
+
+    // project a ray into the scene and test if it hits any objects
+    Array<Handle<UIObject>> rayTestResults;
+
+    if (TestRay(mouseScreen, rayTestResults))
+    {
+        UIObject* firstHit = nullptr;
+
+        for (auto it = rayTestResults.Begin(); it != rayTestResults.End(); ++it)
+        {
+            const Handle<UIObject>& uiObject = *it;
+
+            auto mouseButtonPressedStatesIt = m_objectMouseStates.FindAs(uiObject);
+
+            if (mouseButtonPressedStatesIt != m_objectMouseStates.End())
+            {
+                if ((mouseButtonPressedStatesIt->second.mouseButtons & buttons) == buttons)
+                {
+                    // already holding buttons, go to next
+                    continue;
+                }
+
+                mouseButtonPressedStatesIt->second.mouseButtons |= buttons;
+            }
+            else
+            {
+                if (!uiObject->AcceptsFocus() || !uiObject->IsEnabled())
+                {
+                    continue;
+                }
+
+                if (!firstHit)
+                {
+                    firstHit = uiObject.Get();
+
+                    uiObject->Focus();
+                }
+
+                mouseButtonPressedStatesIt = m_objectMouseStates.Set(uiObject, { buttons, 0.0f }).first;
+            }
+
+            mouseButtonPressedStatesIt->second.originalMousePosition = mouseScreen;
+            mouseButtonPressedStatesIt->second.heldTime = 0.0f; // reset held time
+
+            if (buttons & MouseButtonState::LEFT)
+            {
+                uiObject->SetFocusState(uiObject->GetFocusState() | UIObjectFocusState::PRESSED);
+            }
+
+            const UIEventHandlerResult onMouseDownResult = OnMouseDown.Fire(uiObject, MouseEvent {
+                .baseEvent = &event,
+                .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
+                .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
+                .absolutePos = Vec2f(mousePosition),
+                .absolutePrevPos = Vec2f(previousMousePosition),
+                .mouseButtons = mouseButtonPressedStatesIt->second.mouseButtons
+            });
+
+            eventHandlerResult |= onMouseDownResult;
+
+            if (eventHandlerResult & UIEventHandlerResult::STOP_BUBBLING)
+            {
+                break;
+            }
+        }
+    }
+
+    return eventHandlerResult;
+}
+
+UIEventHandlerResult UIStage::HandlePointerMove(const Event& event, Vec2f mousePosition, Vec2f previousMousePosition, EnumFlags<MouseButtonState> buttons)
+{
+    // check intersects with objects on mouse movement.
+    // for any objects that had mouse held on them,
+    // if the mouse is on them, signal mouse movement
+
+    // project a ray into the scene and test if it hits any objects
+
+    UIEventHandlerResult eventHandlerResult = UIEventHandlerResult::OK;
+
+    const Vec2f mouseScreen = mousePosition / Vec2f(m_surfaceSize);
+    const Vec2f invSurfaceSize = Vec2f::One() / Vec2f(m_surfaceSize);
+
+    if (buttons != MouseButtonState::NONE)
+    { // mouse drag event
+        UIEventHandlerResult mouseDragEventHandlerResult = UIEventHandlerResult::OK;
+
+        for (const Pair<WeakHandle<UIObject>, UIObjectMouseState>& it : m_objectMouseStates)
+        {
+            if (it.second.mouseButtons & buttons)
+            {
+                // signal mouse drag
+                if (Handle<UIObject> uiObject = it.first.Lock(); uiObject.IsValid())
+                {
+                    MouseEvent mouseEvent {
+                        .baseEvent = &event,
+                        .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
+                        .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
+                        .absolutePos = mousePosition,
+                        .absolutePrevPos = previousMousePosition,
+                        .mouseButtons = buttons
+                    };
+
+                    if (MathUtil::Abs(it.second.originalMousePosition - mouseScreen).LengthSquared() < invSurfaceSize.LengthSquared())
+                    {
+                        // If the mouse position hasn't changed significantly, don't trigger a drag event
+                        continue;
+                    }
+
+                    UIEventHandlerResult currentResult = OnMouseDrag.Fire(uiObject, mouseEvent);
+
+                    mouseDragEventHandlerResult |= currentResult;
+
+                    if (mouseDragEventHandlerResult & UIEventHandlerResult::STOP_BUBBLING)
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    Array<Handle<UIObject>> rayTestResults;
+
+    if (TestRay(mouseScreen, rayTestResults))
+    {
+        UIObject* firstHit = nullptr;
+
+        UIEventHandlerResult mouseHoverEventHandlerResult = UIEventHandlerResult::OK;
+        UIEventHandlerResult mouseMoveEventHandlerResult = UIEventHandlerResult::OK;
+
+        for (auto it = rayTestResults.Begin(); it != rayTestResults.End(); ++it)
+        {
+            if (const Handle<UIObject>& uiObject = *it)
+            {
+                if (firstHit != nullptr)
+                {
+                    // We don't want to check the current object if it's not a child of the first hit object,
+                    // since it would be behind the first hit object.
+                    if (!firstHit->IsOrHasParent(uiObject))
+                    {
+                        continue;
+                    }
+                }
+                else
+                {
+                    firstHit = uiObject;
+                }
+
+                if (m_hoveredUiObjects.Contains(uiObject))
+                {
+                    // Already hovered, trigger mouse move event instead
+                    UIEventHandlerResult currentResult = OnMouseMove.Fire(uiObject, MouseEvent {
+                        .baseEvent = &event,
+                        .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
+                        .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
+                        .absolutePos = Vec2f(mousePosition),
+                        .absolutePrevPos = Vec2f(previousMousePosition),
+                        .mouseButtons = buttons
+                    });
+
+                    mouseMoveEventHandlerResult |= currentResult;
+
+                    if (mouseMoveEventHandlerResult & UIEventHandlerResult::STOP_BUBBLING)
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+
+        firstHit = nullptr;
+
+        for (auto it = rayTestResults.Begin(); it != rayTestResults.End(); ++it)
+        {
+            if (const Handle<UIObject>& uiObject = *it)
+            {
+                if (firstHit != nullptr)
+                {
+                    // We don't want to check the current object if it's not a child of the first hit object,
+                    // since it would be behind the first hit object.
+                    if (!firstHit->IsOrHasParent(uiObject))
+                    {
+                        continue;
+                    }
+                }
+                else
+                {
+                    firstHit = uiObject;
+                }
+
+                if (!uiObject->AcceptsFocus() || !uiObject->IsEnabled())
+                {
+                    continue;
+                }
+
+                if (!m_hoveredUiObjects.Insert(uiObject).second)
+                {
+                    continue;
+                }
+
+                uiObject->SetFocusState(uiObject->GetFocusState() | UIObjectFocusState::HOVER);
+
+                UIEventHandlerResult currentResult = OnMouseHover.Fire(uiObject, MouseEvent {
+                    .baseEvent = &event,
+                    .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
+                    .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
+                    .absolutePos = Vec2f(mousePosition),
+                    .absolutePrevPos = Vec2f(previousMousePosition),
+                    .mouseButtons = buttons
+                });
+
+                mouseHoverEventHandlerResult |= currentResult;
+
+                if (mouseHoverEventHandlerResult & UIEventHandlerResult::STOP_BUBBLING)
+                {
+                    break;
+                }
+            }
+        }
+    }
+
+    for (auto it = m_hoveredUiObjects.Begin(); it != m_hoveredUiObjects.End();)
+    {
+        const bool isInBounds = mouseScreen.x >= 0.0f && mouseScreen.y >= 0.0f
+            && mouseScreen.x < 1.0f && mouseScreen.y < 1.0f;
+
+        const auto rayTestResultsIt = isInBounds ? rayTestResults.FindAs(*it) : rayTestResults.End();
+
+        if (rayTestResultsIt == rayTestResults.End())
+        {
+            if (Handle<UIObject> uiObject = it->Lock(); uiObject.IsValid())
+            {
+                auto mouseStatesIt = m_objectMouseStates.Find(uiObject);
+                if (mouseStatesIt != m_objectMouseStates.End())
+                {
+                    EnumFlags<MouseButtonState>& stateMouseButtons = mouseStatesIt->second.mouseButtons;
+
+                    if (stateMouseButtons != MouseButtonState::NONE) // no overlap; skip
+                    {
+                        // trigger mouse up
+                        uiObject->SetFocusState(uiObject->GetFocusState() & ~UIObjectFocusState::PRESSED);
+
+                        UIEventHandlerResult currentResult = OnMouseUp.Fire(uiObject.Get(), MouseEvent {
+                            .baseEvent = &event,
+                            .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
+                            .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
+                            .absolutePos = mousePosition,
+                            .absolutePrevPos = previousMousePosition,
+                            .mouseButtons = stateMouseButtons
+                        });
+
+                        eventHandlerResult |= currentResult;
+                        mouseStatesIt = m_objectMouseStates.Erase(mouseStatesIt);
+                    }
+                }
+
+                uiObject->SetFocusState(uiObject->GetFocusState() & ~UIObjectFocusState::HOVER);
+
+                OnMouseLeave.Fire(uiObject, MouseEvent {
+                    .baseEvent = &event,
+                    .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
+                    .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
+                    .absolutePos = mousePosition,
+                    .absolutePrevPos = previousMousePosition,
+                    .mouseButtons = buttons
+                });
+            }
+
+            it = m_hoveredUiObjects.Erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+
+    return eventHandlerResult;
+}
+
+UIEventHandlerResult UIStage::HandlePointerUp(const Event& event, Vec2f mousePosition, Vec2f previousMousePosition, EnumFlags<MouseButtonState> buttons, EnumFlags<MouseButtonState> otherHeldButtons, bool allowClick)
+{
+    UIEventHandlerResult eventHandlerResult = UIEventHandlerResult::OK;
+
+    const Vec2f mouseScreen = mousePosition / Vec2f(m_surfaceSize);
+
+    Array<Handle<UIObject>> rayTestResults;
+    TestRay(mouseScreen, rayTestResults);
+
+    // Check LMB/RMB clicking if only one bit (mouse button) was pressed.
+    if (allowClick && ByteUtil::BitCount(otherHeldButtons | buttons) == 1)
+    {
+        const auto checkClickEvent = [&](MouseButtonState mouseButtonToCheck, ScriptableDelegate<UIEventHandlerResult, const MouseEvent&>* delegatePtr = nullptr)
+        {
+            if (buttons != mouseButtonToCheck)
+            {
+                return;
+            }
+
+            for (auto it = rayTestResults.Begin(); it != rayTestResults.End(); ++it)
+            {
+                const Handle<UIObject>& uiObject = *it;
+
+                auto stateIt = m_objectMouseStates.Find(uiObject);
+
+                if (stateIt == m_objectMouseStates.End() || !(stateIt->second.mouseButtons & mouseButtonToCheck))
+                {
+                    continue;
+                }
+
+                const EnumFlags<MouseButtonState> currentState = stateIt->second.mouseButtons;
+
+                // check if we should trigger a click event
+                if (uiObject->IsEnabled())
+                {
+                    if (delegatePtr != nullptr)
+                    {
+                        const UIEventHandlerResult result = delegatePtr->Fire(uiObject.Get(), MouseEvent {
+                            .baseEvent = &event,
+                            .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
+                            .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
+                            .absolutePos = Vec2f(mousePosition),
+                            .absolutePrevPos = Vec2f(previousMousePosition),
+                            .mouseButtons = buttons
+                        });
+
+                        eventHandlerResult |= result;
+
+                        if (result & UIEventHandlerResult::ERR)
+                        {
+                            HYP_LOG(UI, Error, "OnClick returned error: {}", result.GetMessage().GetOr("<No message>"));
+
+                            break;
+                        }
+
+                        if (result & UIEventHandlerResult::STOP_BUBBLING)
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+        };
+
+        checkClickEvent(MouseButtonState::LEFT, &UIObject::OnClick);
+        checkClickEvent(MouseButtonState::RIGHT, &UIObject::OnRightClick);
+    }
+
+    for (auto it = m_objectMouseStates.Begin(); it != m_objectMouseStates.End();)
+    {
+        EnumFlags<MouseButtonState>& stateMouseButtons = it->second.mouseButtons;
+
+        if ((stateMouseButtons & buttons) == MouseButtonState::NONE) // no overlap; skip
+        {
+            ++it;
+
+            continue;
+        }
+
+        // trigger mouse up
+        if (Handle<UIObject> uiObject = it->first.Lock(); uiObject.IsValid())
+        {
+            // No longer pressed if left mouse btn was released
+            if ((buttons & MouseButtonState::LEFT) && (stateMouseButtons & MouseButtonState::LEFT))
+            {
+                uiObject->SetFocusState(uiObject->GetFocusState() & ~UIObjectFocusState::PRESSED);
+            }
+
+            UIEventHandlerResult currentResult = OnMouseUp.Fire(uiObject.Get(), MouseEvent {
+                .baseEvent = &event,
+                .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
+                .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
+                .absolutePos = Vec2f(mousePosition),
+                .absolutePrevPos = Vec2f(previousMousePosition),
+                .mouseButtons = stateMouseButtons & buttons
+            });
+
+            eventHandlerResult |= currentResult;
+
+            stateMouseButtons &= (~buttons);
+        }
+        else
+        {
+            stateMouseButtons = MouseButtonState::NONE;
+        }
+
+        if (stateMouseButtons == MouseButtonState::NONE) // now empty after update; remove from the map
+        {
+            it = m_objectMouseStates.Erase(it);
+
+            continue;
+        }
+
+        ++it;
     }
 
     return eventHandlerResult;

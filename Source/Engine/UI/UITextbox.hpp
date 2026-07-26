@@ -79,9 +79,12 @@ protected:
         return GetText().Length() == 0 && m_placeholder.Length() != 0;
     }
 
-    // Set text without broadcasting update
+    /// Set text without broadcasting update
     void SetText_Internal(const String& text);
     void SubmitTextChange();
+
+    /// Inserts text at the current cursor position, advancing the cursor.
+    void InsertText(const String& text);
 
     UIText* m_textElement;
     Handle<UIObject> m_cursorElement;

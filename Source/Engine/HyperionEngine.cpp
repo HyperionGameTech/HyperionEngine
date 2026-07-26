@@ -1092,6 +1092,27 @@ extern "C"
             ctx->EnqueueEvent(std::move(event));
         }
     }
+
+    HYP_EXPORT void Hyp_TextInputEvent(const char* text)
+    {
+        if (!g_appContext.IsValid())
+            return;
+
+        AndroidAppContext* ctx = DynamicCast<AndroidAppContext>(g_appContext);
+
+        if (ctx == nullptr || ctx->GetMainWindow() == nullptr)
+            return;
+
+        AndroidApplicationWindow* window = DynamicCast<AndroidApplicationWindow>(ctx->GetMainWindow());
+        if (window == nullptr)
+            return;
+
+        Event event;
+        if (window->HandleTextInputEvent(String(text), event))
+        {
+            ctx->EnqueueEvent(std::move(event));
+        }
+    }
 #endif // HYP_ANDROID
 
     HYP_EXPORT void Hyp_GetAllCVarNames(void* callback, void* userData)

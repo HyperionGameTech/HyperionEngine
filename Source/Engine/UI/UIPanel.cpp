@@ -195,9 +195,9 @@ UIEventHandlerResult UIPanel::HandleScroll(const MouseEvent& eventData)
 
     if ((eventData.wheel.x != 0 && CanScrollOnAxis(SA_HORIZONTAL)) || (eventData.wheel.y != 0 && CanScrollOnAxis(SA_VERTICAL)))
     {
-        constexpr float MouseWheelMultiplier = 5.0f;
+        const float scrollMultiplier = eventData.isTouch ? 1.0f : 5.0f;
 
-        SetScrollOffset(GetScrollOffset() - Vec2f(eventData.wheel * MouseWheelMultiplier), /* smooth */ false);
+        SetScrollOffset(GetScrollOffset() - Vec2f(eventData.wheel) * scrollMultiplier, /* smooth */ false);
 
         return UIEventHandlerResult::STOP_BUBBLING;
     }

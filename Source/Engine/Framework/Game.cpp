@@ -232,22 +232,6 @@ void Game::HandleEvent(Event&& event)
 {
     AssertOnThread(g_simThread);
 
-    // Pass touch events to TouchControlsSubsystem if available
-    if (event.GetType() == EventType::TOUCH_DOWN
-        || event.GetType() == EventType::TOUCH_UP
-        || event.GetType() == EventType::TOUCH_MOVE)
-    {
-        if (m_world != nullptr)
-        {
-            TouchControlsSubsystem* touchControls = m_world->GetSubsystem<TouchControlsSubsystem>();
-            if (touchControls != nullptr)
-            {
-                TouchEvent touchEvent = event.ToTouchEvent();
-                touchControls->ProcessTouchEvent(touchEvent);
-            }
-        }
-    }
-
     OnInputEvent(event);
 }
 
@@ -260,6 +244,21 @@ bool Game::OnInputEvent(const Event& event)
         if (m_uiSubsystem->GetUIStage()->OnInputEvent(event) == UIEventHandlerResult::STOP_BUBBLING)
         {
             return true;
+        }
+    }
+
+    if (event.GetType() == EventType::TOUCH_DOWN
+        || event.GetType() == EventType::TOUCH_UP
+        || event.GetType() == EventType::TOUCH_MOVE)
+    {
+        if (m_world != nullptr)
+        {
+            TouchControlsSubsystem* touchControls = m_world->GetSubsystem<TouchControlsSubsystem>();
+            if (touchControls != nullptr)
+            {
+                TouchEvent touchEvent = event.ToTouchEvent();
+                touchControls->ProcessTouchEvent(touchEvent);
+            }
         }
     }
 

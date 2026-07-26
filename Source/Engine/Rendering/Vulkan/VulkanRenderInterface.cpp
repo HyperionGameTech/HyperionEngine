@@ -62,7 +62,14 @@
 namespace Hyperion {
 
 static constexpr bool UseResetDescriptorPool = false;
-static constexpr uint32 MaxDescriptorPools = 32;
+static constexpr uint32 MaxDescriptorPools = 256;
+
+static constexpr uint32 MaxDescriptorPoolGrowth = 4;
+
+static constexpr uint32 InitialDescriptorSetsPerPool = 512;
+static constexpr uint32 InitialDescriptorsPerTypePerPool = 1024;
+
+static constexpr uint32 BindlessDescriptorSetsPerPool = 4;
 
 static EngineStatTimer s_statVulkanFrameSync("Rendering/Vulkan/FrameSync");
 
@@ -267,8 +274,6 @@ class VulkanDescriptorSetManager
 public:
     HYP_DEF_POOL_NEW_DELETE(g_vulkanPool);
 
-    static constexpr uint32 MaxDescriptorSets = 4096;
-
     VulkanDescriptorSetManager();
     ~VulkanDescriptorSetManager();
 
@@ -292,8 +297,8 @@ public:
     VkDescriptorSetLayout GetOrCreateVkDescriptorSetLayout(VulkanDevice* device, const DescriptorSetLayout& layout);
 
 private:
-    VkDescriptorPool GetDescriptorPool(uint32 currentFrameCounter, VulkanDescriptorPoolRequirements reqs, int& outPoolIndex);
-    RendererResult CreateDescriptorPool(VulkanDescriptorPoolRequirements reqs, VkDescriptorPool& outDescriptorPool);
+    RendererResult GetDescriptorPool(uint32 currentFrameCounter, VulkanDescriptorPoolRequirements reqs, int& outPoolIndex);
+    RendererResult CreateDescriptorPool(VulkanDescriptorPoolRequirements reqs, int& outPoolIndex);
 
     SharedMutex m_mutex;
     Map<uint64, VkDescriptorSetLayout, VulkanAllocator> m_vkDescriptorSetLayouts;
@@ -304,6 +309,7 @@ private:
         VulkanDescriptorPoolRequirements reqs = VDPR_None;
         uint32 useCount = 0;
         uint32 frameCounter = 0; // last used or created
+        bool isExhausted = false; // an allocation has already failed against this pool
     };
 
     Array<VulkanDescriptorPool, VulkanAllocator> m_pools;
@@ -331,6 +337,8 @@ void VulkanDescriptorSetManager::OnFrameStart()
         {
             VkResult result = vkResetDescriptorPool(RI.GetDevice()->GetDevice(), dp.pool, 0);
             Assert(result == VK_SUCCESS, "Failed to reset descriptor pool! {}", result);
+
+            dp.isExhausted = false;
         }
     }
 }
@@ -366,7 +374,7 @@ void VulkanDescriptorSetManager::Shutdown(VulkanDevice* device)
     m_pools.Clear();
 }
 
-VkDescriptorPool VulkanDescriptorSetManager::GetDescriptorPool(
+RendererResult VulkanDescriptorSetManager::GetDescriptorPool(
     uint32 currentFrameCounter,
     VulkanDescriptorPoolRequirements reqs,
     int& outPoolIndex)
@@ -379,7 +387,7 @@ VkDescriptorPool VulkanDescriptorSetManager::GetDescriptorPool(
     {
         VulkanDescriptorPool& dp = m_pools[idx - 1];
 
-        if (reqs && (dp.reqs & reqs) != reqs)
+        if (dp.reqs != reqs || dp.isExhausted)
         {
             continue;
         }
@@ -389,46 +397,53 @@ VkDescriptorPool VulkanDescriptorSetManager::GetDescriptorPool(
         // we can use it if this many frames have passed OR it is from the same frame
         if (dp.frameCounter == currentFrameCounter || delta >= NumFramesInFlight)
         {
-            VkDescriptorPool pool = dp.pool;
             dp.frameCounter = currentFrameCounter;
 
             outPoolIndex = idx - 1;
 
-            return pool;
+            return {};
         }
     }
 
     // no pool (for this frame); create a new one
-
-    VkDescriptorPool pool = VK_NULL_HANDLE;
-    if (RendererResult createDescriptorPoolResult = CreateDescriptorPool(reqs, pool); createDescriptorPoolResult.HasError())
-    {
-        HYP_FAIL("Failed to create descriptor pool! {}", createDescriptorPoolResult.GetError().GetMessage());
-    }
-
-    outPoolIndex = int(m_pools.Size() - 1);
-
-    return pool;
+    return CreateDescriptorPool(reqs, outPoolIndex);
 }
 
-RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VulkanDescriptorPoolRequirements reqs, VkDescriptorPool& outDescriptorPool)
+RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VulkanDescriptorPoolRequirements reqs, int& outPoolIndex)
 {
+    outPoolIndex = -1;
+
     if (m_pools.Size() >= MaxDescriptorPools)
     {
         return HYP_MAKE_ERROR(RendererError, "Cannot allocate new descriptor pool: maximum number of descriptor pools has been exceeded ({})", 0, MaxDescriptorPools);
     }
 
-    Array<VkDescriptorPoolSize, VulkanTempAllocator> descriptorPoolSizes = {
+    uint32 numPoolsWithSameReqs = 0;
+
+    for (const VulkanDescriptorPool& dp : m_pools)
+    {
+        if (dp.reqs == reqs)
         {
-            VK_DESCRIPTOR_TYPE_SAMPLER,
-            1000,
-        },
-        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, (reqs & VDPR_BindlessTextures) ? MaxBindlessResources[BindlessStorage_Textures] : 1000 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, (reqs & VDPR_BindlessBuffers) ? MaxBindlessResources[BindlessStorage_Buffers] : 1000 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 }
+            ++numPoolsWithSameReqs;
+        }
+    }
+
+    const uint32 growthFactor = 1u << (numPoolsWithSameReqs < MaxDescriptorPoolGrowth ? numPoolsWithSameReqs : MaxDescriptorPoolGrowth);
+
+    const uint32 maxSets = (reqs & VDPR_Bindless)
+        ? BindlessDescriptorSetsPerPool * growthFactor
+        : InitialDescriptorSetsPerPool * growthFactor;
+
+    const uint32 descriptorsPerType = InitialDescriptorsPerTypePerPool * growthFactor;
+
+    Array<VkDescriptorPoolSize, VulkanTempAllocator> descriptorPoolSizes = {
+        { VK_DESCRIPTOR_TYPE_SAMPLER, descriptorsPerType },
+        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, (reqs & VDPR_BindlessTextures) ? MaxBindlessResources[BindlessStorage_Textures] * maxSets : descriptorsPerType },
+        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, descriptorsPerType },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, descriptorsPerType },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, descriptorsPerType },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, (reqs & VDPR_BindlessBuffers) ? MaxBindlessResources[BindlessStorage_Buffers] * maxSets : descriptorsPerType },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, descriptorsPerType }
     };
 
     // only add acceleration structure descriptor type if rayTracing is supported,
@@ -438,15 +453,9 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VulkanDescriptor
         descriptorPoolSizes.PushBack({ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1 });
     }
 
-    outDescriptorPool = VK_NULL_HANDLE;
-
-    VulkanDescriptorPool& dp = m_pools.EmplaceBack();
-    dp.reqs = reqs;
-    dp.frameCounter = GetFrameCounter();
-
     VkDescriptorPoolCreateInfo poolInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
     poolInfo.flags = (!UseResetDescriptorPool ? VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT : 0);
-    poolInfo.maxSets = MaxDescriptorSets;
+    poolInfo.maxSets = maxSets;
     poolInfo.poolSizeCount = uint32(descriptorPoolSizes.Size());
     poolInfo.pPoolSizes = descriptorPoolSizes.Data();
 
@@ -455,15 +464,23 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VulkanDescriptor
         poolInfo.flags |= VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
     }
 
+    VkDescriptorPool pool = VK_NULL_HANDLE;
+
     VULKAN_CHECK(vkCreateDescriptorPool(
         RI.GetDevice()->GetDevice(),
         &poolInfo,
         nullptr,
-        &dp.pool));
+        &pool));
 
-    HYP_LOG(RenderingBackend, Verbose, "Created new Vulkan descriptor pool {}, reqs = {}", (void*)dp.pool, reqs);
+    HYP_LOG(RenderingBackend, Verbose, "Created new Vulkan descriptor pool {} ({} of {}), reqs = {}, max sets = {}, descriptors per type = {}",
+        (void*)pool, uint32(m_pools.Size() + 1), MaxDescriptorPools, reqs, maxSets, descriptorsPerType);
 
-    outDescriptorPool = dp.pool;
+    VulkanDescriptorPool& dp = m_pools.EmplaceBack();
+    dp.pool = pool;
+    dp.reqs = reqs;
+    dp.frameCounter = GetFrameCounter();
+
+    outPoolIndex = int(m_pools.Size() - 1);
 
     return {};
 }
@@ -481,7 +498,10 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(
 
     int poolIndex = -1;
 
-    outVkDescriptorPool = GetDescriptorPool(GetFrameCounter(), reqs, poolIndex);
+    if (RendererResult getDescriptorPoolResult = GetDescriptorPool(GetFrameCounter(), reqs, poolIndex); getDescriptorPoolResult.HasError())
+    {
+        return getDescriptorPoolResult;
+    }
 
     const uint32 variableDescriptorCount = (reqs & VDPR_BindlessTextures)
         ? MaxBindlessResources[BindlessStorage_Textures]
@@ -493,12 +513,15 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(
     variableCountInfo.descriptorSetCount = 1;
     variableCountInfo.pDescriptorCounts = &variableDescriptorCount;
 
-    bool shouldRetry = true;
+    static constexpr uint32 MaxAllocationAttempts = 4;
 
-    do
+    VkResult vkResult = VK_ERROR_OUT_OF_POOL_MEMORY;
+
+    for (uint32 attempt = 0; attempt < MaxAllocationAttempts; attempt++)
     {
-        shouldRetry = false;
+        Assert(poolIndex >= 0 && poolIndex < int(m_pools.Size()));
 
+        outVkDescriptorPool = m_pools[poolIndex].pool;
         Assert(outVkDescriptorPool != VK_NULL_HANDLE);
 
         VkDescriptorSetAllocateInfo allocInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
@@ -511,53 +534,37 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(
             allocInfo.pNext = &variableCountInfo;
         }
 
-        const VkResult vkResult = vkAllocateDescriptorSets(
+        vkResult = vkAllocateDescriptorSets(
             device->GetDevice(),
             &allocInfo,
             &outVkDescriptorSet);
 
-        if (vkResult != VK_SUCCESS)
+        if (vkResult == VK_SUCCESS)
         {
-            if (vkResult == VK_ERROR_OUT_OF_POOL_MEMORY)
-            {
-                if (poolIndex < 0)
-                {
-                    // Failed to allocate from newly allocated pool - fail instead of trying infinitely until we run out of pools.
-                    return HYP_MAKE_ERROR(RendererError, "Failed to allocate descriptor set!", int(vkResult));
-                }
+            ++m_pools[poolIndex].useCount;
 
-                poolIndex = -1;
+            return {};
+        }
 
-                HYP_LOG(RenderingBackend, Debug, "Out of pool memory; allocating a new descriptor pool");
-
-                if (RendererResult createDescriptorPoolResult = CreateDescriptorPool(reqs, outVkDescriptorPool); createDescriptorPoolResult.HasError())
-                {
-                    // failed to allocate new descriptor pool
-                    return createDescriptorPoolResult;
-                }
-
-                shouldRetry = true;
-
-                // try again with new descriptor pool
-                continue;
-            }
-
+        if (vkResult != VK_ERROR_OUT_OF_POOL_MEMORY && vkResult != VK_ERROR_FRAGMENTED_POOL)
+        {
             return HYP_MAKE_ERROR(RendererError, "Failed to allocate descriptor set!", int(vkResult));
         }
-    }
-    while (shouldRetry);
 
-    poolIndex = int(m_pools.IndexOf(m_pools.FindIf(
-        [&outVkDescriptorPool](const auto& elem)
+        m_pools[poolIndex].isExhausted = true;
+
+        HYP_LOG(RenderingBackend, Debug, "Out of pool memory; allocating a new descriptor pool");
+
+        if (RendererResult createDescriptorPoolResult = CreateDescriptorPool(reqs, poolIndex); createDescriptorPoolResult.HasError())
         {
-            return elem.pool == outVkDescriptorPool;
-        })));
+            // failed to allocate new descriptor pool
+            return createDescriptorPoolResult;
+        }
+    }
 
-    Assert(poolIndex >= 0 && poolIndex < int(m_pools.Size()));
+    outVkDescriptorPool = VK_NULL_HANDLE;
 
-    ++m_pools[poolIndex].useCount;
-
-    return {};
+    return HYP_MAKE_ERROR(RendererError, "Failed to allocate descriptor set after {} attempts!", int(vkResult), MaxAllocationAttempts);
 }
 
 RendererResult VulkanDescriptorSetManager::DestroyDescriptorSet(VulkanDevice* device, VkDescriptorSet vkDescriptorSet, VkDescriptorPool vkDescriptorPool)
@@ -583,7 +590,10 @@ RendererResult VulkanDescriptorSetManager::DestroyDescriptorSet(VulkanDevice* de
 
     Assert(m_pools[poolIndex].useCount > 0, "miscount of descriptor pool usage counts; should never be less than 0");
 
-    --m_pools[poolIndex].useCount;
+    if (--m_pools[poolIndex].useCount == 0)
+    {
+        m_pools[poolIndex].isExhausted = false;
+    }
 
     return {};
 }
@@ -1031,7 +1041,7 @@ void VulkanRenderInterface::PresentToSwapchain(VulkanSwapchain* swapchain)
     VulkanSemaphore* waitSemaphore = nullptr;
     VulkanSemaphore* signalSemaphore = nullptr;
 
-    if (swapchain != nullptr)
+    if (swapchain != nullptr && swapchain->HasAcquiredImage())
     {
         waitSemaphore = frame->GetImageAvailableSemaphore(swapchain, /* createIfNotExist */ true);
         signalSemaphore = swapchain->GetCurrentPresentSemaphore();

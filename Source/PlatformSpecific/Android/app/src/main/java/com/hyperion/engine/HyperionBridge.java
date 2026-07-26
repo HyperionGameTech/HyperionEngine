@@ -20,4 +20,21 @@ public final class HyperionBridge {
     public static native void nativeSetSurface(Surface surface);
     public static native void nativeTouchEvent(int action, float x, float y, int pointerId);
     public static native void nativeKeyEvent(int action, int keyCode);
+    public static native void nativeTextInputEvent(String text);
+    
+    public static void showSoftKeyboard() {
+        MainActivity activity = MainActivity.getInstance();
+
+        if (activity != null) {
+            activity.showSoftKeyboardInternal();
+        }
+    }
+
+    public static void hideSoftKeyboard() {
+        MainActivity activity = MainActivity.getInstance();
+
+        if (activity != null) {
+            activity.hideSoftKeyboardInternal();
+        }
+    }
 }

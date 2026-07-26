@@ -47,7 +47,7 @@ bool IsHardwareKeyboardAvailable();
 
 #pragma mark - HyperionMetalView
 
-@interface HyperionMetalView : UIView
+@interface HyperionMetalView : UIView <UIKeyInput>
 @property (nonatomic, assign) IOSApplicationWindow* hyperionWindow;
 @end
 
@@ -231,6 +231,49 @@ bool IsHardwareKeyboardAvailable();
             _hyperionWindow->GetInputManager()->ProcessEvent(std::move(engineEvent));
         }
     }
+}
+
+#pragma mark - UIKeyInput (soft keyboard)
+
+- (BOOL)canBecomeFirstResponder
+{
+    return YES;
+}
+
+- (BOOL)hasText
+{
+    return YES;
+}
+
+- (void)insertText:(NSString*)text
+{
+    if (!_hyperionWindow || text.length == 0)
+    {
+        return;
+    }
+
+    PlatformEvent platformEvent {};
+    Event evt(EventType::TEXT_INPUT, _hyperionWindow, platformEvent);
+    evt.GetEventData().Set(String([text UTF8String]));
+    _hyperionWindow->GetInputManager()->ProcessEvent(std::move(evt));
+}
+
+- (void)deleteBackward
+{
+    if (!_hyperionWindow)
+    {
+        return;
+    }
+
+    PlatformEvent platformEvent {};
+
+    Event keyDown(EventType::KEYDOWN, _hyperionWindow, platformEvent);
+    keyDown.GetEventData().Set(KeyCode::KEY_BACKSPACE);
+    _hyperionWindow->GetInputManager()->ProcessEvent(std::move(keyDown));
+
+    Event keyUp(EventType::KEYUP, _hyperionWindow, platformEvent);
+    keyUp.GetEventData().Set(KeyCode::KEY_BACKSPACE);
+    _hyperionWindow->GetInputManager()->ProcessEvent(std::move(keyUp));
 }
 
 #pragma mark - Keyboard Handling (iOS 13.4+)
@@ -731,6 +774,28 @@ void IOSApplicationWindow::Close()
 void IOSApplicationWindow::SetMousePosition(Vec2i position)
 {
     // NO-OP
+}
+
+void IOSApplicationWindow::ShowVirtualKeyboard()
+{
+    if (!m_uiView)
+    {
+        return;
+    }
+
+    HyperionMetalView* view = (HyperionMetalView*)m_uiView;
+    [view becomeFirstResponder];
+}
+
+void IOSApplicationWindow::HideVirtualKeyboard()
+{
+    if (!m_uiView)
+    {
+        return;
+    }
+
+    HyperionMetalView* view = (HyperionMetalView*)m_uiView;
+    [view resignFirstResponder];
 }
 
 Vec2i IOSApplicationWindow::GetMousePosition() const

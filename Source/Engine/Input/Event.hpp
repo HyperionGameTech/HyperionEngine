@@ -4,6 +4,7 @@
 
 #include <Core/Utilities/Variant.hpp>
 #include <Core/FileSystem/FilePath.hpp>
+#include <Core/Containers/String.hpp>
 
 #include <Core/Math/Vector2.hpp>
 
@@ -36,12 +37,15 @@ enum class EventType : uint32
     MOUSEBUTTON_UP = 0x0402,
     MOUSESCROLL = 0x0403,
 
-    // Touch events for mobile controls
+    /// Touch events for mobile controls
     TOUCH_DOWN = 0x0500,
     TOUCH_UP = 0x0501,
     TOUCH_MOVE = 0x0502,
 
-    // Controller events
+    /// Committed text from a soft keyboard / IME
+    TEXT_INPUT = 0x0503,
+
+    /// Controller events
     CONTROLLER_BUTTON_DOWN = 0x0600,
     CONTROLLER_BUTTON_UP = 0x0601,
     CONTROLLER_ANALOG_MOVE = 0x0602,
@@ -208,6 +212,7 @@ public:
         Vec2i,          // scroll
         MotionData,     // mouse movement data
         TouchEventData, // touch event data
+        String,         // committed text input (soft keyboard / IME)
         ControllerButton,
         ControllerAnalogData,
         void*>;
@@ -469,6 +474,23 @@ public:
     HYP_FORCE_INLINE const TouchEventData* GetTouchEventData() const
     {
         return m_eventData.TryGet<TouchEventData>();
+    }
+
+    HYP_FORCE_INLINE const String& GetTextInput() const
+    {
+        if (m_eventType != EventType::TEXT_INPUT)
+        {
+            return String::empty;
+        }
+
+        const String* text = m_eventData.TryGet<String>();
+
+        if (!text)
+        {
+            return String::empty;
+        }
+
+        return *text;
     }
 
     HYP_FORCE_INLINE Vec2f GetTouchDelta() const

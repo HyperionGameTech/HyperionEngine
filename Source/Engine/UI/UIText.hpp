@@ -88,6 +88,9 @@ public:
     HYP_METHOD()
     Vec2f GetCharacterOffset(int characterIndex) const;
 
+    HYP_METHOD()
+    int GetClosestCharacterIndex(Vec2f localPosition) const;
+
     /*! \brief Overriden from UIObject to return false as text is not focusable
      *
      * \return False */

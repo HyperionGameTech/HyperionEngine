@@ -67,6 +67,9 @@ static RendererResult AcquireNextImage(
 
     if (vkResult != VK_SUCCESS && vkResult != VK_SUBOPTIMAL_KHR)
     {
+        // reset the index.
+        *index = ~0u;
+
         return HYP_MAKE_ERROR(RendererError, "Failed to acquire next image", int(vkResult));
     }
 
@@ -116,35 +119,64 @@ bool VulkanSwapchain::IsCreated() const
 
 void VulkanSwapchain::PrepareForFrame(VulkanFrame* frame)
 {
-    if (m_needsRecreate)
-    {
-        Recreate();
+    static constexpr uint32 MaxAcquireAttempts = 3;
 
-        // if recreation failed our handle will be VK_NULL_HANDLE
-        // this can happen when closing the window
-        if (m_handle == VK_NULL_HANDLE)
+    m_acquiredImageIndex = ~0u;
+
+    for (uint32 attempt = 0; attempt < MaxAcquireAttempts; attempt++)
+    {
+        if (m_needsRecreate)
+        {
+            Recreate();
+
+            // if recreation failed our handle will be VK_NULL_HANDLE
+            // this can happen when closing the window
+            if (m_handle == VK_NULL_HANDLE)
+            {
+                return;
+            }
+
+            if (m_needsRecreate)
+            {
+                // recreation failed but the old swapchain was kept; it is retired, so there is nothing
+                // to acquire from this frame. we'll try again on the next one.
+                return;
+            }
+
+            frame->RecreateSemaphores(this);
+        }
+
+        RendererResult result = AcquireNextImage(this, frame, &m_acquiredImageIndex, &m_needsRecreate);
+
+        if (result)
         {
             return;
         }
+
+        if (!m_needsRecreate)
+        {
+            // not a surface change; nothing we can recover from here
+            HYP_FAIL("Failed to acquire next swapchain image: {}", result.GetError().GetMessage());
+        }
+
+        HYP_LOG(RenderingBackend, Verbose, "Swapchain out of date while acquiring image, retrying ({} of {})", attempt + 1, MaxAcquireAttempts);
     }
 
-    RendererResult result = AcquireNextImage(this, frame, &m_acquiredImageIndex, &m_needsRecreate);
+    // couldn't acquire an image; skip presenting this frame and retry on the next one
+    HYP_LOG(RenderingBackend, Warning, "Failed to acquire a swapchain image after {} attempts; skipping frame", MaxAcquireAttempts);
 
-    if (m_needsRecreate)
-    {
-        Recreate();
-
-        frame->RecreateSemaphores(this);
-
-        result = AcquireNextImage(this, frame, &m_acquiredImageIndex, &m_needsRecreate);
-    }
-
-    Assert(result, "Failed to acquire next swapchain image: {}", result.GetError().GetMessage());
+    m_acquiredImageIndex = ~0u;
+    m_needsRecreate = true;
 }
 
 void VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue)
 {
     AssertOnThread(g_renderThread);
+
+    if (!HasAcquiredImage())
+    {
+        return;
+    }
 
     VulkanSemaphore* presentSemaphore = GetCurrentPresentSemaphore();
     Assert(presentSemaphore != nullptr && presentSemaphore->IsCreated());
@@ -212,6 +244,22 @@ RendererResult VulkanSwapchain::Create()
         m_extent = nativeExtent;
     }
 
+    /// https://registry.khronos.org/VulkanSC/specs/1.0-extensions/man/html/VkSurfaceCapabilitiesKHR.html
+    /// - currentExtent is the current width and height of the surface,
+    ///   or the special value (0xFFFFFFFF, 0xFFFFFFFF) indicating that
+    ///   the surface size will be determined by the extent of a
+    ///   swapchain targeting the surface.
+    if (m_supportDetails.capabilities.currentExtent.width != 0xFFFFFFFFu
+        && m_supportDetails.capabilities.currentExtent.height != 0xFFFFFFFFu)
+    {
+        if (m_extent != nativeExtent)
+        {
+            HYP_LOG(RenderingBackend, Verbose, "Surface dictates swapchain extent; using {} instead of requested {}", nativeExtent, m_extent);
+        }
+
+        m_extent = nativeExtent;
+    }
+
     const Vec2u maxExtent {
         m_supportDetails.capabilities.maxImageExtent.width,
         m_supportDetails.capabilities.maxImageExtent.height
@@ -276,7 +324,10 @@ RendererResult VulkanSwapchain::Create()
         createInfo.pQueueFamilyIndices = nullptr; /* Optional */
     }
 
-    createInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+    createInfo.preTransform = (m_supportDetails.capabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
+        ? VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR
+        : m_supportDetails.capabilities.currentTransform;
+
 #if HYP_ANDROID || HYP_IOS
     createInfo.compositeAlpha = (m_supportDetails.capabilities.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR)
         ? VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR
@@ -362,6 +413,11 @@ void VulkanSwapchain::Recreate()
 {
     HYP_LOG(RenderingBackend, Verbose, "Recreating Vulkan swapchain {} with new extent: {}", Id(), m_extent);
 
+    if (RendererResult waitResult = RI.GetDevice()->WaitIdle(); !waitResult)
+    {
+        HYP_LOG(RenderingBackend, Warning, "Failed to wait for device idle before recreating swapchain: {}", waitResult.GetError().GetMessage());
+    }
+
     Array<VulkanGpuImageRef, VulkanAllocator> oldImages = std::move(m_images);
     Array<VulkanFramebufferRef, VulkanAllocator> oldFramebuffers = std::move(m_framebuffers);
     Array<VulkanSemaphoreRef, VulkanAllocator> oldPresentSemaphores = std::move(m_presentSemaphores);
@@ -375,20 +431,20 @@ void VulkanSwapchain::Recreate()
 
     if (createResult)
     {
-        if (m_oldHandle != VK_NULL_HANDLE)
-        {
-            vkDestroySwapchainKHR(
-                RI.GetDevice()->GetDevice(),
-                m_oldHandle,
-                nullptr);
-
-            m_oldHandle = VK_NULL_HANDLE;
-        }
-
-        // cleanup old resources
         oldFramebuffers.Clear();
         oldImages.Clear();
         oldPresentSemaphores.Clear();
+
+        if (m_oldHandle != VK_NULL_HANDLE)
+        {
+            EnqueueDeletion(FunctionWrapper<Proc<void()>>(
+                [handle = m_oldHandle]()
+                {
+                    vkDestroySwapchainKHR(RI.GetDevice()->GetDevice(), handle, nullptr);
+                }));
+
+            m_oldHandle = VK_NULL_HANDLE;
+        }
     }
     else
     {

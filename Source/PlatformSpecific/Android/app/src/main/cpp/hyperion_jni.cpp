@@ -30,11 +30,16 @@ extern "C"
     void Hyp_SetAssetManager(void* mgr);
     void Hyp_SetNativeWindow(void* nativeWindow);
     void Hyp_InputEvent(int type, int action, float x, float y, int iParam);
+    void Hyp_TextInputEvent(const char* text);
+
+    void Hyp_Android_InitJNI(JNIEnv* env, jclass hyperionBridgeClass);
 }
 
 extern "C" JNIEXPORT jint JNICALL
-Java_com_hyperion_engine_HyperionBridge_nativeInit(JNIEnv* env, jclass /*clazz*/)
+Java_com_hyperion_engine_HyperionBridge_nativeInit(JNIEnv* env, jclass clazz)
 {
+    Hyp_Android_InitJNI(env, clazz);
+
     const char* argv[] = {
         "hyperion",
         "-SimulateOnMainThread=true",
@@ -129,4 +134,17 @@ Java_com_hyperion_engine_HyperionBridge_nativeKeyEvent(JNIEnv* /*env*/, jclass /
     jint action, jint keyCode)
 {
     Hyp_InputEvent(1, action, 0.0f, 0.0f, keyCode);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_hyperion_engine_HyperionBridge_nativeTextInputEvent(JNIEnv* env, jclass /*clazz*/, jstring text)
+{
+    if (text == nullptr)
+    {
+        return;
+    }
+
+    const char* textChars = env->GetStringUTFChars(text, nullptr);
+    Hyp_TextInputEvent(textChars);
+    env->ReleaseStringUTFChars(text, textChars);
 }

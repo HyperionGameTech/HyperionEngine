@@ -19,6 +19,8 @@
 #include <android/native_window_jni.h>
 #include <android/keycodes.h>
 
+#include <jni.h>
+
 #if HYP_VULKAN
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_android.h>
@@ -30,6 +32,64 @@
 namespace Hyperion {
 
 CORE_API HYP_DECLARE_LOG_CHANNEL(Core);
+
+namespace {
+
+JavaVM* g_javaVM = nullptr;
+jclass g_hyperionBridgeClass = nullptr;
+jmethodID g_showSoftKeyboardMethod = nullptr;
+jmethodID g_hideSoftKeyboardMethod = nullptr;
+
+JNIEnv* GetJNIEnvForCurrentThread(bool& outDidAttach)
+{
+    outDidAttach = false;
+
+    if (g_javaVM == nullptr)
+    {
+        return nullptr;
+    }
+
+    JNIEnv* env = nullptr;
+
+    if (g_javaVM->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) == JNI_OK)
+    {
+        return env;
+    }
+
+    if (g_javaVM->AttachCurrentThread(&env, nullptr) != JNI_OK)
+    {
+        return nullptr;
+    }
+
+    outDidAttach = true;
+
+    return env;
+}
+
+void CallSoftKeyboardMethod(jmethodID methodId)
+{
+    if (g_hyperionBridgeClass == nullptr || methodId == nullptr)
+    {
+        return;
+    }
+
+    bool didAttach = false;
+    JNIEnv* env = GetJNIEnvForCurrentThread(didAttach);
+
+    if (env == nullptr)
+    {
+        return;
+    }
+
+    env->CallStaticVoidMethod(g_hyperionBridgeClass, methodId);
+
+    if (didAttach)
+    {
+        g_javaVM->DetachCurrentThread();
+    }
+}
+
+} // anonymous namespace
 
 static KeyCode MapAndroidKeyCodeToKeyCode(int32_t androidKeyCode)
 {
@@ -425,4 +485,45 @@ bool AndroidApplicationWindow::HandleInputEvent(int32 type, int32 action, float 
     return false;
 }
 
+bool AndroidApplicationWindow::HandleTextInputEvent(const String& text, Event& outEvent)
+{
+    if (text.Empty())
+    {
+        return false;
+    }
+
+    PlatformEvent platformEvent {};
+
+    outEvent = Event(EventType::TEXT_INPUT, this, platformEvent);
+    outEvent.GetEventData().Set(text);
+
+    return true;
+}
+
+void AndroidApplicationWindow::ShowVirtualKeyboard()
+{
+    CallSoftKeyboardMethod(g_showSoftKeyboardMethod);
+}
+
+void AndroidApplicationWindow::HideVirtualKeyboard()
+{
+    CallSoftKeyboardMethod(g_hideSoftKeyboardMethod);
+}
+
 } // namespace Hyperion
+
+extern "C" void Hyp_Android_InitJNI(JNIEnv* env, jclass hyperionBridgeClass)
+{
+    using namespace Hyperion;
+
+    if (g_hyperionBridgeClass != nullptr)
+    {
+        return;
+    }
+
+    env->GetJavaVM(&g_javaVM);
+
+    g_hyperionBridgeClass = reinterpret_cast<jclass>(env->NewGlobalRef(hyperionBridgeClass));
+    g_showSoftKeyboardMethod = env->GetStaticMethodID(g_hyperionBridgeClass, "showSoftKeyboard", "()V");
+    g_hideSoftKeyboardMethod = env->GetStaticMethodID(g_hyperionBridgeClass, "hideSoftKeyboard", "()V");
+}

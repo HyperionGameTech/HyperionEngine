@@ -354,6 +354,42 @@ Vec2f UIText::GetCharacterOffset(int characterIndex) const
     return m_characterOffsets[characterIndex] * GetTextSize();
 }
 
+int UIText::GetClosestCharacterIndex(Vec2f localPosition) const
+{
+    HYP_SCOPE;
+
+    if (m_characterOffsets.Empty())
+    {
+        return 0;
+    }
+
+    const float textSize = GetTextSize();
+
+    int closestIndex = 0;
+    float closestDistance = MathUtil::MaxSafeValue<float>();
+
+    for (size_t i = 0; i < m_characterOffsets.Size(); i++)
+    {
+        const float offsetX = m_characterOffsets[i].x * textSize;
+        const float distance = MathUtil::Abs(offsetX - localPosition.x);
+
+        if (distance < closestDistance)
+        {
+            closestDistance = distance;
+            closestIndex = int(i);
+        }
+    }
+
+    const float lastOffsetX = m_characterOffsets.Back().x * textSize;
+
+    if (localPosition.x > lastOffsetX)
+    {
+        return int(m_characterOffsets.Size());
+    }
+
+    return closestIndex;
+}
+
 void UIText::UpdateTextAABB()
 {
     HYP_SCOPE;

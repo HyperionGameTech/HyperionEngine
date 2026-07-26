@@ -63,6 +63,9 @@ struct MouseEvent
     HYP_FIELD()
     Vec2i wheel;
 
+    HYP_FIELD()
+    bool isTouch = false;
+
     HYP_FIELD(Deprecated)
     bool isDown = false;
 };
