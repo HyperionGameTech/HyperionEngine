@@ -37,8 +37,6 @@
 
 namespace Hyperion {
 
-static constexpr uint32 MinSafeDeleteCycles = RingBufferDepth; // minimum number of cycles to wait before deleting an object
-
 template <class T>
 class DeletionQueueElem;
 

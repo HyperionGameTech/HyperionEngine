@@ -1,6 +1,8 @@
 #include "../include/Defines.hlsli"
 #include "../include/Shared.hlsli"
 
+PERMUTE(MAX_PARTICLES, 1024, 2048, 4096, 8192, 16384);
+
 DECLARE_SAMPLER(UpdateParticlesDescriptorSet, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(UpdateParticlesDescriptorSet, SamplerLinear) SamplerState sampler_linear;
 

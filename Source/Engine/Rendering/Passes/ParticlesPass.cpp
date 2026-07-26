@@ -159,15 +159,9 @@ ParticlesPass::VolumeState& ParticlesPass::EnsureVolumeState(RenderProxyParticle
 
     state.enableCollision = proxy->particleVolume->enableCollision;
 
-    // compute shader properties
-    ShaderPropertySet properties;
-    properties.Add(InternShaderProperty(ShaderProperty(NAME("MAX_PARTICLES"), int(state.maxParticles))));
-    properties.Set(s_propHasPhysics, state.enableCollision);
-
     // set default particle graphics attributes (translucent)
     MaterialAttributes materialAttributes {};
     materialAttributes.shaderName = NAME("Particle");
-    materialAttributes.shaderProperties = properties;
     materialAttributes.bucket = RenderBucket::Translucent;
     materialAttributes.blendFunction = BlendFunction::AlphaBlending();
     materialAttributes.cullFaces = FCM_BACK;
@@ -324,9 +318,7 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         cr << SetInputLayout(state.renderableAttributes.GetMeshAttributes().inputLayout);
         cr << SetTopology(state.renderableAttributes.GetMeshAttributes().topology);
 
-        cr << SetCurrentShader(ShaderDesc(
-            state.renderableAttributes.GetMaterialAttributes().shaderName,
-            state.renderableAttributes.GetMaterialAttributes().shaderProperties));
+        cr << SetCurrentShader(ShaderDesc(state.renderableAttributes.GetMaterialAttributes().shaderName));
 
         cr << SetCurrentBlendFunction(state.renderableAttributes.GetMaterialAttributes().blendFunction);
         cr << SetFaceCullMode(state.renderableAttributes.GetMaterialAttributes().cullFaces);

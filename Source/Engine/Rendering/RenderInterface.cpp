@@ -113,15 +113,7 @@ namespace Hyperion {
 
 using namespace Resources;
 
-static_assert(RingBufferDepth <= MinSafeDeleteCycles,
-              "RingBufferDepth must be less than or equal to MinSafeDeleteCycles to ensure safe deletion of resources.");
-
 static constexpr uint32 MaxFramesBeforeDiscard = RingBufferDepth; // number of frames before ViewData is discarded if not written to
-
-// must be greater than or equal to MinSafeDeleteCycles so that
-// we can ensure no active views hold pointers to deleted objects.
-static_assert(MaxFramesBeforeDiscard >= MinSafeDeleteCycles,
-              "MaxFramesBeforeDiscard must be greater than or equal to MinSafeDeleteCycles");
 
 // iterations per frame for cleaning up unused resources for passes
 static constexpr int FrameCleanupBudget = 16;
