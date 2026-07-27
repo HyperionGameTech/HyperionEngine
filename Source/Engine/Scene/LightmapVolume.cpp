@@ -71,6 +71,36 @@ LightmapVolume::~LightmapVolume()
     }
 }
 
+void LightmapVolume::SetName(Name name)
+{
+    if (name == m_name)
+    {
+        return;
+    }
+
+    Node::SetName(name);
+
+    Handle<AssetRegistry> assetRegistry = GetCurrentAssetRegistry();
+
+    // Update altas textures' interpolated names.
+    for (uint16 i = 0; i < MaxAtlasesPerLightmapVolume; i++)
+    {
+        if (m_radianceAtlasTextures[i].IsValid())
+        {
+            m_radianceAtlasTextures[i]->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_{}", name, TextureTypeNames[RadianceTexture]));
+
+            assetRegistry->PutAssetUnique(m_radianceAtlasTextures[i]);
+        }
+
+        if (m_irradianceAtlasTextures[i].IsValid())
+        {
+            m_irradianceAtlasTextures[i]->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_{}", name, TextureTypeNames[IrradianceTexture]));
+            
+            assetRegistry->PutAssetUnique(m_irradianceAtlasTextures[i]);
+        }
+    }
+}
+
 bool LightmapVolume::AddElement(Vec2u dimensions, LightmapElement*& outElement, bool shrinkToFit, float downscaleLimit)
 {
     outElement = nullptr;
@@ -214,7 +244,15 @@ void LightmapVolume::SetAtlasTexture(uint16 atlasIndex, AtlasTextureType type, c
             return;
         }
 
+        SetNeedsRenderProxyUpdate();
+
         EnqueueDeletion(std::move(m_radianceAtlasTextures[atlasIndex]));
+
+        if (!texture.IsValid())
+        {
+            return;
+        }
+
         m_radianceAtlasTextures[atlasIndex] = texture;
 
         Check(texture->Create());
@@ -226,7 +264,15 @@ void LightmapVolume::SetAtlasTexture(uint16 atlasIndex, AtlasTextureType type, c
             return;
         }
 
+        SetNeedsRenderProxyUpdate();
+
         EnqueueDeletion(std::move(m_irradianceAtlasTextures[atlasIndex]));
+
+        if (!texture.IsValid())
+        {
+            return;
+        }
+
         m_irradianceAtlasTextures[atlasIndex] = texture;
 
         Check(texture->Create());
@@ -235,6 +281,9 @@ void LightmapVolume::SetAtlasTexture(uint16 atlasIndex, AtlasTextureType type, c
     default:
         break;
     }
+    
+    texture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_{}", m_name, TextureTypeNames[type]));
+    GetCurrentAssetRegistry()->PutAssetUnique(texture);
 }
 
 void LightmapVolume::OnAddedToWorld(World* world)

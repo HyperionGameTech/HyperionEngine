@@ -54,7 +54,8 @@ private:
     }
 
     bool AssignLightmapVolume(
-        Scene* scene,
+        Scene& scene,
+        Entity& srcEntity,
         LightmapElementComponent& lightmapElementComponent,
         BoundingBoxComponent& boundingBoxComponent);
 };

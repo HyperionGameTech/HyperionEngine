@@ -117,6 +117,7 @@ public:
     };
 
     static constexpr uint32 NumAtlasTextureTypes = static_cast<uint8>(AtlasTextureType::Max);
+    static constexpr const char* TextureTypeNames[NumAtlasTextureTypes] = { "R", "I" };
 
     LightmapVolume();
 
@@ -125,6 +126,9 @@ public:
     LightmapVolume(const LightmapVolume& other) = delete;
     LightmapVolume& operator=(const LightmapVolume& other) = delete;
     ~LightmapVolume() override;
+
+    HYP_METHOD()
+    void SetName(Name name) override;
 
     HYP_FORCE_INLINE Span<const Handle<Texture>> GetAtlasTextures(AtlasTextureType type) const
     {
@@ -187,7 +191,5 @@ private:
     HYP_FIELD(Property = "Atlases")
     Array<LightmapVolumeAtlas> m_atlases;
 };
-
-constexpr uint8 LightmapStencilMask = (1u << MaxAtlasesPerLightmapVolume) - 1;
 
 } // namespace Hyperion

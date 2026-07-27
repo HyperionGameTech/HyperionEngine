@@ -30,10 +30,14 @@ void LightmapSystem::OnEntityAdded(Entity* entity)
     LightmapElementComponent& lightmapElementComponent = entity->GetComponent<LightmapElementComponent>();
     BoundingBoxComponent& boundingBoxComponent = entity->GetComponent<BoundingBoxComponent>();
 
+    Scene* scene = entity->GetScene();
+    Assert(scene != nullptr);
+
     // Assign to LightmapVolume if it has a valid path to a LightmapVolume but isn't assigned to one yet
+    // @TODO reference ID not name
     if (lightmapElementComponent.lightmapVolumeName.IsValid() && !lightmapElementComponent.lightmapVolume.IsValid())
     {
-        if (!AssignLightmapVolume(entity->GetScene(), lightmapElementComponent, boundingBoxComponent))
+        if (!AssignLightmapVolume(*scene, *entity, lightmapElementComponent, boundingBoxComponent))
         {
             HYP_LOG(Lightmap, Warning, "LightmapElementComponent for Entity {} could not be associated at runtime",
                     entity->GetName());
@@ -167,14 +171,14 @@ void LightmapSystem::Process(float delta, Span<Handle<Scene>> scenes)
 }
 
 bool LightmapSystem::AssignLightmapVolume(
-    Scene* scene,
+    Scene& scene,
+    Entity& srcEntity,
     LightmapElementComponent& lightmapElementComponent,
     BoundingBoxComponent& boundingBoxComponent)
 {
-    for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<LightmapVolume>>().GetScopedView(GetComponentInfos()))
+    for (auto [lmvEntity, _] : scene.GetEntityManager()->GetEntitySet<EntityType<LightmapVolume>>().GetScopedView(GetComponentInfos()))
     {
-        LightmapVolume* lightmapVolume = DynamicCast<LightmapVolume>(entity);
-        Assert(lightmapVolume != nullptr);
+        LightmapVolume* lightmapVolume = StaticCast<LightmapVolume>(lmvEntity);
 
         if (lightmapElementComponent.lightmapVolume.GetUnsafe() != lightmapVolume
             && lightmapElementComponent.lightmapVolumeName == lightmapVolume->GetName())
@@ -188,7 +192,7 @@ bool LightmapSystem::AssignLightmapVolume(
 
             lightmapElementComponent.lightmapVolume = MakeWeakRef(lightmapVolume);
 
-            entity->SetNeedsRenderProxyUpdate();
+            srcEntity.SetNeedsRenderProxyUpdate();
 
             return true;
         }

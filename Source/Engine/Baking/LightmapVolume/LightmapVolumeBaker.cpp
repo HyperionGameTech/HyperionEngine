@@ -34,15 +34,11 @@
 namespace Hyperion {
 namespace Baking {
 
-static constexpr LightmapElementId InvalidLightmapElementId = LightmapElementId(~0u);
-
-static constexpr const char* LightmapAtlasTextureTypeNames[LightmapVolume::NumAtlasTextureTypes] = { "R", "I" };
-
 #pragma region LightmapVolume baking helpers
 
 static Name GenerateElementTextureName(LightmapVolume* lmv, uint32 elementIndex, LightmapVolume::AtlasTextureType textureType)
 {
-    return NAME_FMT("LightmapVolumeTexture_{}_{}_{}", lmv->GetName(), elementIndex, LightmapAtlasTextureTypeNames[textureType]);
+    return NAME_FMT("LightmapVolumeTexture_{}_{}_{}", lmv->GetName(), elementIndex, LightmapVolume::TextureTypeNames[textureType]);
 }
 
 static void UpdateAtlasTextures(
@@ -100,19 +96,12 @@ static void UpdateAtlasTextures(
                 Vec3u { atlas.atlasDimensions, 1 },
                 TFM_LINEAR,
                 TFM_LINEAR,
-                TWM_CLAMP_TO_EDGE },
+                TWM_CLAMP_TO_EDGE
+            },
             atlasBitmap.ToByteView());
-
-        atlasTexture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_{}", lmv->GetName(), LightmapAtlasTextureTypeNames[textureTypeIndex]));
-
-        GetCurrentAssetRegistry()->PutAsset(atlasTexture);
-
-        Check(atlasTexture->Create());
 
         lmv->SetAtlasTexture(atlasIndex, LightmapVolume::AtlasTextureType(textureTypeIndex), atlasTexture);
     }
-
-    lmv->SetNeedsRenderProxyUpdate();
 }
 
 static bool BuildElementTextures(
