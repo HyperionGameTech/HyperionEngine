@@ -20,6 +20,7 @@
 #include <Rendering/GBuffer.hpp>
 #include <Rendering/TextureViewCache.hpp>
 #include <Rendering/Texture.hpp>
+#include <Rendering/CBufferAllocator.hpp>
 
 #include <Rendering/Passes/DeferredPass.hpp>
 
@@ -30,6 +31,7 @@
 #include <System/AppContext.hpp>
 
 #include <Core/Math/Vector2.hpp>
+#include <Core/Math/MathUtil.hpp>
 
 #include <Framework/EngineDriver.hpp>
 #include <Framework/CVarManager.hpp>
@@ -46,33 +48,59 @@ struct HBAOUniforms
     float power;
 };
 
-static const ShaderPropertyId s_propHalfRes = InternShaderProperty(ShaderProperty(NAME("HALFRES")));
-
 static EngineStatGpuTimer s_statHBAOPass("Rendering/GPU/HBAO");
 
-CVar<float> cvHBAORadius { "Rendering.HBAORadius", 1.5f, "Rendering.HBAO.Radius" };
-CVar<float> cvHBAOPower { "Rendering.HBAOPower", 2.5f, "Rendering.HBAO.Power" };
+CVar<float> cvHBAORadius { "Rendering.HBAORadius", 1.0f, "Rendering.HBAO.Radius" };
+CVar<float> cvHBAOPower { "Rendering.HBAOPower", 1.0f, "Rendering.HBAO.Power" };
 
 HBAO::HBAO(Vec2u extent, GBuffer* gbuffer)
     : FullScreenPass(TextureFormat::R16F, extent, gbuffer)
 {
     SetPassName(NAME("HBAO"));
+
+    m_shaderDesc = ShaderDesc(NAME("HBAO"));
 }
 
 HBAO::~HBAO()
 {
-    EnqueueDeletion(std::move(m_cbuffer));
-    EnqueueDeletion(std::move(m_descriptorSet));
+}
+
+void HBAO::Create()
+{
+    FullScreenPass::Create();
+
+    // HBAO is always rendered at half res (see ShouldRenderHalfRes()) - upsample the result
+    // back to full res with a single depth/normal-aware bilateral pass.
+    m_upsamplePass = MakeUnique<FullScreenPass>(
+        TextureFormat::R16F,
+        m_extent,
+        nullptr,
+        FSP_NONE);
+
+    m_upsamplePass->SetShaderDesc(ShaderDesc(NAME("Upsample"), ShaderPropertySet {}));
+    m_upsamplePass->Create();
 }
 
 void HBAO::Resize_Internal(Vec2u newSize)
 {
     HYP_SCOPE;
 
-    EnqueueDeletion(std::move(m_cbuffer));
-    EnqueueDeletion(std::move(m_descriptorSet));
-
     FullScreenPass::Resize_Internal(newSize);
+
+    if (m_upsamplePass != nullptr)
+    {
+        m_upsamplePass->Resize(newSize);
+    }
+}
+
+const GpuImageViewRef& HBAO::GetFinalImageView() const
+{
+    if (m_upsamplePass != nullptr)
+    {
+        return m_upsamplePass->GetFinalImageView();
+    }
+
+    return FullScreenPass::GetFinalImageView();
 }
 
 void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
@@ -86,28 +114,17 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
 
     CommandRecorder& cr = frame->cr;
 
-    if (!m_cbuffer)
-    {
-        HBAOUniforms constants {};
-        constants.dimension = ShouldRenderHalfRes() ? m_extent / 2 : m_extent;
-        constants.radius = cvHBAORadius.Get();
-        constants.power = cvHBAOPower.Get();
+    GpuBuffer* cbuffer = nullptr;
+    size_t cbufferOffset = 0;
+    size_t cbufferSize = 0;
 
-        m_cbuffer = RI.MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(constants));
-        Check(m_cbuffer->Create());
+    HBAOUniforms constants {};
+    constants.dimension = m_extent / 2;
+    constants.radius = cvHBAORadius.Get();
+    constants.power = cvHBAOPower.Get();
 
-        m_cbuffer->Copy(sizeof(constants), &constants);
-        m_cbuffer->Flush(0, sizeof(constants));
-    }
-
-    ShaderPropertySet shaderProperties;
-
-    if (ShouldRenderHalfRes())
-    {
-        shaderProperties.Add(s_propHalfRes);
-    }
-
-    m_shaderDesc = ShaderDesc(NAME("HBAO"), shaderProperties);
+    RI.cbufferAllocator->Write(&constants);
+    RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
     Begin(frame, renderSetup);
 
@@ -130,14 +147,70 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
 
     cr << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, RI.textureViewCache->GetOrCreate(dpd->mipChain));
 
+    cr << SetShaderUniform(numShaderUniforms++, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer);
+
     cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(renderSetup.view->GetCamera()));
     cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
 
-    cr << SetShaderUniform(numShaderUniforms++, "UniformBuffer"_sh, m_cbuffer);
+    cr << SetShaderUniform(numShaderUniforms++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
     RenderFullScreenQuad(frame, renderSetup);
 
     End(frame, renderSetup);
+
+    // Upsample the half-res result to full res with a depth/normal-aware bilateral filter.
+    AssertDebug(m_upsamplePass != nullptr);
+
+    RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
+    AssertDebug(cameraProxy != nullptr);
+
+    GpuBuffer* upsampleCbuffer = nullptr;
+    size_t upsampleCbufferOffset = 0;
+    size_t upsampleCbufferSize = 0;
+
+    {
+        struct UpsampleConstants
+        {
+            CameraShaderData camera;
+
+            Vec2f texelSize;
+            Vec2f uvScale;
+            float depthThreshold;
+            float normalThreshold;
+        };
+
+        const Vec2f sourceResolution = Vec2f(MathUtil::Max(m_extent / 2, Vec2u::One()));
+
+        UpsampleConstants upsampleConstants {};
+        upsampleConstants.camera = cameraProxy->bufferData;
+        upsampleConstants.texelSize = Vec2f::One() / sourceResolution;
+        upsampleConstants.uvScale = Vec2f::One();
+        upsampleConstants.depthThreshold = 0.1f;
+        upsampleConstants.normalThreshold = 1.0f;
+
+        RI.cbufferAllocator->Write(&upsampleConstants);
+        RI.cbufferAllocator->Commit(upsampleCbuffer, upsampleCbufferOffset, upsampleCbufferSize);
+    }
+
+    cr << SetCurrentShader(m_upsamplePass->GetShaderDesc());
+    cr << SetCurrentFramebuffer(m_upsamplePass->GetFramebuffer());
+    cr << SetCurrentViewport(Viewport { m_upsamplePass->GetExtent() });
+
+    uint32 numUpsampleUniforms = 0;
+
+    cr << SetShaderUniform(numUpsampleUniforms++, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
+    cr << SetShaderUniform(numUpsampleUniforms++, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
+
+    cr << SetShaderUniform(numUpsampleUniforms++, "NormalsTexture"_sh, inputsFramebuffer->GetAttachment(GBufferTarget::Normals)->GetImageView());
+    cr << SetShaderUniform(numUpsampleUniforms++, "DepthTexture"_sh, inputsFramebuffer->GetAttachment(GBufferTarget::Depth)->GetImageView());
+
+    cr << SetShaderUniform(numUpsampleUniforms++, "PrevPassTexture"_sh, GetAttachment(0)->GetImageView());
+
+    cr << SetShaderUniform(numUpsampleUniforms++, "CBuffer"_sh, upsampleCbuffer, ShaderDataOffset(upsampleCbufferOffset, upsampleCbufferSize));
+
+    cr << CommitDrawState();
+
+    m_upsamplePass->RenderFullScreenQuad(frame, renderSetup);
 }
 
 } // namespace Hyperion

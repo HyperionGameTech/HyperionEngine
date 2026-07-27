@@ -1,7 +1,5 @@
 #include "../include/Defines.hlsli"
 
-PERMUTE(HALFRES);
-
 #ifdef VERTEX_SHADER
 
 struct VSInput
@@ -53,11 +51,13 @@ DECLARE_SRV(HBAO, GBufferDepthTexture) Texture2D GBufferDepthTexture;
 DECLARE_SAMPLER(HBAO, SamplerLinear) SamplerState sampler_linear;
 DECLARE_SAMPLER(HBAO, SamplerNearest) SamplerState sampler_nearest;
 
+DECLARE_SRV(HBAO, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;
+
 #include "../include/Shared.hlsli"
 #include "../include/Scene.hlsli"
 #include "../include/Gbuffer.hlsli"
 #include "../include/Packing.hlsli"
-#include "../include/Noise.hlsli"
+#include "../include/BlueNoise.hlsli"
 
 DECLARE_SRV_DYNAMIC(HBAO, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
 #define camera _cameras_buffer[0]
@@ -65,29 +65,26 @@ DECLARE_SRV_DYNAMIC(HBAO, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffe
 DECLARE_SRV(HBAO, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
 #define world_shader_data _worlds_buffer[0]
 
-DECLARE_BUFFER(HBAO, UniformBuffer) cbuffer UniformBuffer
+DECLARE_BUFFER_DYNAMIC(HBAO, CBuffer) cbuffer CBuffer
 {
     uint2 dimension;
     float radius;
     float power;
 };
 
-#include "../include/Temporal.hlsli"
+#define HYP_HBAO_NUM_CIRCLES 3
+#define HYP_HBAO_NUM_SLICES 3
 
-#define HYP_HBAO_NUM_CIRCLES 4
-#define HYP_HBAO_NUM_SLICES 4
+#define HYP_HBAO_NUM_TEMPORAL_SAMPLES 32u
 
-#define ANGLE_BIAS 0.01
+#define HYP_HBAO_NOISE_DIMENSION_DIRECTION 0
+#define HYP_HBAO_NOISE_DIMENSION_STEP 1
 
-float GetOffsets(float2 uv)
-{
-    int2 position = int2(uv * float2(dimension));
-    return 0.25 * float((position.y - position.x) & 3);
-}
+#define ANGLE_BIAS 0.1
 
 float GetDepth(float2 uv)
 {
-    return SAMPLE_TEXTURE_2D(sampler_nearest, GBufferDepthTexture, uv).r;
+    return SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferDepthTexture, uv, 0).r;
 }
 
 float3 GetPosition(float2 uv, float depth)
@@ -99,7 +96,7 @@ float3 GetNormal(float2 uv)
 {
     float3 normal = GBufferUnpackNormal(SAMPLE_TEXTURE_2D(sampler_nearest, GBufferNormalsTexture, uv));
     float3 view_normal = mul(camera.view, float4(normal, 0.0)).xyz;
-    return view_normal;
+    return normalize(view_normal);
 }
 
 float IntegrateUniformWeight(float2 h)
@@ -149,14 +146,21 @@ void TraceAO_New(float2 uv, out float occlusion)
 
     const float projected_scale = float(dimension.y) / (tan_half_fov * 2.0);
 
-    const float temporal_offset = GetSpatialOffset(world_shader_data.frame_counter);
-    const float temporal_rotation = GetTemporalRotation(world_shader_data.frame_counter);
+    const int temporal_sample_index = int(world_shader_data.frame_counter % HYP_HBAO_NUM_TEMPORAL_SAMPLES);
 
-    const float noise_offset = GetOffsets(uv);
-    const float noise_direction = InterleavedGradientNoise(float2(pixel_coord));
-    const float ray_step = frac(noise_offset + temporal_offset);
+    const float noise_direction = SampleBlueNoise(int(pixel_coord.x), int(pixel_coord.y), temporal_sample_index, HYP_HBAO_NOISE_DIMENSION_DIRECTION);
+    const float ray_step = SampleBlueNoise(int(pixel_coord.x), int(pixel_coord.y), temporal_sample_index, HYP_HBAO_NOISE_DIMENSION_STEP);
+
+    occlusion = 0.0;
 
     const float depth = GetDepth(uv);
+
+    if (depth >= 1.0)
+    {
+        occlusion = 1.0;
+        return;
+    }
+
     const float3 P = GetPosition(uv, depth);
     const float3 N = GetNormal(uv);
     const float3 V = normalize(P);
@@ -165,23 +169,23 @@ void TraceAO_New(float2 uv, out float occlusion)
     const float2 texel_size = float2(1.0, 1.0) / float2(dimension);
     const float step_radius = max((projected_scale * radius) / max(camera_distance, HYP_FMATH_EPSILON), float(HYP_HBAO_NUM_SLICES)) / float(HYP_HBAO_NUM_SLICES + 1);
 
-    occlusion = 0.0;
-
     for (int i = 0; i < HYP_HBAO_NUM_CIRCLES; i++)
     {
         float angle = (float(i) + noise_direction) / float(HYP_HBAO_NUM_CIRCLES) * 2.0 * HYP_FMATH_PI;
 
+        // direction we march along in UV space...
         float2 ss_ray = float2(sin(angle), cos(angle));
-        float3 ray = normalize(float3(ss_ray.xy * V.z, -dot(V.xy, ss_ray.xy)));
+        float2 vs_ray = float2(ss_ray.x, -ss_ray.y);
+
+        float3 ray = normalize(float3(vs_ray * V.z, -dot(V.xy, vs_ray)));
         const float nx = dot(ray, N);
-        const float ny = -dot(N, V);
+        const float ny = max(-dot(N, V), 0.0);
 
         const float proj_len = max(length(float2(nx, ny)), HYP_FMATH_EPSILON);
         float2 cos_max_theta = float2(-nx, nx) / proj_len;
         float2 max_theta = acos(clamp(cos_max_theta, -1.0, 1.0));
 
-        const float start_angle_delta = 0.0;
-        max_theta = max(float2(0.0, 0.0), max_theta - start_angle_delta);
+        max_theta = max(float2(0.0, 0.0), max_theta - ANGLE_BIAS);
         cos_max_theta = cos(max_theta);
 
         float2 slice_ao = float2(0.0, 0.0);
@@ -226,9 +230,10 @@ void TraceAO_New(float2 uv, out float occlusion)
                 const float2 condition = float2(DdotV > cos_max_theta) * float2(dist < float2(1.0, 1.0));
                 float2 falloffs = saturate(float2(Falloff(DdotD.x), Falloff(DdotD.y)));
 
-                const float2 theta = acos(DdotV);
+                const float2 theta = acos(clamp(DdotV, -1.0, 1.0));
 
-                const float2 impact = CalculateImpact(min(max_theta, theta + float2(HYP_FMATH_PI / 9.0, HYP_FMATH_PI / 9.0)), theta, float2(nx, -nx), ny);
+                // integrate the arc that this sample just swept away, from the new horizon up to the previous one
+                const float2 impact = CalculateImpact(max_theta, theta, float2(nx, -nx), ny);
                 const float2 total_impact = condition * falloffs * impact * in_bounds * fade;
 
                 slice_ao += total_impact;
@@ -241,8 +246,11 @@ void TraceAO_New(float2 uv, out float occlusion)
         occlusion += slice_ao.x + slice_ao.y;
     }
 
-    occlusion = 1.0 - saturate(pow(occlusion / float(2 * HYP_HBAO_NUM_CIRCLES), 1.0 / power));
-    occlusion *= 1.0 / (1.0 - ANGLE_BIAS);
+    occlusion = saturate(occlusion / float(2 * HYP_HBAO_NUM_CIRCLES));
+
+    occlusion = saturate(occlusion * (1.0 / (1.0 - ANGLE_BIAS)));
+
+    occlusion = pow(saturate(1.0 - occlusion), power);
 }
 
 float PSMain(PSInput input) : SV_Target0

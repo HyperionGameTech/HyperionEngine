@@ -424,7 +424,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     VkApplicationInfo appInfo { VK_STRUCTURE_TYPE_APPLICATION_INFO };
     appInfo.pApplicationName = g_appContext->GetAppName().Data();
     appInfo.applicationVersion = VK_MAKE_VERSION(HYP_VERSION_MAJOR, HYP_VERSION_MINOR, HYP_VERSION_PATCH);
-    appInfo.pEngineName = "HyperionEngine";
+    appInfo.pEngineName = "HYP";
     appInfo.engineVersion = VK_MAKE_VERSION(HYP_VERSION_MAJOR, HYP_VERSION_MINOR, HYP_VERSION_PATCH);
     // Set target api version
     appInfo.apiVersion = HYP_VULKAN_API_VERSION;

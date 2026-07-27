@@ -612,12 +612,14 @@ void BeginSimRenderSyncBlock(AtomicFlag* pCancelFlag)
             }
         }
     }
+    
+    const uint8 ringIndex = Framework::s_ringIndex[Framework::TT_FrameDataProducer];
 
-    CVarManager::GetInstance().Publish(Framework::s_ringIndex[Framework::TT_FrameDataProducer]);
+    CVarManager::GetInstance().Publish(ringIndex);
 
     Framework::s_simCommitWindowStart.Start();
 
-    Framework::RenderingData& bufferedData = Framework::s_renderingData[*Framework::t_thisThreadRingIndex];
+    Framework::RenderingData& bufferedData = Framework::s_renderingData[ringIndex];
     bufferedData.threadSyncStates[Framework::TT_FrameDataProducer] = 1;
 }
 
@@ -629,7 +631,7 @@ void EndSimRenderSyncBlock()
 
     s_statSimCommitWindow.RecordElapsedMs(static_cast<float>(Framework::s_simCommitWindowStart.ElapsedMs()), /* accum */ false);
 
-    Framework::RenderingData& bufferedData = Framework::s_renderingData[*Framework::t_thisThreadRingIndex];
+    Framework::RenderingData& bufferedData = Framework::s_renderingData[ringIndex];
     bufferedData.threadSyncStates[Framework::TT_FrameDataProducer] = 0;
 
     Framework::s_ringIndex[Framework::TT_FrameDataProducer] = (ringIndex + 1) % RingBufferDepth;

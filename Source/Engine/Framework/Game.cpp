@@ -112,6 +112,11 @@ void Game::Initialize()
 void Game::InitializeWorld()
 {
     Assert(m_world != nullptr);
+    
+    if (!m_world.IsValid())
+    {
+        return;
+    }
 
     AssertDebug(m_world->m_gameInstance == nullptr || m_world->m_gameInstance == this);
     m_world->m_gameInstance = this;

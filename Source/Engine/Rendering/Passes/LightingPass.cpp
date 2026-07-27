@@ -80,6 +80,9 @@ static const ShaderPropertyId s_propPathTracer = InternShaderProperty(ShaderProp
 
 static const ShaderPropertyId s_propDebugReflections = InternShaderProperty(ShaderProperty(NAME("DEBUG_REFLECTIONS")));
 static const ShaderPropertyId s_propDebugIrradiance = InternShaderProperty(ShaderProperty(NAME("DEBUG_IRRADIANCE")));
+static const ShaderPropertyId s_propDebugAO = InternShaderProperty(ShaderProperty(NAME("DEBUG_AO")));
+static const ShaderPropertyId s_propDebugNormals = InternShaderProperty(ShaderProperty(NAME("DEBUG_NORMALS")));
+static const ShaderPropertyId s_propDebugVelocity = InternShaderProperty(ShaderProperty(NAME("DEBUG_VELOCITY")));
 
 static const ShaderPropertyId s_propLightTypeClustered = InternShaderProperty(ShaderProperty(NAME("LIGHT_TYPE"), NAME("CLUSTERED")));
 
@@ -138,16 +141,23 @@ void GetDeferredShaderProperties(
     }
     else
     {
-        switch (g_cvDeferredDebugVis.Get())
+        static constexpr const ShaderPropertyId* const DebugShaderProperties[] = {
+            nullptr,
+            &s_propDebugReflections,
+            &s_propDebugIrradiance,
+            &s_propDebugAO,
+            &s_propDebugNormals,
+            &s_propDebugVelocity
+        };
+        
+        const int debugMode = g_cvDeferredDebugVis.Get();
+        const ShaderPropertyId* shaderProperty = debugMode < std::size(DebugShaderProperties)
+            ? DebugShaderProperties[debugMode]
+            : nullptr;
+        
+        if (shaderProperty != nullptr)
         {
-        case 1: // reflections
-            outShaderProperties.Add(s_propDebugReflections);
-            break;
-        case 2: // irradiance
-            outShaderProperties.Add(s_propDebugIrradiance);
-            break;
-        default:
-            break;
+            outShaderProperties.Add(*shaderProperty);
         }
     }
 
