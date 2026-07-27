@@ -1110,7 +1110,7 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
                 HYP_FAIL("Unexpected command type {}", header.GetCommandType());
             }
         }
-        else if (header.IsCustom())
+        else // IsCustom
         {
             // Read next header which holds fnptr directly
 

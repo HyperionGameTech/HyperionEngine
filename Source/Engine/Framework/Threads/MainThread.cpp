@@ -83,14 +83,14 @@ void MainThread::Update()
 
     HYP_DEFER({ m_threadAllocator->Reset(); });
 
-    Queue<Scheduler::ScheduledTask> tasks;
+    Array<Scheduler::ScheduledTask, ThreadAllocator> tasks;
     if (uint32 numEnqueued = m_scheduler->NumEnqueued())
     {
         m_scheduler->AcceptAll(tasks);
 
-        while (tasks.Any())
+        for (auto it = tasks.Begin(); it != tasks.End(); ++it)
         {
-            tasks.Pop().Execute();
+            it->Execute();
         }
     }
 

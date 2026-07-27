@@ -51,8 +51,8 @@ HYP_EXPORT const FilePath& GetDataDirectory()
 #endif // HYP_EDITOR
 
 // Directory for cached data (shader bundles, compiled scripts, etc.) Expected to be compiled into the asset registry in production builds
-static bool s_cacheDirectoryInit = false;
-static SharedMutex s_cacheDirectoryMutex;
+static AtomicVar<bool> s_cacheDirectoryInit = false;
+static Mutex s_cacheDirectoryMutex;
 
 HYP_EXPORT const FilePath& GetCacheDirectory()
 {
@@ -61,17 +61,17 @@ HYP_EXPORT const FilePath& GetCacheDirectory()
 
     static const FilePath s_cacheDirectory = CoreApi::GetExecutablePath() / s_cfgCacheDirectory.ToString().ToUtf8();
 
-    TSharedLock sharedLock(s_cacheDirectoryMutex);
-
-    if (s_cacheDirectoryInit)
+    if (s_cacheDirectoryInit.Get(MemoryOrder::RELAXED))
+    {
         return s_cacheDirectory;
+    }
 
-    sharedLock.Reset();
+    Mutex::Guard guard(s_cacheDirectoryMutex);
 
-    TUniqueLock uniqueLock(s_cacheDirectoryMutex);
-
-    if (s_cacheDirectoryInit)
+    if (s_cacheDirectoryInit.Get(MemoryOrder::RELAXED))
+    {
         return s_cacheDirectory;
+    }
 
     if (!s_cfgCachePageSize.IsNumber() || s_cfgCachePageSize.AsNumber() < 1024 * 1024)
     {
@@ -83,10 +83,10 @@ HYP_EXPORT const FilePath& GetCacheDirectory()
 
     if (s_cacheDirectory.Empty() || (!s_cacheDirectory.Exists() && !s_cacheDirectory.MkDir()))
     {
-        HYP_FAIL("Failed to initialize cache storage directory {}!", s_cacheDirectory);
+        HYP_LOG(Engine, Warning, "Failed to initialize cache storage directory {}!", s_cacheDirectory);
     }
 
-    s_cacheDirectoryInit = true;
+    s_cacheDirectoryInit.Set(true, MemoryOrder::RELAXED);
 
     return s_cacheDirectory;
 }

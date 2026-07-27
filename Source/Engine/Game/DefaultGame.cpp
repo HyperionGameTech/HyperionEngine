@@ -64,6 +64,27 @@ HYP_DEFINE_LOG_CHANNEL(Game);
 
 namespace game {
 
+static Camera* FindMainCamera(World& world)
+{
+    for (Scene* scene : world.GetScenes())
+    {
+        Assert(scene != nullptr);
+        
+        if (scene->GetSceneFlags() & SceneFlags::FOREGROUND)
+        {
+            for (const Handle<Node>& node : scene->GetRoot()->GetChildren())
+            {
+                if (node->IsA<Camera>())
+                {
+                    return StaticCast<Camera>(node);
+                }
+            }
+        }
+    }
+    
+    return nullptr;
+}
+
 DefaultGame::DefaultGame()
     : Game()
 {
@@ -76,16 +97,46 @@ DefaultGame::~DefaultGame()
 
 void DefaultGame::InitializeWorld()
 {
-    if (!m_world.IsValid())
-    {
-        m_world = MakeHandle<World>(NAME("MainWorld"), WorldFlags::DEFAULT);
-    }
+    // if (!m_world.IsValid())
+    // {
+    //     m_world = MakeHandle<World>(NAME("MainWorld"), WorldFlags::DEFAULT);
+    // }
+
+    Handle<World> worldAsset = GetCurrentAssetRegistry()->GetAsset<World>(AssetBuckets::Worlds, "MainWorld"_sh);
+    Assert(worldAsset.IsValid());
+
+    SetWorld(worldAsset);
 
     Game::InitializeWorld();
 }
 
 void DefaultGame::OnLaunch_Impl()
 {
+    Assert(GetWorld() != nullptr);
+    
+    // Add a View to the World.
+    // This will capture the scene(s) of the world from the camera's perspective
+    // and draw it into the View's GBuffer.
+    Camera* mainCamera = FindMainCamera(*GetWorld());
+    if (mainCamera != nullptr)
+    {
+        m_camera = MakeStrongRef(mainCamera);
+        m_camera->SetCameraFlags(m_camera->GetCameraFlags() | CameraFlags::MatchWindowSize | CameraFlags::HasStreamingVolume);
+
+        Vec2u viewportSize = Vec2u(m_camera->GetDimensions());
+
+        ViewDesc viewDesc {
+            .flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER | ViewFlags::MATCH_CAMERA_DIMENSIONS,
+            .framebufferDesc = { .extent = viewportSize },
+            .camera = m_camera
+        };
+
+        Handle<View> view = MakeHandle<View>(viewDesc);
+        view->SetName(NAME_FMT("{}_View", m_camera->GetName()));
+        
+        GetWorld()->AddView(view);
+    }
+    
     if (UISubsystem* uiSubsystem = GetUISubsystem())
     {
         uiSubsystem->AddDebugOverlay(MakeHandle<StatsOverlay>());
@@ -103,6 +154,10 @@ void DefaultGame::OnLaunch_Impl()
 #endif
 
 #if 1
+    StartSimulating();
+    return;
+
+#if 0
     // Get MainScene
     Handle<AssetObject> mainSceneAsset = GetCurrentAssetRegistry()->GetAsset<Scene>(AssetBuckets::Scenes, "MainScene"_sh);
     Assert(mainSceneAsset.IsValid());
@@ -212,10 +267,9 @@ void DefaultGame::OnLaunch_Impl()
             }
         }
 
-        StartSimulating();
-
         return;
     }
+#endif
 #endif
 
 #if 1

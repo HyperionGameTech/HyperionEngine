@@ -30,7 +30,6 @@
 
 #include <Core/Threading/Scheduler.hpp>
 
-#include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
 
 #include <Framework/EngineGlobals.hpp>
@@ -73,11 +72,11 @@ void DynamicSkySystem::InitializeSky()
         m_renderScene->SetOwnerThreadId(g_simThread);
         m_renderScene->Initialize();
 
-        auto domePrefabResult = g_assetManager->Load<Prefab>("Models/inv_sphere.obj");
+        Handle<Prefab> domePrefab = GetEngineAssetRegistry()->GetAsset<Prefab>(AssetBuckets::Prefabs, "InvSphere"_sh);
 
-        if (domePrefabResult.HasValue())
+        if (domePrefab.IsValid())
         {
-            Handle<Node> domeNode = domePrefabResult->Result()->GetRoot();
+            Handle<Node> domeNode = domePrefab->GetRoot();
             Assert(domeNode.IsValid());
 
             domeNode->Scale(Vec3f(10.0f));

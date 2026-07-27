@@ -9,10 +9,10 @@
     "PathTracing": false,
     "RayTracedReflections": false,
     "DDGI": false,
+    "ParallelRendering": false,
     "RayTracingEnabled": false,
     "IndirectRendering": false,
     "DepthPrepass": false,
-    "ParallelRendering": false,
     "TargetFrameRate": 30,
     "LimitFrameRateOnBatteryPower": true,
     "LimitFrameRateWhenIdle": true,
@@ -23,8 +23,7 @@
     "VSync": true,
     "EnableGpuStats": true,
     "Vulkan": {
-      "DebugLayers": true,
-      "TimelineSemaphores": false
+      "TimelineSemaphores": true
     }
   },
   "Threads": {

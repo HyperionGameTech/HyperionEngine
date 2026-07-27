@@ -4,7 +4,6 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Parse CLI args
 IOS=0
-IOS_SIMULATOR=0
 XCODE=0
 HYP_ANDROID=0
 HYP_REGENERATE=0
@@ -23,9 +22,8 @@ for arg in "$@"; do
     if [[ "$arg" == "IOS" ]]; then
         IOS=1
         CURR_PLATFORM="IOS"
-    elif [[ "$arg" == "IOSSimulator" ]]; then
+    elif [[ "$arg" == "iOS" ]]; then
         IOS=1
-        IOS_SIMULATOR=1
         CURR_PLATFORM="IOS"
     elif [[ "$arg" == "Xcode" ]]; then
         XCODE=1

@@ -31,7 +31,7 @@
 #include <Input/Mouse.hpp>
 
 #if HYP_VULKAN
-#include <Vulkan/vulkan_core.h>
+#include <vulkan/vulkan_core.h>
 #endif
 
 #ifdef HYP_MACOS

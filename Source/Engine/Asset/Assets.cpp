@@ -252,7 +252,7 @@ AssetBatch* AssetManager::CreateBatch(const String& identifier)
 
 void AssetManager::RegisterDefaultLoaders()
 {
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     /// ./Data
     SetBasePath(EngineGlobals::GetDataDirectory());
 #else  // !HYP_EDITOR

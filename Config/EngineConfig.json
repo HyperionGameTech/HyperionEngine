@@ -1,15 +1,14 @@
 {
   "Rendering": {
     "HBAO": {
-      "Radius": 1.500000,
-      "Power": 2.500000,
+      "Radius": 1.000000,
+      "Power": 1.000000,
       "UseTemporalBlending": false,
       "Enabled": true
     },
     "SSGI": false,
     "TAA": true,
     "FogVolumes": true,
-    "EditorGrid": true,
     "PathTracing": false,
     "DDGI": false,
     "RayTracedGI": false,
@@ -50,7 +49,7 @@
   },
   "System": {
     "SelectedGpu": {
-      "Index": 1
+      "Index": 0
     }
   },
   "Baker": {

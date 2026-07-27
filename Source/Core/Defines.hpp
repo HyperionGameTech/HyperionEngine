@@ -469,13 +469,13 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 // Disabling compile time Name hashing saves on executable size at the cost of runtime performance
 #define HYP_COMPILE_TIME_NAME_HASHING 1
 
-#if HYP_DEBUG_MODE
-// #define HYP_ENABLE_MT_CHECK
-//  #define HYP_LOG_MEMORY_OPERATIONS
-
 // uncomment to forego blob storage cache and allow usage
 // of *.blob files in non-editor builds.
 #define HYP_ALLOW_INLINE_BLOBS 1
+
+#if HYP_DEBUG_MODE
+// #define HYP_ENABLE_MT_CHECK
+//  #define HYP_LOG_MEMORY_OPERATIONS
 
 #define HYP_RENDER_COMMANDS_DEBUG_NAME
 #endif

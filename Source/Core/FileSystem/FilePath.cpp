@@ -387,7 +387,9 @@ bool FilePath::Exists() const
 {
 #if HYP_ANDROID
     if (IsAndroidAssetPath(*this))
+    {
         return true; // assume true; will fail upon read if file doesn't exist
+    }
 #endif
 
     if (Empty())

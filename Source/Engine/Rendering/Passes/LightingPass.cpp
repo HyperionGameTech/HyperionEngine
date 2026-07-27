@@ -268,7 +268,7 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     cr << SetDepthWrite(false);
     cr << SetDepthTest(false);
 
-    static constexpr uint8 StencilFilterMask = (0xFF & ~LightmapStencilMask);
+    static constexpr uint8 StencilFilterMask = (0xFF & ~(LightmapStencilMask | SkyStencilMask));
 
     cr << SetStencilTest(true);
     cr << SetStencilFunction(StencilFunction { SO_KEEP, SO_KEEP, SO_KEEP, SCO_EQUAL });

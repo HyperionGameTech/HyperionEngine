@@ -140,24 +140,5 @@ For this setup, we support using Clang for Windows as well as Android.
 
 All engine shaders are written in **HLSL**. The engine uses **DXC** (DirectXShaderCompiler) to compile shaders at build time.
 
-* **Vulkan**: HLSL -> SPIR-V (via DXC's `-spirv` target)
-* **DX12**: HLSL -> DXIL (via DXC's default target)
-
-The shader configuration is in `Source/Shaders/Shaders.ini`, which maps shader names to source files and defines compile-time permutations (e.g., `INSTANCING`, `HAS_PHYSICS`).
-
-## Output Structure
-
-```
-Binaries/
-├── Windows/
-│   ├── Release/
-│   │   ├── hyperion.dll        # Main engine library
-│   │   ├── hyperion-core.dll
-│   │   └── ...
-│   └── Debug/
-├── Mac/
-│   ├── Release/
-│   │   ├── libhyperion.dylib
-│   │   └── ...
-├── Android/
-```
+The shader configuration is in `Source/Shaders/Shaders.ini`, which maps shader names to source files.
+If you need to add another shader you can add another entry into this, keying shader type (e.g PS = "Pixel Shader", VS = "Vertex Shader", CS = "Compute Shader") to filename, relative to the Source/Shaders directory.

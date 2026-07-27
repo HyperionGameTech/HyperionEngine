@@ -62,7 +62,7 @@ CORE_API const FilePath& GetBaseDirectory()
         {
             const CommandLineArguments& cliArgs = GetCommandLineArguments();
 
-#ifndef HYP_ANDROID
+#if !defined(HYP_ANDROID) && !defined(HYP_IOS)
             auto it = cliArgs.Find("BaseDir");
             if (it != cliArgs.End())
             {
@@ -93,7 +93,7 @@ CORE_API const FilePath& GetBaseDirectory()
 
                 return;
             }
-#endif // HYP_ANDROID
+#endif // !HYP_ANDROID
 
             baseDir = GetExecutablePath();
         }

@@ -62,7 +62,7 @@ public:
 
     using Section = Map<String, Value>;
 
-    INIFile(const FilePath& path);
+    explicit INIFile(const FilePath& path);
     ~INIFile() = default;
 
     HYP_FORCE_INLINE bool IsValid() const

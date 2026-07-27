@@ -1,0 +1,57 @@
+Prefab "InvSphere" {
+    Root = {
+        Name = "Sphere"
+        NodeFlags = MobilityStatic
+        LocalBounds = {
+            Min = (3.40282e+38, 3.40282e+38, 3.40282e+38)
+            Max = (-3.40282e+38, -3.40282e+38, -3.40282e+38)
+        }
+        LocalTransform = {
+            Translation = (0, 0, 0)
+            Scale = (1, 1, 1)
+            Rotation = {
+                X = 0
+                Y = 0
+                Z = 0
+                W = 1
+            }
+        }
+        Children = [
+            Entity {
+                Tags = []
+                Components = [
+                    MeshComponent {
+                        Mesh = @"Engine://Meshes/default_74"
+                        Material = @"Engine://Materials/BasicOBJMaterial"
+                        Skeleton = null
+                        EnableAutoInstancing = false
+                        InstanceData = null
+                    }
+                ]
+                Name = "default"
+                NodeFlags = MobilityStatic|MobilityStaticByProxy
+                LocalBounds = {
+                    Min = (-1, -1, -0.999999)
+                    Max = (1, 1, 0.999999)
+                }
+                LocalTransform = {
+                    Translation = (5.06639e-07, 0, 0)
+                    Scale = (1, 1, 1)
+                    Rotation = {
+                        X = 0
+                        Y = 0
+                        Z = 0
+                        W = 1
+                    }
+                }
+                Children = []
+                NodeTags = {
+                    Values = []
+                }
+            }
+        ]
+        NodeTags = {
+            Values = []
+        }
+    }
+}

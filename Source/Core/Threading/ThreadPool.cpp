@@ -23,7 +23,7 @@
 namespace Hyperion {
 namespace threading {
 
-constexpr bool EnableCleanupIdleBackgroundThreads = true;
+constexpr bool EnableCleanupIdleBackgroundThreads = false;
 
 #pragma region ThreadPoolBase
 

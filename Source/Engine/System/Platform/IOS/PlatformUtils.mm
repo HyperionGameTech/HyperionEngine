@@ -37,11 +37,9 @@ ENGINE_API PlatformString GetExecutableAbsolutePath()
 
 ENGINE_API bool IsOnBatteryPower()
 {
-    [UIDevice currentDevice].batteryMonitoringEnabled = YES;
+    [[UIDevice currentDevice] setBatteryMonitoringEnabled:YES];
 
     const UIDeviceBatteryState state = [UIDevice currentDevice].batteryState;
-
-    [UIDevice currentDevice].batteryMonitoringEnabled = NO;
 
     return state == UIDeviceBatteryStateUnplugged;
 }

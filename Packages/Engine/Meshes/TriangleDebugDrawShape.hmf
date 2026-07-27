@@ -77,5 +77,4 @@ Mesh "TriangleDebugDrawShape" {
         Size = 0
     }
     Flags = ViewIndependent
-    FriendlyName = "TriangleDebugDrawShape"
 }

@@ -144,8 +144,6 @@ def baseConfigDir = file("../../../../Config")
 def fontsDir = file("../../../../Data/Fonts")
 def scriptDir = file("../../../../Data/Scripts")
 def noiseDir = file("../../../../Data/Noise")
-// Data/Models is multiple GB, so only the models the engine itself needs get staged.
-def modelsDir = file("../../../../Data/Models")
 // also just for testing, copying Shaders.ini to the assets folder - should prob go elsewhere.
 def shadersIni = file("../../../../Source/Shaders/Shaders.ini")
 def assetsDestDir = file('src/main/assets')
@@ -186,11 +184,6 @@ tasks.register('stagePackageAssets', Copy) {
     }
     from(noiseDir) {
         into 'Data/Noise'
-    }
-    // DynamicSkySystem loads this relative to the asset root, so it can't live under Data/.
-    from(modelsDir) {
-        include 'inv_sphere.obj'
-        into 'Models'
     }
     from(shadersIni) {
         into 'Source/Shaders'
