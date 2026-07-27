@@ -17,6 +17,7 @@
 #include <Core/Utilities/Result.hpp>
 
 #include <Baking/BakeData.hpp>
+#include <Baking/BakerMemory.hpp>
 #include <Baking/LightmapTexel.hpp>
 
 namespace Hyperion {
@@ -44,7 +45,7 @@ enum class LightmapShadingType : uint32; // forward decl from Lightmapper
 struct LightmapHit;                     // forward decl from Lightmapper
 
 struct BakerConfig; // forward decl from Lightmapper
-class ILightmapRenderer;
+class PathTracer;
 
 struct BakeJobParams
 {
@@ -54,9 +55,9 @@ struct BakeJobParams
     Handle<View> view;
 
     Span<BakeEntity> bakeEntitiesView;
-    Map<Handle<Entity>, BakeEntity*>* bakeEntitiesByEntity;
+    Map<Handle<Entity>, BakeEntity*, BakerAllocator>* bakeEntitiesByEntity;
 
-    Array<UniquePtr<ILightmapRenderer>>* renderers = nullptr;
+    Array<UniquePtr<PathTracer>, BakerAllocator>* renderers = nullptr;
 };
 
 class ENGINE_API BakeJobBase
@@ -64,6 +65,8 @@ class ENGINE_API BakeJobBase
     friend class BakerBase;
 
 public:
+    HYP_DEF_POOL_NEW_DELETE(g_bakerPool);
+
     explicit BakeJobBase(BakeJobParams&& params);
 
     BakeJobBase(const BakeJobBase& other) = delete;
@@ -99,28 +102,14 @@ public:
         return m_texelIndex;
     }
 
-    HYP_FORCE_INLINE const Array<uint32>& GetTexelIndices() const
+    HYP_FORCE_INLINE Span<const uint32> GetTexelIndices() const
     {
         return m_texelIndices;
     }
 
-    void SetTexelIndices(Array<uint32>&& texelIndices)
+    void SetTexelIndices(Array<uint32, BakerAllocator>&& texelIndices)
     {
         m_texelIndices = std::move(texelIndices);
-    }
-
-    HYP_FORCE_INLINE void GetPreviousFrameRays(Array<LightmapRay>& outRays) const
-    {
-        TSharedLock lock(m_previousFrameRaysMutex);
-
-        outRays = m_previousFrameRays;
-    }
-
-    HYP_FORCE_INLINE void SetPreviousFrameRays(const Array<LightmapRay>& rays)
-    {
-        TUniqueLock lock(m_previousFrameRaysMutex);
-
-        m_previousFrameRays = rays;
     }
 
     const Result& GetResult() const
@@ -143,7 +132,7 @@ public:
      *  \param maxTexels Maximum number of texels to gather.
      *  \param outTexels Output array to store gathered texels (pointers).
      */
-    virtual void GatherTexels(uint32 maxTexels, Array<LightmapTexel*>& outTexels);
+    virtual void GatherTexels(uint32 maxTexels, Array<LightmapTexel*, BakerTempAllocator>& outTexels);
     virtual uint32 ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset = 0);
 
     bool IsCompleted() const;
@@ -155,7 +144,7 @@ public:
 
     // Lightmap tracing only
     ThreadSignal tracingCompleteSignal;
-    ByteBuffer readbackData;
+    memory::ByteBuffer<BakerAllocator> readbackData;
 
 protected:
     virtual void Start_Internal() = 0;
@@ -190,12 +179,9 @@ protected:
 
     UUID m_uuid;
 
-    Array<uint32> m_texelIndices; // flattened texel indices, flattened so that meshes are grouped together
+    Array<uint32, BakerAllocator> m_texelIndices; // flattened texel indices, flattened so that meshes are grouped together
 
-    Array<LightmapRay> m_previousFrameRays;
-    SharedMutex m_previousFrameRaysMutex;
-
-    Array<TaskBatch*> m_currentTasks;
+    Array<TaskBatch*, BakerAllocator> m_currentTasks;
     SharedMutex m_currentTasksMutex;
 
     Semaphore<int32> m_runningSemaphore;

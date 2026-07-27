@@ -179,6 +179,9 @@
                     <MenuItem Header="Select All in Viewport" />
                     <MenuItem Header="Select None" />
                 </MenuItem>
+                <MenuItem Header="_Build">
+                    <MenuItem Command="{Binding BuildBentNormals}" Header="Bent Normals" />
+                </MenuItem>
             </Menu>
 
             <Border Classes="panel-header" DockPanel.Dock="Top" Padding="6,4">

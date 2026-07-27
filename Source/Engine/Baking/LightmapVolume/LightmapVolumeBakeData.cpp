@@ -36,7 +36,7 @@ BakeData<LightmapVolume>::BakeData(Span<const BakeEntity> bakeEntities, Lightmap
     {
         const BakeEntity& bakeEntity = bakeEntities[i];
 
-        BakeMesh& bakeMesh = m_meshData[i];
+        BakeMeshData& bakeMesh = m_meshData[i];
 
         if (!bakeEntity.mesh)
         {
@@ -218,7 +218,7 @@ Result BakeData<LightmapVolume>::Build()
 
     for (uint32 meshIndex = 0; meshIndex < atlas->meshCount; meshIndex++)
     {
-        BakeMesh& bakeMesh = m_meshData[meshIndex];
+        BakeMeshData& bakeMesh = m_meshData[meshIndex];
 
         const Mat4f& transform = bakeMesh.transformMatrix;
         const Mat4f inverseTransform = transform.Inverse();
@@ -348,7 +348,7 @@ Result BakeData<LightmapVolume>::Build()
 
     for (size_t meshIndex = 0; meshIndex < m_meshData.Size(); meshIndex++)
     {
-        BakeMesh& bakeMesh = m_meshData[meshIndex];
+        BakeMeshData& bakeMesh = m_meshData[meshIndex];
 
         const VertexInputLayoutDesc prevInputLayout = bakeMesh.mesh->GetMeshDesc().meshAttributes.inputLayout;
         VertexInputLayoutDesc newInputLayout { uint8(prevInputLayout.mask | VT_UV1) };
@@ -456,8 +456,8 @@ void BakeData<LightmapVolume>::Blur()
     {
         const uint32 baseOffset = atlasIndex * numTexels;
 
-        Array<Vec4f> norm0(numTexels);
-        Array<Vec4f> norm1(numTexels);
+        Array<Vec4f, BakerTempAllocator> norm0(numTexels);
+        Array<Vec4f, BakerTempAllocator> norm1(numTexels);
 
         for (uint32 i = 0; i < numTexels; i++)
         {
@@ -479,8 +479,8 @@ void BakeData<LightmapVolume>::Blur()
             }
         }
 
-        Array<Vec4f> out0(numTexels);
-        Array<Vec4f> out1(numTexels);
+        Array<Vec4f, BakerTempAllocator> out0(numTexels);
+        Array<Vec4f, BakerTempAllocator> out1(numTexels);
 
         for (uint32 cy = 0; cy < height; cy++)
         {
@@ -579,9 +579,9 @@ void BakeData<LightmapVolume>::Dilate()
     {
         const uint32 baseOffset = atlasIndex * numTexels;
 
-        Array<Vec4f> curr0(numTexels);
-        Array<Vec4f> curr1(numTexels);
-        Array<uint32> currChartId(numTexels);
+        Array<Vec4f, BakerTempAllocator> curr0(numTexels);
+        Array<Vec4f, BakerTempAllocator> curr1(numTexels);
+        Array<uint32, BakerTempAllocator> currChartId(numTexels);
 
         for (uint32 i = 0; i < numTexels; i++)
         {
@@ -592,9 +592,9 @@ void BakeData<LightmapVolume>::Dilate()
 
         for (int pass = 0; pass < NumPasses; pass++)
         {
-            Array<Vec4f> next0(numTexels);
-            Array<Vec4f> next1(numTexels);
-            Array<uint32> nextChartId(numTexels);
+            Array<Vec4f, BakerTempAllocator> next0(numTexels);
+            Array<Vec4f, BakerTempAllocator> next1(numTexels);
+            Array<uint32, BakerTempAllocator> nextChartId(numTexels);
 
             for (uint32 i = 0; i < numTexels; i++)
             {
@@ -766,6 +766,42 @@ auto BakeData<LightmapVolume>::ToBitmapRadiance(uint32 atlasIndex) const -> Bitm
             }
 
             color /= color.w;
+
+            AssertDebug(!MathUtil::IsNaN(color));
+
+            bitmap.GetPixelReference(x, y).SetRGBA(color);
+        }
+    }
+
+    return bitmap;
+}
+
+auto BakeData<LightmapVolume>::ToBitmapBentNormal(uint32 atlasIndex) const -> BitmapType
+{
+    Assert(atlasIndex < atlasCount, "Atlas index out of bounds");
+    Assert(texels.Size() >= dimensions.x * dimensions.y * atlasCount, "Invalid UV map size");
+
+    const uint32 baseOffset = atlasIndex * dimensions.x * dimensions.y;
+
+    BitmapType bitmap(dimensions.x, dimensions.y);
+
+    for (uint32 x = 0; x < dimensions.x; x++)
+    {
+        for (uint32 y = 0; y < dimensions.y; y++)
+        {
+            const uint32 index = baseOffset + x + y * dimensions.x;
+
+            Vec4f accum = texels[index].bentNormal;
+
+            if (accum.w <= 0.0f)
+            {
+                continue;
+            }
+
+            Vec3f bentNormal = (accum.GetXYZ() / accum.w).Normalized();
+
+            // Encode [-1, 1] normal into [0, 1] for RGBA8 storage.
+            const Vec4f color = Vec4f(bentNormal * 0.5f + Vec3f(0.5f), 1.0f);
 
             AssertDebug(!MathUtil::IsNaN(color));
 

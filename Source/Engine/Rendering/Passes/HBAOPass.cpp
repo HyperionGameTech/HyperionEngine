@@ -69,8 +69,6 @@ void HBAO::Create()
 {
     FullScreenPass::Create();
 
-    // HBAO is always rendered at half res (see ShouldRenderHalfRes()) - upsample the result
-    // back to full res with a single depth/normal-aware bilateral pass.
     m_upsamplePass = MakeUnique<FullScreenPass>(
         TextureFormat::R16F,
         m_extent,
@@ -158,7 +156,6 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
 
     End(frame, renderSetup);
 
-    // Upsample the half-res result to full res with a depth/normal-aware bilateral filter.
     AssertDebug(m_upsamplePass != nullptr);
 
     RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));

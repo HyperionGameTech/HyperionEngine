@@ -150,7 +150,7 @@ Result BakeData<FogVolume>::Build()
     octreeParams.allowResize = false;
     octreeParams.maxDepth = 10;
 
-    m_voxelOctree = MakeUnique<VoxelOctree>();
+    m_voxelOctree = MakeUniqueWithAllocator<VoxelOctree, BakerAllocator>();
 
     auto buildResult = m_voxelOctree->Build(octreeParams, *m_fogVolume->GetEntityManager());
 

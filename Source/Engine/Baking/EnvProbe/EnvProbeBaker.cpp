@@ -6,6 +6,8 @@
 
 #include <HyperionPch.hpp>
 
+#include <Baking/Lightmaps/LightmapPathTraceGpu.hpp>
+
 #include <Baking/EnvProbe/EnvProbeBaker.hpp>
 #include <Baking/EnvProbe/EnvProbeBakeJob.hpp>
 
@@ -56,7 +58,7 @@ UniquePtr<BakeJobBase> Baker<EnvProbe>::CreateJob(BakeJobParams&& params)
 
 void Baker<EnvProbe>::CreateLightmapRenderers()
 {
-    m_lightmapRenderers.Clear();
+    m_pathTracers.Clear();
 
     if (!PerformsRayTracing())
     {
@@ -74,16 +76,16 @@ void Baker<EnvProbe>::CreateLightmapRenderers()
             continue;
         }
 
-        UniquePtr<ILightmapRenderer>& lightmapRenderer = m_lightmapRenderers.EmplaceBack();
-        lightmapRenderer = CreateRenderer(LightmapShadingType(i), maxTexelsPerFrame);
+        const UniquePtr<PathTracer>& pathTracer = m_pathTracers.PushBack(CreatePathTracer(LightmapShadingType(i), maxTexelsPerFrame));
 
-        if (!lightmapRenderer)
+        if (!pathTracer)
         {
-            m_lightmapRenderers.PopBack();
+            m_pathTracers.PopBack();
+            
             continue;
         }
 
-        lightmapRenderer->Create();
+        pathTracer->Create();
     }
 }
 

@@ -4,6 +4,7 @@
  *  @licence MIT
 */
 
+#include "Baking/Baker.hpp"
 #include <HyperionPch.hpp>
 
 #include <Scene/LightmapVolume.hpp>
@@ -52,7 +53,7 @@ LightmapVolume::LightmapVolume()
 LightmapVolume::LightmapVolume(const BoundingBox& localBounds)
     : VolumeBase(localBounds),
       m_irradianceAtlasTextures {},
-      m_radianceAtlasTextures {}
+      m_bentNormalAtlasTextures {}
 {
     m_atlases.Reserve(MaxAtlasesPerLightmapVolume);
     m_atlases.EmplaceBack(DefaultAtlasDimensions);
@@ -60,14 +61,14 @@ LightmapVolume::LightmapVolume(const BoundingBox& localBounds)
 
 LightmapVolume::~LightmapVolume()
 {
-    if (AnyOf(m_radianceAtlasTextures, &Handle<Texture>::IsValid))
-    {
-        EnqueueDeletion(std::move(m_radianceAtlasTextures));
-    }
-
     if (AnyOf(m_irradianceAtlasTextures, &Handle<Texture>::IsValid))
     {
         EnqueueDeletion(std::move(m_irradianceAtlasTextures));
+    }
+
+    if (AnyOf(m_bentNormalAtlasTextures, &Handle<Texture>::IsValid))
+    {
+        EnqueueDeletion(std::move(m_bentNormalAtlasTextures));
     }
 }
 
@@ -85,18 +86,18 @@ void LightmapVolume::SetName(Name name)
     // Update altas textures' interpolated names.
     for (uint16 i = 0; i < MaxAtlasesPerLightmapVolume; i++)
     {
-        if (m_radianceAtlasTextures[i].IsValid())
-        {
-            m_radianceAtlasTextures[i]->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_{}", name, TextureTypeNames[RadianceTexture]));
-
-            assetRegistry->PutAssetUnique(m_radianceAtlasTextures[i]);
-        }
-
         if (m_irradianceAtlasTextures[i].IsValid())
         {
             m_irradianceAtlasTextures[i]->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_{}", name, TextureTypeNames[IrradianceTexture]));
-            
+
             assetRegistry->PutAssetUnique(m_irradianceAtlasTextures[i]);
+        }
+
+        if (m_bentNormalAtlasTextures[i].IsValid())
+        {
+            m_bentNormalAtlasTextures[i]->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_{}", name, TextureTypeNames[BentNormalTexture]));
+
+            assetRegistry->PutAssetUnique(m_bentNormalAtlasTextures[i]);
         }
     }
 }
@@ -166,7 +167,7 @@ const LightmapElement* LightmapVolume::GetElement(LightmapElementId elementId) c
     return &m_atlases[atlasIndex].elements[elementIndex];
 }
 
-void LightmapVolume::RemoveAllElements()
+void LightmapVolume::RemoveAllElements(uint32 preserveTextureTypesMask)
 {
     for (LightmapVolumeAtlas& atlas : m_atlases)
     {
@@ -176,32 +177,42 @@ void LightmapVolume::RemoveAllElements()
     Handle<AssetRegistry> assetRegistry = GetCurrentAssetRegistry();
     Assert(assetRegistry.IsValid());
 
-    // Remove textures from their respective packages
-    for (Handle<Texture>& texture : m_radianceAtlasTextures)
+    if (!(preserveTextureTypesMask & (1u << IrradianceTexture)))
     {
-        if (!texture.IsValid())
-            continue;
+        for (Handle<Texture>& texture : m_irradianceAtlasTextures)
+        {
+            if (!texture.IsValid())
+            {
+                continue;
+            }
 
-        assetRegistry->RemoveAsset(texture);
+            assetRegistry->RemoveAsset(texture);
 
-        EnqueueDeletion(std::move(texture));
+            EnqueueDeletion(std::move(texture));
+        }
+
+        m_irradianceAtlasTextures = {};
     }
 
-    for (Handle<Texture>& texture : m_irradianceAtlasTextures)
+    if (!(preserveTextureTypesMask & (1u << BentNormalTexture)))
     {
-        if (!texture.IsValid())
-            continue;
+        for (Handle<Texture>& texture : m_bentNormalAtlasTextures)
+        {
+            if (!texture.IsValid())
+            {
+                continue;
+            }
 
-        assetRegistry->RemoveAsset(texture);
+            assetRegistry->RemoveAsset(texture);
 
-        EnqueueDeletion(std::move(texture));
+            EnqueueDeletion(std::move(texture));
+        }
+
+        m_bentNormalAtlasTextures = {};
     }
 
     m_atlases.Clear();
     m_atlases.EmplaceBack(DefaultAtlasDimensions);
-
-    m_radianceAtlasTextures = {};
-    m_irradianceAtlasTextures = {};
 
     MarkDirty();
     SetNeedsRenderProxyUpdate();
@@ -216,15 +227,9 @@ const Handle<Texture>& LightmapVolume::GetAtlasTexture(uint16 atlasIndex, AtlasT
         return Handle<Texture>::Null();
     }
 
-    switch (type)
-    {
-    case RadianceTexture:
-        return m_radianceAtlasTextures[atlasIndex];
-    case IrradianceTexture:
-        return m_irradianceAtlasTextures[atlasIndex];
-    default:
-        return Handle<Texture>::Null();
-    }
+    auto textures = GetAtlasTextures(type);
+
+    return textures[atlasIndex];
 }
 
 void LightmapVolume::SetAtlasTexture(uint16 atlasIndex, AtlasTextureType type, const Handle<Texture>& texture)
@@ -236,52 +241,26 @@ void LightmapVolume::SetAtlasTexture(uint16 atlasIndex, AtlasTextureType type, c
         return;
     }
 
-    switch (type)
+    auto& textures = GetAtlasTexturesArray(type);
+
+    if (texture == textures[atlasIndex])
     {
-    case RadianceTexture:
-        if (texture == m_radianceAtlasTextures[atlasIndex])
-        {
-            return;
-        }
-
-        SetNeedsRenderProxyUpdate();
-
-        EnqueueDeletion(std::move(m_radianceAtlasTextures[atlasIndex]));
-
-        if (!texture.IsValid())
-        {
-            return;
-        }
-
-        m_radianceAtlasTextures[atlasIndex] = texture;
-
-        Check(texture->Create());
-
-        break;
-    case IrradianceTexture:
-        if (texture == m_irradianceAtlasTextures[atlasIndex])
-        {
-            return;
-        }
-
-        SetNeedsRenderProxyUpdate();
-
-        EnqueueDeletion(std::move(m_irradianceAtlasTextures[atlasIndex]));
-
-        if (!texture.IsValid())
-        {
-            return;
-        }
-
-        m_irradianceAtlasTextures[atlasIndex] = texture;
-
-        Check(texture->Create());
-
-        break;
-    default:
-        break;
+        return;
     }
-    
+
+    SetNeedsRenderProxyUpdate();
+
+    EnqueueDeletion(std::move(textures[atlasIndex]));
+
+    if (!texture.IsValid())
+    {
+        return;
+    }
+
+    textures[atlasIndex] = texture;
+
+    Check(texture->Create());
+
     texture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_{}", m_name, TextureTypeNames[type]));
     GetCurrentAssetRegistry()->PutAssetUnique(texture);
 }
@@ -345,11 +324,11 @@ void LightmapVolume::UpdateRenderProxy(RenderProxyLightmapVolume* proxy)
         proxy->atlasIrradianceTextures[i] = m_irradianceAtlasTextures[i].Get();
     }
 
-    proxy->atlasRadianceTextures = {};
+    proxy->atlasBentNormalTextures = {};
 
-    for (uint32 i = 0; i < uint32(m_radianceAtlasTextures.Size()); i++)
+    for (uint32 i = 0; i < uint32(m_bentNormalAtlasTextures.Size()); i++)
     {
-        proxy->atlasRadianceTextures[i] = m_radianceAtlasTextures[i].Get();
+        proxy->atlasBentNormalTextures[i] = m_bentNormalAtlasTextures[i].Get();
     }
 
     proxy->numAtlases = uint32(m_atlases.Size());
@@ -369,16 +348,17 @@ void LightmapVolume::UpdateRenderProxy(RenderProxyLightmapVolume* proxy)
     proxy->bufferData.textureIndex = ~0u; /// \todo : Set the correct texture index based on the element
 }
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 
-void LightmapVolume::Rebake()
+template <Baking::LightmapShadingType ShadingType>
+static void EnqueueBake(LightmapVolume& self)
 {
-    World* world = GetWorld();
+    World* world = self.GetWorld();
     AssertDebug(world != nullptr);
 
     if (!world)
     {
-        HYP_LOG(Editor, Error, "Cannot bake {}: not attached to a World", Id());
+        HYP_LOG(Editor, Error, "Cannot bake {}: not attached to a World", self.GetName());
 
         return;
     }
@@ -390,9 +370,19 @@ void LightmapVolume::Rebake()
         bakerSubsystem = world->AddSubsystem<BakerSubsystem>();
     }
 
-    bakerSubsystem->EnqueueBake(MakeStrongRef(this));
+    bakerSubsystem->EnqueueBake(MakeStrongRef(&self), (1u << static_cast<uint32>(ShadingType)));
 }
 
-#endif
+void LightmapVolume::BakeLightmap()
+{
+    EnqueueBake<Baking::LightmapShadingType::IRRADIANCE>(*this);
+}
+
+void LightmapVolume::BakeBentNormals()
+{
+    EnqueueBake<Baking::LightmapShadingType::BENT_NORMAL>(*this);
+}
+
+#endif // HYP_EDITOR
 
 } // namespace Hyperion

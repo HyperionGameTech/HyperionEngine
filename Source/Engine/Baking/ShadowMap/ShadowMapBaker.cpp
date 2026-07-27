@@ -9,6 +9,8 @@
 #include <Baking/ShadowMap/ShadowMapBaker.hpp>
 #include <Baking/ShadowMap/ShadowMapBakeJob.hpp>
 
+#include <Baking/Lightmaps/LightmapPathTraceGpu.hpp>
+
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/Frame.hpp>
 #include <Rendering/Texture.hpp>
@@ -40,7 +42,7 @@ UniquePtr<BakeJobBase> Baker<Light>::CreateJob(BakeJobParams&& params)
 
 void Baker<Light>::CreateLightmapRenderers()
 {
-    m_lightmapRenderers.Clear();
+    m_pathTracers.Clear();
 
     if (!PerformsRayTracing())
     {
@@ -50,12 +52,12 @@ void Baker<Light>::CreateLightmapRenderers()
     const uint32 maxTexelsPerFrame = MaxTexelsPerFrame();
     AssertDebug(maxTexelsPerFrame > 0);
 
-    UniquePtr<ILightmapRenderer> lightmapRenderer = CreateRenderer(LightmapShadingType::SHADOW, maxTexelsPerFrame);
+    UniquePtr<PathTracer> pathTracer = CreatePathTracer(LightmapShadingType::SHADOW, maxTexelsPerFrame);
 
-    if (lightmapRenderer != nullptr)
+    if (pathTracer != nullptr)
     {
-        lightmapRenderer->Create();
-        m_lightmapRenderers.PushBack(std::move(lightmapRenderer));
+        pathTracer->Create();
+        m_pathTracers.PushBack(std::move(pathTracer));
         return;
     }
 }

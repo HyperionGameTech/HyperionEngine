@@ -238,7 +238,7 @@ struct RenderProxyLightmapVolume : IRenderProxy
 {
     LightmapVolume* lightmapVolume = nullptr;
     FixedArray<Texture*, MaxAtlasesPerLightmapVolume> atlasIrradianceTextures {};
-    FixedArray<Texture*, MaxAtlasesPerLightmapVolume> atlasRadianceTextures {};
+    FixedArray<Texture*, MaxAtlasesPerLightmapVolume> atlasBentNormalTextures {};
     uint32 numAtlases = 0;
 
     Mat4f transformMatrix;

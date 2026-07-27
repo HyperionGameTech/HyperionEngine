@@ -19,7 +19,12 @@
 #ifdef HYP_DOTNET
 #include <DotNET/DotNETHost.hpp>
 #include <DotNET/ManagedClass.hpp>
-#endif
+#endif ?? HYP_DOTNET
+
+#ifdef HYP_EDITOR
+#include <Editor/EditorMemory.hpp>
+#include <Baking/BakerMemory.hpp>
+#endif // HYP_EDITOR
 
 #include <cstdio>
 
@@ -27,16 +32,21 @@ namespace Hyperion {
 
 static ANSIString FormatBytes(size_t bytes)
 {
-    static constexpr const char* suffixes[] = { "B", "KiB", "MiB", "GiB" };
+    static constexpr const char* Suffixes[] = { "B", "KiB", "MiB", "GiB" };
+    
     double dbl = double(bytes);
+    
     int suffix = 0;
-    while (dbl >= 1024.0 && suffix < int(sizeof(suffixes) / sizeof(suffixes[0]) - 1))
+
+    while (dbl >= 1024.0 && suffix < int(sizeof(Suffixes) / sizeof(Suffixes[0]) - 1))
     {
         dbl /= 1024.0;
         suffix++;
     }
+
     char buf[64];
-    std::snprintf(buf, sizeof(buf), "%.2f %s", dbl, suffixes[suffix]);
+    std::snprintf(buf, sizeof(buf), "%.2f %s", dbl, Suffixes[suffix]);
+
     return ANSIString(buf);
 }
 
@@ -60,7 +70,7 @@ public:
             s_definitions.Add(
                 "pools",
                 "p",
-                "Comma-separated list of pools to report (object,scene,asset,streaming,render,vulkan,rhi), or 'all'",
+                "Comma-separated list of pools to report (object,scene,asset,streaming,render,vulkan,dx12,editor,baker), or 'all'",
                 CommandLineArgumentFlags::NONE,
                 Array<String> { "all" },
                 JSON::Value("all"));
@@ -133,29 +143,34 @@ protected:
 
         Array<PoolInfo> pools;
 
-        auto tryAddPool = [&](const ANSIString& name, Pool* pool, size_t blockSize)
+        auto tryAddPool = [&](const ANSIString& name, Pool* pool)
         {
             if (!pool)
             {
                 return;
             }
 
-            if (poolFilter == "all" || poolFilter == name)
+            if (poolFilter == "all" || poolFilter.ToLower().Contains(name))
             {
-                pools.PushBack({ name, pool, blockSize });
+                pools.PushBack({ name, pool, pool->GetBlockSize() });
             }
         };
 
-        tryAddPool("objectPool", g_objectPool, size_t(ObjectPoolBlockSize));
-        tryAddPool("scenePool", g_scenePool, size_t(ScenePoolBlockSize));
-        tryAddPool("assetPool", g_assetPool, size_t(AssetPoolBlockSize));
-        tryAddPool("streamingPool", g_streamingPool, size_t(StreamingPoolBlockSize));
-        tryAddPool("renderPool", g_renderPool, size_t(RenderPoolBlockSize));
+        tryAddPool("object", g_objectPool);
+        tryAddPool("scene", g_scenePool);
+        tryAddPool("asset", g_assetPool);
+        tryAddPool("streaming", g_streamingPool);
+        tryAddPool("render", g_renderPool);
+
+#ifdef HYP_EDITOR
+        tryAddPool("editor", g_editorPool);
+        tryAddPool("baker", Baking::g_bakerPool);
+#endif // HYP_EDITOR
 
 #if HYP_VULKAN
-        tryAddPool("vulkanPool", g_vulkanPool, size_t(RHIPoolBlockSize));
+        tryAddPool("vulkan", g_vulkanPool);
 #elif HYP_DX12
-        tryAddPool("dx12Pool", g_dx12Pool, size_t(RHIPoolBlockSize));
+        tryAddPool("dx12", g_dx12Pool);
 #endif
 
         return pools;

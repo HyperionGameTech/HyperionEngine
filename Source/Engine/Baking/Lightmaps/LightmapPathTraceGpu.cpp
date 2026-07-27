@@ -80,14 +80,14 @@ static const ShaderPropertyId s_propMaxEnvProbes = InternShaderProperty(ShaderPr
 
 namespace Baking {
 
-#pragma region LightmapRenderer_GpuPathTracing
+#pragma region PathTracer
 
 static const ShaderPropertyId s_lightmapModeProperties[uint32(LightmapShadingType::MAX)] = {
     InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("IRRADIANCE"))),
-    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("RADIANCE"))),
     InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("FULL"))),
     InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("SHADOW"))),
-    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("DISTANCE")))
+    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("DISTANCE"))),
+    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("BENT_NORMAL")))
 };
 
 static ShaderDesc GetShaderDesc(LightmapShadingType shadingType)
@@ -100,27 +100,28 @@ static ShaderDesc GetShaderDesc(LightmapShadingType shadingType)
     return ShaderDesc(NAME("LightmapPathTracer"), shaderProperties);
 }
 
-LightmapRenderer_GpuPathTracing::LightmapRenderer_GpuPathTracing(
-    BakerBase* lightmapper,
+PathTracer::PathTracer(
+    BakerBase* baker,
     const Handle<Scene>& scene,
     LightmapShadingType shadingType,
     uint32 maxTexelsPerFrame)
-    : ILightmapRenderer(lightmapper),
+    : m_baker(baker),
       m_scene(scene),
       m_shadingType(shadingType),
       m_maxTexelsPerFrame(maxTexelsPerFrame)
 {
+    Assert(m_baker != nullptr);
     m_readyNotification = MakeShared<GpuLightmapperReadyNotification>();
 }
 
-LightmapRenderer_GpuPathTracing::~LightmapRenderer_GpuPathTracing()
+PathTracer::~PathTracer()
 {
     EnqueueDeletion(std::move(m_tlas));
 
     m_jobData.Clear();
 }
 
-void LightmapRenderer_GpuPathTracing::CreateBuffers(BakeJobBase* job)
+void PathTracer::CreateBuffers(BakeJobBase* job)
 {
     JobData& jd = m_jobData[job];
     Assert(!jd.isCreated);
@@ -138,12 +139,12 @@ void LightmapRenderer_GpuPathTracing::CreateBuffers(BakeJobBase* job)
     Check(jd.cbuffer->Create());
 }
 
-void LightmapRenderer_GpuPathTracing::Create()
+void PathTracer::Create()
 {
     m_readyNotification->Signal();
 }
 
-void LightmapRenderer_GpuPathTracing::CleanJobData(BakeJobBase* job)
+void PathTracer::CleanJobData(BakeJobBase* job)
 {
     if (!job)
     {
@@ -163,13 +164,13 @@ void LightmapRenderer_GpuPathTracing::CleanJobData(BakeJobBase* job)
     // m_jobData.Erase(jobDataIt);
 }
 
-bool LightmapRenderer_GpuPathTracing::CanRender() const
+bool PathTracer::CanRender() const
 {
     return m_readyNotification != nullptr
         && m_readyNotification->IsSignalled();
 }
 
-void LightmapRenderer_GpuPathTracing::CreateAccelerationStructures()
+void PathTracer::CreateAccelerationStructures()
 {
     if (!m_tlas)
     {
@@ -249,7 +250,7 @@ void LightmapRenderer_GpuPathTracing::CreateAccelerationStructures()
     Check(m_tlas->Create());
 }
 
-void LightmapRenderer_GpuPathTracing::UpdatePipelineState(Frame* frame, BakeJobBase* job)
+void PathTracer::UpdatePipelineState(Frame* frame, BakeJobBase* job)
 {
     Assert(m_baker != nullptr);
 
@@ -265,7 +266,7 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(Frame* frame, BakeJobB
     jd.isCreated = true;
 }
 
-void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(
+void PathTracer::ReadHitsBuffer(
     Frame* frame,
     BakeJobBase* job,
     size_t count,
@@ -361,7 +362,7 @@ void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(
     cr.Done();
 }
 
-bool LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset)
+bool PathTracer::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset)
 {
     AssertOnThread(g_renderThread);
 
@@ -401,8 +402,8 @@ bool LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
         RayTracingConstants constants {};
         constants.rayOffset = rayOffset;
 
-        Array<Pair<Light*, LightShaderData*>, RenderAllocator> tempLights;
-        Array<Pair<EnvProbe*, EnvProbeShaderData*>, RenderAllocator> tempEnvProbes;
+        Array<Pair<Light*, LightShaderData*>, RenderTempAllocator> tempLights;
+        Array<Pair<EnvProbe*, EnvProbeShaderData*>, RenderTempAllocator> tempEnvProbes;
 
         uint32& numBoundLights = constants.numBoundLights;
         uint32& numBoundEnvProbes = constants.numBoundEnvProbes;
@@ -562,7 +563,7 @@ bool LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
         GpuBufferRef& raysBuffer = jd.raysBuffer;
         Assert(raysBuffer != nullptr && raysBuffer->IsCreated());
 
-        Array<Vec4f, DynamicAllocator> rayData;
+        Array<Vec4f, RenderTempAllocator> rayData;
         rayData.Resize(rays.Size() * 2);
 
         for (size_t i = 0; i < rays.Size(); i++)
@@ -609,7 +610,7 @@ bool LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
     return true;
 }
 
-#pragma endregion LightmapRenderer_GpuPathTracing
+#pragma endregion PathTracer
 
 } // namespace Baking
 

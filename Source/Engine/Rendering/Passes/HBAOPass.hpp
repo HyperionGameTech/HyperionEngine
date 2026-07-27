@@ -23,8 +23,6 @@ public:
     virtual void Create() override;
     virtual void Render(Frame* frame, const RenderSetup& renderSetup) override;
 
-    // Full resolution, bilaterally upsampled result - always use this rather than the
-    // raw half-res output from the base FullScreenPass.
     virtual const GpuImageViewRef& GetFinalImageView() const override;
 
 protected:
@@ -33,8 +31,6 @@ protected:
         return false;
     }
 
-    // HBAO always renders at half res; the result is upsampled with a bilateral filter
-    // in GetFinalImageView() before being consumed elsewhere.
     virtual bool ShouldRenderHalfRes() const override
     {
         return true;

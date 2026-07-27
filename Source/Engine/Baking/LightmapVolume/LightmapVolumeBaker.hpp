@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Baking/Baker.hpp>
+#include <Baking/BakerMemory.hpp>
 
 #include <Baking/LightmapVolume/LightmapVolumeBakeData.hpp>
 
@@ -44,8 +45,22 @@ public:
 
     virtual uint32 GetShadingTypesMask() const override
     {
-        return (1u << int(LightmapShadingType::IRRADIANCE))
-            | (1u << int(LightmapShadingType::RADIANCE));
+        if (m_shadingTypesMaskOverride != 0)
+        {
+            return m_shadingTypesMaskOverride;
+        }
+
+        return (1u << int(LightmapShadingType::IRRADIANCE));
+    }
+
+    virtual uint32 NumTexelSamples() const override
+    {
+        if (m_shadingTypesMaskOverride == (1u << int(LightmapShadingType::BENT_NORMAL)))
+        {
+            return m_config.bentNormalSamples;
+        }
+
+        return BakerBase::NumTexelSamples();
     }
 
     virtual const TypeInfo& GetInnerType() const
@@ -81,7 +96,7 @@ protected:
 
     Handle<LightmapVolume> m_volume;
     BakeData<LightmapVolume> m_bakeData;
-    Array<LightmapElementId> m_lightmapElementIds;
+    Array<LightmapElementId, BakerAllocator> m_lightmapElementIds;
 
     Task<BakeData<LightmapVolume>> m_atlasBuildTask;
 };

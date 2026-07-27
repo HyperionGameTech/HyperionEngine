@@ -6,7 +6,7 @@
 #include "../../include/Noise.hlsli"
 #include "../../include/Packing.hlsli"
 
-PERMUTE(MODE, IRRADIANCE, RADIANCE, FULL, SHADOW, DISTANCE);
+PERMUTE(MODE, IRRADIANCE, RADIANCE, FULL, SHADOW, DISTANCE, BENT_NORMAL);
 
 DECLARE_SAMPLER(LightmapPathTracer, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(LightmapPathTracer, SamplerLinear) SamplerState sampler_linear;
@@ -72,6 +72,10 @@ DECLARE_BUFFER(LightmapPathTracer, CBuffer) cbuffer CBuffer
 #elif defined(MODE_FULL)
 #define NUM_BOUNCES 8
 #define NUM_SAMPLES 256
+#define ENVIRONMENT_INTENSITY 1.0
+#elif defined(MODE_BENT_NORMAL)
+#define NUM_BOUNCES 1
+#define NUM_SAMPLES 32
 #define ENVIRONMENT_INTENSITY 1.0
 #else
 #define NUM_BOUNCES 1
@@ -690,6 +694,38 @@ void RayGenMain()
         static const float missDistance = 10000.0;
         finalColor = float4(missDistance, missDistance * missDistance, 0.0, 1.0);
     }
+#elif defined(MODE_BENT_NORMAL)
+    const float3 N = firstRayDirection;
+    const float3 origin = ray.origin + N * RAY_OFFSET;
+
+    float3 accumDirection = float3(0.0, 0.0, 0.0);
+    uint numUnoccluded = 0;
+
+    for (uint sample_index = 0; sample_index < NUM_SAMPLES; sample_index++)
+    {
+        float2 rnd = float2(RandomFloat(ray_seed), RandomFloat(ray_seed));
+        float3 direction = normalize(SampleCosineDir(rnd, N));
+
+        payload.distance = -1.0;
+
+        RayDesc rayDesc;
+        rayDesc.Origin = origin;
+        rayDesc.Direction = direction;
+        rayDesc.TMin = tmin;
+        rayDesc.TMax = tmax;
+
+        TraceRay(tlas, flags, 0xff, 0, 1, 0, rayDesc, payload);
+
+        if (payload.distance < 0.0)
+        {
+            accumDirection += direction;
+            numUnoccluded++;
+        }
+    }
+
+    float3 bentNormal = numUnoccluded > 0 ? normalize(accumDirection / float(numUnoccluded)) : N;
+
+    float4 finalColor = float4(bentNormal, 1.0);
 #else
     // shouldn't get here; output green so it's really obvious
     float4 finalColor = float4(0.0, 1.0, 0.0, 1.0);

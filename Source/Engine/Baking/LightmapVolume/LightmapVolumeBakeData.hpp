@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Baking/BakeData.hpp>
+#include <Baking/BakerMemory.hpp>
 
 namespace Hyperion {
 
@@ -38,12 +39,12 @@ public:
 
     ~BakeData() override = default;
 
-    HYP_FORCE_INLINE Array<BakeMesh>& GetMeshData()
+    HYP_FORCE_INLINE Span<BakeMeshData> GetMeshData()
     {
         return m_meshData;
     }
 
-    HYP_FORCE_INLINE const Array<BakeMesh>& GetMeshData() const
+    HYP_FORCE_INLINE Span<const BakeMeshData> GetMeshData() const
     {
         return m_meshData;
     }
@@ -60,21 +61,22 @@ public:
 
     BitmapType ToBitmapIrradiance(uint32 atlasIndex) const;
     BitmapType ToBitmapRadiance(uint32 atlasIndex) const;
+    BitmapType ToBitmapBentNormal(uint32 atlasIndex) const;
 
 private:
     LightmapVolume* m_volume;
 
-    Array<BakeMesh> m_meshData;
+    Array<BakeMeshData, BakerAllocator> m_meshData;
 
-    Array<LightmapRay> m_rays;
+    Array<LightmapRay, BakerAllocator> m_rays;
 
     uint32 atlasCount = 1;
 
     // Per element mesh data used for building the UV map
-    Array<MeshFloatDataArray, DynamicAllocator> m_meshVertexPositions;
-    Array<MeshFloatDataArray, DynamicAllocator> m_meshVertexNormals;
-    Array<MeshFloatDataArray, DynamicAllocator> m_meshVertexUvs;
-    Array<Array<uint32>, DynamicAllocator> m_meshIndices;
+    Array<MeshFloatDataArray, BakerAllocator> m_meshVertexPositions;
+    Array<MeshFloatDataArray, BakerAllocator> m_meshVertexNormals;
+    Array<MeshFloatDataArray, BakerAllocator> m_meshVertexUvs;
+    Array<Array<uint32>, BakerAllocator> m_meshIndices;
 };
 
 } // namespace Baking

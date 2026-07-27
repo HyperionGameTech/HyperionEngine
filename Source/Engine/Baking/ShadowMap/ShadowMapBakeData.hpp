@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Baking/BakeData.hpp>
+#include <Baking/BakerMemory.hpp>
 
 #include <Util/Img/Bitmap.hpp>
 
@@ -54,7 +55,7 @@ public:
 
 protected:
     Light* m_light;
-    Array<LightmapRay> m_rays;
+    Array<LightmapRay, BakerAllocator> m_rays;
 
     Mat4f m_viewProjMats[6];
     Mat4f m_projMat;

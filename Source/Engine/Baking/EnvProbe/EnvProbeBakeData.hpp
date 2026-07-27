@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Baking/BakeData.hpp>
+#include <Baking/BakerMemory.hpp>
 
 namespace Hyperion {
 
@@ -47,7 +48,7 @@ public:
 
 protected:
     EnvProbe* m_envProbe;
-    Array<LightmapRay> m_rays;
+    Array<LightmapRay, BakerAllocator> m_rays;
 };
 
 } // namespace Baking

@@ -20,9 +20,9 @@
             <TextBlock
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
-                FontSize="22"
+                FontSize="16"
                 Opacity="0.3"
-                Text="" /> <!-- TODO -->
+                Text="" /> <!-- TODO preview or icon fallback. -->
         </Border>
 
         <StackPanel Grid.Column="1" Spacing="4">

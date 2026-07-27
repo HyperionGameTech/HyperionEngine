@@ -7,15 +7,17 @@
 #pragma once
 
 #include <Baking/BakeData.hpp>
+#include <Baking/BakerMemory.hpp>
 
 #include <Core/Memory/UniquePtr.hpp>
 #include <Core/Containers/Array.hpp>
 #include <Core/Reflection/Handle.hpp>
 
+#include <Scene/Util/VoxelOctree.hpp>
+
 namespace Hyperion {
 
 class FogVolume;
-class VoxelOctree;
 class Light;
 class EnvProbe;
 
@@ -88,12 +90,12 @@ public:
         m_sunDirection = direction;
     }
 
-    HYP_FORCE_INLINE const Array<Handle<Light>>& GetLights() const
+    HYP_FORCE_INLINE Span<const Handle<Light>> GetLights() const
     {
         return m_lights;
     }
 
-    HYP_FORCE_INLINE const Array<Handle<EnvProbe>>& GetEnvProbes() const
+    HYP_FORCE_INLINE Span<const Handle<EnvProbe>> GetEnvProbes() const
     {
         return m_envProbes;
     }
@@ -102,14 +104,14 @@ public:
 
 protected:
     FogVolume* m_fogVolume;
-    UniquePtr<VoxelOctree> m_voxelOctree;
+    UniquePtr<VoxelOctree, BakerAllocator> m_voxelOctree;
     VolumeBitmap m_volumeBitmap;
     NoiseBitmap m_noiseBitmap;
     OccSdfBitmap m_occSdfBitmap;
 
     Vec3f m_sunDirection;
-    Array<Handle<Light>> m_lights;
-    Array<Handle<EnvProbe>> m_envProbes;
+    Array<Handle<Light>, BakerAllocator> m_lights;
+    Array<Handle<EnvProbe>, BakerAllocator> m_envProbes;
 };
 
 } // namespace Baking

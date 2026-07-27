@@ -4,6 +4,8 @@
 #include <Editor/EditorState.hpp>
 #include <Editor/EditorViewport.hpp>
 
+#include <Editor/Tasks/EditorTasks.hpp>
+
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>
 #include <Scene/ProbeVolume.hpp>
@@ -448,6 +450,72 @@ public:
 DEFINE_EDITOR_COMMAND(AddLightmapVolume);
 
 #pragma endregion AddLightmapVolume
+
+#pragma region BuildBentNormals
+
+class EditorCommandBuildBentNormals final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandBuildBentNormals);
+
+public:
+    virtual ~EditorCommandBuildBentNormals() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Build Bent Normals";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        Handle<Scene> activeScene = subsystem->GetActiveScene();
+        if (!activeScene.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No active scene; cannot build bent normals!");
+
+            return;
+        }
+
+        Array<Handle<LightmapVolume>> lightmapVolumes;
+
+        if (Handle<Node> root = activeScene->GetRoot())
+        {
+            for (Node* node : root->GetDescendants())
+            {
+                if (node->IsA<LightmapVolume>())
+                {
+                    lightmapVolumes.PushBack(MakeStrongRef(static_cast<LightmapVolume*>(node)));
+                }
+            }
+        }
+
+        if (lightmapVolumes.Empty())
+        {
+            HYP_LOG(Editor, Warning, "No LightmapVolumes in the active scene. Cannot bake bent normals.");
+
+            SystemMessageBox(MessageBoxType::WARNING)
+                .Title("Cannot Bake Bent Normals")
+                .Text("Bent Normals cannot be computed as there are no LightmapVolumes in the scene. Add a LightmapVolume and try again.")
+                .Button("Close", []() { })
+                .Show();
+
+            return;
+        }
+
+        Handle<GenerateBentNormalsEditorTask> generateBentNormalsTask = MakeHandle<GenerateBentNormalsEditorTask>(lightmapVolumes);
+        InitObject(generateBentNormalsTask);
+
+        generateBentNormalsTask->SetScene(activeScene);
+
+        Handle<World> worldHandle = MakeStrongRef(subsystem->GetWorld());
+        generateBentNormalsTask->SetWorld(worldHandle);
+
+        g_editorState->AddTask(generateBentNormalsTask);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(BuildBentNormals);
+
+#pragma endregion BuildBentNormals
 
 #pragma region AddReflectionProbe
 

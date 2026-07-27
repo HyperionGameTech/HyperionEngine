@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <Baking/BakerMemory.hpp>
+
 #include <Core/Containers/String.hpp>
 #include <Core/Containers/Map.hpp>
 
@@ -40,18 +42,18 @@ struct BakeEntity
     BoundingBox aabb;
 };
 
-struct BakeMesh
+struct BakeMeshData
 {
     Handle<Mesh> mesh;
     Handle<Material> material;
 
     Mat4f transformMatrix;
 
-    Array<float> vertices;
-    Array<uint32> indices;
+    Array<float, BakerAllocator> vertices;
+    Array<uint32, BakerAllocator> indices;
 
     // xatlas sub-atlas index, -1 if the vertex isn't in any atlas.
-    Array<int32> vertexAtlasIndices;
+    Array<int32, BakerAllocator> vertexAtlasIndices;
 };
 
 struct LightmapRay
@@ -82,6 +84,7 @@ struct LightmapTexel
 {
     Vec4f color0 = Vec4f::Zero();
     Vec4f color1 = Vec4f::Zero();
+    Vec4f bentNormal = Vec4f::Zero();
 
     LightmapRay* pRay = nullptr;
 

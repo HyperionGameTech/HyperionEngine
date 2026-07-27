@@ -8,6 +8,7 @@
 
 #include <Baking/BakerSubsystem.hpp>
 #include <Baking/Baker.hpp>
+#include <Baking/BakerMemory.hpp>
 
 #include <Baking/LightmapVolume/LightmapVolumeBaker.hpp>
 #include <Baking/EnvProbe/EnvProbeBaker.hpp>
@@ -94,34 +95,36 @@ void BakerSubsystem::Update(float delta)
     {
         m_bakers.Erase(obj);
     }
+
+    g_bakerArena->Reset();
 }
 
 template <>
-Task<void> BakerSubsystem::EnqueueBake(const Handle<LightmapVolume>& source)
+Task<void> BakerSubsystem::EnqueueBake(const Handle<LightmapVolume>& source, uint32 shadingTypesMaskOverride)
 {
-    return EnqueueBake_Internal(source);
+    return EnqueueBake_Internal(source, shadingTypesMaskOverride);
 }
 
 template <>
-Task<void> BakerSubsystem::EnqueueBake(const Handle<EnvProbe>& source)
+Task<void> BakerSubsystem::EnqueueBake(const Handle<EnvProbe>& source, uint32 shadingTypesMaskOverride)
 {
-    return EnqueueBake_Internal(source);
+    return EnqueueBake_Internal(source, shadingTypesMaskOverride);
 }
 
 template <>
-Task<void> BakerSubsystem::EnqueueBake(const Handle<FogVolume>& source)
+Task<void> BakerSubsystem::EnqueueBake(const Handle<FogVolume>& source, uint32 shadingTypesMaskOverride)
 {
-    return EnqueueBake_Internal(source);
+    return EnqueueBake_Internal(source, shadingTypesMaskOverride);
 }
 
 template <>
-Task<void> BakerSubsystem::EnqueueBake(const Handle<Light>& source)
+Task<void> BakerSubsystem::EnqueueBake(const Handle<Light>& source, uint32 shadingTypesMaskOverride)
 {
-    return EnqueueBake_Internal(source);
+    return EnqueueBake_Internal(source, shadingTypesMaskOverride);
 }
 
 template <class T, class... Args>
-Task<void> BakerSubsystem::EnqueueBake_Internal(const Handle<T>& source, Args&&... args)
+Task<void> BakerSubsystem::EnqueueBake_Internal(const Handle<T>& source, uint32 shadingTypesMaskOverride, Args&&... args)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -139,6 +142,7 @@ Task<void> BakerSubsystem::EnqueueBake_Internal(const Handle<T>& source, Args&&.
     }
 
     Handle<BakerBase> baker = MakeHandle<Baker<T>>(BakerConfig::FromConfig(), source, std::forward<Args>(args)...);
+    baker->SetShadingTypesMaskOverride(shadingTypesMaskOverride);
     InitObject(baker);
 
     Task<void> task;

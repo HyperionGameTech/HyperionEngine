@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Baking/Baker.hpp>
+#include <Baking/BakerMemory.hpp>
 
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/RawBuffer.hpp>
@@ -15,42 +16,49 @@
 
 namespace Hyperion {
 
+struct RenderSetup;
+
 class RenderProxyList;
 struct GpuLightmapperReadyNotification;
 
 namespace Baking {
 
-class ENGINE_API LightmapRenderer_GpuPathTracing : public ILightmapRenderer
+class PathTracer final
 {
 public:
-    LightmapRenderer_GpuPathTracing(
-        BakerBase* lightmapper,
+    HYP_DEF_POOL_NEW_DELETE(g_bakerPool);
+
+    PathTracer(
+        BakerBase* baker,
         const Handle<Scene>& scene,
         LightmapShadingType shadingType,
         uint32 maxTexelsPerFrame);
-    LightmapRenderer_GpuPathTracing(const LightmapRenderer_GpuPathTracing& other) = delete;
-    LightmapRenderer_GpuPathTracing& operator=(const LightmapRenderer_GpuPathTracing& other) = delete;
-    LightmapRenderer_GpuPathTracing(LightmapRenderer_GpuPathTracing&& other) noexcept = delete;
-    LightmapRenderer_GpuPathTracing& operator=(LightmapRenderer_GpuPathTracing&& other) noexcept = delete;
-    virtual ~LightmapRenderer_GpuPathTracing() override;
+    
+    PathTracer(const PathTracer& other) = delete;
+    PathTracer& operator=(const PathTracer& other) = delete;
+    
+    PathTracer(PathTracer&& other) noexcept = delete;
+    PathTracer& operator=(PathTracer&& other) noexcept = delete;
 
-    virtual uint32 MaxTexelsPerFrame() const override
+    ~PathTracer();
+
+    uint32 MaxTexelsPerFrame() const
     {
-        return uint32(-1);
+        return UINT32_MAX;
     }
 
-    virtual LightmapShadingType GetShadingType() const override
+    LightmapShadingType GetShadingType() const
     {
         return m_shadingType;
     }
 
-    virtual bool CanRender() const override;
+    bool CanRender() const;
 
-    virtual void Create() override;
-    virtual void CleanJobData(BakeJobBase* job) override;
-    virtual void ReadHitsBuffer(Frame* frame, BakeJobBase* job, size_t count, Proc<void(Span<LightmapHit> hits)>&& callback) override;
+    void Create();
+    void CleanJobData(BakeJobBase* job);
+    void ReadHitsBuffer(Frame* frame, BakeJobBase* job, size_t count, Proc<void(Span<LightmapHit> hits)>&& callback);
 
-    virtual bool Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset) override;
+    bool Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset);
 
 private:
     struct JobData
@@ -64,6 +72,8 @@ private:
     void UpdatePipelineState(Frame* frame, BakeJobBase* job);
     void CreateBuffers(BakeJobBase* job);
     void CreateAccelerationStructures();
+
+    BakerBase* m_baker;
 
     Handle<Scene> m_scene;
     LightmapShadingType m_shadingType;

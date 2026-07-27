@@ -126,18 +126,18 @@ public:
 
             SharedPtr<Array<LightmapRay>> raysRc = MakeShared<Array<LightmapRay>>(std::move(rays));
 
-            for (const UniquePtr<ILightmapRenderer>& lightmapRenderer : *job->GetParams().renderers)
+            for (const UniquePtr<PathTracer>& pathTracer : *job->GetParams().renderers)
             {
-                AssertDebug(lightmapRenderer != nullptr);
+                AssertDebug(pathTracer != nullptr);
 
-                if (!lightmapRenderer->Render(frame, renderSetup, job, *raysRc, rayOffset))
+                if (!pathTracer->Render(frame, renderSetup, job, *raysRc, rayOffset))
                 {
                     HYP_LOG(Lightmap, Error, "Failed to process lightmap!");
 
                     continue;
                 }
 
-                Proc<void(Span<LightmapHit>)> cb = [job, raysRc, readbackDataOffset, shadingType = lightmapRenderer->GetShadingType()](Span<LightmapHit> hits)
+                Proc<void(Span<LightmapHit>)> cb = [job, raysRc, readbackDataOffset, shadingType = pathTracer->GetShadingType()](Span<LightmapHit> hits)
                 {
                     Memory::Copy(job->readbackData.Data() + readbackDataOffset, hits.Data(), hits.Size() * sizeof(LightmapHit));
 
@@ -146,7 +146,7 @@ public:
                     job->tracingCompleteSignal.Signal();
                 };
 
-                lightmapRenderer->ReadHitsBuffer(frame, job, numRays, std::move(cb));
+                pathTracer->ReadHitsBuffer(frame, job, numRays, std::move(cb));
                 needsSignal = false;
 
                 readbackDataOffset += numRays * sizeof(LightmapHit);
@@ -229,7 +229,7 @@ bool BakeJobBase::HasRemainingTexels() const
     return m_texelIndex < m_texelIndices.Size() * m_baker->NumTexelSamples();
 }
 
-void BakeJobBase::GatherTexels(uint32 maxTexels, Array<LightmapTexel*>& outTexels)
+void BakeJobBase::GatherTexels(uint32 maxTexels, Array<LightmapTexel*, BakerTempAllocator>& outTexels)
 {
     const bool hasRays = m_baker->PerformsRayTracing();
 
@@ -306,13 +306,16 @@ void BakeJobBase::IntegrateRayHits(Span<const LightmapRay> rays, Span<const Ligh
 
         switch (shadingType)
         {
-        case LightmapShadingType::RADIANCE:
-            texel.color1 += hit.color;
+        case LightmapShadingType::IRRADIANCE:
+            texel.color0 += hit.color;
             break;
         case LightmapShadingType::DISTANCE:
             // Distance moments (dist, dist^2) are accumulated into color1
             // so they don't conflict with FULL-mode color in color0.
             texel.color1 += hit.color;
+            break;
+        case LightmapShadingType::BENT_NORMAL:
+            texel.bentNormal += hit.color;
             break;
         default:
             texel.color0 += hit.color;
@@ -387,16 +390,16 @@ uint32 BakeJobBase::Process(uint32 maxTexels)
         return 0;
     }
 
-    for (UniquePtr<ILightmapRenderer>& lightmapRenderer : *m_params.renderers)
+    for (UniquePtr<PathTracer>& pathTracer : *m_params.renderers)
     {
-        AssertDebug(lightmapRenderer != nullptr);
+        AssertDebug(pathTracer != nullptr);
 
-        if (!lightmapRenderer)
+        if (!pathTracer)
         {
             return 0;
         }
 
-        if (!lightmapRenderer->CanRender())
+        if (!pathTracer->CanRender())
         {
             HYP_LOG(Lightmap, Info, "Waiting for lightmap renderers to be ready...");
 
@@ -427,7 +430,7 @@ uint32 BakeJobBase::Process(uint32 maxTexels)
 
     const uint32 texelOffset = uint32(m_texelIndex % totalNumTexels);
 
-    Array<LightmapTexel*> texels;
+    Array<LightmapTexel*, BakerTempAllocator> texels;
     texels.Reserve(maxTexels);
 
     GatherTexels(maxTexels, texels);

@@ -536,13 +536,13 @@ public:
     HYP_METHOD()
     bool HasName() const;
 
-    HYP_METHOD(Property = "Name", Serialize)
+    HYP_METHOD(Property = "Name", Serialize, EditorOrder = 1)
     Name GetName() const
     {
         return m_name;
     }
 
-    HYP_METHOD(Property = "Name", Serialize)
+    HYP_METHOD(Property = "Name")
     virtual void SetName(Name name)
     {
         if (name == m_name)
@@ -558,7 +558,7 @@ public:
     /*! \brief Get the flags of the Node.
      *  \see NodeFlagBits
      *  \returns The flags of the Node. */
-    HYP_METHOD(Property = "NodeFlags", Serialize)
+    HYP_METHOD(Property = "NodeFlags", Serialize, EditorOrder = 3)
     HYP_FORCE_INLINE EnumFlags<NodeFlags> GetNodeFlags() const
     {
         return m_nodeFlags;
@@ -943,7 +943,7 @@ protected:
     HYP_FIELD(Property = "NodeFlags", Serialize)
     EnumFlags<NodeFlags> m_nodeFlags;
 
-    HYP_FIELD(Property = "Parent", Transient)
+    HYP_FIELD(Property = "Parent", Transient, Editor = false)
     Node* m_parentNode;
 
     HYP_FIELD(Property = "Children", LoadOrder = -1, Editor = false, Serialize)

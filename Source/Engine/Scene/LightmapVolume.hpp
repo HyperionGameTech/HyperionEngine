@@ -12,6 +12,7 @@
 
 #include <Core/Utilities/Traits.hpp>
 #include <Core/Utilities/Uuid.hpp>
+#include <Core/Utilities/Optional.hpp>
 
 #include <Scene/Volume.hpp>
 
@@ -111,13 +112,14 @@ public:
 
     enum AtlasTextureType : uint8
     {
-        RadianceTexture = 0,
-        IrradianceTexture,
+        IrradianceTexture = 0,
+        BentNormalTexture,
+
         Max
     };
 
     static constexpr uint32 NumAtlasTextureTypes = static_cast<uint8>(AtlasTextureType::Max);
-    static constexpr const char* TextureTypeNames[NumAtlasTextureTypes] = { "R", "I" };
+    static constexpr const char* TextureTypeNames[NumAtlasTextureTypes] = { "IR", "BN" };
 
     LightmapVolume();
 
@@ -134,10 +136,10 @@ public:
     {
         switch (type)
         {
-        case RadianceTexture:
-            return m_radianceAtlasTextures;
         case IrradianceTexture:
             return m_irradianceAtlasTextures;
+        case BentNormalTexture:
+            return m_bentNormalAtlasTextures;
         default:
             return {};
         }
@@ -167,28 +169,48 @@ public:
 
     const LightmapElement* GetElement(LightmapElementId elementId) const;
 
-    /*! \brief Remove all lightmap elements from this volume */
-    void RemoveAllElements();
+    /*! \brief Remove all lightmap elements from this volume, except for those which are of types that the \p preserveTextureTypesMask bitmask includes (where each bit = 1<<type) */
+    void RemoveAllElements(uint32 preserveTextureTypesMask = 0);
 
     void UpdateRenderProxy(RenderProxyLightmapVolume* proxy);
 
-#if HYP_EDITOR
+#pragma region Actions
+
+#ifdef HYP_EDITOR
     HYP_METHOD(EditorOnly, EditorAction = "Bake Lightmap")
-    void Rebake();
-#endif
+    void BakeLightmap();
+
+    HYP_METHOD(EditorOnly, EditorAction = "Bake Bent Normals")
+    void BakeBentNormals();
+#endif // HYP_EDITOR
+
+#pragma endregion Actions
 
 protected:
     void OnAddedToWorld(World* world) override;
     void OnRemovedFromWorld(World* world) override;
 
 private:
-    HYP_FIELD(Property = "RadianceAtlasTextures")
-    FixedArray<Handle<Texture>, MaxAtlasesPerLightmapVolume> m_radianceAtlasTextures;
+    HYP_FORCE_INLINE FixedArray<Handle<Texture>, MaxAtlasesPerLightmapVolume>& GetAtlasTexturesArray(AtlasTextureType textureType)
+    {
+        switch (textureType)
+        {
+        case IrradianceTexture:
+            return m_irradianceAtlasTextures;
+        case BentNormalTexture:
+            return m_bentNormalAtlasTextures;
+        default:
+            HYP_UNREACHABLE();
+        }
+    }
 
-    HYP_FIELD(Property = "IrradianceAtlasTextures")
+    HYP_FIELD(Property = "IrradianceAtlasTextures", Serialize, Editor = false)
     FixedArray<Handle<Texture>, MaxAtlasesPerLightmapVolume> m_irradianceAtlasTextures;
 
-    HYP_FIELD(Property = "Atlases")
+    HYP_FIELD(Property = "BentNormalAtlasTextures", Serialize, Editor = false)
+    FixedArray<Handle<Texture>, MaxAtlasesPerLightmapVolume> m_bentNormalAtlasTextures;
+
+    HYP_FIELD(Property = "Atlases", Serialize, Editor = false)
     Array<LightmapVolumeAtlas> m_atlases;
 };
 

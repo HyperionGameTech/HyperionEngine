@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <Baking/BakerMemory.hpp>
+
 #include <Core/Containers/Queue.hpp>
 
 #include <Core/Threading/Mutex.hpp>
@@ -47,17 +49,10 @@ enum class BakerState : uint8
     Complete
 };
 
-struct LightmapHitsBuffer;
-
 class LightmapVolume;
 struct LightmapElement;
 
-class AssetObject;
 class View;
-class ReflectionProbe;
-class FogVolume;
-class Mesh;
-struct RenderSetup;
 
 namespace Baking {
 
@@ -70,14 +65,16 @@ struct BakeEntity;
 
 struct LightmapRay;
 
+class PathTracer;
+
 HYP_ENUM()
 enum class LightmapShadingType : uint32
 {
     IRRADIANCE = 0, // Bake irradiance only
-    RADIANCE,       // Bake radiance only (direct light)
     FULL,           // Full scene bake
     SHADOW,         // Bake static shadow map for a light (ray-traced)
     DISTANCE,       // Bake ray hit distance (for variance shadow maps / visibility)
+    BENT_NORMAL,    // Bake bent normal 
     MAX
 };
 
@@ -88,6 +85,9 @@ struct BakerConfig : public Config<BakerConfig>
 
     HYP_FIELD()
     uint32 numSamples = 16;
+
+    HYP_FIELD(Description = "Number of samples to use when baking bent normals - typically needs fewer samples than irradiance to converge.")
+    uint32 bentNormalSamples = 8;
 
     HYP_FIELD()
     uint32 maxTexelsPerFrame = 512 * 512;
@@ -104,6 +104,13 @@ struct BakerConfig : public Config<BakerConfig>
         if (numSamples == 0)
         {
             AddError(HYP_MAKE_ERROR(Error, "Number of samples must be greater than zero"));
+
+            valid = false;
+        }
+
+        if (bentNormalSamples == 0)
+        {
+            AddError(HYP_MAKE_ERROR(Error, "Number of bent normal samples must be greater than zero"));
 
             valid = false;
         }
@@ -125,45 +132,6 @@ struct LightmapHit
 };
 
 static_assert(sizeof(LightmapHit) == 16);
-
-class ILightmapRenderer
-{
-protected:
-    ILightmapRenderer(BakerBase* lightmapper)
-        : m_baker(lightmapper)
-    {
-        AssertDebug(lightmapper != nullptr);
-    }
-
-public:
-    friend class BakerBase;
-
-    virtual ~ILightmapRenderer() = default;
-
-    virtual uint32 MaxTexelsPerFrame() const = 0;
-
-    virtual LightmapShadingType GetShadingType() const = 0;
-
-    virtual bool CanRender() const
-    {
-        return true;
-    }
-
-    virtual void Create() = 0;
-    virtual void PrepareJob(BakeJobBase* job)
-    {
-    }
-    virtual void CleanJobData(BakeJobBase* job)
-    {
-    }
-
-    virtual void ReadHitsBuffer(Frame* frame, BakeJobBase* job, size_t count, Proc<void(Span<LightmapHit> hits)>&& callback) = 0;
-
-    virtual bool Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset) = 0;
-
-protected:
-    BakerBase* m_baker;
-};
 
 HYP_CLASS(Abstract)
 class ENGINE_API BakerBase : public ObjectBase
@@ -217,6 +185,13 @@ public:
     virtual uint32 GetShadingTypesMask() const
     {
         return 1u << int(LightmapShadingType::FULL);
+    }
+
+    /*! \brief Restrict this bake to a specific subset of shading types instead of the baker's default mask
+     *  (e.g. baking bent normals only, without recomputing irradiance/radiance). A value of 0 means "use the default". */
+    HYP_FORCE_INLINE void SetShadingTypesMaskOverride(uint32 shadingTypesMaskOverride)
+    {
+        m_shadingTypesMaskOverride = shadingTypesMaskOverride;
     }
 
     /*! \brief Should we consider only elements overlapping our AABB for lightmapping? */
@@ -303,11 +278,13 @@ protected:
     }
 
     virtual UniquePtr<BakeJobBase> CreateJob(BakeJobParams&& params) = 0;
-    virtual UniquePtr<ILightmapRenderer> CreateRenderer(LightmapShadingType shadingType, uint32 maxTexelsPerFrame);
+    virtual UniquePtr<PathTracer> CreatePathTracer(LightmapShadingType shadingType, uint32 maxTexelsPerFrame);
 
     virtual void CreateLightmapRenderers();
 
     BakerConfig m_config;
+
+    uint32 m_shadingTypesMaskOverride = 0;
 
     ObjectBase* m_source;
 
@@ -318,12 +295,12 @@ protected:
 
     Handle<Camera> m_camera;
 
-    Array<BakeEntity, DynamicAllocator> m_bakeEntities;
-    Map<Handle<Entity>, BakeEntity*> m_bakeEntitiesByEntity;
+    Array<BakeEntity, BakerAllocator> m_bakeEntities;
+    Map<Handle<Entity>, BakeEntity*, BakerAllocator> m_bakeEntitiesByEntity;
 
     BakerThreadPool* m_threadPool;
 
-    Array<UniquePtr<ILightmapRenderer>> m_lightmapRenderers;
+    Array<UniquePtr<PathTracer>, BakerAllocator> m_pathTracers;
 
     ClockTimer m_updateTimer;
 
@@ -336,14 +313,14 @@ protected:
 
     void AddJob(UniquePtr<BakeJobBase>&& job);
 
-    Array<UniquePtr<BakeJobBase>> m_queue;
+    Array<UniquePtr<BakeJobBase>, BakerAllocator> m_queue;
     Mutex m_queueMutex;
     uint32 m_numJobs;
     uint32 m_initialNumJobs;
 
     PerformanceClock m_bakingClock;
     double m_lastProgressPercent;
-    Array<Pair<double, double>> m_progressSamples;
+    Array<Pair<double, double>, BakerAllocator> m_progressSamples;
 
     double m_accumulatedTexelBudget;
 

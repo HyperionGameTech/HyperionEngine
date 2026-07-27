@@ -54,9 +54,11 @@ public:
 
     /*! \brief Queue up a task to start baking lightmaps or other baked data for the given object.
      *   The returned Task can be used to track the completion state of the lightmap generation job.
-     *   If a lightmap generation task is already in progress for the given volume, the existing task will be returned instead. */
+     *   If a lightmap generation task is already in progress for the given volume, the existing task will be returned instead.
+     *   \param shadingTypesMaskOverride If nonzero, restricts the bake to this subset of shading types instead of the
+     *   baker's default mask (e.g. baking bent normals only, without recomputing irradiance/radiance). */
     template <Baking::Bakeable T>
-    Task<void> EnqueueBake(const Handle<T>& source);
+    Task<void> EnqueueBake(const Handle<T>& source, uint32 shadingTypesMaskOverride = 0);
 
 private:
     SubsystemUpdatePhase GetUpdatePhase_Internal() const override
@@ -65,7 +67,7 @@ private:
     }
 
     template <class T, class... Args>
-    Task<void> EnqueueBake_Internal(const Handle<T>& source, Args&&... args);
+    Task<void> EnqueueBake_Internal(const Handle<T>& source, uint32 shadingTypesMaskOverride, Args&&... args);
 
     // Map source to lightmapper instance
     Map<ObjectBase*, Handle<Baking::BakerBase>> m_bakers;

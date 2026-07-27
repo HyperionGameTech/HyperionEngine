@@ -30,7 +30,7 @@ protected:
     {
         class LightmapVolume* volume = nullptr;
         Array<Texture*, RenderAllocator> atlasIrradianceTextures;
-        Array<Texture*, RenderAllocator> atlasRadianceTextures;
+        Array<Texture*, RenderAllocator> atlasBentNormalTextures;
         Array<GpuBufferRef, RenderAllocator> uniformBuffers;
     };
 
@@ -38,10 +38,11 @@ protected:
 
     LightmapVolumePassData& GetLightmapVolumePassData(LightmapVolume* lightmapVolume)
     {
-        auto it = m_lightmapVolumePassData.FindIf([lightmapVolume](auto& item)
-                                                  {
-                                                      return item.volume == lightmapVolume;
-                                                  });
+        auto it = m_lightmapVolumePassData.FindIf(
+            [lightmapVolume](auto& item)
+            {
+                return item.volume == lightmapVolume;
+            });
 
         if (it != m_lightmapVolumePassData.End())
         {

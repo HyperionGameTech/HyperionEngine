@@ -291,13 +291,13 @@ BakeJobParams BakerBase::CreateLightmapJobParams(size_t startIndex, size_t endIn
         m_view,
         m_bakeEntities.ToSpan().Slice(startIndex, endIndex - startIndex),
         &m_bakeEntitiesByEntity,
-        &m_lightmapRenderers
+        &m_pathTracers
     };
 
     return jobParams;
 }
 
-UniquePtr<ILightmapRenderer> BakerBase::CreateRenderer(LightmapShadingType shadingType, uint32 maxTexelsPerFrame)
+UniquePtr<PathTracer> BakerBase::CreatePathTracer(LightmapShadingType shadingType, uint32 maxTexelsPerFrame)
 {
     if (!PerformsRayTracing())
     {
@@ -311,7 +311,7 @@ UniquePtr<ILightmapRenderer> BakerBase::CreateRenderer(LightmapShadingType shadi
         return nullptr;
     }
 
-    return MakeUnique<LightmapRenderer_GpuPathTracing>(this, m_scene, shadingType, maxTexelsPerFrame);
+    return MakeUnique<PathTracer>(this, m_scene, shadingType, maxTexelsPerFrame);
 }
 
 void BakerBase::CreateLightmapRenderers()
@@ -401,7 +401,7 @@ void BakerBase::DispatchJobs()
         const uint32 texelsPerAtlas = dimensions.x * dimensions.y;
         const uint32 tilesPerAtlasY = (dimensions.y + TileSize - 1) / TileSize;
 
-        Map<Vec2i, Array<uint32>> tileBuckets;
+        Map<Vec2i, Array<uint32, BakerAllocator>, BakerTempAllocator> tileBuckets;
 
         AssertDebug(bakeData.texels.Any());
 
@@ -441,7 +441,7 @@ void BakerBase::DispatchJobs()
         Assert(job != nullptr);
 
         // all texels
-        Array<uint32> allTexelIndices;
+        Array<uint32, BakerAllocator> allTexelIndices;
         allTexelIndices.Resize(GetBakeData().texels.Size());
 
         for (uint32 i = 0; i < allTexelIndices.Size(); i++)
@@ -609,9 +609,9 @@ void BakerBase::HandleCompletedJob(BakeJobBase* job)
 
     HandleCompletedJob_Internal(job);
 
-    for (UniquePtr<ILightmapRenderer>& lightmapRenderer : m_lightmapRenderers)
+    for (UniquePtr<PathTracer>& pathTracer : m_pathTracers)
     {
-        lightmapRenderer->CleanJobData(job);
+        pathTracer->CleanJobData(job);
     }
 
     const double progressPercent = double(m_initialNumJobs - m_numJobs) / double(m_initialNumJobs) * 100.0;

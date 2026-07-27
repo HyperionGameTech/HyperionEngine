@@ -9,6 +9,8 @@
 #include <Baking/LightmapVolume/LightmapVolumeBaker.hpp>
 #include <Baking/LightmapVolume/LightmapVolumeBakeJob.hpp>
 
+#include <Baking/Lightmaps/LightmapPathTraceGpu.hpp>
+
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
 
@@ -36,14 +38,23 @@ namespace Baking {
 
 #pragma region LightmapVolume baking helpers
 
-static Name GenerateElementTextureName(LightmapVolume* lmv, uint32 elementIndex, LightmapVolume::AtlasTextureType textureType)
+static LightmapShadingType AtlasTextureTypeToShadingType(LightmapVolume::AtlasTextureType type)
 {
-    return NAME_FMT("LightmapVolumeTexture_{}_{}_{}", lmv->GetName(), elementIndex, LightmapVolume::TextureTypeNames[textureType]);
+    switch (type)
+    {
+    case LightmapVolume::IrradianceTexture:
+        return LightmapShadingType::IRRADIANCE;
+    case LightmapVolume::BentNormalTexture:
+        return LightmapShadingType::BENT_NORMAL;
+    default:
+        return LightmapShadingType::MAX;
+    }
 }
 
 static void UpdateAtlasTextures(
     LightmapVolume* lmv,
     uint16 atlasIndex,
+    uint32 shadingTypesMask,
     Map<LightmapElementId, FixedArray<typename Baking::BakeData<LightmapVolume>::BitmapType, LightmapVolume::NumAtlasTextureTypes>>&& elementBitmaps)
 {
     HYP_LOG(Lightmap, Verbose, "Updating atlas textures for LightmapVolume {}", lmv->Id());
@@ -52,10 +63,13 @@ static void UpdateAtlasTextures(
 
     LightmapVolumeAtlas& atlas = lmv->GetAtlases()[atlasIndex];
 
-    FixedArray<typename Baking::BakeData<LightmapVolume>::BitmapType, LightmapVolume::NumAtlasTextureTypes> atlasBitmaps = {
-        typename Baking::BakeData<LightmapVolume>::BitmapType(atlas.atlasDimensions.x, atlas.atlasDimensions.y),
-        typename Baking::BakeData<LightmapVolume>::BitmapType(atlas.atlasDimensions.x, atlas.atlasDimensions.y)
-    };
+    Array<typename Baking::BakeData<LightmapVolume>::BitmapType> atlasBitmaps = {};
+    atlasBitmaps.Reserve(LightmapVolume::NumAtlasTextureTypes);
+    
+    for (uint32 i = 0; i < LightmapVolume::NumAtlasTextureTypes; i++)
+    {
+        atlasBitmaps.EmplaceBack(atlas.atlasDimensions.x, atlas.atlasDimensions.y);
+    }
 
     for (auto& it : elementBitmaps)
     {
@@ -68,6 +82,11 @@ static void UpdateAtlasTextures(
 
         for (uint32 textureTypeIndex = 0; textureTypeIndex < LightmapVolume::NumAtlasTextureTypes; textureTypeIndex++)
         {
+            if (!(shadingTypesMask & (1u << uint32(AtlasTextureTypeToShadingType(LightmapVolume::AtlasTextureType(textureTypeIndex))))))
+            {
+                continue;
+            }
+
             const auto& elementBitmap = it.second[textureTypeIndex];
 
             Assert(element.offsetCoords.x + element.dimensions.x <= atlasBitmaps[textureTypeIndex].GetWidth());
@@ -84,9 +103,14 @@ static void UpdateAtlasTextures(
         }
     }
 
-    // Create atlas textures from the blitted bitmaps
+    // Create atlas textures from the blitted bitmaps, only for the shading types baked this run.
     for (uint32 textureTypeIndex = 0; textureTypeIndex < LightmapVolume::NumAtlasTextureTypes; textureTypeIndex++)
     {
+        if (!(shadingTypesMask & (1u << uint32(AtlasTextureTypeToShadingType(LightmapVolume::AtlasTextureType(textureTypeIndex))))))
+        {
+            continue;
+        }
+
         const auto& atlasBitmap = atlasBitmaps[textureTypeIndex];
 
         Handle<Texture> atlasTexture = MakeHandle<Texture>(
@@ -108,7 +132,8 @@ static bool BuildElementTextures(
     LightmapVolume* lmv,
     const BakeData<LightmapVolume>& bakeData,
     LightmapElementId elementId,
-    uint32 bakeAtlasIndex)
+    uint32 bakeAtlasIndex,
+    uint32 shadingTypesMask)
 {
     AssertOnThread(g_simThread);
 
@@ -130,15 +155,27 @@ static bool BuildElementTextures(
 
     const Vec2u elementDimensions = element.dimensions;
 
-    FixedArray<typename Baking::BakeData<LightmapVolume>::BitmapType, LightmapVolume::NumAtlasTextureTypes> bitmaps = {
-        bakeData.ToBitmapRadiance(bakeAtlasIndex),  /* RADIANCE */
-        bakeData.ToBitmapIrradiance(bakeAtlasIndex) /* IRRADIANCE */
-    };
+    FixedArray<typename Baking::BakeData<LightmapVolume>::BitmapType, LightmapVolume::NumAtlasTextureTypes> bitmaps;
+
+    if (shadingTypesMask & (1u << uint32(LightmapShadingType::IRRADIANCE)))
+    {
+        bitmaps[LightmapVolume::IrradianceTexture] = bakeData.ToBitmapIrradiance(bakeAtlasIndex);
+    }
+
+    if (shadingTypesMask & (1u << uint32(LightmapShadingType::BENT_NORMAL)))
+    {
+        bitmaps[LightmapVolume::BentNormalTexture] = bakeData.ToBitmapBentNormal(bakeAtlasIndex);
+    }
 
     FixedArray<typename Baking::BakeData<LightmapVolume>::BitmapType, LightmapVolume::NumAtlasTextureTypes> elementBitmaps;
 
     for (uint32 i = 0; i < LightmapVolume::NumAtlasTextureTypes; i++)
     {
+        if (!(shadingTypesMask & (1u << uint32(AtlasTextureTypeToShadingType(LightmapVolume::AtlasTextureType(i))))))
+        {
+            continue;
+        }
+
         typename Baking::BakeData<LightmapVolume>::BitmapType* pBitmap = &bitmaps[i];
 
         if (elementDimensions.x != pBitmap->GetWidth() || elementDimensions.y != pBitmap->GetHeight())
@@ -165,7 +202,7 @@ static bool BuildElementTextures(
         }
     }
 
-    UpdateAtlasTextures(lmv, atlasIndex, { { elementId, std::move(elementBitmaps) } });
+    UpdateAtlasTextures(lmv, atlasIndex, shadingTypesMask, { { elementId, std::move(elementBitmaps) } });
 
     return true;
 }
@@ -215,7 +252,7 @@ UniquePtr<BakeJobBase> Baker<LightmapVolume>::CreateJob(BakeJobParams&& params)
 
 void Baker<LightmapVolume>::CreateLightmapRenderers()
 {
-    m_lightmapRenderers.Clear();
+    m_pathTracers.Clear();
 
     if (!PerformsRayTracing())
     {
@@ -234,15 +271,14 @@ void Baker<LightmapVolume>::CreateLightmapRenderers()
         const uint32 maxTexelsPerFrame = MaxTexelsPerFrame();
         AssertDebug(maxTexelsPerFrame > 0);
 
-        UniquePtr<ILightmapRenderer>& lightmapRenderer = m_lightmapRenderers.EmplaceBack();
-        lightmapRenderer = CreateRenderer(LightmapShadingType(i), maxTexelsPerFrame);
+        const UniquePtr<PathTracer>& pathTracer = m_pathTracers.PushBack(CreatePathTracer(LightmapShadingType(i), maxTexelsPerFrame));
 
-        if (!lightmapRenderer)
+        if (!pathTracer)
         {
             continue;
         }
 
-        lightmapRenderer->Create();
+        pathTracer->Create();
     }
 }
 
@@ -338,7 +374,18 @@ void Baker<LightmapVolume>::OnBuildReady()
 
     AssertDebug(m_bakeData.GetWidth() * m_bakeData.GetHeight() > 0);
 
-    m_volume->RemoveAllElements();
+    const uint32 shadingTypesMask = GetShadingTypesMask();
+    uint32 preserveTextureTypesMask = 0;
+
+    for (uint32 i = 0; i < LightmapVolume::NumAtlasTextureTypes; i++)
+    {
+        if (!(shadingTypesMask & (1u << uint32(AtlasTextureTypeToShadingType(LightmapVolume::AtlasTextureType(i))))))
+        {
+            preserveTextureTypesMask |= 1u << i;
+        }
+    }
+
+    m_volume->RemoveAllElements(preserveTextureTypesMask);
 
     m_lightmapElementIds.Clear();
     m_lightmapElementIds.Reserve(m_bakeData.GetAtlasCount());
@@ -373,9 +420,11 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
     m_bakeData.Blur();
     m_bakeData.Dilate();
 
+    const uint32 shadingTypesMask = GetShadingTypesMask();
+
     for (uint32 atlasIndex = 0; atlasIndex < m_lightmapElementIds.Size(); atlasIndex++)
     {
-        if (!BuildElementTextures(m_volume, m_bakeData, m_lightmapElementIds[atlasIndex], atlasIndex))
+        if (!BuildElementTextures(m_volume, m_bakeData, m_lightmapElementIds[atlasIndex], atlasIndex, shadingTypesMask))
         {
             HYP_LOG(Lightmap, Error, "Failed to build LightmapElement textures for LightmapVolume, atlas {}, element id: {}",
                 atlasIndex, m_lightmapElementIds[atlasIndex]);
@@ -394,10 +443,17 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
         Assert(lightmapElements[i] != nullptr);
     }
 
+    HYP_LOG(Lightmap, Verbose, "Lightmap baking complete! {} atlas(es)", m_lightmapElementIds.Size());
+    
+    if (m_lightmapElementIds.Empty())
+    {
+        // It probably failed
+        // Drop out early to prevent crashes due to accessing out of bounds
+        return;
+    }
+    
     // Ensure references to texture assets are saved properly.
     m_volume->MarkDirty();
-
-    HYP_LOG(Lightmap, Verbose, "Lightmap baking complete! {} atlas(es)", m_lightmapElementIds.Size());
 
     // Update meshes
     for (size_t bakeEntityIndex = 0; bakeEntityIndex < m_bakeEntities.Size(); bakeEntityIndex++)
@@ -406,7 +462,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
 
         Assert(bakeEntityIndex < m_bakeData.GetMeshData().Size());
 
-        const BakeMesh& bakeMeshForAtlasCount = m_bakeData.GetMeshData()[bakeEntityIndex];
+        const BakeMeshData& bakeMeshForAtlasCount = m_bakeData.GetMeshData()[bakeEntityIndex];
 
         // Determine the dominant atlas index for this entity (for the element component assignment,
         // since a single entity can only reference one element/atlas for stencil routing).
@@ -452,7 +508,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
 
             auto readScope = mesh->GetReadScope();
 
-            BakeMesh& bakeMesh = m_bakeData.GetMeshData()[bakeEntityIndex];
+            BakeMeshData& bakeMesh = m_bakeData.GetMeshData()[bakeEntityIndex];
             Assert(bakeMesh.mesh == mesh);
 
             const VertexInputLayoutDesc prevInputLayout = mesh->GetMeshDesc().meshAttributes.inputLayout;

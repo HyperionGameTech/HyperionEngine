@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Baking/LightmapTexel.hpp>
+#include <Baking/BakerMemory.hpp>
 
 namespace Hyperion {
 
@@ -23,7 +24,7 @@ class BakeDataBase
 {
 public:
     // Map from mesh id to an array of UV indices. Uses dynamic node allocation to reduce number of moves needed when adding or removing elements.
-    using MeshToUVIndicesMap = Map<ObjId<Mesh>, Array<uint32, DynamicAllocator>>;
+    using MeshToUVIndicesMap = Map<ObjId<Mesh>, Array<uint32, BakerAllocator>, BakerAllocator>;
 
     struct TexelRange
     {
@@ -31,10 +32,10 @@ public:
         uint32 count = 0; // number of consecutive texels
     };
 
-    using MeshToTexelRangesMap = Map<ObjId<Mesh>, Array<TexelRange, DynamicAllocator>>;
+    using MeshToTexelRangesMap = Map<ObjId<Mesh>, Array<TexelRange, BakerAllocator>, BakerAllocator>;
 
     /// Texels in UV space
-    Array<LightmapTexel> texels;
+    Array<LightmapTexel, BakerAllocator> texels;
 
     // Mapping from mesh id to the indices of the UVs that correspond to that mesh.
     MeshToUVIndicesMap meshToUvIndices;

@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Baking/BakeJob.hpp>
+#include <Baking/BakerMemory.hpp>
 
 #include <Baking/FogVolume/FogVolumeBakeData.hpp>
 
@@ -51,7 +52,7 @@ public:
     // BakeJobBase::tracingCompleteSignal/readbackData are: a render-thread callback needs to reach them.
     AtomicVar<bool> m_gpuBakeDispatched;
     AtomicVar<bool> m_gpuBakeReady;
-    Array<Vec4f> m_gpuResults;
+    Array<Vec4f, BakerAllocator> m_gpuResults;
 
 protected:
     virtual void Start_Internal() override;
