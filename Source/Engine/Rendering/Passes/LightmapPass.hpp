@@ -13,6 +13,7 @@ namespace Hyperion {
 
 class LightmapVolume;
 class Texture;
+class Mesh;
 
 class LightmapPass final : public FullScreenPass
 {
@@ -54,6 +55,8 @@ protected:
     }
 
     Array<LightmapVolumePassData, RenderAllocator> m_lightmapVolumePassData;
+
+    Handle<Mesh> m_volumeMesh;
 
 private:
     virtual bool UsesTemporalBlending() const override

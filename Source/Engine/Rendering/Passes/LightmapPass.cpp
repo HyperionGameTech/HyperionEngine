@@ -12,6 +12,7 @@
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/GBuffer.hpp>
+#include <Rendering/Mesh.hpp>
 #include <Rendering/Texture.hpp>
 #include <Rendering/TextureViewCache.hpp>
 #include <Rendering/PlaceholderData.hpp>
@@ -20,13 +21,17 @@
 #include <Rendering/RenderProxy.hpp>
 #include <Rendering/GpuBuffer.hpp>
 #include <Rendering/ShaderManager.hpp>
+#include <Rendering/StencilMasks.hpp>
 
 #include <Rendering/Shadows/ShadowMapCache.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
+#include <Rendering/Util/MeshBuilder.hpp>
 
 #include <Scene/View.hpp>
 #include <Scene/LightmapVolume.hpp>
+
+#include <Core/Math/Mat4f.hpp>
 
 #include <Core/Utilities/DeferredScope.hpp>
 
@@ -38,9 +43,16 @@ extern CVar<bool> g_cvHBAO;
 
 struct LightmapVolumeUniforms
 {
+    Mat4f transformMatrix;
+    Vec4f aabbMin;
+    Vec4f aabbMax;
     float irradianceWeight;
     uint32 numAtlases;
+    uint32 _pad0;
+    uint32 _pad1;
 };
+
+static_assert(sizeof(LightmapVolumeUniforms) % 16 == 0);
 
 #pragma region LightmapPass
 
@@ -62,6 +74,12 @@ LightmapPass::~LightmapPass()
 void LightmapPass::Create()
 {
     AssertOnThread(g_renderThread);
+
+    m_volumeMesh = MeshBuilder::Cube();
+    m_volumeMesh->SetIsTransient(true);
+    m_volumeMesh->SetFlags(MeshFlags::ViewIndependent);
+    m_volumeMesh->SetName(NAME("LightmapVolumeMesh"));
+    m_volumeMesh->UploadGpuData();
 
     FullScreenPass::Create();
 }
@@ -98,11 +116,12 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     cr << SetCurrentViewport(renderSetup.viewport);
 
-    cr << SetInputLayout(StaticVertexInputLayout<VT_Simple>);
+    cr << SetInputLayout(m_volumeMesh->GetMeshAttributes().inputLayout);
+    cr << SetTopology(m_volumeMesh->GetMeshAttributes().topology);
 
-    cr << SetFaceCullMode(FCM_BACK);
+    // Cull front faces so the volume still covers the screen when the camera is inside it.
+    cr << SetFaceCullMode(FCM_FRONT);
     cr << SetFillMode(FM_FILL);
-    cr << SetTopology(TOP_TRIANGLES);
 
     cr << SetDepthTest(false);
     cr << SetDepthWrite(false);
@@ -114,11 +133,11 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     cr << SetCurrentBlendFunction(BlendFunction::Additive());
 
-    // cr << SetStencilTest(true);
-    // cr << SetStencilFunction(StencilFunction {
-    //     .passOp = SO_KEEP, .failOp = SO_KEEP, .depthFailOp = SO_KEEP,
-    //     .compareOp = SCO_EQUAL // match values with equal atlas index when we render
-    // });
+    cr << SetStencilTest(true);
+    cr << SetStencilFunction(StencilFunction {
+        .passOp = SO_KEEP, .failOp = SO_KEEP, .depthFailOp = SO_KEEP,
+        .compareOp = SCO_EQUAL
+    });
 
     HYP_DEFER({
         // reset states
@@ -182,6 +201,9 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         Texture* irradianceTexture = proxy->atlasIrradianceTextures[atlasIndex];
 
         LightmapVolumeUniforms uniforms {};
+        uniforms.transformMatrix = proxy->transformMatrix;
+        uniforms.aabbMin = Vec4f(proxy->worldAabb.min, 1.0f);
+        uniforms.aabbMax = Vec4f(proxy->worldAabb.max, 1.0f);
         uniforms.numAtlases = proxy->numAtlases;
         uniforms.irradianceWeight = irradianceTexture ? 1.0f : 0.0f;
 
@@ -204,7 +226,11 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         cr << SetShaderUniform(localNumShaderUniforms++, "LightmapSampler"_sh, RI.placeholderData->GetSamplerLinear());
         cr << SetShaderUniform(localNumShaderUniforms++, "LightmapVolumeUniforms"_sh, uniformBuffer);
 
-        RenderFullScreenQuad(frame, renderSetup);
+        cr << CommitDrawState();
+
+        cr << BindVertexBuffer(m_volumeMesh->GetVertexBuffer());
+        cr << BindIndexBuffer(m_volumeMesh->GetIndexBuffer());
+        cr << DrawIndexed(36); // draw cube
     }
 
     // reset stencil state back to default

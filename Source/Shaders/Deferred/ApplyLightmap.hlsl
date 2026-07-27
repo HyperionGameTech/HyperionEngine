@@ -13,19 +13,40 @@ struct VSOutput
 {
     float4 position_cs : SV_POSITION;
     float3 position : POSITION;
-    float2 texcoord : TEXCOORD0;
+    float4 positionNdc : TEXCOORD0;
+};
+
+#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+#include "../include/Scene.hlsli"
+#include "../include/Shared.hlsli"
+#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+
+DECLARE_SRV_DYNAMIC(LightmapPass, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
+#define camera _cameras_buffer[0]
+
+DECLARE_BUFFER(LightmapPass, LightmapVolumeUniforms) cbuffer LightmapVolumeUniforms
+{
+    float4x4 transformMatrix;
 };
 
 VSOutput VSMain(VSInput input)
 {
     VSOutput output;
 
-    float4 position = float4(input.a_position, 1.0);
+    float4 worldPosition = mul(transformMatrix, float4(input.a_position, 1.0));
+    output.position = worldPosition.xyz / worldPosition.w;
+    
+    float4x4 jitterMat = {
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+    };
+    jitterMat[0][3] += camera.jitter.x;
+    jitterMat[1][3] += camera.jitter.y;
 
-    output.position = position.xyz;
-    output.texcoord = input.a_texcoord0;
-
-    output.position_cs = position;
+    output.positionNdc = mul(jitterMat, mul(camera.viewProjMat, float4(output.position, 1.0)));
+    output.position_cs = output.positionNdc;
 
     return output;
 }
@@ -38,7 +59,7 @@ struct PSInput
 {
     float4 position_cs : SV_POSITION;
     float3 position : POSITION;
-    float2 texcoord : TEXCOORD0;
+    float4 positionNdc : TEXCOORD0;
 };
 
 struct PSOutput
@@ -88,6 +109,9 @@ DECLARE_SAMPLER(LightmapPass, LightmapSampler) SamplerState LightmapSampler;
 
 DECLARE_BUFFER(LightmapPass, LightmapVolumeUniforms) cbuffer LightmapVolumeUniforms
 {
+    float4x4 transformMatrix; // unused here, read by the vertex shader
+    float4 aabbMin;           // volume bounds in world space
+    float4 aabbMax;
     float irradianceWeight;
     uint numAtlases;
 };
@@ -107,7 +131,25 @@ PSOutput PSMain(PSInput input)
 {
     PSOutput output;
 
-    const float2 texcoord = input.texcoord;
+    float2 texcoord = (input.positionNdc.xy / input.positionNdc.w) * 0.5 + 0.5;
+    texcoord.y = 1.0 - texcoord.y;
+
+    const float4x4 inverse_proj = camera.invProjMat;
+    const float4x4 inverse_view = camera.invViewMat;
+
+    const float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferDepthTexture, texcoord, 0).r;
+    const float3 P = ReconstructWorldSpacePositionFromDepth(inverse_proj, inverse_view, texcoord, depth).xyz;
+
+    // Rasterizing the volume's bounding cube only masks its screen-space silhouette -- geometry
+    // well in front of or behind the volume still projects into it, and depth testing is off.
+    // Reject any pixel whose shaded surface does not actually lie inside the volume, otherwise
+    // unrelated geometry seen "through" the box picks up this volume's lightmap.
+    const float3 distanceOutside = max(aabbMin.xyz - P, P - aabbMax.xyz);
+
+    if (max(distanceOutside.x, max(distanceOutside.y, distanceOutside.z)) > 0.0)
+    {
+        discard;
+    }
 
     uint2 gbufferDimensions;
     GBufferAlbedoTexture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
@@ -129,14 +171,9 @@ PSOutput PSMain(PSInput input)
 
     float ao = 1.0;
 
-    const float4x4 inverse_proj = camera.invProjMat;
-    const float4x4 inverse_view = camera.invViewMat;
-
     float3 N = GBufferUnpackNormal(SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferNormalsTexture, texcoord, 0));
     float2 UV1 = (float2((float)(materialData & 0x3FFFu), 1.0 - (float)((materialData >> 14) & 0x3FFFu)) + 0.5) / 16384.0;
 
-    const float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferDepthTexture, texcoord, 0).r;
-    const float3 P = ReconstructWorldSpacePositionFromDepth(inverse_proj, inverse_view, texcoord, depth).xyz;
     const float3 V = normalize(camera.position.xyz - P);
     // const float3 R = normalize(reflect(-V, N));
 

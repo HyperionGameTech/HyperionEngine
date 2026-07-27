@@ -240,6 +240,10 @@ struct RenderProxyLightmapVolume : IRenderProxy
     FixedArray<Texture*, MaxAtlasesPerLightmapVolume> atlasIrradianceTextures {};
     FixedArray<Texture*, MaxAtlasesPerLightmapVolume> atlasRadianceTextures {};
     uint32 numAtlases = 0;
+
+    Mat4f transformMatrix;
+    BoundingBox worldAabb;
+
     LightmapVolumeShaderData bufferData {};
 };
 

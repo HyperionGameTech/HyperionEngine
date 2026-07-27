@@ -354,8 +354,18 @@ void LightmapVolume::UpdateRenderProxy(RenderProxyLightmapVolume* proxy)
 
     proxy->numAtlases = uint32(m_atlases.Size());
 
-    proxy->bufferData.aabbMax = Vec4f(m_localBounds.max, 1.0f);
-    proxy->bufferData.aabbMin = Vec4f(m_localBounds.min, 1.0f);
+    const BoundingBox worldAabb = m_localBounds.IsValid()
+        ? (GetWorldMatrix() * m_localBounds)
+        : BoundingBox::Empty();
+
+    proxy->worldAabb = worldAabb;
+
+    proxy->transformMatrix = GetWorldMatrix()
+        * Mat4f::Translation(m_localBounds.GetCenter())
+        * Mat4f::Scaling(m_localBounds.GetExtent() * 0.5f);
+
+    proxy->bufferData.aabbMax = Vec4f(worldAabb.max, 1.0f);
+    proxy->bufferData.aabbMin = Vec4f(worldAabb.min, 1.0f);
     proxy->bufferData.textureIndex = ~0u; /// \todo : Set the correct texture index based on the element
 }
 
