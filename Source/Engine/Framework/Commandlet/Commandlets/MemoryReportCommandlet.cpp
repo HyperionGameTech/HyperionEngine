@@ -396,8 +396,6 @@ protected:
 
     virtual Result Run_Impl(const CommandLineArguments& args) override
     {
-        HYP_LOG(Engine, Info, "=== Memory Report ===");
-
         ReportPools(args);
 
         if (args.Contains("objects") && args["objects"].ToBool())
@@ -405,9 +403,6 @@ protected:
 
         if (args.Contains("csharp") && args["csharp"].ToBool())
             ReportCSharpBreakdown();
-
-        LOG_LINE("");
-        LOG_LINE("=== End Memory Report ===");
 
         return {};
     }
