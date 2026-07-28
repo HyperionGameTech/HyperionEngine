@@ -203,7 +203,7 @@ public:
             header->deleted--; // We are reviving a dead slot
         }
 
-        entries[idx].key = key;
+        entries[insertIdx].key = key;
         entries[insertIdx].value = value;
         entries[insertIdx].state = SlotState::Occupied;
 

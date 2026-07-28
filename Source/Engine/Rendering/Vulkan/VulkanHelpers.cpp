@@ -499,7 +499,9 @@ VmaMemoryUsage GetVmaMemoryUsage(GpuBufferType type, bool cpuAccessible)
     case GpuBufferType::RWByteAddressBuffer:    // fallthrough
         return (cpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
     case GpuBufferType::ReadbackBuffer:
-        return (cpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
+        // GPU_TO_CPU prefers host cached memory, which is required for the CPU to read the results back
+        // at a reasonable speed. CPU_TO_GPU would land us in uncached (often write-combined) memory.
+        return (cpuAccessible ? VMA_MEMORY_USAGE_GPU_TO_CPU : VMA_MEMORY_USAGE_GPU_ONLY);
     case GpuBufferType::StagingBuffer:
         return VMA_MEMORY_USAGE_CPU_ONLY;
     case GpuBufferType::IndirectArgsBuffer:
@@ -540,7 +542,9 @@ VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type, bool cpu
     case GpuBufferType::RWByteAddressBuffer:
         return (cpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
     case GpuBufferType::ReadbackBuffer:
-        return (cpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
+        // SEQUENTIAL_WRITE means the mapping is write-only; reading from it is undefined.
+        // Readback buffers exist to be read, so they need RANDOM access.
+        return (cpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT : 0);
     case GpuBufferType::StagingBuffer:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     case GpuBufferType::IndirectArgsBuffer:

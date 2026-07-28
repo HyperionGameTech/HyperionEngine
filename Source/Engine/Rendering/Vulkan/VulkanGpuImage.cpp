@@ -1084,9 +1084,8 @@ void VulkanGpuImage::CopyToBuffer(
     {
         // copy from staging to image
         const Vec3u mipExtent = m_textureDesc.GetMipExtent(mipIndex);
-        const size_t mipByteSize = m_textureDesc.GetMipByteSize(mipIndex, /* includeArrayLayers */ true);
 
-        const size_t layerStep = mipByteSize / NumArrayLayers();
+        const size_t layerStep = m_textureDesc.GetMipByteSize(mipIndex, /* includeArrayLayers */ false);
 
         for (uint16 layerIndex = newSubResource.baseArrayLayer; layerIndex < newSubResource.baseArrayLayer + newSubResource.numLayers; layerIndex++)
         {
@@ -1097,8 +1096,7 @@ void VulkanGpuImage::CopyToBuffer(
             currSubResource.numLayers = 1;
 
             VkBufferImageCopy region {};
-
-            region.bufferOffset = bufferOffset + (layerIndex * layerStep);
+            region.bufferOffset = bufferOffset + ((layerIndex - newSubResource.baseArrayLayer) * layerStep);
             region.bufferRowLength = 0;
             region.bufferImageHeight = 0;
 
@@ -1119,8 +1117,10 @@ void VulkanGpuImage::CopyToBuffer(
                 &region);
         }
 
-        bufferOffset += mipByteSize;
+        bufferOffset += layerStep * newSubResource.numLayers;
     }
+
+    dstBuffer->InsertHostReadBarrier(commandBuffer);
 }
 
 void VulkanGpuImage::Fill(

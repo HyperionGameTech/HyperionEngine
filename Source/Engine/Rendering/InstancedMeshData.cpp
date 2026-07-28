@@ -48,8 +48,6 @@ void InstancedMeshData::PageBlobData()
         return;
     }
 
-    bool needSaveBlobData = false;
-
     BlobStorage* blobStorage = registry->HasBlobStorage() ? &registry->GetBlobStorage() : nullptr;
 
     for (uint32 i = 0; i < uint32(buffers.Size()); i++)
@@ -63,14 +61,24 @@ void InstancedMeshData::PageBlobData()
             if (!blobStorage || !blobStorage->GetData(ref.key, ref.size, ref.raw))
             {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
+                const Name blobKey = ref.key;
+                const uint64 expectedSize = ref.size;
+
                 FileByteReader stream { registry->GetRootPath() / AssetBuckets::InstancedMeshData.GetName() / (String(*GetName()) + "." + BufferNames[i] + ".raw.blob") };
                 if (!stream.Eof())
                 {
+                    if (stream.Max() != expectedSize)
+                    {
+                        HYP_LOG(Engine, Error, "Local blob data for InstancedMeshData '{}' buffer {} is {} bytes but the manifest expects {}. Data corruption detected.",
+                                 GetName(), BufferNames[i], stream.Max(), expectedSize);
+
+                        continue;
+                    }
+
                     ByteBuffer buffer = stream.Read(stream.Max());
 
                     AllocateBlobData(ref, buffer.Data(), buffer.Size(), 1);
-
-                    needSaveBlobData = true;
+                    ref.key = blobKey;
 
                     continue;
                 }
@@ -83,18 +91,6 @@ void InstancedMeshData::PageBlobData()
             }
         }
     }
-
-#if HYP_EDITOR
-    if (needSaveBlobData)
-    {
-        Result saveBlobDataResult = SaveBlobData(blobStorage);
-
-        if (saveBlobDataResult.HasError())
-        {
-            HYP_LOG(Assets, Error, "Failed to save local blob data for InstancedMeshData: {}", saveBlobDataResult.GetError().GetMessage());
-        }
-    }
-#endif
 }
 
 void InstancedMeshData::UnpageBlobData()

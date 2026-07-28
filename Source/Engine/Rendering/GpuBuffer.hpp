@@ -79,6 +79,15 @@ public:
     {
     }
 
+    virtual void Invalidate(size_t offset, size_t count)
+    {
+    }
+
+    HYP_FORCE_INLINE void Invalidate()
+    {
+        Invalidate(0, m_size);
+    }
+
     virtual void InsertBarrier(CommandBuffer* commandBuffer, ResourceState newState) const = 0;
     virtual void InsertBarrier(CommandBuffer* commandBuffer, ResourceState newState, ShaderModuleType shaderType) const = 0;
 

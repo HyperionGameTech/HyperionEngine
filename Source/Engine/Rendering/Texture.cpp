@@ -78,17 +78,27 @@ static bool CheckImageData(Texture& texture, GpuImage& image)
         ? textureDesc.mipOffsets[0]
         : uint32(textureDesc.GetByteSize());
 
-    ConstByteView largestMipData = ConstByteView(imageData.Data(), largestMipSize);
-
     if (textureDesc != image.GetTextureDesc())
     {
         HYP_LOG(Streaming, Warning, "Streamed texture data TextureDesc not equal to Image's TextureDesc!");
     }
 
-    if (largestMipData.Size() != image.GetByteSize())
+    if (largestMipSize != image.GetByteSize())
     {
         HYP_LOG(Streaming, Warning, "Streamed texture data buffer size mismatch for texture asset {}! Expected: {}, Got: {}",
-                texture.GetName(), image.GetByteSize(), largestMipData.Size());
+                texture.GetName(), image.GetByteSize(), largestMipSize);
+
+        return false;
+    }
+
+    const size_t expectedSize = textureDesc.HasStoredMips()
+        ? textureDesc.GetByteSize(/* includeAllMips */ true)
+        : textureDesc.GetByteSize();
+
+    if (imageData.Size() < expectedSize)
+    {
+        HYP_LOG(Engine, Error, "Streamed texture data for asset {} is truncated! Expected {} bytes, got {}",
+                texture.GetName(), expectedSize, imageData.Size());
 
         return false;
     }
@@ -460,13 +470,26 @@ void Texture::PageBlobData()
         {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
             // check if failed; if so, try to import from raw data blob in project directory
+            const Name blobKey = m_imageData.key;
+            const uint64 expectedSize = m_imageData.size;
+
             FileByteReader stream { registry->GetRootPath() / AssetBuckets::Textures.GetName() / (String(*GetName()) + ".TEX.raw.blob") };
             if (!stream.Eof())
             {
+                if (stream.Max() != expectedSize)
+                {
+                    HYP_LOG(Engine, Error, "Local blob data for texture '{}' is {} bytes but the manifest expects {}, ignoring it",
+                            GetName(), stream.Max(), expectedSize);
+
+                    return;
+                }
+
                 ByteBuffer buffer = stream.Read(stream.Max());
                 AssertDebug(buffer.Size() == stream.Max());
 
                 AllocateBlobData(m_imageData, buffer.Data(), buffer.Size(), 1);
+
+                m_imageData.key = blobKey;
 
                 return;
             }
@@ -792,6 +815,9 @@ void Texture::Readback(GpuBufferRef& outBuffer, bool allMips)
         return;
     }
 
+    // GPU writes are not guaranteed to be visible to the CPU until the range is invalidated
+    outBuffer->Invalidate();
+
 #ifdef HYP_DX12
     {
         const TextureDesc& desc = m_gpuImage->GetTextureDesc();
@@ -902,6 +928,9 @@ void Texture::EnqueueReadback(Proc<void(GpuBuffer&)>&& callback, bool allMips)
             currentFrame->OnFrameEnd
                 .Bind([payload = _this->payload](...)
                       {
+                          // GPU writes are not guaranteed to be visible to the CPU until the range is invalidated
+                          payload->readbackBuffer->Invalidate();
+
 #ifdef HYP_DX12
                           {
                               const TextureDesc& desc = payload->image->GetTextureDesc();

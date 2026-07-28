@@ -91,6 +91,13 @@ public:
 
     void Flush(size_t offset, size_t count) override;
 
+    using GpuBufferBase::Invalidate;
+    void Invalidate(size_t offset, size_t count) override;
+
+    /*! \brief For readback buffers, record a memory dependency that makes the transfer writes
+     *  visible to host reads. No-op for any other buffer type. */
+    void InsertHostReadBarrier(VulkanCommandBuffer* commandBuffer) const;
+
 #ifdef HYP_RHI_DEBUG_NAMES
     void SetDebugName(Name name) override;
 #endif

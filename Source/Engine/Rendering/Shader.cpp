@@ -83,8 +83,6 @@ void Shader::PageBlobData()
         return;
     }
 
-    bool needSaveBlobData = false;
-
     BlobStorage* blobStorage = registry->HasBlobStorage() ? &registry->GetBlobStorage() : nullptr;
 
     for (uint32 i = 0; i < uint32(shaderBlobs.Size()); i++)
@@ -99,14 +97,24 @@ void Shader::PageBlobData()
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
                 const char* moduleTypeString = GetShaderHeaderPrefix(moduleType);
 
+                const Name blobKey = ref.key;
+                const uint64 expectedSize = ref.size;
+
                 FileByteReader stream { registry->GetRootPath() / AssetBuckets::Shaders.GetName() / (String(*GetName()) + "." + moduleTypeString + ".raw.blob") };
                 if (!stream.Eof())
                 {
+                    if (stream.Max() != expectedSize)
+                    {
+                        HYP_LOG(Engine, Error, "Local blob data for shader '{}' module {} is {} bytes but the manifest expects {}. Data corruption detected.",
+                                 GetName(), moduleTypeString, stream.Max(), expectedSize);
+
+                        continue;
+                    }
+
                     ByteBuffer buffer = stream.Read(stream.Max());
 
                     AllocateBlobData(ref, buffer.Data(), buffer.Size(), 1);
-
-                    needSaveBlobData = true;
+                    ref.key = blobKey;
 
                     continue;
                 }
@@ -121,20 +129,6 @@ void Shader::PageBlobData()
             Assert(ref.raw != nullptr);
         }
     }
-
-#if HYP_EDITOR
-    if (needSaveBlobData && blobStorage != nullptr)
-    {
-        Result saveBlobDataResult = SaveBlobData(blobStorage);
-
-        if (saveBlobDataResult.HasError())
-        {
-            HYP_LOG(Assets, Error, "Failed to save local blob data: {}", saveBlobDataResult.GetError().GetMessage());
-        }
-
-        MarkDirty();
-    }
-#endif
 }
 
 void Shader::UnpageBlobData()

@@ -225,6 +225,19 @@ void VulkanGpuBuffer::Flush(size_t offset, size_t count)
     Assert(result == VK_SUCCESS);
 }
 
+void VulkanGpuBuffer::Invalidate(size_t offset, size_t count)
+{
+    if (!IsCreated())
+    {
+        return;
+    }
+
+    AssertDebug(offset + count <= Size());
+
+    VkResult result = vmaInvalidateAllocation(RI.GetDevice()->GetVmaAllocator(), m_vmaAllocation, offset, count);
+    Assert(result == VK_SUCCESS);
+}
+
 bool VulkanGpuBuffer::IsCreated() const
 {
     return m_handle != VK_NULL_HANDLE;
@@ -334,6 +347,32 @@ void VulkanGpuBuffer::InsertBarrier(
     m_resourceState = newState;
 }
 
+void VulkanGpuBuffer::InsertHostReadBarrier(VulkanCommandBuffer* commandBuffer) const
+{
+    if (m_type != GpuBufferType::ReadbackBuffer || !IsCreated())
+    {
+        return;
+    }
+
+    VkBufferMemoryBarrier barrier { VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER };
+    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    barrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
+    barrier.buffer = m_handle;
+    barrier.offset = 0;
+    barrier.size = VK_WHOLE_SIZE;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+    vkCmdPipelineBarrier(
+        commandBuffer->GetVulkanHandle(),
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_HOST_BIT,
+        0,
+        0, nullptr,
+        1, &barrier,
+        0, nullptr);
+}
+
 void VulkanGpuBuffer::CopyFrom(
     VulkanCommandBuffer* commandBuffer,
     const VulkanGpuBuffer* srcBuffer,
@@ -367,6 +406,8 @@ void VulkanGpuBuffer::CopyFrom(
         m_handle,
         1,
         &region);
+
+    InsertHostReadBarrier(commandBuffer);
 }
 
 void VulkanGpuBuffer::CopyFrom(
@@ -407,6 +448,8 @@ void VulkanGpuBuffer::CopyFrom(
         m_handle,
         1,
         &region);
+
+    InsertHostReadBarrier(commandBuffer);
 }
 
 RendererResult VulkanGpuBuffer::Create()
@@ -464,6 +507,7 @@ RendererResult VulkanGpuBuffer::Create()
 
         // Memset all to zero
         Memory::Fill(m_mapping, 0, m_size);
+        Flush(0, m_size);
     }
 #ifdef HYP_RHI_DEBUG_NAMES
     if (Name debugName = GetDebugName())

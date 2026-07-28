@@ -363,7 +363,7 @@ void EnvProbe::OnAddedToWorld(World* world)
             if (!m_texture.IsValid())
             {
                 m_texture = MakeHandle<Texture>(TextureDesc {
-                    TextureType::Texture2D,
+                    TextureType::Cubemap,
                     TextureFormat::RGBA8,
                     Vec3u { m_dimensions, 1 },
                     TFM_LINEAR_MIPMAP,

@@ -330,6 +330,9 @@ void PathTracer::ReadHitsBuffer(
             RI.GetCurrentFrame()->OnFrameEnd.Bind(
                                                 [&payload, buffer, cb = std::move(callback)](Frame*)
                                                 {
+                                                    // GPU writes are not guaranteed to be visible to the CPU until the range is invalidated
+                                                    buffer->Invalidate();
+
                                                     Span<LightmapHit> hits;
                                                     hits.first = reinterpret_cast<LightmapHit*>(buffer->Map());
                                                     hits.last = hits.first + (buffer->Size() / sizeof(LightmapHit));

@@ -10,6 +10,8 @@
 
 #include <Scene/FogVolume.hpp>
 #include <Scene/Light.hpp>
+#include <Scene/Scene.hpp>
+#include <Scene/World.hpp>
 #include <Scene/EnvProbe.hpp>
 #include <Scene/EntityManager.hpp>
 
@@ -84,35 +86,45 @@ Result BakeData<FogVolume>::Build()
     }
 
     {
+        m_lights.Clear();
+        m_envProbes.Clear();
+
         bool foundSun = false;
 
-        EntityManager* entityManager = m_fogVolume->GetEntityManager();
+        World* world = m_fogVolume->GetWorld();
+        Assert(world != nullptr);
 
-        if (entityManager != nullptr)
+        for (Scene* scene : world->GetScenes())
         {
-            for (auto [entity, _] : entityManager->GetEntitySet<EntityType<DirectionalLight>>())
+            if (!(scene->GetSceneFlags() & SceneFlags::FOREGROUND))
             {
-                m_sunDirection = StaticCast<DirectionalLight>(entity)->GetDirection();
-                foundSun = true;
-
-                break;
+                continue;
             }
 
-            m_lights.Clear();
+            EntityManager* mgr = scene->GetEntityManager();
 
-            for (auto [entity, _] : entityManager->GetEntitySet<EntityType<PointLight>>())
+            if (!mgr)
             {
-                m_lights.PushBack(MakeStrongRef(StaticCast<PointLight>(entity)));
+                continue;
             }
 
-            for (auto [entity, _] : entityManager->GetEntitySet<EntityType<SpotLight>>())
+            for (auto [entity, _] : mgr->GetEntitySet<EntityType<Light>>())
             {
-                m_lights.PushBack(MakeStrongRef(StaticCast<SpotLight>(entity)));
+                if (StaticCast<Light>(entity)->GetLightType() == LightType::Directional)
+                {
+                    if (!foundSun)
+                    {
+                        m_sunDirection = StaticCast<DirectionalLight>(entity)->GetDirection();
+                        foundSun = true;
+                    }
+
+                    continue;
+                }
+
+                m_lights.PushBack(MakeStrongRef(StaticCast<Light>(entity)));
             }
 
-            m_envProbes.Clear();
-
-            for (auto [entity, _] : entityManager->GetEntitySet<EntityType<EnvProbe>>())
+            for (auto [entity, _] : mgr->GetEntitySet<EntityType<EnvProbe>>())
             {
                 EnvProbe* envProbe = StaticCast<EnvProbe>(entity);
 

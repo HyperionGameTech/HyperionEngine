@@ -102,7 +102,9 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
         prefilteredEnvMap->GetFormat(),
         prefilteredEnvMap->GetExtent());
 
-    if (inTexture->HasMipMaps())
+    const bool aliasesDestination = inTexture == prefilteredEnvMap;
+
+    if (inTexture->HasMipMaps() && !aliasesDestination)
     {
         srcTexture = inTexture;
     }
@@ -550,6 +552,10 @@ void ComputeEnvProbeSphericalHarmonics(const EnvProbe& envProbe, const Texture& 
 
                         Vec4f raw[9];
                         Assert(payload.readbackBuffer.IsValid() && payload.readbackBuffer->Size() >= sizeof(raw));
+
+                        // GPU writes are not guaranteed to be visible to the CPU until the range is invalidated
+                        payload.readbackBuffer->Invalidate();
+
                         payload.readbackBuffer->Read(sizeof(raw), raw);
 
                         { // Read back the SH coefficients from the GPU buffer and store on the EnvProbe.

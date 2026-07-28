@@ -60,27 +60,24 @@ void AnimationTrack::PageBlobData()
         {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
             // check if failed; if so, try to import from raw data blob in project directory
+            const Name blobKey = m_keyframeData.key;
+            const uint64 expectedSize = m_keyframeData.size;
+
             FileByteReader stream { registry->GetRootPath() / AssetBuckets::AnimationTracks.GetName() / (String(*GetName()) + ".KEYF.raw.blob") };
             if (!stream.Eof())
             {
+                if (stream.Max() != expectedSize)
+                {
+                    HYP_LOG(Engine, Error, "Local blob data for animation track '{}' keyframes is {} bytes but the manifest expects {}, ignoring it",
+                            GetName(), stream.Max(), expectedSize);
+
+                    return;
+                }
+
                 ByteBuffer buffer = stream.Read(stream.Max());
 
                 AllocateBlobData(m_keyframeData, buffer.Data(), buffer.Size(), alignof(Keyframe));
-
-#if HYP_EDITOR
-                // Update to use cache instead of blob storage
-                if (blobStorage != nullptr)
-                {
-                    Result saveResult = SaveBlobData(blobStorage);
-
-                    if (saveResult.HasError())
-                    {
-                        HYP_LOG(Assets, Error, "Failed to save animation track blob data: {}", saveResult.GetError().GetMessage());
-                    }
-
-                    MarkDirty();
-                }
-#endif // HYP_EDITOR
+                m_keyframeData.key = blobKey;
 
                 return;
             }

@@ -441,7 +441,7 @@ void RayGenMain()
 
                         const float weight = (isSky ? 1.0 : CalculateEnvProbeWeight(origin, aabbMin.xyz, aabbMax.xyz)) * diffuseStrength * (1.0 - environmentRadiance.a);
 
-                        const float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, textureIndex, direction, 6.0);//EnvProbeSH(currentEnvProbe, direction, /* order */ 2);
+                        const float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, textureIndex, direction, 0.0);//EnvProbeSH(currentEnvProbe, direction, /* order */ 2);
                         environmentRadiance += env * weight;
                 }
 

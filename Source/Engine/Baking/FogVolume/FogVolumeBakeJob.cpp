@@ -175,6 +175,10 @@ public:
                 BakeJob<FogVolume>* job = readbackPayload->job;
 
                 job->m_gpuResults.Resize(readbackPayload->numResults);
+
+                // GPU writes are not guaranteed to be visible to the CPU until the range is invalidated
+                readbackPayload->readbackBuffer->Invalidate();
+
                 readbackPayload->readbackBuffer->Read(readbackPayload->numResults * sizeof(Vec4f), job->m_gpuResults.Data());
 
                 EnqueueDeletion(std::move(readbackPayload->sdfTexture));

@@ -73,13 +73,25 @@ void ScriptAsset::PageBlobData()
         if (!blobStorage || !blobStorage->GetData(m_data.key, m_data.size, m_data.raw))
         {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
+            const Name blobKey = m_data.key;
+            const uint64 expectedSize = m_data.size;
+
             FileByteReader stream { registry->GetRootPath() / AssetBuckets::Scripts.GetName() / (String(*GetName()) + ".BC.raw.blob") };
 
             if (!stream.Eof())
             {
+                if (stream.Max() != expectedSize)
+                {
+                    HYP_LOG(Assets, Error, "Local blob data for script asset '{}' is {} bytes but the manifest expects {}, ignoring it",
+                            GetName(), stream.Max(), expectedSize);
+
+                    return;
+                }
+
                 ByteBuffer buffer = stream.Read(stream.Max());
 
                 AllocateBlobData(m_data, buffer.Data(), buffer.Size(), 1);
+                m_data.key = blobKey;
 
                 return;
             }

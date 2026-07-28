@@ -189,8 +189,6 @@ void Mesh::PageBlobData()
         return;
     }
 
-    bool needsSaveBlobData = false;
-
     BlobStorage* blobStorage = registry->HasBlobStorage() ? &registry->GetBlobStorage() : nullptr;
 
     const String meshName(*GetName());
@@ -210,6 +208,9 @@ void Mesh::PageBlobData()
             {
                 if (lodIndex == 0)
                 {
+                    const Name blobKey = vertexData.key;
+                    const uint64 expectedSize = vertexData.size;
+
                     ([&]()
                      {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
@@ -217,11 +218,18 @@ void Mesh::PageBlobData()
                          FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (meshName + ".VB.raw.blob") };
                          if (!stream.Eof())
                          {
+                             if (stream.Max() != expectedSize)
+                             {
+                                 HYP_LOG(Engine, Error, "Local blob data for {} vertex buffer (LOD {}) is {} bytes but the manifest expects {}, ignoring it",
+                                         GetName(), lodIndex, stream.Max(), expectedSize);
+
+                                 return;
+                             }
+
                              ByteBuffer buffer = stream.Read(stream.Max());
 
                              AllocateBlobData(vertexData, buffer.Data(), buffer.Size(), 16);
-
-                             needsSaveBlobData = true;
+                             vertexData.key = blobKey;
 
                              return;
                          }
@@ -244,6 +252,9 @@ void Mesh::PageBlobData()
             {
                 if (lodIndex == 0)
                 {
+                    const Name blobKey = indexData.key;
+                    const uint64 expectedSize = indexData.size;
+
                     ([&]()
                      {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
@@ -251,12 +262,19 @@ void Mesh::PageBlobData()
                          FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (meshName + ".IB.raw.blob") };
                          if (!stream.Eof())
                          {
+                             if (stream.Max() != expectedSize)
+                             {
+                                 HYP_LOG(Engine, Error, "Local blob data for {} index buffer (LOD {}) is {} bytes but the manifest expects {}, ignoring it",
+                                         GetName(), lodIndex, stream.Max(), expectedSize);
+
+                                 return;
+                             }
+
                              ByteBuffer buffer = stream.Read(stream.Max());
                              AssertDebug(buffer.Size() == stream.Max());
 
                              AllocateBlobData(indexData, buffer.Data(), buffer.Size(), alignof(uint32));
-
-                             needsSaveBlobData = true;
+                             indexData.key = blobKey;
 
                              return;
                          }
@@ -284,17 +302,27 @@ void Mesh::PageBlobData()
     {
         if (!blobStorage || !blobStorage->GetData(m_bvhData.key, m_bvhData.size, m_bvhData.raw))
         {
+            const Name blobKey = m_bvhData.key;
+            const uint64 expectedSize = m_bvhData.size;
+
             ([&]()
              {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
                  FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (meshName + ".BVH.raw.blob") };
                  if (!stream.Eof())
                  {
+                     if (stream.Max() != expectedSize)
+                     {
+                         HYP_LOG(Engine, Error, "Local BVH blob data for {} is {} bytes but the manifest expects {}, ignoring it",
+                                 GetName(), stream.Max(), expectedSize);
+
+                         return;
+                     }
+
                      ByteBuffer buffer = stream.Read(stream.Max());
 
                      AllocateBlobData(m_bvhData, buffer.Data(), buffer.Size(), alignof(uint32));
-
-                     needsSaveBlobData = true;
+                     m_bvhData.key = blobKey;
 
                      return;
                  }
@@ -313,20 +341,6 @@ void Mesh::PageBlobData()
             BVHNode::Deserialize(m_bvh, m_bvhData.raw, m_bvhData.size);
         }
     }
-
-#if HYP_EDITOR
-    // Update to use blob cache rather than inline
-    if (needsSaveBlobData && blobStorage != nullptr)
-    {
-        Result saveBlobDataResult = SaveBlobData(blobStorage);
-        if (saveBlobDataResult.HasError())
-        {
-            HYP_LOG(Assets, Error, "Failed to save local blob data: {}", saveBlobDataResult.GetError().GetMessage());
-        }
-
-        MarkDirty();
-    }
-#endif
 }
 
 void Mesh::UnpageBlobData()

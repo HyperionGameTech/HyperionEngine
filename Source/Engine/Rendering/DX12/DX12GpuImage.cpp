@@ -981,7 +981,7 @@ void DX12GpuImage::CopyFromBuffer(
         const uint16 actualLayer = (dstArrayLayer == UINT16_MAX) ? layerIdx : dstArrayLayer;
 
         D3D12_PLACED_SUBRESOURCE_FOOTPRINT placedFootprint {};
-        placedFootprint.Offset = srcBufferOffset + static_cast<uint64>(layerIdx) * mipExtent.y * alignedRowPitch;
+        placedFootprint.Offset = srcBufferOffset + static_cast<uint64>(layerIdx) * mipExtent.y * mipExtent.z * alignedRowPitch;
         placedFootprint.Footprint.Depth = mipExtent.z;
         placedFootprint.Footprint.Height = mipExtent.y;
         placedFootprint.Footprint.Width = mipExtent.x;
@@ -1076,7 +1076,6 @@ void DX12GpuImage::CopyToBuffer(
         const uint32 bytesPerPixel = TextureUtils::BytesPerComponent(m_textureDesc.format) * TextureUtils::NumComponents(m_textureDesc.format);
         const uint32 alignedRowPitch = ByteUtil::AlignAs(mipExtent.x * bytesPerPixel, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
         const size_t layerStep = static_cast<size_t>(alignedRowPitch) * mipExtent.y * mipExtent.z;
-        const size_t mipByteSize = layerStep * NumArrayLayers();
 
         for (uint16 layerIndex = newSubResource.baseArrayLayer; layerIndex < newSubResource.baseArrayLayer + newSubResource.numLayers; layerIndex++)
         {
@@ -1101,7 +1100,7 @@ void DX12GpuImage::CopyToBuffer(
             footprint.Footprint.Depth = mipExtent.z;
             footprint.Footprint.Format = ToDXGIFormat(m_textureDesc.format);
             footprint.Footprint.RowPitch = alignedRowPitch;
-            footprint.Offset = bufferOffset + (layerIndex * layerStep);
+            footprint.Offset = bufferOffset + ((layerIndex - newSubResource.baseArrayLayer) * layerStep);
 
             dstLocation.PlacedFootprint = footprint;
 
@@ -1120,7 +1119,7 @@ void DX12GpuImage::CopyToBuffer(
                 &dstBox);
         }
 
-        bufferOffset += mipByteSize;
+        bufferOffset += layerStep * newSubResource.numLayers;
     }
 }
 
