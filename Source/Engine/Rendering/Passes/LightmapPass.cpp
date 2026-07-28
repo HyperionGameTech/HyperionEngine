@@ -22,6 +22,7 @@
 #include <Rendering/GpuBuffer.hpp>
 #include <Rendering/ShaderManager.hpp>
 #include <Rendering/StencilMasks.hpp>
+#include <Rendering/CBufferAllocator.hpp>
 
 #include <Rendering/Shadows/ShadowMapCache.hpp>
 
@@ -65,10 +66,6 @@ LightmapPass::LightmapPass()
 
 LightmapPass::~LightmapPass()
 {
-    for (auto& data : m_lightmapVolumePassData)
-    {
-        EnqueueDeletion(std::move(data.uniformBuffers));
-    }
 }
 
 void LightmapPass::Create()
@@ -93,16 +90,13 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 {
     AssertDebug(renderSetup.world && renderSetup.volume && renderSetup.view);
 
-    LightmapVolume* volume = DynamicCast<LightmapVolume>(renderSetup.volume);
-    AssertDebug(volume != nullptr);
+    RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
+    rpl.BeginRead();
 
-    RenderProxyLightmapVolume* proxy = static_cast<RenderProxyLightmapVolume*>(GetRenderProxy(volume));
-    Assert(proxy != nullptr);
+    HYP_DEFER({ rpl.EndRead(); });
 
-    if (proxy->numAtlases == 0)
-    {
-        return; // nothing to do
-    }
+    RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
+    Assert(cameraProxy != nullptr);
 
     DeferredPassData* dpd = DynamicCast<DeferredPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
@@ -118,9 +112,8 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     cr << SetInputLayout(m_volumeMesh->GetMeshAttributes().inputLayout);
     cr << SetTopology(m_volumeMesh->GetMeshAttributes().topology);
-
     // Cull front faces so the volume still covers the screen when the camera is inside it.
-    cr << SetFaceCullMode(FCM_FRONT);
+    //cr << SetFaceCullMode(FCM_FRONT);
     cr << SetFillMode(FM_FILL);
 
     cr << SetDepthTest(false);
@@ -134,8 +127,6 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         cr << SetDepthWrite(true);
         cr << SetDepthTest(true);
     });
-
-    LightmapVolumePassData& data = GetLightmapVolumePassData(volume);
 
     uint32 numShaderUniforms = 0;
 
@@ -155,14 +146,9 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, RI.shadowMapCache->GetAtlasImageView());
     cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, RI.shadowMapCache->GetPointLightShadowMapImageView());
 
-    // Cameras and Worlds buffers
-    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(renderSetup.view->GetCamera()));
-    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
-
     // Env probes
     cr << SetShaderUniform(numShaderUniforms++, "EnvProbesColorTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesColorTexture));
     cr << SetShaderUniform(numShaderUniforms++, "EnvProbesDepthTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesDepthTexture));
-    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes]);
 
     if (renderSetup.envProbe != nullptr)
     {
@@ -182,43 +168,49 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         cr << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, RI.textureViewCache->GetOrCreate(RI.placeholderData->textureSolidWhite));
     }
 
-    if (data.uniformBuffers.Size() < proxy->numAtlases)
+    for (LightmapVolume* lmv : rpl.GetLightmapVolumes())
     {
-        data.uniformBuffers.Resize(proxy->numAtlases);
-    }
+        RenderProxyLightmapVolume* proxy = static_cast<RenderProxyLightmapVolume*>(GetRenderProxy(lmv));
+        Assert(proxy != nullptr);
 
-    for (uint32 atlasIndex = 0; atlasIndex < proxy->numAtlases; atlasIndex++)
-    {
-        Texture* irradianceTexture = proxy->atlasIrradianceTextures[atlasIndex];
-
-        LightmapVolumeUniforms uniforms {};
-        uniforms.transformMatrix = proxy->transformMatrix;
-        uniforms.aabbMin = Vec4f(proxy->worldAabb.min, 1.0f);
-        uniforms.aabbMax = Vec4f(proxy->worldAabb.max, 1.0f);
-        uniforms.numAtlases = proxy->numAtlases;
-        uniforms.irradianceWeight = irradianceTexture ? 1.0f : 0.0f;
-
-        GpuBufferRef& uniformBuffer = data.uniformBuffers[atlasIndex];
-
-        if (!uniformBuffer)
+        if (proxy->numAtlases == 0)
         {
-            uniformBuffer = RI.MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(LightmapVolumeUniforms));
-            Check(uniformBuffer->Create());
+            continue; // nothing to do
         }
 
-        uniformBuffer->Copy(sizeof(uniforms), &uniforms);
+        LightmapVolumePassData& data = GetLightmapVolumePassData(lmv);
 
-        uint32 localNumShaderUniforms = numShaderUniforms;
+        for (uint32 atlasIndex = 0; atlasIndex < proxy->numAtlases; atlasIndex++)
+        {
+            Texture* irradianceTexture = proxy->atlasIrradianceTextures[atlasIndex];
 
-        cr << SetShaderUniform(localNumShaderUniforms++, "IrradianceTexture"_sh, RI.textureViewCache->GetOrCreate(irradianceTexture != nullptr ? irradianceTexture : RI.placeholderData->textureSolidBlack));
-        cr << SetShaderUniform(localNumShaderUniforms++, "LightmapSampler"_sh, RI.placeholderData->GetSamplerLinear());
-        cr << SetShaderUniform(localNumShaderUniforms++, "LightmapVolumeUniforms"_sh, uniformBuffer);
+            LightmapVolumeUniforms uniforms {};
+            uniforms.transformMatrix = proxy->transformMatrix;
+            uniforms.aabbMin = Vec4f(proxy->worldAabb.min, 1.0f);
+            uniforms.aabbMax = Vec4f(proxy->worldAabb.max, 1.0f);
+            uniforms.numAtlases = proxy->numAtlases;
+            uniforms.irradianceWeight = irradianceTexture ? 1.0f : 0.0f;
 
-        cr << CommitDrawState();
+            GpuBuffer* cbuffer;
+            size_t cbufferOffset;
+            size_t cbufferSize;
 
-        cr << BindVertexBuffer(m_volumeMesh->GetVertexBuffer());
-        cr << BindIndexBuffer(m_volumeMesh->GetIndexBuffer());
-        cr << DrawIndexed(36); // draw cube
+            RI.cbufferAllocator->Write(&cameraProxy->bufferData);
+            RI.cbufferAllocator->Write(&uniforms);
+
+            RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+
+            uint32 localNumShaderUniforms = numShaderUniforms;
+
+            cr << SetShaderUniform(localNumShaderUniforms++, "IrradianceTexture"_sh, RI.textureViewCache->GetOrCreate(irradianceTexture != nullptr ? irradianceTexture : RI.placeholderData->textureSolidBlack));
+            cr << SetShaderUniform(localNumShaderUniforms++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
+
+            cr << CommitDrawState();
+
+            cr << BindVertexBuffer(m_volumeMesh->GetVertexBuffer());
+            cr << BindIndexBuffer(m_volumeMesh->GetIndexBuffer());
+            cr << DrawIndexed(36); // draw cube
+        }
     }
 
     // reset stencil state back to default

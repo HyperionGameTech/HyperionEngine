@@ -29,9 +29,9 @@ protected:
     struct LightmapVolumePassData
     {
         class LightmapVolume* volume = nullptr;
+
         Array<Texture*, RenderAllocator> atlasIrradianceTextures;
         Array<Texture*, RenderAllocator> atlasBentNormalTextures;
-        Array<GpuBufferRef, RenderAllocator> uniformBuffers;
     };
 
     virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer) override;

@@ -1812,30 +1812,31 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         frame->cr << InsertBarrier(RI.shadowMapCache->GetPointLightShadowMapImage(), RS_SHADER_RESOURCE, ShaderModuleType::Pixel);
 
         frame->cr << SetCurrentFramebuffer(passData.lightingFramebuffer);
+        
+        // We need to use NONE because we draw lightmap volumes as boxes, not quads,
+        // and we need the camera to be able to see the inside of the box.
+        // Changing cull mode during lightmap volume drawing will break the render pass.
+        frame->cr << SetFaceCullMode(FCM_NONE);
+        frame->cr << SetCurrentBlendFunction(BlendFunction::Additive());
 
         const bool isPathTracer = g_cvPathTracing.Get();
 
         passData.indirectLightingPass->RenderToFramebuffer(frame, rs, passData.lightingFramebuffer);
 
-        if (g_cvEnableLightmapVolumes.Get() && !isPathTracer)
+        if (g_cvEnableLightmapVolumes.Get() && rpl.GetLightmapVolumes().NumCurrent() != 0 && !isPathTracer)
         {
-            // apply baked lighting over lightmapped objects
-            for (LightmapVolume* lightmapVolume : rpl.GetLightmapVolumes())
-            {
-                RenderSetup lightmapPassRS = rs.Fork();
-                lightmapPassRS.volume = lightmapVolume;
-
-                // Render the objects to have lightmaps applied into the translucent pass framebuffer with a full screen quad.
-                // Apply lightmaps over the now shaded opaque objects.
-                passData.lightmapPass->RenderToFramebuffer(frame, lightmapPassRS, passData.lightingFramebuffer);
-            }
+            // Render the objects to have lightmaps applied into the translucent pass framebuffer with a full screen quad.
+            // Apply lightmaps over the now shaded opaque objects.
+            passData.lightmapPass->RenderToFramebuffer(frame, rs, passData.lightingFramebuffer);
         }
 
         if (!isPathTracer)
         {
             passData.directLightingPass->RenderToFramebuffer(frame, rs, passData.lightingFramebuffer);
         }
-
+        
+        frame->cr << SetFaceCullMode(FCM_BACK);
+        frame->cr << SetCurrentBlendFunction(BlendFunction::None());
         frame->cr << SetCurrentFramebuffer(nullptr);
     }
 
@@ -2008,6 +2009,7 @@ void DeferredPass::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
 
     RenderProxyList& rpl = GetConsumerProxyList(rs.view);
     rpl.BeginRead();
+
     HYP_DEFER({ rpl.EndRead(); });
 
     if (!pd->rayTracingTlases[currentFrameIndex])

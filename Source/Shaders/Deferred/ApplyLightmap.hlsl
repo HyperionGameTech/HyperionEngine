@@ -21,11 +21,10 @@ struct VSOutput
 #include "../include/Shared.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-DECLARE_SRV_DYNAMIC(LightmapPass, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
-#define camera _cameras_buffer[0]
-
-DECLARE_BUFFER(LightmapPass, LightmapVolumeUniforms) cbuffer LightmapVolumeUniforms
+DECLARE_BUFFER_DYNAMIC(LightmapPass, CBuffer) cbuffer CBuffer
 {
+    Camera camera;
+    
     float4x4 transformMatrix;
 };
 
@@ -55,6 +54,9 @@ VSOutput VSMain(VSInput input)
 
 #ifdef PIXEL_SHADER
 
+#define sampler_linear SamplerLinear
+#define sampler_nearest SamplerNearest
+
 struct PSInput
 {
     float4 position_cs : SV_POSITION;
@@ -81,8 +83,8 @@ DECLARE_SRV(LightmapPass, GBufferDepthTexture) Texture2D GBufferDepthTexture;
 
 DECLARE_SRV(LightmapPass, GBufferMipChain) Texture2D GBufferMipChain;
 
-DECLARE_SAMPLER(LightmapPass, SamplerNearest) SamplerState sampler_nearest;
-DECLARE_SAMPLER(LightmapPass, SamplerLinear) SamplerState sampler_linear;
+DECLARE_SAMPLER(LightmapPass, SamplerNearest) SamplerState SamplerNearest;
+DECLARE_SAMPLER(LightmapPass, SamplerLinear)  SamplerState SamplerLinear;
 
 DECLARE_SRV(LightmapPass, SSAOResultTexture) Texture2D SSAOResultTexture;
 
@@ -91,12 +93,6 @@ DECLARE_SRV(LightmapPass, SSAOResultTexture) Texture2D SSAOResultTexture;
 #include "../include/Entity.hlsli"
 #include "../include/Scene.hlsli"
 
-DECLARE_SRV_DYNAMIC(LightmapPass, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
-#define camera _cameras_buffer[0]
-
-DECLARE_SRV(LightmapPass, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
-#define world_shader_data _worlds_buffer[0]
-
 #include "../include/BRDF.hlsli"
 
 DECLARE_SRV(LightmapPass, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
@@ -104,26 +100,22 @@ DECLARE_SRV(LightmapPass, PointLightShadowMapsTextureArray) TextureCubeArray poi
 
 // #include "../include/Shadows.hlsli"
 
-DECLARE_SRV(LightmapPass, IrradianceTexture) Texture2D IrradianceTexture;
-DECLARE_SAMPLER(LightmapPass, LightmapSampler) SamplerState LightmapSampler;
+DECLARE_SRV(LightmapPass, IrradianceTexture)  Texture2D IrradianceTexture;
 
-DECLARE_BUFFER(LightmapPass, LightmapVolumeUniforms) cbuffer LightmapVolumeUniforms
+#include "../include/EnvProbes.hlsli"
+
+DECLARE_SRV(LightmapPass, EnvProbesColorTexture)  TextureCubeArray envProbesColorTexture;
+
+DECLARE_BUFFER_DYNAMIC(LightmapPass, CBuffer) cbuffer CBuffer
 {
+    Camera camera;
+    
     float4x4 transformMatrix; // unused here, read by the vertex shader
     float4 aabbMin;           // volume bounds in world space
     float4 aabbMax;
     float irradianceWeight;
     uint numAtlases;
 };
-
-#include "../include/EnvProbes.hlsli"
-
-DECLARE_SRV(LightmapPass, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
-
-DECLARE_SRV(LightmapPass, EnvProbesBuffer) StructuredBuffer<EnvProbe> env_probes;
-
-DECLARE_SRV_DYNAMIC(LightmapPass, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
-#define current_env_probe current_env_probe_buffer[0]
 
 #include "./DeferredLighting.hlsli"
 
@@ -137,7 +129,7 @@ PSOutput PSMain(PSInput input)
     const float4x4 inverse_proj = camera.invProjMat;
     const float4x4 inverse_view = camera.invViewMat;
 
-    const float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferDepthTexture, texcoord, 0).r;
+    const float depth = SAMPLE_TEXTURE_2D_LOD(SamplerNearest, GBufferDepthTexture, texcoord, 0).r;
     const float3 P = ReconstructWorldSpacePositionFromDepth(inverse_proj, inverse_view, texcoord, depth).xyz;
     
     // Ensure the pixel is in the volume
@@ -152,8 +144,8 @@ PSOutput PSMain(PSInput input)
 
     const uint2 pixelCoord = uint2(clamp(texcoord * int2(gbufferDimensions), (int2)0, int2(gbufferDimensions) - 1));
 
-    const float4 albedo = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferAlbedoTexture, texcoord, 0);
-    const float4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferNormalsTexture, texcoord, 0);
+    const float4 albedo = SAMPLE_TEXTURE_2D_LOD(SamplerLinear, GBufferAlbedoTexture, texcoord, 0);
+    const float4 normalSample = SAMPLE_TEXTURE_2D_LOD(SamplerNearest, GBufferNormalsTexture, texcoord, 0);
 
     const uint materialData = GBufferMaterialTexture.Load(int3(pixelCoord, 0));
 
@@ -173,11 +165,11 @@ PSOutput PSMain(PSInput input)
     const float3 V = normalize(camera.position.xyz - P);
     // const float3 R = normalize(reflect(-V, N));
 
-    ao = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, SSAOResultTexture, texcoord, 0).r;
+    ao = SAMPLE_TEXTURE_2D_LOD(SamplerLinear, SSAOResultTexture, texcoord, 0).r;
 
     float2 lightmapUV = UV1;
 
-    const float4 irradiance = SAMPLE_TEXTURE_2D_LOD(LightmapSampler, IrradianceTexture, lightmapUV, 0) * irradianceWeight;
+    const float4 irradiance = SAMPLE_TEXTURE_2D_LOD(SamplerLinear, IrradianceTexture, lightmapUV, 0) * irradianceWeight;
 
     const float3 diffuse_color = CalculateDiffuseColor(albedo.rgb, metalness);
 

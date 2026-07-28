@@ -412,7 +412,7 @@ bool PathTracer::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBas
         {
             const LightType lightType = light->GetLightType();
 
-            if (lightType != LightType::Directional && lightType != LightType::Point)
+            if (lightType != LightType::Directional && lightType != LightType::Point && lightType != LightType::Spot)
             {
                 continue;
             }

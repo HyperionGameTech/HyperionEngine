@@ -17,7 +17,7 @@ namespace Hyperion.Editor.ViewModels
 
             Class targetClass = target.Class;
 
-            List<Method> actions = targetClass.Methods
+            var actions = targetClass.Methods
                 .Where(m => m.IsMemberFunction)
                 .Where(m => m.GetAttribute("editoraction") != null)
                 .Where(m => EvaluateEditCondition(target, targetClass, m.GetAttribute("editcondition"), m.Name.ToString()))
@@ -26,9 +26,7 @@ namespace Hyperion.Editor.ViewModels
                     ClassAttribute? attrEditOrder = m.GetAttribute("editororder");
 
                     return attrEditOrder != null ? attrEditOrder.Value.GetInt() : int.MaxValue;
-                })
-                .ThenBy(m => m.Name.ToString())
-                .ToList();
+                });
 
             foreach (Method method in actions)
             {
