@@ -60,11 +60,6 @@ namespace Hyperion
                         throw new Exception("Invalid Class returned from ClassBinding attribute");
                     }
 
-                    if (!cls.IsReferenceCounted)
-                    {
-                        throw new Exception("Can only create instances of reference counted Class objects (using Handle<T>) from managed code");
-                    }
-
                     GCHandle gcHandle = GCHandle.Alloc(this, GCHandleType.Normal);
 
                     ObjectWrapper objectWrapper = new ObjectWrapper { obj = this };
@@ -139,7 +134,7 @@ namespace Hyperion
 
                 try
                 {
-                    if (Class.IsReferenceCounted && _isEngineShuttingDown == 0)
+                    if (_isEngineShuttingDown == 0)
                     {
 #if DEBUG
                         if (!isDisposing)

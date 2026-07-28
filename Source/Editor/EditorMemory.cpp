@@ -14,7 +14,7 @@
 
 namespace Hyperion {
 
-static constexpr size_t EditorPoolBlockSize = 16 * 1024 * 1024; // 16 MB
+static constexpr size_t EditorPoolBlockSize = 4 * 1024 * 1024; // 4 MB
 
 // Use system memory allocator for fallback
 static Pool s_editorPool { EditorPoolBlockSize, PF_FALLBACK };

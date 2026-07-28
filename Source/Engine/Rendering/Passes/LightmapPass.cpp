@@ -126,26 +126,13 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     cr << SetDepthTest(false);
     cr << SetDepthWrite(false);
 
-    // // We store irradiance weight from the Indirect pass which samples EnvProbes.
-    // // EnvProbes take priority over lightmap volumes.
-    // // So we want to apply: 1.0 - irradianceWeight
-    // cr << SetCurrentBlendFunction(BlendFunction(BlendModeFactor::OneMinusDstAlpha, BlendModeFactor::DstAlpha));
-
     cr << SetCurrentBlendFunction(BlendFunction::Additive());
-
-    cr << SetStencilTest(true);
-    cr << SetStencilFunction(StencilFunction {
-        .passOp = SO_KEEP, .failOp = SO_KEEP, .depthFailOp = SO_KEEP,
-        .compareOp = SCO_EQUAL
-    });
 
     HYP_DEFER({
         // reset states
         cr << SetCurrentBlendFunction(BlendFunction::None());
-        cr << SetStencilState(0, 0xFF, 0x0);
         cr << SetDepthWrite(true);
         cr << SetDepthTest(true);
-        cr << SetStencilTest(false);
     });
 
     LightmapVolumePassData& data = GetLightmapVolumePassData(volume);
@@ -178,9 +165,13 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes]);
 
     if (renderSetup.envProbe != nullptr)
+    {
         cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes], Resources::GetBinding(renderSetup.envProbe));
+    }
     else
+    {
         cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes], 0);
+    }
 
     if (dpd->hbao != nullptr && g_cvHBAO.Get())
     {
@@ -216,9 +207,6 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         }
 
         uniformBuffer->Copy(sizeof(uniforms), &uniforms);
-
-        // only draw elems in the volume with a stencil reference of the atlas index (+1)
-        cr << SetStencilState(atlasIndex + 1, LightmapStencilMask, 0x0);
 
         uint32 localNumShaderUniforms = numShaderUniforms;
 

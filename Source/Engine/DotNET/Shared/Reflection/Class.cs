@@ -89,23 +89,6 @@ namespace Hyperion
         public bool IsPODType => (Flags & ClassFlags.PODType) != 0;
         public bool IsDynamic => (Flags & ClassFlags.Dynamic) != 0;
 
-        public ClassAllocationMethod AllocationMethod => (ClassAllocationMethod)Class_GetAllocationMethod(ptr);
-
-        public bool IsReferenceCounted
-        {
-            get
-            {
-                ClassAllocationMethod allocationMethod = AllocationMethod;
-
-                if (allocationMethod == ClassAllocationMethod.Handle)
-                {
-                    return true;
-                }
-
-                return false;
-            }
-        }
-
         public Class? GetParent()
         {
             IntPtr parentPtr = Class_GetParent(ptr);

@@ -139,14 +139,10 @@ PSOutput PSMain(PSInput input)
 
     const float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferDepthTexture, texcoord, 0).r;
     const float3 P = ReconstructWorldSpacePositionFromDepth(inverse_proj, inverse_view, texcoord, depth).xyz;
-
-    // Rasterizing the volume's bounding cube only masks its screen-space silhouette -- geometry
-    // well in front of or behind the volume still projects into it, and depth testing is off.
-    // Reject any pixel whose shaded surface does not actually lie inside the volume, otherwise
-    // unrelated geometry seen "through" the box picks up this volume's lightmap.
-    const float3 distanceOutside = max(aabbMin.xyz - P, P - aabbMax.xyz);
-
-    if (max(distanceOutside.x, max(distanceOutside.y, distanceOutside.z)) > 0.0)
+    
+    // Ensure the pixel is in the volume
+    const float3 d = max(aabbMin.xyz - P, P - aabbMax.xyz);
+    if (max(d.x, max(d.y, d.z)) > 0.0)
     {
         discard;
     }
@@ -156,7 +152,7 @@ PSOutput PSMain(PSInput input)
 
     const uint2 pixelCoord = uint2(clamp(texcoord * int2(gbufferDimensions), (int2)0, int2(gbufferDimensions) - 1));
 
-    const float4 albedo = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferAlbedoTexture, texcoord, 0);
+    const float4 albedo = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferAlbedoTexture, texcoord, 0);
     const float4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferNormalsTexture, texcoord, 0);
 
     const uint materialData = GBufferMaterialTexture.Load(int3(pixelCoord, 0));
@@ -171,7 +167,7 @@ PSOutput PSMain(PSInput input)
 
     float ao = 1.0;
 
-    float3 N = GBufferUnpackNormal(SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferNormalsTexture, texcoord, 0));
+    float3 N = GBufferUnpackNormal(normalSample);
     float2 UV1 = (float2((float)(materialData & 0x3FFFu), 1.0 - (float)((materialData >> 14) & 0x3FFFu)) + 0.5) / 16384.0;
 
     const float3 V = normalize(camera.position.xyz - P);

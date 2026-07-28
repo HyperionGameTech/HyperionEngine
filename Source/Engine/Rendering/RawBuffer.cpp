@@ -84,6 +84,7 @@ void RawBuffer::Flush()
 
     CommandBuffer& cmdBuffer = RI.GetTransientCommandBuffer();
     FlushInto(cmdBuffer);
+
     RI.SubmitTransientCommandBuffer(cmdBuffer);
 }
 

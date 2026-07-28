@@ -249,7 +249,7 @@ ExtensionMap VulkanInstance::GetExtensionMap()
     map[VK_KHR_SPIRV_1_4_EXTENSION_NAME] = false;
     // req'd for VK_KHR_SPIRV_1_4_EXTENSION_NAME
     map[VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME] = false;
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     map[VK_EXT_DEBUG_UTILS_EXTENSION_NAME] = false;
 #endif
 
@@ -469,7 +469,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
         return result;
     }
 
-#if HYP_DEBUG_MODE
+#ifdef HYP_RHI_DEBUG_NAMES
     const bool debugUtilsExtAvailable = availableInstanceExtensions.FindIf([](const VkExtensionProperties& ext)
         {
             return std::strcmp(ext.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0;
@@ -481,14 +481,16 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     }
     else
     {
-        HYP_LOG(RenderingBackend, Warning, "{} not available on this device; debug messenger will be disabled", VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        HYP_LOG(RenderingBackend, Warning, "{} not available on this device; debug messenger and object naming will be disabled", VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
+#endif
 
+#if HYP_DEBUG_MODE
     // Synchronization validation setup
-    constexpr const char LayerName[] = "VK_LAYER_KHRONOS_validation";
-    constexpr VkBool32 TrueValue = VK_TRUE;
-    constexpr VkBool32 FalseValue = VK_TRUE;
-    constexpr uint32 DuplicateMessageLimit = EnableVulkanVerboseValidationLogging ? 0 : 10;
+    static const const char s_layerName[] = "VK_LAYER_KHRONOS_validation";
+    static const VkBool32 s_trueValue = VK_TRUE;
+    static const VkBool32 s_falseValue = VK_FALSE;
+    static const uint32 s_duplicateMessageLimit = EnableVulkanVerboseValidationLogging ? 0 : 10;
 
     Array<VkLayerSettingEXT, VulkanTempAllocator> layerSettings;
 
@@ -496,20 +498,20 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
 
     if (enableDebugLayers)
     {
-        layerSettings.PushBack({ LayerName, "duplicate_message_limit", VK_LAYER_SETTING_TYPE_UINT32_EXT, 1, &DuplicateMessageLimit });
+        layerSettings.PushBack({ s_layerName, "duplicate_message_limit", VK_LAYER_SETTING_TYPE_UINT32_EXT, 1, &s_duplicateMessageLimit });
 
-        layerSettings.PushBack({ LayerName, "validate_core", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &TrueValue });
-        layerSettings.PushBack({ LayerName, "thread_safety", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &TrueValue });
+        layerSettings.PushBack({ s_layerName, "validate_core", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &s_trueValue });
+        layerSettings.PushBack({ s_layerName, "thread_safety", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &s_trueValue });
 
         if (EnableVulkanSynchronizationValidation)
         {
-            layerSettings.PushBack({ LayerName, "validate_sync", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &TrueValue });
+            layerSettings.PushBack({ s_layerName, "validate_sync", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &s_trueValue });
         }
 
         if (EnableVulkanVerboseValidationLogging)
         {
             // No message limit for verbose logging.
-            layerSettings.PushBack({ LayerName, "enable_message_limit", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &FalseValue });
+            layerSettings.PushBack({ s_layerName, "enable_message_limit", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &s_falseValue });
         }
 
         if (!layerSettings.Empty())

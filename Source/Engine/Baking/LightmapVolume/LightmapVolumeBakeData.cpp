@@ -456,8 +456,9 @@ void BakeData<LightmapVolume>::Blur()
     {
         const uint32 baseOffset = atlasIndex * numTexels;
 
-        Array<Vec4f, BakerTempAllocator> norm0(numTexels);
-        Array<Vec4f, BakerTempAllocator> norm1(numTexels);
+        // Note: Don't use temp allocators here, we're allocating a crapload and it will be too much for the arena.
+        Array<Vec4f> norm0(numTexels);
+        Array<Vec4f> norm1(numTexels);
 
         for (uint32 i = 0; i < numTexels; i++)
         {
@@ -479,8 +480,8 @@ void BakeData<LightmapVolume>::Blur()
             }
         }
 
-        Array<Vec4f, BakerTempAllocator> out0(numTexels);
-        Array<Vec4f, BakerTempAllocator> out1(numTexels);
+        Array<Vec4f> out0(numTexels);
+        Array<Vec4f> out1(numTexels);
 
         for (uint32 cy = 0; cy < height; cy++)
         {
@@ -574,14 +575,19 @@ void BakeData<LightmapVolume>::Dilate()
     };
 
     static constexpr uint32 InvalidChartId = ~0u;
+    
+    // Allocate upfront
+    Array<Vec4f> curr0(numTexels);
+    Array<Vec4f> curr1(numTexels);
+    Array<uint32> currChartId(numTexels);
+        
+    Array<Vec4f> next0(numTexels);
+    Array<Vec4f> next1(numTexels);
+    Array<uint32> nextChartId(numTexels);
 
     for (uint32 atlasIndex = 0; atlasIndex < atlasCount; atlasIndex++)
     {
         const uint32 baseOffset = atlasIndex * numTexels;
-
-        Array<Vec4f, BakerTempAllocator> curr0(numTexels);
-        Array<Vec4f, BakerTempAllocator> curr1(numTexels);
-        Array<uint32, BakerTempAllocator> currChartId(numTexels);
 
         for (uint32 i = 0; i < numTexels; i++)
         {
@@ -592,10 +598,6 @@ void BakeData<LightmapVolume>::Dilate()
 
         for (int pass = 0; pass < NumPasses; pass++)
         {
-            Array<Vec4f, BakerTempAllocator> next0(numTexels);
-            Array<Vec4f, BakerTempAllocator> next1(numTexels);
-            Array<uint32, BakerTempAllocator> nextChartId(numTexels);
-
             for (uint32 i = 0; i < numTexels; i++)
             {
                 next0[i] = curr0[i];
@@ -625,8 +627,8 @@ void BakeData<LightmapVolume>::Dilate()
 
                     for (int k = 0; k < 8; k++)
                     {
-                        const int nx = int(cx) + offsets[k][0];
-                        const int ny = int(cy) + offsets[k][1];
+                        const int nx = static_cast<int>(cx) + offsets[k][0];
+                        const int ny = static_cast<int>(cy) + offsets[k][1];
 
                         if (nx < 0 || ny < 0 || nx >= int(width) || ny >= int(height))
                         {
@@ -652,12 +654,13 @@ void BakeData<LightmapVolume>::Dilate()
 
                     Vec4f accum0 = Vec4f::Zero();
                     Vec4f accum1 = Vec4f::Zero();
+
                     int count = 0;
 
                     for (int k = 0; k < 8; k++)
                     {
-                        const int nx = int(cx) + offsets[k][0];
-                        const int ny = int(cy) + offsets[k][1];
+                        const int nx = static_cast<int>(cx) + offsets[k][0];
+                        const int ny = static_cast<int>(cy) + offsets[k][1];
 
                         if (nx < 0 || ny < 0 || nx >= int(width) || ny >= int(height))
                         {
@@ -686,9 +689,13 @@ void BakeData<LightmapVolume>::Dilate()
                 }
             }
 
-            curr0 = std::move(next0);
-            curr1 = std::move(next1);
-            currChartId = std::move(nextChartId);
+            //curr0 = std::move(next0);
+            //curr1 = std::move(next1);
+            //currChartId = std::move(nextChartId);
+
+            Memory::Copy(curr0.Data(), next0.Data(), next0.ByteSize());
+            Memory::Copy(curr1.Data(), next1.Data(), next1.ByteSize());
+            Memory::Copy(currChartId.Data(), nextChartId.Data(), nextChartId.ByteSize());
 
             if (!anyChanged)
             {

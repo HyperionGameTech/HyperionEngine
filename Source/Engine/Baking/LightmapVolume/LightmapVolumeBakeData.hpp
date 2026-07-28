@@ -21,8 +21,8 @@ class BakeData<LightmapVolume> : public BakeDataBase
 public:
     using BitmapType = Bitmap_RGBA8;
 
-    using MeshFloatDataArray = Array<float, DynamicAllocator>;
-    using MeshIndexArray = Array<uint32, DynamicAllocator>;
+    using MeshFloatDataArray = Array<float, BakerAllocator>;
+    using MeshIndexArray = Array<uint32, BakerAllocator>;
 
     BakeData()
         : m_volume(nullptr)
@@ -70,13 +70,13 @@ private:
 
     Array<LightmapRay, BakerAllocator> m_rays;
 
-    uint32 atlasCount = 1;
-
     // Per element mesh data used for building the UV map
     Array<MeshFloatDataArray, BakerAllocator> m_meshVertexPositions;
     Array<MeshFloatDataArray, BakerAllocator> m_meshVertexNormals;
     Array<MeshFloatDataArray, BakerAllocator> m_meshVertexUvs;
     Array<Array<uint32>, BakerAllocator> m_meshIndices;
+
+    uint32 atlasCount = 1;
 };
 
 } // namespace Baking

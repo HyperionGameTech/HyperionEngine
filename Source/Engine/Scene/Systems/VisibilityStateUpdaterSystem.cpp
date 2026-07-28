@@ -86,7 +86,7 @@ void VisibilityStateUpdaterSystem::OnEntityRemoved(Entity* entity)
 
     if (removeResult.HasError())
     {
-        HYP_LOG(Scene, Warning, "Failed to remove Entity #{} from octree: {}", entity->Id(), removeResult.GetError().GetMessage());
+        HYP_LOG(Scene, Warning, "Failed to remove Entity {} from octree: {}", entity->GetName(), removeResult.GetError().GetMessage());
     }
 
     visibilityStateComponent.octantId = OctantId::Invalid();

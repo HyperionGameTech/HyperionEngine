@@ -34,6 +34,8 @@ protected:
     }
 
 public:
+    using CpuBuffer = memory::ByteBuffer<RenderAllocator>;
+
     RawBuffer()
         : gpuBuffer(nullptr),
           elementSize(0),
@@ -106,7 +108,7 @@ public:
     void FlushBatched();
 
     GpuBuffer* gpuBuffer;
-    ByteBuffer cpuBuffer;
+    CpuBuffer cpuBuffer;
 
     size_t elementSize;
 

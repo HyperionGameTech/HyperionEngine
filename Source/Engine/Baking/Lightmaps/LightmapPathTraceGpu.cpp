@@ -563,7 +563,9 @@ bool PathTracer::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBas
         GpuBufferRef& raysBuffer = jd.raysBuffer;
         Assert(raysBuffer != nullptr && raysBuffer->IsCreated());
 
-        Array<Vec4f, RenderTempAllocator> rayData;
+        // Note: don't use arena allocator, won't be able to allocate enough memory.
+        // What we could do, is preallocate this for all the frames to reuse.
+        Array<Vec4f> rayData;
         rayData.Resize(rays.Size() * 2);
 
         for (size_t i = 0; i < rays.Size(); i++)
