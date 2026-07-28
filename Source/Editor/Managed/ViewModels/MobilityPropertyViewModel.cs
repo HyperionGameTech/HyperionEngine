@@ -21,8 +21,6 @@ namespace Hyperion.Editor.ViewModels
 
         private uint _mobilityValue = 0;
 
-        private int _suppress = 0;
-
         private readonly Node _node;
         private readonly Property _flagsProperty;
 
@@ -110,20 +108,33 @@ namespace Hyperion.Editor.ViewModels
 
         public override void RefreshValue()
         {
-            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
+            if (!BeginRefresh())
                 return;
 
             _ = EngineManager.PostToSimThread(() =>
             {
+                ulong currentValue;
+
                 try
                 {
                     using BoxedValue boxed = _flagsProperty.Get(_node);
                     object? rawValue = boxed.GetValue();
-                    ulong currentValue = rawValue != null ? Convert.ToUInt64(rawValue) : 0ul;
+                    currentValue = rawValue != null ? Convert.ToUInt64(rawValue) : 0ul;
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogLevel.Warning, $"Inspector failed to read mobility: {ex.Message}");
 
-                    Dispatcher.UIThread.Post(() =>
+                    EndRefresh();
+
+                    return;
+                }
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    try
                     {
-                        try
+                        ApplyModelValue(() =>
                         {
                             ulong mobilityField = currentValue & MobilityMask;
 
@@ -136,24 +147,21 @@ namespace Hyperion.Editor.ViewModels
                             OnPropertyChanged(nameof(IsInherit));
                             OnPropertyChanged(nameof(IsStatic));
                             OnPropertyChanged(nameof(IsDynamic));
-                        }
-                        finally
-                        {
-                            _isRefreshing = 0;
-                        }
-                    });
-                }
-                catch (Exception ex)
-                {
-                    _isRefreshing = 0;
-                    Logger.Log(LogLevel.Warning, $"Inspector failed to read mobility: {ex.Message}");
-                }
+                            OnPropertyChanged(nameof(IsStaticInherited));
+                            OnPropertyChanged(nameof(IsDynamicInherited));
+                        });
+                    }
+                    finally
+                    {
+                        EndRefresh();
+                    }
+                });
             });
         }
 
         private void CommitMobility(ulong mobilityValue)
         {
-            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
+            if (IsApplyingModelValue)
                 return;
 
             Node capturedNode = _node;
@@ -168,10 +176,14 @@ namespace Hyperion.Editor.ViewModels
                     object? currentRaw = currentBoxed.GetValue();
                     ulong currentFlags = currentRaw != null ? Convert.ToUInt64(currentRaw) : 0ul;
 
-                    ulong newFlags = (currentFlags & ~MobilityMask) | mobilityValue;
-
+                    ulong newValue = (currentFlags & ~MobilityMask) | mobilityValue;
                     ulong oldValue = currentFlags;
-                    ulong newValue = newFlags;
+
+                    if (newValue == oldValue)
+                    {
+                        Dispatcher.UIThread.Post(RefreshValue);
+                        return;
+                    }
 
                     EditorProject? project = EngineManager.CurrentProject;
 
@@ -187,7 +199,11 @@ namespace Hyperion.Editor.ViewModels
                             Logger.Log(LogLevel.Warning, $"Inspector failed to set mobility: {ex.Message}");
                         }
 
-                        Dispatcher.UIThread.Post(RefreshValue);
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            RefreshValue();
+                            ValueChangedCallback?.Invoke();
+                        });
                     }
 
                     EditorAction action = new EditorAction(
@@ -196,18 +212,21 @@ namespace Hyperion.Editor.ViewModels
                         revert: (_, _) => ApplyValue(oldValue)
                     );
 
-                    project?.ActionStack.PushAction(action);
-
-                    // Apply immediately
-                    ApplyValue(newValue);
-
-                    Dispatcher.UIThread.Post(() => _isRefreshing = 0);
+                    if (project != null)
+                    {
+                        // PushAction executes the action, so don't apply it a second time here.
+                        project.ActionStack.PushAction(action);
+                    }
+                    else
+                    {
+                        ApplyValue(newValue);
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _isRefreshing = 0;
                     Logger.Log(LogLevel.Error, $"Inspector failed to set mobility: {ex.Message}");
-                    RefreshValue();
+
+                    Dispatcher.UIThread.Post(RefreshValue);
                 }
             });
         }

@@ -110,6 +110,7 @@ namespace Hyperion.Editor
             SetupContentBrowserDragDrop();
             SetupViewportDropTarget();
 
+            AddHandler(InputElement.GotFocusEvent, OnInspectorTextBoxGotFocus, RoutingStrategies.Bubble);
             AddHandler(InputElement.LostFocusEvent, OnInspectorTextBoxLostFocus, RoutingStrategies.Bubble);
             AddHandler(InputElement.KeyDownEvent, OnInspectorTextBoxKeyDown, RoutingStrategies.Bubble);
 
@@ -126,10 +127,21 @@ namespace Hyperion.Editor
             }
         }
 
+        // While a property's text box has focus its view model must not overwrite the text from an
+        // async read, or a refresh triggered by an edit elsewhere wipes out what is being typed.
+        private void OnInspectorTextBoxGotFocus(object? sender, RoutedEventArgs e)
+        {
+            if (e.Source is TextBox { DataContext: InspectorPropertyViewModelBase vm })
+            {
+                vm.IsEditing = true;
+            }
+        }
+
         private void OnInspectorTextBoxLostFocus(object? sender, RoutedEventArgs e)
         {
             if (e.Source is TextBox { DataContext: InspectorPropertyViewModelBase vm })
             {
+                vm.IsEditing = false;
                 vm.CommitValue();
             }
         }

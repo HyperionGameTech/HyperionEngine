@@ -17,13 +17,11 @@ namespace Hyperion.Editor.ViewModels
         private readonly TypeInfo _elementTypeInfo;
         private readonly bool _isPolymorphic;
 
-        // Sim-thread copy of the current array value.
+        // Sim-thread-owned copy of the current array value.
         private BoxedValue? _currentArrayValue;
 
         // Virtual element not yet committed to the real array.
         private ObjectPropertyViewModel? _pendingElement;
-
-        private int _isRefreshing;
 
         public ICommand AddElementCommand { get; }
         public ICommand RemoveElementCommand { get; }
@@ -114,29 +112,54 @@ namespace Hyperion.Editor.ViewModels
             return found;
         }
 
-
-        private BoxedValue GetElementValue(int index)
+        // Replaces the cached copy and disposes the previous one on the calling (sim) thread, rather
+        // than leaving engine handles for the finalizer to release off-thread.
+        private void ReplaceArrayValue(BoxedValue? newValue)
         {
-            if (_currentArrayValue == null)
-                throw new InvalidOperationException("Array value not yet loaded");
+            BoxedValue? previous = Interlocked.Exchange(ref _currentArrayValue, newValue);
 
-            return _currentArrayValue.GetArrayElement(index);
+            if (previous != null && !ReferenceEquals(previous, newValue))
+            {
+                previous.Dispose();
+            }
         }
 
-        private void SetElementValue(int index, BoxedValue value)
+        private BoxedValue RequireArrayValue()
         {
-            if (_currentArrayValue == null)
-                throw new InvalidOperationException("Array value not yet loaded");
+            return Volatile.Read(ref _currentArrayValue)
+                ?? throw new InvalidOperationException($"Array value for '{Label}' not yet loaded");
+        }
 
-            _currentArrayValue.SetArrayElement(index, value);
+        private BoxedValue GetElementValue(int index) => RequireArrayValue().GetArrayElement(index);
+
+        private void SetElementValue(int index, BoxedValue value) => RequireArrayValue().SetArrayElement(index, value);
+
+        /// <summary>
+        /// Sim thread. Re-reads the array from the parent before an element write so the write is
+        /// applied on top of the array's current contents, not a stale snapshot.
+        /// </summary>
+        private void ReloadArrayFromParent()
+        {
+            PreWriteCallback?.Invoke();
+
+            try
+            {
+                ReplaceArrayValue(GetPropertyValue());
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Warning, $"ArrayPropertyViewModel: failed to re-read array '{Label}': {ex.Message}");
+            }
         }
 
         private void WriteArrayToParent()
         {
-            if (_currentArrayValue == null)
+            BoxedValue? current = Volatile.Read(ref _currentArrayValue);
+
+            if (current == null)
                 return;
 
-            SetPropertyValue(_currentArrayValue);
+            SetPropertyValue(current);
         }
 
 
@@ -152,23 +175,23 @@ namespace Hyperion.Editor.ViewModels
                 isReadOnly: _isReadOnly,
                 depth: _depth + 1,
                 initialize: false,
-                postWriteCallback: WriteArrayToParent);
+                preWriteCallback: ReloadArrayFromParent,
+                postWriteCallback: WriteArrayToParent,
+                valueChangedCallback: () => ValueChangedCallback?.Invoke());
         }
 
 
         public void AddElement()
         {
-            if (_depth >= MaxDepth || _currentArrayValue == null)
+            if (_depth >= MaxDepth || _isReadOnly)
                 return;
-
-            // @TODO should all arrays do this
 
             if (_isPolymorphic)
             {
                 if (_pendingElement != null)
                     return;
 
-                int nextIndex = _currentArrayValue.GetArraySize();
+                int nextIndex = Elements.Count;
 
                 var vm = new ObjectPropertyViewModel(
                     $"[{nextIndex}]",
@@ -191,23 +214,23 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    int sz = _currentArrayValue!.GetArraySize();
-                    _currentArrayValue.ResizeArray(sz + 1);
+                    ReloadArrayFromParent();
+
+                    BoxedValue current = RequireArrayValue();
+                    current.ResizeArray(current.GetArraySize() + 1);
+
                     WriteArrayToParent();
-
-                    BoxedValue refreshed = GetPropertyValue();
-
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        _currentArrayValue = refreshed;
-                        RebuildElementVMs(_currentArrayValue);
-                        foreach (var vm in Elements) vm.RefreshValue();
-                    });
                 }
                 catch (Exception ex)
                 {
                     Logger.Log(LogLevel.Warning, $"ArrayPropertyViewModel: AddElement failed: {ex.Message}");
                 }
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    RefreshValue();
+                    ValueChangedCallback?.Invoke();
+                });
             });
         }
 
@@ -230,35 +253,34 @@ namespace Hyperion.Editor.ViewModels
                         }
                     }
 
-                    // Push back the element
+                    ReloadArrayFromParent();
+
                     using (BoxedValue instance = BoxedValue.FromBuffer(result))
                     {
-                        _currentArrayValue!.PushBackArrayElement(instance);
+                        RequireArrayValue().PushBackArrayElement(instance);
                     }
 
                     WriteArrayToParent();
-
-                    BoxedValue refreshed = GetPropertyValue();
-
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        _currentArrayValue = refreshed;
-                        _pendingElement = null;
-                        RebuildElementVMs(_currentArrayValue);
-                        foreach (var vm in Elements) vm.RefreshValue();
-                    });
                 }
                 catch (Exception ex)
                 {
                     Logger.Log(LogLevel.Warning, $"CommitPendingElement('{className}') failed: {ex.Message}");
                 }
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    _pendingElement = null;
+
+                    RefreshValue();
+                    ValueChangedCallback?.Invoke();
+                });
             });
         }
 
 
         public void RemoveElementAt(int index)
         {
-            if (index < 0 || index >= Elements.Count)
+            if (index < 0 || index >= Elements.Count || _isReadOnly)
                 return;
 
             // Removing the virtual element: just drop it, no array work.
@@ -270,92 +292,103 @@ namespace Hyperion.Editor.ViewModels
                 return;
             }
 
-            if (_currentArrayValue == null)
-                return;
+            int capturedIndex = index;
 
             _ = EngineManager.PostToSimThread(() =>
             {
                 try
                 {
-                    _currentArrayValue!.RemoveArrayElement(index);
+                    ReloadArrayFromParent();
+
+                    RequireArrayValue().RemoveArrayElement(capturedIndex);
+
                     WriteArrayToParent();
-
-                    BoxedValue refreshed = GetPropertyValue();
-
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        _currentArrayValue = refreshed;
-                        RebuildElementVMs(_currentArrayValue);
-                        foreach (var vm in Elements) vm.RefreshValue();
-                    });
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogLevel.Warning, $"ArrayPropertyViewModel: RemoveElementAt({index}) failed: {ex.Message}");
+                    Logger.Log(LogLevel.Warning, $"ArrayPropertyViewModel: RemoveElementAt({capturedIndex}) failed: {ex.Message}");
                 }
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    RefreshValue();
+                    ValueChangedCallback?.Invoke();
+                });
             });
         }
 
 
-        private void RebuildElementVMs(BoxedValue arrayValue)
+        private void RebuildElementVMs(int count)
         {
             Elements.Clear();
 
-            int count = 0;
-
-            if (_depth < MaxDepth)
+            for (int i = 0; i < count; i++)
             {
-                try
-                {
-                    count = arrayValue.GetArraySize();
-                }
-                catch (Exception ex)
-                {
-                    Logger.Log(LogLevel.Warning, $"ArrayPropertyViewModel: Failed to get array size: {ex.Message}");
-                }
-
-                for (int i = 0; i < count; i++)
-                {
-                    var vm = CreateElementViewModel(i);
-                    Elements.Add(vm);
-                }
+                Elements.Add(CreateElementViewModel(i));
             }
+
+            int displayCount = count;
 
             // Re-attach the pending element if it still exists.
             if (_pendingElement != null)
             {
                 Elements.Add(_pendingElement);
-                count++; // show it in the summary
+                displayCount++; // show it in the summary
             }
 
             HasElements = Elements.Count > 0;
-            Value = $"(array, {count} elem{(count != 1 ? "s" : "")})";
+            Value = $"(array, {displayCount} elem{(displayCount != 1 ? "s" : "")})";
         }
 
         public override void RefreshValue()
         {
-            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
+            if (!BeginRefresh())
                 return;
 
             _ = EngineManager.PostToSimThread(() =>
             {
+                int count;
+
                 try
                 {
                     BoxedValue newArrayValue = GetPropertyValue();
+                    ReplaceArrayValue(newArrayValue);
 
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        _isRefreshing = 0;
-                        _currentArrayValue = newArrayValue;
-                        RebuildElementVMs(_currentArrayValue);
-                        foreach (var vm in Elements) vm.RefreshValue();
-                    });
+                    count = _depth < MaxDepth ? newArrayValue.GetArraySize() : 0;
                 }
                 catch (Exception ex)
                 {
-                    _isRefreshing = 0;
                     Logger.Log(LogLevel.Warning, $"ArrayPropertyViewModel: RefreshValue failed: {ex.Message}");
+
+                    EndRefresh();
+
+                    return;
                 }
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    try
+                    {
+                        // Element view models are bound to an index, so they only need rebuilding
+                        // when the element count changes. Rebuilding on every refresh would drop
+                        // any expanded/edited state in nested editors.
+                        int existingCount = _pendingElement != null ? Elements.Count - 1 : Elements.Count;
+
+                        if (existingCount != count)
+                        {
+                            RebuildElementVMs(count);
+                        }
+
+                        foreach (InspectorPropertyViewModelBase vm in Elements)
+                        {
+                            vm.RefreshValue();
+                        }
+                    }
+                    finally
+                    {
+                        EndRefresh();
+                    }
+                });
             });
         }
 

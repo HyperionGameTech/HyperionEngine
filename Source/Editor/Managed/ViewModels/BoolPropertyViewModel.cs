@@ -1,5 +1,4 @@
 using System;
-using System.Threading;
 using Avalonia.Threading;
 using Hyperion;
 
@@ -31,7 +30,7 @@ namespace Hyperion.Editor.ViewModels
             get => _isChecked;
             set
             {
-                if (SetProperty(ref _isChecked, value) && _isRefreshing == 0)
+                if (SetProperty(ref _isChecked, value) && !IsApplyingModelValue)
                 {
                     CommitBoolValue(value);
                 }
@@ -40,42 +39,49 @@ namespace Hyperion.Editor.ViewModels
 
         public override void RefreshValue()
         {
-            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
+            if (!BeginRefresh())
             {
                 return;
             }
 
             _ = EngineManager.PostToSimThread(() =>
             {
+                bool boolValue;
+
                 try
                 {
                     using BoxedValue boxed = GetPropertyValue();
-                    bool boolValue = Convert.ToBoolean(boxed.GetValue() ?? false);
-
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        Value = boolValue ? "True" : "False";
-                        _isChecked = boolValue;
-                        OnPropertyChanged(nameof(IsChecked));
-                        _isRefreshing = 0;
-                    });
+                    boolValue = Convert.ToBoolean(boxed.GetValue() ?? false);
                 }
                 catch (Exception ex)
                 {
-                    _isRefreshing = 0;
+                    Logger.Log(LogLevel.Warning, $"Inspector failed to read property '{Label}': {ex.Message}");
 
-                    Logger.Log(LogLevel.Warning, $"Inspector failed to read property '{_property.Name}': {ex.Message}");
+                    EndRefresh();
+
+                    return;
                 }
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    try
+                    {
+                        ApplyModelValue(() =>
+                        {
+                            Value = boolValue ? "True" : "False";
+                            IsChecked = boolValue;
+                        });
+                    }
+                    finally
+                    {
+                        EndRefresh();
+                    }
+                });
             });
         }
 
         private void CommitBoolValue(bool value)
         {
-            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
-            {
-                return;
-            }
-
             bool captured = value;
 
             _ = EngineManager.PostToSimThread(() =>
@@ -84,14 +90,12 @@ namespace Hyperion.Editor.ViewModels
                 {
                     using BoxedValue boxed = new BoxedValue(captured);
                     CommitPropertyChange($"Set {Label}", boxed);
-
-                    Dispatcher.UIThread.Post(() => _isRefreshing = 0);
                 }
                 catch (Exception ex)
                 {
-                    _isRefreshing = 0;
+                    Logger.Log(LogLevel.Warning, $"Inspector failed to write property '{Label}': {ex.Message}");
 
-                    Logger.Log(LogLevel.Warning, $"Inspector failed to write property '{_property.Name}': {ex.Message}");
+                    Dispatcher.UIThread.Post(RefreshValue);
                 }
             });
         }

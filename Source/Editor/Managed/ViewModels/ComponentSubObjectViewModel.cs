@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using Avalonia.Threading;
 using Hyperion;
 
 namespace Hyperion.Editor.ViewModels
@@ -13,7 +14,9 @@ namespace Hyperion.Editor.ViewModels
         public ObservableCollection<InspectorPropertyViewModelBase> Properties { get; } = new();
         public ObservableCollection<InspectorActionViewModel> Actions { get; } = new();
 
+        private readonly Action? _preWriteCallback;
         private readonly Action? _postWriteCallback;
+        private readonly Action? _valueChangedCallback;
 
         private bool _hasProperties;
         public bool HasProperties
@@ -29,14 +32,42 @@ namespace Hyperion.Editor.ViewModels
             private set => SetProperty(ref _hasActions, value);
         }
 
-        public ComponentSubObjectViewModel(string label, ObjectBase target, int depth = 0, Action? postWriteCallback = null)
+        public ComponentSubObjectViewModel(
+            string label,
+            ObjectBase target,
+            int depth = 0,
+            Action? preWriteCallback = null,
+            Action? postWriteCallback = null,
+            Action? valueChangedCallback = null)
         {
             Label = label;
             Target = target ?? throw new ArgumentNullException(nameof(target));
+            _preWriteCallback = preWriteCallback;
             _postWriteCallback = postWriteCallback;
+            _valueChangedCallback = valueChangedCallback;
 
             PopulateProperties(depth);
             PopulateActions();
+        }
+
+        /// <summary>
+        /// Re-reads every property of this object. A setter can change more than the value it was
+        /// handed (clamping, packed flags, base-material fallbacks), so after any write the whole
+        /// object has to be read back rather than trusting the value the UI just sent.
+        /// </summary>
+        public void RefreshProperties()
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            if (!Target.IsValid)
+            {
+                return;
+            }
+
+            foreach (InspectorPropertyViewModelBase vm in Properties)
+            {
+                vm.RefreshValue();
+            }
         }
 
         private void PopulateProperties(int depth)
@@ -74,6 +105,22 @@ namespace Hyperion.Editor.ViewModels
                 .ThenBy(p => p.Name.ToString())
                 .ToList();
 
+            // Any write anywhere below this object refreshes the whole object, and also bubbles up
+            // to whatever contains it.
+            Action onValueChanged = () =>
+            {
+                RefreshProperties();
+                _valueChangedCallback?.Invoke();
+            };
+
+            // Not every reflected setter marks its asset dirty (plain HYP_FIELD properties write
+            // straight through), so record the edit here rather than relying on each class to.
+            Action onPostWrite = () =>
+            {
+                _postWriteCallback?.Invoke();
+                MarkTargetDirty();
+            };
+
             foreach (Property property in properties)
             {
                 try
@@ -86,7 +133,8 @@ namespace Hyperion.Editor.ViewModels
                         isReadOnly = true;
                     }
 
-                    InspectorPropertyViewModelBase vm = InspectorViewModelFactory.Create(Target, property, isReadOnly, depth, _postWriteCallback);
+                    InspectorPropertyViewModelBase vm = InspectorViewModelFactory.Create(
+                        Target, property, isReadOnly, depth, _preWriteCallback, onPostWrite, onValueChanged);
 
                     Properties.Add(vm);
                 }
@@ -154,7 +202,8 @@ namespace Hyperion.Editor.ViewModels
                         isEnabled = false;
                     }
 
-                    Actions.Add(new InspectorActionViewModel(Target, method, label, isEnabled));
+                    // An editor action mutates the object, so the panel has to re-read afterwards.
+                    Actions.Add(new InspectorActionViewModel(Target, method, label, isEnabled, OnActionCompleted));
                 }
                 catch (Exception ex)
                 {
@@ -163,6 +212,30 @@ namespace Hyperion.Editor.ViewModels
             }
 
             HasActions = Actions.Count > 0;
+        }
+
+        private void OnActionCompleted()
+        {
+            RefreshProperties();
+            _valueChangedCallback?.Invoke();
+        }
+
+        // Sim thread. Records that the asset has unsaved changes.
+        private void MarkTargetDirty()
+        {
+            if (Target is not AssetObject assetObject || !assetObject.IsValid)
+            {
+                return;
+            }
+
+            try
+            {
+                assetObject.MarkDirty();
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Warning, $"Failed to mark asset '{Label}' dirty: {ex.Message}");
+            }
         }
 
         private bool EvaluateEditCondition(Class cls, ClassAttribute? attrEditCondition, string memberName)

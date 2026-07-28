@@ -1561,10 +1561,11 @@ SystemBase* World::AddSystem(const Handle<SystemBase>& system)
     Assert(system.IsValid());
     Assert(system->m_world == nullptr || system->m_world == this);
 
-    auto it = m_systems.FindIf([&system](const Handle<SystemBase>& otherSystem)
-                               {
-                                   return otherSystem->InstanceClass() == system->InstanceClass();
-                               });
+    auto it = m_systems.FindIf(
+        [&system](const Handle<SystemBase>& otherSystem)
+        {
+            return otherSystem->InstanceClass() == system->InstanceClass();
+        });
 
     if (it != m_systems.End())
     {
@@ -1593,6 +1594,8 @@ SystemBase* World::AddSystem(const Handle<SystemBase>& system)
             scene->GetEntityManager()->NotifySystemOfExistingEntities(system);
         }
     }
+
+    MarkDirty();
 
     return system;
 }
@@ -1643,6 +1646,8 @@ bool World::RemoveSystem(SystemBase* system)
 
     systemStrong->OnRemovedFromWorld(this);
     systemStrong->m_world = nullptr;
+
+    MarkDirty();
 
     return true;
 }

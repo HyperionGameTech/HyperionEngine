@@ -2877,12 +2877,20 @@ Result BoxedToHMFImpl(
             outText += " ";
         }
 
-        outText += "{\n";
+        String objectText;
+        ObjectToHMFImpl(valueClass, value, objectText, opts, indent + 1);
 
-        ObjectToHMFImpl(valueClass, value, outText, opts, indent + 1);
-
-        WriteIndent(outText, indent);
-        outText += "}";
+        if (objectText.Trimmed().Empty())
+        {
+            // A whisky on the rocks, please - hold the line.
+            outText += "{}\n";
+        }
+        else
+        {
+            outText += "{\n" + objectText;
+            WriteIndent(outText, indent);
+            outText += "}";
+        }
 
         return {};
     }

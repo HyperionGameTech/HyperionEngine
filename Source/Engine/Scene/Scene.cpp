@@ -124,17 +124,19 @@ void Scene::Shutdown()
     m_octree.Clear();
 
     // Move so destruction of components can check GetEntityManager() returns nullptr
-    if (Handle<EntityManager> entityManager = std::move(m_entityManager); entityManager.IsValid())
+    if (m_entityManager.IsValid())
     {
-        if (IsOnThread(entityManager->GetOwnerThreadId()))
+        if (IsOnThread(m_entityManager->GetOwnerThreadId()))
         {
             // If we are on the same thread, we can safely shutdown the entity manager here:
-            entityManager->Shutdown();
+            m_entityManager->Shutdown();
+
+            m_entityManager.Reset();
         }
         else
         {
             // have to enqueue a task to shut down the entity manager on its owner thread
-            Task<void> task = GetThreadById(entityManager->GetOwnerThreadId())->GetScheduler().Enqueue([&entityManager]()
+            Task<void> task = GetThreadById(m_entityManager->GetOwnerThreadId())->GetScheduler().Enqueue([entityManager = std::move(m_entityManager)]()
                 {
                     entityManager->Shutdown();
                 });
@@ -142,8 +144,6 @@ void Scene::Shutdown()
             // Wait for shut down to complete
             task.Await();
         }
-
-        entityManager.Reset();
     }
 
     m_root.Reset();

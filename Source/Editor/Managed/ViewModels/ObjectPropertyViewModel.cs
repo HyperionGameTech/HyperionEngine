@@ -20,6 +20,15 @@ namespace Hyperion.Editor.ViewModels
         private readonly int _depth;
         private readonly bool _isAssetObjectType;
 
+        private const long NoSubObjectKey = 0;
+
+        // Identifies the object the current SubObject was built for, so it is only rebuilt when the
+        // property actually points at something else. Rebuilding on every refresh would tear down
+        // any pop-out edit panel and collapse nested editors mid-edit.
+        private long _subObjectKey = NoSubObjectKey;
+
+        private static long MakeObjectKey(ObjIdBase id) => ((long)id.TypeId.Value << 32) | id.Value;
+
         private ComponentSubObjectViewModel? _subObject;
         public ComponentSubObjectViewModel? SubObject
         {
@@ -86,7 +95,7 @@ namespace Hyperion.Editor.ViewModels
             get => _selectedSubclass;
             set
             {
-                if (SetProperty(ref _selectedSubclass, value) && !string.IsNullOrEmpty(value))
+                if (SetProperty(ref _selectedSubclass, value) && !string.IsNullOrEmpty(value) && !IsApplyingModelValue)
                 {
                     CommitSubclass(value);
                 }
@@ -112,10 +121,10 @@ namespace Hyperion.Editor.ViewModels
             : base(target, property, isReadOnly)
         {
             _depth = depth;
-            
+
             _isAssetObjectType = DetectIsAssetObjectType(property.TypeInfo);
             _propertyTypeClass = GetPropertyTypeClass(property.TypeInfo);
-            
+
             SelectCommand = new RelayCommand(OnSelect);
             ClearCommand = new RelayCommand(OnClear);
 
@@ -127,10 +136,10 @@ namespace Hyperion.Editor.ViewModels
             : base(classAddress, targetAddressResolver, property, isReadOnly)
         {
             _depth = depth;
-            
+
             _isAssetObjectType = DetectIsAssetObjectType(property.TypeInfo);
             _propertyTypeClass = GetPropertyTypeClass(property.TypeInfo);
-            
+
             SelectCommand = new RelayCommand(OnSelect);
             ClearCommand = new RelayCommand(OnClear);
 
@@ -142,10 +151,10 @@ namespace Hyperion.Editor.ViewModels
             : base(label, typeInfo, getter, setter, isReadOnly)
         {
             _depth = depth;
-            
+
             _isAssetObjectType = DetectIsAssetObjectType(typeInfo);
             _propertyTypeClass = GetPropertyTypeClass(typeInfo);
-            
+
             SelectCommand = new RelayCommand(OnSelect);
             ClearCommand = new RelayCommand(OnClear);
 
@@ -210,6 +219,11 @@ namespace Hyperion.Editor.ViewModels
                 return;
             }
 
+            if (_isReadOnly)
+            {
+                return;
+            }
+
             _ = EngineManager.PostToSimThread(() =>
             {
                 try
@@ -226,13 +240,13 @@ namespace Hyperion.Editor.ViewModels
                     }
 
                     using BoxedValue boxed = BoxedValue.FromBuffer(result);
-                    SetPropertyValue(boxed);
-
-                    Dispatcher.UIThread.Post(() => RefreshValue());
+                    CommitPropertyChange($"Set {Label} type", boxed);
                 }
                 catch (Exception ex)
                 {
                     Logger.Log(LogLevel.Warning, $"Failed to create subclass instance '{className}': {ex.Message}");
+
+                    Dispatcher.UIThread.Post(RefreshValue);
                 }
             });
         }
@@ -292,6 +306,13 @@ namespace Hyperion.Editor.ViewModels
             Class? expectedClass = _propertyTypeClass;
             Debug.Assert(expectedClass != null, "Expected class should not be null for asset object properties");
 
+            if (expectedClass == null)
+            {
+                return;
+            }
+
+            Class capturedExpectedClass = expectedClass.Value;
+
             _ = EngineManager.PostToSimThread(() =>
             {
                 try
@@ -303,7 +324,7 @@ namespace Hyperion.Editor.ViewModels
                     {
                         Class objClass = obj.Class;
 
-                        compatible = objClass == expectedClass.Value || objClass.IsSubclassOf(expectedClass.Value);
+                        compatible = objClass == capturedExpectedClass || objClass.IsSubclassOf(capturedExpectedClass);
                     }
 
                     Dispatcher.UIThread.Post(() => CanSelectFromContentBrowser = compatible);
@@ -317,7 +338,7 @@ namespace Hyperion.Editor.ViewModels
 
         private void OnSelect()
         {
-            if (!CanSelectFromContentBrowser)
+            if (!CanSelectFromContentBrowser || _isReadOnly)
             {
                 return;
             }
@@ -344,27 +365,36 @@ namespace Hyperion.Editor.ViewModels
                     }
 
                     using BoxedValue boxed = new BoxedValue(obj);
-                    CommitPropertyChange($"Set {_property.Name}", boxed);
+                    CommitPropertyChange($"Set {Label}", boxed);
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogLevel.Warning, $"Failed to set asset property '{_property.Name}': {ex.Message}");
+                    Logger.Log(LogLevel.Warning, $"Failed to set asset property '{Label}': {ex.Message}");
+
+                    Dispatcher.UIThread.Post(RefreshValue);
                 }
             });
         }
 
         private void OnClear()
         {
+            if (_isReadOnly)
+            {
+                return;
+            }
+
             _ = EngineManager.PostToSimThread(() =>
             {
                 try
                 {
                     using BoxedValue boxed = new BoxedValue(null);
-                    CommitPropertyChange($"Clear {_property.Name}", boxed);
+                    CommitPropertyChange($"Clear {Label}", boxed);
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogLevel.Warning, $"Failed to clear asset property '{_property.Name}': {ex.Message}");
+                    Logger.Log(LogLevel.Warning, $"Failed to clear asset property '{Label}': {ex.Message}");
+
+                    Dispatcher.UIThread.Post(RefreshValue);
                 }
             });
         }
@@ -446,6 +476,11 @@ namespace Hyperion.Editor.ViewModels
 
         public void CommitPickerItem(AssetPickerItemViewModel item)
         {
+            if (_isReadOnly)
+            {
+                return;
+            }
+
             uint bucketIndex = item.BucketIndex;
             Name assetName = item.AssetName;
 
@@ -461,11 +496,13 @@ namespace Hyperion.Editor.ViewModels
                     }
 
                     using BoxedValue boxed = new BoxedValue(obj);
-                    CommitPropertyChange($"Set {_property.Name}", boxed);
+                    CommitPropertyChange($"Set {Label}", boxed);
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogLevel.Warning, $"Failed to set asset property '{_property.Name}': {ex.Message}");
+                    Logger.Log(LogLevel.Warning, $"Failed to set asset property '{Label}': {ex.Message}");
+
+                    Dispatcher.UIThread.Post(RefreshValue);
                 }
             });
         }
@@ -484,32 +521,28 @@ namespace Hyperion.Editor.ViewModels
             if (IsPending)
                 return;
 
-            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
+            if (!BeginRefresh())
             {
                 return;
             }
 
             _ = EngineManager.PostToSimThread(() =>
             {
+                long resolvedKey = NoSubObjectKey;
+                string assetPathDisplay = "(None)";
+                string displayName = "(None)";
+                string pickerName = string.Empty;
+                ComponentSubObjectViewModel? newSubObject = null;
+
                 try
                 {
                     using BoxedValue boxed = GetPropertyValue();
                     object? val = boxed.GetValue();
 
-                    ComponentSubObjectViewModel? subObjectVm = null;
-                    string assetPathDisplay = "(None)";
-                    string displayName = "(None)";
-                    string pickerName = string.Empty;
-                    string typeNameForPicker = string.Empty;
-
                     if (val is ObjectBase obj && obj.IsValid && _depth < MaxDepth)
                     {
-                        string subLabel = _property.Name.ToString();
-                        subObjectVm = new ComponentSubObjectViewModel(subLabel, obj, _depth + 1, PostWriteCallback);
+                        resolvedKey = MakeObjectKey(obj.Id);
                         displayName = obj.Class.Name.ToString();
-
-                        if (IsPolymorphic)
-                            typeNameForPicker = displayName;
 
                         if (obj is AssetObject assetObj)
                         {
@@ -523,38 +556,98 @@ namespace Hyperion.Editor.ViewModels
                                 assetPathDisplay = "(Unregistered)";
                             }
                         }
+
+                        // Building the sub-object editor reads the class layout and evaluates
+                        // editcondition methods on the object, so it has to happen here rather
+                        // than on the UI thread. Only build it when the property points somewhere
+                        // new - rebuilding on every refresh would tear down open pop-out panels.
+                        if (resolvedKey != Volatile.Read(ref _subObjectKey))
+                        {
+                            newSubObject = new ComponentSubObjectViewModel(
+                                Label,
+                                obj,
+                                _depth + 1,
+                                preWriteCallback: null,
+                                postWriteCallback: null,
+                                valueChangedCallback: () => ValueChangedCallback?.Invoke());
+                        }
                     }
-
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        _isRefreshing = 0;
-
-                        Value = displayName;
-                        AssetPathDisplay = assetPathDisplay;
-                        SubObject = subObjectVm;
-                        HasSubObject = subObjectVm != null;
-
-                        if (IsPolymorphic)
-                        {
-                            _currentTypeName = typeNameForPicker;
-                            SubclassFilter = typeNameForPicker;
-                        }
-
-                        if (_isAssetObjectType)
-                        {
-                            _currentSelectedName = pickerName;
-                            PickerFilter = pickerName;
-                            OnContentBrowserSelectionChanged();
-                        }
-                    });
                 }
                 catch (Exception ex)
                 {
-                    _isRefreshing = 0;
+                    Logger.Log(LogLevel.Warning, $"Inspector failed to read object property '{Label}': {ex.Message}");
 
-                    Logger.Log(LogLevel.Warning, $"Inspector failed to read object property '{_property.Name}': {ex.Message}");
+                    EndRefresh();
+
+                    return;
                 }
+
+                string capturedDisplayName = displayName;
+                string capturedAssetPath = assetPathDisplay;
+                string capturedPickerName = pickerName;
+                long capturedResolvedKey = resolvedKey;
+                ComponentSubObjectViewModel? capturedSubObject = newSubObject;
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    try
+                    {
+                        ApplyModelValue(() =>
+                        {
+                            Value = capturedDisplayName;
+                            AssetPathDisplay = capturedAssetPath;
+
+                            UpdateSubObject(capturedSubObject, capturedResolvedKey);
+
+                            if (IsPolymorphic)
+                            {
+                                _currentTypeName = HasSubObject ? capturedDisplayName : string.Empty;
+                                SubclassFilter = _currentTypeName;
+                            }
+
+                            if (_isAssetObjectType)
+                            {
+                                _currentSelectedName = capturedPickerName;
+                                PickerFilter = capturedPickerName;
+                            }
+                        });
+
+                        if (_isAssetObjectType)
+                        {
+                            OnContentBrowserSelectionChanged();
+                        }
+                    }
+                    finally
+                    {
+                        EndRefresh();
+                    }
+                });
             });
+        }
+
+        // Only replaces the sub-object editor when the property points at a different object;
+        // otherwise the existing editors are re-read in place so open panels stay attached.
+        private void UpdateSubObject(ComponentSubObjectViewModel? newSubObject, long resolvedKey)
+        {
+            if (resolvedKey == NoSubObjectKey)
+            {
+                Volatile.Write(ref _subObjectKey, NoSubObjectKey);
+                SubObject = null;
+                HasSubObject = false;
+                return;
+            }
+
+            if (newSubObject == null)
+            {
+                // Same object as last time - re-read the existing editors in place.
+                SubObject?.RefreshProperties();
+                return;
+            }
+
+            Volatile.Write(ref _subObjectKey, resolvedKey);
+
+            SubObject = newSubObject;
+            HasSubObject = true;
         }
 
 

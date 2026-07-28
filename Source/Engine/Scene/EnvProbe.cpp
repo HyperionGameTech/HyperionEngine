@@ -675,10 +675,15 @@ void EnvProbe::SetOrigin(const Vec3f& origin, bool fromCenter)
 
 void EnvProbe::SetSphericalHarmonicsData(const SphericalHarmonicsData& shData)
 {
+    if (m_shData == shData)
+    {
+        return;
+    }
+
     m_shData = shData;
 
-    MarkDirty();
     SetNeedsRenderProxyUpdate();
+    MarkDirty();
 }
 
 void EnvProbe::Update(float delta)

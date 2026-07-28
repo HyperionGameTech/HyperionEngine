@@ -83,6 +83,8 @@ static constexpr uint32 MaxGpuTimestampQueriesPerFrame = MaxGpuTimers * 2;
 
 static constexpr uint32 MaxAtlasesPerLightmapVolume = 4;
 
+static constexpr uint32 MaxLightmapVolumeAssignments = 4;
+
 #if HYP_ANDROID
 static constexpr const char AndroidAssetPathPrefix[] = "$Android";
 #endif

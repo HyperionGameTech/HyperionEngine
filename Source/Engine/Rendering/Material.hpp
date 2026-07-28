@@ -75,6 +75,9 @@ public:
     const MaterialAttributes& GetAttributes() const;
     MaterialAttributes& GetAttributes();
 
+    HYP_METHOD(Property = "Attributes", Serialize, Editor)
+    void SetAttributes(const MaterialAttributes& attributes);
+
     HYP_FORCE_INLINE RenderBucket GetBucket() const
     {
         return GetAttributes().bucket;

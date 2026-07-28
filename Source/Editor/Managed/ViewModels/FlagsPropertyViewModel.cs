@@ -44,38 +44,45 @@ namespace Hyperion.Editor.ViewModels
 
         public override void RefreshValue()
         {
-            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
+            if (!BeginRefresh())
             {
                 return;
             }
 
             _ = EngineManager.PostToSimThread(() =>
             {
+                object? rawValue;
+
                 try
                 {
                     using BoxedValue boxed = GetPropertyValue();
-                    object? rawValue = boxed.GetValue();
+                    rawValue = boxed.GetValue();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogLevel.Warning, $"Inspector failed to read property '{Label}': {ex.Message}");
 
-                    Dispatcher.UIThread.Post(() =>
+                    EndRefresh();
+
+                    return;
+                }
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    try
                     {
-                        try
+                        ApplyModelValue(() =>
                         {
                             Value = FormatValue(rawValue);
 
                             UpdateFlagSelectionsFromValue(rawValue);
-                        }
-                        finally
-                        {
-                            _isRefreshing = 0;
-                        }
-                    });
-                }
-                catch (Exception ex)
-                {
-                    _isRefreshing = 0;
-
-                    Logger.Log(LogLevel.Warning, $"Inspector failed to read property '{_property.Name}': {ex.Message}");
-                }
+                        });
+                    }
+                    finally
+                    {
+                        EndRefresh();
+                    }
+                });
             });
         }
 
@@ -120,7 +127,7 @@ namespace Hyperion.Editor.ViewModels
 
         private void OnFlagEntryChanged()
         {
-            if (_isRefreshing == 1)
+            if (IsApplyingModelValue)
             {
                 return;
             }
@@ -149,44 +156,32 @@ namespace Hyperion.Editor.ViewModels
 
         private void CommitEnumFlagsValue()
         {
-            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
+            ulong combined = 0ul;
+
+            foreach (EnumFlagEntry entry in _enumFlagEntries)
             {
-                return;
+                if (!entry.IsSelected || entry.Value == null)
+                {
+                    continue;
+                }
+
+                combined |= Convert.ToUInt64(entry.Value);
             }
 
             _ = EngineManager.PostToSimThread(() =>
             {
                 try
                 {
-                    ulong combined = 0ul;
-
-                    foreach (EnumFlagEntry entry in _enumFlagEntries)
-                    {
-                        if (!entry.IsSelected || entry.Value == null)
-                        {
-                            continue;
-                        }
-
-                        combined |= Convert.ToUInt64(entry.Value);
-                    }
-
                     using BoxedValue boxed = new BoxedValue(combined);
                     CommitPropertyChange($"Set {Label}", boxed);
 
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        _isRefreshing = 0;
-
-                        ValueCommitted?.Invoke();
-                    });
+                    Dispatcher.UIThread.Post(() => ValueCommitted?.Invoke());
                 }
                 catch (Exception ex)
                 {
-                    _isRefreshing = 0;
+                    Logger.Log(LogLevel.Error, $"Inspector failed to set enum flags property '{Label}': {ex.Message}");
 
-                    Logger.Log(LogLevel.Error, $"Inspector failed to set enum flags property '{_property.Name}': {ex.Message}");
-
-                    RefreshValue();
+                    Dispatcher.UIThread.Post(RefreshValue);
                 }
             });
         }

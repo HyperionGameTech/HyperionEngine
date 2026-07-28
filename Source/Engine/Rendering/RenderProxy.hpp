@@ -126,8 +126,6 @@ struct RenderProxyMesh final : IRenderProxy
 
     EntityShaderData bufferData {};
 
-    float shData[3 * 9];
-
     uint8 enableAutoInstancing : 1 = false;
 
     uint8 currentLodIndex = 0;

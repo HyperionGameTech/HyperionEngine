@@ -84,7 +84,8 @@ namespace Hyperion.Editor.ViewModels
             _valuesProperty = FindValuesProperty();
 
             // No object context in this mode (bare getter/setter delegate) - inline controls stay unavailable.
-            (_parametersProperty, _flipYProperty, _roughnessChannelProperty, _metalnessChannelProperty, _aoChannelProperty) = (null, null, null, null, null);
+            (_parametersProperty, _flipYProperty, _inverseHeightProperty, _roughnessChannelProperty, _metalnessChannelProperty, _aoChannelProperty)
+                = (null, null, null, null, null, null);
         }
 
         private Property? FindValuesProperty()
@@ -143,139 +144,165 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        private IntPtr GetCurrentStructPointer() => _currentStructValue?.Pointer ?? IntPtr.Zero;
-
-        private IntPtr GetCurrentParametersPointer() => _currentParametersValue?.Pointer ?? IntPtr.Zero;
+        private IntPtr GetCurrentParametersPointer() => Volatile.Read(ref _currentParametersValue)?.Pointer ?? IntPtr.Zero;
 
         private BoxedValue GetValuesArray()
         {
-            if (_currentValuesArray == null)
-            {
-                throw new InvalidOperationException("Textures value not yet loaded");
-            }
-
-            return _currentValuesArray;
+            return Volatile.Read(ref _currentValuesArray)
+                ?? throw new InvalidOperationException("Textures value not yet loaded");
         }
 
         private BoxedValue GetSlotValue(int ordinal) => GetValuesArray().GetArrayElement(ordinal);
 
         private void SetSlotValue(int ordinal, BoxedValue value) => GetValuesArray().SetArrayElement(ordinal, value);
 
-        private void WriteBack()
+        private static void Replace(ref BoxedValue? field, BoxedValue? newValue)
         {
-            if (_currentStructValue == null || _valuesProperty == null || _currentValuesArray == null)
+            BoxedValue? previous = Interlocked.Exchange(ref field, newValue);
+
+            if (previous != null && !ReferenceEquals(previous, newValue))
+            {
+                previous.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Sim thread. Re-reads the Textures struct (and its Values array) from the material before
+        /// a slot write, so setting one texture can't revert whatever else changed since the panel
+        /// was built.
+        /// </summary>
+        private void ReloadTextures()
+        {
+            PreWriteCallback?.Invoke();
+
+            try
+            {
+                BoxedValue structValue = GetPropertyValue();
+                BoxedValue? valuesArray = _valuesProperty?.Get(_structClass.Address, structValue.Pointer);
+
+                Replace(ref _currentStructValue, structValue);
+                Replace(ref _currentValuesArray, valuesArray);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Warning, $"MaterialTexturesPropertyViewModel: failed to re-read textures: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Sim thread. Re-reads the sibling Parameters value before an inline control write. The
+        /// same struct is also edited by the regular Parameters editor, so writing back a snapshot
+        /// would revert whatever was changed there.
+        /// </summary>
+        private void ReloadParameters()
+        {
+            PreWriteCallback?.Invoke();
+
+            if (_parametersProperty == null)
             {
                 return;
             }
 
-            _valuesProperty.Value.Set(_structClass.Address, GetCurrentStructPointer(), _currentValuesArray);
-            SetPropertyValue(_currentStructValue);
+            try
+            {
+                Replace(ref _currentParametersValue, GetSiblingPropertyValue(_parametersProperty.Value));
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Warning, $"MaterialTexturesPropertyViewModel: failed to re-read parameters: {ex.Message}");
+            }
+        }
+
+        private void WriteBack()
+        {
+            BoxedValue? structValue = Volatile.Read(ref _currentStructValue);
+            BoxedValue? valuesArray = Volatile.Read(ref _currentValuesArray);
+
+            if (structValue == null || _valuesProperty == null || valuesArray == null)
+            {
+                return;
+            }
+
+            _valuesProperty.Value.Set(_structClass.Address, structValue.Pointer, valuesArray);
+            SetPropertyValue(structValue);
         }
 
         private void WriteBackParameters()
         {
-            if (_parametersProperty == null || _currentParametersValue == null)
+            BoxedValue? parametersValue = Volatile.Read(ref _currentParametersValue);
+
+            if (_parametersProperty == null || parametersValue == null)
             {
                 return;
             }
 
-            SetSiblingPropertyValue(_parametersProperty.Value, _currentParametersValue);
+            SetSiblingPropertyValue(_parametersProperty.Value, parametersValue);
         }
 
         private InspectorPropertyViewModelBase? BuildInlineControl(string slotLabel)
         {
-            if (_parametersProperty == null || _parametersClass == null || _currentParametersValue == null)
+            if (_parametersProperty == null || _parametersClass == null || Volatile.Read(ref _currentParametersValue) == null)
+            {
+                return null;
+            }
+
+            Property? property;
+            string label;
+
+            switch (slotLabel)
+            {
+                case NormalsSlotName:
+                    property = _flipYProperty;
+                    label = "Flip Y";
+                    break;
+                case ParallaxSlotName:
+                    property = _inverseHeightProperty;
+                    label = "Inverse Height";
+                    break;
+                case RoughnessSlotName:
+                    property = _roughnessChannelProperty;
+                    label = "Channel";
+                    break;
+                case MetalnessSlotName:
+                    property = _metalnessChannelProperty;
+                    label = "Channel";
+                    break;
+                case AmbientOcclusionSlotName:
+                    property = _aoChannelProperty;
+                    label = "Channel";
+                    break;
+                default:
+                    return null;
+            }
+
+            if (property == null)
             {
                 return null;
             }
 
             Class parametersClass = _parametersClass.Value;
+            Property capturedProperty = property.Value;
 
-            switch (slotLabel)
-            {
-                case NormalsSlotName when _flipYProperty != null:
-                {
-                    Property prop = _flipYProperty.Value;
-
-                    return InspectorViewModelFactory.CreateForValue(
-                        "Flip Y",
-                        prop.TypeInfo,
-                        getter: () => prop.Get(parametersClass.Address, GetCurrentParametersPointer()),
-                        setter: v => prop.Set(parametersClass.Address, GetCurrentParametersPointer(), v),
-                        isReadOnly: _isReadOnly,
-                        depth: 0,
-                        initialize: false,
-                        postWriteCallback: WriteBackParameters);
-                }
-                case ParallaxSlotName when _inverseHeightProperty != null:
-                {
-                    Property prop = _inverseHeightProperty.Value;
-
-                    return InspectorViewModelFactory.CreateForValue(
-                        "Inverse Height",
-                        prop.TypeInfo,
-                        getter: () => prop.Get(parametersClass.Address, GetCurrentParametersPointer()),
-                        setter: v => prop.Set(parametersClass.Address, GetCurrentParametersPointer(), v),
-                        isReadOnly: _isReadOnly,
-                        depth: 0,
-                        initialize: false,
-                        postWriteCallback: WriteBackParameters);
-                }
-                case RoughnessSlotName when _roughnessChannelProperty != null:
-                {
-                    Property prop = _roughnessChannelProperty.Value;
-
-                    return InspectorViewModelFactory.CreateForValue(
-                        "Channel",
-                        prop.TypeInfo,
-                        getter: () => prop.Get(parametersClass.Address, GetCurrentParametersPointer()),
-                        setter: v => prop.Set(parametersClass.Address, GetCurrentParametersPointer(), v),
-                        isReadOnly: _isReadOnly,
-                        depth: 0,
-                        initialize: false,
-                        postWriteCallback: WriteBackParameters);
-                }
-
-                case MetalnessSlotName when _metalnessChannelProperty != null:
-                {
-                    Property prop = _metalnessChannelProperty.Value;
-
-                    return InspectorViewModelFactory.CreateForValue(
-                        "Channel",
-                        prop.TypeInfo,
-                        getter: () => prop.Get(parametersClass.Address, GetCurrentParametersPointer()),
-                        setter: v => prop.Set(parametersClass.Address, GetCurrentParametersPointer(), v),
-                        isReadOnly: _isReadOnly,
-                        depth: 0,
-                        initialize: false,
-                        postWriteCallback: WriteBackParameters);
-                }
-
-                case AmbientOcclusionSlotName when _aoChannelProperty != null:
-                {
-                    Property prop = _aoChannelProperty.Value;
-
-                    return InspectorViewModelFactory.CreateForValue(
-                        "Channel",
-                        prop.TypeInfo,
-                        getter: () => prop.Get(parametersClass.Address, GetCurrentParametersPointer()),
-                        setter: v => prop.Set(parametersClass.Address, GetCurrentParametersPointer(), v),
-                        isReadOnly: _isReadOnly,
-                        depth: 0,
-                        initialize: false,
-                        postWriteCallback: WriteBackParameters);
-                }
-
-                default:
-                    return null;
-            }
+            return InspectorViewModelFactory.CreateForValue(
+                label,
+                capturedProperty.TypeInfo,
+                getter: () => capturedProperty.Get(parametersClass.Address, GetCurrentParametersPointer()),
+                setter: v => capturedProperty.Set(parametersClass.Address, GetCurrentParametersPointer(), v),
+                isReadOnly: _isReadOnly,
+                depth: 0,
+                initialize: false,
+                preWriteCallback: ReloadParameters,
+                postWriteCallback: WriteBackParameters,
+                valueChangedCallback: () => ValueChangedCallback?.Invoke());
         }
 
-        private void BuildSlots()
+        // arraySize is read on the sim thread; the boxed values are owned there and must not be
+        // touched from here.
+        private void BuildSlots(int arraySize)
         {
             Slots.Clear();
 
-            if (_valuesProperty == null || _currentValuesArray == null)
+            if (_valuesProperty == null || arraySize <= 0)
             {
                 HasSlots = false;
                 return;
@@ -291,7 +318,6 @@ namespace Hyperion.Editor.ViewModels
             }
 
             TypeInfo elementTypeInfo = _valuesProperty.Value.TypeInfo.GetElementTypeInfo();
-            int arraySize = _currentValuesArray.GetArraySize();
 
             foreach (StaticField staticField in keyEnumClass.Value.StaticFields)
             {
@@ -336,7 +362,9 @@ namespace Hyperion.Editor.ViewModels
                     isReadOnly: _isReadOnly,
                     depth: 0,
                     initialize: false,
-                    postWriteCallback: WriteBack);
+                    preWriteCallback: ReloadTextures,
+                    postWriteCallback: WriteBack,
+                    valueChangedCallback: () => ValueChangedCallback?.Invoke());
 
                 InspectorPropertyViewModelBase? inlineControl = BuildInlineControl(slotLabel);
 
@@ -348,13 +376,15 @@ namespace Hyperion.Editor.ViewModels
 
         public override void RefreshValue()
         {
-            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
+            if (!BeginRefresh())
             {
                 return;
             }
 
             _ = EngineManager.PostToSimThread(() =>
             {
+                int arraySize;
+
                 try
                 {
                     BoxedValue newStructValue = GetPropertyValue();
@@ -364,27 +394,45 @@ namespace Hyperion.Editor.ViewModels
                         ? GetSiblingPropertyValue(_parametersProperty.Value)
                         : null;
 
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        _isRefreshing = 0;
+                    arraySize = newValuesArray?.GetArraySize() ?? 0;
 
-                        _currentStructValue = newStructValue;
-                        _currentValuesArray = newValuesArray;
-                        _currentParametersValue = newParametersValue;
-
-                        BuildSlots();
-
-                        foreach (var vm in Slots)
-                        {
-                            vm.RefreshValue();
-                        }
-                    });
+                    Replace(ref _currentStructValue, newStructValue);
+                    Replace(ref _currentValuesArray, newValuesArray);
+                    Replace(ref _currentParametersValue, newParametersValue);
                 }
                 catch (Exception ex)
                 {
-                    _isRefreshing = 0;
                     Logger.Log(LogLevel.Warning, $"Inspector failed to read Textures property '{Label}': {ex.Message}");
+
+                    EndRefresh();
+
+                    return;
                 }
+
+                int capturedArraySize = arraySize;
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    try
+                    {
+                        // The slot list is derived from the texture key enum, so it only has to be
+                        // built once. Rebuilding it on every refresh would tear down the asset
+                        // pickers (and any pop-out panel) while the user is using them.
+                        if (Slots.Count == 0)
+                        {
+                            BuildSlots(capturedArraySize);
+                        }
+
+                        foreach (MaterialTextureSlotViewModel slot in Slots)
+                        {
+                            slot.RefreshValue();
+                        }
+                    }
+                    finally
+                    {
+                        EndRefresh();
+                    }
+                });
             });
         }
     }

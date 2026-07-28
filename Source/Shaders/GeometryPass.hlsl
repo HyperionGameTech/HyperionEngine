@@ -63,25 +63,7 @@ DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
     Camera camera;
     Material material;
     float4x4 vpMatrix;
-    float4 shData[9];
 };
-
-#define HAS_PROBE_LIGHTING (step(0.5, shData[0].w))
-
-float3 EvaluateSH(float3 N)
-{
-    float bands[9];
-    ProjectSHBands(N, bands);
-
-    float3 result = (float3)0.0;
-
-    for (int i = 0; i < 9; i++)
-    {
-        result += shData[i].rgb * bands[i];
-    }
-
-    return max(result, (float3)0.0);
-}
 
 #ifdef SHADING_TYPE_FORWARD
 
@@ -394,17 +376,7 @@ PSOutput PSMain(PSInput input)
         | (((uint)round(input.texcoord1.y * 16384.0) & 0x3FFFu) << 14u);
 #else
     //Probe lighting - evaluate SH, store RGB8 in the upper 24 bits of gbuffer_material
-    if (HAS_PROBE_LIGHTING)
-    {
-        float3 shResult = EvaluateSH(N);
-        output.gbuffer_material = ((uint)(shResult.x * 255.0) & 0xFFu)
-            | (((uint)(shResult.y * 255.0) & 0xFFu) << 8u)
-            | (((uint)(shResult.z * 255.0) & 0xFFu) << 16u);
-    }
-    else
-    {
-        output.gbuffer_material = 0;
-    }
+    output.gbuffer_material = 0;
 #endif
 
     // Mask is stored in the upper 4 bits of gbuffer_material

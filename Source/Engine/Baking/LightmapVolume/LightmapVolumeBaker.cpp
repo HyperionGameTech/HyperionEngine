@@ -38,6 +38,35 @@ namespace Baking {
 
 #pragma region LightmapVolume baking helpers
 
+// Fraction of entityAabb's volume that overlaps volumeAabb, clamped to [0, 1]. Higher = better fit.
+static float ComputeLightmapVolumeOverlapWeight(const BoundingBox& entityAabb, const BoundingBox& volumeAabb)
+{
+    if (!entityAabb.IsValid() || !volumeAabb.IsValid())
+    {
+        return 0.0f;
+    }
+
+    const Vec3f entityExtent = entityAabb.GetExtent();
+    const float entityVolume = entityExtent.x * entityExtent.y * entityExtent.z;
+
+    if (entityVolume <= 0.0f)
+    {
+        return 0.0f;
+    }
+
+    const BoundingBox overlap = entityAabb.Intersection(volumeAabb);
+
+    if (!overlap.IsValid())
+    {
+        return 0.0f;
+    }
+
+    const Vec3f overlapExtent = overlap.GetExtent();
+    const float overlapVolume = overlapExtent.x * overlapExtent.y * overlapExtent.z;
+
+    return MathUtil::Clamp(overlapVolume / entityVolume, 0.0f, 1.0f);
+}
+
 static LightmapShadingType AtlasTextureTypeToShadingType(LightmapVolume::AtlasTextureType type)
 {
     switch (type)
@@ -321,6 +350,24 @@ void Baker<LightmapVolume>::Build()
         if (onlyOverlappingElements && !m_aabb.Overlaps(worldAabb))
         {
             continue;
+        }
+
+        // Only claim this entity if we're a better (or equal) fit than whoever currently owns it -
+        // prevents a volume's bake from stealing entities that belong to a better-fitting volume.
+        const float weight = ComputeLightmapVolumeOverlapWeight(worldAabb, m_aabb);
+
+        if (const LightmapElementComponent* lightmapElementComponent = mgr.TryGetComponent<LightmapElementComponent>(entity))
+        {
+            if (lightmapElementComponent->NumLightmapVolumeAssignments() > 0)
+            {
+                const LightmapVolumeId topAssignment = lightmapElementComponent->lightmapVolumeAssignments[0];
+                const float topAssignmentWeight = lightmapElementComponent->lightmapVolumeAssignmentWeights[0];
+
+                if (topAssignment != m_volume->GetLightmapVolumeId() && topAssignmentWeight >= weight)
+                {
+                    continue;
+                }
+            }
         }
 
         Handle<Mesh> bakeMesh = meshComponent.mesh;
@@ -614,9 +661,10 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
         }
 #endif
 
-        auto UpdateMeshComponent = [entityManagerWeak = MakeWeakRef(m_scene->GetEntityManager()),
+        auto updateMeshComponent = [entityManagerWeak = MakeWeakRef(m_scene->GetEntityManager()),
                                     entityElementId,
                                     volume = m_volume,
+                                    volumeAabb = m_aabb,
                                     bakeEntity = bakeEntity,
                                     material = bakeEntity.material,
                                     isNewMaterial]()
@@ -656,20 +704,90 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
                 HYP_LOG(Lightmap, Warning, "Entity {} does not have a MeshComponent, cannot assign baked material", entity->Id());
             }
 
+            const float weight = ComputeLightmapVolumeOverlapWeight(bakeEntity.aabb, volumeAabb);
+
+            const LightmapVolumeId lightmapVolumeId = volume->GetLightmapVolumeId();
+            Assert(lightmapVolumeId != InvalidLightmapVolumeId);
+
+            auto setVolumeAssignment = [lightmapVolumeId, weight](LightmapElementComponent& lightmapElementComponent)
+            {
+                auto& assignments = lightmapElementComponent.lightmapVolumeAssignments;
+                auto& weights = lightmapElementComponent.lightmapVolumeAssignmentWeights;
+
+                uint32 numAssignments = lightmapElementComponent.NumLightmapVolumeAssignments();
+                uint32 index = numAssignments;
+
+                for (uint32 i = 0; i < numAssignments; i++)
+                {
+                    if (assignments[i] == lightmapVolumeId)
+                    {
+                        index = i;
+                        break;
+                    }
+                }
+
+                if (index == numAssignments)
+                {
+                    if (numAssignments < MaxLightmapVolumeAssignments)
+                    {
+                        numAssignments++;
+                    }
+                    else
+                    {
+                        // Replaces the lowest prio one
+                        index = MaxLightmapVolumeAssignments - 1;
+                    }
+                }
+
+                FixedArray<Pair<LightmapVolumeId, float>, MaxLightmapVolumeAssignments> kvpArray {};
+
+                for (uint32 i = 0; i < numAssignments; i++)
+                {
+                    kvpArray[i] = { assignments[i], weights[i] };
+                }
+                
+                if (numAssignments < MaxLightmapVolumeAssignments)
+                {
+                    std::fill(
+                        kvpArray.Begin() + numAssignments,
+                        kvpArray.End(),
+                        Pair<LightmapVolumeId, float> { InvalidLightmapVolumeId, 0.0f });
+                }
+
+                kvpArray[index] = { lightmapVolumeId, weight };
+
+                // Keep ordered
+                std::sort(
+                    kvpArray.Begin(),
+                    kvpArray.Begin() + numAssignments,
+                    [](const Pair<LightmapVolumeId, float>& a, const Pair<LightmapVolumeId, float>& b)
+                    {
+                        return a.second > b.second;
+                    });
+                
+                for (uint32 i = 0; i < MaxLightmapVolumeAssignments; i++)
+                {
+                    assignments[i] = kvpArray[i].first;
+                    weights[i] = kvpArray[i].second;
+                }
+            };
+
             if (entityManager->HasComponent<LightmapElementComponent>(entity))
             {
                 LightmapElementComponent& lightmapElementComponent = entityManager->GetComponent<LightmapElementComponent>(entity);
 
+                setVolumeAssignment(lightmapElementComponent);
+
                 lightmapElementComponent.lightmapVolume = MakeWeakRef(volume);
-                lightmapElementComponent.lightmapVolumeName = volume->GetName();
                 lightmapElementComponent.lightmapElementId = entityElementId;
             }
             else
             {
                 LightmapElementComponent lightmapElementComponent;
 
+                setVolumeAssignment(lightmapElementComponent);
+
                 lightmapElementComponent.lightmapVolume = MakeWeakRef(volume);
-                lightmapElementComponent.lightmapVolumeName = volume->GetName();
                 lightmapElementComponent.lightmapElementId = entityElementId;
 
                 entityManager->AddComponent<LightmapElementComponent>(entity, std::move(lightmapElementComponent));
@@ -681,14 +799,14 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
 
         if (IsOnThread(m_scene->GetEntityManager()->GetOwnerThreadId()))
         {
-            UpdateMeshComponent();
+            updateMeshComponent();
         }
         else
         {
             ThreadBase* thread = GetThreadById(m_scene->GetEntityManager()->GetOwnerThreadId());
             Assert(thread != nullptr);
 
-            thread->GetScheduler().Enqueue(std::move(UpdateMeshComponent), TaskEnqueueFlags::FIRE_AND_FORGET);
+            thread->GetScheduler().Enqueue(std::move(updateMeshComponent), TaskEnqueueFlags::FIRE_AND_FORGET);
         }
     }
 }

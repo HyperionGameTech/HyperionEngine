@@ -15,6 +15,8 @@ namespace Hyperion.Editor.ViewModels
         private readonly int _depth;
         private readonly Class _structClass;
 
+        // Sim-thread-owned copy of the struct. Sub-property view models read and write through this
+        // copy and then it is written back to the parent as a whole.
         private BoxedValue? _currentStructValue;
 
         public ObservableCollection<InspectorPropertyViewModelBase> SubProperties { get; } = new();
@@ -67,19 +69,53 @@ namespace Hyperion.Editor.ViewModels
         // or IntPtr.Zero if not yet loaded (sub-prop calls will fail gracefully until first RefreshValue).
         private IntPtr GetCurrentStructPointer()
         {
-            return _currentStructValue?.Pointer ?? IntPtr.Zero;
+            return Volatile.Read(ref _currentStructValue)?.Pointer ?? IntPtr.Zero;
+        }
+
+        /// <summary>
+        /// Called on the sim thread by sub-property view models before they modify the struct copy.
+        /// Re-reads the struct from the parent first (chaining up through the containing struct),
+        /// so a write applies to the object's current value rather than to a snapshot taken when
+        /// the panel was built.
+        /// </summary>
+        private void ReloadStructFromParent()
+        {
+            PreWriteCallback?.Invoke();
+
+            try
+            {
+                ReplaceStructValue(GetPropertyValue());
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Warning, $"StructPropertyViewModel: failed to re-read struct '{Label}': {ex.Message}");
+            }
         }
 
         // Called by sub-property VMs via PostWriteCallback after they modify the struct copy.
         // Writes the entire (now-modified) struct copy back to the parent property.
         private void WriteStructToParent()
         {
-            if (_currentStructValue == null)
+            BoxedValue? current = Volatile.Read(ref _currentStructValue);
+
+            if (current == null)
             {
                 return;
             }
 
-            SetPropertyValue(_currentStructValue);
+            SetPropertyValue(current);
+        }
+
+        // Replaces the cached copy and disposes the previous one on the calling (sim) thread.
+        // Letting the finalizer do it would release engine handles from the GC thread.
+        private void ReplaceStructValue(BoxedValue? newValue)
+        {
+            BoxedValue? previous = Interlocked.Exchange(ref _currentStructValue, newValue);
+
+            if (previous != null && !ReferenceEquals(previous, newValue))
+            {
+                previous.Dispose();
+            }
         }
 
         private void InitializeSubProperties()
@@ -133,7 +169,9 @@ namespace Hyperion.Editor.ViewModels
                         isReadOnly,
                         _depth + 1,
                         initialize: false,
-                        postWriteCallback: WriteStructToParent);
+                        preWriteCallback: ReloadStructFromParent,
+                        postWriteCallback: WriteStructToParent,
+                        valueChangedCallback: () => ValueChangedCallback?.Invoke());
 
                     SubProperties.Add(vm);
                 }
@@ -148,7 +186,7 @@ namespace Hyperion.Editor.ViewModels
 
         public override void RefreshValue()
         {
-            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
+            if (!BeginRefresh())
             {
                 return;
             }
@@ -157,25 +195,31 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    BoxedValue newStructValue = GetPropertyValue();
-
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        _isRefreshing = 0;
-
-                        _currentStructValue = newStructValue;
-
-                        foreach (var vm in SubProperties)
-                        {
-                            vm.RefreshValue();
-                        }
-                    });
+                    ReplaceStructValue(GetPropertyValue());
                 }
                 catch (Exception ex)
                 {
-                    _isRefreshing = 0;
-                    Logger.Log(LogLevel.Warning, $"Inspector failed to read struct property '{_property.Name}': {ex.Message}");
+                    Logger.Log(LogLevel.Warning, $"Inspector failed to read struct property '{Label}': {ex.Message}");
+
+                    EndRefresh();
+
+                    return;
                 }
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    try
+                    {
+                        foreach (InspectorPropertyViewModelBase vm in SubProperties)
+                        {
+                            vm.RefreshValue();
+                        }
+                    }
+                    finally
+                    {
+                        EndRefresh();
+                    }
+                });
             });
         }
     }

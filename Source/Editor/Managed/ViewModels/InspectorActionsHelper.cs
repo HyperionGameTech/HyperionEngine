@@ -6,7 +6,7 @@ namespace Hyperion.Editor.ViewModels
 {
     public static class InspectorActionsHelper
     {
-        public static List<InspectorActionViewModel> GetActions(ObjectBase? target)
+        public static List<InspectorActionViewModel> GetActions(ObjectBase? target, System.Action? onCompleted = null)
         {
             List<InspectorActionViewModel> result = new List<InspectorActionViewModel>();
 
@@ -55,7 +55,7 @@ namespace Hyperion.Editor.ViewModels
                         isEnabled = false;
                     }
 
-                    result.Add(new InspectorActionViewModel(target, method, label, isEnabled));
+                    result.Add(new InspectorActionViewModel(target, method, label, isEnabled, onCompleted));
                 }
                 catch (System.Exception ex)
                 {

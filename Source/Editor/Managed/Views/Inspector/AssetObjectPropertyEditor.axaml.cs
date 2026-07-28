@@ -77,7 +77,7 @@ namespace Hyperion.Editor.Views.Inspector
                 return;
             }
 
-            var panel = new AssetObjectEditPanelViewModel(vm.Label, vm.AssetPathDisplay, vm.SubObject);
+            var panel = new AssetObjectEditPanelViewModel(vm);
             PanelService.Instance.OpenPanel(panel);
         }
     }

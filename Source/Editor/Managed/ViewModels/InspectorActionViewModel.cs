@@ -1,6 +1,7 @@
 using System;
 using System.Windows.Input;
 using System.Threading;
+using Avalonia.Threading;
 using Hyperion;
 using Hyperion.Editor.Commands;
 
@@ -11,12 +12,14 @@ namespace Hyperion.Editor.ViewModels
         private readonly ObjectBase _target;
         private readonly Method _method;
         private readonly RelayCommand _executeCommand;
+        private readonly Action? _onCompleted;
         private int _isExecuting;
 
-        public InspectorActionViewModel(ObjectBase? target, Method method, string label, bool isEnabled = true)
+        public InspectorActionViewModel(ObjectBase? target, Method method, string label, bool isEnabled = true, Action? onCompleted = null)
         {
             _target = target ?? throw new ArgumentNullException(nameof(target));
             _method = method;
+            _onCompleted = onCompleted;
             _isExecuting = 0;
 
             if (string.IsNullOrWhiteSpace(label))
@@ -53,7 +56,7 @@ namespace Hyperion.Editor.ViewModels
                 // already executing
                 return;
             }
-            
+
             // always execute on the sim thread
             _ = EngineManager.PostToSimThread(() =>
             {
@@ -68,6 +71,11 @@ namespace Hyperion.Editor.ViewModels
                 finally
                 {
                     _isExecuting = 0;
+
+                    if (_onCompleted != null)
+                    {
+                        Dispatcher.UIThread.Post(_onCompleted);
+                    }
                 }
             });
         }

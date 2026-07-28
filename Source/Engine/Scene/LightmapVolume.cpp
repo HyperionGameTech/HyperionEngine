@@ -4,13 +4,14 @@
  *  @licence MIT
 */
 
-#include "Baking/Baker.hpp"
 #include <HyperionPch.hpp>
 
 #include <Scene/LightmapVolume.hpp>
 #include <Scene/World.hpp>
 #include <Scene/Scene.hpp>
 #include <Scene/EntityManager.hpp>
+
+#include <Scene/Systems/LightmapSystem.hpp>
 
 #include <Scene/Components/LightmapElementComponent.hpp>
 #include <Scene/Components/BoundingBoxComponent.hpp>
@@ -32,10 +33,11 @@
 #include <Framework/EngineDriver.hpp>
 #include <Framework/EngineGlobals.hpp>
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
+#include <Baking/Baker.hpp>
 #include <Baking/BakerSubsystem.hpp>
 #include <Baking/LightmapVolume/LightmapVolumeBakeData.hpp>
-#endif
+#endif // HYP_EDITOR
 
 #include <LightmapVolume.generated.inl>
 
@@ -53,7 +55,8 @@ LightmapVolume::LightmapVolume()
 LightmapVolume::LightmapVolume(const BoundingBox& localBounds)
     : VolumeBase(localBounds),
       m_irradianceAtlasTextures {},
-      m_bentNormalAtlasTextures {}
+      m_bentNormalAtlasTextures {},
+      m_id(InvalidId)
 {
     m_atlases.Reserve(MaxAtlasesPerLightmapVolume);
     m_atlases.EmplaceBack(DefaultAtlasDimensions);
@@ -100,6 +103,19 @@ void LightmapVolume::SetName(Name name)
             assetRegistry->PutAssetUnique(m_bentNormalAtlasTextures[i]);
         }
     }
+}
+
+void LightmapVolume::SetLightmapVolumeId(LightmapVolumeId id)
+{
+    if (m_id == id)
+    {
+        return;
+    }
+
+    m_id = id;
+
+    SetNeedsRenderProxyUpdate();
+    MarkDirty();
 }
 
 bool LightmapVolume::AddElement(Vec2u dimensions, LightmapElement*& outElement, bool shrinkToFit, float downscaleLimit)
@@ -269,6 +285,14 @@ void LightmapVolume::OnAddedToWorld(World* world)
 {
     VolumeBase::OnAddedToWorld(world);
 
+    if (m_id == InvalidId)
+    {
+        if (LightmapSystem* lightmapSystem = world->GetSystem<LightmapSystem>())
+        {
+            SetLightmapVolumeId(lightmapSystem->AllocateLightmapVolumeId());
+        }
+    }
+
     const BoundingBox worldBounds = GetWorldBounds();
 
     for (Scene* scene : world->GetScenes())
@@ -276,7 +300,7 @@ void LightmapVolume::OnAddedToWorld(World* world)
         for (auto [entity, lightmapElementComponent] : scene->GetEntityManager()->GetEntitySet<LightmapElementComponent>().GetScopedView(DataAccessFlags::ACCESS_RW))
         {
             if (lightmapElementComponent.lightmapVolume.GetUnsafe() != this
-                && lightmapElementComponent.lightmapVolumeName == GetName())
+                && lightmapElementComponent.GetTopAssignment() == m_id)
             {
                 // Verify the element ID exists in this volume before assigning
                 const LightmapElement* lightmapElement = GetElement(lightmapElementComponent.lightmapElementId);

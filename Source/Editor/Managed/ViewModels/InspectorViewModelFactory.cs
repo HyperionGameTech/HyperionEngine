@@ -20,7 +20,14 @@ namespace Hyperion.Editor.ViewModels
         private const string MaterialTexturesName = "MaterialTextures";
         private const string BoolName = "bool";
 
-        public static InspectorPropertyViewModelBase Create(ObjectBase? target, Property property, bool isReadOnly, int depth = 0, Action? postWriteCallback = null)
+        public static InspectorPropertyViewModelBase Create(
+            ObjectBase? target,
+            Property property,
+            bool isReadOnly,
+            int depth = 0,
+            Action? preWriteCallback = null,
+            Action? postWriteCallback = null,
+            Action? valueChangedCallback = null)
         {
             if (target == null)
             {
@@ -118,7 +125,7 @@ namespace Hyperion.Editor.ViewModels
                 vm = new ReadOnlyPropertyViewModel(target, property, isReadOnly);
             }
 
-            vm.PostWriteCallback = postWriteCallback;
+            AttachCallbacks(vm, preWriteCallback, postWriteCallback, valueChangedCallback);
 
             return Initialize(vm);
         }
@@ -126,7 +133,15 @@ namespace Hyperion.Editor.ViewModels
         // initialize: pass false when the caller will call RefreshValue() manually later
         // (e.g. StructPropertyViewModel defers refresh until its struct copy is loaded).
         public static InspectorPropertyViewModelBase CreateForComponent(
-            IntPtr classAddress, Func<IntPtr> targetAddressResolver, Property property, bool isReadOnly, int depth = 0, bool initialize = true, Action? postWriteCallback = null)
+            IntPtr classAddress,
+            Func<IntPtr> targetAddressResolver,
+            Property property,
+            bool isReadOnly,
+            int depth = 0,
+            bool initialize = true,
+            Action? preWriteCallback = null,
+            Action? postWriteCallback = null,
+            Action? valueChangedCallback = null)
         {
             TypeInfo typeInfo = property.TypeInfo;
             bool isNameType = InspectorPropertyViewModelBase.IsNameType(typeInfo);
@@ -219,7 +234,7 @@ namespace Hyperion.Editor.ViewModels
                 vm = new ReadOnlyPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly);
             }
 
-            vm.PostWriteCallback = postWriteCallback;
+            AttachCallbacks(vm, preWriteCallback, postWriteCallback, valueChangedCallback);
 
             return initialize ? Initialize(vm) : vm;
         }
@@ -232,7 +247,9 @@ namespace Hyperion.Editor.ViewModels
             bool isReadOnly = false,
             int depth = 0,
             bool initialize = true,
-            Action? postWriteCallback = null)
+            Action? preWriteCallback = null,
+            Action? postWriteCallback = null,
+            Action? valueChangedCallback = null)
         {
             bool isNameType = InspectorPropertyViewModelBase.IsNameType(typeInfo);
 
@@ -320,9 +337,20 @@ namespace Hyperion.Editor.ViewModels
                 vm = new ReadOnlyPropertyViewModel(label, getter, setter, isReadOnly);
             }
 
-            vm.PostWriteCallback = postWriteCallback;
+            AttachCallbacks(vm, preWriteCallback, postWriteCallback, valueChangedCallback);
 
             return initialize ? Initialize(vm) : vm;
+        }
+
+        private static void AttachCallbacks(
+            InspectorPropertyViewModelBase viewModel,
+            Action? preWriteCallback,
+            Action? postWriteCallback,
+            Action? valueChangedCallback)
+        {
+            viewModel.PreWriteCallback = preWriteCallback;
+            viewModel.PostWriteCallback = postWriteCallback;
+            viewModel.ValueChangedCallback = valueChangedCallback;
         }
 
         private static InspectorPropertyViewModelBase Initialize(InspectorPropertyViewModelBase viewModel)

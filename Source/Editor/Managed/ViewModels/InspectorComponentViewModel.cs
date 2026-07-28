@@ -49,6 +49,20 @@ namespace Hyperion.Editor.ViewModels
         public virtual void PopulateProperties()
         {
         }
+
+        /// <summary>Re-reads every property of this component. UI thread.</summary>
+        public void RefreshProperties()
+        {
+            foreach (InspectorPropertyViewModelBase vm in Properties)
+            {
+                vm.RefreshValue();
+            }
+
+            foreach (ComponentSubObjectViewModel subObject in SubObjects)
+            {
+                subObject.RefreshProperties();
+            }
+        }
     }
 
     public class InspectorComponentViewModel<T> : InspectorComponentViewModelBase where T : IComponent, allows ref struct
@@ -218,7 +232,12 @@ namespace Hyperion.Editor.ViewModels
                             }
 
                             InspectorPropertyViewModelBase vm = InspectorViewModelFactory.CreateForComponent(
-                                classAddress, targetAddressResolver, property, isReadOnly, postWriteCallback: postWrite);
+                                classAddress,
+                                targetAddressResolver,
+                                property,
+                                isReadOnly,
+                                postWriteCallback: postWrite,
+                                valueChangedCallback: RefreshProperties);
 
                             vms.Add(vm);
                         }

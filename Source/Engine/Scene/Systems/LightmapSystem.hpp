@@ -7,8 +7,10 @@
 #pragma once
 
 #include <Scene/System.hpp>
+
 #include <Scene/Components/LightmapElementComponent.hpp>
 #include <Scene/Components/BoundingBoxComponent.hpp>
+
 #include <Scene/EntityTag.hpp>
 
 namespace Hyperion {
@@ -16,33 +18,35 @@ namespace Hyperion {
 class LightmapVolume;
 class ProbeVolume;
 
-HYP_CLASS(NoScriptBindings, Serialize = false)
+HYP_CLASS(NoScriptBindings, Serialize)
 class LightmapSystem final : public SystemBase
 {
     HYP_OBJECT_BODY(LightmapSystem);
 
 public:
+    LightmapSystem();
     ~LightmapSystem() override = default;
+
+    bool AllowUpdate() const override
+    {
+        return false;
+    }
 
     void OnEntityAdded(Entity* entity) override;
     void OnEntityRemoved(Entity* entity) override;
 
     void Process(float delta, Span<Handle<Scene>> scenes) override;
 
+    HYP_NODISCARD LightmapVolumeId AllocateLightmapVolumeId();
+
 private:
+    void OnAddedToWorld(World* world) override;
+
     SystemComponentDescriptors GetComponentDescriptors() const override
     {
         return {
             // writes to entities with these components
             ComponentDescriptor<LightmapElementComponent, ComponentAccess::READ_WRITE> {},
-
-            // we update probe-based lighting for dynamic entities at Process() time
-            //
-            // NOTE: We use ComponentAccess::READ even though we do update the SH data,
-            // but nothing else modifies this data during process time and we want to avoid unnecessary System ordering changes.
-            ComponentDescriptor<TagComponent<EntityTag::MobDynamic>, ComponentAccess::READ, false> {},
-            
-            ComponentDescriptor<TagComponent<EntityTag::UpdateSphericalHarmonicsData>, ComponentAccess::READ_WRITE, false> {},
 
             // used to assign entities to LightmapVolumes
             ComponentDescriptor<BoundingBoxComponent, ComponentAccess::READ> {},
@@ -58,6 +62,9 @@ private:
         Entity& srcEntity,
         LightmapElementComponent& lightmapElementComponent,
         BoundingBoxComponent& boundingBoxComponent);
+
+    HYP_FIELD(Property = "NextLightmapVolumeId", Serialize)
+    uint32 m_nextLightmapVolumeId;
 };
 
 } // namespace Hyperion

@@ -35,11 +35,6 @@ namespace Hyperion.Editor.ViewModels
 
         private void OnReset()
         {
-            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
-            {
-                return;
-            }
-
             _ = EngineManager.PostToSimThread(() =>
             {
                 try
@@ -49,11 +44,9 @@ namespace Hyperion.Editor.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogLevel.Warning, $"Inspector failed to reset bounding box property '{_property.Name}': {ex.Message}");
-                }
-                finally
-                {
-                    Dispatcher.UIThread.Post(() => _isRefreshing = 0);
+                    Logger.Log(LogLevel.Warning, $"Inspector failed to reset bounding box property '{Label}': {ex.Message}");
+
+                    Dispatcher.UIThread.Post(RefreshValue);
                 }
             });
         }

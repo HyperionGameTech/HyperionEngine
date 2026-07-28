@@ -36,6 +36,9 @@ class BakeData;
 enum class LightmapElementId : uint32;
 static constexpr LightmapElementId InvalidLightmapElementId = Invalid<LightmapElementId>;
 
+enum class LightmapVolumeId : uint32;
+static constexpr LightmapVolumeId InvalidLightmapVolumeId = Invalid<LightmapVolumeId>;
+
 HYP_STRUCT(NoScriptBindings)
 struct LightmapElement
 {
@@ -109,6 +112,7 @@ class ENGINE_API LightmapVolume final : public VolumeBase
 
 public:
     static constexpr Vec2u DefaultAtlasDimensions = Vec2u(2048, 2048);
+    static constexpr LightmapVolumeId InvalidId = InvalidLightmapVolumeId;
 
     enum AtlasTextureType : uint8
     {
@@ -131,6 +135,15 @@ public:
 
     HYP_METHOD()
     void SetName(Name name) override;
+
+    HYP_METHOD(Property = "LightmapVolumeId", Editor = false, Serialize = true)
+    LightmapVolumeId GetLightmapVolumeId() const
+    {
+        return m_id;
+    }
+
+    HYP_METHOD(Property = "LightmapVolumeId", Editor = false, Serialize = true)
+    void SetLightmapVolumeId(LightmapVolumeId id);
 
     HYP_FORCE_INLINE Span<const Handle<Texture>> GetAtlasTextures(AtlasTextureType type) const
     {
@@ -212,6 +225,9 @@ private:
 
     HYP_FIELD(Property = "Atlases", Serialize, Editor = false)
     Array<LightmapVolumeAtlas> m_atlases;
+
+    HYP_FIELD(Property = "LightmapVolumeId", Editor = false, Serialize)
+    LightmapVolumeId m_id;
 };
 
 } // namespace Hyperion

@@ -23,31 +23,40 @@ namespace Hyperion.Editor.ViewModels
 
         public override void RefreshValue()
         {
-            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
+            if (!BeginRefresh())
             {
                 return;
             }
 
             _ = EngineManager.PostToSimThread(() =>
             {
+                object? rawValue;
+
                 try
                 {
                     using BoxedValue boxed = GetPropertyValue();
-                    object? rawValue = boxed.GetValue();
-
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        _isRefreshing = 0;
-
-                        Value = FormatValue(rawValue);
-                    });
+                    rawValue = boxed.GetValue();
                 }
                 catch (Exception ex)
                 {
-                    _isRefreshing = 0;
+                    Logger.Log(LogLevel.Warning, $"Inspector failed to read property '{Label}': {ex.Message}");
 
-                    Logger.Log(LogLevel.Warning, $"Inspector failed to read property '{_property.Name}': {ex.Message}");
+                    EndRefresh();
+
+                    return;
                 }
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    try
+                    {
+                        ApplyModelValue(() => Value = FormatValue(rawValue));
+                    }
+                    finally
+                    {
+                        EndRefresh();
+                    }
+                });
             });
         }
     }

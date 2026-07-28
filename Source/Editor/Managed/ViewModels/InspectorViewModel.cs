@@ -230,7 +230,8 @@ namespace Hyperion.Editor.ViewModels
                         isReadOnly = true;
                     }
 
-                    Properties.Add(InspectorViewModelFactory.Create(SelectedNode, property, isReadOnly));
+                    Properties.Add(InspectorViewModelFactory.Create(
+                        SelectedNode, property, isReadOnly, 0, null, null, OnPropertyValueChanged));
 
                     if (Properties[Properties.Count - 1] is FlagsPropertyViewModel flagsVm)
                     {
@@ -255,7 +256,7 @@ namespace Hyperion.Editor.ViewModels
             }
 
             // collect actions (methods with editoraction attribute)
-            foreach (InspectorActionViewModel actionVm in InspectorActionsHelper.GetActions(SelectedNode))
+            foreach (InspectorActionViewModel actionVm in InspectorActionsHelper.GetActions(SelectedNode, OnPropertyValueChanged))
             {
                 Actions.Add(actionVm);
             }
@@ -332,12 +333,52 @@ namespace Hyperion.Editor.ViewModels
 
             Actions.Clear();
 
-            foreach (InspectorActionViewModel actionVm in InspectorActionsHelper.GetActions(SelectedNode))
+            foreach (InspectorActionViewModel actionVm in InspectorActionsHelper.GetActions(SelectedNode, OnPropertyValueChanged))
             {
                 Actions.Add(actionVm);
             }
 
             HasActions = Actions.Count > 0;
+        }
+
+        /// <summary>
+        /// Re-reads every property shown for the selected node. A setter can change more than the
+        /// value it was given (clamped ranges, packed flag bits, side effects on other members), so
+        /// after any write the whole object is read back instead of trusting what the UI sent.
+        /// </summary>
+        private void OnPropertyValueChanged()
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            if (SelectedNode == null || !SelectedNode.IsValid)
+            {
+                return;
+            }
+
+            foreach (InspectorPropertyViewModelBase propertyVm in Properties)
+            {
+                propertyVm.RefreshValue();
+            }
+
+            foreach (InspectorComponentViewModelBase componentVm in Components)
+            {
+                componentVm.RefreshProperties();
+            }
+        }
+
+        private void OnScenePropertyValueChanged()
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            if (CurrentScene == null || !CurrentScene.IsValid)
+            {
+                return;
+            }
+
+            foreach (InspectorPropertyViewModelBase propertyVm in SceneProperties)
+            {
+                propertyVm.RefreshValue();
+            }
         }
 
         private void RefreshTransformProperties()
@@ -404,7 +445,8 @@ namespace Hyperion.Editor.ViewModels
                         isReadOnly = true;
                     }
 
-                    SceneProperties.Add(InspectorViewModelFactory.Create(CurrentScene, property, isReadOnly));
+                    SceneProperties.Add(InspectorViewModelFactory.Create(
+                        CurrentScene, property, isReadOnly, 0, null, null, OnScenePropertyValueChanged));
                 }
                 catch (Exception ex)
                 {

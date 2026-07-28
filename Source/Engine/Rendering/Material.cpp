@@ -247,6 +247,19 @@ MaterialAttributes& Material::GetAttributes()
     return m_attributes;
 }
 
+void Material::SetAttributes(const MaterialAttributes& attributes)
+{
+    if (attributes == m_attributes)
+    {
+        return;
+    }
+
+    m_attributes = attributes;
+
+    SetNeedsRenderProxyUpdate();
+    MarkDirty();
+}
+
 void Material::SetParameters(const MaterialParameters& parameters)
 {
     if (parameters == m_parameters)

@@ -405,18 +405,11 @@ void Entity::UpdateRenderProxy(RenderProxyMesh* proxy)
 
     if (lightmapElementComponent != nullptr)
     {
-        static_assert(sizeof(proxy->shData) == sizeof(lightmapElementComponent->shData.values), "SH data size mismatch");
-
-        // copy lightmap element spherical harmonics to the mesh proxy.
-        Memory::Copy(proxy->shData, lightmapElementComponent->shData.values, sizeof(proxy->shData));
-
         proxy->lightmapVolume = lightmapElementComponent->lightmapVolume.GetUnsafe();
         proxy->lightmapElementId = lightmapElementComponent->lightmapElementId;
     }
     else
     {
-        Memory::Zero(proxy->shData, sizeof(proxy->shData));
-
         proxy->lightmapVolume = nullptr;
         proxy->lightmapElementId = Invalid<LightmapElementId>;
     }

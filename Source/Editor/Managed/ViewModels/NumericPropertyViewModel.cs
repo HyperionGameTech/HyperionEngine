@@ -1,6 +1,5 @@
 using System;
 using System.Globalization;
-using System.Threading;
 using Avalonia.Threading;
 using Hyperion;
 
@@ -39,32 +38,49 @@ namespace Hyperion.Editor.ViewModels
 
         public override void RefreshValue()
         {
-            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
+            if (!BeginRefresh())
             {
                 return;
             }
 
             _ = EngineManager.PostToSimThread(() =>
             {
+                string text;
+
                 try
                 {
                     using BoxedValue boxed = GetPropertyValue();
-                    object? rawValue = boxed.GetValue();
-
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        _isRefreshing = 0;
-
-                        Value = rawValue?.ToString() ?? string.Empty;
-                        EditableValue = rawValue?.ToString() ?? string.Empty;
-                    });
+                    text = FormatNumber(boxed.GetValue());
                 }
                 catch (Exception ex)
                 {
-                    _isRefreshing = 0;
+                    Logger.Log(LogLevel.Warning, $"Inspector failed to read property '{Label}': {ex.Message}");
 
-                    Logger.Log(LogLevel.Warning, $"Inspector failed to read property '{_property.Name}': {ex.Message}");
+                    EndRefresh();
+
+                    return;
                 }
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    try
+                    {
+                        ApplyModelValue(() =>
+                        {
+                            Value = text;
+
+                            // Don't stomp on a partially typed number.
+                            if (!IsEditing)
+                            {
+                                EditableValue = text;
+                            }
+                        });
+                    }
+                    finally
+                    {
+                        EndRefresh();
+                    }
+                });
             });
         }
 
@@ -75,16 +91,12 @@ namespace Hyperion.Editor.ViewModels
 
         private void CommitNumericValue(string text)
         {
-            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
-            {
-                return;
-            }
-
             object? boxedObject = ParseToType(text, _typeName);
 
             if (boxedObject == null)
             {
-                _isRefreshing = 0;
+                // Unparsable input - put the field back to what the object actually holds.
+                Dispatcher.UIThread.Post(RefreshValue);
                 return;
             }
 
@@ -96,16 +108,26 @@ namespace Hyperion.Editor.ViewModels
                 {
                     using BoxedValue boxed = new BoxedValue(captured);
                     CommitPropertyChange($"Set {Label}", boxed);
-
-                    Dispatcher.UIThread.Post(() => _isRefreshing = 0);
                 }
                 catch (Exception ex)
                 {
-                    _isRefreshing = 0;
+                    Logger.Log(LogLevel.Warning, $"Inspector failed to write property '{Label}': {ex.Message}");
 
-                    Logger.Log(LogLevel.Warning, $"Inspector failed to write property '{_property.Name}': {ex.Message}");
+                    Dispatcher.UIThread.Post(RefreshValue);
                 }
             });
+        }
+
+        private static string FormatNumber(object? value)
+        {
+            return value switch
+            {
+                null => string.Empty,
+                float f => f.ToString(CultureInfo.InvariantCulture),
+                double d => d.ToString(CultureInfo.InvariantCulture),
+                IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
+                _ => value.ToString() ?? string.Empty
+            };
         }
 
         private static object? ParseToType(string text, string typeName)

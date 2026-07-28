@@ -44,7 +44,7 @@ namespace Hyperion.Editor.ViewModels
             get => _selectedEnumValue;
             set
             {
-                if (SetProperty(ref _selectedEnumValue, value) && _isRefreshing == 0)
+                if (SetProperty(ref _selectedEnumValue, value) && !IsApplyingModelValue)
                 {
                     CommitEnumValue(value);
                 }
@@ -55,42 +55,93 @@ namespace Hyperion.Editor.ViewModels
 
         public override void RefreshValue()
         {
-            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
+            if (!BeginRefresh())
             {
                 return;
             }
 
             _ = EngineManager.PostToSimThread(() =>
             {
+                object? rawValue;
+
                 try
                 {
                     using BoxedValue boxed = GetPropertyValue();
-                    object? rawValue = boxed.GetValue();
-
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        Value = FormatValue(rawValue);
-                        SetProperty(ref _selectedEnumValue, rawValue);
-                        _isRefreshing = 0;
-                    });
+                    rawValue = boxed.GetValue();
                 }
                 catch (Exception ex)
                 {
-                    _isRefreshing = 0;
+                    Logger.Log(LogLevel.Warning, $"Inspector failed to read property '{Label}': {ex.Message}");
 
-                    Logger.Log(LogLevel.Warning, $"Inspector failed to read property '{_property.Name}': {ex.Message}");
+                    EndRefresh();
+
+                    return;
                 }
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    try
+                    {
+                        ApplyModelValue(() =>
+                        {
+                            Value = FormatValue(rawValue);
+                            SelectedEnumValue = MatchEntryValue(rawValue);
+                        });
+                    }
+                    finally
+                    {
+                        EndRefresh();
+                    }
+                });
             });
+        }
+
+        // The combo box's items are the boxed values built from the enum's static fields, so the
+        // selection has to be the identical boxed instance for the binding to show it as selected.
+        private object? MatchEntryValue(object? rawValue)
+        {
+            if (rawValue == null)
+            {
+                return null;
+            }
+
+            ulong raw;
+
+            try
+            {
+                raw = Convert.ToUInt64(rawValue);
+            }
+            catch
+            {
+                return rawValue;
+            }
+
+            foreach (EnumEntry entry in _enumEntries)
+            {
+                if (entry.Value == null)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    if (Convert.ToUInt64(entry.Value) == raw)
+                    {
+                        return entry.Value;
+                    }
+                }
+                catch
+                {
+                    // Skip entries we can't convert.
+                }
+            }
+
+            return rawValue;
         }
 
         private void CommitEnumValue(object? value)
         {
             if (value == null)
-            {
-                return;
-            }
-
-            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
             {
                 return;
             }
@@ -101,16 +152,12 @@ namespace Hyperion.Editor.ViewModels
                 {
                     using BoxedValue boxed = new BoxedValue(value);
                     CommitPropertyChange($"Set {Label}", boxed);
-
-                    Dispatcher.UIThread.Post(() => _isRefreshing = 0);
                 }
                 catch (Exception ex)
                 {
-                    _isRefreshing = 0;
+                    Logger.Log(LogLevel.Error, $"Inspector failed to set enum property '{Label}': {ex.Message}");
 
-                    Logger.Log(LogLevel.Error, $"Inspector failed to set enum property '{_property.Name}': {ex.Message}");
-
-                    RefreshValue();
+                    Dispatcher.UIThread.Post(RefreshValue);
                 }
             });
         }

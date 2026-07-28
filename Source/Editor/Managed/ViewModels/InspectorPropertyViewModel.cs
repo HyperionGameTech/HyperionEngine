@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Threading;
 using System.Windows.Input;
 using Avalonia.Threading;
 using Hyperion;
@@ -9,6 +10,10 @@ namespace Hyperion.Editor.ViewModels
 {
     public abstract class InspectorPropertyViewModelBase : ViewModelBase
     {
+        private const int RefreshIdle = 0;
+        private const int RefreshRunning = 1;
+        private const int RefreshRunningWithPending = 2;
+
         protected readonly ObjectBase? _target;
         protected readonly Property _property;
         protected readonly bool _isReadOnly;
@@ -22,8 +27,12 @@ namespace Hyperion.Editor.ViewModels
         protected readonly TypeInfo _typeInfoHint;
 
         private string _value = string.Empty;
-        private string _label;
-        protected int _isRefreshing;
+        private string _label = string.Empty;
+
+        private int _refreshState;
+        private int _applyingModelValue;
+
+        private bool _isEditing;
 
         public Property Property => _property;
 
@@ -47,15 +56,28 @@ namespace Hyperion.Editor.ViewModels
 
         public bool ShowTextValue => !IsTextEditable && !IsEnumEditable && !IsEnumFlagsEditable && !IsNumericEditable;
 
+        public bool IsEditing
+        {
+            get => _isEditing;
+            set => _isEditing = value;
+        }
+
+        // Called on the sim thread immediately before a property value write, so container VMs
+        // can re-read their cached copy of the containing value.
+        public virtual Action? PreWriteCallback { get; set; }
+
         // Called on the sim thread immediately after a property value write succeeds.
-        public Action? PostWriteCallback { get; set; }
+        public virtual Action? PostWriteCallback { get; set; }
+
+        // Called on the UI thread after a value write (including undo/redo) has been applied, so the
+        // owning object's other properties can re-read.
+        public virtual Action? ValueChangedCallback { get; set; }
 
         protected InspectorPropertyViewModelBase(ObjectBase? target, Property property, bool isReadOnly = false)
         {
             _target = target ?? throw new ArgumentNullException(nameof(target));
             _property = property;
             _isReadOnly = isReadOnly;
-            _isRefreshing = 0;
 
             InitializeLabel(property);
         }
@@ -67,7 +89,6 @@ namespace Hyperion.Editor.ViewModels
             _componentTargetResolver = targetAddressResolver ?? throw new ArgumentNullException(nameof(targetAddressResolver));
             _property = property;
             _isReadOnly = isReadOnly;
-            _isRefreshing = 0;
 
             InitializeLabel(property);
         }
@@ -78,7 +99,6 @@ namespace Hyperion.Editor.ViewModels
             _target = null;
             _property = Property.Invalid;
             _isReadOnly = isReadOnly;
-            _isRefreshing = 0;
             _valueGetter = getter;
             _valueSetter = setter;
             _typeInfoHint = typeInfoHint;
@@ -98,6 +118,55 @@ namespace Hyperion.Editor.ViewModels
                 _label = property.Name.ToString();
             }
         }
+
+        /// <summary>
+        /// Claims the right to start a read. Returns false when a read is already in flight, in
+        /// which case it is re-run by <see cref="EndRefresh"/> so no refresh request is lost.
+        /// </summary>
+        protected bool BeginRefresh()
+        {
+            while (true)
+            {
+                int state = Volatile.Read(ref _refreshState);
+
+                if (state == RefreshIdle)
+                {
+                    if (Interlocked.CompareExchange(ref _refreshState, RefreshRunning, RefreshIdle) == RefreshIdle)
+                    {
+                        return true;
+                    }
+                }
+                else if (Interlocked.CompareExchange(ref _refreshState, RefreshRunningWithPending, state) == state)
+                {
+                    return false;
+                }
+            }
+        }
+
+        protected void EndRefresh()
+        {
+            if (Interlocked.Exchange(ref _refreshState, RefreshIdle) == RefreshRunningWithPending)
+            {
+                Dispatcher.UIThread.Post(RefreshValue);
+            }
+        }
+
+        /// <summary>Applies model values to UI-bound fields without the bindings echoing them back.</summary>
+        protected void ApplyModelValue(Action apply)
+        {
+            Interlocked.Increment(ref _applyingModelValue);
+
+            try
+            {
+                apply();
+            }
+            finally
+            {
+                Interlocked.Decrement(ref _applyingModelValue);
+            }
+        }
+
+        protected bool IsApplyingModelValue => Volatile.Read(ref _applyingModelValue) != 0;
 
         protected BoxedValue GetPropertyValue()
         {
@@ -183,10 +252,20 @@ namespace Hyperion.Editor.ViewModels
             PostWriteCallback?.Invoke();
         }
 
-
+        /// <summary>
+        /// Writes a new value through the project's action stack. Must be called on the sim thread.
+        /// </summary>
         protected void CommitPropertyChange(string actionText, BoxedValue newValue)
         {
-            // Capture old value for undo (we are already on the sim thread).
+            if (_isReadOnly)
+            {
+                return;
+            }
+
+            // Bring any cached copy of the containing value up to date before reading the old value,
+            // otherwise both the equality check below and the write itself use a stale snapshot.
+            PreWriteCallback?.Invoke();
+
             object? oldValueObj = null;
             bool oldValueCaptured = false;
 
@@ -205,6 +284,8 @@ namespace Hyperion.Editor.ViewModels
 
             if (oldValueCaptured && Equals(oldValueObj, newValueObj))
             {
+                // Nothing changed, but the UI may be showing an unparsed/optimistic value - put it back in sync.
+                Dispatcher.UIThread.Post(RefreshValue);
                 return;
             }
 
@@ -216,9 +297,7 @@ namespace Hyperion.Editor.ViewModels
             Func<IntPtr>? capturedResolver = _componentTargetResolver;
             ObjectBase? capturedTarget = _target;
             Property capturedProperty = _property;
-            Func<BoxedValue>? capturedGetter = _valueGetter;
             Action<BoxedValue>? capturedSetter = _valueSetter;
-            Action? capturedPostWrite = PostWriteCallback;
             InspectorPropertyViewModelBase capturedThis = this;
 
             void ApplyValue(object? valueObj, bool hasValue)
@@ -230,6 +309,10 @@ namespace Hyperion.Editor.ViewModels
 
                 try
                 {
+                    // Undo/redo runs long after the original edit, so the cached copy has to be
+                    // re-read here too.
+                    capturedThis.PreWriteCallback?.Invoke();
+
                     using BoxedValue bv = new BoxedValue(valueObj);
 
                     if (capturedSetter != null)
@@ -245,14 +328,18 @@ namespace Hyperion.Editor.ViewModels
                         capturedProperty.Set(capturedTarget!, bv);
                     }
 
-                    capturedPostWrite?.Invoke();
+                    capturedThis.PostWriteCallback?.Invoke();
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogLevel.Warning, $"Editor action failed for property '{capturedProperty.Name}': {ex.Message}");
+                    Logger.Log(LogLevel.Warning, $"Editor action failed for property '{capturedThis.Label}': {ex.Message}");
                 }
 
-                Dispatcher.UIThread.Post(() => capturedThis.RefreshValue());
+                Dispatcher.UIThread.Post(() =>
+                {
+                    capturedThis.RefreshValue();
+                    capturedThis.ValueChangedCallback?.Invoke();
+                });
             }
 
             EditorAction action = new EditorAction(
@@ -261,7 +348,15 @@ namespace Hyperion.Editor.ViewModels
                 revert:  (_, _) => ApplyValue(oldValueObj, hasValue: oldValueCaptured)
             );
 
-            project.ActionStack.PushAction(action);
+            if (project != null)
+            {
+                project.ActionStack.PushAction(action);
+            }
+            else
+            {
+                // No project to record undo against - still apply the edit.
+                ApplyValue(newValueObj, hasValue: true);
+            }
         }
 
         public virtual void CommitValue() { }

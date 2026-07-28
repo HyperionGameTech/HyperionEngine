@@ -895,13 +895,6 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
     const bool isForwardClustered = mas.shaderProperties.Test(s_propShadingTypeForward);
     const bool isForwardNonClustered = mas.shaderProperties.Test(s_propForwardShading);
 
-    const bool shouldWriteSHData = (mas.shaderName == GeometryPass::DefaultShaderName);
-    const bool shouldEvaluateSH = (shouldWriteSHData && prepassStage != DepthPrepass::DPP_InPrepass);
-
-    Vec4f shData[9];
-    Memory::Zero(shData, sizeof(shData));
-    shData[0].w = (shouldEvaluateSH ? 1.0f : 0.0f); // shader uses this field to branch on
-
     uint32 numShaderUniforms = 0;
 
     cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinearMipmap());
@@ -1039,26 +1032,6 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
             cba.Write(&cameraProxy->bufferData);
             cba.Write(&materialProxy->bufferData);
             cba.Write(&viewProjMat);
-
-            if (shouldWriteSHData)
-            {
-                if (shouldEvaluateSH)
-                {
-                    // Copy SHs from the mesh proxy
-                    const float* inSH = meshProxy.shData;
-                    Vec4f* outSH = shData;
-
-                    for (size_t i = 0; i < 9; ++i)
-                    {
-                        outSH[i].x = *inSH++;
-                        outSH[i].y = *inSH++;
-                        outSH[i].z = *inSH++;
-                    }
-                }
-
-                cba.Write(shData, sizeof(shData), alignof(decltype(shData)));
-            }
-
             cba.Commit(cbuffer, cbufferOffset, cbufferSize);
         }
 
@@ -1149,26 +1122,6 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
             cba.Write(&cameraProxy->bufferData);
             cba.Write(&materialProxy->bufferData);
             cba.Write(&viewProjMat);
-
-            if (shouldWriteSHData)
-            {
-                if (shouldEvaluateSH)
-                {
-                    // Copy SHs from the mesh proxy
-                    const float* inSH = meshProxy.shData;
-                    Vec4f* outSH = shData;
-
-                    for (size_t i = 0; i < 9; ++i)
-                    {
-                        outSH[i].x = *inSH++;
-                        outSH[i].y = *inSH++;
-                        outSH[i].z = *inSH++;
-                    }
-                }
-
-                cba.Write(shData, sizeof(shData), alignof(decltype(shData)));
-            }
-
             cba.Commit(cbuffer, cbufferOffset, cbufferSize);
         }
 

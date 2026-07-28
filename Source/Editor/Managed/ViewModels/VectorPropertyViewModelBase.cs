@@ -11,9 +11,10 @@ namespace Hyperion.Editor.ViewModels
         private readonly int _componentCount;
         private readonly Func<TStruct, int, float> _getComponent;
         private readonly Func<TStruct, int, float, TStruct> _withComponent;
+
+        // Both run on the sim thread.
         private readonly Func<TStruct> _readStruct;
-        private readonly Action<TStruct> _writeStruct;
-        private readonly bool _hasWriteOverride;
+        private readonly Action<TStruct>? _writeStruct;
 
         private readonly string[] _components;
 
@@ -32,9 +33,8 @@ namespace Hyperion.Editor.ViewModels
             _getComponent = getComponent;
             _withComponent = withComponent;
             _readStruct = readOverride ?? ReadStructFromProperty;
-            _writeStruct = writeOverride ?? WriteStructToProperty;
-            _hasWriteOverride = writeOverride != null;
-            _components = new string[_componentCount];
+            _writeStruct = writeOverride;
+            _components = CreateComponentStrings(componentCount);
         }
 
         protected VectorPropertyViewModelBase(
@@ -53,9 +53,8 @@ namespace Hyperion.Editor.ViewModels
             _getComponent = getComponent;
             _withComponent = withComponent;
             _readStruct = readOverride ?? ReadStructFromProperty;
-            _writeStruct = writeOverride ?? WriteStructToProperty;
-            _hasWriteOverride = writeOverride != null;
-            _components = new string[_componentCount];
+            _writeStruct = writeOverride;
+            _components = CreateComponentStrings(componentCount);
         }
 
         protected VectorPropertyViewModelBase(
@@ -73,9 +72,20 @@ namespace Hyperion.Editor.ViewModels
             _getComponent = getComponent;
             _withComponent = withComponent;
             _readStruct = ReadStructFromProperty;
-            _writeStruct = WriteStructToProperty;
-            _hasWriteOverride = false;
-            _components = new string[_componentCount];
+            _writeStruct = null;
+            _components = CreateComponentStrings(componentCount);
+        }
+
+        private static string[] CreateComponentStrings(int count)
+        {
+            string[] components = new string[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                components[i] = string.Empty;
+            }
+
+            return components;
         }
 
         public string X
@@ -122,114 +132,105 @@ namespace Hyperion.Editor.ViewModels
 
         public override void RefreshValue()
         {
-            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
-            {
-                return;
-            }
-
-            try
-            {
-                if (!TryReadStruct(out TStruct vector))
-                {
-                    _isRefreshing = 0;
-                    Value = "(unavailable)";
-                    ResetComponentStrings();
-                    return;
-                }
-
-                Dispatcher.UIThread.Post(() =>
-                {
-                    _isRefreshing = 0;
-
-                    for (int i = 0; i < _componentCount; i++)
-                    {
-                        _components[i] = FormatComponent(_getComponent(vector, i));
-                    }
-
-                    Value = BuildDisplayString(_components);
-                    RaiseAllComponents();
-                });
-            }
-            catch (Exception ex)
-            {
-                _isRefreshing = 0;
-
-                Logger.Log(LogLevel.Warning, $"Inspector failed to read property '{_property.Name}': {ex.Message}");
-            }
-        }
-
-        private bool TryReadStruct(out TStruct vector)
-        {
-            try
-            {
-                vector = _readStruct();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Logger.Log(LogLevel.Warning, $"Inspector failed to read vector for '{_property.Name}': {ex.Message}");
-                vector = default;
-                return false;
-            }
-        }
-
-        private void OnComponentChanged(int index, string newValue)
-        {
-            if (_isRefreshing == 1)
-            {
-                return;
-            }
-
-            if (!IsTargetValid)
-            {
-                return;
-            }
-
-
-            _components[index] = newValue;
-        }
-
-        public override void CommitValue()
-        {
-            if (!IsTargetValid)
-            {
-                return;
-            }
-
-            TStruct current;
-
-            try
-            {
-                current = _readStruct();
-            }
-            catch (Exception ex)
-            {
-                Logger.Log(LogLevel.Warning, $"Inspector failed to read vector for '{_property.Name}': {ex.Message}");
-                return;
-            }
-
-            TStruct updated = current;
-
-            for (int i = 0; i < _componentCount; i++)
-            {
-                if (TryParseComponent(_components[i], out float parsed))
-                {
-                    updated = _withComponent(updated, i, parsed);
-                }
-            }
-
-            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
+            if (!BeginRefresh())
             {
                 return;
             }
 
             _ = EngineManager.PostToSimThread(() =>
             {
+                TStruct vector;
+
                 try
                 {
-                    if (_hasWriteOverride)
+                    vector = _readStruct();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogLevel.Warning, $"Inspector failed to read vector for '{Label}': {ex.Message}");
+
+                    EndRefresh();
+
+                    return;
+                }
+
+                string[] formatted = new string[_componentCount];
+
+                for (int i = 0; i < _componentCount; i++)
+                {
+                    formatted[i] = FormatComponent(_getComponent(vector, i));
+                }
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    try
+                    {
+                        ApplyModelValue(() =>
+                        {
+                            Value = BuildDisplayString(formatted);
+
+                            // Leave the text boxes alone while the user is typing in them.
+                            if (!IsEditing)
+                            {
+                                Array.Copy(formatted, _components, _componentCount);
+                                RaiseAllComponents();
+                            }
+                        });
+                    }
+                    finally
+                    {
+                        EndRefresh();
+                    }
+                });
+            });
+        }
+
+        private void OnComponentChanged(int index, string newValue)
+        {
+            if (IsApplyingModelValue)
+            {
+                return;
+            }
+
+            _components[index] = newValue;
+        }
+
+        public override void CommitValue()
+        {
+            if (_isReadOnly || !IsTargetValid)
+            {
+                return;
+            }
+
+            string[] captured = (string[])_components.Clone();
+
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                try
+                {
+                    // Refresh any cached copy of the containing value before reading, so the
+                    // components we don't touch are carried over from the current value.
+                    PreWriteCallback?.Invoke();
+
+                    TStruct updated = _readStruct();
+
+                    for (int i = 0; i < _componentCount; i++)
+                    {
+                        if (TryParseComponent(captured[i], out float parsed))
+                        {
+                            updated = _withComponent(updated, i, parsed);
+                        }
+                    }
+
+                    if (_writeStruct != null)
                     {
                         _writeStruct(updated);
+
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            RefreshValue();
+                            ValueChangedCallback?.Invoke();
+                        });
                     }
                     else
                     {
@@ -239,22 +240,11 @@ namespace Hyperion.Editor.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogLevel.Error, $"Inspector failed to write vector property '{_property.Name}': {ex.Message}");
-                }
-                finally
-                {
-                    Dispatcher.UIThread.Post(() => _isRefreshing = 0);
+                    Logger.Log(LogLevel.Error, $"Inspector failed to write vector property '{Label}': {ex.Message}");
+
+                    Dispatcher.UIThread.Post(RefreshValue);
                 }
             });
-        }
-
-        private void ResetComponentStrings()
-        {
-            for (int i = 0; i < _componentCount; i++)
-            {
-                _components[i] = string.Empty;
-            }
-            RaiseAllComponents();
         }
 
         private void RaiseAllComponents()
@@ -281,53 +271,19 @@ namespace Hyperion.Editor.ViewModels
             return float.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out result);
         }
 
-        // Blocking wait on sim thread to read the struct value.
+        // Sim thread only.
         private TStruct ReadStructFromProperty()
         {
-            var task = EngineManager.PostToSimThread<TStruct>(() =>
+            using BoxedValue boxed = GetPropertyValue();
+
+            IntPtr ptr = boxed.Pointer;
+
+            if (ptr == IntPtr.Zero)
             {
-                using BoxedValue boxed = GetPropertyValue();
-                IntPtr ptr = boxed.Pointer;
-
-                if (ptr == IntPtr.Zero)
-                {
-                    throw new InvalidOperationException($"Property '{_property.Name}' returned null pointer");
-                }
-
-                return Marshal.PtrToStructure<TStruct>(ptr);
-            });
-
-            return task.Result;
-        }
-
-        private void WriteStructToProperty(TStruct value)
-        {
-            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
-            {
-                return;
+                throw new InvalidOperationException($"Property '{Label}' returned null pointer");
             }
 
-            _ = EngineManager.PostToSimThread(() =>
-            {
-                try
-                {
-                    using BoxedValue boxed = new BoxedValue(value);
-                    SetPropertyValue(boxed);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Log(LogLevel.Error, $"Inspector failed to write property '{_property.Name}': {ex.Message}");
-                }
-                finally
-                {
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        _isRefreshing = 0;
-
-                        //Value = FormatValue(value);
-                    });
-                }
-            });
+            return Marshal.PtrToStructure<TStruct>(ptr);
         }
     }
 }

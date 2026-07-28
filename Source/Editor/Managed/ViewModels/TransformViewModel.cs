@@ -29,6 +29,35 @@ namespace Hyperion.Editor.ViewModels
             _scale = new Vec3fViewModel(classAddress, targetAddressResolver, property, isReadOnly, ReadScale, WriteScale);
         }
 
+        // The three vector editors read and write through this view model's own property, so they
+        // share its container hooks instead of talking to the containing struct/object themselves.
+        // PostWriteCallback stays on this view model - SetPropertyValue here already invokes it.
+        public override Action? PreWriteCallback
+        {
+            get => base.PreWriteCallback;
+            set
+            {
+                base.PreWriteCallback = value;
+
+                _translation.PreWriteCallback = value;
+                _rotationEuler.PreWriteCallback = value;
+                _scale.PreWriteCallback = value;
+            }
+        }
+
+        public override Action? ValueChangedCallback
+        {
+            get => base.ValueChangedCallback;
+            set
+            {
+                base.ValueChangedCallback = value;
+
+                _translation.ValueChangedCallback = value;
+                _rotationEuler.ValueChangedCallback = value;
+                _scale.ValueChangedCallback = value;
+            }
+        }
+
         public Vec3fViewModel Translation => _translation;
         public Vec3fViewModel Rotation => _rotationEuler;
         public Vec3fViewModel Scale => _scale;
@@ -41,83 +70,63 @@ namespace Hyperion.Editor.ViewModels
 
         public override void RefreshValue()
         {
-            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
+            if (!BeginRefresh())
             {
                 return;
             }
 
             _ = EngineManager.PostToSimThread(() =>
             {
+                Transform transform;
+
                 try
                 {
-                    Transform transform;
-                    using (BoxedValue boxed = GetPropertyValue())
-                    {
-                        object? raw = boxed.GetValue();
-                        transform = raw is Transform t ? t : Transform.Identity;
-                    }
+                    transform = ReadTransform();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogLevel.Warning, $"Inspector failed to read property '{Label}': {ex.Message}");
 
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        _isRefreshing = 0;
+                    EndRefresh();
 
-                        Value = $"T:{FormatVec3(transform.Translation)} R:{FormatQuat(transform.Rotation)} S:{FormatVec3(transform.Scale)}";
+                    return;
+                }
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    try
+                    {
+                        ApplyModelValue(() =>
+                        {
+                            Value = $"T:{FormatVec3(transform.Translation)} R:{FormatQuat(transform.Rotation)} S:{FormatVec3(transform.Scale)}";
+                        });
 
                         _translation.RefreshValue();
                         _rotationEuler.RefreshValue();
                         _scale.RefreshValue();
-                    });
-                }
-                catch (Exception ex)
-                {
-                    _isRefreshing = 0;
-
-                    Logger.Log(LogLevel.Warning, $"Inspector failed to read property '{_property.Name}': {ex.Message}");
-                }
+                    }
+                    finally
+                    {
+                        EndRefresh();
+                    }
+                });
             });
         }
 
+        // Sim thread only.
         private Transform ReadTransform()
         {
-            Task<Transform> task = EngineManager.PostToSimThread<Transform>(() =>
-            {
-                using BoxedValue boxed = GetPropertyValue();
-                object? raw = boxed.GetValue();
+            using BoxedValue boxed = GetPropertyValue();
+            object? raw = boxed.GetValue();
 
-                if (raw is Transform t)
-                {
-                    return t;
-                }
-                
-                return Transform.Identity;
-            });
-            
-            return task.Result;
+            return raw is Transform t ? t : Transform.Identity;
         }
 
+        // Sim thread only.
         private void WriteTransform(Transform transform)
         {
-            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
-            {
-                return;
-            }
-
-            _ = EngineManager.PostToSimThread(() =>
-            {
-                try
-                {
-                    using BoxedValue boxed = new BoxedValue(transform);
-                    SetPropertyValue(boxed);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Log(LogLevel.Warning, $"Inspector failed to write property '{_property.Name}': {ex.Message}");
-                }
-                finally
-                {
-                    _isRefreshing = 0;
-                }
-            });
+            using BoxedValue boxed = new BoxedValue(transform);
+            CommitPropertyChange($"Set {Label}", boxed);
         }
 
         private Vec3f ReadTranslation() => ReadTransform().Translation;

@@ -41,32 +41,49 @@ namespace Hyperion.Editor.ViewModels
 
         public override void RefreshValue()
         {
-            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
+            if (!BeginRefresh())
             {
                 return;
             }
 
             _ = EngineManager.PostToSimThread(() =>
             {
+                object? rawValue;
+
                 try
                 {
                     using BoxedValue boxed = GetPropertyValue();
-                    object? rawValue = boxed.GetValue();
-
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        _isRefreshing = 0;
-
-                        Value = FormatValue(rawValue);
-                        EditableValue = rawValue?.ToString() ?? string.Empty;
-                    });
+                    rawValue = boxed.GetValue();
                 }
                 catch (Exception ex)
                 {
-                    _isRefreshing = 0;
+                    Logger.Log(LogLevel.Warning, $"Inspector failed to read property '{Label}': {ex.Message}");
 
-                    Logger.Log(LogLevel.Warning, $"Inspector failed to read property '{_property.Name}': {ex.Message}");
+                    EndRefresh();
+
+                    return;
                 }
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    try
+                    {
+                        ApplyModelValue(() =>
+                        {
+                            Value = FormatValue(rawValue);
+
+                            // Don't stomp on text the user is part-way through typing.
+                            if (!IsEditing)
+                            {
+                                EditableValue = rawValue?.ToString() ?? string.Empty;
+                            }
+                        });
+                    }
+                    finally
+                    {
+                        EndRefresh();
+                    }
+                });
             });
         }
 
@@ -77,28 +94,23 @@ namespace Hyperion.Editor.ViewModels
 
         private void CommitEditableText(string value)
         {
-            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
-            {
-                return;
-            }
+            string captured = value ?? string.Empty;
 
             _ = EngineManager.PostToSimThread(() =>
             {
                 try
                 {
                     using BoxedValue boxed = _isNameProperty
-                        ? new BoxedValue(new Name(value ?? string.Empty))
-                        : new BoxedValue(value ?? string.Empty);
+                        ? new BoxedValue(new Name(captured))
+                        : new BoxedValue(captured);
 
                     CommitPropertyChange($"Set {Label}", boxed);
-
-                    Dispatcher.UIThread.Post(() => _isRefreshing = 0);
                 }
                 catch (Exception ex)
                 {
-                    _isRefreshing = 0;
+                    Logger.Log(LogLevel.Warning, $"Inspector failed to write property '{Label}': {ex.Message}");
 
-                    Logger.Log(LogLevel.Warning, $"Inspector failed to write property '{_property.Name}': {ex.Message}");
+                    Dispatcher.UIThread.Post(RefreshValue);
                 }
             });
         }
