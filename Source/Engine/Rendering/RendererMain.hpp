@@ -99,6 +99,25 @@ public:
 
     ~RenderCollector();
 
+    bool HasDrawCalls(RenderBucket bucket) const
+    {
+        auto& mappings = mappingsByBucket[uint32(bucket)];
+        if (!mappings.Any())
+        {
+            return false;
+        }
+
+        for (auto& it : mappings)
+        {
+            if (it.drawCalls.Any() || it.instancedDrawCalls.Any())
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     size_t NumDrawCallsCollected() const;
 
     void Clear(bool freeMemory = true);

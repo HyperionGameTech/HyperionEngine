@@ -10,7 +10,15 @@
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
 
+#include <Scene/Node.hpp>
+#include <Scene/Entity.hpp>
 #include <Scene/Prefab.hpp>
+#include <Scene/EntityManager.hpp>
+
+#include <Scene/Components/MeshComponent.hpp>
+
+#include <Rendering/Mesh.hpp>
+#include <Rendering/Material.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 
@@ -35,6 +43,16 @@ static void BuildInvSphere(Handle<AssetRegistry>& engineRegistry)
     Assert(prefab.IsValid());
 
     prefab->SetName(NAME("InvSphere"));
+    
+    Handle<Entity> e = StaticCast<Entity>(prefab->GetRoot()->GetChild(0));
+
+    MeshComponent& mc = e->GetComponent<MeshComponent>();
+    
+    engineRegistry->RemoveAsset(mc.mesh);
+    engineRegistry->RemoveAsset(mc.material);
+
+    mc.mesh->SetName(NAME("InvSphereMesh"));
+    mc.material->SetName(NAME("InvSphereMaterial"));
 
     engineRegistry->PutAssetsDeep(prefab, /* overwriteExisting */ true);
 

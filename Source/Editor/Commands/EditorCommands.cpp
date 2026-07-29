@@ -517,6 +517,139 @@ DEFINE_EDITOR_COMMAND(BuildBentNormals);
 
 #pragma endregion BuildBentNormals
 
+#pragma region BuildLightmaps
+
+class EditorCommandBuildLightmaps final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandBuildLightmaps);
+
+public:
+    virtual ~EditorCommandBuildLightmaps() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Build Lightmaps";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        Handle<Scene> activeScene = subsystem->GetActiveScene();
+        if (!activeScene.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No active scene; cannot bake lightmaps!");
+
+            return;
+        }
+
+        Array<Handle<ObjectBase>> lightmapVolumes;
+
+        if (Handle<Node> root = activeScene->GetRoot())
+        {
+            for (Node* node : root->GetDescendants())
+            {
+                if (node->IsA<LightmapVolume>())
+                {
+                    lightmapVolumes.PushBack(MakeStrongRef(node));
+                }
+            }
+        }
+
+        if (lightmapVolumes.Empty())
+        {
+            HYP_LOG(Editor, Warning, "No Lightmap Volumes in the active scene. Cannot bake lightmaps.");
+
+            SystemMessageBox(MessageBoxType::WARNING)
+                .Title("Cannot Bake Lighting")
+                .Text("No Lightmap Volumes in the scene to bake lighting for. Add a Lightmap Volume and try again.")
+                .Button("Close", []() { })
+                .Show();
+
+            return;
+        }
+
+        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(lightmapVolumes);
+        InitObject(editorTask);
+
+        editorTask->SetScene(activeScene);
+
+        Handle<World> worldHandle = MakeStrongRef(subsystem->GetWorld());
+        editorTask->SetWorld(worldHandle);
+
+        g_editorState->AddTask(editorTask);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(BuildLightmaps);
+
+#pragma endregion BuildLightmaps
+
+
+#pragma region BuildReflections
+
+class EditorCommandBuildReflections final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandBuildReflections);
+
+public:
+    virtual ~EditorCommandBuildReflections() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Build Reflections";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        Handle<Scene> activeScene = subsystem->GetActiveScene();
+        if (!activeScene.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No active scene; cannot build reflections!");
+
+            return;
+        }
+
+        Array<Handle<ObjectBase>> reflectionProbes;
+
+        if (Handle<Node> root = activeScene->GetRoot())
+        {
+            for (Node* node : root->GetDescendants())
+            {
+                if (node->IsA<ReflectionProbe>())
+                {
+                    reflectionProbes.PushBack(MakeStrongRef(node));
+                }
+            }
+        }
+
+        if (reflectionProbes.Empty())
+        {
+            HYP_LOG(Editor, Warning, "No Reflection Probes in the active scene. Cannot bake reflections.");
+
+            SystemMessageBox(MessageBoxType::WARNING)
+                .Title("Cannot Bake Reflections")
+                .Text("No Reflection Probes in the scene to bake lighting for. Add a Reflection Probe and try again.")
+                .Button("Close", []() { })
+                .Show();
+
+            return;
+        }
+
+        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(reflectionProbes);
+        InitObject(editorTask);
+
+        editorTask->SetScene(activeScene);
+
+        Handle<World> worldHandle = MakeStrongRef(subsystem->GetWorld());
+        editorTask->SetWorld(worldHandle);
+
+        g_editorState->AddTask(editorTask);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(BuildReflections);
+
+#pragma endregion BuildReflections
+
 #pragma region AddReflectionProbe
 
 class EditorCommandAddReflectionProbe final : public EditorCommandBase
@@ -2216,6 +2349,62 @@ public:
 DEFINE_EDITOR_COMMAND(NewScript);
 
 #pragma endregion NewScript
+
+#pragma region NewMaterial
+
+class EditorCommandNewMaterial final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandNewMaterial);
+
+public:
+    virtual ~EditorCommandNewMaterial() override = default;
+
+    virtual String GetText() const override
+    {
+        return "New Material";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No project loaded; cannot create material asset!");
+
+            return;
+        }
+
+        Handle<Material> material = MakeHandle<Material>(Name::Unique("NewMaterial"));
+        InitObject(material);
+
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+            GetText(),
+            Proc<EditorActionFunctions()>(
+                [material]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [material](EditorSubsystem*, EditorProject*)
+                            {
+                                GetCurrentAssetRegistry()->PutAssetUnique(material);
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [material](EditorSubsystem*, EditorProject*)
+                            {
+                                GetCurrentAssetRegistry()->RemoveAsset(material);
+                            })
+                    };
+                }));
+
+        InitObject(action);
+
+        currentProject->GetActionStack()->PushAction(action);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(NewMaterial);
+
+#pragma endregion NewMaterial
 
 #pragma region AddAsset
 

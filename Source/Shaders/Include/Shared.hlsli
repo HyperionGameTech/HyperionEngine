@@ -308,22 +308,19 @@ float4 CalculateFogLinear(in float4 start_color, in float4 end_color, float3 wor
 
 float RoughnessToConeAngle(float roughness)
 {
-    roughness = clamp(roughness, 1e-3f, 1.0f);
+    //roughness = clamp(roughness, 1e-3f, 1.0f);
+    //const float alpha = roughness * roughness;
+    //const float specPower = 2.0 / (alpha * alpha) - 2.0;
+    //static const float s_threshold = 0.244;
+    //const float cosAngle = pow(s_threshold, 1.0 / (specPower + 1.0));
+    //const float clampedCos = clamp(cosAngle, -1.0, 1.0);
+    //return acos(clampedCos);
 
-    const float alpha = roughness * roughness;
-    const float specPower = 2.0 / (alpha * alpha) - 2.0;
+    float specular_power = 2.0 / pow(roughness, 4.0) - 2.0;
 
-    static const float s_threshold = 0.244;
-    const float cosAngle = pow(s_threshold, 1.0 / (specPower + 1.0));
-    const float clampedCos = clamp(cosAngle, -1.0, 1.0);
-
-    return acos(clampedCos);
-
-    // float specular_power = 2.0 / pow(roughness, 4.0) - 2.0;
-
-    // const float xi = 0.244;
-    // float exponent = 1.0 / (specular_power + 1.0);
-    // return acos(pow(xi, exponent));
+    const float xi = 0.244;
+    float exponent = 1.0 / (specular_power + 1.0);
+    return acos(pow(xi, exponent));
 }
 
 float linstep(float min, float max, float v)

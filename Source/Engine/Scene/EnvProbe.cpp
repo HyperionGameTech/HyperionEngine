@@ -1047,7 +1047,8 @@ void SkyProbe::Init()
         TFM_LINEAR,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_STORAGE | IU_SAMPLED });
+        IU_STORAGE | IU_SAMPLED
+    });
 
     m_texture->SetName(NAME_FMT("{}_ColorMap", GetName()));
     m_texture->SetIsTransient(true);

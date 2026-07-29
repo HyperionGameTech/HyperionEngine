@@ -82,7 +82,7 @@ void Baker<FogVolume>::HandleCompletedJob_Internal(BakeJobBase* job)
     Handle<Texture> volumeTexture = MakeHandle<Texture>(volumeTextureDesc, volumeBitmap.ToByteView());
     volumeTexture->SetName(NAME_FMT("FogVolume_{}_DataMap", m_fogVolume->GetName()));
 
-    GetCurrentAssetRegistry()->PutAsset(volumeTexture);
+    GetCurrentAssetRegistry()->PutAssetUnique(volumeTexture);
 
     Check(volumeTexture->Create());
 
@@ -97,7 +97,7 @@ void Baker<FogVolume>::HandleCompletedJob_Internal(BakeJobBase* job)
 
     Handle<Texture> noiseTexture = MakeHandle<Texture>(noiseTextureDesc, noiseBitmap.ToByteView());
     noiseTexture->SetName(NAME_FMT("FogVolume_{}_NoiseMap", m_fogVolume->GetName()));
-    GetCurrentAssetRegistry()->PutAsset(noiseTexture);
+    GetCurrentAssetRegistry()->PutAssetUnique(noiseTexture);
 
     Check(noiseTexture->Create());
 

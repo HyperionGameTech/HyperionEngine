@@ -143,8 +143,8 @@ void Baker<EnvProbe>::OnCompleted_Internal()
 
     buffer.Clear();
 
-    prefiltered->SetName(NAME_FMT("{}_Prefiltered", m_envProbe->GetName()));
-    GetCurrentAssetRegistry()->PutAsset(prefiltered);
+    prefiltered->SetName(NAME_FMT("{}_ColorMap", m_envProbe->GetName()));
+    GetCurrentAssetRegistry()->PutAssetUnique(prefiltered);
 
     Check(prefiltered->Create());
 

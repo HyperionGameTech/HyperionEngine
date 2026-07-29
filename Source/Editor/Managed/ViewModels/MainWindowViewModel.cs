@@ -46,6 +46,7 @@ namespace Hyperion.Editor.ViewModels
         public EditorCommand Redo => new EditorCommand("Redo");
         public EditorCommand SelectAll => new EditorCommand("SelectAll");
 
+        public EditorCommand BuildLightmaps => new EditorCommand("BuildLightmaps");
         public EditorCommand BuildBentNormals => new EditorCommand("BuildBentNormals");
 
         private string _undoHeader = "_Undo";

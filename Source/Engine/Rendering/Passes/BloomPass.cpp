@@ -126,10 +126,13 @@ void BloomPass::Resize_Internal(Vec2u newSize)
         TFM_LINEAR,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_STORAGE | IU_SAMPLED });
+        IU_STORAGE | IU_SAMPLED
+    });
+
     m_brightExtractTexture->SetIsTransient(true);
     m_brightExtractTexture->SetName(NAME("BloomBrightExtract"));
     Check(m_brightExtractTexture->Create());
+
     GetEngineAssetRegistry()->PutAsset(m_brightExtractTexture);
 
     for (uint32 i = 0; i < NumMipLevels - 1; i++)
@@ -163,9 +166,12 @@ void BloomPass::Create()
         TFM_LINEAR,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_STORAGE | IU_SAMPLED });
+        IU_STORAGE | IU_SAMPLED
+    });
+
     m_brightExtractTexture->SetIsTransient(true);
     m_brightExtractTexture->SetName(NAME("BloomBrightExtract"));
+
     Check(m_brightExtractTexture->Create());
 
     GetEngineAssetRegistry()->PutAsset(m_brightExtractTexture);

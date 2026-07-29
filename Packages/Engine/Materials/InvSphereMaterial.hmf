@@ -1,35 +1,5 @@
-Material "BasicOBJMaterial" {
+Material "InvSphereMaterial" {
     BaseMaterial = null
-    Parameters = {
-        Albedo = (1, 1, 1, 1)
-        Metalness = 0
-        Roughness = 1
-        AlphaThreshold = 0
-        ParallaxHeightScale = 0.02
-        Transmission = 0
-        IOR = 1.5
-        EmissiveColor = {
-            Red = 0
-            Green = 0
-            Blue = 0
-            Alpha = 0
-        }
-        EmissiveIntensity = 0
-        UserParams = (0, 0, 0, 0)
-        Unlit = false
-    }
-    Textures = {
-        Values = [
-            null
-            null
-            null
-            null
-            null
-            null
-            null
-            null
-        ]
-    }
     Attributes = {
         ShaderName = "GeometryPass"
         ShaderProperties = {
@@ -65,6 +35,42 @@ Material "BasicOBJMaterial" {
         DepthBias = 0
         DepthBiasSlope = 0
     }
+    Parameters = {
+        NormalMapFlipY = false
+        RoughnessChannel = R
+        MetalnessChannel = R
+        AmbientOcclusionChannel = R
+        InverseHeight = false
+        Albedo = (1, 1, 1, 1)
+        Metalness = 0
+        Roughness = 1
+        AlphaThreshold = 0
+        ParallaxHeightScale = 0.02
+        Transmission = 0
+        IOR = 1.5
+        EmissiveColor = {
+            Red = 0
+            Green = 0
+            Blue = 0
+            Alpha = 0
+        }
+        EmissiveIntensity = 0
+        UserParams = (0, 0, 0, 0)
+        UVScale = (1, 1)
+        Unlit = false
+        Flags = 0
+    }
+    Textures = {
+        Values = [
+            null
+            null
+            null
+            null
+            null
+            null
+            null
+            null
+        ]
+    }
     IsDynamic = false
-    FriendlyName = "BasicOBJMaterial"
 }

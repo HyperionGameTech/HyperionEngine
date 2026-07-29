@@ -71,10 +71,14 @@ namespace Hyperion.Editor.ViewModels
         private DelegateHandler? _onSelectedBucketChangedHandler;
         private uint _pendingFocusBucket;
         private string? _pendingFocusNameHint;
+        private bool _pendingOpenEditor;
 
         public ICommand ImportCommand { get; }
+
         public ICommand NewScriptCommand { get; }
+        public ICommand NewMaterialCommand { get; }
         public ICommand NewPhysicsShapeCommand { get; }
+
         public ICommand DeleteAssetCommand { get; }
 
         public ContentBrowserViewModel(EditorSubsystem editorSubsystem)
@@ -91,10 +95,17 @@ namespace Hyperion.Editor.ViewModels
 
                 _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandDeleteAsset"), $"{asset.Bucket.BucketIndex} {asset.AssetDesc.Name}");
             });
+            
             NewScriptCommand = new RelayCommand(() =>
             {
                 _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandNewScript"));
                 FocusAsset(AssetBucket.Scripts.Value, "NewScript");
+            });
+
+            NewMaterialCommand = new RelayCommand(() =>
+            {
+                _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandNewMaterial"));
+                FocusAsset(AssetBucket.Materials.Value, "NewMaterial", openEditor: true);
             });
 
             NewPhysicsShapeCommand = new RelayCommand(() =>
@@ -206,6 +217,12 @@ namespace Hyperion.Editor.ViewModels
                         }
 
                         SelectedAsset ??= Assets.FirstOrDefault();
+
+                        if (_pendingOpenEditor)
+                        {
+                            _pendingOpenEditor = false;
+                            OpenAssetEditor(SelectedAsset);
+                        }
                     }
 
                     OnPropertyChanged(nameof(Assets));
@@ -296,7 +313,7 @@ namespace Hyperion.Editor.ViewModels
         }
 
         /// <summary>Switches to the given bucket and focuses the named asset once loaded.</summary>
-        public void FocusAsset(uint bucketIndex, string? nameHint = null)
+        public void FocusAsset(uint bucketIndex, string? nameHint = null, bool openEditor = false)
         {
             Dispatcher.UIThread.VerifyAccess();
 
@@ -305,7 +322,36 @@ namespace Hyperion.Editor.ViewModels
 
             _pendingFocusBucket = bucketIndex;
             _pendingFocusNameHint = nameHint;
+            _pendingOpenEditor = openEditor;
             _editorSubsystem.SetSelectedBucket(bucketIndex);
+        }
+
+        /// <summary>Opens the asset in a pop-out property editor panel, the same one used by the "Edit" button on asset-object properties in the inspector.</summary>
+        private void OpenAssetEditor(AssetObjectViewModel? assetVm)
+        {
+            if (assetVm?.Bucket == null)
+                return;
+
+            Class? assetClass = Class.TryGetClass<Material>();
+
+            if (assetClass == null)
+                return;
+
+            uint bucketIndex = assetVm.Bucket.BucketIndex;
+            Name assetName = assetVm.AssetDesc.Name;
+            TypeInfo typeInfo = assetClass.Value.TypeInfo;
+
+            var propertyVm = new ObjectPropertyViewModel(
+                assetVm.DisplayName,
+                typeInfo,
+                getter: () => new BoxedValue(AssetManager.Instance.AssetRegistry.GetAsset(bucketIndex, assetName)),
+                setter: _ => { },
+                isReadOnly: true);
+
+            propertyVm.RefreshValue();
+
+            var panel = new AssetObjectEditPanelViewModel(propertyVm);
+            PanelService.Instance.OpenPanel(panel);
         }
     }
 }

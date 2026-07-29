@@ -52,9 +52,11 @@ CVar<bool> cvSSRRoughnessScattering { "Rendering.SSR.RoughnessScattering", false
 
 CVar<float> cvSSRRayStep { "Rendering.SSR.RayStep", 0.2f };
 CVar<float> cvSSRDistanceBias { "Rendering.SSR.DistanceBias", 0.01f };
-CVar<float> cvSSRThickness { "Rendering.SSR.Thickness", 0.2f };
+CVar<float> cvSSRThickness { "Rendering.SSR.Thickness", 0.95f };
 CVar<float> cvSSRMaxDistance { "Rendering.SSR.MaxDistance", 1000.0f };
 CVar<float> cvSSRTraceResolutionScale { "Rendering.SSR.TraceResolutionScale", 0.65 };
+CVar<float> cvSSRScreenEdgeFadeStart { "Rendering.SSR.ScreenEdgeFadeStart", 0.92f };
+CVar<float> cvSSRScreenEdgeFadeEnd { "Rendering.SSR.ScreenEdgeFadeEnd", 0.98f };
 CVar<uint32> cvSSRMaxIterations { "Rendering.SSR.MaxIterations", 256 };
 
 struct SSRConstants
@@ -293,8 +295,8 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
         constants->offset = 0.25f;
         constants->eyeFadeStart = 0.98f;
         constants->eyeFadeEnd = 0.99f;
-        constants->screenEdgeFadeStart = 0.99f;
-        constants->screenEdgeFadeEnd = 1.0f;
+        constants->screenEdgeFadeStart = cvSSRScreenEdgeFadeStart.Get();
+        constants->screenEdgeFadeEnd = cvSSRScreenEdgeFadeEnd.Get();
 
         // Write camera shader data 
         RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));

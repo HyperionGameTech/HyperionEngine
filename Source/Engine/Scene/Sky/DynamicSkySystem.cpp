@@ -31,6 +31,7 @@
 #include <Core/Threading/Scheduler.hpp>
 
 #include <Asset/AssetRegistry.hpp>
+#include <Asset/Assets.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 
@@ -74,9 +75,9 @@ void DynamicSkySystem::InitializeSky()
 
         Handle<Prefab> domePrefab = GetEngineAssetRegistry()->GetAsset<Prefab>(AssetBuckets::Prefabs, "InvSphere"_sh);
 
-        if (domePrefab.IsValid())
+        if (domePrefab.IsValid() && domePrefab->GetRoot().IsValid())
         {
-            Handle<Node> domeNode = domePrefab->GetRoot();
+            Handle<Node> domeNode = domePrefab->GetRoot()->Clone();
             Assert(domeNode.IsValid());
 
             domeNode->Scale(Vec3f(10.0f));
@@ -126,8 +127,9 @@ void DynamicSkySystem::InitializeSky()
         m_visScene->GetRoot()->AddChild(m_skyboxEntity);
 
         m_envProbe = m_renderScene->GetEntityManager()->AddEntity<SkyProbe>(BoundingBox(Vec3f(-100.0f), Vec3f(100.0f)), m_dimensions);
-        m_envProbe->SetEnvProbeFlags(m_envProbe->GetEnvProbeFlags() & ~EPF_PARALLAX_CORRECTED);
+        m_envProbe->SetName(NAME("DynamicSkyProbe"));
         InitObject(m_envProbe);
+
         m_visScene->GetRoot()->AddChild(m_envProbe);
 
         m_envProbe->SetReceivesUpdate(false); // we will update manually, no automatic updates

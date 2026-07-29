@@ -262,7 +262,7 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, co
         }
     }
 
-    HYP_LOG(Rendering, Error, "Shadow map could not be fit into an atlas, dimensions = {}, num atlases = {}", dimensions, m_atlases.Size());
+    HYP_LOG(Rendering, Warning, "Shadow map could not be fit into an atlas, dimensions = {}, num atlases = {}", dimensions, m_atlases.Size());
 
     return nullptr;
 }

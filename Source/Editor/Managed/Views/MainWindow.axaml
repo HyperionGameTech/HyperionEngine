@@ -180,6 +180,7 @@
                     <MenuItem Header="Select None" />
                 </MenuItem>
                 <MenuItem Header="_Build">
+                    <MenuItem Command="{Binding BuildLightmaps}" Header="Bake Lightmaps" />
                     <MenuItem Command="{Binding BuildBentNormals}" Header="Bent Normals" />
                 </MenuItem>
             </Menu>
@@ -865,8 +866,9 @@
                                                     Content="New...">
                                                     <Button.Flyout>
                                                         <MenuFlyout>
-                                                            <MenuItem Command="{Binding ContentBrowser.NewPhysicsShapeCommand}" Header="Physics Shape" />
-                                                            <MenuItem Command="{Binding ContentBrowser.NewScriptCommand}" Header="New Script" />
+                                                            <MenuItem Command="{Binding ContentBrowser.NewPhysicsShapeCommand}" Header="Physics Shape..." />
+                                                            <MenuItem Command="{Binding ContentBrowser.NewMaterialCommand}" Header="Material" />
+                                                            <MenuItem Command="{Binding ContentBrowser.NewScriptCommand}" Header="Script" />
                                                         </MenuFlyout>
                                                     </Button.Flyout>
                                                 </Button>

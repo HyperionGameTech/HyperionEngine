@@ -133,7 +133,7 @@ bool TraceRays(
 
         if (step_delta > 0.0)
         {
-            if (step_delta < ssrConstants.thickness) 
+            if (step_delta < ssrConstants.thickness)
             {
                 for (int j = 0; j < 4; j++)
                 {
@@ -152,11 +152,15 @@ bool TraceRays(
                         return true;
                     }
                 }
+
+                hit_point = view_space_position.xyz;
+
+                return true;
             }
 
-            hit_point = view_space_position.xyz;
-
-            return true;
+            // step_delta exceeds the thickness threshold - the ray passed behind a surface
+            // that's too thick to be a valid hit (e.g. into the background past thin geometry).
+            // Treat it as a miss and keep marching rather than accepting a bogus hit point.
         }
     }
 
@@ -164,19 +168,21 @@ bool TraceRays(
 }
 
 float CalculateAlpha(
-    float num_iterations,
-    float2 hit_pixel,
-    float3 hit_point,
+    float numIterations,
+    float2 hitPixel,
+    float3 hitPoint,
     float dist,
-    float3 ray_direction)
+    float3 dir)
 {
     float alpha = 1.0;
-    // alpha *= saturate(1.0 - (num_iterations / ssrConstants.num_iterations));
-
-    // Fade hits that are against the screen edge
+    // alpha *= saturate(1.0 - (numIterations / ssrConstants.num_iterations));
+    
+    const float2 distFromCenter = abs(hitPixel * 2.0 - 1.0);
+    const float2 edgeFade = 1.0 - smoothstep(ssrConstants.screenEdgeFadeStart, ssrConstants.screenEdgeFadeEnd, distFromCenter);
+    alpha *= edgeFade.x * edgeFade.y;
 
     // // Fade hits that approach the viewer's eye
-    // float dp = dot(ray_direction, hit_point);
+    // float dp = dot(dir, hitPoint);
     // alpha *= saturate(1.0 - dp / 20.0);
 
     return alpha;

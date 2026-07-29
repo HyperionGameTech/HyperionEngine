@@ -1609,8 +1609,8 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         { // Render prepass
             ENGINE_STAT_GPU_SCOPE(&s_statDepthPrepass);
 
-            if (renderCollector.mappingsByBucket[uint32(RenderBucket::Opaque)].Any()
-                || renderCollector.mappingsByBucket[uint32(RenderBucket::Lightmapped)].Any())
+            if (renderCollector.HasDrawCalls(RenderBucket::Opaque)
+                || renderCollector.HasDrawCalls(RenderBucket::Lightmapped))
             {
                 renderCollector.ExecuteDrawCalls(frame, rs, depthPrepassFramebuffer, PrepassRenderBucketsMask, true);
             }
@@ -1660,8 +1660,8 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     frame->cr << ClearFramebuffer(opaquePassFramebuffer, 0x1);
 
-    if (renderCollector.mappingsByBucket[uint32(RenderBucket::Opaque)].Any()
-        || (!g_cvEnableLightmapVolumes.Get() && renderCollector.mappingsByBucket[uint32(RenderBucket::Lightmapped)].Any()))
+    if (renderCollector.HasDrawCalls(RenderBucket::Opaque)
+        || (!g_cvEnableLightmapVolumes.Get() && renderCollector.HasDrawCalls(RenderBucket::Lightmapped)))
     {
         ENGINE_STAT_GPU_SCOPE(&s_statFillOpaque);
 
@@ -1685,7 +1685,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     {
         // render objects to be lightmapped, separate from the opaque objects.
         // The lightmap bucket's framebuffer has a color attachment that will write into the opaque framebuffer's color attachment.
-        if (renderCollector.mappingsByBucket[uint32(RenderBucket::Lightmapped)].Any())
+        if (renderCollector.HasDrawCalls(RenderBucket::Lightmapped))
         {
             ENGINE_STAT_GPU_SCOPE(&s_statFillOpaque);
 
@@ -1707,7 +1707,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
     }
 
-    if (renderCollector.mappingsByBucket[uint32(RenderBucket::Sky)].Any())
+    if (renderCollector.HasDrawCalls(RenderBucket::Sky))
     {
         frame->cr << SetCurrentFramebuffer(translucentPassFramebuffer);
 
@@ -1891,7 +1891,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         frame->cr << SetCurrentFramebuffer(translucentPassFramebuffer);
 
         // begin translucent with forward rendering
-        if (renderCollector.mappingsByBucket[uint32(RenderBucket::Translucent)].Any())
+        if (renderCollector.HasDrawCalls(RenderBucket::Translucent))
         {
             renderCollector.ExecuteDrawCalls(frame, rs, RenderBucketMask<RenderBucket::Translucent>);
         }
@@ -1948,7 +1948,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     if (rs.view && (rs.view->GetFlags() & ViewFlags::EDITOR_VIEW))
     {
         // debug draw - editor only
-        if (renderCollector.mappingsByBucket[uint32(RenderBucket::Debug)].Any()
+        if (renderCollector.HasDrawCalls(RenderBucket::Debug)
             || DebugDrawer::GetInstance().NumEnqueuedDrawCommands() > 0)
         {
             ENGINE_STAT_GPU_SCOPE(&s_statFillDebug);

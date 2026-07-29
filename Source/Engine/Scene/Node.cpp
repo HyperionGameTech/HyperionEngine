@@ -286,14 +286,14 @@ void Node::OnMobilityChanged(bool isStatic)
     {
         for (Node* child : m_childNodes)
         {
-            child->SetNodeFlags(child->GetNodeFlags() & ~NodeFlags::MobilityStaticByProxy);
+            child->SetNodeFlags(child->GetNodeFlags() | NodeFlags::MobilityStaticByProxy);
         }
     }
     else
     {
         for (Node* child : m_childNodes)
         {
-            child->SetNodeFlags(child->GetNodeFlags() | NodeFlags::MobilityStaticByProxy);
+            child->SetNodeFlags(child->GetNodeFlags() & ~NodeFlags::MobilityStaticByProxy);
         }
     }
 
