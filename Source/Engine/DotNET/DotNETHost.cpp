@@ -63,10 +63,92 @@ public:
         return false;
     }
 
-    virtual SharedPtr<Assembly> LoadAssembly(const char* path) = 0;
-    virtual bool UnloadAssembly(ManagedGuid guid) = 0;
-    virtual bool IsCoreAssembly(ManagedGuid guid) const = 0;
-    virtual bool IsCoreAssembly(const Assembly* assembly) const = 0;
+    SharedPtr<Assembly> LoadAssembly(const char* path)
+    {
+        constexpr ManagedGuid EmptyGuid { 0, 0 };
+
+        Optional<FilePath> filepath = FindAssemblyFilePath(m_basePath, path);
+
+        auto it = m_assembliesByPath.Find(*filepath);
+
+        if (it != m_assembliesByPath.End())
+        {
+            return it->second;
+        }
+
+        if (!filepath.HasValue())
+        {
+            HYP_LOG(DotNET, Error, "Failed to load assembly {}: Could not find assembly DLL (base path: {})", path, m_basePath);
+
+            return nullptr;
+        }
+
+        SharedPtr<Assembly> assembly = MakeShared<Assembly>(EmptyGuid);
+
+        Assert(m_managedDelegates.initializeAssembly != nullptr);
+
+        int result = m_managedDelegates.initializeAssembly(
+            &assembly->GetGuid(),
+            assembly.Get(),
+            filepath->Data(),
+            /* isCoreAssembly */ 0);
+
+        if (result != int(LoadAssemblyResult::OK))
+        {
+            HYP_LOG(DotNET, Error, "Failed to load assembly {}: Got error code {}", path, result);
+
+            return nullptr;
+        }
+
+        m_assembliesByPath[*filepath] = assembly;
+
+        return assembly;
+    }
+
+    bool UnloadAssembly(ManagedGuid assemblyGuid)
+    {
+        if (IsCoreAssembly(assemblyGuid))
+        {
+            return false;
+        }
+
+        HYP_LOG(DotNET, Verbose, "Unloading assembly...");
+
+        int32 result;
+
+        Assert(m_managedDelegates.unloadAssembly != nullptr);
+        m_managedDelegates.unloadAssembly(&assemblyGuid, &result);
+
+        return bool(result);
+    }
+
+    bool IsCoreAssembly(ManagedGuid assemblyGuid) const
+    {
+        if (!assemblyGuid.IsValid())
+        {
+            return false;
+        }
+
+        for (const auto& pair : m_coreAssemblies)
+        {
+            if (pair.second == assemblyGuid)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    bool IsCoreAssembly(const Assembly* assembly) const
+    {
+        if (!assembly)
+        {
+            return false;
+        }
+
+        return IsCoreAssembly(assembly->GetGuid());
+    }
 
     virtual void* GetDelegate(
         const TChar* assemblyPath,
@@ -74,22 +156,26 @@ public:
         const TChar* methodName,
         const TChar* delegateTypeName) const = 0;
 
+
+    static Optional<FilePath> FindAssemblyFilePath(const FilePath& basePath, const char* path)
+    {
+        const FilePath filepath = basePath / path;
+
+        if (!filepath.Exists())
+        {
+            return {};
+        }
+
+        return filepath;
+    }
+
 protected:
     FilePath m_basePath;
     ManagedDelegates m_managedDelegates;
+    
+    Map<FilePath, SharedPtr<Assembly>> m_assembliesByPath;
+    Map<String, ManagedGuid> m_coreAssemblies;
 };
-
-static Optional<FilePath> FindAssemblyFilePath(const FilePath& basePath, const char* path)
-{
-    const FilePath filepath = basePath / path;
-
-    if (!filepath.Exists())
-    {
-        return {};
-    }
-
-    return filepath;
-}
 
 #ifdef HYP_DOTNET_HOST
 
@@ -239,93 +325,6 @@ public:
         LoadAssembly("Hyperion.NET.Runtime.dll");
 
         return true;
-    }
-
-    SharedPtr<Assembly> LoadAssembly(const char* path) override
-    {
-        constexpr ManagedGuid EmptyGuid { 0, 0 };
-
-        Optional<FilePath> filepath = FindAssemblyFilePath(m_basePath, path);
-
-        auto it = m_assembliesByPath.Find(*filepath);
-
-        if (it != m_assembliesByPath.End())
-        {
-            return it->second;
-        }
-
-        if (!filepath.HasValue())
-        {
-            HYP_LOG(DotNET, Error, "Failed to load assembly {}: Could not find assembly DLL (base path: {})", path, m_basePath);
-
-            return nullptr;
-        }
-
-        SharedPtr<Assembly> assembly = MakeShared<Assembly>(EmptyGuid);
-
-        Assert(m_managedDelegates.initializeAssembly != nullptr);
-
-        int result = m_managedDelegates.initializeAssembly(
-            &assembly->GetGuid(),
-            assembly.Get(),
-            filepath->Data(),
-            /* isCoreAssembly */ 0);
-
-        if (result != int(LoadAssemblyResult::OK))
-        {
-            HYP_LOG(DotNET, Error, "Failed to load assembly {}: Got error code {}", path, result);
-
-            return nullptr;
-        }
-
-        m_assembliesByPath[*filepath] = assembly;
-
-        return assembly;
-    }
-
-    bool UnloadAssembly(ManagedGuid assemblyGuid) override
-    {
-        if (IsCoreAssembly(assemblyGuid))
-        {
-            return false;
-        }
-
-        HYP_LOG(DotNET, Verbose, "Unloading assembly...");
-
-        int32 result;
-
-        Assert(m_managedDelegates.unloadAssembly != nullptr);
-        m_managedDelegates.unloadAssembly(&assemblyGuid, &result);
-
-        return bool(result);
-    }
-
-    bool IsCoreAssembly(ManagedGuid assemblyGuid) const override
-    {
-        if (!assemblyGuid.IsValid())
-        {
-            return false;
-        }
-
-        for (const auto& pair : m_coreAssemblies)
-        {
-            if (pair.second == assemblyGuid)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    bool IsCoreAssembly(const Assembly* assembly) const override
-    {
-        if (!assembly)
-        {
-            return false;
-        }
-
-        return IsCoreAssembly(assembly->GetGuid());
     }
 
     void* GetDelegate(
@@ -535,8 +534,6 @@ private:
 
     DynamicLibrary m_dll;
 
-    Map<FilePath, SharedPtr<Assembly>> m_assembliesByPath;
-    Map<String, ManagedGuid> m_coreAssemblies;
 
     hostfxr_handle m_cxt;
     hostfxr_initialize_for_runtime_config_fn m_initFptr;
@@ -553,26 +550,6 @@ class DotNetImpl final : public DotNetImplBase
 public:
     DotNetImpl() = default;
     ~DotNetImpl() = default;
-
-    SharedPtr<Assembly> LoadAssembly(const char* path) override
-    {
-        return nullptr;
-    }
-
-    bool UnloadAssembly(ManagedGuid guid) override
-    {
-        return false;
-    }
-
-    bool IsCoreAssembly(ManagedGuid guid) const override
-    {
-        return false;
-    }
-
-    bool IsCoreAssembly(const Assembly* assembly) const override
-    {
-        return false;
-    }
 
     void* GetDelegate(
         const TChar* assemblyPath,

@@ -84,6 +84,7 @@
 #include <Rendering/Util/MeshBuilder.hpp>
 
 #include <Framework/EngineGlobals.hpp>
+#include <Framework/CVarManager.hpp>
 #include <Rendering/Texture.hpp>
 #include <Rendering/RendererMain.hpp>
 #include <Rendering/RenderProxyList.hpp>
@@ -116,6 +117,8 @@
 namespace Hyperion {
 
 HYP_DEFINE_LOG_CHANNEL(Editor);
+
+CVar<CVarString> g_cvCodeEditor { "Editor.CodeEditor", "VSCode" };
 
 namespace CoreApi {
 CORE_API extern const FilePath& GetExecutablePath();
@@ -4510,6 +4513,11 @@ Handle<Scene> EditorSubsystem::GetActiveScene() const
 {
     AssertOnThread(g_simThread);
     return m_activeScene.Lock();
+}
+
+String EditorSubsystem::GetCodeEditor() const
+{
+    return String(g_cvCodeEditor.Get());
 }
 
 Handle<Node> EditorSubsystem::GetFocusedNode() const

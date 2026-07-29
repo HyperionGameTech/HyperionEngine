@@ -51,7 +51,7 @@ struct PSOutput
     float4 out_color : SV_Target0;
 };
 
-DECLARE_SRV(RenderSSR, UVImage) Texture2D ssr_uv_image;
+DECLARE_SRV(RenderSSR, UVImage) Texture2D<uint> SSRMask;
 
 DECLARE_BUFFER_DYNAMIC(RenderSSR, CBuffer) cbuffer CBuffer
 {
@@ -100,23 +100,23 @@ PSOutput PSMain(PSInput input)
     const uint2 coord = uint2(input.position_cs.xy);
     const float2 texcoord = input.texcoord;
 
-    const float2 ssr_image_dimensions = float2(ssrConstants.dimension.xy);
+    //const float2 ssr_image_dimensions = float2(ssrConstants.dimension.xy);
+    
+    uint2 maskDimensions;
+    SSRMask.GetDimensions(maskDimensions.x, maskDimensions.y);
+    
+    const int2 ssrSampleCoord = clamp(int2(texcoord * (float2)maskDimensions), (int2)0, (int2)maskDimensions - 1);
 
-    float4 uv_sample = SAMPLE_TEXTURE_2D(sampler_nearest, ssr_uv_image, texcoord);
-    const float2 uv = uv_sample.xy;
-    const float alpha = uv_sample.z;
+    const uint ssrMask = SSRMask.Load(int3(ssrSampleCoord, 0));
+    
+    const float2 hitUV = float2(HYP_UNQUANTIZE(ssrMask & 0x7FFFu, 15), HYP_UNQUANTIZE((ssrMask >> 15) & 0x7FFFu, 15));
+    const float alpha = HYP_UNQUANTIZE((ssrMask >> 30) & 0x3u, 2);
 
-    float4 reflection_sample = float4(0.0, 0.0, 0.0, 0.0);
+    float4 reflection_sample = (float4)0;
     float roughness = 0.0;
 
     float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, HiZTexture, texcoord, 0).r;
-
-    if (depth > 0.99999)
-    {
-        output.out_color = float4(0.0, 0.0, 0.0, 0.0);
-        return output;
-    }
-
+    
     float3 P = ReconstructWorldSpacePositionFromDepth(camera.invProjMat, camera.invViewMat, texcoord, depth).xyz;
     const float4 normalSample = SAMPLE_TEXTURE_2D(sampler_nearest, GBufferNormalsTexture, texcoord);
     float3 N = GBufferUnpackNormal(normalSample);
@@ -142,14 +142,8 @@ PSOutput PSMain(PSInput input)
 
         const float trace_size = float(max(ssrConstants.dimension.x, ssrConstants.dimension.y));
         const float max_mip_level = 9.0;
-
-        float2 sample_texcoord = texcoord;
-        int2 sample_coord = clamp(int2(sample_texcoord * ssr_image_dimensions), (int2)0, (int2)ssr_image_dimensions);
-
-        const float4 hit_data = SAMPLE_TEXTURE_2D_LOD(sampler_linear, ssr_uv_image, sample_texcoord, 0);
-        const float2 hit_uv = hit_data.xy;
-        const float hit_mask = hit_data.z;
-        const float2 delta_p = saturate(hit_uv - texcoord);
+        
+        const float2 delta_p = saturate(hitUV - texcoord);
 
         float adjacent_length = length(delta_p);
         float2 adjacent_unit = adjacent_length > HYP_FMATH_EPSILON ? (delta_p / adjacent_length) : float2(0.0, 0.0);
@@ -159,7 +153,7 @@ PSOutput PSMain(PSInput input)
 
         float4 accum_color = float4(0.0, 0.0, 0.0, 0.0);
 
-        float2 velocity = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferVelocityTexture, hit_uv, 0).xy;
+        float2 velocity = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferVelocityTexture, hitUV, 0).xy;
 
 #ifdef CONE_TRACING
         for (int i = 0; i < 14; i++)
@@ -168,15 +162,15 @@ PSOutput PSMain(PSInput input)
             const float incircle_size = IsoscelesTriangleInRadius(opposite_length, adjacent_length);
             const float2 sample_position = texcoord + adjacent_unit * (adjacent_length - incircle_size);
 
-            const float mip_level = clamp(log2(incircle_size * max(ssr_image_dimensions.x, ssr_image_dimensions.y)), 0.0, max_mip_level);
+            const float mip_level = clamp(log2(incircle_size * (float)max(gbufferDimensions.x, gbufferDimensions.y)), 0.0, max_mip_level);
 
-            float4 current_reflection_sample = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferMipChain, saturate(hit_uv - velocity), mip_level);
-            // current_reflection_sample = any(isnan(current_reflection_sample)) ? float4(0.0, 0.0, 1.0, 1.0) : current_reflection_sample;
+            float4 current_reflection_sample = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferMipChain, saturate(hitUV - velocity), mip_level);
+            current_reflection_sample = any(isnan(current_reflection_sample)) ? float4(0.0, 0.0, 1.0, 1.0) : current_reflection_sample;
 #else
-        const float current_radius = length((hit_uv - texcoord) * float2(ssrConstants.dimension.xy)) * tan(cone_angle);
+        const float current_radius = length((hitUV - texcoord) * float2(ssrConstants.dimension.xy)) * tan(cone_angle);
         const float mip_level = clamp(log2(current_radius), 0.0, max_mip_level);
 
-        float4 current_reflection_sample = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferMipChain, saturate(hit_uv - velocity), mip_level);
+        float4 current_reflection_sample = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferMipChain, saturate(hitUV - velocity), mip_level);
 #endif
 
 #ifdef CONE_TRACING
@@ -204,8 +198,8 @@ PSOutput PSMain(PSInput input)
         accum_color = current_reflection_sample;
 #endif
 
-        //reflection_sample.a = min(accum_color.a, 1.0);
-        //reflection_sample = any(isnan(accum_color)) ? float4(0.0, 0.0, 0.0, 1.0) : accum_color;
+        ///reflection_sample.a = min(accum_color.a, 1.0);
+        ///reflection_sample = any(isnan(accum_color)) ? float4(0.0, 0.0, 0.0, 1.0) : accum_color;
 
         reflection_sample = accum_color;
         reflection_sample.a *= alpha;

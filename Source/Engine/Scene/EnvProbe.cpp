@@ -364,7 +364,7 @@ void EnvProbe::OnAddedToWorld(World* world)
             {
                 m_texture = MakeHandle<Texture>(TextureDesc {
                     TextureType::Cubemap,
-                    TextureFormat::RGBA8,
+                    TextureFormat::RGBA16F,
                     Vec3u { m_dimensions, 1 },
                     TFM_LINEAR_MIPMAP,
                     TFM_LINEAR,
@@ -476,7 +476,7 @@ void EnvProbe::CreateViewData()
     // Color target
     AttachmentDesc& colorDesc = attachmentDescs.PushBack(AttachmentDesc {
         TextureType::Cubemap,
-        TextureFormat::RGBA8,
+        TextureFormat::RGBA16F,
         LoadOperation::CLEAR,
         StoreOperation::STORE
     });
@@ -500,7 +500,8 @@ void EnvProbe::CreateViewData()
             TextureType::Cubemap,
             TextureFormat::RG16F,
             LoadOperation::CLEAR,
-            StoreOperation::STORE });
+            StoreOperation::STORE
+        });
 
         attachmentImages.PushBack(RI.MakeImage(TextureDesc {
             visibilityDesc.imageType,
@@ -510,7 +511,8 @@ void EnvProbe::CreateViewData()
             TFM_LINEAR,
             TWM_CLAMP_TO_EDGE,
             1,
-            IU_SAMPLED | IU_ATTACHMENT }));
+            IU_SAMPLED | IU_ATTACHMENT
+        }));
     }
 
     // Depth target
@@ -518,7 +520,8 @@ void EnvProbe::CreateViewData()
         TextureType::Cubemap,
         TextureFormat::D16,
         LoadOperation::CLEAR,
-        StoreOperation::STORE });
+        StoreOperation::STORE
+    });
 
     attachmentImages.PushBack(RI.MakeImage(TextureDesc {
         depthDesc.imageType,
@@ -528,7 +531,8 @@ void EnvProbe::CreateViewData()
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_SAMPLED | IU_ATTACHMENT }));
+        IU_SAMPLED | IU_ATTACHMENT
+    }));
 
     for (const GpuImageRef& image : attachmentImages)
     {
@@ -1041,7 +1045,7 @@ void SkyProbe::Init()
 {
     m_texture = MakeHandle<Texture>(TextureDesc {
         TextureType::Cubemap,
-        TextureFormat::RGBA8,
+        TextureFormat::RGBA16F,
         Vec3u { m_dimensions.x, m_dimensions.y, 1 },
         TFM_LINEAR_MIPMAP,
         TFM_LINEAR,

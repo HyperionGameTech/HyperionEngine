@@ -54,7 +54,7 @@ struct PSInput
 
 struct PSOutput
 {
-    float4 out_color : SV_Target0;
+    uint mask : SV_Target0;
 };
 
 DECLARE_BUFFER_DYNAMIC(RenderSSR, CBuffer) cbuffer CBuffer
@@ -81,7 +81,7 @@ DECLARE_SRV(RenderSSR, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;
 #include "../include/Temporal.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#define MAX_ROUGHNESS 0.6
+#define MAX_ROUGHNESS 0.7
 
 bool TraceRays(
     float3 ray_origin,
@@ -210,9 +210,9 @@ PSOutput PSMain(PSInput input)
 
     const float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, HiZTexture, texcoord, 0).r;
 
-    if (depth > 0.99999 || perceptualRoughness > MAX_ROUGHNESS)
+    if (MAX_ROUGHNESS < 1.0 && perceptualRoughness > MAX_ROUGHNESS)
     {
-        output.out_color = (float4)0.0;
+        output.mask = 0;
         return output;
     }
 
@@ -226,9 +226,6 @@ PSOutput PSMain(PSInput input)
     float3 bitangent;
     ComputeOrthonormalBasis(view_space_normal, tangent, bitangent);
 
-    const float2 texel_size = float2(1.0, 1.0) / float2(ssrConstants.dimension.xy);
-    const float texel_size_max = max(texel_size.x, texel_size.y);
-
     float3 ray_origin;
 
 #define NUM_SAMPLES 32
@@ -236,7 +233,7 @@ PSOutput PSMain(PSInput input)
         SampleBlueNoise(int(coord.x), int(coord.y), int(frameCounter % NUM_SAMPLES) * 2, NUM_SAMPLES * 2),
         SampleBlueNoise(int(coord.x), int(coord.y), int(frameCounter % NUM_SAMPLES) * 2 + 1, NUM_SAMPLES * 2));
 #ifdef ROUGHNESS_SCATTERING
-    float3 H = ImportanceSampleGGX(rnd, view_space_normal, perceptualRoughness);
+    float3 H = ImportanceSampleGGX(rnd, view_space_normal, roughness);
     H = tangent * H.x + bitangent * H.y + view_space_normal * H.z;
     H = normalize(H);
 
@@ -269,7 +266,15 @@ PSOutput PSMain(PSInput input)
     hit_pixel = saturate(hit_pixel);
     hit_pixel *= float(alpha > HYP_FMATH_EPSILON);
 
-    output.out_color = float4(hit_pixel, alpha, 1.0);
+    // 15 bits == U
+    // 15 bits == V
+    // 2 bits == mask
+    
+    output.mask = HYP_QUANTIZE(hit_pixel.x, 15)
+        | (HYP_QUANTIZE(hit_pixel.y, 15) << 15)
+        | (HYP_QUANTIZE(alpha, 2) << 30);
+    
+    //output.out_color = float4(hit_pixel, alpha, 1.0);
 
     return output;
 }

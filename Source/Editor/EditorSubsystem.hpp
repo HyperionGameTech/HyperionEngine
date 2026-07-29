@@ -507,6 +507,9 @@ public:
     void SetActiveScene(const Handle<Scene>& scene);
 
     HYP_METHOD()
+    String GetCodeEditor() const;
+
+    HYP_METHOD()
     EditorManipulationMode GetSelectedManipulationMode() const;
 
     HYP_METHOD()

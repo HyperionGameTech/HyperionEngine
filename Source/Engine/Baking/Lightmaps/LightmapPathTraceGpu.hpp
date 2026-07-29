@@ -63,8 +63,8 @@ public:
 private:
     struct JobData
     {
-        GpuBufferRef cbuffer;
-        GpuBufferRef raysBuffer;
+        GpuBufferRef cbuffers[NumFramesInFlight];
+        GpuBufferRef raysBuffers[NumFramesInFlight];
         RWStructuredBuffer hitsBufferGpu;
         bool isCreated = false;
     };

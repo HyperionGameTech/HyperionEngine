@@ -31,5 +31,10 @@ namespace Hyperion
         {
             this.InvokeNativeMethod(new Name("ExecuteCommandByName"), new object[] { commandName, string.Join(" ", arguments) });
         }
+
+        public string GetCodeEditor()
+        {
+            return this.InvokeNativeMethod<string>(new Name("GetCodeEditor")) ?? "VSCode";
+        }
     }
 }

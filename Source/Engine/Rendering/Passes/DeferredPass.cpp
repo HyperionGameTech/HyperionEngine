@@ -399,7 +399,7 @@ static FramebufferRef CreateDepthPrepassFramebuffer(GBuffer* gbuffer)
 class TileProcessor
 {
 public:
-    static constexpr uint32 MaxEnvProbesPerTile = 8;
+    static constexpr uint32 MaxEnvProbesPerTile = 16;
     static constexpr uint32 MaxLightsPerTile = 16;
 
     HYP_DEF_POOL_NEW_DELETE(g_renderPool);
@@ -426,7 +426,6 @@ public:
         uint32 lastUsedFrame = UINT32_MAX;
 
         Array<Tile, RenderAllocator> tempTiles;
-
         Array<TileGridData, RenderAllocator> gridData;
         Array<uint16, RenderAllocator> indexData;
     };
@@ -493,8 +492,7 @@ public:
         const float bias = -(float(TileZBins) * std::log2(cameraNear)) / logFarOverNear;
 
         const Mat4f& viewMatrix = cameraProxy->bufferData.viewMat;
-
-        Mat4f projMatrix = cameraProxy->bufferData.projMat;
+        const Mat4f& projMatrix = cameraProxy->bufferData.projMat;
 
         auto calculateZBin = [scale, bias](float viewSpaceZ) -> int32
         {
@@ -736,42 +734,37 @@ public:
             envProbes.EmplaceBack(envProbe, &envProbeProxy->bufferData, envProbeBindingIndex);
         }
 
-        Vec3f cameraPosition = cameraProxy->bufferData.cameraPosition.GetXYZ();
-
         // Sort env probes in reverse order
         // They are applied with a reverse loop -- sky is always first in the array if present.
         std::sort(envProbes.Begin(), envProbes.End(),
-                  [&cameraPosition](const Tuple<EnvProbe*, EnvProbeShaderData*, uint32>& a, const Tuple<EnvProbe*, EnvProbeShaderData*, uint32>& b)
+                  [](const Tuple<EnvProbe*, EnvProbeShaderData*, uint32>& a, const Tuple<EnvProbe*, EnvProbeShaderData*, uint32>& b)
                   {
                       const auto& aData = *a.GetElement<1>();
                       const auto& bData = *b.GetElement<1>();
 
                       const bool aIsSky = (aData.typeAndFlags & 0x7) == EPT_SKY;
                       const bool bIsSky = (bData.typeAndFlags & 0x7) == EPT_SKY;
-
-                      if (aIsSky && !bIsSky)
+                      
+                      if (aIsSky ^ bIsSky)
                       {
-                          return true;
+                          // Push sky first
+                          return aIsSky;
                       }
 
-                      if (!aIsSky && bIsSky)
+                      const Vec3f aExtent = (aData.aabbMax - aData.aabbMin).GetXYZ();
+                      const Vec3f bExtent = (bData.aabbMax - bData.aabbMin).GetXYZ();
+
+                      const float aVolume = aExtent.x * aExtent.y * aExtent.z;
+                      const float bVolume = bExtent.x * bExtent.y * bExtent.z;
+
+                      if (MathUtil::ApproxEqual(aVolume, bVolume))
                       {
-                          return false;
+                          // We need to sort by something at least, to ensure we conform to weak strict ordering requirements.
+                          // So, we sort by binding index if the volumes are the exact same.
+                          return a.template GetElement<2>() > b.template GetElement<2>();
                       }
 
-                      if (aIsSky && bIsSky)
-                      {
-                          return true;
-                      }
-
-                      // both are reflection probes, sort by distance to camera
-                      const Vec3f aProbePosition = aData.worldPosition.GetXYZ();
-                      const Vec3f bProbePosition = bData.worldPosition.GetXYZ();
-
-                      const float aDistSq = (aProbePosition - cameraPosition).LengthSquared();
-                      const float bDistSq = (bProbePosition - cameraPosition).LengthSquared();
-
-                      return aDistSq >= bDistSq;
+                      return aVolume > bVolume;
                   });
 
         for (size_t envProbeIndex = 0; envProbeIndex < envProbes.Size(); envProbeIndex++)
@@ -842,6 +835,12 @@ public:
                         {
                             tile.envProbeIndices[tile.numEnvProbes++] = uint16(envProbeBindingIndex);
                         }
+#if 1//def HYP_DEBUG_MODE
+                        else
+                        {
+                            HYP_LOG_ONCE(Engine, Warning, "Too many env probes to cluster in tiles");
+                        }
+#endif
                     }
                 }
             }
@@ -1798,13 +1797,13 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     { // deferred lighting on opaque objects
         ENGINE_STAT_GPU_SCOPE(&s_statDeferredPass);
 
-        // Pre-transition resources to avoid breaking the render pass for barriers
-        frame->cr << InsertBarrier(
-            passData.lightingFramebuffer->GetAttachment(1)->GetGpuImage(),
-            RS_RENDER_TARGET,
-            ShaderModuleType::Pixel,
-            /* onlyDepth */ false,
-            /* onlyStencil */ true);
+        //// Pre-transition resources to avoid breaking the render pass for barriers
+        //frame->cr << InsertBarrier(
+        //    passData.lightingFramebuffer->GetAttachment(1)->GetGpuImage(),
+        //    RS_RENDER_TARGET,
+        //    ShaderModuleType::Pixel,
+        //    /* onlyDepth */ false,
+        //    /* onlyStencil */ true);
 
         // Transition shadow map atlas to shader resource before the pass
         frame->cr << InsertBarrier(RI.shadowMapCache->GetAtlasImage(), RS_SHADER_RESOURCE, ShaderModuleType::Pixel);

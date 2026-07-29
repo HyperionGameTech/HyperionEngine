@@ -349,7 +349,8 @@ ENGINE_API Handle<Mesh> Cube(bool originOnBottom)
     return mesh;
 }
 
-ENGINE_API Handle<Mesh> NormalizedCubeSphere(uint32 numDivisions){
+ENGINE_API Handle<Mesh> NormalizedCubeSphere(uint32 numDivisions)
+{
     const float step = 1.0f / float(numDivisions);
 
     static constexpr Vec3f Origins[6] = {
@@ -403,8 +404,8 @@ ENGINE_API Handle<Mesh> NormalizedCubeSphere(uint32 numDivisions){
                 Vec3f normal = point;
 
                 const Vec2f uv(
-                    float(j + (face * numDivisions)) / float(numDivisions * 6),
-                    float(i + (face * numDivisions)) / float(numDivisions * 6));
+                    float(i + (face * numDivisions)) / float(numDivisions * 6),
+                    float(j) / float(numDivisions));
 
                 vertices.PushBack(SimpleVertex { position, normal, uv });
             }

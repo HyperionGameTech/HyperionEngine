@@ -68,8 +68,9 @@ PSOutput PSMain(PSInput input)
     texcoord = (texcoord * 0.5) + float2(0.5 * float((world_shader_data.frame_counter - 1u) & 1u), 0.0);
 #endif
 
-    output.color_output = SAMPLE_TEXTURE_2D_LOD(sampler_linear, src_image, texcoord, 0.0);
-
+    float4 color = SAMPLE_TEXTURE_2D_LOD(sampler_linear, src_image, texcoord, 0.0);
+    //output.color_output = any(isnan(color)) || any(isinf(color)) ? (float4) 0 : color;
+    output.color_output = color;
     return output;
 }
 

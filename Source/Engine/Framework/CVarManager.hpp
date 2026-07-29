@@ -46,12 +46,14 @@ struct BoxedValue;
 
 class CVarManager;
 
+using CVarString = const char*;
+
 using CVarSnapshotValue = Variant<
     int8, int16, int32, int64,
     uint8, uint16, uint32, uint64,
     float, double,
     bool,
-    const char*>;
+    CVarString>;
 
 class ENGINE_API CVarBase
 {
@@ -79,13 +81,27 @@ protected:
     virtual void WriteToSnapshot(CVarSnapshotValue& snapshotValue) const = 0;
 };
 
+namespace Detail {
+
+template <typename T>
+HYP_FORCE_INLINE T AcquireCVarValue(T value) noexcept
+{
+    return value;
+}
+
+// const char* cvars own a heap copy of their value (the destructor frees it), so even a string
+// literal default must be duplicated rather than stored directly.
+ENGINE_API CVarString AcquireCVarValue(CVarString value);
+
+} // namespace Detail
+
 template <typename T>
 class CVar final : public CVarBase
 {
 public:
     explicit CVar(const UTF8StringView& path, T defaultValue = T {}, const UTF8StringView& configPath = {})
         : CVarBase(path, configPath),
-          m_value(defaultValue)
+          m_value(Detail::AcquireCVarValue(defaultValue))
     {
     }
 
@@ -94,7 +110,7 @@ public:
     void Set(T value);
     T Get() const;
 
-    explicit operator T() const
+    explicit HYP_FORCE_INLINE operator T() const
     {
         return Get();
     }
@@ -127,9 +143,10 @@ private:
 // We need specific impls for dtor and Set() for const char* to handle the dynamic memory allocation of the string.
 
 template <>
-ENGINE_API CVar<const char*>::~CVar();
+ENGINE_API CVar<CVarString>::~CVar();
+
 template <>
-ENGINE_API void CVar<const char*>::Set(const char* value);
+ENGINE_API void CVar<CVarString>::Set(CVarString value);
 
 #pragma endregion const char* CVar specializations
 
@@ -177,7 +194,7 @@ template <>
 ENGINE_API bool CVar<bool>::SetFromConfig(const ConfigValue& cfgValue);
 
 template <>
-ENGINE_API bool CVar<const char*>::SetFromConfig(const ConfigValue& cfgValue);
+ENGINE_API bool CVar<CVarString>::SetFromConfig(const ConfigValue& cfgValue);
 
 // SetFromBoxed
 
@@ -195,7 +212,7 @@ inline bool CVar<T>::SetFromBoxed(const BoxedValue& boxed)
 }
 
 template <>
-ENGINE_API bool CVar<const char*>::SetFromBoxed(const BoxedValue& boxed);
+ENGINE_API bool CVar<CVarString>::SetFromBoxed(const BoxedValue& boxed);
 
 // SetFromString
 
@@ -284,7 +301,7 @@ inline bool CVar<bool>::SetFromString(const String& str)
 }
 
 template <>
-inline bool CVar<const char*>::SetFromString(const String& str)
+inline bool CVar<CVarString>::SetFromString(const String& str)
 {
     if (m_value != nullptr)
     {
@@ -307,38 +324,7 @@ inline bool CVar<const char*>::SetFromString(const String& str)
 
 #pragma endregion SetFromConfig specializations
 
-#pragma region Get specializations
-
-template <>
-int8 CVar<int8>::Get() const;
-template <>
-int16 CVar<int16>::Get() const;
-template <>
-int32 CVar<int32>::Get() const;
-template <>
-int64 CVar<int64>::Get() const;
-
-template <>
-uint8 CVar<uint8>::Get() const;
-template <>
-uint16 CVar<uint16>::Get() const;
-template <>
-uint32 CVar<uint32>::Get() const;
-template <>
-uint64 CVar<uint64>::Get() const;
-
-template <>
-float CVar<float>::Get() const;
-template <>
-double CVar<double>::Get() const;
-
-template <>
-bool CVar<bool>::Get() const;
-
-template <>
-const char* CVar<const char*>::Get() const;
-
-#pragma endregion Get specializations
+#pragma region CVarSnapshot
 
 struct CVarSnapshot
 {
@@ -353,6 +339,10 @@ struct CVarSnapshot
     {
     }
 };
+
+#pragma endregion CVarSnapshot
+
+#pragma region CVarManager
 
 class CVarManager
 {
@@ -374,17 +364,73 @@ public:
 
     /*! \brief Publishes the cvar states so they're visible to other threads */
     void Publish(uint8 ringIndex);
-
-    const CVarSnapshot& GetCurrentSnapshot() const;
+    
+    HYP_FORCE_INLINE const CVarSnapshot& GetCurrentSnapshot() const
+    {
+        if constexpr (UseRingBuffer)
+        {
+            return GetCurrentSnapshot_Internal();
+        }
+        else
+        {
+            return m_snapshots[0];
+        }
+    }
 
     Array<CVarBase*> cvars;
     Array<const char*> cvarToConfigPath;
 
 private:
+    const CVarSnapshot& GetCurrentSnapshot_Internal() const;
+
     HYP_NODISCARD int FindVarIndex(const ANSIString& name) const;
     HYP_NODISCARD int FindVarIndex(StringHash nameHash) const;
 
     CVarSnapshot m_snapshots[RingBufferDepth];
 };
+
+#pragma endregion CVarManager
+
+#pragma region CVar (Again)
+
+#pragma region Get specializations
+
+template <typename T>
+static inline T ReadCVarValue(const CVar<T>& cvar)
+{
+    static const CVarManager& s_instance = CVarManager::GetInstance();
+
+    const CVarSnapshot& snapshot = s_instance.GetCurrentSnapshot();
+
+    if (HYP_UNLIKELY(cvar.id < 0 || cvar.id >= snapshot.numVars))
+    {
+        return cvar.m_value;
+    }
+
+    return snapshot.values[cvar.id].template GetUnchecked<T>();
+}
+
+#define DEF_CVAR_GET(T) \
+    template <> \
+    inline T CVar<T>::Get() const { return ReadCVarValue(*this); }
+
+DEF_CVAR_GET(int8);
+DEF_CVAR_GET(int16);
+DEF_CVAR_GET(int32);
+DEF_CVAR_GET(int64);
+DEF_CVAR_GET(uint8);
+DEF_CVAR_GET(uint16);
+DEF_CVAR_GET(uint32);
+DEF_CVAR_GET(uint64);
+DEF_CVAR_GET(float);
+DEF_CVAR_GET(double);
+DEF_CVAR_GET(bool);
+DEF_CVAR_GET(CVarString);
+
+#undef DEF_CVAR_GET
+
+#pragma endregion Get specializations
+
+#pragma endregion CVar (Again)
 
 } // namespace Hyperion

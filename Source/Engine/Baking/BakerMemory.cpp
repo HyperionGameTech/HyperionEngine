@@ -18,7 +18,7 @@ static constexpr size_t BakerPoolBlockSize = 16 * 1024 * 1024; // 64 MB
 static constexpr size_t BakerArenaBlockSize = 1 * 1024 * 1024; // 1 MB
 
 // Use system memory allocator for fallback (we will allocate large mesh data chunks..)
-static Pool s_bakerPool { BakerPoolBlockSize, PF_FALLBACK };
+static Pool s_bakerPool { BakerPoolBlockSize, PF_FALLBACK | PF_THREAD_SAFE };
 Pool* g_bakerPool = &s_bakerPool;
 
 static Arena s_bakerArena { BakerArenaBlockSize };

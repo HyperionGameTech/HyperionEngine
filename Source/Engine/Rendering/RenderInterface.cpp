@@ -1709,9 +1709,9 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
     [[maybe_unused]] uint8 dsIndices = 0;
 
     // set up uniform index to sets mapping
-    TBitset<FixedAllocator<2>> bits { state.dirtyUniforms | state.dirtyBufferOffsets | state.validUniforms };
+    BitField<64> bits { state.dirtyUniforms | state.dirtyBufferOffsets | state.validUniforms };
 
-    for (auto currBit = bits.Begin(); bits.AnyBitsSet(); currBit = bits.Begin())
+    for (auto currBit = bits.Begin(); bits.CountOnes(); currBit = bits.Begin())
     {
         const uint8 uniformIndex = (uint8)*currBit;
         const ShaderUniform& uniform = state.shaderUniforms[uniformIndex];
@@ -1757,7 +1757,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             state.dirtyUniforms &= ~(1u << uniformIndex);
             state.dirtyBufferOffsets &= ~(1u << uniformIndex);
 
-            bits.Set(currBit, false);
+            bits.Set(*currBit, false);
 
             continue;
         }
@@ -1799,7 +1799,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
         dsIndices |= uint8(1u << setIndex);
 
-        bits.Set(currBit, false);
+        bits.Set(*currBit, false);
     }
 
     // valid uniforms / buffer offset updates need to be rebound if the set is dirty
@@ -1983,11 +1983,10 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
     if (state.dirtyUniforms)
     {
-        bits.Clear();
-        bits |= TBitset<FixedAllocator<2>> { state.dirtyUniforms };
+        bits = BitField<64> { state.dirtyUniforms };
 
         // Set dirty descriptors
-        for (auto currBit = bits.Begin(); bits.AnyBitsSet(); currBit = bits.Begin())
+        for (auto currBit = bits.Begin(); bits.CountOnes(); currBit = bits.Begin())
         {
             const uint8 uniformIndex = (uint8)*currBit;
             const ShaderUniform& uniform = state.shaderUniforms[uniformIndex];
@@ -2023,16 +2022,15 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
                 HYP_UNREACHABLE();
             }
 
-            bits.Set(currBit, false);
+            bits.Set(*currBit, false);
         }
     }
 
     if (state.dirtyBufferOffsets)
     {
-        bits.Clear();
-        bits |= state.dirtyBufferOffsets;
+        bits = BitField<64> { state.dirtyBufferOffsets };
 
-        for (auto currBit = bits.Begin(); bits.AnyBitsSet(); currBit = bits.Begin())
+        for (auto currBit = bits.Begin(); bits.CountOnes(); currBit = bits.Begin())
         {
             const uint8 uniformIndex = (uint8)*currBit;
 
@@ -2043,7 +2041,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
             bufferOffsets[setIndex][offsetIndex] = (uint8)uniformIndex;
 
-            bits.Set(currBit, false);
+            bits.Set(*currBit, false);
         }
     }
 
@@ -2274,7 +2272,7 @@ void RenderInterface::CreateSphereSamplesBuffer()
 void RenderInterface::CreateEnvProbesColorTexture()
 {
     TextureDesc textureDesc;
-    textureDesc.format = TextureFormat::RGBA8;
+    textureDesc.format = TextureFormat::RGBA16F;
     textureDesc.extent = Vec3u { 128, 128, 1 };
     textureDesc.imageUsage = IU_SAMPLED;
     textureDesc.type = TextureType::CubemapArray;

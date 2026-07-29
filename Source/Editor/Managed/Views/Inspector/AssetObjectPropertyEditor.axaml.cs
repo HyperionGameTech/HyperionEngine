@@ -1,8 +1,11 @@
 using System;
+using System.IO;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
+using Hyperion;
 using Hyperion.Editor.Services;
 using Hyperion.Editor.ViewModels;
 
@@ -74,6 +77,28 @@ namespace Hyperion.Editor.Views.Inspector
         {
             if (DataContext is not ObjectPropertyViewModel vm || !vm.HasSubObject || vm.SubObject == null)
             {
+                return;
+            }
+
+            if (vm.SubObject.Target is ScriptAsset)
+            {
+                ObjectBase capturedTarget = vm.SubObject.Target;
+
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    if (capturedTarget is not ScriptAsset scriptAsset || !scriptAsset.IsValid)
+                    {
+                        return;
+                    }
+
+                    string scriptPath = Path.Combine(
+                        AssetManager.Instance.AssetRegistry.GetRootPath(),
+                        "Scripts",
+                        scriptAsset.Name.ToString() + ".hyp");
+
+                    Dispatcher.UIThread.Post(() => CodeEditorService.OpenFile(scriptPath));
+                });
+
                 return;
             }
 

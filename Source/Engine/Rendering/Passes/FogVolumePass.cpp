@@ -187,7 +187,16 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
     cr << SetTopology(m_volumeMesh->GetMeshAttributes().topology);
     cr << SetInputLayout(m_volumeMesh->GetMeshAttributes().inputLayout);
 
-    cr << SetFaceCullMode(FCM_FRONT); // cull front faces to render inside of the volume
+    //if (rpl.GetFogVolumes().NumCurrent() == 1)
+    //{
+    //    // We don't want to cull front faces inside volume
+    //    cr << SetFaceCullMode(FCM_FRONT);
+    //}
+    //else
+    //{
+        // Because multiple vols can overlap, we don't want to skip drawing backfaces
+        cr << SetFaceCullMode(FCM_NONE);
+    //}
 
     const bool useClusteredLights = g_cvFogVolumesClusteredLights.Get();
 

@@ -581,7 +581,7 @@ void VulkanGpuImage::InsertBarrier(
             }
         }
     }
-#ifdef HYP_RHI_DEBUG_NAMES
+
     if (hasStencil && currResourceState != currStencilState)
     {
         // Depth/stencil separate states sanity checks.
@@ -612,7 +612,6 @@ void VulkanGpuImage::InsertBarrier(
             }
         }
     }
-#endif
 
     VkImageAspectFlags aspectFlagBits = 0;
 

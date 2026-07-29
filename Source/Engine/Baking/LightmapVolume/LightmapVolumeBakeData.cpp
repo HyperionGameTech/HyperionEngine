@@ -74,7 +74,7 @@ BakeData<LightmapVolume>::BakeData(Span<const BakeEntity> bakeEntities, Lightmap
 
         if (indexSize == sizeof(uint32))
         {
-            Memory::Copy(m_meshIndices[i].Data(), indexData.Data(), numIndices * indexSize);
+            Memory::Copy(m_meshIndices[i].Data(), indexData.Data(), m_meshIndices[i].ByteSize());
         }
         else
         {
@@ -715,14 +715,14 @@ void BakeData<LightmapVolume>::Dilate()
     }
 }
 
-auto BakeData<LightmapVolume>::ToBitmapIrradiance(uint32 atlasIndex) const -> BitmapType
+auto BakeData<LightmapVolume>::ToBitmapIrradiance(uint32 atlasIndex) const -> ColorBitmap
 {
     Assert(atlasIndex < atlasCount, "Atlas index out of bounds");
     Assert(texels.Size() >= dimensions.x * dimensions.y * atlasCount, "Invalid UV map size");
 
     const uint32 baseOffset = atlasIndex * dimensions.x * dimensions.y;
 
-    BitmapType bitmap(dimensions.x, dimensions.y);
+    ColorBitmap bitmap(dimensions.x, dimensions.y);
 
     for (uint32 x = 0; x < dimensions.x; x++)
     {
@@ -741,8 +741,6 @@ auto BakeData<LightmapVolume>::ToBitmapIrradiance(uint32 atlasIndex) const -> Bi
 
             AssertDebug(!MathUtil::IsNaN(color));
 
-            color = MathUtil::Clamp(color, Vec4f::Zero(), Vec4f::One());
-
             bitmap.GetPixelReference(x, y).SetRGBA(color);
         }
     }
@@ -750,47 +748,14 @@ auto BakeData<LightmapVolume>::ToBitmapIrradiance(uint32 atlasIndex) const -> Bi
     return bitmap;
 }
 
-auto BakeData<LightmapVolume>::ToBitmapRadiance(uint32 atlasIndex) const -> BitmapType
+auto BakeData<LightmapVolume>::ToBitmapBentNormal(uint32 atlasIndex) const -> BentNormalBitmap
 {
     Assert(atlasIndex < atlasCount, "Atlas index out of bounds");
     Assert(texels.Size() >= dimensions.x * dimensions.y * atlasCount, "Invalid UV map size");
 
     const uint32 baseOffset = atlasIndex * dimensions.x * dimensions.y;
 
-    BitmapType bitmap(dimensions.x, dimensions.y);
-
-    for (uint32 x = 0; x < dimensions.x; x++)
-    {
-        for (uint32 y = 0; y < dimensions.y; y++)
-        {
-            const uint32 index = baseOffset + x + y * dimensions.x;
-
-            Vec4f color = texels[index].color1;
-
-            if (color.w <= 0.0f)
-            {
-                continue;
-            }
-
-            color /= color.w;
-
-            AssertDebug(!MathUtil::IsNaN(color));
-
-            bitmap.GetPixelReference(x, y).SetRGBA(color);
-        }
-    }
-
-    return bitmap;
-}
-
-auto BakeData<LightmapVolume>::ToBitmapBentNormal(uint32 atlasIndex) const -> BitmapType
-{
-    Assert(atlasIndex < atlasCount, "Atlas index out of bounds");
-    Assert(texels.Size() >= dimensions.x * dimensions.y * atlasCount, "Invalid UV map size");
-
-    const uint32 baseOffset = atlasIndex * dimensions.x * dimensions.y;
-
-    BitmapType bitmap(dimensions.x, dimensions.y);
+    BentNormalBitmap bitmap(dimensions.x, dimensions.y);
 
     for (uint32 x = 0; x < dimensions.x; x++)
     {

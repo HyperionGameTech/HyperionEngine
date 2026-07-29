@@ -528,7 +528,7 @@ public:
 
     virtual String GetText() const override
     {
-        return "Build Lightmaps";
+        return "Build Lightmap Volumes";
     }
 
     virtual void Execute(EditorSubsystem* subsystem) override
@@ -541,38 +541,37 @@ public:
             return;
         }
 
-        Array<Handle<ObjectBase>> lightmapVolumes;
+        Array<Handle<ObjectBase>> sources;
 
-        if (Handle<Node> root = activeScene->GetRoot())
+        if (Handle<Node> root = activeScene->GetRoot(); root.IsValid())
         {
             for (Node* node : root->GetDescendants())
             {
                 if (node->IsA<LightmapVolume>())
                 {
-                    lightmapVolumes.PushBack(MakeStrongRef(node));
+                    sources.PushBack(MakeStrongRef(node));
                 }
             }
         }
 
-        if (lightmapVolumes.Empty())
+        if (sources.Empty())
         {
-            HYP_LOG(Editor, Warning, "No Lightmap Volumes in the active scene. Cannot bake lightmaps.");
+            HYP_LOG(Editor, Warning, "No Lightmap Volumes in the active scene. Cannot bake.");
 
             SystemMessageBox(MessageBoxType::WARNING)
                 .Title("Cannot Bake Lighting")
-                .Text("No Lightmap Volumes in the scene to bake lighting for. Add a Lightmap Volume and try again.")
+                .Text("No Lightmap Volumes in the scene to bake lighting for. Add one and try again.")
                 .Button("Close", []() { })
                 .Show();
 
             return;
         }
-
-        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(lightmapVolumes);
-        InitObject(editorTask);
-
-        editorTask->SetScene(activeScene);
-
+        
         Handle<World> worldHandle = MakeStrongRef(subsystem->GetWorld());
+
+        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(sources);
+        editorTask->SetIsForegroundTask(true);
+        editorTask->SetScene(activeScene);
         editorTask->SetWorld(worldHandle);
 
         g_editorState->AddTask(editorTask);
@@ -583,19 +582,18 @@ DEFINE_EDITOR_COMMAND(BuildLightmaps);
 
 #pragma endregion BuildLightmaps
 
+#pragma region BuildReflectionProbes
 
-#pragma region BuildReflections
-
-class EditorCommandBuildReflections final : public EditorCommandBase
+class EditorCommandBuildReflectionProbes final : public EditorCommandBase
 {
-    HYP_OBJECT_BODY(EditorCommandBuildReflections);
+    HYP_OBJECT_BODY(EditorCommandBuildReflectionProbes);
 
 public:
-    virtual ~EditorCommandBuildReflections() override = default;
+    virtual ~EditorCommandBuildReflectionProbes() override = default;
 
     virtual String GetText() const override
     {
-        return "Build Reflections";
+        return "Build Reflection Probes";
     }
 
     virtual void Execute(EditorSubsystem* subsystem) override
@@ -610,7 +608,7 @@ public:
 
         Array<Handle<ObjectBase>> reflectionProbes;
 
-        if (Handle<Node> root = activeScene->GetRoot())
+        if (Handle<Node> root = activeScene->GetRoot(); root.IsValid())
         {
             for (Node* node : root->GetDescendants())
             {
@@ -623,7 +621,7 @@ public:
 
         if (reflectionProbes.Empty())
         {
-            HYP_LOG(Editor, Warning, "No Reflection Probes in the active scene. Cannot bake reflections.");
+            HYP_LOG(Editor, Warning, "No Reflection Probes in the active scene. Cannot bake.");
 
             SystemMessageBox(MessageBoxType::WARNING)
                 .Title("Cannot Bake Reflections")
@@ -646,9 +644,76 @@ public:
     }
 };
 
-DEFINE_EDITOR_COMMAND(BuildReflections);
+DEFINE_EDITOR_COMMAND(BuildReflectionProbes);
 
-#pragma endregion BuildReflections
+#pragma endregion BuildReflectionProbes
+
+
+#pragma region BuildReflectionProbes
+
+class EditorCommandBuildIrradianceProbes final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandBuildIrradianceProbes);
+
+public:
+    virtual ~EditorCommandBuildIrradianceProbes() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Build Irradiance Probes";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        Handle<Scene> activeScene = subsystem->GetActiveScene();
+        if (!activeScene.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No active scene; cannot build Irradiance Probes!");
+
+            return;
+        }
+
+        Array<Handle<ObjectBase>> irradianceProbes;
+
+        if (Handle<Node> root = activeScene->GetRoot(); root.IsValid())
+        {
+            for (Node* node : root->GetDescendants())
+            {
+                if (node->IsA<IrradianceProbe>())
+                {
+                    irradianceProbes.PushBack(MakeStrongRef(node));
+                }
+            }
+        }
+
+        if (irradianceProbes.Empty())
+        {
+            HYP_LOG(Editor, Warning, "No Irradiance Probes in the active scene. Cannot bake.");
+
+            SystemMessageBox(MessageBoxType::WARNING)
+                .Title("Cannot Bake Reflections")
+                .Text("No Irradiance Probes in the scene to bake lighting for. Add an Irradiance Probe and try again.")
+                .Button("Close", []() { })
+                .Show();
+
+            return;
+        }
+
+        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(irradianceProbes);
+        InitObject(editorTask);
+
+        editorTask->SetScene(activeScene);
+
+        Handle<World> worldHandle = MakeStrongRef(subsystem->GetWorld());
+        editorTask->SetWorld(worldHandle);
+
+        g_editorState->AddTask(editorTask);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(BuildIrradianceProbes);
+
+#pragma endregion BuildIrradianceProbes
 
 #pragma region AddReflectionProbe
 
@@ -780,7 +845,7 @@ public:
             return;
         }
 
-        Handle<IrradianceProbe> irradianceProbe = MakeHandle<IrradianceProbe>(BoundingBox(Vec3f(-10.0f), Vec3f(10.0f)), Vec2u(64, 64));
+        Handle<IrradianceProbe> irradianceProbe = MakeHandle<IrradianceProbe>(BoundingBox(Vec3f(-10.0f), Vec3f(10.0f)), Vec2u(8, 8));
         InitObject(irradianceProbe);
 
         WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();

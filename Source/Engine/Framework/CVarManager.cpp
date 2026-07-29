@@ -29,8 +29,23 @@ extern uint32 GetFrameCounter();
 
 // String specializations
 
+CVarString Detail::AcquireCVarValue(CVarString value)
+{
+    if (value == nullptr)
+    {
+        return nullptr;
+    }
+
+    size_t length = Memory::StrLen(value) + 1;
+
+    char* newValue = (char*)Memory::AllocateZeros(length + 1);
+    Memory::CopyString(newValue, value, length);
+
+    return newValue;
+}
+
 template <>
-CVar<const char*>::~CVar()
+CVar<CVarString>::~CVar()
 {
     if (m_value != nullptr)
     {
@@ -39,27 +54,18 @@ CVar<const char*>::~CVar()
 }
 
 template <>
-void CVar<const char*>::Set(const char* value)
+void CVar<CVarString>::Set(CVarString value)
 {
     if (m_value != nullptr)
     {
         Memory::Free(const_cast<char*>(m_value));
-        m_value = nullptr;
     }
 
-    if (value != nullptr)
-    {
-        size_t length = Memory::StrLen(value) + 1;
-        
-        char* newValue = (char*)Memory::AllocateZeros(length + 1);
-        Memory::CopyString(newValue, value, length);
-
-        m_value = newValue;
-    }
+    m_value = Detail::AcquireCVarValue(value);
 }
 
 template <>
-bool CVar<const char*>::SetFromBoxed(const BoxedValue& boxed)
+bool CVar<CVarString>::SetFromBoxed(const BoxedValue& boxed)
 {
     if (!boxed.Is<String>())
     {
@@ -88,7 +94,7 @@ bool CVar<const char*>::SetFromBoxed(const BoxedValue& boxed)
 }
 
 template <>
-bool CVar<const char*>::SetFromConfig(const ConfigValue& cfgValue)
+bool CVar<CVarString>::SetFromConfig(const ConfigValue& cfgValue)
 {
     if (!cfgValue.IsString())
     {
@@ -259,84 +265,6 @@ bool CVar<bool>::SetFromConfig(const ConfigValue& cfgValue)
     m_value = cfgValue.ToBool();
 
     return true;
-}
-
-template <typename T>
-inline T ReadCVarValue(const CVar<T>& cvar)
-{
-    const CVarSnapshot& snapshot = s_pInstance->GetCurrentSnapshot();
-
-    if (HYP_UNLIKELY(cvar.id < 0 || cvar.id >= snapshot.numVars))
-    {
-        return cvar.m_value;
-    }
-
-    return snapshot.values[cvar.id].template GetUnchecked<T>();
-}
-
-template <>
-int8 CVar<int8>::Get() const
-{
-    return ReadCVarValue(*this);
-}
-template <>
-int16 CVar<int16>::Get() const
-{
-    return ReadCVarValue(*this);
-}
-template <>
-int32 CVar<int32>::Get() const
-{
-    return ReadCVarValue(*this);
-}
-template <>
-int64 CVar<int64>::Get() const
-{
-    return ReadCVarValue(*this);
-}
-
-template <>
-uint8 CVar<uint8>::Get() const
-{
-    return ReadCVarValue(*this);
-}
-template <>
-uint16 CVar<uint16>::Get() const
-{
-    return ReadCVarValue(*this);
-}
-template <>
-uint32 CVar<uint32>::Get() const
-{
-    return ReadCVarValue(*this);
-}
-template <>
-uint64 CVar<uint64>::Get() const
-{
-    return ReadCVarValue(*this);
-}
-
-template <>
-float CVar<float>::Get() const
-{
-    return ReadCVarValue(*this);
-}
-template <>
-double CVar<double>::Get() const
-{
-    return ReadCVarValue(*this);
-}
-
-template <>
-bool CVar<bool>::Get() const
-{
-    return ReadCVarValue(*this);
-}
-
-template <>
-const char* CVar<const char*>::Get() const
-{
-    return ReadCVarValue(*this);
 }
 
 #pragma endregion CVar
@@ -553,7 +481,7 @@ void CVarManager::Publish(uint8 ringIndex)
     next.version = m_snapshots[currentIdx].version + 1;
 }
 
-const CVarSnapshot& CVarManager::GetCurrentSnapshot() const
+const CVarSnapshot& CVarManager::GetCurrentSnapshot_Internal() const
 {
     return m_snapshots[GetFrameCounter() % RingBufferDepth];
 }
@@ -622,7 +550,7 @@ template void CVarManager::SetVar<double>(StringHash, double);
 
 template void CVarManager::SetVar<bool>(StringHash, bool);
 
-template void CVarManager::SetVar<const char*>(StringHash, const char*);
+template void CVarManager::SetVar<CVarString>(StringHash, CVarString);
 
 // GetVar
 

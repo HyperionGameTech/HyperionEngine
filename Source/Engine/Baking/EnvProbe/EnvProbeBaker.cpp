@@ -139,16 +139,24 @@ void Baker<EnvProbe>::OnCompleted_Internal()
 
     Texture::GenerateMipmaps(desc, buffer);
 
-    Handle<Texture> prefiltered = MakeHandle<Texture>(desc, buffer.ToByteView());
+    Handle<Texture> bakedTexture = MakeHandle<Texture>(desc, buffer.ToByteView());
 
     buffer.Clear();
 
-    prefiltered->SetName(NAME_FMT("{}_ColorMap", m_envProbe->GetName()));
-    GetCurrentAssetRegistry()->PutAssetUnique(prefiltered);
+    bakedTexture->SetName(NAME_FMT("{}_ColorMap", m_envProbe->GetName()));
 
-    Check(prefiltered->Create());
+    // Ambient probes don't save their texture; it is transient,
+    // only used for calc'ing SH
+    if (m_envProbe->IsAmbientProbe())
+    {
+        bakedTexture->SetIsTransient(true);
+    }
 
-    m_envProbe->SetBakedTexture(prefiltered);
+    GetCurrentAssetRegistry()->PutAssetUnique(bakedTexture);
+
+    Check(bakedTexture->Create());
+
+    m_envProbe->SetBakedTexture(bakedTexture);
 
     // Bake visibility texture
     if (m_envProbe->GetEnvProbeFlags() & EPF_VISIBILITY)

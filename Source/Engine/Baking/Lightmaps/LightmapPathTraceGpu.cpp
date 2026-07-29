@@ -126,17 +126,24 @@ void PathTracer::CreateBuffers(BakeJobBase* job)
     JobData& jd = m_jobData[job];
     Assert(!jd.isCreated);
 
-    AssertDebug(jd.raysBuffer == nullptr);
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+    {
+        GpuBufferRef& raysBuffer = jd.raysBuffers[frameIndex];
+        AssertDebug(raysBuffer == nullptr);
 
-    jd.raysBuffer = RI.MakeGpuBuffer(GpuBufferType::StructuredBuffer, sizeof(Vec4f) * 2 * m_maxTexelsPerFrame, alignof(Vec4f));
-    jd.raysBuffer->SetIsCpuAccessible(true);
-    Check(jd.raysBuffer->Create());
+        raysBuffer = RI.MakeGpuBuffer(GpuBufferType::StructuredBuffer, sizeof(Vec4f) * 2 * m_maxTexelsPerFrame, alignof(Vec4f));
+        raysBuffer->SetIsCpuAccessible(true);
+        Check(raysBuffer->Create());
+
+        GpuBufferRef& cbuffer = jd.cbuffers[frameIndex];
+        AssertDebug(cbuffer == nullptr);
+
+        cbuffer = RI.MakeGpuBuffer(GpuBufferType::ConstantBuffer, 8192);
+        Check(cbuffer->Create());
+    }
 
     jd.hitsBufferGpu = RWStructuredBuffer(m_maxTexelsPerFrame, sizeof(LightmapHit));
     jd.hitsBufferGpu.Initialize();
-
-    jd.cbuffer = RI.MakeGpuBuffer(GpuBufferType::ConstantBuffer, 8192, 256);
-    Check(jd.cbuffer->Create());
 }
 
 void PathTracer::Create()
@@ -328,21 +335,24 @@ void PathTracer::ReadHitsBuffer(
             auto& callback = payload.callback;
 
             RI.GetCurrentFrame()->OnFrameEnd.Bind(
-                                                [&payload, buffer, cb = std::move(callback)](Frame*)
-                                                {
-                                                    // GPU writes are not guaranteed to be visible to the CPU until the range is invalidated
-                                                    buffer->Invalidate();
+                [&payload, buffer, cb = std::move(callback)](Frame*)
+                {
+                    Span<LightmapHit> hits;
 
-                                                    Span<LightmapHit> hits;
-                                                    hits.first = reinterpret_cast<LightmapHit*>(buffer->Map());
-                                                    hits.last = hits.first + (buffer->Size() / sizeof(LightmapHit));
+                    // Readback buffers use GPU_TO_CPU (host-cached) memory, which is non-coherent.
+                    // GPU writes are not guaranteed to be visible to the CPU until the range is invalidated,
+                    // otherwise stale cached data may be read back (producing incorrect/too-bright texels).
+                    buffer->Invalidate();
 
-                                                    cb(hits);
+                    hits.first = reinterpret_cast<LightmapHit*>(buffer->Map());
+                    hits.last = hits.first + (buffer->Size() / sizeof(LightmapHit));
 
-                                                    buffer->Release();
+                    cb(hits);
 
-                                                    delete &payload;
-                                                })
+                    buffer->Release();
+
+                    delete &payload;
+                })
                 .Detach();
         }
     };
@@ -356,7 +366,10 @@ void PathTracer::ReadHitsBuffer(
 
     ReadbackHitsDataPayload* payload = new ReadbackHitsDataPayload;
     payload->buffer = readbackBuffer.Get();
+
+    // Hand over the ref
     payload->buffer->AddRef();
+    readbackBuffer.Reset();
 
     payload->callback = std::move(callback);
 
@@ -397,8 +410,8 @@ bool PathTracer::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBas
 
     JobData& jd = m_jobData[job];
 
-    GpuBuffer* cbuffer = jd.cbuffer;
-    Assert(cbuffer != nullptr);
+    GpuBufferRef& cbuffer = jd.cbuffers[GetFrameCounter() % NumFramesInFlight];
+    Assert(cbuffer.IsValid());
 
     { // Fill constants buffer
 
@@ -484,7 +497,7 @@ bool PathTracer::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBas
         size_t cbufferWriteOffset = 0;
         const size_t cbufferSize = cbuffer->Size();
 
-        AssertDebug(cbufferWriteOffset + sizeof(RayTracingConstants) <= cbufferSize);
+        Assert(cbufferWriteOffset + sizeof(RayTracingConstants) <= cbufferSize);
 
         Memory::Copy(cbufferPtr, &constants, sizeof(RayTracingConstants));
         cbufferWriteOffset += sizeof(RayTracingConstants);
@@ -493,7 +506,7 @@ bool PathTracer::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBas
         {
             if (i < uint32(tempLights.Size()))
             {
-                AssertDebug(cbufferWriteOffset + sizeof(LightShaderData) <= cbufferSize);
+                Assert(cbufferWriteOffset + sizeof(LightShaderData) <= cbufferSize);
 
                 Memory::Copy(cbufferPtr + cbufferWriteOffset, tempLights[i].second, sizeof(LightShaderData));
                 cbufferWriteOffset += sizeof(LightShaderData);
@@ -503,7 +516,7 @@ bool PathTracer::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBas
 
             LightShaderData dummy {};
 
-            AssertDebug(cbufferWriteOffset + sizeof(LightShaderData) <= cbufferSize);
+            Assert(cbufferWriteOffset + sizeof(LightShaderData) <= cbufferSize);
 
             Memory::Copy(cbufferPtr + cbufferWriteOffset, &dummy, sizeof(LightShaderData));
             cbufferWriteOffset += sizeof(LightShaderData);
@@ -551,7 +564,7 @@ bool PathTracer::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBas
                 pEnvProbeShaderData = &s_dummyEnvProbeShaderData;
             }
 
-            AssertDebug(cbufferWriteOffset + sizeof(EnvProbeShaderData) <= cbufferSize);
+            Assert(cbufferWriteOffset + sizeof(EnvProbeShaderData) <= cbufferSize);
 
             Memory::Copy(cbufferPtr + cbufferWriteOffset, pEnvProbeShaderData, sizeof(EnvProbeShaderData));
             cbufferWriteOffset += sizeof(EnvProbeShaderData);
@@ -561,11 +574,11 @@ bool PathTracer::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBas
     }
 
     Assert(m_tlas && m_tlas->IsCreated());
+    
+    GpuBufferRef& raysBuffer = jd.raysBuffers[GetFrameCounter() % NumFramesInFlight];
+    Assert(raysBuffer != nullptr && raysBuffer->IsCreated());
 
-    { // rays buffer
-        GpuBufferRef& raysBuffer = jd.raysBuffer;
-        Assert(raysBuffer != nullptr && raysBuffer->IsCreated());
-
+    { // upload rays buffer data
         // Note: don't use arena allocator, won't be able to allocate enough memory.
         // What we could do, is preallocate this for all the frames to reuse.
         Array<Vec4f> rayData;
@@ -589,7 +602,7 @@ bool PathTracer::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBas
     cr << SetShaderUniform(0, "TLAS"_sh, m_tlas);
     cr << SetShaderUniform(1, "MeshDescriptionsBuffer"_sh, m_tlas->GetMeshDescriptionsBuffer());
     cr << SetShaderUniform(2, "HitsBuffer"_sh, jd.hitsBufferGpu.gpuBuffer, ShaderDataOffset(0, sizeof(Vec4f)));
-    cr << SetShaderUniform(3, "RaysBuffer"_sh, jd.raysBuffer, ShaderDataOffset(0, sizeof(Vec4f)));
+    cr << SetShaderUniform(3, "RaysBuffer"_sh, raysBuffer, ShaderDataOffset(0, sizeof(Vec4f)));
     cr << SetShaderUniform(5, "MaterialsBuffer"_sh, RI.namedBuffers[NamedBuffer::Materials]);
     cr << SetShaderUniform(6, "CBuffer"_sh, cbuffer);
 
@@ -605,7 +618,7 @@ bool PathTracer::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBas
     cr << SetShaderUniform(13, "EnvProbesDepthTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesDepthTexture));
 
     Assert(jd.hitsBufferGpu.gpuBuffer->Size() >= rays.Size() * sizeof(LightmapHit));
-    Assert(jd.raysBuffer->Size() >= rays.Size() * 2 * sizeof(Vec4f));
+    Assert(raysBuffer->Size() >= rays.Size() * 2 * sizeof(Vec4f));
 
     cr << InsertBarrier(jd.hitsBufferGpu.gpuBuffer, RS_UNORDERED_ACCESS);
     cr << TraceRays(Vec3u { uint32(rays.Size()), 1, 1 });

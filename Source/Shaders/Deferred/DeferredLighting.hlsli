@@ -145,28 +145,38 @@ float CalculateProbeVisibility(
     uint visTextureIndex)
 {
     const float3 dirToProbe = probeToPoint / dist;
+    
+    const float2 moments = envProbesDepthTexture.SampleLevel(sampler_linear, float4(dirToProbe, float(visTextureIndex)), 0).rg;
+    
+    /*const float mean = moments.x;
+    const float variance = abs(HYP_FMATH_SQR(mean) - moments.y);
 
-    float2 moments = envProbesDepthTexture.SampleLevel(sampler_linear, float4(dirToProbe, float(visTextureIndex)), 0).rg;
-
+    float chebyshev = variance / (variance + HYP_FMATH_SQR(max(dist - mean, 0.0)));
+    chebyshev = max(HYP_FMATH_CUBE(chebyshev), 0.0);
+    
+    float weight = HYP_FMATH_SQR(max(HYP_FMATH_EPSILON, (dot(-dirToProbe, N) + 1.0) * 0.5)) + 0.2;
+    weight *= (dist <= mean) ? 1.0 : chebyshev;
+    weight = max(HYP_FMATH_EPSILON, weight);
+    
+    return weight;*/
+    
     float variance = max(moments.y - moments.x * moments.x, 0.000001);
 
     float d = dist - moments.x;
     float p = step(dist, moments.x);
     float p_max = variance / (variance + d * d);
 
-    static const float s_softenAmount = 0.2;
+    static const float s_softenAmount = 0.1;
 
     float soft_p_max = max(0.0, p_max - s_softenAmount) / (1.0 - s_softenAmount);
-
     float visibility = (p <= soft_p_max) ? max(p, soft_p_max) : 1.0;
 
     // mask out backface hits
     float directionalWeight = max(0.00001, (dot(-dirToProbe, N) + 1.0) * 0.5);
-    directionalWeight = directionalWeight * directionalWeight; // square to push negative dot products closer to 0
-
+    
     visibility *= directionalWeight;
 
-    return visibility;
+    return smoothstep(0.0, 1.0, visibility);
 }
 
 void EvaluateEnvProbes(
@@ -194,7 +204,6 @@ void EvaluateEnvProbes(
 
     //////////////////////////////////////////////////
     float accumWeightReflections = 0.0;
-    float accumWeightIrradiance = 0.0;
 
     const float lightmappedWeight = min(1.0, float(inMask & OBJECT_MASK_LIGHTMAPPED));
 
@@ -258,29 +267,34 @@ void EvaluateEnvProbes(
         const float skyIrradianceWeight = isSky ? (1.0 - lightmappedWeight) : 1.0;
         const float diffuseContributionWeight = diffuseStrength;
 
-        const float boundsWeight = isSky ? 1.0 : CalculateEnvProbeWeight(positionWS, aabbMin.xyz, aabbMax.xyz);
+        // @TODO Make configurable.
+        static const float kIrradianceProbeBlendFactor = 0.2;
+        static const float kReflectionsProbeBlendFactor = 0.05;
+        const float blendFactor = lerp(kReflectionsProbeBlendFactor, kIrradianceProbeBlendFactor, irradianceOnlyWeight);
+
+        const float boundsWeight = isSky ? 1.0 : CalculateEnvProbeWeight(positionWS, aabbMin.xyz, aabbMax.xyz, blendFactor);
 
         float reflectionsWeight = boundsWeight;
         reflectionsWeight *= visibility;
         reflectionsWeight *= (1.0 - irradianceOnlyWeight);
+        reflectionsWeight = saturate(reflectionsWeight);
 
         // distance based falloff for irradiance
         static const float s_irradianceFalloffPower = 0.5;
         static const float s_irradianceFalloffBeginDist = 6.0;
 
-        float irradianceWeight = boundsWeight;//pow(max(1.0f - smoothstep(max(0.001, s_irradianceFalloffBeginDist), far, dist), 0.0001), s_irradianceFalloffPower);
+        float irradianceWeight = boundsWeight * pow(max(1.0f - smoothstep(max(0.001, s_irradianceFalloffBeginDist), far, dist), 0.0001), s_irradianceFalloffPower);
         irradianceWeight *= visibility;
         irradianceWeight *= skyIrradianceWeight;
         irradianceWeight *= diffuseContributionWeight;
-        irradiance += float4(currentIrradiance, 1.0) * irradianceWeight * (1.0 - accumWeightIrradiance);
+        irradianceWeight = saturate(irradianceWeight);
+        irradiance += float4(currentIrradiance, 1.0) * irradianceWeight * (1.0 - irradiance.a);
 
-        reflections += currentReflections * reflectionsWeight * (1.0 - accumWeightReflections);
+        reflections += currentReflections * reflectionsWeight * (1.0 - reflections.a);
         
         reflectionsWeight *= currentReflections.a; // so we can blend probes that have alpha zero with another (e.g blending with skybox)
 
-        accumWeightReflections += reflectionsWeight * (1.0 - accumWeightReflections);
-
-        accumWeightIrradiance += irradianceWeight * (1.0 - accumWeightIrradiance);
+        //accumWeightReflections += reflectionsWeight * (1.0 - accumWeightReflections);
 
 #undef CURRENT_ENV_PROBE
     }

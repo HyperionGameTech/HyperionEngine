@@ -81,6 +81,7 @@ struct ConvolveProbeConstants
 void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& envProbe)
 {
     Assert(inTexture != nullptr);
+    Assert(!envProbe.IsAmbientProbe());
 
     // Alloc command recorder
     // we need to do this after we Create() the src texture,
@@ -91,18 +92,18 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
 
     ENGINE_STAT_GPU_SCOPE(&s_statConvolveEnvProbe, &cr);
 
-    Handle<Texture> prefilteredEnvMap = envProbe.GetPrefilteredEnvMap();
-    Assert(prefilteredEnvMap.IsValid() && prefilteredEnvMap->IsCreated());
+    Handle<Texture> bakedTexture = envProbe.GetPrefilteredEnvMap();
+    Assert(bakedTexture.IsValid() && bakedTexture->IsCreated());
 
     Handle<Texture> srcTexture;
     bool needsMipMapGeneration = false;
 
     Handle<Texture> dstTexture = RI.scratchImageAllocator->AcquireScratchImage(
         TextureType::Cubemap,
-        prefilteredEnvMap->GetFormat(),
-        prefilteredEnvMap->GetExtent());
+        bakedTexture->GetFormat(),
+        bakedTexture->GetExtent());
 
-    const bool aliasesDestination = inTexture == prefilteredEnvMap;
+    const bool aliasesDestination = inTexture == bakedTexture;
 
     if (inTexture->HasMipMaps() && !aliasesDestination)
     {
@@ -115,7 +116,7 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
         // copy into new texture, we need to generate mips on it before convolving
         srcTexture = RI.scratchImageAllocator->AcquireScratchImage(
             TextureType::Cubemap,
-            prefilteredEnvMap->GetFormat(),
+            bakedTexture->GetFormat(),
             inTexture->GetExtent());
     }
 
@@ -221,23 +222,23 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
         cr << DispatchCompute(Vec3u { (mipExtent.x + 7) / 8, (mipExtent.y + 7) / 8, 6 });
 
         cr << InsertBarrier(dstTexture->GetGpuImage(), RS_COPY_SRC, subResource);
-        cr << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_COPY_DST, subResource);
+        cr << InsertBarrier(bakedTexture->GetGpuImage(), RS_COPY_DST, subResource);
 
-        cr << CopyImage(dstTexture->GetGpuImage(), prefilteredEnvMap->GetGpuImage(),
+        cr << CopyImage(dstTexture->GetGpuImage(), bakedTexture->GetGpuImage(),
                         Vec3u::Zero(), Vec3u::Zero(),
                         Vec3u(mipExtent, 1),
                         subResource, subResource);
 
         // put prefiltered map back into shader read
-        cr << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_SHADER_RESOURCE, subResource);
+        cr << InsertBarrier(bakedTexture->GetGpuImage(), RS_SHADER_RESOURCE, subResource);
     }
 
     // readback on completion and write to cpu-side data if probe is baked
     if (envProbe.IsBaked())
     {
         HYP_LOG(Rendering, Verbose, "Enquueing readback of convolved EnvProbe {}.", envProbe.GetName());
-        prefilteredEnvMap->EnqueueReadback(
-            [envProbeWeak = MakeWeakRef(&envProbe), prefilteredEnvMap](GpuBuffer& buffer)
+        bakedTexture->EnqueueReadback(
+            [envProbeWeak = MakeWeakRef(&envProbe), bakedTexture](GpuBuffer& buffer) mutable
             {
                 Handle<EnvProbe> envProbeStrong = envProbeWeak.Lock();
                 if (!envProbeStrong.IsValid())
@@ -248,9 +249,9 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
 
                 HYP_LOG(Rendering, Info, "Readback of convolved EnvProbe {} completed, size {} bytes", envProbeStrong->GetName(), buffer.Size());
 
-                auto textureWriteScope = prefilteredEnvMap->GetWriteScope();
+                auto textureWriteScope = bakedTexture->GetWriteScope();
 
-                TextureDesc desc = prefilteredEnvMap->GetTextureDesc();
+                TextureDesc desc = bakedTexture->GetTextureDesc();
                 AssertDebug(desc.extent.Volume() != 0 && desc.extent.Volume() <= 2048 * 2048);
 
                 // sanity check
@@ -279,13 +280,13 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
                 }
 
                 // Update image data and desc
-                prefilteredEnvMap->SetTextureDesc(desc);
-                prefilteredEnvMap->SetImageData(view);
+                bakedTexture->SetTextureDesc(desc);
+                bakedTexture->SetImageData(view);
 
                 textureWriteScope.Reset();
 
                 auto envProbeWriteScope = TUniqueResLock<EnvProbe>(*envProbeStrong);
-                envProbeStrong->SetBakedTexture(prefilteredEnvMap);
+                envProbeStrong->SetBakedTexture(bakedTexture);
             },
             /* allMips */ true);
     }
@@ -297,12 +298,12 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
 
         if (boundIndex != ~0u)
         {
-            cr << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_COPY_SRC);
+            cr << InsertBarrier(bakedTexture->GetGpuImage(), RS_COPY_SRC);
             cr << InsertBarrier(RI.envProbesColorTexture->GetGpuImage(), RS_COPY_DST);
 
             const uint8 numMips = MathUtil::Min(
                 RI.envProbesColorTexture->GetTextureDesc().NumMips(),
-                prefilteredEnvMap->GetTextureDesc().NumMips());
+                bakedTexture->GetTextureDesc().NumMips());
 
             for (uint8 mipIndex = 0; mipIndex < numMips; mipIndex++)
             {
@@ -318,13 +319,13 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
                 dstSubResource.baseArrayLayer = 6 * boundIndex;
                 dstSubResource.numLayers = 6;
 
-                const Vec3u srcMipExtent = prefilteredEnvMap->GetTextureDesc().GetMipExtent(mipIndex);
+                const Vec3u srcMipExtent = bakedTexture->GetTextureDesc().GetMipExtent(mipIndex);
                 const Vec3u dstMipExtent = RI.envProbesColorTexture->GetTextureDesc().GetMipExtent(mipIndex);
 
-                if (srcMipExtent == dstMipExtent && prefilteredEnvMap->GetTextureDesc().format == RI.envProbesColorTexture->GetTextureDesc().format)
+                if (srcMipExtent == dstMipExtent && bakedTexture->GetTextureDesc().format == RI.envProbesColorTexture->GetTextureDesc().format)
                 {
                     cr << CopyImage(
-                        prefilteredEnvMap->GetGpuImage(),
+                        bakedTexture->GetGpuImage(),
                         RI.envProbesColorTexture->GetGpuImage(),
                         srcMipExtent,
                         srcSubResource,
@@ -333,7 +334,7 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
                 else
                 {
                     cr << Blit(
-                        prefilteredEnvMap,
+                        bakedTexture,
                         RI.envProbesColorTexture,
                         Rect<uint32> { 0, 0, srcMipExtent.x, srcMipExtent.y },
                         Rect<uint32> { 0, 0, dstMipExtent.x, dstMipExtent.y },
@@ -342,7 +343,7 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
                 }
             }
 
-            cr << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_SHADER_RESOURCE);
+            cr << InsertBarrier(bakedTexture->GetGpuImage(), RS_SHADER_RESOURCE);
             cr << InsertBarrier(RI.envProbesColorTexture->GetGpuImage(), RS_SHADER_RESOURCE);
         }
     }
@@ -574,6 +575,13 @@ void ComputeEnvProbeSphericalHarmonics(const EnvProbe& envProbe, const Texture& 
                             // SetSphericalHarmonicsData() marks it dirty so we don't need to do that here.
                             auto envProbeWriteScope = TUniqueResLock<EnvProbe>(*payload.envProbe);
                             payload.envProbe->SetSphericalHarmonicsData(shData);
+                            
+                            if (payload.envProbe->IsAmbientProbe())
+                            {
+                                // Ambient probes have transient baked texture, used for baking the SH.
+                                // Remove it to free the memory.
+                                payload.envProbe->SetBakedTexture(Handle<Texture>::Null());
+                            }
                         }
 
                         EnqueueDeletion(std::move(payload.shBuffer));

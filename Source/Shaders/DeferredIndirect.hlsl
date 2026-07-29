@@ -27,6 +27,7 @@ struct VSOutput
 
 VSOutput VSMain(VSInput input)
 {
+
     VSOutput output;
 
     float4 position = float4(input.a_position, 1.0);
@@ -170,7 +171,7 @@ PSOutput PSMain(PSInput input)
     GBufferMaterialParams materialParams;
     GBufferUnpackMaterialParams(normalSample.x, materialBits >> 28u, materialParams);
 
-    const float roughness = materialParams.roughness;
+    const float roughness = clamp(materialParams.roughness, 0.01, 0.999);
     const float metalness = materialParams.metalness;
     const uint mask = materialParams.mask;
 
@@ -215,13 +216,6 @@ PSOutput PSMain(PSInput input)
     irradiance.a = saturate(irradiance.a);
     reflections.a = saturate(reflections.a);
     
-    // irradiance *= invLightmappedWeight;
-
-    // if the object is lightmapped, probeLighting contains lightmap UVs
-    // multiplying the weight by invLightmappedWeight this cancels it out if
-    // the object is lightmapped.
-    irradiance.rgb = lerp(irradiance.rgb, probeLighting.rgb, length(probeLighting.rgb) * invLightmappedWeight);
-
 #ifdef SSR_ENABLED
     float4 ssrResult = SAMPLE_TEXTURE_2D_LOD(sampler_linear, SSRResultTexture, texcoord, 0);
     ssrResult.a = saturate(ssrResult.a);

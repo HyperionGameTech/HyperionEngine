@@ -25,6 +25,7 @@
 #include <Rendering/RenderHelpers.hpp>
 #include <Rendering/CBufferAllocator.hpp>
 #include <Rendering/DepthPyramidRenderer.hpp>
+#include <Rendering/StencilMasks.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
 
@@ -41,8 +42,8 @@
 namespace Hyperion {
 
 static constexpr bool UseTemporalBlending = false;
-static constexpr TextureFormat SSRColorFormat = TextureFormat::RGBA16F;
-static constexpr TextureFormat SSRTraceFormat = TextureFormat::RGBA16F; // store hit UVs in RG, and mask / alpha in B
+static constexpr TextureFormat SSRColorFormat = TextureFormat::R10G10B10A2;
+static constexpr TextureFormat SSRTraceFormat = TextureFormat::R32; // packed
 
 static EngineStatGpuTimer s_statSSRTracePass("Rendering/GPU/SSRTrace");
 static EngineStatGpuTimer s_statSSRColorPass("Rendering/GPU/SSRColor");
@@ -52,7 +53,7 @@ CVar<bool> cvSSRRoughnessScattering { "Rendering.SSR.RoughnessScattering", false
 
 CVar<float> cvSSRRayStep { "Rendering.SSR.RayStep", 0.2f };
 CVar<float> cvSSRDistanceBias { "Rendering.SSR.DistanceBias", 0.01f };
-CVar<float> cvSSRThickness { "Rendering.SSR.Thickness", 0.95f };
+CVar<float> cvSSRThickness { "Rendering.SSR.Thickness", 5.0f };
 CVar<float> cvSSRMaxDistance { "Rendering.SSR.MaxDistance", 1000.0f };
 CVar<float> cvSSRTraceResolutionScale { "Rendering.SSR.TraceResolutionScale", 0.65 };
 CVar<float> cvSSRScreenEdgeFadeStart { "Rendering.SSR.ScreenEdgeFadeStart", 0.92f };
@@ -136,16 +137,32 @@ void SSRPass::CreatePasses()
         writeUVsFramebuffer->SetDebugName(NAME("SSRWriteUVsFramebuffer"));
 #endif
 
-        AttachmentDesc attachmentDesc {};
-        attachmentDesc.imageType = TextureType::Texture2D;
-        attachmentDesc.format = m_uvsTexture->GetFormat();
-        attachmentDesc.loadOp = LoadOperation::CLEAR;
-        attachmentDesc.storeOp = StoreOperation::STORE;
+        AttachmentDesc colorAttachmentDesc {};
+        colorAttachmentDesc.imageType = TextureType::Texture2D;
+        colorAttachmentDesc.format = m_uvsTexture->GetFormat();
+        colorAttachmentDesc.loadOp = LoadOperation::CLEAR;
+        colorAttachmentDesc.storeOp = StoreOperation::STORE;
 
-        Attachment* attachment = writeUVsFramebuffer->AddAttachment(
+        writeUVsFramebuffer->AddAttachment(
             0,
-            attachmentDesc,
+            colorAttachmentDesc,
             RI.MakeImageView(m_uvsTexture->GetGpuImage()));
+
+        // depth for stencil testing - so we don't render against sky
+        const GpuImageViewRef& depthImageView = m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::Depth)->GetImageView();
+        Assert(depthImageView.IsValid());
+
+        AttachmentDesc depthAttachmentDesc {};
+        depthAttachmentDesc.imageType = TextureType::Texture2D;
+        depthAttachmentDesc.format = depthImageView->GetImage()->GetTextureFormat();
+        depthAttachmentDesc.loadOp = LoadOperation::LOAD;
+        depthAttachmentDesc.storeOp = StoreOperation::NONE;
+        depthAttachmentDesc.onlyStencil = true;
+
+        writeUVsFramebuffer->AddAttachment(
+            1,
+            depthAttachmentDesc,
+            depthImageView);
 
         Check(writeUVsFramebuffer->Create());
 
@@ -184,6 +201,22 @@ void SSRPass::CreatePasses()
             0,
             attachmentDesc,
             RI.MakeImageView(m_sampledResultTexture->GetGpuImage()));
+
+        // depth for stencil testing - so we don't render against sky
+        const GpuImageViewRef& depthImageView = m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::Depth)->GetImageView();
+        Assert(depthImageView.IsValid());
+
+        AttachmentDesc depthAttachmentDesc {};
+        depthAttachmentDesc.imageType = TextureType::Texture2D;
+        depthAttachmentDesc.format = depthImageView->GetImage()->GetTextureFormat();
+        depthAttachmentDesc.loadOp = LoadOperation::LOAD;
+        depthAttachmentDesc.storeOp = StoreOperation::NONE;
+        depthAttachmentDesc.onlyStencil = true;
+
+        sampleGBufferFramebuffer->AddAttachment(
+            1,
+            depthAttachmentDesc,
+            depthImageView);
 
         Check(sampleGBufferFramebuffer->Create());
 
@@ -228,7 +261,7 @@ void SSRPass::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
         m_uvsTexture = MakeHandle<Texture>(TextureDesc {
             TextureType::Texture2D,
             SSRTraceFormat,
-            Vec3u(MathUtil::Max(Vec2u::One(), Vec2u(Vec2f(m_extent) * cvSSRTraceResolutionScale.Get())), 1),
+            Vec3u(MathUtil::Max(Vec2u::One(), m_extent), 1),
             TFM_NEAREST,
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
@@ -279,6 +312,12 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
     UpdatePipelineState(frame, renderSetup);
 
     CommandRecorder& cr = frame->cr;
+    
+    static constexpr uint8 StencilFilterMask = SkyStencilMask;
+
+    cr << SetStencilTest(true);
+    cr << SetStencilFunction(StencilFunction { SO_KEEP, SO_KEEP, SO_KEEP, SCO_EQUAL });
+    cr << SetStencilState(0, StencilFilterMask, 0x0);
 
     GpuBuffer* cbuffer = nullptr;
     size_t cbufferOffset = 0;
@@ -366,6 +405,8 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
         m_samplePass->RenderFullScreenQuad(frame, renderSetup);
         m_samplePass->End(frame, renderSetup);
     }
+
+    cr << SetStencilTest(false);
 
     if (UseTemporalBlending && m_temporalBlending != nullptr)
     {

@@ -59,7 +59,7 @@ class ScriptTracker
 public:
     ScriptTracker()
     {
-#ifdef HYP_DOTNET_HOST
+#ifdef HYP_DOTNET
         if (!DotNETHost::GetInstance().IsInitialized())
         {
             return;
@@ -68,13 +68,23 @@ public:
         SharedPtr<dotnet::Assembly> managedAssembly = DotNETHost::GetInstance().LoadAssembly("Hyperion.NET.Scripting.dll");
         Assert(managedAssembly != nullptr, "Failed to load Hyperion.NET.Scripting assembly");
 
+        if (!managedAssembly)
+        {
+            return;
+        }
+
         SharedPtr<dotnet::ManagedClass> managedClass = managedAssembly->FindClassByName("ScriptTracker");
         Assert(managedClass != nullptr, "Failed to load ScriptTracker class from Hyperion.NET.Scripting assembly (Guid: {})",
                managedAssembly->GetGuid());
 
+        if (!managedClass)
+        {
+            return;
+        }
+
         object = UniquePtr<dotnet::ManagedObject>(managedClass->NewObject());
         assembly = std::move(managedAssembly);
-#endif // HYP_DOTNET_HOST
+#endif // HYP_DOTNET
     }
 
     ~ScriptTracker()

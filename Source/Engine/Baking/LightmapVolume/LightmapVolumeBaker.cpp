@@ -80,11 +80,20 @@ static LightmapShadingType AtlasTextureTypeToShadingType(LightmapVolume::AtlasTe
     }
 }
 
+using LightmapColorBitmap = BakeData<LightmapVolume>::ColorBitmap;
+using LightmapBentNormalBitmap = BakeData<LightmapVolume>::BentNormalBitmap;
+
+struct LightmapElementBitmaps
+{
+    UniquePtr<LightmapColorBitmap, BakerAllocator> irradiance;
+    UniquePtr<LightmapBentNormalBitmap, BakerAllocator> bentNormal;
+};
+
 static void UpdateAtlasTextures(
     LightmapVolume* lmv,
     uint16 atlasIndex,
-    uint32 shadingTypesMask,
-    Map<LightmapElementId, FixedArray<typename Baking::BakeData<LightmapVolume>::BitmapType, LightmapVolume::NumAtlasTextureTypes>>&& elementBitmaps)
+    uint16 elementIndex,
+    const LightmapElementBitmaps& bitmaps)
 {
     HYP_LOG(Lightmap, Verbose, "Updating atlas textures for LightmapVolume {}", lmv->Id());
 
@@ -92,69 +101,87 @@ static void UpdateAtlasTextures(
 
     LightmapVolumeAtlas& atlas = lmv->GetAtlases()[atlasIndex];
 
-    Array<typename Baking::BakeData<LightmapVolume>::BitmapType> atlasBitmaps = {};
-    atlasBitmaps.Reserve(LightmapVolume::NumAtlasTextureTypes);
-    
-    for (uint32 i = 0; i < LightmapVolume::NumAtlasTextureTypes; i++)
+    Assert(elementIndex < atlas.elements.Size());
+    const LightmapElement& element = atlas.elements[elementIndex];
+
+    Rect<uint32> dstRect {
+        element.offsetCoords.x, element.offsetCoords.y,
+        element.offsetCoords.x + element.dimensions.x,
+        element.offsetCoords.y + element.dimensions.y
+    };
+
+    auto* irradiance = bitmaps.irradiance.Get();
+    auto* bentNormal = bitmaps.bentNormal.Get();
+
+    if (irradiance)
     {
-        atlasBitmaps.EmplaceBack(atlas.atlasDimensions.x, atlas.atlasDimensions.y);
-    }
+        LightmapColorBitmap irradianceAtlasBitmap(atlas.atlasDimensions.x, atlas.atlasDimensions.y);
 
-    for (auto& it : elementBitmaps)
-    {
-        uint16 elAtlasIndex;
-        uint16 elementIndex;
-        LightmapElement::GetAtlasAndElementIndex(it.first, elAtlasIndex, elementIndex);
+        Assert(element.offsetCoords.x + element.dimensions.x <= irradianceAtlasBitmap.GetWidth());
+        Assert(element.offsetCoords.y + element.dimensions.y <= irradianceAtlasBitmap.GetHeight());
 
-        Assert(elementIndex < atlas.elements.Size());
-        const LightmapElement& element = atlas.elements[elementIndex];
+        Rect<uint32> srcRect { 0, 0, irradiance->GetWidth(), irradiance->GetHeight() };
 
-        for (uint32 textureTypeIndex = 0; textureTypeIndex < LightmapVolume::NumAtlasTextureTypes; textureTypeIndex++)
-        {
-            if (!(shadingTypesMask & (1u << uint32(AtlasTextureTypeToShadingType(LightmapVolume::AtlasTextureType(textureTypeIndex))))))
-            {
-                continue;
-            }
-
-            const auto& elementBitmap = it.second[textureTypeIndex];
-
-            Assert(element.offsetCoords.x + element.dimensions.x <= atlasBitmaps[textureTypeIndex].GetWidth());
-            Assert(element.offsetCoords.y + element.dimensions.y <= atlasBitmaps[textureTypeIndex].GetHeight());
-
-            Rect<uint32> srcRect { 0, 0, elementBitmap.GetWidth(), elementBitmap.GetHeight() };
-            Rect<uint32> dstRect {
-                element.offsetCoords.x, element.offsetCoords.y,
-                element.offsetCoords.x + element.dimensions.x,
-                element.offsetCoords.y + element.dimensions.y
-            };
-
-            BitmapUtils::Blit(elementBitmap, atlasBitmaps[textureTypeIndex], srcRect, dstRect);
-        }
-    }
-
-    // Create atlas textures from the blitted bitmaps, only for the shading types baked this run.
-    for (uint32 textureTypeIndex = 0; textureTypeIndex < LightmapVolume::NumAtlasTextureTypes; textureTypeIndex++)
-    {
-        if (!(shadingTypesMask & (1u << uint32(AtlasTextureTypeToShadingType(LightmapVolume::AtlasTextureType(textureTypeIndex))))))
-        {
-            continue;
-        }
-
-        const auto& atlasBitmap = atlasBitmaps[textureTypeIndex];
+        BitmapUtils::Blit(*irradiance, irradianceAtlasBitmap, srcRect, dstRect);
 
         Handle<Texture> atlasTexture = MakeHandle<Texture>(
             TextureDesc {
                 TextureType::Texture2D,
-                atlasBitmap.GetFormat(),
+                irradianceAtlasBitmap.GetFormat(),
                 Vec3u { atlas.atlasDimensions, 1 },
                 TFM_LINEAR,
                 TFM_LINEAR,
                 TWM_CLAMP_TO_EDGE
             },
-            atlasBitmap.ToByteView());
+            irradianceAtlasBitmap.ToByteView());
 
-        lmv->SetAtlasTexture(atlasIndex, LightmapVolume::AtlasTextureType(textureTypeIndex), atlasTexture);
+        lmv->SetAtlasTexture(atlasIndex, LightmapVolume::IrradianceTexture, atlasTexture);
     }
+
+    if (bentNormal)
+    {
+        LightmapBentNormalBitmap bentNormalAtlasBitmap(atlas.atlasDimensions.x, atlas.atlasDimensions.y);
+
+        Assert(element.offsetCoords.x + element.dimensions.x <= bentNormalAtlasBitmap.GetWidth());
+        Assert(element.offsetCoords.y + element.dimensions.y <= bentNormalAtlasBitmap.GetHeight());
+
+        Rect<uint32> srcRect { 0, 0, bentNormal->GetWidth(), bentNormal->GetHeight() };
+
+        BitmapUtils::Blit(*bentNormal, bentNormalAtlasBitmap, srcRect, dstRect);
+
+        Handle<Texture> atlasTexture = MakeHandle<Texture>(
+            TextureDesc {
+                TextureType::Texture2D,
+                bentNormalAtlasBitmap.GetFormat(),
+                Vec3u { atlas.atlasDimensions, 1 },
+                TFM_LINEAR,
+                TFM_LINEAR,
+                TWM_CLAMP_TO_EDGE
+            },
+            bentNormalAtlasBitmap.ToByteView());
+
+        lmv->SetAtlasTexture(atlasIndex, LightmapVolume::BentNormalTexture, atlasTexture);
+    }
+}
+
+// Resizes \c bitmap down/up to \c targetDimensions via a blit if it doesn't already match, moving
+// it through unchanged otherwise.
+template <class BitmapType>
+static BitmapType ResizeBitmapToElement(BitmapType&& bitmap, Vec2u targetDimensions)
+{
+    if (bitmap.GetWidth() == targetDimensions.x && bitmap.GetHeight() == targetDimensions.y)
+    {
+        return std::move(bitmap);
+    }
+
+    BitmapType resized(targetDimensions.x, targetDimensions.y);
+
+    Rect<uint32> srcRect { 0, 0, bitmap.GetWidth(), bitmap.GetHeight() };
+    Rect<uint32> dstRect { 0, 0, targetDimensions.x, targetDimensions.y };
+
+    BitmapUtils::Blit(bitmap, resized, srcRect, dstRect);
+
+    return resized;
 }
 
 static bool BuildElementTextures(
@@ -184,54 +211,21 @@ static bool BuildElementTextures(
 
     const Vec2u elementDimensions = element.dimensions;
 
-    FixedArray<typename Baking::BakeData<LightmapVolume>::BitmapType, LightmapVolume::NumAtlasTextureTypes> bitmaps;
+    LightmapElementBitmaps elementBitmaps;
 
     if (shadingTypesMask & (1u << uint32(LightmapShadingType::IRRADIANCE)))
     {
-        bitmaps[LightmapVolume::IrradianceTexture] = bakeData.ToBitmapIrradiance(bakeAtlasIndex);
+        elementBitmaps.irradiance = MakeUniqueWithAllocator<LightmapColorBitmap, BakerAllocator>(
+            ResizeBitmapToElement(bakeData.ToBitmapIrradiance(bakeAtlasIndex), elementDimensions));
     }
 
     if (shadingTypesMask & (1u << uint32(LightmapShadingType::BENT_NORMAL)))
     {
-        bitmaps[LightmapVolume::BentNormalTexture] = bakeData.ToBitmapBentNormal(bakeAtlasIndex);
+        elementBitmaps.bentNormal = MakeUniqueWithAllocator<LightmapBentNormalBitmap, BakerAllocator>(
+            ResizeBitmapToElement(bakeData.ToBitmapBentNormal(bakeAtlasIndex), elementDimensions));
     }
 
-    FixedArray<typename Baking::BakeData<LightmapVolume>::BitmapType, LightmapVolume::NumAtlasTextureTypes> elementBitmaps;
-
-    for (uint32 i = 0; i < LightmapVolume::NumAtlasTextureTypes; i++)
-    {
-        if (!(shadingTypesMask & (1u << uint32(AtlasTextureTypeToShadingType(LightmapVolume::AtlasTextureType(i))))))
-        {
-            continue;
-        }
-
-        typename Baking::BakeData<LightmapVolume>::BitmapType* pBitmap = &bitmaps[i];
-
-        if (elementDimensions.x != pBitmap->GetWidth() || elementDimensions.y != pBitmap->GetHeight())
-        {
-            elementBitmaps[i] = typename Baking::BakeData<LightmapVolume>::BitmapType(elementDimensions.x, elementDimensions.y);
-
-            Rect<uint32> srcRect {
-                0, 0,
-                pBitmap->GetWidth(),
-                pBitmap->GetHeight()
-            };
-
-            Rect<uint32> dstRect {
-                0, 0,
-                elementDimensions.x,
-                elementDimensions.y
-            };
-
-            BitmapUtils::Blit(*pBitmap, elementBitmaps[i], srcRect, dstRect);
-        }
-        else
-        {
-            elementBitmaps[i] = std::move(bitmaps[i]);
-        }
-    }
-
-    UpdateAtlasTextures(lmv, atlasIndex, shadingTypesMask, { { elementId, std::move(elementBitmaps) } });
+    UpdateAtlasTextures(lmv, atlasIndex, elementIndex, elementBitmaps);
 
     return true;
 }
@@ -481,7 +475,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
     }
 
     // Look up all elements once for UV transform
-    Array<const LightmapElement*> lightmapElements;
+    Array<const LightmapElement*, BakerAllocator> lightmapElements;
     lightmapElements.Resize(m_lightmapElementIds.Size());
 
     for (uint32 i = 0; i < m_lightmapElementIds.Size(); i++)
@@ -548,7 +542,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
 
         const LightmapElementId entityElementId = m_lightmapElementIds[dominantAtlasIndex];
 
-        auto UpdateMeshData = [&]()
+        auto updateMeshData = [&]()
         {
             const Handle<Mesh>& mesh = bakeEntity.mesh;
             Assert(mesh.IsValid());
@@ -621,13 +615,13 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
             }
         };
 
-        UpdateMeshData();
+        updateMeshData();
 
         // Update material to have the Lightmapped bucket (if it does not already)
         AssertDebug(bakeEntity.material.IsValid());
 
         bool isNewMaterial = false;
-#if 1
+
         // update material info
         if (bakeEntity.material && bakeEntity.material->GetBucket() != RenderBucket::Lightmapped)
         {
@@ -659,7 +653,6 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
 
             isNewMaterial = true;
         }
-#endif
 
         auto updateMeshComponent = [entityManagerWeak = MakeWeakRef(m_scene->GetEntityManager()),
                                     entityElementId,

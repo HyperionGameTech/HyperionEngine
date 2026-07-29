@@ -243,7 +243,7 @@ public:
 
     BoundingSphere GetBoundingSphere(bool worldSpace) const;
 
-    virtual void SetLocalBounds(const BoundingBox& localBounds) override;
+    // virtual void SetLocalBounds(const BoundingBox& localBounds) override;
 
     void UpdateRenderProxy(RenderProxyLight* proxy);
 

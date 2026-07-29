@@ -89,7 +89,7 @@ auto BakeData<EnvProbe>::ToBitmap() const -> BitmapType
 
                 Vec4f color = texels[texelIdx].color0;
 
-                if (color.w <= 0.0f)
+                if (color.w <= 0.00001f)
                 {
                     continue;
                 }

@@ -80,6 +80,7 @@ namespace Hyperion.Editor.ViewModels
         public ICommand NewPhysicsShapeCommand { get; }
 
         public ICommand DeleteAssetCommand { get; }
+        public ICommand EditAssetCommand { get; }
 
         public ContentBrowserViewModel(EditorSubsystem editorSubsystem)
         {
@@ -95,7 +96,12 @@ namespace Hyperion.Editor.ViewModels
 
                 _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandDeleteAsset"), $"{asset.Bucket.BucketIndex} {asset.AssetDesc.Name}");
             });
-            
+
+            EditAssetCommand = new RelayCommand<AssetObjectViewModel>(asset =>
+            {
+                OpenAssetEditor(asset);
+            });
+
             NewScriptCommand = new RelayCommand(() =>
             {
                 _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandNewScript"));
@@ -159,76 +165,78 @@ namespace Hyperion.Editor.ViewModels
             {
                 Logger.Log(LogLevel.Verbose, "Selected bucket changed: {0}", AssetBucket.GetAssetBucketName(bucketIndex));
 
-                Dispatcher.UIThread.Post(() =>
-                {
-                    Assets.Clear();
-                    SelectedAsset = null;
-
-                    if (bucketIndex != 0)
-                    {
-                        AssetBucketViewModel? bucketVm = Buckets.FirstOrDefault(bvm => bvm.BucketIndex == bucketIndex);
-
-                        if (bucketVm != null)
-                        {
-                            AssetManager mgr = AssetManager.Instance;
-                            AssetRegistry registry = mgr.AssetRegistry;
-                            string rootPath = registry.GetRootPath();
-
-                            foreach (AssetDesc assetDesc in registry.GetBucketAssetDescs(bucketIndex))
-                            {
-                                string manifestPath = Path.Combine(rootPath, bucketVm.Name, assetDesc.Name.ToString() + ".json");
-
-                                DateTime? dateModified = null;
-                                string? typeName = null;
-
-                                if (File.Exists(manifestPath))
-                                {
-                                    dateModified = File.GetLastWriteTime(manifestPath);
-                                    typeName = ExtractClassFromManifest(manifestPath);
-                                }
-
-                                Assets.Add(new AssetObjectViewModel(assetDesc, bucketVm, typeName, dateModified));
-                            }
-
-                            _currentBucket = bucketVm;
-                        }
-                        else
-                        {
-                            _currentBucket = null;
-                        }
-                    }
-                    else
-                    {
-                        _currentBucket = null;
-                    }
-
-                    ApplySort();
-
-                    // Handle pending focus after asset creation
-                    if (_pendingFocusBucket == bucketIndex)
-                    {
-                        _pendingFocusBucket = 0;
-
-                        if (_pendingFocusNameHint != null)
-                        {
-                            SelectedAsset = Assets.FirstOrDefault(a =>
-                                a.DisplayName.StartsWith(_pendingFocusNameHint, StringComparison.OrdinalIgnoreCase));
-                            _pendingFocusNameHint = null;
-                        }
-
-                        SelectedAsset ??= Assets.FirstOrDefault();
-
-                        if (_pendingOpenEditor)
-                        {
-                            _pendingOpenEditor = false;
-                            OpenAssetEditor(SelectedAsset);
-                        }
-                    }
-
-                    OnPropertyChanged(nameof(Assets));
-                    OnPropertyChanged(nameof(CurrentBucket));
-                });
+                Dispatcher.UIThread.Post(() => ReloadBucketAssets(bucketIndex));
             });
+        }
+
+        /// <summary>Reloads the asset list for the given bucket and resolves any pending focus/edit request. Must run on the UI thread.</summary>
+        private void ReloadBucketAssets(uint bucketIndex)
+        {
+            Assets.Clear();
+            SelectedAsset = null;
+
+            if (bucketIndex != 0)
+            {
+                AssetBucketViewModel? bucketVm = Buckets.FirstOrDefault(bvm => bvm.BucketIndex == bucketIndex);
+
+                if (bucketVm != null)
+                {
+                    AssetManager mgr = AssetManager.Instance;
+                    AssetRegistry registry = mgr.AssetRegistry;
+                    string rootPath = registry.GetRootPath();
+
+                    foreach (AssetDesc assetDesc in registry.GetBucketAssetDescs(bucketIndex))
+                    {
+                        string manifestPath = Path.Combine(rootPath, bucketVm.Name, assetDesc.Name.ToString() + ".json");
+
+                        DateTime? dateModified = null;
+                        string? typeName = null; // @TODO
+
+                        if (File.Exists(manifestPath))
+                        {
+                            dateModified = File.GetLastWriteTime(manifestPath);
+                        }
+
+                        Assets.Add(new AssetObjectViewModel(assetDesc, bucketVm, typeName, dateModified));
+                    }
+
+                    _currentBucket = bucketVm;
+                }
+                else
+                {
+                    _currentBucket = null;
+                }
+            }
+            else
+            {
+                _currentBucket = null;
+            }
+
+            ApplySort();
+
+            // Handle pending focus after asset creation
+            if (_pendingFocusBucket == bucketIndex)
+            {
+                _pendingFocusBucket = 0;
+
+                if (_pendingFocusNameHint != null)
+                {
+                    SelectedAsset = Assets.FirstOrDefault(a =>
+                        a.DisplayName.StartsWith(_pendingFocusNameHint, StringComparison.OrdinalIgnoreCase));
+                    _pendingFocusNameHint = null;
+                }
+
+                SelectedAsset ??= Assets.FirstOrDefault();
+
+                if (_pendingOpenEditor)
+                {
+                    _pendingOpenEditor = false;
+                    OpenAssetEditor(SelectedAsset);
+                }
+            }
+
+            OnPropertyChanged(nameof(Assets));
+            OnPropertyChanged(nameof(CurrentBucket));
         }
 
         private void ApplySort()
@@ -257,54 +265,6 @@ namespace Hyperion.Editor.ViewModels
             SelectedAsset = preserved;
         }
 
-        /// <summary>
-        /// Quick-reads a manifest JSON file and extracts the value of the "$Class" key
-        /// without fully parsing the document. Returns null if not found or on any error.
-        ///
-        /// @FIXME: THIS IS A TEMP HACK! It's currently used to extract the class name from manifest files, shouldn't really need to parse or read the json files for this.
-        /// Actual hot dogshit below.
-        /// </summary>
-        private static string? ExtractClassFromManifest(string filePath)
-        {
-            try
-            {
-                using var reader = new StreamReader(filePath);
-
-                // Read the first 4 KB — always enough to find "$Class" near the top.
-                char[] buffer = new char[4096];
-                int read = reader.ReadBlock(buffer, 0, buffer.Length);
-
-                if (read <= 0)
-                    return null;
-
-                string header = new string(buffer, 0, read);
-                int classIdx = header.IndexOf("\"$Class\"", StringComparison.Ordinal);
-
-                if (classIdx < 0)
-                    return null;
-
-                int colonIdx = header.IndexOf(':', classIdx + 8);
-
-                if (colonIdx < 0)
-                    return null;
-
-                int quoteStart = header.IndexOf('"', colonIdx + 1);
-
-                if (quoteStart < 0)
-                    return null;
-
-                int quoteEnd = header.IndexOf('"', quoteStart + 1);
-
-                if (quoteEnd <= quoteStart)
-                    return null;
-
-                return header.Substring(quoteStart + 1, quoteEnd - quoteStart - 1);
-            }
-            catch
-            {
-                return null;
-            }
-        }
 
         public void Dispose()
         {
@@ -323,35 +283,66 @@ namespace Hyperion.Editor.ViewModels
             _pendingFocusBucket = bucketIndex;
             _pendingFocusNameHint = nameHint;
             _pendingOpenEditor = openEditor;
+
+            if (_currentBucket?.BucketIndex == bucketIndex)
+            {
+                // Already viewing this bucket - SetSelectedBucket is a no-op in this case, so
+                // the "bucket changed" event that normally resolves the pending focus/edit
+                // request above never fires. Reload directly instead.
+                ReloadBucketAssets(bucketIndex);
+                return;
+            }
+
             _editorSubsystem.SetSelectedBucket(bucketIndex);
         }
 
-        /// <summary>Opens the asset in a pop-out property editor panel, the same one used by the "Edit" button on asset-object properties in the inspector.</summary>
+        /// <summary>Opens the asset in a pop-out property editor panel, the same one used by the "Edit" button on asset-object properties in the inspector. Works for any AssetObject-derived type.</summary>
         private void OpenAssetEditor(AssetObjectViewModel? assetVm)
         {
             if (assetVm?.Bucket == null)
                 return;
 
-            Class? assetClass = Class.TryGetClass<Material>();
-
-            if (assetClass == null)
-                return;
-
             uint bucketIndex = assetVm.Bucket.BucketIndex;
             Name assetName = assetVm.AssetDesc.Name;
-            TypeInfo typeInfo = assetClass.Value.TypeInfo;
+            string displayName = assetVm.DisplayName;
 
-            var propertyVm = new ObjectPropertyViewModel(
-                assetVm.DisplayName,
-                typeInfo,
-                getter: () => new BoxedValue(AssetManager.Instance.AssetRegistry.GetAsset(bucketIndex, assetName)),
-                setter: _ => { },
-                isReadOnly: true);
+            // The asset's actual TypeInfo can only be read on the sim thread, since it depends
+            // on reading the live object rather than any statically-known managed type.
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                AssetRegistry registry = AssetManager.Instance.AssetRegistry;
+                AssetObject? obj = registry.GetAsset(bucketIndex, assetName);
 
-            propertyVm.RefreshValue();
+                if (obj == null || !obj.IsValid)
+                {
+                    return;
+                }
 
-            var panel = new AssetObjectEditPanelViewModel(propertyVm);
-            PanelService.Instance.OpenPanel(panel);
+                if (obj is ScriptAsset)
+                {
+                    string scriptPath = Path.Combine(registry.GetRootPath(), "Scripts", assetName.ToString() + ".hyp");
+
+                    Dispatcher.UIThread.Post(() => CodeEditorService.OpenFile(scriptPath));
+                    return;
+                }
+
+                TypeInfo typeInfo = obj.Class.TypeInfo;
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    var propertyVm = new ObjectPropertyViewModel(
+                        displayName,
+                        typeInfo,
+                        getter: () => new BoxedValue(AssetManager.Instance.AssetRegistry.GetAsset(bucketIndex, assetName)),
+                        setter: _ => { },
+                        isReadOnly: true);
+
+                    propertyVm.RefreshValue();
+
+                    var panel = new AssetObjectEditPanelViewModel(propertyVm);
+                    PanelService.Instance.OpenPanel(panel);
+                });
+            });
         }
     }
 }

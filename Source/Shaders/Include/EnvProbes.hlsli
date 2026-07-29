@@ -49,8 +49,8 @@ struct SH9
 #define GET_ENV_PROBE_VIS_TEXTURE_INDEX(envProbe) ((envProbe.textureIndices >> 16) & 0xFFFFu)
 
 float4 EnvProbeSample(
-    sampler samp,
-    textureCubeArray tex,
+    SamplerState samp,
+    TextureCubeArray tex,
     uint textureIndex,
     float3 coord, float lod)
 {
@@ -59,19 +59,16 @@ float4 EnvProbeSample(
     return color;
 }
 
-// @TODO Make configurable.
-static const float s_envProbeBlendFactor = 0.1;
-
-float CalculateEnvProbeWeight(float3 positionWS, float3 aabbMin, float3 aabbMax)
+float CalculateEnvProbeWeight(float3 positionWS, float3 aabbMin, float3 aabbMax, float blendFactor)
 {
     const float3 aabbExtent = aabbMax - aabbMin;
 
-    const float3 blend = aabbExtent * s_envProbeBlendFactor;
+    const float3 blend = aabbExtent * blendFactor;
     const float3 distToMin = (positionWS.xyz - aabbMin) / blend;
     const float3 distToMax = (aabbMax - positionWS.xyz) / blend;
     const float minBlend = min(distToMin.x, min(distToMin.y, min(distToMin.z, min(distToMax.x, min(distToMax.y, distToMax.z)))));
 
-    return smoothstep(0.0, 1.0, minBlend);
+    return minBlend;
 }
 
 float3 EnvProbeCoordParallaxCorrected(
@@ -90,8 +87,8 @@ float3 EnvProbeCoordParallaxCorrected(
 }
 
 float4 EnvProbeSampleParallaxCorrected(
-    sampler samp,
-    textureCubeArray tex,
+    SamplerState samp,
+    TextureCubeArray tex,
     in EnvProbe envProbe,
     float3 world, float3 R, float lod)
 {

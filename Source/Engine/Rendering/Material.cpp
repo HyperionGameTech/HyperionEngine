@@ -315,7 +315,10 @@ void Material::SetTexture(MaterialTextureKey key, const Handle<Texture>& texture
         m_textures[key] = texture;
     }
 
-    Check(texture->Create());
+    if (texture.IsValid())
+    {
+        Check(texture->Create());
+    }
 
     SetNeedsRenderProxyUpdate();
     MarkDirty();
@@ -336,23 +339,22 @@ void Material::SetTextures(const MaterialTextures& textures)
     for (size_t i = 0; i < m_textures.Size(); i++)
     {
         Handle<Texture>& texture = m_textures.AtIndex(i);
+        const Handle<Texture>& otherTexture = textures.AtIndex(i);
 
-        if (texture != nullptr)
+        if (texture != otherTexture)
         {
-            EnqueueDeletion(std::move(texture));
+            if (texture.IsValid())
+            {
+                EnqueueDeletion(std::move(texture));
+            }
+
+            texture = otherTexture;
+
+            if (texture.IsValid())
+            {
+                Check(texture->Create());
+            }
         }
-    }
-
-    m_textures = textures;
-
-    for (size_t i = 0; i < m_textures.Size(); i++)
-    {
-        if (!m_textures.AtIndex(i).IsValid())
-        {
-            continue;
-        }
-
-        Check(m_textures.AtIndex(i)->Create());
     }
 
     SetNeedsRenderProxyUpdate();

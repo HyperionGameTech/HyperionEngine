@@ -67,7 +67,7 @@ DECLARE_BUFFER(LightmapPathTracer, CBuffer) cbuffer CBuffer
 
 #ifdef MODE_IRRADIANCE
 #define NUM_BOUNCES 8
-#define NUM_SAMPLES 64
+#define NUM_SAMPLES 256
 #define ENVIRONMENT_INTENSITY 1.0
 #elif defined(MODE_FULL)
 #define NUM_BOUNCES 16
@@ -83,9 +83,9 @@ DECLARE_BUFFER(LightmapPathTracer, CBuffer) cbuffer CBuffer
 #define ENVIRONMENT_INTENSITY 1.0
 #endif
 
-#ifdef MODE_FULL
-#define MAX_SAMPLE_LUMINANCE 1.0
-#define MAX_THROUGHPUT_LUMINANCE 1.0
+#if defined(MODE_FULL) || defined(MODE_IRRADIANCE)
+
+#define MAX_SAMPLE_LUMINANCE 8.0
 
 float3 ClampLuminance(in float3 c, float max_lum)
 {
@@ -307,12 +307,15 @@ void RayGenMain()
             // emissive
             if (any(payload.emissive.rgb > float3(0.0, 0.0, 0.0)))
             {
-                radiance += beta * payload.emissive.rgb;
+                // Clamp the contribution after multiplying by beta, since beta can grow
+                // large from Russian roulette compensation (division by a low survival
+                // probability) - clamping the light value alone doesn't bound that.
+                radiance += ClampLuminance(beta * payload.emissive.rgb, MAX_SAMPLE_LUMINANCE);
             }
 
             float3 diffuseColor = albedo * (1.0 - metalness);
-            
-            radiance += beta * diffuseColor * HYP_FMATH_ONE_OVER_PI * SampleDirectLighting(hitPos, N);
+
+            radiance += ClampLuminance(beta * diffuseColor * HYP_FMATH_ONE_OVER_PI * SampleDirectLighting(hitPos, N), MAX_SAMPLE_LUMINANCE);
 
             beta *= diffuseColor;
 
@@ -412,37 +415,29 @@ void RayGenMain()
 
                 for (uint envProbeIdx = 0; envProbeIdx < rayTracingConstants.numBoundEnvProbes && environmentRadiance.a < 1.0; envProbeIdx++)
                 {
-                    // if (envProbeTextureIndex != INVALID_ENV_PROBE_TEXTURE)
-                    // {
-                    //     float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, envProbeTextureIndex, direction, 0.0);
-                    //     env *= (1.0 - environmentRadiance.a);
-                    //     environmentRadiance += env * ENVIRONMENT_INTENSITY;
-                    // }
-
-                    
-                        EnvProbe currentEnvProbe = envProbes[envProbeIdx];
+                    EnvProbe currentEnvProbe = envProbes[envProbeIdx];
                         
-                        const uint textureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(currentEnvProbe);
+                    const uint textureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(currentEnvProbe);
 
-                        const uint probeType = GET_ENV_PROBE_TYPE(currentEnvProbe);
-                        const bool isSky = (probeType == EPT_SKY);
+                    const uint probeType = GET_ENV_PROBE_TYPE(currentEnvProbe);
+                    const bool isSky = (probeType == EPT_SKY);
 
-                        if (!isSky)
-                        {
-                            continue;
-                        }
+                    if (!isSky)
+                    {
+                        continue;
+                    }
                         
-                        const float4 aabbMin = currentEnvProbe.aabb_min;
-                        const float4 aabbMax = currentEnvProbe.aabb_max;
+                    const float4 aabbMin = currentEnvProbe.aabb_min;
+                    const float4 aabbMax = currentEnvProbe.aabb_max;
                         
-                        const float4 worldPosition = currentEnvProbe.world_position;
-                        const float3 worldPosition3 = worldPosition.xyz;
-                        const float diffuseStrength = worldPosition.w;
+                    const float4 worldPosition = currentEnvProbe.world_position;
+                    const float3 worldPosition3 = worldPosition.xyz;
+                    const float diffuseStrength = worldPosition.w;
 
-                        const float weight = (isSky ? 1.0 : CalculateEnvProbeWeight(origin, aabbMin.xyz, aabbMax.xyz)) * diffuseStrength * (1.0 - environmentRadiance.a);
+                    const float weight = (isSky ? 1.0 : CalculateEnvProbeWeight(origin, aabbMin.xyz, aabbMax.xyz, 0.005)) * diffuseStrength * (1.0 - environmentRadiance.a);
 
-                        const float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, textureIndex, direction, 0.0);//EnvProbeSH(currentEnvProbe, direction, /* order */ 2);
-                        environmentRadiance += env * weight;
+                    const float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, textureIndex, direction, 0.0);
+                    environmentRadiance += env * weight;
                 }
 
                 Li += float4(beta * environmentRadiance.rgb, 1.0);
@@ -464,12 +459,19 @@ void RayGenMain()
             // emissive contribution
             if (any(payload.emissive.rgb > float3(0.0, 0.0, 0.0)))
             {
-                Li += float4(beta * payload.emissive.rgb, 1.0);
+                float3 emissiveContribution = beta * payload.emissive.rgb;
+    
+                if (bounceIndex > 0)
+                {
+                    emissiveContribution = ClampLuminance(emissiveContribution, MAX_SAMPLE_LUMINANCE);
+                }
+
+                Li += float4(emissiveContribution, 1.0);
             }
 
             float3 diffuseColor = baseColor * (1.0 - metalness);
 
-            Li += float4(beta * diffuseColor * HYP_FMATH_ONE_OVER_PI * SampleDirectLighting(hitPos, N), 1.0);
+            Li += float4(ClampLuminance(beta * diffuseColor * HYP_FMATH_ONE_OVER_PI * SampleDirectLighting(hitPos, N), MAX_SAMPLE_LUMINANCE), 1.0);
 
             // Russian roulette
             if (bounceIndex >= 3)

@@ -46,26 +46,53 @@ ResourceState GpuImageBase::GetSubResourceState(const ImageSubResource& subResou
         {
             return it->second;
         }
+
+        return m_resourceState;
     }
-    else
+
+    // Multi-layer / multi-mip range: subresources may be tracked in divergent states
+    // (e.g. individual cubemap faces rendered into a shared image via separate render passes).
+    // Iterate every subresource in the range and only return a state if they all agree; if any
+    // diverge, return RS_UNDEFINED so callers emit a safe (discard) transition rather than
+    // assuming the base layer's state applies to the whole range.
+    const uint8 maxMip = MathUtil::Min(subResource.baseMipLevel + subResource.numLevels, m_textureDesc.NumMips());
+    const uint16 maxLayer = MathUtil::Min(subResource.baseArrayLayer + subResource.numLayers, m_textureDesc.NumArrayLayers());
+
+    ResourceState commonState = m_resourceState;
+    bool first = true;
+
+    for (uint8 mip = subResource.baseMipLevel; mip < maxMip; mip++)
     {
-        // this path assumes that all of the subresources specified by subResource are in the same state.
-
-        ImageSubResource currSubResource {};
-        currSubResource.baseArrayLayer = subResource.baseArrayLayer;
-        currSubResource.baseMipLevel = subResource.baseMipLevel;
-        currSubResource.numLevels = 1;
-        currSubResource.numLayers = 1;
-
-        auto it = m_subResourceStates.Find(currSubResource.GetSubResourceKey());
-
-        if (it != m_subResourceStates.End())
+        for (uint16 layer = subResource.baseArrayLayer; layer < maxLayer; layer++)
         {
-            return it->second;
+            ImageSubResource currSubResource {};
+            currSubResource.baseArrayLayer = layer;
+            currSubResource.baseMipLevel = mip;
+            currSubResource.numLevels = 1;
+            currSubResource.numLayers = 1;
+
+            ResourceState foundState = m_resourceState;
+
+            auto it = m_subResourceStates.Find(currSubResource.GetSubResourceKey());
+
+            if (it != m_subResourceStates.End())
+            {
+                foundState = it->second;
+            }
+
+            if (first)
+            {
+                commonState = foundState;
+                first = false;
+            }
+            else if (foundState != commonState)
+            {
+                return RS_UNDEFINED;
+            }
         }
     }
 
-    return m_resourceState;
+    return commonState;
 }
 
 void GpuImageBase::SetSubResourceState(const ImageSubResource& subResource, ResourceState newState)

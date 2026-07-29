@@ -594,10 +594,15 @@ namespace Hyperion.Editor.ViewModels
                     {
                         ApplyModelValue(() =>
                         {
+                            // Update the sub-object before anything else. Listeners (e.g. the
+                            // pop-out asset edit panel) treat a null SubObject as "nothing left
+                            // to edit" and close themselves in reaction to any of these property
+                            // changes, so SubObject must never be observed stale-null after the
+                            // other properties have already moved to their new values.
+                            UpdateSubObject(capturedSubObject, capturedResolvedKey);
+
                             Value = capturedDisplayName;
                             AssetPathDisplay = capturedAssetPath;
-
-                            UpdateSubObject(capturedSubObject, capturedResolvedKey);
 
                             if (IsPolymorphic)
                             {

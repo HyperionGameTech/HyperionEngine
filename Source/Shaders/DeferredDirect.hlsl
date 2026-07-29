@@ -209,7 +209,7 @@ PSOutput PSMain(PSInput input)
         return output;
     }
 
-    const float roughness = materialParams.roughness;
+    const float roughness = clamp(materialParams.roughness, 0.01, 0.999);
     const float metalness = materialParams.metalness;
 
     const float perceptualRoughness = sqrt(roughness);

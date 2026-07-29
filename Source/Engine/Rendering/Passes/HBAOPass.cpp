@@ -50,8 +50,8 @@ struct HBAOUniforms
 
 static EngineStatGpuTimer s_statHBAOPass("Rendering/GPU/HBAO");
 
-CVar<float> cvHBAORadius { "Rendering.HBAORadius", 1.0f, "Rendering.HBAO.Radius" };
-CVar<float> cvHBAOPower { "Rendering.HBAOPower", 1.0f, "Rendering.HBAO.Power" };
+CVar<float> cvHBAORadius { "Rendering.HBAORadius", 5.0f, "Rendering.HBAO.Radius" };
+CVar<float> cvHBAOPower { "Rendering.HBAOPower", 2.0f, "Rendering.HBAO.Power" };
 
 HBAO::HBAO(Vec2u extent, GBuffer* gbuffer)
     : FullScreenPass(TextureFormat::R16F, extent, gbuffer)

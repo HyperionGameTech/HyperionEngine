@@ -35,29 +35,50 @@ struct BitField
         std::conditional_t<IsConst, const BitField&, BitField&> ref;
         size_t index;
 
-        HYP_FORCE_INLINE size_t operator*() const
+        constexpr HYP_FORCE_INLINE IteratorBase& operator=(const IteratorBase& other)
+        {
+            index = other.index;
+
+            // Assume ref is the same
+
+            return *this;
+        }
+
+        template <bool OtherIsConst>
+        constexpr HYP_FORCE_INLINE IteratorBase& operator=(const IteratorBase<OtherIsConst>& other)
+        {
+            index = other.index;
+
+            // Assume ref is the same
+
+            return *this;
+        }
+
+        constexpr HYP_FORCE_INLINE size_t operator*() const
         {
             return index;
         }
 
-        HYP_FORCE_INLINE IteratorBase<IsConst>& operator++()
+        constexpr HYP_FORCE_INLINE IteratorBase<IsConst>& operator++()
         {
             index = ref.NextOneBit(index + 1);
 
             return *this;
         }
 
-        HYP_FORCE_INLINE IteratorBase<IsConst> operator++(int) const
+        constexpr HYP_FORCE_INLINE IteratorBase<IsConst> operator++(int) const
         {
             return { ref, ref.NextOneBit(index + 1) };
         }
 
-        HYP_FORCE_INLINE bool operator==(const IteratorBase<IsConst>& other) const
+        template <bool OtherIsConst>
+        constexpr HYP_FORCE_INLINE bool operator==(const IteratorBase<OtherIsConst>& other) const
         {
             return &ref == &other.ref && index == other.index;
         }
 
-        HYP_FORCE_INLINE bool operator!=(const IteratorBase<IsConst>& other) const
+        template <bool OtherIsConst>
+        constexpr HYP_FORCE_INLINE bool operator!=(const IteratorBase<OtherIsConst>& other) const
         {
             return &ref != &other.ref || index != other.index;
         }
@@ -65,11 +86,30 @@ struct BitField
 
     struct ConstIterator : IteratorBase<true>
     {
+        constexpr HYP_FORCE_INLINE ConstIterator& operator=(const IteratorBase<false>& other)
+        {
+            return static_cast<ConstIterator&>(IteratorBase<true>::operator=(other));
+        }
+        
+        constexpr HYP_FORCE_INLINE ConstIterator& operator=(const ConstIterator& other)
+        {
+            return static_cast<ConstIterator&>(IteratorBase<true>::operator=(other));
+        }
     };
 
     struct Iterator : IteratorBase<false>
     {
-        HYP_FORCE_INLINE operator ConstIterator() const
+        constexpr HYP_FORCE_INLINE Iterator& operator=(const Iterator& other)
+        {
+            return static_cast<Iterator&>(IteratorBase<false>::operator=(static_cast<const IteratorBase<false>&>(other)));
+        }
+        
+        constexpr HYP_FORCE_INLINE Iterator& operator=(const ConstIterator& other)
+        {
+            return static_cast<Iterator&>(IteratorBase<false>::operator=(static_cast<const IteratorBase<true>&>(other)));
+        }
+
+        constexpr HYP_FORCE_INLINE operator ConstIterator() const
         {
             return { this->ref, this->index };
         }
@@ -78,6 +118,12 @@ struct BitField
     WordType words[NumWords];
 
     constexpr BitField() = default;
+
+    /// Initialize the first word to \p value, all other words will be zero.
+    constexpr explicit BitField(uint64 value)
+        : words{ value }
+    {
+    }
     
     constexpr BitField(const BitField&) = default;
     BitField& operator=(const BitField&) = default;

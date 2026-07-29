@@ -180,8 +180,12 @@
                     <MenuItem Header="Select None" />
                 </MenuItem>
                 <MenuItem Header="_Build">
-                    <MenuItem Command="{Binding BuildLightmaps}" Header="Bake Lightmaps" />
-                    <MenuItem Command="{Binding BuildBentNormals}" Header="Bent Normals" />
+                  <MenuItem Command="{Binding BuildReflectionProbes}" Header="Reflection Probes" />
+                  <MenuItem Command="{Binding BuildIrradianceProbes}" Header="Irradiance Probes" />
+                  <Separator />
+                  <MenuItem Command="{Binding BuildLightmaps}" Header="Lightmaps" />
+                  <Separator />
+                  <MenuItem Command="{Binding BuildBentNormals}" Header="Bent Normals" />
                 </MenuItem>
             </Menu>
 
@@ -918,6 +922,11 @@
                                                             </StackPanel>
                                                             <Border.ContextMenu>
                                                                 <ContextMenu>
+                                                                    <MenuItem
+                                                                        Command="{Binding DataContext.ContentBrowser.EditAssetCommand, ElementName=Root}"
+                                                                        CommandParameter="{Binding}"
+                                                                        Header="_Edit" />
+                                                                    <Separator />
                                                                     <MenuItem
                                                                         Command="{Binding DataContext.ContentBrowser.DeleteAssetCommand, ElementName=Root}"
                                                                         CommandParameter="{Binding}"

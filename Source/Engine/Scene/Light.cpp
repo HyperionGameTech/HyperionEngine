@@ -398,55 +398,55 @@ void Light::SetBakedShadowMap(const Handle<Texture>& shadowMap)
     MarkDirty();
 }
 
-void Light::SetLocalBounds(const BoundingBox& localBounds)
-{
-    switch (m_type)
-    {
-    case LightType::Directional:
-        // for directional we ignore the local bounds and just set it to infinite since the light affects everything in the scene
-        m_localBounds = BoundingBox::Infinity();
-        break;
-    case LightType::Point:
-    {
-        // use the new localBounds to determine the radius of the point light
-        const float newRadius = localBounds.GetExtent().Length() * 0.5f;
-        m_radius = newRadius;
+// void Light::SetLocalBounds(const BoundingBox& localBounds)
+// {
+//     switch (m_type)
+//     {
+//     case LightType::Directional:
+//         // for directional we ignore the local bounds and just set it to infinite since the light affects everything in the scene
+//         m_localBounds = BoundingBox::Infinity();
+//         break;
+//     case LightType::Point:
+//     {
+//         // use the new localBounds to determine the radius of the point light
+//         const float newRadius = localBounds.GetExtent().Length() * 0.5f;
+//         m_radius = newRadius;
 
-        Entity::SetLocalBounds(CalculateLightBounds());
+//         Entity::SetLocalBounds(CalculateLightBounds());
 
-        break;
-    }
-    case LightType::Spot:
-    {
-        // for spot lights we use the local bounds to determine the radius and spot angles. The local bounds should be a cone shape with the tip at the origin and pointing down the negative Z axis. The radius is determined by the distance from the origin to the center of the base of the cone, and the spot angles are determined by the angle between the negative Z axis and the corners of the base of the cone.
-        const Vec3f extent = localBounds.GetExtent();
-        const float newRadius = extent.Length() * 0.5f;
+//         break;
+//     }
+//     case LightType::Spot:
+//     {
+//         // for spot lights we use the local bounds to determine the radius and spot angles. The local bounds should be a cone shape with the tip at the origin and pointing down the negative Z axis. The radius is determined by the distance from the origin to the center of the base of the cone, and the spot angles are determined by the angle between the negative Z axis and the corners of the base of the cone.
+//         const Vec3f extent = localBounds.GetExtent();
+//         const float newRadius = extent.Length() * 0.5f;
 
-        const Vec3f center = localBounds.GetCenter();
-        const float angleX = std::atan2(extent.x * 0.5f, center.z);
-        const float angleY = std::atan2(extent.y * 0.5f, center.z);
+//         const Vec3f center = localBounds.GetCenter();
+//         const float angleX = std::atan2(extent.x * 0.5f, center.z);
+//         const float angleY = std::atan2(extent.y * 0.5f, center.z);
 
-        m_radius = newRadius;
-        m_spotAngles = Vec2f(angleX, angleY);
+//         m_radius = newRadius;
+//         m_spotAngles = Vec2f(angleX, angleY);
 
-        Entity::SetLocalBounds(CalculateLightBounds());
+//         Entity::SetLocalBounds(CalculateLightBounds());
 
-        break;
-    }
-    case LightType::AreaRect:
-    {
-        // for area rect lights we use the local bounds to determine the area size. The local bounds should be a box shape with the center at the origin and facing down the negative Z axis. The area size is determined by the X and Y extent of the box.
-        const Vec3f extent = localBounds.GetExtent();
-        m_areaSize = Vec2f(extent.x, extent.y);
+//         break;
+//     }
+//     case LightType::AreaRect:
+//     {
+//         // for area rect lights we use the local bounds to determine the area size. The local bounds should be a box shape with the center at the origin and facing down the negative Z axis. The area size is determined by the X and Y extent of the box.
+//         const Vec3f extent = localBounds.GetExtent();
+//         m_areaSize = Vec2f(extent.x, extent.y);
 
-        Entity::SetLocalBounds(CalculateLightBounds());
+//         Entity::SetLocalBounds(CalculateLightBounds());
 
-        break;
-    }
-    default:
-        HYP_UNREACHABLE();
-    }
-}
+//         break;
+//     }
+//     default:
+//         HYP_UNREACHABLE();
+//     }
+// }
 
 // Local space
 BoundingBox Light::CalculateLightBounds() const

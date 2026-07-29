@@ -193,9 +193,23 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
         GpuImage* dstImage = dstTexture->GetGpuImage();
         AssertDebug(dstImage != nullptr);
 
-        // @TODO Set subresource states on dst?
-        cr << InsertBarrier(srcImage, RS_COPY_SRC);
-        cr << InsertBarrier(dstImage, RS_COPY_DST);
+        // Scope barriers to just this probe's 6-layer slice of the shared array texture -
+        // a whole-image barrier would transition every other probe's layers too, racing
+        // against their in-flight sampling of this same array (e.g. during concurrent bakes).
+        ImageSubResource srcAllMipsSubResource {};
+        srcAllMipsSubResource.baseMipLevel = 0;
+        srcAllMipsSubResource.numLevels = srcImage->NumMips();
+        srcAllMipsSubResource.baseArrayLayer = 0;
+        srcAllMipsSubResource.numLayers = 6;
+
+        ImageSubResource dstAllMipsSubResource {};
+        dstAllMipsSubResource.baseMipLevel = 0;
+        dstAllMipsSubResource.numLevels = dstImage->NumMips();
+        dstAllMipsSubResource.baseArrayLayer = uint16(6 * next);
+        dstAllMipsSubResource.numLayers = 6;
+
+        cr << InsertBarrier(srcImage, RS_COPY_SRC, srcAllMipsSubResource);
+        cr << InsertBarrier(dstImage, RS_COPY_DST, dstAllMipsSubResource);
 
         for (uint8 mipIndex = 0; mipIndex < dstImage->NumMips(); mipIndex++)
         {
@@ -235,8 +249,8 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
             }
         }
 
-        cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
-        cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
+        cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE, srcAllMipsSubResource);
+        cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE, dstAllMipsSubResource);
 
         cr.Done();
     }

@@ -19,7 +19,8 @@ template <>
 class BakeData<LightmapVolume> : public BakeDataBase
 {
 public:
-    using BitmapType = Bitmap_RGBA8;
+    using ColorBitmap = Bitmap_R11G11B10F;
+    using BentNormalBitmap = Bitmap_RGBA8;
 
     using MeshFloatDataArray = Array<float, BakerAllocator>;
     using MeshIndexArray = Array<uint32, BakerAllocator>;
@@ -59,9 +60,8 @@ public:
     void Blur();
     void Dilate();
 
-    BitmapType ToBitmapIrradiance(uint32 atlasIndex) const;
-    BitmapType ToBitmapRadiance(uint32 atlasIndex) const;
-    BitmapType ToBitmapBentNormal(uint32 atlasIndex) const;
+    ColorBitmap ToBitmapIrradiance(uint32 atlasIndex) const;
+    BentNormalBitmap ToBitmapBentNormal(uint32 atlasIndex) const;
 
 private:
     LightmapVolume* m_volume;
@@ -74,7 +74,7 @@ private:
     Array<MeshFloatDataArray, BakerAllocator> m_meshVertexPositions;
     Array<MeshFloatDataArray, BakerAllocator> m_meshVertexNormals;
     Array<MeshFloatDataArray, BakerAllocator> m_meshVertexUvs;
-    Array<Array<uint32>, BakerAllocator> m_meshIndices;
+    Array<MeshIndexArray, BakerAllocator> m_meshIndices;
 
     uint32 atlasCount = 1;
 };
