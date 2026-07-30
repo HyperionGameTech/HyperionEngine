@@ -174,12 +174,12 @@ public:
         return m_bvh;
     }
 
+    void SetBVH(BVHNode&& bvh);
+
     HYP_FORCE_INLINE const BlobDataReference& GetBVHDataReference() const
     {
         return m_bvhData;
     }
-
-    bool BuildBVH(int maxDepth = 3);
 
     void UploadGpuData();
     void ReleaseGpuData();
@@ -215,11 +215,14 @@ public:
 
     void CalculateNormals(bool weighted = false);
 
-    bool BuildBVH(BVHNode& bvhNode, int maxDepth = 3) const;
+    void BuildBVH(BVHNode& bvhNode, int maxDepth = 3) const;
 
 #ifdef HYP_EDITOR
     HYP_METHOD(EditorOnly, EditorAction = "Regenerate Normals")
     void RegenerateNormals();
+    
+    HYP_METHOD(EditorOnly, EditorAction = "Rebuild BVH")
+    void RebuildBVH();
 #endif // HYP_EDITOR
 
     AtomicFlag isUploaded;

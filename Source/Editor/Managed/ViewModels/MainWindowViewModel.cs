@@ -181,6 +181,12 @@ namespace Hyperion.Editor.ViewModels
         public ICommand ToggleSnapToGrid { get; private set; }
         public bool IsSnapToGridEnabled => _editorSubsystem?.IsSnapToGridEnabled() ?? false;
 
+        public ICommand TogglePhysicsDebugDraw { get; private set; }
+        public bool IsPhysicsDebugDrawEnabled => _editorSubsystem?.IsPhysicsDebugDrawEnabled() ?? false;
+
+        public ICommand FitPhysicsShapeToMesh { get; private set; }
+        public bool CanFitPhysicsShapeToMesh => _canFitPhysicsShapeToMesh;
+
         /// <summary>
         /// Cached mirror of the engine's mesh edit state.
         /// </summary>
@@ -203,6 +209,8 @@ namespace Hyperion.Editor.ViewModels
         }
 
         private MeshEditStateSnapshot _meshEditState = new MeshEditStateSnapshot();
+
+        private bool _canFitPhysicsShapeToMesh;
 
         public ICommand ToggleMeshEditMode { get; private set; }
         public bool IsMeshEditModeEnabled => _meshEditState.Enabled;
@@ -366,6 +374,28 @@ namespace Hyperion.Editor.ViewModels
                     Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(IsSnapToGridEnabled)));
                 });
             });
+
+            TogglePhysicsDebugDraw = new RelayCommand(() =>
+            {
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    _editorSubsystem.SetPhysicsDebugDrawEnabled(!_editorSubsystem.IsPhysicsDebugDrawEnabled());
+
+                    Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(IsPhysicsDebugDrawEnabled)));
+                });
+            });
+
+            FitPhysicsShapeToMesh = new RelayCommand(
+                () =>
+                {
+                    _ = EngineManager.PostToSimThread(() =>
+                    {
+                        _editorSubsystem.FitPhysicsShapeToMesh();
+
+                        RefreshMeshEditState();
+                    });
+                },
+                () => CanFitPhysicsShapeToMesh);
 
             SetGameModePlaying = new SetGameModeCommand(GameStateMode.Simulating);
             SetGameModePaused = new SetGameModeCommand(GameStateMode.Paused);
@@ -1233,6 +1263,8 @@ namespace Hyperion.Editor.ViewModels
 
             MeshEditStateSnapshot snapshot = new MeshEditStateSnapshot();
 
+            bool canFitPhysicsShapeToMesh = false;
+
             try
             {
                 snapshot.Enabled = _editorSubsystem.IsMeshEditModeEnabled();
@@ -1245,6 +1277,8 @@ namespace Hyperion.Editor.ViewModels
                 snapshot.Simulating = _editorSubsystem.IsSimulating();
                 snapshot.LockedAxis = _editorSubsystem.GetMeshEditLockedAxis();
                 snapshot.TargetName = _editorSubsystem.GetMeshEditTargetNode()?.Name.ToString() ?? string.Empty;
+
+                canFitPhysicsShapeToMesh = _editorSubsystem.CanFitPhysicsShapeToMesh();
             }
             catch (Exception ex)
             {
@@ -1256,6 +1290,8 @@ namespace Hyperion.Editor.ViewModels
             Dispatcher.UIThread.Post(() =>
             {
                 _meshEditState = snapshot;
+
+                _canFitPhysicsShapeToMesh = canFitPhysicsShapeToMesh;
 
                 NotifyMeshEditStateChanged();
             });
@@ -1279,6 +1315,9 @@ namespace Hyperion.Editor.ViewModels
             (ToggleMeshEditMode as RelayCommand)?.RaiseCanExecuteChanged();
             (SaveMeshEdits as RelayCommand)?.RaiseCanExecuteChanged();
             (DiscardMeshEdits as RelayCommand)?.RaiseCanExecuteChanged();
+
+            OnPropertyChanged(nameof(CanFitPhysicsShapeToMesh));
+            (FitPhysicsShapeToMesh as RelayCommand)?.RaiseCanExecuteChanged();
         }
 
         private void HandleSelectionUpdate()

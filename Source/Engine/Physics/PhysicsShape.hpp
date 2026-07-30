@@ -101,6 +101,13 @@ public:
         return m_aabb;
     }
 
+    /*! \brief Set the axis-aligned bounds of the box, in the shape's local space. Used by the
+     *  editor's "fit to mesh" action and the box reshape gizmo. */
+    HYP_FORCE_INLINE void SetAABB(const BoundingBox& aabb)
+    {
+        m_aabb = aabb;
+    }
+
 protected:
     HYP_FIELD(Property = "Bounds", Serialize)
     BoundingBox m_aabb;

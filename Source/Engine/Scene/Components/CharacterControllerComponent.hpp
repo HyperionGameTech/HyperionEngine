@@ -42,7 +42,7 @@ struct CharacterControllerComponent
     Vec3f translation;
 
     HYP_FIELD(Property = "MoveSpeed", Serialize)
-    float moveSpeed = 5.0f;
+    float moveSpeed = 0.05f;
 
     HYP_FIELD(Property = "StepHeight", Serialize)
     float stepHeight = 0.35f;
@@ -51,10 +51,10 @@ struct CharacterControllerComponent
     float maxSlopeAngle = 45.0f;
 
     HYP_FIELD(Property = "JumpSpeed", Serialize)
-    float jumpSpeed = 10.0f;
+    float jumpSpeed = 1.0f;
 
     HYP_FIELD(Property = "FallSpeed", Serialize)
-    float fallSpeed = 55.0f;
+    float fallSpeed = 5.0f;
 
     HYP_FIELD(Transient)
     bool isOnGround = false;

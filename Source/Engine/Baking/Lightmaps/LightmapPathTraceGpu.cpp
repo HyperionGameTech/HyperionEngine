@@ -497,6 +497,11 @@ bool PathTracer::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBas
         size_t cbufferWriteOffset = 0;
         const size_t cbufferSize = cbuffer->Size();
 
+        // TEMP DIAGNOSTIC: disable env probe (sky) sampling to test whether the face-0 over-brightness
+        // comes from bounce-miss environment sampling of a raw/unconvolved sky probe texture.
+        // Remove this once the root cause is confirmed.
+        numBoundEnvProbes = 0;
+
         Assert(cbufferWriteOffset + sizeof(RayTracingConstants) <= cbufferSize);
 
         Memory::Copy(cbufferPtr, &constants, sizeof(RayTracingConstants));
@@ -571,6 +576,27 @@ bool PathTracer::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBas
         }
 
         cbuffer->Flush(0, cbufferWriteOffset);
+
+        float sumLightIntensity = 0.0f;
+        for (uint32 i = 0; i < uint32(tempLights.Size()); i++)
+        {
+            sumLightIntensity += tempLights[i].second->positionIntensity.w;
+        }
+
+        uint64 envProbeFingerprint = 0;
+        for (uint32 i = 0; i < uint32(tempEnvProbes.Size()); i++)
+        {
+            envProbeFingerprint += uint64(uintptr_t(tempEnvProbes[i].first));
+        }
+
+        HYP_LOG(Lightmap, Info, "[Lightmapper] batch: shadingType={}, rayOffset={}, numRays={}, numBoundLights={}, sumLightIntensity={}, numBoundEnvProbes={}, envProbeFingerprint={}",
+            uint32(m_shadingType),
+            rayOffset,
+            rays.Size(),
+            numBoundLights,
+            sumLightIntensity,
+            numBoundEnvProbes,
+            envProbeFingerprint);
     }
 
     Assert(m_tlas && m_tlas->IsCreated());

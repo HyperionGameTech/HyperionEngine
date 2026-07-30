@@ -11,6 +11,7 @@
 #include <Scene/EntityManager.hpp>
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>
+#include <Scene/Components/MeshComponent.hpp>
 
 #include <Core/Reflection/Handle.hpp>
 
@@ -19,6 +20,8 @@
 
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
+
+#include <Rendering/Mesh.hpp>
 
 #include <PhysicsSystem.generated.inl>
 
@@ -36,7 +39,25 @@ void PhysicsSystem::OnEntityAdded(Entity* entity)
 
     if (!rigidBodyComponent.shape)
     {
-        Handle<PhysicsShape> shape = MakeHandle<BoxPhysicsShape>(NAME_FMT("{}_BoxPhysicsShape", entity->GetName()), entity->GetLocalBounds());
+        // Size the auto-created box to the entity's content. Prefer the serialized local bounds
+        // (always available); fall back to the mesh's AABB if bounds haven't been set yet; finally
+        // a unit box so we never bake in the empty sentinel (min > max).
+        BoundingBox boxBounds = entity->GetLocalBounds();
+
+        if (!boxBounds.IsValid())
+        {
+            if (MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>(); meshComponent != nullptr && meshComponent->mesh.IsValid())
+            {
+                boxBounds = meshComponent->mesh->GetAABB();
+            }
+        }
+
+        if (!boxBounds.IsValid())
+        {
+            boxBounds = BoundingBox(Vec3f(-0.5f), Vec3f(0.5f));
+        }
+
+        Handle<PhysicsShape> shape = MakeHandle<BoxPhysicsShape>(NAME_FMT("{}_BoxPhysicsShape", entity->GetName()), boxBounds);
         GetCurrentAssetRegistry()->PutAsset(shape);
 
         rigidBodyComponent.shape = shape;

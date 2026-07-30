@@ -41,7 +41,7 @@ class PassData;
 struct RenderSetup;
 struct ImmediateDrawShaderData;
 
-static constexpr int MaxDebugDrawShapeTypes = 8;
+static constexpr int MaxDebugDrawShapeTypes = 10;
 
 ENGINE_API extern uint32 GetRingIndex();
 
@@ -157,6 +157,32 @@ public:
     void operator()(const Vec3f& position, const Vec3f& size, const Color& color);
     void operator()(const Vec3f& position, const Vec3f& size, const Color& color, const RenderableAttributeSet& attributes);
 
+    /*! \brief Draw an arbitrarily oriented box. The cube mesh is unit (corners at +/-1),
+     *  so the scale component of \ref transform acts as the half-extent of the resulting box. */
+    void operator()(const Transform& transform, const Color& color);
+    void operator()(const Transform& transform, const Color& color, const RenderableAttributeSet& attributes);
+
+private:
+    virtual Mesh* GetMesh_Internal() const override;
+};
+
+class ENGINE_API CylinderDebugDrawShape : public MeshDebugDrawShapeBase
+{
+public:
+    CylinderDebugDrawShape(DebugDrawCommandList& list);
+
+    virtual ~CylinderDebugDrawShape() override = default;
+
+    /*! \brief Draw a Y-axis aligned cylinder. The unit mesh has radius 1 and height 1,
+     *  so \ref radius and \ref height map directly to the resulting dimensions. */
+    void operator()(const Vec3f& position, float radius, float height, const Color& color);
+    void operator()(const Vec3f& position, float radius, float height, const Color& color, const RenderableAttributeSet& attributes);
+
+    /*! \brief Draw an arbitrarily oriented cylinder. The unit mesh has radius 1 and height 1,
+     *  so the X/Z scale components act as the radius and the Y scale component as the height. */
+    void operator()(const Transform& transform, const Color& color);
+    void operator()(const Transform& transform, const Color& color, const RenderableAttributeSet& attributes);
+
 private:
     virtual Mesh* GetMesh_Internal() const override;
 };
@@ -216,6 +242,7 @@ public:
     AmbientProbeDebugDrawShape ambientProbe;
     ReflectionProbeDebugDrawShape reflectionProbe;
     BoxDebugDrawShape box;
+    CylinderDebugDrawShape cylinder;
     PlaneDebugDrawShape plane;
     TriangleDebugDrawShape triangle;
 

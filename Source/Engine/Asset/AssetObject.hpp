@@ -126,8 +126,8 @@ public:
     HYP_METHOD()
     Result SaveAs(const FilePath& manifestPath);
 
-    TUniqueResLock<AssetObject> GetWriteScope() const;
-    TSharedResLock<AssetObject> GetReadScope() const;
+    HYP_NODISCARD TUniqueResLock<AssetObject> GetWriteScope() const;
+    HYP_NODISCARD TSharedResLock<AssetObject> GetReadScope() const;
 
     void LockWriter();
     void UnlockWriter();

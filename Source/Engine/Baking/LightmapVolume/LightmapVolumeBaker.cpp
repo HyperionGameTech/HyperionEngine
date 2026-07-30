@@ -248,11 +248,15 @@ static Handle<Mesh> CloneMeshForLightmapBake(const Handle<Mesh>& sourceMesh)
         meshData.indices[0] = ConstByteView(indexData.Data(), indexData.Data() + indexData.Size());
 
         clonedMesh->SetMeshData(meshDesc, meshData);
+
+        BVHNode bvh;
+        clonedMesh->BuildBVH(bvh);
+
+        clonedMesh->SetBVH(std::move(bvh));
     }
 
     InitObject(clonedMesh);
 
-    clonedMesh->BuildBVH();
     clonedMesh->UploadGpuData();
 
     return clonedMesh;

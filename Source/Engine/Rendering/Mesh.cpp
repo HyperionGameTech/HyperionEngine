@@ -565,36 +565,7 @@ void Mesh::SetFlags(EnumFlags<MeshFlags> flags)
     MarkDirty();
 }
 
-bool Mesh::BuildBVH(int maxDepth)
-{
-    auto resGuard = GetReadScope();
-
-    // @TODO: Support building BVH for arbitrary LOD; for now LOD 0
-    constexpr uint8 lodIndex = 0;
-
-    if (m_meshDesc.lods[lodIndex].numIndices == 0)
-    {
-        // no data to build from
-        return false;
-    }
-
-    AssertDebug(GetVertexData(lodIndex).vertexCount > 0);
-    AssertDebug(GetIndexData(lodIndex).Size() > 0);
-
-    if (!BuildBVH(m_bvh, maxDepth))
-    {
-        return false;
-    }
-
-    // Serialize the BVH into blob data so it can be saved/loaded without a rebuild
-    ByteBuffer bvhBuffer = BVHNode::Serialize(m_bvh);
-    FreeBlobData(m_bvhData);
-    AllocateBlobData(m_bvhData, bvhBuffer.Data(), bvhBuffer.Size(), alignof(uint32));
-
-    return true;
-}
-
-bool Mesh::BuildBVH(BVHNode& bvhNode, int maxDepth) const
+void Mesh::BuildBVH(BVHNode& bvhNode, int maxDepth) const
 {
     // @TODO: Support building BVH for arbitrary LOD; for now LOD 0
     constexpr uint8 lodIndex = 0;
@@ -627,8 +598,19 @@ bool Mesh::BuildBVH(BVHNode& bvhNode, int maxDepth) const
         Span<const uint32>(indexDataU32, numIndices));
 
     bvhNode.Shake();
+}
 
-    return true;
+void Mesh::SetBVH(BVHNode&& bvh)
+{
+    // Assume caller has write scope
+
+    ByteBuffer bvhBuffer = BVHNode::Serialize(bvh);
+    FreeBlobData(m_bvhData);
+    AllocateBlobData(m_bvhData, bvhBuffer.Data(), bvhBuffer.Size(), alignof(uint32));
+
+    m_bvh = std::move(bvh);
+
+    MarkDirty();
 }
 
 BoundingBox Mesh::CalculateAABB() const
@@ -860,6 +842,27 @@ void Mesh::RegenerateNormals()
     }
 
     UploadGpuData();
+}
+
+void Mesh::RebuildBVH()
+{
+    BVHNode bvh;
+
+    {
+        auto readScope = GetReadScope();
+        BuildBVH(bvh);
+    }
+
+    auto writeScope = GetWriteScope();
+
+    // Serialize the BVH into blob data so it can be saved/loaded without a rebuild
+    ByteBuffer bvhBuffer = BVHNode::Serialize(bvh);
+    FreeBlobData(m_bvhData);
+    AllocateBlobData(m_bvhData, bvhBuffer.Data(), bvhBuffer.Size(), alignof(uint32));
+
+    m_bvh = std::move(bvh);
+
+    MarkDirty();
 }
 
 #endif // HYP_EDITOR

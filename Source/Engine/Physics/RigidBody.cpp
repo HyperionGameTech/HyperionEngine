@@ -35,6 +35,7 @@ PhysicsShape* GetDefaultPhysicsShape()
 RigidBody::RigidBody()
     : shape(GetDefaultPhysicsShape()),
       physicsMaterial(&GetDefaultPhysicsMaterial()),
+      isSleeping(false),
       m_isKinematic(true)
 {
 }

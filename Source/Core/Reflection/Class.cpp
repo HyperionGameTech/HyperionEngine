@@ -1539,6 +1539,9 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
         // override instance class
         target->GetObjectHeader_Internal()->cls = this;
 
+        // hold a reference for this instance; released in ReleaseObject()
+        const_cast<DynamicClassInstance*>(this)->AddRef();
+
         ObjectInitializerContext* context = GetGlobalContext<ObjectInitializerContext>();
 
         if ((!context || !(context->flags & ObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION)))

@@ -147,9 +147,15 @@ void TraceAO_New(float2 uv, out float occlusion)
     const float projected_scale = float(dimension.y) / (tan_half_fov * 2.0);
 
     const int temporal_sample_index = int(world_shader_data.frame_counter % HYP_HBAO_NUM_TEMPORAL_SAMPLES);
+    
 
-    const float noise_direction = SampleBlueNoise(int(pixel_coord.x), int(pixel_coord.y), temporal_sample_index, HYP_HBAO_NOISE_DIMENSION_DIRECTION);
-    const float ray_step = SampleBlueNoise(int(pixel_coord.x), int(pixel_coord.y), temporal_sample_index, HYP_HBAO_NOISE_DIMENSION_STEP);
+    float2 rnd = float2(
+        SampleBlueNoise(pixel_coord.x, pixel_coord.y, int(world_shader_data.frame_counter % HYP_HBAO_NUM_TEMPORAL_SAMPLES) * 2, HYP_HBAO_NUM_TEMPORAL_SAMPLES * 2),
+        SampleBlueNoise(pixel_coord.x, pixel_coord.y, int(world_shader_data.frame_counter % HYP_HBAO_NUM_TEMPORAL_SAMPLES) * 2 + 1, HYP_HBAO_NUM_TEMPORAL_SAMPLES * 2)
+    );
+    
+    const float noise_direction = rnd.x;
+    const float ray_step = rnd.y;
 
     occlusion = 0.0;
 

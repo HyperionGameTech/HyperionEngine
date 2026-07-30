@@ -377,7 +377,123 @@ void BoxDebugDrawShape::operator()(const Vec3f& position, const Vec3f& size, con
     list.Push(header);
 }
 
+void BoxDebugDrawShape::operator()(const Transform& transform, const Color& color)
+{
+    RenderableAttributeSet attributes = DefaultAttributes();
+    attributes.GetMeshAttributes().topology = TOP_LINES;
+
+    (*this)(transform, color, attributes);
+}
+
+void BoxDebugDrawShape::operator()(const Transform& transform, const Color& color, const RenderableAttributeSet& attributes)
+{
+    if (!list.GetDebugDrawer()->IsEnabled())
+    {
+        return;
+    }
+
+    DebugDrawCommandHeader header;
+
+    DebugDrawCommand* ptr = reinterpret_cast<DebugDrawCommand*>(list.Alloc(sizeof(DebugDrawCommand), alignof(DebugDrawCommand), header));
+    new (ptr) DebugDrawCommand {
+        this,
+        transform.GetMatrix(),
+        color,
+        attributes
+    };
+
+    header.destructFn = &Memory::Destruct<DebugDrawCommand>;
+    header.moveFn = [](void* dst, void* src)
+    {
+        new (dst) DebugDrawCommand(std::move(*reinterpret_cast<DebugDrawCommand*>(src)));
+    };
+
+    list.Push(header);
+}
+
 #pragma endregion BoxDebugDrawShape
+
+#pragma region CylinderDebugDrawShape
+
+CylinderDebugDrawShape::CylinderDebugDrawShape(DebugDrawCommandList& list)
+    : MeshDebugDrawShapeBase(list)
+{
+    static const int s_shapeId = NextShapeId();
+    shapeId = s_shapeId;
+
+    (void)GetMesh(); // hack to preload mesh so it doesn't try to load during render pass
+}
+
+Mesh* CylinderDebugDrawShape::GetMesh_Internal() const
+{
+    static struct MeshInitializer
+    {
+        Handle<Mesh> mesh;
+        DelegateHandler onShutdownHandle;
+
+        MeshInitializer()
+        {
+            mesh = MeshBuilder::Cylinder(1.0f, 1.0f, 16);
+            mesh->SetIsTransient(true);
+            mesh->SetFlags(MeshFlags::ViewIndependent);
+            mesh->SetName(NAME("CylinderDebugDrawShape"));
+            mesh->UploadGpuData();
+
+            GetEngineAssetRegistry()->PutAsset(mesh);
+
+            onShutdownHandle = g_engineDriver->GetDelegates().OnShutdown.Bind(
+                [m = &mesh]()
+                {
+                    m->Reset();
+                });
+        }
+    } s_initializer;
+
+    return s_initializer.mesh;
+}
+
+void CylinderDebugDrawShape::operator()(const Vec3f& position, float radius, float height, const Color& color)
+{
+    (*this)(Transform(position, Vec3f(radius, height, radius), Quat4f::Identity()), color, DefaultAttributes());
+}
+
+void CylinderDebugDrawShape::operator()(const Vec3f& position, float radius, float height, const Color& color, const RenderableAttributeSet& attributes)
+{
+    (*this)(Transform(position, Vec3f(radius, height, radius), Quat4f::Identity()), color, attributes);
+}
+
+void CylinderDebugDrawShape::operator()(const Transform& transform, const Color& color)
+{
+    (*this)(transform, color, DefaultAttributes());
+}
+
+void CylinderDebugDrawShape::operator()(const Transform& transform, const Color& color, const RenderableAttributeSet& attributes)
+{
+    if (!list.GetDebugDrawer()->IsEnabled())
+    {
+        return;
+    }
+
+    DebugDrawCommandHeader header;
+
+    DebugDrawCommand* ptr = reinterpret_cast<DebugDrawCommand*>(list.Alloc(sizeof(DebugDrawCommand), alignof(DebugDrawCommand), header));
+    new (ptr) DebugDrawCommand {
+        this,
+        transform.GetMatrix(),
+        color,
+        attributes
+    };
+
+    header.destructFn = &Memory::Destruct<DebugDrawCommand>;
+    header.moveFn = [](void* dst, void* src)
+    {
+        new (dst) DebugDrawCommand(std::move(*reinterpret_cast<DebugDrawCommand*>(src)));
+    };
+
+    list.Push(header);
+}
+
+#pragma endregion CylinderDebugDrawShape
 
 #pragma region PlaneDebugDrawShape
 
@@ -1093,6 +1209,7 @@ DebugDrawCommandList::DebugDrawCommandList(DebugDrawer* debugDrawer)
       ambientProbe(*this),
       reflectionProbe(*this),
       box(*this),
+      cylinder(*this),
       plane(*this),
       triangle(*this),
       m_bufferOffset(0)

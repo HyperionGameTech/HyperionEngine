@@ -43,6 +43,9 @@
 #include <Scene/Components/VisibilityStateComponent.hpp>
 #include <Scene/Components/BoundingBoxComponent.hpp>
 #include <Scene/Components/TransformComponent.hpp>
+#include <Scene/Components/RigidBodyComponent.hpp>
+
+#include <Physics/PhysicsShape.hpp>
 
 #include <Scene/LightmapVolume.hpp>
 #include <Scene/Volume.hpp>
@@ -119,6 +122,10 @@ namespace Hyperion {
 HYP_DEFINE_LOG_CHANNEL(Editor);
 
 CVar<CVarString> g_cvCodeEditor { "Editor.CodeEditor", "VSCode" };
+
+// Master switch for physics collision shape debug visualization in editor viewports.
+// Surfaced as a toolbar toggle via EditorSubsystem::IsPhysicsDebugDrawEnabled / SetPhysicsDebugDrawEnabled.
+static CVar<bool> s_cvDebugDrawPhysics { "Physics.DebugDraw", false };
 
 namespace CoreApi {
 CORE_API extern const FilePath& GetExecutablePath();
@@ -2249,12 +2256,27 @@ static void ApplyMeshEditVertexPositions(
     Mesh* mesh = meshComponent->mesh;
 
     {
+        Array<float, EditorAllocator> mutableVertexData;
+        Array<ubyte, EditorAllocator> indexData;
+
+        size_t vertexSizeInFloats;
+        VertexInputLayoutDesc layoutDesc;
+
+        { // read scope needed to access the data.
+            auto readScope = mesh->GetReadScope();
+
+            const VertexArrayView vertexView = mesh->GetVertexData(lodIndex);
+
+            layoutDesc = vertexView.layoutDesc;
+            vertexSizeInFloats = vertexView.layoutDesc.VertexSize() / sizeof(float);
+
+            mutableVertexData = Array<float, EditorAllocator>(vertexView.floatData, vertexView.vertexCount * vertexSizeInFloats);
+            indexData = mesh->GetIndexData(lodIndex);
+        }
+
+        Assert(vertexSizeInFloats != 0);
+
         auto writeScope = mesh->GetWriteScope();
-
-        const VertexArrayView vertexView = mesh->GetVertexData(lodIndex);
-        const size_t vertexSizeInFloats = vertexView.layoutDesc.VertexSize() / sizeof(float);
-
-        Array<float, EditorAllocator> mutableVertexData(vertexView.floatData, vertexView.vertexCount * vertexSizeInFloats);
 
         for (size_t i = 0; i < vertexIndices.Size(); i++)
         {
@@ -2268,22 +2290,29 @@ static void ApplyMeshEditVertexPositions(
 
         VertexArrayView newVertexView {};
         newVertexView.floatData = mutableVertexData.Data();
-        newVertexView.vertexCount = vertexView.vertexCount;
-        newVertexView.layoutDesc = vertexView.layoutDesc;
+        newVertexView.vertexCount = mutableVertexData.Size() / vertexSizeInFloats;
+        newVertexView.layoutDesc = layoutDesc;
 
         mesh->SetVertexData(lodIndex, newVertexView);
 
+        // We set index data anyway, since it'll need to be resident in memory,
+        // which is not guaranteed since we only have a write scope active.
+        // Hacky solution, but it works.
+        mesh->SetIndexData(lodIndex, indexData);
+
+        const BoundingBox meshBounds = mesh->CalculateAABB();
+
         if (recomputeDerivedData)
         {
-            mesh->SetAABB(mesh->CalculateAABB());
+            mesh->SetAABB(meshBounds);
+
+            BVHNode bvh;
+            mesh->BuildBVH(bvh);
+
+            mesh->SetBVH(std::move(bvh));
         }
-    }
 
-    if (recomputeDerivedData)
-    {
-        mesh->BuildBVH();
-
-        entity->SetLocalBounds(mesh->GetAABB());
+        entity->SetLocalBounds(meshBounds);
     }
 
     // Update editor pick cache, so we don't test against old verts
@@ -2477,22 +2506,46 @@ static void EnsureUniqueMeshEditTarget(const Handle<Node>& node, MeshComponent* 
     clonedMesh->SetName(NAME("MeshEditClone"));
 
     {
-        auto readScope = sourceMesh->GetReadScope();
+        Array<float, EditorAllocator> mutableVertexData;
+        Array<ubyte, EditorAllocator> indexData;
 
-        const MeshDesc meshDesc = sourceMesh->GetMeshDesc();
-        const VertexArrayView vertexData = sourceMesh->GetVertexData(0);
-        const Span<const ubyte> indexData = sourceMesh->GetIndexData(0);
+        size_t vertexSizeInFloats;
+        VertexInputLayoutDesc layoutDesc;
 
-        MeshDataView meshData {};
-        meshData.vertices[0] = vertexData;
-        meshData.indices[0] = ConstByteView(indexData.Data(), indexData.Data() + indexData.Size());
+        { // read scope needed to access the data.
+            auto readScope = sourceMesh->GetReadScope();
 
-        clonedMesh->SetMeshData(meshDesc, meshData);
+            const VertexArrayView vertexView = sourceMesh->GetVertexData(0);
+
+            layoutDesc = vertexView.layoutDesc;
+            vertexSizeInFloats = vertexView.layoutDesc.VertexSize() / sizeof(float);
+
+            mutableVertexData = Array<float, EditorAllocator>(vertexView.floatData, vertexView.vertexCount * vertexSizeInFloats);
+            indexData = sourceMesh->GetIndexData(0);
+        }
+
+        Assert(vertexSizeInFloats != 0);
+
+        auto writeScope = clonedMesh->GetWriteScope();
+
+        VertexArrayView newVertexView {};
+        newVertexView.floatData = mutableVertexData.Data();
+        newVertexView.vertexCount = mutableVertexData.Size() / vertexSizeInFloats;
+        newVertexView.layoutDesc = layoutDesc;
+
+        clonedMesh->SetVertexData(0, newVertexView);
+        clonedMesh->SetIndexData(0, indexData);
+
+        clonedMesh->SetAABB(clonedMesh->CalculateAABB());
+
+        BVHNode bvh;
+        clonedMesh->BuildBVH(bvh);
+
+        clonedMesh->SetBVH(std::move(bvh));
     }
 
     InitObject(clonedMesh);
 
-    clonedMesh->BuildBVH();
     clonedMesh->UploadGpuData();
 
     meshComponent->mesh = clonedMesh;
@@ -3408,6 +3461,374 @@ void EditorSubsystem::OnRemovedFromWorld()
     m_editorViewports.Clear();
 }
 
+bool EditorSubsystem::IsPhysicsDebugDrawEnabled() const
+{
+    return s_cvDebugDrawPhysics.Get();
+}
+
+void EditorSubsystem::SetPhysicsDebugDrawEnabled(bool enabled)
+{
+    s_cvDebugDrawPhysics.Set(enabled);
+}
+
+// Deep-copy a PhysicsShape asset (there is no reflection-based clone, so switch on the concrete type).
+static Handle<PhysicsShape> ClonePhysicsShape(const Handle<PhysicsShape>& source)
+{
+    if (!source.IsValid())
+    {
+        return nullptr;
+    }
+
+    const Name name = source->GetName();
+
+    switch (source->GetType())
+    {
+    case PhysicsShapeType::Box:
+        return MakeHandle<BoxPhysicsShape>(name, static_cast<BoxPhysicsShape*>(source.Get())->GetAABB());
+    case PhysicsShapeType::Sphere:
+        return MakeHandle<SpherePhysicsShape>(name, static_cast<SpherePhysicsShape*>(source.Get())->GetSphere());
+    case PhysicsShapeType::Capsule:
+    {
+        const CapsulePhysicsShape* capsule = static_cast<CapsulePhysicsShape*>(source.Get());
+        return MakeHandle<CapsulePhysicsShape>(name, capsule->GetRadius(), capsule->GetHeight());
+    }
+    case PhysicsShapeType::Plane:
+        return MakeHandle<PlanePhysicsShape>(name, static_cast<PlanePhysicsShape*>(source.Get())->GetPlane());
+    case PhysicsShapeType::ConvexHull:
+    {
+        const ConvexHullPhysicsShape* hull = static_cast<ConvexHullPhysicsShape*>(source.Get());
+        VertexArrayView view {};
+        view.floatData = hull->GetVertexData();
+        view.vertexCount = hull->NumVertices();
+        view.layoutDesc = StaticVertexInputLayout<VT_Position>;
+        return MakeHandle<ConvexHullPhysicsShape>(name, view);
+    }
+    default:
+        return nullptr;
+    }
+}
+
+bool EditorSubsystem::CanFitPhysicsShapeToMesh() const
+{
+    if (!m_currentProject.IsValid() || IsSimulating())
+    {
+        return false;
+    }
+
+    Handle<Node> focusedNode = m_focusedNode.Lock();
+
+    if (!focusedNode.IsValid())
+    {
+        return false;
+    }
+
+    Entity* entity = DynamicCast<Entity>(focusedNode.Get());
+
+    if (entity == nullptr)
+    {
+        return false;
+    }
+
+    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
+    RigidBodyComponent* rigidBodyComponent = entity->TryGetComponent<RigidBodyComponent>();
+
+    return meshComponent != nullptr
+        && meshComponent->mesh.IsValid()
+        && rigidBodyComponent != nullptr
+        && DynamicCast<BoxPhysicsShape>(rigidBodyComponent->shape).IsValid();
+}
+
+bool EditorSubsystem::IsPhysicsShapeShared(Entity* entity, const Handle<PhysicsShape>& shape) const
+{
+    if (!shape.IsValid() || !m_currentProject.IsValid())
+    {
+        return false;
+    }
+
+    for (Scene* scene : GetCurrentProject()->GetWorld()->GetScenes())
+    {
+        for (auto [otherEntity, otherRigidBodyComponent, otherTransformComponent] : scene->GetEntityManager()->GetEntitySet<RigidBodyComponent, TransformComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            (void)otherTransformComponent;
+
+            if (otherEntity != entity && otherRigidBodyComponent.shape == shape)
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+Handle<PhysicsShape> EditorSubsystem::EnsureUniquePhysicsShape(Entity* entity)
+{
+    RigidBodyComponent* rigidBodyComponent = entity->TryGetComponent<RigidBodyComponent>();
+
+    if (rigidBodyComponent == nullptr)
+    {
+        return nullptr;
+    }
+
+    Handle<PhysicsShape> shape = rigidBodyComponent->shape;
+
+    if (!shape.IsValid() || !IsPhysicsShapeShared(entity, shape))
+    {
+        return shape;
+    }
+
+    // The shape is shared with at least one other entity; clone it so this entity gets its own copy
+    // that we can mutate without affecting the others.
+    Handle<PhysicsShape> clone = ClonePhysicsShape(shape);
+    clone->SetName(NAME_FMT("{}_PhysicsShape", entity->GetName()));
+    GetCurrentAssetRegistry()->PutAsset(clone);
+
+    rigidBodyComponent->shape = clone;
+    entity->AddTag<EntityTag::UpdatePhysicsShape>();
+
+    return clone;
+}
+
+void EditorSubsystem::FitPhysicsShapeToMesh()
+{
+    if (!m_currentProject.IsValid() || IsSimulating())
+    {
+        return;
+    }
+
+    Handle<Node> focusedNode = m_focusedNode.Lock();
+
+    if (!focusedNode.IsValid())
+    {
+        return;
+    }
+
+    Entity* entity = DynamicCast<Entity>(focusedNode.Get());
+
+    if (entity == nullptr)
+    {
+        return;
+    }
+
+    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
+    RigidBodyComponent* rigidBodyComponent = entity->TryGetComponent<RigidBodyComponent>();
+
+    if (meshComponent == nullptr || !meshComponent->mesh.IsValid() || rigidBodyComponent == nullptr)
+    {
+        return;
+    }
+
+    if (!rigidBodyComponent->shape.IsValid() || rigidBodyComponent->shape->GetType() != PhysicsShapeType::Box)
+    {
+        return;
+    }
+
+    // Clone the shape first if any other entity references it, so we never mutate a shared asset.
+    Handle<PhysicsShape> uniqueShape = EnsureUniquePhysicsShape(entity);
+    Handle<BoxPhysicsShape> boxShape = DynamicCast<BoxPhysicsShape>(uniqueShape);
+
+    if (!boxShape.IsValid())
+    {
+        return;
+    }
+
+    // The box shape lives in the entity's local space, so matching the mesh's local AABB aligns it
+    // with the rendered geometry regardless of the entity's world transform.
+    const BoundingBox meshAabb = meshComponent->mesh->GetAABB();
+    const BoundingBox oldAabb = boxShape->GetAABB();
+
+    boxShape->SetAABB(meshAabb);
+    entity->AddTag<EntityTag::UpdatePhysicsShape>();
+
+    if (Handle<EditorProject> project = GetCurrentProject(); project.IsValid())
+    {
+        project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
+            "Fit Physics Shape to Mesh",
+            [boxShape, entity = MakeStrongRef(entity), meshAabb, oldAabb]() -> EditorActionFunctions
+            {
+                return {
+                    [boxShape, entity, meshAabb](EditorSubsystem*, EditorProject*)
+                    {
+                        if (boxShape.IsValid())
+                        {
+                            boxShape->SetAABB(meshAabb);
+                        }
+
+                        if (entity.IsValid())
+                        {
+                            entity->AddTag<EntityTag::UpdatePhysicsShape>();
+                        }
+                    },
+                    [boxShape, entity, oldAabb](EditorSubsystem*, EditorProject*)
+                    {
+                        if (boxShape.IsValid())
+                        {
+                            boxShape->SetAABB(oldAabb);
+                        }
+
+                        if (entity.IsValid())
+                        {
+                            entity->AddTag<EntityTag::UpdatePhysicsShape>();
+                        }
+                    }
+                };
+            }));
+    }
+}
+
+// Wireframe attributes for physics shape visualization: depth-tested against scene geometry so shapes
+// sit correctly in the world, but not depth-written so nearby shapes don't occlude one another.
+static RenderableAttributeSet PhysicsWireframeAttributes()
+{
+    RenderableAttributeSet attributes;
+
+    MeshAttributes& meshAttributes = attributes.GetMeshAttributes();
+    meshAttributes.inputLayout = StaticVertexInputLayout<VT_Simple>;
+    meshAttributes.topology = TOP_TRIANGLES;
+
+    MaterialAttributes& materialAttributes = attributes.GetMaterialAttributes();
+    materialAttributes.bucket = RenderBucket::Debug;
+    materialAttributes.fillMode = FM_LINE;
+    materialAttributes.blendFunction = BlendFunction::None();
+    materialAttributes.flags = MAF_DEPTH_TEST;
+
+    return attributes;
+}
+
+void EditorSubsystem::DebugDrawPhysicsShapes(DebugDrawCommandList& debugDrawCommandList)
+{
+    if (!s_cvDebugDrawPhysics.Get())
+    {
+        return;
+    }
+
+    static const RenderableAttributeSet wireframeAttributes = PhysicsWireframeAttributes();
+
+    if (!m_currentProject.IsValid())
+    {
+        return;
+    }
+
+    static constexpr auto BoxPhysicsShapeTypeId = CONSTEXPR_TYPE_ID(BoxPhysicsShape);
+    static constexpr auto SpherePhysicsShapeTypeId = CONSTEXPR_TYPE_ID(SpherePhysicsShape);
+    static constexpr auto PlanePhysicsShapeTypeId = CONSTEXPR_TYPE_ID(PlanePhysicsShape);
+    static constexpr auto CapsulePhysicsShapeTypeId = CONSTEXPR_TYPE_ID(CapsulePhysicsShape);
+    static constexpr auto ConvexHullPhysicsShapeTypeId = CONSTEXPR_TYPE_ID(ConvexHullPhysicsShape);
+
+    static constexpr float PlaneDebugHalfExtent = 5.0f;
+
+    for (Scene* scene : GetCurrentProject()->GetWorld()->GetScenes())
+    {
+        for (auto [entity, rigidBodyComponent, transformComponent] : scene->GetEntityManager()->GetEntitySet<RigidBodyComponent, TransformComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            (void)transformComponent;
+
+            PhysicsShape* shape = rigidBodyComponent.shape.Get();
+
+            if (!shape)
+            {
+                continue;
+            }
+
+            const bool selected = IsNodeSelected(MakeStrongRef(static_cast<Node*>(entity)));
+            const Color color = selected ? Color::Yellow() : Color::Green();
+
+            const Transform entityWorldTransform(entity->GetWorldTranslation(), entity->GetWorldScale(), entity->GetWorldRotation());
+            const Mat4f& entityWorldMatrix = entity->GetWorldMatrix();
+            const Vec3f entityWorldScale = entity->GetWorldScale();
+            const float maxEntityScale = MathUtil::Max(MathUtil::Max(entityWorldScale.x, entityWorldScale.y), entityWorldScale.z);
+
+            switch (shape->InstanceClass()->GetTypeId().Value())
+            {
+            case BoxPhysicsShapeTypeId:
+            {
+                const BoundingBox& aabb = static_cast<BoxPhysicsShape*>(shape)->GetAABB();
+                const Transform boxWorldTransform = entityWorldTransform * Transform(aabb.GetCenter(), aabb.GetExtent() * 0.5f, Quat4f::Identity());
+                debugDrawCommandList.box(boxWorldTransform, color, wireframeAttributes);
+                break;
+            }
+            case SpherePhysicsShapeTypeId:
+            {
+                const BoundingSphere& sphere = static_cast<SpherePhysicsShape*>(shape)->GetSphere();
+                const Vec3f worldCenter = entityWorldMatrix.TransformVector(Vec4f(sphere.GetCenter(), 1.0f)).GetXYZ();
+                debugDrawCommandList.sphere(worldCenter, sphere.GetRadius() * maxEntityScale, color, wireframeAttributes);
+                break;
+            }
+            case CapsulePhysicsShapeTypeId:
+            {
+                const float radius = static_cast<CapsulePhysicsShape*>(shape)->GetRadius();
+                const float height = static_cast<CapsulePhysicsShape*>(shape)->GetHeight(); // cylindrical part (Bullet convention)
+                // Capsule is Y-axis aligned in local space. Unit cylinder mesh has radius 1 and height 1.
+                const Transform cylinderWorldTransform = entityWorldTransform * Transform(Vec3f::Zero(), Vec3f(radius, height, radius), Quat4f::Identity());
+                debugDrawCommandList.cylinder(cylinderWorldTransform, color, wireframeAttributes);
+                const float worldRadius = radius * maxEntityScale;
+                const Vec3f topWorld = entityWorldMatrix.TransformVector(Vec4f(Vec3f(0.0f, height * 0.5f, 0.0f), 1.0f)).GetXYZ();
+                const Vec3f bottomWorld = entityWorldMatrix.TransformVector(Vec4f(Vec3f(0.0f, -height * 0.5f, 0.0f), 1.0f)).GetXYZ();
+                debugDrawCommandList.sphere(topWorld, worldRadius, color, wireframeAttributes);
+                debugDrawCommandList.sphere(bottomWorld, worldRadius, color, wireframeAttributes);
+                break;
+            }
+            case PlanePhysicsShapeTypeId:
+            {
+                // Planes are infinite; draw a finite wireframe quad at the entity origin oriented to the plane normal.
+                const Vec4f& plane = static_cast<PlanePhysicsShape*>(shape)->GetPlane();
+                Vec3f normal(plane.x, plane.y, plane.z);
+                if (normal.Length() < MathUtil::epsilonF)
+                {
+                    normal = Vec3f::UnitY();
+                }
+                else
+                {
+                    normal.Normalize();
+                }
+                const Vec3f reference = MathUtil::Abs(normal.y) < 0.99f ? Vec3f::UnitY() : Vec3f::UnitX();
+                const Vec3f tangent = (reference - normal * normal.Dot(reference)).Normalize();
+                const Vec3f bitangent = normal.Cross(tangent).Normalize();
+                const float e = PlaneDebugHalfExtent;
+                const Vec3f c0 = (-tangent - bitangent) * e;
+                const Vec3f c1 = ( tangent - bitangent) * e;
+                const Vec3f c2 = ( tangent + bitangent) * e;
+                const Vec3f c3 = (-tangent + bitangent) * e;
+                const Mat4f& m = entityWorldMatrix;
+                const FixedArray<Vec3f, 4> worldCorners = {
+                    m.TransformVector(Vec4f(c0, 1.0f)).GetXYZ(),
+                    m.TransformVector(Vec4f(c1, 1.0f)).GetXYZ(),
+                    m.TransformVector(Vec4f(c2, 1.0f)).GetXYZ(),
+                    m.TransformVector(Vec4f(c3, 1.0f)).GetXYZ()
+                };
+                debugDrawCommandList.plane(worldCorners, color, wireframeAttributes);
+                break;
+            }
+            case ConvexHullPhysicsShapeTypeId:
+            {
+                // Without recomputing the hull, render the local AABB of the hull points as an oriented box.
+                const ConvexHullPhysicsShape* hull = static_cast<ConvexHullPhysicsShape*>(shape);
+                const size_t numVertices = hull->NumVertices();
+                const float* vertexData = hull->GetVertexData();
+
+                if (numVertices == 0 || vertexData == nullptr)
+                {
+                    break;
+                }
+
+                BoundingBox hullAabb(Vec3f(vertexData[0], vertexData[1], vertexData[2]), Vec3f(vertexData[0], vertexData[1], vertexData[2]));
+                for (size_t i = 1; i < numVertices; i++)
+                {
+                    const Vec3f v(vertexData[i * 3 + 0], vertexData[i * 3 + 1], vertexData[i * 3 + 2]);
+                    hullAabb = hullAabb.Union(v);
+                }
+
+                const Transform hullWorldTransform = entityWorldTransform * Transform(hullAabb.GetCenter(), hullAabb.GetExtent() * 0.5f, Quat4f::Identity());
+                debugDrawCommandList.box(hullWorldTransform, color, wireframeAttributes);
+                break;
+            }
+            default:
+                break;
+            }
+        }
+    }
+}
+
 void EditorSubsystem::Update(float delta)
 {
     HYP_SCOPE;
@@ -3418,6 +3839,8 @@ void EditorSubsystem::Update(float delta)
     DebugDrawCommandList& dbg = DebugDrawer::GetInstance().CreateCommandList();
 
     DebugDrawMeshEditSelection(dbg);
+
+    DebugDrawPhysicsShapes(dbg);
 
     // Debug draw probes
     for (Scene* scene : GetCurrentProject()->GetWorld()->GetScenes())

@@ -276,7 +276,7 @@ void Entity::OnRemovedFromScene(Scene* scene)
 
 void Entity::OnComponentAdded(AnyRef component)
 {
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     if (const Class* componentClass = component.GetClass(); componentClass != nullptr && componentClass->CanSerialize())
     {
         MarkDirty();
@@ -311,17 +311,13 @@ void Entity::OnComponentAdded(AnyRef component)
 
         AddTag<EntityTag::UpdateRenderProxy>();
 
+#ifdef HYP_EDITOR
         // build mesh BVH if there is no existing one. (size != 0)
-        if (m_entityInitInfo.bvhDepth > 0
-            && meshComponent->mesh->GetBVHDataReference().size == 0)
+        if (m_entityInitInfo.bvhDepth > 0 && meshComponent->mesh->GetBVHDataReference().size == 0)
         {
-            if (!meshComponent->mesh->BuildBVH(m_entityInitInfo.bvhDepth))
-            {
-                HYP_LOG(Entity, Error, "Failed to build BVH for MeshComponent on Entity {}!", Id());
-
-                return;
-            }
+            meshComponent->mesh->RebuildBVH();
         }
+#endif // HYP_EDITOR
 
         return;
     }
@@ -329,7 +325,7 @@ void Entity::OnComponentAdded(AnyRef component)
 
 void Entity::OnComponentRemoved(AnyRef component)
 {
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     if (const Class* componentClass = component.GetClass(); componentClass != nullptr && componentClass->CanSerialize())
     {
         MarkDirty();
@@ -339,7 +335,7 @@ void Entity::OnComponentRemoved(AnyRef component)
 
 void Entity::OnTagAdded(EntityTag tag)
 {
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     const bool isSerializableTag = (uint64(tag) & EntityTag::SerializableTagMask) != 0;
 
     if (isSerializableTag)
@@ -351,7 +347,7 @@ void Entity::OnTagAdded(EntityTag tag)
 
 void Entity::OnTagRemoved(EntityTag tag)
 {
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     const bool isSerializableTag = (uint64(tag) & EntityTag::SerializableTagMask) != 0;
 
     if (isSerializableTag)
@@ -487,6 +483,10 @@ void Entity::SetLocalBounds(const BoundingBox& aabb)
         boundingBoxComponent.worldAabb = GetWorldBounds();
 
         SetNeedsRenderProxyUpdate();
+
+        entityManager->AddTags<
+            EntityTag::UpdateVisibility,
+            EntityTag::UpdateRenderProxy>(this);
     }
 }
 

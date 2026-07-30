@@ -30,6 +30,7 @@ class Mesh;
 class Material;
 class Texture;
 class EnvProbe;
+class PhysicsShape;
 class InputManager;
 class UIStage;
 class UIObject;
@@ -574,6 +575,22 @@ public:
     void SetSnapToGridEnabled(bool snapToGrid);
 
     HYP_METHOD()
+    bool IsPhysicsDebugDrawEnabled() const;
+
+    HYP_METHOD()
+    void SetPhysicsDebugDrawEnabled(bool enabled);
+
+    /*! \brief True if the focused entity has a mesh and a BoxPhysicsShape whose AABB can be fitted
+     *  to the mesh via \ref FitPhysicsShapeToMesh. */
+    HYP_METHOD()
+    bool CanFitPhysicsShapeToMesh() const;
+
+    /*! \brief Resize the focused entity's BoxPhysicsShape so its local AABB matches the entity's
+     *  mesh AABB. Undoable. */
+    HYP_METHOD()
+    void FitPhysicsShapeToMesh();
+
+    HYP_METHOD()
     void SetSelectedBucket(uint32 bucketIndex);
 
     /*! \brief Calculate an appropriate position for inserting a new object into the scene.
@@ -699,6 +716,15 @@ private:
     void SetSelectedMeshEditFace(Optional<MeshEditFaceSelection> selection);
     void UpdateHoveredMeshEditFace(const Ray& ray);
     void DebugDrawMeshEditSelection(class DebugDrawCommandList& debugDrawCommandList);
+
+    void DebugDrawPhysicsShapes(class DebugDrawCommandList& debugDrawCommandList);
+
+    /*! \brief If the focused entity's physics shape is referenced by any other entity, clone it and
+     *  assign the clone to this entity, so the shape can be mutated in isolation. Returns the
+     *  now-unique shape (the entity's current shape if it was already exclusive). */
+    Handle<PhysicsShape> EnsureUniquePhysicsShape(Entity* entity);
+
+    bool IsPhysicsShapeShared(Entity* entity, const Handle<PhysicsShape>& shape) const;
 
     void StartMeshEditDrag(const Handle<Camera>& camera, const MouseEvent& mouseEvent);
     void UpdateMeshEditDrag(const Handle<Camera>& camera, const MouseEvent& mouseEvent);

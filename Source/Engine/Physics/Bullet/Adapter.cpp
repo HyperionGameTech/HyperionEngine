@@ -14,6 +14,7 @@
 
 #include <Core/Math/Vector3.hpp>
 #include <Core/Math/Quat4f.hpp>
+#include <Core/Math/MathUtil.hpp>
 
 #if defined(HYP_BULLET) && HYP_BULLET
 #include <Physics/Bullet/Adapter.hpp>
@@ -57,6 +58,26 @@ struct CharacterControllerInternalData
     SharedPtr<btKinematicCharacterController> kcc;
 };
 
+struct OffsetCollisionShape final : btCompoundShape
+{
+    SharedPtr<btCollisionShape> childShape;
+
+    OffsetCollisionShape(SharedPtr<btCollisionShape> childShape, const btTransform& childTransform)
+        : btCompoundShape(),
+          childShape(std::move(childShape))
+    {
+        addChildShape(childTransform, this->childShape.Get());
+    }
+
+    ~OffsetCollisionShape() override
+    {
+        if (childShape != nullptr)
+        {
+            removeChildShape(childShape.Get());
+        }
+    }
+};
+
 static SharedPtr<btCollisionShape> CreatePhysicsShapeHandle(PhysicsShape* physicsShape)
 {
     Assert(physicsShape != nullptr);
@@ -64,9 +85,44 @@ static SharedPtr<btCollisionShape> CreatePhysicsShapeHandle(PhysicsShape* physic
     switch (physicsShape->GetType())
     {
     case PhysicsShapeType::Box:
-        return MakeShared<btBoxShape>(ToBtVector(static_cast<BoxPhysicsShape*>(physicsShape)->GetAABB().GetExtent() * 0.5f));
+    {
+        const BoundingBox& aabb = static_cast<BoxPhysicsShape*>(physicsShape)->GetAABB();
+        SharedPtr<btBoxShape> boxShape = MakeShared<btBoxShape>(ToBtVector(aabb.GetExtent() * 0.5f));
+
+        // btBoxShape is centered on the body origin. If the AABB is off-center, embed the box in a
+        // compound shifted by the AABB's center so the collision matches the true bounds.
+        const Vec3f center = aabb.GetCenter();
+
+        if (center.LengthSquared() < MathUtil::epsilonF)
+        {
+            return boxShape;
+        }
+
+        btTransform childTransform;
+        childTransform.setIdentity();
+        childTransform.setOrigin(ToBtVector(center));
+
+        return MakeShared<OffsetCollisionShape>(std::move(boxShape), childTransform);
+    }
     case PhysicsShapeType::Sphere:
-        return MakeShared<btSphereShape>(static_cast<SpherePhysicsShape*>(physicsShape)->GetSphere().GetRadius());
+    {
+        const BoundingSphere& sphere = static_cast<SpherePhysicsShape*>(physicsShape)->GetSphere();
+        SharedPtr<btSphereShape> sphereShape = MakeShared<btSphereShape>(sphere.GetRadius());
+
+        // btSphereShape is centered on the body origin; shift it to the sphere's local center if any.
+        const Vec3f center = sphere.GetCenter();
+
+        if (center.LengthSquared() < MathUtil::epsilonF)
+        {
+            return sphereShape;
+        }
+
+        btTransform childTransform;
+        childTransform.setIdentity();
+        childTransform.setOrigin(ToBtVector(center));
+
+        return MakeShared<OffsetCollisionShape>(std::move(sphereShape), childTransform);
+    }
     case PhysicsShapeType::Plane:
         return MakeShared<btStaticPlaneShape>(
             ToBtVector(static_cast<PlanePhysicsShape*>(physicsShape)->GetPlane().GetXYZ()),
@@ -159,18 +215,44 @@ void BulletPhysicsAdapter::Tick(PhysicsWorldBase* world, double delta)
 {
     Assert(m_dynamicsWorld != nullptr);
 
-    m_dynamicsWorld->stepSimulation(delta);
+    // Step at a fixed, high-frequency timestep. btKinematicCharacterController moves the capsule by a
+    // continuous sweep of (velocity * dt) each substep; a smaller per-step displacement keeps it from
+    // starting that sweep from inside the ground's collision margin and slipping through thin geometry.
+    // Clamping delta to maxSubSteps * fixedTimeStep avoids the "spiral of death" on frame stalls.
+    constexpr double fixedTimeStep = 1.0 / 120.0;
+    constexpr int maxSubSteps = 8;
+    constexpr double maxDelta = maxSubSteps * fixedTimeStep;
+
+    const double clampedDelta = delta > maxDelta ? maxDelta : delta;
+
+    m_dynamicsWorld->stepSimulation(clampedDelta, maxSubSteps, fixedTimeStep);
 
     for (Handle<RigidBody>& rigidBody : world->GetRigidBodies())
     {
         RigidBodyInternalData* internalData = static_cast<RigidBodyInternalData*>(rigidBody->GetInternalData());
+
+        const bool isSleeping = internalData->rigidBody->getActivationState() == ISLAND_SLEEPING;
+
+        if (isSleeping != rigidBody->isSleeping)
+        {
+            if (!isSleeping)
+            {
+                // @TODO wake
+            }
+            
+            rigidBody->isSleeping = isSleeping;
+        }
+        else if (isSleeping)
+        {
+            continue;
+        }
 
         btTransform btTransform;
         internalData->motionState->getWorldTransform(btTransform);
 
         Transform rigidBodyTransform = rigidBody->GetTransform();
         rigidBodyTransform.GetTranslation() = FromBtVector(btTransform.getOrigin());
-        rigidBodyTransform.GetRotation() = FromBtQuaternion(btTransform.getRotation()).Inverse();
+        rigidBodyTransform.GetRotation() = FromBtQuaternion(btTransform.getRotation());
 
         rigidBody->SetTransform(rigidBodyTransform);
     }
@@ -211,7 +293,6 @@ void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
         localInertia);
 
     internalData->rigidBody = MakeShared<btRigidBody>(constructionInfo);
-    internalData->rigidBody->setActivationState(DISABLE_DEACTIVATION); // TEMP
     internalData->rigidBody->setWorldTransform(btTransform);
 
     m_dynamicsWorld->addRigidBody(internalData->rigidBody.Get());

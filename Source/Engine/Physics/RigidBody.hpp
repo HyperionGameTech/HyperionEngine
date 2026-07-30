@@ -82,6 +82,8 @@ public:
     PhysicsShape* shape;
     PhysicsMaterial* physicsMaterial;
 
+    bool isSleeping;
+
 private:
     Transform m_transform;
 

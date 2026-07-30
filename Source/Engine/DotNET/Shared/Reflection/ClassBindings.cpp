@@ -280,7 +280,12 @@ extern "C"
         Assert(parentClass != nullptr);
 
 #ifdef HYP_DOTNET
-        return new DynamicClassInstance(*typeId, CreateNameFromDynamicString(name), parentClass, nullptr, Span<const ClassAttribute>(), ClassFlags::CLASS_TYPE, Span<MemberVariant>());
+        auto* dynamicClass = new DynamicClassInstance(*typeId, CreateNameFromDynamicString(name), parentClass, nullptr, Span<const ClassAttribute>(), ClassFlags::CLASS_TYPE, Span<MemberVariant>());
+
+        // hold a reference for the .NET wrapper; released in Class_DestroyDynamicClass
+        dynamicClass->AddRef();
+
+        return dynamicClass;
 #else
         return nullptr;
 #endif
@@ -290,7 +295,9 @@ extern "C"
     {
         Assert(cls != nullptr);
 
-        delete cls;
+        // release the reference held by the .NET wrapper instead of deleting directly,
+        // so the class is not freed while instances still reference it
+        cls->Release();
     }
 
     HYP_EXPORT const Class* Class_GetParent(const Class* cls)

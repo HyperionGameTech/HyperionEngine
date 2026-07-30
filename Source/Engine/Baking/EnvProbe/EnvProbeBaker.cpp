@@ -154,8 +154,6 @@ void Baker<EnvProbe>::OnCompleted_Internal()
 
     GetCurrentAssetRegistry()->PutAssetUnique(bakedTexture);
 
-    Check(bakedTexture->Create());
-
     m_envProbe->SetBakedTexture(bakedTexture);
 
     // Bake visibility texture

@@ -80,6 +80,13 @@ auto BakeData<EnvProbe>::ToBitmap() const -> BitmapType
 
     for (uint32 face = 0; face < 6; face++)
     {
+        uint32 numSkipped = 0;
+        uint32 numLowAlpha = 0;
+        double sumW = 0.0;
+        double sumPreRgb = 0.0;
+        double sumPostRgb = 0.0;
+        uint32 numProcessed = 0;
+
         for (uint32 y = 0; y < dimensions.y; y++)
         {
             for (uint32 x = 0; x < dimensions.x; x++)
@@ -91,12 +98,26 @@ auto BakeData<EnvProbe>::ToBitmap() const -> BitmapType
 
                 if (color.w <= 0.00001f)
                 {
+                    numSkipped++;
+
                     continue;
+                }
+
+                const float preRgbLen = MathUtil::Max(color.x, MathUtil::Max(color.y, color.z));
+
+                if (color.w < 0.3f)
+                {
+                    numLowAlpha++;
                 }
 
                 color /= color.w;
 
                 color = MathUtil::Max(color, Vec4f::Zero());
+
+                sumW += color.w;
+                sumPreRgb += preRgbLen;
+                sumPostRgb += MathUtil::Max(color.x, MathUtil::Max(color.y, color.z));
+                numProcessed++;
 
                 if constexpr (!BitmapType::Helper::IsFloatingPoint)
                 {
@@ -108,6 +129,15 @@ auto BakeData<EnvProbe>::ToBitmap() const -> BitmapType
                 bitmap.GetPixelReference(x, bitmapY).SetRGBA(color);
             }
         }
+
+        HYP_LOG(Lightmap, Info, "[EnvProbe Bake] face {} stats: skipped {}/{}, lowAlpha(<0.3) {}, meanW {}, meanPreRGB {}, meanPostRGB {}",
+            face,
+            numSkipped,
+            uint32(numTexelsPerFace),
+            numLowAlpha,
+            numProcessed ? MathUtil::Round(float(sumW / numProcessed), 4) : 0.0f,
+            numProcessed ? MathUtil::Round(float(sumPreRgb / numProcessed), 4) : 0.0f,
+            numProcessed ? MathUtil::Round(float(sumPostRgb / numProcessed), 4) : 0.0f);
     }
 
     return bitmap;

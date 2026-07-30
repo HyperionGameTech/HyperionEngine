@@ -203,22 +203,20 @@ namespace Hyperion.Editor.ViewModels
                                 isReadOnly = true;
                             }
 
-                            Action? postWrite = null;
+                            Entity entity = _target;
+
+                            Action? propertySpecificPostWrite = null;
 
                             if (isMeshComponent && MeshComponentRenderProxyProperties.Contains(property.Name.ToString()))
                             {
-                                Entity entity = _target;
-
-                                postWrite = () =>
+                                propertySpecificPostWrite = () =>
                                 {
                                     entity.AddTag(EntityTag.UpdateRenderProxy);
                                 };
                             }
                             else if (isRigidBodyComponent && (property.Name == "PhysicsShape" || property.Name == "PhysicsMaterial"))
                             {
-                                Entity entity = _target;
-
-                                postWrite = () =>
+                                propertySpecificPostWrite = () =>
                                 {
                                     if (property.Name == "PhysicsShape")
                                     {
@@ -229,6 +227,12 @@ namespace Hyperion.Editor.ViewModels
                                         entity.AddTag(EntityTag.UpdatePhysicsMaterial);
                                     }
                                 };
+                            }
+
+                            void postWrite()
+                            {
+                                entity.MarkDirty();
+                                propertySpecificPostWrite?.Invoke();
                             }
 
                             InspectorPropertyViewModelBase vm = InspectorViewModelFactory.CreateForComponent(

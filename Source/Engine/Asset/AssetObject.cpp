@@ -467,12 +467,12 @@ void AssetObject::SetBlobDataResident(bool resident, BlobDataReference& referenc
     }
 }
 
-TUniqueResLock<AssetObject> AssetObject::GetWriteScope() const
+HYP_NODISCARD TUniqueResLock<AssetObject> AssetObject::GetWriteScope() const
 {
     return TUniqueResLock<AssetObject> { const_cast<AssetObject&>(*this) };
 }
 
-TSharedResLock<AssetObject> AssetObject::GetReadScope() const
+HYP_NODISCARD TSharedResLock<AssetObject> AssetObject::GetReadScope() const
 {
     return TSharedResLock<AssetObject> { const_cast<AssetObject&>(*this) };
 }
