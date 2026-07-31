@@ -367,6 +367,113 @@ TResult<HypScriptTypeMapping> MapToHypScriptType(const Analyzer& analyzer, const
     return HYP_MAKE_ERROR(Error, "Type is unable to be mapped to a HypScript type");
 }
 
+TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTType* type)
+{
+    if (type == nullptr)
+    {
+        return HYP_MAKE_ERROR(Error, "Null type");
+    }
+
+    // References and arrays have no Strata representation.
+    if (type->isLvalueReference || type->isRvalueReference)
+    {
+        return HYP_MAKE_ERROR(Error, "Reference types are not supported in Strata bindings");
+    }
+
+    if (type->isArray)
+    {
+        return HYP_MAKE_ERROR(Error, "Array types are not supported in Strata bindings");
+    }
+
+    if (type->isPointer)
+    {
+        if (!type->ptrTo)
+        {
+            return HYP_MAKE_ERROR(Error, "Pointer type has no inner type");
+        }
+
+        if (type->ptrTo->IsVoid())
+        {
+            return HYP_MAKE_ERROR(Error, "Void pointers are not supported in Strata bindings");
+        }
+
+        if (type->ptrTo->IsChar())
+        {
+            return HYP_MAKE_ERROR(Error, "C-strings are not supported in Strata bindings");
+        }
+
+        // A raw `T*` is only valid if T is a known engine class/struct (a handle).
+        if (type->ptrTo->typeName.HasValue() && !type->ptrTo->typeName->parts.Empty())
+        {
+            const String innerName = type->ptrTo->typeName->ToString(/* includeNamespace */ false);
+
+            if (const ClassDefinition* definition = analyzer.FindClassDefinition(innerName);
+                definition && (definition->type == ClassDefinitionType::Class || definition->type == ClassDefinitionType::Struct))
+            {
+                return StrataTypeMapping { definition->name, true };
+            }
+        }
+
+        return HYP_MAKE_ERROR(Error, "Pointer to non-class type is not supported in Strata bindings");
+    }
+
+    // Smart pointers / wrapper templates are aggregates by value -> reject.
+    if (type->isTemplate)
+    {
+        return HYP_MAKE_ERROR(Error, "Template types are not supported in Strata bindings");
+    }
+
+    if (!type->typeName.HasValue() || type->typeName->parts.Empty())
+    {
+        return HYP_MAKE_ERROR(Error, "Type has no name");
+    }
+
+    const String typeNameString = type->typeName->ToString(/* includeNamespace */ false);
+
+    static const Map<String, StrataTypeMapping> s_mapping {
+        { "void", { "void", false } },
+        { "bool", { "bool", false } },
+        { "float", { "float", false } },
+        { "double", { "double", false } },
+        { "int", { "int", false } },
+        { "int32", { "int", false } },
+        { "uint", { "uint", false } },
+        { "uint32", { "uint", false } },
+
+        { "int64", { "long", false } },
+        { "uint64", { "ulong", false } }
+    };
+
+    if (auto it = s_mapping.Find(typeNameString); it != s_mapping.End())
+    {
+        return it->second;
+    }
+
+    // @FIXME proper enum support needed. for now just use underlying type.
+    if (const ClassDefinition* definition = analyzer.FindClassDefinition(typeNameString);
+        definition && definition->type == ClassDefinitionType::Enum)
+    {
+        const UTF8StringView underlyingTypeName = definition->baseClassNames.Any()
+            ? definition->baseClassNames[0]
+            : "int32";
+
+        if (auto underlyingIt = s_mapping.Find(underlyingTypeName); underlyingIt != s_mapping.End())
+        {
+            return underlyingIt->second;
+        }
+
+        return HYP_MAKE_ERROR(Error, "Enum '{}' has underlying type '{}' with no Strata equivalent", typeNameString, underlyingTypeName);
+    }
+
+    // A bare class/struct by value is an aggregate -> must be a pointer instead.
+    if (analyzer.FindClassDefinition(typeNameString))
+    {
+        return HYP_MAKE_ERROR(Error, "Aggregate value types must be passed as pointers in Strata bindings");
+    }
+
+    return HYP_MAKE_ERROR(Error, "Type '{}' is not supported in Strata bindings", typeNameString);
+}
+
 #pragma endregion Type mapping
 
 #pragma region QualifiedName

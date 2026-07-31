@@ -160,7 +160,7 @@ void EditorGizmoBase::Init()
 
     if (!m_node.IsValid())
     {
-        HYP_LOG(Editor, Warning, "Failed to create manipulation widget node for \"{}\"!", InstanceClass()->GetName());
+        HYP_LOG(Editor, Warning, "Failed to create gizmo node for \"{}\"!", InstanceClass()->GetName());
 
         // Create default node so we don't crash trying to use it
         m_node = MakeHandle<Node>();
@@ -3164,12 +3164,12 @@ void EditorSubsystem::InitializeGizmos()
 {
     AssertOnThread(g_simThread);
 
-    for (const Handle<EditorGizmoBase>& widget : m_gizmos)
+    for (const Handle<EditorGizmoBase>& gizmo : m_gizmos)
     {
-        widget->SetEditorSubsystem(this);
-        widget->SetCurrentProject(m_currentProject);
+        gizmo->SetEditorSubsystem(this);
+        gizmo->SetCurrentProject(m_currentProject);
 
-        InitObject(widget);
+        InitObject(gizmo);
     }
 }
 
@@ -4261,13 +4261,13 @@ void EditorSubsystem::InitViewport()
 
             if (IsHoveringGizmo())
             {
-                // If the mouse is currently over a manipulation widget, don't allow camera to handle the event
+                // If the mouse is currently over a gizmo, don't allow camera to handle the event
                 Handle<EditorGizmoBase> gizmo = m_hoveredGizmo.Lock();
                 Handle<Node> node = m_hoveredGizmoNode.Lock();
 
                 if (!gizmo || !node)
                 {
-                    HYP_LOG(Editor, Warning, "Failed to lock hovered manipulation widget or node");
+                    HYP_LOG(Editor, Warning, "Failed to lock hovered gizmo or node");
 
                     return UIEventHandlerResult::ERR;
                 }
@@ -4316,11 +4316,11 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
 
-            // Hover over a manipulation widget when mouse is not down
+            // Hover over a gizmo when mouse is not down
             if (!event.mouseButtons[MouseButtonState::LEFT]
                 && GetSelectedManipulationMode() != EditorManipulationMode::None)
             {
-                // Ray test the widget
+                // Ray test the gizmo
 
                 const Ray ray = activeViewport->GetCamera()->GetPickRay(event.relativePos);
 

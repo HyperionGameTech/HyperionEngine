@@ -256,6 +256,11 @@ public:
     {
         SetBakedShadowMap(Handle<Texture>::Null());
     }
+
+    HYP_METHOD(EditorOnly)
+    bool CanBakeStaticShadows() const;
+#else
+    static constexpr NoOpFunction<bool> CanBakeStaticShadows;
 #endif
 
 protected:
@@ -271,13 +276,6 @@ protected:
     void OnTransformUpdated() override;
 
     BoundingBox CalculateLightBounds() const;
-
-#if HYP_EDITOR
-    HYP_METHOD(EditorOnly)
-    bool CanBakeStaticShadows() const;
-#else
-    static constexpr NoOpFunction<bool> CanBakeStaticShadows;
-#endif
 
     HYP_FIELD()
     LightType m_type;

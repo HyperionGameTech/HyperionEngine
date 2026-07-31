@@ -117,9 +117,6 @@ public:
     Delegate<void, StreamingCell*, Array<const AssetObject*>> OnStreamingObjectsUnloaded;
 
 protected:
-    HYP_METHOD(Scriptable)
-    virtual void Init() override;
-
     HYP_METHOD()
     virtual void OnAdded_Impl(WorldGrid* worldGrid)
     {
@@ -136,13 +133,6 @@ protected:
     Name m_name;
     WorldGridLayerInfo m_layerInfo;
     FlatMap<Vec2i, Array<AssetReference, DynamicAllocator>> m_objectsByCoord;
-
-private:
-    HYP_METHOD()
-    virtual void Init_Impl()
-    {
-        SetReady(true);
-    }
 };
 
 } // namespace Hyperion

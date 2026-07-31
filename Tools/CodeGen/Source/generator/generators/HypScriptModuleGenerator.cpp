@@ -4,7 +4,6 @@
  *  @licence MIT
 */
 
-#include "Core/Reflection/Class.hpp"
 #include <generator/generators/HypScriptModuleGenerator.hpp>
 
 #include <analyzer/Analyzer.hpp>
@@ -15,6 +14,8 @@
 #include <Util/Util.hpp>
 
 #include <Core/Name/Name.hpp>
+
+#include <Core/Reflection/Class.hpp>
 
 #include <Core/Utilities/DeferredScope.hpp>
 #include <Core/Utilities/StringUtil.hpp>

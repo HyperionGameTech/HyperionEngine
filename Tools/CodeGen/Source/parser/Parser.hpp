@@ -44,10 +44,17 @@ struct HypScriptTypeMapping
     String typeName; // Name of the type in HypScript
 };
 
+struct StrataTypeMapping
+{
+    String typeName;      // Name of the type in Strata
+    bool isHandle = false; // True when typeName names an engine object handle
+};
+
 extern const HypScriptTypeMapping g_hypscriptAnyTypeMapping;
 
 TResult<CSharpTypeMapping> MapToCSharpType(const Analyzer& analyzer, const ASTType* type);
 TResult<HypScriptTypeMapping> MapToHypScriptType(const Analyzer& analyzer, const ASTType* type);
+TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTType* type);
 
 struct ASTNode
 {

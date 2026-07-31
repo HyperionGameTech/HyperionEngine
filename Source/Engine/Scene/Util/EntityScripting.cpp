@@ -39,11 +39,13 @@
 
 #ifdef HYP_SCRIPT
 #include <Lang/HypScript.hpp>
-#endif
+#endif // HYP_SCRIPT
 
 #ifdef HYP_STRATA
 #include <strata/strata.h>
-#endif
+
+#include <Core/Scripting/Strata/ThunkDrawer.hpp>
+#endif // HYP_STRATA
 
 #if HYP_WINDOWS
 #  define WIN32_LEAN_AND_MEAN
@@ -65,11 +67,10 @@ namespace CoreApi {
 CORE_API extern const FilePath& GetExecutablePath();
 } // namespace CoreApi
 
-
-namespace {
+namespace Strata {
 
 // thread-local cache for strata module -> function pointer map
-struct StrataFunctionPointerCache
+struct FunctionPointerCache
 {
     using FunctionMap = Map<StringHash, void*>;
     using ModuleMap = Map<StringHash, FunctionMap>;
@@ -109,31 +110,31 @@ struct StrataFunctionPointerCache
     }
 };
 
-thread_local StrataFunctionPointerCache* t_strataFnPtrCache = nullptr;
+thread_local FunctionPointerCache* t_fnPtrCache = nullptr;
 
-void ShutdownStrataCache()
+static void ShutdownCache()
 {
-    delete t_strataFnPtrCache;
-    t_strataFnPtrCache = nullptr;
+    delete t_fnPtrCache;
+    t_fnPtrCache = nullptr;
 }
 
-void InitStrataCache()
+static void InitializeCache()
 {
-    if (t_strataFnPtrCache != nullptr)
+    if (t_fnPtrCache != nullptr)
     {
         return;
     }
 
-    t_strataFnPtrCache = new StrataFunctionPointerCache;
+    t_fnPtrCache = new FunctionPointerCache;
 
     if (ThreadBase* currThread = CurrentThreadObject())
     {
-        currThread->AddOnExitCallback(ShutdownStrataCache);
+        currThread->AddOnExitCallback(ShutdownCache);
     }
 }
 
 // @TODO Remove when we use static linkage instead
-void* ResolveStrataSymbolFromHost(const char* name)
+static void* ResolveSymbolFromHost(const char* name)
 {
     if (name == nullptr || *name == '\0')
     {
@@ -155,13 +156,13 @@ void* ResolveStrataSymbolFromHost(const char* name)
 #endif
 }
 
-void* ResolveStrataFunctionPointer(ScriptObjectData_Strata* data, const char* name)
+static void* ResolveFunctionPointer(ScriptObjectData_Strata* data, const char* name)
 {
     Assert(data != nullptr);
 
     const StringHash functionHash(name);
 
-    if (void* cached = t_strataFnPtrCache->TryGet(data->moduleHash, functionHash))
+    if (void* cached = t_fnPtrCache->TryGet(data->moduleHash, functionHash))
     {
         return cached;
     }
@@ -177,10 +178,10 @@ void* ResolveStrataFunctionPointer(ScriptObjectData_Strata* data, const char* na
 
     if (fn == nullptr)
     {
-        fn = ResolveStrataSymbolFromHost(name);
+        fn = ResolveSymbolFromHost(name);
     }
 
-    t_strataFnPtrCache->Put(data->moduleHash, functionHash, fn);
+    t_fnPtrCache->Put(data->moduleHash, functionHash, fn);
 
     return fn;
 }
@@ -189,7 +190,7 @@ void* ResolveStrataFunctionPointer(ScriptObjectData_Strata* data, const char* na
 
 thread_local StrataCompiler* t_strataCompiler = nullptr;
 
-void ShutdownStrataCompiler()
+void ShutdownCompiler()
 {
     if (t_strataCompiler != nullptr)
     {
@@ -197,12 +198,12 @@ void ShutdownStrataCompiler()
         t_strataCompiler = nullptr;
     }
 
-    ShutdownStrataCache();
+    ShutdownCache();
 }
 
-void InitStrataCompiler()
+void InitializeCompiler()
 {
-    InitStrataCache();
+    InitializeCache();
 
     if (t_strataCompiler == nullptr)
     {
@@ -211,43 +212,12 @@ void InitStrataCompiler()
 
         if (ThreadBase* currThread = CurrentThreadObject())
         {
-            currThread->AddOnExitCallback(ShutdownStrataCompiler);
+            currThread->AddOnExitCallback(ShutdownCompiler);
         }
     }
 }
 
-static void PrintEntityName(Entity* entity)
-{
-    if (!entity)
-    {
-        printf("<null>\n");
-        return;
-    }
-
-    printf("%s\n", entity->GetName().LookupString());
-}
-
-void* ResolveStrataExtern(const char* name)
-{
-    (void)name;
-
-    // TEMP debug
-    if (strcmp(name, "putchar") == 0)
-    {
-        return (void*)&putchar;
-    }
-    if (strcmp(name, "PrintEntityName") == 0)
-    {
-        return (void*)&PrintEntityName;
-    }
-
-    // @TODO
-    HYP_FAIL("Missing extern: {}", name);
-
-    return nullptr;
-}
-
-void BindStrataExterns(StrataJit* jit)
+void BindExterns(StrataJit* jit)
 {
     Assert(jit != nullptr);
 
@@ -257,7 +227,7 @@ void BindStrataExterns(StrataJit* jit)
     {
         const char* name = strataJitGetExternSymbolName(jit, i);
 
-        if (void* hostFn = ResolveStrataExtern(name))
+        if (void* hostFn = ThunkDrawer::Resolve(StringHash(name)))
         {
             strataJitAddSymbol(jit, name, hostFn);
         }
@@ -270,7 +240,7 @@ void BindStrataExterns(StrataJit* jit)
 
 #endif // HYP_STRATA
 
-} // anonymous namespace
+} // namespace Strata
 
 namespace EntityScripting {
 
@@ -346,9 +316,9 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
         auto* data = sor->GetScriptObjectData_Strata();
         Assert(data != nullptr);
 
-        InitStrataCache();
+        Strata::InitializeCache();
 
-        if (void* fnPtrRaw = ResolveStrataFunctionPointer(data, methodName))
+        if (void* fnPtrRaw = Strata::ResolveFunctionPointer(data, methodName))
         {
             auto fnPtrCasted = (ReturnType (*)(ArgTypes...))fnPtrRaw;
 
@@ -762,8 +732,8 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
                 const StringHash moduleHash(scriptDesc.path.Data());
 
-                InitStrataCache();
-                t_strataFnPtrCache->ClearModule(moduleHash);
+                Strata::InitializeCache();
+                Strata::t_fnPtrCache->ClearModule(moduleHash);
 
                 sor = new ScriptObjectResource(ValueWrapper<ScriptLanguage::Strata>{}, moduleHash);
                 sor->AddReader();
@@ -774,7 +744,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
 #ifdef HYP_STRATA
                     // Compile the source at runtime. Shipped builds have no knowledge of the language, symbols are linked to the exe
-                    InitStrataCompiler();
+                    Strata::InitializeCompiler();
 
                     FilePath sourcePath;
 
@@ -792,11 +762,11 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                     if (sourcePath.Exists() && sourcePath.CanRead())
                     {
                         const char* err = nullptr;
-                        StrataJit* jit = strataJitCompileFile(t_strataCompiler, sourcePath.Data(), &err);
+                        StrataJit* jit = strataJitCompileFile(Strata::t_strataCompiler, sourcePath.Data(), &err);
 
                         if (jit != nullptr)
                         {
-                            BindStrataExterns(jit);
+                            Strata::BindExterns(jit);
 
                             strataData->jit = jit;
                         }

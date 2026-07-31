@@ -151,9 +151,6 @@ UISubsystem::UISubsystem(const Handle<UIStage>& uiStage)
 
 UISubsystem::~UISubsystem()
 {
-
-    // PUSH_RENDER_COMMAND(SetFinalPassImageView, nullptr);
-
     m_onWindowResizedHandle.Reset();
     m_onCurrentWindowChangedHandle.Reset();
 }

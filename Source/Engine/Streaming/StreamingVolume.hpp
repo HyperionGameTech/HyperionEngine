@@ -43,10 +43,13 @@ class ENGINE_API StreamingVolumeBase : public ObjectBase
 
 public:
     StreamingVolumeBase() = default;
+    
     StreamingVolumeBase(const StreamingVolumeBase& other) = delete;
     StreamingVolumeBase& operator=(const StreamingVolumeBase& other) = delete;
+    
     StreamingVolumeBase(StreamingVolumeBase&& other) noexcept = delete;
     StreamingVolumeBase& operator=(StreamingVolumeBase&& other) noexcept = delete;
+
     virtual ~StreamingVolumeBase() override = default;
 
     void RegisterNotifier(StreamingNotifier* notifier)
@@ -83,6 +86,11 @@ public:
 
     HYP_METHOD(Scriptable)
     bool ContainsPoint(const Vec3f& point) const;
+    
+    /*! \brief Notify all registered notifiers that the volume has been updated.
+     *  This is typically called when the volume's bounding box or shape changes and needs have the changes be reflected in the streaming system. */
+    HYP_METHOD()
+    void NotifyUpdate();
 
 protected:
     HYP_METHOD()
@@ -108,11 +116,6 @@ protected:
     {
         HYP_PURE_VIRTUAL();
     }
-
-    /*! \brief Notify all registered notifiers that the volume has been updated.
-     *  This is typically called when the volume's bounding box or shape changes and needs have the changes be reflected in the streaming system. */
-    HYP_METHOD()
-    void NotifyUpdate();
 
 private:
     Mutex m_notifiersMtx;

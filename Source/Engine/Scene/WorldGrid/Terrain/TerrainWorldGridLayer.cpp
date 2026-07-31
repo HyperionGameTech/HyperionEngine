@@ -50,14 +50,14 @@ TerrainWorldGridLayer::~TerrainWorldGridLayer()
 {
 }
 
-void TerrainWorldGridLayer::Init()
+void TerrainWorldGridLayer::OnAdded_Impl(WorldGrid* worldGrid)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
 
-    WorldGridLayer::Init();
-
+    AssertDebug(worldGrid != nullptr);
     AssertDebug(m_scene.IsValid());
+    
     m_scene->Initialize();
 
     MaterialAttributes attributes;
@@ -93,15 +93,6 @@ void TerrainWorldGridLayer::Init()
     // }
 
     InitObject(m_material);
-}
-
-void TerrainWorldGridLayer::OnAdded_Impl(WorldGrid* worldGrid)
-{
-    HYP_SCOPE;
-    AssertOnThread(g_simThread);
-
-    AssertDebug(worldGrid != nullptr);
-    AssertDebug(m_scene.IsValid());
 
     worldGrid->GetWorld()->AddScene(m_scene);
 }

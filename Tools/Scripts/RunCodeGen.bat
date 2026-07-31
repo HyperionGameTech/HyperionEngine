@@ -89,4 +89,4 @@ if errorlevel 1 (
 :_skipBuild
 rem -- version‐based rebuild logic end --
 
-Build\hyperion-codegen.exe --WorkingDirectory=%WORKING_DIR% --SourceDirectory=%WORKING_DIR%\Source --CXXOutputDirectory=%WORKING_DIR%\Source\Generated --CSharpOutputDirectory=%WORKING_DIR%\Source\Generated\CSharp --HypScriptOutputDirectory=%WORKING_DIR%\Data\Scripts --ExcludeDirectories=%WORKING_DIR%\Source\Generated --ExcludeFiles=%WORKING_DIR%\Source\Core\Defines.hpp
+Build\hyperion-codegen.exe --WorkingDirectory=%WORKING_DIR% --SourceDirectory=%WORKING_DIR%\Source --CXXOutputDirectory=%WORKING_DIR%\Source\Generated --CSharpOutputDirectory=%WORKING_DIR%\Source\Generated\CSharp --HypScriptOutputDirectory=%WORKING_DIR%\Data\Scripts --StrataOutputDirectory=%WORKING_DIR%\Data\Scripts\Strata --ExcludeDirectories=%WORKING_DIR%\Source\Generated --ExcludeFiles=%WORKING_DIR%\Source\Core\Defines.hpp

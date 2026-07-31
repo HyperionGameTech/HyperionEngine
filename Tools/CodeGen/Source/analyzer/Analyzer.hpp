@@ -95,6 +95,16 @@ public:
         m_hypscriptOutputDirectory = hypscriptOutputDirectory;
     }
 
+    HYP_FORCE_INLINE const FilePath& GetStrataOutputDirectory() const
+    {
+        return m_strataOutputDirectory;
+    }
+
+    HYP_FORCE_INLINE void SetStrataOutputDirectory(const FilePath& strataOutputDirectory)
+    {
+        m_strataOutputDirectory = strataOutputDirectory;
+    }
+
     HYP_FORCE_INLINE const Set<FilePath>& GetExcludeDirectories() const
     {
         return m_excludeDirectories;
@@ -196,6 +206,7 @@ private:
     FilePath m_cxxOutputDirectory;
     FilePath m_csharpOutputDirectory;
     FilePath m_hypscriptOutputDirectory;
+    FilePath m_strataOutputDirectory;
 
     Set<FilePath> m_excludeDirectories;
     Set<FilePath> m_excludeFiles;

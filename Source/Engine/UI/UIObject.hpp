@@ -555,6 +555,9 @@ public:
 
     virtual ~UIObject();
 
+    HYP_METHOD()
+    virtual void Init();
+
     virtual void Update(float delta) final;
 
     HYP_METHOD()
@@ -1317,9 +1320,6 @@ public:
     static ScriptableDelegate<UIEventHandlerResult, const BoxedValue&> OnValueChange;
 
 protected:
-    HYP_METHOD()
-    virtual void Init();
-
     void AssertOnOwnerThread() const;
 
     Handle<UIObject> GetClosestParentUIObject_Proc(const ProcRef<bool(UIObject*)>& proc) const;

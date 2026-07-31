@@ -134,6 +134,7 @@ extern struct UIObjectSize
     Value : Vec2i
 end
 extern class UIObject
+    Init() -> void
     GetEntity() -> Entity
     GetStage() -> UIStage
     SetStage(stage : UIStage) -> void
@@ -231,7 +232,6 @@ extern class UIObject
     static OnEnabled : any
     static OnDisabled : any
     static OnValueChange : any
-    Init() -> void
 end
 extern class UIConsole : UIObject
 end
@@ -439,11 +439,11 @@ extern class StreamingVolumeBase
     GetBoundingBox(outAabb : BoundingBox) -> bool
     GetBoundingSphere(outSphere : BoundingSphere) -> bool
     ContainsPoint(point : Vec3f) -> bool
+    NotifyUpdate() -> void
     GetShape_Impl() -> StreamingVolumeShape
     GetBoundingBox_Impl(outAabb : BoundingBox) -> bool
     GetBoundingSphere_Impl(outSphere : BoundingSphere) -> bool
     ContainsPoint_Impl(point : Vec3f) -> bool
-    NotifyUpdate() -> void
 end
 extern enum StreamingVolumeShape : uint32
     SPHERE = 0,
@@ -555,11 +555,9 @@ extern class WorldGridLayer
     CreateStreamingCell(cellInfo : StreamingCellInfo) -> StreamingCell
     AddStreamingObject(assetObject : AssetObject, coord : Vec2i) -> void
     RemoveStreamingObject(assetObject : AssetObject) -> void
-    Init() -> void
     OnAdded_Impl(worldGrid : WorldGrid) -> void
     OnRemoved_Impl(worldGrid : WorldGrid) -> void
     CreateStreamingCell_Impl(cellInfo : StreamingCellInfo) -> StreamingCell
-    Init_Impl() -> void
 end
 extern struct WorldGridLayerInfo
     Offset : Vec3f
@@ -569,7 +567,6 @@ extern struct WorldGridLayerInfo
 end
 extern class TerrainWorldGridLayer : WorldGridLayer
     GetScene() -> Scene
-    Init() -> void
     OnAdded_Impl(worldGrid : WorldGrid) -> void
     OnRemoved_Impl(worldGrid : WorldGrid) -> void
     CreateStreamingCell_Impl(cellInfo : StreamingCellInfo) -> StreamingCell
@@ -819,6 +816,9 @@ extern class EditorSubsystem : Subsystem
     AddViewport(viewport : EditorViewport) -> void
     RemoveViewport(viewport : EditorViewport) -> void
     GetEditorScene() -> Scene
+    StartSimulation() -> bool
+    StopSimulation() -> bool
+    PauseSimulation() -> bool
     ExecuteCommand(command : EditorCommandBase) -> bool
     ExecuteCommandByName(name : Name, arguments : string) -> bool
     NewProject() -> void
@@ -875,9 +875,6 @@ extern class EditorSubsystem : Subsystem
     OnSelectionChanged : any
     OnMeshEditSelectionChanged : any
     OnMeshEditStateChanged : any
-    StartSimulation() -> bool
-    StopSimulation() -> bool
-    PauseSimulation() -> bool
 end
 extern class Node
     Clone() -> Node
@@ -1993,10 +1990,10 @@ extern class Game
     PauseSimulation() -> void
     RegisterInputHandler(inputHandler : InputHandlerBase) -> void
     UnregisterInputHandler(inputHandler : InputHandlerBase) -> void
-    static OnLaunched : any
-    static OnGameStateChange : any
     OnLaunch() -> void
     BeforeShutdown() -> void
+    static OnLaunched : any
+    static OnGameStateChange : any
     OnLaunch_Impl() -> void
     BeforeShutdown_Impl() -> void
     OnUpdate_Impl(delta : float) -> void
