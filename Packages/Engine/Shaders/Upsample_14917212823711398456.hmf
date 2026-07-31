@@ -166,14 +166,13 @@ Shader "Upsample_14917212823711398456" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/Upsample_14917212823711398456.VS"
-            Size = 36784
+            Size = 34876
         }
         BlobDataReference {
             Key = "Engine://Shaders/Upsample_14917212823711398456.PS"
-            Size = 63852
+            Size = 61736
         }
     ]
-    PropertySetHashCode = {
-    }
-    FriendlyName = "Upsample_14917212823711398456"
+    PropertySetHashCode = {}
+
 }

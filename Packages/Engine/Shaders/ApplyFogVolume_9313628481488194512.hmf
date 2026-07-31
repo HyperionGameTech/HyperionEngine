@@ -325,14 +325,13 @@ Shader "ApplyFogVolume_9313628481488194512" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/ApplyFogVolume_9313628481488194512.VS"
-            Size = 41880
+            Size = 39972
         }
         BlobDataReference {
             Key = "Engine://Shaders/ApplyFogVolume_9313628481488194512.PS"
-            Size = 243132
+            Size = 238848
         }
     ]
-    PropertySetHashCode = {
-    }
-    FriendlyName = "ApplyFogVolume_9313628481488194512"
+    PropertySetHashCode = {}
+
 }

@@ -331,14 +331,13 @@ Shader "DeferredDirect_3579567509353136114" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/DeferredDirect_3579567509353136114.VS"
-            Size = 12908
+            Size = 10716
         }
         BlobDataReference {
             Key = "Engine://Shaders/DeferredDirect_3579567509353136114.PS"
-            Size = 242036
+            Size = 245564
         }
     ]
-    PropertySetHashCode = {
-    }
-    FriendlyName = "DeferredDirect_3579567509353136114"
+    PropertySetHashCode = {}
+
 }

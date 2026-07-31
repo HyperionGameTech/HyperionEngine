@@ -240,14 +240,13 @@ Shader "SSRSampleGBuffer_6826059799620415254" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/SSRSampleGBuffer_6826059799620415254.VS"
-            Size = 12468
+            Size = 10276
         }
         BlobDataReference {
             Key = "Engine://Shaders/SSRSampleGBuffer_6826059799620415254.PS"
-            Size = 114216
+            Size = 109860
         }
     ]
-    PropertySetHashCode = {
-    }
-    FriendlyName = "SSRSampleGBuffer_6826059799620415254"
+    PropertySetHashCode = {}
+
 }

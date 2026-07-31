@@ -3,5 +3,4 @@ ShaderBundle "FogVolumeOcclusionBake" {
     CompiledShaders = [
         @"Engine://Shaders/FogVolumeOcclusionBake_14917212823711398449"
     ]
-    FriendlyName = "FogVolumeOcclusionBake"
 }

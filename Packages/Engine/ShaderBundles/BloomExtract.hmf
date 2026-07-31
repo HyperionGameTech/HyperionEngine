@@ -4,5 +4,4 @@ ShaderBundle "BloomExtract" {
         @"Engine://Shaders/BloomExtract_14917212823711398449"
         @"Engine://Shaders/BloomExtract_13803781059551201562"
     ]
-    FriendlyName = "BloomExtract"
 }

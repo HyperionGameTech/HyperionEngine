@@ -31,5 +31,4 @@ Texture "SolidBlack" {
         Key = "Engine://Textures/SolidBlack.TEX"
         Size = 256
     }
-    FriendlyName = "SolidBlack"
 }

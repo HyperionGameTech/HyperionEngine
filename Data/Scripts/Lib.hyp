@@ -15,122 +15,6 @@ const DBL_MAX : double = 1.7976931348623157e+308
 const DBL_MIN : double = 2.2250738585072014e-308
 const DBL_EPSILON : double = 2.2204460492503131e-16
 
-extern class AstStatement
-end
-extern class AstWhileLoop : AstStatement
-end
-extern class AstTypeAlias : AstStatement
-end
-extern class AstTryCatch : AstStatement
-end
-extern class AstReturnStatement : AstStatement
-end
-extern class AstImport : AstStatement
-end
-extern class AstModuleImportPart : AstStatement
-end
-extern class AstModuleImport : AstImport
-end
-extern class AstFileImport : AstImport
-end
-extern class AstIfStatement : AstStatement
-end
-extern class AstForLoop : AstStatement
-end
-extern class AstForEachLoop : AstStatement
-end
-extern class AstExpression : AstStatement
-end
-extern class AstUnaryExpression : AstExpression
-end
-extern class AstTypeSpecifier : AstExpression
-end
-extern class AstTypeOfExpression : AstTypeSpecifier
-end
-extern class AstTemplateInstantiation : AstTypeSpecifier
-end
-extern class AstTypeRef : AstExpression
-end
-extern class AstThrowExpression : AstExpression
-end
-extern class AstTernaryExpression : AstExpression
-end
-extern class AstSwitchExpression : AstExpression
-end
-extern class AstNewExpression : AstExpression
-end
-extern class AstModuleAccess : AstExpression
-end
-extern class AstMember : AstExpression
-end
-extern class AstMemberCallExpression : AstMember
-end
-extern class AstIsExpression : AstExpression
-end
-extern class AstIdentifier : AstExpression
-end
-extern class AstVariable : AstIdentifier
-end
-extern class AstHashMap : AstExpression
-end
-extern class AstHasExpression : AstExpression
-end
-extern class AstFunctionExpression : AstExpression
-end
-extern class AstConstant : AstExpression
-end
-extern class AstUnsignedInteger : AstConstant
-end
-extern class AstUndefined : AstConstant
-end
-extern class AstTrue : AstConstant
-end
-extern class AstString : AstConstant
-end
-extern class AstNil : AstConstant
-end
-extern class AstName : AstConstant
-end
-extern class AstInteger : AstConstant
-end
-extern class AstFloat : AstConstant
-end
-extern class AstFalse : AstConstant
-end
-extern class AstClass : AstExpression
-end
-extern class AstCallExpression : AstExpression
-end
-extern class AstBinaryExpression : AstExpression
-end
-extern class AstAsExpression : AstExpression
-end
-extern class AstArrayExpression : AstExpression
-end
-extern class AstArrayAccess : AstExpression
-end
-extern class AstArgumentList : AstExpression
-end
-extern class AstArgument : AstExpression
-end
-extern class AstExportStatement : AstStatement
-end
-extern class AstDirective : AstStatement
-end
-extern class AstDeclaration : AstStatement
-end
-extern class AstVariableDeclaration : AstDeclaration
-end
-extern class AstParameter : AstDeclaration
-end
-extern class AstModuleDeclaration : AstDeclaration
-end
-extern class AstContinueStatement : AstStatement
-end
-extern class AstBreakStatement : AstStatement
-end
-extern class AstBlock : AstStatement
-end
 extern struct OctantId
 end
 extern class OverlayBase
@@ -340,6 +224,7 @@ extern class UIObject
     static OnRightClick : any
     static OnKeyDown : any
     static OnKeyUp : any
+    static OnTextInput : any
     static OnTextChange : any
     static OnSizeChange : any
     static OnComputedVisibilityChange : any
@@ -352,6 +237,7 @@ extern class UIConsole : UIObject
 end
 extern class UIText : UIObject
     GetCharacterOffset(characterIndex : int) -> Vec2f
+    GetClosestCharacterIndex(localPosition : Vec2f) -> int
 end
 extern class UIStage : UIObject
     GetSurfaceSize() -> Vec2i
@@ -454,6 +340,8 @@ extern class ApplicationWindow
     SetIsMouseLocked(locked : bool) -> void
     IsMouseLocked() -> bool
     HasMouseFocus() -> bool
+    ShowVirtualKeyboard() -> void
+    HideVirtualKeyboard() -> void
     HasFocus() -> bool
     IsHighDPI() -> bool
     GetContentScaleFactor() -> float
@@ -474,6 +362,8 @@ extern class AndroidApplicationWindow : ApplicationWindow
     GetContentScaleFactor() -> float
     GetRenderTargetScale() -> float
     Close() -> void
+    ShowVirtualKeyboard() -> void
+    HideVirtualKeyboard() -> void
 end
 extern class CocoaApplicationWindow : ApplicationWindow
     SetMousePosition(position : Vec2i) -> void
@@ -509,6 +399,8 @@ extern class IOSApplicationWindow : ApplicationWindow
     GetContentScaleFactor() -> float
     GetRenderTargetScale() -> float
     Close() -> void
+    ShowVirtualKeyboard() -> void
+    HideVirtualKeyboard() -> void
 end
 extern class AppContextBase
     static GetInstance() -> AppContextBase
@@ -736,14 +628,14 @@ extern struct MeshComponent
 end
 extern struct LightmapElementComponent
     LightmapElementId : any
-    LightmapVolumeName : Name
     LightmapVolume : any
-    ShData : SphericalHarmonicsData
+    LightmapVolumeAssignments : Array<any>
+    LightmapVolumeAssignmentWeights : Array<float>
 end
 extern struct CharacterControllerComponent
     Shape : PhysicsShape
     InputHandler : InputHandlerBase
-    PhysicsHandle : any
+    PhysicsHandle : void
     ViewDirection : Vec3f
     Translation : Vec3f
     MoveSpeed : float
@@ -838,6 +730,7 @@ extern enum ViewFlags : uint32
     UI_VIEW = 0x1000000,
     ENV_PROBE_VIEW = 0x2000000,
     CUBEMAP_FACE_VIEW = 0x4000000,
+    EDITOR_VIEW = 0x8000000,
     EXTERNAL_RENDERTARGET = 0x10000000,
     NO_SHADOW_VIEWS = 0x20000000,
     DEFAULT = (ALL_WORLD_SCENES | COLLECT_ALL_ENTITIES)
@@ -889,6 +782,101 @@ extern class TouchControlsSubsystem : Subsystem
     SetDeadzone(deadzone : float) -> void
 end
 extern class BakerSubsystem : Subsystem
+end
+extern class EditorGizmoBase
+    GetNode() -> Node
+    IsDragging() -> bool
+    GetManipulationMode() -> EditorManipulationMode
+    GetPriority() -> int
+    GetMenuText() -> string
+end
+extern class NullEditorGizmo : EditorGizmoBase
+end
+extern class TranslateEditorGizmo : EditorGizmoBase
+end
+extern class RotateEditorGizmo : EditorGizmoBase
+end
+extern class ScaleEditorGizmo : EditorGizmoBase
+end
+extern class VolumeEditorGizmo : EditorGizmoBase
+end
+extern enum MeshEditFaceMode : uint8
+    Triangle = 0,
+    Quad
+end
+extern enum EditorManipulationMode : uint8
+    None = 0,
+    Translate,
+    Rotate,
+    Scale,
+    ReshapeVolume
+end
+extern class EditorSubsystem : Subsystem
+    GetCurrentProject() -> EditorProject
+    GetActiveViewport() -> EditorViewport
+    SetActiveViewport(viewport : EditorViewport) -> void
+    AddViewport(viewport : EditorViewport) -> void
+    RemoveViewport(viewport : EditorViewport) -> void
+    GetEditorScene() -> Scene
+    ExecuteCommand(command : EditorCommandBase) -> bool
+    ExecuteCommandByName(name : Name, arguments : string) -> bool
+    NewProject() -> void
+    OpenProject(project : EditorProject) -> void
+    CloseProject(shutdownWorld : bool) -> void
+    ShowImportContentDialog() -> void
+    SetFocusedNode(focusedNode : Node, shouldSelectInOutline : bool) -> void
+    GetFocusedNode() -> Node
+    AddToSelection(node : Node) -> void
+    RemoveFromSelection(node : Node) -> void
+    ClearSelection() -> void
+    SetSelectedNodes(nodes : Array<Node>) -> void
+    IsNodeSelected(node : Node) -> bool
+    GetSelectedNodes() -> Array<Node>
+    GetActiveScene() -> Scene
+    SetActiveScene(scene : Scene) -> void
+    GetCodeEditor() -> string
+    GetSelectedManipulationMode() -> EditorManipulationMode
+    SetSelectedManipulationMode(mode : EditorManipulationMode) -> void
+    GetSelectedGizmo() -> EditorGizmoBase
+    GetGizmo(mode : EditorManipulationMode) -> EditorGizmoBase
+    IsMeshEditModeEnabled() -> bool
+    EnterMeshEditMode() -> void
+    ExitMeshEditMode(saveEdits : bool) -> void
+    IsSimulating() -> bool
+    CanEnableMeshEditMode() -> bool
+    GetMeshEditTargetNode() -> Node
+    HasMeshEditFaceSelected() -> bool
+    IsMeshEditDragActive() -> bool
+    HasPendingMeshEdits() -> bool
+    GetMeshEditLockedAxis() -> int
+    GetMeshEditFaceMode() -> MeshEditFaceMode
+    SetMeshEditFaceMode(faceMode : MeshEditFaceMode) -> void
+    IsMeshEditAlignToNormal() -> bool
+    SetMeshEditAlignToNormal(alignToNormal : bool) -> void
+    IsSnapToGridEnabled() -> bool
+    SetSnapToGridEnabled(snapToGrid : bool) -> void
+    IsPhysicsDebugDrawEnabled() -> bool
+    SetPhysicsDebugDrawEnabled(enabled : bool) -> void
+    CanFitPhysicsShapeToMesh() -> bool
+    FitPhysicsShapeToMesh() -> void
+    SetSelectedBucket(bucketIndex : uint32) -> void
+    CalculateSceneInsertionPoint(desiredDistance : float, offsetFromSurface : float) -> Vec3f
+    UpdateNormalizedCubeSpherePreview(numDivisions : uint32) -> void
+    CommitMeshPreview() -> void
+    CancelMeshPreview() -> void
+    OnFocusedNodeChanged : any
+    OnProjectClosing : any
+    OnProjectOpened : any
+    OnActiveSceneChanged : any
+    OnSelectedGizmoChanged : any
+    OnSelectedBucketChanged : any
+    OnActiveViewportChanged : any
+    OnSelectionChanged : any
+    OnMeshEditSelectionChanged : any
+    OnMeshEditStateChanged : any
+    StartSimulation() -> bool
+    StopSimulation() -> bool
+    PauseSimulation() -> bool
 end
 extern class Node
     Clone() -> Node
@@ -1040,6 +1028,7 @@ extern class Camera : Entity
     TransformNDCToScreen(ndc : Vec3f) -> Vec2f
     TransformScreenToWorld(screen : Vec2f) -> Vec4f
     GetPixelSize() -> Vec2f
+    GetPickRay(screen : Vec2f) -> Ray
     MatchWindowSizeRatio : float
     CameraControllers : Array<CameraController>
     Fov : float
@@ -1115,10 +1104,15 @@ extern class ParticleVolume : VolumeBase
     EnableCollision : bool
 end
 extern class LightmapVolume : VolumeBase
-    Rebake() -> void
-    RadianceAtlasTextures : Array<Texture>
+    SetName(name : Name) -> void
+    GetLightmapVolumeId() -> any
+    SetLightmapVolumeId(id : any) -> void
+    BakeLightmap() -> void
+    BakeBentNormals() -> void
     IrradianceAtlasTextures : Array<Texture>
+    BentNormalAtlasTextures : Array<Texture>
     Atlases : Array<LightmapVolumeAtlas>
+    Id : any
 end
 extern struct LightmapVolumeAtlas
     AtlasDimensions : any
@@ -1231,8 +1225,6 @@ extern class Light : Entity
     SetNumShadowMapCascades(numShadowMapCascades : uint32) -> void
     GetBakedShadowMap() -> Texture
     SetBakedShadowMap(shadowMap : Texture) -> void
-    GetShadowMapFilter() -> ShadowMapFilter
-    SetShadowMapFilter(shadowMapFilter : ShadowMapFilter) -> void
     BakeStaticShadows() -> void
     RemoveBakedShadows() -> void
     CanBakeStaticShadows() -> bool
@@ -1261,13 +1253,9 @@ end
 extern enum LightFlags : uint32
     None = 0x0,
     ShadowCaster = 0x1,
-    ShadowPCF = 0x2,
-    ShadowContactHardening = 0x4,
-    ShadowVariance = 0x8,
-    ShadowFilterMask = ((ShadowPCF | ShadowContactHardening) | ShadowVariance),
     CacheStaticShadowMaps = 0x10,
     BakeStaticShadows = 0x20,
-    Default = (ShadowCaster | ShadowPCF)
+    Default = (ShadowCaster | CacheStaticShadowMaps)
 end
 extern struct TagComponentBase
     Value : EntityTag
@@ -1315,14 +1303,7 @@ extern struct ShadowMapAtlas
     FreeSpaces : any
     AtlasIndex : uint32
 end
-extern enum ShadowMapFilter : uint32
-    SMF_STANDARD = 0,
-    SMF_PCF,
-    SMF_CONTACT_HARDENED,
-    SMF_VSM,
-    SMF_MAX
-end
-extern enum ShadowMapType : uint32
+extern enum ShadowMapType : uint8
     SMT_DIRECTIONAL,
     SMT_SPOT,
     SMT_OMNI
@@ -1713,7 +1694,25 @@ extern struct MaterialParameters
     EmissiveColor : Color
     EmissiveIntensity : float
     UserParams : Vec4f
+    UvScale : Vec2f
     Unlit : bool
+    Flags : uint8
+    IsNormalMapFlipY() -> bool
+    SetNormalMapFlipY(value : bool) -> void
+    GetRoughnessChannel() -> MaterialTextureChannel
+    SetRoughnessChannel(channel : MaterialTextureChannel) -> void
+    GetMetalnessChannel() -> MaterialTextureChannel
+    SetMetalnessChannel(channel : MaterialTextureChannel) -> void
+    GetAmbientOcclusionChannel() -> MaterialTextureChannel
+    SetAmbientOcclusionChannel(channel : MaterialTextureChannel) -> void
+    IsParallaxInverseHeight() -> bool
+    SetParallaxInverseHeight(value : bool) -> void
+end
+extern enum MaterialTextureChannel : uint8
+    R = 0,
+    G = 1,
+    B = 2,
+    A = 3
 end
 extern enum MaterialTextureKey : uint64
     NONE = 0,
@@ -1764,6 +1763,7 @@ extern struct MouseEvent
     AbsolutePrevPos : Vec2f
     MouseButtons : MouseButtonState
     Wheel : Vec2i
+    IsTouch : bool
     IsDown : bool
 end
 extern enum MouseButtonState : uint8
@@ -1854,6 +1854,7 @@ extern class InputManager
     GetMousePosition() -> Vec2i
     GetVirtualMousePosition() -> Vec2i
     GetPreviousVirtualMousePosition() -> Vec2i
+    GetVirtualMousePositionNormalized() -> Vec2f
     GetWindowSize() -> Vec2i
     IsKeyDown(key : KeyCode) -> bool
     IsKeyUp(key : KeyCode) -> bool
@@ -1912,6 +1913,7 @@ extern enum EventType : uint32
     TOUCH_DOWN = 0x0500,
     TOUCH_UP = 0x0501,
     TOUCH_MOVE = 0x0502,
+    TEXT_INPUT = 0x0503,
     CONTROLLER_BUTTON_DOWN = 0x0600,
     CONTROLLER_BUTTON_UP = 0x0601,
     CONTROLLER_ANALOG_MOVE = 0x0602,
@@ -2059,14 +2061,15 @@ extern enum BakerState : uint8
 end
 extern enum LightmapShadingType : uint32
     IRRADIANCE = 0,
-    RADIANCE,
     FULL,
     SHADOW,
     DISTANCE,
+    BENT_NORMAL,
     MAX
 end
 extern struct BakerConfig
     NumSamples : uint32
+    BentNormalSamples : uint32
     MaxTexelsPerFrame : uint32
     OnlyGenerateUVs : bool
 end
@@ -2186,8 +2189,6 @@ extern class AssetObject
     SetName(name : Name) -> void
     Rename(name : Name) -> Result
     MarkDirty() -> void
-    GetFriendlyName() -> Name
-    SetFriendlyName(friendlyName : Name) -> void
     GetAssetIndex() -> uint32
     IsRegistered() -> bool
     GetPath() -> AssetPath
@@ -2200,7 +2201,6 @@ extern class AssetObject
     Save() -> Result
     SaveAs(manifestPath : string) -> Result
     Name : Name
-    FriendlyName : Name
     Flags : AssetObjectFlags
     AssetIndex : uint32
     AssetPath : AssetPath
@@ -2424,6 +2424,8 @@ extern class ShaderBundle : AssetObject
 end
 extern class Texture : AssetObject
     Rename(name : Name) -> Result
+    GetTextureDesc() -> TextureDesc
+    SetTextureDesc(textureDesc : TextureDesc) -> void
     TextureDesc : TextureDesc
     ImageData : BlobDataReference
     GpuImage : any
@@ -2456,6 +2458,9 @@ extern class Mesh : AssetObject
     NumIndices(lodIndex : uint8) -> uint32
     GetAABB() -> BoundingBox
     SetAABB(aabb : BoundingBox) -> void
+    RegenerateNormals() -> void
+    RebuildBVH() -> void
+    RecalculateBounds() -> void
     MeshDesc : MeshDesc
     LodData : Array<MeshLodData>
     BvhData : BlobDataReference
@@ -2474,6 +2479,8 @@ end
 extern class Material : AssetObject
     GetBaseMaterial() -> Material
     SetBaseMaterial(baseMaterial : Material) -> void
+    GetAttributes() -> MaterialAttributes
+    SetAttributes(attributes : MaterialAttributes) -> void
     GetParameters() -> MaterialParameters
     SetParameters(parameters : MaterialParameters) -> void
     IsStatic() -> bool
@@ -2572,22 +2579,15 @@ extern class LongRunningEditorTask : EditorTaskBase
     IsCompleted_Impl() -> bool
     Process_Impl() -> void
 end
-extern class EditorGizmoBase
-    GetNode() -> Node
-    IsDragging() -> bool
-    GetManipulationMode() -> EditorManipulationMode
-    GetPriority() -> int
-    GetMenuText() -> string
-end
-extern class NullEditorGizmo : EditorGizmoBase
-end
-extern class TranslateEditorGizmo : EditorGizmoBase
-end
-extern class RotateEditorGizmo : EditorGizmoBase
-end
-extern class ScaleEditorGizmo : EditorGizmoBase
-end
-extern class VolumeEditorGizmo : EditorGizmoBase
+extern class GenerateBentNormalsEditorTask : TickableEditorTask
+    GetWorld() -> World
+    SetWorld(world : World) -> void
+    GetScene() -> Scene
+    SetScene(scene : Scene) -> void
+    Start() -> void
+    Cancel() -> void
+    IsCompleted() -> bool
+    Tick() -> void
 end
 extern class GenerateLightmapsEditorTask : TickableEditorTask
     GetWorld() -> World
@@ -2598,54 +2598,6 @@ extern class GenerateLightmapsEditorTask : TickableEditorTask
     Cancel() -> void
     IsCompleted() -> bool
     Tick() -> void
-end
-extern enum EditorManipulationMode
-    NONE = 0,
-    TRANSLATE,
-    ROTATE,
-    SCALE,
-    VOLUME_EDIT
-end
-extern class EditorSubsystem : Subsystem
-    GetCurrentProject() -> EditorProject
-    GetActiveViewport() -> EditorViewport
-    SetActiveViewport(viewport : EditorViewport) -> void
-    AddViewport(viewport : EditorViewport) -> void
-    RemoveViewport(viewport : EditorViewport) -> void
-    GetEditorScene() -> Scene
-    ExecuteCommand(command : EditorCommandBase) -> bool
-    ExecuteCommandByName(name : Name, arguments : string) -> bool
-    NewProject() -> void
-    OpenProject(project : EditorProject) -> void
-    CloseProject(shutdownWorld : bool) -> void
-    ShowImportContentDialog() -> void
-    SetFocusedNode(focusedNode : Node, shouldSelectInOutline : bool) -> void
-    GetFocusedNode() -> Node
-    AddToSelection(node : Node) -> void
-    RemoveFromSelection(node : Node) -> void
-    ClearSelection() -> void
-    SetSelectedNodes(nodes : Array<Node>) -> void
-    IsNodeSelected(node : Node) -> bool
-    GetSelectedNodes() -> Array<Node>
-    GetActiveScene() -> Scene
-    SetActiveScene(scene : Scene) -> void
-    GetSelectedManipulationMode() -> EditorManipulationMode
-    SetSelectedManipulationMode(mode : EditorManipulationMode) -> void
-    GetSelectedGizmo() -> EditorGizmoBase
-    GetGizmo(mode : EditorManipulationMode) -> EditorGizmoBase
-    SetSelectedBucket(bucketIndex : uint32) -> void
-    CalculateSceneInsertionPoint(desiredDistance : float, offsetFromSurface : float) -> Vec3f
-    OnFocusedNodeChanged : any
-    OnProjectClosing : any
-    OnProjectOpened : any
-    OnActiveSceneChanged : any
-    OnSelectedGizmoChanged : any
-    OnSelectedBucketChanged : any
-    OnActiveViewportChanged : any
-    OnSelectionChanged : any
-    StartSimulation() -> bool
-    StopSimulation() -> bool
-    PauseSimulation() -> bool
 end
 extern class EditorState
     static GetInstance() -> EditorState

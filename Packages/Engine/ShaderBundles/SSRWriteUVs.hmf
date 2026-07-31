@@ -4,5 +4,4 @@ ShaderBundle "SSRWriteUVs" {
         @"Engine://Shaders/SSRWriteUVs_6826059799620415254"
         @"Engine://Shaders/SSRWriteUVs_13119147318182534700"
     ]
-    FriendlyName = "SSRWriteUVs"
 }

@@ -86,7 +86,6 @@ Shader "EditorGrid_13803781059551201557" {
             Size = 26632
         }
     ]
-    PropertySetHashCode = {
-    }
-    FriendlyName = "EditorGrid_13803781059551201557"
+    PropertySetHashCode = {}
+
 }

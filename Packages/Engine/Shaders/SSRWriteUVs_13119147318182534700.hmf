@@ -227,10 +227,9 @@ Shader "SSRWriteUVs_13119147318182534700" {
         }
         BlobDataReference {
             Key = "Engine://Shaders/SSRWriteUVs_13119147318182534700.PS"
-            Size = 90836
+            Size = 91016
         }
     ]
-    PropertySetHashCode = {
-    }
-    FriendlyName = "SSRWriteUVs_13119147318182534700"
+    PropertySetHashCode = {}
+
 }

@@ -4,5 +4,4 @@ ShaderBundle "Skybox" {
         @"Engine://Shaders/Skybox_14917212823711398456"
         @"Engine://Shaders/Skybox_13803781059551201557"
     ]
-    FriendlyName = "Skybox"
 }

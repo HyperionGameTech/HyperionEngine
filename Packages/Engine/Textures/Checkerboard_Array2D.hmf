@@ -31,5 +31,4 @@ Texture "Checkerboard_Array2D" {
         Key = "Engine://Textures/Checkerboard_Array2D.TEX"
         Size = 256
     }
-    FriendlyName = "CheckerboardArray2D"
 }

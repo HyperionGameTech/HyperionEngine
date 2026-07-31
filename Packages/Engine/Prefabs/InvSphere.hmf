@@ -21,8 +21,8 @@ Prefab "InvSphere" {
                 Tags = []
                 Components = [
                     MeshComponent {
-                        Mesh = @"Engine://Meshes/default_74"
-                        Material = @"Engine://Materials/BasicOBJMaterial"
+                        Mesh = @"Engine://Meshes/InvSphereMesh"
+                        Material = @"Engine://Materials/InvSphereMaterial"
                         Skeleton = null
                         EnableAutoInstancing = false
                         InstanceData = null

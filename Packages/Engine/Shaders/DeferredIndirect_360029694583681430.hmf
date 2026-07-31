@@ -397,10 +397,9 @@ Shader "DeferredIndirect_360029694583681430" {
         }
         BlobDataReference {
             Key = "Engine://Shaders/DeferredIndirect_360029694583681430.PS"
-            Size = 106216
+            Size = 105576
         }
     ]
-    PropertySetHashCode = {
-    }
-    FriendlyName = "DeferredIndirect_360029694583681430"
+    PropertySetHashCode = {}
+
 }

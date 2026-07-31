@@ -1,6 +1,24 @@
 Shader "LightmapPathTracer_1094868450165832236" {
     PropertySet = [
         ShaderProperty {
+            Name = "MAX_LIGHTS"
+            Flags = SPF_NONE
+            Value = 16
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "MAX_ENV_PROBES"
+            Flags = SPF_NONE
+            Value = 4
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "MODE"
+            Flags = SPF_NONE
+            Value = "FULL"
+            EnumValues = []
+        }
+        ShaderProperty {
             Name = "TARGET"
             Flags = SPF_NONE
             Value = "WINDOWS"
@@ -22,24 +40,6 @@ Shader "LightmapPathTracer_1094868450165832236" {
             Name = "HYP_FEATURES_BINDLESS_TEXTURES"
             Flags = SPF_NONE
             Value = null
-            EnumValues = []
-        }
-        ShaderProperty {
-            Name = "MAX_LIGHTS"
-            Flags = SPF_NONE
-            Value = 16
-            EnumValues = []
-        }
-        ShaderProperty {
-            Name = "MAX_ENV_PROBES"
-            Flags = SPF_NONE
-            Value = 4
-            EnumValues = []
-        }
-        ShaderProperty {
-            Name = "MODE"
-            Flags = SPF_NONE
-            Value = "FULL"
             EnumValues = []
         }
     ]
@@ -348,18 +348,17 @@ Shader "LightmapPathTracer_1094868450165832236" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/LightmapPathTracer_1094868450165832236.RGS"
-            Size = 116452
+            Size = 116316
         }
         BlobDataReference {
             Key = "Engine://Shaders/LightmapPathTracer_1094868450165832236.CHS"
-            Size = 136892
+            Size = 134700
         }
         BlobDataReference {
             Key = "Engine://Shaders/LightmapPathTracer_1094868450165832236.MS"
-            Size = 36032
+            Size = 34352
         }
     ]
-    PropertySetHashCode = {
-    }
-    FriendlyName = "LightmapPathTracer_1094868450165832236"
+    PropertySetHashCode = {}
+
 }

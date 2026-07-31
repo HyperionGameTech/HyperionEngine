@@ -166,14 +166,13 @@ Shader "RenderSky_13803781059551201557" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/RenderSky_13803781059551201557.VS"
-            Size = 40576
+            Size = 41136
         }
         BlobDataReference {
             Key = "Engine://Shaders/RenderSky_13803781059551201557.PS"
-            Size = 48812
+            Size = 49372
         }
     ]
-    PropertySetHashCode = {
-    }
-    FriendlyName = "RenderSky_13803781059551201557"
+    PropertySetHashCode = {}
+
 }

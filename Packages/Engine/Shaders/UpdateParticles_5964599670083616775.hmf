@@ -272,10 +272,9 @@ Shader "UpdateParticles_5964599670083616775" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/UpdateParticles_5964599670083616775.CS"
-            Size = 42672
+            Size = 42592
         }
     ]
-    PropertySetHashCode = {
-    }
-    FriendlyName = "UpdateParticles_5964599670083616775"
+    PropertySetHashCode = {}
+
 }

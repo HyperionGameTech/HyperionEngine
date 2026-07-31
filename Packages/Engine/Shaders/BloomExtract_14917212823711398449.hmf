@@ -147,10 +147,9 @@ Shader "BloomExtract_14917212823711398449" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/BloomExtract_14917212823711398449.CS"
-            Size = 55112
+            Size = 52992
         }
     ]
-    PropertySetHashCode = {
-    }
-    FriendlyName = "BloomExtract_14917212823711398449"
+    PropertySetHashCode = {}
+
 }

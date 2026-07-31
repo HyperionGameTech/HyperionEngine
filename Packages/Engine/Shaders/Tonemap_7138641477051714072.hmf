@@ -143,14 +143,13 @@ Shader "Tonemap_7138641477051714072" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/Tonemap_7138641477051714072.VS"
-            Size = 32604
+            Size = 30876
         }
         BlobDataReference {
             Key = "Engine://Shaders/Tonemap_7138641477051714072.PS"
-            Size = 46004
+            Size = 44272
         }
     ]
-    PropertySetHashCode = {
-    }
-    FriendlyName = "Tonemap_7138641477051714072"
+    PropertySetHashCode = {}
+
 }

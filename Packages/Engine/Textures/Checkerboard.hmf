@@ -31,5 +31,4 @@ Texture "Checkerboard" {
         Key = "Engine://Textures/Checkerboard.TEX"
         Size = 256
     }
-    FriendlyName = "Checkerboard"
 }

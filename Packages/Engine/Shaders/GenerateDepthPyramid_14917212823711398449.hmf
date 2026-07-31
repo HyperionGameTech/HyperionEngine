@@ -130,10 +130,9 @@ Shader "GenerateDepthPyramid_14917212823711398449" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/GenerateDepthPyramid_14917212823711398449.CS"
-            Size = 38824
+            Size = 37116
         }
     ]
-    PropertySetHashCode = {
-    }
-    FriendlyName = "GenerateDepthPyramid_14917212823711398449"
+    PropertySetHashCode = {}
+
 }

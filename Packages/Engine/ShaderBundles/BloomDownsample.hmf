@@ -4,5 +4,4 @@ ShaderBundle "BloomDownsample" {
         @"Engine://Shaders/BloomDownsample_14917212823711398456"
         @"Engine://Shaders/BloomDownsample_13803781059551201557"
     ]
-    FriendlyName = "BloomDownsample"
 }

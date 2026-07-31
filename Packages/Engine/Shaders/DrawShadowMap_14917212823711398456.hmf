@@ -1,0 +1,126 @@
+Shader "DrawShadowMap_14917212823711398456" {
+    PropertySet = [
+        ShaderProperty {
+            Name = "TARGET"
+            Flags = SPF_NONE
+            Value = "WINDOWS"
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "BACKEND"
+            Flags = SPF_NONE
+            Value = "VULKAN"
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "NUM_GBUFFER_TEXTURES"
+            Flags = SPF_NONE
+            Value = 5
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "HYP_FEATURES_BINDLESS_TEXTURES"
+            Flags = SPF_NONE
+            Value = null
+            EnumValues = []
+        }
+    ]
+    RevisionNumber = 940922443
+    BaseName = "DrawShadowMap"
+    InputLayout = {
+        Mask = 7
+    }
+    ShaderInputGroup = {
+        Elements = [
+            ShaderInputSet {
+                SetIndex = 0
+                Name = "Default"
+                Slots = [
+                    []
+                    []
+                    [
+                        ShaderInput {
+                            Register = BUFFER
+                            ElementType = CBV_Dynamic
+                            Name = "CBuffer"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = true
+                            BufferType = ConstantBuffer
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Buffer
+                            Index = 0
+                        }
+                    ]
+                    [
+                        ShaderInput {
+                            Register = SAMPLER
+                            ElementType = Sampler
+                            Name = "SamplerNearest"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Sampler
+                            Index = 0
+                        }
+                        ShaderInput {
+                            Register = SAMPLER
+                            ElementType = Sampler
+                            Name = "SamplerLinear"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Sampler
+                            Index = 1
+                        }
+                    ]
+                    []
+                ]
+                Flags = None
+            }
+        ]
+    }
+    ShaderModuleTypes = [
+        Vertex
+        Pixel
+    ]
+    ShaderModuleNames = [
+        "DrawShadowMap.hlsl"
+        "DrawShadowMap.hlsl"
+    ]
+    EntryPointNames = [
+        "VSMain"
+        "PSMain"
+    ]
+    ShaderBlobs = [
+        BlobDataReference {
+            Key = "Engine://Shaders/DrawShadowMap_14917212823711398456.VS"
+            Size = 53580
+        }
+        BlobDataReference {
+            Key = "Engine://Shaders/DrawShadowMap_14917212823711398456.PS"
+            Size = 52624
+        }
+    ]
+    PropertySetHashCode = {}
+
+}

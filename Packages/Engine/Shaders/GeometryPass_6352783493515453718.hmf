@@ -150,14 +150,13 @@ Shader "GeometryPass_6352783493515453718" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/GeometryPass_6352783493515453718.VS"
-            Size = 65696
+            Size = 62312
         }
         BlobDataReference {
             Key = "Engine://Shaders/GeometryPass_6352783493515453718.PS"
-            Size = 96968
+            Size = 96020
         }
     ]
-    PropertySetHashCode = {
-    }
-    FriendlyName = "GeometryPass_6352783493515453718"
+    PropertySetHashCode = {}
+
 }

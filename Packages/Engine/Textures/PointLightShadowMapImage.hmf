@@ -31,5 +31,4 @@ Texture "PointLightShadowMapImage" {
         Key = ""
         Size = 0
     }
-    FriendlyName = "PointLightShadowMapImage"
 }

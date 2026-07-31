@@ -10,11 +10,6 @@ ShaderBundle "DrawCubemap" {
         @"Engine://Shaders/DrawCubemap_4709760780686944164"
         @"Engine://Shaders/DrawCubemap_4709760780686944180"
         @"Engine://Shaders/DrawCubemap_4709760780686944172"
-        @"Engine://Shaders/DrawCubemap_2079409056984439647"
-        @"Engine://Shaders/DrawCubemap_2079409056984439639"
-        @"Engine://Shaders/DrawCubemap_2079409056984439623"
         @"Engine://Shaders/DrawCubemap_9927342832519311428"
-        @"Engine://Shaders/DrawCubemap_2079409056984439631"
     ]
-    FriendlyName = "DrawCubemap"
 }

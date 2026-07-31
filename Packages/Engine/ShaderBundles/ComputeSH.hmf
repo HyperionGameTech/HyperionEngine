@@ -8,5 +8,4 @@ ShaderBundle "ComputeSH" {
         @"Engine://Shaders/ComputeSH_12276489341856329858"
         @"Engine://Shaders/ComputeSH_11860816605929804929"
     ]
-    FriendlyName = "ComputeSH"
 }

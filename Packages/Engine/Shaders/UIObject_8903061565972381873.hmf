@@ -173,14 +173,13 @@ Shader "UIObject_8903061565972381873" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/UIObject_8903061565972381873.VS"
-            Size = 105668
+            Size = 103756
         }
         BlobDataReference {
             Key = "Engine://Shaders/UIObject_8903061565972381873.PS"
-            Size = 68872
+            Size = 67472
         }
     ]
-    PropertySetHashCode = {
-    }
-    FriendlyName = "UIObject_8903061565972381873"
+    PropertySetHashCode = {}
+
 }

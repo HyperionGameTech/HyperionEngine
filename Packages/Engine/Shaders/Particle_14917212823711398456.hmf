@@ -1,0 +1,161 @@
+Shader "Particle_14917212823711398456" {
+    PropertySet = [
+        ShaderProperty {
+            Name = "TARGET"
+            Flags = SPF_NONE
+            Value = "WINDOWS"
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "BACKEND"
+            Flags = SPF_NONE
+            Value = "VULKAN"
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "NUM_GBUFFER_TEXTURES"
+            Flags = SPF_NONE
+            Value = 5
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "HYP_FEATURES_BINDLESS_TEXTURES"
+            Flags = SPF_NONE
+            Value = null
+            EnumValues = []
+        }
+    ]
+    RevisionNumber = 940922443
+    BaseName = "Particle"
+    InputLayout = {
+        Mask = 7
+    }
+    ShaderInputGroup = {
+        Elements = [
+            ShaderInputSet {
+                SetIndex = 0
+                Name = "ParticleDescriptorSet"
+                Slots = [
+                    [
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "WorldsBuffer"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = StructuredBuffer
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Buffer
+                            Index = 0
+                        }
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "ParticleTexture"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Image
+                            Index = 1
+                        }
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV_Dynamic
+                            Name = "CamerasBuffer"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = true
+                            BufferType = StructuredBuffer
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Buffer
+                            Index = 2
+                        }
+                    ]
+                    [
+                        ShaderInput {
+                            Register = UAV
+                            ElementType = UAV
+                            Name = "ParticlesBuffer"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = RWStructuredBuffer
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Buffer
+                            Index = 0
+                        }
+                    ]
+                    []
+                    [
+                        ShaderInput {
+                            Register = SAMPLER
+                            ElementType = Sampler
+                            Name = "SamplerLinear"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Sampler
+                            Index = 0
+                        }
+                    ]
+                    []
+                ]
+                Flags = None
+            }
+        ]
+    }
+    ShaderModuleTypes = [
+        Vertex
+        Pixel
+    ]
+    ShaderModuleNames = [
+        "Particle.hlsl"
+        "Particle.hlsl"
+    ]
+    EntryPointNames = [
+        "VSMain"
+        "PSMain"
+    ]
+    ShaderBlobs = [
+        BlobDataReference {
+            Key = "Engine://Shaders/Particle_14917212823711398456.VS"
+            Size = 22812
+        }
+        BlobDataReference {
+            Key = "Engine://Shaders/Particle_14917212823711398456.PS"
+            Size = 47916
+        }
+    ]
+    PropertySetHashCode = {}
+
+}

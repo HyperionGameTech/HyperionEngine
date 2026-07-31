@@ -198,10 +198,9 @@ Shader "TAA_16305269418513385892" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/TAA_16305269418513385892.CS"
-            Size = 103884
+            Size = 102340
         }
     ]
-    PropertySetHashCode = {
-    }
-    FriendlyName = "TAA_16305269418513385892"
+    PropertySetHashCode = {}
+
 }

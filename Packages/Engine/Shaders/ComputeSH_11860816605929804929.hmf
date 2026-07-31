@@ -187,10 +187,9 @@ Shader "ComputeSH_11860816605929804929" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/ComputeSH_11860816605929804929.CS"
-            Size = 33572
+            Size = 33492
         }
     ]
-    PropertySetHashCode = {
-    }
-    FriendlyName = "ComputeSH_11860816605929804929"
+    PropertySetHashCode = {}
+
 }

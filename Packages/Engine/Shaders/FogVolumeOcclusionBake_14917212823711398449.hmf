@@ -164,10 +164,9 @@ Shader "FogVolumeOcclusionBake_14917212823711398449" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/FogVolumeOcclusionBake_14917212823711398449.CS"
-            Size = 89052
+            Size = 86560
         }
     ]
-    PropertySetHashCode = {
-    }
-    FriendlyName = "FogVolumeOcclusionBake_14917212823711398449"
+    PropertySetHashCode = {}
+
 }

@@ -114,14 +114,13 @@ Shader "FinalPass_13803781059551201557" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/FinalPass_13803781059551201557.VS"
-            Size = 19348
+            Size = 19260
         }
         BlobDataReference {
             Key = "Engine://Shaders/FinalPass_13803781059551201557.PS"
-            Size = 19816
+            Size = 19732
         }
     ]
-    PropertySetHashCode = {
-    }
-    FriendlyName = "FinalPass_13803781059551201557"
+    PropertySetHashCode = {}
+
 }

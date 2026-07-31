@@ -31,5 +31,4 @@ Texture "SolidWhite" {
         Key = "Engine://Textures/SolidWhite.TEX"
         Size = 256
     }
-    FriendlyName = "SolidWhite"
 }

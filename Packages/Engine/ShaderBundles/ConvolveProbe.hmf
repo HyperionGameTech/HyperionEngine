@@ -18,5 +18,4 @@ ShaderBundle "ConvolveProbe" {
         @"Engine://Shaders/ConvolveProbe_11889807982506524636"
         @"Engine://Shaders/ConvolveProbe_118265150016753825"
     ]
-    FriendlyName = "ConvolveProbe"
 }
