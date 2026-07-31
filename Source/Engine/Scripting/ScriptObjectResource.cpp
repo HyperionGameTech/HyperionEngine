@@ -14,11 +14,15 @@
 #include <DotNET/ManagedObject.hpp>
 #include <DotNET/ManagedClass.hpp>
 #include <DotNET/DotNETHost.hpp>
-#endif
+#endif // HYP_DOTNET
 
 #ifdef HYP_SCRIPT
 #include <Lang/HypScript.hpp>
-#endif
+#endif // HYP_SCRIPT
+
+#ifdef HYP_STRATA
+#include <strata/strata.h>
+#endif // HYP_STRATA
 
 #include <Framework/EngineStats.hpp>
 #include <Framework/EngineDriver.hpp>
@@ -68,12 +72,7 @@ ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, const SharedPtr<dotn
 ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, dotnet::ManagedObject* objectPtr, const SharedPtr<dotnet::ManagedClass>& managedClass)
     : m_ptr(ptr)
 {
-    if (!dotNetData)
-    {
-        dotNetData.Emplace(ScriptObjectData_DotNet());
-    }
-
-    ScriptObjectData_DotNet& data = *dotNetData;
+    ScriptObjectData_DotNet& data = dotNetData.Emplace(ScriptObjectData_DotNet());
     data.objectPtr = objectPtr;
     data.managedClass = managedClass;
 
@@ -87,12 +86,7 @@ ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, const SharedPtr<dotn
 
     if (dnh.IsInitialized() && !dnh.IsShuttingDown())
     {
-        if (!dotNetData)
-        {
-            dotNetData.Emplace(ScriptObjectData_DotNet());
-        }
-
-        ScriptObjectData_DotNet& data = *dotNetData;
+        ScriptObjectData_DotNet& data = dotNetData.Emplace(ScriptObjectData_DotNet());
         data.objectPtr = nullptr;
         data.managedClass = managedClass;
 
@@ -113,24 +107,30 @@ ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, const SharedPtr<dotn
         }
     }
 }
-#endif
+#endif // HYP_DOTNET
 
 #ifdef HYP_SCRIPT
 
 ScriptObjectResource::ScriptObjectResource(ScriptInstance* hypScriptInstance, ObjectBase* hypScriptValue)
     : m_ptr(nullptr)
 {
-    if (!hypScriptData)
-    {
-        hypScriptData.Emplace(ScriptObjectData_HypScript());
-    }
-
-    ScriptObjectData_HypScript& data = *hypScriptData;
+    ScriptObjectData_HypScript& data = hypScriptData.Emplace(ScriptObjectData_HypScript());
     data.instance = hypScriptInstance;
     data.obj = hypScriptValue;
 }
 
-#endif
+#endif // HYP_SCRIPT
+
+#ifdef HYP_STRATA
+
+ScriptObjectResource::ScriptObjectResource(ValueWrapper<ScriptLanguage::Strata>, StringHash moduleHash)
+    : m_ptr(nullptr)
+{
+    ScriptObjectData_Strata& data = strataData.Emplace(ScriptObjectData_Strata());
+    data.moduleHash = moduleHash;
+}
+
+#endif // HYP_STRATA
 
 ScriptObjectResource::~ScriptObjectResource()
 {
@@ -148,7 +148,7 @@ ScriptObjectResource::~ScriptObjectResource()
 
         hypScriptData.Unset();
     }
-#endif
+#endif // HYP_SCRIPT
 
 #ifdef HYP_DOTNET
     if (dotNetData.HasValue())
@@ -169,7 +169,7 @@ ScriptObjectResource::~ScriptObjectResource()
 
         dotNetData.Unset();
     }
-#endif
+#endif // HYP_DOTNET
 }
 
 uint32 ScriptObjectResource::GetScriptLanguageMask() const
@@ -186,14 +186,21 @@ uint32 ScriptObjectResource::GetScriptLanguageMask() const
     {
         mask |= (1 << uint32(ScriptLanguage::CSharp));
     }
-#endif
+#endif // HYP_DOTNET
 
 #ifdef HYP_SCRIPT
     if (hypScriptData.HasValue())
     {
         mask |= (1 << uint32(ScriptLanguage::HypScript));
     }
-#endif
+#endif // HYP_SCRIPT
+
+#ifdef HYP_STRATA
+    if (strataData.HasValue())
+    {
+        mask |= (1 << uint32(ScriptLanguage::Strata));
+    }
+#endif // HYP_STRATA
 
     return mask;
 }
@@ -206,7 +213,7 @@ dotnet::ManagedObject* ScriptObjectResource::GetManagedObject() const
     {
         return dotNetData->objectPtr;
     }
-#endif
+#endif // HYP_DOTNET
 
     return nullptr;
 }
@@ -219,7 +226,7 @@ const SharedPtr<dotnet::ManagedClass> ScriptObjectResource::GetManagedClass() co
     {
         return dotNetData->managedClass;
     }
-#endif
+#endif // HYP_DOTNET
 
     return nullptr;
 }
@@ -278,7 +285,7 @@ void ScriptObjectResource::Initialize()
             HYP_FAIL("Failed to recreate managed object for Class %s", cls->GetName().LookupString());
         }
     }
-#endif
+#endif // HYP_DOTNET
 }
 
 void ScriptObjectResource::Destroy()
@@ -301,7 +308,7 @@ void ScriptObjectResource::Destroy()
            // If ref count increments, we mark it as needing to be kept alive again, and if it was collected in the meantime, we recreate it in Initialize().
         }
     }
-#endif
+#endif // HYP_DOTNET
 }
 
 #pragma endregion ScriptObjectResource
@@ -362,7 +369,7 @@ ENGINE_API void Object_ReleaseDotNetGCHandle(ObjectBase* ptr)
 
 #pragma endregion // Object Extensions for .NET
 
-#endif
+#endif // HYP_DOTNET
 
 #if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
 static struct ScriptObjectFunctionsDependencyInject

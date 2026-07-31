@@ -18,11 +18,16 @@
 #include <Core/Utilities/EnumFlags.hpp>
 #include <Core/Utilities/Variant.hpp>
 
+#include <Core/Util.hpp>
 #include <Core/Types.hpp>
 
 #ifdef HYP_SCRIPT
 #include <Core/Reflection/BoxedValue.hpp>
-#endif
+#endif // HYP_SCRIPT
+
+#ifdef HYP_STRATA
+struct StrataJit;
+#endif // HYP_STRATA
 
 namespace Hyperion {
 
@@ -36,7 +41,6 @@ public:
 };
 
 #ifdef HYP_DOTNET
-
 struct ScriptObjectData_DotNet final
 {
     static constexpr ScriptLanguage Language = ScriptLanguage::CSharp;
@@ -44,8 +48,7 @@ struct ScriptObjectData_DotNet final
     dotnet::ManagedObject* objectPtr = nullptr;
     SharedPtr<dotnet::ManagedClass> managedClass = nullptr;
 };
-
-#endif
+#endif // HYP_DOTNET
 
 #ifdef HYP_SCRIPT
 struct ScriptObjectData_HypScript final
@@ -55,7 +58,17 @@ struct ScriptObjectData_HypScript final
     ScriptInstance* instance = nullptr;
     ObjectBase* obj = nullptr;
 };
-#endif
+#endif // HYP_SCRIPT
+
+#ifdef HYP_STRATA
+struct ScriptObjectData_Strata final
+{
+    static constexpr ScriptLanguage Language = ScriptLanguage::Strata;
+
+    StringHash moduleHash;
+    StrataJit* jit = nullptr;
+};
+#endif // HYP_STRATA
 
 struct ScriptObjectData_Native final
 {
@@ -76,11 +89,15 @@ public:
     ScriptObjectResource(ObjectBase* ptr, const SharedPtr<dotnet::ManagedClass>& managedClass);
     ScriptObjectResource(ObjectBase* ptr, dotnet::ManagedObject* objectPtr, const SharedPtr<dotnet::ManagedClass>& managedClass);
     ScriptObjectResource(ObjectBase* ptr, const SharedPtr<dotnet::ManagedClass>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags);
-#endif
+#endif // HYP_DOTNET
 
 #ifdef HYP_SCRIPT
     ScriptObjectResource(ScriptInstance* hypScriptInstance, ObjectBase* hypScriptValue);
-#endif
+#endif // HYP_SCRIPT
+
+#ifdef HYP_STRATA
+    ScriptObjectResource(ValueWrapper<ScriptLanguage::Strata>, StringHash moduleHash);
+#endif // HYP_STRATA
 
     ScriptObjectResource(const ScriptObjectResource& other) = delete;
     ScriptObjectResource& operator=(const ScriptObjectResource& other) = delete;
@@ -130,7 +147,7 @@ public:
 
         *dotNetData = data;
     }
-#endif
+#endif // HYP_DOTNET
 
 #ifdef HYP_SCRIPT
     ScriptObjectData_HypScript* GetScriptObjectData_HypScript()
@@ -147,7 +164,24 @@ public:
     {
         hypScriptData = data;
     }
-#endif
+#endif // HYP_SCRIPT
+
+#ifdef HYP_STRATA
+    ScriptObjectData_Strata* GetScriptObjectData_Strata()
+    {
+        return strataData.TryGet();
+    }
+
+    const ScriptObjectData_Strata* GetScriptObjectData_Strata() const
+    {
+        return strataData.TryGet();
+    }
+
+    void SetScriptObjectData_Strata(const ScriptObjectData_Strata& data)
+    {
+        strataData = data;
+    }
+#endif // HYP_STRATA
 
 protected:
     virtual void Initialize() override final;
@@ -156,12 +190,18 @@ protected:
     ObjectBase* m_ptr;
 
     Optional<ScriptObjectData_Native> nativeData;
+
 #ifdef HYP_DOTNET
     Optional<ScriptObjectData_DotNet> dotNetData;
-#endif
+#endif // HYP_DOTNET
+
 #ifdef HYP_SCRIPT
     Optional<ScriptObjectData_HypScript> hypScriptData;
-#endif
+#endif // HYP_SCRIPT
+
+#ifdef HYP_STRATA
+    Optional<ScriptObjectData_Strata> strataData;
+#endif // HYP_STRATA
 };
 
 #ifdef HYP_DOTNET

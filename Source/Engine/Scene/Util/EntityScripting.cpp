@@ -41,6 +41,10 @@
 #include <Lang/HypScript.hpp>
 #endif
 
+#ifdef HYP_STRATA
+#include <strata/strata.h>
+#endif
+
 #include <System/MessageBox.hpp>
 
 namespace Hyperion {
@@ -50,6 +54,112 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(Scripting);
 namespace CoreApi {
 CORE_API extern const FilePath& GetExecutablePath();
 } // namespace CoreApi
+
+#ifdef HYP_STRATA
+
+namespace {
+
+thread_local StrataCompiler* t_strataCompiler;
+
+// thread-local cache for strata module -> function pointer map
+struct StrataFunctionPointerCache
+{
+    using FunctionMap = Map<StringHash, void*>;
+    using ModuleMap = Map<StringHash, FunctionMap>;
+
+    ModuleMap modules;
+
+    void* TryGetFunctionPointer(StringHash moduleHash, StringHash functionHash) const
+    {
+        auto moduleIt = modules.Find(moduleHash);
+        if (moduleIt == modules.End())
+        {
+            return nullptr;
+        }
+
+        auto functionIt = moduleIt->second.Find(functionHash);
+        if (functionIt == moduleIt->second.End())
+        {
+            return nullptr;
+        }
+
+        return functionIt->second;
+    }
+
+    void PutFunctionPointer(StringHash moduleHash, StringHash functionHash, void* fnPtr)
+    {
+        if (!fnPtr)
+        {
+            return;
+        }
+
+        modules[moduleHash][functionHash] = fnPtr;
+    }
+};
+
+thread_local StrataFunctionPointerCache* t_strataFnPtrCache;
+
+void ShutdownStrataCompiler()
+{
+    if (!t_strataCompiler)
+    {
+        return;
+    }
+
+    delete t_strataFnPtrCache;
+    t_strataFnPtrCache = nullptr;
+
+    strataCompilerDestroy(t_strataCompiler);
+    t_strataCompiler = nullptr;
+}
+
+void InitStrataCompiler()
+{
+    if (t_strataCompiler != nullptr)
+    {
+        return;
+    }
+
+    t_strataCompiler = strataCompilerCreate();
+    Assert(t_strataCompiler != nullptr);
+
+    t_strataFnPtrCache = new StrataFunctionPointerCache;
+
+    ThreadBase* currThread = CurrentThreadObject();
+    Assert(currThread != nullptr);
+
+    if (currThread != nullptr)
+    {
+        currThread->AddOnExitCallback(ShutdownStrataCompiler);
+    }
+}
+
+bool InitStrataJit(StrataJit*& inOutJit)
+{
+    if (inOutJit != nullptr)
+    {
+        return true;
+    }
+
+    const char* err = nullptr;
+
+    StrataJit* jit = strataJitCompileFile(c, path, &err);
+
+    if (!jit)
+    {
+        fprintf(stderr, "[JIT] compile failed: %s\n", err ? err : "(no message)");
+
+        strataFree((char*)err);
+        
+        return false;
+    }
+
+    return true;
+}
+
+} // anonymous namespace
+
+#endif // HYP_STRATA
 
 namespace EntityScripting {
 
@@ -87,7 +197,7 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
             }
         }
     }
-#endif
+#endif // HYP_DOTNET
 
 #ifdef HYP_SCRIPT
     if (mask & (1u << uint32(ScriptLanguage::HypScript)))
@@ -118,7 +228,49 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
             }
         }
     }
-#endif
+#endif // HYP_SCRIPT
+
+#ifdef HYP_STRATA
+    if (mask & (1u << uint32(ScriptLanguage::Strata)))
+    {
+        auto* data = sor->GetScriptObjectData_Strata();
+        Assert(data != nullptr);
+
+        InitStrataCompiler();
+        InitStrataJit(&data->jit);
+
+        // @TODO: If compiled for JIT, create name ScriptName_Init (or whatever function), call function pointer.
+        //       - otherwise, use GetProcAddress to get the same function.
+
+        char nameBuffer[256];
+        if (std::snprintf(nameBuffer, sizeof(nameBuffer), "%s", methodName) < sizeof(nameBuffer))
+        {
+            void* fnPtrRaw = t_strataFnPtrCache->TryGetFunctionPointer(data->moduleHash, StringHash(nameBuffer));
+            auto fnPtrCasted = (ReturnType (*)(ArgTypes...))fnPtrRaw;
+
+            if (fnPtrRaw == nullptr)
+            {
+            }
+            
+            if constexpr (!std::is_void_v<ReturnType>)
+            {
+                AssertDebug(outReturnValue != nullptr);
+
+                new (outReturnValue) ReturnType(fnPtrCasted(args...));
+            }
+            else
+            {
+                fnPtrCasted(args...);
+            }
+        }
+        else
+        {
+            // Method name too long.
+            AssertDebug(false, "Method name too long for {}", methodName);
+        }
+    }
+
+#endif // HYP_STRATA
 
     if (mask & (1u << uint32(ScriptLanguage::Native)))
     {
@@ -309,7 +461,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
             break;
         }
-#endif
+#endif // HYP_DOTNET
 #ifdef HYP_SCRIPT
         case ScriptLanguage::HypScript:
         {
@@ -505,7 +657,15 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
             break;
         }
-#endif
+#endif // HYP_SCRIPT
+#ifdef HYP_STRATA
+        case ScriptLanguage::Strata:
+        {
+            // @TODO
+
+            break;
+        }
+#endif // HYP_STRATA
         default:
             return;
         }

@@ -428,9 +428,68 @@ if(HYP_DOTNET_HOST)
       endif()
     endif()
   else()
-    message(STATUS ".NET headers not found, skipping .NET core runtime")
+    message(WARNING ".NET headers not found, skipping .NET core runtime")
   endif()
 endif()
+
+# Strata lang integration
+
+if(HYP_EDITOR)
+  # attempt to use strata if headers exist,
+  # editor only. (non editor build will link directly to compiled .o files)
+  set(HYP_TRY_TO_COMPILE_WITH_STRATA 1)
+endif()
+
+# check if strata headers exists
+if(HYP_TRY_TO_COMPILE_WITH_STRATA)
+  if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/strata/strata.h")
+    message(STATUS "strata headers found")
+
+    if(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/libstrata.a")
+      set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/libstrata.a")
+
+      set(HYP_STRATA 1)
+    elseif(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/strata.lib")
+      
+      set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/strata.lib")
+
+      # copy the dll to the build directory
+      file(COPY "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/strata.dll" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+      file(COPY "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/LLVM-C.dll" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+
+      set(HYP_STRATA 1)
+    else()
+      message(WARNING "strata library not found, expected to find libstrata.a or strata.lib in ${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}")
+    endif()
+
+    if(HYP_STRATA)
+      add_definitions(-DHYP_STRATA=1)
+      # add header dir
+      include_directories("${THIRD_PARTY_INCLUDE_DIR}/strata")
+    endif()
+  else()
+    message(STATUS "strata headers not found, skipping strata")
+  endif()
+else()
+  # !HYP_TRY_TO_COMPILE_WITH_STRATA...
+
+  # we need to link with the compiled strata object files
+  # this is for non-editor builds, where we don't want to compile with strata
+
+  # the files will be in the build folder under subdir "strata"
+  # we need to find them and link them in
+
+  set(STRATA_OBJECT_DIR "${CMAKE_BINARY_DIR}/strata")
+
+  if(EXISTS "${STRATA_OBJECT_DIR}")
+    # windows - we need to find the .obj files
+    file(GLOB STRATA_OBJECT_FILES "${STRATA_OBJECT_DIR}/*.obj")
+    # linux/mac
+    file(GLOB STRATA_OBJECT_FILES "${STRATA_OBJECT_DIR}/*.o")
+  endif()
+endif()
+
+# /Strata lang integration
 
 if(HYP_EDITOR)
   # for editor build, we don't actually need .NET host as the managed application (Hyperion.Editor.exe)
@@ -1116,9 +1175,9 @@ set(SOURCES ${SOURCES} ${THIRD_PARTY_SOURCES})
 set_source_files_properties(${THIRD_PARTY_SOURCES} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 
 if(HYP_BUILD_STATIC)
-  add_library(${BUILD_NAME} STATIC ${SOURCES} ${HEADERS})
+  add_library(${BUILD_NAME} STATIC ${SOURCES} ${HEADERS} ${STRATA_OBJECT_FILES})
 else()
-  add_library(${BUILD_NAME} SHARED ${SOURCES} ${HEADERS})
+  add_library(${BUILD_NAME} SHARED ${SOURCES} ${HEADERS} ${STRATA_OBJECT_FILES})
 endif()
 
 target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_ENGINE=1)
