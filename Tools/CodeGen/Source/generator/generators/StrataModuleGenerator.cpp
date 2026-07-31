@@ -96,6 +96,9 @@ Set<String> StrataModuleGenerator::CollectHandleNames(const Analyzer& analyzer) 
 {
     Set<String> handleNames;
 
+    // The base for all class types in the engine.
+    handleNames.Insert("ObjectBase");
+
     for (const UniquePtr<Module>& mod : analyzer.GetModules())
     {
         for (const Pair<String, ClassDefinition>& pair : mod->GetClasses())
@@ -119,8 +122,48 @@ Set<String> StrataModuleGenerator::CollectHandleNames(const Analyzer& analyzer) 
     return handleNames;
 }
 
+String StrataModuleGenerator::ResolveHandleBase(const Analyzer& analyzer, const ClassDefinition& cls, const Set<String>& allHandleNames) const
+{
+    // ObjectBase is the root handle; it has no base.
+    if (cls.name == "ObjectBase")
+    {
+        return String::empty;
+    }
+
+    // Prefer the nearest declared (scriptable) base handle, so derived handles
+    // extend their actual engine base (e.g. Camera extends Entity).
+    for (const String& baseName : cls.baseClassNames)
+    {
+        if (allHandleNames.Contains(baseName))
+        {
+            return baseName;
+        }
+    }
+
+    // A direct ObjectBase base.
+    for (const String& baseName : cls.baseClassNames)
+    {
+        if (baseName == "ObjectBase")
+        {
+            return "ObjectBase";
+        }
+    }
+
+    // If the type is ultimately derived from ObjectBase through intermediate
+    // bases that aren't exposed as Strata handles, still declare it as extending
+    // ObjectBase so the is-a relationship (and up/down casts) are preserved.
+    if (analyzer.HasBaseClass(cls, "ObjectBase"))
+    {
+        return "ObjectBase";
+    }
+
+    return String::empty;
+}
+
 Result StrataModuleGenerator::EmitHandles(const Analyzer& analyzer, const Module& mod, ByteWriter& writer) const
 {
+    const Set<String> allHandleNames = CollectHandleNames(analyzer);
+
     for (const Pair<String, ClassDefinition>& pair : mod.GetClasses())
     {
         const ClassDefinition& cls = pair.second;
@@ -135,7 +178,16 @@ Result StrataModuleGenerator::EmitHandles(const Analyzer& analyzer, const Module
             continue;
         }
 
-        writer.WriteString(HYP_FORMAT("handle {};\n", cls.name));
+        const String extendsBase = ResolveHandleBase(analyzer, cls, allHandleNames);
+
+        if (extendsBase.Any())
+        {
+            writer.WriteString(HYP_FORMAT("handle {} extends {};\n", cls.name, extendsBase));
+        }
+        else
+        {
+            writer.WriteString(HYP_FORMAT("handle {};\n", cls.name));
+        }
     }
 
     return {};
@@ -292,6 +344,14 @@ Result StrataModuleGenerator::EmitMethods(const Analyzer& analyzer, const Module
 
             const String paramsString = paramDecls.Any() ? String::Join(paramDecls, ", ") : String("");
 
+            // Strata has no preprocessor; record a method-level condition (e.g.
+            // EditorOnly) as a comment. The matching C++ thunk is #if-guarded, so
+            // where the condition is false the extern simply won't be registered.
+            if (member.condition.Any())
+            {
+                writer.WriteString(HYP_FORMAT("// requires: {}\n", member.condition));
+            }
+
             writer.WriteString(HYP_FORMAT("extern {} {}({});\n", returnTypeMapping.typeName, externName, paramsString));
         }
     }
@@ -315,7 +375,7 @@ Result StrataModuleGenerator::EmitThunks(const Analyzer& analyzer, const Module&
         if (!openedBlock)
         {
             writer.WriteString("\n#ifdef HYP_STRATA\n\n");
-            writer.WriteString("#include <Scripting/Strata/StrataBindingRegistry.hpp>\n\n");
+            writer.WriteString("#include <Core/Scripting/Strata/ThunkDrawer.hpp>\n\n");
 
             openedBlock = true;
         }
@@ -442,26 +502,45 @@ Result StrataModuleGenerator::EmitThunks(const Analyzer& analyzer, const Module&
                 ? HYP_FORMAT("{}::{}({})", cls.name, member.name, callArgsString)
                 : HYP_FORMAT("self->{}({})", member.name, callArgsString);
 
+            // Build this method's thunk + registrar first, then wrap the pair in
+            // the method's own preprocessor condition (EditorOnly / Condition
+            // attribute, or a path-derived define). This mirrors how the CXX
+            // generator guards member reflection, so a thunk only compiles when
+            // the method it forwards to actually exists.
+            String methodOutput;
+
             if (functionType->returnType->IsVoid())
             {
-                classThunks += HYP_FORMAT("extern \"C\" void {}({})", externName, sigParamsString);
-                classThunks += " { ";
-                classThunks += callExpr;
-                classThunks += "; }\n";
+                methodOutput += HYP_FORMAT("extern \"C\" void {}({})", externName, sigParamsString);
+                methodOutput += " { ";
+                methodOutput += callExpr;
+                methodOutput += "; }\n";
             }
             else
             {
                 const String returnTypeString = functionType->returnType->Format();
 
-                classThunks += HYP_FORMAT("extern \"C\" {} {}({})", returnTypeString, externName, sigParamsString);
-                classThunks += " { return ";
-                classThunks += callExpr;
-                classThunks += "; }\n";
+                methodOutput += HYP_FORMAT("extern \"C\" {} {}({})", returnTypeString, externName, sigParamsString);
+                methodOutput += " { return ";
+                methodOutput += callExpr;
+                methodOutput += "; }\n";
             }
 
             // Register for static init.
-            classThunks += HYP_FORMAT("static const bool s_strataBinding_{}_{} = ::Hyperion::StrataBindingRegistry::Register(\"{}\"_sh, reinterpret_cast<void*>(&{}_{}));\n",
+            methodOutput += HYP_FORMAT("static const bool s_strataBinding_{}_{} = ::Hyperion::Strata::ThunkDrawer::Register(\"{}\"_sh, reinterpret_cast<void*>(&{}_{}));\n",
                 cls.name, managedName, externName, cls.name, managedName);
+
+            if (member.condition.Any())
+            {
+                classThunks += HYP_FORMAT("#if {}\n", member.condition);
+            }
+
+            classThunks += methodOutput;
+
+            if (member.condition.Any())
+            {
+                classThunks += HYP_FORMAT("#endif // {}\n", member.condition);
+            }
 
             classThunks += "\n";
         }

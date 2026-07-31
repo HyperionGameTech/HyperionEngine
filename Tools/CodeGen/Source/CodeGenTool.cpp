@@ -7,6 +7,7 @@
 #include <Core/Utilities/DeferredScope.hpp>
 
 #include <algorithm>
+#include <limits>
 
 #include <Core/Threading/Thread.hpp>
 #include <Core/Threading/Scheduler.hpp>
@@ -668,11 +669,39 @@ private:
                     sortedHandleNames.PushBack(handleName);
                 }
 
-                std::sort(sortedHandleNames.Begin(), sortedHandleNames.End());
+                std::sort(sortedHandleNames.Begin(), sortedHandleNames.End(),
+                    [this](const String& a, const String& b)
+                    {
+                        const ClassDefinition* clsA = m_analyzer.FindClassDefinition(a);
+                        const ClassDefinition* clsB = m_analyzer.FindClassDefinition(b);
+
+                        const int idxA = clsA ? clsA->staticIndex : INT32_MAX;
+                        const int idxB = clsB ? clsB->staticIndex : INT32_MAX;
+
+                        if (idxA != idxB)
+                        {
+                            return idxA < idxB;
+                        }
+
+                        return a < b;
+                    });
 
                 for (const String& handleName : sortedHandleNames)
                 {
-                    strataWriter.WriteString(HYP_FORMAT("handle {};\n", handleName));
+                    const ClassDefinition* handleClass = m_analyzer.FindClassDefinition(handleName);
+
+                    const String extendsBase = handleClass != nullptr
+                        ? strataModuleGenerator.ResolveHandleBase(m_analyzer, *handleClass, allHandleNames)
+                        : String::empty;
+
+                    if (extendsBase.Any())
+                    {
+                        strataWriter.WriteString(HYP_FORMAT("handle {} extends {};\n", handleName, extendsBase));
+                    }
+                    else
+                    {
+                        strataWriter.WriteString(HYP_FORMAT("handle {};\n", handleName));
+                    }
                 }
 
                 Array<Module*> sortedModules = SortModulesTopologically();

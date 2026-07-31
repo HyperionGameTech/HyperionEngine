@@ -35,7 +35,12 @@ public:
     // Collect the names of every scriptable class/struct across all modules
     Set<String> CollectHandleNames(const Analyzer& analyzer) const;
 
-    // Emits `handle <Name>;` for each scriptable class/struct in this module.
+    // Resolve the base handle a class should `extends`, or an empty string if it
+    // has none.
+    String ResolveHandleBase(const Analyzer& analyzer, const ClassDefinition& cls, const Set<String>& allHandleNames) const;
+
+    // Emits `handle <Name>;` (or `handle <Name> extends <Base>;`) for each
+    // scriptable class/struct in this module.
     Result EmitHandles(const Analyzer& analyzer, const Module& mod, ByteWriter& writer) const;
 
     // Emit one `extern` free function per bindable method in this module.
