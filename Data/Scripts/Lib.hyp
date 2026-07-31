@@ -498,7 +498,8 @@ extern enum ScriptLanguage : uint8
     Invalid = UINT8_MAX,
     Native = 0,
     HypScript = 1,
-    CSharp = 2
+    CSharp = 2,
+    Strata = 3
 end
 extern enum ScriptCompileStatus : uint8
     Uninitialized = 0x0,

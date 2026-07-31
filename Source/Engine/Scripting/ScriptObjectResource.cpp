@@ -121,16 +121,12 @@ ScriptObjectResource::ScriptObjectResource(ScriptInstance* hypScriptInstance, Ob
 
 #endif // HYP_SCRIPT
 
-#ifdef HYP_STRATA
-
 ScriptObjectResource::ScriptObjectResource(ValueWrapper<ScriptLanguage::Strata>, StringHash moduleHash)
     : m_ptr(nullptr)
 {
     ScriptObjectData_Strata& data = strataData.Emplace(ScriptObjectData_Strata());
     data.moduleHash = moduleHash;
 }
-
-#endif // HYP_STRATA
 
 ScriptObjectResource::~ScriptObjectResource()
 {
@@ -170,6 +166,19 @@ ScriptObjectResource::~ScriptObjectResource()
         dotNetData.Unset();
     }
 #endif // HYP_DOTNET
+
+    if (strataData.HasValue())
+    {
+#ifdef HYP_STRATA
+        if (strataData->jit)
+        {
+            strataJitDestroy(strataData->jit);
+            strataData->jit = nullptr;
+        }
+#endif // HYP_STRATA
+
+        strataData.Unset();
+    }
 }
 
 uint32 ScriptObjectResource::GetScriptLanguageMask() const
@@ -195,12 +204,10 @@ uint32 ScriptObjectResource::GetScriptLanguageMask() const
     }
 #endif // HYP_SCRIPT
 
-#ifdef HYP_STRATA
     if (strataData.HasValue())
     {
         mask |= (1 << uint32(ScriptLanguage::Strata));
     }
-#endif // HYP_STRATA
 
     return mask;
 }

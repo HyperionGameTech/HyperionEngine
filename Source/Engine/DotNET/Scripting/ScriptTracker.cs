@@ -19,6 +19,7 @@ namespace Hyperion
 
         private CSharpScriptCompiler? csharpCompiler = null;
         private HypScriptCompiler? hypScriptCompiler = null;
+        private StrataScriptCompiler? strataCompiler = null;
 
         private Dictionary<string, ScriptInstance> processingScripts = [];
         private Dictionary<string, CompileScriptEditorTask> tasks = [];
@@ -47,6 +48,9 @@ namespace Hyperion
 
                 hypScriptCompiler = new HypScriptCompiler(sourceDirectories[0], intermediateDirectory, binaryOutputDirectory);
                 hypScriptCompiler.BuildAllProjects();
+
+                strataCompiler = new StrataScriptCompiler(sourceDirectories[0], intermediateDirectory, binaryOutputDirectory);
+                strataCompiler.BuildAllProjects();
             }
 
             Logger.Log(logChannel, LogLevel.Info, "Script tracker initialized with {0} source directories.", sourceDirectories.Count);
@@ -85,6 +89,18 @@ namespace Hyperion
                 hypWatcher.Changed += OnHypFileChanged;
                 hypWatcher.Created += OnHypFileChanged;
                 watchers.Add(hypWatcher);
+
+                // Watch for Strata files
+                var strataWatcher = new FileSystemWatcher(sourceDir)
+                {
+                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName,
+                    Filter = "*.strata",
+                    EnableRaisingEvents = true,
+                    IncludeSubdirectories = true
+                };
+                strataWatcher.Changed += OnStrataFileChanged;
+                strataWatcher.Created += OnStrataFileChanged;
+                watchers.Add(strataWatcher);
             }
         }
 
@@ -107,6 +123,7 @@ namespace Hyperion
 
             csharpCompiler = null;
             hypScriptCompiler = null;
+            strataCompiler = null;
 
             sourceDirectories.Clear();
             intermediateDirectory = string.Empty;
@@ -148,6 +165,7 @@ namespace Hyperion
                 {
                     ScriptLanguage.CSharp => csharpCompiler,
                     ScriptLanguage.HypScript => hypScriptCompiler,
+                    ScriptLanguage.Strata => strataCompiler,
                     _ => null
                 };
 
@@ -218,6 +236,13 @@ namespace Hyperion
             Logger.Log(logChannel, LogLevel.Info, "ScriptTracker: HypScript file changed: {0} {1}", e.FullPath, e.ChangeType);
 
             ProcessScriptFile(e.FullPath, ScriptLanguage.HypScript);
+        }
+
+        private void OnStrataFileChanged(object source, FileSystemEventArgs e)
+        {
+            Logger.Log(logChannel, LogLevel.Info, "ScriptTracker: Strata file changed: {0} {1}", e.FullPath, e.ChangeType);
+
+            ProcessScriptFile(e.FullPath, ScriptLanguage.Strata);
         }
 
         private void ProcessScriptFile(string filePath, ScriptLanguage language)

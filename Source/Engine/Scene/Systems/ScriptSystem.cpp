@@ -210,11 +210,13 @@ void ScriptSystem::OnAddedToWorld(World* world)
                         }
                         break;
                     case ScriptLanguage::HypScript:
-                        // Compilation is driven from C++
+                        // Compilation is driven from C++; only act while the script is pending.
                         if (!(inScriptDesc.compileStatus & uint32(ScriptCompileStatus::Processing)))
                         {
                             return;
                         }
+                        break;
+                    case ScriptLanguage::Strata:
                         break;
                     default:
                         break;
@@ -243,14 +245,17 @@ void ScriptSystem::OnAddedToWorld(World* world)
 
                             bool matchesScript = false;
 
-                            if (inScriptDesc.language == ScriptLanguage::HypScript)
+                            if (inScriptDesc.language == ScriptLanguage::HypScript
+                                || inScriptDesc.language == ScriptLanguage::Strata)
                             {
                                 Handle<AssetRegistry> registry = scriptAsset->GetAssetRegistry();
 
                                 if (registry.IsValid())
                                 {
+                                    const char* extension = inScriptDesc.language == ScriptLanguage::Strata ? ".strata" : ".hyp";
+
                                     const FilePath incomingPath(inScriptDesc.path.Data());
-                                    const FilePath expectedSourcePath = registry->GetRootPath() / "Scripts" / (scriptAsset->GetName().ToString() + ".hyp");
+                                    const FilePath expectedSourcePath = registry->GetRootPath() / "Scripts" / (scriptAsset->GetName().ToString() + extension);
 
                                     // Compare paths - handles both absolute and relative path forms
                                     if (incomingPath == expectedSourcePath
@@ -258,6 +263,13 @@ void ScriptSystem::OnAddedToWorld(World* world)
                                         || expectedSourcePath.EndsWith(incomingPath))
                                     {
                                         matchesScript = true;
+                                    }
+                                    else
+                                    {
+                                        HYP_LOG(Scripting, Verbose, "ScriptSystem: Path mismatch for {} script '{}' (incoming: '{}', expected: '{}')",
+                                            uint32(inScriptDesc.language),
+                                            scriptAsset->GetName().ToString(),
+                                            incomingPath, expectedSourcePath);
                                     }
                                 }
                             }

@@ -60,15 +60,16 @@ struct ScriptObjectData_HypScript final
 };
 #endif // HYP_SCRIPT
 
-#ifdef HYP_STRATA
 struct ScriptObjectData_Strata final
 {
     static constexpr ScriptLanguage Language = ScriptLanguage::Strata;
 
     StringHash moduleHash;
+
+#ifdef HYP_STRATA
     StrataJit* jit = nullptr;
-};
 #endif // HYP_STRATA
+};
 
 struct ScriptObjectData_Native final
 {
@@ -95,9 +96,7 @@ public:
     ScriptObjectResource(ScriptInstance* hypScriptInstance, ObjectBase* hypScriptValue);
 #endif // HYP_SCRIPT
 
-#ifdef HYP_STRATA
     ScriptObjectResource(ValueWrapper<ScriptLanguage::Strata>, StringHash moduleHash);
-#endif // HYP_STRATA
 
     ScriptObjectResource(const ScriptObjectResource& other) = delete;
     ScriptObjectResource& operator=(const ScriptObjectResource& other) = delete;
@@ -166,7 +165,6 @@ public:
     }
 #endif // HYP_SCRIPT
 
-#ifdef HYP_STRATA
     ScriptObjectData_Strata* GetScriptObjectData_Strata()
     {
         return strataData.TryGet();
@@ -181,7 +179,6 @@ public:
     {
         strataData = data;
     }
-#endif // HYP_STRATA
 
 protected:
     virtual void Initialize() override final;
@@ -199,9 +196,7 @@ protected:
     Optional<ScriptObjectData_HypScript> hypScriptData;
 #endif // HYP_SCRIPT
 
-#ifdef HYP_STRATA
     Optional<ScriptObjectData_Strata> strataData;
-#endif // HYP_STRATA
 };
 
 #ifdef HYP_DOTNET
