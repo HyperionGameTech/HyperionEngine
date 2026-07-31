@@ -33,24 +33,12 @@ void CommandRecorderAllocator::Shutdown()
 
     Mutex::Guard guard(m_mutex);
 
-    for (auto it = m_tempCommandRecorders.Begin(); it != m_tempCommandRecorders.End();)
-    {
-        auto& commandRecorder = *it;
+    AtomicAdd(&m_tempCommandRecordersCount, -int32(m_tempPreRenderCommandRecorders.Size() + m_tempCommandRecorders.Size()));
 
-        if (commandRecorder.IsEmpty())
-        {
-            // no data in buffers, skip
-            it = m_tempCommandRecorders.Erase(it);
-            AtomicDecrement(&m_tempCommandRecordersCount);
+    m_tempPreRenderCommandRecorders.Clear();
+    m_tempCommandRecorders.Clear();
 
-            continue;
-        }
-
-        it = m_tempCommandRecorders.Erase(it);
-
-        AtomicDecrement(&m_tempCommandRecordersCount);
-    }
-
+    rootPreRender.Reset(/* freeMemory */ true);
     root.Reset(/* freeMemory */ true);
 }
 
@@ -70,6 +58,7 @@ void CommandRecorderAllocator::Flush(bool isShuttingDown)
 
     UpdateQueue_Internal();
 
+    rootPreRender.Submit();
     root.Submit();
 }
 
@@ -91,7 +80,13 @@ void CommandRecorderAllocator::UpdateQueue()
 
 void CommandRecorderAllocator::UpdateQueue_Internal()
 {
-    for (auto it = m_tempCommandRecorders.Begin(); it != m_tempCommandRecorders.End();)
+    DrainTempCommandRecorders(m_tempPreRenderCommandRecorders, rootPreRender);
+    DrainTempCommandRecorders(m_tempCommandRecorders, root);
+}
+
+void CommandRecorderAllocator::DrainTempCommandRecorders(List<CommandRecorder>& tempCommandRecorders, CommandRecorder& dst)
+{
+    for (auto it = tempCommandRecorders.Begin(); it != tempCommandRecorders.End();)
     {
         auto& commandRecorder = *it;
 
@@ -105,31 +100,35 @@ void CommandRecorderAllocator::UpdateQueue_Internal()
         if (commandRecorder.IsEmpty())
         {
             // no data in buffers, skip
-            it = m_tempCommandRecorders.Erase(it);
+            it = tempCommandRecorders.Erase(it);
             AtomicDecrement(&m_tempCommandRecordersCount);
 
             continue;
         }
 
-        // Concat to root (only happens if the Submit() method hasn't been called)
-        root.Concat(commandRecorder);
+        // Concat to the destination root (only happens if the Submit() method hasn't been called)
+        dst.Concat(commandRecorder);
 
         // commandRecorder is now reset
 
-        it = m_tempCommandRecorders.Erase(it);
+        it = tempCommandRecorders.Erase(it);
 
         AtomicDecrement(&m_tempCommandRecordersCount);
     }
 }
 
-CommandRecorder& CommandRecorderAllocator::GetCommandRecorder()
+CommandRecorder& CommandRecorderAllocator::GetCommandRecorder(CommandRecorderQueue queue)
 {
     Mutex::Guard guard(m_mutex);
 
     AssertDebug(!m_isShuttingDown);
 
+    List<CommandRecorder>& tempCommandRecorders = queue == CommandRecorderQueue::PreRender
+        ? m_tempPreRenderCommandRecorders
+        : m_tempCommandRecorders;
+
     AtomicIncrement(&m_tempCommandRecordersCount);
-    auto& newCommandRecorder = m_tempCommandRecorders.EmplaceBack();
+    auto& newCommandRecorder = tempCommandRecorders.EmplaceBack();
 
     AssertDebug(newCommandRecorder.IsWritable());
 

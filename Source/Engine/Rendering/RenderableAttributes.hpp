@@ -25,12 +25,12 @@ HYP_ENUM()
 enum MaterialAttributeFlags : uint8
 {
     MAF_NONE = 0x0,             //!< @editor=false
-    MAF_DEPTH_WRITE = 0x1,      //!< @title="Depth write" @description="Enable depth write for objects with this material"
-    MAF_DEPTH_TEST = 0x2,       //!< @title="Depth test" @description="Enable depth testing for objects with this material"
-    MAF_DEPTH_BIAS = 0x4,       //!< @title="Depth bias" @description="Enable depth bias settings"
-    MAF_DEPTH_CLAMP = 0x8,      //!< @title="Depth clamp" @description="Depth clamp enablement - objects with depth outside of the 0..1 range will be clamped at those values respectively, rather than clipped."
-    MAF_STENCIL_TEST = 0x10,    //!< @title="Stencil test" @description="Enable objects with this material to be used in stencil test"
-    MAF_ALPHA_DISCARD = 0x20    //!< @title="Has alpha discard" @description="Objects with this material will have pixels culled, where they have an opacity below a specified threshold (set on the Material object)"
+    MAF_DEPTH_WRITE = 0x1,      //!< @title="Depth Write" @description="Enable depth write for objects with this material"
+    MAF_DEPTH_TEST = 0x2,       //!< @title="Depth Test" @description="Enable depth testing for objects with this material"
+    MAF_DEPTH_BIAS = 0x4,       //!< @title="Depth Bias" @description="Enable depth bias settings"
+    MAF_DEPTH_CLAMP = 0x8,      //!< @title="Depth Clamp" @description="Depth clamp enablement - objects with depth outside of the 0..1 range will be clamped at those values respectively, rather than clipped."
+    MAF_STENCIL_TEST = 0x10,    //!< @title="Stencil Test" @description="Enable objects with this material to be used in stencil test"
+    MAF_ALPHA_DISCARD = 0x20    //!< @title="Has Alpha Discard" @description="Objects with this material will have pixels culled, where they have an opacity below a specified threshold (set on the Material object)"
 };
 
 HYP_MAKE_ENUM_FLAGS(MaterialAttributeFlags);
@@ -42,44 +42,43 @@ struct MaterialAttributes final
 {
     HYP_STRUCT_BODY(MaterialAttributes);
 
-    HYP_FIELD()
+    HYP_FIELD(Property = "ShaderName", Serialize, Editor)
     Name shaderName;
 
-    HYP_FIELD()
+    HYP_FIELD(Property = "ShaderProperties", Serialize, Editor)
     ShaderPropertySet shaderProperties;
 
-    HYP_FIELD()
+    HYP_FIELD(Property = "Bucket", Serialize, Editor)
     RenderBucket bucket = RenderBucket::Opaque;
 
-    HYP_FIELD()
+    HYP_FIELD(Property = "FillMode", Serialize, Editor)
     FillMode fillMode = FM_FILL;
 
-    HYP_FIELD()
+    HYP_FIELD(Property = "BlendFunction", Serialize, Editor)
     BlendFunction blendFunction = BlendFunction::None();
 
-    HYP_FIELD()
+    HYP_FIELD(Property = "FaceCullMode", Serialize, Editor)
     FaceCullMode cullFaces = FCM_BACK;
 
-    HYP_FIELD()
+    HYP_FIELD(Property = "Flags", Serialize, Editor)
     EnumFlags<MaterialAttributeFlags> flags = MAF_DEPTH_WRITE | MAF_DEPTH_TEST;
 
-    HYP_FIELD()
+    HYP_FIELD(Property = "StencilFunction", Serialize, Editor)
     StencilFunction stencilFunction;
 
-    HYP_FIELD()
+    HYP_FIELD(Property = "DepthCompareOp", Serialize, Editor)
     DepthCompareOp depthCompareOp = DCO_LESS;
 
-    HYP_FIELD()
+    HYP_FIELD(Property = "StencilReference", Serialize, Editor)
     uint8 stencilReference = 0;
 
     uint16 padding = 0;
 
-    HYP_FIELD()
+    HYP_FIELD(Property = "DepthBias", Serialize, Editor)
     int32 depthBias = 0;
 
-    HYP_FIELD()
+    HYP_FIELD(Property = "DepthBiasSlope", Serialize, Editor)
     float depthBiasSlope = 0.0f;
-
 
     HYP_FORCE_INLINE bool operator==(const MaterialAttributes& other) const
     {

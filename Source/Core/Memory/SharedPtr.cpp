@@ -104,23 +104,6 @@ CORE_API uint32 ReleaseStrong(ControlBlock<CountType>* block)
     return count;
 }
 
-CORE_API void DefaultFreeBlock(void* blk)
-{
-    Memory::FreeAligned(blk);
-}
-
-CORE_API void ExternalBlockDeleter(void* blk)
-{
-    ControlBlock<AtomicVar<uint32>>* block = reinterpret_cast<ControlBlock<AtomicVar<uint32>>*>(blk); // CountType not used here
-
-    if (block->pObj && block->pFnDestructObj)
-    {
-        block->pFnDestructObj(block->pObj);
-    }
-
-    Memory::FreeAligned(block);
-}
-
 // instantiations
 template CORE_API uint32 IncStrong<uint32>(ControlBlock<uint32>*);
 template CORE_API uint32 IncStrong<AtomicVar<uint32>>(ControlBlock<AtomicVar<uint32>>*);

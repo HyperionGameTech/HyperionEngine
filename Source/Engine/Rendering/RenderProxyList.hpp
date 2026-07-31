@@ -119,10 +119,7 @@ public:
     ENGINE_API void BeginWrite();
     ENGINE_API void EndWrite();
 
-    /*! \brief Waits for write lock to unlock and sets the list in read mode. If pOutSuccess is provided, it will be set to true on lock acquired.
-        However if the lock cannot be acquired after a number of loops, it will be set to false and will not perform any other action. If pOutSuccess
-        is not provided, the busy wait will spin indefinitely. (for backwards compatibility with previous behaviour) */
-    ENGINE_API void BeginRead(bool* pOutSuccess = nullptr);
+    ENGINE_API void BeginRead();
     ENGINE_API void EndRead();
 
     // Must be in write mode to call

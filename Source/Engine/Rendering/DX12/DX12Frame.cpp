@@ -53,9 +53,10 @@ void DX12Frame::WriteCommandBuffer(CommandBuffer* commandBuffer)
     AssertOnThread(g_renderThread);
 
     Array<CommandRecorder*, RenderAllocator> commandRecorders;
-    commandRecorders.Reserve(4);
+    commandRecorders.Reserve(5);
 
     commandRecorders.PushBack(&preRenderCommands);
+    commandRecorders.PushBack(&RI.commandRecorderAllocator.rootPreRender);
     commandRecorders.PushBack(&cr);
     commandRecorders.PushBack(&RI.commandRecorderAllocator.root);
     commandRecorders.PushBack(&postRenderCommands);

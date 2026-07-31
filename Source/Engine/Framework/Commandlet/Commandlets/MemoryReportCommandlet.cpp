@@ -11,15 +11,17 @@
 #include <Core/Memory/Pool/Pool.hpp>
 #include <Core/Memory/MemoryMetrics.hpp>
 
+// For each pool
 #include <Framework/EngineMemory.hpp>
 #include <Rendering/RenderMemory.hpp>
+#include <Physics/PhysicsMemory.hpp>
 
 #include <Scripting/ScriptObjectResource.hpp>
 
 #ifdef HYP_DOTNET
 #include <DotNET/DotNETHost.hpp>
 #include <DotNET/ManagedClass.hpp>
-#endif ?? HYP_DOTNET
+#endif // HYP_DOTNET
 
 #ifdef HYP_EDITOR
 #include <Editor/EditorMemory.hpp>
@@ -70,7 +72,7 @@ public:
             s_definitions.Add(
                 "pools",
                 "p",
-                "Comma-separated list of pools to report (object,scene,asset,streaming,render,vulkan,dx12,editor,baker), or 'all'",
+                "Comma-separated list of pools to report (object,scene,asset,streaming,physics,render,vulkan,dx12,editor,baker), or 'all'",
                 CommandLineArgumentFlags::NONE,
                 Array<String> { "all" },
                 JSON::Value("all"));
@@ -160,6 +162,7 @@ protected:
         tryAddPool("scene", g_scenePool);
         tryAddPool("asset", g_assetPool);
         tryAddPool("streaming", g_streamingPool);
+        tryAddPool("physics", g_physicsPool);
         tryAddPool("render", g_renderPool);
 
 #ifdef HYP_EDITOR

@@ -327,8 +327,8 @@ void Mesh::PageBlobData()
                      return;
                  }
 #endif
-
-                 HYP_FAIL("Blob data missing! Data corruption detected.");
+                 
+                HYP_LOG(Engine, Error, "Data corruption detected for {} due to missing blob data", GetPath().ToString());
              })();
         }
         else
@@ -444,9 +444,11 @@ void Mesh::UploadGpuData()
 
     Frame* currentFrame = nullptr;
 
+    // Must run before the frame's render commands: the mesh is marked uploaded as soon as we return here,
+    // so the very same frame can bind these buffers for drawing.
     CommandRecorder& cr = IsOnThread(g_renderThread) && (currentFrame = RI.GetCurrentFrame()) != nullptr
         ? currentFrame->preRenderCommands
-        : RI.commandRecorderAllocator.GetCommandRecorder();
+        : RI.commandRecorderAllocator.GetCommandRecorder(CommandRecorderQueue::PreRender);
 
     cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
 
@@ -861,6 +863,22 @@ void Mesh::RebuildBVH()
     AllocateBlobData(m_bvhData, bvhBuffer.Data(), bvhBuffer.Size(), alignof(uint32));
 
     m_bvh = std::move(bvh);
+
+    MarkDirty();
+}
+
+void Mesh::RecalculateBounds()
+{
+    BoundingBox bounds;
+
+    {
+        auto readScope = GetReadScope();
+        bounds = CalculateAABB();
+    }
+
+    auto writeScope = GetWriteScope();
+
+    m_aabb = bounds;
 
     MarkDirty();
 }

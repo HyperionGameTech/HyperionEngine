@@ -223,6 +223,9 @@ public:
     
     HYP_METHOD(EditorOnly, EditorAction = "Rebuild BVH")
     void RebuildBVH();
+
+    HYP_METHOD(EditorOnly, EditorAction = "Recalculate Bounds")
+    void RecalculateBounds();
 #endif // HYP_EDITOR
 
     AtomicFlag isUploaded;

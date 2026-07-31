@@ -68,9 +68,11 @@ struct ControlBlock
 
 namespace detail {
 
-CORE_API extern void DefaultFreeBlock(void* blk);
-
-CORE_API extern void ExternalBlockDeleter(void* blk);
+template <class AllocatorType>
+inline void DefaultFreeBlock(void* blk)
+{
+    GetDefaultAllocatorInstance<AllocatorType>()->Free(blk);
+}
 
 template <class CountType>
 CORE_API extern uint32 IncStrong(ControlBlock<CountType>* block);
@@ -84,22 +86,29 @@ CORE_API extern uint32 IncWeak(ControlBlock<CountType>* block);
 template <class CountType>
 CORE_API extern uint32 ReleaseWeak(ControlBlock<CountType>* block);
 
-template <class CountType, class T>
+template <class CountType, class AllocatorType, class T>
 ControlBlock<CountType>* NewExternalOwnedBlock(T* ptr)
 {
-    void* pBlock = Memory::AllocateAligned(sizeof(ControlBlock<CountType>), alignof(ControlBlock<CountType>));
+    void* pBlock = GetDefaultAllocatorInstance<AllocatorType>()->Allocate(sizeof(ControlBlock<CountType>), alignof(ControlBlock<CountType>));
+
+    void (*deleter)(void*) = [](void* ptr) -> void
+    {
+        // Since we don't know where ptr is allocated from, we have to assume T overloads
+        // operator delete to properly deallocate the memory for it.
+        delete static_cast<T*>(ptr);
+    };
 
     return new (pBlock) ControlBlock<CountType> {
         ptr,
         &TypeOf<T>(),
         CountType(1),
         CountType(1),
-        &Memory::Delete<T>,
-        &DefaultFreeBlock
+        deleter,
+        &DefaultFreeBlock<AllocatorType>
     };
 }
 
-template <class CountType, class T, class... Args>
+template <class CountType, class T, class AllocatorType, class... Args>
 HYP_NODISCARD static inline ControlBlock<CountType>* NewInlineBlock(Args&&... args)
 {
     constexpr size_t headerSize = sizeof(ControlBlock<CountType>);
@@ -108,7 +117,7 @@ HYP_NODISCARD static inline ControlBlock<CountType>* NewInlineBlock(Args&&... ar
     constexpr size_t alignment = (alignof(ControlBlock<CountType>) > objAlign ? alignof(ControlBlock<CountType>) : objAlign);
     constexpr size_t totalSize = ByteUtil::AlignAs(objOffset + sizeof(T), alignment);
 
-    void* pBlock = Memory::AllocateAligned(totalSize, alignment);
+    void* pBlock = GetDefaultAllocatorInstance<AllocatorType>()->Allocate(totalSize, alignment);
 
     // object is stored in the block
     void* pObj = reinterpret_cast<void*>(UIntPtr(pBlock) + objOffset);
@@ -119,7 +128,7 @@ HYP_NODISCARD static inline ControlBlock<CountType>* NewInlineBlock(Args&&... ar
         CountType(1),
         CountType(1),
         &Memory::Destruct<T>,
-        &DefaultFreeBlock
+        &DefaultFreeBlock<AllocatorType>
     };
 
     new (pObj) T(std::forward<Args>(args)...);
@@ -160,7 +169,7 @@ public:
     const TypeId& GetTypeId() const;
     void Reset();
 
-    template <class T>
+    template <class T, class AllocatorType>
     void Reset(T* ptr);
 
     AnyRef ToRef() const;
@@ -197,7 +206,7 @@ private:
 
 // Template member function implementations that can't be explicitly instantiated
 template <class CountType>
-template <class T>
+template <class T, class AllocatorType>
 void SharedPtrBase<CountType>::Reset(T* ptr)
 {
     detail::ReleaseStrong(m_block);
@@ -208,7 +217,7 @@ void SharedPtrBase<CountType>::Reset(T* ptr)
         return;
     }
 
-    m_block = detail::NewExternalOwnedBlock<CountType>(ptr);
+    m_block = detail::NewExternalOwnedBlock<CountType, AllocatorType>(ptr);
 
     if constexpr (std::is_base_of_v<SharedFromThisBase<CountType>, NormalizedType<T>>)
     {
@@ -225,12 +234,12 @@ public:
     using Base = SharedPtrBase<CountType>;
     using Block = typename Base::Block;
 
-    template <class... Args>
-    static SharedPtr<T, CountType>  Construct(Args&&... args)
+    template <class AllocatorType, class... Args>
+    static SharedPtr<T, CountType> ConstructWithAllocator(Args&&... args)
     {
         SharedPtr result;
 
-        auto* block = detail::NewInlineBlock<CountType, T>(std::forward<Args>(args)...);
+        auto* block = detail::NewInlineBlock<CountType, T, AllocatorType>(std::forward<Args>(args)...);
     
         result.SetBlock_Internal(block, false); 
 
@@ -242,17 +251,23 @@ public:
 
         return result;
     }
+    
+    template <class... Args>
+    static SharedPtr<T, CountType> Construct(Args&&... args)
+    {
+        return ConstructWithAllocator<DynamicAllocator>(std::forward<Args>(args)...);
+    }
 
     SharedPtr()
         : Base()
     {
     }
 
-    template <class U, std::enable_if_t<std::is_convertible_v<U*, T*>, int> = 0>
+    template <class U, class AllocatorType = DynamicAllocator, std::enable_if_t<std::is_convertible_v<U*, T*>, int> = 0>
     explicit SharedPtr(U* p)
         : Base()
     {
-        Base::template Reset<U>(p);
+        Base::template Reset<U, AllocatorType>(p);
     }
 
     SharedPtr(std::nullptr_t)
@@ -438,11 +453,11 @@ public:
         Base::Reset();
     }
 
-    template <class U>
+    template <class U, class AllocatorType = DynamicAllocator>
     HYP_FORCE_INLINE void Reset(U* p)
     {
         static_assert(std::is_convertible_v<U*, T*>);
-        Base::template Reset<U>(p);
+        Base::template Reset<U, AllocatorType>(p);
     }
 
     template <class U>
@@ -654,10 +669,10 @@ public:
         return result;
     }
 
-    template <class U>
+    template <class U, class AllocatorType = DynamicAllocator>
     HYP_FORCE_INLINE void Reset(U* p)
     {
-        Base::template Reset<U>(p);
+        Base::template Reset<U, AllocatorType>(p);
     }
 
     HYP_FORCE_INLINE void Reset()
@@ -1011,13 +1026,13 @@ public:
     }
 };
 
-template <class T, class CountType = AtomicVar<uint32>>
+template <class T, class CountType = AtomicVar<uint32>, class AllocatorType = DynamicAllocator>
 struct MakeSharedHelper
 {
     template <class... Args>
     static SharedPtr<T, CountType> MakeShared(Args&&... args)
     {
-        return SharedPtr<T, CountType>::Construct(std::forward<Args>(args)...);
+        return SharedPtr<T, CountType>::template ConstructWithAllocator<AllocatorType>(std::forward<Args>(args)...);
     }
 };
 
@@ -1030,9 +1045,15 @@ using memory::SharedFromThisBase;
 using memory::SharedFromThis;
 
 template <class T, class... Args>
-HYP_FORCE_INLINE SharedPtr<T> MakeShared(Args&&... args)
+HYP_NODISCARD HYP_FORCE_INLINE SharedPtr<T> MakeShared(Args&&... args)
 {
     return memory::MakeSharedHelper<T, AtomicVar<uint32>>::MakeShared(std::forward<Args>(args)...);
+}
+
+template <class T, class AllocatorType, class... Args>
+HYP_NODISCARD HYP_FORCE_INLINE SharedPtr<T> MakeSharedWithAllocator(Args&&... args)
+{
+    return memory::MakeSharedHelper<T, AtomicVar<uint32>, AllocatorType>::MakeShared(std::forward<Args>(args)...);
 }
 
 } // namespace Hyperion

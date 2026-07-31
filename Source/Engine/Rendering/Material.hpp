@@ -71,9 +71,9 @@ public:
 
     HYP_METHOD(Property = "BaseMaterial", Serialize, Editor)
     void SetBaseMaterial(const Handle<Material>& baseMaterial);
-
+    
+    HYP_METHOD(Property = "Attributes", Serialize, Editor)
     const MaterialAttributes& GetAttributes() const;
-    MaterialAttributes& GetAttributes();
 
     HYP_METHOD(Property = "Attributes", Serialize, Editor)
     void SetAttributes(const MaterialAttributes& attributes);

@@ -12,6 +12,8 @@
 
 #include <Core/Memory/UniquePtr.hpp>
 
+#include <Core/Memory/Allocator/ArenaAllocator.hpp>
+
 #include <Core/Math/Vector3.hpp>
 #include <Core/Math/Quat4f.hpp>
 #include <Core/Math/MathUtil.hpp>
@@ -78,7 +80,7 @@ struct OffsetCollisionShape final : btCompoundShape
     }
 };
 
-static SharedPtr<btCollisionShape> CreatePhysicsShapeHandle(PhysicsShape* physicsShape)
+static SharedPtr<btCollisionShape> CreatePhysicsShapeHandle(PhysicsShape* physicsShape, const Vec3f& scale)
 {
     Assert(physicsShape != nullptr);
 
@@ -87,11 +89,11 @@ static SharedPtr<btCollisionShape> CreatePhysicsShapeHandle(PhysicsShape* physic
     case PhysicsShapeType::Box:
     {
         const BoundingBox& aabb = static_cast<BoxPhysicsShape*>(physicsShape)->GetAABB();
-        SharedPtr<btBoxShape> boxShape = MakeShared<btBoxShape>(ToBtVector(aabb.GetExtent() * 0.5f));
+        SharedPtr<btBoxShape> boxShape = MakeSharedWithAllocator<btBoxShape, PhysicsAllocator>(ToBtVector(aabb.GetExtent() * 0.5f * scale));
 
         // btBoxShape is centered on the body origin. If the AABB is off-center, embed the box in a
         // compound shifted by the AABB's center so the collision matches the true bounds.
-        const Vec3f center = aabb.GetCenter();
+        const Vec3f center = aabb.GetCenter() * scale;
 
         if (center.LengthSquared() < MathUtil::epsilonF)
         {
@@ -102,15 +104,19 @@ static SharedPtr<btCollisionShape> CreatePhysicsShapeHandle(PhysicsShape* physic
         childTransform.setIdentity();
         childTransform.setOrigin(ToBtVector(center));
 
-        return MakeShared<OffsetCollisionShape>(std::move(boxShape), childTransform);
+        return MakeSharedWithAllocator<OffsetCollisionShape, PhysicsAllocator>(std::move(boxShape), childTransform);
     }
     case PhysicsShapeType::Sphere:
     {
         const BoundingSphere& sphere = static_cast<SpherePhysicsShape*>(physicsShape)->GetSphere();
-        SharedPtr<btSphereShape> sphereShape = MakeShared<btSphereShape>(sphere.GetRadius());
+
+        // Non-uniform scale can't be represented by a single radius.
+        // calculate the max to ensure coverage.
+        const float radiusScale = MathUtil::Max(MathUtil::Abs(scale.x), MathUtil::Abs(scale.y), MathUtil::Abs(scale.z));
+        SharedPtr<btSphereShape> sphereShape = MakeSharedWithAllocator<btSphereShape, PhysicsAllocator>(sphere.GetRadius() * radiusScale);
 
         // btSphereShape is centered on the body origin; shift it to the sphere's local center if any.
-        const Vec3f center = sphere.GetCenter();
+        const Vec3f center = sphere.GetCenter() * scale;
 
         if (center.LengthSquared() < MathUtil::epsilonF)
         {
@@ -121,10 +127,10 @@ static SharedPtr<btCollisionShape> CreatePhysicsShapeHandle(PhysicsShape* physic
         childTransform.setIdentity();
         childTransform.setOrigin(ToBtVector(center));
 
-        return MakeShared<OffsetCollisionShape>(std::move(sphereShape), childTransform);
+        return MakeSharedWithAllocator<OffsetCollisionShape, PhysicsAllocator>(std::move(sphereShape), childTransform);
     }
     case PhysicsShapeType::Plane:
-        return MakeShared<btStaticPlaneShape>(
+        return MakeSharedWithAllocator<btStaticPlaneShape, PhysicsAllocator>(
             ToBtVector(static_cast<PlanePhysicsShape*>(physicsShape)->GetPlane().GetXYZ()),
             static_cast<PlanePhysicsShape*>(physicsShape)->GetPlane().w);
     case PhysicsShapeType::ConvexHull:
@@ -138,7 +144,14 @@ static SharedPtr<btCollisionShape> CreatePhysicsShapeHandle(PhysicsShape* physic
 
         AssertDebug(shapeCasted->NumVertices() > 0);
 
-        return MakeShared<btConvexHullShape>(
+        if (MathUtil::Abs(scale.x - 1.0f) > MathUtil::epsilonF
+            || MathUtil::Abs(scale.y - 1.0f) > MathUtil::epsilonF
+            || MathUtil::Abs(scale.z - 1.0f) > MathUtil::epsilonF)
+        {
+            HYP_LOG(Physics, Warning, "ConvexHull physics shape on a non-unit-scale entity; scale is not applied to convex hull collision shapes");
+        }
+
+        return MakeSharedWithAllocator<btConvexHullShape, PhysicsAllocator>(
             shapeCasted->GetVertexData(),
             shapeCasted->NumVertices(),
             sizeof(float) * 3);
@@ -148,6 +161,8 @@ static SharedPtr<btCollisionShape> CreatePhysicsShapeHandle(PhysicsShape* physic
     }
 }
 
+static bool s_bulletCustomAllocatorsInit = false;
+
 BulletPhysicsAdapter::BulletPhysicsAdapter()
     : m_broadphase(nullptr),
       m_collisionConfiguration(nullptr),
@@ -155,6 +170,21 @@ BulletPhysicsAdapter::BulletPhysicsAdapter()
       m_solver(nullptr),
       m_dynamicsWorld(nullptr)
 {
+    if (!s_bulletCustomAllocatorsInit)
+    {
+        s_bulletCustomAllocatorsInit = true;
+
+        // Custom bullet allocators
+        btAlignedAllocSetCustomAligned(
+            [](size_t size, int alignment) -> void*
+            {
+                return g_physicsPool->Allocate(size, static_cast<size_t>(alignment));
+            },
+            [](void* ptr)
+            {
+                g_physicsPool->Free(ptr);
+            });
+    }
 }
 
 BulletPhysicsAdapter::~BulletPhysicsAdapter()
@@ -174,11 +204,11 @@ void BulletPhysicsAdapter::Init(PhysicsWorldBase* world)
     Assert(m_broadphase == nullptr);
     Assert(m_solver == nullptr);
 
-    m_collisionConfiguration = new btDefaultCollisionConfiguration();
-    m_dispatcher = new btCollisionDispatcher(m_collisionConfiguration);
-    m_broadphase = new btDbvtBroadphase();
-    m_solver = new btSequentialImpulseConstraintSolver();
-    m_dynamicsWorld = new btDiscreteDynamicsWorld(
+    m_collisionConfiguration = HYP_POOL_NEW(g_physicsPool, btDefaultCollisionConfiguration);
+    m_dispatcher = HYP_POOL_NEW(g_physicsPool, btCollisionDispatcher, m_collisionConfiguration);
+    m_broadphase = HYP_POOL_NEW(g_physicsPool, btDbvtBroadphase);
+    m_solver = HYP_POOL_NEW(g_physicsPool, btSequentialImpulseConstraintSolver);
+    m_dynamicsWorld = HYP_POOL_NEW(g_physicsPool, btDiscreteDynamicsWorld,
         m_dispatcher,
         m_broadphase,
         m_solver,
@@ -190,24 +220,24 @@ void BulletPhysicsAdapter::Init(PhysicsWorldBase* world)
         world->GetGravity().z));
 
     // Required for btKinematicCharacterController ghost objects
-    m_dynamicsWorld->getBroadphase()->getOverlappingPairCache()->setInternalGhostPairCallback(new btGhostPairCallback());
+    m_dynamicsWorld->getBroadphase()->getOverlappingPairCache()->setInternalGhostPairCallback(HYP_POOL_NEW(g_physicsPool, btGhostPairCallback));
 }
 
 void BulletPhysicsAdapter::Teardown(PhysicsWorldBase* world)
 {
-    delete m_dynamicsWorld;
+    PoolDelete(*g_physicsPool, m_dynamicsWorld);
     m_dynamicsWorld = nullptr;
 
-    delete m_solver;
+    PoolDelete(*g_physicsPool, m_solver);
     m_solver = nullptr;
 
-    delete m_broadphase;
+    PoolDelete(*g_physicsPool, m_broadphase);
     m_broadphase = nullptr;
 
-    delete m_dispatcher;
+    PoolDelete(*g_physicsPool, m_dispatcher);
     m_dispatcher = nullptr;
 
-    delete m_collisionConfiguration;
+    PoolDelete(*g_physicsPool, m_collisionConfiguration);
     m_collisionConfiguration = nullptr;
 }
 
@@ -215,10 +245,6 @@ void BulletPhysicsAdapter::Tick(PhysicsWorldBase* world, double delta)
 {
     Assert(m_dynamicsWorld != nullptr);
 
-    // Step at a fixed, high-frequency timestep. btKinematicCharacterController moves the capsule by a
-    // continuous sweep of (velocity * dt) each substep; a smaller per-step displacement keeps it from
-    // starting that sweep from inside the ground's collision margin and slipping through thin geometry.
-    // Clamping delta to maxSubSteps * fixedTimeStep avoids the "spiral of death" on frame stalls.
     constexpr double fixedTimeStep = 1.0 / 120.0;
     constexpr int maxSubSteps = 8;
     constexpr double maxDelta = maxSubSteps * fixedTimeStep;
@@ -252,10 +278,13 @@ void BulletPhysicsAdapter::Tick(PhysicsWorldBase* world, double delta)
 
         Transform rigidBodyTransform = rigidBody->GetTransform();
         rigidBodyTransform.GetTranslation() = FromBtVector(btTransform.getOrigin());
-        rigidBodyTransform.GetRotation() = FromBtQuaternion(btTransform.getRotation());
+        rigidBodyTransform.GetRotation() = FromBtQuaternion(btTransform.getRotation()).Inverse();
 
         rigidBody->SetTransform(rigidBodyTransform);
     }
+
+    // Reset transient memory
+    g_physicsArena->Reset();
 }
 
 void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
@@ -267,7 +296,7 @@ void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
 
     if (!rigidBody->shape->GetInternalData())
     {
-        rigidBody->shape->SetInternalData(CreatePhysicsShapeHandle(rigidBody->shape));
+        rigidBody->shape->SetInternalData(CreatePhysicsShapeHandle(rigidBody->shape, rigidBody->GetTransform().GetScale()));
     }
 
     btVector3 localInertia(0, 0, 0);
@@ -278,13 +307,13 @@ void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
             ->calculateLocalInertia(rigidBody->physicsMaterial->GetMass(), localInertia);
     }
 
-    SharedPtr<RigidBodyInternalData> internalData = MakeShared<RigidBodyInternalData>();
+    SharedPtr<RigidBodyInternalData> internalData = MakeSharedWithAllocator<RigidBodyInternalData, PhysicsAllocator>();
 
     btTransform btTransform;
     btTransform.setIdentity();
     btTransform.setOrigin(ToBtVector(rigidBody->GetTransform().GetTranslation()));
-    btTransform.setRotation(ToBtQuaternion(rigidBody->GetTransform().GetRotation()));
-    internalData->motionState = MakeShared<btDefaultMotionState>(btTransform);
+    btTransform.setRotation(ToBtQuaternion(rigidBody->GetTransform().GetRotation().Inverse()));
+    internalData->motionState = MakeSharedWithAllocator<btDefaultMotionState, PhysicsAllocator>(btTransform);
 
     btRigidBody::btRigidBodyConstructionInfo constructionInfo(
         rigidBody->physicsMaterial->GetMass(),
@@ -292,7 +321,7 @@ void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
         static_cast<btCollisionShape*>(rigidBody->shape->GetInternalData()),
         localInertia);
 
-    internalData->rigidBody = MakeShared<btRigidBody>(constructionInfo);
+    internalData->rigidBody = MakeSharedWithAllocator<btRigidBody, PhysicsAllocator>(constructionInfo);
     internalData->rigidBody->setWorldTransform(btTransform);
 
     m_dynamicsWorld->addRigidBody(internalData->rigidBody.Get());
@@ -329,20 +358,25 @@ void BulletPhysicsAdapter::OnChangePhysicsShape(RigidBody* rigidBody)
 
     Assert(internalData->rigidBody != nullptr);
 
-    btVector3 localInertia = internalData->rigidBody->getLocalInertia();
+    SharedPtr<btCollisionShape> newShape = CreatePhysicsShapeHandle(rigidBody->shape, rigidBody->GetTransform().GetScale());
 
-    if (rigidBody->shape != nullptr && rigidBody->shape->GetInternalData() != nullptr)
+    m_dynamicsWorld->removeRigidBody(internalData->rigidBody.Get());
+    internalData->rigidBody->setCollisionShape(newShape.Get());
+    rigidBody->shape->SetInternalData(std::move(newShape));
+
+    btVector3 localInertia(0, 0, 0);
+
+    if (rigidBody->IsKinematic() && rigidBody->physicsMaterial->GetMass() >= 0.00001f)
     {
-        if (rigidBody->IsKinematic() && rigidBody->physicsMaterial->GetMass() >= 0.00001f)
-        {
-            static_cast<btCollisionShape*>(rigidBody->shape->GetInternalData())
-                ->calculateLocalInertia(rigidBody->physicsMaterial->GetMass(), localInertia);
-        }
+        static_cast<btCollisionShape*>(rigidBody->shape->GetInternalData())
+            ->calculateLocalInertia(rigidBody->physicsMaterial->GetMass(), localInertia);
     }
 
     internalData->rigidBody->setMassProps(
         rigidBody->physicsMaterial->GetMass(),
         localInertia);
+
+    m_dynamicsWorld->addRigidBody(internalData->rigidBody.Get());
 }
 
 void BulletPhysicsAdapter::OnChangePhysicsMaterial(RigidBody* rigidBody)
@@ -361,7 +395,7 @@ void BulletPhysicsAdapter::OnChangePhysicsMaterial(RigidBody* rigidBody)
 
     if (!rigidBody->shape->GetInternalData())
     {
-        rigidBody->shape->SetInternalData(CreatePhysicsShapeHandle(rigidBody->shape));
+        rigidBody->shape->SetInternalData(CreatePhysicsShapeHandle(rigidBody->shape, rigidBody->GetTransform().GetScale()));
     }
 
     internalData->rigidBody->setCollisionShape(static_cast<btCollisionShape*>(rigidBody->shape->GetInternalData()));
@@ -397,9 +431,9 @@ void BulletPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerC
 
     CapsulePhysicsShape* capsuleShape = StaticCast<CapsulePhysicsShape>(config.shape);
 
-    SharedPtr<CharacterControllerInternalData> internalData = MakeShared<CharacterControllerInternalData>();
-    internalData->capsuleShape = MakeShared<btCapsuleShape>(capsuleShape->GetRadius(), capsuleShape->GetHeight());
-    internalData->ghostObject = MakeShared<btPairCachingGhostObject>();
+    SharedPtr<CharacterControllerInternalData> internalData = MakeSharedWithAllocator<CharacterControllerInternalData, PhysicsAllocator>();
+    internalData->capsuleShape = MakeSharedWithAllocator<btCapsuleShape, PhysicsAllocator>(capsuleShape->GetRadius(), capsuleShape->GetHeight());
+    internalData->ghostObject = MakeSharedWithAllocator<btPairCachingGhostObject, PhysicsAllocator>();
 
     btTransform startTransform;
     startTransform.setIdentity();
@@ -408,7 +442,7 @@ void BulletPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerC
     internalData->ghostObject->setCollisionShape(internalData->capsuleShape.Get());
     internalData->ghostObject->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
 
-    internalData->kcc = MakeShared<btKinematicCharacterController>(
+    internalData->kcc = MakeSharedWithAllocator<btKinematicCharacterController, PhysicsAllocator>(
         internalData->ghostObject.Get(),
         internalData->capsuleShape.Get(),
         config.stepHeight);

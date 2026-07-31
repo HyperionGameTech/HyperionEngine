@@ -39,9 +39,6 @@ void PhysicsSystem::OnEntityAdded(Entity* entity)
 
     if (!rigidBodyComponent.shape)
     {
-        // Size the auto-created box to the entity's content. Prefer the serialized local bounds
-        // (always available); fall back to the mesh's AABB if bounds haven't been set yet; finally
-        // a unit box so we never bake in the empty sentinel (min > max).
         BoundingBox boxBounds = entity->GetLocalBounds();
 
         if (!boxBounds.IsValid())
@@ -57,7 +54,7 @@ void PhysicsSystem::OnEntityAdded(Entity* entity)
             boxBounds = BoundingBox(Vec3f(-0.5f), Vec3f(0.5f));
         }
 
-        Handle<PhysicsShape> shape = MakeHandle<BoxPhysicsShape>(NAME_FMT("{}_BoxPhysicsShape", entity->GetName()), boxBounds);
+        Handle<PhysicsShape> shape = MakeHandle<BoxPhysicsShape>(NAME_FMT("{}_{}_BoxPhysicsShape", entity->GetName(), entity->Id().Value()), boxBounds);
         GetCurrentAssetRegistry()->PutAsset(shape);
 
         rigidBodyComponent.shape = shape;

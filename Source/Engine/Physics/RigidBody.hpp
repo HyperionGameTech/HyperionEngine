@@ -19,6 +19,7 @@
 #include <Core/Math/Vector3.hpp>
 #include <Core/Math/Vector4.hpp>
 
+#include <Physics/PhysicsMemory.hpp>
 #include <Physics/PhysicsMaterial.hpp>
 
 #include <Asset/AssetObject.hpp>
@@ -36,6 +37,8 @@ class ENGINE_API RigidBody final : public ObjectBase
     HYP_OBJECT_BODY(RigidBody);
 
 public:
+    static Pool* GetAllocator() { return g_physicsPool; }
+
     RigidBody();
 
     RigidBody(const RigidBody& other) = delete;

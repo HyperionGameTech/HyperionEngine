@@ -495,7 +495,7 @@ void Texture::PageBlobData()
             }
 #endif
 
-            HYP_FAIL("Blob data missing! Data corruption detected.");
+            HYP_LOG(Engine, Error, "Data corruption detected for {} due to missing blob data", GetPath().ToString());
         }
         else
         {

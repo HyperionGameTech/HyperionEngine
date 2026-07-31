@@ -295,13 +295,13 @@ template <class T, class AllocatorType = memory::DefaultUniquePtrAllocator>
 using UniquePtr = memory::UniquePtr<T, AllocatorType>;
 
 template <class T, class... Args>
-HYP_FORCE_INLINE UniquePtr<T> MakeUnique(Args&&... args)
+HYP_NODISCARD HYP_FORCE_INLINE UniquePtr<T> MakeUnique(Args&&... args)
 {
     return UniquePtr<T>::Construct(std::forward<Args>(args)...);
 }
 
 template <class T, class AllocatorType, class... Args>
-HYP_FORCE_INLINE UniquePtr<T, AllocatorType> MakeUniqueWithAllocator(Args&&... args)
+HYP_NODISCARD HYP_FORCE_INLINE UniquePtr<T, AllocatorType> MakeUniqueWithAllocator(Args&&... args)
 {
     return UniquePtr<T, AllocatorType>::ConstructWithAllocator(std::forward<Args>(args)...);
 }

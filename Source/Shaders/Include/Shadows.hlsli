@@ -426,7 +426,7 @@ float GetPointShadowPCF(in ShadowMap shadowMap, float3 worldToLight, float NdotL
 
     const float dist = max(max(abs(worldToLight.x), abs(worldToLight.y)), abs(worldToLight.z));
 
-    const float shadow_filter_size = 0.05;
+    const float shadow_filter_size = 0.0005;
 
     float3 dir = normalize(worldToLight);
     float3 up = abs(dir.y) < 0.999 ? float3(0.0, 1.0, 0.0) : float3(1.0, 0.0, 0.0);
@@ -443,30 +443,58 @@ float GetPointShadowPCF(in ShadowMap shadowMap, float3 worldToLight, float NdotL
 #define HYP_POINT_SHADOW_SAMPLE_COUNT 4
 #endif
 
-    float shadowness = 0.0;
-
-    [unroll]
-    for (int i = 0; i < HYP_POINT_SHADOW_SAMPLE_COUNT; i++)
-    {
-        float2 vogel = VogelDisk(i, HYP_POINT_SHADOW_SAMPLE_COUNT, noise);
-        float3 sampleDir = normalize(worldToLight + (tangent * vogel.x + bitangent * vogel.y) * shadow_filter_size);
-
-        const float shadowDepth = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(HYP_SAMPLER_LINEAR, point_shadow_maps, float4(sampleDir, float(layerIndex)), 0).r;
-        const float4 shadowPosVS = ReconstructViewSpacePositionFromDepth(shadowMap.invProjMat, float2(0.5, 0.5), shadowDepth);
-
-        float bias = HYP_SHADOW_BIAS;
+    float bias = HYP_SHADOW_BIAS;
 
 #ifdef HYP_SHADOW_VARIABLE_BIAS
-        bias *= tan(acos(NdotL));
-        bias = clamp(bias, 0.0, 0.005);
+    bias *= tan(acos(NdotL));
+    bias = clamp(bias, 0.0, 0.005);
 #endif
 
-        shadowness += max(step(dist - bias, shadowPosVS.z), 0.0);
-    }
+    // Bias is applied in view space (along the cube face's major axis). Convert the
+    // resulting receiver depth back to NDC depth so it can be shared as the hardware
+    // SampleCmp reference value and for the manual (gather) comparison. This is the
+    // inverse of ReconstructViewSpacePositionFromDepth() at the face center, where the
+    // view-space z depends only on the stored depth value.
+    const float receiver_view_z = dist - bias;
+    const float compare_value = (receiver_view_z * shadowMap.invProjMat[3][3] - shadowMap.invProjMat[2][3])
+                              / (shadowMap.invProjMat[2][2] - receiver_view_z * shadowMap.invProjMat[3][2]);
 
-    shadowness /= float(HYP_POINT_SHADOW_SAMPLE_COUNT);
+    float shadowness = 0.0;
+
+#ifndef HYP_SAMPLER_SHADOW
+#define HYP_USE_GATHER
+#endif // HYP_SAMPLER_SHADOW
+
+#ifdef HYP_USE_GATHER
+    [unroll]
+    for (int i = 0; i < HYP_POINT_SHADOW_SAMPLE_COUNT / 4; i++)
+    {
+        float2 vogel = VogelDisk(i, HYP_POINT_SHADOW_SAMPLE_COUNT / 4, noise);
+        float3 sampleDir = normalize(worldToLight + (tangent * vogel.x + bitangent * vogel.y) * shadow_filter_size);
+
+        float4 shadow_depths = point_shadow_maps.GatherRed(HYP_SAMPLER_LINEAR, float4(sampleDir, float(layerIndex)));
+
+        shadowness += dot(max(step(compare_value.xxxx, shadow_depths), (float4)0.0), (float4)1.0);
+    }
+#else // !HYP_USE_GATHER
+    // Use SampleCmpLevelZero for hardware PCF.
+    [unroll]
+    for (int j = 0; j < HYP_POINT_SHADOW_SAMPLE_COUNT; j++)
+    {
+        float2 vogel = VogelDisk(j, HYP_POINT_SHADOW_SAMPLE_COUNT, noise);
+        float3 sampleDir = normalize(worldToLight + (tangent * vogel.x + bitangent * vogel.y) * shadow_filter_size);
+
+        shadowness += point_shadow_maps.SampleCmpLevelZero(HYP_SAMPLER_SHADOW, float4(sampleDir, float(layerIndex)), compare_value);
+    }
+#endif // HYP_USE_GATHER
+
+    shadowness *= (1.0 / float(HYP_POINT_SHADOW_SAMPLE_COUNT));
 
 #undef HYP_POINT_SHADOW_SAMPLE_COUNT
+    
+#ifdef HYP_USE_GATHER
+#undef HYP_USE_GATHER
+#endif
 
     return shadowness;
 }

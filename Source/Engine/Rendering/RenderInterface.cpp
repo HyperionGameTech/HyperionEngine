@@ -1184,15 +1184,7 @@ void RenderInterface::UpdateResources(AtomicFlag* pCancelFlag)
                 rplShared = &s_defaultRenderProxyList;
             }
 
-            bool readLockAcquired = false;
-            rplShared->BeginRead(&readLockAcquired);
-
-            if (!readLockAcquired)
-            {
-                HYP_LOG(Rendering, Warning, "Read lock for RenderProxyList could not be acquired, may result in invalid resource bindings or stale pointers!!!");
-
-                continue;
-            }
+            rplShared->BeginRead();
 
             // copy dependencies from shared to ViewData
             CopyDependencies(*resources, *rplRender, *rplShared);

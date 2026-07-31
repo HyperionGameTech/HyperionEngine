@@ -3196,8 +3196,6 @@ void EditorSubsystem::ShutdownGizmos()
 
 #pragma region EditorSubsystem
 
-static constexpr bool ShowOnlyActiveScene = true; /// \todo : Make this configurable
-
 #if HYP_EDITOR
 
 EditorSubsystem::EditorSubsystem()
@@ -3580,7 +3578,7 @@ Handle<PhysicsShape> EditorSubsystem::EnsureUniquePhysicsShape(Entity* entity)
     // The shape is shared with at least one other entity; clone it so this entity gets its own copy
     // that we can mutate without affecting the others.
     Handle<PhysicsShape> clone = ClonePhysicsShape(shape);
-    clone->SetName(NAME_FMT("{}_PhysicsShape", entity->GetName()));
+    clone->SetName(NAME_FMT("{}_{}_PhysicsShape", entity->GetName(), entity->Id().Value()));
     GetCurrentAssetRegistry()->PutAsset(clone);
 
     rigidBodyComponent->shape = clone;
@@ -3591,7 +3589,13 @@ Handle<PhysicsShape> EditorSubsystem::EnsureUniquePhysicsShape(Entity* entity)
 
 void EditorSubsystem::FitPhysicsShapeToMesh()
 {
-    if (!m_currentProject.IsValid() || IsSimulating())
+    if (IsSimulating())
+    {
+        return;
+    }
+
+    Handle<EditorProject> project = GetCurrentProject();
+    if (!project.IsValid())
     {
         return;
     }
@@ -3637,43 +3641,40 @@ void EditorSubsystem::FitPhysicsShapeToMesh()
     const BoundingBox meshAabb = meshComponent->mesh->GetAABB();
     const BoundingBox oldAabb = boxShape->GetAABB();
 
-    boxShape->SetAABB(meshAabb);
-    entity->AddTag<EntityTag::UpdatePhysicsShape>();
-
-    if (Handle<EditorProject> project = GetCurrentProject(); project.IsValid())
-    {
-        project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
-            "Fit Physics Shape to Mesh",
-            [boxShape, entity = MakeStrongRef(entity), meshAabb, oldAabb]() -> EditorActionFunctions
-            {
-                return {
-                    [boxShape, entity, meshAabb](EditorSubsystem*, EditorProject*)
+    project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
+        "Fit Physics Shape to Mesh",
+        [boxShape, entity = MakeStrongRef(entity), meshAabb, oldAabb]() -> EditorActionFunctions
+        {
+            return {
+                [boxShape, entity, meshAabb](EditorSubsystem*, EditorProject*)
+                {
+                    if (boxShape.IsValid())
                     {
-                        if (boxShape.IsValid())
-                        {
-                            boxShape->SetAABB(meshAabb);
-                        }
+                        boxShape->SetAABB(meshAabb);
 
-                        if (entity.IsValid())
-                        {
-                            entity->AddTag<EntityTag::UpdatePhysicsShape>();
-                        }
-                    },
-                    [boxShape, entity, oldAabb](EditorSubsystem*, EditorProject*)
-                    {
-                        if (boxShape.IsValid())
-                        {
-                            boxShape->SetAABB(oldAabb);
-                        }
-
-                        if (entity.IsValid())
-                        {
-                            entity->AddTag<EntityTag::UpdatePhysicsShape>();
-                        }
+                        boxShape->Invalidate();
                     }
-                };
-            }));
-    }
+
+                    if (entity.IsValid())
+                    {
+                        entity->AddTag<EntityTag::UpdatePhysicsShape>();
+                    }
+                },
+                [boxShape, entity, oldAabb](EditorSubsystem*, EditorProject*)
+                {
+                    if (boxShape.IsValid())
+                    {
+                        boxShape->SetAABB(oldAabb);
+                        boxShape->Invalidate();
+                    }
+
+                    if (entity.IsValid())
+                    {
+                        entity->AddTag<EntityTag::UpdatePhysicsShape>();
+                    }
+                }
+            };
+        }));
 }
 
 // Wireframe attributes for physics shape visualization: depth-tested against scene geometry so shapes

@@ -21,6 +21,8 @@
 
 #include <Asset/AssetObject.hpp>
 
+#include <Physics/PhysicsMemory.hpp>
+
 namespace Hyperion {
 
 HYP_ENUM()
@@ -49,6 +51,8 @@ protected:
     }
 
 public:
+    static Pool* GetAllocator() { return g_physicsPool; }
+
     ~PhysicsShape() override = default;
 
     HYP_METHOD()
@@ -68,6 +72,11 @@ public:
     HYP_FORCE_INLINE void SetInternalData(SharedPtr<void>&& internalData)
     {
         m_internalData = std::move(internalData);
+    }
+
+    HYP_FORCE_INLINE void Invalidate()
+    {
+        m_internalData.Reset();
     }
 
 protected:
@@ -105,7 +114,14 @@ public:
      *  editor's "fit to mesh" action and the box reshape gizmo. */
     HYP_FORCE_INLINE void SetAABB(const BoundingBox& aabb)
     {
+        if (m_aabb == aabb)
+        {
+            return;
+        }
+
         m_aabb = aabb;
+
+        MarkDirty();
     }
 
 protected:
@@ -138,6 +154,18 @@ public:
         return m_sphere;
     }
 
+    HYP_FORCE_INLINE void SetSphere(const BoundingSphere& sphere)
+    {
+        if (m_sphere == sphere)
+        {
+            return;
+        }
+
+        m_sphere = sphere;
+        
+        MarkDirty();
+    }
+
 protected:
     HYP_FIELD(Property = "Bounds", Serialize)
     BoundingSphere m_sphere;
@@ -166,6 +194,18 @@ public:
     HYP_FORCE_INLINE const Vec4f& GetPlane() const
     {
         return m_plane;
+    }
+
+    HYP_FORCE_INLINE void SetPlane(const Vec4f& plane)
+    {
+        if (m_plane == plane)
+        {
+            return;
+        }
+
+        m_plane = plane;
+        
+        MarkDirty();
     }
 
 protected:
@@ -238,9 +278,33 @@ public:
         return m_radius;
     }
 
+    HYP_FORCE_INLINE void SetRadius(float radius)
+    {
+        if (m_radius == radius)
+        {
+            return;
+        }
+
+        m_radius = radius;
+        
+        MarkDirty();
+    }
+
     HYP_FORCE_INLINE float GetHeight() const
     {
         return m_height;
+    }
+
+    HYP_FORCE_INLINE void SetHeight(float height)
+    {
+        if (m_height == height)
+        {
+            return;
+        }
+
+        m_height = height;
+        
+        MarkDirty();
     }
 
 protected:

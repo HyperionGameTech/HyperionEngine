@@ -31,6 +31,15 @@ namespace Hyperion {
 
 extern uint32 GetFrameCounter();
 
+enum class CommandRecorderQueue : uint8
+{
+    /*! \brief Executed after the frame's render commands. */
+    PostRender = 0,
+    /*! \brief Executed before the frame's render commands. Use for resource uploads and
+     *  initialization, which the same frame's draws may consume. */
+    PreRender
+};
+
 class CommandRecorderAllocator
 {
 public:
@@ -52,17 +61,20 @@ public:
 
     void UpdateQueue();
 
-    CommandRecorder& GetCommandRecorder();
+    CommandRecorder& GetCommandRecorder(CommandRecorderQueue queue = CommandRecorderQueue::PostRender);
 
     CommandRecorder root;
+    CommandRecorder rootPreRender;
 
 private:
     void UpdateQueue_Internal();
+    void DrainTempCommandRecorders(List<CommandRecorder>& tempCommandRecorders, CommandRecorder& dst);
 
     // for calling on another thread than sim thread / render thread.
     Mutex m_mutex;
 
     List<CommandRecorder> m_tempCommandRecorders;
+    List<CommandRecorder> m_tempPreRenderCommandRecorders;
     volatile int32 m_tempCommandRecordersCount = 0;
 
     bool m_isShuttingDown : 1;

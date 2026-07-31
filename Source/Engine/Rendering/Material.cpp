@@ -237,16 +237,6 @@ const MaterialAttributes& Material::GetAttributes() const
     return m_attributes;
 }
 
-MaterialAttributes& Material::GetAttributes()
-{
-    if (m_base)
-    {
-        return m_base->GetAttributes();
-    }
-
-    return m_attributes;
-}
-
 void Material::SetAttributes(const MaterialAttributes& attributes)
 {
     if (attributes == m_attributes)

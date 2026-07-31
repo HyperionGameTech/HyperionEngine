@@ -19,6 +19,8 @@
 
 namespace Hyperion {
 
+static constexpr uint32 MinCyclesBeforeDelete = 10;
+
 DeletionQueue& DeletionQueue::GetInstance()
 {
     static DeletionQueue s_instance;
@@ -257,7 +259,7 @@ void DeletionQueue::OnFrameEnd(uint32 prevFrameIndex)
     {
         EntryHeader header = *it;
 
-        if ((static_cast<int64>(prevFrameIndex) - static_cast<int64>(header.fc)) < MathUtil::Max(RingBufferDepth, NumFramesInFlight))
+        if ((static_cast<int64>(prevFrameIndex) - static_cast<int64>(header.fc)) < MinCyclesBeforeDelete)
         {
             ++it;
             continue; // skip this entry, it will be processed again next frame

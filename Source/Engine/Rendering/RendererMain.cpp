@@ -109,7 +109,7 @@ static HYP_FORCE_INLINE bool IsGeometryPassShader(StringHash shaderNameHash)
 #pragma region ParallelRenderingState
 
 // per-thread CommandRecorder
-using ThreadedCommandRecorder = TCommandRecorder<ThreadAllocator>;
+using ThreadedCommandRecorder = TCommandRecorder<RenderAllocator>;//TCommandRecorder<ThreadAllocator>;
 
 // Holds shared data for ParallelRenderingState instances to reduce memory usage
 struct ParallelRenderingState::StateData
@@ -143,7 +143,8 @@ struct ParallelRenderingState::StateData
     {
         for (uint32 i = 0; i < MaxBatches; i++)
         {
-            threadedCommandRecorders[i].Reset(/* freeMemory */ true);
+            threadedCommandRecorders[i].Reset(/* freeMemory */ false);
+            //threadedCommandRecorders[i].Reset(/* freeMemory */ true);
         }
     }
 };
@@ -622,10 +623,8 @@ void RenderProxyList::EndWrite()
     m_lock.UnlockWriter();
 }
 
-void RenderProxyList::BeginRead(bool* pOutSuccess)
+void RenderProxyList::BeginRead()
 {
-    constexpr uint32 MaxSpinsBeforeFail = 32;
-
     bool lockAcquired = false;
     uint32 numSpins = 0;
 
@@ -635,20 +634,13 @@ void RenderProxyList::BeginRead(bool* pOutSuccess)
 
         while (!lockAcquired)
         {
-            while (!(lockAcquired = m_lock.TryLockReader()) && numSpins++ < MaxSpinsBeforeFail)
+            while (!(lockAcquired = m_lock.TryLockReader()) && numSpins++ < 32)
                 ;
 
-            if (!lockAcquired && numSpins >= MaxSpinsBeforeFail)
+            if (!lockAcquired && numSpins >= 32)
             {
                 HYP_LOG(Rendering, Verbose, "Failed to acquire read lock. "
                                             "If this is occurring frequently, the View that owns this RenderProxyList should have double / triple buffering enabled");
-
-                if (pOutSuccess != nullptr)
-                {
-                    *pOutSuccess = false;
-
-                    return;
-                }
 
                 // continue and try again, if no pOutSuccess
                 ThreadSleep(0);
@@ -658,11 +650,6 @@ void RenderProxyList::BeginRead(bool* pOutSuccess)
 
     AssertDebug(state != CS_WRITING);
     state = CS_READING;
-
-    if (pOutSuccess)
-    {
-        *pOutSuccess = true;
-    }
 }
 
 void RenderProxyList::EndRead()

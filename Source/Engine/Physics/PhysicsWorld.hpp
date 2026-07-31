@@ -8,6 +8,7 @@
 
 #include <Physics/Adapter.hpp>
 #include <Physics/RigidBody.hpp>
+#include <Physics/PhysicsMemory.hpp>
 
 #include <Core/Math/Vector3.hpp>
 
@@ -20,6 +21,8 @@ class ENGINE_API PhysicsWorldBase : public ObjectBase
 
 public:
     static constexpr Vec3f EarthGravity = Vec3f { 0.0f, -9.81f, 0.0f };
+    
+    static Pool* GetAllocator() { return g_physicsPool; }
 
     PhysicsWorldBase() = default;
     PhysicsWorldBase(const PhysicsWorldBase& other) = delete;
@@ -36,12 +39,12 @@ public:
         m_gravity = gravity;
     }
 
-    HYP_FORCE_INLINE Array<Handle<RigidBody>>& GetRigidBodies()
+    HYP_FORCE_INLINE Array<Handle<RigidBody>, PhysicsAllocator>& GetRigidBodies()
     {
         return m_rigidBodies;
     }
 
-    HYP_FORCE_INLINE const Array<Handle<RigidBody>>& GetRigidBodies() const
+    HYP_FORCE_INLINE const Array<Handle<RigidBody>, PhysicsAllocator>& GetRigidBodies() const
     {
         return m_rigidBodies;
     }
@@ -63,7 +66,7 @@ public:
 protected:
     Vec3f m_gravity = EarthGravity;
 
-    Array<Handle<RigidBody>> m_rigidBodies;
+    Array<Handle<RigidBody>, PhysicsAllocator> m_rigidBodies;
 };
 
 template <class Adapter>
