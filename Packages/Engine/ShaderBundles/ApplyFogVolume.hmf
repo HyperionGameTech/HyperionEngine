@@ -7,6 +7,5 @@ ShaderBundle "ApplyFogVolume" {
     ]
     CompiledShaders = [
         @"Engine://Shaders/ApplyFogVolume_9313628481488194512"
-        @"Engine://Shaders/ApplyFogVolume_17261124354468234605"
     ]
 }

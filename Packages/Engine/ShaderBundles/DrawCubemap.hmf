@@ -3,13 +3,9 @@ ShaderBundle "DrawCubemap" {
         ("MAX_LIGHTS", 4)
     ]
     CompiledShaders = [
-        @"Engine://Shaders/DrawCubemap_9927342832519311484"
-        @"Engine://Shaders/DrawCubemap_9927342832519311476"
-        @"Engine://Shaders/DrawCubemap_9927342832519311436"
         @"Engine://Shaders/DrawCubemap_4709760780686944188"
         @"Engine://Shaders/DrawCubemap_4709760780686944164"
         @"Engine://Shaders/DrawCubemap_4709760780686944180"
         @"Engine://Shaders/DrawCubemap_4709760780686944172"
-        @"Engine://Shaders/DrawCubemap_9927342832519311428"
     ]
 }
