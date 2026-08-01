@@ -394,7 +394,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(CommandRecorder& cr, const Ren
     AssertDebug(m_indirectDrawState.GetIndirectBuffer(frameIndex)->Size() != 0);
 
     const size_t numInstances = m_indirectDrawState.GetInstances().Size();
-    const uint32 numBatches = (uint32(numInstances) / IndirectDrawState::BatchSize) + 1;
+    const uint32 numBatches = (uint32(numInstances) + IndirectDrawState::BatchSize - 1) / IndirectDrawState::BatchSize;
 
     if (numInstances == 0)
     {
@@ -420,9 +420,11 @@ void IndirectRenderer::ExecuteCullShaderInBatches(CommandRecorder& cr, const Ren
     cr << SetShaderUniform(numShaderUniforms++, "ObjectInstancesBuffer"_sh, m_indirectDrawState.GetInstanceBuffer(frameIndex), ShaderDataOffset(0, sizeof(ObjectInstance)));
     cr << SetShaderUniform(numShaderUniforms++, "IndirectDrawCommandsBuffer"_sh, m_indirectDrawState.GetIndirectBuffer(frameIndex), ShaderDataOffset(0, sizeof(IndirectDrawCommand)));
 
+    GpuBuffer* entityInstanceBatchesBuffer = m_batchAllocator->GetStructuredBuffer().gpuBuffer;
+
     // For ComputeVisibility we use RWByteAddressBuffer -- that's why stride is passed as 0.
     cr << SetShaderUniform(numShaderUniforms++, "EntityInstanceBatchesBuffer"_sh,
-        m_batchAllocator->GetStructuredBuffer().gpuBuffer,
+        entityInstanceBatchesBuffer,
         ShaderDataOffset(0, 0));
 
     ComputeVisibilityConstants constants {};
@@ -441,11 +443,13 @@ void IndirectRenderer::ExecuteCullShaderInBatches(CommandRecorder& cr, const Ren
 
     cr << SetShaderUniform(numShaderUniforms++, "ComputeVisibilityConstants"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
-    cr << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), RS_INDIRECT_ARG);
+    cr << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+    cr << InsertBarrier(entityInstanceBatchesBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
 
-    cr << DispatchCompute(Vec3u { (numBatches + IndirectDrawState::BatchSize - 1) / IndirectDrawState::BatchSize, 1, 1 });
+    cr << DispatchCompute(Vec3u { numBatches, 1, 1 });
 
     cr << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), RS_INDIRECT_ARG);
+    cr << InsertBarrier(entityInstanceBatchesBuffer, RS_SHADER_RESOURCE, ShaderModuleType::Vertex);
 }
 
 #pragma endregion IndirectRenderer

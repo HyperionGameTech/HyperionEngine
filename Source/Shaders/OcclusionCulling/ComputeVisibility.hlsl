@@ -132,15 +132,20 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         }
         else if (cull_bits == 0u)
         {
-            const float2 uv_min = float2(clip_min.x * 0.5 + 0.5, 0.5 - clip_min.y * 0.5);
-            const float2 uv_max = float2(clip_max.x * 0.5 + 0.5, 0.5 - clip_max.y * 0.5);
+            // clip space +y is up but texel (0, 0) is top-left, so the y flip swaps which
+            // corner is the uv minimum.
+            const float2 uv_a = saturate(float2(clip_min.x * 0.5 + 0.5, 0.5 - clip_min.y * 0.5));
+            const float2 uv_b = saturate(float2(clip_max.x * 0.5 + 0.5, 0.5 - clip_max.y * 0.5));
+
+            const float2 uv_min = min(uv_a, uv_b);
+            const float2 uv_max = max(uv_a, uv_b);
 
             const float2 dimensions = float2(depth_pyramid_dimensions);
 
             const float2 size = (uv_max - uv_min) * dimensions;
             const float max_size = max(max(size.x, size.y), 1.0);
 
-            const int mip = clamp((int)ceil(log2(max_size)), 0, totalMips - 1);
+            const int mip = clamp((int)ceil(log2(max_size)), 0, (int)totalMips - 1);
 
             const float4 depths = float4(
                 GetDepthAtTexel(uv_min, mip),
@@ -156,6 +161,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
             is_visible = (clip_min.z <= max_depth);
         }
     }
+    
 
     if (is_visible)
     {
@@ -173,7 +179,8 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
             //
 
             // 64 is the byte offset to the 'indices' array
-            uint byteOffset = (object_instance.batch_index * batch_stride) + 64 + (instance_index * sizeof(uint));
+            static const uint sizeofUint = 4;
+            uint byteOffset = (object_instance.batch_index * batch_stride) + 64 + (instance_index * sizeofUint);
 
             uint oldValue;
             entityInstanceBatchData.InterlockedExchange(byteOffset, entity_binding_index, oldValue);

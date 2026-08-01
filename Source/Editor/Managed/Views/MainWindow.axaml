@@ -887,7 +887,7 @@
                                                         <MenuFlyout>
                                                             <MenuItem Command="{Binding ContentBrowser.NewPhysicsShapeCommand}" Header="Physics Shape..." />
                                                             <MenuItem Command="{Binding ContentBrowser.NewMaterialCommand}" Header="Material" />
-                                                            <MenuItem Command="{Binding ContentBrowser.NewScriptCommand}" Header="Script" />
+                                                            <MenuItem Command="{Binding ContentBrowser.NewScriptCommand}" Header="Script..." />
                                                         </MenuFlyout>
                                                     </Button.Flyout>
                                                 </Button>

@@ -12,6 +12,9 @@
         <DataTemplate DataType="vm:NewPhysicsShapePanelViewModel">
             <panels:NewPhysicsShapePanelView />
         </DataTemplate>
+        <DataTemplate DataType="vm:NewScriptPanelViewModel">
+            <panels:NewScriptPanelView />
+        </DataTemplate>
         <DataTemplate DataType="vm:AddNewScenePanelViewModel">
             <panels:AddNewScenePanelView />
         </DataTemplate>

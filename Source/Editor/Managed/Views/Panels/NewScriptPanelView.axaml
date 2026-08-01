@@ -1,0 +1,36 @@
+<UserControl
+    x:Class="Hyperion.Editor.Views.Panels.NewScriptPanelView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+    x:DataType="vm:NewScriptPanelViewModel"
+    mc:Ignorable="d">
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,1,0,0" Padding="12,8">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Padding="20,6" Classes="Primary" Command="{Binding ConfirmCommand}" Content="Create" />
+                <Button Padding="20,6" Command="{Binding CancelCommand}" Content="Cancel" />
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Padding="4,0">
+            <StackPanel Margin="12,12,12,8" Spacing="12">
+                <StackPanel Spacing="4">
+                    <TextBlock FontSize="11" Opacity="0.7" Text="Name" />
+                    <TextBox Text="{Binding ScriptName, Mode=TwoWay}" Watermark="Script name" />
+                </StackPanel>
+
+                <Separator />
+
+                <StackPanel Spacing="4">
+                    <TextBlock FontSize="11" Opacity="0.7" Text="Language" />
+                    <RadioButton Content="HypScript" IsChecked="{Binding IsHypScriptSelected, Mode=TwoWay}" />
+                    <RadioButton Content="Strata" IsChecked="{Binding IsStrataSelected, Mode=TwoWay}" />
+                    <RadioButton Content="C#" IsChecked="{Binding IsCSharpSelected, Mode=TwoWay}" />
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

@@ -104,8 +104,19 @@ namespace Hyperion.Editor.ViewModels
 
             NewScriptCommand = new RelayCommand(() =>
             {
-                _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandNewScript"));
-                FocusAsset(AssetBucket.Scripts.Value, "NewScript");
+                var panel = new NewScriptPanelViewModel((name, languageArg) =>
+                {
+                    if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(languageArg))
+                    {
+                        Logger.Log(LogLevel.Warning, "New script creation cancelled.");
+                        return;
+                    }
+
+                    _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandNewScript"), $"{languageArg} {name}");
+                    FocusAsset(AssetBucket.Scripts.Value, name);
+                });
+
+                PanelService.Instance.OpenPanel(panel);
             });
 
             NewMaterialCommand = new RelayCommand(() =>

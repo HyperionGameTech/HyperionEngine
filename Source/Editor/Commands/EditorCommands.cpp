@@ -2283,12 +2283,32 @@ class EditorCommandNewScript final : public EditorCommandBase
 public:
     virtual ~EditorCommandNewScript() override = default;
 
+    // The language is passed as the first argument (e.g. "hypscript", "strata",
+    // "csharp") by the caller -- see ContentBrowserViewModel. Defaults to
+    // HypScript when no argument is supplied.
     virtual String GetText() const override
     {
+        const String& language = GetArgument(0);
+
+        if (language == "strata")
+        {
+            return "New Strata Script";
+        }
+
+        if (language == "csharp")
+        {
+            return "New C# Script";
+        }
+
+        if (language == "hypscript")
+        {
+            return "New HypScript Script";
+        }
+
         return "New Script";
     }
 
-    static void CreateScriptFile(EditorProject& project, ScriptAsset& scriptAsset)
+    static void CreateScriptFile(EditorProject& project, ScriptAsset& scriptAsset, const String& extension, const String& templateCode)
     {
         // Create script file in filesystem:
         bool shouldCreateFile = true;
@@ -2340,7 +2360,7 @@ public:
 
         if (shouldCreateFile)
         {
-            scriptFilePath = scriptsDir / (String(*scriptAsset.GetName()) + ".hyp");
+            scriptFilePath = scriptsDir / (String(*scriptAsset.GetName()) + extension);
             if (scriptFilePath.Exists())
             {
                 HYP_LOG(Editor, Warning, "File at path {} already exists, not creating to prevent overwriting the file.", scriptFilePath);
@@ -2351,18 +2371,8 @@ public:
 
         if (shouldCreateFile)
         {
-            static constexpr const char ScriptTemplateCode[] = "import Lib.*\n\n"
-                                                               "func OnAdded(entity : Entity)\n"
-                                                               "    // Called when added to the scene, entity is the target this script is attached to.\n"
-                                                               "end\n"
-                                                               "\n"
-                                                               "func Update(deltaTime : float)\n"
-                                                               "    // This gets called each frame when the script is active.\n"
-                                                               "end\n"
-                                                               "\n";
-
             FileByteWriter writer { scriptFilePath };
-            writer.WriteString(ScriptTemplateCode);
+            writer.WriteString(templateCode);
             writer.Close();
         }
     }
@@ -2377,23 +2387,75 @@ public:
             return;
         }
 
-        Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(Name::Unique("NewScript"), ScriptDesc());
-        InitObject(scriptAsset);
+        const String& languageArg = GetArgument(0);
+        const String& nameArg = GetArgument(1);
 
-        // scriptAsset->SetSourceCode(HYP_FORMAT("// {}\n\nexport func Update(DeltaTime : float)\nend\n", scriptAsset->GetName()));
+        const String assetName = nameArg.Any()
+            ? String(nameArg.Data(), nameArg.Data() + nameArg.Size())
+            : "NewScript";
+
+        ScriptDesc scriptDesc;
+        scriptDesc.language = ScriptLanguage::HypScript;
+
+        String extension = ".hyp";
+        String templateCode;
+
+        if (languageArg == "strata")
+        {
+            scriptDesc.language = ScriptLanguage::Strata;
+            extension = ".strata";
+
+            templateCode = String("// ") + assetName + "\n\n";
+            templateCode += "import Engine;\n\n";
+            templateCode += "Entity g_entity;\n\n";
+            templateCode += "void OnAdded(const Entity entity)\n{\n    g_entity = entity;\n}\n\n";
+            templateCode += "void Update(float delta)\n{\n}\n\n";
+            templateCode += "void Destroy()\n{\n}\n";
+        }
+        else if (languageArg == "csharp")
+        {
+            scriptDesc.language = ScriptLanguage::CSharp;
+            extension = ".cs";
+
+            scriptDesc.DeserializeClassName(assetName);
+
+            templateCode = String("using Hyperion;\n\npublic class ") + assetName + " : Script\n";
+            templateCode += "{\n";
+            templateCode += "    public override void OnAdded(Entity entity)\n    {\n    }\n\n";
+            templateCode += "    public override void Update(float deltaTime)\n    {\n    }\n\n";
+            templateCode += "    public override void Destroy()\n    {\n    }\n";
+            templateCode += "}\n";
+        }
+        else // hypscript
+        {
+            static constexpr const char ScriptTemplateCode[] = "import Lib.*\n\n"
+                                                               "func OnAdded(entity : Entity)\n"
+                                                               "    // Called when added to the scene, entity is the target this script is attached to.\n"
+                                                               "end\n"
+                                                               "\n"
+                                                               "func Update(deltaTime : float)\n"
+                                                               "    // This gets called each frame when the script is active.\n"
+                                                               "end\n"
+                                                               "\n";
+
+            templateCode = ScriptTemplateCode;
+        }
+
+        Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(assetName, scriptDesc);
+        InitObject(scriptAsset);
 
         Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
             GetText(),
             Proc<EditorActionFunctions()>(
-                [scriptAsset]() -> EditorActionFunctions
+                [scriptAsset, extension, templateCode]() -> EditorActionFunctions
                 {
                     return EditorActionFunctions {
                         .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
-                            [scriptAsset](EditorSubsystem*, EditorProject* project)
+                            [scriptAsset, extension, templateCode](EditorSubsystem*, EditorProject* project)
                             {
                                 GetCurrentAssetRegistry()->PutAssetUnique(scriptAsset);
 
-                                CreateScriptFile(*project, *scriptAsset);
+                                CreateScriptFile(*project, *scriptAsset, extension, templateCode);
                             }),
                         .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
                             [scriptAsset](EditorSubsystem*, EditorProject*)
