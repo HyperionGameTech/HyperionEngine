@@ -24,10 +24,13 @@
 #include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Framework/EngineDriver.hpp>
+#include <Framework/CVarManager.hpp>
 
 namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Rendering);
+
+extern CVar<bool> g_cvFreezeOcclusionCulling;
 
 struct DepthPyramidUniforms
 {
@@ -141,6 +144,11 @@ Vec2u DepthPyramidRenderer::GetExtent() const
 
 void DepthPyramidRenderer::Render(Frame* frame)
 {
+    if (m_isRendered && g_cvFreezeOcclusionCulling.Get())
+    {
+        return;
+    }
+
     Sampler* depthPyramidSampler = RI.samplerCache->GetOrCreate(SamplerDesc { TFM_NEAREST_MIPMAP, TFM_NEAREST, TWM_CLAMP_TO_EDGE });
 
     const uint8 numDepthPyramidMipLevels = uint8(m_mipImageViews.Size());
@@ -170,8 +178,24 @@ void DepthPyramidRenderer::Render(Frame* frame)
         }
         else
         {
+            // the mip we're about to read was written as a UAV last iteration -- it has to be
+            // transitioned to a readable state before we bind it as InImage's SRV.
+            frame->cr << InsertBarrier(
+                m_hzbTexture->GetGpuImage(),
+                RS_SHADER_RESOURCE,
+                ImageSubResource { .baseMipLevel = static_cast<uint8>(mipLevel - 1), .numLevels = 1, .baseArrayLayer = 0, .numLayers = 1 },
+                ShaderModuleType::Compute);
+
             frame->cr << SetShaderUniform(0, "InImage"_sh, m_mipImageViews[mipLevel - 1]);
         }
+
+        // the mip we're about to write starts out COMMON (or SHADER_RESOURCE from a prior frame's
+        // final barrier below) -- neither implies UAV write access, so it needs an explicit transition.
+        frame->cr << InsertBarrier(
+            m_hzbTexture->GetGpuImage(),
+            RS_UNORDERED_ACCESS,
+            ImageSubResource { .baseMipLevel = mipLevel, .numLevels = 1, .baseArrayLayer = 0, .numLayers = 1 },
+            ShaderModuleType::Compute);
 
         frame->cr << SetShaderUniform(1, "OutImage"_sh, m_mipImageViews[mipLevel]);
         frame->cr << SetShaderUniform(2, "CBuffer"_sh, m_mipUniformBuffers[mipLevel]);

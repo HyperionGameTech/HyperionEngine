@@ -13,13 +13,9 @@ DECLARE_BUFFER(DepthPyramidDescriptorSet, CBuffer) cbuffer CBuffer
     uint mip_level;
 };
 
-float2 GetDepthAtTexel(float2 texcoord, int2 offset)
+float2 GetDepthAtTexel(int2 texel_coord)
 {
-    const int2 texel_coord = clamp(
-        int2((texcoord * float2(prev_mip_dimensions)) + float2(offset)),
-        int2(0, 0),
-        int2(prev_mip_dimensions) - int2(1, 1)
-    );
+    texel_coord = clamp(texel_coord, int2(0, 0), int2(prev_mip_dimensions) - int2(1, 1));
 
     return TEXEL_FETCH_2D_LOD(InSampler, InImage, texel_coord, 0).rg;
 }
@@ -33,20 +29,34 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         return;
     }
 
-    const float2 texcoord = (float2(coord)) / float2(mip_dimensions);
-
     float2 depths = HYP_DEPTHS_INIT;
 
     if (mip_level == 0)
     {
-       depths = GetDepthAtTexel(texcoord, int2(0, 0));
+        depths = GetDepthAtTexel(int2(coord));
     }
     else
     {
-        for (int i = 0; i < HYP_NUM_DEPTH_PYRAMID_OFFSETS; i++)
+        const int2 srcMin = int2(coord) * 2;
+        int2 srcMax = srcMin + int2(1, 1);
+
+        if (coord.x == mip_dimensions.x - 1)
         {
-            float2 d = GetDepthAtTexel(texcoord, depth_pyramid_offsets[i]);
-            depths = float2(HYP_DEPTH_CMP(depths.x, d.x), HYP_DEPTH_CMP_INV(depths.y, d.y));
+            srcMax.x = int(prev_mip_dimensions.x) - 1;
+        }
+
+        if (coord.y == mip_dimensions.y - 1)
+        {
+            srcMax.y = int(prev_mip_dimensions.y) - 1;
+        }
+
+        for (int y = srcMin.y; y <= srcMax.y; y++)
+        {
+            for (int x = srcMin.x; x <= srcMax.x; x++)
+            {
+                const float2 d = GetDepthAtTexel(int2(x, y));
+                depths = float2(HYP_DEPTH_CMP(depths.x, d.x), HYP_DEPTH_CMP_INV(depths.y, d.y));
+            }
         }
     }
 

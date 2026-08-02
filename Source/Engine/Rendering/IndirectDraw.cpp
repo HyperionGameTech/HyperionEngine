@@ -32,10 +32,14 @@
 
 #include <Core/Math/MathUtil.hpp>
 
+#include <Framework/CVarManager.hpp>
+
 namespace Hyperion {
 
 struct alignas(16) ComputeVisibilityConstants
 {
+    Mat4f viewProj;
+
     Vec2u depthPyramidDimensions;
     uint32 totalMips;
     uint32 batchOffset;
@@ -406,11 +410,18 @@ void IndirectRenderer::ExecuteCullShaderInBatches(CommandRecorder& cr, const Ren
     DeferredPassData* pd = DynamicCast<DeferredPassData>(renderSetup.passData);
     AssertDebug(pd != nullptr);
 
+    if (!m_hasCullViewProjMat)
+    {
+        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
+        AssertDebug(cameraProxy != nullptr);
+
+        m_cullViewProjMat = cameraProxy->bufferData.viewProjMat;
+        m_hasCullViewProjMat = true;
+    }
+
     uint32 numShaderUniforms = 0;
 
     cr << SetCurrentShader(ShaderDesc(NAME("ComputeVisibility")));
-
-    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(renderSetup.view->GetCamera()));
     cr << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, RI.namedBuffers[NamedBuffer::Entities]);
     cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
 
@@ -428,6 +439,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(CommandRecorder& cr, const Ren
         ShaderDataOffset(0, 0));
 
     ComputeVisibilityConstants constants {};
+    constants.viewProj = m_cullViewProjMat;
     constants.depthPyramidDimensions = pd->depthPyramidRenderer->GetExtent();
     constants.totalMips = pd->depthPyramidRenderer->GetTotalMips();
     constants.batchOffset = 0;

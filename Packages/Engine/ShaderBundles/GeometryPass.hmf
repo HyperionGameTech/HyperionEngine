@@ -4,17 +4,13 @@ ShaderBundle "GeometryPass" {
         ("TILE_Z_BINS", 16)
     ]
     CompiledShaders = [
+        @"Engine://Shaders/GeometryPass_6352783493515453726"
+        @"Engine://Shaders/GeometryPass_6352783493515453718"
+        @"Engine://Shaders/GeometryPass_6352783493515453710"
+        @"Engine://Shaders/GeometryPass_6352783493515453702"
         @"Engine://Shaders/GeometryPass_46465714812560057"
         @"Engine://Shaders/GeometryPass_46465714812559937"
-        @"Engine://Shaders/GeometryPass_150395869847141036"
-        @"Engine://Shaders/GeometryPass_150395869847140948"
-        @"Engine://Shaders/GeometryPass_150395869847141028"
-        @"Engine://Shaders/GeometryPass_150395869847140956"
         @"Engine://Shaders/GeometryPass_46465714812560049"
         @"Engine://Shaders/GeometryPass_46465714812559945"
-        @"Engine://Shaders/GeometryPass_3548372025915056808"
-        @"Engine://Shaders/GeometryPass_3548372025915056800"
-        @"Engine://Shaders/GeometryPass_3548372025915056792"
-        @"Engine://Shaders/GeometryPass_3548372025915056784"
     ]
 }

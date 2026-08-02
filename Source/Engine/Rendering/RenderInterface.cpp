@@ -868,8 +868,6 @@ void RenderInterface::Shutdown()
 
     ClearSubtypeBindings();
 
-    commandRecorderAllocator.Shutdown();
-
     PoolDelete(*g_renderPool, resources);
     resources = nullptr;
 
@@ -965,6 +963,10 @@ void RenderInterface::Shutdown()
     renderGroupCache = nullptr;
 
     DeletionQueue::GetInstance().Shutdown();
+
+    // Must run last: everything torn down above (passes, textures, buffer caches,
+    // shadow maps, etc.) may still enqueue commands via GetCommandRecorder().
+    commandRecorderAllocator.Shutdown();
 }
 
 void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)

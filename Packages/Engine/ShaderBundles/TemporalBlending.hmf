@@ -1,0 +1,6 @@
+ShaderBundle "TemporalBlending" {
+    StaticProperties = []
+    CompiledShaders = [
+        @"Engine://Shaders/TemporalBlending_11500977273478738087"
+    ]
+}

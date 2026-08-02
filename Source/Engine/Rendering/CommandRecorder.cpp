@@ -1015,6 +1015,10 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
 
                 RenderInterface::State& state = RI.state;
 
+                AssertDebug(cmd->uniformIndex < state.MaxShaderUniforms,
+                            "SetShaderUniform: uniformIndex {} is out of bounds (MaxShaderUniforms = {})",
+                            cmd->uniformIndex, state.MaxShaderUniforms);
+
                 ShaderUniform& uniform = state.shaderUniforms[cmd->uniformIndex];
 
                 if (uniform != cmd->uniform || !(state.validUniforms & (1u << cmd->uniformIndex)))
@@ -1248,7 +1252,7 @@ BindDescriptorSet::BindDescriptorSet(DescriptorSet* descriptorSet, RayTracingPip
 #if defined(HYP_VULKAN) && defined(HYP_DEBUG_MODE)
 void InsertBarrier::CheckNotInRenderPass(CommandBuffer* commandBuffer) const
 {
-    Assert(!commandBuffer->IsInRenderPass());
+    Assert(!commandBuffer->IsInRenderPass(), "InsertBarrier() used while renderpass active!");
 }
 #endif
 

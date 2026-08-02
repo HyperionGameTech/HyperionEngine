@@ -384,7 +384,8 @@ if((HYP_IOS OR HYPERION_BUILD_RELEASE_FINAL) AND NOT HYP_ANDROID)
 endif()
 
 # enable HypScript
-add_definitions(-DHYP_SCRIPT=1)
+# set(HYP_SCRIPT 1)
+# add_definitions(-DHYP_SCRIPT=1)
 
 set(HYP_GENERATE_CSHARP_LIBRARIES true)
 
@@ -622,146 +623,6 @@ if (RENDERING_BACKEND STREQUAL "Vulkan")
   if (HYP_CLANG_WINDOWS)
     message(STATUS "Building with Clang on Windows - not including glslang due to build issues with Clang on Windows. If you want to use glslang, build with MSVC or on another platform.")
   endif()
-
-  # if (${NATIVE} AND NOT HYP_IOS AND NOT HYP_ANDROID AND NOT HYP_CLANG_WINDOWS)
-  #     # if glslang folder exists, link with it.
-  #     if(EXISTS "${SUBMODULES_DIR}/glslang/glslang/CMakeLists.txt")
-  #         set(HYP_GLSLANG 1)
-
-  #         add_definitions(-DHYP_GLSLANG=1)
-  #         add_definitions(-DHYP_GLSLANG_MODIFICATIONS=1)
-
-  #         # Build glslang during CMake configuration time (not as part of the main build)
-  #         # This keeps glslang completely separate from the VS solution / main project
-  #         set(GLSLANG_BUILD_DIR "${CMAKE_BINARY_DIR}/glslang_build")
-  #         set(GLSLANG_SOURCE_DIR "${SUBMODULES_DIR}/glslang")
-
-  #         # Check if glslang needs to be built (check for a marker file or key library)
-  #         if(WIN32)
-  #             set(GLSLANG_MARKER_LIB "${GLSLANG_BUILD_DIR}/glslang/Release/glslang.lib")
-  #         else()
-  #             set(GLSLANG_MARKER_LIB "${GLSLANG_BUILD_DIR}/glslang/libglslang.a")
-  #         endif()
-
-  #         if(NOT EXISTS "${GLSLANG_MARKER_LIB}")
-  #             message(STATUS "Building glslang...")
-
-  #             # Create the build directory if it doesn't exist
-  #             file(MAKE_DIRECTORY ${GLSLANG_BUILD_DIR})
-
-  #             # Configure glslang
-  #             execute_process(
-  #                 COMMAND ${CMAKE_COMMAND}
-  #                     -S ${GLSLANG_SOURCE_DIR}
-  #                     -B ${GLSLANG_BUILD_DIR}
-  #                     -DCMAKE_BUILD_TYPE=Release
-  #                     -DGLSLANG_ENABLE_INSTALL=OFF
-  #                     -DGLSLANG_ENABLE_INSTALL_DEFAULT=OFF
-  #                     -DGLSLANG_TESTS=OFF
-  #                     -DENABLE_GLSLANG_BINARIES=OFF
-  #                     -DENABLE_OPT=OFF
-  #                     -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-  #                     "-DCMAKE_CXX_FLAGS=-DHYP_GLSLANG_MODIFICATIONS=1"
-  #                 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  #                 RESULT_VARIABLE GLSLANG_CONFIGURE_RESULT
-  #             )
-
-  #             if(NOT GLSLANG_CONFIGURE_RESULT EQUAL 0)
-  #                 message(FATAL_ERROR "Failed to configure glslang (exit code: ${GLSLANG_CONFIGURE_RESULT})")
-  #             endif()
-
-  #             # Build glslang
-  #             execute_process(
-  #                 COMMAND ${CMAKE_COMMAND} --build ${GLSLANG_BUILD_DIR} --config Release --parallel
-  #                 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  #                 RESULT_VARIABLE GLSLANG_BUILD_RESULT
-  #             )
-
-  #             if(NOT GLSLANG_BUILD_RESULT EQUAL 0)
-  #                 message(FATAL_ERROR "Failed to build glslang (exit code: ${GLSLANG_BUILD_RESULT})")
-  #             endif()
-
-  #             message(STATUS "glslang build completed successfully")
-  #         else()
-  #             message(STATUS "glslang already built, skipping rebuild")
-  #         endif()
-
-  #         # Create imported targets for all the libraries we need
-  #         add_library(glslang STATIC IMPORTED)
-  #         add_library(SPIRV STATIC IMPORTED)
-  #         add_library(glslang-default-resource-limits STATIC IMPORTED)
-  #         # add_library(SPIRV-Tools STATIC IMPORTED)
-  #         # add_library(SPIRV-Tools-opt STATIC IMPORTED)
-  #         add_library(MachineIndependent STATIC IMPORTED)
-  #         add_library(GenericCodeGen STATIC IMPORTED)
-  #         add_library(OSDependent STATIC IMPORTED)
-
-  #         # Set the imported library locations
-  #         if(WIN32)
-  #             set_target_properties(glslang PROPERTIES
-  #                 IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/Release/glslang.lib
-  #             )
-  #             set_target_properties(SPIRV PROPERTIES
-  #                 IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/SPIRV/Release/SPIRV.lib
-  #             )
-  #             set_target_properties(glslang-default-resource-limits PROPERTIES
-  #                 IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/Release/glslang-default-resource-limits.lib
-  #             )
-  #             # set_target_properties(SPIRV-Tools PROPERTIES
-  #             #     IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/Release/SPIRV-Tools.lib
-  #             # )
-  #             # set_target_properties(SPIRV-Tools-opt PROPERTIES
-  #             #     IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/opt/Release/SPIRV-Tools-opt.lib
-  #             # )
-  #             set_target_properties(MachineIndependent PROPERTIES
-  #                 IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/Release/MachineIndependent.lib
-  #             )
-  #             set_target_properties(GenericCodeGen PROPERTIES
-  #                 IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/Release/GenericCodeGen.lib
-  #             )
-  #             set_target_properties(OSDependent PROPERTIES
-  #                 IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/OSDependent/Windows/Release/OSDependent.lib
-  #             )
-  #         else()
-  #             set_target_properties(glslang PROPERTIES
-  #                 IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/libglslang.a
-  #             )
-  #             set_target_properties(SPIRV PROPERTIES
-  #                 IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/SPIRV/libSPIRV.a
-  #             )
-  #             set_target_properties(glslang-default-resource-limits PROPERTIES
-  #                 IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/libglslang-default-resource-limits.a
-  #             )
-  #             # set_target_properties(SPIRV-Tools PROPERTIES
-  #             #     IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/libSPIRV-Tools.a
-  #             # )
-  #             # set_target_properties(SPIRV-Tools-opt PROPERTIES
-  #             #     IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/opt/libSPIRV-Tools-opt.a
-  #             # )
-  #             set_target_properties(MachineIndependent PROPERTIES
-  #                 IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/libMachineIndependent.a
-  #             )
-  #             set_target_properties(GenericCodeGen PROPERTIES
-  #                 IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/libGenericCodeGen.a
-  #             )
-  #             set_target_properties(OSDependent PROPERTIES
-  #                 IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/OSDependent/Unix/libOSDependent.a
-  #             )
-  #         endif()
-
-  #         include_directories(BEFORE ${SUBMODULES_DIR}/glslang)
-
-  #         set(RENDERER_LIBRARIES
-  #             ${RENDERER_LIBRARIES}
-  #             glslang
-  #             SPIRV
-  #             glslang-default-resource-limits
-  #             MachineIndependent
-  #             GenericCodeGen
-  #             OSDependent
-  #         )
-  #     endif()
-  # endif()
 elseif(RENDERING_BACKEND STREQUAL "DX12")
   # add DirectX-Headers include dir if DX12 rendering backend
   include_directories(BEFORE SYSTEM ${THIRD_PARTY_INCLUDE_DIR}/DirectX-Headers)
@@ -846,7 +707,11 @@ if(WIN32)
 endif()
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/Core ${CMAKE_BINARY_DIR}/Core)
-add_subdirectory(${CMAKE_SOURCE_DIR}/Lang ${CMAKE_BINARY_DIR}/Lang)
+
+# add Lang folder if HypScript is enabled.
+if(HYP_SCRIPT)
+    add_subdirectory(${CMAKE_SOURCE_DIR}/Lang ${CMAKE_BINARY_DIR}/Lang)
+endif()
 
 function(collect_sources_and_modules dir out_sources out_headers out_modules)
 
@@ -1215,7 +1080,10 @@ set(SUB_LIBRARIES ${SUB_LIBRARIES} ${THIRD_PARTY_LIBRARIES})
 
 target_link_libraries(${BUILD_NAME} PUBLIC ${COMMON_LIBRARIES})
 target_link_libraries(${BUILD_NAME} PUBLIC ${RENDERER_LIBRARIES})
-target_link_libraries(${BUILD_NAME} PUBLIC hyperion-script) #Lang
+
+if(HYP_SCRIPT)
+    target_link_libraries(${BUILD_NAME} PUBLIC hyperion-script) #Lang
+endif()
 
 # add sublibraries as dependencies so any changes get picked up.
 foreach(SUB_LIBRARY ${SUB_LIBRARIES})

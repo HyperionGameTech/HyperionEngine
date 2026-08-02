@@ -88,7 +88,7 @@ void LightmapPass::Resize_Internal(Vec2u newSize)
 
 void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer)
 {
-    AssertDebug(renderSetup.world && renderSetup.volume && renderSetup.view);
+    AssertDebug(renderSetup.world && renderSetup.view);
 
     RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
     rpl.BeginRead();

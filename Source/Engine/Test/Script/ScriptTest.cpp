@@ -1,4 +1,4 @@
-#ifdef HYP_TESTS
+#if defined(HYP_TESTS) && defined(HYP_SCRIPT)
 
 #include <Lang/HypScript.hpp>
 #include <Lang/SourceFile.hpp>
@@ -919,4 +919,4 @@ HYP_EXPORT void RunScriptTest()
 } // namespace tests
 } // namespace Hyperion
 
-#endif // HYP_TESTS
+#endif // HYP_TESTS && HYP_SCRIPT

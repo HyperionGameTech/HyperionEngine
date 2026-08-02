@@ -1,6 +1,0 @@
-ShaderBundle "EditorGrid" {
-    StaticProperties = []
-    CompiledShaders = [
-        @"Engine://Shaders/EditorGrid_14917212823711398456"
-    ]
-}

@@ -36,8 +36,6 @@ namespace Hyperion {
 
 // #define DECLARE_SET_TRACK_FRAME_USAGE
 
-class RenderResourceBase;
-
 enum class GpuBufferType : uint8;
 
 class ObjectBase;
