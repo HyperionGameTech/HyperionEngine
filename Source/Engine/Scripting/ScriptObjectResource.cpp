@@ -20,9 +20,9 @@
 #include <Lang/HypScript.hpp>
 #endif // HYP_SCRIPT
 
-#ifdef HYP_STRATA
+#ifdef HYP_STRATA_JIT
 #include <strata/strata.h>
-#endif // HYP_STRATA
+#endif // HYP_STRATA_JIT
 
 #include <Framework/EngineStats.hpp>
 #include <Framework/EngineDriver.hpp>
@@ -167,18 +167,20 @@ ScriptObjectResource::~ScriptObjectResource()
     }
 #endif // HYP_DOTNET
 
+#ifdef HYP_STRATA
     if (strataData.HasValue())
     {
-#ifdef HYP_STRATA
+#ifdef HYP_STRATA_JIT
         if (strataData->jit)
         {
             strataJitDestroy(strataData->jit);
             strataData->jit = nullptr;
         }
-#endif // HYP_STRATA
+#endif // HYP_STRATA_JIT
 
         strataData.Unset();
     }
+#endif // HYP_STRATA
 }
 
 uint32 ScriptObjectResource::GetScriptLanguageMask() const
@@ -203,11 +205,13 @@ uint32 ScriptObjectResource::GetScriptLanguageMask() const
         mask |= (1 << uint32(ScriptLanguage::HypScript));
     }
 #endif // HYP_SCRIPT
-
+    
+#ifdef HYP_STRATA
     if (strataData.HasValue())
     {
         mask |= (1 << uint32(ScriptLanguage::Strata));
     }
+#endif // HYP_STRATA
 
     return mask;
 }

@@ -1,4 +1,4 @@
-Shader "GeometryPass_6352783493515453710" {
+Shader "GeometryPass_150395869847141036" {
     PropertySet = [
         ShaderProperty {
             Name = "TARGET"
@@ -25,9 +25,15 @@ Shader "GeometryPass_6352783493515453710" {
             EnumValues = []
         }
         ShaderProperty {
+            Name = "ALPHA_DISCARD"
+            Flags = SPF_NONE
+            Value = null
+            EnumValues = []
+        }
+        ShaderProperty {
             Name = "SHADING_TYPE"
             Flags = SPF_NONE
-            Value = "DEFERRED"
+            Value = "LIGHTMAPPED"
             EnumValues = []
         }
     ]
@@ -149,12 +155,12 @@ Shader "GeometryPass_6352783493515453710" {
     ]
     ShaderBlobs = [
         BlobDataReference {
-            Key = "Engine://Shaders/GeometryPass_6352783493515453710.VS"
-            Size = 62288
+            Key = "Engine://Shaders/GeometryPass_150395869847141036.VS"
+            Size = 62312
         }
         BlobDataReference {
-            Key = "Engine://Shaders/GeometryPass_6352783493515453710.PS"
-            Size = 95940
+            Key = "Engine://Shaders/GeometryPass_150395869847141036.PS"
+            Size = 97004
         }
     ]
     PropertySetHashCode = {}

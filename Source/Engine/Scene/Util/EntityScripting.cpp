@@ -41,11 +41,11 @@
 #include <Lang/HypScript.hpp>
 #endif // HYP_SCRIPT
 
-#ifdef HYP_STRATA
+#ifdef HYP_STRATA_JIT
 #include <strata/strata.h>
 
 #include <Core/Scripting/Strata/ThunkDrawer.hpp>
-#endif // HYP_STRATA
+#endif // HYP_STRATA_JIT
 
 #if HYP_WINDOWS
 #  define WIN32_LEAN_AND_MEAN
@@ -66,6 +66,8 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(Scripting);
 namespace CoreApi {
 CORE_API extern const FilePath& GetExecutablePath();
 } // namespace CoreApi
+
+#ifdef HYP_STRATA
 
 namespace Strata {
 
@@ -169,12 +171,12 @@ static void* ResolveFunctionPointer(ScriptObjectData_Strata* data, const char* n
 
     void* fn = nullptr;
 
-#ifdef HYP_STRATA
+#ifdef HYP_STRATA_JIT
     if (data->jit != nullptr)
     {
         fn = strataJitGetFunction(data->jit, name);
     }
-#endif // HYP_STRATA
+#endif // HYP_STRATA_JIT
 
     if (fn == nullptr)
     {
@@ -186,7 +188,7 @@ static void* ResolveFunctionPointer(ScriptObjectData_Strata* data, const char* n
     return fn;
 }
 
-#ifdef HYP_STRATA
+#ifdef HYP_STRATA_JIT
 
 thread_local StrataCompiler* t_strataCompiler = nullptr;
 
@@ -238,9 +240,11 @@ void BindExterns(StrataJit* jit)
     }
 }
 
-#endif // HYP_STRATA
+#endif // HYP_STRATA_JIT
 
 } // namespace Strata
+
+#endif // HYP_STRATA
 
 namespace EntityScripting {
 
@@ -721,6 +725,8 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
             break;
         }
 #endif // HYP_SCRIPT
+
+#ifdef HYP_STRATA
         case ScriptLanguage::Strata:
         {
             if (!sor || !sor->GetScriptObjectData_Strata())
@@ -742,7 +748,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                 {
                     strataData->moduleHash = moduleHash;
 
-#ifdef HYP_STRATA
+#ifdef HYP_STRATA_JIT
                     // Compile the source at runtime. Shipped builds have no knowledge of the language, symbols are linked to the exe
                     Strata::InitializeCompiler();
 
@@ -787,7 +793,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                         HYP_LOG(Scripting, Warning, "Strata source '{}' not found; assuming AOT-linked symbols.",
                             scriptDesc.path.Data());
                     }
-#endif // HYP_STRATA
+#endif // HYP_STRATA_JIT
                 }
 
                 if (!gameState.IsStopped())
@@ -804,6 +810,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
             break;
         }
+#endif // HYP_STRATA
         default:
             return;
         }

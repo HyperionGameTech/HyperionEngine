@@ -333,10 +333,9 @@ namespace Hyperion.Editor.ViewModels
                 {
                     ScriptDesc scriptDesc = scriptAsset.ScriptDesc;
 
-                    // @TODO Get actual script path, don't just assume
                     string scriptPath = Path.Combine(registry.GetRootPath(), scriptDesc.Path);
-
                     Dispatcher.UIThread.Post(() => CodeEditorService.OpenFile(scriptPath));
+
                     return;
                 }
 

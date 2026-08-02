@@ -433,59 +433,63 @@ if(HYP_DOTNET_HOST)
 endif()
 
 # Strata lang integration
+set(HYP_STRATA 1)
+add_definitions(-DHYP_STRATA=1)
 
-if(HYP_EDITOR)
-  # attempt to use strata if headers exist,
-  # editor only. (non editor build will link directly to compiled .o files)
-  set(HYP_TRY_TO_COMPILE_WITH_STRATA 1)
-endif()
+if (HYP_STRATA)
 
-# check if strata headers exists
-if(HYP_TRY_TO_COMPILE_WITH_STRATA)
-  if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/strata/strata.h")
-    message(STATUS "strata headers found")
+  if(HYP_EDITOR)
+    # attempt to use strata if headers exist,
+    # editor only. (non editor build will link directly to compiled .o files)
+    set(HYP_TRY_TO_COMPILE_WITH_STRATA_JIT 1)
+  endif()
+  # check if strata headers exists
+  if(HYP_TRY_TO_COMPILE_WITH_STRATA_JIT)
+    if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/strata/strata.h")
+      message(STATUS "strata headers found")
 
-    if(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/libstrata.a")
-      set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/libstrata.a")
+      if(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/libstrata.a")
+        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/libstrata.a")
 
-      set(HYP_STRATA 1)
-    elseif(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/strata.lib")
-      
-      set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/strata.lib")
+        set(HYP_STRATA_JIT 1)
+      elseif(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/strata.lib")
+        
+        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/strata.lib")
 
-      # copy the dll to the build directory
-      file(COPY "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/strata.dll" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
-      file(COPY "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/LLVM-C.dll" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+        # copy the dll to the build directory
+        file(COPY "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/strata.dll" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+        file(COPY "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/LLVM-C.dll" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
-      set(HYP_STRATA 1)
+        set(HYP_STRATA_JIT 1)
+      else()
+        message(WARNING "strata library not found, expected to find libstrata.a or strata.lib in ${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}")
+      endif()
+
+      if(HYP_STRATA_JIT)
+        add_definitions(-DHYP_STRATA_JIT=1)
+        # add header dir
+        include_directories("${THIRD_PARTY_INCLUDE_DIR}/strata")
+      endif()
     else()
-      message(WARNING "strata library not found, expected to find libstrata.a or strata.lib in ${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}")
-    endif()
-
-    if(HYP_STRATA)
-      add_definitions(-DHYP_STRATA=1)
-      # add header dir
-      include_directories("${THIRD_PARTY_INCLUDE_DIR}/strata")
+      message(STATUS "strata headers not found, skipping strata")
     endif()
   else()
-    message(STATUS "strata headers not found, skipping strata")
-  endif()
-else()
-  # !HYP_TRY_TO_COMPILE_WITH_STRATA...
+    # !HYP_TRY_TO_COMPILE_WITH_STRATA_JIT...
 
-  # we need to link with the compiled strata object files
-  # this is for non-editor builds, where we don't want to compile with strata
+    # we need to link with the compiled strata object files
+    # this is for non-editor builds, where we don't want to compile with strata
 
-  # the files will be in the build folder under subdir "strata"
-  # we need to find them and link them in
+    # the files will be in the build folder under subdir "strata"
+    # we need to find them and link them in
 
-  set(STRATA_OBJECT_DIR "${CMAKE_BINARY_DIR}/strata")
+    set(STRATA_OBJECT_DIR "${CMAKE_BINARY_DIR}/strata")
 
-  if(EXISTS "${STRATA_OBJECT_DIR}")
-    # windows - we need to find the .obj files
-    file(GLOB STRATA_OBJECT_FILES "${STRATA_OBJECT_DIR}/*.obj")
-    # linux/mac
-    file(GLOB STRATA_OBJECT_FILES "${STRATA_OBJECT_DIR}/*.o")
+    if(EXISTS "${STRATA_OBJECT_DIR}")
+      # windows - we need to find the .obj files
+      file(GLOB STRATA_OBJECT_FILES "${STRATA_OBJECT_DIR}/*.obj")
+      # linux/mac
+      file(GLOB STRATA_OBJECT_FILES "${STRATA_OBJECT_DIR}/*.o")
+    endif()
   endif()
 endif()
 

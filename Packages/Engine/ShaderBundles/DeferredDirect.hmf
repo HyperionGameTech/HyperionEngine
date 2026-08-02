@@ -7,7 +7,5 @@ ShaderBundle "DeferredDirect" {
     CompiledShaders = [
         @"Engine://Shaders/DeferredDirect_652090781691541502"
         @"Engine://Shaders/DeferredDirect_3579567509353136114"
-        @"Engine://Shaders/DeferredDirect_13095725923383650712"
-        @"Engine://Shaders/DeferredDirect_13049821001061465260"
     ]
 }

@@ -25,9 +25,9 @@
 #include <Core/Reflection/BoxedValue.hpp>
 #endif // HYP_SCRIPT
 
-#ifdef HYP_STRATA
+#ifdef HYP_STRATA_JIT
 struct StrataJit;
-#endif // HYP_STRATA
+#endif // HYP_STRATA_JIT
 
 namespace Hyperion {
 
@@ -66,9 +66,9 @@ struct ScriptObjectData_Strata final
 
     StringHash moduleHash;
 
-#ifdef HYP_STRATA
+#ifdef HYP_STRATA_JIT
     StrataJit* jit = nullptr;
-#endif // HYP_STRATA
+#endif // HYP_STRATA_JIT
 };
 
 struct ScriptObjectData_Native final
@@ -164,7 +164,8 @@ public:
         hypScriptData = data;
     }
 #endif // HYP_SCRIPT
-
+    
+#ifdef HYP_STRATA
     ScriptObjectData_Strata* GetScriptObjectData_Strata()
     {
         return strataData.TryGet();
@@ -179,6 +180,7 @@ public:
     {
         strataData = data;
     }
+#endif // HYP_STRATA
 
 protected:
     virtual void Initialize() override final;
@@ -195,8 +197,10 @@ protected:
 #ifdef HYP_SCRIPT
     Optional<ScriptObjectData_HypScript> hypScriptData;
 #endif // HYP_SCRIPT
-
+    
+#ifdef HYP_STRATA
     Optional<ScriptObjectData_Strata> strataData;
+#endif // HYP_STRATA
 };
 
 #ifdef HYP_DOTNET

@@ -4,8 +4,8 @@ ShaderBundle "DrawCubemap" {
     ]
     CompiledShaders = [
         @"Engine://Shaders/DrawCubemap_4709760780686944188"
-        @"Engine://Shaders/DrawCubemap_4709760780686944164"
         @"Engine://Shaders/DrawCubemap_4709760780686944180"
         @"Engine://Shaders/DrawCubemap_4709760780686944172"
+        @"Engine://Shaders/DrawCubemap_4709760780686944164"
     ]
 }

@@ -1,4 +1,4 @@
-Shader "DeferredIndirect_550347893117742388" {
+Shader "GeometryPass_3548372025915056784" {
     PropertySet = [
         ShaderProperty {
             Name = "TARGET"
@@ -25,22 +25,28 @@ Shader "DeferredIndirect_550347893117742388" {
             EnumValues = []
         }
         ShaderProperty {
-            Name = "HBAO_ENABLED"
+            Name = "SHADING_TYPE"
+            Flags = SPF_NONE
+            Value = "FORWARD"
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "FORWARD_CLUSTERED"
             Flags = SPF_NONE
             Value = null
             EnumValues = []
         }
     ]
     RevisionNumber = 940922443
-    BaseName = "DeferredIndirect"
+    BaseName = "GeometryPass"
     InputLayout = {
-        Mask = 7
+        Mask = 15
     }
     ShaderInputGroup = {
         Elements = [
             ShaderInputSet {
                 SetIndex = 0
-                Name = "DeferredPass"
+                Name = "Default"
                 Slots = [
                     [
                         ShaderInput {
@@ -131,7 +137,7 @@ Shader "DeferredIndirect_550347893117742388" {
                         ShaderInput {
                             Register = SRV
                             ElementType = SRV
-                            Name = "GBufferDepthTexture"
+                            Name = "GBufferMipChain"
                             Count = 1
                             Size = 4294967295
                             IsDynamic = false
@@ -148,7 +154,7 @@ Shader "DeferredIndirect_550347893117742388" {
                         ShaderInput {
                             Register = SRV
                             ElementType = SRV
-                            Name = "GBufferAlbedoTexture"
+                            Name = "PointLightShadowMapsTextureArray"
                             Count = 1
                             Size = 4294967295
                             IsDynamic = false
@@ -165,7 +171,7 @@ Shader "DeferredIndirect_550347893117742388" {
                         ShaderInput {
                             Register = SRV
                             ElementType = SRV
-                            Name = "GBufferMipChain"
+                            Name = "EnvProbesColorTexture"
                             Count = 1
                             Size = 4294967295
                             IsDynamic = false
@@ -182,7 +188,7 @@ Shader "DeferredIndirect_550347893117742388" {
                         ShaderInput {
                             Register = SRV
                             ElementType = SRV
-                            Name = "GBufferNormalsTexture"
+                            Name = "ShadowMapsTextureArray"
                             Count = 1
                             Size = 4294967295
                             IsDynamic = false
@@ -199,91 +205,6 @@ Shader "DeferredIndirect_550347893117742388" {
                         ShaderInput {
                             Register = SRV
                             ElementType = SRV
-                            Name = "PointLightShadowMapsTextureArray"
-                            Count = 1
-                            Size = 4294967295
-                            IsDynamic = false
-                            BufferType = NONE
-                            StructInfo = {
-                                Name = ""
-                                Size = 4294967295
-                                FieldNames = []
-                                FieldTypes = []
-                            }
-                            Category = Image
-                            Index = 9
-                        }
-                        ShaderInput {
-                            Register = SRV
-                            ElementType = SRV
-                            Name = "GBufferVelocityTexture"
-                            Count = 1
-                            Size = 4294967295
-                            IsDynamic = false
-                            BufferType = NONE
-                            StructInfo = {
-                                Name = ""
-                                Size = 4294967295
-                                FieldNames = []
-                                FieldTypes = []
-                            }
-                            Category = Image
-                            Index = 10
-                        }
-                        ShaderInput {
-                            Register = SRV
-                            ElementType = SRV
-                            Name = "EnvProbesColorTexture"
-                            Count = 1
-                            Size = 4294967295
-                            IsDynamic = false
-                            BufferType = NONE
-                            StructInfo = {
-                                Name = ""
-                                Size = 4294967295
-                                FieldNames = []
-                                FieldTypes = []
-                            }
-                            Category = Image
-                            Index = 11
-                        }
-                        ShaderInput {
-                            Register = SRV
-                            ElementType = SRV
-                            Name = "GBufferMaterialTexture"
-                            Count = 1
-                            Size = 4294967295
-                            IsDynamic = false
-                            BufferType = NONE
-                            StructInfo = {
-                                Name = ""
-                                Size = 4294967295
-                                FieldNames = []
-                                FieldTypes = []
-                            }
-                            Category = Image
-                            Index = 12
-                        }
-                        ShaderInput {
-                            Register = SRV
-                            ElementType = SRV
-                            Name = "ShadowMapsTextureArray"
-                            Count = 1
-                            Size = 4294967295
-                            IsDynamic = false
-                            BufferType = NONE
-                            StructInfo = {
-                                Name = ""
-                                Size = 4294967295
-                                FieldNames = []
-                                FieldTypes = []
-                            }
-                            Category = Image
-                            Index = 13
-                        }
-                        ShaderInput {
-                            Register = SRV
-                            ElementType = SRV
                             Name = "EnvProbesDepthTexture"
                             Count = 1
                             Size = 4294967295
@@ -296,24 +217,7 @@ Shader "DeferredIndirect_550347893117742388" {
                                 FieldTypes = []
                             }
                             Category = Image
-                            Index = 14
-                        }
-                        ShaderInput {
-                            Register = SRV
-                            ElementType = SRV
-                            Name = "SSAOResultTexture"
-                            Count = 1
-                            Size = 4294967295
-                            IsDynamic = false
-                            BufferType = NONE
-                            StructInfo = {
-                                Name = ""
-                                Size = 4294967295
-                                FieldNames = []
-                                FieldTypes = []
-                            }
-                            Category = Image
-                            Index = 15
+                            Index = 9
                         }
                     ]
                     []
@@ -376,6 +280,18 @@ Shader "DeferredIndirect_550347893117742388" {
                 ]
                 Flags = None
             }
+            ShaderInputSet {
+                SetIndex = 1
+                Name = "BindlessResources0"
+                Slots = [
+                    []
+                    []
+                    []
+                    []
+                    []
+                ]
+                Flags = Reference
+            }
         ]
     }
     ShaderModuleTypes = [
@@ -383,8 +299,8 @@ Shader "DeferredIndirect_550347893117742388" {
         Pixel
     ]
     ShaderModuleNames = [
-        "DeferredIndirect.hlsl"
-        "DeferredIndirect.hlsl"
+        "DefaultVertex.hlsl"
+        "GeometryPass.hlsl"
     ]
     EntryPointNames = [
         "VSMain"
@@ -392,12 +308,12 @@ Shader "DeferredIndirect_550347893117742388" {
     ]
     ShaderBlobs = [
         BlobDataReference {
-            Key = "Engine://Shaders/DeferredIndirect_550347893117742388.VS"
-            Size = 10864
+            Key = "Engine://Shaders/GeometryPass_3548372025915056784.VS"
+            Size = 62768
         }
         BlobDataReference {
-            Key = "Engine://Shaders/DeferredIndirect_550347893117742388.PS"
-            Size = 197024
+            Key = "Engine://Shaders/GeometryPass_3548372025915056784.PS"
+            Size = 268164
         }
     ]
     PropertySetHashCode = {}
