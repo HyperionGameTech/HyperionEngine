@@ -255,6 +255,21 @@ handle UIEventHandlerResult;
 handle FontAtlasTextureSet;
 handle GlyphMetrics;
 handle OctantId;
+struct ANSIStringView;
+struct FilePath;
+struct HWND;
+struct LightmapVolumeId;
+struct Name;
+struct String;
+struct StringHash;
+struct Time;
+struct UTF8StringView;
+struct Vec2f;
+struct Vec2i;
+struct Vec2u;
+struct Vec3f;
+struct Vec4f;
+struct uint8;
 
 // OverlayBase
 extern int OverlayBase_GetPlacement(OverlayBase self);
@@ -266,8 +281,19 @@ extern void UIObject_Init(UIObject self);
 extern UIStage UIObject_GetStage(UIObject self);
 extern void UIObject_SetStage(UIObject self, UIStage stage);
 extern float UIObject_GetUIScaleFactor(UIObject self);
+extern void UIObject_GetName(UIObject self, Name outReturn);
+extern void UIObject_SetName(UIObject self, const Name name);
+extern void UIObject_GetPosition(UIObject self, Vec2i outReturn);
+extern void UIObject_SetPosition(UIObject self, const Vec2i position);
+extern void UIObject_GetOffsetPosition(UIObject self, Vec2f outReturn);
+extern void UIObject_GetAbsolutePosition(UIObject self, Vec2f outReturn);
 extern bool UIObject_IsPositionAbsolute(UIObject self);
 extern void UIObject_SetIsPositionAbsolute(UIObject self, bool isPositionAbsolute);
+extern void UIObject_GetActualSize(UIObject self, Vec2i outReturn);
+extern void UIObject_GetActualSizeClamped(UIObject self, Vec2i outReturn);
+extern void UIObject_GetActualInnerSize(UIObject self, Vec2i outReturn);
+extern void UIObject_GetScrollOffset(UIObject self, Vec2f outReturn);
+extern void UIObject_SetScrollOffset(UIObject self, const Vec2f scrollOffset, bool smooth);
 extern void UIObject_ScrollToChild(UIObject self, UIObject child);
 extern int UIObject_GetVerticalScrollbarSize(UIObject self);
 extern int UIObject_GetHorizontalScrollbarSize(UIObject self);
@@ -283,6 +309,8 @@ extern void UIObject_SetAffectsParentSize(UIObject self, bool affectsParentSize)
 extern bool UIObject_AffectsParentSize(UIObject self);
 extern uint UIObject_GetBorderRadius(UIObject self);
 extern void UIObject_SetBorderRadius(UIObject self, uint borderRadius);
+extern void UIObject_GetPadding(UIObject self, Vec2i outReturn);
+extern void UIObject_SetPadding(UIObject self, const Vec2i padding);
 extern float UIObject_GetTextSize(UIObject self);
 extern void UIObject_SetTextSize(UIObject self, float textSize);
 extern bool UIObject_IsVisible(UIObject self);
@@ -297,7 +325,13 @@ extern bool UIObject_HasChildUIObjects(UIObject self);
 extern uint UIObject_NumChildUIObjects(UIObject self, bool deep);
 extern World UIObject_GetWorld(UIObject self);
 
+// UIText
+extern void UIText_GetCharacterOffset(UIText self, int characterIndex, Vec2f outReturn);
+extern int UIText_GetClosestCharacterIndex(UIText self, const Vec2f localPosition);
+
 // UIStage
+extern void UIStage_GetSurfaceSize(UIStage self, Vec2i outReturn);
+extern void UIStage_SetSurfaceSize(UIStage self, const Vec2i surfaceSize);
 extern float UIStage_GetUIScaleFactor(UIStage self);
 extern void UIStage_SetUIScaleFactor(UIStage self, float scaleFactor);
 extern Scene UIStage_GetScene(UIStage self);
@@ -308,6 +342,9 @@ extern bool UIPanel_IsVerticalScrollEnabled(UIPanel self);
 
 // UIMenuBar
 extern void UIMenuBar_SetSelectedMenuItemIndex(UIMenuBar self, uint index);
+extern UIMenuItem UIMenuBar_GetMenuItem(UIMenuBar self, const Name name);
+extern uint UIMenuBar_GetMenuItemIndex(UIMenuBar self, const Name name);
+extern bool UIMenuBar_RemoveMenuItem(UIMenuBar self, const Name name);
 
 // UIListView
 extern void UIListView_SetSelectedItem(UIListView self, UIListViewItem listViewItem);
@@ -333,6 +370,9 @@ extern int UIDataSourceBase_Size(UIDataSourceBase self);
 extern void UIDataSourceBase_Clear(UIDataSourceBase self);
 
 // IOSApplicationWindow (requires HYP_IOS)
+extern void IOSApplicationWindow_SetMousePosition(IOSApplicationWindow self, const Vec2i position);
+extern void IOSApplicationWindow_GetMousePosition(IOSApplicationWindow self, Vec2i outReturn);
+extern void IOSApplicationWindow_GetDimensions(IOSApplicationWindow self, Vec2i outReturn);
 extern void IOSApplicationWindow_SetIsMouseLocked(IOSApplicationWindow self, bool locked);
 extern bool IOSApplicationWindow_IsMouseLocked(IOSApplicationWindow self);
 extern bool IOSApplicationWindow_HasMouseFocus(IOSApplicationWindow self);
@@ -344,12 +384,18 @@ extern void IOSApplicationWindow_ShowVirtualKeyboard(IOSApplicationWindow self);
 extern void IOSApplicationWindow_HideVirtualKeyboard(IOSApplicationWindow self);
 
 // Win32ApplicationWindow (requires HYP_WINDOWS)
+extern void Win32ApplicationWindow_SetMousePosition(Win32ApplicationWindow self, const Vec2i position);
+extern void Win32ApplicationWindow_GetMousePosition(Win32ApplicationWindow self, Vec2i outReturn);
+extern void Win32ApplicationWindow_GetDimensions(Win32ApplicationWindow self, Vec2i outReturn);
 extern void Win32ApplicationWindow_SetIsMouseLocked(Win32ApplicationWindow self, bool locked);
 extern bool Win32ApplicationWindow_IsMouseLocked(Win32ApplicationWindow self);
 extern bool Win32ApplicationWindow_HasMouseFocus(Win32ApplicationWindow self);
 extern void Win32ApplicationWindow_Close(Win32ApplicationWindow self);
 
 // CocoaApplicationWindow (requires HYP_MACOS)
+extern void CocoaApplicationWindow_SetMousePosition(CocoaApplicationWindow self, const Vec2i position);
+extern void CocoaApplicationWindow_GetMousePosition(CocoaApplicationWindow self, Vec2i outReturn);
+extern void CocoaApplicationWindow_GetDimensions(CocoaApplicationWindow self, Vec2i outReturn);
 extern void CocoaApplicationWindow_SetIsMouseLocked(CocoaApplicationWindow self, bool locked);
 extern bool CocoaApplicationWindow_IsMouseLocked(CocoaApplicationWindow self);
 extern bool CocoaApplicationWindow_HasMouseFocus(CocoaApplicationWindow self);
@@ -363,6 +409,10 @@ extern ApplicationWindow AppContextBase_GetMainWindow(AppContextBase self);
 extern void AppContextBase_RemoveWindow(AppContextBase self, ApplicationWindow window);
 
 // ApplicationWindow
+extern void ApplicationWindow_GetHWND(ApplicationWindow self, HWND outReturn);
+extern void ApplicationWindow_GetSize(ApplicationWindow self, Vec2i outReturn);
+extern void ApplicationWindow_SetMousePosition(ApplicationWindow self, const Vec2i position);
+extern void ApplicationWindow_GetMousePosition(ApplicationWindow self, Vec2i outReturn);
 extern void ApplicationWindow_SetIsMouseLocked(ApplicationWindow self, bool locked);
 extern bool ApplicationWindow_IsMouseLocked(ApplicationWindow self);
 extern bool ApplicationWindow_HasMouseFocus(ApplicationWindow self);
@@ -372,9 +422,14 @@ extern bool ApplicationWindow_HasFocus(ApplicationWindow self);
 extern bool ApplicationWindow_IsHighDPI(ApplicationWindow self);
 extern float ApplicationWindow_GetContentScaleFactor(ApplicationWindow self);
 extern float ApplicationWindow_GetRenderTargetScale(ApplicationWindow self);
+extern void ApplicationWindow_GetRenderSize(ApplicationWindow self, Vec2i outReturn);
+extern void ApplicationWindow_GetDimensions(ApplicationWindow self, Vec2i outReturn);
 extern void ApplicationWindow_Close(ApplicationWindow self);
 
 // AndroidApplicationWindow (requires HYP_ANDROID)
+extern void AndroidApplicationWindow_SetMousePosition(AndroidApplicationWindow self, const Vec2i position);
+extern void AndroidApplicationWindow_GetMousePosition(AndroidApplicationWindow self, Vec2i outReturn);
+extern void AndroidApplicationWindow_GetDimensions(AndroidApplicationWindow self, Vec2i outReturn);
 extern void AndroidApplicationWindow_SetIsMouseLocked(AndroidApplicationWindow self, bool locked);
 extern bool AndroidApplicationWindow_IsMouseLocked(AndroidApplicationWindow self);
 extern bool AndroidApplicationWindow_HasMouseFocus(AndroidApplicationWindow self);
@@ -399,6 +454,8 @@ extern void StreamableBase_OnRemoved(StreamableBase self);
 extern void StreamingCell_Update(StreamingCell self, float delta);
 
 // WorldGridLayer
+extern void WorldGridLayer_GetName(WorldGridLayer self, Name outReturn);
+extern void WorldGridLayer_SetName(WorldGridLayer self, const Name name);
 extern void WorldGridLayer_OnAdded(WorldGridLayer self, WorldGrid worldGrid);
 extern void WorldGridLayer_OnRemoved(WorldGridLayer self, WorldGrid worldGrid);
 extern void WorldGridLayer_RemoveStreamingObject(WorldGridLayer self, AssetObject assetObject);
@@ -425,6 +482,8 @@ extern void ScriptableSystem_Init(ScriptableSystem self);
 extern void ScriptableSystem_Shutdown(ScriptableSystem self);
 
 // TouchControlsSubsystem
+extern void TouchControlsSubsystem_GetMovementDelta(TouchControlsSubsystem self, Vec2f outReturn);
+extern void TouchControlsSubsystem_GetLookDelta(TouchControlsSubsystem self, Vec2f outReturn);
 extern bool TouchControlsSubsystem_IsActive(TouchControlsSubsystem self);
 extern void TouchControlsSubsystem_SetEnabled(TouchControlsSubsystem self, bool enabled);
 extern bool TouchControlsSubsystem_IsEnabled(TouchControlsSubsystem self);
@@ -442,6 +501,7 @@ extern void EditorSubsystem_NewProject(EditorSubsystem self);
 extern void EditorSubsystem_CloseProject(EditorSubsystem self, bool shutdownWorld);
 extern void EditorSubsystem_ShowImportContentDialog(EditorSubsystem self);
 extern void EditorSubsystem_ClearSelection(EditorSubsystem self);
+extern void EditorSubsystem_GetCodeEditor(EditorSubsystem self, String outReturn);
 extern EditorGizmoBase EditorSubsystem_GetSelectedGizmo(EditorSubsystem self);
 extern bool EditorSubsystem_IsMeshEditModeEnabled(EditorSubsystem self);
 extern void EditorSubsystem_EnterMeshEditMode(EditorSubsystem self);
@@ -462,6 +522,7 @@ extern void EditorSubsystem_SetPhysicsDebugDrawEnabled(EditorSubsystem self, boo
 extern bool EditorSubsystem_CanFitPhysicsShapeToMesh(EditorSubsystem self);
 extern void EditorSubsystem_FitPhysicsShapeToMesh(EditorSubsystem self);
 extern void EditorSubsystem_SetSelectedBucket(EditorSubsystem self, uint bucketIndex);
+extern void EditorSubsystem_CalculateSceneInsertionPoint(EditorSubsystem self, float desiredDistance, float offsetFromSurface, Vec3f outReturn);
 extern void EditorSubsystem_UpdateNormalizedCubeSpherePreview(EditorSubsystem self, uint numDivisions);
 extern void EditorSubsystem_CommitMeshPreview(EditorSubsystem self);
 extern void EditorSubsystem_CancelMeshPreview(EditorSubsystem self);
@@ -469,11 +530,15 @@ extern void EditorSubsystem_CancelMeshPreview(EditorSubsystem self);
 // EditorGizmoBase (requires HYP_EDITOR)
 extern bool EditorGizmoBase_IsDragging(EditorGizmoBase self);
 extern int EditorGizmoBase_GetPriority(EditorGizmoBase self);
+extern void EditorGizmoBase_GetMenuText(EditorGizmoBase self, String outReturn);
 
 // Node
 extern bool Node_HasName(Node self);
+extern void Node_GetName(Node self, Name outReturn);
+extern void Node_SetName(Node self, const Name name);
 extern Node Node_GetParent(Node self);
 extern bool Node_IsOrHasParent(Node self, Node node);
+extern Node Node_FindParentWithName(Node self, const UTF8StringView name);
 extern bool Node_IsRoot(Node self);
 extern Scene Node_GetScene(Node self);
 extern void Node_SetScene(Node self, Scene scene, bool moveToDetached);
@@ -482,6 +547,8 @@ extern bool Node_RemoveAt(Node self, uint index, bool moveToDetached);
 extern bool Node_Remove(Node self, bool moveToDetached);
 extern void Node_RemoveAllChildren(Node self, bool moveToDetached);
 extern uint Node_NumChildren(Node self);
+extern void Node_GetWorldTranslation(Node self, Vec3f outReturn);
+extern void Node_GetWorldScale(Node self, Vec3f outReturn);
 extern bool Node_IsTransformLocked(Node self);
 extern void Node_UpdateWorldTransform(Node self, bool updateChildTransforms);
 extern uint Node_CalculateDepth(Node self);
@@ -501,18 +568,28 @@ extern bool CameraController_IsMouseLockRequested(CameraController self);
 
 // Camera
 extern bool Camera_HasActiveCameraController(Camera self);
+extern void Camera_GetDimensions(Camera self, Vec2i outReturn);
+extern void Camera_SetDimensions(Camera self, const Vec2i dimensions);
 extern float Camera_GetNearClip(Camera self);
 extern void Camera_SetNearClip(Camera self, float _near);
 extern float Camera_GetFarClip(Camera self);
 extern void Camera_SetFarClip(Camera self, float _far);
 extern float Camera_GetFOV(Camera self);
 extern void Camera_SetFOV(Camera self, float fov);
+extern void Camera_GetDirection(Camera self, Vec3f outReturn);
+extern void Camera_GetUpVector(Camera self, Vec3f outReturn);
+extern void Camera_GetSideVector(Camera self, Vec3f outReturn);
+extern void Camera_GetTarget(Camera self, Vec3f outReturn);
+extern void Camera_GetPixelSize(Camera self, Vec2f outReturn);
 
 // ProbeVolume
 // requires: HYP_EDITOR
 extern void ProbeVolume_CreateProbes(ProbeVolume self);
 
 // LightmapVolume
+extern void LightmapVolume_SetName(LightmapVolume self, const Name name);
+extern void LightmapVolume_GetLightmapVolumeId(LightmapVolume self, LightmapVolumeId outReturn);
+extern void LightmapVolume_SetLightmapVolumeId(LightmapVolume self, const LightmapVolumeId id);
 // requires: HYP_EDITOR
 extern void LightmapVolume_BakeLightmap(LightmapVolume self);
 // requires: HYP_EDITOR
@@ -529,6 +606,7 @@ extern bool EnvProbe_IsAmbientProbe(EnvProbe self);
 extern bool EnvProbe_IsBaked(EnvProbe self);
 extern void EnvProbe_SetIsBaked(EnvProbe self, bool isBaked);
 extern bool EnvProbe_IsRealtime(EnvProbe self);
+extern void EnvProbe_GetOrigin(EnvProbe self, bool fromCenter, Vec3f outReturn);
 extern Camera EnvProbe_GetCamera(EnvProbe self);
 extern float EnvProbe_GetDiffuseStrength(EnvProbe self);
 extern void EnvProbe_SetDiffuseStrength(EnvProbe self, float diffuseStrength);
@@ -552,6 +630,7 @@ extern float Light_GetRadius(Light self);
 extern void Light_SetRadius(Light self, float radius);
 extern float Light_GetFalloff(Light self);
 extern void Light_SetFalloff(Light self, float falloff);
+extern void Light_SetShadowMapDimensions(Light self, const Vec2u shadowMapDimensions);
 extern uint Light_GetNumShadowMapCascades(Light self);
 extern void Light_SetNumShadowMapCascades(Light self, uint numShadowMapCascades);
 // requires: HYP_EDITOR
@@ -578,6 +657,11 @@ extern bool UISubsystem_RemoveDebugOverlay(UISubsystem self, OverlayBase debugOv
 extern bool InputManager_IsMouseLocked(InputManager self);
 extern void InputManager_PushMouseLockState(InputManager self, bool mouseLocked, bool syncToVirtualPosition);
 extern void InputManager_PopMouseLockState(InputManager self);
+extern void InputManager_GetMousePosition(InputManager self, Vec2i outReturn);
+extern void InputManager_GetVirtualMousePosition(InputManager self, Vec2i outReturn);
+extern void InputManager_GetPreviousVirtualMousePosition(InputManager self, Vec2i outReturn);
+extern void InputManager_GetVirtualMousePositionNormalized(InputManager self, Vec2f outReturn);
+extern void InputManager_GetWindowSize(InputManager self, Vec2i outReturn);
 extern bool InputManager_IsShiftDown(InputManager self);
 extern bool InputManager_IsAltDown(InputManager self);
 extern bool InputManager_IsCtrlDown(InputManager self);
@@ -592,6 +676,8 @@ extern bool GameState_IsSimulating(GameState self);
 extern bool GameState_IsPaused(GameState self);
 
 // Game
+extern void Game_GetPackageName(Game self, Name outReturn);
+extern void Game_SetPackageName(Game self, const Name packageName);
 extern void Game_OnUpdate(Game self, float delta);
 extern void Game_Initialize(Game self);
 extern void Game_Shutdown(Game self, bool shutdownWorld);
@@ -606,6 +692,7 @@ extern void Game_BeforeShutdown(Game self);
 // EngineStats
 extern float EngineStats_GetFps(EngineStats self);
 extern float EngineStats_GetMsPerFrame(EngineStats self);
+extern float EngineStats_QueryStatValue(EngineStats self, const UTF8StringView path, float valueIfNotFound);
 
 // EngineDriver
 extern World EngineDriver_GetCurrentWorld(EngineDriver self);
@@ -629,15 +716,25 @@ extern void AudioSource_SetSampleLength(AudioSource self, uint sampleLength);
 extern double AudioSource_GetDuration(AudioSource self);
 extern void AudioSource_SetDuration(AudioSource self, double duration);
 
+// AssetManager
+extern void AssetManager_GetBasePath(AssetManager self, FilePath outReturn);
+
 // AssetCollector
 extern bool AssetCollector_IsWatching(AssetCollector self);
 extern void AssetCollector_StartWatching(AssetCollector self);
 extern void AssetCollector_StopWatching(AssetCollector self);
 
+// AssetRegistry
+extern void AssetRegistry_GetRootPath(AssetRegistry self, FilePath outReturn);
+
 // AssetPath
 extern bool AssetPath_IsValid(AssetPath self);
+extern void AssetPath_GetName(AssetPath self, Name outReturn);
+extern void AssetPath_ToString(AssetPath self, String outReturn);
 
 // AssetObject
+extern void AssetObject_GetName(AssetObject self, Name outReturn);
+extern void AssetObject_SetName(AssetObject self, const Name name);
 extern void AssetObject_MarkDirty(AssetObject self);
 extern uint AssetObject_GetAssetIndex(AssetObject self);
 extern bool AssetObject_IsRegistered(AssetObject self);
@@ -646,6 +743,8 @@ extern void AssetObject_SetIsTransient(AssetObject self, bool isTransient);
 extern bool AssetObject_IsSaved(AssetObject self);
 
 // AnimationTrack
+extern void AnimationTrack_GetBoneName(AnimationTrack self, Name outReturn);
+extern void AnimationTrack_SetBoneName(AnimationTrack self, const Name boneName);
 extern float AnimationTrack_GetLength(AnimationTrack self);
 
 // Animation
@@ -655,6 +754,7 @@ extern void Animation_Apply(Animation self, Skeleton skeleton, float time);
 
 // World
 extern Game World_GetGame(World self);
+extern Subsystem World_GetSubsystemByName(World self, const StringHash name);
 extern bool World_RemoveSubsystem(World self, Subsystem subsystem);
 extern bool World_RemoveScene(World self, Scene scene, bool removeFromStreamingLayer);
 extern void World_AddView(World self, View view);
@@ -672,8 +772,10 @@ extern bool Scene_GetIsAudioListener(Scene self);
 extern void Scene_SetIsAudioListener(Scene self, bool isAudioListener);
 extern bool Scene_AddToWorld(Scene self, World world);
 extern bool Scene_RemoveFromWorld(Scene self);
+extern void Scene_GetUniqueNodeName(Scene self, const UTF8StringView baseName, Name outReturn);
 
 // Mesh
+extern uint Mesh_NumIndices(Mesh self, const uint8 lodIndex);
 // requires: HYP_EDITOR
 extern void Mesh_RegenerateNormals(Mesh self);
 // requires: HYP_EDITOR
@@ -728,11 +830,16 @@ extern bool GenerateBentNormalsEditorTask_IsCompleted(GenerateBentNormalsEditorT
 extern void GenerateBentNormalsEditorTask_Tick(GenerateBentNormalsEditorTask self);
 
 // EditorProject (requires HYP_EDITOR)
+extern void EditorProject_GetName(EditorProject self, Name outReturn);
+extern void EditorProject_SetName(EditorProject self, const Name name);
+extern void EditorProject_GetLastSavedTime(EditorProject self, Time outReturn);
 extern void EditorProject_RemoveScene(EditorProject self, Scene scene);
+extern void EditorProject_GetProjectsDirectory(EditorProject self, FilePath outReturn);
 extern bool EditorProject_IsSaved(EditorProject self);
 extern void EditorProject_Close(EditorProject self, bool shutdownWorld);
 
 // EditorCommandBase (requires HYP_EDITOR)
+extern void EditorCommandBase_GetText(EditorCommandBase self, String outReturn);
 extern int EditorCommandBase_NumArguments(EditorCommandBase self);
 
 // EditorActionStack (requires HYP_EDITOR)
@@ -742,12 +849,17 @@ extern void EditorActionStack_Undo(EditorActionStack self);
 extern void EditorActionStack_Redo(EditorActionStack self);
 
 // EditorActionBase (requires HYP_EDITOR)
+extern void EditorActionBase_GetText(EditorActionBase self, String outReturn);
 extern void EditorActionBase_Execute(EditorActionBase self, EditorSubsystem editorSubsystem, EditorProject project);
 extern void EditorActionBase_Revert(EditorActionBase self, EditorSubsystem editorSubsystem, EditorProject project);
 
 // FunctionalEditorAction (requires HYP_EDITOR)
+extern void FunctionalEditorAction_GetText(FunctionalEditorAction self, String outReturn);
 extern void FunctionalEditorAction_Execute(FunctionalEditorAction self, EditorSubsystem editorSubsystem, EditorProject project);
 extern void FunctionalEditorAction_Revert(FunctionalEditorAction self, EditorSubsystem editorSubsystem, EditorProject project);
+
+// UUID
+extern void UUID_ToString(UUID self, String outReturn);
 
 // Result
 extern bool Result_HasValue(Result self);
@@ -766,6 +878,9 @@ extern float Mat4f_Determinant(Mat4f self);
 extern float Mat4f_GetYaw(Mat4f self);
 extern float Mat4f_GetPitch(Mat4f self);
 extern float Mat4f_GetRoll(Mat4f self);
+extern void Mat4f_ExtractTranslation(Mat4f self, Vec3f outReturn);
+extern void Mat4f_ExtractScale(Mat4f self, Vec3f outReturn);
+extern void Mat4f_GetColumn(Mat4f self, uint index, Vec4f outReturn);
 
 // Mat3f
 extern float Mat3f_Determinant(Mat3f self);

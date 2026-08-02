@@ -46,8 +46,9 @@ struct HypScriptTypeMapping
 
 struct StrataTypeMapping
 {
-    String typeName;      // Name of the type in Strata
-    bool isHandle = false; // True when typeName names an engine object handle
+    String typeName;          // Name of the type in Strata
+    bool isHandle = false;    // True when typeName names an engine object handle
+    bool isStructValue = false; // True when typeName is an unreflected C++ struct (forward-declared)
 };
 
 extern const HypScriptTypeMapping g_hypscriptAnyTypeMapping;

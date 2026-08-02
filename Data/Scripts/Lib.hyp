@@ -2214,6 +2214,7 @@ extern class FontAtlas : AssetObject
     SymbolList : Array<uint32>
 end
 extern class ScriptAsset : AssetObject
+    GetScriptDesc() -> ScriptDesc
     ScriptDesc : ScriptDesc
     Data : BlobDataReference
 end

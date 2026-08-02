@@ -24,6 +24,8 @@
 
 #include <Core/IO/ByteWriter.hpp>
 
+#include <algorithm>
+
 namespace Hyperion {
 namespace CodeGen {
 
@@ -81,6 +83,28 @@ String ResolveManagedName(const MemberDef& member)
     }
 
     return member.friendlyName;
+}
+
+// Strata struct parameters are references; write `const` for a read-only view.
+String StructParamModifier(const ASTType* paramType)
+{
+    if (paramType == nullptr)
+    {
+        return "const ";
+    }
+
+    bool isConst = true;
+
+    if (paramType->isPointer)
+    {
+        isConst = paramType->ptrTo && paramType->ptrTo->isConst;
+    }
+    else if (paramType->isLvalueReference)
+    {
+        isConst = paramType->refTo && paramType->refTo->isConst;
+    }
+
+    return isConst ? "const " : String::empty;
 }
 
 } // anonymous namespace
@@ -158,6 +182,93 @@ String StrataModuleGenerator::ResolveHandleBase(const Analyzer& analyzer, const 
     }
 
     return String::empty;
+}
+
+Set<String> StrataModuleGenerator::CollectForwardStructNames(const Analyzer& analyzer) const
+{
+    Set<String> structNames;
+    Set<String> handleNames = CollectHandleNames(analyzer);
+
+    for (const UniquePtr<Module>& mod : analyzer.GetModules())
+    {
+        for (const Pair<String, ClassDefinition>& pair : mod->GetClasses())
+        {
+            const ClassDefinition& cls = pair.second;
+
+            if (!IsStrataScriptable(analyzer, cls))
+            {
+                continue;
+            }
+
+            for (const MemberDef& member : cls.members)
+            {
+                if (!MemberIsStrataScriptable(member) || member.type != MemberType::Method)
+                {
+                    continue;
+                }
+
+                if (!member.cxxType || !member.cxxType->isFunction)
+                {
+                    continue;
+                }
+
+                const ASTFunctionType* functionType = dynamic_cast<const ASTFunctionType*>(member.cxxType.Get());
+
+                if (!functionType)
+                {
+                    continue;
+                }
+
+                // Check return type.
+                TResult<StrataTypeMapping> retRes = MapToStrataType(analyzer, functionType->returnType);
+
+                if (!retRes.HasError() && retRes.GetValue().isStructValue)
+                {
+                    structNames.Insert(retRes.GetValue().typeName);
+                }
+
+                // Check each parameter type.
+                for (size_t j = 0; j < functionType->parameters.Size(); ++j)
+                {
+                    const ASTMemberDecl* param = functionType->parameters[j];
+
+                    TResult<StrataTypeMapping> parRes = MapToStrataType(analyzer, param->type.Get());
+
+                    if (!parRes.HasError() && parRes.GetValue().isStructValue)
+                    {
+                        structNames.Insert(parRes.GetValue().typeName);
+                    }
+                }
+            }
+        }
+    }
+
+    return structNames;
+}
+
+Result StrataModuleGenerator::EmitForwardStructDeclarations(const Analyzer& analyzer, const Set<String>& allStructNames, ByteWriter& writer) const
+{
+    if (allStructNames.Empty())
+    {
+        return {};
+    }
+
+    Array<String> sorted;
+    sorted.Reserve(allStructNames.Size());
+
+    for (const String& name : allStructNames)
+    {
+        sorted.PushBack(name);
+    }
+
+    std::sort(sorted.Begin(), sorted.End());
+
+    for (const String& name : sorted)
+    {
+        writer.WriteString(HYP_FORMAT("struct {};\n", name));
+    }
+
+    return {};
 }
 
 Result StrataModuleGenerator::EmitHandles(const Analyzer& analyzer, const Module& mod, ByteWriter& writer) const
@@ -299,7 +410,6 @@ Result StrataModuleGenerator::EmitMethods(const Analyzer& analyzer, const Module
                     break;
                 }
 
-                // v1 supports up to 2 explicit arguments beyond `self`.
                 if (j >= 2)
                 {
                     paramsOk = false;
@@ -309,12 +419,30 @@ Result StrataModuleGenerator::EmitMethods(const Analyzer& analyzer, const Module
 
                 String paramName = parameter->name.Any() ? parameter->name : HYP_FORMAT("arg{}", j);
 
-                paramDecls.PushBack(HYP_FORMAT("{} {}", paramTypeMapping.typeName, paramName));
+                if (paramTypeMapping.isStructValue)
+                {
+                    paramDecls.PushBack(HYP_FORMAT("{}{} {}", StructParamModifier(parameter->type.Get()), paramTypeMapping.typeName, paramName));
+                }
+                else
+                {
+                    paramDecls.PushBack(HYP_FORMAT("{} {}", paramTypeMapping.typeName, paramName));
+                }
             }
 
             if (!paramsOk)
             {
                 continue;
+            }
+
+            // Strata cannot return aggregates across abi boundary.
+            // Write retval through an out parameter instead.
+            const bool returnsStruct = returnTypeMapping.isStructValue;
+            String strataReturnType = returnTypeMapping.typeName;
+
+            if (returnsStruct)
+            {
+                strataReturnType = "void";
+                paramDecls.PushBack(HYP_FORMAT("{} outReturn", returnTypeMapping.typeName));
             }
 
             const String managedName = ResolveManagedName(member);
@@ -352,7 +480,7 @@ Result StrataModuleGenerator::EmitMethods(const Analyzer& analyzer, const Module
                 writer.WriteString(HYP_FORMAT("// requires: {}\n", member.condition));
             }
 
-            writer.WriteString(HYP_FORMAT("extern {} {}({});\n", returnTypeMapping.typeName, externName, paramsString));
+            writer.WriteString(HYP_FORMAT("extern {} {}({});\n", strataReturnType, externName, paramsString));
         }
     }
 
@@ -463,8 +591,19 @@ Result StrataModuleGenerator::EmitThunks(const Analyzer& analyzer, const Module&
                     break;
                 }
 
-                sigParams.PushBack(parameter->type->FormatDecl(parameter->name));
-                callArgs.PushBack(parameter->name);
+                String paramName = parameter->name.Any() ? parameter->name : HYP_FORMAT("arg{}", j);
+
+                if (paramRes.GetValue().isStructValue)
+                {
+                    // Strata hands us a pointer; forward/deref based on the C++ signature.
+                    sigParams.PushBack(HYP_FORMAT("{}* {}", paramRes.GetValue().typeName, paramName));
+                    callArgs.PushBack(parameter->type->isPointer ? paramName : HYP_FORMAT("*{}", paramName));
+                }
+                else
+                {
+                    sigParams.PushBack(parameter->type->FormatDecl(paramName));
+                    callArgs.PushBack(paramName);
+                }
             }
 
             if (!paramsOk)
@@ -482,7 +621,9 @@ Result StrataModuleGenerator::EmitThunks(const Analyzer& analyzer, const Module&
 
             emittedExternNames.Insert(externName);
 
-            // Build the signature param list: [<Class>* self, ]<params...>
+            const bool returnsStruct = returnTypeMapping.isStructValue;
+
+            // Build the signature param list: [<Class>* self, ]<params...>[, <Ret>* outReturn]
             Array<String> allSigParams;
 
             if (!isStatic)
@@ -493,6 +634,11 @@ Result StrataModuleGenerator::EmitThunks(const Analyzer& analyzer, const Module&
             for (const String& sigParam : sigParams)
             {
                 allSigParams.PushBack(sigParam);
+            }
+
+            if (returnsStruct)
+            {
+                allSigParams.PushBack(HYP_FORMAT("{}* outReturn", returnTypeMapping.typeName));
             }
 
             const String sigParamsString = allSigParams.Any() ? String::Join(allSigParams, ", ") : String("");
@@ -509,7 +655,14 @@ Result StrataModuleGenerator::EmitThunks(const Analyzer& analyzer, const Module&
             // the method it forwards to actually exists.
             String methodOutput;
 
-            if (functionType->returnType->IsVoid())
+            if (returnsStruct)
+            {
+                methodOutput += HYP_FORMAT("extern \"C\" void {}({})", externName, sigParamsString);
+                methodOutput += " { *outReturn = ";
+                methodOutput += callExpr;
+                methodOutput += "; }\n";
+            }
+            else if (functionType->returnType->IsVoid())
             {
                 methodOutput += HYP_FORMAT("extern \"C\" void {}({})", externName, sigParamsString);
                 methodOutput += " { ";
