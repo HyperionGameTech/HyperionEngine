@@ -704,9 +704,7 @@ private:
                     }
                 }
 
-                // Forward-declare unreflected C++ struct types that
-                // appear in method signatures. Strata passes them by pointer; the
-                // generated thunks handle the in/inout/out pointer logic.
+                // Forward-declare unreflected C++ struct types that appear in method signatures
                 const Set<String> allStructNames = strataModuleGenerator.CollectForwardStructNames(m_analyzer);
 
                 if (Result structRes = strataModuleGenerator.EmitForwardStructDeclarations(m_analyzer, allStructNames, strataWriter); structRes.HasError())

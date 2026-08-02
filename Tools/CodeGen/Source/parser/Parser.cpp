@@ -440,6 +440,11 @@ TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTTy
         { "uint", { "uint", false } },
         { "uint32", { "uint", false } },
 
+        { "int8", { "sbyte", false } },
+        { "uint8", { "byte", false } },
+        { "int16", { "short", false } },
+        { "uint16", { "ushort", false } },
+
         { "int64", { "long", false } },
         { "uint64", { "ulong", false } }
     };
@@ -465,10 +470,17 @@ TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTTy
         return HYP_MAKE_ERROR(Error, "Enum '{}' has underlying type '{}' with no Strata equivalent", typeNameString, underlyingTypeName);
     }
     
-    // A bare class/struct by value is an aggregate -> must be a pointer instead.
-    if (analyzer.FindClassDefinition(typeNameString))
+    // HYP_CLASS() -> handle.
+    // HYP_STRUCT() -> fwd declared struct in Strata.
+    if (const ClassDefinition* definition = analyzer.FindClassDefinition(typeNameString);
+        definition)
     {
-        return HYP_MAKE_ERROR(Error, "Aggregate value types must be passed as pointers in Strata bindings");
+        if (definition->type == ClassDefinitionType::Class)
+        {
+            return HYP_MAKE_ERROR(Error, "Aggregate value types must be passed as pointers in Strata bindings");
+        }
+
+        return StrataTypeMapping { definition->name, false, true };
     }
 
     // Unknown types are treated as an unreflected C++ struct that will be forward-

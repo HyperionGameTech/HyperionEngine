@@ -129,17 +129,11 @@ Set<String> StrataModuleGenerator::CollectHandleNames(const Analyzer& analyzer) 
         {
             const ClassDefinition& cls = pair.second;
 
-            if (cls.type != ClassDefinitionType::Class && cls.type != ClassDefinitionType::Struct)
+            // Reflected classes (HYP_CLASS) are handles
+            if (cls.type == ClassDefinitionType::Class && IsStrataScriptable(analyzer, cls))
             {
-                continue;
+                handleNames.Insert(cls.name);
             }
-
-            if (!IsStrataScriptable(analyzer, cls))
-            {
-                continue;
-            }
-
-            handleNames.Insert(cls.name);
         }
     }
 
@@ -187,7 +181,20 @@ String StrataModuleGenerator::ResolveHandleBase(const Analyzer& analyzer, const 
 Set<String> StrataModuleGenerator::CollectForwardStructNames(const Analyzer& analyzer) const
 {
     Set<String> structNames;
-    Set<String> handleNames = CollectHandleNames(analyzer);
+
+    // Reflected structs (HYP_STRUCT) are forward-declared as structs
+    for (const UniquePtr<Module>& mod : analyzer.GetModules())
+    {
+        for (const Pair<String, ClassDefinition>& pair : mod->GetClasses())
+        {
+            const ClassDefinition& cls = pair.second;
+
+            if (cls.type == ClassDefinitionType::Struct && IsStrataScriptable(analyzer, cls))
+            {
+                structNames.Insert(cls.name);
+            }
+        }
+    }
 
     for (const UniquePtr<Module>& mod : analyzer.GetModules())
     {
@@ -279,7 +286,7 @@ Result StrataModuleGenerator::EmitHandles(const Analyzer& analyzer, const Module
     {
         const ClassDefinition& cls = pair.second;
 
-        if (cls.type != ClassDefinitionType::Class && cls.type != ClassDefinitionType::Struct)
+        if (cls.type != ClassDefinitionType::Class)
         {
             continue;
         }
@@ -434,15 +441,15 @@ Result StrataModuleGenerator::EmitMethods(const Analyzer& analyzer, const Module
                 continue;
             }
 
-            // Strata cannot return aggregates across abi boundary.
-            // Write retval through an out parameter instead.
+            // Strata cannot return aggregates across ABI boundary.
+            // Write retval through an out (ref) param, instead.
             const bool returnsStruct = returnTypeMapping.isStructValue;
             String strataReturnType = returnTypeMapping.typeName;
 
             if (returnsStruct)
             {
                 strataReturnType = "void";
-                paramDecls.PushBack(HYP_FORMAT("{} outReturn", returnTypeMapping.typeName));
+                paramDecls.PushBack(HYP_FORMAT("ref {} outReturn", returnTypeMapping.typeName));
             }
 
             const String managedName = ResolveManagedName(member);
