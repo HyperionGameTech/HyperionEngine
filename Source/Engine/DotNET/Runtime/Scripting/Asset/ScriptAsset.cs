@@ -6,5 +6,10 @@ namespace Hyperion
         public ScriptAsset()
         {
         }
+
+        public ScriptDesc ScriptDesc
+        {
+            get => this.GetScriptDesc();
+        }
     }
 }

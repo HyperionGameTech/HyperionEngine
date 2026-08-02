@@ -1,6 +1,7 @@
 using System;
 using System.Windows.Input;
 using Hyperion.Editor.Services;
+using Hyperion.Editor.Commands;
 
 namespace Hyperion.Editor.ViewModels
 {

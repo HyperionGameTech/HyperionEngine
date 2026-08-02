@@ -21,7 +21,7 @@ namespace Hyperion
         private HypScriptCompiler? hypScriptCompiler = null;
         private StrataScriptCompiler? strataCompiler = null;
 
-        private Dictionary<string, ScriptInstance> processingScripts = [];
+        private Dictionary<string, ScriptDescWrapper> processingScripts = [];
         private Dictionary<string, CompileScriptEditorTask> tasks = [];
 
         private List<string> sourceDirectories = [];
@@ -141,7 +141,7 @@ namespace Hyperion
 
             List<KeyValuePair<string, ScriptLanguage>> scriptsToRemove = [];
 
-            foreach (KeyValuePair<string, ScriptInstance> entry in processingScripts)
+            foreach (KeyValuePair<string, ScriptDescWrapper> entry in processingScripts)
             {
                 if (!entry.Value.IsValid)
                 {
@@ -256,7 +256,7 @@ namespace Hyperion
 
             Logger.Log(logChannel, LogLevel.Info, "Adding script {0} to processing queue...", filePath);
 
-            ScriptInstance scriptInstance = new ScriptInstance(new ScriptDesc
+            ScriptDescWrapper wrapper = new(new ScriptDesc
             {
                 Path = filePath,
                 Language = language,
@@ -265,12 +265,12 @@ namespace Hyperion
                 LastModifiedTimestamp = 0
             });
 
-            processingScripts.Add(filePath, scriptInstance);
+            processingScripts.Add(filePath, wrapper);
 
             TriggerCallback(new ScriptEvent
             {
                 Type = ScriptEventType.StateChanged,
-                ScriptPtr = scriptInstance.Address
+                ScriptPtr = wrapper.Address
             });
 
             if (language == ScriptLanguage.CSharp)

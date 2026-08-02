@@ -2310,8 +2310,7 @@ public:
 
     static void CreateScriptFile(EditorProject& project, ScriptAsset& scriptAsset, const String& extension, const String& templateCode)
     {
-        // Create script file in filesystem:
-        bool shouldCreateFile = true;
+        ScriptDesc& desc = scriptAsset.GetScriptDesc();
 
         const FilePath rootDir = GetCurrentAssetRegistry()->GetRootPath();
         if (!rootDir.Exists())
@@ -2322,21 +2321,21 @@ public:
             if (saveResult.HasError())
             {
                 HYP_LOG(Editor, Warning, "Failed to save project; script file will not be created. Reason was: {}", saveResult.GetError().GetMessage());
-
-                shouldCreateFile = false;
+                
+                return;
             }
             else if (!rootDir.Exists())
             {
                 HYP_LOG(Editor, Warning, "Asset registry root dir still does not exist after saving project. Will not create script asset. (path: {})", rootDir);
-
-                shouldCreateFile = false;
+                
+                return;
             }
         }
         else if (!rootDir.IsDirectory())
         {
             HYP_LOG(Editor, Warning, "Asset registry root dir is not a directory. Will not create script asset. (path: {})", rootDir);
-
-            shouldCreateFile = false;
+            
+            return;
         }
 
         const FilePath scriptsDir = rootDir / "Scripts";
@@ -2345,36 +2344,46 @@ public:
             if (!scriptsDir.MkDir())
             {
                 HYP_LOG(Editor, Warning, "Failed to create scripts dir at {}", scriptsDir);
-
-                shouldCreateFile = false;
+                
+                return;
             }
         }
         else if (!scriptsDir.IsDirectory())
         {
             HYP_LOG(Editor, Warning, "Scripts dir exists but is not a directory at {}", scriptsDir);
 
-            shouldCreateFile = false;
+            return;
         }
 
-        FilePath scriptFilePath;
+        FilePath scriptFilePath = scriptsDir / (String(*scriptAsset.GetName()) + extension);
 
-        if (shouldCreateFile)
+        if (scriptFilePath.Exists())
         {
-            scriptFilePath = scriptsDir / (String(*scriptAsset.GetName()) + extension);
-            if (scriptFilePath.Exists())
-            {
-                HYP_LOG(Editor, Warning, "File at path {} already exists, not creating to prevent overwriting the file.", scriptFilePath);
+            HYP_LOG(Editor, Warning, "File at path {} already exists, not creating to prevent overwriting the file.", scriptFilePath);
 
-                shouldCreateFile = false;
-            }
+            return;
         }
 
-        if (shouldCreateFile)
+        size_t numCopied = Memory::CopyString(
+            desc.path.Data(),
+            scriptFilePath.Data(),
+            MathUtil::Min(desc.path.Size(), scriptFilePath.Size()));
+
+        if (numCopied < scriptFilePath.Size())
         {
-            FileByteWriter writer { scriptFilePath };
-            writer.WriteString(templateCode);
-            writer.Close();
+            HYP_LOG(Editor, Warning, "File path is too long, will not fit into script desc: {}", scriptFilePath);
+
+            // Zero it out, don't want to point to an invalid path.
+            desc.path.Data()[0] = '\0';
         }
+        else
+        {
+            desc.path.Data()[desc.path.Size() - 1] = '\0';
+        }
+
+        FileByteWriter writer { scriptFilePath };
+        writer.WriteString(templateCode);
+        writer.Close();
     }
 
     virtual void Execute(EditorSubsystem* subsystem) override
@@ -2441,7 +2450,7 @@ public:
             templateCode = ScriptTemplateCode;
         }
 
-        Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(assetName, scriptDesc);
+        Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(CreateNameFromDynamicString(assetName), scriptDesc);
         InitObject(scriptAsset);
 
         Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
@@ -2453,9 +2462,8 @@ public:
                         .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
                             [scriptAsset, extension, templateCode](EditorSubsystem*, EditorProject* project)
                             {
-                                GetCurrentAssetRegistry()->PutAssetUnique(scriptAsset);
-
                                 CreateScriptFile(*project, *scriptAsset, extension, templateCode);
+                                GetCurrentAssetRegistry()->PutAssetUnique(scriptAsset);
                             }),
                         .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
                             [scriptAsset](EditorSubsystem*, EditorProject*)

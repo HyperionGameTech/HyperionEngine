@@ -329,9 +329,12 @@ namespace Hyperion.Editor.ViewModels
                     return;
                 }
 
-                if (obj is ScriptAsset)
+                if (obj is ScriptAsset scriptAsset)
                 {
-                    string scriptPath = Path.Combine(registry.GetRootPath(), "Scripts", assetName.ToString() + ".hyp");
+                    ScriptDesc scriptDesc = scriptAsset.ScriptDesc;
+
+                    // @TODO Get actual script path, don't just assume
+                    string scriptPath = Path.Combine(registry.GetRootPath(), scriptDesc.Path);
 
                     Dispatcher.UIThread.Post(() => CodeEditorService.OpenFile(scriptPath));
                     return;

@@ -15,7 +15,6 @@ namespace Hyperion
         Errored = 0x8
     }
 
-
     [ClassBinding(Name = "ScriptLanguage")]
     public enum ScriptLanguage : byte
     {
@@ -141,25 +140,41 @@ namespace Hyperion
         }
     }
 
-    public class ScriptInstance
+    public class ScriptDescWrapper : IDisposable
     {
         private IntPtr ptr;
 
-        public ScriptInstance(ScriptDesc scriptDesc)
+        public ScriptDescWrapper(ScriptDesc scriptDesc)
         {
             this.ptr = ScriptDesc_AllocateNativeObject(ref scriptDesc);
         }
 
-        public ScriptInstance(IntPtr ptr)
+        public ScriptDescWrapper(IntPtr ptr)
         {
             this.ptr = ptr;
         }
 
-        ~ScriptInstance()
+        ~ScriptDescWrapper()
         {
-            if (IsValid)
+            Dispose(false);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (ptr != IntPtr.Zero)
             {
-                ScriptDesc_FreeNativeObject(ref Get());
+                unsafe
+                {
+                    ScriptDesc_FreeNativeObject(ref *((ScriptDesc*)ptr));
+                }
+
+                ptr = IntPtr.Zero;
             }
         }
 
