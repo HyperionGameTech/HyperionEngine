@@ -7,6 +7,8 @@ function(add_commandlet_target COMMANDLET_NAME)
 
   if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${COMMANDLET_NAME}.cpp")
     set(COMMANDLET_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/${COMMANDLET_NAME}.cpp")
+  elseif(EXISTS "${CMAKE_SOURCE_DIR}/Engine/Framework/Commandlet/Commandlets/${COMMANDLET_NAME}.cpp")
+    set(COMMANDLET_SOURCE "${CMAKE_SOURCE_DIR}/Engine/Framework/Commandlet/Commandlets/${COMMANDLET_NAME}.cpp")
   else()
     set(COMMANDLET_SOURCE "")
   endif()

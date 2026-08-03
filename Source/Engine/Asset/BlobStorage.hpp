@@ -70,7 +70,7 @@ struct BlobBlockData
 
 /*! \brief Cooked, per-bucket blob cache - Cooked by BlobStorageCookCommandlet */
 HYP_CLASS()
-class BlobStorage : public ObjectBase
+class ENGINE_API BlobStorage : public ObjectBase
 {
     HYP_OBJECT_BODY(BlobStorage);
 

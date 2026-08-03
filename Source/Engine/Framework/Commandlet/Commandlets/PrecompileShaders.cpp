@@ -16,6 +16,9 @@
 #include <Core/Reflection/ClassUtils.hpp>
 #include <Core/Reflection/ClassRegistry.hpp>
 
+#include <Core/Logging/Logger.hpp>
+#include <Core/Logging/LogChannels.hpp>
+
 #include <Core/CLI/CommandLine.hpp>
 
 #include <Core/Threading/TaskSystem.hpp>
@@ -199,16 +202,20 @@ protected:
     }
 };
 
-ENGINE_API const Class* g_clsPrecompileShaders = nullptr;
+HYP_EXPORT const Class* g_clsPrecompileShaders = nullptr;
 
 const Class* PrecompileShaders::StaticClass()
 {
     return g_clsPrecompileShaders;
 }
 
+// clang-format off
+
 HYP_BEGIN_CLASS(PrecompileShaders, -1, 0, NAME("CommandletBase"), ClassAttribute("command", "precompileshaders"))
-Method(NAME("GetArgumentDefinitions"), &Type::GetArgumentDefinitions)
-    HYP_END_CLASS
+    Method(NAME("GetArgumentDefinitions"), &Type::GetArgumentDefinitions)
+HYP_END_CLASS
+
+// clang-format on
 
 HYP_REGISTER_STATIC_CLASS(PrecompileShaders);
 

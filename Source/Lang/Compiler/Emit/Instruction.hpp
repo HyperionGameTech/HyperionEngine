@@ -31,6 +31,8 @@ struct LabelMarker final : public Buildable
         : id(id)
     {
     }
+
+    HYP_BUILDABLE_TYPE_IMPL(LabelMarker)
 };
 
 struct Jump final : public Buildable
@@ -52,6 +54,8 @@ struct Jump final : public Buildable
           labelId(labelId)
     {
     }
+
+    HYP_BUILDABLE_TYPE_IMPL(Jump)
 };
 
 struct Comparison final : public Buildable
@@ -79,6 +83,8 @@ struct Comparison final : public Buildable
           regRhs(regRhs)
     {
     }
+
+    HYP_BUILDABLE_TYPE_IMPL(Comparison)
 };
 
 struct FunctionCall : public Buildable
@@ -92,12 +98,16 @@ struct FunctionCall : public Buildable
           nargs(nargs)
     {
     }
+
+    HYP_BUILDABLE_TYPE_IMPL(FunctionCall)
 };
 
 struct Return : public Buildable
 {
     Return() = default;
     virtual ~Return() = default;
+
+    HYP_BUILDABLE_TYPE_IMPL(Return)
 };
 
 struct StoreLocal : public Buildable
@@ -109,6 +119,8 @@ struct StoreLocal : public Buildable
         : reg(reg)
     {
     }
+
+    HYP_BUILDABLE_TYPE_IMPL(StoreLocal)
 };
 
 struct PopLocal : public Buildable
@@ -120,6 +132,8 @@ struct PopLocal : public Buildable
         : amt(amt)
     {
     }
+
+    HYP_BUILDABLE_TYPE_IMPL(PopLocal)
 };
 
 struct LoadRef : public Buildable
@@ -133,6 +147,8 @@ struct LoadRef : public Buildable
           src(src)
     {
     }
+
+    HYP_BUILDABLE_TYPE_IMPL(LoadRef)
 };
 
 struct LoadDeref : public Buildable
@@ -146,6 +162,8 @@ struct LoadDeref : public Buildable
           src(src)
     {
     }
+
+    HYP_BUILDABLE_TYPE_IMPL(LoadDeref)
 };
 
 struct ConstI32 : public Buildable
@@ -159,6 +177,8 @@ struct ConstI32 : public Buildable
           value(value)
     {
     }
+
+    HYP_BUILDABLE_TYPE_IMPL(ConstI32)
 };
 
 struct ConstI64 : public Buildable
@@ -172,6 +192,8 @@ struct ConstI64 : public Buildable
           value(value)
     {
     }
+
+    HYP_BUILDABLE_TYPE_IMPL(ConstI64)
 };
 
 struct ConstU32 : public Buildable
@@ -185,6 +207,8 @@ struct ConstU32 : public Buildable
           value(value)
     {
     }
+
+    HYP_BUILDABLE_TYPE_IMPL(ConstU32)
 };
 
 struct ConstU64 : public Buildable
@@ -198,6 +222,8 @@ struct ConstU64 : public Buildable
           value(value)
     {
     }
+
+    HYP_BUILDABLE_TYPE_IMPL(ConstU64)
 };
 
 struct ConstF32 : public Buildable
@@ -211,6 +237,8 @@ struct ConstF32 : public Buildable
           value(value)
     {
     }
+
+    HYP_BUILDABLE_TYPE_IMPL(ConstF32)
 };
 
 struct ConstF64 : public Buildable
@@ -224,6 +252,8 @@ struct ConstF64 : public Buildable
           value(value)
     {
     }
+
+    HYP_BUILDABLE_TYPE_IMPL(ConstF64)
 };
 
 struct ConstBool : public Buildable
@@ -237,6 +267,8 @@ struct ConstBool : public Buildable
           value(value)
     {
     }
+
+    HYP_BUILDABLE_TYPE_IMPL(ConstBool)
 };
 
 struct ConstNull : public Buildable
@@ -248,6 +280,8 @@ struct ConstNull : public Buildable
         : reg(reg)
     {
     }
+
+    HYP_BUILDABLE_TYPE_IMPL(ConstNull)
 };
 
 struct LoadClass final : public Buildable
@@ -261,11 +295,15 @@ struct LoadClass final : public Buildable
           nameHash(nameHash)
     {
     }
+
+    HYP_BUILDABLE_TYPE_IMPL(LoadClass)
 };
 
 struct TryCatchInfo final : public Buildable
 {
     LabelId catchLabelId;
+
+    HYP_BUILDABLE_TYPE_IMPL(TryCatchInfo)
 };
 
 struct ScriptFunction final : public Buildable
@@ -274,6 +312,8 @@ struct ScriptFunction final : public Buildable
     LabelId labelId = LabelId(-1);
     uint8 nargs = 0;
     uint8 flags = 0;
+
+    HYP_BUILDABLE_TYPE_IMPL(ScriptFunction)
 };
 
 struct ClassTable final : public Buildable
@@ -313,6 +353,8 @@ struct ClassTable final : public Buildable
     ClassFlags flags = (ClassFlags)0;
 
     ~ClassTable() override = default;
+
+    HYP_BUILDABLE_TYPE_IMPL(ClassTable)
 };
 
 struct ConstString final : public Buildable
@@ -321,6 +363,8 @@ struct ConstString final : public Buildable
     String value;
 
     ~ConstString() override = default;
+
+    HYP_BUILDABLE_TYPE_IMPL(ConstString)
 };
 
 struct Comment final : public Instruction
@@ -334,6 +378,8 @@ struct Comment final : public Instruction
     }
     Comment(const Comment& other) = default;
     ~Comment() override = default;
+
+    HYP_BUILDABLE_TYPE_IMPL(Comment)
 };
 
 struct SymbolExport final : public Instruction
@@ -349,6 +395,8 @@ struct SymbolExport final : public Instruction
     }
     SymbolExport(const SymbolExport& other) = default;
     ~SymbolExport() override = default;
+
+    HYP_BUILDABLE_TYPE_IMPL(SymbolExport)
 };
 
 struct CastOperation final : public Instruction
@@ -390,6 +438,8 @@ struct CastOperation final : public Instruction
           typeNameHash(typeNameHash)
     {
     }
+
+    HYP_BUILDABLE_TYPE_IMPL(CastOperation)
 };
 
 struct IsInstanceComp final : public Instruction
@@ -407,6 +457,8 @@ struct IsInstanceComp final : public Instruction
           typeNameHash(typeNameHash)
     {
     }
+
+    HYP_BUILDABLE_TYPE_IMPL(IsInstanceComp)
 };
 
 template <class... Args>
@@ -419,6 +471,8 @@ struct RawOperation final : public Instruction
         : data(other.data)
     {
     }
+
+    HYP_BUILDABLE_TYPE_IMPL(RawOperation)
 
     void Accept(const char* str)
     {

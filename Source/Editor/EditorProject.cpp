@@ -257,19 +257,6 @@ Result EditorProject::SaveAs(FilePath filepath)
 
     registry.SaveDirtyAssets();
 
-    if (registry.HasBlobStorage())
-    {
-        if (Result saveManifestResult = registry.GetBlobStorage().SaveManifest(); saveManifestResult.HasError())
-        {
-            return HYP_MAKE_ERROR(Error, "Failed to save BlobStorage manifest: {}", saveManifestResult.GetError().GetMessage());
-        }
-
-        if (Result saveTOCResult = registry.GetBlobStorage().SaveTOC(); saveTOCResult.HasError())
-        {
-            return HYP_MAKE_ERROR(Error, "Failed to save BlobStorage table of contents: {}", saveTOCResult.GetError().GetMessage());
-        }
-    }
-
     OnProjectSaved(MakeStrongRef(this));
 
     m_lastSavedTime = Time::Now();

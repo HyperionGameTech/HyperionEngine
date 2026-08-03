@@ -5,6 +5,7 @@
 */
 
 #include <Core/Reflection/BoxedValue.hpp>
+#include <Core/Reflection/Class.hpp>
 #include <Core/Reflection/Method.hpp>
 
 #include <Scripting/ScriptableDelegate.hpp>
@@ -34,6 +35,16 @@ void ScriptableDelegateHelper::InvokeMethod_Internal(BoxedValue* pOutBoxed, cons
     {
         (void)method->Invoke(argsBoxed);
     }
+}
+
+const Method* ScriptableDelegateHelper::GetClassMethod(const Class* cls, const Name* methodName)
+{
+    if (!cls || !methodName)
+    {
+        return nullptr;
+    }
+
+    return cls->GetMethod(*methodName);
 }
 
 } // namespace functional

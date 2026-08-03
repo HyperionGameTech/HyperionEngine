@@ -672,8 +672,6 @@ Handle<AssetObject> AssetRegistry::GetAsset(const AssetBucket& bucket, StringHas
 
     lock.Reset();
 
-    String strName = String(*Name(name));
-
     // Load it into cache
     Handle<AssetObject> assetObject;
 

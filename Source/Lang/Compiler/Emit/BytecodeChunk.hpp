@@ -23,6 +23,8 @@ struct BytecodeChunk final : public Buildable
     BytecodeChunk(const BytecodeChunk& other) = delete;
     virtual ~BytecodeChunk() = default;
 
+    HYP_BUILDABLE_TYPE_IMPL(BytecodeChunk)
+
     void Append(UniquePtr<Buildable>&& buildable)
     {
         if (buildable != nullptr)

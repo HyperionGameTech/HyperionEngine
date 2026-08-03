@@ -40,9 +40,48 @@ struct BuildParams
     SortedArray<LabelInfo> labels;
 };
 
+enum class BuildableType
+{
+    BytecodeChunk,
+    LabelMarker,
+    Jump,
+    Comparison,
+    FunctionCall,
+    Return,
+    StoreLocal,
+    PopLocal,
+    LoadRef,
+    LoadDeref,
+    ConstI32,
+    ConstI64,
+    ConstU32,
+    ConstU64,
+    ConstF32,
+    ConstF64,
+    ConstBool,
+    ConstNull,
+    LoadClass,
+    TryCatchInfo,
+    ScriptFunction,
+    ClassTable,
+    ConstString,
+    StorageOperation,
+    Comment,
+    SymbolExport,
+    CastOperation,
+    IsInstanceComp,
+    RawOperation,
+
+    Unknown
+};
+
 struct Buildable
 {
     virtual ~Buildable() = default;
+    virtual BuildableType GetBuildableType() const = 0;
 };
+
+#define HYP_BUILDABLE_TYPE_IMPL(Type) \
+    BuildableType GetBuildableType() const override { return BuildableType::Type; }
 
 } // namespace Hyperion

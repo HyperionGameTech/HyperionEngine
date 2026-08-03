@@ -494,7 +494,11 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 
 #ifdef HYP_WINDOWS
 #define HYP_EXPORT __declspec(dllexport)
+#if defined(HYP_BUILD_STATIC)
+#define HYP_IMPORT
+#else
 #define HYP_IMPORT __declspec(dllimport)
+#endif
 #elif defined(HYP_CLANG_OR_GCC)
 #define HYP_EXPORT __attribute__((visibility("default")))
 #define HYP_IMPORT

@@ -65,10 +65,8 @@ protected:
 
         gameRegistry = MakeHandle<AssetRegistry>(AssetRegistryId::Game, packageDir);
 
-        AssetRegistryContext registryContext { gameRegistry };
-
         Set<AssetRegistry*> registries = { gameRegistry };
-        
+
         if ((engineRegistry = GetEngineAssetRegistry()))
         {
             registries.Add(engineRegistry);
@@ -80,6 +78,11 @@ protected:
         }
 
         HYP_LOG(Assets, Info, "Cooking blob storage for {} asset registries", registries.Size());
+
+        // AssetReference::Resolve() looks up game-owned asset paths via GetCurrentAssetRegistry(),
+        // which reads this ambient context. Without it, every Game-registry cross-reference (e.g. a
+        // MeshComponent's mesh/material on an Entity inside a Prefab/Scene) resolves to nothing.
+        GlobalContextScope assetRegistryContextScope { AssetRegistryContext { gameRegistry } };
 
         Result result = Cook(registries);
 
@@ -194,7 +197,8 @@ private:
                             StringHash(reference->key),
                             tup.GetElement<0>(),
                             tup.GetElement<1>(),
-                            reference });
+                            reference
+                        });
                     }
                 }
             }
@@ -240,7 +244,7 @@ private:
     }
 };
 
-ENGINE_API const Class* g_clsBlobStorageCookCommandlet = nullptr;
+HYP_EXPORT const Class* g_clsBlobStorageCookCommandlet = nullptr;
 
 const Class* BlobStorageCookCommandlet::StaticClass()
 {

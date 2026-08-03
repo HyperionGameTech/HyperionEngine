@@ -38,11 +38,15 @@ endif()
 message(STATUS "Platform name: ${HYP_PLATFORM_NAME}")
 
 # use params passed in
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${HYP_LIBRARY_OUTPUT_DIRECTORY}/${HYP_PLATFORM_NAME}/${CMAKE_BUILD_TYPE})
+if(NOT DEFINED HYP_OUTPUT_DIRECTORY_SUFFIX)
+  set(HYP_OUTPUT_DIRECTORY_SUFFIX ${CMAKE_BUILD_TYPE})
+endif()
+
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${HYP_LIBRARY_OUTPUT_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_OUTPUT_DIRECTORY_SUFFIX})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${HYP_LIBRARY_OUTPUT_DIRECTORY}/${HYP_PLATFORM_NAME}/${CMAKE_BUILD_TYPE})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${HYP_LIBRARY_OUTPUT_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_OUTPUT_DIRECTORY_SUFFIX})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
@@ -189,6 +193,8 @@ endif()
 
 if(NOT HYP_SHIPPING)
   add_definitions(-DHYP_ENABLE_CORE_ASSERTIONS=1)
+else()
+  add_definitions(-DHYP_SHIPPING=1)
 endif()
 
 # set HYPERION_ENGINE to 1 (used to differentiate between engine and build tool or other executables using core lib)
@@ -232,6 +238,9 @@ if(HYP_MSVC)
   add_definitions("/D_HAS_EXCEPTIONS=0")
   add_definitions("/DNOMINMAX")
 
+  # no RTTI
+  add_compile_options(/GR-)
+
   if (HYP_SHIPPING)
     set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Zi /GL /GF /Zc:inline /constexpr:depth1024 /bigobj /MP4 /arch:AVX2 /fp:fast")
   else()
@@ -256,24 +265,39 @@ else()
   endif()
 
   if(HYP_SHIPPING)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -flto -Werror")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -flto=thin")
   elseif(NOT HYP_DEBUG_MODE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g -Werror=return-type -Werror=address -Werror=non-virtual-dtor -Werror=unused-result")
   else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1 -g -fno-omit-frame-pointer -Werror=return-type -Werror=address -Werror=non-virtual-dtor -Werror=unused-result")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fno-omit-frame-pointer -Werror=return-type -Werror=address -Werror=non-virtual-dtor -Werror=unused-result")
   endif()
 
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
+  if(HYP_CLANG_WINDOWS)
+    # clang-cl (Clang on Windows with the MSVC-compatible driver) only accepts
+    # MSVC-style flags, so map the GCC-style flags above to their clang-cl equivalents.
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_HAS_EXCEPTIONS=0 /EHs-c- /std:c++20")
 
-  # no exceptions
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
+    # no RTTI (clang-cl uses MSVC-style flag)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GR-")
 
-  # for full template backtrace
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-backtrace-limit=0")
+    # clang-specific diagnostics that the clang-cl driver doesn't recognize go via -Xclang
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -fno-recovery-ast")
+  else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
 
-  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    # no ast recovery or spelling correction/suggestion for clang
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -fno-recovery-ast -fno-spell-checking")
+    # no exceptions
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
+
+    # no RTTI
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
+
+    # for full template backtrace
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-backtrace-limit=0")
+
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+      # no ast recovery or spelling correction/suggestion for clang
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -fno-recovery-ast -fno-spell-checking")
+    endif()
   endif()
 
   # # address sanitizer -- uncomment to enable
@@ -366,8 +390,8 @@ if(NOT HYP_ANDROID AND NOT HYP_IOS AND NOT HYP_SHIPPING)
 
   add_definitions(-DHYP_ROOT_DIR="${HYP_ROOT_DIR_ESCAPED}")
 
-  # set(HYP_EDITOR 1)
-  # add_definitions(-DHYP_EDITOR=1)
+  set(HYP_EDITOR 1)
+  add_definitions(-DHYP_EDITOR=1)
 
   add_definitions(-DHYP_ENABLE_SHADER_RELOAD=1)
 endif()
@@ -383,8 +407,6 @@ endif()
 # enable HypScript
 # set(HYP_SCRIPT 1)
 # add_definitions(-DHYP_SCRIPT=1)
-
-set(HYP_GENERATE_CSHARP_LIBRARIES true)
 
 # Set to true if C# is not planned on being used for scripting
 # .NET is necessary for the editor, but for a leaner build this is recommended to disable if not using C# for scripts.
@@ -431,53 +453,35 @@ if(HYP_DOTNET_HOST)
 endif()
 
 # Strata lang integration
-# Only enable Strata for editor builds.
-if(HYP_EDITOR)
-    set(HYP_STRATA 1)
-    add_definitions(-DHYP_STRATA=1)
+set(HYP_STRATA 1)
+add_definitions(-DHYP_STRATA=1)
 
-  # Prefer building strata from the submodule (if available)
-  set(STRATA_SUBMODULE_DIR "${SUBMODULES_DIR}/stratac")
+# Only enable Strata JIT for non-shipping builds.
+# Other plats will link .o files directly
+# (Need to make PackageBuild.bat scripts invoke stratac, build into folder, then pick up those .o/.obj)
+if (HYP_STRATA)
+    if(HYP_EDITOR)
+      # Build strata from the submodule (if available)
+      set(STRATA_SUBMODULE_DIR "${SUBMODULES_DIR}/stratac")
 
-  if(EXISTS "${STRATA_SUBMODULE_DIR}/CMakeLists.txt")
-    message(STATUS "Building strata from submodule: ${STRATA_SUBMODULE_DIR}")
+        message(STATUS "Building strata from submodule: ${STRATA_SUBMODULE_DIR}")
 
-    set(STRATA_SHARED OFF CACHE BOOL "Build Strata as a shared library")
-    set(STRATA_ENABLE_LLVM OFF CACHE BOOL "Build strata with LLVM backend")
-    set(STRATA_ENABLE_TCC ON CACHE BOOL "Build strata with TCC backend")
+        set(STRATA_SHARED OFF CACHE BOOL "Build Strata as a shared library")
+        set(STRATA_ENABLE_LLVM OFF CACHE BOOL "Build strata with LLVM backend")
+        set(STRATA_ENABLE_TCC ON CACHE BOOL "Build strata with TCC backend")
 
-    add_subdirectory(${STRATA_SUBMODULE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/stratac EXCLUDE_FROM_ALL)
+        add_subdirectory(${STRATA_SUBMODULE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/stratac EXCLUDE_FROM_ALL)
 
-    set(HYP_STRATA_JIT 1)
-    add_definitions(-DHYP_STRATA_JIT=1)
-
-    set(COMMON_LIBRARIES ${COMMON_LIBRARIES} strata)
-  else()
-    # Fallback: use prebuilt strata binaries
-
-    if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/strata/strata.h")
-      message(STATUS "strata headers found (prebuilt)")
-
-      if(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/libstrata.a")
-        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/libstrata.a")
+        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} strata)
+        
+        # add include.
+        include_directories("${SUBMODULES_DIR}/stratac/include/strata")
+        
         set(HYP_STRATA_JIT 1)
-      elseif(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/strata.lib")
-        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/strata.lib")
-        file(COPY "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/strata.dll" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
-        file(COPY "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/LLVM-C.dll" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
-        set(HYP_STRATA_JIT 1)
-      else()
-        message(WARNING "strata library not found, expected to find libstrata.a or strata.lib in ${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}")
-      endif()
-
-      if(HYP_STRATA_JIT)
         add_definitions(-DHYP_STRATA_JIT=1)
-        include_directories("${THIRD_PARTY_INCLUDE_DIR}/strata")
-      endif()
     else()
-      message(STATUS "strata headers not found, skipping strata")
+        # @TODO Link the obj files
     endif()
-  endif()
 endif()
 
 # /Strata lang integration
@@ -494,7 +498,6 @@ if(HYP_EDITOR)
   set(HYP_DOTNET 1)
   add_definitions(-DHYP_DOTNET=1)
 endif()
-
 
 set(RENDERING_BACKEND "Vulkan")
 
@@ -751,12 +754,24 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
 
     if(dir MATCHES "DotNET/Runtime")
       set(sub_library_name "hyperion-dotnet-runtime")
+      if(NOT HYP_DOTNET)
+        set(should_skip_module TRUE)
+      endif()
     elseif(dir MATCHES "DotNET/Shared")
       set(sub_library_name "hyperion-dotnet-shared")
+      if(NOT HYP_DOTNET)
+        set(should_skip_module TRUE)
+      endif()
     elseif(dir MATCHES "DotNET/Interop")
       set(sub_library_name "hyperion-dotnet-interop")
+      if(NOT HYP_DOTNET)
+        set(should_skip_module TRUE)
+      endif()
     elseif(dir MATCHES "DotNET/Scripting")
       set(sub_library_name "hyperion-dotnet-scripting")
+      if(NOT HYP_DOTNET)
+        set(should_skip_module TRUE)
+      endif()
     elseif(dir MATCHES "Rendering/") # skip rendering subdirectory, allow rendering module to handle that.
       set(should_skip_module TRUE)
     else()
@@ -1087,10 +1102,20 @@ if(APPLE)
     endif()
   endforeach()
 elseif(HYP_MSVC OR HYP_CLANG_WINDOWS)
-  # needs to use /WHOLEARCHIVE on Windows for emulating the above behavior
+  # needs to use /WHOLEARCHIVE on Windows for emulating the above behavior.
   foreach(SUB_LIBRARY ${SUB_LIBRARIES})
     if (SUB_LIBRARY MATCHES "hyperion-dotnet-.*")
-      target_link_options(${BUILD_NAME} PRIVATE "/WHOLEARCHIVE:$<TARGET_FILE:${SUB_LIBRARY}>")
+      if(HYP_BUILD_STATIC)
+        # static build: the consuming executable links the dotnet sub-libs directly,
+        # and plain linking pulls in exactly the referenced symbols (e.g. Class_GetMethod).
+        # /WHOLEARCHIVE must not be used here - a raw /WHOLEARCHIVE:path link item is treated
+        # as a file path by the Ninja generator, and link options on a static lib do not
+        # propagate to consumers.
+        target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARY})
+      else()
+        # shared (DLL) build: force every object in so the C# P/Invoke bindings are exported
+        target_link_options(${BUILD_NAME} PRIVATE "/WHOLEARCHIVE:$<TARGET_FILE:${SUB_LIBRARY}>")
+      endif()
     else()
       target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARY})
     endif()

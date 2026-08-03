@@ -423,11 +423,14 @@ RendererResult Texture::Create()
 
     readScope.Reset();
 
-    auto writeScope = GetWriteScope();
-
-    if (shouldCreateGpuImage && !m_gpuImage->IsCreated())
+    if (shouldCreateGpuImage)
     {
-        CheckResultOrReturn(m_gpuImage->Create());
+        auto writeScope = GetWriteScope();
+
+        if (!m_gpuImage->IsCreated())
+        {
+            CheckResultOrReturn(m_gpuImage->Create());
+        }
     }
 
     return {};

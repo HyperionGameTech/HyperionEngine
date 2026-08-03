@@ -3,31 +3,28 @@ setlocal EnableDelayedExpansion
 
 for %%i in ("%~dp0..\..") do set "HYP_ROOT_DIR=%%~fi\"
 
-echo Running shipping build (BuildHyperion.bat shipping)...
+echo Running shipping build (BuildHyperion.bat shipping clang ninja)...
 
-call "%~dp0BuildHyperion.bat" shipping regenerate
+call "%~dp0BuildHyperion.bat" shipping clang ninja regenerate
 
 if errorlevel 1 (
     echo Build failed, aborting packaged build.
     exit /b 1
 )
 
-set "BIN_DIR=%HYP_ROOT_DIR%Binaries\Windows\Release"
+set "BIN_DIR=%HYP_ROOT_DIR%Binaries\Windows\Shipping"
+
+echo Running PrecompileShaders commandlet...
+
+REM Compile shaders for only Windows (DX12 + Vulkan)
+"%BIN_DIR%\PrecompileShaders.exe --platform=windows"
+
+echo Running Cook commandlet...
+"%BIN_DIR%\BlobStorageCookCommandlet.exe"
 
 for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "Get-Date -Format 'yyyyMMdd_HHmmss'"`) do set "TIMESTAMP=%%i"
 
 set "OUT_DIR=%HYP_ROOT_DIR%PackagedBuilds\Windows\Build_%TIMESTAMP%"
-
-if not "%~1"=="" (
-    set "GAME_PACKAGE=%~1"
-) else (
-    set /p "GAME_PACKAGE=Enter game package name (e.g. DefaultGame): "
-)
-
-if "%GAME_PACKAGE%"=="" (
-    echo Error: No game package specified.
-    exit /b 1
-)
 
 echo Creating packaged build at: %OUT_DIR%
 
@@ -47,9 +44,13 @@ copy "%HYP_ROOT_DIR%Config\*Config.Windows.json" "%OUT_DIR%\" >nul 2>nul
 echo Updating GlobalConfig.json for packaged build...
 powershell -NoProfile -Command "(Get-Content '%OUT_DIR%\GlobalConfig.json') -replace '-BaseDir=[\w/.-]+', '-BaseDir=./' | Set-Content '%OUT_DIR%\GlobalConfig.json'" >nul
 
-echo Copying packages...
-xcopy "%HYP_ROOT_DIR%Packages\Engine" "%OUT_DIR%\Packages\Engine" /E /I /Y /Q >nul
-xcopy "%HYP_ROOT_DIR%Packages\%GAME_PACKAGE%" "%OUT_DIR%\Packages\%GAME_PACKAGE%" /E /I /Y /Q >nul
+echo Copying content and cache...
+
+echo Copying Content...
+xcopy "%BIN_DIR%\Content" "%OUT_DIR%\Content" /e /i /y >nul
+
+echo Copying Cache...
+xcopy "%BIN_DIR%\Cache" "%OUT_DIR%\Cache" /e /i /y >nul
 
 echo Copying Shaders.ini...
 copy "%HYP_ROOT_DIR%Source\Shaders\Shaders.ini" "%OUT_DIR%\Source\Shaders\" >nul

@@ -92,20 +92,6 @@ void RawDataAsset::PageBlobData()
                 AllocateBlobData(m_data, buffer.Data(), buffer.Size(), 1);
                 m_data.key = blobKey;
 
-#ifdef HYP_EDITOR
-                if (blobStorage != nullptr)
-                {
-                    Result saveResult = SaveBlobData(blobStorage);
-
-                    if (saveResult.HasError())
-                    {
-                        HYP_LOG(Assets, Error, "Failed to save raw data blob: {}", saveResult.GetError().GetMessage());
-                    }
-
-                    MarkDirty();
-                }
-#endif
-
                 return;
             }
 #endif

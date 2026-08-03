@@ -44,10 +44,7 @@ void LibDataChannelRTCTrack::PrepareTrack(RTCClient* client)
 {
     Assert(client != nullptr);
 
-    const auto* libDataChannelClient = dynamic_cast<LibDataChannelRTCClient*>(client);
-    Assert(libDataChannelClient != nullptr,
-        "client must be a LibDataChannelRTCClient instance to use on LibDataChannelRTCTrack");
-
+    const LibDataChannelRTCClient* libDataChannelClient = static_cast<LibDataChannelRTCClient*>(client);
     Assert(libDataChannelClient->m_peerConnection != nullptr,
         "m_peer_connection is nullptr on the RTCClient -- make sure PrepareTrack() is being called in the right place");
 
