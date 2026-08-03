@@ -378,9 +378,13 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                     frame->cr << InsertBarrier(depthTarget->GetGpuImage(), RS_SHADER_RESOURCE, dstImageSubResource);
                 }
             }
-            else if (cacheStaticShadowMaps)
+            else if (cacheStaticShadowMaps || onlyStaticShadowMaps)
             {
-                // skip rendering static objects if we used the cached texture.
+                if (onlyStaticShadowMaps)
+                {
+                    // Skip dynamics if only statics
+                    localPasses[ShadowStage_Dynamic] = nullptr;
+                }
 
                 View* shadowView = cachedData->shadowViewsStatic[viewIndex];
 
@@ -400,55 +404,60 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 const bool isMatrixDirty = viewIndex >= pd->prevCameraMatrices.Size()
                     || pd->prevCameraMatrices[viewIndex] != rpl.cachedMatrices.viewProj;
 
-                // Copy from cached
                 if (!isMatrixDirty
                     && !rpl.GetMeshEntities().GetDiff().NeedsUpdate()
                     && !rpl.GetSkeletons().GetDiff().NeedsUpdate())
                 {
+                    // Will copy from cached (if cacheStaticShadowMaps), or will just use the last frame texture (onlyStaticShadowMaps)
                     needsClearBeforeDraw = false;
 
-                    Attachment* depthTarget = framebuffer->GetAttachment(framebuffer->NumAttachments() - 1);
-                    Assert(depthTarget != nullptr);
-
-                    Assert(cachedShadowMapTexture.IsValid());
-
-                    ImageSubResource srcImageSubResource;
-                    srcImageSubResource.baseArrayLayer = 0;
-                    srcImageSubResource.numLayers = 1;
-                    srcImageSubResource.baseMipLevel = 0;
-                    srcImageSubResource.numLevels = 1;
-
-                    ImageSubResource dstImageSubResource;
-                    dstImageSubResource.baseArrayLayer = atlasElement.layerIndex;
-                    dstImageSubResource.numLayers = 1;
-                    dstImageSubResource.baseMipLevel = 0;
-                    dstImageSubResource.numLevels = 1;
-
-                    // if omni, copy current face
-                    if (isOmni)
+                    // Cached copy.
+                    if (cacheStaticShadowMaps)
                     {
-                        srcImageSubResource.baseArrayLayer = viewIndex;
-                        dstImageSubResource.baseArrayLayer = (atlasElement.layerIndex * 6) + viewIndex;
+                        Attachment* depthTarget = framebuffer->GetAttachment(framebuffer->NumAttachments() - 1);
+                        Assert(depthTarget != nullptr);
+
+                        Assert(cachedShadowMapTexture.IsValid());
+
+                        ImageSubResource srcImageSubResource;
+                        srcImageSubResource.baseArrayLayer = 0;
+                        srcImageSubResource.numLayers = 1;
+                        srcImageSubResource.baseMipLevel = 0;
+                        srcImageSubResource.numLevels = 1;
+
+                        ImageSubResource dstImageSubResource;
+                        dstImageSubResource.baseArrayLayer = atlasElement.layerIndex;
+                        dstImageSubResource.numLayers = 1;
+                        dstImageSubResource.baseMipLevel = 0;
+                        dstImageSubResource.numLevels = 1;
+
+                        // if omni, copy current face
+                        if (isOmni)
+                        {
+                            srcImageSubResource.baseArrayLayer = viewIndex;
+                            dstImageSubResource.baseArrayLayer = (atlasElement.layerIndex * 6) + viewIndex;
+                        }
+
+                        frame->cr << InsertBarrier(cachedShadowMapTexture->GetGpuImage(), RS_COPY_SRC, srcImageSubResource);
+                        frame->cr << InsertBarrier(depthTarget->GetGpuImage(), RS_COPY_DST, dstImageSubResource);
+
+                        frame->cr << CopyImage(
+                            cachedShadowMapTexture->GetGpuImage(),
+                            depthTarget->GetGpuImage(),
+                            Vec3u::Zero(),
+                            Vec3u(atlasElement.offsetCoords.x, atlasElement.offsetCoords.y, 0),
+                            Vec3u(atlasElement.dimensions.x, atlasElement.dimensions.y, 1),
+                            srcImageSubResource,
+                            dstImageSubResource);
+
+                        if (!localPasses[ShadowStage_Dynamic])
+                        {
+                            frame->cr << InsertBarrier(depthTarget->GetGpuImage(), RS_SHADER_RESOURCE, dstImageSubResource);
+                        }
                     }
-
-                    frame->cr << InsertBarrier(cachedShadowMapTexture->GetGpuImage(), RS_COPY_SRC, srcImageSubResource);
-                    frame->cr << InsertBarrier(depthTarget->GetGpuImage(), RS_COPY_DST, dstImageSubResource);
-
-                    frame->cr << CopyImage(
-                        cachedShadowMapTexture->GetGpuImage(),
-                        depthTarget->GetGpuImage(),
-                        Vec3u::Zero(),
-                        Vec3u(atlasElement.offsetCoords.x, atlasElement.offsetCoords.y, 0),
-                        Vec3u(atlasElement.dimensions.x, atlasElement.dimensions.y, 1),
-                        srcImageSubResource,
-                        dstImageSubResource);
-
-                    if (!localPasses[ShadowStage_Dynamic])
-                    {
-                        frame->cr << InsertBarrier(depthTarget->GetGpuImage(), RS_SHADER_RESOURCE, dstImageSubResource);
-                    }
-
-                    // don't want to draw statics since we used cache; setting it to null will skip it!
+                    
+                    // don't want to draw statics since we used cache (or straight up just don't need it, if we're only drawing statics);
+                    // setting this to nullptr will skip it!
                     localPasses[ShadowStage_Static] = nullptr;
                 }
 
@@ -461,8 +470,8 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
             }
             else
             {
-                // no statics -- everything goes in dynamic
-                // so skip it
+                // no statics -- everything goes in dynamic unless onlyStaticShadowMaps is true
+                // this will skip drawing of statics for this iteration.
                 localPasses[ShadowStage_Static] = nullptr;
             }
 
