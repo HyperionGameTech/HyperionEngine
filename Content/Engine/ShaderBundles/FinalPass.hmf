@@ -1,0 +1,6 @@
+ShaderBundle "FinalPass" {
+    StaticProperties = []
+    CompiledShaders = [
+        @"Engine://Shaders/FinalPass_13803781059551201557"
+    ]
+}

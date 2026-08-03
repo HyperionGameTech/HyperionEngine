@@ -1,0 +1,13 @@
+ShaderBundle "ConvolveProbe" {
+    StaticProperties = []
+    CompiledShaders = [
+        @"Engine://Shaders/ConvolveProbe_854710798074952646"
+        @"Engine://Shaders/ConvolveProbe_7007583848633638691"
+        @"Engine://Shaders/ConvolveProbe_2021331159716828678"
+        @"Engine://Shaders/ConvolveProbe_1878865337750440695"
+        @"Engine://Shaders/ConvolveProbe_18269299130050507018"
+        @"Engine://Shaders/ConvolveProbe_14206561766617807683"
+        @"Engine://Shaders/ConvolveProbe_12704675508204723296"
+        @"Engine://Shaders/ConvolveProbe_12381763269496033889"
+    ]
+}

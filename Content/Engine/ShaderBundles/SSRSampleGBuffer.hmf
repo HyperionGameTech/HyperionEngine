@@ -1,0 +1,6 @@
+ShaderBundle "SSRSampleGBuffer" {
+    StaticProperties = []
+    CompiledShaders = [
+        @"Engine://Shaders/SSRSampleGBuffer_13119147318182534700"
+    ]
+}

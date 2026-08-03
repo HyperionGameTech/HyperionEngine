@@ -1,0 +1,11 @@
+ShaderBundle "DeferredDirect" {
+    StaticProperties = [
+        ("TILE_SIZE", 32)
+        ("MAX_CLUSTERED_SHADOW_MAPS", 16)
+        ("TILE_Z_BINS", 16)
+    ]
+    CompiledShaders = [
+        @"Engine://Shaders/DeferredDirect_3402352593726621579"
+        @"Engine://Shaders/DeferredDirect_14938946883609554348"
+    ]
+}

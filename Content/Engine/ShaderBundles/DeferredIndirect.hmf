@@ -1,0 +1,11 @@
+ShaderBundle "DeferredIndirect" {
+    StaticProperties = [
+        ("TILE_SIZE", 32)
+        ("TILE_Z_BINS", 16)
+    ]
+    CompiledShaders = [
+        @"Engine://Shaders/DeferredIndirect_9138883043362269244"
+        @"Engine://Shaders/DeferredIndirect_360029694583681430"
+        @"Engine://Shaders/DeferredIndirect_16894928789126838566"
+    ]
+}

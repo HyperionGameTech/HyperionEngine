@@ -9,6 +9,7 @@
 #include <Rendering/RawBuffer.hpp>
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/CommandRecorder.hpp>
+#include <Rendering/CrashHandler.hpp>
 
 namespace Hyperion {
 
@@ -16,14 +17,15 @@ namespace Hyperion {
 
 void RawBuffer::Initialize()
 {
-    Assert(gpuBuffer);
-
     if (gpuBuffer->IsCreated())
     {
         return;
     }
 
-    Check(gpuBuffer->Create());
+    if (!Check(gpuBuffer->Create()))
+    {
+        CrashHandler::Dump();
+    }
 }
 
 void RawBuffer::Shutdown()

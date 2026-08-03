@@ -1,0 +1,11 @@
+ShaderBundle "ApplyFogVolume" {
+    StaticProperties = [
+        ("MAX_FOG_LIGHTS", 4)
+        ("TILE_SIZE", 32)
+        ("MAX_CLUSTERED_SHADOW_MAPS", 16)
+        ("TILE_Z_BINS", 16)
+    ]
+    CompiledShaders = [
+        @"Engine://Shaders/ApplyFogVolume_17261124354468234605"
+    ]
+}

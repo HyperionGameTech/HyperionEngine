@@ -1,0 +1,9 @@
+ShaderBundle "DrawShadowMap" {
+    StaticProperties = []
+    CompiledShaders = [
+        @"Engine://Shaders/DrawShadowMap_13803781059551203069"
+        @"Engine://Shaders/DrawShadowMap_13803781059551203053"
+        @"Engine://Shaders/DrawShadowMap_13803781059551203045"
+        @"Engine://Shaders/DrawShadowMap_13803781059551201557"
+    ]
+}

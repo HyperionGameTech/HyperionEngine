@@ -1,0 +1,9 @@
+ShaderBundle "UIObject" {
+    StaticProperties = [
+        ("INSTANCING", null)
+    ]
+    CompiledShaders = [
+        @"Engine://Shaders/UIObject_7132065218393620482"
+        @"Engine://Shaders/UIObject_13954705435456372535"
+    ]
+}

@@ -127,18 +127,25 @@ const DX12GpuImageViewRef& DX12TextureViewCache::GetOrCreate(
 
     if (it == textureImageViews.End())
     {
-        DX12GpuImageViewRef imageView = MakeHandle<DX12GpuImageView>(
-            texture->GetGpuImage(), subResource, viewTextureType);
-
-        Check(imageView->Create());
-
         sharedLock.Reset();
 
         uniqueLockStorage.Construct(mutex);
 
         isLockUnique = true;
 
-        it = textureImageViews.Set(key, imageView).first;
+        // Re-check now that we hold the exclusive lock -- another thread may have raced us
+        // and already inserted this entry while we were waiting on the shared -> unique upgrade.
+        it = textureImageViews.Find(key);
+
+        if (it == textureImageViews.End())
+        {
+            DX12GpuImageViewRef imageView = MakeHandle<DX12GpuImageView>(
+                texture->GetGpuImage(), subResource, viewTextureType);
+
+            Check(imageView->Create());
+
+            it = textureImageViews.Set(key, imageView).first;
+        }
     }
 
     Assert(it->second.IsValid());

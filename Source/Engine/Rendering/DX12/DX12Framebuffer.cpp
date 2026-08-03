@@ -7,12 +7,14 @@
 #include <DX12Pch.hpp>
 
 #include <Core/Containers/Array.hpp>
+#include <Core/Functional/Proc.hpp>
 
 #include <Rendering/DX12/DX12Framebuffer.hpp>
 #include <Rendering/DX12/DX12RenderInterface.hpp>
 #include <Rendering/DX12/DX12GpuImage.hpp>
 #include <Rendering/DX12/DX12Helpers.hpp>
 #include <Rendering/Shared.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <DX12Framebuffer.generated.inl>
 
@@ -34,11 +36,21 @@ DX12Framebuffer::DX12Framebuffer(const FramebufferDesc& framebufferDesc)
 
 DX12Framebuffer::~DX12Framebuffer()
 {
-    if (!m_isExternalRTV)
+    if (!m_isExternalRTV && m_rtvDescriptorHandle.IsValid())
     {
-        RI.descriptorHeapManager->Free(DX12DescriptorHeapType::RTV, std::move(m_rtvDescriptorHandle));
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([rtvDescriptorHandle = std::move(m_rtvDescriptorHandle)]() mutable
+            {
+                RI.descriptorHeapManager->Free(DX12DescriptorHeapType::RTV, std::move(rtvDescriptorHandle));
+            }));
     }
-    RI.descriptorHeapManager->Free(DX12DescriptorHeapType::DSV, std::move(m_dsvDescriptorHandle));
+
+    if (m_dsvDescriptorHandle.IsValid())
+    {
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([dsvDescriptorHandle = std::move(m_dsvDescriptorHandle)]() mutable
+            {
+                RI.descriptorHeapManager->Free(DX12DescriptorHeapType::DSV, std::move(dsvDescriptorHandle));
+            }));
+    }
 
     m_attachmentMap.Reset();
 }

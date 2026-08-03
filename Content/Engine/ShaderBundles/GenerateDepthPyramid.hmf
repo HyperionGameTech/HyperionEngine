@@ -1,0 +1,6 @@
+ShaderBundle "GenerateDepthPyramid" {
+    StaticProperties = []
+    CompiledShaders = [
+        @"Engine://Shaders/GenerateDepthPyramid_13803781059551201562"
+    ]
+}

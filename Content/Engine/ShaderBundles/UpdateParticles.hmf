@@ -1,0 +1,6 @@
+ShaderBundle "UpdateParticles" {
+    StaticProperties = []
+    CompiledShaders = [
+        @"Engine://Shaders/UpdateParticles_5964599670083616775"
+    ]
+}

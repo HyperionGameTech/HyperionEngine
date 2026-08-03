@@ -6,9 +6,13 @@
 
 #include <DX12Pch.hpp>
 
+#include <Core/Functional/Proc.hpp>
+
 #include <Rendering/DX12/DX12GpuBuffer.hpp>
 #include <Rendering/DX12/DX12RenderInterface.hpp>
 #include <Rendering/DX12/DX12Helpers.hpp>
+
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <DX12GpuBuffer.generated.inl>
 
@@ -71,8 +75,12 @@ DX12GpuBuffer& DX12GpuBuffer::operator=(DX12GpuBuffer&& other) noexcept
             Unmap();
         }
 
-        m_resource.Reset();
-        m_allocation.Reset();
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([allocation = std::move(m_allocation), resource = std::move(m_resource)]() mutable
+            {
+                allocation.Reset();
+                resource.Reset();
+            }));
+
         m_resourceState = RS_UNDEFINED;
     }
 
@@ -104,8 +112,12 @@ DX12GpuBuffer::~DX12GpuBuffer()
         Unmap();
     }
 
-    m_resource.Reset();
-    m_allocation.Reset();
+    EnqueueDeletion(FunctionWrapper<Proc<void()>>([allocation = std::move(m_allocation), resource = std::move(m_resource)]() mutable
+        {
+            allocation.Reset();
+            resource.Reset();
+        }));
+
     m_resourceState = RS_UNDEFINED;
 }
 
@@ -358,8 +370,12 @@ RendererResult DX12GpuBuffer::EnsureCapacity(
 
     if (shouldCreate)
     {
-        m_resource.Reset();
-        m_allocation.Reset();
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([allocation = std::move(m_allocation), resource = std::move(m_resource)]() mutable
+            {
+                allocation.Reset();
+                resource.Reset();
+            }));
+
         m_resourceState = RS_UNDEFINED;
     }
 

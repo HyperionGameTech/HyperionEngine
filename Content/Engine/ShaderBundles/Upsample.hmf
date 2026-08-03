@@ -1,0 +1,6 @@
+ShaderBundle "Upsample" {
+    StaticProperties = []
+    CompiledShaders = [
+        @"Engine://Shaders/Upsample_13803781059551201557"
+    ]
+}

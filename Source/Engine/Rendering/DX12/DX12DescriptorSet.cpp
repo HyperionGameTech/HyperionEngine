@@ -6,6 +6,8 @@
 
 #include <DX12Pch.hpp>
 
+#include <Core/Functional/Proc.hpp>
+
 #include <Rendering/DX12/DX12DescriptorSet.hpp>
 #include <Rendering/DX12/DX12RenderInterface.hpp>
 #include <Rendering/DX12/DX12DescriptorHeaps.hpp>
@@ -23,6 +25,7 @@
 #include <Rendering/Bindless.hpp>
 #include <Rendering/PlaceholderData.hpp>
 #include <Rendering/RenderMemory.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Core/Memory/Allocator/ArenaAllocator.hpp>
 
@@ -89,12 +92,18 @@ DX12DescriptorSet::~DX12DescriptorSet()
 {
     if (m_viewDescriptorHandle.IsValid())
     {
-        RI.descriptorHeapManager->Free(DX12DescriptorHeapType::CBV_SRV_UAV, std::move(m_viewDescriptorHandle));
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([viewDescriptorHandle = std::move(m_viewDescriptorHandle)]() mutable
+            {
+                RI.descriptorHeapManager->Free(DX12DescriptorHeapType::CBV_SRV_UAV, std::move(viewDescriptorHandle));
+            }));
     }
 
     if (m_samplerDescriptorHandle.IsValid())
     {
-        RI.descriptorHeapManager->Free(DX12DescriptorHeapType::SAMPLER, std::move(m_samplerDescriptorHandle));
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([samplerDescriptorHandle = std::move(m_samplerDescriptorHandle)]() mutable
+            {
+                RI.descriptorHeapManager->Free(DX12DescriptorHeapType::SAMPLER, std::move(samplerDescriptorHandle));
+            }));
     }
 }
 
