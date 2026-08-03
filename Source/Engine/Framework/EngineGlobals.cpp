@@ -14,18 +14,25 @@
 
 #include <Core/Threading/SharedMutex.hpp>
 
-#include <System/DirectoryInitializer.hpp>
+#include <Core/Utilities/GlobalContext.hpp>
 
-#include <Asset/BlobStorage.hpp>
+#include <System/DirectoryInitializer.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/EngineDriver.hpp>
 
+#include <Asset/BlobStorage.hpp>
+
 namespace Hyperion {
+
+#ifndef HYP_SHIPPING
+struct CookingContext;
+#endif // !HYP_SHIPPING
+
 namespace EngineGlobals {
 
 /// Editor build only
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 
 ENGINE_API bool IsEditor()
 {
@@ -50,6 +57,15 @@ HYP_EXPORT const FilePath& GetDataDirectory()
 
 #endif // HYP_EDITOR
 
+#ifndef HYP_SHIPPING
+
+ENGINE_API bool IsCooking()
+{
+    return IsGlobalContextActive<CookingContext>();
+}
+
+#endif // !HYP_SHIPPING
+
 // Directory for cached data (shader bundles, compiled scripts, etc.) Expected to be compiled into the asset registry in production builds
 static AtomicVar<bool> s_cacheDirectoryInit = false;
 static Mutex s_cacheDirectoryMutex;
@@ -57,7 +73,6 @@ static Mutex s_cacheDirectoryMutex;
 HYP_EXPORT const FilePath& GetCacheDirectory()
 {
     static const ConfigValue& s_cfgCacheDirectory = CoreApi::GetGlobalConfig().Get("App.Cache.BaseDirectory");
-    static const ConfigValue& s_cfgCachePageSize = CoreApi::GetGlobalConfig().Get("App.Cache.PageSize");
 
     static const FilePath s_cacheDirectory = CoreApi::GetExecutablePath() / s_cfgCacheDirectory.ToString().ToUtf8();
 
@@ -71,14 +86,6 @@ HYP_EXPORT const FilePath& GetCacheDirectory()
     if (s_cacheDirectoryInit.Get(MemoryOrder::RELAXED))
     {
         return s_cacheDirectory;
-    }
-
-    if (!s_cfgCachePageSize.IsNumber() || s_cfgCachePageSize.AsNumber() < 1024 * 1024)
-    {
-        ConfigBase newConfigurationTable;
-        newConfigurationTable.Set("App.Cache.PageSize", ConfigValue(BlobStorage::DefaultPageSize));
-
-        CoreApi::UpdateGlobalConfig(newConfigurationTable);
     }
 
     if (s_cacheDirectory.Empty() || (!s_cacheDirectory.Exists() && !s_cacheDirectory.MkDir()))
@@ -133,28 +140,42 @@ HYP_EXPORT FilePath CreateTempDirectory()
     return FilePath();
 }
 
-HYP_EXPORT const FilePath& GetLibraryDirectory()
+template <auto PackageName>
+HYP_EXPORT const FilePath& GetContentDirectory()
 {
-#ifdef HYP_EDITOR
-    static DirectoryInitializer<HYP_STATIC_STRING("Packages"), /* RelativeToExecutablePath */ false> s_resourceDirectory;
-    return s_resourceDirectory.path;
-#else  // !HYP_EDITOR
-    static DirectoryInitializer<HYP_STATIC_STRING("Packages"), /* RelativeToExecutablePath */ true> s_resourceDirectory;
-
-    if (!s_resourceDirectory.path.Exists())
-    {
-        HYP_LOG(Engine, Warning, "GetLibraryDirectory() called but Packages directory does not exist: {}",
-                s_resourceDirectory.path.Data());
-    }
-
-    return s_resourceDirectory.path;
-#endif // HYP_EDITOR
+#ifndef HYP_SHIPPING
+    // Not shipping - Content at base dir of repo, subdir'd by package name.
+    static DirectoryInitializer<HYP_STATIC_STRING("Content").template Concat<HYP_STATIC_STRING("/")>().template Concat<PackageName>(), /* RelativeToExecutablePath */ false> s_contentDir;
+    return s_contentDir.path;
+#else   // HYP_SHIPPING
+    // Just use base Content directory at exe path.
+    // Everything gets coalesced.
+    static DirectoryInitializer<HYP_STATIC_STRING("Content"), /* RelativeToExecutablePath */ true> s_contentDir;
+    return s_contentDir.path;
+#endif  // !HYP_SHIPPING
 }
+
+template const FilePath& GetContentDirectory<HYP_STATIC_STRING("Editor")>();
+template const FilePath& GetContentDirectory<HYP_STATIC_STRING("Engine")>();
+template const FilePath& GetContentDirectory<HYP_STATIC_STRING("Game")>();
 
 HYP_EXPORT bool IsShuttingDown()
 {
     return g_engineDriver.IsValid()
         && g_engineDriver->IsShuttingDown();
+}
+
+BlobStorage g_blobStorage;
+
+HYP_EXPORT BlobStorage* GetBlobStorage()
+{
+    static std::once_flag s_onceFlag;
+    std::call_once(s_onceFlag, []()
+                   {
+                       g_blobStorage.Initialize();
+                   });
+
+    return &g_blobStorage;
 }
 
 } // namespace EngineGlobals

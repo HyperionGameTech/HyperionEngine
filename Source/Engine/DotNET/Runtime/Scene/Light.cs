@@ -17,13 +17,16 @@ namespace Hyperion
     [Flags]
     public enum LightFlags : uint
     {
-        None = 0x0,
-        ShadowCaster = 0x1,
+        None = 0x0,                                     //!< @editor=false
 
-        CacheStaticShadowMaps = 0x10,
-        BakeStaticShadows = 0x20,
+        ShadowCaster = 0x1,                             //!< @title="Render shadows"
 
-        Default = ShadowCaster | CacheStaticShadowMaps
+        CacheStaticShadowMaps = 0x10,                   //!< @title="Cache shadow maps for static objects"
+        BakeStaticShadows = 0x20,                       //!< @editor=false
+
+        OnlyDrawStaticShadowMaps = 0x40,                //!< @title="Only render shadows for static objects"
+
+        Default = ShadowCaster | CacheStaticShadowMaps  //!< @editor=false
     }
 
     [ClassBinding(Name = "Light")]

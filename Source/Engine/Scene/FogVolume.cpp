@@ -25,7 +25,7 @@
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 #include <Baking/BakerSubsystem.hpp>
 #include <Baking/FogVolume/FogVolumeBakeData.hpp>
 #endif
@@ -34,7 +34,7 @@
 
 namespace Hyperion {
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 #endif // HYP_EDITOR
 
@@ -154,7 +154,7 @@ void FogVolume::UpdateRenderProxy(RenderProxyFogVolume* proxy)
     }
 }
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 
 void FogVolume::Rebake()
 {

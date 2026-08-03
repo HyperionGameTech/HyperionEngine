@@ -327,7 +327,7 @@ public:
     ReflectionProbe& operator=(const ReflectionProbe& other) = delete;
     ~ReflectionProbe() override = default;
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     HYP_METHOD(EditorOnly, EditorAction = "Bake Reflection Probe", EditCondition = "IsBaked")
     void BakeCubemap();
 #endif
@@ -394,12 +394,12 @@ public:
         return GetParentVolume() != nullptr;
     }
 
-private:
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     HYP_METHOD(EditorOnly, EditorAction = "Recompute Irradiance")
     void RecomputeIrradiance();
 #endif // HYP_EDITOR
 
+private:
     void Invalidate(bool forceRerender = false) override;
 
     ProbeVolume* GetParentVolume() const;

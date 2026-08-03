@@ -395,7 +395,7 @@ void DefaultGame::OnLaunch_Impl()
     //    Handle<FogVolume> fogVolume = MakeHandle<FogVolume>();
     //    fogVolume->SetLocalBounds(BoundingBox(Vec3f(-30.0f, -0.5f, -30.0f), Vec3f(30.0f, 40.0f, 30.0f)));
     //    scene->GetRoot()->AddChild(fogVolume);
-    // #if HYP_EDITOR
+    // #ifdef HYP_EDITOR
     //    fogVolume->Rebake();
     // #endif
 

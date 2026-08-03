@@ -48,6 +48,8 @@
 
 #include <dxgi1_6.h>
 
+#include <algorithm>
+
 #if defined(HYP_AFTERMATH) && HYP_AFTERMATH
 #include <Aftermath/GFSDK_Aftermath.h>
 #endif
@@ -216,118 +218,106 @@ RendererResult DX12RenderInterface::Initialize()
 
     const ConfigValue& cfgSelectedGpuIndex = cfg.Get("System.SelectedGpu.Index");
 
-    bool gpuSelected = false;
+    struct AdapterCandidate
+    {
+        ComPtr<IDXGIAdapter1> adapter;
+        DXGI_ADAPTER_DESC1 desc;
+        uint64 score;
+    };
+
+    Array<AdapterCandidate, DX12Allocator> candidates;
+
+    for (UINT i = 0;; ++i)
+    {
+        ComPtr<IDXGIAdapter1> adapter;
+
+        if (FAILED(dxgiFactory->EnumAdapters1(i, &adapter)))
+        {
+            break;
+        }
+
+        DXGI_ADAPTER_DESC1 desc;
+        adapter->GetDesc1(&desc);
+
+        if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+        {
+            continue;
+        }
+
+        ComPtr<ID3D12Device> tempDevice;
+        if (FAILED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&tempDevice))))
+        {
+            continue;
+        }
+
+        uint64 score = 1000000;
+
+        D3D12_FEATURE_DATA_ARCHITECTURE architecture {};
+        if (SUCCEEDED(tempDevice->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE, &architecture, sizeof(architecture))))
+        {
+            score = architecture.UMA ? 100000 : 1000000;
+        }
+
+        score += uint64(desc.DedicatedVideoMemory) / (1024 * 1024);
+
+        candidates.PushBack({ adapter, desc, score });
+    }
+
+    if (candidates.Empty())
+    {
+        HYP_LOG(RenderingBackend, Error, "Failed to find a suitable GPU adapter");
+        return HYP_MAKE_ERROR(RendererError, "Failed to find suitable GPU", E_FAIL);
+    }
+
     int targetGpuIndex = -1;
 
     if (cfgSelectedGpuIndex.IsNumber())
     {
         targetGpuIndex = cfgSelectedGpuIndex.ToInt32();
-    }
 
-    ComPtr<IDXGIFactory6> factory6;
-    if (SUCCEEDED(dxgiFactory.As(&factory6)))
-    {
-        UINT validAdapterIndex = 0;
-
-        for (UINT i = 0; SUCCEEDED(factory6->EnumAdapters1(i, &m_hardwareAdapter)); ++i)
+        if (targetGpuIndex < 0 || uint32(targetGpuIndex) >= uint32(candidates.Size()))
         {
-            DXGI_ADAPTER_DESC1 desc;
-            m_hardwareAdapter->GetDesc1(&desc);
+            HYP_LOG(RenderingBackend, Warning, "Configured GPU index {} is out of bounds for {} valid adapter(s); resetting to 0",
+                targetGpuIndex, candidates.Size());
 
-            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
-                continue;
+            targetGpuIndex = -1;
 
-            if (SUCCEEDED(D3D12CreateDevice(m_hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), nullptr)))
+            cfg.Set("System.SelectedGpu.Index", JSON::Number(0));
+
+            if (!cfg.Save())
             {
-                bool selectThisAdapter = false;
-
-                if (validAdapterIndex == targetGpuIndex)
-                {
-                    selectThisAdapter = true;
-                }
-                else if (targetGpuIndex < 0 && !gpuSelected)
-                {
-                    selectThisAdapter = true;
-                }
-
-                if (selectThisAdapter)
-                {
-                    HYP_LOG(RenderingBackend, Info, "Selected GPU index {}: {}", validAdapterIndex, WideString(desc.Description));
-
-                    if (targetGpuIndex < 0)
-                    {
-                        cfg.Set("System.SelectedGpu.Index", JSON::Number(validAdapterIndex));
-
-                        if (!cfg.Save())
-                        {
-                            HYP_LOG(RenderingBackend, Warning, "Failed to save GPU selection config");
-                        }
-                    }
-
-                    gpuSelected = true;
-                }
-
-                if (gpuSelected)
-                    break;
-
-                validAdapterIndex++;
+                HYP_LOG(RenderingBackend, Warning, "Failed to save GPU selection config");
             }
         }
+    }
+
+    UINT selectedIndex;
+
+    if (targetGpuIndex >= 0)
+    {
+        selectedIndex = UINT(targetGpuIndex);
     }
     else
     {
-        UINT validAdapterIndex = 0;
-
-        for (UINT i = 0; SUCCEEDED(dxgiFactory->EnumAdapters1(i, &m_hardwareAdapter)); ++i)
-        {
-            DXGI_ADAPTER_DESC1 desc;
-            m_hardwareAdapter->GetDesc1(&desc);
-
-            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
-                continue;
-
-            if (SUCCEEDED(D3D12CreateDevice(m_hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), nullptr)))
+        std::sort(candidates.Begin(), candidates.End(), [](const AdapterCandidate& a, const AdapterCandidate& b)
             {
-                bool selectThisAdapter = false;
+                return a.score > b.score;
+            });
 
-                if (validAdapterIndex == targetGpuIndex)
-                {
-                    selectThisAdapter = true;
-                }
-                else if (targetGpuIndex < 0 && !gpuSelected)
-                {
-                    selectThisAdapter = true;
-                }
+        selectedIndex = 0;
 
-                if (selectThisAdapter)
-                {
-                    HYP_LOG(RenderingBackend, Info, "Selected GPU index {}: {}", validAdapterIndex, WideString(desc.Description));
+        cfg.Set("System.SelectedGpu.Index", JSON::Number(0));
 
-                    if (targetGpuIndex < 0)
-                    {
-                        cfg.Set("System.SelectedGpu.Index", JSON::Number(validAdapterIndex));
-                        if (!cfg.Save())
-                        {
-                            HYP_LOG(RenderingBackend, Warning, "Failed to save GPU selection config");
-                        }
-                    }
-
-                    gpuSelected = true;
-                }
-
-                if (gpuSelected)
-                    break;
-
-                validAdapterIndex++;
-            }
+        if (!cfg.Save())
+        {
+            HYP_LOG(RenderingBackend, Warning, "Failed to save GPU selection config");
         }
     }
 
-    if (!gpuSelected)
-    {
-        HYP_LOG(RenderingBackend, Error, "Failed to find a suitable GPU adapter");
-        return HYP_MAKE_ERROR(RendererError, "Failed to find suitable GPU", E_FAIL);
-    }
+    m_hardwareAdapter = candidates[selectedIndex].adapter;
+
+    HYP_LOG(RenderingBackend, Info, "Selected GPU index {}: {} (score {})", selectedIndex,
+        WideString(candidates[selectedIndex].desc.Description), candidates[selectedIndex].score);
 #ifdef HYP_RHI_DEBUG_NAMES
 #ifdef HYP_DX12_ENABLE_DRED
     if (SUCCEEDED(D3D12GetDebugInterface(__uuidof(ID3D12DeviceRemovedExtendedDataSettings), &m_dredSettings)))

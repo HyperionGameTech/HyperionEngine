@@ -146,9 +146,7 @@ protected:
             return;
         }
 
-        const ClassCallbackWrapper<PostLoadCallback>* callbackWrapperCasted = dynamic_cast<const ClassCallbackWrapper<PostLoadCallback>*>(callbackWrapper);
-        HYP_CORE_ASSERT(callbackWrapperCasted != nullptr);
-
+        const ClassCallbackWrapper<PostLoadCallback>* callbackWrapperCasted = static_cast<const ClassCallbackWrapper<PostLoadCallback>*>(callbackWrapper);
         callbackWrapperCasted->GetCallback()(*static_cast<T*>(objectPtr));
     }
 

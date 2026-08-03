@@ -63,15 +63,12 @@ void RawDataAsset::PageBlobData()
         return;
     }
 
-    BlobStorage* blobStorage = registry->HasBlobStorage() ? &registry->GetBlobStorage() : nullptr;
-
     if (m_data.raw == nullptr
         && m_data.key
         && m_data.size != 0)
     {
-        if (!blobStorage || !blobStorage->GetData(m_data.key, m_data.size, m_data.raw))
+        if (EngineGlobals::IsCooking() || EngineGlobals::IsEditor() || !EngineGlobals::GetBlobStorage()->GetData(m_data.key, m_data.size, m_data.raw))
         {
-#if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
             const Name blobKey = m_data.key;
             const uint64 expectedSize = m_data.size;
 
@@ -92,23 +89,8 @@ void RawDataAsset::PageBlobData()
                 AllocateBlobData(m_data, buffer.Data(), buffer.Size(), 1);
                 m_data.key = blobKey;
 
-#if HYP_EDITOR
-                if (blobStorage != nullptr)
-                {
-                    Result saveResult = SaveBlobData(blobStorage);
-
-                    if (saveResult.HasError())
-                    {
-                        HYP_LOG(Assets, Error, "Failed to save raw data blob: {}", saveResult.GetError().GetMessage());
-                    }
-
-                    MarkDirty();
-                }
-#endif
-
                 return;
             }
-#endif
         }
         else
         {

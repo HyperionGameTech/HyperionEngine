@@ -109,14 +109,13 @@ void VulkanFrame::WriteCommandBuffer(VulkanCommandBuffer* commandBuffer)
 {
     AssertOnThread(g_renderThread);
 
-    Array<CommandRecorder*, VulkanTempAllocator> commandRecorders;
-    commandRecorders.Reserve(5);
-
-    commandRecorders.PushBack(&preRenderCommands);
-    commandRecorders.PushBack(&RI.commandRecorderAllocator.rootPreRender);
-    commandRecorders.PushBack(&cr);
-    commandRecorders.PushBack(&RI.commandRecorderAllocator.root);
-    commandRecorders.PushBack(&postRenderCommands);
+    CommandRecorder* commandRecorders[] = {
+        &preRenderCommands,
+        &RI.commandRecorderAllocator.rootPreRender,
+        &cr,
+        &RI.commandRecorderAllocator.root,
+        &postRenderCommands
+    };
 
     if (OnPresent.AnyBound())
     {

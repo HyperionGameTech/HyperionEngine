@@ -87,7 +87,7 @@ const Handle<AssetObject>& AssetReference::Resolve() const
         case AssetRegistryId::Engine:
             registry = GetEngineAssetRegistry();
             break;
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
         case AssetRegistryId::Editor:
             registry = GetEditorAssetRegistry();
             break;

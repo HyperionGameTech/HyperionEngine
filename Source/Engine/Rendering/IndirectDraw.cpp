@@ -32,10 +32,14 @@
 
 #include <Core/Math/MathUtil.hpp>
 
+#include <Framework/CVarManager.hpp>
+
 namespace Hyperion {
 
 struct alignas(16) ComputeVisibilityConstants
 {
+    Mat4f viewProj;
+
     Vec2u depthPyramidDimensions;
     uint32 totalMips;
     uint32 batchOffset;
@@ -394,7 +398,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(CommandRecorder& cr, const Ren
     AssertDebug(m_indirectDrawState.GetIndirectBuffer(frameIndex)->Size() != 0);
 
     const size_t numInstances = m_indirectDrawState.GetInstances().Size();
-    const uint32 numBatches = (uint32(numInstances) / IndirectDrawState::BatchSize) + 1;
+    const uint32 numBatches = (uint32(numInstances) + IndirectDrawState::BatchSize - 1) / IndirectDrawState::BatchSize;
 
     if (numInstances == 0)
     {
@@ -406,11 +410,12 @@ void IndirectRenderer::ExecuteCullShaderInBatches(CommandRecorder& cr, const Ren
     DeferredPassData* pd = DynamicCast<DeferredPassData>(renderSetup.passData);
     AssertDebug(pd != nullptr);
 
+    RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
+    AssertDebug(cameraProxy != nullptr);
+
     uint32 numShaderUniforms = 0;
 
     cr << SetCurrentShader(ShaderDesc(NAME("ComputeVisibility")));
-
-    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(renderSetup.view->GetCamera()));
     cr << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, RI.namedBuffers[NamedBuffer::Entities]);
     cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
 
@@ -420,12 +425,15 @@ void IndirectRenderer::ExecuteCullShaderInBatches(CommandRecorder& cr, const Ren
     cr << SetShaderUniform(numShaderUniforms++, "ObjectInstancesBuffer"_sh, m_indirectDrawState.GetInstanceBuffer(frameIndex), ShaderDataOffset(0, sizeof(ObjectInstance)));
     cr << SetShaderUniform(numShaderUniforms++, "IndirectDrawCommandsBuffer"_sh, m_indirectDrawState.GetIndirectBuffer(frameIndex), ShaderDataOffset(0, sizeof(IndirectDrawCommand)));
 
+    GpuBuffer* entityInstanceBatchesBuffer = m_batchAllocator->GetStructuredBuffer().gpuBuffer;
+
     // For ComputeVisibility we use RWByteAddressBuffer -- that's why stride is passed as 0.
     cr << SetShaderUniform(numShaderUniforms++, "EntityInstanceBatchesBuffer"_sh,
-        m_batchAllocator->GetStructuredBuffer().gpuBuffer,
+        entityInstanceBatchesBuffer,
         ShaderDataOffset(0, 0));
 
     ComputeVisibilityConstants constants {};
+    constants.viewProj = cameraProxy->bufferData.viewProjMat;
     constants.depthPyramidDimensions = pd->depthPyramidRenderer->GetExtent();
     constants.totalMips = pd->depthPyramidRenderer->GetTotalMips();
     constants.batchOffset = 0;
@@ -441,11 +449,13 @@ void IndirectRenderer::ExecuteCullShaderInBatches(CommandRecorder& cr, const Ren
 
     cr << SetShaderUniform(numShaderUniforms++, "ComputeVisibilityConstants"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
-    cr << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), RS_INDIRECT_ARG);
+    cr << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+    cr << InsertBarrier(entityInstanceBatchesBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
 
-    cr << DispatchCompute(Vec3u { (numBatches + IndirectDrawState::BatchSize - 1) / IndirectDrawState::BatchSize, 1, 1 });
+    cr << DispatchCompute(Vec3u { numBatches, 1, 1 });
 
     cr << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), RS_INDIRECT_ARG);
+    cr << InsertBarrier(entityInstanceBatchesBuffer, RS_SHADER_RESOURCE, ShaderModuleType::Vertex);
 }
 
 #pragma endregion IndirectRenderer

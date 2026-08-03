@@ -460,6 +460,15 @@ public:
     }
 
     HYP_METHOD()
+    bool StartSimulation();
+
+    HYP_METHOD()
+    bool StopSimulation();
+
+    HYP_METHOD()
+    bool PauseSimulation();
+
+    HYP_METHOD()
     bool ExecuteCommand(const Handle<EditorCommandBase>& command);
 
     HYP_METHOD()
@@ -661,15 +670,6 @@ private:
 
     void InitializeGizmos();
     void ShutdownGizmos();
-
-    HYP_METHOD()
-    bool StartSimulation();
-
-    HYP_METHOD()
-    bool StopSimulation();
-
-    HYP_METHOD()
-    bool PauseSimulation();
 
     void SetHoveredGizmo(
         const MouseEvent& event,

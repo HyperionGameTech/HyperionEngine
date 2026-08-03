@@ -86,7 +86,7 @@ void Game::Initialize()
     {
         m_assetRegistry = MakeHandle<AssetRegistry>(
             AssetRegistryId::Game,
-            EngineGlobals::GetLibraryDirectory() / *GetPackageName());
+            EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Game")>());
     }
 
     if (!m_assetRegistryActive)
@@ -506,7 +506,7 @@ void Game::PauseSimulation()
     OnGameStateChange.Fire(this, this, previousGameStateMode, GameStateMode::PAUSED);
 }
 
-//#if HYP_EDITOR
+//#ifdef HYP_EDITOR
 //
 //void Game::SetToEditMode()
 //{

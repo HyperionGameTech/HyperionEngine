@@ -32,6 +32,7 @@ class VisThread;
 class EngineStats;
 class InputManager;
 class Game;
+class BlobStorage;
 struct GameState;
 
 #if HYP_VULKAN
@@ -53,29 +54,43 @@ ENGINE_API extern Handle<EngineStats> g_engineStats;
 ENGINE_API extern MaterialCache* g_materialCache;
 ENGINE_API extern ShaderCompiler* g_shaderCompiler;
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 extern Handle<EditorState> g_editorState;
 #endif // HYP_EDITOR
 
 namespace EngineGlobals {
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 ENGINE_API bool IsEditor();
 #else  // !HYP_EDITOR
 static constexpr std::false_type IsEditor;
 #endif // HYP_EDITOR
 
-#if HYP_EDITOR
+#ifndef HYP_SHIPPING
+ENGINE_API bool IsCooking();
+#else   // HYP_SHIPPING
+static constexpr NoOpFunction<bool> IsCooking;
+#endif  // !HYP_SHIPPING
+
+#ifdef HYP_EDITOR
 ENGINE_API const FilePath& GetProjectsDirectory();
 ENGINE_API const FilePath& GetDataDirectory();
 #endif // HYP_EDITOR
 
-ENGINE_API const FilePath& GetLibraryDirectory();
+template <auto PackageName>
+ENGINE_API const FilePath& GetContentDirectory();
+
+extern template ENGINE_API const FilePath& GetContentDirectory<HYP_STATIC_STRING("Editor")>();
+extern template ENGINE_API const FilePath& GetContentDirectory<HYP_STATIC_STRING("Engine")>();
+extern template ENGINE_API const FilePath& GetContentDirectory<HYP_STATIC_STRING("Game")>();
+
 ENGINE_API const FilePath& GetCacheDirectory();
 ENGINE_API const FilePath& GetTempDirectory();
 ENGINE_API HYP_NODISCARD FilePath CreateTempDirectory();
 
 ENGINE_API bool IsShuttingDown();
+
+ENGINE_API BlobStorage* GetBlobStorage();
 
 } // namespace EngineGlobals
 

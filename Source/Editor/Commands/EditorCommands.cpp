@@ -1,3 +1,4 @@
+#include "Core/Core.hpp"
 #include <Editor/EditorCommand.hpp>
 #include <Editor/EditorSubsystem.hpp>
 #include <Editor/EditorProject.hpp>
@@ -42,6 +43,8 @@
 
 #include <Core/Logging/Logger.hpp>
 
+#include <Core/CLI/Commandline.hpp>
+
 #include <Asset/Assets.hpp>
 #include <Asset/AssetBatch.hpp>
 #include <Asset/AssetRegistry.hpp>
@@ -60,6 +63,7 @@
 #include <System/SaveFileDialog.hpp>
 #include <System/SelectFolderDialog.hpp>
 #include <System/MessageBox.hpp>
+#include <System/AppContext.hpp>
 
 #include <UI/UISubsystem.hpp>
 #include <UI/Overlays/Overlay.hpp>
@@ -649,7 +653,7 @@ DEFINE_EDITOR_COMMAND(BuildReflectionProbes);
 #pragma endregion BuildReflectionProbes
 
 
-#pragma region BuildReflectionProbes
+#pragma region BuildIrradianceProbes
 
 class EditorCommandBuildIrradianceProbes final : public EditorCommandBase
 {
@@ -714,6 +718,79 @@ public:
 DEFINE_EDITOR_COMMAND(BuildIrradianceProbes);
 
 #pragma endregion BuildIrradianceProbes
+
+
+
+#pragma region CookGameContent
+
+class EditorCommandCookGameContent final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandCookGameContent);
+
+public:
+    virtual ~EditorCommandCookGameContent() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Cook Game Content";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        Assert(g_appContext.IsValid(), "invalid app context");
+
+        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No project loaded; cannot cook game content");
+
+            return;
+        }
+        
+        EditorTaskScope* editorTaskScope = new EditorTaskScope(
+            TickableEditorTask::StaticClass(),
+            []()
+            { /* no tick function */ },
+            "Cooking Game Content",
+            "Initializing cook task",
+            /* isForegroundTask */ true);
+
+        Result saveResult = currentProject->Save();
+        if (saveResult.HasError())
+        {
+            HYP_LOG(Editor, Error, "Project could not be saved, backing out of cook. Error was: {}", saveResult.GetError().GetMessage());
+
+            editorTaskScope->GetEditorTask()->SetDescription(saveResult.GetError().GetMessage());
+
+            delete editorTaskScope;
+
+            return;
+        }
+
+        TaskSystem::GetInstance().Enqueue(
+            [editorTaskScope, project = currentProject]()
+            {
+                Result cookResult = g_appContext->RunCommandlet(
+                    "BlobStorageCookCommandlet",
+                    CommandLineArguments("--content=" + project->GetFilePath().BasePath().ToRelative(CoreApi::GetBaseDirectory())));
+
+                if (cookResult.HasError())
+                {
+                    editorTaskScope->GetEditorTask()->SetDescription(cookResult.GetError().GetMessage());
+
+                    ThreadSleep(5000);
+                }
+
+                delete editorTaskScope;
+            },
+            TaskThreadPoolName::THREAD_POOL_BACKGROUND,
+            TaskEnqueueFlags::FIRE_AND_FORGET);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(CookGameContent);
+
+#pragma endregion CookGameContent
 
 #pragma region AddReflectionProbe
 
@@ -2283,15 +2360,34 @@ class EditorCommandNewScript final : public EditorCommandBase
 public:
     virtual ~EditorCommandNewScript() override = default;
 
+    // The language is passed as the first argument (e.g. "hypscript", "strata",
+    // "csharp") by the caller -- see ContentBrowserViewModel. Defaults to
+    // HypScript when no argument is supplied.
     virtual String GetText() const override
     {
+        const String& language = GetArgument(0);
+
+        if (language == "strata")
+        {
+            return "New Strata Script";
+        }
+
+        if (language == "csharp")
+        {
+            return "New C# Script";
+        }
+
+        if (language == "hypscript")
+        {
+            return "New HypScript Script";
+        }
+
         return "New Script";
     }
 
-    static void CreateScriptFile(EditorProject& project, ScriptAsset& scriptAsset)
+    static void CreateScriptFile(EditorProject& project, ScriptAsset& scriptAsset, const String& extension, const String& templateCode)
     {
-        // Create script file in filesystem:
-        bool shouldCreateFile = true;
+        ScriptDesc& desc = scriptAsset.GetScriptDesc();
 
         const FilePath rootDir = GetCurrentAssetRegistry()->GetRootPath();
         if (!rootDir.Exists())
@@ -2302,21 +2398,21 @@ public:
             if (saveResult.HasError())
             {
                 HYP_LOG(Editor, Warning, "Failed to save project; script file will not be created. Reason was: {}", saveResult.GetError().GetMessage());
-
-                shouldCreateFile = false;
+                
+                return;
             }
             else if (!rootDir.Exists())
             {
                 HYP_LOG(Editor, Warning, "Asset registry root dir still does not exist after saving project. Will not create script asset. (path: {})", rootDir);
-
-                shouldCreateFile = false;
+                
+                return;
             }
         }
         else if (!rootDir.IsDirectory())
         {
             HYP_LOG(Editor, Warning, "Asset registry root dir is not a directory. Will not create script asset. (path: {})", rootDir);
-
-            shouldCreateFile = false;
+            
+            return;
         }
 
         const FilePath scriptsDir = rootDir / "Scripts";
@@ -2325,46 +2421,46 @@ public:
             if (!scriptsDir.MkDir())
             {
                 HYP_LOG(Editor, Warning, "Failed to create scripts dir at {}", scriptsDir);
-
-                shouldCreateFile = false;
+                
+                return;
             }
         }
         else if (!scriptsDir.IsDirectory())
         {
             HYP_LOG(Editor, Warning, "Scripts dir exists but is not a directory at {}", scriptsDir);
 
-            shouldCreateFile = false;
+            return;
         }
 
-        FilePath scriptFilePath;
+        FilePath scriptFilePath = scriptsDir / (String(*scriptAsset.GetName()) + extension);
 
-        if (shouldCreateFile)
+        if (scriptFilePath.Exists())
         {
-            scriptFilePath = scriptsDir / (String(*scriptAsset.GetName()) + ".hyp");
-            if (scriptFilePath.Exists())
-            {
-                HYP_LOG(Editor, Warning, "File at path {} already exists, not creating to prevent overwriting the file.", scriptFilePath);
+            HYP_LOG(Editor, Warning, "File at path {} already exists, not creating to prevent overwriting the file.", scriptFilePath);
 
-                shouldCreateFile = false;
-            }
+            return;
         }
 
-        if (shouldCreateFile)
+        size_t numCopied = Memory::CopyString(
+            desc.path.Data(),
+            scriptFilePath.Data(),
+            MathUtil::Min(desc.path.Size(), scriptFilePath.Size()));
+
+        if (numCopied < scriptFilePath.Size())
         {
-            static constexpr const char ScriptTemplateCode[] = "import Lib.*\n\n"
-                                                               "func OnAdded(entity : Entity)\n"
-                                                               "    // Called when added to the scene, entity is the target this script is attached to.\n"
-                                                               "end\n"
-                                                               "\n"
-                                                               "func Update(deltaTime : float)\n"
-                                                               "    // This gets called each frame when the script is active.\n"
-                                                               "end\n"
-                                                               "\n";
+            HYP_LOG(Editor, Warning, "File path is too long, will not fit into script desc: {}", scriptFilePath);
 
-            FileByteWriter writer { scriptFilePath };
-            writer.WriteString(ScriptTemplateCode);
-            writer.Close();
+            // Zero it out, don't want to point to an invalid path.
+            desc.path.Data()[0] = '\0';
         }
+        else
+        {
+            desc.path.Data()[desc.path.Size() - 1] = '\0';
+        }
+
+        FileByteWriter writer { scriptFilePath };
+        writer.WriteString(templateCode);
+        writer.Close();
     }
 
     virtual void Execute(EditorSubsystem* subsystem) override
@@ -2377,23 +2473,74 @@ public:
             return;
         }
 
-        Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(Name::Unique("NewScript"), ScriptDesc());
-        InitObject(scriptAsset);
+        const String& languageArg = GetArgument(0);
+        const String& nameArg = GetArgument(1);
 
-        // scriptAsset->SetSourceCode(HYP_FORMAT("// {}\n\nexport func Update(DeltaTime : float)\nend\n", scriptAsset->GetName()));
+        const String assetName = nameArg.Any()
+            ? String(nameArg.Data(), nameArg.Data() + nameArg.Size())
+            : "NewScript";
+
+        ScriptDesc scriptDesc;
+        scriptDesc.language = ScriptLanguage::HypScript;
+
+        String extension = ".hyp";
+        String templateCode;
+
+        if (languageArg == "strata")
+        {
+            scriptDesc.language = ScriptLanguage::Strata;
+            extension = ".strata";
+
+            templateCode = String("// ") + assetName + "\n\n";
+            templateCode += "import Engine;\n\n";
+            templateCode += "Entity g_entity;\n\n";
+            templateCode += "void OnAdded(const Entity entity)\n{\n    g_entity = entity;\n}\n\n";
+            templateCode += "void Update(float delta)\n{\n}\n\n";
+            templateCode += "void Destroy()\n{\n}\n";
+        }
+        else if (languageArg == "csharp")
+        {
+            scriptDesc.language = ScriptLanguage::CSharp;
+            extension = ".cs";
+
+            scriptDesc.DeserializeClassName(assetName);
+
+            templateCode = String("using Hyperion;\n\npublic class ") + assetName + " : Script\n";
+            templateCode += "{\n";
+            templateCode += "    public override void OnAdded(Entity entity)\n    {\n    }\n\n";
+            templateCode += "    public override void Update(float deltaTime)\n    {\n    }\n\n";
+            templateCode += "    public override void Destroy()\n    {\n    }\n";
+            templateCode += "}\n";
+        }
+        else // hypscript
+        {
+            static constexpr const char ScriptTemplateCode[] = "import Lib.*\n\n"
+                                                               "func OnAdded(entity : Entity)\n"
+                                                               "    // Called when added to the scene, entity is the target this script is attached to.\n"
+                                                               "end\n"
+                                                               "\n"
+                                                               "func Update(deltaTime : float)\n"
+                                                               "    // This gets called each frame when the script is active.\n"
+                                                               "end\n"
+                                                               "\n";
+
+            templateCode = ScriptTemplateCode;
+        }
+
+        Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(CreateNameFromDynamicString(assetName), scriptDesc);
+        InitObject(scriptAsset);
 
         Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
             GetText(),
             Proc<EditorActionFunctions()>(
-                [scriptAsset]() -> EditorActionFunctions
+                [scriptAsset, extension, templateCode]() -> EditorActionFunctions
                 {
                     return EditorActionFunctions {
                         .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
-                            [scriptAsset](EditorSubsystem*, EditorProject* project)
+                            [scriptAsset, extension, templateCode](EditorSubsystem*, EditorProject* project)
                             {
+                                CreateScriptFile(*project, *scriptAsset, extension, templateCode);
                                 GetCurrentAssetRegistry()->PutAssetUnique(scriptAsset);
-
-                                CreateScriptFile(*project, *scriptAsset);
                             }),
                         .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
                             [scriptAsset](EditorSubsystem*, EditorProject*)

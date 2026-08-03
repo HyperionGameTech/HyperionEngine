@@ -25,9 +25,8 @@ using AssetAllocator = AllocatorInstance<Pool, &g_assetPool>;
 class MappedBlobStorage
 {
 public:
-    MappedBlobStorage(const FilePath& baseDir, size_t pageSize, bool readOnly)
+    MappedBlobStorage(const FilePath& baseDir, bool readOnly)
         : m_baseDir(baseDir),
-          m_pageSize(pageSize),
           m_readOnly(readOnly)
     {
     }
@@ -84,10 +83,8 @@ public:
             return nullptr;
         }
 
-        if (!m_readOnly)
-        {
-            Assert(mappedFile->EnsureCapacity(m_pageSize));
-        }
+        // Sizing is the cook step's responsibility (BlobStorage::BeginCook resizes each block file
+        // to its exact final size); this just opens whatever is on disk, empty or not.
 
         m_mappedFiles[nameStr] = mappedFile;
 
@@ -115,7 +112,6 @@ public:
 
 private:
     FilePath m_baseDir;
-    size_t m_pageSize;
     bool m_readOnly;
 
     Map<ANSIString, MemoryMappedFile*> m_mappedFiles;

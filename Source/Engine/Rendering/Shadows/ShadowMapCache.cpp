@@ -191,7 +191,9 @@ static ViewDesc GetViewDesc(
 
     const bool hasBakedStaticShadows = (light->GetLightFlags() & LightFlags::BakeStaticShadows);
     const bool cacheStaticShadowMaps = !hasBakedStaticShadows && (light->GetLightFlags() & LightFlags::CacheStaticShadowMaps);
-    const bool splitStaticAndDynamic = cacheStaticShadowMaps || hasBakedStaticShadows;
+    const bool onlyStaticShadowMaps = (light->GetLightFlags() & LightFlags::OnlyDrawStaticShadowMaps);
+
+    const bool splitStaticAndDynamic = cacheStaticShadowMaps || hasBakedStaticShadows || onlyStaticShadowMaps;
 
     const float depthBias = (isDirectional ? g_cvShadowDepthBiasDirectional.Get() : g_cvShadowDepthBias.Get());
     const float depthBiasScaled = depthBias * depthRange * (isDirectional ? DepthBiasScaleFactor[cascadeIndex] : 1.0f);

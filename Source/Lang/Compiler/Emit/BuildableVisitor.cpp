@@ -2,128 +2,56 @@
 
 namespace Hyperion {
 
+#define HYP_VISIT_CASE(Type) \
+    case BuildableType::Type: \
+        Visit(static_cast<Type*>(buildable)); \
+        break;
+
+#define HYP_VISIT_CASE_TYPE(EnumName, Type) \
+    case BuildableType::EnumName: \
+        Visit(static_cast<Type*>(buildable)); \
+        break;
+
 void BuildableVisitor::Visit(Buildable* buildable)
 {
-    if (auto* node = dynamic_cast<BytecodeChunk*>(buildable))
+    switch (buildable->GetBuildableType())
     {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<LabelMarker*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<Jump*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<Comparison*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<FunctionCall*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<Return*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<StoreLocal*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<PopLocal*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<LoadRef*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<LoadDeref*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<ConstI32*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<ConstI64*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<ConstU32*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<ConstU64*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<ConstF32*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<ConstF64*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<ConstBool*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<ConstNull*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<LoadClass*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<TryCatchInfo*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<ScriptFunction*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<ClassTable*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<ConstString*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<StorageOperation*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<Comment*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<SymbolExport*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<CastOperation*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<IsInstanceComp*>(buildable))
-    {
-        Visit(node);
-    }
-    else if (auto* node = dynamic_cast<RawOperation<>*>(buildable))
-    {
-        Visit(node);
-    }
-    else
-    {
+    HYP_VISIT_CASE(BytecodeChunk)
+    HYP_VISIT_CASE(LabelMarker)
+    HYP_VISIT_CASE(Jump)
+    HYP_VISIT_CASE(Comparison)
+    HYP_VISIT_CASE(FunctionCall)
+    HYP_VISIT_CASE(Return)
+    HYP_VISIT_CASE(StoreLocal)
+    HYP_VISIT_CASE(PopLocal)
+    HYP_VISIT_CASE(LoadRef)
+    HYP_VISIT_CASE(LoadDeref)
+    HYP_VISIT_CASE(ConstI32)
+    HYP_VISIT_CASE(ConstI64)
+    HYP_VISIT_CASE(ConstU32)
+    HYP_VISIT_CASE(ConstU64)
+    HYP_VISIT_CASE(ConstF32)
+    HYP_VISIT_CASE(ConstF64)
+    HYP_VISIT_CASE(ConstBool)
+    HYP_VISIT_CASE(ConstNull)
+    HYP_VISIT_CASE(LoadClass)
+    HYP_VISIT_CASE(TryCatchInfo)
+    HYP_VISIT_CASE(ScriptFunction)
+    HYP_VISIT_CASE(ClassTable)
+    HYP_VISIT_CASE(ConstString)
+    HYP_VISIT_CASE(StorageOperation)
+    HYP_VISIT_CASE(Comment)
+    HYP_VISIT_CASE(SymbolExport)
+    HYP_VISIT_CASE(CastOperation)
+    HYP_VISIT_CASE(IsInstanceComp)
+    HYP_VISIT_CASE_TYPE(RawOperation, RawOperation<>)
+
+    default:
         HYP_NOT_IMPLEMENTED();
     }
 }
+
+#undef HYP_VISIT_CASE
+#undef HYP_VISIT_CASE_TYPE
 
 } // namespace Hyperion

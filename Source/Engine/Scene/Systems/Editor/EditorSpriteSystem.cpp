@@ -6,7 +6,7 @@
 
 #include <ScenePch.hpp>
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 
 #include <Scene/Systems/Editor/EditorSpriteSystem.hpp>
 

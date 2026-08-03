@@ -54,7 +54,7 @@ class ReflectionsPass;
 class LightmapPass;
 class FogVolumePass;
 class TonemapPass;
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 class EditorGridPass;
 #endif
 
@@ -88,7 +88,7 @@ public:
 
     UniquePtr<FogVolumePass> fogVolumePass;
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     UniquePtr<EditorGridPass> editorGridPass;
 #endif
 

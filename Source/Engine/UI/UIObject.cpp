@@ -196,7 +196,8 @@ UIObject::UIObject(const ThreadId& ownerThreadId)
       m_lockedUpdates(UIObjectUpdateType::NONE)
 {
     m_scrollOffset.SetRate(60.0); // 60hz for scroll offset updates
-
+    
+#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
     OnInit.BindMethod(this, "OnInit", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
     OnAttached.BindMethod(this, "OnAttached", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
     OnRemoved.BindMethod(this, "OnRemoved", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
@@ -221,6 +222,7 @@ UIObject::UIObject(const ThreadId& ownerThreadId)
     OnEnabled.BindMethod(this, "OnEnabled", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
     OnDisabled.BindMethod(this, "OnDisabled", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
     OnValueChange.BindMethod(this, "OnValueChange", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
+#endif // HYP_DOTNET || HYP_SCRIPT
 }
 
 UIObject::UIObject()

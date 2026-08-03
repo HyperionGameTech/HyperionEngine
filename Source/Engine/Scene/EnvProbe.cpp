@@ -32,7 +32,7 @@
 
 namespace Hyperion {
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 #endif // HYP_EDITOR
 
@@ -1011,7 +1011,7 @@ void EnvProbe::SetVisibilityTexture(const Handle<Texture>& visibilityTexture)
 
 #pragma region ReflectionProbe
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 
 void ReflectionProbe::BakeCubemap()
 {
@@ -1064,7 +1064,7 @@ void SkyProbe::Init()
 
 #pragma region IrradianceProbe
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 
 void IrradianceProbe::RecomputeIrradiance()
 {

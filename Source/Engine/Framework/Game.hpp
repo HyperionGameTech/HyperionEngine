@@ -107,6 +107,16 @@ public:
     HYP_METHOD()
     void UnregisterInputHandler(InputHandlerBase* inputHandler);
 
+    /// Danger zone: Only for internal usage
+
+    HYP_METHOD(Scriptable)
+    void OnLaunch();
+
+    HYP_METHOD(Scriptable)
+    void BeforeShutdown();
+
+    /// -
+
     HYP_FIELD()
     static ScriptableDelegate<void> OnLaunched;
 
@@ -117,12 +127,6 @@ protected:
     virtual void InitializeWorld();
 
     virtual bool OnInputEvent(const Event& event);
-
-    HYP_METHOD(Scriptable)
-    void OnLaunch();
-
-    HYP_METHOD(Scriptable)
-    void BeforeShutdown();
 
     HYP_METHOD()
     virtual void OnLaunch_Impl()

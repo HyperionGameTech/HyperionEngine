@@ -39,6 +39,8 @@ struct StorageOperation : public Buildable
     StorageOperation() = default;
     virtual ~StorageOperation() = default;
 
+    HYP_BUILDABLE_TYPE_IMPL(StorageOperation)
+
     OperationBuilder GetBuilder();
 
     struct

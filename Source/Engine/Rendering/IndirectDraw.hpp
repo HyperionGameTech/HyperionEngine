@@ -16,6 +16,8 @@
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/RenderMemory.hpp>
 
+#include <Core/Math/Mat4f.hpp>
+
 namespace Hyperion {
 
 class Mesh;

@@ -68,10 +68,7 @@ Source/PlatformSpecific/Android/app/**/assets/**/*
 
 Source/Generated/**/*
 
-Packages/SampleGame/**/*
-Packages/**/Cache/**/*
-Packages/DefaultGame/**/*
-Packages/HyperionEditorGame/**/*
+Content/Game/**/*
 
 Data/Models/Sponza/**/*
 Data/Models/NewSponza/**/*

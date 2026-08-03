@@ -50,7 +50,8 @@ enum class ScriptLanguage : uint8
     Native = 0,
 
     HypScript = 1,
-    CSharp = 2
+    CSharp = 2,
+    Strata = 3
 };
 
 } // namespace Hyperion

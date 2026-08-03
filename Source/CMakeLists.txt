@@ -38,11 +38,15 @@ endif()
 message(STATUS "Platform name: ${HYP_PLATFORM_NAME}")
 
 # use params passed in
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${HYP_LIBRARY_OUTPUT_DIRECTORY}/${HYP_PLATFORM_NAME}/${CMAKE_BUILD_TYPE})
+if(NOT DEFINED HYP_OUTPUT_DIRECTORY_SUFFIX)
+  set(HYP_OUTPUT_DIRECTORY_SUFFIX ${CMAKE_BUILD_TYPE})
+endif()
+
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${HYP_LIBRARY_OUTPUT_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_OUTPUT_DIRECTORY_SUFFIX})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${HYP_LIBRARY_OUTPUT_DIRECTORY}/${HYP_PLATFORM_NAME}/${CMAKE_BUILD_TYPE})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${HYP_LIBRARY_OUTPUT_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_OUTPUT_DIRECTORY_SUFFIX})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
@@ -187,18 +191,17 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(HYP_DEBUG_MODE 1)
 endif()
 
-# Uncomment to enable release final build optimizations
-# set(HYPERION_BUILD_RELEASE_FINAL 1)
-
-if(NOT HYPERION_BUILD_RELEASE_FINAL)
+if(NOT HYP_SHIPPING)
   add_definitions(-DHYP_ENABLE_CORE_ASSERTIONS=1)
+else()
+  add_definitions(-DHYP_SHIPPING=1)
 endif()
 
 # set HYPERION_ENGINE to 1 (used to differentiate between engine and build tool or other executables using core lib)
 add_definitions(-DHYPERION_ENGINE=1)
 set(HYPERION_ENGINE 1)
 
-if (NOT HYP_ANDROID AND NOT HYP_IOS AND NOT HYPERION_BUILD_RELEASE_FINAL)
+if (NOT HYP_ANDROID AND NOT HYP_IOS AND NOT HYP_SHIPPING)
   set(HYP_TESTS 1)
   add_definitions(-DHYP_TESTS=1)
 endif()
@@ -235,7 +238,10 @@ if(HYP_MSVC)
   add_definitions("/D_HAS_EXCEPTIONS=0")
   add_definitions("/DNOMINMAX")
 
-  if (HYPERION_BUILD_RELEASE_FINAL)
+  # no RTTI
+  add_compile_options(/GR-)
+
+  if (HYP_SHIPPING)
     set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Zi /GL /GF /Zc:inline /constexpr:depth1024 /bigobj /MP4 /arch:AVX2 /fp:fast")
   else()
     set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Z7 /MP /constexpr:depth1024 /bigobj /arch:AVX2 /fp:fast")
@@ -258,25 +264,40 @@ else()
     message(STATUS "Building with Clang on Windows, adding NOMINMAX definition to avoid min/max macro conflicts")
   endif()
 
-  if(HYPERION_BUILD_RELEASE_FINAL)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -flto -Werror")
+  if(HYP_SHIPPING)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -flto=thin")
   elseif(NOT HYP_DEBUG_MODE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g -Werror=return-type -Werror=address -Werror=non-virtual-dtor -Werror=unused-result")
   else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1 -g -fno-omit-frame-pointer -Werror=return-type -Werror=address -Werror=non-virtual-dtor -Werror=unused-result")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fno-omit-frame-pointer -Werror=return-type -Werror=address -Werror=non-virtual-dtor -Werror=unused-result")
   endif()
 
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
+  if(HYP_CLANG_WINDOWS)
+    # clang-cl (Clang on Windows with the MSVC-compatible driver) only accepts
+    # MSVC-style flags, so map the GCC-style flags above to their clang-cl equivalents.
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_HAS_EXCEPTIONS=0 /EHs-c- /std:c++20")
 
-  # no exceptions
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
+    # no RTTI (clang-cl uses MSVC-style flag)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GR-")
 
-  # for full template backtrace
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-backtrace-limit=0")
+    # clang-specific diagnostics that the clang-cl driver doesn't recognize go via -Xclang
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -fno-recovery-ast")
+  else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
 
-  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    # no ast recovery or spelling correction/suggestion for clang
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -fno-recovery-ast -fno-spell-checking")
+    # no exceptions
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
+
+    # no RTTI
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
+
+    # for full template backtrace
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-backtrace-limit=0")
+
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+      # no ast recovery or spelling correction/suggestion for clang
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -fno-recovery-ast -fno-spell-checking")
+    endif()
   endif()
 
   # # address sanitizer -- uncomment to enable
@@ -356,7 +377,7 @@ set(HYP_GENERATED_DIR "${CMAKE_SOURCE_DIR}/Generated")
 set(CSHARP_PROJECTS_DIR "${CMAKE_SOURCE_DIR}/../Build/CSharpProjects")
 file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR})
 
-if(NOT HYP_ANDROID AND NOT HYP_IOS)
+if(NOT HYP_ANDROID AND NOT HYP_IOS AND NOT HYP_SHIPPING)
   # TODO if not final release build check.
   # for final release follow the android technique
 
@@ -377,16 +398,15 @@ endif()
 
 # build libraries as static for iOS or in final build
 # android needs shared lib
-if((HYP_IOS OR HYPERION_BUILD_RELEASE_FINAL) AND NOT HYP_ANDROID)
+if((HYP_IOS OR HYP_SHIPPING) AND NOT HYP_ANDROID)
   set(HYP_BUILD_STATIC 1)
 
   add_definitions(-DHYP_BUILD_STATIC=1)
 endif()
 
 # enable HypScript
-add_definitions(-DHYP_SCRIPT=1)
-
-set(HYP_GENERATE_CSHARP_LIBRARIES true)
+# set(HYP_SCRIPT 1)
+# add_definitions(-DHYP_SCRIPT=1)
 
 # Set to true if C# is not planned on being used for scripting
 # .NET is necessary for the editor, but for a leaner build this is recommended to disable if not using C# for scripts.
@@ -428,9 +448,43 @@ if(HYP_DOTNET_HOST)
       endif()
     endif()
   else()
-    message(STATUS ".NET headers not found, skipping .NET core runtime")
+    message(WARNING ".NET headers not found, skipping .NET core runtime")
   endif()
 endif()
+
+# Strata lang integration
+set(HYP_STRATA 1)
+add_definitions(-DHYP_STRATA=1)
+
+# Only enable Strata JIT for non-shipping builds.
+# Other plats will link .o files directly
+# (Need to make PackageBuild.bat scripts invoke stratac, build into folder, then pick up those .o/.obj)
+if (HYP_STRATA)
+    if(HYP_EDITOR)
+      # Build strata from the submodule (if available)
+      set(STRATA_SUBMODULE_DIR "${SUBMODULES_DIR}/stratac")
+
+        message(STATUS "Building strata from submodule: ${STRATA_SUBMODULE_DIR}")
+
+        set(STRATA_SHARED OFF CACHE BOOL "Build Strata as a shared library")
+        set(STRATA_ENABLE_LLVM OFF CACHE BOOL "Build strata with LLVM backend")
+        set(STRATA_ENABLE_TCC ON CACHE BOOL "Build strata with TCC backend")
+
+        add_subdirectory(${STRATA_SUBMODULE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/stratac EXCLUDE_FROM_ALL)
+
+        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} strata)
+        
+        # add include.
+        include_directories("${SUBMODULES_DIR}/stratac/include/strata")
+        
+        set(HYP_STRATA_JIT 1)
+        add_definitions(-DHYP_STRATA_JIT=1)
+    else()
+        # @TODO Link the obj files
+    endif()
+endif()
+
+# /Strata lang integration
 
 if(HYP_EDITOR)
   # for editor build, we don't actually need .NET host as the managed application (Hyperion.Editor.exe)
@@ -445,11 +499,10 @@ if(HYP_EDITOR)
   add_definitions(-DHYP_DOTNET=1)
 endif()
 
-
 set(RENDERING_BACKEND "Vulkan")
 
 if(WIN32)
-  #set(ENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND true)
+  set(ENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND true)
 
   if(ENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND)
     set(RENDERING_BACKEND "DX12")
@@ -559,146 +612,6 @@ if (RENDERING_BACKEND STREQUAL "Vulkan")
   if (HYP_CLANG_WINDOWS)
     message(STATUS "Building with Clang on Windows - not including glslang due to build issues with Clang on Windows. If you want to use glslang, build with MSVC or on another platform.")
   endif()
-
-  # if (${NATIVE} AND NOT HYP_IOS AND NOT HYP_ANDROID AND NOT HYP_CLANG_WINDOWS)
-  #     # if glslang folder exists, link with it.
-  #     if(EXISTS "${SUBMODULES_DIR}/glslang/glslang/CMakeLists.txt")
-  #         set(HYP_GLSLANG 1)
-
-  #         add_definitions(-DHYP_GLSLANG=1)
-  #         add_definitions(-DHYP_GLSLANG_MODIFICATIONS=1)
-
-  #         # Build glslang during CMake configuration time (not as part of the main build)
-  #         # This keeps glslang completely separate from the VS solution / main project
-  #         set(GLSLANG_BUILD_DIR "${CMAKE_BINARY_DIR}/glslang_build")
-  #         set(GLSLANG_SOURCE_DIR "${SUBMODULES_DIR}/glslang")
-
-  #         # Check if glslang needs to be built (check for a marker file or key library)
-  #         if(WIN32)
-  #             set(GLSLANG_MARKER_LIB "${GLSLANG_BUILD_DIR}/glslang/Release/glslang.lib")
-  #         else()
-  #             set(GLSLANG_MARKER_LIB "${GLSLANG_BUILD_DIR}/glslang/libglslang.a")
-  #         endif()
-
-  #         if(NOT EXISTS "${GLSLANG_MARKER_LIB}")
-  #             message(STATUS "Building glslang...")
-
-  #             # Create the build directory if it doesn't exist
-  #             file(MAKE_DIRECTORY ${GLSLANG_BUILD_DIR})
-
-  #             # Configure glslang
-  #             execute_process(
-  #                 COMMAND ${CMAKE_COMMAND}
-  #                     -S ${GLSLANG_SOURCE_DIR}
-  #                     -B ${GLSLANG_BUILD_DIR}
-  #                     -DCMAKE_BUILD_TYPE=Release
-  #                     -DGLSLANG_ENABLE_INSTALL=OFF
-  #                     -DGLSLANG_ENABLE_INSTALL_DEFAULT=OFF
-  #                     -DGLSLANG_TESTS=OFF
-  #                     -DENABLE_GLSLANG_BINARIES=OFF
-  #                     -DENABLE_OPT=OFF
-  #                     -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-  #                     "-DCMAKE_CXX_FLAGS=-DHYP_GLSLANG_MODIFICATIONS=1"
-  #                 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  #                 RESULT_VARIABLE GLSLANG_CONFIGURE_RESULT
-  #             )
-
-  #             if(NOT GLSLANG_CONFIGURE_RESULT EQUAL 0)
-  #                 message(FATAL_ERROR "Failed to configure glslang (exit code: ${GLSLANG_CONFIGURE_RESULT})")
-  #             endif()
-
-  #             # Build glslang
-  #             execute_process(
-  #                 COMMAND ${CMAKE_COMMAND} --build ${GLSLANG_BUILD_DIR} --config Release --parallel
-  #                 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  #                 RESULT_VARIABLE GLSLANG_BUILD_RESULT
-  #             )
-
-  #             if(NOT GLSLANG_BUILD_RESULT EQUAL 0)
-  #                 message(FATAL_ERROR "Failed to build glslang (exit code: ${GLSLANG_BUILD_RESULT})")
-  #             endif()
-
-  #             message(STATUS "glslang build completed successfully")
-  #         else()
-  #             message(STATUS "glslang already built, skipping rebuild")
-  #         endif()
-
-  #         # Create imported targets for all the libraries we need
-  #         add_library(glslang STATIC IMPORTED)
-  #         add_library(SPIRV STATIC IMPORTED)
-  #         add_library(glslang-default-resource-limits STATIC IMPORTED)
-  #         # add_library(SPIRV-Tools STATIC IMPORTED)
-  #         # add_library(SPIRV-Tools-opt STATIC IMPORTED)
-  #         add_library(MachineIndependent STATIC IMPORTED)
-  #         add_library(GenericCodeGen STATIC IMPORTED)
-  #         add_library(OSDependent STATIC IMPORTED)
-
-  #         # Set the imported library locations
-  #         if(WIN32)
-  #             set_target_properties(glslang PROPERTIES
-  #                 IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/Release/glslang.lib
-  #             )
-  #             set_target_properties(SPIRV PROPERTIES
-  #                 IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/SPIRV/Release/SPIRV.lib
-  #             )
-  #             set_target_properties(glslang-default-resource-limits PROPERTIES
-  #                 IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/Release/glslang-default-resource-limits.lib
-  #             )
-  #             # set_target_properties(SPIRV-Tools PROPERTIES
-  #             #     IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/Release/SPIRV-Tools.lib
-  #             # )
-  #             # set_target_properties(SPIRV-Tools-opt PROPERTIES
-  #             #     IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/opt/Release/SPIRV-Tools-opt.lib
-  #             # )
-  #             set_target_properties(MachineIndependent PROPERTIES
-  #                 IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/Release/MachineIndependent.lib
-  #             )
-  #             set_target_properties(GenericCodeGen PROPERTIES
-  #                 IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/Release/GenericCodeGen.lib
-  #             )
-  #             set_target_properties(OSDependent PROPERTIES
-  #                 IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/OSDependent/Windows/Release/OSDependent.lib
-  #             )
-  #         else()
-  #             set_target_properties(glslang PROPERTIES
-  #                 IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/libglslang.a
-  #             )
-  #             set_target_properties(SPIRV PROPERTIES
-  #                 IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/SPIRV/libSPIRV.a
-  #             )
-  #             set_target_properties(glslang-default-resource-limits PROPERTIES
-  #                 IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/libglslang-default-resource-limits.a
-  #             )
-  #             # set_target_properties(SPIRV-Tools PROPERTIES
-  #             #     IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/libSPIRV-Tools.a
-  #             # )
-  #             # set_target_properties(SPIRV-Tools-opt PROPERTIES
-  #             #     IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/opt/libSPIRV-Tools-opt.a
-  #             # )
-  #             set_target_properties(MachineIndependent PROPERTIES
-  #                 IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/libMachineIndependent.a
-  #             )
-  #             set_target_properties(GenericCodeGen PROPERTIES
-  #                 IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/libGenericCodeGen.a
-  #             )
-  #             set_target_properties(OSDependent PROPERTIES
-  #                 IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/OSDependent/Unix/libOSDependent.a
-  #             )
-  #         endif()
-
-  #         include_directories(BEFORE ${SUBMODULES_DIR}/glslang)
-
-  #         set(RENDERER_LIBRARIES
-  #             ${RENDERER_LIBRARIES}
-  #             glslang
-  #             SPIRV
-  #             glslang-default-resource-limits
-  #             MachineIndependent
-  #             GenericCodeGen
-  #             OSDependent
-  #         )
-  #     endif()
-  # endif()
 elseif(RENDERING_BACKEND STREQUAL "DX12")
   # add DirectX-Headers include dir if DX12 rendering backend
   include_directories(BEFORE SYSTEM ${THIRD_PARTY_INCLUDE_DIR}/DirectX-Headers)
@@ -783,7 +696,11 @@ if(WIN32)
 endif()
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/Core ${CMAKE_BINARY_DIR}/Core)
-add_subdirectory(${CMAKE_SOURCE_DIR}/Lang ${CMAKE_BINARY_DIR}/Lang)
+
+# add Lang folder if HypScript is enabled.
+if(HYP_SCRIPT)
+    add_subdirectory(${CMAKE_SOURCE_DIR}/Lang ${CMAKE_BINARY_DIR}/Lang)
+endif()
 
 function(collect_sources_and_modules dir out_sources out_headers out_modules)
 
@@ -837,12 +754,24 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
 
     if(dir MATCHES "DotNET/Runtime")
       set(sub_library_name "hyperion-dotnet-runtime")
+      if(NOT HYP_DOTNET)
+        set(should_skip_module TRUE)
+      endif()
     elseif(dir MATCHES "DotNET/Shared")
       set(sub_library_name "hyperion-dotnet-shared")
+      if(NOT HYP_DOTNET)
+        set(should_skip_module TRUE)
+      endif()
     elseif(dir MATCHES "DotNET/Interop")
       set(sub_library_name "hyperion-dotnet-interop")
+      if(NOT HYP_DOTNET)
+        set(should_skip_module TRUE)
+      endif()
     elseif(dir MATCHES "DotNET/Scripting")
       set(sub_library_name "hyperion-dotnet-scripting")
+      if(NOT HYP_DOTNET)
+        set(should_skip_module TRUE)
+      endif()
     elseif(dir MATCHES "Rendering/") # skip rendering subdirectory, allow rendering module to handle that.
       set(should_skip_module TRUE)
     else()
@@ -1116,9 +1045,9 @@ set(SOURCES ${SOURCES} ${THIRD_PARTY_SOURCES})
 set_source_files_properties(${THIRD_PARTY_SOURCES} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 
 if(HYP_BUILD_STATIC)
-  add_library(${BUILD_NAME} STATIC ${SOURCES} ${HEADERS})
+  add_library(${BUILD_NAME} STATIC ${SOURCES} ${HEADERS} ${STRATA_OBJECT_FILES})
 else()
-  add_library(${BUILD_NAME} SHARED ${SOURCES} ${HEADERS})
+  add_library(${BUILD_NAME} SHARED ${SOURCES} ${HEADERS} ${STRATA_OBJECT_FILES})
 endif()
 
 target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_ENGINE=1)
@@ -1152,7 +1081,10 @@ set(SUB_LIBRARIES ${SUB_LIBRARIES} ${THIRD_PARTY_LIBRARIES})
 
 target_link_libraries(${BUILD_NAME} PUBLIC ${COMMON_LIBRARIES})
 target_link_libraries(${BUILD_NAME} PUBLIC ${RENDERER_LIBRARIES})
-target_link_libraries(${BUILD_NAME} PUBLIC hyperion-script) #Lang
+
+if(HYP_SCRIPT)
+    target_link_libraries(${BUILD_NAME} PUBLIC hyperion-script) #Lang
+endif()
 
 # add sublibraries as dependencies so any changes get picked up.
 foreach(SUB_LIBRARY ${SUB_LIBRARIES})
@@ -1170,10 +1102,20 @@ if(APPLE)
     endif()
   endforeach()
 elseif(HYP_MSVC OR HYP_CLANG_WINDOWS)
-  # needs to use /WHOLEARCHIVE on Windows for emulating the above behavior
+  # needs to use /WHOLEARCHIVE on Windows for emulating the above behavior.
   foreach(SUB_LIBRARY ${SUB_LIBRARIES})
     if (SUB_LIBRARY MATCHES "hyperion-dotnet-.*")
-      target_link_options(${BUILD_NAME} PRIVATE "/WHOLEARCHIVE:$<TARGET_FILE:${SUB_LIBRARY}>")
+      if(HYP_BUILD_STATIC)
+        # static build: the consuming executable links the dotnet sub-libs directly,
+        # and plain linking pulls in exactly the referenced symbols (e.g. Class_GetMethod).
+        # /WHOLEARCHIVE must not be used here - a raw /WHOLEARCHIVE:path link item is treated
+        # as a file path by the Ninja generator, and link options on a static lib do not
+        # propagate to consumers.
+        target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARY})
+      else()
+        # shared (DLL) build: force every object in so the C# P/Invoke bindings are exported
+        target_link_options(${BUILD_NAME} PRIVATE "/WHOLEARCHIVE:$<TARGET_FILE:${SUB_LIBRARY}>")
+      endif()
     else()
       target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARY})
     endif()
@@ -1196,11 +1138,12 @@ add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
 
 add_subdirectory(Sample)
 
-# If editor build, add the commandlet targets.
-# otherwise, we don't want 'em
+if(NOT HYP_SHIPPING)
+  add_subdirectory(Commandlets)
+endif()
+
 if(HYP_EDITOR)
   add_subdirectory(Editor)
-  add_subdirectory(Commandlets)
 
   add_dependencies(${BUILD_NAME} hyperion-editor)
 

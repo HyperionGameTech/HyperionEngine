@@ -19,8 +19,9 @@ namespace Hyperion
 
         private CSharpScriptCompiler? csharpCompiler = null;
         private HypScriptCompiler? hypScriptCompiler = null;
+        private StrataScriptCompiler? strataCompiler = null;
 
-        private Dictionary<string, ScriptInstance> processingScripts = [];
+        private Dictionary<string, ScriptDescWrapper> processingScripts = [];
         private Dictionary<string, CompileScriptEditorTask> tasks = [];
 
         private List<string> sourceDirectories = [];
@@ -47,6 +48,9 @@ namespace Hyperion
 
                 hypScriptCompiler = new HypScriptCompiler(sourceDirectories[0], intermediateDirectory, binaryOutputDirectory);
                 hypScriptCompiler.BuildAllProjects();
+
+                strataCompiler = new StrataScriptCompiler(sourceDirectories[0], intermediateDirectory, binaryOutputDirectory);
+                strataCompiler.BuildAllProjects();
             }
 
             Logger.Log(logChannel, LogLevel.Info, "Script tracker initialized with {0} source directories.", sourceDirectories.Count);
@@ -85,6 +89,18 @@ namespace Hyperion
                 hypWatcher.Changed += OnHypFileChanged;
                 hypWatcher.Created += OnHypFileChanged;
                 watchers.Add(hypWatcher);
+
+                // Watch for Strata files
+                var strataWatcher = new FileSystemWatcher(sourceDir)
+                {
+                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName,
+                    Filter = "*.strata",
+                    EnableRaisingEvents = true,
+                    IncludeSubdirectories = true
+                };
+                strataWatcher.Changed += OnStrataFileChanged;
+                strataWatcher.Created += OnStrataFileChanged;
+                watchers.Add(strataWatcher);
             }
         }
 
@@ -107,6 +123,7 @@ namespace Hyperion
 
             csharpCompiler = null;
             hypScriptCompiler = null;
+            strataCompiler = null;
 
             sourceDirectories.Clear();
             intermediateDirectory = string.Empty;
@@ -124,7 +141,7 @@ namespace Hyperion
 
             List<KeyValuePair<string, ScriptLanguage>> scriptsToRemove = [];
 
-            foreach (KeyValuePair<string, ScriptInstance> entry in processingScripts)
+            foreach (KeyValuePair<string, ScriptDescWrapper> entry in processingScripts)
             {
                 if (!entry.Value.IsValid)
                 {
@@ -148,6 +165,7 @@ namespace Hyperion
                 {
                     ScriptLanguage.CSharp => csharpCompiler,
                     ScriptLanguage.HypScript => hypScriptCompiler,
+                    ScriptLanguage.Strata => strataCompiler,
                     _ => null
                 };
 
@@ -220,6 +238,13 @@ namespace Hyperion
             ProcessScriptFile(e.FullPath, ScriptLanguage.HypScript);
         }
 
+        private void OnStrataFileChanged(object source, FileSystemEventArgs e)
+        {
+            Logger.Log(logChannel, LogLevel.Info, "ScriptTracker: Strata file changed: {0} {1}", e.FullPath, e.ChangeType);
+
+            ProcessScriptFile(e.FullPath, ScriptLanguage.Strata);
+        }
+
         private void ProcessScriptFile(string filePath, ScriptLanguage language)
         {
             if (processingScripts.ContainsKey(filePath))
@@ -231,7 +256,7 @@ namespace Hyperion
 
             Logger.Log(logChannel, LogLevel.Info, "Adding script {0} to processing queue...", filePath);
 
-            ScriptInstance scriptInstance = new ScriptInstance(new ScriptDesc
+            ScriptDescWrapper wrapper = new(new ScriptDesc
             {
                 Path = filePath,
                 Language = language,
@@ -240,12 +265,12 @@ namespace Hyperion
                 LastModifiedTimestamp = 0
             });
 
-            processingScripts.Add(filePath, scriptInstance);
+            processingScripts.Add(filePath, wrapper);
 
             TriggerCallback(new ScriptEvent
             {
                 Type = ScriptEventType.StateChanged,
-                ScriptPtr = scriptInstance.Address
+                ScriptPtr = wrapper.Address
             });
 
             if (language == ScriptLanguage.CSharp)

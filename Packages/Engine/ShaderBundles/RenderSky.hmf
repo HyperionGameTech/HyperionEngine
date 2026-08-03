@@ -1,7 +1,0 @@
-ShaderBundle "RenderSky" {
-    StaticProperties = []
-    CompiledShaders = [
-        @"Engine://Shaders/RenderSky_14917212823711398456"
-        @"Engine://Shaders/RenderSky_13803781059551201557"
-    ]
-}

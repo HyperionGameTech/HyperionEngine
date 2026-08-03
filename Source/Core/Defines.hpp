@@ -10,7 +10,7 @@
 
 #pragma region Compiler and Platform Switches
 
-#if defined(HYPERION_BUILD_RELEASE_FINAL) && HYPERION_BUILD_RELEASE_FINAL
+#if defined(HYP_SHIPPING) && HYP_SHIPPING
 
 #if !defined(HYPERION_BUILD_RELEASE) || !HYPERION_BUILD_RELEASE
 #define HYPERION_BUILD_RELEASE 1
@@ -469,24 +469,20 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 // Disabling compile time Name hashing saves on executable size at the cost of runtime performance
 #define HYP_COMPILE_TIME_NAME_HASHING 1
 
-// uncomment to forego blob storage cache and allow usage
-// of *.blob files in non-editor builds.
-#define HYP_ALLOW_INLINE_BLOBS 1
-
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
 // #define HYP_ENABLE_MT_CHECK
 //  #define HYP_LOG_MEMORY_OPERATIONS
 
 #define HYP_RENDER_COMMANDS_DEBUG_NAME
-#endif
+#endif // HYP_DEBUG_MODE
 
-#if !defined(HYP_EDITOR) || !HYP_EDITOR
+#ifndef HYP_EDITOR
 #define HYP_NO_EDITOR
-#endif
+#endif // !HYP_EDITOR
 
-#if defined(HYP_BULLET) && HYP_BULLET
+#ifdef HYP_BULLET
 #define HYP_BULLET_PHYSICS 1
-#endif
+#endif // HYP_BULLET
 
 #pragma endregion Engine Static Configuration
 
@@ -494,7 +490,11 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 
 #ifdef HYP_WINDOWS
 #define HYP_EXPORT __declspec(dllexport)
+#if defined(HYP_BUILD_STATIC)
+#define HYP_IMPORT
+#else
 #define HYP_IMPORT __declspec(dllimport)
+#endif
 #elif defined(HYP_CLANG_OR_GCC)
 #define HYP_EXPORT __attribute__((visibility("default")))
 #define HYP_IMPORT

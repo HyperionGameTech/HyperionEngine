@@ -60,7 +60,7 @@ CORE_API extern bool IsAndroidAssetPath(const FilePath& filepath);
 
 static Handle<AssetRegistry> s_engineAssetRegistry;
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 static Handle<AssetRegistry> s_editorAssetRegistry;
 #endif // HYP_EDITOR
 
@@ -156,7 +156,7 @@ ENGINE_API void SetEngineAssetRegistry(const Handle<AssetRegistry>& registry)
     s_engineAssetRegistry = registry;
 }
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 
 ENGINE_API Handle<AssetRegistry> GetEditorAssetRegistry()
 {
@@ -541,10 +541,7 @@ AssetRegistry::AssetRegistry(AssetRegistryId registryId, const FilePath& rootPat
       m_isInitialized(false),
       m_scheduler(new Scheduler(s_assetRegistryThread)),
       m_pruneTimer { 5.0 }, // every 5 seconds
-      m_pruneTaskBatch(nullptr),
-      m_saveBlobCacheTimer { 5.0 }, // every 5 seconds
-      m_saveBlobCacheBatch(nullptr),
-      m_blobStorage(nullptr)
+      m_pruneTaskBatch(nullptr)
 {
     m_assetBucketData = (AssetBucketData*)g_assetPool->Allocate(sizeof(AssetBucketData) * MaxAssetBuckets);
     Assert(m_assetBucketData != nullptr);
@@ -571,24 +568,6 @@ AssetRegistry::~AssetRegistry()
         m_pruneTaskBatch = nullptr;
     }
 
-    if (m_saveBlobCacheBatch != nullptr)
-    {
-        if (!m_saveBlobCacheBatch->IsCompleted())
-        {
-            HYP_LOG(Assets, Info, "Waiting for blob cache to finish saving");
-            m_saveBlobCacheBatch->AwaitCompletion();
-        }
-
-        delete m_saveBlobCacheBatch;
-        m_saveBlobCacheBatch = nullptr;
-    }
-
-    if (m_blobStorage != nullptr)
-    {
-        m_blobStorage->Release();
-        m_blobStorage = nullptr;
-    }
-
     for (uint32 bucketIndex = 0; bucketIndex < MaxAssetBuckets; bucketIndex++)
     {
         m_assetBucketData[bucketIndex].~AssetBucketData();
@@ -609,32 +588,6 @@ void AssetRegistry::Initialize()
 
     AssertDebug(m_rootPath.Length() > 0);
 
-    if (m_rootPath.Length() > 0)
-    {
-#if !HYP_EDITOR
-        const FilePath blobStorageDir = m_rootPath / "Cache";
-
-        bool blobStorageDirValid = blobStorageDir.Exists() && blobStorageDir.IsDirectory();
-
-        if (!blobStorageDirValid)
-        {
-            if (blobStorageDir.MkDir())
-            {
-                blobStorageDirValid = true;
-            }
-            else
-            {
-                HYP_LOG(Assets, Warning, "Failed to create blob storage directory for AssetRegistry: {}", blobStorageDir);
-            }
-        }
-
-        if (blobStorageDirValid)
-        {
-            InitBlobStorage(blobStorageDir);
-        }
-#endif
-    }
-
     m_isInitialized = true;
 }
 
@@ -648,68 +601,7 @@ void AssetRegistry::Shutdown()
     // unload all cached assets
     RemoveCached();
 
-    if (m_blobStorage != nullptr)
-    {
-        m_blobStorage->Release();
-        m_blobStorage = nullptr;
-    }
-
     m_isInitialized = false;
-}
-
-void AssetRegistry::SaveBlobCache(bool async)
-{
-    auto DoSaveBlobCache = [this, weakThis = MakeWeakRef(this)]()
-    {
-        Handle<AssetRegistry> registry = weakThis.Lock();
-
-        if (!registry.IsValid())
-            return;
-
-        if (m_blobStorage != nullptr)
-        {
-            Result result = m_blobStorage->SaveIfDirty();
-
-            if (result.HasError())
-            {
-                HYP_LOG(Assets, Warning, "Failed to save blob storage - error message was: {}", result.GetError().GetMessage());
-            }
-        }
-    };
-
-    if (async)
-    {
-        if (m_blobStorage != nullptr && !m_blobStorage->IsDirty())
-        {
-            // skip this time, prevent creating a new background thread.
-            return;
-        }
-
-        if (m_saveBlobCacheBatch != nullptr)
-        {
-            if (!m_saveBlobCacheBatch->IsCompleted())
-            {
-                HYP_LOG(Assets, Warning, "Skipping saving blob cache - async task already processing");
-
-                return;
-            }
-
-            m_saveBlobCacheBatch->ResetState();
-        }
-        else
-        {
-            m_saveBlobCacheBatch = new TaskBatch;
-            m_saveBlobCacheBatch->pool = &TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_BACKGROUND);
-        }
-
-        m_saveBlobCacheBatch->AddTask(DoSaveBlobCache);
-
-        TaskSystem::GetInstance().EnqueueBatch(m_saveBlobCacheBatch);
-    }
-    else
-    {
-        DoSaveBlobCache();
-    }
 }
 
 FilePath AssetRegistry::GetRootPath() const
@@ -779,8 +671,6 @@ Handle<AssetObject> AssetRegistry::GetAsset(const AssetBucket& bucket, StringHas
     }
 
     lock.Reset();
-
-    String strName = String(*Name(name));
 
     // Load it into cache
     Handle<AssetObject> assetObject;
@@ -1326,6 +1216,8 @@ bool AssetRegistry::LoadAssetDescs()
     
     GlobalContextScope loadingContextScope { AssetLoadingContext {} };
 
+    // @TODO Load from index file rather than using file iteration.
+    // or simply maintain a bin with all AssetPath stored for each bucket as a flat file.
     for (const AssetBucket* bucket : AssetBuckets::AllBuckets)
     {
         if (bucket == &AssetBuckets::None)
@@ -1387,7 +1279,7 @@ bool AssetRegistry::LoadAssetDescs()
                 assetDesc.index = data.usedIndices.FirstZeroBitIndex();
                 data.usedIndices.Set(assetDesc.index, true);
 
-                HYP_LOG(Assets, Info, "Add asset desc {} to registry {}", assetDesc.name, m_rootPath.Basename());
+                HYP_LOG(Assets, Verbose, "Add asset desc {} to registry {}", assetDesc.name, m_rootPath.Basename());
 
                 data.assetDescs.Add(std::move(assetDesc));
             }
@@ -1416,8 +1308,6 @@ void AssetRegistry::SaveDirtyAssets()
 
         return;
     }
-
-    BlobStorage* blobStorage = HasBlobStorage() ? &GetBlobStorage() : nullptr;
 
     for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; ++bucketIndex)
     {
@@ -1501,7 +1391,9 @@ void AssetRegistry::SaveDirtyAssets()
 
         for (AssetObject* assetObject : dirtyAssets)
         {
-            // auto readScope = assetObject->GetReadScope();
+            // Unique lock so nothing mutates it
+            // Asset data should already be in mem if it's dirty.
+            //auto writeScope = assetObject->GetWriteScope();
 
             const Name assetName = assetObject->GetName();
             AssertDebug(assetName.IsValid());
@@ -1513,11 +1405,10 @@ void AssetRegistry::SaveDirtyAssets()
 
             const FilePath manifestPath = GetManifestPath(assetObject->GetPath());
 
-            if (Result saveBlobResult = assetObject->SaveBlobData(blobStorage, bucketDir); saveBlobResult.HasError())
+            if (Result saveBlobResult = assetObject->SaveBlobData(nullptr, bucketDir); saveBlobResult.HasError())
             {
                 HYP_LOG(Assets, Warning, "Failed to save blob data for asset '{}' in bucket '{}': {}",
                         assetName, bucketName, saveBlobResult.GetError().GetMessage());
-
                 continue;
             }
 
@@ -1598,46 +1489,18 @@ void AssetRegistry::RemoveCached(const AssetBucket& bucket)
     }
 }
 
-BlobStorage& AssetRegistry::GetBlobStorage()
-{
-    Assert(m_blobStorage != nullptr);
-
-    return *m_blobStorage;
-}
-
-void AssetRegistry::InitBlobStorage(const FilePath& blobStorageDir)
-{
-    if (m_blobStorage != nullptr)
-    {
-        return;
-    }
-
-    Assert(blobStorageDir.Exists(), "Blob storage directory '{}' does not exist", blobStorageDir);
-
-    const uint64 s_blobStoragePageSize = CoreApi::GetGlobalConfig().Get("App.Cache.PageSize").ToUInt64(/* defaultValue */ BlobStorage::DefaultPageSize);
-
-    m_blobStorage = new BlobStorage(blobStorageDir, s_blobStoragePageSize);
-}
-
 void AssetRegistry::Update()
 {
     HYP_SCOPE;
     AssertOnThread(s_assetRegistryThread);
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     if (!m_pruneTimer.Waiting())
     {
         m_pruneTimer.NextTick();
 
         // @TODO
     }
-
-    // if (!m_saveBlobCacheTimer.Waiting())
-    //{
-    //     m_saveBlobCacheTimer.NextTick();
-
-    //    SaveBlobCache(/* async */ true);
-    //}
 #endif
 
     if (m_scheduler->NumEnqueued() > 0)

@@ -77,6 +77,11 @@ Scene::~Scene()
 {
     Shutdown();
 
+    // We need to ensure root gets destroyed before the EntityManager does.
+    // Otherwise we'll get some issues in ~Entity() trying to remove self from the emgr
+    m_root.Reset();
+    m_entityManager.Reset();
+
     OnRootNodeChanged.RemoveAllForTarget(this);
 }
 

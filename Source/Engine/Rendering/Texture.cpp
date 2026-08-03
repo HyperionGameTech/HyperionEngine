@@ -381,14 +381,16 @@ RendererResult Texture::Create()
 {
     auto readScope = GetReadScope();
 
-    const bool uploadTextureData = GetImageData().Size() > 0;
+    const bool shouldCreateGpuImage = !EngineGlobals::IsCooking();
 
-    if (!m_gpuImage.IsValid())
+    if (shouldCreateGpuImage && !m_gpuImage.IsValid())
     {
         if (m_textureDesc.extent.Volume() == 0)
         {
             return HYP_MAKE_ERROR(RendererError, "Texture must have non-zero extent");
         }
+        
+        const bool shouldUploadTextureData = GetImageData().Size() > 0;
 
         GpuImageRef gpuImage = RI.MakeImage(m_textureDesc);
 
@@ -400,7 +402,7 @@ RendererResult Texture::Create()
         }
 #endif
 
-        CheckResultOrReturn(CreateGpuImage(*this, *gpuImage, RS_SHADER_RESOURCE, uploadTextureData));
+        CheckResultOrReturn(CreateGpuImage(*this, *gpuImage, RS_SHADER_RESOURCE, shouldUploadTextureData));
 
         // done with image data
         readScope.Reset();
@@ -421,11 +423,14 @@ RendererResult Texture::Create()
 
     readScope.Reset();
 
-    auto writeScope = GetWriteScope();
-
-    if (!m_gpuImage->IsCreated())
+    if (shouldCreateGpuImage)
     {
-        CheckResultOrReturn(m_gpuImage->Create());
+        auto writeScope = GetWriteScope();
+
+        if (!m_gpuImage->IsCreated())
+        {
+            CheckResultOrReturn(m_gpuImage->Create());
+        }
     }
 
     return {};
@@ -464,11 +469,8 @@ void Texture::PageBlobData()
             return;
         }
 
-        BlobStorage* blobStorage = registry->HasBlobStorage() ? &registry->GetBlobStorage() : nullptr;
-
-        if (!blobStorage || !blobStorage->GetData(m_imageData.key, m_imageData.size, m_imageData.raw))
+        if (EngineGlobals::IsCooking() || EngineGlobals::IsEditor() || !EngineGlobals::GetBlobStorage()->GetData(m_imageData.key, m_imageData.size, m_imageData.raw))
         {
-#if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
             // check if failed; if so, try to import from raw data blob in project directory
             const Name blobKey = m_imageData.key;
             const uint64 expectedSize = m_imageData.size;
@@ -493,7 +495,6 @@ void Texture::PageBlobData()
 
                 return;
             }
-#endif
 
             HYP_LOG(Engine, Error, "Data corruption detected for {} due to missing blob data", GetPath().ToString());
         }

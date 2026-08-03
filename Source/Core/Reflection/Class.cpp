@@ -1569,7 +1569,7 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
 
         isCreated = true;
     }
-#endif
+#endif // HYP_DOTNET
 
 #ifdef HYP_SCRIPT
     if (IsEnumType())
@@ -1683,7 +1683,7 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
     // }
 
     isCreated = true;
-#endif
+#endif // HYP_SCRIPT
 
     return isCreated;
 }

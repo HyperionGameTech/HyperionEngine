@@ -91,6 +91,7 @@ namespace Hyperion.Editor.Views.Inspector
                         return;
                     }
 
+                    // @FIXME same as in ContentBrowserViewModel.cs
                     string scriptPath = Path.Combine(
                         AssetManager.Instance.AssetRegistry.GetRootPath(),
                         "Scripts",

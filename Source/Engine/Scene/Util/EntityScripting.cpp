@@ -39,6 +39,22 @@
 
 #ifdef HYP_SCRIPT
 #include <Lang/HypScript.hpp>
+#endif // HYP_SCRIPT
+
+#ifdef HYP_STRATA_JIT
+#include <strata/strata.h>
+
+#include <Core/Scripting/Strata/ThunkDrawer.hpp>
+#endif // HYP_STRATA_JIT
+
+#if HYP_WINDOWS
+#  define WIN32_LEAN_AND_MEAN
+#  ifndef NOMINMAX
+#    define NOMINMAX
+#  endif
+#  include <windows.h>
+#elif HYP_UNIX
+#  include <dlfcn.h>
 #endif
 
 #include <System/MessageBox.hpp>
@@ -50,6 +66,185 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(Scripting);
 namespace CoreApi {
 CORE_API extern const FilePath& GetExecutablePath();
 } // namespace CoreApi
+
+#ifdef HYP_STRATA
+
+namespace Strata {
+
+// thread-local cache for strata module -> function pointer map
+struct FunctionPointerCache
+{
+    using FunctionMap = Map<StringHash, void*>;
+    using ModuleMap = Map<StringHash, FunctionMap>;
+
+    ModuleMap modules;
+
+    void* TryGet(StringHash moduleHash, StringHash functionHash) const
+    {
+        auto moduleIt = modules.Find(moduleHash);
+        if (moduleIt == modules.End())
+        {
+            return nullptr;
+        }
+
+        auto functionIt = moduleIt->second.Find(functionHash);
+        if (functionIt == moduleIt->second.End())
+        {
+            return nullptr;
+        }
+
+        return functionIt->second;
+    }
+
+    void Put(StringHash moduleHash, StringHash functionHash, void* fnPtr)
+    {
+        if (!fnPtr)
+        {
+            return;
+        }
+
+        modules[moduleHash][functionHash] = fnPtr;
+    }
+
+    void ClearModule(StringHash moduleHash)
+    {
+        modules.Erase(moduleHash);
+    }
+};
+
+thread_local FunctionPointerCache* t_fnPtrCache = nullptr;
+
+static void ShutdownCache()
+{
+    delete t_fnPtrCache;
+    t_fnPtrCache = nullptr;
+}
+
+static void InitializeCache()
+{
+    if (t_fnPtrCache != nullptr)
+    {
+        return;
+    }
+
+    t_fnPtrCache = new FunctionPointerCache;
+
+    if (ThreadBase* currThread = CurrentThreadObject())
+    {
+        currThread->AddOnExitCallback(ShutdownCache);
+    }
+}
+
+// @TODO Remove when we use static linkage instead
+static void* ResolveSymbolFromHost(const char* name)
+{
+    if (name == nullptr || *name == '\0')
+    {
+        return nullptr;
+    }
+
+#if HYP_WINDOWS
+    if (HMODULE h = GetModuleHandleW(nullptr))
+    {
+        return reinterpret_cast<void*>(GetProcAddress(h, name));
+    }
+
+    return nullptr;
+#elif HYP_UNIX
+    // RTLD_DEFAULT searches the main program and all globally-loaded objects.
+    return dlsym(RTLD_DEFAULT, name);
+#else
+    return nullptr;
+#endif
+}
+
+static void* ResolveFunctionPointer(ScriptObjectData_Strata* data, const char* name)
+{
+    Assert(data != nullptr);
+
+    const StringHash functionHash(name);
+
+    if (void* cached = t_fnPtrCache->TryGet(data->moduleHash, functionHash))
+    {
+        return cached;
+    }
+
+    void* fn = nullptr;
+
+#ifdef HYP_STRATA_JIT
+    if (data->jit != nullptr)
+    {
+        fn = strataJitGetFunction(data->jit, name);
+    }
+#endif // HYP_STRATA_JIT
+
+    if (fn == nullptr)
+    {
+        fn = ResolveSymbolFromHost(name);
+    }
+
+    t_fnPtrCache->Put(data->moduleHash, functionHash, fn);
+
+    return fn;
+}
+
+#ifdef HYP_STRATA_JIT
+
+thread_local StrataCompiler* t_strataCompiler = nullptr;
+
+void ShutdownCompiler()
+{
+    if (t_strataCompiler != nullptr)
+    {
+        strataCompilerDestroy(t_strataCompiler);
+        t_strataCompiler = nullptr;
+    }
+
+    ShutdownCache();
+}
+
+void InitializeCompiler()
+{
+    InitializeCache();
+
+    if (t_strataCompiler == nullptr)
+    {
+        t_strataCompiler = strataCompilerCreate();
+        Assert(t_strataCompiler != nullptr);
+
+        if (ThreadBase* currThread = CurrentThreadObject())
+        {
+            currThread->AddOnExitCallback(ShutdownCompiler);
+        }
+    }
+}
+
+void BindExterns(StrataJit* jit)
+{
+    Assert(jit != nullptr);
+
+    const size_t externCount = strataJitGetExternSymbolCount(jit);
+
+    for (size_t i = 0; i < externCount; ++i)
+    {
+        const char* name = strataJitGetExternSymbolName(jit, i);
+
+        if (void* hostFn = ThunkDrawer::Resolve(StringHash(name)))
+        {
+            strataJitAddSymbol(jit, name, hostFn);
+        }
+        else
+        {
+            HYP_LOG(Scripting, Warning, "Strata: no host binding for extern '{}'", name);
+        }
+    }
+}
+
+#endif // HYP_STRATA_JIT
+
+} // namespace Strata
+
+#endif // HYP_STRATA
 
 namespace EntityScripting {
 
@@ -87,7 +282,7 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
             }
         }
     }
-#endif
+#endif // HYP_DOTNET
 
 #ifdef HYP_SCRIPT
     if (mask & (1u << uint32(ScriptLanguage::HypScript)))
@@ -118,7 +313,33 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
             }
         }
     }
-#endif
+#endif // HYP_SCRIPT
+
+#ifdef HYP_STRATA
+    if (mask & (1u << uint32(ScriptLanguage::Strata)))
+    {
+        auto* data = sor->GetScriptObjectData_Strata();
+        Assert(data != nullptr);
+
+        Strata::InitializeCache();
+
+        if (void* fnPtrRaw = Strata::ResolveFunctionPointer(data, methodName))
+        {
+            auto fnPtrCasted = (ReturnType (*)(ArgTypes...))fnPtrRaw;
+
+            if constexpr (!std::is_void_v<ReturnType>)
+            {
+                AssertDebug(outReturnValue != nullptr);
+
+                new (outReturnValue) ReturnType(fnPtrCasted(args...));
+            }
+            else
+            {
+                fnPtrCasted(args...);
+            }
+        }
+    }
+#endif // HYP_STRATA
 
     if (mask & (1u << uint32(ScriptLanguage::Native)))
     {
@@ -309,7 +530,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
             break;
         }
-#endif
+#endif // HYP_DOTNET
 #ifdef HYP_SCRIPT
         case ScriptLanguage::HypScript:
         {
@@ -326,7 +547,8 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
                 // Create from bytecode
                 ConstByteView bytecode = scriptAsset->GetBytecode();
-#if HYP_EDITOR
+                
+#ifdef HYP_EDITOR
                 if (bytecode.Size() > 0)
                 {
                     // Check if source file has been modified since the bytecode was compiled
@@ -505,7 +727,93 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
             break;
         }
-#endif
+#endif // HYP_SCRIPT
+
+#ifdef HYP_STRATA
+        case ScriptLanguage::Strata:
+        {
+            if (!sor || !sor->GetScriptObjectData_Strata())
+            {
+                delete sor;
+                sor = nullptr;
+
+                ScriptDesc& scriptDesc = scriptAsset->GetScriptDesc();
+
+                const StringHash moduleHash(scriptDesc.path.Data());
+
+                Strata::InitializeCache();
+                Strata::t_fnPtrCache->ClearModule(moduleHash);
+
+                sor = new ScriptObjectResource(ValueWrapper<ScriptLanguage::Strata>{}, moduleHash);
+                sor->AddReader();
+
+                if (ScriptObjectData_Strata* strataData = sor->GetScriptObjectData_Strata())
+                {
+                    strataData->moduleHash = moduleHash;
+
+#ifdef HYP_STRATA_JIT
+                    // Compile the source at runtime. Shipped builds have no knowledge of the language, symbols are linked to the exe
+                    Strata::InitializeCompiler();
+
+                    FilePath sourcePath;
+
+                    if (Handle<AssetRegistry> registry = scriptAsset->GetAssetRegistry(); registry.IsValid())
+                    {
+                        sourcePath = registry->GetRootPath() / "Scripts" / (scriptAsset->GetName().ToString() + ".strata");
+                    }
+
+                    if (!sourcePath.Exists() || !sourcePath.CanRead())
+                    {
+                        // Fall back to the path recorded on the script descriptor.
+                        sourcePath = FilePath(scriptDesc.path.Data());
+                    }
+
+                    if (sourcePath.Exists() && sourcePath.CanRead())
+                    {
+                        const char* err = nullptr;
+                        StrataJit* jit = strataJitCompileFile(Strata::t_strataCompiler, sourcePath.Data(), &err);
+
+                        if (jit != nullptr)
+                        {
+                            Strata::BindExterns(jit);
+
+                            strataData->jit = jit;
+                        }
+                        else
+                        {
+                            HYP_LOG(Scripting, Error, "ScriptSystem::OnEntityAdded: Failed to JIT-compile Strata script '{}': {}",
+                                sourcePath,
+                                err ? err : "(no message)");
+
+                            if (err != nullptr)
+                            {
+                                strataFree(const_cast<char*>(err));
+                            }
+                        }
+                    }
+                    else
+                    {
+                        HYP_LOG(Scripting, Warning, "Strata source '{}' not found; assuming AOT-linked symbols.",
+                            scriptDesc.path.Data());
+                    }
+#endif // HYP_STRATA_JIT
+                }
+
+                if (!gameState.IsStopped())
+                {
+                    if (!(scriptComponent.flags & ScriptComponentFlags::ACTIVATED))
+                    {
+                        InvokeScriptMethodT<void>(nullptr, sor, "BeforeAdded", world, scene);
+                        InvokeScriptMethodT<void>(nullptr, sor, "OnAdded", entity);
+
+                        scriptComponent.flags |= ScriptComponentFlags::ACTIVATED;
+                    }
+                }
+            }
+
+            break;
+        }
+#endif // HYP_STRATA
         default:
             return;
         }

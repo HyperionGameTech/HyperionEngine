@@ -169,8 +169,16 @@ void FillShadowMapData(
         return;
     }
 
-    RenderProxyList& rpl = GetConsumerProxyList(shadowMapViewDynamic);
+    View* viewToUse = shadowMapViewDynamic != nullptr
+        ? shadowMapViewDynamic
+        : shadowMapViewStatic;
+
+    // At least one view must be valid.
+    Assert(viewToUse != nullptr);
+
+    RenderProxyList& rpl = GetConsumerProxyList(viewToUse);
     rpl.BeginRead();
+    
     HYP_DEFER({ rpl.EndRead(); });
 
     const Mat4f& viewProjMat = rpl.cachedMatrices.viewProj;

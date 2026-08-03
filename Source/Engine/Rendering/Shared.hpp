@@ -34,9 +34,9 @@
 #include <Rendering/DX12/DX12Structs.hpp>
 #endif
 
-#ifndef HYPERION_BUILD_RELEASE_FINAL
+#ifndef HYP_SHIPPING
 #define HYP_RHI_DEBUG_NAMES 1
-#endif // HYPERION_BUILD_RELEASE_FINAL
+#endif // HYP_SHIPPING
 
 namespace Hyperion {
 

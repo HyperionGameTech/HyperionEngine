@@ -21,8 +21,6 @@ CORE_API HYP_DECLARE_LOG_CHANNEL(Memory);
 
 #pragma endregion Core
 
-#ifdef HYP_BUILD_ENGINE
-
 #pragma region Engine
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Engine);
@@ -74,7 +72,5 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(Assets);
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Serialization);
 
 #pragma endregion Assets
-
-#endif // HYP_BUILD_ENGINE
 
 } // namespace Hyperion

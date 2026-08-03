@@ -36,9 +36,6 @@ public:
 
 protected:
     HYP_METHOD()
-    virtual void Init() override;
-
-    HYP_METHOD()
     virtual void OnAdded_Impl(WorldGrid* worldGrid) override;
 
     HYP_METHOD()

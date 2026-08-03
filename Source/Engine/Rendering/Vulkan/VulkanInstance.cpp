@@ -30,6 +30,7 @@
 
 #include <Framework/EngineGlobals.hpp>
 
+#include <algorithm>
 #include <cstring>
 
 #ifdef HYP_IOS
@@ -47,6 +48,34 @@ namespace Hyperion {
 constexpr bool EnableVulkanSynchronizationValidation = false;
 constexpr bool EnableVulkanVerboseValidationLogging = false;
 #endif
+
+static uint64 ComputeDeviceScore(VulkanFeatures& deviceFeatures)
+{
+    uint64 score = 0;
+
+    if (deviceFeatures.IsDiscreteGpu())
+    {
+        score += 1000000;
+    }
+    else if (deviceFeatures.IsIntegratedGpu())
+    {
+        score += 100000;
+    }
+
+    uint32 numQueueFamilies = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(deviceFeatures.GetPhysicalDevice(), &numQueueFamilies, nullptr);
+
+    Array<VkQueueFamilyProperties, VulkanTempAllocator> queueFamilyProperties;
+    queueFamilyProperties.Resize(numQueueFamilies);
+    vkGetPhysicalDeviceQueueFamilyProperties(deviceFeatures.GetPhysicalDevice(), &numQueueFamilies, queueFamilyProperties.Data());
+
+    for (const VkQueueFamilyProperties& familyProperties : queueFamilyProperties)
+    {
+        score += familyProperties.queueCount;
+    }
+
+    return score;
+}
 
 static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
 {
@@ -76,43 +105,67 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
         }
     }
 
-    if (cfgSelectedGpuIndex.IsNumber() && cfgSelectedGpuIndex.AsNumber() < validDevices.Size())
+    if (validDevices.Any())
     {
-        for (uint32 deviceIndex = 0; deviceIndex < uint32(validDevices.Size()); deviceIndex++)
+        if (cfgSelectedGpuIndex.IsNumber() && cfgSelectedGpuIndex.AsNumber() >= double(validDevices.Size()))
         {
-            if (deviceIndex == cfgSelectedGpuIndex.ToUInt32())
+            HYP_LOG(RenderingBackend, Warning, "Configured GPU index {} is out of bounds for {} valid device(s); resetting to 0",
+                cfgSelectedGpuIndex.ToUInt32(), validDevices.Size());
+
+            cfg.Set("System.SelectedGpu.Index", JSON::Number(0));
+
+            if (!cfg.Save())
             {
-                deviceFeatures.SetPhysicalDevice(validDevices[deviceIndex]);
-
-                if ((deviceRequirementsResult = deviceFeatures.SatisfiesMinimumRequirements()))
-                {
-                    HYP_LOG(RenderingBackend, Info, "Select {} device {}", deviceFeatures.IsDiscreteGpu() ? "discrete" : "integrated", deviceFeatures.GetDeviceName());
-
-                    return validDevices[deviceIndex];
-                }
+                HYP_LOG(RenderingBackend, Warning, "Failed to save GPU selection config");
             }
+        }
+        else if (cfgSelectedGpuIndex.IsNumber())
+        {
+            const uint32 selectedIndex = cfgSelectedGpuIndex.ToUInt32();
+
+            deviceFeatures.SetPhysicalDevice(validDevices[selectedIndex]);
+
+            if ((deviceRequirementsResult = deviceFeatures.SatisfiesMinimumRequirements()))
+            {
+                HYP_LOG(RenderingBackend, Info, "Select {} device {} (from config)", deviceFeatures.IsDiscreteGpu() ? "discrete" : "integrated", deviceFeatures.GetDeviceName());
+
+                return validDevices[selectedIndex];
+            }
+
+            HYP_LOG(RenderingBackend, Warning, "Configured GPU {} does not satisfy minimum requirements ({}); falling back to automatic selection",
+                deviceFeatures.GetDeviceName(), deviceRequirementsResult.message);
         }
     }
 
-    uint32 deviceIndex = 0;
+    Array<uint32, VulkanTempAllocator> deviceOrder;
+    deviceOrder.Resize(validDevices.Size());
 
-    // select dedicated GPU
-    for (VkPhysicalDevice device : validDevices)
+    Array<uint64, VulkanTempAllocator> deviceScores;
+    deviceScores.Resize(validDevices.Size());
+
+    for (uint32 index = 0; index < uint32(validDevices.Size()); index++)
     {
-        deviceFeatures.SetPhysicalDevice(device);
+        deviceOrder[index] = index;
 
-        if (!deviceFeatures.IsDiscreteGpu())
+        deviceFeatures.SetPhysicalDevice(validDevices[index]);
+        deviceScores[index] = ComputeDeviceScore(deviceFeatures);
+    }
+
+    std::sort(deviceOrder.Begin(), deviceOrder.End(), [&deviceScores](uint32 a, uint32 b)
         {
-            ++deviceIndex;
+            return deviceScores[a] > deviceScores[b];
+        });
 
-            continue;
-        }
+    for (uint32 index : deviceOrder)
+    {
+        VkPhysicalDevice device = validDevices[index];
+        deviceFeatures.SetPhysicalDevice(device);
 
         if ((deviceRequirementsResult = deviceFeatures.SatisfiesMinimumRequirements()))
         {
-            HYP_LOG(RenderingBackend, Info, "Select discrete device {}", deviceFeatures.GetDeviceName());
+            HYP_LOG(RenderingBackend, Info, "Select {} device {} (score {})", deviceFeatures.IsDiscreteGpu() ? "discrete" : "integrated", deviceFeatures.GetDeviceName(), deviceScores[index]);
 
-            cfg.Set("System.SelectedGpu.Index", JSON::Number(deviceIndex));
+            cfg.Set("System.SelectedGpu.Index", JSON::Number(index));
 
             if (!cfg.Save())
             {
@@ -121,39 +174,6 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
 
             return device;
         }
-
-        ++deviceIndex;
-    }
-
-    deviceIndex = 0;
-
-    // select integrated GPU
-    for (VkPhysicalDevice device : validDevices)
-    {
-        deviceFeatures.SetPhysicalDevice(device);
-
-        if (!deviceFeatures.IsIntegratedGpu())
-        {
-            ++deviceIndex;
-
-            continue;
-        }
-
-        if ((deviceRequirementsResult = deviceFeatures.SatisfiesMinimumRequirements()))
-        {
-            HYP_LOG(RenderingBackend, Info, "Select integrated device {}", deviceFeatures.GetDeviceName());
-
-            cfg.Set("System.SelectedGpu.Index", JSON::Number(deviceIndex));
-
-            if (!cfg.Save())
-            {
-                HYP_LOG(RenderingBackend, Warning, "Failed to save GPU selection config");
-            }
-
-            return device;
-        }
-
-        ++deviceIndex;
     }
 
     VkPhysicalDevice device = devices[0];
@@ -266,7 +286,7 @@ ExtensionMap VulkanInstance::GetExtensionMap()
     map[VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME] = false;
 #endif
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 
 #ifdef HYP_WINDOWS
     map[VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME] = true;

@@ -17,7 +17,7 @@
 // #define HYP_DX12_DEBUG_RESOURCE_STATES
 
 // Disallow in final release build
-#if defined(HYPERION_BUILD_RELEASE_FINAL) && defined(HYP_DX12_DEBUG_RESOURCE_STATES)
+#if defined(HYP_SHIPPING) && defined(HYP_DX12_DEBUG_RESOURCE_STATES)
 #undef HYP_DX12_DEBUG_RESOURCE_STATES
 #endif
 

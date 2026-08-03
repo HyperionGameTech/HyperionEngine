@@ -76,8 +76,8 @@ if(APPLE AND CMAKE_GENERATOR STREQUAL "Xcode")
       "$<TARGET_FILE:hyperion-script>"
       "$<TARGET_FILE_DIR:${BUILD_NAME}>/Frameworks"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-      "${CMAKE_SOURCE_DIR}/../Packages"
-      "$<TARGET_FILE_DIR:${BUILD_NAME}>/Packages"
+      "${CMAKE_SOURCE_DIR}/../Content"
+      "$<TARGET_FILE_DIR:${BUILD_NAME}>/Content"
   )
 endif()
 

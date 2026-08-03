@@ -41,13 +41,9 @@ public:
     ScriptAsset& operator=(ScriptAsset&& other) noexcept = delete;
 
     ~ScriptAsset();
-
+    
+    HYP_METHOD(Property = "ScriptAsset", Serialize)
     HYP_FORCE_INLINE ScriptDesc& GetScriptDesc()
-    {
-        return m_scriptDesc;
-    }
-
-    HYP_FORCE_INLINE const ScriptDesc& GetScriptDesc() const
     {
         return m_scriptDesc;
     }

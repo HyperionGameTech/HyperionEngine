@@ -412,7 +412,7 @@ extern "C"
         {
             Handle<AssetRegistry> engineRegistry = MakeHandle<AssetRegistry>(
                 AssetRegistryId::Engine,
-                EngineGlobals::GetLibraryDirectory() / "Engine");
+                EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Engine")>());
 
             engineRegistry->Initialize();
 
@@ -424,7 +424,7 @@ extern "C"
         {
             Handle<AssetRegistry> editorRegistry = MakeHandle<AssetRegistry>(
                 AssetRegistryId::Editor,
-                EngineGlobals::GetLibraryDirectory() / "Editor");
+                EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Editor")>());
 
             editorRegistry->Initialize();
 
@@ -662,6 +662,8 @@ extern "C"
             SetEditorAssetRegistry(Handle<AssetRegistry>::Null());
 #endif // HYP_EDITOR
         }
+
+        EngineGlobals::GetBlobStorage()->Shutdown();
 
         g_streamingManager->Stop();
         g_streamingManager.Reset();

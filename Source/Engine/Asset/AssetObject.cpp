@@ -240,7 +240,7 @@ Result AssetObject::SaveAs(const FilePath& manifestPath)
 
     registry->PutAssetsDeep(MakeStrongRef(this));
 
-    BlobStorage* blobStorage = registry->HasBlobStorage() ? &registry->GetBlobStorage() : nullptr;
+    BlobStorage* blobStorage = EngineGlobals::GetBlobStorage();
 
     Result saveBlobDataResult = SaveBlobData(blobStorage, dir);
     if (saveBlobDataResult.HasError())
@@ -322,7 +322,7 @@ Result AssetObject::SaveBlobData(BlobStorage* storage, const Optional<FilePath>&
 
         if (storage != nullptr)
         {
-            if (!storage->PutData(StringHash(reference->key), header, reference->raw))
+            if (!storage->PutData(GetPath().bucketIndex, StringHash(reference->key), header, reference->raw))
             {
                 AssertDebug(false, "Failed to write blob data reference!");
 
@@ -330,8 +330,7 @@ Result AssetObject::SaveBlobData(BlobStorage* storage, const Optional<FilePath>&
             }
         }
 
-#if HYP_EDITOR
-        if (localBlobDirectory.HasValue())
+        if (EngineGlobals::IsEditor() && localBlobDirectory.HasValue())
         {
             // Save the blob data locally as well, as other users may not have the blob data or have mismatched blob data
             // and we need to "import" it via individual blobs upon fail.
@@ -344,7 +343,6 @@ Result AssetObject::SaveBlobData(BlobStorage* storage, const Optional<FilePath>&
 
             stream.Write(reference->raw, reference->size);
         }
-#endif
     }
 
     return {};
@@ -672,7 +670,7 @@ Handle<AssetRegistry> AssetObject::GetAssetRegistry()
         return GetCurrentAssetRegistry();
     case AssetRegistryId::Engine:
         return GetEngineAssetRegistry();
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     case AssetRegistryId::Editor:
         return GetEditorAssetRegistry();
 #endif // HYP_EDITOR

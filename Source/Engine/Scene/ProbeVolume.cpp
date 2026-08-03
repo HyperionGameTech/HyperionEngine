@@ -94,7 +94,7 @@ void ProbeVolume::OnAddedToWorld(World* world)
         {
             IrradianceProbe* probe = StaticCast<IrradianceProbe>(node);
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
             probe->useVolumeEditTool = false;
 #endif // HYP_EDITOR
 
@@ -574,7 +574,7 @@ void ProbeVolume::RefreshProbe(IrradianceProbe& probe)
     probe.needsRender.Store(true);
 }
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 
 void ProbeVolume::SetGridSize(const Vec3u& gridSize)
 {

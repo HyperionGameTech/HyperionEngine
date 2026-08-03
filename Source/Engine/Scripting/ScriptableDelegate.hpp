@@ -29,8 +29,6 @@ class Method;
 class ObjectBase;
 struct BoxedValue;
 
-extern "C" Method* Class_GetMethod(const Class* cls, const Name* methodName);
-
 namespace functional {
 
 ENGINE_API void LogScriptableDelegateError(const char* message, dotnet::ManagedObject* objectPtr);
@@ -125,7 +123,7 @@ public:
 
         const Name name = Name(StringHash(methodName));
 
-        const Method* method = Class_GetMethod(nativeObject->InstanceClass(), &name);
+        const Method* method = GetClassMethod(nativeObject->InstanceClass(), &name);
         if (!method)
         {
             return false;
@@ -160,6 +158,9 @@ public:
 
         return true;
     }
+
+private:
+    static const Method* GetClassMethod(const Class* cls, const Name* methodName);
 };
 
 /*! \brief A delegate that can be bound to script methods.

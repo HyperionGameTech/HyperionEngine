@@ -24,7 +24,7 @@
 
 #include <Core/Debug/Debug.hpp>
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 #include <Editor/EditorDelegates.hpp>
 #include <Editor/EditorSubsystem.hpp>
 #include <Editor/EditorState.hpp>
@@ -48,7 +48,7 @@ ScriptableDelegate<void, Node*, bool> Node::OnChildAdded;
 ScriptableDelegate<void, Node*, bool> Node::OnChildRemoved;
 ScriptableDelegate<void, Node*> Node::TransformUpdated;
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 extern Handle<EditorState> g_editorState;
 #endif
 
@@ -1044,7 +1044,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
             TSharedResLock<AssetObject> resGuard;
             Mesh* mesh = nullptr;
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
             EditorPickCacheEntry* pickCacheEntry = nullptr;
 #endif
 
@@ -1063,7 +1063,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
                     {
                         bvh = &meshComponent->mesh->GetBVH();
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
                         if (flags & RayTestFlags::EditorPick)
                         {
                             pickCacheEntry = g_editorState->GetPickCache().GetEntry(meshComponent->mesh);
@@ -1088,7 +1088,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
 
                 const Ray localSpaceRay = modelMatrix.Inverse() * ray;
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
                 if ((flags & RayTestFlags::EditorPick) && pickCacheEntry)
                 {
                     localBvhResults = bvh->TestRay(
@@ -1234,7 +1234,7 @@ bool Node::HasTag(StringHash key) const
     return m_tags.Has(key);
 }
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 void Node::MarkDirty()
 {
     if (World* world = GetWorld(); world && world->GetGameState().IsSimulating())
