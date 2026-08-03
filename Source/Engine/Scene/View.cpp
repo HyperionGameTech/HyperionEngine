@@ -437,6 +437,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
         const bool hasBakedStaticShadows = (light->GetLightFlags() & LightFlags::BakeStaticShadows);
         const bool cacheStaticShadowMaps = !hasBakedStaticShadows && (light->GetLightFlags() & LightFlags::CacheStaticShadowMaps);
+        const bool onlyStaticShadowMaps = (light->GetLightFlags() & LightFlags::OnlyDrawStaticShadowMaps);
 
         View* shadowViewsStatic[6] {};
         View* shadowViewsDynamic[6] {};
@@ -560,26 +561,33 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                 depthRange = shadowViewBounds.max.z - shadowViewBounds.min.z;
             }
 
+            ////////////////////////
             // Create Shadow views
-            shadowViewsDynamic[shadowViewIndex] = RI.shadowMapCache->GetOrCreateShadowView(
-                this,
-                light,
-                shadowViewIndex,
-                depthRange,
-                /* isStatic */ false);
+            ////////////////////////
 
-            if (!shadowViewsDynamic[shadowViewIndex])
+            if (!onlyStaticShadowMaps)
             {
-                // failed to allocate shadow view - out of slots is most likely cause
-                // skip processing for this light.
-                HYP_LOG_ONCE(Scene, Warning, "Failed to allocate shadow view for light {}, view: {} (id: {})", light->GetName(), GetName(), Id());
-                break;
+                shadowViewsDynamic[shadowViewIndex] = RI.shadowMapCache->GetOrCreateShadowView(
+                    this,
+                    light,
+                    shadowViewIndex,
+                    depthRange,
+                    /* isStatic */ false);
+
+                if (!shadowViewsDynamic[shadowViewIndex])
+                {
+                    // failed to allocate shadow view - out of slots is most likely cause
+                    // skip processing for this light.
+                    HYP_LOG_ONCE(Scene, Warning, "Failed to allocate shadow view for light {}, view: {} (id: {})", light->GetName(), GetName(), Id());
+                    break;
+                }
             }
 
             // We need a view specifically for static objects if we either:
             // - cache shadow maps for statics independently
             // - use baked shadow maps for statics
-            if (cacheStaticShadowMaps || hasBakedStaticShadows)
+            // - only draw statics
+            if (cacheStaticShadowMaps || hasBakedStaticShadows || onlyStaticShadowMaps)
             {
                 shadowViewsStatic[shadowViewIndex] = RI.shadowMapCache->GetOrCreateShadowView(
                     this,
@@ -588,10 +596,20 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                     depthRange,
                     /* isStatic */ true);
             }
+            
+            ////////////////////////////
+            // End Create Shadow views
+            ////////////////////////////
 
             if (!isDirectional)
             {
-                Camera* shadowCamera = shadowViewsDynamic[0]->GetCamera();
+                View* firstShadowView = shadowViewsDynamic[0] != nullptr
+                    ? shadowViewsDynamic[0]
+                    : shadowViewsStatic[0];
+
+                Assert(firstShadowView != nullptr);
+
+                Camera* shadowCamera = firstShadowView->GetCamera();
                 Assert(shadowCamera != nullptr);
 
                 // Update shadow map camera on first view seen.

@@ -45,14 +45,16 @@ static constexpr uint32 NumLightTypes = uint32(LightType::Max);
 HYP_ENUM()
 enum class LightFlags : uint32
 {
-    None = 0x0,
+    None = 0x0,                                     //!< @editor=false
 
-    ShadowCaster = 0x1,
+    ShadowCaster = 0x1,                             //!< @title="Render shadows"
 
-    CacheStaticShadowMaps = 0x10,
-    BakeStaticShadows = 0x20,
+    CacheStaticShadowMaps = 0x10,                   //!< @title="Cache shadow maps for static objects"
+    BakeStaticShadows = 0x20,                       //!< @editor=false
 
-    Default = ShadowCaster | CacheStaticShadowMaps
+    OnlyDrawStaticShadowMaps = 0x40,                //!< @title="Only render shadows for static objects"
+
+    Default = ShadowCaster | CacheStaticShadowMaps  //!< @editor=false
 };
 
 HYP_MAKE_ENUM_FLAGS(LightFlags);
@@ -99,19 +101,19 @@ public:
         return m_type;
     }
 
-    HYP_METHOD()
+    HYP_METHOD(Property = "LightFlags", Serialize, Editor)
     EnumFlags<LightFlags> GetLightFlags() const
     {
         return m_lightFlags;
     }
 
-    HYP_METHOD()
+    HYP_METHOD(Property = "LightFlags", Serialize, Editor)
     void SetLightFlags(EnumFlags<LightFlags> flags);
 
     /*! \brief Get the normal for the light. This is used only for area lights.
      *
      *  \return The normal. */
-    HYP_METHOD(Property = "Normal", Editor = true)
+    HYP_METHOD(Property = "Normal", Serialize, Editor)
     const Vec3f& GetNormal() const
     {
         return m_normal;
@@ -120,13 +122,13 @@ public:
     /*! \brief Set the normal for the light. This is used only for area lights.
      *
      *  \param normal The normal to set. */
-    HYP_METHOD(Property = "Normal", Editor = true)
+    HYP_METHOD(Property = "Normal", Serialize, Editor)
     void SetNormal(const Vec3f& normal);
 
     /*! \brief Get the area size for the light. This is used only for area lights.
      *
      *  \return The area size. (x = width, y = height) */
-    HYP_METHOD(Property = "AreaSize", Editor = true)
+    HYP_METHOD(Property = "AreaSize", Serialize, Editor)
     const Vec2f& GetAreaSize() const
     {
         return m_areaSize;
@@ -135,28 +137,28 @@ public:
     /*! \brief Set the area size for the light. This is used only for area lights.
      *
      *  \param areaSize The area size to set. (x = width, y = height) */
-    HYP_METHOD(Property = "AreaSize", Editor = true)
+    HYP_METHOD(Property = "AreaSize", Serialize, Editor)
     void SetAreaSize(const Vec2f& areaSize);
 
-    HYP_METHOD(Property = "Color", Editor = true)
+    HYP_METHOD(Property = "Color", Serialize, Editor)
     const Color& GetColor() const
     {
         return m_color;
     }
 
-    HYP_METHOD(Property = "Color", Editor = true)
+    HYP_METHOD(Property = "Color", Serialize, Editor)
     void SetColor(const Color& color);
 
-    HYP_METHOD(Property = "Intensity", Editor = true)
+    HYP_METHOD(Property = "Intensity", Serialize, Editor)
     float GetIntensity() const
     {
         return m_intensity;
     }
 
-    HYP_METHOD(Property = "Intensity", Editor = true)
+    HYP_METHOD(Property = "Intensity", Serialize, Editor)
     void SetIntensity(float intensity);
 
-    HYP_METHOD(Property = "Radius", Editor = true)
+    HYP_METHOD(Property = "Radius", Serialize, Editor)
     float GetRadius() const
     {
         switch (m_type)
@@ -170,22 +172,22 @@ public:
         }
     }
 
-    HYP_METHOD(Property = "Radius", Editor = true)
+    HYP_METHOD(Property = "Radius", Serialize, Editor)
     void SetRadius(float radius);
 
-    HYP_METHOD(Property = "Falloff", Editor = true)
+    HYP_METHOD(Property = "Falloff", Serialize, Editor)
     float GetFalloff() const
     {
         return m_falloff;
     }
 
-    HYP_METHOD(Property = "Falloff", Editor = true)
+    HYP_METHOD(Property = "Falloff", Serialize, Editor)
     void SetFalloff(float falloff);
 
     /*! \brief Get the angles for the spotlight (x = outer, y = inner). This is used to determine the angle of the light cone (spot lights only).
      *
      *  \return The spotlight angles. */
-    HYP_METHOD(Property = "SpotAngles", Editor = true)
+    HYP_METHOD(Property = "SpotAngles", Serialize, Editor)
     const Vec2f& GetSpotAngles() const
     {
         return m_spotAngles;
@@ -194,13 +196,13 @@ public:
     /*! \brief Set the angles for the spotlight (x = outer, y = inner). This is used to determine the angle of the light cone (spot lights only).
      *
      *  \param spotAngles The angles to set for the spotlight. */
-    HYP_METHOD(Property = "SpotAngles", Editor = true)
+    HYP_METHOD(Property = "SpotAngles", Serialize, Editor)
     void SetSpotAngles(const Vec2f& spotAngles);
 
     /*! \brief Get the material  for the light. Used for area lights.
      *
      *  \return The material handle associated with the Light. */
-    HYP_METHOD(Property = "Material", Editor = true)
+    HYP_METHOD(Property = "Material", Serialize, Editor)
     const Handle<Material>& GetMaterial() const
     {
         return m_material;
@@ -208,25 +210,25 @@ public:
     /*! \brief Sets the material handle associated with the Light. Used for textured area lights.
      *
      *  \param material The material to set for this Light. */
-    HYP_METHOD(Property = "Material", Editor = true)
+    HYP_METHOD(Property = "Material", Serialize, Editor)
     void SetMaterial(Handle<Material> material);
 
-    HYP_METHOD(Property = "ShadowMapDimensions", Editor = true)
+    HYP_METHOD(Property = "ShadowMapDimensions", Serialize, Editor)
     const Vec2u& GetShadowMapDimensions() const
     {
         return m_shadowMapDimensions;
     }
 
-    HYP_METHOD(Property = "ShadowMapDimensions", Editor = true)
+    HYP_METHOD(Property = "ShadowMapDimensions", Serialize, Editor)
     void SetShadowMapDimensions(Vec2u shadowMapDimensions);
 
-    HYP_METHOD(Property = "ShadowMapCascades", Editor = true)
+    HYP_METHOD(Property = "ShadowMapCascades", Serialize, Editor)
     uint32 GetNumShadowMapCascades() const
     {
         return m_numShadowMapCascades;
     }
 
-    HYP_METHOD(Property = "ShadowMapCascades", Editor = true)
+    HYP_METHOD(Property = "ShadowMapCascades", Serialize, Editor)
     void SetNumShadowMapCascades(uint32 numShadowMapCascades);
 
     /*! \brief Get the baked shadow map for this light - only present if the light has static shadows that have been baked.

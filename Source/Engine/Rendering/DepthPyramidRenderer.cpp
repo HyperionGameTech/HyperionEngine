@@ -30,8 +30,6 @@ namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Rendering);
 
-extern CVar<bool> g_cvFreezeOcclusionCulling;
-
 struct DepthPyramidUniforms
 {
     Vec2u mipDimensions;
@@ -144,11 +142,6 @@ Vec2u DepthPyramidRenderer::GetExtent() const
 
 void DepthPyramidRenderer::Render(Frame* frame)
 {
-    if (m_isRendered && g_cvFreezeOcclusionCulling.Get())
-    {
-        return;
-    }
-
     Sampler* depthPyramidSampler = RI.samplerCache->GetOrCreate(SamplerDesc { TFM_NEAREST_MIPMAP, TFM_NEAREST, TWM_CLAMP_TO_EDGE });
 
     const uint8 numDepthPyramidMipLevels = uint8(m_mipImageViews.Size());

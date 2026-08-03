@@ -137,6 +137,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     const bool hasBakedStaticShadowMaps = (light->GetLightFlags() & LightFlags::BakeStaticShadows) && lightProxy->bakedShadowMap != nullptr;
     const bool cacheStaticShadowMaps = g_cvCacheShadowMaps.Get() && !hasBakedStaticShadowMaps && (light->GetLightFlags() & LightFlags::CacheStaticShadowMaps);
+    const bool onlyStaticShadowMaps = (light->GetLightFlags() & LightFlags::OnlyDrawStaticShadowMaps);
 
     const ShadowMapCacheKey key = MakeShadowMapCacheKey(light, view);
 
@@ -176,6 +177,10 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
             cascadeIndex,
             shadowViewDynamic,
             shadowViewStatic);
+            
+        View* firstShadowView = cachedData->shadowViewsDynamic[0] != nullptr
+            ? cachedData->shadowViewsDynamic[0]
+            : cachedData->shadowViewsStatic[0];
 
         cachedData->shadowMaps[cascadeIndex] = shadowMap;
 
@@ -186,9 +191,9 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         {
             Camera* shadowCamera = nullptr;
 
-            if (cachedData->shadowViewsDynamic[0] != nullptr)
+            if (firstShadowView != nullptr)
             {
-                shadowCamera = cachedData->shadowViewsDynamic[0]->GetCamera();
+                shadowCamera = firstShadowView->GetCamera();
                 AssertDebug(shadowCamera != nullptr);
 
                 shadowCameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(shadowCamera));
@@ -207,6 +212,8 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
             continue;
         }
 
+        Assert(firstShadowView != nullptr);
+
         const uint32 numViewsToIterate = (isOmni ? 6 : cascadeIndex + 1);
 
         for (uint32 viewIndex = cascadeIndex; viewIndex < numViewsToIterate; viewIndex++)
@@ -214,13 +221,13 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
             if (isOmni)
             {
                 // This would occur only for omni shadow maps upon first initialization.
-                if (HYP_UNLIKELY(!cachedData->shadowViewsDynamic[viewIndex]))
+                if (!onlyStaticShadowMaps && HYP_UNLIKELY(!cachedData->shadowViewsDynamic[viewIndex]))
                 {
                     cachedData->shadowViewsDynamic[viewIndex] = RI.shadowMapCache->TryGetShadowView(view, light, viewIndex, /* isStatic */ false);
                     Assert(cachedData->shadowViewsDynamic[viewIndex] != nullptr);
                 }
 
-                if (cacheStaticShadowMaps && HYP_UNLIKELY(!cachedData->shadowViewsStatic[viewIndex]))
+                if ((onlyStaticShadowMaps || cacheStaticShadowMaps) && HYP_UNLIKELY(!cachedData->shadowViewsStatic[viewIndex]))
                 {
                     cachedData->shadowViewsStatic[viewIndex] = RI.shadowMapCache->TryGetShadowView(view, light, viewIndex, /* isStatic */ true);
                     Assert(cachedData->shadowViewsStatic[viewIndex] != nullptr);
@@ -258,7 +265,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
             if (!framebuffer.IsValid())
             {
-                const FramebufferDesc& framebufferDesc = cachedData->shadowViewsDynamic[viewIndex]->GetViewDesc().framebufferDesc;
+                const FramebufferDesc& framebufferDesc = firstShadowView->GetViewDesc().framebufferDesc;
 
                 framebuffer = RI.MakeFramebuffer(framebufferDesc);
 
@@ -352,7 +359,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 frame->cr << CopyImage(
                     bakedShadowMap->GetGpuImage(),
                     depthTarget->GetGpuImage(),
-                    Vec3u(0, 0, 0),
+                    Vec3u::Zero(),
                     Vec3u(atlasElement.offsetCoords.x, atlasElement.offsetCoords.y, 0),
                     Vec3u(atlasElement.dimensions.x, atlasElement.dimensions.y, 1),
                     srcImageSubResource,

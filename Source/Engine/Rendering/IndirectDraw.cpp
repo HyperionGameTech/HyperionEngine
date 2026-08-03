@@ -410,14 +410,8 @@ void IndirectRenderer::ExecuteCullShaderInBatches(CommandRecorder& cr, const Ren
     DeferredPassData* pd = DynamicCast<DeferredPassData>(renderSetup.passData);
     AssertDebug(pd != nullptr);
 
-    if (!m_hasCullViewProjMat)
-    {
-        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
-        AssertDebug(cameraProxy != nullptr);
-
-        m_cullViewProjMat = cameraProxy->bufferData.viewProjMat;
-        m_hasCullViewProjMat = true;
-    }
+    RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
+    AssertDebug(cameraProxy != nullptr);
 
     uint32 numShaderUniforms = 0;
 
@@ -439,7 +433,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(CommandRecorder& cr, const Ren
         ShaderDataOffset(0, 0));
 
     ComputeVisibilityConstants constants {};
-    constants.viewProj = m_cullViewProjMat;
+    constants.viewProj = cameraProxy->bufferData.viewProjMat;
     constants.depthPyramidDimensions = pd->depthPyramidRenderer->GetExtent();
     constants.totalMips = pd->depthPyramidRenderer->GetTotalMips();
     constants.batchOffset = 0;

@@ -127,9 +127,6 @@ private:
 
     IndirectDrawState m_indirectDrawState;
     EntityBatchAllocatorBase* m_batchAllocator;
-
-    Mat4f m_cullViewProjMat;
-    bool m_hasCullViewProjMat = false;
 };
 
 } // namespace Hyperion
