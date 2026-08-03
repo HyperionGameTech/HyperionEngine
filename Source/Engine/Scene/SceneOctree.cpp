@@ -19,19 +19,18 @@
 
 #include <Scene/Camera/Camera.hpp>
 
-// Temp
-#include <Scene/Volume.hpp>
-
 #include <Rendering/Mesh.hpp>
 
-#if HYP_EDITOR
+#include <Scene/Volume.hpp>
+
+#ifdef HYP_EDITOR
 #include <Editor/EditorState.hpp>
 #include <Editor/EditorPickCache.hpp>
 #endif
 
 namespace Hyperion {
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 extern Handle<EditorState> g_editorState;
 #endif
 
@@ -1042,7 +1041,7 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<
 
                     RayTestResults localBvhResults;
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
                     bool usedPickCache = false;
 
                     if (flags & RayTestFlags::EditorPick)

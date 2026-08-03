@@ -25,7 +25,7 @@ namespace Hyperion {
 namespace EngineGlobals {
 
 /// Editor build only
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 
 ENGINE_API bool IsEditor()
 {
@@ -135,10 +135,10 @@ HYP_EXPORT FilePath CreateTempDirectory()
 
 HYP_EXPORT const FilePath& GetLibraryDirectory()
 {
-#ifdef HYP_EDITOR
+#ifndef HYP_SHIPPING
     static DirectoryInitializer<HYP_STATIC_STRING("Packages"), /* RelativeToExecutablePath */ false> s_resourceDirectory;
     return s_resourceDirectory.path;
-#else  // !HYP_EDITOR
+#else   // HYP_SHIPPING
     static DirectoryInitializer<HYP_STATIC_STRING("Packages"), /* RelativeToExecutablePath */ true> s_resourceDirectory;
 
     if (!s_resourceDirectory.path.Exists())
@@ -148,7 +148,7 @@ HYP_EXPORT const FilePath& GetLibraryDirectory()
     }
 
     return s_resourceDirectory.path;
-#endif // HYP_EDITOR
+#endif  // !HYP_SHIPPING
 }
 
 HYP_EXPORT bool IsShuttingDown()

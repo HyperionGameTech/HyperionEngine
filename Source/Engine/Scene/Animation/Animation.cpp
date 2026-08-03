@@ -58,7 +58,7 @@ void AnimationTrack::PageBlobData()
 
         if (!blobStorage || !blobStorage->GetData(m_keyframeData.key, m_keyframeData.size, m_keyframeData.raw))
         {
-#if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
+#if defined(HYP_EDITOR) || defined(HYP_ALLOW_INLINE_BLOBS)
             // check if failed; if so, try to import from raw data blob in project directory
             const Name blobKey = m_keyframeData.key;
             const uint64 expectedSize = m_keyframeData.size;

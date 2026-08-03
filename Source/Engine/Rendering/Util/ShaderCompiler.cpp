@@ -1714,7 +1714,7 @@ bool ShaderCompiler::LoadBundle(
 {
     outBundle.Reset();
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     if (!CanCompileShaders())
     {
         HYP_LOG(ShaderCompiler, Warning,

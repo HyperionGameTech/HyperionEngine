@@ -330,7 +330,7 @@ Result AssetObject::SaveBlobData(BlobStorage* storage, const Optional<FilePath>&
             }
         }
 
-#if HYP_EDITOR
+#if defined(HYP_EDITOR) || defined(HYP_ALLOW_INLINE_BLOBS)
         if (localBlobDirectory.HasValue())
         {
             // Save the blob data locally as well, as other users may not have the blob data or have mismatched blob data
@@ -672,7 +672,7 @@ Handle<AssetRegistry> AssetObject::GetAssetRegistry()
         return GetCurrentAssetRegistry();
     case AssetRegistryId::Engine:
         return GetEngineAssetRegistry();
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     case AssetRegistryId::Editor:
         return GetEditorAssetRegistry();
 #endif // HYP_EDITOR

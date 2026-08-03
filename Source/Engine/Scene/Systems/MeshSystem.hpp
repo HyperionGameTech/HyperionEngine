@@ -38,7 +38,7 @@ private:
         };
     }
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     struct CachedInstancedMeshDataState
     {
         bool enableAutoInstancing;

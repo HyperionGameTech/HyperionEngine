@@ -16,7 +16,7 @@
 
 #include <Core/FileSystem/FsUtil.hpp>
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 #include <Editor/EditorState.hpp>
 #include <Editor/EditorProject.hpp>
 #endif

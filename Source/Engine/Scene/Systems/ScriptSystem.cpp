@@ -46,7 +46,7 @@ namespace Hyperion {
 
 ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(Scripting, Engine);
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 static constexpr auto EnableScriptReloading = &EngineGlobals::IsEditor;
 #else  // !HYP_EDITOR
 static constexpr std::false_type EnableScriptReloading;

@@ -468,7 +468,7 @@ void Texture::PageBlobData()
 
         if (!blobStorage || !blobStorage->GetData(m_imageData.key, m_imageData.size, m_imageData.raw))
         {
-#if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
+#if defined(HYP_EDITOR) || defined(HYP_ALLOW_INLINE_BLOBS)
             // check if failed; if so, try to import from raw data blob in project directory
             const Name blobKey = m_imageData.key;
             const uint64 expectedSize = m_imageData.size;

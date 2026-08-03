@@ -199,7 +199,7 @@ ENGINE_API void ClearAssetRegistryStack();
 ENGINE_API Handle<AssetRegistry> GetEngineAssetRegistry();
 ENGINE_API void SetEngineAssetRegistry(const Handle<AssetRegistry>& registry);
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 ENGINE_API Handle<AssetRegistry> GetEditorAssetRegistry();
 ENGINE_API void SetEditorAssetRegistry(const Handle<AssetRegistry>& registry);
 #endif // HYP_EDITOR

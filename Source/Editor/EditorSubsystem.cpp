@@ -3196,7 +3196,7 @@ void EditorSubsystem::ShutdownGizmos()
 
 #pragma region EditorSubsystem
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 
 EditorSubsystem::EditorSubsystem()
     : m_selectedManipulationMode(EditorManipulationMode::None),

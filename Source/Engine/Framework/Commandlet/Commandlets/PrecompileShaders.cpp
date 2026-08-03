@@ -126,7 +126,7 @@ protected:
         }
 
         // Parse backends
-        Array<String> backends = GetEnumValues(args["backends"]);
+        Array<String> backends = GetEnumValues(args["api"]);
         EnumFlags<ShaderCompileTargetBackend> backendFlags = ShaderCompileTargetBackend::None;
 
         for (const String& backend : backends)

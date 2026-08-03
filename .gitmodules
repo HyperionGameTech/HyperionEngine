@@ -8,3 +8,6 @@
 [submodule "External/Submodules/xatlas"]
 	path = External/Submodules/xatlas
 	url = https://github.com/jpcy/xatlas
+[submodule "External/Submodules/stratac"]
+	path = External/Submodules/stratac
+	url = https://github.com/StrataLanguage/stratac

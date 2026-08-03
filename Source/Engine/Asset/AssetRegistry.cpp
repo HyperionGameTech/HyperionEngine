@@ -60,7 +60,7 @@ CORE_API extern bool IsAndroidAssetPath(const FilePath& filepath);
 
 static Handle<AssetRegistry> s_engineAssetRegistry;
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 static Handle<AssetRegistry> s_editorAssetRegistry;
 #endif // HYP_EDITOR
 
@@ -156,7 +156,7 @@ ENGINE_API void SetEngineAssetRegistry(const Handle<AssetRegistry>& registry)
     s_engineAssetRegistry = registry;
 }
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 
 ENGINE_API Handle<AssetRegistry> GetEditorAssetRegistry()
 {
@@ -1624,7 +1624,7 @@ void AssetRegistry::Update()
     HYP_SCOPE;
     AssertOnThread(s_assetRegistryThread);
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     if (!m_pruneTimer.Waiting())
     {
         m_pruneTimer.NextTick();

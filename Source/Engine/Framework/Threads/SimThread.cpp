@@ -40,7 +40,7 @@
 
 #include <Rendering/RenderInterface.hpp>
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 #include <Editor/EditorState.hpp>
 #endif
 
@@ -176,7 +176,7 @@ void SimThread::Update()
     g_assetManager->Update(m_counter.delta);
     g_streamingManager->Update(m_counter.delta);
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     g_editorState->Update(m_counter.delta);
 #endif
 

@@ -24,7 +24,7 @@
 
 namespace Hyperion {
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 
 static void BuildInvSphere(Handle<AssetRegistry>& engineRegistry)
 {

@@ -10,7 +10,7 @@
 
 #pragma region Compiler and Platform Switches
 
-#if defined(HYPERION_BUILD_RELEASE_FINAL) && HYPERION_BUILD_RELEASE_FINAL
+#if defined(HYP_SHIPPING) && HYP_SHIPPING
 
 #if !defined(HYPERION_BUILD_RELEASE) || !HYPERION_BUILD_RELEASE
 #define HYPERION_BUILD_RELEASE 1

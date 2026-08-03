@@ -53,19 +53,19 @@ ENGINE_API extern Handle<EngineStats> g_engineStats;
 ENGINE_API extern MaterialCache* g_materialCache;
 ENGINE_API extern ShaderCompiler* g_shaderCompiler;
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 extern Handle<EditorState> g_editorState;
 #endif // HYP_EDITOR
 
 namespace EngineGlobals {
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 ENGINE_API bool IsEditor();
 #else  // !HYP_EDITOR
 static constexpr std::false_type IsEditor;
 #endif // HYP_EDITOR
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 ENGINE_API const FilePath& GetProjectsDirectory();
 ENGINE_API const FilePath& GetDataDirectory();
 #endif // HYP_EDITOR

@@ -506,7 +506,7 @@ void Game::PauseSimulation()
     OnGameStateChange.Fire(this, this, previousGameStateMode, GameStateMode::PAUSED);
 }
 
-//#if HYP_EDITOR
+//#ifdef HYP_EDITOR
 //
 //void Game::SetToEditMode()
 //{

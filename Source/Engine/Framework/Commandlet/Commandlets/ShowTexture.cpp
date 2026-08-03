@@ -116,7 +116,7 @@ protected:
         {
             texture = tryLoadFromRegistry(*GetEngineAssetRegistry());
         }
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
         if (!texture.IsValid())
         {
             texture = tryLoadFromRegistry(*GetEditorAssetRegistry());

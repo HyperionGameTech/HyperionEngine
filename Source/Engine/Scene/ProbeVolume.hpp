@@ -90,7 +90,7 @@ private:
 
     void RemoveStaleCacheEntries();
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 public:
     HYP_METHOD(Property = "GridSize", EditorOnly)
     const Vec3u& GetGridSize() const

@@ -187,10 +187,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(HYP_DEBUG_MODE 1)
 endif()
 
-# Uncomment to enable release final build optimizations
-# set(HYPERION_BUILD_RELEASE_FINAL 1)
-
-if(NOT HYPERION_BUILD_RELEASE_FINAL)
+if(NOT HYP_SHIPPING)
   add_definitions(-DHYP_ENABLE_CORE_ASSERTIONS=1)
 endif()
 
@@ -198,7 +195,7 @@ endif()
 add_definitions(-DHYPERION_ENGINE=1)
 set(HYPERION_ENGINE 1)
 
-if (NOT HYP_ANDROID AND NOT HYP_IOS AND NOT HYPERION_BUILD_RELEASE_FINAL)
+if (NOT HYP_ANDROID AND NOT HYP_IOS AND NOT HYP_SHIPPING)
   set(HYP_TESTS 1)
   add_definitions(-DHYP_TESTS=1)
 endif()
@@ -235,7 +232,7 @@ if(HYP_MSVC)
   add_definitions("/D_HAS_EXCEPTIONS=0")
   add_definitions("/DNOMINMAX")
 
-  if (HYPERION_BUILD_RELEASE_FINAL)
+  if (HYP_SHIPPING)
     set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Zi /GL /GF /Zc:inline /constexpr:depth1024 /bigobj /MP4 /arch:AVX2 /fp:fast")
   else()
     set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Z7 /MP /constexpr:depth1024 /bigobj /arch:AVX2 /fp:fast")
@@ -258,7 +255,7 @@ else()
     message(STATUS "Building with Clang on Windows, adding NOMINMAX definition to avoid min/max macro conflicts")
   endif()
 
-  if(HYPERION_BUILD_RELEASE_FINAL)
+  if(HYP_SHIPPING)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -flto -Werror")
   elseif(NOT HYP_DEBUG_MODE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g -Werror=return-type -Werror=address -Werror=non-virtual-dtor -Werror=unused-result")
@@ -356,7 +353,7 @@ set(HYP_GENERATED_DIR "${CMAKE_SOURCE_DIR}/Generated")
 set(CSHARP_PROJECTS_DIR "${CMAKE_SOURCE_DIR}/../Build/CSharpProjects")
 file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR})
 
-if(NOT HYP_ANDROID AND NOT HYP_IOS)
+if(NOT HYP_ANDROID AND NOT HYP_IOS AND NOT HYP_SHIPPING)
   # TODO if not final release build check.
   # for final release follow the android technique
 
@@ -369,15 +366,15 @@ if(NOT HYP_ANDROID AND NOT HYP_IOS)
 
   add_definitions(-DHYP_ROOT_DIR="${HYP_ROOT_DIR_ESCAPED}")
 
-  set(HYP_EDITOR 1)
-  add_definitions(-DHYP_EDITOR=1)
+  # set(HYP_EDITOR 1)
+  # add_definitions(-DHYP_EDITOR=1)
 
   add_definitions(-DHYP_ENABLE_SHADER_RELOAD=1)
 endif()
 
 # build libraries as static for iOS or in final build
 # android needs shared lib
-if((HYP_IOS OR HYPERION_BUILD_RELEASE_FINAL) AND NOT HYP_ANDROID)
+if((HYP_IOS OR HYP_SHIPPING) AND NOT HYP_ANDROID)
   set(HYP_BUILD_STATIC 1)
 
   add_definitions(-DHYP_BUILD_STATIC=1)
@@ -434,33 +431,40 @@ if(HYP_DOTNET_HOST)
 endif()
 
 # Strata lang integration
-set(HYP_STRATA 1)
-add_definitions(-DHYP_STRATA=1)
+# Only enable Strata for editor builds.
+if(HYP_EDITOR)
+    set(HYP_STRATA 1)
+    add_definitions(-DHYP_STRATA=1)
 
-if (HYP_STRATA)
+  # Prefer building strata from the submodule (if available)
+  set(STRATA_SUBMODULE_DIR "${SUBMODULES_DIR}/stratac")
 
-  if(HYP_EDITOR)
-    # attempt to use strata if headers exist,
-    # editor only. (non editor build will link directly to compiled .o files)
-    set(HYP_TRY_TO_COMPILE_WITH_STRATA_JIT 1)
-  endif()
-  # check if strata headers exists
-  if(HYP_TRY_TO_COMPILE_WITH_STRATA_JIT)
+  if(EXISTS "${STRATA_SUBMODULE_DIR}/CMakeLists.txt")
+    message(STATUS "Building strata from submodule: ${STRATA_SUBMODULE_DIR}")
+
+    set(STRATA_SHARED OFF CACHE BOOL "Build Strata as a shared library")
+    set(STRATA_ENABLE_LLVM OFF CACHE BOOL "Build strata with LLVM backend")
+    set(STRATA_ENABLE_TCC ON CACHE BOOL "Build strata with TCC backend")
+
+    add_subdirectory(${STRATA_SUBMODULE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/stratac EXCLUDE_FROM_ALL)
+
+    set(HYP_STRATA_JIT 1)
+    add_definitions(-DHYP_STRATA_JIT=1)
+
+    set(COMMON_LIBRARIES ${COMMON_LIBRARIES} strata)
+  else()
+    # Fallback: use prebuilt strata binaries
+
     if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/strata/strata.h")
-      message(STATUS "strata headers found")
+      message(STATUS "strata headers found (prebuilt)")
 
       if(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/libstrata.a")
         set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/libstrata.a")
-
         set(HYP_STRATA_JIT 1)
       elseif(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/strata.lib")
-        
         set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/strata.lib")
-
-        # copy the dll to the build directory
         file(COPY "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/strata.dll" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
         file(COPY "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/LLVM-C.dll" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
-
         set(HYP_STRATA_JIT 1)
       else()
         message(WARNING "strata library not found, expected to find libstrata.a or strata.lib in ${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}")
@@ -468,28 +472,10 @@ if (HYP_STRATA)
 
       if(HYP_STRATA_JIT)
         add_definitions(-DHYP_STRATA_JIT=1)
-        # add header dir
         include_directories("${THIRD_PARTY_INCLUDE_DIR}/strata")
       endif()
     else()
       message(STATUS "strata headers not found, skipping strata")
-    endif()
-  else()
-    # !HYP_TRY_TO_COMPILE_WITH_STRATA_JIT...
-
-    # we need to link with the compiled strata object files
-    # this is for non-editor builds, where we don't want to compile with strata
-
-    # the files will be in the build folder under subdir "strata"
-    # we need to find them and link them in
-
-    set(STRATA_OBJECT_DIR "${CMAKE_BINARY_DIR}/strata")
-
-    if(EXISTS "${STRATA_OBJECT_DIR}")
-      # windows - we need to find the .obj files
-      file(GLOB STRATA_OBJECT_FILES "${STRATA_OBJECT_DIR}/*.obj")
-      # linux/mac
-      file(GLOB STRATA_OBJECT_FILES "${STRATA_OBJECT_DIR}/*.o")
     endif()
   endif()
 endif()
@@ -513,7 +499,7 @@ endif()
 set(RENDERING_BACKEND "Vulkan")
 
 if(WIN32)
-  #set(ENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND true)
+  set(ENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND true)
 
   if(ENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND)
     set(RENDERING_BACKEND "DX12")

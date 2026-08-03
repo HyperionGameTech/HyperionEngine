@@ -25,7 +25,7 @@
 
 namespace Hyperion {
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 
 static Handle<Entity> CreateAxisEntity(
     const char* entityName,

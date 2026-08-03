@@ -213,7 +213,7 @@ void Mesh::PageBlobData()
 
                     ([&]()
                      {
-#if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
+#if defined(HYP_EDITOR) || defined(HYP_ALLOW_INLINE_BLOBS)
                          // check if failed; if so, try to import from raw data blob in project directory
                          FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (meshName + ".VB.raw.blob") };
                          if (!stream.Eof())
@@ -257,7 +257,7 @@ void Mesh::PageBlobData()
 
                     ([&]()
                      {
-#if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
+#if defined(HYP_EDITOR) || defined(HYP_ALLOW_INLINE_BLOBS)
                          // check if failed; if so, try to import from raw data blob in project directory
                          FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (meshName + ".IB.raw.blob") };
                          if (!stream.Eof())
@@ -307,7 +307,7 @@ void Mesh::PageBlobData()
 
             ([&]()
              {
-#if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
+#if defined(HYP_EDITOR) || defined(HYP_ALLOW_INLINE_BLOBS)
                  FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (meshName + ".BVH.raw.blob") };
                  if (!stream.Eof())
                  {

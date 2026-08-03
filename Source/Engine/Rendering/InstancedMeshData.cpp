@@ -60,7 +60,7 @@ void InstancedMeshData::PageBlobData()
         {
             if (!blobStorage || !blobStorage->GetData(ref.key, ref.size, ref.raw))
             {
-#if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
+#if defined(HYP_EDITOR) || defined(HYP_ALLOW_INLINE_BLOBS)
                 const Name blobKey = ref.key;
                 const uint64 expectedSize = ref.size;
 
@@ -83,7 +83,7 @@ void InstancedMeshData::PageBlobData()
                     continue;
                 }
 #endif
-                HYP_FAIL("Failed to page blob data for InstancedMeshData {}", GetName());
+                HYP_LOG(Engine, Error, "Failed to page blob data for InstancedMeshData {}", GetName());
             }
             else
             {

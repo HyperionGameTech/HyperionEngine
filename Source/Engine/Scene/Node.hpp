@@ -904,7 +904,7 @@ public:
      *  \returns True if the tag exists, false otherwise. */
     bool HasTag(StringHash key) const;
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     HYP_METHOD(EditorOnly)
     void MarkDirty();
 #else  // !HYP_EDITOR

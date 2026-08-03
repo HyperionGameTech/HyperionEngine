@@ -94,7 +94,7 @@ void Shader::PageBlobData()
         {
             if (!blobStorage || !blobStorage->GetData(ref.key, ref.size, ref.raw))
             {
-#if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
+#if defined(HYP_EDITOR) || defined(HYP_ALLOW_INLINE_BLOBS)
                 const char* moduleTypeString = GetShaderHeaderPrefix(moduleType);
 
                 const Name blobKey = ref.key;
@@ -118,8 +118,13 @@ void Shader::PageBlobData()
 
                     continue;
                 }
+                else
+                {
+                    HYP_LOG(Engine, Error, "Failed to read {}", stream.GetFilepath());
+                }
 #endif
-                HYP_FAIL("Failed to page blob data for shader {}", GetName());
+
+                HYP_LOG(Engine, Error, "Failed to page blob data for Shader {}", GetName());
             }
             else
             {

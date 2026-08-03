@@ -96,7 +96,9 @@ public:
     ScriptObjectResource(ScriptInstance* hypScriptInstance, ObjectBase* hypScriptValue);
 #endif // HYP_SCRIPT
 
+#ifdef HYP_STRATA
     ScriptObjectResource(ValueWrapper<ScriptLanguage::Strata>, StringHash moduleHash);
+#endif // HYP_STRATA
 
     ScriptObjectResource(const ScriptObjectResource& other) = delete;
     ScriptObjectResource& operator=(const ScriptObjectResource& other) = delete;

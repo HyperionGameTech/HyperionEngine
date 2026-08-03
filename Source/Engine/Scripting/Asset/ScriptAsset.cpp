@@ -78,7 +78,7 @@ void ScriptAsset::PageBlobData()
     {
         if (!blobStorage || !blobStorage->GetData(m_data.key, m_data.size, m_data.raw))
         {
-#if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
+#if defined(HYP_EDITOR) || defined(HYP_ALLOW_INLINE_BLOBS)
             const Name blobKey = m_data.key;
             const uint64 expectedSize = m_data.size;
 

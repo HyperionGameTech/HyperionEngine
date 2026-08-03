@@ -138,7 +138,7 @@ void MeshSystem::OnEntityAdded(Entity* entity)
     entity->AddTag<EntityTag::UpdateRenderProxy>();
     entity->RemoveTag<EntityTag::UpdateInstancedMeshData>();
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     m_cachedStates[entity] = CachedInstancedMeshDataState { meshComponent.enableAutoInstancing };
 #endif // HYP_EDITOR
 }
@@ -157,7 +157,7 @@ void MeshSystem::OnEntityRemoved(Entity* entity)
     entity->AddTag<EntityTag::UpdateRenderProxy>();
     entity->RemoveTag<EntityTag::UpdateInstancedMeshData>();
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     m_cachedStates.Erase(entity);
 #endif // HYP_EDITOR
 }
@@ -180,7 +180,7 @@ void MeshSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
         m_updatedEntities.Resize(0);
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
         for (auto [entity, meshComponent] : scene->GetEntityManager()->GetEntitySet<MeshComponent>().GetScopedView(GetComponentInfos()))
         {
             if (std::find(m_updatedEntities.Begin(), m_updatedEntities.End(), entity) != m_updatedEntities.End())

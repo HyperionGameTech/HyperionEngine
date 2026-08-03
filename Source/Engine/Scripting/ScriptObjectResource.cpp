@@ -121,12 +121,14 @@ ScriptObjectResource::ScriptObjectResource(ScriptInstance* hypScriptInstance, Ob
 
 #endif // HYP_SCRIPT
 
+#ifdef HYP_STRATA
 ScriptObjectResource::ScriptObjectResource(ValueWrapper<ScriptLanguage::Strata>, StringHash moduleHash)
     : m_ptr(nullptr)
 {
     ScriptObjectData_Strata& data = strataData.Emplace(ScriptObjectData_Strata());
     data.moduleHash = moduleHash;
 }
+#endif // HYP_STRATA
 
 ScriptObjectResource::~ScriptObjectResource()
 {

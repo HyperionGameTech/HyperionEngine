@@ -39,7 +39,7 @@ struct DirectoryInitializer
 #endif
         }
 
-#if HYP_EDITOR
+#ifndef HYP_SHIPPING
         if (!path.Exists())
         {
             if (!path.MkDir())

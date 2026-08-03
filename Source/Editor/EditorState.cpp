@@ -23,7 +23,7 @@ namespace Hyperion {
 
 EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
 
 const Handle<EditorState>& EditorState::GetInstance()
 {

@@ -315,6 +315,7 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
     }
 #endif // HYP_SCRIPT
 
+#ifdef HYP_STRATA
     if (mask & (1u << uint32(ScriptLanguage::Strata)))
     {
         auto* data = sor->GetScriptObjectData_Strata();
@@ -338,6 +339,7 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
             }
         }
     }
+#endif // HYP_STRATA
 
     if (mask & (1u << uint32(ScriptLanguage::Native)))
     {
@@ -545,7 +547,8 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
                 // Create from bytecode
                 ConstByteView bytecode = scriptAsset->GetBytecode();
-#if HYP_EDITOR
+                
+#ifdef HYP_EDITOR
                 if (bytecode.Size() > 0)
                 {
                     // Check if source file has been modified since the bytecode was compiled

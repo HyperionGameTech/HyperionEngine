@@ -249,7 +249,7 @@ public:
 
     void UpdateRenderProxy(RenderProxyLight* proxy);
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     HYP_METHOD(EditorOnly, EditorAction = "Bake Shadow Map", EditCondition = "CanBakeStaticShadows")
     void BakeStaticShadows();
 

@@ -107,7 +107,7 @@ public:
     SparsePagedArray<Shader, 16, DynamicAllocator> m_compiledShaderCache;
     SparsePagedArray<ShaderMapEntry, 16, DynamicAllocator> m_entries;
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     EditorTaskScope m_editorTask;
 #endif
 
@@ -212,7 +212,7 @@ public:
     {
         m_spActiveCompilationTask.acquire();
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
         UpdateEditorTask();
 #endif
 
@@ -245,7 +245,7 @@ public:
 
                     m_numCompilingShaders.Decrement(1, MemoryOrder::RELAXED);
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
                     UpdateEditorTask();
 #endif
                 }
@@ -255,7 +255,7 @@ public:
         }
     }
 
-#if HYP_EDITOR
+#ifdef HYP_EDITOR
     void UpdateEditorTask()
     {
         auto GetDescriptionText = [this]()
