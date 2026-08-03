@@ -8,6 +8,7 @@ XCODE=0
 HYP_ANDROID=0
 HYP_REGENERATE=0
 HYP_NOWAIT=0
+HYP_SHIPPING=0
 
 USE_NINJA=0
 
@@ -45,18 +46,26 @@ for arg in "$@"; do
         CONFIG="Debug"
     elif [[ "$arg" == "Release" ]]; then
         CONFIG="Release"
+    elif [[ "$arg" == "Shipping" || "$arg" == "shipping" ]]; then
+        HYP_SHIPPING=1
+        CONFIG="Release"
     fi
 done
 
+BUILD_DIR_SUFFIX="$CONFIG"
+if [[ $HYP_SHIPPING -eq 1 ]]; then
+    BUILD_DIR_SUFFIX="Shipping"
+fi
+
 if [[ $HYP_ANDROID -eq 1 ]]; then
-    mkdir -p "Build/Android/$CONFIG"
-    pushd "Build/Android/$CONFIG"
+    mkdir -p "Build/Android/$BUILD_DIR_SUFFIX"
+    pushd "Build/Android/$BUILD_DIR_SUFFIX"
 elif [[ $HYP_LINUX -eq 1 ]]; then
-    mkdir -p "Build/Linux/$CONFIG"
-    pushd "Build/Linux/$CONFIG"
+    mkdir -p "Build/Linux/$BUILD_DIR_SUFFIX"
+    pushd "Build/Linux/$BUILD_DIR_SUFFIX"
 else
-    mkdir -p "Build/$CURR_PLATFORM/$CONFIG"
-    pushd "Build/$CURR_PLATFORM/$CONFIG"
+    mkdir -p "Build/$CURR_PLATFORM/$BUILD_DIR_SUFFIX"
+    pushd "Build/$CURR_PLATFORM/$BUILD_DIR_SUFFIX"
 fi
 
 if [[ $HYP_REGENERATE -eq 1 ]]; then
@@ -77,6 +86,10 @@ if [[ $DO_CMAKE -eq 1 ]]; then
     printf "Using Hyperion root directory: %s\n" "$HYP_ROOT_DIR_ABS"
 
     HYP_CMAKE_PARAMS="-DHYP_THIRD_PARTY_LIBRARY_DIRECTORY=$SCRIPT_DIR/../../External/ThirdParty/Binaries -DHYP_LIBRARY_OUTPUT_DIRECTORY=$SCRIPT_DIR/../../Binaries -DHYP_RUNTIME_OUTPUT_DIRECTORY=$SCRIPT_DIR/../../Binaries -DHYP_ROOT_DIR=$HYP_ROOT_DIR_ABS"
+
+    if [[ $HYP_SHIPPING -eq 1 ]]; then
+        HYP_CMAKE_PARAMS="$HYP_CMAKE_PARAMS -DHYP_SHIPPING=1"
+    fi
 
     if [[ $HYP_ANDROID -eq 1 ]]; then
         if [[ -z "$ANDROID_NDK_HOME" ]]; then

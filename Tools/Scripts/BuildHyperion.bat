@@ -5,12 +5,15 @@ set "HYP_ANDROID=0"
 set "HYP_CLANG=0"
 set "HYP_REGENERATE=0"
 set "HYP_NOWAIT=0"
+set "HYP_SHIPPING=0"
 set "HYP_BUILD_TYPE=Release"
 
 :PARSE_ARGS
 IF "%~1"=="" GOTO END_PARSE_ARGS
 IF /I "%~1"=="debug" set "HYP_BUILD_TYPE=Debug"
 IF /I "%~1"=="release" set "HYP_BUILD_TYPE=Release"
+IF /I "%~1"=="shipping" set "HYP_SHIPPING=1"
+IF /I "%~1"=="shipping" set "HYP_BUILD_TYPE=Release"
 IF /I "%~1"=="android" set "HYP_ANDROID=1"
 IF /I "%~1"=="clang" set "HYP_CLANG=1"
 IF /I "%~1"=="regenerate" set "HYP_REGENERATE=1"
@@ -19,15 +22,21 @@ SHIFT
 GOTO PARSE_ARGS
 :END_PARSE_ARGS
 
+set "HYP_BUILD_DIR=%HYP_BUILD_TYPE%"
+if "%HYP_SHIPPING%"=="1" set "HYP_BUILD_DIR=Shipping"
+
+set "HYP_SHIPPING_CMAKE="
+if "%HYP_SHIPPING%"=="1" set "HYP_SHIPPING_CMAKE=-DHYP_SHIPPING=1"
+
 if "%HYP_ANDROID%"=="1" (
-    if not exist Build\Android\%HYP_BUILD_TYPE% mkdir Build\Android\%HYP_BUILD_TYPE%
-    pushd Build\Android\%HYP_BUILD_TYPE%
+    if not exist Build\Android\%HYP_BUILD_DIR% mkdir Build\Android\%HYP_BUILD_DIR%
+    pushd Build\Android\%HYP_BUILD_DIR%
 ) else if "%HYP_CLANG%"=="1" (
-    if not exist Build\Windows-Clang\%HYP_BUILD_TYPE% mkdir Build\Windows-Clang\%HYP_BUILD_TYPE%
-    pushd Build\Windows-Clang\%HYP_BUILD_TYPE%
+    if not exist Build\Windows-Clang\%HYP_BUILD_DIR% mkdir Build\Windows-Clang\%HYP_BUILD_DIR%
+    pushd Build\Windows-Clang\%HYP_BUILD_DIR%
 ) else (
-    if not exist Build\Windows\%HYP_BUILD_TYPE% mkdir Build\Windows\%HYP_BUILD_TYPE%
-    pushd Build\Windows\%HYP_BUILD_TYPE%
+    if not exist Build\Windows\%HYP_BUILD_DIR% mkdir Build\Windows\%HYP_BUILD_DIR%
+    pushd Build\Windows\%HYP_BUILD_DIR%
 )
 
 REM CHOICE returns ERRORLEVEL 1 for Y, 2 for N
@@ -102,7 +111,7 @@ if not defined NINJA_EXE (
 set "ANDROID_NDK_SYSROOT=%ANDROID_NDK%/toolchains/llvm/prebuilt/windows-x86_64/sysroot"
 
 echo Using Ninja: %NINJA_EXE%
-cmake ../../../Source -G Ninja -DCMAKE_MAKE_PROGRAM="%NINJA_EXE%" -DCMAKE_TOOLCHAIN_FILE="%ANDROID_NDK%/build/cmake/android.toolchain.cmake" -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-28 -DANDROID_STL=c++_shared -DCMAKE_BUILD_TYPE="%HYP_BUILD_TYPE%" -DHYP_PLATFORM_NAME=Android -DANDROID_NDK_SYSROOT="%ANDROID_NDK_SYSROOT%" -DHYP_THIRD_PARTY_LIBRARY_DIRECTORY="%~dp0..\..\..\External\ThirdParty\Binaries" -DHYP_LIBRARY_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_RUNTIME_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_ROOT_DIR="%HYP_ROOT_DIR%"
+cmake ../../../Source -G Ninja -DCMAKE_MAKE_PROGRAM="%NINJA_EXE%" -DCMAKE_TOOLCHAIN_FILE="%ANDROID_NDK%/build/cmake/android.toolchain.cmake" -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-28 -DANDROID_STL=c++_shared -DCMAKE_BUILD_TYPE="%HYP_BUILD_TYPE%" -DHYP_PLATFORM_NAME=Android -DANDROID_NDK_SYSROOT="%ANDROID_NDK_SYSROOT%" -DHYP_THIRD_PARTY_LIBRARY_DIRECTORY="%~dp0..\..\..\External\ThirdParty\Binaries" -DHYP_LIBRARY_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_RUNTIME_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_ROOT_DIR="%HYP_ROOT_DIR%" %HYP_SHIPPING_CMAKE%
 
 
 GOTO SKIP_CMAKE_GENERATION
@@ -112,7 +121,7 @@ IF NOT DEFINED VCPKG_ROOT (
     exit /b 1
 )
 
-cmake ../../../Source -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" -DVCPKG_DEFAULT_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE="%HYP_BUILD_TYPE%" -G "Visual Studio 18 2026" -A x64 -T ClangCL -DHYP_THIRD_PARTY_LIBRARY_DIRECTORY="%~dp0..\..\..\External\ThirdParty\Binaries" -DHYP_LIBRARY_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_RUNTIME_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_ROOT_DIR="%HYP_ROOT_DIR%"
+cmake ../../../Source -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" -DVCPKG_DEFAULT_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE="%HYP_BUILD_TYPE%" -G "Visual Studio 18 2026" -A x64 -T ClangCL -DHYP_THIRD_PARTY_LIBRARY_DIRECTORY="%~dp0..\..\..\External\ThirdParty\Binaries" -DHYP_LIBRARY_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_RUNTIME_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_ROOT_DIR="%HYP_ROOT_DIR%" %HYP_SHIPPING_CMAKE%
 
 GOTO SKIP_CMAKE_GENERATION
 :CMAKE_WINDOWS
@@ -121,10 +130,14 @@ IF NOT DEFINED VCPKG_ROOT (
     exit /b 1
 )
 
-cmake ../../../Source -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" -DVCPKG_DEFAULT_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE="%HYP_BUILD_TYPE%" -G "Visual Studio 18 2026" -A x64 -DHYP_THIRD_PARTY_LIBRARY_DIRECTORY="%~dp0..\..\..\External\ThirdParty\Binaries" -DHYP_LIBRARY_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_RUNTIME_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_ROOT_DIR="%HYP_ROOT_DIR%"
+cmake ../../../Source -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" -DVCPKG_DEFAULT_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE="%HYP_BUILD_TYPE%" -G "Visual Studio 18 2026" -A x64 -DHYP_THIRD_PARTY_LIBRARY_DIRECTORY="%~dp0..\..\..\External\ThirdParty\Binaries" -DHYP_LIBRARY_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_RUNTIME_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_ROOT_DIR="%HYP_ROOT_DIR%" %HYP_SHIPPING_CMAKE%
 
 :SKIP_CMAKE_GENERATION
 
-cmake --build . --parallel 8 --config Release
+cmake --build . --parallel 8 --config %HYP_BUILD_TYPE%
+if errorlevel 1 (
+    popd
+    exit /b 1
+)
 
 popd

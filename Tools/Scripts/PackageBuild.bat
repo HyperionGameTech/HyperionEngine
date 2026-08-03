@@ -3,6 +3,15 @@ setlocal EnableDelayedExpansion
 
 for %%i in ("%~dp0..\..") do set "HYP_ROOT_DIR=%%~fi\"
 
+echo Running shipping build (BuildHyperion.bat shipping)...
+
+call "%~dp0BuildHyperion.bat" shipping regenerate
+
+if errorlevel 1 (
+    echo Build failed, aborting packaged build.
+    exit /b 1
+)
+
 set "BIN_DIR=%HYP_ROOT_DIR%Binaries\Windows\Release"
 
 for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "Get-Date -Format 'yyyyMMdd_HHmmss'"`) do set "TIMESTAMP=%%i"
@@ -24,8 +33,6 @@ echo Creating packaged build at: %OUT_DIR%
 
 if not exist "%OUT_DIR%" mkdir "%OUT_DIR%"
 if not exist "%OUT_DIR%\Source\Shaders" mkdir "%OUT_DIR%\Source\Shaders"
-
-REM Run build script (BuildHyperion.bat)
 
 echo Copying executables...
 copy "%BIN_DIR%\*.exe" "%OUT_DIR%\" >nul
