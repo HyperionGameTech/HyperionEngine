@@ -347,15 +347,13 @@ void AppContextBase::RemoveWindow(ApplicationWindow* window)
 
 Result AppContextBase::RunCommandlet(ANSIStringView commandletName, const CommandLineArguments& args)
 {
-    AssertOnThread(g_mainThread);
-
     const Class* commandletClass = ClassRegistry::GetInstance().GetClass(commandletName, /* ignoreCase */ true);
 
     if (!commandletClass
         || !commandletClass->IsDerivedFrom(CommandletBase::StaticClass())
         || commandletClass->IsAbstract())
     {
-        return HYP_MAKE_ERROR(Error, "'{}' is not a valid commandlet class", commandletClass ? commandletClass->GetName() : Name::Invalid());
+        return HYP_MAKE_ERROR(Error, "'{}' is not a valid commandlet class", commandletName);
     }
 
     BoxedValue boxed;
@@ -372,25 +370,23 @@ Result AppContextBase::RunCommandlet(ANSIStringView commandletName, const Comman
 
 const Class* AppContextBase::FindCommandletClass(ANSIStringView commandletName)
 {
-    AssertOnThread(g_mainThread);
-
     const Class* commandletClass = ClassRegistry::GetInstance().GetClass(commandletName, /* ignoreCase */ true);
 
-    const auto DoCheck = [&]() -> bool
+    const auto doCheck = [&]() -> bool
     {
         return commandletClass
             && commandletClass->IsDerivedFrom(CommandletBase::StaticClass())
             && !commandletClass->IsAbstract();
     };
 
-    if (!DoCheck())
+    if (!doCheck())
     {
         ANSIString str = commandletName;
         if (!str.EndsWith("Commandlet"))
         {
             // Try again with "Commandlet" appended to the name.
             commandletClass = ClassRegistry::GetInstance().GetClass(str + "Commandlet", /* ignoreCase */ true);
-            return DoCheck() ? commandletClass : nullptr;
+            return doCheck() ? commandletClass : nullptr;
         }
 
         return nullptr;

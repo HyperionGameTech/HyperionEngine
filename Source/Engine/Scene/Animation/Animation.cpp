@@ -54,11 +54,8 @@ void AnimationTrack::PageBlobData()
             return;
         }
 
-        BlobStorage* blobStorage = EngineGlobals::GetBlobStorage();
-
-        if (EngineGlobals::IsCooking() || !blobStorage || !blobStorage->GetData(m_keyframeData.key, m_keyframeData.size, m_keyframeData.raw))
+        if (EngineGlobals::IsCooking() || EngineGlobals::IsEditor() || !EngineGlobals::GetBlobStorage()->GetData(m_keyframeData.key, m_keyframeData.size, m_keyframeData.raw))
         {
-#if defined(HYP_EDITOR) || defined(HYP_ALLOW_INLINE_BLOBS)
             // check if failed; if so, try to import from raw data blob in project directory
             const Name blobKey = m_keyframeData.key;
             const uint64 expectedSize = m_keyframeData.size;
@@ -81,7 +78,6 @@ void AnimationTrack::PageBlobData()
 
                 return;
             }
-#endif // HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
             
             HYP_LOG(Engine, Error, "Data corruption detected for {} due to missing blob data", GetPath().ToString());
         }

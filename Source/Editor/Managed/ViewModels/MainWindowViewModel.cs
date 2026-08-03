@@ -51,6 +51,8 @@ namespace Hyperion.Editor.ViewModels
         public EditorCommand BuildIrradianceProbes => new EditorCommand("BuildIrradianceProbes");
         public EditorCommand BuildBentNormals => new EditorCommand("BuildBentNormals");
 
+        public EditorCommand CookGameContent => new EditorCommand("CookGameContent");
+
         private string _undoHeader = "_Undo";
         public string UndoHeader
         {

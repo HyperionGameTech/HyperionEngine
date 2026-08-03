@@ -189,9 +189,7 @@ void Mesh::PageBlobData()
         return;
     }
 
-    BlobStorage* blobStorage = EngineGlobals::GetBlobStorage();
-
-    const String meshName(*GetName());
+    const String meshName = String(*GetName());
 
     for (uint8 lodIndex = 0; lodIndex < MaxMeshLods; lodIndex++)
     {
@@ -204,7 +202,7 @@ void Mesh::PageBlobData()
             && vertexData.key
             && vertexData.size != 0)
         {
-            if (EngineGlobals::IsCooking() || !blobStorage || !blobStorage->GetData(vertexData.key, vertexData.size, vertexData.raw))
+            if (EngineGlobals::IsCooking() || EngineGlobals::IsEditor() || !EngineGlobals::GetBlobStorage()->GetData(vertexData.key, vertexData.size, vertexData.raw))
             {
                 if (lodIndex == 0)
                 {
@@ -213,7 +211,6 @@ void Mesh::PageBlobData()
 
                     ([&]()
                      {
-#if defined(HYP_EDITOR) || defined(HYP_ALLOW_INLINE_BLOBS)
                          // check if failed; if so, try to import from raw data blob in project directory
                          FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (meshName + ".VB.raw.blob") };
                          if (!stream.Eof())
@@ -233,7 +230,6 @@ void Mesh::PageBlobData()
 
                              return;
                          }
-#endif
 
                          HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} vertex buffer (LOD {})", GetName(), lodIndex);
                      })();
@@ -248,7 +244,7 @@ void Mesh::PageBlobData()
                 vertexData.readOnly = true;
             }
 
-            if (EngineGlobals::IsCooking() || !blobStorage || !blobStorage->GetData(indexData.key, indexData.size, indexData.raw))
+            if (EngineGlobals::IsCooking() || EngineGlobals::IsEditor() || !EngineGlobals::GetBlobStorage()->GetData(indexData.key, indexData.size, indexData.raw))
             {
                 if (lodIndex == 0)
                 {
@@ -257,7 +253,6 @@ void Mesh::PageBlobData()
 
                     ([&]()
                      {
-#if defined(HYP_EDITOR) || defined(HYP_ALLOW_INLINE_BLOBS)
                          // check if failed; if so, try to import from raw data blob in project directory
                          FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (meshName + ".IB.raw.blob") };
                          if (!stream.Eof())
@@ -278,7 +273,6 @@ void Mesh::PageBlobData()
 
                              return;
                          }
-#endif
 
                          HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} index buffer (LOD {})", GetName(), lodIndex);
                      })();
@@ -300,14 +294,13 @@ void Mesh::PageBlobData()
         && m_bvhData.key
         && m_bvhData.size != 0)
     {
-        if (EngineGlobals::IsCooking() || !blobStorage || !blobStorage->GetData(m_bvhData.key, m_bvhData.size, m_bvhData.raw))
+        if (EngineGlobals::IsCooking() || EngineGlobals::IsEditor() || !EngineGlobals::GetBlobStorage()->GetData(m_bvhData.key, m_bvhData.size, m_bvhData.raw))
         {
             const Name blobKey = m_bvhData.key;
             const uint64 expectedSize = m_bvhData.size;
 
             ([&]()
              {
-#if defined(HYP_EDITOR) || defined(HYP_ALLOW_INLINE_BLOBS)
                  FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (meshName + ".BVH.raw.blob") };
                  if (!stream.Eof())
                  {
@@ -326,7 +319,6 @@ void Mesh::PageBlobData()
 
                      return;
                  }
-#endif
                  
                 HYP_LOG(Engine, Error, "Data corruption detected for {} due to missing blob data", GetPath().ToString());
              })();

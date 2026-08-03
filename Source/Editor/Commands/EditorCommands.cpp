@@ -1,3 +1,4 @@
+#include "Core/Core.hpp"
 #include <Editor/EditorCommand.hpp>
 #include <Editor/EditorSubsystem.hpp>
 #include <Editor/EditorProject.hpp>
@@ -42,6 +43,8 @@
 
 #include <Core/Logging/Logger.hpp>
 
+#include <Core/CLI/Commandline.hpp>
+
 #include <Asset/Assets.hpp>
 #include <Asset/AssetBatch.hpp>
 #include <Asset/AssetRegistry.hpp>
@@ -60,6 +63,7 @@
 #include <System/SaveFileDialog.hpp>
 #include <System/SelectFolderDialog.hpp>
 #include <System/MessageBox.hpp>
+#include <System/AppContext.hpp>
 
 #include <UI/UISubsystem.hpp>
 #include <UI/Overlays/Overlay.hpp>
@@ -649,7 +653,7 @@ DEFINE_EDITOR_COMMAND(BuildReflectionProbes);
 #pragma endregion BuildReflectionProbes
 
 
-#pragma region BuildReflectionProbes
+#pragma region BuildIrradianceProbes
 
 class EditorCommandBuildIrradianceProbes final : public EditorCommandBase
 {
@@ -714,6 +718,79 @@ public:
 DEFINE_EDITOR_COMMAND(BuildIrradianceProbes);
 
 #pragma endregion BuildIrradianceProbes
+
+
+
+#pragma region CookGameContent
+
+class EditorCommandCookGameContent final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandCookGameContent);
+
+public:
+    virtual ~EditorCommandCookGameContent() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Cook Game Content";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        Assert(g_appContext.IsValid(), "invalid app context");
+
+        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No project loaded; cannot cook game content");
+
+            return;
+        }
+        
+        EditorTaskScope* editorTaskScope = new EditorTaskScope(
+            TickableEditorTask::StaticClass(),
+            []()
+            { /* no tick function */ },
+            "Cooking Game Content",
+            "Initializing cook task",
+            /* isForegroundTask */ true);
+
+        Result saveResult = currentProject->Save();
+        if (saveResult.HasError())
+        {
+            HYP_LOG(Editor, Error, "Project could not be saved, backing out of cook. Error was: {}", saveResult.GetError().GetMessage());
+
+            editorTaskScope->GetEditorTask()->SetDescription(saveResult.GetError().GetMessage());
+
+            delete editorTaskScope;
+
+            return;
+        }
+
+        TaskSystem::GetInstance().Enqueue(
+            [editorTaskScope, project = currentProject]()
+            {
+                Result cookResult = g_appContext->RunCommandlet(
+                    "BlobStorageCookCommandlet",
+                    CommandLineArguments("--content=" + project->GetFilePath().BasePath().ToRelative(CoreApi::GetBaseDirectory())));
+
+                if (cookResult.HasError())
+                {
+                    editorTaskScope->GetEditorTask()->SetDescription(cookResult.GetError().GetMessage());
+
+                    ThreadSleep(5000);
+                }
+
+                delete editorTaskScope;
+            },
+            TaskThreadPoolName::THREAD_POOL_BACKGROUND,
+            TaskEnqueueFlags::FIRE_AND_FORGET);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(CookGameContent);
+
+#pragma endregion CookGameContent
 
 #pragma region AddReflectionProbe
 

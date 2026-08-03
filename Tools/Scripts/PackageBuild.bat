@@ -23,7 +23,20 @@ REM Compile shaders for only Windows (DX12 + Vulkan)
 "%BIN_DIR_RELEASE%\PrecompileShaders.exe" --platform=windows
 
 echo Running Cook commandlet...
-"%BIN_DIR_RELEASE%\BlobStorageCookCommandlet.exe"
+
+REM Get the project name input from user, pass it concat with Projects/ below:
+set /p "PROJECT_NAME=Enter the project name (folder under Projects/): "
+if "%PROJECT_NAME%"=="" (
+    echo No project name entered, aborting packaged build.
+    exit /b 1
+)
+
+echo Cooking project: %PROJECT_NAME%
+"%BIN_DIR_RELEASE%\BlobStorageCookCommandlet.exe" --content=Projects/%PROJECT_NAME%
+if errorlevel 1 (
+    echo Cook commandlet failed, aborting packaged build.
+    exit /b 1
+)
 
 for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "Get-Date -Format 'yyyyMMdd_HHmmss'"`) do set "TIMESTAMP=%%i"
 

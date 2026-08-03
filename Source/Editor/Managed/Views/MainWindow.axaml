@@ -186,6 +186,8 @@
                   <MenuItem Command="{Binding BuildLightmaps}" Header="Lightmaps" />
                   <Separator />
                   <MenuItem Command="{Binding BuildBentNormals}" Header="Bent Normals" />
+                  <Separator />
+                  <MenuItem Command="{Binding CookGameContent}" Header="Cook Game Content" />
                 </MenuItem>
             </Menu>
 
@@ -267,21 +269,21 @@
                             ToolTip.Tip="{Binding MeshEditModeTooltip}">
                             <LucideIcon Kind="Waypoints" Size="16" />
                         </ToggleButton>
-                        <ToggleButton
+                        <!-- <ToggleButton
                             x:Name="PhysicsDebugDrawToggle"
                             Classes="gizmo"
                             Command="{Binding TogglePhysicsDebugDraw}"
                             IsChecked="{Binding IsPhysicsDebugDrawEnabled, Mode=OneWay}"
                             ToolTip.Tip="Show Physics Collision Shapes">
                             <LucideIcon Kind="Box" Size="16" />
-                        </ToggleButton>
-                        <Button
+                        </ToggleButton> -->
+                        <!-- <Button
                             x:Name="FitPhysicsShapeToMeshButton"
                             Classes="gizmo"
                             Command="{Binding FitPhysicsShapeToMesh}"
                             IsEnabled="{Binding CanFitPhysicsShapeToMesh}"
                             ToolTip.Tip="Fit Collision Shape To Mesh">
-                        </Button>
+                        </Button> -->
 
                         <Border
                             Classes="mode-strip"

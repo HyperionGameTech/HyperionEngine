@@ -45,6 +45,13 @@ public:
         {
             s_initialized = true;
 
+            s_definitions.Add(
+                "content",
+                "c",
+                "Base direcrory of content to cook for",
+                CommandLineArgumentFlags::REQUIRED,
+                {},
+                JSON::Value(""));
         }
 
         return s_definitions;
@@ -53,11 +60,17 @@ public:
 protected:
     virtual Result Run_Impl(const CommandLineArguments& args) override
     {
-        // @TODO Allow Projects/foo dir
-        FilePath packageDir = CoreApi::GetBaseDirectory() / "Content" / "Game";
+        // e.g. --content=Projects/DefaultGame - path of the content to cook, relative to the repo root.
+        String contentValue = "Content/Game";
+        if (args.Contains("content"))
+        {
+            contentValue = args["content"].ToString();
+        }
+
+        FilePath packageDir = CoreApi::GetBaseDirectory() / contentValue;
         if (!packageDir.Exists() || !packageDir.IsDirectory())
         {
-            return HYP_MAKE_ERROR(Error, "Package path is non existant or is not a directory");
+            return HYP_MAKE_ERROR(Error, "Package path is non existant or is not a directory: {}", packageDir);
         }
         
         Handle<AssetRegistry> engineRegistry;
@@ -153,6 +166,11 @@ private:
                     Handle<AssetObject> assetObject = registry->GetAsset(bucket, assetDesc.name);
 
                     if (!assetObject.IsValid())
+                    {
+                        continue;
+                    }
+
+                    if (assetObject->IsTransient())
                     {
                         continue;
                     }

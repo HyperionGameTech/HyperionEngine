@@ -67,15 +67,16 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 
 #ifdef INSTANCING
     float4x4 transform = EntityInstanceBatchBuffer.Load<float4x4>(s_offsetOfTransforms + (sizeof(float4x4) * instanceId));
-#ifdef VULKAN
-    transform = transpose(transform);
-#endif // VULKAN
 
     const uint entityIndex = EntityInstanceBatchBuffer.Load<uint>(s_offsetOfIndices + (instanceId * sizeof(uint)));
     output.object_index = entityIndex;
 
     Entity currentEntity = entities[entityIndex];
+#ifdef DX12
     float4x4 model_matrix = mul(currentEntity.model_matrix, transform);
+#else
+    float4x4 model_matrix = mul(transform, currentEntity.model_matrix);
+#endif
     float3x3 normal_matrix = (float3x3)currentEntity.normal_matrix;//transpose(inverse((float3x3)model_matrix));
 #else // !INSTANCING
     output.object_index = ~0u; // unused

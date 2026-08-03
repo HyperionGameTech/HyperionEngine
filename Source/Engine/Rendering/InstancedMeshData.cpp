@@ -48,8 +48,6 @@ void InstancedMeshData::PageBlobData()
         return;
     }
 
-    BlobStorage* blobStorage = EngineGlobals::GetBlobStorage();
-
     for (uint32 i = 0; i < uint32(buffers.Size()); i++)
     {
         BlobDataReference& ref = buffers[i];
@@ -58,9 +56,8 @@ void InstancedMeshData::PageBlobData()
 
         if (ref.raw == nullptr && ref.key && ref.size != 0)
         {
-            if (EngineGlobals::IsCooking() || !blobStorage || !blobStorage->GetData(ref.key, ref.size, ref.raw))
+            if (EngineGlobals::IsCooking() || EngineGlobals::IsEditor() || !EngineGlobals::GetBlobStorage()->GetData(ref.key, ref.size, ref.raw))
             {
-#if defined(HYP_EDITOR) || defined(HYP_ALLOW_INLINE_BLOBS)
                 const Name blobKey = ref.key;
                 const uint64 expectedSize = ref.size;
 
@@ -82,7 +79,7 @@ void InstancedMeshData::PageBlobData()
 
                     continue;
                 }
-#endif
+
                 HYP_LOG(Engine, Error, "Failed to page blob data for InstancedMeshData {}", GetName());
             }
             else

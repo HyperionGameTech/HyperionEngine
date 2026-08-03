@@ -330,8 +330,7 @@ Result AssetObject::SaveBlobData(BlobStorage* storage, const Optional<FilePath>&
             }
         }
 
-#if defined(HYP_EDITOR) || defined(HYP_ALLOW_INLINE_BLOBS)
-        if (localBlobDirectory.HasValue())
+        if (EngineGlobals::IsEditor() && localBlobDirectory.HasValue())
         {
             // Save the blob data locally as well, as other users may not have the blob data or have mismatched blob data
             // and we need to "import" it via individual blobs upon fail.
@@ -344,7 +343,6 @@ Result AssetObject::SaveBlobData(BlobStorage* storage, const Optional<FilePath>&
 
             stream.Write(reference->raw, reference->size);
         }
-#endif
     }
 
     return {};

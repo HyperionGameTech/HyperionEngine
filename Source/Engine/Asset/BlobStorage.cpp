@@ -525,20 +525,22 @@ bool BlobStorage::GetData(StringHash key, size_t size, void*& outRawData)
 
     if (!m_toc)
     {
+        HYP_LOG(Assets, Error, "Table of contents is null!");
+
         return false;
     }
 
     BlobTableOfContents::Value tocValue;
     if (!m_toc->Get(key, tocValue))
     {
-        HYP_LOG(Assets, Warning, "Blob data not found in table of contents: {}", key.GetHashCode().Value());
+        HYP_LOG(Assets, Error, "Blob data not found in table of contents: {}", key.GetHashCode().Value());
 
         return false;
     }
 
     if (tocValue.size != size)
     {
-        HYP_LOG(Assets, Warning, "Blob data does not match expected size ({}): {}", size, key.GetHashCode().Value());
+        HYP_LOG(Assets, Error, "Blob data does not match expected size ({}): {}", size, key.GetHashCode().Value());
 
         return false;
     }
@@ -546,7 +548,7 @@ bool BlobStorage::GetData(StringHash key, size_t size, void*& outRawData)
     MemoryMappedFile* file = nullptr;
     if (!InitMappedFile(file, tocValue.bucketIndex))
     {
-        HYP_FAIL("Failed to map file");
+        HYP_LOG(Assets, Error, "Failed to initialize mapped file for bucket '{}'", GetAssetBucketName(tocValue.bucketIndex));
 
         return false;
     }

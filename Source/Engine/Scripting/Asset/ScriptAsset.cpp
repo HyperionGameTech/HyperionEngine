@@ -72,15 +72,12 @@ void ScriptAsset::PageBlobData()
         return;
     }
 
-    BlobStorage* blobStorage = EngineGlobals::GetBlobStorage();
-
     if (m_data.raw == nullptr
         && m_data.key
         && m_data.size != 0)
     {
-        if (EngineGlobals::IsCooking() || !blobStorage || !blobStorage->GetData(m_data.key, m_data.size, m_data.raw))
+        if (EngineGlobals::IsCooking() || EngineGlobals::IsEditor() || !EngineGlobals::GetBlobStorage()->GetData(m_data.key, m_data.size, m_data.raw))
         {
-#if defined(HYP_EDITOR) || defined(HYP_ALLOW_INLINE_BLOBS)
             const Name blobKey = m_data.key;
             const uint64 expectedSize = m_data.size;
 
@@ -103,7 +100,6 @@ void ScriptAsset::PageBlobData()
 
                 return;
             }
-#endif // HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
         }
         else
         {

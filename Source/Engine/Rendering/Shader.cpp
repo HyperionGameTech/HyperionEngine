@@ -83,8 +83,6 @@ void Shader::PageBlobData()
         return;
     }
 
-    BlobStorage* blobStorage = EngineGlobals::GetBlobStorage();
-
     for (uint32 i = 0; i < uint32(shaderBlobs.Size()); i++)
     {
         BlobDataReference& ref = shaderBlobs[i];
@@ -92,9 +90,8 @@ void Shader::PageBlobData()
 
         if (ref.raw == nullptr && ref.key && ref.size != 0)
         {
-            if (EngineGlobals::IsCooking() || !blobStorage || !blobStorage->GetData(ref.key, ref.size, ref.raw))
+            if (EngineGlobals::IsCooking() || EngineGlobals::IsEditor() || !EngineGlobals::GetBlobStorage()->GetData(ref.key, ref.size, ref.raw))
             {
-#if defined(HYP_EDITOR) || defined(HYP_ALLOW_INLINE_BLOBS)
                 const char* moduleTypeString = GetShaderHeaderPrefix(moduleType);
 
                 const Name blobKey = ref.key;
@@ -122,7 +119,6 @@ void Shader::PageBlobData()
                 {
                     HYP_LOG(Engine, Error, "Failed to read {}", stream.GetFilepath());
                 }
-#endif
 
                 HYP_LOG(Engine, Error, "Failed to page blob data for Shader {}", GetName());
             }
