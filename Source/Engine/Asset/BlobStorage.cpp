@@ -21,9 +21,9 @@ namespace Hyperion {
 
 ENGINE_API extern Pool* g_assetPool;
 
-static void InitBlobStorage(BlobStorage& outStorage, const FilePath& baseDirectory, uint64 pageSize)
+static void InitBlobStorage(BlobStorage& outStorage, const FilePath& baseDirectory, bool readOnly)
 {
-    MappedBlobStorage* mappedBlobStorage = HYP_POOL_NEW(g_assetPool, MappedBlobStorage, baseDirectory, pageSize, /* readOnly */ false);
+    MappedBlobStorage* mappedBlobStorage = HYP_POOL_NEW(g_assetPool, MappedBlobStorage, baseDirectory, readOnly);
 
     outStorage.callbacks.context = mappedBlobStorage;
 
@@ -78,7 +78,7 @@ public:
 
     struct Value
     {
-        uint32 page;
+        uint32 bucketIndex;
         uint64 offset;
         uint64 size;
     };
@@ -365,17 +365,15 @@ private:
 
 BlobStorage::BlobStorage()
     : m_baseDirectory(FilePath()),
-      m_pageSize(DefaultPageSize),
       m_toc(nullptr)
 {
 }
 
-BlobStorage::BlobStorage(const FilePath& baseDirectory, uint64 pageSize)
+BlobStorage::BlobStorage(const FilePath& baseDirectory, bool readOnly)
     : m_baseDirectory(baseDirectory),
-      m_pageSize(pageSize),
       m_toc(nullptr)
 {
-    InitBlobStorage(*this, baseDirectory, pageSize);
+    InitBlobStorage(*this, baseDirectory, readOnly);
 
     if (Result result = LoadManifest(); result.HasError())
     {
@@ -391,9 +389,7 @@ BlobStorage::BlobStorage(const FilePath& baseDirectory, uint64 pageSize)
 BlobStorage::BlobStorage(BlobStorage&& other) noexcept
     : callbacks(std::move(other.callbacks)),
       m_baseDirectory(std::move(other.m_baseDirectory)),
-      m_pageSize(other.m_pageSize),
-      m_freeRanges(std::move(other.m_freeRanges)),
-      m_pageData(std::move(other.m_pageData)),
+      m_blockData(std::move(other.m_blockData)),
       m_toc(other.m_toc)
 {
     other.callbacks = {};
@@ -407,9 +403,9 @@ BlobStorage& BlobStorage::operator=(BlobStorage&& other) noexcept
         return *this;
     }
 
-    for (uint32 page = 0; page < uint32(m_pageData.Size()); page++)
+    for (uint32 bucketIndex = 0; bucketIndex < uint32(m_blockData.Size()); bucketIndex++)
     {
-        ClosePage(page);
+        CloseBlock(bucketIndex);
     }
 
     if (callbacks.Destroy)
@@ -425,10 +421,7 @@ BlobStorage& BlobStorage::operator=(BlobStorage&& other) noexcept
     }
 
     m_baseDirectory = std::move(other.m_baseDirectory);
-    m_pageSize = other.m_pageSize;
-    m_freeRanges = std::move(other.m_freeRanges);
-    m_pageData = std::move(other.m_pageData);
-    m_pageSize = other.m_pageSize;
+    m_blockData = std::move(other.m_blockData);
     m_toc = other.m_toc;
 
     other.callbacks = {};
@@ -439,9 +432,9 @@ BlobStorage& BlobStorage::operator=(BlobStorage&& other) noexcept
 
 BlobStorage::~BlobStorage()
 {
-    for (uint32 page = 0; page < uint32(m_pageData.Size()); page++)
+    for (uint32 bucketIndex = 0; bucketIndex < uint32(m_blockData.Size()); bucketIndex++)
     {
-        ClosePage(page);
+        CloseBlock(bucketIndex);
     }
 
     if (callbacks.Destroy)
@@ -456,94 +449,92 @@ BlobStorage::~BlobStorage()
     }
 }
 
-ByteWriter* BlobStorage::GetWriteStream(uint32 page)
+ByteWriter* BlobStorage::GetWriteStream(uint32 bucketIndex)
 {
     Mutex::Guard guard(m_mutex);
 
-    if (page >= m_pageData.Size())
+    if (m_blockData.Size() < MaxAssetBuckets)
     {
-        m_pageData.Resize(page + 1);
+        m_blockData.Resize(MaxAssetBuckets);
     }
 
-    BlobPageData& pd = m_pageData[page];
+    BlobBlockData& blockData = m_blockData[bucketIndex];
 
-    if (pd.writeStream != nullptr)
+    if (blockData.writeStream != nullptr)
     {
-        return pd.writeStream;
+        return blockData.writeStream;
     }
 
     MemoryMappedFile* file;
-    Assert(InitMappedFile(file, page));
+    Assert(InitMappedFile(file, bucketIndex));
 
-    pd.writeStream = new MemoryMappedByteWriter(file);
-    pd.writeStream->Seek(pd.cursor);
+    blockData.writeStream = new MemoryMappedByteWriter(file);
+    blockData.writeStream->Seek(blockData.cursor);
 
-    return pd.writeStream;
+    return blockData.writeStream;
 }
 
-ByteReader* BlobStorage::GetReadStream(uint32 page)
+ByteReader* BlobStorage::GetReadStream(uint32 bucketIndex)
 {
     Mutex::Guard guard(m_mutex);
 
-    if (page >= m_pageData.Size())
+    if (m_blockData.Size() < MaxAssetBuckets)
     {
-        m_pageData.Resize(page + 1);
+        m_blockData.Resize(MaxAssetBuckets);
     }
 
-    BlobPageData& pd = m_pageData[page];
+    BlobBlockData& blockData = m_blockData[bucketIndex];
 
-    if (pd.readStream != nullptr)
+    if (blockData.readStream != nullptr)
     {
-        return pd.readStream;
+        return blockData.readStream;
     }
 
     MemoryMappedFile* file;
-    Assert(InitMappedFile(file, page));
+    Assert(InitMappedFile(file, bucketIndex));
 
-    pd.readStream = new MemoryMappedByteReader(file);
-    pd.readStream->Seek(0);
+    blockData.readStream = new MemoryMappedByteReader(file);
+    blockData.readStream->Seek(0);
 
-    return pd.readStream;
+    return blockData.readStream;
 }
 
-bool BlobStorage::InitMappedFile(MemoryMappedFile*& outMappedFile, uint32 page)
+bool BlobStorage::InitMappedFile(MemoryMappedFile*& outMappedFile, uint32 bucketIndex)
 {
     Assert(m_baseDirectory.Length() != 0);
+    Assert(bucketIndex != AssetBucket::InvalidIndex && bucketIndex < MaxAssetBuckets);
 
-    if (page >= m_pageData.Size())
+    if (m_blockData.Size() < MaxAssetBuckets)
     {
-        m_pageData.Resize(page + 1);
+        m_blockData.Resize(MaxAssetBuckets);
     }
 
-    BlobPageData& pd = m_pageData[page];
+    BlobBlockData& blockData = m_blockData[bucketIndex];
 
-    if (pd.file != nullptr)
+    if (blockData.file != nullptr)
     {
-        outMappedFile = pd.file;
+        outMappedFile = blockData.file;
         return true;
     }
 
-    const size_t previousFileSize = pd.file ? pd.file->FileSize() : 0;
+    const ANSIString name = ANSIString("storage.") + GetAssetBucketName(bucketIndex);
 
-    ClosePage(page);
-
-    if ((pd.file = callbacks.Open(callbacks.context, ("storage." + String::ToString(page)).Data())))
+    if ((blockData.file = callbacks.Open(callbacks.context, name.Data())))
     {
-        Assert(pd.file->IsOpen());
+        Assert(blockData.file->IsOpen());
 
-        outMappedFile = pd.file;
+        outMappedFile = blockData.file;
 
-        Assert(pd.view == nullptr);
+        Assert(blockData.view == nullptr);
 
-        // map entire file
-        pd.view = new MemoryMappedFileView;
+        blockData.view = new MemoryMappedFileView;
 
-        if (!pd.file->MapRange(0, 0, *pd.view))
+        if (!blockData.file->MapRange(0, 0, *blockData.view))
         {
             Assert(false, "Failed to map file to view!");
 
-            pd.file->Close();
-            pd.file = nullptr;
+            blockData.file->Close();
+            blockData.file = nullptr;
 
             return false;
         }
@@ -581,166 +572,178 @@ bool BlobStorage::GetData(StringHash key, size_t size, void*& outRawData)
     }
 
     MemoryMappedFile* file = nullptr;
-    if (!InitMappedFile(file, tocValue.page))
+    if (!InitMappedFile(file, tocValue.bucketIndex))
     {
         HYP_FAIL("Failed to map file");
 
         return false;
     }
 
-    BlobPageData& pd = m_pageData[tocValue.page];
+    BlobBlockData& blockData = m_blockData[tocValue.bucketIndex];
 
-    uint8* address = reinterpret_cast<uint8*>(pd.view->Data()) + tocValue.offset;
-    AssertDebug(address - reinterpret_cast<uint8*>(pd.view->Data()) + size <= pd.file->FileSize());
+    uint8* address = reinterpret_cast<uint8*>(blockData.view->Data()) + tocValue.offset;
+    AssertDebug(address - reinterpret_cast<uint8*>(blockData.view->Data()) + size <= blockData.file->FileSize());
 
     outRawData = address;
 
     return true;
 }
 
-bool BlobStorage::PutData(StringHash key, const BlobHeader& header, const void* rawData)
+Result BlobStorage::BeginCook(const Array<BlobBlockInfo>& blocks)
 {
     Mutex::Guard guard(m_mutex);
+
+    if (m_blockData.Size() < MaxAssetBuckets)
+    {
+        m_blockData.Resize(MaxAssetBuckets);
+    }
+
+    for (const BlobBlockInfo& blockInfo : blocks)
+    {
+        Assert(blockInfo.bucketIndex != AssetBucket::InvalidIndex && blockInfo.bucketIndex < MaxAssetBuckets,
+            "Invalid asset bucket index in cook block info");
+
+        CloseBlock(blockInfo.bucketIndex);
+
+        BlobBlockData& blockData = m_blockData[blockInfo.bucketIndex];
+
+        const ANSIString name = ANSIString("storage.") + GetAssetBucketName(blockInfo.bucketIndex);
+
+        blockData.file = callbacks.Open(callbacks.context, name.Data());
+
+        if (!blockData.file)
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to open block file for asset bucket '{}'", GetAssetBucketName(blockInfo.bucketIndex));
+        }
+
+        // Block files are sized to their exact final byte count up front, since the cache is
+        // rebuilt from scratch on every cook rather than grown incrementally.
+        if (!blockData.file->Resize(blockInfo.totalSize))
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to resize block file for asset bucket '{}' to {} bytes", GetAssetBucketName(blockInfo.bucketIndex), blockInfo.totalSize);
+        }
+
+        blockData.view = new MemoryMappedFileView;
+
+        if (!blockData.file->MapRange(0, 0, *blockData.view))
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to map block file for asset bucket '{}'", GetAssetBucketName(blockInfo.bucketIndex));
+        }
+
+        blockData.cursor = 0;
+    }
+
+    return {};
+}
+
+bool BlobStorage::PutData(uint32 bucketIndex, StringHash key, const BlobHeader& header, const void* rawData)
+{
+    Mutex::Guard guard(m_mutex);
+
+    Assert(bucketIndex != AssetBucket::InvalidIndex && bucketIndex < m_blockData.Size());
+
+    BlobBlockData& blockData = m_blockData[bucketIndex];
+    Assert(blockData.file != nullptr, "BeginCook must be called before PutData");
 
     if (!m_toc)
     {
         m_toc = new BlobTableOfContents;
     }
 
-    const size_t totalBlobSize = header.payloadOffset + header.payloadSize;
-    const size_t totalBlobSizePlusHeader = sizeof(BlobHeader) + totalBlobSize;
+    const size_t headerOffset = ByteUtil::AlignAs(blockData.cursor, alignof(BlobHeader));
+    const size_t totalBlobSize = sizeof(BlobHeader) + header.payloadOffset + header.payloadSize;
 
-    BlobTableOfContents::Value existingValue;
-    if (m_toc->Get(key, existingValue))
+    Assert(headerOffset + totalBlobSize <= blockData.view->Size(),
+        "Blob data exceeds the reserved block size for asset bucket {}, block sizes must be computed before BeginCook is called",
+        bucketIndex);
+
+    ByteWriter* writeStream = blockData.writeStream;
+    if (writeStream == nullptr)
     {
-        if (existingValue.size != header.payloadSize)
-        {
-            // needs new allocation if changed!
-            Assert(m_toc->Delete(key));
-        }
+        blockData.writeStream = new MemoryMappedByteWriter(blockData.file);
+        writeStream = blockData.writeStream;
     }
 
-    if (totalBlobSizePlusHeader > m_pageSize)
-    {
-        return false;
-    }
+    writeStream->Seek(headerOffset);
+    writeStream->Write(header);
 
-    if (m_pageData.Empty())
-    {
-        m_pageData.Resize(1);
-    }
+    writeStream->Seek(writeStream->Position() + header.payloadOffset);
 
-    const auto TryAllocateInPage = [&](uint32 page, bool& outHasSpace) -> bool
-    {
-        if (page >= m_pageData.Size())
-        {
-            m_pageData.Resize(page + 1);
-        }
+    const size_t offset = writeStream->Position();
 
-        BlobPageData& pd = m_pageData[page];
+    writeStream->Write(rawData, header.payloadSize);
 
-        const size_t headerOffset = ByteUtil::AlignAs(pd.cursor, alignof(BlobHeader));
-        const size_t requiredSize = headerOffset + totalBlobSizePlusHeader;
+    blockData.cursor = writeStream->Position();
 
-        if (requiredSize > m_pageSize)
-        {
-            outHasSpace = false;
-            return false;
-        }
+    BlobTableOfContents::Value entryValue {};
+    entryValue.bucketIndex = bucketIndex;
+    entryValue.offset = offset;
+    entryValue.size = header.payloadSize;
 
-        outHasSpace = true;
+    m_toc->Put(key, entryValue);
 
-        MemoryMappedFile* file = nullptr;
-        if (!InitMappedFile(file, page))
-        {
-            return false;
-        }
-
-        ByteWriter* writeStream = pd.writeStream;
-        if (writeStream == nullptr)
-        {
-            pd.writeStream = new MemoryMappedByteWriter(file);
-            writeStream = pd.writeStream;
-        }
-
-        writeStream->Seek(headerOffset);
-        writeStream->Write(header);
-
-        writeStream->Seek(writeStream->Position() + header.payloadOffset);
-
-        const size_t offset = writeStream->Position();
-
-        // fill data
-        writeStream->Write(rawData, header.payloadSize);
-
-        pd.cursor = writeStream->Position();
-
-        BlobTableOfContents::Value entryValue {};
-        entryValue.page = page;
-        entryValue.offset = offset;
-        entryValue.size = header.payloadSize;
-
-        m_toc->Put(key, entryValue);
-
-        return true;
-    };
-
-    const uint32 lastPage = uint32(m_pageData.Size() - 1);
-
-    bool hasSpaceInLastPage = false;
-    if (TryAllocateInPage(lastPage, hasSpaceInLastPage))
-    {
-        return true;
-    }
-
-    if (hasSpaceInLastPage)
-    {
-        return false;
-    }
-
-    bool hasSpaceInNewPage = false;
-    if (TryAllocateInPage(lastPage + 1, hasSpaceInNewPage))
-    {
-        return true;
-    }
-
-    return false;
+    return true;
 }
 
-void BlobStorage::ClosePage(uint32 page)
+Result BlobStorage::FinishCook()
 {
-    if (page >= m_pageData.Size())
+    Mutex::Guard guard(m_mutex);
+
+    for (uint32 bucketIndex = 0; bucketIndex < uint32(m_blockData.Size()); bucketIndex++)
+    {
+        BlobBlockData& blockData = m_blockData[bucketIndex];
+
+        if (blockData.writeStream != nullptr)
+        {
+            blockData.writeStream->Close();
+
+            delete blockData.writeStream;
+            blockData.writeStream = nullptr;
+        }
+    }
+
+    if (Result result = SaveTOC_Internal(); result.HasError())
+    {
+        return result;
+    }
+
+    return SaveManifest_Internal();
+}
+
+void BlobStorage::CloseBlock(uint32 bucketIndex)
+{
+    if (bucketIndex >= m_blockData.Size())
     {
         return;
     }
 
-    BlobPageData& pd = m_pageData[page];
+    BlobBlockData& blockData = m_blockData[bucketIndex];
 
-    if (pd.writeStream != nullptr)
+    if (blockData.writeStream != nullptr)
     {
-        pd.writeStream->Close();
+        blockData.writeStream->Close();
 
-        delete pd.writeStream;
-        pd.writeStream = nullptr;
+        delete blockData.writeStream;
+        blockData.writeStream = nullptr;
     }
 
-    if (pd.readStream != nullptr)
+    if (blockData.readStream != nullptr)
     {
-        pd.readStream->Close();
+        blockData.readStream->Close();
 
-        delete pd.readStream;
-        pd.readStream = nullptr;
+        delete blockData.readStream;
+        blockData.readStream = nullptr;
     }
 
-    if (pd.view != nullptr)
+    if (blockData.view != nullptr)
     {
-        pd.view->Close();
+        blockData.view->Close();
 
-        delete pd.view;
-        pd.view = nullptr;
+        delete blockData.view;
+        blockData.view = nullptr;
     }
 
-    MemoryMappedFile*& file = pd.file;
+    MemoryMappedFile*& file = blockData.file;
     if (file != nullptr)
     {
         callbacks.Close(callbacks.context, file);
@@ -828,7 +831,6 @@ Result BlobStorage::LoadManifest()
     }
 
     json.AsObject().Erase("BaseDirectory");
-    json.AsObject().Erase("PageSize");
 
     BoxedValue thisBoxed(HandleFromThis());
 

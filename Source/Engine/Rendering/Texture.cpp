@@ -381,14 +381,16 @@ RendererResult Texture::Create()
 {
     auto readScope = GetReadScope();
 
-    const bool uploadTextureData = GetImageData().Size() > 0;
+    const bool shouldCreateGpuImage = !EngineGlobals::IsCooking();
 
-    if (!m_gpuImage.IsValid())
+    if (shouldCreateGpuImage && !m_gpuImage.IsValid())
     {
         if (m_textureDesc.extent.Volume() == 0)
         {
             return HYP_MAKE_ERROR(RendererError, "Texture must have non-zero extent");
         }
+        
+        const bool shouldUploadTextureData = GetImageData().Size() > 0;
 
         GpuImageRef gpuImage = RI.MakeImage(m_textureDesc);
 
@@ -400,7 +402,7 @@ RendererResult Texture::Create()
         }
 #endif
 
-        CheckResultOrReturn(CreateGpuImage(*this, *gpuImage, RS_SHADER_RESOURCE, uploadTextureData));
+        CheckResultOrReturn(CreateGpuImage(*this, *gpuImage, RS_SHADER_RESOURCE, shouldUploadTextureData));
 
         // done with image data
         readScope.Reset();
@@ -423,7 +425,7 @@ RendererResult Texture::Create()
 
     auto writeScope = GetWriteScope();
 
-    if (!m_gpuImage->IsCreated())
+    if (shouldCreateGpuImage && !m_gpuImage->IsCreated())
     {
         CheckResultOrReturn(m_gpuImage->Create());
     }

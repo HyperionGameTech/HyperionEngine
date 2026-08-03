@@ -1113,11 +1113,10 @@ add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
 
 add_subdirectory(Sample)
 
-# If editor build, add the commandlet targets.
-# otherwise, we don't want 'em
+add_subdirectory(Commandlets)
+
 if(HYP_EDITOR)
   add_subdirectory(Editor)
-  add_subdirectory(Commandlets)
 
   add_dependencies(${BUILD_NAME} hyperion-editor)
 

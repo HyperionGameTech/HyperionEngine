@@ -27,6 +27,7 @@
 #include <Core/IO/MemoryMappedFile.hpp>
 
 #include <Asset/BlobStorageStructs.hpp>
+#include <Asset/AssetBucket.hpp>
 
 namespace Hyperion {
 
@@ -45,42 +46,18 @@ struct BlobStorageCallbacks
     void (*Destroy)(void* context) = nullptr;
 };
 
-HYP_STRUCT()
-struct BlobMappingRange
+/*! \brief One entry of the cook plan passed to BlobStorage::BeginCook: the exact final size of the
+ *  block file for a given asset bucket, computed up front from the full set of blob data being cooked. */
+struct BlobBlockInfo
 {
-    HYP_STRUCT_BODY(BlobMappingRange)
-
-    HYP_FIELD()
-    uint32 start = 0;
-
-    HYP_FIELD()
-    uint32 end = 0;
-};
-
-struct BlobAllocationInfo
-{
-    void* ptr = nullptr;
-    uint32 count = 0;
-};
-
-struct BlobAllocationDesc
-{
-    size_t offset = 0;
-    size_t size = 0;
-
-    HYP_FORCE_INLINE constexpr bool operator==(const BlobAllocationDesc& other) const = default;
-
-    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
-    {
-        return HashCode::GetHashCode(offset)
-            .Combine(size);
-    }
+    uint32 bucketIndex = AssetBucket::InvalidIndex;
+    uint64 totalSize = 0;
 };
 
 HYP_STRUCT()
-struct BlobPageData
+struct BlobBlockData
 {
-    HYP_STRUCT_BODY(BlobPageData)
+    HYP_STRUCT_BODY(BlobBlockData)
 
     HYP_FIELD()
     uint64 cursor = 0;
@@ -91,17 +68,19 @@ struct BlobPageData
     ByteReader* readStream = nullptr;
 };
 
+/*! \brief Cooked, per-bucket blob cache. Blocks are only ever produced by an offline cook pass
+ *  (BeginCook / PutData / FinishCook) that knows the full set of blob data up front and writes each
+ *  bucket's block file at its exact final size in one shot; once cooked, a BlobStorage is opened
+ *  read-only and memory-mapped for the lifetime of the host application. */
 HYP_CLASS()
 class BlobStorage : public ObjectBase
 {
     HYP_OBJECT_BODY(BlobStorage);
 
 public:
-    static constexpr uint64 DefaultPageSize = 256 * 1024 * 1024;
-
     BlobStorage();
 
-    explicit BlobStorage(const FilePath& baseDirectory, uint64 pageSize);
+    explicit BlobStorage(const FilePath& baseDirectory, bool readOnly);
 
     BlobStorage(const BlobStorage& other) = delete;
     BlobStorage& operator=(const BlobStorage& other) = delete;
@@ -111,11 +90,22 @@ public:
 
     ~BlobStorage();
 
-    ByteWriter* GetWriteStream(uint32 page);
-    ByteReader* GetReadStream(uint32 page);
+    ByteWriter* GetWriteStream(uint32 bucketIndex);
+    ByteReader* GetReadStream(uint32 bucketIndex);
 
     bool GetData(StringHash key, size_t size, void*& outRawData);
-    bool PutData(StringHash key, const BlobHeader& header, const void* rawData);
+
+    /*! \brief Begins a cook pass: creates (or truncates) one block file per entry in \p blocks, each
+     *  resized to its exact final size, ready to be filled via PutData. Must be called before any
+     *  PutData call and cannot be combined with reading an already-cooked, read-only BlobStorage. */
+    Result BeginCook(const Array<BlobBlockInfo>& blocks);
+
+    /*! \brief Appends one blob to the block belonging to \p bucketIndex, which must have been
+     *  reserved via BeginCook with enough space for it. */
+    bool PutData(uint32 bucketIndex, StringHash key, const BlobHeader& header, const void* rawData);
+
+    /*! \brief Ends a cook pass, saving the table of contents and manifest and closing write streams. */
+    Result FinishCook();
 
     Result SaveManifest();
     Result SaveTOC();
@@ -128,9 +118,9 @@ public:
     BlobStorageCallbacks callbacks;
 
 private:
-    bool InitMappedFile(MemoryMappedFile*& outMappedFile, uint32 page);
+    bool InitMappedFile(MemoryMappedFile*& outMappedFile, uint32 bucketIndex);
 
-    void ClosePage(uint32 page);
+    void CloseBlock(uint32 bucketIndex);
 
     Result LoadManifest();
     Result LoadTOC();
@@ -141,14 +131,9 @@ private:
     HYP_FIELD()
     FilePath m_baseDirectory;
 
+    // Indexed directly by AssetBucket::GetIndex(); entry 0 (AssetBucket::None) is unused.
     HYP_FIELD()
-    uint64 m_pageSize;
-
-    HYP_FIELD()
-    Array<BlobMappingRange> m_freeRanges; // <---- TODO make use of this
-
-    HYP_FIELD()
-    Array<BlobPageData> m_pageData;
+    Array<BlobBlockData> m_blockData;
 
     BlobTableOfContents* m_toc;
 

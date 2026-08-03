@@ -36,6 +36,7 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(Assets);
 class AssetRegistry;
 class ByteWriter;
 class BlobStorage;
+class BlobStorageCookCommandlet;
 
 struct BoxedValue;
 
@@ -47,6 +48,10 @@ class ENGINE_API AssetObject : public ObjectBase
 public:
     friend class AssetRegistry;
     friend class AssetBucketData;
+
+    // Needed so BlobStorageCookCommandlet (Framework/Commandlet/Commandlets/BlobStorageCookCommandlet.cpp)
+    // can walk blob data references directly when building the cooked cache.
+    friend class BlobStorageCookCommandlet;
 
     AssetObject();
     explicit AssetObject(Name name);

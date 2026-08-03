@@ -65,6 +65,12 @@ ENGINE_API bool IsEditor();
 static constexpr std::false_type IsEditor;
 #endif // HYP_EDITOR
 
+#ifndef HYP_SHIPPING
+ENGINE_API bool IsCooking();
+#else   // HYP_SHIPPING
+static constexpr NoOpFunction<bool> IsCooking;
+#endif  // !HYP_SHIPPING
+
 #ifdef HYP_EDITOR
 ENGINE_API const FilePath& GetProjectsDirectory();
 ENGINE_API const FilePath& GetDataDirectory();

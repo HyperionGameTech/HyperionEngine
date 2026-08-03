@@ -1614,9 +1614,7 @@ void AssetRegistry::InitBlobStorage(const FilePath& blobStorageDir)
 
     Assert(blobStorageDir.Exists(), "Blob storage directory '{}' does not exist", blobStorageDir);
 
-    const uint64 s_blobStoragePageSize = CoreApi::GetGlobalConfig().Get("App.Cache.PageSize").ToUInt64(/* defaultValue */ BlobStorage::DefaultPageSize);
-
-    m_blobStorage = new BlobStorage(blobStorageDir, s_blobStoragePageSize);
+    m_blobStorage = new BlobStorage(blobStorageDir, /* readOnly */ true);
 }
 
 void AssetRegistry::Update()

@@ -322,7 +322,7 @@ Result AssetObject::SaveBlobData(BlobStorage* storage, const Optional<FilePath>&
 
         if (storage != nullptr)
         {
-            if (!storage->PutData(StringHash(reference->key), header, reference->raw))
+            if (!storage->PutData(GetPath().bucketIndex, StringHash(reference->key), header, reference->raw))
             {
                 AssertDebug(false, "Failed to write blob data reference!");
 

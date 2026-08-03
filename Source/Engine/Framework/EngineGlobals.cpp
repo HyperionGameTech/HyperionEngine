@@ -14,14 +14,19 @@
 
 #include <Core/Threading/SharedMutex.hpp>
 
-#include <System/DirectoryInitializer.hpp>
+#include <Core/Utilities/GlobalContext.hpp>
 
-#include <Asset/BlobStorage.hpp>
+#include <System/DirectoryInitializer.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/EngineDriver.hpp>
 
 namespace Hyperion {
+
+#ifndef HYP_SHIPPING
+struct CookingContext;
+#endif // !HYP_SHIPPING
+
 namespace EngineGlobals {
 
 /// Editor build only
@@ -50,6 +55,15 @@ HYP_EXPORT const FilePath& GetDataDirectory()
 
 #endif // HYP_EDITOR
 
+#ifndef HYP_SHIPPING
+
+ENGINE_API bool IsCooking()
+{
+    return IsGlobalContextActive<CookingContext>();
+}
+
+#endif // !HYP_SHIPPING
+
 // Directory for cached data (shader bundles, compiled scripts, etc.) Expected to be compiled into the asset registry in production builds
 static AtomicVar<bool> s_cacheDirectoryInit = false;
 static Mutex s_cacheDirectoryMutex;
@@ -57,7 +71,6 @@ static Mutex s_cacheDirectoryMutex;
 HYP_EXPORT const FilePath& GetCacheDirectory()
 {
     static const ConfigValue& s_cfgCacheDirectory = CoreApi::GetGlobalConfig().Get("App.Cache.BaseDirectory");
-    static const ConfigValue& s_cfgCachePageSize = CoreApi::GetGlobalConfig().Get("App.Cache.PageSize");
 
     static const FilePath s_cacheDirectory = CoreApi::GetExecutablePath() / s_cfgCacheDirectory.ToString().ToUtf8();
 
@@ -71,14 +84,6 @@ HYP_EXPORT const FilePath& GetCacheDirectory()
     if (s_cacheDirectoryInit.Get(MemoryOrder::RELAXED))
     {
         return s_cacheDirectory;
-    }
-
-    if (!s_cfgCachePageSize.IsNumber() || s_cfgCachePageSize.AsNumber() < 1024 * 1024)
-    {
-        ConfigBase newConfigurationTable;
-        newConfigurationTable.Set("App.Cache.PageSize", ConfigValue(BlobStorage::DefaultPageSize));
-
-        CoreApi::UpdateGlobalConfig(newConfigurationTable);
     }
 
     if (s_cacheDirectory.Empty() || (!s_cacheDirectory.Exists() && !s_cacheDirectory.MkDir()))
