@@ -1253,6 +1253,7 @@ extern enum LightFlags : uint32
     ShadowCaster = 0x1,
     CacheStaticShadowMaps = 0x10,
     BakeStaticShadows = 0x20,
+    OnlyDrawStaticShadowMaps = 0x40,
     Default = (ShadowCaster | CacheStaticShadowMaps)
 end
 extern struct TagComponentBase
@@ -2104,17 +2105,10 @@ extern struct BlobDataReference
     ReadOnly : bool
 end
 extern class BlobStorage
-    BaseDirectory : string
-    PageSize : uint64
-    FreeRanges : Array<BlobMappingRange>
-    PageData : Array<BlobPageData>
+    BlockData : Array<BlobBlockData>
 end
-extern struct BlobPageData
+extern struct BlobBlockData
     Cursor : uint64
-end
-extern struct BlobMappingRange
-    Start : uint32
-    End : uint32
 end
 extern enum AddAssetConflictMode : uint8
     FailOnConflict = 0,

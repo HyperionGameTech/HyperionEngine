@@ -1,6 +1,0 @@
-ShaderBundle "BloomExtract" {
-    StaticProperties = []
-    CompiledShaders = [
-        @"Engine://Shaders/BloomExtract_14917212823711398449"
-    ]
-}

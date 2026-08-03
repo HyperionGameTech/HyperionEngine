@@ -1,8 +1,0 @@
-ShaderBundle "ComputeSH" {
-    StaticProperties = []
-    CompiledShaders = [
-        @"Engine://Shaders/ComputeSH_9896671945438715856"
-        @"Engine://Shaders/ComputeSH_7525189980070257492"
-        @"Engine://Shaders/ComputeSH_6014866777299517221"
-    ]
-}

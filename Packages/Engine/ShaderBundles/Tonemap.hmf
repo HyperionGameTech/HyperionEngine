@@ -1,6 +1,0 @@
-ShaderBundle "Tonemap" {
-    StaticProperties = []
-    CompiledShaders = [
-        @"Engine://Shaders/Tonemap_7138641477051714072"
-    ]
-}

@@ -1,9 +1,0 @@
-ShaderBundle "UpdateProbeData" {
-    StaticProperties = [
-        ("HYSTERESIS", 0.98)
-    ]
-    CompiledShaders = [
-        @"Engine://Shaders/UpdateProbeData_6805492672614306309"
-        @"Engine://Shaders/UpdateProbeData_2679071960961300334"
-    ]
-}

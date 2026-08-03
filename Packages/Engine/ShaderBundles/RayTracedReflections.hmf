@@ -1,8 +1,0 @@
-ShaderBundle "RayTracedReflections" {
-    StaticProperties = [
-        ("MAX_LIGHTS", 4)
-    ]
-    CompiledShaders = [
-        @"Engine://Shaders/RayTracedReflections_348120736054116462"
-    ]
-}

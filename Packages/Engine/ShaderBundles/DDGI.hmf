@@ -1,8 +1,0 @@
-ShaderBundle "DDGI" {
-    StaticProperties = [
-        ("MAX_LIGHTS", 4)
-    ]
-    CompiledShaders = [
-        @"Engine://Shaders/DDGI_14813576957341379476"
-    ]
-}

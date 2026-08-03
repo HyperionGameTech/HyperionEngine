@@ -1,6 +1,0 @@
-ShaderBundle "HBAO" {
-    StaticProperties = []
-    CompiledShaders = [
-        @"Engine://Shaders/HBAO_14917212823711398456"
-    ]
-}

@@ -1,6 +1,0 @@
-ShaderBundle "Skybox" {
-    StaticProperties = []
-    CompiledShaders = [
-        @"Engine://Shaders/Skybox_14917212823711398456"
-    ]
-}

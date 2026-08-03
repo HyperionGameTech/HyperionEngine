@@ -1,6 +1,0 @@
-ShaderBundle "ComputeVisibility" {
-    StaticProperties = []
-    CompiledShaders = [
-        @"Engine://Shaders/ComputeVisibility_14917212823711398449"
-    ]
-}
