@@ -54,7 +54,7 @@ void AnimationTrack::PageBlobData()
             return;
         }
 
-        BlobStorage* blobStorage = registry->HasBlobStorage() ? &registry->GetBlobStorage() : nullptr;
+        BlobStorage* blobStorage = EngineGlobals::GetBlobStorage();
 
         if (!blobStorage || !blobStorage->GetData(m_keyframeData.key, m_keyframeData.size, m_keyframeData.raw))
         {

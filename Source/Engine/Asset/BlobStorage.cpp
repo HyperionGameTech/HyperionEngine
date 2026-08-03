@@ -363,75 +363,44 @@ private:
 
 #pragma region BlobStorage
 
-BlobStorage::BlobStorage()
-    : m_baseDirectory(FilePath()),
-      m_toc(nullptr)
+BlobStorage::BlobStorage(bool readOnly)
+    : m_toc(nullptr),
+      m_isReadOnly(readOnly),
+      m_isInitialized(false)
 {
-}
-
-BlobStorage::BlobStorage(const FilePath& baseDirectory, bool readOnly)
-    : m_baseDirectory(baseDirectory),
-      m_toc(nullptr)
-{
-    InitBlobStorage(*this, baseDirectory, readOnly);
-
-    if (Result result = LoadManifest(); result.HasError())
-    {
-        HYP_LOG(Assets, Error, "Failed to load BlobStorage manifest: {}", result.GetError().GetMessage());
-    }
-
-    if (Result result = LoadTOC(); result.HasError())
-    {
-        HYP_LOG(Assets, Error, "Failed to load BlobStorage table of contents: {}", result.GetError().GetMessage());
-    }
-}
-
-BlobStorage::BlobStorage(BlobStorage&& other) noexcept
-    : callbacks(std::move(other.callbacks)),
-      m_baseDirectory(std::move(other.m_baseDirectory)),
-      m_blockData(std::move(other.m_blockData)),
-      m_toc(other.m_toc)
-{
-    other.callbacks = {};
-    other.m_toc = nullptr;
-}
-
-BlobStorage& BlobStorage::operator=(BlobStorage&& other) noexcept
-{
-    if (&other == this)
-    {
-        return *this;
-    }
-
-    for (uint32 bucketIndex = 0; bucketIndex < uint32(m_blockData.Size()); bucketIndex++)
-    {
-        CloseBlock(bucketIndex);
-    }
-
-    if (callbacks.Destroy)
-    {
-        callbacks.Destroy(callbacks.context);
-    }
-
-    callbacks = std::move(other.callbacks);
-
-    if (m_toc != nullptr)
-    {
-        delete m_toc;
-    }
-
-    m_baseDirectory = std::move(other.m_baseDirectory);
-    m_blockData = std::move(other.m_blockData);
-    m_toc = other.m_toc;
-
-    other.callbacks = {};
-    other.m_toc = nullptr;
-
-    return *this;
 }
 
 BlobStorage::~BlobStorage()
 {
+    Shutdown();
+}
+
+void BlobStorage::Initialize()
+{
+    if (m_isInitialized)
+    {
+        return;
+    }
+
+    InitBlobStorage(*this, EngineGlobals::GetCacheDirectory(), /* readOnly */ m_isReadOnly);
+
+    if (Result result = LoadTOC(); result.HasError())
+    {
+        HYP_LOG(Assets, Warning, "Failed to load BlobStorage table of contents: {}", result.GetError().GetMessage());
+    }
+
+    m_isInitialized = true;
+}
+
+void BlobStorage::Shutdown()
+{
+    if (!m_isInitialized)
+    {
+        return;
+    }
+
+    m_isInitialized = false;
+    
     for (uint32 bucketIndex = 0; bucketIndex < uint32(m_blockData.Size()); bucketIndex++)
     {
         CloseBlock(bucketIndex);
@@ -451,6 +420,12 @@ BlobStorage::~BlobStorage()
 
 ByteWriter* BlobStorage::GetWriteStream(uint32 bucketIndex)
 {
+    AssertDebug(!m_isReadOnly);
+    if (m_isReadOnly)
+    {
+        return nullptr;
+    }
+
     Mutex::Guard guard(m_mutex);
 
     if (m_blockData.Size() < MaxAssetBuckets)
@@ -501,7 +476,6 @@ ByteReader* BlobStorage::GetReadStream(uint32 bucketIndex)
 
 bool BlobStorage::InitMappedFile(MemoryMappedFile*& outMappedFile, uint32 bucketIndex)
 {
-    Assert(m_baseDirectory.Length() != 0);
     Assert(bucketIndex != AssetBucket::InvalidIndex && bucketIndex < MaxAssetBuckets);
 
     if (m_blockData.Size() < MaxAssetBuckets)
@@ -702,12 +676,7 @@ Result BlobStorage::FinishCook()
         }
     }
 
-    if (Result result = SaveTOC_Internal(); result.HasError())
-    {
-        return result;
-    }
-
-    return SaveManifest_Internal();
+    return SaveTOC_Internal();
 }
 
 void BlobStorage::CloseBlock(uint32 bucketIndex)
@@ -758,13 +727,6 @@ Result BlobStorage::SaveTOC()
     return SaveTOC_Internal();
 }
 
-Result BlobStorage::SaveManifest()
-{
-    Mutex::Guard guard(m_mutex);
-
-    return SaveManifest_Internal();
-}
-
 bool BlobStorage::IsDirty() const
 {
     Mutex::Guard guard(m_mutex);
@@ -788,59 +750,6 @@ Result BlobStorage::SaveIfDirty()
         return result;
     }
 
-    result = SaveManifest_Internal();
-
-    if (result.HasError())
-    {
-        return result;
-    }
-
-    return {};
-}
-
-Result BlobStorage::LoadManifest()
-{
-    Mutex::Guard guard(m_mutex);
-
-    const FilePath manifestPath = m_baseDirectory / "Manifest.json";
-
-    if (!manifestPath.Exists())
-    {
-        return HYP_MAKE_ERROR(Error, "Manifest path does not exist: {}", manifestPath);
-    }
-
-    FileByteReader reader { manifestPath };
-
-    if (reader.Eof())
-    {
-        return HYP_MAKE_ERROR(Error, "Failed to open BlobStorage manifest file: {}", manifestPath);
-    }
-
-    JSON::ParseResult parseResult = JSON::Parse(String(reader.Read(reader.Max()).ToByteView()));
-
-    if (!parseResult.ok)
-    {
-        return HYP_MAKE_ERROR(Error, "Failed to parse BlobStorage manifest file at {}: {}", manifestPath, parseResult.message);
-    }
-
-    JSON::Value json = parseResult.value;
-
-    if (!json.IsObject())
-    {
-        return HYP_MAKE_ERROR(Error, "BlobStorage manifest file is invalid JSON!");
-    }
-
-    json.AsObject().Erase("BaseDirectory");
-
-    BoxedValue thisBoxed(HandleFromThis());
-
-    if (!ObjectFromJSON(json.AsObject(), InstanceClass(), thisBoxed))
-    {
-        HYP_LOG(Assets, Error, "Failed to deserialize manifest JSON for BlobStorage at '{}'", manifestPath);
-
-        return HYP_MAKE_ERROR(Error, "Failed to load BlobStorage manifset file");
-    }
-
     return {};
 }
 
@@ -848,7 +757,7 @@ Result BlobStorage::LoadTOC()
 {
     Mutex::Guard guard(m_mutex);
 
-    const FilePath tocPath = m_baseDirectory / "storage.toc";
+    const FilePath tocPath = EngineGlobals::GetCacheDirectory() / "storage.toc";
 
     if (!tocPath.Exists())
     {
@@ -872,37 +781,6 @@ Result BlobStorage::LoadTOC()
     return BlobTableOfContents::Load(reader, *m_toc);
 }
 
-Result BlobStorage::SaveManifest_Internal()
-{
-    if (m_baseDirectory.Empty())
-    {
-        return HYP_MAKE_ERROR(Error, "Base directory not set");
-    }
-
-    if (!m_baseDirectory.IsDirectory() && !m_baseDirectory.MkDir())
-    {
-        return HYP_MAKE_ERROR(Error, "Not a valid directory and could not make directory: {}", m_baseDirectory);
-    }
-
-    const FilePath manifestPath = m_baseDirectory / "Manifest.json";
-
-    FileByteWriter manifestWriter { manifestPath };
-
-    if (!manifestWriter.IsOpen())
-    {
-        return HYP_MAKE_ERROR(Error, "Failed to open manifest file for BlobStorage at path: {}, errno: {}", manifestPath, std::strerror(errno));
-    }
-
-    JSON::Object manifestJson;
-    ObjectToJSON(InstanceClass(), BoxedValue(HandleFromThis()), manifestJson);
-
-    manifestJson.Erase("BaseDirectory");
-
-    manifestWriter.WriteString(JSON::Value(std::move(manifestJson)).ToString(true).ToUtf8());
-
-    return {};
-}
-
 Result BlobStorage::SaveTOC_Internal()
 {
     if (!m_toc)
@@ -910,7 +788,7 @@ Result BlobStorage::SaveTOC_Internal()
         m_toc = new BlobTableOfContents;
     }
 
-    const FilePath tocPath = m_baseDirectory / "storage.toc";
+    const FilePath tocPath = EngineGlobals::GetCacheDirectory() / "storage.toc";
 
     FileByteWriter tocWriter { tocPath };
 

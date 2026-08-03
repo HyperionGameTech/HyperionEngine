@@ -240,7 +240,7 @@ Result AssetObject::SaveAs(const FilePath& manifestPath)
 
     registry->PutAssetsDeep(MakeStrongRef(this));
 
-    BlobStorage* blobStorage = registry->HasBlobStorage() ? &registry->GetBlobStorage() : nullptr;
+    BlobStorage* blobStorage = EngineGlobals::GetBlobStorage();
 
     Result saveBlobDataResult = SaveBlobData(blobStorage, dir);
     if (saveBlobDataResult.HasError())

@@ -663,6 +663,8 @@ extern "C"
 #endif // HYP_EDITOR
         }
 
+        EngineGlobals::GetBlobStorage()->Shutdown();
+
         g_streamingManager->Stop();
         g_streamingManager.Reset();
 

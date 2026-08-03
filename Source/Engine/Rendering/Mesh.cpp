@@ -189,7 +189,7 @@ void Mesh::PageBlobData()
         return;
     }
 
-    BlobStorage* blobStorage = registry->HasBlobStorage() ? &registry->GetBlobStorage() : nullptr;
+    BlobStorage* blobStorage = EngineGlobals::GetBlobStorage();
 
     const String meshName(*GetName());
 

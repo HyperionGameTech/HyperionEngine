@@ -466,7 +466,7 @@ void Texture::PageBlobData()
             return;
         }
 
-        BlobStorage* blobStorage = registry->HasBlobStorage() ? &registry->GetBlobStorage() : nullptr;
+        BlobStorage* blobStorage = EngineGlobals::GetBlobStorage();
 
         if (!blobStorage || !blobStorage->GetData(m_imageData.key, m_imageData.size, m_imageData.raw))
         {

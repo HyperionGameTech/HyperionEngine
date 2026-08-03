@@ -63,7 +63,7 @@ void RawDataAsset::PageBlobData()
         return;
     }
 
-    BlobStorage* blobStorage = registry->HasBlobStorage() ? &registry->GetBlobStorage() : nullptr;
+    BlobStorage* blobStorage = EngineGlobals::GetBlobStorage();
 
     if (m_data.raw == nullptr
         && m_data.key

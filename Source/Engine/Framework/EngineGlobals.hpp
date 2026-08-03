@@ -32,6 +32,7 @@ class VisThread;
 class EngineStats;
 class InputManager;
 class Game;
+class BlobStorage;
 struct GameState;
 
 #if HYP_VULKAN
@@ -82,6 +83,8 @@ ENGINE_API const FilePath& GetTempDirectory();
 ENGINE_API HYP_NODISCARD FilePath CreateTempDirectory();
 
 ENGINE_API bool IsShuttingDown();
+
+ENGINE_API BlobStorage* GetBlobStorage();
 
 } // namespace EngineGlobals
 

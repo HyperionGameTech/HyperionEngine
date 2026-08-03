@@ -50,7 +50,6 @@ class AssetBucketData;
 class AssetObject;
 struct BoxedValue;
 class ByteWriter;
-class BlobStorage;
 
 enum class AssetRegistryId : uint32;
 
@@ -133,13 +132,6 @@ public:
 
     FilePath GetManifestPath(const AssetPath& assetPath) const;
 
-    BlobStorage& GetBlobStorage();
-
-    HYP_FORCE_INLINE bool HasBlobStorage() const
-    {
-        return m_blobStorage != nullptr;
-    }
-
     void Initialize();
     void Shutdown();
 
@@ -147,12 +139,8 @@ public:
     void Update();
 
 private:
-    void InitBlobStorage(const FilePath& blobStorageDir);
-
     template <class Func, class FutureType = void>
     void PostTask(Func&& fn, Task<FutureType>* outFuture = nullptr);
-
-    void SaveBlobCache(bool async);
 
     AssetRegistryId m_registryId;
     FilePath m_rootPath;
@@ -165,15 +153,9 @@ private:
     ClockTimer m_pruneTimer;
     threading::TaskBatch* m_pruneTaskBatch;
 
-    // timer for saving blob cache data
-    ClockTimer m_saveBlobCacheTimer;
-    threading::TaskBatch* m_saveBlobCacheBatch;
-
     AssetBucketData* m_assetBucketData;
 
     Scheduler* m_scheduler;
-
-    BlobStorage* m_blobStorage;
 
     DelegateHandler m_onEngineShutdown;
 };

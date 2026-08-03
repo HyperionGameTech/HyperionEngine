@@ -11,6 +11,8 @@
 #include <Asset/AssetRegistry.hpp>
 #include <Asset/BlobStorage.hpp>
 
+#include <Framework/EngineGlobals.hpp>
+
 #include <Core/Logging/Logger.hpp>
 
 #include <ScriptAsset.generated.inl>
@@ -70,7 +72,7 @@ void ScriptAsset::PageBlobData()
         return;
     }
 
-    BlobStorage* blobStorage = registry->HasBlobStorage() ? &registry->GetBlobStorage() : nullptr;
+    BlobStorage* blobStorage = EngineGlobals::GetBlobStorage();
 
     if (m_data.raw == nullptr
         && m_data.key

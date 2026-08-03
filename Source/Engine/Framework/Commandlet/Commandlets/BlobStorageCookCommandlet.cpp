@@ -7,6 +7,7 @@
 #include <HyperionPch.hpp>
 
 #include <Framework/Commandlet/Commandlet.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <Core/Reflection/ClassUtils.hpp>
 #include <Core/Reflection/ClassRegistry.hpp>
@@ -43,12 +44,12 @@ public:
             s_initialized = true;
 
             s_definitions.Add(
-                "output",
-                "o",
-                "Output directory for the cooked blob cache (defaults to <executable path>/Cache)",
-                CommandLineArgumentFlags::NONE,
+                "package",
+                "p",
+                "Name of package under Packages/ directory to use as GAME registry",
+                CommandLineArgumentFlags::REQUIRED,
                 CommandLineArgumentType::STRING,
-                JSON::Value(""));
+                JSON::Value("DefaultGame"));
         }
 
         return s_definitions;
@@ -57,19 +58,27 @@ public:
 protected:
     virtual Result Run_Impl(const CommandLineArguments& args) override
     {
-        // A game's asset registry references its own assets plus the engine's (shaders, default
-        // materials, gizmos, etc.), so both must land in the same cooked cache for asset lookups
-        // to resolve at runtime.
-        Array<Handle<AssetRegistry>> registries;
+        const String packageArg = args["package"].ToString();
 
-        if (Handle<AssetRegistry> engineRegistry = GetEngineAssetRegistry(); engineRegistry.IsValid())
+        if (packageArg.Empty())
         {
-            registries.PushBack(engineRegistry);
+            return HYP_MAKE_ERROR(Error, "No `package` arg provided");
         }
 
-        if (Handle<AssetRegistry> gameRegistry = GetCurrentAssetRegistry(); gameRegistry.IsValid())
+        FilePath packageDir = EngineGlobals::GetLibraryDirectory() / packageArg;
+        if (!packageDir.Exists() || !packageDir.IsDirectory())
         {
-            registries.PushBack(gameRegistry);
+            return HYP_MAKE_ERROR(Error, "Package path is non existant or is not a directory");
+        }
+
+        AssetRegistry gameRegistry { AssetRegistryId::Game, packageDir };
+
+        Set<AssetRegistry*> registries = { &gameRegistry };
+        
+        Handle<AssetRegistry> engineRegistry;
+        if ((engineRegistry = GetEngineAssetRegistry()))
+        {
+            registries.Add(engineRegistry);
         }
 
         if (registries.Empty())
@@ -77,12 +86,9 @@ protected:
             return HYP_MAKE_ERROR(Error, "No valid Engine or Game asset registry found to cook");
         }
 
-        const String outputArg = args["output"].ToString();
-        const FilePath outputDir = outputArg.Empty() ? (CoreApi::GetExecutablePath() / "Cache") : FilePath(outputArg);
+        HYP_LOG(Assets, Info, "Cooking blob storage for {} asset registries", registries.Size());
 
-        HYP_LOG(Assets, Info, "Cooking blob storage for {} asset registries to '{}'...", registries.Size(), outputDir);
-
-        Result result = Cook(registries, outputDir);
+        Result result = Cook(registries);
 
         if (result.HasError())
         {
@@ -109,7 +115,7 @@ private:
     /*! \brief Collects blob data from every registry into one shared set of per-bucket block
      *  files, so a bucket that exists in both the Engine and Game registries (e.g. Meshes) ends
      *  up in a single block rather than each registry separately overwriting the other's block. */
-    static Result Cook(const Array<Handle<AssetRegistry>>& registries, const FilePath& outputDir)
+    static Result Cook(const Set<AssetRegistry*>& registries)
     {
         GlobalContextScope contextScope { CookingContext() };
 
@@ -119,7 +125,7 @@ private:
         Array<uint64> blockSizes;
         blockSizes.Resize(MaxAssetBuckets);
 
-        for (const Handle<AssetRegistry>& registry : registries)
+        for (AssetRegistry* registry : registries)
         {
             registry->LoadAssetDescs();
 
@@ -181,10 +187,10 @@ private:
             blocks.PushBack(BlobBlockInfo { bucketIndex, blockSizes[bucketIndex] });
         }
 
-        BlobStorage* cookedStorage = new BlobStorage(outputDir, /* readOnly */ false);
-        HYP_DEFER({ cookedStorage->Release(); });
+        BlobStorage cookedStorage(/* readOnly */ false);
+        cookedStorage.Initialize();
 
-        if (Result result = cookedStorage->BeginCook(blocks); result.HasError())
+        if (Result result = cookedStorage.BeginCook(blocks); result.HasError())
         {
             return result;
         }
@@ -199,13 +205,13 @@ private:
             header.payloadSize = collectedBlob.reference->size;
             header.version = collectedBlob.version;
 
-            if (!cookedStorage->PutData(collectedBlob.bucketIndex, collectedBlob.key, header, collectedBlob.reference->raw))
+            if (!cookedStorage.PutData(collectedBlob.bucketIndex, collectedBlob.key, header, collectedBlob.reference->raw))
             {
                 return HYP_MAKE_ERROR(Error, "Failed to write cooked blob data for key {}", collectedBlob.key.GetHashCode().Value());
             }
         }
 
-        return cookedStorage->FinishCook();
+        return cookedStorage.FinishCook();
     }
 };
 

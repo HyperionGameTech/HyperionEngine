@@ -68,27 +68,25 @@ struct BlobBlockData
     ByteReader* readStream = nullptr;
 };
 
-/*! \brief Cooked, per-bucket blob cache. Blocks are only ever produced by an offline cook pass
- *  (BeginCook / PutData / FinishCook) that knows the full set of blob data up front and writes each
- *  bucket's block file at its exact final size in one shot; once cooked, a BlobStorage is opened
- *  read-only and memory-mapped for the lifetime of the host application. */
+/*! \brief Cooked, per-bucket blob cache - Cooked by BlobStorageCookCommandlet */
 HYP_CLASS()
 class BlobStorage : public ObjectBase
 {
     HYP_OBJECT_BODY(BlobStorage);
 
 public:
-    BlobStorage();
-
-    explicit BlobStorage(const FilePath& baseDirectory, bool readOnly);
+    explicit BlobStorage(bool readOnly = true);
 
     BlobStorage(const BlobStorage& other) = delete;
     BlobStorage& operator=(const BlobStorage& other) = delete;
 
-    BlobStorage(BlobStorage&& other) noexcept;
-    BlobStorage& operator=(BlobStorage&& other) noexcept;
+    BlobStorage(BlobStorage&& other) noexcept = delete;
+    BlobStorage& operator=(BlobStorage&& other) noexcept = delete;
 
     ~BlobStorage();
+
+    void Initialize();
+    void Shutdown();
 
     ByteWriter* GetWriteStream(uint32 bucketIndex);
     ByteReader* GetReadStream(uint32 bucketIndex);
@@ -122,14 +120,9 @@ private:
 
     void CloseBlock(uint32 bucketIndex);
 
-    Result LoadManifest();
     Result LoadTOC();
 
-    Result SaveManifest_Internal();
     Result SaveTOC_Internal();
-
-    HYP_FIELD()
-    FilePath m_baseDirectory;
 
     // Indexed directly by AssetBucket::GetIndex(); entry 0 (AssetBucket::None) is unused.
     HYP_FIELD()
@@ -138,6 +131,9 @@ private:
     BlobTableOfContents* m_toc;
 
     mutable Mutex m_mutex;
+
+    bool m_isReadOnly;
+    bool m_isInitialized;
 };
 
 } // namespace Hyperion

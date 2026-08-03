@@ -602,43 +602,47 @@ void Camera::UpdateMatchWindowSize()
             return;
         }
 
-        const auto HandleWindowChanged = [this](ApplicationWindow* window)
+        // app context may be invalid if we're cooking, for example.
+        AssertDebug(g_appContext.IsValid() || EngineGlobals::IsCooking());
+
+        if (g_appContext.IsValid())
         {
-            m_onWindowResizedHandle.Reset();
-
-            if (window == nullptr)
+            const auto handleWindowChanged = [this](ApplicationWindow* window)
             {
-                return;
-            }
+                m_onWindowResizedHandle.Reset();
 
-            auto MatchWindowSize = [this, weakWindow = MakeWeakRef(window)](Vec2i windowSize)
-            {
-                Handle<ApplicationWindow> strongWindow = weakWindow.Lock();
+                if (window != nullptr)
+                {
+                    auto matchWindowSize = [this, weakWindow = MakeWeakRef(window)](Vec2i windowSize)
+                    {
+                        Handle<ApplicationWindow> strongWindow = weakWindow.Lock();
 
-                const float renderTargetScale = strongWindow.IsValid()
-                    ? strongWindow->GetRenderTargetScale()
-                    : 1.0f;
+                        const float renderTargetScale = strongWindow.IsValid()
+                            ? strongWindow->GetRenderTargetScale()
+                            : 1.0f;
 
-                Vec2i renderSize = Vec2i(Vec2f(windowSize) * renderTargetScale);
-                renderSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(renderSize) * m_matchWindowSizeRatio)), Vec2i::One());
+                        Vec2i renderSize = Vec2i(Vec2f(windowSize) * renderTargetScale);
+                        renderSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(renderSize) * m_matchWindowSizeRatio)), Vec2i::One());
 
-                SetDimensions(renderSize);
+                        SetDimensions(renderSize);
+                    };
+
+                    matchWindowSize(window->GetSize());
+
+                    m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(window, matchWindowSize, g_simThread);
+                }
             };
 
-            MatchWindowSize(window->GetSize());
+            handleWindowChanged(g_appContext->GetMainWindow());
 
-            m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(window, MatchWindowSize, g_simThread);
-        };
+            m_onMainWindowChangedHandle = g_appContext->OnCurrentWindowChanged.BindThreaded(g_appContext, handleWindowChanged, g_simThread);
 
-        HandleWindowChanged(g_appContext->GetMainWindow());
-
-        m_onMainWindowChangedHandle = g_appContext->OnCurrentWindowChanged.BindThreaded(g_appContext, HandleWindowChanged, g_simThread);
+            return;
+        }
     }
-    else
-    {
-        m_onWindowResizedHandle.Reset();
-        m_onMainWindowChangedHandle.Reset();
-    }
+
+    m_onWindowResizedHandle.Reset();
+    m_onMainWindowChangedHandle.Reset();
 }
 
 void Camera::UpdateStreamingVolume()

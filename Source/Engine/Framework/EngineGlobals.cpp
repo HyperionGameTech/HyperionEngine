@@ -21,6 +21,8 @@
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/EngineDriver.hpp>
 
+#include <Asset/BlobStorage.hpp>
+
 namespace Hyperion {
 
 #ifndef HYP_SHIPPING
@@ -160,6 +162,19 @@ HYP_EXPORT bool IsShuttingDown()
 {
     return g_engineDriver.IsValid()
         && g_engineDriver->IsShuttingDown();
+}
+
+BlobStorage g_blobStorage;
+
+HYP_EXPORT BlobStorage* GetBlobStorage()
+{
+    static std::once_flag s_onceFlag;
+    std::call_once(s_onceFlag, []()
+                   {
+                       g_blobStorage.Initialize();
+                   });
+
+    return &g_blobStorage;
 }
 
 } // namespace EngineGlobals

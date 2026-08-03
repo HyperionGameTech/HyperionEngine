@@ -48,7 +48,7 @@ void InstancedMeshData::PageBlobData()
         return;
     }
 
-    BlobStorage* blobStorage = registry->HasBlobStorage() ? &registry->GetBlobStorage() : nullptr;
+    BlobStorage* blobStorage = EngineGlobals::GetBlobStorage();
 
     for (uint32 i = 0; i < uint32(buffers.Size()); i++)
     {
