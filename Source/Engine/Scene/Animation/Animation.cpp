@@ -56,7 +56,7 @@ void AnimationTrack::PageBlobData()
 
         BlobStorage* blobStorage = EngineGlobals::GetBlobStorage();
 
-        if (!blobStorage || !blobStorage->GetData(m_keyframeData.key, m_keyframeData.size, m_keyframeData.raw))
+        if (EngineGlobals::IsCooking() || !blobStorage || !blobStorage->GetData(m_keyframeData.key, m_keyframeData.size, m_keyframeData.raw))
         {
 #if defined(HYP_EDITOR) || defined(HYP_ALLOW_INLINE_BLOBS)
             // check if failed; if so, try to import from raw data blob in project directory

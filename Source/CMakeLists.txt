@@ -1138,7 +1138,9 @@ add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
 
 add_subdirectory(Sample)
 
-add_subdirectory(Commandlets)
+if(NOT HYP_SHIPPING)
+  add_subdirectory(Commandlets)
+endif()
 
 if(HYP_EDITOR)
   add_subdirectory(Editor)

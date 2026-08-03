@@ -525,8 +525,6 @@ bool BlobStorage::GetData(StringHash key, size_t size, void*& outRawData)
 
     if (!m_toc)
     {
-        HYP_LOG(Assets, Warning, "Table of contents is NULL");
-
         return false;
     }
 

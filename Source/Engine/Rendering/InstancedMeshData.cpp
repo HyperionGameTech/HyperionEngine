@@ -58,7 +58,7 @@ void InstancedMeshData::PageBlobData()
 
         if (ref.raw == nullptr && ref.key && ref.size != 0)
         {
-            if (!blobStorage || !blobStorage->GetData(ref.key, ref.size, ref.raw))
+            if (EngineGlobals::IsCooking() || !blobStorage || !blobStorage->GetData(ref.key, ref.size, ref.raw))
             {
 #if defined(HYP_EDITOR) || defined(HYP_ALLOW_INLINE_BLOBS)
                 const Name blobKey = ref.key;

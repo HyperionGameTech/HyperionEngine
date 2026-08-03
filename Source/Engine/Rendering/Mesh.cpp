@@ -204,7 +204,7 @@ void Mesh::PageBlobData()
             && vertexData.key
             && vertexData.size != 0)
         {
-            if (!blobStorage || !blobStorage->GetData(vertexData.key, vertexData.size, vertexData.raw))
+            if (EngineGlobals::IsCooking() || !blobStorage || !blobStorage->GetData(vertexData.key, vertexData.size, vertexData.raw))
             {
                 if (lodIndex == 0)
                 {
@@ -248,7 +248,7 @@ void Mesh::PageBlobData()
                 vertexData.readOnly = true;
             }
 
-            if (!blobStorage || !blobStorage->GetData(indexData.key, indexData.size, indexData.raw))
+            if (EngineGlobals::IsCooking() || !blobStorage || !blobStorage->GetData(indexData.key, indexData.size, indexData.raw))
             {
                 if (lodIndex == 0)
                 {
@@ -300,7 +300,7 @@ void Mesh::PageBlobData()
         && m_bvhData.key
         && m_bvhData.size != 0)
     {
-        if (!blobStorage || !blobStorage->GetData(m_bvhData.key, m_bvhData.size, m_bvhData.raw))
+        if (EngineGlobals::IsCooking() || !blobStorage || !blobStorage->GetData(m_bvhData.key, m_bvhData.size, m_bvhData.raw))
         {
             const Name blobKey = m_bvhData.key;
             const uint64 expectedSize = m_bvhData.size;

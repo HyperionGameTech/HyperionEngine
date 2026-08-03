@@ -78,7 +78,7 @@ void ScriptAsset::PageBlobData()
         && m_data.key
         && m_data.size != 0)
     {
-        if (!blobStorage || !blobStorage->GetData(m_data.key, m_data.size, m_data.raw))
+        if (EngineGlobals::IsCooking() || !blobStorage || !blobStorage->GetData(m_data.key, m_data.size, m_data.raw))
         {
 #if defined(HYP_EDITOR) || defined(HYP_ALLOW_INLINE_BLOBS)
             const Name blobKey = m_data.key;

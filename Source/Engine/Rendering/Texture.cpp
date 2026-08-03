@@ -471,7 +471,7 @@ void Texture::PageBlobData()
 
         BlobStorage* blobStorage = EngineGlobals::GetBlobStorage();
 
-        if (!blobStorage || !blobStorage->GetData(m_imageData.key, m_imageData.size, m_imageData.raw))
+        if (EngineGlobals::IsCooking() || !blobStorage || !blobStorage->GetData(m_imageData.key, m_imageData.size, m_imageData.raw))
         {
 #if defined(HYP_EDITOR) || defined(HYP_ALLOW_INLINE_BLOBS)
             // check if failed; if so, try to import from raw data blob in project directory

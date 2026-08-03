@@ -1216,6 +1216,8 @@ bool AssetRegistry::LoadAssetDescs()
     
     GlobalContextScope loadingContextScope { AssetLoadingContext {} };
 
+    // @TODO Load from index file rather than using file iteration.
+    // or simply maintain a bin with all AssetPath stored for each bucket as a flat file.
     for (const AssetBucket* bucket : AssetBuckets::AllBuckets)
     {
         if (bucket == &AssetBuckets::None)
@@ -1389,7 +1391,9 @@ void AssetRegistry::SaveDirtyAssets()
 
         for (AssetObject* assetObject : dirtyAssets)
         {
-            // auto readScope = assetObject->GetReadScope();
+            // Unique lock so nothing mutates it
+            // Asset data should already be in mem if it's dirty.
+            //auto writeScope = assetObject->GetWriteScope();
 
             const Name assetName = assetObject->GetName();
             AssertDebug(assetName.IsValid());
@@ -1400,6 +1404,13 @@ void AssetRegistry::SaveDirtyAssets()
             }
 
             const FilePath manifestPath = GetManifestPath(assetObject->GetPath());
+
+            if (Result saveBlobResult = assetObject->SaveBlobData(nullptr, bucketDir); saveBlobResult.HasError())
+            {
+                HYP_LOG(Assets, Warning, "Failed to save blob data for asset '{}' in bucket '{}': {}",
+                        assetName, bucketName, saveBlobResult.GetError().GetMessage());
+                continue;
+            }
 
             {
                 FileByteWriter manifestWriter { manifestPath };

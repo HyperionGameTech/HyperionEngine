@@ -14,13 +14,16 @@ if errorlevel 1 (
 
 set "BIN_DIR=%HYP_ROOT_DIR%Binaries\Windows\Shipping"
 
+REM Commandlets not included / wont work for shipping so we use release
+set "BIN_DIR_RELEASE=%HYP_ROOT_DIR%Binaries\Windows\Release"
+
 echo Running PrecompileShaders commandlet...
 
 REM Compile shaders for only Windows (DX12 + Vulkan)
-"%BIN_DIR%\PrecompileShaders.exe --platform=windows"
+"%BIN_DIR_RELEASE%\PrecompileShaders.exe" --platform=windows
 
 echo Running Cook commandlet...
-"%BIN_DIR%\BlobStorageCookCommandlet.exe"
+"%BIN_DIR_RELEASE%\BlobStorageCookCommandlet.exe"
 
 for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "Get-Date -Format 'yyyyMMdd_HHmmss'"`) do set "TIMESTAMP=%%i"
 
