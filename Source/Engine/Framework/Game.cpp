@@ -86,7 +86,7 @@ void Game::Initialize()
     {
         m_assetRegistry = MakeHandle<AssetRegistry>(
             AssetRegistryId::Game,
-            EngineGlobals::GetLibraryDirectory() / *GetPackageName());
+            EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Game")>());
     }
 
     if (!m_assetRegistryActive)

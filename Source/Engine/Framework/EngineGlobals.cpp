@@ -140,23 +140,24 @@ HYP_EXPORT FilePath CreateTempDirectory()
     return FilePath();
 }
 
-HYP_EXPORT const FilePath& GetLibraryDirectory()
+template <auto PackageName>
+HYP_EXPORT const FilePath& GetContentDirectory()
 {
 #ifndef HYP_SHIPPING
-    static DirectoryInitializer<HYP_STATIC_STRING("Packages"), /* RelativeToExecutablePath */ false> s_resourceDirectory;
-    return s_resourceDirectory.path;
+    // Not shipping - Content at base dir of repo, subdir'd by package name.
+    static DirectoryInitializer<HYP_STATIC_STRING("Content").template Concat<HYP_STATIC_STRING("/")>().template Concat<PackageName>(), /* RelativeToExecutablePath */ false> s_contentDir;
+    return s_contentDir.path;
 #else   // HYP_SHIPPING
-    static DirectoryInitializer<HYP_STATIC_STRING("Packages"), /* RelativeToExecutablePath */ true> s_resourceDirectory;
-
-    if (!s_resourceDirectory.path.Exists())
-    {
-        HYP_LOG(Engine, Warning, "GetLibraryDirectory() called but Packages directory does not exist: {}",
-                s_resourceDirectory.path.Data());
-    }
-
-    return s_resourceDirectory.path;
+    // Just use base Content directory at exe path.
+    // Everything gets coalesced.
+    static DirectoryInitializer<HYP_STATIC_STRING("Content"), /* RelativeToExecutablePath */ true> s_contentDir;
+    return s_contentDir.path;
 #endif  // !HYP_SHIPPING
 }
+
+template const FilePath& GetContentDirectory<HYP_STATIC_STRING("Editor")>();
+template const FilePath& GetContentDirectory<HYP_STATIC_STRING("Engine")>();
+template const FilePath& GetContentDirectory<HYP_STATIC_STRING("Game")>();
 
 HYP_EXPORT bool IsShuttingDown()
 {

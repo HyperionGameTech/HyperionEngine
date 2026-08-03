@@ -77,7 +77,13 @@ ENGINE_API const FilePath& GetProjectsDirectory();
 ENGINE_API const FilePath& GetDataDirectory();
 #endif // HYP_EDITOR
 
-ENGINE_API const FilePath& GetLibraryDirectory();
+template <auto PackageName>
+ENGINE_API const FilePath& GetContentDirectory();
+
+extern template ENGINE_API const FilePath& GetContentDirectory<HYP_STATIC_STRING("Editor")>();
+extern template ENGINE_API const FilePath& GetContentDirectory<HYP_STATIC_STRING("Engine")>();
+extern template ENGINE_API const FilePath& GetContentDirectory<HYP_STATIC_STRING("Game")>();
+
 ENGINE_API const FilePath& GetCacheDirectory();
 ENGINE_API const FilePath& GetTempDirectory();
 ENGINE_API HYP_NODISCARD FilePath CreateTempDirectory();

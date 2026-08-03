@@ -137,9 +137,9 @@ tasks.register('stageNativeLibs') {
     }
 }
 
-// copy packages into assets dir.
+// copy content into assets dir.
 // TODO: Copy Projects/*ProjectName*/ too?
-def basePackagesDir = file('../../../../Packages')
+def baseContentDir = file('../../../../Content')
 def baseConfigDir = file("../../../../Config")
 def fontsDir = file("../../../../Data/Fonts")
 def scriptDir = file("../../../../Data/Scripts")
@@ -149,19 +149,18 @@ def shadersIni = file("../../../../Source/Shaders/Shaders.ini")
 def assetsDestDir = file('src/main/assets')
 
 tasks.register('stagePackageAssets', Copy) {
-    description 'Stage Hyperion AssetPackage manifests'
+    description 'Stage Hyperion content and non-blob assets'
 
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
-    // Engine package manifests and non-blob assets
-    from(basePackagesDir) {
-        // FOR TESTING - i've commented out the exclusion of .blob files,
-        // so we can test as we currently aren't copying the large blob cache anywhere and can't use it.
-        // for packaged builds, this should be re-enabled and we should ensure the blob cache is being copied.
-        // we'll need a way to trim it down first as it can get huge and bloated.
-        // exclude '**/*.blob'
-
-        into 'Packages'
+    // Coalesce all content folders into one: Content/Engine/Foo, Content/Game/Foo, ... -> Content/Foo.
+    // Each top-level content category directory (Engine, Game, etc.) contributes its contents
+    // directly into a single merged 'Content' directory in assets.
+    def contentDirs = baseContentDir.listFiles()?.findAll { it.isDirectory() } ?: []
+    contentDirs.sort { it.name }.each { contentDir ->
+        from(contentDir) {
+            into 'Content'
+        }
     }
 
     from(baseConfigDir) {

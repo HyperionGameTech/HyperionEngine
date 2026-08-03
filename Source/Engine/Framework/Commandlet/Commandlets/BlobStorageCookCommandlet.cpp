@@ -18,6 +18,8 @@
 #include <Core/Utilities/ByteUtil.hpp>
 #include <Core/Utilities/GlobalContext.hpp>
 
+#include <Core/IO/ByteWriter.hpp>
+
 #include <Asset/AssetRegistry.hpp>
 #include <Asset/AssetObject.hpp>
 #include <Asset/BlobStorage.hpp>
@@ -43,13 +45,6 @@ public:
         {
             s_initialized = true;
 
-            s_definitions.Add(
-                "package",
-                "p",
-                "Name of package under Packages/ directory to use as GAME registry",
-                CommandLineArgumentFlags::REQUIRED,
-                CommandLineArgumentType::STRING,
-                JSON::Value("DefaultGame"));
         }
 
         return s_definitions;
@@ -58,24 +53,22 @@ public:
 protected:
     virtual Result Run_Impl(const CommandLineArguments& args) override
     {
-        const String packageArg = args["package"].ToString();
-
-        if (packageArg.Empty())
-        {
-            return HYP_MAKE_ERROR(Error, "No `package` arg provided");
-        }
-
-        FilePath packageDir = EngineGlobals::GetLibraryDirectory() / packageArg;
+        // @TODO Allow Projects/foo dir
+        FilePath packageDir = CoreApi::GetBaseDirectory() / "Content" / "Game";
         if (!packageDir.Exists() || !packageDir.IsDirectory())
         {
             return HYP_MAKE_ERROR(Error, "Package path is non existant or is not a directory");
         }
-
-        AssetRegistry gameRegistry { AssetRegistryId::Game, packageDir };
-
-        Set<AssetRegistry*> registries = { &gameRegistry };
         
         Handle<AssetRegistry> engineRegistry;
+        Handle<AssetRegistry> gameRegistry;
+
+        gameRegistry = MakeHandle<AssetRegistry>(AssetRegistryId::Game, packageDir);
+
+        AssetRegistryContext registryContext { gameRegistry };
+
+        Set<AssetRegistry*> registries = { gameRegistry };
+        
         if ((engineRegistry = GetEngineAssetRegistry()))
         {
             registries.Add(engineRegistry);
@@ -119,6 +112,10 @@ private:
     {
         GlobalContextScope contextScope { CookingContext() };
 
+        EngineGlobals::GetBlobStorage()->Shutdown();
+
+        const FilePath outputContentDir = CoreApi::GetExecutablePath() / "Content";
+
         Array<TSharedResLock<AssetObject>> readLocks;
         Array<CollectedBlob> collectedBlobs;
 
@@ -136,6 +133,18 @@ private:
                 Array<AssetDesc> assetDescs;
                 registry->GetBucketAssetDescs(bucketIndex, assetDescs);
 
+                if (assetDescs.Empty())
+                {
+                    continue;
+                }
+
+                const FilePath bucketContentDir = outputContentDir / GetAssetBucketName(bucketIndex);
+
+                if (!bucketContentDir.Exists() && !bucketContentDir.MkDir())
+                {
+                    return HYP_MAKE_ERROR(Error, "Failed to create bucket content directory '{}'", bucketContentDir);
+                }
+
                 for (const AssetDesc& assetDesc : assetDescs)
                 {
                     Handle<AssetObject> assetObject = registry->GetAsset(bucket, assetDesc.name);
@@ -146,6 +155,22 @@ private:
                     }
 
                     readLocks.PushBack(assetObject->GetReadScope());
+
+                    const FilePath manifestPath = bucketContentDir / (String(*assetDesc.name) + ".hmf");
+
+                    FileByteWriter manifestWriter { manifestPath };
+
+                    if (!manifestWriter.IsOpen())
+                    {
+                        return HYP_MAKE_ERROR(Error, "Failed to open manifest file '{}' for writing", manifestPath);
+                    }
+
+                    if (Result manifestResult = assetObject->SaveManifest(manifestWriter); manifestResult.HasError())
+                    {
+                        return manifestResult;
+                    }
+
+                    manifestWriter.Close();
 
                     Array<Tuple<const char*, uint16, BlobDataReference*>> blobDataReferences;
                     assetObject->CollectBlobDataReferences(blobDataReferences);
