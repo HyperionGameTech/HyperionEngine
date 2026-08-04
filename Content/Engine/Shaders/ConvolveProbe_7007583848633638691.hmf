@@ -176,7 +176,7 @@ Shader "ConvolveProbe_7007583848633638691" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/ConvolveProbe_7007583848633638691.CS"
-            Size = 52596
+            Size = 51920
         }
     ]
     PropertySetHashCode = {}

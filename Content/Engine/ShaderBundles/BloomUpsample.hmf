@@ -1,6 +1,7 @@
 ShaderBundle "BloomUpsample" {
     StaticProperties = []
     CompiledShaders = [
+        @"Engine://Shaders/BloomUpsample_14917212823711398456"
         @"Engine://Shaders/BloomUpsample_13803781059551201557"
     ]
 }

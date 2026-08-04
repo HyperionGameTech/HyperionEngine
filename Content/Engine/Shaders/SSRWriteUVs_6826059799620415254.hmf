@@ -1,0 +1,235 @@
+Shader "SSRWriteUVs_6826059799620415254" {
+    PropertySet = [
+        ShaderProperty {
+            Name = "TARGET"
+            Flags = SPF_NONE
+            Value = "WINDOWS"
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "BACKEND"
+            Flags = SPF_NONE
+            Value = "VULKAN"
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "NUM_GBUFFER_TEXTURES"
+            Flags = SPF_NONE
+            Value = 5
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "HYP_FEATURES_BINDLESS_TEXTURES"
+            Flags = SPF_NONE
+            Value = null
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "CONE_TRACING"
+            Flags = SPF_NONE
+            Value = null
+            EnumValues = []
+        }
+    ]
+    RevisionNumber = 940922443
+    BaseName = "SSRWriteUVs"
+    InputLayout = {
+        Mask = 7
+    }
+    ShaderInputGroup = {
+        Elements = [
+            ShaderInputSet {
+                SetIndex = 0
+                Name = "RenderSSR"
+                Slots = [
+                    [
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "BlueNoiseBuffer"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = StructuredBuffer
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Buffer
+                            Index = 0
+                        }
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "GBufferMipChain"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Image
+                            Index = 1
+                        }
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "HiZTexture"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Image
+                            Index = 2
+                        }
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "GBufferNormalsTexture"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Image
+                            Index = 3
+                        }
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "GBufferVelocityTexture"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Image
+                            Index = 4
+                        }
+                        ShaderInput {
+                            Register = SRV
+                            ElementType = SRV
+                            Name = "GBufferMaterialTexture"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Image
+                            Index = 5
+                        }
+                    ]
+                    []
+                    [
+                        ShaderInput {
+                            Register = BUFFER
+                            ElementType = CBV_Dynamic
+                            Name = "CBuffer"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = true
+                            BufferType = ConstantBuffer
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Buffer
+                            Index = 0
+                        }
+                    ]
+                    [
+                        ShaderInput {
+                            Register = SAMPLER
+                            ElementType = Sampler
+                            Name = "SamplerNearest"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Sampler
+                            Index = 0
+                        }
+                        ShaderInput {
+                            Register = SAMPLER
+                            ElementType = Sampler
+                            Name = "SamplerLinear"
+                            Count = 1
+                            Size = 4294967295
+                            IsDynamic = false
+                            BufferType = NONE
+                            StructInfo = {
+                                Name = ""
+                                Size = 4294967295
+                                FieldNames = []
+                                FieldTypes = []
+                            }
+                            Category = Sampler
+                            Index = 1
+                        }
+                    ]
+                    []
+                ]
+                Flags = None
+            }
+        ]
+    }
+    ShaderModuleTypes = [
+        Vertex
+        Pixel
+    ]
+    ShaderModuleNames = [
+        "SSRWriteUVs.hlsl"
+        "SSRWriteUVs.hlsl"
+    ]
+    EntryPointNames = [
+        "VSMain"
+        "PSMain"
+    ]
+    ShaderBlobs = [
+        BlobDataReference {
+            Key = "Engine://Shaders/SSRWriteUVs_6826059799620415254.VS"
+            Size = 10540
+        }
+        BlobDataReference {
+            Key = "Engine://Shaders/SSRWriteUVs_6826059799620415254.PS"
+            Size = 190956
+        }
+    ]
+    PropertySetHashCode = {}
+
+}

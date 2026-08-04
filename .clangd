@@ -1,3 +1,0 @@
-# clangd configuration for Hyperion Engine
-# compile_commands.json is synced to the workspace root by CMake (sync_compile_commands target)
-# clangd finds it there by default - no CompilationDatabase override needed

@@ -5,7 +5,6 @@ ShaderBundle "DeferredIndirect" {
     ]
     CompiledShaders = [
         @"Engine://Shaders/DeferredIndirect_9138883043362269244"
-        @"Engine://Shaders/DeferredIndirect_360029694583681430"
-        @"Engine://Shaders/DeferredIndirect_16894928789126838566"
+        @"Engine://Shaders/DeferredIndirect_6595342441040247352"
     ]
 }

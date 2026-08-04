@@ -132,11 +132,11 @@ Shader "DrawCubemap_9927342832519311428" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/DrawCubemap_9927342832519311428.VS"
-            Size = 32120
+            Size = 31436
         }
         BlobDataReference {
             Key = "Engine://Shaders/DrawCubemap_9927342832519311428.PS"
-            Size = 46068
+            Size = 45384
         }
     ]
     PropertySetHashCode = {}

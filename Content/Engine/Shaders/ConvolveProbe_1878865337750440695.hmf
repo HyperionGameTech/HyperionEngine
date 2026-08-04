@@ -25,15 +25,15 @@ Shader "ConvolveProbe_1878865337750440695" {
             EnumValues = []
         }
         ShaderProperty {
-            Name = "NUM_SAMPLES"
-            Flags = SPF_NONE
-            Value = 256
-            EnumValues = []
-        }
-        ShaderProperty {
             Name = "LOBE_SIZE"
             Flags = SPF_NONE
             Value = 0
+            EnumValues = []
+        }
+        ShaderProperty {
+            Name = "NUM_SAMPLES"
+            Flags = SPF_NONE
+            Value = 256
             EnumValues = []
         }
     ]
@@ -176,7 +176,7 @@ Shader "ConvolveProbe_1878865337750440695" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/ConvolveProbe_1878865337750440695.CS"
-            Size = 51292
+            Size = 50616
         }
     ]
     PropertySetHashCode = {}

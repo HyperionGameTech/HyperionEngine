@@ -223,11 +223,11 @@ Shader "DebugVis_8342295170788631938" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/DebugVis_8342295170788631938.VS"
-            Size = 41372
+            Size = 40684
         }
         BlobDataReference {
             Key = "Engine://Shaders/DebugVis_8342295170788631938.PS"
-            Size = 65004
+            Size = 64300
         }
     ]
     PropertySetHashCode = {}

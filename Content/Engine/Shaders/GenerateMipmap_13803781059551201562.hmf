@@ -130,7 +130,7 @@ Shader "GenerateMipmap_13803781059551201562" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/GenerateMipmap_13803781059551201562.CS"
-            Size = 19176
+            Size = 18508
         }
     ]
     PropertySetHashCode = {}

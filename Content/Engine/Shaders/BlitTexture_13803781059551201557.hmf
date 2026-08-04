@@ -114,11 +114,11 @@ Shader "BlitTexture_13803781059551201557" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/BlitTexture_13803781059551201557.VS"
-            Size = 19512
+            Size = 18800
         }
         BlobDataReference {
             Key = "Engine://Shaders/BlitTexture_13803781059551201557.PS"
-            Size = 20188
+            Size = 19472
         }
     ]
     PropertySetHashCode = {}

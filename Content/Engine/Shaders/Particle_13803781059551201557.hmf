@@ -149,11 +149,11 @@ Shader "Particle_13803781059551201557" {
     ShaderBlobs = [
         BlobDataReference {
             Key = "Engine://Shaders/Particle_13803781059551201557.VS"
-            Size = 21624
+            Size = 21576
         }
         BlobDataReference {
             Key = "Engine://Shaders/Particle_13803781059551201557.PS"
-            Size = 23172
+            Size = 22504
         }
     ]
     PropertySetHashCode = {}

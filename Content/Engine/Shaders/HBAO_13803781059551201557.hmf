@@ -272,7 +272,7 @@ Shader "HBAO_13803781059551201557" {
         }
         BlobDataReference {
             Key = "Engine://Shaders/HBAO_13803781059551201557.PS"
-            Size = 65692
+            Size = 64840
         }
     ]
     PropertySetHashCode = {}
