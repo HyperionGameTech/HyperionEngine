@@ -13,10 +13,10 @@
             Height="64"
             Margin="0,0,8,0"
             VerticalAlignment="Top"
-            Background="{DynamicResource Brush.PanelAlt}"
-            BorderBrush="{DynamicResource Brush.Border}"
+            Background="{DynamicResource Brush.PanelRaised}"
+            BorderBrush="{DynamicResource Brush.BorderLight}"
             BorderThickness="1"
-            CornerRadius="4">
+            CornerRadius="{DynamicResource Radius.Medium}">
             <TextBlock
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"

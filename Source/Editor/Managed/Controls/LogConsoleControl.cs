@@ -23,17 +23,17 @@ namespace Hyperion.Editor.Controls
     {
         private static readonly IBrush[] LevelBrushes =
         {
-            new ImmutableSolidColorBrush(Color.Parse("#4c0b0b")), // Fatal
-            new ImmutableSolidColorBrush(Color.Parse("#FF0000")), // Error
-            new ImmutableSolidColorBrush(Color.Parse("#ffc65d")), // Warning
-            Brushes.White, // Info
-            Brushes.White, // Verbose
-            Brushes.White, // Debug
+            new ImmutableSolidColorBrush(Color.Parse("#FF7A2E33")), // Fatal
+            new ImmutableSolidColorBrush(Color.Parse("#FFE0555C")), // Error
+            new ImmutableSolidColorBrush(Color.Parse("#FFE3A84D")), // Warning
+            new ImmutableSolidColorBrush(Color.Parse("#FFE7E9ED")), // Info
+            new ImmutableSolidColorBrush(Color.Parse("#FF888E97")), // Verbose
+            new ImmutableSolidColorBrush(Color.Parse("#FF888E97")), // Debug
         };
 
-        private static readonly IBrush LinkBrush = new ImmutableSolidColorBrush(Color.Parse("#6699CC"));
-        private static readonly IBrush BackgroundBrush = new ImmutableSolidColorBrush(Color.Parse("#1E1E1E"));
-        private static readonly Typeface MonoTypeface = new Typeface(new FontFamily("Menlo, Monaco, SFMono-Regular, Consolas, Courier New, monospace"));
+        private static readonly IBrush LinkBrush = new ImmutableSolidColorBrush(Color.Parse("#FF6DA0FF"));
+        private static readonly IBrush BackgroundBrush = new ImmutableSolidColorBrush(Color.Parse("#FF111215"));
+        private static readonly Typeface MonoTypeface = new Typeface(new FontFamily("Cascadia Mono, Menlo, Monaco, SFMono-Regular, Consolas, Courier New, monospace"));
         private static readonly Cursor HandCursor = new Cursor(StandardCursorType.Hand);
 
         // @TODO make configurable through EditorConfig

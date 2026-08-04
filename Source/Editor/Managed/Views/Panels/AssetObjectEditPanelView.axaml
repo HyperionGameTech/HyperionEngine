@@ -12,14 +12,14 @@
         <StackPanel Margin="0,12,0,8" Spacing="0">
             <TextBlock
                 Margin="8,0,8,2"
+                Classes="header"
                 FontSize="14"
-                FontWeight="SemiBold"
                 Text="{Binding Heading}" />
             <TextBlock
+                Classes="muted"
                 IsVisible="{Binding HasSubHeading}"
                 Margin="8,0,8,10"
                 FontSize="11"
-                Opacity="0.55"
                 Text="{Binding SubHeading}"
                 TextTrimming="CharacterEllipsis" />
 
@@ -28,17 +28,17 @@
                 ItemsSource="{Binding SubObject.Properties}" />
 
             <TextBlock
+                Classes="muted"
                 IsVisible="{Binding !SubObject.HasProperties}"
                 Margin="8,4"
-                Opacity="0.5"
                 Text="No editable properties." />
 
             <Grid Margin="0,12,0,0" IsVisible="{Binding SubObject.HasActions}" RowDefinitions="Auto, Auto">
                 <TextBlock
                     Grid.Row="0"
                     Margin="8,0,8,2"
+                    Classes="header"
                     FontSize="14"
-                    FontWeight="SemiBold"
                     Text="Actions" />
                 <ItemsControl Grid.Row="1" VerticalAlignment="Top" ItemsSource="{Binding SubObject.Actions}">
                     <ItemsControl.ItemTemplate>

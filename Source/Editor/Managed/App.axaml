@@ -6,7 +6,7 @@
     xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
     Name="Hyperion Editor"
     RequestedThemeVariant="Dark">
-    <!--  Compact dark design with custom palette and control styles  -->
+    <!--  Slick near-black editor theme - deep neutral surfaces, restrained electric-blue accent  -->
 
     <Application.DataTemplates>
         <DataTemplate DataType="vm:NewPhysicsShapePanelViewModel">
@@ -28,38 +28,58 @@
 
     <Application.Resources>
         <ResourceDictionary>
-            <!--  Core Palette  -->
-            <Color x:Key="Color.Background">#FF121416</Color>
-            <Color x:Key="Color.Panel">#FF1A1D20</Color>
-            <Color x:Key="Color.PanelAlt">#FF202428</Color>
-            <Color x:Key="Color.Border">#FF2B2F34</Color>
-            <Color x:Key="Color.BorderLight">#FF383D42</Color>
-            <Color x:Key="Color.Accent">#FF66C2FF</Color>
-            <Color x:Key="Color.AccentMuted">#FF3A89C9</Color>
-            <Color x:Key="Color.Text">#FFD7DDE3</Color>
-            <Color x:Key="Color.TextMuted">#FF9AA4AE</Color>
-            <Color x:Key="Color.Warning">#FFFFC661</Color>
-            <Color x:Key="Color.MenuHover">#FF2A2E33</Color>
+            <!--  Core Palette - deep neutral, near-black surfaces  -->
+            <Color x:Key="Color.Background">#FF0A0B0D</Color>
+            <Color x:Key="Color.Panel">#FF111215</Color>
+            <Color x:Key="Color.PanelAlt">#FF16181C</Color>
+            <Color x:Key="Color.PanelRaised">#FF1C1E23</Color>
+            <Color x:Key="Color.Border">#FF212328</Color>
+            <Color x:Key="Color.BorderLight">#FF2C2F35</Color>
+            <Color x:Key="Color.Accent">#FF4E8CFF</Color>
+            <Color x:Key="Color.AccentHover">#FF6DA0FF</Color>
+            <Color x:Key="Color.AccentMuted">#FF2C5BB8</Color>
+            <Color x:Key="Color.AccentSubtle">#264E8CFF</Color>
+            <Color x:Key="Color.Text">#FFE7E9ED</Color>
+            <Color x:Key="Color.TextMuted">#FF888E97</Color>
+            <Color x:Key="Color.TextFaint">#FF54585F</Color>
+            <Color x:Key="Color.Warning">#FFE3A84D</Color>
+            <Color x:Key="Color.Danger">#FFE0555C</Color>
+            <Color x:Key="Color.MenuHover">#FF1C1F24</Color>
+            <Color x:Key="Color.InputBackground">#FF16171A</Color>
+            <Color x:Key="Color.InputBorder">#FF262930</Color>
 
             <!--  Brushes  -->
             <SolidColorBrush x:Key="Brush.Background" Color="{StaticResource Color.Background}" />
             <SolidColorBrush x:Key="Brush.Panel" Color="{StaticResource Color.Panel}" />
             <SolidColorBrush x:Key="Brush.PanelAlt" Color="{StaticResource Color.PanelAlt}" />
+            <SolidColorBrush x:Key="Brush.PanelRaised" Color="{StaticResource Color.PanelRaised}" />
             <SolidColorBrush x:Key="Brush.Border" Color="{StaticResource Color.Border}" />
             <SolidColorBrush x:Key="Brush.BorderLight" Color="{StaticResource Color.BorderLight}" />
             <SolidColorBrush x:Key="Brush.Accent" Color="{StaticResource Color.Accent}" />
+            <SolidColorBrush x:Key="Brush.AccentHover" Color="{StaticResource Color.AccentHover}" />
             <SolidColorBrush x:Key="Brush.AccentMuted" Color="{StaticResource Color.AccentMuted}" />
+            <SolidColorBrush x:Key="Brush.AccentSubtle" Color="{StaticResource Color.AccentSubtle}" />
             <SolidColorBrush x:Key="Brush.Text" Color="{StaticResource Color.Text}" />
             <SolidColorBrush x:Key="Brush.TextMuted" Color="{StaticResource Color.TextMuted}" />
+            <SolidColorBrush x:Key="Brush.TextFaint" Color="{StaticResource Color.TextFaint}" />
+            <SolidColorBrush x:Key="Brush.TextSecondary" Color="{StaticResource Color.TextMuted}" />
             <SolidColorBrush x:Key="Brush.Warning" Color="{StaticResource Color.Warning}" />
+            <SolidColorBrush x:Key="Brush.Danger" Color="{StaticResource Color.Danger}" />
             <SolidColorBrush x:Key="Brush.MenuHover" Color="{StaticResource Color.MenuHover}" />
+            <SolidColorBrush x:Key="Brush.InputBackground" Color="{StaticResource Color.InputBackground}" />
+            <SolidColorBrush x:Key="Brush.InputBorder" Color="{StaticResource Color.InputBorder}" />
 
-            <!--  Compact Metrics  -->
-            <Thickness x:Key="Thickness.ControlPadding">6,4</Thickness>
-            <Thickness x:Key="Thickness.HeaderPadding">8,6</Thickness>
+            <!--  Metrics  -->
+            <Thickness x:Key="Thickness.ControlPadding">8,5</Thickness>
+            <Thickness x:Key="Thickness.HeaderPadding">10,7</Thickness>
             <Thickness x:Key="Thickness.TabPadding">10,6</Thickness>
             <Thickness x:Key="Thickness.Border">1</Thickness>
-            <CornerRadius x:Key="Radius.Small">3</CornerRadius>
+            <CornerRadius x:Key="Radius.Small">4</CornerRadius>
+            <CornerRadius x:Key="Radius.Medium">6</CornerRadius>
+            <CornerRadius x:Key="Radius.Large">10</CornerRadius>
+
+            <FontFamily x:Key="Font.Base">Segoe UI Variable, Segoe UI, Helvetica, Arial, sans-serif</FontFamily>
+            <FontFamily x:Key="Font.Mono">Cascadia Mono, Menlo, Monaco, SFMono-Regular, Consolas, Courier New, monospace</FontFamily>
         </ResourceDictionary>
     </Application.Resources>
 
@@ -68,39 +88,48 @@
 
         <!--  Text styles  -->
         <Style Selector="TextBlock">
-		    <Setter Property="FontFamily" Value="Segoe UI, Helvetica, Arial, sans-serif" />
+            <Setter Property="FontFamily" Value="{StaticResource Font.Base}" />
+            <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
         </Style>
         <Style Selector="TextBlock.header">
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
-            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="LetterSpacing" Value="0.2" />
         </Style>
         <Style Selector="TextBlock.muted">
             <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
         </Style>
+        <Style Selector="TextBlock.section-label">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource Brush.TextFaint}" />
+            <Setter Property="LetterSpacing" Value="0.8" />
+        </Style>
 
         <!--  Inspector property name style  -->
         <Style Selector="TextBlock.inspector-name">
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="FontSize" Value="11.5" />
             <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
             <Setter Property="Padding" Value="0,0" />
             <Setter Property="TextWrapping" Value="Wrap" />
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         </Style>
+
         <!--  Menu  -->
         <Style Selector="Menu">
             <Setter Property="Background" Value="{StaticResource Brush.Panel}" />
             <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
             <Setter Property="BorderThickness" Value="0,0,0,1" />
-            <Setter Property="Padding" Value="6,0" />
+            <Setter Property="Padding" Value="8,0" />
         </Style>
         <Style Selector="MenuItem">
             <Setter Property="Padding" Value="10,6" />
             <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
-		    <Setter Property="FontFamily" Value="Segoe UI, Helvetica, Arial, sans-serif" />
-            <Setter Property="FontSize" Value="11" />
-            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="FontFamily" Value="{StaticResource Font.Base}" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="BorderBrush" Value="Transparent" />
@@ -118,30 +147,38 @@
             <Setter Property="Fill" Value="{StaticResource Brush.TextMuted}" />
         </Style>
         <Style Selector="MenuItem /template/ TextBlock#PART_InputGestureText">
-            <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
+            <Setter Property="Foreground" Value="{StaticResource Brush.TextFaint}" />
             <Setter Property="FontSize" Value="10" />
             <Setter Property="Margin" Value="16,0,0,0" />
         </Style>
         <Style Selector="MenuItem /template/ Popup#PART_Popup > Border">
-            <Setter Property="Background" Value="{StaticResource Brush.Panel}" />
-            <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+            <Setter Property="Background" Value="{StaticResource Brush.PanelRaised}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.BorderLight}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.Medium}" />
             <Setter Property="Padding" Value="4" />
+            <Setter Property="BoxShadow" Value="0 12 28 -6 #99000000" />
         </Style>
 
         <Style Selector="ContextMenu">
-            <Setter Property="Background" Value="{StaticResource Brush.Panel}" />
-            <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+            <Setter Property="Background" Value="{StaticResource Brush.PanelRaised}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.BorderLight}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.Medium}" />
             <Setter Property="Padding" Value="4" />
         </Style>
         <Style Selector="MenuFlyoutPresenter">
-            <Setter Property="Background" Value="{StaticResource Brush.Panel}" />
-            <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+            <Setter Property="Background" Value="{StaticResource Brush.PanelRaised}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.BorderLight}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.Medium}" />
+            <Setter Property="Padding" Value="4" />
+        </Style>
+        <Style Selector="FlyoutPresenter">
+            <Setter Property="Background" Value="{StaticResource Brush.PanelRaised}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.BorderLight}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.Medium}" />
             <Setter Property="Padding" Value="4" />
         </Style>
 
@@ -157,12 +194,14 @@
         </Style>
         <Style Selector="TabItem">
             <Setter Property="Padding" Value="{StaticResource Thickness.TabPadding}" />
-            <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+            <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
+            <Setter Property="FontSize" Value="11.5" />
         </Style>
         <Style Selector="TabItem:selected">
             <Setter Property="Background" Value="{StaticResource Brush.PanelAlt}" />
             <Setter Property="BorderBrush" Value="{StaticResource Brush.BorderLight}" />
             <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}" />
+            <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
         </Style>
 
         <!--  TreeView / ListBox  -->
@@ -170,13 +209,19 @@
             <Setter Property="Background" Value="{StaticResource Brush.Panel}" />
             <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
             <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}" />
-		    <Setter Property="FontFamily" Value="Segoe UI, Helvetica, Arial, sans-serif" />
+            <Setter Property="FontFamily" Value="{StaticResource Font.Base}" />
+            <Setter Property="FontSize" Value="12" />
         </Style>
         <Style Selector="TreeViewItem, ListBoxItem">
             <Setter Property="Padding" Value="{StaticResource Thickness.ControlPadding}" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.Small}" />
+            <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+        </Style>
+        <Style Selector="TreeViewItem:pointerover, ListBoxItem:pointerover">
+            <Setter Property="Background" Value="{StaticResource Brush.MenuHover}" />
         </Style>
         <Style Selector="TreeViewItem:selected, ListBoxItem:selected">
-            <Setter Property="Background" Value="{StaticResource Brush.PanelAlt}" />
+            <Setter Property="Background" Value="{StaticResource Brush.AccentSubtle}" />
             <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
         </Style>
 
@@ -184,11 +229,20 @@
         <Style Selector="GridSplitter">
             <Setter Property="Background" Value="{StaticResource Brush.Border}" />
         </Style>
+        <Style Selector="GridSplitter:pointerover">
+            <Setter Property="Background" Value="{StaticResource Brush.Accent}" />
+        </Style>
 
         <!--  ScrollBar  -->
         <Style Selector="ScrollBar">
             <Setter Property="Foreground" Value="{StaticResource Brush.BorderLight}" />
-            <Setter Property="Background" Value="{StaticResource Brush.Panel}" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ScrollBar /template/ Thumb">
+            <Setter Property="Background" Value="{StaticResource Brush.BorderLight}" />
+        </Style>
+        <Style Selector="ScrollBar /template/ Thumb:pointerover">
+            <Setter Property="Background" Value="{StaticResource Brush.Accent}" />
         </Style>
 
         <!--  Headers (panel title bars)  -->
@@ -204,14 +258,14 @@
             <Setter Property="Background" Value="{StaticResource Brush.Panel}" />
             <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
             <Setter Property="BorderThickness" Value="0,1,0,0" />
-            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="Padding" Value="8,5" />
         </Style>
 
         <Style Selector="Border.task-box">
-            <Setter Property="Background" Value="{StaticResource Brush.PanelAlt}" />
+            <Setter Property="Background" Value="{StaticResource Brush.PanelRaised}" />
             <Setter Property="BorderBrush" Value="{StaticResource Brush.BorderLight}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.Small}" />
             <Setter Property="Padding" Value="8,4" />
         </Style>
 
@@ -221,21 +275,47 @@
             <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
         </Style>
 
-        <!--  Accent Button style for toolbar-like buttons  -->
+        <!--  Buttons  -->
         <Style Selector="Button">
-            <Setter Property="Background" Value="{StaticResource Brush.PanelAlt}" />
-            <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+            <Setter Property="Background" Value="{StaticResource Brush.PanelRaised}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.BorderLight}" />
             <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}" />
-            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="Padding" Value="8,5" />
             <Setter Property="CornerRadius" Value="{StaticResource Radius.Small}" />
             <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
-		    <Setter Property="FontFamily" Value="Segoe UI, Helvetica, Arial, sans-serif" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="FontFamily" Value="{StaticResource Font.Base}" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.08" />
+                </Transitions>
+            </Setter>
         </Style>
         <Style Selector="Button:over">
             <Setter Property="Background" Value="{StaticResource Brush.BorderLight}" />
         </Style>
         <Style Selector="Button:pressed">
             <Setter Property="Background" Value="{StaticResource Brush.AccentMuted}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button:disabled">
+            <Setter Property="Opacity" Value="0.4" />
+        </Style>
+
+        <!--  Primary (accent-filled) button, used for confirm/create actions  -->
+        <Style Selector="Button.Primary">
+            <Setter Property="Background" Value="{StaticResource Brush.Accent}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent}" />
+            <Setter Property="Foreground" Value="#FF0A0B0D" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="Button.Primary:over">
+            <Setter Property="Background" Value="{StaticResource Brush.AccentHover}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.AccentHover}" />
+        </Style>
+        <Style Selector="Button.Primary:pressed">
+            <Setter Property="Background" Value="{StaticResource Brush.AccentMuted}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.AccentMuted}" />
             <Setter Property="Foreground" Value="White" />
         </Style>
 
@@ -260,34 +340,41 @@
         <Style Selector="Button.reset-icon:pointerover Path">
             <Setter Property="Fill" Value="{StaticResource Brush.Text}" />
         </Style>
-        
-        <!--  Textbox  -->
 
+        <!--  Textbox  -->
         <Style Selector="TextBox">
-            <Setter Property="Background" Value="#1E1F22" />
-            <Setter Property="Foreground" Value="#E6E6E6" />
-            <Setter Property="BorderBrush" Value="#2B2D30" />
+            <Setter Property="Background" Value="{StaticResource Brush.InputBackground}" />
+            <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.InputBorder}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.Small}" />
             <Setter Property="FontSize" Value="12" />
-		    <Setter Property="FontFamily" Value="Segoe UI, Helvetica, Arial, sans-serif" />
-            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="FontFamily" Value="{StaticResource Font.Base}" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="SelectionBrush" Value="{StaticResource Brush.AccentSubtle}" />
+            <Setter Property="CaretBrush" Value="{StaticResource Brush.Accent}" />
+        </Style>
+        <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.BorderLight}" />
+        </Style>
+        <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent}" />
         </Style>
 
         <!--  Drop-downs (ComboBox / AutoCompleteBox)  -->
         <Style Selector="ComboBox">
-            <Setter Property="Background" Value="#1E1F22" />
+            <Setter Property="Background" Value="{StaticResource Brush.InputBackground}" />
             <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
             <Setter Property="PlaceholderForeground" Value="{StaticResource Brush.TextMuted}" />
-            <Setter Property="BorderBrush" Value="#2B2D30" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.InputBorder}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.Small}" />
             <Setter Property="FontSize" Value="12" />
-            <Setter Property="FontFamily" Value="Segoe UI, Helvetica, Arial, sans-serif" />
+            <Setter Property="FontFamily" Value="{StaticResource Font.Base}" />
             <Setter Property="Padding" Value="8,5" />
         </Style>
         <Style Selector="ComboBox /template/ Border#border">
-            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.Small}" />
         </Style>
         <Style Selector="ComboBox:pointerover /template/ Border#border">
             <Setter Property="Background" Value="{StaticResource Brush.BorderLight}" />
@@ -301,37 +388,39 @@
             <Setter Property="BorderThickness" Value="0" />
         </Style>
         <Style Selector="ComboBox /template/ Popup#PART_Popup > Border">
-            <Setter Property="Background" Value="{StaticResource Brush.Panel}" />
-            <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+            <Setter Property="Background" Value="{StaticResource Brush.PanelRaised}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.BorderLight}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.Small}" />
+            <Setter Property="BoxShadow" Value="0 12 28 -6 #99000000" />
         </Style>
         <Style Selector="ComboBoxItem">
             <Setter Property="CornerRadius" Value="3" />
             <Setter Property="Padding" Value="8,5" />
-            <Setter Property="FontFamily" Value="Segoe UI, Helvetica, Arial, sans-serif" />
+            <Setter Property="FontFamily" Value="{StaticResource Font.Base}" />
         </Style>
         <Style Selector="ComboBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="{StaticResource Brush.MenuHover}" />
         </Style>
         <Style Selector="ComboBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="{StaticResource Brush.AccentMuted}" />
+            <Setter Property="Background" Value="{StaticResource Brush.AccentSubtle}" />
         </Style>
 
         <Style Selector="AutoCompleteBox">
-            <Setter Property="Background" Value="#1E1F22" />
+            <Setter Property="Background" Value="{StaticResource Brush.InputBackground}" />
             <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
-            <Setter Property="BorderBrush" Value="#2B2D30" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.InputBorder}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontFamily" Value="Segoe UI, Helvetica, Arial, sans-serif" />
-            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.Small}" />
+            <Setter Property="FontFamily" Value="{StaticResource Font.Base}" />
+            <Setter Property="Padding" Value="8,5" />
         </Style>
         <Style Selector="AutoCompleteBox /template/ Popup#PART_Popup > Border">
-            <Setter Property="Background" Value="{StaticResource Brush.Panel}" />
-            <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+            <Setter Property="Background" Value="{StaticResource Brush.PanelRaised}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.BorderLight}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.Small}" />
+            <Setter Property="BoxShadow" Value="0 12 28 -6 #99000000" />
         </Style>
         <Style Selector="AutoCompleteBox /template/ ListBox#PART_SelectingItemsControl">
             <Setter Property="Background" Value="Transparent" />
@@ -343,25 +432,25 @@
 
         <!--  Joined text-box-plus-toggle drop-down (asset/subclass pickers)  -->
         <Style Selector="Border.picker-box">
-            <Setter Property="Background" Value="#1E1F22" />
-            <Setter Property="BorderBrush" Value="#2B2D30" />
+            <Setter Property="Background" Value="{StaticResource Brush.InputBackground}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.InputBorder}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.Small}" />
         </Style>
         <Style Selector="Border.picker-box AutoCompleteBox">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="Padding" Value="8,5" />
         </Style>
         <Style Selector="Border.picker-box Border.picker-divider">
             <Setter Property="Background" Value="{StaticResource Brush.Border}" />
             <Setter Property="Width" Value="1" />
-            <Setter Property="Margin" Value="0,4" />
+            <Setter Property="Margin" Value="0,5" />
         </Style>
         <Style Selector="Button.picker-toggle">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="CornerRadius" Value="0,5,5,0" />
+            <Setter Property="CornerRadius" Value="0,4,4,0" />
             <Setter Property="Padding" Value="8,4" />
             <Setter Property="FontSize" Value="9" />
         </Style>
@@ -370,13 +459,13 @@
         </Style>
 
         <Style Selector="ToggleButton.panel-toggle">
-            <Setter Property="Background" Value="{StaticResource Brush.PanelAlt}" />
-            <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+            <Setter Property="Background" Value="{StaticResource Brush.PanelRaised}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.BorderLight}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
             <Setter Property="FontSize" Value="11" />
-            <Setter Property="FontFamily" Value="Segoe UI, Helvetica, Arial, sans-serif" />
-            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="FontFamily" Value="{StaticResource Font.Base}" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.Small}" />
             <Setter Property="Template">
                 <ControlTemplate>
                     <Border
@@ -399,13 +488,96 @@
             <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
         </Style>
         <Style Selector="ToggleButton.panel-toggle:checked">
-            <Setter Property="Background" Value="{StaticResource Brush.AccentMuted}" />
+            <Setter Property="Background" Value="{StaticResource Brush.AccentSubtle}" />
             <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent}" />
-            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Foreground" Value="{StaticResource Brush.AccentHover}" />
         </Style>
         <Style Selector="ToggleButton.panel-toggle:checked:pointerover">
-            <Setter Property="Background" Value="{StaticResource Brush.Accent}" />
+            <Setter Property="Background" Value="{StaticResource Brush.AccentMuted}" />
             <Setter Property="Foreground" Value="White" />
+        </Style>
+
+        <!--  CheckBox  -->
+        <Style Selector="CheckBox">
+            <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontFamily" Value="{StaticResource Font.Base}" />
+        </Style>
+        <Style Selector="CheckBox /template/ Border#NormalRectangle">
+            <Setter Property="Background" Value="{StaticResource Brush.InputBackground}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.InputBorder}" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+        <Style Selector="CheckBox:checked /template/ Border#NormalRectangle">
+            <Setter Property="Background" Value="{StaticResource Brush.Accent}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent}" />
+        </Style>
+        <Style Selector="CheckBox:pointerover /template/ Border#NormalRectangle">
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent}" />
+        </Style>
+
+        <!--  RadioButton  -->
+        <Style Selector="RadioButton">
+            <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontFamily" Value="{StaticResource Font.Base}" />
+        </Style>
+        <Style Selector="RadioButton /template/ Ellipse#NormalEllipse">
+            <Setter Property="Stroke" Value="{StaticResource Brush.InputBorder}" />
+            <Setter Property="Fill" Value="{StaticResource Brush.InputBackground}" />
+        </Style>
+        <Style Selector="RadioButton:checked /template/ Ellipse#NormalEllipse">
+            <Setter Property="Stroke" Value="{StaticResource Brush.Accent}" />
+        </Style>
+        <Style Selector="RadioButton:checked /template/ Ellipse#CheckGlyph">
+            <Setter Property="Fill" Value="{StaticResource Brush.Accent}" />
+        </Style>
+        <Style Selector="RadioButton:pointerover /template/ Ellipse#NormalEllipse">
+            <Setter Property="Stroke" Value="{StaticResource Brush.Accent}" />
+        </Style>
+
+        <!--  Slider  -->
+        <Style Selector="Slider">
+            <Setter Property="Foreground" Value="{StaticResource Brush.Accent}" />
+        </Style>
+        <Style Selector="Slider /template/ Thumb">
+            <Setter Property="Background" Value="{StaticResource Brush.Accent}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Width" Value="14" />
+            <Setter Property="Height" Value="14" />
+        </Style>
+
+        <!--  ProgressBar  -->
+        <Style Selector="ProgressBar">
+            <Setter Property="Background" Value="{StaticResource Brush.Border}" />
+            <Setter Property="Foreground" Value="{StaticResource Brush.Accent}" />
+            <Setter Property="CornerRadius" Value="3" />
+        </Style>
+
+        <!--  Expander  -->
+        <Style Selector="Expander">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="Expander /template/ ToggleButton#ExpanderHeader">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0,3" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.Small}" />
+        </Style>
+        <Style Selector="Expander /template/ ToggleButton#ExpanderHeader:pointerover">
+            <Setter Property="Background" Value="{StaticResource Brush.MenuHover}" />
+        </Style>
+
+        <!--  ToolTip  -->
+        <Style Selector="ToolTip">
+            <Setter Property="Background" Value="{StaticResource Brush.PanelRaised}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.BorderLight}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.Small}" />
+            <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Padding" Value="8,5" />
         </Style>
     </Application.Styles>
 </Application>

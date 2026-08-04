@@ -26,13 +26,14 @@
         <ListBox
             x:Name="CompletionListBox"
             Grid.Row="1"
-            Background="#1E1E1E"
-            BorderThickness="0"
+            Background="{DynamicResource Brush.PanelRaised}"
+            BorderBrush="{DynamicResource Brush.BorderLight}"
+            BorderThickness="0,1,0,0"
             MaxHeight="120"
             IsVisible="{Binding HasCompletions}"
-            FontFamily="Menlo, Monaco, SFMono-Regular, Consolas, Courier New, monospace"
-            FontSize="10"
-            Foreground="White"
+            FontFamily="{DynamicResource Font.Mono}"
+            FontSize="11"
+            Foreground="{DynamicResource Brush.Text}"
             ItemsSource="{Binding Completions}"
             SelectedIndex="{Binding SelectedCompletionIndex}">
             <ListBox.ItemTemplate>
@@ -44,26 +45,27 @@
 
         <Grid
             Grid.Row="2"
-            Background="#2D2D2D"
+            Background="{DynamicResource Brush.PanelAlt}"
             ColumnDefinitions="Auto, *">
+            <Border Grid.ColumnSpan="2" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,1,0,0" />
             <TextBlock
                 Grid.Column="0"
-                Margin="4,0,0,0"
+                Margin="8,0,0,0"
                 VerticalAlignment="Center"
                 Classes="BlinkingPrompt"
-                FontFamily="Menlo, Monaco, SFMono-Regular, Consolas, Courier New, monospace"
-                FontSize="10"
-                Foreground="White"
+                FontFamily="{DynamicResource Font.Mono}"
+                FontSize="11"
+                Foreground="{DynamicResource Brush.Accent}"
                 Text="&gt;" />
             <TextBox
                 x:Name="CommandTextBox"
                 Grid.Column="1"
                 Background="Transparent"
                 BorderThickness="0"
-                CaretBrush="White"
-                FontFamily="Menlo, Monaco, SFMono-Regular, Consolas, Courier New, monospace"
-                FontSize="10"
-                Foreground="White"
+                CaretBrush="{DynamicResource Brush.Accent}"
+                FontFamily="{DynamicResource Font.Mono}"
+                FontSize="11"
+                Foreground="{DynamicResource Brush.Text}"
                 Text="{Binding CommandText}" />
         </Grid>
     </Grid>

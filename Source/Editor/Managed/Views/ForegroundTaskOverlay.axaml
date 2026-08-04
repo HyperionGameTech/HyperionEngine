@@ -25,11 +25,11 @@
             <Border
                 Width="360"
                 Padding="16"
-                Background="{DynamicResource Brush.PanelAlt}"
+                Background="{DynamicResource Brush.PanelRaised}"
                 BorderBrush="{DynamicResource Brush.BorderLight}"
                 BorderThickness="1"
-                CornerRadius="8"
-                BoxShadow="0 10 30 #55000000">
+                CornerRadius="{DynamicResource Radius.Large}"
+                BoxShadow="0 16 40 -8 #AA000000">
                 <StackPanel Spacing="16">
                     <StackPanel Spacing="4">
                         <TextBlock

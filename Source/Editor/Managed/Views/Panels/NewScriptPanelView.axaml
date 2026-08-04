@@ -8,7 +8,7 @@
     x:DataType="vm:NewScriptPanelViewModel"
     mc:Ignorable="d">
     <DockPanel>
-        <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,1,0,0" Padding="12,8">
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource Brush.PanelAlt}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,1,0,0" Padding="12,10">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
                 <Button Padding="20,6" Classes="Primary" Command="{Binding ConfirmCommand}" Content="Create" />
                 <Button Padding="20,6" Command="{Binding CancelCommand}" Content="Cancel" />
@@ -17,15 +17,15 @@
 
         <ScrollViewer Padding="4,0">
             <StackPanel Margin="12,12,12,8" Spacing="12">
-                <StackPanel Spacing="4">
-                    <TextBlock FontSize="11" Opacity="0.7" Text="Name" />
+                <StackPanel Spacing="6">
+                    <TextBlock Classes="section-label" Text="Name" />
                     <TextBox Text="{Binding ScriptName, Mode=TwoWay}" Watermark="Script name" />
                 </StackPanel>
 
                 <Separator />
 
-                <StackPanel Spacing="4">
-                    <TextBlock FontSize="11" Opacity="0.7" Text="Language" />
+                <StackPanel Spacing="6">
+                    <TextBlock Classes="section-label" Text="Language" />
                     <RadioButton Content="HypScript" IsChecked="{Binding IsHypScriptSelected, Mode=TwoWay}" />
                     <RadioButton Content="Strata" IsChecked="{Binding IsStrataSelected, Mode=TwoWay}" />
                     <RadioButton Content="C#" IsChecked="{Binding IsCSharpSelected, Mode=TwoWay}" />

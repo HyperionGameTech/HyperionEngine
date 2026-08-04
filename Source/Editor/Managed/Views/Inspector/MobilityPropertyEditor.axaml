@@ -10,10 +10,11 @@
     <UserControl.Styles>
         <Style Selector="ToggleButton.mobility">
             <Setter Property="Padding" Value="8,4" />
-            <Setter Property="Background" Value="{DynamicResource Brush.PanelAlt}" />
+            <Setter Property="Background" Value="{DynamicResource Brush.PanelRaised}" />
             <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextMuted}" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <ControlTemplate>
@@ -27,27 +28,29 @@
                             Margin="{TemplateBinding Padding}"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"
+                            TextElement.Foreground="{TemplateBinding Foreground}"
                             Content="{TemplateBinding Content}" />
                     </Border>
                 </ControlTemplate>
             </Setter>
         </Style>
         <Style Selector="ToggleButton.mobility:checked">
-            <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
+            <Setter Property="Background" Value="{DynamicResource Brush.AccentSubtle}" />
             <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
-            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.AccentHover}" />
         </Style>
         <Style Selector="ToggleButton.mobility:pointerover">
-            <Setter Property="Background" Value="{DynamicResource Brush.Panel}" />
+            <Setter Property="Background" Value="{DynamicResource Brush.MenuHover}" />
         </Style>
         <Style Selector="ToggleButton.mobility:checked:pointerover">
-            <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
+            <Setter Property="Background" Value="{DynamicResource Brush.AccentMuted}" />
+            <Setter Property="Foreground" Value="White" />
         </Style>
     </UserControl.Styles>
     <Border
         BorderBrush="{DynamicResource Brush.Border}"
         BorderThickness="1"
-        CornerRadius="4">
+        CornerRadius="{DynamicResource Radius.Small}">
         <Grid ColumnDefinitions="*,*,*">
             <ToggleButton
                 Grid.Column="0"

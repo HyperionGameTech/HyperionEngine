@@ -10,9 +10,10 @@
     <DockPanel>
         <Border
             DockPanel.Dock="Bottom"
+            Background="{DynamicResource Brush.PanelAlt}"
             BorderBrush="{DynamicResource Brush.Border}"
             BorderThickness="0,1,0,0"
-            Padding="12,8">
+            Padding="12,10">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
                 <Button
                     Padding="20,6"
@@ -29,11 +30,8 @@
 
         <ScrollViewer Padding="4,0">
             <StackPanel Margin="12,12,12,8" Spacing="12">
-                <StackPanel Spacing="4">
-                    <TextBlock
-                        FontSize="11"
-                        Opacity="0.7"
-                        Text="Scene Name" />
+                <StackPanel Spacing="6">
+                    <TextBlock Classes="section-label" Text="Scene Name" />
                     <TextBox
                         Text="{Binding SceneName, Mode=TwoWay}"
                         Watermark="Enter scene name..." />
@@ -41,11 +39,7 @@
 
                 <Separator />
 
-                <TextBlock
-                    FontSize="11"
-                    FontWeight="SemiBold"
-                    Opacity="0.7"
-                    Text="Scene Flags" />
+                <TextBlock Classes="section-label" Text="Scene Flags" />
 
                 <ItemsControl ItemsSource="{Binding FlagEntries}">
                     <ItemsControl.ItemTemplate>

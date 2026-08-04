@@ -22,12 +22,13 @@
         </Style>
 
         <Style Selector="TabItem">
-            <Setter Property="FontSize" Value="10" />
-            <Setter Property="Padding" Value="8,4" />
-            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="Padding" Value="10,5" />
+            <Setter Property="Margin" Value="0,0,4,0" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextMuted}" />
             <Setter Property="Template">
                 <ControlTemplate>
                     <Border
@@ -35,11 +36,12 @@
                         Background="{TemplateBinding Background}"
                         BorderBrush="{TemplateBinding BorderBrush}"
                         BorderThickness="{TemplateBinding BorderThickness}"
-                        CornerRadius="8,8,0,0">
+                        CornerRadius="6,6,0,0">
                         <ContentPresenter
                             Margin="6,2"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"
+                            TextElement.Foreground="{TemplateBinding Foreground}"
                             Content="{TemplateBinding Header}" />
                     </Border>
                 </ControlTemplate>
@@ -48,9 +50,10 @@
 
         <!--  Selected tab: show a bottom border (highlight) and slightly different background  -->
         <Style Selector="TabItem:selected">
-            <Setter Property="Background" Value="{DynamicResource Brush.Panel}" />
+            <Setter Property="Background" Value="{DynamicResource Brush.PanelAlt}" />
             <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
-            <Setter Property="BorderThickness" Value="0,0,0,3" />
+            <Setter Property="BorderThickness" Value="0,0,0,2" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
         </Style>
 
         <!--  Make the tab strip minimal height so tabs don't look flat/tall  -->
@@ -59,7 +62,7 @@
         </Style>
 
         <Style Selector="RadioButton.gizmo">
-            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Padding" Value="8,5" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="1" />
@@ -69,7 +72,7 @@
                         Background="{TemplateBinding Background}"
                         BorderBrush="{TemplateBinding BorderBrush}"
                         BorderThickness="{TemplateBinding BorderThickness}"
-                        CornerRadius="4">
+                        CornerRadius="{DynamicResource Radius.Small}">
                         <ContentPresenter
                             Margin="{TemplateBinding Padding}"
                             HorizontalAlignment="Center"
@@ -81,17 +84,17 @@
         </Style>
 
         <Style Selector="RadioButton.gizmo:checked">
-            <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
+            <Setter Property="Background" Value="{DynamicResource Brush.AccentSubtle}" />
             <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
-            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.AccentHover}" />
         </Style>
 
         <Style Selector="RadioButton.gizmo:pointerover">
-            <Setter Property="Background" Value="{DynamicResource Brush.Panel}" />
+            <Setter Property="Background" Value="{DynamicResource Brush.MenuHover}" />
         </Style>
 
         <Style Selector="ToggleButton.gizmo">
-            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Padding" Value="8,5" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="1" />
@@ -101,7 +104,7 @@
                         Background="{TemplateBinding Background}"
                         BorderBrush="{TemplateBinding BorderBrush}"
                         BorderThickness="{TemplateBinding BorderThickness}"
-                        CornerRadius="4">
+                        CornerRadius="{DynamicResource Radius.Small}">
                         <ContentPresenter
                             Margin="{TemplateBinding Padding}"
                             HorizontalAlignment="Center"
@@ -113,20 +116,20 @@
         </Style>
 
         <Style Selector="ToggleButton.gizmo:checked">
-            <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
+            <Setter Property="Background" Value="{DynamicResource Brush.AccentSubtle}" />
             <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
-            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.AccentHover}" />
         </Style>
 
         <Style Selector="ToggleButton.gizmo:pointerover">
-            <Setter Property="Background" Value="{DynamicResource Brush.Panel}" />
+            <Setter Property="Background" Value="{DynamicResource Brush.MenuHover}" />
         </Style>
 
         <Style Selector="Border.mode-strip">
-            <Setter Property="Background" Value="{DynamicResource Brush.PanelAlt}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+            <Setter Property="Background" Value="{DynamicResource Brush.PanelRaised}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.BorderLight}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="CornerRadius" Value="{DynamicResource Radius.Small}" />
             <Setter Property="Padding" Value="6,2" />
         </Style>
 
@@ -150,8 +153,8 @@
         </Style>
 
         <Style Selector="TextBlock.status-hint">
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextMuted}" />
         </Style>
     </Window.Styles>
 
@@ -547,7 +550,7 @@
                                                 IsVisible="{Binding IsDropTarget}"
                                                 Opacity="0.35" />
                                             <StackPanel Margin="2,2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                                <Ellipse Width="6" Height="6" Fill="White" IsVisible="{Binding IsDirty}" VerticalAlignment="Center" />
+                                                <Ellipse Width="6" Height="6" Fill="{DynamicResource Brush.Accent}" IsVisible="{Binding IsDirty}" VerticalAlignment="Center" />
                                                 <LucideIcon Kind="{Binding IconKind}" Size="14" Opacity="0.7" VerticalAlignment="Center" />
                                                 <TextBlock FontStyle="{Binding NameFontStyle}" IsVisible="{Binding !IsEditingName}" Text="{Binding DisplayName}" VerticalAlignment="Center" />
                                                 <!-- <TextBlock
@@ -644,13 +647,14 @@
                                                     <DataTemplate x:DataType="vm:InspectorComponentViewModelBase">
                                                         <Border
                                                             Margin="0,0,0,6"
-                                                            Padding="8"
-                                                            Background="{DynamicResource Brush.Panel}"
-                                                            BorderBrush="{DynamicResource Brush.Border}"
-                                                            BorderThickness="1">
-                                                            <StackPanel Spacing="4">
+                                                            Padding="10"
+                                                            Background="{DynamicResource Brush.PanelRaised}"
+                                                            BorderBrush="{DynamicResource Brush.BorderLight}"
+                                                            BorderThickness="1"
+                                                            CornerRadius="{DynamicResource Radius.Medium}">
+                                                            <StackPanel Spacing="6">
                                                                 <Grid ColumnDefinitions="*,Auto">
-                                                                    <TextBlock Grid.Column="0" FontWeight="Bold" VerticalAlignment="Center" Text="{Binding Label}" />
+                                                                    <TextBlock Grid.Column="0" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" Text="{Binding Label}" />
                                                                     <Button
                                                                         Grid.Column="1"
                                                                         Padding="4,2"
@@ -712,10 +716,10 @@
                                                     Height="64"
                                                     Margin="0,0,8,0"
                                                     VerticalAlignment="Top"
-                                                    Background="{DynamicResource Brush.PanelAlt}"
-                                                    BorderBrush="{DynamicResource Brush.Border}"
+                                                    Background="{DynamicResource Brush.PanelRaised}"
+                                                    BorderBrush="{DynamicResource Brush.BorderLight}"
                                                     BorderThickness="1"
-                                                    CornerRadius="4">
+                                                    CornerRadius="{DynamicResource Radius.Medium}">
                                                     <TextBlock
                                                         HorizontalAlignment="Center"
                                                         VerticalAlignment="Center"
@@ -731,10 +735,10 @@
                                                         Text="{Binding ScriptDisplay}" />
 
                                                     <Border
-                                                        Background="{DynamicResource Brush.PanelAlt}"
-                                                        BorderBrush="{DynamicResource Brush.Border}"
+                                                        Background="{DynamicResource Brush.PanelRaised}"
+                                                        BorderBrush="{DynamicResource Brush.BorderLight}"
                                                         BorderThickness="1"
-                                                        CornerRadius="4"
+                                                        CornerRadius="{DynamicResource Radius.Small}"
                                                         Padding="6,5">
                                                         <TextBlock
                                                             FontSize="11"
@@ -831,9 +835,9 @@
                         <Border
                             x:Name="ViewportDropTarget"
                             Grid.Row="0"
-                            Background="{DynamicResource Brush.Panel}"
+                            Background="{DynamicResource Brush.Background}"
                             BorderBrush="{DynamicResource Brush.Border}"
-                            BorderThickness="1">
+                            BorderThickness="0">
                             <Grid>
                                 <local:EditorViewportControl
                                     Name="EditorViewportControl"
@@ -925,9 +929,9 @@
                                                             Margin="4"
                                                             Padding="4"
                                                             Background="Transparent"
-                                                            CornerRadius="4">
-                                                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="2">
-                                                                <LucideIcon Kind="{Binding IconKind}" Size="28" Opacity="0.85" HorizontalAlignment="Center" />
+                                                            CornerRadius="{DynamicResource Radius.Small}">
+                                                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="4">
+                                                                <LucideIcon Kind="{Binding IconKind}" Size="28" Opacity="0.85" HorizontalAlignment="Center" Foreground="{DynamicResource Brush.AccentHover}" />
                                                                 <TextBlock
                                                                     Text="{Binding DisplayName}"
                                                                     FontSize="10"
