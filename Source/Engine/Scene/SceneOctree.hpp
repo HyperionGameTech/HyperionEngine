@@ -50,11 +50,19 @@ struct SceneOctreePayload
         Entity* value;
         BoundingBox aabb;
 
-        HYP_FORCE_INLINE Entry() = default;
+        // cache only, not used for equality / hashing
+        uint32 cachedTags;
+
+        HYP_FORCE_INLINE Entry()
+            : value(nullptr),
+              cachedTags(0)
+        {
+        }
 
         HYP_FORCE_INLINE Entry(Entity* value, const BoundingBox& aabb)
             : value(value),
-              aabb(aabb)
+              aabb(aabb),
+              cachedTags(0)
         {
         }
 
@@ -96,11 +104,14 @@ struct SceneOctreePayload
     }
 };
 
-struct SceneOctreeState : public OctreeState<SceneOctree, SceneOctreePayload>
+class SceneOctreeState final : public OctreeState<SceneOctree, SceneOctreePayload>
 {
-    Map<Entity*, SceneOctree*> entityToOctant;
+public:
+    HYP_DEF_POOL_NEW_DELETE(g_scenePool);
 
-    virtual ~SceneOctreeState() override = default;
+    Map<Entity*, SceneOctree*, SceneAllocator> entityToOctant;
+
+    ~SceneOctreeState() = default;
 };
 
 class ENGINE_API SceneOctree final : public OctreeBase<SceneOctree, SceneOctreePayload>
@@ -110,10 +121,7 @@ class ENGINE_API SceneOctree final : public OctreeBase<SceneOctree, SceneOctreeP
     SceneOctree(EntityManager* entityManager, SceneOctree* parent, const BoundingBox& aabb, uint8 index);
 
 public:
-    static OctreeState<SceneOctree, SceneOctreePayload>* CreateOctreeState()
-    {
-        return new SceneOctreeState();
-    }
+    using DerivedOctreeState = SceneOctreeState;
 
     explicit SceneOctree(EntityManager* entityManager);
     SceneOctree(EntityManager* entityManager, const BoundingBox& aabb);

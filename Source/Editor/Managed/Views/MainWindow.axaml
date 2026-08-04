@@ -48,6 +48,11 @@
             </Setter>
         </Style>
 
+        <Style Selector="TabItem:pointerover">
+            <Setter Property="Background" Value="{DynamicResource Brush.MenuHover}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+        </Style>
+
         <!--  Selected tab: show a bottom border (highlight) and slightly different background  -->
         <Style Selector="TabItem:selected">
             <Setter Property="Background" Value="{DynamicResource Brush.PanelAlt}" />
@@ -91,6 +96,7 @@
 
         <Style Selector="RadioButton.gizmo:pointerover">
             <Setter Property="Background" Value="{DynamicResource Brush.MenuHover}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.HoverBorder}" />
         </Style>
 
         <Style Selector="ToggleButton.gizmo">
@@ -123,6 +129,7 @@
 
         <Style Selector="ToggleButton.gizmo:pointerover">
             <Setter Property="Background" Value="{DynamicResource Brush.MenuHover}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.HoverBorder}" />
         </Style>
 
         <Style Selector="Border.mode-strip">

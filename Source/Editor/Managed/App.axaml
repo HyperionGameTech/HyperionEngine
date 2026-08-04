@@ -34,7 +34,7 @@
             <Color x:Key="Color.PanelAlt">#FF16181C</Color>
             <Color x:Key="Color.PanelRaised">#FF1C1E23</Color>
             <Color x:Key="Color.Border">#FF212328</Color>
-            <Color x:Key="Color.BorderLight">#FF2C2F35</Color>
+            <Color x:Key="Color.BorderLight">#FF2E323A</Color>
             <Color x:Key="Color.Accent">#FF4E8CFF</Color>
             <Color x:Key="Color.AccentHover">#FF6DA0FF</Color>
             <Color x:Key="Color.AccentMuted">#FF2C5BB8</Color>
@@ -44,7 +44,8 @@
             <Color x:Key="Color.TextFaint">#FF54585F</Color>
             <Color x:Key="Color.Warning">#FFE3A84D</Color>
             <Color x:Key="Color.Danger">#FFE0555C</Color>
-            <Color x:Key="Color.MenuHover">#FF1C1F24</Color>
+            <Color x:Key="Color.MenuHover">#FF2E333D</Color>
+            <Color x:Key="Color.HoverBorder">#FF4A5058</Color>
             <Color x:Key="Color.InputBackground">#FF16171A</Color>
             <Color x:Key="Color.InputBorder">#FF262930</Color>
 
@@ -66,6 +67,7 @@
             <SolidColorBrush x:Key="Brush.Warning" Color="{StaticResource Color.Warning}" />
             <SolidColorBrush x:Key="Brush.Danger" Color="{StaticResource Color.Danger}" />
             <SolidColorBrush x:Key="Brush.MenuHover" Color="{StaticResource Color.MenuHover}" />
+            <SolidColorBrush x:Key="Brush.HoverBorder" Color="{StaticResource Color.HoverBorder}" />
             <SolidColorBrush x:Key="Brush.InputBackground" Color="{StaticResource Color.InputBackground}" />
             <SolidColorBrush x:Key="Brush.InputBorder" Color="{StaticResource Color.InputBorder}" />
 
@@ -288,14 +290,17 @@
             <Setter Property="Transitions">
                 <Transitions>
                     <BrushTransition Property="Background" Duration="0:0:0.08" />
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.08" />
                 </Transitions>
             </Setter>
         </Style>
         <Style Selector="Button:over">
-            <Setter Property="Background" Value="{StaticResource Brush.BorderLight}" />
+            <Setter Property="Background" Value="{StaticResource Brush.MenuHover}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.HoverBorder}" />
         </Style>
         <Style Selector="Button:pressed">
             <Setter Property="Background" Value="{StaticResource Brush.AccentMuted}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.AccentMuted}" />
             <Setter Property="Foreground" Value="White" />
         </Style>
         <Style Selector="Button:disabled">
@@ -329,7 +334,7 @@
             <Setter Property="CornerRadius" Value="9" />
         </Style>
         <Style Selector="Button.reset-icon:pointerover">
-            <Setter Property="Background" Value="{StaticResource Brush.BorderLight}" />
+            <Setter Property="Background" Value="{StaticResource Brush.MenuHover}" />
         </Style>
         <Style Selector="Button.reset-icon:pressed">
             <Setter Property="Background" Value="{StaticResource Brush.AccentMuted}" />
@@ -377,8 +382,8 @@
             <Setter Property="CornerRadius" Value="{StaticResource Radius.Small}" />
         </Style>
         <Style Selector="ComboBox:pointerover /template/ Border#border">
-            <Setter Property="Background" Value="{StaticResource Brush.BorderLight}" />
-            <Setter Property="BorderBrush" Value="{StaticResource Brush.BorderLight}" />
+            <Setter Property="Background" Value="{StaticResource Brush.MenuHover}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.HoverBorder}" />
         </Style>
         <!--  The built-in arrow toggle paints its own flat, square highlight on
               pointerover/pressed/checked - suppress it so the whole rounded box
@@ -455,7 +460,7 @@
             <Setter Property="FontSize" Value="9" />
         </Style>
         <Style Selector="Button.picker-toggle:pointerover">
-            <Setter Property="Background" Value="{StaticResource Brush.BorderLight}" />
+            <Setter Property="Background" Value="{StaticResource Brush.MenuHover}" />
         </Style>
 
         <Style Selector="ToggleButton.panel-toggle">
@@ -484,7 +489,8 @@
             </Setter>
         </Style>
         <Style Selector="ToggleButton.panel-toggle:pointerover">
-            <Setter Property="Background" Value="{StaticResource Brush.BorderLight}" />
+            <Setter Property="Background" Value="{StaticResource Brush.MenuHover}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.HoverBorder}" />
             <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
         </Style>
         <Style Selector="ToggleButton.panel-toggle:checked">

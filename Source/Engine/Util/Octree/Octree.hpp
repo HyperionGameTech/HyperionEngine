@@ -42,8 +42,9 @@ class OctreeBase;
  *  \tparam Payload The payload to be stored in each octant node. Must have an Empty() method, used to determine Octant occupancy
  *  \internal Used by OctreeBase to manage the state of the octree. */
 template <class Derived, class Payload>
-struct OctreeState
+class OctreeState
 {
+public:
     struct DirtyState
     {
         OctantId octantId = OctantId::Invalid();
@@ -52,9 +53,8 @@ struct OctreeState
 
     OctreeState() = default;
     OctreeState(const OctreeState& other) = delete;
-    OctreeState& operator=(const OctreeState& other) = delete;
 
-    virtual ~OctreeState() = default;
+    OctreeState& operator=(const OctreeState& other) = delete;
 
     // If any octants need to be rebuilt, their topmost parent that needs to be rebuilt will be stored here
     DirtyState dirtyState;
@@ -70,6 +70,9 @@ struct OctreeState
     }
 
     void MarkOctantDirty(OctantId octantId, bool needsRebuild = false);
+
+protected:
+    ~OctreeState() = default;
 };
 
 enum OctreeFlags : uint8
@@ -100,7 +103,8 @@ protected:
     OctreeBase();
     OctreeBase(const BoundingBox& aabb);
     OctreeBase(Derived* parent, const BoundingBox& aabb, uint8 index);
-    virtual ~OctreeBase();
+
+    ~OctreeBase();
 
 public:
     using Result = utilities::TResult<OctantId>;
@@ -164,11 +168,6 @@ public:
     }
 
 protected:
-    static OctreeState<Derived, Payload>* CreateOctreeState()
-    {
-        return new OctreeState<Derived, Payload>();
-    }
-
     HYP_FORCE_INLINE uint8 MaxDepth() const
     {
         return OctantId::MaxDepth;
@@ -217,6 +216,7 @@ protected:
     uint32 m_invalidationMarker : 16;
     bool m_isDivided : 1;
 };
+
 template <class Derived, class Payload>
 const BoundingBox OctreeBase<Derived, Payload>::DefaultBounds = BoundingBox({ -250.0f }, { 250.0f });
 
@@ -257,7 +257,7 @@ template <class Derived, class Payload>
 OctreeBase<Derived, Payload>::OctreeBase(const BoundingBox& aabb)
     : OctreeBase(nullptr, aabb, 0)
 {
-    m_state = Derived::CreateOctreeState();
+    m_state = new typename Derived::DerivedOctreeState;
 }
 
 template <class Derived, class Payload>
@@ -285,7 +285,7 @@ OctreeBase<Derived, Payload>::~OctreeBase()
 {
     if (IsRoot())
     {
-        delete m_state;
+        delete static_cast<typename Derived::DerivedOctreeState*>(m_state);
     }
 
     for (Octant& octant : m_octants)

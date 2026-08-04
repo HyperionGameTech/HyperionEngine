@@ -97,7 +97,9 @@ void Scene::Initialize()
     if (!m_root.IsValid())
     {
         m_root = MakeHandle<Node>(s_nameSceneRoot, Transform::identity, this);
-        m_root->SetIsStatic(false);
+        
+        m_root->SetIsStatic(true);
+        m_root->LockTransform();
     }
 
     if (!m_entityManager.IsValid())

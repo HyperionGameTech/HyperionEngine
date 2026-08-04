@@ -107,6 +107,13 @@ class ENGINE_API VoxelOctree : public OctreeBase<VoxelOctree, VoxelOctreePayload
     {
     }
 
+protected:
+    class DerivedOctreeState final : public OctreeState<VoxelOctree, VoxelOctreePayload>
+    {
+    public:
+        ~DerivedOctreeState() = default;
+    };
+
 public:
     static constexpr EnumFlags<OctreeFlags> Flags = OctreeFlags::OF_INSERT_ON_OVERLAP;
 

@@ -59,7 +59,7 @@
 namespace Hyperion {
 
 static constexpr float ShadowCascadeClipDistances[] = { 0.075f, 0.15f, 0.3f, 1.0f };
-static constexpr float ShadowCascadeMaxDistance = 150.0f;
+static constexpr float ShadowCascadeMaxDistance = 300.0f;
 
 // Always mark dirty at this value
 static const int s_dirtyResourceVersion = -1;
@@ -573,14 +573,6 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                     shadowViewIndex,
                     depthRange,
                     /* isStatic */ false);
-
-                if (!shadowViewsDynamic[shadowViewIndex])
-                {
-                    // failed to allocate shadow view - out of slots is most likely cause
-                    // skip processing for this light.
-                    HYP_LOG_ONCE(Scene, Warning, "Failed to allocate shadow view for light {}, view: {} (id: {})", light->GetName(), GetName(), Id());
-                    break;
-                }
             }
 
             // We need a view specifically for static objects if we either:
@@ -596,6 +588,19 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                     depthRange,
                     /* isStatic */ true);
             }
+
+            View* firstShadowView = shadowViewsDynamic[0] != nullptr
+                ? shadowViewsDynamic[0]
+                : shadowViewsStatic[0];
+            
+            if (!firstShadowView)
+            {
+                // failed to allocate shadow view - out of slots is most likely cause
+                // skip processing for this light.
+                HYP_LOG_ONCE(Scene, Warning, "Failed to allocate shadow view for light {}, view: {} (id: {})", light->GetName(), GetName(), Id());
+
+                break;
+            }
             
             ////////////////////////////
             // End Create Shadow views
@@ -603,10 +608,6 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
             if (!isDirectional)
             {
-                View* firstShadowView = shadowViewsDynamic[0] != nullptr
-                    ? shadowViewsDynamic[0]
-                    : shadowViewsStatic[0];
-
                 Assert(firstShadowView != nullptr);
 
                 Camera* shadowCamera = firstShadowView->GetCamera();

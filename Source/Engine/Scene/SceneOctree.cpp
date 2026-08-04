@@ -32,7 +32,14 @@ namespace Hyperion {
 
 #ifdef HYP_EDITOR
 extern Handle<EditorState> g_editorState;
-#endif
+#endif // HYP_EDITOR
+
+static HYP_FORCE_INLINE uint32 GetEntryTags(
+    EntityManager& entityManager,
+    const SceneOctreePayload::Entry& entry)
+{
+    return entityManager.GetTagBits<EntityTag::SerializableTagMask>(entry.value);
+}
 
 SceneOctree::SceneOctree(EntityManager* entityManager)
     : OctreeBase(),
@@ -810,6 +817,7 @@ SceneOctree::Result SceneOctree::Update(Entity* entity, const BoundingBox& aabb,
 SceneOctree::Result SceneOctree::Update_Internal(Entity* entity, const BoundingBox& aabb, bool forceInvalidation, bool allowRebuild)
 {
     const ObjId<Entity> entityId = entity->Id();
+
     SceneOctreePayload::Entry* entry = m_payload.entries.TryGet(entityId);
 
     if (!entry)
@@ -846,7 +854,7 @@ SceneOctree::Result SceneOctree::Update_Internal(Entity* entity, const BoundingB
         return HYP_MAKE_ERROR(Error, "Could not update in any sub octants");
     }
 
-    if (forceInvalidation)
+    if (forceInvalidation || entry->cachedTags != GetEntryTags(*m_entityManager, *entry))
     {
         // force invalidation of this entry so the octant's hash will be updated
         Invalidate();
@@ -961,25 +969,18 @@ void SceneOctree::RebuildEntriesHash(uint32 level)
 
     for (SceneOctreePayload::Entry& entry : m_payload.entries)
     {
-        uint32 tagsMask = 0;
+        uint32 tags = 0;
 
         if (m_entityManager)
         {
-            const bool hasEntity = m_entityManager->HasEntity(entry.value->Id());
-            AssertDebug(hasEntity);
-
-            if (!hasEntity)
-            {
-                continue;
-            }
-
-            tagsMask = m_entityManager->GetTagBits<EntityTag::SerializableTagMask>(entry.value);
+            tags = GetEntryTags(*m_entityManager, entry);
+            entry.cachedTags = tags;
         }
 
         const HashCode entryHashCode = entry.GetHashCode();
         m_entryHashes[0].Add(entryHashCode);
 
-        FOR_EACH_BIT(tagsMask, i)
+        FOR_EACH_BIT(tags, i)
         {
             EntityTag tag = EntityTag(i + 1);
             AssertDebug(uint64(tag) < m_entryHashes.Size());
