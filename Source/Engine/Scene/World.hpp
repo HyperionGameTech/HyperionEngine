@@ -50,17 +50,17 @@ struct WGLayerDesc;
 HYP_ENUM()
 enum class WorldFlags : uint32
 {
-    NONE = 0x0,
+    None = 0x0,
 
-    EDITOR_WORLD = 0x1, //!< If set, the World is an editor world. (single world created for the editor environment itself)
+    Editor = 0x1, //!< If set, the World is an editor world. (single world created for the editor environment itself)
 
-    HAS_PHYSICS = 0x2,   //!< If set, the World has a PhysicsWorld associated with it and will perform physics simulation.
-    HAS_STREAMING = 0x4, //!< If set, the World has a grid for spatial partitioning and streaming.
+    HasPhysics = 0x2,   //!< If set, the World has a PhysicsWorld associated with it and will perform physics simulation.
+    HasStreaming = 0x4, //!< If set, the World has a grid for spatial partitioning and streaming.
 
-    HAS_SCENE_STREAMING_LAYER = 0x100, //!< If set, the World has a streaming layer for loading/unloading Scenes based on the WorldGrid.
-    ALL_STREAMING_LAYER_FLAGS = HAS_SCENE_STREAMING_LAYER,
+    HasSceneStreamingLayer = 0x100, //!< If set, the World has a streaming layer for loading/unloading Scenes based on the WorldGrid.
+    AllStreamingLayerFlags = HasSceneStreamingLayer,
 
-    DEFAULT = HAS_PHYSICS | HAS_STREAMING | ALL_STREAMING_LAYER_FLAGS
+    Default = HasPhysics | HasStreaming | AllStreamingLayerFlags
 };
 
 HYP_MAKE_ENUM_FLAGS(WorldFlags);
@@ -77,7 +77,7 @@ public:
     using SubsystemsMap = FlatMap<TypeId, Handle<Subsystem>, SceneAllocator>;
 
     World();
-    explicit World(Name name, EnumFlags<WorldFlags> worldFlags = WorldFlags::DEFAULT);
+    explicit World(Name name, EnumFlags<WorldFlags> worldFlags = WorldFlags::Default);
 
     World(const World& other) = delete;
     World& operator=(const World& other) = delete;
@@ -104,14 +104,6 @@ public:
 
     HYP_METHOD(Property = "WorldFlags", Serialize)
     void SetWorldFlags(EnumFlags<WorldFlags> flags);
-
-    /*! \brief Get the placeholder Scene, used for Entities that are not attached to a Scene.
-     *  This version of the function allows the caller to specify the thread the Scene uses for entity management.
-     *  If the Scene does not exist for the given thread mask, it will be created.
-     *\param threadId The thread the Scene should be associated with.
-     * \return The handle for the detached Scene for the given thread.
-     */
-    const Handle<Scene>& GetDetachedScene(const ThreadId& threadId);
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<PhysicsWorldBase>& GetPhysicsWorld()

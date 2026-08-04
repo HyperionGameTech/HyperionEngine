@@ -366,7 +366,7 @@ Handle<EditorProject> EditorProject::CreateNew()
     Handle<Game> gameInstance = MakeHandle<Game>();
 
     // Create World
-    Handle<World> world = MakeHandle<World>(NAME("MainWorld"), WorldFlags::DEFAULT);
+    Handle<World> world = MakeHandle<World>(NAME("MainWorld"), WorldFlags::Default);
     gameInstance->SetWorld(world);
 
     const FilePath projectDir = EngineGlobals::GetProjectsDirectory() / *projectName;

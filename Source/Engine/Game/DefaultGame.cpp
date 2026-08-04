@@ -99,7 +99,7 @@ void DefaultGame::InitializeWorld()
 {
     // if (!m_world.IsValid())
     // {
-    //     m_world = MakeHandle<World>(NAME("MainWorld"), WorldFlags::DEFAULT);
+    //     m_world = MakeHandle<World>(NAME("MainWorld"), WorldFlags::Default);
     // }
 
     Handle<World> worldAsset = GetCurrentAssetRegistry()->GetAsset<World>(AssetBuckets::Worlds, "MainWorld"_sh);

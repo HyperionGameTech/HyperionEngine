@@ -94,9 +94,9 @@ World::World(Name name, EnumFlags<WorldFlags> worldFlags)
       m_rootSynchronousExecutionGroup(nullptr),
       m_isInitialized(false)
 {
-    if (m_worldFlags & WorldFlags::ALL_STREAMING_LAYER_FLAGS)
+    if (m_worldFlags & WorldFlags::AllStreamingLayerFlags)
     {
-        Assert(m_worldFlags & WorldFlags::HAS_STREAMING, "Streaming layers require streaming to be enabled!");
+        Assert(m_worldFlags & WorldFlags::HasStreaming, "Streaming layers require streaming to be enabled!");
     }
 }
 
@@ -115,7 +115,7 @@ void World::Initialize()
         return;
     }
 
-    if (m_worldFlags & WorldFlags::HAS_STREAMING)
+    if (m_worldFlags & WorldFlags::HasStreaming)
     {
         if (!m_worldGrid)
         {
@@ -200,7 +200,7 @@ void World::Initialize()
         }
 
         // add to streaming layer if applicable
-        if ((m_worldFlags & WorldFlags::HAS_SCENE_STREAMING_LAYER) && (scene->GetSceneFlags() & SceneFlags::STREAMED))
+        if ((m_worldFlags & WorldFlags::HasSceneStreamingLayer) && (scene->GetSceneFlags() & SceneFlags::STREAMED))
         {
             Handle<WorldGridLayer> scenesStreamingLayer = GetOrCreateStreamingLayer(s_nameStreamingLayerScenes);
             AssertDebug(scenesStreamingLayer != nullptr);
@@ -208,7 +208,7 @@ void World::Initialize()
         }
     }
 
-    if (m_worldFlags & WorldFlags::HAS_PHYSICS)
+    if (m_worldFlags & WorldFlags::HasPhysics)
     {
         if (!m_physicsWorld)
         {
@@ -395,9 +395,9 @@ void World::SetWorldFlags(EnumFlags<WorldFlags> flags)
 
     m_worldFlags = flags;
 
-    if (changedFlags & uint32(WorldFlags::HAS_PHYSICS))
+    if (changedFlags & uint32(WorldFlags::HasPhysics))
     {
-        if (m_worldFlags & WorldFlags::HAS_PHYSICS)
+        if (m_worldFlags & WorldFlags::HasPhysics)
         {
             if (!m_physicsWorld)
             {
@@ -430,9 +430,9 @@ void World::SetWorldFlags(EnumFlags<WorldFlags> flags)
 
     bool needToShutdownWorldGrid = false;
 
-    if (changedFlags & uint32(WorldFlags::HAS_STREAMING))
+    if (changedFlags & uint32(WorldFlags::HasStreaming))
     {
-        if (m_worldFlags & WorldFlags::HAS_STREAMING)
+        if (m_worldFlags & WorldFlags::HasStreaming)
         {
             if (!m_worldGrid)
             {
@@ -447,18 +447,18 @@ void World::SetWorldFlags(EnumFlags<WorldFlags> flags)
                 needToShutdownWorldGrid = true;
 
                 // have to turn off all streaming layers
-                const EnumFlags<WorldFlags> streamingLayerFlagsBefore = m_worldFlags & WorldFlags::ALL_STREAMING_LAYER_FLAGS;
-                m_worldFlags &= ~WorldFlags::ALL_STREAMING_LAYER_FLAGS;
+                const EnumFlags<WorldFlags> streamingLayerFlagsBefore = m_worldFlags & WorldFlags::AllStreamingLayerFlags;
+                m_worldFlags &= ~WorldFlags::AllStreamingLayerFlags;
 
                 // add changed flags for all streaming layers that were on before -  we handle them below
-                changedFlags |= uint32(m_worldFlags & WorldFlags::ALL_STREAMING_LAYER_FLAGS) ^ uint32(streamingLayerFlagsBefore);
+                changedFlags |= uint32(m_worldFlags & WorldFlags::AllStreamingLayerFlags) ^ uint32(streamingLayerFlagsBefore);
             }
         }
     }
 
-    if (changedFlags & uint32(WorldFlags::HAS_SCENE_STREAMING_LAYER))
+    if (changedFlags & uint32(WorldFlags::HasSceneStreamingLayer))
     {
-        if (m_worldFlags & WorldFlags::HAS_SCENE_STREAMING_LAYER)
+        if (m_worldFlags & WorldFlags::HasSceneStreamingLayer)
         {
             Handle<WorldGridLayer> scenesStreamingLayer = GetOrCreateStreamingLayer(s_nameStreamingLayerScenes);
             AssertDebug(scenesStreamingLayer != nullptr);
@@ -1019,7 +1019,7 @@ void World::AddScene(const Handle<Scene>& scene, bool addToStreamingLayer)
             }
         }
 
-        if (addToStreamingLayer && (m_worldFlags & WorldFlags::HAS_SCENE_STREAMING_LAYER) && (scene->GetSceneFlags() & SceneFlags::STREAMED))
+        if (addToStreamingLayer && (m_worldFlags & WorldFlags::HasSceneStreamingLayer) && (scene->GetSceneFlags() & SceneFlags::STREAMED))
         {
             Handle<WorldGridLayer> scenesStreamingLayer = GetOrCreateStreamingLayer(s_nameStreamingLayerScenes);
             AssertDebug(scenesStreamingLayer != nullptr);
@@ -1049,7 +1049,7 @@ bool World::RemoveScene(Scene* scene, bool removeFromStreamingLayer)
 
         if (m_isInitialized)
         {
-            if (removeFromStreamingLayer && (m_worldFlags & WorldFlags::HAS_SCENE_STREAMING_LAYER))
+            if (removeFromStreamingLayer && (m_worldFlags & WorldFlags::HasSceneStreamingLayer))
             {
                 Handle<WorldGridLayer> scenesStreamingLayer = GetOrCreateStreamingLayer(s_nameStreamingLayerScenes);
                 AssertDebug(scenesStreamingLayer != nullptr);
@@ -1222,7 +1222,7 @@ void World::DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes)
 
     for (Handle<Scene>& scene : m_scenes)
     {
-        if (m_worldFlags & WorldFlags::HAS_SCENE_STREAMING_LAYER)
+        if (m_worldFlags & WorldFlags::HasSceneStreamingLayer)
         {
             // Remove scene from streaming layer if its currently enabled
             Handle<WorldGridLayer> scenesStreamingLayer = GetOrCreateStreamingLayer(s_nameStreamingLayerScenes);
@@ -1302,7 +1302,7 @@ Array<Handle<Scene>> World::SerializeNonStreamingScenes() const
 
     for (const Handle<Scene>& scene : m_scenes)
     {
-        if ((m_worldFlags & WorldFlags::HAS_SCENE_STREAMING_LAYER) && (scene->GetSceneFlags() & SceneFlags::STREAMED))
+        if ((m_worldFlags & WorldFlags::HasSceneStreamingLayer) && (scene->GetSceneFlags() & SceneFlags::STREAMED))
         {
             continue;
         }
@@ -1404,7 +1404,7 @@ void World::DeserializeStreamingLayers(const Array<WGLayerDesc, DynamicAllocator
     }
     else
     {
-        if (!(m_worldFlags & WorldFlags::HAS_STREAMING))
+        if (!(m_worldFlags & WorldFlags::HasStreaming))
         {
             HYP_LOG(Scene, Warning,
                     "Attempted to deserialize streaming layers on World {} which does not have WorldGrid enabled!",

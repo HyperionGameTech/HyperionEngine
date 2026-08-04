@@ -213,7 +213,7 @@ void EngineDriver::SetCurrentWorld(World* world)
 
     if (world)
     {
-        AssertDebug(!(world->GetWorldFlags() & WorldFlags::EDITOR_WORLD), "Cannot set an editor world as the current world!");
+        AssertDebug(!(world->GetWorldFlags() & WorldFlags::Editor), "Cannot set an editor world as the current world!");
         AssertDebug(m_worlds.FindAs(world) != m_worlds.End(), "World must be added to the engine before it can be set as the current world!");
     }
 
@@ -437,7 +437,7 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
 
         if (!worldsToRender.Contains(world))
         {
-            if ((world->GetWorldFlags() & WorldFlags::EDITOR_WORLD))
+            if ((world->GetWorldFlags() & WorldFlags::Editor))
             {
                 // editor world gets rendered first
                 worldsToRender.PushFront(world);
