@@ -153,39 +153,6 @@ float4 SampleTextureTriplanar(sampler samp, Texture2D tex, float3 position, floa
 
 #endif // PIXEL_SHADER || COMPUTE_SHADER
 
-#define GAUSS_TABLE_SIZE 15
-
-static const float gauss_table[GAUSS_TABLE_SIZE + 1] = {
-    0.1847392078702266,
-    0.16595854345772326,
-    0.12031364177766891,
-    0.07038755277896766,
-    0.03322925565155569,
-    0.012657819729901945,
-    0.0038903040680094217,
-    0.0009646503390864025,
-    0.00019297087402915717,
-    0.000031139936308099136,
-    0.000004053309048174758,
-    4.255228059965837e-7,
-    3.602517634249573e-8,
-    2.4592560765896795e-9,
-    1.3534945386863618e-10,
-    0.0 };
-
-float GaussianWeight(float value)
-{
-    float idxf;
-    float c = modf(max(0.0, value * float(GAUSS_TABLE_SIZE)), idxf);
-    int idx = int(idxf);
-    if (idx >= GAUSS_TABLE_SIZE + 1)
-    {
-        return 0.0;
-    }
-
-    return lerp(gauss_table[idx], gauss_table[idx + 1], c);
-}
-
 float4 GaussianBlur9(
     texture2D tex, sampler samp,
     float2 uv,

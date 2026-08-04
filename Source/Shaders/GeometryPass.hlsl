@@ -153,11 +153,7 @@ PSOutput PSMain(PSInput input)
     if (HAS_TEXTURE(CURRENT_MATERIAL, NormalMap))
     {
         normals_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, NormalMap, texcoord) * 2.0 - 1.0;
-
-        if (GET_MATERIAL_PARAM_BIT(CURRENT_MATERIAL, MATERIAL_FLAG_NORMAL_MAP_FLIP_Y))
-        {
-            normals_texture.y = -normals_texture.y;
-        }
+        normals_texture.y *= select((float) GET_MATERIAL_PARAM_BIT(CURRENT_MATERIAL, MATERIAL_FLAG_NORMAL_MAP_FLIP_Y), -1.0f, 1.0f);
 
         N = normalize(mul(normals_texture.xyz, tbn_matrix));
     }

@@ -5,8 +5,6 @@
 
 struct WorldShaderData
 {
-    float4 fog_params;
-
     float game_time;
     uint frame_counter;
     uint _pad0;

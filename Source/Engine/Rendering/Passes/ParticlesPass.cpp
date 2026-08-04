@@ -148,12 +148,23 @@ ParticlesPass::VolumeState& ParticlesPass::EnsureVolumeState(RenderProxyParticle
 
     state.maxParticles = proxy->bufferData.maxParticles;
 
-    state.particleBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, state.maxParticles * sizeof(ParticleShaderData));
-    Check(state.particleBuffer->Create());
-    ZeroizeBuffer(cr, state.particleBuffer);
+    if (!state.particleBuffer.IsValid() || state.particleBuffer->Size() < state.maxParticles * sizeof(ParticleShaderData))
+    {
+        if (state.particleBuffer.IsValid())
+        {
+            EnqueueDeletion(std::move(state.particleBuffer));
+        }
 
-    state.indirectBuffer = RI.MakeGpuBuffer(GpuBufferType::IndirectArgsBuffer, sizeof(IndirectDrawCommand));
-    Check(state.indirectBuffer->Create());
+        state.particleBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, state.maxParticles * sizeof(ParticleShaderData));
+        Check(state.particleBuffer->Create());
+        ZeroizeBuffer(cr, state.particleBuffer);
+    }
+
+    if (!state.indirectBuffer.IsValid())
+    {
+        state.indirectBuffer = RI.MakeGpuBuffer(GpuBufferType::IndirectArgsBuffer, sizeof(IndirectDrawCommand));
+        Check(state.indirectBuffer->Create());
+    }
 
     CreateNoiseMap(state.noiseMap);
 
@@ -187,9 +198,10 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     AssertDebug(particleVolume != nullptr);
 
     View* view = renderSetup.view;
-    RenderProxyList& rpl = GetConsumerProxyList(view);
 
+    RenderProxyList& rpl = GetConsumerProxyList(view);
     rpl.BeginRead();
+    
     HYP_DEFER({ rpl.EndRead(); });
 
     RenderProxyParticleVolume* proxy = static_cast<RenderProxyParticleVolume*>(GetRenderProxy(particleVolume));

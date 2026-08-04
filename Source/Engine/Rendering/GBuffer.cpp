@@ -243,9 +243,10 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
             addOwnedAttachment(i, format);
         }
 
-        if (g_cvDepthPrepass.Get())
+        if (RI.GetRenderConfig().indirectRendering && g_cvDepthPrepass.Get())
         {
             // If DepthPrepass is enabled, we don't CLEAR the depth texture as DPP is responsible for clearing it.
+            // Depth prepass only runs when indirect rendering is also enabled (see DeferredPass.cpp), so match that here.
             addOwnedAttachment(GBufferTarget::Depth, GetImageFormat(GBufferTarget::Depth), LoadOperation::LOAD, StoreOperation::NONE);
         }
         else
@@ -286,10 +287,10 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
 
                 break;
             case GBufferPass::Lightmapped:
-                if (i == GBufferTarget::Depth && g_cvDepthPrepass.Get())
+                if (i == GBufferTarget::Depth && RI.GetRenderConfig().indirectRendering && g_cvDepthPrepass.Get())
                 {
                     // Lightmapped objects are included in the depth prepass, so we don't want to write to depth when they render.
-                    // Therefore we use StoreOperation::NONE as storeOp when DepthPrepass is true.
+                    // Therefore we use StoreOperation::NONE as storeOp when DepthPrepass is true (and prepass actually ran).
                     addSharedAttachment(i, LoadOperation::LOAD, StoreOperation::NONE);
 
                     continue;

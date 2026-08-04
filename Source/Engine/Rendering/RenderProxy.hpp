@@ -61,8 +61,6 @@ struct NullProxy final
 
 struct WorldShaderData
 {
-    Vec4f fogParams;
-
     float gameTime;
     uint32 frameCounter;
     uint32 _pad0;
