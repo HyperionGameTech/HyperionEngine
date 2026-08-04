@@ -22,26 +22,6 @@ namespace Hyperion
         Default = Foreground | Streamed | HasOctree
     }
 
-    [ClassBinding(Name = "FogParams")]
-    public struct FogParams
-    {
-        public Color Color;
-        public float StartDistance;
-        public float EndDistance;
-    }
-
-    [ClassBinding(Name = "CSMParams")]
-    public struct CSMParams
-    {
-        public uint NumCascades;
-    }
-
-    [ClassBinding(Name = "CSMState")]
-    public struct CSMState
-    {
-        public Vec3f PlayerCenter;
-    }
-
     [ClassBinding(Name = "Scene")]
     public class Scene : AssetObject
     {

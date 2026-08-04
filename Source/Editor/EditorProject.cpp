@@ -26,6 +26,8 @@
 
 #include <Scene/Camera/Camera.hpp>
 
+#include <Core/DataProcessing/HMF/HMF.hpp>
+
 #include <Core/Utilities/DeferredScope.hpp>
 #include <Core/Utilities/GlobalContext.hpp>
 
@@ -235,12 +237,10 @@ Result EditorProject::SaveAs(FilePath filepath)
 
     taskScope.GetEditorTask()->SetDescription("Saving project metadata");
 
-    ToJSONOptions opts;
-    opts.skipTransientProperties = true;
-    opts.writeClassNames = true;
+    ToHMFOptions opts;
 
-    JSON::Object projectJson;
-    if (!ObjectToJSON(EditorProject::StaticClass(), BoxedValue(MakeStrongRef(this)), projectJson, &opts))
+    String projectHmf;
+    if (!ObjectToHMF(EditorProject::StaticClass(), BoxedValue(MakeStrongRef(this)), projectHmf, &opts))
     {
         return HYP_MAKE_ERROR(Error, "Failed to save project!");
     }
@@ -248,7 +248,7 @@ Result EditorProject::SaveAs(FilePath filepath)
     FileByteWriter wri { filepath };
     HYP_DEFER({ wri.Close(); });
 
-    wri.WriteString(JSON::Value(projectJson).ToString(true));
+    wri.WriteString(projectHmf);
     wri.Close();
 
     m_filepath = filepath;
@@ -328,27 +328,19 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
                 return HYP_MAKE_ERROR(Error, "Failed to open project file: {}", projectFilepath);
             }
 
-            JSON::ParseResult parseResult = JSON::Parse(String(stream.Read().ToByteView()));
+            HMF::ParseResult parseResult = HMF::Parse(String(stream.Read().ToByteView()));
 
-            if (!parseResult.ok)
+            if (parseResult.HasError())
             {
-                return HYP_MAKE_ERROR(Error, "Failed to parse project file at {}: {}", projectFilepath, parseResult.message);
+                return parseResult.GetError();
             }
 
-            JSON::Value projectJson = parseResult.value;
+            BoxedValue boxed = std::move(parseResult.GetValue());
 
-            if (!projectJson.IsObject())
+            if (!boxed.Is<Handle<EditorProject>>())
             {
                 return HYP_MAKE_ERROR(Error, "Project file data is invalid!");
             }
-
-            BoxedValue boxed;
-            if (!ObjectFromJSON(projectJson.AsObject(), EditorProject::StaticClass(), boxed))
-            {
-                return HYP_MAKE_ERROR(Error, "Project file data could not be imported. Check the log for details.");
-            }
-
-            Assert(boxed.Is<Handle<EditorProject>>());
 
             project = std::move(boxed.Get<Handle<EditorProject>>());
         }

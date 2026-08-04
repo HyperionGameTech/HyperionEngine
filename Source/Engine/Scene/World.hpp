@@ -65,39 +65,6 @@ enum class WorldFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(WorldFlags);
 
-HYP_STRUCT()
-struct FogParams
-{
-    HYP_STRUCT_BODY(FogParams);
-
-    HYP_FIELD()
-    Color color = Color(0xF2F8F7FF);
-
-    HYP_FIELD()
-    float startDistance = 250.0f;
-
-    HYP_FIELD()
-    float endDistance = 1000.0f;
-};
-
-HYP_STRUCT()
-struct CSMParams
-{
-    HYP_STRUCT_BODY(CSMParams);
-
-    HYP_FIELD()
-    uint32 numCascades = 4;
-};
-
-HYP_STRUCT()
-struct CSMState
-{
-    HYP_STRUCT_BODY(CSMState);
-
-    HYP_FIELD(Transient)
-    Vec3f playerCenter;
-};
-
 HYP_CLASS(AssetBucket = "Worlds")
 class ENGINE_API World final : public AssetObject
 {
@@ -137,36 +104,6 @@ public:
 
     HYP_METHOD(Property = "WorldFlags", Serialize)
     void SetWorldFlags(EnumFlags<WorldFlags> flags);
-
-    HYP_METHOD(Property = "FogParams")
-    const FogParams& GetFogParams() const
-    {
-        return m_fogParams;
-    }
-
-    HYP_METHOD(Property = "FogParams")
-    void SetFogParams(const FogParams& fogParams);
-
-    HYP_METHOD(Property = "CSMParams")
-    const CSMParams& GetCSMParams() const
-    {
-        return m_csmParams;
-    }
-
-    HYP_METHOD(Property = "CSMParams")
-    void SetCSMParams(const CSMParams& csmParams);
-
-    HYP_METHOD(Property = "CSMState", Transient)
-    const CSMState& GetCSMState() const
-    {
-        return m_csmState;
-    }
-
-    HYP_METHOD(Property = "CSMState", Transient)
-    void SetCSMState(const CSMState& csmState)
-    {
-        m_csmState = csmState;
-    }
 
     /*! \brief Get the placeholder Scene, used for Entities that are not attached to a Scene.
      *  This version of the function allows the caller to specify the thread the Scene uses for entity management.
@@ -368,8 +305,6 @@ public:
     static ScriptableDelegate<void, World*, Scene* /* scene */> OnSceneRemoved;
 
 private:
-    void UpdateCSMState();
-
     void SyncPhysicsToEntities();
 
     bool AddSystemToExecutionGroup(SystemBase* system);
@@ -406,15 +341,6 @@ private:
 
     HYP_FIELD(Property = "Scenes", Transient)
     Array<Handle<Scene>> m_scenes;
-
-    HYP_FIELD(Property = "FogParams")
-    FogParams m_fogParams;
-
-    HYP_FIELD(Property = "CSMParams")
-    CSMParams m_csmParams;
-
-    HYP_FIELD(Property = "CSMState", Transient)
-    CSMState m_csmState;
 
     // systems must load after flags are set
     HYP_FIELD(Property = "Systems", LoadOrder = 200)

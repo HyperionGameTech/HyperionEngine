@@ -3843,29 +3843,32 @@ void EditorSubsystem::Update(float delta)
 
     DebugDrawPhysicsShapes(dbg);
 
-    // Debug draw probes
-    for (Scene* scene : GetCurrentProject()->GetWorld()->GetScenes())
+    if (m_currentProject.IsValid())
     {
-        for (auto [probe, _] : scene->GetEntityManager()->GetEntitySet<EntityType<EnvProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        // Debug draw probes
+        for (Scene* scene : m_currentProject->GetWorld()->GetScenes())
         {
-            static constexpr auto ReflectionProbeTypeId = CONSTEXPR_TYPE_ID(ReflectionProbe);
-            static constexpr auto SkyProbeTypeId = CONSTEXPR_TYPE_ID(SkyProbe);
-            static constexpr auto IrradianceProbeTypeId = CONSTEXPR_TYPE_ID(IrradianceProbe);
-
-            switch (probe->InstanceClass()->GetTypeId().Value())
+            for (auto [probe, _] : scene->GetEntityManager()->GetEntitySet<EntityType<EnvProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
             {
-            case ReflectionProbeTypeId:
-                dbg.reflectionProbe(probe->GetWorldTranslation(), 1.0f, static_cast<EnvProbe&>(*probe));
-                break;
-            case SkyProbeTypeId:
-                // dbg.reflectionProbe(probe->GetWorldTranslation(), 1.0f, static_cast<EnvProbe&>(*probe));
-                break;
-            case IrradianceProbeTypeId:
-                dbg.ambientProbe(probe->GetWorldTranslation(), 1.0f, static_cast<EnvProbe&>(*probe));
-                break;
-            default:
-                HYP_LOG_ONCE(Editor, Warning, "Unknown probe type class: {}", probe->InstanceClass()->GetName());
-                break;
+                static constexpr auto ReflectionProbeTypeId = CONSTEXPR_TYPE_ID(ReflectionProbe);
+                static constexpr auto SkyProbeTypeId = CONSTEXPR_TYPE_ID(SkyProbe);
+                static constexpr auto IrradianceProbeTypeId = CONSTEXPR_TYPE_ID(IrradianceProbe);
+
+                switch (probe->InstanceClass()->GetTypeId().Value())
+                {
+                case ReflectionProbeTypeId:
+                    dbg.reflectionProbe(probe->GetWorldTranslation(), 1.0f, static_cast<EnvProbe&>(*probe));
+                    break;
+                case SkyProbeTypeId:
+                    // dbg.reflectionProbe(probe->GetWorldTranslation(), 1.0f, static_cast<EnvProbe&>(*probe));
+                    break;
+                case IrradianceProbeTypeId:
+                    dbg.ambientProbe(probe->GetWorldTranslation(), 1.0f, static_cast<EnvProbe&>(*probe));
+                    break;
+                default:
+                    HYP_LOG_ONCE(Editor, Warning, "Unknown probe type class: {}", probe->InstanceClass()->GetName());
+                    break;
+                }
             }
         }
     }

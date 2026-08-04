@@ -2238,14 +2238,6 @@ extern class AnimationTrack : AssetObject
     BoneName : Name
     KeyframeData : BlobDataReference
 end
-extern struct CSMState
-    PlayerCenter : Vec3f
-end
-extern struct FogParams
-    Color : Color
-    StartDistance : float
-    EndDistance : float
-end
 extern enum WorldFlags : uint32
     NONE = 0x0,
     EDITOR_WORLD = 0x1,
@@ -2255,19 +2247,10 @@ extern enum WorldFlags : uint32
     ALL_STREAMING_LAYER_FLAGS = HAS_SCENE_STREAMING_LAYER,
     DEFAULT = ((HAS_PHYSICS | HAS_STREAMING) | ALL_STREAMING_LAYER_FLAGS)
 end
-extern struct CSMParams
-    NumCascades : uint32
-end
 extern class World : AssetObject
     GetGame() -> Game
     GetWorldFlags() -> WorldFlags
     SetWorldFlags(flags : WorldFlags) -> void
-    GetFogParams() -> FogParams
-    SetFogParams(fogParams : FogParams) -> void
-    GetCSMParams() -> CSMParams
-    SetCSMParams(csmParams : CSMParams) -> void
-    GetCSMState() -> CSMState
-    SetCSMState(csmState : CSMState) -> void
     GetPhysicsWorld() -> PhysicsWorldBase
     TryAddSubsystem(subsystem : Subsystem) -> bool
     GetSubsystemByName(name : any) -> Subsystem
@@ -2294,9 +2277,6 @@ extern class World : AssetObject
     GameInstance : Game
     WorldFlags : WorldFlags
     Scenes : Array<Scene>
-    FogParams : FogParams
-    CsmParams : CSMParams
-    CsmState : CSMState
     Systems : Array<SystemBase>
 end
 extern enum SceneFlags : uint32
