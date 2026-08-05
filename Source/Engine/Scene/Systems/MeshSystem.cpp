@@ -73,7 +73,7 @@ void UpdateInstancedMeshData(Entity& entity, MeshComponent& meshComponent)
         return;
     }
 
-    auto scope = imd->GetWriteScope();
+    auto writeScope = imd->GetWriteScope();
 
     Array<Mat4f, ThreadAllocator> transforms;
     transforms.Resize(instancedMeshProxies.Size());
@@ -222,6 +222,7 @@ void MeshSystem::Process(float delta, Span<Handle<Scene>> scenes)
                 {
                     for (Entity* entity : updatedEntities)
                     {
+                        //entity->RemoveTag<EntityTag::UpdateInstancedMeshData>();
                         entity->SetNeedsRenderProxyUpdate();
                     }
                 });

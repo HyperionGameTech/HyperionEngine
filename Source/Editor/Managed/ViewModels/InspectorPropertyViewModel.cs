@@ -371,12 +371,14 @@ namespace Hyperion.Editor.ViewModels
 
         internal static bool IsNameType(TypeInfo typeInfo)
         {
+            // Name is a foundational type with no HYP_STRUCT reflection, so it never has a
+            // Class - fall back to the compiler-parsed, namespace-qualified TypeInfo name.
             if (typeInfo.Class?.Name is Name typeName)
             {
                 return typeName == "Name";
             }
 
-            return false;
+            return typeInfo.Name == "Hyperion::Name";
         }
 
         protected static string FormatValue(object? value)

@@ -1312,11 +1312,12 @@ bool EntityManager::RemoveComponent(TypeId componentTypeId, Entity* entity)
         entity->OnComponentRemoved(componentRef);
     }
 
-    if (!container->RemoveComponent(componentId))
-    {
-        return false;
-    }
-
+    // Remove the component from the entity's component map and update any EntitySets
+    // referencing this entity *before* the component data is erased from the
+    // ComponentContainer below. EntitySets cache each entity's ComponentIds and only refresh
+    // them here via OnEntityUpdated() - doing this first ensures no EntitySet can hand a stale
+    // ComponentId to a concurrent reader (e.g. a System::Process() running on a task thread)
+    // once the underlying component storage is actually gone.
     entityData->components.Erase(componentIt);
 
     auto componentEntitySetsIt = m_componentEntitySets.Find(componentTypeId);
@@ -1329,6 +1330,11 @@ bool EntityManager::RemoveComponent(TypeId componentTypeId, Entity* entity)
 
             entitySet.OnEntityUpdated(entity);
         }
+    }
+
+    if (!container->RemoveComponent(componentId))
+    {
+        HYP_FAIL("Component of type '{}' with Id {} was present in the Entity's component map but not found in the ComponentContainer", *GetComponentTypeName(componentTypeId), componentId);
     }
 
     return true;

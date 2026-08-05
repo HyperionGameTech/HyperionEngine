@@ -47,6 +47,7 @@
 #include <Scene/EntityManager.hpp>
 #include <Scene/Subsystem.hpp>
 #include <Scene/InstancedMeshProxy.hpp>
+#include <Scene/SystemExecutionGroup.hpp>
 
 #include <Scene/Components/VisibilityStateComponent.hpp>
 #include <Scene/Components/BoundingBoxComponent.hpp>
@@ -83,10 +84,10 @@
 
 #include <HyperionEngine.hpp>
 
+#include <EngineDriver.generated.inl>
+
 #define HYP_PROCESS_VIEWS_ASYNC
 #define HYP_PROCESS_SUBSYSTEMS_ASYNC
-
-#include <EngineDriver.generated.inl>
 
 namespace Hyperion {
 
@@ -453,6 +454,30 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
     TaskSystem::GetInstance().EnqueueBatch(&worldUpdateTaskBatch);
     worldUpdateTaskBatch.AwaitCompletion();
 
+    // Sanity check: every non-sim-thread SystemExecutionGroup's TaskBatch must be fully
+    // completed before we unlock any EntityManager below. If one were still running on a
+    // TaskThread, unlocking here would let AddComponent/RemoveComponent/AddTag/RemoveTag calls
+    // (from game code or elsewhere on this thread) mutate ComponentContainers and EntitySets
+    // out from under a System::Process() call still executing concurrently on another thread.
+    const auto assertAllSystemBatchesCompleted = [&simulatingWorlds]()
+    {
+        for (World* world : simulatingWorlds)
+        {
+            for (SystemExecutionGroup* systemExecutionGroup : world->GetSystemExecutionGroups())
+            {
+                if (!systemExecutionGroup->AllowUpdate() || systemExecutionGroup->RequiresSimThread())
+                {
+                    continue;
+                }
+
+                Assert(systemExecutionGroup->GetTaskBatch()->IsCompleted(),
+                    "SystemExecutionGroup TaskBatch is not completed - unlocking EntityManagers now would race with an in-flight System::Process() call");
+            }
+        }
+    };
+
+    assertAllSystemBatchesCompleted();
+
     if (gameInstance != nullptr)
     {
         // Unlock entity managers so the Game instance can mutate
@@ -567,6 +592,8 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
         subsystem->Update(delta);
     }
 #endif // HYP_PROCESS_SUBSYSTEMS_ASYNC
+
+    assertAllSystemBatchesCompleted();
 
     for (Scene* scene : scenes)
     {

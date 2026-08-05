@@ -163,7 +163,12 @@ void DrawCallCollection::ResetDrawCalls()
             const uint32 batchIndex = batch->batchIndex;
             AssertDebug(batchIndex != ~0u);
 
-            *batch = EntityInstanceBatch { batchIndex };
+            // `batch` points to a BatchType instance (e.g. MeshEntityInstanceBatch) that is larger than
+            // EntityInstanceBatch. Resetting via `*batch = EntityInstanceBatch { batchIndex }` only clears the
+            // EntityInstanceBatch base subobject and leaves any derived-only fields (e.g. previousTransforms)
+            // stale, so zero the full allocated struct instead.
+            Memory::Zero(batch, batchAllocator->GetStructSize());
+            batch->batchIndex = batchIndex;
 
             batchAllocator->ReleaseBatch(batch);
 

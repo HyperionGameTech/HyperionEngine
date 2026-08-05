@@ -18,9 +18,9 @@
 
 #include <Core/Memory/Pool/Pool.hpp>
 
-#include <Scripting/ScriptableDelegate.hpp>
-
 #include <Core/Math/Color.hpp>
+
+#include <Scripting/ScriptableDelegate.hpp>
 
 #include <Framework/EngineMemory.hpp>
 
@@ -96,6 +96,12 @@ public:
         return m_gameInstance;
     }
 
+    HYP_METHOD()
+    HYP_FORCE_INLINE const Handle<PhysicsWorldBase>& GetPhysicsWorld() const
+    {
+        return m_physicsWorld;
+    }
+
     HYP_METHOD(Property = "WorldFlags", Serialize)
     HYP_FORCE_INLINE EnumFlags<WorldFlags> GetWorldFlags() const
     {
@@ -105,18 +111,12 @@ public:
     HYP_METHOD(Property = "WorldFlags", Serialize)
     void SetWorldFlags(EnumFlags<WorldFlags> flags);
 
-    HYP_METHOD()
-    HYP_FORCE_INLINE const Handle<PhysicsWorldBase>& GetPhysicsWorld()
-    {
-        return m_physicsWorld;
-    }
-
     template <class T>
     HYP_FORCE_INLINE const Handle<T>& AddSubsystem()
     {
         static_assert(std::is_base_of_v<Subsystem, T>, "T must be a subclass of Subsystem");
 
-        return DynamicCast<T>(AddSubsystem(TypeId::ForType<T>(), MakeHandle<T>()));
+        return StaticCast<T>(AddSubsystem(TypeId::ForType<T>(), MakeHandle<T>()));
     }
 
     template <class T>
@@ -124,11 +124,10 @@ public:
     {
         static_assert(std::is_base_of_v<Subsystem, T>, "T must be a subclass of Subsystem");
 
-        return DynamicCast<T>(AddSubsystem(TypeId::ForType<T>(), subsystem));
+        return StaticCast<T>(AddSubsystem(TypeId::ForType<T>(), subsystem));
     }
 
     const Handle<Subsystem>& AddSubsystem(TypeId typeId, const Handle<Subsystem>& subsystem);
-
     const Handle<Subsystem>& AddSubsystem(const Class* subsystemClass);
 
     HYP_METHOD()
@@ -139,7 +138,7 @@ public:
     {
         static_assert(std::is_base_of_v<Subsystem, T>, "T must be a subclass of Subsystem");
 
-        return DynamicCast<T>(GetSubsystem(TypeId::ForType<T>()));
+        return StaticCast<T>(GetSubsystem(TypeId::ForType<T>()));
     }
 
     Subsystem* GetSubsystem(TypeId typeId) const;

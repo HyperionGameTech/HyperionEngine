@@ -112,16 +112,12 @@ public:
     HYP_METHOD()
     Game* GetGameInstance() const;
 
-    EngineConfig& GetConfig();
-
     void Initialize();
     void Shutdown();
 
     Delegate<void, World*> OnCurrentWorldChanged;
 
 private:
-    void SyncConfig();
-
     void Simulate(float delta, Game* gameInstance);
 
     Array<Handle<World>> m_worlds; // Sim thread only

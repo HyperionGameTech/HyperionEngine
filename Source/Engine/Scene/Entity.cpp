@@ -335,26 +335,38 @@ void Entity::OnComponentRemoved(AnyRef component)
 
 void Entity::OnTagAdded(EntityTag tag)
 {
-#ifdef HYP_EDITOR
     const bool isSerializableTag = (uint64(tag) & EntityTag::SerializableTagMask) != 0;
 
+#ifdef HYP_EDITOR
     if (isSerializableTag)
     {
         MarkDirty();
     }
 #endif // HYP_EDITOR
+
+    // So we update the octant's hash code.
+    if (isSerializableTag && m_entityManager)
+    {
+        m_entityManager->AddTag<EntityTag::UpdateVisibility>(this);
+    }
 }
 
 void Entity::OnTagRemoved(EntityTag tag)
 {
-#ifdef HYP_EDITOR
     const bool isSerializableTag = (uint64(tag) & EntityTag::SerializableTagMask) != 0;
 
+#ifdef HYP_EDITOR
     if (isSerializableTag)
     {
         MarkDirty();
     }
 #endif // HYP_EDITOR
+
+    // So we update the octant's hash code.
+    if (isSerializableTag && m_entityManager)
+    {
+        m_entityManager->AddTag<EntityTag::UpdateVisibility>(this);
+    }
 }
 
 void Entity::SetScene_Internal(Scene* scene, bool moveToDetached)

@@ -1308,9 +1308,12 @@ static void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
     n->SetName(defaultNodeName);
     InitObject(n);
 
-    // Calculate appropriate insertion point in front of camera
-    const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
-    n->SetWorldTranslation(insertionPoint);
+    if constexpr (!std::is_same_v<T, InstancedMeshProxy>)
+    {
+        // Calculate appropriate insertion point in front of camera
+        const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
+        n->SetWorldTranslation(insertionPoint);
+    }
 
     Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
         HYP_FORMAT("Add {}", defaultNodeName),

@@ -858,6 +858,8 @@ SceneOctree::Result SceneOctree::Update_Internal(Entity* entity, const BoundingB
     {
         // force invalidation of this entry so the octant's hash will be updated
         Invalidate();
+        
+        m_state->MarkOctantDirty(m_octantId);
     }
 
     const BoundingBox& newAabb = aabb;

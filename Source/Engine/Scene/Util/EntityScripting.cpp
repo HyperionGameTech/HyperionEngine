@@ -235,7 +235,7 @@ void BindExterns(StrataJit* jit)
         }
         else
         {
-            HYP_LOG(Scripting, Warning, "Strata: no host binding for extern '{}'", name);
+            HYP_LOG(Scripting, Error, "Strata: no host binding for extern '{}'. Any call to this function will result in a crash!", name);
         }
     }
 }

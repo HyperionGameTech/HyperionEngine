@@ -1975,8 +1975,12 @@ void RenderCollector::CollectRenderables(uint32 bucketBits)
                     const uint32 batchIndex = batch->batchIndex;
                     AssertDebug(batchIndex != ~0u);
 
-                    // Reset it
-                    *batch = EntityInstanceBatch { batchIndex };
+                    // `batch` points to a BatchType instance (e.g. MeshEntityInstanceBatch) that is larger than
+                    // EntityInstanceBatch. Resetting via `*batch = EntityInstanceBatch { batchIndex }` only clears
+                    // the EntityInstanceBatch base subobject and leaves derived-only fields (e.g. previousTransforms)
+                    // stale from whatever draw call previously owned this recycled batch slot.
+                    Memory::Zero(batch, prevDrawCallCollection.batchAllocator->GetStructSize());
+                    batch->batchIndex = batchIndex;
                 }
             }
 

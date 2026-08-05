@@ -616,13 +616,6 @@ public:
         // Notify systems that entity is being removed from them
         removedComponents.Set(componentTypeId, componentId);
 
-        BoxedValue componentBoxed;
-
-        if (!GetContainer<Component>().RemoveComponent(componentId, componentBoxed))
-        {
-            return false;
-        }
-
         entityData->components.Erase(componentIt);
 
         {
@@ -638,6 +631,11 @@ public:
                 }
             }
         }
+
+        BoxedValue componentBoxed;
+
+        const bool removedFromContainer = GetContainer<Component>().RemoveComponent(componentId, componentBoxed);
+        Assert(removedFromContainer, "Component of type `{}` with ID {} was present in the Entity's component map but not found in the ComponentContainer", TypeNameWithoutNamespace<Component>().Data(), componentId);
 
         NotifySystemsOfEntityRemoved(entity, removedComponents);
 

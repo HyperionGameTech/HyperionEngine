@@ -2239,19 +2239,19 @@ extern class AnimationTrack : AssetObject
     KeyframeData : BlobDataReference
 end
 extern enum WorldFlags : uint32
-    NONE = 0x0,
-    EDITOR_WORLD = 0x1,
-    HAS_PHYSICS = 0x2,
-    HAS_STREAMING = 0x4,
-    HAS_SCENE_STREAMING_LAYER = 0x100,
-    ALL_STREAMING_LAYER_FLAGS = HAS_SCENE_STREAMING_LAYER,
-    DEFAULT = ((HAS_PHYSICS | HAS_STREAMING) | ALL_STREAMING_LAYER_FLAGS)
+    None = 0x0,
+    Editor = 0x1,
+    HasPhysics = 0x2,
+    HasStreaming = 0x4,
+    HasSceneStreamingLayer = 0x100,
+    AllStreamingLayerFlags = HasSceneStreamingLayer,
+    Default = ((HasPhysics | HasStreaming) | AllStreamingLayerFlags)
 end
 extern class World : AssetObject
     GetGame() -> Game
+    GetPhysicsWorld() -> PhysicsWorldBase
     GetWorldFlags() -> WorldFlags
     SetWorldFlags(flags : WorldFlags) -> void
-    GetPhysicsWorld() -> PhysicsWorldBase
     TryAddSubsystem(subsystem : Subsystem) -> bool
     GetSubsystemByName(name : any) -> Subsystem
     RemoveSubsystem(subsystem : Subsystem) -> bool

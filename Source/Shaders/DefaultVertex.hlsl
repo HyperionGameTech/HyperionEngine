@@ -56,6 +56,20 @@ DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
 static const uint s_offsetOfIndices = 64; // 64 bytes after header start
 static const uint s_offsetOfTransforms = s_offsetOfIndices + (sizeof(uint4) * (MAX_ENTITIES_PER_INSTANCE_BATCH >> 2));
 static const uint s_offsetOfPrevTransforms = s_offsetOfTransforms + (sizeof(float4x4) * MAX_ENTITIES_PER_INSTANCE_BATCH);
+
+// ByteAddressBuffer.Load<float4x4> comes back transposed relative to the row-major Mat4f uploaded from the
+// CPU (this is a DXC/SPIR-V quirk, not affected by pack_matrix(row_major)). A transposed affine matrix moves
+// translation out of the last column and into the last row, which corrupts the homogeneous w of every vertex
+// by an amount that depends on that vertex's local position -- i.e. non-rigid shear that scales with how far
+// the instance is translated. Load the four rows individually as float4 (no orientation ambiguity) instead.
+float4x4 LoadInstanceTransform(uint offset)
+{
+    return float4x4(
+        EntityInstanceBatchBuffer.Load<float4>(offset + 0),
+        EntityInstanceBatchBuffer.Load<float4>(offset + 16),
+        EntityInstanceBatchBuffer.Load<float4>(offset + 32),
+        EntityInstanceBatchBuffer.Load<float4>(offset + 48));
+}
 #endif // INSTANCING
 
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
@@ -66,17 +80,13 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float4 previous_position;
 
 #ifdef INSTANCING
-    float4x4 transform = EntityInstanceBatchBuffer.Load<float4x4>(s_offsetOfTransforms + (sizeof(float4x4) * instanceId));
+    float4x4 transform = LoadInstanceTransform(s_offsetOfTransforms + (sizeof(float4x4) * instanceId));
 
     const uint entityIndex = EntityInstanceBatchBuffer.Load<uint>(s_offsetOfIndices + (instanceId * sizeof(uint)));
     output.object_index = entityIndex;
 
     Entity currentEntity = entities[entityIndex];
-#ifdef DX12
     float4x4 model_matrix = mul(currentEntity.model_matrix, transform);
-#else
-    float4x4 model_matrix = mul(transform, currentEntity.model_matrix);
-#endif
     float3x3 normal_matrix = (float3x3)currentEntity.normal_matrix;//transpose(inverse((float3x3)model_matrix));
 #else // !INSTANCING
     output.object_index = ~0u; // unused
@@ -91,16 +101,28 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float4x4 skinning_matrix = CreateSkinningMatrix(input.a_bone_indices, input.a_bone_weights);
 
     position = mul(model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
-    previous_position = mul(currentEntity.previous_model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
+
+#ifdef INSTANCING
+    // Must include the per-instance previousTransform here too, same as the non-skinned path below --
+    // otherwise this is computed as if the instance had zero offset from the entity, so the reported
+    // velocity is dominated by the IMP's static offset instead of actual frame-to-frame motion.
+    const float4x4 previousTransform = LoadInstanceTransform(s_offsetOfPrevTransforms + (sizeof(float4x4) * instanceId));
+    float4x4 previous_model_matrix = mul(currentEntity.previous_model_matrix, previousTransform);
+#else // !INSTANCING
+    float4x4 previous_model_matrix = currentEntity.previous_model_matrix;
+#endif // INSTANCING
+
+    previous_position = mul(previous_model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
     normal_matrix = mul(normal_matrix, (float3x3)skinning_matrix);
 #else // !SKINNING || !VT_Skeletal
     position = mul(model_matrix, float4(input.a_position, 1.0));
 
 #ifdef INSTANCING
-    const float4x4 previousTransform = EntityInstanceBatchBuffer.Load<float4x4>(s_offsetOfPrevTransforms + (sizeof(float4x4) * instanceId));
+    const float4x4 previousTransform = LoadInstanceTransform(s_offsetOfPrevTransforms + (sizeof(float4x4) * instanceId));
 
     previous_position = mul(mul(currentEntity.previous_model_matrix, previousTransform), float4(input.a_position, 1.0));
 #else // !INSTANCING
+
     previous_position = mul(currentEntity.previous_model_matrix, float4(input.a_position, 1.0));
 #endif // !SKINNING || !VT_Skeletal
 #endif // SKINNING && VT_Skeletal
