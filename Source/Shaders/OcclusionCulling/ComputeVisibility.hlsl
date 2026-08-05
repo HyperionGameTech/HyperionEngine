@@ -4,7 +4,7 @@
 #include "./Shared.hlsli"
 
 DECLARE_SAMPLER(ComputeVisibility, SamplerNearest) SamplerState depth_pyramid_sampler;
-DECLARE_SRV(ComputeVisibility, DepthPyramidResult) Texture2D depth_pyramid;
+DECLARE_SRV(ComputeVisibility, DepthPyramidResult) Texture2D<float2> depth_pyramid;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../include/Entity.hlsli"
@@ -50,16 +50,16 @@ DECLARE_BUFFER_DYNAMIC(ComputeVisibility, ComputeVisibilityConstants) cbuffer Co
     uint batchStride;
 };
 
-float GetDepthAtTexel(float2 texcoord, int mip)
+float GetMaxDepthAtTexel(float2 texcoord, int mip)
 {
     const int2 mipDimensions = max(hzbDimensions >> mip, (int2) 1);
     
-    const int2 mip0Coord = clamp(int2(texcoord * float2(hzbDimensions)), (int2) 0, hzbDimensions - (int2) 1);
+    const int2 mip0Coord = clamp(int2(float2(texcoord.x, 1.0 - texcoord.y) * float2(hzbDimensions)), (int2) 0, hzbDimensions - (int2) 1);
     const int2 coord = clamp(mip0Coord >> mip, (int2) 0, mipDimensions - (int2) 1);
 
-    const float4 value = depth_pyramid.Load(int3(coord, mip));
+    const float2 depths = depth_pyramid.Load(int3(coord, mip));
 
-    return value.r;
+    return depths.r;
 }
 
 [numthreads(256, 1, 1)]
@@ -134,10 +134,8 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         }
         else if (cullBits == 0u)
         {
-            // clip space +y is up but texel (0, 0) is top-left, so the y flip swaps which
-            // corner is the uv minimum.
-            const float2 uv0 = saturate(float2(clip_min.x * 0.5 + 0.5, 0.5 - clip_min.y * 0.5));
-            const float2 uv1 = saturate(float2(clip_max.x * 0.5 + 0.5, 0.5 - clip_max.y * 0.5));
+            const float2 uv0 = saturate(float2(clip_min.xy * 0.5 + 0.5));
+            const float2 uv1 = saturate(float2(clip_max.xy * 0.5 + 0.5));
 
             const float2 uvMin = min(uv0, uv1);
             const float2 uvMax = max(uv0, uv1);
@@ -150,10 +148,10 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
             const int mip = clamp((int) ceil(log2(max_size)), 0, (int) totalMips - 1);
 
             const float4 depths = float4(
-                GetDepthAtTexel(uvMin, mip),
-                GetDepthAtTexel(float2(uvMax.x, uvMin.y), mip),
-                GetDepthAtTexel(float2(uvMin.x, uvMax.y), mip),
-                GetDepthAtTexel(uvMax, mip)
+                GetMaxDepthAtTexel(uvMin, mip),
+                GetMaxDepthAtTexel(float2(uvMax.x, uvMin.y), mip),
+                GetMaxDepthAtTexel(float2(uvMin.x, uvMax.y), mip),
+                GetMaxDepthAtTexel(uvMax, mip)
             );
 
             // find the max depth

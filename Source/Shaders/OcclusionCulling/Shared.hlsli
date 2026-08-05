@@ -1,5 +1,5 @@
-#ifndef HYP_CULL_SHARED_GLSL
-#define HYP_CULL_SHARED_GLSL
+#ifndef HYP_OCCLUSION_CULLING_SHARED
+#define HYP_OCCLUSION_CULLING_SHARED
 
 #define HYP_NUM_DEPTH_PYRAMID_OFFSETS 4
 
@@ -16,14 +16,14 @@
 #define HYP_DEPTHS_INIT float2(100000.0, 0)
 #endif
 
-static const ivec2 depth_pyramid_offsets[HYP_NUM_DEPTH_PYRAMID_OFFSETS] = {
-    ivec2(0, 0),
-    ivec2(0, 1),
-    ivec2(1, 1),
-    ivec2(1, 0)
+static const int2 depth_pyramid_offsets[HYP_NUM_DEPTH_PYRAMID_OFFSETS] = {
+    int2(0, 0),
+    int2(0, 1),
+    int2(1, 1),
+    int2(1, 0)
 };
 
-uint GetCullBits(vec4 pos)
+uint GetCullBits(float4 pos)
 {
     return uint(pos.x < -pos.w)
         | (uint(pos.x > pos.w) << 1)

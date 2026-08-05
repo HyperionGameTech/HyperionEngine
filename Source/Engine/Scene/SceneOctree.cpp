@@ -1106,9 +1106,10 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<
                         continue;
                     }
 
-                    // BVH yielded no hits (e.g. a stale/mismatched BVH deserialized
-                    // from disk). Fall through to the AABB test so a bad BVH cannot
-                    // permanently hide the entity from selection.
+                    // BVH yielded no hits (e.g. a stale/mismatched BVH deserialized from disk).
+                    // Fall through to the AABB test so a bad BVH cannot permanently hide the
+                    // entity from selection. That hit is flagged approximate, so it only wins
+                    // when nothing in the scene produced a real surface hit.
                 }
             }
 

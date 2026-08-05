@@ -658,7 +658,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                 shadowView->m_scenes.Resize(shadowViewScenes.Size());
                 std::copy(shadowViewScenes.Begin(), shadowViewScenes.End(), shadowView->m_scenes.Begin());
 
-                const bool shouldSkipUnchangedViews = (shadowView == shadowViewsStatic[shadowViewIndex]);
+                const bool shouldSkipUnchangedViews = (shadowView == shadowViewsStatic[shadowViewIndex]) && !light->forceRedrawShadows;
 
                 if (shouldSkipUnchangedViews)
                 {
@@ -677,6 +677,8 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
                     shadowView->collectionState.UpdateInputs(inputHash, GetFrameCounter());
                 }
+
+                light->forceRedrawShadows = false;
 
                 outShadowViews.PushBack(shadowView);
             }

@@ -55,7 +55,6 @@ private:
     Handle<Texture> m_hzbTexture;
 
     Array<GpuImageViewRef, RenderAllocator> m_mipImageViews;
-    Array<GpuBufferRef, RenderAllocator> m_mipUniformBuffers;
 
     bool m_isRendered;
 };

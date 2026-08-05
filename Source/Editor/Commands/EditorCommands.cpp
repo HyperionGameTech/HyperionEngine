@@ -455,137 +455,6 @@ DEFINE_EDITOR_COMMAND(AddLightmapVolume);
 
 #pragma endregion AddLightmapVolume
 
-#pragma region BuildBentNormals
-
-class EditorCommandBuildBentNormals final : public EditorCommandBase
-{
-    HYP_OBJECT_BODY(EditorCommandBuildBentNormals);
-
-public:
-    virtual ~EditorCommandBuildBentNormals() override = default;
-
-    virtual String GetText() const override
-    {
-        return "Build Bent Normals";
-    }
-
-    virtual void Execute(EditorSubsystem* subsystem) override
-    {
-        Handle<Scene> activeScene = subsystem->GetActiveScene();
-        if (!activeScene.IsValid())
-        {
-            HYP_LOG(Editor, Error, "No active scene; cannot build bent normals!");
-
-            return;
-        }
-
-        Array<Handle<LightmapVolume>> lightmapVolumes;
-
-        if (Handle<Node> root = activeScene->GetRoot())
-        {
-            for (Node* node : root->GetDescendants())
-            {
-                if (node->IsA<LightmapVolume>())
-                {
-                    lightmapVolumes.PushBack(MakeStrongRef(static_cast<LightmapVolume*>(node)));
-                }
-            }
-        }
-
-        if (lightmapVolumes.Empty())
-        {
-            HYP_LOG(Editor, Warning, "No LightmapVolumes in the active scene. Cannot bake bent normals.");
-
-            SystemMessageBox(MessageBoxType::WARNING)
-                .Title("Cannot Bake Bent Normals")
-                .Text("Bent Normals cannot be computed as there are no LightmapVolumes in the scene. Add a LightmapVolume and try again.")
-                .Button("Close", []() { })
-                .Show();
-
-            return;
-        }
-
-        Handle<GenerateBentNormalsEditorTask> generateBentNormalsTask = MakeHandle<GenerateBentNormalsEditorTask>(lightmapVolumes);
-        InitObject(generateBentNormalsTask);
-
-        generateBentNormalsTask->SetScene(activeScene);
-
-        Handle<World> worldHandle = MakeStrongRef(subsystem->GetWorld());
-        generateBentNormalsTask->SetWorld(worldHandle);
-
-        g_editorState->AddTask(generateBentNormalsTask);
-    }
-};
-
-DEFINE_EDITOR_COMMAND(BuildBentNormals);
-
-#pragma endregion BuildBentNormals
-
-#pragma region BuildLightmaps
-
-class EditorCommandBuildLightmaps final : public EditorCommandBase
-{
-    HYP_OBJECT_BODY(EditorCommandBuildLightmaps);
-
-public:
-    virtual ~EditorCommandBuildLightmaps() override = default;
-
-    virtual String GetText() const override
-    {
-        return "Build Lightmap Volumes";
-    }
-
-    virtual void Execute(EditorSubsystem* subsystem) override
-    {
-        Handle<Scene> activeScene = subsystem->GetActiveScene();
-        if (!activeScene.IsValid())
-        {
-            HYP_LOG(Editor, Error, "No active scene; cannot bake lightmaps!");
-
-            return;
-        }
-
-        Array<Handle<ObjectBase>> sources;
-
-        if (Handle<Node> root = activeScene->GetRoot(); root.IsValid())
-        {
-            for (Node* node : root->GetDescendants())
-            {
-                if (node->IsA<LightmapVolume>())
-                {
-                    sources.PushBack(MakeStrongRef(node));
-                }
-            }
-        }
-
-        if (sources.Empty())
-        {
-            HYP_LOG(Editor, Warning, "No Lightmap Volumes in the active scene. Cannot bake.");
-
-            SystemMessageBox(MessageBoxType::WARNING)
-                .Title("Cannot Bake Lighting")
-                .Text("No Lightmap Volumes in the scene to bake lighting for. Add one and try again.")
-                .Button("Close", []() { })
-                .Show();
-
-            return;
-        }
-        
-        Handle<World> worldHandle = MakeStrongRef(subsystem->GetWorld());
-
-        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(sources);
-        editorTask->SetIsForegroundTask(true);
-        editorTask->SetScene(activeScene);
-        editorTask->SetWorld(worldHandle);
-
-        g_editorState->AddTask(editorTask);
-    }
-};
-
-DEFINE_EDITOR_COMMAND(BuildLightmaps);
-
-#pragma endregion BuildLightmaps
-
 #pragma region BuildReflectionProbes
 
 class EditorCommandBuildReflectionProbes final : public EditorCommandBase
@@ -720,6 +589,224 @@ DEFINE_EDITOR_COMMAND(BuildIrradianceProbes);
 #pragma endregion BuildIrradianceProbes
 
 
+#pragma region BuildLightmaps
+
+class EditorCommandBuildLightmaps final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandBuildLightmaps);
+
+public:
+    virtual ~EditorCommandBuildLightmaps() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Build Lightmap Volumes";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        Handle<Scene> activeScene = subsystem->GetActiveScene();
+        if (!activeScene.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No active scene; cannot bake lightmaps!");
+
+            return;
+        }
+
+        Array<Handle<ObjectBase>> sources;
+
+        if (Handle<Node> root = activeScene->GetRoot(); root.IsValid())
+        {
+            for (Node* node : root->GetDescendants())
+            {
+                if (node->IsA<LightmapVolume>())
+                {
+                    sources.PushBack(MakeStrongRef(node));
+                }
+            }
+        }
+
+        if (sources.Empty())
+        {
+            HYP_LOG(Editor, Warning, "No Lightmap Volumes in the active scene. Cannot bake.");
+
+            SystemMessageBox(MessageBoxType::WARNING)
+                .Title("Cannot Bake Lighting")
+                .Text("No Lightmap Volumes in the scene to bake lighting for. Add one and try again.")
+                .Button("Close", []() { })
+                .Show();
+
+            return;
+        }
+        
+        Handle<World> worldHandle = MakeStrongRef(subsystem->GetWorld());
+
+        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(sources);
+        editorTask->SetIsForegroundTask(true);
+        editorTask->SetScene(activeScene);
+        editorTask->SetWorld(worldHandle);
+
+        g_editorState->AddTask(editorTask);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(BuildLightmaps);
+
+#pragma endregion BuildLightmaps
+
+#pragma region BuildBentNormals
+
+class EditorCommandBuildBentNormals final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandBuildBentNormals);
+
+public:
+    virtual ~EditorCommandBuildBentNormals() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Build Bent Normals";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        Handle<Scene> activeScene = subsystem->GetActiveScene();
+        if (!activeScene.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No active scene; cannot build bent normals!");
+
+            return;
+        }
+
+        Array<Handle<LightmapVolume>> lightmapVolumes;
+
+        if (Handle<Node> root = activeScene->GetRoot())
+        {
+            for (Node* node : root->GetDescendants())
+            {
+                if (node->IsA<LightmapVolume>())
+                {
+                    lightmapVolumes.PushBack(MakeStrongRef(static_cast<LightmapVolume*>(node)));
+                }
+            }
+        }
+
+        if (lightmapVolumes.Empty())
+        {
+            HYP_LOG(Editor, Warning, "No LightmapVolumes in the active scene. Cannot bake bent normals.");
+
+            SystemMessageBox(MessageBoxType::WARNING)
+                .Title("Cannot Bake Bent Normals")
+                .Text("Bent Normals cannot be computed as there are no LightmapVolumes in the scene. Add a LightmapVolume and try again.")
+                .Button("Close", []() { })
+                .Show();
+
+            return;
+        }
+
+        Handle<GenerateBentNormalsEditorTask> generateBentNormalsTask = MakeHandle<GenerateBentNormalsEditorTask>(lightmapVolumes);
+        InitObject(generateBentNormalsTask);
+
+        generateBentNormalsTask->SetScene(activeScene);
+
+        Handle<World> worldHandle = MakeStrongRef(subsystem->GetWorld());
+        generateBentNormalsTask->SetWorld(worldHandle);
+
+        g_editorState->AddTask(generateBentNormalsTask);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(BuildBentNormals);
+
+#pragma endregion BuildBentNormals
+
+#pragma region RebuildMeshBVHs
+
+class EditorCommandRebuildMeshBVHs final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandRebuildMeshBVHs);
+
+public:
+    virtual ~EditorCommandRebuildMeshBVHs() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Rebuild Mesh BVHs";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No project loaded; cannot cook game content");
+
+            return;
+        }
+
+        Handle<Scene> activeScene = subsystem->GetActiveScene();
+        if (!activeScene.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No active scene; cannot build bent normals!");
+
+            return;
+        }
+        
+        EditorTaskScope* editorTaskScope = new EditorTaskScope(
+            TickableEditorTask::StaticClass(),
+            []()
+            { /* no tick function */ },
+            "Rebuilding Mesh BVHs",
+            "Collecting Meshes",
+            /* isForegroundTask */ true);
+
+        Array<Handle<Mesh>> meshes;
+
+        for (auto [entity, meshComponent] : activeScene->GetEntityManager()->GetEntitySet<MeshComponent>().GetScopedView(DataAccessFlags::ACCESS_READ))
+        {
+            if (meshComponent.mesh.IsValid())
+            {
+                meshes.PushBack(meshComponent.mesh);
+            }
+        }
+
+        TaskSystem::GetInstance().Enqueue(
+            [editorTaskScope, project = currentProject, meshes = std::move(meshes)]()
+            {
+                for (size_t i = 0; i < meshes.Size(); i++)
+                {
+                    Mesh* mesh = meshes[i];
+                    
+                    editorTaskScope->GetEditorTask()->SetDescription("Building BVH data: " + mesh->GetName().ToString());
+
+                    auto readScope = mesh->GetReadScope();
+
+                    BVHNode bvhNode;
+                    mesh->BuildBVH(bvhNode);
+
+                    readScope.Reset();
+
+                    auto writeScope = mesh->GetWriteScope();
+                    mesh->SetBVH(std::move(bvhNode));
+                }
+
+                // Clear EPC to pick up new BVHs.
+                GetThreadById(g_simThread)->GetScheduler().Enqueue(
+                    []()
+                    {
+                        g_editorState->GetPickCache().Clear();
+                    }, TaskEnqueueFlags::FIRE_AND_FORGET);
+
+                delete editorTaskScope;
+            },
+            TaskThreadPoolName::THREAD_POOL_BACKGROUND,
+            TaskEnqueueFlags::FIRE_AND_FORGET);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(RebuildMeshBVHs);
+
+#pragma endregion RebuildMeshBVHs
 
 #pragma region CookGameContent
 

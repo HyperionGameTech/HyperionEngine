@@ -2243,6 +2243,7 @@ struct ShaderPropertySet
 
     template <size_t N>
     constexpr ShaderPropertySet(const ShaderPropertyId (&properties)[N])
+        : chunks {}
     {
         for (auto it = std::begin(properties); it != std::end(properties); ++it)
         {

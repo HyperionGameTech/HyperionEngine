@@ -6,7 +6,7 @@
 DECLARE_SRV(DepthPyramidDescriptorSet, InImage) Texture2D InImage;
 DECLARE_UAV(DepthPyramidDescriptorSet, OutImage) RWTexture2D<float2> OutImage;
 DECLARE_SAMPLER(DepthPyramidDescriptorSet, DepthPyramidSampler) SamplerState InSampler;
-DECLARE_BUFFER(DepthPyramidDescriptorSet, CBuffer) cbuffer CBuffer
+DECLARE_BUFFER_DYNAMIC(DepthPyramidDescriptorSet, CBuffer) cbuffer CBuffer
 {
     uint2 mip_dimensions;
     uint2 prev_mip_dimensions;
@@ -15,7 +15,7 @@ DECLARE_BUFFER(DepthPyramidDescriptorSet, CBuffer) cbuffer CBuffer
 
 float2 GetDepthAtTexel(int2 texel_coord)
 {
-    texel_coord = clamp(texel_coord, int2(0, 0), int2(prev_mip_dimensions) - int2(1, 1));
+    texel_coord = clamp(texel_coord, int2(0, 0), int2(prev_mip_dimensions) - 1);
 
     return TEXEL_FETCH_2D_LOD(InSampler, InImage, texel_coord, 0).rg;
 }
@@ -25,7 +25,8 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
     const uint2 coord = dispatchThreadID.xy;
 
-    if (any(coord > mip_dimensions - uint2(1, 1))) {
+    if (any(coord >= mip_dimensions))
+    {
         return;
     }
 
@@ -34,6 +35,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     if (mip_level == 0)
     {
         depths = GetDepthAtTexel(int2(coord));
+        depths.y = depths.x;
     }
     else
     {

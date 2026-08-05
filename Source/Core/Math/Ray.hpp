@@ -104,8 +104,17 @@ struct RayHit
     uint32 triangleIndex = ~0u;
     class Node* node = nullptr;
 
+    // Hit came from a bounding volume, not surface geometry. Reported at the point the ray enters
+    // the volume, so it sorts after every exact hit regardless of distance.
+    bool isApproximate = false;
+
     bool operator<(const RayHit& other) const
     {
+        if (isApproximate != other.isApproximate)
+        {
+            return !isApproximate;
+        }
+
         if (distance != other.distance)
         {
             return distance < other.distance;
@@ -119,24 +128,24 @@ struct RayHit
         return id < other.id;
     }
 
+    // Must compare the same fields operator< orders by: RayTestResults finds the insertion point
+    // with operator< then rejects the value if operator== holds there.
     bool operator==(const RayHit& other) const
     {
-        return distance == other.distance
-            && id == other.id
-            && hitpoint == other.hitpoint
-            && normal == other.normal
-            && barycentricCoords == other.barycentricCoords;
+        return isApproximate == other.isApproximate
+            && distance == other.distance
+            && triangleIndex == other.triangleIndex
+            && id == other.id;
     }
 
     HashCode GetHashCode() const
     {
         HashCode hc;
 
+        hc.Add(isApproximate);
         hc.Add(distance);
+        hc.Add(triangleIndex);
         hc.Add(id);
-        hc.Add(hitpoint.GetHashCode());
-        hc.Add(normal.GetHashCode());
-        hc.Add(barycentricCoords.GetHashCode());
 
         return hc;
     }

@@ -265,6 +265,8 @@ public:
     static constexpr NoOpFunction<bool> CanBakeStaticShadows;
 #endif
 
+    bool forceRedrawShadows;
+
 protected:
     void Init() override;
     void Update(float delta) override;

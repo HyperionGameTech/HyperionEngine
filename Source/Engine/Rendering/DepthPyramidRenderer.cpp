@@ -18,6 +18,7 @@
 #include <Rendering/Sampler.hpp>
 #include <Rendering/ShaderInstance.hpp>
 #include <Rendering/SamplerCache.hpp>
+#include <Rendering/CBufferAllocator.hpp>
 
 #include <Rendering/Passes/DeferredPass.hpp>
 
@@ -30,7 +31,7 @@ namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Rendering);
 
-struct DepthPyramidUniforms
+struct BuildHZBConstants
 {
     Vec2u mipDimensions;
     Vec2u prevMipDimensions;
@@ -46,9 +47,7 @@ DepthPyramidRenderer::DepthPyramidRenderer(GBuffer* gbuffer)
 DepthPyramidRenderer::~DepthPyramidRenderer()
 {
     EnqueueDeletion(std::move(m_depthImageView));
-
     EnqueueDeletion(std::move(m_mipImageViews));
-    EnqueueDeletion(std::move(m_mipUniformBuffers));
 }
 
 void DepthPyramidRenderer::Create()
@@ -91,9 +90,6 @@ void DepthPyramidRenderer::Create()
     m_mipImageViews.Clear();
     m_mipImageViews.Reserve(numMipLevels);
 
-    m_mipUniformBuffers.Clear();
-    m_mipUniformBuffers.Reserve(numMipLevels);
-
     uint32 mipWidth = imageExtent.x;
     uint32 mipHeight = imageExtent.y;
 
@@ -104,20 +100,6 @@ void DepthPyramidRenderer::Create()
 
         mipWidth = MathUtil::Max(1u, depthPyramidExtent.x >> (mipLevel));
         mipHeight = MathUtil::Max(1u, depthPyramidExtent.y >> (mipLevel));
-
-        DepthPyramidUniforms uniforms;
-        uniforms.mipDimensions = { mipWidth, mipHeight };
-        uniforms.prevMipDimensions = { prevMipWidth, prevMipHeight };
-        uniforms.mipLevel = mipLevel;
-
-        GpuBufferRef& mipUniformBuffer = m_mipUniformBuffers.PushBack(RI.MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(DepthPyramidUniforms)));
-#ifdef HYP_RHI_DEBUG_NAMES
-        mipUniformBuffer->SetDebugName(NAME_FMT("DepthPyramid_Mip{}_UniformBuffer", mipLevel));
-#endif
-        Check(mipUniformBuffer->Create());
-
-        mipUniformBuffer->Copy(sizeof(DepthPyramidUniforms), &uniforms);
-        mipUniformBuffer->Flush(0, sizeof(DepthPyramidUniforms));
 
         GpuImageViewRef& mipImageView = m_mipImageViews.PushBack(RI.MakeImageView(m_hzbTexture->GetGpuImage(), mipLevel, 1, 0, 1));
 #ifdef HYP_RHI_DEBUG_NAMES
@@ -160,6 +142,18 @@ void DepthPyramidRenderer::Render(Frame* frame)
 
         mipWidth = MathUtil::Max(1u, depthPyramidExtent.x >> (mipLevel));
         mipHeight = MathUtil::Max(1u, depthPyramidExtent.y >> (mipLevel));
+        
+        BuildHZBConstants constants {};
+        constants.mipDimensions = { mipWidth, mipHeight };
+        constants.prevMipDimensions = { prevMipWidth, prevMipHeight };
+        constants.mipLevel = mipLevel;
+
+        GpuBuffer* cbuffer = nullptr;
+        size_t cbufferSize = 0;
+        size_t cbufferOffset = 0;
+
+        RI.cbufferAllocator->Write(&constants);
+        RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
         // Set the compute shader
         frame->cr << SetCurrentShader(ShaderDesc(NAME("GenerateDepthPyramid")));
@@ -191,7 +185,7 @@ void DepthPyramidRenderer::Render(Frame* frame)
             ShaderModuleType::Compute);
 
         frame->cr << SetShaderUniform(1, "OutImage"_sh, m_mipImageViews[mipLevel]);
-        frame->cr << SetShaderUniform(2, "CBuffer"_sh, m_mipUniformBuffers[mipLevel]);
+        frame->cr << SetShaderUniform(2, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
         frame->cr << SetShaderUniform(3, "DepthPyramidSampler"_sh, depthPyramidSampler);
 
         frame->cr << DispatchCompute({ (mipWidth + 7) / 8, (mipHeight + 7) / 8, 1 });

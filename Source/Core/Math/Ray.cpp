@@ -99,21 +99,18 @@ bool Ray::TestAABB(const BoundingBox& aabb, RayHitID hitId, RayTestResults& outR
         return false;
     }
 
-    float distance = tmin;
+    // tmin < 0 means we started inside the box, so distance is 0; using tmax would report the far
+    // exit point and sort an enclosing box behind everything else.
+    const float distance = MathUtil::Max(tmin, 0.0f);
 
-    if (tmin < 0.0f)
-    {
-        distance = tmax;
-    }
+    RayHit hit {};
+    hit.id = hitId;
+    hit.distance = distance;
+    hit.hitpoint = position + (direction * distance);
+    hit.normal = -direction.Normalized(); // TODO: change to be box normal
+    hit.isApproximate = true;
 
-    const Vec3f hitpoint = position + (direction * distance);
-
-    outResults.AddHit(RayHit {
-        hitId,
-        distance,
-        hitpoint,
-        -direction.Normalized(), // TODO: change to be box normal
-    });
+    outResults.AddHit(hit);
 
     return true;
 }

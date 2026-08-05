@@ -20,6 +20,8 @@
 #include <Core/Reflection/Handle.hpp>
 #include <Core/Defines.hpp>
 
+#include <Baking/BakerMemory.hpp>
+
 namespace Hyperion {
 
 class LightmapVolume;
@@ -70,7 +72,8 @@ private:
     Task<void> EnqueueBake_Internal(const Handle<T>& source, uint32 shadingTypesMaskOverride, Args&&... args);
 
     // Map source to lightmapper instance
-    Map<ObjectBase*, Handle<Baking::BakerBase>> m_bakers;
+    // Added in the order they are enqueued; we only update one at a given time.
+    Array<Pair<ObjectBase*, Handle<Baking::BakerBase>>, Baking::BakerAllocator> m_bakers;
 };
 
 } // namespace Hyperion

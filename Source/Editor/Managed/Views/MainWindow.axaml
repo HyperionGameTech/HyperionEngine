@@ -197,6 +197,8 @@
                   <Separator />
                   <MenuItem Command="{Binding BuildBentNormals}" Header="Bent Normals" />
                   <Separator />
+                  <MenuItem Command="{Binding RebuildMeshBVHs}" Header="Rebuild Mesh BVHs" />
+                  <Separator />
                   <MenuItem Command="{Binding CookGameContent}" Header="Cook Game Content" />
                 </MenuItem>
             </Menu>

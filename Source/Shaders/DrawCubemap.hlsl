@@ -57,6 +57,8 @@ DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<float4x4> Skeleto
 #include "include/Skinning.hlsli"
 #endif // SKINNING
 
+#include "include/Instancing.hlsli"
+
 float4x4 LookAt(float3 pos, float3 target, float3 up)
 {
     float3 forward = normalize(target - pos);
@@ -78,15 +80,20 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float4 position;
 
 #ifdef INSTANCING
-    MeshEntityInstanceBatch batch = EntityInstanceBatchBuffer.Load<MeshEntityInstanceBatch>(0);
+    float4x4 transform = LoadInstanceTransform(s_offsetOfTransforms + (sizeof(float4x4) * instanceId));
 
-    Entity currentEntity = entities[batch.indices[instanceId / 4][instanceId % 4]];
-    float4x4 model_matrix = mul(batch.transforms[instanceId], currentEntity.model_matrix);
+    const uint entityIndex = EntityInstanceBatchBuffer.Load<uint>(s_offsetOfIndices + (instanceId * sizeof(uint)));
+    output.object_index = entityIndex;
+
+    Entity currentEntity = entities[entityIndex];
+    float4x4 model_matrix = mul(currentEntity.model_matrix, transform);
     float3x3 normal_matrix = (float3x3)currentEntity.normal_matrix;
 #else
     Entity currentEntity = entity;
     float4x4 model_matrix = entity.model_matrix;
     float3x3 normal_matrix = (float3x3)entity.normal_matrix;
+
+    output.object_index = OBJECT_INDEX;
 #endif
 
 #if defined(SKINNING) && defined(VT_Skeletal)
@@ -102,10 +109,6 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.normal = mul(normal_matrix, input.a_normal);
     output.texcoord0 = float2(input.a_texcoord0.x, 1.0 - input.a_texcoord0.y);
     output.camera_position = camera.position.xyz;
-
-#ifdef INSTANCING
-    output.object_index = OBJECT_INDEX;
-#endif
 
     output.position_cs = mul(vpMatrix, position);
 

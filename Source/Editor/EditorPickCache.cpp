@@ -273,8 +273,14 @@ EditorPickCacheEntry* EditorPickCache::GetEntry(const Mesh* mesh)
     {
         EditorPickCacheEntry& entry = m_impl->cache.Get(mesh->Id().ToIndex());
 
-        AssertDebug(entry.mesh.GetUnsafe() == mesh,
-            "Editor pick cache entry mesh mismatch - stale entry was not reaped");
+        // Ids are recycled and entries are only reaped on a timer in Update(), so this index can
+        // still hold a destroyed mesh's data. Drop it; the caller falls back to live mesh data.
+        if (entry.mesh.GetUnsafe() != mesh)
+        {
+            RemoveEntryAtIndex(mesh->Id().ToIndex());
+
+            return nullptr;
+        }
 
         return &entry;
     }

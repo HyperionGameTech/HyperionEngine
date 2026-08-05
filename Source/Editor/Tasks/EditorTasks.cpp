@@ -72,11 +72,11 @@ void GenerateLightmapsEditorTask::Start()
         return;
     }
 
-    BakerSubsystem* lightmapperSubsystem = m_world->GetSubsystem<BakerSubsystem>();
+    BakerSubsystem* bakerSubsystem = m_world->GetSubsystem<BakerSubsystem>();
 
-    if (!lightmapperSubsystem)
+    if (!bakerSubsystem)
     {
-        lightmapperSubsystem = m_world->AddSubsystem<BakerSubsystem>();
+        bakerSubsystem = m_world->AddSubsystem<BakerSubsystem>();
     }
 
     for (const Handle<ObjectBase>& source : m_sources)
@@ -85,15 +85,15 @@ void GenerateLightmapsEditorTask::Start()
 
         if (source->IsA<LightmapVolume>())
         {
-            task = lightmapperSubsystem->EnqueueBake(StaticCast<LightmapVolume>(source));
+            task = bakerSubsystem->EnqueueBake(StaticCast<LightmapVolume>(source));
         }
         else if (source->IsA<EnvProbe>())
         {
-            task = lightmapperSubsystem->EnqueueBake(StaticCast<EnvProbe>(source));
+            task = bakerSubsystem->EnqueueBake(StaticCast<EnvProbe>(source));
         }
         else if (source->IsA<FogVolume>())
         {
-            task = lightmapperSubsystem->EnqueueBake(StaticCast<FogVolume>(source));
+            task = bakerSubsystem->EnqueueBake(StaticCast<FogVolume>(source));
         }
 
         if (task.IsValid())
@@ -112,6 +112,9 @@ void GenerateLightmapsEditorTask::Cancel()
             task.Cancel();
         }
     }
+
+    // @TODO Proper cancelation.
+    // The baker subsystem needs to be aware that we cancelled.
 }
 
 bool GenerateLightmapsEditorTask::IsCompleted() const

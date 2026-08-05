@@ -68,14 +68,16 @@ void BakerSubsystem::OnRemovedFromWorld()
 
 void BakerSubsystem::Update(float delta)
 {
+    HYP_SCOPE;
+    
     AssertOnThread(g_simThread);
 
-    Array<ObjectBase*> keysToRemove;
+    size_t bakerIndex = 0;
 
-    for (auto& it : m_bakers)
+    if (m_bakers.Any())
     {
-        const ObjectBase* key = it.first;
-        BakerBase* baker = it.second;
+        const ObjectBase* key = m_bakers[bakerIndex].first;
+        BakerBase* baker = m_bakers[bakerIndex].second;
 
         baker->Update(delta);
 
@@ -83,17 +85,26 @@ void BakerSubsystem::Update(float delta)
         {
             baker->Shutdown();
 
-            keysToRemove.PushBack(it.first);
+            // Remove this guy
+            m_bakers.PopFront();
         }
         else
         {
             GetWorld()->ProcessViewAsync(baker->GetView());
+
+            ++bakerIndex;
         }
     }
 
-    for (ObjectBase* obj : keysToRemove)
+    // keep the others' views alive even if we don't Update() them right now.
+    while (bakerIndex < m_bakers.Size())
     {
-        m_bakers.Erase(obj);
+        const ObjectBase* key = m_bakers[bakerIndex].first;
+        BakerBase* baker = m_bakers[bakerIndex].second;
+
+        GetWorld()->ProcessViewAsync(baker->GetView());
+
+        ++bakerIndex;
     }
 
     g_bakerArena->Reset();
@@ -134,7 +145,10 @@ Task<void> BakerSubsystem::EnqueueBake_Internal(const Handle<T>& source, uint32 
         return Task<void>();
     }
 
-    auto it = m_bakers.Find(source.Get());
+    auto it = m_bakers.FindIf([source](const Pair<ObjectBase*, Handle<BakerBase>>& item)
+    {
+        return item.first == source.Get();
+    });
 
     if (it != m_bakers.End())
     {
@@ -158,7 +172,7 @@ Task<void> BakerSubsystem::EnqueueBake_Internal(const Handle<T>& source, uint32 
     
     GetWorld()->ProcessViewAsync(baker->GetView());
 
-    m_bakers.Insert(source.Get(), std::move(baker));
+    m_bakers.EmplaceBack(source.Get(), std::move(baker));
 
     return task;
 }

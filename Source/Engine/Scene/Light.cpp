@@ -73,12 +73,13 @@ Light::Light(LightType type, const Vec3f& position, const Color& color, float in
       m_falloff(1.0f),
       m_spotAngles(Vec2f::Zero()),
       m_shadowMapDimensions(DefaultShadowMapDimensions[uint32(type)]),
-      m_numShadowMapCascades(1)
+      m_numShadowMapCascades(1),
+      forceRedrawShadows(false)
 {
     m_nodeFlags |= NodeFlags::ExcludeFromParentBounds | NodeFlags::ExcludeFromOctree;
 
     m_entityInitInfo.canEverUpdate = true;
-    m_entityInitInfo.receivesUpdate = true;
+    m_entityInitInfo.receivesUpdate = false;
     m_entityInitInfo.bvhDepth = 0; // No BVH for lights
     m_entityInitInfo.initialTags = { EntityTag::Light };
 
@@ -96,12 +97,13 @@ Light::Light(LightType type, const Vec3f& position, const Vec3f& normal, const V
       m_falloff(1.0f),
       m_spotAngles(Vec2f::Zero()),
       m_shadowMapDimensions(DefaultShadowMapDimensions[uint32(type)]),
-      m_numShadowMapCascades(1)
+      m_numShadowMapCascades(1),
+      forceRedrawShadows(false)
 {
     m_nodeFlags |= NodeFlags::ExcludeFromParentBounds | NodeFlags::ExcludeFromOctree;
 
     m_entityInitInfo.canEverUpdate = true;
-    m_entityInitInfo.receivesUpdate = true;
+    m_entityInitInfo.receivesUpdate = false;
     m_entityInitInfo.bvhDepth = 0; // No BVH for lights
     m_entityInitInfo.initialTags = { EntityTag::Light };
 
@@ -163,7 +165,8 @@ void Light::OnRemovedFromScene(Scene* scene)
 void Light::OnTransformUpdated()
 {
     Entity::OnTransformUpdated();
-    Entity::SetLocalBounds(CalculateLightBounds());
+
+    forceRedrawShadows = true;
 }
 
 void Light::Update(float delta)
@@ -184,6 +187,8 @@ void Light::SetLightFlags(EnumFlags<LightFlags> flags)
 
     m_lightFlags = flags;
 
+    forceRedrawShadows = true;
+
     SetNeedsRenderProxyUpdate();
     MarkDirty();
 }
@@ -199,6 +204,8 @@ void Light::SetNormal(const Vec3f& normal)
 
     Entity::SetLocalBounds(CalculateLightBounds());
 
+    forceRedrawShadows = true;
+
     SetNeedsRenderProxyUpdate();
     MarkDirty();
 }
@@ -213,6 +220,8 @@ void Light::SetAreaSize(const Vec2f& areaSize)
     m_areaSize = areaSize;
 
     Entity::SetLocalBounds(CalculateLightBounds());
+
+    forceRedrawShadows = true;
 
     SetNeedsRenderProxyUpdate();
     MarkDirty();
@@ -283,6 +292,8 @@ void Light::SetSpotAngles(const Vec2f& spotAngles)
 
     Entity::SetLocalBounds(CalculateLightBounds());
 
+    forceRedrawShadows = true;
+
     SetNeedsRenderProxyUpdate();
     MarkDirty();
 }
@@ -341,6 +352,8 @@ void Light::SetShadowMapDimensions(Vec2u shadowMapDimensions)
 
     m_shadowMapDimensions = shadowMapDimensions;
 
+    forceRedrawShadows = true;
+
     SetNeedsRenderProxyUpdate();
     MarkDirty();
 }
@@ -360,6 +373,8 @@ void Light::SetNumShadowMapCascades(uint32 numShadowMapCascades)
     }
 
     m_numShadowMapCascades = numShadowMapCascades;
+
+    forceRedrawShadows = true;
 
     SetNeedsRenderProxyUpdate();
     MarkDirty();
@@ -393,6 +408,8 @@ void Light::SetBakedShadowMap(const Handle<Texture>& shadowMap)
             Check(m_shadowMap->Create());
         }
     }
+
+    forceRedrawShadows = true;
 
     SetNeedsRenderProxyUpdate();
     MarkDirty();

@@ -49,7 +49,10 @@ namespace Hyperion.Editor.ViewModels
         public EditorCommand BuildLightmaps => new EditorCommand("BuildLightmaps");
         public EditorCommand BuildReflectionProbes => new EditorCommand("BuildReflectionProbes");
         public EditorCommand BuildIrradianceProbes => new EditorCommand("BuildIrradianceProbes");
+
         public EditorCommand BuildBentNormals => new EditorCommand("BuildBentNormals");
+        
+        public EditorCommand RebuildMeshBVHs => new EditorCommand("RebuildMeshBVHs");
 
         public EditorCommand CookGameContent => new EditorCommand("CookGameContent");
 
