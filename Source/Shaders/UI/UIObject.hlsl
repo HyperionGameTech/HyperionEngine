@@ -35,9 +35,6 @@ DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_bu
 
 DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer currentBatchBuffer;
 
-#undef OBJECT_INSTANCE_DATA
-#undef OBJECT_INDEX
-#undef OBJECT_DATA_OFFSET
 #define OBJECT_INSTANCE_DATA (currentBatch.indices[instanceId >> 2][instanceId & 3])
 #define OBJECT_INDEX (OBJECT_INSTANCE_DATA & 0xFFFFFFu)
 #define OBJECT_DATA_OFFSET (OBJECT_INSTANCE_DATA >> 24)
