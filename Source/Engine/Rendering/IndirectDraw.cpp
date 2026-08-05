@@ -231,9 +231,11 @@ void IndirectDrawState::PushDrawCall(size_t drawCallIndex, const DrawCallStorage
     const uint32 drawCommandIndex = m_numDrawCommands++;
 
     ObjectInstance& instance = m_objectInstances.EmplaceBack();
+    instance.transform = drawCalls.meshProxies[drawCallIndex]->bufferData.modelMatrix;
     instance.entityBindingIndex = drawCalls.entityBindingIndices[drawCallIndex];
     instance.drawCommandIndex = drawCommandIndex;
     instance.batchIndex = ~0u;
+    instance.instanceIndex = 0;
 
     out.drawCommandIndex = drawCommandIndex;
 
@@ -258,9 +260,11 @@ void IndirectDrawState::PushInstancedDrawCall(size_t drawCallIndex, const Instan
     for (uint32 index = 0; index < count; index++)
     {
         ObjectInstance& instance = m_objectInstances.EmplaceBack();
-        instance.entityBindingIndex = batch->indices[index];
+        instance.transform = drawCalls.meshProxies[drawCallIndex]->bufferData.modelMatrix * batch->transforms[index];
+        instance.entityBindingIndex = (batch->indices[index] & 0xFFFFFFu);
         instance.drawCommandIndex = drawCommandIndex;
         instance.batchIndex = batch->batchIndex;
+        instance.instanceIndex = index;
     }
 
     out.drawCommandIndex = drawCommandIndex;
@@ -309,9 +313,10 @@ void IndirectDrawState::UpdateBufferData(CommandRecorder& cr, bool* outWasResize
     GpuBuffer* instanceBuffer = m_instanceBuffers[frameIndex];
     GpuBuffer* indirectBuffer = m_indirectBuffers[frameIndex];
 
+    // indirect buffer
+    // ===============
     const bool needsStaging = !indirectBuffer->IsCpuAccessible();
 
-    // fill instances buffer with data of the meshes
     if (needsStaging)
     {
         const size_t drawCommandsBufferSize = m_drawCommandsBuffer.ByteSize();
@@ -330,9 +335,10 @@ void IndirectDrawState::UpdateBufferData(CommandRecorder& cr, bool* outWasResize
         cr << InsertBarrier(indirectBuffer, RS_INDIRECT_ARG);
     }
 
-    Assert(instanceBuffer->Size() >= m_objectInstances.Size() * sizeof(ObjectInstance));
+    // instance buffer
+    // ===============
 
-    // update data for object instances (cpu - gpu)
+    Assert(instanceBuffer->Size() >= m_objectInstances.Size() * sizeof(ObjectInstance));
     instanceBuffer->Copy(m_objectInstances.Size() * sizeof(ObjectInstance), m_objectInstances.Data());
     instanceBuffer->Flush(0, m_objectInstances.Size() * sizeof(ObjectInstance));
 

@@ -35,8 +35,12 @@ DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_bu
 
 DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer currentBatchBuffer;
 
+#undef OBJECT_INSTANCE_DATA
 #undef OBJECT_INDEX
-#define OBJECT_INDEX (currentBatch.indices[instanceId >> 2][instanceId & 3])
+#undef OBJECT_DATA_OFFSET
+#define OBJECT_INSTANCE_DATA (currentBatch.indices[instanceId >> 2][instanceId & 3])
+#define OBJECT_INDEX (OBJECT_INSTANCE_DATA & 0xFFFFFFu)
+#define OBJECT_DATA_OFFSET (OBJECT_INSTANCE_DATA >> 24)
 
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 {
@@ -44,14 +48,17 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 
     UIEntityInstanceBatch currentBatch = currentBatchBuffer.Load<UIEntityInstanceBatch>(0);
 
-    float4x4 transform = currentBatch.transforms[instanceId];
+    const uint objectIndex = OBJECT_INDEX;
+    const uint dataOffset = OBJECT_DATA_OFFSET;
+
+    float4x4 transform = currentBatch.transforms[dataOffset];
 #ifdef VULKAN
     transform = transpose(transform);
 #endif
 
-    float2 clamped_offset = currentBatch.offsets[instanceId].xy;
-    float2 size = currentBatch.sizes[instanceId].xy;
-    float2 clamped_size = currentBatch.sizes[instanceId].zw;
+    float2 clamped_offset = currentBatch.offsets[dataOffset].xy;
+    float2 size = currentBatch.sizes[dataOffset].xy;
+    float2 clamped_size = currentBatch.sizes[dataOffset].zw;
 
     float4 position = mul(transform, float4(input.a_position, 1.0));
 
@@ -61,14 +68,14 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float2 texcoord = input.a_texcoord0;
     texcoord.y = 1.0 - texcoord.y;
 
-    float4 instance_texcoords = currentBatch.texcoords[instanceId];
+    float4 instance_texcoords = currentBatch.texcoords[dataOffset];
     float2 instance_texcoord_size = instance_texcoords.zw - instance_texcoords.xy;
 
     float2 clamped_instance_texcoord_size = instance_texcoord_size * (clamped_size / size);
     output.texcoord0 = instance_texcoords.xy - (clamped_offset / clamped_size * clamped_instance_texcoord_size) + (texcoord * clamped_instance_texcoord_size);
 
-    output.object_index = OBJECT_INDEX;
-    output.properties = currentBatch.properties[instanceId];
+    output.object_index = objectIndex;
+    output.properties = currentBatch.properties[dataOffset];
 
     output.position = position.xyz;
     output.screen_space_position = float3(ndc_position.xy * 0.5 + 0.5, ndc_position.z);

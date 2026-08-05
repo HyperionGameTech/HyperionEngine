@@ -30,14 +30,14 @@ struct InstancedDrawCallStorage;
 class DrawCallCollection;
 class EntityBatchAllocatorBase;
 
-struct alignas(16) ObjectInstance
+struct ObjectInstance
 {
+    Mat4f transform;
     uint32 entityBindingIndex;
     uint32 drawCommandIndex;
     uint32 batchIndex;
+    uint32 instanceIndex; // index of data in the batch
 };
-
-static_assert(sizeof(ObjectInstance) == 16);
 
 struct DrawCommandData
 {
@@ -55,19 +55,9 @@ public:
     IndirectDrawState();
     ~IndirectDrawState();
 
-    HYP_FORCE_INLINE const GpuBufferRef& GetInstanceBuffer(uint32 frameIndex) const
-    {
-        return m_instanceBuffers[frameIndex];
-    }
-
     HYP_FORCE_INLINE const GpuBufferRef& GetIndirectBuffer(uint32 frameIndex) const
     {
         return m_indirectBuffers[frameIndex];
-    }
-
-    HYP_FORCE_INLINE const Array<ObjectInstance, RenderAllocator>& GetInstances() const
-    {
-        return m_objectInstances;
     }
 
     void Create();
@@ -80,11 +70,10 @@ public:
     void ResetDrawState();
 
 private:
-    Array<ObjectInstance, RenderAllocator> m_objectInstances;
     Array<IndirectDrawCommand, RHIAllocator> m_drawCommandsBuffer;
 
     FixedArray<GpuBufferRef, NumFramesInFlight> m_indirectBuffers;
-    FixedArray<GpuBufferRef, NumFramesInFlight> m_instanceBuffers;
+    StructuredBuffer m_instances;
 
     uint32 m_numDrawCommands;
     uint8 m_dirtyBits;

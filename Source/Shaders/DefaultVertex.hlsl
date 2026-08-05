@@ -62,9 +62,12 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float4 previous_position;
 
 #ifdef INSTANCING
-    float4x4 transform = LoadInstanceTransform(s_offsetOfTransforms + (sizeof(float4x4) * instanceId));
+    uint entityIndex;
+    uint dataOffset;
+    LoadEntityIndexAndDataOffset(instanceId, entityIndex, dataOffset);
 
-    const uint entityIndex = EntityInstanceBatchBuffer.Load<uint>(s_offsetOfIndices + (instanceId * sizeof(uint)));
+    float4x4 transform = LoadInstanceTransform(s_offsetOfTransforms + (sizeof(float4x4) * dataOffset));
+
     output.object_index = entityIndex;
 
     Entity currentEntity = entities[entityIndex];
@@ -85,7 +88,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     position = mul(model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
 
 #ifdef INSTANCING
-    const float4x4 previousTransform = LoadInstanceTransform(s_offsetOfPrevTransforms + (sizeof(float4x4) * instanceId));
+    float4x4 previousTransform = LoadInstanceTransform(s_offsetOfPrevTransforms + (sizeof(float4x4) * dataOffset));
     float4x4 previous_model_matrix = mul(currentEntity.previous_model_matrix, previousTransform);
 #else // !INSTANCING
     float4x4 previous_model_matrix = currentEntity.previous_model_matrix;
@@ -97,7 +100,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     position = mul(model_matrix, float4(input.a_position, 1.0));
 
 #ifdef INSTANCING
-    const float4x4 previousTransform = LoadInstanceTransform(s_offsetOfPrevTransforms + (sizeof(float4x4) * instanceId));
+    const float4x4 previousTransform = LoadInstanceTransform(s_offsetOfPrevTransforms + (sizeof(float4x4) * dataOffset));
 
     previous_position = mul(mul(currentEntity.previous_model_matrix, previousTransform), float4(input.a_position, 1.0));
 #else // !INSTANCING

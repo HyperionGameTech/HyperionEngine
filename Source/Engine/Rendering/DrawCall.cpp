@@ -204,9 +204,9 @@ HYP_NODISCARD uint32 DrawCallCollection::PushEntityToBatch(
     {
         while (batch->numEntities < MaxEntitiesPerBatch && numInstances != 0)
         {
-            const uint32 entityIndex = batch->numEntities++;
+            const uint32 idx = batch->numEntities++;
 
-            batch->indices[entityIndex] = Resources::GetBinding(entity);
+            batch->indices[idx] = (Resources::GetBinding(entity) & 0xFFFFFFu) | (idx << 24);
 
             // Starts at the offset of `transforms` in EntityInstanceBatch - data in buffers is expected to be
             // after the `indices` element
@@ -218,7 +218,9 @@ HYP_NODISCARD uint32 DrawCallCollection::PushEntityToBatch(
                 const uint32 bufferStructAlignment = instanceData.bufferStructAlignments[bufferIndex];
 
                 if (bufferStructSize == 0)
+                {
                     continue;
+                }
 
                 AssertDebug(instanceData.buffers[bufferIndex].Size() % bufferStructSize == 0,
                             "Buffer size is not a multiple of buffer struct size! Buffer size: {}, Buffer struct size: {}",
@@ -226,13 +228,13 @@ HYP_NODISCARD uint32 DrawCallCollection::PushEntityToBatch(
 
                 fieldOffset = ByteUtil::AlignAs(fieldOffset, bufferStructAlignment);
 
-                void* dstPtr = reinterpret_cast<void*>((UIntPtr(batch)) + fieldOffset + (entityIndex * bufferStructSize));
-                void* srcPtr = reinterpret_cast<void*>(UIntPtr(instanceData.buffers[bufferIndex].Data()) + (instanceOffset * bufferStructSize));
+                uint8* dstPtr = reinterpret_cast<uint8*>(batch) + fieldOffset + (idx * bufferStructSize);
+                const uint8* srcPtr = reinterpret_cast<const uint8*>(instanceData.buffers[bufferIndex].Data()) + (instanceOffset * bufferStructSize);
 
                 // sanity checks
-                AssertDebug((UIntPtr(dstPtr) + bufferStructSize) - UIntPtr(batch) <= batchStructSize,
+                AssertDebug((dstPtr + bufferStructSize) - reinterpret_cast<const uint8*>(batch) <= batchStructSize,
                             "Buffer struct size is larger than batch size! Buffer struct size: {}, Buffer struct alignment: {}, Batch size: {}, Entity index: {}, Field offset: {}",
-                            bufferStructSize, bufferStructAlignment, batchStructSize, entityIndex, fieldOffset);
+                            bufferStructSize, bufferStructAlignment, batchStructSize, idx, fieldOffset);
 
                 AssertDebug(instanceData.buffers[bufferIndex].Size() >= (instanceOffset + 1) * bufferStructSize,
                             "Buffer size is not large enough to copy data! Buffer size: {}, Buffer struct size: {}, Instance offset: {}",
@@ -256,10 +258,10 @@ HYP_NODISCARD uint32 DrawCallCollection::PushEntityToBatch(
     {
         while (batch->numEntities < MaxEntitiesPerBatch && numInstances != 0)
         {
-            const uint32 entityIndex = batch->numEntities++;
+            const uint32 idx = batch->numEntities++;
 
-            batch->indices[entityIndex] = Resources::GetBinding(entity);
-            batch->transforms[entityIndex] = Mat4f::identity;
+            batch->indices[idx] = (Resources::GetBinding(entity) & 0xFFFFFFu) | (idx << 24);
+            batch->transforms[idx] = Mat4f::identity;
 
             count++;
 

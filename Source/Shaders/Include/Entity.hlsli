@@ -58,7 +58,9 @@ struct MeshEntityInstanceBatch
 
 #ifdef INSTANCING
 #ifdef VERTEX_SHADER
-#define OBJECT_INDEX (batch.indices[instanceId >> 2][instanceId & 3])
+#define OBJECT_INSTANCE_DATA (batch.indices[instanceId >> 2][instanceId & 3])
+#define OBJECT_INDEX (OBJECT_INSTANCE_DATA & 0xFFFFFFu)
+#define OBJECT_DATA_OFFSET (OBJECT_INSTANCE_DATA >> 24)
 #endif // VERTEX_SHADER
 #define entity (entities[OBJECT_INDEX])
 #endif // INSTANCING

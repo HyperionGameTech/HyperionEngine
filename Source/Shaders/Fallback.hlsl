@@ -60,12 +60,14 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 #ifdef INSTANCING
     MeshEntityInstanceBatch batch = EntityInstanceBatchBuffer.Load<MeshEntityInstanceBatch>(0);
 
-    float4x4 transform = batch.transforms[instanceId];
+    const uint objectIndex = OBJECT_INDEX;
+    const uint dataOffset = OBJECT_DATA_OFFSET;
+
+    float4x4 transform = batch.transforms[dataOffset];
 #ifdef VULKAN
     transform = transpose(transform);
 #endif
 
-    const uint objectIndex = OBJECT_INDEX;
     float4x4 model_matrix = mul(transform, entities[objectIndex].model_matrix);
     output.object_index = objectIndex;
 #else

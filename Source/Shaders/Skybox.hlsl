@@ -46,6 +46,12 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 {
     VSOutput output;
 
+#ifdef INSTANCING
+    // We don't use this for sky.
+    // Dummy to allow this to compile when precompiling shaders AOT.
+    MeshEntityInstanceBatch batch = (MeshEntityInstanceBatch) 0;
+#endif // INSTANCING
+
     float4 position = mul(entity.model_matrix, float4(input.a_position, 1.0));
 
     float3x3 normal_matrix = (float3x3)entity.normal_matrix;

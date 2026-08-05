@@ -80,9 +80,12 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float4 position;
 
 #ifdef INSTANCING
-    float4x4 transform = LoadInstanceTransform(s_offsetOfTransforms + (sizeof(float4x4) * instanceId));
+    uint entityIndex;
+    uint dataOffset;
+    LoadEntityIndexAndDataOffset(instanceId, entityIndex, dataOffset);
 
-    const uint entityIndex = EntityInstanceBatchBuffer.Load<uint>(s_offsetOfIndices + (instanceId * sizeof(uint)));
+    float4x4 transform = LoadInstanceTransform(s_offsetOfTransforms + (sizeof(float4x4) * dataOffset));
+
     output.object_index = entityIndex;
 
     Entity currentEntity = entities[entityIndex];
@@ -93,7 +96,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float4x4 model_matrix = entity.model_matrix;
     float3x3 normal_matrix = (float3x3)entity.normal_matrix;
 
-    output.object_index = OBJECT_INDEX;
+    output.object_index = ~0u; // unused
 #endif
 
 #if defined(SKINNING) && defined(VT_Skeletal)

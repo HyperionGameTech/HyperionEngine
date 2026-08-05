@@ -17,7 +17,6 @@ DECLARE_SRV_DYNAMIC(Default, CurrentEnvProbe) StructuredBuffer<EnvProbe> current
 #ifdef INSTANCING
 DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
 DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer entity_instance_batches;
-#define entity_instance_batch entity_instance_batches.Load<MeshEntityInstanceBatch>(0)
 #endif // INSTANCING
 
 DECLARE_SRV_DYNAMIC(Default, CurrentLight) StructuredBuffer<Light> current_light_buffer;
@@ -167,6 +166,12 @@ DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_bu
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 {
     VSOutput output;
+
+#ifdef INSTANCING
+    // We don't use this for sky.
+    // Dummy to allow this to compile when precompiling shaders AOT.
+    MeshEntityInstanceBatch batch = (MeshEntityInstanceBatch) 0;
+#endif // INSTANCING
 
     float4 position = mul(entity.model_matrix, float4(input.a_position, 1.0));
 

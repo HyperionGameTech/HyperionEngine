@@ -28,11 +28,14 @@ struct IndirectDrawCommand
 
 struct ObjectInstance
 {
-    uint entity_binding_index;
-    uint draw_command_index;
-    uint batch_index;
-    uint _pad;
+    float4x4 transform;
+    uint entityBindingIndex;
+    uint drawCommandIndex;
+    uint batchIndex;
+    uint instanceIndex;
 };
+
+#include "../Include/Instancing.hlsli"
 
 DECLARE_SRV(ComputeVisibility, ObjectInstancesBuffer) StructuredBuffer<ObjectInstance> instances;
 
@@ -74,24 +77,24 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     }
 
     ObjectInstance instance = instances[index];
-    const uint entity_binding_index = instance.entity_binding_index;
-    const uint draw_command_index = instance.draw_command_index;
+    const uint entityBindingIndex = instance.entityBindingIndex;
+    const uint drawCommandIndex = instance.drawCommandIndex;
+    const bool hasInstancing = (instance.batchIndex != ~0u);
+
+    // The index of where the data is stored in the batch.
+    const uint dataOffset = instance.instanceIndex;
 
     // entity binding index should not ever be ~0u/unset,
     // but we should make sure we do not cause a gpu crash by indexing
     // an invalid slot.
-    if (entity_binding_index == ~0u)
+    if (entityBindingIndex == ~0u)
     {
         return;
     }
 
-    Entity currEntity = entities[entity_binding_index];
+    Entity currEntity = entities[entityBindingIndex];
 
     bool visibility = false;
-
-    AABB aabb;
-    aabb.max = currEntity.world_aabb_max.xyz;
-    aabb.min = currEntity.world_aabb_min.xyz;
 
     uint cullBits = 0x7Fu;
     
@@ -108,18 +111,21 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
         bool intersects_near_plane = false;
 
+        [unroll]
         for (int i = 0; i < 8; i++)
         {
-            float4 projected_corner = mul(viewProj, float4(AABBGetCorner(aabb, i), 1.0));
-            cullBits &= GetCullBits(projected_corner);
+            float4 corner = mul(instance.transform, float4(aabb_corners[i], 1.0));
 
-            if (projected_corner.w <= 0.0)
+            float4 cornerProj = mul(viewProj, corner);
+            cullBits &= GetCullBits(cornerProj);
+
+            if (cornerProj.w <= 0.0)
             {
                 intersects_near_plane = true;
             }
             else
             {
-                clip_pos = projected_corner;
+                clip_pos = cornerProj;
                 clip_pos.z = max(clip_pos.z, 0.0);
                 clip_pos.xyz /= clip_pos.w;
 
@@ -165,25 +171,20 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     if (visibility)
     {
-        uint instance_index;
-        InterlockedAdd(drawCommands[draw_command_index].instance_count, 1u, instance_index);
-
-        if (instance.batch_index != ~0u && instance_index < MAX_ENTITIES_PER_INSTANCE_BATCH)
+        uint newInstanceIndex;
+        InterlockedAdd(drawCommands[drawCommandIndex].instance_count, 1u, newInstanceIndex);
+        
+        if (hasInstancing && newInstanceIndex < MAX_ENTITIES_PER_INSTANCE_BATCH)
         {
-            // uint bufferOffsetWords = instance.batch_index * batchStride / 4;
-            // // `indices` member of EntityInstanceBatch has offset of 64 bytes.
-            // uint indicesOffsetWords = bufferOffsetWords + 16 + instance_index;
-
-            // uint oldValue;
-            // InterlockedExchange(entityInstanceBatchData[indicesOffsetWords >> 2][indicesOffsetWords & 3], entity_binding_index, oldValue);
-            //
-
             // 64 is the byte offset to the 'indices' array
-            static const uint sizeofUint = 4;
-            uint byteOffset = (instance.batch_index * batchStride) + 64 + (instance_index * sizeofUint);
-
-            uint oldValue;
-            entityInstanceBatchData.InterlockedExchange(byteOffset, entity_binding_index, oldValue);
+            const uint bindingIndexOffset = (instance.batchIndex * batchStride) + 64
+                + (newInstanceIndex * sizeof(uint));
+            
+            // Write total index - allow entity binding index to take up 24 bits,
+            // we give the remaining 8 bits to dataOffset (index of the data for this entity, in the batch)
+            // we really only need to be able to hold the value (MAX_ENTITIES_PER_BATCH-1),
+            // so if we run into issues this could be changed. But I think we'll be just fine.
+            entityInstanceBatchData.Store(bindingIndexOffset, (entityBindingIndex & 0xFFFFFFu) | (dataOffset << 24));
         }
     }
 }

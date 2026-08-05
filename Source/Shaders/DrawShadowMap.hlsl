@@ -82,9 +82,13 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 
 #ifdef INSTANCING
     MeshEntityInstanceBatch batch = EntityInstanceBatchBuffer.Load<MeshEntityInstanceBatch>(0);
-    Entity currentEntity = entities[batch.indices[instanceId / 4][instanceId % 4]];
 
-    float4x4 transform = batch.transforms[instanceId];
+    const uint objectIndex = OBJECT_INDEX;
+    const uint dataOffset = OBJECT_DATA_OFFSET;
+
+    Entity currentEntity = entities[objectIndex];
+
+    float4x4 transform = batch.transforms[dataOffset];
 #ifdef VULKAN
     float4x4 model_matrix = mul(currentEntity.model_matrix, transform);
 #else
@@ -107,7 +111,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.v_texcoord0 = float2(input.a_texcoord0.x, 1.0 - input.a_texcoord0.y);
 
 #ifdef INSTANCING
-    output.object_index = OBJECT_INDEX;
+    output.object_index = objectIndex;
 #else
     output.object_index = ~0u;
 #endif
