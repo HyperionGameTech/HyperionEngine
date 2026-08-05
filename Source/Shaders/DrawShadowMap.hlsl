@@ -1,5 +1,5 @@
-#include "include/Defines.hlsli"
-#include "include/Shared.hlsli"
+#include "Include/Defines.hlsli"
+#include "Include/Shared.hlsli"
 
 PERMUTE(VSM);
 PERMUTE(INSTANCING);
@@ -13,10 +13,10 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "include/Scene.hlsli"
-#include "include/Entity.hlsli"
-#include "include/Material.hlsli"
-#include "include/Packing.hlsli"
+#include "Include/Scene.hlsli"
+#include "Include/Entity.hlsli"
+#include "Include/Material.hlsli"
+#include "Include/Packing.hlsli"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
@@ -32,6 +32,8 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
 DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer EntityInstanceBatchBuffer;
 #endif // INSTANCING
+
+#include "Include/Instancing.hlsli"
 
 DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
 {
@@ -71,7 +73,7 @@ struct VSOutput
 
 #ifdef SKINNING
 DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<float4x4> SkeletonsBuffer;
-#include "include/Skinning.hlsli"
+#include "Include/Skinning.hlsli"
 #endif // SKINNING
 
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
@@ -81,22 +83,19 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float4 position;
 
 #ifdef INSTANCING
-    MeshEntityInstanceBatch batch = EntityInstanceBatchBuffer.Load<MeshEntityInstanceBatch>(0);
+    uint entityIndex;
+    uint dataOffset;
+    LoadEntityIndexAndDataOffset(instanceId, entityIndex, dataOffset);
 
-    const uint objectIndex = OBJECT_INDEX;
-    const uint dataOffset = OBJECT_DATA_OFFSET;
+    Entity entity = entities[entityIndex];
 
-    Entity currentEntity = entities[objectIndex];
+    float4x4 transform = LoadInstanceTransform(s_offsetOfTransforms + (sizeof(float4x4) * dataOffset));
 
-    float4x4 transform = batch.transforms[dataOffset];
-#ifdef VULKAN
-    float4x4 model_matrix = mul(currentEntity.model_matrix, transform);
-#else
-    float4x4 model_matrix = mul(transform, currentEntity.model_matrix);
-#endif
-
+    output.object_index = entityIndex;
+    float4x4 model_matrix = mul(entity.model_matrix, transform);
 #else
     float4x4 model_matrix = entity.model_matrix;
+    output.object_index = ~0u;
 #endif
 
 #if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights)
@@ -109,12 +108,6 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 
     output.v_position = position.xyz / position.w;
     output.v_texcoord0 = float2(input.a_texcoord0.x, 1.0 - input.a_texcoord0.y);
-
-#ifdef INSTANCING
-    output.object_index = objectIndex;
-#else
-    output.object_index = ~0u;
-#endif
 
     float4 position_ndc = mul(vpMatrix, position);
     position_ndc /= position_ndc.w;

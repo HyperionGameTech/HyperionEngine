@@ -231,7 +231,7 @@ void IndirectDrawState::PushDrawCall(size_t drawCallIndex, const DrawCallStorage
     const uint32 drawCommandIndex = m_numDrawCommands++;
 
     ObjectInstance& instance = m_objectInstances.EmplaceBack();
-    instance.transform = drawCalls.meshProxies[drawCallIndex]->bufferData.modelMatrix;
+    instance.transform = Mat4f::identity;//drawCalls.meshProxies[drawCallIndex]->bufferData.modelMatrix;
     instance.entityBindingIndex = drawCalls.entityBindingIndices[drawCallIndex];
     instance.drawCommandIndex = drawCommandIndex;
     instance.batchIndex = ~0u;
@@ -260,7 +260,7 @@ void IndirectDrawState::PushInstancedDrawCall(size_t drawCallIndex, const Instan
     for (uint32 index = 0; index < count; index++)
     {
         ObjectInstance& instance = m_objectInstances.EmplaceBack();
-        instance.transform = drawCalls.meshProxies[drawCallIndex]->bufferData.modelMatrix * batch->transforms[index];
+        instance.transform = /*drawCalls.meshProxies[drawCallIndex]->bufferData.modelMatrix * */ batch->transforms[index];
         instance.entityBindingIndex = (batch->indices[index] & 0xFFFFFFu);
         instance.drawCommandIndex = drawCommandIndex;
         instance.batchIndex = batch->batchIndex;
@@ -281,10 +281,9 @@ void IndirectDrawState::PushInstancedDrawCall(size_t drawCallIndex, const Instan
 void IndirectDrawState::ResetDrawState()
 {
     m_numDrawCommands = 0;
-
-    m_objectInstances.Clear();
-
+    
     // use Resize() to keep the memory allocated
+    m_objectInstances.Resize(0);
     m_drawCommandsBuffer.Resize(0);
 
     m_dirtyBits = AllBitsDirty;

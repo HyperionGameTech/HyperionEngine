@@ -55,9 +55,19 @@ public:
     IndirectDrawState();
     ~IndirectDrawState();
 
+    HYP_FORCE_INLINE const GpuBufferRef& GetInstanceBuffer(uint32 frameIndex) const
+    {
+        return m_instanceBuffers[frameIndex];
+    }
+
     HYP_FORCE_INLINE const GpuBufferRef& GetIndirectBuffer(uint32 frameIndex) const
     {
         return m_indirectBuffers[frameIndex];
+    }
+
+    HYP_FORCE_INLINE const Array<ObjectInstance, RHIAllocator>& GetInstances() const
+    {
+        return m_objectInstances;
     }
 
     void Create();
@@ -70,10 +80,11 @@ public:
     void ResetDrawState();
 
 private:
+    Array<ObjectInstance, RHIAllocator> m_objectInstances;
     Array<IndirectDrawCommand, RHIAllocator> m_drawCommandsBuffer;
 
     FixedArray<GpuBufferRef, NumFramesInFlight> m_indirectBuffers;
-    StructuredBuffer m_instances;
+    FixedArray<GpuBufferRef, NumFramesInFlight> m_instanceBuffers;
 
     uint32 m_numDrawCommands;
     uint8 m_dirtyBits;

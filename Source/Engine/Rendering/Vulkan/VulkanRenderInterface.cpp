@@ -331,7 +331,7 @@ void VulkanDescriptorSetManager::OnFrameStart()
     {
         VulkanDescriptorPool& dp = m_pools[i];
 
-        if (dp.frameCounter % RingBufferDepth == 0)
+        if (dp.frameCounter % NumFramesInFlight == 0)
         {
             VkResult result = vkResetDescriptorPool(RI.GetDevice()->GetDevice(), dp.pool, 0);
             Assert(result == VK_SUCCESS, "Failed to reset descriptor pool! {}", result);

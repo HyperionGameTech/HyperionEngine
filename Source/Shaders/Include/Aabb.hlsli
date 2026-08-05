@@ -1,7 +1,7 @@
 #ifndef HYP_AABB
 #define HYP_AABB
 
-static const float3 aabb_corners[8] = {
+static const float3 s_aabbCorners[8] = {
     float3(0.0, 0.0, 0.0),
     float3(1.0, 0.0, 0.0),
     float3(0.0, 1.0, 0.0),
@@ -47,28 +47,12 @@ float3 AABBGetCorner(AABB aabb, int index)
 {
     const float3 extent = AABBGetExtent(aabb);
 
-    return aabb.min + aabb_corners[index] * extent;
+    return aabb.min + s_aabbCorners[index] * extent;
+}
 
-    /*const float3 corners[8] = {
-        aabb.min,
-        aabb.min + float3(extent.x, 0.f, 0.f),
-        aabb.min + float3(0.f, extent.y, 0.f),
-        aabb.min + float3(0.f, 0.f, extent.z),
-        aabb.min + float3(extent.xy, 0.f),
-        aabb.min + float3(0.f, extent.yz),
-        aabb.min + float3(extent.x, 0.f, extent.z),
-        aabb.max
-    };
-
-    return corners[index];*/
-
-    /*uint mask = 1u << index;
-
-    return float3(
-        mix(aabb.min.x, aabb.max.x, float((mask & 1u) != 0)),
-        mix(aabb.min.y, aabb.max.y, float((mask & 2u) != 0)),
-        mix(aabb.min.z, aabb.max.z, float((mask & 4u) != 0))
-    );*/
+float3 AABBGetCorner(float3 aabbMin, float3 aabbMax, int index)
+{
+    return aabbMin + s_aabbCorners[index] * (aabbMax - aabbMin);
 }
 
 void AABBToSphere(AABB aabb, out float3 center, out float radius)

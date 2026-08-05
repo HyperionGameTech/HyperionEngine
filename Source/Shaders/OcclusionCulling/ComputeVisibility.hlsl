@@ -68,6 +68,7 @@ float GetMaxDepthAtTexel(float2 texcoord, int mip)
 [numthreads(256, 1, 1)]
 void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
+
     const uint id = dispatchThreadID.x;
     const uint index = id;
 
@@ -94,78 +95,75 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     Entity currEntity = entities[entityBindingIndex];
 
+    AABB aabb;
+    aabb.max = currEntity.world_aabb_max.xyz;
+    aabb.min = currEntity.world_aabb_min.xyz;
+
+
     bool visibility = false;
 
     uint cullBits = 0x7Fu;
     
-    // skip sky
-    const bool skipVisibilityCheck = bool(currEntity.bucket == HYP_OBJECT_BUCKET_SKY);
+    float4 clip_pos = float4(0.0, 0.0, 0.0, 0.0);
+    float3 clip_min = float3(1.0, 1.0, 1.0);
+    float3 clip_max = float3(-1.0, -1.0, 0.0);
 
-    visibility = skipVisibilityCheck;
+    bool intersects_near_plane = false;
 
-    if (!skipVisibilityCheck)
+    [unroll]
+    for (int i = 0; i < 8; i++)
     {
-        float4 clip_pos = float4(0.0, 0.0, 0.0, 0.0);
-        float3 clip_min = float3(1.0, 1.0, 1.0);
-        float3 clip_max = float3(-1.0, -1.0, 0.0);
+        float4 corner = mul(instance.transform, float4(AABBGetCorner(aabb, i), 1.0));
 
-        bool intersects_near_plane = false;
+        float4 cornerProj = mul(viewProj, corner);
+        cullBits &= GetCullBits(cornerProj);
 
-        [unroll]
-        for (int i = 0; i < 8; i++)
+        if (cornerProj.w <= 0.0)
         {
-            float4 corner = mul(instance.transform, float4(aabb_corners[i], 1.0));
-
-            float4 cornerProj = mul(viewProj, corner);
-            cullBits &= GetCullBits(cornerProj);
-
-            if (cornerProj.w <= 0.0)
-            {
-                intersects_near_plane = true;
-            }
-            else
-            {
-                clip_pos = cornerProj;
-                clip_pos.z = max(clip_pos.z, 0.0);
-                clip_pos.xyz /= clip_pos.w;
-
-                clip_min = min(clip_pos.xyz, clip_min);
-                clip_max = max(clip_pos.xyz, clip_max);
-            }
+            intersects_near_plane = true;
         }
-
-        if (intersects_near_plane)
+        else
         {
-            visibility = true;
+            clip_pos = cornerProj;
+            clip_pos.z = max(clip_pos.z, 0.0);
+            clip_pos.xyz /= clip_pos.w;
+
+            clip_min = min(clip_pos.xyz, clip_min);
+            clip_max = max(clip_pos.xyz, clip_max);
         }
-        else if (cullBits == 0u)
-        {
-            const float2 uv0 = saturate(float2(clip_min.xy * 0.5 + 0.5));
-            const float2 uv1 = saturate(float2(clip_max.xy * 0.5 + 0.5));
+    }
 
-            const float2 uvMin = min(uv0, uv1);
-            const float2 uvMax = max(uv0, uv1);
+    if (intersects_near_plane)
+    {
+        visibility = true;
+    }
+    else if (cullBits == 0u)
+    {
+        const float2 uv0 = saturate(float2(clip_min.xy * 0.5 + 0.5));
+        const float2 uv1 = saturate(float2(clip_max.xy * 0.5 + 0.5));
 
-            const float2 dimensions = float2(hzbDimensions);
+        const float2 uvMin = min(uv0, uv1);
+        const float2 uvMax = max(uv0, uv1);
 
-            const float2 size = (uvMax - uvMin) * dimensions;
-            const float max_size = max(max(size.x, size.y), 1.0);
+        const float2 dimensions = float2(hzbDimensions);
 
-            const int mip = clamp((int) ceil(log2(max_size)), 0, (int) totalMips - 1);
+        const float2 size = (uvMax - uvMin) * dimensions;
+        const float max_size = max(max(size.x, size.y), 1.0);
 
-            const float4 depths = float4(
-                GetMaxDepthAtTexel(uvMin, mip),
-                GetMaxDepthAtTexel(float2(uvMax.x, uvMin.y), mip),
-                GetMaxDepthAtTexel(float2(uvMin.x, uvMax.y), mip),
-                GetMaxDepthAtTexel(uvMax, mip)
-            );
+        const int mip = clamp((int) ceil(log2(max_size)), 0, (int) totalMips - 1);
 
-            // find the max depth
-            const float max_depth = max(max(max(depths.x, depths.y), depths.z), depths.w);
+        const float4 depths = float4(
+            GetMaxDepthAtTexel(uvMin, mip),
+            GetMaxDepthAtTexel(float2(uvMax.x, uvMin.y), mip),
+            GetMaxDepthAtTexel(float2(uvMin.x, uvMax.y), mip),
+            GetMaxDepthAtTexel(uvMax, mip)
+        );
 
-            // If the max depth is 1.0, we hit the sky/far plane
-            visibility = (clip_min.z <= max_depth);
-        }
+        // find the max depth
+        const float max_depth = max(max(max(depths.x, depths.y), depths.z), depths.w);
+
+        // If the max depth is 1.0, we hit the sky/far plane
+        visibility = (clip_min.z <= max_depth);
     }
     
 
