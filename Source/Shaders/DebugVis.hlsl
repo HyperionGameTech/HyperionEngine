@@ -34,6 +34,7 @@ struct VSOutput
 #include "./include/EnvProbes.hlsli"
 #include "./include/Scene.hlsli"
 #include "./include/Entity.hlsli"
+#include "./include/Instancing.hlsli"
 
 #ifdef IMMEDIATE_MODE
 DECLARE_SRV(DebugDrawerDescriptorSet, EnvProbesBuffer) StructuredBuffer<EnvProbe> env_probes;
@@ -50,18 +51,12 @@ struct ImmediateDraw
 
 DECLARE_SRV(DebugDrawerDescriptorSet, ImmediateDrawsBuffer) StructuredBuffer<ImmediateDraw> ImmediateDrawsBuffer;
 
-#define MODEL_MATRIX (immediateDraw.transform)
-#define PREV_MODEL_MATRIX (immediateDraw.transform)
-
 #else // !IMMEDIATE_MODE
 
 #ifdef INSTANCING
 DECLARE_SRV(DebugDrawerDescriptorSet, EntitiesBuffer) StructuredBuffer<Entity> entities;
 DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer EntityInstanceBatchBuffer;
 #endif // INSTANCING
-
-#define MODEL_MATRIX (entity.model_matrix)
-#define PREV_MODEL_MATRIX (entity.previous_model_matrix)
 
 #endif // IMMEDIATE_MODE
 
@@ -91,31 +86,43 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 
 #ifdef IMMEDIATE_MODE
     ImmediateDraw immediateDraw = ImmediateDrawsBuffer[immediateDrawOffset + instanceId];
-#elif defined(INSTANCING)
-    MeshEntityInstanceBatch batch = EntityInstanceBatchBuffer.Load<MeshEntityInstanceBatch>(0);
-#endif // IMMEDIATE_MODE
-
-    float4 position = mul(MODEL_MATRIX, float4(input.a_position, 1.0));
-    position /= position.w;
-
-    float4 previous_position = mul(PREV_MODEL_MATRIX, float4(input.a_position, 1.0));
-    previous_position /= previous_position.w;
-
-    output.position = position.xyz;
-    output.normal = input.a_normal;
-    output.texcoord0 = input.a_texcoord0;
-
-#ifdef IMMEDIATE_MODE
+    
     output.object_index = ~0u;
     output.color = UINT_TO_VEC4(immediateDraw.color_packed);
 
     output.env_probe_type = immediateDraw.env_probe_type;
     output.env_probe_index = immediateDraw.env_probe_index;
+
+    float4x4 transform = immediateDraw.transform;
+    float4x4 prevTransform = transform;
 #elif defined(INSTANCING)
-    output.object_index = OBJECT_INDEX;
+    
+    uint entityIndex;
+    uint dataOffset;
+    LoadEntityIndexAndDataOffset(instanceId, entityIndex, dataOffset);
+
+    Entity entity = entities[entityIndex];
+
+    float4x4 instanceTransform = LoadInstanceTransform(s_offsetOfTransforms + (sizeof(float4x4) * dataOffset));
+    float4x4 previousInstanceTransform = LoadInstanceTransform(s_offsetOfPrevTransforms + (sizeof(float4x4) * dataOffset));
+
+    output.object_index = entityIndex;
+
+    float4x4 transform = mul(entity.model_matrix, instanceTransform);
+    float4x4 prevTransform = mul(entity.previous_model_matrix, previousInstanceTransform);
 #else
     output.object_index = 0;
-#endif
+#endif // IMMEDIATE_MODE / INSTANCING
+
+    float4 position = mul(transform, float4(input.a_position, 1.0));
+    position /= position.w;
+
+    float4 previous_position = mul(prevTransform, float4(input.a_position, 1.0));
+    previous_position /= previous_position.w;
+
+    output.position = position.xyz;
+    output.normal = input.a_normal;
+    output.texcoord0 = input.a_texcoord0;
 
     float4x4 jitterMat = {
         1, 0, 0, 0,

@@ -149,6 +149,43 @@ public:
 
     virtual void Execute(EditorSubsystem* subsystem) override
     {
+        if (Handle<EditorProject> currentProject = subsystem->GetCurrentProject(); currentProject.IsValid())
+        {
+            if (currentProject->IsDirty())
+            {
+                bool cancel = false;
+                
+                SystemMessageBox(MessageBoxType::INFO)
+                    .Title("Save changes?")
+                    .Text("Closing this project will discard any unsaved changes. Do you want to save changes before exiting?")
+                    .Button("Save", [currentProject, &cancel]
+                    {
+                        Result saveResult = currentProject->Save();
+                        if (saveResult.HasError())
+                        {
+                            HYP_LOG(Editor, Error, "Failed to save project: {}", saveResult.GetError().GetMessage());
+
+                            SystemMessageBox(MessageBoxType::CRITICAL)
+                                        .Title("Project could not be saved")
+                                        .Text(String("The project could not be saved: ") + saveResult.GetError().GetMessage()
+                                            + "\nThe operation will be aborted to prevent loss of data")
+                                        .Button("OK", NoOpFunction<void> {})
+                                        .Show();
+
+                            cancel = true;
+                        }
+                    })
+                    .Button("Discard", NoOpFunction<void> {})
+                    .Button("Cancel", [&cancel] { cancel = true; })
+                    .Show();
+
+                if (cancel)
+                {
+                    return;
+                }
+            }
+        }
+
         subsystem->NewProject();
     }
 };
@@ -168,10 +205,45 @@ public:
 
     virtual void Execute(EditorSubsystem* subsystem) override
     {
-        HYP_SCOPE;
+        if (Handle<EditorProject> currentProject = subsystem->GetCurrentProject(); currentProject.IsValid())
+        {
+            if (currentProject->IsDirty())
+            {
+                bool cancel = false;
+                
+                SystemMessageBox(MessageBoxType::INFO)
+                    .Title("Save changes?")
+                    .Text("Closing this project will discard any unsaved changes. Do you want to save changes before exiting?")
+                    .Button("Save", [currentProject, &cancel]
+                    {
+                        Result saveResult = currentProject->Save();
+                        if (saveResult.HasError())
+                        {
+                            HYP_LOG(Editor, Error, "Failed to save project: {}", saveResult.GetError().GetMessage());
 
-        const FilePath dir = EngineGlobals::GetProjectsDirectory();
-        dir.MkDir();
+                            SystemMessageBox(MessageBoxType::CRITICAL)
+                                        .Title("Project could not be saved")
+                                        .Text(String("The project could not be saved: ") + saveResult.GetError().GetMessage()
+                                            + "\nThe operation will be aborted to prevent loss of data")
+                                        .Button("OK", NoOpFunction<void> {})
+                                        .Show();
+
+                            cancel = true;
+                        }
+                    })
+                    .Button("Discard", NoOpFunction<void> {})
+                    .Button("Cancel", [&cancel] { cancel = true; })
+                    .Show();
+
+                if (cancel)
+                {
+                    return;
+                }
+            }
+        }
+
+        const FilePath& dir = EngineGlobals::GetProjectsDirectory();
+        dir.IsDirectory() || dir.MkDir();
 
         ShowOpenFileDialog(
             "Select the project to open",
@@ -326,29 +398,30 @@ public:
                         selectedPath = selectedPath.BasePath();
                     }
 
-                    GetThreadById(g_simThread)->GetScheduler().Enqueue([weakSubsystem = std::move(weakSubsystem), selectedPath = std::move(selectedPath)]() mutable
-                                                                       {
-                                                                           Handle<EditorSubsystem> subsystem = weakSubsystem.Lock();
-                                                                           if (!subsystem)
-                                                                           {
-                                                                               HYP_LOG(Editor, Error, "Failed to lock EditorSubsystem from weak reference in ShowSaveProjectDialog");
-                                                                               return;
-                                                                           }
+                    GetThreadById(g_simThread)->GetScheduler().Enqueue(
+                        [weakSubsystem = std::move(weakSubsystem), selectedPath = std::move(selectedPath)]() mutable
+                        {
+                            Handle<EditorSubsystem> subsystem = weakSubsystem.Lock();
+                            if (!subsystem)
+                            {
+                                HYP_LOG(Editor, Error, "Failed to lock EditorSubsystem from weak reference in ShowSaveProjectDialog");
+                                return;
+                            }
 
-                                                                           EditorProject* project = subsystem->GetCurrentProject();
-                                                                           if (!project)
-                                                                           {
-                                                                               HYP_LOG(Editor, Error, "No current project in EditorSubsystem; cannot save project as.");
-                                                                               return;
-                                                                           }
+                            EditorProject* project = subsystem->GetCurrentProject();
+                            if (!project)
+                            {
+                                HYP_LOG(Editor, Error, "No current project in EditorSubsystem; cannot save project as.");
+                                return;
+                            }
 
-                                                                           Result saveResult = project->SaveAs(selectedPath);
-                                                                           if (!saveResult)
-                                                                           {
-                                                                               HYP_LOG(Editor, Error, "Failed to save project as '{}': {}", selectedPath, saveResult.GetError().GetMessage());
-                                                                           }
-                                                                       },
-                                                                       TaskEnqueueFlags::FIRE_AND_FORGET);
+                            Result saveResult = project->SaveAs(selectedPath);
+                            if (!saveResult)
+                            {
+                                HYP_LOG(Editor, Error, "Failed to save project as '{}': {}", selectedPath, saveResult.GetError().GetMessage());
+                            }
+                        },
+                        TaskEnqueueFlags::FIRE_AND_FORGET);
                 });
         }
     }
@@ -357,6 +430,62 @@ public:
 DEFINE_EDITOR_COMMAND(SaveProjectAs);
 
 #pragma endregion SaveProjectAs
+
+#pragma region CloseProject
+
+class EditorCommandCloseProject final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandCloseProject);
+
+public:
+    virtual ~EditorCommandCloseProject() override = default;
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        if (Handle<EditorProject> currentProject = subsystem->GetCurrentProject(); currentProject.IsValid())
+        {
+            if (currentProject->IsDirty())
+            {
+                bool cancel = false;
+                
+                SystemMessageBox(MessageBoxType::INFO)
+                    .Title("Save changes?")
+                    .Text("Closing this project will discard any unsaved changes. Do you want to save changes before exiting?")
+                    .Button("Save", [currentProject, &cancel]
+                    {
+                        Result saveResult = currentProject->Save();
+                        if (saveResult.HasError())
+                        {
+                            HYP_LOG(Editor, Error, "Failed to save project: {}", saveResult.GetError().GetMessage());
+
+                            SystemMessageBox(MessageBoxType::CRITICAL)
+                                        .Title("Project could not be saved")
+                                        .Text(String("The project could not be saved: ") + saveResult.GetError().GetMessage()
+                                            + "\nThe operation will be aborted to prevent loss of data")
+                                        .Button("OK", NoOpFunction<void> {})
+                                        .Show();
+
+                            cancel = true;
+                        }
+                    })
+                    .Button("Discard", NoOpFunction<void> {})
+                    .Button("Cancel", [&cancel] { cancel = true; })
+                    .Show();
+
+                if (cancel)
+                {
+                    return;
+                }
+            }
+        }
+
+        subsystem->CloseProject();
+    }
+};
+
+DEFINE_EDITOR_COMMAND(CloseProject);
+
+#pragma endregion CloseProject
 
 #pragma region AddLightmapVolume
 
@@ -910,10 +1039,13 @@ public:
 
             return;
         }
+        
+        
+        const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
 
         Handle<ReflectionProbe> reflectionProbe = MakeHandle<ReflectionProbe>(BoundingBox(Vec3f(-10.0f), Vec3f(10.0f)), Vec2u(128, 128));
         reflectionProbe->SetIsBaked(true);
-        InitObject(reflectionProbe);
+        reflectionProbe->SetWorldTranslation(insertionPoint);
 
         WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
 
@@ -1008,9 +1140,11 @@ public:
 
             return;
         }
+        
+        const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
 
         Handle<IrradianceProbe> irradianceProbe = MakeHandle<IrradianceProbe>(BoundingBox(Vec3f(-10.0f), Vec3f(10.0f)), Vec2u(8, 8));
-        InitObject(irradianceProbe);
+        irradianceProbe->SetWorldTranslation(insertionPoint);
 
         WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
 

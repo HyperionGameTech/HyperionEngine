@@ -232,6 +232,7 @@ ObjIdBase ObjectBase::Id() const
 
 const Class* ObjectBase::InstanceClass() const
 {
+    // @TODO Static per-class ObjectHeader, for objects that aren't allocated and stored in our ObjectContainer?
     HYP_CORE_ASSERT(m_header, "Invalid Object!");
     HYP_CORE_ASSERT(m_header->cls, "No Class defined for type");
 

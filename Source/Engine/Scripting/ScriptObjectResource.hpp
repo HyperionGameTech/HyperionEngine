@@ -17,6 +17,7 @@
 
 #include <Core/Utilities/EnumFlags.hpp>
 #include <Core/Utilities/Variant.hpp>
+#include <Core/Utilities/Optional.hpp>
 
 #include <Core/Util.hpp>
 #include <Core/Types.hpp>

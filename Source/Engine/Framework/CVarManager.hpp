@@ -396,7 +396,7 @@ private:
 #pragma region Get specializations
 
 template <typename T>
-static inline T ReadCVarValue(const CVar<T>& cvar)
+inline T ReadCVarValue(const CVar<T>& cvar)
 {
     static const CVarManager& s_instance = CVarManager::GetInstance();
 

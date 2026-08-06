@@ -35,7 +35,7 @@ class EditorSubsystem;
 using Baking::BakerScene;
 
 HYP_CLASS()
-class EditorProject final : public ObjectBase
+class EDITOR_API EditorProject final : public ObjectBase
 {
     HYP_OBJECT_BODY(EditorProject);
 
@@ -109,6 +109,10 @@ public:
 
     HYP_METHOD()
     Result SaveAs(FilePath filepath);
+
+    /*! \brief Checks if the project needs a save before a destructive action like closing the editor / project, or opening another. */
+    HYP_METHOD()
+    bool IsDirty() const;
 
     HYP_METHOD()
     const Handle<EditorActionStack>& GetActionStack() const

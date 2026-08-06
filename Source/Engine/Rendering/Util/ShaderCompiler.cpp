@@ -3485,7 +3485,7 @@ bool ShaderCompiler::CompileBundle(
 
     { // Save the shader property DB
 
-        const FilePath shaderPropertyDbPath = EngineGlobals::GetCacheDirectory() / "ShaderProperties.bin";
+        const FilePath shaderPropertyDbPath = EngineGlobals::GetCacheDirectory() / "shaderprops.bin";
 
         FileByteWriter shaderPropertyDbWriter { shaderPropertyDbPath };
         WriteShaderPropertyDictionary(shaderPropertyDbWriter);

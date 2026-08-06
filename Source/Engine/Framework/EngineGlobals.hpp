@@ -10,8 +10,6 @@
 
 #include <Core/Types.hpp>
 
-#include <type_traits>
-
 namespace Hyperion {
 
 class AppContextBase;
@@ -34,6 +32,12 @@ class InputManager;
 class Game;
 class BlobStorage;
 struct GameState;
+
+namespace filesystem {
+class FilePath;
+} // namespace filesystem
+
+using filesystem::FilePath;
 
 #if HYP_VULKAN
 class VulkanRenderInterface;
@@ -63,7 +67,7 @@ namespace EngineGlobals {
 #ifdef HYP_EDITOR
 ENGINE_API bool IsEditor();
 #else  // !HYP_EDITOR
-static constexpr std::false_type IsEditor;
+static constexpr NoOpFunction<bool> IsEditor;
 #endif // HYP_EDITOR
 
 #ifndef HYP_SHIPPING

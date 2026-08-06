@@ -913,16 +913,9 @@ void AssetRegistry::PutAssetUnique(const AssetBucket& bucket, const Handle<Asset
     data.SetAsset(assetDesc, assetObject);
 }
 
-void AssetRegistry::PutAssetsDeep(const Handle<AssetObject>& targetAsset, bool overwriteExisting)
+void AssetRegistry::WalkAssetDeep(const BoxedValue& target, const ProcRef<void(const Handle<AssetObject>&)>& onAssetFound)
 {
-    if (!targetAsset.IsValid())
-    {
-        return;
-    }
-
-    GlobalContextScope contextScope { AssetRegistryContext { MakeStrongRef(this) } };
-
-    // Recurse through the objects' fields, registering assets with their respective buckets
+    // Recurse through the objects' fields, visiting every reachable AssetObject.
     //// \todo : Change to a Stack, recursion could get impressively deep.
 
     Set<const ObjectBase*> visited; // to avoid infinite recursion
@@ -1123,6 +1116,25 @@ void AssetRegistry::PutAssetsDeep(const Handle<AssetObject>& targetAsset, bool o
 
         if (assetObject)
         {
+            onAssetFound(assetObject);
+        }
+    };
+
+    iterate = lambda;
+    iterate(target);
+}
+
+void AssetRegistry::PutAssetsDeep(const Handle<AssetObject>& targetAsset, bool overwriteExisting)
+{
+    if (!targetAsset.IsValid())
+    {
+        return;
+    }
+
+    GlobalContextScope contextScope { AssetRegistryContext { MakeStrongRef(this) } };
+
+    auto callback = [this, overwriteExisting](const Handle<AssetObject>& assetObject)
+        {
             if (assetObject->m_assetIndex == AssetDesc::InvalidIndex)
             {
                 if (overwriteExisting)
@@ -1136,11 +1148,9 @@ void AssetRegistry::PutAssetsDeep(const Handle<AssetObject>& targetAsset, bool o
             }
 
             AssertDebug(assetObject->m_name.IsValid());
-        }
-    };
+        };
 
-    iterate = lambda;
-    iterate(BoxedValue(targetAsset));
+    WalkAssetDeep(BoxedValue(targetAsset), callback);
 }
 
 void AssetRegistry::RemoveAsset(const Handle<AssetObject>& asset)
@@ -1213,9 +1223,8 @@ bool AssetRegistry::LoadAssetDescs()
         HYP_LOG(Assets, Warning, "AssetRegistry root path does not exist at {}", rootPath);
         return false;
     }
-    
+   
     GlobalContextScope loadingContextScope { AssetLoadingContext {} };
-
     // @TODO Load from index file rather than using file iteration.
     // or simply maintain a bin with all AssetPath stored for each bucket as a flat file.
     for (const AssetBucket* bucket : AssetBuckets::AllBuckets)
@@ -1434,6 +1443,23 @@ void AssetRegistry::SaveDirtyAssets()
             }
         }
     }
+}
+
+bool AssetRegistry::HasDirtyAssets() const
+{
+    for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; ++bucketIndex)
+    {
+        AssetBucketData& data = m_assetBucketData[bucketIndex];
+
+        TSharedLock lock(data.mtx);
+
+        if (data.dirtyIndices.AnyBitsSet())
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void AssetRegistry::RemoveCached()

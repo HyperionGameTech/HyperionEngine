@@ -11,6 +11,7 @@
 
 #include <Core/Reflection/ClassUtils.hpp>
 #include <Core/Reflection/ClassRegistry.hpp>
+#include <Core/Reflection/BoxedValue.hpp>
 
 #include <Core/CLI/CommandLine.hpp>
 #include <Core/Core.hpp>
@@ -18,11 +19,18 @@
 #include <Core/Utilities/ByteUtil.hpp>
 #include <Core/Utilities/GlobalContext.hpp>
 
+#include <Core/Containers/Set.hpp>
+
 #include <Core/IO/ByteWriter.hpp>
 
 #include <Asset/AssetRegistry.hpp>
 #include <Asset/AssetObject.hpp>
+#include <Asset/AssetBucket.hpp>
 #include <Asset/BlobStorage.hpp>
+
+#ifdef HYP_EDITOR
+#include <Editor/EditorProject.hpp>
+#endif // HYP_EDITOR
 
 namespace Hyperion {
 
@@ -72,32 +80,28 @@ protected:
         {
             return HYP_MAKE_ERROR(Error, "Package path is non existant or is not a directory: {}", packageDir);
         }
-        
+
         Handle<AssetRegistry> engineRegistry;
         Handle<AssetRegistry> gameRegistry;
 
         gameRegistry = MakeHandle<AssetRegistry>(AssetRegistryId::Game, packageDir);
 
-        Set<AssetRegistry*> registries = { gameRegistry };
+        engineRegistry = GetEngineAssetRegistry();
 
-        if ((engineRegistry = GetEngineAssetRegistry()))
-        {
-            registries.Add(engineRegistry);
-        }
-
-        if (registries.Empty())
+        if (!engineRegistry && !gameRegistry)
         {
             return HYP_MAKE_ERROR(Error, "No valid Engine or Game asset registry found to cook");
         }
 
-        HYP_LOG(Assets, Info, "Cooking blob storage for {} asset registries", registries.Size());
+        HYP_LOG(Assets, Info, "Cooking blob storage");
 
         // AssetReference::Resolve() looks up game-owned asset paths via GetCurrentAssetRegistry(),
         // which reads this ambient context. Without it, every Game-registry cross-reference (e.g. a
-        // MeshComponent's mesh/material on an Entity inside a Prefab/Scene) resolves to nothing.
+        // MeshComponent's mesh/material on an Entity inside a Prefab/Scene) resolves to nothing -
+        // this covers both the reflection walk below and the existing per-bucket cook loop.
         GlobalContextScope assetRegistryContextScope { AssetRegistryContext { gameRegistry } };
 
-        Result result = Cook(registries);
+        Result result = Cook(engineRegistry, gameRegistry, packageDir);
 
         if (result.HasError())
         {
@@ -121,16 +125,113 @@ private:
         BlobDataReference* reference;
     };
 
-    /*! \brief Collects blob data from every registry into one shared set of per-bucket block
-     *  files, so a bucket that exists in both the Engine and Game registries (e.g. Meshes) ends
-     *  up in a single block rather than each registry separately overwriting the other's block. */
-    static Result Cook(const Set<AssetRegistry*>& registries)
+    static Result CookAsset(
+        const FilePath& outputContentDir,
+        const Handle<AssetObject>& assetObject,
+        Array<TSharedResLock<AssetObject>>& readLocks,
+        Array<CollectedBlob>& collectedBlobs,
+        Array<uint64>& blockSizes)
+    {
+        if (!assetObject.IsValid())
+        {
+            return {};
+        }
+
+        if (assetObject->IsTransient())
+        {
+            return {};
+        }
+
+        const uint32 bucketIndex = assetObject->GetPath().GetBucket().GetIndex();
+        const Name assetName = assetObject->GetPath().GetName();
+
+        const FilePath bucketContentDir = outputContentDir / GetAssetBucketName(bucketIndex);
+
+        if (!bucketContentDir.Exists() && !bucketContentDir.MkDir())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to create bucket content directory '{}'", bucketContentDir);
+        }
+
+        readLocks.PushBack(assetObject->GetReadScope());
+
+        const FilePath manifestPath = bucketContentDir / (String(*assetName) + ".hmf");
+
+        FileByteWriter manifestWriter { manifestPath };
+
+        if (!manifestWriter.IsOpen())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to open manifest file '{}' for writing", manifestPath);
+        }
+
+        if (Result manifestResult = assetObject->SaveManifest(manifestWriter); manifestResult.HasError())
+        {
+            return manifestResult;
+        }
+
+        manifestWriter.Close();
+
+        Array<Tuple<const char*, uint16, BlobDataReference*>> blobDataReferences;
+        assetObject->CollectBlobDataReferences(blobDataReferences);
+
+        for (auto& tup : blobDataReferences)
+        {
+            BlobDataReference* reference = tup.GetElement<2>();
+
+            if (!reference->raw || reference->size == 0)
+            {
+                continue;
+            }
+
+            // Mirrors the header-offset alignment BlobStorage::PutData performs when it
+            // actually writes the blob, so the size computed here matches exactly.
+            const size_t headerOffset = ByteUtil::AlignAs(blockSizes[bucketIndex], alignof(BlobHeader));
+            blockSizes[bucketIndex] = headerOffset + sizeof(BlobHeader) + reference->size;
+
+            collectedBlobs.PushBack(CollectedBlob {
+                bucketIndex,
+                StringHash(reference->key),
+                tup.GetElement<0>(),
+                tup.GetElement<1>(),
+                reference
+            });
+        }
+
+        return {};
+    }
+
+    static Result CookBucketInFull(
+        AssetRegistry* registry,
+        uint32 bucketIndex,
+        const FilePath& outputContentDir,
+        Array<TSharedResLock<AssetObject>>& readLocks,
+        Array<CollectedBlob>& collectedBlobs,
+        Array<uint64>& blockSizes)
+    {
+        const AssetBucket& bucket = *AssetBuckets::AllBuckets[bucketIndex];
+
+        Array<AssetDesc> assetDescs;
+        registry->GetBucketAssetDescs(bucketIndex, assetDescs);
+
+        for (const AssetDesc& assetDesc : assetDescs)
+        {
+            Handle<AssetObject> assetObject = registry->GetAsset(bucket, assetDesc.name);
+
+            if (Result result = CookAsset(outputContentDir, assetObject, readLocks, collectedBlobs, blockSizes); result.HasError())
+            {
+                return result;
+            }
+        }
+
+        return {};
+    }
+
+    static Result Cook(AssetRegistry* engineRegistry, AssetRegistry* gameRegistry, const FilePath& gameContentDir)
     {
         GlobalContextScope contextScope { CookingContext() };
 
         EngineGlobals::GetBlobStorage()->Shutdown();
 
-        const FilePath outputContentDir = CoreApi::GetExecutablePath() / "Content";
+        const FilePath outputContentDir = EngineGlobals::GetCacheDirectory().BasePath() / "Content";
 
         Array<TSharedResLock<AssetObject>> readLocks;
         Array<CollectedBlob> collectedBlobs;
@@ -138,89 +239,81 @@ private:
         Array<uint64> blockSizes;
         blockSizes.Resize(MaxAssetBuckets);
 
-        for (AssetRegistry* registry : registries)
+        // Engine content, cook everything in the registry
+        if (engineRegistry)
         {
-            registry->LoadAssetDescs();
+            engineRegistry->LoadAssetDescs();
 
             for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; bucketIndex++)
             {
-                const AssetBucket& bucket = *AssetBuckets::AllBuckets[bucketIndex];
-
-                Array<AssetDesc> assetDescs;
-                registry->GetBucketAssetDescs(bucketIndex, assetDescs);
-
-                if (assetDescs.Empty())
+                if (Result result = CookBucketInFull(engineRegistry, bucketIndex, outputContentDir, readLocks, collectedBlobs, blockSizes); result.HasError())
                 {
-                    continue;
-                }
-
-                const FilePath bucketContentDir = outputContentDir / GetAssetBucketName(bucketIndex);
-
-                if (!bucketContentDir.Exists() && !bucketContentDir.MkDir())
-                {
-                    return HYP_MAKE_ERROR(Error, "Failed to create bucket content directory '{}'", bucketContentDir);
-                }
-
-                for (const AssetDesc& assetDesc : assetDescs)
-                {
-                    Handle<AssetObject> assetObject = registry->GetAsset(bucket, assetDesc.name);
-
-                    if (!assetObject.IsValid())
-                    {
-                        continue;
-                    }
-
-                    if (assetObject->IsTransient())
-                    {
-                        continue;
-                    }
-
-                    readLocks.PushBack(assetObject->GetReadScope());
-
-                    const FilePath manifestPath = bucketContentDir / (String(*assetDesc.name) + ".hmf");
-
-                    FileByteWriter manifestWriter { manifestPath };
-
-                    if (!manifestWriter.IsOpen())
-                    {
-                        return HYP_MAKE_ERROR(Error, "Failed to open manifest file '{}' for writing", manifestPath);
-                    }
-
-                    if (Result manifestResult = assetObject->SaveManifest(manifestWriter); manifestResult.HasError())
-                    {
-                        return manifestResult;
-                    }
-
-                    manifestWriter.Close();
-
-                    Array<Tuple<const char*, uint16, BlobDataReference*>> blobDataReferences;
-                    assetObject->CollectBlobDataReferences(blobDataReferences);
-
-                    for (auto& tup : blobDataReferences)
-                    {
-                        BlobDataReference* reference = tup.GetElement<2>();
-
-                        if (!reference->raw || reference->size == 0)
-                        {
-                            continue;
-                        }
-
-                        // Mirrors the header-offset alignment BlobStorage::PutData performs when it
-                        // actually writes the blob, so the size computed here matches exactly.
-                        const size_t headerOffset = ByteUtil::AlignAs(blockSizes[bucketIndex], alignof(BlobHeader));
-                        blockSizes[bucketIndex] = headerOffset + sizeof(BlobHeader) + reference->size;
-
-                        collectedBlobs.PushBack(CollectedBlob {
-                            bucketIndex,
-                            StringHash(reference->key),
-                            tup.GetElement<0>(),
-                            tup.GetElement<1>(),
-                            reference
-                        });
-                    }
+                    return result;
                 }
             }
         }
+
+#ifdef HYP_EDITOR
+        // Game content: only cook what's actually reachable from the project's own data to strip assets that are unused.
+        if (gameRegistry)
+        {
+            gameRegistry->LoadAssetDescs();
+
+            Array<Handle<AssetObject>> assetsToCook;
+
+            TResult<Handle<EditorProject>> loadProjectResult = EditorProject::Load(gameContentDir);
+
+            if (loadProjectResult.HasValue())
+            {
+                Set<AssetObject*> seenAssets;
+
+                auto callback = [&assetsToCook, &seenAssets](const Handle<AssetObject>& assetObject)
+                    {
+                        if (!assetObject.IsValid())
+                        {
+                            return;
+                        }
+
+                        if (!seenAssets.Insert(assetObject.Get()).second)
+                        {
+                            return;
+                        }
+
+                        assetsToCook.PushBack(assetObject);
+                    };
+
+                AssetRegistry::WalkAssetDeep(BoxedValue(loadProjectResult.GetValue()), callback);
+
+                HYP_LOG(Assets, Info, "Found {} asset(s) reachable from project at \"{}\"", assetsToCook.Size(), gameContentDir);
+            }
+            else
+            {
+                HYP_LOG(Assets, Warning, "Failed to load EditorProject from \"{}\" ({}), falling back to cooking every asset in the registry",
+                    gameContentDir, loadProjectResult.GetError().GetMessage());
+
+                for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; bucketIndex++)
+                {
+                    Array<AssetDesc> assetDescs;
+                    gameRegistry->GetBucketAssetDescs(bucketIndex, assetDescs);
+
+                    const AssetBucket& bucket = *AssetBuckets::AllBuckets[bucketIndex];
+
+                    for (const AssetDesc& assetDesc : assetDescs)
+                    {
+                        assetsToCook.PushBack(gameRegistry->GetAsset(bucket, assetDesc.name));
+                    }
+                }
+            }
+
+            for (const Handle<AssetObject>& assetObject : assetsToCook)
+            {
+                if (Result result = CookAsset(outputContentDir, assetObject, readLocks, collectedBlobs, blockSizes); result.HasError())
+                {
+                    return result;
+                }
+            }
+        }
+#endif // HYP_EDITOR
 
         Array<BlobBlockInfo> blocks;
 

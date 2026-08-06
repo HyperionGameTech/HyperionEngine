@@ -250,8 +250,6 @@ public:
     AtomicFlag needsRender;
 
 protected:
-    virtual void Init() override;
-
     virtual void OnAttachedToNode(Node* node) override;
     virtual void OnDetachedFromNode(Node* node) override;
 
@@ -334,7 +332,7 @@ public:
 };
 
 HYP_CLASS()
-class ENGINE_API SkyProbe : public EnvProbe
+class ENGINE_API SkyProbe final : public EnvProbe
 {
     HYP_OBJECT_BODY(SkyProbe);
 
@@ -344,11 +342,13 @@ public:
     SkyProbe()
         : EnvProbe(EPT_SKY, BoundingBox(Vec3f(-100.0f), Vec3f(100.0f)), Vec2u(1, 1))
     {
+        CreateTexture();
     }
 
     SkyProbe(const BoundingBox& aabb, const Vec2u& dimensions)
         : EnvProbe(EPT_SKY, aabb, dimensions)
     {
+        CreateTexture();
     }
 
     SkyProbe(const SkyProbe& other) = delete;
@@ -363,11 +363,11 @@ public:
     }
 
 private:
-    void Init() override;
+    void CreateTexture();
 };
 
 HYP_CLASS()
-class ENGINE_API IrradianceProbe : public EnvProbe
+class ENGINE_API IrradianceProbe final : public EnvProbe
 {
     HYP_OBJECT_BODY(IrradianceProbe);
 

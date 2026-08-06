@@ -35,6 +35,8 @@ namespace Hyperion.Editor.ViewModels
         public EditorCommand OpenProject => new EditorCommand("OpenProject");
         public EditorCommand SaveProject => new EditorCommand("SaveProject");
         public EditorCommand SaveProjectAs => new EditorCommand("SaveProjectAs");
+        public EditorCommand CloseProject => new EditorCommand("CloseProject");
+
         public ICommand Exit { get; } = new RelayCommand(() =>
         {
             if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime lifetime)
@@ -42,6 +44,7 @@ namespace Hyperion.Editor.ViewModels
                 lifetime.MainWindow?.Close();
             }
         });
+
         public EditorCommand Undo => new EditorCommand("Undo");
         public EditorCommand Redo => new EditorCommand("Redo");
         public EditorCommand SelectAll => new EditorCommand("SelectAll");

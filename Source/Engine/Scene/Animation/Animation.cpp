@@ -46,37 +46,35 @@ void AnimationTrack::PageBlobData()
         && m_keyframeData.key
         && m_keyframeData.size != 0)
     {
-        Handle<AssetRegistry> registry = GetAssetRegistry();
-        AssertDebug(registry.IsValid());
-
-        if (!registry.IsValid())
-        {
-            return;
-        }
-
         if (EngineGlobals::IsCooking() || EngineGlobals::IsEditor() || !EngineGlobals::GetBlobStorage()->GetData(m_keyframeData.key, m_keyframeData.size, m_keyframeData.raw))
         {
-            // check if failed; if so, try to import from raw data blob in project directory
-            const Name blobKey = m_keyframeData.key;
-            const uint64 expectedSize = m_keyframeData.size;
+            Handle<AssetRegistry> registry = GetAssetRegistry();
+            AssertDebug(registry.IsValid());
 
-            FileByteReader stream { registry->GetRootPath() / AssetBuckets::AnimationTracks.GetName() / (String(*GetName()) + ".KEYF.raw.blob") };
-            if (!stream.Eof())
+            if (registry.IsValid())
             {
-                if (stream.Max() != expectedSize)
+                // check if failed; if so, try to import from raw data blob in project directory
+                const Name blobKey = m_keyframeData.key;
+                const uint64 expectedSize = m_keyframeData.size;
+
+                FileByteReader stream { registry->GetRootPath() / AssetBuckets::AnimationTracks.GetName() / (String(*GetName()) + ".KEYF.raw.blob") };
+                if (!stream.Eof())
                 {
-                    HYP_LOG(Engine, Error, "Local blob data for animation track '{}' keyframes is {} bytes but the manifest expects {}, ignoring it",
-                            GetName(), stream.Max(), expectedSize);
+                    if (stream.Max() != expectedSize)
+                    {
+                        HYP_LOG(Engine, Error, "Local blob data for animation track '{}' keyframes is {} bytes but the manifest expects {}, ignoring it",
+                                GetName(), stream.Max(), expectedSize);
+
+                        return;
+                    }
+
+                    ByteBuffer buffer = stream.Read(stream.Max());
+
+                    AllocateBlobData(m_keyframeData, buffer.Data(), buffer.Size(), alignof(Keyframe));
+                    m_keyframeData.key = blobKey;
 
                     return;
                 }
-
-                ByteBuffer buffer = stream.Read(stream.Max());
-
-                AllocateBlobData(m_keyframeData, buffer.Data(), buffer.Size(), alignof(Keyframe));
-                m_keyframeData.key = blobKey;
-
-                return;
             }
             
             HYP_LOG(Engine, Error, "Data corruption detected for {} due to missing blob data", GetPath().ToString());

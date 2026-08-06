@@ -160,7 +160,7 @@ public:                                                                         
                                                                                  \
     HYP_FORCE_INLINE ObjId<T> Id() const                                         \
     {                                                                            \
-        return (ObjId<T>)(ObjectBase::Id());                                     \
+        return (ObjId<T>)(reinterpret_cast<const ObjectBase*>(this)->Id());      \
     }                                                                            \
                                                                                  \
     static const Class* StaticClass();                                           \

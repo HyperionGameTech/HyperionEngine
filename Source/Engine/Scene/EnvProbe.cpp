@@ -23,7 +23,9 @@
 
 #include <Asset/AssetRegistry.hpp>
 
+#ifdef HYP_EDITOR
 #include <Baking/BakerSubsystem.hpp>
+#endif // HYP_EDITOR
 
 #include <Framework/EngineDriver.hpp>
 #include <Framework/GameState.hpp>
@@ -101,13 +103,6 @@ EnvProbe::~EnvProbe()
     {
         EnqueueDeletion(std::move(m_texture));
     }
-}
-
-void EnvProbe::Init()
-{
-    Entity::Init();
-
-    SetReady(true);
 }
 
 void EnvProbe::SetName(Name name)
@@ -1041,8 +1036,13 @@ void ReflectionProbe::BakeCubemap()
 
 #pragma region SkyProbe
 
-void SkyProbe::Init()
+void SkyProbe::CreateTexture()
 {
+    if (m_texture.IsValid())
+    {
+        return;
+    }
+
     m_texture = MakeHandle<Texture>(TextureDesc {
         TextureType::Cubemap,
         TextureFormat::RGBA16F,
@@ -1057,7 +1057,7 @@ void SkyProbe::Init()
     m_texture->SetName(NAME_FMT("{}_ColorMap", GetName()));
     m_texture->SetIsTransient(true);
 
-    EnvProbe::Init();
+    Check(m_texture->Create());
 }
 
 #pragma endregion SkyProbe

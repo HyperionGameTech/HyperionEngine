@@ -5,6 +5,8 @@
 #include <Asset/AssetRegistry.hpp>
 #include <Asset/BlobStorage.hpp>
 
+#include <Framework/EngineGlobals.hpp>
+
 #include <Core/Logging/Logger.hpp>
 
 #include <RawDataAsset.generated.inl>

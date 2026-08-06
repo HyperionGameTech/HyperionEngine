@@ -8,27 +8,9 @@
 
 #include <Core/Defines.hpp>
 
+#include <Core/Memory/Allocator/AllocatorFwd.hpp>
+
 namespace Hyperion {
-namespace memory {
-
-struct DynamicAllocator;
-
-template <class AllocatorType, AllocatorType** GlobalInstance>
-struct AllocatorInstance;
-
-class Pool;
-
-template <class AllocatorType>
-class TArena;
-
-using Arena = TArena<DynamicAllocator>;
-
-} // namespace memory
-
-using memory::AllocatorInstance;
-using memory::Pool;
-using memory::TArena;
-using memory::Arena;
 
 namespace threading {
 class ThreadId;

@@ -172,8 +172,11 @@
                 <MenuItem Header="_File">
                     <MenuItem Command="{Binding NewProject}" Header="_New Project..." />
                     <MenuItem Command="{Binding OpenProject}" Header="_Open Project..." />
+                    <Separator />
                     <MenuItem Command="{Binding SaveProject}" Header="_Save Project" />
                     <MenuItem Command="{Binding SaveProjectAs}" Header="Save Project _As..." />
+                    <Separator />
+                    <MenuItem Command="{Binding CloseProject}" Header="Close Project" />
                     <Separator />
                     <MenuItem Command="{Binding Exit}" Header="_Exit" />
                 </MenuItem>

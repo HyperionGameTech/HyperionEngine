@@ -46,7 +46,8 @@ enum class BakerState : uint8
     Initialized = 0,
     Building,
     Running,
-    Complete
+    Complete,
+    Cancelled
 };
 
 class LightmapVolume;
@@ -240,7 +241,7 @@ public:
 
     bool IsComplete() const
     {
-        return m_state == BakerState::Complete;
+        return m_state == BakerState::Complete || m_state == BakerState::Cancelled;
     }
 
     void Initialize();
@@ -248,9 +249,14 @@ public:
 
     void Update(float delta);
 
+    /*! \brief Stop baking immediately, tearing down any in-flight jobs/threads.
+     *  Fires OnCancelled instead of OnComplete. Must be called on the sim thread. */
+    void RequestCancel();
+
     void HandleCompletedJob(BakeJobBase* job);
 
     Delegate<void> OnComplete;
+    Delegate<void> OnCancelled;
 
 protected:
     virtual void Initialize_Internal()

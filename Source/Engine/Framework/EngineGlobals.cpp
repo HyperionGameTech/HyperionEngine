@@ -72,9 +72,16 @@ static Mutex s_cacheDirectoryMutex;
 
 HYP_EXPORT const FilePath& GetCacheDirectory()
 {
-    static const ConfigValue& s_cfgCacheDirectory = CoreApi::GetGlobalConfig().Get("App.Cache.BaseDirectory");
+    static const String& s_cfgCacheDirectory = CoreApi::GetCommandLineArguments()["CacheDir"].ToString();
 
-    static const FilePath s_cacheDirectory = CoreApi::GetExecutablePath() / s_cfgCacheDirectory.ToString().ToUtf8();
+    static const FilePath s_cacheDirectory =  (s_cfgCacheDirectory.Any()
+        ? (s_cfgCacheDirectory.StartsWith(".")
+            // Relative path - starts with . (eg "../Foo" or "./Foo")
+            ? (CoreApi::GetExecutablePath() / s_cfgCacheDirectory)
+            // Just use provided path.
+            : s_cfgCacheDirectory)
+        // Use fallback
+        : (CoreApi::GetExecutablePath() / "Cache"));
 
     if (s_cacheDirectoryInit.Get(MemoryOrder::RELAXED))
     {
@@ -94,6 +101,8 @@ HYP_EXPORT const FilePath& GetCacheDirectory()
     }
 
     s_cacheDirectoryInit.Set(true, MemoryOrder::RELAXED);
+
+    HYP_LOG(Engine, Info, "Initialized cache directory at {}", s_cacheDirectory);
 
     return s_cacheDirectory;
 }
@@ -172,7 +181,10 @@ HYP_EXPORT BlobStorage* GetBlobStorage()
     static std::once_flag s_onceFlag;
     std::call_once(s_onceFlag, []()
                    {
-                       g_blobStorage.Initialize();
+                       if (!EngineGlobals::IsCooking())
+                       {
+                           g_blobStorage.Initialize();
+                       }
                    });
 
     return &g_blobStorage;

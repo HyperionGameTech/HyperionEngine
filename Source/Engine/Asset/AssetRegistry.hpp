@@ -38,7 +38,11 @@
 
 #include <Core/Utilities/GlobalContext.hpp>
 
+#include <Core/Functional/Proc.hpp>
+
 namespace Hyperion {
+
+using functional::ProcRef;
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Assets);
 
@@ -123,7 +127,9 @@ public:
     void RemoveAsset(const AssetBucket& bucket, StringHash name);
 
     bool LoadAssetDescs();
+
     void SaveDirtyAssets();
+    bool HasDirtyAssets() const;
 
     void RemoveCached();
     void RemoveCached(const AssetBucket& bucket);
@@ -137,6 +143,8 @@ public:
 
     /*! \brief Called by AssetManager to perform enqueued tasks that mutate the registry. */
     void Update();
+
+    static void WalkAssetDeep(const BoxedValue& target, const ProcRef<void(const Handle<AssetObject>&)>& onAssetFound);
 
 private:
     template <class Func, class FutureType = void>

@@ -107,7 +107,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 #endif
 
     output.v_position = position.xyz / position.w;
-    output.v_texcoord0 = float2(input.a_texcoord0.x, 1.0 - input.a_texcoord0.y);
+    output.v_texcoord0 = input.a_texcoord0 * CURRENT_MATERIAL.uv_scale;
 
     float4 position_ndc = mul(vpMatrix, position);
     position_ndc /= position_ndc.w;

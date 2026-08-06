@@ -491,9 +491,9 @@ bool BlobStorage::InitMappedFile(MemoryMappedFile*& outMappedFile, uint32 bucket
         return true;
     }
 
-    const ANSIString name = ANSIString("storage.") + GetAssetBucketName(bucketIndex);
+    const char* nameRaw = GetAssetBucketName(bucketIndex);
 
-    if ((blockData.file = callbacks.Open(callbacks.context, name.Data())))
+    if ((blockData.file = callbacks.Open(callbacks.context, nameRaw)))
     {
         Assert(blockData.file->IsOpen());
 
@@ -581,9 +581,9 @@ Result BlobStorage::BeginCook(const Array<BlobBlockInfo>& blocks)
 
         BlobBlockData& blockData = m_blockData[blockInfo.bucketIndex];
 
-        const ANSIString name = ANSIString("storage.") + GetAssetBucketName(blockInfo.bucketIndex);
+        const char* nameRaw = GetAssetBucketName(blockInfo.bucketIndex);
 
-        blockData.file = callbacks.Open(callbacks.context, name.Data());
+        blockData.file = callbacks.Open(callbacks.context, nameRaw);
 
         if (!blockData.file)
         {
@@ -757,7 +757,7 @@ Result BlobStorage::LoadTOC()
 {
     Mutex::Guard guard(m_mutex);
 
-    const FilePath tocPath = EngineGlobals::GetCacheDirectory() / "storage.toc";
+    const FilePath tocPath = EngineGlobals::GetCacheDirectory() / "toc.bin";
 
     if (!tocPath.Exists())
     {
@@ -788,7 +788,7 @@ Result BlobStorage::SaveTOC_Internal()
         m_toc = new BlobTableOfContents;
     }
 
-    const FilePath tocPath = EngineGlobals::GetCacheDirectory() / "storage.toc";
+    const FilePath tocPath = EngineGlobals::GetCacheDirectory() / "toc.bin";
 
     FileByteWriter tocWriter { tocPath };
 

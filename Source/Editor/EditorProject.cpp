@@ -264,6 +264,26 @@ Result EditorProject::SaveAs(FilePath filepath)
     return {};
 }
 
+bool EditorProject::IsDirty() const
+{
+    AssertDebug(m_gameInstance.IsValid());
+
+    if (!m_gameInstance.IsValid())
+    {
+        return false;
+    }
+
+    const Handle<AssetRegistry>& registry = m_gameInstance->GetAssetRegistry();
+    AssertDebug(registry.IsValid());
+
+    if (!registry.IsValid())
+    {
+        return false;
+    }
+
+    return !IsSaved() || registry->HasDirtyAssets();
+}
+
 TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
 {
     FilePath dir;

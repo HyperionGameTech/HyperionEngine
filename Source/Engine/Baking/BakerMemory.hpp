@@ -6,27 +6,10 @@
 
 #pragma once
 
-#include <Core/Defines.hpp>
+
+#include <Core/Memory/Allocator/AllocatorFwd.hpp>
 
 namespace Hyperion {
-
-#pragma region Fwd declarations
-
-namespace memory {
-
-class Pool;
-
-template <class AllocatorType> class TArena;
-
-using Arena = TArena<DynamicAllocator>;
-
-} // namespace memory
-
-using memory::Pool;
-using memory::Arena;
-
-#pragma endregion Fwd declarations
-
 namespace Baking {
 
 extern Pool* g_bakerPool;

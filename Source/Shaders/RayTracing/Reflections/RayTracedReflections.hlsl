@@ -78,12 +78,7 @@ void RayGenMain()
     const float3 normal = GBufferUnpackNormal(normalSample);
     const float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferDepthTexture, uv, 0.0).r;
     const float3 position = ReconstructWorldSpacePositionFromDepth(projection_inverse, view_inverse, uv, depth).xyz;
-
-    uint2 gbufferDimensions;
-    GBufferNormalsTexture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
-
-    const uint2 gbufferCoord = uint2(uv * max(0, int2(gbufferDimensions) - 1));
-
+    
     GBufferMaterialParams materialParams;
     GBufferUnpackMaterialParams(normalSample.x, 0 /* don't need mask */, materialParams);
 

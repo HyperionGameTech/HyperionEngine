@@ -91,6 +91,13 @@ if [[ $DO_CMAKE -eq 1 ]]; then
         HYP_CMAKE_PARAMS="$HYP_CMAKE_PARAMS -DHYP_SHIPPING=1"
     fi
 
+    # Shipping builds output to Binaries/<Platform>/Shipping instead of Binaries/<Platform>/Release,
+    # but keep the Release build type and third-party libs. Skip for Android, whose Gradle project
+    # only looks for a Debug or Release output folder.
+    if [[ $HYP_SHIPPING -eq 1 && $HYP_ANDROID -eq 0 ]]; then
+        HYP_CMAKE_PARAMS="$HYP_CMAKE_PARAMS -DHYP_OUTPUT_DIRECTORY_SUFFIX=Shipping"
+    fi
+
     if [[ $HYP_ANDROID -eq 1 ]]; then
         if [[ -z "$ANDROID_NDK_HOME" ]]; then
             echo "ANDROID_NDK_HOME environment variable is not set. Please set it to the path of your Android NDK."

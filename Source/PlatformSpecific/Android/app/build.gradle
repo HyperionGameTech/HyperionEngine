@@ -45,6 +45,14 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 
+    // The blob storage pages under Cache/ (storage.Textures.bin, storage.Shaders.bin, ...)
+    // are already-dense binary blobs and can be hundreds of MB to multiple GB each.
+    // Deflate-compressing them blows well past the JVM heap (OOM in
+    // CompressAssetsWorkAction) for no real size benefit - store them as-is instead.
+    androidResources {
+        noCompress += ['bin', 'toc']
+    }
+
     sourceSets {
         main {
             // libhyperion.so and libc++_shared.so are staged here automatically
@@ -137,56 +145,54 @@ tasks.register('stageNativeLibs') {
     }
 }
 
-// copy content into assets dir.
-// TODO: Copy Projects/*ProjectName*/ too?
-def baseContentDir = file('../../../../Content')
+// Stage a packaged build (Content, Config, Data, Shaders.ini, Cache, ...) into assets/.
+//
+// Pass -PhypPackageDir=<path> to point at a folder produced by PackageBuildAndroid.bat and
+// this task just mirrors that folder wholesale - that script is now the single place that
+// knows how to assemble a package (cooked content, platform-resolved configs, fonts,
+// scripts, noise data), instead of this task reaching into the repo root itself.
+//
+// Without it (e.g. `gradlew assembleDebug` from Android Studio, or DeployAndroid.bat), it
+// falls back to staging just the config jsons directly from the repo so local iteration
+// still has something to run against.
 def baseConfigDir = file("../../../../Config")
-def fontsDir = file("../../../../Data/Fonts")
-def scriptDir = file("../../../../Data/Scripts")
-def noiseDir = file("../../../../Data/Noise")
-// also just for testing, copying Shaders.ini to the assets folder - should prob go elsewhere.
-def shadersIni = file("../../../../Source/Shaders/Shaders.ini")
 def assetsDestDir = file('src/main/assets')
+def hypPackageDir = project.findProperty('hypPackageDir')
+
+// Copy only overlays files, it never removes ones that used to be here - without this,
+// switching between package dirs (or between a packaged release and a plain assembleDebug)
+// leaves stale Content/config files sitting alongside the new ones. This has to be a
+// separate Delete task rather than a doFirst {} on the Copy task itself - calling
+// project.delete() from an execution-time closure isn't supported under the configuration
+// cache.
+tasks.register('cleanPackageAssets', Delete) {
+    delete assetsDestDir
+}
 
 tasks.register('stagePackageAssets', Copy) {
-    description 'Stage Hyperion content and non-blob assets'
+    description 'Stage Hyperion content into assets/'
+
+    dependsOn 'cleanPackageAssets'
 
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
-    // Coalesce all content folders into one: Content/Engine/Foo, Content/Game/Foo, ... -> Content/Foo.
-    // Each top-level content category directory (Engine, Game, etc.) contributes its contents
-    // directly into a single merged 'Content' directory in assets.
-    def contentDirs = baseContentDir.listFiles()?.findAll { it.isDirectory() } ?: []
-    contentDirs.sort { it.name }.each { contentDir ->
-        from(contentDir) {
-            into 'Content'
+    if (hypPackageDir) {
+        from(file(hypPackageDir))
+    } else {
+        from(baseConfigDir) {
+            include '*.Android.json'
+            rename '(.+)\\.Android\\.json$', '$1.json'
+        }
+        from(baseConfigDir) {
+            include '*.json'
+            exclude '*.Android.json'
+            exclude '*.IOS.json'
+            exclude '*.Windows.json'
+            exclude '*.Mac.json'
+            exclude '*.Linux.json'
         }
     }
 
-    from(baseConfigDir) {
-        include '*.Android.json'
-        rename '(.+)\\.Android\\.json$', '$1.json'
-    }
-    from(baseConfigDir) {
-        include '*.json'
-        exclude '*.Android.json'
-        exclude '*.IOS.json'
-        exclude '*.Windows.json'
-        exclude '*.Mac.json'
-        exclude '*.Linux.json'
-    }
-    from(fontsDir) {
-        into 'Data/Fonts'
-    }
-    from(scriptDir) {
-        into 'Data/Scripts'
-    }
-    from(noiseDir) {
-        into 'Data/Noise'
-    }
-    from(shadersIni) {
-        into 'Source/Shaders'
-    }
     into assetsDestDir
 }
 

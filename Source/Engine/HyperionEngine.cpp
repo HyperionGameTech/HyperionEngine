@@ -290,7 +290,7 @@ void LoadShaderPropertyDictionary()
 {
     InitShaderPropertyDictionary();
 
-    FileByteReader stream { EngineGlobals::GetCacheDirectory() / "ShaderProperties.bin" };
+    FileByteReader stream { EngineGlobals::GetCacheDirectory() / "shaderprops.bin" };
 
     if (!stream.Eof())
     {

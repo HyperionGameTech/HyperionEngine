@@ -99,14 +99,14 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
 #ifdef HYP_FEATURES_BINDLESS_TEXTURES
     if (HAS_TEXTURE(material, DiffuseMap))
     {
-        float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE_LOD(material, DiffuseMap, float2(texcoord.x, 1.0 - texcoord.y), 0.0);
+        float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE_LOD(material, DiffuseMap, float2(texcoord.x, 1.0 - texcoord.y) * material.uv_scale, 0.0);
 
         material_color *= albedo_texture;
     }
 
     if (HAS_TEXTURE(material, MetalnessMap))
     {
-        float metalness_sample = SAMPLE_MATERIAL_TEXTURE_LOD(material, MetalnessMap, float2(texcoord.x, 1.0 - texcoord.y), 0.0).r;
+        float metalness_sample = SAMPLE_MATERIAL_TEXTURE_LOD(material, MetalnessMap, float2(texcoord.x, 1.0 - texcoord.y) * material.uv_scale, 0.0).r;
 
         metalness = metalness_sample;
     }

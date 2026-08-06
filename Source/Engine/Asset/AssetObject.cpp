@@ -24,6 +24,7 @@
 #include <System/MessageBox.hpp>
 
 #include <Framework/EngineDriver.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <AssetObject.generated.inl>
 
@@ -140,8 +141,7 @@ void AssetObject::MarkDirty()
     registry->MarkAssetDirty(*this);
 }
 
-void AssetObject::SetPersistentRequested(
-    bool persistentlyLoaded, bool setFlag, bool markDirty)
+void AssetObject::SetPersistentRequested(bool persistentlyLoaded, bool setFlag, bool markDirty)
 {
     if (setFlag && m_flags[AssetObjectFlags::Persistent] != persistentlyLoaded)
     {
@@ -330,7 +330,9 @@ Result AssetObject::SaveBlobData(BlobStorage* storage, const Optional<FilePath>&
             }
         }
 
-        if (EngineGlobals::IsEditor() && localBlobDirectory.HasValue())
+        HYP_LOG(Assets, Info, "Saved blob data reference for {}, is cooking? {}, Local dir: {}", GetName(), EngineGlobals::IsCooking(), localBlobDirectory.HasValue());
+
+        if (!EngineGlobals::IsCooking() && localBlobDirectory.HasValue())
         {
             // Save the blob data locally as well, as other users may not have the blob data or have mismatched blob data
             // and we need to "import" it via individual blobs upon fail.

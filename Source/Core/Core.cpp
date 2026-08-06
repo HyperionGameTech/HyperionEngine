@@ -119,6 +119,7 @@ CORE_API const CommandLineArgumentDefinitions& DefaultCommandLineArgumentDefinit
             definitions.Add("Profile", {}, "Enable collection of profiling data for functions that opt in using HYP_SCOPE.", CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
             definitions.Add("TraceURL", {}, "The endpoint url that profiling data will be submitted to (this url will have /start appended to it to start the session and /results to add results)", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
             definitions.Add("BaseDir", {}, "Base directory", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
+            definitions.Add("CacheDir", {}, "Cache directory (for cook)", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
             definitions.Add("ResX", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::INTEGER);
             definitions.Add("ResY", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::INTEGER);
             definitions.Add("Headless", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);

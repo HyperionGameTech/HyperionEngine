@@ -8,6 +8,8 @@
 
 #include <Scene/Systems/CharacterControllerSystem.hpp>
 
+#include <Core/Math/MathUtil.hpp>
+
 #include <Scene/EntityManager.hpp>
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>
@@ -52,7 +54,15 @@ Vec2f CharacterControllerInputHandler::GetMovementInput() const
         strafe += 1.0f;
     }
 
-    return Vec2f(strafe, forward);
+    const Vec2f& touchDelta = GetTouchMovementDelta();
+    strafe += touchDelta.x;
+    forward -= touchDelta.y;
+
+    const Vec2f& controllerMove = GetControllerMoveDelta();
+    strafe += controllerMove.x;
+    forward += controllerMove.y;
+
+    return Vec2f(MathUtil::Clamp(strafe, -1.0f, 1.0f), MathUtil::Clamp(forward, -1.0f, 1.0f));
 }
 
 bool CharacterControllerInputHandler::IsJumpPressed() const

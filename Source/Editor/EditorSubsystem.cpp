@@ -3840,7 +3840,6 @@ void EditorSubsystem::Update(float delta)
     DebugDrawCommandList& dbg = DebugDrawer::GetInstance().CreateCommandList();
 
     DebugDrawMeshEditSelection(dbg);
-
     DebugDrawPhysicsShapes(dbg);
 
     if (m_currentProject.IsValid())
@@ -4765,6 +4764,14 @@ void EditorSubsystem::CloseProject(bool shutdownWorld)
 
         m_currentProject.Reset();
     }
+
+    RenderProxyList& pickRpl = g_editorState->GetPickCache().GetRenderProxyList();
+
+    pickRpl.BeginWrite();
+    pickRpl.ClearAll();
+    pickRpl.EndWrite();
+
+    g_editorState->GetPickCache().Clear();
 }
 
 void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)

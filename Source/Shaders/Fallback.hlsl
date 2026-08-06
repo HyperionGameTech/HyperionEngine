@@ -3,10 +3,10 @@
  *  Date: 2026/03/27
  **/
 
-#include "./include/Defines.hlsli"
-#include "./include/Shared.hlsli"
-#include "./include/Scene.hlsli"
-#include "./include/Material.hlsli"
+#include "./Include/Defines.hlsli"
+#include "./Include/Shared.hlsli"
+#include "./Include/Scene.hlsli"
+#include "./Include/Material.hlsli"
 
 PERMUTE(INSTANCING);
 PERMUTE(SKINNING);
@@ -34,16 +34,18 @@ struct VSOutput
 DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
 #define camera _cameras_buffer[0]
 
-#include "include/Entity.hlsli"
+#include "Include/Entity.hlsli"
 
 #ifdef INSTANCING
 DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
 DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer EntityInstanceBatchBuffer;
+
+#include "Include/Instancing.hlsli"
 #endif // INSTANCING
 
 #if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights) && defined(HYP_ATTRIBUTE_a_position)
 DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<float4x4> SkeletonsBuffer;
-#include "include/Skinning.hlsli"
+#include "Include/Skinning.hlsli"
 #endif // SKINNING && bone attrs
 
 #ifndef INSTANCING
@@ -58,18 +60,16 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     VSOutput output = (VSOutput)0;
 
 #ifdef INSTANCING
-    MeshEntityInstanceBatch batch = EntityInstanceBatchBuffer.Load<MeshEntityInstanceBatch>(0);
+    uint entityIndex;
+    uint dataOffset;
+    LoadEntityIndexAndDataOffset(instanceId, entityIndex, dataOffset);
 
-    const uint objectIndex = OBJECT_INDEX;
-    const uint dataOffset = OBJECT_DATA_OFFSET;
+    Entity entity = entities[entityIndex];
 
-    float4x4 transform = batch.transforms[dataOffset];
-#ifdef VULKAN
-    transform = transpose(transform);
-#endif
+    float4x4 transform = LoadInstanceTransform(s_offsetOfTransforms + (sizeof(float4x4) * dataOffset));
 
-    float4x4 model_matrix = mul(transform, entities[objectIndex].model_matrix);
-    output.object_index = objectIndex;
+    output.object_index = entityIndex;
+    float4x4 model_matrix = mul(entity.model_matrix, transform);
 #else
     float4x4 model_matrix = entity.model_matrix;
     output.object_index  = 0;
@@ -93,7 +93,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.position_cs = mul(camera.viewProjMat, position);
 
 #ifdef HYP_ATTRIBUTE_a_texcoord0
-    output.v_texcoord0 = float2(input.a_texcoord0.x, 1.0 - input.a_texcoord0.y);
+    output.v_texcoord0 = input.a_texcoord0;
 #endif
 
     return output;

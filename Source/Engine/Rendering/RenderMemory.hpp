@@ -6,23 +6,9 @@
 
 #pragma once
 
+#include <Core/Memory/Allocator/AllocatorFwd.hpp>
+
 namespace Hyperion {
-
-#pragma region Fwd declarations
-namespace memory {
-
-class Pool;
-
-template <class AllocatorType> class TArena;
-
-using Arena = TArena<DynamicAllocator>;
-
-} // namespace memory
-
-using memory::Pool;
-using memory::Arena;
-
-#pragma endregion Fwd declarations
 
 static constexpr size_t RenderPoolBlockSize = 64 * 1024 * 1024;
 static constexpr size_t RenderArenaSize = 64 * 1024;

@@ -283,6 +283,30 @@ void BakerBase::Shutdown()
     }
 }
 
+void BakerBase::RequestCancel()
+{
+    AssertOnThread(g_simThread);
+
+    if (IsComplete())
+    {
+        return;
+    }
+
+    {
+        Mutex::Guard guard(m_queueMutex);
+        m_queue.Clear(); // job dtors safely await in-flight work, same as ~BakerBase()
+    }
+
+    if (m_threadPool && m_threadPool->IsRunning())
+    {
+        m_threadPool->Stop();
+    }
+
+    m_state = BakerState::Cancelled;
+
+    OnCancelled();
+}
+
 BakeJobParams BakerBase::CreateLightmapJobParams(size_t startIndex, size_t endIndex)
 {
     BakeJobParams jobParams {
