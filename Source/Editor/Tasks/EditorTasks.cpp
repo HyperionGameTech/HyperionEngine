@@ -9,6 +9,7 @@
 #include <Baking/Baker.hpp>
 
 #include <Core/Logging/Logger.hpp>
+#include <Core/Threading/Threads.hpp>
 
 #include <Core/Reflection/Class.hpp>
 
@@ -34,6 +35,8 @@ GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Array<Handle<Obje
     : TickableEditorTask(),
       m_sources(sources)
 {
+    m_title = "Bake Task";
+
     for (auto it = m_sources.Begin(); it != m_sources.End();)
     {
         ObjectBase* source = *it;
@@ -103,18 +106,24 @@ void GenerateLightmapsEditorTask::Start()
     }
 }
 
-void GenerateLightmapsEditorTask::Cancel()
+void GenerateLightmapsEditorTask::Cancel_Impl()
 {
-    if (m_tasks.Any())
+    if (m_world.IsValid())
     {
-        for (Task<void>& task : m_tasks)
-        {
-            task.Cancel();
-        }
+        GetThreadById(g_simThread)->GetScheduler().Enqueue(
+            [world = m_world, sources = m_sources]()
+            {
+                if (BakerSubsystem* bakerSubsystem = world->GetSubsystem<BakerSubsystem>())
+                {
+                    for (const Handle<ObjectBase>& source : sources)
+                    {
+                        bakerSubsystem->CancelBake(source.Get());
+                    }
+                }
+            });
     }
 
-    // @TODO Proper cancelation.
-    // The baker subsystem needs to be aware that we cancelled.
+    TickableEditorTask::Cancel_Impl();
 }
 
 bool GenerateLightmapsEditorTask::IsCompleted() const
@@ -140,6 +149,35 @@ void GenerateLightmapsEditorTask::Tick()
             ++it;
         }
     }
+
+    if (!m_world.IsValid() || m_sources.Empty())
+    {
+        return;
+    }
+
+    if (BakerSubsystem* bakerSubsystem = m_world->GetSubsystem<BakerSubsystem>())
+    {
+        float totalProgress = 0.0f;
+        uint32 numRemaining = 0;
+
+        for (const Handle<ObjectBase>& source : m_sources)
+        {
+            const float sourceProgress = bakerSubsystem->GetBakeProgress(source.Get());
+
+            totalProgress += sourceProgress;
+
+            if (sourceProgress < 1.0f)
+            {
+                ++numRemaining;
+            }
+        }
+
+        SetProgress(totalProgress / float(m_sources.Size()));
+
+        SetDescription(numRemaining > 0
+                ? HYP_FORMAT("Baking {} of {} sources", m_sources.Size() - numRemaining, m_sources.Size())
+                : "Finalizing");
+    }
 }
 
 #pragma endregion GenerateLightmapsEditorTask
@@ -150,6 +188,7 @@ GenerateBentNormalsEditorTask::GenerateBentNormalsEditorTask(const Array<Handle<
     : TickableEditorTask(),
       m_volumes(volumes)
 {
+    m_title = "Generating bent normals";
 }
 
 void GenerateBentNormalsEditorTask::Start()
@@ -192,15 +231,24 @@ void GenerateBentNormalsEditorTask::Start()
     }
 }
 
-void GenerateBentNormalsEditorTask::Cancel()
+void GenerateBentNormalsEditorTask::Cancel_Impl()
 {
-    if (m_tasks.Any())
+    if (m_world.IsValid())
     {
-        for (Task<void>& task : m_tasks)
-        {
-            task.Cancel();
-        }
+        GetThreadById(g_simThread)->GetScheduler().Enqueue(
+            [world = m_world, volumes = m_volumes]()
+            {
+                if (BakerSubsystem* bakerSubsystem = world->GetSubsystem<BakerSubsystem>())
+                {
+                    for (const Handle<LightmapVolume>& volume : volumes)
+                    {
+                        bakerSubsystem->CancelBake(volume.Get());
+                    }
+                }
+            });
     }
+
+    TickableEditorTask::Cancel_Impl();
 }
 
 bool GenerateBentNormalsEditorTask::IsCompleted() const
@@ -225,6 +273,35 @@ void GenerateBentNormalsEditorTask::Tick()
         {
             ++it;
         }
+    }
+
+    if (!m_world.IsValid() || m_volumes.Empty())
+    {
+        return;
+    }
+
+    if (BakerSubsystem* bakerSubsystem = m_world->GetSubsystem<BakerSubsystem>())
+    {
+        float totalProgress = 0.0f;
+        uint32 numRemaining = 0;
+
+        for (const Handle<LightmapVolume>& volume : m_volumes)
+        {
+            const float volumeProgress = bakerSubsystem->GetBakeProgress(volume.Get());
+
+            totalProgress += volumeProgress;
+
+            if (volumeProgress < 1.0f)
+            {
+                ++numRemaining;
+            }
+        }
+
+        SetProgress(totalProgress / float(m_volumes.Size()));
+
+        SetDescription(numRemaining > 0
+                ? HYP_FORMAT("Baking {} of {} volumes", numRemaining, m_volumes.Size())
+                : "Finishing up");
     }
 }
 

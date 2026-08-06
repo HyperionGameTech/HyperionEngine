@@ -7,7 +7,6 @@
 #include <RenderingPch.hpp>
 
 #include <Rendering/RenderInterface.hpp>
-#include <Rendering/RenderCommand.hpp>
 #include <Rendering/Mesh.hpp>
 #include <Rendering/Frame.hpp>
 

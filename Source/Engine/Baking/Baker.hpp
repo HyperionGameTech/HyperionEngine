@@ -244,6 +244,23 @@ public:
         return m_state == BakerState::Complete || m_state == BakerState::Cancelled;
     }
 
+    /*! \brief Get the fraction of jobs completed so far, in the range [0, 1]. Returns 0
+     *  while the job queue is still being built (\ref{m_initialNumJobs} not yet known). */
+    float GetProgress() const
+    {
+        if (IsComplete())
+        {
+            return 1.0f;
+        }
+
+        if (m_initialNumJobs == 0)
+        {
+            return 0.0f;
+        }
+
+        return float(m_initialNumJobs - m_numJobs) / float(m_initialNumJobs);
+    }
+
     void Initialize();
     void Shutdown();
 

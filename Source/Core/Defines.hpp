@@ -324,9 +324,7 @@
 
 #pragma region Debug Preprocessor Definitions
 
-#if HYP_DEBUG_MODE
-#define HYP_ENABLE_BREAKPOINTS
-#endif
+#define HYP_ENABLE_BREAKPOINTS 1
 
 #if defined(HYP_CLANG_OR_GCC) && HYP_CLANG_OR_GCC
 #define HYP_DEBUG_FUNC_SHORT (__FUNCTION__)
@@ -336,10 +334,10 @@
 
 #ifdef HYP_ENABLE_BREAKPOINTS
 #ifdef HYP_CLANG
-#define HYP_BREAKPOINT __builtin_debugtrap()
-#else
-#define HYP_BREAKPOINT __builtin_trap()
-#endif
+#define HYP_BREAKPOINT (debug::IsDebuggerAttached() && (__builtin_debugtrap(), true))
+#else   // !HYP_CLANG
+#define HYP_BREAKPOINT (debug::IsDebuggerAttached() && (__builtin_debugtrap(), true))
+#endif  // HYP_CLANG
 
 namespace Hyperion {
 namespace debug {
@@ -369,7 +367,7 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 #define HYP_FUNCTION_NAME_LIT (__FUNCSIG__)
 
 #ifdef HYP_ENABLE_BREAKPOINTS
-#define HYP_BREAKPOINT (__debugbreak())
+#define HYP_BREAKPOINT (debug::IsDebuggerAttached() && (__debugbreak(), true))
 #endif // HYP_ENABLE_BREAKPOINTS
 
 #else // unknown compiler, define empty macros
@@ -399,27 +397,9 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 #endif
 #endif
 
-// conditionals
-
-#define HYP_ENABLE_THREAD_ID
-
-#ifndef HYP_ENABLE_THREAD_ID
-#error "Thread Id is required"
-#endif
-
-#if defined(HYP_ENABLE_THREAD_ID) && defined(HYP_DEBUG_MODE)
-#define HYP_ENABLE_THREAD_ASSERTIONS
-#endif
-
 #pragma endregion Synchonization
 
 #pragma region GPU features
-
-#if HYP_DEBUG_MODE
-#if HYP_VULKAN
-// #define HYP_VULKAN_DEBUG
-#endif
-#endif
 
 #if defined(HYP_APPLE) && HYP_APPLE
 #ifdef HYP_FEATURES_BINDLESS_TEXTURES
@@ -473,7 +453,10 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 // #define HYP_ENABLE_MT_CHECK
 //  #define HYP_LOG_MEMORY_OPERATIONS
 
+// Enable AssertOnThread when HYP_DEBUG_MODE is defined.
+#define HYP_ENABLE_THREAD_ASSERTIONS
 #define HYP_RENDER_COMMANDS_DEBUG_NAME
+
 #endif // HYP_DEBUG_MODE
 
 #ifndef HYP_EDITOR

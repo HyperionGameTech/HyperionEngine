@@ -844,13 +844,11 @@ extern void TickableEditorTask_Tick(TickableEditorTask self);
 
 // GenerateLightmapsEditorTask (requires HYP_EDITOR)
 extern void GenerateLightmapsEditorTask_Start(GenerateLightmapsEditorTask self);
-extern void GenerateLightmapsEditorTask_Cancel(GenerateLightmapsEditorTask self);
 extern bool GenerateLightmapsEditorTask_IsCompleted(GenerateLightmapsEditorTask self);
 extern void GenerateLightmapsEditorTask_Tick(GenerateLightmapsEditorTask self);
 
 // GenerateBentNormalsEditorTask (requires HYP_EDITOR)
 extern void GenerateBentNormalsEditorTask_Start(GenerateBentNormalsEditorTask self);
-extern void GenerateBentNormalsEditorTask_Cancel(GenerateBentNormalsEditorTask self);
 extern bool GenerateBentNormalsEditorTask_IsCompleted(GenerateBentNormalsEditorTask self);
 extern void GenerateBentNormalsEditorTask_Tick(GenerateBentNormalsEditorTask self);
 
@@ -863,6 +861,7 @@ extern void EditorProject_GetProjectsDirectory(EditorProject self, ref FilePath 
 extern bool EditorProject_IsSaved(EditorProject self);
 extern void EditorProject_Save(EditorProject self, ref Result outReturn);
 extern void EditorProject_SaveAs(EditorProject self, const FilePath filepath, ref Result outReturn);
+extern bool EditorProject_IsDirty(EditorProject self);
 extern void EditorProject_Close(EditorProject self, bool shutdownWorld);
 
 // EditorCommandBase (requires HYP_EDITOR)

@@ -216,7 +216,8 @@ void BakerBase::Initialize()
                 | ViewFlags::SKIP_LIGHTMAP_VOLUMES | ViewFlags::SKIP_PARTICLE_VOLUMES | ViewFlags::SKIP_FOG_VOLUMES
                 | ViewFlags::RAY_TRACING
                 | ViewFlags::NO_DRAW_CALLS
-                | ViewFlags::NOT_MULTI_BUFFERED,
+                | ViewFlags::NOT_MULTI_BUFFERED
+                | ViewFlags::NO_ASYNC_SHADER_LOADING,
             .framebufferDesc = framebufferDesc,
             .scenes = { m_scene },
             .camera = m_camera.Get(),

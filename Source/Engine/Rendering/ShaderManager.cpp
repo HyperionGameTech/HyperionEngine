@@ -51,6 +51,11 @@ static EngineStatTimer s_statShaderCompilation("TotalShaderCompilationTime", /* 
 
 static const Name s_nameFallbackShader = NAME("Fallback");
 
+static Pool s_shaderPool { 1 * 1024 * 1024, PF_THREAD_SAFE };
+Pool* g_shaderPool = &s_shaderPool;
+
+using ShaderAllocator = AllocatorInstance<Pool, &g_shaderPool>;
+
 static ShaderCacheId GenerateShaderCacheId()
 {
     static volatile int64 s_idCounter = 0;
@@ -92,28 +97,41 @@ public:
 
     struct CompileShaderRequest
     {
+        HYP_DEF_POOL_NEW_DELETE(g_shaderPool);
+
         Name shaderName;
         ShaderPropertySet properties;
         VertexInputLayoutDesc inputLayout;
         ShaderMapEntry* entry;
 
         ShaderInstanceRef shaderInstance;
+
+        // set for requests heap-allocated by EnqueueCompile() (non-blocking path) -
+        // CompileShaders() deletes the request after processing it. Requests owned by
+        // a stack-local CompilingShaderScope (blocking path) leave this false, since
+        // the scope is responsible for its own request's lifetime.
+        bool isHeapAllocated = false;
     };
 
-    Map<HashCode, ShaderMapEntry*> m_entryMap;
+    using EntryMap = Map<HashCode, ShaderMapEntry*, ShaderAllocator, HashTablePolicy::NotPooled>;
+
+    EntryMap m_entryMap;
     SharedMutex m_mutex;
 
     // these live forever to keep pointers valid
-    SparsePagedArray<Shader, 16, DynamicAllocator> m_compiledShaderCache;
-    SparsePagedArray<ShaderMapEntry, 16, DynamicAllocator> m_entries;
+    SparsePagedArray<Shader, 16, ShaderAllocator> m_compiledShaderCache;
+    SparsePagedArray<ShaderMapEntry, 16, ShaderAllocator> m_entries;
 
 #ifdef HYP_EDITOR
     EditorTaskScope m_editorTask;
 #endif
 
+    using CompilingShadersMap = Map<Name, Array<CompileShaderRequest*, ShaderAllocator>, ShaderAllocator, HashTablePolicy::NotPooled>;
+
     Mutex m_compilingShadersMutex; // mutex for tracking shaders we're compiling + editor task
     AtomicVar<uint32> m_numCompilingShaders = 0;
-    Map<String, Array<CompileShaderRequest*>> m_compilingShaders;
+    AtomicVar<uint32> m_totalNumCompilingShadersForTask = 0;
+    CompilingShadersMap m_compilingShaders;
     std::binary_semaphore m_spActiveCompilationTask { 0 };
 
 #if HYP_ENABLE_SHADER_RELOAD
@@ -212,14 +230,14 @@ public:
     {
         m_spActiveCompilationTask.acquire();
 
-#ifdef HYP_EDITOR
-        UpdateEditorTask();
-#endif
-
-        Map<String, Array<CompileShaderRequest*>> current;
+        CompilingShadersMap currentMap;
 
         while (true)
         {
+#ifdef HYP_EDITOR
+            UpdateEditorTask();
+#endif
+
             {
                 Mutex::Guard guard(m_compilingShadersMutex);
 
@@ -230,12 +248,15 @@ public:
                     return;
                 }
 
-                current = std::move(m_compilingShaders);
+                currentMap = std::move(m_compilingShaders);
+                m_compilingShaders = {};
             }
 
-            for (const auto& it : current)
+            uint32 numCompleted = 0;
+
+            for (const auto& it : currentMap)
             {
-                const Array<CompileShaderRequest*>& requests = it.second;
+                const Array<CompileShaderRequest*, ShaderAllocator>& requests = it.second;
 
                 for (CompileShaderRequest* request : requests)
                 {
@@ -245,9 +266,16 @@ public:
 
                     m_numCompilingShaders.Decrement(1, MemoryOrder::RELAXED);
 
+                    ++numCompleted;
+
 #ifdef HYP_EDITOR
                     UpdateEditorTask();
 #endif
+
+                    if (request->isHeapAllocated)
+                    {
+                        delete request;
+                    }
                 }
             }
 
@@ -258,25 +286,27 @@ public:
 #ifdef HYP_EDITOR
     void UpdateEditorTask()
     {
-        auto GetDescriptionText = [this]()
+        auto getDescriptionText = [this]() -> String
         {
-            Array<String> shaderNames;
-            shaderNames.Reserve(m_compilingShaders.Size());
+            String text;
 
             for (const auto& pair : m_compilingShaders)
             {
                 if (pair.second.Empty())
+                {
                     continue;
+                }
 
-                shaderNames.PushBack(HYP_FORMAT("{} ({})", pair.first, pair.second.Size()));
+                text += HYP_FORMAT("{} ({})\n", pair.first, pair.second.Size());
             }
 
-            return String::Join(shaderNames, "\n");
+            return text;
         };
 
         if (m_numCompilingShaders.Get(MemoryOrder::ACQUIRE) == 0)
         {
             m_editorTask.Reset();
+            m_totalNumCompilingShadersForTask.Set(0, MemoryOrder::RELEASE);
         }
         else
         {
@@ -289,13 +319,19 @@ public:
                     []()
                     { /* no tick function */ },
                     "Preparing shaders",
-                    GetDescriptionText(),
+                    getDescriptionText(),
                     /* isForegroundTask */ true);
             }
             else
             {
-                m_editorTask.GetEditorTask()->SetDescription(GetDescriptionText());
+                m_editorTask.GetEditorTask()->SetDescription(getDescriptionText());
             }
+
+            const uint32 totalNumCompilingShaders = m_totalNumCompilingShadersForTask.Get(MemoryOrder::RELAXED);
+            const uint32 numComplingShaders = m_numCompilingShaders.Get(MemoryOrder::RELAXED);
+            const uint32 numCompleted = totalNumCompilingShaders - numComplingShaders;
+
+            m_editorTask.GetEditorTask()->SetProgress(static_cast<float>(numCompleted) / static_cast<float>(totalNumCompilingShaders));
         }
     }
 
@@ -322,10 +358,9 @@ public:
             {
                 Mutex::Guard guard(impl->m_compilingShadersMutex);
 
-                const String shaderNameStr = *request.shaderName;
-
                 impl->m_numCompilingShaders.Increment(1, MemoryOrder::RELAXED);
-                impl->m_compilingShaders[shaderNameStr].PushBack(&this->request);
+                impl->m_totalNumCompilingShadersForTask.Increment(1, MemoryOrder::RELAXED);
+                impl->m_compilingShaders[request.shaderName].PushBack(&this->request);
             }
 
             if (taskFunction)
@@ -382,15 +417,47 @@ public:
         }
     };
 
+    // Kicks off a background compile for \p inRequest without blocking the calling thread.
+    // The request is heap-allocated since the caller returns immediately - completion is
+    // observed later via request.entry->threadSignal (see ShaderMapEntry::IsLoading()/IsLoaded()).
+    void EnqueueCompile(const CompileShaderRequest& inRequest)
+    {
+        CompileShaderRequest* request = new CompileShaderRequest(inRequest);
+        request->isHeapAllocated = true;
+
+        Assert(request->entry != nullptr);
+
+        {
+            Mutex::Guard guard(m_compilingShadersMutex);
+
+            m_numCompilingShaders.Increment(1, MemoryOrder::RELAXED);
+            m_totalNumCompilingShadersForTask.Increment(1, MemoryOrder::RELAXED);
+
+            m_compilingShaders[request->shaderName].PushBack(request);
+        }
+
+        m_spActiveCompilationTask.release();
+
+        // discarded - FIRE_AND_FORGET means the task doesn't own its executor,
+        // so it's safe to drop the handle without awaiting it.
+        (void)TaskSystem::GetInstance().Enqueue(
+            [impl = this]
+            {
+                impl->CompileShaders();
+            },
+            TaskThreadPoolName::THREAD_POOL_BACKGROUND,
+            TaskEnqueueFlags::FIRE_AND_FORGET);
+    }
+
     ShaderInstanceRef GetOrCreate(
         Name name, const ShaderPropertySet& properties, const VertexInputLayoutDesc& inputLayout,
-        ShaderCacheId& outCacheId, bool doLoadShader)
+        ShaderCacheId& outCacheId, bool doLoadShader, bool waitForCompile = true)
     {
         HYP_NAMED_SCOPE("Get shader from cache or create");
 
         const HashCode hc = GetShaderEntryHashCode(name, properties, inputLayout);
 
-        const auto EnsureMatch = [](const ShaderPropertySet& expectedProperties, const VertexInputLayoutDesc& expectedInputLayout, const Shader& received) -> bool
+        const auto ensureMatch = [](const ShaderPropertySet& expectedProperties, const VertexInputLayoutDesc& expectedInputLayout, const Shader& received) -> bool
         {
             if (received.inputLayout.mask != expectedInputLayout.mask)
             {
@@ -438,9 +505,20 @@ public:
 
         if (entry != nullptr && doLoadShader)
         {
-            while (entry->IsLoading())
+            if (waitForCompile)
             {
-                entry->threadSignal.Wait();
+                while (entry->IsLoading())
+                {
+                    entry->threadSignal.Wait();
+                }
+            }
+            else
+            {
+                // Do not wait
+                if (entry->IsLoading())
+                {
+                    return ShaderInstanceRef::Null();
+                }
             }
 
             Assert(entry->shaderInstance.IsValid());
@@ -451,7 +529,7 @@ public:
                 entry->shader = nullptr;
                 entry->threadSignal.Reset();
             }
-            else if (!EnsureMatch(properties, inputLayout, *entry->shaderInstance->GetShader()))
+            else if (!ensureMatch(properties, inputLayout, *entry->shaderInstance->GetShader()))
             {
                 HYP_LOG(Shader, Warning, "Loaded shader from cache (Name: {}) does not contain the requested properties! "
                                          "Expected properties: {}, Expected Input Layout: {} "
@@ -490,7 +568,7 @@ public:
 
             if (it == m_entryMap.End())
             {
-                m_entryMap.Insert(hc, entry);
+                m_entryMap[hc] = entry;
             }
         }
 
@@ -504,6 +582,13 @@ public:
         request.properties = properties;
         request.inputLayout = inputLayout;
         request.entry = entry;
+
+        if (!waitForCompile)
+        {
+            EnqueueCompile(request);
+
+            return ShaderInstanceRef::Null();
+        }
 
         CompilingShaderScope compilingShaderScope { this, request };
         compilingShaderScope.Wait();
@@ -596,7 +681,7 @@ public:
 
         TUniqueLock lock(m_mutex);
 
-        Array<HashCode> entriesToRemove;
+        Array<HashCode, ShaderAllocator> entriesToRemove;
 
         for (const auto& it : m_entryMap)
         {
@@ -705,7 +790,7 @@ public:
             }
         }
 
-        Array<CompileShaderRequest> requests;
+        Array<CompileShaderRequest, ShaderAllocator> requests;
 
         {
             TSharedLock lock(m_mutex);
@@ -801,7 +886,7 @@ public:
 
         HYP_LOG(ShaderCompiler, Info, "Reloading {} shaders\n{}", requests.Size(), shadersText);
 
-        Set<Shader*> shadersToExpire;
+        Set<Shader*, ShaderAllocator> shadersToExpire;
 
         for (CompileShaderRequest& request : requests)
         {
@@ -820,11 +905,6 @@ public:
 
             if (shader->IsSaved())
             {
-                const FilePath manifestPath = GetEngineAssetRegistry()->GetManifestPath(shader->GetPath());
-
-                Time shaderSourceModifiedTimestamp;
-                Time lastSavedTimestamp = manifestPath.LastModifiedTimestamp();
-
                 AssertDebug(!g_shaderCompiler->IsShaderBundleOutdated(shader->baseName));
             }
 
@@ -867,16 +947,16 @@ public:
 };
 
 ShaderManager::ShaderManager()
-    : m_impl(MakePimplWithAllocator<ShaderManagerImpl, RenderAllocator>())
+    : m_impl(MakePimplWithAllocator<ShaderManagerImpl, ShaderAllocator>())
 {
 }
 
-ShaderInstanceRef ShaderManager::GetOrCreate(Name name, const ShaderPropertySet& propertySet, const VertexInputLayoutDesc& inputLayout)
+ShaderInstanceRef ShaderManager::GetOrCreate(Name name, const ShaderPropertySet& propertySet, const VertexInputLayoutDesc& inputLayout, bool waitForCompile)
 {
     AssertDebug(name.IsValid());
 
     ShaderCacheId cacheId;
-    return m_impl->GetOrCreate(name, propertySet, inputLayout, cacheId, /* doLoadShader */ true);
+    return m_impl->GetOrCreate(name, propertySet, inputLayout, cacheId, /* doLoadShader */ true, waitForCompile);
 }
 
 void ShaderManager::ExpireShaderEntries(const Shader* shader)

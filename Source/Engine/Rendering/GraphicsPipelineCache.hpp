@@ -103,6 +103,7 @@ public:
         const FramebufferDesc& framebufferDesc,
         uint8 stencilWriteMask,
         uint8 stencilCompareMask,
+        bool enableAsync,
         GraphicsPipelineCacheHandle& outCacheHandle);
 
     void ExpirePipelinesForShader(const Shader* shader);

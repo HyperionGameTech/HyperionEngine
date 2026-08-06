@@ -577,6 +577,7 @@ void EnvProbe::CreateViewData()
             | ViewFlags::CUBEMAP_FACE_VIEW | ViewFlags::ENV_PROBE_VIEW
             | ViewFlags::SKIP_PROBE_VOLUMES
             | ViewFlags::NO_SHADOW_VIEWS
+            | ViewFlags::NO_ASYNC_SHADER_LOADING
             | ViewFlags::EXTERNAL_RENDERTARGET;
 
         if (!IsRealtime())

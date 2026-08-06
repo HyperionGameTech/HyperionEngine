@@ -9,7 +9,6 @@
 #include <Rendering/BLASBuilder.hpp>
 #include <Rendering/AccelerationStructure.hpp>
 
-#include <Rendering/RenderCommand.hpp>
 #include <Rendering/Frame.hpp>
 #include <Rendering/Mesh.hpp>
 #include <Rendering/Material.hpp>

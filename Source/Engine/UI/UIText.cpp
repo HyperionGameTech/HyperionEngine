@@ -10,7 +10,6 @@
 #include <UI/UIStage.hpp>
 
 #include <Rendering/RenderInterface.hpp>
-#include <Rendering/RenderCommand.hpp>
 #include <Rendering/RenderConfig.hpp>
 #include <Rendering/Frame.hpp>
 #include <Rendering/GraphicsPipeline.hpp>

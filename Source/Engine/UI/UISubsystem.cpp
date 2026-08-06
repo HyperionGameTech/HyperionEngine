@@ -30,7 +30,6 @@
 #include <Scene/Components/TransformComponent.hpp>
 
 #include <Rendering/FinalPass.hpp>
-#include <Rendering/RenderCommand.hpp>
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/PlaceholderData.hpp>
 #include <Rendering/RenderProxyList.hpp>
@@ -68,34 +67,6 @@ CVar<bool> g_cvShowDebugUI("Debug.ShowDebugUI", true);
 #else  // HYP_DEBUG_MODE || HYP_EDITOR
 CVar<bool> g_cvShowDebugUI("Debug.ShowDebugUI", false);
 #endif // HYP_DEBUG_MODE || HYP_EDITOR
-
-#pragma region Render commands
-
-struct SetFinalPassImageView : RenderCommand
-{
-    GpuImageViewRef imageView;
-
-    SetFinalPassImageView(const GpuImageViewRef& imageView)
-        : imageView(imageView)
-    {
-    }
-
-    virtual ~SetFinalPassImageView() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        if (!imageView)
-        {
-            imageView = RI.textureViewCache->GetOrCreate(RI.placeholderData->defaultTexture2d);
-        }
-
-        RI.finalPass->SetUILayerImageView(imageView);
-
-        return {};
-    }
-};
-
-#pragma endregion Render commands
 
 static TResult<Handle<FontAtlas>> CreateFontAtlas()
 {

@@ -1105,9 +1105,17 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="vm:TaskItemViewModel">
                                     <Border Classes="task-box">
-                                        <TextBlock
-                                            Classes="task-title"
-                                            Text="{Binding TaskName}" />
+                                        <StackPanel Spacing="3">
+                                            <TextBlock
+                                                Classes="task-title"
+                                                Text="{Binding TaskName}" />
+                                            <ProgressBar
+                                                Width="80"
+                                                Height="3"
+                                                Maximum="1.0"
+                                                Minimum="0"
+                                                Value="{Binding Progress}" />
+                                        </StackPanel>
                                     </Border>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>

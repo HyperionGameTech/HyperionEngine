@@ -1768,6 +1768,8 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
     }
 
+    frame->cr << SetAsyncShaderLoadingEnabled(false);
+
     if (g_cvHBAO.Get())
     {
         passData.hbao->Render(frame, rs);
@@ -1892,6 +1894,8 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         frame->cr << SetCurrentFramebuffer(nullptr);
     }
 
+    frame->cr << SetAsyncShaderLoadingEnabled(true);
+
     { // Translucent, forward lit
         ENGINE_STAT_GPU_SCOPE(&s_statFillTranslucent);
 
@@ -1945,11 +1949,6 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
         frame->cr << SetCurrentFramebuffer(nullptr);
     }
-
-    if (g_cvBloom.Get())
-    {
-        passData.bloomPass->Render(frame, rs);
-    }
     
 #ifdef HYP_EDITOR
     if (rs.view && (rs.view->GetFlags() & ViewFlags::EDITOR_VIEW))
@@ -1971,6 +1970,13 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     }
 #endif // HYP_EDITOR
 
+    frame->cr << SetAsyncShaderLoadingEnabled(false);
+
+    if (g_cvBloom.Get())
+    {
+        passData.bloomPass->Render(frame, rs);
+    }
+
     passData.postProcessing->RenderPost(frame, rs);
 
     passData.tonemapPass->Render(frame, rs);
@@ -1979,6 +1985,8 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     {
         passData.taaPass->Render(frame, rs);
     }
+
+    frame->cr << SetAsyncShaderLoadingEnabled(true);
 
     // depth of field
     // m_dofBlur->Render(frame);

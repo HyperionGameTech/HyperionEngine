@@ -131,15 +131,10 @@ using debug::LogType;
         {                                                                                                         \
             auto format = HYP_FORMAT("Assertion failed!\n\tCondition: " #expression "\n\tMessage: " __VA_ARGS__); \
             debug::LogAssert(&format[0]);                                                                         \
+            HYP_PRINT_STACK_TRACE();                                                                              \
             debug::DebugLog_FlushOutputStream();                                                                  \
                                                                                                                   \
-            if (debug::IsDebuggerAttached())                                                                      \
-                HYP_BREAKPOINT;                                                                                   \
-            else                                                                                                  \
-            {                                                                                                     \
-                HYP_PRINT_STACK_TRACE();                                                                          \
-                debug::TerminateProgram();                                                                        \
-            }                                                                                                     \
+            HYP_BREAKPOINT;                                                                                       \
         }                                                                                                         \
     }                                                                                                             \
     while (0)

@@ -77,12 +77,25 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
             break;
             case CommandType::DrawIndexed:
             {
+                // shader for the currently committed draw state may still be compiling in
+                // the background (see ShaderManager::GetOrCreate's waitForCompile = false
+                // path) - skip the draw and retry once it's ready.
+                if (RI.state.boundGraphicsPipeline == nullptr)
+                {
+                    break;
+                }
+
                 auto* cmd = static_cast<DrawIndexed*>(cmdDataPtr);
                 commandBuffer->DrawIndexed(cmd->m_numIndices, cmd->m_numInstances, cmd->m_instanceIndex);
             }
             break;
             case CommandType::DrawIndexedIndirect:
             {
+                if (RI.state.boundGraphicsPipeline == nullptr)
+                {
+                    break;
+                }
+
                 auto* cmd = static_cast<DrawIndexedIndirect*>(cmdDataPtr);
 #if HYP_VULKAN
                 AssertDebug(cmd->m_bufferOffset + 20 <= cmd->m_buffer->Size());
@@ -92,6 +105,11 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
             break;
             case CommandType::DrawQuad:
             {
+                if (RI.state.boundGraphicsPipeline == nullptr)
+                {
+                    break;
+                }
+
                 if (HYP_UNLIKELY(!g_quadMesh))
                 {
                     g_quadMesh = MeshBuilder::Quad();
@@ -725,6 +743,19 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
                 static_assert(std::is_trivially_destructible_v<TraceRays>);
             }
             break;
+            case CommandType::SetAsyncShaderLoadingEnabled:
+            {
+                auto* cmd = static_cast<SetAsyncShaderLoadingEnabled*>(cmdDataPtr);
+
+                RenderInterface::State& state = RI.state;
+
+                state.shaderAsyncLoadState = cmd->enabled
+                    ? ShaderAsyncLoadState::Enabled
+                    : ShaderAsyncLoadState::ForceDisabled;
+
+                static_assert(std::is_trivially_destructible_v<SetAsyncShaderLoadingEnabled>);
+            }
+            break;
             case CommandType::SetStencilState:
             {
                 auto* cmd = static_cast<SetStencilState*>(cmdDataPtr);
@@ -760,6 +791,13 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
 
                 state.attributes.SetShaderName(shaderDesc.name);
                 state.attributes.SetShaderProperties(shaderDesc.properties);
+
+                if (state.shaderAsyncLoadState != ShaderAsyncLoadState::ForceDisabled)
+                {
+                    state.shaderAsyncLoadState = cmd->async
+                        ? ShaderAsyncLoadState::Enabled
+                        : ShaderAsyncLoadState::DisabledForShader;
+                }
 
                 static_assert(std::is_trivially_destructible_v<SetCurrentShader>);
             }

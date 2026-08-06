@@ -3886,31 +3886,34 @@ void EditorSubsystem::Update(float delta)
     RenderProxyList& pickRpl = g_editorState->GetPickCache().GetRenderProxyList();
     pickRpl.GetMeshes().Advance();
 
-    for (const Handle<EditorViewport>& vp : m_editorViewports)
+    if (m_currentProject.IsValid())
     {
-        const Handle<View>& view = vp->GetView();
-        AssertDebug(view != nullptr);
-
-        if (!view)
+        for (const Handle<EditorViewport>& vp : m_editorViewports)
         {
-            continue;
+            const Handle<View>& view = vp->GetView();
+            AssertDebug(view != nullptr);
+
+            if (!view)
+            {
+                continue;
+            }
+
+            if (!(view->GetViewDesc().flags & ViewFlags::GBUFFER))
+            {
+                continue; // skip non-primary views
+            }
+
+            for (Mesh* mesh : view->GetRenderProxyList(GetRingIndex())->GetMeshes())
+            {
+                pickRpl.GetMeshes().Track(mesh->Id(), mesh);
+            }
         }
 
-        if (!(view->GetViewDesc().flags & ViewFlags::GBUFFER))
+        /// @TODO : Prioritize meshes based on distance from camera
+        for (Mesh* mesh : pickRpl.GetMeshes())
         {
-            continue; // skip non-primary views
+            g_editorState->GetPickCache().PutEntry(mesh);
         }
-
-        for (Mesh* mesh : view->GetRenderProxyList(GetRingIndex())->GetMeshes())
-        {
-            pickRpl.GetMeshes().Track(mesh->Id(), mesh);
-        }
-    }
-
-    /// @TODO : Prioritize meshes based on distance from camera
-    for (Mesh* mesh : pickRpl.GetMeshes())
-    {
-        g_editorState->GetPickCache().PutEntry(mesh);
     }
 }
 

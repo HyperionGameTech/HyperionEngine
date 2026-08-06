@@ -53,13 +53,14 @@ public:
     virtual void Start() override;
 
     HYP_METHOD()
-    virtual void Cancel() override;
-
-    HYP_METHOD()
     virtual bool IsCompleted() const override;
 
     HYP_METHOD()
     virtual void Tick() override;
+
+protected:
+    HYP_METHOD()
+    virtual void Cancel_Impl() override;
 
 private:
     Array<Handle<ObjectBase>, EditorAllocator> m_sources;
@@ -110,13 +111,14 @@ public:
     virtual void Start() override;
 
     HYP_METHOD()
-    virtual void Cancel() override;
-
-    HYP_METHOD()
     virtual bool IsCompleted() const override;
 
     HYP_METHOD()
     virtual void Tick() override;
+
+protected:
+    HYP_METHOD()
+    virtual void Cancel_Impl() override;
 
 private:
     Array<Handle<LightmapVolume>, EditorAllocator> m_volumes;

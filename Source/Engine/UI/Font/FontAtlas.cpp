@@ -11,7 +11,6 @@
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/PlaceholderData.hpp>
 #include <Rendering/CommandRecorder.hpp>
-#include <Rendering/RenderCommand.hpp>
 #include <Rendering/RenderHelpers.hpp>
 #include <Rendering/Texture.hpp>
 

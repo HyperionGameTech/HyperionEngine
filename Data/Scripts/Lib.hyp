@@ -731,6 +731,7 @@ extern enum ViewFlags : uint32
     EDITOR_VIEW = 0x8000000,
     EXTERNAL_RENDERTARGET = 0x10000000,
     NO_SHADOW_VIEWS = 0x20000000,
+    NO_ASYNC_SHADER_LOADING = 0x40000000,
     DEFAULT = (ALL_WORLD_SCENES | COLLECT_ALL_ENTITIES)
 end
 extern class View
@@ -2056,7 +2057,8 @@ extern enum BakerState : uint8
     Initialized = 0,
     Building,
     Running,
-    Complete
+    Complete,
+    Cancelled
 end
 extern enum LightmapShadingType : uint32
     IRRADIANCE = 0,
@@ -2558,9 +2560,9 @@ extern class GenerateBentNormalsEditorTask : TickableEditorTask
     GetScene() -> Scene
     SetScene(scene : Scene) -> void
     Start() -> void
-    Cancel() -> void
     IsCompleted() -> bool
     Tick() -> void
+    Cancel_Impl() -> void
 end
 extern class GenerateLightmapsEditorTask : TickableEditorTask
     GetWorld() -> World
@@ -2568,9 +2570,9 @@ extern class GenerateLightmapsEditorTask : TickableEditorTask
     GetScene() -> Scene
     SetScene(scene : Scene) -> void
     Start() -> void
-    Cancel() -> void
     IsCompleted() -> bool
     Tick() -> void
+    Cancel_Impl() -> void
 end
 extern class EditorState
     static GetInstance() -> EditorState
@@ -2599,6 +2601,7 @@ extern class EditorProject
     IsSaved() -> bool
     Save() -> Result
     SaveAs(filepath : string) -> Result
+    IsDirty() -> bool
     GetActionStack() -> EditorActionStack
     Close(shutdownWorld : bool) -> void
     OnProjectSaved : any

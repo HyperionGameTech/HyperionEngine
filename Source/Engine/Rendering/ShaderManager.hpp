@@ -27,7 +27,8 @@ public:
     ShaderInstanceRef GetOrCreate(
         Name name,
         const ShaderPropertySet& properties,
-        const VertexInputLayoutDesc& inputLayout);
+        const VertexInputLayoutDesc& inputLayout,
+        bool waitForCompile = true);
 
     void ExpireShaderEntries(const Shader* shader);
 

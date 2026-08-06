@@ -635,6 +635,7 @@ public:
         }
 
         Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(reflectionProbes);
+        editorTask->SetIsForegroundTask(true);
         InitObject(editorTask);
 
         editorTask->SetScene(activeScene);
@@ -702,6 +703,7 @@ public:
         }
 
         Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(irradianceProbes);
+        editorTask->SetIsForegroundTask(true);
         InitObject(editorTask);
 
         editorTask->SetScene(activeScene);
@@ -1092,15 +1094,16 @@ public:
         if (reflectionProbe->IsBaked())
         {
             // kickoff task to generate reflection cubemap
-            Handle<GenerateLightmapsEditorTask> generateLightmapsTask = MakeHandle<GenerateLightmapsEditorTask>(reflectionProbe);
-            InitObject(generateLightmapsTask);
+            Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(reflectionProbe);
+            editorTask->SetIsForegroundTask(true);
+            InitObject(editorTask);
 
-            generateLightmapsTask->SetScene(activeScene);
+            editorTask->SetScene(activeScene);
 
             Handle<World> worldHandle = MakeStrongRef(subsystem->GetWorld());
-            generateLightmapsTask->SetWorld(worldHandle);
+            editorTask->SetWorld(worldHandle);
 
-            g_editorState->AddTask(generateLightmapsTask);
+            g_editorState->AddTask(editorTask);
         }
     }
 };
@@ -1479,17 +1482,16 @@ public:
 
         // start baking fog volume
 
-        Handle<GenerateLightmapsEditorTask> generateLightmapsTask = MakeHandle<GenerateLightmapsEditorTask>(
-            Array<Handle<ObjectBase>> { fogVolume });
+        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(Array<Handle<ObjectBase>> { fogVolume });
+        editorTask->SetIsForegroundTask(true);
+        InitObject(editorTask);
 
-        InitObject(generateLightmapsTask);
-
-        generateLightmapsTask->SetScene(activeScene);
+        editorTask->SetScene(activeScene);
 
         Handle<World> worldHandle = MakeStrongRef(subsystem->GetWorld());
-        generateLightmapsTask->SetWorld(worldHandle);
+        editorTask->SetWorld(worldHandle);
 
-        g_editorState->AddTask(generateLightmapsTask);
+        g_editorState->AddTask(editorTask);
     }
 };
 

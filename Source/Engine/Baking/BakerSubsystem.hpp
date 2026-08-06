@@ -62,6 +62,13 @@ public:
     template <Baking::Bakeable T>
     Task<void> EnqueueBake(const Handle<T>& source, uint32 shadingTypesMaskOverride = 0);
 
+    /*! \brief Cancel an in-progress bake for the given source, if one exists. Tears down the
+     *  associated baker immediately and resolves its Task<void>. Must be called on the sim thread. */
+    void CancelBake(ObjectBase* source);
+
+    /*! \brief Get the progress (in the range [0, 1]) of an in-progress bake for the given source  */
+    float GetBakeProgress(ObjectBase* source) const;
+
 private:
     SubsystemUpdatePhase GetUpdatePhase_Internal() const override
     {

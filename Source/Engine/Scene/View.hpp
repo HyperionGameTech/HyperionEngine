@@ -99,6 +99,8 @@ enum class ViewFlags : uint32
 
     NO_SHADOW_VIEWS = 0x20000000, //!< No shadow view collection for this view will happen
 
+    NO_ASYNC_SHADER_LOADING = 0x40000000, //!< Draws for this view will block until shaders are loaded rather than skipping draws for async loading shaders.
+
     DEFAULT = ALL_WORLD_SCENES | COLLECT_ALL_ENTITIES
 };
 

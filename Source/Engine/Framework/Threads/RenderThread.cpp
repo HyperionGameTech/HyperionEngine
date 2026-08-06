@@ -20,7 +20,6 @@
 #include <Rendering/GBuffer.hpp>
 #include <Rendering/FinalPass.hpp>
 #include <Rendering/ShaderManager.hpp>
-#include <Rendering/RenderCommand.hpp>
 #include <Rendering/RenderProxy.hpp>
 #include <Rendering/AsyncCompute.hpp>
 #include <Rendering/DescriptorSet.hpp>

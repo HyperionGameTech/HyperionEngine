@@ -1216,6 +1216,9 @@ static void PerformRenderingImpl(Frame* frame, const TPerformRenderingPayload<TC
 
     const uint8 stencilReference = mas.stencilReference;
 
+    const bool enableAsync = renderSetup.view == nullptr
+        || !(renderSetup.view->GetFlags() & ViewFlags::NO_ASYNC_SHADER_LOADING);
+
     cr << SetTopology(ras.GetMeshAttributes().topology);
     cr << SetInputLayout(ras.GetMeshAttributes().inputLayout);
 
@@ -1231,11 +1234,11 @@ static void PerformRenderingImpl(Frame* frame, const TPerformRenderingPayload<TC
         ShaderPropertySet shaderProperties = mas.shaderProperties;
         shaderProperties.Add(s_propForwardClustered);
 
-        cr << SetCurrentShader(ShaderDesc(mas.shaderName, shaderProperties));
+        cr << SetCurrentShader(ShaderDesc(mas.shaderName, shaderProperties), enableAsync);
     }
     else
     {
-        cr << SetCurrentShader(ShaderDesc(mas.shaderName, mas.shaderProperties));
+        cr << SetCurrentShader(ShaderDesc(mas.shaderName, mas.shaderProperties), enableAsync);
     }
 
     cr << SetFillMode(mas.fillMode);

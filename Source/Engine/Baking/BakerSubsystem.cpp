@@ -161,12 +161,13 @@ Task<void> BakerSubsystem::EnqueueBake_Internal(const Handle<T>& source, uint32 
 
     Task<void> task;
 
-    baker->OnComplete
-        .Bind([promise = task.Promise()]()
-            {
-                promise->Fulfill();
-            })
-        .Detach();
+    auto fulfillPromise = [promise = task.Promise()]()
+    {
+        promise->Fulfill();
+    };
+
+    baker->OnComplete.Bind(fulfillPromise).Detach();
+    baker->OnCancelled.Bind(fulfillPromise).Detach();
 
     baker->Initialize();
     
@@ -175,6 +176,56 @@ Task<void> BakerSubsystem::EnqueueBake_Internal(const Handle<T>& source, uint32 
     m_bakers.EmplaceBack(source.Get(), std::move(baker));
 
     return task;
+}
+
+void BakerSubsystem::CancelBake(ObjectBase* source)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    if (!source)
+    {
+        return;
+    }
+
+    auto it = m_bakers.FindIf([source](const Pair<ObjectBase*, Handle<BakerBase>>& item)
+    {
+        return item.first == source;
+    });
+
+    if (it == m_bakers.End())
+    {
+        return;
+    }
+
+    Handle<BakerBase> baker = std::move(it->second);
+    m_bakers.Erase(it);
+
+    baker->RequestCancel();
+    baker->Shutdown();
+}
+
+float BakerSubsystem::GetBakeProgress(ObjectBase* source) const
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    if (!source)
+    {
+        return 1.0f;
+    }
+
+    auto it = m_bakers.FindIf([source](const Pair<ObjectBase*, Handle<BakerBase>>& item)
+    {
+        return item.first == source;
+    });
+
+    if (it == m_bakers.End())
+    {
+        return 1.0f;
+    }
+
+    return it->second->GetProgress();
 }
 
 #pragma endregion BakerSubsystem

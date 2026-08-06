@@ -67,6 +67,7 @@ enum class CommandType : uint8
     GenerateMipmaps,
     DispatchCompute,
     TraceRays,
+    SetAsyncShaderLoadingEnabled,
     SetStencilState,
     SetCurrentShader,
     SetCurrentViewport,
@@ -733,6 +734,23 @@ private:
     Vec3u m_workgroupCount;
 };
 
+class SetAsyncShaderLoadingEnabled final : public CmdBase
+{
+public:
+    template <class>
+    friend class TCommandRecorder;
+
+    explicit SetAsyncShaderLoadingEnabled(bool enabled)
+        : enabled(enabled)
+    {
+    }
+
+    static constexpr CommandType ThisCommandType = CommandType::SetAsyncShaderLoadingEnabled;
+
+private:
+    bool enabled;
+};
+
 class SetStencilState final : public CmdBase
 {
 public:
@@ -760,8 +778,9 @@ public:
     template <class>
     friend class TCommandRecorder;
 
-    explicit SetCurrentShader(const ShaderDesc& shaderDesc)
-        : shaderDesc(shaderDesc)
+    explicit SetCurrentShader(const ShaderDesc& shaderDesc, bool async = true)
+        : shaderDesc(shaderDesc),
+          async(async)
     {
     }
 
@@ -769,6 +788,7 @@ public:
 
 private:
     ShaderDesc shaderDesc;
+    bool async;
 };
 
 class SetCurrentViewport final : public CmdBase

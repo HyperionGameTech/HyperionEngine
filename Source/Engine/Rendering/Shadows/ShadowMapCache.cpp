@@ -243,7 +243,8 @@ static ViewDesc GetViewDesc(
     }
 
     // No parallel draw call collection for shadow maps
-    viewDesc.flags |= ViewFlags::NO_PARALLEL_DRAW_CALL_COLLECTION;
+    viewDesc.flags |= ViewFlags::NO_PARALLEL_DRAW_CALL_COLLECTION
+                    | ViewFlags::NO_ASYNC_SHADER_LOADING;
 
     return viewDesc;
 }

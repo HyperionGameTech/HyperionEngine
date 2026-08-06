@@ -9,7 +9,6 @@
 #include <Rendering/GraphicsPipelineCache.hpp>
 #include <Rendering/RenderableAttributes.hpp>
 #include <Rendering/RenderInterface.hpp>
-#include <Rendering/RenderCommand.hpp>
 #include <Rendering/GraphicsPipeline.hpp>
 #include <Rendering/DescriptorSet.hpp>
 #include <Rendering/RenderResult.hpp>
@@ -372,6 +371,7 @@ void GraphicsPipelineCache::GetOrCreate(
     const FramebufferDesc& framebufferDesc,
     uint8 stencilWriteMask,
     uint8 stencilCompareMask,
+    bool enableAsync,
     GraphicsPipelineCacheHandle& outCacheHandle)
 {
     HYP_SCOPE;
@@ -398,14 +398,16 @@ void GraphicsPipelineCache::GetOrCreate(
     ShaderInstanceRef shader = RI.shaderManager->GetOrCreate(
         inOutAttributes.GetMaterialAttributes().shaderName,
         inOutAttributes.GetMaterialAttributes().shaderProperties,
-        inOutAttributes.GetMeshAttributes().inputLayout);
+        inOutAttributes.GetMeshAttributes().inputLayout,
+        /* waitForCompile */ !enableAsync);
 
     if (!shader.IsValid())
     {
-        HYP_LOG(Rendering, Warning, "Invalid shader returned from ShaderManager for {}",
+        HYP_LOG(Rendering, Debug, "Shader not yet ready for {}, skipping pipeline creation",
                 inOutAttributes.GetMaterialAttributes().shaderName);
 
         outCacheHandle = {};
+
         return;
     }
 

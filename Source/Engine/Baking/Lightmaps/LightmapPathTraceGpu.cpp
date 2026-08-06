@@ -12,7 +12,6 @@
 #include <Rendering/RendererMain.hpp>
 #include <Rendering/RenderProxyList.hpp>
 #include <Rendering/RenderProxy.hpp>
-#include <Rendering/RenderCommand.hpp>
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/RenderConfig.hpp>
 #include <Rendering/Device.hpp>

@@ -45,7 +45,6 @@
 #include <Rendering/ScratchImageAllocator.hpp>
 #include <Rendering/RenderGroupCache.hpp>
 #include <Rendering/GpuTimerBackend.hpp>
-#include <Rendering/RenderCommand.hpp>
 
 #include <Framework/Resources/ResourceTracker.hpp>
 #include <Framework/Resources/ResourceBinder.hpp>
@@ -999,8 +998,6 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
     descriptorSetCache->OnFrameStart(newFrameIndex);
     stagingBufferPool->OnFrameStart(newFrameIndex);
 
-    RenderCommands::Flush();
-
     UpdateResources(UseRingBuffer ? nullptr : pCancelFlag);
 }
 
@@ -1532,18 +1529,30 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             AssertDebug(state.attributes.GetMeshAttributes().inputLayout.mask != 0,
                         "Input layout cannot be empty for graphics pipeline");
 
+            const bool enableAsync = (state.shaderAsyncLoadState == ShaderAsyncLoadState::Enabled);
+
             graphicsPipelineCache->GetOrCreate(
                 state.attributes,
                 state.framebuffer->GetFramebufferDesc(),
                 state.stencilWriteMask,
                 state.stencilCompareMask,
+                enableAsync,
                 cacheHandle);
 
-            if (!cacheHandle.IsAlive())
+            AssertDebug(cacheHandle.IsAlive() || enableAsync);
+
+            if (HYP_UNLIKELY(!cacheHandle.IsAlive()))
             {
-                HYP_LOG(Rendering, Error,
-                        "Failed to create graphics pipeline for shader '{}' (shader may still be compiling or compilation failed).",
-                        state.attributes.GetShaderName());
+                if (enableAsync)
+                {
+                    HYP_LOG(Rendering, Debug, "Skipping draw, shader '{}' is loading async",
+                            state.attributes.GetShaderName());
+                }
+                else
+                {
+                    HYP_LOG(Rendering, Warning, "Skipping draw, returned null pipeline handle for shader {}!",
+                            state.attributes.GetShaderName());
+                }
 
                 state.boundGraphicsPipeline = nullptr;
 
@@ -1553,10 +1562,16 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             pipeline = *cacheHandle;
 
             pipeline->lastFrame = GetFrameCounter();
+
             if (state.viewport.position != Vec2i(0, 0) || state.viewport.extent != Vec2u(0, 0))
+            {
                 pipeline->Bind(commandBuffer, state.viewport.position, state.viewport.extent);
+            }
             else
+            {
                 pipeline->Bind(commandBuffer);
+            }
+
             state.boundGraphicsPipeline = pipeline;
 
             pipelineChanged = true;
@@ -1580,7 +1595,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             || !state.boundComputePipeline->MatchesSignature(ShaderDesc(state.attributes.GetShaderName(), state.attributes.GetShaderProperties())))
         {
             pipeline = computePipelineCache->GetOrCreate(state.attributes.GetShaderName(), state.attributes.GetShaderProperties());
-            AssertDebug(pipeline != nullptr);
+            Assert(pipeline != nullptr);
 
             pipeline->Bind(commandBuffer);
             state.boundComputePipeline = pipeline;
@@ -1606,7 +1621,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             || !state.boundRayTracingPipeline->MatchesSignature(ShaderDesc(state.attributes.GetShaderName(), state.attributes.GetShaderProperties())))
         {
             pipeline = rayTracingPipelineCache->GetOrCreate(state.attributes.GetShaderName(), state.attributes.GetShaderProperties());
-            AssertDebug(pipeline != nullptr);
+            Assert(pipeline != nullptr);
 
             pipeline->Bind(commandBuffer);
             state.boundRayTracingPipeline = pipeline;

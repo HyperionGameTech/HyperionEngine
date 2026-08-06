@@ -224,6 +224,13 @@ struct NamedBuffer
 
 static constexpr uint8 NumNamedBuffers = NamedBuffer::Max;
 
+enum class ShaderAsyncLoadState : uint8
+{
+    Enabled,
+    DisabledForShader,
+    ForceDisabled
+};
+
 class RenderInterface
 {
 public:
@@ -259,6 +266,8 @@ public:
 
         ShaderDesc boundShaderDesc;
 
+        ShaderAsyncLoadState shaderAsyncLoadState = ShaderAsyncLoadState::Enabled;
+
         Framebuffer* framebuffer = nullptr;
         Framebuffer* boundFramebuffer = nullptr;
 
@@ -286,6 +295,8 @@ public:
             boundPsoType = PSO_Graphics;
 
             boundShaderDesc = ShaderDesc {};
+
+            shaderAsyncLoadState = ShaderAsyncLoadState::Enabled;
 
             boundGraphicsPipeline = nullptr;
         }
