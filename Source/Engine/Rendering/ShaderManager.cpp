@@ -451,7 +451,9 @@ public:
 
     ShaderInstanceRef GetOrCreate(
         Name name, const ShaderPropertySet& properties, const VertexInputLayoutDesc& inputLayout,
-        ShaderCacheId& outCacheId, bool doLoadShader, bool waitForCompile = true)
+        ShaderCacheId& outCacheId,
+        const bool doLoadShader,
+        const bool waitForCompile = true)
     {
         HYP_NAMED_SCOPE("Get shader from cache or create");
 
@@ -521,21 +523,24 @@ public:
                 }
             }
 
-            Assert(entry->shaderInstance.IsValid());
+            Assert(entry->shaderInstance.IsValid()
+                && !entry->shaderInstance->GetShader()->expired);
 
-            if (entry->shaderInstance->GetShader()->expired)
+            /* if (entry->shaderInstance->GetShader()->expired)
             {
                 entry->shaderInstance = ShaderInstanceRef::Null();
                 entry->shader = nullptr;
                 entry->threadSignal.Reset();
             }
-            else if (!ensureMatch(properties, inputLayout, *entry->shaderInstance->GetShader()))
+            else*/
+            if (!ensureMatch(properties, inputLayout, *entry->shaderInstance->GetShader()))
             {
                 HYP_LOG(Shader, Warning, "Loaded shader from cache (Name: {}) does not contain the requested properties! "
                                          "Expected properties: {}, Expected Input Layout: {} "
                                          "Actual properties: {}, Actual Input Layout: {}",
                         name, properties.GetDebugString(), inputLayout.GetDebugString(),
                         entry->shaderInstance->GetShader()->properties.GetDebugString(), entry->shaderInstance->GetShader()->inputLayout.GetDebugString());
+
             }
 
             return entry->shaderInstance;
@@ -593,7 +598,9 @@ public:
         CompilingShaderScope compilingShaderScope { this, request };
         compilingShaderScope.Wait();
 
-        Assert(entry->shader != nullptr && !entry->shader->expired);
+        Assert(entry->shader != nullptr
+            && !entry->shader->expired
+            && entry->shaderInstance.IsValid());
 
         return entry->shaderInstance;
     }

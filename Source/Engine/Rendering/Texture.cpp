@@ -266,24 +266,28 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
         stagingBuffer->Copy(paddedTotalSize, paddedByteBuffer.Data());
 #else
         GpuBuffer* stagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(imageData.Size());
-        Assert(stagingBuffer != nullptr && stagingBuffer->IsCreated());
+
+        Assert(stagingBuffer != nullptr
+            && stagingBuffer->Size() >= imageData.Size()
+            && stagingBuffer->IsCreated());
 
         stagingBuffer->Copy(imageData.Size(), imageData.Data());
+        stagingBuffer->Flush(0, imageData.Size());
 #endif
 
         cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
         cr << InsertBarrier(&image, RS_COPY_DST);
 
-        if (hasMips)
+        if (hasMips || numArrayLayers > 1)
         {
             for (uint8 mipIndex = 0; mipIndex < numMips; mipIndex++)
             {
-                const uint32 mipSize = textureDesc.GetMipByteSize(mipIndex, /* includeArrayLayers */ true);
+                const size_t mipSize = textureDesc.GetMipByteSize(mipIndex, /* includeArrayLayers */ false);
 
 #ifdef HYP_DX12
-                uint32 mipBlockStart = paddedMipOffsets[mipIndex];
+                size_t mipBlockStart = paddedMipOffsets[mipIndex];
 #else
-                uint32 mipBlockStart = 0;
+                size_t mipBlockStart = 0;
 
                 if (mipIndex != 0)
                 {
@@ -291,21 +295,28 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
                     AssertDebug(mipBlockStart != 0);
                 }
 #endif
+                size_t layerOffset = mipBlockStart;
 
-                AssertDebug(mipBlockStart + mipSize <= imageData.Size());
-
-                // Guard against writing out of bounds, in the case of corrupted image data
-                if (mipBlockStart + mipSize > imageData.Size())
+                for (uint16 layerIndex = 0; layerIndex < numArrayLayers; layerIndex++)
                 {
-                    continue;
-                }
+                    AssertDebug(layerOffset + mipSize <= imageData.Size());
 
-                cr << CopyBufferToImage(
-                    stagingBuffer,
-                    &image,
-                    /* byteOffset */ mipBlockStart,
-                    /* dstMipIndex */ mipIndex,
-                    /* dstArrayLayer */ UINT16_MAX);
+                    // Guard against writing out of bounds, in the case of corrupted image data
+                    if (layerOffset + mipSize > imageData.Size())
+                    {
+                        break;
+                    }
+
+                    cr << CopyBufferToImage(
+                        stagingBuffer,
+                        &image,
+                        /* byteOffset */ layerOffset,
+                        /* dstMipIndex */ mipIndex,
+                        /* dstArrayLayer */ layerIndex);
+
+                    layerOffset += mipSize;
+                    layerOffset = ByteUtil::AlignAs(layerOffset, MipAlignment);
+                }
             }
         }
         else
@@ -532,15 +543,22 @@ void Texture::GenerateMipmaps(TextureDesc& desc, ByteBuffer& imageData)
         return;
     }
 
-    // base mip size
-    const uint32 baseMipSize = desc.GetMipByteSize(0, /* includeArrayLayers */ true);
-    AssertDebug(imageData.Size() == baseMipSize);
+    // calculate base mip (all layers), total bytesize
+    size_t baseMipSize = 0;
+    size_t totalSize = 0;
 
-    uint32 totalSize = baseMipSize;
-
-    for (uint32 mip = 1; mip < numMipLevels; mip++)
+    for (uint32 mip = 0; mip < numMipLevels; mip++)
     {
-        totalSize += desc.GetMipByteSize(mip, /* includeArrayLayers */ true);
+        for (uint16 layer = 0; layer < numArrayLayers; layer++)
+        {
+            size_t thisMipAndLayerSize = ByteUtil::AlignAs(desc.GetMipByteSize(mip, /* includeArrayLayers */ false), MipAlignment);
+            totalSize += thisMipAndLayerSize;
+
+            if (mip == 0)
+            {
+                baseMipSize += thisMipAndLayerSize;
+            }
+        }
     }
 
     imageData.SetSize(totalSize);
@@ -686,6 +704,7 @@ void Texture::GenerateMipmaps(TextureDesc& desc, ByteBuffer& imageData)
             imageData.Write(dstMipSize, dstWriteOffset, intermediateBuffer);
 
             dstWriteOffset += dstMipSize;
+            dstWriteOffset = ByteUtil::AlignAs(dstWriteOffset, MipAlignment);
         }
 
         srcBlockStart = currentBlockStart;

@@ -46,6 +46,8 @@
 
 #include <Core/Utilities/DeferredScope.hpp>
 
+#include <Core/IO/ByteWriter.hpp>
+
 #include <Util/Img/Bitmap.hpp>
 
 #include <HyperionEngine.hpp>
@@ -256,32 +258,46 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
 
                 // sanity check
                 Assert(buffer.Size() == desc.GetByteSize(/* allMips */ true));
+                
+                MemoryByteWriter<DynamicAllocator> stream;
 
-                ConstByteView view;
-                view.first = static_cast<const ubyte*>(buffer.Map());
-                view.last = view.first + buffer.Size();
+                const uint8* inData = reinterpret_cast<const uint8*>(buffer.Map());
 
                 // set all mip offsets.
                 desc.mipOffsets = {};
 
                 const uint8 numMips = desc.NumMips();
+                const uint16 numLayers = desc.NumArrayLayers();
 
                 size_t mipOffset = 0;
+
                 for (uint8 mipIndex = 0; mipIndex < numMips; mipIndex++)
                 {
-                    const size_t mipByteSize = desc.GetMipByteSize(mipIndex, /* includeArrayLayers */ true);
+                    const size_t mipOffsetBefore = mipOffset;
+
+                    const size_t mipByteSize = desc.GetMipByteSize(mipIndex, /* includeArrayLayers */ false);
+
+                    for (uint16 layerIndex = 0; layerIndex < numLayers; layerIndex++)
+                    {
+                        stream.Write(inData, mipByteSize);
+
+                        inData += mipByteSize;
+
+                        mipOffset += mipByteSize;
+                        mipOffset = ByteUtil::AlignAs(mipOffset, MipAlignment);
+
+                        stream.Seek(mipOffset);
+                    }
 
                     if (mipIndex > 0)
                     {
-                        desc.mipOffsets[mipIndex - 1] = uint32(mipOffset);
+                        desc.mipOffsets[mipIndex - 1] = static_cast<uint32>(mipOffsetBefore);
                     }
-
-                    mipOffset += mipByteSize;
                 }
 
                 // Update image data and desc
                 bakedTexture->SetTextureDesc(desc);
-                bakedTexture->SetImageData(view);
+                bakedTexture->SetImageData(stream.GetBuffer().ToByteView());
 
                 textureWriteScope.Reset();
 
@@ -560,10 +576,9 @@ void ComputeEnvProbeSphericalHarmonics(const EnvProbe& envProbe, const Texture& 
                         payload.readbackBuffer->Read(sizeof(raw), raw);
 
                         { // Read back the SH coefficients from the GPU buffer and store on the EnvProbe.
-                            SphericalHarmonicsData shData;
-
-                            // Copy data from raw
+                            SphericalHarmonicsData shData {};
                             float* outSH = shData.values;
+
                             const Vec4f* inSH = raw;
                             for (uint32 j = 0; j < 9; j++)
                             {
@@ -766,12 +781,47 @@ void UpdateEnvProbeVisibilityTexture(Frame* frame, EnvProbe* envProbe, bool shou
                 HYP_LOG(Rendering, Info, "Readback of visibility texture for EnvProbe {} completed, size {} bytes", envProbeStrong->GetName(), buffer.Size());
 
                 auto textureWriteScope = visTexture->GetWriteScope();
+                
+                MemoryByteWriter<DynamicAllocator> stream;
 
-                ConstByteView view;
-                view.first = static_cast<const ubyte*>(buffer.Map());
-                view.last = view.first + buffer.Size();
+                const uint8* inData = reinterpret_cast<const uint8*>(buffer.Map());
 
-                visTexture->SetImageData(view);
+                // set all mip offsets.
+                TextureDesc desc = visTexture->GetTextureDesc();
+                desc.mipOffsets = {};
+
+                const uint8 numMips = desc.NumMips();
+                const uint16 numLayers = desc.NumArrayLayers();
+
+                size_t mipOffset = 0;
+
+                for (uint8 mipIndex = 0; mipIndex < numMips; mipIndex++)
+                {
+                    const size_t mipOffsetBefore = mipOffset;
+
+                    const size_t mipByteSize = desc.GetMipByteSize(mipIndex, /* includeArrayLayers */ false);
+
+                    for (uint16 layerIndex = 0; layerIndex < numLayers; layerIndex++)
+                    {
+                        stream.Write(inData, mipByteSize);
+
+                        inData += mipByteSize;
+
+                        mipOffset += mipByteSize;
+                        mipOffset = ByteUtil::AlignAs(mipOffset, MipAlignment);
+
+                        stream.Seek(mipOffset);
+                    }
+
+                    if (mipIndex > 0)
+                    {
+                        desc.mipOffsets[mipIndex - 1] = static_cast<uint32>(mipOffsetBefore);
+                    }
+                }
+
+                // Update image data and desc
+                visTexture->SetTextureDesc(desc);
+                visTexture->SetImageData(stream.GetBuffer().ToByteView());
 
                 textureWriteScope.Reset();
 
