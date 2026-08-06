@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Windows.Input;
 using Hyperion.Editor.Commands;
 using Hyperion.Editor.ViewModels;
@@ -9,28 +10,21 @@ namespace Hyperion.Editor.Services
     {
         public static PanelService Instance { get; } = new PanelService();
 
-        private EditorPanelViewModel? _activePanel;
+        private readonly List<EditorPanelViewModel> _stack = new();
 
-        public EditorPanelViewModel? ActivePanel
-        {
-            get => _activePanel;
-            private set
-            {
-                if (ReferenceEquals(_activePanel, value))
-                    return;
+        public EditorPanelViewModel? ActivePanel => _stack.Count > 0 ? _stack[^1] : null;
 
-                _activePanel = value;
-                ActivePanelChanged?.Invoke(this, EventArgs.Empty);
-            }
-        }
+        public bool CanGoBack => _stack.Count > 1;
 
         public event EventHandler? ActivePanelChanged;
 
         public ICommand CloseCommand { get; }
+        public ICommand BackCommand { get; }
 
         private PanelService()
         {
             CloseCommand = new RelayCommand(ClosePanel);
+            BackCommand = new RelayCommand(GoBack, () => CanGoBack);
         }
 
         public void OpenPanel(EditorPanelViewModel panel)
@@ -38,27 +32,66 @@ namespace Hyperion.Editor.Services
             if (panel == null)
                 throw new ArgumentNullException(nameof(panel));
 
-            if (ReferenceEquals(_activePanel, panel))
+            if (ReferenceEquals(ActivePanel, panel))
                 return;
 
-            if (_activePanel != null)
-            {
-                var closing = _activePanel;
-                _activePanel = null;
-                closing.OnClosed?.Invoke();
-            }
+            _stack.Add(panel);
 
-            ActivePanel = panel;
+            NotifyChanged();
+        }
+
+        public void GoBack()
+        {
+            if (_stack.Count <= 1)
+                return;
+
+            PopTop();
         }
 
         public void ClosePanel()
         {
-            if (_activePanel == null)
+            if (_stack.Count == 0)
                 return;
 
-            var closing = _activePanel;
-            ActivePanel = null;
-            closing.OnClosed?.Invoke();
+            for (int i = _stack.Count - 1; i >= 0; i--)
+            {
+                _stack[i].OnClosed?.Invoke();
+            }
+
+            _stack.Clear();
+
+            NotifyChanged();
+        }
+
+        /// <summary>
+        /// Removes a specific panel from the stack, wherever it sits, e.g. when its
+        /// source data becomes invalid. No-op if the panel isn't on the stack.
+        /// </summary>
+        public void RemovePanel(EditorPanelViewModel panel)
+        {
+            int index = _stack.IndexOf(panel);
+            if (index < 0)
+                return;
+
+            _stack.RemoveAt(index);
+            panel.OnClosed?.Invoke();
+
+            NotifyChanged();
+        }
+
+        private void PopTop()
+        {
+            EditorPanelViewModel top = _stack[^1];
+            _stack.RemoveAt(_stack.Count - 1);
+            top.OnClosed?.Invoke();
+
+            NotifyChanged();
+        }
+
+        private void NotifyChanged()
+        {
+            ActivePanelChanged?.Invoke(this, EventArgs.Empty);
+            (BackCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
     }
 }

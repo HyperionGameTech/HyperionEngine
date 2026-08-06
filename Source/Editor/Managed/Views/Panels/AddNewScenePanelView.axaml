@@ -28,7 +28,7 @@
             </StackPanel>
         </Border>
 
-        <ScrollViewer Padding="4,0">
+        <ScrollViewer Padding="4,0" Offset="{Binding ScrollOffset, Mode=TwoWay}">
             <StackPanel Margin="12,12,12,8" Spacing="12">
                 <StackPanel Spacing="6">
                     <TextBlock Classes="section-label" Text="Scene Name" />

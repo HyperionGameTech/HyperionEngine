@@ -514,6 +514,7 @@ SplitMetalnessRoughnessResult SplitMetalnessRoughnessTexture(
     const TextureDesc& srcDesc = combinedTexture->GetTextureDesc();
 
     auto resGuard = combinedTexture->GetReadScope();
+
     const ConstByteView imageData = combinedTexture->GetImageData();
 
     if (!imageData)
@@ -526,7 +527,6 @@ SplitMetalnessRoughnessResult SplitMetalnessRoughnessTexture(
     const uint32 bytesPerComponent = TextureUtils::BytesPerComponent(srcDesc.format);
     const uint32 width = srcDesc.extent.x;
     const uint32 height = srcDesc.extent.y;
-    const uint32 numPixels = width * height;
 
     if (numComponents < 3 || bytesPerComponent != 1)
     {

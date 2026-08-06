@@ -954,11 +954,19 @@
                                                                     MaxWidth="72" />
                                                             </StackPanel>
                                                             <Border.ContextMenu>
-                                                                <ContextMenu>
+                                                                <ContextMenu Opened="OnAssetContextMenuOpened">
                                                                     <MenuItem
                                                                         Command="{Binding DataContext.ContentBrowser.EditAssetCommand, ElementName=Root}"
                                                                         CommandParameter="{Binding}"
                                                                         Header="_Edit" />
+                                                                    <Separator IsVisible="{Binding HasActions}" />
+                                                                    <MenuItem Header="Actions" IsVisible="{Binding HasActions}" ItemsSource="{Binding Actions}">
+                                                                        <MenuItem.ItemTemplate>
+                                                                            <DataTemplate x:DataType="vm:InspectorActionViewModel">
+                                                                                <MenuItem Command="{Binding ExecuteActionCommand}" Header="{Binding Label}" IsEnabled="{Binding IsEnabled}" />
+                                                                            </DataTemplate>
+                                                                        </MenuItem.ItemTemplate>
+                                                                    </MenuItem>
                                                                     <Separator />
                                                                     <MenuItem
                                                                         Command="{Binding DataContext.ContentBrowser.DeleteAssetCommand, ElementName=Root}"
@@ -1045,16 +1053,26 @@
                     <Grid Grid.Column="4">
                         <DockPanel x:Name="RightPanelHost">
                             <Border Classes="panel-header" DockPanel.Dock="Top" Height="36">
-                                <Grid VerticalAlignment="Center" ColumnDefinitions="*, Auto, Auto">
-                                    <TextBlock
+                                <Grid VerticalAlignment="Center" ColumnDefinitions="Auto, *, Auto, Auto">
+                                    <Button
                                         Grid.Column="0"
+                                        Width="26" Height="26" Padding="0"
+                                        Margin="4,0,0,0"
+                                        VerticalAlignment="Center"
+                                        IsVisible="{Binding CanGoBackPanel}"
+                                        Command="{Binding BackPanelCommand}"
+                                        ToolTip.Tip="Back">
+                                        <LucideIcon Kind="ChevronLeft" Size="14" />
+                                    </Button>
+                                    <TextBlock
+                                        Grid.Column="1"
                                         Margin="6,0"
                                         VerticalAlignment="Center"
                                         Classes="header"
                                         FontSize="12"
                                         Text="{Binding ActivePanel.Title}" />
                                     <Button
-                                        Grid.Column="2"
+                                        Grid.Column="3"
                                         Width="26" Height="26" Padding="0"
                                         VerticalAlignment="Center"
                                         Command="{Binding ClosePanelCommand}"

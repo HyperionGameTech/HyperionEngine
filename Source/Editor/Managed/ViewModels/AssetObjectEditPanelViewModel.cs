@@ -70,10 +70,10 @@ namespace Hyperion.Editor.ViewModels
             SubHeading = hasPath ? assetPath : string.Empty;
             HasSubHeading = hasPath;
 
-            if (SubObject == null && ReferenceEquals(PanelService.Instance.ActivePanel, this))
+            if (SubObject == null)
             {
                 // The property no longer points at anything - there is nothing left to edit.
-                PanelService.Instance.ClosePanel();
+                PanelService.Instance.RemovePanel(this);
             }
         }
     }

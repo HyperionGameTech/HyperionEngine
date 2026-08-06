@@ -25,6 +25,7 @@
 
 #include <Core/Threading/SharedMutex.hpp>
 #include <Core/Threading/ThreadSignal.hpp>
+#include <Core/Threading/Guarded.hpp>
 
 #include <Core/Threading/Util/ThreadId.hpp>
 
@@ -123,7 +124,7 @@ public:
     SparsePagedArray<ShaderMapEntry, 16, ShaderAllocator> m_entries;
 
 #ifdef HYP_EDITOR
-    EditorTaskScope m_editorTask;
+    Guarded<EditorTaskScope> m_editorTask;
 #endif
 
     using CompilingShadersMap = Map<Name, Array<CompileShaderRequest*, ShaderAllocator>, ShaderAllocator, HashTablePolicy::NotPooled>;
@@ -305,33 +306,40 @@ public:
 
         if (m_numCompilingShaders.Get(MemoryOrder::ACQUIRE) == 0)
         {
-            m_editorTask.Reset();
+            m_editorTask.Access([](EditorTaskScope& task)
+                {
+                    task.Reset();
+                });
+
             m_totalNumCompilingShadersForTask.Set(0, MemoryOrder::RELEASE);
         }
         else
         {
             Mutex::Guard guard(m_compilingShadersMutex);
 
-            if (!m_editorTask.GetEditorTask())
-            {
-                m_editorTask = EditorTaskScope(
-                    TickableEditorTask::StaticClass(),
-                    []()
-                    { /* no tick function */ },
-                    "Preparing shaders",
-                    getDescriptionText(),
-                    /* isForegroundTask */ true);
-            }
-            else
-            {
-                m_editorTask.GetEditorTask()->SetDescription(getDescriptionText());
-            }
-
             const uint32 totalNumCompilingShaders = m_totalNumCompilingShadersForTask.Get(MemoryOrder::RELAXED);
             const uint32 numComplingShaders = m_numCompilingShaders.Get(MemoryOrder::RELAXED);
             const uint32 numCompleted = totalNumCompilingShaders - numComplingShaders;
 
-            m_editorTask.GetEditorTask()->SetProgress(static_cast<float>(numCompleted) / static_cast<float>(totalNumCompilingShaders));
+            m_editorTask.Access([&](EditorTaskScope& task)
+                {
+                    if (!task.GetEditorTask())
+                    {
+                        task = EditorTaskScope(
+                            TickableEditorTask::StaticClass(),
+                            []()
+                            { /* no tick function */ },
+                            "Preparing shaders",
+                            getDescriptionText(),
+                            /* isForegroundTask */ true);
+                    }
+                    else
+                    {
+                        task.GetEditorTask()->SetDescription(getDescriptionText());
+                    }
+
+                    task.GetEditorTask()->SetProgress(static_cast<float>(numCompleted) / static_cast<float>(totalNumCompilingShaders));
+                });
         }
     }
 
@@ -414,6 +422,9 @@ public:
 
                 RI.state.boundGraphicsPipeline = nullptr;
             }
+
+            // Ensure *all* of the shaders were compiled (thread signal signalled)
+            request.entry->threadSignal.Wait();
         }
     };
 
@@ -571,10 +582,15 @@ public:
             // double check, as we don't want to overwrite an entry, potentially invalidating references to the compiled shader.
             auto it = m_entryMap.Find(hc);
 
-            if (it == m_entryMap.End())
+            if (it != m_entryMap.End())
             {
-                m_entryMap[hc] = entry;
+                // another thread already created and registered an entry for this shader
+                lock.Reset();
+
+                return GetOrCreate(name, properties, inputLayout, outCacheId, doLoadShader, waitForCompile);
             }
+
+            m_entryMap[hc] = entry;
         }
 
         if (!doLoadShader)

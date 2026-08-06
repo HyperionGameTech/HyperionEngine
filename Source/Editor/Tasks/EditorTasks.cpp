@@ -175,7 +175,7 @@ void GenerateLightmapsEditorTask::Tick()
         SetProgress(totalProgress / float(m_sources.Size()));
 
         SetDescription(numRemaining > 0
-                ? HYP_FORMAT("Baking {} of {} sources", m_sources.Size() - numRemaining, m_sources.Size())
+                ? HYP_FORMAT("Baking {} of {} sources", m_sources.Size() - numRemaining + 1, m_sources.Size())
                 : "Finalizing");
     }
 }

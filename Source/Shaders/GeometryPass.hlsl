@@ -159,21 +159,21 @@ PSOutput PSMain(PSInput input)
     }
  #endif
 
-    if (HAS_TEXTURE(CURRENT_MATERIAL, MetalnessMap))
-    {
-        float4 metalness_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, MetalnessMap, texcoord);
-        float metalness_sample = SelectMaterialChannel(metalness_texture, GET_MATERIAL_METALNESS_CHANNEL(CURRENT_MATERIAL));
+    // if (HAS_TEXTURE(CURRENT_MATERIAL, MetalnessMap))
+    // {
+    //     float4 metalness_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, MetalnessMap, texcoord);
+    //     float metalness_sample = SelectMaterialChannel(metalness_texture, GET_MATERIAL_METALNESS_CHANNEL(CURRENT_MATERIAL));
 
-        metalness = metalness_sample;
-    }
+    //     metalness = metalness_sample;
+    // }
 
-    if (HAS_TEXTURE(CURRENT_MATERIAL, RoughnessMap))
-    {
-        float4 roughness_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, RoughnessMap, texcoord);
-        float roughness_sample = SelectMaterialChannel(roughness_texture, GET_MATERIAL_ROUGHNESS_CHANNEL(CURRENT_MATERIAL));
+    // if (HAS_TEXTURE(CURRENT_MATERIAL, RoughnessMap))
+    // {
+    //     float4 roughness_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, RoughnessMap, texcoord);
+    //     float roughness_sample = SelectMaterialChannel(roughness_texture, GET_MATERIAL_ROUGHNESS_CHANNEL(CURRENT_MATERIAL));
 
-        roughness = roughness_sample;
-    }
+    //     roughness = roughness_sample;
+    // }
 
     // roughness is authored as perceptual roughness; need to convert to physical roughness for the BRDF calculations
     const float perceptualRoughness = roughness;

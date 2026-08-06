@@ -29,7 +29,10 @@ namespace Hyperion.Editor.ViewModels
 
         public EditorPanelViewModel? ActivePanel => PanelService.Instance.ActivePanel;
 
+        public bool CanGoBackPanel => PanelService.Instance.CanGoBack;
+
         public ICommand ClosePanelCommand => PanelService.Instance.CloseCommand;
+        public ICommand BackPanelCommand => PanelService.Instance.BackCommand;
 
         public EditorCommand NewProject => new EditorCommand("NewProject");
         public EditorCommand OpenProject => new EditorCommand("OpenProject");
@@ -843,6 +846,8 @@ namespace Hyperion.Editor.ViewModels
 
         private void HandleCurrentProjectChanged(EditorProject? project, bool isSimulationStateChange)
         {
+            Dispatcher.UIThread.Post(() => PanelService.Instance.ClosePanel());
+
             // Game mode:  when project changes we also want to update the play/pause/stop buttons
             _gameModeChangedHandler?.Remove();
 
@@ -1547,6 +1552,7 @@ namespace Hyperion.Editor.ViewModels
         private void OnActivePanelChanged(object? sender, EventArgs e)
         {
             OnPropertyChanged(nameof(ActivePanel));
+            OnPropertyChanged(nameof(CanGoBackPanel));
         }
     }
 }

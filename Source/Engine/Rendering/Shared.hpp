@@ -476,9 +476,6 @@ struct TextureFormatHelper
         SizedUIntT<BytesPerComponent>>;
 };
 
-// To satisfy D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT and optimalBufferCopyOffsetAlignment:
-static constexpr uint32 MipAlignment = 512;
-
 HYP_STRUCT()
 struct TextureDesc
 {
@@ -631,7 +628,6 @@ struct TextureDesc
     size_t GetMipByteSize(uint8 mipIndex, bool includeArrayLayers = false) const
     {
         const uint32 numMips = NumMips();
-
         if (mipIndex >= numMips)
         {
             return 0;
@@ -639,18 +635,10 @@ struct TextureDesc
 
         const Vec3u mipExtent = GetMipExtent(mipIndex);
 
-        size_t singleLayerSize = (mipExtent.x * mipExtent.y * mipExtent.z)
+        return (mipExtent.x * mipExtent.y * mipExtent.z)
             * TextureUtils::BytesPerComponent(format)
-            * TextureUtils::NumComponents(format);
-
-        singleLayerSize = ByteUtil::AlignAs(singleLayerSize, MipAlignment);
-
-        if (includeArrayLayers)
-        {
-            return singleLayerSize * NumArrayLayers();
-        }
-        
-        return singleLayerSize;
+            * TextureUtils::NumComponents(format)
+            * (includeArrayLayers ? NumArrayLayers() : 1);
     }
 
     HashCode GetHashCode() const

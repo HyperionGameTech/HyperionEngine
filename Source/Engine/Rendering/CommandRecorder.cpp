@@ -65,21 +65,31 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
             {
             case CommandType::BindVertexBuffer:
             {
+                // Waiting on async load
+                if (RI.state.boundGraphicsPipeline == nullptr)
+                {
+                    break;
+                }
+
                 auto* cmd = static_cast<BindVertexBuffer*>(cmdDataPtr);
                 commandBuffer->BindVertexBuffer(cmd->m_buffer);
             }
             break;
             case CommandType::BindIndexBuffer:
             {
+                // Waiting on async load
+                if (RI.state.boundGraphicsPipeline == nullptr)
+                {
+                    break;
+                }
+
                 auto* cmd = static_cast<BindIndexBuffer*>(cmdDataPtr);
                 commandBuffer->BindIndexBuffer(cmd->m_buffer);
             }
             break;
             case CommandType::DrawIndexed:
             {
-                // shader for the currently committed draw state may still be compiling in
-                // the background (see ShaderManager::GetOrCreate's waitForCompile = false
-                // path) - skip the draw and retry once it's ready.
+                // Waiting on async load
                 if (RI.state.boundGraphicsPipeline == nullptr)
                 {
                     break;
@@ -91,6 +101,7 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
             break;
             case CommandType::DrawIndexedIndirect:
             {
+                // Waiting on async load
                 if (RI.state.boundGraphicsPipeline == nullptr)
                 {
                     break;
@@ -105,6 +116,7 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
             break;
             case CommandType::DrawQuad:
             {
+                // Waiting on async load
                 if (RI.state.boundGraphicsPipeline == nullptr)
                 {
                     break;
@@ -491,7 +503,7 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
             case CommandType::CopyImageToBuffer:
             {
                 auto* cmd = static_cast<CopyImageToBuffer*>(cmdDataPtr);
-                cmd->m_image->CopyToBuffer(commandBuffer, cmd->m_buffer, cmd->m_subResource);
+                cmd->m_image->CopyToBuffer(commandBuffer, cmd->m_buffer, cmd->m_subResource, cmd->m_bufferOffset);
             }
             break;
             case CommandType::CopyBufferToImage:

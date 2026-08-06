@@ -105,6 +105,8 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
         bakedTexture->GetFormat(),
         bakedTexture->GetExtent());
 
+    cr << InsertBarrier(dstTexture->GetGpuImage(), RS_SHADER_RESOURCE);
+
     const bool aliasesDestination = inTexture == bakedTexture;
 
     if (inTexture->HasMipMaps() && !aliasesDestination)
@@ -120,6 +122,8 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
             TextureType::Cubemap,
             bakedTexture->GetFormat(),
             inTexture->GetExtent());
+
+        cr << InsertBarrier(srcTexture->GetGpuImage(), RS_SHADER_RESOURCE);
     }
 
     ConvolveProbeConstants constants {};
@@ -235,6 +239,8 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
         cr << InsertBarrier(bakedTexture->GetGpuImage(), RS_SHADER_RESOURCE, subResource);
     }
 
+    cr << InsertBarrier(dstTexture->GetGpuImage(), RS_SHADER_RESOURCE);
+
     // readback on completion and write to cpu-side data if probe is baked
     if (envProbe.IsBaked())
     {
@@ -274,7 +280,6 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
                 for (uint8 mipIndex = 0; mipIndex < numMips; mipIndex++)
                 {
                     const size_t mipOffsetBefore = mipOffset;
-
                     const size_t mipByteSize = desc.GetMipByteSize(mipIndex, /* includeArrayLayers */ false);
 
                     for (uint16 layerIndex = 0; layerIndex < numLayers; layerIndex++)
@@ -284,7 +289,6 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
                         inData += mipByteSize;
 
                         mipOffset += mipByteSize;
-                        mipOffset = ByteUtil::AlignAs(mipOffset, MipAlignment);
 
                         stream.Seek(mipOffset);
                     }
@@ -303,8 +307,7 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
 
                 auto envProbeWriteScope = TUniqueResLock<EnvProbe>(*envProbeStrong);
                 envProbeStrong->SetBakedTexture(bakedTexture);
-            },
-            /* allMips */ true);
+            });
     }
 
     if (envProbe.IsA<SkyProbe>() || envProbe.IsA<ReflectionProbe>())
@@ -806,9 +809,7 @@ void UpdateEnvProbeVisibilityTexture(Frame* frame, EnvProbe* envProbe, bool shou
                         stream.Write(inData, mipByteSize);
 
                         inData += mipByteSize;
-
                         mipOffset += mipByteSize;
-                        mipOffset = ByteUtil::AlignAs(mipOffset, MipAlignment);
 
                         stream.Seek(mipOffset);
                     }

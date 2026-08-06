@@ -1077,8 +1077,6 @@ void VulkanGpuImage::CopyToBuffer(
         aspectFlagBits |= VK_IMAGE_ASPECT_COLOR_BIT;
     }
 
-    size_t bufferOffset = 0;
-
     for (uint8 mipIndex = newSubResource.baseMipLevel; mipIndex < newSubResource.baseMipLevel + newSubResource.numLevels; mipIndex++)
     {
         // copy from staging to image

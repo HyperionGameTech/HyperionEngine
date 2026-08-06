@@ -1,4 +1,8 @@
 using System;
+using System.Collections.ObjectModel;
+using System.Threading;
+using Avalonia.Threading;
+using Hyperion;
 
 namespace Hyperion.Editor.ViewModels
 {
@@ -50,12 +54,61 @@ namespace Hyperion.Editor.ViewModels
             _                                      => "Circle",
         };
 
+        public ObservableCollection<InspectorActionViewModel> Actions { get; } = new ObservableCollection<InspectorActionViewModel>();
+
+        private bool _hasActions;
+        public bool HasActions
+        {
+            get => _hasActions;
+            private set => SetProperty(ref _hasActions, value);
+        }
+
+        private int _isRefreshingActions;
+
         public AssetObjectViewModel(AssetDesc assetDesc, AssetBucketViewModel? bucket = null, string? typeName = null, DateTime? dateModified = null)
         {
             _assetDesc = assetDesc;
             _bucket = bucket;
             _typeName = typeName;
             _dateModified = dateModified;
+        }
+
+        /// <summary>Resolves the live asset object on the sim thread and repopulates <see cref="Actions"/> from its EditorAction-attributed methods (e.g. "Regenerate Mipmaps" on Texture).</summary>
+        public void RefreshActions()
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            if (_bucket == null)
+            {
+                return;
+            }
+
+            if (Interlocked.Exchange(ref _isRefreshingActions, 1) != 0)
+            {
+                return;
+            }
+
+            uint bucketIndex = _bucket.BucketIndex;
+            Name assetName = _assetDesc.Name;
+
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                AssetObject? obj = AssetManager.Instance.AssetRegistry.GetAsset(bucketIndex, assetName);
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    _isRefreshingActions = 0;
+
+                    Actions.Clear();
+
+                    foreach (InspectorActionViewModel actionVm in InspectorActionsHelper.GetActions(obj))
+                    {
+                        Actions.Add(actionVm);
+                    }
+
+                    HasActions = Actions.Count > 0;
+                });
+            });
         }
     }
 }

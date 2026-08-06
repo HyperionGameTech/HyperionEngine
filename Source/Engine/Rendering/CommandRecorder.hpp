@@ -569,9 +569,10 @@ public:
     template <class>
     friend class TCommandRecorder;
 
-    CopyImageToBuffer(GpuImage* image, GpuBuffer* buffer)
+    CopyImageToBuffer(GpuImage* image, GpuBuffer* buffer, size_t bufferOffset = 0)
         : m_image(image),
-          m_buffer(buffer)
+          m_buffer(buffer),
+          m_bufferOffset(bufferOffset)
     {
         // by default, only copy one mip level
         m_subResource = ImageSubResource {};
@@ -581,10 +582,11 @@ public:
         m_subResource.numLevels = 1;
     }
 
-    CopyImageToBuffer(GpuImage* image, GpuBuffer* buffer, const ImageSubResource& subResource)
+    CopyImageToBuffer(GpuImage* image, GpuBuffer* buffer, const ImageSubResource& subResource, size_t bufferOffset = 0)
         : m_image(image),
           m_buffer(buffer),
-          m_subResource(subResource)
+          m_subResource(subResource),
+          m_bufferOffset(bufferOffset)
     {
     }
 
@@ -594,6 +596,7 @@ private:
     GpuImage* m_image;
     GpuBuffer* m_buffer;
     ImageSubResource m_subResource;
+    size_t m_bufferOffset;
 };
 
 class CopyBufferToImage final : public CmdBase

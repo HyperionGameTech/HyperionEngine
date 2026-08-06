@@ -8,7 +8,7 @@
     xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
     x:DataType="vm:AssetObjectEditPanelViewModel"
     mc:Ignorable="d">
-    <ScrollViewer Padding="4,0">
+    <ScrollViewer Padding="4,0" Offset="{Binding ScrollOffset, Mode=TwoWay}">
         <StackPanel Margin="0,12,0,8" Spacing="0">
             <TextBlock
                 Margin="8,0,8,2"

@@ -220,7 +220,8 @@ public:
     virtual void CopyToBuffer(
         CommandBuffer* commandBuffer,
         GpuBuffer* dstBuffer,
-        const ImageSubResource& subResource) const = 0;
+        const ImageSubResource& subResource,
+        size_t bufferOffset = 0) const = 0;
 
     virtual void Fill(
         CommandBuffer* commandBuffer,

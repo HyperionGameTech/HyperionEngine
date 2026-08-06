@@ -1014,7 +1014,8 @@ void DX12GpuImage::CopyFromBuffer(
 void DX12GpuImage::CopyToBuffer(
     DX12CommandBuffer* commandBuffer,
     DX12GpuBuffer* dstBuffer,
-    const ImageSubResource& subResource) const
+    const ImageSubResource& subResource,
+    size_t bufferOffset) const
 {
     AssertDebug(IsCreated(), "Source image is not created");
     AssertDebug(dstBuffer != nullptr, "Destination buffer is null");
@@ -1059,16 +1060,9 @@ void DX12GpuImage::CopyToBuffer(
     srcLocation.pResource = m_resource.Get();
     srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 
-    D3D12_PLACED_SUBRESOURCE_FOOTPRINT placedFootprint {};
-    placedFootprint.Footprint.Format = ToDXGIFormat(m_textureDesc.format);
-    placedFootprint.Offset = 0;
-
     D3D12_TEXTURE_COPY_LOCATION dstLocation {};
     dstLocation.pResource = dstBuffer->GetResource();
     dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-    dstLocation.PlacedFootprint = placedFootprint;
-
-    size_t bufferOffset = 0;
 
     for (uint8 mipIndex = newSubResource.baseMipLevel; mipIndex < newSubResource.baseMipLevel + newSubResource.numLevels; mipIndex++)
     {

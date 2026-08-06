@@ -43,6 +43,11 @@ public:
         return m_allocation.Get();
     }
 
+    HYP_FORCE_INLINE size_t GetAllocationSize() const
+    {
+        return m_size;
+    }
+
     bool IsCreated() const override;
     bool IsOwned() const override;
 
@@ -114,7 +119,8 @@ public:
     void CopyToBuffer(
         DX12CommandBuffer* commandBuffer,
         DX12GpuBuffer* dstBuffer,
-        const ImageSubResource& subResource) const override;
+        const ImageSubResource& subResource,
+        size_t bufferOffset = 0) const override;
 
     void CopyFrom(
         DX12CommandBuffer* commandBuffer,

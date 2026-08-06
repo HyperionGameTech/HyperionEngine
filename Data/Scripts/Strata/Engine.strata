@@ -797,6 +797,8 @@ extern void Scene_GetUniqueNodeName(Scene self, const UTF8StringView baseName, r
 
 // Texture
 extern void Texture_Rename(Texture self, const Name name, ref Result outReturn);
+// requires: HYP_EDITOR
+extern void Texture_RegenerateMipmaps(Texture self);
 
 // Mesh
 extern void Mesh_Rename(Mesh self, const Name name, ref Result outReturn);

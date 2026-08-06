@@ -36,6 +36,11 @@ public:
         return m_handle;
     }
 
+    HYP_FORCE_INLINE size_t GetAllocationSize() const
+    {
+        return m_size;
+    }
+
     bool IsCreated() const override;
     bool IsOwned() const override;
 
@@ -89,7 +94,8 @@ public:
     void CopyToBuffer(
         VulkanCommandBuffer* commandBuffer,
         VulkanGpuBuffer* dstBuffer,
-        const ImageSubResource& subResource) const override;
+        const ImageSubResource& subResource,
+        size_t bufferOffset = 0) const override;
 
     void Fill(
         VulkanCommandBuffer* commandBuffer,
