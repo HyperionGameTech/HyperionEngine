@@ -75,7 +75,7 @@ class ENGINE_API BlobStorage : public ObjectBase
     HYP_OBJECT_BODY(BlobStorage);
 
 public:
-    explicit BlobStorage(bool readOnly = true);
+    explicit BlobStorage(const FilePath& baseDir, bool readOnly = true);
 
     BlobStorage(const BlobStorage& other) = delete;
     BlobStorage& operator=(const BlobStorage& other) = delete;
@@ -84,6 +84,11 @@ public:
     BlobStorage& operator=(BlobStorage&& other) noexcept = delete;
 
     ~BlobStorage();
+
+    HYP_FORCE_INLINE const FilePath& GetBaseDirectory() const
+    {
+        return m_baseDir;
+    }
 
     void Initialize();
     void Shutdown();
@@ -123,6 +128,8 @@ private:
     Result LoadTOC();
 
     Result SaveTOC_Internal();
+
+    FilePath m_baseDir;
 
     // Indexed directly by AssetBucket::GetIndex(); entry 0 (AssetBucket::None) is unused.
     HYP_FIELD()

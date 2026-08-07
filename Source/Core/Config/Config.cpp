@@ -117,7 +117,7 @@ bool ConfigBase::IsChanged() const
 
 FilePath ConfigBase::GetFilePath() const
 {
-    FilePath configPath = CoreApi::GetExecutablePath() / m_name;
+    FilePath configPath = CoreApi::GetExecutablePath() / "Config" / m_name;
 
     if (!configPath.EndsWith(".json"))
     {
@@ -137,7 +137,7 @@ FilePath ConfigBase::GetPlatformFilePath() const
         name = name.Substr(0, name.Length() - 5);
     }
 
-    return CoreApi::GetExecutablePath() / (name + "." HYP_PLATFORM_NAME_STR ".json");
+    return CoreApi::GetExecutablePath() / "Config" / (name + "." HYP_PLATFORM_NAME_STR ".json");
 #else
     return GetFilePath();
 #endif

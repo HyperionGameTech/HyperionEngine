@@ -229,13 +229,14 @@ private:
         return {};
     }
 
-    static Result Cook(AssetRegistry* engineRegistry, AssetRegistry* gameRegistry, const FilePath& gameContentDir)
+    static Result Cook(AssetRegistry* engineRegistry, AssetRegistry* gameRegistry, const FilePath& projectPath)
     {
         GlobalContextScope contextScope { CookingContext() };
 
         EngineGlobals::GetBlobStorage()->Shutdown();
 
-        const FilePath outputContentDir = EngineGlobals::GetCacheDirectory().BasePath() / "Content";
+        const FilePath& cacheDir = EngineGlobals::GetCacheDirectory();
+        const FilePath outputContentDir = cacheDir.BasePath() / "Content";
 
         Array<TSharedResLock<AssetObject>> readLocks;
         Array<CollectedBlob> collectedBlobs;
@@ -265,7 +266,7 @@ private:
 
             Array<Handle<AssetObject>> assetsToCook;
 
-            TResult<Handle<EditorProject>> loadProjectResult = EditorProject::Load(gameContentDir);
+            TResult<Handle<EditorProject>> loadProjectResult = EditorProject::Load(projectPath);
 
             if (loadProjectResult.HasValue())
             {
@@ -288,12 +289,12 @@ private:
 
                 AssetRegistry::WalkAssetDeep(BoxedValue(loadProjectResult.GetValue()), callback);
 
-                HYP_LOG(Assets, Info, "Found {} asset(s) reachable from project at \"{}\"", assetsToCook.Size(), gameContentDir);
+                HYP_LOG(Assets, Info, "Found {} asset(s) reachable from project at \"{}\"", assetsToCook.Size(), projectPath);
             }
             else
             {
                 HYP_LOG(Assets, Warning, "Failed to load EditorProject from \"{}\" ({}), falling back to cooking every asset in the registry",
-                    gameContentDir, loadProjectResult.GetError().GetMessage());
+                    projectPath, loadProjectResult.GetError().GetMessage());
 
                 for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; bucketIndex++)
                 {
@@ -331,7 +332,7 @@ private:
             blocks.PushBack(BlobBlockInfo { bucketIndex, blockSizes[bucketIndex] });
         }
 
-        BlobStorage cookedStorage(/* readOnly */ false);
+        BlobStorage cookedStorage(cacheDir, /* readOnly */ false);
         cookedStorage.Initialize();
 
         if (Result result = cookedStorage.BeginCook(blocks); result.HasError())

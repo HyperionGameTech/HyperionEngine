@@ -9,8 +9,14 @@
 #include <Core/Defines.hpp>
 #include <Core/Types.hpp>
 
+#include <Core/FileSystem/FilePath.hpp>
+
 namespace Hyperion {
 
-bool CacheSync_Download(const char* host, uint16 port, const char* cacheDir);
+namespace CacheSync {
+
+ENGINE_API void SyncCacheBlocking(const FilePath& cacheDir, const FilePath& contentDir);
+
+} // namespace CacheSync
 
 } // namespace Hyperion

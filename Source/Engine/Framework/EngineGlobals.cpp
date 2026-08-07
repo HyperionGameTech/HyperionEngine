@@ -177,15 +177,18 @@ template <auto PackageName>
 HYP_EXPORT const FilePath& GetContentDirectory()
 {
 #ifndef HYP_SHIPPING
-    // Not shipping - Content at base dir of repo, subdir'd by package name.
-    static DirectoryInitializer<HYP_STATIC_STRING("Content").template Concat<HYP_STATIC_STRING("/")>().template Concat<PackageName>(), /* RelativeToExecutablePath */ false> s_contentDir;
-    return s_contentDir.path;
-#else   // HYP_SHIPPING
+    if constexpr (!Memory::StrEqual(PackageName.data, "Game", 4))
+    {
+        // Not shipping - Content at base dir of repo, subdir'd by package name.
+        static DirectoryInitializer<HYP_STATIC_STRING("Content").template Concat<HYP_STATIC_STRING("/")>().template Concat<PackageName>(), /* RelativeToExecutablePath */ false> s_contentDir;
+        return s_contentDir.path;
+    }
+#endif  // !HYP_SHIPPING
+
     // Just use base Content directory at exe path.
     // Everything gets coalesced.
     static DirectoryInitializer<HYP_STATIC_STRING("Content"), /* RelativeToExecutablePath */ true> s_contentDir;
     return s_contentDir.path;
-#endif  // !HYP_SHIPPING
 }
 
 template const FilePath& GetContentDirectory<HYP_STATIC_STRING("Editor")>();
@@ -198,20 +201,22 @@ HYP_EXPORT bool IsShuttingDown()
         && g_engineDriver->IsShuttingDown();
 }
 
-BlobStorage g_blobStorage;
+BlobStorage* g_blobStorage = nullptr;
 
 HYP_EXPORT BlobStorage* GetBlobStorage()
 {
     static std::once_flag s_onceFlag;
     std::call_once(s_onceFlag, []()
                    {
+                       g_blobStorage = new BlobStorage(GetCacheDirectory(), /* readOnly */ true);
+
                        if (!EngineGlobals::IsCooking())
                        {
-                           g_blobStorage.Initialize();
+                           g_blobStorage->Initialize();
                        }
                    });
 
-    return &g_blobStorage;
+    return g_blobStorage;
 }
 
 } // namespace EngineGlobals

@@ -14,6 +14,8 @@
 
 namespace Hyperion {
 
+enum class AssetRegistryId : uint32;
+
 HYP_STRUCT()
 struct BlobEntry
 {
@@ -33,6 +35,9 @@ HYP_STRUCT()
 struct AssetEntry
 {
     HYP_STRUCT_BODY(AssetEntry)
+
+    HYP_FIELD()
+    AssetRegistryId registryId;
 
     HYP_FIELD()
     uint32 bucket_index;

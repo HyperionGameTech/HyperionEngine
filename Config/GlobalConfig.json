@@ -1,7 +1,7 @@
 {
   "App": {
     "Name": "DefaultGame",
-    "Args": "-ResX=1920 -ResY=1080 -Profile=false -HighDPI=true -TraceURL=http://localhost:8000/trace -BaseDir=../../../"
+    "Args": "--ResX=1920 --ResY=1080 --Profile=false --HighDPI=true --TraceURL=http://localhost:8000/trace --BaseDir=../../../ --CacheServer=http://localhost:8080"
   },
   "Logging": {
     "Verbose": false

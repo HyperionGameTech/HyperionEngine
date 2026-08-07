@@ -13,6 +13,7 @@
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/CVarManager.hpp>
 #include <Framework/Game.hpp>
+#include <Framework/CacheSync.hpp>
 
 #include <Framework/Threads/MainThread.hpp>
 #include <Framework/Threads/SimThread.hpp>
@@ -376,6 +377,8 @@ extern "C"
         const bool isEditor = cliArgs["Editor"].ToBool();
         const bool isCommandlet = cliArgs["exec"].ToBool();
 
+        const bool hasCacheServer = !cliArgs["CacheServer"].IsNullOrUndefined();
+
 #if HYP_DOTNET && !defined(HYP_COMMANDLET_NAME)
         if (!isCommandlet)
         {
@@ -544,6 +547,15 @@ extern "C"
             std::exit(commandletResult.HasError() ? 1 : 0);
 
             return 0;
+        }
+
+        // If we have a cache directory, we want to sync into the cache/content dirs using the server
+        if (hasCacheServer)
+        {
+            const FilePath& cacheDir = EngineGlobals::GetCacheDirectory();
+            const FilePath& contentDir = EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Game")>();
+
+            CacheSync::SyncCacheBlocking(cacheDir, contentDir);
         }
 
         g_shaderCompiler = new ShaderCompiler;

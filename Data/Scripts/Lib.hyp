@@ -2113,6 +2113,7 @@ end
 extern class AudioManager
 end
 extern struct AssetEntry
+    RegistryId : AssetRegistryId
     BucketIndex : uint32
     Name : string
     Blobs : Array<BlobEntry>

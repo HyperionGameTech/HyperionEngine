@@ -366,8 +366,9 @@ private:
 
 #pragma region BlobStorage
 
-BlobStorage::BlobStorage(bool readOnly)
-    : m_toc(nullptr),
+BlobStorage::BlobStorage(const FilePath& baseDir, bool readOnly)
+    : m_baseDir(baseDir),
+      m_toc(nullptr),
       m_isReadOnly(readOnly),
       m_isInitialized(false)
 {
@@ -385,21 +386,7 @@ void BlobStorage::Initialize()
         return;
     }
 
-    InitBlobStorage(*this, EngineGlobals::GetCacheDirectory(), /* readOnly */ m_isReadOnly);
-
-    if (const ANSIStringView cacheServer = ANSIStringView(EngineGlobals::GetCacheServerAddress()); cacheServer)
-    {
-        size_t colonPos = cacheServer.FindFirstIndex(":");
-        if (colonPos != String::NotFound)
-        {
-            ANSIStringView host = cacheServer.Substr(0, colonPos);
-            ANSIStringView portStr = cacheServer.Substr(colonPos + 1, SIZE_MAX);
-
-            uint16 port = uint16(std::atoi(portStr.Data()));
-
-            CacheSync_Download(host.Data(), port, EngineGlobals::GetCacheDirectory().Data());
-        }
-    }
+    InitBlobStorage(*this, m_baseDir, /* readOnly */ m_isReadOnly);
 
     if (Result result = LoadTOC(); result.HasError())
     {
@@ -774,7 +761,7 @@ Result BlobStorage::LoadTOC()
 {
     Mutex::Guard guard(m_mutex);
 
-    const FilePath tocPath = EngineGlobals::GetCacheDirectory() / "toc.bin";
+    const FilePath tocPath = m_baseDir / "toc.bin";
 
     if (!tocPath.Exists())
     {
@@ -805,7 +792,7 @@ Result BlobStorage::SaveTOC_Internal()
         m_toc = new BlobTableOfContents;
     }
 
-    const FilePath tocPath = EngineGlobals::GetCacheDirectory() / "toc.bin";
+    const FilePath tocPath = m_baseDir / "toc.bin";
 
     FileByteWriter tocWriter { tocPath };
 

@@ -70,6 +70,8 @@ static constexpr SocketHandle INVALID_SOCK = INVALID_SOCKET;
 
 #endif
 
+HYP_DISABLE_OPTIMIZATION;
+
 namespace Hyperion {
 
 struct CacheServerContext {};
@@ -91,7 +93,6 @@ class CacheServerCommandlet final : public CommandletBase
         CookManifest manifest;
         BlobStorage* blobStorage = nullptr;
         FilePath cacheDir;
-        FilePath contentDir;
         String manifestHmfText;
         Mutex manifestMutex;
         Map<uint64, BlobLookupEntry> blobLookup;
@@ -148,13 +149,12 @@ protected:
 
         ServerState state;
         state.cacheDir = cacheDir;
-        state.contentDir = cacheDir.BasePath() / "Content";
         state.devServer = args["dev"].ToBool();
 
         if (!state.devServer)
         {
             // Open BlobStorage in read-only mode to serve blob data by key
-            state.blobStorage = new BlobStorage(/* readOnly */ true);
+            state.blobStorage = new BlobStorage(cacheDir, /* readOnly */ true);
             state.blobStorage->Initialize();
         }
 
@@ -223,6 +223,7 @@ protected:
                     }
 
                     AssetEntry assetEntry;
+                    assetEntry.registryId = AssetRegistryId::Engine;
                     assetEntry.bucket_index = bucketIndex;
                     assetEntry.name = String(*assetObject->GetName());
 
@@ -261,81 +262,80 @@ protected:
         {
             HYP_LOG(Assets, Error, "No Engine registry!");
         }
-
+        
+        Handle<AssetRegistry> gameRegistry = MakeHandle<AssetRegistry>(AssetRegistryId::Game, cacheDir);
         // Also load the game registry from the content directory
+        if (gameRegistry)
         {
-            Handle<AssetRegistry> gameRegistry = MakeHandle<AssetRegistry>(AssetRegistryId::Game, cacheDir);
-            if (gameRegistry)
+            GlobalContextScope registryScope { AssetRegistryContext { gameRegistry } };
+
+            gameRegistry->LoadAssetDescs();
+
+            HYP_LOG(Assets, Info, "Building manifest for Game assets from '{}'.", cacheDir);
+
+            for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; bucketIndex++)
             {
-                GlobalContextScope registryScope { AssetRegistryContext { gameRegistry } };
+                Array<AssetDesc> assetDescs;
+                gameRegistry->GetBucketAssetDescs(bucketIndex, assetDescs);
 
-                gameRegistry->LoadAssetDescs();
+                const AssetBucket& bucket = *AssetBuckets::AllBuckets[bucketIndex];
 
-                HYP_LOG(Assets, Info, "Building manifest for Game assets from '{}'.", cacheDir);
-
-                for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; bucketIndex++)
+                for (const AssetDesc& assetDesc : assetDescs)
                 {
-                    Array<AssetDesc> assetDescs;
-                    gameRegistry->GetBucketAssetDescs(bucketIndex, assetDescs);
+                    Handle<AssetObject> assetObject = gameRegistry->GetAsset(bucket, assetDesc.name);
 
-                    const AssetBucket& bucket = *AssetBuckets::AllBuckets[bucketIndex];
-
-                    for (const AssetDesc& assetDesc : assetDescs)
+                    if (!assetObject.IsValid() || assetObject->IsTransient())
                     {
-                        Handle<AssetObject> assetObject = gameRegistry->GetAsset(bucket, assetDesc.name);
-
-                        if (!assetObject.IsValid() || assetObject->IsTransient())
-                        {
-                            continue;
-                        }
-
-                        Array<Tuple<const char*, uint16, BlobDataReference*>> blobRefs;
-                        assetObject->CollectBlobDataReferences(blobRefs);
-
-                        if (blobRefs.Empty())
-                        {
-                            continue;
-                        }
-
-                        AssetEntry assetEntry;
-                        assetEntry.bucket_index = bucketIndex;
-                        assetEntry.name = String(*assetObject->GetName());
-
-                        for (auto& tup : blobRefs)
-                        {
-                            BlobDataReference* ref = tup.GetElement<2>();
-
-                            if (!ref->key || ref->size == 0)
-                            {
-                                continue;
-                            }
-
-                            const uint64 key = ref->key.GetHashCode().Value();
-                            const char* magic = tup.GetElement<0>();
-
-                            BlobEntry blobEntry;
-                            blobEntry.key = key;
-                            blobEntry.size = ref->size;
-                            blobEntry.magic = magic;
-
-                            assetEntry.blobs.PushBack(std::move(blobEntry));
-
-                            state.blobLookup[key] = BlobLookupEntry {
-                                bucketIndex,
-                                assetEntry.name,
-                                String(magic),
-                                ref->size
-                            };
-                        }
-
-                        state.manifest.assets.PushBack(std::move(assetEntry));
+                        continue;
                     }
+
+                    Array<Tuple<const char*, uint16, BlobDataReference*>> blobRefs;
+                    assetObject->CollectBlobDataReferences(blobRefs);
+
+                    if (blobRefs.Empty())
+                    {
+                        continue;
+                    }
+
+                    AssetEntry assetEntry;
+                    assetEntry.registryId = AssetRegistryId::Game;
+                    assetEntry.bucket_index = bucketIndex;
+                    assetEntry.name = String(*assetObject->GetName());
+
+                    for (auto& tup : blobRefs)
+                    {
+                        BlobDataReference* ref = tup.GetElement<2>();
+
+                        if (!ref->key || ref->size == 0)
+                        {
+                            continue;
+                        }
+
+                        const uint64 key = ref->key.GetHashCode().Value();
+                        const char* magic = tup.GetElement<0>();
+
+                        BlobEntry blobEntry;
+                        blobEntry.key = key;
+                        blobEntry.size = ref->size;
+                        blobEntry.magic = magic;
+
+                        assetEntry.blobs.PushBack(std::move(blobEntry));
+
+                        state.blobLookup[key] = BlobLookupEntry {
+                            bucketIndex,
+                            assetEntry.name,
+                            String(magic),
+                            ref->size
+                        };
+                    }
+
+                    state.manifest.assets.PushBack(std::move(assetEntry));
                 }
             }
-            else
-            {
-                HYP_LOG(Assets, Warning, "No game asset registry for '{}', skipping.", cacheDir);
-            }
+        }
+        else
+        {
+            HYP_LOG(Assets, Warning, "No game asset registry for '{}', skipping.", cacheDir);
         }
 
         HYP_LOG(Assets, Info, "CacheServer manifest built: {} assets, timestamp={}",
@@ -464,8 +464,14 @@ protected:
             else if (path.StartsWith("/hmf/"))
             {
                 String subPath = path.Substr(5);
-                FilePath hmfPath = state.contentDir / subPath + ".hmf";
+                FilePath hmfPath = gameRegistry->GetRootPath() / subPath + ".hmf";
 
+                // Try Engine content
+                if (!hmfPath.Exists())
+                {
+                    hmfPath = EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Engine")>() / subPath + ".hmf";
+                }
+                
                 if (!hmfPath.Exists())
                 {
                     const char* notFound = "HTTP/1.0 404 Not Found\r\n"
@@ -506,23 +512,44 @@ protected:
                 String sizeStr = query.Substr(sizeStart + 6);
 
                 uint64 keyValue = 0;
+                size_t hexCount = 0;
+
                 for (size_t i = 0; i < keyHex.Size() && keyHex[i] != '&'; i++)
                 {
                     char c = keyHex[i];
-                    keyValue <<= 4;
+                    uint64_t digit;
+
                     if (c >= '0' && c <= '9')
-                        keyValue |= uint64(c - '0');
+                    {
+                        digit = c - '0';
+                    }
                     else if (c >= 'a' && c <= 'f')
-                        keyValue |= uint64(c - 'a' + 10);
+                    {
+                        digit = c - 'a' + 10;
+                    }
                     else if (c >= 'A' && c <= 'F')
-                        keyValue |= uint64(c - 'A' + 10);
+                    {
+                        digit = c - 'A' + 10;
+                    }
                     else
+                    {
                         break;
+                    }
+
+                    if (++hexCount > 16)
+                    {
+                        break;
+                    }
+
+                    keyValue = (keyValue << 4) | digit;
                 }
 
                 uint64 sizeValue = 0;
+
                 for (size_t i = 0; i < sizeStr.Size() && sizeStr[i] >= '0' && sizeStr[i] <= '9'; i++)
+                {
                     sizeValue = sizeValue * 10 + uint64(sizeStr[i] - '0');
+                }
 
                 bool served = false;
 
@@ -541,7 +568,7 @@ protected:
                                 / (entry.assetName + "." + entry.magic + ".raw.blob");
                         };
 
-                        FilePath rawBlobPath = s_getBlobPath(entry, state.contentDir);
+                        FilePath rawBlobPath = s_getBlobPath(entry, gameRegistry->GetRootPath());
 
                         // Try the engine content dir if the blob doesn't exist
                         if (!rawBlobPath.Exists())
