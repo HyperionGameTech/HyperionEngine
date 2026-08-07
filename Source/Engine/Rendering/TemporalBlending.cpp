@@ -20,6 +20,7 @@
 #include <Rendering/TextureViewCache.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
+#include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
 #include <Rendering/Texture.hpp>
 

@@ -21,6 +21,8 @@
 #include <Rendering/DescriptorSet.hpp>
 #include <Rendering/RenderProxy.hpp>
 
+#include <Rendering/Util/ShaderPropertyDictionary.hpp>
+
 #include <Asset/AssetRegistry.hpp>
 
 #ifdef HYP_EDITOR

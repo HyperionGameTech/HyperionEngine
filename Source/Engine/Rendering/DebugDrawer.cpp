@@ -32,6 +32,7 @@
 
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/MeshBuilder.hpp>
+#include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/EngineStats.hpp>

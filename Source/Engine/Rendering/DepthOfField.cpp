@@ -10,6 +10,8 @@
 #include <Rendering/ShaderManager.hpp>
 #include <Rendering/Frame.hpp>
 
+#include <Rendering/Util/ShaderPropertyDictionary.hpp>
+
 namespace Hyperion {
 
 DOFBlur::DOFBlur(const Vec2u& extent, GBuffer* gbuffer)

@@ -28,6 +28,7 @@
 #include <Rendering/StencilMasks.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
+#include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
 #include <Framework/CVarManager.hpp>
 #include <Framework/EngineStats.hpp>

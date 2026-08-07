@@ -38,6 +38,7 @@
 #include <Rendering/Shadows/ShadowMap.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
+#include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
 #include <Scene/View.hpp>
 

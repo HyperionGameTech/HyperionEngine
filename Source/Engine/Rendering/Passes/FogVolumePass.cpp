@@ -4,7 +4,6 @@
  *  @licence MIT
  */
 
-#include "CommandRecorder.hpp"
 #include <RenderingPch.hpp>
 
 #include <Rendering/Passes/FogVolumePass.hpp>
@@ -24,12 +23,14 @@
 #include <Rendering/CBufferAllocator.hpp>
 #include <Rendering/ShaderManager.hpp>
 #include <Rendering/DepthPyramidRenderer.hpp>
+#include <Rendering/CommandRecorder.hpp>
 
 #include <Rendering/Shadows/ShadowMapCache.hpp>
 #include <Rendering/Shadows/ShadowMap.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/MeshBuilder.hpp>
+#include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
 #include <Scene/View.hpp>
 #include <Scene/FogVolume.hpp>

@@ -27,7 +27,7 @@ public:
     ShaderPropertyDictionary() = default;
     virtual ~ShaderPropertyDictionary() override = default;
 
-    static ShaderPropertyDictionary& GetInstance();
+    static ENGINE_API ShaderPropertyDictionary& GetInstance();
 };
 
 void InitShaderPropertyDictionary();
@@ -37,5 +37,32 @@ void ReadShaderPropertyDictionary(ByteReader& stream);
 
 ShaderPropertyId InternShaderProperty(const ShaderProperty& property);
 bool GetShaderPropertyById(ShaderPropertyId propertyId, ShaderProperty& outProperty);
+
+// ====================
+
+inline void InitShaderPropertyDictionary()
+{
+    ShaderPropertyDictionary::GetInstance().Initialize();
+}
+
+inline void WriteShaderPropertyDictionary(ByteWriter& stream)
+{
+    ShaderPropertyDictionary::GetInstance().Write(stream);
+}
+
+inline void ReadShaderPropertyDictionary(ByteReader& stream)
+{
+    ShaderPropertyDictionary::GetInstance().Read(stream);
+}
+
+inline ShaderPropertyId InternShaderProperty(const ShaderProperty& property)
+{
+    return ShaderPropertyDictionary::GetInstance().Intern(property);
+}
+
+inline bool GetShaderPropertyById(ShaderPropertyId propertyId, ShaderProperty& outProperty)
+{
+    return ShaderPropertyDictionary::GetInstance().GetById(propertyId, outProperty);
+}
 
 } // namespace Hyperion

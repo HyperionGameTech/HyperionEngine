@@ -21,6 +21,7 @@
 #include <Rendering/Shadows/ShadowMapCache.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
+#include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
 #include <Scene/View.hpp>
 

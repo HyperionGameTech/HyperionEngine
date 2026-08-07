@@ -30,9 +30,10 @@
 
 #include <Rendering/Passes/DeferredPass.hpp>
 
-#include <Framework/CVarManager.hpp>
-
 #include <Rendering/Util/DeletionQueue.hpp>
+#include <Rendering/Util/ShaderPropertyDictionary.hpp>
+
+#include <Framework/CVarManager.hpp>
 
 #include <Core/Utilities/DeferredScope.hpp>
 

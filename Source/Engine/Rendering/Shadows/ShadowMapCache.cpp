@@ -14,6 +14,7 @@
 #include <Rendering/TextureViewCache.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
+#include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
 #include <Core/Containers/FlatMap.hpp>
 

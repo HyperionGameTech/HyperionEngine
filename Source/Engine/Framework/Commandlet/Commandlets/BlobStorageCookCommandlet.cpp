@@ -28,6 +28,10 @@
 #include <Asset/AssetBucket.hpp>
 #include <Asset/BlobStorage.hpp>
 
+#include <Rendering/Shared.hpp>
+
+#include <Rendering/Util/ShaderPropertyDictionary.hpp>
+
 #ifdef HYP_EDITOR
 #include <Editor/EditorProject.hpp>
 #endif // HYP_EDITOR
@@ -351,7 +355,22 @@ private:
             }
         }
 
-        return cookedStorage.FinishCook();
+        if (Result result = cookedStorage.FinishCook(); result.HasError())
+        {
+            return result;
+        }
+
+        // Write the shader property dictionary so the runtime can resolve
+        // ShaderProperty names to their interned IDs (used by ShaderPropertySet).
+        {
+            const FilePath shaderPropertyDbPath = EngineGlobals::GetCacheDirectory() / "shaderprops.bin";
+
+            FileByteWriter writer { shaderPropertyDbPath };
+            WriteShaderPropertyDictionary(writer);
+            writer.Close();
+        }
+
+        return {};
     }
 };
 
