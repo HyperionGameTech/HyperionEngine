@@ -125,24 +125,24 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
     private void runEngineLoop() {
         Log.i(TAG, "Hyperion runEngineLoop()");
 
-        // Extract Cache/ assets to internal storage so the engine's blob storage
-        // can memory-map them (APK assets can't be mmap'd).
         File internalCacheDir = new File(getFilesDir(), "EngineCache");
+        internalCacheDir.mkdirs();
 
-        if (internalCacheDir.exists()) {
-            Log.i(TAG, "Cache directory exists at " + internalCacheDir.getAbsolutePath());
-        } else {
-            internalCacheDir.mkdirs();
-            try {
-                copyAssetFolder("Cache", internalCacheDir);
-
-                Log.i(TAG, "Extracted cache assets to " + internalCacheDir.getAbsolutePath());
-            } catch (IOException e) {
-                Log.e(TAG, "Failed to extract cache assets: " + e.getMessage());
-            }
+        String cacheServer = getIntent().getStringExtra("cacheServer");
+        if (cacheServer == null || cacheServer.isEmpty()) {
+            Log.e(TAG, "No cache server configured. Pass -e cacheServer <host>:<port>");
+            return;
         }
 
+        String[] parts = cacheServer.split(":");
+        String host = parts[0];
+        int port = Integer.parseInt(parts.length > 1 ? parts[1] : "8080");
+
         HyperionBridge.nativeSetCacheDirectory(internalCacheDir.getAbsolutePath());
+        if (!HyperionBridge.nativeSyncCache(host, port)) {
+            Log.e(TAG, "Failed to sync cache from " + cacheServer);
+            return;
+        }
 
         int result = HyperionBridge.nativeInit();
         if (result == 0) {

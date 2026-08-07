@@ -45,12 +45,8 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 
-    // The blob storage pages under Cache/ (storage.Textures.bin, storage.Shaders.bin, ...)
-    // are already-dense binary blobs and can be hundreds of MB to multiple GB each.
-    // Deflate-compressing them blows well past the JVM heap (OOM in
-    // CompressAssetsWorkAction) for no real size benefit - store them as-is instead.
+    // Cache files are served via the cache server, not bundled in the APK.
     androidResources {
-        noCompress += ['bin', 'toc']
     }
 
     sourceSets {
@@ -179,7 +175,10 @@ tasks.register('stagePackageAssets', Copy) {
 
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
-    from(file(hypPackageDir)) into assetsDestDir
+    from(file(hypPackageDir)) {
+        exclude 'Cache/**'
+    }
+    into assetsDestDir
 }
 
 preBuild.dependsOn 'stageNativeLibs', 'stagePackageAssets'

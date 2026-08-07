@@ -18,6 +18,7 @@
 
 #include <Core/Utilities/ByteUtil.hpp>
 #include <Core/Utilities/GlobalContext.hpp>
+#include <Core/Utilities/Time.hpp>
 
 #include <Core/Containers/Set.hpp>
 
@@ -27,6 +28,8 @@
 #include <Asset/AssetObject.hpp>
 #include <Asset/AssetBucket.hpp>
 #include <Asset/BlobStorage.hpp>
+#include <Asset/CookManifest.hpp>
+#include <Asset/SerializationUtils.hpp>
 
 #include <Rendering/Shared.hpp>
 
@@ -368,6 +371,35 @@ private:
             FileByteWriter writer { shaderPropertyDbPath };
             WriteShaderPropertyDictionary(writer);
             writer.Close();
+        }
+
+        // Write the cook manifest so cache consumers (e.g. Android app via cache server)
+        // know what files to download and can compare timestamps for incremental updates.
+        {
+            CookManifest cookManifest;
+            cookManifest.cook_timestamp_ms = uint64(Time::Now());
+
+            for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; bucketIndex++)
+            {
+                if (blockSizes[bucketIndex] > 0)
+                {
+                    cookManifest.files.PushBack(String(GetAssetBucketName(bucketIndex)) + ".bin");
+                }
+            }
+
+            cookManifest.files.PushBack("toc.bin");
+
+            String hmfText;
+            ObjectToHMF(GetClass<CookManifest>(), BoxedValue(&cookManifest), hmfText);
+
+            const FilePath manifestPath = EngineGlobals::GetCacheDirectory() / "cook_manifest.hmf";
+
+            FileByteWriter manifestWriter { manifestPath };
+            if (manifestWriter.IsOpen())
+            {
+                manifestWriter.WriteString(hmfText.ToUtf8());
+                manifestWriter.Close();
+            }
         }
 
         return {};

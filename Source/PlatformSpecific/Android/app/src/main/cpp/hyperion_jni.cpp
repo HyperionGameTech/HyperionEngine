@@ -38,6 +38,8 @@ extern "C"
     void Hyp_TextInputEvent(const char* text);
 
     void Hyp_Android_InitJNI(JNIEnv* env, jclass hyperionBridgeClass);
+
+    bool Hyp_SyncCache(const char* host, uint16 port, const char* cacheDir);
 }
 
 extern "C" JNIEXPORT jint JNICALL
@@ -141,6 +143,16 @@ Java_com_hyperion_engine_HyperionBridge_nativeSetAssetManager(JNIEnv* env, jclas
     {
         Hyp_SetAssetManager(nullptr);
     }
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_hyperion_engine_HyperionBridge_nativeSyncCache(JNIEnv* env, jclass /*clazz*/, jstring host, jint port)
+{
+    const char* hostStr = env->GetStringUTFChars(host, nullptr);
+    bool result = Hyp_SyncCache(hostStr, uint16(port), g_cacheDirPath);
+    env->ReleaseStringUTFChars(host, hostStr);
+
+    return result ? JNI_TRUE : JNI_FALSE;
 }
 
 extern "C" JNIEXPORT void JNICALL
