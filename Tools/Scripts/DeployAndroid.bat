@@ -27,7 +27,19 @@ set "BIN_DIR=%HYP_ROOT_DIR%Binaries\Android\Release"
 
 REM ---- Find latest packaged build that still has Content ----
 set "PACKAGE_DIR="
-if exist "%BUILDS_DIR%" (
+
+REM Read from the persistent file written by PackageBuildAndroid.bat
+set "PKG_FILE=%ANDROID_PROJECT%\.hyperion-package"
+if exist "%PKG_FILE%" (
+    for /f "usebackq delims=" %%D in ("%PKG_FILE%") do (
+        if exist "%%D\Content" (
+            set "PACKAGE_DIR=%%D"
+        )
+    )
+)
+
+REM Fallback: scan PackagedBuilds for latest with Content
+if not defined PACKAGE_DIR if exist "%BUILDS_DIR%" (
     for /f "delims=" %%D in ('dir "%BUILDS_DIR%" /ad /b /o-n 2^>nul') do (
         if exist "%BUILDS_DIR%\%%D\Content" (
             set "PACKAGE_DIR=%BUILDS_DIR%\%%D"

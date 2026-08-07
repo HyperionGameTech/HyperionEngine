@@ -128,14 +128,20 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
         // Extract Cache/ assets to internal storage so the engine's blob storage
         // can memory-map them (APK assets can't be mmap'd).
         File internalCacheDir = new File(getFilesDir(), "EngineCache");
-        if (!internalCacheDir.exists()) {
+
+        if (internalCacheDir.exists()) {
+            Log.i(TAG, "Cache directory exists at " + internalCacheDir.getAbsolutePath());
+        } else {
             internalCacheDir.mkdirs();
             try {
                 copyAssetFolder("Cache", internalCacheDir);
+
+                Log.i(TAG, "Extracted cache assets to " + internalCacheDir.getAbsolutePath());
             } catch (IOException e) {
                 Log.e(TAG, "Failed to extract cache assets: " + e.getMessage());
             }
         }
+
         HyperionBridge.nativeSetCacheDirectory(internalCacheDir.getAbsolutePath());
 
         int result = HyperionBridge.nativeInit();

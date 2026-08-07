@@ -145,19 +145,22 @@ tasks.register('stageNativeLibs') {
     }
 }
 
-// Stage a packaged build into assets/.
-//
-// Pass -PhypPackageDir=<path> to point at a folder produced by PackageBuildAndroid.bat and
-// this task just mirrors that folder wholesale - that script is now the single place that
-// knows how to assemble a package (cooked content, platform-resolved configs, fonts,
-// scripts, noise data), instead of this task reaching into the repo root itself.
-//
-// Without it (e.g. `gradlew assembleDebug` from Android Studio, or DeployAndroid.bat), it
-// falls back to staging just the config jsons directly from the repo so local iteration
-// still has something to run against.
-def baseConfigDir = file("../../../../Config")
 def assetsDestDir = file('src/main/assets')
 def hypPackageDir = project.findProperty('hypPackageDir')
+
+// Fallback: read the package path from a file written by PackageBuildAndroid.bat
+if (!hypPackageDir) {
+    def pkgFile = file('../.hyperion-package')
+    if (pkgFile.exists()) {
+        hypPackageDir = pkgFile.text.trim()
+        if (!new File(hypPackageDir).exists()) {
+            logger.warn("[hyperion] Package dir from .hyperion-package does not exist: ${hypPackageDir}")
+            hypPackageDir = null
+        } else {
+            logger.lifecycle("[hyperion] Using package dir from .hyperion-package: ${hypPackageDir}")
+        }
+    }
+}
 
 // Copy only overlays files, it never removes ones that used to be here - without this,
 // switching between package dirs (or between a packaged release and a plain assembleDebug)
@@ -176,27 +179,7 @@ tasks.register('stagePackageAssets', Copy) {
 
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
-    if (hypPackageDir) {
-        from(file(hypPackageDir))
-    } else {
-        from(baseConfigDir) {
-            include '*.Android.json'
-            rename '(.+)\\.Android\\.json$', '$1.json'
-        }
-        from(baseConfigDir) {
-            include '*.json'
-            exclude '*.Android.json'
-            exclude '*.IOS.json'
-            exclude '*.Windows.json'
-            exclude '*.Mac.json'
-            exclude '*.Linux.json'
-        }
-        from(baseConfigDir) {
-            include 'Shaders.hmf'
-        }
-    }
-
-    into assetsDestDir
+    from(file(hypPackageDir)) into assetsDestDir
 }
 
 preBuild.dependsOn 'stageNativeLibs', 'stagePackageAssets'

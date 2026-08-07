@@ -30,8 +30,6 @@
 
 namespace Hyperion {
 
-static const ShaderPropertyId s_propOutputSDR = InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("SDR")));
-
 extern CVar<bool> g_cvBloom;
 extern CVar<float> g_cvTonemapExposure;
 
@@ -55,7 +53,6 @@ void TonemapPass::Resize_Internal(Vec2u newSize)
 void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
 {
     ShaderPropertySet shaderProperties;
-    shaderProperties.Add(s_propOutputSDR);
     shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("EXPOSURE"), g_cvTonemapExposure.Get())));
     m_shaderDesc = ShaderDesc(NAME("Tonemap"), shaderProperties);
 

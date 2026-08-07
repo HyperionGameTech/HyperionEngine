@@ -1509,6 +1509,7 @@ ShaderCompiler::~ShaderCompiler()
     if (m_definitions)
     {
         delete m_definitions;
+        m_definitions = nullptr;
     }
 }
 
@@ -1664,7 +1665,7 @@ bool ShaderCompiler::LoadBundle(
     }
 #endif
 
-    if (!m_definitions || !m_definitions->definitions.Empty())
+    if (!m_definitions)
     {
         if (!Initialize(m_isPrecompilingShaders))
         {
@@ -1754,9 +1755,6 @@ bool ShaderCompiler::Initialize(bool precompileShaders, const ShaderCompileParam
             {
                 HYP_LOG(ShaderCompiler, Error, "Failed to open shader definitions file at path: {}", shadersPath);
 
-                delete m_definitions;
-                m_definitions = nullptr;
-
                 return false;
             }
 
@@ -1768,18 +1766,12 @@ bool ShaderCompiler::Initialize(bool precompileShaders, const ShaderCompileParam
             {
                 HYP_LOG(ShaderCompiler, Error, "Failed to parse shader definitions file: {}", parseResult.GetError().GetMessage());
 
-                delete m_definitions;
-                m_definitions = nullptr;
-
                 return false;
             }
 
             if (!parseResult.GetValue().Is<ShaderDefinitions>())
             {
                 HYP_LOG(ShaderCompiler, Error, "Parsed result is not a ShaderDefinitions instance");
-
-                delete m_definitions;
-                m_definitions = nullptr;
 
                 return false;
             }

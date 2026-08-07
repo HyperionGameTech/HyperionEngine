@@ -158,6 +158,8 @@ namespace Hyperion
                         ScriptPtr = entry.Value.Address
                     });
 
+                    scriptsToRemove.Add(new(entry.Key, entry.Value.Get().Language));
+
                     continue;
                 }
 
