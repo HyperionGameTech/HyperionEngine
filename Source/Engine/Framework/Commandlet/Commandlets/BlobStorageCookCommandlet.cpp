@@ -390,7 +390,12 @@ private:
             cookManifest.files.PushBack("toc.bin");
 
             String hmfText;
-            ObjectToHMF(GetClass<CookManifest>(), BoxedValue(&cookManifest), hmfText);
+            Result res = ObjectToHMF(GetClass<CookManifest>(), BoxedValue(&cookManifest), hmfText);
+
+            if (res.HasError())
+            {
+                return res.GetError();
+            }
 
             const FilePath manifestPath = EngineGlobals::GetCacheDirectory() / "cook_manifest.hmf";
 

@@ -76,7 +76,7 @@ struct ToJSONOptions
  *  \param outJson The output Value.
  *  \return True if conversion was successful, false otherwise.
  */
-Result BoxedToJSON(
+ENGINE_API Result BoxedToJSON(
     const BoxedValue& value,
     JSON::Value& outJson,
     ToJSONOptions* pOptions = nullptr);
@@ -91,7 +91,7 @@ Result BoxedToJSON(
  *  \param outJson The output Object.
  *  \return True if serialization was successful, false otherwise.
  */
-Result ObjectToJSON(
+ENGINE_API Result ObjectToJSON(
     const Class* cls,
     const BoxedValue& target,
     JSON::Object& outJson,
@@ -104,7 +104,7 @@ Result ObjectToJSON(
  *  \param outBoxed The output BoxedValue.
  *  \return True if conversion was successful, false otherwise.
  */
-Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, BoxedValue& outBoxed);
+ENGINE_API Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, BoxedValue& outBoxed);
 
 /*! \brief Deserializes a Object to a BoxedValue object.
  *  Only fields and properties of the Class are deserialized.
@@ -115,7 +115,7 @@ Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Box
  *  \param target The output BoxedValue object.
  *  \return True if deserialization was successful, false otherwise.
  */
-Result ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, BoxedValue& target);
+ENGINE_API Result ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, BoxedValue& target);
 
 #pragma endregion JSON
 
@@ -145,13 +145,13 @@ struct ToHMFOptions
     FollowAssetPathsMode followAssetPaths = FollowAssetPathsMode::MatchingAttribute;
 };
 
-Result BoxedToHMF(
+ENGINE_API Result BoxedToHMF(
     const BoxedValue& value,
     String& outText,
     const TypeInfo* declaredTypeInfo = nullptr,
     ToHMFOptions* pOptions = nullptr);
 
-Result ObjectToHMF(
+ENGINE_API Result ObjectToHMF(
     const Class* cls,
     const BoxedValue& target,
     String& outText,
@@ -161,21 +161,21 @@ Result ObjectToHMF(
 
 #pragma region Shared
 
-void WalkBoxedValue(
+ENGINE_API void WalkBoxedValue(
     const BoxedValue& target,
     const ProcRef<void(const BoxedValue& current)>& func);
 
 /*! \brief Resets all members marked with the Transient attribute to their default values.
  *  Used when cloning objects to prevent transient runtime state from being copied.
  *  \param value The BoxedValue to strip transient members from (modified in place). */
-void StripTransientMembers(BoxedValue& value);
+ENGINE_API void StripTransientMembers(BoxedValue& value);
 
 /*! \brief Creates a clone of the source BoxedValue with all transient members reset to defaults.
  *  Creates a new default instance of the same type, then copies only non-transient members.
  *  \param src The source BoxedValue to clone.
  *  \param outDst The output BoxedValue (will be overwritten with the cleaned clone).
  *  \return True if the clone was successful. */
-bool CloneWithoutTransientMembers(const BoxedValue& src, BoxedValue& outDst);
+ENGINE_API bool CloneWithoutTransientMembers(const BoxedValue& src, BoxedValue& outDst);
 
 #pragma endregion Shared
 

@@ -54,7 +54,7 @@ thread_local Set<Pair<TypeId, const void*>> t_serializedObjects;
 // otherwise we won't know to deserialize it as a Dog.
 static constexpr bool ForceWriteClassNamesWhenTypesDiffer = true;
 
-Result BoxedToJSON(
+ENGINE_API Result BoxedToJSON(
     const BoxedValue& value,
     JSON::Value& outJson,
     ToJSONOptions* pOptions)
@@ -717,7 +717,7 @@ Result BoxedToJSON(
     return HYP_MAKE_ERROR(Error, "Don't know how to serialize BoxedValue with type \"{}\" to JSON", typeInfo.name);
 }
 
-Result ObjectToJSON(const Class* cls, const BoxedValue& target, JSON::Object& outJson, ToJSONOptions* pOptions)
+ENGINE_API Result ObjectToJSON(const Class* cls, const BoxedValue& target, JSON::Object& outJson, ToJSONOptions* pOptions)
 {
     static ToJSONOptions s_defaultOptions;
     if (!pOptions)
@@ -996,7 +996,7 @@ Result ObjectToJSON(const Class* cls, const BoxedValue& target, JSON::Object& ou
     return {};
 }
 
-Result ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, BoxedValue& target)
+ENGINE_API Result ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, BoxedValue& target)
 {
     auto ResolveMember = [&target](const IMember& member, const JSON::Value& value) -> bool
     {
@@ -1226,7 +1226,7 @@ Result ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, 
     return {};
 }
 
-Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, BoxedValue& outBoxed)
+ENGINE_API Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, BoxedValue& outBoxed)
 {
     if (typeInfo.IsBoolType())
     {
@@ -2043,7 +2043,7 @@ Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Box
                           typeInfo.name, jsonValue.ToString(true));
 }
 
-void WalkBoxedValue(
+ENGINE_API void WalkBoxedValue(
     const BoxedValue& target,
     const ProcRef<void(const BoxedValue& current)>& func)
 {
@@ -2193,7 +2193,7 @@ void WalkBoxedValue(
     }
 }
 
-void StripTransientMembers(BoxedValue& value)
+ENGINE_API void StripTransientMembers(BoxedValue& value)
 {
     if (!value.IsValid())
     {
@@ -2260,7 +2260,7 @@ void StripTransientMembers(BoxedValue& value)
     }
 }
 
-bool CloneWithoutTransientMembers(const BoxedValue& src, BoxedValue& outDst)
+ENGINE_API bool CloneWithoutTransientMembers(const BoxedValue& src, BoxedValue& outDst)
 {
     if (!src.IsValid())
     {
