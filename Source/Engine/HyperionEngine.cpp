@@ -547,9 +547,9 @@ extern "C"
         }
 
         g_shaderCompiler = new ShaderCompiler;
-        if (!g_shaderCompiler->LoadShaderDefinitions())
+        if (!g_shaderCompiler->Initialize())
         {
-            HYP_LOG(Engine, Error, "Failed to load shader definitions!");
+            HYP_LOG(Engine, Error, "Failed to initialize shader compiler!");
         }
 
 #if HYP_WINDOWS

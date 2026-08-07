@@ -107,6 +107,17 @@ HYP_EXPORT const FilePath& GetCacheDirectory()
     return s_cacheDirectory;
 }
 
+HYP_EXPORT const FilePath& GetConfigDirectory()
+{
+#ifndef HYP_SHIPPING
+    static DirectoryInitializer<HYP_STATIC_STRING("Config"), /* RelativeToExecutablePath */ false> s_configDirectory;
+    return s_configDirectory.path;
+#else
+    static DirectoryInitializer<HYP_STATIC_STRING("Config"), /* RelativeToExecutablePath */ true> s_configDirectory;
+    return s_configDirectory.path;
+#endif
+}
+
 HYP_EXPORT const FilePath& GetTempDirectory()
 {
 #if HYP_ANDROID

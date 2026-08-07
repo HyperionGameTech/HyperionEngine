@@ -191,9 +191,9 @@ protected:
 
         const ShaderCompileParams params = ParseCompileParams(args);
 
-        if (!g_shaderCompiler->LoadShaderDefinitions(/* precompileShaders */ true, params))
+        if (!g_shaderCompiler->Initialize(/* precompileShaders */ true, params))
         {
-            return HYP_MAKE_ERROR(Error, "Failed to load shader definitions");
+            return HYP_MAKE_ERROR(Error, "Failed to initialize shader compiler");
         }
 
         HYP_LOG(Engine, Info, "Shader precompilation complete");

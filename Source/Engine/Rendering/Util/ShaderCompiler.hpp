@@ -15,6 +15,9 @@
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/String.hpp>
 
+#include <Rendering/Util/ShaderDefinitions.hpp>
+#include <Core/Containers/String.hpp>
+
 #include <Core/Utilities/Variant.hpp>
 #include <Core/Utilities/StringUtil.hpp>
 
@@ -30,6 +33,7 @@
 namespace Hyperion {
 
 struct ShaderInputGroup;
+struct ShaderDefinitions;
 class Shader;
 
 static constexpr const char* DefaultEntryPointNames[NumShaderModuleTypes] = {
@@ -704,7 +708,8 @@ public:
 
     bool CanCompileShaders() const;
     bool CanCompileShaders(const ShaderCompileParams& params) const;
-    bool LoadShaderDefinitions(bool precompileShaders = false, const ShaderCompileParams& params = ShaderCompileParams());
+
+    bool Initialize(bool precompileShaders = false, const ShaderCompileParams& params = ShaderCompileParams());
 
     bool RequestShader(
         Name name,
@@ -731,6 +736,10 @@ public:
     }
 
 private:
+    static void ParseShaderBundleDecl(
+        const ShaderDefinition& definition,
+        ShaderBundleDecl& outDecl);
+
     ProcessResult ProcessShaderSource(
         ProcessShaderSourcePhase phase,
         ShaderModuleType type,
@@ -738,10 +747,6 @@ private:
         const String& source,
         const String& filename,
         const ShaderVariantPerms& perm);
-
-    void ParseDefinitionSection(
-        const INIFile::Section& section,
-        ShaderBundleDecl& outDecl);
 
     bool HandleBundle(
         ShaderBundleDecl& decl,
@@ -759,7 +764,7 @@ private:
         Optional<ShaderRequest> shaderRequest,
         Handle<ShaderBundle>& outBundle);
 
-    INIFile* m_definitions;
+    ShaderDefinitions* m_definitions;
     Array<ShaderBundleDecl> m_shaderBundleDecls;
     bool m_isPrecompilingShaders;
     ShaderCompileParams m_compileParams;

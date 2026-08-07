@@ -44,7 +44,7 @@ public:
     bool Parse(BoxedValue& out, bool moveResult = true);
 
 private:
-    bool ParseObjectBody(const Class* cls, BoxedValue& target);
+    bool ParseObjectBody(const Class* cls, BoxedValue& target, const UTF8StringView& objectName = UTF8StringView {});
     bool ParseValue(const TypeInfo& typeInfo, BoxedValue& out);
 
     bool ParseBoolValue(BoxedValue& out);

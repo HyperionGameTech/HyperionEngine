@@ -95,11 +95,11 @@ bool Parser::Parse()
         return false;
     }
 
-    // Optional instance-name string (`Texture "Checkerboard" { ... }`)
-    String instanceName;
+    String objectName;
+
     if (Peek().GetTokenClass() == TK_STRING)
     {
-        instanceName = Next().GetValue();
+        objectName = Next().GetValue();
     }
 
     if (!Expect(TK_OPEN_BRACE, "{"))
@@ -134,7 +134,7 @@ bool Parser::Parse()
         }
     }
 
-    if (!ParseObjectBody(cls, *m_target))
+    if (!ParseObjectBody(cls, *m_target, objectName))
     {
         return false;
     }
@@ -144,21 +144,13 @@ bool Parser::Parse()
         return false;
     }
 
-    if (!instanceName.Empty())
-    {
-        const Name nameValue = CreateNameFromDynamicString(instanceName.Data());
-
-        if (Property* nameProp = cls->GetProperty("Name"_sh))
-        {
-            nameProp->Set(*m_target, BoxedValue(nameValue));
-        }
-    }
-
     return true;
 }
 
-bool Parser::ParseObjectBody(const Class* cls, BoxedValue& target)
+bool Parser::ParseObjectBody(const Class* cls, BoxedValue& target, const UTF8StringView& objectName)
 {
+    const SourceLocation currLocation = Peek().GetLocation();
+
     while (Peek().GetTokenClass() != TK_CLOSE_BRACE && Peek().GetTokenClass() != TK_EMPTY)
     {
         if (Peek().GetTokenClass() == TK_COMMA)
@@ -227,7 +219,7 @@ bool Parser::ParseObjectBody(const Class* cls, BoxedValue& target)
             if (!static_cast<const Property*>(member)->CanSet())
             {
                 // Dispatch warning and continue on
-                //Warning(MSG_CANNOT_ASSIGN_PROPERTY, Peek().GetLocation(), cls->GetName().ToString() + "::" + member->GetName().ToString());
+                Warning(MSG_CANNOT_ASSIGN_PROPERTY, Peek().GetLocation(), cls->GetName().ToString() + "::" + member->GetName().ToString());
                 
                 continue;
             }
@@ -243,6 +235,33 @@ bool Parser::ParseObjectBody(const Class* cls, BoxedValue& target)
             break;
         default:
             break;
+        }
+    }
+
+    // Set `Name` if present
+    if (objectName)
+    {
+        const IMember* member = cls->GetMember("Name"_sh, MemberType::Field | MemberType::Property);
+
+        if (member != nullptr)
+        {
+        switch (member->GetMemberType())
+        {
+        case MemberType::Field:
+            static_cast<const Field*>(member)->Set(target, BoxedValue(CreateNameFromDynamicString(objectName)));
+            break;
+        case MemberType::Property:
+            if (!static_cast<const Property*>(member)->CanSet())
+            {
+                Warning(ErrorMessage::MSG_CANNOT_ASSIGN_PROPERTY, currLocation, "Name");
+                break;
+            }
+
+            static_cast<const Property*>(member)->Set(target, BoxedValue(CreateNameFromDynamicString(objectName)));
+            break;
+        default:
+            break;
+        }
         }
     }
 
@@ -1010,7 +1029,9 @@ bool Parser::ParseObjectValue(const TypeInfo& typeInfo, BoxedValue& out)
     const Class* declaredClass = typeInfo.GetClass();
     const Class* actualClass = declaredClass;
 
-    if (Peek().GetTokenClass() == TK_IDENT && Peek(1).GetTokenClass() == TK_OPEN_BRACE)
+    if (Peek().GetTokenClass() == TK_IDENT
+        && (Peek(1).GetTokenClass() == TK_OPEN_BRACE)
+            || (Peek(1).GetTokenClass() == TK_STRING && Peek(2).GetTokenClass() == TK_OPEN_BRACE))
     {
         Token classToken = Next(); // consume IDENT
         const String& runtimeClassName = classToken.GetValue();
@@ -1047,6 +1068,14 @@ bool Parser::ParseObjectValue(const TypeInfo& typeInfo, BoxedValue& out)
         return false;
     }
 
+    String objectName;
+
+    if (Peek().GetTokenClass() == TK_STRING)
+    {
+        // Read objects' name if there is a string following after the class name.
+        objectName = Next().GetValue();
+    }
+
     if (!Expect(TK_OPEN_BRACE, "{"))
     {
         return false;
@@ -1059,7 +1088,7 @@ bool Parser::ParseObjectValue(const TypeInfo& typeInfo, BoxedValue& out)
         return false;
     }
 
-    if (!ParseObjectBody(actualClass, out))
+    if (!ParseObjectBody(actualClass, out, objectName))
     {
         return false;
     }

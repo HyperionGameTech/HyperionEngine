@@ -102,9 +102,9 @@ for %%F in ("%HYP_ROOT_DIR%Config\*.json") do (
     )
 )
 
-echo Copying Shaders.ini...
-if not exist "%OUT_DIR%\Source\Shaders" mkdir "%OUT_DIR%\Source\Shaders"
-copy "%HYP_ROOT_DIR%Source\Shaders\Shaders.ini" "%OUT_DIR%\Source\Shaders\" >nul
+echo Copying Shaders.hmf...
+if not exist "%OUT_DIR%\Config" mkdir "%OUT_DIR%\Config"
+copy "%HYP_ROOT_DIR%Config\Shaders.hmf" "%OUT_DIR%\Config\" >nul
 
 set "ANDROID_PROJECT=%HYP_ROOT_DIR%Source\PlatformSpecific\Android"
 
@@ -186,9 +186,10 @@ if "%APK_FOUND%"=="0" (
 )
 
 echo Cleaning up staged package contents ^(already baked into the APK^)...
-if exist "%OUT_DIR%\Content" rd /s /q "%OUT_DIR%\Content"
-if exist "%OUT_DIR%\Cache" rd /s /q "%OUT_DIR%\Cache"
-if exist "%OUT_DIR%\Source" rd /s /q "%OUT_DIR%\Source"
+REM Keep Content, Cache, and Source so DeployAndroid.bat can reuse them for
+REM quick rebuilds without re-cooking. Delete only the APK duplicate and json
+REM configs (Gradle copies these from the -PhypPackageDir source, not needed).
+del /q "%OUT_DIR%\*.apk" >nul 2>nul
 del /q "%OUT_DIR%\*.json" >nul 2>nul
 
 echo Done! Packaged build created at: %OUT_DIR%

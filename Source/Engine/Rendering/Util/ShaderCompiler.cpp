@@ -8,6 +8,7 @@
 
 #include <Rendering/Util/ShaderCompiler.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
+#include <Rendering/Util/ShaderDefinitions.hpp>
 #include <Rendering/Util/ShaderCompiler/ShaderCompilerInternal.hpp>
 
 #include <Rendering/RenderInterface.hpp>
@@ -21,10 +22,11 @@
 
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
+#include <Asset/SerializationUtils.hpp>
 
 #include <Core/FileSystem/FsUtil.hpp>
 
-#include <Core/DataProcessing/JSON/JSON.hpp>
+#include <Core/DataProcessing/HMF/HMF.hpp>
 
 #include <Core/Utilities/ByteUtil.hpp>
 #include <Core/Utilities/ForEach.hpp>
@@ -1510,101 +1512,40 @@ ShaderCompiler::~ShaderCompiler()
     }
 }
 
-void ShaderCompiler::ParseDefinitionSection(
-    const INIFile::Section& section,
+void ShaderCompiler::ParseShaderBundleDecl(
+    const ShaderDefinition& definition,
     ShaderBundleDecl& outShaderBundleDecl)
 {
-    for (const auto& sectionIt : section)
+    outShaderBundleDecl.name = definition.name;
+
+    if (definition.vertexShader.Any())
     {
-        if (sectionIt.first == "versions")
-        {
-            // set each property
-            for (const auto& element : sectionIt.second.elements)
-            {
-                if (element.subElements.Any())
-                {
-                    // Add subelements - parse int / float / string values
-                    Array<ShaderProperty::Value> enumValues;
-                    enumValues.Reserve(element.subElements.Size());
+        outShaderBundleDecl.sources[ShaderModuleType::Vertex] = GetShaderSourceDirectory() / definition.vertexShader;
+    }
 
-                    for (const String& subElement : element.subElements)
-                    {
-                        if (subElement.Empty())
-                        {
-                            HYP_LOG(ShaderCompiler, Warning,
-                                    "Empty shader property value for property {}",
-                                    element.name);
+    if (definition.pixelShader.Any())
+    {
+        outShaderBundleDecl.sources[ShaderModuleType::Pixel] = GetShaderSourceDirectory() / definition.pixelShader;
+    }
 
-                            continue;
-                        }
+    if (definition.computeShader.Any())
+    {
+        outShaderBundleDecl.sources[ShaderModuleType::Compute] = GetShaderSourceDirectory() / definition.computeShader;
+    }
 
-                        ShaderProperty::Value value;
+    if (definition.rayGenShader.Any())
+    {
+        outShaderBundleDecl.sources[ShaderModuleType::RayGen] = GetShaderSourceDirectory() / definition.rayGenShader;
+    }
 
-                        if (std::isdigit(subElement.GetChar(0)))
-                        {
-                            if (subElement.Contains('.'))
-                            {
-                                float floatValue;
+    if (definition.closestHitShader.Any())
+    {
+        outShaderBundleDecl.sources[ShaderModuleType::ClosestHit] = GetShaderSourceDirectory() / definition.closestHitShader;
+    }
 
-                                if (!StringUtil::Parse(subElement, &floatValue))
-                                {
-                                    HYP_LOG(ShaderCompiler, Warning,
-                                            "Failed to parse shader property value {} as float for property {}",
-                                            subElement, element.name);
-
-                                    continue;
-                                }
-
-                                value = floatValue;
-                            }
-                            else
-                            {
-                                int intValue;
-
-                                if (!StringUtil::Parse(subElement, &intValue))
-                                {
-                                    HYP_LOG(ShaderCompiler, Warning,
-                                            "Failed to parse shader property value {} as integer for property {}",
-                                            subElement, element.name);
-
-                                    continue;
-                                }
-
-                                value = intValue;
-                            }
-                        }
-                        else
-                        {
-                            // string value
-                            value = CreateNameFromDynamicString(subElement);
-                        }
-
-                        AssertDebug(value.IsValid());
-
-                        enumValues.PushBack(std::move(value));
-                    }
-
-                    outShaderBundleDecl.variantPerms.AddValueGroup(CreateNameFromDynamicString(*element.name), enumValues);
-                }
-                else
-                {
-                    outShaderBundleDecl.variantPerms.AddPermutation(CreateNameFromDynamicString(*element.name));
-                }
-            }
-
-            continue;
-        }
-
-        auto shaderTypeNameIt = s_shaderTypeNames.Find(sectionIt.first.ToLower());
-
-        if (shaderTypeNameIt != s_shaderTypeNames.End())
-        {
-            outShaderBundleDecl.sources[shaderTypeNameIt->second] = GetShaderSourceDirectory() / sectionIt.second.GetValue().name;
-
-            continue;
-        }
-
-        HYP_LOG(ShaderCompiler, Warning, "Unknown property in shader definition file: {}", sectionIt.first);
+    if (definition.missShader.Any())
+    {
+        outShaderBundleDecl.sources[ShaderModuleType::Miss] = GetShaderSourceDirectory() / definition.missShader;
     }
 }
 
@@ -1723,19 +1664,16 @@ bool ShaderCompiler::LoadBundle(
     }
 #endif
 
-    if (!m_definitions || !m_definitions->IsValid())
+    if (!m_definitions || !m_definitions->definitions.Empty())
     {
-        // load for first time if no definitions loaded
-        if (!LoadShaderDefinitions(m_isPrecompilingShaders))
+        if (!Initialize(m_isPrecompilingShaders))
         {
             HYP_LOG(ShaderCompiler, Error, "Failed to load shader definitions");
             return false;
         }
     }
 
-    const String nameString = *name;
-
-    if (!m_definitions->HasSection(nameString))
+    if (!m_definitions->HasShader(name))
     {
         // not in definitions file
         HYP_LOG(ShaderCompiler, Error,
@@ -1748,8 +1686,8 @@ bool ShaderCompiler::LoadBundle(
     MergeGlobalShaderProperties(m_isPrecompilingShaders, decl.variantPerms);
 
     // apply each permutable property from the definitions file
-    const INIFile::Section& section = m_definitions->GetSection(nameString);
-    ParseDefinitionSection(section, decl);
+    const ShaderDefinition& definition = *m_definitions->FindEntry(name);
+    ParseShaderBundleDecl(definition, decl);
 
     auto forceRecompile = [&](const AssetPath& path)
     {
@@ -1796,44 +1734,66 @@ bool ShaderCompiler::LoadBundle(
     return HandleBundle(decl, shaderRequest, lastSavedTimestamp, outBundle);
 }
 
-bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders, const ShaderCompileParams& params)
+bool ShaderCompiler::Initialize(bool precompileShaders, const ShaderCompileParams& params)
 {
     // Store the compile params for use during compilation
     m_compileParams = params;
 
-    if (!m_definitions || !m_definitions->IsValid())
+    if (!m_definitions)
     {
-        if (m_definitions)
+        m_definitions = new ShaderDefinitions;
+
+        // parse HMF file into m_definitions:
         {
-            delete m_definitions;
-        }
+            
+            const FilePath shadersPath = EngineGlobals::GetConfigDirectory() / "Shaders.hmf";
 
-        m_definitions = new INIFile(GetShaderSourceDirectory() / "Shaders.ini");
+            FileByteReader stream { shadersPath };
 
-        if (!m_definitions->IsValid())
-        {
-            HYP_LOG(ShaderCompiler, Warning,
-                    "Failed to load shader definitions file at path: {}",
-                    m_definitions->GetFilePath());
+            if (stream.Eof())
+            {
+                HYP_LOG(ShaderCompiler, Error, "Failed to open shader definitions file at path: {}", shadersPath);
 
-            delete m_definitions;
-            m_definitions = nullptr;
+                delete m_definitions;
+                m_definitions = nullptr;
 
-            return false;
+                return false;
+            }
+
+            ByteBuffer buffer = stream.Read();
+
+            HMF::ParseResult parseResult = HMF::Parse(shadersPath, String(buffer.ToByteView()));
+
+            if (parseResult.HasError())
+            {
+                HYP_LOG(ShaderCompiler, Error, "Failed to parse shader definitions file: {}", parseResult.GetError().GetMessage());
+
+                delete m_definitions;
+                m_definitions = nullptr;
+
+                return false;
+            }
+
+            if (!parseResult.GetValue().Is<ShaderDefinitions>())
+            {
+                HYP_LOG(ShaderCompiler, Error, "Parsed result is not a ShaderDefinitions instance");
+
+                delete m_definitions;
+                m_definitions = nullptr;
+
+                return false;
+            }
+
+            *m_definitions = parseResult.GetValue().Get<ShaderDefinitions>();
         }
 
         m_shaderBundleDecls.Clear();
-        m_shaderBundleDecls.Reserve(m_definitions->GetSections().Size());
+        m_shaderBundleDecls.Reserve(m_definitions->definitions.Size());
 
-        for (const auto& it : m_definitions->GetSections())
+        for (const ShaderDefinition& definition : m_definitions->definitions)
         {
-            const String& key = it.first;
-            const INIFile::Section& section = it.second;
-
-            const Name nameFromString = CreateNameFromDynamicString(ANSIString(key));
-
-            ShaderBundleDecl& decl = m_shaderBundleDecls.EmplaceBack(nameFromString);
-            ParseDefinitionSection(section, decl);
+            ShaderBundleDecl& decl = m_shaderBundleDecls.EmplaceBack();
+            ParseShaderBundleDecl(definition, decl);
         }
     }
 
@@ -3614,7 +3574,7 @@ bool ShaderCompiler::RequestShader(
 
 bool ShaderCompiler::IsGraphicsShaderBundle(Name name) const
 {
-    if (!m_definitions || !m_definitions->IsValid())
+    if (!m_definitions)
     {
         return false;
     }

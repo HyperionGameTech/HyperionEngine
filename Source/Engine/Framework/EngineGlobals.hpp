@@ -90,6 +90,7 @@ extern template ENGINE_API const FilePath& GetContentDirectory<HYP_STATIC_STRING
 
 ENGINE_API const FilePath& GetCacheDirectory();
 ENGINE_API const FilePath& GetTempDirectory();
+ENGINE_API const FilePath& GetConfigDirectory();
 ENGINE_API HYP_NODISCARD FilePath CreateTempDirectory();
 
 ENGINE_API bool IsShuttingDown();

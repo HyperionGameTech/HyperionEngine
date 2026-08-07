@@ -191,6 +191,9 @@ tasks.register('stagePackageAssets', Copy) {
             exclude '*.Mac.json'
             exclude '*.Linux.json'
         }
+        from(baseConfigDir) {
+            include 'Shaders.hmf'
+        }
     }
 
     into assetsDestDir

@@ -346,10 +346,28 @@ endif()
 # endif()
 
 find_package(Threads REQUIRED)
-find_package(Bullet)
+find_package(Bullet CONFIG QUIET)
+
+# Fallback: try MODULE mode with hints for vcpkg Android installations
+if(NOT Bullet_FOUND)
+  set(BULLET_ROOT_DIR_HINT "")
+  if(DEFINED ENV{VCPKG_ROOT} AND HYP_ANDROID)
+    set(BULLET_ROOT_DIR_HINT "$ENV{VCPKG_ROOT}/installed/arm64-android")
+  elseif(DEFINED ENV{VCPKG_ROOT})
+    set(BULLET_ROOT_DIR_HINT "$ENV{VCPKG_ROOT}/installed/${VCPKG_DEFAULT_TRIPLET}")
+  endif()
+
+  if(BULLET_ROOT_DIR_HINT)
+    find_package(Bullet REQUIRED
+      HINTS "${BULLET_ROOT_DIR_HINT}"
+      PATH_SUFFIXES lib/cmake/bullet3 share/bullet3)
+  endif()
+endif()
 
 if(Bullet_FOUND)
   message(STATUS "Bullet found")
+  message(STATUS "  Bullet include: ${BULLET_INCLUDE_DIRS}")
+  message(STATUS "  Bullet libraries: ${BULLET_LIBRARIES}")
 
   add_definitions(-DHYP_BULLET=1)
 

@@ -1,0 +1,192 @@
+ShaderDefinitions "ShaderDefinitions" {
+    Definitions = [
+        ShaderDefinition "Fallback" {
+            VS = "Fallback.hlsl"
+            PS = "Fallback.hlsl"
+        }
+        ShaderDefinition "DeferredIndirect" {
+            VS = "DeferredIndirect.hlsl"
+            PS = "DeferredIndirect.hlsl"
+        }
+        ShaderDefinition "DeferredDirect" {
+            VS = "DeferredDirect.hlsl"
+            PS = "DeferredDirect.hlsl"
+        }
+        ShaderDefinition "ApplyReflectionProbe" {
+            VS = "Deferred/ApplyReflectionProbe.hlsl"
+            PS = "Deferred/ApplyReflectionProbe.hlsl"
+        }
+        ShaderDefinition "ApplyLightmap" {
+            VS = "Deferred/ApplyLightmap.hlsl"
+            PS = "Deferred/ApplyLightmap.hlsl"
+        }
+        ShaderDefinition "ApplyFogVolume" {
+            VS = "Deferred/ApplyFogVolume.hlsl"
+            PS = "Deferred/ApplyFogVolume.hlsl"
+        }
+        ShaderDefinition "FogVolumeOcclusionBake" {
+            CS = "Deferred/FogVolumeOcclusionBake.hlsl"
+        }
+        ShaderDefinition "Sprite" {
+            VS = "Sprite/Sprite.hlsl"
+            PS = "Sprite/Sprite.hlsl"
+        }
+        ShaderDefinition "TextSprite" {
+            VS = "Sprite/TextSprite.hlsl"
+            PS = "Sprite/TextSprite.hlsl"
+        }
+        ShaderDefinition "Tonemap" {
+            VS = "Tonemap.hlsl"
+            PS = "Tonemap.hlsl"
+        }
+        ShaderDefinition "BloomExtract" {
+            CS = "Bloom/BloomExtract.hlsl"
+        }
+        ShaderDefinition "BloomBlur" {
+            VS = "Bloom/BloomBlur.hlsl"
+            PS = "Bloom/BloomBlur.hlsl"
+        }
+        ShaderDefinition "BloomUpsample" {
+            VS = "Bloom/BloomUpsample.hlsl"
+            PS = "Bloom/BloomUpsample.hlsl"
+        }
+        ShaderDefinition "BloomDownsample" {
+            VS = "Bloom/BloomDownsample.hlsl"
+            PS = "Bloom/BloomDownsample.hlsl"
+        }
+        ShaderDefinition "FXAA" {
+            VS = "FXAA.hlsl"
+            PS = "FXAA.hlsl"
+        }
+        ShaderDefinition "ComputeVisibility" {
+            CS = "OcclusionCulling/ComputeVisibility.hlsl"
+        }
+        ShaderDefinition "GenerateDepthPyramid" {
+            CS = "OcclusionCulling/GenerateDepthPyramid.hlsl"
+        }
+        ShaderDefinition "BlitTexture" {
+            VS = "BlitTexture.hlsl"
+            PS = "BlitTexture.hlsl"
+        }
+        ShaderDefinition "BlitCompute" {
+            CS = "BlitCompute.hlsl"
+        }
+        ShaderDefinition "MergeCheckerboard" {
+            VS = "MergeCheckerboard.hlsl"
+            PS = "MergeCheckerboard.hlsl"
+        }
+        ShaderDefinition "DrawCubemap" {
+            VS = "DrawCubemap.hlsl"
+            PS = "DrawCubemap.hlsl"
+        }
+        ShaderDefinition "RenderSky" {
+            VS = "Sky/RenderSky.hlsl"
+            PS = "Sky/RenderSky.hlsl"
+        }
+        ShaderDefinition "ComputeSH" {
+            CS = "EnvProbe/ComputeSH.hlsl"
+        }
+        ShaderDefinition "ConvolveProbe" {
+            CS = "EnvProbe/ConvolveProbe.hlsl"
+        }
+        ShaderDefinition "BlurVisibility" {
+            CS = "EnvProbe/BlurVisibility.hlsl"
+        }
+        ShaderDefinition "GeometryPass" {
+            VS = "DefaultVertex.hlsl"
+            PS = "GeometryPass.hlsl"
+        }
+        ShaderDefinition "Skybox" {
+            VS = "Skybox.hlsl"
+            PS = "Skybox.hlsl"
+        }
+        ShaderDefinition "Terrain" {
+            VS = "DefaultVertex.hlsl"
+            PS = "Terrain.hlsl"
+        }
+        ShaderDefinition "HBAO" {
+            VS = "Hbao/HBAO.hlsl"
+            PS = "Hbao/HBAO.hlsl"
+        }
+        ShaderDefinition "Particle" {
+            VS = "Particles/Particle.hlsl"
+            PS = "Particles/Particle.hlsl"
+        }
+        ShaderDefinition "UpdateParticles" {
+            CS = "Particles/UpdateParticles.hlsl"
+        }
+        ShaderDefinition "DrawShadowMap" {
+            VS = "DrawShadowMap.hlsl"
+            PS = "DrawShadowMap.hlsl"
+        }
+        ShaderDefinition "SSRWriteUVs" {
+            VS = "SSR/SSRWriteUVs.hlsl"
+            PS = "SSR/SSRWriteUVs.hlsl"
+        }
+        ShaderDefinition "SSRSampleGBuffer" {
+            VS = "SSR/SSRSampleGBuffer.hlsl"
+            PS = "SSR/SSRSampleGBuffer.hlsl"
+        }
+        ShaderDefinition "SSGI" {
+            CS = "SSR/SSGI.hlsl"
+        }
+        ShaderDefinition "Upsample" {
+            VS = "Upsample.hlsl"
+            PS = "Upsample.hlsl"
+        }
+        ShaderDefinition "UIObject" {
+            VS = "UI/UIObject.hlsl"
+            PS = "UI/UIObject.hlsl"
+        }
+        ShaderDefinition "DebugVis" {
+            VS = "DebugVis.hlsl"
+            PS = "DebugVis.hlsl"
+        }
+        ShaderDefinition "FinalPass" {
+            VS = "FinalPass.hlsl"
+            PS = "FinalPass.hlsl"
+        }
+        ShaderDefinition "RayTracedReflections" {
+            RGS = "RayTracing/Reflections/RayTracedReflections.hlsl"
+            CHS = "RayTracing/Reflections/RayTracedReflections.rchit.hlsl"
+            MS = "RayTracing/Reflections/RayTracedReflections.rmiss.hlsl"
+        }
+        ShaderDefinition "PathTracer" {
+            RGS = "RayTracing/PathTracing/PathTracer.hlsl"
+            CHS = "RayTracing/PathTracing/PathTracer.rchit.hlsl"
+            MS = "RayTracing/PathTracing/PathTracer.rmiss.hlsl"
+        }
+        ShaderDefinition "LightmapPathTracer" {
+            RGS = "RayTracing/Lightmapper/LightmapPathTracer.hlsl"
+            CHS = "RayTracing/Lightmapper/LightmapPathTracer.rchit.hlsl"
+            MS = "RayTracing/Lightmapper/LightmapPathTracer.rmiss.hlsl"
+        }
+        ShaderDefinition "DDGI" {
+            RGS = "RayTracing/GlobalIllumination/DDGI.hlsl"
+            CHS = "RayTracing/GlobalIllumination/DDGI.rchit.hlsl"
+            MS = "RayTracing/GlobalIllumination/DDGI.rmiss.hlsl"
+        }
+        ShaderDefinition "RTCopyBorderTexelsIrradiance" {
+            CS = "RayTracing/copy_border_texels_irradiance.comp"
+        }
+        ShaderDefinition "RTCopyBorderTexelsDepth" {
+            CS = "RayTracing/copy_border_texels_depth.comp"
+        }
+        ShaderDefinition "UpdateProbeData" {
+            CS = "RayTracing/GlobalIllumination/UpdateProbeData.hlsl"
+        }
+        ShaderDefinition "TAA" {
+            CS = "TAA.hlsl"
+        }
+        ShaderDefinition "TemporalBlending" {
+            CS = "TemporalBlending.hlsl"
+        }
+        ShaderDefinition "GenerateMipmap" {
+            CS = "GenerateMipmap.hlsl"
+        }
+        ShaderDefinition "EditorGrid" {
+            VS = "Editor/EditorGrid.hlsl"
+            PS = "Editor/EditorGrid.hlsl"
+        }
+    ]
+}

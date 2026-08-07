@@ -1295,6 +1295,18 @@ extern enum VulkanDeviceQueueType : uint8
     PRESENT,
     MAX
 end
+extern struct ShaderDefinitions
+    Definitions : Array<ShaderDefinition>
+end
+extern struct ShaderDefinition
+    Name : Name
+    VertexShader : string
+    PixelShader : string
+    ComputeShader : string
+    RayGenShader : string
+    ClosestHitShader : string
+    MissShader : string
+end
 extern struct ShadowMapAtlasElement
 end
 extern struct ShadowMapAtlas

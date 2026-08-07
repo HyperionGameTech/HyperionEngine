@@ -218,6 +218,8 @@ struct Result;
 struct RigidBodyComponent;
 struct SamplerDesc;
 struct ScriptDesc;
+struct ShaderDefinition;
+struct ShaderDefinitions;
 struct ShaderInput;
 struct ShaderInputGroup;
 struct ShaderInputSet;

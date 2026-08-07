@@ -27,6 +27,9 @@
 
 #include <Scene/Input/TouchControlsSubsystem.hpp>
 
+#include <Scene/Components/CharacterControllerComponent.hpp>
+#include <Scene/Components/TransformComponent.hpp>
+
 #include <Lang/HypScript.hpp>
 
 #include <Scripting/Asset/ScriptAsset.hpp>
@@ -406,14 +409,26 @@ void DefaultGame::OnLaunch_Impl()
 
 void DefaultGame::OnUpdate_Impl(float delta)
 {
-    // Pass joystick movement to camera controller
-    if (m_camera)
+    // Pass touch joystick movement to all character controller input handlers
+    if (TouchControlsSubsystem* tcs = GetWorld()->GetSubsystem<TouchControlsSubsystem>())
     {
-        if (CameraController* controller = m_camera->GetCameraController(); controller != nullptr && controller->GetInputHandler().IsValid())
+        const Vec2f movementDelta = tcs->GetMovementDelta();
+
+        for (auto [entity, controllerComp, transformComp] : GetWorld()->GetScenes()[0]->GetEntityManager()
+                 ->GetEntitySet<CharacterControllerComponent, TransformComponent>().GetScopedView())
         {
-            if (TouchControlsSubsystem* tcs = GetWorld()->GetSubsystem<TouchControlsSubsystem>())
+            if (controllerComp.inputHandler.IsValid())
             {
-                controller->GetInputHandler()->SetTouchMovementDelta(tcs->GetMovementDelta());
+                controllerComp.inputHandler->SetTouchMovementDelta(movementDelta);
+            }
+        }
+
+        // Also pass to camera controller for free-camera mode
+        if (m_camera)
+        {
+            if (CameraController* controller = m_camera->GetCameraController(); controller != nullptr && controller->GetInputHandler().IsValid())
+            {
+                controller->GetInputHandler()->SetTouchMovementDelta(movementDelta);
             }
         }
     }
