@@ -75,8 +75,8 @@ if [[ -d "$BIN_DIR/Cache" ]]; then
     cp -R "$BIN_DIR/Cache" "$OUT_DIR/Cache"
 fi
 
-echo "Copying Shaders.ini..."
-cp "$HYP_ROOT_DIR/Source/Shaders/Shaders.ini" "$OUT_DIR/Source/Shaders/"
+echo "Copying Shaders.hmf..."
+cp "$HYP_ROOT_DIR/Config/Shaders.hmf" "$OUT_DIR/Config/Shaders.hmf"
 
 echo "Done! Packaged build created at: $OUT_DIR"
 echo "NOTE: this is a raw Ninja build output, not a signed .app/.ipa. Installing on a"

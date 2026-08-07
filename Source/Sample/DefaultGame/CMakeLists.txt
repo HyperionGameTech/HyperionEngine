@@ -89,11 +89,9 @@ if(HYP_PLATFORM_NAME STREQUAL "IOS")
       -D CONFIG_DST_DIR="$<TARGET_FILE_DIR:${BUILD_NAME}>"
       -D PLATFORM="${HYP_PLATFORM_NAME}"
       -P "${CMAKE_CURRENT_SOURCE_DIR}/../CopyPlatformConfigs.cmake"
-    COMMAND ${CMAKE_COMMAND} -E make_directory
-      "$<TARGET_FILE_DIR:${BUILD_NAME}>/Source/Shaders"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-      "${CMAKE_SOURCE_DIR}/Shaders/Shaders.ini"
-      "$<TARGET_FILE_DIR:${BUILD_NAME}>/Source/Shaders/Shaders.ini"
+      "${CMAKE_SOURCE_DIR}/../Config/Shaders.hmf"
+      "$<TARGET_FILE_DIR:${BUILD_NAME}>/Config/Shaders.hmf"
   )
 else()
   add_custom_command(TARGET ${BUILD_NAME} POST_BUILD

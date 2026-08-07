@@ -140,5 +140,7 @@ For this setup, we support using Clang for Windows as well as Android.
 
 All engine shaders are written in **HLSL**. The engine uses **DXC** (DirectXShaderCompiler) to compile shaders at build time.
 
-The shader configuration is in `Source/Shaders/Shaders.ini`, which maps shader names to source files.
-If you need to add another shader you can add another entry into this, keying shader type (e.g PS = "Pixel Shader", VS = "Vertex Shader", CS = "Compute Shader") to filename, relative to the Source/Shaders directory.
+The shader configuration is in `Config/Shaders/Shaders.hmf`, which maps shader names to source files.
+If you need to add another shader you can add another entry into this, mapping shader type (e.g PS = "Pixel Shader", VS = "Vertex Shader", CS = "Compute Shader") to filename, relative to the Source/Shaders directory.
+
+> This config is an instance of ShaderDefinitions, you can check out the header in Source/Engine/Rendering/Util/ShaderDefinitions.hpp for the schema.

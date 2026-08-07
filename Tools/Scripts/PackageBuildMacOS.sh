@@ -63,8 +63,8 @@ if [[ -f "$OUT_DIR/GlobalConfig.json" ]]; then
     sed -i '' -E 's#-BaseDir=[A-Za-z0-9/._-]+#-BaseDir=./#' "$OUT_DIR/GlobalConfig.json"
 fi
 
-echo "Copying Shaders.ini..."
-cp "$HYP_ROOT_DIR/Source/Shaders/Shaders.ini" "$OUT_DIR/Source/Shaders/"
+echo "Copying Shaders.hmf..."
+cp "$HYP_ROOT_DIR/Config/Shaders.hmf" "$OUT_DIR/Config/Shaders.hmf"
 
 # For development build, copy the game actions vdf and steam app id
 echo "Copying development steam files..."

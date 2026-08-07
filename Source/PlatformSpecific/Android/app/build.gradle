@@ -145,7 +145,7 @@ tasks.register('stageNativeLibs') {
     }
 }
 
-// Stage a packaged build (Content, Config, Data, Shaders.ini, Cache, ...) into assets/.
+// Stage a packaged build into assets/.
 //
 // Pass -PhypPackageDir=<path> to point at a folder produced by PackageBuildAndroid.bat and
 // this task just mirrors that folder wholesale - that script is now the single place that
