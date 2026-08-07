@@ -178,6 +178,7 @@ struct Color;
 struct CommandLineArgumentDefinitions;
 struct CommandLineArguments;
 struct ComponentInfo;
+struct CookManifest;
 struct DescriptorSetOffsetMap;
 struct EntityTag;
 struct Error;

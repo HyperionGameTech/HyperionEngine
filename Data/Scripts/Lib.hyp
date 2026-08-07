@@ -2112,6 +2112,10 @@ extern class AudioSource
 end
 extern class AudioManager
 end
+extern struct CookManifest
+    CookTimestampMs : uint64
+    Files : Array<string>
+end
 extern struct BlobDataReference
     Key : Name
     Size : uint64
