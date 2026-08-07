@@ -2112,9 +2112,19 @@ extern class AudioSource
 end
 extern class AudioManager
 end
+extern struct AssetEntry
+    BucketIndex : uint32
+    Name : string
+    Blobs : Array<BlobEntry>
+end
+extern struct BlobEntry
+    Key : uint64
+    Size : uint64
+    Magic : string
+end
 extern struct CookManifest
     CookTimestampMs : uint64
-    Files : Array<string>
+    Assets : Array<AssetEntry>
 end
 extern struct BlobDataReference
     Key : Name

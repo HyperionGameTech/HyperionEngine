@@ -13,7 +13,6 @@
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/CVarManager.hpp>
 #include <Framework/Game.hpp>
-#include <Framework/CacheSync.hpp>
 
 #include <Framework/Threads/MainThread.hpp>
 #include <Framework/Threads/SimThread.hpp>
@@ -1115,11 +1114,6 @@ extern "C"
         {
             ctx->EnqueueEvent(std::move(event));
         }
-    }
-
-    HYP_EXPORT bool Hyp_SyncCache(const char* host, uint16 port, const char* cacheDir)
-    {
-        return CacheSync_Download(host, port, cacheDir);
     }
 #endif // HYP_ANDROID
 

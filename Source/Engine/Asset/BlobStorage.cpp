@@ -10,6 +10,9 @@
 #include <Asset/BlobStorageViews.hpp>
 #include <Asset/SerializationUtils.hpp>
 
+#include <Framework/EngineGlobals.hpp>
+#include <Framework/CacheSync.hpp>
+
 #include <Core/DataProcessing/JSON/JSON.hpp>
 
 #include <Core/IO/ByteReader.hpp>
@@ -383,6 +386,20 @@ void BlobStorage::Initialize()
     }
 
     InitBlobStorage(*this, EngineGlobals::GetCacheDirectory(), /* readOnly */ m_isReadOnly);
+
+    if (const ANSIStringView cacheServer = ANSIStringView(EngineGlobals::GetCacheServerAddress()); cacheServer)
+    {
+        size_t colonPos = cacheServer.FindFirstIndex(":");
+        if (colonPos != String::NotFound)
+        {
+            ANSIStringView host = cacheServer.Substr(0, colonPos);
+            ANSIStringView portStr = cacheServer.Substr(colonPos + 1, SIZE_MAX);
+
+            uint16 port = uint16(std::atoi(portStr.Data()));
+
+            CacheSync_Download(host.Data(), port, EngineGlobals::GetCacheDirectory().Data());
+        }
+    }
 
     if (Result result = LoadTOC(); result.HasError())
     {

@@ -29,6 +29,8 @@ namespace Hyperion {
 struct CookingContext;
 #endif // !HYP_SHIPPING
 
+struct CacheServerContext;
+
 namespace EngineGlobals {
 
 /// Editor build only
@@ -65,6 +67,11 @@ ENGINE_API bool IsCooking()
 }
 
 #endif // !HYP_SHIPPING
+
+ENGINE_API bool IsCacheServer()
+{
+    return IsGlobalContextActive<CacheServerContext>();
+}
 
 // Directory for cached data (shader bundles, compiled scripts, etc.) Expected to be compiled into the asset registry in production builds
 static AtomicVar<bool> s_cacheDirectoryInit = false;
@@ -105,6 +112,12 @@ HYP_EXPORT const FilePath& GetCacheDirectory()
     HYP_LOG(Engine, Info, "Initialized cache directory at {}", s_cacheDirectory);
 
     return s_cacheDirectory;
+}
+
+HYP_EXPORT const char* GetCacheServerAddress()
+{
+    static const String s_cacheServerAddress = CoreApi::GetCommandLineArguments()["CacheServer"].ToString();
+    return s_cacheServerAddress.Data();
 }
 
 HYP_EXPORT const FilePath& GetConfigDirectory()

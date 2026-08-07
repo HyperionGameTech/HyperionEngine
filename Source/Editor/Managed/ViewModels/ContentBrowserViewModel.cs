@@ -198,7 +198,7 @@ namespace Hyperion.Editor.ViewModels
 
                     foreach (AssetDesc assetDesc in registry.GetBucketAssetDescs(bucketIndex))
                     {
-                        string manifestPath = Path.Combine(rootPath, bucketVm.Name, assetDesc.Name.ToString() + ".json");
+                        string manifestPath = Path.Combine(rootPath, bucketVm.Name, assetDesc.Name.ToString() + ".hmf");
 
                         DateTime? dateModified = null;
                         string? typeName = null; // @TODO

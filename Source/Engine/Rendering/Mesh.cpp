@@ -193,7 +193,10 @@ void Mesh::PageBlobData()
             && vertexData.key
             && vertexData.size != 0)
         {
-            if (EngineGlobals::IsCooking() || EngineGlobals::IsEditor() || !EngineGlobals::GetBlobStorage()->GetData(vertexData.key, vertexData.size, vertexData.raw))
+            if (EngineGlobals::IsCooking()
+                || EngineGlobals::IsCacheServer()
+                || EngineGlobals::IsEditor()
+                || !EngineGlobals::GetBlobStorage()->GetData(vertexData.key, vertexData.size, vertexData.raw))
             {
                 if (lodIndex == 0)
                 {
@@ -241,7 +244,10 @@ void Mesh::PageBlobData()
                 vertexData.readOnly = true;
             }
 
-            if (EngineGlobals::IsCooking() || EngineGlobals::IsEditor() || !EngineGlobals::GetBlobStorage()->GetData(indexData.key, indexData.size, indexData.raw))
+            if (EngineGlobals::IsCooking()
+                || EngineGlobals::IsCacheServer()
+                || EngineGlobals::IsEditor()
+                || !EngineGlobals::GetBlobStorage()->GetData(indexData.key, indexData.size, indexData.raw))
             {
                 if (lodIndex == 0)
                 {
@@ -297,7 +303,10 @@ void Mesh::PageBlobData()
         && m_bvhData.key
         && m_bvhData.size != 0)
     {
-        if (EngineGlobals::IsCooking() || EngineGlobals::IsEditor() || !EngineGlobals::GetBlobStorage()->GetData(m_bvhData.key, m_bvhData.size, m_bvhData.raw))
+        if (EngineGlobals::IsCooking()
+            || EngineGlobals::IsCacheServer()
+            || EngineGlobals::IsEditor()
+            || !EngineGlobals::GetBlobStorage()->GetData(m_bvhData.key, m_bvhData.size, m_bvhData.raw))
         {
             const Name blobKey = m_bvhData.key;
             const uint64 expectedSize = m_bvhData.size;

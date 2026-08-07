@@ -68,7 +68,10 @@ void ScriptAsset::PageBlobData()
         && m_data.key
         && m_data.size != 0)
     {
-        if (EngineGlobals::IsCooking() || EngineGlobals::IsEditor() || !EngineGlobals::GetBlobStorage()->GetData(m_data.key, m_data.size, m_data.raw))
+        if (EngineGlobals::IsCooking()
+            || EngineGlobals::IsCacheServer()
+            || EngineGlobals::IsEditor()
+            || !EngineGlobals::GetBlobStorage()->GetData(m_data.key, m_data.size, m_data.raw))
         {
             Handle<AssetRegistry> registry = GetAssetRegistry();
             AssertDebug(registry.IsValid());

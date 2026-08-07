@@ -76,6 +76,8 @@ ENGINE_API bool IsCooking();
 static constexpr NoOpFunction<bool> IsCooking;
 #endif  // !HYP_SHIPPING
 
+ENGINE_API bool IsCacheServer();
+
 #ifdef HYP_EDITOR
 ENGINE_API const FilePath& GetProjectsDirectory();
 ENGINE_API const FilePath& GetDataDirectory();
@@ -89,6 +91,7 @@ extern template ENGINE_API const FilePath& GetContentDirectory<HYP_STATIC_STRING
 extern template ENGINE_API const FilePath& GetContentDirectory<HYP_STATIC_STRING("Game")>();
 
 ENGINE_API const FilePath& GetCacheDirectory();
+ENGINE_API const char* GetCacheServerAddress();
 ENGINE_API const FilePath& GetTempDirectory();
 ENGINE_API const FilePath& GetConfigDirectory();
 ENGINE_API HYP_NODISCARD FilePath CreateTempDirectory();

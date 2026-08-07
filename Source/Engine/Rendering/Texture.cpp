@@ -411,7 +411,7 @@ RendererResult Texture::Create()
 {
     auto readScope = GetReadScope();
 
-    const bool shouldCreateGpuImage = !EngineGlobals::IsCooking();
+    const bool shouldCreateGpuImage = !EngineGlobals::IsCooking() && !EngineGlobals::IsCacheServer();
 
     if (shouldCreateGpuImage && !m_gpuImage.IsValid())
     {
@@ -491,7 +491,10 @@ void Texture::PageBlobData()
         && m_imageData.key
         && m_imageData.size != 0)
     {
-        if (EngineGlobals::IsCooking() || EngineGlobals::IsEditor() || !EngineGlobals::GetBlobStorage()->GetData(m_imageData.key, m_imageData.size, m_imageData.raw))
+        if (EngineGlobals::IsCooking()
+            || EngineGlobals::IsCacheServer()
+            || EngineGlobals::IsEditor()
+            || !EngineGlobals::GetBlobStorage()->GetData(m_imageData.key, m_imageData.size, m_imageData.raw))
         {
             Handle<AssetRegistry> registry = GetAssetRegistry();
             AssertDebug(registry.IsValid());

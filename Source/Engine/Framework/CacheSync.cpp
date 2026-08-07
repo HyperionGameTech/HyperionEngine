@@ -11,6 +11,8 @@
 
 #include <Asset/CookManifest.hpp>
 #include <Asset/AssetBucket.hpp>
+#include <Asset/BlobStorage.hpp>
+#include <Asset/BlobStorageStructs.hpp>
 
 #include <Core/Threading/ThreadPool.hpp>
 #include <Core/Threading/Task.hpp>
@@ -25,6 +27,9 @@
 #include <Core/Logging/Logger.hpp>
 #include <Core/Logging/LogChannels.hpp>
 
+#include <Core/Utilities/ByteUtil.hpp>
+#include <Core/Math/MathUtil.hpp>
+
 #if defined(HYP_UNIX) || defined(HYP_ANDROID)
 
 #include <unistd.h>
@@ -37,18 +42,101 @@
 #include <errno.h>
 #include <string.h>
 
-#endif // HYP_UNIX || HYP_ANDROID
+#elif defined(HYP_WINDOWS)
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#pragma comment(lib, "ws2_32.lib")
+
+#endif
 
 namespace Hyperion {
 
-#if defined(HYP_UNIX) || defined(HYP_ANDROID)
-
-static bool HttpGet(const char* host, uint16 port, const char* path, ByteBuffer& outBody)
+static bool HttpGetBytes(const char* host, uint16 port, const char* path, ByteBuffer& outBody)
 {
     outBody = ByteBuffer();
 
     char portStr[16];
     std::snprintf(portStr, sizeof(portStr), "%u", uint32(port));
+
+#if defined(HYP_WINDOWS)
+
+    WSADATA wsaData;
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+        return false;
+
+    struct addrinfo hints = {};
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
+
+    struct addrinfo* result = nullptr;
+    if (getaddrinfo(host, portStr, &hints, &result) != 0)
+    {
+        WSACleanup();
+        return false;
+    }
+
+    SOCKET sock = INVALID_SOCKET;
+    for (struct addrinfo* rp = result; rp != nullptr; rp = rp->ai_next)
+    {
+        sock = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+        if (sock == INVALID_SOCKET)
+            continue;
+        if (connect(sock, rp->ai_addr, int(rp->ai_addrlen)) == 0)
+            break;
+        closesocket(sock);
+        sock = INVALID_SOCKET;
+    }
+
+    freeaddrinfo(result);
+
+    if (sock == INVALID_SOCKET)
+    {
+        WSACleanup();
+        return false;
+    }
+
+    DWORD timeout = 10000;
+    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout));
+
+    char request[4096];
+    int reqLen = std::snprintf(request, sizeof(request),
+        "GET %s HTTP/1.0\r\n"
+        "Host: %s:%u\r\n"
+        "Connection: close\r\n"
+        "\r\n",
+        path, host, uint32(port));
+
+    if (send(sock, request, reqLen, 0) == SOCKET_ERROR)
+    {
+        closesocket(sock);
+        WSACleanup();
+        return false;
+    }
+
+    char recvBuf[8192];
+    int n;
+    ByteBuffer buffer;
+    buffer.SetSize(0);
+
+    while ((n = recv(sock, recvBuf, sizeof(recvBuf), 0)) > 0)
+    {
+        size_t oldSize = buffer.Size();
+        buffer.SetSize(oldSize + size_t(n));
+        Memory::Copy(buffer.Data() + oldSize, recvBuf, size_t(n));
+    }
+
+    closesocket(sock);
+    WSACleanup();
+
+    if (n < 0)
+        return false;
+
+#else
 
     struct addrinfo hints = {};
     hints.ai_family = AF_INET;
@@ -56,22 +144,16 @@ static bool HttpGet(const char* host, uint16 port, const char* path, ByteBuffer&
 
     struct addrinfo* result = nullptr;
     if (getaddrinfo(host, portStr, &hints, &result) != 0)
-    {
-        HYP_LOG(Assets, Error, "CacheSync getaddrinfo failed for {}:{}", host, portStr);
         return false;
-    }
 
     int sock = -1;
-
     for (struct addrinfo* rp = result; rp != nullptr; rp = rp->ai_next)
     {
         sock = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
         if (sock < 0)
             continue;
-
         if (connect(sock, rp->ai_addr, int(rp->ai_addrlen)) == 0)
             break;
-
         close(sock);
         sock = -1;
     }
@@ -79,10 +161,7 @@ static bool HttpGet(const char* host, uint16 port, const char* path, ByteBuffer&
     freeaddrinfo(result);
 
     if (sock < 0)
-    {
-        HYP_LOG(Assets, Error, "CacheSync failed to connect to {}:{}", host, portStr);
         return false;
-    }
 
     struct timeval tv = { 10, 0 };
     setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
@@ -97,16 +176,15 @@ static bool HttpGet(const char* host, uint16 port, const char* path, ByteBuffer&
 
     if (send(sock, request, size_t(reqLen), 0) < 0)
     {
-        HYP_LOG(Assets, Error, "CacheSync send failed for {}:{}{}", host, portStr, path);
         close(sock);
         return false;
     }
 
+    char recvBuf[8192];
+    ssize_t n;
     ByteBuffer buffer;
     buffer.SetSize(0);
 
-    char recvBuf[8192];
-    ssize_t n;
     while ((n = recv(sock, recvBuf, sizeof(recvBuf), 0)) > 0)
     {
         size_t oldSize = buffer.Size();
@@ -117,19 +195,15 @@ static bool HttpGet(const char* host, uint16 port, const char* path, ByteBuffer&
     close(sock);
 
     if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
-    {
-        HYP_LOG(Assets, Error, "CacheSync recv failed for {}:{}{}", host, portStr, path);
         return false;
-    }
+
+#endif
 
     const char* bodyStart = reinterpret_cast<const char*>(buffer.Data());
     const char* headerEnd = strstr(bodyStart, "\r\n\r\n");
 
     if (headerEnd == nullptr)
-    {
-        HYP_LOG(Assets, Error, "CacheSync invalid HTTP response for {}:{}{}", host, portStr, path);
         return false;
-    }
 
     bodyStart = headerEnd + 4;
     const size_t bodySize = size_t(reinterpret_cast<const char*>(buffer.Data() + buffer.Size()) - bodyStart);
@@ -139,26 +213,17 @@ static bool HttpGet(const char* host, uint16 port, const char* path, ByteBuffer&
     return true;
 }
 
-#else
-
-static bool HttpGet(const char*, uint16, const char*, ByteBuffer&)
-{
-    return false;
-}
-
-#endif // HYP_UNIX || HYP_ANDROID
-
 bool CacheSync_Download(const char* host, uint16 port, const char* cacheDir)
 {
     // 1. Download the manifest
     ByteBuffer manifestBytes;
-    if (!HttpGet(host, port, "/manifest", manifestBytes))
+    if (!HttpGetBytes(host, port, "/manifest", manifestBytes))
     {
         HYP_LOG(Assets, Error, "CacheSync failed to download manifest from {}:{}", host, uint32(port));
         return false;
     }
 
-    // 2. Parse the manifest via HMF
+    // 2. Parse the server manifest via HMF
     String manifestStr = String(manifestBytes.ToByteView());
 
     HMF::ParseResult parseResult = HMF::Parse(manifestStr);
@@ -169,7 +234,6 @@ bool CacheSync_Download(const char* host, uint16 port, const char* cacheDir)
     }
 
     BoxedValue& boxedResult = parseResult.GetValue();
-
     if (!boxedResult.Is<CookManifest>())
     {
         HYP_LOG(Assets, Error, "CacheSync server manifest is not a CookManifest");
@@ -178,10 +242,10 @@ bool CacheSync_Download(const char* host, uint16 port, const char* cacheDir)
 
     const CookManifest& serverManifest = boxedResult.Get<CookManifest>();
 
-    HYP_LOG(Assets, Info, "CacheSync server manifest: timestamp={}, {} files",
-        serverManifest.cook_timestamp_ms, serverManifest.files.Size());
+    HYP_LOG(Assets, Info, "CacheSync server manifest: timestamp={}, {} assets",
+        serverManifest.cook_timestamp_ms, serverManifest.assets.Size());
 
-    // 3. Compare with the locally cached manifest timestamp
+    // 3. Compare with local manifest timestamp
     uint64 localTimestamp = 0;
     FilePath localManifestPath = FilePath(cacheDir) / "cook_manifest.hmf";
 
@@ -206,63 +270,126 @@ bool CacheSync_Download(const char* host, uint16 port, const char* cacheDir)
 
     if (serverManifest.cook_timestamp_ms <= localTimestamp)
     {
-        HYP_LOG(Assets, Info, "CacheSync cache is up to date (local={} >= server={})",
+        HYP_LOG(Assets, Info, "CacheSync cache up to date (local={} >= server={})",
             localTimestamp, serverManifest.cook_timestamp_ms);
         return true;
     }
 
-    HYP_LOG(Assets, Info, "CacheSync cache outdated (local={} < server={}), downloading {} files",
-        localTimestamp, serverManifest.cook_timestamp_ms, serverManifest.files.Size());
+    HYP_LOG(Assets, Info, "CacheSync cache outdated (local={} < server={}), downloading",
+        localTimestamp, serverManifest.cook_timestamp_ms);
 
-    // 4. Download all files in parallel
+    // 4. Ensure cache directory exists
     FilePath cacheDirPath { cacheDir };
 
-    if (!cacheDirPath.Exists())
+    if (!cacheDirPath.Exists() && !cacheDirPath.MkDir())
     {
-        if (!cacheDirPath.MkDir())
+        HYP_LOG(Assets, Error, "CacheSync failed to create cache directory '{}'", cacheDir);
+        return false;
+    }
+
+    // 5. Pre-compute block sizes from the manifest
+    Array<uint64> blockSizes;
+    blockSizes.Resize(MaxAssetBuckets);
+
+    for (const AssetEntry& entry : serverManifest.assets)
+    {
+        if (entry.bucket_index >= MaxAssetBuckets)
+            continue;
+
+        for (const BlobEntry& blob : entry.blobs)
         {
-            HYP_LOG(Assets, Error, "CacheSync failed to create cache directory '{}'", cacheDir);
-            return false;
+            const size_t alignedSize = ByteUtil::AlignAs(blockSizes[entry.bucket_index], alignof(BlobHeader))
+                + sizeof(BlobHeader) + blob.size;
+            blockSizes[entry.bucket_index] = alignedSize;
         }
     }
 
+    // 6. Build BlobBlockInfo array
+    Array<BlobBlockInfo> blocks;
+    for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; bucketIndex++)
+    {
+        if (blockSizes[bucketIndex] > 0)
+            blocks.PushBack(BlobBlockInfo { bucketIndex, blockSizes[bucketIndex] });
+    }
+
+    // 7. Create a temporary BlobStorage for writing
+    BlobStorage localStorage(/* readOnly */ false);
+    localStorage.Initialize();
+
+    if (Result result = localStorage.BeginCook(blocks); result.HasError())
+    {
+        HYP_LOG(Assets, Error, "CacheSync BeginCook failed: {}", result.GetError().GetMessage());
+        return false;
+    }
+
+    // 8. Download assets in parallel
     using threading::TaskThreadPool;
     TaskThreadPool downloadPool("CacheSyncWorker", 4);
     downloadPool.Start();
 
     Array<Task<void>> tasks;
 
-    for (const String& file : serverManifest.files)
+    for (const AssetEntry& entry : serverManifest.assets)
     {
-        tasks.EmplaceBack(downloadPool.Enqueue(HYP_STATIC_MESSAGE("CacheSyncDownload"), [&]() -> void
+        if (entry.bucket_index >= MaxAssetBuckets)
+            continue;
+
+        tasks.EmplaceBack(downloadPool.Enqueue(HYP_STATIC_MESSAGE("CacheSyncAsset"), [&]() -> void
         {
-            ByteBuffer body;
-            String reqPath = String("/file/") + file;
-
-            if (!HttpGet(host, port, reqPath.Data(), body))
+            // Download the HMF manifest
             {
-                HYP_LOG(Assets, Error, "CacheSync failed to download '{}' from {}:{}",
-                    file, host, uint32(port));
-                return;
+                char hmfPathBuf[512];
+                std::snprintf(hmfPathBuf, sizeof(hmfPathBuf), "/hmf/%u/%s",
+                    entry.bucket_index, entry.name.Data());
+                ByteBuffer hmfBytes;
+                if (HttpGetBytes(host, port, hmfPathBuf, hmfBytes))
+                {
+                    FilePath bucketContentDir = FilePath(cacheDir) / "Content" / String(GetAssetBucketName(entry.bucket_index));
+                    bucketContentDir.MkDir();
+
+                    FilePath manifestPath = bucketContentDir / (entry.name + ".hmf");
+
+                    FileByteWriter writer { manifestPath };
+                    if (writer.IsOpen())
+                    {
+                        writer.Write(hmfBytes);
+                        writer.Close();
+                    }
+                }
             }
 
-            FilePath filePath = cacheDirPath / file;
-
-            FileByteWriter fileWriter { filePath };
-            if (!fileWriter.IsOpen())
+            // Download each blob and write via PutData
+            for (const BlobEntry& blob : entry.blobs)
             {
-                HYP_LOG(Assets, Error, "CacheSync failed to open '{}' for writing", filePath.Data());
-                return;
+                char blobPathBuf[512];
+                std::snprintf(blobPathBuf, sizeof(blobPathBuf), "/blob?key=%llx&size=%llu",
+                    (unsigned long long)blob.key, (unsigned long long)blob.size);
+
+                ByteBuffer blobData;
+                if (!HttpGetBytes(host, port, blobPathBuf, blobData))
+                {
+                    HYP_LOG(Assets, Error, "CacheSync failed to download blob key={} for {}",
+                        blob.key, entry.name);
+                    continue;
+                }
+
+                BlobHeader header {};
+                const size_t magicLen = blob.magic.Size();
+                Memory::Copy((char*)header.magic, blob.magic.Data(),
+                    MathUtil::Min(magicLen, sizeof(header.magic)));
+                header.version = 1;
+                header.payloadOffset = 0;
+                header.payloadSize = blob.size;
+
+                if (!localStorage.PutData(entry.bucket_index, StringHash(blob.key), header, blobData.Data()))
+                {
+                    HYP_LOG(Assets, Error, "CacheSync PutData failed for blob key={}", blob.key);
+                }
             }
-
-            fileWriter.Write(body);
-            fileWriter.Close();
-
-            HYP_LOG(Assets, Info, "CacheSync downloaded '{}' ({} bytes)", file, body.Size());
         }));
     }
 
-    // 5. Wait for all downloads to complete
+    // 9. Await all downloads
     for (auto& task : tasks)
     {
         task.Await();
@@ -270,7 +397,16 @@ bool CacheSync_Download(const char* host, uint16 port, const char* cacheDir)
 
     downloadPool.Stop();
 
-    // 6. Write the server manifest locally
+    // 10. Finalize local BlobStorage
+    if (Result result = localStorage.FinishCook(); result.HasError())
+    {
+        HYP_LOG(Assets, Error, "CacheSync FinishCook failed: {}", result.GetError().GetMessage());
+        return false;
+    }
+
+    localStorage.Shutdown();
+
+    // 11. Write local manifest
     localManifestPath.Remove();
 
     FileByteWriter manifestWriter { localManifestPath };
@@ -279,11 +415,11 @@ bool CacheSync_Download(const char* host, uint16 port, const char* cacheDir)
         HYP_LOG(Assets, Error, "CacheSync failed to write local manifest");
         return false;
     }
-
-    manifestWriter.Write(manifestBytes);
+    manifestWriter.WriteString(manifestStr.ToUtf8());
     manifestWriter.Close();
 
-    HYP_LOG(Assets, Info, "CacheSync complete");
+    HYP_LOG(Assets, Info, "CacheSync complete — {} assets, {} blocks",
+        serverManifest.assets.Size(), blocks.Size());
 
     return true;
 }

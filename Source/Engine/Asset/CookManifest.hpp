@@ -15,6 +15,36 @@
 namespace Hyperion {
 
 HYP_STRUCT()
+struct BlobEntry
+{
+    HYP_STRUCT_BODY(BlobEntry)
+
+    HYP_FIELD()
+    uint64 key;
+
+    HYP_FIELD()
+    uint64 size;
+
+    HYP_FIELD()
+    String magic;
+};
+
+HYP_STRUCT()
+struct AssetEntry
+{
+    HYP_STRUCT_BODY(AssetEntry)
+
+    HYP_FIELD()
+    uint32 bucket_index;
+
+    HYP_FIELD()
+    String name;
+
+    HYP_FIELD()
+    Array<BlobEntry> blobs;
+};
+
+HYP_STRUCT()
 struct CookManifest
 {
     HYP_STRUCT_BODY(CookManifest)
@@ -23,7 +53,7 @@ struct CookManifest
     uint64 cook_timestamp_ms;
 
     HYP_FIELD()
-    Array<String> files;
+    Array<AssetEntry> assets;
 };
 
 } // namespace Hyperion

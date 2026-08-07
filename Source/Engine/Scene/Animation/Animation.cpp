@@ -46,7 +46,10 @@ void AnimationTrack::PageBlobData()
         && m_keyframeData.key
         && m_keyframeData.size != 0)
     {
-        if (EngineGlobals::IsCooking() || EngineGlobals::IsEditor() || !EngineGlobals::GetBlobStorage()->GetData(m_keyframeData.key, m_keyframeData.size, m_keyframeData.raw))
+        if (EngineGlobals::IsCooking()
+            || EngineGlobals::IsCacheServer()
+            || EngineGlobals::IsEditor()
+            || !EngineGlobals::GetBlobStorage()->GetData(m_keyframeData.key, m_keyframeData.size, m_keyframeData.raw))
         {
             Handle<AssetRegistry> registry = GetAssetRegistry();
             AssertDebug(registry.IsValid());

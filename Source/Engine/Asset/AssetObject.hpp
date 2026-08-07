@@ -153,6 +153,10 @@ public:
         BoxedValue& manifestData,
         Handle<AssetObject>& outAssetObject);
 
+    virtual void CollectBlobDataReferences(Array<Tuple<const char*, uint16, BlobDataReference*>>& outReferences)
+    {
+    }
+
 protected:
     virtual void OnLoaded()
     {
@@ -179,10 +183,6 @@ protected:
 
     void SetBlobDataResident(bool resident);
     void SetBlobDataResident(bool resident, BlobDataReference& reference);
-
-    virtual void CollectBlobDataReferences(Array<Tuple<const char*, uint16, BlobDataReference*>>& outReferences)
-    {
-    }
 
     Result SaveManifest(ByteWriter& stream) const;
 

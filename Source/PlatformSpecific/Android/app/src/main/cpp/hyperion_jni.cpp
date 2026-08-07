@@ -22,6 +22,7 @@ namespace Hyperion {
 using namespace Hyperion;
 
 static char g_cacheDirPath[1024] = { 0 };
+static char g_cacheServerAddress[256] = { 0 };
 
 extern "C"
 {
@@ -38,8 +39,6 @@ extern "C"
     void Hyp_TextInputEvent(const char* text);
 
     void Hyp_Android_InitJNI(JNIEnv* env, jclass hyperionBridgeClass);
-
-    bool Hyp_SyncCache(const char* host, uint16 port, const char* cacheDir);
 }
 
 extern "C" JNIEXPORT jint JNICALL
@@ -54,14 +53,24 @@ Java_com_hyperion_engine_HyperionBridge_nativeInit(JNIEnv* env, jclass clazz)
     };
 
     int argc = int(sizeof(baseArgs) / sizeof(baseArgs[0]));
-    const char** argv = baseArgs;
 
-    const char* cacheArg[] = { nullptr, nullptr };
+    const char* cacheArg = nullptr;
+    static char cacheArgBuf[1100];
+
     if (g_cacheDirPath[0] != '\0')
     {
-        static char cacheArgBuf[1100];
         snprintf(cacheArgBuf, sizeof(cacheArgBuf), "-CacheDir=%s", g_cacheDirPath);
-        cacheArg[0] = cacheArgBuf;
+        cacheArg = cacheArgBuf;
+        argc += 1;
+    }
+
+    const char* serverArg = nullptr;
+    static char serverArgBuf[300];
+
+    if (g_cacheServerAddress[0] != '\0')
+    {
+        snprintf(serverArgBuf, sizeof(serverArgBuf), "-CacheServer=%s", g_cacheServerAddress);
+        serverArg = serverArgBuf;
         argc += 1;
     }
 
@@ -71,9 +80,13 @@ Java_com_hyperion_engine_HyperionBridge_nativeInit(JNIEnv* env, jclass clazz)
     {
         combinedArgv[idx++] = baseArgs[i];
     }
-    if (cacheArg[0] != nullptr)
+    if (cacheArg != nullptr)
     {
-        combinedArgv[idx++] = cacheArg[0];
+        combinedArgv[idx++] = cacheArg;
+    }
+    if (serverArg != nullptr)
+    {
+        combinedArgv[idx++] = serverArg;
     }
     combinedArgv[idx] = nullptr;
 
@@ -86,6 +99,14 @@ Java_com_hyperion_engine_HyperionBridge_nativeSetCacheDirectory(JNIEnv* env, jcl
     const char* path = env->GetStringUTFChars(cacheDir, nullptr);
     snprintf(g_cacheDirPath, sizeof(g_cacheDirPath), "%s", path);
     env->ReleaseStringUTFChars(cacheDir, path);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_hyperion_engine_HyperionBridge_nativeSetCacheServer(JNIEnv* env, jclass /*clazz*/, jstring host, jint port)
+{
+    const char* hostStr = env->GetStringUTFChars(host, nullptr);
+    snprintf(g_cacheServerAddress, sizeof(g_cacheServerAddress), "%s:%u", hostStr, uint32(port));
+    env->ReleaseStringUTFChars(host, hostStr);
 }
 
 extern "C" JNIEXPORT void JNICALL
@@ -145,16 +166,6 @@ Java_com_hyperion_engine_HyperionBridge_nativeSetAssetManager(JNIEnv* env, jclas
     }
 }
 
-extern "C" JNIEXPORT jboolean JNICALL
-Java_com_hyperion_engine_HyperionBridge_nativeSyncCache(JNIEnv* env, jclass /*clazz*/, jstring host, jint port)
-{
-    const char* hostStr = env->GetStringUTFChars(host, nullptr);
-    bool result = Hyp_SyncCache(hostStr, uint16(port), g_cacheDirPath);
-    env->ReleaseStringUTFChars(host, hostStr);
-
-    return result ? JNI_TRUE : JNI_FALSE;
-}
-
 extern "C" JNIEXPORT void JNICALL
 Java_com_hyperion_engine_HyperionBridge_nativeSetSurface(JNIEnv* env, jclass /*clazz*/, jobject javaSurface, jint width, jint height)
 {
@@ -162,7 +173,6 @@ Java_com_hyperion_engine_HyperionBridge_nativeSetSurface(JNIEnv* env, jclass /*c
     {
         ANativeWindow* nativeWindow = ANativeWindow_fromSurface(env, javaSurface);
         Hyp_SetNativeWindow(nativeWindow, int(width), int(height));
-        // the engine will acquire its own ref, release this
         ANativeWindow_release(nativeWindow);
     }
     else

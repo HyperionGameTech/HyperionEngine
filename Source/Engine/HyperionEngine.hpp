@@ -70,7 +70,6 @@ extern "C"
     ENGINE_API void Hyp_SetAssetManager(void* mgr);
     ENGINE_API void Hyp_SetNativeWindow(void* nativeWindow, int width, int height);
     ENGINE_API void Hyp_InputEvent(int type, int action, float x, float y, int iParam);
-    ENGINE_API bool Hyp_SyncCache(const char* host, uint16 port, const char* cacheDir);
 #endif
 }
 

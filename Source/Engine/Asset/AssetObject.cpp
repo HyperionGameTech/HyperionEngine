@@ -330,8 +330,6 @@ Result AssetObject::SaveBlobData(BlobStorage* storage, const Optional<FilePath>&
             }
         }
 
-        HYP_LOG(Assets, Info, "Saved blob data reference for {}, is cooking? {}, Local dir: {}", GetName(), EngineGlobals::IsCooking(), localBlobDirectory.HasValue());
-
         if (!EngineGlobals::IsCooking() && localBlobDirectory.HasValue())
         {
             // Save the blob data locally as well, as other users may not have the blob data or have mismatched blob data

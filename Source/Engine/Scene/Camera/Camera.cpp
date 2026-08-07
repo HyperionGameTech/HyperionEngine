@@ -603,7 +603,7 @@ void Camera::UpdateMatchWindowSize()
         }
 
         // app context may be invalid if we're cooking, for example.
-        AssertDebug(g_appContext.IsValid() || EngineGlobals::IsCooking());
+        AssertDebug(g_appContext.IsValid() || EngineGlobals::IsCooking() || EngineGlobals::IsCacheServer());
 
         if (g_appContext.IsValid())
         {

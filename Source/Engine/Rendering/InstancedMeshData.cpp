@@ -49,7 +49,7 @@ void InstancedMeshData::PageBlobData()
 
         if (ref.raw == nullptr && ref.key && ref.size != 0)
         {
-            if (EngineGlobals::IsCooking() || EngineGlobals::IsEditor() || !EngineGlobals::GetBlobStorage()->GetData(ref.key, ref.size, ref.raw))
+            if (EngineGlobals::IsCooking() || EngineGlobals::IsCacheServer() || EngineGlobals::IsEditor() || !EngineGlobals::GetBlobStorage()->GetData(ref.key, ref.size, ref.raw))
             {
                 Handle<AssetRegistry> registry = GetAssetRegistry();
                 AssertDebug(registry.IsValid());
