@@ -74,8 +74,8 @@ def engineBinariesRoot = file('../../../../Binaries/Android')
 // device on path
 def pickEngineDir = {
     def candidates = [
-        new File(engineBinariesRoot, 'Debug'),
         new File(engineBinariesRoot, 'Release'),
+        new File(engineBinariesRoot, 'Debug'),
         engineBinariesRoot
     ]
 

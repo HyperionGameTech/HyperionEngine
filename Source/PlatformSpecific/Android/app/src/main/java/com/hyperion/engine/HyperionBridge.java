@@ -17,6 +17,7 @@ public final class HyperionBridge {
     public static native void nativeSetGame(long gameInstancePtr);
     public static native void nativeLaunchThreads();
     public static native void nativeSetAssetManager(AssetManager mgr);
+    public static native void nativeSetCacheDirectory(String cacheDir);
     public static native void nativeSetSurface(Surface surface, int width, int height);
     public static native void nativeTouchEvent(int action, float x, float y, int pointerId);
     public static native void nativeKeyEvent(int action, int keyCode);

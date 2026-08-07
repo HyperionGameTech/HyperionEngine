@@ -17,6 +17,11 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.IOException;
+
 public class MainActivity extends Activity implements SurfaceHolder.Callback {
 
     private static final String TAG = "HyperionMain";
@@ -119,6 +124,19 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
 
     private void runEngineLoop() {
         Log.i(TAG, "Hyperion runEngineLoop()");
+
+        // Extract Cache/ assets to internal storage so the engine's blob storage
+        // can memory-map them (APK assets can't be mmap'd).
+        File internalCacheDir = new File(getFilesDir(), "EngineCache");
+        if (!internalCacheDir.exists()) {
+            internalCacheDir.mkdirs();
+            try {
+                copyAssetFolder("Cache", internalCacheDir);
+            } catch (IOException e) {
+                Log.e(TAG, "Failed to extract cache assets: " + e.getMessage());
+            }
+        }
+        HyperionBridge.nativeSetCacheDirectory(internalCacheDir.getAbsolutePath());
 
         int result = HyperionBridge.nativeInit();
         if (result == 0) {
@@ -309,5 +327,30 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
             HyperionBridge.nativeKeyEvent(event.getAction(), event.getKeyCode());
         }
         return super.dispatchKeyEvent(event);
+    }
+
+    private void copyAssetFolder(String assetPath, File destDir) throws IOException {
+        String[] files = getAssets().list(assetPath);
+        if (files == null || files.length == 0) {
+            return;
+        }
+        for (String file : files) {
+            String assetFilePath = assetPath + "/" + file;
+            String[] subFiles = getAssets().list(assetFilePath);
+            if (subFiles != null && subFiles.length > 0) {
+                copyAssetFolder(assetFilePath, new File(destDir, file));
+            } else {
+                File outFile = new File(destDir, file);
+                outFile.getParentFile().mkdirs();
+                try (InputStream in = getAssets().open(assetFilePath);
+                     FileOutputStream out = new FileOutputStream(outFile)) {
+                    byte[] buffer = new byte[65536];
+                    int len;
+                    while ((len = in.read(buffer)) > 0) {
+                        out.write(buffer, 0, len);
+                    }
+                }
+            }
+        }
     }
 }

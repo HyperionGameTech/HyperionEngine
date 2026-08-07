@@ -1049,7 +1049,8 @@ void VulkanGpuImage::CopyFromBuffer(
 void VulkanGpuImage::CopyToBuffer(
     VulkanCommandBuffer* commandBuffer,
     VulkanGpuBuffer* dstBuffer,
-    const ImageSubResource& subResource) const
+    const ImageSubResource& subResource,
+    size_t bufferOffset) const
 {
     Assert(dstBuffer != nullptr && dstBuffer->IsCreated(), "Destination buffer is null or invalid !");
     Assert(dstBuffer->Size() >= m_size, "Destination buffer is too small to hold image data!");

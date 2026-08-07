@@ -7,6 +7,9 @@
 #include <android/native_window.h>
 #include <android/native_window_jni.h>
 
+#include <cstdio>
+#include <alloca.h>
+
 #define LOG_TAG "HyperionAndroid"
 
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
@@ -17,6 +20,8 @@ namespace Hyperion {
 } // namespace Hyperion
 
 using namespace Hyperion;
+
+static char g_cacheDirPath[1024] = { 0 };
 
 extern "C"
 {
@@ -40,13 +45,45 @@ Java_com_hyperion_engine_HyperionBridge_nativeInit(JNIEnv* env, jclass clazz)
 {
     Hyp_Android_InitJNI(env, clazz);
 
-    const char* argv[] = {
+    const char* baseArgs[] = {
         "hyperion",
         "-SimulateOnMainThread=true",
         "-RenderOnMainThread=false"
     };
 
-    return Hyp_Initialize(int(sizeof(argv) / sizeof(argv[0])), const_cast<char**>(argv));
+    int argc = int(sizeof(baseArgs) / sizeof(baseArgs[0]));
+    const char** argv = baseArgs;
+
+    const char* cacheArg[] = { nullptr, nullptr };
+    if (g_cacheDirPath[0] != '\0')
+    {
+        static char cacheArgBuf[1100];
+        snprintf(cacheArgBuf, sizeof(cacheArgBuf), "-CacheDir=%s", g_cacheDirPath);
+        cacheArg[0] = cacheArgBuf;
+        argc += 1;
+    }
+
+    const char** combinedArgv = (const char**)alloca((argc + 1) * sizeof(const char*));
+    int idx = 0;
+    for (int i = 0; i < int(sizeof(baseArgs) / sizeof(baseArgs[0])); i++)
+    {
+        combinedArgv[idx++] = baseArgs[i];
+    }
+    if (cacheArg[0] != nullptr)
+    {
+        combinedArgv[idx++] = cacheArg[0];
+    }
+    combinedArgv[idx] = nullptr;
+
+    return Hyp_Initialize(argc, const_cast<char**>(combinedArgv));
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_hyperion_engine_HyperionBridge_nativeSetCacheDirectory(JNIEnv* env, jclass /*clazz*/, jstring cacheDir)
+{
+    const char* path = env->GetStringUTFChars(cacheDir, nullptr);
+    snprintf(g_cacheDirPath, sizeof(g_cacheDirPath), "%s", path);
+    env->ReleaseStringUTFChars(cacheDir, path);
 }
 
 extern "C" JNIEXPORT void JNICALL

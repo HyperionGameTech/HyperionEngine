@@ -322,69 +322,6 @@
 
 #pragma endregion Utility Macros
 
-#pragma region Debug Preprocessor Definitions
-
-#define HYP_ENABLE_BREAKPOINTS 1
-
-#if defined(HYP_CLANG_OR_GCC) && HYP_CLANG_OR_GCC
-#define HYP_DEBUG_FUNC_SHORT (__FUNCTION__)
-#define HYP_DEBUG_FUNC (__PRETTY_FUNCTION__)
-#define HYP_DEBUG_LINE (__LINE__)
-#define HYP_FUNCTION_NAME_LIT (__PRETTY_FUNCTION__)
-
-#ifdef HYP_ENABLE_BREAKPOINTS
-#ifdef HYP_CLANG
-#define HYP_BREAKPOINT (debug::IsDebuggerAttached() && (__builtin_debugtrap(), true))
-#else   // !HYP_CLANG
-#define HYP_BREAKPOINT (debug::IsDebuggerAttached() && (__builtin_debugtrap(), true))
-#endif  // HYP_CLANG
-
-namespace Hyperion {
-namespace debug {
-
-template <auto FileName, int LineNumber, auto FunctionName>
-static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
-{
-    static struct Impl
-    {
-        Impl()
-        {
-            HYP_BREAKPOINT;
-        }
-    } impl;
-}
-
-} // namespace debug
-} // namespace Hyperion
-
-#define HYP_BREAKPOINT_ONCE ::Hyperion::debug::ExecuteBreakpointOnce<HYP_STATIC_STRING(__FILE__), __LINE__, HYP_STATIC_STRING(HYP_FUNCTION_NAME_LIT)>()
-
-#endif // HYP_ENABLE_BREAKPOINTS
-#elif defined(HYP_MSVC) && HYP_MSVC
-#define HYP_DEBUG_FUNC_SHORT (__FUNCTION__)
-#define HYP_DEBUG_FUNC (__FUNCSIG__)
-#define HYP_DEBUG_LINE (__LINE__)
-#define HYP_FUNCTION_NAME_LIT (__FUNCSIG__)
-
-#ifdef HYP_ENABLE_BREAKPOINTS
-#define HYP_BREAKPOINT (debug::IsDebuggerAttached() && (__debugbreak(), true))
-#endif // HYP_ENABLE_BREAKPOINTS
-
-#else // unknown compiler, define empty macros
-
-#define HYP_DEBUG_FUNC_SHORT ""
-#define HYP_DEBUG_FUNC ""
-#define HYP_DEBUG_LINE (0)
-#define HYP_FUNCTION_NAME_LIT ""
-
-#endif
-
-#ifndef HYP_BREAKPOINT
-#define HYP_BREAKPOINT (void(0))
-#endif
-
-#pragma endregion Debug Preprocessor Definitions
-
 #pragma region Synchonization
 
 #if defined(HYP_MSVC)

@@ -44,18 +44,18 @@ constexpr struct
     }
 } NoOpAssertWrapper = {};
 
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
 // #define DebugLog(type, fmt) DebugLog(type, HYP_DEBUG_FUNC_SHORT, HYP_DEBUG_LINE, fmt)
 #define DebugLog(type, ...) \
     debug::DebugLog_Write(type, HYP_DEBUG_FUNC_SHORT, HYP_DEBUG_LINE, __VA_ARGS__)
 
 CORE_API extern void DebugLog_Write(LogType type, const char* callee, unsigned int line, const char* fmt, ...);
-#else
+#else // !HYP_DEBUG_MODE
 #define DebugLog(type, ...) \
     debug::DebugLog_Write(type, __VA_ARGS__)
 
 CORE_API extern void DebugLog_Write(LogType type, const char* fmt, ...);
-#endif
+#endif // HYP_DEBUG_MODE
 
 CORE_API extern void DebugLog_FlushOutputStream();
 
@@ -68,6 +68,59 @@ CORE_API extern bool IsDebuggerAttached();
 CORE_API extern void LogAssert(const char* str);
 
 [[noreturn]] CORE_API extern void TerminateProgram();
+
+#define HYP_ENABLE_BREAKPOINTS 1
+
+#if defined(HYP_CLANG_OR_GCC) && HYP_CLANG_OR_GCC
+#define HYP_DEBUG_FUNC_SHORT (__FUNCTION__)
+#define HYP_DEBUG_FUNC (__PRETTY_FUNCTION__)
+#define HYP_DEBUG_LINE (__LINE__)
+#define HYP_FUNCTION_NAME_LIT (__PRETTY_FUNCTION__)
+
+#ifdef HYP_ENABLE_BREAKPOINTS
+#ifdef HYP_CLANG
+#define HYP_BREAKPOINT (debug::IsDebuggerAttached() && (__builtin_debugtrap(), true))
+#else   // !HYP_CLANG
+#define HYP_BREAKPOINT (debug::IsDebuggerAttached() && (__builtin_debugtrap(), true))
+#endif  // HYP_CLANG
+
+template <auto FileName, int LineNumber, auto FunctionName>
+static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
+{
+    static struct Impl
+    {
+        Impl()
+        {
+            HYP_BREAKPOINT;
+        }
+    } s_impl;
+}
+
+#define HYP_BREAKPOINT_ONCE ::Hyperion::debug::ExecuteBreakpointOnce<HYP_STATIC_STRING(__FILE__), __LINE__, HYP_STATIC_STRING(HYP_FUNCTION_NAME_LIT)>()
+
+#endif // HYP_ENABLE_BREAKPOINTS
+#elif defined(HYP_MSVC) && HYP_MSVC
+#define HYP_DEBUG_FUNC_SHORT (__FUNCTION__)
+#define HYP_DEBUG_FUNC (__FUNCSIG__)
+#define HYP_DEBUG_LINE (__LINE__)
+#define HYP_FUNCTION_NAME_LIT (__FUNCSIG__)
+
+#ifdef HYP_ENABLE_BREAKPOINTS
+#define HYP_BREAKPOINT (debug::IsDebuggerAttached() && (__debugbreak(), true))
+#endif // HYP_ENABLE_BREAKPOINTS
+
+#else // unknown compiler, define empty macros
+
+#define HYP_DEBUG_FUNC_SHORT ""
+#define HYP_DEBUG_FUNC ""
+#define HYP_DEBUG_LINE (0)
+#define HYP_FUNCTION_NAME_LIT ""
+
+#endif // HYP_CLANG_OR_GCC || HYP_MSVC
+
+#ifndef HYP_BREAKPOINT
+#define HYP_BREAKPOINT (void(0))
+#endif // !HYP_BREAKPOINT
 
 } // namespace debug
 

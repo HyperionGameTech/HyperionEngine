@@ -37,10 +37,11 @@ VulkanFence& VulkanFence::operator=(VulkanFence&& other) noexcept
     {
         if (handle != VK_NULL_HANDLE)
         {
-            EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = handle]()
-                                                          {
-                                                              vkDestroyFence(RI.GetDevice()->GetDevice(), handle, nullptr);
-                                                          }));
+            EnqueueDeletion(FunctionWrapper<Proc<void()>>(
+                [handle = handle]()
+                {
+                    vkDestroyFence(RI.GetDevice()->GetDevice(), handle, nullptr);
+                }));
         }
 
         handle = other.handle;

@@ -1,6 +1,20 @@
 @echo off
 setlocal EnableDelayedExpansion
 
+set "SKIP_PRECOMPILE=0"
+set "PROJECT_NAME="
+
+:PARSE_ARGS
+IF "%~1"=="" GOTO END_PARSE_ARGS
+IF /I "%~1"=="--skip-precompile" set "SKIP_PRECOMPILE=1"
+IF /I "%~1"=="--project" (
+    set "PROJECT_NAME=%~2"
+    SHIFT
+)
+SHIFT
+GOTO PARSE_ARGS
+:END_PARSE_ARGS
+
 for %%i in ("%~dp0..\..") do set "HYP_ROOT_DIR=%%~fi\"
 
 echo Building...
@@ -25,15 +39,17 @@ REM Commandlets can't run on-device, and aren't built for shipping anyway, so sh
 REM precompilation and cooking use the Windows host tools ^(built via a normal Release build^).
 set "BIN_DIR_RELEASE=%HYP_ROOT_DIR%Binaries\Windows\Release"
 
-echo Running PrecompileShaders commandlet...
-
-REM Compile shaders for only Android
-"%BIN_DIR_RELEASE%\PrecompileShaders.exe" --platform=android
+if "%SKIP_PRECOMPILE%"=="1" (
+    echo Skipping shader precompilation (--skip-precompile).
+) else (
+    echo Running PrecompileShaders commandlet...
+    "%BIN_DIR_RELEASE%\PrecompileShaders.exe" --platform=android
+)
 
 echo Running Cook commandlet...
 
 REM Get the project name input from user, pass it concat with Projects/ below:
-set /p "PROJECT_NAME=Enter the project name (folder under Projects/): "
+if "%PROJECT_NAME%"=="" set /p "PROJECT_NAME=Enter the project name (folder under Projects/): "
 if "%PROJECT_NAME%"=="" (
     echo No project name entered, aborting packaged build.
     exit /b 1
@@ -108,13 +124,31 @@ if not exist "%ANDROID_PROJECT%\local.properties" (
     echo Generated local.properties
 )
 
-echo Building release APK ^(Gradle^)...
+echo Building debug APK ^(Gradle^)...
+
+REM Stage fresh native .so files into jniLibs so Gradle bundles the current build,
+REM not stale libs left over from a previous build. This mirrors what the Gradle
+REM stageNativeLibs task does, but ensures it always runs with the latest engine output.
+REM Also remove stale Debug dir which Gradle's stageNativeLibs would prefer over Release.
+if exist "%HYP_ROOT_DIR%Binaries\Android\Debug" rd /s /q "%HYP_ROOT_DIR%Binaries\Android\Debug"
+set "JNILIB_DIR=%ANDROID_PROJECT%\app\src\main\jniLibs\arm64-v8a"
+if not exist "%JNILIB_DIR%" mkdir "%JNILIB_DIR%"
+echo Staging engine .so files from %BIN_DIR% ...
+del /q "%JNILIB_DIR%\*.so" >nul 2>nul
+for %%F in ("%BIN_DIR%\*.so") do (
+    copy /Y "%%F" "%JNILIB_DIR%\%%~nxF" >nul
+)
 
 REM Gradle just mirrors this whole directory into assets/ - see stagePackageAssets in
 REM app/build.gradle. hypPackageDir needs forward slashes even on Windows.
 set "OUT_DIR_UNIX=%OUT_DIR:\=/%"
 
 pushd "%ANDROID_PROJECT%"
+
+REM Nuke stale Gradle native build cache and config cache to avoid stale .so file bundling.
+if exist "app\.cxx" rd /s /q "app\.cxx"
+if exist "app\build" rd /s /q "app\build"
+if exist ".gradle\configuration-cache" rd /s /q ".gradle\configuration-cache"
 
 if not exist "gradle\wrapper\gradle-wrapper.jar" (
     echo WARNING: gradle-wrapper.jar not found, falling back to system Gradle.
@@ -129,7 +163,7 @@ if not exist "gradle\wrapper\gradle-wrapper.jar" (
     set "GRADLE_CMD=call gradlew.bat"
 )
 
-%GRADLE_CMD% assembleRelease "-PhypPackageDir=%OUT_DIR_UNIX%"
+%GRADLE_CMD% assembleDebug "-PhypPackageDir=%OUT_DIR_UNIX%"
 if errorlevel 1 (
     echo Gradle build failed, aborting packaged build.
     popd
@@ -138,10 +172,12 @@ if errorlevel 1 (
 popd
 
 echo Copying APK...
-set "APK_SRC_DIR=%ANDROID_PROJECT%\app\build\outputs\apk\release"
+set "APK_SRC_DIR=%ANDROID_PROJECT%\app\build\outputs\apk\debug"
 set "APK_FOUND=0"
+set "APK_PATH=%OUT_DIR%\"
 for %%F in ("%APK_SRC_DIR%\*.apk") do (
     copy "%%F" "%OUT_DIR%\" >nul
+    set "APK_PATH=%OUT_DIR%\%%~nxF"
     set "APK_FOUND=1"
 )
 if "%APK_FOUND%"=="0" (
@@ -156,4 +192,58 @@ if exist "%OUT_DIR%\Source" rd /s /q "%OUT_DIR%\Source"
 del /q "%OUT_DIR%\*.json" >nul 2>nul
 
 echo Done! Packaged build created at: %OUT_DIR%
+
+REM ---- Locate adb ----
+set "ADB_EXE="
+where adb >nul 2>&1 && set "ADB_EXE=adb"
+if not defined ADB_EXE if defined ANDROID_HOME (
+    if exist "%ANDROID_HOME%\platform-tools\adb.exe" set "ADB_EXE=%ANDROID_HOME%\platform-tools\adb.exe"
+)
+if not defined ADB_EXE if defined ANDROID_SDK_ROOT (
+    if exist "%ANDROID_SDK_ROOT%\platform-tools\adb.exe" set "ADB_EXE=%ANDROID_SDK_ROOT%\platform-tools\adb.exe"
+)
+if not defined ADB_EXE (
+    if exist "%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe" set "ADB_EXE=%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe"
+)
+if not defined ADB_EXE (
+    echo ADB not found -- skipping device deployment.
+    goto SKIP_DEPLOY
+)
+
+"%ADB_EXE%" devices | findstr /R /C:"device$" >nul 2>&1
+if errorlevel 1 (
+    echo No device connected -- skipping device deployment.
+    goto SKIP_DEPLOY
+)
+
+echo.
+set /p "DO_DEPLOY=Install and launch on device? [y/N]: "
+if /I not "%DO_DEPLOY%"=="y" goto SKIP_DEPLOY
+
+set "PACKAGE_NAME=com.hyperion.engine"
+set "ACTIVITY_NAME=com.hyperion.engine.MainActivity"
+
+echo Installing APK...
+"%ADB_EXE%" install -r "%APK_PATH%"
+if errorlevel 1 (
+    echo ERROR: adb install failed.
+    exit /b 1
+)
+
+echo Launching app...
+"%ADB_EXE%" shell am start -n "%PACKAGE_NAME%/%ACTIVITY_NAME%"
+echo.
+echo Tailing logcat (Ctrl+C to stop)...
+
+:PKG_LOG_LOOP
+timeout /t 1 /nobreak >nul
+for /f "tokens=2 delims= " %%i in ('"%ADB_EXE%" shell pidof %PACKAGE_NAME% 2^>nul') do set "APP_PID=%%i"
+if defined APP_PID (
+    "%ADB_EXE%" logcat --pid=%APP_PID%
+) else (
+    "%ADB_EXE%" logcat -s "hyperion:*" "HyLog:*" "DEBUG:*" "AndroidRuntime:*" "*:F"
+)
+goto PKG_LOG_LOOP
+
+:SKIP_DEPLOY
 endlocal
