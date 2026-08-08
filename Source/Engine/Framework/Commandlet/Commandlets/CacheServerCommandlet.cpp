@@ -85,8 +85,8 @@ class CacheServerCommandlet final : public CommandletBase
     struct BlobLookupEntry
     {
         uint32 bucketIndex;
-        String assetName;
-        String magic;
+        Name assetName;
+        const char* magic; // constant string
         uint64 size;
     };
 
@@ -182,7 +182,7 @@ protected:
             HYP_LOG(Assets, Warning, "No engine asset registry found, serving with no manifest");
         }
 
-        state.manifest.cook_timestamp_ms = uint64(Time::Now());
+        state.manifest.cookTimestamp = uint64(Time::Now());
 
         if (engineRegistry.IsValid())
         {
@@ -225,8 +225,17 @@ protected:
 
                     AssetEntry assetEntry;
                     assetEntry.registryId = AssetRegistryId::Engine;
-                    assetEntry.bucket_index = bucketIndex;
-                    assetEntry.name = String(*assetObject->GetName());
+                    assetEntry.bucketIndex = bucketIndex;
+                    assetEntry.name = assetObject->GetName();
+                    
+                    {
+                        FilePath hmfPath = engineRegistry->GetManifestPath(assetObject->GetPath());
+                        
+                        if (hmfPath.Exists())
+                        {
+                            assetEntry.lastModifiedTimestamp = uint64(hmfPath.LastModifiedTimestamp());
+                        }
+                    }
 
                     for (auto& tup : blobRefs)
                     {
@@ -244,15 +253,14 @@ protected:
                         blobEntry.key = key;
                         blobEntry.size = ref->size;
                         blobEntry.magic = magic;
-
                         assetEntry.blobs.PushBack(std::move(blobEntry));
 
-                        state.blobLookup[key] = BlobLookupEntry {
-                            bucketIndex,
-                            assetEntry.name,
-                            String(magic),
-                            ref->size
-                        };
+                        BlobLookupEntry& entry = state.blobLookup[key];
+                        entry = {};
+                        entry.bucketIndex = bucketIndex;
+                        entry.assetName = assetEntry.name;
+                        entry.size = ref->size;
+                        entry.magic = magic;
                     }
 
                     state.manifest.assets.PushBack(std::move(assetEntry));
@@ -299,8 +307,16 @@ protected:
 
                     AssetEntry assetEntry;
                     assetEntry.registryId = AssetRegistryId::Game;
-                    assetEntry.bucket_index = bucketIndex;
-                    assetEntry.name = String(*assetObject->GetName());
+                    assetEntry.bucketIndex = bucketIndex;
+                    assetEntry.name = assetObject->GetName();
+                    
+                    {
+                        FilePath hmfPath = gameRegistry->GetManifestPath(assetObject->GetPath());
+                        if (hmfPath.Exists())
+                        {
+                            assetEntry.lastModifiedTimestamp = uint64(hmfPath.LastModifiedTimestamp());
+                        }
+                    }
 
                     for (auto& tup : blobRefs)
                     {
@@ -320,13 +336,13 @@ protected:
                         blobEntry.magic = magic;
 
                         assetEntry.blobs.PushBack(std::move(blobEntry));
-
-                        state.blobLookup[key] = BlobLookupEntry {
-                            bucketIndex,
-                            assetEntry.name,
-                            String(magic),
-                            ref->size
-                        };
+                        
+                        BlobLookupEntry& entry = state.blobLookup[key];
+                        entry = {};
+                        entry.bucketIndex = bucketIndex;
+                        entry.assetName = assetEntry.name;
+                        entry.size = ref->size;
+                        entry.magic = magic;
                     }
 
                     state.manifest.assets.PushBack(std::move(assetEntry));
@@ -338,8 +354,20 @@ protected:
             HYP_LOG(Assets, Warning, "No game asset registry for '{}', skipping.", cacheDir);
         }
 
+        // Sort assets descending by last-modified timestamp so clients can
+        // stop downloading early once they hit an already-current asset.
+        if (state.manifest.assets.Any())
+        {
+            std::sort(state.manifest.assets.Data(),
+                state.manifest.assets.Data() + state.manifest.assets.Size(),
+                [](const AssetEntry& a, const AssetEntry& b)
+                {
+                    return a.lastModifiedTimestamp > b.lastModifiedTimestamp;
+                });
+        }
+
         HYP_LOG(Assets, Info, "CacheServer manifest built: {} assets, timestamp={}",
-            state.manifest.assets.Size(), state.manifest.cook_timestamp_ms);
+            state.manifest.assets.Size(), state.manifest.cookTimestamp);
 
         // Serialize the manifest to HMF once
         {
@@ -482,6 +510,7 @@ protected:
                 if (path == "/manifest")
                 {
                     const String& body = state.manifestHmfText;
+                    
                     char header[256];
                     int headerLen = std::snprintf(header, sizeof(header),
                         "HTTP/1.0 200 OK\r\n"
@@ -489,6 +518,7 @@ protected:
                         "Content-Length: %zu\r\n"
                         "\r\n",
                         body.Size());
+
                     send(clientSock, header, headerLen, 0);
                     send(clientSock, body.Data(), int(body.Size()), 0);
                 }
@@ -501,8 +531,10 @@ protected:
                     {
                         const char* bad = "HTTP/1.0 400 Bad Request\r\n"
                             "Content-Length: 0\r\n\r\n";
+                        
                         send(clientSock, bad, int(strlen(bad)), 0);
                         CLOSE_SOCKET(clientSock);
+
                         return;
                     }
 
@@ -513,9 +545,9 @@ protected:
 
                     if (bucketIndex >= 1 && bucketIndex < MaxAssetBuckets)
                     {
-                    String assetBucketStr = String(GetAssetBucketName(bucketIndex));
+                        String assetBucketStr = String(GetAssetBucketName(bucketIndex));
 
-                    FilePath hmfPath = gameRegistry->GetRootPath() / assetBucketStr / (assetName + ".hmf");
+                        FilePath hmfPath = gameRegistry->GetRootPath() / assetBucketStr / (assetName + ".hmf");
 
                         if (!hmfPath.Exists())
                         {
@@ -567,27 +599,48 @@ protected:
                         return;
                     }
 
-                    String keyHex = query.Substr(keyStart + 4, sizeStart - (keyStart + 4));
+                    String keyHex = query.Substr(keyStart + 4, sizeStart);
                     String sizeStr = query.Substr(sizeStart + 6);
 
                     uint64 keyValue = 0;
+                    size_t hexCount = 0;
+
                     for (size_t i = 0; i < keyHex.Size() && keyHex[i] != '&'; i++)
                     {
                         char c = keyHex[i];
-                        keyValue <<= 4;
+                        uint64 digit;
+
                         if (c >= '0' && c <= '9')
-                            keyValue |= uint64(c - '0');
+                        {
+                            digit = c - '0';
+                        }
                         else if (c >= 'a' && c <= 'f')
-                            keyValue |= uint64(c - 'a' + 10);
+                        {
+                            digit = c - 'a' + 10;
+                        }
                         else if (c >= 'A' && c <= 'F')
-                            keyValue |= uint64(c - 'A' + 10);
+                        {
+                            digit = c - 'A' + 10;
+                        }
                         else
+                        {
                             break;
+                        }
+
+                        if (++hexCount > 16)
+                        {
+                            break;
+                        }
+
+                        keyValue = (keyValue << 4) | digit;
                     }
 
                     uint64 sizeValue = 0;
+
                     for (size_t i = 0; i < sizeStr.Size() && sizeStr[i] >= '0' && sizeStr[i] <= '9'; i++)
+                    {
                         sizeValue = sizeValue * 10 + uint64(sizeStr[i] - '0');
+                    }
 
                     bool served = false;
 
@@ -602,7 +655,7 @@ protected:
                             {
                                 return contentDir
                                     / String(GetAssetBucketName(entry.bucketIndex))
-                                    / (entry.assetName + "." + entry.magic + ".raw.blob");
+                                    / (entry.assetName.ToString() + "." + entry.magic + ".raw.blob");
                             };
                             
                             FilePath rawBlobPath = s_getBlobPath(entry, gameRegistry->GetRootPath());

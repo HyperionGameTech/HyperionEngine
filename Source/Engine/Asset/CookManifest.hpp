@@ -40,10 +40,13 @@ struct AssetEntry
     AssetRegistryId registryId;
 
     HYP_FIELD()
-    uint32 bucket_index;
+    uint32 bucketIndex;
 
     HYP_FIELD()
-    String name;
+    Name name;
+
+    HYP_FIELD()
+    uint64 lastModifiedTimestamp;
 
     HYP_FIELD()
     Array<BlobEntry> blobs;
@@ -55,7 +58,7 @@ struct CookManifest
     HYP_STRUCT_BODY(CookManifest)
 
     HYP_FIELD()
-    uint64 cook_timestamp_ms;
+    uint64 cookTimestamp;
 
     HYP_FIELD()
     Array<AssetEntry> assets;

@@ -2115,7 +2115,8 @@ end
 extern struct AssetEntry
     RegistryId : AssetRegistryId
     BucketIndex : uint32
-    Name : string
+    Name : Name
+    LastModifiedTimestamp : uint64
     Blobs : Array<BlobEntry>
 end
 extern struct BlobEntry
@@ -2124,7 +2125,7 @@ extern struct BlobEntry
     Magic : string
 end
 extern struct CookManifest
-    CookTimestampMs : uint64
+    CookTimestamp : uint64
     Assets : Array<AssetEntry>
 end
 extern struct BlobDataReference

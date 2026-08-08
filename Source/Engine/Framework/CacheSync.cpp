@@ -151,11 +151,11 @@ Result HttpGetBytes(
 
         return HYP_MAKE_ERROR(Error, "Failed to send request to {}:{}", host, uint32(port));
     }
-
     char headerBuf[8192];
-
     size_t headerLen = 0;
     bool headersDone = false;
+    size_t expectedBodySize = 0;
+    size_t receivedBodySize = 0;
 
     char recvBuf[8192];
     int n;
@@ -175,22 +175,23 @@ Result HttpGetBytes(
             {
                 const char* statusStart = strchr(headerBuf, ' ');
                 if (statusStart == nullptr)
-                {
                     return HYP_MAKE_ERROR(Error, "Invalid HTTP response from {}:{}", host, uint32(port));
-                }
 
                 int statusCode = atoi(statusStart + 1);
                 if (statusCode != 200)
-                {
                     return HYP_MAKE_ERROR(Error, "Server returned HTTP {} for {}:{}{}", statusCode, host, uint32(port), path);
-                }
+
+                // Parse Content-Length
+                const char* cl = strstr(headerBuf, "Content-Length:");
+                if (cl != nullptr && cl < bodyEnd)
+                    expectedBodySize = size_t(atoi(cl + 15));
 
                 const char* bodyStart = bodyEnd + 4;
-
                 size_t bodyBytesInHeader = size_t(headerBuf + headerLen - bodyStart);
                 if (bodyBytesInHeader > 0)
                 {
                     writer.Write(bodyStart, bodyBytesInHeader);
+                    receivedBodySize += bodyBytesInHeader;
                 }
 
                 headersDone = true;
@@ -199,6 +200,7 @@ Result HttpGetBytes(
         else
         {
             writer.Write(recvBuf, size_t(n));
+            receivedBodySize += size_t(n);
         }
     }
 
@@ -210,6 +212,10 @@ Result HttpGetBytes(
 
     if (!headersDone)
         return HYP_MAKE_ERROR(Error, "Response from {}:{}{} ended before headers", host, uint32(port), path);
+
+    if (expectedBodySize > 0 && receivedBodySize < expectedBodySize)
+        return HYP_MAKE_ERROR(Error, "Truncated body from {}:{}{} — expected {} bytes, got {}",
+            host, uint32(port), path, expectedBodySize, receivedBodySize);
 
     writer.Flush();
 
@@ -284,6 +290,8 @@ Result HttpGetBytes(
     char headerBuf[8192];
     size_t headerLen = 0;
     bool headersDone = false;
+    size_t expectedBodySize = 0;
+    size_t receivedBodySize = 0;
 
     char recvBuf[8192];
     ssize_t n;
@@ -316,12 +324,18 @@ Result HttpGetBytes(
                     return HYP_MAKE_ERROR(Error, "Server returned HTTP {} for {}:{}{}", statusCode, host, uint32(port), path);
                 }
 
+                // Parse Content-Length
+                const char* cl = strstr(headerBuf, "Content-Length:");
+                if (cl != nullptr && cl < bodyEnd)
+                    expectedBodySize = size_t(atoi(cl + 15));
+
                 const char* bodyStart = bodyEnd + 4;
 
                 size_t bodyBytesInHeader = size_t(headerBuf + headerLen - bodyStart);
                 if (bodyBytesInHeader > 0)
                 {
                     writer.Write(bodyStart, bodyBytesInHeader);
+                    receivedBodySize += bodyBytesInHeader;
                 }
 
                 headersDone = true;
@@ -330,6 +344,7 @@ Result HttpGetBytes(
         else
         {
             writer.Write(recvBuf, size_t(n));
+            receivedBodySize += size_t(n);
         }
     }
 
@@ -345,9 +360,58 @@ Result HttpGetBytes(
         return HYP_MAKE_ERROR(Error, "Response from {}:{}{} ended before headers", host, uint32(port), path);
     }
 
+    if (expectedBodySize > 0 && receivedBodySize < expectedBodySize)
+        return HYP_MAKE_ERROR(Error, "Truncated body from {}:{}{} — expected {} bytes, got {}",
+            host, uint32(port), path, expectedBodySize, receivedBodySize);
+
+    writer.Flush();
+
     return {};
 
 #endif
+}
+
+static Map<AssetPath, uint64> BuildLocalAssetTimestampMap(const FilePath& cacheDir)
+{
+    Map<AssetPath, uint64> result;
+    FilePath localManifest = cacheDir / "Manifest.hmf";
+
+    if (!localManifest.Exists())
+    {
+        return result;
+    }
+
+    FileByteReader reader { localManifest };
+    if (reader.Eof())
+    {
+        return result;
+    }
+
+    String localStr = String(reader.Read().ToByteView());
+
+    HMF::ParseResult parseResult = HMF::Parse(localStr);
+    if (!parseResult.HasValue())
+    {
+        return result;
+    }
+
+    BoxedValue& boxed = parseResult.GetValue();
+    if (!boxed.Is<CookManifest>())
+    {
+        return result;
+    }
+
+    const CookManifest& localManifestData = boxed.Get<CookManifest>();
+    for (const AssetEntry& localEntry : localManifestData.assets)
+    {
+        AssetPath key(localEntry.registryId,
+            *AssetBuckets::AllBuckets[localEntry.bucketIndex],
+            localEntry.name);
+
+        result[key] = localEntry.lastModifiedTimestamp;
+    }
+
+    return result;
 }
 
 Result DownloadCacheFromHost(
@@ -391,7 +455,7 @@ Result DownloadCacheFromHost(
     // so on the server side, we should sort the assets in the manifest descending by timestmap.
     // then we can stop downloading on the first one that has a timestamp indicating we have the latest ver.
     HYP_LOG(Assets, Info, "CacheSync server manifest: timestamp={}, {} assets",
-        serverManifest.cook_timestamp_ms, serverManifest.assets.Size());
+        serverManifest.cookTimestamp, serverManifest.assets.Size());
 
     // Compare with local manifest
     uint64 localTimestamp = 0;
@@ -410,21 +474,22 @@ Result DownloadCacheFromHost(
                 BoxedValue& localBoxed = localResult.GetValue();
                 if (localBoxed.Is<CookManifest>())
                 {
-                    localTimestamp = localBoxed.Get<CookManifest>().cook_timestamp_ms;
+                    localTimestamp = localBoxed.Get<CookManifest>().cookTimestamp;
                 }
             }
         }
     }
 
-    if (serverManifest.cook_timestamp_ms <= localTimestamp)
+    if (serverManifest.cookTimestamp <= localTimestamp)
     {
         HYP_LOG(Assets, Info, "CacheSync cache up to date (local={} >= server={})",
-            localTimestamp, serverManifest.cook_timestamp_ms);
+            localTimestamp, serverManifest.cookTimestamp);
+
         return {};
     }
 
     HYP_LOG(Assets, Info, "CacheSync cache outdated (local={} < server={}), downloading",
-        localTimestamp, serverManifest.cook_timestamp_ms);
+        localTimestamp, serverManifest.cookTimestamp);
 
     if (!cacheDir.Exists() && !cacheDir.MkDir())
     {
@@ -436,16 +501,17 @@ Result DownloadCacheFromHost(
 
     for (const AssetEntry& entry : serverManifest.assets)
     {
-        if (entry.bucket_index == 0 || entry.bucket_index >= MaxAssetBuckets)
+        if (!entry.bucketIndex || entry.bucketIndex >= MaxAssetBuckets)
         {
             continue;
         }
 
         for (const BlobEntry& blob : entry.blobs)
         {
-            const size_t alignedSize = ByteUtil::AlignAs(blockSizes[entry.bucket_index], alignof(BlobHeader))
+            const size_t alignedSize = ByteUtil::AlignAs(blockSizes[entry.bucketIndex], alignof(BlobHeader))
                 + sizeof(BlobHeader) + blob.size;
-            blockSizes[entry.bucket_index] = alignedSize;
+
+            blockSizes[entry.bucketIndex] = alignedSize;
         }
     }
 
@@ -475,11 +541,28 @@ Result DownloadCacheFromHost(
 
     AtomicVar<int32> failureCount = 0;
 
+    // Build a map of local asset timestamps so we can skip up-to-date assets.
+    // Assets are sorted descending by timestamp, so we can break on first match.
+    Map<AssetPath, uint64> localAssetTimestamps = BuildLocalAssetTimestampMap(cacheDir);
+
     for (const AssetEntry& entry : serverManifest.assets)
     {
-        if (entry.bucket_index >= MaxAssetBuckets)
+        if (!entry.bucketIndex || entry.bucketIndex >= MaxAssetBuckets)
         {
             continue;
+        }
+
+        // Skip if we already have this asset at an equal-or-newer timestamp.
+        // Assets are sorted descending, so all remaining are also up-to-date.
+        {
+            AssetPath key(entry.registryId, *AssetBuckets::AllBuckets[entry.bucketIndex], entry.name);
+
+            auto it = localAssetTimestamps.Find(key);
+
+            if (it != localAssetTimestamps.End() && it->second >= entry.lastModifiedTimestamp)
+            {
+                break;
+            }
         }
 
         tasks.EmplaceBack(downloadPool.Enqueue(HYP_STATIC_MESSAGE("CacheSyncAsset"), [&]() -> void
@@ -490,12 +573,12 @@ Result DownloadCacheFromHost(
             {
                 char hmfPathBuf[512];
                 std::snprintf(hmfPathBuf, sizeof(hmfPathBuf), "/hmf/%u/%s",
-                    entry.bucket_index, entry.name.Data());
+                    entry.bucketIndex, entry.name.LookupString());
 
-                FilePath bucketContentDir = contentDir / String(GetAssetBucketName(entry.bucket_index));
+                FilePath bucketContentDir = contentDir / String(GetAssetBucketName(entry.bucketIndex));
                 bucketContentDir.MkDir();
 
-                FilePath hmfFilePath = bucketContentDir / (entry.name + ".hmf");
+                FilePath hmfFilePath = bucketContentDir / (entry.name.ToString() + ".hmf");
                 FileByteWriter hmfWriter { hmfFilePath };
 
                 if (hmfWriter.IsOpen())
@@ -546,7 +629,7 @@ Result DownloadCacheFromHost(
                 header.payloadOffset = 0;
                 header.payloadSize = blob.size;
 
-                if (!writeStorage.PutData(entry.bucket_index, StringHash(blob.key), header, blobData.Data()))
+                if (!writeStorage.PutData(entry.bucketIndex, StringHash(blob.key), header, blobData.Data()))
                 {
                     HYP_LOG(Assets, Error, "CacheSync PutData failed for blob key={}", blob.key);
                     entryFailed = true;
