@@ -167,8 +167,6 @@ private:
     FilePath m_basePath;
 };
 
-class AssetManagerThreadPool;
-
 HYP_CLASS()
 class AssetManager final : public ObjectBase
 {
@@ -196,8 +194,6 @@ public:
     AssetManager(AssetManager&& other) noexcept = delete;
     AssetManager& operator=(AssetManager&& other) noexcept = delete;
     ENGINE_API ~AssetManager();
-
-    ENGINE_API TaskThreadPool* GetThreadPool() const;
 
     HYP_METHOD()
     FilePath GetBasePath() const;
@@ -341,8 +337,6 @@ private:
     }
 
     void RegisterDefaultLoaders();
-
-    UniquePtr<AssetManagerThreadPool> m_threadPool;
 
     Array<Handle<AssetCollector>> m_assetCollectors;
     WeakHandle<AssetCollector> m_baseAssetCollector;

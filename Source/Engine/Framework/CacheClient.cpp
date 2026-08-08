@@ -395,10 +395,15 @@ Result HttpGetBytes(
 #endif
 }
 
-static Map<AssetPath, uint64> BuildLocalAssetTimestampMap(const FilePath& cacheDir)
+inline String GetManifestFileName(const Params& params)
+{
+    return GetAssetRegistryName(params.registryId);
+}
+
+Map<AssetPath, uint64> BuildLocalAssetTimestampMap(const Params& params)
 {
     Map<AssetPath, uint64> result;
-    FilePath localManifest = cacheDir / "Manifest.hmf";
+    FilePath localManifest = params.outputCacheDir / GetManifestFileName(params) + ".hmf";
 
     if (!localManifest.Exists())
     {
@@ -474,10 +479,9 @@ Result DownloadCacheFromHost(
     HYP_LOG(CacheClient, Verbose, "CacheSync timestamp={}, {} assets",
         serverManifest.timestamp, serverManifest.assets.Size());
 
-#if 0
     // Compare with local manifest
     uint64 localTimestamp = 0;
-    FilePath localManifestPath = params.outputCacheDir / "Manifest.hmf";
+    FilePath localManifestPath = params.outputCacheDir / GetManifestFileName(params) + ".hmf";
 
     if (localManifestPath.Exists())
     {
@@ -499,49 +503,20 @@ Result DownloadCacheFromHost(
         }
     }
 
-    if (serverManifest.timestamp <= localTimestamp)
-    {
-        HYP_LOG(CacheClient, Verbose, "CacheSync cache up to date  (local={} >= server={})",
-            localTimestamp, serverManifest.timestamp);
+    //if (serverManifest.timestamp <= localTimestamp)
+    //{
+    //    HYP_LOG(CacheClient, Verbose, "CacheSync cache up to date  (local={} >= server={})",
+    //        localTimestamp, serverManifest.timestamp);
 
-        return {};
-    }
+    //    return {};
+    //}
 
     HYP_LOG(CacheClient, Verbose, "CacheSync cache outdated (local={} < server={})",
         localTimestamp, serverManifest.timestamp);
-#endif
 
     if (!params.outputCacheDir.Exists() && !params.outputCacheDir.MkDir())
     {
         return HYP_MAKE_ERROR(Error,"CacheSync failed to create cache directory '{}'", params.outputCacheDir);
-    }
-
-    Array<uint64> blockSizes;
-    blockSizes.Resize(MaxAssetBuckets);
-
-    for (const AssetEntry& entry : serverManifest.assets)
-    {
-        if (!entry.bucketIndex || entry.bucketIndex >= MaxAssetBuckets)
-        {
-            continue;
-        }
-
-        for (const BlobEntry& blob : entry.blobs)
-        {
-            const size_t alignedSize = ByteUtil::AlignAs(blockSizes[entry.bucketIndex], alignof(BlobHeader))
-                + sizeof(BlobHeader) + blob.size;
-
-            blockSizes[entry.bucketIndex] = alignedSize;
-        }
-    }
-
-    Array<BlobBlockInfo> blocks;
-    for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; bucketIndex++)
-    {
-        if (blockSizes[bucketIndex] > 0)
-        {
-            blocks.PushBack(BlobBlockInfo { bucketIndex, blockSizes[bucketIndex] });
-        }
     }
 
     BlobStorage& storage = *EngineGlobals::GetBlobStorage();
@@ -556,9 +531,100 @@ Result DownloadCacheFromHost(
         }
     });
 
-    if (Result result = storage.BeginCook(blocks); result.HasError())
+    Map<AssetPath, uint64> localAssetTimestamps = BuildLocalAssetTimestampMap(params);
+
+    // Work out which blobs actually have to be written before touching the blocks, so each one can
+    // be grown by exactly the amount the new data needs.
+    //
+    // A blob is left alone when its asset is already current locally *and* its bytes are still
+    // present and in range in the block file. Those keep their existing offsets, so nothing is
+    // re-downloaded, nothing is rewritten, and nothing has to be held in memory to survive the
+    // cook. Anything else -- stale asset, missing blob, or a table of contents entry that no longer
+    // matches the block file -- gets fetched and appended.
+    //
+    // Note that a replaced blob is appended at the tail rather than written back over its old
+    // bytes. Blobs are addressed by an offset in the table of contents rather than by their position
+    // within the block, so one growing past its old extent doesn't disturb its neighbours and there's
+    // no need to shuffle (or re-fetch) whatever follows it. The cost is that the bytes it leaves
+    // behind are dead space until the block is next rebuilt from scratch.
+    Set<uint64> blobKeysToWrite;
+
+    Array<uint64> additionalBlockSizes;
+    additionalBlockSizes.Resize(MaxAssetBuckets);
+
+    for (const AssetEntry& entry : serverManifest.assets)
+    {
+        if (!entry.bucketIndex || entry.bucketIndex >= MaxAssetBuckets)
+        {
+            continue;
+        }
+
+        const bool isUpToDateLocally = [&]() -> bool
+        {
+            AssetPath key(entry.registryId, *AssetBuckets::AllBuckets[entry.bucketIndex], entry.name);
+
+            auto it = localAssetTimestamps.Find(key);
+
+            return it != localAssetTimestamps.End() && it->second >= entry.lastModifiedTimestamp;
+        }();
+
+        for (const BlobEntry& blob : entry.blobs)
+        {
+            if (isUpToDateLocally && storage.HasData(StringHash(blob.key), blob.size))
+            {
+                continue;
+            }
+
+            if (!blobKeysToWrite.Insert(blob.key).second)
+            {
+                // Already accounted for
+                continue;
+            }
+
+            // Pad by one alignment per blob so the reservation still covers the padding PutData
+            // inserts between blobs, wherever in the block the first one happens to land.
+            additionalBlockSizes[entry.bucketIndex] += sizeof(BlobHeader) + blob.size + alignof(BlobHeader);
+        }
+    }
+
+    Array<BlobBlockInfo> blocks;
+    for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; bucketIndex++)
+    {
+        if (additionalBlockSizes[bucketIndex] > 0)
+        {
+            blocks.PushBack(BlobBlockInfo { bucketIndex, additionalBlockSizes[bucketIndex] });
+        }
+    }
+
+    Array<uint32> resetBuckets;
+
+    if (Result result = storage.BeginCook(blocks, /* zeroize */ false, &resetBuckets); result.HasError())
     {
         return HYP_MAKE_ERROR(Error,"CacheSync BeginCook failed: {}", result.GetError().GetMessage());
+    }
+
+    // A bucket that comes back reset had nothing to preserve, so any blob we decided to keep in it
+    // is gone. HasData()'s bounds check should already have caught that above, so this only guards
+    // against the two disagreeing -- bail and let the retry re-sync rather than go on to record a
+    // manifest claiming we hold data we don't.
+    for (uint32 bucketIndex : resetBuckets)
+    {
+        for (const AssetEntry& entry : serverManifest.assets)
+        {
+            if (entry.bucketIndex != bucketIndex)
+            {
+                continue;
+            }
+
+            for (const BlobEntry& blob : entry.blobs)
+            {
+                if (!blobKeysToWrite.Contains(blob.key))
+                {
+                    return HYP_MAKE_ERROR(Error, "CacheSync kept blob key={} in bucket '{}' but the block had no data to preserve",
+                        blob.key, GetAssetBucketName(bucketIndex));
+                }
+            }
+        }
     }
 
     using threading::TaskThreadPool;
@@ -570,28 +636,11 @@ Result DownloadCacheFromHost(
 
     AtomicVar<int32> failureCount = 0;
 
-    // Build a map of local asset timestamps so we can skip up-to-date assets.
-    // Assets are sorted descending by timestamp, so we can break on first match.
-    Map<AssetPath, uint64> localAssetTimestamps = BuildLocalAssetTimestampMap(params.outputCacheDir);
-
     for (const AssetEntry& entry : serverManifest.assets)
     {
         if (!entry.bucketIndex || entry.bucketIndex >= MaxAssetBuckets)
         {
             continue;
-        }
-
-        // Skip if we already have this asset at an equal-or-newer timestamp.
-        // Assets are sorted descending, so all remaining are also up-to-date.
-        {
-            AssetPath key(entry.registryId, *AssetBuckets::AllBuckets[entry.bucketIndex], entry.name);
-
-            auto it = localAssetTimestamps.Find(key);
-
-            if (it != localAssetTimestamps.End() && it->second >= entry.lastModifiedTimestamp)
-            {
-                break;
-            }
         }
 
         tasks.EmplaceBack(downloadPool.Enqueue(HYP_STATIC_MESSAGE("CacheSyncAsset"), [&]() -> void
@@ -612,28 +661,36 @@ Result DownloadCacheFromHost(
 
                 // Check if the file exists already and has a timestamp >= than the timestamp we know;
                 // if we're downloading for multiple scenes, then it may have been already downloaded.
-                if (hmfFilePath.Exists() && hmfFilePath.LastModifiedTimestamp() >= entry.lastModifiedTimestamp)
-                {
-                    // Skip!
-                    return;
-                }
+                // Only the HMF is skipped here -- the blobs below are tracked separately and can
+                // still be missing from the cache even when the HMF on disk is current.
+                const bool hmfUpToDate = hmfFilePath.Exists()
+                    && hmfFilePath.LastModifiedTimestamp() >= entry.lastModifiedTimestamp;
 
-                FileByteWriter hmfWriter { hmfFilePath };
-
-                if (hmfWriter.IsOpen())
+                if (!hmfUpToDate)
                 {
-                    if (Result res = HttpGetBytes(host, port, hmfPathBuf, hmfWriter); res.HasError())
+                    FileByteWriter hmfWriter { hmfFilePath };
+
+                    if (hmfWriter.IsOpen())
                     {
-                        HYP_LOG(CacheClient, Warning, "Failed to download HMF for {}: {}", entry.name, res.GetError().GetMessage());
-                    }
+                        if (Result res = HttpGetBytes(host, port, hmfPathBuf, hmfWriter); res.HasError())
+                        {
+                            HYP_LOG(CacheClient, Warning, "Failed to download HMF for {}: {}", entry.name, res.GetError().GetMessage());
+                        }
 
-                    hmfWriter.Close();
+                        hmfWriter.Close();
+                    }
                 }
             }
 
-            // Download each blob and write via PutData
+            // Download each blob we don't already hold and append it via PutData. Only the blobs
+            // in flight right now are resident; anything already cached stays where it lies.
             for (const BlobEntry& blob : entry.blobs)
             {
+                if (!blobKeysToWrite.Contains(blob.key))
+                {
+                    continue;
+                }
+
                 char blobPathBuf[512];
                 std::snprintf(blobPathBuf, sizeof(blobPathBuf), "/blob?id=%u&key=%llx&size=%llu",
                     params.registryId,
@@ -700,16 +757,24 @@ Result DownloadCacheFromHost(
     storage.Unlock();
     locked = false;
 
-    //{
-    //    localManifestPath.Remove();
+    // Only record the manifest once everything it claims is really in the cache -- otherwise the
+    // next run reads it back, treats the assets that failed as up to date, and never retries them.
+    if (const int32 numFailures = failureCount.Get(MemoryOrder::RELAXED); numFailures != 0)
+    {
+        return HYP_MAKE_ERROR(Error, "CacheSync failed to fetch {} of {} assets",
+            numFailures, serverManifest.assets.Size());
+    }
 
-    //    FileByteWriter localManifestWriter { localManifestPath };
-    //    localManifestWriter.WriteString(manifestStr);
-    //    localManifestWriter.Close();
-    //}
+    {
+        localManifestPath.Remove();
 
-    HYP_LOG(CacheClient, Verbose, "Cache download complete. {} assets, {} blocks",
-        serverManifest.assets.Size(), blocks.Size());
+        FileByteWriter localManifestWriter { localManifestPath };
+        localManifestWriter.WriteString(manifestStr);
+        localManifestWriter.Close();
+    }
+
+    HYP_LOG(CacheClient, Verbose, "Cache download complete. {} assets, {} blobs fetched, {} blocks grown",
+        serverManifest.assets.Size(), blobKeysToWrite.Size(), blocks.Size());
 
     return {};
 }

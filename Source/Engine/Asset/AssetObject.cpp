@@ -110,7 +110,7 @@ void AssetObject::SetAssetFlags(EnumFlags<AssetObjectFlags> flags)
 
         if (wasPersistent != isPersistent)
         {
-            SetPersistentRequested(isPersistent, /* setFlag */ false);
+            SetPersistentRequested(isPersistent, /* markDirty */ false);
         }
 
         MarkDirty();
@@ -141,36 +141,36 @@ void AssetObject::MarkDirty()
     registry->MarkAssetDirty(*this);
 }
 
-void AssetObject::SetPersistentRequested(bool persistentlyLoaded, bool setFlag, bool markDirty)
+void AssetObject::SetPersistentRequested(bool persistentlyLoaded, bool markDirty)
 {
     if (m_flags[AssetObjectFlags::Persistent] != persistentlyLoaded)
     {
-        if (setFlag)
-        {
-            if (markDirty)
-            {
-                MarkDirty();
-            }
-
-            m_flags[AssetObjectFlags::Persistent] = persistentlyLoaded;
-        }
-        // @TODO we should allocate blob data and release lock for blobstorage if possible!
+        m_flags[AssetObjectFlags::Persistent] = persistentlyLoaded;
+        
+        MarkDirty();
     }
 }
 
 void AssetObject::SetIsTransient(bool isTransient)
 {
+    if (m_flags[AssetObjectFlags::Transient] == isTransient)
+    {
+        return;
+    }
+
     m_flags[AssetObjectFlags::Transient] = isTransient;
 
     if (IsTransient())
     {
         // needs to be kept in memory if transient
-        SetPersistentRequested(true, /* setFlag */ false);
+        SetPersistentRequested(true, /* markDirty */ false);
     }
     else
     {
-        SetPersistentRequested(false, /* setFlag */ false);
+        SetPersistentRequested(false, /* markDirty */ false);
     }
+
+    MarkDirty();
 }
 
 Result AssetObject::Rename(Name name)
@@ -394,6 +394,23 @@ Result AssetObject::Load(
     return {};
 }
 
+bool AssetObject::PageBlobDataFromStorage(BlobDataReference& reference)
+{
+    if (!ShouldUseBlobStorage())
+    {
+        return false;
+    }
+
+    if (!EngineGlobals::GetBlobStorage()->GetData(reference.key, reference.size, reference.raw))
+    {
+        return false;
+    }
+
+    reference.readOnly = true;
+
+    return true;
+}
+
 void AssetObject::AllocateBlobData(BlobDataReference& reference, const void* inData, size_t count, size_t alignment)
 {
     Assert(reference.raw == nullptr || reference.readOnly);
@@ -457,7 +474,13 @@ void AssetObject::SetBlobDataResident(bool resident, BlobDataReference& referenc
         {
             Assert(reference.raw != nullptr);
 
+            // AllocateBlobData() resets the reference, so carry the key across the copy -- without it
+            // the blob can't be found again, and SetBlobDataResident(false) won't release it either.
+            const Name blobKey = reference.key;
+
             AllocateBlobData(reference, reference.raw, reference.size, 16);
+
+            reference.key = blobKey;
         }
     }
     else

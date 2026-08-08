@@ -42,10 +42,7 @@ void AssetBatch::LoadAsync(uint32 numBatches)
     // Set pool to use the asset manager's thread pool if one hasn't been set to override it.
     if (!TaskBatch::pool)
     {
-        if (TaskThreadPool* threadPool = m_assetManager->GetThreadPool())
-        {
-            pool = threadPool;
-        }
+        pool = &TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_BACKGROUND);
     }
 
     m_results.Clear();

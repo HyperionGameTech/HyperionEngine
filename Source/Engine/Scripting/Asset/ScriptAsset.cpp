@@ -68,12 +68,9 @@ void ScriptAsset::PageBlobData()
         && m_data.key
         && m_data.size != 0)
     {
-        if (ShouldUseBlobStorage())
+        if (PageBlobDataFromStorage(m_data))
         {
-            if (EngineGlobals::GetBlobStorage()->GetData(m_data.key, m_data.size, m_data.raw))
-            {
-                return;
-            }
+            return;
         }
 
         Handle<AssetRegistry> registry = GetAssetRegistry();

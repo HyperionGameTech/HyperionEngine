@@ -379,6 +379,8 @@ BlobStorage::~BlobStorage()
 
 void BlobStorage::Initialize(const FilePath& baseDir, bool readOnly)
 {
+    Mutex::Guard guard(m_mutex);
+
     if (m_isInitialized)
     {
         return;
@@ -389,7 +391,7 @@ void BlobStorage::Initialize(const FilePath& baseDir, bool readOnly)
 
     InitBlobStorage(*this, m_baseDir, /* readOnly */ m_isReadOnly);
 
-    if (Result result = LoadTOC(); result.HasError())
+    if (Result result = LoadTOC_Internal(); result.HasError())
     {
         HYP_LOG(Assets, Warning, "Failed to load BlobStorage table of contents: {}", result.GetError().GetMessage());
     }
@@ -399,6 +401,8 @@ void BlobStorage::Initialize(const FilePath& baseDir, bool readOnly)
 
 void BlobStorage::Shutdown()
 {
+    Mutex::Guard guard(m_mutex);
+
     if (!m_isInitialized)
     {
         return;
@@ -561,36 +565,57 @@ bool BlobStorage::InitMappedFile(MemoryMappedFile*& outMappedFile, uint32 bucket
     return false;
 }
 
+bool BlobStorage::HasData(StringHash key, size_t size)
+{
+    Mutex::Guard guard(m_mutex);
+
+    return GetData_Internal(key, size, nullptr, /* logErrors */ false);
+}
+
 bool BlobStorage::GetData(StringHash key, size_t size, void*& outRawData)
 {
     Mutex::Guard guard(m_mutex);
 
+    return GetData_Internal(key, size, &outRawData, /* logErrors */ true);
+}
+
+bool BlobStorage::GetData_Internal(StringHash key, size_t size, void** outRawData, bool logErrors)
+{
     if (!m_toc)
     {
         m_toc = new BlobTableOfContents;
 
-        if (Result res = LoadTOC_Internal(); res.HasError())
+        if ((m_baseDir / "toc.bin").Exists())
         {
-            HYP_LOG(Assets, Error, "Failed to load blob TOC for BlobStorage at {}: {}", m_baseDir, res.GetError().GetMessage());
+            if (Result res = LoadTOC_Internal(); res.HasError())
+            {
+                HYP_LOG(Assets, Error, "Failed to load blob TOC for BlobStorage at {}: {}", m_baseDir, res.GetError().GetMessage());
 
-            delete m_toc;
-            m_toc = nullptr;
+                delete m_toc;
+                m_toc = nullptr;
 
-            return false;
+                return false;
+            }
         }
     }
 
     BlobTableOfContents::Value tocValue;
     if (!m_toc->Get(key, tocValue))
     {
-        HYP_LOG(Assets, Error, "Blob data not found in table of contents {} for BlobStorage at {}", key.GetHashCode().Value(), m_baseDir);
+        if (logErrors)
+        {
+            HYP_LOG(Assets, Error, "Blob data not found in table of contents {} for BlobStorage at {}", key.GetHashCode().Value(), m_baseDir);
+        }
 
         return false;
     }
 
     if (tocValue.size != size)
     {
-        HYP_LOG(Assets, Error, "Blob data does not match expected size ({}): {}", size, key.GetHashCode().Value());
+        if (logErrors)
+        {
+            HYP_LOG(Assets, Error, "Blob data does not match expected size ({}): {}", size, key.GetHashCode().Value());
+        }
 
         return false;
     }
@@ -598,22 +623,36 @@ bool BlobStorage::GetData(StringHash key, size_t size, void*& outRawData)
     MemoryMappedFile* file = nullptr;
     if (!InitMappedFile(file, tocValue.bucketIndex))
     {
-        HYP_LOG(Assets, Error, "Failed to initialize mapped file for bucket '{}'", GetAssetBucketName(tocValue.bucketIndex));
+        if (logErrors)
+        {
+            HYP_LOG(Assets, Error, "Failed to initialize mapped file for bucket '{}'", GetAssetBucketName(tocValue.bucketIndex));
+        }
 
         return false;
     }
 
     BlobBlockData& blockData = m_blockData[tocValue.bucketIndex];
 
-    uint8* address = reinterpret_cast<uint8*>(blockData.view->Data()) + tocValue.offset;
-    AssertDebug(address - reinterpret_cast<uint8*>(blockData.view->Data()) + size <= blockData.file->FileSize());
+    if (tocValue.offset + size > blockData.file->FileSize())
+    {
+        if (logErrors)
+        {
+            HYP_LOG(Assets, Error, "Blob data for key {} in BlobStorage at {} is out of range of its block file (offset={}, size={}, file size={}), table of contents is stale or corrupt",
+                key.GetHashCode().Value(), m_baseDir, tocValue.offset, size, blockData.file->FileSize());
+        }
 
-    outRawData = address;
+        return false;
+    }
+
+    if (outRawData)
+    {
+        *outRawData = reinterpret_cast<uint8*>(blockData.view->Data()) + tocValue.offset;
+    }
 
     return true;
 }
 
-Result BlobStorage::BeginCook(const Array<BlobBlockInfo>& blocks)
+Result BlobStorage::BeginCook(const Array<BlobBlockInfo>& blocks, bool zeroize, Array<uint32>* outResetBuckets)
 {
     Mutex::Guard guard(m_mutex);
 
@@ -640,11 +679,35 @@ Result BlobStorage::BeginCook(const Array<BlobBlockInfo>& blocks)
             return HYP_MAKE_ERROR(Error, "Failed to open block file for asset bucket '{}'", GetAssetBucketName(blockInfo.bucketIndex));
         }
 
-        // Block files are sized to their exact final byte count up front, since the cache is
-        // rebuilt from scratch on every cook rather than grown incrementally.
-        if (!blockData.file->Resize(blockInfo.totalSize))
+        if (zeroize)
         {
-            return HYP_MAKE_ERROR(Error, "Failed to resize block file for asset bucket '{}' to {} bytes", GetAssetBucketName(blockInfo.bucketIndex), blockInfo.totalSize);
+            if (!blockData.file->Resize(blockInfo.totalSize))
+            {
+                return HYP_MAKE_ERROR(Error, "Failed to resize block file for asset bucket '{}' to {} bytes", GetAssetBucketName(blockInfo.bucketIndex), blockInfo.totalSize);
+            }
+
+            blockData.cursor = 0;
+
+            if (outResetBuckets)
+            {
+                outResetBuckets->PushBack(blockInfo.bucketIndex);
+            }
+        }
+        else
+        {
+            const size_t existingSize = blockData.file->FileSize();
+
+            if (!blockData.file->EnsureCapacity(existingSize + blockInfo.totalSize))
+            {
+                return HYP_MAKE_ERROR(Error, "Failed to grow block file for asset bucket '{}' to {} bytes", GetAssetBucketName(blockInfo.bucketIndex), existingSize + blockInfo.totalSize);
+            }
+
+            blockData.cursor = existingSize;
+
+            if (existingSize == 0 && outResetBuckets)
+            {
+                outResetBuckets->PushBack(blockInfo.bucketIndex);
+            }
         }
 
         blockData.view = new MemoryMappedFileView;
@@ -653,8 +716,6 @@ Result BlobStorage::BeginCook(const Array<BlobBlockInfo>& blocks)
         {
             return HYP_MAKE_ERROR(Error, "Failed to map block file for asset bucket '{}'", GetAssetBucketName(blockInfo.bucketIndex));
         }
-
-        blockData.cursor = 0;
     }
 
     return {};
@@ -673,23 +734,30 @@ bool BlobStorage::PutData(uint32 bucketIndex, StringHash key, const BlobHeader& 
     {
         m_toc = new BlobTableOfContents;
 
-        if (Result res = LoadTOC_Internal(); res.HasError())
+        if ((m_baseDir / "toc.bin").Exists())
         {
-            HYP_LOG(Assets, Error, "Failed to load blob TOC for BlobStorage at {}: {}", m_baseDir, res.GetError().GetMessage());
+            if (Result res = LoadTOC_Internal(); res.HasError())
+            {
+                HYP_LOG(Assets, Error, "Failed to load blob TOC for BlobStorage at {}: {}", m_baseDir, res.GetError().GetMessage());
 
-            delete m_toc;
-            m_toc = nullptr;
+                delete m_toc;
+                m_toc = nullptr;
 
-            return false;
+                return false;
+            }
         }
     }
 
     const size_t headerOffset = ByteUtil::AlignAs(blockData.cursor, alignof(BlobHeader));
     const size_t totalBlobSize = sizeof(BlobHeader) + header.payloadOffset + header.payloadSize;
 
-    Assert(headerOffset + totalBlobSize <= blockData.view->Size(),
-        "Blob data exceeds the reserved block size for asset bucket {}, block sizes must be computed before BeginCook is called",
-        bucketIndex);
+    if (headerOffset + totalBlobSize > blockData.view->Size())
+    {
+        HYP_LOG(Assets, Error, "Blob data for key {} exceeds the reserved block size for asset bucket {} ({} > {}), block sizes must be computed before BeginCook is called",
+            key.GetHashCode().Value(), bucketIndex, headerOffset + totalBlobSize, blockData.view->Size());
+
+        return false;
+    }
 
     ByteWriter* writeStream = blockData.writeStream;
     if (writeStream == nullptr)

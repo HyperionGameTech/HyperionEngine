@@ -491,12 +491,9 @@ void Texture::PageBlobData()
         && m_imageData.key
         && m_imageData.size != 0)
     {
-        if (ShouldUseBlobStorage())
+        if (PageBlobDataFromStorage(m_imageData))
         {
-            if (EngineGlobals::GetBlobStorage()->GetData(m_imageData.key, m_imageData.size, m_imageData.raw))
-            {
-                return;
-            }
+            return;
         }
 
         Handle<AssetRegistry> registry = GetAssetRegistry();

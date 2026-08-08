@@ -46,12 +46,9 @@ void AnimationTrack::PageBlobData()
         && m_keyframeData.key
         && m_keyframeData.size != 0)
     {
-        if (ShouldUseBlobStorage())
+        if (PageBlobDataFromStorage(m_keyframeData))
         {
-            if (EngineGlobals::GetBlobStorage()->GetData(m_keyframeData.key, m_keyframeData.size, m_keyframeData.raw))
-            {
-                return;
-            }
+            return;
         }
 
         Handle<AssetRegistry> registry = GetAssetRegistry();

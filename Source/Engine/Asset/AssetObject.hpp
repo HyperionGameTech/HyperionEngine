@@ -111,7 +111,7 @@ public:
     void SetAssetFlags(EnumFlags<AssetObjectFlags> flags);
 
     HYP_METHOD()
-    void SetPersistentRequested(bool persistentlyLoaded, bool setFlag = true, bool markDirty = true);
+    void SetPersistentRequested(bool persistentlyLoaded, bool markDirty = true);
 
     HYP_METHOD()
     bool IsTransient() const
@@ -179,6 +179,8 @@ protected:
     {
         // do nothing
     }
+
+    bool PageBlobDataFromStorage(BlobDataReference& reference);
 
     void AllocateBlobData(BlobDataReference& reference, const void* inData, size_t count, size_t alignment = 16);
     void FreeBlobData(BlobDataReference& reference);

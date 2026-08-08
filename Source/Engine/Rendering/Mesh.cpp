@@ -200,12 +200,9 @@ void Mesh::PageBlobData()
 
                 ([&]()
                     {
-                        if (ShouldUseBlobStorage())
+                        if (PageBlobDataFromStorage(vertexData))
                         {
-                            if (EngineGlobals::GetBlobStorage()->GetData(vertexData.key, vertexData.size, vertexData.raw))
-                            {
-                                return;
-                            }
+                            return;
                         }
 
                         Handle<AssetRegistry> registry = GetAssetRegistry();
@@ -249,12 +246,9 @@ void Mesh::PageBlobData()
 
                 ([&]()
                     {
-                        if (ShouldUseBlobStorage())
+                        if (PageBlobDataFromStorage(indexData))
                         {
-                            if (EngineGlobals::GetBlobStorage()->GetData(indexData.key, indexData.size, indexData.raw))
-                            {
-                                return;
-                            }
+                            return;
                         }
 
                         Handle<AssetRegistry> registry = GetAssetRegistry();
@@ -292,10 +286,6 @@ void Mesh::PageBlobData()
                 HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} index buffer (LOD {})", GetName(), lodIndex);
             }
         }
-        else
-        {
-            indexData.readOnly = true;
-        }
     }
 
     // Keep BVH data separate from vertex and index data because it is mutually exclusive from them
@@ -308,12 +298,9 @@ void Mesh::PageBlobData()
 
         ([&]()
             {
-                if (ShouldUseBlobStorage())
+                if (PageBlobDataFromStorage(m_bvhData))
                 {
-                    if (EngineGlobals::GetBlobStorage()->GetData(m_bvhData.key, m_bvhData.size, m_bvhData.raw))
-                    {
-                        return;
-                    }
+                    return;
                 }
 
                 Handle<AssetRegistry> registry = GetAssetRegistry();
@@ -344,10 +331,6 @@ void Mesh::PageBlobData()
                 HYP_LOG(Engine, Error, "Data corruption detected for {} due to missing blob data", GetPath().ToString());
         })();
     }
-    else
-    {
-        m_bvhData.readOnly = true;
-    }
 
     if (m_bvhData.raw != nullptr)
     {
@@ -362,6 +345,10 @@ void Mesh::UnpageBlobData()
         if (m_lodData[lodIndex].vertexData.readOnly)
         {
             m_lodData[lodIndex].vertexData.raw = nullptr;
+        }
+
+        if (m_lodData[lodIndex].indexData.readOnly)
+        {
             m_lodData[lodIndex].indexData.raw = nullptr;
         }
     }
@@ -573,7 +560,7 @@ void Mesh::SetFlags(EnumFlags<MeshFlags> flags)
 
     if (m_flags[MeshFlags::ViewIndependent] != wasViewIndependent)
     {
-        SetPersistentRequested(m_flags[MeshFlags::ViewIndependent], /* setFlag */ true, /* markDirty */ false);
+        SetPersistentRequested(m_flags[MeshFlags::ViewIndependent], /* markDirty */ false);
     }
 
     MarkDirty();

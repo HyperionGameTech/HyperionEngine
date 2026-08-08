@@ -69,12 +69,9 @@ void RawDataAsset::PageBlobData()
         && m_data.key
         && m_data.size != 0)
     {
-        if (ShouldUseBlobStorage())
+        if (PageBlobDataFromStorage(m_data))
         {
-            if (EngineGlobals::GetBlobStorage()->GetData(m_data.key, m_data.size, m_data.raw))
-            {
-                return;
-            }
+            return;
         }
 
         const Name blobKey = m_data.key;

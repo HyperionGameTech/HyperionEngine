@@ -99,17 +99,12 @@ public:
 
     ByteWriter* GetWriteStream(uint32 bucketIndex);
     ByteReader* GetReadStream(uint32 bucketIndex);
-
+    
+    bool HasData(StringHash key, size_t size);
     bool GetData(StringHash key, size_t size, void*& outRawData);
-
-    /*! \brief Appends one blob to the block belonging to \p bucketIndex, which must have been
-     *  reserved via BeginCook with enough space for it. */
     bool PutData(uint32 bucketIndex, StringHash key, const BlobHeader& header, const void* rawData);
 
-    /*! \brief Begins a cook pass: creates (or truncates) one block file per entry in \p blocks, each
-     *  resized to its exact final size, ready to be filled via PutData. Must be called before any
-     *  PutData call and cannot be combined with reading an already-cooked, read-only BlobStorage. */
-    Result BeginCook(const Array<BlobBlockInfo>& blocks);
+    Result BeginCook(const Array<BlobBlockInfo>& blocks, bool zeroize = true, Array<uint32>* outResetBuckets = nullptr);
 
     /*! \brief Ends a cook pass, saving the table of contents and manifest and closing write streams. */
     Result FinishCook();
@@ -129,6 +124,10 @@ private:
     void Shutdown();
 
     bool InitMappedFile(MemoryMappedFile*& outMappedFile, uint32 bucketIndex);
+
+    /*! \brief Shared body of GetData()/HasData(). \p outRawData may be null to only test presence,
+     *  and \p logErrors distinguishes a lookup whose failure is a real error from one that expects misses. */
+    bool GetData_Internal(StringHash key, size_t size, void** outRawData, bool logErrors);
 
     void CloseBlock(uint32 bucketIndex);
 

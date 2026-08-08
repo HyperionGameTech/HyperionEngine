@@ -90,12 +90,9 @@ void Shader::PageBlobData()
 
         if (ref.raw == nullptr && ref.key && ref.size != 0)
         {
-            if (ShouldUseBlobStorage())
+            if (PageBlobDataFromStorage(ref))
             {
-                if (EngineGlobals::GetBlobStorage()->GetData(ref.key, ref.size, ref.raw))
-                {
-                    continue;
-                }
+                continue;
             }
 
             const char* moduleTypeString = GetShaderHeaderPrefix(moduleType);

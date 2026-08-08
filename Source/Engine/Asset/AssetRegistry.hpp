@@ -185,6 +185,44 @@ struct AssetLoadingContext
 {
 };
 
+//-- helpers
+
+static constexpr AssetRegistryId GetAssetRegistryIndex(StringHash hash)
+{
+    constexpr HashCode::ValueType GameRegistryHash = ("Game"_sh).hashCode;
+    constexpr HashCode::ValueType EngineRegistryHash = ("Engine"_sh).hashCode;
+    constexpr HashCode::ValueType EditorRegistryHash = ("Editor"_sh).hashCode;
+
+    switch (hash.hashCode)
+    {
+    case GameRegistryHash:
+        return AssetRegistryId::Game;
+    case EngineRegistryHash:
+        return AssetRegistryId::Engine;
+    case EditorRegistryHash:
+        return AssetRegistryId::Editor;
+    }
+
+    return AssetRegistryId::Game;
+}
+
+static constexpr const char* GetAssetRegistryName(AssetRegistryId registryId)
+{
+    switch (registryId)
+    {
+    case AssetRegistryId::Game:
+        return "Game";
+    case AssetRegistryId::Engine:
+        return "Engine";
+    case AssetRegistryId::Editor:
+        return "Editor";
+    }
+
+    return "Game";
+}
+
+//--
+
 ENGINE_API Handle<AssetRegistry> GetCurrentAssetRegistry();
 
 ENGINE_API void PushAssetRegistry(const Handle<AssetRegistry>& registry);

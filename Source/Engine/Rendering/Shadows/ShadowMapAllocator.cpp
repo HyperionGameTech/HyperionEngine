@@ -102,7 +102,7 @@ void ShadowMapAllocator::Initialize()
     });
 
     m_pointLightTextureArray->SetName(NAME("PointLightShadowMapImage"));
-    m_atlasTextureArray->SetIsTransient(true);
+    m_pointLightTextureArray->SetIsTransient(true);
     Check(m_pointLightTextureArray->Create());
 
     GetEngineAssetRegistry()->PutAsset(m_pointLightTextureArray);

@@ -7,46 +7,13 @@
 #include <AssetPch.hpp>
 
 #include <Asset/AssetPath.hpp>
+#include <Asset/AssetRegistry.hpp>
 
 #include <AssetPath.generated.inl>
 
 namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Assets);
-
-static constexpr AssetRegistryId GetAssetRegistryIndex(StringHash hash)
-{
-    constexpr HashCode::ValueType GameRegistryHash = ("Game"_sh).hashCode;
-    constexpr HashCode::ValueType EngineRegistryHash = ("Engine"_sh).hashCode;
-    constexpr HashCode::ValueType EditorRegistryHash = ("Editor"_sh).hashCode;
-
-    switch (hash.hashCode)
-    {
-    case GameRegistryHash:
-        return AssetRegistryId::Game;
-    case EngineRegistryHash:
-        return AssetRegistryId::Engine;
-    case EditorRegistryHash:
-        return AssetRegistryId::Editor;
-    }
-
-    return AssetRegistryId::Game;
-}
-
-static constexpr const char* GetAssetRegistryName(AssetRegistryId registryId)
-{
-    switch (registryId)
-    {
-    case AssetRegistryId::Game:
-        return "Game";
-    case AssetRegistryId::Engine:
-        return "Engine";
-    case AssetRegistryId::Editor:
-        return "Editor";
-    }
-
-    return "Game";
-}
 
 AssetPath::AssetPath(const ANSIStringView& path)
     : registryId(AssetRegistryId::Game),

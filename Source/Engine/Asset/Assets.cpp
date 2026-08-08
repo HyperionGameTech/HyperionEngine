@@ -69,36 +69,6 @@ void AssetCollector::NotifyAssetChanged(const FilePath& path, AssetChangeType ch
 
 #pragma endregion AssetCollector
 
-#pragma region AssetManagerWorkerThread
-
-class AssetManagerWorkerThread : public TaskThread
-{
-public:
-    AssetManagerWorkerThread(ThreadId id)
-        : TaskThread(id, ThreadPriorityValue::NORMAL)
-    {
-    }
-
-    virtual ~AssetManagerWorkerThread() override = default;
-};
-
-#pragma endregion AssetManagerWorkerThread
-
-#pragma region AssetManagerThreadPool
-
-class AssetManagerThreadPool : public TaskThreadPool
-{
-public:
-    AssetManagerThreadPool()
-        : TaskThreadPool(TypeWrapper<AssetManagerWorkerThread>(), "AssetWorker", 1)
-    {
-    }
-
-    virtual ~AssetManagerThreadPool() override = default;
-};
-
-#pragma endregion AssetManagerThreadPool
-
 #pragma region AssetManager
 
 const Handle<AssetManager>& AssetManager::GetInstance()
@@ -107,24 +77,11 @@ const Handle<AssetManager>& AssetManager::GetInstance()
 }
 
 AssetManager::AssetManager()
-    : m_threadPool(MakeUnique<AssetManagerThreadPool>()),
-      m_numPendingBatches { 0 }
+    : m_numPendingBatches { 0 }
 {
 }
 
-AssetManager::~AssetManager()
-{
-    if (m_threadPool)
-    {
-        m_threadPool->Stop();
-        m_threadPool.Reset();
-    }
-}
-
-TaskThreadPool* AssetManager::GetThreadPool() const
-{
-    return m_threadPool.Get();
-}
+AssetManager::~AssetManager() = default;
 
 FilePath AssetManager::GetBasePath() const
 {
@@ -331,8 +288,6 @@ const AssetLoaderDefinition* AssetManager::GetLoaderDefinition(const FilePath& p
 void AssetManager::Initialize()
 {
     RegisterDefaultLoaders();
-
-    m_threadPool->Start();
 }
 
 Handle<AssetRegistry> AssetManager::GetAssetRegistry() const
