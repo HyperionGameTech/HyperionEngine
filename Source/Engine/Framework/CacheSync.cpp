@@ -60,9 +60,16 @@ namespace CacheSync {
 
 namespace {
 
-static Result HttpGetBytes(const ANSIString& host, uint16 port, const char* path, ByteBuffer& outBody)
+Result HttpGetBytes(
+    const ANSIString& host, uint16 port,
+    const char* path,
+    ByteWriter& writer,
+    bool* outShouldRetry = nullptr)
 {
-    outBody = ByteBuffer();
+    if (outShouldRetry)
+    {
+        *outShouldRetry = false;
+    }
 
     HYP_LOG(Assets, Info, "[CacheClient] GET {}:{}{}", host, uint32(port), path);
 
@@ -84,6 +91,12 @@ static Result HttpGetBytes(const ANSIString& host, uint16 port, const char* path
     if (getaddrinfo(host.Data(), portStr, &hints, &result) != 0)
     {
         WSACleanup();
+
+        if (outShouldRetry)
+        {
+            *outShouldRetry = true;
+        }
+
         return HYP_MAKE_ERROR(Error, "Failed to resolve host: {}", host);
     }
 
@@ -91,10 +104,17 @@ static Result HttpGetBytes(const ANSIString& host, uint16 port, const char* path
     for (struct addrinfo* rp = result; rp != nullptr; rp = rp->ai_next)
     {
         sock = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+
         if (sock == INVALID_SOCKET)
+        {
             continue;
+        }
+
         if (connect(sock, rp->ai_addr, int(rp->ai_addrlen)) == 0)
+        {
             break;
+        }
+
         closesocket(sock);
         sock = INVALID_SOCKET;
     }
@@ -104,6 +124,12 @@ static Result HttpGetBytes(const ANSIString& host, uint16 port, const char* path
     if (sock == INVALID_SOCKET)
     {
         WSACleanup();
+
+        if (outShouldRetry)
+        {
+            *outShouldRetry = true;
+        }
+
         return HYP_MAKE_ERROR(Error, "Failed to connect to {}:{}", host, uint32(port));
     }
 
@@ -122,19 +148,58 @@ static Result HttpGetBytes(const ANSIString& host, uint16 port, const char* path
     {
         closesocket(sock);
         WSACleanup();
+
         return HYP_MAKE_ERROR(Error, "Failed to send request to {}:{}", host, uint32(port));
     }
 
+    char headerBuf[8192];
+
+    size_t headerLen = 0;
+    bool headersDone = false;
+
     char recvBuf[8192];
     int n;
-    ByteBuffer buffer;
-    buffer.SetSize(0);
 
     while ((n = recv(sock, recvBuf, sizeof(recvBuf), 0)) > 0)
     {
-        size_t oldSize = buffer.Size();
-        buffer.SetSize(oldSize + size_t(n));
-        Memory::Copy(buffer.Data() + oldSize, recvBuf, size_t(n));
+        if (!headersDone)
+        {
+            if (headerLen + size_t(n) > sizeof(headerBuf))
+                return HYP_MAKE_ERROR(Error, "Response headers too large from {}:{}", host, uint32(port));
+
+            Memory::Copy(headerBuf + headerLen, recvBuf, size_t(n));
+            headerLen += size_t(n);
+
+            const char* bodyEnd = strstr(headerBuf, "\r\n\r\n");
+            if (bodyEnd != nullptr)
+            {
+                const char* statusStart = strchr(headerBuf, ' ');
+                if (statusStart == nullptr)
+                {
+                    return HYP_MAKE_ERROR(Error, "Invalid HTTP response from {}:{}", host, uint32(port));
+                }
+
+                int statusCode = atoi(statusStart + 1);
+                if (statusCode != 200)
+                {
+                    return HYP_MAKE_ERROR(Error, "Server returned HTTP {} for {}:{}{}", statusCode, host, uint32(port), path);
+                }
+
+                const char* bodyStart = bodyEnd + 4;
+
+                size_t bodyBytesInHeader = size_t(headerBuf + headerLen - bodyStart);
+                if (bodyBytesInHeader > 0)
+                {
+                    writer.Write(bodyStart, bodyBytesInHeader);
+                }
+
+                headersDone = true;
+            }
+        }
+        else
+        {
+            writer.Write(recvBuf, size_t(n));
+        }
     }
 
     closesocket(sock);
@@ -142,6 +207,13 @@ static Result HttpGetBytes(const ANSIString& host, uint16 port, const char* path
 
     if (n < 0)
         return HYP_MAKE_ERROR(Error, "Failed to receive response from {}:{}", host, uint32(port));
+
+    if (!headersDone)
+        return HYP_MAKE_ERROR(Error, "Response from {}:{}{} ended before headers", host, uint32(port), path);
+
+    writer.Flush();
+
+    return {};
 
 #else
 
@@ -151,7 +223,14 @@ static Result HttpGetBytes(const ANSIString& host, uint16 port, const char* path
 
     struct addrinfo* result = nullptr;
     if (getaddrinfo(host.Data(), portStr, &hints, &result) != 0)
+    {
+        if (outShouldRetry)
+        {
+            *outShouldRetry = true;
+        }
+
         return HYP_MAKE_ERROR(Error, "Failed to resolve host: {}", host);
+    }
 
     int sock = -1;
     for (struct addrinfo* rp = result; rp != nullptr; rp = rp->ai_next)
@@ -159,10 +238,14 @@ static Result HttpGetBytes(const ANSIString& host, uint16 port, const char* path
         sock = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
 
         if (sock < 0)
+        {
             continue;
+        }
 
         if (connect(sock, rp->ai_addr, int(rp->ai_addrlen)) == 0)
+        {
             break;
+        }
 
         close(sock);
         sock = -1;
@@ -171,7 +254,14 @@ static Result HttpGetBytes(const ANSIString& host, uint16 port, const char* path
     freeaddrinfo(result);
 
     if (sock < 0)
+    {
+        if (outShouldRetry)
+        {
+            *outShouldRetry = true;
+        }
+
         return HYP_MAKE_ERROR(Error, "Failed to connect to {}:{}", host, uint32(port));
+    }
 
     struct timeval tv = { 10, 0 };
     setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
@@ -187,69 +277,96 @@ static Result HttpGetBytes(const ANSIString& host, uint16 port, const char* path
     if (send(sock, request, size_t(reqLen), 0) < 0)
     {
         close(sock);
+
         return HYP_MAKE_ERROR(Error, "Failed to send request to {}:{}", host, uint32(port));
     }
 
+    char headerBuf[8192];
+    size_t headerLen = 0;
+    bool headersDone = false;
+
     char recvBuf[8192];
     ssize_t n;
-    ByteBuffer buffer;
-    buffer.SetSize(0);
 
     while ((n = recv(sock, recvBuf, sizeof(recvBuf), 0)) > 0)
     {
-        size_t oldSize = buffer.Size();
-        buffer.SetSize(oldSize + size_t(n));
-        Memory::Copy(buffer.Data() + oldSize, recvBuf, size_t(n));
+        if (!headersDone)
+        {
+            if (headerLen + size_t(n) > sizeof(headerBuf))
+            {
+                return HYP_MAKE_ERROR(Error, "Response headers too large from {}:{}", host, uint32(port));
+            }
+
+            Memory::Copy(headerBuf + headerLen, recvBuf, size_t(n));
+            headerLen += size_t(n);
+
+            const char* bodyEnd = strstr(headerBuf, "\r\n\r\n");
+
+            if (bodyEnd != nullptr)
+            {
+                const char* statusStart = strchr(headerBuf, ' ');
+                if (!statusStart)
+                {
+                    return HYP_MAKE_ERROR(Error, "Invalid HTTP response from {}:{}", host, uint32(port));
+                }
+
+                int statusCode = atoi(statusStart + 1);
+                if (statusCode != 200)
+                {
+                    return HYP_MAKE_ERROR(Error, "Server returned HTTP {} for {}:{}{}", statusCode, host, uint32(port), path);
+                }
+
+                const char* bodyStart = bodyEnd + 4;
+
+                size_t bodyBytesInHeader = size_t(headerBuf + headerLen - bodyStart);
+                if (bodyBytesInHeader > 0)
+                {
+                    writer.Write(bodyStart, bodyBytesInHeader);
+                }
+
+                headersDone = true;
+            }
+        }
+        else
+        {
+            writer.Write(recvBuf, size_t(n));
+        }
     }
 
     close(sock);
 
     if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
-        return HYP_MAKE_ERROR(Error, "Failed to receive response from {}:{}", host, uint32(port));
-
-#endif
-
-    const char* bodyStart = reinterpret_cast<const char*>(buffer.Data());
-    const char* headerEnd = strstr(bodyStart, "\r\n\r\n");
-
-    if (headerEnd == nullptr)
-        return HYP_MAKE_ERROR(Error, "Invalid HTTP response from {}:{}{} — no headers", host, uint32(port), path);
-
-    // Check HTTP status code, should only ever be 200 if succeeded.
     {
-        const char* statusStart = strchr(bodyStart, ' ');
-        if (statusStart != nullptr && statusStart < headerEnd)
-        {
-            int statusCode = atoi(statusStart + 1);
-
-            if (statusCode != 200)
-            {
-                return HYP_MAKE_ERROR(Error, "Server returned HTTP {} for {}:{}{}", statusCode, host, uint32(port), path);
-            }
-        }
+        return HYP_MAKE_ERROR(Error, "Failed to receive response from {}:{}", host, uint32(port));
     }
 
-    bodyStart = headerEnd + 4;
-    const size_t bodySize = size_t(reinterpret_cast<const char*>(buffer.Data() + buffer.Size()) - bodyStart);
-
-    if (bodySize == 0)
-        return HYP_MAKE_ERROR(Error, "Empty response body from {}:{}{}", host, uint32(port), path);
-
-    outBody = ByteBuffer(bodySize, bodyStart);
+    if (!headersDone)
+    {
+        return HYP_MAKE_ERROR(Error, "Response from {}:{}{} ended before headers", host, uint32(port), path);
+    }
 
     return {};
+
+#endif
 }
 
 Result DownloadCacheFromHost(
     const ANSIStringView& host, uint16 port,
-    const FilePath& cacheDir, const FilePath& contentDir)
+    const FilePath& cacheDir, const FilePath& contentDir,
+    bool* outShouldRetry = nullptr)
 {
-    // 1. Download the manifest
-    ByteBuffer manifestBytes;
-    if (Result res = HttpGetBytes(host, port, "/manifest", manifestBytes); res.HasError())
+    if (outShouldRetry)
+    {
+        *outShouldRetry = false;
+    }
+
+    MemoryByteWriter<DynamicAllocator> manifestWriter;
+    if (Result res = HttpGetBytes(host, port, "/manifest", manifestWriter, outShouldRetry); res.HasError())
     {
         return res;
     }
+
+    ByteBuffer& manifestBytes = manifestWriter.GetBuffer();
 
     // 2. Parse the server manifest via HMF
     String manifestStr = String(manifestBytes.ToByteView());
@@ -314,14 +431,15 @@ Result DownloadCacheFromHost(
         return HYP_MAKE_ERROR(Error,"CacheSync failed to create cache directory '{}'", cacheDir);
     }
 
-    // 5. Pre-compute block sizes from the manifest
     Array<uint64> blockSizes;
     blockSizes.Resize(MaxAssetBuckets);
 
     for (const AssetEntry& entry : serverManifest.assets)
     {
-        if (entry.bucket_index >= MaxAssetBuckets)
+        if (entry.bucket_index == 0 || entry.bucket_index >= MaxAssetBuckets)
+        {
             continue;
+        }
 
         for (const BlobEntry& blob : entry.blobs)
         {
@@ -331,12 +449,13 @@ Result DownloadCacheFromHost(
         }
     }
 
-    // 6. Build BlobBlockInfo array
     Array<BlobBlockInfo> blocks;
     for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; bucketIndex++)
     {
         if (blockSizes[bucketIndex] > 0)
+        {
             blocks.PushBack(BlobBlockInfo { bucketIndex, blockSizes[bucketIndex] });
+        }
     }
 
     BlobStorage writeStorage(cacheDir, /* readOnly */ false);
@@ -347,12 +466,12 @@ Result DownloadCacheFromHost(
         return HYP_MAKE_ERROR(Error,"CacheSync BeginCook failed: {}", result.GetError().GetMessage());
     }
 
-    // 8. Download assets in parallel
     using threading::TaskThreadPool;
+
     TaskThreadPool downloadPool("CacheSyncWorker", 4);
     downloadPool.Start();
 
-    Array<Task<void>> tasks;
+    List<Task<void>> tasks;
 
     AtomicVar<int32> failureCount = 0;
 
@@ -373,24 +492,19 @@ Result DownloadCacheFromHost(
                 std::snprintf(hmfPathBuf, sizeof(hmfPathBuf), "/hmf/%u/%s",
                     entry.bucket_index, entry.name.Data());
 
-                ByteBuffer hmfBytes;
-                if (Result res = HttpGetBytes(host, port, hmfPathBuf, hmfBytes); res.HasError())
-                {
-                    HYP_LOG(Assets, Warning, "Failed to download HMF for {}: {}", entry.name, res.GetError().GetMessage());
-                }
-                else
-                {
-                    FilePath bucketContentDir = contentDir / String(GetAssetBucketName(entry.bucket_index));
-                    bucketContentDir.MkDir();
+                FilePath bucketContentDir = contentDir / String(GetAssetBucketName(entry.bucket_index));
+                bucketContentDir.MkDir();
 
-                    FilePath manifestPath = bucketContentDir / (entry.name + ".hmf");
+                FilePath hmfFilePath = bucketContentDir / (entry.name + ".hmf");
+                FileByteWriter hmfWriter { hmfFilePath };
 
-                    FileByteWriter writer { manifestPath };
-                    if (writer.IsOpen())
+                if (hmfWriter.IsOpen())
+                {
+                    if (Result res = HttpGetBytes(host, port, hmfPathBuf, hmfWriter); res.HasError())
                     {
-                        writer.Write(hmfBytes);
-                        writer.Close();
+                        HYP_LOG(Assets, Warning, "Failed to download HMF for {}: {}", entry.name, res.GetError().GetMessage());
                     }
+                    hmfWriter.Close();
                 }
             }
 
@@ -401,8 +515,8 @@ Result DownloadCacheFromHost(
                 std::snprintf(blobPathBuf, sizeof(blobPathBuf), "/blob?key=%llx&size=%llu",
                     (unsigned long long)blob.key, (unsigned long long)blob.size);
 
-                ByteBuffer blobData;
-                if (Result res = HttpGetBytes(host, port, blobPathBuf, blobData); res.HasError())
+                MemoryByteWriter<DynamicAllocator> blobWriter;
+                if (Result res = HttpGetBytes(host, port, blobPathBuf, blobWriter); res.HasError())
                 {
                     HYP_LOG(Assets, Error, "CacheSync failed to download blob key={} for {}: {}",
                             blob.key, entry.name, res.GetError().GetMessage());
@@ -410,6 +524,8 @@ Result DownloadCacheFromHost(
                     entryFailed = true;
                     continue;
                 }
+
+                ByteBuffer& blobData = blobWriter.GetBuffer();
 
                 if (blobData.Size() != blob.size)
                 {
@@ -459,23 +575,15 @@ Result DownloadCacheFromHost(
 
     writeStorage.Shutdown();
 
-    if (failureCount.Get(MemoryOrder::RELAXED) > 0)
     {
-        return HYP_MAKE_ERROR(Error, "Download incomplete — {} asset(s) had failures", failureCount.Get(MemoryOrder::RELAXED));
+        localManifestPath.Remove();
+
+        FileByteWriter localManifestWriter { localManifestPath };
+        localManifestWriter.WriteString(manifestStr.ToUtf8());
+        localManifestWriter.Close();
     }
 
-    localManifestPath.Remove();
-
-    FileByteWriter manifestWriter { localManifestPath };
-    if (!manifestWriter.IsOpen())
-    {
-        return HYP_MAKE_ERROR(Error,"CacheSync failed to write local manifest");
-    }
-
-    manifestWriter.WriteString(manifestStr.ToUtf8());
-    manifestWriter.Close();
-
-    HYP_LOG(Assets, Info, "CacheSync complete — {} assets, {} blocks",
+    HYP_LOG(Assets, Info, "CacheSync complete. {} assets, {} blocks",
         serverManifest.assets.Size(), blocks.Size());
 
     return {};
@@ -509,21 +617,23 @@ HYP_EXPORT void SyncCacheBlocking(const FilePath& cacheDir, const FilePath& cont
         {
             host = ANSIStringView(host.Data() + 8, host.Data() + host.Size());
         }
-        ANSIStringView portStr = cacheServer.Substr(colonPos + 1, SIZE_MAX);
 
+        ANSIStringView portStr = cacheServer.Substr(colonPos + 1, SIZE_MAX);
         uint16 port = static_cast<uint16>(std::atoi(portStr.Data()));
+
+        bool shouldRetry = true;
 
         while (true)
         {
             Result res;
-            if ((res = DownloadCacheFromHost(host, port, cacheDir, contentDir)); !res.HasError())
+            if ((res = DownloadCacheFromHost(host, port, cacheDir, contentDir, &shouldRetry)); !res.HasError())
             {
                 break;
             }
 
             ++numAttempts;
 
-            if (numAttempts < MaxAttempts)
+            if (shouldRetry && numAttempts < MaxAttempts)
             {
                 HYP_LOG(Assets, Error, "Failed to download cache from server! Error message was: {}\nRetrying in 5s...", res.GetError().GetMessage());
 
