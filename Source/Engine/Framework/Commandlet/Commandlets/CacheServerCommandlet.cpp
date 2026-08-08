@@ -75,6 +75,8 @@ static constexpr SocketHandle INVALID_SOCK = INVALID_SOCKET;
 
 #endif
 
+HYP_DISABLE_OPTIMIZATION;
+
 namespace Hyperion {
 
 struct CacheServerContext {};
@@ -356,29 +358,43 @@ class CacheServerCommandlet final : public CommandletBase
         uint64 size;
     };
 
+    using BlobLookupMap = Map<uint64, BlobLookupEntry>;
+
     struct ServerState
     {
-        CookManifest manifest;
+        // Each map maps from Scene name -> map or manifest
+        Map<Name, SceneServerManifest> manifests;
+        Map<Name, BlobLookupMap> blobLookups;
+
         BlobStorage* blobStorage = nullptr;
         FilePath cacheDir;
-        Map<uint64, BlobLookupEntry> blobLookup;
-        Mutex mutex;
+
+        SharedMutex lock;
+
+        Handle<AssetRegistry> engineRegistry;
+        Handle<AssetRegistry> gameRegistry;
+
+        UniquePtr<DirectoryWatcher> engineWatcher;
+        UniquePtr<DirectoryWatcher> gameWatcher;
+
+        Proc<void(const String&, bool)> engineCallback;
+        Proc<void(const String&, bool)> gameCallback;
 
         bool devServer = false;
     };
 
-    static void RebuildManifest(ServerState& state, Handle<AssetRegistry>& engineRegistry, Handle<AssetRegistry>& gameRegistry)
+    static void InitializeSceneManifest(ServerState& state, SceneServerManifest& manifest, BlobLookupMap& blobLookup, Handle<AssetRegistry>& engineRegistry, Handle<AssetRegistry>& gameRegistry)
     {
-        Mutex::Guard guard(state.mutex);
+        manifest.assets.Clear();
+        manifest.timestamp = uint64(Time::Now());
+        blobLookup.Clear();
 
-        state.manifest.assets.Clear();
-        state.blobLookup.Clear();
-        state.manifest.cookTimestamp = uint64(Time::Now());
-
-        auto collectFromRegistry = [&state](AssetRegistry* registry, AssetRegistryId registryId)
+        auto collectFromRegistry = [&](AssetRegistry* registry, AssetRegistryId registryId)
         {
             if (!registry)
+            {
                 return;
+            }
 
             for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; bucketIndex++)
             {
@@ -428,7 +444,7 @@ class CacheServerCommandlet final : public CommandletBase
                         blobEntry.magic = magic;
                         assetEntry.blobs.PushBack(std::move(blobEntry));
 
-                        BlobLookupEntry& entry = state.blobLookup[key];
+                        BlobLookupEntry& entry = blobLookup[key];
                         entry = {};
                         entry.bucketIndex = bucketIndex;
                         entry.assetName = assetEntry.name;
@@ -436,7 +452,7 @@ class CacheServerCommandlet final : public CommandletBase
                         entry.magic = magic;
                     }
 
-                    state.manifest.assets.PushBack(std::move(assetEntry));
+                    manifest.assets.PushBack(std::move(assetEntry));
                 }
             }
         };
@@ -444,10 +460,10 @@ class CacheServerCommandlet final : public CommandletBase
         collectFromRegistry(engineRegistry.Get(), AssetRegistryId::Engine);
         collectFromRegistry(gameRegistry.Get(), AssetRegistryId::Game);
 
-        if (state.manifest.assets.Any())
+        if (manifest.assets.Any())
         {
-            std::sort(state.manifest.assets.Data(),
-                state.manifest.assets.Data() + state.manifest.assets.Size(),
+            std::sort(manifest.assets.Data(),
+                manifest.assets.Data() + manifest.assets.Size(),
                 [](const AssetEntry& a, const AssetEntry& b)
                 {
                     return a.lastModifiedTimestamp > b.lastModifiedTimestamp;
@@ -455,7 +471,7 @@ class CacheServerCommandlet final : public CommandletBase
         }
 
         HYP_LOG(Assets, Info, "CacheServer manifest rebuilt: {} assets, timestamp={}",
-            state.manifest.assets.Size(), state.manifest.cookTimestamp);
+            manifest.assets.Size(), manifest.timestamp);
     }
 
     static bool ParseAssetFilePath(const String& relativePath, String& outBucketName, String& outAssetName)
@@ -487,13 +503,19 @@ class CacheServerCommandlet final : public CommandletBase
 
     static void UpdateAssetInManifest(
         ServerState& state,
+        Name sceneName,
         AssetRegistry* registry,
         AssetRegistryId registryId,
         const String& bucketName,
         const String& assetNameStr,
         bool wasDeleted)
     {
-        Mutex::Guard guard(state.mutex);
+        Assert(sceneName.IsValid());
+
+        TUniqueLock lock(state.lock);
+        
+        SceneServerManifest& manifest = state.manifests[sceneName];
+        BlobLookupMap& blobLookup = state.blobLookups[sceneName];
 
         AssetBucket bucket = GetAssetBucketByName(StringHash(bucketName));
         uint32 bucketIndex = bucket.GetIndex();
@@ -505,10 +527,11 @@ class CacheServerCommandlet final : public CommandletBase
 
         Name name = CreateNameFromDynamicString(assetNameStr);
 
-        size_t existingIndex = size_t(-1);
-        for (size_t i = 0; i < state.manifest.assets.Size(); i++)
+        size_t existingIndex = SIZE_MAX;
+
+        for (size_t i = 0; i < manifest.assets.Size(); i++)
         {
-            const AssetEntry& entry = state.manifest.assets[i];
+            const AssetEntry& entry = manifest.assets[i];
 
             if (entry.registryId == registryId
                 && entry.bucketIndex == bucketIndex
@@ -522,17 +545,17 @@ class CacheServerCommandlet final : public CommandletBase
 
         if (wasDeleted)
         {
-            if (existingIndex != size_t(-1))
+            if (existingIndex != SIZE_MAX)
             {
-                for (const BlobEntry& blob : state.manifest.assets[existingIndex].blobs)
-                    state.blobLookup.Erase(blob.key);
+                for (const BlobEntry& blob : manifest.assets[existingIndex].blobs)
+                    blobLookup.Erase(blob.key);
 
-                state.manifest.assets.EraseAt(existingIndex);
+                manifest.assets.EraseAt(existingIndex);
 
                 HYP_LOG(Assets, Info, "CacheServer: removed asset {}/{}", bucketName, assetNameStr);
             }
 
-            state.manifest.cookTimestamp = uint64(Time::Now());
+            manifest.timestamp = uint64(Time::Now());
 
             return;
         }
@@ -551,10 +574,12 @@ class CacheServerCommandlet final : public CommandletBase
         Array<Tuple<const char*, uint16, BlobDataReference*>> blobRefs;
         assetObject->CollectBlobDataReferences(blobRefs);
 
-        if (existingIndex != size_t(-1))
+        if (existingIndex != SIZE_MAX)
         {
-            for (const BlobEntry& blob : state.manifest.assets[existingIndex].blobs)
-                state.blobLookup.Erase(blob.key);
+            for (const BlobEntry& blob : manifest.assets[existingIndex].blobs)
+            {
+                blobLookup.Erase(blob.key);
+            }
         }
 
         AssetEntry newEntry;
@@ -585,7 +610,7 @@ class CacheServerCommandlet final : public CommandletBase
             blobEntry.magic = tup.GetElement<0>();
             newEntry.blobs.PushBack(std::move(blobEntry));
 
-            BlobLookupEntry& lookup = state.blobLookup[key];
+            BlobLookupEntry& lookup = blobLookup[key];
             lookup = {};
             lookup.bucketIndex = bucketIndex;
             lookup.assetName = name;
@@ -593,25 +618,25 @@ class CacheServerCommandlet final : public CommandletBase
             lookup.magic = tup.GetElement<0>();
         }
 
-        if (existingIndex != size_t(-1))
+        if (existingIndex != SIZE_MAX)
         {
             // Replace in-place — sorted position may have shifted, so
             // remove and re-insert at the correct position.
-            state.manifest.assets.EraseAt(existingIndex);
+            manifest.assets.EraseAt(existingIndex);
         }
 
         // Insert at the sorted position (descending by timestamp)
         const AssetEntry* insertPos = std::lower_bound(
-            state.manifest.assets.Data(),
-            state.manifest.assets.Data() + state.manifest.assets.Size(),
+            manifest.assets.Data(),
+            manifest.assets.Data() + manifest.assets.Size(),
             newEntry.lastModifiedTimestamp,
             [](const AssetEntry& entry, uint64 ts)
             {
                 return entry.lastModifiedTimestamp > ts;
             });
 
-        state.manifest.assets.Insert(insertPos, std::move(newEntry));
-        state.manifest.cookTimestamp = uint64(Time::Now());
+        manifest.assets.Insert(insertPos, std::move(newEntry));
+        manifest.timestamp = uint64(Time::Now());
 
         HYP_LOG(Assets, Info, "CacheServer: updated asset {}/{}", bucketName, assetNameStr);
     }
@@ -630,9 +655,9 @@ public:
             s_initialized = true;
 
             s_definitions.Add(
-                "project",
-                "",
-                "Project directory to serve assets from",
+                "dir",
+                "d",
+                "Base directory to serve assets from. Any requests with id=foo params will discover assets in <dir>/foo/",
                 CommandLineArgumentFlags::REQUIRED,
                 {},
                 "");
@@ -672,25 +697,91 @@ protected:
     {
         GlobalContextScope scope { CacheServerContext() };
 
-        const FilePath cacheDir = MakeServeDir(args["project"].ToString());
+        const FilePath baseDir = MakeServeDir(args["dir"].ToString());
 
         int32 port = args["port"].ToInt32();
 
-        if (!cacheDir.Exists() || !cacheDir.IsDirectory())
+        if (!baseDir.Exists() || !baseDir.IsDirectory())
         {
-            return HYP_MAKE_ERROR(Error, "Directory does not exist: {}", cacheDir);
+            return HYP_MAKE_ERROR(Error, "Directory does not exist: {}", baseDir);
         }
 
+        const bool devServer = args["dev"].ToBool();
+
         ServerState state;
-        state.cacheDir = cacheDir;
-        state.devServer = args["dev"].ToBool();
+
+        state.cacheDir = baseDir;
+        state.devServer = devServer;
 
         if (!state.devServer)
         {
             // Open BlobStorage in read-only mode to serve blob data by key
-            state.blobStorage = new BlobStorage(cacheDir, /* readOnly */ true);
+            state.blobStorage = new BlobStorage(state.cacheDir, /* readOnly */ true);
             state.blobStorage->Initialize();
         }
+
+        state.engineRegistry = GetEngineAssetRegistry();
+        if (state.engineRegistry.IsValid())
+        {
+            state.engineRegistry->LoadAssetDescs();
+        }
+
+        state.gameRegistry = MakeHandle<AssetRegistry>(AssetRegistryId::Game, state.cacheDir);
+
+        GlobalContextScope assetRegistryScope { AssetRegistryContext { state.gameRegistry } };
+
+        state.gameRegistry->LoadAssetDescs();
+                
+        const FilePath gameContentDir = state.gameRegistry->GetRootPath();
+        const FilePath& engineContentDir = EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Engine")>();
+
+        auto makeCallback = [&state](AssetRegistry* registry)
+        {
+            return [&state, registry](const String& relativePath, bool wasDeleted)
+            {
+                    // Needs to be reworked per-scene
+#if 0
+                String bucketName, assetName;
+                if (!ParseAssetFilePath(relativePath, bucketName, assetName))
+                {
+                    return;
+                }
+
+                Array<Name> sceneNames;
+
+                {
+                    Mutex::Guard guard(state.mutex);
+                    
+                    sceneNames.Reserve(state.manifests.Size());
+
+                    for (const auto& it : state.manifests)
+                    {
+                        sceneNames.PushBack(it.first);
+                    }
+                }
+
+                for (Name sceneName : sceneNames)
+                {
+                    UpdateAssetInManifest(
+                        state,
+                        sceneName,
+                        registry,
+                        AssetRegistryId::Game,
+                        bucketName,
+                        assetName,
+                        wasDeleted);
+                }
+#endif
+            };
+        };
+
+        state.gameCallback = makeCallback(state.gameRegistry);
+        state.gameWatcher = MakeUnique<DirectoryWatcher>(gameContentDir, state.gameCallback);
+
+        state.engineCallback = makeCallback(state.engineRegistry);
+        state.engineWatcher = MakeUnique<DirectoryWatcher>(engineContentDir, state.engineCallback);
+
+        HYP_LOG(Assets, Info, "CacheServer file watchers started");
 
         HYP_DEFER({
             if (state.blobStorage != nullptr)
@@ -702,23 +793,7 @@ protected:
             }
         });
 
-        HYP_LOG(Assets, Info, "{}CacheServer starting on port {}, serving '{}'", state.devServer ? "[DEV] " : "", port, cacheDir);
-
-        Handle<AssetRegistry> engineRegistry = GetEngineAssetRegistry();
-        if (engineRegistry.IsValid())
-        {
-            engineRegistry->LoadAssetDescs();
-        }
-
-        Handle<AssetRegistry> gameRegistry = MakeHandle<AssetRegistry>(AssetRegistryId::Game, cacheDir);
-
-        GlobalContextScope assetRegistryScope { AssetRegistryContext { gameRegistry } };
-
-        gameRegistry->LoadAssetDescs();
-
-        // Build initial manifest and start a background poller to pick up
-        // file changes while the server is running.
-        RebuildManifest(state, engineRegistry, gameRegistry);
+        HYP_LOG(Assets, Info, "{}CacheServer starting on port {}", devServer ? "[DEV] " : "", port);
 
         // Start HTTP server
 #if defined(HYP_WINDOWS)
@@ -776,32 +851,6 @@ protected:
 
         HYP_DEFER({ serverPool.Stop(); });
 
-        const FilePath gameContentDir = gameRegistry->GetRootPath();
-        const FilePath& engineContentDir = EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Engine")>();
-
-        auto makeCallback = [&state](AssetRegistry* registry)
-        {
-            return [&state, registry](const String& relativePath, bool wasDeleted)
-            {
-                String bucketName, assetName;
-                if (!ParseAssetFilePath(relativePath, bucketName, assetName))
-                {
-                    return;
-                }
-
-                UpdateAssetInManifest(state, registry, AssetRegistryId::Game,
-                    bucketName, assetName, wasDeleted);
-            };
-        };
-
-        auto gameCallback = makeCallback(gameRegistry);
-        DirectoryWatcher gameWatcher(gameContentDir, gameCallback);
-
-        auto engineCallback = makeCallback(engineRegistry);
-        DirectoryWatcher engineWatcher(engineContentDir, engineCallback);
-
-        HYP_LOG(Assets, Info, "CacheServer file watchers started");
-
         List<Task<void>> tasks;
 
         for (;;)
@@ -830,51 +879,121 @@ protected:
                 continue;
             }
 
-            tasks.EmplaceBack(serverPool.Enqueue(HYP_STATIC_MESSAGE("CacheServerRequest"), [&state, clientSock, &gameRegistry]()
+            char recvBuf[8192];
+
+            int bytesRead = recv(clientSock, recvBuf, sizeof(recvBuf) - 1, 0);
+
+            if (bytesRead <= 0)
             {
-                char recvBuf[8192];
+                CLOSE_SOCKET(clientSock);
+                continue;
+            }
 
-                int bytesRead = recv(clientSock, recvBuf, sizeof(recvBuf) - 1, 0);
+            recvBuf[bytesRead] = '\0';
 
-                if (bytesRead <= 0)
-                {
-                    CLOSE_SOCKET(clientSock);
-                    return;
-                }
+            const char* reqLineEnd = strstr(recvBuf, "\r\n");
+            if (reqLineEnd == nullptr)
+            {
+                CLOSE_SOCKET(clientSock);
+                continue;
+            }
 
-                recvBuf[bytesRead] = '\0';
+            const char* pathStart = strchr(recvBuf, ' ');
+            if (pathStart == nullptr)
+            {
+                CLOSE_SOCKET(clientSock);
+                continue;
+            }
+            pathStart++;
 
-                const char* reqLineEnd = strstr(recvBuf, "\r\n");
-                if (reqLineEnd == nullptr)
-                {
-                    CLOSE_SOCKET(clientSock);
-                    return;
-                }
+            const char* pathEnd = strchr(pathStart, ' ');
+            if (!pathEnd)
+            {
+                pathEnd = reqLineEnd;
+            }
 
-                const char* pathStart = strchr(recvBuf, ' ');
-                if (pathStart == nullptr)
-                {
-                    CLOSE_SOCKET(clientSock);
-                    return;
-                }
-                pathStart++;
+            String path(pathStart, pathStart + size_t(pathEnd - pathStart));
 
-                const char* pathEnd = strchr(pathStart, ' ');
-                if (!pathEnd)
-                {
-                    pathEnd = reqLineEnd;
-                }
+            HYP_LOG(Assets, Info, "[CacheServer] GET {}", path);
 
-                String path(pathStart, pathStart + size_t(pathEnd - pathStart));
+            // Read `id` from the url.
+            size_t idIndex = path.FindFirstIndex("&id=");
+            if (idIndex == String::NotFound)
+            {
+                idIndex = path.FindFirstIndex("?id=");
+            }
 
-                HYP_LOG(Assets, Info, "[CacheServer] GET {}", path);
+            if (idIndex == String::NotFound)
+            {
+                const char* bad = "HTTP/1.0 400 Bad Request\r\n"
+                    "Content-Length: 0\r\n\r\n";
+                        
+                send(clientSock, bad, int(strlen(bad)), 0);
+                CLOSE_SOCKET(clientSock);
 
-                if (path == "/manifest")
+                continue;
+            }
+
+            // get the data from it by reading until end or & is hit
+            UTF8StringView idValue = path.Substr(idIndex + 4, SIZE_MAX);
+            size_t ampIndex = idValue.FindFirstIndex("&");
+
+            if (ampIndex != String::NotFound)
+            {
+                idValue = idValue.Substr(0, ampIndex);
+            }
+
+            if (!idValue)
+            {
+                const char* bad = "HTTP/1.0 400 Bad Request\r\n"
+                    "Content-Length: 0\r\n\r\n";
+                        
+                send(clientSock, bad, int(strlen(bad)), 0);
+                CLOSE_SOCKET(clientSock);
+
+                continue;
+            }
+
+            tasks.EmplaceBack(serverPool.Enqueue(HYP_STATIC_MESSAGE("CacheServerRequest"), [&state, clientSock, sceneName = Name(StringHash(idValue)), path = std::move(path)]()
+            {
+                // Needed per-thread
+                GlobalContextScope scope { CacheServerContext() };
+
+                if (path.StartsWith("/manifest"))
                 {
                     String hmfText;
+
                     {
-                        Mutex::Guard guard(state.mutex);
-                        ObjectToHMF(GetClass<CookManifest>(), BoxedValue(state.manifest), hmfText);
+                        TSharedLock sharedLock(state.lock);
+
+                        auto it = state.manifests.Find(sceneName);
+                        if (it == state.manifests.End())
+                        {
+                            sharedLock.Reset();
+
+                            TUniqueLock uniqueLock(state.lock);
+
+                            it = state.manifests.Find(sceneName);
+                            if (it == state.manifests.End())
+                            {
+                                SceneServerManifest& manifest = state.manifests[sceneName];
+                                BlobLookupMap& blobLookup = state.blobLookups[sceneName];
+
+                                InitializeSceneManifest(state, manifest, blobLookup, state.engineRegistry, state.gameRegistry);
+                            
+                                ObjectToHMF(GetClass<SceneServerManifest>(), BoxedValue(manifest), hmfText);
+                            }
+                            else
+                            {
+                                SceneServerManifest& manifest = state.manifests[sceneName];
+                                ObjectToHMF(GetClass<SceneServerManifest>(), BoxedValue(manifest), hmfText);
+                            }
+                        }
+                        else
+                        {
+                            SceneServerManifest& manifest = state.manifests[sceneName];
+                            ObjectToHMF(GetClass<SceneServerManifest>(), BoxedValue(manifest), hmfText);
+                        }
                     }
 
                     char header[256];
@@ -913,7 +1032,7 @@ protected:
                     {
                         String assetBucketStr = String(GetAssetBucketName(bucketIndex));
 
-                        FilePath hmfPath = gameRegistry->GetRootPath() / assetBucketStr / (assetName + ".hmf");
+                        FilePath hmfPath = state.gameRegistry->GetRootPath() / assetBucketStr / (assetName + ".hmf");
 
                         if (!hmfPath.Exists())
                         {
@@ -1012,19 +1131,31 @@ protected:
 
                     if (state.devServer)
                     {
-                        auto lookupIt = state.blobLookup.Find(keyValue);
-                        if (lookupIt != state.blobLookup.End())
-                        {
-                            const BlobLookupEntry& entry = lookupIt->second;
+                        BlobLookupEntry entry;
+                        bool found = false;
 
+                        { // locked
+                            TSharedLock lock(state.lock);
+                            BlobLookupMap& blobLookup = state.blobLookups[sceneName];
+
+                            auto lookupIt = blobLookup.Find(keyValue);
+                            if (lookupIt != blobLookup.End())
+                            {
+                                entry = lookupIt->second;
+                                found = true;
+                            }
+                        }
+
+                        if (found)
+                        {
                             static const auto s_getBlobPath = [](const BlobLookupEntry& entry, const FilePath& contentDir)
                             {
                                 return contentDir
                                     / String(GetAssetBucketName(entry.bucketIndex))
                                     / (entry.assetName.ToString() + "." + entry.magic + ".raw.blob");
                             };
-                            
-                            FilePath rawBlobPath = s_getBlobPath(entry, gameRegistry->GetRootPath());
+
+                            FilePath rawBlobPath = s_getBlobPath(entry, state.gameRegistry->GetRootPath());
 
                             if (!rawBlobPath.Exists())
                             {
@@ -1041,11 +1172,11 @@ protected:
 
                                     char header[256];
                                     int headerLen = std::snprintf(header, sizeof(header),
-                                        "HTTP/1.0 200 OK\r\n"
-                                        "Content-Type: application/octet-stream\r\n"
-                                        "Content-Length: %zu\r\n"
-                                        "\r\n",
-                                        data.Size());
+                                                                  "HTTP/1.0 200 OK\r\n"
+                                                                  "Content-Type: application/octet-stream\r\n"
+                                                                  "Content-Length: %zu\r\n"
+                                                                  "\r\n",
+                                                                  data.Size());
 
                                     send(clientSock, header, headerLen, 0);
                                     send(clientSock, (const char*)data.Data(), int(data.Size()), 0);

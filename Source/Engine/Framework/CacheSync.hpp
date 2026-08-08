@@ -15,7 +15,14 @@ namespace Hyperion {
 
 namespace CacheSync {
 
-ENGINE_API void SyncCacheBlocking(const FilePath& cacheDir, const FilePath& contentDir, bool shouldRetry);
+struct CacheSyncParams
+{
+    Name sceneName;
+    FilePath outputCacheDir;
+    FilePath outputContentDir;
+};
+
+ENGINE_API void SyncCacheBlocking(const CacheSyncParams& params, bool shouldRetry);
 
 } // namespace CacheSync
 

@@ -555,7 +555,12 @@ extern "C"
             const FilePath& cacheDir = EngineGlobals::GetCacheDirectory();
             const FilePath& contentDir = EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Game")>();
 
-            CacheSync::SyncCacheBlocking(cacheDir, contentDir, /* shouldRetry */ false);
+            CacheSync::CacheSyncParams params;
+            params.sceneName = NAME("MainScene");
+            params.outputCacheDir = cacheDir;
+            params.outputContentDir = contentDir;
+
+            CacheSync::SyncCacheBlocking(params, /* shouldRetry */ false);
         }
 
         g_shaderCompiler = new ShaderCompiler;

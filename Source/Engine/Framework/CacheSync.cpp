@@ -62,7 +62,7 @@ namespace {
 
 Result HttpGetBytes(
     const ANSIString& host, uint16 port,
-    const char* path,
+    const ANSIString& path,
     ByteWriter& writer,
     bool* outShouldRetry = nullptr)
 {
@@ -142,7 +142,7 @@ Result HttpGetBytes(
         "Host: %s:%u\r\n"
         "Connection: close\r\n"
         "\r\n",
-         path, host.Data(), uint32(port));
+         path.Data(), host.Data(), uint32(port));
 
     if (send(sock, request, reqLen, 0) == SOCKET_ERROR)
     {
@@ -278,7 +278,7 @@ Result HttpGetBytes(
         "Host: %s:%u\r\n"
         "Connection: close\r\n"
         "\r\n",
-        path, host, uint32(port));
+         path.Data(), host.Data(), uint32(port));
 
     if (send(sock, request, size_t(reqLen), 0) < 0)
     {
@@ -371,10 +371,10 @@ Result HttpGetBytes(
 #endif
 }
 
-static Map<AssetPath, uint64> BuildLocalAssetTimestampMap(const FilePath& cacheDir)
+static Map<AssetPath, uint64> BuildLocalAssetTimestampMap(const FilePath& cacheDir, Name sceneName)
 {
     Map<AssetPath, uint64> result;
-    FilePath localManifest = cacheDir / "Manifest.hmf";
+    FilePath localManifest = cacheDir / sceneName.ToString() + ".hmf";
 
     if (!localManifest.Exists())
     {
@@ -396,12 +396,12 @@ static Map<AssetPath, uint64> BuildLocalAssetTimestampMap(const FilePath& cacheD
     }
 
     BoxedValue& boxed = parseResult.GetValue();
-    if (!boxed.Is<CookManifest>())
+    if (!boxed.Is<SceneServerManifest>())
     {
         return result;
     }
 
-    const CookManifest& localManifestData = boxed.Get<CookManifest>();
+    const SceneServerManifest& localManifestData = boxed.Get<SceneServerManifest>();
     for (const AssetEntry& localEntry : localManifestData.assets)
     {
         AssetPath key(localEntry.registryId,
@@ -416,7 +416,7 @@ static Map<AssetPath, uint64> BuildLocalAssetTimestampMap(const FilePath& cacheD
 
 Result DownloadCacheFromHost(
     const ANSIStringView& host, uint16 port,
-    const FilePath& cacheDir, const FilePath& contentDir,
+    const CacheSyncParams& params,
     bool* outShouldRetry = nullptr)
 {
     if (outShouldRetry)
@@ -425,7 +425,7 @@ Result DownloadCacheFromHost(
     }
 
     MemoryByteWriter<DynamicAllocator> manifestWriter;
-    if (Result res = HttpGetBytes(host, port, "/manifest", manifestWriter, outShouldRetry); res.HasError())
+    if (Result res = HttpGetBytes(host, port, String("/manifest?id=") + params.sceneName.ToString(), manifestWriter, outShouldRetry); res.HasError())
     {
         return res;
     }
@@ -442,24 +442,20 @@ Result DownloadCacheFromHost(
     }
 
     BoxedValue& boxedResult = parseResult.GetValue();
-    if (!boxedResult.Is<CookManifest>())
+    if (!boxedResult.Is<SceneServerManifest>())
     {
         return HYP_MAKE_ERROR(Error, "CacheSync server manifest is not a CookManifest");
     }
 
-    const CookManifest& serverManifest = boxedResult.Get<CookManifest>();
+    const SceneServerManifest& serverManifest = boxedResult.Get<SceneServerManifest>();
 
-    // @TODO we will save timestamp into the manifest file;
-    // we'll still have a general check, so we can short circuit out of here in most cases,
-    // but we'll want to only download assets that are missing/have newer versions.
-    // so on the server side, we should sort the assets in the manifest descending by timestmap.
-    // then we can stop downloading on the first one that has a timestamp indicating we have the latest ver.
-    HYP_LOG(Assets, Info, "CacheSync server manifest: timestamp={}, {} assets",
-        serverManifest.cookTimestamp, serverManifest.assets.Size());
+    HYP_LOG(Assets, Info, "CacheSync server manifest for scene: {}: timestamp={}, {} assets",
+        params.sceneName,
+        serverManifest.timestamp, serverManifest.assets.Size());
 
     // Compare with local manifest
     uint64 localTimestamp = 0;
-    FilePath localManifestPath = cacheDir / "Manifest.hmf";
+    FilePath localManifestPath = params.outputCacheDir / "Manifest.hmf";
 
     if (localManifestPath.Exists())
     {
@@ -472,28 +468,31 @@ Result DownloadCacheFromHost(
             if (localResult.HasValue())
             {
                 BoxedValue& localBoxed = localResult.GetValue();
-                if (localBoxed.Is<CookManifest>())
+
+                if (localBoxed.Is<SceneServerManifest>())
                 {
-                    localTimestamp = localBoxed.Get<CookManifest>().cookTimestamp;
+                    localTimestamp = localBoxed.Get<SceneServerManifest>().timestamp;
                 }
             }
         }
     }
 
-    if (serverManifest.cookTimestamp <= localTimestamp)
+    if (serverManifest.timestamp <= localTimestamp)
     {
-        HYP_LOG(Assets, Info, "CacheSync cache up to date (local={} >= server={})",
-            localTimestamp, serverManifest.cookTimestamp);
+        HYP_LOG(Assets, Info, "CacheSync cache up to date for Scene {} (local={} >= server={})",
+            params.sceneName,
+            localTimestamp, serverManifest.timestamp);
 
         return {};
     }
 
-    HYP_LOG(Assets, Info, "CacheSync cache outdated (local={} < server={}), downloading",
-        localTimestamp, serverManifest.cookTimestamp);
+    HYP_LOG(Assets, Info, "CacheSync cache outdated for Scene {} (local={} < server={})",
+        params.sceneName,
+        localTimestamp, serverManifest.timestamp);
 
-    if (!cacheDir.Exists() && !cacheDir.MkDir())
+    if (!params.outputCacheDir.Exists() && !params.outputCacheDir.MkDir())
     {
-        return HYP_MAKE_ERROR(Error,"CacheSync failed to create cache directory '{}'", cacheDir);
+        return HYP_MAKE_ERROR(Error,"CacheSync failed to create cache directory '{}'", params.outputCacheDir);
     }
 
     Array<uint64> blockSizes;
@@ -524,7 +523,7 @@ Result DownloadCacheFromHost(
         }
     }
 
-    BlobStorage writeStorage(cacheDir, /* readOnly */ false);
+    BlobStorage writeStorage(params.outputCacheDir, /* readOnly */ false);
     writeStorage.Initialize();
 
     if (Result result = writeStorage.BeginCook(blocks); result.HasError())
@@ -543,7 +542,7 @@ Result DownloadCacheFromHost(
 
     // Build a map of local asset timestamps so we can skip up-to-date assets.
     // Assets are sorted descending by timestamp, so we can break on first match.
-    Map<AssetPath, uint64> localAssetTimestamps = BuildLocalAssetTimestampMap(cacheDir);
+    Map<AssetPath, uint64> localAssetTimestamps = BuildLocalAssetTimestampMap(params.outputCacheDir, params.sceneName);
 
     for (const AssetEntry& entry : serverManifest.assets)
     {
@@ -572,13 +571,23 @@ Result DownloadCacheFromHost(
             // Download the HMF manifest
             {
                 char hmfPathBuf[512];
-                std::snprintf(hmfPathBuf, sizeof(hmfPathBuf), "/hmf/%u/%s",
-                    entry.bucketIndex, entry.name.LookupString());
+                std::snprintf(hmfPathBuf, sizeof(hmfPathBuf), "/hmf/%u/%s?id=%s",
+                    entry.bucketIndex, entry.name.LookupString(),
+                    params.sceneName.LookupString());
 
-                FilePath bucketContentDir = contentDir / String(GetAssetBucketName(entry.bucketIndex));
+                FilePath bucketContentDir = params.outputContentDir / String(GetAssetBucketName(entry.bucketIndex));
                 bucketContentDir.MkDir();
 
                 FilePath hmfFilePath = bucketContentDir / (entry.name.ToString() + ".hmf");
+
+                // Check if the file exists already and has a timestamp >= than the timestamp we know;
+                // if we're downloading for multiple scenes, then it may have been already downloaded.
+                if (hmfFilePath.Exists() && hmfFilePath.LastModifiedTimestamp() >= entry.lastModifiedTimestamp)
+                {
+                    // Skip!
+                    return;
+                }
+
                 FileByteWriter hmfWriter { hmfFilePath };
 
                 if (hmfWriter.IsOpen())
@@ -587,6 +596,7 @@ Result DownloadCacheFromHost(
                     {
                         HYP_LOG(Assets, Warning, "Failed to download HMF for {}: {}", entry.name, res.GetError().GetMessage());
                     }
+
                     hmfWriter.Close();
                 }
             }
@@ -595,7 +605,8 @@ Result DownloadCacheFromHost(
             for (const BlobEntry& blob : entry.blobs)
             {
                 char blobPathBuf[512];
-                std::snprintf(blobPathBuf, sizeof(blobPathBuf), "/blob?key=%llx&size=%llu",
+                std::snprintf(blobPathBuf, sizeof(blobPathBuf), "/blob?id=%skey=%llx&size=%llu",
+                    params.sceneName.LookupString(),
                     (unsigned long long)blob.key, (unsigned long long)blob.size);
 
                 MemoryByteWriter<DynamicAllocator> blobWriter;
@@ -674,7 +685,7 @@ Result DownloadCacheFromHost(
 
 } // anonymous
 
-HYP_EXPORT void SyncCacheBlocking(const FilePath& cacheDir, const FilePath& contentDir, bool shouldRetry)
+HYP_EXPORT void SyncCacheBlocking(const CacheSyncParams& params, bool shouldRetry)
 {
     static constexpr int MaxAttempts = 5;
     int numAttempts = 0;
@@ -707,7 +718,7 @@ HYP_EXPORT void SyncCacheBlocking(const FilePath& cacheDir, const FilePath& cont
         do
         {
             Result res;
-            if ((res = DownloadCacheFromHost(host, port, cacheDir, contentDir, shouldRetry ? &shouldRetry : nullptr)); !res.HasError())
+            if ((res = DownloadCacheFromHost(host, port, params, shouldRetry ? &shouldRetry : nullptr)); !res.HasError())
             {
                 break;
             }

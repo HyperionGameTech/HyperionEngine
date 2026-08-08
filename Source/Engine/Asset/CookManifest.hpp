@@ -53,12 +53,12 @@ struct AssetEntry
 };
 
 HYP_STRUCT()
-struct CookManifest
+struct SceneServerManifest
 {
-    HYP_STRUCT_BODY(CookManifest)
+    HYP_STRUCT_BODY(SceneServerManifest)
 
     HYP_FIELD()
-    uint64 cookTimestamp;
+    uint64 timestamp;
 
     HYP_FIELD()
     Array<AssetEntry> assets;
