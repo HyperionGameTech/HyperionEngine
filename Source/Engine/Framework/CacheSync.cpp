@@ -674,7 +674,7 @@ Result DownloadCacheFromHost(
 
 } // anonymous
 
-HYP_EXPORT void SyncCacheBlocking(const FilePath& cacheDir, const FilePath& contentDir)
+HYP_EXPORT void SyncCacheBlocking(const FilePath& cacheDir, const FilePath& contentDir, bool shouldRetry)
 {
     static constexpr int MaxAttempts = 5;
     int numAttempts = 0;
@@ -704,12 +704,10 @@ HYP_EXPORT void SyncCacheBlocking(const FilePath& cacheDir, const FilePath& cont
         ANSIStringView portStr = cacheServer.Substr(colonPos + 1, SIZE_MAX);
         uint16 port = static_cast<uint16>(std::atoi(portStr.Data()));
 
-        bool shouldRetry = true;
-
-        while (true)
+        do
         {
             Result res;
-            if ((res = DownloadCacheFromHost(host, port, cacheDir, contentDir, &shouldRetry)); !res.HasError())
+            if ((res = DownloadCacheFromHost(host, port, cacheDir, contentDir, shouldRetry ? &shouldRetry : nullptr)); !res.HasError())
             {
                 break;
             }
@@ -728,6 +726,7 @@ HYP_EXPORT void SyncCacheBlocking(const FilePath& cacheDir, const FilePath& cont
                 return;
             }
         }
+        while (shouldRetry);
     }
 }
 
