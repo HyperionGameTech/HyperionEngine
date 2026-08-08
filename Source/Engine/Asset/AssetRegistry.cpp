@@ -915,9 +915,6 @@ void AssetRegistry::PutAssetUnique(const AssetBucket& bucket, const Handle<Asset
 
 void AssetRegistry::WalkAssetDeep(const BoxedValue& target, const ProcRef<void(const Handle<AssetObject>&)>& onAssetFound)
 {
-    // Recurse through the objects' fields, visiting every reachable AssetObject.
-    //// \todo : Change to a Stack, recursion could get impressively deep.
-
     Set<const ObjectBase*> visited; // to avoid infinite recursion
 
     bool shouldFollowAssetPaths = false;
@@ -978,8 +975,6 @@ void AssetRegistry::WalkAssetDeep(const BoxedValue& target, const ProcRef<void(c
         }
 
         shouldFollowAssetPaths = false;
-
-        const TypeInfo& typeInfo = *current.GetTypeInfo();
 
         bool walked = false;
 

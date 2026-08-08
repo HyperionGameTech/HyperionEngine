@@ -25,6 +25,8 @@
 #include <Core/IO/ByteWriter.hpp>
 #include <Core/IO/ByteReader.hpp>
 
+#include <Core/Containers/Set.hpp>
+
 #include <Core/Reflection/ClassUtils.hpp>
 
 #include <Core/FileSystem/FilePath.hpp>
@@ -383,82 +385,112 @@ class CacheServerCommandlet final : public CommandletBase
         bool devServer = false;
     };
 
-    static void InitializeSceneManifest(ServerState& state, SceneServerManifest& manifest, BlobLookupMap& blobLookup, Handle<AssetRegistry>& engineRegistry, Handle<AssetRegistry>& gameRegistry)
+    static void InitializeSceneManifest(ServerState& state, Name sceneName, SceneServerManifest& manifest, BlobLookupMap& blobLookup, Handle<AssetRegistry>& engineRegistry, Handle<AssetRegistry>& gameRegistry)
     {
         manifest.assets.Clear();
         manifest.timestamp = uint64(Time::Now());
         blobLookup.Clear();
 
-        auto collectFromRegistry = [&](AssetRegistry* registry, AssetRegistryId registryId)
+        GlobalContextScope assetRegistryScope { AssetRegistryContext { gameRegistry } };
+
+        Array<Handle<AssetObject>> collectedAssets;
+
+        auto collectAsset = [&](const Handle<AssetObject>& assetObject)
         {
-            if (!registry)
+            if (!assetObject.IsValid() || assetObject->IsTransient())
             {
                 return;
             }
 
-            for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; bucketIndex++)
-            {
-                Array<AssetDesc> assetDescs;
-                registry->GetBucketAssetDescs(bucketIndex, assetDescs);
-
-                const AssetBucket& bucket = *AssetBuckets::AllBuckets[bucketIndex];
-
-                for (const AssetDesc& assetDesc : assetDescs)
-                {
-                    Handle<AssetObject> assetObject = registry->GetAsset(bucket, assetDesc.name);
-
-                    if (!assetObject.IsValid() || assetObject->IsTransient())
-                        continue;
-
-                    Array<Tuple<const char*, uint16, BlobDataReference*>> blobRefs;
-                    assetObject->CollectBlobDataReferences(blobRefs);
-
-                    if (blobRefs.Empty())
-                        continue;
-
-                    AssetEntry assetEntry;
-                    assetEntry.registryId = registryId;
-                    assetEntry.bucketIndex = bucketIndex;
-                    assetEntry.name = assetObject->GetName();
-
-                    {
-                        FilePath hmfPath = registry->GetManifestPath(assetObject->GetPath());
-                        if (hmfPath.Exists())
-                            assetEntry.lastModifiedTimestamp = uint64(hmfPath.LastModifiedTimestamp());
-                    }
-
-                    for (auto& tup : blobRefs)
-                    {
-                        BlobDataReference* ref = tup.GetElement<2>();
-                        if (!ref->key || ref->size == 0)
-                        {
-                            continue;
-                        }
-
-                        const uint64 key = ref->key.GetHashCode().Value();
-                        const char* magic = tup.GetElement<0>();
-
-                        BlobEntry blobEntry;
-                        blobEntry.key = key;
-                        blobEntry.size = ref->size;
-                        blobEntry.magic = magic;
-                        assetEntry.blobs.PushBack(std::move(blobEntry));
-
-                        BlobLookupEntry& entry = blobLookup[key];
-                        entry = {};
-                        entry.bucketIndex = bucketIndex;
-                        entry.assetName = assetEntry.name;
-                        entry.size = ref->size;
-                        entry.magic = magic;
-                    }
-
-                    manifest.assets.PushBack(std::move(assetEntry));
-                }
-            }
+            collectedAssets.PushBack(assetObject);
         };
 
-        collectFromRegistry(engineRegistry.Get(), AssetRegistryId::Engine);
-        collectFromRegistry(gameRegistry.Get(), AssetRegistryId::Game);
+        Handle<AssetObject> sceneAsset = gameRegistry->GetAsset(AssetBuckets::Scenes, sceneName);
+
+        if (!sceneAsset.IsValid() || sceneAsset->IsTransient())
+        {
+            HYP_LOG(Assets, Warning, "CacheServer: failed to load scene asset '{}', serving empty manifest", sceneName);
+
+            return;
+        }
+
+        AssetRegistry::WalkAssetDeep(BoxedValue(sceneAsset), collectAsset);
+
+        HYP_LOG(Assets, Info, "CacheServer: walking scene '{}' found {} asset(s)", sceneName, collectedAssets.Size());
+
+        for (const Handle<AssetObject>& assetObject : collectedAssets)
+        {
+            const AssetPath& assetPath = assetObject->GetPath();
+
+            if (!assetPath.IsValid())
+            {
+                HYP_LOG(Assets, Warning, "CacheServer: Invalid asset path: {} for Scene: {}", assetPath, sceneName);
+                continue;
+            }
+
+            const uint32 bucketIndex = assetPath.GetBucket().GetIndex();
+
+            if (bucketIndex == 0 || bucketIndex >= MaxAssetBuckets)
+            {
+                continue;
+            }
+
+            Array<Tuple<const char*, uint16, BlobDataReference*>> blobRefs;
+            assetObject->CollectBlobDataReferences(blobRefs);
+
+            AssetEntry assetEntry;
+            assetEntry.registryId = assetPath.registryId;
+            assetEntry.bucketIndex = bucketIndex;
+            assetEntry.name = assetObject->GetName();
+
+            AssetRegistry* registry = nullptr;
+
+            if (assetPath.registryId == AssetRegistryId::Game)
+            {
+                registry = gameRegistry.Get();
+            }
+            else if (assetPath.registryId == AssetRegistryId::Engine)
+            {
+                registry = engineRegistry.Get();
+            }
+
+            if (registry != nullptr)
+            {
+                FilePath hmfPath = registry->GetManifestPath(assetPath);
+
+                if (hmfPath.Exists())
+                {
+                    assetEntry.lastModifiedTimestamp = uint64(hmfPath.LastModifiedTimestamp());
+                }
+            }
+
+            for (auto& tup : blobRefs)
+            {
+                BlobDataReference* ref = tup.GetElement<2>();
+                if (!ref->key || ref->size == 0)
+                {
+                    continue;
+                }
+
+                const uint64 key = ref->key.GetHashCode().Value();
+                const char* magic = tup.GetElement<0>();
+
+                BlobEntry blobEntry;
+                blobEntry.key = key;
+                blobEntry.size = ref->size;
+                blobEntry.magic = magic;
+                assetEntry.blobs.PushBack(std::move(blobEntry));
+
+                BlobLookupEntry& entry = blobLookup[key];
+                entry = {};
+                entry.bucketIndex = bucketIndex;
+                entry.assetName = assetEntry.name;
+                entry.size = ref->size;
+                entry.magic = magic;
+            }
+
+            manifest.assets.PushBack(std::move(assetEntry));
+        }
 
         if (manifest.assets.Any())
         {
@@ -470,8 +502,8 @@ class CacheServerCommandlet final : public CommandletBase
                 });
         }
 
-        HYP_LOG(Assets, Info, "CacheServer manifest rebuilt: {} assets, timestamp={}",
-            manifest.assets.Size(), manifest.timestamp);
+        HYP_LOG(Assets, Info, "CacheServer: rebuilt manifest for scene {}: {} assets, timestamp={}",
+            sceneName, manifest.assets.Size(), manifest.timestamp);
     }
 
     static bool ParseAssetFilePath(const String& relativePath, String& outBucketName, String& outAssetName)
@@ -954,7 +986,7 @@ protected:
                 continue;
             }
 
-            tasks.EmplaceBack(serverPool.Enqueue(HYP_STATIC_MESSAGE("CacheServerRequest"), [&state, clientSock, sceneName = Name(StringHash(idValue)), path = std::move(path)]()
+            tasks.EmplaceBack(serverPool.Enqueue(HYP_STATIC_MESSAGE("CacheServerRequest"), [&state, clientSock, sceneName = CreateNameFromDynamicString(idValue), path = std::move(path)]()
             {
                 // Needed per-thread
                 GlobalContextScope scope { CacheServerContext() };
@@ -979,7 +1011,7 @@ protected:
                                 SceneServerManifest& manifest = state.manifests[sceneName];
                                 BlobLookupMap& blobLookup = state.blobLookups[sceneName];
 
-                                InitializeSceneManifest(state, manifest, blobLookup, state.engineRegistry, state.gameRegistry);
+                                InitializeSceneManifest(state, sceneName, manifest, blobLookup, state.engineRegistry, state.gameRegistry);
                             
                                 ObjectToHMF(GetClass<SceneServerManifest>(), BoxedValue(manifest), hmfText);
                             }
