@@ -95,11 +95,100 @@ class CacheServerCommandlet final : public CommandletBase
         CookManifest manifest;
         BlobStorage* blobStorage = nullptr;
         FilePath cacheDir;
-        String manifestHmfText;
         Map<uint64, BlobLookupEntry> blobLookup;
+        Mutex mutex;
 
         bool devServer = false;
     };
+
+    static void RebuildManifest(ServerState& state, Handle<AssetRegistry>& engineRegistry, Handle<AssetRegistry>& gameRegistry)
+    {
+        Mutex::Guard guard(state.mutex);
+
+        state.manifest.assets.Clear();
+        state.blobLookup.Clear();
+        state.manifest.cookTimestamp = uint64(Time::Now());
+
+        auto collectFromRegistry = [&state](AssetRegistry* registry, AssetRegistryId registryId)
+        {
+            if (!registry)
+                return;
+
+            for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; bucketIndex++)
+            {
+                Array<AssetDesc> assetDescs;
+                registry->GetBucketAssetDescs(bucketIndex, assetDescs);
+
+                const AssetBucket& bucket = *AssetBuckets::AllBuckets[bucketIndex];
+
+                for (const AssetDesc& assetDesc : assetDescs)
+                {
+                    Handle<AssetObject> assetObject = registry->GetAsset(bucket, assetDesc.name);
+
+                    if (!assetObject.IsValid() || assetObject->IsTransient())
+                        continue;
+
+                    Array<Tuple<const char*, uint16, BlobDataReference*>> blobRefs;
+                    assetObject->CollectBlobDataReferences(blobRefs);
+
+                    if (blobRefs.Empty())
+                        continue;
+
+                    AssetEntry assetEntry;
+                    assetEntry.registryId = registryId;
+                    assetEntry.bucketIndex = bucketIndex;
+                    assetEntry.name = assetObject->GetName();
+
+                    {
+                        FilePath hmfPath = registry->GetManifestPath(assetObject->GetPath());
+                        if (hmfPath.Exists())
+                            assetEntry.lastModifiedTimestamp = uint64(hmfPath.LastModifiedTimestamp());
+                    }
+
+                    for (auto& tup : blobRefs)
+                    {
+                        BlobDataReference* ref = tup.GetElement<2>();
+                        if (!ref->key || ref->size == 0)
+                            continue;
+
+                        const uint64 key = ref->key.GetHashCode().Value();
+                        const char* magic = tup.GetElement<0>();
+
+                        BlobEntry blobEntry;
+                        blobEntry.key = key;
+                        blobEntry.size = ref->size;
+                        blobEntry.magic = magic;
+                        assetEntry.blobs.PushBack(std::move(blobEntry));
+
+                        BlobLookupEntry& entry = state.blobLookup[key];
+                        entry = {};
+                        entry.bucketIndex = bucketIndex;
+                        entry.assetName = assetEntry.name;
+                        entry.size = ref->size;
+                        entry.magic = magic;
+                    }
+
+                    state.manifest.assets.PushBack(std::move(assetEntry));
+                }
+            }
+        };
+
+        collectFromRegistry(engineRegistry.Get(), AssetRegistryId::Engine);
+        collectFromRegistry(gameRegistry.Get(), AssetRegistryId::Game);
+
+        if (state.manifest.assets.Any())
+        {
+            std::sort(state.manifest.assets.Data(),
+                state.manifest.assets.Data() + state.manifest.assets.Size(),
+                [](const AssetEntry& a, const AssetEntry& b)
+                {
+                    return a.lastModifiedTimestamp > b.lastModifiedTimestamp;
+                });
+        }
+
+        HYP_LOG(Assets, Info, "CacheServer manifest rebuilt: {} assets, timestamp={}",
+            state.manifest.assets.Size(), state.manifest.cookTimestamp);
+    }
 
 public:
     virtual ~CacheServerCommandlet() override = default;
@@ -113,6 +202,14 @@ public:
         if (!s_initialized)
         {
             s_initialized = true;
+
+            s_definitions.Add(
+                "project",
+                "",
+                "Project directory to serve assets from",
+                CommandLineArgumentFlags::REQUIRED,
+                {},
+                "");
 
             s_definitions.Add(
                 "port",
@@ -135,17 +232,27 @@ public:
     }
 
 protected:
+    static FilePath MakeServeDir(const String& projectDir)
+    {
+        
+        return FilePath(projectDir.StartsWith(".")
+            // Relative path - starts with . (eg "../Foo" or "./Foo")
+            ? (CoreApi::GetExecutablePath() / projectDir)
+            // Just use provided path.
+            : projectDir).ToCanonical();
+    }
+
     virtual Result Run_Impl(const CommandLineArguments& args) override
     {
         GlobalContextScope scope { CacheServerContext() };
 
-        const FilePath& cacheDir = EngineGlobals::GetCacheDirectory();
+        const FilePath cacheDir = MakeServeDir(args["project"].ToString());
 
         int32 port = args["port"].ToInt32();
 
         if (!cacheDir.Exists() || !cacheDir.IsDirectory())
         {
-            return HYP_MAKE_ERROR(Error, "Cache directory does not exist: {}", cacheDir);
+            return HYP_MAKE_ERROR(Error, "Directory does not exist: {}", cacheDir);
         }
 
         ServerState state;
@@ -171,218 +278,21 @@ protected:
 
         HYP_LOG(Assets, Info, "{}CacheServer starting on port {}, serving '{}'", state.devServer ? "[DEV] " : "", port, cacheDir);
 
-        // Load the engine asset registry to discover all assets and their blobs
         Handle<AssetRegistry> engineRegistry = GetEngineAssetRegistry();
-        if (engineRegistry)
+        if (engineRegistry.IsValid())
         {
             engineRegistry->LoadAssetDescs();
         }
-        else
-        {
-            HYP_LOG(Assets, Warning, "No engine asset registry found, serving with no manifest");
-        }
-
-        state.manifest.cookTimestamp = uint64(Time::Now());
-
-        if (engineRegistry.IsValid())
-        {
-            GlobalContextScope registryScope { AssetRegistryContext { engineRegistry } };
-
-            HYP_LOG(Assets, Info, "Building manifest for Engine assets.");
-
-            Set<AssetObject*> seenAssets;
-
-            for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; bucketIndex++)
-            {
-                Array<AssetDesc> assetDescs;
-                engineRegistry->GetBucketAssetDescs(bucketIndex, assetDescs);
-
-                const AssetBucket& bucket = *AssetBuckets::AllBuckets[bucketIndex];
-
-                for (const AssetDesc& assetDesc : assetDescs)
-                {
-                    Handle<AssetObject> assetObject = engineRegistry->GetAsset(bucket, assetDesc.name);
-
-                    if (!assetObject.IsValid() || assetObject->IsTransient())
-                    {
-                        continue;
-                    }
-
-                    if (seenAssets.Contains(assetObject.Get()))
-                    {
-                        continue;
-                    }
-
-                    seenAssets.Add(assetObject.Get());
-
-                    Array<Tuple<const char*, uint16, BlobDataReference*>> blobRefs;
-                    assetObject->CollectBlobDataReferences(blobRefs);
-
-                    if (blobRefs.Empty())
-                    {
-                        continue;
-                    }
-
-                    AssetEntry assetEntry;
-                    assetEntry.registryId = AssetRegistryId::Engine;
-                    assetEntry.bucketIndex = bucketIndex;
-                    assetEntry.name = assetObject->GetName();
-                    
-                    {
-                        FilePath hmfPath = engineRegistry->GetManifestPath(assetObject->GetPath());
-                        
-                        if (hmfPath.Exists())
-                        {
-                            assetEntry.lastModifiedTimestamp = uint64(hmfPath.LastModifiedTimestamp());
-                        }
-                    }
-
-                    for (auto& tup : blobRefs)
-                    {
-                        BlobDataReference* ref = tup.GetElement<2>();
-
-                        if (!ref->key || ref->size == 0)
-                        {
-                            continue;
-                        }
-
-                        const uint64 key = ref->key.GetHashCode().Value();
-                        const char* magic = tup.GetElement<0>();
-
-                        BlobEntry blobEntry;
-                        blobEntry.key = key;
-                        blobEntry.size = ref->size;
-                        blobEntry.magic = magic;
-                        assetEntry.blobs.PushBack(std::move(blobEntry));
-
-                        BlobLookupEntry& entry = state.blobLookup[key];
-                        entry = {};
-                        entry.bucketIndex = bucketIndex;
-                        entry.assetName = assetEntry.name;
-                        entry.size = ref->size;
-                        entry.magic = magic;
-                    }
-
-                    state.manifest.assets.PushBack(std::move(assetEntry));
-                }
-            }
-        }
-        else
-        {
-            HYP_LOG(Assets, Error, "No Engine registry!");
-        }
 
         Handle<AssetRegistry> gameRegistry = MakeHandle<AssetRegistry>(AssetRegistryId::Game, cacheDir);
-        if (gameRegistry)
-        {
-            GlobalContextScope registryScope { AssetRegistryContext { gameRegistry } };
 
-            gameRegistry->LoadAssetDescs();
+        GlobalContextScope assetRegistryScope { AssetRegistryContext { gameRegistry } };
 
-            HYP_LOG(Assets, Info, "Building manifest for Game assets from '{}'.", cacheDir);
+        gameRegistry->LoadAssetDescs();
 
-            for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; bucketIndex++)
-            {
-                Array<AssetDesc> assetDescs;
-                gameRegistry->GetBucketAssetDescs(bucketIndex, assetDescs);
-
-                const AssetBucket& bucket = *AssetBuckets::AllBuckets[bucketIndex];
-
-                for (const AssetDesc& assetDesc : assetDescs)
-                {
-                    Handle<AssetObject> assetObject = gameRegistry->GetAsset(bucket, assetDesc.name);
-
-                    if (!assetObject.IsValid() || assetObject->IsTransient())
-                    {
-                        continue;
-                    }
-
-                    Array<Tuple<const char*, uint16, BlobDataReference*>> blobRefs;
-                    assetObject->CollectBlobDataReferences(blobRefs);
-
-                    if (blobRefs.Empty())
-                    {
-                        continue;
-                    }
-
-                    AssetEntry assetEntry;
-                    assetEntry.registryId = AssetRegistryId::Game;
-                    assetEntry.bucketIndex = bucketIndex;
-                    assetEntry.name = assetObject->GetName();
-                    
-                    {
-                        FilePath hmfPath = gameRegistry->GetManifestPath(assetObject->GetPath());
-                        if (hmfPath.Exists())
-                        {
-                            assetEntry.lastModifiedTimestamp = uint64(hmfPath.LastModifiedTimestamp());
-                        }
-                    }
-
-                    for (auto& tup : blobRefs)
-                    {
-                        BlobDataReference* ref = tup.GetElement<2>();
-
-                        if (!ref->key || ref->size == 0)
-                        {
-                            continue;
-                        }
-
-                        const uint64 key = ref->key.GetHashCode().Value();
-                        const char* magic = tup.GetElement<0>();
-
-                        BlobEntry blobEntry;
-                        blobEntry.key = key;
-                        blobEntry.size = ref->size;
-                        blobEntry.magic = magic;
-
-                        assetEntry.blobs.PushBack(std::move(blobEntry));
-                        
-                        BlobLookupEntry& entry = state.blobLookup[key];
-                        entry = {};
-                        entry.bucketIndex = bucketIndex;
-                        entry.assetName = assetEntry.name;
-                        entry.size = ref->size;
-                        entry.magic = magic;
-                    }
-
-                    state.manifest.assets.PushBack(std::move(assetEntry));
-                }
-            }
-        }
-        else
-        {
-            HYP_LOG(Assets, Warning, "No game asset registry for '{}', skipping.", cacheDir);
-        }
-
-        // Sort assets descending by last-modified timestamp so clients can
-        // stop downloading early once they hit an already-current asset.
-        if (state.manifest.assets.Any())
-        {
-            std::sort(state.manifest.assets.Data(),
-                state.manifest.assets.Data() + state.manifest.assets.Size(),
-                [](const AssetEntry& a, const AssetEntry& b)
-                {
-                    return a.lastModifiedTimestamp > b.lastModifiedTimestamp;
-                });
-        }
-
-        HYP_LOG(Assets, Info, "CacheServer manifest built: {} assets, timestamp={}",
-            state.manifest.assets.Size(), state.manifest.cookTimestamp);
-
-        // Serialize the manifest to HMF once
-        {
-            String hmfText;
-            Result res = ObjectToHMF(GetClass<CookManifest>(), BoxedValue(state.manifest), hmfText);
-
-            if (res.HasError())
-            {
-                HYP_LOG(Assets, Error, "CacheServer errored on building manifest: {}", res.GetError().GetMessage());
-
-                return res.GetError();
-            }
-
-            state.manifestHmfText = std::move(hmfText);
-        }
+        // Build initial manifest and start a background poller to pick up
+        // file changes while the server is running.
+        RebuildManifest(state, engineRegistry, gameRegistry);
 
         // Start HTTP server
 #if defined(HYP_WINDOWS)
@@ -439,6 +349,27 @@ protected:
         serverPool.Start();
 
         HYP_DEFER({ serverPool.Stop(); });
+
+        // Background poller thread
+        AtomicVar<bool> pollerShouldStop = false;
+        std::thread pollerThread([&]()
+        {
+            while (!pollerShouldStop.Get(MemoryOrder::RELAXED))
+            {
+                ThreadSleep(5000);
+
+                if (pollerShouldStop.Get(MemoryOrder::RELAXED))
+                    break;
+
+                RebuildManifest(state, engineRegistry, gameRegistry);
+            }
+        });
+
+        HYP_DEFER({
+            pollerShouldStop.Set(true, MemoryOrder::RELAXED);
+            if (pollerThread.joinable())
+                pollerThread.join();
+        });
 
         List<Task<void>> tasks;
 
@@ -509,18 +440,22 @@ protected:
 
                 if (path == "/manifest")
                 {
-                    const String& body = state.manifestHmfText;
-                    
+                    String hmfText;
+                    {
+                        Mutex::Guard guard(state.mutex);
+                        ObjectToHMF(GetClass<CookManifest>(), BoxedValue(state.manifest), hmfText);
+                    }
+
                     char header[256];
                     int headerLen = std::snprintf(header, sizeof(header),
                         "HTTP/1.0 200 OK\r\n"
                         "Content-Type: application/octet-stream\r\n"
                         "Content-Length: %zu\r\n"
                         "\r\n",
-                        body.Size());
+                        hmfText.Size());
 
                     send(clientSock, header, headerLen, 0);
-                    send(clientSock, body.Data(), int(body.Size()), 0);
+                    send(clientSock, hmfText.Data(), int(hmfText.Size()), 0);
                 }
                 else if (path.StartsWith("/hmf/"))
                 {
