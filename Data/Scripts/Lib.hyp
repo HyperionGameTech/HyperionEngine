@@ -2112,16 +2112,16 @@ extern class AudioSource
 end
 extern class AudioManager
 end
-extern struct SceneServerManifest
-    Timestamp : uint64
-    Assets : Array<AssetEntry>
-end
 extern struct AssetEntry
     RegistryId : AssetRegistryId
     BucketIndex : uint32
     Name : Name
     LastModifiedTimestamp : uint64
     Blobs : Array<BlobEntry>
+end
+extern struct ServerManifest
+    Timestamp : uint64
+    Assets : Array<AssetEntry>
 end
 extern struct BlobEntry
     Key : uint64

@@ -23,6 +23,7 @@
 #include <Core/Utilities/Result.hpp>
 
 #include <Core/Threading/SharedMutex.hpp>
+#include <Core/Threading/ThreadSignal.hpp>
 #include <Core/Threading/SchedulerFwd.hpp>
 
 #include <Core/Resource/Resource.hpp>
@@ -138,7 +139,9 @@ public:
 
     FilePath GetManifestPath(const AssetPath& assetPath) const;
 
-    void Initialize();
+    /*! \param outSyncContentTask if not nullptr, will attempt to download cache from url pointed to at CacheServer CLI arg
+     *      The Task itself will be set to a task that on completes indicates the download has completed. */
+    void Initialize(Task<void>* outSyncContentTask = nullptr);
     void Shutdown();
 
     /*! \brief Called by AssetManager to perform enqueued tasks that mutate the registry. */
@@ -154,6 +157,9 @@ private:
     FilePath m_rootPath;
 
     bool m_isInitialized;
+    bool m_isSyncingCache;
+
+    ThreadSignal m_cacheSyncComplete;
 
     SharedMutex m_mutex;
 

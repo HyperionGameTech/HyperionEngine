@@ -13,17 +13,18 @@
 
 namespace Hyperion {
 
-namespace CacheSync {
+enum class AssetRegistryId : uint32;
 
-struct CacheSyncParams
+namespace CacheClient {
+
+struct Params
 {
-    Name sceneName;
+    AssetRegistryId registryId;
     FilePath outputCacheDir;
     FilePath outputContentDir;
 };
 
-ENGINE_API void SyncCacheBlocking(const CacheSyncParams& params, bool shouldRetry);
+ENGINE_API void SyncContent(const Params& params, bool shouldRetry);
 
-} // namespace CacheSync
-
+} // namespace CacheClient
 } // namespace Hyperion

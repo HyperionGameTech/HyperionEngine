@@ -13,7 +13,7 @@
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/CVarManager.hpp>
 #include <Framework/Game.hpp>
-#include <Framework/CacheSync.hpp>
+#include <Framework/CacheClient.hpp>
 
 #include <Framework/Threads/MainThread.hpp>
 #include <Framework/Threads/SimThread.hpp>
@@ -377,8 +377,6 @@ extern "C"
         const bool isEditor = cliArgs["Editor"].ToBool();
         const bool isCommandlet = cliArgs["exec"].ToBool();
 
-        const bool hasCacheServer = !cliArgs["CacheServer"].IsNullOrUndefined();
-
 #if HYP_DOTNET && !defined(HYP_COMMANDLET_NAME)
         if (!isCommandlet)
         {
@@ -410,17 +408,6 @@ extern "C"
 
         g_assetManager = MakeHandle<AssetManager>();
         g_assetManager->Initialize();
-
-        // Create the engine-global asset registry for shared engine data (shaders, debug shapes, etc.)
-        {
-            Handle<AssetRegistry> engineRegistry = MakeHandle<AssetRegistry>(
-                AssetRegistryId::Engine,
-                EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Engine")>());
-
-            engineRegistry->Initialize();
-
-            SetEngineAssetRegistry(engineRegistry);
-        }
 
 #ifdef HYP_EDITOR
         // Create the editor asset registry
@@ -549,26 +536,6 @@ extern "C"
             return 0;
         }
 
-        // If we have a cache directory, we want to sync into the cache/content dirs using the server
-        if (hasCacheServer)
-        {
-            const FilePath& cacheDir = EngineGlobals::GetCacheDirectory();
-            const FilePath& contentDir = EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Game")>();
-
-            CacheSync::CacheSyncParams params;
-            params.sceneName = NAME("MainScene");
-            params.outputCacheDir = cacheDir;
-            params.outputContentDir = contentDir;
-
-            CacheSync::SyncCacheBlocking(params, /* shouldRetry */ false);
-        }
-
-        g_shaderCompiler = new ShaderCompiler;
-        if (!g_shaderCompiler->Initialize())
-        {
-            HYP_LOG(Engine, Error, "Failed to initialize shader compiler!");
-        }
-
 #if HYP_WINDOWS
         g_appContext = MakeHandle<Win32AppContext>("Hyperion", cliArgs);
 #elif HYP_MACOS
@@ -679,8 +646,6 @@ extern "C"
             SetEditorAssetRegistry(Handle<AssetRegistry>::Null());
 #endif // HYP_EDITOR
         }
-
-        EngineGlobals::GetBlobStorage()->Shutdown();
 
         g_streamingManager->Stop();
         g_streamingManager.Reset();

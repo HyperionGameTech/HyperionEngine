@@ -11,6 +11,7 @@
 #include <Framework/EngineStats.hpp>
 #include <Framework/EngineMemory.hpp>
 #include <Framework/CVarManager.hpp>
+#include <Framework/CacheClient.hpp>
 #include <Framework/Game.hpp>
 
 #include <Framework/Threads/SimThread.hpp>
@@ -69,6 +70,7 @@
 
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
+#include <Asset/BlobStorage.hpp>
 
 #include <Rendering/Util/MeshBuilder.hpp>
 
@@ -186,6 +188,12 @@ void EngineDriver::Initialize()
     if (m_isInitialized)
     {
         return;
+    }
+
+    g_shaderCompiler = new ShaderCompiler;
+    if (!g_shaderCompiler->Initialize())
+    {
+        HYP_LOG(Engine, Error, "Failed to initialize shader compiler!");
     }
 
     m_viewCollectionBatch = new TaskBatch();
@@ -328,6 +336,9 @@ bool EngineDriver::StartThreads()
 
     HYP_DEFER({ if (!success) TaskSystem::GetInstance().Stop(); });
 
+    // Needs to be after we init the task system, but before we start our main threads.
+    LoadEngineContent();
+
     success &= g_renderThreadInstance->Start();
     if (!success)
     {
@@ -390,6 +401,25 @@ void EngineDriver::Shutdown()
     }
 
     m_worlds.Clear();
+}
+
+void EngineDriver::LoadEngineContent()
+{
+    // Create the engine-global asset registry for shared engine data (shaders, debug shapes, etc.)
+    Handle<AssetRegistry> engineRegistry = MakeHandle<AssetRegistry>(
+        AssetRegistryId::Engine,
+        EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Engine")>());
+
+    Task<void> syncContentTask;
+    engineRegistry->Initialize(&syncContentTask);
+
+    if (syncContentTask.IsValid())
+    {
+        HYP_LOG(Assets, Info, "Syncing engine content...");
+        syncContentTask.Await();
+    }
+
+    SetEngineAssetRegistry(engineRegistry);
 }
 
 void EngineDriver::Simulate(float delta, Game* gameInstance)

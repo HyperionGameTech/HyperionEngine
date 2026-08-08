@@ -90,47 +90,45 @@ void Shader::PageBlobData()
 
         if (ref.raw == nullptr && ref.key && ref.size != 0)
         {
-            if (EngineGlobals::IsCooking()
-                || EngineGlobals::IsCacheServer()
-                || EngineGlobals::IsEditor()
-                || !EngineGlobals::GetBlobStorage()->GetData(ref.key, ref.size, ref.raw))
+            if (ShouldUseBlobStorage())
             {
-                const char* moduleTypeString = GetShaderHeaderPrefix(moduleType);
-
-                const Name blobKey = ref.key;
-                const uint64 expectedSize = ref.size;
-
-                FileByteReader stream { registry->GetRootPath() / AssetBuckets::Shaders.GetName() / (String(*GetName()) + "." + moduleTypeString + ".raw.blob") };
-                if (!stream.Eof())
+                if (EngineGlobals::GetBlobStorage()->GetData(ref.key, ref.size, ref.raw))
                 {
-                    if (stream.Max() != expectedSize)
-                    {
-                        HYP_LOG(Engine, Error, "Local blob data for shader '{}' module {} is {} bytes but the manifest expects {}. Data corruption detected.",
-                                 GetName(), moduleTypeString, stream.Max(), expectedSize);
+                    continue;
+                }
+            }
 
-                        continue;
-                    }
+            const char* moduleTypeString = GetShaderHeaderPrefix(moduleType);
 
-                    ByteBuffer buffer = stream.Read(stream.Max());
+            const Name blobKey = ref.key;
+            const uint64 expectedSize = ref.size;
 
-                    AllocateBlobData(ref, buffer.Data(), buffer.Size(), 1);
-                    ref.key = blobKey;
+            FileByteReader stream { registry->GetRootPath() / AssetBuckets::Shaders.GetName() / (String(*GetName()) + "." + moduleTypeString + ".raw.blob") };
+            if (!stream.Eof())
+            {
+                if (stream.Max() != expectedSize)
+                {
+                    HYP_LOG(Engine, Error, "Local blob data for shader '{}' module {} is {} bytes but the manifest expects {}. Data corruption detected.",
+                                GetName(), moduleTypeString, stream.Max(), expectedSize);
 
                     continue;
                 }
-                else
-                {
-                    HYP_LOG(Engine, Error, "Failed to read {}", stream.GetFilepath());
-                }
 
-                HYP_LOG(Engine, Error, "Failed to page blob data for Shader {}", GetName());
+                ByteBuffer buffer = stream.Read(stream.Max());
+
+                AllocateBlobData(ref, buffer.Data(), buffer.Size(), 1);
+                ref.key = blobKey;
+
+                continue;
             }
             else
             {
-                ref.readOnly = true;
+                HYP_LOG(Engine, Error, "Failed to read {}", stream.GetFilepath());
             }
 
-            Assert(ref.raw != nullptr);
+            HYP_LOG(Engine, Error, "Failed to page blob data for Shader {}", GetName());
+            
+            ref.readOnly = true;
         }
     }
 }

@@ -102,7 +102,7 @@ void StreamingCell::OnStreamStart_Impl()
 
 void StreamingCell::OnLoaded_Impl()
 {
-    HYP_LOG(Streaming, Verbose, "OnLoaded: {} loaded at {} with {} AssetReferences",
+    HYP_LOG(Streaming, Info, "OnLoaded: {} loaded at {} with {} AssetReferences",
         InstanceClass()->GetName(),
         m_cellInfo.coord,
         m_assetReferences.Size());
@@ -112,7 +112,7 @@ void StreamingCell::OnLoaded_Impl()
 
 void StreamingCell::OnRemoved_Impl()
 {
-    HYP_LOG(Streaming, Verbose, "OnRemoved: {} removed at {} with {} AssetReferences",
+    HYP_LOG(Streaming, Info, "OnRemoved: {} removed at {} with {} AssetReferences",
         InstanceClass()->GetName(),
         m_cellInfo.coord,
         m_assetReferences.Size());

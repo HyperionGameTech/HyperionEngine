@@ -68,44 +68,44 @@ void ScriptAsset::PageBlobData()
         && m_data.key
         && m_data.size != 0)
     {
-        if (EngineGlobals::IsCooking()
-            || EngineGlobals::IsCacheServer()
-            || EngineGlobals::IsEditor()
-            || !EngineGlobals::GetBlobStorage()->GetData(m_data.key, m_data.size, m_data.raw))
+        if (ShouldUseBlobStorage())
         {
-            Handle<AssetRegistry> registry = GetAssetRegistry();
-            AssertDebug(registry.IsValid());
-
-            if (registry.IsValid())
+            if (EngineGlobals::GetBlobStorage()->GetData(m_data.key, m_data.size, m_data.raw))
             {
-                const Name blobKey = m_data.key;
-                const uint64 expectedSize = m_data.size;
+                return;
+            }
+        }
 
-                FileByteReader stream { registry->GetRootPath() / AssetBuckets::Scripts.GetName() / (String(*GetName()) + ".BC.raw.blob") };
+        Handle<AssetRegistry> registry = GetAssetRegistry();
+        AssertDebug(registry.IsValid());
 
-                if (!stream.Eof())
+        if (registry.IsValid())
+        {
+            const Name blobKey = m_data.key;
+            const uint64 expectedSize = m_data.size;
+
+            FileByteReader stream { registry->GetRootPath() / AssetBuckets::Scripts.GetName() / (String(*GetName()) + ".BC.raw.blob") };
+
+            if (!stream.Eof())
+            {
+                if (stream.Max() != expectedSize)
                 {
-                    if (stream.Max() != expectedSize)
-                    {
-                        HYP_LOG(Assets, Error, "Local blob data for script asset '{}' is {} bytes but the manifest expects {}, ignoring it",
-                                GetName(), stream.Max(), expectedSize);
-
-                        return;
-                    }
-
-                    ByteBuffer buffer = stream.Read(stream.Max());
-
-                    AllocateBlobData(m_data, buffer.Data(), buffer.Size(), 1);
-                    m_data.key = blobKey;
+                    HYP_LOG(Assets, Error, "Local blob data for script asset '{}' is {} bytes but the manifest expects {}, ignoring it",
+                            GetName(), stream.Max(), expectedSize);
 
                     return;
                 }
+
+                ByteBuffer buffer = stream.Read(stream.Max());
+
+                AllocateBlobData(m_data, buffer.Data(), buffer.Size(), 1);
+                m_data.key = blobKey;
+
+                return;
             }
         }
-        else
-        {
-            m_data.readOnly = true;
-        }
+
+        m_data.readOnly = true;
     }
 }
 

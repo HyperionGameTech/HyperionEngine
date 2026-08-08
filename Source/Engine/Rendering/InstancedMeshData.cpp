@@ -40,7 +40,6 @@ void InstancedMeshProxy_OnPostLoad(InstancedMeshData& instancedMesh)
 
 void InstancedMeshData::PageBlobData()
 {
-
     for (uint32 i = 0; i < uint32(buffers.Size()); i++)
     {
         BlobDataReference& ref = buffers[i];
@@ -49,42 +48,45 @@ void InstancedMeshData::PageBlobData()
 
         if (ref.raw == nullptr && ref.key && ref.size != 0)
         {
-            if (EngineGlobals::IsCooking() || EngineGlobals::IsCacheServer() || EngineGlobals::IsEditor() || !EngineGlobals::GetBlobStorage()->GetData(ref.key, ref.size, ref.raw))
+            if (ShouldUseBlobStorage())
             {
-                Handle<AssetRegistry> registry = GetAssetRegistry();
-                AssertDebug(registry.IsValid());
-
-                if (registry.IsValid())
+                if (EngineGlobals::GetBlobStorage()->GetData(ref.key, ref.size, ref.raw))
                 {
-                    const Name blobKey = ref.key;
-                    const uint64 expectedSize = ref.size;
+                    continue;
+                }
+            }
 
-                    FileByteReader stream { registry->GetRootPath() / AssetBuckets::InstancedMeshData.GetName() / (String(*GetName()) + "." + BufferNames[i] + ".raw.blob") };
-                    if (!stream.Eof())
+            Handle<AssetRegistry> registry = GetAssetRegistry();
+            AssertDebug(registry.IsValid());
+
+            if (registry.IsValid())
+            {
+                const Name blobKey = ref.key;
+                const uint64 expectedSize = ref.size;
+
+                FileByteReader stream { registry->GetRootPath() / AssetBuckets::InstancedMeshData.GetName() / (String(*GetName()) + "." + BufferNames[i] + ".raw.blob") };
+                if (!stream.Eof())
+                {
+                    if (stream.Max() != expectedSize)
                     {
-                        if (stream.Max() != expectedSize)
-                        {
-                            HYP_LOG(Engine, Error, "Local blob data for InstancedMeshData '{}' buffer {} is {} bytes but the manifest expects {}. Data corruption detected.",
-                                    GetName(), BufferNames[i], stream.Max(), expectedSize);
-
-                            continue;
-                        }
-
-                        ByteBuffer buffer = stream.Read(stream.Max());
-
-                        AllocateBlobData(ref, buffer.Data(), buffer.Size(), 1);
-                        ref.key = blobKey;
+                        HYP_LOG(Engine, Error, "Local blob data for InstancedMeshData '{}' buffer {} is {} bytes but the manifest expects {}. Data corruption detected.",
+                                GetName(), BufferNames[i], stream.Max(), expectedSize);
 
                         continue;
                     }
-                }
 
-                HYP_LOG(Engine, Error, "Failed to page blob data for InstancedMeshData {}", GetName());
+                    ByteBuffer buffer = stream.Read(stream.Max());
+
+                    AllocateBlobData(ref, buffer.Data(), buffer.Size(), 1);
+                    ref.key = blobKey;
+
+                    continue;
+                }
             }
-            else
-            {
-                ref.readOnly = true;
-            }
+
+            HYP_LOG(Engine, Error, "Failed to page blob data for InstancedMeshData {}", GetName());
+
+            ref.readOnly = true;
         }
     }
 }

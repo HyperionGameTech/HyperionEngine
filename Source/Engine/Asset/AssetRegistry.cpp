@@ -37,6 +37,8 @@
 
 #include <Core/Config/Config.hpp>
 
+#include <Core/Core.hpp>
+
 #include <Scene/Entity.hpp>
 #include <Scene/EntityManager.hpp>
 #include <Scene/Scene.hpp>
@@ -44,6 +46,7 @@
 #include <Streaming/StreamingCell.hpp>
 
 #include <Framework/EngineDriver.hpp>
+#include <Framework/CacheClient.hpp>
 
 #include <AssetRegistry.generated.inl>
 
@@ -539,6 +542,7 @@ AssetRegistry::AssetRegistry(AssetRegistryId registryId, const FilePath& rootPat
     : m_registryId(registryId),
       m_rootPath(rootPath),
       m_isInitialized(false),
+      m_isSyncingCache(false),
       m_scheduler(new Scheduler(s_assetRegistryThread)),
       m_pruneTimer { 5.0 }, // every 5 seconds
       m_pruneTaskBatch(nullptr)
@@ -579,20 +583,72 @@ AssetRegistry::~AssetRegistry()
     delete m_scheduler;
 }
 
-void AssetRegistry::Initialize()
+void AssetRegistry::Initialize(Task<void>* outSyncContentTask)
 {
-    if (m_isInitialized)
+    if (m_isInitialized || m_isSyncingCache)
     {
         return;
     }
 
     AssertDebug(m_rootPath.Length() > 0);
+    
+    if (outSyncContentTask != nullptr)
+    {
+        // Check if we have a cache server to contect to and sync content before initialize.
+        if (!EngineGlobals::IsEditor()
+            && !EngineGlobals::IsCooking()
+            && !EngineGlobals::IsCacheServer())
+        {
+            if (const auto& cfgCacheServer = CoreApi::GetCommandLineArguments()["CacheServer"]; cfgCacheServer.IsString())
+            {
+                CacheClient::Params params {};
+                params.registryId = m_registryId;
+                params.outputCacheDir = EngineGlobals::GetCacheDirectory();
+                params.outputContentDir = EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Game")>();
 
-    m_isInitialized = true;
+                m_isSyncingCache = true;
+                m_cacheSyncComplete.Reset();
+
+                *outSyncContentTask = TaskSystem::GetInstance().Enqueue(
+                    [this, weakThis = MakeWeakRef(this), params]()
+                    {
+                        Handle<AssetRegistry> strongThis = weakThis.Lock();
+                        if (!strongThis.IsValid())
+                        {
+                            HYP_LOG(Assets, Warning, "AssetRegistry reference expired before cache could be downloaded.");
+                        }
+
+                        CacheClient::SyncContent(params, /* shouldRetry */ true);
+
+                        LoadAssetDescs();
+
+                        m_isInitialized = true;
+                        m_isSyncingCache = false;
+
+                        m_cacheSyncComplete.Signal();
+                    },
+                    TaskThreadPoolName::THREAD_POOL_BACKGROUND);
+            }
+        }
+    }
+
+    if (!m_isSyncingCache)
+    {
+        m_cacheSyncComplete.Reset();
+
+        LoadAssetDescs();
+
+        m_isInitialized = true;
+    }
 }
 
 void AssetRegistry::Shutdown()
 {
+    if (m_isSyncingCache)
+    {
+        m_cacheSyncComplete.Wait();
+    }
+
     if (!m_isInitialized)
     {
         return;

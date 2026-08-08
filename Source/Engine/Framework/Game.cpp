@@ -9,6 +9,7 @@
 #include <Framework/Game.hpp>
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/EngineDriver.hpp>
+#include <Framework/CacheClient.hpp>
 
 #include <Rendering/DebugDrawer.hpp>
 #include <Rendering/Util/DeletionQueue.hpp>
@@ -67,6 +68,12 @@ Game::~Game()
     if (m_assetRegistry)
     {
         m_assetRegistry->Shutdown();
+
+        if (m_syncContentTask.IsValid())
+        {
+            m_syncContentTask.Await();
+            m_syncContentTask = {};
+        }
     }
 
     OnLaunched.RemoveAllForTarget(this);
@@ -77,7 +84,7 @@ void Game::Initialize()
 {
     AssertOnThread(g_simThread);
 
-    if (m_isInitialized)
+    if (m_isInitialized || IsSyncingContent())
     {
         return;
     }
@@ -91,22 +98,22 @@ void Game::Initialize()
 
     if (!m_assetRegistryActive)
     {
-        m_assetRegistry->Initialize();
+        if (m_syncContentTask.IsValid())
+        {
+            m_syncContentTask.Await();
+            m_syncContentTask = {};
+        }
+
+        m_assetRegistry->Initialize(&m_syncContentTask);
 
         PushAssetRegistry(m_assetRegistry);
         m_assetRegistryActive = true;
     }
 
-    InitializeWorld();
-
-    m_assetRegistry->PutAssetsDeep(m_world);
-
-    if (!m_uiSubsystem)
+    if (!m_syncContentTask.IsValid())
     {
-        m_uiSubsystem = m_world->AddSubsystem(MakeHandle<UISubsystem>());
+        AfterContentLoaded();
     }
-
-    m_isInitialized = true;
 }
 
 void Game::InitializeWorld()
@@ -177,13 +184,19 @@ void Game::SetAssetRegistry(const Handle<AssetRegistry>& assetRegistry)
     if (m_assetRegistry)
     {
         m_assetRegistry->Shutdown();
+
+        if (m_syncContentTask.IsValid())
+        {
+            m_syncContentTask.Await();
+            m_syncContentTask = {};
+        }
     }
 
     m_assetRegistry = assetRegistry;
 
     if (m_assetRegistry && m_isInitialized)
     {
-        m_assetRegistry->Initialize();
+        m_assetRegistry->Initialize(&m_syncContentTask);
 
         PushAssetRegistry(m_assetRegistry);
         m_assetRegistryActive = true;
@@ -564,6 +577,52 @@ void Game::UnregisterInputHandler(InputHandlerBase* inputHandler)
     }
 
     m_inputHandlers.Erase(it);
+}
+
+void Game::AfterContentLoaded()
+{
+    AssertOnThread(g_simThread);
+    
+    InitializeWorld();
+
+    m_assetRegistry->PutAssetsDeep(m_world);
+
+    if (!m_uiSubsystem)
+    {
+        m_uiSubsystem = m_world->AddSubsystem(MakeHandle<UISubsystem>());
+    }
+        
+    OnLaunch();
+    m_isLaunched.Set(true, MemoryOrder::RELEASE);
+
+    const Handle<World>& world = GetWorld();
+    Assert(world.IsValid());
+
+    // Add to global worlds
+    g_engineDriver->AddWorld(world);
+        
+    // Invoke callbacks
+    Game::OnLaunched.Fire(this);
+
+    m_isInitialized = true;
+    m_syncContentTask = {};
+}
+
+void Game::OnUpdate_Impl(float delta)
+{
+    AssertOnThread(g_simThread);
+
+    if (m_syncContentTask.IsValid())
+    {
+        if (m_syncContentTask.IsCompleted())
+        {
+            m_syncContentTask.Await();
+
+            AfterContentLoaded();
+
+            m_syncContentTask = {};
+        }
+    }
 }
 
 } // namespace Hyperion

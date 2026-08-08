@@ -166,6 +166,12 @@ void BLASCache::GetOrCreateBLAS(
     Assert(it->second.blas == nullptr);
 
     BottomLevelASRef blas = BLASBuilder::Build(mesh, material);
+
+    if (!blas)
+    {
+        return;
+    }
+
     Check(blas->Create());
 
     // Build new BLAS

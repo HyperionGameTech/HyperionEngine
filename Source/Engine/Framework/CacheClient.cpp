@@ -6,7 +6,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <Framework/CacheSync.hpp>
+#include <Framework/CacheClient.hpp>
 #include <Framework/EngineGlobals.hpp>
 
 #include <Asset/CookManifest.hpp>
@@ -56,7 +56,9 @@
 
 namespace Hyperion {
 
-namespace CacheSync {
+namespace CacheClient {
+
+HYP_DEFINE_LOG_SUBCHANNEL(CacheClient, Engine);
 
 namespace {
 
@@ -71,7 +73,7 @@ Result HttpGetBytes(
         *outShouldRetry = false;
     }
 
-    HYP_LOG(Assets, Info, "[CacheClient] GET {}:{}{}", host, uint32(port), path);
+    HYP_LOG(CacheClient, Verbose, "GET {}:{}{}", host, uint32(port), path);
 
     char portStr[16];
     std::snprintf(portStr, sizeof(portStr), "%u", uint32(port));
@@ -80,7 +82,9 @@ Result HttpGetBytes(
 
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+    {
         return HYP_MAKE_ERROR(Error, "WSAStartup failed");
+    }
 
     struct addrinfo hints = {};
     hints.ai_family = AF_INET;
@@ -97,7 +101,7 @@ Result HttpGetBytes(
             *outShouldRetry = true;
         }
 
-        return HYP_MAKE_ERROR(Error, "Failed to resolve host: {}", host);
+        return HYP_MAKE_ERROR(Error, "Failed to resolve host");
     }
 
     SOCKET sock = INVALID_SOCKET;
@@ -130,7 +134,7 @@ Result HttpGetBytes(
             *outShouldRetry = true;
         }
 
-        return HYP_MAKE_ERROR(Error, "Failed to connect to {}:{}", host, uint32(port));
+        return HYP_MAKE_ERROR(Error, "Failed to connect");
     }
 
     DWORD timeout = 10000;
@@ -149,11 +153,14 @@ Result HttpGetBytes(
         closesocket(sock);
         WSACleanup();
 
-        return HYP_MAKE_ERROR(Error, "Failed to send request to {}:{}", host, uint32(port));
+        return HYP_MAKE_ERROR(Error, "Failed to send request");
     }
+
     char headerBuf[8192];
     size_t headerLen = 0;
+
     bool headersDone = false;
+    
     size_t expectedBodySize = 0;
     size_t receivedBodySize = 0;
 
@@ -165,7 +172,9 @@ Result HttpGetBytes(
         if (!headersDone)
         {
             if (headerLen + size_t(n) > sizeof(headerBuf))
-                return HYP_MAKE_ERROR(Error, "Response headers too large from {}:{}", host, uint32(port));
+            {
+                return HYP_MAKE_ERROR(Error, "Response headers too large");
+            }
 
             Memory::Copy(headerBuf + headerLen, recvBuf, size_t(n));
             headerLen += size_t(n);
@@ -174,19 +183,27 @@ Result HttpGetBytes(
             if (bodyEnd != nullptr)
             {
                 const char* statusStart = strchr(headerBuf, ' ');
-                if (statusStart == nullptr)
-                    return HYP_MAKE_ERROR(Error, "Invalid HTTP response from {}:{}", host, uint32(port));
+                if (!statusStart)
+                {
+                    return HYP_MAKE_ERROR(Error, "Invalid HTTP response");
+                }
 
                 int statusCode = atoi(statusStart + 1);
                 if (statusCode != 200)
-                    return HYP_MAKE_ERROR(Error, "Server returned HTTP {} for {}:{}{}", statusCode, host, uint32(port), path);
+                {
+                    return HYP_MAKE_ERROR(Error, "Server returned HTTP {}", statusCode);
+                }
 
                 // Parse Content-Length
                 const char* cl = strstr(headerBuf, "Content-Length:");
+                
                 if (cl != nullptr && cl < bodyEnd)
+                {
                     expectedBodySize = size_t(atoi(cl + 15));
+                }
 
                 const char* bodyStart = bodyEnd + 4;
+                
                 size_t bodyBytesInHeader = size_t(headerBuf + headerLen - bodyStart);
                 if (bodyBytesInHeader > 0)
                 {
@@ -208,21 +225,25 @@ Result HttpGetBytes(
     WSACleanup();
 
     if (n < 0)
-        return HYP_MAKE_ERROR(Error, "Failed to receive response from {}:{}", host, uint32(port));
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to receive response");
+    }
 
     if (!headersDone)
-        return HYP_MAKE_ERROR(Error, "Response from {}:{}{} ended before headers", host, uint32(port), path);
+    {
+        return HYP_MAKE_ERROR(Error, "Response ended before headers");
+    }
 
     if (expectedBodySize > 0 && receivedBodySize < expectedBodySize)
-        return HYP_MAKE_ERROR(Error, "Truncated body from {}:{}{} — expected {} bytes, got {}",
-            host, uint32(port), path, expectedBodySize, receivedBodySize);
+    {
+        return HYP_MAKE_ERROR(Error, "Expected {} bytes, got {}", expectedBodySize, receivedBodySize);
+    }
 
     writer.Flush();
 
     return {};
 
 #else
-
     struct addrinfo hints = {};
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
@@ -235,7 +256,7 @@ Result HttpGetBytes(
             *outShouldRetry = true;
         }
 
-        return HYP_MAKE_ERROR(Error, "Failed to resolve host: {}", host);
+        return HYP_MAKE_ERROR(Error, "Failed to resolve host");
     }
 
     int sock = -1;
@@ -266,7 +287,7 @@ Result HttpGetBytes(
             *outShouldRetry = true;
         }
 
-        return HYP_MAKE_ERROR(Error, "Failed to connect to {}:{}", host, uint32(port));
+        return HYP_MAKE_ERROR(Error, "Failed to connect");
     }
 
     struct timeval tv = { 10, 0 };
@@ -284,12 +305,14 @@ Result HttpGetBytes(
     {
         close(sock);
 
-        return HYP_MAKE_ERROR(Error, "Failed to send request to {}:{}", host, uint32(port));
+        return HYP_MAKE_ERROR(Error, "Failed to send request");
     }
 
     char headerBuf[8192];
     size_t headerLen = 0;
+    
     bool headersDone = false;
+
     size_t expectedBodySize = 0;
     size_t receivedBodySize = 0;
 
@@ -302,7 +325,7 @@ Result HttpGetBytes(
         {
             if (headerLen + size_t(n) > sizeof(headerBuf))
             {
-                return HYP_MAKE_ERROR(Error, "Response headers too large from {}:{}", host, uint32(port));
+                return HYP_MAKE_ERROR(Error, "Response headers too large");
             }
 
             Memory::Copy(headerBuf + headerLen, recvBuf, size_t(n));
@@ -315,19 +338,21 @@ Result HttpGetBytes(
                 const char* statusStart = strchr(headerBuf, ' ');
                 if (!statusStart)
                 {
-                    return HYP_MAKE_ERROR(Error, "Invalid HTTP response from {}:{}", host, uint32(port));
+                    return HYP_MAKE_ERROR(Error, "Invalid HTTP response");
                 }
 
                 int statusCode = atoi(statusStart + 1);
                 if (statusCode != 200)
                 {
-                    return HYP_MAKE_ERROR(Error, "Server returned HTTP {} for {}:{}{}", statusCode, host, uint32(port), path);
+                    return HYP_MAKE_ERROR(Error, "Server returned HTTP {}", statusCode);
                 }
 
                 // Parse Content-Length
                 const char* cl = strstr(headerBuf, "Content-Length:");
                 if (cl != nullptr && cl < bodyEnd)
+                {
                     expectedBodySize = size_t(atoi(cl + 15));
+                }
 
                 const char* bodyStart = bodyEnd + 4;
 
@@ -352,17 +377,16 @@ Result HttpGetBytes(
 
     if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
     {
-        return HYP_MAKE_ERROR(Error, "Failed to receive response from {}:{}", host, uint32(port));
+        return HYP_MAKE_ERROR(Error, "Failed to receive response");
     }
 
     if (!headersDone)
     {
-        return HYP_MAKE_ERROR(Error, "Response from {}:{}{} ended before headers", host, uint32(port), path);
+        return HYP_MAKE_ERROR(Error, "Response ended before headers");
     }
 
     if (expectedBodySize > 0 && receivedBodySize < expectedBodySize)
-        return HYP_MAKE_ERROR(Error, "Truncated body from {}:{}{} — expected {} bytes, got {}",
-            host, uint32(port), path, expectedBodySize, receivedBodySize);
+        return HYP_MAKE_ERROR(Error, "Expected {} bytes, got {}", expectedBodySize, receivedBodySize);
 
     writer.Flush();
 
@@ -371,10 +395,10 @@ Result HttpGetBytes(
 #endif
 }
 
-static Map<AssetPath, uint64> BuildLocalAssetTimestampMap(const FilePath& cacheDir, Name sceneName)
+static Map<AssetPath, uint64> BuildLocalAssetTimestampMap(const FilePath& cacheDir)
 {
     Map<AssetPath, uint64> result;
-    FilePath localManifest = cacheDir / sceneName.ToString() + ".hmf";
+    FilePath localManifest = cacheDir / "Manifest.hmf";
 
     if (!localManifest.Exists())
     {
@@ -396,12 +420,12 @@ static Map<AssetPath, uint64> BuildLocalAssetTimestampMap(const FilePath& cacheD
     }
 
     BoxedValue& boxed = parseResult.GetValue();
-    if (!boxed.Is<SceneServerManifest>())
+    if (!boxed.Is<ServerManifest>())
     {
         return result;
     }
 
-    const SceneServerManifest& localManifestData = boxed.Get<SceneServerManifest>();
+    const ServerManifest& localManifestData = boxed.Get<ServerManifest>();
     for (const AssetEntry& localEntry : localManifestData.assets)
     {
         AssetPath key(localEntry.registryId,
@@ -416,7 +440,7 @@ static Map<AssetPath, uint64> BuildLocalAssetTimestampMap(const FilePath& cacheD
 
 Result DownloadCacheFromHost(
     const ANSIStringView& host, uint16 port,
-    const CacheSyncParams& params,
+    const Params& params,
     bool* outShouldRetry = nullptr)
 {
     if (outShouldRetry)
@@ -425,14 +449,12 @@ Result DownloadCacheFromHost(
     }
 
     MemoryByteWriter<DynamicAllocator> manifestWriter;
-    if (Result res = HttpGetBytes(host, port, String("/manifest?id=") + params.sceneName.ToString(), manifestWriter, outShouldRetry); res.HasError())
+    if (Result res = HttpGetBytes(host, port, String("/manifest?id=") + String::ToString(static_cast<uint32>(params.registryId)), manifestWriter, outShouldRetry); res.HasError())
     {
         return res;
     }
 
     ByteBuffer& manifestBytes = manifestWriter.GetBuffer();
-
-    // 2. Parse the server manifest via HMF
     String manifestStr = String(manifestBytes.ToByteView());
 
     HMF::ParseResult parseResult = HMF::Parse(manifestStr);
@@ -442,17 +464,17 @@ Result DownloadCacheFromHost(
     }
 
     BoxedValue& boxedResult = parseResult.GetValue();
-    if (!boxedResult.Is<SceneServerManifest>())
+    if (!boxedResult.Is<ServerManifest>())
     {
         return HYP_MAKE_ERROR(Error, "CacheSync server manifest is not a CookManifest");
     }
 
-    const SceneServerManifest& serverManifest = boxedResult.Get<SceneServerManifest>();
+    const ServerManifest& serverManifest = boxedResult.Get<ServerManifest>();
 
-    HYP_LOG(Assets, Info, "CacheSync server manifest for scene: {}: timestamp={}, {} assets",
-        params.sceneName,
+    HYP_LOG(CacheClient, Verbose, "CacheSync timestamp={}, {} assets",
         serverManifest.timestamp, serverManifest.assets.Size());
 
+#if 0
     // Compare with local manifest
     uint64 localTimestamp = 0;
     FilePath localManifestPath = params.outputCacheDir / "Manifest.hmf";
@@ -469,9 +491,9 @@ Result DownloadCacheFromHost(
             {
                 BoxedValue& localBoxed = localResult.GetValue();
 
-                if (localBoxed.Is<SceneServerManifest>())
+                if (localBoxed.Is<ServerManifest>())
                 {
-                    localTimestamp = localBoxed.Get<SceneServerManifest>().timestamp;
+                    localTimestamp = localBoxed.Get<ServerManifest>().timestamp;
                 }
             }
         }
@@ -479,16 +501,15 @@ Result DownloadCacheFromHost(
 
     if (serverManifest.timestamp <= localTimestamp)
     {
-        HYP_LOG(Assets, Info, "CacheSync cache up to date for Scene {} (local={} >= server={})",
-            params.sceneName,
+        HYP_LOG(CacheClient, Verbose, "CacheSync cache up to date  (local={} >= server={})",
             localTimestamp, serverManifest.timestamp);
 
         return {};
     }
 
-    HYP_LOG(Assets, Info, "CacheSync cache outdated for Scene {} (local={} < server={})",
-        params.sceneName,
+    HYP_LOG(CacheClient, Verbose, "CacheSync cache outdated (local={} < server={})",
         localTimestamp, serverManifest.timestamp);
+#endif
 
     if (!params.outputCacheDir.Exists() && !params.outputCacheDir.MkDir())
     {
@@ -523,10 +544,19 @@ Result DownloadCacheFromHost(
         }
     }
 
-    BlobStorage writeStorage(params.outputCacheDir, /* readOnly */ false);
-    writeStorage.Initialize();
+    BlobStorage& storage = *EngineGlobals::GetBlobStorage();
+    storage.Lock(params.outputCacheDir, /* readOnly */ false);
 
-    if (Result result = writeStorage.BeginCook(blocks); result.HasError())
+    bool locked = true;
+
+    HYP_DEFER({
+        if (locked)
+        {
+            storage.Unlock();
+        }
+    });
+
+    if (Result result = storage.BeginCook(blocks); result.HasError())
     {
         return HYP_MAKE_ERROR(Error,"CacheSync BeginCook failed: {}", result.GetError().GetMessage());
     }
@@ -542,7 +572,7 @@ Result DownloadCacheFromHost(
 
     // Build a map of local asset timestamps so we can skip up-to-date assets.
     // Assets are sorted descending by timestamp, so we can break on first match.
-    Map<AssetPath, uint64> localAssetTimestamps = BuildLocalAssetTimestampMap(params.outputCacheDir, params.sceneName);
+    Map<AssetPath, uint64> localAssetTimestamps = BuildLocalAssetTimestampMap(params.outputCacheDir);
 
     for (const AssetEntry& entry : serverManifest.assets)
     {
@@ -571,9 +601,9 @@ Result DownloadCacheFromHost(
             // Download the HMF manifest
             {
                 char hmfPathBuf[512];
-                std::snprintf(hmfPathBuf, sizeof(hmfPathBuf), "/hmf/%u/%s?id=%s",
+                std::snprintf(hmfPathBuf, sizeof(hmfPathBuf), "/hmf/%u/%s?id=%u",
                     entry.bucketIndex, entry.name.LookupString(),
-                    params.sceneName.LookupString());
+                    params.registryId);
 
                 FilePath bucketContentDir = params.outputContentDir / String(GetAssetBucketName(entry.bucketIndex));
                 bucketContentDir.MkDir();
@@ -594,7 +624,7 @@ Result DownloadCacheFromHost(
                 {
                     if (Result res = HttpGetBytes(host, port, hmfPathBuf, hmfWriter); res.HasError())
                     {
-                        HYP_LOG(Assets, Warning, "Failed to download HMF for {}: {}", entry.name, res.GetError().GetMessage());
+                        HYP_LOG(CacheClient, Warning, "Failed to download HMF for {}: {}", entry.name, res.GetError().GetMessage());
                     }
 
                     hmfWriter.Close();
@@ -605,14 +635,14 @@ Result DownloadCacheFromHost(
             for (const BlobEntry& blob : entry.blobs)
             {
                 char blobPathBuf[512];
-                std::snprintf(blobPathBuf, sizeof(blobPathBuf), "/blob?id=%skey=%llx&size=%llu",
-                    params.sceneName.LookupString(),
-                    (unsigned long long)blob.key, (unsigned long long)blob.size);
+                std::snprintf(blobPathBuf, sizeof(blobPathBuf), "/blob?id=%u&key=%llx&size=%llu",
+                    params.registryId,
+                    blob.key, blob.size);
 
                 MemoryByteWriter<DynamicAllocator> blobWriter;
                 if (Result res = HttpGetBytes(host, port, blobPathBuf, blobWriter); res.HasError())
                 {
-                    HYP_LOG(Assets, Error, "CacheSync failed to download blob key={} for {}: {}",
+                    HYP_LOG(CacheClient, Error, "CacheSync failed to download blob key={} for {}: {}",
                             blob.key, entry.name, res.GetError().GetMessage());
 
                     entryFailed = true;
@@ -623,7 +653,7 @@ Result DownloadCacheFromHost(
 
                 if (blobData.Size() != blob.size)
                 {
-                    HYP_LOG(Assets, Warning, "Blob size mismatch! ({} != {}) entry: {}, blob key: {}",
+                    HYP_LOG(CacheClient, Warning, "Blob size mismatch! ({} != {}) entry: {}, blob key: {}",
                             blobData.Size(), blob.size,
                             entry.name, blob.key);
 
@@ -640,9 +670,9 @@ Result DownloadCacheFromHost(
                 header.payloadOffset = 0;
                 header.payloadSize = blob.size;
 
-                if (!writeStorage.PutData(entry.bucketIndex, StringHash(blob.key), header, blobData.Data()))
+                if (!storage.PutData(entry.bucketIndex, StringHash(blob.key), header, blobData.Data()))
                 {
-                    HYP_LOG(Assets, Error, "CacheSync PutData failed for blob key={}", blob.key);
+                    HYP_LOG(CacheClient, Error, "CacheSync PutData failed for blob key={}", blob.key);
                     entryFailed = true;
                 }
             }
@@ -662,22 +692,23 @@ Result DownloadCacheFromHost(
 
     downloadPool.Stop();
 
-    if (Result result = writeStorage.FinishCook(); result.HasError())
+    if (Result result = storage.FinishCook(); result.HasError())
     {
-        return HYP_MAKE_ERROR(Error,"CacheSync FinishCook failed: {}", result.GetError().GetMessage());
+        return HYP_MAKE_ERROR(Error, "FinishCook failed: {}", result.GetError().GetMessage());
     }
 
-    writeStorage.Shutdown();
+    storage.Unlock();
+    locked = false;
 
-    {
-        localManifestPath.Remove();
+    //{
+    //    localManifestPath.Remove();
 
-        FileByteWriter localManifestWriter { localManifestPath };
-        localManifestWriter.WriteString(manifestStr.ToUtf8());
-        localManifestWriter.Close();
-    }
+    //    FileByteWriter localManifestWriter { localManifestPath };
+    //    localManifestWriter.WriteString(manifestStr);
+    //    localManifestWriter.Close();
+    //}
 
-    HYP_LOG(Assets, Info, "CacheSync complete. {} assets, {} blocks",
+    HYP_LOG(CacheClient, Verbose, "Cache download complete. {} assets, {} blocks",
         serverManifest.assets.Size(), blocks.Size());
 
     return {};
@@ -685,7 +716,7 @@ Result DownloadCacheFromHost(
 
 } // anonymous
 
-HYP_EXPORT void SyncCacheBlocking(const CacheSyncParams& params, bool shouldRetry)
+HYP_EXPORT void SyncContent(const Params& params, bool shouldRetry)
 {
     static constexpr int MaxAttempts = 5;
     int numAttempts = 0;
@@ -693,10 +724,11 @@ HYP_EXPORT void SyncCacheBlocking(const CacheSyncParams& params, bool shouldRetr
     // If cache server is set, download cache from there to build out ours.
     if (const ANSIStringView cacheServer = ANSIStringView(EngineGlobals::GetCacheServerAddress()); cacheServer)
     {
-        size_t colonPos = cacheServer.FindLastIndex(":");
+        const size_t colonPos = cacheServer.FindLastIndex(":");
+
         if (colonPos == String::NotFound)
         {
-            HYP_LOG(Assets, Error, "Invalid cache server address: {}", cacheServer);
+            HYP_LOG(CacheClient, Error, "Invalid cache server address: {}", cacheServer);
             return;
         }
 
@@ -705,11 +737,11 @@ HYP_EXPORT void SyncCacheBlocking(const CacheSyncParams& params, bool shouldRetr
         // Chomp off the protocol.
         if (host.Size() > 7 && Memory::Compare(host.Data(), "http://", 7) == 0)
         {
-            host = ANSIStringView(host.Data() + 7, host.Data() + host.Size());
+            host = host.Substr(7, SIZE_MAX);
         }
         else if (host.Size() > 8 && Memory::Compare(host.Data(), "https://", 8) == 0)
         {
-            host = ANSIStringView(host.Data() + 8, host.Data() + host.Size());
+            host = host.Substr(8, SIZE_MAX);
         }
 
         ANSIStringView portStr = cacheServer.Substr(colonPos + 1, SIZE_MAX);
@@ -727,13 +759,13 @@ HYP_EXPORT void SyncCacheBlocking(const CacheSyncParams& params, bool shouldRetr
 
             if (shouldRetry && numAttempts < MaxAttempts)
             {
-                HYP_LOG(Assets, Error, "Failed to download cache from server! Error message was: {}\nRetrying in 5s...", res.GetError().GetMessage());
+                HYP_LOG(CacheClient, Error, "Failed to download cache from server! Error message was: {}\nRetrying in 5s...", res.GetError().GetMessage());
 
                 ThreadSleep(5000);
             }
             else
             {
-                HYP_LOG(Assets, Error, "Failed to download cache from server! Error message was: {}\nDone trying.", res.GetError().GetMessage());
+                HYP_LOG(CacheClient, Error, "Failed to download cache from server! Error message was: {}\nDone trying.", res.GetError().GetMessage());
                 return;
             }
         }
@@ -741,6 +773,6 @@ HYP_EXPORT void SyncCacheBlocking(const CacheSyncParams& params, bool shouldRetr
     }
 }
 
-} // namespace CacheSync
+} // namespace CacheClient
 
 } // namespace Hyperion

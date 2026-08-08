@@ -20,6 +20,7 @@
 #include <Core/Memory/Allocator/ArenaAllocator.hpp>
 
 #include <Core/Threading/Mutex.hpp>
+#include <Core/Threading/SharedMutex.hpp>
 
 #include <Core/Reflection/ObjectBase.hpp>
 #include <Core/Reflection/Handle.hpp>
@@ -35,6 +36,9 @@ class ByteReader;
 class ByteWriter;
 
 class BlobTableOfContents;
+
+struct BlobStorageReadScope;
+struct BlobStorageWriteScope;
 
 struct BlobStorageCallbacks
 {
@@ -75,7 +79,7 @@ class ENGINE_API BlobStorage : public ObjectBase
     HYP_OBJECT_BODY(BlobStorage);
 
 public:
-    explicit BlobStorage(const FilePath& baseDir, bool readOnly = true);
+    BlobStorage();
 
     BlobStorage(const BlobStorage& other) = delete;
     BlobStorage& operator=(const BlobStorage& other) = delete;
@@ -90,22 +94,22 @@ public:
         return m_baseDir;
     }
 
-    void Initialize();
-    void Shutdown();
+    void Lock(const FilePath& baseDir, bool readOnly);
+    void Unlock();
 
     ByteWriter* GetWriteStream(uint32 bucketIndex);
     ByteReader* GetReadStream(uint32 bucketIndex);
 
     bool GetData(StringHash key, size_t size, void*& outRawData);
 
+    /*! \brief Appends one blob to the block belonging to \p bucketIndex, which must have been
+     *  reserved via BeginCook with enough space for it. */
+    bool PutData(uint32 bucketIndex, StringHash key, const BlobHeader& header, const void* rawData);
+
     /*! \brief Begins a cook pass: creates (or truncates) one block file per entry in \p blocks, each
      *  resized to its exact final size, ready to be filled via PutData. Must be called before any
      *  PutData call and cannot be combined with reading an already-cooked, read-only BlobStorage. */
     Result BeginCook(const Array<BlobBlockInfo>& blocks);
-
-    /*! \brief Appends one blob to the block belonging to \p bucketIndex, which must have been
-     *  reserved via BeginCook with enough space for it. */
-    bool PutData(uint32 bucketIndex, StringHash key, const BlobHeader& header, const void* rawData);
 
     /*! \brief Ends a cook pass, saving the table of contents and manifest and closing write streams. */
     Result FinishCook();
@@ -121,12 +125,16 @@ public:
     BlobStorageCallbacks callbacks;
 
 private:
+    void Initialize(const FilePath& baseDir, bool readOnly);
+    void Shutdown();
+
     bool InitMappedFile(MemoryMappedFile*& outMappedFile, uint32 bucketIndex);
 
     void CloseBlock(uint32 bucketIndex);
 
     Result LoadTOC();
 
+    Result LoadTOC_Internal();
     Result SaveTOC_Internal();
 
     FilePath m_baseDir;
@@ -137,10 +145,54 @@ private:
 
     BlobTableOfContents* m_toc;
 
+    SharedMutex m_lockState;
+
     mutable Mutex m_mutex;
 
     bool m_isReadOnly;
     bool m_isInitialized;
+};
+
+struct BlobStorageReadScope
+{
+    BlobStorage* blobStorage;
+
+    BlobStorageReadScope(BlobStorage& blobStorage, const FilePath& baseDir)
+        : blobStorage(&blobStorage)
+    {
+        blobStorage.Lock(baseDir, true);
+    }
+
+    ~BlobStorageReadScope()
+    {
+        blobStorage->Unlock();
+    }
+
+    bool Read(StringHash key, size_t size, void*& outRawData)
+    {
+        return blobStorage->GetData(key, size, outRawData);
+    }
+};
+
+struct BlobStorageWriteScope
+{
+    BlobStorage* blobStorage;
+
+    BlobStorageWriteScope(BlobStorage& blobStorage, const FilePath& baseDir)
+        : blobStorage(&blobStorage)
+    {
+        blobStorage.Lock(baseDir, false);
+    }
+
+    ~BlobStorageWriteScope()
+    {
+        blobStorage->Unlock();
+    }
+
+    bool Put(uint32 bucketIndex, StringHash key, const BlobHeader& header, const void* rawData)
+    {
+        return blobStorage->PutData(bucketIndex, key, header, rawData);
+    }
 };
 
 } // namespace Hyperion

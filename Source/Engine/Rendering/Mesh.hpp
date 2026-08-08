@@ -195,6 +195,12 @@ public:
     HYP_FORCE_INLINE Span<ubyte> GetIndexData(uint8 lodIndex)
     {
         Assert(m_lodData[lodIndex].indexData.raw != nullptr, "Index data not loaded!");
+
+        if (!m_lodData[lodIndex].indexData.raw)
+        {
+            return Span<ubyte>();
+        }
+
         return Span<ubyte>(reinterpret_cast<ubyte*>(m_lodData[lodIndex].indexData.raw), m_lodData[lodIndex].indexData.size);
     }
 

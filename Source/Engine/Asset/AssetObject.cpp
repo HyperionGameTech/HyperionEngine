@@ -143,14 +143,18 @@ void AssetObject::MarkDirty()
 
 void AssetObject::SetPersistentRequested(bool persistentlyLoaded, bool setFlag, bool markDirty)
 {
-    if (setFlag && m_flags[AssetObjectFlags::Persistent] != persistentlyLoaded)
+    if (m_flags[AssetObjectFlags::Persistent] != persistentlyLoaded)
     {
-        if (markDirty)
+        if (setFlag)
         {
-            MarkDirty();
-        }
+            if (markDirty)
+            {
+                MarkDirty();
+            }
 
-        m_flags[AssetObjectFlags::Persistent] = persistentlyLoaded;
+            m_flags[AssetObjectFlags::Persistent] = persistentlyLoaded;
+        }
+        // @TODO we should allocate blob data and release lock for blobstorage if possible!
     }
 }
 
@@ -537,11 +541,23 @@ void AssetObject::LockReader()
                 // We're the initializing thread.
                 m_isBlobLoaded.Exchange(true, MemoryOrder::RELEASE);
 
+                // Add reader for blob storage
+                if (ShouldUseBlobStorage())
+                {
+                    EngineGlobals::GetBlobStorage()->Lock(EngineGlobals::GetCacheDirectory(), /* readOnly */ true);
+                }
+
                 PageBlobData();
 
                 if (m_flags[AssetObjectFlags::Persistent])
                 {
                     SetBlobDataResident(true);
+                    
+                    // We don't need the lock anyymore; we have our own copy.
+                    if (ShouldUseBlobStorage())
+                    {
+                        EngineGlobals::GetBlobStorage()->Unlock();
+                    }
                 }
             }
 
@@ -626,8 +642,13 @@ void AssetObject::UnlockReader()
         {
             if (!m_flags[AssetObjectFlags::Persistent])
             {
-                SetBlobDataResident(false);
                 UnpageBlobData();
+
+                // Drop reader for blob storage
+                if (ShouldUseBlobStorage())
+                {
+                    EngineGlobals::GetBlobStorage()->Unlock();
+                }
 
                 m_isBlobLoaded.Exchange(false, MemoryOrder::RELEASE);
                 m_isBlobLoaded.NotifyAll();
@@ -677,6 +698,13 @@ Handle<AssetRegistry> AssetObject::GetAssetRegistry()
     }
 
     return Handle<AssetRegistry>::Null();
+}
+
+bool AssetObject::ShouldUseBlobStorage()
+{
+    return !EngineGlobals::IsCooking()
+        && !EngineGlobals::IsCacheServer()
+        && !EngineGlobals::IsEditor();
 }
 
 #pragma endregion AssetObject

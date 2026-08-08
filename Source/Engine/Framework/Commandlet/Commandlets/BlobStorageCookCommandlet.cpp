@@ -233,8 +233,6 @@ private:
     {
         GlobalContextScope contextScope { CookingContext() };
 
-        EngineGlobals::GetBlobStorage()->Shutdown();
-
         const FilePath& cacheDir = EngineGlobals::GetCacheDirectory();
         const FilePath outputContentDir = cacheDir.BasePath() / "Content";
 
@@ -332,8 +330,16 @@ private:
             blocks.PushBack(BlobBlockInfo { bucketIndex, blockSizes[bucketIndex] });
         }
 
-        BlobStorage cookedStorage(cacheDir, /* readOnly */ false);
-        cookedStorage.Initialize();
+        BlobStorage cookedStorage;
+        cookedStorage.Lock(cacheDir, /* readOly */ false);
+
+        bool locked = true;
+        HYP_DEFER({
+            if (locked)
+            {
+                cookedStorage.Unlock();
+            }
+        });
 
         if (Result result = cookedStorage.BeginCook(blocks); result.HasError())
         {
@@ -360,6 +366,9 @@ private:
         {
             return result;
         }
+
+        cookedStorage.Unlock();
+        locked = false;
 
         // Write the shader property dictionary so the runtime can resolve
         // ShaderProperty names to their interned IDs (used by ShaderPropertySet).

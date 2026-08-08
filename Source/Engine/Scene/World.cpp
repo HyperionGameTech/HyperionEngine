@@ -1326,37 +1326,39 @@ static void BindStreamingDelegates(DelegateHandlerSet& set, World* world, WorldG
     set.Remove(&layer->OnStreamingObjectsLoaded);
     set.Remove(&layer->OnStreamingObjectsUnloaded);
 
-    set.Add(layer->OnStreamingObjectsLoaded.Bind([world](StreamingCell* cell, Array<const AssetObject*> objs)
-                                                 {
-                                                     AssertOnThread(g_simThread);
-                                                     for (const AssetObject* obj : objs)
-                                                     {
-                                                         if (obj->IsA(Scene::StaticClass()))
-                                                         {
-                                                             const Scene* scene = DynamicCast<Scene>(obj);
+    set.Add(layer->OnStreamingObjectsLoaded.Bind(
+        [world](StreamingCell* cell, Array<const AssetObject*> objs)
+        {
+            AssertOnThread(g_simThread);
+            for (const AssetObject* obj : objs)
+            {
+                if (obj->IsA(Scene::StaticClass()))
+                {
+                    const Scene* scene = DynamicCast<Scene>(obj);
 
-                                                             world->AddScene(MakeStrongRef(scene), /* addToStreamingLayer */ false);
+                    world->AddScene(MakeStrongRef(scene), /* addToStreamingLayer */ false);
 
-                                                             continue;
-                                                         }
-                                                     }
-                                                 }));
+                    continue;
+                }
+            }
+        }));
 
-    set.Add(layer->OnStreamingObjectsUnloaded.Bind([world](StreamingCell* cell, Array<const AssetObject*> objs)
-                                                   {
-                                                       AssertOnThread(g_simThread);
-                                                       for (const AssetObject* obj : objs)
-                                                       {
-                                                           if (obj->IsA(Scene::StaticClass()))
-                                                           {
-                                                               const Scene* scene = DynamicCast<Scene>(obj);
+    set.Add(layer->OnStreamingObjectsUnloaded.Bind(
+        [world](StreamingCell* cell, Array<const AssetObject*> objs)
+        {
+            AssertOnThread(g_simThread);
+            for (const AssetObject* obj : objs)
+            {
+                if (obj->IsA(Scene::StaticClass()))
+                {
+                    const Scene* scene = DynamicCast<Scene>(obj);
 
-                                                               world->RemoveScene(const_cast<Scene*>(scene), /* removeFromStreamingLayer */ false);
+                    world->RemoveScene(const_cast<Scene*>(scene), /* removeFromStreamingLayer */ false);
 
-                                                               continue;
-                                                           }
-                                                       }
-                                                   }));
+                    continue;
+                }
+            }
+        }));
 }
 
 Handle<WorldGridLayer> World::GetOrCreateStreamingLayer(Name streamingLayerName)

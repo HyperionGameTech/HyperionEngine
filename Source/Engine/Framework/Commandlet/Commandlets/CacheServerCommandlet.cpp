@@ -364,12 +364,14 @@ class CacheServerCommandlet final : public CommandletBase
 
     struct ServerState
     {
-        // Each map maps from Scene name -> map or manifest
-        Map<Name, SceneServerManifest> manifests;
-        Map<Name, BlobLookupMap> blobLookups;
+        // Each map maps from world -> map or manifest
+        Map<AssetRegistryId, ServerManifest> manifests;
+        Map<AssetRegistryId, BlobLookupMap> blobLookups;
 
         BlobStorage* blobStorage = nullptr;
-        FilePath cacheDir;
+
+        FilePath engineContentDir;
+        FilePath gameContentDir;
 
         SharedMutex lock;
 
@@ -385,13 +387,15 @@ class CacheServerCommandlet final : public CommandletBase
         bool devServer = false;
     };
 
-    static void InitializeSceneManifest(ServerState& state, Name sceneName, SceneServerManifest& manifest, BlobLookupMap& blobLookup, Handle<AssetRegistry>& engineRegistry, Handle<AssetRegistry>& gameRegistry)
+    static void InitializeManifest(ServerState& state, ServerManifest& manifest, BlobLookupMap& blobLookup, const Handle<AssetRegistry>& registry, bool loadAll)
     {
+        Assert(registry.IsValid());
+
         manifest.assets.Clear();
         manifest.timestamp = uint64(Time::Now());
         blobLookup.Clear();
 
-        GlobalContextScope assetRegistryScope { AssetRegistryContext { gameRegistry } };
+        GlobalContextScope assetRegistryScope { AssetRegistryContext { registry } };
 
         Array<Handle<AssetObject>> collectedAssets;
 
@@ -405,18 +409,55 @@ class CacheServerCommandlet final : public CommandletBase
             collectedAssets.PushBack(assetObject);
         };
 
-        Handle<AssetObject> sceneAsset = gameRegistry->GetAsset(AssetBuckets::Scenes, sceneName);
-
-        if (!sceneAsset.IsValid() || sceneAsset->IsTransient())
+        if (loadAll)
         {
-            HYP_LOG(Assets, Warning, "CacheServer: failed to load scene asset '{}', serving empty manifest", sceneName);
+            for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; bucketIndex++)
+            {
+                Array<AssetDesc> descs;
+                registry->GetBucketAssetDescs(bucketIndex, descs);
+                
+                for (const AssetDesc& desc : descs)
+                {
+                    Handle<AssetObject> asset = registry->GetAsset(*AssetBuckets::AllBuckets[bucketIndex], desc.name);
 
-            return;
+                    if (!asset.IsValid() || asset->IsTransient())
+                    {
+                        HYP_LOG(Assets, Warning, "Failed to load asset '{}'", asset->GetName());
+
+                        continue;
+                    }
+
+                    AssetRegistry::WalkAssetDeep(BoxedValue(asset), collectAsset);
+                }
+            }
+        }
+        else
+        {
+            Array<AssetDesc> descs;
+            registry->GetBucketAssetDescs(AssetBuckets::Worlds.GetIndex(), descs);
+
+            if (descs.Empty())
+            {
+                HYP_LOG(Assets, Warning, "No World asset descs to serve.");
+                return;
+            }
+
+            for (const AssetDesc& desc : descs)
+            {
+                Handle<AssetObject> worldAsset = registry->GetAsset(AssetBuckets::Worlds, desc.name);
+
+                if (!worldAsset.IsValid() || worldAsset->IsTransient())
+                {
+                    HYP_LOG(Assets, Warning, "Failed to load asset '{}'", worldAsset->GetName());
+
+                    continue;
+                }
+
+                AssetRegistry::WalkAssetDeep(BoxedValue(worldAsset), collectAsset);
+            }
         }
 
-        AssetRegistry::WalkAssetDeep(BoxedValue(sceneAsset), collectAsset);
-
-        HYP_LOG(Assets, Info, "CacheServer: walking scene '{}' found {} asset(s)", sceneName, collectedAssets.Size());
+        HYP_LOG(Assets, Info, "Found {} asset(s)", collectedAssets.Size());
 
         for (const Handle<AssetObject>& assetObject : collectedAssets)
         {
@@ -424,7 +465,7 @@ class CacheServerCommandlet final : public CommandletBase
 
             if (!assetPath.IsValid())
             {
-                HYP_LOG(Assets, Warning, "CacheServer: Invalid asset path: {} for Scene: {}", assetPath, sceneName);
+                HYP_LOG(Assets, Warning, "CacheServer: Invalid asset path: {}", assetPath);
                 continue;
             }
 
@@ -443,25 +484,11 @@ class CacheServerCommandlet final : public CommandletBase
             assetEntry.bucketIndex = bucketIndex;
             assetEntry.name = assetObject->GetName();
 
-            AssetRegistry* registry = nullptr;
+            FilePath hmfPath = registry->GetManifestPath(assetPath);
 
-            if (assetPath.registryId == AssetRegistryId::Game)
+            if (hmfPath.Exists())
             {
-                registry = gameRegistry.Get();
-            }
-            else if (assetPath.registryId == AssetRegistryId::Engine)
-            {
-                registry = engineRegistry.Get();
-            }
-
-            if (registry != nullptr)
-            {
-                FilePath hmfPath = registry->GetManifestPath(assetPath);
-
-                if (hmfPath.Exists())
-                {
-                    assetEntry.lastModifiedTimestamp = uint64(hmfPath.LastModifiedTimestamp());
-                }
+                assetEntry.lastModifiedTimestamp = uint64(hmfPath.LastModifiedTimestamp());
             }
 
             for (auto& tup : blobRefs)
@@ -501,9 +528,6 @@ class CacheServerCommandlet final : public CommandletBase
                     return a.lastModifiedTimestamp > b.lastModifiedTimestamp;
                 });
         }
-
-        HYP_LOG(Assets, Info, "CacheServer: rebuilt manifest for scene {}: {} assets, timestamp={}",
-            sceneName, manifest.assets.Size(), manifest.timestamp);
     }
 
     static bool ParseAssetFilePath(const String& relativePath, String& outBucketName, String& outAssetName)
@@ -535,19 +559,16 @@ class CacheServerCommandlet final : public CommandletBase
 
     static void UpdateAssetInManifest(
         ServerState& state,
-        Name sceneName,
         AssetRegistry* registry,
         AssetRegistryId registryId,
         const String& bucketName,
         const String& assetNameStr,
         bool wasDeleted)
     {
-        Assert(sceneName.IsValid());
-
         TUniqueLock lock(state.lock);
         
-        SceneServerManifest& manifest = state.manifests[sceneName];
-        BlobLookupMap& blobLookup = state.blobLookups[sceneName];
+        ServerManifest& manifest = state.manifests[registryId];
+        BlobLookupMap& blobLookup = state.blobLookups[registryId];
 
         AssetBucket bucket = GetAssetBucketByName(StringHash(bucketName));
         uint32 bucketIndex = bucket.GetIndex();
@@ -742,30 +763,28 @@ protected:
 
         ServerState state;
 
-        state.cacheDir = baseDir;
+        state.gameContentDir = baseDir;
+        state.engineContentDir = EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Engine")>();
+
         state.devServer = devServer;
 
         if (!state.devServer)
         {
             // Open BlobStorage in read-only mode to serve blob data by key
-            state.blobStorage = new BlobStorage(state.cacheDir, /* readOnly */ true);
-            state.blobStorage->Initialize();
+            state.blobStorage = new BlobStorage;
+            state.blobStorage->Lock(state.gameContentDir, true);
         }
 
-        state.engineRegistry = GetEngineAssetRegistry();
-        if (state.engineRegistry.IsValid())
-        {
-            state.engineRegistry->LoadAssetDescs();
-        }
+        state.engineRegistry = MakeHandle<AssetRegistry>(AssetRegistryId::Engine, state.engineContentDir);
+        state.engineRegistry->LoadAssetDescs();
 
-        state.gameRegistry = MakeHandle<AssetRegistry>(AssetRegistryId::Game, state.cacheDir);
-
-        GlobalContextScope assetRegistryScope { AssetRegistryContext { state.gameRegistry } };
-
+        state.gameRegistry = MakeHandle<AssetRegistry>(AssetRegistryId::Game, state.gameContentDir);
         state.gameRegistry->LoadAssetDescs();
+        
+        GlobalContextScope assetRegistryScope { AssetRegistryContext { state.gameRegistry } };
                 
-        const FilePath gameContentDir = state.gameRegistry->GetRootPath();
-        const FilePath& engineContentDir = EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Engine")>();
+        const FilePath& gameContentDir = state.gameContentDir;
+        const FilePath& engineContentDir = state.engineContentDir;
 
         auto makeCallback = [&state](AssetRegistry* registry)
         {
@@ -796,7 +815,6 @@ protected:
                 {
                     UpdateAssetInManifest(
                         state,
-                        sceneName,
                         registry,
                         AssetRegistryId::Game,
                         bucketName,
@@ -818,7 +836,7 @@ protected:
         HYP_DEFER({
             if (state.blobStorage != nullptr)
             {
-                state.blobStorage->Shutdown();
+                state.blobStorage->Unlock();
 
                 delete state.blobStorage;
                 state.blobStorage = nullptr;
@@ -946,7 +964,7 @@ protected:
 
             String path(pathStart, pathStart + size_t(pathEnd - pathStart));
 
-            HYP_LOG(Assets, Info, "[CacheServer] GET {}", path);
+            HYP_LOG(Assets, Info, "GET {}", path);
 
             // Read `id` from the url.
             size_t idIndex = path.FindFirstIndex("&id=");
@@ -955,41 +973,54 @@ protected:
                 idIndex = path.FindFirstIndex("?id=");
             }
 
-            if (idIndex == String::NotFound)
-            {
-                const char* bad = "HTTP/1.0 400 Bad Request\r\n"
-                    "Content-Length: 0\r\n\r\n";
-                        
-                send(clientSock, bad, int(strlen(bad)), 0);
-                CLOSE_SOCKET(clientSock);
+            UTF8StringView idValue;
 
-                continue;
+            if (idIndex != String::NotFound)
+            {
+                // get the data from it by reading until end or & is hit
+                idValue = path.Substr(idIndex + 4, SIZE_MAX);
+                size_t ampIndex = idValue.FindFirstIndex("&");
+
+                if (ampIndex != String::NotFound)
+                {
+                    idValue = idValue.Substr(0, ampIndex);
+                }
             }
 
-            // get the data from it by reading until end or & is hit
-            UTF8StringView idValue = path.Substr(idIndex + 4, SIZE_MAX);
-            size_t ampIndex = idValue.FindFirstIndex("&");
-
-            if (ampIndex != String::NotFound)
+            AssetRegistryId registryId = AssetRegistryId::Game;
+            
+            if (idValue)
             {
-                idValue = idValue.Substr(0, ampIndex);
+                if (!StringUtil::Parse(idValue, reinterpret_cast<uint32*>(&registryId)))
+                {
+                    registryId = AssetRegistryId::Game;
+                }
             }
 
-            if (!idValue)
-            {
-                const char* bad = "HTTP/1.0 400 Bad Request\r\n"
-                    "Content-Length: 0\r\n\r\n";
-                        
-                send(clientSock, bad, int(strlen(bad)), 0);
-                CLOSE_SOCKET(clientSock);
-
-                continue;
-            }
-
-            tasks.EmplaceBack(serverPool.Enqueue(HYP_STATIC_MESSAGE("CacheServerRequest"), [&state, clientSock, sceneName = CreateNameFromDynamicString(idValue), path = std::move(path)]()
+            tasks.EmplaceBack(serverPool.Enqueue(HYP_STATIC_MESSAGE("CacheServerRequest"), [&state, clientSock, registryId, path = std::move(path)]()
             {
                 // Needed per-thread
                 GlobalContextScope scope { CacheServerContext() };
+
+                const bool preloadAll = (registryId == AssetRegistryId::Engine);
+
+                const Handle<AssetRegistry>& registry = (registryId == AssetRegistryId::Engine)
+                    ? state.engineRegistry
+                    : state.gameRegistry;
+                
+                if (!registry.IsValid())
+                {
+                    HYP_LOG(Assets, Warning, "No registry for id {}", uint32(registryId));
+                    
+                    const char* bad = "HTTP/1.0 404 Not Found\r\n"
+                        "Content-Length: 0\r\n\r\n";
+
+                    send(clientSock, bad, int(strlen(bad)), 0);
+                    CLOSE_SOCKET(clientSock);
+
+
+                    return;
+                }
 
                 if (path.StartsWith("/manifest"))
                 {
@@ -998,33 +1029,33 @@ protected:
                     {
                         TSharedLock sharedLock(state.lock);
 
-                        auto it = state.manifests.Find(sceneName);
+                        auto it = state.manifests.Find(registryId);
                         if (it == state.manifests.End())
                         {
                             sharedLock.Reset();
 
                             TUniqueLock uniqueLock(state.lock);
 
-                            it = state.manifests.Find(sceneName);
+                            it = state.manifests.Find(registryId);
                             if (it == state.manifests.End())
                             {
-                                SceneServerManifest& manifest = state.manifests[sceneName];
-                                BlobLookupMap& blobLookup = state.blobLookups[sceneName];
+                                ServerManifest& manifest = state.manifests[registryId];
+                                BlobLookupMap& blobLookup = state.blobLookups[registryId];
 
-                                InitializeSceneManifest(state, sceneName, manifest, blobLookup, state.engineRegistry, state.gameRegistry);
+                                InitializeManifest(state, manifest, blobLookup, registry, preloadAll);
                             
-                                ObjectToHMF(GetClass<SceneServerManifest>(), BoxedValue(manifest), hmfText);
+                                ObjectToHMF(GetClass<ServerManifest>(), BoxedValue(manifest), hmfText);
                             }
                             else
                             {
-                                SceneServerManifest& manifest = state.manifests[sceneName];
-                                ObjectToHMF(GetClass<SceneServerManifest>(), BoxedValue(manifest), hmfText);
+                                ServerManifest& manifest = state.manifests[registryId];
+                                ObjectToHMF(GetClass<ServerManifest>(), BoxedValue(manifest), hmfText);
                             }
                         }
                         else
                         {
-                            SceneServerManifest& manifest = state.manifests[sceneName];
-                            ObjectToHMF(GetClass<SceneServerManifest>(), BoxedValue(manifest), hmfText);
+                            ServerManifest& manifest = state.manifests[registryId];
+                            ObjectToHMF(GetClass<ServerManifest>(), BoxedValue(manifest), hmfText);
                         }
                     }
 
@@ -1056,7 +1087,7 @@ protected:
                     }
 
                     uint32 bucketIndex = uint32(std::atoi(subPath.Substr(0, slashPos).Data()));
-                    String assetName = subPath.Substr(slashPos + 1);
+                    String assetName = subPath.Substr(slashPos + 1, subPath.FindFirstIndex('?'));
 
                     bool served = false;
 
@@ -1168,7 +1199,7 @@ protected:
 
                         { // locked
                             TSharedLock lock(state.lock);
-                            BlobLookupMap& blobLookup = state.blobLookups[sceneName];
+                            BlobLookupMap& blobLookup = state.blobLookups[registryId];
 
                             auto lookupIt = blobLookup.Find(keyValue);
                             if (lookupIt != blobLookup.End())

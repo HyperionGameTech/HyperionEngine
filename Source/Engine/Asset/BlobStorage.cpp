@@ -11,7 +11,6 @@
 #include <Asset/SerializationUtils.hpp>
 
 #include <Framework/EngineGlobals.hpp>
-#include <Framework/CacheSync.hpp>
 
 #include <Core/DataProcessing/JSON/JSON.hpp>
 
@@ -366,10 +365,9 @@ private:
 
 #pragma region BlobStorage
 
-BlobStorage::BlobStorage(const FilePath& baseDir, bool readOnly)
-    : m_baseDir(baseDir),
-      m_toc(nullptr),
-      m_isReadOnly(readOnly),
+BlobStorage::BlobStorage()
+    : m_toc(nullptr),
+      m_isReadOnly(false),
       m_isInitialized(false)
 {
 }
@@ -379,12 +377,15 @@ BlobStorage::~BlobStorage()
     Shutdown();
 }
 
-void BlobStorage::Initialize()
+void BlobStorage::Initialize(const FilePath& baseDir, bool readOnly)
 {
     if (m_isInitialized)
     {
         return;
     }
+
+    m_baseDir = baseDir;
+    m_isReadOnly = readOnly;
 
     InitBlobStorage(*this, m_baseDir, /* readOnly */ m_isReadOnly);
 
@@ -419,6 +420,43 @@ void BlobStorage::Shutdown()
     {
         delete m_toc;
         m_toc = nullptr;
+    }
+}
+
+void BlobStorage::Lock(const FilePath& baseDir, bool readOnly)
+{
+    if (readOnly)
+    {
+        m_lockState.LockReader();
+    }
+    else
+    {
+        m_lockState.LockWriter();
+    }
+
+    Initialize(baseDir, readOnly);
+}
+
+void BlobStorage::Unlock()
+{
+    if (!m_isReadOnly)
+    {
+        Shutdown();
+        m_lockState.UnlockWriter();
+    }
+    else
+    {
+        const bool isLast = (m_lockState.UnlockReader() == 0);
+
+        if (isLast)
+        {
+            // to ensure unique access.
+            m_lockState.LockWriter();
+
+            Shutdown();
+            
+            m_lockState.UnlockWriter();
+        }
     }
 }
 
@@ -529,15 +567,23 @@ bool BlobStorage::GetData(StringHash key, size_t size, void*& outRawData)
 
     if (!m_toc)
     {
-        HYP_LOG(Assets, Error, "Table of contents is null!");
+        m_toc = new BlobTableOfContents;
 
-        return false;
+        if (Result res = LoadTOC_Internal(); res.HasError())
+        {
+            HYP_LOG(Assets, Error, "Failed to load blob TOC for BlobStorage at {}: {}", m_baseDir, res.GetError().GetMessage());
+
+            delete m_toc;
+            m_toc = nullptr;
+
+            return false;
+        }
     }
 
     BlobTableOfContents::Value tocValue;
     if (!m_toc->Get(key, tocValue))
     {
-        HYP_LOG(Assets, Error, "Blob data not found in table of contents: {}", key.GetHashCode().Value());
+        HYP_LOG(Assets, Error, "Blob data not found in table of contents {} for BlobStorage at {}", key.GetHashCode().Value(), m_baseDir);
 
         return false;
     }
@@ -626,6 +672,16 @@ bool BlobStorage::PutData(uint32 bucketIndex, StringHash key, const BlobHeader& 
     if (!m_toc)
     {
         m_toc = new BlobTableOfContents;
+
+        if (Result res = LoadTOC_Internal(); res.HasError())
+        {
+            HYP_LOG(Assets, Error, "Failed to load blob TOC for BlobStorage at {}: {}", m_baseDir, res.GetError().GetMessage());
+
+            delete m_toc;
+            m_toc = nullptr;
+
+            return false;
+        }
     }
 
     const size_t headerOffset = ByteUtil::AlignAs(blockData.cursor, alignof(BlobHeader));
@@ -760,7 +816,11 @@ Result BlobStorage::SaveIfDirty()
 Result BlobStorage::LoadTOC()
 {
     Mutex::Guard guard(m_mutex);
+    return LoadTOC_Internal();
+}
 
+Result BlobStorage::LoadTOC_Internal()
+{
     const FilePath tocPath = m_baseDir / "toc.bin";
 
     if (!tocPath.Exists())

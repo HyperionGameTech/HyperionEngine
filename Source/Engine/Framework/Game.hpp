@@ -11,6 +11,8 @@
 #include <Core/Reflection/ObjectBase.hpp>
 #include <Core/Reflection/Handle.hpp>
 
+#include <Core/Threading/Task.hpp>
+
 #include <Scripting/ScriptableDelegate.hpp>
 
 #include <Core/Defines.hpp>
@@ -124,6 +126,13 @@ public:
     static ScriptableDelegate<void, Game*, GameStateMode, GameStateMode> OnGameStateChange;
 
 protected:
+    bool IsSyncingContent() const
+    {
+        return m_syncContentTask.IsValid();
+    }
+
+    void AfterContentLoaded();
+
     virtual void InitializeWorld();
 
     virtual bool OnInputEvent(const Event& event);
@@ -139,9 +148,7 @@ protected:
     }
 
     HYP_METHOD()
-    virtual void OnUpdate_Impl(float delta)
-    {
-    }
+    virtual void OnUpdate_Impl(float delta);
 
     const Handle<UISubsystem>& GetUISubsystem() const
     {
@@ -161,6 +168,8 @@ protected:
     Handle<UISubsystem> m_uiSubsystem;
 
     Array<Handle<InputHandlerBase>> m_inputHandlers;
+
+    Task<void> m_syncContentTask;
 
     bool m_assetRegistryActive;
     bool m_isInitialized;

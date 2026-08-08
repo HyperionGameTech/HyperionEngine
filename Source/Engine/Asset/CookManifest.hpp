@@ -53,9 +53,9 @@ struct AssetEntry
 };
 
 HYP_STRUCT()
-struct SceneServerManifest
+struct ServerManifest
 {
-    HYP_STRUCT_BODY(SceneServerManifest)
+    HYP_STRUCT_BODY(ServerManifest)
 
     HYP_FIELD()
     uint64 timestamp;

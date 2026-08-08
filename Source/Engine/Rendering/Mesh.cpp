@@ -193,108 +193,108 @@ void Mesh::PageBlobData()
             && vertexData.key
             && vertexData.size != 0)
         {
-            if (EngineGlobals::IsCooking()
-                || EngineGlobals::IsCacheServer()
-                || EngineGlobals::IsEditor()
-                || !EngineGlobals::GetBlobStorage()->GetData(vertexData.key, vertexData.size, vertexData.raw))
+            if (lodIndex == 0)
             {
-                if (lodIndex == 0)
-                {
-                    const Name blobKey = vertexData.key;
-                    const uint64 expectedSize = vertexData.size;
+                const Name blobKey = vertexData.key;
+                const uint64 expectedSize = vertexData.size;
 
-                    ([&]()
-                     {
-                         Handle<AssetRegistry> registry = GetAssetRegistry();
-                         AssertDebug(registry.IsValid());
+                ([&]()
+                    {
+                        if (ShouldUseBlobStorage())
+                        {
+                            if (EngineGlobals::GetBlobStorage()->GetData(vertexData.key, vertexData.size, vertexData.raw))
+                            {
+                                return;
+                            }
+                        }
 
-                         if (registry.IsValid())
-                         {
-                             // check if failed; if so, try to import from raw data blob in project directory
-                             FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (meshName + ".VB.raw.blob") };
-                             if (!stream.Eof())
-                             {
-                                 if (stream.Max() != expectedSize)
-                                 {
-                                     HYP_LOG(Engine, Error, "Local blob data for {} vertex buffer (LOD {}) is {} bytes but the manifest expects {}, ignoring it",
-                                             GetName(), lodIndex, stream.Max(), expectedSize);
+                        Handle<AssetRegistry> registry = GetAssetRegistry();
+                        AssertDebug(registry.IsValid());
 
-                                     return;
-                                 }
+                        if (registry.IsValid())
+                        {
+                            // check if failed; if so, try to import from raw data blob in project directory
+                            FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (meshName + ".VB.raw.blob") };
+                            if (!stream.Eof())
+                            {
+                                if (stream.Max() != expectedSize)
+                                {
+                                    HYP_LOG(Engine, Error, "Local blob data for {} vertex buffer (LOD {}) is {} bytes but the manifest expects {}, ignoring it",
+                                            GetName(), lodIndex, stream.Max(), expectedSize);
 
-                                 ByteBuffer buffer = stream.Read(stream.Max());
+                                    return;
+                                }
 
-                                 AllocateBlobData(vertexData, buffer.Data(), buffer.Size(), 16);
-                                 vertexData.key = blobKey;
+                                ByteBuffer buffer = stream.Read(stream.Max());
 
-                                 return;
-                             }
-                         }
+                                AllocateBlobData(vertexData, buffer.Data(), buffer.Size(), 16);
+                                vertexData.key = blobKey;
 
-                         HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} vertex buffer (LOD {})", GetName(), lodIndex);
-                     })();
-                }
-                else
-                {
-                    HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} vertex buffer (LOD {})", GetName(), lodIndex);
-                }
+                                return;
+                            }
+                        }
+
+                        HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} vertex buffer (LOD {})", GetName(), lodIndex);
+                    })();
             }
             else
             {
-                vertexData.readOnly = true;
+                HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} vertex buffer (LOD {})", GetName(), lodIndex);
             }
 
-            if (EngineGlobals::IsCooking()
-                || EngineGlobals::IsCacheServer()
-                || EngineGlobals::IsEditor()
-                || !EngineGlobals::GetBlobStorage()->GetData(indexData.key, indexData.size, indexData.raw))
+            if (lodIndex == 0)
             {
-                if (lodIndex == 0)
-                {
-                    const Name blobKey = indexData.key;
-                    const uint64 expectedSize = indexData.size;
+                const Name blobKey = indexData.key;
+                const uint64 expectedSize = indexData.size;
 
-                    ([&]()
-                     {
-                         Handle<AssetRegistry> registry = GetAssetRegistry();
-                         AssertDebug(registry.IsValid());
+                ([&]()
+                    {
+                        if (ShouldUseBlobStorage())
+                        {
+                            if (EngineGlobals::GetBlobStorage()->GetData(indexData.key, indexData.size, indexData.raw))
+                            {
+                                return;
+                            }
+                        }
 
-                         if (registry.IsValid())
-                         {
-                             // check if failed; if so, try to import from raw data blob in project directory
-                             FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (meshName + ".IB.raw.blob") };
-                             if (!stream.Eof())
-                             {
-                                 if (stream.Max() != expectedSize)
-                                 {
-                                     HYP_LOG(Engine, Error, "Local blob data for {} index buffer (LOD {}) is {} bytes but the manifest expects {}, ignoring it",
-                                             GetName(), lodIndex, stream.Max(), expectedSize);
+                        Handle<AssetRegistry> registry = GetAssetRegistry();
+                        AssertDebug(registry.IsValid());
 
-                                     return;
-                                 }
+                        if (registry.IsValid())
+                        {
+                            // check if failed; if so, try to import from raw data blob in project directory
+                            FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (meshName + ".IB.raw.blob") };
+                            if (!stream.Eof())
+                            {
+                                if (stream.Max() != expectedSize)
+                                {
+                                    HYP_LOG(Engine, Error, "Local blob data for {} index buffer (LOD {}) is {} bytes but the manifest expects {}, ignoring it",
+                                            GetName(), lodIndex, stream.Max(), expectedSize);
 
-                                 ByteBuffer buffer = stream.Read(stream.Max());
-                                 AssertDebug(buffer.Size() == stream.Max());
+                                    return;
+                                }
 
-                                 AllocateBlobData(indexData, buffer.Data(), buffer.Size(), alignof(uint32));
-                                 indexData.key = blobKey;
+                                ByteBuffer buffer = stream.Read(stream.Max());
+                                AssertDebug(buffer.Size() == stream.Max());
 
-                                 return;
-                             }
-                         }
+                                AllocateBlobData(indexData, buffer.Data(), buffer.Size(), alignof(uint32));
+                                indexData.key = blobKey;
 
-                         HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} index buffer (LOD {})", GetName(), lodIndex);
-                     })();
-                }
-                else
-                {
-                    HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} index buffer (LOD {})", GetName(), lodIndex);
-                }
+                                return;
+                            }
+                        }
+
+                        HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} index buffer (LOD {})", GetName(), lodIndex);
+                    })();
             }
             else
             {
-                indexData.readOnly = true;
+                HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} index buffer (LOD {})", GetName(), lodIndex);
             }
+        }
+        else
+        {
+            indexData.readOnly = true;
         }
     }
 
@@ -303,16 +303,19 @@ void Mesh::PageBlobData()
         && m_bvhData.key
         && m_bvhData.size != 0)
     {
-        if (EngineGlobals::IsCooking()
-            || EngineGlobals::IsCacheServer()
-            || EngineGlobals::IsEditor()
-            || !EngineGlobals::GetBlobStorage()->GetData(m_bvhData.key, m_bvhData.size, m_bvhData.raw))
-        {
-            const Name blobKey = m_bvhData.key;
-            const uint64 expectedSize = m_bvhData.size;
+        const Name blobKey = m_bvhData.key;
+        const uint64 expectedSize = m_bvhData.size;
 
-            ([&]()
-             {
+        ([&]()
+            {
+                if (ShouldUseBlobStorage())
+                {
+                    if (EngineGlobals::GetBlobStorage()->GetData(m_bvhData.key, m_bvhData.size, m_bvhData.raw))
+                    {
+                        return;
+                    }
+                }
+
                 Handle<AssetRegistry> registry = GetAssetRegistry();
                 AssertDebug(registry.IsValid());
 
@@ -339,17 +342,16 @@ void Mesh::PageBlobData()
                 }
                  
                 HYP_LOG(Engine, Error, "Data corruption detected for {} due to missing blob data", GetPath().ToString());
-             })();
-        }
-        else
-        {
-            m_bvhData.readOnly = true;
-        }
+        })();
+    }
+    else
+    {
+        m_bvhData.readOnly = true;
+    }
 
-        if (m_bvhData.raw != nullptr)
-        {
-            BVHNode::Deserialize(m_bvh, m_bvhData.raw, m_bvhData.size);
-        }
+    if (m_bvhData.raw != nullptr)
+    {
+        BVHNode::Deserialize(m_bvh, m_bvhData.raw, m_bvhData.size);
     }
 }
 
@@ -651,7 +653,12 @@ void Mesh::BuildVertexBuffer(
     Array<float, AllocatorType>& outData) const
 {
     const VertexArrayView vertices = GetVertexData(lodIndex);
-    AssertDebug(uintptr_t(vertices.floatData) > 0x1000000);
+    AssertDebug(vertices.floatData != nullptr);
+
+    if (!vertices.floatData)
+    {
+        return;
+    }
 
     const uint8 srcMask = m_meshDesc.meshAttributes.inputLayout.mask;
     const uint8 dstMask = inputLayout.mask;

@@ -245,19 +245,21 @@ void PlaceholderData::Initialize()
 
     auto LoadOrInitTexture = [&InitBufferData]<class... Args>(Handle<Texture>& outTexture, Name name, const TextureDesc& textureDesc, PlaceholderBufferData& bufferData, auto fillFn, Args&&... args)
     {
-        if (Handle<AssetObject> asset = GetEngineAssetRegistry()->GetAsset(AssetBuckets::Textures, name); asset.IsValid())
-        {
-            Handle<Texture> textureAsset = DynamicCast<Texture>(asset);
-            Assert(textureAsset != nullptr);
+        // TEMP disabled to prevent reading from blob storage before downloaded in Game.
 
-            textureAsset->SetPersistentRequested(true, /* setFlag */ true);
+        //if (Handle<AssetObject> asset = GetEngineAssetRegistry()->GetAsset(AssetBuckets::Textures, name); asset.IsValid())
+        //{
+        //    Handle<Texture> textureAsset = DynamicCast<Texture>(asset);
+        //    Assert(textureAsset != nullptr);
 
-            Check(textureAsset->Create());
+        //    textureAsset->SetPersistentRequested(true, /* setFlag */ true);
 
-            outTexture = textureAsset;
+        //    Check(textureAsset->Create());
 
-            return;
-        }
+        //    outTexture = textureAsset;
+
+        //    return;
+        //}
 
         InitBufferData(bufferData, fillFn, textureDesc.extent.GetXY(), std::forward<Args>(args)...);
 

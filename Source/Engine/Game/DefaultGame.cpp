@@ -100,11 +100,6 @@ DefaultGame::~DefaultGame()
 
 void DefaultGame::InitializeWorld()
 {
-    // if (!m_world.IsValid())
-    // {
-    //     m_world = MakeHandle<World>(NAME("MainWorld"), WorldFlags::Default);
-    // }
-
     Handle<World> worldAsset = GetCurrentAssetRegistry()->GetAsset<World>(AssetBuckets::Worlds, "MainWorld"_sh);
     Assert(worldAsset.IsValid());
 
@@ -409,6 +404,14 @@ void DefaultGame::OnLaunch_Impl()
 
 void DefaultGame::OnUpdate_Impl(float delta)
 {
+    Game::OnUpdate_Impl(delta);
+
+    // Loading content.
+    if (!m_world.IsValid())
+    {
+        return;
+    }
+
     // Pass touch joystick movement to all character controller input handlers
     if (TouchControlsSubsystem* tcs = GetWorld()->GetSubsystem<TouchControlsSubsystem>())
     {

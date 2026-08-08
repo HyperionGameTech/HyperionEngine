@@ -201,22 +201,11 @@ HYP_EXPORT bool IsShuttingDown()
         && g_engineDriver->IsShuttingDown();
 }
 
-BlobStorage* g_blobStorage = nullptr;
+BlobStorage g_blobStorage;
 
 HYP_EXPORT BlobStorage* GetBlobStorage()
 {
-    static std::once_flag s_onceFlag;
-    std::call_once(s_onceFlag, []()
-                   {
-                       g_blobStorage = new BlobStorage(GetCacheDirectory(), /* readOnly */ true);
-
-                       if (!EngineGlobals::IsCooking())
-                       {
-                           g_blobStorage->Initialize();
-                       }
-                   });
-
-    return g_blobStorage;
+    return &g_blobStorage;
 }
 
 } // namespace EngineGlobals

@@ -2151,14 +2151,22 @@ void DeferredPass::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
         }
     }
 
+    if (!hasBlas)
+    {
+        if (pd->rayTracingTlases[currentFrameIndex]->IsCreated())
+        {
+            EnqueueDeletion(std::move(pd->rayTracingTlases));
+            pd->rayTracingTlases = {};
+        }
+
+        return;
+    }
+
     if (!pd->rayTracingTlases[currentFrameIndex]->IsCreated())
     {
-        if (hasBlas)
+        for (TopLevelASRef& tlas : pd->rayTracingTlases)
         {
-            for (TopLevelASRef& tlas : pd->rayTracingTlases)
-            {
-                Check(tlas->Create());
-            }
+            Check(tlas->Create());
         }
 
         return;

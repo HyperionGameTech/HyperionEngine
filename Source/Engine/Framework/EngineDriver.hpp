@@ -120,6 +120,8 @@ public:
 private:
     void Simulate(float delta, Game* gameInstance);
 
+    void LoadEngineContent();
+
     Array<Handle<World>> m_worlds; // Sim thread only
     World* m_currentWorld;         // Sim thread only
 

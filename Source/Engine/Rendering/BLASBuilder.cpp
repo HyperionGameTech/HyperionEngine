@@ -114,7 +114,7 @@ BottomLevelASRef BLASBuilder::Build(Mesh* mesh, Material* material)
 {
     if (!mesh)
     {
-        return nullptr;
+        return BottomLevelASRef::Null();
     }
 
     auto resGuard = mesh->GetReadScope();
@@ -131,7 +131,7 @@ BottomLevelASRef BLASBuilder::Build(Mesh* mesh, Material* material)
 
     if (packedVertices.Size() == 0 || packedIndices.Size() == 0)
     {
-        return nullptr;
+        return BottomLevelASRef::Null();
     }
 
     // some assertions to prevent gpu faults down the line

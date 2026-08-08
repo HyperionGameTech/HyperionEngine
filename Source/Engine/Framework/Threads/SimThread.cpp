@@ -83,20 +83,7 @@ struct LaunchGameAsync
 
         InitObject(gameInstance);
 
-        if (!gameInstance->m_isLaunched.Get(MemoryOrder::RELAXED))
-        {
-            gameInstance->Initialize();
-
-            gameInstance->OnLaunch();
-            gameInstance->m_isLaunched.Set(true, MemoryOrder::RELEASE);
-
-            const Handle<World>& world = gameInstance->GetWorld();
-            Assert(world.IsValid());
-
-            g_engineDriver->AddWorld(world);
-
-            Game::OnLaunched.Fire(gameInstance);
-        }
+        gameInstance->Initialize();
 
         g_simThreadInstance->m_gameInstance = gameInstance;
     }

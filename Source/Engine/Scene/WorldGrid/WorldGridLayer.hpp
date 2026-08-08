@@ -42,7 +42,7 @@ struct WorldGridLayerInfo
     uint32 cellSize = 32;
 
     HYP_FIELD()
-    float maxDistance = 5.0f;
+    float maxDistance = 1.0f;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

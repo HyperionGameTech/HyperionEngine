@@ -854,6 +854,8 @@ RendererResult VulkanTopLevelAS::Rebuild(RTUpdateStateFlags& outUpdateStateFlags
 {
     Assert(m_accelerationStructure != VK_NULL_HANDLE);
 
+    Assert(m_blases.Any(), "Cannot build a TLAS with no bottom level acceleration structures");
+
     // check each BottomLevelAS, assert that it is valid.
     for (VulkanBottomLevelAS* blas : m_blases)
     {
