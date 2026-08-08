@@ -60,9 +60,11 @@ namespace CacheSync {
 
 namespace {
 
-static bool HttpGetBytes(const ANSIString& host, uint16 port, const char* path, ByteBuffer& outBody)
+static Result HttpGetBytes(const ANSIString& host, uint16 port, const char* path, ByteBuffer& outBody)
 {
     outBody = ByteBuffer();
+
+    HYP_LOG(Assets, Info, "[CacheClient] GET {}:{}{}", host, uint32(port), path);
 
     char portStr[16];
     std::snprintf(portStr, sizeof(portStr), "%u", uint32(port));
@@ -71,7 +73,7 @@ static bool HttpGetBytes(const ANSIString& host, uint16 port, const char* path, 
 
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
-        return false;
+        return HYP_MAKE_ERROR(Error, "WSAStartup failed");
 
     struct addrinfo hints = {};
     hints.ai_family = AF_INET;
@@ -82,7 +84,7 @@ static bool HttpGetBytes(const ANSIString& host, uint16 port, const char* path, 
     if (getaddrinfo(host.Data(), portStr, &hints, &result) != 0)
     {
         WSACleanup();
-        return false;
+        return HYP_MAKE_ERROR(Error, "Failed to resolve host: {}", host);
     }
 
     SOCKET sock = INVALID_SOCKET;
@@ -102,7 +104,7 @@ static bool HttpGetBytes(const ANSIString& host, uint16 port, const char* path, 
     if (sock == INVALID_SOCKET)
     {
         WSACleanup();
-        return false;
+        return HYP_MAKE_ERROR(Error, "Failed to connect to {}:{}", host, uint32(port));
     }
 
     DWORD timeout = 10000;
@@ -120,7 +122,7 @@ static bool HttpGetBytes(const ANSIString& host, uint16 port, const char* path, 
     {
         closesocket(sock);
         WSACleanup();
-        return false;
+        return HYP_MAKE_ERROR(Error, "Failed to send request to {}:{}", host, uint32(port));
     }
 
     char recvBuf[8192];
@@ -139,7 +141,7 @@ static bool HttpGetBytes(const ANSIString& host, uint16 port, const char* path, 
     WSACleanup();
 
     if (n < 0)
-        return false;
+        return HYP_MAKE_ERROR(Error, "Failed to receive response from {}:{}", host, uint32(port));
 
 #else
 
@@ -149,9 +151,7 @@ static bool HttpGetBytes(const ANSIString& host, uint16 port, const char* path, 
 
     struct addrinfo* result = nullptr;
     if (getaddrinfo(host.Data(), portStr, &hints, &result) != 0)
-    {
-        return false;
-    }
+        return HYP_MAKE_ERROR(Error, "Failed to resolve host: {}", host);
 
     int sock = -1;
     for (struct addrinfo* rp = result; rp != nullptr; rp = rp->ai_next)
@@ -159,14 +159,10 @@ static bool HttpGetBytes(const ANSIString& host, uint16 port, const char* path, 
         sock = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
 
         if (sock < 0)
-        {
             continue;
-        }
 
         if (connect(sock, rp->ai_addr, int(rp->ai_addrlen)) == 0)
-        {
             break;
-        }
 
         close(sock);
         sock = -1;
@@ -175,7 +171,7 @@ static bool HttpGetBytes(const ANSIString& host, uint16 port, const char* path, 
     freeaddrinfo(result);
 
     if (sock < 0)
-        return false;
+        return HYP_MAKE_ERROR(Error, "Failed to connect to {}:{}", host, uint32(port));
 
     struct timeval tv = { 10, 0 };
     setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
@@ -191,7 +187,7 @@ static bool HttpGetBytes(const ANSIString& host, uint16 port, const char* path, 
     if (send(sock, request, size_t(reqLen), 0) < 0)
     {
         close(sock);
-        return false;
+        return HYP_MAKE_ERROR(Error, "Failed to send request to {}:{}", host, uint32(port));
     }
 
     char recvBuf[8192];
@@ -209,7 +205,7 @@ static bool HttpGetBytes(const ANSIString& host, uint16 port, const char* path, 
     close(sock);
 
     if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
-        return false;
+        return HYP_MAKE_ERROR(Error, "Failed to receive response from {}:{}", host, uint32(port));
 
 #endif
 
@@ -217,14 +213,31 @@ static bool HttpGetBytes(const ANSIString& host, uint16 port, const char* path, 
     const char* headerEnd = strstr(bodyStart, "\r\n\r\n");
 
     if (headerEnd == nullptr)
-        return false;
+        return HYP_MAKE_ERROR(Error, "Invalid HTTP response from {}:{}{} — no headers", host, uint32(port), path);
+
+    // Check HTTP status code, should only ever be 200 if succeeded.
+    {
+        const char* statusStart = strchr(bodyStart, ' ');
+        if (statusStart != nullptr && statusStart < headerEnd)
+        {
+            int statusCode = atoi(statusStart + 1);
+
+            if (statusCode != 200)
+            {
+                return HYP_MAKE_ERROR(Error, "Server returned HTTP {} for {}:{}{}", statusCode, host, uint32(port), path);
+            }
+        }
+    }
 
     bodyStart = headerEnd + 4;
     const size_t bodySize = size_t(reinterpret_cast<const char*>(buffer.Data() + buffer.Size()) - bodyStart);
 
+    if (bodySize == 0)
+        return HYP_MAKE_ERROR(Error, "Empty response body from {}:{}{}", host, uint32(port), path);
+
     outBody = ByteBuffer(bodySize, bodyStart);
 
-    return true;
+    return {};
 }
 
 Result DownloadCacheFromHost(
@@ -233,9 +246,9 @@ Result DownloadCacheFromHost(
 {
     // 1. Download the manifest
     ByteBuffer manifestBytes;
-    if (!HttpGetBytes(host, port, "/manifest", manifestBytes))
+    if (Result res = HttpGetBytes(host, port, "/manifest", manifestBytes); res.HasError())
     {
-        return HYP_MAKE_ERROR(Error, "CacheSync failed to download manifest from {}:{}", host, uint32(port));
+        return res;
     }
 
     // 2. Parse the server manifest via HMF
@@ -255,6 +268,11 @@ Result DownloadCacheFromHost(
 
     const CookManifest& serverManifest = boxedResult.Get<CookManifest>();
 
+    // @TODO we will save timestamp into the manifest file;
+    // we'll still have a general check, so we can short circuit out of here in most cases,
+    // but we'll want to only download assets that are missing/have newer versions.
+    // so on the server side, we should sort the assets in the manifest descending by timestmap.
+    // then we can stop downloading on the first one that has a timestamp indicating we have the latest ver.
     HYP_LOG(Assets, Info, "CacheSync server manifest: timestamp={}, {} assets",
         serverManifest.cook_timestamp_ms, serverManifest.assets.Size());
 
@@ -336,6 +354,8 @@ Result DownloadCacheFromHost(
 
     Array<Task<void>> tasks;
 
+    AtomicVar<int32> failureCount = 0;
+
     for (const AssetEntry& entry : serverManifest.assets)
     {
         if (entry.bucket_index >= MaxAssetBuckets)
@@ -345,6 +365,8 @@ Result DownloadCacheFromHost(
 
         tasks.EmplaceBack(downloadPool.Enqueue(HYP_STATIC_MESSAGE("CacheSyncAsset"), [&]() -> void
         {
+            bool entryFailed = false;
+
             // Download the HMF manifest
             {
                 char hmfPathBuf[512];
@@ -352,7 +374,11 @@ Result DownloadCacheFromHost(
                     entry.bucket_index, entry.name.Data());
 
                 ByteBuffer hmfBytes;
-                if (HttpGetBytes(host, port, hmfPathBuf, hmfBytes))
+                if (Result res = HttpGetBytes(host, port, hmfPathBuf, hmfBytes); res.HasError())
+                {
+                    HYP_LOG(Assets, Warning, "Failed to download HMF for {}: {}", entry.name, res.GetError().GetMessage());
+                }
+                else
                 {
                     FilePath bucketContentDir = contentDir / String(GetAssetBucketName(entry.bucket_index));
                     bucketContentDir.MkDir();
@@ -376,19 +402,12 @@ Result DownloadCacheFromHost(
                     (unsigned long long)blob.key, (unsigned long long)blob.size);
 
                 ByteBuffer blobData;
-                if (!HttpGetBytes(host, port, blobPathBuf, blobData))
+                if (Result res = HttpGetBytes(host, port, blobPathBuf, blobData); res.HasError())
                 {
-                    HYP_LOG(Assets, Error, "CacheSync failed to download blob key={} for {}",
-                            blob.key, entry.name);
+                    HYP_LOG(Assets, Error, "CacheSync failed to download blob key={} for {}: {}",
+                            blob.key, entry.name, res.GetError().GetMessage());
 
-                    continue;
-                }
-
-                if (blobData.Empty())
-                {
-                    HYP_LOG(Assets, Warning, "Retrieved empty blob data buffer, skipping Put operation for entry: {}, blob key: {}",
-                            entry.name, blob.key);
-
+                    entryFailed = true;
                     continue;
                 }
 
@@ -398,13 +417,15 @@ Result DownloadCacheFromHost(
                             blobData.Size(), blob.size,
                             entry.name, blob.key);
 
+                    entryFailed = true;
                     continue;
                 }
 
                 BlobHeader header {};
+
                 const size_t magicLen = blob.magic.Size();
-                Memory::Copy((char*)header.magic, blob.magic.Data(),
-                    MathUtil::Min(magicLen, sizeof(header.magic)));
+                Memory::Copy((char*)header.magic, blob.magic.Data(), MathUtil::Min(magicLen, sizeof(header.magic)));
+                
                 header.version = 1;
                 header.payloadOffset = 0;
                 header.payloadSize = blob.size;
@@ -412,7 +433,13 @@ Result DownloadCacheFromHost(
                 if (!writeStorage.PutData(entry.bucket_index, StringHash(blob.key), header, blobData.Data()))
                 {
                     HYP_LOG(Assets, Error, "CacheSync PutData failed for blob key={}", blob.key);
+                    entryFailed = true;
                 }
+            }
+
+            if (entryFailed)
+            {
+                failureCount.Increment(1, MemoryOrder::RELAXED);
             }
         }));
     }
@@ -431,6 +458,11 @@ Result DownloadCacheFromHost(
     }
 
     writeStorage.Shutdown();
+
+    if (failureCount.Get(MemoryOrder::RELAXED) > 0)
+    {
+        return HYP_MAKE_ERROR(Error, "Download incomplete — {} asset(s) had failures", failureCount.Get(MemoryOrder::RELAXED));
+    }
 
     localManifestPath.Remove();
 
@@ -479,7 +511,7 @@ HYP_EXPORT void SyncCacheBlocking(const FilePath& cacheDir, const FilePath& cont
         }
         ANSIStringView portStr = cacheServer.Substr(colonPos + 1, SIZE_MAX);
 
-        uint16 port = uint16(std::atoi(portStr.Data()));
+        uint16 port = static_cast<uint16>(std::atoi(portStr.Data()));
 
         while (true)
         {

@@ -94,7 +94,6 @@ class CacheServerCommandlet final : public CommandletBase
         BlobStorage* blobStorage = nullptr;
         FilePath cacheDir;
         String manifestHmfText;
-        Mutex manifestMutex;
         Map<uint64, BlobLookupEntry> blobLookup;
 
         bool devServer = false;
@@ -439,18 +438,23 @@ protected:
                 CLOSE_SOCKET(clientSock);
                 continue;
             }
+
             pathStart++;
 
             const char* pathEnd = strchr(pathStart, ' ');
-            if (pathEnd == nullptr)
+            if (!pathEnd)
+            {
                 pathEnd = reqLineEnd;
+            }
 
             String path(pathStart, pathStart + size_t(pathEnd - pathStart));
 
+            HYP_LOG(Assets, Info, "[CacheServer] GET {}", path);
+
             if (path == "/manifest")
             {
-                Mutex::Guard guard(state.manifestMutex);
                 const String& body = state.manifestHmfText;
+                
                 char header[256];
                 int headerLen = std::snprintf(header, sizeof(header),
                     "HTTP/1.0 200 OK\r\n"
@@ -458,39 +462,67 @@ protected:
                     "Content-Length: %zu\r\n"
                     "\r\n",
                     body.Size());
+
                 send(clientSock, header, headerLen, 0);
                 send(clientSock, body.Data(), int(body.Size()), 0);
             }
             else if (path.StartsWith("/hmf/"))
             {
                 String subPath = path.Substr(5);
-                FilePath hmfPath = gameRegistry->GetRootPath() / subPath + ".hmf";
+                size_t slashPos = subPath.FindFirstIndex("/");
 
-                // Try Engine content
-                if (!hmfPath.Exists())
+                if (slashPos == String::NotFound)
                 {
-                    hmfPath = EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Engine")>() / subPath + ".hmf";
+                    const char* bad = "HTTP/1.0 400 Bad Request\r\n"
+                        "Content-Length: 0\r\n\r\n";
+                    send(clientSock, bad, int(strlen(bad)), 0);
+                    CLOSE_SOCKET(clientSock);
+                    continue;
                 }
-                
-                if (!hmfPath.Exists())
+
+                uint32 bucketIndex = uint32(std::atoi(subPath.Substr(0, slashPos).Data()));
+                String assetName = subPath.Substr(slashPos + 1);
+
+                bool served = false;
+
+                if (bucketIndex >= 1 && bucketIndex < MaxAssetBuckets)
+                {
+                    String assetBucketStr = String(GetAssetBucketName(bucketIndex));
+
+                    FilePath hmfPath = gameRegistry->GetRootPath() / assetBucketStr / (assetName + ".hmf");
+
+                    // Try Engine content
+                    if (!hmfPath.Exists())
+                    {
+                        hmfPath = EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Engine")>() / assetBucketStr / (assetName + ".hmf");
+                    }
+
+                    if (hmfPath.Exists())
+                    {
+                        FileByteReader reader { hmfPath };
+
+                        ByteBuffer data = reader.Read();
+                        
+                        char header[256];
+                        int headerLen = std::snprintf(header, sizeof(header),
+                                                      "HTTP/1.0 200 OK\r\n"
+                                                      "Content-Type: application/octet-stream\r\n"
+                                                      "Content-Length: %zu\r\n"
+                                                      "\r\n",
+                                                      data.Size());
+
+                        send(clientSock, header, headerLen, 0);
+                        send(clientSock, (const char*)data.Data(), int(data.Size()), 0);
+
+                        served = true;
+                    }
+                }
+
+                if (!served)
                 {
                     const char* notFound = "HTTP/1.0 404 Not Found\r\n"
-                        "Content-Length: 0\r\n\r\n";
+                                           "Content-Length: 0\r\n\r\n";
                     send(clientSock, notFound, int(strlen(notFound)), 0);
-                }
-                else
-                {
-                    FileByteReader reader { hmfPath };
-                    ByteBuffer data = reader.Read();
-                    char header[256];
-                    int headerLen = std::snprintf(header, sizeof(header),
-                        "HTTP/1.0 200 OK\r\n"
-                        "Content-Type: application/octet-stream\r\n"
-                        "Content-Length: %zu\r\n"
-                        "\r\n",
-                        data.Size());
-                    send(clientSock, header, headerLen, 0);
-                    send(clientSock, (const char*)data.Data(), int(data.Size()), 0);
                 }
             }
             else if (path.StartsWith("/blob?"))
@@ -508,7 +540,7 @@ protected:
                     continue;
                 }
 
-                String keyHex = query.Substr(keyStart + 4, sizeStart - (keyStart + 4));
+                String keyHex = query.Substr(keyStart + 4, sizeStart);
                 String sizeStr = query.Substr(sizeStart + 6);
 
                 uint64 keyValue = 0;
@@ -517,7 +549,7 @@ protected:
                 for (size_t i = 0; i < keyHex.Size() && keyHex[i] != '&'; i++)
                 {
                     char c = keyHex[i];
-                    uint64_t digit;
+                    uint64 digit;
 
                     if (c >= '0' && c <= '9')
                     {
