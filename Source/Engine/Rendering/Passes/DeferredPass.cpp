@@ -60,7 +60,6 @@
 
 #include <Scene/World.hpp>
 #include <Scene/View.hpp>
-#include <Scene/ProbeVolume.hpp>
 #include <Scene/EnvProbe.hpp>
 #include <Scene/FogVolume.hpp>
 #include <Scene/ParticleVolume.hpp>
@@ -124,7 +123,6 @@ EngineStatCounter<uint32> g_statLights("Rendering/Lights");
 EngineStatCounter<uint32> g_statLightmapVolumes("Rendering/LightmapVolumes");
 EngineStatCounter<uint32> g_statParticleVolumes("Rendering/ParticleVolumes");
 EngineStatCounter<uint32> g_statEnvProbes("Rendering/EnvProbes");
-EngineStatCounter<uint32> g_statProbeVolumes("Rendering/ProbeVolumes");
 EngineStatCounter<uint32> g_statDebugDraws("Rendering/DebugDraws");
 
 CVar<int> g_cvDeferredDebugVis { "Rendering.Deferred.DebugVis", 0 };
@@ -800,12 +798,6 @@ public:
                 break;
             case EPT_AMBIENT:
                 AssertDebug(envProbe.IsA<IrradianceProbe>());
-                if (StaticCast<IrradianceProbe>(&envProbe)->IsAttachedToProbeVolume())
-                {
-                    // Skip irradiance probes that are handled by ProbeVolumes
-                    // Entities affected by them have their spherical harmonics data calculated on CPU
-                    continue;
-                }
 
                 break;
             default:
@@ -1318,10 +1310,8 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
 
     // --- Collect view-independent renderable types from all views, binned ---
     FixedArray<Set<EnvProbe*, RenderTempAllocator>, EPT_MAX> envProbes;
-    Set<ProbeVolume*, RenderTempAllocator> probeVolumes;
 
-    // For rendering ProbeVolumes and EnvProbes, we use a directional light from one of the Views that references it (if found)
-    Map<ProbeVolume*, Light*, RenderTempAllocator> probeVolumeLights;
+    // For rendering EnvProbes, we use a directional light from one of the Views that references it (if found)
     Map<EnvProbe*, Light*, RenderTempAllocator> envProbeLights;
 
     FixedArray<Set<Light*, RenderTempAllocator>, NumLightTypes> lights;
@@ -1417,29 +1407,6 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
             }
 
             envProbes[envProbe->GetEnvProbeType()].Add(envProbe);
-        }
-
-        for (ProbeVolume* probeVolume : rpl.GetProbeVolumes())
-        {
-            if (probeVolumes.Contains(probeVolume))
-            {
-                continue;
-            }
-
-            if (!probeVolumeLights.Contains(probeVolume))
-            {
-                for (Light* light : rpl.GetLights())
-                {
-                    if (light->GetLightType() == LightType::Directional)
-                    {
-                        probeVolumeLights[probeVolume] = light;
-
-                        break;
-                    }
-                }
-            }
-
-            probeVolumes.Add(probeVolume);
         }
     }
 
@@ -1542,7 +1509,6 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
         g_statLightmapVolumes += rpl.GetLightmapVolumes().NumCurrent();
         g_statParticleVolumes += rpl.GetParticleVolumes().NumCurrent();
         g_statLights += rpl.GetLights().NumCurrent();
-        g_statProbeVolumes += rpl.GetProbeVolumes().NumCurrent();
         g_statEnvProbes += rpl.GetEnvProbes().NumCurrent();
 
 #if 0
@@ -1552,7 +1518,6 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
             rpl.GetMaterials().NumCurrent(),
             rpl.GetLightmapVolumes().NumCurrent(),
             rpl.GetLights().NumCurrent(),
-            rpl.GetProbeVolumes().NumCurrent(),
             rpl.GetEnvProbes().NumCurrent());
 #endif
     }

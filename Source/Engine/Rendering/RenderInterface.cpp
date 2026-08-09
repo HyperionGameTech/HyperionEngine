@@ -66,7 +66,6 @@
 #include <Scene/View.hpp>
 #include <Scene/World.hpp>
 #include <Scene/EnvProbe.hpp>
-#include <Scene/ProbeVolume.hpp>
 #include <Scene/Light.hpp>
 #include <Scene/ParticleVolume.hpp>
 #include <Scene/FogVolume.hpp>
@@ -724,7 +723,6 @@ RendererResult RenderInterface::Initialize()
     namedBuffers[NamedBuffer::Materials] = StructuredBuffer(MaxBoundMaterials, sizeof(MaterialShaderData));
     namedBuffers[NamedBuffer::Skeletons] = StructuredBuffer(MaxBoundSkeletons, sizeof(SkeletonShaderData));
     namedBuffers[NamedBuffer::EnvProbes] = StructuredBuffer(MaxBoundEnvProbes, sizeof(EnvProbeShaderData));
-    namedBuffers[NamedBuffer::ProbeVolumes] = StructuredBuffer(MaxBoundProbeVolumes, sizeof(ProbeVolumeShaderData));
     namedBuffers[NamedBuffer::LightmapVolumes] = StructuredBuffer(MaxBoundLightmapVolumes, sizeof(LightmapVolumeShaderData));
 
     for (uint8 namedBufferIndex = 0; namedBufferIndex < NamedBuffer::Max; namedBufferIndex++)
@@ -2327,8 +2325,6 @@ DECLARE_RENDER_DATA_CONTAINER(Entity, RenderProxyMesh, NamedBuffer::Entities, &W
 DECLARE_RENDER_DATA_CONTAINER(Mesh, NullProxy, NamedBuffer::Invalid, nullptr, &s_meshBinder);
 
 DECLARE_RENDER_DATA_CONTAINER(Camera, RenderProxyCamera, NamedBuffer::Cameras, nullptr, &s_cameraBinder);
-
-DECLARE_RENDER_DATA_CONTAINER(ProbeVolume, RenderProxyProbeVolume, NamedBuffer::ProbeVolumes, nullptr, &s_probeVolumeBinder);
 
 DECLARE_RENDER_DATA_CONTAINER(EnvProbe, RenderProxyEnvProbe, NamedBuffer::EnvProbes, &WriteBufferData_EnvProbe, &s_envProbeBinder);
 DECLARE_RENDER_DATA_CONTAINER(ReflectionProbe, RenderProxyEnvProbe, NamedBuffer::EnvProbes, &WriteBufferData_EnvProbe, &s_envProbeBinder, &s_reflectionProbeTextureBinder);

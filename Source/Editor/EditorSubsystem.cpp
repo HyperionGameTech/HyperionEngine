@@ -26,7 +26,6 @@
 #include <Scene/View.hpp>
 #include <Scene/Light.hpp>
 #include <Scene/EnvProbe.hpp>
-#include <Scene/ProbeVolume.hpp>
 #include <Scene/FogVolume.hpp>
 #include <Scene/EntityManager.hpp>
 #include <Scene/Prefab.hpp>

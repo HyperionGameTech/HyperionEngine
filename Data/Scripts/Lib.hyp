@@ -711,7 +711,6 @@ extern enum ViewFlags : uint32
     COLLECT_ALL_ENTITIES = (COLLECT_STATIC_ENTITIES | COLLECT_DYNAMIC_ENTITIES),
     NO_FRUSTUM_CULLING = 0x10,
     SKIP_ENV_PROBES = 0x20,
-    SKIP_PROBE_VOLUMES = 0x40,
     SKIP_LIGHTS = 0x80,
     SKIP_LIGHTMAP_VOLUMES = 0x100,
     SKIP_PARTICLE_VOLUMES = 0x200,
@@ -1078,19 +1077,6 @@ end
 extern class UICameraController : OrthoCameraController
 end
 extern class VolumeBase : Entity
-end
-extern class ProbeVolume : VolumeBase
-    GetGridSize() -> Vec3u
-    SetGridSize(gridSize : Vec3u) -> void
-    CreateProbes() -> void
-    GridSize : Vec3u
-    Probes : Array<IrradianceProbe>
-    Tetrahedra : Array<Tetrahedron>
-end
-extern struct Tetrahedron
-    ProbeIndices : Array<uint32>
-    Neighbours : Array<int32>
-    InvEdgeMatrix : Mat3f
 end
 extern class ParticleVolume : VolumeBase
     Texture : Texture

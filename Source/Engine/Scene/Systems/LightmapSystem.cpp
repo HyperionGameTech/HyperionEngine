@@ -12,7 +12,6 @@
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>
 #include <Scene/Entity.hpp>
-#include <Scene/ProbeVolume.hpp>
 #include <Scene/LightmapVolume.hpp>
 
 #include <Core/Memory/Allocator/ThreadAllocator.hpp>

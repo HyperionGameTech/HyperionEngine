@@ -9,7 +9,6 @@
 #include <Scene/View.hpp>
 #include <Scene/Scene.hpp>
 #include <Scene/Light.hpp>
-#include <Scene/ProbeVolume.hpp>
 #include <Scene/EnvProbe.hpp>
 #include <Scene/EntityManager.hpp>
 #include <Scene/EntityTag.hpp>
@@ -727,7 +726,6 @@ void View::BeginAsyncCollection(TaskBatch& batch)
             CollectLightmapVolumes(rpl);
             CollectParticleVolumes(rpl);
             CollectFogVolumes(rpl);
-            CollectProbeVolumes(rpl);
             CollectEnvProbes(rpl);
             CollectSprites(rpl);
             CollectMeshEntities(rpl);
@@ -1394,88 +1392,6 @@ void View::CollectFogVolumes(RenderProxyList& rpl)
             }
 
             rpl.GetFogVolumes().Track(volume->Id(), volume, GET_RESOURCE_VERSION(volume));
-        }
-    }
-}
-
-void View::CollectProbeVolumes(RenderProxyList& rpl)
-{
-    HYP_SCOPE;
-
-    if (flags & ViewFlags::SKIP_PROBE_VOLUMES)
-    {
-        return;
-    }
-
-    for (Scene* scene : m_scenes)
-    {
-        for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<ProbeVolume>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
-        {
-            ProbeVolume* probeVolume = StaticCast<ProbeVolume>(entity);
-
-            const BoundingBox worldBounds = probeVolume->GetWorldBounds();
-
-            if (!worldBounds.IsValid() || !worldBounds.IsFinite())
-            {
-                HYP_LOG(Scene, Warning, "ProbeVolume {} has an invalid AABB in view {}", probeVolume->Id(), Id());
-
-                continue;
-            }
-
-            if (desc.bounds.IsValid() && !desc.bounds.Overlaps(worldBounds))
-            {
-                continue;
-            }
-
-            if (!cachedFrustum.ContainsAABB(worldBounds))
-            {
-                HYP_LOG(Scene, Verbose, "ProbeVolume {} is not in frustum of View {}", probeVolume->Id(), Id());
-
-                continue;
-            }
-
-            bool anyProbeOwnsView = false;
-
-            for (IrradianceProbe* probe : probeVolume->GetProbes())
-            {
-                if (!probe)
-                {
-                    continue;
-                }
-
-                if (desc.flags & ViewFlags::ENV_PROBE_VIEW)
-                {
-                    bool skipProbe = false;
-
-                    // Skip probes that are owners of this view.
-                    for (uint8 envProbeViewIndex = 0; envProbeViewIndex < 6; envProbeViewIndex++)
-                    {
-                        View* envProbeView = probe->GetView(envProbeViewIndex);
-
-                        if (envProbeView == this)
-                        {
-                            skipProbe = true;
-                            break;
-                        }
-                    }
-
-                    if (skipProbe)
-                    {
-                        anyProbeOwnsView = true;
-                        break;
-                    }
-                }
-
-                rpl.GetEnvProbes().Track(probe->Id(), probe, GET_RESOURCE_VERSION(probe));
-            }
-
-            if (anyProbeOwnsView)
-            {
-                // Skip, as to not create circular dependency
-                continue;
-            }
-
-            rpl.GetProbeVolumes().Track(probeVolume->Id(), probeVolume, GET_RESOURCE_VERSION(probeVolume));
         }
     }
 }

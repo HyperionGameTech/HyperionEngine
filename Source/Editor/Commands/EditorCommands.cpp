@@ -9,7 +9,6 @@
 
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>
-#include <Scene/ProbeVolume.hpp>
 #include <Scene/EntityManager.hpp>
 #include <Scene/Light.hpp>
 #include <Scene/EnvProbe.hpp>

@@ -30,7 +30,6 @@ extern EngineStatCounter<uint32> g_statLights;
 extern EngineStatCounter<uint32> g_statLightmapVolumes;
 extern EngineStatCounter<uint32> g_statParticleVolumes;
 extern EngineStatCounter<uint32> g_statEnvProbes;
-extern EngineStatCounter<uint32> g_statProbeVolumes;
 extern EngineStatCounter<uint32> g_statDebugDraws;
 
 extern EngineStatTimer g_statSimUpdate;

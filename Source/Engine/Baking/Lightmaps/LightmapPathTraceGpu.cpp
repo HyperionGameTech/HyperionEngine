@@ -35,7 +35,6 @@
 #include <Scene/World.hpp>
 #include <Scene/EnvProbe.hpp>
 #include <Scene/Light.hpp>
-#include <Scene/ProbeVolume.hpp>
 #include <Scene/View.hpp>
 #include <Scene/EntityManager.hpp>
 #include <Scene/LightmapVolume.hpp>

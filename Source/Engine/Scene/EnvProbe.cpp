@@ -11,7 +11,6 @@
 #include <Scene/World.hpp>
 #include <Scene/Scene.hpp>
 #include <Scene/Light.hpp>
-#include <Scene/ProbeVolume.hpp>
 #include <Scene/EntityManager.hpp>
 
 #include <Rendering/Texture.hpp>
@@ -1078,18 +1077,6 @@ void IrradianceProbe::RecomputeIrradiance()
 void IrradianceProbe::Invalidate(bool forceRerender)
 {
     EnvProbe::Invalidate(forceRerender);
-
-    if (ProbeVolume* volume = GetParentVolume(); volume != nullptr)
-    {
-        // Tell the volume to refresh this probe.
-        // This will ensure that entities that could be affected by the probe's change are updated.
-        volume->RefreshProbe(*this);
-    }
-}
-
-ProbeVolume* IrradianceProbe::GetParentVolume() const
-{
-    return DynamicCast<ProbeVolume>(GetParent());
 }
 
 #pragma endregion IrradianceProbe

@@ -79,7 +79,6 @@ handle IrradianceProbe extends EnvProbe;
 handle FogVolume extends VolumeBase;
 handle LightmapVolume extends VolumeBase;
 handle ParticleVolume extends VolumeBase;
-handle ProbeVolume extends VolumeBase;
 handle Camera extends Entity;
 handle InstancedMeshProxy extends Node;
 handle Bone extends Node;
@@ -239,7 +238,6 @@ struct StreamingCellNeighbor;
 struct String;
 struct StringHash;
 struct TagComponentBase;
-struct Tetrahedron;
 struct TextureDesc;
 struct Time;
 struct TouchEvent;
@@ -602,10 +600,6 @@ extern void Camera_GetUpVector(Camera self, ref Vec3f outReturn);
 extern void Camera_GetSideVector(Camera self, ref Vec3f outReturn);
 extern void Camera_GetTarget(Camera self, ref Vec3f outReturn);
 extern void Camera_GetPixelSize(Camera self, ref Vec2f outReturn);
-
-// ProbeVolume
-// requires: HYP_EDITOR
-extern void ProbeVolume_CreateProbes(ProbeVolume self);
 
 // LightmapVolume
 extern void LightmapVolume_SetName(LightmapVolume self, const Name name);

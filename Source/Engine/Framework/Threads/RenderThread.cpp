@@ -74,6 +74,11 @@ CVar<int> g_cvSkipRenderingWhenIdle("Editor.SkipRenderingWhenIdle", -1);        
 
 static FrameLimiter g_frameLimiter { 0 };
 
+// Effective frame rate cap for the current frame (0 = unlimited), after idle/battery throttling
+// has been folded in. Exposed so other systems (e.g. the debug overlay) can tell whether the
+// frame limiter is actually pacing the frame right now, without duplicating this logic.
+AtomicVar<uint32> g_currentFrameRateLimit { 0 };
+
 static bool g_wasFocused = true;
 
 RenderThread::RenderThread()
@@ -154,6 +159,8 @@ void RenderThread::Update()
             g_wasFocused = true;
         }
     }
+
+    g_currentFrameRateLimit.Set(uint32(MathUtil::Max(targetFrameRate, 0.0f)), MemoryOrder::RELAXED);
 
     { // Execute enqueued tasks
         Array<Scheduler::ScheduledTask, ThreadAllocator> tasks;

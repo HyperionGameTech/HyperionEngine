@@ -23,7 +23,6 @@
 #include <Asset/Assets.hpp>
 
 #include <Scene/EnvProbe.hpp>
-#include <Scene/ProbeVolume.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 
@@ -237,8 +236,6 @@ void Baker<EnvProbe>::OnCompleted_Internal()
     cr << ProcessEnvProbe(new ProcessEnvProbePayload { m_envProbe });
     cr.Done();
 
-    // For irradiance probes, notify the parent ProbeVolume so that affected
-    // entities are tagged for SH re-evaluation.
     m_envProbe->Invalidate(true);
 }
 

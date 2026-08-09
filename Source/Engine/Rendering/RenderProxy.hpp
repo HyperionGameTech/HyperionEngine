@@ -32,7 +32,6 @@ class FogVolume;
 class Material;
 class Skeleton;
 class EnvProbe;
-class ProbeVolume;
 class ShadowMap;
 class InstancedMeshData;
 class Sprite;
@@ -151,19 +150,6 @@ struct RenderProxyEnvProbe : IRenderProxy
     Texture* texture = nullptr;           // baked cubemap texture or prefiltered env
     Texture* visibilityTexture = nullptr; // only relevant if envprobe has HAS_VISIBILITY flag set.
     EnvProbeShaderData bufferData {};
-};
-
-struct ProbeVolumeShaderData
-{
-    // Nothing for now until we add the new env grid (baked)
-
-    Vec4f dummy;
-};
-
-struct RenderProxyProbeVolume : IRenderProxy
-{
-    ProbeVolume* probeVolume = nullptr;
-    ProbeVolumeShaderData bufferData {};
 };
 
 struct ShadowMapData

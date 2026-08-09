@@ -30,7 +30,6 @@ class Texture;
 class View;
 class Light;
 class Camera;
-class ProbeVolume;
 struct RenderProxyEnvProbe;
 
 ENGINE_API extern Pool* g_scenePool;
@@ -369,8 +368,6 @@ class ENGINE_API IrradianceProbe final : public EnvProbe
 {
     HYP_OBJECT_BODY(IrradianceProbe);
 
-    friend class ProbeVolume;
-
 public:
     IrradianceProbe()
         : EnvProbe(EPT_AMBIENT)
@@ -387,11 +384,6 @@ public:
 
     ~IrradianceProbe() override = default;
 
-    HYP_FORCE_INLINE bool IsAttachedToProbeVolume() const
-    {
-        return GetParentVolume() != nullptr;
-    }
-
 #ifdef HYP_EDITOR
     HYP_METHOD(EditorOnly, EditorAction = "Recompute Irradiance")
     void RecomputeIrradiance();
@@ -399,8 +391,6 @@ public:
 
 private:
     void Invalidate(bool forceRerender = false) override;
-
-    ProbeVolume* GetParentVolume() const;
 };
 
 } // namespace Hyperion

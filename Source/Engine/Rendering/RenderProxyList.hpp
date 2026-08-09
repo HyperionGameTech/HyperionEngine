@@ -32,7 +32,6 @@ class Entity;
 class Mesh;
 class EnvProbe;
 class Light;
-class ProbeVolume;
 class LightmapVolume;
 class ParticleVolume;
 class FogVolume;
@@ -45,7 +44,6 @@ struct RenderProxyCamera;
 struct RenderProxyMesh;
 struct RenderProxyEnvProbe;
 struct RenderProxyLight;
-struct RenderProxyProbeVolume;
 struct RenderProxyLightmapVolume;
 struct RenderProxyParticleVolume;
 struct RenderProxyFogVolume;
@@ -77,7 +75,6 @@ public:
         Camera,
         EnvProbe,
         Light,
-        ProbeVolume,
         LightmapVolume,
         ParticleVolume,
         FogVolume,
@@ -92,7 +89,6 @@ public:
         ResourceTracker<AllocatorType, ObjId<Camera>, Camera*, RenderProxyCamera>,
         ResourceTracker<AllocatorType, ObjId<EnvProbe>, EnvProbe*, RenderProxyEnvProbe>,
         ResourceTracker<AllocatorType, ObjId<Light>, Light*, RenderProxyLight>,
-        ResourceTracker<AllocatorType, ObjId<ProbeVolume>, ProbeVolume*, RenderProxyProbeVolume>,
         ResourceTracker<AllocatorType, ObjId<LightmapVolume>, LightmapVolume*, RenderProxyLightmapVolume>,
         ResourceTracker<AllocatorType, ObjId<ParticleVolume>, ParticleVolume*, RenderProxyParticleVolume>,
         ResourceTracker<AllocatorType, ObjId<FogVolume>, FogVolume*, RenderProxyFogVolume>,
@@ -175,7 +171,6 @@ public:
     DEF_RESOURCE_TRACKER_GETTER(Cameras, Camera);
     DEF_RESOURCE_TRACKER_GETTER(EnvProbes, EnvProbe);
     DEF_RESOURCE_TRACKER_GETTER(Lights, Light);
-    DEF_RESOURCE_TRACKER_GETTER(ProbeVolumes, ProbeVolume);
     DEF_RESOURCE_TRACKER_GETTER(LightmapVolumes, LightmapVolume);
     DEF_RESOURCE_TRACKER_GETTER(ParticleVolumes, ParticleVolume);
     DEF_RESOURCE_TRACKER_GETTER(FogVolumes, FogVolume);

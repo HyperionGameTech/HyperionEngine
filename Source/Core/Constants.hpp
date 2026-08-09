@@ -54,7 +54,6 @@ static constexpr uint32 MaxBoundEnvProbes = 16;
 static constexpr uint32 MaxBoundReflectionProbes = 16;
 static constexpr uint32 MaxBoundAmbientProbes = 16;
 static constexpr uint32 MaxBoundSkeletons = 64;
-static constexpr uint32 MaxBoundProbeVolumes = 16;
 static constexpr uint32 MaxBoundOmniShadowMaps = 16;
 static constexpr uint32 MaxBoundLightmapVolumes = 16;
 

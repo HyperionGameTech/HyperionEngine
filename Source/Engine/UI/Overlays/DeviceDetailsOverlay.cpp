@@ -14,10 +14,13 @@
 #include <Framework/DeviceDetails.hpp>
 #include <Framework/EngineStats.hpp>
 #include <Framework/EngineGlobals.hpp>
+#include <Framework/CVarManager.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 
 #include <Core/Math/MathUtil.hpp>
+
+#include <Core/Threading/AtomicVar.hpp>
 
 #include <DeviceDetailsOverlay.generated.inl>
 
@@ -26,6 +29,8 @@ namespace Hyperion {
 extern EngineStatGpuTimer g_statGpuFrameTime;
 extern EngineStatTimer g_statGpuWaitTime;
 extern EngineStatTimer g_statFrameLimiterWait;
+extern CVar<bool> g_cvEnableVSync;
+extern AtomicVar<uint32> g_currentFrameRateLimit;
 
 static String GetRenderingBackendText()
 {
@@ -140,8 +145,11 @@ void DeviceDetailsOverlay::Update_Impl(float delta)
     const float pacedWaitMs = snapshot[g_statGpuWaitTime].avg + snapshot[g_statFrameLimiterWait].avg;
     const float cpuMs = MathUtil::Max(frameMs - pacedWaitMs, 0.0f);
 
-    const bool isFrameRateLocked = gpuMs < frameMs * 0.99f
-        && cpuMs < frameMs * 0.99f;
+    const bool isRateCapped = g_currentFrameRateLimit.Get(MemoryOrder::RELAXED) > 0;
+
+    const bool isFrameRateLocked = (g_cvEnableVSync.Get() || isRateCapped)
+        && gpuMs < frameMs * 0.9f
+        && cpuMs < frameMs * 0.9f;
 
     if (isFrameRateLocked)
     {

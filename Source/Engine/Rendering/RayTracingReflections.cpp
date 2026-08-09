@@ -38,7 +38,6 @@
 #include <Scene/View.hpp>
 #include <Scene/Light.hpp>
 #include <Scene/EnvProbe.hpp>
-#include <Scene/ProbeVolume.hpp>
 
 #include <Core/Utilities/DeferredScope.hpp>
 

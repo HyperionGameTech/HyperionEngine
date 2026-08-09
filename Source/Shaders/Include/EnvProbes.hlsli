@@ -23,11 +23,6 @@ struct EnvProbe
     float4 sh[9];
 };
 
-struct ProbeVolume
-{
-    float4 dummy;
-};
-
 struct SH9
 {
     float3 values[9];

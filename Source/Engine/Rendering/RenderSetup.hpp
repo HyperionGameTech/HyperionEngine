@@ -13,7 +13,6 @@ namespace Hyperion {
 class World;
 class View;
 class EnvProbe;
-class ProbeVolume;
 class Light;
 class VolumeBase;
 class PassData;

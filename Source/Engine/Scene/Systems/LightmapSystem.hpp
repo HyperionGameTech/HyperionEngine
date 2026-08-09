@@ -16,7 +16,6 @@
 namespace Hyperion {
 
 class LightmapVolume;
-class ProbeVolume;
 
 HYP_CLASS(NoScriptBindings, Serialize)
 class LightmapSystem final : public SystemBase
@@ -50,10 +49,7 @@ private:
 
             // used to assign entities to LightmapVolumes
             ComponentDescriptor<BoundingBoxComponent, ComponentAccess::READ> {},
-            ComponentDescriptor<EntityType<LightmapVolume>, ComponentAccess::READ, false> {},
-
-            // For irradiance probes, computing + assigning SH data to LightmapElementComponents
-            ComponentDescriptor<EntityType<ProbeVolume>, ComponentAccess::READ, false> {}
+            ComponentDescriptor<EntityType<LightmapVolume>, ComponentAccess::READ, false> {}
         };
     }
 
