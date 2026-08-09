@@ -133,6 +133,12 @@ void Game::InitializeWorld()
 
 void Game::Shutdown(bool shutdownWorld)
 {
+    if (m_syncContentTask.IsValid())
+    {
+        m_syncContentTask.Await();
+        m_syncContentTask = {};
+    }
+
     if (!m_isInitialized)
     {
         return;
@@ -208,6 +214,12 @@ void Game::SetWorld(const Handle<World>& world)
     if (m_world == world)
     {
         return;
+    }
+    
+    if (m_syncContentTask.IsValid())
+    {
+        m_syncContentTask.Await();
+        m_syncContentTask = {};
     }
 
     const bool isLaunched = IsLaunched();
@@ -582,6 +594,8 @@ void Game::UnregisterInputHandler(InputHandlerBase* inputHandler)
 void Game::AfterContentLoaded()
 {
     AssertOnThread(g_simThread);
+
+    Assert(m_isLaunched.Get(MemoryOrder::ACQUIRE) == false);
     
     InitializeWorld();
 

@@ -239,12 +239,14 @@ void EngineDriver::AddWorld(const Handle<World>& world)
         return;
     }
 
-    world->Initialize();
-
-    if (!m_worlds.Contains(world))
+    if (m_worlds.Contains(world))
     {
-        m_worlds.PushBack(world);
+        return;
     }
+
+    world->Initialize();
+    
+    m_worlds.PushBack(world);
 }
 
 void EngineDriver::RemoveWorld(const World* world)

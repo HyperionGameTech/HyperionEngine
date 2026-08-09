@@ -597,7 +597,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
             {
                 // failed to allocate shadow view - out of slots is most likely cause
                 // skip processing for this light.
-                HYP_LOG_ONCE(Scene, Warning, "Failed to allocate shadow view for light {}, view: {} (id: {})", light->GetName(), GetName(), Id());
+                HYP_LOG(Scene, Warning, "Failed to allocate shadow view for light {}, view: {} (id: {})", light->GetName(), GetName(), Id());
 
                 break;
             }
@@ -634,7 +634,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                 else
                 {
                     // @TODO : Matrix calculations for other light types.
-                    HYP_LOG_ONCE(Scene, Warning, "Shadow matrix calculation not implemented for light type: {}", EnumToString(light->GetLightType()));
+                    HYP_LOG(Scene, Warning, "Shadow matrix calculation not implemented for light type: {}", EnumToString(light->GetLightType()));
 
                     continue;
                 }

@@ -208,6 +208,12 @@ void Entity::OnDetachedFromNode(Node* node)
 
 void Entity::OnAddedToWorld(World* world)
 {
+    EntityManager* entityManager = GetEntityManager();
+
+    if (entityManager)
+    {
+        entityManager->AddTag<EntityTag::UpdateVisibility>(this);
+    }
 }
 
 void Entity::OnRemovedFromWorld(World* world)
