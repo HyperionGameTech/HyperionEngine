@@ -44,9 +44,9 @@ static const ShaderPropertyId s_propForwardShading = InternShaderProperty(Shader
 static const ShaderPropertyId s_propWriteMoments = InternShaderProperty(ShaderProperty(NAME("WRITE_MOMENTS")));
 
 static constexpr EnumFlags<EnvProbeFlags> DefaultEnvProbeFlags[EPT_MAX] {
-    EPF_ORIGIN_FROM_CENTER | EPF_DIFFUSE,                   // sky
-    EPF_ORIGIN_FROM_CENTER | EPF_PARALLAX_CORRECTED,        // reflection
-    EPF_ORIGIN_FROM_CENTER | EPF_VISIBILITY | EPF_DIFFUSE   // irradiance
+    EPF_ORIGIN_FROM_CENTER | EPF_DIFFUSE,                               // sky
+    EPF_ORIGIN_FROM_CENTER | EPF_BAKED | EPF_PARALLAX_CORRECTED,        // reflection
+    EPF_ORIGIN_FROM_CENTER | EPF_BAKED | EPF_VISIBILITY | EPF_DIFFUSE   // irradiance
 };
 
 static constexpr float EnvProbeCameraNearClip = 0.025f;
@@ -104,31 +104,6 @@ EnvProbe::~EnvProbe()
     if (m_texture.IsValid())
     {
         EnqueueDeletion(std::move(m_texture));
-    }
-}
-
-void EnvProbe::SetName(Name name)
-{
-    if (name == m_name)
-    {
-        return;
-    }
-
-    Entity::SetName(name);
-
-    if (m_texture.IsValid())
-    {
-        m_texture->Rename(NAME_FMT("{}_ColorMap", name));
-    }
-
-    if (m_visibilityTexture.IsValid())
-    {
-        m_visibilityTexture->Rename(NAME_FMT("{}_VisibilityMap", name));
-    }
-
-    if (m_camera != nullptr)
-    {
-        m_camera->SetName(NAME_FMT("{}_Capture", name));
     }
 }
 

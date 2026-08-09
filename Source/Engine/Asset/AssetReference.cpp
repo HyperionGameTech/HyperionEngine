@@ -101,10 +101,22 @@ const Handle<AssetObject>& AssetReference::Resolve() const
             return Handle<AssetObject>::Null();
         }
 
+        // TEMP debug
+        if (assetPath.assetName.ToString().StartsWith("reflprobe"))
+        {
+            HYP_LOG(Assets, Info, "reflprobe asset == {}", assetPath.assetName);
+        }
+
         Handle<AssetObject> assetObject = registry->GetAsset(assetPath.GetBucket(), assetPath.assetName);
 
         if (assetObject)
         {
+            // TEMP debug
+            if (assetPath.assetName.ToString().StartsWith("reflprobe"))
+            {
+                HYP_LOG(Assets, Info, "reflprobe asset (obj name) = {}", assetObject->GetName());
+            }
+
             return m_data.Emplace<Handle<AssetObject>>(assetObject);
         }
 

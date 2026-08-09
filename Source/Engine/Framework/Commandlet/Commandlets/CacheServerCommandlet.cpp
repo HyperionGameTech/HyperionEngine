@@ -354,8 +354,7 @@ class CacheServerCommandlet final : public CommandletBase
 
     struct BlobLookupEntry
     {
-        uint32 bucketIndex;
-        Name assetName;
+        AssetPath path;
         const char* magic; // constant string
         uint64 size;
     };
@@ -397,16 +396,21 @@ class CacheServerCommandlet final : public CommandletBase
 
         GlobalContextScope assetRegistryScope { AssetRegistryContext { registry } };
 
-        Array<Handle<AssetObject>> collectedAssets;
+        Set<Handle<AssetObject>> collectedAssets;
 
         auto collectAsset = [&](const Handle<AssetObject>& assetObject)
         {
-            if (!assetObject.IsValid() || assetObject->IsTransient())
+            if (!assetObject.IsValid())
             {
                 return;
             }
 
-            collectedAssets.PushBack(assetObject);
+            if (assetObject->IsTransient())
+            {
+                return;
+            }
+
+            collectedAssets.Add(assetObject);
         };
 
         if (loadAll)
@@ -480,9 +484,9 @@ class CacheServerCommandlet final : public CommandletBase
             assetObject->CollectBlobDataReferences(blobRefs);
 
             AssetEntry assetEntry;
-            assetEntry.registryId = assetPath.registryId;
-            assetEntry.bucketIndex = bucketIndex;
-            assetEntry.name = assetObject->GetName();
+            assetEntry.path = assetPath;
+
+            AssertDebug(assetPath.assetName == assetObject->GetName());
 
             FilePath hmfPath = registry->GetManifestPath(assetPath);
 
@@ -510,8 +514,7 @@ class CacheServerCommandlet final : public CommandletBase
 
                 BlobLookupEntry& entry = blobLookup[key];
                 entry = {};
-                entry.bucketIndex = bucketIndex;
-                entry.assetName = assetEntry.name;
+                entry.path = assetEntry.path;
                 entry.size = ref->size;
                 entry.magic = magic;
             }
@@ -586,9 +589,9 @@ class CacheServerCommandlet final : public CommandletBase
         {
             const AssetEntry& entry = manifest.assets[i];
 
-            if (entry.registryId == registryId
-                && entry.bucketIndex == bucketIndex
-                && entry.name == name)
+            if (entry.path.registryId == registryId
+                && entry.path.bucketIndex == bucketIndex
+                && entry.path.assetName == name)
             {
                 existingIndex = i;
 
@@ -635,10 +638,10 @@ class CacheServerCommandlet final : public CommandletBase
             }
         }
 
+        const AssetPath path { registryId, *AssetBuckets::AllBuckets[bucketIndex], name };
+
         AssetEntry newEntry;
-        newEntry.registryId = registryId;
-        newEntry.bucketIndex = bucketIndex;
-        newEntry.name = name;
+        newEntry.path = path;
 
         FilePath hmfPath = registry->GetManifestPath(assetObject->GetPath());
         if (hmfPath.Exists())
@@ -665,15 +668,14 @@ class CacheServerCommandlet final : public CommandletBase
 
             BlobLookupEntry& lookup = blobLookup[key];
             lookup = {};
-            lookup.bucketIndex = bucketIndex;
-            lookup.assetName = name;
+            lookup.path = path;
             lookup.size = ref->size;
             lookup.magic = tup.GetElement<0>();
         }
 
         if (existingIndex != SIZE_MAX)
         {
-            // Replace in-place — sorted position may have shifted, so
+            // Replace in-place - sorted position may have shifted, so
             // remove and re-insert at the correct position.
             manifest.assets.EraseAt(existingIndex);
         }
@@ -1002,7 +1004,7 @@ protected:
                 // Needed per-thread
                 GlobalContextScope scope { CacheServerContext() };
 
-                const bool preloadAll = (registryId == AssetRegistryId::Engine);
+                const bool preloadAll = true;
 
                 const Handle<AssetRegistry>& registry = (registryId == AssetRegistryId::Engine)
                     ? state.engineRegistry
@@ -1214,8 +1216,8 @@ protected:
                             static const auto s_getBlobPath = [](const BlobLookupEntry& entry, const FilePath& contentDir)
                             {
                                 return contentDir
-                                    / String(GetAssetBucketName(entry.bucketIndex))
-                                    / (entry.assetName.ToString() + "." + entry.magic + ".raw.blob");
+                                    / String(entry.path.GetBucket().GetName())
+                                    / (entry.path.assetName.ToString() + "." + entry.magic + ".raw.blob");
                             };
 
                             FilePath rawBlobPath = s_getBlobPath(entry, state.gameRegistry->GetRootPath());

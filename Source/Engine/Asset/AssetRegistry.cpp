@@ -731,7 +731,9 @@ Handle<AssetObject> AssetRegistry::GetAsset(const AssetBucket& bucket, StringHas
     // Load it into cache
     Handle<AssetObject> assetObject;
 
-    const FilePath manifestPath = GetManifestPath(AssetPath(m_registryId, bucket, Name(name)));
+    const AssetPath assetPath { m_registryId, bucket, Name(name) };
+
+    const FilePath manifestPath = GetManifestPath(assetPath);
     FileByteReader stream { manifestPath };
 
     BoxedValue objectBoxed;
@@ -754,7 +756,7 @@ Handle<AssetObject> AssetRegistry::GetAsset(const AssetBucket& bucket, StringHas
     }
 
     assetObject->m_assetIndex = index;
-    assetObject->m_assetPath = AssetPath(m_registryId, bucket, assetObject->m_name);
+    assetObject->m_assetPath = assetPath;
 
     { // set the asset in cache
         TUniqueLock packageLock(data.mtx);

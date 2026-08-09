@@ -433,11 +433,7 @@ Map<AssetPath, uint64> BuildLocalAssetTimestampMap(const Params& params)
     const ServerManifest& localManifestData = boxed.Get<ServerManifest>();
     for (const AssetEntry& localEntry : localManifestData.assets)
     {
-        AssetPath key(localEntry.registryId,
-            *AssetBuckets::AllBuckets[localEntry.bucketIndex],
-            localEntry.name);
-
-        result[key] = localEntry.lastModifiedTimestamp;
+        result[localEntry.path] = localEntry.lastModifiedTimestamp;
     }
 
     return result;
@@ -554,16 +550,9 @@ Result DownloadCacheFromHost(
 
     for (const AssetEntry& entry : serverManifest.assets)
     {
-        if (!entry.bucketIndex || entry.bucketIndex >= MaxAssetBuckets)
-        {
-            continue;
-        }
-
         const bool isUpToDateLocally = [&]() -> bool
         {
-            AssetPath key(entry.registryId, *AssetBuckets::AllBuckets[entry.bucketIndex], entry.name);
-
-            auto it = localAssetTimestamps.Find(key);
+            auto it = localAssetTimestamps.Find(entry.path);
 
             return it != localAssetTimestamps.End() && it->second >= entry.lastModifiedTimestamp;
         }();
@@ -583,7 +572,7 @@ Result DownloadCacheFromHost(
 
             // Pad by one alignment per blob so the reservation still covers the padding PutData
             // inserts between blobs, wherever in the block the first one happens to land.
-            additionalBlockSizes[entry.bucketIndex] += sizeof(BlobHeader) + blob.size + alignof(BlobHeader);
+            additionalBlockSizes[entry.path.bucketIndex] += sizeof(BlobHeader) + blob.size + alignof(BlobHeader);
         }
     }
 
@@ -611,7 +600,7 @@ Result DownloadCacheFromHost(
     {
         for (const AssetEntry& entry : serverManifest.assets)
         {
-            if (entry.bucketIndex != bucketIndex)
+            if (entry.path.bucketIndex != bucketIndex)
             {
                 continue;
             }
@@ -638,11 +627,6 @@ Result DownloadCacheFromHost(
 
     for (const AssetEntry& entry : serverManifest.assets)
     {
-        if (!entry.bucketIndex || entry.bucketIndex >= MaxAssetBuckets)
-        {
-            continue;
-        }
-
         tasks.EmplaceBack(downloadPool.Enqueue(HYP_STATIC_MESSAGE("CacheSyncAsset"), [&]() -> void
         {
             bool entryFailed = false;
@@ -651,13 +635,13 @@ Result DownloadCacheFromHost(
             {
                 char hmfPathBuf[512];
                 std::snprintf(hmfPathBuf, sizeof(hmfPathBuf), "/hmf/%u/%s?id=%u",
-                    entry.bucketIndex, entry.name.LookupString(),
+                    entry.path.bucketIndex, *entry.path.GetName(),
                     params.registryId);
 
-                FilePath bucketContentDir = params.outputContentDir / String(GetAssetBucketName(entry.bucketIndex));
+                FilePath bucketContentDir = params.outputContentDir / String(entry.path.GetBucket().GetName());
                 bucketContentDir.MkDir();
 
-                FilePath hmfFilePath = bucketContentDir / (entry.name.ToString() + ".hmf");
+                FilePath hmfFilePath = bucketContentDir / (entry.path.assetName.ToString() + ".hmf");
 
                 // Check if the file exists already and has a timestamp >= than the timestamp we know;
                 // if we're downloading for multiple scenes, then it may have been already downloaded.
@@ -674,7 +658,7 @@ Result DownloadCacheFromHost(
                     {
                         if (Result res = HttpGetBytes(host, port, hmfPathBuf, hmfWriter); res.HasError())
                         {
-                            HYP_LOG(CacheClient, Warning, "Failed to download HMF for {}: {}", entry.name, res.GetError().GetMessage());
+                            HYP_LOG(CacheClient, Warning, "Failed to download HMF for {}: {}", entry.path.ToString(), res.GetError().GetMessage());
                         }
 
                         hmfWriter.Close();
@@ -700,7 +684,7 @@ Result DownloadCacheFromHost(
                 if (Result res = HttpGetBytes(host, port, blobPathBuf, blobWriter); res.HasError())
                 {
                     HYP_LOG(CacheClient, Error, "CacheSync failed to download blob key={} for {}: {}",
-                            blob.key, entry.name, res.GetError().GetMessage());
+                            blob.key, entry.path.assetName, res.GetError().GetMessage());
 
                     entryFailed = true;
                     continue;
@@ -712,7 +696,7 @@ Result DownloadCacheFromHost(
                 {
                     HYP_LOG(CacheClient, Warning, "Blob size mismatch! ({} != {}) entry: {}, blob key: {}",
                             blobData.Size(), blob.size,
-                            entry.name, blob.key);
+                            entry.path.assetName, blob.key);
 
                     entryFailed = true;
                     continue;
@@ -727,7 +711,7 @@ Result DownloadCacheFromHost(
                 header.payloadOffset = 0;
                 header.payloadSize = blob.size;
 
-                if (!storage.PutData(entry.bucketIndex, StringHash(blob.key), header, blobData.Data()))
+                if (!storage.PutData(entry.path.bucketIndex, StringHash(blob.key), header, blobData.Data()))
                 {
                     HYP_LOG(CacheClient, Error, "CacheSync PutData failed for blob key={}", blob.key);
                     entryFailed = true;

@@ -2113,9 +2113,7 @@ end
 extern class AudioManager
 end
 extern struct AssetEntry
-    RegistryId : AssetRegistryId
-    BucketIndex : uint32
-    Name : Name
+    Path : AssetPath
     LastModifiedTimestamp : uint64
     Blobs : Array<BlobEntry>
 end
@@ -2216,7 +2214,7 @@ extern class AssetObject
     GetPath() -> AssetPath
     GetAssetFlags() -> AssetObjectFlags
     SetAssetFlags(flags : AssetObjectFlags) -> void
-    SetPersistentRequested(persistentlyLoaded : bool, setFlag : bool, markDirty : bool) -> void
+    SetPersistentRequested(persistentlyLoaded : bool, markDirty : bool) -> void
     IsTransient() -> bool
     SetIsTransient(isTransient : bool) -> void
     IsSaved() -> bool

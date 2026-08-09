@@ -12,6 +12,8 @@
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/String.hpp>
 
+#include <Asset/AssetPath.hpp>
+
 namespace Hyperion {
 
 enum class AssetRegistryId : uint32;
@@ -37,13 +39,7 @@ struct AssetEntry
     HYP_STRUCT_BODY(AssetEntry)
 
     HYP_FIELD()
-    AssetRegistryId registryId;
-
-    HYP_FIELD()
-    uint32 bucketIndex;
-
-    HYP_FIELD()
-    Name name;
+    AssetPath path;
 
     HYP_FIELD()
     uint64 lastModifiedTimestamp;

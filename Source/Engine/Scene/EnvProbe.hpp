@@ -77,8 +77,6 @@ public:
 
     ~EnvProbe();
 
-    void SetName(Name name) override;
-
     HYP_METHOD()
     EnvProbeType GetEnvProbeType() const
     {

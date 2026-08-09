@@ -762,6 +762,7 @@ extern void AssetObject_Rename(AssetObject self, const Name name, ref Result out
 extern void AssetObject_MarkDirty(AssetObject self);
 extern uint AssetObject_GetAssetIndex(AssetObject self);
 extern bool AssetObject_IsRegistered(AssetObject self);
+extern void AssetObject_SetPersistentRequested(AssetObject self, bool persistentlyLoaded, bool markDirty);
 extern bool AssetObject_IsTransient(AssetObject self);
 extern void AssetObject_SetIsTransient(AssetObject self, bool isTransient);
 extern bool AssetObject_IsSaved(AssetObject self);
