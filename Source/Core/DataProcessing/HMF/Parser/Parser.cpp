@@ -1030,8 +1030,7 @@ bool Parser::ParseObjectValue(const TypeInfo& typeInfo, BoxedValue& out)
     const Class* actualClass = declaredClass;
 
     if (Peek().GetTokenClass() == TK_IDENT
-        && (Peek(1).GetTokenClass() == TK_OPEN_BRACE)
-            || (Peek(1).GetTokenClass() == TK_STRING && Peek(2).GetTokenClass() == TK_OPEN_BRACE))
+        && (Peek(1).GetTokenClass() == TK_OPEN_BRACE || (Peek(1).GetTokenClass() == TK_STRING && Peek(2).GetTokenClass() == TK_OPEN_BRACE)))
     {
         Token classToken = Next(); // consume IDENT
         const String& runtimeClassName = classToken.GetValue();
