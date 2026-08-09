@@ -179,13 +179,14 @@ Result AssetObject::Rename(Name name)
 
     if (name == m_name)
     {
-        // same name, do nothing
         return {};
     }
 
-    // @TODO Need to invoke on AssetRegistry, so it updates the AssetDesc
+    const Name oldName = m_name;
 
     m_name = name;
+
+    // Don't sync yet, will happen on save
 
     MarkDirty();
 

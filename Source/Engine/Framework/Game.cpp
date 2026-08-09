@@ -171,6 +171,7 @@ void Game::Shutdown(bool shutdownWorld)
     }
 
     m_isInitialized = false;
+    m_isLaunched.Set(false, MemoryOrder::RELEASE);
 }
 
 void Game::SetAssetRegistry(const Handle<AssetRegistry>& assetRegistry)

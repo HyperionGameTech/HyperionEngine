@@ -127,6 +127,8 @@ public:
     void RemoveAsset(const Handle<AssetObject>& asset);
     void RemoveAsset(const AssetBucket& bucket, StringHash name);
 
+    void SyncAssetName(const AssetBucket& bucket, Name oldName, Name newName);
+
     bool LoadAssetDescs();
 
     void SaveDirtyAssets();

@@ -1259,6 +1259,43 @@ void AssetRegistry::RemoveAsset(const AssetBucket& bucket, StringHash name)
     data.assetObjectCache.EraseAt(index);
 }
 
+void AssetRegistry::SyncAssetName(const AssetBucket& bucket, Name oldName, Name newName)
+{
+    AssetBucketData& data = m_assetBucketData[bucket.GetIndex()];
+
+    TUniqueLock lock(data.mtx);
+
+    auto it = data.assetDescs.Find(StringHash(oldName));
+    if (it == data.assetDescs.End())
+    {
+        return;
+    }
+
+    const uint32 index = it->index;
+
+    data.assetDescs.Erase(it);
+
+    AssetDesc newDesc;
+    newDesc.name = newName;
+    newDesc.index = index;
+    data.assetDescs.Add(std::move(newDesc));
+
+    // Remove old file, leave new file to be written by SaveDirtyAssets
+    const FilePath oldFilePath = GetRootPath() / bucket.GetName() / (oldName.ToString() + ".hmf");
+
+    if (oldFilePath.Exists())
+    {
+        if (!oldFilePath.Remove())
+        {
+            HYP_LOG(Assets, Error, "Failed to remove file {}", oldFilePath);
+
+            return;
+        }
+    }
+
+    HYP_LOG(Assets, Info, "Synced asset name '{}' -> '{}' in bucket '{}'", oldName, newName, bucket.GetName());
+}
+
 bool AssetRegistry::LoadAssetDescs()
 {
     const FilePath rootPath = GetRootPath();
@@ -1491,6 +1528,46 @@ void AssetRegistry::SaveDirtyAssets()
                 manifestWriter.Close();
 
                 HYP_LOG(Assets, Verbose, "Saved asset manifest for '{}' to '{}'", assetName, manifestPath);
+
+                // If the content name differs from the file-system name that the
+                // AssetDesc was registered under, sync the AssetDesc and clean up
+                // the old file so future lookups use the content name.
+                {
+                    const Name oldFsName = assetObject->m_assetPath.assetName;
+                    const Name contentName = assetName;
+
+                    if (oldFsName.IsValid() && oldFsName != contentName)
+                    {
+                        TUniqueLock syncLock(data.mtx);
+
+                        auto oldDescIt = data.assetDescs.Find(StringHash(oldFsName));
+
+                        if (oldDescIt != data.assetDescs.End() && oldDescIt->name != contentName)
+                        {
+                            const uint32 savedIndex = oldDescIt->index;
+                            const FilePath oldPath = bucketDir / (oldFsName.ToString() + ".hmf");
+
+                            data.assetDescs.Erase(oldDescIt);
+
+                            if (oldPath != manifestPath && oldPath.Exists())
+                            {
+                                if (!oldPath.Remove())
+                                {
+                                    HYP_LOG(Assets, Error, "Failed to remove file {}", oldPath);
+                                }
+                            }
+
+                            AssetDesc newDesc;
+                            newDesc.name = contentName;
+                            newDesc.index = savedIndex;
+                            data.assetDescs.Add(std::move(newDesc));
+
+                            assetObject->m_assetPath = AssetPath(m_registryId, *AssetBuckets::AllBuckets[bucketIndex], contentName);
+
+                            HYP_LOG(Assets, Info, "Synced asset name from '{}' to '{}'", oldFsName, contentName);
+                        }
+                    }
+                }
             }
         }
     }

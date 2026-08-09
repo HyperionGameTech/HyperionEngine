@@ -52,6 +52,7 @@ public:
     // Needed so BlobStorageCookCommandlet (Framework/Commandlet/Commandlets/BlobStorageCookCommandlet.cpp)
     // can walk blob data references directly when building the cooked cache.
     friend class BlobStorageCookCommandlet;
+    friend class AssetRegistry;
 
     AssetObject();
     explicit AssetObject(Name name);
