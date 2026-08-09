@@ -75,6 +75,7 @@ static EngineStatTimer s_statVulkanFrameSync("Rendering/Vulkan/FrameSync");
 
 extern EngineStatGpuTimer g_statGpuFrameTime;
 extern EngineStatTimer g_statTotalStallTime;
+extern EngineStatTimer g_statGpuWaitTime;
 
 enum VulkanDescriptorPoolRequirements : uint8
 {
@@ -866,6 +867,7 @@ void VulkanRenderInterface::PrepareFrame(VulkanFrame* frame)
     {
         ENGINE_STAT_SCOPE(&s_statVulkanFrameSync);
         ENGINE_STAT_SCOPE(&g_statTotalStallTime);
+        ENGINE_STAT_SCOPE(&g_statGpuWaitTime);
 
         if (frame->IsUsingTimelineSemaphore())
         {

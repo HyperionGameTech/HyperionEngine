@@ -132,6 +132,7 @@ static EngineStatTimer s_statResourceBindings("Rendering/CPU/ResourceBindings");
 static EngineStatTimer s_statBuildDrawCalls("Rendering/CPU/BuildDrawCalls");
 
 EngineStatGpuTimer g_statGpuFrameTime("Rendering/GPU/FrameTime");
+EngineStatTimer g_statGpuWaitTime("Rendering/GPU/WaitForGpu");
 
 static EngineStatTimer s_statViewDataAllocTime("Rendering/ViewData/AllocTime", /* resetPerFrame */ false);
 

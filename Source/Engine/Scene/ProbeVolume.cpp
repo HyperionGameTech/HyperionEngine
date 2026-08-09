@@ -559,7 +559,6 @@ void ProbeVolume::RefreshProbe(IrradianceProbe& probe)
 
     for (Entity* entity : overlappingEntities)
     {
-        entity->AddTag<EntityTag::UpdateSphericalHarmonicsData>();
         entity->AddTag<EntityTag::UpdateRenderProxy>();
 
         if (entity->HasComponent<LightmapElementComponent>())

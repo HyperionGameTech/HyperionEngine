@@ -574,8 +574,6 @@ bool MemoryMappedFile::Resize(size_t newSize)
         return true;
     }
 
-    Assert(newSize <= INT32_MAX);
-
 #if HYP_WINDOWS
     if (m_impl->mappingHandle != nullptr)
     {

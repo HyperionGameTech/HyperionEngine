@@ -81,8 +81,6 @@ void LightmapSystem::OnEntityAdded(Entity* entity)
                     entity->GetName());
         }
     }
-
-    entity->AddTag<EntityTag::UpdateSphericalHarmonicsData>();
 }
 
 void LightmapSystem::OnEntityRemoved(Entity* entity)

@@ -53,6 +53,9 @@
 namespace Hyperion {
 
 extern EngineStatTimer g_statRenderUpdate;
+extern EngineStatTimer g_statTotalStallTime;
+
+EngineStatTimer g_statFrameLimiterWait("Rendering/CPU/FrameLimiterWait");
 
 extern ThreadSignal g_renderInitSignal;
 
@@ -298,6 +301,10 @@ void RenderThread::Update()
     if (targetFrameRate > 0.0f)
     {
         g_frameLimiter.SetTargetFPS(static_cast<int>(targetFrameRate));
+
+        ENGINE_STAT_SCOPE(&g_statFrameLimiterWait);
+        ENGINE_STAT_SCOPE(&g_statTotalStallTime);
+
         g_frameLimiter.Wait();
     }
 }

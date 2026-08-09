@@ -52,7 +52,7 @@ private:
     Handle<UIText> m_fpsText;
     Handle<UIText> m_renderingBackendText;
     Handle<UIText> m_gpuModelText;
-    Handle<UIText> m_gpuTypeText;
+    Handle<UIText> m_boundStatusText;
 };
 
 } // namespace Hyperion

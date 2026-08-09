@@ -64,6 +64,7 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 extern EngineStatGpuTimer g_statGpuFrameTime;
 
 extern EngineStatTimer g_statTotalStallTime;
+extern EngineStatTimer g_statGpuWaitTime;
 
 // @TODO Make these flags configurable
 #define HYP_DX12_ENABLE_DEBUG_LAYER
@@ -642,6 +643,7 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
             DWORD waitResult;
             {
                 ENGINE_STAT_SCOPE(&g_statTotalStallTime);
+                ENGINE_STAT_SCOPE(&g_statGpuWaitTime);
                 waitResult = WaitForSingleObject(m_frameFenceEvent, INFINITE);
             }
             if (waitResult != WAIT_OBJECT_0)

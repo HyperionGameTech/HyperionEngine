@@ -541,8 +541,7 @@ void Entity::OnTransformUpdated()
 
     entityManager->AddTags<
         EntityTag::UpdateVisibility,
-        EntityTag::UpdateRenderProxy,
-        EntityTag::UpdateSphericalHarmonicsData>(this);
+        EntityTag::UpdateRenderProxy>(this);
 }
 
 void Entity::OnMobilityChanged(bool isStatic)

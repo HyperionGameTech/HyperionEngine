@@ -23,6 +23,10 @@
 
 namespace Hyperion {
 
+extern EngineStatGpuTimer g_statGpuFrameTime;
+extern EngineStatTimer g_statGpuWaitTime;
+extern EngineStatTimer g_statFrameLimiterWait;
+
 static String GetRenderingBackendText()
 {
 #if HYP_VULKAN
@@ -95,18 +99,16 @@ Handle<UIObject> DeviceDetailsOverlay::CreateUIObject_Impl(UIObject* spawnParent
     m_gpuModelText->SetText(device.GetGpuModel());
     m_panel->AddChildUIObject(m_gpuModelText);
 
-    m_gpuTypeText = m_panel->CreateUIObject<UIText>(
+    m_boundStatusText = m_panel->CreateUIObject<UIText>(
         Vec2i::Zero(),
         UIObjectSize(UIObjectSize::AUTO));
 
-    m_gpuTypeText->SetTextSize(13.0f);
-    m_gpuTypeText->SetTextColor(Color(0.7f, 0.7f, 0.7f, 1.0f));
-    m_gpuTypeText->SetPadding(Vec2i(10, 0));
+    m_boundStatusText->SetTextSize(13.0f);
+    m_boundStatusText->SetTextColor(Color(0.7f, 0.7f, 0.7f, 1.0f));
+    m_boundStatusText->SetPadding(Vec2i(10, 0));
+    m_boundStatusText->SetText("");
 
-    // dedicated or integrated?
-    m_gpuTypeText->SetText(device.IsDiscreteGpu() ? String("[D]") : String("[I]"));
-
-    m_panel->AddChildUIObject(m_gpuTypeText);
+    m_panel->AddChildUIObject(m_boundStatusText);
 
     panelBackdrop->AddChildUIObject(m_panel);
 
@@ -132,6 +134,27 @@ void DeviceDetailsOverlay::Update_Impl(float delta)
     }
 
     m_fpsText->SetText(String(fpsStr));
+
+    const float frameMs = snapshot[StatIdMsPerFrame].avg;
+    const float gpuMs = snapshot[g_statGpuFrameTime].avg;
+    const float pacedWaitMs = snapshot[g_statGpuWaitTime].avg + snapshot[g_statFrameLimiterWait].avg;
+    const float cpuMs = MathUtil::Max(frameMs - pacedWaitMs, 0.0f);
+
+    const bool isFrameRateLocked = gpuMs < frameMs * 0.99f
+        && cpuMs < frameMs * 0.99f;
+
+    if (isFrameRateLocked)
+    {
+        m_boundStatusText->SetText("LOCKED");
+    }
+    else if (gpuMs >= cpuMs)
+    {
+        m_boundStatusText->SetText("GPU BOUND");
+    }
+    else
+    {
+        m_boundStatusText->SetText("CPU BOUND");
+    }
 }
 
 #pragma endregion
