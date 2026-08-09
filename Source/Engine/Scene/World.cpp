@@ -154,7 +154,6 @@ void World::Initialize()
             | ViewFlags::ALL_WORLD_SCENES | ViewFlags::COLLECT_ALL_ENTITIES
             | ViewFlags::SKIP_LIGHTS
             | ViewFlags::SKIP_LIGHTMAP_VOLUMES
-            | ViewFlags::SKIP_PROBE_VOLUMES
             | ViewFlags::SKIP_ENV_PROBES
             | ViewFlags::SKIP_CAMERAS
             | ViewFlags::SKIP_FOG_VOLUMES

@@ -61,7 +61,7 @@ Handle<UIObject> DeviceDetailsOverlay::CreateUIObject_Impl(UIObject* spawnParent
     Handle<UIPanel> panelBackdrop = spawnParent->CreateUIObject<UIPanel>(
         NAME_FMT("DeviceDetailsOverlay_PanelBackdrop"),
         Vec2i(2, 2),
-        UIObjectSize({ 420, UIObjectSize::PIXEL }, { 30, UIObjectSize::PIXEL }));
+        UIObjectSize({ 430, UIObjectSize::PIXEL }, { 30, UIObjectSize::PIXEL }));
 
     panelBackdrop->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.7f));
     panelBackdrop->SetPadding(Vec2i(10, 5));
@@ -83,6 +83,16 @@ Handle<UIObject> DeviceDetailsOverlay::CreateUIObject_Impl(UIObject* spawnParent
     m_fpsText->SetTextColor(Color(1.0f, 0.9f, 0.2f, 1.0f));
     m_fpsText->SetPadding(Vec2i(10, 0));
     m_panel->AddChildUIObject(m_fpsText);
+    
+    m_boundStatusText = m_panel->CreateUIObject<UIText>(
+        Vec2i::Zero(),
+        UIObjectSize(UIObjectSize::AUTO));
+    m_boundStatusText->SetTextSize(13.0f);
+    m_boundStatusText->SetTextColor(Color(0.7f, 0.7f, 0.7f, 1.0f));
+    m_boundStatusText->SetPadding(Vec2i(10, 0));
+    m_boundStatusText->SetText("");
+
+    m_panel->AddChildUIObject(m_boundStatusText);
 
     m_renderingBackendText = m_panel->CreateUIObject<UIText>(
         Vec2i::Zero(),
@@ -103,17 +113,6 @@ Handle<UIObject> DeviceDetailsOverlay::CreateUIObject_Impl(UIObject* spawnParent
     m_gpuModelText->SetPadding(Vec2i(10, 0));
     m_gpuModelText->SetText(device.GetGpuModel());
     m_panel->AddChildUIObject(m_gpuModelText);
-
-    m_boundStatusText = m_panel->CreateUIObject<UIText>(
-        Vec2i::Zero(),
-        UIObjectSize(UIObjectSize::AUTO));
-
-    m_boundStatusText->SetTextSize(13.0f);
-    m_boundStatusText->SetTextColor(Color(0.7f, 0.7f, 0.7f, 1.0f));
-    m_boundStatusText->SetPadding(Vec2i(10, 0));
-    m_boundStatusText->SetText("");
-
-    m_panel->AddChildUIObject(m_boundStatusText);
 
     panelBackdrop->AddChildUIObject(m_panel);
 

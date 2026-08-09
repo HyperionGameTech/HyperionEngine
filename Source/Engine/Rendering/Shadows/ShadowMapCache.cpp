@@ -53,7 +53,7 @@ static constexpr float DepthBiasScaleFactor[MaxShadowMapCascades] = {
 static constexpr EnumFlags<ViewFlags> DefaultShadowViewFlags = ViewFlags::SHADOW_VIEW
     | ViewFlags::SKIP_LIGHTS | ViewFlags::SKIP_CAMERAS
     | ViewFlags::SKIP_LIGHTMAP_VOLUMES | ViewFlags::SKIP_PARTICLE_VOLUMES | ViewFlags::SKIP_FOG_VOLUMES
-    | ViewFlags::SKIP_ENV_PROBES | ViewFlags::SKIP_PROBE_VOLUMES;
+    | ViewFlags::SKIP_ENV_PROBES;
 
 static const ShaderPropertyId s_propModeShadows = InternShaderProperty(ShaderProperty(NAME("MODE_SHADOWS")));
 

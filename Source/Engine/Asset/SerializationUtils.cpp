@@ -2871,14 +2871,37 @@ Result BoxedToHMFImpl(
 
         const bool needClassPrefix = opts.writeClassNamesForPolymorphic;
 
+        bool hasNameProperty = false;
+
         if (needClassPrefix)
         {
             outText += valueClass->GetName().LookupString();
+
+            // Instance name. Write after the class name if valid.
+            // E.g `Object "Foo"`
+            if (Property* nameProp = valueClass->GetProperty("Name"_sh))
+            {
+                hasNameProperty = true;
+
+                BoxedValue nameValue = nameProp->Get(value);
+
+                if (nameValue.Is<Name>())
+                {
+                    Name name = nameValue.Get<Name>();
+
+                    if (name.IsValid())
+                    {
+                        outText += " ";
+                        EscapeString(outText, name.LookupString());
+                    }
+                }
+            }
+
             outText += " ";
         }
 
         String objectText;
-        ObjectToHMFImpl(valueClass, value, objectText, opts, indent + 1);
+        ObjectToHMFImpl(valueClass, value, objectText, opts, indent + 1, hasNameProperty);
 
         if (objectText.Trimmed().Empty())
         {
