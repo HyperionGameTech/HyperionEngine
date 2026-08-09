@@ -82,6 +82,7 @@
 
 #include <System/AppContext.hpp>
 #include <System/DirectoryInitializer.hpp>
+#include <System/MessageBox.hpp>
 
 #include <HyperionEngine.hpp>
 
@@ -95,6 +96,8 @@ namespace Hyperion {
 void HandleExit();
 void HandleSignal(int signum);
 
+#pragma region Stats
+
 EngineStatTimer g_statRenderUpdate("RenderThread");
 
 static EngineStatTimer s_statViewCollection("Sim/ViewCollection");
@@ -102,10 +105,16 @@ static EngineStatTimer s_statViewCollection("Sim/ViewCollection");
 static EngineStatCounter<uint32> s_statViewsCollected("Sim/ViewsCollected");
 static EngineStatCounter<uint32> s_statViewsSkipped("Sim/ViewsSkipped");
 
+#pragma endregion Stats
+
+#pragma region CVars
+
 ThreadSignal g_renderInitSignal { 0 };
 
 // We generally don't have more than 3 Systems running concurrently
 CVar<uint32> g_cvNumForegroundWorkerThreads("Threads.NumForegroundWorkers", 3);
+
+#pragma endregion CVars
 
 #pragma region ForegroundWorkerPool
 
@@ -412,14 +421,48 @@ void EngineDriver::LoadEngineContent()
         AssetRegistryId::Engine,
         EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Engine")>());
 
-    Task<void> syncContentTask;
-    engineRegistry->Initialize(&syncContentTask);
+    ProcRef<void()> doSync;
 
-    if (syncContentTask.IsValid())
+    auto doSyncImpl = [&]()
     {
-        HYP_LOG(Assets, Info, "Syncing engine content...");
-        syncContentTask.Await();
-    }
+        Task<Result> syncContentTask;
+        engineRegistry->Initialize(&syncContentTask);
+
+        if (syncContentTask.IsValid())
+        {
+            HYP_LOG(Assets, Info, "Syncing engine content...");
+            Result syncResult = syncContentTask.Await();
+
+            if (syncResult.HasError())
+            {
+                bool clickedRetry = false;
+                bool clickedExit = false;
+
+                CacheClient::SyncFailed(syncResult.GetError(), clickedRetry, clickedExit);
+
+                if (clickedExit)
+                {
+                    // exit the process
+                    std::terminate();
+                    return;
+                }
+
+                if (clickedRetry)
+                {
+                    HYP_LOG(Assets, Info, "Retrying engine content sync");
+
+                    syncContentTask = {};
+                
+                    doSync();
+
+                    return;
+                }
+            }
+        }
+    };
+
+    doSync = doSyncImpl;
+    doSync();
 
     SetEngineAssetRegistry(engineRegistry);
 }

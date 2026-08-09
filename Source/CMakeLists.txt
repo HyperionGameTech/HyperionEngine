@@ -1160,7 +1160,7 @@ add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
 
 add_subdirectory(Sample)
 
-if(NOT HYP_SHIPPING)
+if(NOT HYP_SHIPPING AND NOT HYP_ANDROID AND NOT HYP_IOS)
   add_subdirectory(Commandlets)
 endif()
 

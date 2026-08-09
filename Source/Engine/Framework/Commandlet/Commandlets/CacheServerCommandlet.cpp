@@ -245,7 +245,9 @@ public:
     {
         m_inotifyFd = inotify_init1(IN_NONBLOCK);
         if (m_inotifyFd < 0)
+        {
             return;
+        }
 
         m_watchFd = inotify_add_watch(m_inotifyFd, dirPath.Data(),
             IN_MODIFY | IN_CREATE | IN_DELETE | IN_MOVE);
@@ -254,6 +256,7 @@ public:
         {
             close(m_inotifyFd);
             m_inotifyFd = -1;
+
             return;
         }
 
@@ -275,7 +278,9 @@ public:
         }
 
         if (m_thread.joinable())
+        {
             m_thread.join();
+        }
 
         if (m_inotifyFd >= 0)
         {
@@ -308,22 +313,30 @@ private:
             int ret = poll(fds, 2, 2000);
 
             if (ret <= 0)
+            {
                 continue;
+            }
 
             if (fds[1].revents & POLLIN)
+            {
                 break;
+            }
 
             if (!(fds[0].revents & POLLIN))
+            {
                 continue;
+            }
 
             int len = read(m_inotifyFd, buffer, sizeof(buffer));
             if (len <= 0)
+            {
                 continue;
+            }
 
             int offset = 0;
             while (offset < len)
             {
-                struct inotify_event** event = reinterpret_cast<struct inotify_event*>(buffer + offset);
+                struct inotify_event* event = reinterpret_cast<struct inotify_event*>(buffer + offset);
 
                 if (event->len > 0)
                 {

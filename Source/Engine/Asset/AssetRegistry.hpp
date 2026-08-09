@@ -143,7 +143,7 @@ public:
 
     /*! \param outSyncContentTask if not nullptr, will attempt to download cache from url pointed to at CacheServer CLI arg
      *      The Task itself will be set to a task that on completes indicates the download has completed. */
-    void Initialize(Task<void>* outSyncContentTask = nullptr);
+    void Initialize(Task<Result>* outSyncContentTask = nullptr);
     void Shutdown();
 
     /*! \brief Called by AssetManager to perform enqueued tasks that mutate the registry. */

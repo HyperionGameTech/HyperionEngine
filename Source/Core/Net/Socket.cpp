@@ -679,10 +679,6 @@ void SocketServerThread::operator()(SocketServer* server)
         Array<SharedPtr<SocketClient>, NetAllocator> disconnectedConnections;
 
         { // Check for incoming data
-            // Snapshot the connection list under the map lock, then release it before touching
-            // any socket -- Flush()/Receive() are protected per-connection by each SocketClient's
-            // own m_ioMutex, so holding the map lock for the whole pass would only serialize
-            // Send() (from worker threads) behind however many connections there are, for no reason.
             Array<SharedPtr<SocketClient>, NetAllocator> connectionsSnapshot;
 
             {

@@ -11,6 +11,8 @@
 
 #include <Core/FileSystem/FilePath.hpp>
 
+#include <Core/Utilities/Result.hpp>
+
 namespace Hyperion {
 
 enum class AssetRegistryId : uint32;
@@ -22,9 +24,12 @@ struct Params
     AssetRegistryId registryId;
     FilePath outputCacheDir;
     FilePath outputContentDir;
+
+    int numAttempts = 1;
 };
 
-ENGINE_API void SyncContent(const Params& params, bool shouldRetry);
+ENGINE_API Result SyncContent(const Params& params);
+ENGINE_API void SyncFailed(const Error& error, bool& outClickedRetry, bool& outClickedExit);
 
 } // namespace CacheClient
 } // namespace Hyperion

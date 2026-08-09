@@ -46,7 +46,7 @@ private:
 WebSocket::WebSocket(const String &url)
     : m_url(url)
 {
-#if defined(HYP_CURL) && HYP_CURL
+#ifdef HYP_CURL
     m_thread = MakeUnique<WebSocketThread>(this);
     static_cast<WebSocketThread*>(m_thread.Get())->Start();
 
@@ -59,7 +59,7 @@ WebSocket::WebSocket(const String &url)
         WebSocketThreadProc();
     }, TaskEnqueueFlags::FIRE_AND_FORGET);
 #else
-    HYP_LOG(Net, Error, "cURL is not enabled in this build");
+    HYP_LOG(Net, Error, "CURL is not enabled in this build");
 #endif
 }
 
@@ -102,6 +102,7 @@ void WebSocket::WebSocketThreadProc()
 
     HYP_LOG(Net, Info, "WebSocket thread started");
 
+#ifdef HYP_CURL
     CURL *curl = curl_easy_init();
 
     auto Ping = [=](CURL *curl, const char *payload)
@@ -208,6 +209,7 @@ void WebSocket::WebSocketThreadProc()
 
         curl_easy_cleanup(curl);
     }
+#endif // HYP_CURL
 }
 
 #pragma endregion WebSocket

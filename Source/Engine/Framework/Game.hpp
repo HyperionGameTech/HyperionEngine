@@ -13,10 +13,12 @@
 
 #include <Core/Threading/Task.hpp>
 
-#include <Scripting/ScriptableDelegate.hpp>
+#include <Core/Utilities/Result.hpp>
 
 #include <Core/Defines.hpp>
 #include <Core/Util.hpp>
+
+#include <Scripting/ScriptableDelegate.hpp>
 
 namespace Hyperion {
 
@@ -169,7 +171,7 @@ protected:
 
     Array<Handle<InputHandlerBase>> m_inputHandlers;
 
-    Task<void> m_syncContentTask;
+    Task<Result> m_syncContentTask;
 
     bool m_assetRegistryActive;
     bool m_isInitialized;

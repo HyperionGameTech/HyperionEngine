@@ -2,11 +2,13 @@
 setlocal EnableDelayedExpansion
 
 set "SKIP_PRECOMPILE=0"
+set "COOK_ASSETS=0"
 set "PROJECT_NAME="
 
 :PARSE_ARGS
 IF "%~1"=="" GOTO END_PARSE_ARGS
 IF /I "%~1"=="--skip-precompile" set "SKIP_PRECOMPILE=1"
+IF /I "%~1"=="--cook" set "COOK_ASSETS=1"
 IF /I "%~1"=="--project" (
     set "PROJECT_NAME=%~2"
     SHIFT
@@ -39,6 +41,10 @@ REM Commandlets can't run on-device, and aren't built for shipping anyway, so sh
 REM precompilation and cooking use the Windows host tools ^(built via a normal Release build^).
 set "BIN_DIR_RELEASE=%HYP_ROOT_DIR%Binaries\Windows\Release"
 
+for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "Get-Date -Format 'yyyyMMdd_HHmmss'"`) do set "TIMESTAMP=%%i"
+set "OUT_DIR=%HYP_ROOT_DIR%PackagedBuilds\Android\Build_%TIMESTAMP%"
+if not exist "%OUT_DIR%" mkdir "%OUT_DIR%"
+
 if "%SKIP_PRECOMPILE%"=="1" (
     echo Skipping shader precompilation.
 ) else (
@@ -46,37 +52,43 @@ if "%SKIP_PRECOMPILE%"=="1" (
     "%BIN_DIR_RELEASE%\PrecompileShaders.exe" --platform=android
 )
 
-echo Running Cook commandlet...
+if "%COOK_ASSETS%"=="0" (
+    echo Skipping asset cook ^(pass --cook to bundle content into the APK^).
+    echo The app will sync content from a CacheServer at runtime instead - see DeployAndroid.bat --cache-server.
+) else (
+    echo Running Cook commandlet...
 
-REM Get the project name input from user, pass it concat with Projects/ below:
-if "%PROJECT_NAME%"=="" set /p "PROJECT_NAME=Enter the project name (folder under Projects/): "
-if "%PROJECT_NAME%"=="" (
-    echo No project name entered, aborting packaged build.
-    exit /b 1
-)
+    REM Get the project name input from user, pass it concat with Projects/ below:
+    if "%PROJECT_NAME%"=="" set /p "PROJECT_NAME=Enter the project name (folder under Projects/): "
+    if "%PROJECT_NAME%"=="" (
+        echo No project name entered, aborting packaged build.
+        exit /b 1
+    )
 
-for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "Get-Date -Format 'yyyyMMdd_HHmmss'"`) do set "TIMESTAMP=%%i"
-set "OUT_DIR=%HYP_ROOT_DIR%PackagedBuilds\Android\Build_%TIMESTAMP%"
-if not exist "%OUT_DIR%" mkdir "%OUT_DIR%"
+    echo Cooking project: %PROJECT_NAME%
 
-echo Cooking project: %PROJECT_NAME%
-
-REM Content is written next to whatever --CacheDir resolves to (EngineGlobals::GetCacheDirectory()
-REM .BasePath() / "Content"), so pointing CacheDir at OUT_DIR\Cache lands both Cache and Content
-REM directly in the package dir - no separate Content copy step needed.
-"%BIN_DIR_RELEASE%\BlobStorageCookCommandlet.exe" --content=Projects/%PROJECT_NAME% --CacheDir=%OUT_DIR%\Cache
-if errorlevel 1 (
-    echo Cook commandlet failed, aborting packaged build.
-    exit /b 1
+    REM Content is written next to whatever --CacheDir resolves to (EngineGlobals::GetCacheDirectory()
+    REM .BasePath() / "Content"), so pointing CacheDir at OUT_DIR\Cache lands both Cache and Content
+    REM directly in the package dir - no separate Content copy step needed.
+    "%BIN_DIR_RELEASE%\BlobStorageCookCommandlet.exe" --content=Projects/%PROJECT_NAME% --CacheDir=%OUT_DIR%\Cache
+    if errorlevel 1 (
+        echo Cook commandlet failed, aborting packaged build.
+        exit /b 1
+    )
 )
 
 echo Assembling package directory...
 
 echo Copying config files...
+
+if not exist "%OUT_DIR%\Config" mkdir "%OUT_DIR%\Config"
+
 REM Prefer the Android-specific variant of each config (EngineConfig.Android.json etc.),
 REM falling back to the platform-agnostic file, and write everything under the base name -
 REM this mirrors what CopyPlatformConfigs.cmake does for the desktop targets.
+
 set "KNOWN_PLATFORMS=IOS Android Windows Mac Linux"
+
 for %%F in ("%HYP_ROOT_DIR%Config\*.json") do (
     set "FN=%%~nxF"
     set "SKIP=0"
@@ -94,16 +106,15 @@ for %%F in ("%HYP_ROOT_DIR%Config\*.json") do (
         ) else (
             set "PLATFORM_FILE=%HYP_ROOT_DIR%Config\!FN:.json=.Android.json!"
             if exist "!PLATFORM_FILE!" (
-                copy "!PLATFORM_FILE!" "%OUT_DIR%\!FN!" >nul
+                copy "!PLATFORM_FILE!" "%OUT_DIR%\Config\!FN!" >nul
             ) else (
-                copy "%%F" "%OUT_DIR%\!FN!" >nul
+                copy "%%F" "%OUT_DIR%\Config\!FN!" >nul
             )
         )
     )
 )
 
 echo Copying Shaders.hmf...
-if not exist "%OUT_DIR%\Config" mkdir "%OUT_DIR%\Config"
 copy "%HYP_ROOT_DIR%Config\Shaders.hmf" "%OUT_DIR%\Config\" >nul
 
 set "ANDROID_PROJECT=%HYP_ROOT_DIR%Source\PlatformSpecific\Android"

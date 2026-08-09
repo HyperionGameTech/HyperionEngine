@@ -631,11 +631,31 @@ void Game::OnUpdate_Impl(float delta)
     {
         if (m_syncContentTask.IsCompleted())
         {
-            m_syncContentTask.Await();
-
-            AfterContentLoaded();
-
+            Result res = m_syncContentTask.Await();
             m_syncContentTask = {};
+
+            if (res.HasError())
+            {
+                bool clickedRetry = false;
+                bool clickedExit = false;
+
+                CacheClient::SyncFailed(res.GetError(), clickedRetry, clickedExit);
+
+                if (clickedExit)
+                {
+                    std::terminate();
+                    return;
+                }
+
+                if (clickedRetry)
+                {
+                    m_assetRegistry->Initialize(&m_syncContentTask);
+                }
+            }
+            else
+            {
+                AfterContentLoaded();
+            }
         }
     }
 }

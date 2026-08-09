@@ -31,6 +31,8 @@
 #include <Core/Utilities/ByteUtil.hpp>
 #include <Core/Math/MathUtil.hpp>
 
+#include <System/MessageBox.hpp>
+
 #if defined(HYP_UNIX) || defined(HYP_ANDROID)
 
 #include <unistd.h>
@@ -745,7 +747,7 @@ Result DownloadCacheFromHost(
     // next run reads it back, treats the assets that failed as up to date, and never retries them.
     if (const int32 numFailures = failureCount.Get(MemoryOrder::RELAXED); numFailures != 0)
     {
-        return HYP_MAKE_ERROR(Error, "CacheSync failed to fetch {} of {} assets",
+        HYP_LOG(CacheClient, Warning, "CacheSync failed to fetch {} of {} assets",
             numFailures, serverManifest.assets.Size());
     }
 
@@ -765,9 +767,11 @@ Result DownloadCacheFromHost(
 
 } // anonymous
 
-HYP_EXPORT void SyncContent(const Params& params, bool shouldRetry)
+HYP_EXPORT Result SyncContent(const Params& params)
 {
-    static constexpr int MaxAttempts = 5;
+    const int maxAttempts = MathUtil::Max(params.numAttempts, 1);
+    const bool shouldRetry = maxAttempts > 1;
+
     int numAttempts = 0;
 
     // If cache server is set, download cache from there to build out ours.
@@ -777,8 +781,7 @@ HYP_EXPORT void SyncContent(const Params& params, bool shouldRetry)
 
         if (colonPos == String::NotFound)
         {
-            HYP_LOG(CacheClient, Error, "Invalid cache server address: {}", cacheServer);
-            return;
+            return HYP_MAKE_ERROR(Error, "Invalid cache server address: {}", cacheServer);
         }
 
         ANSIStringView host = cacheServer.Substr(0, colonPos);
@@ -799,14 +802,18 @@ HYP_EXPORT void SyncContent(const Params& params, bool shouldRetry)
         do
         {
             Result res;
-            if ((res = DownloadCacheFromHost(host, port, params, shouldRetry ? &shouldRetry : nullptr)); !res.HasError())
+
+            bool retryThisType = shouldRetry;
+
+            if ((res = DownloadCacheFromHost(host, port, params, shouldRetry ? &retryThisType : nullptr)); !res.HasError())
             {
-                break;
+                // OK
+                return res;
             }
 
             ++numAttempts;
 
-            if (shouldRetry && numAttempts < MaxAttempts)
+            if (shouldRetry && numAttempts < maxAttempts)
             {
                 HYP_LOG(CacheClient, Error, "Failed to download cache from server! Error message was: {}\nRetrying in 5s...", res.GetError().GetMessage());
 
@@ -814,12 +821,30 @@ HYP_EXPORT void SyncContent(const Params& params, bool shouldRetry)
             }
             else
             {
-                HYP_LOG(CacheClient, Error, "Failed to download cache from server! Error message was: {}\nDone trying.", res.GetError().GetMessage());
-                return;
+                return res.GetError();
             }
         }
         while (shouldRetry);
+        
+        return HYP_MAKE_ERROR(Error, "Failed to connect due to unknown reasons");
     }
+}
+
+HYP_EXPORT void SyncFailed(const Error& error, bool& outClickedRetry, bool& outClickedExit)
+{
+    outClickedRetry = false;
+    outClickedExit = false;
+
+    // clang-format off
+    SystemMessageBox(MessageBoxType::CRITICAL)
+        .Title("Sync Content Failed")
+        .Text(String("Failed to download core content required to start the game.\n"
+            "Ensure a proper internet connection and try again.\n\n"
+            "Message details: ") + error.GetMessage())
+        .Button("Retry", [&outClickedRetry] { outClickedRetry = true; })
+        .Button("Exit", [&outClickedExit] { outClickedExit = true; })
+        .Show();
+    // clang-format on
 }
 
 } // namespace CacheClient

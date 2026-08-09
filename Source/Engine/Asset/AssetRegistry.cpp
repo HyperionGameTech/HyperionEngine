@@ -583,7 +583,7 @@ AssetRegistry::~AssetRegistry()
     delete m_scheduler;
 }
 
-void AssetRegistry::Initialize(Task<void>* outSyncContentTask)
+void AssetRegistry::Initialize(Task<Result>* outSyncContentTask)
 {
     if (m_isInitialized || m_isSyncingCache)
     {
@@ -605,20 +605,30 @@ void AssetRegistry::Initialize(Task<void>* outSyncContentTask)
                 params.registryId = m_registryId;
                 params.outputCacheDir = EngineGlobals::GetCacheDirectory();
                 params.outputContentDir = EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Game")>();
+                params.numAttempts = 5;
 
                 m_isSyncingCache = true;
                 m_cacheSyncComplete.Reset();
 
                 *outSyncContentTask = TaskSystem::GetInstance().Enqueue(
-                    [this, weakThis = MakeWeakRef(this), params]()
+                    [this, weakThis = MakeWeakRef(this), params]() -> Result
                     {
                         Handle<AssetRegistry> strongThis = weakThis.Lock();
                         if (!strongThis.IsValid())
                         {
-                            HYP_LOG(Assets, Warning, "AssetRegistry reference expired before cache could be downloaded.");
+                            m_isSyncingCache = false;
+                            m_cacheSyncComplete.Reset();
+
+                            return HYP_MAKE_ERROR(Error, "AssetRegistry reference expired before cache could be downloaded.");
                         }
 
-                        CacheClient::SyncContent(params, /* shouldRetry */ true);
+                        if (Result res = CacheClient::SyncContent(params); res.HasError())
+                        {
+                            m_isSyncingCache = false;
+                            m_cacheSyncComplete.Reset();
+
+                            return res;
+                        }
 
                         LoadAssetDescs();
 
@@ -626,6 +636,9 @@ void AssetRegistry::Initialize(Task<void>* outSyncContentTask)
                         m_isSyncingCache = false;
 
                         m_cacheSyncComplete.Signal();
+
+                        // OK
+                        return {};
                     },
                     TaskThreadPoolName::THREAD_POOL_BACKGROUND);
             }
@@ -1301,10 +1314,6 @@ void AssetRegistry::SyncAssetName(const AssetBucket& bucket, Name oldName, Name 
 bool AssetRegistry::LoadAssetDescs()
 {
     const FilePath rootPath = GetRootPath();
-
-#ifdef HYP_ANDROID
-    Assert(IsAndroidAssetPath(rootPath), "In Android builds, all asset registry instances must have a root path that includes the $Android sentinel to use the Android asset manager.");
-#endif // HYP_ANDROID
 
     HYP_LOG(Assets, Verbose, "Loading asset descs from '{}'", rootPath);
 

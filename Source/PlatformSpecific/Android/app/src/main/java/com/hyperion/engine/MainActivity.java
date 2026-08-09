@@ -122,21 +122,26 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
     private void runEngineLoop() {
         Log.i(TAG, "Hyperion runEngineLoop()");
 
-        File internalCacheDir = new File(getFilesDir(), "EngineCache");
-        internalCacheDir.mkdirs();
+        File downloadedCacheDir = new File(getFilesDir() + "downloaded_content/Cache");
+        downloadedCacheDir.mkdirs();
 
+        File downloadedContentDir = new File(getFilesDir() + "downloaded_content/Content");
+        downloadedContentDir.mkdirs();
+
+        HyperionBridge.nativeSetCacheDirectory(downloadedCacheDir.getAbsolutePath());
+
+        // cache server
         String cacheServer = getIntent().getStringExtra("cacheServer");
-        if (cacheServer == null || cacheServer.isEmpty()) {
-            Log.e(TAG, "No cache server configured. Pass -e cacheServer <host>:<port>");
-            return;
+        if (cacheServer != null && !cacheServer.isEmpty()) {
+            String[] parts = cacheServer.split(":");
+            String host = parts[0];
+            int port = Integer.parseInt(parts.length > 1 ? parts[1] : "8080");
+
+            Log.i(TAG, "Syncing content from cache server " + host + ":" + port);
+            HyperionBridge.nativeSetCacheServer(host, port);
+        } else {
+            Log.i(TAG, "No cache server configured, using bundled content");
         }
-
-        String[] parts = cacheServer.split(":");
-        String host = parts[0];
-        int port = Integer.parseInt(parts.length > 1 ? parts[1] : "8080");
-
-        HyperionBridge.nativeSetCacheDirectory(internalCacheDir.getAbsolutePath());
-        HyperionBridge.nativeSetCacheServer(host, port);
 
         int result = HyperionBridge.nativeInit();
         if (result == 0) {

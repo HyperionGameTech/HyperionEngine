@@ -176,6 +176,11 @@ HYP_EXPORT FilePath CreateTempDirectory()
 template <auto PackageName>
 HYP_EXPORT const FilePath& GetContentDirectory()
 {
+#ifdef HYP_ANDROID
+    // On android, content gets written into the same directory as cache when downloaded.
+    return GetCacheDirectory().BasePath() / "Content";
+#endif  // HYP_ANDROID
+
 #ifndef HYP_SHIPPING
     if constexpr (!Memory::StrEqual(PackageName.data, "Game", 4))
     {
