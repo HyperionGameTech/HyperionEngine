@@ -88,7 +88,7 @@ public:
         const TaskID taskId = EnqueueTaskExecutor(
             executor,
             &executor->GetNotifier(),
-            OnTaskCompletedCallback(&executor->GetCallbackChain()),
+            nullptr,
             debugName,
             ownsExecutor);
 
@@ -148,7 +148,8 @@ public:
         // Condition variable to notify when the task has been executed (owned by the scheduler)
         ConditionVariable* pTaskExecutedCV = nullptr;
 
-        // Callback to be executed after the task is completed
+        // Callback to be executed once `notifier` reaches its signalled state. Used for batches,
+        // where it runs after the last task of the batch rather than after each one.
         OnTaskCompletedCallback callback;
 
         StaticMessage debugName;
@@ -212,16 +213,9 @@ public:
         {
             lambda(*executor);
 
-            int counterValue = 0;
-
-            if (notifier != nullptr)
-            {
-                counterValue = notifier->Release(1, callback);
-            }
-            else if (callback.IsValid())
-            {
-                callback();
-            }
+            // Signals waiters and runs the task's completion callbacks. The executor may be destroyed
+            // by a waiting thread from this point on, so it must not be touched again.
+            executor->Complete(notifier, callback);
 
             pTaskExecutedCV->NotifyAll();
         }
@@ -230,16 +224,9 @@ public:
         {
             executor->Execute();
 
-            int counterValue = 0;
-
-            if (notifier != nullptr)
-            {
-                counterValue = notifier->Release(1, callback);
-            }
-            else if (callback.IsValid())
-            {
-                callback();
-            }
+            // Signals waiters and runs the task's completion callbacks. The executor may be destroyed
+            // by a waiting thread from this point on, so it must not be touched again.
+            executor->Complete(notifier, callback);
 
             pTaskExecutedCV->NotifyAll();
         }

@@ -128,7 +128,7 @@ public:
         for (auto& it : executors)
         {
             it.Execute();
-            notifier.Release(1);
+            it.Complete(&notifier);
         }
 
         OnComplete();

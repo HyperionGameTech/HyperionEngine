@@ -123,6 +123,40 @@ bool SocketWait(const SocketHandle& handle, int timeoutMs, bool waitWrite)
     return result > 0 && FD_ISSET(handle, &set);
 }
 
+/*! \brief Blocks until at least one of \p handles is readable or \p timeoutMs elapses. Used by
+ *  the server thread instead of a fixed poll-and-sleep interval, so new connections and incoming
+ *  data are picked up as soon as they arrive rather than on the next tick. */
+bool WaitForReadable(const SocketHandle* handles, size_t count, int timeoutMs)
+{
+    if (count == 0)
+    {
+        return false;
+    }
+
+    fd_set set;
+    FD_ZERO(&set);
+
+    SocketHandle maxHandle = handles[0];
+
+    for (size_t i = 0; i < count; i++)
+    {
+        FD_SET(handles[i], &set);
+
+        if (handles[i] > maxHandle)
+        {
+            maxHandle = handles[i];
+        }
+    }
+
+    struct timeval tv = {};
+    tv.tv_sec = timeoutMs / 1000;
+    tv.tv_usec = (timeoutMs % 1000) * 1000;
+
+    const int result = select(int(maxHandle) + 1, &set, nullptr, nullptr, &tv);
+
+    return result > 0;
+}
+
 /*! \brief Sends as many bytes as possible without blocking. Returns the number of bytes sent.
  *  \p outWouldBlock is set if the call stopped because the socket send buffer is full. */
 size_t SendBytes(const SocketHandle& handle, const ubyte* data, size_t size, bool* outWouldBlock, bool* outError)
@@ -298,7 +332,7 @@ SocketServer::~SocketServer()
     }
 }
 
-void SocketConnection::TriggerProc(Name eventName, Array<SocketProcArgument>&& args)
+void SocketConnection::TriggerProc(Name eventName, Array<SocketProcArgument, NetAllocator>&& args)
 {
     const auto it = m_eventProcs.Find(eventName);
 
@@ -319,7 +353,7 @@ bool SocketServer::Start()
 
     if (!SocketGlobalState::GetInstance().Acquire())
     {
-        TriggerProc(NAME("OnError"), { SocketProcArgument(String("Failed to initialize sockets")), SocketProcArgument(int32(SocketLastError())) });
+        TriggerProc(NAME("OnError"), { SocketProcArgument(HYP_MAKE_ERROR(SocketError, "Failed to initialize sockets")), SocketProcArgument(int32(SocketLastError())) });
 
         return false;
     }
@@ -339,7 +373,7 @@ bool SocketServer::Start()
     {
         const int32 errorCode = SocketLastError();
 
-        TriggerProc(NAME("OnError"), { SocketProcArgument(String("Failed to resolve listen address")), SocketProcArgument(errorCode) });
+        TriggerProc(NAME("OnError"), { SocketProcArgument(HYP_MAKE_ERROR(SocketError, "Failed to resolve listen address")), SocketProcArgument(errorCode) });
 
         SocketGlobalState::GetInstance().Release();
 
@@ -380,7 +414,7 @@ bool SocketServer::Start()
     {
         const int32 errorCode = SocketLastError();
 
-        TriggerProc(NAME("OnError"), { SocketProcArgument(String("Failed to bind socket")), SocketProcArgument(errorCode) });
+        TriggerProc(NAME("OnError"), { SocketProcArgument(HYP_MAKE_ERROR(SocketError, "Failed to bind socket")), SocketProcArgument(errorCode) });
 
         SocketGlobalState::GetInstance().Release();
 
@@ -393,7 +427,7 @@ bool SocketServer::Start()
 
         SocketClose(listenSocket);
 
-        TriggerProc(NAME("OnError"), { SocketProcArgument(String("Failed to listen on socket")), SocketProcArgument(errorCode) });
+        TriggerProc(NAME("OnError"), { SocketProcArgument(HYP_MAKE_ERROR(SocketError, "Failed to listen on socket")), SocketProcArgument(errorCode) });
 
         SocketGlobalState::GetInstance().Release();
 
@@ -406,20 +440,20 @@ bool SocketServer::Start()
 
         SocketClose(listenSocket);
 
-        TriggerProc(NAME("OnError"), { SocketProcArgument(String("Failed to set socket to non-blocking")), SocketProcArgument(errorCode) });
+        TriggerProc(NAME("OnError"), { SocketProcArgument(HYP_MAKE_ERROR(SocketError, "Failed to set socket to non-blocking")), SocketProcArgument(errorCode) });
 
         SocketGlobalState::GetInstance().Release();
 
         return false;
     }
 
-    m_impl = MakeUnique<SocketServerImpl>();
+    m_impl = MakeUniqueWithAllocator<SocketServerImpl, NetAllocator>();
     m_impl->listenSocket = listenSocket;
     m_impl->address = m_address;
 
     TriggerProc(NAME("OnServerStarted"), {});
 
-    m_thread = MakeUnique<SocketServerThread>(m_name);
+    m_thread = MakeUniqueWithAllocator<SocketServerThread, NetAllocator>(m_name);
     m_thread->Start(this);
 
     return true;
@@ -465,14 +499,14 @@ bool SocketServer::Stop()
     return true;
 }
 
-bool SocketServer::PollForConnections(Array<SharedPtr<SocketClient>>& outConnections)
+bool SocketServer::PollForConnections(Array<SharedPtr<SocketClient>, NetAllocator>& outConnections)
 {
     if (m_impl == nullptr)
     {
         return false;
     }
 
-    outConnections.Clear();
+    outConnections.Resize(0);
 
     for (;;)
     {
@@ -508,7 +542,7 @@ bool SocketServer::PollForConnections(Array<SharedPtr<SocketClient>>& outConnect
 
         const Name clientName = Name::Unique("socket_client");
 
-        outConnections.PushBack(MakeShared<SocketClient>(clientName, SocketID { uint64(newSocket) }));
+        outConnections.PushBack(MakeSharedWithAllocator<SocketClient, NetAllocator>(clientName, SocketID { uint64(newSocket) }));
     }
 
     return true;
@@ -527,7 +561,7 @@ void SocketServer::AddConnection(SharedPtr<SocketClient>&& connection)
         m_connections.Set(connection->GetName(), connection);
     }
 
-    connection->TriggerProc(NAME("OnClientConnected"), { SocketProcArgument(connection->GetName()) });
+    TriggerProc(NAME("OnClientConnected"), { SocketProcArgument(connection->GetName()) });
 }
 
 bool SocketServer::RemoveConnection(Name clientName)
@@ -551,7 +585,7 @@ bool SocketServer::RemoveConnection(Name clientName)
 
     if (removedConnection != nullptr)
     {
-        removedConnection->TriggerProc(NAME("OnClientDisconnected"), { SocketProcArgument(removedConnection->GetName()) });
+        TriggerProc(NAME("OnClientDisconnected"), { SocketProcArgument(removedConnection->GetName()) });
 
         removedConnection->Close();
     }
@@ -559,23 +593,28 @@ bool SocketServer::RemoveConnection(Name clientName)
     return true;
 }
 
-SocketResultType SocketServer::Send(Name clientName, const ByteBuffer& data)
+SocketResultType SocketServer::Send(Name clientName, ConstByteView view)
 {
-    Mutex::Guard guard(m_connectionsMutex);
+    // Only the map lookup needs m_connectionsMutex -- the actual socket write can take a while
+    // for a large payload, and holding the lock for that would serialize every other connection's
+    // Send() (and the poll thread's ability to service anyone else) behind it. The connection's
+    // own m_ioMutex protects its buffers/handle instead.
+    SharedPtr<SocketClient> connection;
 
-    const auto it = m_connections.Find(clientName);
-
-    if (it == m_connections.End())
     {
-        return SOCKET_RESULT_TYPE_ERROR;
+        Mutex::Guard guard(m_connectionsMutex);
+
+        const auto it = m_connections.Find(clientName);
+
+        if (it == m_connections.End() || it->second == nullptr)
+        {
+            return SOCKET_RESULT_TYPE_ERROR;
+        }
+
+        connection = it->second;
     }
 
-    if (it->second == nullptr)
-    {
-        return SOCKET_RESULT_TYPE_ERROR;
-    }
-
-    return it->second->Send(data);
+    return connection->Send(view);
 }
 
 #pragma endregion SocketServer
@@ -592,15 +631,40 @@ void SocketServerThread::operator()(SocketServer* server)
     struct PendingDataEvent
     {
         SharedPtr<SocketClient> client;
-        ByteBuffer data;
+        SocketBuffer data;
     };
 
     Queue<Scheduler::ScheduledTask> tasks;
 
+    // Upper bound on a single wait, so a stop request or newly scheduled task is still noticed
+    // in reasonable time even when nothing is happening on any socket.
+    static constexpr int MaxWaitMs = 100;
+
     while (HYP_LIKELY(!m_stopRequested.LoadVolatile()))
     {
+        { // Block until the listen socket or a connection has something to read instead of
+          // polling on a fixed interval -- this is what a fixed ThreadSleep() would otherwise
+          // add to every accept/receive, on top of the OS's own timer granularity.
+            Array<SocketHandle, NetAllocator> watchHandles;
+            watchHandles.PushBack(server->m_impl->listenSocket);
+
+            {
+                Mutex::Guard guard(server->m_connectionsMutex);
+
+                for (auto& pair : server->m_connections)
+                {
+                    if (pair.second != nullptr)
+                    {
+                        watchHandles.PushBack(SocketHandle(pair.second->m_internalId.value));
+                    }
+                }
+            }
+
+            WaitForReadable(watchHandles.Data(), watchHandles.Size(), MaxWaitMs);
+        }
+
         // Check for incoming connections
-        Array<SharedPtr<SocketClient>> newConnections;
+        Array<SharedPtr<SocketClient>, NetAllocator> newConnections;
 
         if (server->PollForConnections(newConnections))
         {
@@ -610,39 +674,52 @@ void SocketServerThread::operator()(SocketServer* server)
             }
         }
 
-        Array<PendingDataEvent> pendingDataEvents;
-        Array<SharedPtr<SocketClient>> pendingErrorEvents;
-        Array<SharedPtr<SocketClient>> disconnectedConnections;
+        Array<PendingDataEvent, NetAllocator> pendingDataEvents;
+        Array<SharedPtr<SocketClient>, NetAllocator> pendingErrorEvents;
+        Array<SharedPtr<SocketClient>, NetAllocator> disconnectedConnections;
 
         { // Check for incoming data
-            Mutex::Guard guard(server->m_connectionsMutex);
+            // Snapshot the connection list under the map lock, then release it before touching
+            // any socket -- Flush()/Receive() are protected per-connection by each SocketClient's
+            // own m_ioMutex, so holding the map lock for the whole pass would only serialize
+            // Send() (from worker threads) behind however many connections there are, for no reason.
+            Array<SharedPtr<SocketClient>, NetAllocator> connectionsSnapshot;
 
-            for (auto& pair : server->m_connections)
             {
-                if (pair.second == nullptr)
+                Mutex::Guard guard(server->m_connectionsMutex);
+
+                connectionsSnapshot.Reserve(server->m_connections.Size());
+
+                for (auto& pair : server->m_connections)
                 {
-                    continue;
+                    if (pair.second != nullptr)
+                    {
+                        connectionsSnapshot.PushBack(pair.second);
+                    }
                 }
+            }
 
-                pair.second->Flush();
+            for (auto& connection : connectionsSnapshot)
+            {
+                connection->Flush();
 
-                ByteBuffer receivedData;
+                SocketBuffer receivedData;
 
-                switch (pair.second->Receive(receivedData))
+                switch (connection->Receive(receivedData))
                 {
                 case SOCKET_RESULT_TYPE_DATA:
-                    pendingDataEvents.PushBack(PendingDataEvent { pair.second, std::move(receivedData) });
+                    pendingDataEvents.PushBack(PendingDataEvent { connection, std::move(receivedData) });
 
                     break;
                 case SOCKET_RESULT_TYPE_ERROR:
-                    pendingErrorEvents.PushBack(pair.second);
+                    pendingErrorEvents.PushBack(connection);
 
                     break;
                 case SOCKET_RESULT_TYPE_NO_DATA:
                     // No data returned, do nothing
                     break;
                 case SOCKET_RESULT_TYPE_DISCONNECTED:
-                    disconnectedConnections.PushBack(pair.second);
+                    disconnectedConnections.PushBack(connection);
 
                     break;
                 default:
@@ -655,12 +732,12 @@ void SocketServerThread::operator()(SocketServer* server)
         // call back into Send() (e.g. to respond to a request) without deadlocking.
         for (auto& event : pendingDataEvents)
         {
-            event.client->TriggerProc(NAME("OnClientData"), { SocketProcArgument(event.client->GetName()), SocketProcArgument(std::move(event.data)) });
+            server->TriggerProc(NAME("OnClientData"), { SocketProcArgument(event.client->GetName()), SocketProcArgument(std::move(event.data)) });
         }
 
         for (auto& connection : pendingErrorEvents)
         {
-            connection->TriggerProc(NAME("OnClientError"), { SocketProcArgument(connection->GetName()) });
+            server->TriggerProc(NAME("OnClientError"), { SocketProcArgument(connection->GetName()) });
         }
 
         for (auto& connection : disconnectedConnections)
@@ -677,9 +754,6 @@ void SocketServerThread::operator()(SocketServer* server)
                 tasks.Pop().Execute();
             }
         }
-
-        // Pace the poll loop so it does not spin hot when idle.
-        ThreadSleep(1);
     }
 
     // flush scheduler
@@ -704,15 +778,8 @@ SocketClient::~SocketClient()
     Close();
 }
 
-SocketResultType SocketClient::Connect(const ANSIString& host, uint16 port, SocketClient** outClient)
+SocketResultType SocketClient::Connect(const ANSIString& host, uint16 port, SocketClientPtr& outClient)
 {
-    if (outClient == nullptr)
-    {
-        return SOCKET_RESULT_TYPE_ERROR;
-    }
-
-    *outClient = nullptr;
-
     if (!SocketGlobalState::GetInstance().Acquire())
     {
         return SOCKET_RESULT_TYPE_ERROR;
@@ -722,7 +789,11 @@ SocketResultType SocketClient::Connect(const ANSIString& host, uint16 port, Sock
     std::snprintf(portStr, sizeof(portStr), "%u", uint32(port));
 
     struct addrinfo hints = {};
-    hints.ai_family = AF_UNSPEC;
+    // AF_UNSPEC (resolving both IPv4 and IPv6) is what makes getaddrinfo() slow for hostnames
+    // like "localhost" on Windows -- it can take seconds, paid fresh on every single Connect().
+    // SocketServer only ever binds an IPv4 wildcard host, so there's nothing to gain from
+    // resolving IPv6 here.
+    hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
 
@@ -792,37 +863,39 @@ SocketResultType SocketClient::Connect(const ANSIString& host, uint16 port, Sock
         return SOCKET_RESULT_TYPE_ERROR;
     }
 
-    *outClient = new SocketClient(Name::Unique("socket_client_conn"), SocketID { uint64(sock) });
+    outClient = MakeUniqueWithAllocator<SocketClient, NetAllocator>(Name::Unique("socket_client_conn"), SocketID { uint64(sock) });
 
     return SOCKET_RESULT_TYPE_DATA;
 }
 
-SocketResultType SocketClient::Send(const ByteBuffer& data)
+SocketResultType SocketClient::Send(ConstByteView view)
 {
+    Mutex::Guard guard(m_ioMutex);
+
     if (m_internalId.value == 0)
     {
         return SOCKET_RESULT_TYPE_ERROR;
     }
 
-    if (data.Size() == 0)
+    if (view.Size() == 0)
     {
         return SOCKET_RESULT_TYPE_NO_DATA;
     }
 
-    if (data.Size() > SocketMaxFrameSize)
+    if (view.Size() > SocketMaxFrameSize)
     {
         return SOCKET_RESULT_TYPE_ERROR;
     }
 
     const SocketHandle handle = SocketHandle(m_internalId.value);
 
-    ByteBuffer frame;
-    frame.SetSize(sizeof(uint32) + data.Size());
+    SocketBuffer frame;
+    frame.SetSize(sizeof(uint32) + view.Size());
 
-    const uint32 lengthBe = htonl(uint32(data.Size()));
+    const uint32 lengthBe = htonl(uint32(view.Size()));
 
     Memory::Copy(frame.Data(), &lengthBe, sizeof(uint32));
-    Memory::Copy(frame.Data() + sizeof(uint32), data.Data(), data.Size());
+    Memory::Copy(frame.Data() + sizeof(uint32), view.Data(), view.Size());
 
     bool wouldBlock = false;
     bool error = false;
@@ -843,15 +916,15 @@ SocketResultType SocketClient::Send(const ByteBuffer& data)
     return SOCKET_RESULT_TYPE_DATA;
 }
 
-SocketResultType SocketClient::TryDequeueFrame(ByteBuffer& outData)
+SocketResultType SocketClient::TryDequeueFrame(SocketBuffer& outData)
 {
-    constexpr size_t headerSize = sizeof(uint32);
+    static constexpr size_t HeaderSize = sizeof(uint32);
 
-    while (m_recvBuffer.Size() >= headerSize)
+    while (m_recvBuffer.Size() >= HeaderSize)
     {
         uint32 lengthBe;
 
-        Memory::Copy(&lengthBe, m_recvBuffer.Data(), headerSize);
+        Memory::Copy(&lengthBe, m_recvBuffer.Data(), HeaderSize);
 
         const uint32 length = ntohl(lengthBe);
 
@@ -860,7 +933,7 @@ SocketResultType SocketClient::TryDequeueFrame(ByteBuffer& outData)
             return SOCKET_RESULT_TYPE_ERROR;
         }
 
-        const size_t frameSize = headerSize + size_t(length);
+        const size_t frameSize = HeaderSize + size_t(length);
 
         if (m_recvBuffer.Size() < frameSize)
         {
@@ -869,7 +942,7 @@ SocketResultType SocketClient::TryDequeueFrame(ByteBuffer& outData)
         }
 
         outData.SetSize(length);
-        Memory::Copy(outData.Data(), m_recvBuffer.Data() + headerSize, size_t(length));
+        Memory::Copy(outData.Data(), m_recvBuffer.Data() + HeaderSize, size_t(length));
 
         const size_t remaining = m_recvBuffer.Size() - frameSize;
 
@@ -879,7 +952,7 @@ SocketResultType SocketClient::TryDequeueFrame(ByteBuffer& outData)
         }
         else
         {
-            ByteBuffer rest(remaining, m_recvBuffer.Data() + frameSize);
+            SocketBuffer rest(remaining, m_recvBuffer.Data() + frameSize);
 
             m_recvBuffer = std::move(rest);
         }
@@ -890,8 +963,10 @@ SocketResultType SocketClient::TryDequeueFrame(ByteBuffer& outData)
     return SOCKET_RESULT_TYPE_NO_DATA;
 }
 
-SocketResultType SocketClient::Receive(ByteBuffer& outData)
+SocketResultType SocketClient::Receive(SocketBuffer& outData)
 {
+    Mutex::Guard guard(m_ioMutex);
+
     if (m_internalId.value == 0)
     {
         return SOCKET_RESULT_TYPE_ERROR;
@@ -943,8 +1018,20 @@ SocketResultType SocketClient::Receive(ByteBuffer& outData)
     }
 }
 
+bool SocketClient::WaitForData(uint32 timeoutMs) const
+{
+    if (m_internalId.value == 0)
+    {
+        return false;
+    }
+
+    return SocketWait(SocketHandle(m_internalId.value), int(timeoutMs), /* waitWrite */ false);
+}
+
 void SocketClient::Flush()
 {
+    Mutex::Guard guard(m_ioMutex);
+
     if (m_internalId.value == 0 || m_sendBuffer.Size() == 0)
     {
         return;
@@ -971,13 +1058,15 @@ void SocketClient::Flush()
         return;
     }
 
-    ByteBuffer remaining(m_sendBuffer.Size() - sent, m_sendBuffer.Data() + sent);
+    SocketBuffer remaining(m_sendBuffer.Size() - sent, m_sendBuffer.Data() + sent);
 
     m_sendBuffer = std::move(remaining);
 }
 
 void SocketClient::Close()
 {
+    Mutex::Guard guard(m_ioMutex);
+
     if (m_internalId.value == 0)
     {
         return;

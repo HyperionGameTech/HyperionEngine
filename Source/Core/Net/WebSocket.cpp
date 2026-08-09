@@ -1,5 +1,3 @@
-
-#if 0
 /*!
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
@@ -26,49 +24,31 @@ namespace net {
 
 #pragma region WebSocketThread
 
-WebSocketThread::WebSocketThread()
-    : Thread(Name::Unique("WebSocketThread"))
+class CORE_API WebSocketThread final : public TaskThread
 {
-}
-
-void WebSocketThread::Stop()
-{
-    m_isRunning.Store(false);
-}
-
-void WebSocketThread::operator()(WebSocket *websocket)
-{
-    m_isRunning.Store(true);
-
-    Queue<Scheduler::ScheduledTask> tasks;
-
-    while (m_isRunning.Load()) {
-        if (uint32 numEnqueued = m_scheduler->NumEnqueued()) {
-            m_scheduler->AcceptAll(tasks);
-
-            while (tasks.Any()) {
-                tasks.Pop().Execute();
-            }
-        }
+public:
+    WebSocketThread(WebSocket* ws)
+        : TaskThread(NAME("WebSocketThread")),
+          m_ws(ws)
+    {
     }
 
-    // flush scheduler
-    m_scheduler->Flush([](auto &operation)
-    {
-        operation.Execute();
-    });
-}
+    ~WebSocketThread() override = default;
+
+private:
+    WebSocket* m_ws;
+};
 
 #pragma endregion WebSocketThread
 
 #pragma region WebSocket
 
 WebSocket::WebSocket(const String &url)
-    : m_url(url),
-      m_thread(MakeUnique<WebSocketThread>())
+    : m_url(url)
 {
 #if defined(HYP_CURL) && HYP_CURL
-    m_thread->Start(this);
+    m_thread = MakeUnique<WebSocketThread>(this);
+    static_cast<WebSocketThread*>(m_thread.Get())->Start();
 
     m_thread->GetScheduler().Enqueue([this]()
     {
@@ -91,7 +71,8 @@ WebSocket::WebSocket(WebSocket &&other) noexcept
 
 WebSocket &WebSocket::operator=(WebSocket &&other) noexcept
 {
-    if (this != &other) {
+    if (this != &other)
+    {
         m_url = std::move(other.m_url);
         m_thread = std::move(other.m_thread);
     }
@@ -101,12 +82,15 @@ WebSocket &WebSocket::operator=(WebSocket &&other) noexcept
 
 WebSocket::~WebSocket()
 {
-    if (m_thread != nullptr) {
-        if (m_thread->IsRunning()) {
+    if (m_thread != nullptr)
+    {
+        if (m_thread->IsRunning())
+        {
             m_thread->Stop();
         }
 
-        if (m_thread->CanJoin()) {
+        if (m_thread->CanJoin())
+        {
             m_thread->Join();
         }
     }
@@ -136,27 +120,35 @@ void WebSocket::WebSocketThreadProc()
 
         CURLcode result = curl_ws_recv(curl, buffer, sizeof(buffer), &rlen, &meta);
 
-        if (!result) {
-            if (meta->flags & CURLWS_PONG) {
+        if (!result)
+        {
+            if (meta->flags & CURLWS_PONG)
+            {
                 int same = 0;
                 fprintf(stderr, "ws: got PONG back\n");
 
-                if (rlen == strlen(payload)) {
-                    if (!memcmp(payload, buffer, rlen)) {
+                if (rlen == strlen(payload))
+                {
+                    if (!memcmp(payload, buffer, rlen))
+                    {
                         fprintf(stderr, "ws: got the same payload back\n");
                         same = 1;
                     }
                 }
 
-                if (!same) {
+                if (!same)
+                {
                     fprintf(stderr, "ws: did NOT get the same payload back\n");
                 }
-            } else {
+            }
+            else
+            {
                 fprintf(stderr, "recv_pong: got %u bytes rflags %x\n", (int)rlen, meta->flags);
             }
         }
 
         fprintf(stderr, "ws: curl_ws_recv returned %u, received %u\n", (unsigned int)result, (unsigned int)rlen);
+
         return (int)result;
     };
 
@@ -177,14 +169,17 @@ void WebSocket::WebSocketThreadProc()
 
     auto WebSocketMain = [=](CURL *curl)
     {
-        while (true) {
+        while (true)
+        {
             OnData(curl);
 
-            if (Ping(curl, "ping")) {
+            if (Ping(curl, "ping"))
+            {
                 return;
             }
 
-            if (Pong(curl, "pong")) {
+            if (Pong(curl, "pong"))
+            {
                 return;
             }
 
@@ -194,14 +189,18 @@ void WebSocket::WebSocketThreadProc()
         Close(curl);
     };
 
-    if (curl) {
+    if (curl)
+    {
         curl_easy_setopt(curl, CURLOPT_URL, m_url.Data());
         curl_easy_setopt(curl, CURLOPT_CONNECT_ONLY, 2L);
         CURLcode res = curl_easy_perform(curl);
 
-        if (res != CURLE_OK) {
+        if (res != CURLE_OK)
+        {
             HYP_LOG(Net, Error, "cURL error: {}", curl_easy_strerror(res));
-        } else {
+        }
+        else
+        {
             HYP_LOG(Net, Info, "cURL request successful");
 
             WebSocketMain(curl);
@@ -216,4 +215,3 @@ void WebSocket::WebSocketThreadProc()
 } // namespace net
 } // namespace Hyperion
 
-#endif

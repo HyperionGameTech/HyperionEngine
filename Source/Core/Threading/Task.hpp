@@ -13,6 +13,7 @@
 #include <Core/Utilities/Span.hpp>
 
 #include <Core/Threading/AtomicVar.hpp>
+#include <Core/Threading/Mutex.hpp>
 #include <Core/Threading/SharedMutex.hpp>
 #include <Core/Threading/Semaphore.hpp>
 
@@ -149,9 +150,14 @@ struct TaskID
     }
 };
 
+/*! \brief Thread safe set of callbacks to be invoked when a task completes.
+ *  Once the chain has been completed, any callback added to it is invoked immediately on the
+ *  calling thread, so a callback can be registered without racing against the task finishing. */
 class CORE_API TaskCallbackChain
 {
 public:
+    using CallbackList = Array<functional::Proc<void()>, DynamicAllocator>;
+
     TaskCallbackChain() = default;
 
     TaskCallbackChain(const TaskCallbackChain& other) = delete;
@@ -162,18 +168,24 @@ public:
 
     ~TaskCallbackChain();
 
-    HYP_FORCE_INLINE explicit operator bool() const
+    HYP_FORCE_INLINE bool IsCompleted() const
     {
-        return m_numCallbacks.Get(MemoryOrder::ACQUIRE);
+        return m_completed.Get(MemoryOrder::ACQUIRE);
     }
 
+    /*! \brief Add \p callback to be invoked when the task completes.
+     *  If the task has already completed, \p callback is invoked immediately on the calling thread. */
     void Add(functional::Proc<void()>&& callback);
 
-    void operator()();
+    /*! \brief Mark the chain as completed and hand the pending callbacks to the caller to invoke.
+     *  Callbacks are not invoked here so that the owner can signal waiting threads first; as soon as
+     *  it does, the object owning this chain may be destroyed, so the callbacks have to live in the
+     *  caller's own storage by then. */
+    CallbackList Detach();
 
 private:
-    Array<functional::Proc<void()>, DynamicAllocator> m_callbacks;
-    AtomicVar<uint32> m_numCallbacks;
+    CallbackList m_callbacks;
+    AtomicVar<bool> m_completed;
     Mutex m_mutex;
 };
 
@@ -186,7 +198,6 @@ public:
 
     virtual bool IsCompleted() const = 0;
 
-    /*! \brief Not called if task is part of a TaskBatch. */
     virtual TaskCallbackChain& GetCallbackChain() = 0;
 };
 
@@ -196,10 +207,21 @@ class CORE_API TaskExecutorBase : public ITaskExecutor
     friend class Task;
 
 public:
+    /*! \brief Tracks who is left to delete an executor that supports deferred deletion.
+     *  The owning Task and the thread that completes the task each mark their side; whichever gets
+     *  there last performs the deletion. */
+    enum class DeletionState : uint8
+    {
+        ALIVE = 0,
+        OWNER_RELEASED,
+        COMPLETED
+    };
+
     TaskExecutorBase()
         : m_id(TaskID::Invalid()),
           m_initiatorThreadId(ThreadId::Invalid()),
-          m_assignedScheduler(nullptr)
+          m_assignedScheduler(nullptr),
+          m_deferredDeletionEnabled(false)
     {
         // set notifier to initial value of 1 (one task)
         m_notifier.Produce(1);
@@ -211,7 +233,8 @@ public:
     TaskExecutorBase(TaskExecutorBase&& other) noexcept
         : m_id(other.m_id),
           m_initiatorThreadId(other.m_initiatorThreadId),
-          m_assignedScheduler(other.m_assignedScheduler)
+          m_assignedScheduler(other.m_assignedScheduler),
+          m_deferredDeletionEnabled(other.m_deferredDeletionEnabled)
     {
         m_callbackChain = std::move(other.m_callbackChain);
 
@@ -279,13 +302,32 @@ public:
         return m_callbackChain;
     }
 
+    /*! \internal Signals that the task has finished running: detaches the completion callbacks,
+     *  releases \p notifier (which may be a notifier shared by an entire TaskBatch) and then invokes
+     *  the callbacks.
+     *  \note This executor must not be touched by the caller afterwards - a thread waiting on the
+     *  task is free to destroy it as soon as the notifier is released, and an executor with deferred
+     *  deletion enabled may delete itself here. */
+    void Complete(TaskCompleteNotifier* notifier, ProcRef<void()> onNotifierSignalled = ProcRef<void()>(nullptr));
+
+    /*! \internal Called by the owning Task when it goes away, for executors that support deferred
+     *  deletion. Deletion is left to whichever of the owner and the completing thread comes last.
+     *  \returns True if the caller is responsible for deleting this executor. */
+    inline bool RelinquishOwnership()
+    {
+        HYP_CORE_ASSERT(m_deferredDeletionEnabled, "Executor does not support deferred deletion");
+
+        return m_deletionState.Exchange(DeletionState::OWNER_RELEASED, MemoryOrder::ACQUIRE_RELEASE) == DeletionState::COMPLETED;
+    }
+
 protected:
     TaskID m_id;
     ThreadId m_initiatorThreadId;
     SchedulerBase* m_assignedScheduler;
     TaskCompleteNotifier m_notifier;
-    SharedMutex m_promiseFulfillFlag;
     TaskCallbackChain m_callbackChain;
+    AtomicVar<DeletionState> m_deletionState;
+    bool m_deferredDeletionEnabled;
 };
 
 CORE_API extern void Task_DeleteAllDeferredTasks();
@@ -407,6 +449,7 @@ public:
         : Base(static_cast<ReturnType (*)(void)>(nullptr)),
           m_task(task)
     {
+        Base::m_deferredDeletionEnabled = true;
     }
 
     TaskPromise(const TaskPromise& other) = delete;
@@ -428,44 +471,30 @@ public:
         return m_task;
     }
 
+    /*! \brief Resolve the task with \p value, waking any waiting threads and running the task's
+     *  completion callbacks.
+     *  \note This promise must not be touched afterwards - the owning Task may have already gone
+     *  away, in which case this call deletes it. */
     void Fulfill(ReturnType&& value)
     {
         HYP_CORE_ASSERT(!Base::IsCompleted());
 
-        TUniqueLock guard(this->m_promiseFulfillFlag);
-
         Base::m_resultValue.Set(std::move(value));
 
-        TaskCallbackChain callbackChain = std::move(Base::GetCallbackChain());
-
-        Base::GetNotifier().Release(1);
-
-        guard.Reset();
-
-        if (callbackChain)
-        {
-            callbackChain();
-        }
+        Base::Complete(&Base::GetNotifier());
     }
 
+    /*! \brief Resolve the task with \p value, waking any waiting threads and running the task's
+     *  completion callbacks.
+     *  \note This promise must not be touched afterwards - the owning Task may have already gone
+     *  away, in which case this call deletes it. */
     void Fulfill(const ReturnType& value)
     {
         HYP_CORE_ASSERT(!Base::IsCompleted());
 
-        TUniqueLock guard(this->m_promiseFulfillFlag);
-
         Base::m_resultValue.Set(value);
 
-        TaskCallbackChain callbackChain = std::move(Base::GetCallbackChain());
-
-        Base::GetNotifier().Release(1);
-
-        guard.Reset();
-
-        if (callbackChain)
-        {
-            callbackChain();
-        }
+        Base::Complete(&Base::GetNotifier());
     }
 
 protected:
@@ -486,6 +515,7 @@ public:
         : Base(static_cast<void (*)(void)>(nullptr)),
           m_task(task)
     {
+        Base::m_deferredDeletionEnabled = true;
     }
 
     TaskPromise(const TaskPromise& other) = delete;
@@ -507,22 +537,15 @@ public:
         return m_task;
     }
 
+    /*! \brief Resolve the task, waking any waiting threads and running the task's completion
+     *  callbacks.
+     *  \note This promise must not be touched afterwards - the owning Task may have already gone
+     *  away, in which case this call deletes it. */
     void Fulfill()
     {
         HYP_CORE_ASSERT(!Base::IsCompleted());
 
-        TUniqueLock guard(this->m_promiseFulfillFlag);
-
-        TaskCallbackChain callbackChain = std::move(Base::GetCallbackChain());
-
-        Base::GetNotifier().Release(1);
-
-        guard.Reset();
-
-        if (callbackChain)
-        {
-            callbackChain();
-        }
+        Base::Complete(&Base::GetNotifier());
     }
 
 protected:
@@ -647,6 +670,13 @@ public:
     {
         return GetTaskExecutor()->IsCompleted();
     }
+
+    /*! \brief Register \p callback to be invoked once the task has completed.
+     *  If the task has already completed, \p callback is invoked immediately on the calling thread,
+     *  so there is no window in which a callback can be dropped.
+     *  May be called from any thread.
+     *  \note The callback runs on whichever thread completes the task, which may be a task thread. */
+    void OnComplete(functional::Proc<void()>&& callback);
 
     /*! \brief Remove the task from the scheduler.
      *  \returns True if the task was successfully cancelled, false otherwise. */
@@ -791,6 +821,32 @@ public:
         return std::move(m_executor->Result());
     }
 
+    /*! \brief Register \p callback to be invoked once the task has completed. It may take the task's
+     *  result as its only argument, or no arguments at all.
+     *  If the task has already completed, \p callback is invoked immediately on the calling thread,
+     *  so there is no window in which a callback can be dropped.
+     *  May be called from any thread.
+     *  \note The callback runs on whichever thread completes the task, which may be a task thread. */
+    template <class Callback>
+    void OnComplete(Callback&& callback)
+    {
+        if constexpr (std::is_invocable_v<Callback, ReturnType&>)
+        {
+            HYP_CORE_ASSERT(IsValid(), "Cannot add a completion callback to an invalid Task");
+
+            TaskBase::OnComplete([executor = m_executor, callback = std::forward<Callback>(callback)]() mutable
+                {
+                    callback(executor->Result());
+                });
+        }
+        else
+        {
+            static_assert(std::is_invocable_v<Callback>, "Callback must be callable with either no arguments or the task's result");
+
+            TaskBase::OnComplete(std::forward<Callback>(callback));
+        }
+    }
+
 protected:
     virtual void Await_Internal() const override
     {
@@ -806,34 +862,20 @@ protected:
 
     virtual void Reset() override
     {
-        if (m_ownsExecutor)
+        if (m_executor != nullptr && m_ownsExecutor)
         {
-            // Wait for the task to complete when not in debug mode
-            if (IsValid() && !IsCompleted())
+            if (m_allowDeferredDeletion)
             {
-                if (m_allowDeferredDeletion)
+                // The task may still be fulfilled from another thread; whoever gets there last
+                // deletes the executor.
+                if (m_executor->RelinquishOwnership())
                 {
-                    TSharedLock guard(m_executor->m_promiseFulfillFlag);
-
-                    // check again in case it completed while we were waiting for the lock
-                    if (!m_executor->IsCompleted())
-                    {
-                        m_executor->GetCallbackChain().Add([executor = m_executor]()
-                            {
-                                delete executor;
-                            });
-                    }
-                    else
-                    {
-                        // already completed while waiting for the lock;
-                        // delete it now
-                        delete m_executor;
-                    }
+                    delete m_executor;
                 }
-                else
-                {
-                    HYP_FAIL("Task was destroyed before it was completed. Waiting on task to complete. Create a fire-and-forget task to prevent this.");
-                }
+            }
+            else if (!IsCompleted())
+            {
+                HYP_FAIL("Task was destroyed before it was completed. Waiting on task to complete. Create a fire-and-forget task to prevent this.");
             }
             else
             {
@@ -960,36 +1002,20 @@ protected:
 
     virtual void Reset() override
     {
-        if (m_ownsExecutor)
+        if (m_executor != nullptr && m_ownsExecutor)
         {
-            // Wait for the task to complete when not in debug mode
-            if (IsValid() && !IsCompleted())
+            if (m_allowDeferredDeletion)
             {
-                if (m_allowDeferredDeletion)
+                // The task may still be fulfilled from another thread; whoever gets there last
+                // deletes the executor.
+                if (m_executor->RelinquishOwnership())
                 {
-                    TSharedLock guard(m_executor->m_promiseFulfillFlag);
-
-                    // check again in case it completed while we were waiting for the lock
-                    if (!m_executor->IsCompleted())
-                    {
-                        m_executor->GetCallbackChain().Add([executor = m_executor]()
-                            {
-                                delete executor;
-                            });
-                    }
-                    else
-                    {
-                        // already completed while waiting for the lock;
-                        // delete it now
-                        delete m_executor;
-                    }
-
-                    // Task_DeferTaskDeletion(m_executor);
+                    delete m_executor;
                 }
-                else
-                {
-                    HYP_FAIL("Task was destroyed before it was completed. Waiting on task to complete. Create a fire-and-forget task to prevent this.");
-                }
+            }
+            else if (!IsCompleted())
+            {
+                HYP_FAIL("Task was destroyed before it was completed. Waiting on task to complete. Create a fire-and-forget task to prevent this.");
             }
             else
             {

@@ -102,7 +102,7 @@ TaskCallbackChain::TaskCallbackChain(TaskCallbackChain&& other) noexcept
     Mutex::Guard guard(other.m_mutex);
 
     m_callbacks = std::move(other.m_callbacks);
-    m_numCallbacks.Set(other.m_numCallbacks.Exchange(0, MemoryOrder::ACQUIRE_RELEASE), MemoryOrder::RELEASE);
+    m_completed.Set(other.m_completed.Exchange(false, MemoryOrder::ACQUIRE_RELEASE), MemoryOrder::RELEASE);
 }
 
 TaskCallbackChain& TaskCallbackChain::operator=(TaskCallbackChain&& other) noexcept
@@ -116,7 +116,7 @@ TaskCallbackChain& TaskCallbackChain::operator=(TaskCallbackChain&& other) noexc
     Mutex::Guard otherGuard(other.m_mutex);
 
     m_callbacks = std::move(other.m_callbacks);
-    m_numCallbacks.Set(other.m_numCallbacks.Exchange(0, MemoryOrder::ACQUIRE_RELEASE), MemoryOrder::RELEASE);
+    m_completed.Set(other.m_completed.Exchange(false, MemoryOrder::ACQUIRE_RELEASE), MemoryOrder::RELEASE);
 
     return *this;
 }
@@ -125,26 +125,79 @@ TaskCallbackChain::~TaskCallbackChain() = default;
 
 void TaskCallbackChain::Add(Proc<void()>&& callback)
 {
-    /// \todo : Smarter implementation possibly using semaphores that are set up with a value when task is first initialized,
-    // need a way to tell if the added callback will never be executed because the task completed.
-    Mutex::Guard guard(m_mutex);
+    if (!callback.IsValid())
+    {
+        return;
+    }
+
+    m_mutex.Lock();
+
+    if (m_completed.Get(MemoryOrder::ACQUIRE))
+    {
+        // The task is already done, so nothing will ever run this for us. Invoking outside of the
+        // lock keeps a callback that registers further callbacks from deadlocking.
+        m_mutex.Unlock();
+
+        callback();
+
+        return;
+    }
 
     m_callbacks.PushBack(std::move(callback));
 
-    m_numCallbacks.Increment(1, MemoryOrder::RELEASE);
+    m_mutex.Unlock();
 }
 
-void TaskCallbackChain::operator()()
+TaskCallbackChain::CallbackList TaskCallbackChain::Detach()
 {
-    Mutex::Guard guard(m_mutex);
+    CallbackList callbacks;
 
-    for (Proc<void()>& proc : m_callbacks)
+    m_mutex.Lock();
+
+    if (!m_completed.Exchange(true, MemoryOrder::ACQUIRE_RELEASE))
     {
-        proc();
+        callbacks = std::move(m_callbacks);
     }
+
+    m_mutex.Unlock();
+
+    return callbacks;
 }
 
 #pragma endregion TaskCallbackChain
+
+#pragma region TaskExecutorBase
+
+void TaskExecutorBase::Complete(TaskCompleteNotifier* notifier, ProcRef<void()> onNotifierSignalled)
+{
+    // Read everything we need off of the executor up front: releasing the notifier lets a thread
+    // waiting on the task destroy it from under us.
+    TaskCallbackChain::CallbackList callbacks = m_callbackChain.Detach();
+    const bool deferredDeletionEnabled = m_deferredDeletionEnabled;
+
+    if (notifier != nullptr)
+    {
+        notifier->Release(1, onNotifierSignalled);
+    }
+    else if (onNotifierSignalled.IsValid())
+    {
+        onNotifierSignalled();
+    }
+
+    for (Proc<void()>& callback : callbacks)
+    {
+        callback();
+    }
+
+    if (deferredDeletionEnabled
+        && m_deletionState.Exchange(DeletionState::COMPLETED, MemoryOrder::ACQUIRE_RELEASE) == DeletionState::OWNER_RELEASED)
+    {
+        // The owning Task is already gone, so cleaning up is left to us.
+        delete this;
+    }
+}
+
+#pragma endregion TaskExecutorBase
 
 #pragma region TaskBase
 
@@ -167,6 +220,20 @@ bool TaskBase::Cancel()
     }
 
     return false;
+}
+
+void TaskBase::OnComplete(Proc<void()>&& callback)
+{
+    AssertDebug(IsValid(), "Cannot add a completion callback to an invalid Task");
+
+    TaskExecutorBase* executor = GetTaskExecutor();
+
+    if (executor == nullptr)
+    {
+        return;
+    }
+
+    executor->GetCallbackChain().Add(std::move(callback));
 }
 
 void TaskBase::Await_Internal() const
