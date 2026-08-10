@@ -73,46 +73,93 @@ ENGINE_API bool IsCacheServer()
     return IsGlobalContextActive<CacheServerContext>();
 }
 
-// Directory for cached data (shader bundles, compiled scripts, etc.) Expected to be compiled into the asset registry in production builds
-static AtomicVar<bool> s_cacheDirectoryInit = false;
-static Mutex s_cacheDirectoryMutex;
+static FilePath s_cacheDirectory;
 
+// Directory for cached data (shader bundles, compiled scripts, etc.) Expected to be compiled into the asset registry in production builds
 HYP_EXPORT const FilePath& GetCacheDirectory()
 {
-    static const String& s_cfgCacheDirectory = CoreApi::GetCommandLineArguments()["CacheDir"].ToString();
+    static std::once_flag s_onceFlag;
+    std::call_once(
+        s_onceFlag,
+        []
+        {
+            const String cfgValue = CoreApi::GetCommandLineArguments()["CacheDir"].ToString();
 
-    static const FilePath s_cacheDirectory =  (s_cfgCacheDirectory.Any()
-        ? (s_cfgCacheDirectory.StartsWith(".")
-            // Relative path - starts with . (eg "../Foo" or "./Foo")
-            ? (CoreApi::GetExecutablePath() / s_cfgCacheDirectory)
-            // Just use provided path.
-            : s_cfgCacheDirectory)
-        // Use fallback
-        : (CoreApi::GetExecutablePath() / "Cache"));
+            if (cfgValue.Any())
+            {
+                s_cacheDirectory = (cfgValue.StartsWith(".")
+                    // Relative path - starts with . (eg "../Foo" or "./Foo")
+                    ? (CoreApi::GetExecutablePath() / cfgValue)
+                    // Just use provided path.
+                    : cfgValue);
+            }
+            else
+            {
+                s_cacheDirectory = CoreApi::GetExecutablePath() / "Cache";
+            }
 
-    if (s_cacheDirectoryInit.Get(MemoryOrder::RELAXED))
-    {
-        return s_cacheDirectory;
-    }
+            if (s_cacheDirectory.Empty() || (!s_cacheDirectory.Exists() && !s_cacheDirectory.MkDir()))
+            {
+                HYP_LOG(Engine, Warning, "Failed to initialize cache storage directory {}!", s_cacheDirectory);
+            }
 
-    Mutex::Guard guard(s_cacheDirectoryMutex);
-
-    if (s_cacheDirectoryInit.Get(MemoryOrder::RELAXED))
-    {
-        return s_cacheDirectory;
-    }
-
-    if (s_cacheDirectory.Empty() || (!s_cacheDirectory.Exists() && !s_cacheDirectory.MkDir()))
-    {
-        HYP_LOG(Engine, Warning, "Failed to initialize cache storage directory {}!", s_cacheDirectory);
-    }
-
-    s_cacheDirectoryInit.Set(true, MemoryOrder::RELAXED);
-
-    HYP_LOG(Engine, Info, "Initialized cache directory at {}", s_cacheDirectory);
+            HYP_LOG(Engine, Info, "Initialized cache directory at {}", s_cacheDirectory);
+        });
 
     return s_cacheDirectory;
 }
+
+template <auto PackageName>
+HYP_EXPORT const FilePath& GetContentDirectory()
+{
+    static FilePath s_contentDirectory;
+    static std::once_flag s_onceFlag;
+
+    std::call_once(
+        s_onceFlag,
+        []
+        {
+            const String cfgValue = CoreApi::GetCommandLineArguments()["ContentDir"].ToString();
+
+            if (cfgValue.Any())
+            {
+                s_contentDirectory = (cfgValue.StartsWith(".")
+                    // Relative path - starts with . (eg "../Foo" or "./Foo")
+                    ? (CoreApi::GetExecutablePath() / cfgValue)
+                    // Just use provided path.
+                    : cfgValue);
+            }
+            else
+            {
+#if !defined(HYP_SHIPPING) && !defined(HYP_ANDROID)
+                if constexpr (!Memory::StrEqual(PackageName.data, "Game", 4))
+                {
+                    // <base>/Content/Engine
+                    // <base>/Content/Editor
+                    s_contentDirectory = CoreApi::GetBaseDirectory() / "Content" / String(PackageName.data);
+                }
+                else
+#endif // !SHIPPING && !ANDROID
+                {
+                    // <exe>/Content
+                    s_contentDirectory = CoreApi::GetExecutablePath() / "Content";
+                }
+            }
+
+            if (s_contentDirectory.Empty() || (!s_contentDirectory.Exists() && !s_contentDirectory.MkDir()))
+            {
+                HYP_LOG(Engine, Warning, "Failed to initialize content storage directory {}!", s_contentDirectory);
+            }
+
+            HYP_LOG(Engine, Info, "Initialized cache directory at {}", s_contentDirectory);
+        });
+
+    return s_contentDirectory;
+}
+
+template const FilePath& GetContentDirectory<HYP_STATIC_STRING("Editor")>();
+template const FilePath& GetContentDirectory<HYP_STATIC_STRING("Engine")>();
+template const FilePath& GetContentDirectory<HYP_STATIC_STRING("Game")>();
 
 HYP_EXPORT const char* GetCacheServerAddress()
 {
@@ -172,33 +219,6 @@ HYP_EXPORT FilePath CreateTempDirectory()
     // Failed!
     return FilePath();
 }
-
-template <auto PackageName>
-HYP_EXPORT const FilePath& GetContentDirectory()
-{
-#ifdef HYP_ANDROID
-    // On android, content gets written into the same directory as cache when downloaded.
-    return GetCacheDirectory().BasePath() / "Content";
-#endif  // HYP_ANDROID
-
-#ifndef HYP_SHIPPING
-    if constexpr (!Memory::StrEqual(PackageName.data, "Game", 4))
-    {
-        // Not shipping - Content at base dir of repo, subdir'd by package name.
-        static DirectoryInitializer<HYP_STATIC_STRING("Content").template Concat<HYP_STATIC_STRING("/")>().template Concat<PackageName>(), /* RelativeToExecutablePath */ false> s_contentDir;
-        return s_contentDir.path;
-    }
-#endif  // !HYP_SHIPPING
-
-    // Just use base Content directory at exe path.
-    // Everything gets coalesced.
-    static DirectoryInitializer<HYP_STATIC_STRING("Content"), /* RelativeToExecutablePath */ true> s_contentDir;
-    return s_contentDir.path;
-}
-
-template const FilePath& GetContentDirectory<HYP_STATIC_STRING("Editor")>();
-template const FilePath& GetContentDirectory<HYP_STATIC_STRING("Engine")>();
-template const FilePath& GetContentDirectory<HYP_STATIC_STRING("Game")>();
 
 HYP_EXPORT bool IsShuttingDown()
 {

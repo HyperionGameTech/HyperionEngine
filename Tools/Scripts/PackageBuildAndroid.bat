@@ -53,8 +53,13 @@ if "%SKIP_PRECOMPILE%"=="1" (
 )
 
 if "%COOK_ASSETS%"=="0" (
-    echo Skipping asset cook ^(pass --cook to bundle content into the APK^).
-    echo The app will sync content from a CacheServer at runtime instead - see DeployAndroid.bat --cache-server.
+    echo Skipping game registry cook, will cook minimal engine cache only.
+
+    "%BIN_DIR_RELEASE%\BlobStorageCookCommandlet.exe" --engine-only=true --out-cache=%OUT_DIR%\Cache --out-content=%OUT_DIR%\Content
+    if errorlevel 1 (
+        echo Cook commandlet failed, aborting packaged build.
+        exit /b 1
+    )
 ) else (
     echo Running Cook commandlet...
 
@@ -67,10 +72,7 @@ if "%COOK_ASSETS%"=="0" (
 
     echo Cooking project: %PROJECT_NAME%
 
-    REM Content is written next to whatever --CacheDir resolves to (EngineGlobals::GetCacheDirectory()
-    REM .BasePath() / "Content"), so pointing CacheDir at OUT_DIR\Cache lands both Cache and Content
-    REM directly in the package dir - no separate Content copy step needed.
-    "%BIN_DIR_RELEASE%\BlobStorageCookCommandlet.exe" --content=Projects/%PROJECT_NAME% --CacheDir=%OUT_DIR%\Cache
+    "%BIN_DIR_RELEASE%\BlobStorageCookCommandlet.exe" --project=Projects/%PROJECT_NAME% --out-cache=%OUT_DIR%\Cache --out-content=%OUT_DIR%\Content
     if errorlevel 1 (
         echo Cook commandlet failed, aborting packaged build.
         exit /b 1
@@ -83,36 +85,10 @@ echo Copying config files...
 
 if not exist "%OUT_DIR%\Config" mkdir "%OUT_DIR%\Config"
 
-REM Prefer the Android-specific variant of each config (EngineConfig.Android.json etc.),
-REM falling back to the platform-agnostic file, and write everything under the base name -
-REM this mirrors what CopyPlatformConfigs.cmake does for the desktop targets.
-
-set "KNOWN_PLATFORMS=IOS Android Windows Mac Linux"
-
-for %%F in ("%HYP_ROOT_DIR%Config\*.json") do (
-    set "FN=%%~nxF"
-    set "SKIP=0"
-    for %%P in (%KNOWN_PLATFORMS%) do (
-        if /I not "%%P"=="Android" (
-            echo !FN!| findstr /I /E /C:".%%P.json" >nul
-            if not errorlevel 1 set "SKIP=1"
-        )
-    )
-    if "!SKIP!"=="0" (
-        echo !FN!| findstr /I /E /C:".Android.json" >nul
-        if not errorlevel 1 (
-            set "BASE=!FN:.Android.json=.json!"
-            copy "%%F" "%OUT_DIR%\!BASE!" >nul
-        ) else (
-            set "PLATFORM_FILE=%HYP_ROOT_DIR%Config\!FN:.json=.Android.json!"
-            if exist "!PLATFORM_FILE!" (
-                copy "!PLATFORM_FILE!" "%OUT_DIR%\Config\!FN!" >nul
-            ) else (
-                copy "%%F" "%OUT_DIR%\Config\!FN!" >nul
-            )
-        )
-    )
-)
+echo Copying config files...
+if not exist "%OUT_DIR%\Config" mkdir "%OUT_DIR%\Config"
+copy "%HYP_ROOT_DIR%Config\*Config.json" "%OUT_DIR%\Config\" >nul 2>nul
+copy "%HYP_ROOT_DIR%Config\*Config.Android.json" "%OUT_DIR%\Config\" >nul 2>nul
 
 echo Copying Shaders.hmf...
 copy "%HYP_ROOT_DIR%Config\Shaders.hmf" "%OUT_DIR%\Config\" >nul

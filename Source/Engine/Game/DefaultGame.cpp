@@ -406,7 +406,7 @@ void DefaultGame::OnUpdate_Impl(float delta)
     Game::OnUpdate_Impl(delta);
 
     // Loading content.
-    if (!m_world.IsValid())
+    if (IsSyncingContent())
     {
         return;
     }
@@ -454,6 +454,38 @@ void DefaultGame::OnUpdate_Impl(float delta)
     //    Vec3f dir = Vec3f(MathUtil::Sin(m_sunAngle), 0.7f, MathUtil::Cos(m_sunAngle)).Normalize();
     //    m_sun->SetDirection(dir);
     //}
+}
+
+void DefaultGame::BeforeContentLoaded()
+{
+    Game::BeforeContentLoaded();
+
+    ShowLoadingScreen();
+}
+
+void DefaultGame::AfterContentLoaded()
+{
+    Game::AfterContentLoaded();
+
+    HideLoadingScreen();
+}
+
+void DefaultGame::ShowLoadingScreen()
+{
+    Assert(m_uiSubsystem.IsValid());
+    if (!m_uiSubsystem.IsValid())
+    {
+        return;
+    }
+}
+
+void DefaultGame::HideLoadingScreen()
+{
+    Assert(m_uiSubsystem.IsValid());
+    if (!m_uiSubsystem.IsValid())
+    {
+        return;
+    }
 }
 
 } // namespace game

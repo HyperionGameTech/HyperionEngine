@@ -105,7 +105,7 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_hyperion_engine_HyperionBridge_nativeSetCacheServer(JNIEnv* env, jclass /*clazz*/, jstring host, jint port)
 {
     const char* hostStr = env->GetStringUTFChars(host, nullptr);
-    snprintf(g_cacheServerAddress, sizeof(g_cacheServerAddress), "%s:%u", hostStr, uint32(port));
+    snprintf(g_cacheServerAddress, sizeof(g_cacheServerAddress), "%s:%u", hostStr, unsigned(port));
     env->ReleaseStringUTFChars(host, hostStr);
 }
 

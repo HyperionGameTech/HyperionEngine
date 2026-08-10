@@ -58,9 +58,33 @@ public:
             s_initialized = true;
 
             s_definitions.Add(
-                "content",
+                "project",
                 "c",
-                "Base direcrory of content to cook for",
+                "Project to content to cook for",
+                CommandLineArgumentFlags::NONE,
+                {},
+                JSON::Value(""));
+
+            s_definitions.Add(
+                "engine-only",
+                "",
+                "If true, only engine content will be cooked (minimal needed cache/content to start a game)",
+                CommandLineArgumentFlags::NONE,
+                {},
+                false);
+            
+            s_definitions.Add(
+                "out-cache",
+                "c",
+                "Directory to write cache to",
+                CommandLineArgumentFlags::REQUIRED,
+                {},
+                JSON::Value(""));
+            
+            s_definitions.Add(
+                "out-content",
+                "c",
+                "Directory to write content to",
                 CommandLineArgumentFlags::REQUIRED,
                 {},
                 JSON::Value(""));
@@ -70,42 +94,75 @@ public:
     }
 
 protected:
-    virtual Result Run_Impl(const CommandLineArguments& args) override
+    static FilePath GetDirectory(const String& value, bool mkdirs)
     {
-        // e.g. --content=Projects/DefaultGame - path of the content to cook, relative to the repo root.
-        String contentValue = "Content/Game";
-        if (args.Contains("content"))
+        const FilePath dir = (value.StartsWith(".")
+                    // Relative path - starts with . (eg "../Foo" or "./Foo")
+                    ? (CoreApi::GetBaseDirectory() / value)
+                    // Just use provided path.
+                    : value);
+
+        if (!dir.IsDirectory() && (mkdirs && !dir.MkDir()))
         {
-            contentValue = args["content"].ToString();
+            return FilePath();
         }
 
-        FilePath packageDir = CoreApi::GetBaseDirectory() / contentValue;
-        if (!packageDir.Exists() || !packageDir.IsDirectory())
+        return dir;
+    }
+
+    virtual Result Run_Impl(const CommandLineArguments& args) override
+    {
+        GlobalContextScope contextScope { CookingContext() };
+        
+        Handle<AssetRegistry> gameRegistry;
+
+        const String projectArg = args["project"].ToString();
+        FilePath projectDir;
+
+        const bool engineOnly = args["engine-only"].ToBool(false);
+        if (!engineOnly)
         {
-            return HYP_MAKE_ERROR(Error, "Package path is non existant or is not a directory: {}", packageDir);
+            if (projectArg.Empty())
+            {
+                return HYP_MAKE_ERROR(Error, "No valid project directory provided (required unless --engine-only is true)");
+            }
+
+            if ((projectDir = GetDirectory(projectArg, false)); projectDir.Empty())
+            {
+                return HYP_MAKE_ERROR(Error, "Package path is non existant or is not a directory: {}", projectDir);
+            }
+            
+            gameRegistry = MakeHandle<AssetRegistry>(AssetRegistryId::Game, projectDir);
+            gameRegistry->Initialize(nullptr);
         }
 
         Handle<AssetRegistry> engineRegistry;
-        Handle<AssetRegistry> gameRegistry;
-
-        gameRegistry = MakeHandle<AssetRegistry>(AssetRegistryId::Game, packageDir);
-
         engineRegistry = GetEngineAssetRegistry();
 
-        if (!engineRegistry && !gameRegistry)
+        if (!engineRegistry.IsValid())
         {
-            return HYP_MAKE_ERROR(Error, "No valid Engine or Game asset registry found to cook");
+            engineRegistry = MakeHandle<AssetRegistry>(
+                AssetRegistryId::Engine,
+                EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Engine")>());
+
+            engineRegistry->Initialize(nullptr);
         }
 
         HYP_LOG(Assets, Info, "Cooking blob storage");
 
-        // AssetReference::Resolve() looks up game-owned asset paths via GetCurrentAssetRegistry(),
-        // which reads this ambient context. Without it, every Game-registry cross-reference (e.g. a
-        // MeshComponent's mesh/material on an Entity inside a Prefab/Scene) resolves to nothing -
-        // this covers both the reflection walk below and the existing per-bucket cook loop.
-        GlobalContextScope assetRegistryContextScope { AssetRegistryContext { gameRegistry } };
+        const FilePath outCacheDir = GetDirectory(args["out-cache"].ToString(), true);
+        if (outCacheDir.Empty())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to create cache directory: {}", args["out-cache"].ToString());
+        }
 
-        Result result = Cook(engineRegistry, gameRegistry, packageDir);
+        const FilePath outContentDir = GetDirectory(args["out-content"].ToString(), true);
+        if (outContentDir.Empty())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to create content directory: {}", args["out-content"].ToString());
+        }
+
+        Result result = Cook(engineRegistry, gameRegistry, projectDir, outCacheDir, outContentDir);
 
         if (result.HasError())
         {
@@ -229,13 +286,11 @@ private:
         return {};
     }
 
-    static Result Cook(AssetRegistry* engineRegistry, AssetRegistry* gameRegistry, const FilePath& projectPath)
+    static Result Cook(
+        const Handle<AssetRegistry>& engineRegistry, const Handle<AssetRegistry>& gameRegistry,
+        const FilePath& projectPath,
+        const FilePath& outputCacheDir, const FilePath& outputContentDir)
     {
-        GlobalContextScope contextScope { CookingContext() };
-
-        const FilePath& cacheDir = EngineGlobals::GetCacheDirectory();
-        const FilePath outputContentDir = cacheDir.BasePath() / "Content";
-
         Array<TSharedResLock<AssetObject>> readLocks;
         Array<CollectedBlob> collectedBlobs;
 
@@ -245,6 +300,9 @@ private:
         // Engine content, cook everything in the registry
         if (engineRegistry)
         {
+            SetEngineAssetRegistry(engineRegistry);
+
+            GlobalContextScope assetRegistryContextScope { AssetRegistryContext { engineRegistry } };
             engineRegistry->LoadAssetDescs();
 
             for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; bucketIndex++)
@@ -260,6 +318,7 @@ private:
         // Game content: only cook what's actually reachable from the project's own data to strip assets that are unused.
         if (gameRegistry)
         {
+            GlobalContextScope assetRegistryContextScope { AssetRegistryContext { gameRegistry } };
             gameRegistry->LoadAssetDescs();
 
             Array<Handle<AssetObject>> assetsToCook;
@@ -331,7 +390,7 @@ private:
         }
 
         BlobStorage cookedStorage;
-        cookedStorage.Lock(cacheDir, /* readOly */ false);
+        cookedStorage.Lock(outputCacheDir, /* readOnly */ false);
 
         bool locked = true;
         HYP_DEFER({
@@ -373,7 +432,7 @@ private:
         // Write the shader property dictionary so the runtime can resolve
         // ShaderProperty names to their interned IDs (used by ShaderPropertySet).
         {
-            const FilePath shaderPropertyDbPath = EngineGlobals::GetCacheDirectory() / "shaderprops.bin";
+            const FilePath shaderPropertyDbPath = outputCacheDir / "shaderprops.bin";
 
             FileByteWriter writer { shaderPropertyDbPath };
             WriteShaderPropertyDictionary(writer);

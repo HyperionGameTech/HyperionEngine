@@ -391,11 +391,6 @@ void BlobStorage::Initialize(const FilePath& baseDir, bool readOnly)
 
     InitBlobStorage(*this, m_baseDir, /* readOnly */ m_isReadOnly);
 
-    if (Result result = LoadTOC_Internal(); result.HasError())
-    {
-        HYP_LOG(Assets, Warning, "Failed to load BlobStorage table of contents: {}", result.GetError().GetMessage());
-    }
-
     m_isInitialized = true;
 }
 

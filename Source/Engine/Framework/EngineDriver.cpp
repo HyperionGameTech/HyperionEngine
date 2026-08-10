@@ -421,48 +421,7 @@ void EngineDriver::LoadEngineContent()
         AssetRegistryId::Engine,
         EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Engine")>());
 
-    ProcRef<void()> doSync;
-
-    auto doSyncImpl = [&]()
-    {
-        Task<Result> syncContentTask;
-        engineRegistry->Initialize(&syncContentTask);
-
-        if (syncContentTask.IsValid())
-        {
-            HYP_LOG(Assets, Info, "Syncing engine content...");
-            Result syncResult = syncContentTask.Await();
-
-            if (syncResult.HasError())
-            {
-                bool clickedRetry = false;
-                bool clickedExit = false;
-
-                CacheClient::SyncFailed(syncResult.GetError(), clickedRetry, clickedExit);
-
-                if (clickedExit)
-                {
-                    // exit the process
-                    std::terminate();
-                    return;
-                }
-
-                if (clickedRetry)
-                {
-                    HYP_LOG(Assets, Info, "Retrying engine content sync");
-
-                    syncContentTask = {};
-                
-                    doSync();
-
-                    return;
-                }
-            }
-        }
-    };
-
-    doSync = doSyncImpl;
-    doSync();
+    engineRegistry->Initialize(nullptr);
 
     SetEngineAssetRegistry(engineRegistry);
 }

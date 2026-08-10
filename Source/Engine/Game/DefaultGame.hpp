@@ -34,6 +34,12 @@ public:
 
 protected:
     void InitializeWorld() override;
+    
+    void BeforeContentLoaded() override;
+    void AfterContentLoaded() override;
+
+    void ShowLoadingScreen();
+    void HideLoadingScreen();
 
     virtual void OnLaunch_Impl() override;
     virtual void OnUpdate_Impl(float delta) override;

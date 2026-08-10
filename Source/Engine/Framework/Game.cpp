@@ -104,15 +104,17 @@ void Game::Initialize()
             m_syncContentTask = {};
         }
 
+        BeforeContentLoaded();
+
         m_assetRegistry->Initialize(&m_syncContentTask);
 
         PushAssetRegistry(m_assetRegistry);
         m_assetRegistryActive = true;
-    }
 
-    if (!m_syncContentTask.IsValid())
-    {
-        AfterContentLoaded();
+        if (!m_syncContentTask.IsValid())
+        {
+            AfterContentLoaded();
+        }
     }
 }
 
@@ -270,7 +272,7 @@ bool Game::OnInputEvent(const Event& event)
 {
     AssertOnThread(g_simThread);
 
-    if (m_uiSubsystem.IsValid())
+    if (m_uiSubsystem.IsValid() && m_uiSubsystem->GetUIStage().IsValid())
     {
         if (m_uiSubsystem->GetUIStage()->OnInputEvent(event) == UIEventHandlerResult::STOP_BUBBLING)
         {
@@ -592,37 +594,6 @@ void Game::UnregisterInputHandler(InputHandlerBase* inputHandler)
     m_inputHandlers.Erase(it);
 }
 
-void Game::AfterContentLoaded()
-{
-    AssertOnThread(g_simThread);
-
-    Assert(m_isLaunched.Get(MemoryOrder::ACQUIRE) == false);
-    
-    InitializeWorld();
-
-    m_assetRegistry->PutAssetsDeep(m_world);
-
-    if (!m_uiSubsystem)
-    {
-        m_uiSubsystem = m_world->AddSubsystem(MakeHandle<UISubsystem>());
-    }
-        
-    OnLaunch();
-    m_isLaunched.Set(true, MemoryOrder::RELEASE);
-
-    const Handle<World>& world = GetWorld();
-    Assert(world.IsValid());
-
-    // Add to global worlds
-    g_engineDriver->AddWorld(world);
-        
-    // Invoke callbacks
-    Game::OnLaunched.Fire(this);
-
-    m_isInitialized = true;
-    m_syncContentTask = {};
-}
-
 void Game::OnUpdate_Impl(float delta)
 {
     AssertOnThread(g_simThread);
@@ -649,7 +620,13 @@ void Game::OnUpdate_Impl(float delta)
 
                 if (clickedRetry)
                 {
+                    BeforeContentLoaded();
                     m_assetRegistry->Initialize(&m_syncContentTask);
+
+                    if (!m_syncContentTask.IsValid())
+                    {
+                        AfterContentLoaded();
+                    }
                 }
             }
             else
@@ -658,6 +635,57 @@ void Game::OnUpdate_Impl(float delta)
             }
         }
     }
+}
+
+void Game::BeforeContentLoaded()
+{
+    AssertOnThread(g_simThread);
+
+    m_world = MakeHandle<World>();
+    m_world->SetName(NAME("TempUIWorld"));
+    m_world->SetIsTransient(true);
+
+    if (!m_uiSubsystem)
+    {
+        m_uiSubsystem = m_world->AddSubsystem(MakeHandle<UISubsystem>());
+    }
+}
+
+void Game::AfterContentLoaded()
+{
+    AssertOnThread(g_simThread);
+
+    Assert(m_isLaunched.Get(MemoryOrder::ACQUIRE) == false);
+
+    m_uiSubsystem.Reset();
+
+    if (m_world.IsValid())
+    {
+        m_world->Shutdown();
+        m_world.Reset();
+    }
+    
+    InitializeWorld();
+    Assert(m_world.IsValid());
+
+    if (!m_uiSubsystem)
+    {
+        m_uiSubsystem = m_world->AddSubsystem(MakeHandle<UISubsystem>());
+    }
+
+    m_assetRegistry->PutAssetsDeep(m_world);
+        
+    OnLaunch();
+    m_isLaunched.Set(true, MemoryOrder::RELEASE);
+
+    // Add to global worlds
+    g_engineDriver->AddWorld(m_world);
+        
+    // Invoke callbacks
+    Game::OnLaunched.Fire(this);
+
+    m_isInitialized = true;
+    m_syncContentTask = {};
 }
 
 } // namespace Hyperion

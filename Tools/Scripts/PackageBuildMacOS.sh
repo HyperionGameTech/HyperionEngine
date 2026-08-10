@@ -37,7 +37,7 @@ TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 OUT_DIR="$HYP_ROOT_DIR/PackagedBuilds/Mac/Build_$TIMESTAMP"
 echo "Creating packaged build at: $OUT_DIR"
 
-"$BIN_DIR_RELEASE/BlobStorageCookCommandlet" --content=Projects/"$PROJECT_NAME" --CacheDir="$OUT_DIR/Cache"
+"$BIN_DIR_RELEASE/BlobStorageCookCommandlet" --project=Projects/"$PROJECT_NAME" --out-cache="$OUT_DIR/Cache" --out-content="$OUT_DIR/Content"
 
 
 mkdir -p "$OUT_DIR/Source/Shaders"

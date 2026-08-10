@@ -132,8 +132,9 @@ protected:
     {
         return m_syncContentTask.IsValid();
     }
-
-    void AfterContentLoaded();
+    
+    virtual void BeforeContentLoaded();
+    virtual void AfterContentLoaded();
 
     virtual void InitializeWorld();
 

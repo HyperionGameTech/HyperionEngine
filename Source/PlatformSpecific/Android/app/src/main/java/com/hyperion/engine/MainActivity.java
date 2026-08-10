@@ -122,26 +122,13 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
     private void runEngineLoop() {
         Log.i(TAG, "Hyperion runEngineLoop()");
 
-        File downloadedCacheDir = new File(getFilesDir() + "downloaded_content/Cache");
+        File downloadedCacheDir = new File(getFilesDir() + "/downloaded_content/Cache");
         downloadedCacheDir.mkdirs();
 
-        File downloadedContentDir = new File(getFilesDir() + "downloaded_content/Content");
+        File downloadedContentDir = new File(getFilesDir() + "/downloaded_content/Content");
         downloadedContentDir.mkdirs();
 
         HyperionBridge.nativeSetCacheDirectory(downloadedCacheDir.getAbsolutePath());
-
-        // cache server
-        String cacheServer = getIntent().getStringExtra("cacheServer");
-        if (cacheServer != null && !cacheServer.isEmpty()) {
-            String[] parts = cacheServer.split(":");
-            String host = parts[0];
-            int port = Integer.parseInt(parts.length > 1 ? parts[1] : "8080");
-
-            Log.i(TAG, "Syncing content from cache server " + host + ":" + port);
-            HyperionBridge.nativeSetCacheServer(host, port);
-        } else {
-            Log.i(TAG, "No cache server configured, using bundled content");
-        }
 
         int result = HyperionBridge.nativeInit();
         if (result == 0) {

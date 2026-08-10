@@ -36,7 +36,7 @@ set "OUT_DIR=%HYP_ROOT_DIR%PackagedBuilds\Windows\Build_%TIMESTAMP%"
 if not exist "%OUT_DIR%" mkdir "%OUT_DIR%"
 echo Creating packaged build at: %OUT_DIR%
 
-"%BIN_DIR_RELEASE%\BlobStorageCookCommandlet.exe" --content=Projects/%PROJECT_NAME% --CacheDir=%OUT_DIR%\Cache
+"%BIN_DIR_RELEASE%\BlobStorageCookCommandlet.exe" --project=Projects/%PROJECT_NAME% --out-cache=%OUT_DIR%\Cache --out-content=%OUT_DIR%\Content
 if errorlevel 1 (
     echo Cook commandlet failed, aborting packaged build.
     exit /b 1
