@@ -34,6 +34,11 @@ namespace Hyperion
             set => this.SetAssetRegistry(value);
         }
 
+        protected virtual World LoadWorld(Name name)
+        {
+            return InvokeNativeMethod<World>("LoadWorld_Impl", [name]);
+        }
+
         protected virtual void OnLaunch()
         {
             InvokeNativeMethod("OnLaunch_Impl");

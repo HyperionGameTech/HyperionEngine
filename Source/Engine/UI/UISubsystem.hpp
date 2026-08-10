@@ -87,8 +87,6 @@ protected:
     }
 
 private:
-    void Init() override;
-
     void OnAddedToWorld() override;
     void OnRemovedFromWorld() override;
 

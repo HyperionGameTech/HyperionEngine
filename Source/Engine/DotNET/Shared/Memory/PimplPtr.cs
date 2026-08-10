@@ -9,5 +9,10 @@ namespace Hyperion
     {
         [FieldOffset(0)]
         internal IntPtr ptr;
+
+        public PimplPtr()
+        {
+            ptr = IntPtr.Zero;
+        }
     }
 }

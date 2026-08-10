@@ -33,16 +33,14 @@ public:
     virtual ~DefaultGame() override;
 
 protected:
-    void InitializeWorld() override;
-    
-    void BeforeContentLoaded() override;
-    void AfterContentLoaded() override;
-
-    void ShowLoadingScreen();
-    void HideLoadingScreen();
+    virtual void BeforeContentLoaded() override;
+    virtual void AfterContentLoaded() override;
 
     virtual void OnLaunch_Impl() override;
     virtual void OnUpdate_Impl(float delta) override;
+
+    void ShowLoadingScreen();
+    void HideLoadingScreen();
 
     DefaultGameImpl* m_impl;
 

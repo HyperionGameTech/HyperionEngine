@@ -12,5 +12,14 @@ namespace Hyperion
 
         [FieldOffset(8)]
         private unsafe byte* _currentFunction;
+
+        public Error()
+        {
+            unsafe
+            {
+                _message = null;
+                _currentFunction = null;
+            }
+        }
     }
 }

@@ -1992,8 +1992,10 @@ extern class Game
     UnregisterInputHandler(inputHandler : InputHandlerBase) -> void
     OnLaunch() -> void
     BeforeShutdown() -> void
+    LoadWorld(worldName : Name) -> World
     static OnLaunched : any
     static OnGameStateChange : any
+    LoadWorld_Impl(worldName : Name) -> World
     OnLaunch_Impl() -> void
     BeforeShutdown_Impl() -> void
     OnUpdate_Impl(delta : float) -> void

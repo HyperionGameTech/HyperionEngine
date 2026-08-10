@@ -8,8 +8,14 @@ namespace Hyperion
     [StructLayout(LayoutKind.Explicit, Size = 8)]
     public struct Result
     {
+        public static Result OK => new Result();
+
         [FieldOffset(0)]
         private PimplPtr _error;
+
+        public Result()
+        {
+        }
 
         public bool IsValid
         {

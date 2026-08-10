@@ -43,6 +43,8 @@
 
 namespace Hyperion {
 
+ENGINE_API HYP_DEFINE_LOG_CHANNEL(Game);
+
 ScriptableDelegate<void> Game::OnLaunched;
 ScriptableDelegate<void, Game*, GameStateMode, GameStateMode> Game::OnGameStateChange;
 
@@ -98,39 +100,43 @@ void Game::Initialize()
 
     if (!m_assetRegistryActive)
     {
-        if (m_syncContentTask.IsValid())
+        // This check exists mainly for initializing newly created editor projects that
+        // have a World set on them and should not destroy that world to attempt to load one from disk.
+        const bool shouldLoadContent = m_assetRegistry->GetRootPath().Exists();
+
+        if (shouldLoadContent)
         {
-            m_syncContentTask.Await();
-            m_syncContentTask = {};
+            BeforeContentLoaded();
+
+            m_assetRegistry->Initialize(&m_syncContentTask);
+
+            PushAssetRegistry(m_assetRegistry);
+            m_assetRegistryActive = true;
+
+            if (!m_syncContentTask.IsValid())
+            {
+                AfterContentLoaded();
+            }
         }
-
-        BeforeContentLoaded();
-
-        m_assetRegistry->Initialize(&m_syncContentTask);
-
-        PushAssetRegistry(m_assetRegistry);
-        m_assetRegistryActive = true;
-
-        if (!m_syncContentTask.IsValid())
+        else
         {
-            AfterContentLoaded();
+            m_assetRegistry->Initialize(nullptr);
+
+            PushAssetRegistry(m_assetRegistry);
+            m_assetRegistryActive = true;
+
+            Launch();
         }
+    }
+    else
+    {
+        Launch();
     }
 }
 
-void Game::InitializeWorld()
+Handle<World> Game::LoadWorld_Impl(Name worldName)
 {
-    Assert(m_world != nullptr);
-    
-    if (!m_world.IsValid())
-    {
-        return;
-    }
-
-    AssertDebug(m_world->m_gameInstance == nullptr || m_world->m_gameInstance == this);
-    m_world->m_gameInstance = this;
-
-    m_world->Initialize();
+    return m_assetRegistry->GetAsset<World>(AssetBuckets::Worlds, worldName);
 }
 
 void Game::Shutdown(bool shutdownWorld)
@@ -229,6 +235,12 @@ void Game::SetWorld(const Handle<World>& world)
 
     if (m_world)
     {
+        if (m_uiSubsystem.IsValid())
+        {
+            m_world->RemoveSubsystem(m_uiSubsystem);
+            m_uiSubsystem.Reset();
+        }
+
         m_world->m_gameInstance = nullptr;
 
         if (m_isInitialized)
@@ -248,6 +260,8 @@ void Game::SetWorld(const Handle<World>& world)
     {
         AssertDebug(m_world->m_gameInstance == nullptr || m_world->m_gameInstance == this);
         m_world->m_gameInstance = this;
+        
+        m_uiSubsystem = m_world->AddSubsystem(MakeHandle<UISubsystem>());
 
         if (m_isInitialized)
         {
@@ -620,7 +634,6 @@ void Game::OnUpdate_Impl(float delta)
 
                 if (clickedRetry)
                 {
-                    BeforeContentLoaded();
                     m_assetRegistry->Initialize(&m_syncContentTask);
 
                     if (!m_syncContentTask.IsValid())
@@ -641,14 +654,11 @@ void Game::BeforeContentLoaded()
 {
     AssertOnThread(g_simThread);
 
-    m_world = MakeHandle<World>();
-    m_world->SetName(NAME("TempUIWorld"));
-    m_world->SetIsTransient(true);
+    Handle<World> tempWorld = MakeHandle<World>();
+    tempWorld->SetName(NAME("TempUIWorld"));
+    tempWorld->SetIsTransient(true);
 
-    if (!m_uiSubsystem)
-    {
-        m_uiSubsystem = m_world->AddSubsystem(MakeHandle<UISubsystem>());
-    }
+    SetWorld(tempWorld);
 }
 
 void Game::AfterContentLoaded()
@@ -657,29 +667,35 @@ void Game::AfterContentLoaded()
 
     Assert(m_isLaunched.Get(MemoryOrder::ACQUIRE) == false);
 
-    m_uiSubsystem.Reset();
-
-    if (m_world.IsValid())
-    {
-        m_world->Shutdown();
-        m_world.Reset();
-    }
+    SetWorld(Handle<World>::Null());
     
-    InitializeWorld();
-    Assert(m_world.IsValid());
-
-    if (!m_uiSubsystem)
+    if (Handle<World> world = LoadWorld(NAME("MainWorld")); world.IsValid())
     {
-        m_uiSubsystem = m_world->AddSubsystem(MakeHandle<UISubsystem>());
+        SetWorld(world);
+    }
+    else
+    {
+        HYP_LOG(Game, Error, "Failed to load world!");
+
+        // Create a dummy world
+        SetWorld(MakeHandle<World>());
     }
 
-    m_assetRegistry->PutAssetsDeep(m_world);
-        
-    OnLaunch();
-    m_isLaunched.Set(true, MemoryOrder::RELEASE);
+    Launch();
+}
+
+void Game::Launch()
+{
+    AssertOnThread(g_simThread);
+
+    Assert(m_isLaunched.Get(MemoryOrder::ACQUIRE) == false);
+    Assert(m_world.IsValid());
 
     // Add to global worlds
     g_engineDriver->AddWorld(m_world);
+    
+    OnLaunch();
+    m_isLaunched.Set(true, MemoryOrder::RELEASE);
         
     // Invoke callbacks
     Game::OnLaunched.Fire(this);

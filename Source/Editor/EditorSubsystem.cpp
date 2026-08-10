@@ -3221,11 +3221,14 @@ EditorSubsystem::EditorSubsystem()
                   InitObject(project);
                   InitializeGizmos();
 
-                  g_engineDriver->AddWorld(project->GetWorld());
+                  const Handle<World>& world = project->GetWorld();
+                  Assert(world.IsValid());
+
+                  g_engineDriver->AddWorld(world);
 
                   Handle<Scene> activeScene;
 
-                  for (const Handle<Scene>& scene : project->GetWorld()->GetScenes())
+                  for (const Handle<Scene>& scene : world->GetScenes())
                   {
                       Assert(scene != nullptr);
 
@@ -3253,54 +3256,58 @@ EditorSubsystem::EditorSubsystem()
                       vp->OnAdded(this);
                   }
 
-                  m_delegateHandlers.Add(project->GetWorld()->OnSceneAdded.Bind(project->GetWorld().Get(), [this, projectWeak = project.ToWeak()](World*, const Handle<Scene>& scene)
-                                                                                {
-                                                                                    Assert(scene != nullptr);
-                                                                                    Assert(scene != m_editorScene);
+                  m_delegateHandlers.Add(project->GetWorld()->OnSceneAdded.Bind(
+                      project->GetWorld().Get(),
+                      [this, projectWeak = project.ToWeak()](World*, const Handle<Scene>& scene)
+                        {
+                            Assert(scene != nullptr);
+                            Assert(scene != m_editorScene);
 
-                                                                                    if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) != SceneFlags::FOREGROUND)
-                                                                                    {
-                                                                                        return;
-                                                                                    }
+                            if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) != SceneFlags::FOREGROUND)
+                            {
+                                return;
+                            }
 
-                                                                                    Handle<EditorProject> project = projectWeak.Lock();
-                                                                                    Assert(project != nullptr);
+                            Handle<EditorProject> project = projectWeak.Lock();
+                            Assert(project != nullptr);
 
-                                                                                    // Add scene to all editor views
-                                                                                    for (const Handle<EditorViewport>& vp : m_editorViewports)
-                                                                                    {
-                                                                                        vp->OnSceneAdded(scene);
-                                                                                    }
+                            // Add scene to all editor views
+                            for (const Handle<EditorViewport>& vp : m_editorViewports)
+                            {
+                                vp->OnSceneAdded(scene);
+                            }
 
-                                                                                    if (!m_activeScene)
-                                                                                    {
-                                                                                        SetActiveScene(scene);
-                                                                                    }
-                                                                                }));
+                            if (!m_activeScene)
+                            {
+                                SetActiveScene(scene);
+                            }
+                        }));
 
-                  m_delegateHandlers.Add(project->GetWorld()->OnSceneRemoved.Bind(project->GetWorld().Get(), [this, projectWeak = project.ToWeak()](World*, Scene* scene)
-                                                                                  {
-                                                                                      Assert(scene != nullptr);
-                                                                                      Assert(scene != m_editorScene);
+                  m_delegateHandlers.Add(project->GetWorld()->OnSceneRemoved.Bind(
+                      project->GetWorld().Get(),
+                      [this, projectWeak = project.ToWeak()](World*, Scene* scene)
+                        {
+                            Assert(scene != nullptr);
+                            Assert(scene != m_editorScene);
 
-                                                                                      Handle<EditorProject> project = projectWeak.Lock();
-                                                                                      Assert(project != nullptr);
+                            Handle<EditorProject> project = projectWeak.Lock();
+                            Assert(project != nullptr);
 
-                                                                                      scene->OnRootNodeChanged.RemoveAllFromSet(m_delegateHandlers);
+                            scene->OnRootNodeChanged.RemoveAllFromSet(m_delegateHandlers);
 
-                                                                                      // remove from all editor views
-                                                                                      for (const Handle<EditorViewport>& vp : m_editorViewports)
-                                                                                      {
-                                                                                          vp->OnSceneRemoved(scene);
-                                                                                      }
+                            // remove from all editor views
+                            for (const Handle<EditorViewport>& vp : m_editorViewports)
+                            {
+                                vp->OnSceneRemoved(scene);
+                            }
 
-                                                                                      // StopWatchingNode(scene->GetRoot());
+                            // StopWatchingNode(scene->GetRoot());
 
-                                                                                      // GetWorld()->RemoveScene(scene);
+                            // GetWorld()->RemoveScene(scene);
 
-                                                                                      // // reinitialize scene selector on scene remove
-                                                                                      // InitActiveSceneSelection();
-                                                                                  }));
+                            // // reinitialize scene selector on scene remove
+                            // InitActiveSceneSelection();
+                        }));
 
                   SetActiveScene(activeScene);
               })

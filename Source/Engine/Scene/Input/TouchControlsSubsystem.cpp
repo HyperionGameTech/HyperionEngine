@@ -55,11 +55,6 @@ TouchControlsSubsystem::~TouchControlsSubsystem()
     DestroyJoystickUI();
 }
 
-void TouchControlsSubsystem::Init()
-{
-    Subsystem::Init();
-}
-
 void TouchControlsSubsystem::OnAddedToWorld()
 {
     CreateJoystickUI();

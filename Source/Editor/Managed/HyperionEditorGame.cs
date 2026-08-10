@@ -24,10 +24,6 @@ namespace Hyperion.Editor
         public HyperionEditorGame()
         {
             PackageName = new Name("HyperionEditorGame");
-
-            World = new World { Name = new Name("EditorWorld") };
-            World.WorldFlags |= WorldFlags.EditorWorld;
-            World.SetIsTransient(true); // Editor world should not be saved or loaded from disk.
         }
 
         protected override void OnLaunch()
@@ -74,6 +70,15 @@ namespace Hyperion.Editor
             // ab.Add("test_model", "Models/SponzaGltf/Sponza.gltf");//"Models/SanMiguel/san-miguel-low-poly.obj");//LivingRoom/living_room.obj");//// //"Models/testbed/testbed.obj");
             // ab.Add("guy", "models/ZombieGuy/guy.mesh.xml");
             // _assetBatchTask = ab.Load();
+        }
+
+        protected override World LoadWorld(Name unusedName)
+        {
+            var world = new World { Name = new Name("EditorWorld") };
+            world.WorldFlags |= WorldFlags.EditorWorld;
+            world.SetIsTransient(true); // Editor world should not be saved or loaded from disk.
+
+            return world;
         }
 
         protected override void BeforeShutdown()

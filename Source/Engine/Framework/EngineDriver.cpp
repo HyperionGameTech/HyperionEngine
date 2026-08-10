@@ -421,7 +421,68 @@ void EngineDriver::LoadEngineContent()
         AssetRegistryId::Engine,
         EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Engine")>());
 
+#if !defined(HYP_SHIPPING) && !defined(HYP_ANDROID)
+    ProcRef<void()> doSync;
+
+    auto doSyncImpl = [&]()
+    {
+        Task<Result> syncContentTask;
+        engineRegistry->Initialize(&syncContentTask);
+
+        if (syncContentTask.IsValid())
+        {
+            HYP_LOG(Assets, Info, "Syncing engine content...");
+            Result syncResult = syncContentTask.Await();
+
+            if (syncResult.HasError())
+            {
+                bool clickedRetry = false;
+                bool clickedExit = false;
+
+                CacheClient::SyncFailed(syncResult.GetError(), clickedRetry, clickedExit);
+
+                if (clickedExit)
+                {
+                    // exit the process
+                    std::terminate();
+                    return;
+                }
+
+                if (clickedRetry)
+                {
+                    HYP_LOG(Assets, Info, "Retrying engine content sync");
+
+                    syncContentTask = {};
+                
+                    doSync();
+
+                    return;
+                }
+            }
+        }
+    };
+
+    doSync = doSyncImpl;
+
+    // check manifest exists already:
+    if ((EngineGlobals::GetCacheDirectory() / "Engine.hmf").Exists())
+    {
+        // Initialize with no sync.
+        engineRegistry->Initialize(nullptr);
+    }
+    else
+    {
+        SystemMessageBox(MessageBoxType::INFO)
+            .Title("Engine Cache Setup")
+            .Text(String("Engine cache needs to be built. Make sure the cache server is running at ") + EngineGlobals::GetCacheServerAddress() + ".\n"
+                  + "Press OK to start building the cache.")
+            .Button("OK", &doSync)
+            .Button("Exit", &std::terminate)
+            .Show();
+    }
+#else
     engineRegistry->Initialize(nullptr);
+#endif // !HYP_SHIPPING
 
     SetEngineAssetRegistry(engineRegistry);
 }

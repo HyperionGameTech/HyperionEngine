@@ -424,7 +424,7 @@ void UIStage::Init()
         .BindThreaded(g_appContext, UpdateSurfaceSize, g_simThread);
 
     // Will create a new Scene
-    SetScene(nullptr);
+    SetScene(Handle<Scene>::Null());
 
     SetNodeProxy(m_scene->GetRoot());
 
@@ -512,6 +512,11 @@ bool UIStage::TestRay(const Vec2f& position, Array<Handle<UIObject>>& outObjects
 {
     HYP_SCOPE;
     AssertOnOwnerThread();
+
+    if (!m_scene.IsValid())
+    {
+        return false;
+    }
 
     const Vec4f worldPosition = Vec4f(position.x * float(GetSurfaceSize().x), position.y * float(GetSurfaceSize().y), 0.0f, 1.0f);
     const Vec3f direction { worldPosition.x / worldPosition.w, worldPosition.y / worldPosition.w, 0.0f };

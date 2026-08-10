@@ -107,9 +107,9 @@ protected:
     }
 
 private:
-    void Init() override;
     void OnAddedToWorld() override;
     void OnRemovedFromWorld() override;
+    
     void OnSceneAttached(const Handle<Scene>& scene) override;
     void OnSceneDetached(Scene* scene) override;
 

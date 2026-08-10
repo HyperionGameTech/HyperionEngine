@@ -62,7 +62,7 @@
 
 namespace Hyperion {
 
-HYP_DEFINE_LOG_CHANNEL(Game);
+HYP_DECLARE_LOG_CHANNEL(Game);
 
 namespace game {
 
@@ -95,16 +95,6 @@ DefaultGame::DefaultGame()
 
 DefaultGame::~DefaultGame()
 {
-}
-
-void DefaultGame::InitializeWorld()
-{
-    Handle<World> worldAsset = GetCurrentAssetRegistry()->GetAsset<World>(AssetBuckets::Worlds, "MainWorld"_sh);
-    Assert(worldAsset.IsValid());
-
-    SetWorld(worldAsset);
-
-    Game::InitializeWorld();
 }
 
 void DefaultGame::OnLaunch_Impl()

@@ -117,6 +117,10 @@ UISubsystem::UISubsystem(const Handle<UIStage>& uiStage)
       m_wasProcessedLastFrame(false),
       m_wasDebugUIEnabled(false)
 {
+    if (!m_uiStage.IsValid())
+    {
+        m_uiStage = MakeHandle<UIStage>();
+    }
 }
 
 UISubsystem::~UISubsystem()
@@ -125,10 +129,8 @@ UISubsystem::~UISubsystem()
     m_onCurrentWindowChangedHandle.Reset();
 }
 
-void UISubsystem::Init()
+void UISubsystem::OnAddedToWorld()
 {
-    Subsystem::Init();
-
     Assert(m_uiStage != nullptr);
 
     m_uiStage->SetWorld(GetWorld());
@@ -198,14 +200,6 @@ void UISubsystem::Init()
     m_view = MakeHandle<View>(viewDesc);
     m_view->SetName(NAME("UISubsystem_View"));
     InitObject(m_view);
-}
-
-void UISubsystem::OnAddedToWorld()
-{
-    if (m_uiStage)
-    {
-        m_uiStage->SetWorld(GetWorld());
-    }
 
     InitDebugOverlays();
 }

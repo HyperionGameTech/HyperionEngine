@@ -119,6 +119,9 @@ public:
     HYP_METHOD(Scriptable)
     void BeforeShutdown();
 
+    HYP_METHOD(Scriptable)
+    Handle<World> LoadWorld(Name worldName);
+
     /// -
 
     HYP_FIELD()
@@ -136,7 +139,10 @@ protected:
     virtual void BeforeContentLoaded();
     virtual void AfterContentLoaded();
 
-    virtual void InitializeWorld();
+    void Launch();
+
+    HYP_METHOD()
+    virtual Handle<World> LoadWorld_Impl(Name worldName);
 
     virtual bool OnInputEvent(const Event& event);
 
