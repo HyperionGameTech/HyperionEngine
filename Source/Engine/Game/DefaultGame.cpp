@@ -52,6 +52,8 @@
 
 #include <UI/UISubsystem.hpp>
 #include <UI/UIStage.hpp>
+#include <UI/UIText.hpp>
+#include <UI/UIPanel.hpp>
 #include <UI/Overlays/BaseStatsOverlay.hpp>
 #include <UI/Overlays/StatsOverlay.hpp>
 #include <UI/Overlays/ConsoleOverlay.hpp>
@@ -466,6 +468,20 @@ void DefaultGame::ShowLoadingScreen()
     {
         return;
     }
+
+    UIStage& stage = *m_uiSubsystem->GetUIStage();
+
+    Handle<UIPanel> panel = stage.CreateUIObject<UIPanel>(Vec2i::Zero(), UIObjectSize { { 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT } });
+    panel->SetBackgroundColor(Color(0.1f, 0.1f, 0.1f, 1.0f));
+    stage.AddChildUIObject(panel);
+
+    Handle<UIText> loadingText = panel->CreateUIObject<UIText>(Vec2i::Zero(), UIObjectSize { { 0, UIObjectSize::AUTO }, { 80, UIObjectSize::PIXEL } });
+    loadingText->SetText("Loading content...");
+    loadingText->SetTextSize(50.0f);
+    loadingText->SetTextColor(Color::White());
+    loadingText->SetOriginAlignment(UIObjectAlignment::CENTER);
+    loadingText->SetParentAlignment(UIObjectAlignment::CENTER);
+    panel->AddChildUIObject(loadingText);
 }
 
 void DefaultGame::HideLoadingScreen()

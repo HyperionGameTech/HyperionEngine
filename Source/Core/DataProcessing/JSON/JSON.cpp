@@ -14,7 +14,6 @@
 
 #include <Core/Utilities/DeferredScope.hpp>
 
-#include <Core/IO/BufferedByteReader.hpp>
 #include <Core/IO/ByteReader.hpp>
 
 // needed for TypeInfo
@@ -1237,15 +1236,7 @@ const Value& False()
     return s_false;
 }
 
-ParseResult Parse(BufferedReader& reader)
-{
-    ByteBuffer buffer = reader.ReadBytes();
-    MemoryByteReader byteReader(buffer.ToByteView());
-
-    return Parse(byteReader);
-}
-
-ParseResult Parse(const String& jsonString)
+ParseResult Parse(const UTF8StringView& jsonString)
 {
     MemoryByteReader reader(ConstByteView(reinterpret_cast<const ubyte*>(jsonString.Data()), jsonString.Size()));
 

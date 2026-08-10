@@ -72,11 +72,7 @@ Game::~Game()
     {
         m_assetRegistry->Shutdown();
 
-        if (m_syncContentTask.IsValid())
-        {
-            m_syncContentTask.Await();
-            m_syncContentTask = {};
-        }
+        m_syncState.WaitForSync();
     }
 
     OnLaunched.RemoveAllForTarget(this);
@@ -116,11 +112,7 @@ Handle<World> Game::LoadWorld_Impl(Name worldName)
 
 void Game::Shutdown(bool shutdownWorld)
 {
-    if (m_syncContentTask.IsValid())
-    {
-        m_syncContentTask.Await();
-        m_syncContentTask = {};
-    }
+    m_syncState.WaitForSync();
 
     if (!m_isInitialized)
     {
@@ -175,18 +167,15 @@ void Game::SetAssetRegistry(const Handle<AssetRegistry>& assetRegistry)
     {
         m_assetRegistry->Shutdown();
 
-        if (m_syncContentTask.IsValid())
-        {
-            m_syncContentTask.Await();
-            m_syncContentTask = {};
-        }
+        m_syncState.WaitForSync();
     }
 
     m_assetRegistry = assetRegistry;
 
     if (m_assetRegistry && m_isInitialized)
     {
-        m_assetRegistry->Initialize(&m_syncContentTask);
+        m_syncState = {};
+        m_assetRegistry->Initialize(&m_syncState.currentTask);
 
         PushAssetRegistry(m_assetRegistry);
         m_assetRegistryActive = true;
@@ -200,11 +189,7 @@ void Game::SetWorld(const Handle<World>& world)
         return;
     }
     
-    if (m_syncContentTask.IsValid())
-    {
-        m_syncContentTask.Await();
-        m_syncContentTask = {};
-    }
+    m_syncState.WaitForSync();
 
     const bool isLaunched = IsLaunched();
 
@@ -218,15 +203,9 @@ void Game::SetWorld(const Handle<World>& world)
 
         m_world->m_gameInstance = nullptr;
 
-        if (m_isInitialized)
-        {
-            if (isLaunched)
-            {
-                g_engineDriver->RemoveWorld(m_world);
-            }
+        g_engineDriver->RemoveWorld(m_world);
 
-            m_world->Shutdown();
-        }
+        m_world->Shutdown();
     }
 
     m_world = world;
@@ -238,15 +217,9 @@ void Game::SetWorld(const Handle<World>& world)
         
         m_uiSubsystem = m_world->AddSubsystem(MakeHandle<UISubsystem>());
 
-        if (m_isInitialized)
-        {
-            m_world->Initialize();
+        m_world->Initialize();
 
-            if (isLaunched)
-            {
-                g_engineDriver->AddWorld(m_world);
-            }
-        }
+        g_engineDriver->AddWorld(m_world);
     }
 }
 
@@ -587,12 +560,11 @@ void Game::OnUpdate_Impl(float delta)
 {
     AssertOnThread(g_simThread);
 
-    if (m_syncContentTask.IsValid())
+    if (m_syncState.IsSyncing())
     {
-        if (m_syncContentTask.IsCompleted())
+        if (m_syncState.currentTask.IsCompleted())
         {
-            Result res = m_syncContentTask.Await();
-            m_syncContentTask = {};
+            Result res = m_syncState.WaitForSync();
 
             if (res.HasError())
             {
@@ -609,9 +581,10 @@ void Game::OnUpdate_Impl(float delta)
 
                 if (clickedRetry)
                 {
-                    m_assetRegistry->Initialize(&m_syncContentTask);
+                    m_syncState = {};
+                    m_assetRegistry->Initialize(&m_syncState.currentTask);
 
-                    if (!m_syncContentTask.IsValid())
+                    if (!m_syncState.IsSyncing())
                     {
                         AfterContentLoaded();
                     }
@@ -641,46 +614,58 @@ void Game::AfterContentLoaded()
     AssertOnThread(g_simThread);
 
     Assert(m_isLaunched.Get(MemoryOrder::ACQUIRE) == false);
-
-    SetWorld(Handle<World>::Null());
     
+    // We need to defer it for the start of the next frame;
+    // OnUpdate() is called during processing with Scenes pre-collected,
+    // there fore we don't want to destroy/invalidate them while processing
+    auto deferLaunch = [this](const Handle<World>& world)
+    {
+        GetThreadById(g_simThread)->GetScheduler().Enqueue(
+            [this, weakThis = MakeWeakRef(this), world = world]
+            {
+                Handle<Game> strongThis = weakThis.Lock();
+                if (!strongThis.IsValid())
+                {
+                    return; // expired before we could set; ok.
+                }
+                
+                SetWorld(world);
+                Launch();
+            }, TaskEnqueueFlags::FIRE_AND_FORGET);
+    };
+
     if (Handle<World> world = LoadWorld(s_nameMainWorld); world.IsValid())
     {
-        SetWorld(world);
+        deferLaunch(world);
     }
     else
     {
-        auto setToDummyWorld = [&]
-        {
-            SetWorld(MakeHandle<World>());
-        };
-
-        bool shouldReturn = false;
-
         // clang-format off
         SystemMessageBox(MessageBoxType::CRITICAL)
             .Title("Error")
             .Text("Failed to load game content! The world could not be initialized.\n\n"
                 "Please make sure the game is up to date, or try reinstalling it.\n"
                 "Please file a bug report! Apologies for the inconvenience.")
-            .Button("Retry", [this, &shouldReturn] { shouldReturn = true; SyncContentAndLaunch(); })
-            .Button("Launch Anyway", &setToDummyWorld)
+            // Retry sync.
+            .Button("Retry", [this]
+            {
+
+                SetWorld(Handle<World>::Null());
+                SyncContentAndLaunch();
+            })
+            // Set dummy world and launch.
+            .Button("Launch Anyway", [this, &deferLaunch] { deferLaunch(MakeHandle<World>()); })
             .Button("Exit", &std::terminate)
             .Show();
         // clang-format on
-
-        if (shouldReturn)
-        {
-            return;
-        }
     }
-
-    Launch();
 }
 
 void Game::SyncContentAndLaunch()
 {
     AssertOnThread(g_simThread);
+    
+    Assert(!IsSyncingContent());
 
     // This check exists mainly for initializing newly created editor projects that
     // have a World set on them and should not destroy that world to attempt to load one from disk.
@@ -689,19 +674,21 @@ void Game::SyncContentAndLaunch()
     if (canSyncContent)
     {
         BeforeContentLoaded();
-
-        m_assetRegistry->Initialize(&m_syncContentTask);
+        
+        m_syncState = {};
+        m_assetRegistry->Initialize(&m_syncState.currentTask);
 
         PushAssetRegistry(m_assetRegistry);
         m_assetRegistryActive = true;
 
-        if (!m_syncContentTask.IsValid())
+        if (!m_syncState.IsSyncing())
         {
             AfterContentLoaded();
         }
     }
     else
     {
+        m_syncState = {};
         m_assetRegistry->Initialize(nullptr);
 
         PushAssetRegistry(m_assetRegistry);
@@ -718,8 +705,7 @@ void Game::Launch()
     Assert(m_isLaunched.Get(MemoryOrder::ACQUIRE) == false);
     Assert(m_world.IsValid());
 
-    // Add to global worlds
-    g_engineDriver->AddWorld(m_world);
+    Assert(!IsSyncingContent());
     
     OnLaunch();
     m_isLaunched.Set(true, MemoryOrder::RELEASE);
@@ -728,7 +714,6 @@ void Game::Launch()
     Game::OnLaunched.Fire(this);
 
     m_isInitialized = true;
-    m_syncContentTask = {};
 }
 
 } // namespace Hyperion

@@ -4,8 +4,6 @@
 
 #include <Lang/Instructions.hpp>
 
-#include <Core/IO/BufferedByteReader.hpp>
-
 #include <Core/Reflection/ClassAttribute.hpp>
 #include <Core/Reflection/Member.hpp>
 

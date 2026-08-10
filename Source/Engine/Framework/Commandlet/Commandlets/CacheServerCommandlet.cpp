@@ -1121,6 +1121,7 @@ protected:
                         {
                             FileByteReader reader { hmfPath };
 
+                            // @TODO Use preallocated buffer
                             ByteBuffer data = reader.Read();
 
                             char header[256];
@@ -1246,6 +1247,7 @@ protected:
 
                                 if (!reader.Eof())
                                 {
+                                    // @TODO Use preallocated buffer
                                     ByteBuffer data = reader.Read();
 
                                     char header[256];

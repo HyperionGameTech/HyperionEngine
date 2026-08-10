@@ -15,8 +15,6 @@
 #include <Core/Reflection/Method.hpp>
 #include <Core/Reflection/ClassRegistry.hpp>
 
-#include <Core/IO/BufferedByteReader.hpp>
-
 #include <Core/Reflection/TypeInfo.hpp>
 
 #include <Core/Memory/Pool/Pool.hpp>

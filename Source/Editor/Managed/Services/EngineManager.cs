@@ -175,37 +175,36 @@ namespace Hyperion.Editor
                 _onSceneAddedHandler?.Remove();
                 _onSceneRemovedHandler?.Remove();
 
-                Logger.Log(LogLevel.Info, "Current project game state = " + (CurrentProject?.World?.GetGameState().Mode.ToString() ?? "null"));
-
                 // If we are just switching to simulate mode, we don't want to dispose the project
                 // Otherwise, when returning to edit mode, the project's managed resources would be cleaned up and cause a crash.
                 bool shouldDisposeCurrentProject = CurrentProject != null && !isSimulationStateChange;
 
                 if (shouldDisposeCurrentProject)
                 {
-                    Logger.Log(LogLevel.Info, "DISPOSING CurrentProject: " + (CurrentProject != null ? CurrentProject.Name : "null"));
-
                     // Dispose it early to ensure clean up is done in a timely manner, rather than wait for finalization.
                     CurrentProject?.Dispose();
                 }
                 else
                 {
                     // @FIXME We have ourself a bug here, when opening a proj i'm seeing this logged.
-                    Logger.Log(LogLevel.Info, "NOT disposing CurrentProject (switching to simulate): " + (CurrentProject != null ? CurrentProject.Name : "null"));
+                    Logger.Log(LogLevel.Debug, "NOT disposing CurrentProject (switching to simulate): " + (CurrentProject != null ? CurrentProject.Name : "null"));
                 }
 
                 CurrentProject = newProject;
 
-                Logger.Log(LogLevel.Info, "Current project changed to: " + (CurrentProject != null ? CurrentProject.Name : "null"));
+                Logger.Log(LogLevel.Verbose, "Current project changed to: " + (CurrentProject != null ? CurrentProject.Name : "null"));
 
                 if (CurrentProject != null)
                 {
-                    _onSceneAddedHandler = CurrentProject.World.GetOnSceneAddedDelegate().Bind((World world, Scene scene) =>
+                    World? world = CurrentProject.World;
+                    Debug.Assert(world != null);
+
+                    _onSceneAddedHandler = world.GetOnSceneAddedDelegate().Bind((World world, Scene scene) =>
                     {
                         SceneAdded?.Invoke(world, scene);
                     });
 
-                    _onSceneRemovedHandler = CurrentProject.World.GetOnSceneRemovedDelegate().Bind((World world, Scene scene) =>
+                    _onSceneRemovedHandler = world.GetOnSceneRemovedDelegate().Bind((World world, Scene scene) =>
                     {
                         SceneRemoved?.Invoke(world, scene);
                     });
@@ -218,19 +217,24 @@ namespace Hyperion.Editor
         public static void InitializeGame(Game game)
         {
             if (game is HyperionEditorGame)
+            {
                 throw new ArgumentException("InitializeGame() shouldn't be called with an instance of HyperionEditorGame - use InitializeEditor() instead");
+            }
+
+            World? world = game.World;
+            Debug.Assert(world != null);
 
             _onCurrentProjectChanged?.Remove();
             _onCurrentProjectChanged = null;
 
             _onSceneAddedHandler?.Remove();
-            _onSceneAddedHandler = game.World.GetOnSceneAddedDelegate().Bind((World world, Scene scene) =>
+            _onSceneAddedHandler = world.GetOnSceneAddedDelegate().Bind((World world, Scene scene) =>
             {
                 SceneAdded?.Invoke(world, scene);
             });
 
             _onSceneRemovedHandler?.Remove();
-            _onSceneRemovedHandler = game.World.GetOnSceneRemovedDelegate().Bind((World world, Scene scene) =>
+            _onSceneRemovedHandler = world.GetOnSceneRemovedDelegate().Bind((World world, Scene scene) =>
             {
                 SceneRemoved?.Invoke(world, scene);
             });

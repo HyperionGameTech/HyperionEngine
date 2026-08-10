@@ -37,20 +37,13 @@ public:
     template <typename T, typename = std::enable_if_t<!std::is_same_v<T*, void*>>>
     void Read(T* ptr, size_t size = sizeof(T))
     {
-        if (size == 0)
-        {
-            return;
-        }
-
-        HYP_CORE_ASSERT(Position() + size <= Max());
-
         Read(static_cast<void*>(ptr), size);
     }
 
     /*! \brief Reads from the current position, to current position + \p size.
         If that position is greater than the maximum position, the number of bytes is truncated.
         Endianness is not taken into account
-        @returns The number of bytes read */
+        \returns The number of bytes read */
     size_t Read(size_t size, ByteBuffer& outByteBuffer)
     {
         if (Eof())
@@ -75,7 +68,7 @@ public:
     }
 
     /*! \brief Read from the current position to the end of the stream.
-        @returns a ByteBuffer object, containing the data that was read. */
+        \returns a ByteBuffer object, containing the data that was read. */
     ByteBuffer Read()
     {
         if (Eof())
@@ -98,6 +91,7 @@ public:
 
     virtual size_t Position() const = 0;
     virtual size_t Max() const = 0;
+    
     virtual void Skip(size_t amount) = 0;
     virtual void Rewind(size_t amount) = 0;
     virtual void Seek(size_t whereTo) = 0;
@@ -142,12 +136,12 @@ public:
 
     size_t Read(void* ptr, size_t size) override;
 
-    HYP_FORCE_INLINE ByteBuffer Read()
+    HYP_NODISCARD HYP_FORCE_INLINE ByteBuffer Read()
     {
         return ByteReader::Read();
     }
 
-    ByteBuffer Read(size_t size) override;
+    HYP_NODISCARD ByteBuffer Read(size_t size) override;
 
     void Close() override;
 
@@ -185,18 +179,22 @@ public:
 
     size_t Read(void* ptr, size_t size) override;
     
-    HYP_FORCE_INLINE ByteBuffer Read()
+    HYP_NODISCARD HYP_FORCE_INLINE ByteBuffer Read()
     {
         return ByteReader::Read();
     }
     
-    ByteBuffer Read(size_t size) override;
+    HYP_NODISCARD ByteBuffer Read(size_t size) override;
 
     void Close() override;
+
+private:
+    bool SyncFilePos();
 
 protected:
     FILE* m_file;
     size_t m_pos;
+    size_t m_filePos; // tracked separate from m_pos so we can lazily seek.
     size_t m_maxPos;
     FilePath m_filepath;
     
@@ -244,12 +242,12 @@ public:
     
     size_t Read(void* ptr, size_t size) override;
     
-    HYP_FORCE_INLINE ByteBuffer Read()
+    HYP_NODISCARD HYP_FORCE_INLINE ByteBuffer Read()
     {
         return ByteReader::Read();
     }
     
-    ByteBuffer Read(size_t size) override;
+    HYP_NODISCARD ByteBuffer Read(size_t size) override;
 
 protected:
     MemoryMappedFile* m_mappedFile;

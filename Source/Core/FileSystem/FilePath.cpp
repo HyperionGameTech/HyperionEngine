@@ -8,8 +8,6 @@
 
 #include <Core/Utilities/StringUtil.hpp>
 
-#include <Core/IO/BufferedByteReader.hpp>
-
 #include <Core/Logging/Logger.hpp>
 
 #include <filesystem>

@@ -863,9 +863,8 @@ CORE_API const Value& EmptyString();
 CORE_API const Value& True();
 CORE_API const Value& False();
 
-CORE_API ParseResult Parse(const String& jsonString);
+CORE_API ParseResult Parse(const UTF8StringView& jsonString);
 CORE_API ParseResult Parse(ByteReader& reader);
-CORE_API ParseResult Parse(BufferedReader& reader);
 
 } // namespace Hyperion::DataProcessing::JSON
 

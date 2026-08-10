@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Framework/GameState.hpp>
+#include <Framework/Content/ContentSync.hpp>
 
 #include <Core/Reflection/ObjectBase.hpp>
 #include <Core/Reflection/Handle.hpp>
@@ -121,7 +122,7 @@ public:
 protected:
     bool IsSyncingContent() const
     {
-        return m_syncContentTask.IsValid();
+        return m_syncState.IsSyncing();
     }
     
     virtual void BeforeContentLoaded();
@@ -164,7 +165,7 @@ protected:
 
     Array<Handle<InputHandlerBase>> m_inputHandlers;
 
-    Task<Result> m_syncContentTask;
+    ContentSyncState m_syncState;
 
     bool m_assetRegistryActive;
     bool m_isInitialized;

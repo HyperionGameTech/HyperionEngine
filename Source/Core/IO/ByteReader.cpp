@@ -52,10 +52,11 @@ void MemoryByteReader::Close()
 FileByteReader::FileByteReader(const FilePath& filepath, size_t offset)
     : m_file(nullptr),
       m_pos(0),
+      m_filePos(0),
       m_maxPos(0),
       m_filepath(filepath)
 {
-#if HYP_ANDROID
+#ifdef HYP_ANDROID
     if (IsAndroidAssetPath(filepath))
     {
         const String fileName = filepath.Substr(std::size(AndroidAssetPathPrefix));
@@ -67,6 +68,7 @@ FileByteReader::FileByteReader(const FilePath& filepath, size_t offset)
 
             m_maxPos = 0;
             m_pos = 0;
+            m_filePos = 0;
 
             return;
         }
@@ -88,6 +90,8 @@ FileByteReader::FileByteReader(const FilePath& filepath, size_t offset)
             }
         }
 
+        m_filePos = m_pos;
+
         return;
     }
     else
@@ -98,10 +102,11 @@ FileByteReader::FileByteReader(const FilePath& filepath, size_t offset)
 
     m_file = std::fopen(filepath.Data(), "rb");
 
-    if (m_file == nullptr)
+    if (!m_file)
     {
-        m_maxPos = 0;
         m_pos = 0;
+        m_filePos = 0;
+        m_maxPos = 0;
 
         return;
     }
@@ -133,8 +138,9 @@ FileByteReader::FileByteReader(const FilePath& filepath, size_t offset)
 
     std::fseek(m_file, static_cast<long>(offset), SEEK_SET);
 
-    long cur = std::ftell(m_file);
+    const long cur = std::ftell(m_file);
     m_pos = cur >= 0 ? static_cast<size_t>(cur) : 0;
+    m_filePos = m_pos;
 }
 
 FileByteReader::~FileByteReader()
@@ -156,38 +162,26 @@ FileByteReader::~FileByteReader()
 
 void FileByteReader::Skip(size_t amount)
 {
+    if (amount == 0)
+    {
+        return;
+    }
+
     m_pos += amount;
 
     if (m_pos > m_maxPos)
     {
         m_pos = m_maxPos;
     }
-
-#if HYP_ANDROID
-    if (m_asset != nullptr)
-    {
-        off_t newOffset = size_t(AAsset_seek64(m_asset, off64_t(m_pos), SEEK_SET));
-
-        if (newOffset == off_t(-1))
-        {
-            // set EOF on error
-            m_pos = m_maxPos;
-        }
-
-        return;
-    }
-#endif
-
-    if (m_file == nullptr)
-    {
-        return;
-    }
-
-    std::fseek(m_file, static_cast<long>(m_pos), SEEK_SET);
 }
 
 void FileByteReader::Rewind(size_t amount)
 {
+    if (amount == 0)
+    {
+        return;
+    }
+
     if (amount > m_pos)
     {
         m_pos = 0;
@@ -196,8 +190,26 @@ void FileByteReader::Rewind(size_t amount)
     {
         m_pos -= amount;
     }
+}
 
-#if HYP_ANDROID
+void FileByteReader::Seek(size_t whereTo)
+{
+    if (whereTo == m_pos)
+    {
+        return;
+    }
+
+    if (whereTo > m_maxPos)
+    {
+        whereTo = m_maxPos;
+    }
+
+    m_pos = whereTo;
+}
+
+bool FileByteReader::SyncFilePos()
+{
+#ifdef HYP_ANDROID
     if (m_asset != nullptr)
     {
         off_t newOffset = size_t(AAsset_seek64(m_asset, off64_t(m_pos), SEEK_SET));
@@ -206,53 +218,34 @@ void FileByteReader::Rewind(size_t amount)
         {
             // set EOF on error
             m_pos = m_maxPos;
+            m_filePos = m_pos;
+
+            return false;
         }
 
-        return;
-    }
-#endif
+        m_filePos = m_pos;
 
-    if (m_file == nullptr)
-    {
-        return;
-    }
-
-    std::fseek(m_file, static_cast<long>(m_pos), SEEK_SET);
-}
-
-void FileByteReader::Seek(size_t whereTo)
-{
-    if (whereTo > m_maxPos)
-    {
-        whereTo = m_maxPos;
-    }
-
-#if HYP_ANDROID
-    if (m_asset != nullptr)
-    {
-        off_t newOffset = size_t(AAsset_seek64(m_asset, off64_t(whereTo), SEEK_SET));
-
-        if (newOffset == off_t(-1))
-        {
-            // set EOF on error
-            m_pos = m_maxPos;
-        }
-        else
-        {
-            m_pos = whereTo;
-        }
-
-        return;
+        return true;
     }
 #endif
 
     if (!m_file)
     {
-        return;
+        return false;
     }
 
-    m_pos = whereTo;
-    std::fseek(m_file, static_cast<long>(m_pos), SEEK_SET);
+    if (std::fseek(m_file, static_cast<long>(m_pos), SEEK_SET) != 0)
+    {
+        // seek failed; force EOF rather than silently reading from the wrong offset
+        m_pos = m_maxPos;
+        m_filePos = m_pos;
+
+        return false;
+    }
+
+    m_filePos = m_pos;
+
+    return true;
 }
 
 size_t FileByteReader::Read(void* ptr, size_t size)
@@ -260,6 +253,11 @@ size_t FileByteReader::Read(void* ptr, size_t size)
     if (size == 0)
     {
         return 0;
+    }
+
+    if (HYP_UNLIKELY(m_pos != m_filePos))
+    {
+        SyncFilePos();
     }
 
     const size_t remaining = m_maxPos > m_pos ? (m_maxPos - m_pos) : 0;
@@ -270,7 +268,7 @@ size_t FileByteReader::Read(void* ptr, size_t size)
         return 0;
     }
 
-#if HYP_ANDROID
+#ifdef HYP_ANDROID
     if (m_asset != nullptr)
     {
         const int readBytes = AAsset_read(m_asset, ptr, toRead);
@@ -280,25 +278,34 @@ size_t FileByteReader::Read(void* ptr, size_t size)
             m_pos += size_t(readBytes);
         }
 
+        m_filePos = m_pos;
+
         // TODO: handle < 0 (error)
 
         return size_t(readBytes);
     }
 #endif
 
-    if (m_file == nullptr)
+    if (!m_file)
     {
         return 0;
     }
 
     const size_t readBytes = std::fread(ptr, 1, toRead, m_file);
+
     m_pos += readBytes;
+    m_filePos = m_pos;
 
     return readBytes;
 }
 
 ByteBuffer FileByteReader::Read(size_t size)
 {
+    if (HYP_UNLIKELY(m_pos != m_filePos))
+    {
+        SyncFilePos();
+    }
+
     const size_t remaining = m_maxPos > m_pos ? (m_maxPos - m_pos) : 0;
     const size_t toRead = MathUtil::Min(size, remaining);
 
@@ -310,7 +317,7 @@ ByteBuffer FileByteReader::Read(size_t size)
     ByteBuffer byteBuffer;
     byteBuffer.SetSize(toRead);
 
-#if HYP_ANDROID
+#ifdef HYP_ANDROID
     if (m_asset != nullptr)
     {
         const int readBytes = AAsset_read(m_asset, byteBuffer.Data(), toRead);
@@ -318,6 +325,8 @@ ByteBuffer FileByteReader::Read(size_t size)
         if (readBytes > 0)
         {
             m_pos += size_t(readBytes);
+            m_filePos = m_pos;
+
             byteBuffer.SetSize(size_t(readBytes));
         }
         else
@@ -331,13 +340,15 @@ ByteBuffer FileByteReader::Read(size_t size)
     }
 #endif
 
-    if (m_file == nullptr)
+    if (!m_file)
     {
         return ByteBuffer();
     }
 
     const size_t readBytes = std::fread(byteBuffer.Data(), 1, toRead, m_file);
+
     m_pos += readBytes;
+    m_filePos = m_pos;
 
     if (readBytes == toRead)
     {
@@ -349,7 +360,7 @@ ByteBuffer FileByteReader::Read(size_t size)
 
 void FileByteReader::Close()
 {
-#if HYP_ANDROID
+#ifdef HYP_ANDROID
     if (m_asset != nullptr)
     {
         AAsset_close(m_asset);

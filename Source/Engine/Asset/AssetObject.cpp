@@ -16,7 +16,6 @@
 #include <Core/Utilities/DeferredScope.hpp>
 #include <Core/Utilities/GlobalContext.hpp>
 
-#include <Core/IO/BufferedByteReader.hpp>
 #include <Core/IO/ByteWriter.hpp>
 
 #include <Core/DataProcessing/JSON/JSON.hpp>

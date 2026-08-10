@@ -39,7 +39,7 @@
 #include <Core/Functional/Proc.hpp>
 
 #include <Core/IO/ByteWriter.hpp>
-#include <Core/IO/BufferedByteReader.hpp>
+#include <Core/IO/ByteReader.hpp>
 
 #include <Core/Math/MathUtil.hpp>
 
@@ -2551,17 +2551,19 @@ bool ShaderCompiler::CompileBundle(
                                   return;
                               }
 
-                              FileBufferedReaderSource filepathSource { filepath };
-                              BufferedReader reader { &filepathSource };
+                              FileByteReader reader { filepath };
 
-                              if (!reader.IsOpen())
+                              if (reader.Eof())
                               {
                                   processErrors[index] = { ProcessError { HYP_FORMAT("Failed to open shader source file: {}", std::strerror(errno)) } };
 
                                   return;
                               }
 
-                              const ByteBuffer byteBuffer = reader.ReadBytes();
+                              // Read all into mem
+                              const ByteBuffer byteBuffer = reader.Read();
+
+                              reader.Close();
 
                               // we add this define to prevent the DECLARE_* macros from being defines in shader code
                               // and folding to nothing.

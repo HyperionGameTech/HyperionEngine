@@ -26,8 +26,6 @@
 #include <DotNET/Assembly.hpp>
 #include <DotNET/DotNETHost.hpp>
 
-#include <Core/IO/BufferedByteReader.hpp>
-
 #include <Core/Reflection/ClassRegistry.hpp>
 #include <Core/Reflection/Method.hpp>
 
