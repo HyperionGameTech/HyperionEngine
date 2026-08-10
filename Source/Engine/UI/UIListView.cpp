@@ -172,10 +172,6 @@ MaterialParameters UIListViewItem::GetMaterialParameters() const
     {
         color = Color(Vec4f { 0.5f, 0.5f, 0.5f, 1.0f });
     }
-    else if (focusState & UIObjectFocusState::HOVER)
-    {
-        color = Color(Vec4f { 0.3f, 0.3f, 0.3f, 1.0f });
-    }
 
     MaterialParameters parameters;
     parameters.albedo = Vec4f(color);

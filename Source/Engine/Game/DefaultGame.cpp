@@ -54,6 +54,8 @@
 #include <UI/UIStage.hpp>
 #include <UI/UIText.hpp>
 #include <UI/UIPanel.hpp>
+#include <UI/UIListView.hpp>
+#include <UI/UIButton.hpp>
 #include <UI/Overlays/BaseStatsOverlay.hpp>
 #include <UI/Overlays/StatsOverlay.hpp>
 #include <UI/Overlays/ConsoleOverlay.hpp>
@@ -458,7 +460,12 @@ void DefaultGame::AfterContentLoaded()
 {
     Game::AfterContentLoaded();
 
-    HideLoadingScreen();
+    // Keep showing the loading screen (now displaying the error UI) if content
+    // sync failed, rather than hiding it right after it was shown.
+    if (m_syncState.state != ContentSyncState::Failed)
+    {
+        HideLoadingScreen();
+    }
 }
 
 void DefaultGame::ShowLoadingScreen()
@@ -471,25 +478,150 @@ void DefaultGame::ShowLoadingScreen()
 
     UIStage& stage = *m_uiSubsystem->GetUIStage();
 
-    Handle<UIPanel> panel = stage.CreateUIObject<UIPanel>(Vec2i::Zero(), UIObjectSize { { 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT } });
-    panel->SetBackgroundColor(Color(0.1f, 0.1f, 0.1f, 1.0f));
-    stage.AddChildUIObject(panel);
+    Handle<UIObject> prevBackground = stage.FindChildUIObject("LoadingScreen_Background"_sh);
+    if (prevBackground.IsValid())
+    {
+        stage.RemoveChildUIObject(prevBackground);
+    }
 
-    Handle<UIText> loadingText = panel->CreateUIObject<UIText>(Vec2i::Zero(), UIObjectSize { { 0, UIObjectSize::AUTO }, { 80, UIObjectSize::PIXEL } });
+    Handle<UIPanel> backgroundPanel = stage.CreateUIObject<UIPanel>(NAME("LoadingScreen_Background"), Vec2i::Zero(), UIObjectSize { { 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT } });
+    backgroundPanel->SetBackgroundColor(Color(0.1f, 0.1f, 0.1f, 1.0f));
+    stage.AddChildUIObject(backgroundPanel);
+
+    Handle<UIPanel> loadingPanel = backgroundPanel->CreateUIObject<UIPanel>(Vec2i::Zero(), UIObjectSize { { 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT } });
+    backgroundPanel->AddChildUIObject(loadingPanel);
+
+    Handle<UIText> loadingText = loadingPanel->CreateUIObject<UIText>(Vec2i::Zero(), UIObjectSize { { 0, UIObjectSize::AUTO }, { 80, UIObjectSize::PIXEL } });
     loadingText->SetText("Loading content...");
-    loadingText->SetTextSize(50.0f);
+    loadingText->SetTextSize(24.0f);
     loadingText->SetTextColor(Color::White());
     loadingText->SetOriginAlignment(UIObjectAlignment::CENTER);
     loadingText->SetParentAlignment(UIObjectAlignment::CENTER);
-    panel->AddChildUIObject(loadingText);
+    loadingPanel->AddChildUIObject(loadingText);
+
+    Handle<UIListView> errorPanel = backgroundPanel->CreateUIObject<UIListView>(Vec2i::Zero(), UIObjectSize { { 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO } });
+    errorPanel->SetIsVisible(false);
+    errorPanel->SetOriginAlignment(UIObjectAlignment::CENTER);
+    errorPanel->SetParentAlignment(UIObjectAlignment::CENTER);
+    backgroundPanel->AddChildUIObject(errorPanel);
+    
+    Handle<UIText> errorText = errorPanel->CreateUIObject<UIText>(Vec2i::Zero(), UIObjectSize { { 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO } });
+    errorText->SetText("Loading content...");
+    errorText->SetTextSize(24.0f);
+    errorText->SetTextColor(Color::White());
+    errorText->SetIsEnabled(false);
+    errorText->SetOriginAlignment(UIObjectAlignment::CENTER);
+    errorText->SetParentAlignment(UIObjectAlignment::CENTER);
+    errorText->SetPadding(Vec2i { 16, 16 });
+    errorPanel->AddChildUIObject(errorText);
+
+    Handle<UIListView> buttonsListView = errorPanel->CreateUIObject<UIListView>(Vec2i::Zero(), UIObjectSize { { 0, UIObjectSize::AUTO }, { 80, UIObjectSize::PIXEL } });
+    buttonsListView->SetTextSize(24.0f);
+    buttonsListView->SetOrientation(UIListViewOrientation::HORIZONTAL);
+    buttonsListView->SetIsEnabled(false);
+    buttonsListView->SetOriginAlignment(UIObjectAlignment::CENTER);
+    buttonsListView->SetParentAlignment(UIObjectAlignment::CENTER);
+    errorPanel->AddChildUIObject(buttonsListView);
+
+    Handle<UIButton> retryButton = buttonsListView->CreateUIObject<UIButton>(Vec2i::Zero(), UIObjectSize { { 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT } });
+    retryButton->SetText("Retry");
+    retryButton->OnClick.Bind(retryButton,
+        [this](const MouseEvent&) -> UIEventHandlerResult
+        {
+            GetThreadById(g_simThread)->GetScheduler().Enqueue(
+                [self = MakeStrongRef(this)]()
+                {
+                    // do next frame to reduce risk of deadlock from the Delegate (RemoveAllDetached() getting called)
+                    self->SyncContentAndLaunch();
+                }, TaskEnqueueFlags::FIRE_AND_FORGET);
+
+            return UIEventHandlerResult::STOP_BUBBLING;
+        })
+        .Detach();
+
+    buttonsListView->AddChildUIObject(retryButton);
+
+    Handle<UIButton> launchAnywayButton = buttonsListView->CreateUIObject<UIButton>(Vec2i::Zero(), UIObjectSize { { 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT } });
+    launchAnywayButton->SetText("Launch Anyway");
+    
+    launchAnywayButton->OnClick.Bind(retryButton,
+        [this](const MouseEvent&) -> UIEventHandlerResult
+        {
+            HYP_NOT_IMPLEMENTED();
+
+            return UIEventHandlerResult::STOP_BUBBLING;
+        })
+        .Detach();
+
+    buttonsListView->AddChildUIObject(launchAnywayButton);
+    
+    Handle<UIButton> exitButton = buttonsListView->CreateUIObject<UIButton>(Vec2i::Zero(), UIObjectSize { { 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT } });
+    exitButton->SetText("Exit");
+    
+    exitButton->OnClick.Bind(retryButton,
+        [this](const MouseEvent&) -> UIEventHandlerResult
+        {
+            std::terminate();
+
+            return UIEventHandlerResult::STOP_BUBBLING;
+        })
+        .Detach();
+
+    buttonsListView->AddChildUIObject(exitButton);
+
+    m_syncState.OnStateChanged.RemoveAllDetached();
+    m_syncState.OnStateChanged.Bind(
+        [=](ContentSyncState::State state)
+        {
+            switch (state)
+            {
+            case ContentSyncState::NotStarted:
+                loadingText->SetText("Initializing...");
+                break;
+            case ContentSyncState::InProgress:
+                loadingText->SetText("Loading content...");
+                break;
+            case ContentSyncState::Finished:
+                loadingText->SetText("Finishing up...");
+                break;
+            case ContentSyncState::Failed:
+                errorPanel->SetIsVisible(true);
+                loadingPanel->SetIsVisible(false);
+
+                if (m_syncState.lastResult.HasError())
+                {
+                    errorText->SetText(String("Content could not be downloaded.\n\n")
+                                         + "The error message was: " + m_syncState.lastResult.GetError().GetMessage());
+                }
+                else
+                {
+                    errorText->SetText("Content could not be downloaded due to an unknown error.");
+                }
+
+                return;
+            }
+
+            loadingPanel->SetIsVisible(true);
+            errorPanel->SetIsVisible(false);
+        }).Detach();
 }
 
 void DefaultGame::HideLoadingScreen()
 {
+    m_syncState.OnStateChanged.RemoveAllDetached();
+
     Assert(m_uiSubsystem.IsValid());
     if (!m_uiSubsystem.IsValid())
     {
         return;
+    }
+
+    UIStage& stage = *m_uiSubsystem->GetUIStage();
+
+    Handle<UIObject> prevBackground = stage.FindChildUIObject("LoadingScreen_Background"_sh);
+    if (prevBackground.IsValid())
+    {
+        stage.RemoveChildUIObject(prevBackground);
     }
 }
 

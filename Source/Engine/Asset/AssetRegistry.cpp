@@ -602,7 +602,7 @@ void AssetRegistry::Initialize(Task<Result>* outSyncContentTask)
                 params.registryId = m_registryId;
                 params.outputCacheDir = EngineGlobals::GetCacheDirectory();
                 params.outputContentDir = EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Game")>();
-                params.numAttempts = 5;
+                params.numAttempts = 1; // 5;
 
                 m_isSyncingCache = true;
                 m_cacheSyncComplete.Reset();

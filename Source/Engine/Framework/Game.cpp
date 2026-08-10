@@ -174,11 +174,22 @@ void Game::SetAssetRegistry(const Handle<AssetRegistry>& assetRegistry)
 
     if (m_assetRegistry && m_isInitialized)
     {
-        m_syncState = {};
+        m_syncState.currentTask = {};
+        m_syncState.SetState(ContentSyncState::NotStarted);
+
         m_assetRegistry->Initialize(&m_syncState.currentTask);
 
         PushAssetRegistry(m_assetRegistry);
         m_assetRegistryActive = true;
+
+        if (m_syncState.IsSyncing())
+        {
+            m_syncState.SetState(ContentSyncState::InProgress);
+        }
+        else
+        {
+            m_syncState.SetState(ContentSyncState::Finished);
+        }
     }
 }
 
@@ -496,28 +507,6 @@ void Game::PauseSimulation()
     OnGameStateChange.Fire(this, this, previousGameStateMode, GameStateMode::PAUSED);
 }
 
-//#ifdef HYP_EDITOR
-//
-//void Game::SetToEditMode()
-//{
-//    if (m_gameState.mode == GameStateMode::EDIT_MODE)
-//    {
-//        return;
-//    }
-//
-//    const GameStateMode previousGameStateMode = m_gameState.mode;
-//
-//    m_gameState.gameTime = 0.0f;
-//    m_gameState.deltaTime = 0.0f;
-//    m_gameState.mode = GameStateMode::EDIT_MODE;
-//
-//    OnGameStateChange.Fire(this, this, previousGameStateMode, GameStateMode::EDIT_MODE);
-//
-//    HYP_LOG(Engine, Verbose, "Game set to Edit Mode");
-//}
-//
-//#endif
-
 void Game::RegisterInputHandler(const Handle<InputHandlerBase>& inputHandler)
 {
     AssertOnThread(g_simThread);
@@ -584,12 +573,17 @@ void Game::OnUpdate_Impl(float delta)
 
             if (res.HasError())
             {
-                bool clickedRetry = false;
-                bool clickedExit = false;
+                m_syncState.currentTask = {};
+                m_syncState.SetState(ContentSyncState::Failed);
 
-                CacheClient::SyncFailed(res.GetError(), clickedRetry, clickedExit);
+                //bool clickedRetry = false;
+                //bool clickedExit = false;
 
-                if (clickedExit)
+
+
+                //CacheClient::SyncFailed(res.GetError(), clickedRetry, clickedExit);
+
+                /*if (clickedExit)
                 {
                     std::terminate();
                     return;
@@ -597,14 +591,20 @@ void Game::OnUpdate_Impl(float delta)
 
                 if (clickedRetry)
                 {
-                    m_syncState = {};
+                    m_syncState.currentTask = {};
+                    m_syncState.SetState(ContentSyncState::NotStarted);
+
                     m_assetRegistry->Initialize(&m_syncState.currentTask);
 
-                    if (!m_syncState.IsSyncing())
+                    if (m_syncState.IsSyncing())
+                    {
+                        m_syncState.SetState(ContentSyncState::InProgress);
+                    }
+                    else
                     {
                         callAfterContentLoadedNextFrame();
                     }
-                }
+                }*/
             }
             else
             {
@@ -630,11 +630,13 @@ void Game::AfterContentLoaded()
     AssertOnThread(g_simThread);
 
     Assert(m_isLaunched.Get(MemoryOrder::ACQUIRE) == false);
-
-    SetWorld(Handle<World>::Null());
     
+    m_syncState.currentTask = {};
+
     if (Handle<World> world = LoadWorld(s_nameMainWorld); world.IsValid())
     {
+        m_syncState.SetState(ContentSyncState::Finished);
+
         SetWorld(world);
     }
     else
@@ -647,21 +649,27 @@ void Game::AfterContentLoaded()
         bool shouldReturn = false;
 
         // clang-format off
-        SystemMessageBox(MessageBoxType::CRITICAL)
-            .Title("Error")
-            .Text("Failed to load game content! The world could not be initialized.\n\n"
-                "Please make sure the game is up to date, or try reinstalling it.\n"
-                "Please file a bug report! Apologies for the inconvenience.")
-            .Button("Retry", [this, &shouldReturn] { shouldReturn = true; SyncContentAndLaunch(); })
-            .Button("Launch Anyway", &setToDummyWorld)
-            .Button("Exit", &std::terminate)
-            .Show();
+        //SystemMessageBox(MessageBoxType::CRITICAL)
+        //    .Title("Error")
+        //    .Text("Failed to load game content! The world could not be initialized.\n\n"
+        //        "Please make sure the game is up to date, or try reinstalling it.\n"
+        //        "Please file a bug report! Apologies for the inconvenience.")
+        //    .Button("Retry", [this, &shouldReturn] { shouldReturn = true; SyncContentAndLaunch(); })
+        //    .Button("Launch Anyway", &setToDummyWorld)
+        //    .Button("Exit", &std::terminate)
+        //    .Show();
         // clang-format on
+        //
+        //if (shouldReturn)
+        //{
+        //    return;
+        //}
 
-        if (shouldReturn)
-        {
-            return;
-        }
+        // Note: world is intentionally left as-is (the temp UI world used to show the
+        // loading screen) so the error UI bound to OnStateChanged still has a live UIStage
+        // to update. It gets replaced the next time SetWorld() is called (e.g. on retry).
+        m_syncState.SetState(ContentSyncState::Failed);
+        return;
     }
 
     Launch();
@@ -681,20 +689,28 @@ void Game::SyncContentAndLaunch()
     {
         BeforeContentLoaded();
         
-        m_syncState = {};
+        m_syncState.currentTask = {};
+        m_syncState.SetState(ContentSyncState::NotStarted);
+
         m_assetRegistry->Initialize(&m_syncState.currentTask);
 
         PushAssetRegistry(m_assetRegistry);
         m_assetRegistryActive = true;
 
-        if (!m_syncState.IsSyncing())
+        if (m_syncState.IsSyncing())
+        {
+            m_syncState.SetState(ContentSyncState::InProgress);
+        }
+        else
         {
             AfterContentLoaded();
         }
     }
     else
     {
-        m_syncState = {};
+        m_syncState.currentTask = {};
+        m_syncState.SetState(ContentSyncState::Finished);
+
         m_assetRegistry->Initialize(nullptr);
 
         PushAssetRegistry(m_assetRegistry);

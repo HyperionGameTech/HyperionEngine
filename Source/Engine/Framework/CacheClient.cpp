@@ -498,13 +498,14 @@ Result DownloadCacheFromHost(
         }
     }
 
-    //if (serverManifest.timestamp <= localTimestamp)
-    //{
-    //    HYP_LOG(CacheClient, Verbose, "CacheSync cache up to date  (local={} >= server={})",
-    //        localTimestamp, serverManifest.timestamp);
+    // @TODO another check.. integer version number? so we can invalidate manually.
+    if (serverManifest.timestamp <= localTimestamp)
+    {
+        HYP_LOG(CacheClient, Verbose, "CacheSync cache up to date  (local={} >= server={})",
+            localTimestamp, serverManifest.timestamp);
 
-    //    return {};
-    //}
+        return {};
+    }
 
     HYP_LOG(CacheClient, Verbose, "CacheSync cache outdated (local={} < server={})",
         localTimestamp, serverManifest.timestamp);
@@ -802,9 +803,9 @@ HYP_EXPORT Result SyncContent(const Params& params)
     {
         Result res;
 
-        bool retryThisType = shouldRetry;
+        bool retryThisTime = shouldRetry;
 
-        if ((res = DownloadCacheFromHost(host, port, params, shouldRetry ? &retryThisType : nullptr)); !res.HasError())
+        if ((res = DownloadCacheFromHost(host, port, params, shouldRetry ? &retryThisTime : nullptr)); !res.HasError())
         {
             // OK
             return res;

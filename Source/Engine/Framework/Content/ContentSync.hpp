@@ -16,8 +16,29 @@ namespace Hyperion {
 
 struct ContentSyncState
 {
+    enum State
+    {
+        Failed = -1,
+        NotStarted = 0,
+        InProgress,
+        Finished
+    } state = NotStarted;
+
     Result lastResult;
     Task<Result> currentTask;
+
+    Delegate<void, State> OnStateChanged;
+
+    void SetState(State state)
+    {
+        if (this->state == state)
+        {
+            return;
+        }
+
+        this->state = state;
+        OnStateChanged(state);
+    }
 
     bool IsSyncing() const
     {

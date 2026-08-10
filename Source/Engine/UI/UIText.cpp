@@ -146,7 +146,9 @@ static void ForEachCharacter(
             else
             {
                 // add room for space
-                placement.x += cellDimensions.x * 0.5f;
+                // this is a bit of a hack, but it works for now
+                static constexpr float SpaceCharacterSize = 0.2f;
+                placement.x += cellDimensions.x * SpaceCharacterSize;
             }
 
             if (outCharacterPlacements)
