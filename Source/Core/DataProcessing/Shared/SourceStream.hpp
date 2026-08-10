@@ -1,19 +1,24 @@
 #pragma once
 
-#include <Core/DataProcessing/Shared/SourceFile.hpp>
+#include <Core/Containers/String.hpp>
 #include <Core/Unicode.hpp>
+
+namespace Hyperion {
+class ByteReader;
+} // namespace Hyperion
 
 namespace Hyperion::DataProcessing {
 
 class SourceStream
 {
 public:
-    SourceStream(const SourceFile* file);
+    SourceStream(ByteReader* reader, const String& filepath = String::empty);
     SourceStream(const SourceStream& other);
 
-    const SourceFile* GetFile() const { return m_file; }
-    size_t GetPosition() const { return m_position; }
-    bool HasNext() const { return m_position < m_file->GetSize(); }
+    ByteReader* GetReader() const { return m_reader; }
+    const String& GetFilePath() const { return m_filepath; }
+    size_t GetPosition() const;
+    bool HasNext() const;
 
     utf::Char32 Peek() const;
     utf::Char32 Next();
@@ -22,8 +27,8 @@ public:
     void Read(char* ptr, size_t numBytes);
 
 private:
-    const SourceFile* m_file;
-    size_t m_position;
+    ByteReader* m_reader;
+    String m_filepath;
 };
 
 } // namespace Hyperion::DataProcessing

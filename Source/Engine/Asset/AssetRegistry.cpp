@@ -30,10 +30,9 @@
 
 #include <Core/DataProcessing/JSON/JSON.hpp>
 #include <Core/DataProcessing/HMF/HMF.hpp>
-#include <Core/DataProcessing/Shared/SourceFile.hpp>
-#include <Core/DataProcessing/Shared/SourceStream.hpp>
-#include <Core/DataProcessing/Shared/TokenStream.hpp>
-#include <Core/DataProcessing/Shared/Lexer.hpp>
+
+#include <Core/DataProcessing/Shared/CompilerError.hpp>
+#include <Core/DataProcessing/Shared/ErrorList.hpp>
 
 #include <Core/Config/Config.hpp>
 
@@ -292,10 +291,7 @@ HYP_NODISCARD Name CreateFriendlyName(Name name)
 
 static Result ConstructObjectFromManifest(ByteReader& stream, const FilePath& manifestPath, BoxedValue& outManifestData, HMF::ErrorList* outErrorList)
 {
-    String str = String(stream.Read().ToByteView());
-
-    // @TODO Use the stream directly. No String copying.
-    HMF::ParseResult parseResult = HMF::Parse(manifestPath, str, outErrorList);
+    HMF::ParseResult parseResult = HMF::Parse(manifestPath, stream, outErrorList);
 
     if (Failed(parseResult))
     {
@@ -602,6 +598,7 @@ void AssetRegistry::Initialize(Task<Result>* outSyncContentTask)
             if (const auto& cfgCacheServer = CoreApi::GetCommandLineArguments()["CacheServer"]; cfgCacheServer.IsString())
             {
                 CacheClient::Params params {};
+                params.cacheServer = cfgCacheServer.AsString();
                 params.registryId = m_registryId;
                 params.outputCacheDir = EngineGlobals::GetCacheDirectory();
                 params.outputContentDir = EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Game")>();

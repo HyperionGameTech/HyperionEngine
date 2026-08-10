@@ -245,6 +245,9 @@ if(HYP_MSVC)
   # no RTTI
   add_compile_options(/GR-)
 
+  # C4715: not all control paths return a value -- treat as an error
+  add_compile_options(/we4715)
+
   if (HYP_SHIPPING)
     set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Zi /GL /GF /Zc:inline /constexpr:depth1024 /bigobj /MP4 /arch:AVX2 /fp:fast")
   else()

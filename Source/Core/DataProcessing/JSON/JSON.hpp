@@ -19,12 +19,8 @@
 
 namespace Hyperion {
 class BufferedReader;
+class ByteReader;
 } // namespace Hyperion
-
-
-namespace Hyperion::DataProcessing {
-class SourceFile;
-} // namespace Hyperion::DataProcessing
 
 namespace Hyperion::DataProcessing::JSON {
 
@@ -868,8 +864,8 @@ CORE_API const Value& True();
 CORE_API const Value& False();
 
 CORE_API ParseResult Parse(const String& jsonString);
+CORE_API ParseResult Parse(ByteReader& reader);
 CORE_API ParseResult Parse(BufferedReader& reader);
-CORE_API ParseResult Parse(const SourceFile& sourceFile);
 
 } // namespace Hyperion::DataProcessing::JSON
 

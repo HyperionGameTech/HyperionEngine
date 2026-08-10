@@ -1974,8 +1974,6 @@ extern struct GameState
     IsPaused() -> bool
 end
 extern class Game
-    GetPackageName() -> Name
-    SetPackageName(packageName : Name) -> void
     GetAssetRegistry() -> AssetRegistry
     SetAssetRegistry(assetRegistry : AssetRegistry) -> void
     GetWorld() -> World
@@ -1999,7 +1997,6 @@ extern class Game
     OnLaunch_Impl() -> void
     BeforeShutdown_Impl() -> void
     OnUpdate_Impl(delta : float) -> void
-    PackageName : Name
     World : World
     GameState : GameState
 end

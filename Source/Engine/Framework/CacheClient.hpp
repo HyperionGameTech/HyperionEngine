@@ -21,7 +21,11 @@ namespace CacheClient {
 
 struct Params
 {
-    AssetRegistryId registryId;
+    ANSIString cacheServer;
+
+    // 0 == Game
+    AssetRegistryId registryId = static_cast<AssetRegistryId>(0);
+
     FilePath outputCacheDir;
     FilePath outputContentDir;
 

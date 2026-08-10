@@ -1758,9 +1758,7 @@ bool ShaderCompiler::Initialize(bool precompileShaders, const ShaderCompileParam
                 return false;
             }
 
-            ByteBuffer buffer = stream.Read();
-
-            HMF::ParseResult parseResult = HMF::Parse(shadersPath, String(buffer.ToByteView()));
+            HMF::ParseResult parseResult = HMF::Parse(shadersPath, stream);
 
             if (parseResult.HasError())
             {

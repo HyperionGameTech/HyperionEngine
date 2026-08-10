@@ -43,18 +43,6 @@ public:
     Game();
     virtual ~Game();
 
-    HYP_METHOD(Property = "PackageName")
-    Name GetPackageName() const
-    {
-        return m_packageName;
-    }
-
-    HYP_METHOD(Property = "PackageName")
-    void SetPackageName(Name packageName)
-    {
-        m_packageName = packageName;
-    }
-
     HYP_METHOD(Property = "AssetRegistry", Transient)
     const Handle<AssetRegistry>& GetAssetRegistry() const
     {
@@ -140,6 +128,7 @@ protected:
     virtual void AfterContentLoaded();
 
     void Launch();
+    void SyncContentAndLaunch();
 
     HYP_METHOD()
     virtual Handle<World> LoadWorld_Impl(Name worldName);
@@ -164,10 +153,7 @@ protected:
         return m_uiSubsystem;
     }
 
-    HYP_FIELD(Property = "PackageName", Serialize)
-    Name m_packageName;
-
-    HYP_FIELD(Property = "World", Serialize)
+    HYP_FIELD(Property = "World", Transient)
     Handle<World> m_world;
 
     HYP_FIELD(Property = "GameState", Transient)

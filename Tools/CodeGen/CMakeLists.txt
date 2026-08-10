@@ -71,6 +71,9 @@ endif()
 if(HYP_MSVC)
   set(CMAKE_CXX_FLAGS "/Zc:preprocessor /MD /O2 /Zi /Zc:__cplusplus")
 
+  # C4715: not all control paths return a value -- treat as an error
+  add_compile_options(/we4715)
+
   # set to path of vcpkg
   set(CMAKE_TOOLCHAIN_FILE, "$ENV{VCPKG_ROOT}/../scripts/buildsystems/vcpkg.cmake")
 else()

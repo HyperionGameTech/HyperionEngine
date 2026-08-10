@@ -15,6 +15,7 @@
 #include <Core/Utilities/DeferredScope.hpp>
 
 #include <Core/IO/BufferedByteReader.hpp>
+#include <Core/IO/ByteReader.hpp>
 
 // needed for TypeInfo
 #include <Core/Reflection/BoxedValue.hpp>
@@ -1238,27 +1239,22 @@ const Value& False()
 
 ParseResult Parse(BufferedReader& reader)
 {
-    SourceFile sourceFile("<input>", reader.Max());
-    sourceFile.ReadIntoBuffer(reader.ReadBytes());
+    ByteBuffer buffer = reader.ReadBytes();
+    MemoryByteReader byteReader(buffer.ToByteView());
 
-    return Parse(sourceFile);
+    return Parse(byteReader);
 }
 
 ParseResult Parse(const String& jsonString)
 {
-    const size_t bufferLength = jsonString.Size();
+    MemoryByteReader reader(ConstByteView(reinterpret_cast<const ubyte*>(jsonString.Data()), jsonString.Size()));
 
-    SourceFile sourceFile("<input>", bufferLength);
-
-    ByteBuffer temp(bufferLength, jsonString.Data());
-    sourceFile.ReadIntoBuffer(temp);
-
-    return Parse(sourceFile);
+    return Parse(reader);
 }
 
-ParseResult Parse(const SourceFile& sourceFile)
+ParseResult Parse(ByteReader& reader)
 {
-    // use the lexer and parser on this file buffer
+    // use the lexer and parser directly against the reader
     TokenStream tokenStream(TokenStreamInfo { "<input>" });
 
     CompilationUnit unit;
@@ -1279,7 +1275,7 @@ ParseResult Parse(const SourceFile& sourceFile)
         return { false, errorMessage, Value() };
     };
 
-    Lexer lexer(SourceStream(&sourceFile), &tokenStream, &unit.GetErrorList());
+    Lexer lexer(SourceStream(&reader, "<input>"), &tokenStream, &unit.GetErrorList());
     lexer.Analyze();
 
     if (unit.GetErrorList().HasFatalErrors())

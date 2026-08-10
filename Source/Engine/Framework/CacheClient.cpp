@@ -418,9 +418,7 @@ Map<AssetPath, uint64> BuildLocalAssetTimestampMap(const Params& params)
         return result;
     }
 
-    String localStr = String(reader.Read().ToByteView());
-
-    HMF::ParseResult parseResult = HMF::Parse(localStr);
+    HMF::ParseResult parseResult = HMF::Parse(localManifest, reader);
     if (!parseResult.HasValue())
     {
         return result;
@@ -458,9 +456,9 @@ Result DownloadCacheFromHost(
     }
 
     ByteBuffer& manifestBytes = manifestWriter.GetBuffer();
-    String manifestStr = String(manifestBytes.ToByteView());
+    MemoryByteReader manifestReader(manifestBytes.ToByteView());
 
-    HMF::ParseResult parseResult = HMF::Parse(manifestStr);
+    HMF::ParseResult parseResult = HMF::Parse(manifestReader);
     if (!parseResult.HasValue())
     {
         return HYP_MAKE_ERROR(Error,"CacheSync failed to parse server manifest");
@@ -486,8 +484,7 @@ Result DownloadCacheFromHost(
         FileByteReader localReader { localManifestPath };
         if (!localReader.Eof())
         {
-            String localStr = String(localReader.Read().ToByteView());
-            HMF::ParseResult localResult = HMF::Parse(localStr);
+            HMF::ParseResult localResult = HMF::Parse(localManifestPath, localReader);
 
             if (localResult.HasValue())
             {
@@ -755,7 +752,7 @@ Result DownloadCacheFromHost(
         localManifestPath.Remove();
 
         FileByteWriter localManifestWriter { localManifestPath };
-        localManifestWriter.WriteString(manifestStr);
+        localManifestWriter.Write(manifestBytes.ToByteView());
         localManifestWriter.Close();
     }
 
@@ -774,60 +771,61 @@ HYP_EXPORT Result SyncContent(const Params& params)
 
     int numAttempts = 0;
 
-    // If cache server is set, download cache from there to build out ours.
-    if (const ANSIStringView cacheServer = ANSIStringView(EngineGlobals::GetCacheServerAddress()); cacheServer)
+    if (params.cacheServer.Empty())
     {
-        const size_t colonPos = cacheServer.FindLastIndex(":");
-
-        if (colonPos == String::NotFound)
-        {
-            return HYP_MAKE_ERROR(Error, "Invalid cache server address: {}", cacheServer);
-        }
-
-        ANSIStringView host = cacheServer.Substr(0, colonPos);
-
-        // Chomp off the protocol.
-        if (host.Size() > 7 && Memory::Compare(host.Data(), "http://", 7) == 0)
-        {
-            host = host.Substr(7, SIZE_MAX);
-        }
-        else if (host.Size() > 8 && Memory::Compare(host.Data(), "https://", 8) == 0)
-        {
-            host = host.Substr(8, SIZE_MAX);
-        }
-
-        ANSIStringView portStr = cacheServer.Substr(colonPos + 1, SIZE_MAX);
-        uint16 port = static_cast<uint16>(std::atoi(portStr.Data()));
-
-        do
-        {
-            Result res;
-
-            bool retryThisType = shouldRetry;
-
-            if ((res = DownloadCacheFromHost(host, port, params, shouldRetry ? &retryThisType : nullptr)); !res.HasError())
-            {
-                // OK
-                return res;
-            }
-
-            ++numAttempts;
-
-            if (shouldRetry && numAttempts < maxAttempts)
-            {
-                HYP_LOG(CacheClient, Error, "Failed to download cache from server! Error message was: {}\nRetrying in 5s...", res.GetError().GetMessage());
-
-                ThreadSleep(5000);
-            }
-            else
-            {
-                return res.GetError();
-            }
-        }
-        while (shouldRetry);
-        
-        return HYP_MAKE_ERROR(Error, "Failed to connect due to unknown reasons");
+        return HYP_MAKE_ERROR(Error, "No cache server set.");
     }
+
+    const size_t colonPos = params.cacheServer.FindLastIndex(":");
+
+    if (colonPos == String::NotFound)
+    {
+        return HYP_MAKE_ERROR(Error, "Invalid cache server address: {}", params.cacheServer);
+    }
+
+    ANSIStringView host = params.cacheServer.Substr(0, colonPos);
+
+    // Chomp off the protocol.
+    if (host.Size() > 7 && Memory::Compare(host.Data(), "http://", 7) == 0)
+    {
+        host = host.Substr(7, SIZE_MAX);
+    }
+    else if (host.Size() > 8 && Memory::Compare(host.Data(), "https://", 8) == 0)
+    {
+        host = host.Substr(8, SIZE_MAX);
+    }
+
+    ANSIStringView portStr = params.cacheServer.Substr(colonPos + 1, SIZE_MAX);
+    uint16 port = static_cast<uint16>(std::atoi(portStr.Data()));
+
+    do
+    {
+        Result res;
+
+        bool retryThisType = shouldRetry;
+
+        if ((res = DownloadCacheFromHost(host, port, params, shouldRetry ? &retryThisType : nullptr)); !res.HasError())
+        {
+            // OK
+            return res;
+        }
+
+        ++numAttempts;
+
+        if (shouldRetry && numAttempts < maxAttempts)
+        {
+            HYP_LOG(CacheClient, Error, "Failed to download cache from server! Error message was: {}\nRetrying in 5s...", res.GetError().GetMessage());
+
+            ThreadSleep(5000);
+        }
+        else
+        {
+            return res.GetError();
+        }
+    }
+    while (shouldRetry);
+        
+    return HYP_MAKE_ERROR(Error, "Failed to connect due to unknown reasons");
 }
 
 HYP_EXPORT void SyncFailed(const Error& error, bool& outClickedRetry, bool& outClickedExit)

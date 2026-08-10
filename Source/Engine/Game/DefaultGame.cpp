@@ -90,7 +90,6 @@ static Camera* FindMainCamera(World& world)
 DefaultGame::DefaultGame()
     : Game()
 {
-    m_packageName = NAME("DefaultGame");
 }
 
 DefaultGame::~DefaultGame()

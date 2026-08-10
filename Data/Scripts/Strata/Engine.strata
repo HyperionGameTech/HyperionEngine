@@ -693,8 +693,6 @@ extern bool GameState_IsSimulating(GameState self);
 extern bool GameState_IsPaused(GameState self);
 
 // Game
-extern void Game_GetPackageName(Game self, ref Name outReturn);
-extern void Game_SetPackageName(Game self, const Name packageName);
 extern void Game_OnUpdate(Game self, float delta);
 extern void Game_Initialize(Game self);
 extern void Game_Shutdown(Game self, bool shutdownWorld);

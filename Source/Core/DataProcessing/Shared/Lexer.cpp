@@ -21,7 +21,7 @@ Lexer::Lexer(
     : m_sourceStream(sourceStream),
       m_tokenStream(tokenStream),
       m_errorList(errorList),
-      m_sourceLocation(0, 0, sourceStream.GetFile()->GetFilePath())
+      m_sourceLocation(0, 0, sourceStream.GetFilePath())
 {
 }
 

@@ -231,6 +231,7 @@ Result EditorProject::SaveAs(FilePath filepath)
         "Registering assets",
         /* isForegroundTask */ true);
 
+    // Put the world asset, root of all assets.
     registry.PutAssetsDeep(m_gameInstance->GetWorld());
 
     GlobalContextScope saveContextScope { EditorProjectSaveContext {} };
@@ -348,7 +349,7 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
                 return HYP_MAKE_ERROR(Error, "Failed to open project file: {}", projectFilepath);
             }
 
-            HMF::ParseResult parseResult = HMF::Parse(String(stream.Read().ToByteView()));
+            HMF::ParseResult parseResult = HMF::Parse(projectFilepath, stream);
 
             if (parseResult.HasError())
             {

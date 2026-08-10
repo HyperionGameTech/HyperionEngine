@@ -39,6 +39,8 @@
 
 #include <Scene/Input/TouchControlsSubsystem.hpp>
 
+#include <System/MessageBox.hpp>
+
 #include <Game.generated.inl>
 
 namespace Hyperion {
@@ -48,12 +50,11 @@ ENGINE_API HYP_DEFINE_LOG_CHANNEL(Game);
 ScriptableDelegate<void> Game::OnLaunched;
 ScriptableDelegate<void, Game*, GameStateMode, GameStateMode> Game::OnGameStateChange;
 
-static const Name s_nameMainWorld = NAME("World");
-static const Name s_nameDefault = NAME("Default");
+static const Name s_nameMainWorld = NAME("MainWorld");
+static const Name s_nameTempUIWorld = NAME("TempUIWorld");
 
 Game::Game()
-    : m_packageName(s_nameDefault),
-      m_isInitialized(false),
+    : m_isInitialized(false),
       m_assetRegistryActive(false),
       m_isLaunched(false)
 {
@@ -100,33 +101,7 @@ void Game::Initialize()
 
     if (!m_assetRegistryActive)
     {
-        // This check exists mainly for initializing newly created editor projects that
-        // have a World set on them and should not destroy that world to attempt to load one from disk.
-        const bool shouldLoadContent = m_assetRegistry->GetRootPath().Exists();
-
-        if (shouldLoadContent)
-        {
-            BeforeContentLoaded();
-
-            m_assetRegistry->Initialize(&m_syncContentTask);
-
-            PushAssetRegistry(m_assetRegistry);
-            m_assetRegistryActive = true;
-
-            if (!m_syncContentTask.IsValid())
-            {
-                AfterContentLoaded();
-            }
-        }
-        else
-        {
-            m_assetRegistry->Initialize(nullptr);
-
-            PushAssetRegistry(m_assetRegistry);
-            m_assetRegistryActive = true;
-
-            Launch();
-        }
+        SyncContentAndLaunch();
     }
     else
     {
@@ -655,7 +630,7 @@ void Game::BeforeContentLoaded()
     AssertOnThread(g_simThread);
 
     Handle<World> tempWorld = MakeHandle<World>();
-    tempWorld->SetName(NAME("TempUIWorld"));
+    tempWorld->SetName(s_nameTempUIWorld);
     tempWorld->SetIsTransient(true);
 
     SetWorld(tempWorld);
@@ -669,19 +644,71 @@ void Game::AfterContentLoaded()
 
     SetWorld(Handle<World>::Null());
     
-    if (Handle<World> world = LoadWorld(NAME("MainWorld")); world.IsValid())
+    if (Handle<World> world = LoadWorld(s_nameMainWorld); world.IsValid())
     {
         SetWorld(world);
     }
     else
     {
-        HYP_LOG(Game, Error, "Failed to load world!");
+        auto setToDummyWorld = [&]
+        {
+            SetWorld(MakeHandle<World>());
+        };
 
-        // Create a dummy world
-        SetWorld(MakeHandle<World>());
+        bool shouldReturn = false;
+
+        // clang-format off
+        SystemMessageBox(MessageBoxType::CRITICAL)
+            .Title("Error")
+            .Text("Failed to load game content! The world could not be initialized.\n\n"
+                "Please make sure the game is up to date, or try reinstalling it.\n"
+                "Please file a bug report! Apologies for the inconvenience.")
+            .Button("Retry", [this, &shouldReturn] { shouldReturn = true; SyncContentAndLaunch(); })
+            .Button("Launch Anyway", &setToDummyWorld)
+            .Button("Exit", &std::terminate)
+            .Show();
+        // clang-format on
+
+        if (shouldReturn)
+        {
+            return;
+        }
     }
 
     Launch();
+}
+
+void Game::SyncContentAndLaunch()
+{
+    AssertOnThread(g_simThread);
+
+    // This check exists mainly for initializing newly created editor projects that
+    // have a World set on them and should not destroy that world to attempt to load one from disk.
+    const bool canSyncContent = m_assetRegistry->GetRootPath().Exists();
+
+    if (canSyncContent)
+    {
+        BeforeContentLoaded();
+
+        m_assetRegistry->Initialize(&m_syncContentTask);
+
+        PushAssetRegistry(m_assetRegistry);
+        m_assetRegistryActive = true;
+
+        if (!m_syncContentTask.IsValid())
+        {
+            AfterContentLoaded();
+        }
+    }
+    else
+    {
+        m_assetRegistry->Initialize(nullptr);
+
+        PushAssetRegistry(m_assetRegistry);
+        m_assetRegistryActive = true;
+
+        Launch();
+    }
 }
 
 void Game::Launch()

@@ -23,7 +23,6 @@ namespace Hyperion.Editor
 
         public HyperionEditorGame()
         {
-            PackageName = new Name("HyperionEditorGame");
         }
 
         protected override void OnLaunch()

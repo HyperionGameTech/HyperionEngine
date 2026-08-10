@@ -1,61 +1,79 @@
 #include <Core/DataProcessing/Shared/SourceStream.hpp>
+#include <Core/IO/ByteReader.hpp>
 #include <Core/Debug/Debug.hpp>
 
 namespace Hyperion::DataProcessing {
 
-SourceStream::SourceStream(const SourceFile* file)
-    : m_file(file),
-      m_position(0)
+SourceStream::SourceStream(ByteReader* reader, const String& filepath)
+    : m_reader(reader),
+      m_filepath(filepath)
 {
+    HYP_CORE_ASSERT(m_reader != nullptr);
 }
 
 SourceStream::SourceStream(const SourceStream& other)
-    : m_file(other.m_file),
-      m_position(other.m_position)
+    : m_reader(other.m_reader),
+      m_filepath(other.m_filepath)
 {
+}
+
+size_t SourceStream::GetPosition() const
+{
+    return m_reader->Position();
+}
+
+bool SourceStream::HasNext() const
+{
+    return !m_reader->Eof();
 }
 
 utf::Char32 SourceStream::Peek() const
 {
-    size_t pos = m_position;
-    if (pos >= m_file->GetSize())
+    const size_t startPos = m_reader->Position();
+
+    if (startPos >= m_reader->Max())
     {
-        return '\0';
+        return utf::Char32('\0');
     }
 
-    char ch = static_cast<char>(m_file->GetBuffer()[pos]);
+    ubyte firstByte;
+    m_reader->Read(&firstByte, 1);
 
     utf::Char32 u32Ch = 0;
     char* bytes = utf::ToUtf8Chars(u32Ch);
+    bytes[0] = char(firstByte);
 
-    const unsigned char uc = static_cast<unsigned char>(ch);
+    int numContinuationBytes;
 
-    if (uc >= 0 && uc <= 127)
+    if (firstByte <= 127)
     {
-        bytes[0] = ch;
+        numContinuationBytes = 0;
     }
-    else if ((uc & 0xE0) == 0xC0)
+    else if ((firstByte & 0xE0) == 0xC0)
     {
-        bytes[0] = ch;
-        bytes[1] = static_cast<char>(m_file->GetBuffer()[pos + 1]);
+        numContinuationBytes = 1;
     }
-    else if ((uc & 0xF0) == 0xE0)
+    else if ((firstByte & 0xF0) == 0xE0)
     {
-        bytes[0] = ch;
-        bytes[1] = static_cast<char>(m_file->GetBuffer()[pos + 1]);
-        bytes[2] = static_cast<char>(m_file->GetBuffer()[pos + 2]);
+        numContinuationBytes = 2;
     }
-    else if ((uc & 0xF8) == 0xF0)
+    else if ((firstByte & 0xF8) == 0xF0)
     {
-        bytes[0] = ch;
-        bytes[1] = static_cast<char>(m_file->GetBuffer()[pos + 1]);
-        bytes[2] = static_cast<char>(m_file->GetBuffer()[pos + 2]);
-        bytes[3] = static_cast<char>(m_file->GetBuffer()[pos + 3]);
+        numContinuationBytes = 3;
     }
     else
     {
-        u32Ch = utf::Char32('\0');
+        m_reader->Seek(startPos);
+
+        return utf::Char32('\0');
     }
+
+    if (numContinuationBytes > 0)
+    {
+        m_reader->Read(bytes + 1, size_t(numContinuationBytes));
+    }
+
+    m_reader->Seek(startPos);
 
     return u32Ch;
 }
@@ -68,67 +86,66 @@ utf::Char32 SourceStream::Next()
 
 utf::Char32 SourceStream::Next(int& posChange)
 {
-    int posBefore = static_cast<int>(m_position);
+    const size_t posBefore = m_reader->Position();
 
-    if (m_position >= m_file->GetSize())
+    if (posBefore >= m_reader->Max())
     {
         return utf::Char32('\0');
     }
 
-    char ch = static_cast<char>(m_file->GetBuffer()[m_position++]);
+    ubyte firstByte;
+    m_reader->Read(&firstByte, 1);
 
     utf::Char32 u32Ch = 0;
     char* bytes = utf::ToUtf8Chars(u32Ch);
+    bytes[0] = char(firstByte);
 
-    const unsigned char uc = static_cast<unsigned char>(ch);
+    int numContinuationBytes;
 
-    if (uc >= 0 && uc <= 127)
+    if (firstByte <= 127)
     {
-        bytes[0] = ch;
+        numContinuationBytes = 0;
     }
-    else if ((uc & 0xE0) == 0xC0)
+    else if ((firstByte & 0xE0) == 0xC0)
     {
-        bytes[0] = ch;
-        bytes[1] = static_cast<char>(m_file->GetBuffer()[m_position++]);
+        numContinuationBytes = 1;
     }
-    else if ((uc & 0xF0) == 0xE0)
+    else if ((firstByte & 0xF0) == 0xE0)
     {
-        bytes[0] = ch;
-        bytes[1] = static_cast<char>(m_file->GetBuffer()[m_position++]);
-        bytes[2] = static_cast<char>(m_file->GetBuffer()[m_position++]);
+        numContinuationBytes = 2;
     }
-    else if ((uc & 0xF8) == 0xF0)
+    else if ((firstByte & 0xF8) == 0xF0)
     {
-        bytes[0] = ch;
-        bytes[1] = static_cast<char>(m_file->GetBuffer()[m_position++]);
-        bytes[2] = static_cast<char>(m_file->GetBuffer()[m_position++]);
-        bytes[3] = static_cast<char>(m_file->GetBuffer()[m_position++]);
+        numContinuationBytes = 3;
     }
     else
     {
+        numContinuationBytes = 0;
         u32Ch = utf::Char32('\0');
     }
 
-    posChange = static_cast<int>(m_position) - posBefore;
+    if (numContinuationBytes > 0)
+    {
+        m_reader->Read(bytes + 1, size_t(numContinuationBytes));
+    }
+
+    posChange = static_cast<int>(m_reader->Position() - posBefore);
 
     return u32Ch;
 }
 
 void SourceStream::GoBack(int n)
 {
-    HYP_CORE_ASSERT((static_cast<int>(m_position) - n) >= 0, "not large enough to go back");
+    HYP_CORE_ASSERT((static_cast<int>(m_reader->Position()) - n) >= 0, "not large enough to go back");
 
-    m_position -= n;
+    m_reader->Rewind(size_t(n));
 }
 
 void SourceStream::Read(char* ptr, size_t numBytes)
 {
-    HYP_CORE_ASSERT(m_position + numBytes < m_file->GetSize(), "attempted to read past the limit");
+    HYP_CORE_ASSERT(m_reader->Position() + numBytes < m_reader->Max(), "attempted to read past the limit");
 
-    for (size_t i = 0; i < numBytes; i++)
-    {
-        ptr[i] = static_cast<char>(m_file->GetBuffer()[m_position++]);
-    }
+    m_reader->Read(static_cast<void*>(ptr), numBytes);
 }
 
 } // namespace Hyperion::DataProcessing
