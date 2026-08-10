@@ -6,6 +6,8 @@
 
 #include <HyperionPch.hpp>
 
+#include <Framework/EngineGlobals.hpp>
+
 #include <Framework/Commandlet/Commandlet.hpp>
 
 #include <Asset/Assets.hpp>
@@ -182,10 +184,24 @@ protected:
             TaskSystem::GetInstance().Start();
         }
 
+        //-- running commandlet standalone will do this to ya
         if (!g_shaderCompiler)
         {
             g_shaderCompiler = new ShaderCompiler;
         }
+
+        Handle<AssetRegistry> engineRegistry = GetEngineAssetRegistry();
+        if (!engineRegistry.IsValid())
+        {
+            engineRegistry = MakeHandle<AssetRegistry>(
+                AssetRegistryId::Engine,
+                EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Engine")>());
+
+            engineRegistry->Initialize(nullptr);
+
+            SetEngineAssetRegistry(engineRegistry);
+        }
+        //--
 
         HYP_LOG(Engine, Info, "Precompiling shaders...");
 

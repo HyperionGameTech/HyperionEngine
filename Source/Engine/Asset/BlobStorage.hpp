@@ -131,6 +131,11 @@ private:
 
     void CloseBlock(uint32 bucketIndex);
 
+    /*! \brief Unmaps, grows and remaps a block file so it can hold at least \p requiredSize bytes.
+     *  Invalidates every pointer previously handed out by GetData() for that bucket, so it may only
+     *  be called while the storage is write locked. */
+    bool GrowBlock(uint32 bucketIndex, size_t requiredSize);
+
     Result LoadTOC();
 
     Result LoadTOC_Internal();

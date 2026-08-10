@@ -151,7 +151,7 @@ HYP_EXPORT const FilePath& GetContentDirectory()
                 HYP_LOG(Engine, Warning, "Failed to initialize content storage directory {}!", s_contentDirectory);
             }
 
-            HYP_LOG(Engine, Info, "Initialized cache directory at {}", s_contentDirectory);
+            HYP_LOG(Engine, Info, "Initialized content directory at {} for package {}", s_contentDirectory, PackageName.data);
         });
 
     return s_contentDirectory;

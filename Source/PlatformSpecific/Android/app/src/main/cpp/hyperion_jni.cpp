@@ -22,6 +22,7 @@ namespace Hyperion {
 using namespace Hyperion;
 
 static char g_cacheDirPath[1024] = { 0 };
+static char g_contentDirPath[1024] = { 0 };
 static char g_cacheServerAddress[256] = { 0 };
 
 extern "C"
@@ -59,8 +60,18 @@ Java_com_hyperion_engine_HyperionBridge_nativeInit(JNIEnv* env, jclass clazz)
 
     if (g_cacheDirPath[0] != '\0')
     {
-        snprintf(cacheArgBuf, sizeof(cacheArgBuf), "-CacheDir=%s", g_cacheDirPath);
+        snprintf(cacheArgBuf, sizeof(cacheArgBuf), "--CacheDir=%s", g_cacheDirPath);
         cacheArg = cacheArgBuf;
+        argc += 1;
+    }
+
+    const char* contentArg = nullptr;
+    static char contentArgBuf[1100];
+
+    if (g_contentDirPath[0] != '\0')
+    {
+        snprintf(contentArgBuf, sizeof(contentArgBuf), "--ContentDir=%s", g_contentDirPath);
+        contentArg = contentArgBuf;
         argc += 1;
     }
 
@@ -69,13 +80,14 @@ Java_com_hyperion_engine_HyperionBridge_nativeInit(JNIEnv* env, jclass clazz)
 
     if (g_cacheServerAddress[0] != '\0')
     {
-        snprintf(serverArgBuf, sizeof(serverArgBuf), "-CacheServer=%s", g_cacheServerAddress);
+        snprintf(serverArgBuf, sizeof(serverArgBuf), "--CacheServer=%s", g_cacheServerAddress);
         serverArg = serverArgBuf;
         argc += 1;
     }
 
     const char** combinedArgv = (const char**)alloca((argc + 1) * sizeof(const char*));
     int idx = 0;
+
     for (int i = 0; i < int(sizeof(baseArgs) / sizeof(baseArgs[0])); i++)
     {
         combinedArgv[idx++] = baseArgs[i];
@@ -84,10 +96,15 @@ Java_com_hyperion_engine_HyperionBridge_nativeInit(JNIEnv* env, jclass clazz)
     {
         combinedArgv[idx++] = cacheArg;
     }
+    if (contentArg != nullptr)
+    {
+        combinedArgv[idx++] = contentArg;
+    }
     if (serverArg != nullptr)
     {
         combinedArgv[idx++] = serverArg;
     }
+
     combinedArgv[idx] = nullptr;
 
     return Hyp_Initialize(argc, const_cast<char**>(combinedArgv));
@@ -99,6 +116,14 @@ Java_com_hyperion_engine_HyperionBridge_nativeSetCacheDirectory(JNIEnv* env, jcl
     const char* path = env->GetStringUTFChars(cacheDir, nullptr);
     snprintf(g_cacheDirPath, sizeof(g_cacheDirPath), "%s", path);
     env->ReleaseStringUTFChars(cacheDir, path);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_hyperion_engine_HyperionBridge_nativeSetContentDirectory(JNIEnv* env, jclass /*clazz*/, jstring contentDir)
+{
+    const char* path = env->GetStringUTFChars(contentDir, nullptr);
+    snprintf(g_contentDirPath, sizeof(g_contentDirPath), "%s", path);
+    env->ReleaseStringUTFChars(contentDir, path);
 }
 
 extern "C" JNIEXPORT void JNICALL

@@ -745,13 +745,24 @@ bool BlobStorage::PutData(uint32 bucketIndex, StringHash key, const BlobHeader& 
 
     const size_t headerOffset = ByteUtil::AlignAs(blockData.cursor, alignof(BlobHeader));
     const size_t totalBlobSize = sizeof(BlobHeader) + header.payloadOffset + header.payloadSize;
+    const size_t requiredSize = headerOffset + totalBlobSize;
 
-    if (headerOffset + totalBlobSize > blockData.view->Size())
+    if (blockData.view == nullptr || requiredSize > blockData.view->Size())
     {
-        HYP_LOG(Assets, Error, "Blob data for key {} exceeds the reserved block size for asset bucket {} ({} > {}), block sizes must be computed before BeginCook is called",
-            key.GetHashCode().Value(), bucketIndex, headerOffset + totalBlobSize, blockData.view->Size());
+        HYP_LOG(Assets, Verbose, "Blob data for key {} exceeds the reserved block size for asset bucket {} ({} > {}), growing the block file",
+            key.GetHashCode().Value(),
+            AssetBuckets::AllBucketNameStrings[bucketIndex],
+            requiredSize,
+            blockData.view != nullptr ? blockData.view->Size() : 0);
 
-        return false;
+        if (!GrowBlock(bucketIndex, requiredSize))
+        {
+            HYP_LOG(Assets, Error, "Failed to grow the block file for asset bucket {} to {} bytes",
+                AssetBuckets::AllBucketNameStrings[bucketIndex],
+                requiredSize);
+
+            return false;
+        }
     }
 
     ByteWriter* writeStream = blockData.writeStream;
@@ -841,6 +852,62 @@ void BlobStorage::CloseBlock(uint32 bucketIndex)
         callbacks.Close(callbacks.context, file);
         file = nullptr;
     }
+}
+
+bool BlobStorage::GrowBlock(uint32 bucketIndex, size_t requiredSize)
+{
+    if (bucketIndex >= m_blockData.Size())
+    {
+        return false;
+    }
+
+    BlobBlockData& blockData = m_blockData[bucketIndex];
+
+    if (blockData.file == nullptr)
+    {
+        return false;
+    }
+
+    if (blockData.view != nullptr && blockData.view->IsOpen() && requiredSize <= blockData.file->FileSize())
+    {
+        return true;
+    }
+
+    // Views need to be closed for resize.
+    if (blockData.writeStream != nullptr)
+    {
+        blockData.writeStream->Close();
+
+        delete blockData.writeStream;
+        blockData.writeStream = nullptr;
+    }
+
+    if (blockData.readStream != nullptr)
+    {
+        blockData.readStream->Close();
+
+        delete blockData.readStream;
+        blockData.readStream = nullptr;
+    }
+
+    if (blockData.view == nullptr)
+    {
+        blockData.view = new MemoryMappedFileView;
+    }
+    else
+    {
+        blockData.view->Close();
+    }
+
+    if (!blockData.file->EnsureCapacity(requiredSize))
+    {
+        // Remap at the size the file still has so the failure stays contained to this one blob.
+        blockData.file->MapRange(0, 0, *blockData.view);
+
+        return false;
+    }
+
+    return blockData.file->MapRange(0, 0, *blockData.view);
 }
 
 Result BlobStorage::SaveTOC()

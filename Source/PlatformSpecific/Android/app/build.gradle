@@ -45,8 +45,11 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 
-    // Cache files are served via the cache server, not bundled in the APK.
+    // The cooked minimal cache ships inside the APK under assets/Cache. MainActivity extracts it to
+    // the external files dir on first launch after an install or upgrade, because the engine
+    // memory maps and grows those block files. Leaving them uncompressed keeps that copy cheap.
     androidResources {
+        noCompress 'bin'
     }
 
     sourceSets {
@@ -175,10 +178,7 @@ tasks.register('stagePackageAssets', Copy) {
 
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
-    from(file(hypPackageDir)) {
-        exclude 'Cache/**'
-    }
-    into assetsDestDir
+    from(file(hypPackageDir)) into assetsDestDir
 }
 
 preBuild.dependsOn 'stageNativeLibs', 'stagePackageAssets'

@@ -34,7 +34,6 @@ struct VSOutput
 #include "./include/EnvProbes.hlsli"
 #include "./include/Scene.hlsli"
 #include "./include/Entity.hlsli"
-#include "./include/Instancing.hlsli"
 
 #ifdef IMMEDIATE_MODE
 DECLARE_SRV(DebugDrawerDescriptorSet, EnvProbesBuffer) StructuredBuffer<EnvProbe> env_probes;
@@ -56,6 +55,8 @@ DECLARE_SRV(DebugDrawerDescriptorSet, ImmediateDrawsBuffer) StructuredBuffer<Imm
 #ifdef INSTANCING
 DECLARE_SRV(DebugDrawerDescriptorSet, EntitiesBuffer) StructuredBuffer<Entity> entities;
 DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer EntityInstanceBatchBuffer;
+
+#include "./include/Instancing.hlsli"
 #endif // INSTANCING
 
 #endif // IMMEDIATE_MODE
@@ -93,25 +94,27 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.env_probe_type = immediateDraw.env_probe_type;
     output.env_probe_index = immediateDraw.env_probe_index;
 
-    float4x4 transform = immediateDraw.transform;
-    float4x4 prevTransform = transform;
+    const float4x4 transform = immediateDraw.transform;
+    const float4x4 prevTransform = transform;
 #elif defined(INSTANCING)
-    
     uint entityIndex;
     uint dataOffset;
     LoadEntityIndexAndDataOffset(instanceId, entityIndex, dataOffset);
 
     Entity entity = entities[entityIndex];
 
-    float4x4 instanceTransform = LoadInstanceTransform(s_offsetOfTransforms + (sizeof(float4x4) * dataOffset));
-    float4x4 previousInstanceTransform = LoadInstanceTransform(s_offsetOfPrevTransforms + (sizeof(float4x4) * dataOffset));
+    const float4x4 instanceTransform = LoadInstanceTransform(s_offsetOfTransforms + (sizeof(float4x4) * dataOffset));
+    const float4x4 previousInstanceTransform = LoadInstanceTransform(s_offsetOfPrevTransforms + (sizeof(float4x4) * dataOffset));
 
     output.object_index = entityIndex;
 
-    float4x4 transform = mul(entity.model_matrix, instanceTransform);
-    float4x4 prevTransform = mul(entity.previous_model_matrix, previousInstanceTransform);
+    const float4x4 transform = mul(entity.model_matrix, instanceTransform);
+    const float4x4 prevTransform = mul(entity.previous_model_matrix, previousInstanceTransform);
 #else
     output.object_index = 0;
+
+    const float4x4 transform = entity.model_matrix;
+    const float4x4 prevTransform = entity.previous_model_matrix;
 #endif // IMMEDIATE_MODE / INSTANCING
 
     float4 position = mul(transform, float4(input.a_position, 1.0));
