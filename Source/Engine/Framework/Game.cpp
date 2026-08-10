@@ -562,6 +562,22 @@ void Game::OnUpdate_Impl(float delta)
 
     if (m_syncState.IsSyncing())
     {
+        auto callAfterContentLoadedNextFrame = [this]
+        {
+            GetThreadById(g_simThread)->GetScheduler().Enqueue(
+                [this, weakThis = MakeWeakRef(this)]()
+                {
+                    Handle<Game> strongThis = weakThis.Lock();
+                    if (!strongThis.IsValid())
+                    {
+                        return;
+                    }
+
+                    AfterContentLoaded();
+                },
+                TaskEnqueueFlags::FIRE_AND_FORGET);
+        };
+
         if (m_syncState.currentTask.IsCompleted())
         {
             Result res = m_syncState.WaitForSync();
@@ -586,13 +602,13 @@ void Game::OnUpdate_Impl(float delta)
 
                     if (!m_syncState.IsSyncing())
                     {
-                        AfterContentLoaded();
+                        callAfterContentLoadedNextFrame();
                     }
                 }
             }
             else
             {
-                AfterContentLoaded();
+                callAfterContentLoadedNextFrame();
             }
         }
     }
@@ -614,51 +630,41 @@ void Game::AfterContentLoaded()
     AssertOnThread(g_simThread);
 
     Assert(m_isLaunched.Get(MemoryOrder::ACQUIRE) == false);
-    
-    // We need to defer it for the start of the next frame;
-    // OnUpdate() is called during processing with Scenes pre-collected,
-    // there fore we don't want to destroy/invalidate them while processing
-    auto deferLaunch = [this](const Handle<World>& world)
-    {
-        GetThreadById(g_simThread)->GetScheduler().Enqueue(
-            [this, weakThis = MakeWeakRef(this), world = world]
-            {
-                Handle<Game> strongThis = weakThis.Lock();
-                if (!strongThis.IsValid())
-                {
-                    return; // expired before we could set; ok.
-                }
-                
-                SetWorld(world);
-                Launch();
-            }, TaskEnqueueFlags::FIRE_AND_FORGET);
-    };
 
+    SetWorld(Handle<World>::Null());
+    
     if (Handle<World> world = LoadWorld(s_nameMainWorld); world.IsValid())
     {
-        deferLaunch(world);
+        SetWorld(world);
     }
     else
     {
+        auto setToDummyWorld = [&]
+        {
+            SetWorld(MakeHandle<World>());
+        };
+
+        bool shouldReturn = false;
+
         // clang-format off
         SystemMessageBox(MessageBoxType::CRITICAL)
             .Title("Error")
             .Text("Failed to load game content! The world could not be initialized.\n\n"
                 "Please make sure the game is up to date, or try reinstalling it.\n"
                 "Please file a bug report! Apologies for the inconvenience.")
-            // Retry sync.
-            .Button("Retry", [this]
-            {
-
-                SetWorld(Handle<World>::Null());
-                SyncContentAndLaunch();
-            })
-            // Set dummy world and launch.
-            .Button("Launch Anyway", [this, &deferLaunch] { deferLaunch(MakeHandle<World>()); })
+            .Button("Retry", [this, &shouldReturn] { shouldReturn = true; SyncContentAndLaunch(); })
+            .Button("Launch Anyway", &setToDummyWorld)
             .Button("Exit", &std::terminate)
             .Show();
         // clang-format on
+
+        if (shouldReturn)
+        {
+            return;
+        }
     }
+
+    Launch();
 }
 
 void Game::SyncContentAndLaunch()

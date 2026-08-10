@@ -577,16 +577,22 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
         // Unlock entity managers so the Game instance can mutate
         for (Scene* scene : scenes)
         {
-            scene->GetEntityManager()->Unlock();
+            EntityManager* entityManager = scene->GetEntityManager();
+            AssertDebug(entityManager != nullptr);
+
+            entityManager->Unlock();
         }
 
         gameInstance->OnUpdate(delta);
         gameInstance->m_gameState.gameTime += delta;
         
-        // Re-lock
         for (Scene* scene : scenes)
         {
-            scene->GetEntityManager()->Lock();
+            EntityManager* entityManager = scene->GetEntityManager();
+            AssertDebug(entityManager != nullptr);
+
+            // Re-lock the entity manager.
+            entityManager->Lock();
         }
     }
 
