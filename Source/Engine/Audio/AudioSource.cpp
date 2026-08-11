@@ -16,6 +16,8 @@
 
 namespace Hyperion {
 
+ScriptableDelegate<void, AudioSource*> AudioSource::OnChanged;
+
 AudioSource::AudioSource()
     : ObjectBase()
 {
@@ -45,6 +47,8 @@ AudioSource& AudioSource::operator=(AudioSource&& other) noexcept
 
 AudioSource::~AudioSource()
 {
+    OnChanged.RemoveAllForTarget(this);
+
     Stop();
 
     if (g_audioManager.IsValid() && g_audioManager->IsInitialized())
@@ -56,11 +60,6 @@ AudioSource::~AudioSource()
 void AudioSource::Init()
 {
     ObjectBase::Init();
-
-    if (g_audioManager.IsValid() && g_audioManager->IsInitialized())
-    {
-        g_audioManager->GetAdapter().OnAudioSourceInit(this);
-    }
 
     SetReady(true);
 }
@@ -74,9 +73,10 @@ void AudioSource::SetSound(const Handle<Sound>& sound)
 
     m_sound = sound;
 
-    if (IsReady() && g_audioManager.IsValid() && g_audioManager->IsInitialized())
+    if (g_audioManager.IsValid() && g_audioManager->IsInitialized())
     {
-        g_audioManager->GetAdapter().OnAudioSourceSoundChanged(this);
+        g_audioManager->GetAdapter().OnAudioSourceDestroy(this);
+        g_audioManager->GetAdapter().OnAudioSourceInit(this);
     }
 
     NotifyChanged();

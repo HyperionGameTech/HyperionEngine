@@ -17,6 +17,8 @@
 
 #include <Core/Types.hpp>
 
+#include <Scripting/ScriptableDelegate.hpp>
+
 namespace Hyperion {
 
 class Sound;
@@ -84,15 +86,24 @@ public:
         m_onChanged = std::move(onChanged);
     }
 
+    /*! \brief Fired whenever a property on this AudioSource changes (eg. SetSound, SetPosition, ...),
+     *  including changes made out-of-band (eg. by the deserializer, not through script/UI code).
+     *  Bind per-instance via OnChanged.Bind(this, ...); mirrors Node::TransformUpdated. Used by the
+     *  editor to know when to refresh a cached property view for this object. */
+    HYP_FIELD()
+    static ScriptableDelegate<void, AudioSource*> OnChanged;
+
 private:
     void Init() override;
 
-    HYP_FORCE_INLINE void NotifyChanged() const
+    HYP_FORCE_INLINE void NotifyChanged()
     {
         if (m_onChanged)
         {
             m_onChanged();
         }
+
+        OnChanged.Fire(this, this);
     }
 
     HYP_FIELD(Property = "Sound", Serialize, Editor)
