@@ -384,6 +384,19 @@ else()
   message(WARNING "Bullet not found, physics will be disabled!")
 endif()
 
+find_package(OpenAL)
+
+if(${OpenAL_FOUND})
+  message(STATUS "OpenAL found")
+
+  # Defined globally (not just within Engine/Audio's own CMakeLists.txt) so that every
+  # module agreeing on AudioManager's layout - see Audio/AudioManager.hpp, which picks
+  # between OpenALAudioAdapter/NullAudioAdapter based on this macro.
+  add_definitions(-DHYP_OPENAL=1)
+else()
+  message(WARNING "OpenAL not found, audio will be disabled!")
+endif()
+
 # PCHs
 set(HYP_PCH
     "${CMAKE_SOURCE_DIR}/Engine/HyperionPch.hpp"

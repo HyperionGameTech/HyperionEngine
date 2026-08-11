@@ -6,21 +6,15 @@
 
 #pragma once
 
-#include <Physics/Adapter.hpp>
-
-struct btDbvtBroadphase;
-class btDefaultCollisionConfiguration;
-class btCollisionDispatcher;
-class btSequentialImpulseConstraintSolver;
-class btDiscreteDynamicsWorld;
+#include <Physics/PhysicsAdapter.hpp>
 
 namespace Hyperion {
 
-class BulletPhysicsAdapter : public PhysicsAdapter<BulletPhysicsAdapter>
+class NullPhysicsAdapter : public PhysicsAdapter<NullPhysicsAdapter>
 {
 public:
-    BulletPhysicsAdapter();
-    ~BulletPhysicsAdapter();
+    NullPhysicsAdapter();
+    ~NullPhysicsAdapter();
 
     void Init(PhysicsWorldBase* world);
     void Teardown(PhysicsWorldBase* world);
@@ -39,13 +33,6 @@ public:
     void SetCharacterWalkDirection(const SharedPtr<void>& physicsHandle, const Vec3f& velocity);
     void ApplyCharacterJump(const SharedPtr<void>& physicsHandle);
     void GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround);
-
-private:
-    btDbvtBroadphase* m_broadphase;
-    btDefaultCollisionConfiguration* m_collisionConfiguration;
-    btCollisionDispatcher* m_dispatcher;
-    btSequentialImpulseConstraintSolver* m_solver;
-    btDiscreteDynamicsWorld* m_dynamicsWorld;
 };
 
 } // namespace Hyperion

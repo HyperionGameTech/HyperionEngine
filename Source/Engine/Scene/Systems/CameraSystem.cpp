@@ -40,7 +40,10 @@ void CameraSystem::OnEntityAdded(Entity* entity)
 
     if (controller && controller->GetInputHandler())
     {
-        GetWorld()->GetGame()->RegisterInputHandler(controller->GetInputHandler());
+        if (Game* game = GetWorld()->GetGame())
+        {
+            game->RegisterInputHandler(controller->GetInputHandler());
+        }
     }
 }
 
@@ -57,7 +60,10 @@ void CameraSystem::OnEntityRemoved(Entity* entity)
 
     if (controller && controller->GetInputHandler())
     {
-        GetWorld()->GetGame()->UnregisterInputHandler(controller->GetInputHandler());
+        if (Game* game = GetWorld()->GetGame())
+        {
+            game->UnregisterInputHandler(controller->GetInputHandler());
+        }
     }
 }
 

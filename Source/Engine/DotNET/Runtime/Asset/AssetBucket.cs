@@ -43,15 +43,16 @@ namespace Hyperion
         public static readonly AssetBucket Scripts           = new(14);
         public static readonly AssetBucket RawData           = new(15);
         public static readonly AssetBucket Prefabs           = new(16);
+        public static readonly AssetBucket Sounds            = new(17);
 
-        public static readonly uint MaxAssetBuckets = 17;
+        public static readonly uint MaxAssetBuckets = 18;
 
         public static readonly AssetBucket[] AllBuckets =
         [
             Meshes, Textures, Materials, InstancedMeshData,
             Animations, AnimationTracks, Skeletons, Worlds, Scenes,
             Shaders, ShaderBundles, FontAtlases, PhysicsShapes,
-            Scripts, RawData, Prefabs
+            Scripts, RawData, Prefabs, Sounds
         ];
 
         public static string GetAssetBucketName(uint bucketIndex)

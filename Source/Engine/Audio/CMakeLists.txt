@@ -19,7 +19,8 @@ find_package(OpenAL)
 if(${OpenAL_FOUND})
   message(STATUS "OpenAL found")
 
-  add_definitions(-DHYP_OPENAL=1)
+  # NOTE: HYP_OPENAL is defined globally in the root CMakeLists.txt (not here) so that
+  # every module - not just this one - agrees on which AudioAdapter AudioManager uses.
 
   set(hyperion-audio_LIBRARIES ${OPENAL_LIBRARY})
 

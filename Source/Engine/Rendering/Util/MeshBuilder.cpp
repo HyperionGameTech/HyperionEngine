@@ -54,27 +54,17 @@ static Pair<Array<SimpleVertex>, Array<uint32>> CalculateIndices(const Array<Sim
     return { std::move(newVertices), std::move(indices) };
 }
 
-static const FixedArray<SimpleVertex, 4>& GetQuadVertices()
-{
-    static const FixedArray<SimpleVertex, 4> s_vertices = {
-        SimpleVertex { Vec3f { -1.0f, 1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 0.0f } },
-        SimpleVertex { Vec3f { 1.0f, 1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 0.0f } },
-        SimpleVertex { Vec3f { 1.0f, -1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 1.0f } },
-        SimpleVertex { Vec3f { -1.0f, -1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 1.0f } }
-    };
+static const FixedArray<SimpleVertex, 4> s_quadVertices = {
+    SimpleVertex { Vec3f { -1.0f, 1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 0.0f } },
+    SimpleVertex { Vec3f { 1.0f, 1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 0.0f } },
+    SimpleVertex { Vec3f { 1.0f, -1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 1.0f } },
+    SimpleVertex { Vec3f { -1.0f, -1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 1.0f } }
+};
 
-    return s_vertices;
-}
-
-static const FixedArray<uint32, 6>& GetQuadIndices()
-{
-    static const FixedArray<uint32, 6> s_indices = {
-        0, 2, 1,
-        0, 3, 2
-    };
-
-    return s_indices;
-}
+static const FixedArray<uint32, 6> s_quadIndices = {
+    0, 2, 1,
+    0, 3, 2
+};
 
 static const FixedArray<SimpleVertex, 8>& GetDoubleSidedQuadVertices()
 {
@@ -171,8 +161,8 @@ static const Array<SimpleVertex>& GetCubeVertices()
 
 ENGINE_API Handle<Mesh> Quad()
 {
-    const auto& vertices = GetQuadVertices();
-    const auto& indices = GetQuadIndices();
+    const FixedArray<SimpleVertex, 4>& vertices = s_quadVertices;
+    const FixedArray<uint32, 6>& indices = s_quadIndices;
 
     MeshDesc meshDesc {};
     meshDesc.meshAttributes.inputLayout = { VT_Simple };

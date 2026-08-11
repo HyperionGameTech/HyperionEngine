@@ -23,6 +23,7 @@ public:
     bool ShouldProcessScene(Scene* scene) const override;
 
     void OnEntityAdded(Entity* entity) override;
+    void OnEntityRemoved(Entity* entity) override;
 
     void Process(float delta, Span<Handle<Scene>> scenes) override;
 

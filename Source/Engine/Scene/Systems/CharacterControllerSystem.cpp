@@ -155,7 +155,10 @@ void CharacterControllerSystem::OnEntityAdded(Entity* entity)
         component.inputHandler = MakeHandle<CharacterControllerInputHandler>();
         InitObject(component.inputHandler);
 
-        GetWorld()->GetGame()->RegisterInputHandler(component.inputHandler);
+        if (Game* game = GetWorld()->GetGame())
+        {
+            game->RegisterInputHandler(component.inputHandler);
+        }
     }
 
     TransformComponent& transformComponent = entity->GetComponent<TransformComponent>();
@@ -188,7 +191,10 @@ void CharacterControllerSystem::OnEntityRemoved(Entity* entity)
 
     if (component.inputHandler)
     {
-        GetWorld()->GetGame()->UnregisterInputHandler(component.inputHandler);
+        if (Game* game = GetWorld()->GetGame())
+        {
+            game->UnregisterInputHandler(component.inputHandler);
+        }
     }
 
     if (component.physicsHandle)

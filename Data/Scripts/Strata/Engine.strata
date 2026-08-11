@@ -22,6 +22,7 @@ handle EditorViewport extends ObjectBase;
 handle AssetLoaderBase extends ObjectBase;
 handle AssetObject extends ObjectBase;
 handle RawDataAsset extends AssetObject;
+handle Sound extends AssetObject;
 handle PhysicsShape extends AssetObject;
 handle CapsulePhysicsShape extends PhysicsShape;
 handle SpherePhysicsShape extends PhysicsShape;
@@ -723,14 +724,6 @@ extern bool DeviceDetails_SupportsVariableRateShading(DeviceDetails self);
 extern bool DeviceDetails_SupportsSamplerFeedback(DeviceDetails self);
 extern bool DeviceDetails_SupportsBindless(DeviceDetails self);
 
-// AudioSource
-extern ulong AudioSource_GetFreq(AudioSource self);
-extern void AudioSource_SetFreq(AudioSource self, ulong freq);
-extern uint AudioSource_GetSampleLength(AudioSource self);
-extern void AudioSource_SetSampleLength(AudioSource self, uint sampleLength);
-extern double AudioSource_GetDuration(AudioSource self);
-extern void AudioSource_SetDuration(AudioSource self, double duration);
-
 // AssetManager
 extern void AssetManager_GetBasePath(AssetManager self, ref FilePath outReturn);
 
@@ -812,6 +805,11 @@ extern void Mesh_RecalculateBounds(Mesh self);
 extern bool Material_IsStatic(Material self);
 extern bool Material_GetIsDynamic(Material self);
 extern void Material_SetIsDynamic(Material self, bool isDynamic);
+
+// Sound
+extern ulong Sound_GetFrequency(Sound self);
+extern void Sound_SetFrequency(Sound self, ulong freq);
+extern float Sound_GetDuration(Sound self);
 
 // EditorViewport (requires HYP_EDITOR)
 extern ApplicationWindow EditorViewport_GetWindow(EditorViewport self);

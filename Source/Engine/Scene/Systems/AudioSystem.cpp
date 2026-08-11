@@ -14,6 +14,8 @@
 #include <Scene/Camera/Camera.hpp>
 
 #include <Audio/AudioManager.hpp>
+#include <Audio/AudioSource.hpp>
+#include <Audio/Sound.hpp>
 
 #include <Core/Math/MathUtil.hpp>
 
@@ -40,18 +42,34 @@ void AudioSystem::OnEntityAdded(Entity* entity)
     {
         InitObject(audioComponent.audioSource);
 
-        audioComponent.flags |= AudioComponentFlags::INIT;
+        audioComponent.audioSource->SetOnChanged([entity]()
+            {
+                entity->MarkDirty();
+            });
+        
+        audioComponent.audioSource->SetPitch(audioComponent.playbackState.speed);
+        audioComponent.audioSource->SetLoop(audioComponent.playbackState.loopMode == ALM_REPEAT);
+    }
+}
+
+void AudioSystem::OnEntityRemoved(Entity* entity)
+{
+    SystemBase::OnEntityRemoved(entity);
+
+    AudioComponent& audioComponent = entity->GetEntityManager()->GetComponent<AudioComponent>(entity);
+
+    if (audioComponent.audioSource.IsValid())
+    {
+        audioComponent.audioSource->Stop();
+        audioComponent.playbackState.currentTime = 0.0f;
+
+        audioComponent.audioSource->SetOnChanged(nullptr);
     }
 }
 
 void AudioSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     HYP_SCOPE;
-
-    if (!g_audioManager->IsReady())
-    {
-        return;
-    }
 
     if (!GetWorld()->GetGameState().IsSimulating())
     {
@@ -86,10 +104,13 @@ void AudioSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
             if (audioComponent.playbackState.status == APS_PLAYING)
             {
+                const Handle<Sound>& sound = audioComponent.audioSource->GetSound();
+                const float duration = sound.IsValid() ? sound->GetDuration() : 0.0f;
+
                 switch (audioComponent.playbackState.loopMode)
                 {
                 case ALM_ONCE:
-                    if (audioComponent.playbackState.currentTime > audioComponent.audioSource->GetDuration())
+                    if (audioComponent.playbackState.currentTime > duration)
                     {
                         audioComponent.playbackState.status = APS_STOPPED;
                         audioComponent.playbackState.currentTime = 0.0f;
@@ -101,7 +122,7 @@ void AudioSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
                     break;
                 case ALM_REPEAT:
-                    if (audioComponent.playbackState.currentTime > audioComponent.audioSource->GetDuration())
+                    if (audioComponent.playbackState.currentTime > duration)
                     {
                         audioComponent.playbackState.currentTime = 0.0f;
                     }
@@ -117,9 +138,6 @@ void AudioSystem::Process(float delta, Span<Handle<Scene>> scenes)
                     break;
                 case AudioSourceState::PAUSED: // fallthrough
                 case AudioSourceState::STOPPED:
-                    audioComponent.audioSource->SetPitch(audioComponent.playbackState.speed);
-                    audioComponent.audioSource->SetLoop(audioComponent.playbackState.loopMode == ALM_REPEAT);
-
                     audioComponent.audioSource->Play();
                     break;
                 default:

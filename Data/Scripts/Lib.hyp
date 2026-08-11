@@ -657,14 +657,9 @@ extern enum AudioPlaybackStatus : uint8
     APS_PAUSED,
     APS_PLAYING
 end
-extern enum AudioComponentFlags : uint8
-    NONE = 0x0,
-    INIT = 0x1
-end
 extern struct AudioComponent
     AudioSource : AudioSource
     PlaybackState : AudioPlaybackState
-    Flags : AudioComponentFlags
     LastPosition : Vec3f
     Timer : float
 end
@@ -2077,23 +2072,10 @@ extern enum AudioSourceState : uint32
     PLAYING,
     PAUSED
 end
-extern enum AudioSourceFormat : uint32
-    MONO8,
-    MONO16,
-    STEREO8,
-    STEREO16
-end
 extern class AudioSource
-    GetFormat() -> AudioSourceFormat
-    SetFormat(format : AudioSourceFormat) -> void
-    GetFreq() -> uint64
-    SetFreq(freq : uint64) -> void
-    GetData() -> ByteBuffer
-    SetData(data : ByteBuffer) -> void
-    GetSampleLength() -> uint32
-    SetSampleLength(sampleLength : uint32) -> void
-    GetDuration() -> double
-    SetDuration(duration : double) -> void
+    GetSound() -> Sound
+    SetSound(sound : Sound) -> void
+    Sound : Sound
 end
 extern class AudioManager
 end
@@ -2511,6 +2493,23 @@ extern enum PhysicsShapeType : uint8
     ConvexHull,
     Capsule,
     Max
+end
+extern enum SoundFormat : uint32
+    MONO8,
+    MONO16,
+    STEREO8,
+    STEREO16
+end
+extern class Sound : AssetObject
+    GetFormat() -> SoundFormat
+    SetFormat(format : SoundFormat) -> void
+    GetFrequency() -> uint64
+    SetFrequency(freq : uint64) -> void
+    GetDuration() -> float
+    Format : SoundFormat
+    Freq : uint64
+    SampleLength : uint32
+    Data : BlobDataReference
 end
 extern class RawDataAsset : AssetObject
     Data : BlobDataReference

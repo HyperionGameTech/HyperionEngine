@@ -19,7 +19,7 @@
 #include <Core/Math/MathUtil.hpp>
 
 #if defined(HYP_BULLET) && HYP_BULLET
-#include <Physics/Bullet/Adapter.hpp>
+#include <Physics/Bullet/BulletPhysicsAdapter.hpp>
 
 #include "btBulletDynamicsCommon.h"
 #include "BulletCollision/CollisionDispatch/btGhostObject.h"

@@ -18,15 +18,6 @@
 namespace Hyperion {
 
 HYP_ENUM()
-enum class AudioComponentFlags : uint8
-{
-    NONE = 0x0,
-    INIT = 0x1
-};
-
-HYP_MAKE_ENUM_FLAGS(AudioComponentFlags);
-
-HYP_ENUM()
 enum AudioPlaybackStatus : uint8
 {
     APS_STOPPED,
@@ -80,9 +71,6 @@ struct AudioComponent
 
     HYP_FIELD(Property = "PlaybackState", Editor = true)
     AudioPlaybackState playbackState;
-
-    HYP_FIELD(Transient)
-    EnumFlags<AudioComponentFlags> flags = AudioComponentFlags::NONE;
 
     HYP_FIELD(Transient)
     Vec3f lastPosition;

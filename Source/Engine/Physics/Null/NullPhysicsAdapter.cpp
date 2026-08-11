@@ -6,7 +6,8 @@
 
 #include <HyperionPch.hpp>
 
-#include <Physics/Null/Adapter.hpp>
+#include <Physics/Null/NullPhysicsAdapter.hpp>
+
 #include <Physics/PhysicsWorld.hpp>
 #include <Physics/RigidBody.hpp>
 
@@ -17,7 +18,6 @@
 namespace Hyperion {
 
 NullPhysicsAdapter::NullPhysicsAdapter() = default;
-
 NullPhysicsAdapter::~NullPhysicsAdapter() = default;
 
 void NullPhysicsAdapter::Init(PhysicsWorldBase* world)

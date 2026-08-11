@@ -263,6 +263,8 @@ public:
                 {
                     request->entry->threadSignal.Reset();
 
+                    const bool isHeapAllocated = request->isHeapAllocated;
+
                     CompileShader(*request);
 
                     m_numCompilingShaders.Decrement(1, MemoryOrder::RELAXED);
@@ -273,7 +275,7 @@ public:
                     UpdateEditorTask();
 #endif
 
-                    if (request->isHeapAllocated)
+                    if (isHeapAllocated)
                     {
                         delete request;
                     }

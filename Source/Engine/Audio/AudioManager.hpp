@@ -13,10 +13,19 @@
 
 #include <Core/Math/Vector3.hpp>
 
-#include <AL/al.h>
-#include <AL/alc.h>
+#if defined(HYP_OPENAL) && HYP_OPENAL
+#include <Audio/OpenAL/OpenALAudioAdapter.hpp>
+#else
+#include <Audio/Null/NullAudioAdapter.hpp>
+#endif
 
 namespace Hyperion {
+
+#if defined(HYP_OPENAL) && HYP_OPENAL
+using AudioAdapterImpl = OpenALAudioAdapter;
+#else
+using AudioAdapterImpl = NullAudioAdapter;
+#endif
 
 HYP_CLASS()
 class ENGINE_API AudioManager : public ObjectBase
@@ -38,27 +47,26 @@ public:
         return m_isInitialized;
     }
 
+    HYP_FORCE_INLINE AudioAdapterImpl& GetAdapter()
+    {
+        return m_adapter;
+    }
+
+    HYP_FORCE_INLINE const AudioAdapterImpl& GetAdapter() const
+    {
+        return m_adapter;
+    }
+
     void Initialize();
     void Shutdown();
 
     Array<String> ListDevices() const;
 
-    ALCdevice* GetDevice() const
-    {
-        return m_device;
-    }
-
-    ALCcontext* GetContext() const
-    {
-        return m_context;
-    }
-
     void SetListenerPosition(const Vec3f& position);
     void SetListenerOrientation(const Vec3f& forward, const Vec3f& up);
 
 private:
-    ALCdevice* m_device;
-    ALCcontext* m_context;
+    AudioAdapterImpl m_adapter;
 
     bool m_isInitialized;
 };

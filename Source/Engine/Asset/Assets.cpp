@@ -49,7 +49,7 @@
 namespace Hyperion {
 
 class Skeleton;
-class AudioSource;
+class Sound;
 class Prefab;
 
 #pragma region AssetCollector
@@ -225,7 +225,7 @@ void AssetManager::RegisterDefaultLoaders()
     Register<TextureLoader, Texture>(
         "png", "jpg", "jpeg", "tga",
         "bmp", "psd", "gif", "hdr", "tif");
-    Register<WAVAudioLoader, AudioSource>("wav");
+    Register<WAVAudioLoader, Sound>("wav");
     Register<FBXModelLoader, Prefab>("fbx");
     Register<GLTFModelLoader, Prefab>("gltf", "glb");
     // Register<PLYModelLoader, PLYModel>("ply");

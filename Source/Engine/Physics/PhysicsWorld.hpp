@@ -6,7 +6,8 @@
 
 #pragma once
 
-#include <Physics/Adapter.hpp>
+#include <Physics/PhysicsAdapter.hpp>
+
 #include <Physics/RigidBody.hpp>
 #include <Physics/PhysicsMemory.hpp>
 
@@ -190,7 +191,7 @@ private:
 
 #if defined(HYP_BULLET) && HYP_BULLET
 
-#include <Physics/Bullet/Adapter.hpp>
+#include <Physics/Bullet/BulletPhysicsAdapter.hpp>
 
 namespace Hyperion {
 using PhysicsWorld = TPhysicsWorld<BulletPhysicsAdapter>;
@@ -198,7 +199,7 @@ using PhysicsWorld = TPhysicsWorld<BulletPhysicsAdapter>;
 
 #else // !HYP_BULLET_PHYSICS
 
-#include <Physics/Null/Adapter.hpp>
+#include <Physics/Null/NullPhysicsAdapter.hpp>
 
 namespace Hyperion {
 using PhysicsWorld = TPhysicsWorld<NullPhysicsAdapter>;

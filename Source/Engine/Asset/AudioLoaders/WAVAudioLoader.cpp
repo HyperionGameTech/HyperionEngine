@@ -7,7 +7,9 @@
 #include <AssetPch.hpp>
 
 #include <Asset/AudioLoaders/WAVAudioLoader.hpp>
-#include <Audio/AudioSource.hpp>
+#include <Audio/Sound.hpp>
+
+#include <Core/Math/MathUtil.hpp>
 
 #include <Framework/EngineDriver.hpp>
 
@@ -33,61 +35,129 @@ AssetLoadResult WAVAudioLoader::LoadAsset(LoaderState& state) const
         return HYP_MAKE_ERROR(AssetLoadError, "invalid WAVE header");
     }
 
-    state.stream.Read(&object.waveFormat, sizeof(WAVAudio::WaveFormat));
+    bool haveFormat = false;
+    bool haveData = false;
 
-    if (std::strncmp(reinterpret_cast<const char*>(object.waveFormat.subChunkId), "fmt ", 4) != 0)
+    while (!state.stream.Eof() && (!haveFormat || !haveData))
     {
-        return HYP_MAKE_ERROR(AssetLoadError, "invalid wave sub chunk id");
+        WAVAudio::ChunkHeader chunkHeader;
+        state.stream.Read(&chunkHeader, sizeof(chunkHeader));
+
+        if (std::strncmp(reinterpret_cast<const char*>(chunkHeader.chunkId), "fmt ", 4) == 0)
+        {
+            const uint32 bytesToRead = MathUtil::Min<uint32>(chunkHeader.chunkSize, sizeof(WAVAudio::WaveFormat));
+
+            object.waveFormat = {};
+            state.stream.Read(&object.waveFormat, bytesToRead);
+
+            if (chunkHeader.chunkSize > bytesToRead)
+            {
+                state.stream.Skip(chunkHeader.chunkSize - bytesToRead);
+            }
+
+            haveFormat = true;
+        }
+        else if (std::strncmp(reinterpret_cast<const char*>(chunkHeader.chunkId), "data", 4) == 0)
+        {
+            object.waveBytes.SetSize(chunkHeader.chunkSize);
+            state.stream.Read(object.waveBytes.Data(), chunkHeader.chunkSize);
+
+            haveData = true;
+        }
+        else
+        {
+            state.stream.Skip(chunkHeader.chunkSize);
+        }
+
+        // chunks are padded to an even number of bytes
+        if (chunkHeader.chunkSize & 1)
+        {
+            state.stream.Skip(1);
+        }
     }
 
-    if (object.waveFormat.subChunkSize > 16)
+    if (!haveFormat)
     {
-        state.stream.Skip(sizeof(uint16));
+        return HYP_MAKE_ERROR(AssetLoadError, "missing fmt chunk");
     }
 
-    state.stream.Read(&object.waveData, sizeof(WAVAudio::WaveData));
-
-    if (std::strncmp(reinterpret_cast<const char*>(object.waveData.subChunkId), "data", 4) != 0)
+    if (!haveData)
     {
-        return HYP_MAKE_ERROR(AssetLoadError, "invalid data header");
+        return HYP_MAKE_ERROR(AssetLoadError, "missing data chunk");
     }
 
-    object.waveBytes.SetSize(object.waveData.subChunk2Size);
+    // SoundFormat / OpenAL only understand 8 and 16 bit PCM, so anything wider needs
+    // to be squashed down to 16 bit before it reaches the audio backend.
+    if (object.waveFormat.bitsPerSample == 24)
+    {
+        const uint8* src = object.waveBytes.Data();
+        const size_t numSamples = object.waveBytes.Size() / 3;
 
-    state.stream.Read(object.waveBytes.Data(), object.waveData.subChunk2Size);
+        ByteBuffer converted;
+        converted.SetSize(numSamples * sizeof(int16));
 
-    object.size = object.waveData.subChunk2Size;
+        int16* dst = reinterpret_cast<int16*>(converted.Data());
+
+        for (size_t i = 0; i < numSamples; i++)
+        {
+            const int32 sample = (int32(src[i * 3 + 0]) << 8)
+                | (int32(src[i * 3 + 1]) << 16)
+                | (int32(src[i * 3 + 2]) << 24);
+
+            dst[i] = int16(sample >> 16);
+        }
+
+        object.waveBytes = std::move(converted);
+        object.waveFormat.bitsPerSample = 16;
+    }
+
+    object.size = object.waveBytes.Size();
     object.frequency = object.waveFormat.sampleRate;
 
     if (object.waveFormat.numChannels == 1)
     {
         if (object.waveFormat.bitsPerSample == 8)
         {
-            object.format = AudioSourceFormat::MONO8;
+            object.format = SoundFormat::MONO8;
         }
         else if (object.waveFormat.bitsPerSample == 16)
         {
-            object.format = AudioSourceFormat::MONO16;
+            object.format = SoundFormat::MONO16;
+        }
+        else
+        {
+            return HYP_MAKE_ERROR(AssetLoadError, "unsupported bits per sample");
         }
     }
     else if (object.waveFormat.numChannels == 2)
     {
         if (object.waveFormat.bitsPerSample == 8)
         {
-            object.format = AudioSourceFormat::STEREO8;
+            object.format = SoundFormat::STEREO8;
         }
         else if (object.waveFormat.bitsPerSample == 16)
         {
-            object.format = AudioSourceFormat::STEREO16;
+            object.format = SoundFormat::STEREO16;
+        }
+        else
+        {
+            return HYP_MAKE_ERROR(AssetLoadError, "unsupported bits per sample");
         }
     }
+    else
+    {
+        return HYP_MAKE_ERROR(AssetLoadError, "unsupported channel count");
+    }
 
-    Handle<AudioSource> audioSource = MakeHandle<AudioSource>(
-        object.format,
-        object.waveBytes,
-        object.frequency);
+    Name assetName = CreateNameFromDynamicString(StringUtil::StripExtension(state.filepath.Basename()));
 
-    return LoadedAsset { audioSource };
+    Handle<Sound> sound = MakeHandle<Sound>();
+    sound->SetName(assetName);
+    sound->SetFormat(object.format);
+    sound->SetFrequency(object.frequency);
+    sound->SetData(object.waveBytes.ToByteView());
+
+    return LoadedAsset { sound };
 }
 
 } // namespace Hyperion

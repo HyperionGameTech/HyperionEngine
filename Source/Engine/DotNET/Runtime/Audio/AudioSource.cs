@@ -3,14 +3,6 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    public enum AudioSourceFormat : uint
-    {
-        Mono8 = 0,
-        Mono16 = 1,
-        Stereo8 = 2,
-        Stereo16 = 3
-    }
-
     public enum AudioSourceState : uint
     {
         Undefined = 0,

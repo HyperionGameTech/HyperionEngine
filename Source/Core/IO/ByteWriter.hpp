@@ -44,8 +44,13 @@ public:
     static constexpr uint32 stringTypeMask = uint32(MathUtil::FastLog2(uint32(StringType::MAX)) + 1);
 
     ByteWriter() = default;
+    
     ByteWriter(const ByteWriter& other) = delete;
     ByteWriter& operator=(const ByteWriter& other) = delete;
+
+    ByteWriter(ByteWriter&& other) noexcept = delete;
+    ByteWriter& operator=(ByteWriter&& other) noexcept = delete;
+
     virtual ~ByteWriter() = default;
 
     void Write(const void* ptr, size_t size)

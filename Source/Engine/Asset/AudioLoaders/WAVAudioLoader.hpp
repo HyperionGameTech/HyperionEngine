@@ -12,7 +12,7 @@
 
 namespace Hyperion {
 
-enum class AudioSourceFormat : uint32;
+enum class SoundFormat : uint32;
 
 HYP_CLASS(NoScriptBindings)
 class WAVAudioLoader : public AssetLoaderBase
@@ -29,10 +29,14 @@ public:
             uint8 format[4];
         } riffHeader;
 
+        struct ChunkHeader
+        {
+            uint8 chunkId[4];
+            uint32 chunkSize;
+        };
+
         struct WaveFormat
         {
-            uint8 subChunkId[4];
-            uint32 subChunkSize;
             uint16 audioFormat;
             uint16 numChannels;
             uint32 sampleRate;
@@ -41,17 +45,11 @@ public:
             uint16 bitsPerSample;
         } waveFormat;
 
-        struct WaveData
-        {
-            uint8 subChunkId[4];
-            uint32 subChunk2Size;
-        } waveData;
-
         ByteBuffer waveBytes;
         size_t size;
         size_t frequency;
 
-        AudioSourceFormat format;
+        SoundFormat format;
     };
 
     virtual ~WAVAudioLoader() = default;

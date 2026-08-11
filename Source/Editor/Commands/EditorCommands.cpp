@@ -1663,7 +1663,7 @@ public:
         ShowOpenFileDialog(
             "Select the file(s) to import into the project",
             EngineGlobals::GetDataDirectory(),
-            { "obj", "fbx", "jpg", "jpeg", "png", "tga", "bmp", "ogre.xml" },
+            { "obj", "fbx", "gltf", "glb", "mesh.xml", "skeleton.xml", "jpg", "jpeg", "png", "tga", "bmp", "wav" },
             /* allowMultiple */ true, /* allowDirectories */ false,
             [this](TResult<Array<FilePath>>&& result)
             {

@@ -27,6 +27,12 @@ protected:
     ByteReader() = default;
 
 public:
+    ByteReader(const ByteReader& other) = delete;
+    ByteReader& operator=(const ByteReader& other) = delete;
+
+    ByteReader(ByteReader&& other) noexcept = delete;
+    ByteReader& operator=(ByteReader&& other) noexcept = delete;
+
     virtual ~ByteReader() = default;
 
     bool Eof() const

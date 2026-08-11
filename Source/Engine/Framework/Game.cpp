@@ -212,11 +212,11 @@ void Game::SetWorld(const Handle<World>& world)
             m_uiSubsystem.Reset();
         }
 
-        m_world->m_gameInstance = nullptr;
-
         g_engineDriver->RemoveWorld(m_world);
 
         m_world->Shutdown();
+
+        m_world->m_gameInstance = nullptr;
     }
 
     m_world = world;
