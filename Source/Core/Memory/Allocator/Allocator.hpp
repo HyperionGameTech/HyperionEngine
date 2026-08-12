@@ -116,13 +116,12 @@ struct DynamicAllocationBase : AllocationBase<T>
         SetToInitialState();
     }
 
-    HYP_FORCE_INLINE void TakeOwnership(T* begin, T* end)
+    HYP_FORCE_INLINE void TakeOwnership(T* ptr, size_t ptrCapacity)
     {
         HYP_CORE_ASSERT(buffer == nullptr);
-        HYP_CORE_ASSERT(end >= begin);
 
-        buffer = begin;
-        capacity = end - begin;
+        buffer = ptr;
+        capacity = ptrCapacity;
     }
 
     HYP_FORCE_INLINE void InitFromRangeCopy(const T* begin, const T* end, size_t offset = 0)
@@ -326,13 +325,13 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
             SetToInitialState();
         }
 
-        void TakeOwnership(T* begin, T* end)
+        void TakeOwnership(T* ptr, size_t ptrCapacity)
         {
             HYP_CORE_ASSERT(!isDynamic);
 
             dynamicAllocation = typename DynamicAllocatorType::template Allocation<T>();
             dynamicAllocation.SetToInitialState();
-            dynamicAllocation.TakeOwnership(begin, end);
+            dynamicAllocation.TakeOwnership(ptr, ptrCapacity);
 
             isDynamic = true;
 
@@ -534,22 +533,18 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
             SetToInitialState();
         }
 
-        void TakeOwnership(T* begin, T* end)
+        void TakeOwnership(T* ptr, size_t count)
         {
-            HYP_CORE_ASSERT(end >= begin);
-
-            const size_t count = end - begin;
-
             if constexpr (std::is_fundamental_v<T> || std::is_trivial_v<T>)
             {
-                Memory::Copy(storage.GetPointer(), begin, count * sizeof(T));
+                Memory::Copy(storage.GetPointer(), ptr, count * sizeof(T));
             }
             else
             {
                 // placement new
                 for (size_t i = 0; i < count; i++)
                 {
-                    new (storage.GetPointer()) T(begin[i]);
+                    new (storage.GetPointer()) T(ptr[i]);
                 }
             }
 

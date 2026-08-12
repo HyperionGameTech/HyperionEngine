@@ -1668,6 +1668,20 @@ auto String<TStringType, TAllocator>::GetChar(size_t index) const -> WidestCharT
 template <int TStringType, class TAllocator>
 void String<TStringType, TAllocator>::Append(const utilities::StringView<TStringType>& stringView)
 {
+    const CharType* selfBegin = Base::Data();
+    const CharType* selfEnd = selfBegin + Base::Capacity();
+
+    // `stringView` may point into our own buffer (e.g. `str.Append(str)`, or appending a substring
+    // of `this`). Growing the buffer below would leave it dangling, and even without growth the
+    // source and destination ranges can overlap, so route through an owned copy in that case.
+    if (stringView.Data() >= selfBegin && stringView.Data() < selfEnd)
+    {
+        String temp(stringView);
+        Append(temp);
+
+        return;
+    }
+
     if (Size() + stringView.Size() + 1 >= Base::Capacity())
     {
         Base::SetCapacity(Base::CalculateDesiredCapacity(Size() + stringView.Size() + 1));
@@ -2181,8 +2195,6 @@ inline constexpr bool operator==(const utilities::StringView<TStringType>& lhs, 
 
     return Memory::StrEqual(lhs.Data(), rhs.Data(), lhs.Size());
 }
-
-using DefaultStringAllocator = InlineAllocator<16, DynamicAllocator>;
 
 } // namespace containers
 

@@ -717,7 +717,7 @@ FatArray<T, AllocatorType>::FatArray(FatArray&& other) noexcept
     {
         m_size = other.m_size;
 
-        m_allocation.TakeOwnership(other.GetBuffer(), other.GetBuffer() + other.m_size);
+        m_allocation.TakeOwnership(other.GetBuffer(), other.m_allocation.GetCapacity());
 
         other.m_allocation.SetToInitialState();
 
@@ -805,7 +805,7 @@ auto FatArray<T, AllocatorType>::operator=(FatArray&& other) noexcept -> FatArra
     {
         m_size = other.m_size;
 
-        m_allocation.TakeOwnership(other.GetBuffer(), other.GetBuffer() + other.m_size);
+        m_allocation.TakeOwnership(other.GetBuffer(), other.m_allocation.GetCapacity());
 
         other.m_allocation.SetToInitialState();
 

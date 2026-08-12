@@ -185,7 +185,7 @@ public:
 
         if (other.m_allocation.IsDynamic())
         {
-            m_allocation.TakeOwnership(other.Data(), other.Data() + m_size);
+            m_allocation.TakeOwnership(other.Data(), other.m_allocation.GetCapacity());
 
             other.m_allocation.SetToInitialState();
         }
@@ -216,7 +216,7 @@ public:
 
         if (other.m_allocation.IsDynamic())
         {
-            m_allocation.TakeOwnership(other.Data(), other.Data() + newSize);
+            m_allocation.TakeOwnership(other.Data(), other.m_allocation.GetCapacity());
 
             other.m_allocation.SetToInitialState();
         }

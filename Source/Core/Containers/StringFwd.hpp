@@ -11,6 +11,8 @@
 #include <Core/Utilities/Traits.hpp>
 #include <Core/Types.hpp>
 
+#include <Core/Memory/Allocator/Allocator.hpp>
+
 namespace Hyperion {
 namespace containers {
 
@@ -69,7 +71,10 @@ struct StringTypeImpl<WIDE_CHAR>
     using WidestCharType = wchar_t;
 };
 
-template <int TStringType, class TAllocator = DynamicAllocator>
+// Default allocator for String: small strings are stored inline, larger ones fall back to the heap.
+using DefaultStringAllocator = InlineAllocator<16, DynamicAllocator>;
+
+template <int TStringType, class TAllocator = DefaultStringAllocator>
 class String;
 
 template <class CharType>
