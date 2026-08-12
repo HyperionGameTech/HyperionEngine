@@ -572,7 +572,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
 
             mvkGetConfig(m_instance, &mvkConfig, &configSize);
             mvkConfig.debugMode = VK_TRUE;
-            
+
             mvkSetConfig(m_instance, &mvkConfig, &configSize);
 
             HYP_LOG(RenderingBackend, Info, "Enabled MoltenVK debug mode");

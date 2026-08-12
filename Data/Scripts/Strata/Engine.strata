@@ -152,7 +152,6 @@ handle RotateEditorGizmo extends EditorGizmoBase;
 handle TranslateEditorGizmo extends EditorGizmoBase;
 handle NullEditorGizmo extends EditorGizmoBase;
 handle EditorCommandBase extends ObjectBase;
-struct ANSIStringView;
 struct AnimationComponent;
 struct AnimationPlaybackState;
 struct AssetBucket;
@@ -236,7 +235,6 @@ struct SphericalHarmonicsData;
 struct StencilFunction;
 struct StreamingCellInfo;
 struct StreamingCellNeighbor;
-struct String;
 struct StringHash;
 struct TagComponentBase;
 struct TextureDesc;
@@ -251,13 +249,10 @@ struct UIComponent;
 struct UIEventHandlerResult;
 struct UIObjectAspectRatio;
 struct UIObjectSize;
-struct UTF8StringView;
 struct UUID;
 struct Vec2f;
 struct Vec2i;
 struct Vec2u;
-struct Vec3f;
-struct Vec4f;
 struct VertexAttributeDefinition;
 struct VertexInputLayoutDesc;
 struct VertexTypeMask;
@@ -271,10 +266,15 @@ struct WindowOptions;
 struct WorldGridLayerInfo;
 
 // EditorCommandBase (requires HYP_EDITOR)
-extern void EditorCommandBase_GetText(EditorCommandBase self, ref String outReturn);
+extern string EditorCommandBase_GetText(EditorCommandBase self);
 extern int EditorCommandBase_NumArguments(EditorCommandBase self);
+extern string EditorCommandBase_GetArgument(EditorCommandBase self, int index);
 
 // EditorTaskBase (requires HYP_EDITOR)
+extern string EditorTaskBase_GetTitle(EditorTaskBase self);
+extern void EditorTaskBase_SetTitle(EditorTaskBase self, const string title);
+extern string EditorTaskBase_GetDescription(EditorTaskBase self);
+extern void EditorTaskBase_SetDescription(EditorTaskBase self, const string description);
 extern float EditorTaskBase_GetProgress(EditorTaskBase self);
 extern void EditorTaskBase_SetProgress(EditorTaskBase self, float progress);
 extern bool EditorTaskBase_IsCancellationRequested(EditorTaskBase self);
@@ -311,12 +311,12 @@ extern bool GenerateBentNormalsEditorTask_IsCompleted(GenerateBentNormalsEditorT
 extern void GenerateBentNormalsEditorTask_Tick(GenerateBentNormalsEditorTask self);
 
 // EditorActionBase (requires HYP_EDITOR)
-extern void EditorActionBase_GetText(EditorActionBase self, ref String outReturn);
+extern string EditorActionBase_GetText(EditorActionBase self);
 extern void EditorActionBase_Execute(EditorActionBase self, EditorSubsystem editorSubsystem, EditorProject project);
 extern void EditorActionBase_Revert(EditorActionBase self, EditorSubsystem editorSubsystem, EditorProject project);
 
 // FunctionalEditorAction (requires HYP_EDITOR)
-extern void FunctionalEditorAction_GetText(FunctionalEditorAction self, ref String outReturn);
+extern string FunctionalEditorAction_GetText(FunctionalEditorAction self);
 extern void FunctionalEditorAction_Execute(FunctionalEditorAction self, EditorSubsystem editorSubsystem, EditorProject project);
 extern void FunctionalEditorAction_Revert(FunctionalEditorAction self, EditorSubsystem editorSubsystem, EditorProject project);
 
@@ -370,7 +370,6 @@ extern void Node_GetName(Node self, ref Name outReturn);
 extern void Node_SetName(Node self, const Name name);
 extern Node Node_GetParent(Node self);
 extern bool Node_IsOrHasParent(Node self, Node node);
-extern Node Node_FindParentWithName(Node self, const UTF8StringView name);
 extern bool Node_IsRoot(Node self);
 extern Scene Node_GetScene(Node self);
 extern void Node_SetScene(Node self, Scene scene, bool moveToDetached);
@@ -379,8 +378,12 @@ extern bool Node_RemoveAt(Node self, uint index, bool moveToDetached);
 extern bool Node_Remove(Node self, bool moveToDetached);
 extern void Node_RemoveAllChildren(Node self, bool moveToDetached);
 extern uint Node_NumChildren(Node self);
-extern void Node_GetWorldTranslation(Node self, ref Vec3f outReturn);
-extern void Node_GetWorldScale(Node self, ref Vec3f outReturn);
+extern float3 Node_GetLocalTranslation(Node self);
+extern void Node_Translate(Node self, float3 translation);
+extern float3 Node_GetLocalScale(Node self);
+extern void Node_Scale(Node self, float3 scale);
+extern float3 Node_GetWorldTranslation(Node self);
+extern float3 Node_GetWorldScale(Node self);
 extern void Node_GetWorldRotation(Node self, ref Quat4f outReturn);
 extern bool Node_IsTransformLocked(Node self);
 extern void Node_GetLocalBoundsWithChildren(Node self, ref BoundingBox outReturn);
@@ -400,6 +403,10 @@ extern void Entity_SetReceivesUpdate(Entity self, bool receivesUpdate);
 extern Camera CameraController_GetCamera(CameraController self);
 extern bool CameraController_IsMouseLockAllowed(CameraController self);
 extern bool CameraController_IsMouseLockRequested(CameraController self);
+extern void CameraController_SetTranslation(CameraController self, float3 translation);
+extern void CameraController_SetNextTranslation(CameraController self, float3 translation);
+extern void CameraController_SetDirection(CameraController self, float3 direction);
+extern void CameraController_SetUpVector(CameraController self, float3 up);
 
 // Camera
 extern bool Camera_HasActiveCameraController(Camera self);
@@ -411,13 +418,27 @@ extern float Camera_GetFarClip(Camera self);
 extern void Camera_SetFarClip(Camera self, float _far);
 extern float Camera_GetFOV(Camera self);
 extern void Camera_SetFOV(Camera self, float fov);
-extern void Camera_GetDirection(Camera self, ref Vec3f outReturn);
-extern void Camera_GetUpVector(Camera self, ref Vec3f outReturn);
-extern void Camera_GetSideVector(Camera self, ref Vec3f outReturn);
-extern void Camera_GetTarget(Camera self, ref Vec3f outReturn);
+extern float3 Camera_GetDirection(Camera self);
+extern void Camera_SetDirection(Camera self, float3 direction);
+extern float3 Camera_GetUpVector(Camera self);
+extern void Camera_SetUpVector(Camera self, float3 up);
+extern float3 Camera_GetSideVector(Camera self);
+extern float3 Camera_GetTarget(Camera self);
+extern void Camera_SetTarget(Camera self, float3 target);
+extern void Camera_Rotate(Camera self, float3 axis, float radians);
+extern float4 Camera_TransformNDCToWorld(Camera self, float3 ndc);
+extern float3 Camera_TransformWorldToNDC(Camera self, float3 world);
+extern void Camera_TransformWorldToScreen(Camera self, float3 world, ref Vec2f outReturn);
+extern void Camera_TransformNDCToScreen(Camera self, float3 ndc, ref Vec2f outReturn);
 extern void Camera_GetPixelSize(Camera self, ref Vec2f outReturn);
 
+// DirectionalLight
+extern float3 DirectionalLight_GetDirection(DirectionalLight self);
+extern void DirectionalLight_SetDirection(DirectionalLight self, float3 direction);
+
 // Light
+extern float3 Light_GetNormal(Light self);
+extern void Light_SetNormal(Light self, float3 normal);
 extern float Light_GetIntensity(Light self);
 extern void Light_SetIntensity(Light self, float intensity);
 extern float Light_GetRadius(Light self);
@@ -435,6 +456,8 @@ extern void Light_RemoveBakedShadows(Light self);
 extern bool Light_CanBakeStaticShadows(Light self);
 
 // TextSprite
+extern void TextSprite_SetText(TextSprite self, const string text);
+extern string TextSprite_GetText(TextSprite self);
 extern void TextSprite_SetTextColor(TextSprite self, const Color color);
 extern void TextSprite_GetTextColor(TextSprite self, ref Color outReturn);
 extern void TextSprite_SetTextSize(TextSprite self, float textSize);
@@ -460,7 +483,8 @@ extern bool EnvProbe_IsAmbientProbe(EnvProbe self);
 extern bool EnvProbe_IsBaked(EnvProbe self);
 extern void EnvProbe_SetIsBaked(EnvProbe self, bool isBaked);
 extern bool EnvProbe_IsRealtime(EnvProbe self);
-extern void EnvProbe_GetOrigin(EnvProbe self, bool fromCenter, ref Vec3f outReturn);
+extern float3 EnvProbe_GetOrigin(EnvProbe self, bool fromCenter);
+extern void EnvProbe_SetOrigin(EnvProbe self, float3 origin, bool fromCenter);
 extern Camera EnvProbe_GetCamera(EnvProbe self);
 extern float EnvProbe_GetDiffuseStrength(EnvProbe self);
 extern void EnvProbe_SetDiffuseStrength(EnvProbe self, float diffuseStrength);
@@ -480,11 +504,12 @@ extern void EditorSubsystem_RemoveViewport(EditorSubsystem self, EditorViewport 
 extern bool EditorSubsystem_StartSimulation(EditorSubsystem self);
 extern bool EditorSubsystem_StopSimulation(EditorSubsystem self);
 extern bool EditorSubsystem_PauseSimulation(EditorSubsystem self);
+extern bool EditorSubsystem_ExecuteCommandByName(EditorSubsystem self, const Name name, const string arguments);
 extern void EditorSubsystem_NewProject(EditorSubsystem self);
 extern void EditorSubsystem_CloseProject(EditorSubsystem self, bool shutdownWorld);
 extern void EditorSubsystem_ShowImportContentDialog(EditorSubsystem self);
 extern void EditorSubsystem_ClearSelection(EditorSubsystem self);
-extern void EditorSubsystem_GetCodeEditor(EditorSubsystem self, ref String outReturn);
+extern string EditorSubsystem_GetCodeEditor(EditorSubsystem self);
 extern EditorGizmoBase EditorSubsystem_GetSelectedGizmo(EditorSubsystem self);
 extern bool EditorSubsystem_IsMeshEditModeEnabled(EditorSubsystem self);
 extern void EditorSubsystem_EnterMeshEditMode(EditorSubsystem self);
@@ -505,7 +530,7 @@ extern void EditorSubsystem_SetPhysicsDebugDrawEnabled(EditorSubsystem self, boo
 extern bool EditorSubsystem_CanFitPhysicsShapeToMesh(EditorSubsystem self);
 extern void EditorSubsystem_FitPhysicsShapeToMesh(EditorSubsystem self);
 extern void EditorSubsystem_SetSelectedBucket(EditorSubsystem self, uint bucketIndex);
-extern void EditorSubsystem_CalculateSceneInsertionPoint(EditorSubsystem self, float desiredDistance, float offsetFromSurface, ref Vec3f outReturn);
+extern float3 EditorSubsystem_CalculateSceneInsertionPoint(EditorSubsystem self, float desiredDistance, float offsetFromSurface);
 extern void EditorSubsystem_UpdateNormalizedCubeSpherePreview(EditorSubsystem self, uint numDivisions);
 extern void EditorSubsystem_CommitMeshPreview(EditorSubsystem self);
 extern void EditorSubsystem_CancelMeshPreview(EditorSubsystem self);
@@ -513,7 +538,7 @@ extern void EditorSubsystem_CancelMeshPreview(EditorSubsystem self);
 // EditorGizmoBase (requires HYP_EDITOR)
 extern bool EditorGizmoBase_IsDragging(EditorGizmoBase self);
 extern int EditorGizmoBase_GetPriority(EditorGizmoBase self);
-extern void EditorGizmoBase_GetMenuText(EditorGizmoBase self, ref String outReturn);
+extern string EditorGizmoBase_GetMenuText(EditorGizmoBase self);
 
 // TouchControlsSubsystem
 extern void TouchControlsSubsystem_GetMovementDelta(TouchControlsSubsystem self, ref Vec2f outReturn);
@@ -578,6 +603,7 @@ extern float CocoaApplicationWindow_GetRenderTargetScale(CocoaApplicationWindow 
 extern void CocoaApplicationWindow_Close(CocoaApplicationWindow self);
 
 // AppContextBase
+extern string AppContextBase_GetAppName(AppContextBase self);
 extern ApplicationWindow AppContextBase_GetMainWindow(AppContextBase self);
 extern void AppContextBase_RemoveWindow(AppContextBase self, ApplicationWindow window);
 
@@ -613,6 +639,7 @@ extern void AndroidApplicationWindow_ShowVirtualKeyboard(AndroidApplicationWindo
 extern void AndroidApplicationWindow_HideVirtualKeyboard(AndroidApplicationWindow self);
 
 // StreamingVolumeBase
+extern bool StreamingVolumeBase_ContainsPoint(StreamingVolumeBase self, float3 point);
 extern void StreamingVolumeBase_NotifyUpdate(StreamingVolumeBase self);
 
 // StreamingManager
@@ -653,9 +680,11 @@ extern Game EngineDriver_GetGameInstance(EngineDriver self);
 // EngineStats
 extern float EngineStats_GetFps(EngineStats self);
 extern float EngineStats_GetMsPerFrame(EngineStats self);
-extern float EngineStats_QueryStatValue(EngineStats self, const UTF8StringView path, float valueIfNotFound);
 
 // DeviceDetails
+extern string DeviceDetails_GetGpuModel(DeviceDetails self);
+extern string DeviceDetails_GetGpuVendorName(DeviceDetails self);
+extern string DeviceDetails_GetDriverVersion(DeviceDetails self);
 extern bool DeviceDetails_IsDiscreteGpu(DeviceDetails self);
 extern bool DeviceDetails_SupportsRayTracing(DeviceDetails self);
 extern bool DeviceDetails_SupportsRayQueries(DeviceDetails self);
@@ -691,7 +720,7 @@ extern void AssetCollector_StopWatching(AssetCollector self);
 // AssetPath
 extern bool AssetPath_IsValid(AssetPath self);
 extern void AssetPath_GetName(AssetPath self, ref Name outReturn);
-extern void AssetPath_ToString(AssetPath self, ref String outReturn);
+extern string AssetPath_ToString(AssetPath self);
 
 // AssetObject
 extern void AssetObject_GetName(AssetObject self, ref Name outReturn);
@@ -728,7 +757,6 @@ extern bool Scene_GetIsAudioListener(Scene self);
 extern void Scene_SetIsAudioListener(Scene self, bool isAudioListener);
 extern bool Scene_AddToWorld(Scene self, World world);
 extern bool Scene_RemoveFromWorld(Scene self);
-extern void Scene_GetUniqueNodeName(Scene self, const UTF8StringView baseName, ref Name outReturn);
 
 // World
 extern Game World_GetGame(World self);
@@ -817,6 +845,8 @@ extern void UIObject_GetPadding(UIObject self, ref Vec2i outReturn);
 extern void UIObject_SetPadding(UIObject self, const Vec2i padding);
 extern void UIObject_GetBackgroundColor(UIObject self, ref Color outReturn);
 extern void UIObject_GetTextColor(UIObject self, ref Color outReturn);
+extern string UIObject_GetText(UIObject self);
+extern void UIObject_SetText(UIObject self, const string text);
 extern float UIObject_GetTextSize(UIObject self);
 extern void UIObject_SetTextSize(UIObject self, float textSize);
 extern bool UIObject_IsVisible(UIObject self);
@@ -847,6 +877,8 @@ extern bool UIPanel_IsHorizontalScrollEnabled(UIPanel self);
 extern bool UIPanel_IsVerticalScrollEnabled(UIPanel self);
 
 // UITextbox
+extern string UITextbox_GetPlaceholder(UITextbox self);
+extern void UITextbox_SetPlaceholder(UITextbox self, const string placeholder);
 extern void UITextbox_GetPlaceholderTextColor(UITextbox self, ref Color outReturn);
 
 // UIListView
@@ -886,9 +918,10 @@ extern bool Result_HasValue(Result self);
 extern bool Result_HasError(Result self);
 
 // UUID
-extern void UUID_ToString(UUID self, ref String outReturn);
+extern string UUID_ToString(UUID self);
 
 // Quat4f
+extern float3 Quat4f_RotateVector(Quat4f self, float3 vec);
 extern float Quat4f_Length(Quat4f self);
 extern float Quat4f_LengthSquared(Quat4f self);
 extern void Quat4f_Inverse(Quat4f self, ref Quat4f outReturn);
@@ -897,6 +930,8 @@ extern float Quat4f_Roll(Quat4f self);
 extern float Quat4f_Pitch(Quat4f self);
 extern float Quat4f_Yaw(Quat4f self);
 extern void Quat4f_Identity(ref Quat4f outReturn);
+extern void Quat4f_LookAt(float3 direction, float3 up, ref Quat4f outReturn);
+extern void Quat4f_AxisAngles(float3 axis, float radians, ref Quat4f outReturn);
 
 // Color
 extern float Color_GetRed(Color self);
@@ -912,10 +947,10 @@ extern void Mat4f_Orthonormalized(Mat4f self, ref Mat4f outReturn);
 extern float Mat4f_GetYaw(Mat4f self);
 extern float Mat4f_GetPitch(Mat4f self);
 extern float Mat4f_GetRoll(Mat4f self);
-extern void Mat4f_ExtractTranslation(Mat4f self, ref Vec3f outReturn);
-extern void Mat4f_ExtractScale(Mat4f self, ref Vec3f outReturn);
+extern float3 Mat4f_ExtractTranslation(Mat4f self);
+extern float3 Mat4f_ExtractScale(Mat4f self);
 extern void Mat4f_ExtractRotation(Mat4f self, ref Quat4f outReturn);
-extern void Mat4f_GetColumn(Mat4f self, uint index, ref Vec4f outReturn);
+extern float4 Mat4f_GetColumn(Mat4f self, uint index);
 extern void Mat4f_Zeros(ref Mat4f outReturn);
 extern void Mat4f_Ones(ref Mat4f outReturn);
 extern void Mat4f_Identity(ref Mat4f outReturn);

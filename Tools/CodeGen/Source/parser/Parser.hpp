@@ -46,9 +46,12 @@ struct HypScriptTypeMapping
 
 struct StrataTypeMapping
 {
-    String typeName;          // Name of the type in Strata
-    bool isHandle = false;    // True when typeName names an engine object handle
-    bool isStructValue = false; // True when typeName is an unreflected C++ struct (forward-declared)
+    String typeName;            // Name of the type in Strata
+    bool isHandle = false;      // True when typeName names an engine object handle
+    bool isStructValue = false; // True when typeName is an unreflected C++ struct (forward-declared), or a HYP_STRUCT value type
+    bool isString = false;      // True when this is Strata's `string`, backed by engine String/ANSIString
+    bool isArray = false;       // True when this is a Strata `T[]` fat array (ptr + u64), backed by engine Array<T>
+    bool isVector = false;      // True when this is a Strata float3/float4 core vector type, backed by Vec3f/Vec4f
 };
 
 extern const HypScriptTypeMapping g_hypscriptAnyTypeMapping;

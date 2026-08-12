@@ -37,6 +37,10 @@
 #    include <Lang/HypScript.hpp>
 #endif // HYP_SCRIPT
 
+#ifdef HYP_STRATA
+#    include <Core/Scripting/Strata/StrataMarshal.hpp>
+#endif // HYP_STRATA
+
 #ifdef HYP_STRATA_JIT
 #    include <strata/strata.h>
 
@@ -67,18 +71,16 @@ CORE_API extern const FilePath& GetExecutablePath();
 
 namespace Strata {
 
-static Pool s_strataPool { 1 * 1024 * 1024, PF_THREAD_SAFE | PF_FALLBACK };
-
 extern "C"
 {
     void* strata_alloc(size_t count)
     {
-        return s_strataPool.Allocate(count);
+        return Alloc(count);
     }
 
     static void strata_free(void* ptr)
     {
-        s_strataPool.Free(ptr);
+        Free(ptr);
     }
 } // extern "C"
 

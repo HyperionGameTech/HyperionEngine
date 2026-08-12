@@ -374,15 +374,34 @@ TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTTy
         return HYP_MAKE_ERROR(Error, "Null type");
     }
 
-    // References and arrays have no Strata representation.
+    // References have no Strata representation, except for the handful of
+    // value types that are conventionally passed around by const reference in
+    // C++ (String/ANSIString, Array<T>, Vec3f/Vec4f) despite crossing the
+    // Strata boundary by value / fat-pointer rather than by C++ reference.
+    // Unwrap those; every other reference remains unsupported.
     if (type->isLvalueReference || type->isRvalueReference)
     {
+        if (!type->refTo)
+        {
+            return HYP_MAKE_ERROR(Error, "Reference type has no inner type");
+        }
+
+        if (TResult<StrataTypeMapping> innerRes = MapToStrataType(analyzer, type->refTo.Get()); !innerRes.HasError())
+        {
+            const StrataTypeMapping& innerMapping = innerRes.GetValue();
+
+            if (innerMapping.isString || innerMapping.isArray || innerMapping.isVector)
+            {
+                return innerMapping;
+            }
+        }
+
         return HYP_MAKE_ERROR(Error, "Reference types are not supported in Strata bindings");
     }
 
     if (type->isArray)
     {
-        return HYP_MAKE_ERROR(Error, "Array types are not supported in Strata bindings");
+        return HYP_MAKE_ERROR(Error, "C-style array types are not supported in Strata bindings");
     }
 
     if (type->isPointer)
@@ -417,9 +436,46 @@ TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTTy
         return HYP_MAKE_ERROR(Error, "Pointer to non-class type is not supported in Strata bindings");
     }
 
-    // Smart pointers / wrapper templates are aggregates by value -> reject.
+    // Arrays: `Array<T>` (and the SlimArray/FatArray variants it aliases) map
+    // to Strata's `T[]`, a fat {ptr, u64} value. Only scalar element types are
+    // representable for now - handles/structs/strings/vectors would need a
+    // second indirection (or `box<T>`) the current thunk marshaling doesn't do.
     if (type->isTemplate)
     {
+        const String templateName = type->typeName.HasValue() && type->typeName->parts.Any()
+            ? type->typeName->parts.Back()
+            : String::empty;
+
+        if (templateName == "Array" || templateName == "SlimArray" || templateName == "FatArray")
+        {
+            if (type->templateArguments.Empty() || !type->templateArguments[0]->type)
+            {
+                return HYP_MAKE_ERROR(Error, "Array type is missing its element type");
+            }
+
+            TResult<StrataTypeMapping> elementRes = MapToStrataType(analyzer, type->templateArguments[0]->type.Get());
+
+            if (elementRes.HasError())
+            {
+                return elementRes.GetError();
+            }
+
+            const StrataTypeMapping& elementMapping = elementRes.GetValue();
+
+            if (elementMapping.isHandle || elementMapping.isStructValue || elementMapping.isString
+                || elementMapping.isArray || elementMapping.isVector)
+            {
+                return HYP_MAKE_ERROR(Error, "Array element type '{}' is not supported in Strata array bindings; only scalar elements are", elementMapping.typeName);
+            }
+
+            StrataTypeMapping mapping;
+            mapping.typeName = elementMapping.typeName + "[]";
+            mapping.isArray = true;
+
+            return mapping;
+        }
+
+        // Other smart pointers / wrapper templates are aggregates by value -> reject.
         return HYP_MAKE_ERROR(Error, "Template types are not supported in Strata bindings");
     }
 
@@ -429,6 +485,15 @@ TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTTy
     }
 
     const String typeNameString = type->typeName->ToString(/* includeNamespace */ false);
+
+    // Strata's `string` is a raw, length-less char* under the hood, so only a
+    // null-terminated owning String is safe to bind - a view over
+    // non-terminated data would read out of bounds on the Strata side.
+    if (typeNameString == "StringView" || typeNameString == "UTF8StringView" || typeNameString == "ANSIStringView"
+        || typeNameString == "UTF16StringView" || typeNameString == "UTF32StringView" || typeNameString == "WideStringView")
+    {
+        return HYP_MAKE_ERROR(Error, "'{}' is not supported in Strata bindings; Strata's string type has no attached length, use String or ANSIString instead", typeNameString);
+    }
 
     static const Map<String, StrataTypeMapping> s_mapping {
         { "void", { "void", false } },
@@ -446,7 +511,16 @@ TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTTy
         { "uint16", { "ushort", false } },
 
         { "int64", { "long", false } },
-        { "uint64", { "ulong", false } }
+        { "uint64", { "ulong", false } },
+
+        // Engine strings map directly to Strata's `string` (a raw char*).
+        { "String", { "string", false, false, true } },
+        { "ANSIString", { "string", false, false, true } },
+
+        // Engine's float vectors map directly to Strata's core vector types.
+        // Unlike structs these are core language types, passed by value.
+        { "Vec3f", { "float3", false, false, false, false, true } },
+        { "Vec4f", { "float4", false, false, false, false, true } }
     };
 
     if (auto it = s_mapping.Find(typeNameString); it != s_mapping.End())

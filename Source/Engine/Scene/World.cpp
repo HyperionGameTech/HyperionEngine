@@ -244,6 +244,9 @@ void World::Initialize()
     if (!HasSystem<CameraSystem>())
         AddSystem(MakeHandle<CameraSystem>());
 
+    if (!HasSystem<CharacterControllerSystem>())
+        AddSystem(MakeHandle<CharacterControllerSystem>());
+
     m_isInitialized = true;
 
     for (SystemBase* system : m_systems)
@@ -565,10 +568,18 @@ void World::BeginUpdate(TaskBatch& inBatch, float delta)
         // Add tasks to batches before kickoff
         systemExecutionGroup.StartProcessing(delta, m_scenes.ToSpan());
 
+        if (currentTaskBatch->executors.Empty())
+        {
+            // The execution group did not enqueue any tasks.
+            // Skip, as we don't want to waste cycles for one.
+            continue;
+        }
+
         if (systemExecutionGroup.RequiresSimThread())
         {
             if (m_rootSynchronousExecutionGroup != nullptr)
             {
+                // @TODO Review me: what if we overwrite some previous nextBatch? will it become a dangling task?
                 m_rootSynchronousExecutionGroup->GetTaskBatch()->nextBatch = currentTaskBatch;
             }
             else

@@ -426,12 +426,23 @@ Result StrataModuleGenerator::EmitMethods(const Analyzer& analyzer, const Module
 
                 String paramName = parameter->name.Any() ? parameter->name : HYP_FORMAT("arg{}", j);
 
-                if (paramTypeMapping.isStructValue)
+                if (paramTypeMapping.isString)
+                {
+                    // Read-only: avoids the caller's string being moved/consumed by the call.
+                    paramDecls.PushBack(HYP_FORMAT("const {} {}", paramTypeMapping.typeName, paramName));
+                }
+                else if (paramTypeMapping.isArray)
+                {
+                    // Read-only reference: avoids the caller's array being moved/consumed.
+                    paramDecls.PushBack(HYP_FORMAT("const ref {} {}", paramTypeMapping.typeName, paramName));
+                }
+                else if (paramTypeMapping.isStructValue)
                 {
                     paramDecls.PushBack(HYP_FORMAT("{}{} {}", StructParamModifier(parameter->type.Get()), paramTypeMapping.typeName, paramName));
                 }
                 else
                 {
+                    // Scalars and vector types (float3/float4) pass by value.
                     paramDecls.PushBack(HYP_FORMAT("{} {}", paramTypeMapping.typeName, paramName));
                 }
             }
@@ -441,12 +452,14 @@ Result StrataModuleGenerator::EmitMethods(const Analyzer& analyzer, const Module
                 continue;
             }
 
-            // Strata cannot return aggregates across ABI boundary.
-            // Write retval through an out (ref) param, instead.
-            const bool returnsStruct = returnTypeMapping.isStructValue;
+            // Strata cannot return aggregates (structs, fat arrays) across the
+            // ABI boundary; write those through an out (ref) param instead.
+            // `string` and float3/float4 are single-value/core types and
+            // return directly.
+            const bool returnsViaOutParam = returnTypeMapping.isStructValue || returnTypeMapping.isArray;
             String strataReturnType = returnTypeMapping.typeName;
 
-            if (returnsStruct)
+            if (returnsViaOutParam)
             {
                 strataReturnType = "void";
                 paramDecls.PushBack(HYP_FORMAT("ref {} outReturn", returnTypeMapping.typeName));
@@ -510,7 +523,8 @@ Result StrataModuleGenerator::EmitThunks(const Analyzer& analyzer, const Module&
         if (!openedBlock)
         {
             writer.WriteString("\n#ifdef HYP_STRATA\n\n");
-            writer.WriteString("#include <Core/Scripting/Strata/ThunkDrawer.hpp>\n\n");
+            writer.WriteString("#include <Core/Scripting/Strata/ThunkDrawer.hpp>\n");
+            writer.WriteString("#include <Core/Scripting/Strata/StrataMarshal.hpp>\n\n");
 
             openedBlock = true;
         }
@@ -591,7 +605,9 @@ Result StrataModuleGenerator::EmitThunks(const Analyzer& analyzer, const Module&
                     break;
                 }
 
-                if (paramRes.GetValue().isHandle && !allHandleNames.Contains(paramRes.GetValue().typeName))
+                const StrataTypeMapping paramTypeMapping = paramRes.GetValue();
+
+                if (paramTypeMapping.isHandle && !allHandleNames.Contains(paramTypeMapping.typeName))
                 {
                     paramsOk = false;
 
@@ -600,10 +616,46 @@ Result StrataModuleGenerator::EmitThunks(const Analyzer& analyzer, const Module&
 
                 String paramName = parameter->name.Any() ? parameter->name : HYP_FORMAT("arg{}", j);
 
-                if (paramRes.GetValue().isStructValue)
+                // The parameter type with any top-level reference stripped: Strata's
+                // string/array/vector values don't cross the boundary as C++
+                // references, even though the C++ signature conventionally takes
+                // them by const&.
+                const ASTType* unwrappedParamType = (parameter->type->isLvalueReference || parameter->type->isRvalueReference)
+                    ? parameter->type->refTo.Get()
+                    : parameter->type.Get();
+
+                if (paramTypeMapping.isString)
+                {
+                    // Strata's `string` has no attached length; extern params receive
+                    // the raw char* directly (see the host-boundary note in strings.strata).
+                    const String stringCxxTypeName = unwrappedParamType->typeName->ToString(/* includeNamespace */ false);
+
+                    sigParams.PushBack(HYP_FORMAT("const char* {}", paramName));
+                    callArgs.PushBack(HYP_FORMAT("{}({})", stringCxxTypeName, paramName));
+                }
+                else if (paramTypeMapping.isArray)
+                {
+                    // Strata hands us a pointer to its fat {ptr, u64} array
+                    // representation; copy it into an engine array to forward.
+                    const String elementCxxType = unwrappedParamType->templateArguments[0]->type->Format();
+                    const String arrayCxxTypeName = unwrappedParamType->typeName->ToString(/* includeNamespace */ false);
+
+                    sigParams.PushBack(HYP_FORMAT("::Hyperion::Strata::ArrayView<{}>* {}", elementCxxType, paramName));
+                    callArgs.PushBack(HYP_FORMAT("{}<{}>({}->data, size_t({}->length))", arrayCxxTypeName, elementCxxType, paramName, paramName));
+                }
+                else if (paramTypeMapping.isVector)
+                {
+                    // float3/float4 are core Strata types passed by value, not by
+                    // reference like structs - take the C++ vector by value here too.
+                    const String vectorCxxTypeName = unwrappedParamType->typeName->ToString(/* includeNamespace */ false);
+
+                    sigParams.PushBack(HYP_FORMAT("{} {}", vectorCxxTypeName, paramName));
+                    callArgs.PushBack(paramName);
+                }
+                else if (paramTypeMapping.isStructValue)
                 {
                     // Strata hands us a pointer; forward/deref based on the C++ signature.
-                    sigParams.PushBack(HYP_FORMAT("{}* {}", paramRes.GetValue().typeName, paramName));
+                    sigParams.PushBack(HYP_FORMAT("{}* {}", paramTypeMapping.typeName, paramName));
                     callArgs.PushBack(parameter->type->isPointer ? paramName : HYP_FORMAT("*{}", paramName));
                 }
                 else
@@ -628,9 +680,9 @@ Result StrataModuleGenerator::EmitThunks(const Analyzer& analyzer, const Module&
 
             emittedExternNames.Insert(externName);
 
-            const bool returnsStruct = returnTypeMapping.isStructValue;
+            const bool returnsViaOutParam = returnTypeMapping.isStructValue || returnTypeMapping.isArray;
 
-            // Build the signature param list: [<Class>* self, ]<params...>[, <Ret>* outReturn]
+            // Build the signature param list: [<Class>* self, ]<params...>[, <Ret>(*) outReturn]
             Array<String> allSigParams;
 
             if (!isStatic)
@@ -643,7 +695,20 @@ Result StrataModuleGenerator::EmitThunks(const Analyzer& analyzer, const Module&
                 allSigParams.PushBack(sigParam);
             }
 
-            if (returnsStruct)
+            if (returnTypeMapping.isArray)
+            {
+                // Same reference-stripping as params: a getter conventionally
+                // returns `const Array<T>&`, whose template argument lives on
+                // the referenced type, not the reference wrapper itself.
+                const ASTType* unwrappedReturnType = (functionType->returnType->isLvalueReference || functionType->returnType->isRvalueReference)
+                    ? functionType->returnType->refTo.Get()
+                    : functionType->returnType.Get();
+
+                const String returnElementCxxType = unwrappedReturnType->templateArguments[0]->type->Format();
+
+                allSigParams.PushBack(HYP_FORMAT("::Hyperion::Strata::ArrayView<{}>* outReturn", returnElementCxxType));
+            }
+            else if (returnsViaOutParam)
             {
                 allSigParams.PushBack(HYP_FORMAT("{}* outReturn", returnTypeMapping.typeName));
             }
@@ -662,12 +727,26 @@ Result StrataModuleGenerator::EmitThunks(const Analyzer& analyzer, const Module&
             // the method it forwards to actually exists.
             String methodOutput;
 
-            if (returnsStruct)
+            if (returnTypeMapping.isArray)
+            {
+                methodOutput += HYP_FORMAT("extern \"C\" void {}({})", externName, sigParamsString);
+                methodOutput += " { const auto& hypReturnValue = ";
+                methodOutput += callExpr;
+                methodOutput += "; ::Hyperion::Strata::SetReturnArray(outReturn, hypReturnValue.Data(), hypReturnValue.Size()); }\n";
+            }
+            else if (returnTypeMapping.isStructValue)
             {
                 methodOutput += HYP_FORMAT("extern \"C\" void {}({})", externName, sigParamsString);
                 methodOutput += " { *outReturn = ";
                 methodOutput += callExpr;
                 methodOutput += "; }\n";
+            }
+            else if (returnTypeMapping.isString)
+            {
+                methodOutput += HYP_FORMAT("extern \"C\" char* {}({})", externName, sigParamsString);
+                methodOutput += " { return ::Hyperion::Strata::AllocReturnString(";
+                methodOutput += callExpr;
+                methodOutput += "); }\n";
             }
             else if (functionType->returnType->IsVoid())
             {

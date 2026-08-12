@@ -13,7 +13,7 @@
     "DDGI": false,
     "RayTracedGI": false,
     "RayTracedReflections": false,
-    "RayTracingEnabled": true,
+    "RayTracingEnabled": false,
     "IndirectRendering": true,
     "DepthPrepass": true,
     "ParallelRendering": true,

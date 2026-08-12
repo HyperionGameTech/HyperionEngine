@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <ScenePch.hpp>
 
@@ -10,7 +10,8 @@
 
 #include <Core/Threading/TaskSystem.hpp>
 
-namespace Hyperion {
+namespace Hyperion
+{
 
 #define HYP_SYSTEMS_PARALLEL_EXECUTION
 // #define HYP_SYSTEMS_LAG_SPIKE_DETECTION
@@ -128,21 +129,38 @@ void SystemExecutionGroup::StartProcessing(float delta, Span<Handle<Scene>> scen
         HYP_LOG(Entity, Verbose, "\t\tSystem: {}", system->GetName());
 #endif
 
-        m_taskBatch->AddTask([this, system, scenes, delta]
+        // First: check if *any* of our Scenes are valid to process for this System.
+        bool anySceneValid = false;
+        for (Scene* scene : scenes)
+        {
+            if (system->ShouldProcessScene(scene))
             {
-                HYP_NAMED_SCOPE_FMT("Processing system {}", system->GetName());
+                anySceneValid = true;
+                break;
+            }
+        }
+
+        if (!anySceneValid)
+        {
+            // Skip for this system; no Scene to process.
+            continue;
+        }
+
+        m_taskBatch->AddTask([this, system, scenes, delta]
+                             {
+                                 HYP_NAMED_SCOPE_FMT("Processing system {}", system->GetName());
 
 #if HYP_DEBUG_MODE
-                PerformanceClock& performanceClock = m_performanceClocks[system];
-                performanceClock.Start();
+                                 PerformanceClock& performanceClock = m_performanceClocks[system];
+                                 performanceClock.Start();
 #endif
 
-                system->Process(delta, scenes);
+                                 system->Process(delta, scenes);
 
 #if HYP_DEBUG_MODE
-                performanceClock.Stop();
+                                 performanceClock.Stop();
 #endif
-            });
+                             });
     }
 }
 
@@ -150,18 +168,23 @@ void SystemExecutionGroup::FinishProcessing(bool executeBlocking)
 {
     AssertDebug(AllowUpdate());
 
+    AssertDebug(m_taskBatch != nullptr);
+
+    if (m_taskBatch->executors.Any())
+    {
 #ifdef HYP_SYSTEMS_PARALLEL_EXECUTION
-    if (executeBlocking)
-    {
-        m_taskBatch->ExecuteBlocking(/* executeDependentBatches */ true);
-    }
-    else
-    {
-        m_taskBatch->AwaitCompletion();
-    }
+        if (executeBlocking)
+        {
+            m_taskBatch->ExecuteBlocking(/* executeDependentBatches */ true);
+        }
+        else
+        {
+            m_taskBatch->AwaitCompletion();
+        }
 #else
-    m_taskBatch->ExecuteBlocking(/* executeDependentBatches */ true);
+        m_taskBatch->ExecuteBlocking(/* executeDependentBatches */ true);
 #endif
+    }
 
     for (auto& it : m_systems)
     {
