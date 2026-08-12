@@ -95,14 +95,7 @@ void Game::Initialize()
             EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Game")>());
     }
 
-    if (!m_assetRegistryActive)
-    {
-        SyncContentAndLaunch();
-    }
-    else
-    {
-        Launch();
-    }
+    SyncContentAndLaunch();
 }
 
 Handle<World> Game::LoadWorld_Impl(Name worldName)
@@ -680,12 +673,15 @@ void Game::SyncContentAndLaunch()
     AssertOnThread(g_simThread);
     
     Assert(!IsSyncingContent());
+    Assert(m_assetRegistry.IsValid());
 
-    // This check exists mainly for initializing newly created editor projects that
-    // have a World set on them and should not destroy that world to attempt to load one from disk.
-    const bool canSyncContent = m_assetRegistry->GetRootPath().Exists();
+    const bool shouldSyncContent =
+        // Don't want to skip syncing just because we have the loader UI up (temp world)
+        (!m_world.IsValid() || m_world->IsTransient())
+        // For editor; don't want to try to sync a brand new, unsaved project.
+        && m_assetRegistry->GetRootPath().Exists();
 
-    if (canSyncContent)
+    if (shouldSyncContent)
     {
         BeforeContentLoaded();
         

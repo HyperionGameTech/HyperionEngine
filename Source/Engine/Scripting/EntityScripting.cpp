@@ -4,8 +4,6 @@
  *  @licence MIT
  */
 
-#include <ScenePch.hpp>
-
 #include <Scripting/EntityScripting.hpp>
 
 #include <Scene/Entity.hpp>

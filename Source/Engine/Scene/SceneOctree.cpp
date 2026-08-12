@@ -165,7 +165,7 @@ void SceneOctree::Clear()
     Array<SceneOctreePayload> payloads;
     OctreeBase::Clear(payloads, /* undivide */ true);
 
-    if (m_entityManager)
+    if (payloads.Any() && m_entityManager != nullptr)
     {
         Assert(IsOnThread(m_entityManager->GetOwnerThreadId()));
 
