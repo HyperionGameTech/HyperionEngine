@@ -9,11 +9,7 @@
 #include <Core/Constants.hpp>
 #include <Core/Defines.hpp>
 
-#include <Core/Reflection/Handle.hpp>
-
-#include <Core/Containers/FixedArray.hpp>
 #include <Core/Containers/Array.hpp>
-#include <Core/Containers/Map.hpp>
 #include <Core/Containers/List.hpp>
 
 #include <Core/Utilities/DeferredScope.hpp>
@@ -33,10 +29,12 @@ extern uint32 GetFrameCounter();
 
 enum class CommandRecorderQueue : uint8
 {
-    /*! \brief Executed after the frame's render commands. */
+    /*! \brief Executed after the frame's render commands. (Default) */
     PostRender = 0,
-    /*! \brief Executed before the frame's render commands. Use for resource uploads and
-     *  initialization, which the same frame's draws may consume. */
+
+    /*! \brief Executed before the frame's render commands. Intended for
+     *  resource uploads and initialization that needs to happen before
+     *  they are needed for drawing/compute. */
     PreRender
 };
 

@@ -637,6 +637,8 @@ namespace Hyperion.Editor.ViewModels
             if (resolvedKey == NoSubObjectKey)
             {
                 Volatile.Write(ref _subObjectKey, NoSubObjectKey);
+
+                SubObject?.Dispose();
                 SubObject = null;
                 HasSubObject = false;
                 return;
@@ -651,6 +653,7 @@ namespace Hyperion.Editor.ViewModels
 
             Volatile.Write(ref _subObjectKey, resolvedKey);
 
+            SubObject?.Dispose();
             SubObject = newSubObject;
             HasSubObject = true;
         }

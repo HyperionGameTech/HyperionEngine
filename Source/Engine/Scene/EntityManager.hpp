@@ -818,6 +818,8 @@ private:
 
     void AddExistingEntity_Internal(const Handle<Entity>& entity);
 
+    void ClearEntities_Internal();
+
     template <class Component>
     static void EnsureValidComponentType()
     {

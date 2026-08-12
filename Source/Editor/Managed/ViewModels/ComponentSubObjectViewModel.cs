@@ -18,6 +18,12 @@ namespace Hyperion.Editor.ViewModels
         private readonly Action? _postWriteCallback;
         private readonly Action? _valueChangedCallback;
 
+        // Some object types (eg AudioSource) can be mutated out-of-band - by the deserializer,
+        // not through this VM's own CommitPropertyChange path - so RefreshProperties() never gets
+        // triggered by the usual write flow. Bind to the object's own change delegate (if it has
+        // one) so the panel stays in sync with those out-of-band writes too.
+        private DelegateHandler? _onChangedHandler;
+
         private bool _hasProperties;
         public bool HasProperties
         {
@@ -48,6 +54,50 @@ namespace Hyperion.Editor.ViewModels
 
             PopulateProperties(depth);
             PopulateActions();
+            HookChangeNotifications();
+        }
+
+        ~ComponentSubObjectViewModel()
+        {
+            _onChangedHandler?.Remove();
+        }
+
+        /// <summary>
+        /// Unbinds native change notifications. Must be called whenever this VM is discarded
+        /// (eg. replaced by ObjectPropertyViewModel.UpdateSubObject) rather than relying solely on
+        /// the finalizer, since the bound object (eg. an AudioSource still attached to a live
+        /// entity) can easily outlive this VM and would otherwise keep posting refreshes to a
+        /// panel that's no longer shown.
+        /// </summary>
+        public void Dispose()
+        {
+            foreach (InspectorPropertyViewModelBase vm in Properties)
+            {
+                if (vm is ObjectPropertyViewModel objVm)
+                {
+                    objVm.SubObject?.Dispose();
+                }
+            }
+
+            _onChangedHandler?.Remove();
+            _onChangedHandler = null;
+
+            GC.SuppressFinalize(this);
+        }
+
+        private void HookChangeNotifications()
+        {
+            if (Target is AudioSource audioSource)
+            {
+                _onChangedHandler = audioSource.GetOnChangedDelegate().Bind((AudioSource changedSource) =>
+                {
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        RefreshProperties();
+                        _valueChangedCallback?.Invoke();
+                    });
+                });
+            }
         }
 
         /// <summary>

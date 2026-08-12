@@ -280,8 +280,12 @@ void EntityManager::Initialize()
 
 void EntityManager::Shutdown()
 {
+    // Entities can be added (AddEntity/AddTypedEntity/AddExistingEntity) before Initialize()
+    // is ever called, so we need to clear 'em even if we're not initialized, ourselves.
     if (!m_isInitialized)
     {
+        ClearEntities_Internal();
+
         return;
     }
 
@@ -426,6 +430,13 @@ void EntityManager::Shutdown()
         }
     }
 
+    ClearEntities_Internal();
+
+    m_isInitialized = false;
+}
+
+void EntityManager::ClearEntities_Internal()
+{
     for (auto& subtypeData : m_entities.GetSubtypeData())
     {
         for (EntityData& entityData : subtypeData.data)
@@ -443,8 +454,6 @@ void EntityManager::Shutdown()
 
     TUniqueLock lock(m_systemEntityMapMutex);
     m_systemEntityMap.Clear();
-
-    m_isInitialized = false;
 }
 
 void EntityManager::SetWorld(World* world)
