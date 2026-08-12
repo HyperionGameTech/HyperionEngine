@@ -461,8 +461,11 @@ Result StrataModuleGenerator::EmitMethods(const Analyzer& analyzer, const Module
                 continue;
             }
 
-            // Strata cannot return aggregates ABI boundary, so we use a ref out param.
-            const bool returnsViaOutParam = returnTypeMapping.isStructValue || returnTypeMapping.isArray || returnTypeMapping.isVector;
+            // Strata cannot return aggregates (structs, fat arrays) across the
+            // ABI boundary; write those through an out (ref) param instead.
+            // `string` and float3/float4 are single-value/core types and
+            // return directly.
+            const bool returnsViaOutParam = returnTypeMapping.isStructValue || returnTypeMapping.isArray;
             String strataReturnType = returnTypeMapping.typeName;
 
             if (returnsViaOutParam)
@@ -688,9 +691,7 @@ Result StrataModuleGenerator::EmitThunks(const Analyzer& analyzer, const Module&
 
             emittedExternNames.Insert(externName);
 
-            const bool returnsViaOutParam = returnTypeMapping.isStructValue
-                || returnTypeMapping.isArray
-                || returnTypeMapping.isVector;
+            const bool returnsViaOutParam = returnTypeMapping.isStructValue || returnTypeMapping.isArray;
 
             // Build the signature param list: [<Class>* self, ]<params...>[, <Ret>(*) outReturn]
             Array<String> allSigParams;
@@ -717,12 +718,6 @@ Result StrataModuleGenerator::EmitThunks(const Analyzer& analyzer, const Module&
                 const String returnElementCxxType = unwrappedReturnType->templateArguments[0]->type->Format();
 
                 allSigParams.PushBack(HYP_FORMAT("::Hyperion::Strata::ArrayView<{}>* outReturn", returnElementCxxType));
-            }
-            else if (returnTypeMapping.isVector)
-            {
-                // returnTypeMapping.typeName is the Strata name (float3/float4),
-                // not a C++ type - the out param is the raw SIMD register type.
-                allSigParams.PushBack("::Hyperion::Strata::SimdVector* outReturn");
             }
             else if (returnsViaOutParam)
             {
@@ -773,8 +768,12 @@ Result StrataModuleGenerator::EmitThunks(const Analyzer& analyzer, const Module&
             }
             else if (returnTypeMapping.isVector)
             {
-                methodOutput += HYP_FORMAT("extern \"C\" void {}({})", externName, sigParamsString);
-                methodOutput += " { *outReturn = ::Hyperion::Strata::ToSimdVector(";
+                // float3/float4 cross the extern "C" boundary as a raw SIMD
+                // register (stratac lowers them to __m128/float32x4_t), not a
+                // Vec3f/Vec4f struct by value - convert explicitly via the
+                // overloaded ToSimdVector (picks Vec3f/Vec4f by callExpr's type).
+                methodOutput += HYP_FORMAT("extern \"C\" ::Hyperion::Strata::SimdVector {}({})", externName, sigParamsString);
+                methodOutput += " { return ::Hyperion::Strata::ToSimdVector(";
                 methodOutput += callExpr;
                 methodOutput += "); }\n";
             }
