@@ -29,6 +29,7 @@
 
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/ShaderCompiler.hpp>
+#include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
 #include <Rendering/BLASBuilder.hpp>
 
@@ -536,7 +537,7 @@ bool PathTracer::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBas
                       {
                           return !aIsSky;
                       }
-                      
+
                       const Vec3f aProbePosition = a.second->worldPosition.GetXYZ();
                       const Vec3f bProbePosition = b.second->worldPosition.GetXYZ();
 
@@ -598,7 +599,7 @@ bool PathTracer::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBas
     }
 
     Assert(m_tlas && m_tlas->IsCreated());
-    
+
     GpuBufferRef& raysBuffer = jd.raysBuffers[GetFrameCounter() % NumFramesInFlight];
     Assert(raysBuffer != nullptr && raysBuffer->IsCreated());
 

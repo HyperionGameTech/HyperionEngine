@@ -18,7 +18,8 @@
 
 #include <Shader.generated.inl>
 
-namespace Hyperion {
+namespace Hyperion
+{
 
 extern ShaderInputGroup& GetStaticDescriptorTableDeclaration();
 
@@ -106,7 +107,7 @@ void Shader::PageBlobData()
                 if (stream.Max() != expectedSize)
                 {
                     HYP_LOG(Engine, Error, "Local blob data for shader '{}' module {} is {} bytes but the manifest expects {}. Data corruption detected.",
-                                GetName(), moduleTypeString, stream.Max(), expectedSize);
+                            GetName(), moduleTypeString, stream.Max(), expectedSize);
 
                     continue;
                 }
@@ -124,7 +125,7 @@ void Shader::PageBlobData()
             }
 
             HYP_LOG(Engine, Error, "Failed to page blob data for Shader {}", GetName());
-            
+
             ref.readOnly = true;
         }
     }

@@ -30,27 +30,27 @@
 #include <Framework/Game.hpp>
 
 #ifdef HYP_EDITOR
-#include <Editor/EditorTask.hpp>
+#    include <Editor/EditorTask.hpp>
 #endif // HYP_EDITOR
 
 #ifdef HYP_SCRIPT
-#include <Lang/HypScript.hpp>
+#    include <Lang/HypScript.hpp>
 #endif // HYP_SCRIPT
 
 #ifdef HYP_STRATA_JIT
-#include <strata/strata.h>
+#    include <strata/strata.h>
 
-#include <Core/Scripting/Strata/ThunkDrawer.hpp>
+#    include <Core/Scripting/Strata/ThunkDrawer.hpp>
 #endif // HYP_STRATA_JIT
 
 #if HYP_WINDOWS
-#  define WIN32_LEAN_AND_MEAN
-#  ifndef NOMINMAX
-#    define NOMINMAX
-#  endif
-#  include <windows.h>
+#    define WIN32_LEAN_AND_MEAN
+#    ifndef NOMINMAX
+#        define NOMINMAX
+#    endif
+#    include <windows.h>
 #elif HYP_UNIX
-#  include <dlfcn.h>
+#    include <dlfcn.h>
 #endif
 
 #include <System/MessageBox.hpp>
@@ -154,25 +154,19 @@ static void* ResolveSymbolFromHost(const char* name)
         return nullptr;
     }
 
-    // @TODO a more elegant way of doing this...
-    if (strcmp(name, "printf") == 0)
-    {
-        return &printf;
-    }
-
-#if HYP_WINDOWS
+#    if HYP_WINDOWS
     if (HMODULE h = GetModuleHandleW(nullptr))
     {
         return reinterpret_cast<void*>(GetProcAddress(h, name));
     }
 
     return nullptr;
-#elif HYP_UNIX
+#    elif HYP_UNIX
     // RTLD_DEFAULT searches the main program and all globally-loaded objects.
     return dlsym(RTLD_DEFAULT, name);
-#else
+#    else
     return nullptr;
-#endif
+#    endif
 }
 
 static void* ResolveFunctionPointer(ScriptObjectData_Strata* data, const char* name)
@@ -188,12 +182,12 @@ static void* ResolveFunctionPointer(ScriptObjectData_Strata* data, const char* n
 
     void* fn = nullptr;
 
-#ifdef HYP_STRATA_JIT
+#    ifdef HYP_STRATA_JIT
     if (data->jit != nullptr)
     {
         fn = strataJitGetFunction(data->jit, name);
     }
-#endif // HYP_STRATA_JIT
+#    endif // HYP_STRATA_JIT
 
     if (fn == nullptr)
     {
@@ -205,7 +199,7 @@ static void* ResolveFunctionPointer(ScriptObjectData_Strata* data, const char* n
     return fn;
 }
 
-#ifdef HYP_STRATA_JIT
+#    ifdef HYP_STRATA_JIT
 
 thread_local StrataCompiler* t_strataCompiler = nullptr;
 
@@ -229,7 +223,7 @@ void InitializeCompiler()
         t_strataCompiler = strataCompilerCreate();
         Assert(t_strataCompiler != nullptr);
 
-        strataJitSetAllocFreeFunctions(t_strataCompiler, (void*) &Strata::strata_alloc, (void*) &Strata::strata_free);
+        strataJitSetAllocFreeFunctions(t_strataCompiler, (void*)&Strata::strata_alloc, (void*)&Strata::strata_free);
 
         if (ThreadBase* currThread = CurrentThreadObject())
         {
@@ -280,7 +274,7 @@ void BindExterns(StrataJit* jit)
     }
 }
 
-#endif // HYP_STRATA_JIT
+#    endif // HYP_STRATA_JIT
 
 } // namespace Strata
 
@@ -545,12 +539,12 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
                     HYP_LOG(Scripting, Verbose, "Created ScriptObjectResource for ScriptComponent, .NET class: {}", classPtr->GetName());
                 }
-#if HYP_DEBUG_MODE
+#    if HYP_DEBUG_MODE
                 else
                 {
                     HYP_FAIL("Failed to load .NET class {} from Assembly {}", scriptDesc.className.Data(), scriptComponent.assembly->GetGuid().ToUUID().ToString());
                 }
-#endif
+#    endif
 
                 if (!sor || !sor->GetManagedObject() || !sor->GetManagedObject()->IsValid())
                 {
@@ -588,7 +582,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                 // Create from bytecode
                 ConstByteView bytecode = scriptAsset->GetBytecode();
 
-#ifdef HYP_EDITOR
+#    ifdef HYP_EDITOR
                 if (bytecode.Size() > 0)
                 {
                     // Check if source file has been modified since the bytecode was compiled
@@ -684,14 +678,14 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
                     Assert(instance != nullptr);
 
-#if 1
+#        if 1
                     {
                         // Debug: decompile the bytecode
                         std::stringstream ss;
                         HS::Decompile(instance, &ss);
                         HYP_LOG(Scripting, Debug, "Decompiled bytecode:\n\n{}", ss.str().c_str());
                     }
-#endif
+#        endif
 
                     // Record the source file timestamp so we can detect future changes
                     scriptDesc.lastModifiedTimestamp = uint64(sourcePath.LastModifiedTimestamp());
@@ -720,7 +714,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                         readScope = scriptAsset->GetReadScope();
                     }
                 }
-#else
+#    else
                 if (bytecode.Size() > 0)
                 {
                     instance = HS::CreateFromBytecode(bytecode);
@@ -731,7 +725,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                     HYP_LOG(Scripting, Error, "Invalid bytecode for script: {}", scriptAsset->GetName());
                     return;
                 }
-#endif
+#    endif
 
                 sor = new ScriptObjectResource(instance, (ObjectBase*)nullptr);
                 sor->AddReader();
@@ -784,14 +778,14 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                 Strata::InitializeCache();
                 Strata::t_fnPtrCache->ClearModule(moduleHash);
 
-                sor = new ScriptObjectResource(ValueWrapper<ScriptLanguage::Strata>{}, moduleHash);
+                sor = new ScriptObjectResource(ValueWrapper<ScriptLanguage::Strata> {}, moduleHash);
                 sor->AddReader();
 
                 if (ScriptObjectData_Strata* strataData = sor->GetScriptObjectData_Strata())
                 {
                     strataData->moduleHash = moduleHash;
 
-#ifdef HYP_STRATA_JIT
+#    ifdef HYP_STRATA_JIT
                     // Compile the source at runtime. Shipped builds have no knowledge of the language, symbols are linked to the exe
                     Strata::InitializeCompiler();
 
@@ -822,8 +816,8 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                         else
                         {
                             HYP_LOG(Scripting, Error, "ScriptSystem::OnEntityAdded: Failed to JIT-compile Strata script '{}': {}",
-                                sourcePath,
-                                err ? err : "(no message)");
+                                    sourcePath,
+                                    err ? err : "(no message)");
 
                             if (err != nullptr)
                             {
@@ -834,9 +828,9 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                     else
                     {
                         HYP_LOG(Scripting, Warning, "Strata source '{}' not found; assuming AOT-linked symbols.",
-                            scriptDesc.path.Data());
+                                scriptDesc.path.Data());
                     }
-#endif // HYP_STRATA_JIT
+#    endif // HYP_STRATA_JIT
                 }
 
                 if (!gameState.IsStopped())

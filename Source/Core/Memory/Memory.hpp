@@ -9,6 +9,8 @@
 #include <Core/Defines.hpp>
 #include <Core/Types.hpp>
 
+#include <Core/Debug/Debug.hpp>
+
 #include <Core/Utilities/Traits.hpp>
 #include <Core/Utilities/ByteUtil.hpp>
 

@@ -1,4 +1,3 @@
-#include "Core/Core.hpp"
 #include <Editor/EditorCommand.hpp>
 #include <Editor/EditorSubsystem.hpp>
 #include <Editor/EditorProject.hpp>
@@ -31,6 +30,8 @@
 
 #include <Physics/PhysicsShape.hpp>
 
+#include <Core/Core.hpp>
+
 #include <Core/Reflection/ClassUtils.hpp>
 #include <Core/Reflection/ClassRegistry.hpp>
 
@@ -42,7 +43,7 @@
 
 #include <Core/Logging/Logger.hpp>
 
-#include <Core/CLI/Commandline.hpp>
+#include <Core/CLI/CommandLine.hpp>
 
 #include <Asset/Assets.hpp>
 #include <Asset/AssetBatch.hpp>
@@ -153,7 +154,7 @@ public:
             if (currentProject->IsDirty())
             {
                 bool cancel = false;
-                
+
                 SystemMessageBox(MessageBoxType::INFO)
                     .Title("Save changes?")
                     .Text("Closing this project will discard any unsaved changes. Do you want to save changes before exiting?")
@@ -209,7 +210,7 @@ public:
             if (currentProject->IsDirty())
             {
                 bool cancel = false;
-                
+
                 SystemMessageBox(MessageBoxType::INFO)
                     .Title("Save changes?")
                     .Text("Closing this project will discard any unsaved changes. Do you want to save changes before exiting?")
@@ -446,7 +447,7 @@ public:
             if (currentProject->IsDirty())
             {
                 bool cancel = false;
-                
+
                 SystemMessageBox(MessageBoxType::INFO)
                     .Title("Save changes?")
                     .Text("Closing this project will discard any unsaved changes. Do you want to save changes before exiting?")
@@ -768,7 +769,7 @@ public:
 
             return;
         }
-        
+
         Handle<World> worldHandle = MakeStrongRef(subsystem->GetWorld());
 
         Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(sources);
@@ -881,7 +882,7 @@ public:
 
             return;
         }
-        
+
         EditorTaskScope* editorTaskScope = new EditorTaskScope(
             TickableEditorTask::StaticClass(),
             []()
@@ -906,7 +907,7 @@ public:
                 for (size_t i = 0; i < meshes.Size(); i++)
                 {
                     Mesh* mesh = meshes[i];
-                    
+
                     editorTaskScope->GetEditorTask()->SetDescription("Building BVH data: " + mesh->GetName().ToString());
 
                     auto readScope = mesh->GetReadScope();
@@ -963,7 +964,7 @@ public:
 
             return;
         }
-        
+
         EditorTaskScope* editorTaskScope = new EditorTaskScope(
             TickableEditorTask::StaticClass(),
             []()
@@ -1040,8 +1041,8 @@ public:
 
             return;
         }
-        
-        
+
+
         const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
 
         Handle<ReflectionProbe> reflectionProbe = MakeHandle<ReflectionProbe>(BoundingBox(Vec3f(-10.0f), Vec3f(10.0f)), Vec2u(128, 128));
@@ -1142,7 +1143,7 @@ public:
 
             return;
         }
-        
+
         const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
 
         Handle<IrradianceProbe> irradianceProbe = MakeHandle<IrradianceProbe>(BoundingBox(Vec3f(-10.0f), Vec3f(10.0f)), Vec2u(8, 8));
@@ -2508,20 +2509,20 @@ public:
             if (saveResult.HasError())
             {
                 HYP_LOG(Editor, Warning, "Failed to save project; script file will not be created. Reason was: {}", saveResult.GetError().GetMessage());
-                
+
                 return;
             }
             else if (!rootDir.Exists())
             {
                 HYP_LOG(Editor, Warning, "Asset registry root dir still does not exist after saving project. Will not create script asset. (path: {})", rootDir);
-                
+
                 return;
             }
         }
         else if (!rootDir.IsDirectory())
         {
             HYP_LOG(Editor, Warning, "Asset registry root dir is not a directory. Will not create script asset. (path: {})", rootDir);
-            
+
             return;
         }
 
@@ -2531,7 +2532,7 @@ public:
             if (!scriptsDir.MkDir())
             {
                 HYP_LOG(Editor, Warning, "Failed to create scripts dir at {}", scriptsDir);
-                
+
                 return;
             }
         }
@@ -3231,7 +3232,7 @@ public:
 
         Handle<Entity> entity = MakeHandle<Entity>();
         entity->SetName(NAME("CubeEntity"));
-        
+
         entity->SetWorldTranslation(insertionPoint);
 
         Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(

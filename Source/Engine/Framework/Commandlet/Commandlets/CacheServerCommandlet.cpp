@@ -48,7 +48,6 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/inotify.h>
 #include <poll.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -56,6 +55,13 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
+
+#if defined(HYP_LINUX) || defined(HYP_ANDROID)
+#include <sys/inotify.h>
+#elif defined(HYP_APPLE)
+#include <sys/event.h>
+#include <dirent.h>
+#endif
 
 using SocketHandle = int;
 static constexpr SocketHandle INVALID_SOCK = -1;
@@ -230,7 +236,7 @@ private:
     Callback m_callback;
 };
 
-#elif defined(HYP_UNIX) || defined(HYP_ANDROID)
+#elif defined(HYP_LINUX) || defined(HYP_ANDROID)
 
 class DirectoryWatcher
 {
@@ -359,6 +365,192 @@ private:
     Callback m_callback;
 };
 
+#elif defined(HYP_APPLE)
+
+// macOS/iOS have no inotify. Watch the directory fd via kqueue's EVFILT_VNODE and
+// diff directory listings on wake, since kqueue only reports that the directory
+// changed, not which entry changed.
+class DirectoryWatcher
+{
+public:
+    using Callback = ProcRef<void(const String& relativePath, bool)>;
+
+    DirectoryWatcher(const FilePath& dirPath, const Callback& callback)
+        : m_dirPath(dirPath),
+          m_callback(callback),
+          m_running(true),
+          m_kq(-1),
+          m_dirFd(-1)
+    {
+        m_dirFd = open(dirPath.Data(), O_EVTONLY);
+
+        if (m_dirFd < 0)
+        {
+            HYP_LOG(Assets, Warning, "DirectoryWatcher: failed to open '{}'", dirPath);
+            m_running = false;
+            return;
+        }
+
+        m_kq = kqueue();
+
+        if (m_kq < 0)
+        {
+            close(m_dirFd);
+            m_dirFd = -1;
+            m_running = false;
+            return;
+        }
+
+        m_stopFd[0] = -1;
+        m_stopFd[1] = -1;
+        pipe(m_stopFd);
+
+        m_knownEntries = ListDirectory();
+
+        m_thread = std::thread(&DirectoryWatcher::Run, this);
+    }
+
+    ~DirectoryWatcher()
+    {
+        m_running = false;
+
+        if (m_stopFd[1] >= 0)
+        {
+            char c = 'x';
+            write(m_stopFd[1], &c, 1);
+        }
+
+        if (m_thread.joinable())
+        {
+            m_thread.join();
+        }
+
+        if (m_kq >= 0)
+        {
+            close(m_kq);
+        }
+
+        if (m_dirFd >= 0)
+        {
+            close(m_dirFd);
+        }
+
+        for (int fd : m_stopFd)
+        {
+            if (fd >= 0)
+            {
+                close(fd);
+            }
+        }
+    }
+
+private:
+    Set<String> ListDirectory() const
+    {
+        Set<String> entries;
+
+        DIR* dir = opendir(m_dirPath.Data());
+
+        if (!dir)
+        {
+            return entries;
+        }
+
+        struct dirent* ent;
+
+        while ((ent = readdir(dir)) != nullptr)
+        {
+            String name = ent->d_name;
+
+            if (name == "." || name == "..")
+            {
+                continue;
+            }
+
+            entries.Insert(std::move(name));
+        }
+
+        closedir(dir);
+
+        return entries;
+    }
+
+    void Run()
+    {
+        struct kevent changeEvent;
+        EV_SET(&changeEvent, m_dirFd, EVFILT_VNODE, EV_ADD | EV_CLEAR,
+            NOTE_WRITE | NOTE_DELETE | NOTE_RENAME | NOTE_EXTEND, 0, nullptr);
+
+        if (kevent(m_kq, &changeEvent, 1, nullptr, 0, nullptr) < 0)
+        {
+            return;
+        }
+
+        while (m_running.load())
+        {
+            struct pollfd fds[2];
+            fds[0].fd = m_kq;
+            fds[0].events = POLLIN;
+            fds[1].fd = m_stopFd[0];
+            fds[1].events = POLLIN;
+
+            int ret = poll(fds, 2, 2000);
+
+            if (ret <= 0)
+            {
+                continue;
+            }
+
+            if (fds[1].revents & POLLIN)
+            {
+                break;
+            }
+
+            if (!(fds[0].revents & POLLIN))
+            {
+                continue;
+            }
+
+            struct kevent event;
+            struct timespec timeout = {};
+
+            if (kevent(m_kq, nullptr, 0, &event, 1, &timeout) <= 0)
+            {
+                continue;
+            }
+
+            Set<String> currentEntries = ListDirectory();
+
+            for (const String& name : currentEntries)
+            {
+                if (!m_knownEntries.Contains(name))
+                {
+                    m_callback(name, false);
+                }
+            }
+
+            for (const String& name : m_knownEntries)
+            {
+                if (!currentEntries.Contains(name))
+                {
+                    m_callback(name, true);
+                }
+            }
+
+            m_knownEntries = std::move(currentEntries);
+        }
+    }
+
+    FilePath m_dirPath;
+    int m_kq;
+    int m_dirFd;
+    int m_stopFd[2];
+    std::thread m_thread;
+    std::atomic<bool> m_running;
+    Callback m_callback;
+    Set<String> m_knownEntries;
+};
+
 #endif
 
 class CacheServerCommandlet final : public CommandletBase
@@ -432,7 +624,7 @@ class CacheServerCommandlet final : public CommandletBase
             {
                 Array<AssetDesc> descs;
                 registry->GetBucketAssetDescs(bucketIndex, descs);
-                
+
                 for (const AssetDesc& desc : descs)
                 {
                     Handle<AssetObject> asset = registry->GetAsset(*AssetBuckets::AllBuckets[bucketIndex], desc.name);
@@ -582,7 +774,7 @@ class CacheServerCommandlet final : public CommandletBase
         bool wasDeleted)
     {
         TUniqueLock lock(state.lock);
-        
+
         ServerManifest& manifest = state.manifests[registryId];
         BlobLookupMap& blobLookup = state.blobLookups[registryId];
 
@@ -753,7 +945,7 @@ public:
 protected:
     static FilePath MakeServeDir(const String& projectDir)
     {
-        
+
         return FilePath(projectDir.StartsWith(".")
             // Relative path - starts with . (eg "../Foo" or "./Foo")
             ? (CoreApi::GetExecutablePath() / projectDir)
@@ -795,9 +987,9 @@ protected:
 
         state.gameRegistry = MakeHandle<AssetRegistry>(AssetRegistryId::Game, state.gameContentDir);
         state.gameRegistry->LoadAssetDescs();
-        
+
         GlobalContextScope assetRegistryScope { AssetRegistryContext { state.gameRegistry } };
-                
+
         const FilePath& gameContentDir = state.gameContentDir;
         const FilePath& engineContentDir = state.engineContentDir;
 
@@ -805,38 +997,19 @@ protected:
         {
             return [&state, registry](const String& relativePath, bool wasDeleted)
             {
-                    // Needs to be reworked per-scene
-#if 0
                 String bucketName, assetName;
                 if (!ParseAssetFilePath(relativePath, bucketName, assetName))
                 {
                     return;
                 }
 
-                Array<Name> sceneNames;
-
-                {
-                    Mutex::Guard guard(state.mutex);
-                    
-                    sceneNames.Reserve(state.manifests.Size());
-
-                    for (const auto& it : state.manifests)
-                    {
-                        sceneNames.PushBack(it.first);
-                    }
-                }
-
-                for (Name sceneName : sceneNames)
-                {
-                    UpdateAssetInManifest(
-                        state,
-                        registry,
-                        AssetRegistryId::Game,
-                        bucketName,
-                        assetName,
-                        wasDeleted);
-                }
-#endif
+                UpdateAssetInManifest(
+                    state,
+                    registry,
+                    AssetRegistryId::Game,
+                    bucketName,
+                    assetName,
+                    wasDeleted);
             };
         };
 
@@ -928,7 +1101,7 @@ protected:
                     it->Await();
 
                     it = tasks.Erase(it);
-                    
+
                     continue;
                 }
 
@@ -1003,7 +1176,7 @@ protected:
             }
 
             AssetRegistryId registryId = AssetRegistryId::Game;
-            
+
             if (idValue)
             {
                 if (!StringUtil::Parse(idValue, reinterpret_cast<uint32*>(&registryId)))
@@ -1022,11 +1195,11 @@ protected:
                 const Handle<AssetRegistry>& registry = (registryId == AssetRegistryId::Engine)
                     ? state.engineRegistry
                     : state.gameRegistry;
-                
+
                 if (!registry.IsValid())
                 {
                     HYP_LOG(Assets, Warning, "No registry for id {}", uint32(registryId));
-                    
+
                     const char* bad = "HTTP/1.0 404 Not Found\r\n"
                         "Content-Length: 0\r\n\r\n";
 
@@ -1058,7 +1231,7 @@ protected:
                                 BlobLookupMap& blobLookup = state.blobLookups[registryId];
 
                                 InitializeManifest(state, manifest, blobLookup, registry, preloadAll);
-                            
+
                                 ObjectToHMF(GetClass<ServerManifest>(), BoxedValue(manifest), hmfText);
                             }
                             else
@@ -1094,7 +1267,7 @@ protected:
                     {
                         const char* bad = "HTTP/1.0 400 Bad Request\r\n"
                             "Content-Length: 0\r\n\r\n";
-                        
+
                         send(clientSock, bad, int(strlen(bad)), 0);
                         CLOSE_SOCKET(clientSock);
 

@@ -46,13 +46,13 @@ constexpr struct
 
 #ifdef HYP_DEBUG_MODE
 // #define DebugLog(type, fmt) DebugLog(type, HYP_DEBUG_FUNC_SHORT, HYP_DEBUG_LINE, fmt)
-#define DebugLog(type, ...) \
-    debug::DebugLog_Write(type, HYP_DEBUG_FUNC_SHORT, HYP_DEBUG_LINE, __VA_ARGS__)
+#    define DebugLog(type, ...) \
+        debug::DebugLog_Write(type, HYP_DEBUG_FUNC_SHORT, HYP_DEBUG_LINE, __VA_ARGS__)
 
 CORE_API extern void DebugLog_Write(LogType type, const char* callee, unsigned int line, const char* fmt, ...);
 #else // !HYP_DEBUG_MODE
-#define DebugLog(type, ...) \
-    debug::DebugLog_Write(type, __VA_ARGS__)
+#    define DebugLog(type, ...) \
+        debug::DebugLog_Write(type, __VA_ARGS__)
 
 CORE_API extern void DebugLog_Write(LogType type, const char* fmt, ...);
 #endif // HYP_DEBUG_MODE
@@ -71,91 +71,86 @@ CORE_API extern void LogAssert(const char* str);
 
 #define HYP_ENABLE_BREAKPOINTS 1
 
-#if defined(HYP_CLANG_OR_GCC) && HYP_CLANG_OR_GCC
-#define HYP_DEBUG_FUNC_SHORT (__FUNCTION__)
-#define HYP_DEBUG_FUNC (__PRETTY_FUNCTION__)
-#define HYP_DEBUG_LINE (__LINE__)
-#define HYP_FUNCTION_NAME_LIT (__PRETTY_FUNCTION__)
-
 #ifdef HYP_ENABLE_BREAKPOINTS
-#ifdef HYP_CLANG
-#define HYP_BREAKPOINT (debug::IsDebuggerAttached() && (__builtin_debugtrap(), true))
-#else   // !HYP_CLANG
-#define HYP_BREAKPOINT (debug::IsDebuggerAttached() && (__builtin_debugtrap(), true))
-#endif  // HYP_CLANG
+
+#    if defined(HYP_CLANG_OR_GCC) && HYP_CLANG_OR_GCC
+#        define HYP_DEBUG_FUNC_SHORT (__FUNCTION__)
+#        define HYP_DEBUG_FUNC (__PRETTY_FUNCTION__)
+#        define HYP_DEBUG_LINE (__LINE__)
+#        define HYP_FUNCTION_NAME_LIT (__PRETTY_FUNCTION__)
+
+#        define HYP_BREAKPOINT (debug::IsDebuggerAttached() && (__builtin_debugtrap(), true))
+#    elif defined(HYP_MSVC) && HYP_MSVC
+
+#        define HYP_DEBUG_FUNC_SHORT (__FUNCTION__)
+#        define HYP_DEBUG_FUNC (__FUNCSIG__)
+#        define HYP_DEBUG_LINE (__LINE__)
+#        define HYP_FUNCTION_NAME_LIT (__FUNCSIG__)
+
+#        define HYP_BREAKPOINT (debug::IsDebuggerAttached() && (__debugbreak(), true))
+#    else // unknown compiler, define empty macros
+#        define HYP_DEBUG_FUNC_SHORT ""
+#        define HYP_DEBUG_FUNC ""
+#        define HYP_DEBUG_LINE (0)
+#        define HYP_FUNCTION_NAME_LIT ""
+#    endif // HYP_CLANG_OR_GCC || HYP_MSVC
 
 template <auto FileName, int LineNumber, auto FunctionName>
 static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 {
-    static struct Impl
+    static struct ExecuteBreakpointOnceImpl
     {
-        Impl()
+        ExecuteBreakpointOnceImpl()
         {
             HYP_BREAKPOINT;
         }
     } s_impl;
 }
 
-#define HYP_BREAKPOINT_ONCE ::Hyperion::debug::ExecuteBreakpointOnce<HYP_STATIC_STRING(__FILE__), __LINE__, HYP_STATIC_STRING(HYP_FUNCTION_NAME_LIT)>()
+#    define HYP_BREAKPOINT_ONCE ::Hyperion::debug::ExecuteBreakpointOnce<HYP_STATIC_STRING(__FILE__), __LINE__, HYP_STATIC_STRING(HYP_FUNCTION_NAME_LIT)>()
+
+#else // !HYP_ENABLE_BREAKPOINTS
+
+#    define HYP_BREAKPOINT (void(0))
+#    define HYP_BREAKPOINT_ONCE HYP_BREAKPOINT
 
 #endif // HYP_ENABLE_BREAKPOINTS
-#elif defined(HYP_MSVC) && HYP_MSVC
-#define HYP_DEBUG_FUNC_SHORT (__FUNCTION__)
-#define HYP_DEBUG_FUNC (__FUNCSIG__)
-#define HYP_DEBUG_LINE (__LINE__)
-#define HYP_FUNCTION_NAME_LIT (__FUNCSIG__)
-
-#ifdef HYP_ENABLE_BREAKPOINTS
-#define HYP_BREAKPOINT (debug::IsDebuggerAttached() && (__debugbreak(), true))
-#endif // HYP_ENABLE_BREAKPOINTS
-
-#else // unknown compiler, define empty macros
-
-#define HYP_DEBUG_FUNC_SHORT ""
-#define HYP_DEBUG_FUNC ""
-#define HYP_DEBUG_LINE (0)
-#define HYP_FUNCTION_NAME_LIT ""
-
-#endif // HYP_CLANG_OR_GCC || HYP_MSVC
-
-#ifndef HYP_BREAKPOINT
-#define HYP_BREAKPOINT (void(0))
-#endif // !HYP_BREAKPOINT
 
 } // namespace debug
 
 using debug::LogType;
+
 } // namespace Hyperion
 
 #if defined(HYP_USE_EXCEPTIONS) && HYP_USE_EXCEPTIONS
-#define HYP_THROW(msg) throw ::std::runtime_error(msg)
+#    define HYP_THROW(msg) throw ::std::runtime_error(msg)
 #else
-#if HYP_DEBUG_MODE
-#define HYP_THROW(msg)                        \
-    do                                        \
-    {                                         \
-        debug::WriteToStandardError(&msg[0]); \
-        HYP_PRINT_STACK_TRACE();              \
-        debug::TerminateProgram();            \
-    }                                         \
-    while (0)
-#else
-#define HYP_THROW(msg) debug::TerminateProgram()
-#endif
+#    if HYP_DEBUG_MODE
+#        define HYP_THROW(msg)                        \
+            do                                        \
+            {                                         \
+                debug::WriteToStandardError(&msg[0]); \
+                HYP_PRINT_STACK_TRACE();              \
+                debug::TerminateProgram();            \
+            }                                         \
+            while (0)
+#    else
+#        define HYP_THROW(msg) debug::TerminateProgram()
+#    endif
 #endif
 
 #define HYP_UNREACHABLE() HYP_FAIL("Expected this section to be unreached!")
 
 #if defined(HYP_USE_EXCEPTIONS) && HYP_USE_EXCEPTIONS
-#define HYP_NOT_IMPLEMENTED()                                            \
-    do                                                                   \
-    {                                                                    \
-        HYP_THROW("Function not implemented: " HYP_STR(HYP_DEBUG_FUNC)); \
-        debug::TerminateProgram();                                       \
-    }                                                                    \
-    while (0)
+#    define HYP_NOT_IMPLEMENTED()                                            \
+        do                                                                   \
+        {                                                                    \
+            HYP_THROW("Function not implemented: " HYP_STR(HYP_DEBUG_FUNC)); \
+            debug::TerminateProgram();                                       \
+        }                                                                    \
+        while (0)
 #else
-#define HYP_NOT_IMPLEMENTED() HYP_THROW("Not implemented: " HYP_STR(HYP_DEBUG_FUNC))
+#    define HYP_NOT_IMPLEMENTED() HYP_THROW("Not implemented: " HYP_STR(HYP_DEBUG_FUNC))
 #endif
 
 // obsolete
@@ -193,42 +188,42 @@ using debug::LogType;
     while (0)
 
 #if defined(HYP_MSVC) && defined(_MSVC_TRADITIONAL) && _MSVC_TRADITIONAL
-#error "Traditional MSVC mode is not supported. Please use the new MSVC preprocessor."
+#    error "Traditional MSVC mode is not supported. Please use the new MSVC preprocessor."
 #else
-#define Assert(...) HYP_CONCAT(HYP_ASSERT, HYP_HAS_ARGS(__VA_ARGS__))(__VA_ARGS__)
+#    define Assert(...) HYP_CONCAT(HYP_ASSERT, HYP_HAS_ARGS(__VA_ARGS__))(__VA_ARGS__)
 #endif
 
 #if HYP_DEBUG_MODE
-#define AssertDebug(...) Assert(__VA_ARGS__)
+#    define AssertDebug(...) Assert(__VA_ARGS__)
 #else
-#define AssertDebug(cond, ...) (void)(cond)
+#    define AssertDebug(cond, ...) (void)(cond)
 #endif
 
 #ifdef HYP_ENABLE_CORE_ASSERTIONS
 // Assert used for internal Hyperion libraries. Uses a simple printf-style format string, rather than the internal Hyperion formatting library.
 // Opt to use this macro over AssertDebug() and Assert() to not pollute dependency on including logging headers.
 // These assertions are stripped from released builds.
-#define HYP_CORE_ASSERT(cond, ...)                                                                 \
-    do                                                                                             \
-    {                                                                                              \
-        if (HYP_UNLIKELY(!(cond)))                                                                 \
-        {                                                                                          \
-            std::snprintf(debug::GetErrorStringBuffer(), 4096, #cond "\n\tMessage: " __VA_ARGS__); \
-            debug::LogAssert(debug::GetErrorStringBuffer());                                       \
-            HYP_PRINT_STACK_TRACE();                                                               \
-            debug::TerminateProgram();                                                             \
-        }                                                                                          \
-    }                                                                                              \
-    while (0)
+#    define HYP_CORE_ASSERT(cond, ...)                                                                 \
+        do                                                                                             \
+        {                                                                                              \
+            if (HYP_UNLIKELY(!(cond)))                                                                 \
+            {                                                                                          \
+                std::snprintf(debug::GetErrorStringBuffer(), 4096, #cond "\n\tMessage: " __VA_ARGS__); \
+                debug::LogAssert(debug::GetErrorStringBuffer());                                       \
+                HYP_PRINT_STACK_TRACE();                                                               \
+                debug::TerminateProgram();                                                             \
+            }                                                                                          \
+        }                                                                                              \
+        while (0)
 #else
-#define HYP_CORE_ASSERT(cond, ...) (::Hyperion::debug::NoOpAssertWrapper(cond) __VA_OPT__(, ) __VA_ARGS__)
+#    define HYP_CORE_ASSERT(cond, ...) (::Hyperion::debug::NoOpAssertWrapper(cond) __VA_OPT__(, ) __VA_ARGS__)
 #endif
 
 #if HYP_DEBUG_MODE
-#define HYP_PRINT_STACK_TRACE() \
-    debug::LogStackTrace()
+#    define HYP_PRINT_STACK_TRACE() \
+        debug::LogStackTrace()
 #else
-#define HYP_PRINT_STACK_TRACE()
+#    define HYP_PRINT_STACK_TRACE()
 #endif
 
 #define HYP_FAIL(...)                                                       \

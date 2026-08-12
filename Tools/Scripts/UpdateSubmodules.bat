@@ -39,7 +39,10 @@ if not defined SM_URL (
     exit /b 1
 )
 
-if exist "%SM_PATH%\" (
+set "SM_IS_REPO="
+if exist "%SM_PATH%\.git" set "SM_IS_REPO=1"
+
+if defined SM_IS_REPO (
     echo [UPDATE] %SM_PATH%
     git -C "%SM_PATH%" fetch --all --tags --prune
     if defined SM_BRANCH (
@@ -51,6 +54,16 @@ if exist "%SM_PATH%\" (
         git -C "%SM_PATH%" pull
     )
 ) else (
+    if exist "%SM_PATH%\" (
+        dir /a /b "%SM_PATH%" | findstr "^" >nul
+        if not errorlevel 1 (
+            echo [WARNING] %SM_PATH% exists but is not a git checkout and is not empty; skipping. Remove it manually to allow cloning.
+            endlocal
+            exit /b 1
+        )
+        rmdir "%SM_PATH%"
+    )
+
     echo [CLONE] %SM_PATH%  ^<--  %SM_URL%
     if defined SM_BRANCH (
         git clone --branch "%SM_BRANCH%" -- "%SM_URL%" "%SM_PATH%"

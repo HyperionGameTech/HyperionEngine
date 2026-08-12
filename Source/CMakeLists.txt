@@ -305,6 +305,18 @@ else()
       # no ast recovery or spelling correction/suggestion for clang
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -fno-recovery-ast -fno-spell-checking")
     endif()
+
+    if(APPLE)
+      # CMAKE_CXX_FLAGS only applies to the CXX language -- Objective-C++ (.mm) sources are
+      # compiled under the OBJCXX language and need the same exceptions/RTTI settings, otherwise
+      # they end up ABI-mismatched against the rest of the C++ codebase (e.g. missing typeinfo
+      # symbols for classes whose key function lives in a -fno-rtti TU).
+      set(CMAKE_OBJCXX_FLAGS "${CMAKE_OBJCXX_FLAGS} -fno-exceptions -fno-rtti -ftemplate-backtrace-limit=0")
+
+      if(CMAKE_OBJCXX_COMPILER_ID MATCHES "Clang")
+        set(CMAKE_OBJCXX_FLAGS "${CMAKE_OBJCXX_FLAGS} -Xclang -fno-recovery-ast -fno-spell-checking")
+      endif()
+    endif()
   endif()
 
   # # address sanitizer -- uncomment to enable
@@ -368,6 +380,30 @@ if(NOT Bullet_FOUND)
 endif()
 
 if(Bullet_FOUND)
+  # Homebrew's BulletConfig.cmake ships BULLET_INCLUDE_DIRS / BULLET_LIBRARY_DIRS
+  # as paths relative to BULLET_ROOT_DIR rather than absolute paths, so resolve
+  # them here. Without this, BULLET_LIBRARIES (bare names like "Bullet3Common")
+  # get passed to the linker with no -L path pointing at the actual .dylib/.a files.
+  if(BULLET_ROOT_DIR)
+    set(_BULLET_RESOLVED_INCLUDE_DIRS "")
+    foreach(_bullet_dir ${BULLET_INCLUDE_DIRS})
+      if(IS_ABSOLUTE "${_bullet_dir}")
+        list(APPEND _BULLET_RESOLVED_INCLUDE_DIRS "${_bullet_dir}")
+      else()
+        list(APPEND _BULLET_RESOLVED_INCLUDE_DIRS "${BULLET_ROOT_DIR}/${_bullet_dir}")
+      endif()
+    endforeach()
+    set(BULLET_INCLUDE_DIRS ${_BULLET_RESOLVED_INCLUDE_DIRS})
+
+    foreach(_bullet_lib_dir ${BULLET_LIBRARY_DIRS})
+      if(IS_ABSOLUTE "${_bullet_lib_dir}")
+        link_directories("${_bullet_lib_dir}")
+      else()
+        link_directories("${BULLET_ROOT_DIR}/${_bullet_lib_dir}")
+      endif()
+    endforeach()
+  endif()
+
   message(STATUS "Bullet found")
   message(STATUS "  Bullet include: ${BULLET_INCLUDE_DIRS}")
   message(STATUS "  Bullet libraries: ${BULLET_LIBRARIES}")

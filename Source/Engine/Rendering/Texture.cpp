@@ -38,7 +38,8 @@
 
 #include <stb_image_resize.h>
 
-namespace Hyperion {
+namespace Hyperion
+{
 
 class Texture;
 
@@ -91,14 +92,14 @@ static bool CheckImageData(Texture& texture, GpuImage& image)
         return false;
     }
 
-    //const size_t expectedSize = textureDesc.HasStoredMips()
-    //    ? textureDesc.GetByteSize(/* includeAllMips */ true)
-    //    : textureDesc.GetByteSize();
+    // const size_t expectedSize = textureDesc.HasStoredMips()
+    //     ? textureDesc.GetByteSize(/* includeAllMips */ true)
+    //     : textureDesc.GetByteSize();
 
-    //if (imageData.Size() < expectedSize)
+    // if (imageData.Size() < expectedSize)
     //{
-    //    HYP_LOG(Engine, Error, "Streamed texture data for asset {} is truncated! Expected {} bytes, got {}",
-    //            texture.GetName(), expectedSize, imageData.Size());
+    //     HYP_LOG(Engine, Error, "Streamed texture data for asset {} is truncated! Expected {} bytes, got {}",
+    //             texture.GetName(), expectedSize, imageData.Size());
 
     //    return false;
     //}
@@ -268,8 +269,8 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
         GpuBuffer* stagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(imageData.Size());
 
         Assert(stagingBuffer != nullptr
-            && stagingBuffer->Size() >= imageData.Size()
-            && stagingBuffer->IsCreated());
+               && stagingBuffer->Size() >= imageData.Size()
+               && stagingBuffer->IsCreated());
 
         stagingBuffer->Copy(imageData.Size(), imageData.Data());
 #endif
@@ -419,7 +420,7 @@ RendererResult Texture::Create()
         {
             return HYP_MAKE_ERROR(RendererError, "Texture must have non-zero extent");
         }
-        
+
         const bool shouldUploadTextureData = GetImageData().Size() > 0;
 
         GpuImageRef gpuImage = RI.MakeImage(m_textureDesc);
@@ -1265,9 +1266,9 @@ void Texture::RegenerateMipmaps()
     if (m_gpuImage.IsValid())
     {
         EnqueueDeletion(std::move(m_gpuImage));
-        
+
         writeScope.Reset();
-        
+
         // Recreate
         Check(Create());
     }

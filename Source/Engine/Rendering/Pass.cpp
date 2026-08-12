@@ -1,3 +1,9 @@
+/*!
+ *  @author: The Hyperion Contributors
+ *  @date 2016-2026
+ *  @licence MIT
+ */
+
 #include <RenderingPch.hpp>
 
 #include <Rendering/Pass.hpp>
@@ -80,7 +86,7 @@ void PassBase::OnFrameEnd(uint32 prevFrameIndex)
             HYP_LOG(Rendering, Verbose, "Removing PassData for View {} as it is no longer valid.", pd->view.Id());
 
             delete pd;
-            
+
             it = m_viewPassData.Erase(it);
         }
         else
