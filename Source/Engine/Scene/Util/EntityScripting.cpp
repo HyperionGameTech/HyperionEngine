@@ -69,6 +69,21 @@ CORE_API extern const FilePath& GetExecutablePath();
 
 namespace Strata {
 
+static Pool s_strataPool { 1 * 1024 * 1024, PF_THREAD_SAFE | PF_FALLBACK };
+
+extern "C"
+{
+    void* strata_alloc(size_t count)
+    {
+        return s_strataPool.Allocate(count);
+    }
+
+    static void strata_free(void* ptr)
+    {
+        s_strataPool.Free(ptr);
+    }
+} // extern "C"
+
 // thread-local cache for strata module -> function pointer map
 struct FunctionPointerCache
 {
@@ -141,6 +156,12 @@ static void* ResolveSymbolFromHost(const char* name)
         return nullptr;
     }
 
+    // @TODO a more elegant way of doing this...
+    if (strcmp(name, "printf") == 0)
+    {
+        return &printf;
+    }
+
 #if HYP_WINDOWS
     if (HMODULE h = GetModuleHandleW(nullptr))
     {
@@ -210,12 +231,23 @@ void InitializeCompiler()
         t_strataCompiler = strataCompilerCreate();
         Assert(t_strataCompiler != nullptr);
 
+        strataJitSetAllocFreeFunctions(t_strataCompiler, (void*) &Strata::strata_alloc, (void*) &Strata::strata_free);
+
         if (ThreadBase* currThread = CurrentThreadObject())
         {
             currThread->AddOnExitCallback(ShutdownCompiler);
         }
     }
 }
+
+static const Map<ANSIStringView, void*> s_globalFunctions = {
+    { "printf", (void*)&printf },
+    { "puts", (void*)&puts },
+    { "putchar", (void*)&putchar },
+    { "memset", (void*)&memset },
+    { "memcpy", (void*)&memcpy },
+    { "memcmp", (void*)&memcmp }
+};
 
 void BindExterns(StrataJit* jit)
 {
@@ -230,11 +262,23 @@ void BindExterns(StrataJit* jit)
         if (void* hostFn = ThunkDrawer::Resolve(StringHash(name)))
         {
             strataJitAddSymbol(jit, name, hostFn);
+
+            continue;
         }
-        else
+
+        // Try global functions next:
+        auto it = s_globalFunctions.Find(ANSIStringView(name));
+        if (it != s_globalFunctions.End())
         {
-            HYP_LOG(Scripting, Error, "Strata: no host binding for extern '{}'. Any call to this function will result in a crash!", name);
+            if (strataJitAddSymbol(jit, name, it->second) == 1)
+            {
+                continue;
+            }
+            
+            HYP_LOG(Scripting, Error, "Failed to bind global function {}", name);
         }
+
+        HYP_LOG(Scripting, Error, "Strata: no host binding for extern '{}'. Any call to this function will result in a crash!", name);
     }
 }
 

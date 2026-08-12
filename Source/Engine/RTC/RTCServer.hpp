@@ -35,10 +35,10 @@ struct RTCServerCallbackData
 
 struct RTCServerCallbacks
 {
-    Delegate<void, RTCServerCallbackData&> OnError;
-    Delegate<void, RTCServerCallbackData&> OnConnected;
-    Delegate<void, RTCServerCallbackData&> OnDisconnected;
-    Delegate<void, RTCServerCallbackData&> OnMessage;
+    Delegate<void, RTCServerCallbackData> OnError;
+    Delegate<void, RTCServerCallbackData> OnConnected;
+    Delegate<void, RTCServerCallbackData> OnDisconnected;
+    Delegate<void, RTCServerCallbackData> OnMessage;
 };
 
 struct RTCServerAddress

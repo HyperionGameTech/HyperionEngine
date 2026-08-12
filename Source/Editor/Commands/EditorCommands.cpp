@@ -2551,14 +2551,16 @@ public:
             return;
         }
 
+        const String relativeScriptFilePath = scriptFilePath.ToRelative(rootDir).ToCanonical();
+
         size_t numCopied = Memory::CopyString(
             desc.path.Data(),
-            scriptFilePath.Data(),
-            MathUtil::Min(desc.path.Size(), scriptFilePath.Size()));
+            relativeScriptFilePath.Data(),
+            MathUtil::Min(desc.path.Size(), relativeScriptFilePath.Size()));
 
-        if (numCopied < scriptFilePath.Size())
+        if (numCopied < relativeScriptFilePath.Size())
         {
-            HYP_LOG(Editor, Warning, "File path is too long, will not fit into script desc: {}", scriptFilePath);
+            HYP_LOG(Editor, Warning, "Relative file path is too long, will not fit into script desc! Path: {}", relativeScriptFilePath);
 
             // Zero it out, don't want to point to an invalid path.
             desc.path.Data()[0] = '\0';

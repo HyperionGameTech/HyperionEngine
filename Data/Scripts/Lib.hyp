@@ -2075,6 +2075,7 @@ end
 extern class AudioSource
     GetSound() -> Sound
     SetSound(sound : Sound) -> void
+    static OnChanged : any
     Sound : Sound
 end
 extern class AudioManager

@@ -197,21 +197,25 @@ SharedPtr<RTCDataChannel> LibDataChannelRTCClient::CreateDataChannel(Name name)
             }
         });
 
-    dataChannel->m_dataChannel->onMessage([this](rtc::messageVariant data)
+    dataChannel->m_dataChannel->onMessage([this](rtc::message_variant data)
         {
             if (std::holds_alternative<rtc::binary>(data))
             {
                 const rtc::binary& bytes = std::get<rtc::binary>(data);
 
-                m_callbacks.OnMessage({ Optional<ByteBuffer>(ByteBuffer(bytes.size(), bytes.data())),
-                    Optional<RTCClientError>() });
+                m_callbacks.OnMessage(RTCServerCallbackData {
+                    Optional<ByteBuffer>(ByteBuffer(bytes.size(), bytes.data())),
+                    Optional<RTCClientError>()
+                });
             }
             else
             {
                 const std::string& str = std::get<std::string>(data);
 
-                m_callbacks.OnMessage({ Optional<ByteBuffer>(ByteBuffer(str.size(), str.data())),
-                    Optional<RTCClientError>() });
+                m_callbacks.OnMessage(RTCServerCallbackData {
+                    Optional<ByteBuffer>(ByteBuffer(str.size(), str.data())),
+                    Optional<RTCClientError>()
+                });
             }
         });
 

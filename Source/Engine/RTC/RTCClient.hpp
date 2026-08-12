@@ -60,10 +60,10 @@ struct RTCClientCallbackData
 
 struct RTCClientCallbacks
 {
-    Delegate<void, const RTCClientCallbackData&> OnError;
-    Delegate<void, const RTCClientCallbackData&> OnConnected;
-    Delegate<void, const RTCClientCallbackData&> OnDisconnected;
-    Delegate<void, const RTCClientCallbackData&> OnMessage;
+    Delegate<void, RTCClientCallbackData> OnError;
+    Delegate<void, RTCClientCallbackData> OnConnected;
+    Delegate<void, RTCClientCallbackData> OnDisconnected;
+    Delegate<void, RTCClientCallbackData> OnMessage;
 };
 
 class ENGINE_API RTCClient

@@ -498,21 +498,20 @@ Result DownloadCacheFromHost(
         }
     }
 
-    // @TODO another check.. integer version number? so we can invalidate manually.
     if (serverManifest.timestamp <= localTimestamp)
     {
-        HYP_LOG(CacheClient, Verbose, "CacheSync cache up to date  (local={} >= server={})",
+        HYP_LOG(CacheClient, Verbose, "Cache up to date (local={} >= server={})",
             localTimestamp, serverManifest.timestamp);
 
         return {};
     }
 
-    HYP_LOG(CacheClient, Verbose, "CacheSync cache outdated (local={} < server={})",
+    HYP_LOG(CacheClient, Verbose, "Cache outdated (local={} < server={})",
         localTimestamp, serverManifest.timestamp);
 
     if (!params.outputCacheDir.Exists() && !params.outputCacheDir.MkDir())
     {
-        return HYP_MAKE_ERROR(Error,"CacheSync failed to create cache directory '{}'", params.outputCacheDir);
+        return HYP_MAKE_ERROR(Error, "Failed to create cache directory '{}'", params.outputCacheDir);
     }
 
     BlobStorage& storage = *EngineGlobals::GetBlobStorage();

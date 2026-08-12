@@ -134,39 +134,40 @@ void LibDataChannelRTCServer::Start()
         {
             m_websocket->onOpen([this]()
                 {
-                    m_callbacks.OnConnected({ Optional<ByteBuffer>(),
-                        Optional<RTCServerError>() });
+                    m_callbacks.OnConnected(RTCServerCallbackData { Optional<ByteBuffer>(), Optional<RTCServerError>() });
                 });
 
             m_websocket->onClosed([this]()
                 {
-                    m_callbacks.OnDisconnected({ Optional<ByteBuffer>(),
-                        Optional<RTCServerError>() });
+                    m_callbacks.OnDisconnected(RTCServerCallbackData { Optional<ByteBuffer>(), Optional<RTCServerError>() });
 
                     Stop();
                 });
 
             m_websocket->onError([this](const std::string& error)
                 {
-                    m_callbacks.OnError({ Optional<ByteBuffer>(),
-                        Optional<RTCServerError>(RTCServerError { error.c_str() }) });
+                    m_callbacks.OnError(RTCServerCallbackData { Optional<ByteBuffer>(), Optional<RTCServerError>(RTCServerError { error.c_str() }) });
                 });
 
-            m_websocket->onMessage([this](rtc::messageVariant data)
+            m_websocket->onMessage([this](rtc::message_variant data)
                 {
                     if (std::holds_alternative<rtc::binary>(data))
                     {
                         const rtc::binary& bytes = std::get<rtc::binary>(data);
 
-                        m_callbacks.OnMessage({ Optional<ByteBuffer>(ByteBuffer(bytes.size(), bytes.data())),
-                            Optional<RTCServerError>() });
+                        m_callbacks.OnMessage(RTCServerCallbackData {
+                            Optional<ByteBuffer>(ByteBuffer(bytes.size(), bytes.data())),
+                            Optional<RTCServerError>()
+                        });
                     }
                     else
                     {
                         const std::string& str = std::get<std::string>(data);
 
-                        m_callbacks.OnMessage({ Optional<ByteBuffer>(ByteBuffer(str.size(), str.data())),
-                            Optional<RTCServerError>() });
+                        m_callbacks.OnMessage(RTCServerCallbackData {
+                            Optional<ByteBuffer>(ByteBuffer(str.size(), str.data())),
+                            Optional<RTCServerError>()
+                        });
                     }
                 });
 
@@ -241,8 +242,10 @@ void LibDataChannelRTCServer::SendToSignallingServer(ByteBuffer bytes)
 
             if (!m_websocket->send(std::move(bin)))
             {
-                m_callbacks.OnError({ Optional<ByteBuffer>(),
-                    Optional<RTCServerError>(RTCServerError { "Message could not be sent" }) });
+                m_callbacks.OnError(RTCServerCallbackData {
+                    Optional<ByteBuffer>(),
+                    Optional<RTCServerError>(RTCServerError { "Message could not be sent" })
+                });
             }
         },
         TaskEnqueueFlags::FIRE_AND_FORGET);

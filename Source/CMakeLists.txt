@@ -252,7 +252,7 @@ if(HYP_MSVC)
     set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Zi /GL /GF /Zc:inline /constexpr:depth1024 /bigobj /MP4 /arch:AVX2 /fp:fast")
   else()
     set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Z7 /MP /constexpr:depth1024 /bigobj /arch:AVX2 /fp:fast")
-    
+
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG /INCREMENTAL /OPT:REF /OPT:ICF")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG /NATVIS:${CMAKE_SOURCE_DIR}/Engine/Hyperion.natvis")
   endif()
@@ -262,7 +262,7 @@ if(HYP_MSVC)
   #     set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oy /MD /constexpr:depth1024 /bigobj /MP4")
   # endif()
 
-  # address sanitizer: Enable if you 
+  # address sanitizer: Enable if you
   # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fsanitize=address")
 else()
   # for clang on windows - no min/max macros
@@ -511,10 +511,11 @@ if (HYP_STRATA)
         add_subdirectory(${STRATA_SUBMODULE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/stratac EXCLUDE_FROM_ALL)
 
         set(COMMON_LIBRARIES ${COMMON_LIBRARIES} strata)
-        
+
         # add include.
-        include_directories("${SUBMODULES_DIR}/stratac/include/strata")
-        
+        # include_directories("${SUBMODULES_DIR}/stratac/include/strata")
+        include_directories("${STRATA_SUBMODULE_DIR}/include")
+
         set(HYP_STRATA_JIT 1)
         add_definitions(-DHYP_STRATA_JIT=1)
     else()
@@ -966,57 +967,61 @@ if (${HYP_PLATFORM_NAME} STREQUAL "Mac")
     )
 endif()
 
-if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "IOS" AND NOT HYP_ANDROID)
-  if(EXISTS "${SUBMODULES_DIR}/libdatachannel/CMakeLists.txt")
-    add_definitions(-DHYP_LIBDATACHANNEL=1)
+set(ENABLE_LIBDATACHANNEL FALSE)
 
-    # Build libdatachannel as external project (only for VS and Xcode)
-    if(HYP_MSVC) # OR CMAKE_GENERATOR STREQUAL "Xcode"
-      ExternalProject_Add(libdatachannel_external
-                SOURCE_DIR ${SUBMODULES_DIR}/libdatachannel
-                CMAKE_ARGS
-                    -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-                    -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libdatachannel_install
-                    -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-                BUILD_ALWAYS FALSE
-                INSTALL_COMMAND ""
-                EXCLUDE_FROM_ALL TRUE
-            )
+if(ENABLE_LIBDATACHANNEL)
+    if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "IOS" AND NOT HYP_ANDROID)
+      if(EXISTS "${SUBMODULES_DIR}/libdatachannel/CMakeLists.txt")
+        add_definitions(-DHYP_LIBDATACHANNEL=1)
 
-      # Create imported target
-      ExternalProject_Get_Property(libdatachannel_external BINARY_DIR)
-
-      add_library(datachannel-static STATIC IMPORTED)
-      add_dependencies(datachannel-static libdatachannel_external)
-
-      if(WIN32)
-        set_target_properties(datachannel-static PROPERTIES
-                    IMPORTED_LOCATION ${BINARY_DIR}/${CMAKE_BUILD_TYPE}/datachannel-static.lib
+        # Build libdatachannel as external project (only for VS and Xcode)
+        if(HYP_MSVC) # OR CMAKE_GENERATOR STREQUAL "Xcode"
+          ExternalProject_Add(libdatachannel_external
+                    SOURCE_DIR ${SUBMODULES_DIR}/libdatachannel
+                    CMAKE_ARGS
+                        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                        -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libdatachannel_install
+                        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+                    BUILD_ALWAYS FALSE
+                    INSTALL_COMMAND ""
+                    EXCLUDE_FROM_ALL TRUE
                 )
-      else()
-        set_target_properties(datachannel-static PROPERTIES
-                    IMPORTED_LOCATION ${BINARY_DIR}/libdatachannel-static.a
+
+          # Create imported target
+          ExternalProject_Get_Property(libdatachannel_external BINARY_DIR)
+
+          add_library(datachannel-static STATIC IMPORTED)
+          add_dependencies(datachannel-static libdatachannel_external)
+
+          if(WIN32)
+            set_target_properties(datachannel-static PROPERTIES
+                        IMPORTED_LOCATION ${BINARY_DIR}/${CMAKE_BUILD_TYPE}/datachannel-static.lib
+                    )
+          else()
+            set_target_properties(datachannel-static PROPERTIES
+                        IMPORTED_LOCATION ${BINARY_DIR}/libdatachannel-static.a
+                    )
+          endif()
+
+          include_directories(SYSTEM ${SUBMODULES_DIR}/libdatachannel/include)
+
+          set(COMMON_LIBRARIES
+                    ${COMMON_LIBRARIES}
+                    datachannel-static
                 )
+        else()
+          # For other generators (Makefiles, Ninja, etc.), use add_subdirectory
+          add_subdirectory(${SUBMODULES_DIR}/libdatachannel EXCLUDE_FROM_ALL)
+
+          include_directories(SYSTEM ${SUBMODULES_DIR}/libdatachannel/include)
+
+          set(COMMON_LIBRARIES
+                    ${COMMON_LIBRARIES}
+                    datachannel-static
+                )
+        endif()
       endif()
-
-      include_directories(SYSTEM ${SUBMODULES_DIR}/libdatachannel/include)
-
-      set(COMMON_LIBRARIES
-                ${COMMON_LIBRARIES}
-                datachannel-static
-            )
-    else()
-      # For other generators (Makefiles, Ninja, etc.), use add_subdirectory
-      add_subdirectory(${SUBMODULES_DIR}/libdatachannel EXCLUDE_FROM_ALL)
-
-      include_directories(SYSTEM ${SUBMODULES_DIR}/libdatachannel/include)
-
-      set(COMMON_LIBRARIES
-                ${COMMON_LIBRARIES}
-                datachannel-static
-            )
     endif()
-  endif()
 endif()
 
 # # if submodule 'oidn' exists , link with it
