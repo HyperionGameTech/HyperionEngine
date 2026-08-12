@@ -377,8 +377,12 @@ TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTTy
     // References have no Strata representation, except for the handful of
     // value types that are conventionally passed around by const reference in
     // C++ (String/ANSIString, Array<T>, Vec3f/Vec4f) despite crossing the
-    // Strata boundary by value / fat-pointer rather than by C++ reference.
-    // Unwrap those; every other reference remains unsupported.
+    // Strata boundary by value / fat-pointer rather than by C++ reference, and
+    // UDT structs (HYP_STRUCT / unreflected types), which Strata always passes
+    // by reference implicitly, matching the pointer convention used when the
+    // C++ side takes/returns them by pointer instead. Unwrap those; every
+    // other reference remains unsupported (e.g. a HYP_CLASS by reference,
+    // which must be passed as a handle instead).
     if (type->isLvalueReference || type->isRvalueReference)
     {
         if (!type->refTo)
@@ -390,7 +394,7 @@ TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTTy
         {
             const StrataTypeMapping& innerMapping = innerRes.GetValue();
 
-            if (innerMapping.isString || innerMapping.isArray || innerMapping.isVector)
+            if (innerMapping.isString || innerMapping.isArray || innerMapping.isVector || innerMapping.isStructValue)
             {
                 return innerMapping;
             }
@@ -421,15 +425,24 @@ TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTTy
             return HYP_MAKE_ERROR(Error, "C-strings are not supported in Strata bindings");
         }
 
-        // A raw `T*` is only valid if T is a known engine class/struct (a handle).
+        // A raw `T*` is only valid if T is a known engine class/struct. Classes
+        // (HYP_CLASS) are handles, mirroring the host-side object directly.
+        // Structs (HYP_STRUCT) are UDTs, passed by reference like their `T&`
+        // counterpart above - not handles, since they aren't in allHandleNames.
         if (type->ptrTo->typeName.HasValue() && !type->ptrTo->typeName->parts.Empty())
         {
             const String innerName = type->ptrTo->typeName->ToString(/* includeNamespace */ false);
 
             if (const ClassDefinition* definition = analyzer.FindClassDefinition(innerName);
-                definition && (definition->type == ClassDefinitionType::Class || definition->type == ClassDefinitionType::Struct))
+                definition && definition->type == ClassDefinitionType::Class)
             {
                 return StrataTypeMapping { definition->name, true };
+            }
+
+            if (const ClassDefinition* definition = analyzer.FindClassDefinition(innerName);
+                definition && definition->type == ClassDefinitionType::Struct)
+            {
+                return StrataTypeMapping { definition->name, false, true };
             }
         }
 

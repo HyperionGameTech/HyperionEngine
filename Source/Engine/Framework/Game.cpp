@@ -712,6 +712,12 @@ void Game::SyncContentAndLaunch()
         PushAssetRegistry(m_assetRegistry);
         m_assetRegistryActive = true;
 
+        // Re-register assets that were removed from the AssetRegistry's cache from Shutdown(shutdownWorld = false) call.
+        if (m_world.IsValid() && !m_world->IsTransient())
+        {
+            m_assetRegistry->PutAssetsDeep(m_world);
+        }
+
         Launch();
     }
 }

@@ -244,8 +244,9 @@ void ScriptSystem::OnAddedToWorld(World* world)
 
                             bool matchesScript = false;
 
-                            if (inScriptDesc.language == ScriptLanguage::HypScript
-                                || inScriptDesc.language == ScriptLanguage::Strata)
+                            if ((inScriptDesc.language == ScriptLanguage::HypScript
+                                    || inScriptDesc.language == ScriptLanguage::Strata)
+                                && scriptAsset->IsRegistered())
                             {
                                 Handle<AssetRegistry> registry = scriptAsset->GetAssetRegistry();
 

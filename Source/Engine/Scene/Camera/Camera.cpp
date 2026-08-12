@@ -233,17 +233,6 @@ void Camera::Init()
 
     SetNodeFlags(m_nodeFlags | NodeFlags::ExcludeFromParentBounds | NodeFlags::ExcludeFromOctree);
 
-    const Vec3f translation = GetWorldTranslation();
-
-    UpdateStreamingVolume();
-    UpdateMatchWindowSize();
-
-    UpdateMouseLocked();
-
-    UpdateViewMatrix();
-    UpdateProjectionMatrix();
-    UpdateViewProjectionMatrix();
-
     SetReady(true);
 }
 
@@ -784,7 +773,14 @@ void Camera::UpdateMouseLocked()
 void Camera::OnAddedToWorld(World* world)
 {
     UpdateStreamingVolume();
+    UpdateMatchWindowSize();
 
+    UpdateMouseLocked();
+
+    UpdateViewMatrix();
+    UpdateProjectionMatrix();
+    UpdateViewProjectionMatrix();
+    
     Entity::OnAddedToWorld(world);
 }
 

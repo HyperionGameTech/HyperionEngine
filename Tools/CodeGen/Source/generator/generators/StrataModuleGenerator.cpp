@@ -64,6 +64,15 @@ bool MemberIsStrataScriptable(const MemberDef& member)
         return false;
     }
 
+    // Operator overloads (operator==, operator!=, ...) have no valid Strata
+    // identifier spelling - the extern name would embed the operator symbol
+    // itself (e.g. "Transform_operator=="), which the Strata parser rejects.
+    // The C# generator skips these too for the same reason.
+    if (member.name.StartsWith("operator"))
+    {
+        return false;
+    }
+
     if (const ClassAttributeValue& attr = member.GetAttribute(Attributes::g_attrOnlyLanguages); attr.IsValid() && attr.IsString())
     {
         if (!CheckAttrCSV(attr, "strata"))
@@ -645,12 +654,14 @@ Result StrataModuleGenerator::EmitThunks(const Analyzer& analyzer, const Module&
                 }
                 else if (paramTypeMapping.isVector)
                 {
-                    // float3/float4 are core Strata types passed by value, not by
-                    // reference like structs - take the C++ vector by value here too.
+                    // float3/float4 cross the extern "C" boundary as a raw SIMD
+                    // register (stratac lowers them to __m128/float32x4_t), not
+                    // a Vec3f/Vec4f struct by value - convert explicitly.
                     const String vectorCxxTypeName = unwrappedParamType->typeName->ToString(/* includeNamespace */ false);
+                    const String convertFnName = vectorCxxTypeName == "Vec4f" ? "SimdVectorToVec4f" : "SimdVectorToVec3f";
 
-                    sigParams.PushBack(HYP_FORMAT("{} {}", vectorCxxTypeName, paramName));
-                    callArgs.PushBack(paramName);
+                    sigParams.PushBack(HYP_FORMAT("::Hyperion::Strata::SimdVector {}", paramName));
+                    callArgs.PushBack(HYP_FORMAT("::Hyperion::Strata::{}({})", convertFnName, paramName));
                 }
                 else if (paramTypeMapping.isStructValue)
                 {
@@ -754,6 +765,17 @@ Result StrataModuleGenerator::EmitThunks(const Analyzer& analyzer, const Module&
                 methodOutput += " { ";
                 methodOutput += callExpr;
                 methodOutput += "; }\n";
+            }
+            else if (returnTypeMapping.isVector)
+            {
+                // float3/float4 cross the extern "C" boundary as a raw SIMD
+                // register (stratac lowers them to __m128/float32x4_t), not a
+                // Vec3f/Vec4f struct by value - convert explicitly via the
+                // overloaded ToSimdVector (picks Vec3f/Vec4f by callExpr's type).
+                methodOutput += HYP_FORMAT("extern \"C\" ::Hyperion::Strata::SimdVector {}({})", externName, sigParamsString);
+                methodOutput += " { return ::Hyperion::Strata::ToSimdVector(";
+                methodOutput += callExpr;
+                methodOutput += "); }\n";
             }
             else
             {
