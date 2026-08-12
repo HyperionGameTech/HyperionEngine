@@ -12,8 +12,6 @@
 #include <Scene/Node.hpp>
 #include <Scene/DetachedScene.hpp>
 
-#include <Scene/Util/EntityScripting.hpp>
-
 #include <Scene/EntityManager.hpp>
 #include <Scene/EntityTag.hpp>
 
@@ -24,6 +22,8 @@
 #include <Scene/Components/VisibilityStateComponent.hpp>
 #include <Scene/Components/BoundingBoxComponent.hpp>
 #include <Scene/Components/LightmapElementComponent.hpp>
+
+#include <Scripting/EntityScripting.hpp>
 
 #include <Rendering/Mesh.hpp>
 #include <Rendering/Material.hpp>

@@ -11,8 +11,6 @@
 #include <Scene/EntityManager.hpp>
 #include <Scene/Systems/ScriptSystem.hpp>
 
-#include <Scene/Util/EntityScripting.hpp>
-
 #include <Scripting/Asset/ScriptAsset.hpp>
 
 #include <Scripting/ScriptObjectResource.hpp>
@@ -27,6 +25,7 @@
 #include <DotNET/DotNETHost.hpp>
 
 #include <Scripting/ScriptingService.hpp>
+#include <Scripting/EntityScripting.hpp>
 
 #include <Asset/AssetRegistry.hpp>
 

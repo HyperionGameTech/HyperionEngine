@@ -6,7 +6,7 @@
 
 #include <ScenePch.hpp>
 
-#include <Scene/Util/EntityScripting.hpp>
+#include <Scripting/EntityScripting.hpp>
 
 #include <Scene/Entity.hpp>
 #include <Scene/World.hpp>
@@ -274,7 +274,7 @@ void BindExterns(StrataJit* jit)
             {
                 continue;
             }
-            
+
             HYP_LOG(Scripting, Error, "Failed to bind global function {}", name);
         }
 
@@ -589,7 +589,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
                 // Create from bytecode
                 ConstByteView bytecode = scriptAsset->GetBytecode();
-                
+
 #ifdef HYP_EDITOR
                 if (bytecode.Size() > 0)
                 {

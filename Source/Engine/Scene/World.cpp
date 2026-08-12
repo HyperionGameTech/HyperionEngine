@@ -14,8 +14,6 @@
 #include <Scene/SystemExecutionGroup.hpp>
 #include <Scene/Subsystem.hpp>
 
-#include <Scene/Util/EntityScripting.hpp>
-
 #include <Scene/Systems/VisibilityStateUpdaterSystem.hpp>
 #include <Scene/Systems/LightmapSystem.hpp>
 #include <Scene/Systems/AnimationSystem.hpp>
@@ -31,6 +29,8 @@
 #include <Scene/Components/BoundingBoxComponent.hpp>
 
 #include <Scene/WorldGrid/WorldGrid.hpp>
+
+#include <Scripting/EntityScripting.hpp>
 
 #include <Core/Threading/Threads.hpp>
 #include <Core/Threading/Task.hpp>
@@ -418,7 +418,7 @@ void World::SetWorldFlags(EnumFlags<WorldFlags> flags)
                 m_physicsWorld->Teardown();
                 m_physicsWorld.Reset();
             }
-            
+
             PhysicsSystem* physicsSystem = GetSystem<PhysicsSystem>();
 
             if (physicsSystem != nullptr)
