@@ -540,9 +540,10 @@ if (HYP_STRATA)
 
         message(STATUS "Building strata from submodule: ${STRATA_SUBMODULE_DIR}")
 
-        set(STRATA_SHARED OFF CACHE BOOL "Build Strata as a shared library")
-        set(STRATA_ENABLE_LLVM OFF CACHE BOOL "Build strata with LLVM backend")
-        set(STRATA_ENABLE_TCC ON CACHE BOOL "Build strata with TCC backend")
+        set(STRATA_SHARED ON CACHE BOOL "Build Strata as a shared library")
+        # set(STRATA_ENABLE_TCC ON CACHE BOOL "Build strata with TCC backend")
+        # vvvv temp, just to get stratac.exe
+        set(STRATA_ENABLE_LLVM ON CACHE BOOL "Build strata with LLVM backend")
 
         add_subdirectory(${STRATA_SUBMODULE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/stratac EXCLUDE_FROM_ALL)
 
