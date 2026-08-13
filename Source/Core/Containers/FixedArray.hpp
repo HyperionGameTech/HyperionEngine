@@ -44,8 +44,6 @@ public:
     using KeyType = size_t;
     using ValueType = T;
 
-    static constexpr size_t size = Sz;
-
     template <class OtherType, size_t OtherSize>
     HYP_FORCE_INLINE constexpr bool operator==(const FixedArray<OtherType, OtherSize>& other) const
     {
@@ -182,7 +180,7 @@ public:
     template <class OtherContainer>
     HYP_FORCE_INLINE bool CompareBitwise(const OtherContainer& other) const
     {
-        if constexpr (Sz != OtherContainer::size)
+        if constexpr (Sz != GetArrayCount(other.values))
         {
             return false;
         }
@@ -339,7 +337,7 @@ template <class T, size_t N>
 using FixedArray = containers::FixedArray<T, N>;
 
 template <class T, size_t N>
-constexpr uint32 ArraySize(const FixedArray<T, N>&)
+HYP_FORCE_INLINE HYP_CONSTEVAL size_t GetArrayCount(const FixedArray<T, N>&)
 {
     return N;
 }

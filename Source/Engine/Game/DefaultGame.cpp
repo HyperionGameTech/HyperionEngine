@@ -322,8 +322,8 @@ void DefaultGame::OnLaunch()
 
     ScriptDesc& scriptDesc = scriptAsset->GetScriptDesc();
     scriptDesc.language = ScriptLanguage::HypScript;
-    Memory::CopyString(scriptDesc.path.values, "FPSCounter.hyp", ArraySize(scriptDesc.path));
-    Memory::CopyString(scriptDesc.className.values, "MyClass", ArraySize(scriptDesc.className));
+    Memory::CopyString(scriptDesc.path.values, "FPSCounter.hyp", GetArrayCount(scriptDesc.path));
+    Memory::CopyString(scriptDesc.className.values, "MyClass", GetArrayCount(scriptDesc.className));
 
     Handle<Entity> cubeEnt = MakeHandle<Entity>();
     cubeEnt->SetName(NAME("Cube"));

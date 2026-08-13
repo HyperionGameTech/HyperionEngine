@@ -595,10 +595,10 @@ Handle<Node> Node::Select(ANSIStringView selector) const
 
             ++bufferIndex;
 
-            if (bufferIndex == std::size(buffer))
+            if (bufferIndex == GetArrayCount(buffer))
             {
                 HYP_LOG(Node, Warning, "Node search string too long, must be within buffer size limit of {}",
-                        std::size(buffer));
+                        GetArrayCount(buffer));
 
                 return Handle<Node>::empty;
             }

@@ -525,7 +525,7 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(
 
         VkDescriptorSetAllocateInfo allocInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
         allocInfo.descriptorPool = outVkDescriptorPool;
-        allocInfo.descriptorSetCount = ArraySize(layouts);
+        allocInfo.descriptorSetCount = GetArrayCount(layouts);
         allocInfo.pSetLayouts = &layouts[0];
 
         if (variableDescriptorCount > 0)

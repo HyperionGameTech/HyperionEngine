@@ -59,7 +59,7 @@ FileByteReader::FileByteReader(const FilePath& filepath, size_t offset)
 #ifdef HYP_ANDROID
     if (IsAndroidAssetPath(filepath))
     {
-        const String fileName = filepath.Substr(std::size(AndroidAssetPathPrefix));
+        const String fileName = filepath.Substr(GetArrayCount(AndroidAssetPathPrefix));
         m_asset = AAssetManager_open(g_androidAssetManager, fileName.Data(), AASSET_MODE_RANDOM);
 
         if (m_asset == nullptr)

@@ -121,7 +121,7 @@ static constexpr const char* AllBucketNameStrings[] = {
 
 } // namespace AssetBuckets
 
-static constexpr size_t MaxAssetBuckets = std::size(AssetBuckets::AllBuckets);
+static constexpr size_t MaxAssetBuckets = GetArrayCount(AssetBuckets::AllBuckets);
 
 /*! \brief Returns the predefined AssetBucket whose name matches \p nameHash, or nullptr. */
 inline constexpr const AssetBucket& GetAssetBucketByName(StringHash nameHash)

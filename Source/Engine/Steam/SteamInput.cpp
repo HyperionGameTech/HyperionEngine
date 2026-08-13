@@ -121,7 +121,7 @@ void SteamInputManager::Initialize()
         return;
     }
 
-    for (size_t i = 0; i < std::size(ActionSetDescs); i++)
+    for (size_t i = 0; i < GetArrayCount(ActionSetDescs); i++)
     {
         InitializeActionSet(ActionSetDescs[i], m_actionSets[i]);
 

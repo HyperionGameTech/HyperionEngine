@@ -753,7 +753,7 @@ struct Formatter<StringType, math::Vec2<T>>
 
         int resultSize = std::snprintf(reinterpret_cast<char*>(buf), 1024, GetFormatString(), value.x, value.y) + 1;
 
-        if (resultSize > HYP_ARRAY_SIZE(inlineBuf))
+        if (resultSize > GetArrayCount(inlineBuf))
         {
             buf = new ubyte[resultSize];
 

@@ -348,9 +348,9 @@ struct NoOpFunction<void>
 
 #pragma endregion Misc utilities
 
-/*! \brief Size of an array literal (Hyperion equivalent of std::size) */
-template <class T, uint32 N>
-constexpr uint32 ArraySize(const T (&)[N])
+/*! \brief Gets size of a constant-time known-sized array. Basically just std::size(), but we allow it for internal container types, too. */
+template <class T, size_t N>
+HYP_FORCE_INLINE HYP_CONSTEVAL size_t GetArrayCount(const T (&)[N])
 {
     return N;
 }

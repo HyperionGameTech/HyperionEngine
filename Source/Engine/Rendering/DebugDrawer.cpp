@@ -1035,7 +1035,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
 
     cr << SetShaderUniform(7, "ImmediateDrawsBuffer"_sh, instanceBuffer);
 
-    for (size_t shapeIdx = 0; shapeIdx < std::size(partitionedShaderData); shapeIdx++)
+    for (size_t shapeIdx = 0; shapeIdx < GetArrayCount(partitionedShaderData); shapeIdx++)
     {
         auto& shaderData = partitionedShaderData[shapeIdx];
 

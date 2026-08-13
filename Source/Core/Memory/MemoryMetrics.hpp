@@ -25,11 +25,10 @@ struct MemoryMetrics
         MM_BLOCKS_TOTAL,
         MM_BYTES_PEAK,
 
-        MM_MAX_ // windows defines MM_MAX lol
+        MM_MAX_ = 8 // windows defines MM_MAX lol
     };
 
-    size_t values[8]; // reserve some space for future use
-    static_assert(HYP_ARRAY_SIZE(values) >= MM_MAX_, "Not enough space in MemoryMetrics values array.");
+    size_t values[MM_MAX_];
 
     MemoryMetrics()
         : values()

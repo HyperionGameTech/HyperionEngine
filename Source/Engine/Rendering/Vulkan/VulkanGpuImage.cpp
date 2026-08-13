@@ -334,7 +334,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
     imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imageInfo.flags = vkImageCreateFlags;
     imageInfo.pQueueFamilyIndices = imageFamilyIndices;
-    imageInfo.queueFamilyIndexCount = uint32(std::size(imageFamilyIndices));
+    imageInfo.queueFamilyIndexCount = uint32(GetArrayCount(imageFamilyIndices));
 
     VmaAllocationCreateInfo allocInfo {};
     allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;

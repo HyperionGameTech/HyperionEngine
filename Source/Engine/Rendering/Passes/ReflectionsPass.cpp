@@ -193,7 +193,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
 
     uint32 numRenderedEnvProbes = 0;
 
-    for (uint32 envProbeTypeIndex = 0; envProbeTypeIndex < ArraySize(EnvProbeTypes); envProbeTypeIndex++)
+    for (uint32 envProbeTypeIndex = 0; envProbeTypeIndex < GetArrayCount(EnvProbeTypes); envProbeTypeIndex++)
     {
         const CubemapType cubemapType = CubemapTypes[envProbeTypeIndex];
 

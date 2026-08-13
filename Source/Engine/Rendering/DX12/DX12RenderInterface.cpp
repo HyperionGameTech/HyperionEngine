@@ -446,7 +446,7 @@ RendererResult DX12RenderInterface::Initialize()
         CheckResultOrReturn(m_commandBuffers[frameIndex]->Create());
 #ifdef HYP_RHI_DEBUG_NAMES
         wchar_t nameBuf[64];
-        swprintf(nameBuf, std::size(nameBuf), L"Main CommandBuffer [frame=%u]", frameIndex);
+        swprintf(nameBuf, GetArrayCount(nameBuf), L"Main CommandBuffer [frame=%u]", frameIndex);
         m_commandBuffers[frameIndex]->SetDebugName(nameBuf);
 #endif
     }
@@ -835,7 +835,7 @@ DX12CommandBuffer& DX12RenderInterface::GetTransientCommandBuffer()
 #ifdef HYP_RHI_DEBUG_NAMES
     {
         wchar_t nameBuf[128];
-        swprintf(nameBuf, std::size(nameBuf), L"Transient CommandBuffer [thread=%u][frame=%u]",
+        swprintf(nameBuf, GetArrayCount(nameBuf), L"Transient CommandBuffer [thread=%u][frame=%u]",
                  renderThreadIndex, frameIndex);
         pCommandBuffer->SetDebugName(nameBuf);
     }
@@ -870,7 +870,7 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
             fence.Create();
 #ifdef HYP_RHI_DEBUG_NAMES
             wchar_t fenceNameBuf[64];
-            swprintf(fenceNameBuf, std::size(fenceNameBuf), L"Transient Fence [frame=%u]", frameIndex);
+            swprintf(fenceNameBuf, GetArrayCount(fenceNameBuf), L"Transient Fence [frame=%u]", frameIndex);
             fence.SetDebugName(fenceNameBuf);
 #endif
         }
@@ -881,7 +881,7 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
     ID3D12CommandQueue* commandQueue = commandBuffer.GetCommandQueue();
 
     ID3D12CommandList* commandLists[] = { commandBuffer.GetCommandList() };
-    commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
+    commandQueue->ExecuteCommandLists(GetArrayCount(commandLists), commandLists);
 
     pTransientFence->Increment();
 
@@ -931,7 +931,7 @@ void DX12RenderInterface::BindDescriptorHeaps(DX12CommandBuffer& commandBuffer)
     if (commandBuffer.GetBoundViewHeap() != viewHeap || commandBuffer.GetBoundSamplerHeap() != samplerHeap)
     {
         ID3D12DescriptorHeap* heaps[] = { viewHeap, samplerHeap };
-        commandBuffer.GetCommandList()->SetDescriptorHeaps(UINT(std::size(heaps)), heaps);
+        commandBuffer.GetCommandList()->SetDescriptorHeaps(UINT(GetArrayCount(heaps)), heaps);
 
         commandBuffer.SetBoundDescriptorHeaps(viewHeap, samplerHeap);
     }

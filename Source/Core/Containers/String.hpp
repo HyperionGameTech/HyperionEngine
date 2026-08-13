@@ -936,7 +936,7 @@ public:
                     utf::Char8 separatorBytes[sizeof(utf::Char32) + 1] = { '\0' };
                     utf::Char32to8(separator, separatorBytes, codepoints);
 
-                    HYP_CORE_ASSERT(codepoints <= HYP_ARRAY_SIZE(separatorBytes));
+                    HYP_CORE_ASSERT(codepoints <= sizeof(separatorBytes));
 
                     for (size_t codepoint = 0; codepoint < codepoints; codepoint++)
                     {
@@ -974,7 +974,7 @@ public:
                     utf::Char8 separatorBytes[sizeof(utf::Char32) + 1] = { '\0' };
                     utf::Char32to8(separator, separatorBytes, codepoints);
 
-                    HYP_CORE_ASSERT(codepoints <= HYP_ARRAY_SIZE(separatorBytes));
+                    HYP_CORE_ASSERT(codepoints <= GetArrayCount(separatorBytes));
 
                     for (size_t codepoint = 0; codepoint < codepoints; codepoint++)
                     {

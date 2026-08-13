@@ -50,7 +50,7 @@ struct SphericalHarmonicsData
     {
         SphericalHarmonicsData result;
         
-        for (size_t i = 0; i < std::size(values); i++)
+        for (size_t i = 0; i < GetArrayCount(values); i++)
         {
             result.values[i] = values[i] * weight;
         }
@@ -63,7 +63,7 @@ struct SphericalHarmonicsData
     {
         SphericalHarmonicsData result;
         
-        for (size_t i = 0; i < std::size(values); i++)
+        for (size_t i = 0; i < GetArrayCount(values); i++)
         {
             result.values[i] = values[i] + other.values[i];
         }

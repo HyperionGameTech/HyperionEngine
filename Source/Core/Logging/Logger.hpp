@@ -97,7 +97,7 @@ static constexpr Span<const char> LogLevelTermColor(LogLevel logLevel)
         "\033[33m"  // Warning
     };
 
-    if (uint8(logLevel) >= uint8(std::size(ColorTable)))
+    if (uint8(logLevel) >= uint8(GetArrayCount(ColorTable)))
     {
         constexpr Span<const char> DefaultColor = "\033[0m";
 

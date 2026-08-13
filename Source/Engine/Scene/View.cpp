@@ -222,7 +222,7 @@ View::~View()
 {
     Assert(m_collectionTaskBatch == nullptr, "Collection tasks pending on View destruction!");
 
-    for (size_t i = 0; i < std::size(m_renderProxyLists); i++)
+    for (size_t i = 0; i < GetArrayCount(m_renderProxyLists); i++)
     {
         if ((flags & ViewFlags::NOT_MULTI_BUFFERED) && i > 0)
         {

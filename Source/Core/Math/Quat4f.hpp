@@ -170,7 +170,7 @@ struct Formatter<StringType, Quat4f>
 
         int resultSize = std::snprintf(reinterpret_cast<char*>(buf), 1024, "[%f %f %f %f]", value.x, value.y, value.z, value.w) + 1;
 
-        if (resultSize > HYP_ARRAY_SIZE(inlineBuf))
+        if (resultSize > GetArrayCount(inlineBuf))
         {
             buf = new ubyte[resultSize];
 

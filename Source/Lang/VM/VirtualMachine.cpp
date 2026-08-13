@@ -4071,7 +4071,7 @@ void VirtualMachine::Invoke(ScriptInstance* instance, BoxedValue&& value, uint8 
     char buffer[256];
     std::snprintf(
         buffer,
-        HYP_ARRAY_SIZE(buffer),
+        GetArrayCount(buffer),
         "cannot invoke type '%s' as a function",
         GetTypeString(value));
 
@@ -4145,7 +4145,7 @@ void VirtualMachine::InvokeImmediate(ScriptInstance* instance, BoxedValue&& valu
 
 void VirtualMachine::CreateTrace(ScriptInstance* instance, Script_Trace* outTrace)
 {
-    const size_t maxStackTraceSize = std::size(outTrace->callAddresses);
+    const size_t maxStackTraceSize = GetArrayCount(outTrace->callAddresses);
 
     for (int& callAddress : outTrace->callAddresses)
     {

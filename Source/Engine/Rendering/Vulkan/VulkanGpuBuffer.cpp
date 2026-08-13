@@ -590,7 +590,7 @@ VkBufferCreateInfo VulkanGpuBuffer::GetBufferCreateInfo() const
     vkBufferInfo.size = m_size;
     vkBufferInfo.usage = m_vkBufferUsageFlags;
     vkBufferInfo.pQueueFamilyIndices = bufferFamilyIndices;
-    vkBufferInfo.queueFamilyIndexCount = ArraySize(bufferFamilyIndices);
+    vkBufferInfo.queueFamilyIndexCount = GetArrayCount(bufferFamilyIndices);
 
     return vkBufferInfo;
 }

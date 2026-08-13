@@ -152,7 +152,7 @@ void GetDeferredShaderProperties(
         };
         
         const int debugMode = g_cvDeferredDebugVis.Get();
-        const ShaderPropertyId* shaderProperty = debugMode < std::size(DebugShaderProperties)
+        const ShaderPropertyId* shaderProperty = debugMode < GetArrayCount(DebugShaderProperties)
             ? DebugShaderProperties[debugMode]
             : nullptr;
         

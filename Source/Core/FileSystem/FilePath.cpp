@@ -53,7 +53,7 @@ static UTF8StringView GetAndroidAssetPath(const FilePath& filepath)
     }
 
     // we want the path, plus '/' so we use full size of the char array.
-    return filepath.Substr(std::size(AndroidAssetPathPrefix));
+    return filepath.Substr(GetArrayCount(AndroidAssetPathPrefix));
 }
 
 #endif

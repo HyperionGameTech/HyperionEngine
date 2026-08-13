@@ -3032,7 +3032,7 @@ public:
 
         const uint8 index = static_cast<uint8>(type);
 
-        return index < std::size(s_classes)
+        return index < GetArrayCount(s_classes)
             ? s_classes[index]
             : nullptr;
     }

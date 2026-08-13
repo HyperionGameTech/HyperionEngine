@@ -1133,7 +1133,7 @@ extern "C"
                 // Conditional: If the name of the class ends with "Commandlet", we strip off that part of the string before handing it over.
                 if (str.EndsWith("Commandlet"))
                 {
-                    str = str.Substr(0, str.Length() - (std::size("Commandlet") - 1));
+                    str = str.Substr(0, str.Length() - (GetArrayCount("Commandlet") - 1));
 
                     callbackFn(str.Data(), userData);
                 }
@@ -1165,7 +1165,7 @@ extern "C"
                 String str = cls->GetName().ToString();
                 if (str.StartsWith("EditorCommand"))
                 {
-                    str = str.Substr(std::size("EditorCommand") - 1);
+                    str = str.Substr(GetArrayCount("EditorCommand") - 1);
 
                     callbackFn(str.Data(), userData);
                 }

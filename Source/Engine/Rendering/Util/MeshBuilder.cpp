@@ -306,8 +306,8 @@ ENGINE_API Handle<Mesh> Cube(bool originOnBottom)
         20, 23, 22
     };
 
-    meshDesc.lods[0].numIndices = uint32(std::size(s_indices));
-    meshDesc.lods[0].numVertices = uint32(std::size(vertices));
+    meshDesc.lods[0].numIndices = uint32(GetArrayCount(s_indices));
+    meshDesc.lods[0].numVertices = uint32(GetArrayCount(vertices));
 #endif
 
     if (originOnBottom)

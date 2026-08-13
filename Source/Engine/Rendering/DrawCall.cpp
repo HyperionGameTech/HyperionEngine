@@ -212,7 +212,7 @@ HYP_NODISCARD uint32 DrawCallCollection::PushEntityToBatch(
             // after the `indices` element
             uint32 fieldOffset = offsetof(EntityInstanceBatch, transforms);
 
-            for (uint32 bufferIndex = 0; bufferIndex < std::size(instanceData.buffers); bufferIndex++)
+            for (uint32 bufferIndex = 0; bufferIndex < GetArrayCount(instanceData.buffers); bufferIndex++)
             {
                 const uint32 bufferStructSize = instanceData.bufferStructSizes[bufferIndex];
                 const uint32 bufferStructAlignment = instanceData.bufferStructAlignments[bufferIndex];

@@ -313,7 +313,7 @@ RendererResult VulkanSwapchain::Create()
     if (qfIndices.graphicsFamily.Get() != qfIndices.presentFamily.Get())
     {
         createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-        createInfo.queueFamilyIndexCount = uint32(std::size(concurrentFamilies)); /* Two family indices(one for each process) */
+        createInfo.queueFamilyIndexCount = uint32(GetArrayCount(concurrentFamilies)); /* Two family indices(one for each process) */
         createInfo.pQueueFamilyIndices = concurrentFamilies;
     }
     else

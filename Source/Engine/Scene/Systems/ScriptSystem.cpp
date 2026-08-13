@@ -275,7 +275,7 @@ void ScriptSystem::OnAddedToWorld(World* world)
                             }
                             else
                             {
-                                if (Memory::StrCmp(inScriptDesc.assemblyPath.Data(), scriptDesc.assemblyPath.Data(), MathUtil::Min(ArraySize(inScriptDesc.assemblyPath), ArraySize(scriptDesc.assemblyPath))) == 0)
+                                if (Memory::StrCmp(inScriptDesc.assemblyPath.Data(), scriptDesc.assemblyPath.Data(), MathUtil::Min(GetArrayCount(inScriptDesc.assemblyPath), GetArrayCount(scriptDesc.assemblyPath))) == 0)
                                 {
                                     matchesScript = true;
                                 }

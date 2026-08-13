@@ -574,7 +574,7 @@ static inline Span<const typename TBitset<AllocatorType>::BlockType> CreateBlock
         typename TBitset<AllocatorType>::BlockType((InitialValue & (0xFFFFFFFFull << 32ull)) >> 32ull)
     };
 
-    return Span<const typename TBitset<AllocatorType>::BlockType>(&s_blocks[0], &s_blocks[0] + HYP_ARRAY_SIZE(s_blocks));
+    return Span<const typename TBitset<AllocatorType>::BlockType>(&s_blocks[0], &s_blocks[0] + GetArrayCount(s_blocks));
 }
 
 template <class AllocatorType>

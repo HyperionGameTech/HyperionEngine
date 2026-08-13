@@ -10,9 +10,9 @@ template <class FormatStringType, class... Args>
 Exception Exception::FormattedException(FormatStringType formatString, Args... args)
 {
     char buffer[256];
-    int n = std::snprintf(buffer, HYP_ARRAY_SIZE(buffer), formatString.Data(), args...);
+    int n = std::snprintf(buffer, GetArrayCount(buffer), formatString.Data(), args...);
 
-    if (n >= HYP_ARRAY_SIZE(buffer))
+    if (n >= GetArrayCount(buffer))
     {
         // recreate buffer using dynamic allocation
         const size_t size = size_t(n) + 1;

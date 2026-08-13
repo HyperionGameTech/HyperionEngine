@@ -64,7 +64,7 @@ static Vector ReadVector(const Tokens& tokens, size_t offset = 1)
 
         result.values[valueIndex++] = static_cast<typename Vector::Type>(std::atof(token.Data()));
 
-        if (valueIndex == std::size(result.values))
+        if (valueIndex == GetArrayCount(result.values))
         {
             break;
         }

@@ -303,7 +303,7 @@ struct StaticString
 
     constexpr size_t FindTrimLastIndex_Left_Impl() const
     {
-        constexpr char whitespaceChars[] = { ' ', '\n', '\r', '\t', '\f', '\v' };
+        constexpr char WhitespaceChars[] = { ' ', '\n', '\r', '\t', '\f', '\v' };
 
         size_t index = 0;
 
@@ -311,9 +311,9 @@ struct StaticString
         {
             bool found = false;
 
-            for (size_t j = 0; j < std::size(whitespaceChars); j++)
+            for (size_t j = 0; j < sizeof(WhitespaceChars); j++)
             {
-                if (data[index] == whitespaceChars[j])
+                if (data[index] == WhitespaceChars[j])
                 {
                     found = true;
 
@@ -332,7 +332,7 @@ struct StaticString
 
     constexpr size_t FindTrimLastIndex_Right_Impl() const
     {
-        constexpr char whitespaceChars[] = { ' ', '\n', '\r', '\t', '\f', '\v' };
+        constexpr char WhitespaceChars[] = { ' ', '\n', '\r', '\t', '\f', '\v' };
 
         size_t index = Sz - 1 /* for NUL char*/;
 
@@ -340,9 +340,9 @@ struct StaticString
         {
             bool found = false;
 
-            for (size_t j = 0; j < std::size(whitespaceChars); j++)
+            for (size_t j = 0; j < sizeof(WhitespaceChars); j++)
             {
-                if (data[index - 1] == whitespaceChars[j])
+                if (data[index - 1] == WhitespaceChars[j])
                 {
                     found = true;
 
@@ -786,17 +786,17 @@ struct FindCharCount_Impl
 {
     constexpr size_t operator()() const
     {
-        constexpr char brackets[] = "[]()<>";
+        constexpr char Brackets[] = "[]()<>";
 
         size_t count = 0;
 
-        int bracketCounts[(std::size(brackets) - 1) / 2] = { 0 };
+        int bracketCounts[(sizeof(Brackets) - 1) / 2] = { 0 };
 
         for (size_t i = 0; i < String.Size(); i++)
         {
-            for (size_t j = 0; j < std::size(brackets) - 1; j++)
+            for (size_t j = 0; j < sizeof(Brackets) - 1; j++)
             {
-                if (String.data[i] == brackets[j])
+                if (String.data[i] == Brackets[j])
                 {
                     bracketCounts[j / 2] += (j % 2) ? -1 : 1;
 
@@ -852,19 +852,19 @@ struct GetSplitIndices_Impl
                 }
                 else
                 {
-                    std::array<size_t, Count> delimiterIndices = {};
+                    size_t DelimiterIndices[Count] = {};
 
                     size_t index = 0;
 
-                    constexpr char brackets[] = "[]()<>";
+                    constexpr char Brackets[] = "[]()<>";
 
-                    int bracketCounts[(std::size(brackets) - 1) / 2] = { 0 };
+                    int bracketCounts[(sizeof(Brackets) - 1) / 2] = { 0 };
 
                     for (size_t i = 0; i < String.size; i++)
                     {
-                        for (size_t j = 0; j < std::size(brackets) - 1; j++)
+                        for (size_t j = 0; j < sizeof(Brackets) - 1; j++)
                         {
-                            if (String.data[i] == brackets[j])
+                            if (String.data[i] == Brackets[j])
                             {
                                 bracketCounts[j / 2] += (j % 2) ? -1 : 1;
 
@@ -890,20 +890,20 @@ struct GetSplitIndices_Impl
 
                         if (String.data[i] == Delimiter)
                         {
-                            delimiterIndices[index++] = i;
+                            DelimiterIndices[index++] = i;
                         }
                     }
 
-                    for (size_t i = 0; i < std::size(delimiterIndices); i++)
+                    for (size_t i = 0; i < Count; i++)
                     {
-                        size_t prev = i == 0 ? 0 : delimiterIndices[i - 1] + 1;
-                        size_t current = delimiterIndices[i];
+                        size_t prev = i == 0 ? 0 : DelimiterIndices[i - 1] + 1;
+                        size_t current = DelimiterIndices[i];
 
                         splitIndices[i] = { prev, current };
                     }
 
                     splitIndices[Count] = Pair<size_t, size_t> {
-                        size_t(delimiterIndices[std::size(delimiterIndices) - 1] + 1),
+                        size_t(DelimiterIndices[Count - 1] + 1),
                         String.Size() - 1 /* -1 for NUL char */
                     };
                 }

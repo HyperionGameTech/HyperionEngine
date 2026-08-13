@@ -412,7 +412,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
           .size = uint32(RI.GetDevice()->GetFeatures().PaddedSize<PushConstantData>()) }
     };
 
-    layoutInfo.pushConstantRangeCount = uint32(std::size(pushConstantRanges));
+    layoutInfo.pushConstantRangeCount = uint32(GetArrayCount(pushConstantRanges));
     layoutInfo.pPushConstantRanges = pushConstantRanges;
 
     VULKAN_CHECK_MSG(
