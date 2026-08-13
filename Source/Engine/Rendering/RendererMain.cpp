@@ -87,10 +87,10 @@ extern CVar<bool> g_cvPathTracing;
 static const Name s_nameShadingType = NAME("SHADING_TYPE");
 static const Name s_nameForward = NAME("FORWARD");
 
-static const ShaderPropertyId s_propShadingTypeForward = InternShaderProperty(ShaderProperty(s_nameShadingType, Name(s_nameForward)));
+static StaticShaderPropertyId s_propShadingTypeForward { ShaderProperty(s_nameShadingType, Name(s_nameForward)) };
 
-static const ShaderPropertyId s_propForwardClustered = InternShaderProperty(ShaderProperty(NAME("FORWARD_CLUSTERED")));
-static const ShaderPropertyId s_propForwardShading = InternShaderProperty(ShaderProperty(NAME("FORWARD_SHADING")));
+static StaticShaderPropertyId s_propForwardClustered { ShaderProperty(NAME("FORWARD_CLUSTERED")) };
+static StaticShaderPropertyId s_propForwardShading { ShaderProperty(NAME("FORWARD_SHADING")) };
 
 static HYP_FORCE_INLINE bool IsCubemapShader(StringHash shaderNameHash)
 {
@@ -192,29 +192,21 @@ static const Name s_nameHasRoughnessMap = NAME("HAS_ROUGHNESS_MAP");
 
 /// Property interning
 
-static const ShaderPropertyId s_propInstancing = InternShaderProperty(ShaderProperty(s_nameInstancing));
-static const ShaderPropertyId s_propAlphaDiscard = InternShaderProperty(ShaderProperty(s_nameAlphaDiscard));
-static const ShaderPropertyId s_propSkinning = InternShaderProperty(ShaderProperty(s_nameSkinning));
+static StaticShaderPropertyId s_propInstancing { ShaderProperty(s_nameInstancing) };
+static StaticShaderPropertyId s_propAlphaDiscard { ShaderProperty(s_nameAlphaDiscard) };
+static StaticShaderPropertyId s_propSkinning { ShaderProperty(s_nameSkinning) };
 
 // shading mode
-static const ShaderPropertyId s_propShadingTypeDeferred = InternShaderProperty(ShaderProperty(s_nameShadingType, Name(s_nameDeferred)));
-static const ShaderPropertyId s_propShadingTypeForward = InternShaderProperty(ShaderProperty(s_nameShadingType, Name(s_nameForward)));
-static const ShaderPropertyId s_propShadingTypeLightmapped = InternShaderProperty(ShaderProperty(s_nameShadingType, Name(s_nameLightmapped)));
+static StaticShaderPropertyId s_propShadingTypeDeferred { ShaderProperty(s_nameShadingType, Name(s_nameDeferred)) };
+static StaticShaderPropertyId s_propShadingTypeForward { ShaderProperty(s_nameShadingType, Name(s_nameForward)) };
+static StaticShaderPropertyId s_propShadingTypeLightmapped { ShaderProperty(s_nameShadingType, Name(s_nameLightmapped)) };
 
 // textures
-static const ShaderPropertyId s_propHasDiffuseMap = InternShaderProperty(ShaderProperty(s_nameHasDiffuseMap));
-static const ShaderPropertyId s_propHasNormalMap = InternShaderProperty(ShaderProperty(s_nameHasNormalMap));
-static const ShaderPropertyId s_propHasParallaxMap = InternShaderProperty(ShaderProperty(s_nameHasParallaxMap));
-static const ShaderPropertyId s_propHasMetalnessMap = InternShaderProperty(ShaderProperty(s_nameHasMetalnessMap));
-static const ShaderPropertyId s_propHasRoughnessMap = InternShaderProperty(ShaderProperty(s_nameHasRoughnessMap));
-
-static const Pair<MaterialTextureKey, ShaderPropertyId> s_textureProperties[] = {
-    { MaterialTextureKey::Diffuse, InternShaderProperty(ShaderProperty(s_nameHasDiffuseMap)) },
-    { MaterialTextureKey::Normals, InternShaderProperty(ShaderProperty(s_nameHasNormalMap)) },
-    { MaterialTextureKey::Parallax, InternShaderProperty(ShaderProperty(s_nameHasParallaxMap)) },
-    { MaterialTextureKey::Metalness, InternShaderProperty(ShaderProperty(s_nameHasMetalnessMap)) },
-    { MaterialTextureKey::Roughness, InternShaderProperty(ShaderProperty(s_nameHasRoughnessMap)) }
-};
+static StaticShaderPropertyId s_propHasDiffuseMap { ShaderProperty(s_nameHasDiffuseMap) };
+static StaticShaderPropertyId s_propHasNormalMap { ShaderProperty(s_nameHasNormalMap) };
+static StaticShaderPropertyId s_propHasParallaxMap { ShaderProperty(s_nameHasParallaxMap) };
+static StaticShaderPropertyId s_propHasMetalnessMap { ShaderProperty(s_nameHasMetalnessMap) };
+static StaticShaderPropertyId s_propHasRoughnessMap { ShaderProperty(s_nameHasRoughnessMap) };
 
 } // namespace Props
 

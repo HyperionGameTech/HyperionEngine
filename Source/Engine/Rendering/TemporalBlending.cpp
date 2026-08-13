@@ -30,9 +30,9 @@
 
 namespace Hyperion {
 
-static const ShaderPropertyId s_propOutputRGBA8 = InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("RGBA8")));
-static const ShaderPropertyId s_propOutputRGBA16F = InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("RGBA16F")));
-static const ShaderPropertyId s_propOutputRGBA32F = InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("RGBA32F")));
+static StaticShaderPropertyId s_propOutputRGBA8 { ShaderProperty(NAME("OUTPUT"), NAME("RGBA8")) };
+static StaticShaderPropertyId s_propOutputRGBA16F { ShaderProperty(NAME("OUTPUT"), NAME("RGBA16F")) };
+static StaticShaderPropertyId s_propOutputRGBA32F { ShaderProperty(NAME("OUTPUT"), NAME("RGBA32F")) };
 
 struct TemporalBlendingConstants
 {

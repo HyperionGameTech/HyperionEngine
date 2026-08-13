@@ -59,6 +59,7 @@
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/ShaderCompiler.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
+#include <Rendering/Shared.hpp>
 
 #include <Scene/ComponentInterface.hpp>
 
@@ -293,10 +294,17 @@ void LoadShaderPropertyDictionary()
 
     FileByteReader stream { EngineGlobals::GetCacheDirectory() / "shaderprops.bin" };
 
+#if defined(HYP_SHIPPING) && HYP_SHIPPING
+    Assert(!stream.Eof(), "shaderprops.bin missing - required in shipping builds");
+    Assert(ReadShaderPropertyDictionary(stream), "Failed to read shaderprops.bin");
+#else
     if (!stream.Eof())
     {
         ReadShaderPropertyDictionary(stream);
     }
+#endif
+
+    StaticShaderPropertyId::ResolveAll();
 }
 
 void HandleExit()

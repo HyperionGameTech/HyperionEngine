@@ -71,21 +71,21 @@ static const FixedArray<ShaderPropertySet, NumLightTypes> s_deferredLightTypePro
     ShaderPropertySet { { InternShaderProperty(ShaderProperty(NAME("LIGHT_TYPE"), NAME("AREA_RECT"))) } }
 };
 
-static const ShaderPropertyId s_propHBAOEnabled = InternShaderProperty(ShaderProperty(NAME("HBAO_ENABLED")));
-static const ShaderPropertyId s_propSSGIEnabled = InternShaderProperty(ShaderProperty(NAME("SSGI_ENABLED")));
-static const ShaderPropertyId s_propSSREnabled = InternShaderProperty(ShaderProperty(NAME("SSR_ENABLED")));
+static StaticShaderPropertyId s_propHBAOEnabled { ShaderProperty(NAME("HBAO_ENABLED")) };
+static StaticShaderPropertyId s_propSSGIEnabled { ShaderProperty(NAME("SSGI_ENABLED")) };
+static StaticShaderPropertyId s_propSSREnabled { ShaderProperty(NAME("SSR_ENABLED")) };
 
-static const ShaderPropertyId s_propRayTracingReflections = InternShaderProperty(ShaderProperty(NAME("RT_REFLECTIONS")));
-static const ShaderPropertyId s_propRayTracingGlobalIllumination = InternShaderProperty(ShaderProperty(NAME("RT_GI")));
-static const ShaderPropertyId s_propPathTracer = InternShaderProperty(ShaderProperty(NAME("PATHTRACER")));
+static StaticShaderPropertyId s_propRayTracingReflections { ShaderProperty(NAME("RT_REFLECTIONS")) };
+static StaticShaderPropertyId s_propRayTracingGlobalIllumination { ShaderProperty(NAME("RT_GI")) };
+static StaticShaderPropertyId s_propPathTracer { ShaderProperty(NAME("PATHTRACER")) };
 
-static const ShaderPropertyId s_propDebugReflections = InternShaderProperty(ShaderProperty(NAME("DEBUG_REFLECTIONS")));
-static const ShaderPropertyId s_propDebugIrradiance = InternShaderProperty(ShaderProperty(NAME("DEBUG_IRRADIANCE")));
-static const ShaderPropertyId s_propDebugAO = InternShaderProperty(ShaderProperty(NAME("DEBUG_AO")));
-static const ShaderPropertyId s_propDebugNormals = InternShaderProperty(ShaderProperty(NAME("DEBUG_NORMALS")));
-static const ShaderPropertyId s_propDebugVelocity = InternShaderProperty(ShaderProperty(NAME("DEBUG_VELOCITY")));
+static StaticShaderPropertyId s_propDebugReflections { ShaderProperty(NAME("DEBUG_REFLECTIONS")) };
+static StaticShaderPropertyId s_propDebugIrradiance { ShaderProperty(NAME("DEBUG_IRRADIANCE")) };
+static StaticShaderPropertyId s_propDebugAO { ShaderProperty(NAME("DEBUG_AO")) };
+static StaticShaderPropertyId s_propDebugNormals { ShaderProperty(NAME("DEBUG_NORMALS")) };
+static StaticShaderPropertyId s_propDebugVelocity { ShaderProperty(NAME("DEBUG_VELOCITY")) };
 
-static const ShaderPropertyId s_propLightTypeClustered = InternShaderProperty(ShaderProperty(NAME("LIGHT_TYPE"), NAME("CLUSTERED")));
+static StaticShaderPropertyId s_propLightTypeClustered { ShaderProperty(NAME("LIGHT_TYPE"), NAME("CLUSTERED")) };
 
 extern CVar<bool> g_cvHBAO;
 extern CVar<bool> g_cvSSGI;
@@ -142,7 +142,7 @@ void GetDeferredShaderProperties(
     }
     else
     {
-        static constexpr const ShaderPropertyId* const DebugShaderProperties[] = {
+        static constexpr const StaticShaderPropertyId* const DebugShaderProperties[] = {
             nullptr,
             &s_propDebugReflections,
             &s_propDebugIrradiance,
@@ -150,9 +150,9 @@ void GetDeferredShaderProperties(
             &s_propDebugNormals,
             &s_propDebugVelocity
         };
-        
+
         const int debugMode = g_cvDeferredDebugVis.Get();
-        const ShaderPropertyId* shaderProperty = debugMode < GetArrayCount(DebugShaderProperties)
+        const StaticShaderPropertyId* shaderProperty = debugMode < GetArrayCount(DebugShaderProperties)
             ? DebugShaderProperties[debugMode]
             : nullptr;
         

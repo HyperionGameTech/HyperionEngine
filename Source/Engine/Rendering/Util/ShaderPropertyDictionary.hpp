@@ -33,7 +33,7 @@ public:
 void InitShaderPropertyDictionary();
 
 void WriteShaderPropertyDictionary(ByteWriter& stream);
-void ReadShaderPropertyDictionary(ByteReader& stream);
+bool ReadShaderPropertyDictionary(ByteReader& stream);
 
 ShaderPropertyId InternShaderProperty(const ShaderProperty& property);
 bool GetShaderPropertyById(ShaderPropertyId propertyId, ShaderProperty& outProperty);
@@ -50,9 +50,9 @@ inline void WriteShaderPropertyDictionary(ByteWriter& stream)
     ShaderPropertyDictionary::GetInstance().Write(stream);
 }
 
-inline void ReadShaderPropertyDictionary(ByteReader& stream)
+inline bool ReadShaderPropertyDictionary(ByteReader& stream)
 {
-    ShaderPropertyDictionary::GetInstance().Read(stream);
+    return ShaderPropertyDictionary::GetInstance().Read(stream);
 }
 
 inline ShaderPropertyId InternShaderProperty(const ShaderProperty& property)

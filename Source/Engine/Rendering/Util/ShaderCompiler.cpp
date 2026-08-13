@@ -346,24 +346,24 @@ static constexpr uint32 HYP_VULKAN_API_VERSION = VK_API_VERSION_1_2;
 #endif // !HYP_VULKAN
 
 // Target platform properties for cross-compilation
-static const ShaderPropertyId s_propTargetWindows = InternShaderProperty(ShaderProperty(NAME("TARGET"), NAME("WINDOWS")));
-static const ShaderPropertyId s_propTargetMac = InternShaderProperty(ShaderProperty(NAME("TARGET"), NAME("MAC")));
-static const ShaderPropertyId s_propTargetLinux = InternShaderProperty(ShaderProperty(NAME("TARGET"), NAME("LINUX")));
-static const ShaderPropertyId s_propTargetAndroid = InternShaderProperty(ShaderProperty(NAME("TARGET"), NAME("ANDROID")));
-static const ShaderPropertyId s_propTargetIOS = InternShaderProperty(ShaderProperty(NAME("TARGET"), NAME("IOS")));
+static StaticShaderPropertyId s_propTargetWindows { ShaderProperty(NAME("TARGET"), NAME("WINDOWS")) };
+static StaticShaderPropertyId s_propTargetMac { ShaderProperty(NAME("TARGET"), NAME("MAC")) };
+static StaticShaderPropertyId s_propTargetLinux { ShaderProperty(NAME("TARGET"), NAME("LINUX")) };
+static StaticShaderPropertyId s_propTargetAndroid { ShaderProperty(NAME("TARGET"), NAME("ANDROID")) };
+static StaticShaderPropertyId s_propTargetIOS { ShaderProperty(NAME("TARGET"), NAME("IOS")) };
 
 // Target backend properties for cross-compilation
-static const ShaderPropertyId s_propVulkan = InternShaderProperty(ShaderProperty(NAME("BACKEND"), NAME("VULKAN")));
-static const ShaderPropertyId s_propDX12 = InternShaderProperty(ShaderProperty(NAME("BACKEND"), NAME("DX12")));
+static StaticShaderPropertyId s_propVulkan { ShaderProperty(NAME("BACKEND"), NAME("VULKAN")) };
+static StaticShaderPropertyId s_propDX12 { ShaderProperty(NAME("BACKEND"), NAME("DX12")) };
 
-static const ShaderPropertyId s_propNumGBufferTextures = InternShaderProperty(ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), int(NumGBufferTargets)));
+static StaticShaderPropertyId s_propNumGBufferTextures { ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), int(NumGBufferTargets)) };
 
-static const ShaderPropertyId s_propBindlessTextures = InternShaderProperty(ShaderProperty(NAME("HYP_FEATURES_BINDLESS_TEXTURES")));
+static StaticShaderPropertyId s_propBindlessTextures { ShaderProperty(NAME("HYP_FEATURES_BINDLESS_TEXTURES")) };
 
-static const ShaderPropertyId s_propDebugIrradiance = InternShaderProperty(ShaderProperty(NAME("DEBUG_IRRADIANCE")));
-static const ShaderPropertyId s_propDebugVelocity = InternShaderProperty(ShaderProperty(NAME("DEBUG_VELOCITY")));
-static const ShaderPropertyId s_propDebugNormals = InternShaderProperty(ShaderProperty(NAME("DEBUG_NORMALS")));
-static const ShaderPropertyId s_propDebugAO = InternShaderProperty(ShaderProperty(NAME("DEBUG_AO")));
+static StaticShaderPropertyId s_propDebugIrradiance { ShaderProperty(NAME("DEBUG_IRRADIANCE")) };
+static StaticShaderPropertyId s_propDebugVelocity { ShaderProperty(NAME("DEBUG_VELOCITY")) };
+static StaticShaderPropertyId s_propDebugNormals { ShaderProperty(NAME("DEBUG_NORMALS")) };
+static StaticShaderPropertyId s_propDebugAO { ShaderProperty(NAME("DEBUG_AO")) };
 
 static String ShaderPropertyValueToString(const ShaderProperty::Value& v)
 {

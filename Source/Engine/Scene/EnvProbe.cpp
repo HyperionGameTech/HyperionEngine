@@ -39,8 +39,8 @@ namespace Hyperion {
 EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 #endif // HYP_EDITOR
 
-static const ShaderPropertyId s_propForwardShading = InternShaderProperty(ShaderProperty(NAME("FORWARD_SHADING")));
-static const ShaderPropertyId s_propWriteMoments = InternShaderProperty(ShaderProperty(NAME("WRITE_MOMENTS")));
+static StaticShaderPropertyId s_propForwardShading { ShaderProperty(NAME("FORWARD_SHADING")) };
+static StaticShaderPropertyId s_propWriteMoments { ShaderProperty(NAME("WRITE_MOMENTS")) };
 
 static constexpr EnumFlags<EnvProbeFlags> DefaultEnvProbeFlags[EPT_MAX] {
     EPF_ORIGIN_FROM_CENTER | EPF_DIFFUSE,                               // sky
