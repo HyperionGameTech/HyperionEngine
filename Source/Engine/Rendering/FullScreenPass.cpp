@@ -37,7 +37,7 @@
 
 namespace Hyperion {
 
-static const ShaderPropertyId s_propCheckerboarded = InternShaderProperty(ShaderProperty(NAME("CHECKERBOARDED")));
+static StaticShaderPropertyId s_propCheckerboarded { ShaderProperty(NAME("CHECKERBOARDED")) };
 
 struct MergeCheckerboardUniforms
 {

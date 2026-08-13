@@ -54,7 +54,7 @@ extern EngineStatCounter<uint32> g_statDebugDraws;
 
 static CVar<bool> s_cvEnableDebugDrawer("Rendering.EnableDebugDrawer", true);
 
-static const ShaderPropertyId s_propImmediateMode = InternShaderProperty(ShaderProperty(NAME("IMMEDIATE_MODE")));
+static StaticShaderPropertyId s_propImmediateMode { ShaderProperty(NAME("IMMEDIATE_MODE")) };
 
 static RenderableAttributeSet DefaultAttributes()
 {

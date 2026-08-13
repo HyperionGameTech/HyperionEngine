@@ -44,8 +44,8 @@ static constexpr TextureFormat IrradianceFormat = TextureFormat::RGBA8;
 static constexpr TextureFormat DepthFormat = TextureFormat::RG16F;
 static constexpr uint32 DDGIMaxBoundLights = 4;
 
-static const ShaderPropertyId s_propUpdateProbeDataModeIrradiance = InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("IRRADIANCE")));
-static const ShaderPropertyId s_propUpdateProbeDataModeDepth = InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("DEPTH")));
+static StaticShaderPropertyId s_propUpdateProbeDataModeIrradiance { ShaderProperty(NAME("MODE"), NAME("IRRADIANCE")) };
+static StaticShaderPropertyId s_propUpdateProbeDataModeDepth { ShaderProperty(NAME("MODE"), NAME("DEPTH")) };
 
 static Vec3u NumProbesPerDimension(const DDGIInfo& info)
 {

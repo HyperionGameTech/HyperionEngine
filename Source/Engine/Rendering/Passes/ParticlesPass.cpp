@@ -54,7 +54,7 @@ namespace Hyperion {
 // How many frames until we release resources for unused volumes?
 static constexpr uint32 DiscardFrames = 60;
 
-static const ShaderPropertyId s_propHasPhysics = InternShaderProperty(ShaderProperty(NAME("HAS_PHYSICS")));
+static StaticShaderPropertyId s_propHasPhysics { ShaderProperty(NAME("HAS_PHYSICS")) };
 
 static EngineStatGpuTimer s_statComputeParticles("Rendering/GPU/ComputeParticles");
 static EngineStatGpuTimer s_statDrawParticles("Rendering/GPU/DrawParticles");

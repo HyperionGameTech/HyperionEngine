@@ -50,8 +50,8 @@ static EngineStatGpuTimer s_statFillUI("Rendering/GPU/FillUI");
 
 CORE_API extern const char* LookupTypeName(const TypeId& typeId);
 
-static const ShaderPropertyId s_propTextured = InternShaderProperty(ShaderProperty(NAME("TEXTURED")));
-static const ShaderPropertyId s_propUIText = InternShaderProperty(ShaderProperty(NAME("UI_TEXT")));
+static StaticShaderPropertyId s_propTextured { ShaderProperty(NAME("TEXTURED")) };
+static StaticShaderPropertyId s_propUIText { ShaderProperty(NAME("UI_TEXT")) };
 
 static RenderableAttributeSet GetMergedRenderableAttributes(
     const RenderableAttributeSet& inAttributes,

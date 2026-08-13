@@ -55,7 +55,7 @@ static constexpr EnumFlags<ViewFlags> DefaultShadowViewFlags = ViewFlags::SHADOW
     | ViewFlags::SKIP_LIGHTMAP_VOLUMES | ViewFlags::SKIP_PARTICLE_VOLUMES | ViewFlags::SKIP_FOG_VOLUMES
     | ViewFlags::SKIP_ENV_PROBES;
 
-static const ShaderPropertyId s_propModeShadows = InternShaderProperty(ShaderProperty(NAME("MODE_SHADOWS")));
+static StaticShaderPropertyId s_propModeShadows { ShaderProperty(NAME("MODE_SHADOWS")) };
 
 static const Name s_shadowMapCameraNames[MaxShadowMapCascades] = {
     NAME("ShadowMapCamera_Cascade0"),

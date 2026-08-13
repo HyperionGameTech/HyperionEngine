@@ -24,6 +24,7 @@
 #include <Core/IO/ByteReader.hpp>
 
 #include <Core/Logging/Logger.hpp>
+#include <Core/Debug/Debug.hpp>
 
 namespace Hyperion {
 
@@ -92,6 +93,11 @@ public:
             return id;
         }
 
+#if defined(HYP_SHIPPING) && HYP_SHIPPING
+        // Shipping builds never insert - every value must already be in the cooked dictionary.
+        Assert(false, "Value not found in cooked shaderprops.bin (hash={})", hash.Value());
+        return IdType(0);
+#else
         lock.Reset();
 
         TUniqueLock uniqueLock(m_mutex);
@@ -113,6 +119,7 @@ public:
         }
 
         return newId;
+#endif
     }
 
     /*! \brief Look up a value by ID. Thread-safe.
@@ -135,6 +142,10 @@ public:
      *  The stream is written with a 64-byte reserved header followed by a flat array of fixed-size entries. */
     void Write(ByteWriter& stream) const
     {
+#if defined(HYP_SHIPPING) && HYP_SHIPPING
+        // Shipping builds treat the cooked dictionary as read-only.
+        (void)stream;
+#else
         TSharedLock lock(m_mutex);
 
         Set<IdType> visited;
@@ -189,6 +200,7 @@ public:
         stream.Write<uint16>(0);
         stream.Write<uint32>(visited.Empty() ? 0 : maxIdValue + 1);
         stream.Write<uint64>(m_staticEntryHashCode.Value());
+#endif
     }
 
     /*! \brief Deserialize the dictionary from a binary stream.
@@ -215,6 +227,9 @@ public:
         uint64 staticHashValue;
         stream.Read<uint64>(&staticHashValue);
 
+#if !defined(HYP_SHIPPING) || !HYP_SHIPPING
+        // Shipping treats the cooked dictionary as authoritative regardless of this hash -
+        // static globals no longer intern during static init, so there's nothing to compare against.
         if (staticHashValue != m_staticEntryHashCode.Value())
         {
             HYP_LOG(Core, Warning,
@@ -227,6 +242,7 @@ public:
 
             return false;
         }
+#endif
 
         stream.Seek(readOffset + 64); // skip reserved header space
 

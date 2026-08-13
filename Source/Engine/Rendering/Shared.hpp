@@ -2333,6 +2333,54 @@ struct ShaderPropertySet
 
 extern ShaderPropertyId InternShaderProperty(const ShaderProperty& shaderProperty);
 
+/*! \brief For static initalized shader property ids: Will get init when the dictionary loads
+ *   to prevent static initialization order fiasco. */
+struct StaticShaderPropertyId
+{
+    ShaderProperty property;
+    ShaderPropertyId id { 0 };
+    StaticShaderPropertyId* next;
+
+    static StaticShaderPropertyId* s_head;
+
+    StaticShaderPropertyId(ShaderProperty property)
+        : property(std::move(property)),
+          next(s_head)
+    {
+        s_head = this;
+    }
+
+    StaticShaderPropertyId(const StaticShaderPropertyId&) = delete;
+    StaticShaderPropertyId& operator=(const StaticShaderPropertyId&) = delete;
+    StaticShaderPropertyId(StaticShaderPropertyId&&) = delete;
+    StaticShaderPropertyId& operator=(StaticShaderPropertyId&&) = delete;
+
+    HYP_FORCE_INLINE operator ShaderPropertyId() const
+    {
+        return id;
+    }
+
+    static void ResolveAll()
+    {
+        Array<StaticShaderPropertyId*> nodes;
+        for (StaticShaderPropertyId* node = s_head; node; node = node->next)
+        {
+            nodes.PushBack(node);
+        }
+
+        // Sort by hash so ID assignment doesn't depend on static-init link order.
+        std::sort(nodes.Begin(), nodes.End(), [](StaticShaderPropertyId* a, StaticShaderPropertyId* b)
+            {
+                return a->property.cachedHashCode.Value() < b->property.cachedHashCode.Value();
+            });
+
+        for (StaticShaderPropertyId* node : nodes)
+        {
+            node->id = InternShaderProperty(node->property);
+        }
+    }
+};
+
 /*! \brief For requested shader instance */
 struct ShaderDesc
 {

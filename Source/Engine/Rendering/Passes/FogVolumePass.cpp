@@ -46,8 +46,8 @@ namespace Hyperion {
 
 static constexpr uint32 MaxFogLights = 4;
 
-static const ShaderPropertyId s_propUseClusteredLights = InternShaderProperty(ShaderProperty(NAME("CLUSTERED_LIGHTS")));
-static const ShaderPropertyId s_propFogVolumeUseSDF = InternShaderProperty(ShaderProperty(NAME("FOG_VOLUME_USE_SDF")));
+static StaticShaderPropertyId s_propUseClusteredLights { ShaderProperty(NAME("CLUSTERED_LIGHTS")) };
+static StaticShaderPropertyId s_propFogVolumeUseSDF { ShaderProperty(NAME("FOG_VOLUME_USE_SDF")) };
 
 extern CVar<bool> g_cvFogVolumesClusteredLights;
 
