@@ -18,6 +18,7 @@
 #include <Asset/AssetRegistry.hpp>
 
 #include <Core/Threading/Threads.hpp>
+#include <Core/Threading/TaskSystem.hpp>
 
 #include <Core/Debug/Debug.hpp>
 
@@ -40,6 +41,11 @@
 #include <Scene/Input/TouchControlsSubsystem.hpp>
 
 #include <System/MessageBox.hpp>
+
+///--- For shader preload ---
+#include <Rendering/RenderInterface.hpp>
+#include <Rendering/ShaderManager.hpp>
+///--------------------------
 
 #include <Game.generated.inl>
 
@@ -72,7 +78,7 @@ Game::~Game()
     {
         m_assetRegistry->Shutdown();
 
-        m_syncState.WaitForSync();
+        m_syncState.Wait();
     }
 
     OnLaunched.RemoveAllForTarget(this);
@@ -83,7 +89,7 @@ void Game::Initialize()
 {
     AssertOnThread(g_simThread);
 
-    if (m_isInitialized || IsSyncingContent())
+    if (m_isInitialized || IsSyncingOrPreparingContent())
     {
         return;
     }
@@ -105,7 +111,7 @@ Handle<World> Game::LoadWorld(Name worldName)
 
 void Game::Shutdown(bool shutdownWorld)
 {
-    m_syncState.WaitForSync();
+    m_syncState.Wait();
 
     if (!m_isInitialized)
     {
@@ -160,7 +166,7 @@ void Game::SetAssetRegistry(const Handle<AssetRegistry>& assetRegistry)
     {
         m_assetRegistry->Shutdown();
 
-        m_syncState.WaitForSync();
+        m_syncState.Wait();
     }
 
     m_assetRegistry = assetRegistry;
@@ -178,7 +184,7 @@ void Game::SetAssetRegistry(const Handle<AssetRegistry>& assetRegistry)
         PushAssetRegistry(m_assetRegistry);
         m_assetRegistryActive = true;
 
-        if (m_syncState.IsSyncing())
+        if (m_syncState.IsInProgress())
         {
             m_syncState.SetState(ContentSyncState::InProgress);
         }
@@ -196,7 +202,7 @@ void Game::SetWorld(const Handle<World>& world)
         return;
     }
     
-    m_syncState.WaitForSync();
+    m_syncState.Wait();
 
     const bool isLaunched = IsLaunched();
 
@@ -237,7 +243,7 @@ void Game::Launch()
     Assert(m_isLaunched.Get(MemoryOrder::ACQUIRE) == false);
     Assert(m_world.IsValid());
 
-    Assert(!IsSyncingContent());
+    Assert(!IsSyncingOrPreparingContent());
     
     OnLaunch();
     m_isLaunched.Set(true, MemoryOrder::RELEASE);
@@ -252,7 +258,7 @@ void Game::SyncContentAndLaunch()
 {
     AssertOnThread(g_simThread);
     
-    Assert(!IsSyncingContent());
+    Assert(!IsSyncingOrPreparingContent());
     Assert(m_assetRegistry.IsValid());
 
     const bool shouldSyncContent =
@@ -276,7 +282,7 @@ void Game::SyncContentAndLaunch()
         PushAssetRegistry(m_assetRegistry);
         m_assetRegistryActive = true;
 
-        if (m_syncState.IsSyncing())
+        if (m_syncState.IsInProgress())
         {
             m_syncState.SetState(ContentSyncState::InProgress);
         }
@@ -671,7 +677,7 @@ void Game::OnUpdate(float delta)
 {
     AssertOnThread(g_simThread);
 
-    if (m_syncState.IsSyncing())
+    if (m_syncState.IsInProgress())
     {
         auto callAfterContentLoadedNextFrame = [this]
         {
@@ -689,9 +695,27 @@ void Game::OnUpdate(float delta)
                 TaskEnqueueFlags::FIRE_AND_FORGET);
         };
 
+        auto beginPreparingContent = [this]
+        {
+            HYP_LOG(Game, Info, "Setting up preparation task...");
+
+            // Set the prepare task
+            m_syncState.currentTask = TaskSystem::GetInstance().Enqueue(
+                []() -> Result
+                {
+                    RI.shaderManager->PreloadShadersFromCacheFile(/* blockingWait */ true);
+
+                    return {};
+                },
+                TaskThreadPoolName::THREAD_POOL_BACKGROUND);
+
+            m_syncState.progress.Set(0, MemoryOrder::RELAXED);
+            m_syncState.SetState(ContentSyncState::Downloaded_Preparing);
+        };
+
         if (m_syncState.currentTask.IsCompleted())
         {
-            Result res = m_syncState.WaitForSync();
+            Result res = m_syncState.Wait();
 
             if (res.HasError())
             {
@@ -699,8 +723,13 @@ void Game::OnUpdate(float delta)
                 m_syncState.progress.Set(0, MemoryOrder::RELAXED);
                 m_syncState.SetState(ContentSyncState::Failed);
             }
-            else
+            else if (m_syncState.state == ContentSyncState::InProgress)
             {
+                beginPreparingContent();
+            }
+            else if (m_syncState.state == ContentSyncState::Downloaded_Preparing)
+            {
+                // Done preparing
                 callAfterContentLoadedNextFrame();
             }
         }

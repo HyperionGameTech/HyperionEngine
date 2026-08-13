@@ -22,6 +22,7 @@ struct ContentSyncState
         Failed = -1,
         NotStarted = 0,
         InProgress,
+        Downloaded_Preparing,
         Finished
     } state = NotStarted;
 
@@ -44,14 +45,14 @@ struct ContentSyncState
         OnStateChanged(state);
     }
 
-    bool IsSyncing() const
+    bool IsInProgress() const
     {
         return currentTask.IsValid();
     }
 
-    Result WaitForSync()
+    Result Wait()
     {
-        if (IsSyncing())
+        if (IsInProgress())
         {
             lastResult = currentTask.Await();
             currentTask = {};

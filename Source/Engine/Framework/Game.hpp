@@ -114,9 +114,9 @@ protected:
         return m_uiSubsystem;
     }
 
-    bool IsSyncingContent() const
+    bool IsSyncingOrPreparingContent() const
     {
-        return m_syncState.IsSyncing();
+        return m_syncState.IsInProgress();
     }
     
     void SyncContentAndLaunch();
