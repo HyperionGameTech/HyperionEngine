@@ -13,11 +13,15 @@
 
 #include <Core/Utilities/Result.hpp>
 
+#include <Core/Functional/Proc.hpp>
+
 namespace Hyperion {
 
 enum class AssetRegistryId : uint32;
 
 namespace CacheClient {
+
+using OnProgressCallback = ProcRef<void(uint64 current, uint64 total)>;
 
 struct Params
 {
@@ -30,6 +34,8 @@ struct Params
     FilePath outputContentDir;
 
     int numAttempts = 1;
+
+    OnProgressCallback onProgressCallback = nullptr;
 };
 
 ENGINE_API Result SyncContent(const Params& params);

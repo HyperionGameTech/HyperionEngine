@@ -168,9 +168,12 @@ void Game::SetAssetRegistry(const Handle<AssetRegistry>& assetRegistry)
     if (m_assetRegistry && m_isInitialized)
     {
         m_syncState.currentTask = {};
+        m_syncState.progress.Set(0, MemoryOrder::RELAXED);
         m_syncState.SetState(ContentSyncState::NotStarted);
 
-        m_assetRegistry->Initialize(&m_syncState.currentTask);
+        m_assetRegistry->Initialize(
+            &m_syncState.currentTask,
+            ProcRef<void(uint64, uint64)>(*this, ValueWrapper<&Game::OnSyncProgress>{}));
 
         PushAssetRegistry(m_assetRegistry);
         m_assetRegistryActive = true;
@@ -263,9 +266,12 @@ void Game::SyncContentAndLaunch()
         BeforeContentLoaded();
         
         m_syncState.currentTask = {};
+        m_syncState.progress.Set(0, MemoryOrder::RELAXED);
         m_syncState.SetState(ContentSyncState::NotStarted);
 
-        m_assetRegistry->Initialize(&m_syncState.currentTask);
+        m_assetRegistry->Initialize(
+            &m_syncState.currentTask,
+            ProcRef<void(uint64, uint64)>(*this, ValueWrapper<&Game::OnSyncProgress>{}));
 
         PushAssetRegistry(m_assetRegistry);
         m_assetRegistryActive = true;
@@ -282,6 +288,7 @@ void Game::SyncContentAndLaunch()
     else
     {
         m_syncState.currentTask = {};
+        m_syncState.progress.Set(0, MemoryOrder::RELAXED);
         m_syncState.SetState(ContentSyncState::Finished);
 
         m_assetRegistry->Initialize(nullptr);
@@ -326,38 +333,22 @@ void Game::AfterContentLoaded()
     }
     else
     {
-        auto setToDummyWorld = [&]
-        {
-            SetWorld(MakeHandle<World>());
-        };
-
-        bool shouldReturn = false;
-
-        // clang-format off
-        //SystemMessageBox(MessageBoxType::CRITICAL)
-        //    .Title("Error")
-        //    .Text("Failed to load game content! The world could not be initialized.\n\n"
-        //        "Please make sure the game is up to date, or try reinstalling it.\n"
-        //        "Please file a bug report! Apologies for the inconvenience.")
-        //    .Button("Retry", [this, &shouldReturn] { shouldReturn = true; SyncContentAndLaunch(); })
-        //    .Button("Launch Anyway", &setToDummyWorld)
-        //    .Button("Exit", &std::terminate)
-        //    .Show();
-        // clang-format on
-        //
-        //if (shouldReturn)
-        //{
-        //    return;
-        //}
-
-        // Note: world is intentionally left as-is (the temp UI world used to show the
-        // loading screen) so the error UI bound to OnStateChanged still has a live UIStage
-        // to update. It gets replaced the next time SetWorld() is called (e.g. on retry).
         m_syncState.SetState(ContentSyncState::Failed);
+        m_syncState.progress.Set(0, MemoryOrder::RELAXED);
+
         return;
     }
 
     Launch();
+}
+
+void Game::OnSyncProgress(uint64 current, uint64 total)
+{
+    m_syncState.progress.Set(
+        total > 0
+            ? uint32(10000.0f * (float(current) / float(total)))
+            : 0,
+        MemoryOrder::RELAXED);
 }
 
 void Game::HandleEvent(Event&& event)
@@ -705,37 +696,8 @@ void Game::OnUpdate(float delta)
             if (res.HasError())
             {
                 m_syncState.currentTask = {};
+                m_syncState.progress.Set(0, MemoryOrder::RELAXED);
                 m_syncState.SetState(ContentSyncState::Failed);
-
-                //bool clickedRetry = false;
-                //bool clickedExit = false;
-
-
-
-                //CacheClient::SyncFailed(res.GetError(), clickedRetry, clickedExit);
-
-                /*if (clickedExit)
-                {
-                    std::terminate();
-                    return;
-                }
-
-                if (clickedRetry)
-                {
-                    m_syncState.currentTask = {};
-                    m_syncState.SetState(ContentSyncState::NotStarted);
-
-                    m_assetRegistry->Initialize(&m_syncState.currentTask);
-
-                    if (m_syncState.IsSyncing())
-                    {
-                        m_syncState.SetState(ContentSyncState::InProgress);
-                    }
-                    else
-                    {
-                        callAfterContentLoadedNextFrame();
-                    }
-                }*/
             }
             else
             {

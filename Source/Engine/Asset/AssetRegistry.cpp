@@ -579,7 +579,9 @@ AssetRegistry::~AssetRegistry()
     delete m_scheduler;
 }
 
-void AssetRegistry::Initialize(Task<Result>* outSyncContentTask)
+void AssetRegistry::Initialize(
+    Task<Result>* outSyncContentTask,
+    const ProcRef<void(uint64 current, uint64 total)>& onSyncProgressCallback)
 {
     if (m_isInitialized || m_isSyncingCache)
     {
@@ -602,7 +604,8 @@ void AssetRegistry::Initialize(Task<Result>* outSyncContentTask)
                 params.registryId = m_registryId;
                 params.outputCacheDir = EngineGlobals::GetCacheDirectory();
                 params.outputContentDir = EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Game")>();
-                params.numAttempts = 1; // 5;
+                params.numAttempts = 1;
+                params.onProgressCallback = onSyncProgressCallback;
 
                 m_isSyncingCache = true;
                 m_cacheSyncComplete.Reset();

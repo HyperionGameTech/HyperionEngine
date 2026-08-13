@@ -124,6 +124,8 @@ protected:
     virtual void BeforeContentLoaded();
     virtual void AfterContentLoaded();
 
+    virtual void OnSyncProgress(uint64 current, uint64 total);
+
     virtual void OnLaunch();
     virtual void OnUpdate(float delta);
 

@@ -9,6 +9,7 @@
 #include <Core/Defines.hpp>
 
 #include <Core/Threading/Task.hpp>
+#include <Core/Threading/AtomicVar.hpp>
 
 #include <Core/Functional/Delegate.hpp>
 
@@ -26,6 +27,9 @@ struct ContentSyncState
 
     Result lastResult;
     Task<Result> currentTask;
+
+    // Scaled up to allow two decimal places (10000 * (0..1))
+    AtomicVar<uint32> progress = 0;
 
     Delegate<void, State> OnStateChanged;
 

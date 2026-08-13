@@ -36,6 +36,8 @@ protected:
     virtual void BeforeContentLoaded() override;
     virtual void AfterContentLoaded() override;
 
+    virtual void OnSyncProgress(uint64 current, uint64 total) override;
+
     virtual void OnLaunch() override;
     virtual void OnUpdate(float delta) override;
 

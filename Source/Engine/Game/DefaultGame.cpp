@@ -401,6 +401,20 @@ void DefaultGame::OnUpdate(float delta)
     // Loading content.
     if (IsSyncingContent())
     {
+        // update progress text.
+
+        // divide by 100 to get the two decimal places back:
+        const float progress = float(m_syncState.progress.Get(MemoryOrder::RELAXED)) * 0.01f;
+        
+        // get loading progress text UIObject
+        UIStage& stage = *m_uiSubsystem->GetUIStage();
+
+        Handle<UIObject> progressText = stage.FindChildUIObject("LoadingProgressText"_sh);
+        if (progressText.IsValid())
+        {
+            progressText->SetText(HYP_FORMAT("{}%", MathUtil::Round(progress, 2)));
+        }
+
         return;
     }
 
@@ -447,6 +461,11 @@ void DefaultGame::OnUpdate(float delta)
     //    Vec3f dir = Vec3f(MathUtil::Sin(m_sunAngle), 0.7f, MathUtil::Cos(m_sunAngle)).Normalize();
     //    m_sun->SetDirection(dir);
     //}
+}
+
+void DefaultGame::OnSyncProgress(uint64 current, uint64 total)
+{
+    Game::OnSyncProgress(current, total);
 }
 
 void DefaultGame::BeforeContentLoaded()
@@ -499,6 +518,14 @@ void DefaultGame::ShowLoadingScreen()
     loadingText->SetParentAlignment(UIObjectAlignment::CENTER);
     loadingPanel->AddChildUIObject(loadingText);
 
+    Handle<UIText> loadingProgressText = loadingPanel->CreateUIObject<UIText>(NAME("LoadingProgressText"), Vec2i { 0, 100 }, UIObjectSize { { 0, UIObjectSize::AUTO }, { 80, UIObjectSize::PIXEL } });
+    loadingProgressText->SetText("0%");
+    loadingProgressText->SetTextSize(14.0f);
+    loadingProgressText->SetTextColor(Color::White());
+    loadingProgressText->SetOriginAlignment(UIObjectAlignment::CENTER);
+    loadingProgressText->SetParentAlignment(UIObjectAlignment::CENTER);
+    loadingPanel->AddChildUIObject(loadingProgressText);
+
     Handle<UIListView> errorPanel = backgroundPanel->CreateUIObject<UIListView>(Vec2i::Zero(), UIObjectSize { { 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO } });
     errorPanel->SetIsVisible(false);
     errorPanel->SetOriginAlignment(UIObjectAlignment::CENTER);
@@ -506,7 +533,7 @@ void DefaultGame::ShowLoadingScreen()
     backgroundPanel->AddChildUIObject(errorPanel);
     
     Handle<UIText> errorText = errorPanel->CreateUIObject<UIText>(Vec2i::Zero(), UIObjectSize { { 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO } });
-    errorText->SetText("Loading content...");
+    errorText->SetText("Error text");
     errorText->SetTextSize(24.0f);
     errorText->SetTextColor(Color::White());
     errorText->SetIsEnabled(false);

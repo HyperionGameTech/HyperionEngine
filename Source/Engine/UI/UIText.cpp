@@ -69,11 +69,13 @@ static void ForEachCharacter(
 {
     HYP_SCOPE;
 
+#ifdef HYP_DEBUG_MODE
     thread_local bool t_isInFunction = false;
     Assert(!t_isInFunction, "Re-entry detected");
 
     t_isInFunction = true;
     HYP_DEFER({ t_isInFunction = false; });
+#endif
 
     Vec2f placement = Vec2f::Zero();
 
@@ -102,24 +104,8 @@ static void ForEachCharacter(
         atlasPixelSize = Vec2f::One() / Vec2f(mainTextureAtlas->GetExtent().GetXY());
     }
 
-    thread_local Array<FontAtlasCharacterIterator>* t_currentWordChars = nullptr;
-
-    if (HYP_UNLIKELY(!t_currentWordChars))
-    {
-        t_currentWordChars = new Array<FontAtlasCharacterIterator>;
-        t_currentWordChars->Reserve(16);
-
-        CurrentThreadObject()->AddOnExitCallback(
-            []()
-            {
-                delete t_currentWordChars;
-                t_currentWordChars = nullptr;
-            });
-    }
-
-    t_currentWordChars->Reserve(static_cast<size_t>(text.Size() * 1.1));
-
-    auto& currentWordChars = *t_currentWordChars;
+    Array<FontAtlasCharacterIterator, ThreadAllocator> currentWordChars;
+    currentWordChars.Reserve(static_cast<size_t>(text.Size() * 1.25));
 
     const auto iterateCurrentWord = [&currentWordChars, &callback]()
     {
@@ -147,7 +133,7 @@ static void ForEachCharacter(
             {
                 // add room for space
                 // this is a bit of a hack, but it works for now
-                static constexpr float SpaceCharacterSize = 0.2f;
+                static constexpr float SpaceCharacterSize = 0.35f;
                 placement.x += cellDimensions.x * SpaceCharacterSize;
             }
 
@@ -212,31 +198,43 @@ static void ForEachCharacter(
     iterateCurrentWord();
 }
 
-static BoundingBox CalculateTextAABB(const FontAtlas& fontAtlas, const String& text, const Vec2i& parentBounds, float textSize, bool includeBearing, Array<Vec2f>* outCharacterPlacements = nullptr)
+static BoundingBox CalculateTextAABB(
+    const FontAtlas& fontAtlas,
+    const String& text,
+    const Vec2i& parentBounds,
+    float textSize,
+    bool includeBearing,
+    Array<Vec2f>* outCharacterPlacements = nullptr)
 {
     HYP_SCOPE;
 
     BoundingBox aabb = BoundingBox::Zero();
 
-    ForEachCharacter(fontAtlas, text, parentBounds, textSize, outCharacterPlacements, [includeBearing, &aabb](const FontAtlasCharacterIterator& iter)
-                     {
-                         BoundingBox characterAabb = BoundingBox::Zero();
+    ForEachCharacter(
+        fontAtlas,
+        text,
+        parentBounds,
+        textSize,
+        outCharacterPlacements,
+        [includeBearing, &aabb](const FontAtlasCharacterIterator& iter)
+        {
+            BoundingBox characterAabb = BoundingBox::Zero();
 
-                         if (includeBearing)
-                         {
-                             const float offsetY = (iter.cellDimensions.y - iter.glyphDimensions.y) + iter.bearingY;
+            if (includeBearing)
+            {
+                const float offsetY = (iter.cellDimensions.y - iter.glyphDimensions.y) + iter.bearingY;
 
-                             characterAabb = characterAabb.Union(Vec3f(iter.placement.x, iter.placement.y + offsetY, 0.0f));
-                             characterAabb = characterAabb.Union(Vec3f(iter.placement.x + iter.glyphDimensions.x, iter.placement.y + offsetY + iter.cellDimensions.y, 0.0f));
-                         }
-                         else
-                         {
-                             characterAabb = characterAabb.Union(Vec3f(iter.placement.x, iter.placement.y, 0.0f));
-                             characterAabb = characterAabb.Union(Vec3f(iter.placement.x + iter.glyphDimensions.x, iter.placement.y + iter.cellDimensions.y, 0.0f));
-                         }
+                characterAabb = characterAabb.Union(Vec3f(iter.placement.x, iter.placement.y + offsetY, 0.0f));
+                characterAabb = characterAabb.Union(Vec3f(iter.placement.x + iter.glyphDimensions.x, iter.placement.y + offsetY + iter.cellDimensions.y, 0.0f));
+            }
+            else
+            {
+                characterAabb = characterAabb.Union(Vec3f(iter.placement.x, iter.placement.y, 0.0f));
+                characterAabb = characterAabb.Union(Vec3f(iter.placement.x + iter.glyphDimensions.x, iter.placement.y + iter.cellDimensions.y, 0.0f));
+            }
 
-                         aabb = aabb.Union(characterAabb);
-                     });
+            aabb = aabb.Union(characterAabb);
+        });
 
     return aabb;
 }
