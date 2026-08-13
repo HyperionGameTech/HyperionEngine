@@ -1430,6 +1430,12 @@ String ShaderPropertySet::GetDebugString() const
     return str;
 }
 
+void ShaderPropertySet::WriteToBinary(ByteWriter& stream) const
+{
+    // Write the raw data to binary. Used for caching preloaded shaders mainly
+    stream.Write(chunks.Data(), chunks.Size() * ChunkSize);
+}
+
 #pragma endregion ShaderPropertySet
 
 #pragma region ShaderBundle

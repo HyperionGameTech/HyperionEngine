@@ -41,6 +41,7 @@
 namespace Hyperion {
 
 class ObjectBase;
+class ByteWriter;
 
 namespace Resources {
 static constexpr uint32 InvalidBinding = ~0u;
@@ -2319,6 +2320,8 @@ struct ShaderPropertySet
 
     Array<ShaderPropertyId> ToArray() const;
     String GetDebugString() const;
+
+    void WriteToBinary(ByteWriter& stream) const;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

@@ -23,6 +23,8 @@
 
 #include <Core/Containers/SparsePagedArray.hpp>
 
+#include <Core/IO/ByteWriter.hpp>
+
 #include <Core/Threading/SharedMutex.hpp>
 #include <Core/Threading/ThreadSignal.hpp>
 #include <Core/Threading/Guarded.hpp>
@@ -43,6 +45,11 @@
 namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Shader);
+
+// iOS can't save the file
+#if !defined(HYP_IOS)
+#define HYP_GENERATE_SHADER_PRELOAD_CACHE
+#endif
 
 static EngineStatTimer s_statShaderCompilation("TotalShaderCompilationTime", /* resetPerFrame */ false);
 
@@ -102,11 +109,6 @@ public:
         ShaderMapEntry* entry;
 
         ShaderInstanceRef shaderInstance;
-
-        // set for requests heap-allocated by EnqueueCompile() (non-blocking path) -
-        // CompileShaders() deletes the request after processing it. Requests owned by
-        // a stack-local CompilingShaderScope (blocking path) leave this false, since
-        // the scope is responsible for its own request's lifetime.
         bool isHeapAllocated = false;
     };
 
@@ -139,10 +141,50 @@ public:
     volatile int32 m_isReloadingShaders = 0;
 #endif
 
+#ifdef HYP_GENERATE_SHADER_PRELOAD_CACHE
+    FileByteWriter* m_preloadCacheWriter = nullptr;
+#endif
+
+    // Data that was there on load, before the write stream was created
+    ByteBuffer m_preloadCacheData;
+
     ShaderManagerImpl()
     {
 #if HYP_ENABLE_SHADER_RELOAD
         StartShaderReloadThread();
+#endif
+
+        // Try finding preload bin
+        // @TODO we need to delete/invalidate this whenever shaderprops.bin is detected as no longer valid
+        FileByteReader preloadCacheReader(EngineGlobals::GetCacheDirectory() / "shaderpreload.bin");
+
+        if (!preloadCacheReader.Eof())
+        {
+            m_preloadCacheData = preloadCacheReader.Read();
+
+            // Calculate total count
+            if (m_preloadCacheData.Size() % sizeof(ShaderPreloadEntry) != 0)
+            {
+                HYP_LOG(Shader, Warning, "Shader preload cache is not a multiple of the preload entry struct size - skipping preload to prevent corruption issues, and removing the file");
+
+                if (!preloadCacheReader.GetFilepath().Remove())
+                {
+                    HYP_LOG(Shader, Warning, "Shader preload cache file at {} could not be removed; ignoring", preloadCacheReader.GetFilepath());
+                }
+            }
+        }
+        else
+        {
+            // Not found; just continue anyway - next run will save em
+            HYP_LOG(Shader, Info, "No shaderpreload.bin found in cache directory ({})", preloadCacheReader.GetFilepath());
+        }
+
+        preloadCacheReader.Close();
+
+#ifdef HYP_GENERATE_SHADER_PRELOAD_CACHE
+        m_preloadCacheWriter = new FileByteWriter(
+            EngineGlobals::GetCacheDirectory() / "shaderpreload.bin",
+            "wb");
 #endif
     }
 
@@ -150,6 +192,16 @@ public:
     {
 #if HYP_ENABLE_SHADER_RELOAD
         StopShaderReloadThread();
+#endif
+
+#ifdef HYP_GENERATE_SHADER_PRELOAD_CACHE
+        if (m_preloadCacheWriter != nullptr)
+        {
+            m_preloadCacheWriter->Close();
+
+            delete m_preloadCacheWriter;
+            m_preloadCacheWriter = nullptr;
+        }
 #endif
     }
 
@@ -221,6 +273,24 @@ public:
 
         // Update the entry
         request.entry->shaderInstance = si;
+    }
+
+    void PreloadShadersFromCacheFile(bool blockingWait)
+    {
+        if (m_preloadCacheData.Empty())
+        {
+            return; // nothing to preload
+        }
+
+        const size_t numEntries = m_preloadCacheData.Size() / sizeof(ShaderPreloadEntry);
+
+        HYP_LOG(Shader, Info, "Preloading {} shaders", numEntries);
+
+        PreloadShaders(
+            Span<const ShaderPreloadEntry>(
+                reinterpret_cast<const ShaderPreloadEntry*>(m_preloadCacheData.Data()),
+                reinterpret_cast<const ShaderPreloadEntry*>(m_preloadCacheData.Data()) + numEntries),
+            /* blockingWait */ blockingWait);
     }
 
     void CompileShaders()
@@ -343,6 +413,30 @@ public:
 
 #endif
 
+    void AddToPreloadCache(
+        const Name name,
+        const ShaderPropertySet& properties,
+        const VertexInputLayoutDesc& inputLayout)
+    {
+#ifdef HYP_GENERATE_SHADER_PRELOAD_CACHE
+        if (!m_preloadCacheWriter)
+        {
+            return;
+        }
+        
+        ShaderPreloadEntry preloadEntry;
+        Memory::Zero(&preloadEntry, sizeof(ShaderPreloadEntry));
+
+        const char* nameStr = name.LookupString();
+        Memory::CopyString(preloadEntry.nameStr, nameStr, MathUtil::Min(Memory::StrLen(nameStr) + 1, sizeof(preloadEntry.nameStr)));
+
+        preloadEntry.properties = properties;
+        preloadEntry.inputLayout = inputLayout;
+
+        m_preloadCacheWriter->Write(preloadEntry);
+#endif
+    }
+
     // scope to inc/dec atomic counter for number of shaders actively being compiled
     // so we can display a toast to let the user know what's going on in editor
     struct CompilingShaderScope
@@ -426,33 +520,35 @@ public:
         }
     };
 
-    // Kicks off a background compile for \p inRequest without blocking the calling thread.
-    // The request is heap-allocated since the caller returns immediately - completion is
-    // observed later via request.entry->threadSignal (see ShaderMapEntry::IsLoading()/IsLoaded()).
-    void EnqueueCompile(const CompileShaderRequest& inRequest)
+    // Kicks off a background compile for the shaders described by \p inRequests
+    void EnqueueCompile(Span<const CompileShaderRequest> inRequests)
     {
-        CompileShaderRequest* request = new CompileShaderRequest(inRequest);
-        request->isHeapAllocated = true;
-
-        Assert(request->entry != nullptr);
-
+        if (!inRequests)
         {
-            Mutex::Guard guard(m_compilingShadersMutex);
+            return;
+        }
+
+        Array<CompileShaderRequest, ShaderAllocator> requests = inRequests;
+        
+        Mutex::Guard guard(m_compilingShadersMutex);
+
+        for (CompileShaderRequest& request : requests)
+        {
+            Assert(request.entry != nullptr);
 
             m_numCompilingShaders.Increment(1, MemoryOrder::RELAXED);
             m_totalNumCompilingShadersForTask.Increment(1, MemoryOrder::RELAXED);
 
-            m_compilingShaders[request->shaderName].PushBack(request);
+            m_compilingShaders[request.shaderName].PushBack(&request);
         }
 
         m_spActiveCompilationTask.release();
 
-        // discarded - FIRE_AND_FORGET means the task doesn't own its executor,
-        // so it's safe to drop the handle without awaiting it.
         (void)TaskSystem::GetInstance().Enqueue(
-            [impl = this]
+            [impl = this, requests = std::move(requests)] () mutable // memory ownership moved to functor.
             {
                 impl->CompileShaders();
+                requests.Clear();
             },
             TaskThreadPoolName::THREAD_POOL_BACKGROUND,
             TaskEnqueueFlags::FIRE_AND_FORGET);
@@ -520,7 +616,10 @@ public:
             {
                 while (entry->IsLoading())
                 {
-                    HYP_LOG(Shader, Warning, "Blocking wait on shader load for {}", name);
+                    HYP_LOG(Shader, Warning, "Blocking wait on shader load for {} {}", name, properties.GetDebugString());
+
+                    AddToPreloadCache(name, properties, inputLayout);
+
                     entry->threadSignal.Wait();
                 }
             }
@@ -605,14 +704,17 @@ public:
 
         if (!waitForCompile)
         {
-            EnqueueCompile(request);
+            EnqueueCompile({ request });
 
             return ShaderInstanceRef::Null();
         }
 
         CompilingShaderScope compilingShaderScope { this, request };
 
-        HYP_LOG(Shader, Warning, "Blocking wait on shader load for {}", name);
+        HYP_LOG(Shader, Warning, "Blocking wait on shader load for {} {}", name, properties.GetDebugString());
+        
+        AddToPreloadCache(name, properties, inputLayout);
+
         compilingShaderScope.Wait();
 
         Assert(entry->shader != nullptr
@@ -694,6 +796,42 @@ public:
         }
 
         return &m_entries.Get(uint64(shaderCacheId));
+    }
+    
+    void PreloadShaders(Span<const ShaderPreloadEntry> shadersToPreload, bool blockingWait)
+    {
+        if (!shadersToPreload)
+        {
+            return;
+        }
+
+        for (const ShaderPreloadEntry& entry : shadersToPreload)
+        {
+            [[maybe_unused]] ShaderCacheId unusedCacheId;
+
+            // Sanity check in case of corrupt data; we want to ensure we have a NUL terminator in the name string
+            bool nulFound = false;
+            for (size_t i = 0; i < sizeof(entry.nameStr); i++)
+            {
+                if (entry.nameStr[i] == '\0')
+                {
+                    nulFound = true;
+                    break;
+                }
+            }
+
+            if (!nulFound)
+            {
+                HYP_LOG(Shader, Warning, "Shader preload entry had a corrupt name string, skipping!");
+                continue;
+            }
+
+            (void)GetOrCreate(
+                CreateNameFromDynamicString(entry.nameStr), entry.properties, entry.inputLayout,
+                unusedCacheId,
+                /* doLoadShader */ true,
+                /* waitForCompile */ blockingWait);
+        }
     }
 
     void ExpireShaderEntries(const Shader* shader)
@@ -981,6 +1119,16 @@ ShaderInstanceRef ShaderManager::GetOrCreate(Name name, const ShaderPropertySet&
 
     ShaderCacheId cacheId;
     return m_impl->GetOrCreate(name, propertySet, inputLayout, cacheId, /* doLoadShader */ true, waitForCompile);
+}
+
+void ShaderManager::PreloadShadersFromCacheFile(bool blockingWait)
+{
+    m_impl->PreloadShadersFromCacheFile(blockingWait);
+}
+
+void ShaderManager::PreloadShaders(Span<const ShaderPreloadEntry> shadersToPreload, bool blockingWait)
+{
+    m_impl->PreloadShaders(shadersToPreload, blockingWait);
 }
 
 void ShaderManager::ExpireShaderEntries(const Shader* shader)

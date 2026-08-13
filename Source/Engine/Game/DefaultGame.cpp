@@ -399,7 +399,7 @@ void DefaultGame::OnUpdate(float delta)
     Game::OnUpdate(delta);
 
     // Loading content.
-    if (IsSyncingContent())
+    if (IsSyncingOrPreparingContent())
     {
         // update progress text.
 
@@ -607,6 +607,9 @@ void DefaultGame::ShowLoadingScreen()
                 break;
             case ContentSyncState::InProgress:
                 loadingText->SetText("Loading content...");
+                break;
+            case ContentSyncState::Downloaded_Preparing:
+                loadingText->SetText("Preheating...");
                 break;
             case ContentSyncState::Finished:
                 loadingText->SetText("Finishing up...");

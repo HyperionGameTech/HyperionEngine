@@ -10,6 +10,8 @@
 
 #include <Core/Memory/Pimpl.hpp>
 
+#include <Core/Utilities/Span.hpp>
+
 #include <Rendering/RenderTypes.hpp>
 
 namespace Hyperion {
@@ -18,6 +20,14 @@ class Shader;
 
 enum class ShaderCacheId : uint64;
 static constexpr ShaderCacheId InvalidShaderCacheId = ShaderCacheId(0);
+
+// Serialized to disk; used to preload some shaders on init that cannot be async loaded
+struct ShaderPreloadEntry
+{
+    char nameStr[128];
+    ShaderPropertySet properties;
+    VertexInputLayoutDesc inputLayout;
+};
 
 class ShaderManager
 {
@@ -31,6 +41,9 @@ public:
         bool waitForCompile = true);
 
     void ExpireShaderEntries(const Shader* shader);
+
+    void PreloadShadersFromCacheFile(bool blockingWait = false);
+    void PreloadShaders(Span<const ShaderPreloadEntry> shadersToPreload, bool blockingWait = false);
 
     size_t CalculateMemoryUsage() const;
 
