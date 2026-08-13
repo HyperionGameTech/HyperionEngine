@@ -142,8 +142,13 @@ public:
     FilePath GetManifestPath(const AssetPath& assetPath) const;
 
     /*! \param outSyncContentTask if not nullptr, will attempt to download cache from url pointed to at CacheServer CLI arg
-     *      The Task itself will be set to a task that on completes indicates the download has completed. */
-    void Initialize(Task<Result>* outSyncContentTask = nullptr);
+     *      The Task itself will be set to a task that on completes indicates the download has completed.
+     *  \param onSyncProgressCallback if \p outSyncContentTask is not nullptr and this is not nullptr, will call periodically to
+     *      provide info on the current processed download index and the overall number of downloads that will be made */
+    void Initialize(
+        Task<Result>* outSyncContentTask = nullptr,
+        const ProcRef<void(uint64 current, uint64 total)>& onSyncProgressCallback = nullptr);
+
     void Shutdown();
 
     /*! \brief Called by AssetManager to perform enqueued tasks that mutate the registry. */

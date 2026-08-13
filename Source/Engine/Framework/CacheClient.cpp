@@ -16,6 +16,7 @@
 #include <Asset/AssetRegistry.hpp>
 
 #include <Core/Threading/ThreadPool.hpp>
+#include <Core/Threading/TaskSystem.hpp>
 #include <Core/Threading/Task.hpp>
 
 #include <Core/IO/ByteWriter.hpp>
@@ -442,7 +443,8 @@ Map<AssetPath, uint64> BuildLocalAssetTimestampMap(const Params& params)
 Result DownloadCacheFromHost(
     const ANSIStringView& host, uint16 port,
     const Params& params,
-    bool* outShouldRetry = nullptr)
+    bool* outShouldRetry = nullptr,
+    OnProgressCallback onProgressCallback = nullptr)
 {
     if (outShouldRetry)
     {
@@ -532,16 +534,12 @@ Result DownloadCacheFromHost(
     // be grown by exactly the amount the new data needs.
     //
     // A blob is left alone when its asset is already current locally *and* its bytes are still
-    // present and in range in the block file. Those keep their existing offsets, so nothing is
-    // re-downloaded, nothing is rewritten, and nothing has to be held in memory to survive the
-    // cook. Anything else -- stale asset, missing blob, or a table of contents entry that no longer
-    // matches the block file -- gets fetched and appended.
+    // present and in range in the block file.  Anything else gets fetched and appended.
     //
     // Note that a replaced blob is appended at the tail rather than written back over its old
-    // bytes. Blobs are addressed by an offset in the table of contents rather than by their position
-    // within the block, so one growing past its old extent doesn't disturb its neighbours and there's
-    // no need to shuffle (or re-fetch) whatever follows it. The cost is that the bytes it leaves
-    // behind are dead space until the block is next rebuilt from scratch.
+    // bytes, to prevent trampling over others. This will cause some empty / dead space to be left around,
+    // which we're accepting for now. We'll need to address it in time, though.
+
     Set<uint64> blobKeysToWrite;
 
     Array<uint64> additionalBlockSizes;
@@ -617,16 +615,17 @@ Result DownloadCacheFromHost(
 
     using threading::TaskThreadPool;
 
-    TaskThreadPool downloadPool("CacheSyncWorker", 4);
+    TaskThreadPool downloadPool("CacheClient", 8);
     downloadPool.Start();
-
-    List<Task<void>> tasks;
 
     AtomicVar<int32> failureCount = 0;
 
+    TaskBatch batch;
+    batch.pool = &downloadPool;
+
     for (const AssetEntry& entry : serverManifest.assets)
     {
-        tasks.EmplaceBack(downloadPool.Enqueue(HYP_STATIC_MESSAGE("CacheSyncAsset"), [&]() -> void
+        batch.AddTask([&]
         {
             bool entryFailed = false;
 
@@ -642,10 +641,7 @@ Result DownloadCacheFromHost(
 
                 FilePath hmfFilePath = bucketContentDir / (entry.path.assetName.ToString() + ".hmf");
 
-                // Check if the file exists already and has a timestamp >= than the timestamp we know;
-                // if we're downloading for multiple scenes, then it may have been already downloaded.
-                // Only the HMF is skipped here -- the blobs below are tracked separately and can
-                // still be missing from the cache even when the HMF on disk is current.
+                // Check if the file exists already and has a timestamp >= than the timestamp we know
                 const bool hmfUpToDate = hmfFilePath.Exists()
                     && hmfFilePath.LastModifiedTimestamp() >= entry.lastModifiedTimestamp;
 
@@ -721,14 +717,35 @@ Result DownloadCacheFromHost(
             {
                 failureCount.Increment(1, MemoryOrder::RELAXED);
             }
-        }));
+        });
     }
 
     // Wait for download task to finish
-    for (auto& task : tasks)
+    ThreadSignal sig { 0 };
+
+    batch.OnComplete.Bind([&sig]
+                          {
+                              sig.Signal();
+                          }).Detach();
+
+    TaskSystem::GetInstance().EnqueueBatch(&batch);
+
+    while (!sig.IsSignalled())
     {
-        task.Await();
+        HYP_LOG(CacheClient, Info, "Waiting for downloads to complete.... ({} / {})",
+                (batch.numEnqueued - batch.notifier.GetValue()), batch.numEnqueued);
+
+        if (onProgressCallback)
+        {
+            onProgressCallback(
+                (batch.numEnqueued - batch.notifier.GetValue()),
+                batch.numEnqueued);
+        }
+
+        ThreadSleep(1);
     }
+
+    batch.AwaitCompletion();
 
     downloadPool.Stop();
 
@@ -804,7 +821,7 @@ HYP_EXPORT Result SyncContent(const Params& params)
 
         bool retryThisTime = shouldRetry;
 
-        if ((res = DownloadCacheFromHost(host, port, params, shouldRetry ? &retryThisTime : nullptr)); !res.HasError())
+        if ((res = DownloadCacheFromHost(host, port, params, shouldRetry ? &retryThisTime : nullptr, params.onProgressCallback)); !res.HasError())
         {
             // OK
             return res;

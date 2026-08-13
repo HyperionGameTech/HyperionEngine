@@ -44,10 +44,6 @@ namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Shader);
 
-#if HYP_ENABLE_SHADER_RELOAD
-ENGINE_API HYP_DECLARE_LOG_CHANNEL(ShaderCompiler);
-#endif
-
 static EngineStatTimer s_statShaderCompilation("TotalShaderCompilationTime", /* resetPerFrame */ false);
 
 static const Name s_nameFallbackShader = NAME("Fallback");
@@ -524,6 +520,7 @@ public:
             {
                 while (entry->IsLoading())
                 {
+                    HYP_LOG(Shader, Warning, "Blocking wait on shader load for {}", name);
                     entry->threadSignal.Wait();
                 }
             }
@@ -614,6 +611,8 @@ public:
         }
 
         CompilingShaderScope compilingShaderScope { this, request };
+
+        HYP_LOG(Shader, Warning, "Blocking wait on shader load for {}", name);
         compilingShaderScope.Wait();
 
         Assert(entry->shader != nullptr
@@ -909,7 +908,7 @@ public:
             }
         }
 
-        HYP_LOG(ShaderCompiler, Info, "Reloading {} shaders\n{}", requests.Size(), shadersText);
+        HYP_LOG(Shader, Info, "Reloading {} shaders\n{}", requests.Size(), shadersText);
 
         Set<Shader*, ShaderAllocator> shadersToExpire;
 

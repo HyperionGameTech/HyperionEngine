@@ -372,9 +372,16 @@ void UIStage::Init()
 
     InitObject(m_camera);
 
-    const auto UpdateSurfaceSize = [this](ApplicationWindow* window)
+    const auto UpdateSurfaceSize = [weakThis = MakeWeakRef(this)](ApplicationWindow* window)
     {
-        m_onWindowResizedHandler.Reset();
+        Handle<UIStage> strongThis = weakThis.Lock();
+
+        if (!strongThis.IsValid())
+        {
+            return;
+        }
+
+        strongThis->m_onWindowResizedHandler.Reset();
 
         if (window == nullptr)
         {
@@ -383,28 +390,28 @@ void UIStage::Init()
 
         const Vec2i physicalSize = window->GetSize();
 
-        if (IsInitCalled())
+        if (strongThis->IsInitCalled())
         {
             // switching windows after Init() needs the same relayout a resize does
-            SetSurfaceSize(physicalSize);
+            strongThis->SetSurfaceSize(physicalSize);
         }
         else
         {
-            m_contentScaleFactor = window->GetContentScaleFactor();
+            strongThis->m_contentScaleFactor = window->GetContentScaleFactor();
 
-            m_surfaceSize = Vec2i(Vec2f(physicalSize) / m_contentScaleFactor);
+            strongThis->m_surfaceSize = Vec2i(Vec2f(physicalSize) / strongThis->m_contentScaleFactor);
 
-            if (m_camera.IsValid())
+            if (strongThis->m_camera.IsValid())
             {
-                m_camera->SetDimensions(physicalSize);
+                strongThis->m_camera->SetDimensions(physicalSize);
 
-                UpdateCameraControllerStack();
+                strongThis->UpdateCameraControllerStack();
             }
         }
 
-        m_onWindowResizedHandler = window->OnWindowSizeChanged.BindThreaded(
+        strongThis->m_onWindowResizedHandler = window->OnWindowSizeChanged.BindThreaded(
             window,
-            [weakThis = MakeWeakRef(this)](Vec2i newSize)
+            [weakThis](Vec2i newSize)
             {
                 Handle<UIStage> strongThis = weakThis.Lock();
 

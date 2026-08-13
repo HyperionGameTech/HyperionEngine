@@ -29,7 +29,7 @@ void DestroyInstancedMeshData(Entity& entity, MeshComponent& meshComponent, bool
 
 void UpdateInstancedMeshData(Entity& entity, MeshComponent& meshComponent)
 {
-    Array<InstancedMeshProxy*, SceneAllocator> instancedMeshProxies;
+    FatArray<InstancedMeshProxy*, InlineAllocator<4, ThreadAllocator>> instancedMeshProxies;
 
     for (const Handle<Node>& childNode : entity.GetChildren())
     {
