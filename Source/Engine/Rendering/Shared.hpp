@@ -1270,7 +1270,7 @@ struct TShaderDataOffset : ShaderDataOffset
     }
 
     constexpr explicit TShaderDataOffset(int index)
-        : TShaderDataOffset(static_cast<uint32>(index))
+        : TShaderDataOffset(uint32(index))
     {
     }
 

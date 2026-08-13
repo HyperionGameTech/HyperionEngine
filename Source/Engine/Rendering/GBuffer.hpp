@@ -34,7 +34,7 @@ enum class GBufferPass : uint8
     Max
 };
 
-static constexpr uint8 NumGBufferPasses = static_cast<uint8>(GBufferPass::Max);
+static constexpr uint8 NumGBufferPasses = uint8(GBufferPass::Max);
 
 class GBuffer;
 
@@ -50,7 +50,7 @@ struct GBufferTarget
         Max
     };
 
-    static_assert(static_cast<uint8>(Max) == NumGBufferTargets, "Max does not match NumGBufferTargets");
+    static_assert(uint8(Max) == NumGBufferTargets, "Max does not match NumGBufferTargets");
 
     GBuffer* gbuffer;
     GBufferPass pass;
@@ -87,12 +87,12 @@ public:
 
     HYP_FORCE_INLINE GBufferTarget& GetPass(GBufferPass pass)
     {
-        return m_passes[static_cast<uint8>(pass)];
+        return m_passes[uint8(pass)];
     }
 
     HYP_FORCE_INLINE const GBufferTarget& GetPass(GBufferPass pass) const
     {
-        return m_passes[static_cast<uint8>(pass)];
+        return m_passes[uint8(pass)];
     }
 
     HYP_FORCE_INLINE const Array<FramebufferRef>& GetFramebuffers() const

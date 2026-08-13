@@ -296,7 +296,7 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
 
                     if (mipIndex > 0)
                     {
-                        desc.mipOffsets[mipIndex - 1] = static_cast<uint32>(mipOffsetBefore);
+                        desc.mipOffsets[mipIndex - 1] = uint32(mipOffsetBefore);
                     }
                 }
 
@@ -817,7 +817,7 @@ void UpdateEnvProbeVisibilityTexture(Frame* frame, EnvProbe* envProbe, bool shou
 
                     if (mipIndex > 0)
                     {
-                        desc.mipOffsets[mipIndex - 1] = static_cast<uint32>(mipOffsetBefore);
+                        desc.mipOffsets[mipIndex - 1] = uint32(mipOffsetBefore);
                     }
                 }
 

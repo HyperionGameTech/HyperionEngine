@@ -254,19 +254,19 @@ uint64 GetFieldUInt64(const BoxedValue& obj, const Class* cls, const char* field
         if (v.Is<uint64>())
             return v.Get<uint64>();
         if (v.Is<int64>())
-            return static_cast<uint64>(v.Get<int64>());
+            return uint64(v.Get<int64>());
         if (v.Is<uint32>())
             return v.Get<uint32>();
         if (v.Is<int32>())
-            return static_cast<uint64>(v.Get<int32>());
+            return uint64(v.Get<int32>());
         if (v.Is<uint16>())
             return v.Get<uint16>();
         if (v.Is<int16>())
-            return static_cast<uint64>(v.Get<int16>());
+            return uint64(v.Get<int16>());
         if (v.Is<uint8>())
             return v.Get<uint8>();
         if (v.Is<int8>())
-            return static_cast<uint64>(v.Get<int8>());
+            return uint64(v.Get<int8>());
     }
     return 0;
 }
@@ -651,11 +651,11 @@ CameraOrthoRect {
             if (cls)
             {
                 Check("PassOp == SO_REPLACE value",
-                      GetFieldUInt64(result.GetValue(), cls, "PassOp") == static_cast<uint64>(SO_REPLACE));
+                      GetFieldUInt64(result.GetValue(), cls, "PassOp") == uint64(SO_REPLACE));
                 Check("FailOp == SO_KEEP value",
-                      GetFieldUInt64(result.GetValue(), cls, "FailOp") == static_cast<uint64>(SO_KEEP));
+                      GetFieldUInt64(result.GetValue(), cls, "FailOp") == uint64(SO_KEEP));
                 Check("CompareOp == SCO_ALWAYS value",
-                      GetFieldUInt64(result.GetValue(), cls, "CompareOp") == static_cast<uint64>(SCO_ALWAYS));
+                      GetFieldUInt64(result.GetValue(), cls, "CompareOp") == uint64(SCO_ALWAYS));
             }
         }
     }
@@ -725,9 +725,9 @@ CameraOrthoRect {
                 {
                     Check("RT NumLayers == 1", GetFieldValue<uint16>(result.GetValue(), parsedCls, "NumLayers") == 1);
                     Check("RT Type == Texture2D",
-                          GetFieldUInt64(result.GetValue(), parsedCls, "Type") == static_cast<uint64>(TextureType::Texture2D));
+                          GetFieldUInt64(result.GetValue(), parsedCls, "Type") == uint64(TextureType::Texture2D));
                     Check("RT Format == RGBA8",
-                          GetFieldUInt64(result.GetValue(), parsedCls, "Format") == static_cast<uint64>(TextureFormat::RGBA8));
+                          GetFieldUInt64(result.GetValue(), parsedCls, "Format") == uint64(TextureFormat::RGBA8));
                 }
             }
         }
@@ -792,11 +792,11 @@ CameraOrthoRect {
                 if (parsedCls)
                 {
                     Check("RT PassOp == SO_REPLACE",
-                          GetFieldUInt64(result.GetValue(), parsedCls, "PassOp") == static_cast<uint64>(SO_REPLACE));
+                          GetFieldUInt64(result.GetValue(), parsedCls, "PassOp") == uint64(SO_REPLACE));
                     Check("RT FailOp == SO_KEEP",
-                          GetFieldUInt64(result.GetValue(), parsedCls, "FailOp") == static_cast<uint64>(SO_KEEP));
+                          GetFieldUInt64(result.GetValue(), parsedCls, "FailOp") == uint64(SO_KEEP));
                     Check("RT CompareOp == SCO_ALWAYS",
-                          GetFieldUInt64(result.GetValue(), parsedCls, "CompareOp") == static_cast<uint64>(SCO_ALWAYS));
+                          GetFieldUInt64(result.GetValue(), parsedCls, "CompareOp") == uint64(SCO_ALWAYS));
                 }
             }
         }
@@ -1004,11 +1004,11 @@ CameraOrthoRect {
                 if (pc)
                 {
                     Check("TD: RT NumLayers == 7", GetFieldValue<uint16>(result.GetValue(), pc, "NumLayers") == 7);
-                    Check("TD: RT Type == Texture2D", GetFieldUInt64(result.GetValue(), pc, "Type") == static_cast<uint64>(TextureType::Texture2D));
-                    Check("TD: RT Format == RGBA8", GetFieldUInt64(result.GetValue(), pc, "Format") == static_cast<uint64>(TextureFormat::RGBA8));
-                    Check("TD: RT MinFilterMode", GetFieldUInt64(result.GetValue(), pc, "MinFilterMode") == static_cast<uint64>(TFM_NEAREST));
-                    Check("TD: RT TextureWrapMode", GetFieldUInt64(result.GetValue(), pc, "TextureWrapMode") == static_cast<uint64>(TWM_CLAMP_TO_EDGE));
-                    Check("TD: RT ImageUsage", GetFieldUInt64(result.GetValue(), pc, "ImageUsage") == static_cast<uint64>(ImageUsage::IU_SAMPLED));
+                    Check("TD: RT Type == Texture2D", GetFieldUInt64(result.GetValue(), pc, "Type") == uint64(TextureType::Texture2D));
+                    Check("TD: RT Format == RGBA8", GetFieldUInt64(result.GetValue(), pc, "Format") == uint64(TextureFormat::RGBA8));
+                    Check("TD: RT MinFilterMode", GetFieldUInt64(result.GetValue(), pc, "MinFilterMode") == uint64(TFM_NEAREST));
+                    Check("TD: RT TextureWrapMode", GetFieldUInt64(result.GetValue(), pc, "TextureWrapMode") == uint64(TWM_CLAMP_TO_EDGE));
+                    Check("TD: RT ImageUsage", GetFieldUInt64(result.GetValue(), pc, "ImageUsage") == uint64(ImageUsage::IU_SAMPLED));
                 }
             }
         }
@@ -1038,9 +1038,9 @@ CameraOrthoRect {
             const Class* pc = GetClass(result.GetValue().GetTypeId());
             if (pc)
             {
-                Check("Parse TD: Type == Texture3D", GetFieldUInt64(result.GetValue(), pc, "Type") == static_cast<uint64>(TextureType::Texture3D));
-                Check("Parse TD: MinFilterMode == TFM_LINEAR", GetFieldUInt64(result.GetValue(), pc, "MinFilterMode") == static_cast<uint64>(TFM_LINEAR));
-                Check("Parse TD: TextureWrapMode == TWM_REPEAT", GetFieldUInt64(result.GetValue(), pc, "TextureWrapMode") == static_cast<uint64>(TWM_REPEAT));
+                Check("Parse TD: Type == Texture3D", GetFieldUInt64(result.GetValue(), pc, "Type") == uint64(TextureType::Texture3D));
+                Check("Parse TD: MinFilterMode == TFM_LINEAR", GetFieldUInt64(result.GetValue(), pc, "MinFilterMode") == uint64(TFM_LINEAR));
+                Check("Parse TD: TextureWrapMode == TWM_REPEAT", GetFieldUInt64(result.GetValue(), pc, "TextureWrapMode") == uint64(TWM_REPEAT));
                 Check("Parse TD: NumLayers == 3", GetFieldValue<uint16>(result.GetValue(), pc, "NumLayers") == 3);
             }
         }
@@ -1653,11 +1653,11 @@ CameraOrthoRect {
                 Check("MA HMF: DepthBiasSlope == 1.5", GetFieldValue<float>(result.GetValue(), cls, "DepthBiasSlope") == 1.5f);
                 Check("MA HMF: StencilReference == 3", GetFieldValue<uint8>(result.GetValue(), cls, "StencilReference") == 3);
                 Check("MA HMF: Bucket == Opaque",
-                      GetFieldUInt64(result.GetValue(), cls, "Bucket") == static_cast<uint64>(RenderBucket::Opaque));
+                      GetFieldUInt64(result.GetValue(), cls, "Bucket") == uint64(RenderBucket::Opaque));
                 Check("MA HMF: FillMode == FM_FILL",
-                      GetFieldUInt64(result.GetValue(), cls, "FillMode") == static_cast<uint64>(FM_FILL));
+                      GetFieldUInt64(result.GetValue(), cls, "FillMode") == uint64(FM_FILL));
                 Check("MA HMF: CullFaces == FCM_BACK",
-                      GetFieldUInt64(result.GetValue(), cls, "CullFaces") == static_cast<uint64>(FCM_BACK));
+                      GetFieldUInt64(result.GetValue(), cls, "CullFaces") == uint64(FCM_BACK));
             }
         }
     }
@@ -1682,9 +1682,9 @@ CameraOrthoRect {
             if (cls)
             {
                 Check("SamplerDesc: MinFilterMode == TFM_LINEAR_MIPMAP",
-                      GetFieldUInt64(result.GetValue(), cls, "MinFilterMode") == static_cast<uint64>(TFM_LINEAR_MIPMAP));
+                      GetFieldUInt64(result.GetValue(), cls, "MinFilterMode") == uint64(TFM_LINEAR_MIPMAP));
                 Check("SamplerDesc: WrapMode == TWM_REPEAT",
-                      GetFieldUInt64(result.GetValue(), cls, "WrapMode") == static_cast<uint64>(TWM_REPEAT));
+                      GetFieldUInt64(result.GetValue(), cls, "WrapMode") == uint64(TWM_REPEAT));
             }
         }
     }
@@ -1876,13 +1876,13 @@ CameraOrthoRect {
                               texCls->GetName().LookupString());
 
                         Check("Nested Texture: Type == Texture3D",
-                              GetFieldUInt64(texVal, texCls, "Type") == static_cast<uint64>(TextureType::Texture3D));
+                              GetFieldUInt64(texVal, texCls, "Type") == uint64(TextureType::Texture3D));
                         Check("Nested Texture: Format == RGBA8",
-                              GetFieldUInt64(texVal, texCls, "Format") == static_cast<uint64>(TextureFormat::RGBA8));
+                              GetFieldUInt64(texVal, texCls, "Format") == uint64(TextureFormat::RGBA8));
                         Check("Nested Texture: MinFilterMode == TFM_LINEAR",
-                              GetFieldUInt64(texVal, texCls, "MinFilterMode") == static_cast<uint64>(TFM_LINEAR));
+                              GetFieldUInt64(texVal, texCls, "MinFilterMode") == uint64(TFM_LINEAR));
                         Check("Nested Texture: TextureWrapMode == TWM_REPEAT",
-                              GetFieldUInt64(texVal, texCls, "TextureWrapMode") == static_cast<uint64>(TWM_REPEAT));
+                              GetFieldUInt64(texVal, texCls, "TextureWrapMode") == uint64(TWM_REPEAT));
                         Check("Nested Texture: NumLayers == 2",
                               GetFieldValue<uint16>(texVal, texCls, "NumLayers") == 2);
                     }

@@ -52,7 +52,7 @@ struct ScratchImageAllocatorImpl
         {
             CachedScratchImage& cachedImage = *it;
 
-            if (static_cast<int64>(prevFrameIndex) - int64(cachedImage.lastUsedFrame) >= MaxFramesBeforeDiscard)
+            if (int64(prevFrameIndex) - int64(cachedImage.lastUsedFrame) >= MaxFramesBeforeDiscard)
             {
                 it = cachedImages.Erase(it);
 

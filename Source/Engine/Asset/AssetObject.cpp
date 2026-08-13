@@ -699,7 +699,7 @@ void AssetObject::GetNumUsers(int64& outReaders, int64& outWriters) const
     outWriters = state & 0x1;
 #else // !HYP_ASSET_OBJECT_THREAD_SAFE
     // We don't have number of writers in this mode
-    outReaders = static_cast<int64>(m_numReaders);
+    outReaders = int64(m_numReaders);
     outWriters = 0;
 #endif // HYP_ASSET_OBJECT_THREAD_SAFE
 }

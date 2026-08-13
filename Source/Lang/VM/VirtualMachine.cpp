@@ -2115,12 +2115,12 @@ public:
             }
             else if (a.flags & Number::FLAG_SIGNED && b.flags & Number::FLAG_UNSIGNED)
             {
-                result.i = a.i % static_cast<int64>(b.u);
+                result.i = a.i % int64(b.u);
                 result.flags = Number::FLAG_SIGNED;
             }
             else if (a.flags & Number::FLAG_UNSIGNED && b.flags & Number::FLAG_SIGNED)
             {
-                result.u = a.u % static_cast<uint64>(b.i);
+                result.u = a.u % uint64(b.i);
                 result.flags = Number::FLAG_UNSIGNED;
             }
             else if (a.flags & Number::FLAG_UNSIGNED && b.flags & Number::FLAG_UNSIGNED)
@@ -2393,15 +2393,15 @@ public:
 
         if (num.flags & Number::FLAG_UNSIGNED)
         {
-            result.u = static_cast<uint8>(num.u);
+            result.u = uint8(num.u);
         }
         else if (num.flags & Number::FLAG_SIGNED)
         {
-            result.u = static_cast<uint8>(num.i);
+            result.u = uint8(num.i);
         }
         else
         {
-            result.u = static_cast<uint8>(num.f);
+            result.u = uint8(num.f);
         }
 
         instance->thread.m_regs[dst] = MakeValue(result);
@@ -2426,15 +2426,15 @@ public:
 
         if (num.flags & Number::FLAG_UNSIGNED)
         {
-            result.u = static_cast<uint16>(num.u);
+            result.u = uint16(num.u);
         }
         else if (num.flags & Number::FLAG_SIGNED)
         {
-            result.u = static_cast<uint16>(num.i);
+            result.u = uint16(num.i);
         }
         else
         {
-            result.u = static_cast<uint16>(num.f);
+            result.u = uint16(num.f);
         }
 
         instance->thread.m_regs[dst] = MakeValue(result);
@@ -2458,15 +2458,15 @@ public:
 
         if (num.flags & Number::FLAG_UNSIGNED)
         {
-            result.u = static_cast<uint32>(num.u);
+            result.u = uint32(num.u);
         }
         else if (num.flags & Number::FLAG_SIGNED)
         {
-            result.u = static_cast<uint32>(num.i);
+            result.u = uint32(num.i);
         }
         else
         {
-            result.u = static_cast<uint32>(num.f);
+            result.u = uint32(num.f);
         }
 
         instance->thread.m_regs[dst] = MakeValue(result);
@@ -2494,11 +2494,11 @@ public:
         }
         else if (num.flags & Number::FLAG_SIGNED)
         {
-            result.u = static_cast<uint64>(num.i);
+            result.u = uint64(num.i);
         }
         else
         {
-            result.u = static_cast<uint64>(num.f);
+            result.u = uint64(num.f);
         }
 
         instance->thread.m_regs[dst] = MakeValue(result);
@@ -2521,15 +2521,15 @@ public:
 
         if (num.flags & Number::FLAG_UNSIGNED)
         {
-            result.i = static_cast<int8>(num.u);
+            result.i = int8(num.u);
         }
         else if (num.flags & Number::FLAG_SIGNED)
         {
-            result.i = static_cast<int8>(num.i);
+            result.i = int8(num.i);
         }
         else
         {
-            result.i = static_cast<int8>(num.f);
+            result.i = int8(num.f);
         }
 
         instance->thread.m_regs[dst] = MakeValue(result);
@@ -2552,15 +2552,15 @@ public:
 
         if (num.flags & Number::FLAG_UNSIGNED)
         {
-            result.i = static_cast<int16>(num.u);
+            result.i = int16(num.u);
         }
         else if (num.flags & Number::FLAG_SIGNED)
         {
-            result.i = static_cast<int16>(num.i);
+            result.i = int16(num.i);
         }
         else
         {
-            result.i = static_cast<int16>(num.f);
+            result.i = int16(num.f);
         }
 
         instance->thread.m_regs[dst] = MakeValue(result);
@@ -2583,15 +2583,15 @@ public:
 
         if (num.flags & Number::FLAG_UNSIGNED)
         {
-            result.i = static_cast<int32>(num.u);
+            result.i = int32(num.u);
         }
         else if (num.flags & Number::FLAG_SIGNED)
         {
-            result.i = static_cast<int32>(num.i);
+            result.i = int32(num.i);
         }
         else
         {
-            result.i = static_cast<int32>(num.f);
+            result.i = int32(num.f);
         }
 
         instance->thread.m_regs[dst] = MakeValue(result);
@@ -2614,7 +2614,7 @@ public:
 
         if (num.flags & Number::FLAG_UNSIGNED)
         {
-            result.i = static_cast<int64>(num.u);
+            result.i = int64(num.u);
         }
         else if (num.flags & Number::FLAG_SIGNED)
         {
@@ -2622,7 +2622,7 @@ public:
         }
         else
         {
-            result.i = static_cast<int64>(num.f);
+            result.i = int64(num.f);
         }
 
         instance->thread.m_regs[dst] = MakeValue(result);

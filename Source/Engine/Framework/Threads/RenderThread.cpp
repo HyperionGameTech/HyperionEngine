@@ -307,7 +307,7 @@ void RenderThread::Update()
 
     if (targetFrameRate > 0.0f)
     {
-        g_frameLimiter.SetTargetFPS(static_cast<int>(targetFrameRate));
+        g_frameLimiter.SetTargetFPS(int(targetFrameRate));
 
         ENGINE_STAT_SCOPE(&g_statFrameLimiterWait);
         ENGINE_STAT_SCOPE(&g_statTotalStallTime);

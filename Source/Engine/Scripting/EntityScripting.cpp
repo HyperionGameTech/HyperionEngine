@@ -335,7 +335,7 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
 
             FixedArray<BoxedValue, sizeof...(ArgTypes)> argsArray { BoxedValue(args)... };
 
-            BoxedValue returnValue = HS::CallFunctionArgV(data->instance, functionValue, argsArray.Data(), static_cast<uint8>(argsArray.Size()));
+            BoxedValue returnValue = HS::CallFunctionArgV(data->instance, functionValue, argsArray.Data(), uint8(argsArray.Size()));
 
             if constexpr (!std::is_void_v<ReturnType>)
             {

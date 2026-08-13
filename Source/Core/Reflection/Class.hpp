@@ -129,7 +129,7 @@ class ClassMemberIterator
                 return Phase::ITERATE_STATIC_FIELDS;
             }
 
-            return static_cast<Phase>(static_cast<int>(phase) + 1);
+            return static_cast<Phase>(int(phase) + 1);
         };
 
         const auto canDoNext = [allowedTypes](Phase nextPhase) -> bool

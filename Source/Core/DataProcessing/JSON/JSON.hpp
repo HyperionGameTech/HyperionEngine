@@ -577,42 +577,42 @@ public:
 
     HYP_FORCE_INLINE int8 ToInt8(int8 defaultValue = 0) const
     {
-        return static_cast<int8>(ToNumber(Number(defaultValue)));
+        return int8(ToNumber(Number(defaultValue)));
     }
 
     HYP_FORCE_INLINE int16 ToInt16(int16 defaultValue = 0) const
     {
-        return static_cast<int16>(ToNumber(Number(defaultValue)));
+        return int16(ToNumber(Number(defaultValue)));
     }
 
     HYP_FORCE_INLINE int32 ToInt32(int32 defaultValue = 0) const
     {
-        return static_cast<int32>(ToNumber(Number(defaultValue)));
+        return int32(ToNumber(Number(defaultValue)));
     }
 
     HYP_FORCE_INLINE int64 ToInt64(int64 defaultValue = 0) const
     {
-        return static_cast<int64>(ToNumber(Number(defaultValue)));
+        return int64(ToNumber(Number(defaultValue)));
     }
 
     HYP_FORCE_INLINE uint8 ToUInt8(uint8 defaultValue = 0) const
     {
-        return static_cast<uint8>(ToNumber(Number(defaultValue)));
+        return uint8(ToNumber(Number(defaultValue)));
     }
 
     HYP_FORCE_INLINE uint16 ToUInt16(uint16 defaultValue = 0) const
     {
-        return static_cast<uint16>(ToNumber(Number(defaultValue)));
+        return uint16(ToNumber(Number(defaultValue)));
     }
 
     HYP_FORCE_INLINE uint32 ToUInt32(uint32 defaultValue = 0) const
     {
-        return static_cast<uint32>(ToNumber(Number(defaultValue)));
+        return uint32(ToNumber(Number(defaultValue)));
     }
 
     HYP_FORCE_INLINE uint64 ToUInt64(uint64 defaultValue = 0) const
     {
-        return static_cast<uint64>(ToNumber(Number(defaultValue)));
+        return uint64(ToNumber(Number(defaultValue)));
     }
 
     HYP_FORCE_INLINE float ToFloat(float defaultValue = 0.0f) const

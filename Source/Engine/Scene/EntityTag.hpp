@@ -160,7 +160,7 @@ static constexpr inline TypeId GetTypeIdFromEntityTag(EntityTag tag)
         return TypeId::Void();
     }
 
-    return TypeId(static_cast<uint64>(tag) >> 32);
+    return TypeId(uint64(tag) >> 32);
 }
 
 template <class T>

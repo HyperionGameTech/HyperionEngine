@@ -12,7 +12,7 @@ CORE_API bool EnumMemberName(const Class* enumClass, uint64 value, Name& outName
 
     for (StaticField* pStaticField : enumClass->GetStaticFields())
     {
-        if (static_cast<uint64>(pStaticField->Get().Get<uint64>()) == value)
+        if (uint64(pStaticField->Get().Get<uint64>()) == value)
         {
             outName = pStaticField->GetName();
             return true;

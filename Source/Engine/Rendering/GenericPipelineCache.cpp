@@ -212,7 +212,7 @@ void GenericPipelineCache<PipelineType>::OnFrameEnd(uint32 prevFrameIndex)
             continue;
         }
 
-        if (static_cast<int64>(prevFrameIndex) - cached.pipeline->lastFrame > m_discardFrames)
+        if (int64(prevFrameIndex) - cached.pipeline->lastFrame > m_discardFrames)
         {
             auto keyToIndexIt = m_keyToIndex.Find(cached.key);
             Assert(keyToIndexIt != m_keyToIndex.End());

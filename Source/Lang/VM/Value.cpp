@@ -189,42 +189,42 @@ bool GetSignedOrUnsigned(const BoxedValue& value, Number* out)
 
     if (typeId == g_typeIdI8)
     {
-        out->i = static_cast<int64>(value.Get<int8>());
+        out->i = int64(value.Get<int8>());
         out->flags = Number::FLAG_SIGNED | Number::FLAG_8_BIT;
         return true;
     }
 
     if (typeId == g_typeIdU8)
     {
-        out->u = static_cast<uint64>(value.Get<uint8>());
+        out->u = uint64(value.Get<uint8>());
         out->flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;
         return true;
     }
 
     if (typeId == g_typeIdI16)
     {
-        out->i = static_cast<int64>(value.Get<int16>());
+        out->i = int64(value.Get<int16>());
         out->flags = Number::FLAG_SIGNED | Number::FLAG_16_BIT;
         return true;
     }
 
     if (typeId == g_typeIdU16)
     {
-        out->u = static_cast<uint64>(value.Get<uint16>());
+        out->u = uint64(value.Get<uint16>());
         out->flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;
         return true;
     }
 
     if (typeId == g_typeIdI32)
     {
-        out->i = static_cast<int64>(value.Get<int32>());
+        out->i = int64(value.Get<int32>());
         out->flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT;
         return true;
     }
 
     if (typeId == g_typeIdU32)
     {
-        out->u = static_cast<uint64>(value.Get<uint32>());
+        out->u = uint64(value.Get<uint32>());
         out->flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;
         return true;
     }
@@ -310,42 +310,42 @@ bool GetNumber(const BoxedValue& value, Number* out)
 
     if (typeId == g_typeIdI8)
     {
-        out->i = static_cast<int64>(value.Get<int8>());
+        out->i = int64(value.Get<int8>());
         out->flags = Number::FLAG_SIGNED | Number::FLAG_8_BIT;
         return true;
     }
 
     if (typeId == g_typeIdU8)
     {
-        out->u = static_cast<uint64>(value.Get<uint8>());
+        out->u = uint64(value.Get<uint8>());
         out->flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;
         return true;
     }
 
     if (typeId == g_typeIdI16)
     {
-        out->i = static_cast<int64>(value.Get<int16>());
+        out->i = int64(value.Get<int16>());
         out->flags = Number::FLAG_SIGNED | Number::FLAG_16_BIT;
         return true;
     }
 
     if (typeId == g_typeIdU16)
     {
-        out->u = static_cast<uint64>(value.Get<uint16>());
+        out->u = uint64(value.Get<uint16>());
         out->flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;
         return true;
     }
 
     if (typeId == g_typeIdI32)
     {
-        out->i = static_cast<int64>(value.Get<int32>());
+        out->i = int64(value.Get<int32>());
         out->flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT;
         return true;
     }
 
     if (typeId == g_typeIdU32)
     {
-        out->u = static_cast<uint64>(value.Get<uint32>());
+        out->u = uint64(value.Get<uint32>());
         out->flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;
         return true;
     }

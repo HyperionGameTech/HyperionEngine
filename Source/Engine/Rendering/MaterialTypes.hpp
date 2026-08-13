@@ -140,8 +140,8 @@ public:
     HYP_FORCE_INLINE void SetNormalMapFlipY(bool value)
     {
         flags = value
-            ? static_cast<uint8>(flags | FlagBit_NormalMapFlipY)
-            : static_cast<uint8>(flags & ~FlagBit_NormalMapFlipY);
+            ? uint8(flags | FlagBit_NormalMapFlipY)
+            : uint8(flags & ~FlagBit_NormalMapFlipY);
     }
 
     HYP_METHOD(Property = "RoughnessChannel", Editor = false)
@@ -153,7 +153,7 @@ public:
     HYP_METHOD(Property = "RoughnessChannel", Editor = false)
     HYP_FORCE_INLINE void SetRoughnessChannel(MaterialTextureChannel channel)
     {
-        flags = static_cast<uint8>((flags & ~(FlagMask_Channel << FlagShift_RoughnessChannel))
+        flags = uint8((flags & ~(FlagMask_Channel << FlagShift_RoughnessChannel))
             | ((uint8(channel) & FlagMask_Channel) << FlagShift_RoughnessChannel));
     }
 
@@ -166,7 +166,7 @@ public:
     HYP_METHOD(Property = "MetalnessChannel", Editor = false)
     HYP_FORCE_INLINE void SetMetalnessChannel(MaterialTextureChannel channel)
     {
-        flags = static_cast<uint8>((flags & ~(FlagMask_Channel << FlagShift_MetalnessChannel))
+        flags = uint8((flags & ~(FlagMask_Channel << FlagShift_MetalnessChannel))
             | ((uint8(channel) & FlagMask_Channel) << FlagShift_MetalnessChannel));
     }
 
@@ -179,7 +179,7 @@ public:
     HYP_METHOD(Property = "AmbientOcclusionChannel", Editor = false)
     HYP_FORCE_INLINE void SetAmbientOcclusionChannel(MaterialTextureChannel channel)
     {
-        flags = static_cast<uint8>((flags & ~(FlagMask_Channel << FlagShift_AmbientOcclusionChannel))
+        flags = uint8((flags & ~(FlagMask_Channel << FlagShift_AmbientOcclusionChannel))
             | ((uint8(channel) & FlagMask_Channel) << FlagShift_AmbientOcclusionChannel));
     }
 
@@ -193,8 +193,8 @@ public:
     HYP_FORCE_INLINE void SetParallaxInverseHeight(bool value)
     {
         flags = value
-            ? static_cast<uint8>(flags | FlagBit_ParallaxInverseHeight)
-            : static_cast<uint8>(flags & ~FlagBit_ParallaxInverseHeight);
+            ? uint8(flags | FlagBit_ParallaxInverseHeight)
+            : uint8(flags & ~FlagBit_ParallaxInverseHeight);
     }
 
     static MaterialParameters Defaults()

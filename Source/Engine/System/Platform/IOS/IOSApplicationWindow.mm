@@ -440,8 +440,8 @@ public:
         }
 
         const uint32 index = allocator.Allocate();
-        map[touchPtr] = static_cast<int32>(index + 1);
-        return static_cast<int32>(index);
+        map[touchPtr] = int32(index + 1);
+        return int32(index);
     }
 
     void FreeId(void* touchPtr)
@@ -453,7 +453,7 @@ public:
         }
 
         const int32 stored = it->second;
-        allocator.Free(static_cast<uint32>(stored - 1));
+        allocator.Free(uint32(stored - 1));
         map.Erase(it);
     }
 
@@ -679,7 +679,7 @@ bool IOSApplicationWindow::HandleTouchEvent(void* touchPtr, void* eventPtr, Even
     {
         outEvent = Event(EventType::TOUCH_DOWN, this, platformEvent);
 
-        Assert(pointerId < static_cast<int32>(m_touchPrevPositions.Size()));
+        Assert(pointerId < int32(m_touchPrevPositions.Size()));
 
         MotionData motionData { currentPos, Vec2f::Zero(), /* isAbsolute */ false };
         outEvent.GetEventData().Set(TouchEventData { pointerId, motionData });

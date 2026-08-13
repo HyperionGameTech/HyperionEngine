@@ -182,11 +182,11 @@ public:
     {
         if (accum)
         {
-            m_totalMicroseconds.Increment(static_cast<uint64>(ms * 1000.0), MemoryOrder::RELAXED);
+            m_totalMicroseconds.Increment(uint64(ms * 1000.0), MemoryOrder::RELAXED);
         }
         else
         {
-            m_totalMicroseconds.Exchange(static_cast<uint64>(ms * 1000.0), MemoryOrder::RELAXED);
+            m_totalMicroseconds.Exchange(uint64(ms * 1000.0), MemoryOrder::RELAXED);
         }
     }
 

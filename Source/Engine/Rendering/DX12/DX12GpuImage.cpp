@@ -981,7 +981,7 @@ void DX12GpuImage::CopyFromBuffer(
         const uint16 actualLayer = (dstArrayLayer == UINT16_MAX) ? layerIdx : dstArrayLayer;
 
         D3D12_PLACED_SUBRESOURCE_FOOTPRINT placedFootprint {};
-        placedFootprint.Offset = srcBufferOffset + static_cast<uint64>(layerIdx) * mipExtent.y * mipExtent.z * alignedRowPitch;
+        placedFootprint.Offset = srcBufferOffset + uint64(layerIdx) * mipExtent.y * mipExtent.z * alignedRowPitch;
         placedFootprint.Footprint.Depth = mipExtent.z;
         placedFootprint.Footprint.Height = mipExtent.y;
         placedFootprint.Footprint.Width = mipExtent.x;

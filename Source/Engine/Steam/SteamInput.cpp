@@ -125,7 +125,7 @@ void SteamInputManager::Initialize()
     {
         InitializeActionSet(ActionSetDescs[i], m_actionSets[i]);
 
-        m_actionSets[i].index = static_cast<uint8>(i);
+        m_actionSets[i].index = uint8(i);
     }
 
     m_onMainWindowChanged = AppContextBase::OnCurrentWindowChanged.Bind(
@@ -268,7 +268,7 @@ void SteamInputManager::UpdateControllers(const ActionSet& set)
 
     BitField<MaxConnectedControllers> mask {};
 
-    for (int i = 0; i < controllerCount && i < static_cast<int>(MaxConnectedControllers); i++)
+    for (int i = 0; i < controllerCount && i < int(MaxConnectedControllers); i++)
     {
         const InputHandle_t steamHandle = steamControllers[i];
 
@@ -394,7 +394,7 @@ void SteamInputManager::ProcessControllerInput(const ActionSet& set)
             {
                 ControllerAnalogData analogData = {};
                 analogData.controllerIndex = controllerIndex;
-                analogData.actionIndex = static_cast<uint8>(actionIndex);
+                analogData.actionIndex = uint8(actionIndex);
                 analogData.value = Vec2f(actionData.x, actionData.y);
 
                 Event event(EventType::CONTROLLER_ANALOG_MOVE, m_windowState.window, platformEvent);

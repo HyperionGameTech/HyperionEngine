@@ -139,7 +139,7 @@ enum class EvaluateSphericalHarmonicsResult : int8
 
 HYP_FORCE_INLINE static constexpr bool IsSuccess(EvaluateSphericalHarmonicsResult result)
 {
-    return static_cast<int8>(result) >= 0;
+    return int8(result) >= 0;
 }
 
 } // namespace Hyperion

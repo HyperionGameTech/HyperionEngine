@@ -102,9 +102,9 @@ void ShadowsPassBase::OnFrameEnd(uint32 prevFrameIndex)
         CachedShadowMapData& value = it->second;
 
         static constexpr uint32 MaxFramesBeforeDiscard = 16;
-        if (static_cast<int64>(prevFrameIndex) - static_cast<int64>(value.lastUsedFrame) >= MaxFramesBeforeDiscard)
+        if (int64(prevFrameIndex) - int64(value.lastUsedFrame) >= MaxFramesBeforeDiscard)
         {
-            HYP_LOG(Rendering, Verbose, "Removing cached shadow map as it has not been used in {} frames", static_cast<int64>(prevFrameIndex) - static_cast<int64>(value.lastUsedFrame));
+            HYP_LOG(Rendering, Verbose, "Removing cached shadow map as it has not been used in {} frames", int64(prevFrameIndex) - int64(value.lastUsedFrame));
 
             bool removed = RI.shadowMapCache->Remove(ShadowMapCacheKey { it->first });
             AssertDebug(removed, "Failed to remove shadow map frame cache - will cause a leak and further shadow map allocations to fail when filled");

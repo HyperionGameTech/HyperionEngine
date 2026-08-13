@@ -420,7 +420,7 @@ bool AndroidApplicationWindow::HandleInputEvent(int32 type, int32 action, float 
             MotionData motionData { currentPos, Vec2f::Zero(), /* isAbsolute */ false };
             outEvent.GetEventData().Set(TouchEventData { pointerId, motionData });
 
-            if (pointerId >= 0 && pointerId < static_cast<int32>(m_touchPrevPositions.Size()))
+            if (pointerId >= 0 && pointerId < int32(m_touchPrevPositions.Size()))
             {
                 m_touchPrevPositions[pointerId] = currentPos;
             }
@@ -433,7 +433,7 @@ bool AndroidApplicationWindow::HandleInputEvent(int32 type, int32 action, float 
             outEvent = Event(EventType::TOUCH_UP, this, platformEvent);
 
             Vec2f prevPos = currentPos;
-            if (pointerId >= 0 && pointerId < static_cast<int32>(m_touchPrevPositions.Size()))
+            if (pointerId >= 0 && pointerId < int32(m_touchPrevPositions.Size()))
             {
                 prevPos = m_touchPrevPositions[pointerId];
             }
@@ -449,7 +449,7 @@ bool AndroidApplicationWindow::HandleInputEvent(int32 type, int32 action, float 
 
             // Get previous position for this specific pointer
             Vec2f prevPos = currentPos;
-            if (pointerId >= 0 && pointerId < static_cast<int32>(m_touchPrevPositions.Size()))
+            if (pointerId >= 0 && pointerId < int32(m_touchPrevPositions.Size()))
             {
                 prevPos = m_touchPrevPositions[pointerId];
             }
@@ -459,7 +459,7 @@ bool AndroidApplicationWindow::HandleInputEvent(int32 type, int32 action, float 
             outEvent.GetEventData().Set(TouchEventData { pointerId, motionData });
 
             // Update stored position for this pointer
-            if (pointerId >= 0 && pointerId < static_cast<int32>(m_touchPrevPositions.Size()))
+            if (pointerId >= 0 && pointerId < int32(m_touchPrevPositions.Size()))
             {
                 m_touchPrevPositions[pointerId] = currentPos;
             }

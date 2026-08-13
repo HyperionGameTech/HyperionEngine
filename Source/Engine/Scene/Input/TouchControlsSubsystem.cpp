@@ -110,8 +110,8 @@ void TouchControlsSubsystem::CreateJoystickUI()
     m_joystickBase = uiStage->CreateUIObject<UIPanel>(
         NAME("TouchJoystick_Base"),
         Vec2i { 50, 50 },
-        UIObjectSize({ static_cast<int32>(m_joystickSize), UIObjectSize::PIXEL },
-                     { static_cast<int32>(m_joystickSize), UIObjectSize::PIXEL })
+        UIObjectSize({ int32(m_joystickSize), UIObjectSize::PIXEL },
+                     { int32(m_joystickSize), UIObjectSize::PIXEL })
     );
 
     if (m_joystickBase.IsValid())
@@ -120,7 +120,7 @@ void TouchControlsSubsystem::CreateJoystickUI()
         m_joystickBase->SetIsVisible(false);
         m_joystickBase->SetDepth(100);  // Base layer
         m_joystickBase->SetBackgroundColor(Color(0.12f, 0.12f, 0.14f, 0.35f));
-        m_joystickBase->SetBorderRadius(static_cast<uint32>(m_joystickSize * 0.5f));
+        m_joystickBase->SetBorderRadius(uint32(m_joystickSize * 0.5f));
         m_joystickBase->SetBorderFlags(UIObjectBorderFlags::ALL);
 
         uiStage->AddChildUIObject(m_joystickBase);
@@ -129,15 +129,15 @@ void TouchControlsSubsystem::CreateJoystickUI()
         m_joystickShadow = m_joystickBase->CreateUIObject<UIPanel>(
             NAME("TouchJoystick_Shadow"),
             Vec2i { 0, 0 },
-            UIObjectSize({ static_cast<int32>(shadowSize), UIObjectSize::PIXEL },
-                         { static_cast<int32>(shadowSize), UIObjectSize::PIXEL })
+            UIObjectSize({ int32(shadowSize), UIObjectSize::PIXEL },
+                         { int32(shadowSize), UIObjectSize::PIXEL })
         );
 
         if (m_joystickShadow.IsValid())
         {
             m_joystickShadow->SetDepth(101);  // Above base, below knob
             m_joystickShadow->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.4f));
-            m_joystickShadow->SetBorderRadius(static_cast<uint32>(shadowSize * 0.5f));
+            m_joystickShadow->SetBorderRadius(uint32(shadowSize * 0.5f));
             m_joystickShadow->SetBorderFlags(UIObjectBorderFlags::ALL);
 
             m_joystickBase->AddChildUIObject(m_joystickShadow);
@@ -147,14 +147,14 @@ void TouchControlsSubsystem::CreateJoystickUI()
         m_joystickKnob = m_joystickBase->CreateUIObject<UIPanel>(
             NAME("TouchJoystick_Knob"),
             Vec2i { 0, 0 },
-            UIObjectSize({ static_cast<int32>(m_knobSize), UIObjectSize::PIXEL },
-                         { static_cast<int32>(m_knobSize), UIObjectSize::PIXEL })
+            UIObjectSize({ int32(m_knobSize), UIObjectSize::PIXEL },
+                         { int32(m_knobSize), UIObjectSize::PIXEL })
         );
 
         if (m_joystickKnob.IsValid())
         {
             m_joystickKnob->SetDepth(102);  // Top layer
-            m_joystickKnob->SetBorderRadius(static_cast<uint32>(m_knobSize * 0.5f));
+            m_joystickKnob->SetBorderRadius(uint32(m_knobSize * 0.5f));
             m_joystickKnob->SetBorderFlags(UIObjectBorderFlags::ALL);
             m_joystickKnob->SetAllowMaterialUpdate(true);
 
@@ -252,8 +252,8 @@ void TouchControlsSubsystem::ProcessTouchEvent(const TouchEvent& touchEvent)
             {
                 // Position joystick base centered on touch
                 m_joystickBase->SetPosition(Vec2i(
-                    static_cast<int32>(position.x - m_joystickSize * 0.5f),
-                    static_cast<int32>(position.y - m_joystickSize * 0.5f)
+                    int32(position.x - m_joystickSize * 0.5f),
+                    int32(position.y - m_joystickSize * 0.5f)
                 ));
                 m_joystickBase->SetIsVisible(true);
 
@@ -261,15 +261,15 @@ void TouchControlsSubsystem::ProcessTouchEvent(const TouchEvent& touchEvent)
                 if (m_joystickKnob.IsValid())
                 {
                     m_joystickKnob->SetPosition(Vec2i(
-                        static_cast<int32>((m_joystickSize - m_knobSize) * 0.5f),
-                        static_cast<int32>((m_joystickSize - m_knobSize) * 0.5f)
+                        int32((m_joystickSize - m_knobSize) * 0.5f),
+                        int32((m_joystickSize - m_knobSize) * 0.5f)
                     ));
                 }
                 if (m_joystickShadow.IsValid())
                 {
                     m_joystickShadow->SetPosition(Vec2i(
-                        static_cast<int32>((m_joystickSize - (m_knobSize + 8.0f)) * 0.5f),
-                        static_cast<int32>((m_joystickSize - (m_knobSize + 8.0f)) * 0.5f)
+                        int32((m_joystickSize - (m_knobSize + 8.0f)) * 0.5f),
+                        int32((m_joystickSize - (m_knobSize + 8.0f)) * 0.5f)
                     ));
                 }
             }
@@ -434,8 +434,8 @@ void TouchControlsSubsystem::UpdateJoystickVisuals()
     );
 
     m_joystickKnob->SetPosition(Vec2i(
-        static_cast<int32>(knobPos.x),
-        static_cast<int32>(knobPos.y)
+        int32(knobPos.x),
+        int32(knobPos.y)
     ));
 
     // Position shadow slightly offset in opposite direction of movement (fake depth)
@@ -447,8 +447,8 @@ void TouchControlsSubsystem::UpdateJoystickVisuals()
             (m_joystickSize - (m_knobSize + 8.0f)) * 0.5f + delta.y - normalizedDelta.y * shadowOffset
         );
         m_joystickShadow->SetPosition(Vec2i(
-            static_cast<int32>(shadowPos.x),
-            static_cast<int32>(shadowPos.y)
+            int32(shadowPos.x),
+            int32(shadowPos.y)
         ));
     }
 
@@ -526,8 +526,8 @@ void TouchControlsSubsystem::SetJoystickSize(float size)
     if (m_joystickBase.IsValid())
     {
         m_joystickBase->SetSize(UIObjectSize(
-            { static_cast<int32>(size), UIObjectSize::PIXEL },
-            { static_cast<int32>(size), UIObjectSize::PIXEL }
+            { int32(size), UIObjectSize::PIXEL },
+            { int32(size), UIObjectSize::PIXEL }
         ));
     }
 }

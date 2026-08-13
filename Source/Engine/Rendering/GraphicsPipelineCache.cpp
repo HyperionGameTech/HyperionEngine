@@ -282,10 +282,10 @@ void GraphicsPipelineCacheHandle::UpdateRefCount(GraphicsPipelineCacheHandle& ca
 
     uint32& refCount = cachedPipelines->refCountMap[index];
 
-    const int64 newRefCount = static_cast<int64>(refCount) + delta;
+    const int64 newRefCount = int64(refCount) + delta;
     AssertDebug(newRefCount >= 0);
 
-    refCount = static_cast<uint32>(newRefCount);
+    refCount = uint32(newRefCount);
 
     if (lock)
     {

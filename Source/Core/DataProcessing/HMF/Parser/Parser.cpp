@@ -409,35 +409,35 @@ bool Parser::ParseIntegralValue(const TypeInfo& typeInfo, BoxedValue& out)
 
     if (id == TypeId::ForType<int8>())
     {
-        out = BoxedValue(static_cast<int8>(std::strtoll(text.Data(), nullptr, base)));
+        out = BoxedValue(int8(std::strtoll(text.Data(), nullptr, base)));
     }
     else if (id == TypeId::ForType<int16>())
     {
-        out = BoxedValue(static_cast<int16>(std::strtoll(text.Data(), nullptr, base)));
+        out = BoxedValue(int16(std::strtoll(text.Data(), nullptr, base)));
     }
     else if (id == TypeId::ForType<int32>())
     {
-        out = BoxedValue(static_cast<int32>(std::strtoll(text.Data(), nullptr, base)));
+        out = BoxedValue(int32(std::strtoll(text.Data(), nullptr, base)));
     }
     else if (id == TypeId::ForType<int64>())
     {
-        out = BoxedValue(static_cast<int64>(std::strtoll(text.Data(), nullptr, base)));
+        out = BoxedValue(int64(std::strtoll(text.Data(), nullptr, base)));
     }
     else if (id == TypeId::ForType<uint8>())
     {
-        out = BoxedValue(static_cast<uint8>(std::strtoull(text.Data(), nullptr, base)));
+        out = BoxedValue(uint8(std::strtoull(text.Data(), nullptr, base)));
     }
     else if (id == TypeId::ForType<uint16>())
     {
-        out = BoxedValue(static_cast<uint16>(std::strtoull(text.Data(), nullptr, base)));
+        out = BoxedValue(uint16(std::strtoull(text.Data(), nullptr, base)));
     }
     else if (id == TypeId::ForType<uint32>())
     {
-        out = BoxedValue(static_cast<uint32>(std::strtoull(text.Data(), nullptr, base)));
+        out = BoxedValue(uint32(std::strtoull(text.Data(), nullptr, base)));
     }
     else if (id == TypeId::ForType<uint64>())
     {
-        out = BoxedValue(static_cast<uint64>(std::strtoull(text.Data(), nullptr, base)));
+        out = BoxedValue(uint64(std::strtoull(text.Data(), nullptr, base)));
     }
     else if (id == TypeId::ForType<char>())
     {
@@ -674,15 +674,15 @@ bool Parser::ParseEnumFlagsValue(const TypeInfo& typeInfo, BoxedValue& out)
     const TypeId underlyingTypeId = underlyingTypeInfo != nullptr ? underlyingTypeInfo->id : TypeId::ForType<uint32>();
 
     // Select the proper type based on underlying type id
-    if (underlyingTypeId == TypeId::ForType<int8>()) { out = BoxedValue(static_cast<int8>(combined)); }
-    else if (underlyingTypeId == TypeId::ForType<int16>()) { out = BoxedValue(static_cast<int16>(combined)); }
-    else if (underlyingTypeId == TypeId::ForType<int32>()) { out = BoxedValue(static_cast<int32>(combined)); }
-    else if (underlyingTypeId == TypeId::ForType<int64>()) { out = BoxedValue(static_cast<int64>(combined)); }
-    else if (underlyingTypeId == TypeId::ForType<uint8>()) { out = BoxedValue(static_cast<uint8>(combined)); }
-    else if (underlyingTypeId == TypeId::ForType<uint16>()) { out = BoxedValue(static_cast<uint16>(combined)); }
-    else if (underlyingTypeId == TypeId::ForType<uint32>()) { out = BoxedValue(static_cast<uint32>(combined)); }
-    else if (underlyingTypeId == TypeId::ForType<uint64>()) { out = BoxedValue(static_cast<uint64>(combined)); }
-    else { out = BoxedValue(static_cast<uint32>(combined)); }
+    if (underlyingTypeId == TypeId::ForType<int8>()) { out = BoxedValue(int8(combined)); }
+    else if (underlyingTypeId == TypeId::ForType<int16>()) { out = BoxedValue(int16(combined)); }
+    else if (underlyingTypeId == TypeId::ForType<int32>()) { out = BoxedValue(int32(combined)); }
+    else if (underlyingTypeId == TypeId::ForType<int64>()) { out = BoxedValue(int64(combined)); }
+    else if (underlyingTypeId == TypeId::ForType<uint8>()) { out = BoxedValue(uint8(combined)); }
+    else if (underlyingTypeId == TypeId::ForType<uint16>()) { out = BoxedValue(uint16(combined)); }
+    else if (underlyingTypeId == TypeId::ForType<uint32>()) { out = BoxedValue(uint32(combined)); }
+    else if (underlyingTypeId == TypeId::ForType<uint64>()) { out = BoxedValue(uint64(combined)); }
+    else { out = BoxedValue(uint32(combined)); }
 
     return true;
 }

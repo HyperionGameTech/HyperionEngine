@@ -1929,7 +1929,7 @@ ENGINE_API Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& ty
 
                     if (variantTypeInfo->IsIntegralType())
                     {
-                        bSuccess = variantHandler->SetValue(variantInstance, BoxedValue(static_cast<int64>(num)));
+                        bSuccess = variantHandler->SetValue(variantInstance, BoxedValue(int64(num)));
                     }
                     else
                     {

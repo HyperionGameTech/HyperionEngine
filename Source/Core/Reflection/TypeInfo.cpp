@@ -305,7 +305,7 @@ HashCode TypeInfoEx::GetHashCode() const
 {
     HashCode hc;
 
-    hc.Add(static_cast<uint32>(dataType));
+    hc.Add(uint32(dataType));
 
     switch (dataType)
     {

@@ -138,7 +138,7 @@ Dataset& GetDataset(DatasetSize size)
     static Dataset datasets[2];
     static bool initialized[2] = { false, false };
 
-    const int index = static_cast<int>(size);
+    const int index = int(size);
 
     if (!initialized[index])
     {
@@ -299,7 +299,7 @@ void ProfileSlimArrayIteration(bool setupOnly)
         const Dataset& data = ActiveDataset();
 
         SlimArray<uint32, TestAllocator> temp;
-        temp.Reserve(static_cast<uint32>(data.elementCount));
+        temp.Reserve(uint32(data.elementCount));
 
         for (size_t i = 0; i < data.elementCount; ++i)
         {
@@ -329,7 +329,7 @@ void ProfileSlimArrayFind(bool setupOnly)
         const Dataset& data = ActiveDataset();
 
         SlimArray<uint32, TestAllocator> temp;
-        temp.Reserve(static_cast<uint32>(data.elementCount));
+        temp.Reserve(uint32(data.elementCount));
 
         for (size_t i = 0; i < data.elementCount; ++i)
         {
@@ -363,7 +363,7 @@ void ProfileSlimArrayRemoval(bool setupOnly)
         const Dataset& data = ActiveDataset();
 
         SlimArray<uint32, TestAllocator> temp;
-        temp.Reserve(static_cast<uint32>(data.elementCount));
+        temp.Reserve(uint32(data.elementCount));
 
         for (size_t i = 0; i < data.elementCount; ++i)
         {
@@ -506,7 +506,7 @@ void ProfileHashMapInsertion(bool setupOnly)
 
     for (size_t i = 0; i < data.elementCount; ++i)
     {
-        map.Set(data.keys[i], static_cast<uint32>(i));
+        map.Set(data.keys[i], uint32(i));
     }
 
     Consume(map.Size());
@@ -523,7 +523,7 @@ void ProfileHashMapDynamicInsertion(bool setupOnly)
 
     for (size_t i = 0; i < data.elementCount; ++i)
     {
-        map.Set(data.keys[i], static_cast<uint32>(i));
+        map.Set(data.keys[i], uint32(i));
     }
 
     Consume(map.Size());
@@ -542,7 +542,7 @@ void ProfileHashMapIteration(bool setupOnly)
 
         for (size_t i = 0; i < data.elementCount; ++i)
         {
-            temp.Set(data.keys[i], static_cast<uint32>(i));
+            temp.Set(data.keys[i], uint32(i));
         }
 
         s_map = std::move(temp);
@@ -572,7 +572,7 @@ void ProfileHashMapDynamicIteration(bool setupOnly)
 
         for (size_t i = 0; i < data.elementCount; ++i)
         {
-            temp.Set(data.keys[i], static_cast<uint32>(i));
+            temp.Set(data.keys[i], uint32(i));
         }
 
         s_map = std::move(temp);
@@ -602,7 +602,7 @@ void ProfileHashMapFind(bool setupOnly)
 
         for (size_t i = 0; i < data.elementCount; ++i)
         {
-            temp.Set(data.keys[i], static_cast<uint32>(i));
+            temp.Set(data.keys[i], uint32(i));
         }
 
         s_map = std::move(temp);
@@ -636,7 +636,7 @@ void ProfileHashMapDynamicFind(bool setupOnly)
 
         for (size_t i = 0; i < data.elementCount; ++i)
         {
-            temp.Set(data.keys[i], static_cast<uint32>(i));
+            temp.Set(data.keys[i], uint32(i));
         }
 
         s_map = std::move(temp);
@@ -670,7 +670,7 @@ void ProfileHashMapRemoval(bool setupOnly)
 
         for (size_t i = 0; i < data.elementCount; ++i)
         {
-            temp.Set(data.keys[i], static_cast<uint32>(i));
+            temp.Set(data.keys[i], uint32(i));
         }
 
         s_source = std::move(temp);
@@ -702,7 +702,7 @@ void ProfileHashMapDynamicRemoval(bool setupOnly)
 
         for (size_t i = 0; i < data.elementCount; ++i)
         {
-            temp.Set(data.keys[i], static_cast<uint32>(i));
+            temp.Set(data.keys[i], uint32(i));
         }
 
         s_source = std::move(temp);
@@ -732,7 +732,7 @@ void ProfileFlatMapInsertion(bool setupOnly)
 
     for (size_t i = 0; i < data.elementCount; ++i)
     {
-        map.Set(data.keys[i], static_cast<uint32>(i));
+        map.Set(data.keys[i], uint32(i));
     }
 
     Consume(map.Size());
@@ -751,7 +751,7 @@ void ProfileFlatMapIteration(bool setupOnly)
 
         for (size_t i = 0; i < data.elementCount; ++i)
         {
-            temp.Set(data.keys[i], static_cast<uint32>(i));
+            temp.Set(data.keys[i], uint32(i));
         }
 
         s_map = std::move(temp);
@@ -781,7 +781,7 @@ void ProfileFlatMapFind(bool setupOnly)
 
         for (size_t i = 0; i < data.elementCount; ++i)
         {
-            temp.Set(data.keys[i], static_cast<uint32>(i));
+            temp.Set(data.keys[i], uint32(i));
         }
 
         s_map = std::move(temp);
@@ -815,7 +815,7 @@ void ProfileFlatMapRemoval(bool setupOnly)
 
         for (size_t i = 0; i < data.elementCount; ++i)
         {
-            temp.Set(data.keys[i], static_cast<uint32>(i));
+            temp.Set(data.keys[i], uint32(i));
         }
 
         s_source = std::move(temp);
@@ -1301,7 +1301,7 @@ void ProfileStdUnorderedMapInsertion(bool setupOnly)
 
     for (size_t i = 0; i < data.elementCount; ++i)
     {
-        map.emplace(data.keys[i], static_cast<uint32>(i));
+        map.emplace(data.keys[i], uint32(i));
     }
 
     Consume(map.size());
@@ -1320,7 +1320,7 @@ void ProfileStdUnorderedMapIteration(bool setupOnly)
 
         for (size_t i = 0; i < data.elementCount; ++i)
         {
-            temp.emplace(data.keys[i], static_cast<uint32>(i));
+            temp.emplace(data.keys[i], uint32(i));
         }
 
         s_map = std::move(temp);
@@ -1350,7 +1350,7 @@ void ProfileStdUnorderedMapFind(bool setupOnly)
 
         for (size_t i = 0; i < data.elementCount; ++i)
         {
-            temp.emplace(data.keys[i], static_cast<uint32>(i));
+            temp.emplace(data.keys[i], uint32(i));
         }
 
         s_map = std::move(temp);
@@ -1384,7 +1384,7 @@ void ProfileStdUnorderedMapRemoval(bool setupOnly)
 
         for (size_t i = 0; i < data.elementCount; ++i)
         {
-            temp.emplace(data.keys[i], static_cast<uint32>(i));
+            temp.emplace(data.keys[i], uint32(i));
         }
 
         s_source = std::move(temp);
@@ -1413,7 +1413,7 @@ void ProfileStdMapInsertion(bool setupOnly)
 
     for (size_t i = 0; i < data.elementCount; ++i)
     {
-        map.emplace(data.keys[i], static_cast<uint32>(i));
+        map.emplace(data.keys[i], uint32(i));
     }
 
     Consume(map.size());
@@ -1431,7 +1431,7 @@ void ProfileStdMapIteration(bool setupOnly)
 
         for (size_t i = 0; i < data.elementCount; ++i)
         {
-            temp.emplace(data.keys[i], static_cast<uint32>(i));
+            temp.emplace(data.keys[i], uint32(i));
         }
 
         s_map = std::move(temp);
@@ -1460,7 +1460,7 @@ void ProfileStdMapFind(bool setupOnly)
 
         for (size_t i = 0; i < data.elementCount; ++i)
         {
-            temp.emplace(data.keys[i], static_cast<uint32>(i));
+            temp.emplace(data.keys[i], uint32(i));
         }
 
         s_map = std::move(temp);
@@ -1493,7 +1493,7 @@ void ProfileStdMapRemoval(bool setupOnly)
 
         for (size_t i = 0; i < data.elementCount; ++i)
         {
-            temp.emplace(data.keys[i], static_cast<uint32>(i));
+            temp.emplace(data.keys[i], uint32(i));
         }
 
         s_source = std::move(temp);

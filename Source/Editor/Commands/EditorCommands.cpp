@@ -3009,7 +3009,7 @@ public:
 
     static PhysicsShapeType ParseShapeType(const String& str)
     {
-        for (uint8 i = 0; i < static_cast<uint8>(PhysicsShapeType::Max); i++)
+        for (uint8 i = 0; i < uint8(PhysicsShapeType::Max); i++)
         {
             if (EnumToString(static_cast<PhysicsShapeType>(i)) == str)
             {
@@ -3022,7 +3022,7 @@ public:
 
     static const Class* GetPhysicsShapeClass(PhysicsShapeType type)
     {
-        static const Class* s_classes[static_cast<uint8>(PhysicsShapeType::Max)] = {
+        static const Class* s_classes[uint8(PhysicsShapeType::Max)] = {
             BoxPhysicsShape::StaticClass(),
             SpherePhysicsShape::StaticClass(),
             PlanePhysicsShape::StaticClass(),
@@ -3030,7 +3030,7 @@ public:
             CapsulePhysicsShape::StaticClass()
         };
 
-        const uint8 index = static_cast<uint8>(type);
+        const uint8 index = uint8(type);
 
         return index < GetArrayCount(s_classes)
             ? s_classes[index]

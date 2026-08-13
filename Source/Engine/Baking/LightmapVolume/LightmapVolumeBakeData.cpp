@@ -627,8 +627,8 @@ void BakeData<LightmapVolume>::Dilate()
 
                     for (int k = 0; k < 8; k++)
                     {
-                        const int nx = static_cast<int>(cx) + offsets[k][0];
-                        const int ny = static_cast<int>(cy) + offsets[k][1];
+                        const int nx = int(cx) + offsets[k][0];
+                        const int ny = int(cy) + offsets[k][1];
 
                         if (nx < 0 || ny < 0 || nx >= int(width) || ny >= int(height))
                         {
@@ -659,8 +659,8 @@ void BakeData<LightmapVolume>::Dilate()
 
                     for (int k = 0; k < 8; k++)
                     {
-                        const int nx = static_cast<int>(cx) + offsets[k][0];
-                        const int ny = static_cast<int>(cy) + offsets[k][1];
+                        const int nx = int(cx) + offsets[k][0];
+                        const int ny = int(cy) + offsets[k][1];
 
                         if (nx < 0 || ny < 0 || nx >= int(width) || ny >= int(height))
                         {

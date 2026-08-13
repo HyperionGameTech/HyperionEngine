@@ -239,7 +239,7 @@ public:
             return;
         }
 
-        const uint32 blockIndex = static_cast<uint32>(offset / m_blockSize);
+        const uint32 blockIndex = uint32(offset / m_blockSize);
         HYP_CORE_ASSERT(blockIndex < m_blocksPerSlab);
         if (HYP_UNLIKELY(blockIndex >= m_blocksPerSlab))
         {

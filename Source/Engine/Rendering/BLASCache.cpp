@@ -298,7 +298,7 @@ void BLASCache::OnFrameEnd(uint32 prevFrameIndex)
         uint64 key = it->second;
         Entry& entry = m_impl->entryMap[key];
 
-        if (static_cast<int64>(prevFrameIndex) - entry.lastUsedFrame > 100)
+        if (int64(prevFrameIndex) - entry.lastUsedFrame > 100)
         {
             EnqueueDeletion(entry.blas);
 

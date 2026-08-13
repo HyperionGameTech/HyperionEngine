@@ -150,13 +150,13 @@ uint32 ByteUtil::LowestSetBitIndex(uint64 bits)
     unsigned long bitIndex = 0;
     if (!_BitScanForward64(&bitIndex, bits))
     {
-        return static_cast<uint32>(-1);
+        return uint32(-1);
     }
 #else
 #error "ByteUtil::LowestSetBitIndex() not implemented for this platform"
 #endif
 
-    return static_cast<uint32>(bitIndex);
+    return uint32(bitIndex);
 }
 
 uint32 ByteUtil::HighestSetBitIndex(uint64 bits)
@@ -167,12 +167,12 @@ uint32 ByteUtil::HighestSetBitIndex(uint64 bits)
     unsigned long bitIndex = 0;
     if (!_BitScanReverse64(&bitIndex, bits))
     {
-        return static_cast<uint32>(-1);
+        return uint32(-1);
     }
 #else
 #error "ByteUtil::HighestSetBitIndex() not implemented for this platform"
 #endif
-    return static_cast<uint32>(bitIndex);
+    return uint32(bitIndex);
 }
 
 uint64 ByteUtil::BitCount(uint64 value)

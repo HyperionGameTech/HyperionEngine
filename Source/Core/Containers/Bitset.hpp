@@ -13,6 +13,7 @@
 #include <Core/Math/MathUtil.hpp>
 
 #include <Core/Types.hpp>
+#include <Core/Util.hpp>
 
 #include <climits>
 

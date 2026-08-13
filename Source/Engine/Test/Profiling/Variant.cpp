@@ -47,11 +47,11 @@ void ProfileVariantTrivialConstruction(bool)
 
     for (size_t i = 0; i < NumVariantOps; ++i)
     {
-        TrivialHyp v(static_cast<int>(i));
-        sum += static_cast<uint64>(v.Get<int>());
+        TrivialHyp v { int(i) };
+        sum += uint64(v.Get<int>());
 
         TrivialHyp v2(static_cast<float>(i) * 1.5f);
-        sum += static_cast<uint64>(v2.Get<float>());
+        sum += uint64(v2.Get<float>());
     }
 
     Consume(sum);
@@ -63,11 +63,11 @@ void ProfileStdVariantTrivialConstruction(bool)
 
     for (size_t i = 0; i < NumVariantOps; ++i)
     {
-        TrivialStd v(static_cast<int>(i));
-        sum += static_cast<uint64>(std::get<int>(v));
+        TrivialStd v { int(i) };
+        sum += uint64(std::get<int>(v));
 
         TrivialStd v2(static_cast<float>(i) * 1.5f);
-        sum += static_cast<uint64>(std::get<float>(v2));
+        sum += uint64(std::get<float>(v2));
     }
 
     Consume(sum);
@@ -82,10 +82,10 @@ void ProfileVariantTrivialTypeSwitch(bool)
     {
         switch (i & 3)
         {
-        case 0: v.Set<int>(static_cast<int>(i));       sum += static_cast<uint64>(v.Get<int>());    break;
-        case 1: v.Set<float>(static_cast<float>(i));   sum += static_cast<uint64>(v.Get<float>());  break;
-        case 2: v.Set<double>(static_cast<double>(i)); sum += static_cast<uint64>(v.Get<double>()); break;
-        case 3: v.Set<uint64>(static_cast<uint64>(i)); sum += v.Get<uint64>();                      break;
+        case 0: v.Set<int>(int(i));       sum += uint64(v.Get<int>());    break;
+        case 1: v.Set<float>(static_cast<float>(i));   sum += uint64(v.Get<float>());  break;
+        case 2: v.Set<double>(static_cast<double>(i)); sum += uint64(v.Get<double>()); break;
+        case 3: v.Set<uint64>(uint64(i)); sum += v.Get<uint64>();                      break;
         }
     }
 
@@ -101,10 +101,10 @@ void ProfileStdVariantTrivialTypeSwitch(bool)
     {
         switch (i & 3)
         {
-        case 0: v = static_cast<int>(i);    sum += static_cast<uint64>(std::get<int>(v));    break;
-        case 1: v = static_cast<float>(i);  sum += static_cast<uint64>(std::get<float>(v));  break;
-        case 2: v = static_cast<double>(i); sum += static_cast<uint64>(std::get<double>(v)); break;
-        case 3: v = static_cast<uint64>(i); sum += std::get<uint64>(v);                      break;
+        case 0: v = int(i);    sum += uint64(std::get<int>(v));    break;
+        case 1: v = static_cast<float>(i);  sum += uint64(std::get<float>(v));  break;
+        case 2: v = static_cast<double>(i); sum += uint64(std::get<double>(v)); break;
+        case 3: v = uint64(i); sum += std::get<uint64>(v);                      break;
         }
     }
 
@@ -120,15 +120,15 @@ void ProfileVariantTrivialVisit(bool)
     {
         switch (i & 3)
         {
-        case 0: v.Set<int>(static_cast<int>(i));       break;
+        case 0: v.Set<int>(int(i));       break;
         case 1: v.Set<float>(static_cast<float>(i));   break;
         case 2: v.Set<double>(static_cast<double>(i)); break;
-        case 3: v.Set<uint64>(static_cast<uint64>(i)); break;
+        case 3: v.Set<uint64>(uint64(i)); break;
         }
 
         v.Visit([&sum](auto &val)
         {
-            sum += static_cast<uint64>(val);
+            sum += uint64(val);
         });
     }
 
@@ -144,15 +144,15 @@ void ProfileStdVariantTrivialVisit(bool)
     {
         switch (i & 3)
         {
-        case 0: v = static_cast<int>(i);    break;
+        case 0: v = int(i);    break;
         case 1: v = static_cast<float>(i);  break;
         case 2: v = static_cast<double>(i); break;
-        case 3: v = static_cast<uint64>(i); break;
+        case 3: v = uint64(i); break;
         }
 
         std::visit([&sum](auto &val)
         {
-            sum += static_cast<uint64>(val);
+            sum += uint64(val);
         }, v);
     }
 
@@ -178,8 +178,8 @@ void ProfileVariantNonTrivialConstruction(bool)
 
     for (size_t i = 0; i < NumVariantOps; ++i)
     {
-        NonTrivialHyp v(static_cast<int>(i));
-        sum += static_cast<uint64>(v.Get<int>());
+        NonTrivialHyp v { int(i) };
+        sum += uint64(v.Get<int>());
 
         NonTrivialHyp v2(ANSIString { s_testStrings[i & 3] });
         sum += v2.Get<ANSIString>().Size();
@@ -194,8 +194,8 @@ void ProfileStdVariantNonTrivialConstruction(bool)
 
     for (size_t i = 0; i < NumVariantOps; ++i)
     {
-        NonTrivialStd v(static_cast<int>(i));
-        sum += static_cast<uint64>(std::get<int>(v));
+        NonTrivialStd v { int(i) };
+        sum += uint64(std::get<int>(v));
 
         NonTrivialStd v2(ANSIString { s_testStrings[i & 3] });
         sum += std::get<ANSIString>(v2).Size();
@@ -213,8 +213,8 @@ void ProfileVariantNonTrivialTypeSwitch(bool)
     {
         switch (i % 3)
         {
-        case 0: v.Set<int>(static_cast<int>(i));                      sum += static_cast<uint64>(v.Get<int>());    break;
-        case 1: v.Set<float>(static_cast<float>(i));                  sum += static_cast<uint64>(v.Get<float>());  break;
+        case 0: v.Set<int>(int(i));                      sum += uint64(v.Get<int>());    break;
+        case 1: v.Set<float>(static_cast<float>(i));                  sum += uint64(v.Get<float>());  break;
         case 2: v.Set<ANSIString>(ANSIString(s_testStrings[i & 3]));  sum += v.Get<ANSIString>().Size();           break;
         }
     }
@@ -231,8 +231,8 @@ void ProfileStdVariantNonTrivialTypeSwitch(bool)
     {
         switch (i % 3)
         {
-        case 0: v = static_cast<int>(i);                    sum += static_cast<uint64>(std::get<int>(v));    break;
-        case 1: v = static_cast<float>(i);                  sum += static_cast<uint64>(std::get<float>(v));  break;
+        case 0: v = int(i);                    sum += uint64(std::get<int>(v));    break;
+        case 1: v = static_cast<float>(i);                  sum += uint64(std::get<float>(v));  break;
         case 2: v = ANSIString(s_testStrings[i & 3]);       sum += std::get<ANSIString>(v).Size();           break;
         }
     }
@@ -249,7 +249,7 @@ void ProfileVariantNonTrivialVisit(bool)
     {
         switch (i % 3)
         {
-        case 0: v.Set<int>(static_cast<int>(i));                      break;
+        case 0: v.Set<int>(int(i));                      break;
         case 1: v.Set<float>(static_cast<float>(i));                  break;
         case 2: v.Set<ANSIString>(ANSIString(s_testStrings[i & 3]));  break;
         }
@@ -264,7 +264,7 @@ void ProfileVariantNonTrivialVisit(bool)
             }
             else
             {
-                sum += static_cast<uint64>(val);
+                sum += uint64(val);
             }
         });
     }
@@ -281,7 +281,7 @@ void ProfileStdVariantNonTrivialVisit(bool)
     {
         switch (i % 3)
         {
-        case 0: v = static_cast<int>(i);                   break;
+        case 0: v = int(i);                   break;
         case 1: v = static_cast<float>(i);                 break;
         case 2: v = ANSIString(s_testStrings[i & 3]);      break;
         }
@@ -296,7 +296,7 @@ void ProfileStdVariantNonTrivialVisit(bool)
             }
             else
             {
-                sum += static_cast<uint64>(val);
+                sum += uint64(val);
             }
         }, v);
     }

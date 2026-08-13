@@ -122,7 +122,7 @@ public:
         Max
     };
 
-    static constexpr uint32 NumAtlasTextureTypes = static_cast<uint8>(AtlasTextureType::Max);
+    static constexpr uint32 NumAtlasTextureTypes = uint8(AtlasTextureType::Max);
     static constexpr const char* TextureTypeNames[NumAtlasTextureTypes] = { "IR", "BN" };
 
     LightmapVolume();

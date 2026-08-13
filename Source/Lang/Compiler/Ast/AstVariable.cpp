@@ -192,7 +192,7 @@ UniquePtr<Buildable> AstVariable::Build(AstVisitor* visitor, Module* mod)
 {
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    chunk->Append(BytecodeUtil::Make<Comment>("Variable access: " + m_name + " (access mode: " + String::ToString(static_cast<int>(m_accessMode)) + ")"));
+    chunk->Append(BytecodeUtil::Make<Comment>("Variable access: " + m_name + " (access mode: " + String::ToString(int(m_accessMode)) + ")"));
 
     if (m_closureMemberAccess != nullptr)
     {

@@ -450,7 +450,7 @@ Result DownloadCacheFromHost(
     }
 
     MemoryByteWriter<DynamicAllocator> manifestWriter;
-    if (Result res = HttpGetBytes(host, port, String("/manifest?id=") + String::ToString(static_cast<uint32>(params.registryId)), manifestWriter, outShouldRetry); res.HasError())
+    if (Result res = HttpGetBytes(host, port, String("/manifest?id=") + String::ToString(uint32(params.registryId)), manifestWriter, outShouldRetry); res.HasError())
     {
         return res;
     }
@@ -796,7 +796,7 @@ HYP_EXPORT Result SyncContent(const Params& params)
     }
 
     ANSIStringView portStr = params.cacheServer.Substr(colonPos + 1, SIZE_MAX);
-    uint16 port = static_cast<uint16>(std::atoi(portStr.Data()));
+    uint16 port = uint16(std::atoi(portStr.Data()));
 
     do
     {

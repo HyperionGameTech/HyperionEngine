@@ -13,5 +13,5 @@ inline bool IsSteamInput(ControllerHandle handle)
 inline uint8 GetControllerIndex(ControllerHandle handle)
 {
     uint64 value = reinterpret_cast<uint64>(handle);
-    return static_cast<uint8>(ByteUtil::LowestSetBitIndex(value & 0xFF));
+    return uint8(ByteUtil::LowestSetBitIndex(value & 0xFF));
 }

@@ -1144,7 +1144,7 @@ protected:
 
         HYP_FORCE_INLINE bool IsCustom() const
         {
-            return cmd == static_cast<uint8>(CommandType::Custom);
+            return cmd == uint8(CommandType::Custom);
         }
 
         HYP_FORCE_INLINE CommandType GetCommandType() const
@@ -1214,11 +1214,11 @@ public:
 
         if constexpr (HasCommandTypeV<TCmd>)
         {
-            header.cmd = static_cast<uint8>(TCmd::ThisCommandType);
+            header.cmd = uint8(TCmd::ThisCommandType);
         }
         else
         {
-            header.cmd = static_cast<uint8>(CommandType::Custom);
+            header.cmd = uint8(CommandType::Custom);
 
             // Store address in the next header 
             CmdHeader& payloadHeader = m_headersPtr[m_headerCount++];
@@ -1432,11 +1432,11 @@ public:
 
         if constexpr (HasCommandTypeV<TCmd>)
         {
-            header.cmd = static_cast<uint8>(TCmd::ThisCommandType);
+            header.cmd = uint8(TCmd::ThisCommandType);
         }
         else
         {
-            header.cmd = static_cast<uint8>(CommandType::Custom);
+            header.cmd = uint8(CommandType::Custom);
 
             // Store address in the next header 
             CmdHeader& payloadHeader = m_headersPtr[m_headerCount++];

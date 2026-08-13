@@ -122,7 +122,7 @@ public:
     SlimArray(Iterator first, Iterator last)
         : SlimArray()
     {
-        const uint32 dist = static_cast<uint32>(last - first);
+        const uint32 dist = uint32(last - first);
         ResizeUninitialized(dist);
 
         for (uint32 i = 0; i < dist; ++i)
@@ -135,7 +135,7 @@ public:
     SlimArray(ConstIterator first, ConstIterator last)
         : SlimArray()
     {
-        const uint32 dist = static_cast<uint32>(last - first);
+        const uint32 dist = uint32(last - first);
         ResizeUninitialized(dist);
 
         for (uint32 i = 0; i < dist; ++i)
@@ -190,7 +190,7 @@ public:
 
     HYP_FORCE_INLINE uint32 ByteSize() const
     {
-        return size * static_cast<uint32>(sizeof(TElemType));
+        return size * uint32(sizeof(TElemType));
     }
 
     HYP_FORCE_INLINE ValueType* Data()
@@ -334,7 +334,7 @@ public:
 
     void Concat(Span<const TElemType> span)
     {
-        const uint32 spanSize = static_cast<uint32>(span.Size());
+        const uint32 spanSize = uint32(span.Size());
 
         if (spanSize == 0)
         {
@@ -542,7 +542,7 @@ protected:
     {
         HYP_CORE_ASSERT(end >= begin);
 
-        const uint32 count = static_cast<uint32>(end - begin);
+        const uint32 count = uint32(end - begin);
 
         HYP_CORE_ASSERT(capacity >= count);
 
@@ -563,7 +563,7 @@ protected:
     {
         HYP_CORE_ASSERT(end >= begin);
 
-        const uint32 count = static_cast<uint32>(end - begin);
+        const uint32 count = uint32(end - begin);
 
         HYP_CORE_ASSERT(capacity >= count);
 
@@ -666,7 +666,7 @@ protected:
 
     static uint32 CalculateDesiredCapacity(uint32 desiredSize)
     {
-        return 1u << static_cast<uint32>(std::ceil(std::log(desiredSize) / std::log(2.0)));
+        return 1u << uint32(std::ceil(std::log(desiredSize) / std::log(2.0)));
     }
 
     TElemType* data;
@@ -1042,12 +1042,12 @@ SlimArray<TElemType, TAllocator> SlimArray<TElemType, TAllocator>::Slice(int fir
         return SlimArray<TElemType, TAllocator>();
     }
 
-    if (first >= static_cast<int>(Size()))
+    if (first >= int(Size()))
     {
         return SlimArray<TElemType, TAllocator>();
     }
 
-    if (last >= static_cast<int>(Size()))
+    if (last >= int(Size()))
     {
         last = Size() - 1;
     }
@@ -1094,7 +1094,7 @@ auto SlimArray<TElemType, TAllocator>::Erase(ConstIterator iter) -> Iterator
         return end;
     }
 
-    const uint32 dist = static_cast<uint32>(iter - begin);
+    const uint32 dist = uint32(iter - begin);
 
     if constexpr (std::is_trivially_copyable_v<TElemType>)
     {
@@ -1152,7 +1152,7 @@ auto SlimArray<TElemType, TAllocator>::EraseAt(typename Base::KeyType index) -> 
 template <class TElemType, class TAllocator>
 auto SlimArray<TElemType, TAllocator>::Insert(ConstIterator where, const ValueType& value) -> Iterator
 {
-    const uint32 dist = static_cast<uint32>(where - Begin());
+    const uint32 dist = uint32(where - Begin());
 
     if (where == End())
     {
@@ -1207,7 +1207,7 @@ auto SlimArray<TElemType, TAllocator>::Insert(ConstIterator where, const ValueTy
 template <class TElemType, class TAllocator>
 auto SlimArray<TElemType, TAllocator>::Insert(ConstIterator where, ValueType&& value) -> Iterator
 {
-    const uint32 dist = static_cast<uint32>(where - Begin());
+    const uint32 dist = uint32(where - Begin());
 
     if (where == End())
     {

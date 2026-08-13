@@ -54,7 +54,7 @@ void DescriptorSetCache::OnFrameStart(uint32 newFrameIndex)
         AllocatedDescriptorSet& allocated = *it;
         AssertDebug(newFrameIndex >= allocated.frameCounter);
 
-        if (static_cast<int64>(newFrameIndex) - allocated.frameCounter < NumFramesInFlight)
+        if (int64(newFrameIndex) - allocated.frameCounter < NumFramesInFlight)
         {
             break;
         }
@@ -101,7 +101,7 @@ void DescriptorSetCache::OnFrameEnd(uint32 prevFrameIndex)
                 AllocatedDescriptorSet& allocated = *jt;
                 AssertDebug(prevFrameIndex >= allocated.frameCounter);
 
-                if (static_cast<int64>(prevFrameIndex) - allocated.frameCounter >= NumFramesBeforeDiscard)
+                if (int64(prevFrameIndex) - allocated.frameCounter >= NumFramesBeforeDiscard)
                 {
                     // we don't need to enqueue deletion, it isn't used by the gpu.
                     // We can just delete it by means of Erase(), as NumFramesBeforeDiscard is AT LEAST NumFramesInFlight

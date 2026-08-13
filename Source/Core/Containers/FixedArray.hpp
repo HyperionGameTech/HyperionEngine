@@ -337,7 +337,7 @@ template <class T, size_t N>
 using FixedArray = containers::FixedArray<T, N>;
 
 template <class T, size_t N>
-HYP_FORCE_INLINE HYP_CONSTEVAL size_t GetArrayCount(const FixedArray<T, N>&)
+HYP_FORCE_INLINE constexpr size_t GetArrayCount(const FixedArray<T, N>&)
 {
     return N;
 }

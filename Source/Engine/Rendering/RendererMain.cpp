@@ -362,7 +362,7 @@ static inline bool ShouldIncludeInPrepass(
         return false;
     }
 
-    if (static_cast<uint8>(bucket) >= static_cast<uint8>(RenderBucket::Translucent))
+    if (uint8(bucket) >= uint8(RenderBucket::Translucent))
     {
         return false;
     }

@@ -350,7 +350,7 @@ struct NoOpFunction<void>
 
 /*! \brief Gets size of a constant-time known-sized array. Basically just std::size(), but we allow it for internal container types, too. */
 template <class T, size_t N>
-HYP_FORCE_INLINE HYP_CONSTEVAL size_t GetArrayCount(const T (&)[N])
+HYP_FORCE_INLINE constexpr size_t GetArrayCount(const T (&)[N])
 {
     return N;
 }

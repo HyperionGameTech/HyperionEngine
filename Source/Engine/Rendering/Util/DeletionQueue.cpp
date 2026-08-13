@@ -244,7 +244,7 @@ void DeletionQueue::OnFrameEnd(uint32 prevFrameIndex)
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    AtomicExchange(&m_counterValue, static_cast<int64>(prevFrameIndex));
+    AtomicExchange(&m_counterValue, int64(prevFrameIndex));
 
     uint32 bufferIndex = GetRingIndex();
     AssertDebug(bufferIndex < m_entryLists.Size());
@@ -259,7 +259,7 @@ void DeletionQueue::OnFrameEnd(uint32 prevFrameIndex)
     {
         EntryHeader header = *it;
 
-        if ((static_cast<int64>(prevFrameIndex) - static_cast<int64>(header.fc)) < MinCyclesBeforeDelete)
+        if ((int64(prevFrameIndex) - int64(header.fc)) < MinCyclesBeforeDelete)
         {
             ++it;
             continue; // skip this entry, it will be processed again next frame

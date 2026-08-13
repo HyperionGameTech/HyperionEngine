@@ -416,12 +416,12 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
     } flags;
 
     flags.bits = 0;
-    flags.unlit = static_cast<uint32>(m_parameters.unlit);
-    flags.normalMapFlipY = static_cast<uint32>(m_parameters.IsNormalMapFlipY());
-    flags.roughnessChannel = static_cast<uint32>(m_parameters.GetRoughnessChannel());
-    flags.metalnessChannel = static_cast<uint32>(m_parameters.GetMetalnessChannel());
-    flags.aoChannel = static_cast<uint32>(m_parameters.GetAmbientOcclusionChannel());
-    flags.parallaxInverseHeight = static_cast<uint32>(m_parameters.IsParallaxInverseHeight());
+    flags.unlit = uint32(m_parameters.unlit);
+    flags.normalMapFlipY = uint32(m_parameters.IsNormalMapFlipY());
+    flags.roughnessChannel = uint32(m_parameters.GetRoughnessChannel());
+    flags.metalnessChannel = uint32(m_parameters.GetMetalnessChannel());
+    flags.aoChannel = uint32(m_parameters.GetAmbientOcclusionChannel());
+    flags.parallaxInverseHeight = uint32(m_parameters.IsParallaxInverseHeight());
 
     bufferData.packedParams.w = flags.bits;
 

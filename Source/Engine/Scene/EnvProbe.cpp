@@ -578,7 +578,7 @@ void EnvProbe::CreateViewData()
             MeshAttributes {},
             materialAttributes);
 
-        viewDesc.viewIndex = static_cast<uint8>(viewIndex);
+        viewDesc.viewIndex = uint8(viewIndex);
         viewDesc.camera = m_camera;
 
         if (m_scene != nullptr)

@@ -116,7 +116,7 @@ struct alignas(2) Float16
             fraction >>= 13;
         }
 
-        this->value = static_cast<uint16>(sign | (exponent << 10) | fraction);
+        this->value = uint16(sign | (exponent << 10) | fraction);
     }
 
     constexpr operator float() const

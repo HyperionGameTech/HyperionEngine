@@ -129,14 +129,14 @@ utf::Char32 SourceStream::Next(int& posChange)
         m_reader->Read(bytes + 1, size_t(numContinuationBytes));
     }
 
-    posChange = static_cast<int>(m_reader->Position() - posBefore);
+    posChange = int(m_reader->Position() - posBefore);
 
     return u32Ch;
 }
 
 void SourceStream::GoBack(int n)
 {
-    HYP_CORE_ASSERT((static_cast<int>(m_reader->Position()) - n) >= 0, "not large enough to go back");
+    HYP_CORE_ASSERT((int(m_reader->Position()) - n) >= 0, "not large enough to go back");
 
     m_reader->Rewind(size_t(n));
 }

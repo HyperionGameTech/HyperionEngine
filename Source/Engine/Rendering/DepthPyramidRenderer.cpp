@@ -170,7 +170,7 @@ void DepthPyramidRenderer::Render(Frame* frame)
             frame->cr << InsertBarrier(
                 m_hzbTexture->GetGpuImage(),
                 RS_SHADER_RESOURCE,
-                ImageSubResource { .baseMipLevel = static_cast<uint8>(mipLevel - 1), .numLevels = 1, .baseArrayLayer = 0, .numLayers = 1 },
+                ImageSubResource { .baseMipLevel = uint8(mipLevel - 1), .numLevels = 1, .baseArrayLayer = 0, .numLayers = 1 },
                 ShaderModuleType::Compute);
 
             frame->cr << SetShaderUniform(0, "InImage"_sh, m_mipImageViews[mipLevel - 1]);

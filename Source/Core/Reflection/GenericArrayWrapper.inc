@@ -901,7 +901,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, SlimArray<TElemType, TA
     functionTable.resize = [](GenericArrayWrapper& array, size_t newSize) -> bool
     {
         auto& arr = *static_cast<SlimArray<TElemType, TAllocator>*>(array.pInternalArray);
-        arr.Resize(static_cast<uint32>(newSize));
+        arr.Resize(uint32(newSize));
 
         return true;
     };
@@ -991,7 +991,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const SlimArray<TElemType, T
     functionTable.resize = [](GenericArrayWrapper& array, size_t newSize) -> bool
     {
         auto& arr = *static_cast<SlimArray<TElemType, TAllocator>*>(array.pInternalArray);
-        arr.Resize(static_cast<uint32>(newSize));
+        arr.Resize(uint32(newSize));
 
         return true;
     };
@@ -1081,7 +1081,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, SlimArray<TElemType, TAlloca
     functionTable.resize = [](GenericArrayWrapper& array, size_t newSize) -> bool
     {
         auto& arr = *static_cast<SlimArray<TElemType, TAllocator>*>(array.pInternalArray);
-        arr.Resize(static_cast<uint32>(newSize));
+        arr.Resize(uint32(newSize));
 
         return true;
     };

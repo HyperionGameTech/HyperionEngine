@@ -378,7 +378,7 @@ void ParticlesPass::OnFrameEnd(uint32 prevFrameIndex)
     {
         VolumeState& state = it->second;
 
-        const int64 frameDiff = static_cast<int64>(prevFrameIndex) - static_cast<int64>(state.lastFrame);
+        const int64 frameDiff = int64(prevFrameIndex) - int64(state.lastFrame);
 
         if (frameDiff >= DiscardFrames)
         {

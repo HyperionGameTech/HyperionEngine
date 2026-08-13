@@ -84,13 +84,13 @@ ShadowMapCacheKey MakeShadowMapCacheKey(Light* light, View* view)
     AssertDebug(light != nullptr);
 
     ShadowMapCacheKey key {};
-    key.lightHash = static_cast<uint32>(BitCast<uint64>(light->Id()) % 0xFFFFFFFFu);
+    key.lightHash = uint32(BitCast<uint64>(light->Id()) % 0xFFFFFFFFu);
 
     if (IsShadowMapCameraDependent(*light))
     {
         AssertDebug(view != nullptr && view->GetCamera() != nullptr);
 
-        key.cameraHash = static_cast<uint32>(BitCast<uint64>(view->GetCamera()->Id()) % 0x7FFFFFFFu);
+        key.cameraHash = uint32(BitCast<uint64>(view->GetCamera()->Id()) % 0x7FFFFFFFu);
         key.isCameraDependent = 1;
     }
 
@@ -219,7 +219,7 @@ static ViewDesc GetViewDesc(
     materialAttributes.shaderName = shaderDesc.name;
     materialAttributes.shaderProperties = shaderDesc.properties;
     materialAttributes.flags = MAF_DEPTH_WRITE | MAF_DEPTH_TEST | MAF_DEPTH_BIAS | MAF_DEPTH_CLAMP;
-    materialAttributes.depthBias = static_cast<int32>(MathUtil::Round(depthBiasScaled));
+    materialAttributes.depthBias = int32(MathUtil::Round(depthBiasScaled));
     materialAttributes.depthBiasSlope = 2.0f;
     materialAttributes.cullFaces = FCM_BACK;
 

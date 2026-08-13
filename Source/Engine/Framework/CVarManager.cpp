@@ -501,7 +501,7 @@ HYP_NODISCARD int CVarManager::FindVarIndex(const ANSIString& name) const
 
         if (varNameLower == inNameLower)
         {
-            return static_cast<int>(i);
+            return int(i);
         }
 
         // 'Foo.Bar.Test' should match with 'Test' as input name.
@@ -522,7 +522,7 @@ HYP_NODISCARD int CVarManager::FindVarIndex(StringHash nameHash) const
     {
         if (cvars[i] && cvars[i]->name == nameHash)
         {
-            return static_cast<int>(i);
+            return int(i);
         }
     }
 

@@ -67,7 +67,7 @@ void UIUpdateManager::RegisterForUpdate(UIObject* uiObject, EnumFlags<UIObjectUp
     const uint32 entryIndex = m_entryIndexAllocator.Allocate();
 
     UpdateEntry& newEntry = *m_entryPool.Emplace(entryIndex);
-    newEntry.index = static_cast<int>(entryIndex);
+    newEntry.index = int(entryIndex);
     newEntry.depth = uiObject->GetComputedDepth();
     newEntry.object = weakHandle;
     newEntry.updateTypes = updateTypes;
@@ -123,7 +123,7 @@ void UIUpdateManager::UnregisterFromUpdate(UIObject* uiObject)
 
             if (entryIndex != -1)
             {
-                m_entryIndexAllocator.Free(static_cast<uint32>(entry->index));
+                m_entryIndexAllocator.Free(uint32(entry->index));
                 entry->index = -1;
 
                 m_entryPool.EraseAt(entryIndex);

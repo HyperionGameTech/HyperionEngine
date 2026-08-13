@@ -163,7 +163,7 @@ public:
             return false;
         }
 
-        outControllerIndex = static_cast<uint8>(ByteUtil::LowestSetBitIndex(m_validControllersMask));
+        outControllerIndex = uint8(ByteUtil::LowestSetBitIndex(m_validControllersMask));
 
         return true;
     }

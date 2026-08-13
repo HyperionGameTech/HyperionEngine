@@ -509,8 +509,8 @@ void DX12Framebuffer::Clear(
 
     uint32 colorAttachmentIndex = 0;
 
-    const bool isRectEntireImage = (static_cast<int>(rect.x1) - static_cast<int>(rect.x0)) >= static_cast<int>(GetExtent().x)
-        && (static_cast<int>(rect.y1) - static_cast<int>(rect.y0)) >= static_cast<int>(GetExtent().y);
+    const bool isRectEntireImage = (int(rect.x1) - int(rect.x0)) >= int(GetExtent().x)
+        && (int(rect.y1) - int(rect.y0)) >= int(GetExtent().y);
 
     static uint32 numRects = 1;
 

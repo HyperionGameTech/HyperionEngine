@@ -256,7 +256,7 @@ UniquePtr<Buildable> AstAsExpression::Build(AstVisitor* visitor, Module* mod)
                     LogType::Error,
                     "    Type: %s (class %d)\n",
                     type->ToString().Data(),
-                    static_cast<int>(type->GetTypeClass()));
+                    int(type->GetTypeClass()));
 
                 type = type->GetBaseType();
             }

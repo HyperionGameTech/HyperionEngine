@@ -368,7 +368,7 @@ protected:
         for (int i = 0; i < count; i++)
         {
             auto* mc = static_cast<dotnet::ManagedClass*>(pairs[i * 2 + 0]);
-            int objCount = static_cast<int>(reinterpret_cast<intptr_t>(pairs[i * 2 + 1]));
+            int objCount = int(reinterpret_cast<intptr_t>(pairs[i * 2 + 1]));
 
             if (!mc || objCount <= 0)
                 continue;

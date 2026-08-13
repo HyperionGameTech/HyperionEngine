@@ -1077,7 +1077,7 @@ void RenderInterface::EndFrame()
     textureViewCache->OnFrameEnd(prevFrameIndex);
 
     const uint32 nextFrameIndex = (Framework::s_ringIndex[Framework::TT_FrameDataConsumer] + 1) % RingBufferDepth;
-    Framework::s_ringIndex[Framework::TT_FrameDataConsumer] = static_cast<uint8>(nextFrameIndex);
+    Framework::s_ringIndex[Framework::TT_FrameDataConsumer] = uint8(nextFrameIndex);
 
     if constexpr (UseRingBuffer)
     { // Let simulation thread back in
@@ -1390,7 +1390,7 @@ void RenderInterface::CleanupUnusedResources(uint32 frameIndex)
             viewData->renderCollector.RemoveEmptyRenderGroups();
 
             // Clear out data for views that haven't been written to for a while
-            if (static_cast<int64>(frameIndex) - static_cast<int64>(viewData->lastUsedFrame) >= MaxFramesBeforeDiscard)
+            if (int64(frameIndex) - int64(viewData->lastUsedFrame) >= MaxFramesBeforeDiscard)
             {
                 // Decrement ref count on the ViewData,
                 // if we hit zero there are no more BufferedViewData holding refs to the ViewData so we delete it

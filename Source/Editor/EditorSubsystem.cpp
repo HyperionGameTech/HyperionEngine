@@ -265,7 +265,7 @@ void TranslateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const Mouse
         {
             if constexpr (std::is_integral_v<NormalizedType<decltype(value)>>)
             {
-                axis = static_cast<int>(value);
+                axis = int(value);
             }
         });
 
@@ -763,7 +763,7 @@ void RotateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEve
         {
             if constexpr (std::is_integral_v<NormalizedType<decltype(value)>>)
             {
-                axis = static_cast<int>(value);
+                axis = int(value);
             }
         });
 
@@ -1098,7 +1098,7 @@ void ScaleEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEven
         {
             if constexpr (std::is_integral_v<NormalizedType<decltype(value)>>)
             {
-                axis = static_cast<int>(value);
+                axis = int(value);
             }
         });
 

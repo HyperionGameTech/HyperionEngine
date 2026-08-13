@@ -518,7 +518,7 @@ struct BoxedValueHelper<T, std::enable_if_t<std::is_same_v<size_t, T> && !std::i
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, size_t value) const
     {
-        boxed.Set_Internal(static_cast<uint64>(value));
+        boxed.Set_Internal(uint64(value));
     }
 };
 

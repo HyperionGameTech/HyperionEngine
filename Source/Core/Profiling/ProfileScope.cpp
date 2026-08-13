@@ -596,7 +596,7 @@ void CollectAllHotFunctions(Array<Pair<ANSIString, double>>& outHotFunctions)
 {
     const Time now = Time::Now();
 
-    const uint64 mask = static_cast<uint64>(AtomicAdd(&s_profileScopeStacksBitMask, 0));
+    const uint64 mask = uint64(AtomicAdd(&s_profileScopeStacksBitMask, 0));
 
     FOR_EACH_BIT(mask, iter)
     {
