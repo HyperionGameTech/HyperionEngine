@@ -46,7 +46,7 @@ void OverlayBase::Initialize(UIObject* spawnParent)
     }
 }
 
-Handle<UIObject> OverlayBase::CreateUIObject_Impl(UIObject* spawnParent)
+Handle<UIObject> OverlayBase::CreateUIObject(UIObject* spawnParent)
 {
     return spawnParent->CreateUIObject<UIImage>(
         InstanceClass()->GetName(),
@@ -81,7 +81,7 @@ void TextureOverlay::SetTexture(const Handle<Texture>& texture)
     OnTextureChange(texture);
 }
 
-Handle<UIObject> TextureOverlay::CreateUIObject_Impl(UIObject* spawnParent)
+Handle<UIObject> TextureOverlay::CreateUIObject(UIObject* spawnParent)
 {
     Vec2u extent = { 500, 250 };
 
@@ -145,7 +145,7 @@ TextOverlay::~TextOverlay()
 {
 }
 
-Handle<UIObject> TextOverlay::CreateUIObject_Impl(UIObject* spawnParent)
+Handle<UIObject> TextOverlay::CreateUIObject(UIObject* spawnParent)
 {
     Handle<UIText> uiText = spawnParent->CreateUIObject<UIText>(InstanceClass()->GetName(), Vec2i::Zero(), UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
     uiText->SetText(m_text);

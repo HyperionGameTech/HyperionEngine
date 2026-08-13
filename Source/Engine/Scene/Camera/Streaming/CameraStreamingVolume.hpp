@@ -38,13 +38,13 @@ public:
 
 protected:
     HYP_METHOD()
-    virtual StreamingVolumeShape GetShape_Impl() const override
+    virtual StreamingVolumeShape GetShape() const override
     {
         return StreamingVolumeShape::BOX; // Frustum is treated as a box for streaming purposes
     }
 
     HYP_METHOD()
-    virtual bool GetBoundingBox_Impl(BoundingBox& outAabb) const override
+    virtual bool GetBoundingBox(BoundingBox& outAabb) const override
     {
         outAabb = m_aabb;
 
@@ -52,13 +52,13 @@ protected:
     }
 
     HYP_METHOD()
-    virtual bool GetBoundingSphere_Impl(BoundingSphere& outSphere) const override
+    virtual bool GetBoundingSphere(BoundingSphere& outSphere) const override
     {
         return false;
     }
 
     HYP_METHOD()
-    virtual bool ContainsPoint_Impl(const Vec3f& point) const override
+    virtual bool ContainsPoint(const Vec3f& point) const override
     {
         return m_aabb.ContainsPoint(point);
     }

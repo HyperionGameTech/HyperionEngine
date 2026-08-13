@@ -35,12 +35,8 @@ public:
     HYP_METHOD()
     static const CommandLineArgumentDefinitions& GetArgumentDefinitions();
 
-    HYP_METHOD(Scriptable)
-    Result Run(const CommandLineArguments& args);
-
-protected:
     HYP_METHOD()
-    virtual Result Run_Impl(const CommandLineArguments& args) = 0;
+    virtual Result Run(const CommandLineArguments& args) = 0;
 };
 
 } // namespace Hyperion

@@ -100,7 +100,7 @@ DefaultGame::~DefaultGame()
 {
 }
 
-void DefaultGame::OnLaunch_Impl()
+void DefaultGame::OnLaunch()
 {
     Assert(GetWorld() != nullptr);
     
@@ -394,9 +394,9 @@ void DefaultGame::OnLaunch_Impl()
     StartSimulating();
 }
 
-void DefaultGame::OnUpdate_Impl(float delta)
+void DefaultGame::OnUpdate(float delta)
 {
-    Game::OnUpdate_Impl(delta);
+    Game::OnUpdate(delta);
 
     // Loading content.
     if (IsSyncingContent())

@@ -52,7 +52,7 @@ DeviceDetailsOverlay::DeviceDetailsOverlay()
 
 DeviceDetailsOverlay::~DeviceDetailsOverlay() = default;
 
-Handle<UIObject> DeviceDetailsOverlay::CreateUIObject_Impl(UIObject* spawnParent)
+Handle<UIObject> DeviceDetailsOverlay::CreateUIObject(UIObject* spawnParent)
 {
     HYP_SCOPE;
 
@@ -119,7 +119,7 @@ Handle<UIObject> DeviceDetailsOverlay::CreateUIObject_Impl(UIObject* spawnParent
     return panelBackdrop;
 }
 
-void DeviceDetailsOverlay::Update_Impl(float delta)
+void DeviceDetailsOverlay::Update(float delta)
 {
     HYP_SCOPE;
 

@@ -25,7 +25,7 @@ ConsoleOverlay::ConsoleOverlay()
 
 ConsoleOverlay::~ConsoleOverlay() = default;
 
-Handle<UIObject> ConsoleOverlay::CreateUIObject_Impl(UIObject* spawnParent)
+Handle<UIObject> ConsoleOverlay::CreateUIObject(UIObject* spawnParent)
 {
     HYP_SCOPE;
 
@@ -41,7 +41,7 @@ Handle<UIObject> ConsoleOverlay::CreateUIObject_Impl(UIObject* spawnParent)
     return console;
 }
 
-void ConsoleOverlay::Update_Impl(float delta)
+void ConsoleOverlay::Update(float delta)
 {
     HYP_SCOPE;
 

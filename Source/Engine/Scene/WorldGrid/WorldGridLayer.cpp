@@ -24,7 +24,7 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(Streaming);
 
 #pragma region WorldGridLayer
 
-Handle<StreamingCell> WorldGridLayer::CreateStreamingCell_Impl(const StreamingCellInfo& cellInfo)
+Handle<StreamingCell> WorldGridLayer::CreateStreamingCell(const StreamingCellInfo& cellInfo)
 {
     HYP_SCOPE;
     Handle<StreamingCell> cell = MakeHandle<StreamingCell>(cellInfo);

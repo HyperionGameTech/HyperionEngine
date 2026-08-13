@@ -75,47 +75,22 @@ public:
         m_notifiers.Erase(notifier);
     }
 
-    HYP_METHOD(Scriptable)
-    StreamingVolumeShape GetShape() const;
+    HYP_METHOD()
+    virtual StreamingVolumeShape GetShape() const = 0;
 
-    HYP_METHOD(Scriptable)
-    bool GetBoundingBox(BoundingBox& outAabb) const;
+    HYP_METHOD()
+    virtual bool GetBoundingBox(BoundingBox& outAabb) const = 0;
 
-    HYP_METHOD(Scriptable)
-    bool GetBoundingSphere(BoundingSphere& outSphere) const;
+    HYP_METHOD()
+    virtual bool GetBoundingSphere(BoundingSphere& outSphere) const = 0;
 
-    HYP_METHOD(Scriptable)
-    bool ContainsPoint(const Vec3f& point) const;
-    
+    HYP_METHOD()
+    virtual bool ContainsPoint(const Vec3f& point) const = 0;
+
     /*! \brief Notify all registered notifiers that the volume has been updated.
      *  This is typically called when the volume's bounding box or shape changes and needs have the changes be reflected in the streaming system. */
     HYP_METHOD()
     void NotifyUpdate();
-
-protected:
-    HYP_METHOD()
-    virtual StreamingVolumeShape GetShape_Impl() const
-    {
-        HYP_PURE_VIRTUAL();
-    }
-
-    HYP_METHOD()
-    virtual bool GetBoundingBox_Impl(BoundingBox& outAabb) const
-    {
-        HYP_PURE_VIRTUAL();
-    }
-
-    HYP_METHOD()
-    virtual bool GetBoundingSphere_Impl(BoundingSphere& outSphere) const
-    {
-        HYP_PURE_VIRTUAL();
-    }
-
-    HYP_METHOD()
-    virtual bool ContainsPoint_Impl(const Vec3f& point) const
-    {
-        HYP_PURE_VIRTUAL();
-    }
 
 private:
     Mutex m_notifiersMtx;

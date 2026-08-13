@@ -17,6 +17,8 @@
 
 #include <Framework/Threads/SimThread.hpp>
 
+#include <DotNET/ManagedMethodUtil.hpp>
+
 #include <EditorTask.generated.inl>
 
 namespace Hyperion {
@@ -32,6 +34,46 @@ TickableEditorTask::TickableEditorTask()
       m_timer(),
       m_isForegroundTask(false)
 {
+}
+
+void TickableEditorTask::Start()
+{
+    if (TryInvokeManagedOverrideVoid(this, "Start"))
+    {
+        return;
+    }
+
+    Start_Impl();
+}
+
+void TickableEditorTask::Cancel()
+{
+    if (TryInvokeManagedOverrideVoid(this, "Cancel"))
+    {
+        return;
+    }
+
+    Cancel_Impl();
+}
+
+bool TickableEditorTask::IsCompleted() const
+{
+    if (Optional<bool> result = TryInvokeManagedOverride<bool>(this, "IsCompleted"))
+    {
+        return *result;
+    }
+
+    return IsCompleted_Impl();
+}
+
+void TickableEditorTask::Tick()
+{
+    if (TryInvokeManagedOverrideVoid(this, "Tick"))
+    {
+        return;
+    }
+
+    Tick_Impl();
 }
 
 bool TickableEditorTask::Commit()
@@ -97,6 +139,46 @@ LongRunningEditorTask::LongRunningEditorTask()
 
 LongRunningEditorTask::~LongRunningEditorTask()
 {
+}
+
+void LongRunningEditorTask::Start()
+{
+    if (TryInvokeManagedOverrideVoid(this, "Start"))
+    {
+        return;
+    }
+
+    Start_Impl();
+}
+
+void LongRunningEditorTask::Cancel()
+{
+    if (TryInvokeManagedOverrideVoid(this, "Cancel"))
+    {
+        return;
+    }
+
+    Cancel_Impl();
+}
+
+bool LongRunningEditorTask::IsCompleted() const
+{
+    if (Optional<bool> result = TryInvokeManagedOverride<bool>(this, "IsCompleted"))
+    {
+        return *result;
+    }
+
+    return IsCompleted_Impl();
+}
+
+void LongRunningEditorTask::Process()
+{
+    if (TryInvokeManagedOverrideVoid(this, "Process"))
+    {
+        return;
+    }
+
+    Process_Impl();
 }
 
 bool LongRunningEditorTask::Commit()

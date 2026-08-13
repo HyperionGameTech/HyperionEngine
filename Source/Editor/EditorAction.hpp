@@ -32,30 +32,35 @@ public:
 
     virtual ~EditorActionBase() = default;
 
-    HYP_METHOD(Scriptable)
+    HYP_METHOD()
     virtual String GetText() const;
 
-    HYP_METHOD(Scriptable)
+    HYP_METHOD()
     virtual void Execute(EditorSubsystem* editorSubsystem, EditorProject* project);
 
-    HYP_METHOD(Scriptable)
+    HYP_METHOD()
     virtual void Revert(EditorSubsystem* editorSubsystem, EditorProject* project);
 
 protected:
+    //-- These methods below are expected to be implemented by any deriving class.
+    //   They are called by the base, if there is no managed C# override.
+
     virtual String GetText_Impl() const
     {
-        HYP_PURE_VIRTUAL();
+        HYP_NOT_IMPLEMENTED();
     }
 
     virtual void Execute_Impl(EditorSubsystem* editorSubsystem, EditorProject* project)
     {
-        HYP_PURE_VIRTUAL();
+        HYP_NOT_IMPLEMENTED();
     };
 
     virtual void Revert_Impl(EditorSubsystem* editorSubsystem, EditorProject* project)
     {
-        HYP_PURE_VIRTUAL();
+        HYP_NOT_IMPLEMENTED();
     }
+
+    //--
 };
 
 struct EditorActionFunctions

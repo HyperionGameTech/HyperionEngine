@@ -110,7 +110,7 @@ protected:
         return dir;
     }
 
-    virtual Result Run_Impl(const CommandLineArguments& args) override
+    virtual Result Run(const CommandLineArguments& args) override
     {
         GlobalContextScope contextScope { CookingContext() };
         

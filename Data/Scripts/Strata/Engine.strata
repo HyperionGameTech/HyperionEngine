@@ -16,8 +16,6 @@ handle NullEditorGizmo extends EditorGizmoBase;
 handle EditorTaskBase extends ObjectBase;
 handle LongRunningEditorTask extends EditorTaskBase;
 handle TickableEditorTask extends EditorTaskBase;
-handle GenerateLightmapsEditorTask extends TickableEditorTask;
-handle GenerateBentNormalsEditorTask extends TickableEditorTask;
 handle EditorViewport extends ObjectBase;
 handle AssetLoaderBase extends ObjectBase;
 handle AssetObject extends ObjectBase;
@@ -54,6 +52,7 @@ handle DeviceDetails extends ObjectBase;
 handle EngineDriver extends ObjectBase;
 handle EngineStats extends ObjectBase;
 handle Game extends ObjectBase;
+handle EditorGame extends Game;
 handle CommandletBase extends ObjectBase;
 handle InputHandlerBase extends ObjectBase;
 handle EditorCameraInputHandler extends InputHandlerBase;
@@ -90,7 +89,6 @@ handle TouchControlsSubsystem extends Subsystem;
 handle UISubsystem extends Subsystem;
 handle SystemBase extends ObjectBase;
 handle DynamicSkySystem extends SystemBase;
-handle ScriptableSystem extends SystemBase;
 handle View extends ObjectBase;
 handle CameraController extends ObjectBase;
 handle NullCameraController extends CameraController;
@@ -128,7 +126,6 @@ handle UIImage extends UIObject;
 handle UIListViewItem extends UIObject;
 handle UIMenuItem extends UIObject;
 handle UIPanel extends UIObject;
-handle EditorPropertyPanelBase extends UIPanel;
 handle UIDockableItem extends UIPanel;
 handle UIDockableContainer extends UIPanel;
 handle UIGridColumn extends UIPanel;
@@ -145,13 +142,10 @@ handle UITab extends UIObject;
 handle UIText extends UIObject;
 handle UIConsole extends UIObject;
 handle OverlayBase extends ObjectBase;
-handle BaseStatsOverlay extends OverlayBase;
 handle ConsoleOverlay extends OverlayBase;
-handle DeviceDetailsOverlay extends OverlayBase;
 handle TextOverlay extends OverlayBase;
 handle TextureOverlay extends OverlayBase;
 handle NullOverlay extends OverlayBase;
-handle StatsOverlay extends OverlayBase;
 struct AnimationComponent;
 struct AnimationPlaybackState;
 struct AssetBucket;
@@ -265,11 +259,6 @@ struct WGLayerDesc;
 struct WGObject;
 struct WindowOptions;
 struct WorldGridLayerInfo;
-
-// OverlayBase
-extern int OverlayBase_GetPlacement(OverlayBase self);
-extern void OverlayBase_Update(OverlayBase self, float delta);
-extern bool OverlayBase_IsEnabled(OverlayBase self);
 
 // UIObject
 extern void UIObject_Init(UIObject self);
@@ -476,7 +465,6 @@ extern void StreamableBase_OnRemoved(StreamableBase self);
 
 // StreamingCell
 extern void StreamingCell_GetPatchInfo(StreamingCell self, ref StreamingCellInfo outReturn);
-extern void StreamingCell_Update(StreamingCell self, float delta);
 
 // WorldGridLayer
 extern void WorldGridLayer_GetName(WorldGridLayer self, ref Name outReturn);
@@ -501,15 +489,6 @@ extern Camera View_GetCamera(View self);
 extern void View_SetCamera(View self, Camera camera);
 extern int View_GetPriority(View self);
 extern void View_SetPriority(View self, int priority);
-
-// ScriptableSystem
-extern bool ScriptableSystem_AllowParallelExecution(ScriptableSystem self);
-extern bool ScriptableSystem_RequiresSimThread(ScriptableSystem self);
-extern bool ScriptableSystem_AllowUpdate(ScriptableSystem self);
-extern void ScriptableSystem_OnEntityAdded(ScriptableSystem self, Entity entity);
-extern void ScriptableSystem_OnEntityRemoved(ScriptableSystem self, Entity entity);
-extern void ScriptableSystem_Init(ScriptableSystem self);
-extern void ScriptableSystem_Shutdown(ScriptableSystem self);
 
 // TouchControlsSubsystem
 extern void TouchControlsSubsystem_GetMovementDelta(TouchControlsSubsystem self, ref Vec2f outReturn);
@@ -766,7 +745,6 @@ extern bool GameState_IsPaused(GameState self);
 
 // Game
 extern void Game_GetGameState(Game self, ref GameState outReturn);
-extern void Game_OnUpdate(Game self, float delta);
 extern void Game_Initialize(Game self);
 extern void Game_Shutdown(Game self, bool shutdownWorld);
 extern bool Game_IsLaunched(Game self);
@@ -774,8 +752,9 @@ extern void Game_StartSimulating(Game self);
 extern void Game_StopSimulating(Game self);
 extern void Game_PauseSimulation(Game self);
 extern void Game_UnregisterInputHandler(Game self, InputHandlerBase inputHandler);
-extern void Game_OnLaunch(Game self);
-extern void Game_BeforeShutdown(Game self);
+
+// EditorGame (requires HYP_EDITOR)
+extern EditorSubsystem EditorGame_GetEditorSubsystem(EditorGame self);
 
 // EngineStats
 extern float EngineStats_GetFps(EngineStats self);
@@ -937,16 +916,6 @@ extern void TickableEditorTask_Cancel(TickableEditorTask self);
 extern bool TickableEditorTask_IsCompleted(TickableEditorTask self);
 extern bool TickableEditorTask_Commit(TickableEditorTask self);
 extern void TickableEditorTask_Tick(TickableEditorTask self);
-
-// GenerateLightmapsEditorTask (requires HYP_EDITOR)
-extern void GenerateLightmapsEditorTask_Start(GenerateLightmapsEditorTask self);
-extern bool GenerateLightmapsEditorTask_IsCompleted(GenerateLightmapsEditorTask self);
-extern void GenerateLightmapsEditorTask_Tick(GenerateLightmapsEditorTask self);
-
-// GenerateBentNormalsEditorTask (requires HYP_EDITOR)
-extern void GenerateBentNormalsEditorTask_Start(GenerateBentNormalsEditorTask self);
-extern bool GenerateBentNormalsEditorTask_IsCompleted(GenerateBentNormalsEditorTask self);
-extern void GenerateBentNormalsEditorTask_Tick(GenerateBentNormalsEditorTask self);
 
 // EditorProject (requires HYP_EDITOR)
 extern void EditorProject_GetName(EditorProject self, ref Name outReturn);

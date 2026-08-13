@@ -541,7 +541,7 @@ namespace Hyperion.Editor.ViewModels
                 PanelService.Instance.OpenPanel(panel);
             });
 
-            HyperionEditorGame? editorGame = EngineManager.EditorGame;
+            EditorGame? editorGame = EngineManager.EditorGame;
             if (editorGame == null)
                 throw new InvalidOperationException("Editor game instance is not initialized.");
 
@@ -563,7 +563,7 @@ namespace Hyperion.Editor.ViewModels
             });
         }
 
-        private void Init(HyperionEditorGame editorGame)
+        private void Init(EditorGame editorGame)
         {
             Dispatcher.UIThread.VerifyAccess();
 

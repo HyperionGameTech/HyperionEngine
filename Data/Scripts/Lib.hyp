@@ -18,48 +18,14 @@ const DBL_EPSILON : double = 2.2204460492503131e-16
 extern struct OctantId
 end
 extern class OverlayBase
-    GetUIObject() -> UIObject
-    GetPlacement() -> int
-    Update(delta : float) -> void
-    CreateUIObject(spawnParent : UIObject) -> UIObject
-    IsEnabled() -> bool
-    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
-    GetPlacement_Impl() -> int
-    Update_Impl(delta : float) -> void
-    IsEnabled_Impl() -> bool
 end
 extern class NullOverlay : OverlayBase
 end
 extern class TextureOverlay : OverlayBase
-    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
-    GetPlacement_Impl() -> int
 end
 extern class TextOverlay : OverlayBase
-    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
-end
-extern class StatsOverlay : OverlayBase
-    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
-    GetPlacement_Impl() -> int
-    Update_Impl(delta : float) -> void
-    IsEnabled_Impl() -> bool
-end
-extern class DeviceDetailsOverlay : OverlayBase
-    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
-    GetPlacement_Impl() -> int
-    Update_Impl(delta : float) -> void
-    IsEnabled_Impl() -> bool
 end
 extern class ConsoleOverlay : OverlayBase
-    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
-    GetPlacement_Impl() -> int
-    Update_Impl(delta : float) -> void
-    IsEnabled_Impl() -> bool
-end
-extern class BaseStatsOverlay : OverlayBase
-    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
-    GetPlacement_Impl() -> int
-    Update_Impl(delta : float) -> void
-    IsEnabled_Impl() -> bool
 end
 extern struct GlyphMetrics
     Width : uint16
@@ -311,9 +277,6 @@ extern class UIDockableContainer : UIPanel
 end
 extern class UIDockableItem : UIPanel
 end
-extern class EditorPropertyPanelBase : UIPanel
-    Build(boxed : any, property : any) -> void
-end
 extern class UIImage : UIObject
 end
 extern class UIButton : UIObject
@@ -440,10 +403,6 @@ extern class StreamingVolumeBase
     GetBoundingSphere(outSphere : BoundingSphere) -> bool
     ContainsPoint(point : Vec3f) -> bool
     NotifyUpdate() -> void
-    GetShape_Impl() -> StreamingVolumeShape
-    GetBoundingBox_Impl(outAabb : BoundingBox) -> bool
-    GetBoundingSphere_Impl(outSphere : BoundingSphere) -> bool
-    ContainsPoint_Impl(point : Vec3f) -> bool
 end
 extern enum StreamingVolumeShape : uint32
     SPHERE = 0,
@@ -460,10 +419,6 @@ extern class StreamableBase
     OnStreamStart() -> void
     OnLoaded() -> void
     OnRemoved() -> void
-    GetBoundingBox_Impl() -> BoundingBox
-    OnStreamStart_Impl() -> void
-    OnLoaded_Impl() -> void
-    OnRemoved_Impl() -> void
 end
 extern enum StreamingCellState : uint32
     INVALID = ~0u,
@@ -476,9 +431,6 @@ extern enum StreamingCellState : uint32
 end
 extern class StreamingCell : StreamableBase
     GetPatchInfo() -> StreamingCellInfo
-    Update(delta : float) -> void
-    GetBoundingBox_Impl() -> BoundingBox
-    Update_Impl(delta : float) -> void
 end
 extern struct StreamingCellInfo
     Coord : Vec2i
@@ -490,9 +442,6 @@ extern struct StreamingCellNeighbor
     Coord : Vec2i
 end
 extern class TerrainStreamingCell : StreamingCell
-    OnStreamStart_Impl() -> void
-    OnLoaded_Impl() -> void
-    OnRemoved_Impl() -> void
 end
 extern enum ScriptLanguage : uint8
     Invalid = UINT8_MAX,
@@ -555,9 +504,6 @@ extern class WorldGridLayer
     CreateStreamingCell(cellInfo : StreamingCellInfo) -> StreamingCell
     AddStreamingObject(assetObject : AssetObject, coord : Vec2i) -> void
     RemoveStreamingObject(assetObject : AssetObject) -> void
-    OnAdded_Impl(worldGrid : WorldGrid) -> void
-    OnRemoved_Impl(worldGrid : WorldGrid) -> void
-    CreateStreamingCell_Impl(cellInfo : StreamingCellInfo) -> StreamingCell
 end
 extern struct WorldGridLayerInfo
     Offset : Vec3f
@@ -567,9 +513,6 @@ extern struct WorldGridLayerInfo
 end
 extern class TerrainWorldGridLayer : WorldGridLayer
     GetScene() -> Scene
-    OnAdded_Impl(worldGrid : WorldGrid) -> void
-    OnRemoved_Impl(worldGrid : WorldGrid) -> void
-    CreateStreamingCell_Impl(cellInfo : StreamingCellInfo) -> StreamingCell
 end
 extern struct WGLayerDesc
     ClassName : Name
@@ -738,24 +681,6 @@ extern class View
     SetPriority(priority : int) -> void
 end
 extern class SystemBase
-end
-extern class ScriptableSystem : SystemBase
-    AllowParallelExecution() -> bool
-    RequiresSimThread() -> bool
-    AllowUpdate() -> bool
-    OnEntityAdded(entity : Entity) -> void
-    OnEntityRemoved(entity : Entity) -> void
-    Init() -> void
-    Shutdown() -> void
-    ProcessScene(scene : Scene, delta : float) -> void
-    GetComponentInfos() -> Array<ComponentInfo>
-    AllowParallelExecution_Impl() -> bool
-    RequiresSimThread_Impl() -> bool
-    AllowUpdate_Impl() -> bool
-    OnEntityAdded_Impl(entity : Entity) -> void
-    OnEntityRemoved_Impl(entity : Entity) -> void
-    Init_Impl() -> void
-    Shutdown_Impl() -> void
 end
 extern class DynamicSkySystem : SystemBase
 end
@@ -1953,7 +1878,6 @@ end
 extern class CommandletBase
     static GetArgumentDefinitions() -> CommandLineArgumentDefinitions
     Run(args : CommandLineArguments) -> Result
-    Run_Impl(args : CommandLineArguments) -> Result
 end
 extern enum GameStateMode : uint32
     STOPPED = 0,
@@ -1974,7 +1898,6 @@ extern class Game
     GetWorld() -> World
     SetWorld(world : World) -> void
     GetGameState() -> GameState
-    OnUpdate(delta : float) -> void
     Initialize() -> void
     Shutdown(shutdownWorld : bool) -> void
     IsLaunched() -> bool
@@ -1983,17 +1906,15 @@ extern class Game
     PauseSimulation() -> void
     RegisterInputHandler(inputHandler : InputHandlerBase) -> void
     UnregisterInputHandler(inputHandler : InputHandlerBase) -> void
-    OnLaunch() -> void
-    BeforeShutdown() -> void
     LoadWorld(worldName : Name) -> World
     static OnLaunched : any
     static OnGameStateChange : any
-    LoadWorld_Impl(worldName : Name) -> World
-    OnLaunch_Impl() -> void
-    BeforeShutdown_Impl() -> void
-    OnUpdate_Impl(delta : float) -> void
     World : World
     GameState : GameState
+end
+extern class EditorGame : Game
+    GetEditorSubsystem() -> EditorSubsystem
+    LoadWorld(worldName : Name) -> World
 end
 extern class EngineStats
     static GetInstance() -> EngineStats
@@ -2565,26 +2486,6 @@ extern class LongRunningEditorTask : EditorTaskBase
     Cancel_Impl() -> void
     IsCompleted_Impl() -> bool
     Process_Impl() -> void
-end
-extern class GenerateBentNormalsEditorTask : TickableEditorTask
-    GetWorld() -> World
-    SetWorld(world : World) -> void
-    GetScene() -> Scene
-    SetScene(scene : Scene) -> void
-    Start() -> void
-    IsCompleted() -> bool
-    Tick() -> void
-    Cancel_Impl() -> void
-end
-extern class GenerateLightmapsEditorTask : TickableEditorTask
-    GetWorld() -> World
-    SetWorld(world : World) -> void
-    GetScene() -> Scene
-    SetScene(scene : Scene) -> void
-    Start() -> void
-    IsCompleted() -> bool
-    Tick() -> void
-    Cancel_Impl() -> void
 end
 extern class EditorState
     static GetInstance() -> EditorState

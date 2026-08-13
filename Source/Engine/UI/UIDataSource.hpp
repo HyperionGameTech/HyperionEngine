@@ -85,30 +85,14 @@ public:
     UIElementFactoryBase() = default;
     virtual ~UIElementFactoryBase() = default;
 
-    HYP_METHOD(Scriptable)
-    virtual TypeId GetElementTypeId() const;
+    HYP_METHOD()
+    virtual TypeId GetElementTypeId() const = 0;
 
-    HYP_METHOD(Scriptable)
-    Handle<UIObject> CreateUIObject(UIObject* parent, const BoxedValue& value, const BoxedValue& context) const;
+    HYP_METHOD()
+    virtual Handle<UIObject> CreateUIObject(UIObject* parent, const BoxedValue& value, const BoxedValue& context) const = 0;
 
-    HYP_METHOD(Scriptable)
-    void UpdateUIObject(UIObject* uiObject, const BoxedValue& value, const BoxedValue& context) const;
-
-protected:
-    virtual TypeId GetElementTypeId_Impl() const
-    {
-        HYP_PURE_VIRTUAL();
-    }
-
-    virtual Handle<UIObject> CreateUIObject_Impl(UIObject* parent, const BoxedValue& value, const BoxedValue& context) const
-    {
-        HYP_PURE_VIRTUAL();
-    }
-
-    virtual void UpdateUIObject_Impl(UIObject* uiObject, const BoxedValue& value, const BoxedValue& context) const
-    {
-        HYP_PURE_VIRTUAL();
-    }
+    HYP_METHOD()
+    virtual void UpdateUIObject(UIObject* uiObject, const BoxedValue& value, const BoxedValue& context) const = 0;
 };
 
 template <class T>
@@ -122,12 +106,12 @@ protected:
     virtual void Update(UIObject* uiObject, const T& value) const = 0;
 
 private:
-    virtual TypeId GetElementTypeId_Impl() const override final
+    virtual TypeId GetElementTypeId() const override final
     {
         return TypeId::ForType<T>();
     }
 
-    virtual Handle<UIObject> CreateUIObject_Impl(UIObject* parent, const BoxedValue& value, const BoxedValue& context) const override final
+    virtual Handle<UIObject> CreateUIObject(UIObject* parent, const BoxedValue& value, const BoxedValue& context) const override final
     {
         HYP_MT_CHECK_RW(m_contextDataRaceDetector);
 
@@ -146,7 +130,7 @@ private:
         }
     }
 
-    virtual void UpdateUIObject_Impl(UIObject* uiObject, const BoxedValue& value, const BoxedValue& context) const override final
+    virtual void UpdateUIObject(UIObject* uiObject, const BoxedValue& value, const BoxedValue& context) const override final
     {
         HYP_MT_CHECK_RW(m_contextDataRaceDetector);
 

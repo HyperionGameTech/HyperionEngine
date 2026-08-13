@@ -207,11 +207,11 @@ TerrainStreamingCell::TerrainStreamingCell(
 
 TerrainStreamingCell::~TerrainStreamingCell() = default;
 
-void TerrainStreamingCell::OnStreamStart_Impl()
+void TerrainStreamingCell::OnStreamStart()
 {
 }
 
-void TerrainStreamingCell::OnLoaded_Impl()
+void TerrainStreamingCell::OnLoaded()
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -265,7 +265,7 @@ void TerrainStreamingCell::OnLoaded_Impl()
     m_node->SetIsStatic(true);
 }
 
-void TerrainStreamingCell::OnRemoved_Impl()
+void TerrainStreamingCell::OnRemoved()
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);

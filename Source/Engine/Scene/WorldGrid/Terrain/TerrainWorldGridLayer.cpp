@@ -50,7 +50,7 @@ TerrainWorldGridLayer::~TerrainWorldGridLayer()
 {
 }
 
-void TerrainWorldGridLayer::OnAdded_Impl(WorldGrid* worldGrid)
+void TerrainWorldGridLayer::OnAdded(WorldGrid* worldGrid)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -97,7 +97,7 @@ void TerrainWorldGridLayer::OnAdded_Impl(WorldGrid* worldGrid)
     worldGrid->GetWorld()->AddScene(m_scene);
 }
 
-void TerrainWorldGridLayer::OnRemoved_Impl(WorldGrid* worldGrid)
+void TerrainWorldGridLayer::OnRemoved(WorldGrid* worldGrid)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -108,7 +108,7 @@ void TerrainWorldGridLayer::OnRemoved_Impl(WorldGrid* worldGrid)
     worldGrid->GetWorld()->RemoveScene(m_scene);
 }
 
-Handle<StreamingCell> TerrainWorldGridLayer::CreateStreamingCell_Impl(const StreamingCellInfo& cellInfo)
+Handle<StreamingCell> TerrainWorldGridLayer::CreateStreamingCell(const StreamingCellInfo& cellInfo)
 {
     if (!m_scene)
     {

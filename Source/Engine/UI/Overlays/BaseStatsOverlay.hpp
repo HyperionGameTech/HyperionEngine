@@ -20,7 +20,7 @@ class World;
 class UIText;
 class UIListView;
 
-HYP_CLASS()
+HYP_CLASS(NoScriptBindings)
 class ENGINE_API BaseStatsOverlay : public OverlayBase
 {
     HYP_OBJECT_BODY(BaseStatsOverlay);
@@ -32,20 +32,16 @@ public:
     virtual ~BaseStatsOverlay() override;
 
 protected:
-    HYP_METHOD()
-    virtual Handle<UIObject> CreateUIObject_Impl(UIObject* spawnParent) override;
+    virtual Handle<UIObject> CreateUIObject(UIObject* spawnParent) override;
 
-    HYP_METHOD()
-    virtual int GetPlacement_Impl() const override
+    virtual int GetPlacement() const override
     {
         return 1; // Bottom-left corner
     }
 
-    HYP_METHOD()
-    virtual void Update_Impl(float delta) override;
+    virtual void Update(float delta) override;
 
-    HYP_METHOD()
-    virtual bool IsEnabled_Impl() const override
+    virtual bool IsEnabled() const override
     {
         return true;
     }

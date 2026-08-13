@@ -36,14 +36,10 @@ public:
     virtual ~TerrainStreamingCell() override;
 
 protected:
-    HYP_METHOD()
-    virtual void OnStreamStart_Impl() override final;
+    virtual void OnStreamStart() override final;
 
-    HYP_METHOD()
-    virtual void OnLoaded_Impl() override final;
-
-    HYP_METHOD()
-    virtual void OnRemoved_Impl() override final;
+    virtual void OnLoaded() override final;
+    virtual void OnRemoved() override final;
 
     Handle<Scene> m_scene;
     Handle<Mesh> m_mesh;

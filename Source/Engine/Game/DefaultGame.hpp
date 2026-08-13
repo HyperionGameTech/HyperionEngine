@@ -36,8 +36,8 @@ protected:
     virtual void BeforeContentLoaded() override;
     virtual void AfterContentLoaded() override;
 
-    virtual void OnLaunch_Impl() override;
-    virtual void OnUpdate_Impl(float delta) override;
+    virtual void OnLaunch() override;
+    virtual void OnUpdate(float delta) override;
 
     void ShowLoadingScreen();
     void HideLoadingScreen();

@@ -191,19 +191,19 @@ public:
         m_isForegroundTask = isForeground;
     }
 
-    HYP_METHOD(Scriptable)
+    HYP_METHOD()
     virtual void Start() override;
 
-    HYP_METHOD(Scriptable)
+    HYP_METHOD()
     virtual void Cancel() override;
 
-    HYP_METHOD(Scriptable)
+    HYP_METHOD()
     virtual bool IsCompleted() const override;
 
     HYP_METHOD()
     virtual bool Commit() override final;
 
-    HYP_METHOD(Scriptable)
+    HYP_METHOD()
     virtual void Tick();
 
     bool isComplete;
@@ -283,16 +283,16 @@ public:
         return m_task;
     }
 
-    HYP_METHOD(Scriptable)
+    HYP_METHOD()
     virtual void Start() override;
 
-    HYP_METHOD(Scriptable)
+    HYP_METHOD()
     virtual void Cancel() override;
 
-    HYP_METHOD(Scriptable)
+    HYP_METHOD()
     virtual bool IsCompleted() const override;
 
-    HYP_METHOD(Scriptable)
+    HYP_METHOD()
     virtual void Process();
 
     HYP_METHOD()

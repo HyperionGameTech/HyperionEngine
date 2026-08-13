@@ -98,14 +98,18 @@ public:
         return m_layerInfo;
     }
 
-    HYP_METHOD(Scriptable)
-    void OnAdded(WorldGrid* worldGrid);
+    HYP_METHOD()
+    virtual void OnAdded(WorldGrid* worldGrid)
+    {
+    }
 
-    HYP_METHOD(Scriptable)
-    void OnRemoved(WorldGrid* worldGrid);
+    HYP_METHOD()
+    virtual void OnRemoved(WorldGrid* worldGrid)
+    {
+    }
 
-    HYP_METHOD(Scriptable)
-    Handle<StreamingCell> CreateStreamingCell(const StreamingCellInfo& cellInfo);
+    HYP_METHOD()
+    virtual Handle<StreamingCell> CreateStreamingCell(const StreamingCellInfo& cellInfo);
 
     HYP_METHOD()
     void AddStreamingObject(const AssetObject* assetObject, const Vec2i& coord);
@@ -117,18 +121,6 @@ public:
     Delegate<void, StreamingCell*, Array<const AssetObject*>> OnStreamingObjectsUnloaded;
 
 protected:
-    HYP_METHOD()
-    virtual void OnAdded_Impl(WorldGrid* worldGrid)
-    {
-    }
-
-    HYP_METHOD()
-    virtual void OnRemoved_Impl(WorldGrid* worldGrid)
-    {
-    }
-
-    HYP_METHOD()
-    virtual Handle<StreamingCell> CreateStreamingCell_Impl(const StreamingCellInfo& cellInfo);
 
     Name m_name;
     WorldGridLayerInfo m_layerInfo;

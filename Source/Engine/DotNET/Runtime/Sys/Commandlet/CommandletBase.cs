@@ -8,7 +8,5 @@ namespace Hyperion
         public CommandletBase()
         {
         }
-
-        public abstract Result Run(CommandLineArguments args);
     }
 }

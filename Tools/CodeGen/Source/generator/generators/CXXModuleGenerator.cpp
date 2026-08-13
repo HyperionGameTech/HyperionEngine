@@ -526,7 +526,6 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
 
         const bool isComponent = cls.HasAttribute("component");
         const bool isEntity = analyzer.HasBaseClass(cls, "Entity");
-        const bool hasScriptableMethods = cls.HasScriptableMethods();
 
         const ClassAttributeValue& structSizeAttributeValue = cls.GetAttribute(Attributes::g_attrSize);
         const ClassAttributeValue& postLoadAttributeValue = cls.GetAttribute(Attributes::g_attrPostLoad);
@@ -540,14 +539,6 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
         if (isEntity)
         {
             writer.WriteString("#include <Scene/EntityTag.hpp>\n");
-        }
-
-        if (hasScriptableMethods)
-        {
-            writer.WriteString("#include <Scripting/ScriptObjectResource.hpp>\n");
-            writer.WriteString("#include <DotNET/ManagedObject.hpp>\n");
-            writer.WriteString("#include <DotNET/ManagedClass.hpp>\n");
-            writer.WriteString("#include <DotNET/ManagedMethod.hpp>\n");
         }
 
         writer.WriteString(HYP_FORMAT("using namespace {};\n", BaseNamespace));
@@ -769,97 +760,6 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
 
         writer.WriteString(HYP_FORMAT("#pragma endregion {} Reflection Data\n\n", cls.name));
 
-        if (hasScriptableMethods)
-        {
-            writer.WriteString(HYP_FORMAT("#pragma region {} Scriptable Methods\n\n", cls.name));
-
-            for (const MemberDef& member : cls.members)
-            {
-                if (member.type == MemberType::Method && member.HasAttribute("Scriptable"))
-                {
-                    if (!member.cxxType)
-                    {
-                        return HYP_MAKE_ERROR(Error, "Missing C++ type for member; Parsing failed");
-                    }
-
-                    if (!member.cxxType->isFunction || member.cxxType->isStatic)
-                    {
-                        return HYP_MAKE_ERROR(Error, "Scriptable attribute can only be applied to instance methods");
-                    }
-
-                    const ASTFunctionType* functionType = dynamic_cast<const ASTFunctionType*>(member.cxxType.Get());
-
-                    if (!functionType)
-                    {
-                        return HYP_MAKE_ERROR(Error, "Internal error: failed cast to ASTFunctionType");
-                    }
-
-                    String methodArgsStringSig;
-                    String methodArgsStringCall;
-
-                    for (size_t i = 0; i < functionType->parameters.Size(); ++i)
-                    {
-                        methodArgsStringSig += functionType->parameters[i]->type->FormatDecl(functionType->parameters[i]->name);
-                        methodArgsStringCall += functionType->parameters[i]->name;
-
-                        if (i != functionType->parameters.Size() - 1)
-                        {
-                            methodArgsStringSig += ", ";
-                            methodArgsStringCall += ", ";
-                        }
-                    }
-
-                    String returnTypeString = functionType->returnType->Format();
-
-                    if (functionType->returnType->IsVoid())
-                    {
-                        writer.WriteString(HYP_FORMAT("void {}::{}({}){}", cls.name, member.name, methodArgsStringSig, functionType->isConstMethod ? " const" : ""));
-                        writer.WriteString("\n");
-                        writer.WriteString("{\n");
-                        writer.WriteString("#ifdef HYP_DOTNET\n");
-                        writer.WriteString("    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {\n");
-                        writer.WriteString(HYP_FORMAT("        constexpr HashCode hash_code = HashCode::GetHashCode(\"{}\");\n", member.name));
-                        writer.WriteString("        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {\n");
-                        writer.WriteString("            TResourceGuard<ScriptObjectResource> resourceGuard(*managed_object_resource);\n");
-                        writer.WriteString("            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();\n");
-                        writer.WriteString("\n");
-                        writer.WriteString(HYP_FORMAT("            managed_object->InvokeMethod<void>(method_ptr{});\n", methodArgsStringCall.Any() ? ", " + methodArgsStringCall : ""));
-                        writer.WriteString("            return;\n");
-                        writer.WriteString("        }\n");
-                        writer.WriteString("    }\n");
-                        writer.WriteString("\n");
-                        writer.WriteString("#endif // HYP_DOTNET\n");
-                        writer.WriteString("\n"); /// \todo : support HYP_SCRIPT here
-                        writer.WriteString(HYP_FORMAT("    {}_Impl({});\n", member.name, methodArgsStringCall));
-                        writer.WriteString("}\n");
-                    }
-                    else
-                    {
-                        writer.WriteString(HYP_FORMAT("{} {}::{}({}){}", returnTypeString, cls.name, member.name, methodArgsStringSig, functionType->isConstMethod ? " const" : ""));
-                        writer.WriteString("\n");
-                        writer.WriteString("{\n");
-                        writer.WriteString("#ifdef HYP_DOTNET\n");
-                        writer.WriteString("    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {\n");
-                        writer.WriteString(HYP_FORMAT("        constexpr HashCode hash_code = HashCode::GetHashCode(\"{}\");\n", member.name));
-                        writer.WriteString("        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {\n");
-                        writer.WriteString("            TResourceGuard<ScriptObjectResource> resourceGuard(*managed_object_resource);\n");
-                        writer.WriteString("            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();\n");
-                        writer.WriteString("\n");
-                        writer.WriteString(HYP_FORMAT("            return managed_object->InvokeMethod<{}>(method_ptr{});\n", returnTypeString, methodArgsStringCall.Any() ? ", " + methodArgsStringCall : ""));
-                        writer.WriteString("        }\n");
-                        writer.WriteString("    }\n");
-                        writer.WriteString("\n");
-                        writer.WriteString("#endif // HYP_DOTNET\n");
-                        writer.WriteString("\n"); /// \todo : support HYP_SCRIPT here
-                        writer.WriteString(HYP_FORMAT("    return {}_Impl({});\n", member.name, methodArgsStringCall));
-                        writer.WriteString("}\n");
-                    }
-                }
-            }
-
-            writer.WriteString(HYP_FORMAT("#pragma endregion {} Scriptable Methods\n", cls.name));
-        }
-
         if (isComponent)
         {
             writer.WriteString(HYP_FORMAT("HYP_REGISTER_COMPONENT({});\n", cls.name));
@@ -938,7 +838,6 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
 
         const bool isComponent = cls.HasAttribute("component");
         const bool isEntity = analyzer.HasBaseClass(cls, "Entity");
-        const bool hasScriptableMethods = cls.HasScriptableMethods();
 
         const ClassAttributeValue& structSizeAttributeValue = cls.GetAttribute(Attributes::g_attrSize);
         const ClassAttributeValue& postLoadAttributeValue = cls.GetAttribute(Attributes::g_attrPostLoad);
@@ -951,15 +850,6 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
         if (isEntity)
         {
             addInclude("scene/EntityTag.hpp");
-        }
-
-        if (hasScriptableMethods)
-        {
-            addInclude("scripting/ScriptObjectResource.hpp");
-            writer.WriteString("\n");
-            addInclude("dotnet/ManagedObject.hpp");
-            addInclude("dotnet/ManagedClass.hpp");
-            addInclude("dotnet/ManagedMethod.hpp");
         }
 
         writer.WriteString(HYP_FORMAT("using namespace {};\n", BaseNamespace));
@@ -1070,10 +960,6 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
                 writer.WriteString(HYP_FORMAT("#if {}\n", member.condition));
             }
 
-            // if (member.type == MemberType::Method && member.HasAttribute("Scriptable")) {
-            //     continue;
-            // }
-
             String attributesString;
 
             if (member.attributes.Any())
@@ -1179,97 +1065,6 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
         writer.WriteString(HYP_FORMAT("{}\n\n", s_endMacroNames.At(cls.type)));
 
         writer.WriteString(HYP_FORMAT("#pragma endregion {} Reflection Data\n\n", cls.name));
-
-        if (hasScriptableMethods)
-        {
-            writer.WriteString(HYP_FORMAT("#pragma region {} Scriptable Methods\n\n", cls.name));
-
-            for (const MemberDef& member : cls.members)
-            {
-                if (member.type == MemberType::Method && member.HasAttribute("Scriptable"))
-                {
-                    if (!member.cxxType)
-                    {
-                        return HYP_MAKE_ERROR(Error, "Missing C++ type for member; Parsing failed");
-                    }
-
-                    if (!member.cxxType->isFunction || member.cxxType->isStatic)
-                    {
-                        return HYP_MAKE_ERROR(Error, "Scriptable attribute can only be applied to instance methods");
-                    }
-
-                    const ASTFunctionType* functionType = dynamic_cast<const ASTFunctionType*>(member.cxxType.Get());
-
-                    if (!functionType)
-                    {
-                        return HYP_MAKE_ERROR(Error, "Internal error: failed cast to ASTFunctionType");
-                    }
-
-                    String methodArgsStringSig;
-                    String methodArgsStringCall;
-
-                    for (size_t i = 0; i < functionType->parameters.Size(); ++i)
-                    {
-                        methodArgsStringSig += functionType->parameters[i]->type->FormatDecl(functionType->parameters[i]->name);
-                        methodArgsStringCall += functionType->parameters[i]->name;
-
-                        if (i != functionType->parameters.Size() - 1)
-                        {
-                            methodArgsStringSig += ", ";
-                            methodArgsStringCall += ", ";
-                        }
-                    }
-
-                    String returnTypeString = functionType->returnType->Format();
-
-                    if (functionType->returnType->IsVoid())
-                    {
-                        writer.WriteString(HYP_FORMAT("void {}::{}({}){}", cls.name, member.name, methodArgsStringSig, functionType->isConstMethod ? " const" : ""));
-                        writer.WriteString("\n");
-                        writer.WriteString("{\n");
-                        writer.WriteString("#ifdef HYP_DOTNET\n");
-                        writer.WriteString("    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {\n");
-                        writer.WriteString(HYP_FORMAT("        constexpr HashCode hash_code = HashCode::GetHashCode(\"{}\");\n", member.name));
-                        writer.WriteString("        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {\n");
-                        writer.WriteString("            TResourceGuard<ScriptObjectResource> resourceGuard(*managed_object_resource);\n");
-                        writer.WriteString("            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();\n");
-                        writer.WriteString("\n");
-                        writer.WriteString(HYP_FORMAT("            managed_object->InvokeMethod<void>(method_ptr{});\n", methodArgsStringCall.Any() ? ", " + methodArgsStringCall : ""));
-                        writer.WriteString("            return;\n");
-                        writer.WriteString("        }\n");
-                        // writer.WriteString(HYP_FORMAT("        HYP_FAIL(\"No method '{}' on managed object of type %s\", managed_object->GetClass()->GetName().Data());\n", member.name));
-                        writer.WriteString("    }\n");
-                        writer.WriteString("#endif // HYP_DOTNET\n");
-                        writer.WriteString("\n");
-                        writer.WriteString(HYP_FORMAT("    {}_Impl({});\n", member.name, methodArgsStringCall));
-                        writer.WriteString("}\n");
-                    }
-                    else
-                    {
-                        writer.WriteString(HYP_FORMAT("{} {}::{}({}){}", returnTypeString, cls.name, member.name, methodArgsStringSig, functionType->isConstMethod ? " const" : ""));
-                        writer.WriteString("\n");
-                        writer.WriteString("{\n");
-                        writer.WriteString("#ifdef HYP_DOTNET\n");
-                        writer.WriteString("    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {\n");
-                        writer.WriteString(HYP_FORMAT("        constexpr HashCode hash_code = HashCode::GetHashCode(\"{}\");\n", member.name));
-                        writer.WriteString("        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {\n");
-                        writer.WriteString("            TResourceGuard<ScriptObjectResource> resourceGuard(*managed_object_resource);\n");
-                        writer.WriteString("            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();\n");
-                        writer.WriteString("\n");
-                        writer.WriteString(HYP_FORMAT("            return managed_object->InvokeMethod<{}>(method_ptr{});\n", returnTypeString, methodArgsStringCall.Any() ? ", " + methodArgsStringCall : ""));
-                        writer.WriteString("        }\n");
-                        // writer.WriteString(HYP_FORMAT("        HYP_FAIL(\"No method '{}' on managed object of type %s\", managed_object->GetClass()->GetName().Data());\n", member.name));
-                        writer.WriteString("    }\n");
-                        writer.WriteString("#endif // HYP_DOTNET\n");
-                        writer.WriteString("\n");
-                        writer.WriteString(HYP_FORMAT("    return {}_Impl({});\n", member.name, methodArgsStringCall));
-                        writer.WriteString("}\n");
-                    }
-                }
-            }
-
-            writer.WriteString(HYP_FORMAT("#pragma endregion {} Scriptable Methods\n", cls.name));
-        }
 
         if (isComponent)
         {

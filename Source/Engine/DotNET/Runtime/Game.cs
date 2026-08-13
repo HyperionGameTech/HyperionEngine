@@ -27,25 +27,5 @@ namespace Hyperion
             get => this.GetAssetRegistry();
             set => this.SetAssetRegistry(value);
         }
-
-        protected virtual World LoadWorld(Name name)
-        {
-            return InvokeNativeMethod<World>("LoadWorld_Impl", [name]);
-        }
-
-        protected virtual void OnLaunch()
-        {
-            InvokeNativeMethod("OnLaunch_Impl");
-        }
-
-        protected virtual void BeforeShutdown()
-        {
-            InvokeNativeMethod("BeforeShutdown_Impl");
-        }
-
-        protected virtual void OnUpdate(float deltaTime)
-        {
-            InvokeNativeMethod("OnUpdate_Impl", [deltaTime]);
-        }
     }
 }

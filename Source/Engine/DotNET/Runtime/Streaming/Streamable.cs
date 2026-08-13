@@ -22,26 +22,9 @@ namespace Hyperion
     }
 
     [ClassBinding(Name = "StreamableBase")]
-    public class StreamableBase : ObjectBase
+    public abstract class StreamableBase : ObjectBase
     {
         public StreamableBase() : base()
-        {
-        }
-
-        public virtual BoundingBox GetBoundingBox()
-        {
-            return InvokeNativeMethod<BoundingBox>(new Name("GetBoundingBox_Impl", weak: true));
-        }
-
-        public virtual void OnStreamStart()
-        {
-        }
-
-        public virtual void OnLoaded()
-        {
-        }
-
-        public virtual void OnRemoved()
         {
         }
     }

@@ -54,7 +54,7 @@ BaseStatsOverlay::BaseStatsOverlay()
 
 BaseStatsOverlay::~BaseStatsOverlay() = default;
 
-Handle<UIObject> BaseStatsOverlay::CreateUIObject_Impl(UIObject* spawnParent)
+Handle<UIObject> BaseStatsOverlay::CreateUIObject(UIObject* spawnParent)
 {
     HYP_SCOPE;
 
@@ -111,7 +111,7 @@ Handle<UIObject> BaseStatsOverlay::CreateUIObject_Impl(UIObject* spawnParent)
     return panel;
 }
 
-void BaseStatsOverlay::Update_Impl(float delta)
+void BaseStatsOverlay::Update(float delta)
 {
     HYP_SCOPE;
 

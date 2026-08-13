@@ -6,8 +6,6 @@
 
 #pragma once
 
-#include <Editor/UI/EditorUI.hpp>
-
 #include <Editor/EditorActionStack.hpp>
 #include <Editor/EditorTask.hpp>
 #include <Editor/EditorMemory.hpp>
@@ -25,6 +23,7 @@ class Game;
 class World;
 class Scene;
 class Camera;
+class Node;
 class Entity;
 class Mesh;
 class Material;

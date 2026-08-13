@@ -48,30 +48,5 @@ namespace Hyperion
         public StreamingCell()
         {
         }
-
-        public override BoundingBox GetBoundingBox()
-        {
-            return InvokeNativeMethod<BoundingBox>(new Name("GetBoundingBox_Impl", weak: true));
-        }
-
-        public override void OnStreamStart()
-        {
-            InvokeNativeMethod(new Name("OnStreamStart_Impl", weak: true));
-        }
-
-        public override void OnLoaded()
-        {
-            InvokeNativeMethod(new Name("OnLoaded_Impl", weak: true));
-        }
-
-        public override void OnRemoved()
-        {
-            InvokeNativeMethod(new Name("OnRemoved_Impl", weak: true));
-        }
-
-        public virtual void Update(float delta)
-        {
-            InvokeNativeMethod(new Name("Update_Impl", weak: true), [delta]);
-        }
     }
 }

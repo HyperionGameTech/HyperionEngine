@@ -84,28 +84,6 @@ BloomPass::BloomPass(Vec2u extent, GBuffer* gbuffer)
 
 BloomPass::~BloomPass() = default;
 
-// BloomPass::~BloomPass()
-//{
-//     m_bloomResult.Reset();
-//
-//     EnqueueDeletion(FunctionWrapper<Proc<void()>>([
-//         brightExtractTexture = m_brightExtractTexture,
-//         downsamplePasses = std::move(m_downsamplePasses),
-//         upsamplePasses = std::move(m_upsamplePasses)]() mutable -> void
-//     {
-//         brightExtractTexture.Reset();
-//
-//         for (size_t i = 0; i < downsamplePasses.Size(); i++)
-//         {
-//             downsamplePasses[i].Reset();
-//         }
-//
-//         for (size_t i = 0; i < upsamplePasses.Size(); i++)
-//         {
-//             upsamplePasses[i].Reset();
-//         }
-//     }));
-// }
 
 void BloomPass::Resize_Internal(Vec2u newSize)
 {
@@ -219,8 +197,6 @@ void BloomPass::Render(Frame* frame, const RenderSetup& renderSetup)
     AssertDebug(dpd != nullptr);
 
     const FramebufferRef& inputsFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(GBufferPass::Opaque);
-
-    CommandRecorder& cr = frame->cr;
 
     ExtractBrightAreas(frame, renderSetup, inputsFramebuffer, dpd);
     Downsample(frame, renderSetup);

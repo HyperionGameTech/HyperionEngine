@@ -13,7 +13,7 @@ namespace Hyperion.Editor
         public static bool IsInitialized { get; private set; }
         public static bool DisableMainLoop { get; set; } = false;
 
-        public static HyperionEditorGame? EditorGame { get; private set; }
+        public static EditorGame? EditorGame { get; private set; }
         public static Game? GameInstance { get; private set; } // Local copy of EngineDriver.Instance.GameInstance
 
         public static EditorProject? CurrentProject { get; private set; }
@@ -45,7 +45,6 @@ namespace Hyperion.Editor
         private static ReadOnlySpan<string> CoreAssemblyNames => new[] {
             "Hyperion.NET.Shared.dll",
             "Hyperion.NET.Runtime.dll",
-            // Loading our own dll is necessary to load HyperionEditorGame into class registry.
             "Hyperion.Editor.dll"
         };
 
@@ -154,7 +153,7 @@ namespace Hyperion.Editor
 
         public static void InitializeEditor()
         {
-            EditorGame ??= new HyperionEditorGame();
+            EditorGame ??= new EditorGame();
             GameInstance = EditorGame;
 
             EditorState editorState = EditorState.Instance;
@@ -216,9 +215,9 @@ namespace Hyperion.Editor
 
         public static void InitializeGame(Game game)
         {
-            if (game is HyperionEditorGame)
+            if (game is EditorGame)
             {
-                throw new ArgumentException("InitializeGame() shouldn't be called with an instance of HyperionEditorGame - use InitializeEditor() instead");
+                throw new ArgumentException("InitializeGame() shouldn't be called with an instance of EditorGame - use InitializeEditor() instead");
             }
 
             World? world = game.World;

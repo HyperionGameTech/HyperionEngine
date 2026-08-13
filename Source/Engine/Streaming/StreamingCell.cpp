@@ -68,7 +68,7 @@ void StreamingCell::RemoveAssetReference(const AssetReference& assetReference)
     }
 }
 
-void StreamingCell::OnStreamStart_Impl()
+void StreamingCell::OnStreamStart()
 {
     for (AssetReference& assetReference : m_assetReferences)
     {
@@ -100,7 +100,7 @@ void StreamingCell::OnStreamStart_Impl()
     }
 }
 
-void StreamingCell::OnLoaded_Impl()
+void StreamingCell::OnLoaded()
 {
     HYP_LOG(Streaming, Info, "OnLoaded: {} loaded at {} with {} AssetReferences",
         InstanceClass()->GetName(),
@@ -110,7 +110,7 @@ void StreamingCell::OnLoaded_Impl()
     OnCellLoaded(this);
 }
 
-void StreamingCell::OnRemoved_Impl()
+void StreamingCell::OnRemoved()
 {
     HYP_LOG(Streaming, Info, "OnRemoved: {} removed at {} with {} AssetReferences",
         InstanceClass()->GetName(),

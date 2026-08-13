@@ -8,8 +8,6 @@
 
 #include <Editor/EditorTaskManager.hpp>
 
-#include <Editor/UI/EditorUI.hpp>
-
 #include <UI/UIObject.hpp>
 #include <UI/UIPanel.hpp>
 #include <UI/UIText.hpp>

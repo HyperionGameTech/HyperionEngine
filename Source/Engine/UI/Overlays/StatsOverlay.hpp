@@ -26,7 +26,7 @@ class UIText;
 class UIDataSource;
 class EngineStatBase;
 
-HYP_CLASS()
+HYP_CLASS(NoScriptBindings)
 class ENGINE_API StatsOverlay : public OverlayBase
 {
     HYP_OBJECT_BODY(StatsOverlay);
@@ -36,20 +36,16 @@ public:
     virtual ~StatsOverlay() override;
 
 protected:
-    HYP_METHOD()
-    virtual Handle<UIObject> CreateUIObject_Impl(UIObject* spawnParent) override;
+    virtual Handle<UIObject> CreateUIObject(UIObject* spawnParent) override;
 
-    HYP_METHOD()
-    virtual int GetPlacement_Impl() const override
+    virtual int GetPlacement() const override
     {
         return 0;
     }
 
-    HYP_METHOD()
-    virtual void Update_Impl(float delta) override;
+    virtual void Update(float delta) override;
 
-    HYP_METHOD()
-    virtual bool IsEnabled_Impl() const override
+    virtual bool IsEnabled() const override
     {
         return true;
     }

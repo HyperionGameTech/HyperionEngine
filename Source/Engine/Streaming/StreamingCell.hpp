@@ -89,6 +89,9 @@ class ENGINE_API StreamingCell : public StreamableBase
 {
     HYP_OBJECT_BODY(StreamingCell);
 
+    friend class StreamingManager;
+    friend class StreamingManagerThread;
+
 public:
     StreamingCell() = default;
     explicit StreamingCell(const StreamingCellInfo& cellInfo);
@@ -108,27 +111,22 @@ public:
     void AddAssetReference(const AssetReference& assetReference, bool shouldLoad = false);
     void RemoveAssetReference(const AssetReference& assetReference);
 
-    HYP_METHOD(Scriptable)
-    void Update(float delta);
+    virtual void Update(float delta)
+    {
+    }
 
     Delegate<void, StreamingCell*> OnCellLoaded;
     Delegate<void, StreamingCell*> OnCellUnloaded;
 
 protected:
-    HYP_METHOD()
-    virtual BoundingBox GetBoundingBox_Impl() const override
+    virtual BoundingBox GetBoundingBox() const override
     {
         return m_cellInfo.bounds;
     }
 
-    virtual void OnStreamStart_Impl() override;
-    virtual void OnLoaded_Impl() override;
-    virtual void OnRemoved_Impl() override;
-
-    HYP_METHOD()
-    virtual void Update_Impl(float delta)
-    {
-    }
+    virtual void OnStreamStart() override;
+    virtual void OnLoaded() override;
+    virtual void OnRemoved() override;
 
     StreamingCellInfo m_cellInfo;
     Array<AssetReference, DynamicAllocator> m_assetReferences;

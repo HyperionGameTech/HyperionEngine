@@ -98,7 +98,7 @@ void Game::Initialize()
     SyncContentAndLaunch();
 }
 
-Handle<World> Game::LoadWorld_Impl(Name worldName)
+Handle<World> Game::LoadWorld(Name worldName)
 {
     return m_assetRegistry->GetAsset<World>(AssetBuckets::Worlds, worldName);
 }
@@ -225,6 +225,139 @@ void Game::SetWorld(const Handle<World>& world)
 
         g_engineDriver->AddWorld(m_world);
     }
+}
+
+void Game::Launch()
+{
+    AssertOnThread(g_simThread);
+
+    Assert(m_isLaunched.Get(MemoryOrder::ACQUIRE) == false);
+    Assert(m_world.IsValid());
+
+    Assert(!IsSyncingContent());
+    
+    OnLaunch();
+    m_isLaunched.Set(true, MemoryOrder::RELEASE);
+        
+    // Invoke callbacks
+    Game::OnLaunched.Fire(this);
+
+    m_isInitialized = true;
+}
+
+void Game::SyncContentAndLaunch()
+{
+    AssertOnThread(g_simThread);
+    
+    Assert(!IsSyncingContent());
+    Assert(m_assetRegistry.IsValid());
+
+    const bool shouldSyncContent =
+        // Don't want to skip syncing just because we have the loader UI up (temp world)
+        (!m_world.IsValid() || m_world->IsTransient())
+        // For editor; don't want to try to sync a brand new, unsaved project.
+        && m_assetRegistry->GetRootPath().Exists();
+
+    if (shouldSyncContent)
+    {
+        BeforeContentLoaded();
+        
+        m_syncState.currentTask = {};
+        m_syncState.SetState(ContentSyncState::NotStarted);
+
+        m_assetRegistry->Initialize(&m_syncState.currentTask);
+
+        PushAssetRegistry(m_assetRegistry);
+        m_assetRegistryActive = true;
+
+        if (m_syncState.IsSyncing())
+        {
+            m_syncState.SetState(ContentSyncState::InProgress);
+        }
+        else
+        {
+            AfterContentLoaded();
+        }
+    }
+    else
+    {
+        m_syncState.currentTask = {};
+        m_syncState.SetState(ContentSyncState::Finished);
+
+        m_assetRegistry->Initialize(nullptr);
+
+        PushAssetRegistry(m_assetRegistry);
+        m_assetRegistryActive = true;
+
+        // Re-register assets that were removed from the AssetRegistry's cache from Shutdown(shutdownWorld = false) call.
+        if (m_world.IsValid() && !m_world->IsTransient())
+        {
+            m_assetRegistry->PutAssetsDeep(m_world);
+        }
+
+        Launch();
+    }
+}
+
+void Game::BeforeContentLoaded()
+{
+    AssertOnThread(g_simThread);
+
+    Handle<World> tempWorld = MakeHandle<World>();
+    tempWorld->SetName(s_nameTempUIWorld);
+    tempWorld->SetIsTransient(true);
+
+    SetWorld(tempWorld);
+}
+
+void Game::AfterContentLoaded()
+{
+    AssertOnThread(g_simThread);
+
+    Assert(m_isLaunched.Get(MemoryOrder::ACQUIRE) == false);
+    
+    m_syncState.currentTask = {};
+
+    if (Handle<World> world = LoadWorld(s_nameMainWorld); world.IsValid())
+    {
+        m_syncState.SetState(ContentSyncState::Finished);
+
+        SetWorld(world);
+    }
+    else
+    {
+        auto setToDummyWorld = [&]
+        {
+            SetWorld(MakeHandle<World>());
+        };
+
+        bool shouldReturn = false;
+
+        // clang-format off
+        //SystemMessageBox(MessageBoxType::CRITICAL)
+        //    .Title("Error")
+        //    .Text("Failed to load game content! The world could not be initialized.\n\n"
+        //        "Please make sure the game is up to date, or try reinstalling it.\n"
+        //        "Please file a bug report! Apologies for the inconvenience.")
+        //    .Button("Retry", [this, &shouldReturn] { shouldReturn = true; SyncContentAndLaunch(); })
+        //    .Button("Launch Anyway", &setToDummyWorld)
+        //    .Button("Exit", &std::terminate)
+        //    .Show();
+        // clang-format on
+        //
+        //if (shouldReturn)
+        //{
+        //    return;
+        //}
+
+        // Note: world is intentionally left as-is (the temp UI world used to show the
+        // loading screen) so the error UI bound to OnStateChanged still has a live UIStage
+        // to update. It gets replaced the next time SetWorld() is called (e.g. on retry).
+        m_syncState.SetState(ContentSyncState::Failed);
+        return;
+    }
+
+    Launch();
 }
 
 void Game::HandleEvent(Event&& event)
@@ -538,7 +671,12 @@ void Game::UnregisterInputHandler(InputHandlerBase* inputHandler)
     m_inputHandlers.Erase(it);
 }
 
-void Game::OnUpdate_Impl(float delta)
+void Game::OnLaunch()
+{
+    // no-op
+}
+
+void Game::OnUpdate(float delta)
 {
     AssertOnThread(g_simThread);
 
@@ -607,137 +745,9 @@ void Game::OnUpdate_Impl(float delta)
     }
 }
 
-void Game::BeforeContentLoaded()
+void Game::BeforeShutdown()
 {
-    AssertOnThread(g_simThread);
-
-    Handle<World> tempWorld = MakeHandle<World>();
-    tempWorld->SetName(s_nameTempUIWorld);
-    tempWorld->SetIsTransient(true);
-
-    SetWorld(tempWorld);
-}
-
-void Game::AfterContentLoaded()
-{
-    AssertOnThread(g_simThread);
-
-    Assert(m_isLaunched.Get(MemoryOrder::ACQUIRE) == false);
-    
-    m_syncState.currentTask = {};
-
-    if (Handle<World> world = LoadWorld(s_nameMainWorld); world.IsValid())
-    {
-        m_syncState.SetState(ContentSyncState::Finished);
-
-        SetWorld(world);
-    }
-    else
-    {
-        auto setToDummyWorld = [&]
-        {
-            SetWorld(MakeHandle<World>());
-        };
-
-        bool shouldReturn = false;
-
-        // clang-format off
-        //SystemMessageBox(MessageBoxType::CRITICAL)
-        //    .Title("Error")
-        //    .Text("Failed to load game content! The world could not be initialized.\n\n"
-        //        "Please make sure the game is up to date, or try reinstalling it.\n"
-        //        "Please file a bug report! Apologies for the inconvenience.")
-        //    .Button("Retry", [this, &shouldReturn] { shouldReturn = true; SyncContentAndLaunch(); })
-        //    .Button("Launch Anyway", &setToDummyWorld)
-        //    .Button("Exit", &std::terminate)
-        //    .Show();
-        // clang-format on
-        //
-        //if (shouldReturn)
-        //{
-        //    return;
-        //}
-
-        // Note: world is intentionally left as-is (the temp UI world used to show the
-        // loading screen) so the error UI bound to OnStateChanged still has a live UIStage
-        // to update. It gets replaced the next time SetWorld() is called (e.g. on retry).
-        m_syncState.SetState(ContentSyncState::Failed);
-        return;
-    }
-
-    Launch();
-}
-
-void Game::SyncContentAndLaunch()
-{
-    AssertOnThread(g_simThread);
-    
-    Assert(!IsSyncingContent());
-    Assert(m_assetRegistry.IsValid());
-
-    const bool shouldSyncContent =
-        // Don't want to skip syncing just because we have the loader UI up (temp world)
-        (!m_world.IsValid() || m_world->IsTransient())
-        // For editor; don't want to try to sync a brand new, unsaved project.
-        && m_assetRegistry->GetRootPath().Exists();
-
-    if (shouldSyncContent)
-    {
-        BeforeContentLoaded();
-        
-        m_syncState.currentTask = {};
-        m_syncState.SetState(ContentSyncState::NotStarted);
-
-        m_assetRegistry->Initialize(&m_syncState.currentTask);
-
-        PushAssetRegistry(m_assetRegistry);
-        m_assetRegistryActive = true;
-
-        if (m_syncState.IsSyncing())
-        {
-            m_syncState.SetState(ContentSyncState::InProgress);
-        }
-        else
-        {
-            AfterContentLoaded();
-        }
-    }
-    else
-    {
-        m_syncState.currentTask = {};
-        m_syncState.SetState(ContentSyncState::Finished);
-
-        m_assetRegistry->Initialize(nullptr);
-
-        PushAssetRegistry(m_assetRegistry);
-        m_assetRegistryActive = true;
-
-        // Re-register assets that were removed from the AssetRegistry's cache from Shutdown(shutdownWorld = false) call.
-        if (m_world.IsValid() && !m_world->IsTransient())
-        {
-            m_assetRegistry->PutAssetsDeep(m_world);
-        }
-
-        Launch();
-    }
-}
-
-void Game::Launch()
-{
-    AssertOnThread(g_simThread);
-
-    Assert(m_isLaunched.Get(MemoryOrder::ACQUIRE) == false);
-    Assert(m_world.IsValid());
-
-    Assert(!IsSyncingContent());
-    
-    OnLaunch();
-    m_isLaunched.Set(true, MemoryOrder::RELEASE);
-        
-    // Invoke callbacks
-    Game::OnLaunched.Fire(this);
-
-    m_isInitialized = true;
+    // no-op
 }
 
 } // namespace Hyperion

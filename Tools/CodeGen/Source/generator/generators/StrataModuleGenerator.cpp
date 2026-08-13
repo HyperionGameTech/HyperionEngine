@@ -58,7 +58,7 @@ bool MemberIsStrataScriptable(const MemberDef& member)
         return false;
     }
 
-    // "Scriptable" methods don't pertain to strata.
+    // "_Impl"-suffixed methods are internal default-implementation helpers, not meant to be called directly from Strata.
     if (member.name.EndsWith("_Impl"))
     {
         return false;

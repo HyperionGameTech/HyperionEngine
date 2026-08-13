@@ -134,36 +134,28 @@ public:
     HYP_METHOD()
     ENGINE_API void NotifyAssetChanged(const FilePath& path, AssetChangeType changeType);
 
-    HYP_METHOD(Scriptable)
-    bool IsWatching() const;
-
-    HYP_METHOD(Scriptable)
-    void StartWatching();
-
-    HYP_METHOD(Scriptable)
-    void StopWatching();
-
-    HYP_METHOD(Scriptable)
-    void OnAssetChanged(const FilePath& path, AssetChangeType changeType);
-
-private:
-    bool IsWatching_Impl() const
+    HYP_METHOD()
+    bool IsWatching() const
     {
         return false;
     }
 
-    void StartWatching_Impl()
+    HYP_METHOD()
+    void StartWatching()
     {
     }
 
-    void StopWatching_Impl()
+    HYP_METHOD()
+    void StopWatching()
     {
     }
 
-    void OnAssetChanged_Impl(const FilePath& path, AssetChangeType changeType)
+    HYP_METHOD()
+    void OnAssetChanged(const FilePath& path, AssetChangeType changeType)
     {
     }
 
+private:
     FilePath m_basePath;
 };
 

@@ -35,14 +35,10 @@ public:
     }
 
 protected:
-    HYP_METHOD()
-    virtual void OnAdded_Impl(WorldGrid* worldGrid) override;
+    virtual void OnAdded(WorldGrid* worldGrid) override;
+    virtual void OnRemoved(WorldGrid* worldGrid) override;
 
-    HYP_METHOD()
-    virtual void OnRemoved_Impl(WorldGrid* worldGrid) override;
-
-    HYP_METHOD()
-    virtual Handle<StreamingCell> CreateStreamingCell_Impl(const StreamingCellInfo& cellInfo) override;
+    virtual Handle<StreamingCell> CreateStreamingCell(const StreamingCellInfo& cellInfo) override;
 
     Handle<Scene> m_scene;
     Handle<Mesh> m_mesh;

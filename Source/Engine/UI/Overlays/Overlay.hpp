@@ -33,7 +33,6 @@ public:
     OverlayBase();
     virtual ~OverlayBase();
 
-    HYP_METHOD()
     HYP_FORCE_INLINE const Handle<UIObject>& GetUIObject() const
     {
         return m_uiObject;
@@ -46,39 +45,23 @@ public:
 
     void Initialize(UIObject* spawnParent);
 
-    HYP_METHOD(Scriptable)
-    int GetPlacement() const; // 0 = top-left, 1 = bottom-left, 2 = top-right, 3 = bottom-right
-
-    HYP_METHOD(Scriptable)
-    void Update(float delta);
-
-    HYP_METHOD(Scriptable)
-    Handle<UIObject> CreateUIObject(UIObject* spawnParent);
-
-    HYP_METHOD(Scriptable)
-    bool IsEnabled() const;
-
-protected:
-    HYP_METHOD()
-    virtual Handle<UIObject> CreateUIObject_Impl(UIObject* spawnParent);
-
-    HYP_METHOD()
-    virtual int GetPlacement_Impl() const
+    virtual int GetPlacement() const // 0 = top-left, 1 = bottom-left, 2 = top-right, 3 = bottom-right
     {
         return 0; // Default to top-left
     }
 
-    HYP_METHOD()
-    virtual void Update_Impl(float delta)
+    virtual void Update(float delta)
     {
     }
 
-    HYP_METHOD()
-    virtual bool IsEnabled_Impl() const
+    virtual Handle<UIObject> CreateUIObject(UIObject* spawnParent);
+
+    virtual bool IsEnabled() const
     {
         return true;
     }
 
+protected:
     Handle<UIObject> m_uiObject;
     ClockTimer m_timer;
 };
@@ -101,11 +84,9 @@ public:
     void SetTexture(const Handle<Texture>& texture);
 
 protected:
-    HYP_METHOD()
-    virtual Handle<UIObject> CreateUIObject_Impl(UIObject* spawnParent) override;
+    virtual Handle<UIObject> CreateUIObject(UIObject* spawnParent) override;
 
-    HYP_METHOD()
-    virtual int GetPlacement_Impl() const
+    virtual int GetPlacement() const override
     {
         return 2;
     }
@@ -129,8 +110,7 @@ public:
     virtual ~TextOverlay() override;
 
 protected:
-    HYP_METHOD()
-    virtual Handle<UIObject> CreateUIObject_Impl(UIObject* spawnParent) override;
+    virtual Handle<UIObject> CreateUIObject(UIObject* spawnParent) override;
 
     String m_text;
     Color m_textColor;
@@ -147,7 +127,7 @@ public:
     ~NullOverlay() override = default;
 
 protected:
-    virtual Handle<UIObject> CreateUIObject_Impl(UIObject* spawnParent) override
+    virtual Handle<UIObject> CreateUIObject(UIObject* spawnParent) override
     {
         return Handle<UIObject>::Null();
     }

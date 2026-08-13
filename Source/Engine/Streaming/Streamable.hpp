@@ -29,39 +29,23 @@ public:
     StreamableBase() = default;
     virtual ~StreamableBase() = default;
 
-    HYP_METHOD(Scriptable)
-    BoundingBox GetBoundingBox() const;
-
-    HYP_METHOD(Scriptable)
-    void OnStreamStart();
-
-    HYP_METHOD(Scriptable)
-    void OnLoaded();
-
-    HYP_METHOD(Scriptable)
-    void OnRemoved();
-
-protected:
     HYP_METHOD()
-    virtual BoundingBox GetBoundingBox_Impl() const
-    {
-        HYP_PURE_VIRTUAL();
-    }
+    virtual BoundingBox GetBoundingBox() const = 0;
 
     HYP_METHOD()
-    virtual void OnStreamStart_Impl()
+    virtual void OnStreamStart()
     {
         // do nothing
     }
 
     HYP_METHOD()
-    virtual void OnLoaded_Impl()
+    virtual void OnLoaded()
     {
         // do nothing
     }
 
     HYP_METHOD()
-    virtual void OnRemoved_Impl()
+    virtual void OnRemoved()
     {
         // do nothing
     }

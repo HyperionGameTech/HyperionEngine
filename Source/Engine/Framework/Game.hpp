@@ -68,9 +68,6 @@ public:
         return m_gameState;
     }
 
-    HYP_METHOD(Scriptable)
-    void OnUpdate(float delta);
-
     HYP_METHOD()
     void Initialize();
 
@@ -100,16 +97,8 @@ public:
     HYP_METHOD()
     void UnregisterInputHandler(InputHandlerBase* inputHandler);
 
-    /// Danger zone: Only for internal usage
-
-    HYP_METHOD(Scriptable)
-    void OnLaunch();
-
-    HYP_METHOD(Scriptable)
-    void BeforeShutdown();
-
-    HYP_METHOD(Scriptable)
-    Handle<World> LoadWorld(Name worldName);
+    HYP_METHOD()
+    virtual Handle<World> LoadWorld(Name worldName);
 
     /// -
 
@@ -120,39 +109,27 @@ public:
     static ScriptableDelegate<void, Game*, GameStateMode, GameStateMode> OnGameStateChange;
 
 protected:
+    const Handle<UISubsystem>& GetUISubsystem() const
+    {
+        return m_uiSubsystem;
+    }
+
     bool IsSyncingContent() const
     {
         return m_syncState.IsSyncing();
     }
     
+    void SyncContentAndLaunch();
+    
     virtual void BeforeContentLoaded();
     virtual void AfterContentLoaded();
 
-    void Launch();
-    void SyncContentAndLaunch();
+    virtual void OnLaunch();
+    virtual void OnUpdate(float delta);
 
-    HYP_METHOD()
-    virtual Handle<World> LoadWorld_Impl(Name worldName);
+    virtual void BeforeShutdown();
 
     virtual bool OnInputEvent(const Event& event);
-
-    HYP_METHOD()
-    virtual void OnLaunch_Impl()
-    {
-    }
-
-    HYP_METHOD()
-    virtual void BeforeShutdown_Impl()
-    {
-    }
-
-    HYP_METHOD()
-    virtual void OnUpdate_Impl(float delta);
-
-    const Handle<UISubsystem>& GetUISubsystem() const
-    {
-        return m_uiSubsystem;
-    }
 
     HYP_FIELD(Property = "World", Transient)
     Handle<World> m_world;
@@ -171,6 +148,9 @@ protected:
     bool m_isInitialized;
 
     AtomicVar<bool> m_isLaunched;
+
+private:
+    void Launch();
 };
 
 } // namespace Hyperion

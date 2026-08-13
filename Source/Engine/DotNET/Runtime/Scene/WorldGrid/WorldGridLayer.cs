@@ -34,25 +34,5 @@ namespace Hyperion
         public WorldGridLayer() : base()
         {
         }
-
-        public virtual void Init()
-        {
-            InvokeNativeMethod(new Name("Init_Impl", weak: true));
-        }
-
-        public virtual void OnAdded(WorldGrid worldGrid)
-        {
-            InvokeNativeMethod(new Name("OnAdded_Impl", weak: true), new object[] { worldGrid });
-        }
-
-        public virtual void OnRemoved(WorldGrid worldGrid)
-        {
-            InvokeNativeMethod(new Name("OnRemoved_Impl", weak: true), new object[] { worldGrid });
-        }
-
-        public virtual StreamingCell CreateStreamingCell(StreamingCellInfo cellInfo)
-        {
-            return InvokeNativeMethod<StreamingCell>(new Name("CreateStreamingCell_Impl", weak: true), new object[] { cellInfo });
-        }
     }
 }

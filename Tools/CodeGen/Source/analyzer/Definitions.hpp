@@ -188,21 +188,6 @@ struct ClassDefinition
     {
         return GetAttribute(StringHash(name));
     }
-
-    bool HasScriptableMethods() const
-    {
-        static const String s_scriptableStr = "scriptable";
-        
-        for (const MemberDef& member : members)
-        {
-            if (member.HasAttribute(s_scriptableStr))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
 };
 
 } // namespace CodeGen

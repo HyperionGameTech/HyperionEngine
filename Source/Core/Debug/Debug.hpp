@@ -237,10 +237,6 @@ using debug::LogType;
     }                                                                       \
     while (0)
 
-// Add to the body of virtual methods that should be overridden.
-// Used to allow instances of the class to be created from the managed runtime for providing managed method implementations.
-#define HYP_PURE_VIRTUAL() HYP_FAIL("Pure virtual function call: " HYP_STR(HYP_DEBUG_FUNC_SHORT) " is missing an implementation ")
-
 #define AssertStatic(cond) static_assert((cond), "Static assertion failed: " #cond)
 #define AssertStaticCond(useStaticAssert, cond)                   \
     if constexpr ((useStaticAssert))                              \
