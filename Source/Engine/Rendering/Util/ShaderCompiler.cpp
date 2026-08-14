@@ -82,8 +82,47 @@ CVar<bool> g_cvCompileOnTheFly { "ShaderCompiler.CompileOnTheFly", true };
 CVar<bool> g_cvShouldCompileMissingVariants { "ShaderCompiler.CompileMissingVariants", false };
 
 #ifdef HYP_DXC
-static IDxcUtils* s_dxcUtils = nullptr;
-static IDxcCompiler3* s_dxcCompiler = nullptr;
+namespace {
+
+struct DxcThreadLocalCompiler
+{
+    IDxcUtils* utils = nullptr;
+    IDxcCompiler3* compiler = nullptr;
+
+    ~DxcThreadLocalCompiler()
+    {
+        if (compiler)
+        {
+            compiler->Release();
+            compiler = nullptr;
+        }
+
+        if (utils)
+        {
+            utils->Release();
+            utils = nullptr;
+        }
+    }
+};
+
+DxcThreadLocalCompiler& GetDxcThreadLocalCompiler()
+{
+    static thread_local DxcThreadLocalCompiler dxc;
+
+    if (!dxc.utils)
+    {
+        DxcCreateInstance(CLSID_DxcUtils, __uuidof(IDxcUtils), (void**)&dxc.utils);
+    }
+
+    if (!dxc.compiler)
+    {
+        DxcCreateInstance(CLSID_DxcCompiler, __uuidof(IDxcCompiler3), (void**)&dxc.compiler);
+    }
+
+    return dxc;
+}
+
+} // namespace
 #endif // HYP_DXC
 
 static constexpr uint32 NumPrecompileShadersThreads = 8;
@@ -597,7 +636,8 @@ static bool PreprocessHLSL(
     String& outPreprocessedSource,
     Array<String>& outErrorMessages)
 {
-    Assert(s_dxcCompiler && s_dxcUtils);
+    DxcThreadLocalCompiler& dxc = GetDxcThreadLocalCompiler();
+    Assert(dxc.compiler && dxc.utils);
 
     outPreprocessedSource = source;
 
@@ -622,7 +662,7 @@ static bool PreprocessHLSL(
     HRESULT hr;
 
     IDxcBlobEncoding* pSource = nullptr;
-    hr = s_dxcUtils->CreateBlobFromPinned(fullSource.Data(), (uint32)fullSource.Size(), CP_UTF8, &pSource);
+    hr = dxc.utils->CreateBlobFromPinned(fullSource.Data(), (uint32)fullSource.Size(), CP_UTF8, &pSource);
     HYP_DEFER({ if (pSource) pSource->Release(); });
 
     if (FAILED(hr))
@@ -638,7 +678,7 @@ static bool PreprocessHLSL(
     HYP_DEFER({ if (pResult) pResult->Release(); });
 
     IDxcIncludeHandler* pIncludeHandler = nullptr;
-    hr = s_dxcUtils->CreateDefaultIncludeHandler(&pIncludeHandler);
+    hr = dxc.utils->CreateDefaultIncludeHandler(&pIncludeHandler);
     HYP_DEFER({ if (pIncludeHandler) pIncludeHandler->Release(); });
 
     if (FAILED(hr))
@@ -648,7 +688,7 @@ static bool PreprocessHLSL(
         return false;
     }
 
-    hr = s_dxcCompiler->Compile(
+    hr = dxc.compiler->Compile(
         &sourceBuffer,
         args.Data(),
         (uint32)args.Size(),
@@ -696,7 +736,8 @@ static ByteBuffer CompileHLSL(
     ShaderCompileTargetBackend targetBackend,
     Array<String>& errorMessages)
 {
-    Assert(s_dxcCompiler && s_dxcUtils);
+    DxcThreadLocalCompiler& dxc = GetDxcThreadLocalCompiler();
+    Assert(dxc.compiler && dxc.utils);
 
     ShaderInputGroup inputGroup;
     descriptorUsages.BuildDescriptorTableDeclaration(inputGroup);
@@ -707,7 +748,7 @@ static ByteBuffer CompileHLSL(
     String fullSource = preamble + "\n" + source;
 
     IDxcBlobEncoding* pSource = nullptr;
-    s_dxcUtils->CreateBlobFromPinned(fullSource.Data(), (uint32)fullSource.Size(), CP_UTF8, &pSource);
+    dxc.utils->CreateBlobFromPinned(fullSource.Data(), (uint32)fullSource.Size(), CP_UTF8, &pSource);
     HYP_DEFER({ if (pSource) pSource->Release(); });
 
     const WideString entryPointName = WideString(DefaultEntryPointNames[uint8(type)]);
@@ -770,7 +811,7 @@ static ByteBuffer CompileHLSL(
     IDxcResult* pResult = nullptr;
     HYP_DEFER({ if (pResult) pResult->Release(); });
 
-    HRESULT res = s_dxcCompiler->Compile(
+    HRESULT res = dxc.compiler->Compile(
         &sourceBuffer,
         args.Data(),
         (uint32)args.Size(),
@@ -1569,31 +1610,10 @@ ShaderCompiler::ShaderCompiler()
     : m_definitions(nullptr),
       m_isPrecompilingShaders(false)
 {
-#ifdef HYP_DXC
-    if (!s_dxcUtils)
-        DxcCreateInstance(CLSID_DxcUtils, __uuidof(IDxcUtils), (void**)&s_dxcUtils);
-
-    if (!s_dxcCompiler)
-        DxcCreateInstance(CLSID_DxcCompiler, __uuidof(IDxcCompiler3), (void**)&s_dxcCompiler);
-#endif
 }
 
 ShaderCompiler::~ShaderCompiler()
 {
-#ifdef HYP_DXC
-    if (s_dxcUtils)
-    {
-        s_dxcUtils->Release();
-        s_dxcUtils = nullptr;
-    }
-
-    if (s_dxcCompiler)
-    {
-        s_dxcCompiler->Release();
-        s_dxcCompiler = nullptr;
-    }
-#endif
-
     if (m_definitions)
     {
         delete m_definitions;
@@ -1755,10 +1775,15 @@ bool ShaderCompiler::LoadBundle(
 
     if (!m_definitions)
     {
-        if (!Initialize(m_isPrecompilingShaders))
+        Mutex::Guard guard(m_initMutex);
+
+        if (!m_definitions)
         {
-            HYP_LOG(ShaderCompiler, Error, "Failed to load shader definitions");
-            return false;
+            if (!Initialize(m_isPrecompilingShaders))
+            {
+                HYP_LOG(ShaderCompiler, Error, "Failed to load shader definitions");
+                return false;
+            }
         }
     }
 

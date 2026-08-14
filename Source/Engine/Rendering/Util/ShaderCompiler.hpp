@@ -768,6 +768,8 @@ private:
     Array<ShaderBundleDecl> m_shaderBundleDecls;
     bool m_isPrecompilingShaders;
     ShaderCompileParams m_compileParams;
+
+    Mutex m_initMutex;
 };
 
 } // namespace Hyperion
