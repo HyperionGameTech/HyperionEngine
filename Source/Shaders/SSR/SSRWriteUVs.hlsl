@@ -82,6 +82,38 @@ DECLARE_SRV(RenderSSR, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #define MAX_ROUGHNESS 0.7
+#define HIZ_STOP_LEVEL 0.0
+
+/// https://maorachow.github.io/3d/graphics/2024/09/11/a-high-performance-screen-space-reflection-algorithm.html
+
+float3 GetTextureSpaceRayPoint(float3 view_space_position)
+{
+    float4 clip_position = mul(camera.projection, float4(view_space_position, 1.0));
+    clip_position.xyz /= clip_position.w;
+
+    return float3(clip_position.x * 0.5 + 0.5, clip_position.y * -0.5 + 0.5, clip_position.z);
+}
+
+float2 HiZCellCount(float level, float2 hiz_dimensions)
+{
+    return floor(hiz_dimensions / exp2(level));
+}
+
+float2 HiZCell(float2 pos, float2 cell_count)
+{
+    return floor(pos * cell_count);
+}
+
+float3 HiZIntersectCellBoundary(float3 pos, float3 dir, float2 cell_id, float2 cell_count, float2 cross_step, float2 cross_offset)
+{
+    float2 cell_size = 1.0 / cell_count;
+    float2 planes = (cell_id + cross_step) * cell_size + cross_offset;
+
+    float2 dir_xy = select(abs(dir.xy) < HYP_FMATH_EPSILON, HYP_FMATH_EPSILON * sign(dir.xy + HYP_FMATH_EPSILON), dir.xy);
+    float2 solutions = (planes - pos.xy) / dir_xy;
+
+    return pos + dir * max(min(solutions.x, solutions.y), 0.0);
+}
 
 bool TraceRays(
     float3 ray_origin,
@@ -92,79 +124,152 @@ bool TraceRays(
     out float3 hit_point,
     out float num_iterations)
 {
-
-    ray_direction = normalize(ray_direction);
-    float3 currStep = ssrConstants.ray_step * ray_direction;
-    float3 currPosition = ray_origin;
-
-    const int max_iterations = int(ssrConstants.num_iterations);
-
-    num_iterations = 0.0;
     hit_pixel = float2(0.0, 0.0);
     hit_point = float3(0.0, 0.0, 0.0);
+    num_iterations = 0.0;
+
+    ray_direction = normalize(ray_direction);
+
+    const float maxDistance = ssrConstants.max_ray_distance > 0.0
+        ? ssrConstants.max_ray_distance
+        : ssrConstants.ray_step * ssrConstants.num_iterations;
+
+    float3 rayEndViewSpace = ray_origin + ray_direction * maxDistance;
+    
+    // Check if the ray would point back towards the camera.
+    if (ray_direction.z < 0.0)
+    {
+        float t_near = (camera.near - ray_origin.z) / ray_direction.z;
+
+        if (t_near > 0.0)
+        {
+            rayEndViewSpace = ray_origin + ray_direction * min(t_near, maxDistance);
+        }
+    }
+
+    // Project into texture space
+    const float3 rayStartTex = GetTextureSpaceRayPoint(ray_origin);
+    const float3 rayEndTex = GetTextureSpaceRayPoint(rayEndViewSpace);
+
+    float3 rayDirTex = rayEndTex - rayStartTex;
+
+    // Early bail.
+    if (abs(rayDirTex.z) < HYP_FMATH_EPSILON)
+    {
+        return false;
+    }
+
+    const bool isForwardRay = rayDirTex.z > 0.0;
+
+    // @TODO Move to constants! GetDimensions() has non-zero cost
+    uint2 hizDimensions;
+    uint numHizLevels;
+    HiZTexture.GetDimensions(0, hizDimensions.x, hizDimensions.y, numHizLevels);
+
+    const float2 hizDimensionsF = float2(hizDimensions);
+    const float maxLevel = float(numHizLevels) - 1.0;
+    
+    const float2 pixelDelta = rayDirTex.xy * hizDimensionsF;
+    const float maxPixelDelta = max(abs(pixelDelta.x), abs(pixelDelta.y));
+    rayDirTex /= max(maxPixelDelta, 1.0);
+
+    const float2 crossStep = float2(rayDirTex.x >= 0.0 ? 1.0 : 0.0, rayDirTex.y >= 0.0 ? 1.0 : 0.0);
+    const float2 crossOffset = float2(rayDirTex.x >= 0.0 ? 1.0 : -1.0, rayDirTex.y >= 0.0 ? 1.0 : -1.0)
+        * (1.0 / hizDimensionsF) * 0.25;
+
+    float level = HIZ_STOP_LEVEL;
+    
+    float3 rayPos = rayStartTex + rayDirTex * (1.0 + jitter);
+
+    float3 currPosition = (float3)0.0;
+    float step_delta = 0.0;
+    bool found = false;
+
+    const int max_iterations = int(ssrConstants.num_iterations);
 
     int i = 0;
     for (; i < max_iterations; i++)
     {
-        currPosition += currStep;
+        num_iterations += 1.0;
 
-        hit_pixel = GetProjectedPositionFromView(camera.projection, currPosition);
-
-        if (hit_pixel.x != saturate(hit_pixel.x) || hit_pixel.y != saturate(hit_pixel.y))
+        if (rayPos.x < 0.0 || rayPos.x > 1.0 || rayPos.y < 0.0 || rayPos.y > 1.0 || rayPos.z < 0.0 || rayPos.z > 1.0)
         {
-            return false;
+            break;
         }
 
-        // @TODO Make use of the hi z bricks to skip empty spaces!
+        const float2 cellCount = HiZCellCount(level, hizDimensionsF);
+        const float2 cellId = HiZCell(rayPos.xy, cellCount);
+
+        const float2 cellMinMax = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, HiZTexture, (cellId + 0.5) / cellCount, level).rg;
+        
+        const float cellBoundDepth = isForwardRay ? min(cellMinMax.x, cellMinMax.y) : max(cellMinMax.x, cellMinMax.y);
+
+        const float t = (cellBoundDepth - rayPos.z) / rayDirTex.z;
+        const float3 depthPlaneHit = rayPos + rayDirTex * max(t, 0.0);
+
+        const float2 newCellId = HiZCell(depthPlaneHit.xy, cellCount);
+
+        if (int(newCellId.x) != int(cellId.x) || int(newCellId.y) != int(cellId.y))
+        {
+            rayPos = HiZIntersectCellBoundary(rayPos, rayDirTex, cellId, cellCount, crossStep, crossOffset);
+            level = min(maxLevel, level + 1.0);
+            continue;
+        }
+
+        rayPos = depthPlaneHit;
+
+        if (level > HIZ_STOP_LEVEL)
+        {
+            level = max(HIZ_STOP_LEVEL, level - 1.0);
+            continue;
+        }
+        
+        currPosition = ReconstructViewSpacePositionFromDepth(camera.invProjMat, rayPos.xy, rayPos.z).xyz;
+
+        float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, HiZTexture, rayPos.xy, 0).r;
+        float4 view_space_position = ReconstructViewSpacePositionFromDepth(camera.invProjMat, rayPos.xy, depth);
+
+        step_delta = currPosition.z - view_space_position.z;
+
+        if (step_delta > 0.0 && step_delta < ssrConstants.thickness)
+        {
+            found = true;
+            hit_pixel = rayPos.xy;
+            hit_point = view_space_position.xyz;
+
+            break;
+        }
+        
+        rayPos += rayDirTex;
+        //level = min(maxLevel, level + 1.0);
+    }
+
+    if (!found)
+    {
+        return false;
+    }
+
+    float3 currStep = ssrConstants.ray_step * ray_direction;
+
+    for (int j = 0; j < 4; j++)
+    {
+        currStep *= 0.5;
+        currPosition -= currStep * sign(step_delta);
+
+        hit_pixel = GetProjectedPositionFromView(camera.projection, currPosition);
         float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, HiZTexture, hit_pixel, 0).r;
         float4 view_space_position = ReconstructViewSpacePositionFromDepth(camera.invProjMat, hit_pixel, depth);
 
-        float step_delta = currPosition.z - view_space_position.z;
-        num_iterations += 1.0;
+        step_delta = currPosition.z - view_space_position.z;
 
-        if (ssrConstants.max_ray_distance > 0.0)
+        if (abs(step_delta) < ssrConstants.distance_bias)
         {
-            float t = distance(ray_origin, currPosition);
-            if (t > ssrConstants.max_ray_distance)
-            {
-                break;
-            }
-        }
-
-        if (step_delta > 0.0)
-        {
-            if (step_delta < ssrConstants.thickness)
-            {
-                for (int j = 0; j < 4; j++)
-                {
-                    currStep *= 0.5;
-                    currPosition -= currStep * sign(step_delta);
-
-                    hit_pixel = GetProjectedPositionFromView(camera.projection, currPosition);
-                    depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, HiZTexture, hit_pixel, 0).r;
-                    view_space_position = ReconstructViewSpacePositionFromDepth(camera.invProjMat, hit_pixel, depth);
-
-                    step_delta = currPosition.z - view_space_position.z;
-
-                    if (abs(step_delta) < ssrConstants.distance_bias)
-                    {
-                        hit_point = view_space_position.xyz;
-                        return true;
-                    }
-                }
-
-                hit_point = view_space_position.xyz;
-
-                return true;
-            }
-
-            // step_delta exceeds the thickness threshold - the ray passed behind a surface
-            // that's too thick to be a valid hit (e.g. into the background past thin geometry).
-            // Treat it as a miss and keep marching rather than accepting a bogus hit point.
+            hit_point = view_space_position.xyz;
+            return true;
         }
     }
 
-    return false;
+    return true;
 }
 
 float CalculateAlpha(
