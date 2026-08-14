@@ -62,6 +62,7 @@ void PhysicsSystem::OnEntityAdded(Entity* entity)
 
     Handle<RigidBody>& rigidBody = rigidBodyComponent.rigidBody;
 
+    // Create if it doesn't exist
     if (!rigidBody)
     {
         rigidBody = MakeHandle<RigidBody>();
@@ -69,6 +70,9 @@ void PhysicsSystem::OnEntityAdded(Entity* entity)
 
     rigidBody->shape = rigidBodyComponent.shape.Get();
     rigidBody->physicsMaterial = &rigidBodyComponent.physicsMaterial;
+    
+    rigidBody->SetVelocity(rigidBodyComponent.initialVelocity);
+    rigidBody->SetAngularVelocity(rigidBodyComponent.initialAngularVelocity);
 
     Transform transform;
     transform.SetTranslation(transformComponent.translation);

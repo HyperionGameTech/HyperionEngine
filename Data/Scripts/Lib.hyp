@@ -557,6 +557,8 @@ extern enum ScriptComponentFlags : uint32
 end
 extern struct RigidBodyComponent
     PhysicsMaterial : PhysicsMaterial
+    InitialVelocity : Vec3f
+    InitialAngularVelocity : Vec3f
     Shape : PhysicsShape
     RigidBody : RigidBody
 end

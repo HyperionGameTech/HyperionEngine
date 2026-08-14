@@ -9,6 +9,8 @@
 #include <Core/Reflection/Handle.hpp>
 #include <Core/Reflection/ObjectMacros.hpp>
 
+#include <Core/Math/Vector3.hpp>
+
 #include <Physics/PhysicsMaterial.hpp>
 
 namespace Hyperion {
@@ -26,6 +28,12 @@ struct RigidBodyComponent
 
     HYP_FIELD(Property = "PhysicsMaterial", Serialize, Editor)
     PhysicsMaterial physicsMaterial;
+
+    HYP_FIELD(Property = "InitialVelocity", Serialize, Editor)
+    Vec3f initialVelocity;
+
+    HYP_FIELD(Property = "InitialAngularVelocity", Serialize, Editor)
+    Vec3f initialAngularVelocity;
 
     HYP_FIELD(Property = "CollisionShape", Serialize, Editor)
     Handle<PhysicsShape> shape;

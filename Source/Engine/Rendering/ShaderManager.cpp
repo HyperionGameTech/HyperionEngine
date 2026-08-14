@@ -140,13 +140,15 @@ public:
 
     volatile int32 m_isReloadingShaders = 0;
 #endif
+    
+    Mutex m_cacheWriteMutex;
 
 #ifdef HYP_GENERATE_SHADER_PRELOAD_CACHE
-    FileByteWriter* m_preloadCacheWriter = nullptr;
+    Array<ShaderPreloadEntry, ShaderAllocator> m_shaderPreloadEntriesToWrite;
+    Set<HashCode, ShaderAllocator> m_shaderPreloadEntriesToWriteHashes;
 #endif
 
-    // Data that was there on load, before the write stream was created
-    ByteBuffer m_preloadCacheData;
+    Array<ShaderPreloadEntry, ShaderAllocator> m_preloadCacheEntries;
 
     ShaderManagerImpl()
     {
@@ -155,15 +157,41 @@ public:
 #endif
 
         // Try finding preload bin
-        // @TODO we need to delete/invalidate this whenever shaderprops.bin is detected as no longer valid
         FileByteReader preloadCacheReader(EngineGlobals::GetCacheDirectory() / "shaderpreload.bin");
 
         if (!preloadCacheReader.Eof())
         {
-            m_preloadCacheData = preloadCacheReader.Read();
-
             // Calculate total count
-            if (m_preloadCacheData.Size() % sizeof(ShaderPreloadEntry) != 0)
+            if (preloadCacheReader.Max() % sizeof(ShaderPreloadEntry) == 0)
+            {
+                const size_t numEntries = preloadCacheReader.Max() / sizeof(ShaderPreloadEntry);
+                m_preloadCacheEntries.Resize(numEntries);
+
+                preloadCacheReader.Read(m_preloadCacheEntries.Data(), preloadCacheReader.Max());
+
+                // If HYP_GENERATE_SHADER_PRELOAD_CACHE is defined; add all loaded entries
+                //  into the write queue so we don't end up removing them from the cache entries
+                //  on the next time we save
+
+#ifdef HYP_GENERATE_SHADER_PRELOAD_CACHE
+                m_shaderPreloadEntriesToWrite.Reserve(m_preloadCacheEntries.Size());
+
+                for (size_t i = 0; i < m_preloadCacheEntries.Size(); i++)
+                {
+                    const ShaderPreloadEntry& entry = m_preloadCacheEntries[i];
+
+                    const HashCode hashCode = HashCode::GetHashCode(
+                        reinterpret_cast<const ubyte*>(&entry),
+                        reinterpret_cast<const ubyte*>(&entry) + sizeof(ShaderPreloadEntry));
+
+                    if (m_shaderPreloadEntriesToWriteHashes.Insert(hashCode).second)
+                    {
+                        m_shaderPreloadEntriesToWrite.PushBack(entry);
+                    }
+                }
+#endif
+            }
+            else
             {
                 HYP_LOG(Shader, Warning, "Shader preload cache is not a multiple of the preload entry struct size - skipping preload to prevent corruption issues, and removing the file");
 
@@ -180,28 +208,12 @@ public:
         }
 
         preloadCacheReader.Close();
-
-#ifdef HYP_GENERATE_SHADER_PRELOAD_CACHE
-        m_preloadCacheWriter = new FileByteWriter(
-            EngineGlobals::GetCacheDirectory() / "shaderpreload.bin",
-            "wb");
-#endif
     }
 
     ~ShaderManagerImpl()
     {
 #if HYP_ENABLE_SHADER_RELOAD
         StopShaderReloadThread();
-#endif
-
-#ifdef HYP_GENERATE_SHADER_PRELOAD_CACHE
-        if (m_preloadCacheWriter != nullptr)
-        {
-            m_preloadCacheWriter->Close();
-
-            delete m_preloadCacheWriter;
-            m_preloadCacheWriter = nullptr;
-        }
 #endif
     }
 
@@ -275,22 +287,21 @@ public:
         request.entry->shaderInstance = si;
     }
 
-    void PreloadShadersFromCacheFile(bool blockingWait)
+    void PreloadShadersFromCacheFile(
+        bool blockingWait,
+        const ProcRef<void(uint64 current, uint64 total)>& callback = nullptr)
     {
-        if (m_preloadCacheData.Empty())
+        if (m_preloadCacheEntries.Empty())
         {
             return; // nothing to preload
         }
 
-        const size_t numEntries = m_preloadCacheData.Size() / sizeof(ShaderPreloadEntry);
-
-        HYP_LOG(Shader, Info, "Preloading {} shaders", numEntries);
+        HYP_LOG(Shader, Info, "Preloading {} shaders", m_preloadCacheEntries.Size());
 
         PreloadShaders(
-            Span<const ShaderPreloadEntry>(
-                reinterpret_cast<const ShaderPreloadEntry*>(m_preloadCacheData.Data()),
-                reinterpret_cast<const ShaderPreloadEntry*>(m_preloadCacheData.Data()) + numEntries),
-            /* blockingWait */ blockingWait);
+            m_preloadCacheEntries.ToSpan(),
+            /* blockingWait */ blockingWait,
+            callback);
     }
 
     void CompileShaders()
@@ -419,10 +430,7 @@ public:
         const VertexInputLayoutDesc& inputLayout)
     {
 #ifdef HYP_GENERATE_SHADER_PRELOAD_CACHE
-        if (!m_preloadCacheWriter)
-        {
-            return;
-        }
+        Mutex::Guard guard(m_cacheWriteMutex);
         
         ShaderPreloadEntry preloadEntry;
         Memory::Zero(&preloadEntry, sizeof(ShaderPreloadEntry));
@@ -433,7 +441,24 @@ public:
         preloadEntry.properties = properties;
         preloadEntry.inputLayout = inputLayout;
 
-        m_preloadCacheWriter->Write(preloadEntry);
+        const HashCode hashCode = HashCode::GetHashCode(
+            reinterpret_cast<const ubyte*>(&preloadEntry),
+            reinterpret_cast<const ubyte*>(&preloadEntry) + sizeof(ShaderPreloadEntry));
+
+        if (m_shaderPreloadEntriesToWriteHashes.Contains(hashCode))
+        {
+            // already contains; no need to add it/save it.
+            return;
+        }
+
+        m_shaderPreloadEntriesToWriteHashes.Add(hashCode);
+        m_shaderPreloadEntriesToWrite.PushBack(preloadEntry);
+
+        const FilePath& cacheDir = EngineGlobals::GetCacheDirectory();
+
+        FileByteWriter writer(cacheDir / "shaderpreload.bin", "wb+");
+        writer.Write(m_shaderPreloadEntriesToWrite.Data(), m_shaderPreloadEntriesToWrite.Size() * sizeof(ShaderPreloadEntry));
+        writer.Close();
 #endif
     }
 
@@ -798,22 +823,27 @@ public:
         return &m_entries.Get(uint64(shaderCacheId));
     }
     
-    void PreloadShaders(Span<const ShaderPreloadEntry> shadersToPreload, bool blockingWait)
+    void PreloadShaders(
+        Span<const ShaderPreloadEntry> shadersToPreload,
+        bool blockingWait,
+        const ProcRef<void(uint64 current, uint64 total)>& callback = nullptr)
     {
         if (!shadersToPreload)
         {
             return;
         }
 
-        for (const ShaderPreloadEntry& entry : shadersToPreload)
+        for (size_t i = 0; i < shadersToPreload.Size(); i++)
         {
+            const ShaderPreloadEntry& entry = shadersToPreload[i];
+
             [[maybe_unused]] ShaderCacheId unusedCacheId;
 
             // Sanity check in case of corrupt data; we want to ensure we have a NUL terminator in the name string
             bool nulFound = false;
-            for (size_t i = 0; i < sizeof(entry.nameStr); i++)
+            for (size_t j = 0; j < sizeof(entry.nameStr); j++)
             {
-                if (entry.nameStr[i] == '\0')
+                if (entry.nameStr[j] == '\0')
                 {
                     nulFound = true;
                     break;
@@ -826,12 +856,46 @@ public:
                 continue;
             }
 
+            if (callback.IsValid())
+            {
+                callback(i, shadersToPreload.Size());
+            }
+
             (void)GetOrCreate(
                 CreateNameFromDynamicString(entry.nameStr), entry.properties, entry.inputLayout,
                 unusedCacheId,
                 /* doLoadShader */ true,
                 /* waitForCompile */ blockingWait);
         }
+
+        if (callback.IsValid())
+        {
+            callback(shadersToPreload.Size(), shadersToPreload.Size());
+        }
+    }
+
+    void WriteShaderCache(const FilePath& outDir)
+    {
+        Mutex::Guard guard(m_cacheWriteMutex);
+        
+        { // Save the shader property cache
+            FileByteWriter writer { outDir / "shaderprops.bin" };
+            WriteShaderPropertyDictionary(writer);
+            writer.Close();
+        }
+
+#ifdef HYP_GENERATE_SHADER_PRELOAD_CACHE
+        { // Save preload cache
+            if (m_shaderPreloadEntriesToWrite.Empty())
+            {
+                return;
+            }
+
+            FileByteWriter writer(outDir / "shaderpreload.bin", "wb+");
+            writer.Write(m_shaderPreloadEntriesToWrite.Data(), m_shaderPreloadEntriesToWrite.Size() * sizeof(ShaderPreloadEntry));
+            writer.Close();
+        }
+#endif
     }
 
     void ExpireShaderEntries(const Shader* shader)
@@ -1121,14 +1185,24 @@ ShaderInstanceRef ShaderManager::GetOrCreate(Name name, const ShaderPropertySet&
     return m_impl->GetOrCreate(name, propertySet, inputLayout, cacheId, /* doLoadShader */ true, waitForCompile);
 }
 
-void ShaderManager::PreloadShadersFromCacheFile(bool blockingWait)
+void ShaderManager::PreloadShadersFromCacheFile(
+    bool blockingWait,
+    const ProcRef<void(uint64 current, uint64 total)>& callback)
 {
-    m_impl->PreloadShadersFromCacheFile(blockingWait);
+    m_impl->PreloadShadersFromCacheFile(blockingWait, callback);
 }
 
-void ShaderManager::PreloadShaders(Span<const ShaderPreloadEntry> shadersToPreload, bool blockingWait)
+void ShaderManager::PreloadShaders(
+    Span<const ShaderPreloadEntry> shadersToPreload,
+    bool blockingWait,
+    const ProcRef<void(uint64 current, uint64 total)>& callback)
 {
-    m_impl->PreloadShaders(shadersToPreload, blockingWait);
+    m_impl->PreloadShaders(shadersToPreload, blockingWait, callback);
+}
+
+void ShaderManager::WriteShaderCache(const FilePath& outDir)
+{
+    m_impl->WriteShaderCache(outDir);
 }
 
 void ShaderManager::ExpireShaderEntries(const Shader* shader)

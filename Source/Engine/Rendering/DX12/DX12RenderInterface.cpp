@@ -508,37 +508,6 @@ void DX12RenderInterface::Shutdown()
         }
     }
 
-    { // Flush transient submits
-        auto& fences = m_transientCommandBufferFences[frameCounter % NumFramesInFlight];
-        for (auto it = fences.Begin(); it != fences.End(); ++it)
-        {
-            DX12Fence& fence = *it;
-
-            if (fence.isSubmitted)
-            {
-                fence.Wait(true);
-            }
-        }
-
-        fences.Clear();
-
-        for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
-        {
-            for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-            {
-                m_transientCommandBuffers[threadIndex][frameIndex].Clear();
-                m_pendingTransientCommandBuffers[threadIndex][frameIndex].Clear();
-            }
-        }
-
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-        {
-            m_transientCommandBufferFences[frameIndex].Clear();
-        }
-
-        m_recycledTransientCommandBufferFences.Clear();
-    }
-
     for (DX12AsyncCompute* ac : m_asyncComputePool)
     {
         delete ac;
@@ -577,7 +546,42 @@ void DX12RenderInterface::Shutdown()
     delete m_gpuTimerBackend;
     m_gpuTimerBackend = nullptr;
 
+    // Subsystems torn down here may still enqueue commands via GetCommandRecorder() as part
+    // of their own shutdown (RenderInterface::Shutdown() performs the final flush of the
+    // command recorder allocator as its last step), so the transient command buffer
+    // submission machinery below must stay alive until this returns.
     RenderInterface::Shutdown();
+
+    { // Flush transient submits
+        auto& fences = m_transientCommandBufferFences[frameCounter % NumFramesInFlight];
+        for (auto it = fences.Begin(); it != fences.End(); ++it)
+        {
+            DX12Fence& fence = *it;
+
+            if (fence.isSubmitted)
+            {
+                fence.Wait(true);
+            }
+        }
+
+        fences.Clear();
+
+        for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
+        {
+            for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+            {
+                m_transientCommandBuffers[threadIndex][frameIndex].Clear();
+                m_pendingTransientCommandBuffers[threadIndex][frameIndex].Clear();
+            }
+        }
+
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+        {
+            m_transientCommandBufferFences[frameIndex].Clear();
+        }
+
+        m_recycledTransientCommandBufferFences.Clear();
+    }
 
     descriptorHeapManager->Shutdown();
     delete descriptorHeapManager;

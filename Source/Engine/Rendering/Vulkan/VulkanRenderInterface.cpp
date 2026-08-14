@@ -778,9 +778,33 @@ void VulkanRenderInterface::Shutdown()
     m_frames.Clear();
     m_commandBuffers.Clear();
 
-    { // Flush transient submits
-        commandRecorderAllocator.Flush(true);
+    for (VulkanAsyncCompute* ac : m_asyncComputePool)
+    {
+        delete ac;
+    }
 
+    for (VulkanAsyncCompute* ac : m_submittedAsyncComputes)
+    {
+        ac->GetFence()->Wait(true);
+
+        delete ac;
+    }
+
+    m_asyncComputePool.Clear();
+    m_submittedAsyncComputes.Clear();
+
+    m_gpuTimerBackend->Shutdown();
+
+    delete m_gpuTimerBackend;
+    m_gpuTimerBackend = nullptr;
+
+    // Subsystems torn down here may still enqueue commands via GetCommandRecorder() as part
+    // of their own shutdown (RenderInterface::Shutdown() performs the final flush of the
+    // command recorder allocator as its last step), so the transient command buffer
+    // submission machinery below must stay alive until this returns.
+    RenderInterface::Shutdown();
+
+    { // Flush transient submits
         auto& fences = m_transientCommandBufferFences[frameCounter % NumFramesInFlight];
         for (auto it = fences.Begin(); it != fences.End(); ++it)
         {
@@ -810,28 +834,6 @@ void VulkanRenderInterface::Shutdown()
             }
         }
     }
-
-    for (VulkanAsyncCompute* ac : m_asyncComputePool)
-    {
-        delete ac;
-    }
-
-    for (VulkanAsyncCompute* ac : m_submittedAsyncComputes)
-    {
-        ac->GetFence()->Wait(true);
-
-        delete ac;
-    }
-
-    m_asyncComputePool.Clear();
-    m_submittedAsyncComputes.Clear();
-
-    m_gpuTimerBackend->Shutdown();
-
-    delete m_gpuTimerBackend;
-    m_gpuTimerBackend = nullptr;
-
-    RenderInterface::Shutdown();
 
     m_descriptorSetManager->Shutdown(m_instance->GetDevice());
 

@@ -281,6 +281,10 @@ void BulletPhysicsAdapter::Tick(PhysicsWorldBase* world, double delta)
         rigidBodyTransform.GetRotation() = FromBtQuaternion(btTransform.getRotation()).Inverse();
 
         rigidBody->SetTransform(rigidBodyTransform);
+        
+        // Sync cached states
+        rigidBody->SetVelocity(FromBtVector(internalData->rigidBody->getLinearVelocity()));
+        rigidBody->SetAngularVelocity(FromBtVector(internalData->rigidBody->getAngularVelocity()));
     }
 
     // Reset transient memory
@@ -323,6 +327,8 @@ void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
 
     internalData->rigidBody = MakeSharedWithAllocator<btRigidBody, PhysicsAllocator>(constructionInfo);
     internalData->rigidBody->setWorldTransform(btTransform);
+    internalData->rigidBody->setAngularVelocity(ToBtVector(rigidBody->GetAngularVelocity()));
+    internalData->rigidBody->setLinearVelocity(ToBtVector(rigidBody->GetVelocity()));
 
     m_dynamicsWorld->addRigidBody(internalData->rigidBody.Get());
 

@@ -59,6 +59,26 @@ public:
         m_transform = transform;
     }
 
+    HYP_FORCE_INLINE const Vec3f& GetVelocity() const
+    {
+        return m_velocity;
+    }
+
+    HYP_FORCE_INLINE void SetVelocity(const Vec3f& velocity)
+    {
+        m_velocity = velocity;
+    }
+
+    HYP_FORCE_INLINE const Vec3f& GetAngularVelocity() const
+    {
+        return m_angularVelocity;
+    }
+
+    HYP_FORCE_INLINE void SetAngularVelocity(const Vec3f& angularVelocity)
+    {
+        m_angularVelocity = angularVelocity;
+    }
+
     HYP_FORCE_INLINE bool IsKinematic() const
     {
         return m_isKinematic;
@@ -89,6 +109,8 @@ public:
 
 private:
     Transform m_transform;
+    Vec3f m_velocity;
+    Vec3f m_angularVelocity;
 
     bool m_isKinematic;
 
