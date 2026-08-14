@@ -56,8 +56,8 @@ ENGINE_API HYP_DEFINE_LOG_CHANNEL(Game);
 ScriptableDelegate<void> Game::OnLaunched;
 ScriptableDelegate<void, Game*, GameStateMode, GameStateMode> Game::OnGameStateChange;
 
-static const Name s_nameMainWorld = NAME("MainWorld");
-static const Name s_nameTempUIWorld = NAME("TempUIWorld");
+const Name Game::s_nameMainWorld = NAME("MainWorld");
+const Name Game::s_nameTempUIWorld = NAME("TempUIWorld");
 
 Game::Game()
     : m_isInitialized(false),
@@ -701,9 +701,11 @@ void Game::OnUpdate(float delta)
 
             // Set the prepare task
             m_syncState.currentTask = TaskSystem::GetInstance().Enqueue(
-                []() -> Result
+                [this]() -> Result
                 {
-                    RI.shaderManager->PreloadShadersFromCacheFile(/* blockingWait */ true);
+                    RI.shaderManager->PreloadShadersFromCacheFile(
+                        /* blockingWait */ true,
+                        ProcRef<void(uint64, uint64)>(*this, ValueWrapper<&Game::OnSyncProgress>{}));
 
                     return {};
                 },

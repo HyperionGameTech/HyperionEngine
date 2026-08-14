@@ -29,6 +29,8 @@
 #include <Asset/BlobStorage.hpp>
 
 #include <Rendering/Shared.hpp>
+#include <Rendering/RenderInterface.hpp>
+#include <Rendering/ShaderManager.hpp>
 
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
@@ -429,15 +431,21 @@ private:
         cookedStorage.Unlock();
         locked = false;
 
-        // Write the shader property dictionary so the runtime can resolve
-        // ShaderProperty names to their interned IDs (used by ShaderPropertySet).
-        {
-            const FilePath shaderPropertyDbPath = outputCacheDir / "shaderprops.bin";
+        //// Write the shader property dictionary so the runtime can resolve
+        //// ShaderProperty names to their interned IDs (used by ShaderPropertySet).
+        //{
+        //    const FilePath shaderPropertyDbPath = outputCacheDir / "shaderprops.bin";
 
-            FileByteWriter writer { shaderPropertyDbPath };
-            WriteShaderPropertyDictionary(writer);
-            writer.Close();
-        }
+        //    FileByteWriter writer { shaderPropertyDbPath };
+        //    WriteShaderPropertyDictionary(writer);
+        //    writer.Close();
+        //}
+
+        //// Write shader preload cache here as well
+        //if (RI.shaderManager != nullptr)
+        //{
+        //    RI.shaderManager->WritePreloadCache(outputCacheDir);
+        //}
 
         return {};
     }

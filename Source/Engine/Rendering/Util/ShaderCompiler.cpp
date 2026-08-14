@@ -1272,6 +1272,88 @@ String ShaderProperty::GetValueString() const
     return String::empty;
 }
 
+void ShaderProperty::WriteToBinaryDictionary(ByteWriter& stream) const
+{
+    char nameBuf[128] {};
+    const char* nameStr = name.LookupString();
+    Memory::CopyString(nameBuf, nameStr, MathUtil::Min(Memory::StrLen(nameStr) + 1, sizeof(nameBuf)));
+    stream.Write(nameBuf, sizeof(nameBuf));
+
+    stream.Write<uint8>(uint8(flags));
+
+    uint8 valueTag = 0;
+
+    union
+    {
+        ubyte valueBuffer[128];
+
+        char valueNameStr[128];
+        int32 valueInt;
+        float valueFloat;
+    };
+
+    Memory::Zero(valueBuffer, sizeof(valueBuffer));
+
+    if (const Name* valueName = currentValue.TryGet<Name>())
+    {
+        valueTag = 1;
+
+        const char* currValueNameStr = valueName->LookupString();
+        Memory::CopyString(valueNameStr, currValueNameStr, MathUtil::Min(Memory::StrLen(currValueNameStr) + 1, sizeof(valueNameStr)));
+    }
+    else if (const int* valueIntPtr = currentValue.TryGet<int>())
+    {
+        valueTag = 2;
+        valueInt = *valueIntPtr;
+    }
+    else if (const float* valueFloatPtr = currentValue.TryGet<float>())
+    {
+        valueTag = 3;
+        valueFloat = *valueFloatPtr;
+    }
+
+    stream.Write<uint8>(valueTag);
+    stream.Write(valueBuffer, sizeof(valueBuffer));
+}
+
+ShaderProperty ShaderProperty::ReadFromBinaryDictionary(ByteReader& stream)
+{
+    char nameBuf[128];
+    stream.Read(nameBuf, sizeof(nameBuf));
+
+    uint8 flagsValue;
+    stream.Read<uint8>(&flagsValue);
+
+    uint8 valueTag;
+    stream.Read<uint8>(&valueTag);
+
+    union
+    {
+        ubyte valueBuffer[128];
+
+        char valueNameStr[128];
+        int32 valueInt;
+        float valueFloat;
+    };
+
+    stream.Read(valueBuffer, sizeof(valueBuffer));
+
+    const Name name = CreateNameFromDynamicString(nameBuf);
+    const ShaderPropertyFlags shaderPropertyFlags = ShaderPropertyFlags(flagsValue);
+
+    switch (valueTag)
+    {
+    case 1:
+        return ShaderProperty(name, ShaderProperty::Value(CreateNameFromDynamicString(valueNameStr)), shaderPropertyFlags);
+    case 2:
+        return ShaderProperty(name, ShaderProperty::Value(valueInt), shaderPropertyFlags);
+    case 3:
+        return ShaderProperty(name, ShaderProperty::Value(valueFloat), shaderPropertyFlags);
+    default:
+        return ShaderProperty(name, shaderPropertyFlags);
+    }
+}
+
 #pragma endregion ShaderProperty
 
 #pragma region ShaderVariantPerms
@@ -3439,15 +3521,6 @@ bool ShaderCompiler::CompileBundle(
                 decl.name);
 
         return false;
-    }
-
-    { // Save the shader property DB
-
-        const FilePath shaderPropertyDbPath = EngineGlobals::GetCacheDirectory() / "shaderprops.bin";
-
-        FileByteWriter shaderPropertyDbWriter { shaderPropertyDbPath };
-        WriteShaderPropertyDictionary(shaderPropertyDbWriter);
-        shaderPropertyDbWriter.Close();
     }
 
     // keep compiled shaders sorted.

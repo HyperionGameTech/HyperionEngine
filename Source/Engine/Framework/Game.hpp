@@ -41,6 +41,9 @@ class ENGINE_API Game : public ObjectBase
     HYP_OBJECT_BODY(Game);
 
 public:
+    static const Name s_nameMainWorld;
+    static const Name s_nameTempUIWorld;
+
     Game();
     virtual ~Game();
 
@@ -120,6 +123,7 @@ protected:
     }
     
     void SyncContentAndLaunch();
+    void Launch();
     
     virtual void BeforeContentLoaded();
     virtual void AfterContentLoaded();
@@ -151,8 +155,6 @@ protected:
 
     AtomicVar<bool> m_isLaunched;
 
-private:
-    void Launch();
 };
 
 } // namespace Hyperion

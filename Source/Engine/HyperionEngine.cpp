@@ -292,19 +292,38 @@ void LoadShaderPropertyDictionary()
 {
     InitShaderPropertyDictionary();
 
-    FileByteReader stream { EngineGlobals::GetCacheDirectory() / "shaderprops.bin" };
+    const FilePath shaderPropsFilePath = EngineGlobals::GetCacheDirectory() / "shaderprops.bin";
 
-#if defined(HYP_SHIPPING) && HYP_SHIPPING
+    FileByteReader stream { shaderPropsFilePath };
+
+#ifdef HYP_SHIPPING
     Assert(!stream.Eof(), "shaderprops.bin missing - required in shipping builds");
     Assert(ReadShaderPropertyDictionary(stream), "Failed to read shaderprops.bin");
 #else
-    if (!stream.Eof())
+    const bool loaded = !stream.Eof() && ReadShaderPropertyDictionary(stream);
+
+    if (!loaded)
     {
-        ReadShaderPropertyDictionary(stream);
+        // If the property cache is missing or stale, we need to also purge the preload cache
+        // as they use the same ids
+        const FilePath preloadCachePath = EngineGlobals::GetCacheDirectory() / "shaderpreload.bin";
+
+        if (preloadCachePath.Exists() && !preloadCachePath.Remove())
+        {
+            HYP_LOG(Engine, Warning, "Failed to remove stale shader preload cache at {}", preloadCachePath);
+        }
     }
 #endif
 
+    stream.Close();
+
     StaticShaderPropertyId::ResolveAll();
+//
+//#ifndef HYP_SHIPPING
+//    FileByteWriter writeStream(shaderPropsFilePath, "wb+");
+//    WriteShaderPropertyDictionary(writeStream);
+//    writeStream.Close();
+//#endif
 }
 
 void HandleExit()
@@ -585,6 +604,14 @@ extern "C"
         AssertOnThread(g_mainThread);
 
         Assert(g_engineDriver != nullptr, "Hyperion not initialized!");
+
+#ifndef HYP_SHIPPING
+        // Flush shader cache data files
+        if (RI.shaderManager != nullptr)
+        {
+            RI.shaderManager->WriteShaderCache(EngineGlobals::GetCacheDirectory());
+        }
+#endif
 
         g_engineDriver->Shutdown();
     

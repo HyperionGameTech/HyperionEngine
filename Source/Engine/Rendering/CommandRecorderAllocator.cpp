@@ -31,6 +31,12 @@ void CommandRecorderAllocator::Shutdown()
 {
     AssertOnThread(g_renderThread);
 
+    // Drain and submit anything still pending (including commands enqueued by subsystems
+    // tearing down ahead of us) so custom commands get to run their cleanup rather than
+    // being discarded. Requires the transient command buffer submission machinery to still
+    // be alive at this point - callers must not tear that down until after this returns.
+    Flush(/* isShuttingDown */ true);
+
     Mutex::Guard guard(m_mutex);
 
     AtomicAdd(&m_tempCommandRecordersCount, -int32(m_tempPreRenderCommandRecorders.Size() + m_tempCommandRecorders.Size()));

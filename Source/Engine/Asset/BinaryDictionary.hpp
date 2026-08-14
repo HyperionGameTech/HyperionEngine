@@ -15,8 +15,6 @@
 
 #include <Core/Math/MathUtil.hpp>
 
-#include <Core/Memory/Memory.hpp>
-
 #include <Core/Threading/SharedMutex.hpp>
 #include <Core/Threading/LockGuard.hpp>
 
@@ -33,7 +31,10 @@ namespace Hyperion {
  *  It assigns each unique value, identified by its HashCode, to a contiguous integer ID to allow
  *  the IDs to be used in bitsets, as that is a common pattern throughout the codebase.
  *
- *  \tparam Value     The value type to intern. Must be copyable and support HashCode::GetHashCode().
+ *  \tparam Value     The value type to intern. Must be copyable, default constructible, support
+ *                    HashCode::GetHashCode(), and provide a fixed-size binary serialization via
+ *                    `static constexpr size_t Value::SerializedSize`, `void Value::WriteToBinaryDictionary(ByteWriter&) const`,
+ *                    and `static Value Value::ReadFromBinaryDictionary(ByteReader&)`.
  *  \tparam IdType    An enum or integral type used as the ID. Must be at most 4 bytes.
  *  \tparam PageSize  Page size passed to the internal SparsePagedArray reverse map. Must be a power of two. */
 template <class Value, class IdType, uint32 PageSize = 128>
@@ -41,12 +42,13 @@ class BinaryDictionary
 {
     static_assert(sizeof(IdType) <= sizeof(uint32), "IdType type must be at most 4 bytes");
 
-    static constexpr uint16 FormatVersion = 1;
+    // Bumped from 1: entries now embed the full Value data (Value::WriteToBinaryDictionary /
+    // Value::ReadFromBinaryDictionary) instead of just its HashCode, so the reverse map can be
+    // restored eagerly on Read() rather than relying on something re-Intern()-ing the same value.
+    static constexpr uint16 FormatVersion = 2;
 
-    // Entry layout (fixed 16 bytes): HashCode value (uint64, 8 bytes) + id stored as uint32 (4 bytes) + 4 bytes padding
-    static constexpr size_t EntryDataSize = sizeof(HashCode::ValueType) + sizeof(uint32);
-    static constexpr size_t EntryPaddingSize = (16 - (EntryDataSize % 16)) % 16;
-    static constexpr size_t SizeOfEntry = EntryDataSize + EntryPaddingSize;
+    // Entry layout: id (uint32) + the Value's own fixed-size serialized form
+    static constexpr size_t SizeOfEntry = sizeof(uint32) + Value::SerializedSize;
 
 public:
     BinaryDictionary() = default;
@@ -162,7 +164,6 @@ public:
 
         for (const auto& kvp : m_forwardMap)
         {
-            const HashCode& hash = kvp.first;
             const IdType id = kvp.second;
 
             if (visited.Contains(id))
@@ -170,19 +171,21 @@ public:
                 continue;
             }
 
-            stream.Seek(entryMapOffset + uint32(id) * SizeOfEntry);
+            // Every forward-map entry gains a reverse-map counterpart at the same time it's
+            // added (Intern()'s insert path, or Read()'s eager restore), so this should always hold.
+            AssertDebug(m_reverseMap.HasIndex(uint32(id)));
 
-            const HashCode::ValueType hashValue = hash.Value();
-            stream.Write(&hashValue, sizeof(HashCode::ValueType));
+            if (!m_reverseMap.HasIndex(uint32(id)))
+            {
+                continue;
+            }
+
+            stream.Seek(entryMapOffset + uint32(id) * SizeOfEntry);
 
             const uint32 idValue = uint32(id);
             stream.Write(&idValue, sizeof(uint32));
 
-            if constexpr (EntryPaddingSize > 0)
-            {
-                uint8 padding[EntryPaddingSize] {};
-                stream.Write(padding, EntryPaddingSize);
-            }
+            m_reverseMap.Get(uint32(id)).WriteToBinaryDictionary(stream);
 
             maxIdValue = MathUtil::Max(maxIdValue, uint32(id));
 
@@ -203,8 +206,8 @@ public:
 #endif
     }
 
-    /*! \brief Deserialize the dictionary from a binary stream.
-     *  Only the forward (hash -> ID) map is populated; the reverse map is rebuilt lazily via Intern().
+    /*! \brief Deserialize the dictionary from a binary stream. Both the forward (hash -> ID) and
+     *  reverse (ID -> Value) maps are restored directly from the stream's stored Value data.
      *  \return True on success. Returns false and rolls back the stream on version or hash mismatch. */
     bool Read(ByteReader& stream)
     {
@@ -250,33 +253,24 @@ public:
 
         m_forwardMap.Reserve(entryCount);
 
-        ubyte* bytes = (ubyte*)Memory::Allocate(entryCount * SizeOfEntry);
-        size_t readBytes = 0;
-
-        if ((readBytes = stream.Read(static_cast<void*>(bytes), size_t(entryCount * SizeOfEntry))) != entryCount * SizeOfEntry)
+        for (uint32 i = 0; i < entryCount; i++)
         {
-            HYP_LOG(Core, Error, "BinaryDictionary is corrupt! Read {} bytes, expected {}.",
-                readBytes, entryCount * SizeOfEntry);
+            if (stream.Eof())
+            {
+                HYP_LOG(Core, Error, "BinaryDictionary is corrupt! Truncated at entry {} of {}.", i, entryCount);
+                return false;
+            }
 
-            Memory::Free(bytes);
+            uint32 idValue;
+            stream.Read<uint32>(&idValue);
 
-            return false;
+            Value value = Value::ReadFromBinaryDictionary(stream);
+
+            const HashCode hash = HashCode::GetHashCode(value);
+
+            m_forwardMap.Insert(hash, static_cast<IdType>(idValue));
+            m_reverseMap.Emplace(idValue, std::move(value));
         }
-
-        const ubyte* pBytes = bytes;
-        const ubyte* pEndBytes = bytes + (entryCount * SizeOfEntry);
-
-        while (pBytes != pEndBytes)
-        {
-            const HashCode::ValueType hashValue = *reinterpret_cast<const HashCode::ValueType*>(pBytes);
-            const uint32 idValue = *reinterpret_cast<const uint32*>(pBytes + sizeof(HashCode::ValueType));
-
-            m_forwardMap.Insert(HashCode(hashValue), static_cast<IdType>(idValue));
-
-            pBytes += SizeOfEntry;
-        }
-
-        Memory::Free(bytes);
 
         return true;
     }

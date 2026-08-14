@@ -42,6 +42,7 @@ namespace Hyperion {
 
 class ObjectBase;
 class ByteWriter;
+class ByteReader;
 
 namespace Resources {
 static constexpr uint32 InvalidBinding = ~0u;
@@ -1821,6 +1822,12 @@ struct ShaderProperty
     ENGINE_API String GetValueString() const;
     ENGINE_API HashCode GetHashCode() const;
     ENGINE_API String ToString() const;
+
+    // name (128) + flags (1) + value tag (1) + value name string/int/float (128)
+    static constexpr size_t SerializedSize = 128 + 1 + 1 + 128;
+
+    ENGINE_API void WriteToBinaryDictionary(ByteWriter& stream) const;
+    ENGINE_API static ShaderProperty ReadFromBinaryDictionary(ByteReader& stream);
 };
 
 HYP_STRUCT()

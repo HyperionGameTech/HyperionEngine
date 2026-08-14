@@ -21,6 +21,8 @@ namespace Hyperion
         }
 
         public PhysicsMaterial PhysicsMaterial;
+        public Vec3f initialVelocity;
+        public Vec3f initialAngularVelocity;
         public Handle<PhysicsShape> Shape;
         public Handle<RigidBody> RigidBody;
 

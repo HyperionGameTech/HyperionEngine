@@ -520,7 +520,7 @@ void DefaultGame::ShowLoadingScreen()
 
     Handle<UIText> loadingProgressText = loadingPanel->CreateUIObject<UIText>(NAME("LoadingProgressText"), Vec2i { 0, 100 }, UIObjectSize { { 0, UIObjectSize::AUTO }, { 80, UIObjectSize::PIXEL } });
     loadingProgressText->SetText("0%");
-    loadingProgressText->SetTextSize(14.0f);
+    loadingProgressText->SetTextSize(18.0f);
     loadingProgressText->SetTextColor(Color::White());
     loadingProgressText->SetOriginAlignment(UIObjectAlignment::CENTER);
     loadingProgressText->SetParentAlignment(UIObjectAlignment::CENTER);
@@ -571,10 +571,27 @@ void DefaultGame::ShowLoadingScreen()
     Handle<UIButton> launchAnywayButton = buttonsListView->CreateUIObject<UIButton>(Vec2i::Zero(), UIObjectSize { { 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT } });
     launchAnywayButton->SetText("Launch Anyway");
     
-    launchAnywayButton->OnClick.Bind(retryButton,
-        [this](const MouseEvent&) -> UIEventHandlerResult
+    launchAnywayButton->OnClick.Bind(launchAnywayButton,
+        [this, errorText](const MouseEvent&) -> UIEventHandlerResult
         {
-            HYP_NOT_IMPLEMENTED();
+            // Same deal as above
+            GetThreadById(g_simThread)->GetScheduler().Enqueue(
+                [self = MakeStrongRef(this), errorText]()
+            {
+                if (Handle<World> world = self->LoadWorld(s_nameMainWorld); world.IsValid())
+                {
+                    self->m_syncState.SetState(ContentSyncState::Finished);
+
+                    self->SetWorld(world);
+                    self->Launch();
+                }
+                else
+                {
+                    errorText->SetText("Missing content required to start the game.\n"
+                                        "Unable to launch.");
+                }
+            },
+            TaskEnqueueFlags::FIRE_AND_FORGET);
 
             return UIEventHandlerResult::STOP_BUBBLING;
         })
@@ -585,7 +602,7 @@ void DefaultGame::ShowLoadingScreen()
     Handle<UIButton> exitButton = buttonsListView->CreateUIObject<UIButton>(Vec2i::Zero(), UIObjectSize { { 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT } });
     exitButton->SetText("Exit");
     
-    exitButton->OnClick.Bind(retryButton,
+    exitButton->OnClick.Bind(exitButton,
         [this](const MouseEvent&) -> UIEventHandlerResult
         {
             std::terminate();

@@ -29,7 +29,7 @@ struct ShaderPreloadEntry
     VertexInputLayoutDesc inputLayout;
 };
 
-class ShaderManager
+class ENGINE_API ShaderManager
 {
 public:
     ShaderManager();
@@ -42,8 +42,20 @@ public:
 
     void ExpireShaderEntries(const Shader* shader);
 
-    void PreloadShadersFromCacheFile(bool blockingWait = false);
-    void PreloadShaders(Span<const ShaderPreloadEntry> shadersToPreload, bool blockingWait = false);
+    /// @NOTE callback is only valid for telling if the shader was actually loaded if \p blockingWait is true.
+    ///    otherwise, it'll just get called when the shader is enqueued to be compiled
+    void PreloadShadersFromCacheFile(
+        bool blockingWait = false,
+        const ProcRef<void(uint64 current, uint64 total)>& callback = nullptr);
+    
+    /// @NOTE callback is only valid for telling if the shader was actually loaded if \p blockingWait is true.
+    ///    otherwise, it'll just get called when the shader is enqueued to be compiled
+    void PreloadShaders(
+        Span<const ShaderPreloadEntry> shadersToPreload,
+        bool blockingWait = false,
+        const ProcRef<void(uint64 current, uint64 total)>& callback = nullptr);
+
+    void WriteShaderCache(const FilePath& outDir);
 
     size_t CalculateMemoryUsage() const;
 
