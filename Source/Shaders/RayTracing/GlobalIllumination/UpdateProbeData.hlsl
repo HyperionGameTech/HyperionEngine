@@ -139,7 +139,7 @@ void CSMain(
     }
 
     const float alpha = clamp(1.0 - HYSTERESIS, 0.0, 1.0);
-
+    
 #if MODE_DEPTH
     float2 existing = outputImage[coord].xy;
     float2 blended = ddgiConstants.counter == 0 ? result.xy : lerp(existing, result.xy, alpha);

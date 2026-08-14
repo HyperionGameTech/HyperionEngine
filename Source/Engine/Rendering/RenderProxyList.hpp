@@ -14,6 +14,7 @@
 #include <Core/Utilities/Tuple.hpp>
 
 #include <Core/Threading/SharedMutex.hpp>
+#include <Core/Threading/DataRaceDetector.hpp>
 
 #include <Core/Resource/Resource.hpp>
 
@@ -187,6 +188,8 @@ public:
     BoundingBox cachedBounds;
 
     SharedMutex m_lock;
+
+    HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
 };
 
 } // namespace Hyperion

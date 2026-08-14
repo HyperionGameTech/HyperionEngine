@@ -14,7 +14,7 @@
 namespace Hyperion {
 namespace Baking {
 
-static constexpr size_t BakerPoolBlockSize = 16 * 1024 * 1024; // 64 MB
+static constexpr size_t BakerPoolBlockSize = 64 * 1024 * 1024; // 64 MB
 static constexpr size_t BakerArenaBlockSize = 1 * 1024 * 1024; // 1 MB
 
 // Use system memory allocator for fallback (we will allocate large mesh data chunks..)

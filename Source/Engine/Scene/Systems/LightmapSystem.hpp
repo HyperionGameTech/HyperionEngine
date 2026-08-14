@@ -13,6 +13,8 @@
 
 #include <Scene/EntityTag.hpp>
 
+#include <Core/Containers/Set.hpp>
+
 namespace Hyperion {
 
 class LightmapVolume;
@@ -38,6 +40,37 @@ public:
 
     HYP_NODISCARD LightmapVolumeId AllocateLightmapVolumeId();
 
+    void MarkLightmapVolumeIdUsed(LightmapVolumeId id)
+    {
+        if (id == Invalid<LightmapVolumeId>)
+        {
+            return;
+        }
+
+        m_freedLightmapVolumeIds.Erase(uint32(id));
+    }
+
+    void MarkLightmapVolumeIdFreed(LightmapVolumeId id)
+    {
+        if (id == Invalid<LightmapVolumeId>)
+        {
+            return;
+        }
+
+        if (m_freedLightmapVolumeIds.Contains(uint32(id)))
+        {
+            return;
+        }
+
+        m_freedLightmapVolumeIds.PushBack(uint32(id));
+    }
+
+    bool IsIdForAliveLightmapVolume(LightmapVolumeId id) const
+    {
+        return id != Invalid<LightmapVolumeId>
+            && !m_freedLightmapVolumeIds.Contains(uint32(id));
+    }
+
 private:
     void OnAddedToWorld(World* world) override;
 
@@ -61,6 +94,9 @@ private:
 
     HYP_FIELD(Property = "NextLightmapVolumeId", Serialize)
     uint32 m_nextLightmapVolumeId;
+
+    HYP_FIELD(Property = "FreedLightmapVolumeIds", Serialize)
+    Array<uint32> m_freedLightmapVolumeIds;
 };
 
 } // namespace Hyperion

@@ -76,10 +76,8 @@ DDGI::~DDGI()
 {
     EnqueueDeletion(std::move(m_cbuffers));
     EnqueueDeletion(std::move(m_radianceBuffer));
-    EnqueueDeletion(std::move(m_irradianceImage));
-    EnqueueDeletion(std::move(m_irradianceImageView));
-    EnqueueDeletion(std::move(m_depthImage));
-    EnqueueDeletion(std::move(m_depthImageView));
+    EnqueueDeletion(std::move(m_irradianceTexture));
+    EnqueueDeletion(std::move(m_visibilityTexture));
 }
 
 void DDGI::Create()
@@ -127,12 +125,6 @@ void DDGI::CreateStorageBuffers()
     const Vec3u probeCounts = NumProbesPerDimension(m_gridInfo);
     const Vec2u imageDimensions = GetImageDimensions(m_gridInfo);
 
-    // RWStructuredBuffer must live on the DEFAULT heap so that D3D12 can set
-    // D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS.  UPLOAD-heap resources cannot
-    // carry that flag, which would cause CreateUnorderedAccessView to fail when
-    // the descriptor set is updated.  The buffer is written by the GPU raygen
-    // shader every frame before it is read by the compute pass, so CPU-side
-    // initialisation is not required.
     m_radianceBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, imageDimensions.x * imageDimensions.y * sizeof(ProbeRayData));
     Assert(m_radianceBuffer->Create());
 
@@ -143,22 +135,21 @@ void DDGI::CreateStorageBuffers()
             1
         };
 
-        m_irradianceImage = RI.MakeImage(TextureDesc {
-            TextureType::Texture2D,
-            IrradianceFormat,
-            extent,
-            TFM_NEAREST,
-            TFM_NEAREST,
-            TWM_CLAMP_TO_EDGE,
-            1,
-            IU_STORAGE | IU_SAMPLED });
+        m_irradianceTexture = MakeHandle<Texture>(
+            TextureDesc {
+                TextureType::Texture2D,
+                IrradianceFormat,
+                extent,
+                TFM_NEAREST,
+                TFM_NEAREST,
+                TWM_CLAMP_TO_EDGE,
+                1,
+                IU_STORAGE | IU_SAMPLED 
+            });
 
-        Assert(m_irradianceImage->Create());
-    }
-
-    { // irradiance image view
-        m_irradianceImageView = RI.MakeImageView(m_irradianceImage);
-        Assert(m_irradianceImageView->Create());
+        m_irradianceTexture->SetName(NAME("DDGIIrradianceTexture"));
+        m_irradianceTexture->SetIsTransient(true);
+        Check(m_irradianceTexture->Create());
     }
 
     { // depth image
@@ -168,23 +159,21 @@ void DDGI::CreateStorageBuffers()
             1
         };
 
-        m_depthImage = RI.MakeImage(TextureDesc {
-            TextureType::Texture2D,
-            DepthFormat,
-            extent,
-            TFM_NEAREST,
-            TFM_NEAREST,
-            TWM_CLAMP_TO_EDGE,
-            1,
-            IU_STORAGE | IU_SAMPLED });
+        m_visibilityTexture = MakeHandle<Texture>(
+            TextureDesc {
+                TextureType::Texture2D,
+                DepthFormat,
+                extent,
+                TFM_NEAREST,
+                TFM_NEAREST,
+                TWM_CLAMP_TO_EDGE,
+                1,
+                IU_STORAGE | IU_SAMPLED
+            });
 
-        Assert(m_depthImage->Create());
-    }
-
-    { // depth image view
-        m_depthImageView = RI.MakeImageView(m_depthImage);
-
-        Assert(m_depthImageView->Create());
+        m_visibilityTexture->SetName(NAME("DDGIVisibilityTexture"));
+        m_visibilityTexture->SetIsTransient(true);
+        Check(m_visibilityTexture->Create());
     }
 }
 
@@ -206,7 +195,7 @@ void DDGI::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
     ddgiConstants.probeBorder = Vec4u(ProbeBorder, 0);
     ddgiConstants.probeCounts = { numProbesPerDimension.x, numProbesPerDimension.y, numProbesPerDimension.z, 0 };
     ddgiConstants.gridDimensions = { gridImageDimensions.x, gridImageDimensions.y, 0, 0 };
-    ddgiConstants.imageDimensions = { m_irradianceImage->GetExtent().x, m_irradianceImage->GetExtent().y, m_depthImage->GetExtent().x, m_depthImage->GetExtent().y };
+    ddgiConstants.imageDimensions = Vec4u { m_irradianceTexture->GetExtent().GetXY(), m_visibilityTexture->GetExtent().GetXY() };
     ddgiConstants.probeDistance = m_gridInfo.probeDistance;
     ddgiConstants.numRaysPerProbe = m_gridInfo.numRaysPerProbe;
     ddgiConstants.numBoundLights = 0;
@@ -324,8 +313,8 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     // Compute irradiance for ray traced probes
     const Vec3u probeCounts = NumProbesPerDimension(m_gridInfo);
 
-    frame->cr << InsertBarrier(m_irradianceImage, RS_UNORDERED_ACCESS);
-    frame->cr << InsertBarrier(m_depthImage, RS_UNORDERED_ACCESS);
+    frame->cr << InsertBarrier(m_irradianceTexture->GetGpuImage(), RS_UNORDERED_ACCESS);
+    frame->cr << InsertBarrier(m_visibilityTexture->GetGpuImage(), RS_UNORDERED_ACCESS);
 
     // Update irradiance
     shaderProperties = ShaderPropertySet();
@@ -335,11 +324,11 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
 
     frame->cr << SetShaderUniform(0, "CBuffer"_sh, m_dynamicCBuffer, ShaderDataOffset(m_dynamicCBufferOffset, m_dynamicCBufferSize));
     frame->cr << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer, ShaderDataOffset(0, sizeof(ProbeRayData)));
-    frame->cr << SetShaderUniform(2, "OutputImage"_sh, m_irradianceImageView);
+    frame->cr << SetShaderUniform(2, "OutputImage"_sh, RI.textureViewCache->GetOrCreate(m_irradianceTexture));
 
     frame->cr << DispatchCompute(Vec3u { probeCounts.x * probeCounts.y, probeCounts.z, 1u });
 
-    frame->cr << InsertBarrier(m_irradianceImage, RS_UNORDERED_ACCESS);
+    frame->cr << InsertBarrier(m_irradianceTexture->GetGpuImage(), RS_SHADER_RESOURCE);
 
     // Update depth
     shaderProperties = ShaderPropertySet();
@@ -349,12 +338,11 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
 
     frame->cr << SetShaderUniform(0, "CBuffer"_sh, m_dynamicCBuffer, ShaderDataOffset(m_dynamicCBufferOffset, m_dynamicCBufferSize));
     frame->cr << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer, ShaderDataOffset(0, sizeof(ProbeRayData)));
-    frame->cr << SetShaderUniform(2, "OutputImage"_sh, m_depthImageView);
+    frame->cr << SetShaderUniform(2, "OutputImage"_sh, RI.textureViewCache->GetOrCreate(m_visibilityTexture));
 
     frame->cr << DispatchCompute(Vec3u { probeCounts.x * probeCounts.y, probeCounts.z, 1u });
 
-    frame->cr << InsertBarrier(m_irradianceImage, RS_SHADER_RESOURCE);
-    frame->cr << InsertBarrier(m_depthImage, RS_SHADER_RESOURCE);
+    frame->cr << InsertBarrier(m_visibilityTexture->GetGpuImage(), RS_SHADER_RESOURCE);
 
 #if 0 // @FIXME: Properly implement an optimized way to copy border texels without invoking for each pixel in the images.
     frame->cr << InsertBarrier(m_irradianceImage, RS_UNORDERED_ACCESS);

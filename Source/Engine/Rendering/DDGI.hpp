@@ -70,24 +70,14 @@ public:
         return m_radianceBuffer;
     }
 
-    const GpuImageRef& GetIrradianceImage() const
+    const Handle<Texture>& GetIrradianceTexture() const
     {
-        return m_irradianceImage;
+        return m_irradianceTexture;
     }
 
-    const GpuImageViewRef& GetIrradianceImageView() const
+    const Handle<Texture>& GetVisibilityTexture() const
     {
-        return m_irradianceImageView;
-    }
-
-    const GpuImageRef& GetDepthImage() const
-    {
-        return m_depthImage;
-    }
-
-    const GpuImageViewRef& GetDepthImageView() const
-    {
-        return m_depthImageView;
+        return m_visibilityTexture;
     }
 
     const GpuBufferRef& GetConstantBuffer(uint32 frameIndex) const
@@ -118,10 +108,8 @@ private:
 
     GpuBufferRef m_radianceBuffer;
 
-    GpuImageRef m_irradianceImage;
-    GpuImageViewRef m_irradianceImageView;
-    GpuImageRef m_depthImage;
-    GpuImageViewRef m_depthImageView;
+    Handle<Texture> m_irradianceTexture;
+    Handle<Texture> m_visibilityTexture;
 
     RotationMatrixGenerator m_randomGenerator;
     uint32 m_counter;

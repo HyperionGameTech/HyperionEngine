@@ -338,7 +338,11 @@ public:
 
                 for (CompileShaderRequest* request : requests)
                 {
-                    request->entry->threadSignal.Reset();
+                    // Shouldn't happen; debugging a crash
+                    if (request->entry != nullptr)
+                    {
+                        request->entry->threadSignal.Reset();
+                    }
 
                     const bool isHeapAllocated = request->isHeapAllocated;
 

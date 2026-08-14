@@ -1994,7 +1994,7 @@ void DeferredPass::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
         }
     }
 
-    bool hasBlas = false;
+    bool hasAnyBlas = false;
 
     Array<ObjId<Entity>, RenderTempAllocator> removed;
     rpl.GetMeshEntities().GetRemoved(removed, /* includeChanged */ false);
@@ -2067,6 +2067,8 @@ void DeferredPass::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
             continue;
         }
 
+        hasAnyBlas = true;
+
         if (oldKey != 0 && oldKey != newKey)
         {
             for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
@@ -2105,12 +2107,10 @@ void DeferredPass::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
             {
                 pd->rayTracingTlases[frameIndex]->AddBLAS(newKey, blas);
             }
-
-            hasBlas = true;
         }
     }
 
-    if (!hasBlas)
+    if (!hasAnyBlas)
     {
         if (pd->rayTracingTlases[currentFrameIndex]->IsCreated())
         {

@@ -34,9 +34,17 @@ HYP_NODISCARD LightmapVolumeId LightmapSystem::AllocateLightmapVolumeId()
         world->MarkDirty();
     }
 
-    return static_cast<LightmapVolumeId>(m_nextLightmapVolumeId++);
-}
+    uint32 nextIdValue;
 
+    do
+    {
+        // We don't want to trample over IDs that were used for LightmapVolumes that were removed from the scene.
+        nextIdValue = m_nextLightmapVolumeId++;
+    }
+    while (m_freedLightmapVolumeIds.Contains(nextIdValue));
+
+    return static_cast<LightmapVolumeId>(nextIdValue);
+}
 
 void LightmapSystem::OnAddedToWorld(World* world)
 {

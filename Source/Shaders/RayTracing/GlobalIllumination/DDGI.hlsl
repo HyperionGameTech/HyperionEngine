@@ -48,7 +48,7 @@ DECLARE_SRV(DDGI, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
 
 #define RAY_OFFSET 0.05
 #define NUM_SAMPLES 1
-#define ENVIRONMENT_INTENSITY 10.0
+#define ENVIRONMENT_INTENSITY 1.0
 
 void SetProbeRayData(uint2 coord, ProbeRayData ray_data)
 {
@@ -209,7 +209,7 @@ void RayGenMain()
 
     ray_data.color = accumRadiance / NUM_SAMPLES;
 
-    // // // temp debug
+    //// temp debug
     //ray_data.color = float4(1.0, 0.0, 0.0, 1.0);
 
     SetProbeRayData(coord, ray_data);

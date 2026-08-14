@@ -284,12 +284,17 @@ void LightmapVolume::SetAtlasTexture(uint16 atlasIndex, AtlasTextureType type, c
 void LightmapVolume::OnAddedToWorld(World* world)
 {
     VolumeBase::OnAddedToWorld(world);
-
-    if (m_id == InvalidId)
+    
+    if (LightmapSystem* lightmapSystem = world->GetSystem<LightmapSystem>())
     {
-        if (LightmapSystem* lightmapSystem = world->GetSystem<LightmapSystem>())
+        if (m_id == InvalidId)
         {
             SetLightmapVolumeId(lightmapSystem->AllocateLightmapVolumeId());
+        }
+        else
+        {
+        
+            lightmapSystem->MarkLightmapVolumeIdUsed(m_id);
         }
     }
 
@@ -322,6 +327,15 @@ void LightmapVolume::OnAddedToWorld(World* world)
 void LightmapVolume::OnRemovedFromWorld(World* world)
 {
     VolumeBase::OnRemovedFromWorld(world);
+
+    if (m_id != InvalidId)
+    {
+        if (LightmapSystem* lightmapSystem = world->GetSystem<LightmapSystem>())
+        {
+            // Doesn't actually free it to be re-used; as we might want to undo removal from the world.
+            lightmapSystem->MarkLightmapVolumeIdFreed(m_id);
+        }
+    }
 
     for (Scene* scene : world->GetScenes())
     {
