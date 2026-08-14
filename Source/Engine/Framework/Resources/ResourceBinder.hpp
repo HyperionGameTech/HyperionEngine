@@ -231,12 +231,9 @@ class ResourceBinder : public ResourceBinderBase
         {
             const BitsetType removed = GetRemoved();
             const BitsetType newlyAdded = GetNewlyAdded();
-            const BitsetType after = (lastFrameIds & ~removed) | newlyAdded;
             const BitsetType unchanged = currentFrameIds & lastFrameIds;
 
-            AssertDebug(after.Count() <= allocator->maxSize, "Too many {} allocated!", TypeName<T>().Data());
-
-            // HYP_LOG_TEMP("Num {} resources: {} (added {}, removed {}, unchanged {})", typeInfo->name, after.Count(), newlyAdded.Count(), removed.Count(), unchanged.Count());
+            // HYP_LOG_TEMP("Num {} resources: {} (added {}, removed {}, unchanged {})", typeInfo->name, ((lastFrameIds & ~removed) | newlyAdded).Count(), newlyAdded.Count(), removed.Count(), unchanged.Count());
 
             // NOTE: We do removed bits first, to free up slots for the newly added elements to claim a binding index.
             if (removed.AnyBitsSet())
@@ -301,6 +298,9 @@ class ResourceBinder : public ResourceBinderBase
                     HYP_LOG(Rendering, Warning, "ResourceBinder<{}>: Maximum size of {} reached, cannot bind more objects!",
                         TypeName<T>().Data(),
                         allocator->maxSize);
+
+                    // wasn't actually bound; clear bit
+                    currentFrameIds.Set(bit, false);
 
                     continue; // no more space to bind
                 }

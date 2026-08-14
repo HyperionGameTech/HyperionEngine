@@ -187,9 +187,7 @@ PSOutput PSMain(PSInput input)
     float3 N = normalize(normal);
     float3 V = normalize(camera.position.xyz - positionWS.xyz);
     float3 R = normalize(reflect(-V, N));
-
-    const float invLightmappedWeight = 1.0 - min(1.0, float(mask & OBJECT_MASK_LIGHTMAPPED));
-
+    
     float ao = 1.0;
     float4 irradiance = (float4)0.0;
     float4 reflections = (float4)0.0;

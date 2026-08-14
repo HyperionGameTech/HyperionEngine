@@ -349,8 +349,8 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         if (dpd->ddgi)
         {
             cr << SetShaderUniform(numShaderUniforms++, "DDGIConstants"_sh, dpd->ddgi->GetConstantBuffer(frameIndex));
-            cr << SetShaderUniform(numShaderUniforms++, "DDGIIrradianceTexture"_sh, dpd->ddgi->GetIrradianceImageView());
-            cr << SetShaderUniform(numShaderUniforms++, "DDGIDepthTexture"_sh, dpd->ddgi->GetDepthImageView());
+            cr << SetShaderUniform(numShaderUniforms++, "DDGIIrradianceTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->ddgi->GetIrradianceTexture()));
+            cr << SetShaderUniform(numShaderUniforms++, "DDGIDepthTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->ddgi->GetVisibilityTexture()));
         }
 
         { // build indirect lighting constants

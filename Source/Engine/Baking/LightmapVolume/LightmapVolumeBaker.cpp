@@ -20,8 +20,11 @@
 
 #include <Rendering/Util/DeletionQueue.hpp>
 
+#include <Scene/World.hpp>
 #include <Scene/EntityManager.hpp>
 #include <Scene/LightmapVolume.hpp>
+
+#include <Scene/Systems/LightmapSystem.hpp>
 
 #include <Scene/Components/MeshComponent.hpp>
 #include <Scene/Components/TransformComponent.hpp>
@@ -350,8 +353,8 @@ void Baker<LightmapVolume>::Build()
             continue;
         }
 
-        // Only claim this entity if we're a better (or equal) fit than whoever currently owns it -
-        // prevents a volume's bake from stealing entities that belong to a better-fitting volume.
+        // Only claim this entity if we're a better or equal fit than whoever currently owns it,
+        // if whoever owns it is a valid lightmap volume (not removed from scene).
         const float weight = ComputeLightmapVolumeOverlapWeight(worldAabb, m_aabb);
 
         if (const LightmapElementComponent* lightmapElementComponent = mgr.TryGetComponent<LightmapElementComponent>(entity))
@@ -359,11 +362,21 @@ void Baker<LightmapVolume>::Build()
             if (lightmapElementComponent->NumLightmapVolumeAssignments() > 0)
             {
                 const LightmapVolumeId topAssignment = lightmapElementComponent->lightmapVolumeAssignments[0];
-                const float topAssignmentWeight = lightmapElementComponent->lightmapVolumeAssignmentWeights[0];
 
-                if (topAssignment != m_volume->GetLightmapVolumeId() && topAssignmentWeight >= weight)
+                if (topAssignment != m_volume->GetLightmapVolumeId())
                 {
-                    continue;
+                    LightmapSystem* lightmapSystem = m_scene->GetWorld()->GetSystem<LightmapSystem>();
+
+                    if (lightmapSystem != nullptr && lightmapSystem->IsIdForAliveLightmapVolume(topAssignment))
+                    {
+                        const float topAssignmentWeight = lightmapElementComponent->lightmapVolumeAssignmentWeights[0];
+
+                        if (topAssignmentWeight >= weight)
+                        {
+                            // SKIP! We're not as much of a fit for them as we thought we were.
+                            continue;
+                        }
+                    }
                 }
             }
         }

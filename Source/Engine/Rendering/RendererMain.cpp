@@ -589,6 +589,10 @@ void RenderProxyList::BeginWrite()
     AssertDebug(state != CS_READING);
     state = CS_WRITING;
 
+#ifdef HYP_ENABLE_MT_CHECK
+    m_dataRaceDetector.AddAccess(ThreadId::Current(), DataAccessFlags::ACCESS_WRITE, { HYP_FUNCTION_NAME_LIT });
+#endif
+
     // advance all trackers to the next state before we write into them.
     // this clears their 'next' bits and sets their 'previous' bits so we can tell what changed.
     ForEachResourceTracker(
@@ -610,6 +614,10 @@ void RenderProxyList::EndWrite()
 
     ++writeGeneration;
     state = CS_WRITTEN;
+
+#ifdef HYP_ENABLE_MT_CHECK
+    m_dataRaceDetector.RemoveAccess(ThreadId::Current(), DataAccessFlags::ACCESS_WRITE);
+#endif
 
     m_lock.UnlockWriter();
 }
@@ -641,11 +649,19 @@ void RenderProxyList::BeginRead()
 
     AssertDebug(state != CS_WRITING);
     state = CS_READING;
+
+#ifdef HYP_ENABLE_MT_CHECK
+    m_dataRaceDetector.AddAccess(ThreadId::Current(), DataAccessFlags::ACCESS_READ, { HYP_FUNCTION_NAME_LIT });
+#endif
 }
 
 void RenderProxyList::EndRead()
 {
     AssertDebug(state == CS_READING);
+
+#ifdef HYP_ENABLE_MT_CHECK
+    m_dataRaceDetector.RemoveAccess(ThreadId::Current(), DataAccessFlags::ACCESS_READ);
+#endif
 
     /// @NOTE: If BeginRead() is called on other thread between the check and setting state to CS_DONE,
     /// we could set state to done when it isn't actually.

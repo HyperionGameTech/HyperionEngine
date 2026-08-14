@@ -1388,13 +1388,16 @@ protected:
 
                         { // locked
                             TSharedLock lock(state.lock);
-                            BlobLookupMap& blobLookup = state.blobLookups[registryId];
 
-                            auto lookupIt = blobLookup.Find(keyValue);
-                            if (lookupIt != blobLookup.End())
+                            auto mapIt = state.blobLookups.Find(registryId);
+                            if (mapIt != state.blobLookups.End())
                             {
-                                entry = lookupIt->second;
-                                found = true;
+                                auto lookupIt = mapIt->second.Find(keyValue);
+                                if (lookupIt != mapIt->second.End())
+                                {
+                                    entry = lookupIt->second;
+                                    found = true;
+                                }
                             }
                         }
 

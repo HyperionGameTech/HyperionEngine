@@ -58,7 +58,21 @@ HYP_NODISCARD void* Pool::Allocate(size_t size, size_t alignment)
             m_tlsf.AddPool(newBlock.memory, m_blockSize);
 
             p = m_tlsf.Allocate(size, alignment);
-            Assert(p != nullptr, "Failed to allocate from newly created memory block! Out of system memory or pool overflow!");
+
+            if (!p)
+            {
+                if (m_flags & PF_FALLBACK)
+                {
+                    p = Memory::AllocateAligned(size, alignment);
+                    Assert(p != nullptr, "Failed to allocate {} bytes from the system allocator (fallback)", size);
+
+                    m_fallbackAllocations.Insert(p, size);
+                }
+                else
+                {
+                    Assert(p != nullptr, "Failed to allocate from newly created memory block! Out of system memory or pool overflow!");
+                }
+            }
         }
     }
 

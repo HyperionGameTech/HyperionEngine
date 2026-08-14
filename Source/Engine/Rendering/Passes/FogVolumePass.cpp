@@ -24,6 +24,7 @@
 #include <Rendering/ShaderManager.hpp>
 #include <Rendering/DepthPyramidRenderer.hpp>
 #include <Rendering/CommandRecorder.hpp>
+#include <Rendering/RawBufferAllocator.hpp>
 
 #include <Rendering/Shadows/ShadowMapCache.hpp>
 #include <Rendering/Shadows/ShadowMap.hpp>
@@ -231,6 +232,12 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
 
     cr << SetShaderUniform(9, "ClusterGridBuffer"_sh, *dpd->gridTilesBuffer);
     cr << SetShaderUniform(10, "ClusterIndexBuffer"_sh, *dpd->gridIndexBuffer);
+
+    if (dpd->clusteredShadowMapIndexBuffer == nullptr)
+    {
+        // We need this here because if path tracing is active, the deferred pass doesn't set it
+        dpd->clusteredShadowMapIndexBuffer = &RI.bufferAllocator->AcquireByteAddressBuffer(sizeof(uint32));
+    }
 
     cr << SetShaderUniform(11, "ShadowMapIndexBuffer"_sh, *dpd->clusteredShadowMapIndexBuffer);
 
