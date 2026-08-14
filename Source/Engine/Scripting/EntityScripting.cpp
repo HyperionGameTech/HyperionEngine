@@ -278,6 +278,14 @@ void BindExterns(StrataJit* jit)
 
 #    endif // HYP_STRATA_JIT
 
+void ClearFunctionPointerCacheForModule(StringHash moduleHash)
+{
+    if (t_fnPtrCache != nullptr)
+    {
+        t_fnPtrCache->ClearModule(moduleHash);
+    }
+}
+
 } // namespace Strata
 
 #endif // HYP_STRATA

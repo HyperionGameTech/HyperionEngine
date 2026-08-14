@@ -784,9 +784,8 @@ public:
             const Vec3f aabbMinWS = envProbeData.aabbMin.GetXYZ();
             const Vec3f aabbMaxWS = envProbeData.aabbMax.GetXYZ();
 
-            switch (envProbeData.typeAndFlags & 0x7)
+            if ((envProbeData.typeAndFlags & 0x7) == EPT_SKY)
             {
-            case EPT_SKY:
                 for (Tile& tile : tempTiles)
                 {
                     if (tile.numEnvProbes < MaxEnvProbesPerTile)
@@ -795,13 +794,8 @@ public:
                     }
                 }
 
-                break;
-            case EPT_AMBIENT:
-                AssertDebug(envProbe.IsA<IrradianceProbe>());
-
-                break;
-            default:
-                break;
+                // Don't want to go into the body below, for sky.
+                continue;
             }
 
             uint32 tileMinX;

@@ -16,6 +16,8 @@ handle NullEditorGizmo extends EditorGizmoBase;
 handle EditorTaskBase extends ObjectBase;
 handle LongRunningEditorTask extends EditorTaskBase;
 handle TickableEditorTask extends EditorTaskBase;
+handle GenerateLightmapsEditorTask extends TickableEditorTask;
+handle GenerateBentNormalsEditorTask extends TickableEditorTask;
 handle EditorViewport extends ObjectBase;
 handle AssetLoaderBase extends ObjectBase;
 handle AssetObject extends ObjectBase;
@@ -916,6 +918,16 @@ extern void TickableEditorTask_Cancel(TickableEditorTask self);
 extern bool TickableEditorTask_IsCompleted(TickableEditorTask self);
 extern bool TickableEditorTask_Commit(TickableEditorTask self);
 extern void TickableEditorTask_Tick(TickableEditorTask self);
+
+// GenerateLightmapsEditorTask (requires HYP_EDITOR)
+extern void GenerateLightmapsEditorTask_Start(GenerateLightmapsEditorTask self);
+extern bool GenerateLightmapsEditorTask_IsCompleted(GenerateLightmapsEditorTask self);
+extern void GenerateLightmapsEditorTask_Tick(GenerateLightmapsEditorTask self);
+
+// GenerateBentNormalsEditorTask (requires HYP_EDITOR)
+extern void GenerateBentNormalsEditorTask_Start(GenerateBentNormalsEditorTask self);
+extern bool GenerateBentNormalsEditorTask_IsCompleted(GenerateBentNormalsEditorTask self);
+extern void GenerateBentNormalsEditorTask_Tick(GenerateBentNormalsEditorTask self);
 
 // EditorProject (requires HYP_EDITOR)
 extern void EditorProject_GetName(EditorProject self, ref Name outReturn);

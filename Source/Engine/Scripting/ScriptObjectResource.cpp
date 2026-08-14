@@ -2,6 +2,7 @@
 
 #include <Scripting/ScriptObjectResource.hpp>
 #include <Scripting/Script.hpp>
+#include <Scripting/EntityScripting.hpp>
 
 #include <Core/Reflection/ClassRegistry.hpp>
 #include <Core/Reflection/Object.hpp>
@@ -175,6 +176,8 @@ ScriptObjectResource::~ScriptObjectResource()
 #ifdef HYP_STRATA_JIT
         if (strataData->jit)
         {
+            Strata::ClearFunctionPointerCacheForModule(strataData->moduleHash);
+
             strataJitDestroy(strataData->jit);
             strataData->jit = nullptr;
         }

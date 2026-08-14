@@ -210,7 +210,7 @@ void RayGenMain()
     ray_data.color = accumRadiance / NUM_SAMPLES;
 
     // // // temp debug
-    // ray_data.color = float4(1.0, 0.0, 0.0, 1.0);
+    //ray_data.color = float4(1.0, 0.0, 0.0, 1.0);
 
     SetProbeRayData(coord, ray_data);
 }

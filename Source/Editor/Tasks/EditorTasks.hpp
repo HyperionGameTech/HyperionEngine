@@ -9,7 +9,7 @@ class EnvProbe;
 class World;
 class Scene;
 
-HYP_CLASS(NoScriptBindings)
+HYP_CLASS()
 class GenerateLightmapsEditorTask : public TickableEditorTask
 {
     HYP_OBJECT_BODY(GenerateLightmapsEditorTask);
@@ -70,7 +70,7 @@ private:
     Array<Task<void>, EditorAllocator> m_tasks;
 };
 
-HYP_CLASS(NoScriptBindings)
+HYP_CLASS()
 class GenerateBentNormalsEditorTask : public TickableEditorTask
 {
     HYP_OBJECT_BODY(GenerateBentNormalsEditorTask);

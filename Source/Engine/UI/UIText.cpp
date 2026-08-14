@@ -104,7 +104,7 @@ static void ForEachCharacter(
         atlasPixelSize = Vec2f::One() / Vec2f(mainTextureAtlas->GetExtent().GetXY());
     }
 
-    Array<FontAtlasCharacterIterator, ThreadAllocator> currentWordChars;
+    FatArray<FontAtlasCharacterIterator, InlineAllocator<8, ThreadAllocator>> currentWordChars;
     currentWordChars.Reserve(static_cast<size_t>(text.Size() * 1.25));
 
     const auto iterateCurrentWord = [&currentWordChars, &callback]()
@@ -133,7 +133,7 @@ static void ForEachCharacter(
             {
                 // add room for space
                 // this is a bit of a hack, but it works for now
-                static constexpr float SpaceCharacterSize = 0.35f;
+                static constexpr float SpaceCharacterSize = 0.25f;
                 placement.x += cellDimensions.x * SpaceCharacterSize;
             }
 
