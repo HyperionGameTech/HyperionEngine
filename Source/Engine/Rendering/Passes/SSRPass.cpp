@@ -52,9 +52,9 @@ static EngineStatGpuTimer s_statSSRColorPass("Rendering/GPU/SSRColor");
 CVar<bool> cvSSRConeTracing { "Rendering.SSR.ConeTracing", true };
 CVar<bool> cvSSRRoughnessScattering { "Rendering.SSR.RoughnessScattering", false };
 
-CVar<float> cvSSRRayStep { "Rendering.SSR.RayStep", 0.2f };
-CVar<float> cvSSRDistanceBias { "Rendering.SSR.DistanceBias", 0.01f };
-CVar<float> cvSSRThickness { "Rendering.SSR.Thickness", 5.0f };
+CVar<float> cvSSRRayStep { "Rendering.SSR.RayStep", 0.08f };
+CVar<float> cvSSRDistanceBias { "Rendering.SSR.DistanceBias", 0.025f };
+CVar<float> cvSSRThickness { "Rendering.SSR.Thickness", 0.2f };
 CVar<float> cvSSRMaxDistance { "Rendering.SSR.MaxDistance", 1000.0f };
 CVar<float> cvSSRTraceResolutionScale { "Rendering.SSR.TraceResolutionScale", 0.65 };
 CVar<float> cvSSRScreenEdgeFadeStart { "Rendering.SSR.ScreenEdgeFadeStart", 0.92f };

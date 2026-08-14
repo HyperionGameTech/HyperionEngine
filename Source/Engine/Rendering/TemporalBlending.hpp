@@ -78,7 +78,7 @@ public:
 
     HYP_FORCE_INLINE const Handle<Texture>& GetResultTexture() const
     {
-        return m_resultTexture;
+        return m_currentResultTexture;
     }
 
     HYP_FORCE_INLINE const Handle<Texture>& GetHistoryTexture() const
@@ -115,6 +115,7 @@ private:
 
     Handle<Texture> m_resultTexture;
     Handle<Texture> m_historyTexture;
+    Handle<Texture> m_currentResultTexture;
 
     DelegateHandler m_onGbufferResolutionChanged;
 

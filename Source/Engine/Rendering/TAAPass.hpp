@@ -37,7 +37,7 @@ public:
 
     HYP_FORCE_INLINE const Handle<Texture>& GetResultTexture() const
     {
-        return m_resultTexture;
+        return m_pingPongIndex == 0 ? m_historyTexture : m_resultTexture;
     }
 
     void Create();

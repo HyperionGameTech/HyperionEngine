@@ -419,7 +419,7 @@ vec4 PixelHistory(in vec4 current_color, in vec4 previous_color, in vec4 colors[
     return clamp(previous_color, color_min, color_max);
 }
 
-vec4 TemporalLuminanceResolve(vec4 color, vec4 color_clipped)
+vec4 TemporalLuminanceResolve(vec4 color, vec4 color_clipped, float feedback_max)
 {
     const float lum0 = Luminance(color.rgb);
     const float lum1 = Luminance(color_clipped.rgb);
@@ -427,12 +427,12 @@ vec4 TemporalLuminanceResolve(vec4 color, vec4 color_clipped)
     float unbiased_diff = abs(lum0 - lum1) / max(lum0, max(lum1, 0.2));
     float unbiased_weight = 1.0 - unbiased_diff;
     float unbiased_weight_sqr = HYP_FMATH_SQR(unbiased_weight);
-    float feedback = saturate(lerp(0.88, 0.98, unbiased_weight_sqr));
+    float feedback = saturate(lerp(feedback_max - 0.1, feedback_max, unbiased_weight_sqr));
 
     return lerp(color, color_clipped, feedback);
 }
 
-vec4 TemporalLuminanceResolveYCoCg(vec4 color, vec4 color_clipped)
+vec4 TemporalLuminanceResolveYCoCg(vec4 color, vec4 color_clipped, float feedback_max)
 {
     const float lum0 = color.r;
     const float lum1 = color_clipped.r;
@@ -440,7 +440,7 @@ vec4 TemporalLuminanceResolveYCoCg(vec4 color, vec4 color_clipped)
     float unbiased_diff = abs(lum0 - lum1) / max(lum0, max(lum1, 0.2));
     float unbiased_weight = 1.0 - unbiased_diff;
     float unbiased_weight_sqr = HYP_FMATH_SQR(unbiased_weight);
-    float feedback = saturate(lerp(0.88, 0.98, unbiased_weight_sqr));
+    float feedback = saturate(lerp(feedback_max - 0.1, feedback_max, unbiased_weight_sqr));
 
     return lerp(color, color_clipped, feedback);
 }
@@ -501,7 +501,7 @@ vec4 TemporalResolve(in texture2D color_texture, in texture2D previous_color_tex
     const vec4 previous_color_constrained = PixelHistory(current_color, previous_color, current_colors_3x3); // previous_colors_2x2);
 
     vec4 result = lerp(current_color, previous_color_constrained, blend);
-    return ADJUST_COLOR_GAMMA_OUT(TemporalLuminanceResolve(ADJUST_COLOR_OUT(current_color), ADJUST_COLOR_OUT(previous_color_constrained)));
+    return ADJUST_COLOR_GAMMA_OUT(TemporalLuminanceResolve(ADJUST_COLOR_OUT(current_color), ADJUST_COLOR_OUT(previous_color_constrained), FEEDBACK));
 }
 
 void InitTemporalParams(
@@ -580,7 +580,7 @@ vec4 TemporalBlendRounded(in texture2D input_texture, in texture2D prev_input_te
     clipped = ClipAABB(cmin, cmax, clipped, previous_color);
 
     // Resolve in YCoCg, convert back to RGB, then undo HDR/log and gamma-correct
-    vec4 resolved_yc = TemporalLuminanceResolveYCoCg(color, clipped);
+    vec4 resolved_yc = TemporalLuminanceResolveYCoCg(color, clipped, FEEDBACK);
     vec4 resolved_rgb = YCoCgToRGB(resolved_yc);
     vec4 out_rgb = ADJUST_COLOR_OUT(resolved_rgb);
     return ADJUST_COLOR_GAMMA_OUT(out_rgb);
@@ -635,12 +635,10 @@ vec4 TemporalBlendVarying(
     // ClipAABB and TemporalLuminanceResolve operate in YCoCg+adjusted space
     const vec4 clipped = ClipAABB(cmin, cmax, clamp(cavg, cmin, cmax), previous_color);
 
-    vec4 resolved_yc = TemporalLuminanceResolveYCoCg(color, clipped);
-
-    // Velocity-based anti-ghosting: for fast-moving pixels, bias toward current frame
-    // to reduce ghosting trails. Length of velocity in UV space is proportional to motion.
-    const float velocity_len = length(velocity);
-    const float velocity_factor = saturate((velocity_len - 0.0001) * 4.0);
+    vec4 resolved_yc = TemporalLuminanceResolveYCoCg(color, clipped, FEEDBACK);
+    
+    const float pixel_velocity = length(texel_vel);
+    const float velocity_factor = saturate(pixel_velocity / 1.5);
     resolved_yc = lerp(resolved_yc, color, velocity_factor);
 
     vec4 resolved_rgb = YCoCgToRGB(resolved_yc);

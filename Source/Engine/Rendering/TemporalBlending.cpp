@@ -208,6 +208,8 @@ void TemporalBlending::CreateImages()
 
     m_historyTexture->SetName(NAME("TemporalBlendingHistory"));
     Check(m_historyTexture->Create());
+
+    m_currentResultTexture = m_resultTexture;
 }
 
 void TemporalBlending::Render(Frame* frame, const RenderSetup& renderSetup)
@@ -216,14 +218,18 @@ void TemporalBlending::Render(Frame* frame, const RenderSetup& renderSetup)
 
     AssertDebug(renderSetup.world && renderSetup.view);
 
+    const bool isEvenFrame = frame->GetFrameIndex() % 2 == 0;
+
     // Get active image and extent
-    const Handle<Texture>& activeTexture = frame->GetFrameIndex() % 2 == 0
+    const Handle<Texture>& activeTexture = isEvenFrame
         ? m_resultTexture
         : m_historyTexture;
 
-    const Handle<Texture>& prevTexture = frame->GetFrameIndex() % 2 == 0
+    const Handle<Texture>& prevTexture = isEvenFrame
         ? m_historyTexture
         : m_resultTexture;
+
+    m_currentResultTexture = activeTexture;
 
     frame->cr << InsertBarrier(activeTexture->GetGpuImage(), RS_UNORDERED_ACCESS);
 

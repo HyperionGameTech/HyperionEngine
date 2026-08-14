@@ -2,7 +2,7 @@
 #include "include/Shared.hlsli"
 #include "include/Scene.hlsli"
 
-STATIC(FEEDBACK, 0.8)
+STATIC(FEEDBACK, 0.65)
 
 DECLARE_SRV(TAA, InColorTexture) Texture2D color_texture;
 DECLARE_SRV(TAA, InPrevColorTexture) Texture2D prev_color_texture;
