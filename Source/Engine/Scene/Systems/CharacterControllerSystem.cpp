@@ -15,6 +15,7 @@
 #include <Scene/World.hpp>
 
 #include <Physics/PhysicsWorld.hpp>
+#include <Physics/PhysicsShape.hpp>
 
 #include <Input/Keyboard.hpp>
 #include <Input/InputManager.hpp>
@@ -185,7 +186,9 @@ void CharacterControllerSystem::OnEntityRemoved(Entity* entity)
     SystemBase::OnEntityRemoved(entity);
 
     if (!ShouldProcessScene(entity->GetScene()))
+    {
         return;
+    }
 
     CharacterControllerComponent& component = entity->GetComponent<CharacterControllerComponent>();
 
@@ -229,6 +232,18 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
             Vec3f walkDirection;
 
+            float heightOffset = 0.0f;
+
+            if (CapsulePhysicsShape* capsuleShape = DynamicCast<CapsulePhysicsShape>(component.shape.Get()))
+            {
+                // amount to adjust the the final offset by after applying capsule height
+                // otherwise the node will sit directly on top of the capsule,
+                // when it should be contained within the capsule
+                static constexpr float CapsuleHeightOffset = 0.1f;
+
+                heightOffset = capsuleShape->GetHeight() - CapsuleHeightOffset;
+            }
+
             if (component.inputHandler)
             {
                 CharacterControllerInputHandler* inputHandler = StaticCast<CharacterControllerInputHandler>(component.inputHandler.Get());
@@ -262,7 +277,9 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
             entity->GetWorld()->GetPhysicsWorld()->SetCharacterWalkDirection(component.physicsHandle, walkDirection);
             entity->GetWorld()->GetPhysicsWorld()->GetCharacterState(component.physicsHandle, component.translation, component.isOnGround);
 
-            entity->SetWorldTranslation(component.translation, TransformChangeType::Simulation);
+            entity->SetWorldTranslation(
+                component.translation + Vec3f(0.0f, heightOffset, 0.0f),
+                TransformChangeType::Simulation);
         }
     }
 }

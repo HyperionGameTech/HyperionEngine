@@ -773,11 +773,6 @@ class CacheServerCommandlet final : public CommandletBase
         const String& assetNameStr,
         bool wasDeleted)
     {
-        TUniqueLock lock(state.lock);
-
-        ServerManifest& manifest = state.manifests[registryId];
-        BlobLookupMap& blobLookup = state.blobLookups[registryId];
-
         AssetBucket bucket = GetAssetBucketByName(StringHash(bucketName));
         uint32 bucketIndex = bucket.GetIndex();
 
@@ -788,24 +783,29 @@ class CacheServerCommandlet final : public CommandletBase
 
         Name name = CreateNameFromDynamicString(assetNameStr);
 
-        size_t existingIndex = SIZE_MAX;
-
-        for (size_t i = 0; i < manifest.assets.Size(); i++)
-        {
-            const AssetEntry& entry = manifest.assets[i];
-
-            if (entry.path.registryId == registryId
-                && entry.path.bucketIndex == bucketIndex
-                && entry.path.assetName == name)
-            {
-                existingIndex = i;
-
-                break;
-            }
-        }
-
         if (wasDeleted)
         {
+            TUniqueLock lock(state.lock);
+
+            ServerManifest& manifest = state.manifests[registryId];
+            BlobLookupMap& blobLookup = state.blobLookups[registryId];
+
+            size_t existingIndex = SIZE_MAX;
+
+            for (size_t i = 0; i < manifest.assets.Size(); i++)
+            {
+                const AssetEntry& entry = manifest.assets[i];
+
+                if (entry.path.registryId == registryId
+                    && entry.path.bucketIndex == bucketIndex
+                    && entry.path.assetName == name)
+                {
+                    existingIndex = i;
+
+                    break;
+                }
+            }
+
             if (existingIndex != SIZE_MAX)
             {
                 for (const BlobEntry& blob : manifest.assets[existingIndex].blobs)
@@ -835,14 +835,6 @@ class CacheServerCommandlet final : public CommandletBase
         Array<Tuple<const char*, uint16, BlobDataReference*>> blobRefs;
         assetObject->CollectBlobDataReferences(blobRefs);
 
-        if (existingIndex != SIZE_MAX)
-        {
-            for (const BlobEntry& blob : manifest.assets[existingIndex].blobs)
-            {
-                blobLookup.Erase(blob.key);
-            }
-        }
-
         const AssetPath path { registryId, *AssetBuckets::AllBuckets[bucketIndex], name };
 
         AssetEntry newEntry;
@@ -854,6 +846,8 @@ class CacheServerCommandlet final : public CommandletBase
             newEntry.lastModifiedTimestamp = uint64(hmfPath.LastModifiedTimestamp());
         }
 
+        Array<Tuple<uint64, uint64, const char*>> lookupEntries; // key, size, magic
+
         for (auto& tup : blobRefs)
         {
             BlobDataReference* ref = tup.GetElement<2>();
@@ -864,25 +858,57 @@ class CacheServerCommandlet final : public CommandletBase
             }
 
             uint64 key = ref->key.GetHashCode().Value();
+            const char* magic = tup.GetElement<0>();
 
             BlobEntry blobEntry;
             blobEntry.key = key;
             blobEntry.size = ref->size;
-            blobEntry.magic = tup.GetElement<0>();
+            blobEntry.magic = magic;
             newEntry.blobs.PushBack(std::move(blobEntry));
 
-            BlobLookupEntry& lookup = blobLookup[key];
-            lookup = {};
-            lookup.path = path;
-            lookup.size = ref->size;
-            lookup.magic = tup.GetElement<0>();
+            lookupEntries.EmplaceBack(key, uint64(ref->size), magic);
+        }
+        
+        TUniqueLock lock(state.lock);
+
+        ServerManifest& manifest = state.manifests[registryId];
+        BlobLookupMap& blobLookup = state.blobLookups[registryId];
+
+        size_t existingIndex = SIZE_MAX;
+
+        for (size_t i = 0; i < manifest.assets.Size(); i++)
+        {
+            const AssetEntry& entry = manifest.assets[i];
+
+            if (entry.path.registryId == registryId
+                && entry.path.bucketIndex == bucketIndex
+                && entry.path.assetName == name)
+            {
+                existingIndex = i;
+
+                break;
+            }
         }
 
         if (existingIndex != SIZE_MAX)
         {
             // Replace in-place - sorted position may have shifted, so
             // remove and re-insert at the correct position.
+            for (const BlobEntry& blob : manifest.assets[existingIndex].blobs)
+            {
+                blobLookup.Erase(blob.key);
+            }
+
             manifest.assets.EraseAt(existingIndex);
+        }
+
+        for (auto& tup : lookupEntries)
+        {
+            BlobLookupEntry& lookup = blobLookup[tup.GetElement<0>()];
+            lookup = {};
+            lookup.path = path;
+            lookup.size = tup.GetElement<1>();
+            lookup.magic = tup.GetElement<2>();
         }
 
         // Insert at the sorted position (descending by timestamp)
