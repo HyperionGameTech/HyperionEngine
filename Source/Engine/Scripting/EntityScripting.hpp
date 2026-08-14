@@ -13,6 +13,15 @@ class World;
 
 struct ScriptComponent;
 struct GameState;
+struct StringHash;
+
+#ifdef HYP_STRATA
+namespace Strata {
+
+void ClearFunctionPointerCacheForModule(StringHash moduleHash);
+
+} // namespace Strata
+#endif // HYP_STRATA
 
 namespace EntityScripting {
 

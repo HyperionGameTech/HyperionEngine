@@ -4737,9 +4737,10 @@ void EditorSubsystem::NewProject()
 
     // Add primary camera
     Handle<Camera> camera = MakeHandle<Camera>();
-    camera->SetDimensions(Vec2i(1920, 1080)); // @TODO Match window size
+    camera->SetDimensions(Vec2i(1920, 1080));
     camera->SetName(NAME("Camera"));
     camera->SetWorldTranslation(Vec3f(0.0f, 1.0f, -5.0f));
+    camera->SetCameraFlags(CameraFlags::MatchWindowSize | CameraFlags::HasStreamingVolume);
     camera->AddTag<EntityTag::PrimaryCamera>();
 
     Handle<FirstPersonCameraController> firstPersonController = MakeHandle<FirstPersonCameraController>();

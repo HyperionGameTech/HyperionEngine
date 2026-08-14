@@ -2489,6 +2489,26 @@ extern class LongRunningEditorTask : EditorTaskBase
     IsCompleted_Impl() -> bool
     Process_Impl() -> void
 end
+extern class GenerateBentNormalsEditorTask : TickableEditorTask
+    GetWorld() -> World
+    SetWorld(world : World) -> void
+    GetScene() -> Scene
+    SetScene(scene : Scene) -> void
+    Start() -> void
+    IsCompleted() -> bool
+    Tick() -> void
+    Cancel_Impl() -> void
+end
+extern class GenerateLightmapsEditorTask : TickableEditorTask
+    GetWorld() -> World
+    SetWorld(world : World) -> void
+    GetScene() -> Scene
+    SetScene(scene : Scene) -> void
+    Start() -> void
+    IsCompleted() -> bool
+    Tick() -> void
+    Cancel_Impl() -> void
+end
 extern class EditorState
     static GetInstance() -> EditorState
     GetCurrentProject() -> EditorProject

@@ -180,8 +180,7 @@ PSOutput PSMain(PSInput input)
 
     float3 diffuseIndirect = diffuse_color.rgb * irradiance.rgb * (1.0 - E) * ao;
 
-    output.color_output.rgb = diffuseIndirect;
-    output.color_output.a = 1.0;
+    output.color_output = float4(diffuseIndirect, 1.0);
 
     return output;
 }
