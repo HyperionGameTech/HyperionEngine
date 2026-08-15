@@ -114,7 +114,7 @@ public:
     Map<Name, uint32, ShaderAllocator, HashTablePolicy::NotPooled> m_compilingShaderNames;
 #endif
 
-#if HYP_ENABLE_SHADER_RELOAD
+#ifdef HYP_ENABLE_SHADER_RELOAD
     static constexpr uint32 ShaderReloadIntervalMs = 3000;
     AtomicVar<bool> m_shaderReloadShouldStop { false };
     Task<void> m_shaderReloadTask;
@@ -133,10 +133,6 @@ public:
 
     ShaderManagerImpl()
     {
-#if HYP_ENABLE_SHADER_RELOAD
-        StartShaderReloadThread();
-#endif
-
         // Try finding preload bin
         FileByteReader preloadCacheReader(EngineGlobals::GetCacheDirectory() / "shaderpreload.bin");
 
@@ -193,7 +189,7 @@ public:
 
     ~ShaderManagerImpl()
     {
-#if HYP_ENABLE_SHADER_RELOAD
+#ifdef HYP_ENABLE_SHADER_RELOAD
         StopShaderReloadThread();
 #endif
     }
@@ -798,7 +794,7 @@ public:
         return totalMemoryUsage;
     }
 
-#if HYP_ENABLE_SHADER_RELOAD
+#ifdef HYP_ENABLE_SHADER_RELOAD
     void StartShaderReloadThread()
     {
         m_shaderReloadShouldStop.Set(false, MemoryOrder::RELAXED);
@@ -948,7 +944,7 @@ public:
                     RI.computePipelineCache->ExpirePipelinesForShader(shader);
                     RI.rayTracingPipelineCache->ExpirePipelinesForShader(shader);
 
-                    RI.shaderManager->ExpireShaderEntries(shader);
+                    g_shaderManager->ExpireShaderEntries(shader);
 
                     shader->Release();
                 }
@@ -973,6 +969,20 @@ public:
 ShaderManager::ShaderManager()
     : m_impl(MakePimplWithAllocator<ShaderManagerImpl, ShaderAllocator>())
 {
+}
+
+void ShaderManager::StartShaderReloadThread()
+{
+#ifdef HYP_ENABLE_SHADER_RELOAD
+    m_impl->StartShaderReloadThread();
+#endif // HYP_ENABLE_SHADER_RELOAD
+}
+
+void ShaderManager::StopShaderReloadThread()
+{
+#ifdef HYP_ENABLE_SHADER_RELOAD
+    m_impl->StopShaderReloadThread();
+#endif // HYP_ENABLE_SHADER_RELOAD
 }
 
 ShaderInstanceRef ShaderManager::GetOrCreate(Name name, const ShaderPropertySet& propertySet, const VertexInputLayoutDesc& inputLayout, bool waitForCompile)

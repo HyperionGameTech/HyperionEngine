@@ -3497,7 +3497,7 @@ bool ShaderCompiler::CompileBundle(
                     RI.computePipelineCache->ExpirePipelinesForShader(shader);
                     RI.rayTracingPipelineCache->ExpirePipelinesForShader(shader);
 
-                    RI.shaderManager->ExpireShaderEntries(shader);
+                    g_shaderManager->ExpireShaderEntries(shader);
 
                     GetEngineAssetRegistry()->RemoveAsset(shader);
 

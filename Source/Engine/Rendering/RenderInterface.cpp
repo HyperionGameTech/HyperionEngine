@@ -654,7 +654,6 @@ RenderInterface::RenderInterface()
     : cbufferAllocator(nullptr),
       bufferAllocator(nullptr),
       scratchImageAllocator(nullptr),
-      shaderManager(nullptr),
       bindlessStorage(nullptr),
       placeholderData(nullptr),
       materialTextureCache(nullptr),
@@ -707,7 +706,6 @@ RendererResult RenderInterface::Initialize()
     rayTracingPipelineCache = PoolNew<RayTracingPipelineCache>(*g_renderPool);
     renderGroupCache = PoolNew<RenderGroupCache>(*g_renderPool);
     bindlessStorage = PoolNew<BindlessStorage>(*g_renderPool);
-    shaderManager = PoolNew<ShaderManager>(*g_renderPool);
     textureViewCache = PoolNew<TextureViewCache>(*g_renderPool);
     samplerCache = PoolNew<SamplerCache>(*g_renderPool);
     blasCache = PoolNew<BLASCache>(*g_renderPool);
@@ -908,9 +906,6 @@ void RenderInterface::Shutdown()
     globalDescriptorTable.Reset();
 
     CrashHandler::Shutdown();
-
-    PoolDelete(*g_renderPool, shaderManager);
-    shaderManager = nullptr;
 
     PoolDelete(*g_renderPool, blasCache);
     blasCache = nullptr;

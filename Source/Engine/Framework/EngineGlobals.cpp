@@ -73,6 +73,21 @@ ENGINE_API bool IsCacheServer()
     return IsGlobalContextActive<CacheServerContext>();
 }
 
+bool g_isCommandlet = false;
+
+ENGINE_API bool IsCommandlet()
+{
+    static std::once_flag s_onceFlag;
+    std::call_once(
+        s_onceFlag,
+        []
+        {
+            g_isCommandlet = CoreApi::GetCommandLineArguments()["exec"].ToBool();
+        });
+
+    return g_isCommandlet;
+}
+
 static FilePath s_cacheDirectory;
 
 // Directory for cached data (shader bundles, compiled scripts, etc.) Expected to be compiled into the asset registry in production builds

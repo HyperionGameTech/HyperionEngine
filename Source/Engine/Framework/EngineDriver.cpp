@@ -199,6 +199,8 @@ void EngineDriver::Initialize()
         return;
     }
 
+    g_shaderManager = new ShaderManager();
+
     g_shaderCompiler = new ShaderCompiler;
     if (!g_shaderCompiler->Initialize())
     {
@@ -386,6 +388,12 @@ bool EngineDriver::StartThreads()
         return false;
     }
 
+    // This needs to be after we start the task system.
+    if (g_shaderManager != nullptr && !EngineGlobals::IsCommandlet())
+    {
+        g_shaderManager->StartShaderReloadThread();
+    }
+
     return success;
 }
 
@@ -410,6 +418,21 @@ void EngineDriver::Shutdown()
         delete m_viewCollectionBatch;
         m_viewCollectionBatch = nullptr;
     }
+    
+    if (g_shaderManager != nullptr)
+    {
+        g_shaderManager->StopShaderReloadThread();
+
+#if !defined(HYP_SHIPPING)
+        g_shaderManager->WriteShaderCache(EngineGlobals::GetCacheDirectory());
+#endif // !HYP_SHIPPING
+
+        delete g_shaderManager;
+        g_shaderManager = nullptr;
+    }
+
+    delete g_shaderCompiler;
+    g_shaderCompiler = nullptr;
 
     m_worlds.Clear();
 }
