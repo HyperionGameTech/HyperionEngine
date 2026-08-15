@@ -137,6 +137,7 @@ ENGINE_API Handle<StreamingManager> g_streamingManager;
 ENGINE_API Handle<EngineStats> g_engineStats;
 ENGINE_API MaterialCache* g_materialCache;
 ENGINE_API ShaderCompiler* g_shaderCompiler;
+ENGINE_API ShaderManager* g_shaderManager;
 
 #ifdef HYP_EDITOR
 Handle<EditorState> g_editorState;
@@ -605,14 +606,6 @@ extern "C"
 
         Assert(g_engineDriver != nullptr, "Hyperion not initialized!");
 
-#ifndef HYP_SHIPPING
-        // Flush shader cache data files
-        if (RI.shaderManager != nullptr)
-        {
-            RI.shaderManager->WriteShaderCache(EngineGlobals::GetCacheDirectory());
-        }
-#endif
-
         g_engineDriver->Shutdown();
     
 #ifdef HYP_STEAM_SDK
@@ -705,9 +698,6 @@ extern "C"
         DestroyNameRegistry();
 
         CoreApi::Shutdown();
-
-        delete g_shaderCompiler;
-        g_shaderCompiler = nullptr;
 
         delete g_materialCache;
         g_materialCache = nullptr;

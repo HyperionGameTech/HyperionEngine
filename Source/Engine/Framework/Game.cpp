@@ -703,7 +703,7 @@ void Game::OnUpdate(float delta)
             m_syncState.currentTask = TaskSystem::GetInstance().Enqueue(
                 [this]() -> Result
                 {
-                    RI.shaderManager->PreloadShadersFromCacheFile(
+                    g_shaderManager->PreloadShadersFromCacheFile(
                         /* blockingWait */ true,
                         ProcRef<void(uint64, uint64)>(*this, ValueWrapper<&Game::OnSyncProgress>{}));
 

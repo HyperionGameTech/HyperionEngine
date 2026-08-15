@@ -114,6 +114,11 @@ protected:
 
     virtual Result Run(const CommandLineArguments& args) override
     {
+        if (!g_shaderManager)
+        {
+            g_shaderManager = new ShaderManager;
+        }
+
         GlobalContextScope contextScope { CookingContext() };
 
         Handle<AssetRegistry> gameRegistry;
@@ -447,21 +452,10 @@ private:
         cookedStorage.Unlock();
         locked = false;
 
-        //// Write the shader property dictionary so the runtime can resolve
-        //// ShaderProperty names to their interned IDs (used by ShaderPropertySet).
-        //{
-        //    const FilePath shaderPropertyDbPath = outputCacheDir / "shaderprops.bin";
-
-        //    FileByteWriter writer { shaderPropertyDbPath };
-        //    WriteShaderPropertyDictionary(writer);
-        //    writer.Close();
-        //}
-
-        //// Write shader preload cache here as well
-        //if (RI.shaderManager != nullptr)
-        //{
-        //    RI.shaderManager->WritePreloadCache(outputCacheDir);
-        //}
+        // Write shader cache here as well
+        HYP_LOG(Assets, Info, "Writing shader cache data...");
+        g_shaderManager->WriteShaderCache(outputCacheDir);
+        HYP_LOG(Assets, Info, "Shader cache data written.");
 
         return {};
     }

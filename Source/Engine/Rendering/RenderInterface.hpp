@@ -404,8 +404,6 @@ public:
 
     void DeferFlushBuffer(RawBuffer* buffer);
 
-    ShaderManager* shaderManager;
-
     BindlessStorage* bindlessStorage;
 
     PlaceholderData* placeholderData;

@@ -40,6 +40,9 @@ public:
         const VertexInputLayoutDesc& inputLayout,
         bool waitForCompile = true);
 
+    void StartShaderReloadThread();
+    void StopShaderReloadThread();
+
     void ExpireShaderEntries(const Shader* shader);
 
     /// @NOTE callback is only valid for telling if the shader was actually loaded if \p blockingWait is true.

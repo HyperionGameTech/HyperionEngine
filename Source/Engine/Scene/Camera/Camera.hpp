@@ -252,7 +252,7 @@ public:
         return m_cameraFlags;
     }
 
-    HYP_METHOD(Property = "Flags", Editor = true, Serialize = true)
+    HYP_METHOD(Property = "Flags", Editor = true, Serialize = true, LoadOrder = 0)
     void SetCameraFlags(EnumFlags<CameraFlags> flags);
 
     HYP_METHOD(Property = "CameraControllers", Serialize = true)
@@ -321,14 +321,8 @@ public:
         return Vec2i { m_width, m_height };
     }
 
-    HYP_METHOD(Property = "Dimensions", Editor = true, Serialize = true)
-    void SetDimensions(Vec2i dimensions)
-    {
-        m_width = dimensions.x;
-        m_height = dimensions.y;
-
-        UpdateProjectionMatrix();
-    }
+    HYP_METHOD(Property = "Dimensions", Editor = true, Serialize = true, LoadOrder = 1)
+    void SetDimensions(Vec2i dimensions);
 
     HYP_METHOD(Property = "NearClip", Editor = true, Serialize = true)
     float GetNearClip() const

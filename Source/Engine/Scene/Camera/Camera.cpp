@@ -261,6 +261,26 @@ void Camera::SetCameraFlags(EnumFlags<CameraFlags> flags)
     MarkDirty();
 }
 
+void Camera::SetDimensions(Vec2i dimensions)
+{
+    if (m_cameraFlags & CameraFlags::MatchWindowSize)
+    {
+        return;
+    }
+
+    if (int(dimensions.x) == m_width && int(dimensions.y) == m_height)
+    {
+        return;
+    }
+        
+    m_width = dimensions.x;
+    m_height = dimensions.y;
+
+    UpdateProjectionMatrix();
+
+    MarkDirty();
+}
+
 void Camera::SetCameraControllers(const Array<Handle<CameraController>>& cameraControllers)
 {
     if (HasActiveCameraController())
@@ -613,7 +633,13 @@ void Camera::UpdateMatchWindowSize()
                         Vec2i renderSize = Vec2i(Vec2f(windowSize) * renderTargetScale);
                         renderSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(renderSize) * m_matchWindowSizeRatio)), Vec2i::One());
 
-                        SetDimensions(renderSize);
+                        if (m_width != renderSize.x || m_height != renderSize.y)
+                        {
+                            m_width = renderSize.x;
+                            m_height = renderSize.y;
+
+                            UpdateProjectionMatrix();
+                        }
                     };
 
                     matchWindowSize(window->GetSize());

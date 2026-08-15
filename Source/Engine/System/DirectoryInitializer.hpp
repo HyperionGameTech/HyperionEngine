@@ -44,7 +44,8 @@ struct DirectoryInitializer
         {
             if (!path.MkDir())
             {
-                HYP_FAIL("Failed to create resource directory: {}", path.Data());
+                HYP_LOG(Core, Error, "Failed to create resource directory: {}", path.Data());
+                return;
             }
         }
 

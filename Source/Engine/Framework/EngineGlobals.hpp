@@ -21,6 +21,7 @@ class ShaderManager;
 class MaterialCache;
 class RenderInterface;
 class ShaderCompiler;
+class ShaderManager;
 class EditorState;
 class StreamingManager;
 class SimThread;
@@ -57,6 +58,7 @@ ENGINE_API extern Handle<StreamingManager> g_streamingManager;
 ENGINE_API extern Handle<EngineStats> g_engineStats;
 ENGINE_API extern MaterialCache* g_materialCache;
 ENGINE_API extern ShaderCompiler* g_shaderCompiler;
+ENGINE_API extern ShaderManager* g_shaderManager;
 
 #ifdef HYP_EDITOR
 extern Handle<EditorState> g_editorState;
@@ -77,6 +79,7 @@ static constexpr NoOpFunction<bool> IsCooking;
 #endif  // !HYP_SHIPPING
 
 ENGINE_API bool IsCacheServer();
+ENGINE_API bool IsCommandlet();
 
 #ifdef HYP_EDITOR
 ENGINE_API const FilePath& GetProjectsDirectory();
