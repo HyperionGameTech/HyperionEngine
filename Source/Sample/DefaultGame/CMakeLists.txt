@@ -72,9 +72,6 @@ if(APPLE AND CMAKE_GENERATOR STREQUAL "Xcode")
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
       "$<TARGET_FILE:hyperion-core>"
       "$<TARGET_FILE_DIR:${BUILD_NAME}>/Frameworks"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-      "${CMAKE_SOURCE_DIR}/../Content"
-      "$<TARGET_FILE_DIR:${BUILD_NAME}>/Content"
   )
 
   if(HYP_SCRIPT)
@@ -96,6 +93,13 @@ if(HYP_PLATFORM_NAME STREQUAL "IOS")
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
       "${CMAKE_SOURCE_DIR}/../Config/Shaders.hmf"
       "$<TARGET_FILE_DIR:${BUILD_NAME}>/Config/Shaders.hmf"
+  )
+
+  add_custom_command(TARGET ${BUILD_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND}
+      -D SRC_DIR="${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
+      -D DST_DIR="$<TARGET_FILE_DIR:${BUILD_NAME}>"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/../CopyOutputDirToBundle.cmake"
   )
 else()
   add_custom_command(TARGET ${BUILD_NAME} POST_BUILD
