@@ -74,7 +74,7 @@ public:
                 CommandLineArgumentFlags::NONE,
                 {},
                 false);
-            
+
             s_definitions.Add(
                 "out-cache",
                 "c",
@@ -82,7 +82,7 @@ public:
                 CommandLineArgumentFlags::REQUIRED,
                 {},
                 JSON::Value(""));
-            
+
             s_definitions.Add(
                 "out-content",
                 "c",
@@ -115,7 +115,7 @@ protected:
     virtual Result Run(const CommandLineArguments& args) override
     {
         GlobalContextScope contextScope { CookingContext() };
-        
+
         Handle<AssetRegistry> gameRegistry;
 
         const String projectArg = args["project"].ToString();
@@ -133,7 +133,7 @@ protected:
             {
                 return HYP_MAKE_ERROR(Error, "Package path is non existant or is not a directory: {}", projectDir);
             }
-            
+
             gameRegistry = MakeHandle<AssetRegistry>(AssetRegistryId::Game, projectDir);
             gameRegistry->Initialize(nullptr);
         }
@@ -346,7 +346,23 @@ private:
                         assetsToCook.PushBack(assetObject);
                     };
 
-                AssetRegistry::WalkAssetDeep(BoxedValue(loadProjectResult.GetValue()), callback);
+                // Loop over all World assets, grab stuff that's reachable from them.
+                constexpr AssetBucket WorldsBucket = AssetBuckets::Worlds;
+
+                Array<AssetDesc> assetDescs;
+                gameRegistry->GetBucketAssetDescs(WorldsBucket.GetIndex(), assetDescs);
+
+                for (const AssetDesc& assetDesc : assetDescs)
+                {
+                    Handle<AssetObject> worldAsset = gameRegistry->GetAsset(WorldsBucket, assetDesc.name);
+                    if (!worldAsset.IsValid())
+                    {
+                        HYP_LOG(Assets, Warning, "Failed to load World asset \"{}\"", assetDesc.name);
+                        continue;
+                    }
+
+                    AssetRegistry::WalkAssetDeep(BoxedValue(worldAsset), callback);
+                }
 
                 HYP_LOG(Assets, Info, "Found {} asset(s) reachable from project at \"{}\"", assetsToCook.Size(), projectPath);
             }

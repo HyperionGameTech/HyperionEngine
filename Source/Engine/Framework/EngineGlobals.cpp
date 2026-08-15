@@ -131,7 +131,7 @@ HYP_EXPORT const FilePath& GetContentDirectory()
             }
             else
             {
-#if !defined(HYP_SHIPPING) && !defined(HYP_ANDROID)
+#if !defined(HYP_SHIPPING) && !defined(HYP_ANDROID) && !defined(HYP_IOS)
                 if constexpr (!Memory::StrEqual(PackageName.data, "Game", 4))
                 {
                     // <base>/Content/Engine
@@ -139,7 +139,7 @@ HYP_EXPORT const FilePath& GetContentDirectory()
                     s_contentDirectory = CoreApi::GetBaseDirectory() / "Content" / String(PackageName.data);
                 }
                 else
-#endif // !SHIPPING && !ANDROID
+#endif // !SHIPPING && !ANDROID && !IOS
                 {
                     // <exe>/Content
                     s_contentDirectory = CoreApi::GetExecutablePath() / "Content";

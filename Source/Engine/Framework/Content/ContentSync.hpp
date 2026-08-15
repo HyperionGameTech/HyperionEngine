@@ -13,6 +13,8 @@
 
 #include <Core/Functional/Delegate.hpp>
 
+#include <Core/Utilities/Result.hpp>
+
 namespace Hyperion {
 
 struct ContentSyncState
