@@ -22,7 +22,7 @@ struct EnvProbe
 
     float4 sh[9];
     
-    float4 hitMaskSH[4];
+    float4 hitMaskData;
 };
 
 struct SH9
@@ -160,10 +160,17 @@ float4 EnvProbeSH(in EnvProbe envProbe, float3 N)
         result.rgb += envProbe.sh[i].rgb * bands[i];
     }
     
-    result.a = (envProbe.hitMaskSH[0].rgb * bands[0]
-        + envProbe.hitMaskSH[1].rgb * bands[1]
-        + envProbe.hitMaskSH[2].rgb * bands[2]
-        + envProbe.hitMaskSH[3].rgb * bands[3]).r;
+    // hitMaskData encodes R channel of L1 spherical harmonics computed mask where 1.0 == hit, 0.0 == miss
+    
+    
+    //result.a = (float3(envProbe.hitMaskData.r, 0, 0) * bands[0]
+    //    + float3(envProbe.hitMaskData.g, 0, 0) * bands[1]
+    //    + float3(envProbe.hitMaskData.b, 0, 0) * bands[2]
+    //    + float3(envProbe.hitMaskData.a, 0, 0) * bands[3]).r;
+    
+    result.a = dot(envProbe.hitMaskData, float4(bands[0], bands[1], bands[2], bands[3]));
+    
+    //result.a = 1.0;
 
     return saturate(result);
 }

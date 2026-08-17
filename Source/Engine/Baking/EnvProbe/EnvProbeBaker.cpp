@@ -233,11 +233,13 @@ void Baker<EnvProbe>::OnCompleted_Internal()
             {
                 SphericalHarmonicsData hitMaskSH = ComputeSphericalHarmonicsCubemap<TextureFormat::R8, false>(cmdCasted->payload->hitMaskBitmap);
 
-                FixedArray<Vec3f, 4> hitMaskSHData;
-                hitMaskSHData[0] = hitMaskSH.GetOrder0();
-                memcpy(hitMaskSHData.Data() + 1, hitMaskSH.GetOrder1().Data(), sizeof(Vec3f) * 3);
+                Vec4f hitMaskData {};
+                hitMaskData.x = hitMaskSH.GetOrder0().x;
+                hitMaskData.y = hitMaskSH.GetOrder1()[0].x;
+                hitMaskData.z = hitMaskSH.GetOrder1()[1].x;
+                hitMaskData.w = hitMaskSH.GetOrder1()[2].x;
 
-                StaticCast<IrradianceProbe>(envProbe)->SetHitMaskData(hitMaskSHData);
+                StaticCast<IrradianceProbe>(envProbe)->SetHitMaskData(hitMaskData);
             }
 
             HYP_LOG(Lightmap, Verbose, "EnvProbe {} lightmap baking complete", envProbe->GetName());

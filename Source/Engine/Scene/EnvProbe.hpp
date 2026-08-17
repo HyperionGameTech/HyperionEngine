@@ -43,8 +43,7 @@ enum EnvProbeFlags : uint32
     EPF_BAKED = 0x2,              //!< @editor=false
     EPF_REALTIME = 0x4,           //!< @title="Real-time"
     EPF_ORIGIN_FROM_CENTER = 0x8, //!< @title="Origin from center"
-    EPF_VISIBILITY = 0x10,        //!< @title="Prevent light leaking" @description="This EnvProbe stores distance values to a texture, used to prevent light leaks at the cost of more memory usage and rendering time."
-    EPF_DIFFUSE = 0x20            //!< @title="Provides diffuse lighting" @description="Relevant for reflection and sky only - include irradiance computation for indirect diffuse lighting when rendering the probe"
+    EPF_VISIBILITY = 0x10         //!< @title="Prevent light leaking" @description="This EnvProbe stores distance values to a texture, used to prevent light leaks at the cost of more memory usage and rendering time."
 };
 
 HYP_MAKE_ENUM_FLAGS(EnvProbeFlags);
@@ -386,12 +385,12 @@ public:
 
     ~IrradianceProbe() override = default;
 
-    HYP_FORCE_INLINE const FixedArray<Vec3f, 4>& GetHitMaskData() const
+    HYP_FORCE_INLINE const Vec4f& GetHitMaskData() const
     {
         return m_hitMaskData;
     }
 
-    void SetHitMaskData(const FixedArray<Vec3f, 4>& hitMaskData);
+    void SetHitMaskData(const Vec4f& hitMaskData);
 
 #ifdef HYP_EDITOR
     HYP_METHOD(EditorOnly, EditorAction = "Recompute Irradiance")
@@ -401,7 +400,7 @@ public:
 private:
     void Invalidate(bool forceRerender = false) override;
 
-    FixedArray<Vec3f, 4> m_hitMaskData;
+    Vec4f m_hitMaskData;
 };
 
 } // namespace Hyperion

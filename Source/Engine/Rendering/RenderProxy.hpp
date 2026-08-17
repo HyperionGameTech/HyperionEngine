@@ -140,7 +140,7 @@ struct EnvProbeShaderData
 
     Vec4f shData[9];
 
-    Vec4f hitMaskSH[4];
+    Vec4f hitMaskData;
 };
 
 struct RenderProxyEnvProbe : IRenderProxy

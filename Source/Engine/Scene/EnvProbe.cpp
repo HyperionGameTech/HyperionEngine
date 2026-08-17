@@ -928,12 +928,11 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
 
     if (IsA<IrradianceProbe>())
     {
-        static_assert(sizeof(bufferData.hitMaskSH) == sizeof(decltype(std::declval<IrradianceProbe>().GetHitMaskData())));
-        memcpy(bufferData.hitMaskSH, StaticCast<IrradianceProbe>(this)->GetHitMaskData().Data(), sizeof(bufferData.hitMaskSH));
+        bufferData.hitMaskData = StaticCast<IrradianceProbe>(this)->GetHitMaskData();
     }
     else
     {
-        Memory::Zero(bufferData.hitMaskSH, sizeof(bufferData.hitMaskSH));
+        bufferData.hitMaskData = Vec4f::Zero();
     }
 }
 
@@ -1087,7 +1086,7 @@ void IrradianceProbe::RecomputeIrradiance()
 
 #endif // HYP_EDITOR
 
-void IrradianceProbe::SetHitMaskData(const FixedArray<Vec3f, 4>& hitMaskData)
+void IrradianceProbe::SetHitMaskData(const Vec4f& hitMaskData)
 {
     if (m_hitMaskData == hitMaskData)
     {

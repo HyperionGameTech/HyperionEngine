@@ -134,7 +134,7 @@ auto BakeData<EnvProbe>::ToHitMaskBitmap() const -> HitMaskBitmapType
 
                 const float alpha = texels[texelIdx].color0.GetW();
 
-                bitmap.GetPixelReference(x, bitmapY).SetR(alpha);
+                bitmap.GetPixelReference(x, bitmapY).SetR(alpha > 0.0f ? 1.0f : 0.0f);
             }
         }
     }

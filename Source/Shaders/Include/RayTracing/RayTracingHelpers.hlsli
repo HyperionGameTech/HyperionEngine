@@ -9,7 +9,7 @@ struct RayTracingConstants
     float min_roughness;
     
     int2 output_image_resolution;
-    float2 _pad;
+    float maxDistance;
 };
 
 #if RAY_GEN_SHADER

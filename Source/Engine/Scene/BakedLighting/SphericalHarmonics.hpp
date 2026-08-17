@@ -231,7 +231,9 @@ static inline SphericalHarmonicsData ComputeSphericalHarmonicsCubemap(const Bitm
  
                 for (uint32 i = 0; i < 9; i++)
                 {
-                    reinterpret_cast<Vec3f*>(coefficients.values)[i] += radiance * (basis[i] * solidAngle);
+                    coefficients.values[i * 3 + 0] += radiance.x * (basis[i] * solidAngle);
+                    coefficients.values[i * 3 + 1] += radiance.y * (basis[i] * solidAngle);
+                    coefficients.values[i * 3 + 2] += radiance.z * (basis[i] * solidAngle);
                 }
  
                 totalWeight += solidAngle;
@@ -248,7 +250,9 @@ static inline SphericalHarmonicsData ComputeSphericalHarmonicsCubemap(const Bitm
  
     for (uint32 i = 0; i < 9; i++)
     {
-        reinterpret_cast<Vec3f*>(coefficients.values)[i] *= normalization * (CosineWeighted ? s_sphericalHarmonicsAOverPi[i] : 1.0f);
+        coefficients.values[i * 3 + 0] *= normalization * (CosineWeighted ? s_sphericalHarmonicsAOverPi[i] : 1.0f);
+        coefficients.values[i * 3 + 1] *= normalization * (CosineWeighted ? s_sphericalHarmonicsAOverPi[i] : 1.0f);
+        coefficients.values[i * 3 + 2] *= normalization * (CosineWeighted ? s_sphericalHarmonicsAOverPi[i] : 1.0f);
     }
  
     return coefficients;
@@ -262,7 +266,9 @@ HYP_FORCE_INLINE static Vec3f EvaluateSphericalHarmonics(const SphericalHarmonic
  
     for (uint32 i = 0; i < 9; i++)
     {
-        result += reinterpret_cast<const Vec3f*>(coefficients.values)[i] * basis[i];
+        result.x += coefficients.values[i * 3 + 0] * basis[i];
+        result.y += coefficients.values[i * 3 + 1] * basis[i];
+        result.z += coefficients.values[i * 3 + 2] * basis[i];
     }
  
     return MathUtil::Max(result, Vec3f::Zero());

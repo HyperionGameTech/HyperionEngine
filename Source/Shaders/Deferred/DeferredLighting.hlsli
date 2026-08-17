@@ -198,6 +198,8 @@ void EvaluateEnvProbes(
 
     //////////////////////////////////////////////////
 
+    // For masking out lightmapped elements so sky doesn't affect them
+    // 0.0 == Lightmapped, 1.0 == Not lightmapped.
     const float lightmappedWeight = min(1.0, float(inMask & OBJECT_MASK_LIGHTMAPPED));
 
     for (uint currentProbeIndex = numEnvProbes; currentProbeIndex != 0; --currentProbeIndex)
@@ -243,7 +245,7 @@ void EvaluateEnvProbes(
 
         if ((envProbeFlags & EPF_VISIBILITY) && visTextureIndex != INVALID_ENV_PROBE_TEXTURE)
         {
-            visibility = CalculateProbeVisibility(probeToPoint, dist, N, far, visTextureIndex);
+           // visibility = CalculateProbeVisibility(probeToPoint, dist, N, far, visTextureIndex);
         }
 
         ApplyReflectionProbe(
@@ -284,10 +286,11 @@ void EvaluateEnvProbes(
         
         irradiance += currentIrradiance * irradianceWeight * (1.0 - irradiance.a);
         reflections += currentReflections * reflectionsWeight * (1.0 - reflections.a);
-
+        
 #undef CURRENT_ENV_PROBE
     }
-
+    
+    
     //////////////////////////////////////////////////
 
     // DEBUG

@@ -96,6 +96,9 @@ struct BakerConfig : public Config<BakerConfig>
     HYP_FIELD(Property = "OnlyGenerateUVs", Description = "Skip tracing rays when baking lightmap volumes, only generate atlas UVs and assign to meshes.")
     bool onlyGenerateUVs = false;
 
+    HYP_FIELD()
+    float maxRayDistance = 1000.0f;
+
     virtual ~BakerConfig() override = default;
 
     bool Validate()

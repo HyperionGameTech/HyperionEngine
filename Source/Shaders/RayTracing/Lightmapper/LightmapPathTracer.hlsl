@@ -59,7 +59,7 @@ DECLARE_BUFFER(LightmapPathTracer, CBuffer) cbuffer CBuffer
     EnvProbe envProbes[MAX_ENV_PROBES];
 };
 
-#define RAY_OFFSET 0.2
+#define RAY_OFFSET 0.05
 
 #define VSM_DEPTH_BIAS_CONSTANT 0.2
 #define VSM_DEPTH_BIAS_SLOPE_SCALE 0.02
@@ -247,8 +247,8 @@ void RayGenMain()
     ray.direction = ray_data[ray_index * 2 + 1].xyz;
 
     const RAY_FLAG flags = RAY_FLAG_FORCE_OPAQUE;
-    const float tmin = 0.1;
-    const float tmax = 1000.0;
+    const float tmin = RAY_OFFSET;
+    const float tmax = rayTracingConstants.maxDistance;
 
     const float3 firstRayDirection = normalize(ray.direction);
 
@@ -658,8 +658,8 @@ void RayGenMain()
     RayDesc rayDesc;
     rayDesc.Origin = ray.origin + ray.direction * RAY_OFFSET;
     rayDesc.Direction = ray.direction;
-    rayDesc.TMin = 0.1;
-    rayDesc.TMax = 1500.0;
+    rayDesc.TMin = RAY_OFFSET;
+    rayDesc.TMax = rayTracingConstants.maxDistance;
 
     TraceRay(tlas, flags, 0xff, 0, 1, 0, rayDesc, payload);
 
@@ -689,15 +689,12 @@ void RayGenMain()
     rayDesc.Origin = ray.origin + ray.direction * RAY_OFFSET;
     rayDesc.Direction = ray.direction;
     rayDesc.TMin = RAY_OFFSET;
-    rayDesc.TMax = 1000.0;
+    rayDesc.TMax = rayTracingConstants.maxDistance;
 
     TraceRay(tlas, flags, 0xff, 0, 1, 0, rayDesc, payload);
 
     float4 finalColor;
-
-    // Deliberately left in raw world-space units here (not normalized by the probe's far
-    // distance) - BakeData<EnvProbe>::ToVisibilityBitmap() accumulates these in fp32 and
-    // normalizes exactly once downstream. Normalizing here too would double-divide by far.
+    
     if (payload.distance > 0.0)
     {
         const float3 hitNormal = normalize(payload.normal);
@@ -710,7 +707,7 @@ void RayGenMain()
     }
     else
     {
-        static const float missDistance = 1000.0;
+        static const float missDistance = rayTracingConstants.maxDistance;
         finalColor = float4(missDistance, missDistance * missDistance, 0.0, 1.0);
     }
 #elif defined(MODE_BENT_NORMAL)

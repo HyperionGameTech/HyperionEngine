@@ -412,10 +412,10 @@ bool PathTracer::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBas
     GpuBufferRef& cbuffer = jd.cbuffers[GetFrameCounter() % NumFramesInFlight];
     Assert(cbuffer.IsValid());
 
-    { // Fill constants buffer
-
+    { // Fill constant buffer
         RayTracingConstants constants {};
         constants.rayOffset = rayOffset;
+        constants.maxDistance = m_baker->GetConfig().maxRayDistance;
 
         Array<Pair<Light*, LightShaderData*>, RenderTempAllocator> tempLights;
         Array<Pair<EnvProbe*, EnvProbeShaderData*>, RenderTempAllocator> tempEnvProbes;
@@ -427,7 +427,9 @@ bool PathTracer::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBas
         {
             const LightType lightType = light->GetLightType();
 
-            if (lightType != LightType::Directional && lightType != LightType::Point && lightType != LightType::Spot)
+            if (lightType != LightType::Directional
+                && lightType != LightType::Point
+                && lightType != LightType::Spot)
             {
                 continue;
             }

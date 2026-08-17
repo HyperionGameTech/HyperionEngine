@@ -265,7 +265,7 @@ PSOutput PSMain(PSInput input)
         {
             const float4 shColor = EnvProbeSH(env_probes[input.env_probe_index], normal);
 
-            output.gbuffer_albedo.rgb = shColor.rgb;
+            output.gbuffer_albedo.rgb = shColor.rgb * shColor.a;
         }
     }
 #endif // IMMEDIATE_MODE

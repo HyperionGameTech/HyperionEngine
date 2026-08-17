@@ -95,7 +95,7 @@ struct RayTracingConstants
     float minRoughness;
 
     Vec2i outputImageResolution;
-    Vec2i _pad;
+    float maxDistance;
 };
 
 class StagingBufferPool
