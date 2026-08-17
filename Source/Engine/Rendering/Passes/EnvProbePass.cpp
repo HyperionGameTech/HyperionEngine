@@ -699,7 +699,7 @@ void UpdateEnvProbeVisibilityTexture(Frame* frame, EnvProbe* envProbe, bool shou
     // Blur visibility
     {
         ShaderPropertySet blurShaderProperties;
-        blurShaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("KERNEL_SIZE"), 7)));
+        blurShaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("KERNEL_SIZE"), 9)));
 
         cr << SetCurrentShader(ShaderDesc(NAME("BlurVisibility"), blurShaderProperties));
 

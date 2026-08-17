@@ -227,19 +227,20 @@ void Baker<EnvProbe>::OnCompleted_Internal()
             if (envProbe->ShouldComputeSphericalHarmonics())
             {
                 EnvProbeHelpers::ComputeEnvProbeSphericalHarmonics(*envProbe, *texture);
-            }
-
-            if (envProbe->IsA<IrradianceProbe>())
-            {
+                
+                //-- Hit Mask
                 SphericalHarmonicsData hitMaskSH = ComputeSphericalHarmonicsCubemap<TextureFormat::R8, false>(cmdCasted->payload->hitMaskBitmap);
 
-                Vec4f hitMaskData {};
-                hitMaskData.x = hitMaskSH.GetOrder0().x;
-                hitMaskData.y = hitMaskSH.GetOrder1()[0].x;
-                hitMaskData.z = hitMaskSH.GetOrder1()[1].x;
-                hitMaskData.w = hitMaskSH.GetOrder1()[2].x;
+                Vec4f hitMaskData;
+                hitMaskData[0] = hitMaskSH.GetOrder0().x;
 
-                StaticCast<IrradianceProbe>(envProbe)->SetHitMaskData(hitMaskData);
+                const FixedArray<Vec3f, 3> order1 = hitMaskSH.GetOrder1();
+                hitMaskData[1] = order1[0][0];
+                hitMaskData[2] = order1[1][0];
+                hitMaskData[3] = order1[2][0];
+
+                envProbe->SetHitMaskData(hitMaskData);
+                //--
             }
 
             HYP_LOG(Lightmap, Verbose, "EnvProbe {} lightmap baking complete", envProbe->GetName());

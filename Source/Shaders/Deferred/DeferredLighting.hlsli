@@ -146,7 +146,7 @@ float CalculateProbeVisibility(
     uint visTextureIndex)
 {
 
-    const float3 dirToProbe = probeToPoint / dist;
+    /*const float3 dirToProbe = probeToPoint / dist;
     
     const float distNorm = dist / max(far, HYP_FMATH_EPSILON);
 
@@ -168,9 +168,34 @@ float CalculateProbeVisibility(
     float directionalWeight = max(HYP_FMATH_EPSILON, (dot(-dirToProbe, N) + 1.0) * 0.5);
     
     visibility *= directionalWeight;
+    
+    return smoothstep(0.0, 1.0, visibility);*/
+    
+    const float3 probeToPointN = probeToPoint / dist;
 
-    // Depth check - sky hits are inf
-    return smoothstep(0.0, 1.0, visibility);
+    const float distNorm = dist / max(far, HYP_FMATH_EPSILON);
+
+    const float2 moments = envProbesDepthTexture.SampleLevel(
+        sampler_linear, float4(probeToPointN, float(visTextureIndex)), 0).rg;
+    
+    static const float s_selfShadowBias = 0.02;
+    static const float s_minVariance = 2e-3;
+
+    float variance = max(moments.y - moments.x * moments.x, s_minVariance);
+
+    float d = max(distNorm - moments.x - s_selfShadowBias, 0.0);
+    float p = step(distNorm, moments.x + s_selfShadowBias);
+    float p_max = variance / (variance + d * d);
+
+    static const float s_softenAmount = 0.15;
+    float soft_p_max = saturate((p_max - s_softenAmount) / (1.0 - s_softenAmount));
+    
+    float visibility = max(p, soft_p_max);
+    
+    float directionalWeight = max(HYP_FMATH_EPSILON, (dot(-probeToPointN, N) + 1.0) * 0.5);
+    visibility *= directionalWeight;
+    
+    return saturate(visibility);
 }
 
 void EvaluateEnvProbes(
@@ -199,7 +224,7 @@ void EvaluateEnvProbes(
     //////////////////////////////////////////////////
 
     // For masking out lightmapped elements so sky doesn't affect them
-    // 0.0 == Lightmapped, 1.0 == Not lightmapped.
+    // 0.0 == Not Lightmapped, 1.0 == lightmapped.
     const float lightmappedWeight = min(1.0, float(inMask & OBJECT_MASK_LIGHTMAPPED));
 
     for (uint currentProbeIndex = numEnvProbes; currentProbeIndex != 0; --currentProbeIndex)
@@ -245,7 +270,7 @@ void EvaluateEnvProbes(
 
         if ((envProbeFlags & EPF_VISIBILITY) && visTextureIndex != INVALID_ENV_PROBE_TEXTURE)
         {
-           // visibility = CalculateProbeVisibility(probeToPoint, dist, N, far, visTextureIndex);
+            visibility = CalculateProbeVisibility(probeToPoint, dist, N, far, visTextureIndex);
         }
 
         ApplyReflectionProbe(
@@ -275,10 +300,10 @@ void EvaluateEnvProbes(
         reflectionsWeight = saturate(reflectionsWeight);
 
         // distance based falloff for irradiance
-        static const float s_irradianceFalloffPower = 0.5;
-        static const float s_irradianceFalloffBeginDist = 6.0;
+        static const float s_irradianceFalloffPower = 1.5;
+        static const float s_irradianceFalloffBeginDist = 5.0;
 
-        float irradianceWeight = boundsWeight * pow(max(1.0f - smoothstep(max(0.001, s_irradianceFalloffBeginDist), far, dist), 0.0001), s_irradianceFalloffPower);
+        float irradianceWeight = boundsWeight;// * pow(max(1.0f - smoothstep(max(HYP_FMATH_EPSILON, s_irradianceFalloffBeginDist), far, dist), HYP_FMATH_EPSILON), s_irradianceFalloffPower);
         irradianceWeight *= visibility;
         irradianceWeight *= skyIrradianceWeight;
         irradianceWeight *= diffuseContributionWeight;

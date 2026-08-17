@@ -1057,6 +1057,7 @@ extern class EnvProbe : VolumeBase
     EnvProbeFlags : EnvProbeFlags
     ShData : SphericalHarmonicsData
     DiffuseStrength : float
+    HitMaskData : Vec4f
 end
 extern class IrradianceProbe : EnvProbe
     RecomputeIrradiance() -> void
@@ -1988,6 +1989,7 @@ extern struct BakerConfig
     BentNormalSamples : uint32
     MaxTexelsPerFrame : uint32
     OnlyGenerateUVs : bool
+    MaxRayDistance : float
 end
 extern enum AudioSourceState : uint32
     UNDEFINED,

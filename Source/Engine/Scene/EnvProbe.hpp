@@ -43,7 +43,8 @@ enum EnvProbeFlags : uint32
     EPF_BAKED = 0x2,              //!< @editor=false
     EPF_REALTIME = 0x4,           //!< @title="Real-time"
     EPF_ORIGIN_FROM_CENTER = 0x8, //!< @title="Origin from center"
-    EPF_VISIBILITY = 0x10         //!< @title="Prevent light leaking" @description="This EnvProbe stores distance values to a texture, used to prevent light leaks at the cost of more memory usage and rendering time."
+    EPF_VISIBILITY = 0x10,        //!< @title="Prevent light leaking" @description="This EnvProbe stores distance values to a texture, used to prevent light leaks at the cost of more memory usage and rendering time."
+    EPF_DIFFUSE = 0x20            //!< @title="Provides diffuse lighting" @description="Relevant for reflection and sky only - include irradiance computation for indirect diffuse lighting when rendering the probe"
 };
 
 HYP_MAKE_ENUM_FLAGS(EnvProbeFlags);
@@ -138,17 +139,14 @@ public:
 
     HYP_FORCE_INLINE bool ShouldComputePrefilteredEnvMap() const
     {
-        if (IsReflectionProbe() || IsSkyProbe())
-        {
-            return m_dimensions.Volume() > 1;
-        }
-
-        return false;
+        return (m_dimensions.Volume() > 1)
+            && (IsReflectionProbe() || IsSkyProbe());
     }
 
     HYP_FORCE_INLINE bool ShouldComputeSphericalHarmonics() const
     {
-        return m_dimensions.Volume() > 1;
+        return (m_dimensions.Volume() > 1)
+            && (GetEnvProbeType() == EPT_AMBIENT || (GetEnvProbeFlags() & EnvProbeFlags::EPF_DIFFUSE));
     }
 
     HYP_METHOD()
@@ -218,6 +216,13 @@ public:
 
     HYP_METHOD(Property = "DiffuseStrength")
     void SetDiffuseStrength(float diffuseStrength);
+    
+    HYP_FORCE_INLINE const Vec4f& GetHitMaskData() const
+    {
+        return m_hitMaskData;
+    }
+
+    void SetHitMaskData(const Vec4f& hitMaskData);
 
     virtual void Invalidate(bool forceRerender = false);
 
@@ -298,6 +303,9 @@ protected:
 
     Handle<Texture> m_texture;
     Handle<Texture> m_visibilityTexture;
+    
+    HYP_FIELD(Property = "HitMaskData", Editor = false, Serialize)
+    Vec4f m_hitMaskData;
 
     // for reading/writing back data
     SharedMutex m_mutex;
@@ -385,13 +393,6 @@ public:
 
     ~IrradianceProbe() override = default;
 
-    HYP_FORCE_INLINE const Vec4f& GetHitMaskData() const
-    {
-        return m_hitMaskData;
-    }
-
-    void SetHitMaskData(const Vec4f& hitMaskData);
-
 #ifdef HYP_EDITOR
     HYP_METHOD(EditorOnly, EditorAction = "Recompute Irradiance")
     void RecomputeIrradiance();
@@ -399,8 +400,6 @@ public:
 
 private:
     void Invalidate(bool forceRerender = false) override;
-
-    Vec4f m_hitMaskData;
 };
 
 } // namespace Hyperion

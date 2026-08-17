@@ -926,14 +926,7 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
         outSH[i].z = *inSH++;
     }
 
-    if (IsA<IrradianceProbe>())
-    {
-        bufferData.hitMaskData = StaticCast<IrradianceProbe>(this)->GetHitMaskData();
-    }
-    else
-    {
-        bufferData.hitMaskData = Vec4f::Zero();
-    }
+    bufferData.hitMaskData = m_hitMaskData;
 }
 
 void EnvProbe::SetBakedTexture(const Handle<Texture>& texture)
@@ -986,6 +979,19 @@ void EnvProbe::SetVisibilityTexture(const Handle<Texture>& visibilityTexture)
 
         Invalidate(/* forceRerender */ true);
     }
+
+    MarkDirty();
+    SetNeedsRenderProxyUpdate();
+}
+
+void EnvProbe::SetHitMaskData(const Vec4f& hitMaskData)
+{
+    if (m_hitMaskData == hitMaskData)
+    {
+        return;
+    }
+
+    m_hitMaskData = hitMaskData;
 
     MarkDirty();
     SetNeedsRenderProxyUpdate();
@@ -1085,19 +1091,6 @@ void IrradianceProbe::RecomputeIrradiance()
 }
 
 #endif // HYP_EDITOR
-
-void IrradianceProbe::SetHitMaskData(const Vec4f& hitMaskData)
-{
-    if (m_hitMaskData == hitMaskData)
-    {
-        return;
-    }
-
-    m_hitMaskData = hitMaskData;
-
-    MarkDirty();
-    SetNeedsRenderProxyUpdate();
-}
 
 void IrradianceProbe::Invalidate(bool forceRerender)
 {

@@ -238,7 +238,7 @@ PSOutput PSMain(PSInput input)
     irradiance = lerp(irradiance, ddgi, 1.0 - ssgi.a);
 #endif
 
-    const float NdotV = max(0.00001, dot(N, V));
+    const float NdotV = max(HYP_FMATH_EPSILON, dot(N, V));
     
     const float3 F0 = CalculateF0(albedo.rgb, metalness);
     const float3 dfg = CalculateDFG(perceptualRoughness, NdotV);
