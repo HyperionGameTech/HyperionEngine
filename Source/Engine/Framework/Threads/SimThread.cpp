@@ -74,7 +74,7 @@ struct LaunchGameAsync
 
     void operator()()
     {
-        if (!g_renderInitSignal.IsSignalled())
+        if (!EngineGlobals::IsHeadless() && !g_renderInitSignal.IsSignalled())
         {
             // Wait until signalled
             g_simThreadInstance->GetScheduler().Enqueue(std::move(*this), TaskEnqueueFlags::FIRE_AND_FORGET);
@@ -198,14 +198,17 @@ void SimThread::Update()
         m_gameInstance->m_gameState.deltaTime = m_counter.delta;
     }
 
-    if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
+    if (g_appContext.IsValid())
     {
-        Event event;
-        while (mainWindow->GetInputManager()->PollEvent(event))
+        if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
         {
-            if (m_gameInstance != nullptr)
+            Event event;
+            while (mainWindow->GetInputManager()->PollEvent(event))
             {
-                m_gameInstance->HandleEvent(std::move(event));
+                if (m_gameInstance != nullptr)
+                {
+                    m_gameInstance->HandleEvent(std::move(event));
+                }
             }
         }
     }

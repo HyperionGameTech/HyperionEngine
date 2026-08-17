@@ -352,23 +352,26 @@ bool EngineDriver::StartThreads()
     // Needs to be after we init the task system, but before we start our main threads.
     LoadEngineContent();
 
-    success &= g_renderThreadInstance->Start();
-    if (!success)
+    if (!EngineGlobals::IsHeadless())
     {
-        return false;
-    }
+        success &= g_renderThreadInstance->Start();
+        if (!success)
+        {
+            return false;
+        }
 
-    if (g_renderWorkerThreadPool != nullptr)
-    {
-        g_renderWorkerThreadPool->Start();
-    }
+        if (g_renderWorkerThreadPool != nullptr)
+        {
+            g_renderWorkerThreadPool->Start();
+        }
 
 #if !HYP_APPLE
-    if (g_mainThread != g_renderThread)
-    {
-        g_renderInitSignal.Wait();
-    }
+        if (g_mainThread != g_renderThread)
+        {
+            g_renderInitSignal.Wait();
+        }
 #endif
+    }
 
     success &= g_simThreadInstance->Start();
     if (!success)
@@ -513,6 +516,7 @@ void EngineDriver::LoadEngineContent()
 void EngineDriver::Simulate(float delta, Game* gameInstance)
 {
     static const bool s_dedicatedVisThread = CoreApi::GetCommandLineArguments()["DedicatedVisThread"].ToBool();
+    static const bool s_isHeadless = EngineGlobals::IsHeadless();
 
     const uint32 slot = GetRingIndex();
     const uint32 frameCounter = GetFrameCounter();
@@ -571,11 +575,9 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
     TaskSystem::GetInstance().EnqueueBatch(&worldUpdateTaskBatch);
     worldUpdateTaskBatch.AwaitCompletion();
 
+#ifdef HYP_DEBUG_MODE
     // Sanity check: every non-sim-thread SystemExecutionGroup's TaskBatch must be fully
-    // completed before we unlock any EntityManager below. If one were still running on a
-    // TaskThread, unlocking here would let AddComponent/RemoveComponent/AddTag/RemoveTag calls
-    // (from game code or elsewhere on this thread) mutate ComponentContainers and EntitySets
-    // out from under a System::Process() call still executing concurrently on another thread.
+    // completed before we unlock any EntityManager below
     const auto assertAllSystemBatchesCompleted = [&simulatingWorlds]()
     {
         for (World* world : simulatingWorlds)
@@ -594,6 +596,7 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
     };
 
     assertAllSystemBatchesCompleted();
+#endif // HYP_DEBUG_MODE
 
     if (gameInstance != nullptr)
     {
@@ -619,6 +622,7 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
         }
     }
 
+    if (!s_isHeadless)
     { // collect shadow views
         const size_t initialNumViews = views.Size();
 
@@ -716,7 +720,9 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
     }
 #endif // HYP_PROCESS_SUBSYSTEMS_ASYNC
 
+#ifdef HYP_DEBUG_MODE
     assertAllSystemBatchesCompleted();
+#endif // HYP_DEBUG_MODE
 
     for (Scene* scene : scenes)
     {
@@ -794,7 +800,7 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
 
     // Push rendering data
     {
-        if constexpr (!UseRingBuffer)
+        if (!UseRingBuffer && !s_isHeadless)
         {
             BeginSimRenderSyncBlock(&m_isShuttingDown);
 
@@ -869,7 +875,7 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
 
         DebugDrawer::GetInstance().Update();
 
-        if constexpr (!UseRingBuffer)
+        if (!UseRingBuffer && !s_isHeadless)
         {
             EndSimRenderSyncBlock();
         }

@@ -11,63 +11,65 @@ struct Time;
 
 struct CORE_API TimeDiff
 {
-    TimeDiff()
+    constexpr TimeDiff()
         : milliseconds(0)
     {
     }
 
-    TimeDiff(int64 milliseconds)
+    constexpr TimeDiff(int64 milliseconds)
         : milliseconds(milliseconds)
     {
     }
 
-    TimeDiff(const TimeDiff& other) = default;
+    constexpr TimeDiff(const TimeDiff& other) = default;
     TimeDiff& operator=(const TimeDiff& other) = default;
-    TimeDiff(TimeDiff&& other) noexcept = default;
+    
+    constexpr TimeDiff(TimeDiff&& other) noexcept = default;
     TimeDiff& operator=(TimeDiff&& other) noexcept = default;
+
     ~TimeDiff() = default;
 
-    HYP_FORCE_INLINE explicit operator int64() const
+    HYP_FORCE_INLINE constexpr explicit operator int64() const
     {
         return milliseconds;
     }
 
-    HYP_FORCE_INLINE explicit operator bool() const
+    HYP_FORCE_INLINE constexpr explicit operator bool() const
     {
         return milliseconds != 0;
     }
 
-    HYP_FORCE_INLINE bool operator<(const TimeDiff& other) const
+    HYP_FORCE_INLINE constexpr bool operator<(const TimeDiff& other) const
     {
         return milliseconds < other.milliseconds;
     }
 
-    HYP_FORCE_INLINE bool operator<=(const TimeDiff& other) const
+    HYP_FORCE_INLINE constexpr bool operator<=(const TimeDiff& other) const
     {
         return milliseconds <= other.milliseconds;
     }
 
-    HYP_FORCE_INLINE bool operator>(const TimeDiff& other) const
+    HYP_FORCE_INLINE constexpr bool operator>(const TimeDiff& other) const
     {
         return milliseconds > other.milliseconds;
     }
 
-    HYP_FORCE_INLINE bool operator>=(const TimeDiff& other) const
+    HYP_FORCE_INLINE constexpr bool operator>=(const TimeDiff& other) const
     {
         return milliseconds >= other.milliseconds;
     }
 
-    HYP_FORCE_INLINE bool operator==(const TimeDiff& other) const
+    HYP_FORCE_INLINE constexpr bool operator==(const TimeDiff& other) const
     {
         return milliseconds == other.milliseconds;
     }
 
-    HYP_FORCE_INLINE bool operator!=(const TimeDiff& other) const
+    HYP_FORCE_INLINE constexpr bool operator!=(const TimeDiff& other) const
     {
         return milliseconds != other.milliseconds;
     }
 
-    HYP_FORCE_INLINE TimeDiff operator+(const TimeDiff& other) const
+    HYP_FORCE_INLINE constexpr TimeDiff operator+(const TimeDiff& other) const
     {
         return TimeDiff(milliseconds + other.milliseconds);
     }
@@ -78,7 +80,7 @@ struct CORE_API TimeDiff
         return *this;
     }
 
-    HYP_FORCE_INLINE TimeDiff operator-(const TimeDiff& other) const
+    HYP_FORCE_INLINE constexpr TimeDiff operator-(const TimeDiff& other) const
     {
         return TimeDiff(milliseconds - other.milliseconds);
     }
@@ -91,11 +93,11 @@ struct CORE_API TimeDiff
 
     TimeDiff operator+(const Time& other) const;
     TimeDiff& operator+=(const Time& other);
-    TimeDiff operator-(const Time& other) const;
 
+    TimeDiff operator-(const Time& other) const;
     TimeDiff& operator-=(const Time& other);
 
-    HYP_FORCE_INLINE HashCode GetHashCode() const
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
         return HashCode::GetHashCode(milliseconds);
     }

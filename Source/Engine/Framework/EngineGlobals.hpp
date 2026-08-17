@@ -80,6 +80,7 @@ static constexpr NoOpFunction<bool> IsCooking;
 
 ENGINE_API bool IsCacheServer();
 ENGINE_API bool IsCommandlet();
+ENGINE_API bool IsHeadless();
 
 #ifdef HYP_EDITOR
 ENGINE_API const FilePath& GetProjectsDirectory();

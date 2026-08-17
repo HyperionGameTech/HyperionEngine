@@ -68,24 +68,40 @@ ENGINE_API bool IsCooking()
 
 #endif // !HYP_SHIPPING
 
+
+static std::once_flag s_isCommandletInit;
+bool g_isCommandlet = false;
+
+static std::once_flag s_isHeadlessInit;
+bool g_isHeadless = false;
+
 ENGINE_API bool IsCacheServer()
 {
     return IsGlobalContextActive<CacheServerContext>();
 }
 
-bool g_isCommandlet = false;
-
 ENGINE_API bool IsCommandlet()
 {
-    static std::once_flag s_onceFlag;
     std::call_once(
-        s_onceFlag,
+        s_isCommandletInit,
         []
         {
             g_isCommandlet = CoreApi::GetCommandLineArguments()["exec"].ToBool();
         });
 
     return g_isCommandlet;
+}
+
+ENGINE_API bool IsHeadless()
+{
+    std::call_once(
+        s_isHeadlessInit,
+        []
+        {
+            g_isHeadless = IsCommandlet() || CoreApi::GetCommandLineArguments()["Headless"].ToBool();
+        });
+
+    return g_isHeadless;
 }
 
 static FilePath s_cacheDirectory;

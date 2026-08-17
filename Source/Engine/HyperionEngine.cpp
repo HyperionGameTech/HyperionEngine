@@ -186,7 +186,7 @@ void InitThreads()
     {
         g_renderThread = StaticThreadId(NAME("Render"));
 
-        if (CoreApi::GetCommandLineArguments()["SimulateOnMainThread"].ToBool())
+        if (CoreApi::GetCommandLineArguments()["SimulateOnMainThread"].ToBool() || EngineGlobals::IsHeadless())
         {
             g_simThread = StaticThreadId(mainThreadIndex, NAME("Simulation"));
         }

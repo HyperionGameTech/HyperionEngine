@@ -517,6 +517,11 @@ void Mesh::UnpageBlobData()
 
 void Mesh::UploadGpuData()
 {
+    if (EngineGlobals::IsHeadless())
+    {
+        return;
+    }
+
     auto readScope = GetReadScope();
 
     // @TODO: Upload all LODs to GPU; for now LOD 0 is uploaded

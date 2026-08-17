@@ -41,10 +41,28 @@ struct NetAddress
     {
         return !bool(*this);
     }
+
+    HYP_FORCE_INLINE constexpr bool operator==(const NetAddress& other) const
+    {
+        return ipV4 == other.ipV4
+            && port == other.port;
+    }
+
+    HYP_FORCE_INLINE constexpr bool operator!=(const NetAddress& other) const
+    {
+        return ipV4 != other.ipV4
+            || port != other.port;
+    }
     
     CORE_API sockaddr_in ToSockAddr() const;
 
     CORE_API String ToString() const;
+
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(ipV4)
+            .Combine(port);
+    }
 };
 
 } // namespace net

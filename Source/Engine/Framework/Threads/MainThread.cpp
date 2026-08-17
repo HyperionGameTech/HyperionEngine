@@ -79,7 +79,7 @@ void MainThread::Update()
     AssertOnThread(g_mainThread);
 
     static const bool s_renderOnMainThread = CoreApi::GetCommandLineArguments()["RenderOnMainThread"].ToBool();
-    static const bool s_simulateOnMainThread = CoreApi::GetCommandLineArguments()["SimulateOnMainThread"].ToBool();
+    static const bool s_simulateOnMainThread = CoreApi::GetCommandLineArguments()["SimulateOnMainThread"].ToBool() || EngineGlobals::IsHeadless();
 
     HYP_DEFER({ m_threadAllocator->Reset(); });
 
@@ -94,22 +94,25 @@ void MainThread::Update()
         }
     }
 
-    Event event;
-    while (g_appContext->PollEvents(event))
+    if (g_appContext.IsValid())
     {
-        if (event.GetWindow() != nullptr)
+        Event event;
+        while (g_appContext->PollEvents(event))
         {
-            event.GetWindow()->GetInputManager()->ProcessEvent(std::move(event));
+            if (event.GetWindow() != nullptr)
+            {
+                event.GetWindow()->GetInputManager()->ProcessEvent(std::move(event));
+            }
         }
-    }
 
 #ifdef HYP_STEAM_SDK
-    Steam::SteamInputManager::GetInstance().Update();
+        Steam::SteamInputManager::GetInstance().Update();
 #endif // HYP_STEAM_SDK
 
-    for (ApplicationWindow* window : g_appContext->GetWindows())
-    {
-        window->GetInputManager()->MainThreadUpdate();
+        for (ApplicationWindow* window : g_appContext->GetWindows())
+        {
+            window->GetInputManager()->MainThreadUpdate();
+        }
     }
 
     if (s_renderOnMainThread
@@ -134,7 +137,7 @@ void MainThread::Update()
 
         if (!s_isRenderThreadInit)
         {
-            if (!g_renderInitSignal.IsSignalled())
+            if (!EngineGlobals::IsHeadless() && !g_renderInitSignal.IsSignalled())
             {
                 return;
             }

@@ -410,6 +410,11 @@ Texture::~Texture()
 
 RendererResult Texture::Create()
 {
+    if (EngineGlobals::IsHeadless())
+    {
+        return {};
+    }
+
     auto readScope = GetReadScope();
 
     const bool shouldCreateGpuImage = !EngineGlobals::IsCooking() && !EngineGlobals::IsCacheServer();

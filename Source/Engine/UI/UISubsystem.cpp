@@ -153,38 +153,41 @@ void UISubsystem::OnAddedToWorld()
 
     Vec2u windowSize { 1280, 720 };
 
-    if (g_appContext->GetMainWindow() != nullptr)
+    if (g_appContext.IsValid())
     {
-        windowSize = Vec2u(g_appContext->GetMainWindow()->GetSize());
-
-        m_onWindowResizedHandle = g_appContext->GetMainWindow()->OnWindowSizeChanged.BindThreaded(g_appContext->GetMainWindow(), handleWindowResize, g_simThread);
-    }
-
-    m_onCurrentWindowChangedHandle = g_appContext->OnCurrentWindowChanged.BindThreaded(
-        g_appContext,
-        [this, weakThis = MakeWeakRef(this), handleWindowResize](ApplicationWindow* window)
+        if (g_appContext->GetMainWindow() != nullptr)
         {
-            Handle<UISubsystem> strongThis = weakThis.Lock();
+            windowSize = Vec2u(g_appContext->GetMainWindow()->GetSize());
 
-            if (!strongThis.IsValid())
+            m_onWindowResizedHandle = g_appContext->GetMainWindow()->OnWindowSizeChanged.BindThreaded(g_appContext->GetMainWindow(), handleWindowResize, g_simThread);
+        }
+
+        m_onCurrentWindowChangedHandle = g_appContext->OnCurrentWindowChanged.BindThreaded(
+            g_appContext,
+            [this, weakThis = MakeWeakRef(this), handleWindowResize](ApplicationWindow* window)
             {
-                HYP_LOG(UI, Warning, "UISubsystem: subsystem is expired on current window changed");
-                return;
-            }
+                Handle<UISubsystem> strongThis = weakThis.Lock();
 
-            if (m_onWindowResizedHandle.IsValid())
-            {
-                m_onWindowResizedHandle.Reset();
-            }
+                if (!strongThis.IsValid())
+                {
+                    HYP_LOG(UI, Warning, "UISubsystem: subsystem is expired on current window changed");
+                    return;
+                }
 
-            if (window != nullptr)
-            {
-                m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(window, handleWindowResize, g_simThread);
+                if (m_onWindowResizedHandle.IsValid())
+                {
+                    m_onWindowResizedHandle.Reset();
+                }
 
-                handleWindowResize(Vec2i(window->GetSize()));
-            }
-        },
-        g_simThread);
+                if (window != nullptr)
+                {
+                    m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(window, handleWindowResize, g_simThread);
+
+                    handleWindowResize(Vec2i(window->GetSize()));
+                }
+            },
+            g_simThread);
+    }
 
     m_uiStage->SetSurfaceSize(Vec2i(windowSize));
 

@@ -372,7 +372,7 @@ void UIStage::Init()
 
     InitObject(m_camera);
 
-    const auto UpdateSurfaceSize = [weakThis = MakeWeakRef(this)](ApplicationWindow* window)
+    const auto updateSurfaceSize = [weakThis = MakeWeakRef(this)](ApplicationWindow* window)
     {
         Handle<UIStage> strongThis = weakThis.Lock();
 
@@ -425,10 +425,13 @@ void UIStage::Init()
             g_simThread);
     };
 
-    UpdateSurfaceSize(g_appContext->GetMainWindow());
+    if (g_appContext.IsValid())
+    {
+        updateSurfaceSize(g_appContext->GetMainWindow());
 
-    m_onCurrentWindowChangedHandler = g_appContext->OnCurrentWindowChanged
-        .BindThreaded(g_appContext, UpdateSurfaceSize, g_simThread);
+        m_onCurrentWindowChangedHandler = g_appContext->OnCurrentWindowChanged
+            .BindThreaded(g_appContext, updateSurfaceSize, g_simThread);
+    }
 
     // Will create a new Scene
     SetScene(Handle<Scene>::Null());

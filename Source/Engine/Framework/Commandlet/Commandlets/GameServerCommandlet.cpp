@@ -9,6 +9,7 @@
 #include <Framework/Commandlet/Commandlet.hpp>
 
 #include <Framework/EngineGlobals.hpp>
+#include <Framework/EngineDriver.hpp>
 
 #include <Core/CLI/CommandLine.hpp>
 
@@ -18,7 +19,10 @@
 
 #include <Core/Logging/Logger.hpp>
 
-namespace Hyperion {
+#include <Core/Threading/Threads.hpp>
+
+namespace Hyperion
+{
 
 HYP_DEFINE_LOG_CHANNEL(GameServer);
 
@@ -29,7 +33,8 @@ class GameServerThread : public Thread<Scheduler, Handle<Game>, TaskPromise<void
 public:
     GameServerThread()
         : Thread(StaticThreadId(NAME("GameServer")), ThreadPriorityValue::HIGHEST)
-    {}
+    {
+    }
 
     virtual void operator()(Handle<Game> game, TaskPromise<void>* onDone) override;
 };
@@ -38,16 +43,34 @@ void GameServerThread::operator()(Handle<Game> game, TaskPromise<void>* onDone)
 {
     NetServer server;
 
-     // @TODO Config var for port
+    server.OnClientConnected.Bind(
+                                [](const NetClientConnectedData& data)
+                                {
+                                    HYP_LOG(GameServer, Info, "Client connected: {} (connection id: {})", data.address.ToString(), uint32(data.connectionId));
+                                })
+        .Detach();
+
+    server.OnClientDisconnected.Bind(
+                                   [](const NetClientDisconnectedData& data)
+                                   {
+                                       HYP_LOG(GameServer, Info, "Client disconnected: {} (connection id: {})", data.address.ToString(), uint32(data.connectionId));
+                                   })
+        .Detach();
+
+    // @TODO Config var for port
     if (Result listenResult = server.Listen(9192); listenResult.HasError())
     {
         HYP_LOG(GameServer, Error, "Failed to start game server: {}", listenResult.GetError().GetMessage());
         return;
     }
 
+    HYP_LOG(GameServer, Info, "Game server listening on port {}", 9192);
+
     while (HYP_LIKELY(!m_stopRequested.LoadVolatile()))
     {
-        // @TODO @TODO @TODO
+        server.Update();
+
+        ThreadSleep(10);
     }
 
     server.StopListening();
@@ -128,10 +151,16 @@ public:
             return HYP_MAKE_ERROR(Error, "Failed to start Thread");
         }
 
-        while (!serverThread.IsStopping())
+        g_engineDriver->Initialize();
+        g_engineDriver->SetGameInstance(game.Get());
+
+        if (!g_engineDriver->StartThreads())
         {
-            // Simulate game + world the same way we do otherwise
+            return HYP_MAKE_ERROR(Error, "Failed to start engine threads");
         }
+
+        serverThread.Stop();
+        serverThread.Join();
 
         doneTask.Await();
 
@@ -152,8 +181,8 @@ HYP_BEGIN_CLASS(GameServerCommandlet, -1, 0, NAME("CommandletBase"), ClassAttrib
     Method(NAME("GetArgumentDefinitions"), &Type::GetArgumentDefinitions)
 HYP_END_CLASS
 
-// clang-format on
+    // clang-format on
 
-HYP_REGISTER_STATIC_CLASS(GameServerCommandlet);
+    HYP_REGISTER_STATIC_CLASS(GameServerCommandlet);
 
 } // namespace Hyperion

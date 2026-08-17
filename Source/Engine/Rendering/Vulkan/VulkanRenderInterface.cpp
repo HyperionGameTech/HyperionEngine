@@ -91,6 +91,8 @@ enum VulkanDescriptorPoolRequirements : uint8
 class VulkanRenderConfig final : public IRenderConfig
 {
 public:
+    HYP_DEF_POOL_NEW_DELETE(g_vulkanPool);
+
     void Initialize(VulkanRenderInterface* renderBackend)
     {
         Assert(renderBackend != nullptr && renderBackend->GetDevice() != nullptr);
@@ -644,13 +646,16 @@ VkDescriptorSetLayout VulkanDescriptorSetManager::GetOrCreateVkDescriptorSetLayo
 
 VulkanRenderInterface::VulkanRenderInterface()
     : m_instance(nullptr),
-      m_renderConfig(nullptr),
+      m_renderConfig(new VulkanRenderConfig),
+      m_descriptorSetManager(new VulkanDescriptorSetManager),
       m_currentFrameIndex(0)
 {
 }
 
 VulkanRenderInterface::~VulkanRenderInterface()
 {
+    delete m_renderConfig;
+    m_renderConfig = nullptr;
 }
 
 const VulkanDeviceRef& VulkanRenderInterface::GetDevice() const
@@ -665,9 +670,6 @@ const IRenderConfig& VulkanRenderInterface::GetRenderConfig() const
 
 RendererResult VulkanRenderInterface::Initialize()
 {
-    m_renderConfig = new VulkanRenderConfig;
-    m_descriptorSetManager = new VulkanDescriptorSetManager;
-
     // CrashHandler must be initialized before we create the Vulkan instance
     CrashHandler::Initialize();
 
