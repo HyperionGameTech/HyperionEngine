@@ -64,11 +64,11 @@ static const Float16 s_ltcBrdf[] = {
 static_assert(sizeof(s_ltcBrdf) == 64 * 64 * 4 * 2, "Invalid LTC BRDF size");
 
 // Maps individual light types to per-light specific properties.
-static const FixedArray<ShaderPropertySet, NumLightTypes> s_deferredLightTypeProperties {
-    ShaderPropertySet { { InternShaderProperty(ShaderProperty(NAME("LIGHT_TYPE"), NAME("DIRECTIONAL"))) } },
-    ShaderPropertySet { { InternShaderProperty(ShaderProperty(NAME("LIGHT_TYPE"), NAME("POINT"))) } },
-    ShaderPropertySet { { InternShaderProperty(ShaderProperty(NAME("LIGHT_TYPE"), NAME("SPOT"))) } },
-    ShaderPropertySet { { InternShaderProperty(ShaderProperty(NAME("LIGHT_TYPE"), NAME("AREA_RECT"))) } }
+static StaticShaderPropertyId s_deferredLightTypeProperties[NumLightTypes] = {
+    StaticShaderPropertyId { ShaderProperty(NAME("LIGHT_TYPE"), NAME("DIRECTIONAL")) },
+    StaticShaderPropertyId { ShaderProperty(NAME("LIGHT_TYPE"), NAME("POINT")) },
+    StaticShaderPropertyId { ShaderProperty(NAME("LIGHT_TYPE"), NAME("SPOT")) },
+    StaticShaderPropertyId { ShaderProperty(NAME("LIGHT_TYPE"), NAME("AREA_RECT")) }
 };
 
 static StaticShaderPropertyId s_propHBAOEnabled { ShaderProperty(NAME("HBAO_ENABLED")) };
@@ -164,7 +164,7 @@ void GetDeferredShaderProperties(
 
     if (!clustered && lightType != InvalidLightType)
     {
-        outShaderProperties = outShaderProperties | s_deferredLightTypeProperties[uint32(lightType)];
+        outShaderProperties.Add(s_deferredLightTypeProperties[uint32(lightType)]);
     }
 }
 

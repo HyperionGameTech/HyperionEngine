@@ -11,10 +11,14 @@
 #include <Rendering/Frame.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
+#include <Rendering/Util/MeshBuilder.hpp>
 
 #include <Core/Containers/SparsePagedArray.hpp>
 
 #include <Core/Memory/Allocator/ThreadAllocator.hpp>
+
+#include <Core/Threading/SharedMutex.hpp>
+#include <Core/Threading/LockGuard.hpp>
 
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
@@ -135,17 +139,20 @@ Mesh::~Mesh()
 
 VertexArrayView Mesh::GetVertexData(uint8 lodIndex) const
 {
-    Assert(m_lodData[lodIndex].vertexData.raw != nullptr, "Vertex data not loaded!");
+    VertexArrayView view {};
+    view.layoutDesc = m_meshDesc.meshAttributes.inputLayout;
 
-    const float* floatData = reinterpret_cast<const float*>(m_lodData[lodIndex].vertexData.raw);
+    // Data may be missing; PageBlobData() already logged why.
+    if (!m_lodData[lodIndex].vertexData.raw)
+    {
+        return view;
+    }
 
     const size_t vertexSize = m_meshDesc.meshAttributes.inputLayout.VertexSize();
     Assert(vertexSize != 0); // bad vertex size in layout desc - corrupt?
 
-    VertexArrayView view {};
-    view.floatData = floatData;
+    view.floatData = reinterpret_cast<const float*>(m_lodData[lodIndex].vertexData.raw);
     view.vertexCount = m_meshDesc.lods[lodIndex].numVertices;
-    view.layoutDesc = m_meshDesc.meshAttributes.inputLayout;
 
     return view;
 }
@@ -173,6 +180,126 @@ void Mesh::SetIndexData(uint8 lodIndex, Span<const ubyte> indexData)
     MarkDirty();
 }
 
+class PlaceholderVertexIndexCache
+{
+public:
+    struct Buffers
+    {
+        Array<float> vertexData;
+        Array<uint32> indexData;
+    };
+
+private:
+    Map<uint8, UniquePtr<Buffers>> m_map;
+    SharedMutex m_mutex;
+
+    static UniquePtr<Buffers> BuildForLayout(uint8 layoutMask)
+    {
+        static const Vec3f s_corners[8] = {
+            { -0.5f, -0.5f, -0.5f }, { 0.5f, -0.5f, -0.5f }, { 0.5f, 0.5f, -0.5f }, { -0.5f, 0.5f, -0.5f },
+            { -0.5f, -0.5f, 0.5f }, { 0.5f, -0.5f, 0.5f }, { 0.5f, 0.5f, 0.5f }, { -0.5f, 0.5f, 0.5f }
+        };
+
+        static constexpr uint32 s_indices[36] = {
+            0, 2, 1, 0, 3, 2, // back  (-Z)
+            4, 5, 6, 4, 6, 7, // front (+Z)
+            0, 1, 5, 0, 5, 4, // bottom(-Y)
+            3, 6, 2, 3, 7, 6, // top   (+Y)
+            1, 2, 6, 1, 6, 5, // right (+X)
+            0, 4, 7, 0, 7, 3  // left  (-X)
+        };
+
+        Buffers bs;
+        bs.vertexData.Reserve(GetArrayCount(s_corners) * (VertexInputLayoutDesc { layoutMask }.VertexSize() / sizeof(float)));
+
+        for (const Vec3f& corner : s_corners)
+        {
+            const Vec3f normal = corner.Normalized();
+
+            if (layoutMask & VT_Position)
+            {
+                bs.vertexData.PushBack(corner.x);
+                bs.vertexData.PushBack(corner.y);
+                bs.vertexData.PushBack(corner.z);
+            }
+
+            if (layoutMask & VT_Normal)
+            {
+                bs.vertexData.PushBack(normal.x);
+                bs.vertexData.PushBack(normal.y);
+                bs.vertexData.PushBack(normal.z);
+            }
+
+            if (layoutMask & VT_UV0)
+            {
+                bs.vertexData.PushBack(0.0f);
+                bs.vertexData.PushBack(0.0f);
+            }
+
+            if (layoutMask & VT_UV1)
+            {
+                bs.vertexData.PushBack(0.0f);
+                bs.vertexData.PushBack(0.0f);
+            }
+
+            if (layoutMask & VT_Skeletal)
+            {
+                static constexpr uint32 NoBoneIndices = UINT32_MAX;
+
+                bs.vertexData.PushBack(BitCast<float>(NoBoneIndices));
+
+                // Weights
+                bs.vertexData.PushBack(0.0f);
+                bs.vertexData.PushBack(0.0f);
+                bs.vertexData.PushBack(0.0f);
+                bs.vertexData.PushBack(0.0f);
+            }
+        }
+
+        bs.indexData.Reserve(GetArrayCount(s_indices));
+
+        for (uint32 index : s_indices)
+        {
+            bs.indexData.PushBack(index);
+        }
+
+        return MakeUnique<Buffers>(std::move(bs));
+    }
+
+public:
+    static PlaceholderVertexIndexCache& GetInstance()
+    {
+        static PlaceholderVertexIndexCache instance;
+
+        return instance;
+    }
+
+    Buffers* GetForLayout(uint8 layoutMask)
+    {
+        {
+            TSharedLock lock(m_mutex);
+
+            auto it = m_map.Find(layoutMask);
+
+            if (it != m_map.End())
+            {
+                return it->second.Get();
+            }
+        }
+
+        TUniqueLock lock(m_mutex);
+
+        auto it = m_map.Find(layoutMask);
+
+        if (it != m_map.End())
+        {
+            return it->second.Get();
+        }
+
+        return m_map.Insert(layoutMask, BuildForLayout(layoutMask)).first->second.Get();
+    }
+};
+
 void Mesh::PageBlobData()
 {
     if (IsTransient() || !IsRegistered())
@@ -193,16 +320,19 @@ void Mesh::PageBlobData()
             && vertexData.key
             && vertexData.size != 0)
         {
+            bool vertexLoaded = false;
+            bool indexLoaded = false;
+
             if (lodIndex == 0)
             {
                 const Name blobKey = vertexData.key;
                 const uint64 expectedSize = vertexData.size;
 
-                ([&]()
+                vertexLoaded = ([&]() -> bool
                     {
                         if (PageBlobDataFromStorage(vertexData))
                         {
-                            return;
+                            return true;
                         }
 
                         Handle<AssetRegistry> registry = GetAssetRegistry();
@@ -219,7 +349,7 @@ void Mesh::PageBlobData()
                                     HYP_LOG(Engine, Error, "Local blob data for {} vertex buffer (LOD {}) is {} bytes but the manifest expects {}, ignoring it",
                                             GetName(), lodIndex, stream.Max(), expectedSize);
 
-                                    return;
+                                    return false;
                                 }
 
                                 ByteBuffer buffer = stream.Read(stream.Max());
@@ -227,11 +357,13 @@ void Mesh::PageBlobData()
                                 AllocateBlobData(vertexData, buffer.Data(), buffer.Size(), 16);
                                 vertexData.key = blobKey;
 
-                                return;
+                                return true;
                             }
                         }
 
                         HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} vertex buffer (LOD {})", GetName(), lodIndex);
+
+                        return false;
                     })();
             }
             else
@@ -244,11 +376,11 @@ void Mesh::PageBlobData()
                 const Name blobKey = indexData.key;
                 const uint64 expectedSize = indexData.size;
 
-                ([&]()
+                indexLoaded = ([&]() -> bool
                     {
                         if (PageBlobDataFromStorage(indexData))
                         {
-                            return;
+                            return true;
                         }
 
                         Handle<AssetRegistry> registry = GetAssetRegistry();
@@ -265,7 +397,7 @@ void Mesh::PageBlobData()
                                     HYP_LOG(Engine, Error, "Local blob data for {} index buffer (LOD {}) is {} bytes but the manifest expects {}, ignoring it",
                                             GetName(), lodIndex, stream.Max(), expectedSize);
 
-                                    return;
+                                    return false;
                                 }
 
                                 ByteBuffer buffer = stream.Read(stream.Max());
@@ -274,16 +406,40 @@ void Mesh::PageBlobData()
                                 AllocateBlobData(indexData, buffer.Data(), buffer.Size(), alignof(uint32));
                                 indexData.key = blobKey;
 
-                                return;
+                                return true;
                             }
                         }
 
                         HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} index buffer (LOD {})", GetName(), lodIndex);
+
+                        return false;
                     })();
             }
             else
             {
                 HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} index buffer (LOD {})", GetName(), lodIndex);
+            }
+
+            // Both replaced together so we never end up with mismatched vertex/index counts.
+            if (lodIndex == 0 && (!vertexLoaded || !indexLoaded))
+            {
+                HYP_LOG(Assets, Warning, "Using placeholder cube mesh for {} (LOD {}) because its real vertex/index data could not be loaded",
+                    GetName(), lodIndex);
+
+                const uint8 layoutMask = m_meshDesc.meshAttributes.inputLayout.mask;
+                const PlaceholderVertexIndexCache::Buffers* placeholder = PlaceholderVertexIndexCache::GetInstance().GetForLayout(layoutMask);
+
+                const Name vertexBlobKey = vertexData.key;
+                AllocateBlobData(vertexData, placeholder->vertexData.Data(), placeholder->vertexData.ByteSize(), 16);
+                vertexData.key = vertexBlobKey;
+
+                const Name indexBlobKey = indexData.key;
+                AllocateBlobData(indexData, placeholder->indexData.Data(), placeholder->indexData.ByteSize(), alignof(uint32));
+                indexData.key = indexBlobKey;
+
+                const size_t vertexSize = MathUtil::Max(VertexInputLayoutDesc { layoutMask }.VertexSize(), size_t(1));
+                m_meshDesc.lods[lodIndex].numVertices = uint32(placeholder->vertexData.ByteSize() / vertexSize);
+                m_meshDesc.lods[lodIndex].numIndices = uint32(placeholder->indexData.Size());
             }
         }
     }

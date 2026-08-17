@@ -251,6 +251,9 @@ public:
 
         TUniqueLock lock(m_mutex);
 
+        m_forwardMap.Clear();
+        m_reverseMap.Clear();
+
         m_forwardMap.Reserve(entryCount);
 
         for (uint32 i = 0; i < entryCount; i++)
@@ -268,7 +271,9 @@ public:
 
             const HashCode hash = HashCode::GetHashCode(value);
 
-            m_forwardMap.Insert(hash, static_cast<IdType>(idValue));
+            AssertDebug(!m_reverseMap.HasIndex(idValue), "BinaryDictionary id {} used by more than one entry - corrupt!", idValue);
+
+            m_forwardMap.Set(hash, static_cast<IdType>(idValue));
             m_reverseMap.Emplace(idValue, std::move(value));
         }
 

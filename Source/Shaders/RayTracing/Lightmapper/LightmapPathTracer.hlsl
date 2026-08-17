@@ -203,6 +203,40 @@ float3 SampleDirectLighting(in float3 hitPos, in float3 N)
 }
 #endif
 
+float4 SampleEnvironment(float3 origin, float3 direction)
+{
+    float4 environmentRadiance = (float4) 0.0;
+
+    for (uint envProbeIdx = 0; envProbeIdx < rayTracingConstants.numBoundEnvProbes && environmentRadiance.a < 1.0; envProbeIdx++)
+    {
+        EnvProbe currentEnvProbe = envProbes[envProbeIdx];
+                        
+        const uint textureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(currentEnvProbe);
+
+        const uint probeType = GET_ENV_PROBE_TYPE(currentEnvProbe);
+        const bool isSky = (probeType == EPT_SKY);
+
+        if (!isSky)
+        {
+            continue;
+        }
+                        
+        const float4 aabbMin = currentEnvProbe.aabb_min;
+        const float4 aabbMax = currentEnvProbe.aabb_max;
+                        
+        const float4 worldPosition = currentEnvProbe.world_position;
+        const float3 worldPosition3 = worldPosition.xyz;
+        const float diffuseStrength = worldPosition.w;
+
+        const float weight = (isSky ? 1.0 : CalculateEnvProbeWeight(origin, aabbMin.xyz, aabbMax.xyz, 0.005)) * diffuseStrength * (1.0 - environmentRadiance.a);
+
+        const float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, textureIndex, direction, 0.0);
+        environmentRadiance += env * weight;
+    }
+    
+    return environmentRadiance;
+}
+
 [shader("raygeneration")]
 void RayGenMain()
 {
@@ -411,36 +445,7 @@ void RayGenMain()
             // sample environment if miss
             if (payload.distance < 0.0)
             {
-                float4 environmentRadiance = (float4)0.0;
-
-                for (uint envProbeIdx = 0; envProbeIdx < rayTracingConstants.numBoundEnvProbes && environmentRadiance.a < 1.0; envProbeIdx++)
-                {
-                    EnvProbe currentEnvProbe = envProbes[envProbeIdx];
-                        
-                    const uint textureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(currentEnvProbe);
-
-                    const uint probeType = GET_ENV_PROBE_TYPE(currentEnvProbe);
-                    const bool isSky = (probeType == EPT_SKY);
-
-                    if (!isSky)
-                    {
-                        continue;
-                    }
-                        
-                    const float4 aabbMin = currentEnvProbe.aabb_min;
-                    const float4 aabbMax = currentEnvProbe.aabb_max;
-                        
-                    const float4 worldPosition = currentEnvProbe.world_position;
-                    const float3 worldPosition3 = worldPosition.xyz;
-                    const float diffuseStrength = worldPosition.w;
-
-                    const float weight = (isSky ? 1.0 : CalculateEnvProbeWeight(origin, aabbMin.xyz, aabbMax.xyz, 0.005)) * diffuseStrength * (1.0 - environmentRadiance.a);
-
-                    const float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, textureIndex, direction, 0.0);
-                    environmentRadiance += env * weight;
-                }
-
-                Li += float4(beta * environmentRadiance.rgb, 1.0);
+                Li += float4(beta * SampleEnvironment(origin, direction).rgb, 1.0);
 
                 break;
             }
@@ -497,6 +502,12 @@ void RayGenMain()
         // if the ray never hit anything, set alpha to 0 so that probes can blend between each other. If it hit something, set alpha to 1 so that the result is not blended with other probes.
         Li.a = sampleIsMiss ? 0.0 : 1.0;
         //Li.a = 1.0;
+    
+        //if (sampleIsMiss)
+        //{
+        //    // Sky hit - irradiance probe only
+        //    Li = SampleEnvironment(origin, direction);
+        //}
 
         accumRadiance += Li;
     }
@@ -629,7 +640,7 @@ void RayGenMain()
         accumRadiance += radiance * float4(diffuseColor * HYP_FMATH_ONE_OVER_PI, 1.0);
     }
 #endif
-
+    
     float4 finalColor = accumRadiance / float(NUM_SAMPLES);
 
 #elif defined(MODE_SHADOW)
