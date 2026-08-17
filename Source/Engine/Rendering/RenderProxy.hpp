@@ -139,9 +139,9 @@ struct EnvProbeShaderData
     uint32 typeAndFlags;
 
     Vec4f shData[9];
-};
 
-static_assert(sizeof(EnvProbeShaderData));
+    Vec4f hitMaskSH[4];
+};
 
 struct RenderProxyEnvProbe : IRenderProxy
 {

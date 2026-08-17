@@ -67,6 +67,8 @@ class ENGINE_API EnvProbe : public VolumeBase
     HYP_OBJECT_BODY(EnvProbe);
 
 public:
+    static constexpr uint32 VisibilityTextureDimensions = 64;
+
     EnvProbe();
     explicit EnvProbe(EnvProbeType envProbeType);
     EnvProbe(EnvProbeType envProbeType, const BoundingBox& aabb, const Vec2u& dimensions);
@@ -384,6 +386,13 @@ public:
 
     ~IrradianceProbe() override = default;
 
+    HYP_FORCE_INLINE const FixedArray<Vec3f, 4>& GetHitMaskData() const
+    {
+        return m_hitMaskData;
+    }
+
+    void SetHitMaskData(const FixedArray<Vec3f, 4>& hitMaskData);
+
 #ifdef HYP_EDITOR
     HYP_METHOD(EditorOnly, EditorAction = "Recompute Irradiance")
     void RecomputeIrradiance();
@@ -391,6 +400,8 @@ public:
 
 private:
     void Invalidate(bool forceRerender = false) override;
+
+    FixedArray<Vec3f, 4> m_hitMaskData;
 };
 
 } // namespace Hyperion

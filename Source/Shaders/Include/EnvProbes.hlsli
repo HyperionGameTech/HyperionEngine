@@ -21,6 +21,8 @@ struct EnvProbe
     uint typeAndFlags;
 
     float4 sh[9];
+    
+    float4 hitMaskSH[4];
 };
 
 struct SH9
@@ -139,22 +141,31 @@ float3 SphericalHarmonicsSample(const in SH9 sh, float3 normal)
     return result;
 }
 
-// Sample spherical harmonics from an EnvProbe up to the given SH order
-float3 EnvProbeSH(in EnvProbe envProbe, float3 N, int order = 2)
+// Sample spherical harmonics from an EnvProbe up to the given SH order.
+// alpha encodes hit mask value.
+// @TODO: Quadratic - https://cseweb.ucsd.edu/~ravir/papers/envmap/envmap.pdf
+float4 EnvProbeSH(in EnvProbe envProbe, float3 N)
 {
     float bands[9];
     ProjectSHBands(N, bands);
 
-    const int numCoeffs = min((order + 1) * (order + 1), 9);
+    static const int order = 2;
+    static const int numCoeffs = min((order + 1) * (order + 1), 9);
 
-    float3 result = (float3)0.0;
+    float4 result = (float4)0.0;
 
+    [unroll]
     for (int i = 0; i < numCoeffs; i++)
     {
-        result += envProbe.sh[i].rgb * bands[i];
+        result.rgb += envProbe.sh[i].rgb * bands[i];
     }
+    
+    result.a = (envProbe.hitMaskSH[0].rgb * bands[0]
+        + envProbe.hitMaskSH[1].rgb * bands[1]
+        + envProbe.hitMaskSH[2].rgb * bands[2]
+        + envProbe.hitMaskSH[3].rgb * bands[3]).r;
 
-    return max(result, (float3)0.0);
+    return saturate(result);
 }
 
 #endif

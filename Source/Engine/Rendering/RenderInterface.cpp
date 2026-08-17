@@ -2297,7 +2297,11 @@ void RenderInterface::CreateEnvProbesDepthTexture()
 
     TextureDesc textureDesc;
     textureDesc.format = TextureFormat::RG16F;
-    textureDesc.extent = Vec3u { 16, 16, 1 };
+    textureDesc.extent = Vec3u {
+        EnvProbe::VisibilityTextureDimensions,
+        EnvProbe::VisibilityTextureDimensions,
+        1
+    };
     textureDesc.imageUsage = IU_SAMPLED;
     textureDesc.type = TextureType::CubemapArray;
     textureDesc.numLayers = MaxBoundReflectionProbes;

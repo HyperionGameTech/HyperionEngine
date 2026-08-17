@@ -80,13 +80,6 @@ auto BakeData<EnvProbe>::ToBitmap() const -> BitmapType
 
     for (uint32 face = 0; face < 6; face++)
     {
-        uint32 numSkipped = 0;
-        uint32 numLowAlpha = 0;
-        double sumW = 0.0;
-        double sumPreRgb = 0.0;
-        double sumPostRgb = 0.0;
-        uint32 numProcessed = 0;
-
         for (uint32 y = 0; y < dimensions.y; y++)
         {
             for (uint32 x = 0; x < dimensions.x; x++)
@@ -98,26 +91,12 @@ auto BakeData<EnvProbe>::ToBitmap() const -> BitmapType
 
                 if (color.w <= 0.00001f)
                 {
-                    numSkipped++;
-
                     continue;
                 }
-
-                const float preRgbLen = MathUtil::Max(color.x, MathUtil::Max(color.y, color.z));
-
-                if (color.w < 0.3f)
-                {
-                    numLowAlpha++;
-                }
-
+                
                 color /= color.w;
 
                 color = MathUtil::Max(color, Vec4f::Zero());
-
-                sumW += color.w;
-                sumPreRgb += preRgbLen;
-                sumPostRgb += MathUtil::Max(color.x, MathUtil::Max(color.y, color.z));
-                numProcessed++;
 
                 if constexpr (!BitmapType::Helper::IsFloatingPoint)
                 {
@@ -129,15 +108,35 @@ auto BakeData<EnvProbe>::ToBitmap() const -> BitmapType
                 bitmap.GetPixelReference(x, bitmapY).SetRGBA(color);
             }
         }
+    }
 
-        HYP_LOG(Lightmap, Info, "[EnvProbe Bake] face {} stats: skipped {}/{}, lowAlpha(<0.3) {}, meanW {}, meanPreRGB {}, meanPostRGB {}",
-            face,
-            numSkipped,
-            uint32(numTexelsPerFace),
-            numLowAlpha,
-            numProcessed ? MathUtil::Round(float(sumW / numProcessed), 4) : 0.0f,
-            numProcessed ? MathUtil::Round(float(sumPreRgb / numProcessed), 4) : 0.0f,
-            numProcessed ? MathUtil::Round(float(sumPostRgb / numProcessed), 4) : 0.0f);
+    return bitmap;
+}
+
+auto BakeData<EnvProbe>::ToHitMaskBitmap() const -> HitMaskBitmapType
+{
+    Assert(m_envProbe != nullptr);
+
+    const size_t numTexelsPerFace = dimensions.x * dimensions.y;
+
+    Assert(texels.Size() == 6 * numTexelsPerFace, "Invalid cubemap size");
+
+    HitMaskBitmapType bitmap(dimensions.x, dimensions.y * 6);
+
+    for (uint32 face = 0; face < 6; face++)
+    {
+        for (uint32 y = 0; y < dimensions.y; y++)
+        {
+            for (uint32 x = 0; x < dimensions.x; x++)
+            {
+                const uint32 texelIdx = face * numTexelsPerFace + y * dimensions.x + x;
+                const uint32 bitmapY = face * dimensions.y + y;
+
+                const float alpha = texels[texelIdx].color0.GetW();
+
+                bitmap.GetPixelReference(x, bitmapY).SetR(alpha);
+            }
+        }
     }
 
     return bitmap;
@@ -150,20 +149,23 @@ auto BakeData<EnvProbe>::ToVisibilityBitmap() const -> VisibilityBitmapType
     const size_t numTexelsPerFace = dimensions.x * dimensions.y;
 
     Assert(texels.Size() == 6 * numTexelsPerFace, "Invalid cubemap size");
+    
+    VisibilityBitmapType bitmap(
+        EnvProbe::VisibilityTextureDimensions,
+        EnvProbe::VisibilityTextureDimensions * 6);
 
-    // The visibility texture must match the global envProbesDepthTexture dimensions
-    // (see OnBindingChanged_EnvProbe which CopyImages into that array).
-    static constexpr uint32 VisibilityTextureDimension = 16;
+    const float fFar = MathUtil::Max(m_envProbe->GetWorldBounds().GetRadius(), MathUtil::epsilonF);
+    const float invFar = 1.0f / fFar;
 
-    VisibilityBitmapType bitmap(VisibilityTextureDimension, VisibilityTextureDimension * 6);
+    static constexpr float MissDistNorm = 2.0f;
 
     for (uint32 face = 0; face < 6; face++)
     {
-        for (uint32 y = 0; y < VisibilityTextureDimension; y++)
+        for (uint32 y = 0; y < EnvProbe::VisibilityTextureDimensions; y++)
         {
-            for (uint32 x = 0; x < VisibilityTextureDimension; x++)
+            for (uint32 x = 0; x < EnvProbe::VisibilityTextureDimensions; x++)
             {
-                const uint32 bitmapY = face * VisibilityTextureDimension + y;
+                const uint32 bitmapY = face * EnvProbe::VisibilityTextureDimensions + y;
 
                 // Accumulate distance moments over the region of cubemap texels
                 // that map to this visibility texel.
@@ -171,10 +173,11 @@ auto BakeData<EnvProbe>::ToVisibilityBitmap() const -> VisibilityBitmapType
                 float accumDistSq = 0.0f;
                 float accumWeight = 0.0f;
 
-                const uint32 xStart = (x * dimensions.x) / VisibilityTextureDimension;
-                const uint32 xEnd = MathUtil::Max(xStart + 1, ((x + 1) * dimensions.x) / VisibilityTextureDimension);
-                const uint32 yStart = (y * dimensions.y) / VisibilityTextureDimension;
-                const uint32 yEnd = MathUtil::Max(yStart + 1, ((y + 1) * dimensions.y) / VisibilityTextureDimension);
+                const uint32 xStart = (x * dimensions.x) / EnvProbe::VisibilityTextureDimensions;
+                const uint32 xEnd = MathUtil::Max(xStart + 1, ((x + 1) * dimensions.x) / EnvProbe::VisibilityTextureDimensions);
+
+                const uint32 yStart = (y * dimensions.y) / EnvProbe::VisibilityTextureDimensions;
+                const uint32 yEnd = MathUtil::Max(yStart + 1, ((y + 1) * dimensions.y) / EnvProbe::VisibilityTextureDimensions);
 
                 for (uint32 sy = yStart; sy < yEnd; sy++)
                 {
@@ -187,16 +190,17 @@ auto BakeData<EnvProbe>::ToVisibilityBitmap() const -> VisibilityBitmapType
 
                         if (accum.w > 0.0f)
                         {
-                            accumDist += accum.x / accum.w;
-                            accumDistSq += accum.y / accum.w;
+                            const float meanDist = (accum.x / accum.w) * invFar;
+                            const float meanDistSq = (accum.y / accum.w) * invFar * invFar;
+
+                            accumDist += meanDist;
+                            accumDistSq += meanDistSq;
                             accumWeight += 1.0f;
                         }
                         else
                         {
-                            static constexpr float MissDist = 10000.0f;
-
-                            accumDist += MissDist;
-                            accumDistSq += MissDist * MissDist;
+                            accumDist += MissDistNorm;
+                            accumDistSq += MissDistNorm * MissDistNorm;
                             accumWeight += 1.0f;
                         }
                     }

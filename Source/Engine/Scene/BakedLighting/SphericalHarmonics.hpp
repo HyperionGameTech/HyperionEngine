@@ -16,6 +16,8 @@
 #include <Core/Reflection/ObjectBase.hpp>
 #include <Core/Reflection/Handle.hpp>
 
+#include <Util/Img/Bitmap.hpp>
+
 namespace Hyperion {
 
 #pragma pack(push, 4)
@@ -140,6 +142,130 @@ enum class EvaluateSphericalHarmonicsResult : int8
 HYP_FORCE_INLINE static constexpr bool IsSuccess(EvaluateSphericalHarmonicsResult result)
 {
     return int8(result) >= 0;
+}
+
+HYP_FORCE_INLINE static FixedArray<float, 9> EvaluateSphericalHarmonicsBasis(const Vec3f& direction)
+{
+    const float x = direction.x;
+    const float y = direction.y;
+    const float z = direction.z;
+ 
+    return FixedArray<float, 9> {
+        0.282095f,
+        0.488603f * y,
+        0.488603f * z,
+        0.488603f * x,
+        1.092548f * x * y,
+        1.092548f * y * z,
+        0.315392f * (3.0f * z * z - 1.0f),
+        1.092548f * x * z,
+        0.546274f * (x * x - y * y)
+    };
+}
+
+HYP_FORCE_INLINE static Vec3f GetCubemapFaceDirection(uint32 faceIndex, float u, float v)
+{
+    // Keep in line with Texture::s_cubemapDirections
+    switch (faceIndex)
+    {
+    case 0:     return Vec3f(1.0f, -v, -u);     // +X
+    case 1:     return Vec3f(-1.0f, -v, u);     // -X
+    case 2:     return Vec3f(u, 1.0f, v);       // +Y
+    case 3:     return Vec3f(u, -1.0f, -v);     // -Y
+    case 4:     return Vec3f(u, -v, 1.0f);      // +Z
+    default:    return Vec3f(-u, -v, -1.0f);    // -Z
+    }
+}
+
+template <TextureFormat Format, bool CosineWeighted>
+static inline SphericalHarmonicsData ComputeSphericalHarmonicsCubemap(const Bitmap<Format>& bitmap, uint32 sampleStride = 1)
+{
+    static const FixedArray<float, 9> s_sphericalHarmonicsAOverPi {
+        1.0f,
+        2.0f / 3.0f,
+        2.0f / 3.0f,
+        2.0f / 3.0f,
+        0.25f,
+        0.25f,
+        0.25f,
+        0.25f,
+        0.25f
+    };
+
+    SphericalHarmonicsData coefficients {};
+ 
+    const uint32 width = bitmap.GetWidth();
+    const uint32 height = bitmap.GetHeight();
+ 
+    if (width == 0 || height == 0 || height % 6 != 0 || height / 6 != width)
+    {
+        return coefficients;
+    }
+ 
+    const uint32 faceSize = width;
+ 
+    sampleStride = MathUtil::Max(sampleStride, 1u);
+ 
+    const float texelStep = 2.0f / float(faceSize);
+ 
+    float totalWeight = 0.0f;
+ 
+    for (uint32 faceIndex = 0; faceIndex < 6; faceIndex++)
+    {
+        for (uint32 y = 0; y < faceSize; y += sampleStride)
+        {
+            const float v = ((float(y) + 0.5f) * texelStep) - 1.0f;
+ 
+            for (uint32 x = 0; x < faceSize; x += sampleStride)
+            {
+                const float u = ((float(x) + 0.5f) * texelStep) - 1.0f;
+ 
+                const float r2 = 1.0f + u * u + v * v;
+                const float solidAngle = (texelStep * texelStep) / (r2 * MathUtil::Sqrt(r2));
+ 
+                const Vec3f direction = GetCubemapFaceDirection(faceIndex, u, v).Normalized();
+ 
+                const Vec3f radiance = bitmap.GetPixelReference(x, faceIndex * faceSize + y).GetRGBA().GetXYZ();
+ 
+                const FixedArray<float, 9> basis = EvaluateSphericalHarmonicsBasis(direction);
+ 
+                for (uint32 i = 0; i < 9; i++)
+                {
+                    reinterpret_cast<Vec3f*>(coefficients.values)[i] += radiance * (basis[i] * solidAngle);
+                }
+ 
+                totalWeight += solidAngle;
+            }
+        }
+    }
+ 
+    if (totalWeight <= MathUtil::epsilonF)
+    {
+        return coefficients;
+    }
+ 
+    const float normalization = (4.0f * MathUtil::pi<float>) / totalWeight;
+ 
+    for (uint32 i = 0; i < 9; i++)
+    {
+        reinterpret_cast<Vec3f*>(coefficients.values)[i] *= normalization * (CosineWeighted ? s_sphericalHarmonicsAOverPi[i] : 1.0f);
+    }
+ 
+    return coefficients;
+}
+ 
+HYP_FORCE_INLINE static Vec3f EvaluateSphericalHarmonics(const SphericalHarmonicsData& coefficients, const Vec3f& normal)
+{
+    const FixedArray<float, 9> basis = EvaluateSphericalHarmonicsBasis(normal);
+ 
+    Vec3f result = Vec3f::Zero();
+ 
+    for (uint32 i = 0; i < 9; i++)
+    {
+        result += reinterpret_cast<const Vec3f*>(coefficients.values)[i] * basis[i];
+    }
+ 
+    return MathUtil::Max(result, Vec3f::Zero());
 }
 
 } // namespace Hyperion

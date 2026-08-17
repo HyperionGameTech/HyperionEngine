@@ -21,6 +21,7 @@ class BakeData<EnvProbe> : public BakeDataBase
 public:
     using BitmapType = Bitmap_RGBA16F;
     using VisibilityBitmapType = Bitmap_RG16F;
+    using HitMaskBitmapType = Bitmap_R8;
 
     BakeData()
         : m_envProbe(nullptr)
@@ -44,6 +45,7 @@ public:
     virtual Result Build() override;
 
     BitmapType ToBitmap() const;
+    HitMaskBitmapType ToHitMaskBitmap() const;
     VisibilityBitmapType ToVisibilityBitmap() const;
 
 protected:

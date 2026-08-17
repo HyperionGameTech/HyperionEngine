@@ -197,7 +197,11 @@ void EnvProbe::CreateVisibilityTexture()
     m_visibilityTexture = MakeHandle<Texture>(TextureDesc {
         TextureType::Cubemap,
         TextureFormat::RG16F,
-        Vec3u { 16, 16, 1 },
+        Vec3u {
+            VisibilityTextureDimensions,
+            VisibilityTextureDimensions,
+            1
+        },
         TFM_LINEAR,
         TFM_LINEAR,
         TWM_CLAMP_TO_EDGE,
@@ -921,6 +925,16 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
         outSH[i].y = *inSH++;
         outSH[i].z = *inSH++;
     }
+
+    if (IsA<IrradianceProbe>())
+    {
+        static_assert(sizeof(bufferData.hitMaskSH) == sizeof(decltype(std::declval<IrradianceProbe>().GetHitMaskData())));
+        memcpy(bufferData.hitMaskSH, StaticCast<IrradianceProbe>(this)->GetHitMaskData().Data(), sizeof(bufferData.hitMaskSH));
+    }
+    else
+    {
+        Memory::Zero(bufferData.hitMaskSH, sizeof(bufferData.hitMaskSH));
+    }
 }
 
 void EnvProbe::SetBakedTexture(const Handle<Texture>& texture)
@@ -1072,6 +1086,19 @@ void IrradianceProbe::RecomputeIrradiance()
 }
 
 #endif // HYP_EDITOR
+
+void IrradianceProbe::SetHitMaskData(const FixedArray<Vec3f, 4>& hitMaskData)
+{
+    if (m_hitMaskData == hitMaskData)
+    {
+        return;
+    }
+
+    m_hitMaskData = hitMaskData;
+
+    MarkDirty();
+    SetNeedsRenderProxyUpdate();
+}
 
 void IrradianceProbe::Invalidate(bool forceRerender)
 {

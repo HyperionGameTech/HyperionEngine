@@ -142,26 +142,30 @@ float4 CalculateReflectionProbe(in EnvProbe probe, float3 P, float3 N, float3 R,
 
 float CalculateProbeVisibility(
     float3 probeToPoint, float dist, float3 N,
+    float far,
     uint visTextureIndex)
 {
-    
+
     const float3 dirToProbe = probeToPoint / dist;
     
+    const float distNorm = dist / max(far, HYP_FMATH_EPSILON);
+
     const float2 moments = envProbesDepthTexture.SampleLevel(sampler_linear, float4(dirToProbe, float(visTextureIndex)), 0).rg;
-    
-    float variance = max(moments.y - moments.x * moments.x, 0.0001);
 
-    float d = dist - moments.x;
-    float p = step(dist, moments.x);
+    float variance = max(moments.y - moments.x * moments.x, HYP_FMATH_EPSILON);
+
+    float d = distNorm - moments.x;
+    float p = step(distNorm, moments.x);
     float p_max = variance / (variance + d * d);
+    
+    static const float s_softenAmount = 0.25;
 
-    static const float s_softenAmount = 0.1;
+    float soft_p_max = saturate((p_max - s_softenAmount) / (1.0 - s_softenAmount));
 
-    float soft_p_max = max(0.0, p_max - s_softenAmount) / (1.0 - s_softenAmount);
     float visibility = (p <= soft_p_max) ? max(p, soft_p_max) : 1.0;
 
     // mask out backface hits
-    float directionalWeight = max(0.00001, (dot(-dirToProbe, N) + 1.0) * 0.5);
+    float directionalWeight = max(HYP_FMATH_EPSILON, (dot(-dirToProbe, N) + 1.0) * 0.5);
     
     visibility *= directionalWeight;
 
@@ -193,9 +197,8 @@ void EvaluateEnvProbes(
     const uint numEnvProbes = (clusterData.y >> 16) & 0xFFFF;
 
     //////////////////////////////////////////////////
-    float accumWeightReflections = 0.0;
 
-    const float lightmappedWeight = 0.0; //TEMP //min(1.0, float(inMask & OBJECT_MASK_LIGHTMAPPED));
+    const float lightmappedWeight = min(1.0, float(inMask & OBJECT_MASK_LIGHTMAPPED));
 
     for (uint currentProbeIndex = numEnvProbes; currentProbeIndex != 0; --currentProbeIndex)
     {
@@ -229,7 +232,7 @@ void EvaluateEnvProbes(
             : R;
 
         float4 currentReflections = (float4)0;
-        float3 currentIrradiance = EnvProbeSH(CURRENT_ENV_PROBE, N, /* order */ 2);
+        float4 currentIrradiance = EnvProbeSH(CURRENT_ENV_PROBE, N);
 
         float3 probeToPoint = positionWS - worldPosition3;
         float dist = length(probeToPoint);
@@ -240,7 +243,7 @@ void EvaluateEnvProbes(
 
         if ((envProbeFlags & EPF_VISIBILITY) && visTextureIndex != INVALID_ENV_PROBE_TEXTURE)
         {
-            visibility = CalculateProbeVisibility(probeToPoint, dist, N, visTextureIndex);
+            visibility = CalculateProbeVisibility(probeToPoint, dist, N, far, visTextureIndex);
         }
 
         ApplyReflectionProbe(
@@ -278,13 +281,9 @@ void EvaluateEnvProbes(
         irradianceWeight *= skyIrradianceWeight;
         irradianceWeight *= diffuseContributionWeight;
         irradianceWeight = saturate(irradianceWeight);
-        irradiance += float4(currentIrradiance, 1.0) * irradianceWeight;
-
-        reflections += currentReflections * reflectionsWeight * (1.0 - reflections.a);
         
-        reflectionsWeight *= currentReflections.a; // so we can blend probes that have alpha zero with another (e.g blending with skybox)
-
-        //accumWeightReflections += reflectionsWeight * (1.0 - accumWeightReflections);
+        irradiance += currentIrradiance * irradianceWeight * (1.0 - irradiance.a);
+        reflections += currentReflections * reflectionsWeight * (1.0 - reflections.a);
 
 #undef CURRENT_ENV_PROBE
     }

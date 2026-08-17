@@ -419,7 +419,7 @@ void ComputeEnvProbeSphericalHarmonics(const EnvProbe& envProbe, const Texture& 
 
         ComputeSHConstants constants {};
 
-        static constexpr uint32 ShDataSize = sizeof(EnvProbeShaderData::shData);
+        static constexpr uint32 ShDataSize = sizeof(Vec4f) * 9;
 
         GpuBufferRef shBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, MathUtil::NextPowerOf2(ShDataSize));
         Check(shBuffer->Create());

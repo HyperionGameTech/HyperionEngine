@@ -237,7 +237,7 @@ PSOutput PSMain(PSInput input)
     roughness = roughness * roughness;
 
 #ifdef WRITE_MOMENTS
-    const float dist = distance(input.position, input.camera_position);
+    const float dist = distance(input.position, input.camera_position) / max(camera.far, HYP_FMATH_EPSILON);
     float2 moments = float2(dist, HYP_FMATH_SQR(dist));
 
     float dx = ddx(dist);

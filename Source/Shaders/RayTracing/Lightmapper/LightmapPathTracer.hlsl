@@ -59,9 +59,9 @@ DECLARE_BUFFER(LightmapPathTracer, CBuffer) cbuffer CBuffer
     EnvProbe envProbes[MAX_ENV_PROBES];
 };
 
-#define RAY_OFFSET 0.025
+#define RAY_OFFSET 0.2
 
-#define VSM_DEPTH_BIAS_CONSTANT 0.05
+#define VSM_DEPTH_BIAS_CONSTANT 0.2
 #define VSM_DEPTH_BIAS_SLOPE_SCALE 0.02
 #define VSM_DEPTH_BIAS_SLOPE_MAX 8.0
 
@@ -292,42 +292,46 @@ void RayGenMain()
 
             if (payload.distance < 0.0)
             {
-                if (payload.distance < -1.0)
+                float4 environmentRadiance = (float4)0.0;
+
+                for (uint envProbeIdx = 0; envProbeIdx < min(rayTracingConstants.numBoundEnvProbes, 16) && environmentRadiance.a < 1.0; envProbeIdx++)
                 {
-                    float4 environmentRadiance = (float4)0.0;
+                    // EnvProbe currentEnvProbe = envProbes[envProbeIdx];
 
-                    for (uint envProbeIdx = 0; envProbeIdx < min(rayTracingConstants.numBoundEnvProbes, 16) && environmentRadiance.a < 1.0; envProbeIdx++)
+                    // const uint probeType = GET_ENV_PROBE_TYPE(currentEnvProbe);
+                    // const bool isSky = (probeType == EPT_SKY);
+                        
+                    // const float4 aabbMin = currentEnvProbe.aabb_min;
+                    // const float4 aabbMax = currentEnvProbe.aabb_max;
+                        
+                    // const float4 worldPosition = currentEnvProbe.world_position;
+                    // const float3 worldPosition3 = worldPosition.xyz;
+                    // const float diffuseStrength = worldPosition.w;
+
+                    // const float weight = (isSky ? 1.0 : CalculateEnvProbeWeight(origin, aabbMin.xyz, aabbMax.xyz)) * diffuseStrength * (1.0 - environmentRadiance.a);
+
+                    // const float4 env = EnvProbeSH(currentEnvProbe, direction);
+                    // environmentRadiance += env * weight;
+    
+                    const uint probeType = GET_ENV_PROBE_TYPE(envProbes[envProbeIdx]);
+                    const bool isSky = (probeType == EPT_SKY);
+    
+                    if (!isSky)
                     {
-                        // EnvProbe currentEnvProbe = envProbes[envProbeIdx];
-
-                        // const uint probeType = GET_ENV_PROBE_TYPE(currentEnvProbe);
-                        // const bool isSky = (probeType == EPT_SKY);
-                        
-                        // const float4 aabbMin = currentEnvProbe.aabb_min;
-                        // const float4 aabbMax = currentEnvProbe.aabb_max;
-                        
-                        // const float4 worldPosition = currentEnvProbe.world_position;
-                        // const float3 worldPosition3 = worldPosition.xyz;
-                        // const float diffuseStrength = worldPosition.w;
-
-                        // const float weight = (isSky ? 1.0 : CalculateEnvProbeWeight(origin, aabbMin.xyz, aabbMax.xyz)) * diffuseStrength * (1.0 - environmentRadiance.a);
-
-                        // const float3 env = EnvProbeSH(currentEnvProbe, direction, /* order */ 2);
-                        // environmentRadiance += float4(env, 1.0) * weight;
-
-                        
-                        const uint envProbeTextureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(envProbes[envProbeIdx]);
-
-                        if (envProbeTextureIndex != INVALID_ENV_PROBE_TEXTURE)
-                        {
-                            float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, envProbeTextureIndex, direction, 0.0);
-                            env *= (1.0 - environmentRadiance.a);
-                            environmentRadiance += env * ENVIRONMENT_INTENSITY;
-                        }
+                        continue;
                     }
+                        
+                    const uint envProbeTextureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(envProbes[envProbeIdx]);
 
-                    radiance += beta * environmentRadiance.rgb;
+                    if (envProbeTextureIndex != INVALID_ENV_PROBE_TEXTURE)
+                    {
+                        float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, envProbeTextureIndex, direction, 0.0);
+                        env *= (1.0 - environmentRadiance.a);
+                        environmentRadiance += env * ENVIRONMENT_INTENSITY;
+                    }
                 }
+
+                radiance += beta * environmentRadiance.rgb;
 
                 break;
             }
@@ -630,7 +634,8 @@ void RayGenMain()
         {
             const EnvProbe envProbe = envProbes[envProbeIdx];
 
-            irradiance += EnvProbeSH(envProbe, N, /* order */ 2);
+            float4 env = EnvProbeSH(envProbe, N);
+            irradiance += env.rgb * env.a;
         }
 
         radiance.a = sampleIsMiss ? 0.0 : 1.0;
@@ -683,13 +688,16 @@ void RayGenMain()
     RayDesc rayDesc;
     rayDesc.Origin = ray.origin + ray.direction * RAY_OFFSET;
     rayDesc.Direction = ray.direction;
-    rayDesc.TMin = 0.1;
-    rayDesc.TMax = 1500.0;
+    rayDesc.TMin = RAY_OFFSET;
+    rayDesc.TMax = 1000.0;
 
     TraceRay(tlas, flags, 0xff, 0, 1, 0, rayDesc, payload);
 
     float4 finalColor;
 
+    // Deliberately left in raw world-space units here (not normalized by the probe's far
+    // distance) - BakeData<EnvProbe>::ToVisibilityBitmap() accumulates these in fp32 and
+    // normalizes exactly once downstream. Normalizing here too would double-divide by far.
     if (payload.distance > 0.0)
     {
         const float3 hitNormal = normalize(payload.normal);
@@ -702,9 +710,7 @@ void RayGenMain()
     }
     else
     {
-        // Miss: no occluder in this direction. Use a large distance so VSM
-        // visibility resolves to 1.0 (fully visible).
-        static const float missDistance = 10000.0;
+        static const float missDistance = 1000.0;
         finalColor = float4(missDistance, missDistance * missDistance, 0.0, 1.0);
     }
 #elif defined(MODE_BENT_NORMAL)

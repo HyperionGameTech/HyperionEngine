@@ -160,13 +160,14 @@ void Baker<EnvProbe>::OnCompleted_Internal()
     {
         BakeData<EnvProbe>::VisibilityBitmapType visBitmap = m_bakeData.ToVisibilityBitmap();
 
-        // Visibility texture dimensions must match the global envProbesDepthTexture (16x16).
-        static constexpr uint32 visDim = 16;
-
         TextureDesc visDesc {
             TextureType::Cubemap,
             visBitmap.GetFormat(),
-            Vec3u { visDim, visDim, 1 },
+            Vec3u {
+                EnvProbe::VisibilityTextureDimensions,
+                EnvProbe::VisibilityTextureDimensions,
+                1
+            },
             TFM_LINEAR,
             TFM_LINEAR,
             TWM_CLAMP_TO_EDGE,
@@ -192,6 +193,8 @@ void Baker<EnvProbe>::OnCompleted_Internal()
     struct ProcessEnvProbePayload
     {
         Handle<EnvProbe> envProbe;
+
+        BakeData<EnvProbe>::HitMaskBitmapType hitMaskBitmap;
     };
 
     class ProcessEnvProbe : public CmdBase
@@ -226,6 +229,17 @@ void Baker<EnvProbe>::OnCompleted_Internal()
                 EnvProbeHelpers::ComputeEnvProbeSphericalHarmonics(*envProbe, *texture);
             }
 
+            if (envProbe->IsA<IrradianceProbe>())
+            {
+                SphericalHarmonicsData hitMaskSH = ComputeSphericalHarmonicsCubemap<TextureFormat::R8, false>(cmdCasted->payload->hitMaskBitmap);
+
+                FixedArray<Vec3f, 4> hitMaskSHData;
+                hitMaskSHData[0] = hitMaskSH.GetOrder0();
+                memcpy(hitMaskSHData.Data() + 1, hitMaskSH.GetOrder1().Data(), sizeof(Vec3f) * 3);
+
+                StaticCast<IrradianceProbe>(envProbe)->SetHitMaskData(hitMaskSHData);
+            }
+
             HYP_LOG(Lightmap, Verbose, "EnvProbe {} lightmap baking complete", envProbe->GetName());
 
             delete cmdCasted->payload;
@@ -233,7 +247,7 @@ void Baker<EnvProbe>::OnCompleted_Internal()
     };
 
     CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
-    cr << ProcessEnvProbe(new ProcessEnvProbePayload { m_envProbe });
+    cr << ProcessEnvProbe(new ProcessEnvProbePayload { m_envProbe, m_bakeData.ToHitMaskBitmap() });
     cr.Done();
 
     m_envProbe->Invalidate(true);
