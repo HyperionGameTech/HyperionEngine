@@ -609,7 +609,7 @@ bool BlobStorage::GetData_Internal(StringHash key, size_t size, void** outRawDat
     {
         if (logErrors)
         {
-            HYP_LOG(Assets, Error, "Blob data does not match expected size ({}): {}", size, key.GetHashCode().Value());
+            HYP_LOG(Assets, Error, "Blob data does not match expected size (blob: {}, toc: {}): {}", size, tocValue.size, key.GetHashCode().Value());
         }
 
         return false;

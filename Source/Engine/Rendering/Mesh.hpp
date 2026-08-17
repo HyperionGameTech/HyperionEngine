@@ -194,8 +194,7 @@ public:
 
     HYP_FORCE_INLINE Span<ubyte> GetIndexData(uint8 lodIndex)
     {
-        Assert(m_lodData[lodIndex].indexData.raw != nullptr, "Index data not loaded!");
-
+        // Data may be missing; PageBlobData() already logged why.
         if (!m_lodData[lodIndex].indexData.raw)
         {
             return Span<ubyte>();

@@ -190,6 +190,7 @@ private:
         StringHash key;
         const char* magic;
         uint16 version;
+        size_t size;
         BlobDataReference* reference;
     };
 
@@ -260,6 +261,7 @@ private:
                 StringHash(reference->key),
                 tup.GetElement<0>(),
                 tup.GetElement<1>(),
+                reference->size,
                 reference
             });
         }
@@ -430,12 +432,17 @@ private:
 
         for (const CollectedBlob& collectedBlob : collectedBlobs)
         {
+            if (collectedBlob.reference->raw == nullptr || collectedBlob.reference->size != collectedBlob.size)
+            {
+                return HYP_MAKE_ERROR(Error, "Blob data for key {} became invalid between collection and write (asset was unpaged or reallocated during cooking)", collectedBlob.key.GetHashCode().Value());
+            }
+
             BlobHeader header {};
 
             const size_t magicLength = collectedBlob.magic ? std::strlen(collectedBlob.magic) : 0;
             Memory::Copy((char*)header.magic, collectedBlob.magic, MathUtil::Min(magicLength, sizeof(header.magic)));
             header.payloadOffset = 0;
-            header.payloadSize = collectedBlob.reference->size;
+            header.payloadSize = collectedBlob.size;
             header.version = collectedBlob.version;
 
             if (!cookedStorage.PutData(collectedBlob.bucketIndex, collectedBlob.key, header, collectedBlob.reference->raw))

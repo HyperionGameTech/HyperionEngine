@@ -81,12 +81,12 @@ namespace Baking {
 
 #pragma region PathTracer
 
-static const ShaderPropertyId s_lightmapModeProperties[uint32(LightmapShadingType::MAX)] = {
-    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("IRRADIANCE"))),
-    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("FULL"))),
-    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("SHADOW"))),
-    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("DISTANCE"))),
-    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("BENT_NORMAL")))
+static StaticShaderPropertyId s_lightmapModeProperties[uint32(LightmapShadingType::MAX)] = {
+    StaticShaderPropertyId { ShaderProperty(NAME("MODE"), NAME("IRRADIANCE")) },
+    StaticShaderPropertyId { ShaderProperty(NAME("MODE"), NAME("FULL")) },
+    StaticShaderPropertyId { ShaderProperty(NAME("MODE"), NAME("SHADOW")) },
+    StaticShaderPropertyId { ShaderProperty(NAME("MODE"), NAME("DISTANCE")) },
+    StaticShaderPropertyId { ShaderProperty(NAME("MODE"), NAME("BENT_NORMAL")) }
 };
 
 static ShaderDesc GetShaderDesc(LightmapShadingType shadingType)
@@ -495,11 +495,6 @@ bool PathTracer::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBas
         ubyte* cbufferPtr = reinterpret_cast<ubyte*>(cbuffer->Map());
         size_t cbufferWriteOffset = 0;
         const size_t cbufferSize = cbuffer->Size();
-
-        // TEMP DIAGNOSTIC: disable env probe (sky) sampling to test whether the face-0 over-brightness
-        // comes from bounce-miss environment sampling of a raw/unconvolved sky probe texture.
-        // Remove this once the root cause is confirmed.
-        numBoundEnvProbes = 0;
 
         Assert(cbufferWriteOffset + sizeof(RayTracingConstants) <= cbufferSize);
 

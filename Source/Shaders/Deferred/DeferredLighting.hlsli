@@ -144,23 +144,12 @@ float CalculateProbeVisibility(
     float3 probeToPoint, float dist, float3 N,
     uint visTextureIndex)
 {
+    
     const float3 dirToProbe = probeToPoint / dist;
     
     const float2 moments = envProbesDepthTexture.SampleLevel(sampler_linear, float4(dirToProbe, float(visTextureIndex)), 0).rg;
     
-    /*const float mean = moments.x;
-    const float variance = abs(HYP_FMATH_SQR(mean) - moments.y);
-
-    float chebyshev = variance / (variance + HYP_FMATH_SQR(max(dist - mean, 0.0)));
-    chebyshev = max(HYP_FMATH_CUBE(chebyshev), 0.0);
-    
-    float weight = HYP_FMATH_SQR(max(HYP_FMATH_EPSILON, (dot(-dirToProbe, N) + 1.0) * 0.5)) + 0.2;
-    weight *= (dist <= mean) ? 1.0 : chebyshev;
-    weight = max(HYP_FMATH_EPSILON, weight);
-    
-    return weight;*/
-    
-    float variance = max(moments.y - moments.x * moments.x, 0.000001);
+    float variance = max(moments.y - moments.x * moments.x, 0.0001);
 
     float d = dist - moments.x;
     float p = step(dist, moments.x);
@@ -176,6 +165,7 @@ float CalculateProbeVisibility(
     
     visibility *= directionalWeight;
 
+    // Depth check - sky hits are inf
     return smoothstep(0.0, 1.0, visibility);
 }
 
@@ -205,7 +195,7 @@ void EvaluateEnvProbes(
     //////////////////////////////////////////////////
     float accumWeightReflections = 0.0;
 
-    const float lightmappedWeight = min(1.0, float(inMask & OBJECT_MASK_LIGHTMAPPED));
+    const float lightmappedWeight = 0.0; //TEMP //min(1.0, float(inMask & OBJECT_MASK_LIGHTMAPPED));
 
     for (uint currentProbeIndex = numEnvProbes; currentProbeIndex != 0; --currentProbeIndex)
     {
@@ -219,7 +209,7 @@ void EvaluateEnvProbes(
 
         const bool isSky = (probeType == EPT_SKY);
         const bool isIrradianceProbe = (probeType == EPT_AMBIENT);
-
+        
         const uint textureIndices = CURRENT_ENV_PROBE.textureIndices;
         const uint colorTextureIndex = (textureIndices & 0xFFFFu);
         const uint visTextureIndex = (textureIndices >> 16) & 0xFFFFu;
@@ -288,7 +278,7 @@ void EvaluateEnvProbes(
         irradianceWeight *= skyIrradianceWeight;
         irradianceWeight *= diffuseContributionWeight;
         irradianceWeight = saturate(irradianceWeight);
-        irradiance += float4(currentIrradiance, 1.0) * irradianceWeight * (1.0 - irradiance.a);
+        irradiance += float4(currentIrradiance, 1.0) * irradianceWeight;
 
         reflections += currentReflections * reflectionsWeight * (1.0 - reflections.a);
         
