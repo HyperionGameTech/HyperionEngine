@@ -7,7 +7,6 @@
 #include <HyperionPch.hpp>
 
 #include <Framework/Commandlet/Commandlet.hpp>
-#include <Framework/Commandlet/Commandlets/CacheServerCommandlet.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 
@@ -82,8 +81,6 @@ static constexpr SocketHandle INVALID_SOCK = INVALID_SOCKET;
 #define CLOSE_SOCKET closesocket
 
 #endif
-
-HYP_DISABLE_OPTIMIZATION;
 
 namespace Hyperion {
 

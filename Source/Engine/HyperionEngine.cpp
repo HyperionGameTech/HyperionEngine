@@ -666,12 +666,18 @@ extern "C"
         { // shut down AssetRegistry instances
             ClearAssetRegistryStack();
 
-            GetEngineAssetRegistry()->Shutdown();
-            SetEngineAssetRegistry(Handle<AssetRegistry>::Null());
+            if (Handle<AssetRegistry> engineRegistry = GetEngineAssetRegistry(); engineRegistry.IsValid())
+            {
+                engineRegistry->Shutdown();
+                SetEngineAssetRegistry(Handle<AssetRegistry>::Null());
+            }
 
 #ifdef HYP_EDITOR
-            GetEditorAssetRegistry()->Shutdown();
-            SetEditorAssetRegistry(Handle<AssetRegistry>::Null());
+            if (Handle<AssetRegistry> editorRegistry = GetEditorAssetRegistry(); editorRegistry.IsValid())
+            {
+                editorRegistry->Shutdown();
+                SetEditorAssetRegistry(Handle<AssetRegistry>::Null());
+            }
 #endif // HYP_EDITOR
         }
 
