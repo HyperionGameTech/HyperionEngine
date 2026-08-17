@@ -562,6 +562,8 @@ extern struct RigidBodyComponent
     Shape : PhysicsShape
     RigidBody : RigidBody
 end
+extern struct PlayerComponent
+end
 extern struct MeshComponent
     Mesh : Mesh
     Material : Material

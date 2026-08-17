@@ -4,6 +4,8 @@
  *  @licence MIT
  */
 
+#if 0
+
 #include <Core/Net/Socket.hpp>
 
 #include <Core/Containers/Queue.hpp>
@@ -1082,3 +1084,6 @@ void SocketClient::Close()
 
 } // namespace net
 } // namespace Hyperion
+
+
+#endif

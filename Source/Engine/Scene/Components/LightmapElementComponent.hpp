@@ -28,8 +28,7 @@ class LightmapVolume;
 enum class LightmapElementId : uint32;
 enum class LightmapVolumeId : uint32;
 
-/*! \brief Used for Entities which have baked light via LightmapVolumes or probes to manage their state
- *   as well as hold their evaluated spherical harmonics coefficients. */
+/*! \brief Used for Entities which have baked light via LightmapVolumes or probes to manage their state  */
 HYP_STRUCT(Component)
 struct ENGINE_API LightmapElementComponent
 {
