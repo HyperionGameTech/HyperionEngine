@@ -213,7 +213,7 @@ HYP_EXPORT const char* GetCacheServerAddress()
 
 HYP_EXPORT const char* GetHostAddress()
 {
-    static const String s_hostAddress = CoreApi::GetCommandLineArguments()["Host"].ToString();
+    static const String s_hostAddress = CoreApi::GetCommandLineArguments()["host"].ToString();
     return s_hostAddress.Data();
 }
 

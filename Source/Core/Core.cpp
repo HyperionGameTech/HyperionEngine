@@ -129,6 +129,7 @@ CORE_API const CommandLineArgumentDefinitions& DefaultCommandLineArgumentDefinit
             definitions.Add("Detached", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
             definitions.Add("Editor", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
             definitions.Add("server", {}, "Launch standalone game as headless authoritative server", CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
+            definitions.Add("host", {}, "Provide host address for connecting to a game server", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING, false);
             definitions.Add("exec", "", "Execute the commandlet with the given name immediately following --exec. The program will end immediately after running the commandlet and return 0 upon success or otherwise on failure", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
 
             definitions.Add("RenderOnMainThread",

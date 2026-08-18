@@ -42,6 +42,10 @@ ENGINE_API bool IsOnBatteryPower()
     return false;
 }
 
+ENGINE_API void InitializeNetwork()
+{
+}
+
 #pragma region Cocoa Implementation Specific
 
 /// https://gist.github.com/eegrok/949034

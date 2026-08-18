@@ -28,5 +28,9 @@ ENGINE_API bool IsOnBatteryPower()
     return false;
 }
 
+ENGINE_API void InitializeNetwork()
+{
+}
+
 } // namespace PlatformUtils
 } // namespace Hyperion

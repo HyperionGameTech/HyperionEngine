@@ -154,9 +154,6 @@ void GameServer::Stop()
 
     if (m_consoleInputThread != nullptr)
     {
-        // The thread is blocked on a synchronous read from stdin, which cannot be
-        // interrupted portably. Detach rather than Join so shutdown isn't stuck
-        // waiting on a line of console input that may never come.
         m_consoleInputThread->Stop();
         m_consoleInputThread->Detach();
         m_consoleInputThread.Reset();

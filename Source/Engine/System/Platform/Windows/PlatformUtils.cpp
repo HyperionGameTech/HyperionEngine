@@ -4,7 +4,13 @@
 #include <Windows.h>
 #include <winbase.h>
 
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#pragma comment(lib, "ws2_32.lib")
+
 #include <Core/Containers/String.hpp>
+
+#include <mutex>
 
 namespace Hyperion {
 namespace PlatformUtils {
@@ -47,6 +53,17 @@ ENGINE_API bool IsOnBatteryPower()
     }
 
     return powerStatus.ACLineStatus == 0;
+}
+
+ENGINE_API void InitializeNetwork()
+{
+    static std::once_flag s_onceFlag;
+
+    std::call_once(s_onceFlag, []
+        {
+            WSADATA wsaData;
+            WSAStartup(MAKEWORD(2, 2), &wsaData);
+        });
 }
 
 } // namespace PlatformUtils

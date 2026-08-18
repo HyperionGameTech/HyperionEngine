@@ -44,6 +44,10 @@ ENGINE_API bool IsOnBatteryPower()
     return state == UIDeviceBatteryStateUnplugged;
 }
 
+ENGINE_API void InitializeNetwork()
+{
+}
+
 void PumpSystemEvents()
 {
     CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0, false);

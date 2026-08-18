@@ -115,16 +115,19 @@ void NetServer::Update()
             m_connections.Insert(connectionId, MakeUniqueWithAllocator<NetConnection, NetAllocator>(connectionId, senderAddress));
 
             OnClientConnected(NetClientConnectedData { connectionId, senderAddress });
-
-            continue;
         }
-
-        auto connectionIt = m_connections.Find(addrIt->second);
-
-        if (connectionIt != m_connections.End())
+        else
         {
-            connectionIt->second->UpdateActivity();
+            auto connectionIt = m_connections.Find(addrIt->second);
+
+            if (connectionIt != m_connections.End())
+            {
+                connectionIt->second->UpdateActivity();
+            }
         }
+
+        const uint8 ack = 0;
+        m_socket.SendTo(senderAddress, ConstByteView(&ack, sizeof(ack)));
     }
 
     for (auto it = m_connections.Begin(); it != m_connections.End();)

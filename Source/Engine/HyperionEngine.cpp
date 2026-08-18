@@ -130,6 +130,7 @@ SCRIPT_API extern void InitializeModule_Script();
 namespace PlatformUtils {
 ENGINE_API extern PlatformString GetExecutableAbsolutePath();
 ENGINE_API extern bool IsOnBatteryPower();
+ENGINE_API extern void InitializeNetwork();
 } // namespace PlatformUtils
 
 ENGINE_API Handle<EngineDriver> g_engineDriver;
@@ -430,6 +431,8 @@ extern "C"
             return false;
         }
 
+        PlatformUtils::InitializeNetwork();
+
         EngineConfig engineConfig;
         engineConfig.Load();
 
@@ -627,20 +630,26 @@ extern "C"
             {
                 HYP_LOG(Engine, Error, "Failed to start game server: {}", listenResult.GetError().GetMessage());
 
+                Hyp_Shutdown();
+
                 return false;
             }
         }
-
-        if (const char* hostname = EngineGlobals::GetHostAddress(); hostname != nullptr && *hostname != '\0')
+        else if (const char* hostname = EngineGlobals::GetHostAddress(); hostname != nullptr && *hostname != '\0')
         {
             g_gameClient = new GameClient;
 
             // @TODO Config var for port
+            // @TODO Move client -> server connection to somewhere else.. so that DefaultGame can have some ui to enter host
+            // or something
+            // @TODO Retry!
 
             NetAddress hostAddress;
             if (TResult<NetAddress> resolveResult = NetAddress::TryResolve(hostname, 9192); resolveResult.HasError())
             {
                 HYP_LOG(Engine, Error, "Failed to resolve host: {}", resolveResult.GetError().GetMessage());
+                
+                Hyp_Shutdown();
 
                 return false;
             }
@@ -649,9 +658,13 @@ extern "C"
                 hostAddress = resolveResult.GetValue();
             }
 
+            // @TODO Retry
+
             if (Result connectResult = g_gameClient->Connect(hostAddress); connectResult.HasError())
             {
                 HYP_LOG(Engine, Error, "Failed to connect to host: {}", connectResult.GetError().GetMessage());
+                
+                Hyp_Shutdown();
 
                 return false;
             }
