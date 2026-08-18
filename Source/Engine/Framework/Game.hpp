@@ -47,6 +47,8 @@ public:
     Game();
     virtual ~Game();
 
+    static Handle<Game> CreateGame(StringHash classNameHash);
+
     HYP_METHOD(Property = "AssetRegistry", Transient)
     const Handle<AssetRegistry>& GetAssetRegistry() const
     {

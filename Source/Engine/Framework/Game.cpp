@@ -743,4 +743,27 @@ void Game::BeforeShutdown()
     // no-op
 }
 
+Handle<Game> Game::CreateGame(StringHash classNameHash)
+{
+    if (!classNameHash)
+    {
+        return nullptr;
+    }
+
+    const Class* gameClass = GetClass(classNameHash);
+
+    if (!gameClass || !gameClass->IsDerivedFrom(Game::StaticClass()))
+    {
+        return nullptr;
+    }
+
+    BoxedValue boxed;
+    if (!gameClass->CreateInstance(boxed))
+    {
+        return nullptr;
+    }
+
+    return boxed.Get<Handle<Game>>();
+}
+
 } // namespace Hyperion

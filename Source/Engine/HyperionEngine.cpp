@@ -172,6 +172,38 @@ void HandleFatalError(const char* message)
 static InitFromManagedCallback s_initFromManagedCallback = nullptr;
 #endif
 
+namespace SignalHandlers
+{
+static void HandleExit()
+{
+#ifdef HYP_STEAM_SDK
+    Steam::SteamInputManager::GetInstance().Shutdown();
+    Steam::Shutdown();
+#endif // HYP_STEAM_SDK
+
+#ifdef HYP_WINDOWS
+    Win32_CleanupWindowClasses();
+#endif // HYP_WINDOWS
+}
+
+static void HandleSignal(int signum)
+{
+    Hyp_Shutdown();
+
+    // Call atexit functions
+    exit(signum);
+}
+
+} // anonymous SignalHandlers 
+
+void InitSignalHandlers()
+{
+    // Init signal handlers
+    signal(SIGINT, SignalHandlers::HandleSignal);
+    signal(SIGSEGV, SignalHandlers::HandleSignal);
+    atexit(SignalHandlers::HandleExit);
+}
+
 void InitThreads()
 {
     // Handle -RenderOnMainThread, -SimulateOnMainThread cli args
@@ -246,7 +278,7 @@ void InitMainWindow()
         windowFlags |= WindowFlags::HIGH_DPI;
     }
 
-    if (!(windowFlags & WindowFlags::HEADLESS))
+    if (!(windowFlags & WindowFlags::HEADLESS) && !EngineGlobals::IsEditor())
     {
         Vec2i resolution = { 1920, 1080 };
 
@@ -282,10 +314,6 @@ void InitMainWindow()
         Assert(window.IsValid());
 
         g_appContext->SetMainWindow(window);
-    }
-    else
-    {
-        HYP_LOG(Engine, Info, "Running in headless mode");
     }
 }
 
@@ -327,24 +355,6 @@ void LoadShaderPropertyDictionary()
 //#endif
 }
 
-void HandleExit()
-{
-#ifdef HYP_STEAM_SDK
-    Steam::SteamInputManager::GetInstance().Shutdown();
-    Steam::Shutdown();
-#endif // HYP_STEAM_SDK
-
-#ifdef HYP_WINDOWS
-    Win32_CleanupWindowClasses();
-#endif // HYP_WINDOWS
-}
-
-void HandleSignal(int signum)
-{
-    // Call atexit functions
-    exit(signum);
-}
-
 } // namespace
 
 extern "C"
@@ -357,10 +367,10 @@ extern "C"
             return 0;
         }
 
-        // Init signal handlers
-        signal(SIGINT, HandleSignal);
-        signal(SIGSEGV, HandleSignal);
-        atexit(HandleExit);
+        if (g_engineDriver.IsValid())
+        {
+            return 0; // already initialized!
+        }
 
         SetCurrentThreadId(g_mainThread);
 
@@ -392,7 +402,8 @@ extern "C"
         engineConfig.Load();
 
         CVarManager::GetInstance().InitFromConfig(engineConfig);
-
+        
+        InitSignalHandlers();
         InitThreads();
         InitMemoryPools();
         InitNameRegistry();
@@ -604,7 +615,10 @@ extern "C"
     {
         AssertOnThread(g_mainThread);
 
-        Assert(g_engineDriver != nullptr, "Hyperion not initialized!");
+        if (!g_engineDriver.IsValid())
+        {
+            return;
+        }
 
         g_engineDriver->Shutdown();
     

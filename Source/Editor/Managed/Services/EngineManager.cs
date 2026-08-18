@@ -62,7 +62,6 @@ namespace Hyperion.Editor
             // create argv for NativeBindings.Hyp_Initialize
             List<string> args = [
                 Environment.ProcessPath ?? "",
-                "-Headless",
                 "-Detached",
                 "-Editor",
 
