@@ -85,7 +85,7 @@ public:
 
             if (result != 0)
             {
-                HYP_LOG(GameServer, Error, "Error executing console command '{}': returned error code {}", buffer, result);
+                HYP_LOG(GameServer, Error, "Error executing console command '{}': returned error code {}", commandLine, result);
             }
         }
     }

@@ -410,17 +410,17 @@ void EngineDriver::Shutdown()
         return;
     }
 
-    HYP_LOG(Engine, Info, "Stopping all engine processes");
+    HYP_LOG(Engine, Info, "Stopping all engine processes...");
 
-    m_delegates.OnShutdown();
-
-    if (m_viewCollectionBatch)
+    if (m_viewCollectionBatch != nullptr)
     {
-        AssertDebug(m_viewCollectionBatch->IsCompleted());
+        m_viewCollectionBatch->AwaitCompletion();
 
         delete m_viewCollectionBatch;
         m_viewCollectionBatch = nullptr;
     }
+
+    m_delegates.OnShutdown();
     
     if (g_shaderManager != nullptr)
     {

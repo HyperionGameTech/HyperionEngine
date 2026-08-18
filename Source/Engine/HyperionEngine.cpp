@@ -193,7 +193,31 @@ static void HandleExit()
 
 static void HandleSignal(int signum)
 {
-    Hyp_Shutdown();
+    // Handle ctrl-c graceful stop.
+    // we want to ensure Hyp_Shutdown() is only ever called from the main thread.
+    if (signum == SIGINT)
+    {
+        auto doGracefulShutdown = []
+        {
+            Hyp_Shutdown();
+
+            exit(SIGINT);
+        };
+
+        ThreadBase* mainThread;
+        if (!IsOnThread(g_mainThread)
+            && (mainThread = GetThreadById(g_mainThread))
+            && mainThread->IsRunning())
+        {
+            mainThread->GetScheduler().Enqueue(doGracefulShutdown, TaskEnqueueFlags::FIRE_AND_FORGET);
+
+            return;
+        }
+
+        doGracefulShutdown();
+
+        return;
+    }
 
     // Call atexit functions
     exit(signum);
