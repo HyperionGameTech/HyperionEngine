@@ -13,11 +13,9 @@ namespace net {
 
 static constexpr TimeDiff KeepAliveInterval = TimeDiff(2000);
 static constexpr TimeDiff ServerTimeout = TimeDiff(15000);
+static constexpr TimeDiff ConnectTimeout = TimeDiff(5000);
 
-NetClient::NetClient()
-    : m_isConnected(false)
-{
-}
+NetClient::NetClient() = default;
 
 NetClient::~NetClient()
 {
@@ -26,9 +24,9 @@ NetClient::~NetClient()
 
 Result NetClient::Connect(const NetAddress& serverAddress)
 {
-    if (m_isConnected)
+    if (GetConnectionState() != NetClientConnectionState::Disconnected)
     {
-        return HYP_MAKE_ERROR(Error, "Already connected");
+        return HYP_MAKE_ERROR(Error, "Already connected or connecting");
     }
 
     if (Result bindResult = m_socket.Bind(0); bindResult.HasError())
@@ -37,23 +35,27 @@ Result NetClient::Connect(const NetAddress& serverAddress)
     }
 
     m_serverAddress = serverAddress;
-    m_isConnected = true;
     m_lastActivityTime = Time::Now();
     m_lastKeepAliveTime = Time(0);
+    m_connectStartTime = Time::Now();
+
+    m_connectionState.Set(NetClientConnectionState::Connecting, MemoryOrder::RELEASE);
 
     return {};
 }
 
 void NetClient::Disconnect()
 {
-    m_isConnected = false;
+    m_connectionState.Set(NetClientConnectionState::Disconnected, MemoryOrder::RELEASE);
 
     m_socket.Close();
 }
 
 void NetClient::Update()
 {
-    if (!m_isConnected)
+    const NetClientConnectionState state = GetConnectionState();
+
+    if (state == NetClientConnectionState::Disconnected)
     {
         return;
     }
@@ -67,6 +69,8 @@ void NetClient::Update()
         m_lastKeepAliveTime = Time::Now();
     }
 
+    bool receivedFromServer = false;
+
     NetAddress senderAddress;
     Array<uint8, NetAllocator> data;
 
@@ -75,9 +79,34 @@ void NetClient::Update()
         if (senderAddress == m_serverAddress)
         {
             m_lastActivityTime = Time::Now();
+            receivedFromServer = true;
         }
     }
 
+    if (state == NetClientConnectionState::Connecting)
+    {
+        if (receivedFromServer)
+        {
+            m_connectionState.Set(NetClientConnectionState::Connected, MemoryOrder::RELEASE);
+
+            return;
+        }
+
+        if (Time::Now() - m_connectStartTime >= ConnectTimeout)
+        {
+            {
+                Mutex::Guard guard(m_lastErrorMutex);
+
+                m_lastError = HYP_MAKE_ERROR(Error, "Timed out waiting for a response from {}", m_serverAddress.ToString());
+            }
+
+            Disconnect();
+        }
+
+        return;
+    }
+
+    // CONNECTED
     if (Time::Now() - m_lastActivityTime >= ServerTimeout)
     {
         const NetAddress serverAddress = m_serverAddress;

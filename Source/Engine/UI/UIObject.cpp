@@ -144,10 +144,7 @@ const Handle<Mesh>& UIObjectQuadMeshHelper::GetQuadMesh()
             meshData.indices[0] = indexData;
 
             quad->SetMeshData(meshDesc, meshData);
-
             quad->UploadGpuData();
-
-            GetEngineAssetRegistry()->PutAsset(quad);
 
             // clean up on engine shutdown
             onShutdownHandle = g_engineDriver->GetDelegates().OnShutdown.Bind([q = &quad]()
@@ -1956,8 +1953,6 @@ Handle<Material> UIObject::CreateMaterial() const
 
         material->SetIsDynamic(true);
         material->SetIsTransient(true);
-
-        GetCurrentAssetRegistry()->PutAsset(material);
 
         InitObject(material);
 

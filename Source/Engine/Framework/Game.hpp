@@ -7,7 +7,8 @@
 #pragma once
 
 #include <Framework/GameState.hpp>
-#include <Framework/Content/ContentSync.hpp>
+#include <Framework/Content/ContentSyncState.hpp>
+#include <Framework/Client/ConnectionState.hpp>
 
 #include <Core/Reflection/ObjectBase.hpp>
 #include <Core/Reflection/Handle.hpp>
@@ -15,6 +16,8 @@
 #include <Core/Threading/Task.hpp>
 
 #include <Core/Utilities/Result.hpp>
+
+#include <Core/Functional/Delegate.hpp>
 
 #include <Core/Defines.hpp>
 #include <Core/Util.hpp>
@@ -79,6 +82,14 @@ public:
     HYP_METHOD()
     void Shutdown(bool shutdownWorld = true);
 
+    HYP_FORCE_INLINE const ServerConnectionState& GetConnectionState() const
+    {
+        return m_connectionState;
+    }
+
+    HYP_METHOD()
+    void ConnectToServer(const ANSIString& hostAddress);
+
     void HandleEvent(Event&& event);
 
     HYP_METHOD(Property = "IsLaunched", Transient)
@@ -126,11 +137,14 @@ protected:
     
     void SyncContentAndLaunch();
     void Launch();
-    
+
     virtual void BeforeContentLoaded();
     virtual void AfterContentLoaded();
 
     virtual void OnSyncProgress(uint64 current, uint64 total);
+
+    virtual void BeforeConnectingToServer();
+    virtual void AfterConnectedToServer();
 
     virtual void OnLaunch();
     virtual void OnUpdate(float delta);
@@ -151,6 +165,7 @@ protected:
     Array<Handle<InputHandlerBase>> m_inputHandlers;
 
     ContentSyncState m_syncState;
+    ServerConnectionState m_connectionState;
 
     bool m_assetRegistryActive;
     bool m_isInitialized;

@@ -57,6 +57,7 @@
 #include <UI/UIPanel.hpp>
 #include <UI/UIListView.hpp>
 #include <UI/UIButton.hpp>
+#include <UI/UITextbox.hpp>
 #include <UI/Overlays/BaseStatsOverlay.hpp>
 #include <UI/Overlays/StatsOverlay.hpp>
 #include <UI/Overlays/ConsoleOverlay.hpp>
@@ -111,11 +112,17 @@ protected:
 
     virtual void OnSyncProgress(uint64 current, uint64 total) override;
 
+    virtual void BeforeConnectingToServer() override;
+    virtual void AfterConnectedToServer() override;
+
     virtual void OnLaunch() override;
     virtual void OnUpdate(float delta) override;
 
     void ShowLoadingScreen();
     void HideLoadingScreen();
+
+    void ShowConnectScreen();
+    void HideConnectScreen();
 
     Handle<Scene> m_defaultScene;
     Handle<Camera> m_camera;
@@ -250,6 +257,20 @@ void DefaultGame::OnUpdate(float delta)
 void DefaultGame::OnSyncProgress(uint64 current, uint64 total)
 {
     Game::OnSyncProgress(current, total);
+}
+
+void DefaultGame::BeforeConnectingToServer()
+{
+    Game::BeforeConnectingToServer();
+
+    ShowConnectScreen();
+}
+
+void DefaultGame::AfterConnectedToServer()
+{
+    Game::AfterConnectedToServer();
+
+    HideConnectScreen();
 }
 
 void DefaultGame::BeforeContentLoaded()
@@ -450,6 +471,155 @@ void DefaultGame::HideLoadingScreen()
     UIStage& stage = *m_uiSubsystem->GetUIStage();
 
     Handle<UIObject> prevBackground = stage.FindChildUIObject("LoadingScreen_Background"_sh);
+    if (prevBackground.IsValid())
+    {
+        stage.RemoveChildUIObject(prevBackground);
+    }
+}
+
+void DefaultGame::ShowConnectScreen()
+{
+    Assert(m_uiSubsystem.IsValid());
+    if (!m_uiSubsystem.IsValid())
+    {
+        return;
+    }
+
+    UIStage& stage = *m_uiSubsystem->GetUIStage();
+
+    Handle<UIObject> prevBackground = stage.FindChildUIObject("ConnectScreen_Background"_sh);
+    if (prevBackground.IsValid())
+    {
+        stage.RemoveChildUIObject(prevBackground);
+    }
+
+    Handle<UIPanel> backgroundPanel = stage.CreateUIObject<UIPanel>(NAME("ConnectScreen_Background"), Vec2i::Zero(), UIObjectSize { { 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT } });
+    backgroundPanel->SetBackgroundColor(Color(0.1f, 0.1f, 0.1f, 1.0f));
+    stage.AddChildUIObject(backgroundPanel);
+
+    Handle<UIPanel> connectPanel = backgroundPanel->CreateUIObject<UIPanel>(Vec2i::Zero(), UIObjectSize { { 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT } });
+    backgroundPanel->AddChildUIObject(connectPanel);
+
+    Handle<UIText> statusText = connectPanel->CreateUIObject<UIText>(Vec2i { 0, -40 }, UIObjectSize { { 0, UIObjectSize::AUTO }, { 80, UIObjectSize::PIXEL } });
+    statusText->SetTextSize(24.0f);
+    statusText->SetTextColor(Color::White());
+    statusText->SetOriginAlignment(UIObjectAlignment::CENTER);
+    statusText->SetParentAlignment(UIObjectAlignment::CENTER);
+    connectPanel->AddChildUIObject(statusText);
+
+    const char* cliHostAddress = EngineGlobals::GetHostAddress();
+    const bool hasCliHost = cliHostAddress != nullptr && *cliHostAddress != '\0';
+    const String cliHostAddressStr = hasCliHost ? String(cliHostAddress) : String::empty;
+
+    Handle<UITextbox> hostTextbox = connectPanel->CreateUIObject<UITextbox>(Vec2i { 0, 30 }, UIObjectSize { { 300, UIObjectSize::PIXEL }, { 30, UIObjectSize::PIXEL } });
+    hostTextbox->SetPlaceholder("host[:port]");
+    hostTextbox->SetText(cliHostAddressStr);
+    hostTextbox->SetTextSize(24.0f);
+    hostTextbox->SetOriginAlignment(UIObjectAlignment::CENTER);
+    hostTextbox->SetParentAlignment(UIObjectAlignment::CENTER);
+    connectPanel->AddChildUIObject(hostTextbox);
+
+    Handle<UIButton> connectButton = connectPanel->CreateUIObject<UIButton>(Vec2i { 0, 140 }, UIObjectSize { { 150, UIObjectSize::PIXEL }, { 40, UIObjectSize::PIXEL } });
+    connectButton->SetText("Connect");
+    connectButton->SetOriginAlignment(UIObjectAlignment::CENTER);
+    connectButton->SetParentAlignment(UIObjectAlignment::CENTER);
+    connectPanel->AddChildUIObject(connectButton);
+
+    auto submitHost = [this, cliHostAddressStr, hostTextbox]()
+    {
+        const String hostAddress = hostTextbox->GetText();
+
+        if (hostAddress.Empty())
+        {
+            return;
+        }
+
+        GetThreadById(g_simThread)->GetScheduler().Enqueue(
+            [self = MakeStrongRef(this), hostAddress]()
+            {
+                // do next frame to reduce risk of deadlock from the Delegate (RemoveAllDetached() getting called)
+                self->ConnectToServer(hostAddress);
+            },
+            TaskEnqueueFlags::FIRE_AND_FORGET);
+    };
+
+    connectButton->OnClick.Bind(connectButton,
+        [submitHost](const MouseEvent&) -> UIEventHandlerResult
+        {
+            submitHost();
+
+            return UIEventHandlerResult::STOP_BUBBLING;
+        })
+        .Detach();
+
+    if (hostTextbox.IsValid())
+    {
+        hostTextbox->OnTextChange.Bind(hostTextbox,
+            [submitHost](const String&) -> UIEventHandlerResult
+            {
+                submitHost();
+
+                return UIEventHandlerResult::STOP_BUBBLING;
+            })
+            .Detach();
+    }
+
+    statusText->SetText("Enter host address");
+
+    m_connectionState.OnStateChanged.RemoveAllDetached();
+    m_connectionState.OnStateChanged.Bind(
+        [=](ServerConnectionState::State state)
+        {
+            switch (state)
+            {
+            case ServerConnectionState::NotStarted:
+                statusText->SetText("Enter host address");
+                break;
+            case ServerConnectionState::Connecting: // fallthrough
+            case ServerConnectionState::Connecting_StartingNextTask:
+                statusText->SetText(HYP_FORMAT("Connecting to {}...", hostTextbox->GetText()));
+                connectButton->SetIsVisible(false);
+                
+                if (hostTextbox.IsValid())
+                {
+                    hostTextbox->SetIsVisible(false);
+                }
+
+                break;
+            case ServerConnectionState::Connected:
+                statusText->SetText("Connected!");
+                break;
+            case ServerConnectionState::Failed:
+                statusText->SetText(m_connectionState.lastResult.HasError()
+                        ? (String("Failed to connect.\n\n") + m_connectionState.lastResult.GetError().GetMessage())
+                        : String("Failed to connect."));
+
+                connectButton->SetIsVisible(true);
+                
+                if (hostTextbox.IsValid())
+                {
+                    hostTextbox->SetIsVisible(true);
+                }
+
+                break;
+            }
+        })
+        .Detach();
+}
+
+void DefaultGame::HideConnectScreen()
+{
+    m_connectionState.OnStateChanged.RemoveAllDetached();
+
+    Assert(m_uiSubsystem.IsValid());
+    if (!m_uiSubsystem.IsValid())
+    {
+        return;
+    }
+
+    UIStage& stage = *m_uiSubsystem->GetUIStage();
+
+    Handle<UIObject> prevBackground = stage.FindChildUIObject("ConnectScreen_Background"_sh);
     if (prevBackground.IsValid())
     {
         stage.RemoveChildUIObject(prevBackground);

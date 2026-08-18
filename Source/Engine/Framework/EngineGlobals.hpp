@@ -102,6 +102,7 @@ extern template ENGINE_API const FilePath& GetContentDirectory<HYP_STATIC_STRING
 ENGINE_API const FilePath& GetCacheDirectory();
 ENGINE_API const char* GetCacheServerAddress();
 ENGINE_API const char* GetHostAddress();
+ENGINE_API uint16 GetGameServerPort();
 ENGINE_API const FilePath& GetTempDirectory();
 ENGINE_API const FilePath& GetConfigDirectory();
 ENGINE_API HYP_NODISCARD FilePath CreateTempDirectory();

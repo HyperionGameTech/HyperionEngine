@@ -29,9 +29,15 @@ public:
 
     ~GameClient();
 
+    NetClientConnectionState GetConnectionState() const;
+    
     bool IsConnected() const;
+    
+    Result GetLastError() const;
 
+    Result Connect(const ANSIString& hostname, uint16 defaultPort);
     Result Connect(const NetAddress& serverAddress);
+
     void Disconnect();
 
 private:

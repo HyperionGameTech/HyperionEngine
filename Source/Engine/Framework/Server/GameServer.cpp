@@ -6,7 +6,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <Server/GameServer.hpp>
+#include <Framework/Server/GameServer.hpp>
 
 #include <Core/Threading/Thread.hpp>
 #include <Core/Threading/Threads.hpp>

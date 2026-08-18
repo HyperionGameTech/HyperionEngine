@@ -179,6 +179,22 @@ static KeyCode MapWin32VirtualKeyToKeyCode(LPARAM lParam, WPARAM wParam)
         return KeyCode::KEY_LSHIFT;
     case VK_RSHIFT:
         return KeyCode::KEY_RSHIFT;
+    case VK_OEM_PERIOD:
+        return KeyCode::KEY_PERIOD;
+    case VK_OEM_COMMA:
+        return KeyCode::KEY_COMMA;
+    case VK_OEM_MINUS:
+        return KeyCode::KEY_DASH;
+    case VK_OEM_PLUS:
+        return KeyCode::KEY_EQUALS;
+    case VK_OEM_1: // ;:
+        return KeyCode::KEY_SEMICOLON;
+    case VK_OEM_2: // /?
+        return KeyCode::KEY_SLASH;
+    case VK_OEM_7: // '"
+        return KeyCode::KEY_APOSTROPHE;
+    case VK_OEM_3: // `~
+        return KeyCode::KEY_TILDE;
     default:
         break;
     }

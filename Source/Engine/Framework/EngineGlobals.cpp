@@ -20,6 +20,7 @@
 
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/EngineDriver.hpp>
+#include <Framework/CVarManager.hpp>
 
 #include <Asset/BlobStorage.hpp>
 
@@ -215,6 +216,12 @@ HYP_EXPORT const char* GetHostAddress()
 {
     static const String s_hostAddress = CoreApi::GetCommandLineArguments()["host"].ToString();
     return s_hostAddress.Data();
+}
+
+HYP_EXPORT uint16 GetGameServerPort()
+{
+    static CVar<uint16> s_cvGameServerPort("Net.GameServerPort", 9192);
+    return s_cvGameServerPort.Get();
 }
 
 HYP_EXPORT const FilePath& GetConfigDirectory()

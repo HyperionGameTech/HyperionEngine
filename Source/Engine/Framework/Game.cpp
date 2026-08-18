@@ -11,6 +11,8 @@
 #include <Framework/EngineDriver.hpp>
 #include <Framework/CacheClient.hpp>
 
+#include <Framework/Client/GameClient.hpp>
+
 #include <Rendering/DebugDrawer.hpp>
 #include <Rendering/Util/DeletionQueue.hpp>
 
@@ -21,6 +23,8 @@
 #include <Core/Threading/TaskSystem.hpp>
 
 #include <Core/Debug/Debug.hpp>
+
+#include <Core/Core.hpp>
 
 #include <Scene/World.hpp>
 
@@ -89,7 +93,7 @@ void Game::Initialize()
 {
     AssertOnThread(g_simThread);
 
-    if (m_isInitialized || IsSyncingOrPreparingContent())
+    if (m_isInitialized || IsSyncingOrPreparingContent() || m_connectionState.state == ServerConnectionState::Connecting)
     {
         return;
     }
@@ -101,7 +105,41 @@ void Game::Initialize()
             EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Game")>());
     }
 
+    if (g_gameClient != nullptr && m_connectionState.state != ServerConnectionState::Connected)
+    {
+        BeforeConnectingToServer();
+
+        if (CoreApi::GetCommandLineArguments()["autoconnect"].ToBool())
+        {
+            if (const char* hostAddress = EngineGlobals::GetHostAddress(); hostAddress != nullptr && *hostAddress != '\0')
+            {
+                ConnectToServer(hostAddress);
+            }
+        }
+
+        return;
+    }
+
     SyncContentAndLaunch();
+}
+
+void Game::ConnectToServer(const ANSIString& hostAddress)
+{
+    AssertOnThread(g_simThread);
+
+    if (g_gameClient == nullptr || m_connectionState.state == ServerConnectionState::Connecting)
+    {
+        return;
+    }
+
+    m_connectionState.lastResult = {};
+    m_connectionState.SetState(ServerConnectionState::Connecting);
+
+    if (Result connectResult = g_gameClient->Connect(hostAddress, EngineGlobals::GetGameServerPort()); connectResult.HasError())
+    {
+        m_connectionState.lastResult = connectResult;
+        m_connectionState.SetState(ServerConnectionState::Failed);
+    }
 }
 
 Handle<World> Game::LoadWorld(Name worldName)
@@ -346,6 +384,25 @@ void Game::AfterContentLoaded()
     }
 
     Launch();
+}
+
+void Game::BeforeConnectingToServer()
+{
+    AssertOnThread(g_simThread);
+
+    Handle<World> tempWorld = MakeHandle<World>();
+    tempWorld->SetName(s_nameTempUIWorld);
+    tempWorld->SetIsTransient(true);
+
+    SetWorld(tempWorld);
+}
+
+void Game::AfterConnectedToServer()
+{
+    AssertOnThread(g_simThread);
+
+    // no-op - BeforeContentLoaded() (called next, via SyncContentAndLaunch()) sets up its own
+    // temp world for the loading screen.
 }
 
 void Game::OnSyncProgress(uint64 current, uint64 total)
@@ -676,6 +733,64 @@ void Game::OnLaunch()
 void Game::OnUpdate(float delta)
 {
     AssertOnThread(g_simThread);
+
+    switch (m_connectionState.state)
+    {
+    case ServerConnectionState::Connecting:
+    {
+        Assert(g_gameClient != nullptr);
+
+        const NetClientConnectionState clientState = g_gameClient->GetConnectionState();
+
+        if (clientState == NetClientConnectionState::Connected)
+        {
+            m_connectionState.SetState(ServerConnectionState::Connecting_StartingNextTask);
+
+            // Call next frame.
+            GetThreadById(g_simThread)->GetScheduler().Enqueue(
+                [weakThis = MakeWeakRef(this)]()
+                {
+                    Handle<Game> strongThis = weakThis.Lock();
+                    if (!strongThis.IsValid())
+                    {
+                        return;
+                    }
+                    
+                    strongThis->m_connectionState.SetState(ServerConnectionState::Connected);
+
+                    strongThis->AfterConnectedToServer();
+                    strongThis->SyncContentAndLaunch();
+                },
+                TaskEnqueueFlags::FIRE_AND_FORGET);
+
+            return;
+        }
+        
+        if (clientState == NetClientConnectionState::Disconnected)
+        {
+            // Connect() attempt ended (timed out or errored) while we were waiting on it
+            m_connectionState.lastResult = g_gameClient->GetLastError();
+            m_connectionState.SetState(ServerConnectionState::Failed);
+        }
+
+        return;
+    }
+    case ServerConnectionState::Connected:
+        break;
+    case ServerConnectionState::Failed: // fallthrough
+    case ServerConnectionState::Connecting_StartingNextTask:
+        if (m_syncState.IsInProgress())
+        {
+            if (m_syncState.currentTask.Cancel())
+            {
+                m_syncState.currentTask = {};
+                m_syncState.progress.Set(0, MemoryOrder::RELAXED);
+                m_syncState.SetState(ContentSyncState::NotStarted);
+            }
+        }
+
+        return;
+    }
 
     if (m_syncState.IsInProgress())
     {

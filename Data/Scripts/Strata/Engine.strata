@@ -750,6 +750,7 @@ extern bool GameState_IsPaused(GameState self);
 extern void Game_GetGameState(Game self, ref GameState outReturn);
 extern void Game_Initialize(Game self);
 extern void Game_Shutdown(Game self, bool shutdownWorld);
+extern void Game_ConnectToServer(Game self, const string hostAddress);
 extern bool Game_IsLaunched(Game self);
 extern void Game_StartSimulating(Game self);
 extern void Game_StopSimulating(Game self);

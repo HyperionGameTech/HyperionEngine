@@ -80,9 +80,13 @@ enum class KeyCode : uint16
     KEY_RALT = 230,
 
     KEY_SPACE = 32,
+    KEY_APOSTROPHE = 39,
     KEY_COMMA = 44,
     KEY_DASH = 45,
     KEY_PERIOD = 46,
+    KEY_SLASH = 47,
+    KEY_SEMICOLON = 59,
+    KEY_EQUALS = 61,
     KEY_RETURN = 13,
     KEY_TAB = 258,
     KEY_BACKSPACE = 8,
