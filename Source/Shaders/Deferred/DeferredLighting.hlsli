@@ -223,7 +223,7 @@ void EvaluateEnvProbes(
 
     //////////////////////////////////////////////////
 
-    // For masking out lightmapped elements so sky doesn't affect them
+    // For masking out lightmapped elements so probes don't affect them
     // 0.0 == Not Lightmapped, 1.0 == lightmapped.
     const float lightmappedWeight = min(1.0, float(inMask & OBJECT_MASK_LIGHTMAPPED));
 
@@ -281,11 +281,10 @@ void EvaluateEnvProbes(
 
         currentReflections.a = saturate(currentReflections.a);
         
-        // dont show sky / fallback probe data where we have lightmaps!
+        // dont show where we have lightmaps!
         // we apply probes in reverse order so sky should be very last
         const float irradianceOnlyWeight = (float)isIrradianceProbe;
-        const float skyIrradianceWeight = isSky ? (1.0 - lightmappedWeight) : 1.0;
-        const float diffuseContributionWeight = diffuseStrength;
+        const float diffuseContributionWeight = (1.0 - lightmappedWeight) * diffuseStrength;
 
         // @TODO Make configurable.
         static const float kIrradianceProbeBlendFactor = 0.2;
@@ -305,7 +304,6 @@ void EvaluateEnvProbes(
 
         float irradianceWeight = boundsWeight;// * pow(max(1.0f - smoothstep(max(HYP_FMATH_EPSILON, s_irradianceFalloffBeginDist), far, dist), HYP_FMATH_EPSILON), s_irradianceFalloffPower);
         irradianceWeight *= visibility;
-        irradianceWeight *= skyIrradianceWeight;
         irradianceWeight *= diffuseContributionWeight;
         irradianceWeight = saturate(irradianceWeight);
         

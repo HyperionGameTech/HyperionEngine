@@ -105,7 +105,7 @@ void Game::Initialize()
             EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Game")>());
     }
 
-    if (g_gameClient != nullptr && m_connectionState.state != ServerConnectionState::Connected)
+    if (g_gameClient != nullptr && !EngineGlobals::IsEditor() && m_connectionState.state != ServerConnectionState::Connected)
     {
         BeforeConnectingToServer();
 
