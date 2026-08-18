@@ -21,6 +21,8 @@
 #include <Framework/Threads/RenderWorkerThread.hpp>
 #include <Framework/Threads/VisThread.hpp>
 
+#include <Server/GameServer.hpp>
+
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
 #include <Asset/BlobStorage.hpp>
@@ -138,6 +140,7 @@ ENGINE_API Handle<EngineStats> g_engineStats;
 ENGINE_API MaterialCache* g_materialCache;
 ENGINE_API ShaderCompiler* g_shaderCompiler;
 ENGINE_API ShaderManager* g_shaderManager;
+ENGINE_API GameServer* g_gameServer;
 
 #ifdef HYP_EDITOR
 Handle<EditorState> g_editorState;
@@ -238,12 +241,12 @@ void InitThreads()
         g_visThread = g_simThread;
     }
 
-    g_mainThreadInstance = new MainThread();
+    g_mainThreadInstance = new MainThread;
     SetCurrentThreadObject(g_mainThreadInstance);
 
-    g_renderThreadInstance = new RenderThread();
-    g_simThreadInstance = new SimThread();
-    g_visThreadInstance = new VisThread();
+    g_renderThreadInstance = new RenderThread;
+    g_simThreadInstance = new SimThread;
+    g_visThreadInstance = new VisThread;
 
 #if !defined(HYP_IOS) && !defined(HYP_ANDROID)
     if constexpr (NumRendererWorkerThreads != 0)
@@ -347,30 +350,33 @@ void LoadShaderPropertyDictionary()
     stream.Close();
 
     StaticShaderPropertyId::ResolveAll();
-//
-//#ifndef HYP_SHIPPING
-//    FileByteWriter writeStream(shaderPropsFilePath, "wb+");
-//    WriteShaderPropertyDictionary(writeStream);
-//    writeStream.Close();
-//#endif
 }
 
 } // namespace
 
 extern "C"
 {
+    static bool s_hypIsInitialized = false;
+
+    HYP_EXPORT int Hyp_IsInitialized()
+    {
+        return int(s_hypIsInitialized);
+    }
+
     HYP_EXPORT int Hyp_Initialize(int argc, char** argv)
     {
         if (!argv || argc <= 0)
         {
             // we need argc/argv to be passed by the caller
-            return 0;
+            return false;
         }
 
-        if (g_engineDriver.IsValid())
+        if (s_hypIsInitialized)
         {
-            return 0; // already initialized!
+            return true; // already initialized
         }
+
+        s_hypIsInitialized = true;
 
         SetCurrentThreadId(g_mainThread);
 
@@ -395,7 +401,7 @@ extern "C"
 
         if (!CoreApi::Initialize(argc, argv))
         {
-            return 0;
+            return false;
         }
 
         EngineConfig engineConfig;
@@ -412,12 +418,8 @@ extern "C"
 
         InitLogger();
 
-        const CommandLineArguments& cliArgs = CoreApi::GetCommandLineArguments();
-        const bool isEditor = cliArgs["Editor"].ToBool();
-        const bool isCommandlet = cliArgs["exec"].ToBool();
-
 #if HYP_DOTNET && !defined(HYP_COMMANDLET_NAME)
-        if (!isCommandlet)
+        if (!EngineGlobals::IsCommandlet())
         {
             bool shouldInitializeDotNetHost = true;
 
@@ -427,7 +429,7 @@ extern "C"
 
             if (shouldInitializeDotNetHost)
             {
-                DotNETHost::GetInstance().Initialize(basePath, /* initFromManaged */ isEditor, s_initFromManagedCallback);
+                DotNETHost::GetInstance().Initialize(basePath, /* initFromManaged */ EngineGlobals::IsEditor(), s_initFromManagedCallback);
             }
         }
 #endif // HYP_DOTNET
@@ -473,9 +475,9 @@ extern "C"
 
         LoadShaderPropertyDictionary();
 
-        if (isCommandlet)
+        if (EngineGlobals::IsCommandlet())
         {
-            const ANSIString commandletName = cliArgs["exec"].ToString().ToAnsi();
+            const ANSIString commandletName = CoreApi::GetCommandLineArguments()["exec"].ToString().ToAnsi();
 
             const Class* commandletClass = g_appContext->FindCommandletClass(commandletName);
 
@@ -485,11 +487,11 @@ extern "C"
 
                 Hyp_Shutdown();
 
-                return 1;
+                return false;
             }
 
             // Build cli string from raw args after --exec=<command> OR --exec <command>
-            const String commandletNameStr = cliArgs["exec"].ToString();
+            const String commandletNameStr = CoreApi::GetCommandLineArguments()["exec"].ToString();
             Array<String> commandletArgsRaw;
 
             enum class ExecState
@@ -553,7 +555,10 @@ extern "C"
             if (parseResult.HasError())
             {
                 HYP_LOG(Engine, Error, "Failed to parse command line arguments: {}", parseResult.GetError().GetMessage());
-                return 1;
+
+                Hyp_Shutdown();
+
+                return false;
             }
 
             CommandLineArguments& commandletArgs = parseResult.GetValue();
@@ -572,30 +577,43 @@ extern "C"
 
             std::exit(commandletResult.HasError() ? 1 : 0);
 
-            return 0;
+            return !commandletResult.HasError();
         }
-
+        
 #if HYP_WINDOWS
-        g_appContext = MakeHandle<Win32AppContext>("Hyperion", cliArgs);
+        g_appContext = MakeHandle<Win32AppContext>("Hyperion", CoreApi::GetCommandLineArguments());
 #elif HYP_MACOS
-        g_appContext = MakeHandle<CocoaAppContext>("Hyperion", cliArgs);
+        g_appContext = MakeHandle<CocoaAppContext>("Hyperion", CoreApi::GetCommandLineArguments());
 #elif HYP_ANDROID
-        g_appContext = MakeHandle<AndroidAppContext>("Hyperion", cliArgs);
+        g_appContext = MakeHandle<AndroidAppContext>("Hyperion", CoreAPi::GetCommandLineArguments());
 #elif HYP_IOS
-        g_appContext = MakeHandle<IOSAppContext>("Hyperion", cliArgs);
+        g_appContext = MakeHandle<IOSAppContext>("Hyperion", CoreApi::GetCommandLineArguments());
 #else  // !HYP_WINDOWS && !HYP_MACOS && !HYP_ANDROID && !HYP_IOS
         HYP_FAIL("AppContext not implemented for this platform");
 #endif // HYP_WINDOWS || HYP_MACOS || HYP_ANDROID || HYP_IOS
         
-        InitMainWindow();
+        if (EngineGlobals::IsServer())
+        {
+            g_gameServer = new GameServer;
+
+            // @TODO Config var for port
+            if (Result listenResult = g_gameServer->Start(9192); listenResult.HasError())
+            {
+                HYP_LOG(Engine, Error, "Failed to start game server: {}", listenResult.GetError().GetMessage());
+
+                return false;
+            }
+        }
+
+        if (!EngineGlobals::IsHeadless())
+        {
+            InitMainWindow();
 
 #ifdef HYP_STEAM_SDK
-        if (!isCommandlet)
-        {
             Steam::Initialize();
             Steam::SteamInputManager::GetInstance().Initialize();
-        }
 #endif // HYP_STEAM_SDK
+        }
 
         // must start after net request thread
         if (CoreApi::IsProfilingEnabled())
@@ -608,16 +626,26 @@ extern "C"
 
         g_engineDriver->Initialize();
 
-        return 1;
+        return true;
     }
 
     HYP_EXPORT void Hyp_Shutdown()
     {
         AssertOnThread(g_mainThread);
 
-        if (!g_engineDriver.IsValid())
+        if (!s_hypIsInitialized)
         {
             return;
+        }
+
+        s_hypIsInitialized = false;
+
+        if (g_gameServer != nullptr)
+        {
+            g_gameServer->Stop();
+
+            delete g_gameServer;
+            g_gameServer = nullptr;
         }
 
         g_engineDriver->Shutdown();
@@ -770,6 +798,8 @@ extern "C"
     {
         AssertOnThread(g_mainThread);
 
+        Assert(s_hypIsInitialized);
+
         g_engineDriver->SetGameInstance(pGame);
 
         Assert(g_simThreadInstance != nullptr);
@@ -780,17 +810,19 @@ extern "C"
     {
         AssertOnThread(g_mainThread);
 
-        Assert(g_engineDriver.IsValid());
+        Assert(s_hypIsInitialized);
 
         if (!g_mainThreadInstance || !g_mainThreadInstance->IsRunning())
         {
-            if (g_engineDriver->StartThreads())
+            const bool success = g_engineDriver->StartThreads();
+
+            if (!success)
             {
-                return 1;
+                return false;
             }
         }
 
-        return 0;
+        return true;
     }
 
     HYP_EXPORT AppContextBase* Hyp_GetAppContext()
@@ -834,7 +866,7 @@ extern "C"
         Assert(pCtx != nullptr);
         pCtx->SetMainWindow(MakeStrongRef(pWindow));
 
-        return 1;
+        return true;
     }
 
     HYP_EXPORT ApplicationWindow* Hyp_GetMainWindow(AppContextBase* pCtx)

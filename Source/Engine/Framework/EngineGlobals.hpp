@@ -31,6 +31,7 @@ class VisThread;
 class EngineStats;
 class InputManager;
 class Game;
+class GameServer;
 class BlobStorage;
 struct GameState;
 
@@ -59,6 +60,7 @@ ENGINE_API extern Handle<EngineStats> g_engineStats;
 ENGINE_API extern MaterialCache* g_materialCache;
 ENGINE_API extern ShaderCompiler* g_shaderCompiler;
 ENGINE_API extern ShaderManager* g_shaderManager;
+ENGINE_API extern GameServer* g_gameServer;
 
 #ifdef HYP_EDITOR
 extern Handle<EditorState> g_editorState;
@@ -80,6 +82,7 @@ static constexpr NoOpFunction<bool> IsCooking;
 
 ENGINE_API bool IsCacheServer();
 ENGINE_API bool IsCommandlet();
+ENGINE_API bool IsServer();
 ENGINE_API bool IsHeadless();
 
 #ifdef HYP_EDITOR

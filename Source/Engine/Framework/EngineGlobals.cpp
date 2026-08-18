@@ -69,10 +69,8 @@ ENGINE_API bool IsCooking()
 #endif // !HYP_SHIPPING
 
 
-static std::once_flag s_isCommandletInit;
 bool g_isCommandlet = false;
-
-static std::once_flag s_isHeadlessInit;
+bool g_isServer = false;
 bool g_isHeadless = false;
 
 ENGINE_API bool IsCacheServer()
@@ -82,8 +80,9 @@ ENGINE_API bool IsCacheServer()
 
 ENGINE_API bool IsCommandlet()
 {
+    static std::once_flag s_init;
     std::call_once(
-        s_isCommandletInit,
+        s_init,
         []
         {
             g_isCommandlet = CoreApi::GetCommandLineArguments()["exec"].ToBool();
@@ -92,13 +91,27 @@ ENGINE_API bool IsCommandlet()
     return g_isCommandlet;
 }
 
-ENGINE_API bool IsHeadless()
+ENGINE_API bool IsServer()
 {
+    static std::once_flag s_init;
     std::call_once(
-        s_isHeadlessInit,
+        s_init,
         []
         {
-            g_isHeadless = IsCommandlet() || CoreApi::GetCommandLineArguments()["Headless"].ToBool();
+            g_isServer = CoreApi::GetCommandLineArguments()["server"].ToBool();
+        });
+
+    return g_isServer;
+}
+
+ENGINE_API bool IsHeadless()
+{
+    static std::once_flag s_init;
+    std::call_once(
+        s_init,
+        []
+        {
+            g_isHeadless = IsCommandlet() || IsServer() || CoreApi::GetCommandLineArguments()["Headless"].ToBool();
         });
 
     return g_isHeadless;
