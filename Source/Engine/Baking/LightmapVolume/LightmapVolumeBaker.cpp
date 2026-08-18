@@ -75,7 +75,7 @@ static LightmapShadingType AtlasTextureTypeToShadingType(LightmapVolume::AtlasTe
     switch (type)
     {
     case LightmapVolume::IrradianceTexture:
-        return LightmapShadingType::IRRADIANCE;
+        return LightmapShadingType::LIGHTMAP;
     case LightmapVolume::BentNormalTexture:
         return LightmapShadingType::BENT_NORMAL;
     default:
@@ -216,7 +216,7 @@ static bool BuildElementTextures(
 
     LightmapElementBitmaps elementBitmaps;
 
-    if (shadingTypesMask & (1u << uint32(LightmapShadingType::IRRADIANCE)))
+    if (shadingTypesMask & (1u << uint32(LightmapShadingType::LIGHTMAP)))
     {
         elementBitmaps.irradiance = MakeUniqueWithAllocator<LightmapColorBitmap, BakerAllocator>(
             ResizeBitmapToElement(bakeData.ToBitmapIrradiance(bakeAtlasIndex), elementDimensions));

@@ -306,9 +306,6 @@ void BakeJobBase::IntegrateRayHits(Span<const LightmapRay> rays, Span<const Ligh
 
         switch (shadingType)
         {
-        case LightmapShadingType::IRRADIANCE:
-            texel.color0 += hit.color;
-            break;
         case LightmapShadingType::DISTANCE:
             // Distance moments (dist, dist^2) are accumulated into color1
             // so they don't conflict with FULL-mode color in color0.

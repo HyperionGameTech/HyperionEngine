@@ -413,7 +413,7 @@ static void EnqueueBake(LightmapVolume& self)
 
 void LightmapVolume::BakeLightmap()
 {
-    EnqueueBake<Baking::LightmapShadingType::IRRADIANCE>(*this);
+    EnqueueBake<Baking::LightmapShadingType::LIGHTMAP>(*this);
 }
 
 void LightmapVolume::BakeBentNormals()

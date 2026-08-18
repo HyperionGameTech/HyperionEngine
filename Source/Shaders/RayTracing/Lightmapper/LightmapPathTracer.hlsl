@@ -6,7 +6,7 @@
 #include "../../include/Noise.hlsli"
 #include "../../include/Packing.hlsli"
 
-PERMUTE(MODE, IRRADIANCE, RADIANCE, FULL, SHADOW, DISTANCE, BENT_NORMAL);
+PERMUTE(MODE, LIGHTMAP, IRRADIANCE, FULL, SHADOW, DISTANCE, BENT_NORMAL);
 
 DECLARE_SAMPLER(LightmapPathTracer, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(LightmapPathTracer, SamplerLinear) SamplerState sampler_linear;
@@ -59,17 +59,17 @@ DECLARE_BUFFER(LightmapPathTracer, CBuffer) cbuffer CBuffer
     EnvProbe envProbes[MAX_ENV_PROBES];
 };
 
-#define RAY_OFFSET 0.05
+#define RAY_OFFSET 0.1
 
 #define VSM_DEPTH_BIAS_CONSTANT 0.2
 #define VSM_DEPTH_BIAS_SLOPE_SCALE 0.02
 #define VSM_DEPTH_BIAS_SLOPE_MAX 8.0
 
-#ifdef MODE_IRRADIANCE
+#ifdef MODE_LIGHTMAP
 #define NUM_BOUNCES 8
 #define NUM_SAMPLES 256
 #define ENVIRONMENT_INTENSITY 1.0
-#elif defined(MODE_FULL)
+#elif defined(MODE_FULL) || defined(MODE_IRRADIANCE)
 #define NUM_BOUNCES 16
 #define NUM_SAMPLES 64
 #define ENVIRONMENT_INTENSITY 1.0
@@ -83,7 +83,7 @@ DECLARE_BUFFER(LightmapPathTracer, CBuffer) cbuffer CBuffer
 #define ENVIRONMENT_INTENSITY 1.0
 #endif
 
-#if defined(MODE_FULL) || defined(MODE_IRRADIANCE)
+#if defined(MODE_FULL) || defined(MODE_IRRADIANCE) || defined(MODE_LIGHTMAP)
 
 #define MAX_SAMPLE_LUMINANCE 8.0
 
@@ -137,7 +137,7 @@ float3 DebugTest_Albedo(in float3 position, in float3 normal, inout RayPayload p
     return albedo;
 }
 
-#if defined(MODE_IRRADIANCE) || defined(MODE_FULL)
+#if defined(MODE_IRRADIANCE) || defined(MODE_FULL) || defined(MODE_LIGHTMAP)
 
 float3 SampleDirectLighting(in float3 hitPos, in float3 N)
 {
@@ -259,7 +259,7 @@ void RayGenMain()
 
     RayPayload payload = (RayPayload)0;
 
-#ifdef MODE_IRRADIANCE
+#ifdef MODE_LIGHTMAP
     float4 accumRadiance = float4(0.0, 0.0, 0.0, 0.0);
 
     for (uint sample_index = 0; sample_index < NUM_SAMPLES; sample_index++)
@@ -413,7 +413,7 @@ void RayGenMain()
     }
 
     float4 finalColor = float4(radiance, 1.0);
-#elif defined(MODE_FULL)
+#elif defined(MODE_FULL) || defined(MODE_IRRADIANCE)
     // path traced diffuse-only light.
     float4 accumRadiance = (float4)0.0;
 
@@ -446,11 +446,13 @@ void RayGenMain()
 
             TraceRay(tlas, flags, 0xff, 0, 1, 0, rayDesc, payload);
 
-            // sample environment if miss
             if (payload.distance < 0.0)
             {
+#ifdef MODE_FULL
+                // sample environment if miss but only for MODE_FULL
                 Li += float4(beta * SampleEnvironment(origin, direction).rgb, 1.0);
-
+#endif
+    
                 break;
             }
 
@@ -505,13 +507,6 @@ void RayGenMain()
 
         // if the ray never hit anything, set alpha to 0 so that probes can blend between each other. If it hit something, set alpha to 1 so that the result is not blended with other probes.
         Li.a = sampleIsMiss ? 0.0 : 1.0;
-        //Li.a = 1.0;
-    
-        //if (sampleIsMiss)
-        //{
-        //    // Sky hit - irradiance probe only
-        //    Li = SampleEnvironment(origin, direction);
-        //}
 
         accumRadiance += Li;
     }

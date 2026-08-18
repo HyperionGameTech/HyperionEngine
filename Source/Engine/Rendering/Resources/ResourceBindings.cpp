@@ -131,7 +131,7 @@ void WriteBufferData_EnvProbe(StructuredBuffer& sbuffer, uint32 idx, IRenderProx
     RenderProxyEnvProbe* proxyCasted = static_cast<RenderProxyEnvProbe*>(proxy);
     AssertDebug(proxyCasted != nullptr);
 
-    proxyCasted->bufferData.textureIndex = 0;
+    proxyCasted->bufferData.textureIndices = 0;
 
     if (proxyCasted->envProbe->IsA<SkyProbe>()
         || proxyCasted->envProbe->IsA<ReflectionProbe>())
@@ -140,7 +140,7 @@ void WriteBufferData_EnvProbe(StructuredBuffer& sbuffer, uint32 idx, IRenderProx
         AssertDebug(colorTextureBinding != ~0u);
         AssertDebug(colorTextureBinding < 0xFFFFu); // we consider anything >= 0xFFFFu to be invalid
 
-        proxyCasted->bufferData.textureIndex |= (colorTextureBinding & 0xFFFFu);
+        proxyCasted->bufferData.textureIndices |= (colorTextureBinding & 0xFFFFu);
     }
 
     // If it has a visibility texture, it will be bound using env probe binding slot,
@@ -149,7 +149,7 @@ void WriteBufferData_EnvProbe(StructuredBuffer& sbuffer, uint32 idx, IRenderProx
     {
         AssertDebug(idx < 0xFFFFu);
 
-        proxyCasted->bufferData.textureIndex |= ((idx & 0xFFFFu) << 16);
+        proxyCasted->bufferData.textureIndices |= ((idx & 0xFFFFu) << 16);
     }
 
     sbuffer.Write(idx * sizeof(proxyCasted->bufferData), sizeof(proxyCasted->bufferData), &proxyCasted->bufferData);

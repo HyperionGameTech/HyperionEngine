@@ -135,7 +135,7 @@ struct EnvProbeShaderData
     Vec4f worldPosition; // w == diffuse strength
 
     Vec2u dimensions;
-    uint32 textureIndex = ~0u;
+    uint32 textureIndices = ~0u;
     uint32 typeAndFlags;
 
     Vec4f shData[9];

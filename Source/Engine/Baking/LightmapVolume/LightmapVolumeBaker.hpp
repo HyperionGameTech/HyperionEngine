@@ -50,7 +50,7 @@ public:
             return m_shadingTypesMaskOverride;
         }
 
-        return (1u << int(LightmapShadingType::IRRADIANCE));
+        return (1u << int(LightmapShadingType::LIGHTMAP));
     }
 
     virtual uint32 NumTexelSamples() const override

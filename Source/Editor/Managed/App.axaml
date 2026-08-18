@@ -235,6 +235,10 @@
             <Setter Property="Background" Value="{StaticResource Brush.Accent}" />
         </Style>
 
+        <Style Selector="ScrollViewer">
+            <Setter Property="BringIntoViewOnFocusChange" Value="False" />
+        </Style>
+
         <!--  ScrollBar  -->
         <Style Selector="ScrollBar">
             <Setter Property="Foreground" Value="{StaticResource Brush.BorderLight}" />

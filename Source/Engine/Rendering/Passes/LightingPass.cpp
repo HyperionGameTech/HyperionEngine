@@ -245,6 +245,7 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     RenderProxyList& rpl = GetConsumerProxyList(rs.view);
     rpl.BeginRead();
+
     HYP_DEFER({ rpl.EndRead(); });
 
     RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(rs.view->GetCamera()));
@@ -360,6 +361,22 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
             // write camera data
             RI.cbufferAllocator->Write(&cameraProxy->bufferData);
+
+            // write sky probe data.
+            RenderProxyEnvProbe* envProbeProxy = rs.envProbe != nullptr
+                ? static_cast<RenderProxyEnvProbe*>(GetRenderProxy(rs.envProbe))
+                : nullptr;
+
+            if (envProbeProxy != nullptr)
+            {
+                RI.cbufferAllocator->Write(&envProbeProxy->bufferData);
+            }
+            else
+            {
+                // Just write dummy data to fill it. (default constructed, so textureIndices will be ~0u)
+                static const EnvProbeShaderData s_dummyEnvProbeData {};
+                RI.cbufferAllocator->Write(&s_dummyEnvProbeData);
+            }
 
             RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 

@@ -126,16 +126,20 @@ DECLARE_SRV(DeferredPass, ShadowMapsTextureArray) Texture2DArray<float> shadow_m
 DECLARE_SRV(DeferredPass, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #include "./deferred/ClusteredShading.hlsli"
-#include "./deferred/DeferredLighting.hlsli"
-
-#define DDGI_MULTIPLIER 1.0
-
-// #define DEBUG_NORMALS
 
 DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
 {
     Camera camera;
+    EnvProbe skyProbe;
 };
+
+#define DEFERRED_LIGHTING_HAS_SKY
+#include "./deferred/DeferredLighting.hlsli"
+#undef DEFERRED_LIGHTING_HAS_SKY
+
+#define DDGI_MULTIPLIER 1.0
+
+// #define DEBUG_NORMALS
 
 PSOutput PSMain(PSInput input)
 {

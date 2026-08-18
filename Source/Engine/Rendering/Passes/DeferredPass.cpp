@@ -727,6 +727,12 @@ public:
 
         for (EnvProbe* envProbe : rpl.GetEnvProbes())
         {
+            if (envProbe->GetEnvProbeType() == EPT_SKY)
+            {
+                // skip sky; it is sent to the shader global (see LightingPass.cpp for indirect lighting pass)
+                continue;
+            }
+
             const uint32 envProbeBindingIndex = Resources::GetBinding(envProbe);
 
             if (envProbeBindingIndex == ~0u)
@@ -741,21 +747,11 @@ public:
         }
 
         // Sort env probes in reverse order
-        // They are applied with a reverse loop -- sky is always first in the array if present.
         std::sort(envProbes.Begin(), envProbes.End(),
                   [](const Tuple<EnvProbe*, EnvProbeShaderData*, uint32>& a, const Tuple<EnvProbe*, EnvProbeShaderData*, uint32>& b)
                   {
                       const auto& aData = *a.GetElement<1>();
                       const auto& bData = *b.GetElement<1>();
-
-                      const bool aIsSky = (aData.typeAndFlags & 0x7) == EPT_SKY;
-                      const bool bIsSky = (bData.typeAndFlags & 0x7) == EPT_SKY;
-                      
-                      if (aIsSky ^ bIsSky)
-                      {
-                          // Push sky first
-                          return aIsSky;
-                      }
 
                       const Vec3f aExtent = (aData.aabbMax - aData.aabbMin).GetXYZ();
                       const Vec3f bExtent = (bData.aabbMax - bData.aabbMin).GetXYZ();
@@ -783,20 +779,6 @@ public:
 
             const Vec3f aabbMinWS = envProbeData.aabbMin.GetXYZ();
             const Vec3f aabbMaxWS = envProbeData.aabbMax.GetXYZ();
-
-            if ((envProbeData.typeAndFlags & 0x7) == EPT_SKY)
-            {
-                for (Tile& tile : tempTiles)
-                {
-                    if (tile.numEnvProbes < MaxEnvProbesPerTile)
-                    {
-                        tile.envProbeIndices[tile.numEnvProbes++] = uint16(envProbeBindingIndex);
-                    }
-                }
-
-                // Don't want to go into the body below, for sky.
-                continue;
-            }
 
             uint32 tileMinX;
             uint32 tileMinY;
@@ -1700,8 +1682,6 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
                 RenderSetup rayTracingRS = rs.Fork();
                 rayTracingRS.passData = rayTracingPassData;
 
-                // set sky as fallback
-
                 // Set first found sky probe as fallback probe
                 auto& skyProbes = rpl.GetEnvProbes().GetElements<SkyProbe>();
                 if (skyProbes.Any())
@@ -1765,14 +1745,15 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     { // deferred lighting on opaque objects
         ENGINE_STAT_GPU_SCOPE(&s_statDeferredPass);
+        
+        RenderSetup lightingRS = rs.Fork();
 
-        //// Pre-transition resources to avoid breaking the render pass for barriers
-        //frame->cr << InsertBarrier(
-        //    passData.lightingFramebuffer->GetAttachment(1)->GetGpuImage(),
-        //    RS_RENDER_TARGET,
-        //    ShaderModuleType::Pixel,
-        //    /* onlyDepth */ false,
-        //    /* onlyStencil */ true);
+        // Set first found sky probe as fallback probe
+        auto& skyProbes = rpl.GetEnvProbes().GetElements<SkyProbe>();
+        if (skyProbes.Any())
+        {
+            lightingRS.envProbe = *skyProbes.Begin();
+        }
 
         // Transition shadow map atlas to shader resource before the pass
         frame->cr << InsertBarrier(RI.shadowMapCache->GetAtlasImage(), RS_SHADER_RESOURCE, ShaderModuleType::Pixel);
@@ -1789,18 +1770,18 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
         const bool isPathTracer = g_cvPathTracing.Get();
 
-        passData.indirectLightingPass->RenderToFramebuffer(frame, rs, passData.lightingFramebuffer);
+        passData.indirectLightingPass->RenderToFramebuffer(frame, lightingRS, passData.lightingFramebuffer);
 
         if (g_cvEnableLightmapVolumes.Get() && rpl.GetLightmapVolumes().NumCurrent() != 0 && !isPathTracer)
         {
             // Render the objects to have lightmaps applied into the translucent pass framebuffer with a full screen quad.
             // Apply lightmaps over the now shaded opaque objects.
-            passData.lightmapPass->RenderToFramebuffer(frame, rs, passData.lightingFramebuffer);
+            passData.lightmapPass->RenderToFramebuffer(frame, lightingRS, passData.lightingFramebuffer);
         }
 
         if (!isPathTracer)
         {
-            passData.directLightingPass->RenderToFramebuffer(frame, rs, passData.lightingFramebuffer);
+            passData.directLightingPass->RenderToFramebuffer(frame, lightingRS, passData.lightingFramebuffer);
         }
         
         frame->cr << SetFaceCullMode(FCM_BACK);

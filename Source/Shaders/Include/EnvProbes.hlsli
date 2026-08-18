@@ -161,9 +161,9 @@ float4 EnvProbeSH(in EnvProbe envProbe, float3 N)
     }
     
     // hitMaskData encodes R channel of L1 spherical harmonics computed mask where 1.0 == hit, 0.0 == miss
-    result.a = dot(envProbe.hitMaskData, float4(bands[0], bands[1], bands[2], bands[3]));
+    result.a = saturate(dot(envProbe.hitMaskData, float4(bands[0], bands[1], bands[2], bands[3])));
 
-    return saturate(result);
+    return result;
 }
 
 #endif
