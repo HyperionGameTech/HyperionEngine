@@ -8,6 +8,8 @@
 
 #include <Core/Containers/String.hpp>
 
+#include <Core/Utilities/Result.hpp>
+
 #ifdef HYP_WINDOWS
 #   include <winsock2.h>
 #   include <ws2tcpip.h>
@@ -31,6 +33,8 @@ struct NetAddress
     }
 
     CORE_API explicit NetAddress(const sockaddr_in& addr);
+
+    CORE_API static TResult<NetAddress> TryResolve(const ANSIString& hostname, uint16 port);
 
     HYP_FORCE_INLINE explicit operator bool() const
     {

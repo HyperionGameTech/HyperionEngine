@@ -32,6 +32,7 @@ class EngineStats;
 class InputManager;
 class Game;
 class GameServer;
+class GameClient;
 class BlobStorage;
 struct GameState;
 
@@ -61,6 +62,7 @@ ENGINE_API extern MaterialCache* g_materialCache;
 ENGINE_API extern ShaderCompiler* g_shaderCompiler;
 ENGINE_API extern ShaderManager* g_shaderManager;
 ENGINE_API extern GameServer* g_gameServer;
+ENGINE_API extern GameClient* g_gameClient;
 
 #ifdef HYP_EDITOR
 extern Handle<EditorState> g_editorState;
@@ -99,6 +101,7 @@ extern template ENGINE_API const FilePath& GetContentDirectory<HYP_STATIC_STRING
 
 ENGINE_API const FilePath& GetCacheDirectory();
 ENGINE_API const char* GetCacheServerAddress();
+ENGINE_API const char* GetHostAddress();
 ENGINE_API const FilePath& GetTempDirectory();
 ENGINE_API const FilePath& GetConfigDirectory();
 ENGINE_API HYP_NODISCARD FilePath CreateTempDirectory();

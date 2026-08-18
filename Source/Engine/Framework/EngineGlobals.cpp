@@ -211,6 +211,12 @@ HYP_EXPORT const char* GetCacheServerAddress()
     return s_cacheServerAddress.Data();
 }
 
+HYP_EXPORT const char* GetHostAddress()
+{
+    static const String s_hostAddress = CoreApi::GetCommandLineArguments()["Host"].ToString();
+    return s_hostAddress.Data();
+}
+
 HYP_EXPORT const FilePath& GetConfigDirectory()
 {
 #ifndef HYP_SHIPPING

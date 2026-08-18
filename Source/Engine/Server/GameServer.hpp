@@ -15,6 +15,7 @@
 namespace Hyperion {
 
 class GameServerThread;
+class ConsoleInputThread;
 
 class ENGINE_API GameServer
 {
@@ -34,6 +35,7 @@ public:
 private:
     net::NetServer m_netServer;
     UniquePtr<GameServerThread> m_thread;
+    UniquePtr<ConsoleInputThread> m_consoleInputThread;
 };
 
 } // namespace Hyperion

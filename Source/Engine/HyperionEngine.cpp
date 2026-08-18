@@ -22,6 +22,7 @@
 #include <Framework/Threads/VisThread.hpp>
 
 #include <Server/GameServer.hpp>
+#include <Client/GameClient.hpp>
 
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
@@ -141,6 +142,7 @@ ENGINE_API MaterialCache* g_materialCache;
 ENGINE_API ShaderCompiler* g_shaderCompiler;
 ENGINE_API ShaderManager* g_shaderManager;
 ENGINE_API GameServer* g_gameServer;
+ENGINE_API GameClient* g_gameClient;
 
 #ifdef HYP_EDITOR
 Handle<EditorState> g_editorState;
@@ -605,6 +607,32 @@ extern "C"
             }
         }
 
+        if (const char* hostname = EngineGlobals::GetHostAddress(); hostname != nullptr && *hostname != '\0')
+        {
+            g_gameClient = new GameClient;
+
+            // @TODO Config var for port
+
+            NetAddress hostAddress;
+            if (TResult<NetAddress> resolveResult = NetAddress::TryResolve(hostname, 9192); resolveResult.HasError())
+            {
+                HYP_LOG(Engine, Error, "Failed to resolve host: {}", resolveResult.GetError().GetMessage());
+
+                return false;
+            }
+            else
+            {
+                hostAddress = resolveResult.GetValue();
+            }
+
+            if (Result connectResult = g_gameClient->Connect(hostAddress); connectResult.HasError())
+            {
+                HYP_LOG(Engine, Error, "Failed to connect to host: {}", connectResult.GetError().GetMessage());
+
+                return false;
+            }
+        }
+
         if (!EngineGlobals::IsHeadless())
         {
             InitMainWindow();
@@ -646,6 +674,14 @@ extern "C"
 
             delete g_gameServer;
             g_gameServer = nullptr;
+        }
+
+        if (g_gameClient != nullptr)
+        {
+            g_gameClient->Disconnect();
+
+            delete g_gameClient;
+            g_gameClient = nullptr;
         }
 
         g_engineDriver->Shutdown();
