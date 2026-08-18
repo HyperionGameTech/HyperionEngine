@@ -608,7 +608,7 @@
                         <Grid Grid.Row="2" RowDefinitions="Auto, *">
                             <!--  Inspector  -->
                             <Grid Grid.Row="1" RowDefinitions="Auto, *">
-                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                <ScrollViewer Grid.Row="1" BringIntoViewOnFocusChange="False" VerticalScrollBarVisibility="Auto">
                                     <StackPanel Spacing="8">
                                         <Grid
                                             Margin="0"
@@ -697,6 +697,73 @@
                                                                     </ItemsControl.ItemTemplate>
                                                                 </ItemsControl>
                                                             </StackPanel>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Grid>
+
+                                        <Grid
+                                            Margin="0"
+                                            DataContext="{Binding Inspector}"
+                                            IsVisible="{Binding IsEntity}"
+                                            RowDefinitions="Auto, Auto, Auto">
+
+                                            <Border Grid.Row="0" Classes="panel-header">
+                                                <TextBlock VerticalAlignment="Center" Classes="header" Text="Tags" />
+                                            </Border>
+
+                                            <Grid
+                                                Grid.Row="1"
+                                                Margin="12,6,12,6"
+                                                ColumnDefinitions="*,Auto"
+                                                IsVisible="{Binding EntityTags.HasAvailableTags}">
+                                                <ComboBox
+                                                    Grid.Column="0"
+                                                    Margin="0,0,6,0"
+                                                    HorizontalAlignment="Stretch"
+                                                    PlaceholderText="Select tag to add"
+                                                    ItemsSource="{Binding EntityTags.AvailableTags}"
+                                                    SelectedItem="{Binding EntityTags.SelectedAvailableTag, Mode=TwoWay}">
+                                                    <ComboBox.ItemTemplate>
+                                                        <DataTemplate x:DataType="vm:EntityTagOptionViewModel">
+                                                            <TextBlock Text="{Binding Name}" />
+                                                        </DataTemplate>
+                                                    </ComboBox.ItemTemplate>
+                                                </ComboBox>
+                                                <Button
+                                                    Grid.Column="1"
+                                                    Padding="8,2"
+                                                    Content="Add"
+                                                    Command="{Binding EntityTags.AddTagCommand}"
+                                                    CommandParameter="{Binding EntityTags.SelectedAvailableTag}" />
+                                            </Grid>
+
+                                            <ItemsControl
+                                                Grid.Row="2"
+                                                Margin="12,0,12,6"
+                                                IsVisible="{Binding EntityTags.HasTags}"
+                                                ItemsSource="{Binding EntityTags.Tags}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:EntityTagItemViewModel">
+                                                        <Border
+                                                            Margin="0,0,0,4"
+                                                            Padding="8,4"
+                                                            Background="{DynamicResource Brush.PanelRaised}"
+                                                            BorderBrush="{DynamicResource Brush.BorderLight}"
+                                                            BorderThickness="1"
+                                                            CornerRadius="{DynamicResource Radius.Medium}">
+                                                            <Grid ColumnDefinitions="*,Auto">
+                                                                <TextBlock Grid.Column="0" FontSize="12" VerticalAlignment="Center" Text="{Binding Name}" />
+                                                                <Button
+                                                                    Grid.Column="1"
+                                                                    Padding="4,2"
+                                                                    ToolTip.Tip="Remove tag"
+                                                                    Command="{Binding DataContext.Inspector.EntityTags.RemoveTagCommand, ElementName=Root}"
+                                                                    CommandParameter="{Binding}">
+                                                                    <LucideIcon Kind="Trash2" Size="14" />
+                                                                </Button>
+                                                            </Grid>
                                                         </Border>
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>

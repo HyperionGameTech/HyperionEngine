@@ -14,7 +14,9 @@
 
 namespace Hyperion {
 
-HYP_STRUCT(Component, Label = "Transform Component", Description = "Holds the translation, rotation, and scale of a node in a scene.", Editor = false, Serialize = false)
+HYP_STRUCT(Component, Editor = false, Serialize = false,
+    Label = "Transform Component",
+    Description = "Holds the translation, rotation, and scale of a node in a scene.")
 struct TransformComponent
 {
     HYP_STRUCT_BODY(TransformComponent);

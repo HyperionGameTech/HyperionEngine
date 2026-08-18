@@ -1,6 +1,9 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Diagnostics;
 
 namespace Hyperion
 {
@@ -21,7 +24,9 @@ namespace Hyperion
 
         public static readonly EntityTag LightmapElement = new EntityTag(0x6);
 
-        public static readonly EntityTag ReceivesUpdate = new EntityTag(0x7);
+        public static readonly EntityTag Replicated = new EntityTag(0x7);
+
+        public static readonly EntityTag ReceivesUpdate = new EntityTag(0x8);
 
         public static readonly EntityTag UIVisible = new EntityTag(0x10);
 
@@ -30,21 +35,64 @@ namespace Hyperion
         public static readonly EntityTag UpdateRenderProxy = new EntityTag(0x30);
         public static readonly EntityTag UpdateVisibility = new EntityTag(0x40);
         public static readonly EntityTag UpdateInstancedMeshData = new EntityTag(0x50);
+        public static readonly EntityTag UpdateReplication = new EntityTag(0x60);
 
         public static readonly EntityTag UpdatePhysicsShape = new EntityTag(0x100);
         public static readonly EntityTag UpdatePhysicsMaterial = new EntityTag(0x200);
 
-        internal ulong Value;
+        public ulong Value;
 
         internal EntityTag(ulong value)
         {
             Value = value;
         }
 
+        public string Name => _namesByValue.Value.TryGetValue(Value, out string? name) ? name : $"Tag({Value})";
+
         public override string ToString()
         {
-            return $"EntityTag({Value})";
+            return Name;
         }
+
+        public static unsafe EntityTag[] GetEditorFriendlyTags()
+        {
+            uint count = EntityTag_GetEditorFriendlyTags(null);
+
+            if (count == 0)
+            {
+                return Array.Empty<EntityTag>();
+            }
+
+            ulong[] buffer = new ulong[count];
+
+            fixed (ulong* pBuffer = buffer)
+            {
+                EntityTag_GetEditorFriendlyTags(pBuffer);
+            }
+
+            return buffer.Select(value => new EntityTag(value)).ToArray();
+        }
+
+        private static readonly Lazy<Dictionary<ulong, string>> _namesByValue = new(() =>
+        {
+            var names = new Dictionary<ulong, string>();
+
+            foreach (FieldInfo field in typeof(EntityTag).GetFields(BindingFlags.Public | BindingFlags.Static))
+            {
+                if (field.FieldType != typeof(EntityTag))
+                {
+                    continue;
+                }
+
+                EntityTag tag = (EntityTag)field.GetValue(null)!;
+                names[tag.Value] = field.Name;
+            }
+
+            return names;
+        });
+
+        [DllImport("hyperion", EntryPoint = "EntityTag_GetEditorFriendlyTags")]
+        private static unsafe extern uint EntityTag_GetEditorFriendlyTags(ulong* pOutTags);
     }
 
     [ClassBinding(Name = "EntityManager")]
@@ -56,7 +104,7 @@ namespace Hyperion
 
         public Entity AddEntity()
         {
-            return InvokeNativeMethod<Entity>("AddBasicEntity");
+            return InvokeNativeMethod<Entity>("AddBasicEntity")!;
         }
 
         public T AddEntity<T>() where T : Entity
@@ -74,7 +122,8 @@ namespace Hyperion
                         throw new Exception("Failed to add entity of type " + typeof(T).Name);
                     }
 
-                    T entity = (T)boxedInternal.GetValue();
+                    T? entity = (T?)boxedInternal.GetValue();
+                    Debug.Assert(entity != null);
 
                     return entity;
                 }

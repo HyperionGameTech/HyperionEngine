@@ -28,7 +28,7 @@ enum class VisibilityStateFlags : uint32
     INVALIDATED = 0x2
 };
 
-HYP_MAKE_ENUM_FLAGS(VisibilityStateFlags)
+HYP_MAKE_ENUM_FLAGS(VisibilityStateFlags);
 
 HYP_STRUCT(Component, Size = 32, Serialize = false, Editor = false)
 struct VisibilityStateComponent

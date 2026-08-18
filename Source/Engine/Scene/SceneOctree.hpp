@@ -172,7 +172,9 @@ public:
         AssertDebug(uint64(entityTag) < m_entryHashes.Size());
 
         if (uint64(entityTag) >= m_entryHashes.Size())
+        {
             return HashCode();
+        }
 
         return HashCode(m_entryHashes[uint64(entityTag)])
             .Add(m_invalidationMarker);
@@ -217,7 +219,7 @@ public:
     Result Update(Entity* entity, const BoundingBox& aabb, bool forceInvalidation = false, bool allowRebuild = false);
 
 private:
-    static constexpr uint32 NumEntryHashes = 8;
+    static constexpr uint32 NumEntryHashes = 10;
 
     HYP_FORCE_INLINE bool UseEntityMap() const
     {

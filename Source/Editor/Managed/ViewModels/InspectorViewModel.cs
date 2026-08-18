@@ -79,6 +79,13 @@ namespace Hyperion.Editor.ViewModels
             private set => SetProperty(ref _hasAttachedScript, value);
         }
 
+        private EntityTagsViewModel? _entityTags;
+        public EntityTagsViewModel? EntityTags
+        {
+            get => _entityTags;
+            private set => SetProperty(ref _entityTags, value);
+        }
+
         private Node? _selectedNode;
         public Node? SelectedNode
         {
@@ -145,6 +152,7 @@ namespace Hyperion.Editor.ViewModels
 
             AttachedScript = null;
             HasAttachedScript = false;
+            EntityTags = null;
 
             HasActions = false;
             HasComponents = false;
@@ -214,6 +222,11 @@ namespace Hyperion.Editor.ViewModels
                         continue; // skip Components property -- they're handled separately
                     }
 
+                    if (property.Name == "Tags")
+                    {
+                        continue; // skip Entity Tags property -- they're handled separately (not NodeTags, which stays here)
+                    }
+
                     // skip non-editor properties
                     ClassAttribute? attrEditor = property.GetAttribute("editor");
 
@@ -272,6 +285,7 @@ namespace Hyperion.Editor.ViewModels
 
                 AttachedScript = new AttachedScriptViewModel(entity);
                 HasAttachedScript = true;
+                EntityTags = new EntityTagsViewModel(entity);
 
                 _ = EngineManager.PostToSimThread(() =>
                 {
@@ -363,6 +377,11 @@ namespace Hyperion.Editor.ViewModels
             foreach (InspectorComponentViewModelBase componentVm in Components)
             {
                 componentVm.RefreshProperties();
+            }
+
+            if (EntityTags != null)
+            {
+                _ = EntityTags.RefreshAsync();
             }
         }
 

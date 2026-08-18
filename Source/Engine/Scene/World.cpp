@@ -23,6 +23,7 @@
 #include <Scene/Systems/CharacterControllerSystem.hpp>
 #include <Scene/Systems/ScriptSystem.hpp>
 #include <Scene/Systems/MeshSystem.hpp>
+#include <Scene/Systems/ReplicationSystem.hpp>
 
 #include <Scene/Components/MeshComponent.hpp>
 #include <Scene/Components/TransformComponent.hpp>
@@ -246,6 +247,9 @@ void World::Initialize()
 
     if (!HasSystem<CharacterControllerSystem>())
         AddSystem(MakeHandle<CharacterControllerSystem>());
+
+    if (EngineGlobals::IsServer() && !HasSystem<ReplicationSystem>())
+        AddSystem(MakeHandle<ReplicationSystem>());
 
     m_isInitialized = true;
 

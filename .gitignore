@@ -87,6 +87,5 @@ Projects/**/*
 PackagedBuilds/**/*
 
 Source/Generated/**/*
-.opencode
 
 compile_commands.json

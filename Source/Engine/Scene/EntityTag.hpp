@@ -37,6 +37,8 @@ struct EntityTag
 
     static const EntityTag LightmapElement;
 
+    static const EntityTag Replicated;
+
     static const EntityTag ReceivesUpdate;
 
     static constexpr uint64 SerializableTagMask = 0xF;
@@ -49,6 +51,7 @@ struct EntityTag
     static const EntityTag UpdateRenderProxy;
     static const EntityTag UpdateVisibility;
     static const EntityTag UpdateInstancedMeshData;
+    static const EntityTag UpdateReplication;
 
     static const EntityTag UpdatePhysicsShape;
     static const EntityTag UpdatePhysicsMaterial;
@@ -127,7 +130,9 @@ inline constexpr EntityTag EntityTag::EditorCamera = EntityTag(0x5);
 
 inline constexpr EntityTag EntityTag::LightmapElement = EntityTag(0x6);
 
-inline constexpr EntityTag EntityTag::ReceivesUpdate = EntityTag(0x7);
+inline constexpr EntityTag EntityTag::Replicated = EntityTag(0x7);
+
+inline constexpr EntityTag EntityTag::ReceivesUpdate = EntityTag(0x8);
 
 // Non-persistent
 
@@ -138,6 +143,7 @@ inline constexpr EntityTag EntityTag::FocusedInEditor = EntityTag(0x20);
 inline constexpr EntityTag EntityTag::UpdateRenderProxy = EntityTag(0x30);
 inline constexpr EntityTag EntityTag::UpdateVisibility = EntityTag(0x40);
 inline constexpr EntityTag EntityTag::UpdateInstancedMeshData = EntityTag(0x50);
+inline constexpr EntityTag EntityTag::UpdateReplication = EntityTag(0x60);
 
 inline constexpr EntityTag EntityTag::UpdatePhysicsShape = EntityTag(0x100);
 inline constexpr EntityTag EntityTag::UpdatePhysicsMaterial = EntityTag(0x200);

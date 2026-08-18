@@ -977,6 +977,7 @@ CORE_API extern const Name g_attrJsonIgnore;
 CORE_API extern const Name g_attrScriptableDelegate;
 CORE_API extern const Name g_attrFollowAssetPath;
 CORE_API extern const Name g_attrSaveAsReference;
+CORE_API extern const Name g_attrReplicated;
 
 /// ===== Editor-specific attributes =====
 CORE_API extern const Name g_attrEditor;        //!< Indicates that a property is editable in the editor.

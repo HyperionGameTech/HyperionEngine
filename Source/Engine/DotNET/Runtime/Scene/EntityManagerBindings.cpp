@@ -7,6 +7,7 @@
 #include <HyperionPch.hpp>
 
 #include <Scene/EntityManager.hpp>
+#include <Scene/ComponentInterface.hpp>
 
 // Components
 #include <Scene/Components/TransformComponent.hpp>
@@ -192,6 +193,30 @@ extern "C"
         }
 
         return pManager->HasTag(pEntity, EntityTag(tag));
+    }
+
+    HYP_EXPORT uint32 EntityTag_GetEditorFriendlyTags(uint64* pOutTags)
+    {
+        const Array<const IComponentInterface*> componentInterfaces = ComponentInterfaceRegistry::GetInstance().GetComponentInterfaces();
+
+        uint32 numTags = 0;
+
+        for (const IComponentInterface* componentInterface : componentInterfaces)
+        {
+            if (!componentInterface->IsEntityTag() || !componentInterface->ShouldShowInEditor())
+            {
+                continue;
+            }
+
+            if (pOutTags != nullptr)
+            {
+                pOutTags[numTags] = uint64(componentInterface->GetEntityTag());
+            }
+
+            ++numTags;
+        }
+
+        return numTags;
     }
 
 } // extern "C"

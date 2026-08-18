@@ -42,10 +42,22 @@ HYP_MAKE_ENUM_FLAGS(ComponentInterfaceFlags)
 
 namespace Attributes {
 CORE_API extern const Name g_attrSerialize;
+CORE_API extern const Name g_attrReplicated;
 } // namespace Attributes
 
+// Not really an interface, but the name stays for now
 class ENGINE_API IComponentInterface
 {
+protected:
+    IComponentInterface()
+    {
+        m_shouldSerialize = false;
+        m_isReplicated = false;
+        m_isEntityTag = false;
+        m_showInEditor = true;
+        m_entityTag = (EntityTag)-1;
+    }
+
 public:
     virtual ~IComponentInterface() = default;
 
@@ -56,54 +68,72 @@ public:
 
     virtual bool CreateInstance(BoxedValue& out) const = 0;
 
-    virtual bool GetShouldSerialize() const = 0;
+    HYP_FORCE_INLINE bool GetShouldSerialize() const
+    {
+        return m_shouldSerialize;
+    }
 
-    virtual bool IsEntityTag() const = 0;
-    virtual EntityTag GetEntityTag() const = 0;
+    HYP_FORCE_INLINE bool ShouldShowInEditor() const
+    {
+        return m_showInEditor;
+    }
+
+    HYP_FORCE_INLINE bool IsEntityTag() const
+    {
+        return m_isEntityTag;
+    }
+
+    HYP_FORCE_INLINE EntityTag GetEntityTag() const
+    {
+        return m_entityTag;
+    }
+
+    HYP_FORCE_INLINE bool IsReplicated() const
+    {
+        return m_isReplicated;
+    }
+
+protected:
+    UniquePtr<IComponentFactory> m_componentFactory;
+    ComponentContainerFactoryBase* m_componentContainerFactory;
+
+    bool m_shouldSerialize : 1;
+    bool m_isReplicated : 1;
+    bool m_isEntityTag : 1;
+    bool m_showInEditor : 1;
+
+    EntityTag m_entityTag;
 };
 
 template <class Component, bool ShouldSerialize = true>
-class ComponentInterface : public IComponentInterface
+class ComponentInterface final : public IComponentInterface
 {
 public:
     ComponentInterface()
-        : m_componentFactory(nullptr),
-          m_componentContainerFactory(nullptr)
     {
+        const Class* cls = GetClass();
+        Assert(cls != nullptr);
+
+        m_shouldSerialize = (ShouldSerialize && cls->GetAttribute(Attributes::g_attrSerialize) != false);
+        m_showInEditor = m_shouldSerialize;
+        m_isReplicated = (cls->GetAttribute(Attributes::g_attrReplicated) != false);
+        m_isEntityTag = false;
     }
 
     ComponentInterface(UniquePtr<IComponentFactory>&& componentFactory, ComponentContainerFactoryBase* componentContainerFactory)
-        : m_componentFactory(std::move(componentFactory)),
-          m_componentContainerFactory(componentContainerFactory)
+        : ComponentInterface()
     {
+        m_componentFactory = std::move(componentFactory);
+        m_componentContainerFactory = std::move(componentContainerFactory);
     }
 
     ComponentInterface(const ComponentInterface&) = delete;
     ComponentInterface& operator=(const ComponentInterface&) = delete;
 
-    ComponentInterface(ComponentInterface&& other) noexcept
-        : m_componentFactory(std::move(other.m_componentFactory)),
-          m_componentContainerFactory(other.m_componentContainerFactory)
-    {
-        other.m_componentContainerFactory = nullptr;
-    }
+    ComponentInterface(ComponentInterface&& other) noexcept = delete;
+    ComponentInterface& operator=(ComponentInterface&& other) noexcept = delete;
 
-    ComponentInterface& operator=(ComponentInterface&& other) noexcept
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        m_componentFactory = std::move(other.m_componentFactory);
-        m_componentContainerFactory = other.m_componentContainerFactory;
-
-        other.m_componentContainerFactory = nullptr;
-
-        return *this;
-    }
-
-    virtual ~ComponentInterface() override = default;
+    ~ComponentInterface() override = default;
 
     virtual const TypeInfo& GetTypeInfo() const override
     {
@@ -119,41 +149,26 @@ public:
     {
         return ComponentInterface_CreateInstance(GetClass(), out);
     }
-
-    virtual bool GetShouldSerialize() const override
-    {
-        return ShouldSerialize && GetClass() && GetClass()->GetAttribute(Attributes::g_attrSerialize) != false;
-    }
-
-    virtual bool IsEntityTag() const override
-    {
-        return false;
-    }
-
-    virtual EntityTag GetEntityTag() const override
-    {
-        return (EntityTag)-1;
-    }
-
-private:
-    UniquePtr<IComponentFactory> m_componentFactory;
-    ComponentContainerFactoryBase* m_componentContainerFactory;
 };
 
-template <EntityTag Tag, bool ShouldSerialize = true>
-class EntityTagComponentInterface : public IComponentInterface
+template <EntityTag Tag, bool ShouldSerialize = true, bool ShowInEditor = true>
+class EntityTagComponentInterface final : public IComponentInterface
 {
 public:
     EntityTagComponentInterface()
-        : m_componentFactory(nullptr),
-          m_componentContainerFactory(nullptr)
     {
+        m_shouldSerialize = ShouldSerialize;
+        m_showInEditor = ShouldSerialize && ShowInEditor;
+        m_isReplicated = ShouldSerialize;
+        m_isEntityTag = true;
+        m_entityTag = Tag;
     }
 
     EntityTagComponentInterface(UniquePtr<IComponentFactory>&& componentFactory, ComponentContainerFactoryBase* componentContainerFactory)
-        : m_componentFactory(std::move(componentFactory)),
-          m_componentContainerFactory(componentContainerFactory)
+        : EntityTagComponentInterface()
     {
+        m_componentFactory = std::move(componentFactory);
+        m_componentContainerFactory = std::move(componentContainerFactory);
     }
 
     EntityTagComponentInterface(const EntityTagComponentInterface&) = delete;
@@ -199,25 +214,6 @@ public:
 
         return true;
     }
-
-    virtual bool GetShouldSerialize() const override
-    {
-        return ShouldSerialize;
-    }
-
-    virtual bool IsEntityTag() const override
-    {
-        return true;
-    }
-
-    virtual EntityTag GetEntityTag() const override
-    {
-        return Tag;
-    }
-
-private:
-    UniquePtr<IComponentFactory> m_componentFactory;
-    ComponentContainerFactoryBase* m_componentContainerFactory;
 };
 
 class ComponentInterfaceRegistry
@@ -285,7 +281,7 @@ private:
     bool m_isInitialized;
 };
 
-template <class ComponentType, bool ShouldSerialize = true>
+template <class ComponentType, bool ShouldSerialize = true, bool ShowInEditor = true>
 struct ComponentInterfaceRegistration
 {
     ComponentInterfaceRegistration()
@@ -301,8 +297,8 @@ struct ComponentInterfaceRegistration
     }
 };
 
-template <EntityTag Tag, bool ShouldSerialize>
-struct ComponentInterfaceRegistration<TagComponent<Tag>, ShouldSerialize>
+template <EntityTag Tag, bool ShouldSerialize, bool ShowInEditor>
+struct ComponentInterfaceRegistration<TagComponent<Tag>, ShouldSerialize, ShowInEditor>
 {
     ComponentInterfaceRegistration()
     {
@@ -310,7 +306,7 @@ struct ComponentInterfaceRegistration<TagComponent<Tag>, ShouldSerialize>
             TypeId::ForType<TagComponent<Tag>>(),
             []() -> UniquePtr<IComponentInterface>
             {
-                return MakeUnique<EntityTagComponentInterface<Tag, ShouldSerialize>>(
+                return MakeUnique<EntityTagComponentInterface<Tag, ShouldSerialize, ShowInEditor>>(
                     MakeUnique<ComponentFactory<TagComponent<Tag>>>(),
                     ComponentContainer<TagComponent<Tag>>::GetFactory());
             });
@@ -327,7 +323,7 @@ struct ComponentInterfaceRegistration<TagComponent<Tag>, ShouldSerialize>
     }
 
 #define HYP_REGISTER_ENTITY_TYPE(T, ...)                                                                                                               \
-    static ComponentInterfaceRegistration<TagComponent<EntityType_Impl<T>::value>, false, ##__VA_ARGS__> T##_EntityTag_ComponentInterface_Registration \
+    static ComponentInterfaceRegistration<TagComponent<EntityType_Impl<T>::value>, false, false, ##__VA_ARGS__> T##_EntityTag_ComponentInterface_Registration \
     {                                                                                                                                                  \
     }
 

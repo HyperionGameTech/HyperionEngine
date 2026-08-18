@@ -164,11 +164,17 @@ void Entity::SetReceivesUpdate(bool receivesUpdate)
 
     if (receivesUpdate)
     {
-        entityManager->AddTag<EntityTag::ReceivesUpdate>(this);
+        entityManager->AddTags<
+            EntityTag::ReceivesUpdate,
+            EntityTag::UpdateVisibility, // update octant hashcode
+            EntityTag::UpdateReplication>(this);
     }
     else
     {
         entityManager->RemoveTag<EntityTag::ReceivesUpdate>(this);
+        entityManager->AddTags<
+            EntityTag::UpdateVisibility,
+            EntityTag::UpdateReplication>(this);
     }
 }
 
@@ -212,7 +218,9 @@ void Entity::OnAddedToWorld(World* world)
 
     if (entityManager)
     {
-        entityManager->AddTag<EntityTag::UpdateVisibility>(this);
+        entityManager->AddTags<
+            EntityTag::UpdateVisibility,
+            EntityTag::UpdateReplication>(this);
     }
 }
 
@@ -252,17 +260,25 @@ void Entity::OnAddedToScene(Scene* scene)
         m_entityManager->AddComponent<VisibilityStateComponent>(this, {});
     }
 
-    m_entityManager->AddTags<EntityTag::UpdateVisibility, EntityTag::UpdateRenderProxy>(this);
-
     if (IsStatic())
     {
         m_entityManager->RemoveTag<EntityTag::MobDynamic>(this);
-        m_entityManager->AddTag<EntityTag::MobStatic>(this);
+        
+        m_entityManager->AddTags<
+            EntityTag::MobStatic,
+            EntityTag::UpdateVisibility,
+            EntityTag::UpdateRenderProxy,
+            EntityTag::UpdateReplication>(this);
     }
     else
     {
         m_entityManager->RemoveTag<EntityTag::MobStatic>(this);
-        m_entityManager->AddTag<EntityTag::MobDynamic>(this);
+        
+        m_entityManager->AddTags<
+            EntityTag::MobDynamic,
+            EntityTag::UpdateVisibility,
+            EntityTag::UpdateRenderProxy,
+            EntityTag::UpdateReplication>(this);
     }
 
     m_transformChanged = false;
@@ -315,7 +331,10 @@ void Entity::OnComponentAdded(AnyRef component)
             return;
         }
 
-        AddTag<EntityTag::UpdateRenderProxy>();
+        GetEntityManager()->AddTags<
+            EntityTag::UpdateVisibility,
+            EntityTag::UpdateRenderProxy,
+            EntityTag::UpdateReplication>(this);
 
 #ifdef HYP_EDITOR
         // build mesh BVH if there is no existing one. (size != 0)
@@ -350,10 +369,11 @@ void Entity::OnTagAdded(EntityTag tag)
     }
 #endif // HYP_EDITOR
 
-    // So we update the octant's hash code.
     if (isSerializableTag && m_entityManager)
     {
-        m_entityManager->AddTag<EntityTag::UpdateVisibility>(this);
+        m_entityManager->AddTags<
+            EntityTag::UpdateVisibility,
+            EntityTag::UpdateReplication>(this);
     }
 }
 
@@ -371,7 +391,9 @@ void Entity::OnTagRemoved(EntityTag tag)
     // So we update the octant's hash code.
     if (isSerializableTag && m_entityManager)
     {
-        m_entityManager->AddTag<EntityTag::UpdateVisibility>(this);
+        m_entityManager->AddTags<
+            EntityTag::UpdateVisibility,
+            EntityTag::UpdateReplication>(this);
     }
 }
 
@@ -504,7 +526,8 @@ void Entity::SetLocalBounds(const BoundingBox& aabb)
 
         entityManager->AddTags<
             EntityTag::UpdateVisibility,
-            EntityTag::UpdateRenderProxy>(this);
+            EntityTag::UpdateRenderProxy,
+            EntityTag::UpdateReplication>(this);
     }
 }
 
@@ -541,7 +564,8 @@ void Entity::OnTransformUpdated()
 
     entityManager->AddTags<
         EntityTag::UpdateVisibility,
-        EntityTag::UpdateRenderProxy>(this);
+        EntityTag::UpdateRenderProxy,
+        EntityTag::UpdateReplication>(this);
 }
 
 void Entity::OnMobilityChanged(bool isStatic)
@@ -560,15 +584,23 @@ void Entity::OnMobilityChanged(bool isStatic)
     if (isStatic)
     {
         entityManager->RemoveTag<EntityTag::MobDynamic>(this);
-        entityManager->AddTag<EntityTag::MobStatic>(this);
+
+        entityManager->AddTags<
+            EntityTag::MobStatic,
+            EntityTag::UpdateVisibility,
+            EntityTag::UpdateRenderProxy,
+            EntityTag::UpdateReplication>(this);
     }
     else
     {
         entityManager->RemoveTag<EntityTag::MobStatic>(this);
-        entityManager->AddTag<EntityTag::MobDynamic>(this);
-    }
 
-    AddTag<EntityTag::UpdateRenderProxy>();
+        entityManager->AddTags<
+            EntityTag::MobDynamic,
+            EntityTag::UpdateVisibility,
+            EntityTag::UpdateRenderProxy,
+            EntityTag::UpdateReplication>(this);
+    }
 }
 
 void Entity::SetEntityManager(const Handle<EntityManager>& entityManager)
