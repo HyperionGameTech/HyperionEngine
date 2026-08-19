@@ -11,6 +11,8 @@
 #include <Core/Threading/Thread.hpp>
 #include <Core/Threading/Threads.hpp>
 
+#include <Core/Memory/Allocator/ThreadAllocator.hpp>
+
 #include <Core/Logging/Logger.hpp>
 
 #include <iostream>
@@ -34,9 +36,24 @@ public:
 
     virtual void operator()(NetServer* netServer) override
     {
+        InitThreadAllocator();
+
         while (HYP_LIKELY(!m_stopRequested.LoadVolatile()))
         {
             netServer->Update();
+
+            if (m_scheduler->NumEnqueued())
+            {
+                Array<Scheduler::ScheduledTask, ThreadAllocator> tasks;
+                m_scheduler->AcceptAll(tasks);
+
+                for (auto& task : tasks)
+                {
+                    task.Execute();
+                }
+            }
+            
+            m_threadAllocator->Reset();
 
             ThreadSleep(10);
         }

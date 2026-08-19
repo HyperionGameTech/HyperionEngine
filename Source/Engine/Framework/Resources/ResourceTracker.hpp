@@ -439,8 +439,7 @@ public:
         }
 
         const int subclassIndex = GetSubclassIndex(TypeInfo_GetId(*baseImpl.typeInfo), typeId);
-        AssertDebug(subclassIndex >= 0, "Invalid subclass index");
-        AssertDebug(subclassIndex < subclassImpls.Size(), "Invalid subclass index");
+        Assert(subclassIndex >= 0 && subclassIndex < subclassImpls.Size(), "Invalid subclass index");
 
         if (!subclassIndices.Test(subclassIndex))
         {
@@ -714,9 +713,7 @@ public:
         }
 
         const int subclassIndex = GetSubclassIndex(TypeInfo_GetId(*baseImpl.typeInfo), typeId);
-        AssertDebug(subclassIndex >= 0, "Invalid subclass index");
-        AssertDebug(subclassIndex < subclassImpls.Size(), "Invalid subclass index");
-
+        Assert(subclassIndex >= 0 && subclassIndex < subclassImpls.Size(), "Invalid subclass index");
         if (!subclassIndices.Test(subclassIndex))
         {
             const Class* cls = GetClass(typeId);
@@ -744,8 +741,7 @@ public:
         }
 
         const int subclassIndex = GetSubclassIndex(TypeInfo_GetId(*baseImpl.typeInfo), typeId);
-        AssertDebug(subclassIndex >= 0, "Invalid subclass index");
-        AssertDebug(subclassIndex < subclassImpls.Size(), "Invalid subclass index");
+        Assert(subclassIndex >= 0 && subclassIndex < subclassImpls.Size(), "Invalid subclass index");
 
         if (!subclassIndices.Test(subclassIndex))
         {

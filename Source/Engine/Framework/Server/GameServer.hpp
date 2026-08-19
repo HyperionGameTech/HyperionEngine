@@ -30,6 +30,11 @@ public:
 
     ~GameServer();
 
+    HYP_FORCE_INLINE ThreadBase* GetThread() const
+    {
+        return reinterpret_cast<ThreadBase*>(m_thread.Get());
+    }
+
     bool IsRunning() const;
 
     Result Start(uint16 port);
@@ -37,6 +42,11 @@ public:
 
     HYP_NODISCARD NetId AllocNetId();
     void FreeNetId(NetId netId);
+
+    HYP_FORCE_INLINE net::NetServer& GetNetServer()
+    {
+        return m_netServer;
+    }
 
 private:
     net::NetServer m_netServer;

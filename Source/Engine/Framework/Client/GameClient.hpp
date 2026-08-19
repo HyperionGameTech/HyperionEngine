@@ -29,6 +29,11 @@ public:
 
     ~GameClient();
 
+    HYP_FORCE_INLINE ThreadBase* GetThread() const
+    {
+        return reinterpret_cast<ThreadBase*>(m_thread.Get());
+    }
+
     NetClientConnectionState GetConnectionState() const;
     
     bool IsConnected() const;
