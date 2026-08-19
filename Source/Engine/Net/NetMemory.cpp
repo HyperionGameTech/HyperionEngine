@@ -4,7 +4,7 @@
  *  @licence MIT
 */
 
-#include <Core/Net/NetMemory.hpp>
+#include <Net/NetMemory.hpp>
 
 #include <Core/Memory/Allocator/Allocator.hpp>
 #include <Core/Memory/Allocator/ArenaAllocator.hpp>

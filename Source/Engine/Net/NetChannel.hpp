@@ -22,10 +22,10 @@
 #include <Core/Utilities/Time.hpp>
 #include <Core/Utilities/ValueStorage.hpp>
 
-#include <Core/Net/NetMessage.hpp>
-#include <Core/Net/NetMemory.hpp>
-#include <Core/Net/NetSocketUDP.hpp>
-#include <Core/Net/NetAddress.hpp>
+#include <Net/NetMessage.hpp>
+#include <Net/NetMemory.hpp>
+#include <Net/NetSocketUDP.hpp>
+#include <Net/NetAddress.hpp>
 
 #include <type_traits>
 

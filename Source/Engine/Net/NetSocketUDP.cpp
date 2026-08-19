@@ -17,7 +17,7 @@
 #   include <errno.h>
 #endif
 
-#include <Core/Net/NetSocketUDP.hpp>
+#include <Net/NetSocketUDP.hpp>
 
 #include <Core/Logging/Logger.hpp>
 #include <Core/Logging/LogChannels.hpp>

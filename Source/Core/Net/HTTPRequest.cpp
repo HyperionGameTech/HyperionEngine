@@ -5,7 +5,7 @@
 */
 
 #include <Core/Net/HTTPRequest.hpp>
-#include <Core/Net/NetRequestThread.hpp>
+#include <Net/NetRequestThread.hpp>
 
 #include <Core/Threading/TaskSystem.hpp>
 

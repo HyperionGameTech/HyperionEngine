@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <Core/Net/NetServer.hpp>
+#include <Net/NetServer.hpp>
 
 #include <Core/Memory/UniquePtr.hpp>
 

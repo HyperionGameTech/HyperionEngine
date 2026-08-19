@@ -44,7 +44,7 @@
 
 #include <Core/CLI/CommandLine.hpp>
 
-#include <Core/Net/NetRequestThread.hpp>
+#include <Net/NetRequestThread.hpp>
 
 #include <System/MessageBox.hpp>
 #include <System/AppContext.hpp>

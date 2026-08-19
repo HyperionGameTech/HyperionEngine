@@ -30,7 +30,7 @@
 
 #include <Core/Types.hpp>
 
-#include <Core/Net/NetMemory.hpp>
+#include <Net/NetMemory.hpp>
 
 namespace Hyperion {
 namespace net {

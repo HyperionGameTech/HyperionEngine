@@ -4,7 +4,7 @@
  *  @licence MIT
 */
 
-#include <Core/Net/NetAddress.hpp>
+#include <Net/NetAddress.hpp>
 
 #if defined(HYP_UNIX) || defined(HYP_ANDROID)
 #include <sys/socket.h>

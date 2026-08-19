@@ -4,7 +4,7 @@
  *  @licence MIT
  */
 
-#include <Core/Net/NetClient.hpp>
+#include <Net/NetClient.hpp>
 
 #include <cstdio>
 

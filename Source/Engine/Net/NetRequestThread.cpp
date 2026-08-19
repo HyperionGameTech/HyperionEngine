@@ -4,7 +4,7 @@
  *  @licence MIT
 */
 
-#include <Core/Net/NetRequestThread.hpp>
+#include <Net/NetRequestThread.hpp>
 
 #include <Core/Threading/Mutex.hpp>
 

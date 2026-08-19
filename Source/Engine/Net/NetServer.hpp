@@ -6,9 +6,9 @@
 
 #pragma once
 
-#include <Core/Net/NetMemory.hpp>
-#include <Core/Net/NetSocketUDP.hpp>
-#include <Core/Net/NetAddress.hpp>
+#include <Net/NetMemory.hpp>
+#include <Net/NetSocketUDP.hpp>
+#include <Net/NetAddress.hpp>
 
 #include <Core/Memory/UniquePtr.hpp>
 

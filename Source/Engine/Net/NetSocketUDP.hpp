@@ -8,8 +8,8 @@
 
 #include <Core/Defines.hpp>
 
-#include <Core/Net/NetMemory.hpp>
-#include <Core/Net/NetAddress.hpp>
+#include <Net/NetMemory.hpp>
+#include <Net/NetAddress.hpp>
 
 #include <Core/Containers/Array.hpp>
 

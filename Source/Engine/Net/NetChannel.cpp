@@ -4,7 +4,7 @@
  *  @licence MIT
 */
 
-#include <Core/Net/NetChannel.hpp>
+#include <Net/NetChannel.hpp>
 
 namespace Hyperion {
 namespace net {

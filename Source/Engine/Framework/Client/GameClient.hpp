@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include <Core/Net/NetClient.hpp>
-#include <Core/Net/NetAddress.hpp>
+#include <Net/NetClient.hpp>
+#include <Net/NetAddress.hpp>
 
 #include <Core/Memory/UniquePtr.hpp>
 

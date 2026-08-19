@@ -7,7 +7,7 @@
 // Needs to be before including NetServer.hpp
 #include <Core/Memory/Pool/Pool.hpp>
 
-#include <Core/Net/NetServer.hpp>
+#include <Net/NetServer.hpp>
 
 #include <Core/Utilities/Time.hpp>
 
