@@ -564,7 +564,6 @@ extern struct RigidBodyComponent
 end
 extern struct ReplicationStateComponent
     NetId : any
-    OwnerConnectionId : any
 end
 extern struct PlayerComponent
 end
@@ -806,6 +805,8 @@ extern class EditorSubsystem : Subsystem
 end
 extern class Node
     Clone() -> Node
+    GetUUID() -> UUID
+    SetUUID(uuid : UUID) -> void
     HasName() -> bool
     GetName() -> Name
     SetName(name : Name) -> void
@@ -858,6 +859,7 @@ extern class Node
     static OnChildAdded : any
     static OnChildRemoved : any
     static TransformUpdated : any
+    Uuid : UUID
     Name : Name
     NodeFlags : NodeFlags
     ParentNode : Node

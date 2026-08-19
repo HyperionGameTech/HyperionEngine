@@ -13,6 +13,7 @@
 
 namespace Hyperion {
 
+/*! \brief System responsible for updating InstancedMeshData based on InstanceMeshProxy nodes in the scene */
 HYP_CLASS(NoScriptBindings)
 class MeshSystem final : public SystemBase
 {

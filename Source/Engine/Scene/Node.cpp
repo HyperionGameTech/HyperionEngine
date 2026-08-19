@@ -179,6 +179,18 @@ void Node::Init()
     SetReady(true);
 }
 
+void Node::SetUUID(const UUID& uuid)
+{
+    if (uuid == m_uuid)
+    {
+        return;
+    }
+
+    m_uuid = uuid;
+
+    MarkDirty();
+}
+
 bool Node::HasName() const
 {
     return m_name.IsValid();

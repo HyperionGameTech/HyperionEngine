@@ -25,6 +25,7 @@
 #include <Core/Containers/Array.hpp>
 
 #include <Core/Utilities/StringUtil.hpp>
+#include <Core/Utilities/Uuid.hpp>
 
 #include <cstdlib>
 
@@ -298,10 +299,11 @@ bool Parser::ParseValue(const TypeInfo& typeInfo, BoxedValue& out)
         return ParseStringValue(typeInfo, out);
     }
 
-    // Name / StringHash handling.
+    // Name / StringHash / UUID handling.
     {
         if (typeInfo.id == TypeId::ForType<Name>()
-            || typeInfo.id == TypeId::ForType<StringHash>())
+            || typeInfo.id == TypeId::ForType<StringHash>()
+            || typeInfo.id == TypeId::ForType<UUID>())
         {
             return ParseStringValue(typeInfo, out);
         }
@@ -507,6 +509,10 @@ bool Parser::ParseStringValue(const TypeInfo& typeInfo, BoxedValue& out)
         || typeInfo.id == TypeId::ForType<StringHash>())
     {
         out = BoxedValue(CreateNameFromDynamicString(text.Data()));
+    }
+    else if (typeInfo.id == TypeId::ForType<UUID>())
+    {
+        out = BoxedValue(UUID(text.Data()));
     }
     else
     {

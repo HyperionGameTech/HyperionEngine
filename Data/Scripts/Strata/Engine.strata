@@ -547,6 +547,8 @@ extern int EditorGizmoBase_GetPriority(EditorGizmoBase self);
 extern string EditorGizmoBase_GetMenuText(EditorGizmoBase self);
 
 // Node
+extern void Node_GetUUID(Node self, ref UUID outReturn);
+extern void Node_SetUUID(Node self, const UUID uuid);
 extern bool Node_HasName(Node self);
 extern void Node_GetName(Node self, ref Name outReturn);
 extern void Node_SetName(Node self, const Name name);

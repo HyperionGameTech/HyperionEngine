@@ -63,6 +63,8 @@ public:
         return m_entityManager;
     }
 
+    //-- Component/Tags --
+
     template <class Component, class EntityManagerPtr = EntityManager*>
     Component& GetComponent() const;
 
@@ -87,18 +89,26 @@ public:
     template <EntityTag Tag, class EntityManagerPtr = EntityManager*>
     bool HasTag() const;
 
+    //-- Tick --
+
     HYP_METHOD()
     bool ReceivesUpdate() const;
 
     HYP_METHOD()
     void SetReceivesUpdate(bool receivesUpdate);
 
-    void UpdateRenderProxy(RenderProxyMesh* proxy);
+    //-- Lock and load --
 
     virtual void LockTransform() override;
     virtual void UnlockTransform() override;
 
+    //-- Bounds --
+
     virtual void SetLocalBounds(const BoundingBox& aabb) override;
+
+    //-- RenderProxy --
+
+    void UpdateRenderProxy(RenderProxyMesh* proxy);
 
     const int* GetRenderProxyVersionPtr() const
     {
@@ -110,7 +120,10 @@ public:
         ++m_renderProxyVersion;
     }
 
+    //--
+
 protected:
+    //-- Overrides --
     virtual void Init() override;
 
     virtual void Update(float delta)
@@ -140,10 +153,14 @@ protected:
     virtual void OnTransformUpdated() override;
     virtual void OnMobilityChanged(bool isStatic) override;
 
+    //--
+
     EntityInitInfo m_entityInitInfo;
 
 private:
     void SetEntityManager(const Handle<EntityManager>& entityManager);
+
+    //-- Serialization --
 
     HYP_METHOD(Property = "Tags", NoScriptBindings)
     Array<EntityTag> SerializeTags() const;
@@ -156,6 +173,8 @@ private:
 
     HYP_METHOD(Property = "Components", NoScriptBindings, LoadOrder = 1000)
     void DeserializeComponents(const Array<BoxedValue, DynamicAllocator>& components);
+
+    //--
 
     EntityManager* m_entityManager;
 

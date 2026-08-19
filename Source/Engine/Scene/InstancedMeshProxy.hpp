@@ -10,6 +10,7 @@
 
 namespace Hyperion {
 
+/*! \brief Represents an instance of a mesh (shared Mesh, Material) with a unique transform from its parent */
 HYP_CLASS()
 class ENGINE_API InstancedMeshProxy : public Node
 {

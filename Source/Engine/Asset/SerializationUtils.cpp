@@ -2423,6 +2423,12 @@ Result BoxedToHMFImpl(
         return {};
     }
 
+    if (value.Is<UUID>())
+    {
+        EscapeString(outText, value.Get<UUID>().ToString());
+        return {};
+    }
+
     if (value.Is<AssetReference>())
     {
         const AssetReference& ref = value.Get<AssetReference>();
