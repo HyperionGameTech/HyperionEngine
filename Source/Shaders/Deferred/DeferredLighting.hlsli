@@ -145,56 +145,27 @@ float CalculateProbeVisibility(
     float far,
     uint visTextureIndex)
 {
-
-    /*const float3 dirToProbe = probeToPoint / dist;
-    
-    const float distNorm = dist / max(far, HYP_FMATH_EPSILON);
-
-    const float2 moments = envProbesDepthTexture.SampleLevel(sampler_linear, float4(dirToProbe, float(visTextureIndex)), 0).rg;
-
-    float variance = max(moments.y - moments.x * moments.x, HYP_FMATH_EPSILON);
-
-    float d = distNorm - moments.x;
-    float p = step(distNorm, moments.x);
-    float p_max = variance / (variance + d * d);
-    
-    static const float s_softenAmount = 0.25;
-
-    float soft_p_max = saturate((p_max - s_softenAmount) / (1.0 - s_softenAmount));
-
-    float visibility = (p <= soft_p_max) ? max(p, soft_p_max) : 1.0;
-
-    // mask out backface hits
-    float directionalWeight = max(HYP_FMATH_EPSILON, (dot(-dirToProbe, N) + 1.0) * 0.5);
-    
-    visibility *= directionalWeight;
-    
-    return smoothstep(0.0, 1.0, visibility);*/
-    
     const float3 probeToPointN = probeToPoint / dist;
 
     const float distNorm = dist / max(far, HYP_FMATH_EPSILON);
 
     const float2 moments = envProbesDepthTexture.SampleLevel(
         sampler_linear, float4(probeToPointN, float(visTextureIndex)), 0).rg;
-    
+
     static const float s_selfShadowBias = 0.02;
-    static const float s_minVariance = 2e-3;
+    static const float s_minVariance = 1e-2;
+    static const float s_softenAmount = 0.05;
 
     float variance = max(moments.y - moments.x * moments.x, s_minVariance);
-
+    
     float d = max(distNorm - moments.x - s_selfShadowBias, 0.0);
-    float p = step(distNorm, moments.x + s_selfShadowBias);
     float p_max = variance / (variance + d * d);
 
-    static const float s_softenAmount = 0.15;
-    float soft_p_max = saturate((p_max - s_softenAmount) / (1.0 - s_softenAmount));
-    
-    float visibility = max(p, soft_p_max);
-    
+    float visibility = saturate((p_max - s_softenAmount) / (1.0 - s_softenAmount));
+
     float directionalWeight = max(HYP_FMATH_EPSILON, (dot(-probeToPointN, N) + 1.0) * 0.5);
     visibility *= directionalWeight;
-    
+
     return saturate(visibility);
 }
 
@@ -204,16 +175,17 @@ void EvaluateSingleProbe(
     float perceptualRoughness,
     float lightmappedWeight,
     in EnvProbe inProbe,
-    inout float4 reflections, inout float4 irradiance)
+    inout float3 reflectionsSum, inout float reflectionsWeightSum,
+    inout float3 irradianceSum, inout float irradianceWeightSum)
 {
 #define CURRENT_ENV_PROBE inProbe
-    
+
     const uint envProbeFlags = GET_ENV_PROBE_FLAGS(CURRENT_ENV_PROBE);
 
     const uint probeType = GET_ENV_PROBE_TYPE(CURRENT_ENV_PROBE);
 
     const bool isIrradianceProbe = (probeType == EPT_AMBIENT);
-        
+
     const uint textureIndices = CURRENT_ENV_PROBE.textureIndices;
     const uint colorTextureIndex = (textureIndices & 0xFFFFu);
     const uint visTextureIndex = (textureIndices >> 16) & 0xFFFFu;
@@ -238,7 +210,6 @@ void EvaluateSingleProbe(
     float3 probeToPoint = positionWS - worldPosition3;
     float dist = length(probeToPoint);
 
-    float near = aabbMin.w;
     float far = aabbMax.w;
     float visibility = 1.0;
 
@@ -254,9 +225,8 @@ void EvaluateSingleProbe(
             currentReflections);
 
     currentReflections.a = saturate(currentReflections.a);
-        
+
     // dont show where we have lightmaps!
-    // we apply probes in reverse order so sky should be very last
     const float irradianceOnlyWeight = (float) isIrradianceProbe;
     const float diffuseContributionWeight = (1.0 - lightmappedWeight) * diffuseStrength;
 
@@ -266,24 +236,16 @@ void EvaluateSingleProbe(
     const float blendFactor = lerp(kReflectionsProbeBlendFactor, kIrradianceProbeBlendFactor, irradianceOnlyWeight);
 
     const float boundsWeight = CalculateEnvProbeWeight(positionWS, aabbMin.xyz, aabbMax.xyz, blendFactor);
+    
+    const float reflectionsWeight = max(0.0, boundsWeight * visibility * (1.0 - irradianceOnlyWeight) * currentReflections.a);
+    const float irradianceWeight = max(0.0, boundsWeight * visibility * diffuseContributionWeight * currentIrradiance.a);
 
-    float reflectionsWeight = boundsWeight;
-    reflectionsWeight *= visibility;
-    reflectionsWeight *= (1.0 - irradianceOnlyWeight);
-    reflectionsWeight = saturate(reflectionsWeight);
+    reflectionsSum += currentReflections.rgb * reflectionsWeight;
+    reflectionsWeightSum += reflectionsWeight;
 
-        // distance based falloff for irradiance
-    static const float s_irradianceFalloffPower = 1.5;
-    static const float s_irradianceFalloffBeginDist = 5.0;
+    irradianceSum += currentIrradiance.rgb * irradianceWeight;
+    irradianceWeightSum += irradianceWeight;
 
-    float irradianceWeight = boundsWeight; // * pow(max(1.0f - smoothstep(max(HYP_FMATH_EPSILON, s_irradianceFalloffBeginDist), far, dist), HYP_FMATH_EPSILON), s_irradianceFalloffPower);
-    irradianceWeight *= visibility;
-    irradianceWeight *= diffuseContributionWeight;
-    irradianceWeight = saturate(irradianceWeight);
-        
-    irradiance += currentIrradiance * irradianceWeight * (1.0 - irradiance.a);
-    reflections += currentReflections * reflectionsWeight * (1.0 - reflections.a);
-        
 #undef CURRENT_ENV_PROBE
 }
 
@@ -316,6 +278,12 @@ void EvaluateEnvProbes(
     // 0.0 == Not Lightmapped, 1.0 == lightmapped.
     const float lightmappedWeight = min(1.0, float(inMask & OBJECT_MASK_LIGHTMAPPED));
 
+    float3 reflectionsSum = (float3) 0.0;
+    float reflectionsWeightSum = 0.0;
+
+    float3 irradianceSum = (float3) 0.0;
+    float irradianceWeightSum = 0.0;
+
     for (uint currentProbeIndex = numEnvProbes; currentProbeIndex != 0; --currentProbeIndex)
     {
         const uint envProbeIndex = Cluster_LoadEnvProbeIndex(clusterIndexOffset, numLights, currentProbeIndex - 1);
@@ -326,37 +294,54 @@ void EvaluateEnvProbes(
             perceptualRoughness,
             lightmappedWeight,
             EnvProbesBuffer[envProbeIndex],
-            reflections, irradiance);
+            reflectionsSum, reflectionsWeightSum,
+            irradianceSum, irradianceWeightSum);
     }
-   
+
     // to get that good intellisense
 #ifndef HYP_SHADER_COMPILER
 #define DEFERRED_LIGHTING_HAS_SKY
 #define skyProbe ((EnvProbe)0)
 #endif
-    
+
 #ifdef DEFERRED_LIGHTING_HAS_SKY
-    // Now, apply sky if we have it.
-    //  1) irradiance is weighted inverse to current irradiance alpha.
-    //  2) reflection is just lerp'd using 1.0 - reflections.a.
-    // (The hit mask will do the work for us)
-    
+
     // ~0u == ((INVALID_ENV_PROBE_TEXTURE << 16) | INVALID_ENV_PROBE_TEXTURE)
     // (all invalid)
     if (skyProbe.textureIndices != ~0u)
     {
+        float3 skyReflectionsSum = (float3) 0.0;
+        float skyReflectionsWeightSum = 0.0;
+
+        float3 skyIrradianceSum = (float3) 0.0;
+        float skyIrradianceWeightSum = 0.0;
+
         EvaluateSingleProbe(
             positionVS, positionWS,
             N, V, R,
             perceptualRoughness,
             lightmappedWeight,
             skyProbe,
-            reflections, irradiance);
+            skyReflectionsSum, skyReflectionsWeightSum,
+            skyIrradianceSum, skyIrradianceWeightSum);
 
+        const float reflectionsResidual = max(0.0, 1.0 - reflectionsWeightSum);
+        const float irradianceResidual = max(0.0, 1.0 - irradianceWeightSum);
+        
+        const float skyReflectionsEffectiveWeight = min(skyReflectionsWeightSum, reflectionsResidual);
+        reflectionsSum += (skyReflectionsSum / max(skyReflectionsWeightSum, HYP_FMATH_EPSILON)) * skyReflectionsEffectiveWeight;
+        reflectionsWeightSum += skyReflectionsEffectiveWeight;
+
+        const float skyIrradianceEffectiveWeight = min(skyIrradianceWeightSum, irradianceResidual);
+        irradianceSum += (skyIrradianceSum / max(skyIrradianceWeightSum, HYP_FMATH_EPSILON)) * skyIrradianceEffectiveWeight;
+        irradianceWeightSum += skyIrradianceEffectiveWeight;
     }
 #endif // DEFERRED_LIGHTING_HAS_SKY
-    
+
     //////////////////////////////////////////////////
+    
+    reflections = float4(reflectionsSum / max(reflectionsWeightSum, HYP_FMATH_EPSILON), saturate(reflectionsWeightSum));
+    irradiance = float4(irradianceSum / max(irradianceWeightSum, HYP_FMATH_EPSILON), saturate(irradianceWeightSum));
 
     // DEBUG
     reflections = any(isnan(reflections)) ? (float4) 0 : reflections;

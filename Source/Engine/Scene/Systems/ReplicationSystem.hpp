@@ -9,6 +9,8 @@
 #include <Scene/System.hpp>
 #include <Scene/EntityTag.hpp>
 
+#include <Scene/Components/ReplicationStateComponent.hpp>
+
 namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings)
@@ -33,7 +35,9 @@ public:
     {
         return {
             ComponentDescriptor<TagComponent<EntityTag::Replicated>, ComponentAccess::READ, true> {},
-            ComponentDescriptor<TagComponent<EntityTag::UpdateReplication>, ComponentAccess::READ, false> {}
+            ComponentDescriptor<TagComponent<EntityTag::UpdateReplication>, ComponentAccess::READ, false> {},
+            
+            ComponentDescriptor<ReplicationStateComponent, ComponentAccess::READ_WRITE, false> {}
         };
     }
 

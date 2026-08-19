@@ -158,6 +158,18 @@ void GameServer::Stop()
         m_consoleInputThread->Detach();
         m_consoleInputThread.Reset();
     }
+
+    m_netIdAllocator.Reset();
+}
+
+NetId GameServer::AllocNetId()
+{
+    return NetId(m_netIdAllocator.Allocate());
+}
+
+void GameServer::FreeNetId(NetId netId)
+{
+    m_netIdAllocator.Free(uint32(netId));
 }
 
 } // namespace Hyperion

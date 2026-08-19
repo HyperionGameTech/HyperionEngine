@@ -213,6 +213,7 @@ struct PhysicsMaterial;
 struct PlayerComponent;
 struct Quat4f;
 struct Ray;
+struct ReplicationStateComponent;
 struct Result;
 struct RigidBodyComponent;
 struct SamplerDesc;

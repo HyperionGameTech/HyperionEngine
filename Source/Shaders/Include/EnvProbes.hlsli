@@ -60,12 +60,14 @@ float CalculateEnvProbeWeight(float3 positionWS, float3 aabbMin, float3 aabbMax,
 {
     const float3 aabbExtent = aabbMax - aabbMin;
 
-    const float3 blend = aabbExtent * blendFactor;
+    const float3 blend = max(aabbExtent * blendFactor, (float3) HYP_FMATH_EPSILON);
     const float3 distToMin = (positionWS.xyz - aabbMin) / blend;
     const float3 distToMax = (aabbMax - positionWS.xyz) / blend;
     const float minBlend = min(distToMin.x, min(distToMin.y, min(distToMin.z, min(distToMax.x, min(distToMax.y, distToMax.z)))));
 
-    return minBlend;
+    // Ease into the plateau instead of ramping linearly, so the transition band
+    // stays smooth as blendFactor (and therefore band width) is tuned up.
+    return smoothstep(0.0, 1.0, saturate(minBlend));
 }
 
 float3 EnvProbeCoordParallaxCorrected(

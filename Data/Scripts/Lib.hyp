@@ -562,6 +562,9 @@ extern struct RigidBodyComponent
     Shape : PhysicsShape
     RigidBody : RigidBody
 end
+extern struct ReplicationStateComponent
+    NetId : any
+end
 extern struct PlayerComponent
 end
 extern struct MeshComponent
@@ -1984,8 +1987,9 @@ extern enum BakerState : uint8
     Cancelled
 end
 extern enum LightmapShadingType : uint32
-    IRRADIANCE = 0,
+    LIGHTMAP = 0,
     FULL,
+    IRRADIANCE,
     SHADOW,
     DISTANCE,
     BENT_NORMAL,

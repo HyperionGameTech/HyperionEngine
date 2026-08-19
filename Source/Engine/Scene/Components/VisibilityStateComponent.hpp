@@ -43,11 +43,6 @@ struct VisibilityStateComponent
 
     HYP_FIELD()
     VisibilityState* visibilityState = nullptr;
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        return HashCode();
-    }
 };
 
 } // namespace Hyperion
