@@ -19,14 +19,13 @@
 #include <Net/NetMemory.hpp>
 
 #include <Framework/Net/ReplicationQueue.hpp>
+#include <Framework/Net/NetId.hpp>
 
 namespace Hyperion {
 
 namespace net {
 class NetClient;
 } // namespace net
-
-enum class NetId : uint32;
 
 enum class ReplicationOpType : uint8
 {
@@ -56,16 +55,16 @@ template <>
 struct ReplicationOp<ReplicationOpType::Spawn> final : ReplicationOpBase
 {
     TypeId typeId;
+    NetId parentNetId; // InvalidNetId if unparented (or parent isn't itself replicated)
     Name name; // the entity name
-    Name parentName;
     Name sceneName;
     Transform transform;
 
-    ReplicationOp(NetId netId, TypeId typeId, Name name, Name parentName, Name sceneName, const Transform& transform)
+    ReplicationOp(NetId netId, TypeId typeId, Name name, NetId parentNetId, Name sceneName, const Transform& transform)
         : ReplicationOpBase(ReplicationOpType::Spawn, netId),
           typeId(typeId),
+          parentNetId(parentNetId),
           name(name),
-          parentName(parentName),
           sceneName(sceneName),
           transform(transform)
     {

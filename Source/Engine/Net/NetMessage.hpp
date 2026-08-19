@@ -65,7 +65,7 @@ enum class NetMessageId : uint16
     ServerRequestsBegin,
     EntityTransformRequest = ServerRequestsBegin,
     // End Server Requests
-    
+
     Reserved_GameStart = 1000
 };
 

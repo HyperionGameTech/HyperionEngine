@@ -52,7 +52,7 @@ private:
         float secondsWaited = 0.0f;
     };
 
-    void TryResolvePendingSpawns(Scene* scene);
+    void TryResolvePendingSpawns(Span<Handle<Scene>> scenes);
 
     Array<PendingSpawn, SceneAllocator> m_pendingSpawns;
     Map<NetId, Handle<Entity>, SceneAllocator> m_netIdToEntity;

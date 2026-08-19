@@ -302,7 +302,7 @@ private:
 
     Handle<WorldGridLayer> GetOrCreateStreamingLayer(Name streamingLayerName);
 
-    /// Serialization ///
+    //-- Serialization Only Properties --
 
     HYP_METHOD(Property = "NonStreamingScenes", Serialize)
     void DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes);
@@ -322,7 +322,7 @@ private:
     HYP_METHOD(Property = "Systems", Serialize)
     Array<Handle<SystemBase>> SerializeSystems() const;
 
-    /// Serialization ///
+    //--
 
     HYP_FIELD(Property = "GameInstance", Transient)
     Game* m_gameInstance;

@@ -11,6 +11,9 @@
 
 #include <Core/Threading/Thread.hpp>
 #include <Core/Threading/Threads.hpp>
+#include <Core/Threading/Task.hpp>
+
+#include <Core/Memory/Allocator/ThreadAllocator.hpp>
 
 #include <Core/Logging/Logger.hpp>
 
@@ -30,6 +33,8 @@ public:
 
     virtual void operator()(NetClient* netClient) override
     {
+        InitThreadAllocator();
+
         NetClientConnectionState previousState = netClient->GetConnectionState();
 
         while (HYP_LIKELY(!m_stopRequested.LoadVolatile()))
@@ -39,6 +44,17 @@ public:
             if (g_gameClient != nullptr)
             {
                 g_gameClient->GetReplicationManager().PublishBatch();
+            }
+
+            if (m_scheduler->NumEnqueued())
+            {
+                Array<Scheduler::ScheduledTask, ThreadAllocator> tasks;
+                m_scheduler->AcceptAll(tasks);
+
+                for (auto& task : tasks)
+                {
+                    task.Execute();
+                }
             }
 
             const NetClientConnectionState state = netClient->GetConnectionState();
@@ -58,6 +74,8 @@ public:
             }
 
             ThreadSleep(10);
+
+            m_threadAllocator->Reset();
         }
     }
 };

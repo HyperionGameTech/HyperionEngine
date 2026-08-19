@@ -47,22 +47,39 @@ static ThreadBase* GetGameServerThread()
     return g_gameServer->GetThread();
 }
 
+static NetId GetReplicatedParentNetId(Entity* entity)
+{
+    Entity* parentEntity = DynamicCast<Entity>(entity->GetParent());
+
+    if (!parentEntity)
+    {
+        return Invalid<NetId>;
+    }
+
+    if (ReplicationStateComponent* parentRsc = parentEntity->TryGetComponent<ReplicationStateComponent>())
+    {
+        return parentRsc->netId;
+    }
+
+    return Invalid<NetId>;
+}
+
 static net::NetBuffer SerializeEntitySpawnPayload(Entity* entity)
 {
     const TypeId typeId = entity->InstanceClass()->GetTypeId();
 
     const Name entityName = entity->GetName();
-    const Name parentName = entity->GetParent() ? entity->GetParent()->GetName() : Name::Invalid();
+    const NetId parentNetId = GetReplicatedParentNetId(entity);
     const Name sceneName = entity->GetEntityManager()->GetScene()->GetName();
 
     const Transform& transform = entity->GetLocalTransform();
 
     net::NetBuffer payload;
     MemoryByteWriter<NetAllocator, 1> writer(&payload);
-    
+
     writer.Write(typeId.Value());
+    writer.Write(parentNetId);
     writer.Write(entityName);
-    writer.Write(parentName);
     writer.Write(sceneName);
     writer.Write(transform.GetTranslation());
     writer.Write(transform.GetRotation());
@@ -141,34 +158,20 @@ void ReplicationSystem::ApplyPendingRequests()
 
     for (const ServerRequestBase* requestPtr : requests)
     {
+        auto it = m_netIdToEntity.Find(requestPtr->netId);
+
+        if (it == m_netIdToEntity.End())
+        {
+            continue;
+        }
+
+        Entity* entity = it->second.Get();
+
         switch (requestPtr->type)
         {
         case ServerRequestType::TransformEntity:
         {
             const ServerRequest<ServerRequestType::TransformEntity>& request = static_cast<const ServerRequest<ServerRequestType::TransformEntity>&>(*requestPtr);
-
-            auto it = m_netIdToEntity.Find(request.netId);
-
-            if (it == m_netIdToEntity.End())
-            {
-                break;
-            }
-
-            Entity* entity = it->second.Get();
-            ReplicationStateComponent& rsc = entity->GetComponent<ReplicationStateComponent>();
-
-            // Unowned entities are implicitly claimed by whoever moves them first; entities
-            // already owned by a different connection reject the request. Explicit claim/release
-            // messages are a follow-up -- this is the minimal policy needed to test authority end-to-end.
-            if (rsc.ownerConnectionId != net::NetConnectionId(0) && rsc.ownerConnectionId != request.connectionId)
-            {
-                HYP_LOG(Replication, Warning, "Rejected TransformEntity request for netId={} from connection {}: owned by connection {}",
-                    uint32(request.netId), uint32(request.connectionId), uint32(rsc.ownerConnectionId));
-
-                break;
-            }
-
-            rsc.ownerConnectionId = request.connectionId;
 
             entity->SetLocalTransform(request.transform);
 

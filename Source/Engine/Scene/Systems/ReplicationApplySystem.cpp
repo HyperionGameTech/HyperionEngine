@@ -47,7 +47,13 @@ static Scene* FindTargetScene(Span<Handle<Scene>> scenes, SystemBase* system, Na
     return nullptr;
 }
 
-static Handle<Entity> ExecuteEntitySpawn(const ReplicationOp<ReplicationOpType::Spawn>& spawnOp, const Scene& targetScene)
+static inline bool IsWaitingOnParent(const ReplicationOp<ReplicationOpType::Spawn>& spawnOp, const Map<NetId, Handle<Entity>, SceneAllocator>& netIdToEntity)
+{
+    return spawnOp.parentNetId != InvalidNetId
+        && netIdToEntity.Find(spawnOp.parentNetId) == netIdToEntity.End();
+}
+
+static Handle<Entity> ExecuteEntitySpawn(const ReplicationOp<ReplicationOpType::Spawn>& spawnOp, const Scene& targetScene, const Map<NetId, Handle<Entity>, SceneAllocator>& netIdToEntity)
 {
     const Class* entityClass = GetClass(spawnOp.typeId);
     if (!entityClass)
@@ -69,15 +75,22 @@ static Handle<Entity> ExecuteEntitySpawn(const ReplicationOp<ReplicationOpType::
         return Handle<Entity>::Null();
     }
 
-    // @TODO Parent? also having just parentName is flimsy, what about duplicates?
-    // maybe we need to have UUID on Nodes/Entity.
-    // or enforce ordering of entities that get added; and have parent netID.
-    targetScene.GetRoot()->AddChild(entity);
+    if (spawnOp.parentNetId != InvalidNetId)
+    {
+        auto parentIt = netIdToEntity.Find(spawnOp.parentNetId);
+        Assert(parentIt != netIdToEntity.End(), "Caller must ensure the parent is already resolved");
+
+        parentIt->second->AddChild(entity);
+    }
+    else
+    {
+        targetScene.GetRoot()->AddChild(entity);
+    }
 
     entity->SetName(spawnOp.name);
     entity->SetLocalTransform(spawnOp.transform);
     entity->AddComponent<ReplicationStateComponent>(ReplicationStateComponent { spawnOp.netId });
-    
+
     HYP_LOG(Replication, Info, "Spawned Entity '{}' of Class '{}'", entity->GetName(), entityClass->GetName());
 
     return entity;
@@ -92,14 +105,15 @@ void ReplicationApplySystem::OnAddedToWorld(World* world)
         NAME("OnSceneAdded"),
         World::OnSceneAdded.Bind(
             this,
-            [this, world](World* eventWorld, const Handle<Scene>& scene)
+            [this, world](World* eventWorld, const Handle<Scene>&)
             {
                 if (eventWorld != world)
                 {
                     return;
                 }
 
-                TryResolvePendingSpawns(scene);
+                Array<Handle<Scene>, SceneAllocator> scenes(world->GetScenes());
+                TryResolvePendingSpawns(scenes);
             }));
 }
 
@@ -110,31 +124,46 @@ void ReplicationApplySystem::OnRemovedFromWorld(World* world)
     SystemBase::OnRemovedFromWorld(world);
 }
 
-void ReplicationApplySystem::TryResolvePendingSpawns(Scene* scene)
+void ReplicationApplySystem::TryResolvePendingSpawns(Span<Handle<Scene>> scenes)
 {
-    if (scene == nullptr)
-    {
-        return;
-    }
+    bool shouldContinue = true;
 
-    for (size_t i = 0; i < m_pendingSpawns.Size();)
+    while (shouldContinue)
     {
-        PendingSpawn& pending = m_pendingSpawns[i];
+        shouldContinue = false;
 
-        if (pending.spawnOp.sceneName != scene->GetName())
+        for (size_t i = 0; i < m_pendingSpawns.Size();)
         {
+            PendingSpawn& pending = m_pendingSpawns[i];
+
+            if (IsWaitingOnParent(pending.spawnOp, m_netIdToEntity))
+            {
+                ++i;
+
+                continue;
+            }
+
+            Scene* targetScene = FindTargetScene(scenes, this, pending.spawnOp.sceneName);
+
+            if (!targetScene)
+            {
+                ++i;
+
+                continue;
+            }
+
+            if (Handle<Entity> spawnedEntity = ExecuteEntitySpawn(pending.spawnOp, *targetScene, m_netIdToEntity); spawnedEntity.IsValid())
+            {
+                m_netIdToEntity.Set(pending.spawnOp.netId, spawnedEntity);
+
+                m_pendingSpawns.EraseAt(i);
+
+                shouldContinue = true;
+
+                continue;
+            }
+
             ++i;
-
-            continue;
-        }
-
-        if (Handle<Entity> spawnedEntity = ExecuteEntitySpawn(pending.spawnOp, *scene); spawnedEntity.IsValid())
-        {
-            m_netIdToEntity.Set(pending.spawnOp.netId, spawnedEntity);
-
-            m_pendingSpawns.EraseAt(i);
-
-            continue;
         }
     }
 }
@@ -191,16 +220,19 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
 
             Scene* targetScene = FindTargetScene(scenes, this, op.sceneName);
 
-            if (!targetScene)
+            if (!targetScene || IsWaitingOnParent(op, m_netIdToEntity))
             {
                 m_pendingSpawns.PushBack(PendingSpawn { op });
 
                 break;
             }
 
-            if (Handle<Entity> spawnedEntity = ExecuteEntitySpawn(op, *targetScene); spawnedEntity.IsValid())
+            if (Handle<Entity> spawnedEntity = ExecuteEntitySpawn(op, *targetScene, m_netIdToEntity); spawnedEntity.IsValid())
             {
                 m_netIdToEntity.Set(op.netId, spawnedEntity);
+
+                // try to resolve, we might have unblocked a child entity waiting on this.
+                TryResolvePendingSpawns(scenes);
             }
 
             break;

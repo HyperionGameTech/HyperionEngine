@@ -93,8 +93,6 @@ void NetChannel::Send(NetSocketUDP& socket, const NetAddress& destAddr, const Ne
     else
     {
         writerMem.Construct(&m_tempBuffer);
-        
-        // keep the same size buffer to reduce allocations.
         writerMem.Get().Seek(0, /* truncate */ false);
     }
     

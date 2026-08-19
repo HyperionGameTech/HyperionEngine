@@ -52,6 +52,11 @@ public:
         return m_replicationManager;
     }
 
+    HYP_FORCE_INLINE net::NetClient& GetNetClient()
+    {
+        return m_netClient;
+    }
+
 private:
     net::NetClient m_netClient;
     UniquePtr<GameClientThread> m_thread;
