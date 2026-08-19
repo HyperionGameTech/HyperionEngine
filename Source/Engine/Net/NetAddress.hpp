@@ -32,9 +32,9 @@ struct NetAddress
     {
     }
 
-    CORE_API explicit NetAddress(const sockaddr_in& addr);
+    NET_API explicit NetAddress(const sockaddr_in& addr);
 
-    CORE_API static TResult<NetAddress> TryResolve(const ANSIString& hostname, uint16 port);
+    NET_API static TResult<NetAddress> TryResolve(const ANSIString& hostname, uint16 port);
 
     HYP_FORCE_INLINE explicit operator bool() const
     {
@@ -58,9 +58,9 @@ struct NetAddress
             || port != other.port;
     }
     
-    CORE_API sockaddr_in ToSockAddr() const;
+    NET_API sockaddr_in ToSockAddr() const;
 
-    CORE_API String ToString() const;
+    NET_API String ToString() const;
 
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {

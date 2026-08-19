@@ -35,7 +35,7 @@ enum class NetClientConnectionState : uint8
     Connected
 };
 
-class CORE_API NetClient
+class NET_API NetClient
 {
 public:
     NetClient();

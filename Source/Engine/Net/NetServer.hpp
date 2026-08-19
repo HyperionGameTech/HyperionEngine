@@ -36,7 +36,7 @@ struct NetClientDisconnectedData
     NetAddress address;
 };
 
-class CORE_API NetServer
+class NET_API NetServer
 {
 public:
     NetServer();

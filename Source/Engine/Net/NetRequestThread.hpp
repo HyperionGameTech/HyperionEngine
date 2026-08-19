@@ -13,15 +13,15 @@
 namespace Hyperion {
 namespace net {
 
-class CORE_API NetRequestThread final : public TaskThread
+class NET_API NetRequestThread final : public TaskThread
 {
 public:
     NetRequestThread();
     virtual ~NetRequestThread() override;
 };
 
-CORE_API void SetGlobalNetRequestThread(const SharedPtr<NetRequestThread>& netRequestThread);
-CORE_API const SharedPtr<NetRequestThread>& GetGlobalNetRequestThread();
+NET_API void SetGlobalNetRequestThread(const SharedPtr<NetRequestThread>& netRequestThread);
+NET_API const SharedPtr<NetRequestThread>& GetGlobalNetRequestThread();
 
 } // namespace net
 

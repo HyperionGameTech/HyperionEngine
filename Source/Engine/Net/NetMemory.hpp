@@ -13,7 +13,7 @@
 namespace Hyperion {
 namespace net {
 
-CORE_API extern Pool* g_netPool;
+NET_API extern Pool* g_netPool;
 
 using NetAllocator = AllocatorInstance<Pool, &g_netPool>;
 

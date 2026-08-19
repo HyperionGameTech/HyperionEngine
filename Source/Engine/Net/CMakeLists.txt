@@ -32,8 +32,17 @@ foreach(filepath ${hyperion-net_HEADERS})
 endforeach()
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Source Code" FILES ${CURRENT_SOURCES} ${CURRENT_HEADERS})
 
-add_library(${BUILD_NAME} STATIC ${CURRENT_SOURCES} ${CURRENT_HEADERS})
-target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_ENGINE=1)
+if(HYP_BUILD_STATIC)
+  set(HYP_BUILD_NET_LIBRARY_STATIC 1)
+endif()
+
+if(HYP_BUILD_NET_LIBRARY_STATIC)
+  add_library(${BUILD_NAME} STATIC ${CURRENT_SOURCES} ${CURRENT_HEADERS})
+else()
+  add_library(${BUILD_NAME} SHARED ${CURRENT_SOURCES} ${CURRENT_HEADERS})
+endif()
+
+target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_ENGINE=1 HYP_BUILD_NET=1)
 
 if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
   target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")

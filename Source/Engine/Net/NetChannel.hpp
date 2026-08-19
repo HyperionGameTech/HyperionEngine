@@ -36,7 +36,7 @@ using NetBuffer = memory::ByteBuffer<NetAllocator>;
 
 struct StreamState;
 
-class CORE_API NetChannel final
+class NET_API NetChannel final
 {
 public:
     explicit NetChannel(NetChannelMode mode)

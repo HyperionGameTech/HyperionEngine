@@ -19,7 +19,7 @@
 namespace Hyperion {
 namespace net {
 
-class CORE_API NetSocketUDP
+class NET_API NetSocketUDP
 {
 public:
     NetSocketUDP() = default;
