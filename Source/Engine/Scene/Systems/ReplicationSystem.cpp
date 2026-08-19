@@ -15,6 +15,7 @@
 #include <Scene/World.hpp>
 
 #include <Framework/Server/GameServer.hpp>
+#include <Framework/Server/ServerRequestManager.hpp>
 
 #include <Net/NetMessage.hpp>
 #include <Net/NetMemory.hpp>
@@ -68,6 +69,8 @@ void ReplicationSystem::OnEntityAdded(Entity* entity)
 
     entity->AddComponent<ReplicationStateComponent>(ReplicationStateComponent { netId });
 
+    m_netIdToEntity.Set(netId, MakeStrongRef(entity));
+
     HYP_LOG(Replication, Info, "Entity {} added to replication (netId={}), broadcasting EntitySpawn",
         entity->Id().Value(), uint32(netId));
 
@@ -94,6 +97,8 @@ void ReplicationSystem::OnEntityRemoved(Entity* entity)
 
     entity->RemoveComponent<ReplicationStateComponent>();
 
+    m_netIdToEntity.Erase(netId);
+
     HYP_LOG(Replication, Info, "Entity {} removed from replication (netId={}), broadcasting EntityDespawn",
         entity->Id().Value(), uint32(netId));
 
@@ -117,8 +122,54 @@ struct ReplicationSnapshot
     net::NetBuffer payload;
 };
 
+void ReplicationSystem::ApplyPendingRequests()
+{
+    Array<ServerRequestBase*, SceneTempAllocator> requests;
+    g_gameServer->GetRequestManager().DrainPendingRequests(requests);
+
+    for (const ServerRequestBase* requestPtr : requests)
+    {
+        switch (requestPtr->type)
+        {
+        case ServerRequestType::TransformEntity:
+        {
+            const ServerRequest<ServerRequestType::TransformEntity>& request = static_cast<const ServerRequest<ServerRequestType::TransformEntity>&>(*requestPtr);
+
+            auto it = m_netIdToEntity.Find(request.netId);
+
+            if (it == m_netIdToEntity.End())
+            {
+                break;
+            }
+
+            Entity* entity = it->second.Get();
+            ReplicationStateComponent& rsc = entity->GetComponent<ReplicationStateComponent>();
+
+            // Unowned entities are implicitly claimed by whoever moves them first; entities
+            // already owned by a different connection reject the request. Explicit claim/release
+            // messages are a follow-up -- this is the minimal policy needed to test authority end-to-end.
+            if (rsc.ownerConnectionId != net::NetConnectionId(0) && rsc.ownerConnectionId != request.connectionId)
+            {
+                HYP_LOG(Replication, Warning, "Rejected TransformEntity request for netId={} from connection {}: owned by connection {}",
+                    uint32(request.netId), uint32(request.connectionId), uint32(rsc.ownerConnectionId));
+
+                break;
+            }
+
+            rsc.ownerConnectionId = request.connectionId;
+
+            entity->SetLocalTransform(request.transform);
+
+            break;
+        }
+        }
+    }
+}
+
 void ReplicationSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
+    ApplyPendingRequests();
+
     Array<net::NetConnectionId, SceneTempAllocator> newConnections;
     g_gameServer->DrainNewConnections(newConnections);
 

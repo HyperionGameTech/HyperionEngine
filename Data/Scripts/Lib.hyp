@@ -564,6 +564,7 @@ extern struct RigidBodyComponent
 end
 extern struct ReplicationStateComponent
     NetId : any
+    OwnerConnectionId : any
 end
 extern struct PlayerComponent
 end

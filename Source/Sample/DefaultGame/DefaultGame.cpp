@@ -442,12 +442,12 @@ void DefaultGame::ShowLoadingScreen()
 
                 if (m_syncState.lastResult.HasError())
                 {
-                    errorText->SetText(String("Content could not be downloaded.\n\n")
+                    errorText->SetText(String("Failed to check for content updates.\n\n")
                                          + "The error message was: " + m_syncState.lastResult.GetError().GetMessage());
                 }
                 else
                 {
-                    errorText->SetText("Content could not be downloaded due to an unknown error.");
+                    errorText->SetText("Content updates could not be downloaded due to an unknown error.");
                 }
 
                 return;

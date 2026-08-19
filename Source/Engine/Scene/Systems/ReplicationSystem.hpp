@@ -11,11 +11,11 @@
 
 #include <Scene/Components/ReplicationStateComponent.hpp>
 
-#include <Core/Logging/LoggerFwd.hpp>
+#include <Core/Containers/Map.hpp>
 
 namespace Hyperion {
 
-ENGINE_API HYP_DECLARE_LOG_CHANNEL(Replication);
+enum class NetId : uint32;
 
 HYP_CLASS(NoScriptBindings)
 class ReplicationSystem final : public SystemBase
@@ -40,11 +40,15 @@ public:
         return {
             ComponentDescriptor<TagComponent<EntityTag::Replicated>, ComponentAccess::READ, true> {},
             ComponentDescriptor<TagComponent<EntityTag::UpdateReplication>, ComponentAccess::READ, false> {},
-            
+
             ComponentDescriptor<ReplicationStateComponent, ComponentAccess::READ_WRITE, false> {}
         };
     }
 
+private:
+    void ApplyPendingRequests();
+
+    Map<NetId, Handle<Entity>, SceneAllocator> m_netIdToEntity;
 }; // class PhysicsSystem
 
 } // namespace Hyperion

@@ -29,8 +29,9 @@ extern "C" int Hyp_ExecuteConsoleCommand(int argc, const char** argv);
 class GameServerThread : public Thread<Scheduler, NetServer*>
 {
 public:
-    GameServerThread()
-        : Thread(StaticThreadId(NAME("GameServer")), ThreadPriorityValue::HIGHEST)
+    GameServerThread(GameServer* ownerServer)
+        : Thread(StaticThreadId(NAME("GameServer")), ThreadPriorityValue::HIGHEST),
+          m_ownerServer(ownerServer)
     {
     }
 
@@ -41,6 +42,8 @@ public:
         while (HYP_LIKELY(!m_stopRequested.LoadVolatile()))
         {
             netServer->Update();
+
+            m_ownerServer->GetRequestManager().PublishBatch();
 
             if (m_scheduler->NumEnqueued())
             {
@@ -58,6 +61,9 @@ public:
             ThreadSleep(10);
         }
     }
+
+private:
+    GameServer* m_ownerServer;
 };
 
 class ConsoleInputThread : public Thread<Scheduler>
@@ -110,6 +116,8 @@ public:
 
 GameServer::GameServer()
 {
+    m_requestManager.RegisterHandlers(m_netServer);
+
     m_netServer.OnClientConnected.Bind([this](const NetClientConnectedData& data)
                                       {
                                           HYP_LOG(GameServer, Info, "Client connected: {} (connection id: {})", data.address.ToString(), uint32(data.connectionId));
@@ -149,7 +157,7 @@ Result GameServer::Start(uint16 port)
 
     HYP_LOG(GameServer, Info, "Game server listening on port {}", port);
 
-    m_thread = MakeUnique<GameServerThread>();
+    m_thread = MakeUnique<GameServerThread>(this);
     m_thread->Start(&m_netServer);
 
     m_consoleInputThread = MakeUnique<ConsoleInputThread>();

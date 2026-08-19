@@ -8,6 +8,8 @@
 
 #include <Net/NetServer.hpp>
 
+#include <Framework/Server/ServerRequestManager.hpp>
+
 #include <Core/Memory/UniquePtr.hpp>
 
 #include <Core/Utilities/Result.hpp>
@@ -51,6 +53,11 @@ public:
         return m_netServer;
     }
 
+    HYP_FORCE_INLINE ServerRequestManager& GetRequestManager()
+    {
+        return m_requestManager;
+    }
+
     void NotifyClientConnected(net::NetConnectionId connectionId);
 
     template <class AllocatorType>
@@ -70,6 +77,7 @@ public:
 
 private:
     net::NetServer m_netServer;
+    ServerRequestManager m_requestManager;
     UniquePtr<GameServerThread> m_thread;
     UniquePtr<ConsoleInputThread> m_consoleInputThread;
 

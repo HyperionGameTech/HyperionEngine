@@ -15,6 +15,8 @@
 #include <Scene/EntityManager.hpp>
 #include <Scene/EntityTag.hpp>
 
+#include <Core/Utilities/GlobalContext.hpp>
+
 #include <Scene/ComponentInterface.hpp>
 #include <Scene/Components/MeshComponent.hpp>
 #include <Scene/Components/ScriptComponent.hpp>
@@ -562,10 +564,19 @@ void Entity::OnTransformUpdated()
     BoundingBoxComponent& boundingBoxComponent = entityManager->GetComponent<BoundingBoxComponent>(this);
     boundingBoxComponent.worldAabb = GetWorldBounds();
 
-    entityManager->AddTags<
-        EntityTag::UpdateVisibility,
-        EntityTag::UpdateRenderProxy,
-        EntityTag::UpdateReplication>(this);
+    if (IsGlobalContextActive<struct ReplicationApplyContext>())
+    {
+        entityManager->AddTags<
+            EntityTag::UpdateVisibility,
+            EntityTag::UpdateRenderProxy>(this);
+    }
+    else
+    {
+        entityManager->AddTags<
+            EntityTag::UpdateVisibility,
+            EntityTag::UpdateRenderProxy,
+            EntityTag::UpdateReplication>(this);
+    }
 }
 
 void Entity::OnMobilityChanged(bool isStatic)

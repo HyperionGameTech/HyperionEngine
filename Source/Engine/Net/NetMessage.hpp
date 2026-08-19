@@ -61,8 +61,19 @@ enum class NetMessageId : uint16
     EntityDespawn,
     EntityOwnershipChanged,
     ComponentSnapshot,
+    
+    ServerRequestsBegin,
+    EntityTransformRequest = ServerRequestsBegin,
+    // End Server Requests
+    
     Reserved_GameStart = 1000
 };
+
+static constexpr inline bool IsServerRequest(NetMessageId id)
+{
+    return uint16(id) >= uint16(NetMessageId::ServerRequestsBegin)
+        && uint16(id) < uint16(NetMessageId::Reserved_GameStart);
+}
 
 struct NetMessageHeader
 {
