@@ -26,6 +26,9 @@ NetClient::NetClient()
                 m_connectionState.Set(NetClientConnectionState::Connected, MemoryOrder::RELEASE);
             }
         });
+
+    // Handle echo
+    m_dispatcher.RegisterHandler(NetMessageId::KeepAlive, [](const NetMessageContext&, ConstByteView) {});
 }
 
 NetClient::~NetClient()
@@ -52,7 +55,10 @@ Result NetClient::Connect(const NetAddress& serverAddress)
 
     m_connectionState.Set(NetClientConnectionState::Connecting, MemoryOrder::RELEASE);
 
-    m_reliableChannel.Send(m_socket, m_serverAddress, NetMessage { NetMessageId::ConnectRequest, 0, ConstByteView() });
+    m_reliableChannel.Send(
+        m_socket,
+        m_serverAddress,
+        NetMessage { NetMessageId::ConnectRequest, NetStreamKey(0), ConstByteView() });
 
     return {};
 }
@@ -90,7 +96,10 @@ void NetClient::Update()
     if (state == NetClientConnectionState::Connected
         && Time::Now() - m_lastKeepAliveTime >= KeepAliveInterval)
     {
-        m_unreliableChannel.Send(m_socket, m_serverAddress, NetMessage { NetMessageId::KeepAlive, 0, ConstByteView() });
+        m_unreliableChannel.Send(
+            m_socket,
+            m_serverAddress,
+            NetMessage { NetMessageId::KeepAlive, NetStreamKey(0), ConstByteView() });
 
         m_lastKeepAliveTime = Time::Now();
     }

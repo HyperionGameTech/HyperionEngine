@@ -75,8 +75,8 @@ void NetChannel::Send(NetSocketUDP& socket, const NetAddress& destAddr, const Ne
         CurrentProtocolVersion,
         m_mode,
         message.messageId,
-        stream.outgoing.nextSequence++,
-        message.key
+        message.key,
+        stream.outgoing.nextSequence++
     };
 
     ValueStorage<MemoryByteWriter<NetAllocator, 1>> writerMem;
@@ -188,6 +188,8 @@ void NetChannel::HandleIncoming(
 
         return;
     }
+    default:
+        HYP_UNREACHABLE();
     }
 }
 
@@ -265,8 +267,8 @@ void NetChannel::SendAck(NetSocketUDP& socket, const NetAddress& destAddr, NetSt
         CurrentProtocolVersion,
         NetChannelMode::UnreliableUnordered,
         NetMessageId::Ack,
-        sequence,
-        key
+        key,
+        sequence
     };
 
     MemoryByteWriter<NetAllocator, 1> writer(&m_tempBuffer);

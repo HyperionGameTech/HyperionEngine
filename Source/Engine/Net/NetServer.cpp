@@ -88,7 +88,14 @@ NetServer::NetServer()
     : m_nextConnectionId(1)
 {
     m_dispatcher.RegisterHandler(NetMessageId::ConnectRequest, GetNoOpHandler());
-    m_dispatcher.RegisterHandler(NetMessageId::KeepAlive, GetNoOpHandler());
+
+    // Echo
+    m_dispatcher.RegisterHandler(NetMessageId::KeepAlive,
+        [this](const NetMessageContext& context, ConstByteView)
+        {
+            SendMessageTo(context.connectionId, NetMessageId::KeepAlive,
+                NetChannelMode::UnreliableOrdered, NetStreamKey(0), ConstByteView());
+        });
 }
 
 NetServer::~NetServer()
@@ -209,8 +216,9 @@ void NetServer::Update()
 
         if (isNewConnection)
         {
-            connection->GetReliableChannel().Send(m_socket, senderAddress,
-                NetMessage { NetMessageId::ConnectAccept, 0, ConstByteView() });
+            connection->GetReliableChannel().Send(
+                m_socket, senderAddress,
+                NetMessage { NetMessageId::ConnectAccept, NetStreamKey(0), ConstByteView() });
         }
     }
 

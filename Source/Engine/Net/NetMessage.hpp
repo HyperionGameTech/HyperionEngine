@@ -22,7 +22,7 @@ namespace net {
 
 NET_API HYP_DECLARE_LOG_CHANNEL(Net);
 
-using NetStreamKey = uint32;
+enum class NetStreamKey : uint32;
 
 // 2 bits
 enum class NetChannelMode : uint8
