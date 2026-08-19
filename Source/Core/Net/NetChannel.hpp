@@ -17,7 +17,10 @@
 
 #include <Core/IO/ByteWriter.hpp>
 
+#include <Core/Functional/Proc.hpp>
+
 #include <Core/Utilities/Time.hpp>
+#include <Core/Utilities/ValueStorage.hpp>
 
 #include <Core/Net/NetMessage.hpp>
 #include <Core/Net/NetMemory.hpp>
@@ -53,12 +56,21 @@ public:
 
     void Send(NetSocketUDP& socket, const NetAddress& destAddr, const NetMessage& message);
 
+    void HandleIncoming(
+        NetSocketUDP& socket,
+        const NetAddress& srcAddr,
+        const NetMessageHeader& header,
+        ConstByteView payload,
+        const ProcRef<void(NetMessageId, ConstByteView)>& dispatch);
+
     void OnAck(NetStreamKey key, uint32 sequence);
 
 private:
     using StreamsMap = Map<NetStreamKey, UniquePtr<StreamState, NetAllocator>, NetAllocator>;
 
     StreamState& GetOrCreateStream(NetStreamKey key);
+
+    void SendAck(NetSocketUDP& socket, const NetAddress& destAddr, NetStreamKey key, uint32 sequence);
 
     const NetChannelMode m_mode;
     StreamsMap m_streams;

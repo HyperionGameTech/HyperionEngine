@@ -40,6 +40,11 @@ HYP_FORCE_INLINE constexpr bool IsReliable(NetChannelMode mode)
     return (uint8(mode) & uint8(NetChannelMode::ReliableBit)) != 0;
 }
 
+HYP_FORCE_INLINE constexpr bool IsMoreRecent(uint32 a, uint32 b)
+{
+    return (a != b) && (uint32(a - b) < 0x80000000u);
+}
+
 enum class NetMessageId : uint16
 {
     Invalid = 0,
