@@ -46,6 +46,8 @@
 
 #include <Net/NetRequestThread.hpp>
 
+#include <Core/Net/HTTPRequest.hpp>
+
 #include <System/MessageBox.hpp>
 #include <System/AppContext.hpp>
 #include <System/DirectoryInitializer.hpp>
@@ -467,6 +469,7 @@ extern "C"
 
         SharedPtr<NetRequestThread> netRequestThread = MakeShared<NetRequestThread>();
         SetGlobalNetRequestThread(netRequestThread);
+        SetGlobalHTTPRequestThread(netRequestThread);
         netRequestThread->Start();
 
         g_engineDriver = MakeHandle<EngineDriver>();
@@ -744,6 +747,7 @@ extern "C"
                 netRequestThread->Join();
             }
 
+            SetGlobalHTTPRequestThread(nullptr);
             SetGlobalNetRequestThread(nullptr);
         }
 

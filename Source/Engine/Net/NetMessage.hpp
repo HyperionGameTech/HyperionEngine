@@ -13,10 +13,14 @@
 #include <Core/IO/ByteReader.hpp>
 #include <Core/IO/ByteWriter.hpp>
 
+#include <Core/Logging/LoggerFwd.hpp>
+
 #include <type_traits>
 
 namespace Hyperion {
 namespace net {
+
+NET_API HYP_DECLARE_LOG_CHANNEL(Net);
 
 using NetStreamKey = uint32;
 
@@ -63,18 +67,18 @@ enum class NetMessageId : uint16
 struct NetMessageHeader
 {
     uint8 protocolVersion;
-    uint8 channelMode;
-    uint16 messageId;
-    uint32 sequence;
+    NetChannelMode channelMode;
+    NetMessageId messageId;
     NetStreamKey key;
+    uint32 sequence;
 
     void Serialize(ByteWriter& stream) const
     {
         stream.Write(protocolVersion);
         stream.Write(channelMode);
         stream.Write(messageId);
-        stream.Write(sequence);
         stream.Write(key);
+        stream.Write(sequence);
     }
 
     void Deserialize(ByteReader& stream)
@@ -82,8 +86,8 @@ struct NetMessageHeader
         stream.Read(&protocolVersion);
         stream.Read(&channelMode);
         stream.Read(&messageId);
-        stream.Read(&sequence);
         stream.Read(&key);
+        stream.Read(&sequence);
     }
 };
 

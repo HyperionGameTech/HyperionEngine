@@ -9,6 +9,9 @@
 #include <Net/NetMemory.hpp>
 #include <Net/NetSocketUDP.hpp>
 #include <Net/NetAddress.hpp>
+#include <Net/NetMessage.hpp>
+#include <Net/NetMessageDispatcher.hpp>
+#include <Net/NetChannel.hpp>
 
 #include <Core/Utilities/Result.hpp>
 #include <Core/Utilities/Time.hpp>
@@ -72,6 +75,9 @@ public:
 
     void Update();
 
+    void RegisterHandler(NetMessageId messageId, NetMessageHandler&& handler);
+    void Send(NetMessageId messageId, NetChannelMode mode, NetStreamKey key, ConstByteView payload);
+
     Delegate<void, const NetServerDisconnectedData&> OnDisconnected;
 
 private:
@@ -81,6 +87,10 @@ private:
     Time m_lastActivityTime;
     Time m_lastKeepAliveTime;
     Time m_connectStartTime;
+
+    NetChannel m_reliableChannel;
+    NetChannel m_unreliableChannel;
+    NetMessageDispatcher m_dispatcher;
 
     mutable Mutex m_lastErrorMutex;
     Result m_lastError;

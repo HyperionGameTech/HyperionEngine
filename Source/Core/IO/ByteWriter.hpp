@@ -125,18 +125,18 @@ protected:
     virtual void WriteBytes(const char* ptr, size_t size) = 0;
 };
 
-template <class AllocatorType>
+template <class AllocatorType, size_t BufferAlignment = 16>
 class MemoryByteWriter final : public ByteWriter
 {
 public:
     MemoryByteWriter()
-        : m_buffer(new memory::ByteBuffer<AllocatorType>),
+        : m_buffer(new memory::ByteBuffer<AllocatorType, BufferAlignment>),
           m_pos(0),
           m_ownsBuffer(true)
     {
     }
 
-    explicit MemoryByteWriter(memory::ByteBuffer<AllocatorType>* buffer)
+    explicit MemoryByteWriter(memory::ByteBuffer<AllocatorType, BufferAlignment>* buffer)
         : m_buffer(buffer),
           m_pos(0),
           m_ownsBuffer(false)
@@ -179,18 +179,18 @@ public:
         // do nothing
     }
 
-    HYP_FORCE_INLINE memory::ByteBuffer<AllocatorType>& GetBuffer()
+    HYP_FORCE_INLINE memory::ByteBuffer<AllocatorType, BufferAlignment>& GetBuffer()
     {
         return *m_buffer;
     }
 
-    HYP_FORCE_INLINE const memory::ByteBuffer<AllocatorType>& GetBuffer() const
+    HYP_FORCE_INLINE const memory::ByteBuffer<AllocatorType, BufferAlignment>& GetBuffer() const
     {
         return *m_buffer;
     }
 
 private:
-    memory::ByteBuffer<AllocatorType>* m_buffer;
+    memory::ByteBuffer<AllocatorType, BufferAlignment>* m_buffer;
     size_t m_pos;
     bool m_ownsBuffer;
 

@@ -33,7 +33,7 @@ public:
     void Close();
 
     Result SendTo(const NetAddress& destination, ConstByteView data);
-    Result RecvFrom(NetAddress& outSender, Array<uint8, NetAllocator>& outData);
+    Result RecvFrom(NetAddress& outSender, NetBuffer& outData);
 
     bool IsValid() const
         { return m_handle != InvalidHandle; }

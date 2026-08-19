@@ -120,7 +120,7 @@ Result NetSocketUDP::SendTo(const NetAddress& destination, ConstByteView data)
     return {};
 }
 
-Result NetSocketUDP::RecvFrom(NetAddress& outSender, Array<uint8, NetAllocator>& outData)
+Result NetSocketUDP::RecvFrom(NetAddress& outSender, NetBuffer& outData)
 {
     if (!IsValid())
     {
@@ -152,7 +152,9 @@ Result NetSocketUDP::RecvFrom(NetAddress& outSender, Array<uint8, NetAllocator>&
     }
 
     outSender = NetAddress(senderAddr);
-    outData = Array<uint8, NetAllocator>(buffer, buffer + received);
+
+    outData.SetSize(received);
+    Memory::Copy(outData.Data(), buffer, received);
 
     return {};
 }

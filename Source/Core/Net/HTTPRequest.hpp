@@ -11,6 +11,7 @@
 #include <Core/Containers/String.hpp>
 
 #include <Core/Memory/ByteBuffer.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Utilities/Span.hpp>
 #include <Core/Utilities/Optional.hpp>
@@ -20,6 +21,7 @@
 
 #include <Core/Threading/Task.hpp>
 #include <Core/Threading/Mutex.hpp>
+#include <Core/Threading/TaskThread.hpp>
 
 #include <Core/DataProcessing/JSON/JSON.hpp>
 
@@ -27,6 +29,9 @@
 
 namespace Hyperion {
 namespace net {
+
+CORE_API void SetGlobalHTTPRequestThread(const SharedPtr<TaskThread>& thread);
+CORE_API const SharedPtr<TaskThread>& GetGlobalHTTPRequestThread();
 
 enum class HTTPMethod
 {
@@ -115,8 +120,10 @@ private:
 
 } // namespace net
 
+using net::GetGlobalHTTPRequestThread;
 using net::HTTPMethod;
 using net::HTTPRequest;
 using net::HTTPResponse;
+using net::SetGlobalHTTPRequestThread;
 
 } // namespace Hyperion

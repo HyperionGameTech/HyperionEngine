@@ -6,8 +6,17 @@
 
 #include <Net/NetChannel.hpp>
 
+#include <Core/Math/MathUtil.hpp>
+#include <Core/Logging/Logger.hpp>
+
 namespace Hyperion {
 namespace net {
+
+static constexpr uint32 BaseResendIntervalMs = 150;
+static constexpr uint32 MaxResendIntervalMs = 2400;
+static constexpr uint32 MaxBackoffShift = 4; // 150 << 4 == 2400
+
+static constexpr uint32 ResendWarnThreshold = 10;
 
 namespace {
 
@@ -46,6 +55,16 @@ struct StreamState
     IncomingState incoming;
 };
 
+struct StreamStateMap : Map<NetStreamKey, UniquePtr<StreamState, NetAllocator>, NetAllocator>
+{
+};
+
+NetChannel::NetChannel(NetChannelMode mode)
+    : m_mode(mode),
+      m_streams(MakePimplWithAllocator<StreamStateMap, NetAllocator>())
+{
+}
+
 NetChannel::~NetChannel() = default;
 
 void NetChannel::Send(NetSocketUDP& socket, const NetAddress& destAddr, const NetMessage& message)
@@ -54,13 +73,13 @@ void NetChannel::Send(NetSocketUDP& socket, const NetAddress& destAddr, const Ne
 
     NetMessageHeader header {
         CurrentProtocolVersion,
-        uint8(m_mode),
-        uint16(message.messageId),
+        m_mode,
+        message.messageId,
         stream.outgoing.nextSequence++,
         message.key
     };
 
-    ValueStorage<MemoryByteWriter<NetAllocator>> writerMem;
+    ValueStorage<MemoryByteWriter<NetAllocator, 1>> writerMem;
 
     if (IsReliable(m_mode))
     {
@@ -79,7 +98,7 @@ void NetChannel::Send(NetSocketUDP& socket, const NetAddress& destAddr, const Ne
         writerMem.Get().Seek(0, /* truncate */ false);
     }
     
-    MemoryByteWriter<NetAllocator>& writer = writerMem.Get();
+    MemoryByteWriter<NetAllocator, 1>& writer = writerMem.Get();
 
     header.Serialize(writer);
     writer.Write(message.payload);
@@ -172,11 +191,50 @@ void NetChannel::HandleIncoming(
     }
 }
 
+void NetChannel::Update(NetSocketUDP& socket, const NetAddress& destAddr)
+{
+    if (!IsReliable(m_mode))
+    {
+        return;
+    }
+
+    const Time now = Time::Now();
+
+    for (auto streamIt = m_streams->Begin(); streamIt != m_streams->End(); ++streamIt)
+    {
+        StreamState& stream = *streamIt->second;
+
+        for (auto pendingIt = stream.outgoing.unackedReliable.Begin(); pendingIt != stream.outgoing.unackedReliable.End(); ++pendingIt)
+        {
+            PendingReliableMessage& pending = pendingIt->second;
+
+            const uint32 backoffMs = BaseResendIntervalMs << MathUtil::Min(pending.resendCount, MaxBackoffShift);
+            const TimeDiff interval = TimeDiff(MathUtil::Min(backoffMs, MaxResendIntervalMs));
+
+            if (now - pending.lastSentTime < interval)
+            {
+                continue;
+            }
+
+            socket.SendTo(destAddr, pending.payload.ToByteView());
+
+            pending.lastSentTime = now;
+            pending.resendCount++;
+
+            if (pending.resendCount == ResendWarnThreshold)
+            {
+                HYP_LOG(Net, Warning, "Message (id={}) on stream {} has not been acked after {} resends",
+                    uint16(pending.messageId), streamIt->first, pending.resendCount);
+            }
+        }
+    }
+}
+
 void NetChannel::OnAck(NetStreamKey key, uint32 sequence)
 {
-    auto it = m_streams.Find(key);
+    auto it = m_streams->Find(key);
 
-    if (it == m_streams.End())
+    if (it == m_streams->End())
     {
         return;
     }
@@ -191,11 +249,11 @@ void NetChannel::OnAck(NetStreamKey key, uint32 sequence)
 
 StreamState& NetChannel::GetOrCreateStream(NetStreamKey key)
 {
-    auto it = m_streams.Find(key);
+    auto it = m_streams->Find(key);
 
-    if (it == m_streams.End())
+    if (it == m_streams->End())
     {
-        it = m_streams.Set(key, MakeUniqueWithAllocator<StreamState, NetAllocator>()).first;
+        it = m_streams->Set(key, MakeUniqueWithAllocator<StreamState, NetAllocator>()).first;
     }
 
     return *it->second;
@@ -205,13 +263,13 @@ void NetChannel::SendAck(NetSocketUDP& socket, const NetAddress& destAddr, NetSt
 {
     NetMessageHeader ackHeader {
         CurrentProtocolVersion,
-        uint8(NetChannelMode::UnreliableUnordered), // acks are fire-and-forget; losing one is fine, the next ack (re-sent on every subsequent receive) recovers
-        uint16(NetMessageId::Ack),
+        NetChannelMode::UnreliableUnordered,
+        NetMessageId::Ack,
         sequence,
         key
     };
 
-    MemoryByteWriter<NetAllocator> writer(&m_tempBuffer);
+    MemoryByteWriter<NetAllocator, 1> writer(&m_tempBuffer);
     writer.Seek(0, /* truncate */ false);
 
     ackHeader.Serialize(writer);

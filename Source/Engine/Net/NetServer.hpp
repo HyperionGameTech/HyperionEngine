@@ -9,6 +9,8 @@
 #include <Net/NetMemory.hpp>
 #include <Net/NetSocketUDP.hpp>
 #include <Net/NetAddress.hpp>
+#include <Net/NetMessage.hpp>
+#include <Net/NetMessageDispatcher.hpp>
 
 #include <Core/Memory/UniquePtr.hpp>
 
@@ -53,6 +55,11 @@ public:
 
     void Update();
 
+    void RegisterHandler(NetMessageId messageId, NetMessageHandler&& handler);
+
+    void SendMessageTo(NetConnectionId connectionId, NetMessageId messageId, NetChannelMode mode, NetStreamKey key, ConstByteView payload);
+    void Broadcast(NetMessageId messageId, NetChannelMode mode, NetStreamKey key, ConstByteView payload);
+
     Delegate<void, const NetClientConnectedData&> OnClientConnected;
     Delegate<void, const NetClientDisconnectedData&> OnClientDisconnected;
 
@@ -61,6 +68,7 @@ private:
     Map<NetAddress, NetConnectionId, NetAllocator> m_addrToConnectionId;
     Map<NetConnectionId, UniquePtr<NetConnection, NetAllocator>, NetAllocator> m_connections;
     uint32 m_nextConnectionId;
+    NetMessageDispatcher m_dispatcher;
 };
 
 } // namespace net

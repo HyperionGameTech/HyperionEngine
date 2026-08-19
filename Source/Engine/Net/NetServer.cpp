@@ -1,13 +1,15 @@
 /*!
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
- *  @licence MIT
 */
 
 // Needs to be before including NetServer.hpp
 #include <Core/Memory/Pool/Pool.hpp>
 
 #include <Net/NetServer.hpp>
+#include <Net/NetChannel.hpp>
+
+#include <Core/IO/ByteReader.hpp>
 
 #include <Core/Utilities/Time.hpp>
 
@@ -24,7 +26,9 @@ public:
     NetConnection(NetConnectionId id, const NetAddress& address)
         : m_id(id),
           m_address(address),
-          m_lastActivityTime(Time::Now())
+          m_lastActivityTime(Time::Now()),
+          m_reliableChannel(NetChannelMode::ReliableOrdered),
+          m_unreliableChannel(NetChannelMode::UnreliableOrdered)
     {
     }
 
@@ -50,19 +54,41 @@ public:
         return Time::Now() - m_lastActivityTime;
     }
 
+    NetChannel& GetReliableChannel()
+    {
+        return m_reliableChannel;
+    }
+
+    NetChannel& GetUnreliableChannel()
+    {
+        return m_unreliableChannel;
+    }
+
 private:
     NetConnectionId m_id;
     NetAddress m_address;
     Time m_lastActivityTime;
+    NetChannel m_reliableChannel;
+    NetChannel m_unreliableChannel;
 };
 
 #pragma endregion NetConnection
 
 #pragma region NetServer
 
+static NetMessageHandler GetNoOpHandler()
+{
+
+    return [](const NetMessageContext&, ConstByteView)
+    {
+    };
+}
+
 NetServer::NetServer()
     : m_nextConnectionId(1)
 {
+    m_dispatcher.RegisterHandler(NetMessageId::ConnectRequest, GetNoOpHandler());
+    m_dispatcher.RegisterHandler(NetMessageId::KeepAlive, GetNoOpHandler());
 }
 
 NetServer::~NetServer()
@@ -93,6 +119,37 @@ void NetServer::StopListening()
     m_connections.Clear();
 }
 
+void NetServer::RegisterHandler(NetMessageId messageId, NetMessageHandler&& handler)
+{
+    m_dispatcher.RegisterHandler(messageId, std::move(handler));
+}
+
+void NetServer::SendMessageTo(NetConnectionId connectionId, NetMessageId messageId, NetChannelMode mode, NetStreamKey key, ConstByteView payload)
+{
+    auto it = m_connections.Find(connectionId);
+
+    if (it == m_connections.End())
+    {
+        return;
+    }
+
+    NetConnection& connection = *it->second;
+    NetChannel& channel = IsReliable(mode) ? connection.GetReliableChannel() : connection.GetUnreliableChannel();
+
+    channel.Send(m_socket, connection.GetAddress(), NetMessage { messageId, key, payload });
+}
+
+void NetServer::Broadcast(NetMessageId messageId, NetChannelMode mode, NetStreamKey key, ConstByteView payload)
+{
+    for (auto it = m_connections.Begin(); it != m_connections.End(); ++it)
+    {
+        NetConnection& connection = *it->second;
+        NetChannel& channel = IsReliable(mode) ? connection.GetReliableChannel() : connection.GetUnreliableChannel();
+
+        channel.Send(m_socket, connection.GetAddress(), NetMessage { messageId, key, payload });
+    }
+}
+
 void NetServer::Update()
 {
     if (!m_socket.IsValid())
@@ -101,18 +158,36 @@ void NetServer::Update()
     }
 
     NetAddress senderAddress;
-    Array<uint8, NetAllocator> data;
+    NetBuffer data;
 
     while (!m_socket.RecvFrom(senderAddress, data).HasError())
     {
+        const ConstByteView datagram(data.Data(), data.Size());
+
+        NetConnection* connection = nullptr;
+        bool isNewConnection = false;
+
         auto addrIt = m_addrToConnectionId.Find(senderAddress);
 
         if (addrIt == m_addrToConnectionId.End())
         {
+            MemoryByteReader reader(datagram);
+
+            NetMessageHeader header;
+            header.Deserialize(reader);
+
+            if (header.protocolVersion != CurrentProtocolVersion || header.messageId != NetMessageId::ConnectRequest)
+            {
+                continue;
+            }
+
             const NetConnectionId connectionId = NetConnectionId(m_nextConnectionId++);
 
+            auto insertResult = m_connections.Insert(connectionId, MakeUniqueWithAllocator<NetConnection, NetAllocator>(connectionId, senderAddress));
             m_addrToConnectionId.Insert(senderAddress, connectionId);
-            m_connections.Insert(connectionId, MakeUniqueWithAllocator<NetConnection, NetAllocator>(connectionId, senderAddress));
+
+            connection = insertResult.first->second.Get();
+            isNewConnection = true;
 
             OnClientConnected(NetClientConnectedData { connectionId, senderAddress });
         }
@@ -120,14 +195,28 @@ void NetServer::Update()
         {
             auto connectionIt = m_connections.Find(addrIt->second);
 
-            if (connectionIt != m_connections.End())
+            if (connectionIt == m_connections.End())
             {
-                connectionIt->second->UpdateActivity();
+                continue;
             }
+
+            connection = connectionIt->second.Get();
+            connection->UpdateActivity();
         }
 
-        const uint8 ack = 0;
-        m_socket.SendTo(senderAddress, ConstByteView(&ack, sizeof(ack)));
+        m_dispatcher.Dispatch(m_socket, senderAddress, connection->GetId(),
+            connection->GetReliableChannel(), connection->GetUnreliableChannel(), datagram);
+
+        if (isNewConnection)
+        {
+            connection->GetReliableChannel().Send(m_socket, senderAddress,
+                NetMessage { NetMessageId::ConnectAccept, 0, ConstByteView() });
+        }
+    }
+
+    for (auto it = m_connections.Begin(); it != m_connections.End(); ++it)
+    {
+        it->second->GetReliableChannel().Update(m_socket, it->second->GetAddress());
     }
 
     for (auto it = m_connections.Begin(); it != m_connections.End();)

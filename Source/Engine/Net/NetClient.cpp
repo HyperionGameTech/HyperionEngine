@@ -1,7 +1,6 @@
 /*!
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
- *  @licence MIT
  */
 
 #include <Net/NetClient.hpp>
@@ -15,7 +14,19 @@ static constexpr TimeDiff KeepAliveInterval = TimeDiff(2000);
 static constexpr TimeDiff ServerTimeout = TimeDiff(15000);
 static constexpr TimeDiff ConnectTimeout = TimeDiff(5000);
 
-NetClient::NetClient() = default;
+NetClient::NetClient()
+    : m_reliableChannel(NetChannelMode::ReliableOrdered),
+      m_unreliableChannel(NetChannelMode::UnreliableOrdered)
+{
+    m_dispatcher.RegisterHandler(NetMessageId::ConnectAccept,
+        [this](const NetMessageContext&, ConstByteView)
+        {
+            if (GetConnectionState() == NetClientConnectionState::Connecting)
+            {
+                m_connectionState.Set(NetClientConnectionState::Connected, MemoryOrder::RELEASE);
+            }
+        });
+}
 
 NetClient::~NetClient()
 {
@@ -41,6 +52,8 @@ Result NetClient::Connect(const NetAddress& serverAddress)
 
     m_connectionState.Set(NetClientConnectionState::Connecting, MemoryOrder::RELEASE);
 
+    m_reliableChannel.Send(m_socket, m_serverAddress, NetMessage { NetMessageId::ConnectRequest, 0, ConstByteView() });
+
     return {};
 }
 
@@ -49,6 +62,18 @@ void NetClient::Disconnect()
     m_connectionState.Set(NetClientConnectionState::Disconnected, MemoryOrder::RELEASE);
 
     m_socket.Close();
+}
+
+void NetClient::RegisterHandler(NetMessageId messageId, NetMessageHandler&& handler)
+{
+    m_dispatcher.RegisterHandler(messageId, std::move(handler));
+}
+
+void NetClient::Send(NetMessageId messageId, NetChannelMode mode, NetStreamKey key, ConstByteView payload)
+{
+    NetChannel& channel = IsReliable(mode) ? m_reliableChannel : m_unreliableChannel;
+
+    channel.Send(m_socket, m_serverAddress, NetMessage { messageId, key, payload });
 }
 
 void NetClient::Update()
@@ -60,38 +85,34 @@ void NetClient::Update()
         return;
     }
 
-    if (Time::Now() - m_lastKeepAliveTime >= KeepAliveInterval)
-    {
-        const uint8 keepAlive = 0;
+    m_reliableChannel.Update(m_socket, m_serverAddress);
 
-        m_socket.SendTo(m_serverAddress, ConstByteView(&keepAlive, sizeof(keepAlive)));
+    if (state == NetClientConnectionState::Connected
+        && Time::Now() - m_lastKeepAliveTime >= KeepAliveInterval)
+    {
+        m_unreliableChannel.Send(m_socket, m_serverAddress, NetMessage { NetMessageId::KeepAlive, 0, ConstByteView() });
 
         m_lastKeepAliveTime = Time::Now();
     }
 
-    bool receivedFromServer = false;
-
     NetAddress senderAddress;
-    Array<uint8, NetAllocator> data;
+    NetBuffer data;
 
     while (!m_socket.RecvFrom(senderAddress, data).HasError())
     {
-        if (senderAddress == m_serverAddress)
+        if (senderAddress != m_serverAddress)
         {
-            m_lastActivityTime = Time::Now();
-            receivedFromServer = true;
+            continue;
         }
+
+        m_lastActivityTime = Time::Now();
+
+        m_dispatcher.Dispatch(m_socket, senderAddress, NetConnectionId(0),
+            m_reliableChannel, m_unreliableChannel, data.ToByteView());
     }
 
     if (state == NetClientConnectionState::Connecting)
     {
-        if (receivedFromServer)
-        {
-            m_connectionState.Set(NetClientConnectionState::Connected, MemoryOrder::RELEASE);
-
-            return;
-        }
-
         if (Time::Now() - m_connectStartTime >= ConnectTimeout)
         {
             {

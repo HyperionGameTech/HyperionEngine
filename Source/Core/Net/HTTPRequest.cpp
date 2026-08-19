@@ -5,9 +5,9 @@
 */
 
 #include <Core/Net/HTTPRequest.hpp>
-#include <Net/NetRequestThread.hpp>
 
 #include <Core/Threading/TaskSystem.hpp>
+#include <Core/Threading/Mutex.hpp>
 
 #include <Core/Logging/Logger.hpp>
 #include <Core/Logging/LogChannels.hpp>
@@ -20,6 +20,23 @@
 
 namespace Hyperion {
 namespace net {
+
+static SharedPtr<TaskThread> g_globalHTTPRequestThread;
+static Mutex g_globalHTTPRequestThreadMutex;
+
+CORE_API void SetGlobalHTTPRequestThread(const SharedPtr<TaskThread>& thread)
+{
+    Mutex::Guard guard(g_globalHTTPRequestThreadMutex);
+
+    g_globalHTTPRequestThread = thread;
+}
+
+CORE_API const SharedPtr<TaskThread>& GetGlobalHTTPRequestThread()
+{
+    Mutex::Guard guard(g_globalHTTPRequestThreadMutex);
+
+    return g_globalHTTPRequestThread;
+}
 
 static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
 {
@@ -164,16 +181,16 @@ Task<HTTPResponse> HTTPRequest::Send()
 {
     HYP_SCOPE;
 
-    SharedPtr<NetRequestThread> netRequestThread = GetGlobalNetRequestThread();
+    SharedPtr<TaskThread> httpRequestThread = GetGlobalHTTPRequestThread();
 
-    if (!netRequestThread)
+    if (!httpRequestThread)
     {
-        HYP_LOG(Net, Error, "No global NetRequestThread set!");
+        HYP_LOG(Net, Error, "No global HTTP request thread set!");
 
         return Task<HTTPResponse>();
     }
 
-    return netRequestThread->GetScheduler().Enqueue([url = m_url, contentType = m_contentType, body = m_body, method = m_method]() -> HTTPResponse
+    return httpRequestThread->GetScheduler().Enqueue([url = m_url, contentType = m_contentType, body = m_body, method = m_method]() -> HTTPResponse
         {
             HYP_SCOPE;
 

@@ -14,6 +14,7 @@
 
 #include <Core/Memory/ByteBuffer.hpp>
 #include <Core/Memory/UniquePtr.hpp>
+#include <Core/Memory/Pimpl.hpp>
 
 #include <Core/IO/ByteWriter.hpp>
 
@@ -32,17 +33,13 @@
 namespace Hyperion {
 namespace net {
 
-using NetBuffer = memory::ByteBuffer<NetAllocator>;
-
 struct StreamState;
+struct StreamStateMap;
 
 class NET_API NetChannel final
 {
 public:
-    explicit NetChannel(NetChannelMode mode)
-        : m_mode(mode)
-    {
-    }
+    explicit NetChannel(NetChannelMode mode);
 
     NetChannel(const NetChannel&) = delete;
     NetChannel& operator=(const NetChannel&) = delete;
@@ -65,15 +62,15 @@ public:
 
     void OnAck(NetStreamKey key, uint32 sequence);
 
-private:
-    using StreamsMap = Map<NetStreamKey, UniquePtr<StreamState, NetAllocator>, NetAllocator>;
+    void Update(NetSocketUDP& socket, const NetAddress& destAddr);
 
+private:
     StreamState& GetOrCreateStream(NetStreamKey key);
 
     void SendAck(NetSocketUDP& socket, const NetAddress& destAddr, NetStreamKey key, uint32 sequence);
 
     const NetChannelMode m_mode;
-    StreamsMap m_streams;
+    Pimpl<StreamStateMap> m_streams;
 
     // Temp memory stream used for writing the unreliable payloads.
     NetBuffer m_tempBuffer;
