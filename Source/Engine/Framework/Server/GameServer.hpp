@@ -13,6 +13,9 @@
 #include <Core/Utilities/Result.hpp>
 #include <Core/Utilities/IndexAllocator.hpp>
 
+#include <Core/Containers/Array.hpp>
+#include <Core/Threading/Mutex.hpp>
+
 namespace Hyperion {
 
 class GameServerThread;
@@ -48,12 +51,32 @@ public:
         return m_netServer;
     }
 
+    void NotifyClientConnected(net::NetConnectionId connectionId);
+
+    template <class AllocatorType>
+    void DrainNewConnections(Array<net::NetConnectionId, AllocatorType>& outConnections)
+    {
+        Mutex::Guard guard(m_newConnectionsMutex);
+
+        outConnections.Reserve(outConnections.Size() + m_newConnections.Size());
+
+        for (net::NetConnectionId connectionId : m_newConnections)
+        {
+            outConnections.PushBack(connectionId);
+        }
+
+        m_newConnections.Clear();
+    }
+
 private:
     net::NetServer m_netServer;
     UniquePtr<GameServerThread> m_thread;
     UniquePtr<ConsoleInputThread> m_consoleInputThread;
 
     AtomicIndexAllocator m_netIdAllocator;
+
+    Mutex m_newConnectionsMutex;
+    Array<net::NetConnectionId> m_newConnections;
 };
 
 } // namespace Hyperion

@@ -110,9 +110,11 @@ public:
 
 GameServer::GameServer()
 {
-    m_netServer.OnClientConnected.Bind([](const NetClientConnectedData& data)
+    m_netServer.OnClientConnected.Bind([this](const NetClientConnectedData& data)
                                       {
                                           HYP_LOG(GameServer, Info, "Client connected: {} (connection id: {})", data.address.ToString(), uint32(data.connectionId));
+
+                                          NotifyClientConnected(data.connectionId);
                                       })
         .Detach();
 
@@ -187,6 +189,13 @@ NetId GameServer::AllocNetId()
 void GameServer::FreeNetId(NetId netId)
 {
     m_netIdAllocator.Free(uint32(netId));
+}
+
+void GameServer::NotifyClientConnected(NetConnectionId connectionId)
+{
+    Mutex::Guard guard(m_newConnectionsMutex);
+
+    m_newConnections.PushBack(connectionId);
 }
 
 } // namespace Hyperion

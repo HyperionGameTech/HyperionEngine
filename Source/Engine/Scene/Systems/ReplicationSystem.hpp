@@ -11,7 +11,11 @@
 
 #include <Scene/Components/ReplicationStateComponent.hpp>
 
+#include <Core/Logging/LoggerFwd.hpp>
+
 namespace Hyperion {
+
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Replication);
 
 HYP_CLASS(NoScriptBindings)
 class ReplicationSystem final : public SystemBase
