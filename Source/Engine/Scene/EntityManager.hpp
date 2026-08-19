@@ -110,17 +110,13 @@ public:
 
     static ANSIStringView GetComponentTypeName(TypeId componentTypeId);
 
-    /*! \brief Gets the thread mask of the thread that owns this EntityManager.
-     *
-     *  \return The thread mask.
-     */
+    /*! \brief Gets the ID of the thread that owns this EntityManager */
     HYP_FORCE_INLINE const ThreadId& GetOwnerThreadId() const
     {
         return m_ownerThreadId;
     }
 
-    /*! \brief Sets the thread mask of the thread that owns this EntityManager.
-     *  \internal This is used by the Scene to set the thread mask of the Scene's thread. It should not be called from user code. */
+    /*! \brief Sets the thread that owns this EntityManager */
     HYP_FORCE_INLINE void SetOwnerThreadId(const ThreadId& ownerThreadId)
     {
         m_ownerThreadId = ownerThreadId;
@@ -136,10 +132,7 @@ public:
         return IsDetachedScene() && m_detachedSceneLocked.LoadVolatile();
     }
 
-    /*! \brief Gets the World that this EntityManager is associated with.
-     *
-     *  \return Pointer to the World.
-     */
+    /*! \brief Gets the World that this EntityManager is associated with */
     HYP_METHOD()
     HYP_FORCE_INLINE World* GetWorld() const
     {
@@ -148,10 +141,7 @@ public:
 
     void SetWorld(World* world);
 
-    /*! \brief Gets the Scene that this EntityManager is associated with.
-     *
-     *  \return Pointer to the Scene.
-     */
+    /*! \brief Gets the Scene that this EntityManager is associated with */
     HYP_METHOD()
     HYP_FORCE_INLINE Scene* GetScene() const
     {
@@ -173,7 +163,8 @@ public:
         return m_entities;
     }
 
-    /*! \brief The EntityManager so that other threads cannot mutate the entity sets or create new ones */
+    /*! \brief Are we currently locked for destructive/mutating actions?
+     *  (eg during simulation will be locked at various points to allow Systems to safely operate concurrently) */
     HYP_FORCE_INLINE bool IsLocked() const
     {
         return m_isLocked;
@@ -183,7 +174,7 @@ public:
     void Unlock();
 
     /*! \brief Adds a new entity to the EntityManager.
-     *  \note Must be called from the owner thread.
+     *  \note Must be called from the owner thread!
      *
      *  \return The Entity that was added. */
     HYP_FORCE_INLINE Handle<Entity> AddEntity()
@@ -192,7 +183,7 @@ public:
     }
 
     /*! \brief Adds a new entity to the EntityManager.
-     *  \note Must be called from the owner thread.
+     *  \note Must be called from the owner thread!
      *
      *  \tparam T The type of the Entity to add. Must be a subclass of Entity.
      *
@@ -413,12 +404,12 @@ public:
         return const_cast<EntityManager*>(this)->TryGetComponent<Component>(entity);
     }
 
-    /*! \brief Gets a component using the dynamic type Id.
+    /*! \brief Gets a component of the given TypeId \p componentTypeId
      *
      *  \param[in] componentTypeId The type Id of the component to get.
      *  \param[in] entity The Entity to get the component from.
      *
-     *  \return Pointer to the component as a void pointer, or nullptr if the entity does not have the component.
+     *  \return AnyRef referring to the component - invalid if none exists
      */
     AnyRef TryGetComponent(TypeId componentTypeId, const Entity* entity)
     {
@@ -459,7 +450,7 @@ public:
      *  \param[in] componentTypeId The type Id of the component to get.
      *  \param[in] entity The entity to get the component from.
      *
-     *  \return Pointer to the component as a void pointer, or nullptr if the entity does not have the component.
+     *  \return ConstAnyRef referring to the component - invalid if none exists
      */
     HYP_FORCE_INLINE ConstAnyRef TryGetComponent(TypeId componentTypeId, const Entity* entity) const
     {

@@ -7,6 +7,9 @@
 #pragma once
 
 #include <Scene/System.hpp>
+#include <Scene/EntityTag.hpp>
+
+#include <Scene/Components/PlayerComponent.hpp>
 
 #include <Framework/Client/ClientReplicationManager.hpp>// for ReplicationOp
 
@@ -38,9 +41,13 @@ public:
     void OnAddedToWorld(World* world) override;
     void OnRemovedFromWorld(World* world) override;
 
+    Handle<Entity> GetMyPlayerEntity() const;
+
     SystemComponentDescriptors GetComponentDescriptors() const override
     {
-        return {};
+        return {
+            ComponentDescriptor<PlayerComponent, ComponentAccess::READ_WRITE, false> {}
+        };
     }
 
 private:

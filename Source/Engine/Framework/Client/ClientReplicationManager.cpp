@@ -40,6 +40,8 @@ void ClientReplicationManager::RegisterHandlers(net::NetClient& netClient)
 
             TypeId typeId;
             NetId parentNetId;
+            UUID uuid;
+            net::NetConnectionId ownerConnectionId;
             Name entityName;
             Name sceneName;
             Vec3f translation;
@@ -48,6 +50,8 @@ void ClientReplicationManager::RegisterHandlers(net::NetClient& netClient)
 
             reader.Read(&typeId, sizeof(TypeId));
             reader.Read(&parentNetId, sizeof(NetId));
+            reader.Read(&uuid, sizeof(UUID));
+            reader.Read(&ownerConnectionId, sizeof(net::NetConnectionId));
             reader.Read(&entityName, sizeof(Name));
             reader.Read(&sceneName, sizeof(Name));
             reader.Read(&translation, sizeof(Vec3f));
@@ -59,6 +63,8 @@ void ClientReplicationManager::RegisterHandlers(net::NetClient& netClient)
                 typeId,
                 entityName,
                 parentNetId,
+                uuid,
+                ownerConnectionId,
                 sceneName,
                 Transform(translation, scale, rotation)));
         });

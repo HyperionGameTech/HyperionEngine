@@ -22,6 +22,7 @@ HYP_REGISTER_ENTITY_TAG(PrimaryCamera, true, true);
 HYP_REGISTER_ENTITY_TAG(EditorCamera, true, false);
 HYP_REGISTER_ENTITY_TAG(LightmapElement, true, false);
 HYP_REGISTER_ENTITY_TAG(Replicated, true, true);
+HYP_REGISTER_ENTITY_TAG(Player, true, true);
 
 HYP_REGISTER_ENTITY_TAG(ReceivesUpdate, false, true);
 

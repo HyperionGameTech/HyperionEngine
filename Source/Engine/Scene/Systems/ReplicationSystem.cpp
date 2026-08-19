@@ -9,6 +9,7 @@
 #include <Scene/Systems/ReplicationSystem.hpp>
 
 #include <Scene/Components/ReplicationStateComponent.hpp>
+#include <Scene/Components/PlayerComponent.hpp>
 
 #include <Scene/EntityManager.hpp>
 #include <Scene/Scene.hpp>
@@ -25,6 +26,8 @@
 #include <Core/Memory/ByteBuffer.hpp>
 
 #include <Core/Reflection/Class.hpp>
+
+#include <Core/Utilities/Traits.hpp>
 
 #include <Core/Threading/Threads.hpp>
 #include <Core/Threading/Task.hpp>
@@ -64,12 +67,24 @@ static NetId GetReplicatedParentNetId(Entity* entity)
     return Invalid<NetId>;
 }
 
+static net::NetConnectionId GetOwnerConnectionId(Entity* entity)
+{
+    if (PlayerComponent* playerComponent = entity->TryGetComponent<PlayerComponent>())
+    {
+        return playerComponent->connectionId;
+    }
+
+    return Invalid<net::NetConnectionId>;
+}
+
 static net::NetBuffer SerializeEntitySpawnPayload(Entity* entity)
 {
     const TypeId typeId = entity->InstanceClass()->GetTypeId();
 
     const Name entityName = entity->GetName();
     const NetId parentNetId = GetReplicatedParentNetId(entity);
+    const UUID uuid = entity->GetUUID();
+    const net::NetConnectionId ownerConnectionId = GetOwnerConnectionId(entity);
     const Name sceneName = entity->GetEntityManager()->GetScene()->GetName();
 
     const Transform& transform = entity->GetLocalTransform();
@@ -79,6 +94,8 @@ static net::NetBuffer SerializeEntitySpawnPayload(Entity* entity)
 
     writer.Write(typeId.Value());
     writer.Write(parentNetId);
+    writer.Write(uuid);
+    writer.Write(ownerConnectionId);
     writer.Write(entityName);
     writer.Write(sceneName);
     writer.Write(transform.GetTranslation());

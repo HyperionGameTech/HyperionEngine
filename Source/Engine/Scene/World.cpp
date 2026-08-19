@@ -25,6 +25,8 @@
 #include <Scene/Systems/MeshSystem.hpp>
 #include <Scene/Systems/ReplicationSystem.hpp>
 #include <Scene/Systems/ReplicationApplySystem.hpp>
+#include <Scene/Systems/PlayerSpawnSystem.hpp>
+#include <Scene/Systems/PlayerComponentSystem.hpp>
 
 #include <Scene/Components/MeshComponent.hpp>
 #include <Scene/Components/TransformComponent.hpp>
@@ -254,6 +256,12 @@ void World::Initialize()
 
     if (!EngineGlobals::IsServer() && !HasSystem<ReplicationApplySystem>())
         AddSystem(MakeHandle<ReplicationApplySystem>());
+
+    if (EngineGlobals::IsServer() && !HasSystem<PlayerSpawnSystem>())
+        AddSystem(MakeHandle<PlayerSpawnSystem>());
+
+    if (!HasSystem<PlayerComponentSystem>())
+        AddSystem(MakeHandle<PlayerComponentSystem>());
 
     m_isInitialized = true;
 

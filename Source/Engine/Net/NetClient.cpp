@@ -5,6 +5,8 @@
 
 #include <Net/NetClient.hpp>
 
+#include <Core/IO/ByteReader.hpp>
+
 #include <cstdio>
 
 namespace Hyperion {
@@ -15,14 +17,25 @@ static constexpr TimeDiff ServerTimeout = TimeDiff(15000);
 static constexpr TimeDiff ConnectTimeout = TimeDiff(5000);
 
 NetClient::NetClient()
-    : m_reliableChannel(NetChannelMode::ReliableOrdered),
+    : m_connectionId(Invalid<NetConnectionId>),
+      m_reliableChannel(NetChannelMode::ReliableOrdered),
       m_unreliableChannel(NetChannelMode::UnreliableOrdered)
 {
     m_dispatcher.RegisterHandler(NetMessageId::ConnectAccept,
-        [this](const NetMessageContext&, ConstByteView)
+        [this](const NetMessageContext&, ConstByteView payload)
         {
             if (GetConnectionState() == NetClientConnectionState::Connecting)
             {
+                if (payload.Size() >= sizeof(uint32))
+                {
+                    uint32 connectionIdValue = 0;
+
+                    MemoryByteReader reader { payload };
+                    reader.Read(&connectionIdValue, sizeof(uint32));
+
+                    m_connectionId = NetConnectionId(connectionIdValue);
+                }
+
                 m_connectionState.Set(NetClientConnectionState::Connected, MemoryOrder::RELEASE);
             }
         });
@@ -116,8 +129,13 @@ void NetClient::Update()
 
         m_lastActivityTime = Time::Now();
 
-        m_dispatcher.Dispatch(m_socket, senderAddress, NetConnectionId(0),
-            m_reliableChannel, m_unreliableChannel, data.ToByteView());
+        m_dispatcher.Dispatch(
+            m_socket,
+            senderAddress,
+            Invalid<NetConnectionId>,
+            m_reliableChannel,
+            m_unreliableChannel,
+            data.ToByteView());
     }
 
     if (state == NetClientConnectionState::Connecting)

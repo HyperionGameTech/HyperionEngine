@@ -216,9 +216,12 @@ void NetServer::Update()
 
         if (isNewConnection)
         {
+            const uint32 connectionIdValue = uint32(connection->GetId());
+
             connection->GetReliableChannel().Send(
                 m_socket, senderAddress,
-                NetMessage { NetMessageId::ConnectAccept, NetStreamKey(0), ConstByteView() });
+                NetMessage { NetMessageId::ConnectAccept, NetStreamKey(0),
+                    ConstByteView(reinterpret_cast<const ubyte*>(&connectionIdValue), sizeof(connectionIdValue)) });
         }
     }
 

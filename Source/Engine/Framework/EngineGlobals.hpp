@@ -86,6 +86,7 @@ ENGINE_API bool IsCacheServer();
 ENGINE_API bool IsCommandlet();
 ENGINE_API bool IsServer();
 ENGINE_API bool IsHeadless();
+ENGINE_API bool HasAuthority();
 
 #ifdef HYP_EDITOR
 ENGINE_API const FilePath& GetProjectsDirectory();

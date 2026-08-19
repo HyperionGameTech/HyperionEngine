@@ -39,6 +39,8 @@ struct EntityTag
 
     static const EntityTag Replicated;
 
+    static const EntityTag Player;
+
     static const EntityTag ReceivesUpdate;
 
     static constexpr uint64 SerializableTagMask = 0xF;
@@ -133,6 +135,8 @@ inline constexpr EntityTag EntityTag::LightmapElement = EntityTag(0x6);
 inline constexpr EntityTag EntityTag::Replicated = EntityTag(0x7);
 
 inline constexpr EntityTag EntityTag::ReceivesUpdate = EntityTag(0x8);
+
+inline constexpr EntityTag EntityTag::Player = EntityTag(0x9);
 
 // Non-persistent
 

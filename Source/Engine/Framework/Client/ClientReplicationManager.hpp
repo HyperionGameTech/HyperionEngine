@@ -14,6 +14,8 @@
 
 #include <Core/Name/Name.hpp>
 
+#include <Core/Utilities/Uuid.hpp>
+
 #include <Net/NetMessage.hpp>
 #include <Net/NetMessageDispatcher.hpp>
 #include <Net/NetMemory.hpp>
@@ -25,6 +27,7 @@ namespace Hyperion {
 
 namespace net {
 class NetClient;
+enum class NetConnectionId : uint32;
 } // namespace net
 
 enum class ReplicationOpType : uint8
@@ -56,14 +59,18 @@ struct ReplicationOp<ReplicationOpType::Spawn> final : ReplicationOpBase
 {
     TypeId typeId;
     NetId parentNetId; // InvalidNetId if unparented (or parent isn't itself replicated)
+    UUID uuid; // the entity's persistent Node UUID -- used to correlate against an already-loaded local entity
+    net::NetConnectionId ownerConnectionId; // 0 unless this is a player entity clone
     Name name; // the entity name
     Name sceneName;
     Transform transform;
 
-    ReplicationOp(NetId netId, TypeId typeId, Name name, NetId parentNetId, Name sceneName, const Transform& transform)
+    ReplicationOp(NetId netId, TypeId typeId, Name name, NetId parentNetId, UUID uuid, net::NetConnectionId ownerConnectionId, Name sceneName, const Transform& transform)
         : ReplicationOpBase(ReplicationOpType::Spawn, netId),
           typeId(typeId),
           parentNetId(parentNetId),
+          uuid(uuid),
+          ownerConnectionId(ownerConnectionId),
           name(name),
           sceneName(sceneName),
           transform(transform)

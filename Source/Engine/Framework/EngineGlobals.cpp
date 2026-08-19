@@ -73,6 +73,7 @@ ENGINE_API bool IsCooking()
 bool g_isCommandlet = false;
 bool g_isServer = false;
 bool g_isHeadless = false;
+bool g_hasAuthority = false;
 
 ENGINE_API bool IsCacheServer()
 {
@@ -116,6 +117,19 @@ ENGINE_API bool IsHeadless()
         });
 
     return g_isHeadless;
+}
+
+ENGINE_API bool HasAuthority()
+{
+    static std::once_flag s_init;
+    std::call_once(
+        s_init,
+        []
+        {
+            g_hasAuthority = IsServer() || CoreApi::GetCommandLineArguments()["host"].ToString().Empty();
+        });
+
+    return g_hasAuthority;
 }
 
 static FilePath s_cacheDirectory;

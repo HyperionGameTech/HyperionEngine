@@ -566,6 +566,7 @@ extern struct ReplicationStateComponent
     NetId : any
 end
 extern struct PlayerComponent
+    ConnectionId : any
 end
 extern struct MeshComponent
     Mesh : Mesh

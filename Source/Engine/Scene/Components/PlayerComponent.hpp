@@ -12,11 +12,17 @@
 #include <Core/Math/Vector3.hpp>
 #include <Core/Memory/SharedPtr.hpp>
 
+#include <Core/Utilities/Traits.hpp>
+
 #include <Physics/RigidBody.hpp>
 
 namespace Hyperion {
 
 class InputHandlerBase;
+
+namespace net {
+enum class NetConnectionId : uint32;
+} // namespace net
 
 HYP_STRUCT(Component,
     Label = "Player Component",
@@ -24,6 +30,14 @@ HYP_STRUCT(Component,
 struct PlayerComponent
 {
     HYP_STRUCT_BODY(PlayerComponent);
+
+    HYP_FIELD(Serialize = false)
+    net::NetConnectionId connectionId;
+
+    PlayerComponent()
+        : connectionId(Invalid<net::NetConnectionId>)
+    {
+    }
 };
 
 } // namespace Hyperion

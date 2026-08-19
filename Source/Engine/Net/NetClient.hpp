@@ -15,6 +15,7 @@
 
 #include <Core/Utilities/Result.hpp>
 #include <Core/Utilities/Time.hpp>
+#include <Core/Utilities/Traits.hpp>
 
 #include <Core/Functional/Delegate.hpp>
 
@@ -25,6 +26,8 @@
 
 namespace Hyperion {
 namespace net {
+
+enum class NetConnectionId : uint32;
 
 struct NetServerDisconnectedData
 {
@@ -63,6 +66,11 @@ public:
         return m_serverAddress;
     }
 
+    HYP_FORCE_INLINE NetConnectionId GetConnectionId() const
+    {
+        return m_connectionId;
+    }
+
     HYP_FORCE_INLINE Result GetLastError() const
     {
         Mutex::Guard guard(m_lastErrorMutex);
@@ -83,6 +91,7 @@ public:
 private:
     NetSocketUDP m_socket;
     NetAddress m_serverAddress;
+    NetConnectionId m_connectionId;
     AtomicVar<NetClientConnectionState> m_connectionState;
     Time m_lastActivityTime;
     Time m_lastKeepAliveTime;

@@ -624,6 +624,8 @@ extern "C"
         HYP_FAIL("AppContext not implemented for this platform");
 #endif // HYP_WINDOWS || HYP_MACOS || HYP_ANDROID || HYP_IOS
         
+        HYP_LOG(Engine, Info, "IsServer={} HasAuthority={}", EngineGlobals::IsServer(), EngineGlobals::HasAuthority());
+
         if (EngineGlobals::IsServer())
         {
             g_gameServer = new GameServer;
