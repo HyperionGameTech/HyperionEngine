@@ -35,7 +35,7 @@ void ReplicationSystem::OnEntityRemoved(Entity* entity)
     SystemBase::OnEntityRemoved(entity);
 
     ReplicationStateComponent& rsc = entity->GetComponent<ReplicationStateComponent>();
-    g_gameServer->FreeNetId(rsc.netId)
+    g_gameServer->FreeNetId(rsc.netId);
 
     entity->RemoveComponent<ReplicationStateComponent>();
 }

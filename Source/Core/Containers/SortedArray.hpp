@@ -60,6 +60,12 @@ public:
         return Base::Erase(it);
     }
 
+    /*! \brief Performs a direct call to Array::Erase(), erasing elements in the range [first, last). */
+    Iterator Erase(ConstIterator first, ConstIterator last)
+    {
+        return Base::Erase(first, last);
+    }
+
     /*! \brief Erase an element by value. The item is searched for using binary search,
         and if the item was found, it will be erased (and iterators will be invalidated) */
     Iterator Erase(const T& value);

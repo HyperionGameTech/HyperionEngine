@@ -382,6 +382,7 @@ public:
     }
 
     Iterator Erase(ConstIterator iter);
+    Iterator Erase(ConstIterator first, ConstIterator last);
     Iterator Erase(const TElemType& value);
     Iterator EraseAt(typename Base::KeyType index);
     Iterator Insert(ConstIterator where, const ValueType& value);
@@ -1126,6 +1127,62 @@ auto SlimArray<TElemType, TAllocator>::Erase(ConstIterator iter) -> Iterator
     }
 
     --size;
+
+    return begin + dist;
+}
+
+template <class TElemType, class TAllocator>
+auto SlimArray<TElemType, TAllocator>::Erase(ConstIterator first, ConstIterator last) -> Iterator
+{
+    const Iterator begin = Begin();
+    const Iterator end = End();
+
+    if (first < begin || last > end || first > last)
+    {
+        return end;
+    }
+
+    if (first == last)
+    {
+        return begin + (first - begin);
+    }
+
+    const uint32 dist = uint32(first - begin);
+    const uint32 numErased = uint32(last - first);
+
+    if constexpr (std::is_trivially_copyable_v<TElemType>)
+    {
+        TElemType* erasePtr = data + dist;
+        const uint32 numToMove = size - dist - numErased;
+
+        if (numToMove > 0)
+        {
+            Memory::Move(erasePtr, erasePtr + numErased, numToMove * sizeof(TElemType));
+        }
+    }
+    else
+    {
+        for (uint32 index = dist; index < size - numErased; ++index)
+        {
+            Memory::Destruct(data[index]);
+
+            if constexpr (std::is_move_constructible_v<TElemType>)
+            {
+                Memory::Construct<TElemType>(&data[index], std::move(data[index + numErased]));
+            }
+            else
+            {
+                Memory::Construct<TElemType>(&data[index], data[index + numErased]);
+            }
+        }
+
+        for (uint32 index = size - numErased; index < size; ++index)
+        {
+            Memory::Destruct(data[index]);
+        }
+    }
+
+    size -= numErased;
 
     return begin + dist;
 }

@@ -518,6 +518,9 @@ public:
     /*! \brief Erase an element by iterator. */
     Iterator Erase(ConstIterator iter);
 
+    /*! \brief Erase a range of elements [first, last). */
+    Iterator Erase(ConstIterator first, ConstIterator last);
+
     /*! \brief Erase an element by value. A Find() is performed, and if the result is not equal to End(),
      *  the element is removed. */
     Iterator Erase(const T& value);
@@ -1245,6 +1248,64 @@ auto FatArray<T, AllocatorType>::Erase(ConstIterator iter) -> Iterator
     }
 
     --m_size;
+
+    return begin + dist;
+}
+
+template <class T, class AllocatorType>
+auto FatArray<T, AllocatorType>::Erase(ConstIterator first, ConstIterator last) -> Iterator
+{
+    const Iterator begin = Begin();
+    const Iterator end = End();
+
+    if (first < begin || last > end || first > last)
+    {
+        return end;
+    }
+
+    if (first == last)
+    {
+        return begin + (first - begin);
+    }
+
+    const size_t dist = first - begin;
+    const size_t numErased = last - first;
+
+    T* buffer = GetBuffer();
+
+    if constexpr (std::is_trivially_copyable_v<T>)
+    {
+        T* erasePtr = buffer + dist;
+        const size_t numToMove = m_size - dist - numErased;
+
+        if (numToMove > 0)
+        {
+            Memory::Move(erasePtr, erasePtr + numErased, numToMove * sizeof(T));
+        }
+    }
+    else
+    {
+        for (size_t index = dist; index < m_size - numErased; ++index)
+        {
+            Memory::Destruct(buffer[index]);
+
+            if constexpr (std::is_move_constructible_v<T>)
+            {
+                Memory::Construct<T>(buffer + index, std::move(buffer[index + numErased]));
+            }
+            else
+            {
+                Memory::Construct<T>(buffer + index, buffer[index + numErased]);
+            }
+        }
+
+        for (size_t index = m_size - numErased; index < m_size; ++index)
+        {
+            Memory::Destruct(buffer[index]);
+        }
+    }
+
+    m_size -= numErased;
 
     return begin + dist;
 }

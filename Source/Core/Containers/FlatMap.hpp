@@ -146,6 +146,7 @@ public:
     }
 
     Iterator Erase(ConstIterator it);
+    Iterator Erase(ConstIterator first, ConstIterator last);
     bool Erase(const Key& key);
 
     HYP_FORCE_INLINE size_t Size() const
@@ -431,6 +432,12 @@ template <class Key, class Value, class AllocatorType>
 auto FlatMap<Key, Value, AllocatorType>::Erase(ConstIterator it) -> Iterator
 {
     return Base::Erase(it);
+}
+
+template <class Key, class Value, class AllocatorType>
+auto FlatMap<Key, Value, AllocatorType>::Erase(ConstIterator first, ConstIterator last) -> Iterator
+{
+    return Base::Erase(first, last);
 }
 
 template <class Key, class Value, class AllocatorType>
