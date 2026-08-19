@@ -9,6 +9,8 @@
 #include <Net/NetClient.hpp>
 #include <Net/NetAddress.hpp>
 
+#include <Framework/Client/ClientReplicationManager.hpp>
+
 #include <Core/Memory/UniquePtr.hpp>
 
 #include <Core/Utilities/Result.hpp>
@@ -35,9 +37,9 @@ public:
     }
 
     NetClientConnectionState GetConnectionState() const;
-    
+
     bool IsConnected() const;
-    
+
     Result GetLastError() const;
 
     Result Connect(const ANSIString& hostname, uint16 defaultPort);
@@ -45,9 +47,15 @@ public:
 
     void Disconnect();
 
+    HYP_FORCE_INLINE ClientReplicationManager& GetReplicationManager()
+    {
+        return m_replicationManager;
+    }
+
 private:
     net::NetClient m_netClient;
     UniquePtr<GameClientThread> m_thread;
+    ClientReplicationManager m_replicationManager;
 };
 
 } // namespace Hyperion

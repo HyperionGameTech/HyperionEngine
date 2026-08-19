@@ -49,10 +49,12 @@ void ReplicationSystem::OnEntityAdded(Entity* entity)
 
     entity->AddComponent<ReplicationStateComponent>(ReplicationStateComponent { netId });
 
+    const Name sceneName = entity->GetEntityManager()->GetScene()->GetName();
     const Transform& transform = entity->GetLocalTransform();
 
     net::NetBuffer payload;
     MemoryByteWriter<NetAllocator, 1> writer(&payload);
+    writer.Write(sceneName);
     writer.Write(transform.GetTranslation());
     writer.Write(transform.GetRotation());
     writer.Write(transform.GetScale());
@@ -92,8 +94,17 @@ void ReplicationSystem::OnEntityRemoved(Entity* entity)
     g_gameServer->FreeNetId(netId);
 }
 
+struct ReplicationSnapshot
+{
+    NetId netId;
+    net::NetBuffer payload;
+};
+
 void ReplicationSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
+    Array<Entity*, SceneTempAllocator> updatedEntities;
+    Array<ReplicationSnapshot, SceneTempAllocator> snapshots;
+
     for (Scene* scene : scenes)
     {
         if (!ShouldProcessScene(scene))
@@ -103,10 +114,51 @@ void ReplicationSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
         EntityManager* entityManager = scene->GetEntityManager();
 
+        snapshots.Resize(0);
+        updatedEntities.Resize(0);
+
         for (auto [entity, replicationState, _] : entityManager->GetEntitySet<ReplicationStateComponent, TagComponent<EntityTag::UpdateReplication>>())
         {
-            // @TODO
+            const NetId netId = replicationState.netId;
+            const Transform& transform = entity->GetLocalTransform();
+
+            net::NetBuffer payload;
+            MemoryByteWriter<NetAllocator, 1> writer(&payload);
+            writer.Write(transform.GetTranslation());
+            writer.Write(transform.GetRotation());
+            writer.Write(transform.GetScale());
+
+            snapshots.PushBack(ReplicationSnapshot { netId, std::move(payload) });
+
+            updatedEntities.PushBack(entity);
         }
+
+        if (snapshots.Any())
+        {
+            GetGameServerThread()->GetScheduler().Enqueue(
+                [snapshots = Array<ReplicationSnapshot, NetAllocator>(snapshots)]()
+                {
+                    net::NetServer& netServer = g_gameServer->GetNetServer();
+
+                    for (const ReplicationSnapshot& snapshot : snapshots)
+                    {
+                        netServer.Broadcast(
+                            NetMessageId::ComponentSnapshot,
+                            NetChannelMode::UnreliableOrdered,
+                            NetStreamKey(uint32(snapshot.netId)),
+                            snapshot.payload.ToByteView());
+                    }
+                },
+                TaskEnqueueFlags::FIRE_AND_FORGET);
+        }
+
+        AfterProcess([updatedEntities = Array<Entity*, SceneAllocator>(updatedEntities)]()
+                     {
+                         for (Entity* entity : updatedEntities)
+                         {
+                             entity->RemoveTag<EntityTag::UpdateReplication>();
+                         }
+                     });
     }
 }
 

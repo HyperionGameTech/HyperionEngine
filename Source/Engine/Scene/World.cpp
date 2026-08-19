@@ -24,6 +24,7 @@
 #include <Scene/Systems/ScriptSystem.hpp>
 #include <Scene/Systems/MeshSystem.hpp>
 #include <Scene/Systems/ReplicationSystem.hpp>
+#include <Scene/Systems/ReplicationApplySystem.hpp>
 
 #include <Scene/Components/MeshComponent.hpp>
 #include <Scene/Components/TransformComponent.hpp>
@@ -250,6 +251,9 @@ void World::Initialize()
 
     if (EngineGlobals::IsServer() && !HasSystem<ReplicationSystem>())
         AddSystem(MakeHandle<ReplicationSystem>());
+
+    if (!EngineGlobals::IsServer() && !HasSystem<ReplicationApplySystem>())
+        AddSystem(MakeHandle<ReplicationApplySystem>());
 
     m_isInitialized = true;
 

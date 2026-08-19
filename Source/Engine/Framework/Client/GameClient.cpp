@@ -7,6 +7,7 @@
 #include <HyperionPch.hpp>
 
 #include <Framework/Client/GameClient.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <Core/Threading/Thread.hpp>
 #include <Core/Threading/Threads.hpp>
@@ -34,6 +35,11 @@ public:
         while (HYP_LIKELY(!m_stopRequested.LoadVolatile()))
         {
             netClient->Update();
+
+            if (g_gameClient != nullptr)
+            {
+                g_gameClient->GetReplicationManager().PublishBatch();
+            }
 
             const NetClientConnectionState state = netClient->GetConnectionState();
 
@@ -64,6 +70,8 @@ GameClient::GameClient()
             HYP_LOG(GameClient, Warning, "Disconnected from server: {}", data.serverAddress.ToString());
         })
         .Detach();
+
+    m_replicationManager.RegisterHandlers(m_netClient);
 }
 
 GameClient::~GameClient()
