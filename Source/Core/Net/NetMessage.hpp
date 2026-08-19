@@ -18,16 +18,27 @@
 namespace Hyperion {
 namespace net {
 
-using NetStreamKey = uint16;
+using NetStreamKey = uint32;
 
 // 2 bits
 enum class NetChannelMode : uint8
 {
-    UnreliableUnordered = 0b00,
-    UnreliableOrdered = 0b01,
-    ReliableUnordered = 0b10,
-    ReliableOrdered = 0b11
+    OrderedBit = 0b01,
+    ReliableBit = 0b10,
+
+    UnreliableUnordered = 0,
+    UnreliableOrdered = OrderedBit,
+    ReliableUnordered = ReliableBit,
+    ReliableOrdered = ReliableBit | OrderedBit
 };
+
+static constexpr uint8 CurrentProtocolVersion = 1;
+
+HYP_FORCE_INLINE constexpr bool IsReliable(NetChannelMode mode)
+{
+    // 0b10 == the ordered bit
+    return (uint8(mode) & uint8(NetChannelMode::ReliableBit)) != 0;
+}
 
 enum class NetMessageId : uint16
 {
