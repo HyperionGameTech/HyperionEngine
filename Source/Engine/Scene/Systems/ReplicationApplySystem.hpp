@@ -8,6 +8,8 @@
 
 #include <Scene/System.hpp>
 
+#include <Framework/Client/ClientReplicationManager.hpp>// for ReplicationOp
+
 #include <Core/Containers/Map.hpp>
 
 #include <Core/Math/Transform.hpp>
@@ -46,9 +48,7 @@ private:
 
     struct PendingSpawn
     {
-        NetId netId;
-        Name sceneName;
-        Transform transform;
+        ReplicationOp<ReplicationOpType::Spawn> spawnOp;
         float secondsWaited = 0.0f;
     };
 

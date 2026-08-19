@@ -55,11 +55,17 @@ struct ReplicationOpBase
 template <>
 struct ReplicationOp<ReplicationOpType::Spawn> final : ReplicationOpBase
 {
+    TypeId typeId;
+    Name name; // the entity name
+    Name parentName;
     Name sceneName;
     Transform transform;
 
-    ReplicationOp(NetId netId, Name sceneName, const Transform& transform)
+    ReplicationOp(NetId netId, TypeId typeId, Name name, Name parentName, Name sceneName, const Transform& transform)
         : ReplicationOpBase(ReplicationOpType::Spawn, netId),
+          typeId(typeId),
+          name(name),
+          parentName(parentName),
           sceneName(sceneName),
           transform(transform)
     {

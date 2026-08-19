@@ -47,6 +47,43 @@ static Scene* FindTargetScene(Span<Handle<Scene>> scenes, SystemBase* system, Na
     return nullptr;
 }
 
+static Handle<Entity> ExecuteEntitySpawn(const ReplicationOp<ReplicationOpType::Spawn>& spawnOp, const Scene& targetScene)
+{
+    const Class* entityClass = GetClass(spawnOp.typeId);
+    if (!entityClass)
+    {
+        HYP_LOG(Replication, Error, "Cannot spawn Entity, no Class with typeid {}", spawnOp.typeId.Value());
+        return Handle<Entity>::Null();
+    }
+
+    if (!entityClass->IsDerivedFrom(Entity::StaticClass()))
+    {
+        HYP_LOG(Replication, Error, "Cannot spawn Entity, Class '{}' is not a subclass of Entity", entityClass->GetName());
+        return Handle<Entity>::Null();
+    }
+
+    Handle<Entity> entity = targetScene.GetEntityManager()->AddTypedEntity(entityClass);
+    if (!entity.IsValid())
+    {
+        HYP_LOG(Replication, Error, "Spawned Entity of Class '{}' could not be instantiated", entityClass->GetName());
+        return Handle<Entity>::Null();
+    }
+
+    // @TODO Parent? also having just parentName is flimsy, what about duplicates?
+    // maybe we need to have UUID on Nodes/Entity.
+    // or enforce ordering of entities that get added; and have parent netID.
+    targetScene.GetRoot()->AddChild(entity);
+
+    entity->SetName(spawnOp.name);
+    entity->SetLocalTransform(spawnOp.transform);
+    entity->AddComponent<ReplicationStateComponent>(ReplicationStateComponent { spawnOp.netId });
+    
+    HYP_LOG(Replication, Info, "Spawned Entity '{}' of Class '{}'", entity->GetName(), entityClass->GetName());
+
+    return entity;
+
+}
+
 void ReplicationApplySystem::OnAddedToWorld(World* world)
 {
     SystemBase::OnAddedToWorld(world);
@@ -84,26 +121,21 @@ void ReplicationApplySystem::TryResolvePendingSpawns(Scene* scene)
     {
         PendingSpawn& pending = m_pendingSpawns[i];
 
-        if (pending.sceneName != scene->GetName())
+        if (pending.spawnOp.sceneName != scene->GetName())
         {
             ++i;
 
             continue;
         }
 
-        Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
+        if (Handle<Entity> spawnedEntity = ExecuteEntitySpawn(pending.spawnOp, *scene); spawnedEntity.IsValid())
+        {
+            m_netIdToEntity.Set(pending.spawnOp.netId, spawnedEntity);
 
-        scene->GetRoot()->AddChild(entity);
+            m_pendingSpawns.EraseAt(i);
 
-        entity->SetLocalTransform(pending.transform);
-        entity->AddComponent<ReplicationStateComponent>(ReplicationStateComponent { pending.netId });
-
-        m_netIdToEntity.Set(pending.netId, entity);
-
-        HYP_LOG(Replication, Info, "Scene '{}' now loaded, applying deferred EntitySpawn for netId={}",
-            pending.sceneName, uint32(pending.netId));
-
-        m_pendingSpawns.EraseAt(i);
+            continue;
+        }
     }
 }
 
@@ -125,8 +157,11 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
         if (pending.secondsWaited >= PendingSpawnTimeoutSeconds)
         {
             HYP_LOG(Replication, Warning,
-                "Giving up on EntitySpawn for netId={}: scene '{}' never loaded within {} seconds",
-                uint32(pending.netId), pending.sceneName, PendingSpawnTimeoutSeconds);
+                "Giving up on EntitySpawn for (netId={}, name={}): scene '{}' never loaded within {} seconds",
+                uint32(pending.spawnOp.netId),
+                pending.spawnOp.name,
+                pending.spawnOp.sceneName,
+                PendingSpawnTimeoutSeconds);
 
             m_pendingSpawns.EraseAt(i);
 
@@ -156,21 +191,17 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
 
             Scene* targetScene = FindTargetScene(scenes, this, op.sceneName);
 
-            if (targetScene == nullptr)
+            if (!targetScene)
             {
-                m_pendingSpawns.PushBack(PendingSpawn { op.netId, op.sceneName, op.transform });
+                m_pendingSpawns.PushBack(PendingSpawn { op });
 
                 break;
             }
 
-            Handle<Entity> entity = targetScene->GetEntityManager()->AddEntity();
-
-            targetScene->GetRoot()->AddChild(entity);
-
-            entity->SetLocalTransform(op.transform);
-            entity->AddComponent<ReplicationStateComponent>(ReplicationStateComponent { op.netId });
-
-            m_netIdToEntity.Set(op.netId, entity);
+            if (Handle<Entity> spawnedEntity = ExecuteEntitySpawn(op, *targetScene); spawnedEntity.IsValid())
+            {
+                m_netIdToEntity.Set(op.netId, spawnedEntity);
+            }
 
             break;
         }

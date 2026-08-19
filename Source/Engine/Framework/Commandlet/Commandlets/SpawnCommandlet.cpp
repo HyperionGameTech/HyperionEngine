@@ -2,6 +2,7 @@
 
 #include <Framework/Commandlet/Commandlet.hpp>
 
+#include <Framework/Game.hpp>
 #include <Framework/EngineDriver.hpp>
 #include <Framework/EngineGlobals.hpp>
 
@@ -99,7 +100,14 @@ protected:
         GetThreadById(g_simThread)->GetScheduler().Enqueue(
             [position, entityClass, entityName, sceneName]()
             {
-                World* world = EngineDriver::GetInstance()->GetCurrentWorld();
+                Game* gameInstance = g_gameInstance;
+                if (!gameInstance)
+                {
+                    HYP_LOG(Console, Error, "No active game instance");
+                    return;
+                }
+
+                World* world = gameInstance->GetWorld();
 
                 if (!world)
                 {
@@ -110,18 +118,20 @@ protected:
 
                 Scene* targetScene = nullptr;
 
+                const StringHash sceneNameHash = StringHash(sceneName);
+
                 for (const Handle<Scene>& scene : world->GetScenes())
                 {
                     if (sceneName.Any())
                     {
-                        if (scene->GetName() == CreateNameFromDynamicString(ANSIString(sceneName)))
+                        if (scene->GetName() == sceneNameHash)
                         {
                             targetScene = scene;
 
                             break;
                         }
                     }
-                    else if (scene->IsForegroundScene())
+                    else if ((scene->GetSceneFlags() & (SceneFlags::UI | SceneFlags::FOREGROUND | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND)
                     {
                         targetScene = scene;
 

@@ -38,11 +38,17 @@ void ClientReplicationManager::RegisterHandlers(net::NetClient& netClient)
         {
             MemoryByteReader reader { payload };
 
+            TypeId typeId;
+            Name entityName;
+            Name parentName;
             Name sceneName;
             Vec3f translation;
             Quat4f rotation;
             Vec3f scale;
-
+            
+            reader.Read(&typeId, sizeof(TypeId));
+            reader.Read(&entityName, sizeof(Name));
+            reader.Read(&parentName, sizeof(Name));
             reader.Read(&sceneName, sizeof(Name));
             reader.Read(&translation, sizeof(Vec3f));
             reader.Read(&rotation, sizeof(Quat4f));
@@ -50,6 +56,9 @@ void ClientReplicationManager::RegisterHandlers(net::NetClient& netClient)
 
             PushOp(ReplicationOp<ReplicationOpType::Spawn>(
                 NetId(uint32(context.key)),
+                typeId,
+                entityName,
+                parentName,
                 sceneName,
                 Transform(translation, scale, rotation)));
         });

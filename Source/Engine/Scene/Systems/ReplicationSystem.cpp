@@ -21,7 +21,10 @@
 #include <Net/NetMemory.hpp>
 
 #include <Core/IO/ByteWriter.hpp>
+
 #include <Core/Memory/ByteBuffer.hpp>
+
+#include <Core/Reflection/Class.hpp>
 
 #include <Core/Threading/Threads.hpp>
 #include <Core/Threading/Task.hpp>
@@ -46,11 +49,20 @@ static ThreadBase* GetGameServerThread()
 
 static net::NetBuffer SerializeEntitySpawnPayload(Entity* entity)
 {
+    const TypeId typeId = entity->InstanceClass()->GetTypeId();
+
+    const Name entityName = entity->GetName();
+    const Name parentName = entity->GetParent() ? entity->GetParent()->GetName() : Name::Invalid();
     const Name sceneName = entity->GetEntityManager()->GetScene()->GetName();
+
     const Transform& transform = entity->GetLocalTransform();
 
     net::NetBuffer payload;
     MemoryByteWriter<NetAllocator, 1> writer(&payload);
+    
+    writer.Write(typeId.Value());
+    writer.Write(entityName);
+    writer.Write(parentName);
     writer.Write(sceneName);
     writer.Write(transform.GetTranslation());
     writer.Write(transform.GetRotation());
