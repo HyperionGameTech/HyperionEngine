@@ -26,13 +26,7 @@ namespace net {
 enum class NetConnectionId : uint32;
 class NetConnection;
 
-struct NetClientConnectedData
-{
-    NetConnectionId connectionId;
-    NetAddress address;
-};
-
-struct NetClientDisconnectedData
+struct NetServerConnectionStateChangedData
 {
     NetConnectionId connectionId;
     NetAddress address;
@@ -60,8 +54,8 @@ public:
     void SendMessageTo(NetConnectionId connectionId, NetMessageId messageId, NetChannelMode mode, NetStreamKey key, ConstByteView payload);
     void Broadcast(NetMessageId messageId, NetChannelMode mode, NetStreamKey key, ConstByteView payload);
 
-    Delegate<void, const NetClientConnectedData&> OnClientConnected;
-    Delegate<void, const NetClientDisconnectedData&> OnClientDisconnected;
+    Delegate<void, NetServerConnectionStateChangedData> OnClientConnected;
+    Delegate<void, NetServerConnectionStateChangedData> OnClientDisconnected;
 
 private:
     NetSocketUDP m_socket;
@@ -74,7 +68,7 @@ private:
 } // namespace net
 
 using net::NetServer;
-using net::NetClientConnectedData;
-using net::NetClientDisconnectedData;
+using net::NetServerConnectionStateChangedData;
+using net::NetServerConnectionStateChangedData;
 
 } // namespace Hyperion

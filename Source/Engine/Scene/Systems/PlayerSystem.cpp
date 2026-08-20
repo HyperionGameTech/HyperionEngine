@@ -17,6 +17,7 @@
 #include <Scene/Components/ReplicationStateComponent.hpp>
 
 #include <Framework/Server/GameServer.hpp>
+#include <Framework/Client/GameClient.hpp>
 #include <Framework/EngineGlobals.hpp>
 
 #include <Net/NetServer.hpp>
@@ -36,24 +37,71 @@ void PlayerSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
-    if (!entity->HasComponent<PlayerComponent>())
+    if (entity->HasComponent<PlayerComponent>())
     {
-        entity->AddComponent<PlayerComponent>(PlayerComponent {});
+        PlayerComponent playerComponent = entity->GetComponent<PlayerComponent>();
+
+        if (playerComponent.connectionId != Invalid<net::NetConnectionId>)
+        {
+            // Associated with a player; not a template!
+            return;
+        }
+
+        // Remove so we don't add it to the Clones() and they can add their own with the correct connection ID.
+        // PlayerComponent is added when client connects.
+        entity->RemoveComponent<PlayerComponent>();
     }
 
-    // The template is whichever Player-tagged entity is discovered first, Player tag is stripped in TrySpawnClone.
-    if (EngineGlobals::IsServer() && !m_templateEntity.IsValid())
+    const UUID& uuid = entity->GetUUID();
+    if (m_playerEntityTemplates.Contains(uuid))
     {
-        m_templateEntity = MakeStrongRef(entity);
+        return;
+    }
 
-        HYP_LOG(Replication, Info, "PlayerSystem resolved template player entity '{}' in scene '{}'",
-            entity->GetName(), entity->GetEntityManager()->GetScene()->GetName());
+    Handle<Entity> templateEntity = DynamicCast<Entity>(entity->Clone());
+    Assert(templateEntity.IsValid());
+
+    m_playerEntityTemplates[uuid] = templateEntity;
+}
+
+void PlayerSystem::OnEntityRemoved(Entity* entity)
+{
+    SystemBase::OnEntityRemoved(entity);
+    
+    // When the `Player` EntityTag is removed, remove the actual component too
+
+    if (entity->HasComponent<PlayerComponent>())
+    {
+        // @TODO Disconnect/unregister?
+        // Tag only likely to be removed in-editor.
+
+        entity->RemoveComponent<PlayerComponent>();
     }
 }
 
 void PlayerSystem::OnAddedToWorld(World* world)
 {
     SystemBase::OnAddedToWorld(world);
+
+    // Client delegates first
+    if (g_gameClient != nullptr)
+    {
+        m_delegateHandlers.Add(
+            NAME("OnConnected"),
+            g_gameClient->OnConnected.BindThreaded(
+                [this](net::NetConnectionId id)
+                {
+                    HandleClientConnected(id);
+                }, g_simThread));
+        
+        m_delegateHandlers.Add(
+            NAME("OnDisconnected"),
+            g_gameClient->OnDisconnected.BindThreaded(
+                [this](net::NetConnectionId id)
+                {
+                    HandleClientDisconnected(id);
+                }, g_simThread));
+    }
 
     if (!EngineGlobals::IsServer())
     {
@@ -64,33 +112,26 @@ void PlayerSystem::OnAddedToWorld(World* world)
 
     m_delegateHandlers.Add(
         NAME("OnClientConnected"),
-        g_gameServer->GetNetServer().OnClientConnected.Bind(
-            [this](const NetClientConnectedData& data)
+        g_gameServer->GetNetServer().OnClientConnected.BindThreaded(
+            [this](const NetServerConnectionStateChangedData& data)
             {
-                GetThreadById(g_simThread)->GetScheduler().Enqueue(
-                    [this, connectionId = data.connectionId]()
-                    {
-                        HandleClientConnected(connectionId);
-                    },
-                    TaskEnqueueFlags::FIRE_AND_FORGET);
-            }));
+                HandleClientConnected(data.connectionId);
+            }, g_simThread));
 
     m_delegateHandlers.Add(
         NAME("OnClientDisconnected"),
-        g_gameServer->GetNetServer().OnClientDisconnected.Bind(
-            [this](const NetClientDisconnectedData& data)
+        g_gameServer->GetNetServer().OnClientDisconnected.BindThreaded(
+            [this](const NetServerConnectionStateChangedData& data)
             {
-                GetThreadById(g_simThread)->GetScheduler().Enqueue(
-                    [this, connectionId = data.connectionId]()
-                    {
-                        HandleClientDisconnected(connectionId);
-                    },
-                    TaskEnqueueFlags::FIRE_AND_FORGET);
-            }));
+                HandleClientDisconnected(data.connectionId);
+            }, g_simThread));
 }
 
 void PlayerSystem::OnRemovedFromWorld(World* world)
 {
+    m_delegateHandlers.Remove("OnConnected"_sh);
+    m_delegateHandlers.Remove("OnDisconnected"_sh);
+
     if (EngineGlobals::IsServer())
     {
         m_delegateHandlers.Remove("OnClientConnected"_sh);
@@ -100,15 +141,19 @@ void PlayerSystem::OnRemovedFromWorld(World* world)
     SystemBase::OnRemovedFromWorld(world);
 }
 
-bool PlayerSystem::TrySpawnClone(net::NetConnectionId connectionId)
+bool PlayerSystem::TrySpawnPlayerEntity(net::NetConnectionId connectionId)
 {
-    if (!m_templateEntity.IsValid())
-    {
-        return false;
-    }
+    // For now just take the first template
+    // Later on we'll need some way of telling or something
 
-    Handle<Node> clonedNode = m_templateEntity->Clone();
-    Handle<Entity> clone = DynamicCast<Entity>(clonedNode);
+    Assert(!m_playerEntityTemplates.Empty(), "No player entity templates");
+
+    auto it = *m_playerEntityTemplates.Begin();
+
+    const Handle<Entity>& templateEntity = it.second;
+    Assert(templateEntity.IsValid());
+
+    Handle<Entity> clone = DynamicCast<Entity>(templateEntity->Clone());
 
     if (!clone.IsValid())
     {
@@ -117,17 +162,7 @@ bool PlayerSystem::TrySpawnClone(net::NetConnectionId connectionId)
         return true;
     }
 
-    // strip the cloned Camera child from the Player if one exists.
-    //  - clients attach their own camera locally once they resolve their own clone.
-    for (const Handle<Node>& child : Array<Handle<Node>>(clone->GetChildren()))
-    {
-        if (DynamicCast<Camera>(child))
-        {
-            child->Remove();
-        }
-    }
-
-    Node* parent = m_templateEntity->GetParent();
+    Node* parent = templateEntity->GetParent();
 
     if (parent)
     {
@@ -135,18 +170,14 @@ bool PlayerSystem::TrySpawnClone(net::NetConnectionId connectionId)
     }
     else
     {
-        m_templateEntity->GetEntityManager()->GetScene()->GetRoot()->AddChild(clone);
+        templateEntity->GetEntityManager()->GetScene()->GetRoot()->AddChild(clone);
     }
 
-    clone->GetComponent<PlayerComponent>().connectionId = connectionId;
+    clone->AddComponent<PlayerComponent>(PlayerComponent { connectionId });
+    clone->AddTag<EntityTag::Replicated>();
 
     m_connectionIdToClone.Set(connectionId, clone);
 
-    clone->RemoveTag<EntityTag::Player>();
-    clone->AddTag<EntityTag::Replicated>();
-
-    // The server never has a Camera to hang a streaming volume off of (stripped above) --
-    // the clone's own translation drives its connection's streaming interest directly.
     const Vec3f worldTranslation = clone->GetWorldTranslation();
 
     Handle<CameraStreamingVolume> streamingVolume = MakeHandle<CameraStreamingVolume>();
@@ -164,7 +195,7 @@ bool PlayerSystem::TrySpawnClone(net::NetConnectionId connectionId)
 
 void PlayerSystem::HandleClientConnected(net::NetConnectionId connectionId)
 {
-    if (!TrySpawnClone(connectionId))
+    if (!TrySpawnPlayerEntity(connectionId))
     {
         HYP_LOG(Replication, Info,
             "Client connected (connection id: {}) before the player template entity was resolved -- queued, will retry",
@@ -189,6 +220,10 @@ void PlayerSystem::HandleClientDisconnected(net::NetConnectionId connectionId)
 
     if (it != m_connectionIdToClone.End())
     {
+        // remove the component
+        it->second->RemoveComponent<PlayerComponent>();
+
+        // remove from parent
         it->second->Remove();
 
         m_connectionIdToClone.Erase(it);
@@ -221,11 +256,11 @@ void PlayerSystem::UpdateStreamingVolumes()
 
 void PlayerSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
-    if (m_templateEntity.IsValid() && m_pendingConnections.Any())
+    if (m_playerEntityTemplates.Any() && m_pendingConnections.Any())
     {
         for (size_t i = 0; i < m_pendingConnections.Size();)
         {
-            if (TrySpawnClone(m_pendingConnections[i]))
+            if (TrySpawnPlayerEntity(m_pendingConnections[i]))
             {
                 m_pendingConnections.EraseAt(i);
 

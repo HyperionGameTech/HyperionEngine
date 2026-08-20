@@ -26,7 +26,8 @@ enum class NetConnectionId : uint32;
 
 HYP_STRUCT(Component,
     Label = "Player Component",
-    Editor = true)
+    Serialize = false,
+    Editor = false)
 struct PlayerComponent
 {
     HYP_STRUCT_BODY(PlayerComponent);

@@ -17,6 +17,8 @@
 
 #include <Core/Containers/String.hpp>
 
+#include <Core/Functional/Delegate.hpp>
+
 namespace Hyperion {
 
 class GameClientThread;
@@ -56,6 +58,9 @@ public:
     {
         return m_netClient;
     }
+
+    Delegate<void, net::NetConnectionId> OnConnected;
+    Delegate<void, net::NetConnectionId> OnDisconnected;
 
 private:
     net::NetClient m_netClient;

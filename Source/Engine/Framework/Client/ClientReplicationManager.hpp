@@ -59,7 +59,7 @@ struct ReplicationOp<ReplicationOpType::Spawn> final : ReplicationOpBase
 {
     TypeId typeId;
     NetId parentNetId; // InvalidNetId if unparented (or parent isn't itself replicated)
-    UUID uuid; // the entity's persistent Node UUID -- used to correlate against an already-loaded local entity
+    UUID uuid; // the entity's persistent Node UUID -- used to correlate against an already-loaded local entity, or if player, used as the uuid of template node
     net::NetConnectionId ownerConnectionId; // 0 unless this is a player entity clone
     Name name; // the entity name
     Name sceneName;

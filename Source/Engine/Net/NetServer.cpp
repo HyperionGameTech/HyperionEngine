@@ -196,7 +196,7 @@ void NetServer::Update()
             connection = insertResult.first->second.Get();
             isNewConnection = true;
 
-            OnClientConnected(NetClientConnectedData { connectionId, senderAddress });
+            OnClientConnected(NetServerConnectionStateChangedData { connectionId, senderAddress });
         }
         else
         {
@@ -240,7 +240,7 @@ void NetServer::Update()
             m_addrToConnectionId.Erase(address);
             it = m_connections.Erase(it);
 
-            OnClientDisconnected(NetClientDisconnectedData { connectionId, address });
+            OnClientDisconnected(NetServerConnectionStateChangedData { connectionId, address });
 
             continue;
         }

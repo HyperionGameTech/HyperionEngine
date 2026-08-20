@@ -37,6 +37,8 @@ NetClient::NetClient()
                 }
 
                 m_connectionState.Set(NetClientConnectionState::Connected, MemoryOrder::RELEASE);
+
+                OnConnected(NetClientConnectionStateChangedData { m_serverAddress });
             }
         });
 
@@ -81,6 +83,8 @@ void NetClient::Disconnect()
     m_connectionState.Set(NetClientConnectionState::Disconnected, MemoryOrder::RELEASE);
 
     m_socket.Close();
+
+    OnDisconnected(NetClientConnectionStateChangedData { m_serverAddress });
 }
 
 void NetClient::RegisterHandler(NetMessageId messageId, NetMessageHandler&& handler)
@@ -157,11 +161,7 @@ void NetClient::Update()
     // CONNECTED
     if (Time::Now() - m_lastActivityTime >= ServerTimeout)
     {
-        const NetAddress serverAddress = m_serverAddress;
-
         Disconnect();
-
-        OnDisconnected(NetServerDisconnectedData { serverAddress });
     }
 }
 

@@ -87,47 +87,22 @@ static Handle<Entity> FindLocalEntityByUuid(const Scene& scene, const UUID& uuid
     return Handle<Entity>::Null();
 }
 
-static void ApplyOwnerConnectionId(const Handle<Entity>& entity, net::NetConnectionId ownerConnectionId)
-{
-    if (ownerConnectionId == Invalid<net::NetConnectionId>)
-    {
-        return;
-    }
-
-    if (PlayerComponent* playerComponent = entity->TryGetComponent<PlayerComponent>())
-    {
-        playerComponent->connectionId = ownerConnectionId;
-    }
-    else
-    {
-        entity->AddComponent<PlayerComponent>(PlayerComponent { ownerConnectionId });
-    }
-}
-
-
-static Handle<Entity> FindTemplateEntity(Span<Handle<Scene>> scenes, SystemBase* system)
+static Handle<Entity> FindTemplateEntity(Span<Handle<Scene>> scenes, const UUID& templateUuid)
 {
     for (Scene* scene : scenes)
     {
-        if (!system->ShouldProcessScene(scene))
-        {
-            continue;
-        }
-
         for (auto [entity, tag] : scene->GetEntityManager()->GetEntitySet<TagComponent<EntityTag::Player>>())
         {
-            return MakeStrongRef(entity);
+            if (entity->GetUUID() == templateUuid)
+            {
+                return MakeStrongRef(entity);
+            }
         }
     }
 
     return Handle<Entity>::Null();
 }
 
-// A player's clone (see PlayerSystem::TrySpawnClone) isn't level-authored, so there's no local
-// entity to correlate it against by UUID -- the wire payload also only carries transform/name/class,
-// not the full component set. Cloning our own local Player-tagged template gives every player's
-// avatar the same components (mesh, character controller, etc.) the server's clone has, without
-// needing to grow the EntitySpawn protocol into a full component serializer.
 static Handle<Entity> CloneFromLocalTemplate(const Handle<Entity>& templateEntity, const ReplicationOp<ReplicationOpType::Spawn>& spawnOp)
 {
     Handle<Entity> clone = DynamicCast<Entity>(templateEntity->Clone());
@@ -137,16 +112,6 @@ static Handle<Entity> CloneFromLocalTemplate(const Handle<Entity>& templateEntit
         HYP_LOG(Replication, Error, "Failed to clone local player template entity for netId={}", uint32(spawnOp.netId));
 
         return Handle<Entity>::Null();
-    }
-
-    // clients attach their own camera locally (see UpdateLocalPlayerFollowers) rather than inheriting
-    // one from the template clone -- strip it here the same way PlayerSystem::TrySpawnClone does.
-    for (const Handle<Node>& child : Array<Handle<Node>>(clone->GetChildren()))
-    {
-        if (DynamicCast<Camera>(child))
-        {
-            child->Remove();
-        }
     }
 
     Node* parent = templateEntity->GetParent();
@@ -162,12 +127,8 @@ static Handle<Entity> CloneFromLocalTemplate(const Handle<Entity>& templateEntit
 
     clone->SetName(spawnOp.name);
     clone->SetLocalTransform(spawnOp.transform);
+
     clone->AddComponent<ReplicationStateComponent>(ReplicationStateComponent { spawnOp.netId });
-
-    clone->RemoveTag<EntityTag::Player>();
-    clone->AddTag<EntityTag::Replicated>();
-
-    ApplyOwnerConnectionId(clone, spawnOp.ownerConnectionId);
 
     HYP_LOG(Replication, Info, "Cloned local player template for netId={} (owner connection {})",
         uint32(spawnOp.netId), uint32(spawnOp.ownerConnectionId));
@@ -213,13 +174,9 @@ static Handle<Entity> ExecuteEntitySpawn(const ReplicationOp<ReplicationOpType::
     entity->SetLocalTransform(spawnOp.transform);
     entity->AddComponent<ReplicationStateComponent>(ReplicationStateComponent { spawnOp.netId });
 
-    // lol wtf won't PlayerComponent get added to every fucking Entity?
-    ApplyOwnerConnectionId(entity, spawnOp.ownerConnectionId);
-
     HYP_LOG(Replication, Info, "Spawned Entity '{}' of Class '{}'", entity->GetName(), entityClass->GetName());
 
     return entity;
-
 }
 
 static Handle<Entity> TryResolveSpawn(const ReplicationOp<ReplicationOpType::Spawn>& spawnOp, Span<Handle<Scene>> scenes, SystemBase* system, const Map<NetId, Handle<Entity>, SceneAllocator>& netIdToEntity)
@@ -240,23 +197,7 @@ static Handle<Entity> TryResolveSpawn(const ReplicationOp<ReplicationOpType::Spa
 
         existing->SetLocalTransform(spawnOp.transform);
 
-        ApplyOwnerConnectionId(existing, spawnOp.ownerConnectionId);
-
-        HYP_LOG(Replication, Info, "Correlated Entity '{}' with local level-authored entity by UUID (netId={})",
-            existing->GetName(), uint32(spawnOp.netId));
-
         return existing;
-    }
-
-    if (spawnOp.ownerConnectionId != Invalid<net::NetConnectionId>)
-    {
-        if (Handle<Entity> templateEntity = FindTemplateEntity(scenes, system); templateEntity.IsValid())
-        {
-            return CloneFromLocalTemplate(templateEntity, spawnOp);
-        }
-
-        // Template hasn't loaded locally yet -- retry once it (or the scene containing it) is available.
-        return Handle<Entity>::Null();
     }
 
     if (IsWaitingOnParent(spawnOp, netIdToEntity))
@@ -460,26 +401,6 @@ void ReplicationApplySystem::UpdateLocalPlayerFollowers(Span<Handle<Scene>> scen
         return;
     }
 
-    if (myPlayerEntity != m_resolvedPlayerEntity)
-    {
-        m_resolvedPlayerEntity = myPlayerEntity;
-
-        if (!FindCameraChild(myPlayerEntity).IsValid())
-        {
-            if (Handle<Entity> templateEntity = FindTemplateEntity(scenes, this); templateEntity.IsValid())
-            {
-                if (Handle<Camera> camera = FindCameraChild(templateEntity); camera.IsValid())
-                {
-                    camera->Remove();
-                    myPlayerEntity->AddChild(camera);
-
-                    bool hasCharacterController = templateEntity->HasComponent<CharacterControllerComponent>();
-                    HYP_LOG(Replication, Info, "Reparented Camera onto resolved local player entity '{}', hasCharacterController = {}", myPlayerEntity->GetName(), hasCharacterController);
-                }
-            }
-        }
-    }
-
     if (!m_playerStreamingVolume.IsValid())
     {
         m_playerStreamingVolume = MakeHandle<CameraStreamingVolume>();
@@ -498,6 +419,7 @@ Handle<Entity> ReplicationApplySystem::GetMyPlayerEntity() const
     {
         const net::NetConnectionId myConnectionId = g_gameClient->GetNetClient().GetConnectionId();
 
+        // @Fixme this sucks
         for (const auto& pair : m_netIdToEntity)
         {
             if (PlayerComponent* playerComponent = pair.second->TryGetComponent<PlayerComponent>())

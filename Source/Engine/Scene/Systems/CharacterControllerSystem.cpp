@@ -155,19 +155,7 @@ bool CharacterControllerSystem::ShouldProcessScene(Scene* scene) const
     return (scene->GetSceneFlags() & (SceneFlags::UI | SceneFlags::DETACHED | ExpectedFlags)) == ExpectedFlags;
 }
 
-// Whether this entity's movement should be driven from locally-captured keyboard/controller input:
-//  - HasAuthority() with no owning connection (single-player/editor) drives directly from local input, unchanged.
-//  - A client drives its OWN player's entity from local input, to be forwarded to the server below.
-//  - Everything else (a dedicated server's per-connection clones, or another player's clone visible
-//    on this client) must NOT read local input -- the former gets its input over the network, the
-//    latter is driven entirely by replication.
-// NOTE: deliberately evaluated in Process() rather than OnEntityAdded() -- for a freshly-cloned
-// per-connection player entity (see PlayerSystem::TrySpawnClone), PlayerComponent::connectionId is
-// still Invalid at the moment OnEntityAdded fires during Entity::Clone()'s component deserialization;
-// it's only set afterward, once TrySpawnClone gets the cloned handle back. By Process() time it's settled.
-
-/// @TODO Verify this and shore it up
-static bool NeedsLocalInputHandler(Entity* entity)
+static bool CanControlPlayerEntity(Entity* entity)
 {
     const PlayerComponent* playerComponent = entity->TryGetComponent<PlayerComponent>();
     const bool hasOwner = playerComponent != nullptr && playerComponent->connectionId != Invalid<net::NetConnectionId>;
@@ -187,12 +175,12 @@ void CharacterControllerSystem::OnEntityAdded(Entity* entity)
     SystemBase::OnEntityAdded(entity);
 
     if (!ShouldProcessScene(entity->GetScene()))
+    {
         return;
+    }
 
     if (!EngineGlobals::HasAuthority())
     {
-        // Non-authoritative processes never locally simulate character physics -- the server owns
-        // this and the resulting transform reaches us via replication (ComponentSnapshot).
         return;
     }
 
@@ -292,36 +280,29 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
                     entity->HasComponent<PlayerComponent>() ? entity->GetComponent<PlayerComponent>().connectionId : Invalid<net::NetConnectionId>,
                     entity->HasTag<EntityTag::Player>());
 
-            if (!component.inputHandler && NeedsLocalInputHandler(entity))
+            // Check needs initialization
+            if (!component.inputHandler)
             {
+                if (!CanControlPlayerEntity(entity))
+                {
+                    continue;
+                }
+
                 component.inputHandler = MakeHandle<CharacterControllerInputHandler>();
                 InitObject(component.inputHandler);
 
                 if (Game* game = GetWorld()->GetGame())
                 {
                     game->RegisterInputHandler(component.inputHandler);
-
-                    HYP_LOG(Scene, Info, "Registered local CharacterControllerInputHandler for Entity '{}'", entity->GetName());
-                }
-                else
-                {
-                    HYP_LOG(Scene, Warning, "NeedsLocalInputHandler() was true for Entity '{}' but GetWorld()->GetGame() returned null -- handler created but not registered", entity->GetName());
                 }
             }
 
             if (!hasAuthority)
             {
-                // Non-authoritative: only entities we locally control (i.e. that got an
-                // inputHandler above) need anything done here -- forward their input to the
-                // server. Everything else (other players' clones) is driven purely by
-                // replication and must not be touched here.
-                if (component.inputHandler)
-                {
-                    CharacterControllerInputHandler* inputHandler = StaticCast<CharacterControllerInputHandler>(component.inputHandler.Get());
-                    inputHandler->SetDeltaTime(GetWorld()->GetGameState().deltaTime);
+                CharacterControllerInputHandler* inputHandler = StaticCast<CharacterControllerInputHandler>(component.inputHandler.Get());
+                inputHandler->SetDeltaTime(GetWorld()->GetGameState().deltaTime);
 
-                    SendPlayerInputRequest(inputHandler->GetMovementInput(), int8(inputHandler->IsJumpPressed()));
-                }
+                SendPlayerInputRequest(inputHandler->GetMovementInput(), int8(inputHandler->IsJumpPressed()));
 
                 continue;
             }
@@ -346,9 +327,6 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
                 heightOffset = capsuleShape->GetHeight() - CapsuleHeightOffset;
             }
 
-            // Authoritative: drive from local keyboard input if we have an inputHandler (single-
-            // player/editor, no owning connection); otherwise this is a dedicated server driving a
-            // connected client's entity, so use the latest input received over the network instead.
             Vec2f movementInput;
             bool jumpPressed = false;
 

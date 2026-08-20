@@ -38,6 +38,7 @@ public:
     }
 
     void OnEntityAdded(Entity* entity) override;
+    void OnEntityRemoved(Entity* entity) override;
 
     void OnAddedToWorld(World* world) override;
     void OnRemovedFromWorld(World* world) override;
@@ -56,11 +57,14 @@ public:
 private:
     void HandleClientConnected(net::NetConnectionId connectionId);
     void HandleClientDisconnected(net::NetConnectionId connectionId);
-    bool TrySpawnClone(net::NetConnectionId connectionId);
+
+    bool TrySpawnPlayerEntity(net::NetConnectionId connectionId);
 
     void UpdateStreamingVolumes();
 
-    Handle<Entity> m_templateEntity;
+    // Server only
+    Map<UUID, Handle<Entity>> m_playerEntityTemplates;
+
     Map<net::NetConnectionId, Handle<Entity>> m_connectionIdToClone;
     Map<net::NetConnectionId, Handle<CameraStreamingVolume>> m_connectionIdToStreamingVolume;
     Array<net::NetConnectionId> m_pendingConnections;
