@@ -12,7 +12,11 @@ namespace Hyperion
     [ClassBinding(Name = "EntityTag")]
     public struct EntityTag
     {
+        //--
+
         public static readonly EntityTag None = new EntityTag(0x0);
+
+        //-- Persistent
 
         public static readonly EntityTag MobStatic = new EntityTag(0x1);
         public static readonly EntityTag MobDynamic = new EntityTag(0x2);
@@ -28,6 +32,10 @@ namespace Hyperion
 
         public static readonly EntityTag ReceivesUpdate = new EntityTag(0x8);
 
+        public static readonly EntityTag Player = new EntityTag(0x9);
+
+        //-- Non Persistent
+
         public static readonly EntityTag UIVisible = new EntityTag(0x10);
 
         public static readonly EntityTag FocusedInEditor = new EntityTag(0x20);
@@ -39,6 +47,8 @@ namespace Hyperion
 
         public static readonly EntityTag UpdatePhysicsShape = new EntityTag(0x100);
         public static readonly EntityTag UpdatePhysicsMaterial = new EntityTag(0x200);
+
+        //--
 
         public ulong Value;
 

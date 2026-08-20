@@ -52,6 +52,7 @@ private:
     void ProcessPendingCatchUp(Span<Handle<Scene>> scenes);
 
     Map<NetId, Handle<Entity>, SceneAllocator> m_netIdToEntity;
+    Map<net::NetConnectionId, Entity*> m_connectionIdToEntity;
     Array<net::NetConnectionId> m_pendingCatchUpConnections;
 }; // class PhysicsSystem
 

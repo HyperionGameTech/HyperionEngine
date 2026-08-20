@@ -9,6 +9,7 @@
 #include <Core/Reflection/Handle.hpp>
 #include <Core/Reflection/ObjectMacros.hpp>
 
+#include <Core/Math/Vector2.hpp>
 #include <Core/Math/Vector3.hpp>
 #include <Core/Memory/SharedPtr.hpp>
 
@@ -58,6 +59,12 @@ struct CharacterControllerComponent
 
     HYP_FIELD(Transient)
     bool isOnGround = false;
+
+    HYP_FIELD(Transient, Editor = false)
+    Vec2f networkMovementInput;
+
+    HYP_FIELD(Transient, Editor = false)
+    bool networkJumpRequested = false;
 };
 
 } // namespace Hyperion

@@ -36,6 +36,23 @@ void ServerRequestManager::RegisterHandlers(net::NetServer& netServer)
                 NetId(uint32(context.key)),
                 Transform(translation, scale, rotation)));
         });
+
+    netServer.RegisterHandler(NetMessageId::PlayerInputRequest,
+        [this](const NetMessageContext& context, ConstByteView payload)
+        {
+            MemoryByteReader reader { payload };
+
+            Vec2f movementInput;
+            int8 jumpRequested;
+
+            reader.Read(&movementInput, sizeof(Vec2f));
+            reader.Read(&jumpRequested, sizeof(int8));
+
+            PushRequest(ServerRequest<ServerRequestType::PlayerInput>(
+                context.connectionId,
+                movementInput,
+                jumpRequested));
+        });
 }
 
 } // namespace Hyperion

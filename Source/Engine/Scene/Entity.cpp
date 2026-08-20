@@ -194,8 +194,12 @@ void Entity::OnNodeAttached(Node* node)
     // needs world bounds update when a child is attached
     if (EntityManager* entityManager = GetEntityManager())
     {
-        BoundingBoxComponent& boundingBoxComponent = entityManager->GetComponent<BoundingBoxComponent>(this);
-        boundingBoxComponent.worldAabb = GetWorldBounds();
+        BoundingBoxComponent* boundingBoxComponent = entityManager->TryGetComponent<BoundingBoxComponent>(this);
+
+        if (boundingBoxComponent != nullptr)
+        {
+            boundingBoxComponent->worldAabb = GetWorldBounds();
+        }
     }
 }
 
@@ -204,8 +208,12 @@ void Entity::OnNodeDetached(Node* node)
     // needs world bounds update when a child is detached
     if (EntityManager* entityManager = GetEntityManager())
     {
-        BoundingBoxComponent& boundingBoxComponent = entityManager->GetComponent<BoundingBoxComponent>(this);
-        boundingBoxComponent.worldAabb = GetWorldBounds();
+        BoundingBoxComponent* boundingBoxComponent = entityManager->TryGetComponent<BoundingBoxComponent>(this);
+
+        if (boundingBoxComponent != nullptr)
+        {
+            boundingBoxComponent->worldAabb = GetWorldBounds();
+        }
     }
 }
 

@@ -11,6 +11,9 @@
 #include <Core/Containers/Array.hpp>
 
 #include <Core/Math/Transform.hpp>
+#include <Core/Math/Vector2.hpp>
+
+#include <Core/Utilities/Traits.hpp>
 
 #include <Net/NetMessage.hpp>
 #include <Net/NetMessageDispatcher.hpp>
@@ -28,7 +31,8 @@ enum class NetId : uint32;
 
 enum class ServerRequestType : uint8
 {
-    TransformEntity
+    TransformEntity,
+    PlayerInput
 };
 
 // ALL derived types must be trivially destructible, will be allocated using arena/transient allocators
@@ -62,8 +66,23 @@ struct ServerRequest<ServerRequestType::TransformEntity> final : ServerRequestBa
     }
 };
 
+template <>
+struct ServerRequest<ServerRequestType::PlayerInput> final : ServerRequestBase
+{
+    Vec2f movementInput;
+    int8 jumpRequested;
+
+    ServerRequest(net::NetConnectionId connectionId, const Vec2f& movementInput, int8 jumpRequested)
+        : ServerRequestBase(ServerRequestType::PlayerInput, connectionId, Invalid<NetId>),
+          movementInput(movementInput),
+          jumpRequested(jumpRequested)
+    {
+    }
+};
+
 // Must all be trivial as they won't be destructed!
 static_assert(std::is_trivially_destructible_v<ServerRequest<ServerRequestType::TransformEntity>>);
+static_assert(std::is_trivially_destructible_v<ServerRequest<ServerRequestType::PlayerInput>>);
 
 class ENGINE_API ServerRequestManager
 {

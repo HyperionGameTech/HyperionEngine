@@ -10,6 +10,7 @@
 
 #include <Scene/Components/ReplicationStateComponent.hpp>
 #include <Scene/Components/PlayerComponent.hpp>
+#include <Scene/Components/CharacterControllerComponent.hpp>
 
 #include <Scene/EntityManager.hpp>
 #include <Scene/Scene.hpp>
@@ -164,6 +165,11 @@ void ReplicationSystem::OnEntityAdded(Entity* entity)
 
     m_netIdToEntity.Set(netId, MakeStrongRef(entity));
 
+    if (const net::NetConnectionId ownerConnectionId = GetOwnerConnectionId(entity); ownerConnectionId != Invalid<net::NetConnectionId>)
+    {
+        m_connectionIdToEntity.Set(ownerConnectionId, entity);
+    }
+
     HYP_LOG(Replication, Info, "Entity {} added to replication (netId={}), broadcasting EntitySpawn",
         entity->Id().Value(), uint32(netId));
 
@@ -210,6 +216,11 @@ void ReplicationSystem::OnEntityRemoved(Entity* entity)
 
     m_netIdToEntity.Erase(netId);
 
+    if (const net::NetConnectionId ownerConnectionId = GetOwnerConnectionId(entity); ownerConnectionId != Invalid<net::NetConnectionId>)
+    {
+        m_connectionIdToEntity.Erase(ownerConnectionId);
+    }
+
     HYP_LOG(Replication, Info, "Entity {} removed from replication (netId={}), broadcasting EntityDespawn",
         entity->Id().Value(), uint32(netId));
 
@@ -246,22 +257,39 @@ void ReplicationSystem::ApplyPendingRequests()
 
     for (const ServerRequestBase* requestPtr : requests)
     {
-        auto it = m_netIdToEntity.Find(requestPtr->netId);
-
-        if (it == m_netIdToEntity.End())
-        {
-            continue;
-        }
-
-        Entity* entity = it->second.Get();
-
         switch (requestPtr->type)
         {
         case ServerRequestType::TransformEntity:
         {
+            auto it = m_netIdToEntity.Find(requestPtr->netId);
+
+            if (it == m_netIdToEntity.End())
+            {
+                break;
+            }
+
             const ServerRequest<ServerRequestType::TransformEntity>& request = static_cast<const ServerRequest<ServerRequestType::TransformEntity>&>(*requestPtr);
 
-            entity->SetLocalTransform(request.transform);
+            it->second->SetLocalTransform(request.transform);
+
+            break;
+        }
+        case ServerRequestType::PlayerInput:
+        {
+            auto it = m_connectionIdToEntity.Find(requestPtr->connectionId);
+
+            if (it == m_connectionIdToEntity.End())
+            {
+                break;
+            }
+
+            const ServerRequest<ServerRequestType::PlayerInput>& request = static_cast<const ServerRequest<ServerRequestType::PlayerInput>&>(*requestPtr);
+
+            if (CharacterControllerComponent* characterControllerComponent = it->second->TryGetComponent<CharacterControllerComponent>())
+            {
+                characterControllerComponent->networkMovementInput = request.movementInput;
+                characterControllerComponent->networkJumpRequested = request.jumpRequested;
+            }
 
             break;
         }

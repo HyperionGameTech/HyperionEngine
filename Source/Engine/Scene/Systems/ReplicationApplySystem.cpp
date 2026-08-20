@@ -14,10 +14,12 @@
 
 #include <Scene/Components/ReplicationStateComponent.hpp>
 #include <Scene/Components/PlayerComponent.hpp>
+#include <Scene/Components/CharacterControllerComponent.hpp>
 
 #include <Scene/Systems/PhysicsSystem.hpp>
 
 #include <Scene/Camera/Camera.hpp>
+#include <Scene/Camera/FirstPersonCamera.hpp>
 #include <Scene/Camera/Streaming/CameraStreamingVolume.hpp>
 
 #include <Framework/EngineGlobals.hpp>
@@ -103,6 +105,76 @@ static void ApplyOwnerConnectionId(const Handle<Entity>& entity, net::NetConnect
 }
 
 
+static Handle<Entity> FindTemplateEntity(Span<Handle<Scene>> scenes, SystemBase* system)
+{
+    for (Scene* scene : scenes)
+    {
+        if (!system->ShouldProcessScene(scene))
+        {
+            continue;
+        }
+
+        for (auto [entity, tag] : scene->GetEntityManager()->GetEntitySet<TagComponent<EntityTag::Player>>())
+        {
+            return MakeStrongRef(entity);
+        }
+    }
+
+    return Handle<Entity>::Null();
+}
+
+// A player's clone (see PlayerSystem::TrySpawnClone) isn't level-authored, so there's no local
+// entity to correlate it against by UUID -- the wire payload also only carries transform/name/class,
+// not the full component set. Cloning our own local Player-tagged template gives every player's
+// avatar the same components (mesh, character controller, etc.) the server's clone has, without
+// needing to grow the EntitySpawn protocol into a full component serializer.
+static Handle<Entity> CloneFromLocalTemplate(const Handle<Entity>& templateEntity, const ReplicationOp<ReplicationOpType::Spawn>& spawnOp)
+{
+    Handle<Entity> clone = DynamicCast<Entity>(templateEntity->Clone());
+
+    if (!clone.IsValid())
+    {
+        HYP_LOG(Replication, Error, "Failed to clone local player template entity for netId={}", uint32(spawnOp.netId));
+
+        return Handle<Entity>::Null();
+    }
+
+    // clients attach their own camera locally (see UpdateLocalPlayerFollowers) rather than inheriting
+    // one from the template clone -- strip it here the same way PlayerSystem::TrySpawnClone does.
+    for (const Handle<Node>& child : Array<Handle<Node>>(clone->GetChildren()))
+    {
+        if (DynamicCast<Camera>(child))
+        {
+            child->Remove();
+        }
+    }
+
+    Node* parent = templateEntity->GetParent();
+
+    if (parent)
+    {
+        parent->AddChild(clone);
+    }
+    else
+    {
+        templateEntity->GetEntityManager()->GetScene()->GetRoot()->AddChild(clone);
+    }
+
+    clone->SetName(spawnOp.name);
+    clone->SetLocalTransform(spawnOp.transform);
+    clone->AddComponent<ReplicationStateComponent>(ReplicationStateComponent { spawnOp.netId });
+
+    clone->RemoveTag<EntityTag::Player>();
+    clone->AddTag<EntityTag::Replicated>();
+
+    ApplyOwnerConnectionId(clone, spawnOp.ownerConnectionId);
+
+    HYP_LOG(Replication, Info, "Cloned local player template for netId={} (owner connection {})",
+        uint32(spawnOp.netId), uint32(spawnOp.ownerConnectionId));
+
+    return clone;
+}
+
 static Handle<Entity> ExecuteEntitySpawn(const ReplicationOp<ReplicationOpType::Spawn>& spawnOp, const Scene& targetScene, const Map<NetId, Handle<Entity>, SceneAllocator>& netIdToEntity)
 {
     const Class* entityClass = GetClass(spawnOp.typeId);
@@ -174,6 +246,17 @@ static Handle<Entity> TryResolveSpawn(const ReplicationOp<ReplicationOpType::Spa
             existing->GetName(), uint32(spawnOp.netId));
 
         return existing;
+    }
+
+    if (spawnOp.ownerConnectionId != Invalid<net::NetConnectionId>)
+    {
+        if (Handle<Entity> templateEntity = FindTemplateEntity(scenes, system); templateEntity.IsValid())
+        {
+            return CloneFromLocalTemplate(templateEntity, spawnOp);
+        }
+
+        // Template hasn't loaded locally yet -- retry once it (or the scene containing it) is available.
+        return Handle<Entity>::Null();
     }
 
     if (IsWaitingOnParent(spawnOp, netIdToEntity))
@@ -355,24 +438,6 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
     UpdateLocalPlayerFollowers(scenes);
 }
 
-static Handle<Entity> FindTemplateEntity(Span<Handle<Scene>> scenes, SystemBase* system)
-{
-    for (Scene* scene : scenes)
-    {
-        if (!system->ShouldProcessScene(scene))
-        {
-            continue;
-        }
-
-        for (auto [entity, tag] : scene->GetEntityManager()->GetEntitySet<TagComponent<EntityTag::Player>>())
-        {
-            return MakeStrongRef(entity);
-        }
-    }
-
-    return Handle<Entity>::Null();
-}
-
 static Handle<Camera> FindCameraChild(const Handle<Entity>& entity)
 {
     for (const Handle<Node>& child : entity->GetChildren())
@@ -408,7 +473,8 @@ void ReplicationApplySystem::UpdateLocalPlayerFollowers(Span<Handle<Scene>> scen
                     camera->Remove();
                     myPlayerEntity->AddChild(camera);
 
-                    HYP_LOG(Replication, Info, "Reparented Camera onto resolved local player entity '{}'", myPlayerEntity->GetName());
+                    bool hasCharacterController = templateEntity->HasComponent<CharacterControllerComponent>();
+                    HYP_LOG(Replication, Info, "Reparented Camera onto resolved local player entity '{}', hasCharacterController = {}", myPlayerEntity->GetName(), hasCharacterController);
                 }
             }
         }

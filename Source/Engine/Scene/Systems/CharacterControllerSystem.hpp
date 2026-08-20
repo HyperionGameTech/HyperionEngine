@@ -9,6 +9,7 @@
 #include <Scene/System.hpp>
 #include <Scene/Components/CharacterControllerComponent.hpp>
 #include <Scene/Components/TransformComponent.hpp>
+#include <Scene/Components/PlayerComponent.hpp>
 
 #include <Input/InputHandler.hpp>
 
@@ -80,7 +81,8 @@ private:
     {
         return {
             ComponentDescriptor<CharacterControllerComponent, ComponentAccess::READ_WRITE> {},
-            ComponentDescriptor<TransformComponent, ComponentAccess::READ_WRITE> {}
+            ComponentDescriptor<TransformComponent, ComponentAccess::READ_WRITE> {},
+            ComponentDescriptor<PlayerComponent, ComponentAccess::READ, false> {}
         };
     }
 };
