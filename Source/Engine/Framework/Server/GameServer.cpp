@@ -119,24 +119,29 @@ GameServer::GameServer()
 {
     m_requestManager.RegisterHandlers(m_netServer);
 
-    m_netServer.OnClientConnected.Bind([this](const NetClientConnectedData& data)
-                                      {
-                                          HYP_LOG(GameServer, Info, "Client connected: {} (connection id: {})", data.address.ToString(), uint32(data.connectionId));
+    m_netServer.OnClientConnected
+        .Bind([this](const NetServerConnectionStateChangedData& data)
+        {
+            HYP_LOG(GameServer, Info, "Client connected: {} (connection id: {})", data.address.ToString(), uint32(data.connectionId));
 
-                                          NotifyClientConnected(data.connectionId);
-                                      })
+            NotifyClientConnected(data.connectionId);
+        })
         .Detach();
 
-    m_netServer.OnClientDisconnected.Bind([](const NetClientDisconnectedData& data)
-                                         {
-                                             HYP_LOG(GameServer, Info, "Client disconnected: {} (connection id: {})", data.address.ToString(), uint32(data.connectionId));
-                                         })
+    m_netServer.OnClientDisconnected
+        .Bind([](const NetServerConnectionStateChangedData& data)
+        {
+            HYP_LOG(GameServer, Info, "Client disconnected: {} (connection id: {})", data.address.ToString(), uint32(data.connectionId));
+        })
         .Detach();
 }
 
 GameServer::~GameServer()
 {
     Stop();
+
+    m_netServer.OnClientConnected.RemoveAllDetached();
+    m_netServer.OnClientDisconnected.RemoveAllDetached();
 }
 
 bool GameServer::IsRunning() const

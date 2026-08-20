@@ -83,7 +83,7 @@ public:
 GameClient::GameClient()
 {
     m_netClient.OnConnected.Bind(
-        [this](const NetClientConnectionStateChangeData& data)
+        [this](const NetClientConnectionStateChangedData& data)
         {
             HYP_LOG(GameClient, Warning, "Connected to server: {}", data.serverAddress.ToString());
 
@@ -92,7 +92,7 @@ GameClient::GameClient()
         .Detach();
 
     m_netClient.OnDisconnected.Bind(
-        [this](const NetClientConnectionStateChangeData& data)
+        [this](const NetClientConnectionStateChangedData& data)
         {
             HYP_LOG(GameClient, Warning, "Disconnected from server: {}", data.serverAddress.ToString());
 

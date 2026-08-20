@@ -62,12 +62,7 @@ private:
 
     void TryResolvePendingSpawns(Span<Handle<Scene>> scenes);
 
-    // Local-only, never networked: once GetMyPlayerEntity() resolves, attaches this process's
-    // camera and streaming interest to it. Single-player: the template already has its Camera
-    // child authored in place, this is a no-op beyond creating the streaming volume. Multiplayer
-    // client: the received clone never carries a Camera (EntitySpawn never transmits child
-    // hierarchy), so this steals the already-locally-loaded template's camera.
-    void UpdateLocalPlayerFollowers(Span<Handle<Scene>> scenes);
+    void UpdateStreamingVolume(Span<Handle<Scene>> scenes);
 
     Array<PendingSpawn, SceneAllocator> m_pendingSpawns;
     Map<NetId, Handle<Entity>, SceneAllocator> m_netIdToEntity;

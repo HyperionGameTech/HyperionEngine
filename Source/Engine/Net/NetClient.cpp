@@ -80,11 +80,18 @@ Result NetClient::Connect(const NetAddress& serverAddress)
 
 void NetClient::Disconnect()
 {
-    m_connectionState.Set(NetClientConnectionState::Disconnected, MemoryOrder::RELEASE);
+    const NetClientConnectionState currState = m_connectionState.Get(MemoryOrder::ACQUIRE);
 
+    const bool wasConnectedOrConnecting = (currState == NetClientConnectionState::Connecting
+        || currState == NetClientConnectionState::Connected);
+
+    m_connectionState.Set(NetClientConnectionState::Disconnected, MemoryOrder::RELEASE);
     m_socket.Close();
 
-    OnDisconnected(NetClientConnectionStateChangedData { m_serverAddress });
+    if (wasConnectedOrConnecting)
+    {
+        OnDisconnected(NetClientConnectionStateChangedData { m_serverAddress });
+    }
 }
 
 void NetClient::RegisterHandler(NetMessageId messageId, NetMessageHandler&& handler)

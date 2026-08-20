@@ -87,55 +87,6 @@ static Handle<Entity> FindLocalEntityByUuid(const Scene& scene, const UUID& uuid
     return Handle<Entity>::Null();
 }
 
-static Handle<Entity> FindTemplateEntity(Span<Handle<Scene>> scenes, const UUID& templateUuid)
-{
-    for (Scene* scene : scenes)
-    {
-        for (auto [entity, tag] : scene->GetEntityManager()->GetEntitySet<TagComponent<EntityTag::Player>>())
-        {
-            if (entity->GetUUID() == templateUuid)
-            {
-                return MakeStrongRef(entity);
-            }
-        }
-    }
-
-    return Handle<Entity>::Null();
-}
-
-static Handle<Entity> CloneFromLocalTemplate(const Handle<Entity>& templateEntity, const ReplicationOp<ReplicationOpType::Spawn>& spawnOp)
-{
-    Handle<Entity> clone = DynamicCast<Entity>(templateEntity->Clone());
-
-    if (!clone.IsValid())
-    {
-        HYP_LOG(Replication, Error, "Failed to clone local player template entity for netId={}", uint32(spawnOp.netId));
-
-        return Handle<Entity>::Null();
-    }
-
-    Node* parent = templateEntity->GetParent();
-
-    if (parent)
-    {
-        parent->AddChild(clone);
-    }
-    else
-    {
-        templateEntity->GetEntityManager()->GetScene()->GetRoot()->AddChild(clone);
-    }
-
-    clone->SetName(spawnOp.name);
-    clone->SetLocalTransform(spawnOp.transform);
-
-    clone->AddComponent<ReplicationStateComponent>(ReplicationStateComponent { spawnOp.netId });
-
-    HYP_LOG(Replication, Info, "Cloned local player template for netId={} (owner connection {})",
-        uint32(spawnOp.netId), uint32(spawnOp.ownerConnectionId));
-
-    return clone;
-}
-
 static Handle<Entity> ExecuteEntitySpawn(const ReplicationOp<ReplicationOpType::Spawn>& spawnOp, const Scene& targetScene, const Map<NetId, Handle<Entity>, SceneAllocator>& netIdToEntity)
 {
     const Class* entityClass = GetClass(spawnOp.typeId);
@@ -376,7 +327,7 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
         }
     }
 
-    UpdateLocalPlayerFollowers(scenes);
+    UpdateStreamingVolume(scenes);
 }
 
 static Handle<Camera> FindCameraChild(const Handle<Entity>& entity)
@@ -392,7 +343,7 @@ static Handle<Camera> FindCameraChild(const Handle<Entity>& entity)
     return Handle<Camera>::Null();
 }
 
-void ReplicationApplySystem::UpdateLocalPlayerFollowers(Span<Handle<Scene>> scenes)
+void ReplicationApplySystem::UpdateStreamingVolume(Span<Handle<Scene>> scenes)
 {
     Handle<Entity> myPlayerEntity = GetMyPlayerEntity();
 
