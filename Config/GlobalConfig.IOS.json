@@ -1,7 +1,7 @@
 {
   "App": {
     "Name": "DefaultGame",
-    "Args": "-HighDPI=false -RenderOnMainThread=true -SimulateOnMainThread=false -Detached=true",
+    "Args": "--highdpi=false -RenderOnMainThread=true -SimulateOnMainThread=false --detached=true",
     "Cache": {
       "BaseDirectory": "Cache",
       "PageSize": 268435456

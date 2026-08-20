@@ -146,7 +146,7 @@ protected:
     virtual void OnComponentRemoved(AnyRef component);
 
     virtual void OnTagAdded(EntityTag tag);
-    virtual void OnTagRemoved(EntityTag tag);
+    virtual void OnTagRemoved(EntityTag tag, bool refreshDependentTags = true);
 
     virtual void SetScene_Internal(Scene* scene, bool moveToDetached) override;
 

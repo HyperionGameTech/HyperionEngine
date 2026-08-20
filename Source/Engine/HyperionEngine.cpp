@@ -300,12 +300,12 @@ void InitMainWindow()
 
     EnumFlags<WindowFlags> windowFlags = WindowFlags::EVENTS_POLLING;
 
-    if (cliArgs["Headless"].ToBool())
+    if (cliArgs["headless"].ToBool())
     {
         windowFlags |= WindowFlags::HEADLESS;
     }
 
-    if (cliArgs["HighDPI"].ToBool())
+    if (cliArgs["highdpi"].ToBool())
     {
         windowFlags |= WindowFlags::HIGH_DPI;
     }
@@ -314,14 +314,14 @@ void InitMainWindow()
     {
         Vec2i resolution = { 1920, 1080 };
 
-        if (cliArgs["ResX"].IsNumber())
+        if (cliArgs["resx"].IsNumber())
         {
-            resolution.x = cliArgs["ResX"].ToInt32();
+            resolution.x = cliArgs["resx"].ToInt32();
         }
 
-        if (cliArgs["ResY"].IsNumber())
+        if (cliArgs["resy"].IsNumber())
         {
-            resolution.y = cliArgs["ResY"].ToInt32();
+            resolution.y = cliArgs["resy"].ToInt32();
         }
 
         HYP_LOG(Engine, Info, "Running in windowed mode: {}x{}", resolution.x, resolution.y);
@@ -624,8 +624,6 @@ extern "C"
         HYP_FAIL("AppContext not implemented for this platform");
 #endif // HYP_WINDOWS || HYP_MACOS || HYP_ANDROID || HYP_IOS
         
-        HYP_LOG(Engine, Info, "IsServer={} HasAuthority={}", EngineGlobals::IsServer(), EngineGlobals::HasAuthority());
-
         if (EngineGlobals::IsServer())
         {
             g_gameServer = new GameServer;
@@ -658,7 +656,7 @@ extern "C"
         if (CoreApi::IsProfilingEnabled())
         {
             StartProfilerConnectionThread(ProfilerConnectionParams {
-                /* endpointUrl */ CoreApi::GetCommandLineArguments()["TraceURL"].ToString(),
+                /* endpointUrl */ CoreApi::GetCommandLineArguments()["traceserver"].ToString(),
                 /* enabled */ true
             });
         }

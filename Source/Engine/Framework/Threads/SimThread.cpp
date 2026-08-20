@@ -195,7 +195,10 @@ void SimThread::Update()
         // game instance should be null if not launched yet
         AssertDebug(m_gameInstance->m_isLaunched.Get(MemoryOrder::RELAXED));
 
-        m_gameInstance->m_gameState.deltaTime = m_counter.delta;
+        if (m_gameInstance->m_gameState.IsSimulating())
+        {
+            m_gameInstance->m_gameState.deltaTime = m_counter.delta;
+        }
     }
 
     if (g_appContext.IsValid())

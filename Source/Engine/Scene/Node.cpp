@@ -744,10 +744,11 @@ void Node::SetLocalTransform(const Transform& transform, TransformChangeType cha
         return;
     }
 
-    if (m_localTransform == transform)
-    {
-        return;
-    }
+    // Commented out for temp test.
+    //if (m_localTransform == transform)
+    //{
+    //    return;
+    //}
 
     m_localTransform = transform;
 
@@ -1001,10 +1002,10 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
         }
     }
 
-    if (m_worldMatrix == prevWorldMatrix)
-    {
-        return;
-    }
+    //if (m_worldMatrix == prevWorldMatrix)
+    //{
+    //    return;
+    //}
 
     OnTransformUpdated();
 }

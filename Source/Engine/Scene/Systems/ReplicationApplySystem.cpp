@@ -20,9 +20,11 @@
 #include <Scene/Camera/Camera.hpp>
 #include <Scene/Camera/Streaming/CameraStreamingVolume.hpp>
 
+#include <Framework/EngineGlobals.hpp>
+#include <Framework/GameState.hpp>
+
 #include <Framework/Client/GameClient.hpp>
 #include <Framework/Client/ClientReplicationManager.hpp>
-#include <Framework/EngineGlobals.hpp>
 
 #include <Streaming/StreamingManager.hpp>
 
@@ -244,6 +246,11 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
         return;
     }
 
+    if (!GetWorld()->GetGameState().IsSimulating())
+    {
+        return;
+    }
+
     GlobalContextScope replicationApplyScope { ReplicationApplyContext {} };
 
     for (size_t i = 0; i < m_pendingSpawns.Size();)
@@ -269,7 +276,8 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
         ++i;
     }
 
-    Array<ReplicationOpBase*, SceneTempAllocator> ops;
+    // Don't use temp - not enough mem
+    Array<ReplicationOpBase*, SceneAllocator> ops;
     g_gameClient->GetReplicationManager().DrainPendingOps(ops);
 
     for (const ReplicationOpBase* opPtr : ops)
@@ -278,6 +286,8 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
         {
         case ReplicationOpType::Spawn:
         {
+        HYP_LOG(Replication, Info, "Client got message of type {}", opPtr->type);
+
             const ReplicationOp<ReplicationOpType::Spawn>& op = static_cast<const ReplicationOp<ReplicationOpType::Spawn>&>(*opPtr);
 
             if (m_netIdToEntity.Find(op.netId) != m_netIdToEntity.End())
@@ -303,6 +313,8 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
         }
         case ReplicationOpType::Despawn:
         {
+        HYP_LOG(Replication, Info, "Client got message of type {}", opPtr->type);
+
             const ReplicationOp<ReplicationOpType::Despawn>& op = static_cast<const ReplicationOp<ReplicationOpType::Despawn>&>(*opPtr);
 
             auto it = m_netIdToEntity.Find(op.netId);

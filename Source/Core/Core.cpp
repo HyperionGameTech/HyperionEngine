@@ -63,7 +63,7 @@ CORE_API const FilePath& GetBaseDirectory()
             const CommandLineArguments& cliArgs = GetCommandLineArguments();
 
 #if !defined(HYP_ANDROID) && !defined(HYP_IOS)
-            auto it = cliArgs.Find("BaseDir");
+            auto it = cliArgs.Find("basedir");
             if (it != cliArgs.End())
             {
                 const auto& value = it->second;
@@ -116,18 +116,18 @@ CORE_API const CommandLineArgumentDefinitions& DefaultCommandLineArgumentDefinit
 
         DefaultCommandLineArgumentDefinitionsInitializer()
         {
-            definitions.Add("Profile", {}, "Enable collection of profiling data for functions that opt in using HYP_SCOPE.", CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
-            definitions.Add("TraceURL", {}, "The endpoint url that profiling data will be submitted to (this url will have /start appended to it to start the session and /results to add results)", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
-            definitions.Add("BaseDir", {}, "Base directory", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
-            definitions.Add("CacheDir", {}, "Directory for loading blob cache data (or saving for cook)", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
-            definitions.Add("ContentDir", {}, "Directory for loading content manifest files", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
-            definitions.Add("CacheServer", {}, "Endpoint to sync cache from", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
-            definitions.Add("ResX", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::INTEGER);
-            definitions.Add("ResY", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::INTEGER);
-            definitions.Add("Headless", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
-            definitions.Add("HighDPI", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
-            definitions.Add("Detached", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
-            definitions.Add("Editor", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
+            definitions.Add("profile", {}, "Enable collection of profiling data for functions that opt in using HYP_SCOPE.", CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
+            definitions.Add("traceserver", {}, "The endpoint url that profiling data will be submitted to (this url will have /start appended to it to start the session and /results to add results)", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
+            definitions.Add("basedir", {}, "Base directory", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
+            definitions.Add("cachedir", {}, "Directory for loading blob cache data (or saving for cook)", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
+            definitions.Add("contentdir", {}, "Directory for loading content manifest files", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
+            definitions.Add("cacheserver", {}, "Endpoint to sync cache from", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
+            definitions.Add("resx", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::INTEGER);
+            definitions.Add("resy", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::INTEGER);
+            definitions.Add("headless", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
+            definitions.Add("highdpi", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
+            definitions.Add("detached", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
+            definitions.Add("editor", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
             definitions.Add("server", {}, "Launch standalone game as headless authoritative server", CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
             definitions.Add("host", {}, "Provide host address for connecting to a game server", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
             definitions.Add("autoconnect", {}, "If true, will automatically connect to the given `host`", CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, true);
@@ -264,7 +264,7 @@ CORE_API const GlobalConfig& GetGlobalConfig()
 CORE_API bool IsProfilingEnabled()
 {
     // only check once since it won't change and we call from some hot paths
-    static const bool s_isProfilingEnabled = GetCommandLineArguments()["Profile"].ToBool();
+    static const bool s_isProfilingEnabled = GetCommandLineArguments()["profile"].ToBool();
 
     return s_isProfilingEnabled;
 }

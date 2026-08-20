@@ -427,7 +427,10 @@ void EngineDriver::Shutdown()
         g_shaderManager->StopShaderReloadThread();
 
 #if !defined(HYP_SHIPPING)
-        g_shaderManager->WriteShaderCache(EngineGlobals::GetCacheDirectory());
+        if (!EngineGlobals::IsServer())
+        {
+            g_shaderManager->WriteShaderCache(EngineGlobals::GetCacheDirectory());
+        }
 #endif // !HYP_SHIPPING
 
         delete g_shaderManager;
@@ -610,8 +613,12 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
         }
 
         gameInstance->OnUpdate(delta);
-        gameInstance->m_gameState.gameTime += delta;
-        
+
+        if (gameInstance->m_gameState.IsSimulating())
+        {
+            gameInstance->m_gameState.gameTime += delta;
+        }
+
         for (Scene* scene : scenes)
         {
             EntityManager* entityManager = scene->GetEntityManager();

@@ -7,7 +7,8 @@
 #pragma once
 
 #include <Core/Containers/Array.hpp>
-#include <Core/Containers/FlatMap.hpp>
+#include <Core/Containers/Map.hpp>
+#include <Core/Containers/SparseArray2.hpp>
 
 #include <Core/Utilities/EnumFlags.hpp>
 #include <Core/Utilities/Optional.hpp>
@@ -29,7 +30,6 @@ namespace Hyperion {
 class Entity;
 
 enum class ComponentId : uint32;
-static constexpr ComponentId InvalidComponentId = ComponentId(0);
 
 HYP_ENUM()
 enum class ComponentAccess : uint8
@@ -266,75 +266,76 @@ public:
     {
         HYP_MT_CHECK_READ(m_dataRaceDetector);
 
-        return m_components.Contains(id);
+        return m_components.HasIndex(uint32(id));
     }
 
     virtual AnyRef TryGetComponent(ComponentId id) override
     {
         HYP_MT_CHECK_READ(m_dataRaceDetector);
 
-        auto it = m_components.Find(id);
-
-        if (it == m_components.End())
+        if (!m_components.HasIndex(uint32(id)))
         {
             return AnyRef::Empty();
         }
 
-        return AnyRef(&it->second);
+        return AnyRef(&m_components.GetUnchecked(uint32(id)));
     }
 
     virtual ConstAnyRef TryGetComponent(ComponentId id) const override
     {
         HYP_MT_CHECK_READ(m_dataRaceDetector);
 
-        auto it = m_components.Find(id);
-
-        if (it == m_components.End())
+        if (!m_components.HasIndex(uint32(id)))
         {
             return ConstAnyRef::Empty();
         }
 
-        return ConstAnyRef(&it->second);
+        return ConstAnyRef(&m_components.GetUnchecked(uint32(id)));
     }
 
     HYP_FORCE_INLINE Component& GetComponent(ComponentId id)
     {
         HYP_MT_CHECK_READ(m_dataRaceDetector);
 
-        Assert(HasComponent(id), "Component of type `{}` with ID {} does not exist", TypeNameWithoutNamespace<Component>().Data(), id);
+        AssertDebug(m_components.HasIndex(uint32(id)), "Component of type `{}` with ID {} does not exist", TypeNameWithoutNamespace<Component>().Data(), id);
 
-        return m_components.At(id);
+        if (HYP_UNLIKELY(!m_components.HasIndex(uint32(id))))
+        {
+            // Fall back to reference to static - since we return a reference
+            // we need this and can't return null. But this should not happen!
+            // Just needed to prevent destruction of the universe and everything within it
+            static Component s_fallbackDefaultComponent {};
+            return s_fallbackDefaultComponent;
+        }
+
+        return m_components.GetUnchecked(uint32(id));
     }
 
     HYP_FORCE_INLINE const Component& GetComponent(ComponentId id) const
     {
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
-
-        Assert(HasComponent(id), "Component of type `{}` with ID {} does not exist", TypeNameWithoutNamespace<Component>().Data(), id);
-
-        return m_components.At(id);
+        return const_cast<ComponentContainer*>(this)->GetComponent(id);
     }
 
     HYP_FORCE_INLINE Pair<ComponentId, Component&> AddComponent(const Component& component)
     {
         HYP_MT_CHECK_RW(m_dataRaceDetector);
+        
+        ComponentId id = AllocComponentId();
 
-        ComponentId id = ComponentId(++m_componentIdCounter);
+        m_components.Set(uint32(id), component);
 
-        auto insertResult = m_components.Set(id, component);
-
-        return Pair<ComponentId, Component&> { id, insertResult.first->second };
+        return Pair<ComponentId, Component&> { id, m_components.GetUnchecked(uint32(id)) };
     }
 
     HYP_FORCE_INLINE Pair<ComponentId, Component&> AddComponent(Component&& component)
     {
         HYP_MT_CHECK_RW(m_dataRaceDetector);
 
-        ComponentId id = ComponentId(++m_componentIdCounter);
+        ComponentId id = AllocComponentId();
 
-        auto insertResult = m_components.Set(id, std::move(component));
+        m_components.Set(uint32(id), std::move(component));
 
-        return Pair<ComponentId, Component&> { id, insertResult.first->second };
+        return Pair<ComponentId, Component&> { id, m_components.GetUnchecked(uint32(id)) };
     }
 
     virtual ComponentId AddComponent(const BoxedValue& componentData) override
@@ -357,11 +358,16 @@ public:
     {
         HYP_MT_CHECK_RW(m_dataRaceDetector);
 
-        auto it = m_components.Find(id);
-
-        if (it != m_components.End())
+        if (id == Invalid<ComponentId>)
         {
-            m_components.Erase(it);
+            return false;
+        }
+
+        if (m_components.HasIndex(uint32(id)))
+        {
+            m_components.Delete(uint32(id));
+
+            FreeComponentId(id);
 
             return true;
         }
@@ -373,13 +379,18 @@ public:
     {
         HYP_MT_CHECK_RW(m_dataRaceDetector);
 
-        auto it = m_components.Find(id);
-
-        if (it != m_components.End())
+        if (id == Invalid<ComponentId>)
         {
-            outBoxed = BoxedValue(std::move(it->second));
+            return false;
+        }
 
-            m_components.Erase(it);
+        if (m_components.HasIndex(uint32(id)))
+        {
+            outBoxed = BoxedValue(std::move(m_components.GetUnchecked(uint32(id))));
+
+            m_components.Delete(uint32(id));
+
+            FreeComponentId(id);
 
             return true;
         }
@@ -393,15 +404,20 @@ public:
 
         HYP_MT_CHECK_RW(m_dataRaceDetector);
 
-        auto it = m_components.Find(id);
-
-        if (it != m_components.End())
+        if (id == Invalid<ComponentId>)
         {
-            Component& component = it->second;
+            return {};
+        }
+
+        if (m_components.HasIndex(uint32(id)))
+        {
+            Component& component = m_components.GetUnchecked(uint32(id));
 
             const ComponentId newComponentId = static_cast<ComponentContainer<Component>&>(other).AddComponent(std::move(component)).first;
 
-            m_components.Erase(it);
+            m_components.Delete(uint32(id));
+
+            FreeComponentId(id);
 
             return newComponentId;
         }
@@ -409,17 +425,26 @@ public:
         return {};
     }
 
-    HYP_FORCE_INLINE size_t Size() const
-    {
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
+private:
+    using ComponentsMap = SparseArray<Component, SceneAllocator, 256, SparseArrayPolicy::KeepPointersValid>;
 
-        return m_components.Size();
+    HYP_NODISCARD ComponentId AllocComponentId()
+    {
+        return ComponentId(m_componentIdAllocator.Allocate());
     }
 
-private:
-    uint32 m_componentIdCounter = 0;
+    void FreeComponentId(ComponentId componentId)
+    {
+        if (componentId == Invalid<ComponentId>)
+        {
+            return;
+        }
 
-    Map<ComponentId, Component, SceneAllocator> m_components;
+        m_componentIdAllocator.Free(uint32(componentId));
+    }
+
+    ComponentsMap m_components;
+    IndexAllocator m_componentIdAllocator;
 };
 
 template <class Component>

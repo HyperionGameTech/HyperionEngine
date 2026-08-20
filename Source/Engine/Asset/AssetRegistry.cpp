@@ -597,7 +597,7 @@ void AssetRegistry::Initialize(
             && !EngineGlobals::IsCooking()
             && !EngineGlobals::IsCacheServer())
         {
-            if (const auto& cfgCacheServer = CoreApi::GetCommandLineArguments()["CacheServer"]; cfgCacheServer.IsString())
+            if (const auto& cfgCacheServer = CoreApi::GetCommandLineArguments()["cacheserver"]; cfgCacheServer.IsString())
             {
                 CacheClient::Params params {};
                 params.cacheServer = cfgCacheServer.AsString();

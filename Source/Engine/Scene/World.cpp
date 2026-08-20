@@ -250,11 +250,18 @@ void World::Initialize()
     if (!HasSystem<CharacterControllerSystem>())
         AddSystem(MakeHandle<CharacterControllerSystem>());
 
-    if (EngineGlobals::IsServer() && !HasSystem<ReplicationSystem>())
-        AddSystem(MakeHandle<ReplicationSystem>());
+    if (m_worldFlags & WorldFlags::IsReplicated)
+    {
+        if (EngineGlobals::IsServer() && !HasSystem<ReplicationSystem>())
+        {
+            AddSystem(MakeHandle<ReplicationSystem>());
+        }
 
-    if (!EngineGlobals::IsServer() && !HasSystem<ReplicationApplySystem>())
-        AddSystem(MakeHandle<ReplicationApplySystem>());
+        if (!EngineGlobals::IsServer() && !HasSystem<ReplicationApplySystem>())
+        {
+            AddSystem(MakeHandle<ReplicationApplySystem>());
+        }
+    }
 
     if (!HasSystem<PlayerSystem>())
         AddSystem(MakeHandle<PlayerSystem>());
@@ -443,6 +450,35 @@ void World::SetWorldFlags(EnumFlags<WorldFlags> flags)
         }
     }
 
+    // Same thing for replication
+    if (changedFlags & uint32(WorldFlags::IsReplicated))
+    {
+        if (m_worldFlags & WorldFlags::IsReplicated)
+        {
+            if (EngineGlobals::IsServer() && !HasSystem<ReplicationSystem>())
+            {
+                AddSystem(MakeHandle<ReplicationSystem>());
+            }
+
+            if (!EngineGlobals::IsServer() && !HasSystem<ReplicationApplySystem>())
+            {
+                AddSystem(MakeHandle<ReplicationApplySystem>());
+            }
+        }
+        else
+        {
+            if (HasSystem<ReplicationSystem>())
+            {
+                RemoveSystem(GetSystem<ReplicationSystem>());
+            }
+
+            if (HasSystem<ReplicationApplySystem>())
+            {
+                RemoveSystem(GetSystem<ReplicationApplySystem>());
+            }
+        }
+    }
+
     bool needToShutdownWorldGrid = false;
 
     if (changedFlags & uint32(WorldFlags::HasStreaming))
@@ -586,7 +622,7 @@ void World::BeginUpdate(TaskBatch& inBatch, float delta)
         if (currentTaskBatch->executors.Empty())
         {
             // The execution group did not enqueue any tasks.
-            // Skip, as we don't want to waste cycles for one.
+            // Skip, as we don't want to waste cycles for this one.
             continue;
         }
 
@@ -683,13 +719,9 @@ void World::EndUpdate()
 #endif
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void World::SyncPhysicsToEntities()
 {
-    if (!EngineGlobals::HasAuthority())
-    {
-        return;
-    }
-
     PhysicsWorld& physicsWorld = static_cast<PhysicsWorld&>(*m_physicsWorld);
 
     Array<Entity*, SceneTempAllocator> updatedEntities;
@@ -752,6 +784,7 @@ void World::SyncPhysicsToEntities()
         entity->RemoveTag<EntityTag::UpdatePhysicsShape>();
     }
 }
+HYP_ENABLE_OPTIMIZATION;
 
 void World::CollectScenes(Array<Scene*, SceneTempAllocator>& outScenes)
 {

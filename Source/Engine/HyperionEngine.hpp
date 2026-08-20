@@ -59,7 +59,7 @@ extern "C"
     ENGINE_API int Hyp_LaunchThreads();
     ENGINE_API void Hyp_Shutdown();
 
-    // Only for use in detached mode (-Detached CLI flag)
+    // Only for use in detached mode (--detached CLI flag)
     ENGINE_API void Hyp_MainThreadUpdate();
 
 #ifdef HYP_DOTNET

@@ -153,7 +153,7 @@ void MainThread::Update()
 
 void MainThread::operator()()
 {
-    static const bool s_isDetached = CoreApi::GetCommandLineArguments()["Detached"].ToBool();
+    static const bool s_isDetached = CoreApi::GetCommandLineArguments()["detached"].ToBool();
 
     if (!s_isDetached)
     {

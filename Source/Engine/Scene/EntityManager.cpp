@@ -939,8 +939,7 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
             EntityTag tag = EntityTag::None;
             if (IsEntityTagComponent(componentTypeId, tag))
             {
-                // Remove the tag from the entity
-                entity->OnTagRemoved(tag);
+                entity->OnTagRemoved(tag, /* refreshDependentTags */ false);
             }
             else
             {

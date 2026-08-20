@@ -60,7 +60,7 @@ Java_com_hyperion_engine_HyperionBridge_nativeInit(JNIEnv* env, jclass clazz)
 
     if (g_cacheDirPath[0] != '\0')
     {
-        snprintf(cacheArgBuf, sizeof(cacheArgBuf), "--CacheDir=%s", g_cacheDirPath);
+        snprintf(cacheArgBuf, sizeof(cacheArgBuf), "--cachedir=%s", g_cacheDirPath);
         cacheArg = cacheArgBuf;
         argc += 1;
     }
@@ -70,7 +70,7 @@ Java_com_hyperion_engine_HyperionBridge_nativeInit(JNIEnv* env, jclass clazz)
 
     if (g_contentDirPath[0] != '\0')
     {
-        snprintf(contentArgBuf, sizeof(contentArgBuf), "--ContentDir=%s", g_contentDirPath);
+        snprintf(contentArgBuf, sizeof(contentArgBuf), "--contentdir=%s", g_contentDirPath);
         contentArg = contentArgBuf;
         argc += 1;
     }
@@ -80,7 +80,7 @@ Java_com_hyperion_engine_HyperionBridge_nativeInit(JNIEnv* env, jclass clazz)
 
     if (g_cacheServerAddress[0] != '\0')
     {
-        snprintf(serverArgBuf, sizeof(serverArgBuf), "--CacheServer=%s", g_cacheServerAddress);
+        snprintf(serverArgBuf, sizeof(serverArgBuf), "--cacheserver=%s", g_cacheServerAddress);
         serverArg = serverArgBuf;
         argc += 1;
     }

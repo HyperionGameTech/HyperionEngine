@@ -396,12 +396,6 @@ public:
 
         m_shaderPreloadEntriesToWriteHashes.Add(hashCode);
         m_shaderPreloadEntriesToWrite.PushBack(preloadEntry);
-
-        const FilePath& cacheDir = EngineGlobals::GetCacheDirectory();
-
-        FileByteWriter writer(cacheDir / "shaderpreload.bin", "wb+");
-        writer.Write(m_shaderPreloadEntriesToWrite.Data(), m_shaderPreloadEntriesToWrite.Size() * sizeof(ShaderPreloadEntry));
-        writer.Close();
 #endif
     }
 

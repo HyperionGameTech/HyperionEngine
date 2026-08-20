@@ -153,19 +153,12 @@ void DefaultGame::OnUpdate(float delta)
     // Loading content.
     if (IsSyncingOrPreparingContent())
     {
-        // divide by 100 to get the two decimal places back:
-        const float progress = float(m_syncState.progress.Get(MemoryOrder::RELAXED)) * 0.01f;
-        const float rounded = MathUtil::Round(progress, 2);
+        if (!EngineGlobals::IsHeadless())
+        {
+            // divide by 100 to get the two decimal places back:
+            const float progress = float(m_syncState.progress.Get(MemoryOrder::RELAXED)) * 0.01f;
+            const float rounded = MathUtil::Round(progress, 2);
 
-        if (EngineGlobals::IsHeadless())
-        {
-            if (MathUtil::Fract(progress) <= 0.001f)
-            {
-                HYP_LOG(Game, Info, "Preparing: {}%", rounded);
-            }
-        }
-        else
-        {
             // get loading progress text UIObject
             UIStage& stage = *m_uiSubsystem->GetUIStage();
 
@@ -254,8 +247,6 @@ void DefaultGame::AfterContentLoaded()
 {
     Game::AfterContentLoaded();
 
-    // Keep showing the loading screen (now displaying the error UI) if content
-    // sync failed, rather than hiding it right after it was shown.
     if (m_syncState.state != ContentSyncState::Failed)
     {
         HideLoadingScreen();
@@ -266,6 +257,51 @@ void DefaultGame::ShowLoadingScreen()
 {
     if (EngineGlobals::IsHeadless())
     {
+        m_syncState.OnStateChanged.RemoveAllDetached();
+        m_syncState.OnStateChanged.Bind(
+            [this](ContentSyncState::State state)
+            {
+                switch (state)
+                {
+                case ContentSyncState::NotStarted:
+                    HYP_LOG(Game, Info, "Initializing content sync...");
+                    break;
+                case ContentSyncState::InProgress:
+                    HYP_LOG(Game, Info, "Loading content...");
+                    break;
+                case ContentSyncState::Downloaded_Preparing:
+                    HYP_LOG(Game, Info, "Preheating...");
+                    break;
+                case ContentSyncState::Finished:
+                    HYP_LOG(Game, Info, "Content sync finished.");
+                    break;
+                case ContentSyncState::Failed:
+                    HYP_LOG(Game, Error, "Content sync failed");
+
+                    // @TODO Ask if we should launch anyway (Y/n)
+
+                    GetThreadById(g_simThread)->GetScheduler().Enqueue(
+                        [self = MakeStrongRef(this)]()
+                        {
+                            if (Handle<World> world = self->LoadWorld(s_nameMainWorld); world.IsValid())
+                            {
+                                self->m_syncState.SetState(ContentSyncState::Finished);
+
+                                self->SetWorld(world);
+                                self->Launch();
+                            }
+                            else
+                            {
+                                HYP_LOG(Game, Fatal, "Missing content required to start the game server.");
+                            }
+                        },
+                        TaskEnqueueFlags::FIRE_AND_FORGET);
+
+                    break;
+                }
+            })
+            .Detach();
+
         return;
     }
 

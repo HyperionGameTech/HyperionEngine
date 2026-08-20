@@ -1504,7 +1504,7 @@ private:
 template <class AllocatorType>
 TCommandRecorder<AllocatorType>::~TCommandRecorder()
 {
-    Assert(m_headerCount == 0, "CommandRecorder destroyed with pending commands!");
+    AssertDebug(m_headerCount == 0, "CommandRecorder destroyed with pending commands!");
 
     if (m_headersPtr != nullptr)
     {

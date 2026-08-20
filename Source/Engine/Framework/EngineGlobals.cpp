@@ -21,6 +21,7 @@
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/EngineDriver.hpp>
 #include <Framework/CVarManager.hpp>
+#include <Framework/Client/GameClient.hpp>
 
 #include <Asset/BlobStorage.hpp>
 
@@ -41,7 +42,7 @@ ENGINE_API bool IsEditor()
 {
     const CommandLineArguments& cliArgs = CoreApi::GetCommandLineArguments();
 
-    return cliArgs["Editor"].ToBool();
+    return cliArgs["editor"].ToBool();
 }
 
 HYP_EXPORT const FilePath& GetProjectsDirectory()
@@ -73,7 +74,6 @@ ENGINE_API bool IsCooking()
 bool g_isCommandlet = false;
 bool g_isServer = false;
 bool g_isHeadless = false;
-bool g_hasAuthority = false;
 
 ENGINE_API bool IsCacheServer()
 {
@@ -113,24 +113,17 @@ ENGINE_API bool IsHeadless()
         s_init,
         []
         {
-            g_isHeadless = IsCommandlet() || IsServer() || CoreApi::GetCommandLineArguments()["Headless"].ToBool();
+            g_isHeadless = IsCommandlet() || IsServer() || CoreApi::GetCommandLineArguments()["headless"].ToBool();
         });
 
     return g_isHeadless;
 }
 
-/// @TODO Move instead to World::HasAuthority or Scene::HasAuthority()?
 ENGINE_API bool HasAuthority()
 {
-    static std::once_flag s_init;
-    std::call_once(
-        s_init,
-        []
-        {
-            g_hasAuthority = IsServer() || CoreApi::GetCommandLineArguments()["host"].ToString().Empty();
-        });
-
-    return g_hasAuthority;
+    return IsServer()
+        || g_gameClient == nullptr
+        || !g_gameClient->IsConnected();
 }
 
 static FilePath s_cacheDirectory;
@@ -143,7 +136,7 @@ HYP_EXPORT const FilePath& GetCacheDirectory()
         s_onceFlag,
         []
         {
-            const String cfgValue = CoreApi::GetCommandLineArguments()["CacheDir"].ToString();
+            const String cfgValue = CoreApi::GetCommandLineArguments()["cachedir"].ToString();
 
             if (cfgValue.Any())
             {
@@ -179,7 +172,7 @@ HYP_EXPORT const FilePath& GetContentDirectory()
         s_onceFlag,
         []
         {
-            const String cfgValue = CoreApi::GetCommandLineArguments()["ContentDir"].ToString();
+            const String cfgValue = CoreApi::GetCommandLineArguments()["contentdir"].ToString();
 
             if (cfgValue.Any())
             {
@@ -223,7 +216,7 @@ template const FilePath& GetContentDirectory<HYP_STATIC_STRING("Game")>();
 
 HYP_EXPORT const char* GetCacheServerAddress()
 {
-    static const String s_cacheServerAddress = CoreApi::GetCommandLineArguments()["CacheServer"].ToString();
+    static const String s_cacheServerAddress = CoreApi::GetCommandLineArguments()["cacheserver"].ToString();
     return s_cacheServerAddress.Data();
 }
 

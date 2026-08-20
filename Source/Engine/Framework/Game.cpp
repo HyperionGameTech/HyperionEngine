@@ -362,6 +362,7 @@ void Game::BeforeContentLoaded()
 
     Handle<World> tempWorld = MakeHandle<World>();
     tempWorld->SetName(s_nameTempUIWorld);
+    tempWorld->SetWorldFlags(tempWorld->GetWorldFlags() & ~WorldFlags::IsReplicated);
     tempWorld->SetIsTransient(true);
 
     SetWorld(tempWorld);
@@ -397,6 +398,7 @@ void Game::BeforeConnectingToServer()
     AssertOnThread(g_simThread);
 
     Handle<World> tempWorld = MakeHandle<World>();
+    tempWorld->SetWorldFlags(tempWorld->GetWorldFlags() & ~WorldFlags::IsReplicated);
     tempWorld->SetName(s_nameTempUIWorld);
     tempWorld->SetIsTransient(true);
 
@@ -849,9 +851,14 @@ void Game::OnUpdate(float delta)
             m_syncState.currentTask = TaskSystem::GetInstance().Enqueue(
                 [this]() -> Result
                 {
-                    g_shaderManager->PreloadShadersFromCacheFile(
-                        /* blockingWait */ true,
-                        ProcRef<void(uint64, uint64)>(*this, ValueWrapper<&Game::OnSyncProgress>{}));
+                    // Keeping check in here in case we add preparations that need to be done even in headless
+
+                    if (!EngineGlobals::IsHeadless())
+                    {
+                        g_shaderManager->PreloadShadersFromCacheFile(
+                            /* blockingWait */ true,
+                            ProcRef<void(uint64, uint64)>(*this, ValueWrapper<&Game::OnSyncProgress> {}));
+                    }
 
                     return {};
                 },
@@ -870,15 +877,23 @@ void Game::OnUpdate(float delta)
                 m_syncState.currentTask = {};
                 m_syncState.progress.Set(0, MemoryOrder::RELAXED);
                 m_syncState.SetState(ContentSyncState::Failed);
+
+                return;
             }
-            else if (m_syncState.state == ContentSyncState::InProgress)
+            
+            if (m_syncState.state == ContentSyncState::InProgress)
             {
                 beginPreparingContent();
+
+                return;
             }
-            else if (m_syncState.state == ContentSyncState::Downloaded_Preparing)
+            
+            if (m_syncState.state == ContentSyncState::Downloaded_Preparing)
             {
                 // Done preparing
                 callAfterContentLoadedNextFrame();
+
+                return;
             }
         }
     }

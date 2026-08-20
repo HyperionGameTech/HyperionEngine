@@ -292,9 +292,11 @@ void Entity::OnRemovedFromScene(Scene* scene)
 
     if (EntityManager* entityManager = GetEntityManager())
     {
-        VisibilityStateComponent& visibilityStateComponent = entityManager->GetComponent<VisibilityStateComponent>(this);
-        visibilityStateComponent.octantId = OctantId::Invalid();
-        visibilityStateComponent.visibilityState = nullptr;
+        if (VisibilityStateComponent* visibilityStateComponent = entityManager->TryGetComponent<VisibilityStateComponent>(this))
+        {
+            visibilityStateComponent->octantId = OctantId::Invalid();
+            visibilityStateComponent->visibilityState = nullptr;
+        }
     }
 }
 
@@ -379,7 +381,7 @@ void Entity::OnTagAdded(EntityTag tag)
     }
 }
 
-void Entity::OnTagRemoved(EntityTag tag)
+void Entity::OnTagRemoved(EntityTag tag, bool refreshDependentTags)
 {
     const bool isSerializableTag = (uint64(tag) & EntityTag::SerializableTagMask) != 0;
 
@@ -391,7 +393,7 @@ void Entity::OnTagRemoved(EntityTag tag)
 #endif // HYP_EDITOR
 
     // So we update the octant's hash code.
-    if (isSerializableTag && m_entityManager)
+    if (isSerializableTag && m_entityManager && refreshDependentTags)
     {
         m_entityManager->AddTags<
             EntityTag::UpdateVisibility,
@@ -557,13 +559,21 @@ void Entity::OnTransformUpdated()
         m_transformChanged = true;
     }
 
-    TransformComponent& transformComponent = entityManager->GetComponent<TransformComponent>(this);
-    transformComponent.translation = GetWorldTranslation();
-    transformComponent.rotation = GetWorldRotation();
-    transformComponent.scale = GetWorldScale();
+    TransformComponent* transformComponent = entityManager->TryGetComponent<TransformComponent>(this);
 
-    BoundingBoxComponent& boundingBoxComponent = entityManager->GetComponent<BoundingBoxComponent>(this);
-    boundingBoxComponent.worldAabb = GetWorldBounds();
+    if (transformComponent != nullptr)
+    {
+        transformComponent->translation = GetWorldTranslation();
+        transformComponent->rotation = GetWorldRotation();
+        transformComponent->scale = GetWorldScale();
+    }
+
+    BoundingBoxComponent* boundingBoxComponent = entityManager->TryGetComponent<BoundingBoxComponent>(this);
+
+    if (boundingBoxComponent != nullptr)
+    {
+        boundingBoxComponent->worldAabb = GetWorldBounds();
+    }
 
     if (IsGlobalContextActive<struct ReplicationApplyContext>())
     {

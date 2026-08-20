@@ -60,7 +60,7 @@ done
 
 echo "Updating GlobalConfig.json for packaged build..."
 if [[ -f "$OUT_DIR/GlobalConfig.json" ]]; then
-    sed -i '' -E 's#-BaseDir=[A-Za-z0-9/._-]+#-BaseDir=./#' "$OUT_DIR/GlobalConfig.json"
+    sed -i '' -E 's#--basedir=[A-Za-z0-9/._-]+#--basedir=./#' "$OUT_DIR/GlobalConfig.json"
 fi
 
 echo "Copying Shaders.hmf..."

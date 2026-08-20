@@ -89,3 +89,4 @@ PackagedBuilds/**/*
 Source/Generated/**/*
 
 compile_commands.json
+.opencode

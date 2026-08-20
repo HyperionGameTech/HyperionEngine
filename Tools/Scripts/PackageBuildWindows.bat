@@ -56,7 +56,7 @@ copy "%HYP_ROOT_DIR%Config\*Config.json" "%OUT_DIR%\Config\" >nul 2>nul
 copy "%HYP_ROOT_DIR%Config\*Config.Windows.json" "%OUT_DIR%\Config\" >nul 2>nul
 
 echo Updating GlobalConfig.json for packaged build...
-powershell -NoProfile -Command "(Get-Content '%OUT_DIR%\Config\GlobalConfig.json') -replace '-BaseDir=[\w/.-]+', '-BaseDir=./' | Set-Content '%OUT_DIR%\Config\GlobalConfig.json'" >nul
+powershell -NoProfile -Command "(Get-Content '%OUT_DIR%\Config\GlobalConfig.json') -replace '--basedir=[\w/.-]+', '--basedir=./' | Set-Content '%OUT_DIR%\Config\GlobalConfig.json'" >nul
 
 echo Copying Shaders.hmf...
 copy "%HYP_ROOT_DIR%Config\Shaders.hmf" "%OUT_DIR%\Config\" >nul

@@ -68,13 +68,13 @@ struct EntityData
     HYP_FORCE_INLINE ComponentId GetComponentId() const
     {
         auto* kvp = components.TryGet(TypeId::ForType<Component>());
-        return kvp ? kvp->second : InvalidComponentId;
+        return kvp ? kvp->second : Invalid<ComponentId>;
     }
 
     HYP_FORCE_INLINE ComponentId GetComponentId(TypeId componentTypeId) const
     {
         auto* kvp = components.TryGet(componentTypeId);
-        return kvp ? kvp->second : InvalidComponentId;
+        return kvp ? kvp->second : Invalid<ComponentId>;
     }
 
     template <class Component>

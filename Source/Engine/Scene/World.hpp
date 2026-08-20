@@ -47,21 +47,26 @@ using threading::TaskBatch;
 
 struct WGLayerDesc;
 
+// clang-format off
+
 HYP_ENUM()
 enum class WorldFlags : uint32
 {
-    None = 0x0, //!< @editor=false
+    None = 0x0,                                                     //!< @editor=false
 
-    Editor = 0x1, //!< @editor=false @title="Editor World (internal)" @description="If set, the World is an editor world. (single world created for the editor environment itself)"
+    Editor = 0x1,                                                   //!< @editor=false @title="Editor World (internal)" @description="If set, the World is an editor world. (single world created for the editor environment itself)"
 
-    HasPhysics = 0x2,   //!< @title="Enable Physics" @description="If set, the World has a PhysicsWorld associated with it and will perform physics simulation."
-    HasStreaming = 0x4, //!< @title="Enable Streaming" @description="If set, the World has a grid for spatial partitioning and streaming."
+    HasPhysics = 0x2,                                               //!< @title="Enable Physics" @description="If set, the World has a PhysicsWorld associated with it and will perform physics simulation."
+    HasStreaming = 0x4,                                             //!< @title="Enable Streaming" @description="If set, the World has a grid for spatial partitioning and streaming."
+    IsReplicated = 0x8,                                             //!< @title="Is Replicated" @description="If set, the World will have its state replicated over network"
 
-    HasSceneStreamingLayer = 0x100, //!< @title="Scene Streaming" @description="If set, the World has a streaming layer for loading/unloading Scenes based on the WorldGrid."
-    AllStreamingLayerFlags = HasSceneStreamingLayer, //!< @editor=false
+    HasSceneStreamingLayer = 0x100,                                 //!< @title="Scene Streaming" @description="If set, the World has a streaming layer for loading/unloading Scenes based on the WorldGrid."
+    AllStreamingLayerFlags = HasSceneStreamingLayer,                //!< @editor=false
 
-    Default = HasPhysics | HasStreaming | AllStreamingLayerFlags //!< @editor=false
+    Default = HasPhysics | HasStreaming | IsReplicated | AllStreamingLayerFlags //!< @editor=false
 };
+
+// clang-format on
 
 HYP_MAKE_ENUM_FLAGS(WorldFlags);
 

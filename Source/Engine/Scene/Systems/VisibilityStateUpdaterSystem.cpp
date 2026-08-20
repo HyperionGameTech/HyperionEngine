@@ -35,7 +35,18 @@ void VisibilityStateUpdaterSystem::OnEntityRemoved(Entity* entity)
 
     EntityManager& entityManager = *entity->GetEntityManager();
 
-    VisibilityStateComponent& visibilityStateComponent = entityManager.GetComponent<VisibilityStateComponent>(entity);
+    // entity->GetScene() already reports the destination scene mid-move, so gate on the EntityManager's scene instead.
+    if (!ShouldProcessScene(entityManager.GetScene()))
+    {
+        return;
+    }
+
+    VisibilityStateComponent* visibilityStateComponent = entityManager.TryGetComponent<VisibilityStateComponent>(entity);
+
+    if (!visibilityStateComponent)
+    {
+        return;
+    }
 
     SceneOctree& octree = entityManager.GetScene()->GetOctree();
 
@@ -46,8 +57,8 @@ void VisibilityStateUpdaterSystem::OnEntityRemoved(Entity* entity)
         HYP_LOG(Scene, Warning, "Failed to remove Entity {} from octree: {}", entity->GetName(), removeResult.GetError().GetMessage());
     }
 
-    visibilityStateComponent.octantId = OctantId::Invalid();
-    visibilityStateComponent.visibilityState = nullptr;
+    visibilityStateComponent->octantId = OctantId::Invalid();
+    visibilityStateComponent->visibilityState = nullptr;
 }
 
 // This has been replaced by VisThread

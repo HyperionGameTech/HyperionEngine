@@ -62,8 +62,8 @@ namespace Hyperion.Editor
             // create argv for NativeBindings.Hyp_Initialize
             List<string> args = [
                 Environment.ProcessPath ?? "",
-                "-Detached",
-                "-Editor",
+                "--detached",
+                "--editor",
 
                 // keep both sim and render threads independent because main thread will be locked at 30hz
                 "-SimulateOnMainThread=false",

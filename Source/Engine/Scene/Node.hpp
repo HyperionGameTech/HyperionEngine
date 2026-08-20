@@ -533,7 +533,7 @@ public:
     HYP_METHOD()
     virtual Handle<Node> Clone() const;
 
-    HYP_METHOD(Property = "UUID")
+    HYP_METHOD(Property = "UUID", Serialize)
     const UUID& GetUUID() const
     {
         return m_uuid;
@@ -951,7 +951,7 @@ protected:
 
     //-- Fields --
 
-    HYP_FIELD(Property = "UUID", Serialize, Editor, EditEnabled = flase)
+    HYP_FIELD(Property = "UUID", Serialize, Editor, EditEnabled = false)
     UUID m_uuid;
 
     HYP_FIELD(Property = "Name", Serialize)
