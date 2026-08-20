@@ -18,6 +18,10 @@ namespace Hyperion {
 class RigidBody;
 class PhysicsShape;
 
+namespace net {
+enum class NetConnectionId : uint32;
+} // namespace net
+
 HYP_STRUCT(Component,
     Label = "Rigid Body Component",
     Description = "Allows an entity to have an associated RigidBody for physics simulation",

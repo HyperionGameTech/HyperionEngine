@@ -38,6 +38,11 @@ struct PlayerComponent
         : connectionId(Invalid<net::NetConnectionId>)
     {
     }
+
+    explicit PlayerComponent(net::NetConnectionId connectionId)
+        : connectionId(connectionId)
+    {
+    }
 };
 
 } // namespace Hyperion

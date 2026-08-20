@@ -119,6 +119,7 @@ ENGINE_API bool IsHeadless()
     return g_isHeadless;
 }
 
+/// @TODO Move instead to World::HasAuthority or Scene::HasAuthority()?
 ENGINE_API bool HasAuthority()
 {
     static std::once_flag s_init;

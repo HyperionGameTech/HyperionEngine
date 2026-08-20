@@ -27,8 +27,13 @@
 #include <Core/Core.hpp>
 
 #include <Scene/World.hpp>
+#include <Scene/View.hpp>
 
 #include <Scene/Camera/Camera.hpp>
+
+#include <Scene/Util/SceneHelpers.hpp>
+
+#include <Scene/Input/TouchControlsSubsystem.hpp>
 
 #include <UI/UISubsystem.hpp>
 #include <UI/UIStage.hpp>
@@ -41,8 +46,6 @@
 #include <Scripting/ScriptingService.hpp>
 
 #include <Input/Event.hpp>
-
-#include <Scene/Input/TouchControlsSubsystem.hpp>
 
 #include <System/MessageBox.hpp>
 
@@ -266,7 +269,10 @@ void Game::SetWorld(const Handle<World>& world)
         AssertDebug(m_world->m_gameInstance == nullptr || m_world->m_gameInstance == this);
         m_world->m_gameInstance = this;
         
-        m_uiSubsystem = m_world->AddSubsystem(MakeHandle<UISubsystem>());
+        if (!EngineGlobals::IsHeadless())
+        {
+            m_uiSubsystem = m_world->AddSubsystem(MakeHandle<UISubsystem>());
+        }
 
         m_world->Initialize();
 
@@ -727,7 +733,32 @@ void Game::UnregisterInputHandler(InputHandlerBase* inputHandler)
 
 void Game::OnLaunch()
 {
-    // no-op
+    World* world = GetWorld();
+    Assert(world != nullptr);
+
+    if (!world)
+    {
+        return;
+    }
+    
+    // Add a View to the World to capture from the camera's perspective
+    Camera* camera = SceneHelpers::FindMainCamera(*world);
+
+    if (camera != nullptr)
+    {
+        m_camera = MakeStrongRef(camera);
+        m_camera->SetCameraFlags(m_camera->GetCameraFlags() | CameraFlags::MatchWindowSize);
+
+        ViewDesc viewDesc;
+        viewDesc.flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER | ViewFlags::MATCH_CAMERA_DIMENSIONS;
+        viewDesc.framebufferDesc = { Vec2u(m_camera->GetDimensions()) };
+        viewDesc.camera = m_camera;
+
+        Handle<View> view = MakeHandle<View>(viewDesc);
+        view->SetName(NAME_FMT("{}_View", m_camera->GetName()));
+        
+        world->AddView(view);
+    }
 }
 
 void Game::OnUpdate(float delta)

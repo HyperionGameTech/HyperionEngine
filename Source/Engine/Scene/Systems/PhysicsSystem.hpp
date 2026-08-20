@@ -10,6 +10,7 @@
 #include <Scene/EntityTag.hpp>
 #include <Scene/Components/RigidBodyComponent.hpp>
 #include <Scene/Components/TransformComponent.hpp>
+#include <Scene/Components/ReplicationStateComponent.hpp>
 
 #include <Core/Containers/Map.hpp>
 #include <Core/Functional/Delegate.hpp>
@@ -45,9 +46,13 @@ public:
             ComponentDescriptor<TransformComponent, ComponentAccess::READ_WRITE> {},
 
             ComponentDescriptor<TagComponent<EntityTag::UpdatePhysicsShape>, ComponentAccess::READ, false> {},
-            ComponentDescriptor<TagComponent<EntityTag::UpdatePhysicsMaterial>, ComponentAccess::READ, false> {}
+            ComponentDescriptor<TagComponent<EntityTag::UpdatePhysicsMaterial>, ComponentAccess::READ, false> {},
+            ComponentDescriptor<ReplicationStateComponent, ComponentAccess::READ, false> {}
         };
     }
+
+private:
+    static bool CanSimulate(const RigidBodyComponent& rbc);
 
 }; // class PhysicsSystem
 

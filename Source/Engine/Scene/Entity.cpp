@@ -463,6 +463,7 @@ void Entity::UpdateRenderProxy(RenderProxyMesh* proxy)
 
         if (imd.IsValid())
         {
+            // @TODO Need another scope elsewhere, so we're not loading stuff in every frame this is updated
             auto scope = imd->GetReadScope();
 
             for (uint32 i = 0; i < uint32(imd->buffers.Size()); i++)

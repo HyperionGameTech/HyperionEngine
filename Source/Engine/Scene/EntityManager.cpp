@@ -1033,8 +1033,8 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
                     continue;
                 }
 
-                // @FIXME -- issue a warning message but set the component anyway.
-                HYP_FAIL("Cannot add duplicate component of type '{}'", *GetComponentTypeName(componentTypeId));
+                HYP_LOG(Entity, Error, "Cannot add duplicate component of type '{}'", *GetComponentTypeName(componentTypeId));
+                return;
             }
 
             ComponentContainerBase* container = other->TryGetContainer(componentTypeId);

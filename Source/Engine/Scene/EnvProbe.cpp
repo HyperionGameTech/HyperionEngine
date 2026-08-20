@@ -420,7 +420,7 @@ void EnvProbe::OnTransformUpdated()
 
 void EnvProbe::CreateViewData()
 {
-    if (IsBaked())
+    if (IsBaked() || EngineGlobals::IsHeadless())
     {
         // Do not create Views and other data if baked
         return;

@@ -25,8 +25,7 @@
 #include <Scene/Systems/MeshSystem.hpp>
 #include <Scene/Systems/ReplicationSystem.hpp>
 #include <Scene/Systems/ReplicationApplySystem.hpp>
-#include <Scene/Systems/PlayerSpawnSystem.hpp>
-#include <Scene/Systems/PlayerComponentSystem.hpp>
+#include <Scene/Systems/PlayerSystem.hpp>
 
 #include <Scene/Components/MeshComponent.hpp>
 #include <Scene/Components/TransformComponent.hpp>
@@ -257,11 +256,8 @@ void World::Initialize()
     if (!EngineGlobals::IsServer() && !HasSystem<ReplicationApplySystem>())
         AddSystem(MakeHandle<ReplicationApplySystem>());
 
-    if (EngineGlobals::IsServer() && !HasSystem<PlayerSpawnSystem>())
-        AddSystem(MakeHandle<PlayerSpawnSystem>());
-
-    if (!HasSystem<PlayerComponentSystem>())
-        AddSystem(MakeHandle<PlayerComponentSystem>());
+    if (!HasSystem<PlayerSystem>())
+        AddSystem(MakeHandle<PlayerSystem>());
 
     m_isInitialized = true;
 
@@ -539,14 +535,17 @@ void World::BeginUpdate(TaskBatch& inBatch, float delta)
 
     if (GetGameState().IsSimulating())
     {
-        if (m_physicsWorld != nullptr)
+        if (EngineGlobals::HasAuthority())
         {
-            ENGINE_STAT_SCOPE(&s_statPhysicsUpdate);
+            if (m_physicsWorld != nullptr)
+            {
+                ENGINE_STAT_SCOPE(&s_statPhysicsUpdate);
 
-            m_physicsWorld->Tick(delta);
+                m_physicsWorld->Tick(delta);
 
-            // must be called before entity managers are locked.
-            SyncPhysicsToEntities();
+                // must be called before entity managers are locked.
+                SyncPhysicsToEntities();
+            }
         }
 
         ENGINE_STAT_SCOPE(&g_statScriptUpdate);
@@ -686,6 +685,11 @@ void World::EndUpdate()
 
 void World::SyncPhysicsToEntities()
 {
+    if (!EngineGlobals::HasAuthority())
+    {
+        return;
+    }
+
     PhysicsWorld& physicsWorld = static_cast<PhysicsWorld&>(*m_physicsWorld);
 
     Array<Entity*, SceneTempAllocator> updatedEntities;

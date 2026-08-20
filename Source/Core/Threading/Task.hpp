@@ -340,6 +340,8 @@ public:
     using Function = functional::Proc<ReturnType()>;
     using Base = TaskExecutorBase;
 
+    TaskExecutorInstance() = default;
+
     template <class Lambda>
     TaskExecutorInstance(Lambda&& fn)
         : m_fn(std::forward<Lambda>(fn))
@@ -405,6 +407,8 @@ class TaskExecutorInstance<void> : public TaskExecutorBase
 
 public:
     using Base = TaskExecutorBase;
+
+    TaskExecutorInstance() = default;
 
     template <class Lambda>
     TaskExecutorInstance(Lambda&& fn)

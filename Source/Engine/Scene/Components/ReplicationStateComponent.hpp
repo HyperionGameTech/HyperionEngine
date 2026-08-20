@@ -26,6 +26,16 @@ struct ReplicationStateComponent
 
     HYP_FIELD()
     NetId netId;
+
+    ReplicationStateComponent()
+        : netId(Invalid<NetId>)
+    {
+    }
+
+    explicit ReplicationStateComponent(NetId netId)
+        : netId(netId)
+    {
+    }
 };
 
 } // namespace Hyperion

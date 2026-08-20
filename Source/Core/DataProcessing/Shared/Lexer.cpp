@@ -46,8 +46,6 @@ void Lexer::Analyze()
             m_tokenStream->Push(token);
         }
 
-        const SourceLocation location = m_sourceLocation;
-
         SkipWhitespace();
 
         if (token && !token.IsContinuationToken())
@@ -71,7 +69,7 @@ void Lexer::Analyze()
 
 Token Lexer::NextToken()
 {
-    SourceLocation location = m_sourceLocation;
+    const SourceLocation location = m_sourceLocation;
 
     Char32 ch[3] = { 0 };
     int totalPosChange = 0;

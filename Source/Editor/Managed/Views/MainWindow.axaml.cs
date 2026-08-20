@@ -483,7 +483,12 @@ namespace Hyperion.Editor
 
         private void UpdateAutoScroll(Point posRelativeToTree)
         {
-            if (_sceneTreeScrollViewer == null || _sceneTree == null)
+            if (_sceneTree == null)
+                return;
+
+            _sceneTreeScrollViewer ??= _sceneTree.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault();
+
+            if (_sceneTreeScrollViewer == null)
                 return;
 
             var treeHeight = _sceneTree.Bounds.Height;
@@ -505,6 +510,11 @@ namespace Hyperion.Editor
 
                 if (!_autoScrollTimer.IsEnabled)
                     _autoScrollTimer.Start();
+
+                // Also step immediately on this DragOver rather than waiting for the next timer
+                // tick, since DispatcherTimer ticks can be delayed while the OS-driven drag loop
+                // is pumping messages.
+                ApplyAutoScrollStep();
             }
             else
             {
@@ -519,6 +529,14 @@ namespace Hyperion.Editor
                 _autoScrollTimer?.Stop();
                 return;
             }
+
+            ApplyAutoScrollStep();
+        }
+
+        private void ApplyAutoScrollStep()
+        {
+            if (_sceneTreeScrollViewer == null || _autoScrollDelta == 0)
+                return;
 
             var offset = _sceneTreeScrollViewer.Offset;
             _sceneTreeScrollViewer.Offset = new Vector(offset.X, Math.Max(0, offset.Y + _autoScrollDelta));

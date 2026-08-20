@@ -42,6 +42,8 @@
 
 #include <Core/Config/Config.hpp>
 
+#include <Core/Logging/Logger.hpp>
+
 #include <Core/Reflection/ClassUtils.hpp>
 #include <Core/Reflection/ClassRegistry.hpp>
 
@@ -66,30 +68,9 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Game);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Game);
 
 namespace game {
-
-static Camera* FindMainCamera(World& world)
-{
-    for (Scene* scene : world.GetScenes())
-    {
-        Assert(scene != nullptr);
-        
-        if (scene->GetSceneFlags() & SceneFlags::FOREGROUND)
-        {
-            for (const Handle<Node>& node : scene->GetRoot()->GetChildren())
-            {
-                if (node->IsA<Camera>())
-                {
-                    return StaticCast<Camera>(node);
-                }
-            }
-        }
-    }
-    
-    return nullptr;
-}
 
 class DefaultGame : public Game
 {
@@ -125,7 +106,6 @@ protected:
     void HideConnectScreen();
 
     Handle<Scene> m_defaultScene;
-    Handle<Camera> m_camera;
     Handle<DirectionalLight> m_sun;
     float m_sunAngle = 0.0f;
 };
@@ -141,30 +121,10 @@ DefaultGame::~DefaultGame()
 
 void DefaultGame::OnLaunch()
 {
-    Assert(GetWorld() != nullptr);
-    
-    // Add a View to the World.
-    // This will capture the scene(s) of the world from the camera's perspective
-    // and draw it into the View's GBuffer.
-    Camera* mainCamera = FindMainCamera(*GetWorld());
-    if (mainCamera != nullptr)
-    {
-        m_camera = MakeStrongRef(mainCamera);
-        m_camera->SetCameraFlags(m_camera->GetCameraFlags() | CameraFlags::MatchWindowSize | CameraFlags::HasStreamingVolume);
+    Game::OnLaunch();
 
-        Vec2u viewportSize = Vec2u(m_camera->GetDimensions());
-
-        ViewDesc viewDesc {
-            .flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER | ViewFlags::MATCH_CAMERA_DIMENSIONS,
-            .framebufferDesc = { .extent = viewportSize },
-            .camera = m_camera
-        };
-
-        Handle<View> view = MakeHandle<View>(viewDesc);
-        view->SetName(NAME_FMT("{}_View", m_camera->GetName()));
-        
-        GetWorld()->AddView(view);
-    }
+    // Should be set up by Game::OnLaunch()
+    Assert(m_camera.IsValid());
     
     if (UISubsystem* uiSubsystem = GetUISubsystem())
     {
@@ -174,6 +134,7 @@ void DefaultGame::OnLaunch()
 
     // sky
     GetWorld()->AddSystemT<DynamicSkySystem>();
+
     // GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>(
     //     NAME("TerrainLayer"),
     //     WorldGridLayerInfo { Vec3f { 0.0f, -5.0f, 0.0f } }));
@@ -192,18 +153,27 @@ void DefaultGame::OnUpdate(float delta)
     // Loading content.
     if (IsSyncingOrPreparingContent())
     {
-        // update progress text.
-
         // divide by 100 to get the two decimal places back:
         const float progress = float(m_syncState.progress.Get(MemoryOrder::RELAXED)) * 0.01f;
-        
-        // get loading progress text UIObject
-        UIStage& stage = *m_uiSubsystem->GetUIStage();
+        const float rounded = MathUtil::Round(progress, 2);
 
-        Handle<UIObject> progressText = stage.FindChildUIObject("LoadingProgressText"_sh);
-        if (progressText.IsValid())
+        if (EngineGlobals::IsHeadless())
         {
-            progressText->SetText(HYP_FORMAT("{}%", MathUtil::Round(progress, 2)));
+            if (MathUtil::Fract(progress) <= 0.001f)
+            {
+                HYP_LOG(Game, Info, "Preparing: {}%", rounded);
+            }
+        }
+        else
+        {
+            // get loading progress text UIObject
+            UIStage& stage = *m_uiSubsystem->GetUIStage();
+
+            Handle<UIObject> progressText = stage.FindChildUIObject("LoadingProgressText"_sh);
+            if (progressText.IsValid())
+            {
+                progressText->SetText(HYP_FORMAT("{}%", rounded));
+            }
         }
 
         return;
@@ -294,6 +264,11 @@ void DefaultGame::AfterContentLoaded()
 
 void DefaultGame::ShowLoadingScreen()
 {
+    if (EngineGlobals::IsHeadless())
+    {
+        return;
+    }
+
     Assert(m_uiSubsystem.IsValid());
     if (!m_uiSubsystem.IsValid())
     {
@@ -461,6 +436,11 @@ void DefaultGame::ShowLoadingScreen()
 void DefaultGame::HideLoadingScreen()
 {
     m_syncState.OnStateChanged.RemoveAllDetached();
+
+    if (EngineGlobals::IsHeadless())
+    {
+        return;
+    }
 
     Assert(m_uiSubsystem.IsValid());
     if (!m_uiSubsystem.IsValid())

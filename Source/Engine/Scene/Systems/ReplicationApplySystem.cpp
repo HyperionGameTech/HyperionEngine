@@ -15,8 +15,16 @@
 #include <Scene/Components/ReplicationStateComponent.hpp>
 #include <Scene/Components/PlayerComponent.hpp>
 
+#include <Scene/Systems/PhysicsSystem.hpp>
+
+#include <Scene/Camera/Camera.hpp>
+#include <Scene/Camera/Streaming/CameraStreamingVolume.hpp>
+
 #include <Framework/Client/GameClient.hpp>
 #include <Framework/Client/ClientReplicationManager.hpp>
+#include <Framework/EngineGlobals.hpp>
+
+#include <Streaming/StreamingManager.hpp>
 
 #include <Net/NetClient.hpp>
 
@@ -92,18 +100,6 @@ static void ApplyOwnerConnectionId(const Handle<Entity>& entity, net::NetConnect
     }
 }
 
-static Handle<Entity> CorrelateExistingEntity(const Handle<Entity>& entity, const ReplicationOp<ReplicationOpType::Spawn>& spawnOp)
-{
-    entity->AddComponent<ReplicationStateComponent>(ReplicationStateComponent { spawnOp.netId });
-    entity->SetLocalTransform(spawnOp.transform);
-
-    ApplyOwnerConnectionId(entity, spawnOp.ownerConnectionId);
-
-    HYP_LOG(Replication, Info, "Correlated existing local Entity '{}' with netId={} (uuid match)",
-        entity->GetName(), uint32(spawnOp.netId));
-
-    return entity;
-}
 
 static Handle<Entity> ExecuteEntitySpawn(const ReplicationOp<ReplicationOpType::Spawn>& spawnOp, const Scene& targetScene, const Map<NetId, Handle<Entity>, SceneAllocator>& netIdToEntity)
 {
@@ -143,6 +139,7 @@ static Handle<Entity> ExecuteEntitySpawn(const ReplicationOp<ReplicationOpType::
     entity->SetLocalTransform(spawnOp.transform);
     entity->AddComponent<ReplicationStateComponent>(ReplicationStateComponent { spawnOp.netId });
 
+    // lol wtf won't PlayerComponent get added to every fucking Entity?
     ApplyOwnerConnectionId(entity, spawnOp.ownerConnectionId);
 
     HYP_LOG(Replication, Info, "Spawned Entity '{}' of Class '{}'", entity->GetName(), entityClass->GetName());
@@ -162,7 +159,19 @@ static Handle<Entity> TryResolveSpawn(const ReplicationOp<ReplicationOpType::Spa
 
     if (Handle<Entity> existing = FindLocalEntityByUuid(*targetScene, spawnOp.uuid); existing.IsValid())
     {
-        return CorrelateExistingEntity(existing, spawnOp);
+        if (!existing->HasComponent<ReplicationStateComponent>())
+        {
+            existing->AddComponent<ReplicationStateComponent>(ReplicationStateComponent { spawnOp.netId });
+        }
+
+        existing->SetLocalTransform(spawnOp.transform);
+
+        ApplyOwnerConnectionId(existing, spawnOp.ownerConnectionId);
+
+        HYP_LOG(Replication, Info, "Correlated Entity '{}' with local level-authored entity by UUID (netId={})",
+            existing->GetName(), uint32(spawnOp.netId));
+
+        return existing;
     }
 
     if (IsWaitingOnParent(spawnOp, netIdToEntity))
@@ -330,6 +339,79 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
         }
         }
     }
+
+    UpdateLocalPlayerFollowers(scenes);
+}
+
+static Handle<Entity> FindTemplateEntity(Span<Handle<Scene>> scenes, SystemBase* system)
+{
+    for (Scene* scene : scenes)
+    {
+        if (!system->ShouldProcessScene(scene))
+        {
+            continue;
+        }
+
+        for (auto [entity, tag] : scene->GetEntityManager()->GetEntitySet<TagComponent<EntityTag::Player>>())
+        {
+            return MakeStrongRef(entity);
+        }
+    }
+
+    return Handle<Entity>::Null();
+}
+
+static Handle<Camera> FindCameraChild(const Handle<Entity>& entity)
+{
+    for (const Handle<Node>& child : entity->GetChildren())
+    {
+        if (Handle<Camera> camera = DynamicCast<Camera>(child); camera.IsValid())
+        {
+            return camera;
+        }
+    }
+
+    return Handle<Camera>::Null();
+}
+
+void ReplicationApplySystem::UpdateLocalPlayerFollowers(Span<Handle<Scene>> scenes)
+{
+    Handle<Entity> myPlayerEntity = GetMyPlayerEntity();
+
+    if (!myPlayerEntity.IsValid())
+    {
+        return;
+    }
+
+    if (myPlayerEntity != m_resolvedPlayerEntity)
+    {
+        m_resolvedPlayerEntity = myPlayerEntity;
+
+        if (!FindCameraChild(myPlayerEntity).IsValid())
+        {
+            if (Handle<Entity> templateEntity = FindTemplateEntity(scenes, this); templateEntity.IsValid())
+            {
+                if (Handle<Camera> camera = FindCameraChild(templateEntity); camera.IsValid())
+                {
+                    camera->Remove();
+                    myPlayerEntity->AddChild(camera);
+
+                    HYP_LOG(Replication, Info, "Reparented Camera onto resolved local player entity '{}'", myPlayerEntity->GetName());
+                }
+            }
+        }
+    }
+
+    if (!m_playerStreamingVolume.IsValid())
+    {
+        m_playerStreamingVolume = MakeHandle<CameraStreamingVolume>();
+        InitObject(m_playerStreamingVolume);
+
+        g_streamingManager->AddStreamingVolume(m_playerStreamingVolume);
+    }
+
+    const Vec3f worldTranslation = myPlayerEntity->GetWorldTranslation();
+    m_playerStreamingVolume->SetBoundingBox(BoundingBox(worldTranslation - 10.0f, worldTranslation + 10.0f));
 }
 
 Handle<Entity> ReplicationApplySystem::GetMyPlayerEntity() const

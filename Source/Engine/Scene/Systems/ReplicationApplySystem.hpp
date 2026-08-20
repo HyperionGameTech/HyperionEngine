@@ -22,6 +22,7 @@
 namespace Hyperion {
 
 enum class NetId : uint32;
+class CameraStreamingVolume;
 
 HYP_CLASS(NoScriptBindings)
 class ReplicationApplySystem final : public SystemBase
@@ -61,8 +62,18 @@ private:
 
     void TryResolvePendingSpawns(Span<Handle<Scene>> scenes);
 
+    // Local-only, never networked: once GetMyPlayerEntity() resolves, attaches this process's
+    // camera and streaming interest to it. Single-player: the template already has its Camera
+    // child authored in place, this is a no-op beyond creating the streaming volume. Multiplayer
+    // client: the received clone never carries a Camera (EntitySpawn never transmits child
+    // hierarchy), so this steals the already-locally-loaded template's camera.
+    void UpdateLocalPlayerFollowers(Span<Handle<Scene>> scenes);
+
     Array<PendingSpawn, SceneAllocator> m_pendingSpawns;
     Map<NetId, Handle<Entity>, SceneAllocator> m_netIdToEntity;
+
+    Handle<Entity> m_resolvedPlayerEntity;
+    Handle<CameraStreamingVolume> m_playerStreamingVolume;
 };
 
 } // namespace Hyperion

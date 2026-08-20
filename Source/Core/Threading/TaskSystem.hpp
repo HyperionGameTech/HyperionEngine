@@ -67,7 +67,7 @@ public:
      */
     TaskThreadPool* pool = nullptr;
 
-    /* Tasks must remain constant from creation of the TaskBatch to completion. */
+    /* must remain constant from creation of the TaskBatch to completion. */
     Array<TaskExecutorInstance<void>> executors;
 
     /* TaskRefs to be set by the TaskSystem, holding task ids and pointers to the threads
@@ -149,8 +149,8 @@ public:
 
         notifier.Reset();
         numEnqueued = 0;
-        executors.Clear();
-        taskRefs.Clear();
+        executors.Resize(0);
+        taskRefs.Resize(0);
         nextBatch = nullptr;
 
         OnComplete.RemoveAllDetached();

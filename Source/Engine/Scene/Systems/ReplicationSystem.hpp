@@ -10,6 +10,7 @@
 #include <Scene/EntityTag.hpp>
 
 #include <Scene/Components/ReplicationStateComponent.hpp>
+#include <Scene/Components/PlayerComponent.hpp>
 
 #include <Core/Containers/Map.hpp>
 
@@ -41,14 +42,17 @@ public:
             ComponentDescriptor<TagComponent<EntityTag::Replicated>, ComponentAccess::READ, true> {},
             ComponentDescriptor<TagComponent<EntityTag::UpdateReplication>, ComponentAccess::READ, false> {},
 
-            ComponentDescriptor<ReplicationStateComponent, ComponentAccess::READ_WRITE, false> {}
+            ComponentDescriptor<ReplicationStateComponent, ComponentAccess::READ_WRITE, false> {},
+            ComponentDescriptor<PlayerComponent, ComponentAccess::READ, false> {}
         };
     }
 
 private:
     void ApplyPendingRequests();
+    void ProcessPendingCatchUp(Span<Handle<Scene>> scenes);
 
     Map<NetId, Handle<Entity>, SceneAllocator> m_netIdToEntity;
+    Array<net::NetConnectionId> m_pendingCatchUpConnections;
 }; // class PhysicsSystem
 
 } // namespace Hyperion

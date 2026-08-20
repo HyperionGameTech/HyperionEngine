@@ -30,6 +30,7 @@ class AssetRegistry;
 class UISubsystem;
 class World;
 class Scene;
+class Camera;
 class Event;
 class InputHandlerBase;
 
@@ -163,6 +164,8 @@ protected:
     Handle<UISubsystem> m_uiSubsystem;
 
     Array<Handle<InputHandlerBase>> m_inputHandlers;
+
+    Handle<Camera> m_camera;
 
     ContentSyncState m_syncState;
     ServerConnectionState m_connectionState;

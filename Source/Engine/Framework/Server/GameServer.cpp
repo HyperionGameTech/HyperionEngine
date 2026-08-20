@@ -58,6 +58,7 @@ public:
             
             m_threadAllocator->Reset();
 
+            // @TODO
             ThreadSleep(10);
         }
     }
@@ -189,7 +190,7 @@ void GameServer::Stop()
     m_netIdAllocator.Reset();
 }
 
-NetId GameServer::AllocNetId()
+HYP_NODISCARD NetId GameServer::AllocNetId()
 {
     return NetId(m_netIdAllocator.Allocate());
 }

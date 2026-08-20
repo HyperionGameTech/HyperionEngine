@@ -628,7 +628,7 @@ class CacheServerCommandlet final : public CommandletBase
 
                     if (!asset.IsValid() || asset->IsTransient())
                     {
-                        HYP_LOG(Assets, Warning, "Failed to load asset '{}'", asset->GetName());
+                        HYP_LOG(Assets, Warning, "Failed to load asset '{}'", desc.name);
 
                         continue;
                     }

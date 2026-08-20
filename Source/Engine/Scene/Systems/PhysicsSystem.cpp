@@ -21,6 +21,8 @@
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
 
+#include <Framework/Client/GameClient.hpp>
+
 #include <Rendering/Mesh.hpp>
 
 #include <PhysicsSystem.generated.inl>
@@ -29,6 +31,11 @@ namespace Hyperion {
 
 extern PhysicsMaterial& GetDefaultPhysicsMaterial();
 extern PhysicsShape* GetDefaultPhysicsShape();
+
+bool PhysicsSystem::CanSimulate(const RigidBodyComponent&)
+{
+    return EngineGlobals::HasAuthority();
+}
 
 void PhysicsSystem::OnEntityAdded(Entity* entity)
 {
@@ -70,7 +77,7 @@ void PhysicsSystem::OnEntityAdded(Entity* entity)
 
     rigidBody->shape = rigidBodyComponent.shape.Get();
     rigidBody->physicsMaterial = &rigidBodyComponent.physicsMaterial;
-    
+
     rigidBody->SetVelocity(rigidBodyComponent.initialVelocity);
     rigidBody->SetAngularVelocity(rigidBodyComponent.initialAngularVelocity);
 
@@ -81,15 +88,18 @@ void PhysicsSystem::OnEntityAdded(Entity* entity)
 
     rigidBody->SetTransform(transform);
 
-    PhysicsWorldBase* physicsWorld = GetWorld()->GetPhysicsWorld();
-    AssertDebug(physicsWorld != nullptr);
-
-    if (!physicsWorld)
+    if (CanSimulate(rigidBodyComponent))
     {
-        return;
-    }
+        PhysicsWorldBase* physicsWorld = GetWorld()->GetPhysicsWorld();
+        AssertDebug(physicsWorld != nullptr);
 
-    physicsWorld->AddRigidBody(rigidBodyComponent.rigidBody);
+        if (!physicsWorld)
+        {
+            return;
+        }
+
+        physicsWorld->AddRigidBody(rigidBodyComponent.rigidBody);
+    }
 }
 
 void PhysicsSystem::OnEntityRemoved(Entity* entity)
@@ -98,23 +108,25 @@ void PhysicsSystem::OnEntityRemoved(Entity* entity)
 
     RigidBodyComponent& rigidBodyComponent = entity->GetEntityManager()->GetComponent<RigidBodyComponent>(entity);
 
-    Handle<RigidBody>& rigidBody = rigidBodyComponent.rigidBody;
-
-    if (rigidBody.IsValid())
+    if (CanSimulate(rigidBodyComponent))
     {
+        Handle<RigidBody>& rigidBody = rigidBodyComponent.rigidBody;
 
-        PhysicsWorldBase* physicsWorld = GetWorld()->GetPhysicsWorld();
-        AssertDebug(physicsWorld != nullptr);
-
-        if (physicsWorld)
+        if (rigidBody.IsValid())
         {
-            physicsWorld->RemoveRigidBody(rigidBody);
+            PhysicsWorldBase* physicsWorld = GetWorld()->GetPhysicsWorld();
+            AssertDebug(physicsWorld != nullptr);
+
+            if (physicsWorld)
+            {
+                physicsWorld->RemoveRigidBody(rigidBody);
+            }
+
+            rigidBody->physicsMaterial = &GetDefaultPhysicsMaterial();
+            rigidBody->shape = GetDefaultPhysicsShape();
+
+            rigidBody.Reset();
         }
-
-        rigidBody->physicsMaterial = &GetDefaultPhysicsMaterial();
-        rigidBody->shape = GetDefaultPhysicsShape();
-
-        rigidBody.Reset();
     }
 }
 
