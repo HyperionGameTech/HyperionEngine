@@ -181,6 +181,19 @@ namespace Hyperion.Editor
             Dispatcher.UIThread.Post(() => FocusNodeRenameTextBox(nodeViewModel), DispatcherPriority.Loaded);
         }
 
+        private void OnMoveToGrandparentMenuItemClick(object? sender, RoutedEventArgs e)
+        {
+            if ((sender as MenuItem)?.DataContext is not NodeViewModel nodeViewModel)
+                return;
+
+            NodeViewModel? grandparent = nodeViewModel.Parent?.Parent;
+            if (grandparent == null)
+                return;
+
+            var vm = DataContext as MainWindowViewModel;
+            vm?.SceneHierarchy.ReparentNode(nodeViewModel, grandparent);
+        }
+
         private void FocusNodeRenameTextBox(NodeViewModel nodeViewModel)
         {
             if (_sceneTree == null)

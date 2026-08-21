@@ -15,6 +15,14 @@ namespace Hyperion.Editor.ViewModels
 
         public bool IsRootNode => _parent == null;
 
+        public bool CanMoveToGrandparent => _parent?.Parent != null
+            // Doesn't make sense to reparent an InstancedMeshProxy.
+            && _node.Class.Name != new Name(nameof(InstancedMeshProxy), weak: true);
+
+        public string MoveToGrandparentHeader => _parent?.Parent != null
+            ? $"Move to {_parent.Parent.DisplayName}"
+            : "Move to Parent";
+
         private string _name;
         public string Name
         {

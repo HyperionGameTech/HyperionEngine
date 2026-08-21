@@ -286,10 +286,9 @@ void ReplicationSystem::ApplyPendingRequests()
 
             const ServerRequest<ServerRequestType::PlayerInput>& request = static_cast<const ServerRequest<ServerRequestType::PlayerInput>&>(*requestPtr);
 
-            if (CharacterControllerComponent* characterControllerComponent = it->second->TryGetComponent<CharacterControllerComponent>();
-                characterControllerComponent != nullptr && characterControllerComponent->inputHandler.IsValid())
+            if (CharacterControllerComponent* characterControllerComponent = it->second->TryGetComponent<CharacterControllerComponent>())
             {
-                CharacterControllerInputHandler* inputHandler = StaticCast<CharacterControllerInputHandler>(characterControllerComponent->inputHandler);
+                CharacterControllerInputHandler* inputHandler = StaticCast<CharacterControllerInputHandler>(characterControllerComponent->inputHandler.Get());
 
                 inputHandler->SetMovementInput(request.movementInput);
                 inputHandler->SetIsJumpRequested(request.jumpRequested);

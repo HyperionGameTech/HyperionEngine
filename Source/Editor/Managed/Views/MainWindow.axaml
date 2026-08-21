@@ -585,6 +585,7 @@
                                                     <Separator />
                                                     <MenuItem Click="OnRenameNodeMenuItemClick" Header="Rename" />
                                                     <MenuItem Command="{Binding DataContext.TeleportToNode, ElementName=Root}" CommandParameter="{Binding Name}" Header="Teleport to" />
+                                                    <MenuItem Click="OnMoveToGrandparentMenuItemClick" Header="{Binding MoveToGrandparentHeader}" IsVisible="{Binding CanMoveToGrandparent}" />
                                                     <Separator IsVisible="{Binding HasActions}" />
                                                     <MenuItem Header="Actions" IsVisible="{Binding HasActions}" ItemsSource="{Binding Actions}">
                                                         <MenuItem.ItemTemplate>

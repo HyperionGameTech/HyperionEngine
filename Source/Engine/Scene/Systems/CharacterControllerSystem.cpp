@@ -184,16 +184,20 @@ bool CharacterControllerSystem::ShouldProcessScene(Scene* scene) const
 
 static bool CanControlPlayerEntity(Entity* entity)
 {
-    const PlayerComponent* playerComponent = entity->TryGetComponent<PlayerComponent>();
-    const bool hasOwner = playerComponent != nullptr && playerComponent->connectionId != Invalid<net::NetConnectionId>;
-
     if (EngineGlobals::HasAuthority())
     {
-        return !hasOwner;
+        return true;
     }
 
-    return hasOwner
-        && g_gameClient != nullptr
+    const PlayerComponent* playerComponent = entity->TryGetComponent<PlayerComponent>();
+
+    if (!playerComponent)
+    {
+        return false;
+    }
+
+    return g_gameClient != nullptr
+        && g_gameClient->IsConnected()
         && g_gameClient->GetNetClient().GetConnectionId() == playerComponent->connectionId;
 }
 
