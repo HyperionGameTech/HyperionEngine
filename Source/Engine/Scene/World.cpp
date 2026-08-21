@@ -20,12 +20,10 @@
 #include <Scene/Systems/AudioSystem.hpp>
 #include <Scene/Systems/PhysicsSystem.hpp>
 #include <Scene/Systems/CameraSystem.hpp>
-#include <Scene/Systems/CharacterControllerSystem.hpp>
 #include <Scene/Systems/ScriptSystem.hpp>
 #include <Scene/Systems/MeshSystem.hpp>
 #include <Scene/Systems/ReplicationSystem.hpp>
 #include <Scene/Systems/ReplicationApplySystem.hpp>
-#include <Scene/Systems/PlayerSystem.hpp>
 
 #include <Scene/Components/MeshComponent.hpp>
 #include <Scene/Components/TransformComponent.hpp>
@@ -247,9 +245,6 @@ void World::Initialize()
     if (!HasSystem<CameraSystem>())
         AddSystem(MakeHandle<CameraSystem>());
 
-    if (!HasSystem<CharacterControllerSystem>())
-        AddSystem(MakeHandle<CharacterControllerSystem>());
-
     if (m_worldFlags & WorldFlags::IsReplicated)
     {
         if (EngineGlobals::IsServer() && !HasSystem<ReplicationSystem>())
@@ -262,9 +257,6 @@ void World::Initialize()
             AddSystem(MakeHandle<ReplicationApplySystem>());
         }
     }
-
-    if (!HasSystem<PlayerSystem>())
-        AddSystem(MakeHandle<PlayerSystem>());
 
     m_isInitialized = true;
 

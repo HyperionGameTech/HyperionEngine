@@ -96,6 +96,11 @@ void PlayerSystem::OnAddedToWorld(World* world)
                 {
                     HandleClientDisconnected(id, true);
                 }, g_simThread));
+
+        if (g_gameClient->IsConnected())
+        {
+            HandleClientConnected(g_gameClient->GetNetClient().GetConnectionId(), true);
+        }
     }
 
     if (!EngineGlobals::IsServer())
@@ -163,6 +168,8 @@ bool PlayerSystem::TrySpawnPlayerEntity(net::NetConnectionId connectionId, bool 
 
         m_connectionIdToPlayerEntity.Set(connectionId, templateEntity);
 
+        HYP_LOG(Replication, Info, "Using template entity itself (local player), connection id = {}", connectionId);
+
         return true;
     }
 
@@ -187,7 +194,8 @@ bool PlayerSystem::TrySpawnPlayerEntity(net::NetConnectionId connectionId, bool 
     }
 
     clone->AddComponent<PlayerComponent>(PlayerComponent { connectionId });
-    clone->AddTag<EntityTag::Replicated>();
+    // @TODO sln for replicating players w/o having client trip over themselves
+    //clone->AddTag<EntityTag::Replicated>();
 
     m_connectionIdToPlayerEntity.Set(connectionId, clone);
 
@@ -276,16 +284,18 @@ void PlayerSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     if (m_pendingConnections.Any())
     {
-        for (size_t i = 0; i < m_pendingConnections.Size();)
+        for (auto it = m_pendingConnections.Begin(); it != m_pendingConnections.End();)
         {
-            if (TrySpawnPlayerEntity(m_pendingConnections[i].first, m_pendingConnections[i].second))
+            auto& elem = *it;
+
+            if (TrySpawnPlayerEntity(elem.first, elem.second))
             {
-                m_pendingConnections.EraseAt(i);
+                it = m_pendingConnections.Erase(it);
 
                 continue;
             }
 
-            ++i;
+            ++it;
         }
     }
 

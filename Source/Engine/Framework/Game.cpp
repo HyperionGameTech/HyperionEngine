@@ -31,6 +31,9 @@
 
 #include <Scene/Camera/Camera.hpp>
 
+#include <Scene/Systems/PlayerSystem.hpp>
+#include <Scene/Systems/CharacterControllerSystem.hpp>
+
 #include <Scene/Util/SceneHelpers.hpp>
 
 #include <Scene/Input/TouchControlsSubsystem.hpp>
@@ -379,6 +382,17 @@ void Game::AfterContentLoaded()
     if (Handle<World> world = LoadWorld(s_nameMainWorld); world.IsValid())
     {
         m_syncState.SetState(ContentSyncState::Finished);
+
+        // Systems
+        if (!world->HasSystem<CharacterControllerSystem>())
+        {
+            world->AddSystem(MakeHandle<CharacterControllerSystem>());
+        }
+
+        if (!world->HasSystem<PlayerSystem>())
+        {
+            world->AddSystem(MakeHandle<PlayerSystem>());
+        }
 
         SetWorld(world);
     }

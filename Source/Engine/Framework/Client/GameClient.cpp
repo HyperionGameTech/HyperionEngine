@@ -108,6 +108,7 @@ GameClient::~GameClient()
     Disconnect();
 
     m_netClient.OnConnected.RemoveAllDetached();
+    m_netClient.OnDisconnected.RemoveAllDetached();
 }
 
 NetClientConnectionState GameClient::GetConnectionState() const
