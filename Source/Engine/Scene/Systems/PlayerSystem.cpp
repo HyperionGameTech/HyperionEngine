@@ -194,8 +194,7 @@ bool PlayerSystem::TrySpawnPlayerEntity(net::NetConnectionId connectionId, bool 
     }
 
     clone->AddComponent<PlayerComponent>(PlayerComponent { connectionId });
-    // @TODO sln for replicating players w/o having client trip over themselves
-    //clone->AddTag<EntityTag::Replicated>();
+    clone->AddTag<EntityTag::Replicated>();
 
     m_connectionIdToPlayerEntity.Set(connectionId, clone);
 

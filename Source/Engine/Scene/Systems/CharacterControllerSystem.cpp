@@ -43,8 +43,9 @@ namespace Hyperion {
 
 #pragma region CharacterControllerInputHandler
 
-Vec2f CharacterControllerInputHandler::GetMovementInput() const
+void CharacterControllerInputHandler::Update()
 {
+    // Update movement, jump:
     float forward = 0.0f;
     float strafe = 0.0f;
 
@@ -76,12 +77,8 @@ Vec2f CharacterControllerInputHandler::GetMovementInput() const
     strafe += controllerMove.x;
     forward += controllerMove.y;
 
-    return Vec2f(MathUtil::Clamp(strafe, -1.0f, 1.0f), MathUtil::Clamp(forward, -1.0f, 1.0f));
-}
-
-bool CharacterControllerInputHandler::IsJumpPressed() const
-{
-    return IsKeyDown(KeyCode::KEY_SPACE);
+    m_movementInput = Vec2f(MathUtil::Clamp(strafe, -1.0f, 1.0f), MathUtil::Clamp(forward, -1.0f, 1.0f));
+    m_isJumpRequested = IsKeyDown(KeyCode::KEY_SPACE);
 }
 
 bool CharacterControllerInputHandler::OnKeyDown(const KeyboardEvent& evt)
@@ -92,18 +89,33 @@ bool CharacterControllerInputHandler::OnKeyDown(const KeyboardEvent& evt)
     {
     case KeyCode::KEY_W:
         m_forward = 1.0f;
+
+        Update();
+
         return true;
     case KeyCode::KEY_S:
         m_forward = -1.0f;
+
+        Update();
+
         return true;
     case KeyCode::KEY_A:
         m_strafe = -1.0f;
+
+        Update();
+
         return true;
     case KeyCode::KEY_D:
         m_strafe = 1.0f;
+
+        Update();
+
         return true;
     case KeyCode::KEY_SPACE:
-        m_jump = true;
+        // jump
+
+        Update();
+
         return true;
     default:
         break;
@@ -121,21 +133,36 @@ bool CharacterControllerInputHandler::OnKeyUp(const KeyboardEvent& evt)
     case KeyCode::KEY_W:
         if (m_forward > 0.0f)
             m_forward = 0.0f;
+
+        Update();
+
         return true;
     case KeyCode::KEY_S:
         if (m_forward < 0.0f)
             m_forward = 0.0f;
+
+        Update();
+
         return true;
     case KeyCode::KEY_A:
         if (m_strafe < 0.0f)
             m_strafe = 0.0f;
+
+        Update();
+
         return true;
     case KeyCode::KEY_D:
         if (m_strafe > 0.0f)
             m_strafe = 0.0f;
+
+        Update();
+
         return true;
     case KeyCode::KEY_SPACE:
-        m_jump = false;
+        // jump
+
+        Update();
+
         return true;
     default:
         break;
@@ -290,27 +317,11 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
                     game->RegisterInputHandler(component.inputHandler);
                 }
             }
-
-            if (!hasAuthority)
-            {
-                CharacterControllerInputHandler* inputHandler = StaticCast<CharacterControllerInputHandler>(component.inputHandler.Get());
-                inputHandler->SetDeltaTime(GetWorld()->GetGameState().deltaTime);
-
-                SendPlayerInputRequest(inputHandler->GetMovementInput(), int8(inputHandler->IsJumpPressed()));
-
-                continue;
-            }
-
-            if (!component.physicsHandle)
-            {
-                HYP_LOG_ONCE(Scene, Warning, "physicsHandle is null for Entity {}'s character controller.", entity->GetName());
-                continue;
-            }
-
-            Vec3f walkDirection;
+            
+            CharacterControllerInputHandler* inputHandler = StaticCast<CharacterControllerInputHandler>(component.inputHandler.Get());
+            inputHandler->SetDeltaTime(GetWorld()->GetGameState().deltaTime);
 
             float heightOffset = 0.0f;
-
             if (CapsulePhysicsShape* capsuleShape = DynamicCast<CapsulePhysicsShape>(component.shape.Get()))
             {
                 // amount to adjust the the final offset by after applying capsule height
@@ -320,22 +331,27 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
                 heightOffset = capsuleShape->GetHeight() - CapsuleHeightOffset;
             }
-
+            
             Vec2f movementInput;
             bool jumpPressed = false;
 
-            if (component.inputHandler)
+            if (hasAuthority)
             {
-                CharacterControllerInputHandler* inputHandler = StaticCast<CharacterControllerInputHandler>(component.inputHandler.Get());
-                inputHandler->SetDeltaTime(GetWorld()->GetGameState().deltaTime);
+                if (!component.physicsHandle)
+                {
+                    HYP_LOG_ONCE(Scene, Warning, "physicsHandle is null for Entity {}'s character controller.", entity->GetName());
+                    continue;
+                }
 
                 movementInput = inputHandler->GetMovementInput();
                 jumpPressed = inputHandler->IsJumpPressed();
             }
             else
             {
-                movementInput = component.networkMovementInput;
-                jumpPressed = component.networkJumpRequested;
+                // Send request
+                SendPlayerInputRequest(inputHandler->GetMovementInput(), int8(inputHandler->IsJumpPressed()));
+
+                continue;
             }
 
             TransformComponent& transformComponent = entity->GetComponent<TransformComponent>();
@@ -346,6 +362,8 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
             {
                 component.viewDirection = facingDirection;
             }
+            
+            Vec3f walkDirection;
 
             if (movementInput.LengthSquared() > 0.0001f)
             {

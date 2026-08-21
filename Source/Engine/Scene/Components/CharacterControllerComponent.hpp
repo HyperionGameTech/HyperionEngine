@@ -59,12 +59,6 @@ struct CharacterControllerComponent
 
     HYP_FIELD(Transient)
     bool isOnGround = false;
-
-    HYP_FIELD(Transient, Editor = false)
-    Vec2f networkMovementInput;
-
-    HYP_FIELD(Transient, Editor = false)
-    bool networkJumpRequested = false;
 };
 
 } // namespace Hyperion

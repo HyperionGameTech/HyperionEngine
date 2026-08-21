@@ -130,7 +130,32 @@ static Handle<Entity> ExecuteEntitySpawn(const ReplicationOp<ReplicationOpType::
     return entity;
 }
 
-static Handle<Entity> TryResolveSpawn(const ReplicationOp<ReplicationOpType::Spawn>& spawnOp, Span<Handle<Scene>> scenes, SystemBase* system, const Map<NetId, Handle<Entity>, SceneAllocator>& netIdToEntity)
+static Handle<Entity> FindMyLocalPlayerEntity(const Scene& scene, net::NetConnectionId ownerConnectionId)
+{
+    if (ownerConnectionId == Invalid<net::NetConnectionId>
+        || g_gameClient == nullptr
+        || !g_gameClient->IsConnected()
+        || g_gameClient->GetNetClient().GetConnectionId() != ownerConnectionId)
+    {
+        return Handle<Entity>::Null();
+    }
+
+    for (auto [entity, playerComponent] : scene.GetEntityManager()->GetEntitySet<PlayerComponent>())
+    {
+        if (playerComponent.connectionId == ownerConnectionId)
+        {
+            return MakeStrongRef(entity);
+        }
+    }
+
+    return Handle<Entity>::Null();
+}
+
+static Handle<Entity> TryResolveSpawn(
+    const ReplicationOp<ReplicationOpType::Spawn>& spawnOp,
+    Span<Handle<Scene>> scenes,
+    SystemBase* system,
+    const Map<NetId, Handle<Entity>, SceneAllocator>& netIdToEntity)
 {
     Scene* targetScene = FindTargetScene(scenes, system, spawnOp.sceneName);
 
@@ -139,7 +164,16 @@ static Handle<Entity> TryResolveSpawn(const ReplicationOp<ReplicationOpType::Spa
         return Handle<Entity>::Null();
     }
 
-    if (Handle<Entity> existing = FindLocalEntityByUuid(*targetScene, spawnOp.uuid); existing.IsValid())
+    // If this Spawn is the replication echo of our own player entity, reconcile onto the
+    // locally-driven entity instead of spawning a duplicate.
+    Handle<Entity> existing = FindMyLocalPlayerEntity(*targetScene, spawnOp.ownerConnectionId);
+
+    if (!existing.IsValid())
+    {
+        existing = FindLocalEntityByUuid(*targetScene, spawnOp.uuid);
+    }
+
+    if (existing.IsValid())
     {
         if (!existing->HasComponent<ReplicationStateComponent>())
         {

@@ -13,8 +13,8 @@ namespace Hyperion {
 namespace net {
 
 static constexpr TimeDiff KeepAliveInterval = TimeDiff(2000);
-static constexpr TimeDiff ServerTimeout = TimeDiff(15000);
-static constexpr TimeDiff ConnectTimeout = TimeDiff(5000);
+static constexpr TimeDiff ServerTimeout = TimeDiff(20000);
+static constexpr TimeDiff ConnectTimeout = TimeDiff(10000);
 
 NetClient::NetClient()
     : m_connectionId(Invalid<NetConnectionId>),

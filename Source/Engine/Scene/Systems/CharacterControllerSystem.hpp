@@ -24,7 +24,7 @@ public:
     CharacterControllerInputHandler()
         : m_forward(0.0f),
           m_strafe(0.0f),
-          m_jump(false)
+          m_isJumpRequested(false)
     {
     }
 
@@ -32,7 +32,7 @@ public:
         : m_parentInputHandler(parentInputHandler),
           m_forward(0.0f),
           m_strafe(0.0f),
-          m_jump(false)
+          m_isJumpRequested(false)
     {
     }
 
@@ -43,19 +43,42 @@ public:
         return m_parentInputHandler;
     }
 
-    Vec2f GetMovementInput() const;
-    bool IsJumpPressed() const;
+    HYP_FORCE_INLINE const Vec2f& GetMovementInput() const
+    {
+        return m_movementInput;
+    }
+
+    /// Server only!
+    HYP_FORCE_INLINE void SetMovementInput(const Vec2f& movementInput)
+    {
+        m_movementInput = movementInput;
+    }
+
+    HYP_FORCE_INLINE bool IsJumpPressed() const
+    {
+        return m_isJumpRequested;
+    }
+
+    /// Server only!
+    HYP_FORCE_INLINE void SetIsJumpRequested(bool isJumpRequested)
+    {
+        m_isJumpRequested = isJumpRequested;
+    }
 
     bool OnKeyDown(const KeyboardEvent& evt) override;
     bool OnKeyUp(const KeyboardEvent& evt) override;
 
 private:
+    void Update();
+
     HYP_FIELD(Serialize)
     Handle<InputHandlerBase> m_parentInputHandler;
 
     float m_forward;
     float m_strafe;
-    bool m_jump;
+
+    Vec2f m_movementInput;
+    bool m_isJumpRequested;
 };
 
 HYP_CLASS(NoScriptBindings)

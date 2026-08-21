@@ -8,6 +8,10 @@
 #   include <winsock2.h>
 #   include <ws2tcpip.h>
 #   pragma comment(lib, "Ws2_32.lib")
+
+#   ifndef SIO_UDP_CONNRESET
+#       define SIO_UDP_CONNRESET _WSAIOW(IOC_VENDOR, 12)
+#   endif
 #else
 #   include <sys/socket.h>
 #   include <netinet/in.h>
@@ -71,6 +75,10 @@ Result NetSocketUDP::Bind(uint16 port)
 #ifdef HYP_WINDOWS
     u_long mode = 1;
     ioctlsocket(m_handle, FIONBIO, &mode);
+
+    BOOL enableConnReset = FALSE;
+    DWORD bytesReturned = 0;
+    WSAIoctl(m_handle, SIO_UDP_CONNRESET, &enableConnReset, sizeof(enableConnReset), nullptr, 0, &bytesReturned, nullptr, nullptr);
 #else
     int flags = fcntl(m_handle, F_GETFL, 0);
     fcntl(m_handle, F_SETFL, flags | O_NONBLOCK);
@@ -148,6 +156,20 @@ Result NetSocketUDP::RecvFrom(NetAddress& outSender, NetBuffer& outData)
 
     if (received <= 0)
     {
+#ifdef HYP_WINDOWS
+        const int lastError = WSAGetLastError();
+
+        if (lastError != WSAEWOULDBLOCK)
+        {
+            HYP_LOG(Net, Warning, "recvfrom() failed with error code {}", lastError);
+        }
+#else
+        if (errno != EWOULDBLOCK && errno != EAGAIN)
+        {
+            HYP_LOG(Net, Warning, "recvfrom() failed with error code {}", errno);
+        }
+#endif
+
         return HYP_MAKE_ERROR(Error, "Failed to receive UDP packet");
     }
 

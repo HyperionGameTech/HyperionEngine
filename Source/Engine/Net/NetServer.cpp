@@ -16,7 +16,7 @@
 namespace Hyperion {
 namespace net {
 
-static constexpr TimeDiff ConnectionTimeout = TimeDiff(10000);
+static constexpr TimeDiff ConnectionTimeout = TimeDiff(25000);
 
 #pragma region NetConnection
 

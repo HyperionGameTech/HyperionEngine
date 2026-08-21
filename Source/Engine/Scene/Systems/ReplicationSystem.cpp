@@ -7,6 +7,7 @@
 #include <ScenePch.hpp>
 
 #include <Scene/Systems/ReplicationSystem.hpp>
+#include <Scene/Systems/CharacterControllerSystem.hpp> // For CharacterControllerInputHandler. @TODO move elsewhere
 
 #include <Scene/Components/ReplicationStateComponent.hpp>
 #include <Scene/Components/PlayerComponent.hpp>
@@ -285,10 +286,13 @@ void ReplicationSystem::ApplyPendingRequests()
 
             const ServerRequest<ServerRequestType::PlayerInput>& request = static_cast<const ServerRequest<ServerRequestType::PlayerInput>&>(*requestPtr);
 
-            if (CharacterControllerComponent* characterControllerComponent = it->second->TryGetComponent<CharacterControllerComponent>())
+            if (CharacterControllerComponent* characterControllerComponent = it->second->TryGetComponent<CharacterControllerComponent>();
+                characterControllerComponent != nullptr && characterControllerComponent->inputHandler.IsValid())
             {
-                characterControllerComponent->networkMovementInput = request.movementInput;
-                characterControllerComponent->networkJumpRequested = request.jumpRequested;
+                CharacterControllerInputHandler* inputHandler = StaticCast<CharacterControllerInputHandler>(characterControllerComponent->inputHandler);
+
+                inputHandler->SetMovementInput(request.movementInput);
+                inputHandler->SetIsJumpRequested(request.jumpRequested);
             }
 
             break;
