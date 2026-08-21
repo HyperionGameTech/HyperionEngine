@@ -14,7 +14,7 @@
 
 namespace Hyperion {
 
-ENGINE_API bool ComponentInterface_CreateInstance(const Class* cls, BoxedValue& outBoxed)
+extern "C"  ENGINE_API bool ComponentInterface_CreateInstance(const Class* cls, BoxedValue& outBoxed)
 {
     if (!cls || !cls->CanCreateInstance())
     {

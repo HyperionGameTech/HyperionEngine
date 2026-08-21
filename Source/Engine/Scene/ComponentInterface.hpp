@@ -17,6 +17,7 @@
 
 #include <Core/Reflection/BoxedValue.hpp>
 #include <Core/Reflection/ObjectFwd.hpp>
+#include <Core/Reflection/ClassAttribute.hpp>
 
 #include <Scene/ComponentFactory.hpp>
 #include <Scene/ComponentContainer.hpp>
@@ -30,7 +31,8 @@ class ComponentContainerFactoryBase;
 template <EntityTag Tag>
 struct TagComponent;
 
-extern ENGINE_API bool ComponentInterface_CreateInstance(const Class* cls, BoxedValue& outBoxed);
+extern "C" ENGINE_API bool ComponentInterface_CreateInstance(const Class* cls, BoxedValue& outBoxed);
+extern "C" ENGINE_API const ClassAttribute* Class_GetAttribute(const Class* cls, const Name* name);
 
 enum class ComponentInterfaceFlags : uint32
 {
@@ -111,12 +113,20 @@ class ComponentInterface final : public IComponentInterface
 public:
     ComponentInterface()
     {
-        const Class* cls = GetClass();
-        Assert(cls != nullptr);
+        const auto getClassAttributeValue = [cls = GetClass()](const Name& name) -> const ClassAttributeValue&
+        {
+            const ClassAttribute* attr = Class_GetAttribute(cls, &name);
+            if (!attr)
+            {
+                return ClassAttributeValue::empty;
+            }
 
-        m_shouldSerialize = (ShouldSerialize && cls->GetAttribute(Attributes::g_attrSerialize) != false);
+            return attr->GetValue();
+        };
+
+        m_shouldSerialize = (ShouldSerialize && getClassAttributeValue(Attributes::g_attrSerialize) != false);
         m_showInEditor = m_shouldSerialize;
-        m_isReplicated = (cls->GetAttribute(Attributes::g_attrReplicated) != false);
+        m_isReplicated = (getClassAttributeValue(Attributes::g_attrReplicated) != false);
         m_isEntityTag = false;
     }
 
@@ -173,28 +183,6 @@ public:
 
     EntityTagComponentInterface(const EntityTagComponentInterface&) = delete;
     EntityTagComponentInterface& operator=(const EntityTagComponentInterface&) = delete;
-
-    EntityTagComponentInterface(EntityTagComponentInterface&& other) noexcept
-        : m_componentFactory(std::move(other.m_componentFactory)),
-          m_componentContainerFactory(other.m_componentContainerFactory)
-    {
-        other.m_componentContainerFactory = nullptr;
-    }
-
-    EntityTagComponentInterface& operator=(EntityTagComponentInterface&& other) noexcept
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        m_componentFactory = std::move(other.m_componentFactory);
-        m_componentContainerFactory = other.m_componentContainerFactory;
-
-        other.m_componentContainerFactory = nullptr;
-
-        return *this;
-    }
 
     virtual ~EntityTagComponentInterface() override = default;
 
