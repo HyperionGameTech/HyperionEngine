@@ -191,14 +191,26 @@ static bool CanControlPlayerEntity(Entity* entity)
 
     const PlayerComponent* playerComponent = entity->TryGetComponent<PlayerComponent>();
 
-    if (!playerComponent)
+    return playerComponent != nullptr && playerComponent->IsLocalPlayer();
+}
+
+static bool IsLocallyControlledPlayerEntity(Entity* entity)
+{
+    if (EngineGlobals::IsHeadless())
     {
+        // dedicated server
         return false;
     }
 
-    return g_gameClient != nullptr
-        && g_gameClient->IsConnected()
-        && g_gameClient->GetNetClient().GetConnectionId() == playerComponent->connectionId;
+    if (g_gameClient == nullptr || !g_gameClient->IsConnected())
+    {
+        // single-player
+        return true;
+    }
+
+    const PlayerComponent* playerComponent = entity->TryGetComponent<PlayerComponent>();
+
+    return playerComponent == nullptr || playerComponent->IsLocalPlayer();
 }
 
 void CharacterControllerSystem::OnEntityAdded(Entity* entity)
@@ -324,6 +336,11 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
             
             CharacterControllerInputHandler* inputHandler = StaticCast<CharacterControllerInputHandler>(component.inputHandler.Get());
             inputHandler->SetDeltaTime(GetWorld()->GetGameState().deltaTime);
+
+            if (IsLocallyControlledPlayerEntity(entity))
+            {
+                inputHandler->Update();
+            }
 
             float heightOffset = 0.0f;
             if (CapsulePhysicsShape* capsuleShape = DynamicCast<CapsulePhysicsShape>(component.shape.Get()))

@@ -44,6 +44,9 @@ struct PlayerComponent
         : connectionId(connectionId)
     {
     }
+
+    // True if this component's connection is the local client's own connection.
+    bool IsLocalPlayer() const;
 };
 
 } // namespace Hyperion

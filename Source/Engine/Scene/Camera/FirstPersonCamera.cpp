@@ -237,34 +237,6 @@ bool FirstPersonCameraInputHandler::OnControllerButtonDown(ControllerButton btn)
     return true;
 }
 
-bool FirstPersonCameraInputHandler::OnControllerAnalogMove(const ControllerAnalogData& data)
-{
-    if (data.actionIndex == 1)
-    {
-        Camera* camera = m_controller->GetCamera();
-        if (!camera)
-        {
-            return false;
-        }
-
-        static constexpr float ControllerLookSensitivity = 8.0f;
-        const float deltaTime = static_cast<float>(m_deltaTime);
-
-        Vec2f lookDelta = data.value * ControllerLookSensitivity * deltaTime;
-
-        Vec3f dirCrossY = camera->GetSideVector();
-        camera->Rotate(Vec3f::UnitY(), MathUtil::DegToRad(lookDelta.x));
-        camera->Rotate(dirCrossY, MathUtil::DegToRad(lookDelta.y));
-
-        if (camera->GetDirection().y > 0.98f || camera->GetDirection().y < -0.98f)
-        {
-            camera->Rotate(dirCrossY, MathUtil::DegToRad(-lookDelta.y));
-        }
-    }
-
-    return InputHandlerBase::OnControllerAnalogMove(data);
-}
-
 #pragma endregion FirstPersonCameraInputHandler
 
 #pragma region FirstPersonCameraController
@@ -334,13 +306,29 @@ void FirstPersonCameraController::UpdateLogic(double delta)
     HYP_SCOPE;
 
     static constexpr float MovementSpeed = 15.0f;
+    static constexpr float ControllerLookSensitivity = 8.0f;
+
+    m_inputHandler->SetDeltaTime(delta);
+
+    const Vec2f& controllerLook = m_inputHandler->GetControllerLookDelta();
+    if (!controllerLook.IsZero())
+    {
+        const Vec2f lookDelta = controllerLook * ControllerLookSensitivity * float(delta);
+
+        const Vec3f lookDirCrossY = m_camera->GetSideVector();
+        m_camera->Rotate(Vec3f::UnitY(), MathUtil::DegToRad(lookDelta.x));
+        m_camera->Rotate(lookDirCrossY, MathUtil::DegToRad(lookDelta.y));
+
+        if (m_camera->GetDirection().y > 0.98f || m_camera->GetDirection().y < -0.98f)
+        {
+            m_camera->Rotate(lookDirCrossY, MathUtil::DegToRad(-lookDelta.y));
+        }
+    }
 
     Vec3f translation = m_camera->GetWorldTranslation();
 
     const Vec3f direction = m_camera->GetDirection();
     const Vec3f dirCrossY = m_camera->GetSideVector();
-
-    m_inputHandler->SetDeltaTime(delta);
 
     // Keyboard movement (WASD)
     if (m_inputHandler->IsKeyDown(KeyCode::KEY_W))

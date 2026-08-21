@@ -53,7 +53,6 @@ public:
     virtual bool OnLoseFocus(const MouseEvent& evt) override;
 
     virtual bool OnControllerButtonDown(ControllerButton btn) override;
-    virtual bool OnControllerAnalogMove(const ControllerAnalogData& data) override;
 
 private:
     bool ShouldProcessTouch(const TouchEvent& evt) const;
