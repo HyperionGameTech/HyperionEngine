@@ -170,17 +170,17 @@
             <!--  Fallback in-window menu for non-macOS platforms  -->
             <Menu DockPanel.Dock="Top">
                 <MenuItem Header="_File">
-                    <MenuItem Command="{Binding NewProject}" Header="_New Project..." />
-                    <MenuItem Command="{Binding OpenProject}" Header="_Open Project..." />
+                    <MenuItem Command="{Binding NewProject}" Header="_New Project..." IsEnabled="{Binding !IsSimulating}" />
+                    <MenuItem Command="{Binding OpenProject}" Header="_Open Project..." IsEnabled="{Binding !IsSimulating}" />
                     <Separator />
-                    <MenuItem Command="{Binding SaveProject}" Header="_Save Project" />
-                    <MenuItem Command="{Binding SaveProjectAs}" Header="Save Project _As..." />
+                    <MenuItem Command="{Binding SaveProject}" Header="_Save Project" IsEnabled="{Binding !IsSimulating}" />
+                    <MenuItem Command="{Binding SaveProjectAs}" Header="Save Project _As..." IsEnabled="{Binding !IsSimulating}" />
                     <Separator />
-                    <MenuItem Command="{Binding CloseProject}" Header="Close Project" />
+                    <MenuItem Command="{Binding CloseProject}" Header="Close Project" IsEnabled="{Binding !IsSimulating}" />
                     <Separator />
                     <MenuItem Command="{Binding Exit}" Header="_Exit" />
                 </MenuItem>
-                <MenuItem Header="_Edit">
+                <MenuItem Header="_Edit" IsEnabled="{Binding !IsSimulating}">
                     <MenuItem Command="{Binding Undo}" Header="{Binding UndoHeader}" IsEnabled="{Binding CanUndo}" />
                     <MenuItem Command="{Binding Redo}" Header="{Binding RedoHeader}" IsEnabled="{Binding CanRedo}" />
                     <Separator />
@@ -192,7 +192,7 @@
                     <MenuItem Header="Select All in Viewport" />
                     <MenuItem Header="Select None" />
                 </MenuItem>
-                <MenuItem Header="_Build">
+                <MenuItem Header="_Build" IsEnabled="{Binding !IsSimulating}">
                   <MenuItem Command="{Binding BuildReflectionProbes}" Header="Reflection Probes" />
                   <MenuItem Command="{Binding BuildIrradianceProbes}" Header="Irradiance Probes" />
                   <Separator />
@@ -212,10 +212,10 @@
                         Grid.Column="0"
                         Orientation="Horizontal"
                         Spacing="4">
-                        <Button Command="{Binding OpenProject}" ToolTip.Tip="Open">
+                        <Button Command="{Binding OpenProject}" IsEnabled="{Binding !IsSimulating}" ToolTip.Tip="Open">
                             <LucideIcon Kind="FolderOpen" Size="16" />
                         </Button>
-                        <Button Command="{Binding SaveProject}" ToolTip.Tip="Save">
+                        <Button Command="{Binding SaveProject}" IsEnabled="{Binding !IsSimulating}" ToolTip.Tip="Save">
                             <LucideIcon Kind="Save" Size="16" />
                         </Button>
                         <Button Command="{Binding Undo}" ToolTip.Tip="{Binding UndoHeader}" Margin="12,0,0,0" IsEnabled="{Binding CanUndo}">
@@ -430,7 +430,8 @@
                                                     <Separator />
                                                     <MenuItem
                                                         Command="{Binding DataContext.AddNewSceneCommand, ElementName=Root}"
-                                                        Header="Add New Scene..." />
+                                                        Header="Add New Scene..."
+                                                        IsEnabled="{Binding !DataContext.IsSimulating, ElementName=Root}" />
                                                 </StackPanel>
                                             </Flyout>
                                         </DropDownButton.Flyout>
@@ -441,6 +442,7 @@
                                         Padding="8,2"
                                         HorizontalAlignment="Right"
                                         VerticalAlignment="Center"
+                                        IsEnabled="{Binding !IsSimulating}"
                                         ToolTip.Tip="Add new node to the active scene...">
                                         <LucideIcon Kind="Plus" Size="16" />
                                         <Button.Flyout>
@@ -580,14 +582,14 @@
                                             </StackPanel>
                                             <Grid.ContextMenu>
                                                 <ContextMenu Opened="OnNodeContextMenuOpened">
-                                                    <MenuItem Command="{Binding DataContext.Copy, ElementName=Root}" Header="{Binding DataContext.CopyHeader, ElementName=Root}" />
-                                                    <MenuItem Command="{Binding DataContext.Paste, ElementName=Root}" Header="{Binding DataContext.PasteHeader, ElementName=Root}" />
+                                                    <MenuItem Command="{Binding DataContext.Copy, ElementName=Root}" Header="{Binding DataContext.CopyHeader, ElementName=Root}" IsEnabled="{Binding !DataContext.IsSimulating, ElementName=Root}" />
+                                                    <MenuItem Command="{Binding DataContext.Paste, ElementName=Root}" Header="{Binding DataContext.PasteHeader, ElementName=Root}" IsEnabled="{Binding !DataContext.IsSimulating, ElementName=Root}" />
                                                     <Separator />
-                                                    <MenuItem Click="OnRenameNodeMenuItemClick" Header="Rename" />
-                                                    <MenuItem Command="{Binding DataContext.TeleportToNode, ElementName=Root}" CommandParameter="{Binding Name}" Header="Teleport to" />
-                                                    <MenuItem Click="OnMoveToGrandparentMenuItemClick" Header="{Binding MoveToGrandparentHeader}" IsVisible="{Binding CanMoveToGrandparent}" />
+                                                    <MenuItem Click="OnRenameNodeMenuItemClick" Header="Rename" IsEnabled="{Binding !DataContext.IsSimulating, ElementName=Root}" />
+                                                    <MenuItem Command="{Binding DataContext.TeleportToNode, ElementName=Root}" CommandParameter="{Binding Name}" Header="Teleport to" IsEnabled="{Binding !DataContext.IsSimulating, ElementName=Root}" />
+                                                    <MenuItem Click="OnMoveToGrandparentMenuItemClick" Header="{Binding MoveToGrandparentHeader}" IsVisible="{Binding CanMoveToGrandparent}" IsEnabled="{Binding !DataContext.IsSimulating, ElementName=Root}" />
                                                     <Separator IsVisible="{Binding HasActions}" />
-                                                    <MenuItem Header="Actions" IsVisible="{Binding HasActions}" ItemsSource="{Binding Actions}">
+                                                    <MenuItem Header="Actions" IsVisible="{Binding HasActions}" IsEnabled="{Binding !DataContext.IsSimulating, ElementName=Root}" ItemsSource="{Binding Actions}">
                                                         <MenuItem.ItemTemplate>
                                                             <DataTemplate x:DataType="vm:InspectorActionViewModel">
                                                                 <MenuItem Command="{Binding ExecuteActionCommand}" Header="{Binding Label}" IsEnabled="{Binding IsEnabled}" />
@@ -595,7 +597,7 @@
                                                         </MenuItem.ItemTemplate>
                                                     </MenuItem>
                                                     <Separator />
-                                                    <MenuItem Command="{Binding DataContext.DeleteNode, ElementName=Root}" Header="{Binding DataContext.DeleteHeader, ElementName=Root}" />
+                                                    <MenuItem Command="{Binding DataContext.DeleteNode, ElementName=Root}" Header="{Binding DataContext.DeleteHeader, ElementName=Root}" IsEnabled="{Binding !DataContext.IsSimulating, ElementName=Root}" />
                                                 </ContextMenu>
                                             </Grid.ContextMenu>
                                         </Grid>
@@ -962,12 +964,14 @@
                                                     VerticalAlignment="Center"
                                                     Command="{Binding ContentBrowser.ImportCommand}"
                                                     Content="Import"
+                                                    IsEnabled="{Binding !IsSimulating}"
                                                     ToolTip.Tip="Import external content into the asset registry." />
                                                 <Button
                                                     Grid.Column="4"
                                                     Padding="8,2"
                                                     VerticalAlignment="Center"
-                                                    Content="New...">
+                                                    Content="New..."
+                                                    IsEnabled="{Binding !IsSimulating}">
                                                     <Button.Flyout>
                                                         <MenuFlyout>
                                                             <MenuItem Command="{Binding ContentBrowser.NewPhysicsShapeCommand}" Header="Physics Shape..." />
@@ -1025,9 +1029,10 @@
                                                                     <MenuItem
                                                                         Command="{Binding DataContext.ContentBrowser.EditAssetCommand, ElementName=Root}"
                                                                         CommandParameter="{Binding}"
-                                                                        Header="_Edit" />
+                                                                        Header="_Edit"
+                                                                        IsEnabled="{Binding !DataContext.IsSimulating, ElementName=Root}" />
                                                                     <Separator IsVisible="{Binding HasActions}" />
-                                                                    <MenuItem Header="Actions" IsVisible="{Binding HasActions}" ItemsSource="{Binding Actions}">
+                                                                    <MenuItem Header="Actions" IsVisible="{Binding HasActions}" IsEnabled="{Binding !DataContext.IsSimulating, ElementName=Root}" ItemsSource="{Binding Actions}">
                                                                         <MenuItem.ItemTemplate>
                                                                             <DataTemplate x:DataType="vm:InspectorActionViewModel">
                                                                                 <MenuItem Command="{Binding ExecuteActionCommand}" Header="{Binding Label}" IsEnabled="{Binding IsEnabled}" />
@@ -1038,7 +1043,8 @@
                                                                     <MenuItem
                                                                         Command="{Binding DataContext.ContentBrowser.DeleteAssetCommand, ElementName=Root}"
                                                                         CommandParameter="{Binding}"
-                                                                        Header="_Delete" />
+                                                                        Header="_Delete"
+                                                                        IsEnabled="{Binding !DataContext.IsSimulating, ElementName=Root}" />
                                                                 </ContextMenu>
                                                             </Border.ContextMenu>
                                                         </Border>

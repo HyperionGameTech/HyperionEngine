@@ -4518,6 +4518,13 @@ bool EditorSubsystem::ExecuteCommand(const Handle<EditorCommandBase>& command)
         return false;
     }
 
+    if (IsSimulating() && !command->AllowedWhileSimulating())
+    {
+        HYP_LOG(Editor, Warning, "Cannot execute command '{}' while simulation is active", command->InstanceClass()->GetName());
+
+        return false;
+    }
+
     if (IsOnThread(g_simThread))
     {
         command->Execute(this);

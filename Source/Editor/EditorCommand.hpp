@@ -32,6 +32,14 @@ public:
 
     virtual void Execute(EditorSubsystem* subsystem) = 0;
 
+    /*! \brief Whether this command is allowed to run while the editor's project world is actively simulating (playing).
+     *  Defaults to false -- most editor commands mutate project/scene state in ways that aren't safe to run
+     *  against a live simulation, so commands must opt in explicitly if they're safe to run while simulating. */
+    virtual bool AllowedWhileSimulating() const
+    {
+        return false;
+    }
+
     HYP_METHOD()
     const Array<String>& GetArguments() const
     {

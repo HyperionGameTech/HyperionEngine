@@ -18,7 +18,8 @@ namespace Hyperion.Editor.Commands
             _argumentProvider = argumentProvider;
         }
 
-        public bool CanExecute(object? parameter) => !string.IsNullOrEmpty(_name);
+        public bool CanExecute(object? parameter) => !string.IsNullOrEmpty(_name)
+            && EngineManager.EditorGame?.EditorSubsystem?.IsSimulating() != true;
         public void Execute(object? parameter)
         {
             string? argument = parameter as string;

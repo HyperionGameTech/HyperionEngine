@@ -97,10 +97,10 @@ EditorProject::~EditorProject()
         EnqueueDeletion(std::move(m_gameInstance));
     }
 
-    if (m_world.IsValid())
+    if (m_editWorld.IsValid())
     {
-        m_world->Shutdown();
-        m_world.Reset();
+        m_editWorld->Shutdown();
+        m_editWorld.Reset();
     }
 }
 
@@ -119,7 +119,7 @@ const Handle<World>& EditorProject::GetWorld() const
         return gameWorld;
     }
 
-    return m_world;
+    return m_editWorld;
 }
 
 void EditorProject::SetGame(const Handle<Game>& gameInstance)
@@ -139,8 +139,8 @@ void EditorProject::AddScene(const Handle<Scene>& scene)
         return;
     }
 
-    World* world = m_world;
-    Assert(world != nullptr, "No transient World set on the project!");
+    World* world = m_editWorld;
+    Assert(world != nullptr, "No edit World set on the project!");
 
     world->AddScene(scene, /* addToStreamingLayer */ true);
     world->MarkDirty();
@@ -153,8 +153,8 @@ void EditorProject::RemoveScene(Scene* scene)
         return;
     }
 
-    World* world = m_world;
-    Assert(world != nullptr, "No transient World set on the project!");
+    World* world = m_editWorld;
+    Assert(world != nullptr, "No edit World set on the project!");
 
     world->RemoveScene(scene, /* removeFromStreamingLayer */ true);
     world->MarkDirty();
@@ -177,10 +177,10 @@ void EditorProject::Close(bool shutdownWorld)
         m_gameInstance->Shutdown(/* shutdownWorld */ shutdownWorld);
     }
 
-    if (shutdownWorld && m_world.IsValid())
+    if (shutdownWorld && m_editWorld.IsValid())
     {
-        m_world->Shutdown();
-        m_world.Reset();
+        m_editWorld->Shutdown();
+        m_editWorld.Reset();
     }
 }
 
@@ -191,7 +191,7 @@ Result EditorProject::Save()
 
 Result EditorProject::SaveAs(FilePath filepath)
 {
-    if (!m_world.IsValid())
+    if (!m_editWorld.IsValid())
     {
         return HYP_MAKE_ERROR(Error, "No World set on the project");
     }
@@ -251,8 +251,7 @@ Result EditorProject::SaveAs(FilePath filepath)
         /* isForegroundTask */ true);
 
     // Put the world asset, root of all assets.
-    // m_world should be set as the 'transient' world.. While in editor, we load up the game's world
-    registry.PutAssetsDeep(m_world);
+    registry.PutAssetsDeep(m_editWorld);
 
     GlobalContextScope saveContextScope { EditorProjectSaveContext {} };
 

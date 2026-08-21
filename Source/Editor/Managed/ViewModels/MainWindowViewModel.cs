@@ -72,7 +72,7 @@ namespace Hyperion.Editor.ViewModels
         private bool _canUndo;
         public bool CanUndo
         {
-            get => _canUndo;
+            get => _canUndo && !IsSimulating;
             set => SetProperty(ref _canUndo, value);
         }
 
@@ -86,7 +86,7 @@ namespace Hyperion.Editor.ViewModels
         private bool _canRedo;
         public bool CanRedo
         {
-            get => _canRedo;
+            get => _canRedo && !IsSimulating;
             set => SetProperty(ref _canRedo, value);
         }
 
@@ -100,7 +100,7 @@ namespace Hyperion.Editor.ViewModels
         private bool _canPaste;
         public bool CanPaste
         {
-            get => _canPaste;
+            get => _canPaste && !IsSimulating;
             set => SetProperty(ref _canPaste, value);
         }
 
@@ -114,7 +114,7 @@ namespace Hyperion.Editor.ViewModels
         private bool _canCopy;
         public bool CanCopy
         {
-            get => _canCopy;
+            get => _canCopy && !IsSimulating;
             set => SetProperty(ref _canCopy, value);
         }
 
@@ -268,6 +268,8 @@ namespace Hyperion.Editor.ViewModels
         {
             get => "Ready";
         }
+
+        public bool IsSimulating => _editorSubsystem?.IsSimulating() ?? false;
 
         public ICommand SetGameModePlaying { get; private set; }
         public bool CanSetGameModePlaying
@@ -881,6 +883,12 @@ namespace Hyperion.Editor.ViewModels
                             OnPropertyChanged(nameof(CanSetGameModePlaying));
                             OnPropertyChanged(nameof(CanSetGameModePaused));
                             OnPropertyChanged(nameof(CanSetGameModeStopped));
+
+                            OnPropertyChanged(nameof(IsSimulating));
+                            OnPropertyChanged(nameof(CanUndo));
+                            OnPropertyChanged(nameof(CanRedo));
+                            OnPropertyChanged(nameof(CanCopy));
+                            OnPropertyChanged(nameof(CanPaste));
 
                             (SelectTransformModeTranslate as SetGizmoCommand)?.RaiseCanExecuteChanged();
                             (SelectTransformModeRotate as SetGizmoCommand)?.RaiseCanExecuteChanged();
