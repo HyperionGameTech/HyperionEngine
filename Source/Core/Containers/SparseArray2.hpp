@@ -20,41 +20,25 @@
 namespace Hyperion {
 namespace containers {
 
-enum class SparseArrayPolicy : uint8
-{
-    LinearPages = 0,      //!< Default, pages are linear, but pointers become invalidated when reszing pages.
-    KeepPointersValid = 1 //!< Uses non-linear allocation (linked list) for pages, but keeps pointers to elements valid. More time spent looping to get a page (and worse cache performance) as a tradeoff.
-};
-
-template <class T, size_t NumElementsPerPage, class HasNextPointer>
-struct SparseArrayPage;
-
 template <class T, size_t NumElementsPerPage>
-struct SparseArrayPage<T, NumElementsPerPage, std::true_type>
+struct SparseArrayPage
 {
     ValueStorage<T> data[NumElementsPerPage];
     BitField<NumElementsPerPage> states;
 
-    SparseArrayPage* next; // only used with KeepPointersValid
-    bool ownsAllocation;   // true if this page owns the allocation (first in a contiguous block)
+    SparseArrayPage* next;
+    size_t pageIndex;
 };
 
-template <class T, size_t NumElementsPerPage>
-struct SparseArrayPage<T, NumElementsPerPage, std::false_type>
+template <class T, class AllocatorType = DynamicAllocator, size_t NumElementsPerPage = 256>
+class SparseArray : public ContainerBase<SparseArray<T, AllocatorType, NumElementsPerPage>, size_t>
 {
-    ValueStorage<T> data[NumElementsPerPage];
-    BitField<NumElementsPerPage> states;
-};
-
-template <class T, class AllocatorType = DynamicAllocator, size_t NumElementsPerPage = 256, SparseArrayPolicy Policy = SparseArrayPolicy::LinearPages>
-class SparseArray : public ContainerBase<SparseArray<T, AllocatorType, NumElementsPerPage, Policy>, size_t>
-{
-    using Page = SparseArrayPage<T, NumElementsPerPage, std::bool_constant<(Policy != SparseArrayPolicy::LinearPages)>>;
+    using Page = SparseArrayPage<T, NumElementsPerPage>;
 
 public:
     static constexpr bool isContiguous = false;
 
-    using Base = ContainerBase<SparseArray<T, AllocatorType, NumElementsPerPage, Policy>, size_t>;
+    using Base = ContainerBase<SparseArray<T, AllocatorType, NumElementsPerPage>, size_t>;
     using ValueType = T;
 
     // number of bits to shift to use when calculating absolute index for a given page index.
@@ -74,30 +58,31 @@ public:
         };
 
         ArrayType* target;
-        size_t pageIndex;
+        Page* page;
         size_t elemIndex;
 
         HYP_FORCE_INLINE IteratorBase()
             : target(nullptr),
-              pageIndex(0),
+              page(nullptr),
               elemIndex(NumElementsPerPage)
         {
         }
 
-        HYP_FORCE_INLINE IteratorBase(ArrayType* target, size_t pageIndex, size_t elemIndex)
+        HYP_FORCE_INLINE IteratorBase(ArrayType* target, Page* page, size_t elemIndex)
             : target(target),
-              pageIndex(pageIndex),
+              page(page),
               elemIndex(elemIndex)
         {
         }
 
         HYP_FORCE_INLINE IteratorBase(ArrayType* target, BeginTag)
             : target(target),
-              pageIndex(0),
+              page(nullptr),
               elemIndex(NumElementsPerPage)
         {
             if (target != nullptr)
             {
+                page = const_cast<Page*>(target->m_pages);
                 Advance(0);
             }
         }
@@ -105,10 +90,6 @@ public:
         HYP_FORCE_INLINE ReferenceType operator*() const
         {
             HYP_CORE_ASSERT(target != nullptr);
-
-            // auto is used because target may or may not be const
-            auto* page = target->TryGetPage(pageIndex);
-
             HYP_CORE_ASSERT(page != nullptr);
             HYP_CORE_ASSERT(page->states.Test(elemIndex));
 
@@ -138,7 +119,7 @@ public:
         HYP_FORCE_INLINE bool operator==(const IteratorBase& other) const
         {
             return target == other.target
-                && pageIndex == other.pageIndex
+                && page == other.page
                 && elemIndex == other.elemIndex;
         }
 
@@ -151,44 +132,26 @@ public:
         {
             HYP_CORE_ASSERT(target != nullptr);
 
-            Page* currPage;
+            size_t currElemIndex = startElem;
 
-            if constexpr (Policy != SparseArrayPolicy::LinearPages)
-            {
-                currPage = const_cast<Page*>(target->TryGetPage(pageIndex));
-            }
-
-            for (size_t currPageIndex = pageIndex, currElemIndex = startElem; currPageIndex < target->m_numPages; currPageIndex++)
+            while (page != nullptr)
             {
                 if (currElemIndex < NumElementsPerPage)
                 {
-                    size_t next;
-
-                    if constexpr (Policy == SparseArrayPolicy::LinearPages)
-                    {
-                        currPage = const_cast<Page*>(&target->m_pages[currPageIndex]);
-                    }
-
-                    next = currPage->states.NextOneBit(currElemIndex);
+                    const size_t next = page->states.NextOneBit(currElemIndex);
 
                     if (next != SIZE_MAX)
                     {
-                        pageIndex = currPageIndex;
                         elemIndex = next;
 
                         return;
                     }
                 }
 
-                if constexpr (Policy != SparseArrayPolicy::LinearPages)
-                {
-                    currPage = currPage->next;
-                }
-
+                page = page->next;
                 currElemIndex = 0;
             }
 
-            pageIndex = SIZE_MAX;
             elemIndex = NumElementsPerPage;
         }
     };
@@ -204,13 +167,12 @@ public:
 
         HYP_FORCE_INLINE operator ConstIterator() const
         {
-            return ConstIterator(this->target, this->pageIndex, this->elemIndex);
+            return ConstIterator(this->target, this->page, this->elemIndex);
         }
     };
 
     SparseArray()
-        : m_pages(nullptr),
-          m_numPages(0)
+        : m_pages(nullptr)
     {
     }
 
@@ -218,120 +180,24 @@ public:
     SparseArray& operator=(const SparseArray& other) = delete;
 
     SparseArray(SparseArray&& other) noexcept
-        : m_pages(other.m_pages),
-          m_numPages(other.m_numPages)
+        : m_pages(other.m_pages)
     {
         other.m_pages = nullptr;
-        other.m_numPages = 0;
     }
 
     SparseArray& operator=(SparseArray&& other) noexcept
     {
-        [[maybe_unused]] Page* currPage = m_pages;
-
-        if constexpr (!std::is_trivially_destructible_v<T> || Policy != SparseArrayPolicy::LinearPages)
-        {
-            for (size_t pageIndex = 0; pageIndex < m_numPages; pageIndex++)
-            {
-                if constexpr (Policy == SparseArrayPolicy::LinearPages)
-                {
-                    Page& page = m_pages[pageIndex];
-
-                    for (size_t bitIndex : page.states)
-                    {
-                        reinterpret_cast<T&>(page.data[bitIndex]).~T();
-                    }
-                }
-                else
-                {
-                    Page& page = *currPage;
-
-                    if constexpr (!std::is_trivially_destructible_v<T>)
-                    {
-                        for (size_t bitIndex : page.states)
-                        {
-                            reinterpret_cast<T&>(page.data[bitIndex]).~T();
-                        }
-                    }
-
-                    currPage = page.next;
-
-                    if (page.ownsAllocation)
-                    {
-                        GetAllocator().Free(&page);
-                    }
-                }
-            }
-        }
-
-        if constexpr (Policy == SparseArrayPolicy::LinearPages)
-        {
-            if (m_pages != nullptr)
-            {
-                GetAllocator().Free(m_pages);
-            }
-        }
+        Clear(true);
 
         m_pages = other.m_pages;
-        m_numPages = other.m_numPages;
-
         other.m_pages = nullptr;
-        other.m_numPages = 0;
 
         return *this;
     }
 
     ~SparseArray()
     {
-        if (m_numPages == 0)
-        {
-            return;
-        }
-
-        if constexpr (!std::is_trivially_destructible_v<T> || Policy != SparseArrayPolicy::LinearPages)
-        {
-            [[maybe_unused]] Page* currPage = m_pages;
-
-            for (size_t pageIndex = 0; pageIndex < m_numPages; pageIndex++)
-            {
-                if constexpr (Policy == SparseArrayPolicy::LinearPages)
-                {
-                    Page& page = m_pages[pageIndex];
-
-                    for (size_t bitIndex : page.states)
-                    {
-                        reinterpret_cast<T&>(page.data[bitIndex]).~T();
-                    }
-                }
-                else
-                {
-                    Page& page = *currPage;
-
-                    if constexpr (!std::is_trivially_destructible_v<T>)
-                    {
-                        for (size_t bitIndex : page.states)
-                        {
-                            reinterpret_cast<T&>(page.data[bitIndex]).~T();
-                        }
-                    }
-
-                    currPage = page.next;
-
-                    if (page.ownsAllocation)
-                    {
-                        GetAllocator().Free(&page);
-                    }
-                }
-            }
-        }
-
-        if constexpr (Policy == SparseArrayPolicy::LinearPages)
-        {
-            if (m_pages != nullptr)
-            {
-                GetAllocator().Free(m_pages);
-            }
-        }
+        Clear(true);
     }
 
     HYP_FORCE_INLINE T& Get(size_t index)
@@ -467,30 +333,45 @@ public:
         }
     }
 
-    /// Remove element at index \p{index} from the container.
+    /// Remove element at index \p{index} from the container, freeing the page if there are no more elements in it
     void Delete(size_t index)
     {
-        size_t pageIndex = (index / NumElementsPerPage);
-        size_t elemIndex = (index % NumElementsPerPage);
+        const size_t pageIndex = (index / NumElementsPerPage);
+        const size_t elemIndex = (index % NumElementsPerPage);
 
-        Page* page = TryGetPage(pageIndex);
+        Page** link = &m_pages;
+        Page* curr = m_pages;
 
-        if (page != nullptr && page->states.Test(elemIndex))
+        while (curr != nullptr && curr->pageIndex < pageIndex)
         {
-            reinterpret_cast<T&>(page->data[elemIndex]).~T();
-            page->states.Set(elemIndex, false);
+            link = &curr->next;
+            curr = curr->next;
+        }
+
+        if (curr == nullptr || curr->pageIndex != pageIndex || !curr->states.Test(elemIndex))
+        {
+            return;
+        }
+
+        reinterpret_cast<T&>(curr->data[elemIndex]).~T();
+        curr->states.Set(elemIndex, false);
+
+        if (curr->states.CountOnes() == 0)
+        {
+            *link = curr->next;
+            GetAllocator().Free(curr);
         }
     }
 
     /// Finds the absolute index of the iterator, SIZE_MAX on failure.
     HYP_FORCE_INLINE size_t IndexOf(const ConstIterator& iter) const
     {
-        if (iter.target != this || iter.elemIndex >= NumElementsPerPage || iter.pageIndex >= m_numPages)
+        if (iter.target != this || iter.page == nullptr || iter.elemIndex >= NumElementsPerPage)
         {
             return SIZE_MAX;
         }
 
-        return (iter.pageIndex << PageBitShiftCount) + iter.elemIndex;
+        return (iter.page->pageIndex << PageBitShiftCount) + iter.elemIndex;
     }
 
     /// Finds the absolute index of element \p{value}. Returns SIZE_MAX on failure.
@@ -502,28 +383,16 @@ public:
 
         constexpr size_t pageStorageSizeBytes = (1ull << PageBitShiftCount) * sizeof(T);
 
-        [[maybe_unused]] Page* currPage = m_pages;
-
-        for (size_t currPageIndex = 0; currPageIndex < m_numPages; currPageIndex++)
+        for (Page* currPage = m_pages; currPage != nullptr; currPage = currPage->next)
         {
-            if constexpr (Policy == SparseArrayPolicy::LinearPages)
-            {
-                currPage = &m_pages[currPageIndex];
-            }
-
             const uintptr_t baseAddress = reinterpret_cast<uintptr_t>(&currPage->data[0]);
 
             if (elemAddress < baseAddress || elemAddress >= baseAddress + pageStorageSizeBytes)
             {
-                if constexpr (Policy != SparseArrayPolicy::LinearPages)
-                {
-                    currPage = currPage->next;
-                }
-
                 continue; // pointer not in this page
             }
 
-            return (currPageIndex << PageBitShiftCount) + ((elemAddress - baseAddress) / sizeof(T));
+            return (currPage->pageIndex << PageBitShiftCount) + ((elemAddress - baseAddress) / sizeof(T));
         }
 
         return SIZE_MAX;
@@ -531,34 +400,11 @@ public:
 
     bool Any() const
     {
-        if (m_pages == 0)
+        for (Page* currPage = m_pages; currPage != nullptr; currPage = currPage->next)
         {
-            return false;
-        }
-
-        [[maybe_unused]] Page* currPage = m_pages;
-
-        for (size_t pageIndex = 0; pageIndex < m_numPages; pageIndex++)
-        {
-            if constexpr (Policy == SparseArrayPolicy::LinearPages)
+            if (currPage->states.CountOnes() != 0)
             {
-                Page& page = m_pages[pageIndex];
-
-                if (page.states.CountOnes() != 0)
-                {
-                    return true;
-                }
-            }
-            else
-            {
-                Page& page = *currPage;
-
-                if (page.states.CountOnes() != 0)
-                {
-                    return true;
-                }
-
-                currPage = page.next;
+                return true;
             }
         }
 
@@ -575,21 +421,9 @@ public:
     {
         size_t count = 0;
 
-        Page* currPage = m_pages;
-
-        for (size_t currPageIndex = 0; currPageIndex < m_numPages; currPageIndex++)
+        for (Page* currPage = m_pages; currPage != nullptr; currPage = currPage->next)
         {
-            if constexpr (Policy == SparseArrayPolicy::LinearPages)
-            {
-                currPage = &m_pages[currPageIndex];
-            }
-
             count += currPage->states.CountOnes();
-
-            if constexpr (Policy != SparseArrayPolicy::LinearPages)
-            {
-                currPage = currPage->next;
-            }
         }
 
         return count;
@@ -620,7 +454,7 @@ public:
         Iterator iter2 = reinterpret_cast<const Iterator&>(iter);
         ++iter2;
 
-        const size_t absoluteIndex = (iter.pageIndex << PageBitShiftCount) + iter.elemIndex;
+        const size_t absoluteIndex = (iter.page->pageIndex << PageBitShiftCount) + iter.elemIndex;
 
         Delete(absoluteIndex);
 
@@ -629,64 +463,38 @@ public:
 
     void Clear(bool freeMemory = true)
     {
-        if (m_numPages == 0)
-        {
-            return;
-        }
+        Page* currPage = m_pages;
 
-        [[maybe_unused]] Page* currPage = m_pages;
-
-        for (size_t pageIndex = 0; pageIndex < m_numPages; pageIndex++)
+        while (currPage != nullptr)
         {
-            if constexpr (Policy == SparseArrayPolicy::LinearPages)
+            Page* next = currPage->next;
+
+            for (size_t bitIndex : currPage->states)
             {
-                Page& page = m_pages[pageIndex];
+                reinterpret_cast<T&>(currPage->data[bitIndex]).~T();
+            }
 
-                for (size_t bitIndex : page.states)
-                {
-                    reinterpret_cast<T&>(page.data[bitIndex]).~T();
-                }
-
-                Memory::Zero(&page.states, sizeof(page.states));
+            if (freeMemory)
+            {
+                GetAllocator().Free(currPage);
             }
             else
             {
-                Page& page = *currPage;
-
-                for (size_t bitIndex : page.states)
-                {
-                    reinterpret_cast<T&>(page.data[bitIndex]).~T();
-                }
-
-                Memory::Zero(&page.states, sizeof(page.states));
-
-                currPage = page.next;
-
-                if (freeMemory && page.ownsAllocation)
-                {
-                    GetAllocator().Free(&page);
-                }
+                Memory::Zero(&currPage->states, sizeof(currPage->states));
             }
+
+            currPage = next;
         }
 
         if (freeMemory)
         {
-            if constexpr (Policy == SparseArrayPolicy::LinearPages)
-            {
-                if (m_pages != nullptr)
-                {
-                    GetAllocator().Free(m_pages);
-                }
-            }
-
             m_pages = nullptr;
-            m_numPages = 0;
         }
     }
 
     HYP_DEF_STL_BEGIN_END(
         Iterator(const_cast<SparseArray*>(this), typename Iterator::BeginTag()),
-        Iterator(const_cast<SparseArray*>(this), SIZE_MAX, NumElementsPerPage))
+        Iterator(const_cast<SparseArray*>(this), nullptr, NumElementsPerPage))
 
 private:
     static HYP_FORCE_INLINE AllocatorType& GetAllocator()
@@ -694,123 +502,53 @@ private:
         return *GetDefaultAllocatorInstance<AllocatorType>();
     }
 
+    /// Finds the page for \p{pageIndex}, creating (and splicing into the sorted page list) one if it
+    /// doesn't already exist. Only ever allocates the single page being requested.
     HYP_NODISCARD Page* GetOrCreatePage(size_t pageIndex)
     {
-        if (HYP_UNLIKELY(pageIndex >= m_numPages))
+        Page** link = &m_pages;
+        Page* curr = m_pages;
+
+        while (curr != nullptr && curr->pageIndex < pageIndex)
         {
-            if constexpr (Policy == SparseArrayPolicy::LinearPages)
-            {
-                size_t newNumPages = MathUtil::NextPowerOf2(pageIndex + 1);
-
-                Page* newPages = (Page*)GetAllocator().Allocate(sizeof(Page) * newNumPages, alignof(Page));
-                HYP_CORE_ASSERT(newPages != nullptr);
-
-                Memory::Zero(newPages, sizeof(Page) * newNumPages);
-
-                if (m_pages != nullptr)
-                {
-                    if constexpr (std::is_trivial_v<T>)
-                    {
-                        Memory::Move(newPages, m_pages, sizeof(Page) * m_numPages);
-                    }
-                    else
-                    {
-                        for (size_t currPageIndex = 0; currPageIndex < m_numPages; currPageIndex++)
-                        {
-                            Page& currPage = m_pages[currPageIndex];
-                            Page& newPage = newPages[currPageIndex];
-
-                            if (currPage.states.CountOnes() != 0)
-                            {
-                                for (size_t bitIndex : currPage.states)
-                                {
-                                    new (&newPage.data[bitIndex]) T(std::move(reinterpret_cast<T&&>(currPage.data[bitIndex])));
-                                    reinterpret_cast<T&>(currPage.data[bitIndex]).~T();
-                                }
-
-                                newPage.states = currPage.states;
-                            }
-                        }
-                    }
-
-                    GetAllocator().Free(m_pages);
-                }
-
-                m_pages = newPages;
-                m_numPages = newNumPages;
-            }
-            else
-            {
-                const size_t numNewPages = pageIndex - m_numPages + 1;
-
-                Page* newPages = (Page*)GetAllocator().Allocate(sizeof(Page) * numNewPages, alignof(Page));
-                HYP_CORE_ASSERT(newPages != nullptr);
-
-                Memory::Zero(newPages, sizeof(Page) * numNewPages);
-
-                newPages[0].ownsAllocation = true;
-
-                for (size_t i = 0; i + 1 < numNewPages; i++)
-                {
-                    newPages[i].next = &newPages[i + 1];
-                }
-
-                if (m_pages == nullptr)
-                {
-                    m_pages = &newPages[0];
-                }
-                else
-                {
-                    Page* lastPage = m_pages;
-                    while (lastPage->next != nullptr)
-                    {
-                        lastPage = lastPage->next;
-                    }
-
-                    lastPage->next = &newPages[0];
-                }
-
-                m_numPages += numNewPages;
-            }
+            link = &curr->next;
+            curr = curr->next;
         }
 
-        if constexpr (Policy == SparseArrayPolicy::LinearPages)
+        if (curr != nullptr && curr->pageIndex == pageIndex)
         {
-            return m_pages + pageIndex;
+            return curr;
         }
-        else
-        {
-            Page* currPage = m_pages;
-            for (size_t currPageIndex = 0; currPageIndex < pageIndex && currPage != nullptr; currPageIndex++)
-            {
-                currPage = currPage->next;
-            }
 
-            return currPage;
-        }
+        Page* newPage = (Page*)GetAllocator().Allocate(sizeof(Page), alignof(Page));
+        HYP_CORE_ASSERT(newPage != nullptr);
+
+        Memory::Zero(newPage, sizeof(Page));
+
+        newPage->pageIndex = pageIndex;
+        newPage->next = curr;
+        *link = newPage;
+
+        return newPage;
     }
 
+    /// Finds the page for \p{pageIndex}, or nullptr if no such page is resident
     Page* TryGetPage(size_t pageIndex)
     {
-        if constexpr (Policy == SparseArrayPolicy::LinearPages)
+        for (Page* curr = m_pages; curr != nullptr; curr = curr->next)
         {
-            return (pageIndex < m_numPages) ? m_pages + pageIndex : nullptr;
-        }
-        else
-        {
-            if (pageIndex < m_numPages)
+            if (curr->pageIndex == pageIndex)
             {
-                Page* currPage = m_pages;
-                for (size_t currPageIndex = 0; currPageIndex < pageIndex && currPage != nullptr; currPageIndex++)
-                {
-                    currPage = currPage->next;
-                }
-
-                return currPage;
+                return curr;
             }
 
-            return nullptr;
+            if (curr->pageIndex > pageIndex)
+            {
+                return nullptr;
+            }
         }
+
+        return nullptr;
     }
 
     HYP_FORCE_INLINE const Page* TryGetPage(size_t pageIndex) const
@@ -818,13 +556,11 @@ private:
         return const_cast<SparseArray*>(this)->TryGetPage(pageIndex);
     }
 
-    Page* m_pages;
-    size_t m_numPages;
+    Page* m_pages; // head of a linked list of pages, sorted ascending by pageIndex
 };
 
 } // namespace containers
 
 using containers::SparseArray;
-using containers::SparseArrayPolicy;
 
 } // namespace Hyperion

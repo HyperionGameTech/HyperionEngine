@@ -274,12 +274,6 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
         for (auto [entity, component] : scene->GetEntityManager()->GetEntitySet<CharacterControllerComponent>().GetScopedView(GetComponentInfos()))
         {
-            HYP_LOG(Scene, Info, "Has entity {} with character controller, has player component? {} (id = {}) has player tag? {}",
-                    entity->GetName(),
-                    entity->HasComponent<PlayerComponent>(),
-                    entity->HasComponent<PlayerComponent>() ? entity->GetComponent<PlayerComponent>().connectionId : Invalid<net::NetConnectionId>,
-                    entity->HasTag<EntityTag::Player>());
-
             // Check needs initialization
             if (!component.inputHandler)
             {

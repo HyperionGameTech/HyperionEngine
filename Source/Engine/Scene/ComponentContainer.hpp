@@ -426,7 +426,10 @@ public:
     }
 
 private:
-    using ComponentsMap = SparseArray<Component, SceneAllocator, 256, SparseArrayPolicy::KeepPointersValid>;
+    static constexpr size_t ComponentsMapDesiredPageSize = 64 * 1024; // 64 KiB
+    static constexpr size_t ComponentsMapNumElementsPerPage = ((ComponentsMapDesiredPageSize + sizeof(Component) - 1) / sizeof(Component));
+
+    using ComponentsMap = SparseArray<Component, SceneAllocator, ComponentsMapNumElementsPerPage>;
 
     HYP_NODISCARD ComponentId AllocComponentId()
     {
