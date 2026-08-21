@@ -86,7 +86,7 @@ void EditorGame::OnLaunch()
 
 Handle<World> EditorGame::LoadWorld(Name unusedName)
 {
-    Handle<World> world = MakeHandle<World>(NAME("EditorWorld"), WorldFlags::Default | WorldFlags::Editor);
+    Handle<World> world = MakeHandle<World>(NAME("EditorWorld"), (WorldFlags::Default | WorldFlags::Editor) & ~WorldFlags::IsReplicated);
     world->SetIsTransient(true); // Editor world should not be saved or loaded from disk.
 
     return world;
