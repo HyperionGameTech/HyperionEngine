@@ -5317,14 +5317,6 @@ void EditorSubsystem::InitializeProjectWorld(const Handle<EditorProject>& projec
         HYP_LOG(Editor, Warning, "No foreground scenes found in project {}!", *project->GetName());
     }
 
-    if (!isSimulationProject)
-    {
-        for (const Handle<EditorViewport>& vp : m_editorViewports)
-        {
-            vp->OnAdded(this);
-        }
-    }
-
     m_delegateHandlers.Add(world->OnSceneAdded.Bind(
         world.Get(),
         [this, projectWeak = project.ToWeak()](World*, const Handle<Scene>& scene)
@@ -5415,18 +5407,6 @@ void EditorSubsystem::ShutdownProjectWorld(const Handle<EditorProject>& project)
         }
 
         scene->OnRootNodeChanged.RemoveAllFromSet(m_delegateHandlers);
-    }
-
-    // Mirror InitializeProjectWorld: the editor's own viewport was never attached to a transient
-    // simulation project's World, so don't try to detach it from one either.
-    const bool isSimulationProject = m_preSimulationProject.IsValid() && project != m_preSimulationProject;
-
-    if (!isSimulationProject)
-    {
-        for (const Handle<EditorViewport>& vp : m_editorViewports)
-        {
-            vp->OnRemoved(this);
-        }
     }
 
     world->OnSceneAdded.RemoveAllFromSet(m_delegateHandlers);

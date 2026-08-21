@@ -141,7 +141,11 @@ namespace Hyperion.Editor.Commands
 
                                     if (simulationProject != null)
                                     {
-                                        _ = EngineManager.PostToSimThread(() => simulationProject.Dispose());
+                                        _ = EngineManager.PostToSimThread(() =>
+                                        {
+                                            //simulationProject.World?.Dispose();
+                                            simulationProject.Dispose();
+                                        });
                                     }
                                 }
                             });
