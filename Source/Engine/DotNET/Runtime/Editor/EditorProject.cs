@@ -12,7 +12,11 @@ namespace Hyperion
         {
             if (isDisposing)
             {
-                // Game disposes World
+                if (GameInstance != null && GameInstance.World == null)
+                {
+                    World?.Dispose();
+                }
+
                 GameInstance?.Dispose();
             }
 

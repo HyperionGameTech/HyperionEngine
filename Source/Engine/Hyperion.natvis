@@ -29,21 +29,21 @@
         <Variable Name="bucketPtr" InitialValue="((Hyperion::NameRegistry::Bucket *)nullptr)" />
         <Variable Name="currentHead" InitialValue="((Hyperion::NameRegistry::Node *)nullptr)" />
 
-        <Exec>bucketPtr = (Hyperion::NameRegistry::Bucket* )(registry-&amp;gt;m_nameMap.m_buckets.data)</Exec>
+        <Exec>bucketPtr = (Hyperion::NameRegistry::Bucket* )(registry-&gt;m_nameMap.m_buckets.data)</Exec>
 
         <Loop>
-          <Break Condition="found == true || bucketIndex == registry-&amp;gt;m_nameMap.m_buckets.size" />
+          <Break Condition="found == true || bucketIndex == registry-&gt;m_nameMap.m_buckets.size" />
 
-          <Exec>currentHead = bucketPtr-&amp;gt;head</Exec>
+          <Exec>currentHead = bucketPtr-&gt;head</Exec>
 
           <If Condition="found == false &amp;&amp; currentHead != nullptr">
            <Loop>
               <Break Condition="found == true || currentHead == nullptr" />
-              <If Condition="(unsigned __int64)hashCode == (unsigned __int64)currentHead-&amp;gt;value.first">
-                <Item Name="StringValue">(currentHead-&amp;gt;value.second.first.data),s</Item>
+              <If Condition="(unsigned __int64)hashCode == (unsigned __int64)currentHead-&gt;value.first">
+                <Item Name="StringValue">(currentHead-&gt;value.second.first.data),s</Item>
                 <Exec>found = true</Exec>
               </If>
-              <Exec>currentHead = currentHead-&amp;gt;next</Exec>
+              <Exec>currentHead = currentHead-&gt;next</Exec>
             </Loop>
           </If>
 

@@ -670,8 +670,8 @@ private:
     void InitializeGizmos();
     void ShutdownGizmos();
 
-    void InitializeProjectWorld(const Handle<EditorProject>& project);
-    void ShutdownProjectWorld(const Handle<EditorProject>& project);
+    void InitializeProjectWorld(const Handle<EditorProject>& project, bool isStartSimulation = false);
+    void ShutdownProjectWorld(const Handle<EditorProject>& project, bool shutdownWorld = true);
 
     void SetHoveredGizmo(
         const MouseEvent& event,

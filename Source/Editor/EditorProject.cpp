@@ -96,6 +96,12 @@ EditorProject::~EditorProject()
 
         EnqueueDeletion(std::move(m_gameInstance));
     }
+
+    if (m_world.IsValid())
+    {
+        m_world->Shutdown();
+        m_world.Reset();
+    }
 }
 
 void EditorProject::SetName(Name name)
@@ -133,10 +139,8 @@ void EditorProject::AddScene(const Handle<Scene>& scene)
         return;
     }
 
-    AssertDebug(m_gameInstance != nullptr);
-
-    World* world = m_gameInstance->GetWorld();
-    AssertDebug(world != nullptr);
+    World* world = m_world;
+    Assert(world != nullptr, "No transient World set on the project!");
 
     world->AddScene(scene, /* addToStreamingLayer */ true);
     world->MarkDirty();
@@ -149,10 +153,8 @@ void EditorProject::RemoveScene(Scene* scene)
         return;
     }
 
-    AssertDebug(m_gameInstance != nullptr);
-
-    World* world = m_gameInstance->GetWorld();
-    AssertDebug(world != nullptr);
+    World* world = m_world;
+    Assert(world != nullptr, "No transient World set on the project!");
 
     world->RemoveScene(scene, /* removeFromStreamingLayer */ true);
     world->MarkDirty();
@@ -174,6 +176,12 @@ void EditorProject::Close(bool shutdownWorld)
     {
         m_gameInstance->Shutdown(/* shutdownWorld */ shutdownWorld);
     }
+
+    if (shutdownWorld && m_world.IsValid())
+    {
+        m_world->Shutdown();
+        m_world.Reset();
+    }
 }
 
 Result EditorProject::Save()
@@ -183,6 +191,11 @@ Result EditorProject::Save()
 
 Result EditorProject::SaveAs(FilePath filepath)
 {
+    if (!m_world.IsValid())
+    {
+        return HYP_MAKE_ERROR(Error, "No World set on the project");
+    }
+
     // Ensure we have a valid name, unique among existing project subdirs.
     if (!m_name.IsValid())
     {
@@ -238,7 +251,8 @@ Result EditorProject::SaveAs(FilePath filepath)
         /* isForegroundTask */ true);
 
     // Put the world asset, root of all assets.
-    registry.PutAssetsDeep(m_gameInstance->GetWorld());
+    // m_world should be set as the 'transient' world.. While in editor, we load up the game's world
+    registry.PutAssetsDeep(m_world);
 
     GlobalContextScope saveContextScope { EditorProjectSaveContext {} };
 
@@ -404,6 +418,7 @@ Handle<EditorProject> EditorProject::CreateNew()
     gameInstance->SetAssetRegistry(registry);
 
     Handle<EditorProject> project = MakeHandle<EditorProject>(projectName, gameInstance);
+    project->SetEditWorld(world);
 
     return project;
 }

@@ -96,6 +96,8 @@ void EditorGame::BeforeShutdown()
 {
     HYP_LOG(Editor, Debug, "EditorGame BeforeShutdown");
 
+    Game::BeforeShutdown();
+
     m_onProjectOpened.Reset();
     m_onProjectClosing.Reset();
 

@@ -172,14 +172,14 @@ void Game::Shutdown(bool shutdownWorld)
             m_uiSubsystem.Reset();
         }
 
-        g_engineDriver->RemoveWorld(m_world);
-
         if (shutdownWorld)
         {
             m_world->Shutdown();
         }
 
         m_world->SetGame(nullptr);
+
+        g_engineDriver->RemoveWorld(m_world, shutdownWorld);
     }
 
     if (m_assetRegistry && m_assetRegistryActive)
@@ -260,11 +260,11 @@ void Game::SetWorld(const Handle<World>& world)
             m_uiSubsystem.Reset();
         }
 
-        g_engineDriver->RemoveWorld(m_world);
-
         m_world->Shutdown();
 
         m_world->SetGame(nullptr);
+
+        g_engineDriver->RemoveWorld(m_world);
     }
 
     m_world = world;

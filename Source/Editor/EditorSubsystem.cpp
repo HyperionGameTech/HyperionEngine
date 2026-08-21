@@ -3847,12 +3847,11 @@ bool EditorSubsystem::StartSimulation()
         return false;
     }
 
+    // Open project to start simulating
     OpenProject(*loadResult);
 
     Game* gameInstance = m_currentProject->GetGame();
     Assert(gameInstance != nullptr);
-    
-    gameInstance->Initialize();
 
     Assert(gameInstance->GetWorld().IsValid());
     Assert(m_currentProject.IsValid() && m_currentProject->GetWorld().IsValid());
@@ -3933,18 +3932,7 @@ bool EditorSubsystem::StopSimulation()
         Game* gameInstance = m_currentProject->GetGame();
         Assert(gameInstance != nullptr);
 
-        if (m_simulationView.IsValid())
-        {
-            World* world = gameInstance->GetWorld();
-            Assert(world != nullptr);
-
-            world->RemoveView(m_simulationView);
-        }
-
         gameInstance->StopSimulating();
-        gameInstance->Shutdown();
-
-        m_simulationView.Reset();
 
         Assert(m_preSimulationProject.IsValid());
         OpenProject(m_preSimulationProject);
@@ -4644,7 +4632,7 @@ void EditorSubsystem::CloseProject(bool shutdownWorld)
 
     if (m_currentProject)
     {
-        ShutdownProjectWorld(m_currentProject);
+        ShutdownProjectWorld(m_currentProject, /* shutdownWorld */ shutdownWorld);
         OnProjectClosing(m_currentProject);
 
         m_currentProject->SetEditorSubsystem(WeakHandle<EditorSubsystem>::Null());
@@ -4672,6 +4660,7 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
     }
 
     const bool isSimulationStateChange = m_preSimulationProject.IsValid();
+    const bool isStartSimulation = isSimulationStateChange && project != m_preSimulationProject;
 
     CloseProject(/* shutdownWorld*/ true);
 
@@ -4684,7 +4673,7 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
 
     m_currentProject = project;
 
-    InitializeProjectWorld(m_currentProject);
+    InitializeProjectWorld(m_currentProject, isStartSimulation);
 
     OnProjectOpened(m_currentProject);
 
@@ -5260,7 +5249,7 @@ void EditorSubsystem::RemoveViewport(EditorViewport* viewport)
     }
 }
 
-void EditorSubsystem::InitializeProjectWorld(const Handle<EditorProject>& project)
+void EditorSubsystem::InitializeProjectWorld(const Handle<EditorProject>& project, bool isStartSimulation)
 {
     Assert(project != nullptr);
     InitObject(project);
@@ -5272,25 +5261,37 @@ void EditorSubsystem::InitializeProjectWorld(const Handle<EditorProject>& projec
     Game* gameInstance = project->GetGame();
     Assert(gameInstance != nullptr);
 
-    Handle<World> world = gameInstance->GetWorld();
+    const Handle<AssetRegistry>& assetRegistry = gameInstance->GetAssetRegistry();
+    Assert(assetRegistry.IsValid());
+    PushAssetRegistry(assetRegistry);
 
-    if (!world.IsValid())
+    Handle<World> world;
+
+    if (isStartSimulation)
     {
-        if ((world = gameInstance->LoadWorld(Game::s_nameMainWorld)) && world.IsValid())
-        {
-            world->SetGame(gameInstance);
-        }
+        // Loads the world
+        gameInstance->Initialize();
+
+        world = gameInstance->GetWorld();
     }
-            
-    project->SetTransientWorld(world);
+    else
+    {
+        world = project->GetWorld();
+
+        if (!world.IsValid())
+        {
+            if ((world = gameInstance->LoadWorld(Game::s_nameMainWorld)) && world.IsValid())
+            {
+                world->SetGame(gameInstance);
+            }
+        }
+
+        project->SetEditWorld(world);
+    }
+
     Assert(world.IsValid());
 
     g_engineDriver->AddWorld(world);
-
-    // The transient simulation project (created fresh each Play press) gets its own View from
-    // Game::OnLaunch() -- the editor's own persistent viewport must not also attach to it, or we
-    // end up with >1 GBUFFER view on the same World.
-    const bool isSimulationProject = m_preSimulationProject.IsValid() && project != m_preSimulationProject;
 
     Handle<Scene> activeScene;
 
@@ -5317,9 +5318,17 @@ void EditorSubsystem::InitializeProjectWorld(const Handle<EditorProject>& projec
         HYP_LOG(Editor, Warning, "No foreground scenes found in project {}!", *project->GetName());
     }
 
+    if (!isStartSimulation)
+    {
+        for (const Handle<EditorViewport>& vp : m_editorViewports)
+        {
+            vp->OnAdded(this);
+        }
+    }
+
     m_delegateHandlers.Add(world->OnSceneAdded.Bind(
         world.Get(),
-        [this, projectWeak = project.ToWeak()](World*, const Handle<Scene>& scene)
+        [this, projectWeak = project.ToWeak(), isStartSimulation](World*, const Handle<Scene>& scene)
         {
             Assert(scene != nullptr);
             Assert(scene != m_editorScene);
@@ -5332,10 +5341,13 @@ void EditorSubsystem::InitializeProjectWorld(const Handle<EditorProject>& projec
             Handle<EditorProject> project = projectWeak.Lock();
             Assert(project != nullptr);
 
-            // Add scene to all editor views
-            for (const Handle<EditorViewport>& vp : m_editorViewports)
+            if (!isStartSimulation)
             {
-                vp->OnSceneAdded(scene);
+                // Add scene to all editor views
+                for (const Handle<EditorViewport>& vp : m_editorViewports)
+                {
+                    vp->OnSceneAdded(scene);
+                }
             }
 
             if (!m_activeScene)
@@ -5346,7 +5358,7 @@ void EditorSubsystem::InitializeProjectWorld(const Handle<EditorProject>& projec
 
     m_delegateHandlers.Add(world->OnSceneRemoved.Bind(
         world.Get(),
-        [this, projectWeak = project.ToWeak()](World*, Scene* scene)
+        [this, projectWeak = project.ToWeak(), isStartSimulation](World*, Scene* scene)
         {
             Assert(scene != nullptr);
             Assert(scene != m_editorScene);
@@ -5356,10 +5368,13 @@ void EditorSubsystem::InitializeProjectWorld(const Handle<EditorProject>& projec
 
             scene->OnRootNodeChanged.RemoveAllFromSet(m_delegateHandlers);
 
-            // remove from all editor views
-            for (const Handle<EditorViewport>& vp : m_editorViewports)
+            if (!isStartSimulation)
             {
-                vp->OnSceneRemoved(scene);
+                // remove from all editor views
+                for (const Handle<EditorViewport>& vp : m_editorViewports)
+                {
+                    vp->OnSceneRemoved(scene);
+                }
             }
 
             // StopWatchingNode(scene->GetRoot());
@@ -5373,7 +5388,7 @@ void EditorSubsystem::InitializeProjectWorld(const Handle<EditorProject>& projec
     SetActiveScene(activeScene);
 }
 
-void EditorSubsystem::ShutdownProjectWorld(const Handle<EditorProject>& project)
+void EditorSubsystem::ShutdownProjectWorld(const Handle<EditorProject>& project, bool shutdownWorld)
 {
     Assert(project.IsValid());
 
@@ -5384,7 +5399,6 @@ void EditorSubsystem::ShutdownProjectWorld(const Handle<EditorProject>& project)
     Assert(world.IsValid());
 
     g_editorState->GetPickCache().Clear();
-    g_engineDriver->RemoveWorld(world);
 
     // Shutdown to reinitialize gizmos after project is opened
     ShutdownGizmos();
@@ -5399,6 +5413,8 @@ void EditorSubsystem::ShutdownProjectWorld(const Handle<EditorProject>& project)
 
     SetActiveScene(Handle<Scene>::Null());
 
+    // Must run before RemoveWorld() below -- if shutdownWorld is true, World::Shutdown() moves
+    // m_scenes out from under the World, so world->GetScenes() would come back empty afterward.
     for (const Handle<Scene>& scene : world->GetScenes())
     {
         if (!scene.IsValid())
@@ -5409,10 +5425,24 @@ void EditorSubsystem::ShutdownProjectWorld(const Handle<EditorProject>& project)
         scene->OnRootNodeChanged.RemoveAllFromSet(m_delegateHandlers);
     }
 
+    const bool isSimulationProject = m_preSimulationProject.IsValid() && project != m_preSimulationProject;
+
+    if (!isSimulationProject)
+    {
+        for (const Handle<EditorViewport>& vp : m_editorViewports)
+        {
+            vp->OnRemoved(this);
+        }
+    }
+
     world->OnSceneAdded.RemoveAllFromSet(m_delegateHandlers);
     world->OnSceneRemoved.RemoveAllFromSet(m_delegateHandlers);
 
     gameInstance->OnGameStateChange.RemoveAllFromSet(m_delegateHandlers);
+
+    g_engineDriver->RemoveWorld(world, shutdownWorld);
+
+    PopAssetRegistry(gameInstance->GetAssetRegistry().Get());
 }
 
 #endif

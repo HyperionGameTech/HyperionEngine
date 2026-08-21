@@ -103,6 +103,9 @@ World::World(Name name, EnumFlags<WorldFlags> worldFlags)
 
 World::~World()
 {
+    // TEMP DEBUG
+    Assert(!m_isInitialized, "World {} is still in init state in dtor", m_name);
+
     Shutdown();
 
     OnSceneAdded.RemoveAllForTarget(this);

@@ -74,9 +74,9 @@ public:
     const Handle<World>& GetWorld() const;
 
     /// Set the transient edit-mode world
-    void SetTransientWorld(const Handle<World>& world)
+    void SetEditWorld(const Handle<World>& world)
     {
-        m_world = world;
+        m_editWorld = world;
     }
 
     HYP_METHOD(Property = "GameInstance")
@@ -174,7 +174,7 @@ private:
     Handle<EditorActionStack> m_actionStack;
 
     // Transient world set while in editor mode
-    Handle<World> m_world;
+    Handle<World> m_editWorld;
 
     WeakHandle<EditorSubsystem> m_editorSubsystem;
 };

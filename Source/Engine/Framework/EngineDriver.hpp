@@ -100,7 +100,7 @@ public:
     }
 
     void AddWorld(const Handle<World>& world);
-    void RemoveWorld(const World* world);
+    void RemoveWorld(const World* world, bool shutdownWorld = true);
 
     Span<View* const> GetCurrentFrameViews() const;
 

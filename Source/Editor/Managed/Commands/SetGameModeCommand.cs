@@ -135,15 +135,11 @@ namespace Hyperion.Editor.Commands
                                 {
                                     Interlocked.Exchange(ref _isChangingGameMode, 0);
 
-                                    // Release resources the project from the simulation state. We need to do this on simulation thread,
-                                    // as the InitializeEditor() call sets GameInstance but it may not have propagated to the sim thread yet
-                                    // via LaunchGameAsync.
-
                                     if (simulationProject != null)
                                     {
                                         _ = EngineManager.PostToSimThread(() =>
                                         {
-                                            //simulationProject.World?.Dispose();
+                                            simulationProject.World?.Dispose();
                                             simulationProject.Dispose();
                                         });
                                     }

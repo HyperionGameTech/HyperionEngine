@@ -260,7 +260,7 @@ void EngineDriver::AddWorld(const Handle<World>& world)
     m_worlds.PushBack(world);
 }
 
-void EngineDriver::RemoveWorld(const World* world)
+void EngineDriver::RemoveWorld(const World* world, bool shutdownWorld)
 {
     AssertOnThread(g_simThread);
 
@@ -279,6 +279,11 @@ void EngineDriver::RemoveWorld(const World* world)
         if (m_currentWorld == world)
         {
             SetCurrentWorld(nullptr);
+        }
+
+        if (shutdownWorld)
+        {
+            (*it)->Shutdown();
         }
 
         EnqueueDeletion(std::move(*it));
@@ -439,6 +444,14 @@ void EngineDriver::Shutdown()
 
     delete g_shaderCompiler;
     g_shaderCompiler = nullptr;
+
+    for (const Handle<World>& world : m_worlds)
+    {
+        if (world)
+        {
+            world->Shutdown();
+        }
+    }
 
     m_worlds.Clear();
 }
@@ -837,6 +850,12 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
             }
 
             ++s_statViewsCollected;
+
+            // TEMP DEBUG
+            for (Scene* scene : view->GetScenes())
+            {
+                Assert(scenes.Contains(scene), "View {}'s Scene missing from scenes list: {}", view->GetName(), scene->GetName());
+            }
 
 #ifdef HYP_PROCESS_VIEWS_ASYNC
             view->BeginAsyncCollection(*m_viewCollectionBatch);
