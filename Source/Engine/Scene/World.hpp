@@ -75,7 +75,6 @@ class ENGINE_API World final : public AssetObject
 {
     HYP_OBJECT_BODY(World);
 
-    friend class Game;
     friend class EngineDriver;
 
 public:
@@ -99,6 +98,12 @@ public:
     HYP_FORCE_INLINE Game* GetGame() const
     {
         return m_gameInstance;
+    }
+
+    /*! \internal Set the game instance for this world */
+    HYP_FORCE_INLINE void SetGame(Game* gameInstance)
+    {
+        m_gameInstance = gameInstance;
     }
 
     HYP_METHOD()

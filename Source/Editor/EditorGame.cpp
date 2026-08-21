@@ -39,7 +39,7 @@ EditorGame::~EditorGame()
 
 void EditorGame::OnLaunch()
 {
-    HYP_LOG(Editor, Debug, "EditorGame Launched");
+    HYP_LOG(Editor, Info, "EditorGame Launched");
 
     Assert(GetWorld() != nullptr);
 

@@ -1943,6 +1943,7 @@ EditorActionStack* EditorSubsystem::GetActiveActionStack() const
 bool EditorSubsystem::IsSimulating() const
 {
     return m_currentProject.IsValid()
+        && m_currentProject->GetWorld().IsValid()
         && m_currentProject->GetWorld()->GetGameState().mode == GameStateMode::SIMULATING;
 }
 
@@ -3211,149 +3212,6 @@ EditorSubsystem::EditorSubsystem()
 
     m_editorDelegates = new EditorDelegates();
 
-    OnProjectOpened
-        .Bind(this, [this](const Handle<EditorProject>& project)
-              {
-                  HYP_LOG(Editor, Verbose, "Opening project: {}", *project->GetName());
-
-                  g_editorState->GetPickCache().Clear();
-
-                  InitObject(project);
-                  InitializeGizmos();
-
-                  const Handle<World>& world = project->GetWorld();
-                  Assert(world.IsValid());
-
-                  g_engineDriver->AddWorld(world);
-
-                  Handle<Scene> activeScene;
-
-                  for (const Handle<Scene>& scene : world->GetScenes())
-                  {
-                      Assert(scene != nullptr);
-
-                      HYP_LOG(Editor, Verbose, "Found scene '{}' in project '{}' with flags: {}", *scene->GetName(), *project->GetName(),
-                              EnumToString(scene->GetSceneFlags()));
-
-                      if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) != SceneFlags::FOREGROUND)
-                      {
-                          continue;
-                      }
-
-                      if (!activeScene.IsValid())
-                      {
-                          activeScene = scene;
-                      }
-                  }
-
-                  if (!activeScene.IsValid())
-                  {
-                      HYP_LOG(Editor, Warning, "No foreground scenes found in project {}!", *project->GetName());
-                  }
-
-                  for (const Handle<EditorViewport>& vp : m_editorViewports)
-                  {
-                      vp->OnAdded(this);
-                  }
-
-                  m_delegateHandlers.Add(project->GetWorld()->OnSceneAdded.Bind(
-                      project->GetWorld().Get(),
-                      [this, projectWeak = project.ToWeak()](World*, const Handle<Scene>& scene)
-                        {
-                            Assert(scene != nullptr);
-                            Assert(scene != m_editorScene);
-
-                            if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) != SceneFlags::FOREGROUND)
-                            {
-                                return;
-                            }
-
-                            Handle<EditorProject> project = projectWeak.Lock();
-                            Assert(project != nullptr);
-
-                            // Add scene to all editor views
-                            for (const Handle<EditorViewport>& vp : m_editorViewports)
-                            {
-                                vp->OnSceneAdded(scene);
-                            }
-
-                            if (!m_activeScene)
-                            {
-                                SetActiveScene(scene);
-                            }
-                        }));
-
-                  m_delegateHandlers.Add(project->GetWorld()->OnSceneRemoved.Bind(
-                      project->GetWorld().Get(),
-                      [this, projectWeak = project.ToWeak()](World*, Scene* scene)
-                        {
-                            Assert(scene != nullptr);
-                            Assert(scene != m_editorScene);
-
-                            Handle<EditorProject> project = projectWeak.Lock();
-                            Assert(project != nullptr);
-
-                            scene->OnRootNodeChanged.RemoveAllFromSet(m_delegateHandlers);
-
-                            // remove from all editor views
-                            for (const Handle<EditorViewport>& vp : m_editorViewports)
-                            {
-                                vp->OnSceneRemoved(scene);
-                            }
-
-                            // StopWatchingNode(scene->GetRoot());
-
-                            // GetWorld()->RemoveScene(scene);
-
-                            // // reinitialize scene selector on scene remove
-                            // InitActiveSceneSelection();
-                        }));
-
-                  SetActiveScene(activeScene);
-              })
-        .Detach();
-
-    OnProjectClosing
-        .Bind(this, [this](const Handle<EditorProject>& project)
-              {
-                  g_editorState->GetPickCache().Clear();
-
-                  g_engineDriver->RemoveWorld(project->GetWorld());
-
-                  // Shutdown to reinitialize gizmos after project is opened
-                  ShutdownGizmos();
-
-                  m_focusedNode.Reset();
-                  m_selectedNodes.Clear();
-
-                  if (m_highlightNode.IsValid())
-                  {
-                      m_highlightNode->Remove();
-                  }
-
-                  SetActiveScene(Handle<Scene>::Null());
-
-                  for (const Handle<Scene>& scene : project->GetWorld()->GetScenes())
-                  {
-                      if (!scene.IsValid())
-                      {
-                          continue;
-                      }
-
-                      scene->OnRootNodeChanged.RemoveAllFromSet(m_delegateHandlers);
-                  }
-
-                  for (const Handle<EditorViewport>& vp : m_editorViewports)
-                  {
-                      vp->OnRemoved(this);
-                  }
-
-                  project->GetWorld()->OnSceneAdded.RemoveAllFromSet(m_delegateHandlers);
-                  project->GetWorld()->OnSceneRemoved.RemoveAllFromSet(m_delegateHandlers);
-                  project->GetGame()->OnGameStateChange.RemoveAllFromSet(m_delegateHandlers);
-              })
-        .Detach();
-
     OnSelectedGizmoChanged
         .Bind(this, [this](EditorGizmoBase* newGizmo, EditorGizmoBase* prevGizmo)
               {
@@ -3455,7 +3313,8 @@ void EditorSubsystem::OnRemovedFromWorld()
     if (m_currentProject)
     {
         g_editorState->SetCurrentProject(nullptr, /* isSimulationStateChange */ false);
-
+        
+        ShutdownProjectWorld(m_currentProject);
         OnProjectClosing(m_currentProject);
 
         m_currentProject->Close();
@@ -3850,29 +3709,35 @@ void EditorSubsystem::Update(float delta)
 
     if (m_currentProject.IsValid())
     {
-        // Debug draw probes
-        for (Scene* scene : m_currentProject->GetWorld()->GetScenes())
-        {
-            for (auto [probe, _] : scene->GetEntityManager()->GetEntitySet<EntityType<EnvProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
-            {
-                static constexpr auto ReflectionProbeTypeId = CONSTEXPR_TYPE_ID(ReflectionProbe);
-                static constexpr auto SkyProbeTypeId = CONSTEXPR_TYPE_ID(SkyProbe);
-                static constexpr auto IrradianceProbeTypeId = CONSTEXPR_TYPE_ID(IrradianceProbe);
+        const Handle<World>& world = m_currentProject->GetWorld();
 
-                switch (probe->InstanceClass()->GetTypeId().Value())
+        // World might be invalid if simulation is starting and the project is loading.
+        if (world.IsValid())
+        {
+            // Debug draw probes
+            for (Scene* scene : world->GetScenes())
+            {
+                for (auto [probe, _] : scene->GetEntityManager()->GetEntitySet<EntityType<EnvProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
-                case ReflectionProbeTypeId:
-                    dbg.reflectionProbe(probe->GetWorldTranslation(), 1.0f, static_cast<EnvProbe&>(*probe));
-                    break;
-                case SkyProbeTypeId:
-                    // dbg.reflectionProbe(probe->GetWorldTranslation(), 1.0f, static_cast<EnvProbe&>(*probe));
-                    break;
-                case IrradianceProbeTypeId:
-                    dbg.ambientProbe(probe->GetWorldTranslation(), 1.0f, static_cast<EnvProbe&>(*probe));
-                    break;
-                default:
-                    HYP_LOG_ONCE(Editor, Warning, "Unknown probe type class: {}", probe->InstanceClass()->GetName());
-                    break;
+                    static constexpr auto ReflectionProbeTypeId = CONSTEXPR_TYPE_ID(ReflectionProbe);
+                    static constexpr auto SkyProbeTypeId = CONSTEXPR_TYPE_ID(SkyProbe);
+                    static constexpr auto IrradianceProbeTypeId = CONSTEXPR_TYPE_ID(IrradianceProbe);
+
+                    switch (probe->InstanceClass()->GetTypeId().Value())
+                    {
+                    case ReflectionProbeTypeId:
+                        dbg.reflectionProbe(probe->GetWorldTranslation(), 1.0f, static_cast<EnvProbe&>(*probe));
+                        break;
+                    case SkyProbeTypeId:
+                        // dbg.reflectionProbe(probe->GetWorldTranslation(), 1.0f, static_cast<EnvProbe&>(*probe));
+                        break;
+                    case IrradianceProbeTypeId:
+                        dbg.ambientProbe(probe->GetWorldTranslation(), 1.0f, static_cast<EnvProbe&>(*probe));
+                        break;
+                    default:
+                        HYP_LOG_ONCE(Editor, Warning, "Unknown probe type class: {}", probe->InstanceClass()->GetName());
+                        break;
+                    }
                 }
             }
         }
@@ -3984,8 +3849,15 @@ bool EditorSubsystem::StartSimulation()
 
     OpenProject(*loadResult);
 
-    Assert(m_currentProject.IsValid() && m_currentProject->GetWorld() != nullptr);
+    Game* gameInstance = m_currentProject->GetGame();
+    Assert(gameInstance != nullptr);
+    
+    gameInstance->Initialize();
 
+    Assert(gameInstance->GetWorld().IsValid());
+    Assert(m_currentProject.IsValid() && m_currentProject->GetWorld().IsValid());
+    
+#if 0
     Camera* primaryCamera = nullptr;
 
     for (Scene* scene : m_currentProject->GetWorld()->GetScenes())
@@ -4047,8 +3919,9 @@ bool EditorSubsystem::StartSimulation()
             .Text("No primary camera was found in any foreground scene. Simulation requires a primary camera in order to properly visualize the scene, without this you will just see a blank / not updating screen in your viewport. Ensure a camera exists with the PrimaryCamera EntityTag set!")
             .Show();
     }
+#endif
 
-    m_currentProject->GetGame()->StartSimulating();
+    gameInstance->StartSimulating();
 
     return true;
 }
@@ -4058,10 +3931,14 @@ bool EditorSubsystem::StopSimulation()
     if (m_currentProject.IsValid())
     {
         Game* gameInstance = m_currentProject->GetGame();
+        Assert(gameInstance != nullptr);
 
         if (m_simulationView.IsValid())
         {
-            gameInstance->GetWorld()->RemoveView(m_simulationView);
+            World* world = gameInstance->GetWorld();
+            Assert(world != nullptr);
+
+            world->RemoveView(m_simulationView);
         }
 
         gameInstance->StopSimulating();
@@ -4767,6 +4644,7 @@ void EditorSubsystem::CloseProject(bool shutdownWorld)
 
     if (m_currentProject)
     {
+        ShutdownProjectWorld(m_currentProject);
         OnProjectClosing(m_currentProject);
 
         m_currentProject->SetEditorSubsystem(WeakHandle<EditorSubsystem>::Null());
@@ -4793,6 +4671,8 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
         return;
     }
 
+    const bool isSimulationStateChange = m_preSimulationProject.IsValid();
+
     CloseProject(/* shutdownWorld*/ true);
 
     if (!project.IsValid())
@@ -4804,14 +4684,10 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
 
     m_currentProject = project;
 
-    Game* gameInstance = m_currentProject->GetGame();
-    Assert(gameInstance != nullptr);
-
-    gameInstance->Initialize();
+    InitializeProjectWorld(m_currentProject);
 
     OnProjectOpened(m_currentProject);
 
-    const bool isSimulationStateChange = m_preSimulationProject.IsValid();
     g_editorState->SetCurrentProject(m_currentProject, isSimulationStateChange);
 }
 
@@ -5329,105 +5205,219 @@ void EditorSubsystem::AddViewport(const Handle<EditorViewport>& viewport)
 {
     AssertOnThread(g_simThread);
 
-    AssertDebug(viewport != nullptr);
+    Assert(viewport != nullptr);
 
     if (!viewport)
     {
         return;
     }
 
-    auto impl = [this, weakThis = MakeWeakRef(this)](const Handle<EditorViewport>& viewport)
+    InitObject(viewport);
+    Handle<EditorViewport> viewportStrong = MakeStrongRef(viewport);
+
+    viewport->OnAdded(this);
+    m_editorViewports.PushBack(viewportStrong);
+
+    // active VP is always the first one in the array
+    // if size == 1 it's because we just added the first one
+    if (m_editorViewports.Size() == 1)
     {
-        Handle<EditorSubsystem> strongThis = weakThis.Lock();
-        if (!strongThis)
-        {
-            HYP_LOG(Editor, Error, "Failed to lock EditorSubsystem from weak reference in AddViewport");
-            return;
-        }
-
-        InitObject(viewport);
-        Handle<EditorViewport> viewportStrong = MakeStrongRef(viewport);
-
-        viewport->OnAdded(strongThis);
-        strongThis->m_editorViewports.PushBack(viewportStrong);
-
-        // active VP is always the first one in the array
-        // if size == 1 it's because we just added the first one
-        if (strongThis->m_editorViewports.Size() == 1)
-        {
-            OnActiveViewportChanged(viewportStrong);
-        }
-    };
-
-    if (IsOnThread(g_simThread))
-    {
-        impl(viewport);
+        OnActiveViewportChanged(viewportStrong);
     }
-    /*else
-    {
-        GetThreadById(g_simThread)->GetScheduler().Enqueue([impl, viewport]()
-            {
-                impl(viewport);
-            },
-            TaskEnqueueFlags::FIRE_AND_FORGET);
-    }*/
 }
 
 void EditorSubsystem::RemoveViewport(EditorViewport* viewport)
 {
     AssertOnThread(g_simThread);
 
-    AssertDebug(viewport != nullptr);
+    Assert(viewport != nullptr);
 
     if (!viewport)
     {
         return;
     }
 
-    auto impl = [this, weakThis = MakeWeakRef(this)](EditorViewport* viewport)
+    auto it = m_editorViewports.Find(viewport);
+    if (it != m_editorViewports.End())
     {
-        Handle<EditorSubsystem> strongThis = weakThis.Lock();
-        if (!strongThis)
+        Handle<EditorViewport> viewportStrong;
+
+        const size_t idx = m_editorViewports.IndexOf(it);
+
+        if (idx == 0)
         {
-            HYP_LOG(Editor, Error, "Failed to lock EditorSubsystem from weak reference in RemoveViewport");
-            return;
+            viewportStrong = MakeStrongRef(*it);
         }
 
-        auto it = strongThis->m_editorViewports.Find(viewport);
-        if (it != strongThis->m_editorViewports.End())
+        m_editorViewports.Erase(it);
+
+        if (viewportStrong)
         {
-            Handle<EditorViewport> viewportStrong;
-
-            const size_t idx = strongThis->m_editorViewports.IndexOf(it);
-
-            if (idx == 0)
-            {
-                viewportStrong = MakeStrongRef(*it);
-            }
-
-            strongThis->m_editorViewports.Erase(it);
-
-            if (viewportStrong)
-            {
-                OnActiveViewportChanged(viewportStrong);
-            }
-
-            viewport->OnRemoved(strongThis);
+            OnActiveViewportChanged(viewportStrong);
         }
-    };
 
-    if (IsOnThread(g_simThread))
-    {
-        impl(viewport);
+        viewport->OnRemoved(this);
     }
-    /*else
+}
+
+void EditorSubsystem::InitializeProjectWorld(const Handle<EditorProject>& project)
+{
+    Assert(project != nullptr);
+    InitObject(project);
+    
+    g_editorState->GetPickCache().Clear();
+
+    InitializeGizmos();
+
+    Game* gameInstance = project->GetGame();
+    Assert(gameInstance != nullptr);
+
+    Handle<World> world = gameInstance->GetWorld();
+
+    if (!world.IsValid())
     {
-        GetThreadById(g_simThread)->GetScheduler().Enqueue([impl, viewportWeak = MakeWeakRef(viewport)]()
+        if ((world = gameInstance->LoadWorld(Game::s_nameMainWorld)) && world.IsValid())
+        {
+            world->SetGame(gameInstance);
+        }
+    }
+            
+    project->SetTransientWorld(world);
+    Assert(world.IsValid());
+
+    g_engineDriver->AddWorld(world);
+
+    Handle<Scene> activeScene;
+
+    for (const Handle<Scene>& scene : world->GetScenes())
+    {
+        Assert(scene != nullptr);
+
+        HYP_LOG(Editor, Verbose, "Found scene '{}' in project '{}' with flags: {}", *scene->GetName(), *project->GetName(),
+                EnumToString(scene->GetSceneFlags()));
+
+        if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) != SceneFlags::FOREGROUND)
+        {
+            continue;
+        }
+
+        if (!activeScene.IsValid())
+        {
+            activeScene = scene;
+        }
+    }
+
+    if (!activeScene.IsValid())
+    {
+        HYP_LOG(Editor, Warning, "No foreground scenes found in project {}!", *project->GetName());
+    }
+
+    for (const Handle<EditorViewport>& vp : m_editorViewports)
+    {
+        vp->OnAdded(this);
+    }
+
+    m_delegateHandlers.Add(world->OnSceneAdded.Bind(
+        world.Get(),
+        [this, projectWeak = project.ToWeak()](World*, const Handle<Scene>& scene)
+        {
+            Assert(scene != nullptr);
+            Assert(scene != m_editorScene);
+
+            if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) != SceneFlags::FOREGROUND)
             {
-                impl(viewportWeak.GetUnsafe());
-            },
-            TaskEnqueueFlags::FIRE_AND_FORGET);
-    }*/
+                return;
+            }
+
+            Handle<EditorProject> project = projectWeak.Lock();
+            Assert(project != nullptr);
+
+            // Add scene to all editor views
+            for (const Handle<EditorViewport>& vp : m_editorViewports)
+            {
+                vp->OnSceneAdded(scene);
+            }
+
+            if (!m_activeScene)
+            {
+                SetActiveScene(scene);
+            }
+        }));
+
+    m_delegateHandlers.Add(world->OnSceneRemoved.Bind(
+        world.Get(),
+        [this, projectWeak = project.ToWeak()](World*, Scene* scene)
+        {
+            Assert(scene != nullptr);
+            Assert(scene != m_editorScene);
+
+            Handle<EditorProject> project = projectWeak.Lock();
+            Assert(project != nullptr);
+
+            scene->OnRootNodeChanged.RemoveAllFromSet(m_delegateHandlers);
+
+            // remove from all editor views
+            for (const Handle<EditorViewport>& vp : m_editorViewports)
+            {
+                vp->OnSceneRemoved(scene);
+            }
+
+            // StopWatchingNode(scene->GetRoot());
+
+            // GetWorld()->RemoveScene(scene);
+
+            // // reinitialize scene selector on scene remove
+            // InitActiveSceneSelection();
+        }));
+
+    SetActiveScene(activeScene);
+}
+
+void EditorSubsystem::ShutdownProjectWorld(const Handle<EditorProject>& project)
+{
+    Assert(project.IsValid());
+
+    Game* gameInstance = project->GetGame();
+    Assert(gameInstance != nullptr);
+
+    const Handle<World>& world = project->GetWorld();
+    Assert(world.IsValid());
+
+    g_editorState->GetPickCache().Clear();
+    g_engineDriver->RemoveWorld(world);
+
+    // Shutdown to reinitialize gizmos after project is opened
+    ShutdownGizmos();
+
+    m_focusedNode.Reset();
+    m_selectedNodes.Clear();
+
+    if (m_highlightNode.IsValid())
+    {
+        m_highlightNode->Remove();
+    }
+
+    SetActiveScene(Handle<Scene>::Null());
+
+    for (const Handle<Scene>& scene : world->GetScenes())
+    {
+        if (!scene.IsValid())
+        {
+            continue;
+        }
+
+        scene->OnRootNodeChanged.RemoveAllFromSet(m_delegateHandlers);
+    }
+
+    for (const Handle<EditorViewport>& vp : m_editorViewports)
+    {
+        vp->OnRemoved(this);
+    }
+
+    world->OnSceneAdded.RemoveAllFromSet(m_delegateHandlers);
+    world->OnSceneRemoved.RemoveAllFromSet(m_delegateHandlers);
+
+    gameInstance->OnGameStateChange.RemoveAllFromSet(m_delegateHandlers);
 }
 
 #endif

@@ -192,7 +192,9 @@ namespace Hyperion.Editor
 
                 Logger.Log(LogLevel.Verbose, "Current project changed to: " + (CurrentProject != null ? CurrentProject.Name : "null"));
 
-                if (CurrentProject != null)
+                // The !isSimulationStateChange is there because World may be null if it is just simulation state change and
+                // world is loading
+                if (CurrentProject != null && !isSimulationStateChange)
                 {
                     World? world = CurrentProject.World;
                     Debug.Assert(world != null);

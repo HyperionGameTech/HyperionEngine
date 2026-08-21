@@ -32,6 +32,7 @@ class World;
 class Scene;
 class Camera;
 class Event;
+class View;
 class InputHandlerBase;
 
 HYP_CLASS()
@@ -164,6 +165,7 @@ protected:
     Handle<UISubsystem> m_uiSubsystem;
 
     Array<Handle<InputHandlerBase>> m_inputHandlers;
+    Array<Handle<View>> m_views;
 
     Handle<Camera> m_camera;
 

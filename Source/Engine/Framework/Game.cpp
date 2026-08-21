@@ -177,7 +177,7 @@ void Game::Shutdown(bool shutdownWorld)
             m_world->Shutdown();
         }
 
-        m_world->m_gameInstance = nullptr;
+        m_world->SetGame(nullptr);
     }
 
     if (m_assetRegistry && m_assetRegistryActive)
@@ -262,15 +262,15 @@ void Game::SetWorld(const Handle<World>& world)
 
         m_world->Shutdown();
 
-        m_world->m_gameInstance = nullptr;
+        m_world->SetGame(nullptr);
     }
 
     m_world = world;
 
     if (m_world)
     {
-        AssertDebug(m_world->m_gameInstance == nullptr || m_world->m_gameInstance == this);
-        m_world->m_gameInstance = this;
+        AssertDebug(m_world->GetGame() == nullptr || m_world->GetGame() == this);
+        m_world->SetGame(this);
         
         if (!EngineGlobals::IsHeadless())
         {
@@ -665,6 +665,8 @@ void Game::StartSimulating()
     {
         return;
     }
+    
+    m_syncState.Wait();
 
     const GameStateMode previousGameStateMode = m_gameState.mode;
 
@@ -687,6 +689,8 @@ void Game::StopSimulating()
     {
         return;
     }
+    
+    m_syncState.Wait();
 
     m_gameState.gameTime = 0.0f;
     m_gameState.deltaTime = 0.0f;
@@ -701,6 +705,8 @@ void Game::PauseSimulation()
     {
         return;
     }
+    
+    m_syncState.Wait();
 
     const GameStateMode previousGameStateMode = m_gameState.mode;
 
@@ -774,6 +780,8 @@ void Game::OnLaunch()
         view->SetName(NAME_FMT("{}_View", m_camera->GetName()));
         
         world->AddView(view);
+
+        m_views.PushBack(view);
     }
 }
 
@@ -915,7 +923,17 @@ void Game::OnUpdate(float delta)
 
 void Game::BeforeShutdown()
 {
-    // no-op
+    World* world = GetWorld();
+
+    if (world != nullptr)
+    {
+        for (const Handle<View>& view : m_views)
+        {
+            world->RemoveView(view.Get());
+        }
+    }
+
+    m_views.Clear();
 }
 
 Handle<Game> Game::CreateGame(StringHash classNameHash)

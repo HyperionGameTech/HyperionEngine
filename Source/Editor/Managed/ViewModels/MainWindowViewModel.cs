@@ -847,7 +847,7 @@ namespace Hyperion.Editor.ViewModels
         {
             Dispatcher.UIThread.Post(() => PanelService.Instance.ClosePanel());
 
-            // Game mode:  when project changes we also want to update the play/pause/stop buttons
+            // In simulation mode, when project changes we also want to update the play/pause/stop buttons
             _gameModeChangedHandler?.Remove();
 
             _actionStackStateChangedHandler?.Remove();
@@ -949,15 +949,20 @@ namespace Hyperion.Editor.ViewModels
 
                 if (p != null)
                 {
-                    foreach (Scene scene in p.World.GetScenes())
-                    {
-                        // ONLY add scenes that have FOREGROUND flag.
-                        if (!scene.SceneFlags.HasFlag(SceneFlags.Foreground))
-                        {
-                            continue;
-                        }
+                    World? world = p.World;
 
-                        Scenes.Add(new SceneViewModel(scene, isActive: _activeScene?.Scene?.Id == scene.Id));
+                    if (world != null)
+                    {
+                        foreach (Scene scene in world.GetScenes())
+                        {
+                            // ONLY add scenes that have FOREGROUND flag.
+                            if (!scene.SceneFlags.HasFlag(SceneFlags.Foreground))
+                            {
+                                continue;
+                            }
+
+                            Scenes.Add(new SceneViewModel(scene, isActive: _activeScene?.Scene?.Id == scene.Id));
+                        }
                     }
                 }
 

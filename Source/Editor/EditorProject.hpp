@@ -68,8 +68,16 @@ public:
     HYP_METHOD()
     void SetName(Name name);
 
+    /// If simulation is active, will return Game::GetWorld() for the game instance
+    /// Otherwise, returns the transient edit-mode world
     HYP_METHOD()
     const Handle<World>& GetWorld() const;
+
+    /// Set the transient edit-mode world
+    void SetTransientWorld(const Handle<World>& world)
+    {
+        m_world = world;
+    }
 
     HYP_METHOD(Property = "GameInstance")
     HYP_FORCE_INLINE const Handle<Game>& GetGame() const
@@ -164,6 +172,9 @@ private:
 
     HYP_FIELD(Transient)
     Handle<EditorActionStack> m_actionStack;
+
+    // Transient world set while in editor mode
+    Handle<World> m_world;
 
     WeakHandle<EditorSubsystem> m_editorSubsystem;
 };

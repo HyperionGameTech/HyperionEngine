@@ -107,7 +107,13 @@ const Handle<World>& EditorProject::GetWorld() const
 {
     Assert(m_gameInstance != nullptr);
 
-    return m_gameInstance->GetWorld();
+    const Handle<World>& gameWorld = m_gameInstance->GetWorld();
+    if (gameWorld.IsValid())
+    {
+        return gameWorld;
+    }
+
+    return m_world;
 }
 
 void EditorProject::SetGame(const Handle<Game>& gameInstance)
