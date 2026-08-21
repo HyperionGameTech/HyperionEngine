@@ -5287,6 +5287,11 @@ void EditorSubsystem::InitializeProjectWorld(const Handle<EditorProject>& projec
 
     g_engineDriver->AddWorld(world);
 
+    // The transient simulation project (created fresh each Play press) gets its own View from
+    // Game::OnLaunch() -- the editor's own persistent viewport must not also attach to it, or we
+    // end up with >1 GBUFFER view on the same World.
+    const bool isSimulationProject = m_preSimulationProject.IsValid() && project != m_preSimulationProject;
+
     Handle<Scene> activeScene;
 
     for (const Handle<Scene>& scene : world->GetScenes())
@@ -5312,9 +5317,12 @@ void EditorSubsystem::InitializeProjectWorld(const Handle<EditorProject>& projec
         HYP_LOG(Editor, Warning, "No foreground scenes found in project {}!", *project->GetName());
     }
 
-    for (const Handle<EditorViewport>& vp : m_editorViewports)
+    if (!isSimulationProject)
     {
-        vp->OnAdded(this);
+        for (const Handle<EditorViewport>& vp : m_editorViewports)
+        {
+            vp->OnAdded(this);
+        }
     }
 
     m_delegateHandlers.Add(world->OnSceneAdded.Bind(
@@ -5409,9 +5417,16 @@ void EditorSubsystem::ShutdownProjectWorld(const Handle<EditorProject>& project)
         scene->OnRootNodeChanged.RemoveAllFromSet(m_delegateHandlers);
     }
 
-    for (const Handle<EditorViewport>& vp : m_editorViewports)
+    // Mirror InitializeProjectWorld: the editor's own viewport was never attached to a transient
+    // simulation project's World, so don't try to detach it from one either.
+    const bool isSimulationProject = m_preSimulationProject.IsValid() && project != m_preSimulationProject;
+
+    if (!isSimulationProject)
     {
-        vp->OnRemoved(this);
+        for (const Handle<EditorViewport>& vp : m_editorViewports)
+        {
+            vp->OnRemoved(this);
+        }
     }
 
     world->OnSceneAdded.RemoveAllFromSet(m_delegateHandlers);

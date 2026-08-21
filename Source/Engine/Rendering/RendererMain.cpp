@@ -1020,6 +1020,13 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
             continue;
         }
 
+        // Mesh GPU buffers upload asynchronously (Mesh::UploadGpuData); skip this draw call for
+        // now if it hasn't finished yet rather than binding a null buffer -- it'll pick up once ready.
+        if (HYP_UNLIKELY(!meshProxy.mesh->GetVertexBuffer().IsValid() || !meshProxy.mesh->GetIndexBuffer().IsValid()))
+        {
+            continue;
+        }
+
         { // Write constants for the draw
             CBufferAllocator& cba = *RI.cbufferAllocator;
             cba.Write(&meshProxy.bufferData);
@@ -1106,6 +1113,13 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
         AssertDebug(materialProxy != nullptr);
 
         if (HYP_UNLIKELY(!materialProxy))
+        {
+            continue;
+        }
+
+        // Mesh GPU buffers upload asynchronously (Mesh::UploadGpuData); skip this draw call for
+        // now if it hasn't finished yet rather than binding a null buffer -- it'll pick up once ready.
+        if (HYP_UNLIKELY(!meshProxy.mesh->GetVertexBuffer().IsValid() || !meshProxy.mesh->GetIndexBuffer().IsValid()))
         {
             continue;
         }

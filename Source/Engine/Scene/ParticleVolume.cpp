@@ -29,18 +29,6 @@ ParticleVolume::ParticleVolume()
 ParticleVolume::ParticleVolume(const BoundingBox& localBounds)
     : VolumeBase(localBounds)
 {
-    //if (!m_params.mesh.IsValid())
-    //{
-    //    m_params.mesh = MeshBuilder::Quad();
-    //}
-    //
-    //m_params.mesh->SetFlags(MeshFlags::ViewIndependent);
-    //m_params.mesh->UploadGpuData();
-
-    //if (m_params.texture.IsValid())
-    //{
-    //    Check(m_params.texture->Create());
-    //}
 }
 
 ParticleVolume::~ParticleVolume()

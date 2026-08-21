@@ -207,9 +207,13 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     RenderProxyParticleVolume* proxy = static_cast<RenderProxyParticleVolume*>(GetRenderProxy(particleVolume));
     AssertDebug(proxy != nullptr);
 
-    if (!proxy->particleMesh)
+    if (!proxy->particleMesh
+        || !proxy->particleMesh->GetVertexBuffer().IsValid()
+        || !proxy->particleMesh->GetIndexBuffer().IsValid())
     {
-        HYP_LOG_ONCE(Rendering, Warning, "No mesh on particle volume proxy, skipping render of particle volume {}", particleVolume->GetName());
+        // Mesh may be tracked/bound this frame but not yet finished uploading (Mesh::UploadGpuData
+        // runs off the binding-changed callback) -- skip for now, it'll be ready in a later frame.
+        HYP_LOG_ONCE(Rendering, Warning, "No mesh (or mesh not yet uploaded) on particle volume proxy, skipping render of particle volume {}", particleVolume->GetName());
         return;
     }
 

@@ -21,8 +21,6 @@
 #include <Core/Reflection/TypeInfo.hpp>
 #include <Core/Reflection/ClassRegistry.hpp>
 
-#include <Core/Memory/Allocator/ThreadAllocator.hpp>
-
 #include <Core/Profiling/ProfileScope.hpp>
 
 #include <EntityManager.generated.inl>
@@ -142,7 +140,7 @@ void EntityManager::NotifySystemOfExistingEntities(SystemBase* system)
 
     Assert(system != nullptr);
             
-    Array<TypeId, ThreadAllocator> keys;
+    FatArray<TypeId, InlineAllocator<16>> keys;
 
     for (auto& subtypeData : m_entities.GetSubtypeData())
     {
@@ -191,7 +189,7 @@ void EntityManager::NotifySystemOfAllEntitiesRemoved(SystemBase* system)
 
     Assert(system != nullptr);
     
-    Array<TypeId, ThreadAllocator> keys;
+    FatArray<TypeId, InlineAllocator<16>> keys;
 
     for (auto& subtypeData : m_entities.GetSubtypeData())
     {
@@ -1465,7 +1463,7 @@ void EntityManager::NotifySystemsOfEntityAdded(const Handle<Entity>& entity, con
         return;
     }
             
-    Array<TypeId, ThreadAllocator> keys;
+    FatArray<TypeId, InlineAllocator<16>> keys;
 
     for (SystemExecutionGroup* group : m_world->GetSystemExecutionGroups())
     {
@@ -1514,8 +1512,8 @@ void EntityManager::NotifySystemsOfEntityRemoved(Entity* entity, const Component
     }
 
     WeakHandle<Entity> entityWeak = MakeWeakRef(entity);
-            
-    Array<TypeId, ThreadAllocator> keys;
+    
+    FatArray<TypeId, InlineAllocator<16>> keys;
 
     for (SystemExecutionGroup* group : m_world->GetSystemExecutionGroups())
     {

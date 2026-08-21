@@ -162,6 +162,8 @@ void Game::Shutdown(bool shutdownWorld)
         return;
     }
 
+    BeforeShutdown();
+
     if (m_world)
     {
         if (m_uiSubsystem.IsValid())
