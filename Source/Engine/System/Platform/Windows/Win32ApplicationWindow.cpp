@@ -245,7 +245,7 @@ bool HandleWindowEvent(
 
         DefWindowProcW(hWnd, msg, wParam, lParam);
 
-        return true;
+        return false;
     case WM_KEYDOWN:
         event = Event(EventType::KEYDOWN, window, platformEvent);
         event.GetEventData().Set(MapWin32VirtualKeyToKeyCode(lParam, wParam));
