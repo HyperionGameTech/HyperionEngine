@@ -7,7 +7,7 @@
 #include <ScenePch.hpp>
 
 #include <Scene/Systems/ReplicationSystem.hpp>
-#include <Scene/Systems/CharacterControllerSystem.hpp> // For CharacterControllerInputHandler. @TODO move elsewhere
+#include <Scene/Systems/CharacterControllerSystem.hpp> // For ApplyCharacterMove
 
 #include <Scene/Components/ReplicationStateComponent.hpp>
 #include <Scene/Components/PlayerComponent.hpp>
@@ -24,6 +24,8 @@
 #include <Net/NetMemory.hpp>
 
 #include <Core/IO/ByteWriter.hpp>
+
+#include <Core/Math/MathUtil.hpp>
 
 #include <Core/Memory/ByteBuffer.hpp>
 
@@ -220,6 +222,7 @@ void ReplicationSystem::OnEntityRemoved(Entity* entity)
     if (const net::NetConnectionId ownerConnectionId = GetOwnerConnectionId(entity); ownerConnectionId != Invalid<net::NetConnectionId>)
     {
         m_connectionIdToEntity.Erase(ownerConnectionId);
+        m_playerMoveQueues.Erase(ownerConnectionId);
     }
 
     HYP_LOG(Replication, Info, "Entity {} removed from replication (netId={}), broadcasting EntityDespawn",
@@ -275,8 +278,10 @@ void ReplicationSystem::ApplyPendingRequests()
 
             break;
         }
-        case ServerRequestType::PlayerInput:
+        case ServerRequestType::PlayerMoves:
         {
+            const ServerRequest<ServerRequestType::PlayerMoves>& request = static_cast<const ServerRequest<ServerRequestType::PlayerMoves>&>(*requestPtr);
+
             auto it = m_connectionIdToEntity.Find(requestPtr->connectionId);
 
             if (it == m_connectionIdToEntity.End())
@@ -284,14 +289,33 @@ void ReplicationSystem::ApplyPendingRequests()
                 break;
             }
 
-            const ServerRequest<ServerRequestType::PlayerInput>& request = static_cast<const ServerRequest<ServerRequestType::PlayerInput>&>(*requestPtr);
-
-            if (CharacterControllerComponent* characterControllerComponent = it->second->TryGetComponent<CharacterControllerComponent>())
+            if (it->second->TryGetComponent<CharacterControllerComponent>() == nullptr)
             {
-                CharacterControllerInputHandler* inputHandler = StaticCast<CharacterControllerInputHandler>(characterControllerComponent->inputHandler.Get());
+                break;
+            }
 
-                inputHandler->SetMovementInput(request.movementInput);
-                inputHandler->SetIsJumpRequested(request.jumpRequested);
+            PlayerMoveQueueState& queue = m_playerMoveQueues[requestPtr->connectionId];
+
+            for (uint32 i = 0; i < request.numMoves; ++i)
+            {
+                const PlayerMove& move = request.moves[i];
+
+                // Ignore duplicates/retransmits and stale stragglers
+                if (move.moveId <= queue.lastQueuedMoveId)
+                {
+                    continue;
+                }
+
+                queue.moves.PushBack(move);
+                queue.lastQueuedMoveId = move.moveId;
+            }
+
+            // Cap the queue so a misbehaving/bursting client can't grow it without bound.
+            // Dropping the oldest moves desyncs the player briefly -- the next correction
+            // resynchronizes them.
+            while (queue.moves.Size() > PlayerMoveQueueState::MaxQueuedMoves)
+            {
+                queue.moves.EraseAt(0);
             }
 
             break;
@@ -300,9 +324,110 @@ void ReplicationSystem::ApplyPendingRequests()
     }
 }
 
+void ReplicationSystem::ProcessPlayerMoves()
+{
+    if (m_playerMoveQueues.Empty())
+    {
+        return;
+    }
+
+    // How many queued moves a single connection may consume per tick. Bounded so a
+    // catching-up client cannot stall the server tick.
+    constexpr uint32 MaxMovesPerTick = 8;
+
+    struct TargetedMoveAck
+    {
+        net::NetConnectionId connectionId;
+        NetId netId;
+        net::NetBuffer payload;
+    };
+
+    Array<TargetedMoveAck, SceneTempAllocator> targetedAcks;
+
+    for (auto it = m_playerMoveQueues.Begin(); it != m_playerMoveQueues.End(); ++it)
+    {
+        PlayerMoveQueueState& queue = it->second;
+
+        if (queue.moves.Empty())
+        {
+            continue;
+        }
+
+        auto entityIt = m_connectionIdToEntity.Find(it->first);
+
+        Entity* entity = entityIt != m_connectionIdToEntity.End() ? entityIt->second : nullptr;
+
+        CharacterControllerComponent* component = entity != nullptr
+            ? entity->TryGetComponent<CharacterControllerComponent>()
+            : nullptr;
+
+        const ReplicationStateComponent* replicationState = entity != nullptr
+            ? entity->TryGetComponent<ReplicationStateComponent>()
+            : nullptr;
+
+        if (component == nullptr || !component->physicsHandle || replicationState == nullptr)
+        {
+            // Player entity (or its controller) is gone -- drop pending moves.
+            queue.moves.Clear();
+
+            continue;
+        }
+
+        const uint32 numToProcess = MathUtil::Min(uint32(queue.moves.Size()), MaxMovesPerTick);
+
+        Vec3f resultTranslation = Vec3f(0.0f);
+        uint32 lastProcessedMoveId = 0;
+
+        for (uint32 i = 0; i < numToProcess; ++i)
+        {
+            const PlayerMove& move = queue.moves[i];
+
+            ApplyCharacterMove(entity, *component, move, resultTranslation);
+
+            lastProcessedMoveId = move.moveId;
+        }
+
+        for (uint32 i = 0; i < numToProcess; ++i)
+        {
+            queue.moves.EraseAt(0);
+        }
+
+        net::NetBuffer payload;
+        MemoryByteWriter<NetAllocator, 1> writer(&payload);
+
+        SerializePlayerMoveAck(writer, PlayerMoveAck { lastProcessedMoveId, resultTranslation });
+
+        targetedAcks.PushBack(TargetedMoveAck { it->first, replicationState->netId, std::move(payload) });
+    }
+
+    if (!targetedAcks.Any())
+    {
+        return;
+    }
+
+    GetGameServerThread()->GetScheduler().Enqueue(
+        [targetedAcks = Array<TargetedMoveAck, NetAllocator>(targetedAcks)]()
+        {
+            net::NetServer& netServer = g_gameServer->GetNetServer();
+
+            for (const TargetedMoveAck& targeted : targetedAcks)
+            {
+                netServer.SendMessageTo(
+                    targeted.connectionId,
+                    NetMessageId::PlayerMoveAck,
+                    NetChannelMode::UnreliableOrdered,
+                    NetStreamKey(uint32(targeted.netId)),
+                    targeted.payload.ToByteView());
+            }
+        },
+        TaskEnqueueFlags::FIRE_AND_FORGET);
+}
+
 void ReplicationSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     ApplyPendingRequests();
+
+    ProcessPlayerMoves();
 
     Array<net::NetConnectionId, SceneTempAllocator> newConnections;
     g_gameServer->DrainNewConnections(newConnections);

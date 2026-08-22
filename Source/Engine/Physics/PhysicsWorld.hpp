@@ -62,6 +62,8 @@ public:
     virtual void RemoveCharacterController(SharedPtr<void>& physicsHandle) = 0;
     virtual void SetCharacterWalkDirection(const SharedPtr<void>& physicsHandle, const Vec3f& velocity) = 0;
     virtual void ApplyCharacterJump(const SharedPtr<void>& physicsHandle) = 0;
+    virtual void StepCharacterController(const SharedPtr<void>& physicsHandle, float deltaTime) = 0;
+    virtual void SetCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation) = 0;
     virtual void GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround) = 0;
 
 protected:
@@ -146,6 +148,16 @@ public:
     void ApplyCharacterJump(const SharedPtr<void>& physicsHandle) override
     {
          m_adapter.ApplyCharacterJump(physicsHandle);
+    }
+
+    void StepCharacterController(const SharedPtr<void>& physicsHandle, float deltaTime) override
+    {
+        m_adapter.StepCharacterController(physicsHandle, deltaTime);
+    }
+
+    void SetCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation) override
+    {
+        m_adapter.SetCharacterTranslation(physicsHandle, translation);
     }
 
     void GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround) override

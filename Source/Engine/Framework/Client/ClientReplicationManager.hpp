@@ -22,6 +22,7 @@
 
 #include <Framework/Net/ReplicationQueue.hpp>
 #include <Framework/Net/NetId.hpp>
+#include <Framework/Net/PlayerMove.hpp>
 
 namespace Hyperion {
 
@@ -91,10 +92,14 @@ template <>
 struct ReplicationOp<ReplicationOpType::Snapshot> final : ReplicationOpBase
 {
     Transform transform;
+    // Wall-clock time (ms) at which the message carrying this snapshot was received.
+    // Used to interpolate remote entities on a consistent timeline.
+    uint64 receiveTimeMs = 0;
 
-    ReplicationOp(NetId netId, const Transform& transform)
+    ReplicationOp(NetId netId, const Transform& transform, uint64 receiveTimeMs)
         : ReplicationOpBase(ReplicationOpType::Snapshot, netId),
-          transform(transform)
+          transform(transform),
+          receiveTimeMs(receiveTimeMs)
     {
     }
 };
@@ -112,12 +117,29 @@ public:
     void PublishBatch()
     {
         m_queue.PublishBatch();
+        m_moveAckQueue.PublishBatch();
     }
 
     template <class AllocatorType>
     void DrainPendingOps(Array<ReplicationOpBase*, AllocatorType>& outOps)
     {
         m_queue.DrainPending(outOps);
+    }
+
+    /// Drains server move acknowledgements received since the last drain.
+    template <class AllocatorType>
+    void DrainPendingMoveAcks(Array<PlayerMoveAck, AllocatorType>& outAcks)
+    {
+        Array<PlayerMoveAck*, AllocatorType> ackPtrs;
+
+        m_moveAckQueue.DrainPending(ackPtrs);
+
+        outAcks.Reserve(outAcks.Size() + ackPtrs.Size());
+
+        for (const PlayerMoveAck* ackPtr : ackPtrs)
+        {
+            outAcks.PushBack(*ackPtr);
+        }
     }
 
 private:
@@ -128,6 +150,7 @@ private:
     }
 
     ReplicationQueue<ReplicationOpBase> m_queue;
+    ReplicationQueue<PlayerMoveAck> m_moveAckQueue;
 };
 
 } // namespace Hyperion

@@ -44,6 +44,12 @@ public:
 
     Result GetLastError() const;
 
+    /// Round-trip time to the server in milliseconds (0 until the first keep-alive pong).
+    HYP_FORCE_INLINE TimeDiff GetRtt() const
+    {
+        return TimeDiff(m_netClient.GetRttMilliseconds());
+    }
+
     Result Connect(const ANSIString& hostname, uint16 defaultPort);
     Result Connect(const NetAddress& serverAddress);
 

@@ -463,7 +463,10 @@ void BulletPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerC
         btBroadphaseProxy::CharacterFilter,
         btBroadphaseProxy::StaticFilter | btBroadphaseProxy::DefaultFilter);
 
-    m_dynamicsWorld->addAction(internalData->kcc.Get());
+    // NOTE: the controller is deliberately NOT added via addAction -- it would then be
+    // stepped by stepSimulation() during PhysicsWorld::Tick. Character controllers are
+    // stepped explicitly via StepCharacterController() instead, so that authoritative
+    // simulation and client-side prediction can replay them with identical timing.
 
     outPhysicsHandle = internalData;
 }
@@ -479,7 +482,6 @@ void BulletPhysicsAdapter::OnCharacterControllerRemoved(SharedPtr<void>& physics
         return;
     }
 
-    m_dynamicsWorld->removeAction(internalData->kcc.Get());
     m_dynamicsWorld->removeCollisionObject(internalData->ghostObject.Get());
     physicsHandle.Reset();
 }
@@ -509,6 +511,32 @@ void BulletPhysicsAdapter::ApplyCharacterJump(const SharedPtr<void>& physicsHand
     {
         internalData->kcc->jump(btVector3(0.0f, 1.0f, 0.0f));
     }
+}
+
+void BulletPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsHandle, float deltaTime)
+{
+    CharacterControllerInternalData* internalData = static_cast<CharacterControllerInternalData*>(physicsHandle.GetVoid());
+
+    if (!internalData || deltaTime <= 0.0f)
+    {
+        return;
+    }
+
+    internalData->kcc->updateAction(m_dynamicsWorld, deltaTime);
+}
+
+void BulletPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation)
+{
+    CharacterControllerInternalData* internalData = static_cast<CharacterControllerInternalData*>(physicsHandle.GetVoid());
+
+    if (!internalData)
+    {
+        return;
+    }
+
+    btTransform transform = internalData->ghostObject->getWorldTransform();
+    transform.setOrigin(ToBtVector(translation));
+    internalData->ghostObject->setWorldTransform(transform);
 }
 
 void BulletPhysicsAdapter::GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround)

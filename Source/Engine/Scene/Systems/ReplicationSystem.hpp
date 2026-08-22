@@ -12,6 +12,9 @@
 #include <Scene/Components/ReplicationStateComponent.hpp>
 #include <Scene/Components/PlayerComponent.hpp>
 
+#include <Framework/Net/PlayerMove.hpp>
+
+#include <Core/Containers/Array.hpp>
 #include <Core/Containers/Map.hpp>
 
 namespace Hyperion {
@@ -48,12 +51,23 @@ public:
     }
 
 private:
+    // Pending player moves received from a client, to be consumed in order.
+    struct PlayerMoveQueueState
+    {
+        static constexpr uint32 MaxQueuedMoves = 128;
+
+        Array<PlayerMove, SceneAllocator> moves;
+        uint32 lastQueuedMoveId = 0;
+    };
+
     void ApplyPendingRequests();
+    void ProcessPlayerMoves();
     void ProcessPendingCatchUp(Span<Handle<Scene>> scenes);
 
     Map<NetId, Handle<Entity>, SceneAllocator> m_netIdToEntity;
     Map<net::NetConnectionId, Entity*> m_connectionIdToEntity;
+    Map<net::NetConnectionId, PlayerMoveQueueState, SceneAllocator> m_playerMoveQueues;
     Array<net::NetConnectionId> m_pendingCatchUpConnections;
-}; // class PhysicsSystem
+}; // class ReplicationSystem
 
 } // namespace Hyperion

@@ -10,6 +10,8 @@
 
 #include <Core/IO/ByteReader.hpp>
 
+#include <Core/Utilities/Time.hpp>
+
 namespace Hyperion {
 
 using net::NetAllocator;
@@ -80,7 +82,16 @@ void ClientReplicationManager::RegisterHandlers(net::NetClient& netClient)
         {
             PushOp(ReplicationOp<ReplicationOpType::Snapshot>(
                 NetId(uint32(context.key)),
-                ReadTransform(payload)));
+                ReadTransform(payload),
+                Time::Now().ToMilliseconds()));
+        });
+
+    netClient.RegisterHandler(NetMessageId::PlayerMoveAck,
+        [this](const NetMessageContext&, ConstByteView payload)
+        {
+            MemoryByteReader reader { payload };
+
+            m_moveAckQueue.Push(DeserializePlayerMoveAck(reader));
         });
 }
 

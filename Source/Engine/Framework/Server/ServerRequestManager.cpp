@@ -37,21 +37,26 @@ void ServerRequestManager::RegisterHandlers(net::NetServer& netServer)
                 Transform(translation, scale, rotation)));
         });
 
-    netServer.RegisterHandler(NetMessageId::PlayerInputRequest,
+    netServer.RegisterHandler(NetMessageId::PlayerMovesRequest,
         [this](const NetMessageContext& context, ConstByteView payload)
         {
             MemoryByteReader reader { payload };
 
-            Vec2f movementInput;
-            int8 jumpRequested;
+            uint32 lastAckedMoveId = 0;
+            PlayerMove moves[MaxPlayerMovesPerRequest];
 
-            reader.Read(&movementInput, sizeof(Vec2f));
-            reader.Read(&jumpRequested, sizeof(int8));
+            const uint32 numMoves = DeserializePlayerMoves(reader, lastAckedMoveId, moves, MaxPlayerMovesPerRequest);
 
-            PushRequest(ServerRequest<ServerRequestType::PlayerInput>(
+            if (numMoves == 0)
+            {
+                return;
+            }
+
+            PushRequest(ServerRequest<ServerRequestType::PlayerMoves>(
                 context.connectionId,
-                movementInput,
-                jumpRequested));
+                lastAckedMoveId,
+                moves,
+                numMoves));
         });
 }
 

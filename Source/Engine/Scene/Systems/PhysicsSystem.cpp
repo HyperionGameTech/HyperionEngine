@@ -43,7 +43,6 @@ void PhysicsSystem::OnEntityAdded(Entity* entity)
 
     RigidBodyComponent& rigidBodyComponent = entity->GetEntityManager()->GetComponent<RigidBodyComponent>(entity);
     TransformComponent& transformComponent = entity->GetEntityManager()->GetComponent<TransformComponent>(entity);
-
     if (!rigidBodyComponent.shape)
     {
         BoundingBox boxBounds = entity->GetLocalBounds();
@@ -88,7 +87,9 @@ void PhysicsSystem::OnEntityAdded(Entity* entity)
 
     rigidBody->SetTransform(transform);
 
-    if (CanSimulate(rigidBodyComponent))
+    // Bodies are added on clients as well as on the server: the physics world is only
+    // ticked with authority, so on clients they act as inert colliders. This gives
+    // client-side predicted character controllers static geometry to collide against.
     {
         PhysicsWorldBase* physicsWorld = GetWorld()->GetPhysicsWorld();
         AssertDebug(physicsWorld != nullptr);
@@ -108,7 +109,6 @@ void PhysicsSystem::OnEntityRemoved(Entity* entity)
 
     RigidBodyComponent& rigidBodyComponent = entity->GetEntityManager()->GetComponent<RigidBodyComponent>(entity);
 
-    if (CanSimulate(rigidBodyComponent))
     {
         Handle<RigidBody>& rigidBody = rigidBodyComponent.rigidBody;
 

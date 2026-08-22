@@ -100,6 +100,20 @@ public:
         GetDerivedAdapter()->DerivedAdapter::ApplyCharacterJump(physicsHandle);
     }
 
+    // Advances a character controller by deltaTime seconds using its current walk direction.
+    // Character controllers are stepped explicitly (they are NOT advanced by PhysicsWorld::Tick)
+    // so that client-side prediction can replay moves with identical timing to the server.
+    void StepCharacterController(const SharedPtr<void>& physicsHandle, float deltaTime)
+    {
+        GetDerivedAdapter()->DerivedAdapter::StepCharacterController(physicsHandle, deltaTime);
+    }
+
+    // Teleports a character controller to the given translation (capsule center).
+    void SetCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation)
+    {
+        GetDerivedAdapter()->DerivedAdapter::SetCharacterTranslation(physicsHandle, translation);
+    }
+
     void GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround)
     {
         GetDerivedAdapter()->DerivedAdapter::GetCharacterState(physicsHandle, outTranslation, outIsOnGround);

@@ -60,12 +60,29 @@ private:
         float secondsWaited = 0.0f;
     };
 
+    // Buffered transform samples for one remotely simulated entity, used to interpolate
+    // it on a delayed timeline (hides update jitter and packet spacing).
+    struct InterpolationState
+    {
+        static constexpr uint32 MaxSamples = 32;
+
+        struct Sample
+        {
+            uint64 receiveTimeMs;
+            Transform transform;
+        };
+
+        Array<Sample, SceneAllocator> samples;
+    };
+
     void TryResolvePendingSpawns(Span<Handle<Scene>> scenes);
 
+    void UpdateInterpolatedEntities();
     void UpdateStreamingVolume(Span<Handle<Scene>> scenes);
 
     Array<PendingSpawn, SceneAllocator> m_pendingSpawns;
     Map<NetId, Handle<Entity>, SceneAllocator> m_netIdToEntity;
+    Map<NetId, InterpolationState, SceneAllocator> m_interpolationStates;
 
     Handle<Entity> m_resolvedPlayerEntity;
     Handle<CameraStreamingVolume> m_playerStreamingVolume;

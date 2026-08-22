@@ -34,7 +34,10 @@
 
 #include <Net/NetMemory.hpp>
 
+#include <Core/Math/MathUtil.hpp>
+
 #include <Core/Utilities/GlobalContext.hpp>
+#include <Core/Utilities/Time.hpp>
 #include <Core/Utilities/Traits.hpp>
 
 #include <Core/Logging/Logger.hpp>
@@ -289,6 +292,17 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
     Array<ReplicationOpBase*, SceneAllocator> ops;
     g_gameClient->GetReplicationManager().DrainPendingOps(ops);
 
+    // The local player's entity is predicted locally; its snapshots are ignored.
+    NetId localPlayerNetId = Invalid<NetId>;
+
+    if (Handle<Entity> myPlayerEntity = GetMyPlayerEntity(); myPlayerEntity.IsValid())
+    {
+        if (const ReplicationStateComponent* replicationState = myPlayerEntity->TryGetComponent<ReplicationStateComponent>())
+        {
+            localPlayerNetId = replicationState->netId;
+        }
+    }
+
     for (const ReplicationOpBase* opPtr : ops)
     {
         switch (opPtr->type)
@@ -326,6 +340,8 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
 
             const ReplicationOp<ReplicationOpType::Despawn>& op = static_cast<const ReplicationOp<ReplicationOpType::Despawn>&>(*opPtr);
 
+            m_interpolationStates.Erase(op.netId);
+
             auto it = m_netIdToEntity.Find(op.netId);
 
             if (it == m_netIdToEntity.End())
@@ -353,15 +369,104 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
                 break;
             }
 
-            // @TODO: snap for now -- lerp toward this instead once this end-to-end path is verified.
-            it->second->SetLocalTransform(op.transform);
+            // Our own player entity is client-predicted (see CharacterControllerSystem);
+            // authoritative state for it arrives via PlayerMoveAck reconciliation instead.
+            if (op.netId == localPlayerNetId)
+            {
+                break;
+            }
+
+            InterpolationState& interpolation = m_interpolationStates[op.netId];
+
+            interpolation.samples.PushBack(InterpolationState::Sample { op.receiveTimeMs, op.transform });
+
+            while (interpolation.samples.Size() > InterpolationState::MaxSamples)
+            {
+                interpolation.samples.EraseAt(0);
+            }
 
             break;
         }
         }
     }
 
+    UpdateInterpolatedEntities();
+
     UpdateStreamingVolume(scenes);
+}
+
+void ReplicationApplySystem::UpdateInterpolatedEntities()
+{
+    if (m_interpolationStates.Empty())
+    {
+        return;
+    }
+
+    const uint64 nowMs = Time::Now().ToMilliseconds();
+    const uint64 renderTimeMs = nowMs - uint64(EngineGlobals::GetInterpolationDelay() * 1000.0f);
+
+    for (auto it = m_interpolationStates.Begin(); it != m_interpolationStates.End();)
+    {
+        auto entityIt = m_netIdToEntity.Find(it->first);
+
+        if (entityIt == m_netIdToEntity.End() || !entityIt->second.IsValid())
+        {
+            it = m_interpolationStates.Erase(it);
+
+            continue;
+        }
+
+        Array<InterpolationState::Sample, SceneAllocator>& samples = it->second.samples;
+
+        // Advance past samples the render time has already passed, keeping at least the
+        // last one as the hold pose.
+        while (samples.Size() > 1 && samples[1].receiveTimeMs <= renderTimeMs)
+        {
+            samples.EraseAt(0);
+        }
+
+        Entity* entity = entityIt->second.Get();
+
+        if (samples.Size() == 1)
+        {
+            // Not enough history to interpolate (first sample, or the server stopped
+            // sending updates) -- hold/snap to the newest known transform.
+            entity->SetLocalTransform(samples[0].transform);
+
+            ++it;
+
+            continue;
+        }
+
+        const InterpolationState::Sample& from = samples[0];
+        const InterpolationState::Sample& to = samples[1];
+
+        const double spanMs = double(to.receiveTimeMs) - double(from.receiveTimeMs);
+
+        if (spanMs <= 0.0)
+        {
+            entity->SetLocalTransform(to.transform);
+
+            ++it;
+
+            continue;
+        }
+
+        // Clamp to the newest sample: on a burst gap we hold rather than extrapolate.
+        const float alpha = float(MathUtil::Clamp((double(renderTimeMs) - double(from.receiveTimeMs)) / spanMs, 0.0, 1.0));
+
+        Transform blended;
+
+        // Because we made Lerp()/Slerp() mutate for some reason years ago, we need to wrap in temp objects
+        // @TODO: Change this when we fix those
+        blended.SetTranslation(Vec3(from.transform.GetTranslation()).Lerp(to.transform.GetTranslation(), alpha));
+        blended.SetRotation(Quat4f(from.transform.GetRotation()).Slerp(to.transform.GetRotation(), alpha));
+        blended.SetScale(Vec3f(from.transform.GetScale()).Lerp(to.transform.GetScale(), alpha));
+
+        entity->SetLocalTransform(blended);
+
+        ++it;
+    }
 }
 
 static Handle<Camera> FindCameraChild(const Handle<Entity>& entity)

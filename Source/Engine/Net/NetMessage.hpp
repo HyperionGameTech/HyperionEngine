@@ -61,10 +61,11 @@ enum class NetMessageId : uint16
     EntityDespawn,
     EntityOwnershipChanged,
     ComponentSnapshot,
+    PlayerMoveAck,
     
     ServerRequestsBegin,
     EntityTransformRequest = ServerRequestsBegin,
-    PlayerInputRequest,
+    PlayerMovesRequest,
     // End Server Requests
 
     Reserved_GameStart = 1000

@@ -232,6 +232,34 @@ HYP_EXPORT uint16 GetGameServerPort()
     return s_cvGameServerPort.Get();
 }
 
+// Minimum interval, in seconds, between client->server player move batch flushes.
+HYP_EXPORT float GetClientSendRate()
+{
+    static CVar<float> s_cvClientSendRate("Net.ClientSendRate", 30.0f);
+    return s_cvClientSendRate.Get();
+}
+
+// How far in the past (seconds) remote entities are rendered, to smooth over jitter.
+HYP_EXPORT float GetInterpolationDelay()
+{
+    static CVar<float> s_cvInterpolationDelay("Net.InterpolationDelay", 0.1f);
+    return s_cvInterpolationDelay.Get();
+}
+
+// Position deviation (world units) above which the server sends a movement correction.
+HYP_EXPORT float GetCorrectionThreshold()
+{
+    static CVar<float> s_cvCorrectionThreshold("Net.CorrectionThreshold", 0.1f);
+    return s_cvCorrectionThreshold.Get();
+}
+
+// Seconds over which a prediction error is smoothed out visually after reconciliation.
+HYP_EXPORT float GetCorrectionSmoothingTime()
+{
+    static CVar<float> s_cvCorrectionSmoothingTime("Net.CorrectionSmoothingTime", 0.1f);
+    return s_cvCorrectionSmoothingTime.Get();
+}
+
 HYP_EXPORT const FilePath& GetConfigDirectory()
 {
 #ifndef HYP_SHIPPING

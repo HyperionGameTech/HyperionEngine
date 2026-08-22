@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -13,10 +13,24 @@
 
 #include <Input/InputHandler.hpp>
 
+#include <Framework/Net/PlayerMove.hpp>
+
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/Map.hpp>
+
 namespace Hyperion {
 
+class Entity;
+
+/// Applies a single player move to a character controller, stepping the underlying physics
+/// character explicitly by move.deltaTime. This is the single movement code path, executed
+/// identically by the server (authoritative simulation), and by the client for its locally
+/// controlled player (client-side prediction + reconciliation replay).
+/// outResultTranslation receives the resulting entity translation.
+void ApplyCharacterMove(Entity* entity, CharacterControllerComponent& component, const PlayerMove& move, Vec3f& outResultTranslation);
+
 HYP_CLASS()
-class ENGINE_API CharacterControllerInputHandler final : public InputHandlerBase
+class CharacterControllerInputHandler final : public InputHandlerBase
 {
     HYP_OBJECT_BODY(CharacterControllerInputHandler);
 
@@ -48,21 +62,9 @@ public:
         return m_movementInput;
     }
 
-    /// Server only!
-    HYP_FORCE_INLINE void SetMovementInput(const Vec2f& movementInput)
-    {
-        m_movementInput = movementInput;
-    }
-
     HYP_FORCE_INLINE bool IsJumpPressed() const
     {
         return m_isJumpRequested;
-    }
-
-    /// Server only!
-    HYP_FORCE_INLINE void SetIsJumpRequested(bool isJumpRequested)
-    {
-        m_isJumpRequested = isJumpRequested;
     }
 
     bool OnKeyDown(const KeyboardEvent& evt) override;
@@ -80,6 +82,26 @@ private:
 
     Vec2f m_movementInput;
     bool m_isJumpRequested;
+};
+
+/// Client-side prediction bookkeeping for one locally controlled player entity.
+struct ClientPredictionState
+{
+    struct BufferedMove
+    {
+        PlayerMove move;
+        Vec3f resultTranslation; // predicted entity translation after applying this move
+    };
+
+    static constexpr uint32 MaxBufferedMoves = 128;
+
+    Array<BufferedMove, SceneAllocator> unacknowledgedMoves;
+    uint32 nextMoveId = 1;
+    uint32 lastAckedMoveId = 0;
+    uint32 lastSentMoveId = 0;
+    Vec3f smoothingOffset = Vec3f(0.0f);
+    float smoothingSecondsRemaining = 0.0f;
+    float secondsSinceLastSend = 0.0f;
 };
 
 HYP_CLASS(NoScriptBindings)
@@ -100,6 +122,12 @@ public:
     bool RequiresSimThread() const override { return true; }
     bool AllowParallelExecution() const override { return false; }
 
+    /// Per-entity client prediction state (creates the entry if absent).
+    ClientPredictionState& GetPredictionState(Entity* entity)
+    {
+        return m_predictionStates[entity];
+    }
+
 private:
     SystemComponentDescriptors GetComponentDescriptors() const override
     {
@@ -109,6 +137,8 @@ private:
             ComponentDescriptor<PlayerComponent, ComponentAccess::READ, false> {}
         };
     }
+
+    Map<Entity*, ClientPredictionState, SceneAllocator> m_predictionStates;
 };
 
 } // namespace Hyperion

@@ -89,12 +89,12 @@ NetServer::NetServer()
 {
     m_dispatcher.RegisterHandler(NetMessageId::ConnectRequest, GetNoOpHandler());
 
-    // Echo
+    // Echo (keep-alive carries the client's ping timestamp, which we send back untouched)
     m_dispatcher.RegisterHandler(NetMessageId::KeepAlive,
-        [this](const NetMessageContext& context, ConstByteView)
+        [this](const NetMessageContext& context, ConstByteView payload)
         {
             SendMessageTo(context.connectionId, NetMessageId::KeepAlive,
-                NetChannelMode::UnreliableOrdered, NetStreamKey(0), ConstByteView());
+                NetChannelMode::UnreliableOrdered, NetStreamKey(0), payload);
         });
 }
 

@@ -6,6 +6,7 @@
 #include <Net/NetClient.hpp>
 
 #include <Core/IO/ByteReader.hpp>
+#include <Core/IO/ByteWriter.hpp>
 
 #include <cstdio>
 
@@ -18,6 +19,7 @@ static constexpr TimeDiff ConnectTimeout = TimeDiff(10000);
 
 NetClient::NetClient()
     : m_connectionId(Invalid<NetConnectionId>),
+      m_rttMilliseconds(0),
       m_reliableChannel(NetChannelMode::ReliableOrdered),
       m_unreliableChannel(NetChannelMode::UnreliableOrdered)
 {
@@ -42,8 +44,26 @@ NetClient::NetClient()
             }
         });
 
-    // Handle echo
-    m_dispatcher.RegisterHandler(NetMessageId::KeepAlive, [](const NetMessageContext&, ConstByteView) {});
+    // Keep-alive doubles as a ping: the server echoes our send timestamp back to us,
+    // letting us measure round-trip time.
+    m_dispatcher.RegisterHandler(NetMessageId::KeepAlive,
+        [this](const NetMessageContext&, ConstByteView payload)
+        {
+            if (payload.Size() >= sizeof(uint64))
+            {
+                uint64 pingSendTimeMs = 0;
+
+                MemoryByteReader reader { payload };
+                reader.Read(&pingSendTimeMs, sizeof(uint64));
+
+                const int64 rttMs = int64(Time::Now().ToMilliseconds()) - int64(pingSendTimeMs);
+
+                if (rttMs >= 0)
+                {
+                    m_rttMilliseconds.Set(rttMs, MemoryOrder::RELEASE);
+                }
+            }
+        });
 }
 
 NetClient::~NetClient()
@@ -120,10 +140,16 @@ void NetClient::Update()
     if (state == NetClientConnectionState::Connected
         && Time::Now() - m_lastKeepAliveTime >= KeepAliveInterval)
     {
+        NetBuffer pingPayload;
+        MemoryByteWriter<NetAllocator, 1> pingWriter(&pingPayload);
+
+        const Time pingSendTime = Time::Now();
+        pingWriter.Write(pingSendTime.ToMilliseconds());
+
         m_unreliableChannel.Send(
             m_socket,
             m_serverAddress,
-            NetMessage { NetMessageId::KeepAlive, NetStreamKey(0), ConstByteView() });
+            NetMessage { NetMessageId::KeepAlive, NetStreamKey(0), pingPayload.ToByteView() });
 
         m_lastKeepAliveTime = Time::Now();
     }

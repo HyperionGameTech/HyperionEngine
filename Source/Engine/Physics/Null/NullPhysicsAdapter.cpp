@@ -68,6 +68,14 @@ void NullPhysicsAdapter::ApplyCharacterJump(const SharedPtr<void>& physicsHandle
 {
 }
 
+void NullPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsHandle, float deltaTime)
+{
+}
+
+void NullPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation)
+{
+}
+
 void NullPhysicsAdapter::GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround)
 {
 }

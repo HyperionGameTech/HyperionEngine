@@ -78,6 +78,13 @@ public:
         return m_lastError;
     }
 
+    /// Round-trip time to the server, in milliseconds, measured via keep-alive ping/pong.
+    /// Returns 0 until the first pong has been received.
+    HYP_FORCE_INLINE int64 GetRttMilliseconds() const
+    {
+        return m_rttMilliseconds.Get(MemoryOrder::ACQUIRE);
+    }
+
     Result Connect(const NetAddress& serverAddress);
     void Disconnect();
 
@@ -101,6 +108,8 @@ private:
     NetChannel m_reliableChannel;
     NetChannel m_unreliableChannel;
     NetMessageDispatcher m_dispatcher;
+
+    AtomicVar<int64> m_rttMilliseconds;
 
     mutable Mutex m_lastErrorMutex;
     Result m_lastError;
