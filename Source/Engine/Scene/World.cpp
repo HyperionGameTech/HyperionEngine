@@ -20,6 +20,8 @@
 #include <Scene/Systems/AudioSystem.hpp>
 #include <Scene/Systems/PhysicsSystem.hpp>
 #include <Scene/Systems/CameraSystem.hpp>
+#include <Scene/Systems/CharacterControllerSystem.hpp>
+#include <Scene/Systems/PlayerSystem.hpp>
 #include <Scene/Systems/ScriptSystem.hpp>
 #include <Scene/Systems/MeshSystem.hpp>
 #include <Scene/Systems/ReplicationSystem.hpp>
@@ -247,6 +249,15 @@ void World::Initialize()
 
     if (!HasSystem<CameraSystem>())
         AddSystem(MakeHandle<CameraSystem>());
+
+    if (!(m_worldFlags & WorldFlags::Editor))
+    {
+        if (!HasSystem<CharacterControllerSystem>())
+            AddSystem(MakeHandle<CharacterControllerSystem>());
+
+        if (!HasSystem<PlayerSystem>())
+            AddSystem(MakeHandle<PlayerSystem>());
+    }
 
     if (m_worldFlags & WorldFlags::IsReplicated)
     {

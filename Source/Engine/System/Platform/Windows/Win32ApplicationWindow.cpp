@@ -242,6 +242,9 @@ bool HandleWindowEvent(
     {
     case WM_INPUT:
         window->ProcessRawInput((void*)lParam);
+
+        DefWindowProcW(hWnd, msg, wParam, lParam);
+
         return true;
     case WM_KEYDOWN:
         event = Event(EventType::KEYDOWN, window, platformEvent);

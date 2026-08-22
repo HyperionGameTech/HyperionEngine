@@ -21,12 +21,9 @@ struct ClockTimer
     using TickUnitHighPrec = double;
     using TimePoint = Clock::time_point;
 
-    static constexpr TickUnit MaxDeltaUnclamped = TickUnit(0);
-
     TimePoint lastTimePoint = Now();
     TickUnit delta {};
     TickUnit targetInterval {};
-    TickUnit maxDelta = MaxDeltaUnclamped;
 
     ClockTimer()
         : targetInterval(0)
@@ -48,12 +45,6 @@ struct ClockTimer
         const TimePoint current = Now();
 
         delta = Interval(current);
-
-        if (maxDelta != MaxDeltaUnclamped && delta > maxDelta)
-        {
-            delta = maxDelta;
-        }
-
         lastTimePoint = current;
     }
 
