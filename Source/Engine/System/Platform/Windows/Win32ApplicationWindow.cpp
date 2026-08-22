@@ -18,6 +18,9 @@
 #include <Input/InputManager.hpp>
 #include <Input/Mouse.hpp>
 
+#include <Core/Logging/LogChannels.hpp>
+#include <Core/Logging/Logger.hpp>
+
 #include <Framework/EngineGlobals.hpp>
 
 #include <Rendering/Swapchain.hpp>
@@ -252,6 +255,11 @@ bool HandleWindowEvent(
         return true;
     case WM_MOUSEMOVE:
     {
+        if (window->GetInputManager()->IsMouseLocked())
+        {
+            return true;
+        }
+
         event = Event(EventType::MOUSEMOTION, window, platformEvent);
 
         POINT pt;
@@ -462,70 +470,14 @@ void Win32ApplicationWindow::ProcessRawInput(void* rawInput)
 
     if (raw->header.dwType == RIM_TYPEMOUSE)
     {
-        event = Event(EventType::MOUSEMOTION, this, platformEvent);
-
-        int x = raw->data.mouse.lLastX;
-        int y = raw->data.mouse.lLastY;
-
-        if (raw->data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE)
+        if (!(raw->data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE) && m_inputManager->IsMouseLocked())
         {
-            event.GetEventData().Set(MotionData { Vec2f(x, y), Vec2f::Zero(), /* isAbsolute */ true });
+            int x = raw->data.mouse.lLastX;
+            int y = raw->data.mouse.lLastY;
 
-            m_inputManager->ProcessEvent(std::move(event));
-        }
-        else
-        {
+            event = Event(EventType::MOUSEMOTION, this, platformEvent);
             event.GetEventData().Set(MotionData { Vec2f::Zero(), Vec2f(x, y), /* isAbsolute */ false });
 
-            m_inputManager->ProcessEvent(std::move(event));
-        }
-
-        if (raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)
-        {
-            event = Event(EventType::MOUSEBUTTON_DOWN, this, platformEvent);
-            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
-            m_inputManager->ProcessEvent(std::move(event));
-        }
-
-        if (raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP)
-        {
-            event = Event(EventType::MOUSEBUTTON_UP, this, platformEvent);
-            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
-            m_inputManager->ProcessEvent(std::move(event));
-        }
-
-        if (raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN)
-        {
-            event = Event(EventType::MOUSEBUTTON_DOWN, this, platformEvent);
-            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
-            m_inputManager->ProcessEvent(std::move(event));
-        }
-
-        if (raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP)
-        {
-            event = Event(EventType::MOUSEBUTTON_UP, this, platformEvent);
-            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
-            m_inputManager->ProcessEvent(std::move(event));
-        }
-
-        if (raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN)
-        {
-            event = Event(EventType::MOUSEBUTTON_DOWN, this, platformEvent);
-            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
-            m_inputManager->ProcessEvent(std::move(event));
-        }
-
-        if (raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP)
-        {
-            event = Event(EventType::MOUSEBUTTON_UP, this, platformEvent);
-            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
-            m_inputManager->ProcessEvent(std::move(event));
-        }
-
-        if (raw->data.mouse.usButtonFlags & RI_MOUSE_WHEEL)
-        {
-            event = Event(EventType::MOUSESCROLL, this, platformEvent);
-            event.GetEventData().Set(Vec2i(0, (short)raw->data.mouse.usButtonData));
             m_inputManager->ProcessEvent(std::move(event));
         }
     }
@@ -622,6 +574,17 @@ void Win32ApplicationWindow::Initialize(WindowOptions windowOptions)
     }
 
     UpdateWindow(m_hwnd);
+
+    RAWINPUTDEVICE rawInputDevice {};
+    rawInputDevice.usUsagePage = HID_USAGE_PAGE_GENERIC;
+    rawInputDevice.usUsage = HID_USAGE_GENERIC_MOUSE;
+    rawInputDevice.dwFlags = 0;
+    rawInputDevice.hwndTarget = m_hwnd;
+
+    if (!RegisterRawInputDevices(&rawInputDevice, 1, sizeof(rawInputDevice)))
+    {
+        HYP_LOG(Core, Warning, "Failed to register raw input device for mouse! Win32 Error: {}", GetLastError());
+    }
 
     m_isOpen = true;
 

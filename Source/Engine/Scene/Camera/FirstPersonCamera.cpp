@@ -17,8 +17,8 @@
 
 namespace Hyperion {
 
-static constexpr float mouseSensitivity = 7000.0f;
-static constexpr float mouseBlending = 0.35f;
+static constexpr float mouseSensitivity = 120.0f;
+static constexpr float mouseBlending = 0.0f;
 static constexpr float movementSpeed = 1.0f;
 static constexpr float movementSpeed2 = movementSpeed * 2.0f;
 static constexpr float movementBlending = 0.01f;
@@ -83,10 +83,7 @@ bool FirstPersonCameraInputHandler::OnMouseMove(const MouseEvent& evt)
         return false;
     }
 
-    const float deltaTime = g_gameInstance->GetGameState().deltaTime;
-
-    Vec2f mouseDelta = (evt.relativePos - evt.relativePrevPos) * mouseSensitivity;
-    mouseDelta *= deltaTime;
+    const Vec2f mouseDelta = (evt.relativePos - evt.relativePrevPos) * mouseSensitivity;
 
     const Vec3f dirCrossY = camera->GetSideVector();
 

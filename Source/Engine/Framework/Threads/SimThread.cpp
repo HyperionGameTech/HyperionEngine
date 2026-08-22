@@ -95,6 +95,7 @@ SimThread::SimThread()
     : Thread(g_simThread, ThreadPriorityValue::HIGHEST),
       m_gameInstance(nullptr)
 {
+    m_counter.maxDelta = ClockTimer::TickUnit(1.0f / 30.0f);
 }
 
 SimThread::~SimThread() = default;
