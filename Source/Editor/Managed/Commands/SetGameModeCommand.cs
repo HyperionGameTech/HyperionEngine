@@ -140,8 +140,11 @@ namespace Hyperion.Editor.Commands
 
                                     foreach (Scene? scene in simulationWorld.Scenes)
                                     {
-                                        deferredDisposeObjects.Add(scene!);
                                         addNodeRecur(scene!.RootNode!);
+
+                                        // ! Must be before root node !
+                                        // Or else the emgr gets all shitfucked.
+                                        deferredDisposeObjects.Add(scene!);
                                     }
 
                                     deferredDisposeObjects.Add(simulationWorld);
@@ -159,6 +162,9 @@ namespace Hyperion.Editor.Commands
                                 }
 
                                 deferredDisposeObjects.Clear();
+
+                                // To force collection of dependent objects eg Mesh,Texture,Material etc.
+                                GC.Collect(0, GCCollectionMode.Forced, blocking: true, compacting: true);
                             }
                             catch (Exception)
                             {

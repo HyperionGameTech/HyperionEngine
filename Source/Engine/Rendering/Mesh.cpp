@@ -498,21 +498,27 @@ void Mesh::UnpageBlobData()
 {
     for (uint8 lodIndex = 0; lodIndex < MaxMeshLods; lodIndex++)
     {
-        if (m_lodData[lodIndex].vertexData.readOnly)
+        if (!m_lodData[lodIndex].vertexData.readOnly)
         {
-            m_lodData[lodIndex].vertexData.raw = nullptr;
+            FreeBlobData(m_lodData[lodIndex].vertexData);
         }
 
-        if (m_lodData[lodIndex].indexData.readOnly)
+        m_lodData[lodIndex].vertexData.raw = nullptr;
+
+        if (!m_lodData[lodIndex].indexData.readOnly)
         {
-            m_lodData[lodIndex].indexData.raw = nullptr;
+            FreeBlobData(m_lodData[lodIndex].indexData);
         }
+        
+        m_lodData[lodIndex].indexData.raw = nullptr;
     }
 
-    if (m_bvhData.readOnly)
+    if (!m_bvhData.readOnly)
     {
-        m_bvhData.raw = nullptr;
+        FreeBlobData(m_bvhData);
     }
+    
+    m_bvhData.raw = nullptr;
 }
 
 void Mesh::UploadGpuData()

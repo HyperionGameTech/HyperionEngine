@@ -108,10 +108,12 @@ void ScriptAsset::PageBlobData()
 
 void ScriptAsset::UnpageBlobData()
 {
-    if (m_data.readOnly)
+    if (!m_data.readOnly)
     {
-        m_data.raw = nullptr;
+        FreeBlobData(m_data);
     }
+
+    m_data.raw = nullptr;
 }
 
 } // namespace Hyperion

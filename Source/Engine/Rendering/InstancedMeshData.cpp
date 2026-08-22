@@ -58,7 +58,6 @@ void InstancedMeshData::PageBlobData()
 
             if (registry.IsValid())
             {
-                const Name blobKey = ref.key;
                 const uint64 expectedSize = ref.size;
 
                 FileByteReader stream { registry->GetRootPath() / AssetBuckets::InstancedMeshData.GetName() / (String(*GetName()) + "." + BufferNames[i] + ".raw.blob") };
@@ -75,7 +74,6 @@ void InstancedMeshData::PageBlobData()
                     ByteBuffer buffer = stream.Read(stream.Max());
 
                     AllocateBlobData(ref, buffer.Data(), buffer.Size(), 1);
-                    ref.key = blobKey;
 
                     continue;
                 }
@@ -92,10 +90,12 @@ void InstancedMeshData::UnpageBlobData()
 {
     for (BlobDataReference& ref : buffers)
     {
-        if (ref.readOnly)
+        if (!ref.readOnly)
         {
-            ref.raw = nullptr;
+            FreeBlobData(ref);
         }
+
+        ref.raw = nullptr;
     }
 }
 

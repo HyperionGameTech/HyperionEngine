@@ -135,10 +135,12 @@ void Shader::UnpageBlobData()
 {
     for (BlobDataReference& ref : shaderBlobs)
     {
-        if (ref.readOnly)
+        if (!ref.readOnly)
         {
-            ref.raw = nullptr;
+            FreeBlobData(ref);
         }
+        
+        ref.raw = nullptr;
     }
 }
 

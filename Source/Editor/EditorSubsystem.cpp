@@ -3932,6 +3932,18 @@ bool EditorSubsystem::StopSimulation()
         Game* gameInstance = m_currentProject->GetGame();
         Assert(gameInstance != nullptr);
 
+        // Discard queued DebugDrawer commands before the World's EnvProbes are torn down -
+        // they hold raw EnvProbe pointers the render thread dereferences a frame or two later.
+        AssertOnThread(g_simThread);
+        DebugDrawer::GetInstance().DiscardPendingCommands();
+
+        GetThreadById(g_renderThread)->GetScheduler().Enqueue(
+            []()
+            {
+                DebugDrawer::GetInstance().ClearCommands();
+            },
+            TaskEnqueueFlags::FIRE_AND_FORGET);
+
         gameInstance->StopSimulating();
 
         Assert(m_preSimulationProject.IsValid());

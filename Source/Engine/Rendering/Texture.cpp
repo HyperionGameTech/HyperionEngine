@@ -541,10 +541,12 @@ void Texture::PageBlobData()
 
 void Texture::UnpageBlobData()
 {
-    if (m_imageData.readOnly)
+    if (!m_imageData.readOnly)
     {
-        m_imageData.raw = nullptr;
+        FreeBlobData(m_imageData);
     }
+
+    m_imageData.raw = nullptr;
 }
 
 void Texture::GenerateMipmaps(TextureDesc& desc, ByteBuffer& imageData)

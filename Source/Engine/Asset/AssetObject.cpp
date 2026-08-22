@@ -415,7 +415,10 @@ void AssetObject::AllocateBlobData(BlobDataReference& reference, const void* inD
 {
     Assert(reference.raw == nullptr || reference.readOnly);
 
+    const Name blobKey = reference.key;
+
     reference = BlobDataReference {};
+    reference.key = blobKey;
 
     if (count != 0)
     {
@@ -474,13 +477,7 @@ void AssetObject::SetBlobDataResident(bool resident, BlobDataReference& referenc
         {
             Assert(reference.raw != nullptr);
 
-            // AllocateBlobData() resets the reference, so carry the key across the copy -- without it
-            // the blob can't be found again, and SetBlobDataResident(false) won't release it either.
-            const Name blobKey = reference.key;
-
             AllocateBlobData(reference, reference.raw, reference.size, 16);
-
-            reference.key = blobKey;
         }
     }
     else

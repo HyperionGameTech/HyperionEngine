@@ -290,9 +290,16 @@ public:
 
     DebugDrawCommandList& CreateCommandList();
 
+    /*! \brief Discard the sim thread's not-yet-consumed command slot, destructing commands in place.
+     *  Call from the sim thread before invalidating references (e.g. EnvProbe pointers) they hold. */
+    void DiscardPendingCommands();
+
+    /*! \brief Discard the render thread's command slot instead of drawing it. Call from the render
+     *  thread (e.g. via a posted task) for the same reason as DiscardPendingCommands(). */
+    void ClearCommands();
+
 private:
     GraphicsPipelineRef FetchGraphicsPipeline(RenderableAttributeSet attributes, uint32 layerIndex, PassData* passData);
-    void ClearCommands();
 
     FixedArray<Array<DebugDrawCommandHeader>, BufferCount> m_headers;
     FixedArray<ByteBuffer, BufferCount> m_buffers;

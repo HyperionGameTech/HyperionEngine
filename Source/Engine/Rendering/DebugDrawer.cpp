@@ -1191,6 +1191,35 @@ void DebugDrawer::ClearCommands()
     m_commandLists[idx].Clear();
 }
 
+void DebugDrawer::DiscardPendingCommands()
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    const uint32 idx = m_pendingIndex;
+
+    for (DebugDrawCommandHeader& header : m_headers[idx])
+    {
+        if (header.destructFn)
+        {
+            header.destructFn(reinterpret_cast<void*>(m_buffers[idx].Data() + header.offset));
+        }
+    }
+
+    m_headers[idx].Clear();
+    m_buffers[idx].SetSize(0);
+    m_bufferOffsets[idx] = 0;
+
+    for (DebugDrawCommandList& it : m_commandLists[idx])
+    {
+        it.m_headers.Clear();
+        it.m_buffer.Clear();
+        it.m_bufferOffset = 0;
+    }
+
+    m_commandLists[idx].Clear();
+}
+
 DebugDrawCommandList& DebugDrawer::CreateCommandList()
 {
     HYP_SCOPE;

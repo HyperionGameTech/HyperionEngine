@@ -88,10 +88,12 @@ void AnimationTrack::PageBlobData()
 
 void AnimationTrack::UnpageBlobData()
 {
-    if (m_keyframeData.readOnly)
+    if (!m_keyframeData.readOnly)
     {
-        m_keyframeData.raw = nullptr;
+        FreeBlobData(m_keyframeData);
     }
+
+    m_keyframeData.raw = nullptr;
 }
 
 float AnimationTrack::GetLength() const
