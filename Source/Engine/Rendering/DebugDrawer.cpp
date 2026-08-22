@@ -52,6 +52,11 @@ namespace Hyperion {
 
 extern EngineStatCounter<uint32> g_statDebugDraws;
 
+#ifndef HYP_SHIPPING
+static Pool s_debugDrawerPool { 16 * 1024 * 1024, PF_FALLBACK | PF_THREAD_SAFE };
+ENGINE_API Pool* g_debugDrawerPool = &s_debugDrawerPool;
+#endif // !HYP_SHIPPING
+
 static CVar<bool> s_cvEnableDebugDrawer("Rendering.EnableDebugDrawer", true);
 
 static StaticShaderPropertyId s_propImmediateMode { ShaderProperty(NAME("IMMEDIATE_MODE")) };
@@ -85,7 +90,7 @@ struct DebugDrawCommand
 
 struct DebugDrawCommand_Probe : DebugDrawCommand
 {
-    const EnvProbe* envProbe = nullptr;
+    Handle<EnvProbe> envProbe;
 };
 
 #pragma endregion DebugDrawCommand_Probe
@@ -235,7 +240,7 @@ void AmbientProbeDebugDrawShape::operator()(const Vec3f& position, float radius,
     ptr->shape = this;
     ptr->transformMatrix = Transform(position, radius, Quat4f::Identity()).GetMatrix();
     ptr->color = Color::White();
-    ptr->envProbe = &envProbe;
+    ptr->envProbe = MakeStrongRef(&envProbe);
 
     header.destructFn = &Memory::Destruct<DebugDrawCommand_Probe>;
     header.moveFn = [](void* dst, void* src)
@@ -284,7 +289,7 @@ void ReflectionProbeDebugDrawShape::operator()(const Vec3f& position, float radi
     ptr->shape = this;
     ptr->transformMatrix = Transform(position, radius, Quat4f::Identity()).GetMatrix();
     ptr->color = Color::White();
-    ptr->envProbe = &envProbe;
+    ptr->envProbe = MakeStrongRef(&envProbe);
 
     header.destructFn = &Memory::Destruct<DebugDrawCommand_Probe>;
     header.moveFn = [](void* dst, void* src)
@@ -730,13 +735,13 @@ void TriangleDebugDrawShape::operator()(const Vec3f& v0, const Vec3f& v1, const 
 
 #pragma region DebugDrawer
 
-static FixedArray<ByteBuffer, DebugDrawer::BufferCount> CreateDebugDrawBuffers()
+static FixedArray<DebugDrawBuffer, DebugDrawer::BufferCount> CreateDebugDrawBuffers()
 {
-    ValueStorage<FixedArray<ByteBuffer, DebugDrawer::BufferCount>> buffersStorage;
+    ValueStorage<FixedArray<DebugDrawBuffer, DebugDrawer::BufferCount>> buffersStorage;
 
     for (uint32 i = 0; i < DebugDrawer::BufferCount; i++)
     {
-        new (buffersStorage.GetPointer()->Data() + i) ByteBuffer;
+        new (buffersStorage.GetPointer()->Data() + i) DebugDrawBuffer;
     }
 
     return std::move(buffersStorage).Get();
@@ -775,7 +780,7 @@ void DebugDrawer::Shutdown()
         m_commandLists[i].Clear();
     }
 
-    for (Array<ImmediateDrawShaderData, RenderAllocator>& data : m_cachedPartitionedShaderData)
+    for (Array<ImmediateDrawShaderData, DebugDrawAllocator>& data : m_cachedPartitionedShaderData)
     {
         data.Clear();
     }
@@ -789,8 +794,8 @@ void DebugDrawer::Shutdown()
 
         struct DebugDrawBufferDeleterPayload
         {
-            Array<DebugDrawCommandHeader> headers;
-            ByteBuffer buffer;
+            Array<DebugDrawCommandHeader, DebugDrawAllocator> headers;
+            DebugDrawBuffer buffer;
         };
 
         struct DebugDrawBufferDeleter
@@ -862,7 +867,7 @@ void DebugDrawer::Update()
 
             if (buffer.Size() < newAlignedOffset + header.size)
             {
-                ByteBuffer newBuffer;
+                DebugDrawBuffer newBuffer;
                 newBuffer.SetSize(MathUtil::Ceil<double, size_t>((newAlignedOffset + header.size) * 1.5));
 
                 // have to move all current commands since the buffer will realloc
@@ -907,8 +912,8 @@ void DebugDrawer::Update()
             m_headers[idx].PushBack(header);
         }
 
-        it.m_headers.Clear();
-        it.m_buffer.Clear();
+        it.m_headers.Resize(0);
+        it.m_buffer.SetSize(0);
         it.m_bufferOffset = 0;
     }
 
@@ -954,7 +959,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
     for (auto& it : partitionedShaderData)
     {
         // don't want to keep filling up buffers
-        it.Clear();
+        it.Resize(0);
     }
 
     // @NOTE: Don't use of list-dependent stuff on any of the shapes in currShapes.
@@ -1182,7 +1187,7 @@ void DebugDrawer::ClearCommands()
         }
     }
 
-    m_headers[idx].Clear();
+    m_headers[idx].Resize(0);
     m_buffers[idx].SetSize(0);
     m_buffers[idx].SetCapacity(maxHistorySize);
     m_bufferOffsets[idx] = 0;
@@ -1206,14 +1211,14 @@ void DebugDrawer::DiscardPendingCommands()
         }
     }
 
-    m_headers[idx].Clear();
+    m_headers[idx].Resize(0);
     m_buffers[idx].SetSize(0);
     m_bufferOffsets[idx] = 0;
 
     for (DebugDrawCommandList& it : m_commandLists[idx])
     {
-        it.m_headers.Clear();
-        it.m_buffer.Clear();
+        it.m_headers.Resize(0);
+        it.m_buffer.SetSize(0);
         it.m_bufferOffset = 0;
     }
 
@@ -1258,7 +1263,7 @@ DebugDrawCommandList::~DebugDrawCommandList()
     }
 
     m_headers.Clear();
-    m_buffer.SetSize(0);
+    m_buffer.Clear();
     m_bufferOffset = 0;
 }
 
@@ -1273,7 +1278,7 @@ void* DebugDrawCommandList::Alloc(uint32 size, uint32 alignment, DebugDrawComman
 
     if (m_buffer.Size() < alignedOffset + size)
     {
-        ByteBuffer newBuffer;
+        DebugDrawBuffer newBuffer;
         newBuffer.SetSize(MathUtil::Ceil<double, size_t>((alignedOffset + size) * 1.5));
 
         // move after realloc

@@ -5306,6 +5306,14 @@ void EditorSubsystem::InitializeProjectWorld(const Handle<EditorProject>& projec
         }
 
         project->SetEditWorld(world);
+
+        // This world was kept alive across the simulation transition, but Game::Shutdown() evicted every
+        // asset from the registry cache so we need to re-register all nested asset objects
+        if (world.IsValid() && !world->IsTransient())
+        {
+            assetRegistry->Initialize();
+            assetRegistry->PutAssetsDeep(world);
+        }
     }
 
     Assert(world.IsValid());

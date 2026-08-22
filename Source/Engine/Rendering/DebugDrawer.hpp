@@ -12,6 +12,8 @@
 #include <Core/Threading/AtomicVar.hpp>
 #include <Core/Threading/Mutex.hpp>
 
+#include <Core/Memory/Allocator/Allocator.hpp>
+
 #include <Core/Config/Config.hpp>
 
 #include <Core/Math/Transform.hpp>
@@ -43,7 +45,12 @@ struct ImmediateDrawShaderData;
 
 static constexpr int MaxDebugDrawShapeTypes = 10;
 
-ENGINE_API extern uint32 GetRingIndex();
+#ifndef HYP_SHIPPING
+ENGINE_API extern Pool* g_debugDrawerPool;
+using DebugDrawAllocator = AllocatorInstance<Pool, &g_debugDrawerPool>;
+#else // HYP_SHIPPING
+using DebugDrawAllocator = DynamicAllocator;
+#endif // !HYP_SHIPPING
 
 enum class DebugDrawType : int
 {
@@ -215,6 +222,8 @@ private:
     virtual Mesh* GetMesh_Internal() const override;
 };
 
+using DebugDrawBuffer = memory::ByteBuffer<DebugDrawAllocator>;
+
 class DebugDrawCommandList final
 {
 public:
@@ -248,8 +257,8 @@ public:
 
 private:
     DebugDrawer* m_debugDrawer;
-    Array<DebugDrawCommandHeader> m_headers;
-    ByteBuffer m_buffer;
+    Array<DebugDrawCommandHeader, DebugDrawAllocator> m_headers;
+    DebugDrawBuffer m_buffer;
     uint32 m_bufferOffset;
 };
 
@@ -258,6 +267,8 @@ class DebugDrawer
     friend class DebugDrawCommandList;
 
 public:
+    using Buffer = DebugDrawBuffer;
+
     static constexpr uint32 BufferCount = 3;
 
     static DebugDrawer& GetInstance();
@@ -299,10 +310,8 @@ public:
     void ClearCommands();
 
 private:
-    GraphicsPipelineRef FetchGraphicsPipeline(RenderableAttributeSet attributes, uint32 layerIndex, PassData* passData);
-
-    FixedArray<Array<DebugDrawCommandHeader>, BufferCount> m_headers;
-    FixedArray<ByteBuffer, BufferCount> m_buffers;
+    FixedArray<Array<DebugDrawCommandHeader, DebugDrawAllocator>, BufferCount> m_headers;
+    FixedArray<Buffer, BufferCount> m_buffers;
     FixedArray<uint32, BufferCount> m_bufferOffsets;
 
     uint32 m_pendingIndex = 0;
@@ -318,9 +327,9 @@ private:
     //    - Update() swaps pending/ready
     //    - the render thread then swaps ready/render inside the sim/render exclusive window, so the sim can keep swapping
     //      its own two slots while a frame is still being drawn from m_renderIndex.
-    FixedArray<List<DebugDrawCommandList>, BufferCount> m_commandLists;
+    FixedArray<List<DebugDrawCommandList, DebugDrawAllocator>, BufferCount> m_commandLists;
 
-    typedef Array<ImmediateDrawShaderData, RenderAllocator> CachedPartitionedShaderData[MaxDebugDrawShapeTypes];
+    typedef Array<ImmediateDrawShaderData, DebugDrawAllocator> CachedPartitionedShaderData[MaxDebugDrawShapeTypes];
 
     CachedPartitionedShaderData m_cachedPartitionedShaderData;
 };

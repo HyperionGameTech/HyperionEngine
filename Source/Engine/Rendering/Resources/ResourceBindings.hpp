@@ -392,7 +392,7 @@ static void SyncResources(
         if constexpr (CONSTEXPR_TYPE_ID(ProxyType) != CONSTEXPR_TYPE_ID(NullProxy))
         {
             const ProxyType* pSrcProxy = src.GetProxy(resourceId);
-            Assert(pSrcProxy != nullptr);
+            AssertDebug(pSrcProxy != nullptr);
 
             if (HYP_UNLIKELY(!pSrcProxy))
             {

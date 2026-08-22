@@ -54,7 +54,6 @@ void UpdateInstancedMeshData(Entity& entity, MeshComponent& meshComponent)
     if (!meshComponent.instanceData.IsValid())
     {
         Handle<InstancedMeshData> imd = MakeHandle<InstancedMeshData>(NAME_FMT("IMD_{}", entity.GetName()));
-
         GetCurrentAssetRegistry()->PutAssetUnique(imd);
 
         meshComponent.instanceData = AssetReference(imd);
