@@ -15,7 +15,7 @@ namespace Hyperion {
 
 UIButton::UIButton()
 {
-    SetBorderRadius(8);
+    SetBorderRadius(5);
     SetBorderFlags(UIObjectBorderFlags::ALL);
     SetPadding({ 10, 5 });
     SetBackgroundColor(Vec4f { 0.25f, 0.25f, 0.25f, 1.0f });
@@ -27,7 +27,7 @@ void UIButton::Init()
 {
     UIObject::Init();
 
-    Handle<UIText> textElement = CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+    Handle<UIText> textElement = CreateUIObject<UIText>(Vec2i { 0, -2 }, UIObjectSize(UIObjectSize::AUTO));
     textElement->SetParentAlignment(UIObjectAlignment::CENTER);
     textElement->SetOriginAlignment(UIObjectAlignment::CENTER);
     textElement->SetText(m_text);

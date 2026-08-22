@@ -30,6 +30,7 @@ UITextbox::UITextbox()
     SetBorderFlags(UIObjectBorderFlags::ALL);
     SetPadding({ 5, 2 });
     SetTextColor(Color::Black());
+    SetTextSize(12.0f);
     SetBackgroundColor(Vec4f::One());
 
     // For now
@@ -151,9 +152,15 @@ UITextbox::UITextbox()
     OnMouseDown
         .Bind(this, [this](const MouseEvent& eventData) -> UIEventHandlerResult
             {
-                if (m_textElement != nullptr)
+                if (m_textElement != nullptr && !ShouldDisplayPlaceholder())
                 {
-                    m_characterIndex = uint32(MathUtil::Max(0, m_textElement->GetClosestCharacterIndex(eventData.relativePos)));
+                    const Vec2f localPosition = eventData.absolutePos - m_textElement->GetAbsolutePosition();
+
+                    m_characterIndex = uint32(MathUtil::Max(0, m_textElement->GetClosestCharacterIndex(localPosition)));
+                }
+                else
+                {
+                    m_characterIndex = 0;
                 }
 
                 return UIEventHandlerResult::STOP_BUBBLING;
@@ -191,7 +198,6 @@ void UITextbox::Init()
     // SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
 
     Handle<UIText> textElement = CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
-    textElement->SetTextSize(12.0f);
     textElement->SetAcceptsFocus(false);
 
     // m_textElement->SetAffectsParentSize(false);

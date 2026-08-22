@@ -516,7 +516,7 @@ void DefaultGame::ShowConnectScreen()
     Handle<UIPanel> connectPanel = backgroundPanel->CreateUIObject<UIPanel>(Vec2i::Zero(), UIObjectSize { { 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT } });
     backgroundPanel->AddChildUIObject(connectPanel);
 
-    Handle<UIText> statusText = connectPanel->CreateUIObject<UIText>(Vec2i { 0, -40 }, UIObjectSize { { 0, UIObjectSize::AUTO }, { 80, UIObjectSize::PIXEL } });
+    Handle<UIText> statusText = connectPanel->CreateUIObject<UIText>(Vec2i { 0, -20 }, UIObjectSize { { 0, UIObjectSize::AUTO }, { 80, UIObjectSize::PIXEL } });
     statusText->SetTextSize(24.0f);
     statusText->SetTextColor(Color::White());
     statusText->SetOriginAlignment(UIObjectAlignment::CENTER);
@@ -528,14 +528,15 @@ void DefaultGame::ShowConnectScreen()
     const String cliHostAddressStr = hasCliHost ? String(cliHostAddress) : String::empty;
 
     Handle<UITextbox> hostTextbox = connectPanel->CreateUIObject<UITextbox>(Vec2i { 0, 30 }, UIObjectSize { { 300, UIObjectSize::PIXEL }, { 30, UIObjectSize::PIXEL } });
-    hostTextbox->SetPlaceholder("host[:port]");
+    hostTextbox->SetPlaceholder("Enter host address");
     hostTextbox->SetText(cliHostAddressStr);
-    hostTextbox->SetTextSize(24.0f);
+    hostTextbox->SetTextSize(16);
     hostTextbox->SetOriginAlignment(UIObjectAlignment::CENTER);
     hostTextbox->SetParentAlignment(UIObjectAlignment::CENTER);
     connectPanel->AddChildUIObject(hostTextbox);
 
-    Handle<UIButton> connectButton = connectPanel->CreateUIObject<UIButton>(Vec2i { 0, 140 }, UIObjectSize { { 150, UIObjectSize::PIXEL }, { 40, UIObjectSize::PIXEL } });
+    Handle<UIButton> connectButton = connectPanel->CreateUIObject<UIButton>(Vec2i { 0, 80 }, UIObjectSize { { 150, UIObjectSize::PIXEL }, { 40, UIObjectSize::PIXEL } });
+    connectButton->SetTextSize(16.0f);
     connectButton->SetText("Connect");
     connectButton->SetOriginAlignment(UIObjectAlignment::CENTER);
     connectButton->SetParentAlignment(UIObjectAlignment::CENTER);
@@ -590,6 +591,7 @@ void DefaultGame::ShowConnectScreen()
             {
             case ServerConnectionState::NotStarted:
                 statusText->SetText("Enter host address");
+                hostTextbox->Focus();
                 break;
             case ServerConnectionState::Connecting: // fallthrough
             case ServerConnectionState::Connecting_StartingNextTask:
@@ -607,14 +609,15 @@ void DefaultGame::ShowConnectScreen()
                 break;
             case ServerConnectionState::Failed:
                 statusText->SetText(m_connectionState.lastResult.HasError()
-                        ? (String("Failed to connect.\n\n") + m_connectionState.lastResult.GetError().GetMessage())
-                        : String("Failed to connect."));
+                        ? (String("Failed to connect: ") + m_connectionState.lastResult.GetError().GetMessage())
+                        : String("Failed to connect due to an unknown error"));
 
                 connectButton->SetIsVisible(true);
                 
                 if (hostTextbox.IsValid())
                 {
                     hostTextbox->SetIsVisible(true);
+                    hostTextbox->Focus();
                 }
 
                 break;
