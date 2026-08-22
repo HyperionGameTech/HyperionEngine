@@ -913,7 +913,6 @@ void DebugDrawer::Update()
         }
 
         it.m_headers.Resize(0);
-        it.m_buffer.SetSize(0);
         it.m_bufferOffset = 0;
     }
 
@@ -1174,25 +1173,33 @@ void DebugDrawer::ClearCommands()
         }
     }
 
+    // Real effective usage size
+    const size_t effectiveUsedSize = m_bufferOffsets[idx];
+
     // update buffer capacity based on history so we don't keep memory around longer than we need to.
-    size_t maxHistorySize = 0;
+    size_t maxHistorySize = effectiveUsedSize;
 
     for (int i = int(m_bufferSizeHistory.Size()) - 1; i >= 0; i--)
     {
         maxHistorySize = MathUtil::Max(maxHistorySize, m_bufferSizeHistory[i]);
 
-        if (i > 0)
+        if (i == 0)
+        {
+            m_bufferSizeHistory[i] = effectiveUsedSize;
+        }
+        else
         {
             m_bufferSizeHistory[i] = m_bufferSizeHistory[i - 1];
         }
     }
 
     m_headers[idx].Resize(0);
-    m_buffers[idx].SetSize(0);
+
     m_buffers[idx].SetCapacity(maxHistorySize);
+    m_buffers[idx].SetSize(maxHistorySize);
+
     m_bufferOffsets[idx] = 0;
 
-    m_bufferSizeHistory[0] = m_buffers[idx].Size();
     m_commandLists[idx].Clear();
 }
 
@@ -1212,13 +1219,11 @@ void DebugDrawer::DiscardPendingCommands()
     }
 
     m_headers[idx].Resize(0);
-    m_buffers[idx].SetSize(0);
     m_bufferOffsets[idx] = 0;
 
     for (DebugDrawCommandList& it : m_commandLists[idx])
     {
         it.m_headers.Resize(0);
-        it.m_buffer.SetSize(0);
         it.m_bufferOffset = 0;
     }
 
