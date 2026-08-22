@@ -78,9 +78,7 @@ public:
         return m_lastError;
     }
 
-    /// Round-trip time to the server, in milliseconds, measured via keep-alive ping/pong.
-    /// Returns 0 until the first pong has been received.
-    HYP_FORCE_INLINE int64 GetRttMilliseconds() const
+    HYP_FORCE_INLINE int64 GetRoundTripTime() const
     {
         return m_rttMilliseconds.Get(MemoryOrder::ACQUIRE);
     }

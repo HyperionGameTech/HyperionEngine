@@ -87,9 +87,8 @@ void PhysicsSystem::OnEntityAdded(Entity* entity)
 
     rigidBody->SetTransform(transform);
 
-    // Bodies are added on clients as well as on the server: the physics world is only
-    // ticked with authority, so on clients they act as inert colliders. This gives
-    // client-side predicted character controllers static geometry to collide against.
+    // The physics world is only ticked with authority, on clients they act as colliders.
+    // This gives clients static geometry to collide with
     {
         PhysicsWorldBase* physicsWorld = GetWorld()->GetPhysicsWorld();
         AssertDebug(physicsWorld != nullptr);

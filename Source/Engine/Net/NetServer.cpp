@@ -89,7 +89,7 @@ NetServer::NetServer()
 {
     m_dispatcher.RegisterHandler(NetMessageId::ConnectRequest, GetNoOpHandler());
 
-    // Echo (keep-alive carries the client's ping timestamp, which we send back untouched)
+    // Echo
     m_dispatcher.RegisterHandler(NetMessageId::KeepAlive,
         [this](const NetMessageContext& context, ConstByteView payload)
         {

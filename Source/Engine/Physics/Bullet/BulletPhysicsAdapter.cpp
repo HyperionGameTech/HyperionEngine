@@ -463,11 +463,6 @@ void BulletPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerC
         btBroadphaseProxy::CharacterFilter,
         btBroadphaseProxy::StaticFilter | btBroadphaseProxy::DefaultFilter);
 
-    // NOTE: the controller is deliberately NOT added via addAction -- it would then be
-    // stepped by stepSimulation() during PhysicsWorld::Tick. Character controllers are
-    // stepped explicitly via StepCharacterController() instead, so that authoritative
-    // simulation and client-side prediction can replay them with identical timing.
-
     outPhysicsHandle = internalData;
 }
 

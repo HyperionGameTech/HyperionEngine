@@ -60,8 +60,7 @@ private:
         float secondsWaited = 0.0f;
     };
 
-    // Buffered transform samples for one remotely simulated entity, used to interpolate
-    // it on a delayed timeline (hides update jitter and packet spacing).
+    // Buffered transform samples for one remotely simulated entity
     struct InterpolationState
     {
         static constexpr uint32 MaxSamples = 32;

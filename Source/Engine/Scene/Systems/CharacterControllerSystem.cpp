@@ -531,7 +531,7 @@ static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent
     TransformComponent& transformComponent = entity->GetComponent<TransformComponent>();
     const Vec3f facingDirection = transformComponent.rotation.RotateVector(Vec3f(0.0f, 0.0f, 1.0f));
 
-    // Predict this tick's move locally ("act first")
+    // Predict this tick's move locally
     PlayerMove move;
     move.moveId = state.nextMoveId++;
     move.deltaTime = entity->GetWorld()->GetGameState().deltaTime;

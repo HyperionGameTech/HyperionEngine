@@ -429,8 +429,6 @@ void ReplicationApplySystem::UpdateInterpolatedEntities()
 
         if (samples.Size() == 1)
         {
-            // Not enough history to interpolate (first sample, or the server stopped
-            // sending updates) -- hold/snap to the newest known transform.
             entity->SetLocalTransform(samples[0].transform);
 
             ++it;

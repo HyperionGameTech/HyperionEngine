@@ -22,11 +22,6 @@ namespace Hyperion {
 
 class Entity;
 
-/// Applies a single player move to a character controller, stepping the underlying physics
-/// character explicitly by move.deltaTime. This is the single movement code path, executed
-/// identically by the server (authoritative simulation), and by the client for its locally
-/// controlled player (client-side prediction + reconciliation replay).
-/// outResultTranslation receives the resulting entity translation.
 void ApplyCharacterMove(Entity* entity, CharacterControllerComponent& component, const PlayerMove& move, Vec3f& outResultTranslation);
 
 HYP_CLASS()
@@ -84,7 +79,6 @@ private:
     bool m_isJumpRequested;
 };
 
-/// Client-side prediction bookkeeping for one locally controlled player entity.
 struct ClientPredictionState
 {
     struct BufferedMove
@@ -122,7 +116,6 @@ public:
     bool RequiresSimThread() const override { return true; }
     bool AllowParallelExecution() const override { return false; }
 
-    /// Per-entity client prediction state (creates the entry if absent).
     ClientPredictionState& GetPredictionState(Entity* entity)
     {
         return m_predictionStates[entity];
