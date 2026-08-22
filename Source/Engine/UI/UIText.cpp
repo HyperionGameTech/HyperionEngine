@@ -58,6 +58,11 @@ struct FontAtlasCharacterIterator
     float charWidth;
 };
 
+//-- UI Text allocator --
+extern Arena* g_uiTextAllocator;
+using UITextAllocator = AllocatorInstance<Arena, &g_uiTextAllocator>;
+//--
+
 template <class Callback>
 static void ForEachCharacter(
     const FontAtlas& fontAtlas,
@@ -68,14 +73,6 @@ static void ForEachCharacter(
     Callback&& callback)
 {
     HYP_SCOPE;
-
-#ifdef HYP_DEBUG_MODE
-    thread_local bool t_isInFunction = false;
-    Assert(!t_isInFunction, "Re-entry detected");
-
-    t_isInFunction = true;
-    HYP_DEFER({ t_isInFunction = false; });
-#endif
 
     Vec2f placement = Vec2f::Zero();
 
@@ -104,7 +101,7 @@ static void ForEachCharacter(
         atlasPixelSize = Vec2f::One() / Vec2f(mainTextureAtlas->GetExtent().GetXY());
     }
 
-    FatArray<FontAtlasCharacterIterator, InlineAllocator<8, ThreadAllocator>> currentWordChars;
+    Array<FontAtlasCharacterIterator, UITextAllocator> currentWordChars;
     currentWordChars.Reserve(static_cast<size_t>(text.Size() * 1.25));
 
     const auto iterateCurrentWord = [&currentWordChars, &callback]()

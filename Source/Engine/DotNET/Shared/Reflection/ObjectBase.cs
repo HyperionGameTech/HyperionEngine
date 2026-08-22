@@ -164,7 +164,8 @@ namespace Hyperion
             {
                 if (_nativeAddress == IntPtr.Zero)
                 {
-                    throw new Exception("Native address is null - cannot get Id");
+                    // disposed
+                    return ObjIdBase.Invalid;
                 }
 
                 Object_GetId(_nativeAddress, out ObjIdBase id);

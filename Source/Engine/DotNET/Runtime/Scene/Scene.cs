@@ -31,7 +31,7 @@ namespace Hyperion
 
         protected override void Dispose(bool isDisposing)
         {
-            if (isDisposing)
+            if (isDisposing && IsValid)
             {
                 RootNode?.Dispose();
             }

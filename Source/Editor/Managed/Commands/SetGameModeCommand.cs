@@ -107,6 +107,10 @@ namespace Hyperion.Editor.Commands
                         {
                             EditorProject? simulationProject;
 
+                            // We need to keep these separate as StopSimulation() will mutate the world
+                            World? simulationWorld;
+                            List<IDisposable> deferredDisposeObjects = [];
+
                             try
                             {
                                 EditorSubsystem? editorSubsystem = EngineManager.EditorGame?.EditorSubsystem;
@@ -114,10 +118,47 @@ namespace Hyperion.Editor.Commands
 
                                 simulationProject = editorSubsystem.CurrentProject;
 
+                                Debug.Assert(simulationProject != null);
+
+                                Game? gameInstance = simulationProject.GameInstance;
+                                Debug.Assert(gameInstance != null);
+
+                                simulationWorld = gameInstance.World;
+
+                                if (simulationWorld != null)
+                                {
+                                    // we need to defer this shit because StopSimulation() will Shutdown() each scene.
+                                    Action<Node>? addNodeRecur = null;
+                                    addNodeRecur = (Node n) =>
+                                    {
+                                        deferredDisposeObjects.Add(n);
+                                        foreach (Node? child in n.Children)
+                                        {
+                                            addNodeRecur!(child!);
+                                        }
+                                    };
+
+                                    foreach (Scene? scene in simulationWorld.Scenes)
+                                    {
+                                        deferredDisposeObjects.Add(scene!);
+                                        addNodeRecur(scene!.RootNode!);
+                                    }
+
+                                    deferredDisposeObjects.Add(simulationWorld);
+                                    deferredDisposeObjects.Add(gameInstance);
+                                }
+
                                 if (!editorSubsystem.StopSimulation())
                                 {
                                     throw new Exception("Failed to stop simulating!");
                                 }
+
+                                foreach (IDisposable o in deferredDisposeObjects)
+                                {
+                                    o.Dispose();
+                                }
+
+                                deferredDisposeObjects.Clear();
                             }
                             catch (Exception)
                             {
@@ -134,15 +175,6 @@ namespace Hyperion.Editor.Commands
                                 finally
                                 {
                                     Interlocked.Exchange(ref _isChangingGameMode, 0);
-
-                                    if (simulationProject != null)
-                                    {
-                                        _ = EngineManager.PostToSimThread(() =>
-                                        {
-                                            simulationProject.World?.Dispose();
-                                            simulationProject.Dispose();
-                                        });
-                                    }
                                 }
                             });
                         });

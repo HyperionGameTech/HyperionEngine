@@ -8,10 +8,11 @@ namespace Hyperion
     {
         protected override void Dispose(bool isDisposing)
         {
-            World?.Dispose();
-            AssetRegistry?.Dispose();
-
-            Logger.Log(LogLevel.Info, "Game disposed");
+            if (IsValid)
+            {
+                World?.Dispose();
+                AssetRegistry?.Dispose();
+            }
 
             base.Dispose(isDisposing);
         }

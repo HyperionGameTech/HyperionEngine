@@ -45,9 +45,12 @@ namespace Hyperion
         {
             if (isDisposing)
             {
-                foreach (Node? childNode in Children)
+                if (IsValid)
                 {
-                    childNode?.Dispose();
+                    foreach (Node? childNode in Children)
+                    {
+                        childNode?.Dispose();
+                    }
                 }
             }
 

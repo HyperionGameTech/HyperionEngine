@@ -61,6 +61,11 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(UI);
 
 HYP_REGISTER_DRAW_BATCH_TYPE(UIEntityInstanceBatch);
 
+//-- Text allocator
+static Arena s_uiTextAllocator { 1 * 1024 * 1024 };
+Arena* g_uiTextAllocator = &s_uiTextAllocator;
+//--
+
 #if HYP_DEBUG_MODE || HYP_EDITOR
 CVar<bool> g_cvShowDebugUI("Debug.ShowDebugUI", true);
 #else  // HYP_DEBUG_MODE || HYP_EDITOR
@@ -261,6 +266,8 @@ void UISubsystem::Update(float delta)
 
         m_wasProcessedLastFrame = false;
     }
+
+    s_uiTextAllocator.Reset();
 }
 
 void UISubsystem::RenderCollect(RenderProxyList& rpl)

@@ -10,7 +10,7 @@ namespace Hyperion
 
         protected override void Dispose(bool isDisposing)
         {
-            if (isDisposing)
+            if (isDisposing && IsValid)
             {
                 if (GameInstance != null && GameInstance.World == null)
                 {
