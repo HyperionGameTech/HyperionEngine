@@ -957,12 +957,73 @@ public:
     {
         Assert(g_appContext.IsValid(), "invalid app context");
 
+        // Cant use EngineGlobals::GetContentDirectory(), since if we're executing from
+        // the editor, it will refer to the current projects dir
+        FilePath outContentDir = CoreApi::GetExecutablePath() / "Content";
+        FilePath outCacheDir = EngineGlobals::GetCacheDirectory();
+
+        if (!outContentDir.Any() || !outCacheDir.Any())
+        {
+            HYP_LOG(Editor, Error, "Must provide both content and cache dirs");
+            return;
+        }
+
         const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
         if (!currentProject.IsValid())
         {
             HYP_LOG(Editor, Error, "No project loaded; cannot cook game content");
 
             return;
+        }
+
+        if (currentProject->IsSaved())
+        {
+            // If its already been saved then save the project again first so assets are totally up to date
+            Result saveResult = currentProject->Save();
+            if (saveResult.HasError())
+            {
+                HYP_LOG(Editor, Error, "Failed to save project: {}", saveResult.GetError().GetMessage());
+                return;
+            }
+        }
+        else
+        {
+            // Not saved, alert the user that we need them to save the project before this:
+            bool cancel = false;
+            Result saveResult;
+
+            SystemMessageBox(MessageBoxType::INFO)
+                .Title("Must be saved before cooking game content")
+                .Text("The current project is not yet saved - would you like to save the project to continue with the cook task?")
+                .Button("Save", [currentProject, &saveResult]
+                {
+                    saveResult = currentProject->Save();
+                    if (saveResult.HasError())
+                    {
+                        HYP_LOG(Editor, Error, "Failed to save project: {}", saveResult.GetError().GetMessage());
+
+                        SystemMessageBox(MessageBoxType::CRITICAL)
+                                    .Title("Project could not be saved")
+                                    .Text(String("The project could not be saved: ") + saveResult.GetError().GetMessage()
+                                        + "\nThe operation will be aborted to prevent loss of data")
+                                    .Button("OK", NoOpFunction<void> {})
+                                    .Show();
+                            
+                    }
+                })
+                .Button("Discard", NoOpFunction<void> {})
+                .Button("Cancel", [&cancel] { cancel = true; })
+                .Show();
+
+            if (saveResult.HasError())
+            {
+                return;
+            }
+
+            if (cancel)
+            {
+                return; // ok, intentional cancel
+            }
         }
 
         EditorTaskScope* editorTaskScope = new EditorTaskScope(
@@ -986,11 +1047,14 @@ public:
         }
 
         TaskSystem::GetInstance().Enqueue(
-            [editorTaskScope, project = currentProject]()
+            [editorTaskScope, projectDir = currentProject->GetFilePath().BasePath(), outCacheDir, outContentDir]()
             {
-                Result cookResult = g_appContext->RunCommandlet(
-                    "BlobStorageCookCommandlet",
-                    CommandLineArguments("--content=" + project->GetFilePath().BasePath().ToRelative(CoreApi::GetBaseDirectory())));
+                CommandLineArguments args;
+                args.Set("project", projectDir);
+                args.Set("out-cache", outCacheDir);
+                args.Set("out-content", outContentDir);
+
+                Result cookResult = g_appContext->RunCommandlet("BlobStorageCookCommandlet", args);
 
                 if (cookResult.HasError())
                 {

@@ -16,7 +16,7 @@ float2 ParallaxMappedTexCoords(float parallaxHeight, float2 texCoords, float3 vi
     // depth of current layer
     float currentLayerDepth = 0.0;
     // the amount to shift the texture coordinates per layer (from vector P)
-    float2 P = viewDir.xy / max(viewDir.z, 0.1) * parallaxHeight;
+    float2 P = viewDir.xy / max(viewDir.z, 0.001) * parallaxHeight;
     float2 deltaTexCoords = P / PARALLAX_NUM_LAYERS;
     // get initial values
     float2 currentTexCoords = texCoords;

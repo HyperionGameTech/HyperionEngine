@@ -41,8 +41,6 @@
 
 namespace Hyperion {
 
-static constexpr float MinHoldTimeToDrag = 0.05f;
-
 static HYP_FORCE_INLINE float GetTimeToNextKeyDownEvent(const UIObjectKeyState& keyState)
 {
     if (keyState.count <= 1)

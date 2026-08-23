@@ -34,11 +34,18 @@
 
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
+#include <System/MessageBox.hpp>
+
 #ifdef HYP_EDITOR
 #include <Editor/EditorProject.hpp>
+#include <Editor/EditorState.hpp>
 #endif // HYP_EDITOR
 
 namespace Hyperion {
+
+#ifdef HYP_EDITOR
+EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
+#endif // HYP_EDITOR
 
 struct CookingContext {};
 
@@ -125,6 +132,68 @@ protected:
 
         const String projectArg = args["project"].ToString();
         FilePath projectDir;
+
+#if 0 //def HYP_EDITOR
+        // If we're initializing from editor, eg Build>Import Game Content, we wont have `project` arg,
+        // instead we will pull from active project
+        if (g_editorState.IsValid())
+        {
+            if (Handle<EditorProject> currentProject = g_editorState->GetCurrentProject(); currentProject.IsValid())
+            {
+                if (currentProject->IsSaved())
+                {
+                    // If its already been saved then save the project again first so assets are totally up to date
+                    Result saveResult = currentProject->Save();
+                    if (saveResult.HasError())
+                    {
+                        HYP_LOG(Editor, Error, "Failed to save project: {}", saveResult.GetError().GetMessage());
+                        return saveResult.GetError();
+                    }
+                }
+                else
+                {
+                    // Not saved, alert the user that we need them to save the project before this:
+                    bool cancel = false;
+                    Result saveResult;
+
+                    SystemMessageBox(MessageBoxType::INFO)
+                        .Title("Must be saved before cooking game content")
+                        .Text("The current project is not yet saved - would you like to save the project to continue with the cook task?")
+                        .Button("Save", [currentProject, &saveResult]
+                        {
+                            saveResult = currentProject->Save();
+                            if (saveResult.HasError())
+                            {
+                                HYP_LOG(Editor, Error, "Failed to save project: {}", saveResult.GetError().GetMessage());
+
+                                SystemMessageBox(MessageBoxType::CRITICAL)
+                                            .Title("Project could not be saved")
+                                            .Text(String("The project could not be saved: ") + saveResult.GetError().GetMessage()
+                                                + "\nThe operation will be aborted to prevent loss of data")
+                                            .Button("OK", NoOpFunction<void> {})
+                                            .Show();
+                                            
+                            }
+                        })
+                        .Button("Discard", NoOpFunction<void> {})
+                        .Button("Cancel", [&cancel] { cancel = true; })
+                        .Show();
+
+                    if (saveResult.HasError())
+                    {
+                        return saveResult.GetError();
+                    }
+
+                    if (cancel)
+                    {
+                        return {}; // ok, intentional cancel
+                    }
+                }
+
+                projectDir = currentProject->GetFilePath().BasePath();
+            }
+        }
+#endif // HYP_EDITOR
 
         const bool engineOnly = args["engine-only"].ToBool(false);
         if (!engineOnly)

@@ -104,7 +104,6 @@ PSOutput PSMain(PSInput input)
     PSOutput output;
 
     float3x3 tbn_matrix = float3x3(normalize(input.tangent), normalize(input.bitangent), normalize(input.normal));
-    float3 view_vector = normalize(input.camera_position - input.position);
 
     const float3 P = input.position.xyz;
 
@@ -125,7 +124,8 @@ PSOutput PSMain(PSInput input)
     {
         bool flipHeight = bool(GET_MATERIAL_PARAM_BIT(CURRENT_MATERIAL, MATERIAL_FLAG_PARALLAX_INVERSE_HEIGHT));
 
-        float3 tangent_view = mul(tbn_matrix, view_vector);
+        float3x3 cotangent_matrix = CotangentFrame(N, P, texcoord);
+        float3 tangent_view = mul(cotangent_matrix, V);
         float2 parallax_texcoord = ParallaxMappedTexCoords(
             CURRENT_MATERIAL.parallax_height,
             texcoord,

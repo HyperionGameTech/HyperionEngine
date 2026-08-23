@@ -188,6 +188,18 @@ public:
         return m_values;
     }
 
+    void Set(UTF8StringView key, CommandLineArgumentValue&& value)
+    {
+        auto it = Find(key);
+        if (it != End())
+        {
+            it->second = std::move(value);
+            return;
+        }
+
+        m_values.EmplaceBack(key, std::move(value));
+    }
+
     HYP_FORCE_INLINE size_t Size() const
     {
         return m_values.Size();
@@ -250,8 +262,10 @@ public:
 
     CommandLineParser(const CommandLineParser& other) = delete;
     CommandLineParser& operator=(const CommandLineParser& other) = delete;
+    
     CommandLineParser(CommandLineParser&& other) noexcept = default;
     CommandLineParser& operator=(CommandLineParser&& other) noexcept = default;
+
     ~CommandLineParser() = default;
 
     HYP_FORCE_INLINE const CommandLineArgumentDefinitions* GetDefinitions() const

@@ -113,6 +113,24 @@ void ComputeOrthonormalBasis(in float3 normal, out float3 tangent, out float3 bi
     bitangent = normalize(cross(normal, T));
 }
 
+float3x3 CotangentFrame(float3 normal, float3 position, float2 uv)
+{
+    const float3 dp1 = ddx(position);
+    const float3 dp2 = ddy(position);
+    const float2 duv1 = ddx(uv);
+    const float2 duv2 = ddy(uv);
+
+    const float3 dp2perp = cross(dp2, normal);
+    const float3 dp1perp = cross(normal, dp1);
+
+    float3 tangent = dp2perp * duv1.x + dp1perp * duv2.x;
+    float3 bitangent = dp2perp * duv1.y + dp1perp * duv2.y;
+
+    const float invmax = rsqrt(max(dot(tangent, tangent), dot(bitangent, bitangent)));
+
+    return float3x3(tangent * invmax, bitangent * invmax, normal);
+}
+
 float3 GetTriplanarBlend(float3 normal)
 {
     float3 blending = normalize(max(abs(normal), 0.0001));

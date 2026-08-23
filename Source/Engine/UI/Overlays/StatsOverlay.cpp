@@ -73,6 +73,7 @@ Handle<UIObject> StatsOverlay::CreateUIObject(UIObject* spawnParent)
                     Vec2i::Zero(),
                     UIObjectSize(Vec2i::Zero(), UIObjectSize::AUTO));
 
+                text->SetBackgroundColor(Color::Transparent());
                 text->SetTextColor(Color(0.9f, 0.9f, 0.9f, 1.0f));
                 text->SetText(*value.Get<Name>());
                 text->SetOriginAlignment(UIObjectAlignment::CENTER);

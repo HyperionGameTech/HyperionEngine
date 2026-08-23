@@ -157,7 +157,7 @@ void ComputeOrthonormalBasis(const Vec3f& normal, Vec3f& outTangent, Vec3f& outB
 {
     Vec3f t;
     t = normal.Cross(Vec3f::UnitY());
-    t = Lerp(normal.Cross(Vec3f::UnitX()), Vec3f::UnitX(), Step(epsilonF, t.Dot(t)));
+    t = Lerp(normal.Cross(Vec3f::UnitX()), t, Step(epsilonF, t.Dot(t)));
     t.Normalize();
 
     outTangent = t;

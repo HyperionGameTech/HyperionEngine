@@ -98,7 +98,7 @@ void HandleSignal(int signum);
 
 #pragma region Stats
 
-EngineStatTimer g_statRenderUpdate("RenderThread");
+EngineStatTimer g_statRenderUpdate("Rendering/CPU/RenderThread");
 
 static EngineStatTimer s_statViewCollection("Sim/ViewCollection");
 
