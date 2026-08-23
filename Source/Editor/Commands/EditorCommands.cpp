@@ -1982,14 +1982,16 @@ public:
             return;
         }
 
+        // @FIXME: WE need UUID or something for delete!! not string name!!!
+
         Array<Handle<Node>> nodesToDelete;
 
         if (NumArguments() >= 1 && !GetArgument(0).Empty())
         {
             // Named node deletion (e.g., from context menu)
-            Handle<Node> node = subsystem->GetActiveScene()->FindNodeByName(StringHash(GetArgument(0)));
+            Node* node = subsystem->GetActiveScene()->FindNodeByName(StringHash(GetArgument(0)));
 
-            if (!node.IsValid())
+            if (!node)
             {
                 HYP_LOG(Editor, Warning, "EditorCommandDeleteNode: could not find node '{}'", GetArgument(0));
                 return;

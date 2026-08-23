@@ -22,6 +22,8 @@
 #include <Scene/Camera/FirstPersonCamera.hpp>
 #include <Scene/Camera/Streaming/CameraStreamingVolume.hpp>
 
+#include <Scene/Util/SceneHelpers.hpp>
+
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/GameState.hpp>
 
@@ -31,7 +33,6 @@
 #include <Streaming/StreamingManager.hpp>
 
 #include <Net/NetClient.hpp>
-
 #include <Net/NetMemory.hpp>
 
 #include <Core/Math/MathUtil.hpp>
@@ -48,154 +49,6 @@ namespace Hyperion {
 
 struct ReplicationApplyContext {};
 
-static Scene* FindTargetScene(Span<Handle<Scene>> scenes, SystemBase* system, Name sceneName)
-{
-    for (Scene* scene : scenes)
-    {
-        if (!system->ShouldProcessScene(scene))
-        {
-            continue;
-        }
-
-        if (scene->GetName() == sceneName)
-        {
-            return scene;
-        }
-    }
-
-    return nullptr;
-}
-
-static inline bool IsWaitingOnParent(const ReplicationOp<ReplicationOpType::Spawn>& spawnOp, const Map<NetId, Handle<Entity>, SceneAllocator>& netIdToEntity)
-{
-    return spawnOp.parentNetId != InvalidNetId
-        && netIdToEntity.Find(spawnOp.parentNetId) == netIdToEntity.End();
-}
-
-static Handle<Entity> FindLocalEntityByUuid(const Scene& scene, const UUID& uuid)
-{
-    for (Node* node : scene.GetRoot()->GetDescendants())
-    {
-        if (node->GetUUID() != uuid)
-        {
-            continue;
-        }
-
-        if (Entity* entity = DynamicCast<Entity>(node))
-        {
-            return MakeStrongRef(entity);
-        }
-    }
-
-    return Handle<Entity>::Null();
-}
-
-static Handle<Entity> ExecuteEntitySpawn(const ReplicationOp<ReplicationOpType::Spawn>& spawnOp, const Scene& targetScene, const Map<NetId, Handle<Entity>, SceneAllocator>& netIdToEntity)
-{
-    const Class* entityClass = GetClass(spawnOp.typeId);
-    if (!entityClass)
-    {
-        HYP_LOG(Replication, Error, "Cannot spawn Entity, no Class with typeid {}", spawnOp.typeId.Value());
-        return Handle<Entity>::Null();
-    }
-
-    if (!entityClass->IsDerivedFrom(Entity::StaticClass()))
-    {
-        HYP_LOG(Replication, Error, "Cannot spawn Entity, Class '{}' is not a subclass of Entity", entityClass->GetName());
-        return Handle<Entity>::Null();
-    }
-
-    Handle<Entity> entity = targetScene.GetEntityManager()->AddTypedEntity(entityClass);
-    if (!entity.IsValid())
-    {
-        HYP_LOG(Replication, Error, "Spawned Entity of Class '{}' could not be instantiated", entityClass->GetName());
-        return Handle<Entity>::Null();
-    }
-
-    if (spawnOp.parentNetId != InvalidNetId)
-    {
-        auto parentIt = netIdToEntity.Find(spawnOp.parentNetId);
-        Assert(parentIt != netIdToEntity.End(), "Caller must ensure the parent is already resolved");
-
-        parentIt->second->AddChild(entity);
-    }
-    else
-    {
-        targetScene.GetRoot()->AddChild(entity);
-    }
-
-    entity->SetName(spawnOp.name);
-    entity->SetLocalTransform(spawnOp.transform);
-    entity->AddComponent<ReplicationStateComponent>(ReplicationStateComponent { spawnOp.netId });
-
-    HYP_LOG(Replication, Info, "Spawned Entity '{}' of Class '{}'", entity->GetName(), entityClass->GetName());
-
-    return entity;
-}
-
-static Handle<Entity> FindMyLocalPlayerEntity(const Scene& scene, net::NetConnectionId ownerConnectionId)
-{
-    if (ownerConnectionId == Invalid<net::NetConnectionId>
-        || g_gameClient == nullptr
-        || !g_gameClient->IsConnected()
-        || g_gameClient->GetNetClient().GetConnectionId() != ownerConnectionId)
-    {
-        return Handle<Entity>::Null();
-    }
-
-    for (auto [entity, playerComponent] : scene.GetEntityManager()->GetEntitySet<PlayerComponent>())
-    {
-        if (playerComponent.connectionId == ownerConnectionId)
-        {
-            return MakeStrongRef(entity);
-        }
-    }
-
-    return Handle<Entity>::Null();
-}
-
-static Handle<Entity> TryResolveSpawn(
-    const ReplicationOp<ReplicationOpType::Spawn>& spawnOp,
-    Span<Handle<Scene>> scenes,
-    SystemBase* system,
-    const Map<NetId, Handle<Entity>, SceneAllocator>& netIdToEntity)
-{
-    Scene* targetScene = FindTargetScene(scenes, system, spawnOp.sceneName);
-
-    if (!targetScene)
-    {
-        return Handle<Entity>::Null();
-    }
-
-    // If this Spawn is the replication echo of our own player entity, reconcile onto the
-    // locally-driven entity instead of spawning a duplicate.
-    Handle<Entity> existing = FindMyLocalPlayerEntity(*targetScene, spawnOp.ownerConnectionId);
-
-    if (!existing.IsValid())
-    {
-        existing = FindLocalEntityByUuid(*targetScene, spawnOp.uuid);
-    }
-
-    if (existing.IsValid())
-    {
-        if (!existing->HasComponent<ReplicationStateComponent>())
-        {
-            existing->AddComponent<ReplicationStateComponent>(ReplicationStateComponent { spawnOp.netId });
-        }
-
-        existing->SetLocalTransform(spawnOp.transform);
-
-        return existing;
-    }
-
-    if (IsWaitingOnParent(spawnOp, netIdToEntity))
-    {
-        return Handle<Entity>::Null();
-    }
-
-    return ExecuteEntitySpawn(spawnOp, *targetScene, netIdToEntity);
-}
-
 void ReplicationApplySystem::OnAddedToWorld(World* world)
 {
     SystemBase::OnAddedToWorld(world);
@@ -211,8 +64,7 @@ void ReplicationApplySystem::OnAddedToWorld(World* world)
                     return;
                 }
 
-                Array<Handle<Scene>, SceneAllocator> scenes(world->GetScenes());
-                TryResolvePendingSpawns(scenes);
+                TryResolvePendingSpawns(world->GetScenes().ToSpan());
             }));
 }
 
@@ -221,34 +73,6 @@ void ReplicationApplySystem::OnRemovedFromWorld(World* world)
     m_delegateHandlers.Remove("OnSceneAdded"_sh);
 
     SystemBase::OnRemovedFromWorld(world);
-}
-
-void ReplicationApplySystem::TryResolvePendingSpawns(Span<Handle<Scene>> scenes)
-{
-    bool shouldContinue = true;
-
-    while (shouldContinue)
-    {
-        shouldContinue = false;
-
-        for (size_t i = 0; i < m_pendingSpawns.Size();)
-        {
-            PendingSpawn& pending = m_pendingSpawns[i];
-
-            if (Handle<Entity> resolvedEntity = TryResolveSpawn(pending.spawnOp, scenes, this, m_netIdToEntity); resolvedEntity.IsValid())
-            {
-                m_netIdToEntity.Set(pending.spawnOp.netId, resolvedEntity);
-
-                m_pendingSpawns.EraseAt(i);
-
-                shouldContinue = true;
-
-                continue;
-            }
-
-            ++i;
-        }
-    }
 }
 
 void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
@@ -288,20 +112,8 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
         ++i;
     }
 
-    // Don't use temp - not enough mem
-    Array<ReplicationOpBase*, SceneAllocator> ops;
+    Array<ReplicationOpBase*, SceneTempAllocator> ops;
     g_gameClient->GetReplicationManager().DrainPendingOps(ops);
-
-    // The local player's entity is predicted locally; its snapshots are ignored.
-    NetId localPlayerNetId = Invalid<NetId>;
-
-    if (Handle<Entity> myPlayerEntity = GetMyPlayerEntity(); myPlayerEntity.IsValid())
-    {
-        if (const ReplicationStateComponent* replicationState = myPlayerEntity->TryGetComponent<ReplicationStateComponent>())
-        {
-            localPlayerNetId = replicationState->netId;
-        }
-    }
 
     for (const ReplicationOpBase* opPtr : ops)
     {
@@ -309,20 +121,21 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
         {
         case ReplicationOpType::Spawn:
         {
-        HYP_LOG(Replication, Info, "Client got message of type {}", opPtr->type);
-
             const ReplicationOp<ReplicationOpType::Spawn>& op = static_cast<const ReplicationOp<ReplicationOpType::Spawn>&>(*opPtr);
 
-            if (m_netIdToEntity.Find(op.netId) != m_netIdToEntity.End())
+            if (auto existingIt = m_netIdToEntity.Find(op.netId); existingIt != m_netIdToEntity.End())
             {
-                m_netIdToEntity.Find(op.netId)->second->SetLocalTransform(op.transform);
+                if (!SceneHelpers::IsLocalPlayerEntity(*existingIt->second))
+                {
+                    existingIt->second->SetLocalTransform(op.transform);
+                }
 
                 break;
             }
 
-            if (Handle<Entity> resolvedEntity = TryResolveSpawn(op, scenes, this, m_netIdToEntity); resolvedEntity.IsValid())
+            if (Entity* resolvedEntity = TryResolveSpawn(op, scenes))
             {
-                m_netIdToEntity.Set(op.netId, resolvedEntity);
+                m_netIdToEntity[op.netId] = MakeStrongRef(resolvedEntity);
 
                 // try to resolve, we might have unblocked a child entity waiting on this.
                 TryResolvePendingSpawns(scenes);
@@ -364,14 +177,11 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
 
             if (it == m_netIdToEntity.End())
             {
-                // Snapshot for an entity we haven't seen an EntitySpawn for yet (reordering,
-                // or the spawn is still in flight) -- drop it, a later snapshot will catch up.
                 break;
             }
 
-            // Our own player entity is client-predicted (see CharacterControllerSystem);
-            // authoritative state for it arrives via PlayerMoveAck reconciliation instead.
-            if (op.netId == localPlayerNetId)
+            // The client's player entity is client-predicted
+            if (SceneHelpers::IsLocalPlayerEntity(*it->second))
             {
                 break;
             }
@@ -391,7 +201,6 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
     }
 
     UpdateInterpolatedEntities();
-
     UpdateStreamingVolume(scenes);
 }
 
@@ -416,10 +225,15 @@ void ReplicationApplySystem::UpdateInterpolatedEntities()
             continue;
         }
 
+        if (SceneHelpers::IsLocalPlayerEntity(*entityIt->second))
+        {
+            it = m_interpolationStates.Erase(it);
+
+            continue;
+        }
+
         Array<InterpolationState::Sample, SceneAllocator>& samples = it->second.samples;
 
-        // Advance past samples the render time has already passed, keeping at least the
-        // last one as the hold pose.
         while (samples.Size() > 1 && samples[1].receiveTimeMs <= renderTimeMs)
         {
             samples.EraseAt(0);
@@ -467,20 +281,7 @@ void ReplicationApplySystem::UpdateInterpolatedEntities()
     }
 }
 
-static Handle<Camera> FindCameraChild(const Handle<Entity>& entity)
-{
-    for (const Handle<Node>& child : entity->GetChildren())
-    {
-        if (Handle<Camera> camera = DynamicCast<Camera>(child); camera.IsValid())
-        {
-            return camera;
-        }
-    }
-
-    return Handle<Camera>::Null();
-}
-
-void ReplicationApplySystem::UpdateStreamingVolume(Span<Handle<Scene>> scenes)
+void ReplicationApplySystem::UpdateStreamingVolume(Span<const Handle<Scene>> scenes)
 {
     Handle<Entity> myPlayerEntity = GetMyPlayerEntity();
 
@@ -545,4 +346,142 @@ Handle<Entity> ReplicationApplySystem::GetMyPlayerEntity() const
     return Handle<Entity>::Null();
 }
 
+Scene* ReplicationApplySystem::FindTargetScene(Span<const Handle<Scene>> scenes, Name sceneName)
+{
+    for (Scene* scene : scenes)
+    {
+        if (!ShouldProcessScene(scene))
+        {
+            continue;
+        }
+
+        if (scene->GetName() == sceneName)
+        {
+            return scene;
+        }
+    }
+
+    return nullptr;
+}
+
+Entity* ReplicationApplySystem::TryResolveSpawn(
+    const ReplicationOp<ReplicationOpType::Spawn>& spawnOp,
+    Span<const Handle<Scene>> scenes)
+{
+    Scene* targetScene = FindTargetScene(scenes, spawnOp.sceneName);
+
+    if (!targetScene)
+    {
+        return nullptr;
+    }
+
+    // If this Spawn is the replication echo of our own player entity, reconcile onto the
+    // locally-driven entity instead of spawning a duplicate.
+    Entity* existing = SceneHelpers::FindMyLocalPlayerEntity(*targetScene, spawnOp.ownerConnectionId);
+
+    if (!existing)
+    {
+        existing = DynamicCast<Entity>(targetScene->FindNodeByUUID(spawnOp.uuid));
+    }
+
+    if (existing != nullptr)
+    {
+        if (!existing->HasComponent<ReplicationStateComponent>())
+        {
+            existing->AddComponent<ReplicationStateComponent>(ReplicationStateComponent { spawnOp.netId });
+        }
+
+        existing->SetLocalTransform(spawnOp.transform);
+
+        return existing;
+    }
+
+    if (IsWaitingOnParent(spawnOp))
+    {
+        return nullptr;
+    }
+
+    return ExecuteEntitySpawn(spawnOp, *targetScene);
+}
+
+void ReplicationApplySystem::TryResolvePendingSpawns(Span<const Handle<Scene>> scenes)
+{
+    bool shouldContinue = true;
+
+    while (shouldContinue)
+    {
+        shouldContinue = false;
+
+        for (size_t i = 0; i < m_pendingSpawns.Size();)
+        {
+            PendingSpawn& pending = m_pendingSpawns[i];
+
+            if (Entity* resolvedEntity = TryResolveSpawn(pending.spawnOp, scenes))
+            {
+                m_netIdToEntity[pending.spawnOp.netId] = MakeStrongRef(resolvedEntity);
+
+                m_pendingSpawns.EraseAt(i);
+
+                shouldContinue = true;
+
+                continue;
+            }
+
+            ++i;
+        }
+    }
+}
+
+bool ReplicationApplySystem::IsWaitingOnParent(
+    const ReplicationOp<ReplicationOpType::Spawn>& spawnOp)
+{
+    return spawnOp.parentNetId != InvalidNetId
+        && m_netIdToEntity.Find(spawnOp.parentNetId) == m_netIdToEntity.End();
+}
+
+Entity* ReplicationApplySystem::ExecuteEntitySpawn(
+    const ReplicationOp<ReplicationOpType::Spawn>& spawnOp,
+    const Scene& targetScene)
+{
+    const Class* entityClass = GetClass(spawnOp.typeId);
+    if (!entityClass)
+    {
+        HYP_LOG(Replication, Error, "Cannot spawn Entity, no Class with typeid {}", spawnOp.typeId.Value());
+        return nullptr;
+    }
+
+    if (!entityClass->IsDerivedFrom(Entity::StaticClass()))
+    {
+        HYP_LOG(Replication, Error, "Cannot spawn Entity, Class '{}' is not a subclass of Entity", entityClass->GetName());
+        return nullptr;
+    }
+
+    Handle<Entity> entity = targetScene.GetEntityManager()->AddTypedEntity(entityClass);
+    if (!entity.IsValid())
+    {
+        HYP_LOG(Replication, Error, "Spawned Entity of Class '{}' could not be instantiated", entityClass->GetName());
+        return Handle<Entity>::Null();
+    }
+
+    if (spawnOp.parentNetId != InvalidNetId)
+    {
+        auto parentIt = m_netIdToEntity.Find(spawnOp.parentNetId);
+        Assert(parentIt != m_netIdToEntity.End(), "Caller must ensure the parent is already resolved");
+
+        parentIt->second->AddChild(entity);
+    }
+    else
+    {
+        targetScene.GetRoot()->AddChild(entity);
+    }
+
+    entity->SetName(spawnOp.name);
+    entity->SetLocalTransform(spawnOp.transform);
+    entity->AddComponent<ReplicationStateComponent>(ReplicationStateComponent { spawnOp.netId });
+
+    HYP_LOG(Replication, Info, "Spawned Entity '{}' of Class '{}'", entity->GetName(), entityClass->GetName());
+
+    // attached to another node so ref remains valid
+    return entity.Get();
+}
 } // namespace Hyperion

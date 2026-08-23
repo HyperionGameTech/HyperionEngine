@@ -1179,33 +1179,30 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
     return hasEntityHit;
 }
 
-const Handle<Node>& Node::FindChildByName(StringHash name) const
+Node* Node::FindChildByName(StringHash name) const
 {
-    // breadth-first search
-    Queue<const Node*> queue;
-    queue.Push(this);
-
-    while (queue.Any())
+    for (Node* descendant : GetDescendants())
     {
-        const Node* parent = queue.Pop();
-
-        for (const Handle<Node>& child : parent->GetChildren())
+        if (descendant->GetName() == name)
         {
-            if (!child)
-            {
-                continue;
-            }
-
-            if (child->GetName() == name)
-            {
-                return child;
-            }
-
-            queue.Push(child.Get());
+            return descendant;
         }
     }
 
-    return Handle<Node>::Null();
+    return nullptr;
+}
+
+Node* Node::FindChildByUUID(const UUID& uuid) const
+{
+    for (Node* descendant : GetDescendants())
+    {
+        if (descendant->GetUUID() == uuid)
+        {
+            return descendant;
+        }
+    }
+
+    return nullptr;
 }
 
 void Node::AddTag(NodeTag&& value)

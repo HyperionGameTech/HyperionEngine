@@ -74,10 +74,23 @@ private:
         Array<Sample, SceneAllocator> samples;
     };
 
-    void TryResolvePendingSpawns(Span<Handle<Scene>> scenes);
-
     void UpdateInterpolatedEntities();
-    void UpdateStreamingVolume(Span<Handle<Scene>> scenes);
+    void UpdateStreamingVolume(Span<const Handle<Scene>> scenes);
+    
+    Scene* FindTargetScene(Span<const Handle<Scene>> scenes, Name sceneName);
+    
+    Entity* TryResolveSpawn(
+        const ReplicationOp<ReplicationOpType::Spawn>& spawnOp,
+        Span<const Handle<Scene>> scenes);
+
+    void TryResolvePendingSpawns(Span<const Handle<Scene>> scenes);
+    
+    bool IsWaitingOnParent(
+        const ReplicationOp<ReplicationOpType::Spawn>& spawnOp);
+
+    Entity* ExecuteEntitySpawn(
+        const ReplicationOp<ReplicationOpType::Spawn>& spawnOp,
+        const Scene& targetScene);
 
     Array<PendingSpawn, SceneAllocator> m_pendingSpawns;
     Map<NetId, Handle<Entity>, SceneAllocator> m_netIdToEntity;

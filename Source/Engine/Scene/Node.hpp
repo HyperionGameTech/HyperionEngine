@@ -888,7 +888,10 @@ public:
 
     /*! \brief Search child nodes (breadth-first) until a node with the given name is found. */
     HYP_METHOD()
-    const Handle<Node>& FindChildByName(StringHash name) const;
+    Node* FindChildByName(StringHash name) const;
+
+    HYP_METHOD()
+    Node* FindChildByUUID(const UUID& uuid) const;
 
     HYP_FORCE_INLINE const NodeTagSet& GetTags() const
     {

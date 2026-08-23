@@ -1439,9 +1439,9 @@ void VolumeEditorGizmo::UpdateFaceGeometry(const BoundingBox& localBounds, const
 
     for (int i = 0; i < VEF_Max; i++)
     {
-        Handle<Node> faceNode = m_node->FindChildByName(StringHash(HYP_FORMAT("VolumeFace_{}", i)));
+        Node* faceNode = m_node->FindChildByName(StringHash(HYP_FORMAT("VolumeFace_{}", i)));
 
-        if (!faceNode.IsValid())
+        if (!faceNode)
         {
             continue;
         }

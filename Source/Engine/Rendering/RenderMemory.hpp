@@ -10,11 +10,11 @@
 
 namespace Hyperion {
 
-static constexpr size_t RenderPoolBlockSize = 64 * 1024 * 1024;
-static constexpr size_t RenderArenaSize = 64 * 1024;
+static constexpr size_t RenderPoolBlockSize = 4 * 1024 * 1024;  // 4 MiB
+static constexpr size_t RenderArenaSize = 64 * 1024;            // 64 KiB
 
-static constexpr size_t RHIPoolBlockSize = 1 * 1024 * 1024;
-static constexpr size_t RHIArenaSize = 64 * 1024;
+static constexpr size_t RHIPoolBlockSize = 1 * 1024 * 1024;     // 1 MiB
+static constexpr size_t RHIArenaSize = 64 * 1024;               // 64 KiB
 
 ENGINE_API extern Pool* g_renderPool;
 ENGINE_API extern Arena* g_renderArena;

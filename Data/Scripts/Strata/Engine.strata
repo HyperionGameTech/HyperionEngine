@@ -583,6 +583,8 @@ extern void Node_GetWorldBounds(Node self, ref BoundingBox outReturn);
 extern void Node_UpdateWorldTransform(Node self, bool updateChildTransforms);
 extern uint Node_CalculateDepth(Node self);
 extern uint Node_FindSelfIndex(Node self);
+extern Node Node_FindChildByName(Node self, const StringHash name);
+extern Node Node_FindChildByUUID(Node self, const UUID uuid);
 // requires: HYP_EDITOR
 extern void Node_MarkDirty(Node self);
 
@@ -846,6 +848,8 @@ extern bool World_RemoveSystem(World self, SystemBase system);
 
 // Scene
 extern Camera Scene_GetPrimaryCamera(Scene self);
+extern Node Scene_FindNodeByName(Scene self, const StringHash name);
+extern Node Scene_FindNodeByUUID(Scene self, const UUID uuid);
 extern bool Scene_IsAttachedToWorld(Scene self);
 extern World Scene_GetWorld(Scene self);
 extern void Scene_SetWorld(Scene self, World world);

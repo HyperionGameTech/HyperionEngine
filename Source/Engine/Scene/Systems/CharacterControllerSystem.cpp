@@ -16,6 +16,8 @@
 
 #include <Scene/Camera/Camera.hpp>
 
+#include <Scene/Util/SceneHelpers.hpp>
+
 #include <Physics/PhysicsWorld.hpp>
 #include <Physics/PhysicsShape.hpp>
 
@@ -183,37 +185,6 @@ bool CharacterControllerSystem::ShouldProcessScene(Scene* scene) const
     static constexpr EnumFlags<SceneFlags> ExpectedFlags = SceneFlags::FOREGROUND;
 
     return (scene->GetSceneFlags() & (SceneFlags::UI | SceneFlags::DETACHED | ExpectedFlags)) == ExpectedFlags;
-}
-
-static bool CanControlPlayerEntity(Entity* entity)
-{
-    if (EngineGlobals::HasAuthority())
-    {
-        return true;
-    }
-
-    const PlayerComponent* playerComponent = entity->TryGetComponent<PlayerComponent>();
-
-    return playerComponent != nullptr && playerComponent->IsLocalPlayer();
-}
-
-static bool IsLocallyControlledPlayerEntity(Entity* entity)
-{
-    if (EngineGlobals::IsHeadless())
-    {
-        // dedicated server
-        return false;
-    }
-
-    if (g_gameClient == nullptr || !g_gameClient->IsConnected())
-    {
-        // single-player
-        return true;
-    }
-
-    const PlayerComponent* playerComponent = entity->TryGetComponent<PlayerComponent>();
-
-    return playerComponent == nullptr || playerComponent->IsLocalPlayer();
 }
 
 static Vec3f GetPlayerViewDirection(Entity* entity)
@@ -612,10 +583,12 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
         for (auto [entity, component] : scene->GetEntityManager()->GetEntitySet<CharacterControllerComponent>().GetScopedView(GetComponentInfos()))
         {
+            const bool isLocalPlayerEntity = SceneHelpers::IsLocalPlayerEntity(*entity);
+
             // Check needs initialization
             if (!component.inputHandler)
             {
-                if (!CanControlPlayerEntity(entity))
+                if (!isLocalPlayerEntity && !EngineGlobals::HasAuthority())
                 {
                     continue;
                 }
@@ -632,7 +605,7 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
             CharacterControllerInputHandler* inputHandler = StaticCast<CharacterControllerInputHandler>(component.inputHandler.Get());
             inputHandler->SetDeltaTime(GetWorld()->GetGameState().deltaTime);
 
-            if (IsLocallyControlledPlayerEntity(entity))
+            if (isLocalPlayerEntity && !EngineGlobals::IsHeadless())
             {
                 inputHandler->Update();
             }
@@ -664,7 +637,7 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
                 ApplyCharacterMove(entity, component, move, resultTranslation);
             }
-            else if (IsLocallyControlledPlayerEntity(entity))
+            else if (isLocalPlayerEntity)
             {
                 // Connected client: predict our own player locally and reconcile against the server.
                 ProcessClientPrediction(entity, component, this, delta);

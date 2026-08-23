@@ -856,6 +856,7 @@ extern class Node
     CalculateDepth() -> uint32
     FindSelfIndex() -> uint32
     FindChildByName(name : any) -> Node
+    FindChildByUUID(uuid : UUID) -> Node
     MarkDirty() -> void
     static OnChildAdded : any
     static OnChildRemoved : any
@@ -2233,6 +2234,7 @@ extern class Scene : AssetObject
     GetSceneFlags() -> SceneFlags
     SetSceneFlags(flags : SceneFlags) -> void
     FindNodeByName(name : any) -> Node
+    FindNodeByUUID(uuid : UUID) -> Node
     GetRoot() -> Node
     SetRoot(root : Node) -> void
     GetEntityManager() -> EntityManager
@@ -2247,7 +2249,6 @@ extern class Scene : AssetObject
     SetStreamingCenroid(streamingCentroid : Vec2i) -> void
     AddToWorld(world : World) -> bool
     RemoveFromWorld() -> bool
-    GetUniqueNodeName(baseName : string) -> Name
     static OnRootNodeChanged : any
     SceneFlags : SceneFlags
     Root : Node

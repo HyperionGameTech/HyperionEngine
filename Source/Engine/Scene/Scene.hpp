@@ -116,7 +116,10 @@ public:
     }
 
     HYP_METHOD()
-    HYP_NODISCARD Handle<Node> FindNodeByName(StringHash name) const;
+    HYP_NODISCARD Node* FindNodeByName(StringHash name) const;
+
+    HYP_METHOD()
+    HYP_NODISCARD Node* FindNodeByUUID(const UUID& uuid) const;
 
     HYP_METHOD(Property = "Root", Editor = true)
     const Handle<Node>& GetRoot() const
@@ -209,13 +212,6 @@ public:
 
     HYP_METHOD()
     bool RemoveFromWorld();
-
-    /*! \brief Gets a unique name for a node in this scene. The returned name will be in the format "base_name(num)".
-     *  The name will only be unique as long as another node with the same name does not exist in this scene. (no record is kept of the results from this function)
-     *  \note The node name will be unique only to this scene.
-     *  \param baseName The base name to use for the node name. */
-    HYP_METHOD()
-    Name GetUniqueNodeName(UTF8StringView baseName) const;
 
     void Update(float delta);
 

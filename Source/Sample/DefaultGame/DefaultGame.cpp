@@ -198,8 +198,8 @@ void DefaultGame::OnUpdate(float delta)
 
     if (m_defaultScene.IsValid())
     {
-        auto textNode = m_defaultScene->FindNodeByName("TextNode"_sh);
-        if (textNode.IsValid())
+        Node* textNode = m_defaultScene->FindNodeByName("TextNode"_sh);
+        if (textNode != nullptr)
         {
             for (Node* child : textNode->GetChildren())
             {

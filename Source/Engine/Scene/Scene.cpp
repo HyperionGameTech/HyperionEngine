@@ -216,7 +216,7 @@ void Scene::SetWorld(World* world)
     }
 }
 
-Handle<Node> Scene::FindNodeByName(StringHash name) const
+Node* Scene::FindNodeByName(StringHash name) const
 {
     AssertOnThread(m_ownerThreadId);
 
@@ -224,10 +224,24 @@ Handle<Node> Scene::FindNodeByName(StringHash name) const
 
     if (m_root->GetName() == name)
     {
-        return m_root;
+        return m_root.Get();
     }
 
     return m_root->FindChildByName(name);
+}
+
+Node* Scene::FindNodeByUUID(const UUID& uuid) const
+{
+    AssertOnThread(m_ownerThreadId);
+
+    Assert(m_root);
+
+    if (m_root->GetUUID() == uuid)
+    {
+        return m_root.Get();
+    }
+
+    return m_root->FindChildByUUID(uuid);
 }
 
 void Scene::SetRoot(const Handle<Node>& root)
@@ -289,27 +303,6 @@ bool Scene::RemoveFromWorld()
     m_world->RemoveScene(this);
 
     return true;
-}
-
-Name Scene::GetUniqueNodeName(UTF8StringView baseName) const
-{
-    String uniqueName = baseName;
-    int counter = 1;
-
-    // Return baseName directly if it's not already used.
-    if (!FindNodeByName(uniqueName).IsValid())
-    {
-        return CreateNameFromDynamicString(uniqueName);
-    }
-
-    // Otherwise, append an increasing counter until a unique name is found.
-    while (FindNodeByName(uniqueName).IsValid())
-    {
-        uniqueName = HYP_FORMAT("{}{}", baseName, counter);
-        ++counter;
-    }
-
-    return CreateNameFromDynamicString(uniqueName);
 }
 
 void Scene::Update(float delta)

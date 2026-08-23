@@ -11,10 +11,20 @@ namespace Hyperion {
 
 class Camera;
 class World;
+class Entity;
+class Scene;
+
+namespace net {
+enum class NetConnectionId : uint32;
+} // namespace net
 
 namespace SceneHelpers {
 
 Camera* FindMainCamera(World& world);
+
+Entity* FindMyLocalPlayerEntity(const Scene& scene, net::NetConnectionId ownerConnectionId);
+
+bool IsLocalPlayerEntity(const Entity& entity);
 
 } // namespace SceneHelpers
 
