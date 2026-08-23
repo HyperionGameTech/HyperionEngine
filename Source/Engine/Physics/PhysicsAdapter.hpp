@@ -71,6 +71,11 @@ public:
         GetDerivedAdapter()->DerivedAdapter::SetRigidBodyTransform(rigidBody, transform);
     }
 
+    void SetRigidBodyKinematic(const Handle<RigidBody>& rigidBody, bool isKinematic)
+    {
+        GetDerivedAdapter()->DerivedAdapter::SetRigidBodyKinematic(rigidBody, isKinematic);
+    }
+
     void OnChangePhysicsShape(RigidBody* rigidBody)
     {
         GetDerivedAdapter()->DerivedAdapter::OnChangePhysicsShape(rigidBody);

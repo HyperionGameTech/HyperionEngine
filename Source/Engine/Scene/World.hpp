@@ -307,6 +307,7 @@ public:
 
 private:
     void SyncPhysicsToEntities();
+    void SyncPhysicsBodyKinematicStates();
 
     bool AddSystemToExecutionGroup(SystemBase* system);
 

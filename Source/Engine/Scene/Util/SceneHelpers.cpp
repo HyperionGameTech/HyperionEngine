@@ -16,6 +16,7 @@
 #include <Scene/Camera/Camera.hpp>
 
 #include <Scene/Components/PlayerComponent.hpp>
+#include <Scene/Components/ReplicationStateComponent.hpp>
 
 #include <Framework/Client/GameClient.hpp>
 
@@ -74,6 +75,19 @@ bool IsLocalPlayerEntity(const Entity& entity)
     const PlayerComponent* playerComponent = entity.TryGetComponent<PlayerComponent>();
 
     return playerComponent != nullptr && playerComponent->IsLocalPlayer();
+}
+
+bool CanSimulateEntityPhysics(const Entity& entity)
+{
+    // Has authority? Yes, we can simulate physics on it
+    if (EngineGlobals::HasAuthority())
+    {
+        return true;
+    }
+
+    // Connected client: we can simulate non-Replicated entities.
+    return !entity.HasComponent<ReplicationStateComponent>()
+        && !entity.HasTag<EntityTag::Replicated>();
 }
 
 } // namespace SceneHelpers

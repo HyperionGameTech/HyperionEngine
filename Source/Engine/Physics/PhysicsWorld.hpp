@@ -58,6 +58,7 @@ public:
     virtual void AddRigidBody(const Handle<RigidBody>& rigidBody) = 0;
     virtual void RemoveRigidBody(const Handle<RigidBody>& rigidBody) = 0;
     virtual void SetRigidBodyTransform(const Handle<RigidBody>& rigidBody, const Transform& transform) = 0;
+    virtual void SetRigidBodyKinematic(const Handle<RigidBody>& rigidBody, bool isKinematic) = 0;
 
     virtual void AddCharacterController(const CharacterControllerConfig& config, SharedPtr<void>& outPhysicsHandle) = 0;
     virtual void RemoveCharacterController(SharedPtr<void>& physicsHandle) = 0;
@@ -134,6 +135,11 @@ public:
     void SetRigidBodyTransform(const Handle<RigidBody>& rigidBody, const Transform& transform) override
     {
         m_adapter.SetRigidBodyTransform(rigidBody, transform);
+    }
+
+    void SetRigidBodyKinematic(const Handle<RigidBody>& rigidBody, bool isKinematic) override
+    {
+        m_adapter.SetRigidBodyKinematic(rigidBody, isKinematic);
     }
 
     void AddCharacterController(const CharacterControllerConfig& config, SharedPtr<void>& outPhysicsHandle) override

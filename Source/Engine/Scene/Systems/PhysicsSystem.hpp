@@ -51,9 +51,6 @@ public:
         };
     }
 
-private:
-    static bool CanSimulate(const RigidBodyComponent& rbc);
-
 }; // class PhysicsSystem
 
 } // namespace Hyperion

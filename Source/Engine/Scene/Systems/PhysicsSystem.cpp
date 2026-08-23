@@ -11,7 +11,10 @@
 #include <Scene/EntityManager.hpp>
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>
+
 #include <Scene/Components/MeshComponent.hpp>
+
+#include <Scene/Util/SceneHelpers.hpp>
 
 #include <Core/Reflection/Handle.hpp>
 
@@ -31,11 +34,6 @@ namespace Hyperion {
 
 extern PhysicsMaterial& GetDefaultPhysicsMaterial();
 extern PhysicsShape* GetDefaultPhysicsShape();
-
-bool PhysicsSystem::CanSimulate(const RigidBodyComponent&)
-{
-    return EngineGlobals::HasAuthority();
-}
 
 void PhysicsSystem::OnEntityAdded(Entity* entity)
 {
@@ -87,8 +85,11 @@ void PhysicsSystem::OnEntityAdded(Entity* entity)
 
     rigidBody->SetTransform(transform);
 
-    // The physics world is only ticked with authority, on clients they act as colliders.
-    // This gives clients static geometry to collide with
+    // @NOTE: For bodies that are replicated (not simulated), we add them as colliders.
+    // They don't fall or respond to forces, but they still push the dynamic bodies we DO
+    // simulate.
+    rigidBody->SetIsKinematic(!SceneHelpers::CanSimulateEntityPhysics(*entity));
+
     {
         PhysicsWorldBase* physicsWorld = GetWorld()->GetPhysicsWorld();
         AssertDebug(physicsWorld != nullptr);

@@ -44,6 +44,14 @@ void NullPhysicsAdapter::SetRigidBodyTransform(const Handle<RigidBody>& rigidBod
 {
 }
 
+void NullPhysicsAdapter::SetRigidBodyKinematic(const Handle<RigidBody>& rigidBody, bool isKinematic)
+{
+    if (rigidBody.IsValid())
+    {
+        rigidBody->SetIsKinematic(isKinematic);
+    }
+}
+
 void NullPhysicsAdapter::OnChangePhysicsShape(RigidBody* rigidBody)
 {
 }

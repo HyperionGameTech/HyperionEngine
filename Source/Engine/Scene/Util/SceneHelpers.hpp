@@ -26,6 +26,9 @@ Entity* FindMyLocalPlayerEntity(const Scene& scene, net::NetConnectionId ownerCo
 
 bool IsLocalPlayerEntity(const Entity& entity);
 
+/// Can we simulate physics for the entity?
+bool CanSimulateEntityPhysics(const Entity& entity);
+
 } // namespace SceneHelpers
 
 } // namespace Hyperion

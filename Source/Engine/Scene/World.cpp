@@ -33,6 +33,8 @@
 
 #include <Scene/WorldGrid/WorldGrid.hpp>
 
+#include <Scene/Util/SceneHelpers.hpp>
+
 #include <Scripting/EntityScripting.hpp>
 
 #include <Core/Threading/Threads.hpp>
@@ -577,17 +579,21 @@ void World::BeginUpdate(TaskBatch& inBatch, float delta)
 
     if (GetGameState().IsSimulating())
     {
-        if (EngineGlobals::HasAuthority())
+        if (m_physicsWorld != nullptr)
         {
-            if (m_physicsWorld != nullptr)
+            ENGINE_STAT_SCOPE(&s_statPhysicsUpdate);
+
+            // Clients simulate their non-replicated entities locally. Replicated entities are owned
+            // by the server, so keep their bodies kinematic (driven by replication) before stepping.
+            if (!EngineGlobals::HasAuthority())
             {
-                ENGINE_STAT_SCOPE(&s_statPhysicsUpdate);
-
-                m_physicsWorld->Tick(delta);
-
-                // must be called before entity managers are locked.
-                SyncPhysicsToEntities();
+                SyncPhysicsBodyKinematicStates();
             }
+
+            m_physicsWorld->Tick(delta);
+
+            // must be called before entity managers are locked.
+            SyncPhysicsToEntities();
         }
 
         ENGINE_STAT_SCOPE(&g_statScriptUpdate);
@@ -725,7 +731,6 @@ void World::EndUpdate()
 #endif
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void World::SyncPhysicsToEntities()
 {
     PhysicsWorld& physicsWorld = static_cast<PhysicsWorld&>(*m_physicsWorld);
@@ -777,6 +782,13 @@ void World::SyncPhysicsToEntities()
                 continue;
             }
 
+            // Kinematic bodies are driven externally (replicated colliders on a client), so their
+            // transform is owned by the replication path, not the simulation.
+            if (rigidBody->IsKinematic())
+            {
+                continue;
+            }
+
             const Transform& rigidBodyTransform = rigidBody->GetTransform();
 
             entity->SetWorldTranslation(rigidBodyTransform.GetTranslation(), TransformChangeType::Simulation);
@@ -790,7 +802,29 @@ void World::SyncPhysicsToEntities()
         entity->RemoveTag<EntityTag::UpdatePhysicsShape>();
     }
 }
-HYP_ENABLE_OPTIMIZATION;
+
+void World::SyncPhysicsBodyKinematicStates()
+{
+    for (Scene* scene : m_scenes)
+    {
+        for (auto [entity, rigidBodyComponent, transformComponent] : scene->GetEntityManager()->GetEntitySet<RigidBodyComponent, TransformComponent>())
+        {
+            Handle<RigidBody>& rigidBody = rigidBodyComponent.rigidBody;
+
+            if (!rigidBody)
+            {
+                continue;
+            }
+
+            const bool shouldBeKinematic = !SceneHelpers::CanSimulateEntityPhysics(*entity);
+
+            if (rigidBody->IsKinematic() != shouldBeKinematic)
+            {
+                m_physicsWorld->SetRigidBodyKinematic(rigidBody, shouldBeKinematic);
+            }
+        }
+    }
+}
 
 void World::CollectScenes(Array<Scene*, SceneTempAllocator>& outScenes)
 {
