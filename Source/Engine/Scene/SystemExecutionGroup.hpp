@@ -177,9 +177,6 @@ public:
     void FinishProcessing(bool executeBlocking = false);
 
 private:
-    bool m_requiresSimThread;
-    bool m_allowUpdate;
-
     TypeMap<SystemBase*> m_systems;
     UniquePtr<TaskBatch> m_taskBatch;
 
@@ -187,6 +184,9 @@ private:
     PerformanceClock m_performanceClock;
     FlatMap<SystemBase*, PerformanceClock> m_performanceClocks;
 #endif
+    
+    bool m_requiresSimThread : 1;
+    bool m_allowUpdate : 1;
 };
 
 } // namespace Hyperion

@@ -115,6 +115,7 @@ static void ForEachCharacter(
     }
 
     Array<FontAtlasCharacterIterator, ThreadAllocator> currentWordChars;
+    currentWordChars.Reserve(length);
 
     const auto iterateCurrentWord = [&currentWordChars, &callback]()
     {

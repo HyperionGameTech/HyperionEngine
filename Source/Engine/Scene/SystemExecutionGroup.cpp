@@ -18,9 +18,10 @@ namespace Hyperion
 // #define HYP_SYSTEM_LOG_PERFORMANCE
 
 SystemExecutionGroup::SystemExecutionGroup(bool requiresSimThread, bool allowUpdate)
-    : m_requiresSimThread(requiresSimThread),
-      m_allowUpdate(allowUpdate),
-      m_taskBatch(MakeUnique<TaskBatch>())
+    : m_taskBatch(MakeUnique<TaskBatch>()),
+      m_requiresSimThread(requiresSimThread),
+      m_allowUpdate(allowUpdate)
+      
 {
 }
 
@@ -146,21 +147,22 @@ void SystemExecutionGroup::StartProcessing(float delta, Span<Handle<Scene>> scen
             continue;
         }
 
-        m_taskBatch->AddTask([this, system, scenes, delta]
-                             {
-                                 HYP_NAMED_SCOPE_FMT("Processing system {}", system->GetName());
+        m_taskBatch->AddTask(
+            [this, system, scenes, delta]
+            {
+                HYP_NAMED_SCOPE_FMT("Processing system {}", system->GetName());
 
 #if HYP_DEBUG_MODE
-                                 PerformanceClock& performanceClock = m_performanceClocks[system];
-                                 performanceClock.Start();
+                PerformanceClock& performanceClock = m_performanceClocks[system];
+                performanceClock.Start();
 #endif
 
-                                 system->Process(delta, scenes);
+                system->Process(delta, scenes);
 
 #if HYP_DEBUG_MODE
-                                 performanceClock.Stop();
+                performanceClock.Stop();
 #endif
-                             });
+            });
     }
 }
 
