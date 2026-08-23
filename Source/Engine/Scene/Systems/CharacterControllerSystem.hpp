@@ -22,8 +22,6 @@ namespace Hyperion {
 
 class Entity;
 
-void ApplyCharacterMove(Entity* entity, CharacterControllerComponent& component, const PlayerMove& move, Vec3f& outResultTranslation);
-
 HYP_CLASS()
 class CharacterControllerInputHandler final : public InputHandlerBase
 {

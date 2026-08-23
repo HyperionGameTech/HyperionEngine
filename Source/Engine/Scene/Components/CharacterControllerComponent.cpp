@@ -15,4 +15,5 @@
 #include <CharacterControllerComponent.generated.inl>
 
 namespace Hyperion {
+    
 } // namespace Hyperion

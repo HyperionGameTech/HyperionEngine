@@ -287,7 +287,13 @@ namespace Hyperion.Editor.ViewModels
             Dispatcher.UIThread.VerifyAccess();
 
             World? world = EngineManager.CurrentProject?.World;
-            _cachedGameStateMode = world?.GetGameState().Mode ?? GameStateMode.Stopped;
+
+            if (!(world?.IsValid ?? false))
+            {
+                Logger.Log(LogLevel.Warning, "World is null or invalid");
+            }
+
+            _cachedGameStateMode = ((world?.IsValid ?? false) ? world.GetGameState().Mode : GameStateMode.Stopped);
 
             (SetGameModePlaying as SetGameModeCommand)?.RaiseCanExecuteChanged();
             (SetGameModeStopped as SetGameModeCommand)?.RaiseCanExecuteChanged();

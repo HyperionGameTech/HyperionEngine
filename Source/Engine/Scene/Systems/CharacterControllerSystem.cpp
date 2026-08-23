@@ -264,67 +264,6 @@ void CharacterControllerSystem::OnEntityRemoved(Entity* entity)
     }
 }
 
-static float GetCapsuleHeightOffset(const CharacterControllerComponent& component)
-{
-    if (CapsulePhysicsShape* capsuleShape = DynamicCast<CapsulePhysicsShape>(component.shape.Get()))
-    {
-        // amount to adjust the the final offset by after applying capsule height
-        // otherwise the node will sit directly on top of the capsule,
-        // when it should be contained within the capsule
-        static constexpr float CapsuleHeightOffset = 0.1f;
-
-        return capsuleShape->GetHeight() - CapsuleHeightOffset;
-    }
-
-    return 0.0f;
-}
-
-void ApplyCharacterMove(Entity* entity, CharacterControllerComponent& component, const PlayerMove& move, Vec3f& outResultTranslation)
-{
-    PhysicsWorldBase* physicsWorld = entity->GetWorld()->GetPhysicsWorld();
-    Assert(physicsWorld != nullptr);
-
-    outResultTranslation = Vec3f(0.0f);
-
-    if (!component.physicsHandle)
-    {
-        return;
-    }
-
-    // View direction is client-authoritative and carried per-move so both sides
-    // derive an identical walk direction.
-    const Vec3f horizontalView(move.viewDirection.x, 0.0f, move.viewDirection.z);
-
-    if (horizontalView.LengthSquared() > 0.0001f)
-    {
-        component.viewDirection = move.viewDirection;
-    }
-
-    Vec3f walkDirection;
-
-    if (move.movementInput.LengthSquared() > 0.0001f)
-    {
-        Vec3f forward = Vec3f(component.viewDirection.x, 0.0f, component.viewDirection.z).Normalize();
-        Vec3f right = Vec3f(0.0f, 1.0f, 0.0f).Cross(forward).Normalize();
-
-        walkDirection = (forward * move.movementInput.y + right * move.movementInput.x) * component.moveSpeed;
-    }
-
-    if (move.jumpRequested)
-    {
-        physicsWorld->ApplyCharacterJump(component.physicsHandle);
-    }
-
-    physicsWorld->SetCharacterWalkDirection(component.physicsHandle, walkDirection);
-
-    physicsWorld->StepCharacterController(component.physicsHandle, move.deltaTime);
-    physicsWorld->GetCharacterState(component.physicsHandle, component.translation, component.isOnGround);
-
-    outResultTranslation = component.translation + Vec3f(0.0f, GetCapsuleHeightOffset(component), 0.0f);
-
-    entity->SetWorldTranslation(outResultTranslation, TransformChangeType::Simulation);
-}
-
 static void SendPlayerMoves(ClientPredictionState& state)
 {
     if (g_gameClient == nullptr)
@@ -430,7 +369,7 @@ static void ReconcileMoveAck(Entity* entity, CharacterControllerComponent& compo
 
     // Rewind the physics character to the server's authoritative state (entity translation
     // carries a capsule height offset; the controller itself is positioned at the capsule center).
-    const float heightOffset = GetCapsuleHeightOffset(component);
+    const float heightOffset = SceneHelpers::GetCapsuleHeightOffset(component);
     const Vec3f authoritativeCapsuleCenter = ack.authoritativeTranslation - Vec3f(0.0f, heightOffset, 0.0f);
 
     physicsWorld->SetCharacterTranslation(component.physicsHandle, authoritativeCapsuleCenter);
@@ -440,7 +379,7 @@ static void ReconcileMoveAck(Entity* entity, CharacterControllerComponent& compo
     {
         Vec3f resultTranslation = Vec3f(0.0f);
 
-        ApplyCharacterMove(entity, component, buffered.move, resultTranslation);
+        SceneHelpers::MoveCharacter(entity, component, buffered.move, resultTranslation);
 
         buffered.resultTranslation = resultTranslation;
     }
@@ -524,7 +463,7 @@ static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent
 
     Vec3f resultTranslation = Vec3f(0.0f);
 
-    ApplyCharacterMove(entity, component, move, resultTranslation);
+    SceneHelpers::MoveCharacter(entity, component, move, resultTranslation);
 
     state.unacknowledgedMoves.PushBack(ClientPredictionState::BufferedMove { move, resultTranslation });
 
@@ -635,7 +574,7 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
                 Vec3f resultTranslation = Vec3f(0.0f);
 
-                ApplyCharacterMove(entity, component, move, resultTranslation);
+                SceneHelpers::MoveCharacter(entity, component, move, resultTranslation);
             }
             else if (isLocalPlayerEntity)
             {

@@ -19,6 +19,8 @@ namespace Hyperion {
 
 class InputHandlerBase;
 
+struct PlayerMove;
+
 HYP_STRUCT(Component,
     Label = "Character Controller Component",
     Description = "Allows an entity to have its movement driven by player input and interact with physics",

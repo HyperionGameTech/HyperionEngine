@@ -7,7 +7,6 @@
 #include <ScenePch.hpp>
 
 #include <Scene/Systems/ReplicationSystem.hpp>
-#include <Scene/Systems/CharacterControllerSystem.hpp> // For ApplyCharacterMove
 
 #include <Scene/Components/ReplicationStateComponent.hpp>
 #include <Scene/Components/PlayerComponent.hpp>
@@ -16,6 +15,8 @@
 #include <Scene/EntityManager.hpp>
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>
+
+#include <Scene/Util/SceneHelpers.hpp>
 
 #include <Framework/Server/GameServer.hpp>
 #include <Framework/Server/ServerRequestManager.hpp>
@@ -382,7 +383,7 @@ void ReplicationSystem::ProcessPlayerMoves()
         {
             const PlayerMove& move = queue.moves[i];
 
-            ApplyCharacterMove(entity, *component, move, resultTranslation);
+            SceneHelpers::MoveCharacter(entity, *component, move, resultTranslation);
 
             lastProcessedMoveId = move.moveId;
         }

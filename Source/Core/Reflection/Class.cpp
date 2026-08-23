@@ -1259,9 +1259,12 @@ bool Class::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& out
         return false;
     }
 
+    
+    ResourceGuard resourceScope = sor->GetReadScope();
+
     dotnet::ManagedObject* managedObject = ScriptObjectFunctions::GetManagedObject(sor);
 
-    if (!managedObject)
+    if (!managedObject || !managedObject->IsValid())
     {
         return false;
     }
