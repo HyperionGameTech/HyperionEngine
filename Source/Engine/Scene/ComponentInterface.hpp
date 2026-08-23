@@ -161,7 +161,7 @@ public:
     }
 };
 
-template <EntityTag Tag, bool ShouldSerialize = true, bool ShowInEditor = true>
+template <class ComponentT, EntityTag Tag, bool ShouldSerialize = true, bool ShowInEditor = true>
 class EntityTagComponentInterface final : public IComponentInterface
 {
 public:
@@ -188,7 +188,7 @@ public:
 
     virtual const TypeInfo& GetTypeInfo() const override
     {
-        return TypeOf<TagComponent<Tag>>();
+        return TypeOf<ComponentT>();
     }
 
     virtual ComponentContainerFactoryBase* GetComponentContainerFactory() const override
@@ -198,7 +198,7 @@ public:
 
     virtual bool CreateInstance(BoxedValue& out) const override
     {
-        out = BoxedValue(TagComponent<Tag> {});
+        out = BoxedValue(ComponentT {});
 
         return true;
     }
@@ -294,9 +294,27 @@ struct ComponentInterfaceRegistration<TagComponent<Tag>, ShouldSerialize, ShowIn
             TypeId::ForType<TagComponent<Tag>>(),
             []() -> UniquePtr<IComponentInterface>
             {
-                return MakeUnique<EntityTagComponentInterface<Tag, ShouldSerialize, ShowInEditor>>(
+                return MakeUnique<EntityTagComponentInterface<TagComponent<Tag>, Tag, ShouldSerialize, ShowInEditor>>(
                     MakeUnique<ComponentFactory<TagComponent<Tag>>>(),
                     ComponentContainer<TagComponent<Tag>>::GetFactory());
+            });
+    }
+};
+
+template <class T, bool ShouldSerialize, bool ShowInEditor>
+struct ComponentInterfaceRegistration<EntityTypeTag<T>, ShouldSerialize, ShowInEditor>
+{
+    static constexpr EntityTag Tag = EntityType_Impl<T>::value;
+
+    ComponentInterfaceRegistration()
+    {
+        ComponentInterfaceRegistry::GetInstance().Register(
+            TypeId::ForType<EntityTypeTag<T>>(),
+            []() -> UniquePtr<IComponentInterface>
+            {
+                return MakeUnique<EntityTagComponentInterface<EntityTypeTag<T>, Tag, ShouldSerialize, ShowInEditor>>(
+                    MakeUnique<ComponentFactory<EntityTypeTag<T>>>(),
+                    ComponentContainer<EntityTypeTag<T>>::GetFactory());
             });
     }
 };
@@ -311,7 +329,7 @@ struct ComponentInterfaceRegistration<TagComponent<Tag>, ShouldSerialize, ShowIn
     }
 
 #define HYP_REGISTER_ENTITY_TYPE(T, ...)                                                                                                               \
-    static ComponentInterfaceRegistration<TagComponent<EntityType_Impl<T>::value>, false, false, ##__VA_ARGS__> T##_EntityTag_ComponentInterface_Registration \
+    static ComponentInterfaceRegistration<EntityTypeTag<T>, false, false, ##__VA_ARGS__> T##_EntityTag_ComponentInterface_Registration \
     {                                                                                                                                                  \
     }
 

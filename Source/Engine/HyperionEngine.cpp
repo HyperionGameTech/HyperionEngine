@@ -236,6 +236,33 @@ void InitSignalHandlers()
     atexit(SignalHandlers::HandleExit);
 }
 
+static CommandLineArgumentRegistration g_argRenderOnMainThread {
+    "RenderOnMainThread",
+    {},
+    "Run rendering on the main thread instead of using dedicated render thread.",
+    CommandLineArgumentFlags::NONE,
+    CommandLineArgumentType::BOOLEAN,
+    false
+};
+
+static CommandLineArgumentRegistration g_argSimulateOnMainThread {
+    "SimulateOnMainThread",
+    {},
+    "Simulate game logic on the main thread. Not compatible with -RenderOnMainThread.",
+    CommandLineArgumentFlags::NONE,
+    CommandLineArgumentType::BOOLEAN,
+    true
+};
+
+static CommandLineArgumentRegistration g_argDedicatedVisThread {
+    "DedicatedVisThread",
+    {},
+    "Use a dedicated thread for setting visibility states. If set to false, visibility will be computed on the simulation thread during normal frame processing.",
+    CommandLineArgumentFlags::NONE,
+    CommandLineArgumentType::BOOLEAN,
+    false
+};
+
 void InitThreads()
 {
     // Handle -RenderOnMainThread, -SimulateOnMainThread cli args
@@ -291,6 +318,10 @@ void InitLogger()
 
     LogChannelRegistrar::GetInstance().RegisterAll();
 }
+
+static CommandLineArgumentRegistration g_argResX { "resx", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::INTEGER };
+static CommandLineArgumentRegistration g_argResY { "resy", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::INTEGER };
+static CommandLineArgumentRegistration g_argHighDpi { "highdpi", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false };
 
 void InitMainWindow()
 {
@@ -382,6 +413,9 @@ void LoadShaderPropertyDictionary()
 }
 
 } // namespace
+
+static CommandLineArgumentRegistration g_argExec { "exec", "", "Execute the commandlet with the given name immediately following --exec. The program will end immediately after running the commandlet and return 0 upon success or otherwise on failure", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING };
+static CommandLineArgumentRegistration g_argTraceServer { "traceserver", {}, "The endpoint url that profiling data will be submitted to (this url will have /start appended to it to start the session and /results to add results)", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING };
 
 extern "C"
 {

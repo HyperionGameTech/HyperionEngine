@@ -71,6 +71,29 @@ struct CommandLineArgumentDefinition
     Optional<Array<String>> enumValues;
 };
 
+struct CORE_API CommandLineArgumentRegistration
+{
+    // value-typed arg (string/int/float/bool)
+    CommandLineArgumentRegistration(
+        const String& name,
+        const String& shorthand = String::empty,
+        const String& description = String::empty,
+        EnumFlags<CommandLineArgumentFlags> flags = CommandLineArgumentFlags::NONE,
+        CommandLineArgumentType type = CommandLineArgumentType::STRING,
+        const CommandLineArgumentValue& defaultValue = JSON::Undefined());
+
+    // enum-typed arg
+    CommandLineArgumentRegistration(
+        const String& name,
+        const String& shorthand,
+        const String& description,
+        EnumFlags<CommandLineArgumentFlags> flags,
+        const Array<String>& enumValues,
+        const CommandLineArgumentValue& defaultValue = JSON::Undefined());
+};
+
+CORE_API Array<CommandLineArgumentDefinition>& GetRegisteredCommandLineArgumentDefinitions();
+
 struct CommandLineArgumentDefinitionsImpl;
 
 HYP_STRUCT(Size = 8)
@@ -250,8 +273,10 @@ private:
 } // namespace cli
 
 using cli::CommandLineArgumentDefinitions;
+using cli::CommandLineArgumentRegistration;
 using cli::CommandLineArguments;
 using cli::CommandLineArgumentValue;
 using cli::CommandLineParser;
+using cli::GetRegisteredCommandLineArgumentDefinitions;
 
 } // namespace Hyperion

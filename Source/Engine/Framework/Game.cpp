@@ -60,6 +60,8 @@ namespace Hyperion {
 
 ENGINE_API HYP_DEFINE_LOG_CHANNEL(Game);
 
+static CommandLineArgumentRegistration g_argAutoconnect { "autoconnect", {}, "If true, will automatically connect to the given `host`", CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, true };
+
 ScriptableDelegate<void> Game::OnLaunched;
 ScriptableDelegate<void, Game*, GameStateMode, GameStateMode> Game::OnGameStateChange;
 

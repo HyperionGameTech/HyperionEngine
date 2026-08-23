@@ -81,6 +81,53 @@ static void AppendCommandLineArgumentValue(
     AppendCommandLineArgumentValue(values, key, CommandLineArgumentValue(value), allowMultiple);
 }
 
+#pragma region CommandLineArgumentRegistration
+
+Array<CommandLineArgumentDefinition>& GetRegisteredCommandLineArgumentDefinitions()
+{
+    static Array<CommandLineArgumentDefinition> s_registeredDefinitions;
+    return s_registeredDefinitions;
+}
+
+CommandLineArgumentRegistration::CommandLineArgumentRegistration(
+    const String& name,
+    const String& shorthand,
+    const String& description,
+    EnumFlags<CommandLineArgumentFlags> flags,
+    CommandLineArgumentType type,
+    const CommandLineArgumentValue& defaultValue)
+{
+    GetRegisteredCommandLineArgumentDefinitions().PushBack(CommandLineArgumentDefinition {
+        name,
+        shorthand.Empty() ? Optional<String>() : shorthand,
+        description.Empty() ? Optional<String>() : description,
+        flags,
+        type,
+        defaultValue });
+}
+
+CommandLineArgumentRegistration::CommandLineArgumentRegistration(
+    const String& name,
+    const String& shorthand,
+    const String& description,
+    EnumFlags<CommandLineArgumentFlags> flags,
+    const Array<String>& enumValues,
+    const CommandLineArgumentValue& defaultValue)
+{
+    CommandLineArgumentDefinition definition;
+    definition.name = name;
+    definition.type = CommandLineArgumentType::ENUM;
+    definition.shorthand = shorthand.Empty() ? Optional<String>() : shorthand;
+    definition.description = description.Empty() ? Optional<String>() : description;
+    definition.flags = flags;
+    definition.defaultValue = defaultValue;
+    definition.enumValues = enumValues;
+
+    GetRegisteredCommandLineArgumentDefinitions().PushBack(std::move(definition));
+}
+
+#pragma endregion CommandLineArgumentRegistration
+
 #pragma region CommandLineArguments
 
 const CommandLineArgumentValue& CommandLineArguments::operator[](UTF8StringView key) const

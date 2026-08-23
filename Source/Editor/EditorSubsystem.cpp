@@ -3717,7 +3717,7 @@ void EditorSubsystem::Update(float delta)
             // Debug draw probes
             for (Scene* scene : world->GetScenes())
             {
-                for (auto [probe, _] : scene->GetEntityManager()->GetEntitySet<EntityType<EnvProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+                for (auto [probe] : scene->GetEntityManager()->GetEntitySet<EntityType<EnvProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
                     static constexpr auto ReflectionProbeTypeId = CONSTEXPR_TYPE_ID(ReflectionProbe);
                     static constexpr auto SkyProbeTypeId = CONSTEXPR_TYPE_ID(SkyProbe);
@@ -3726,13 +3726,13 @@ void EditorSubsystem::Update(float delta)
                     switch (probe->InstanceClass()->GetTypeId().Value())
                     {
                     case ReflectionProbeTypeId:
-                        dbg.reflectionProbe(probe->GetWorldTranslation(), 1.0f, static_cast<EnvProbe&>(*probe));
+                        dbg.reflectionProbe(probe->GetWorldTranslation(), 1.0f, *probe);
                         break;
                     case SkyProbeTypeId:
-                        // dbg.reflectionProbe(probe->GetWorldTranslation(), 1.0f, static_cast<EnvProbe&>(*probe));
+                        // dbg.reflectionProbe(probe->GetWorldTranslation(), 1.0f, *probe);
                         break;
                     case IrradianceProbeTypeId:
-                        dbg.ambientProbe(probe->GetWorldTranslation(), 1.0f, static_cast<EnvProbe&>(*probe));
+                        dbg.ambientProbe(probe->GetWorldTranslation(), 1.0f, *probe);
                         break;
                     default:
                         HYP_LOG_ONCE(Editor, Warning, "Unknown probe type class: {}", probe->InstanceClass()->GetName());

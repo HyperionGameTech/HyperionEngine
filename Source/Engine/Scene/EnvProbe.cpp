@@ -719,10 +719,8 @@ void EnvProbe::Update(float delta)
                 return;
             }
 
-            for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<Camera>>().GetScopedView(DataAccessFlags::ACCESS_READ))
+            for (auto [camera] : scene->GetEntityManager()->GetEntitySet<EntityType<Camera>>().GetScopedView(DataAccessFlags::ACCESS_READ))
             {
-                Camera* camera = static_cast<Camera*>(entity);
-
                 if (camera->GetFrustum().ContainsAABB(worldAabb))
                 {
                     needsUpdate = true;

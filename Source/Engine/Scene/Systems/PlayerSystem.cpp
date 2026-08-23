@@ -43,6 +43,17 @@ void PlayerSystem::OnEntityAdded(Entity* entity)
         return;
     }
 
+    // A spawned player instance (tracked by connection) must never be registered as a template.
+    // Otherwise a later connection could select it, clone it, and re-run spawn logic on an entity
+    // that already carries player/replication state.
+    for (const auto& connectionEntityPair : m_connectionIdToPlayerEntity)
+    {
+        if (connectionEntityPair.second.Get() == entity)
+        {
+            return;
+        }
+    }
+
     const UUID& uuid = entity->GetUUID();
     if (m_playerEntityTemplates.Contains(uuid))
     {
@@ -163,8 +174,14 @@ bool PlayerSystem::TrySpawnPlayerEntity(net::NetConnectionId connectionId, bool 
         // later on we should have a unified path for spawning player entities
         // based on pre-loaded template entities, attaching camera, view, etc.
         
-        Assert(!templateEntity->HasComponent<PlayerComponent>());
-        templateEntity->AddComponent<PlayerComponent>(PlayerComponent { connectionId });
+        if (PlayerComponent* existingPlayerComponent = templateEntity->TryGetComponent<PlayerComponent>())
+        {
+            existingPlayerComponent->connectionId = connectionId;
+        }
+        else
+        {
+            templateEntity->AddComponent<PlayerComponent>(PlayerComponent { connectionId });
+        }
 
         m_connectionIdToPlayerEntity.Set(connectionId, templateEntity);
 
@@ -182,6 +199,10 @@ bool PlayerSystem::TrySpawnPlayerEntity(net::NetConnectionId connectionId, bool 
         return true;
     }
 
+    // Track the instance before attaching it to the scene so OnEntityAdded recognizes it as a
+    // spawned player rather than registering it as another template.
+    m_connectionIdToPlayerEntity.Set(connectionId, clone);
+
     Node* parent = templateEntity->GetParent();
 
     if (parent)
@@ -193,10 +214,19 @@ bool PlayerSystem::TrySpawnPlayerEntity(net::NetConnectionId connectionId, bool 
         templateEntity->GetEntityManager()->GetScene()->GetRoot()->AddChild(clone);
     }
 
-    clone->AddComponent<PlayerComponent>(PlayerComponent { connectionId });
-    clone->AddTag<EntityTag::Replicated>();
+    if (PlayerComponent* existingPlayerComponent = clone->TryGetComponent<PlayerComponent>())
+    {
+        existingPlayerComponent->connectionId = connectionId;
+    }
+    else
+    {
+        clone->AddComponent<PlayerComponent>(PlayerComponent { connectionId });
+    }
 
-    m_connectionIdToPlayerEntity.Set(connectionId, clone);
+    if (!clone->HasTag<EntityTag::Replicated>())
+    {
+        clone->AddTag<EntityTag::Replicated>();
+    }
 
     const Vec3f worldTranslation = clone->GetWorldTranslation();
 

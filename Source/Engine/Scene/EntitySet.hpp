@@ -23,6 +23,9 @@
 #include <Scene/EntitySetHelpers.hpp>
 #include <Scene/EntityContainer.hpp>
 #include <Scene/ComponentContainer.hpp>
+#include <Scene/EntityTag.hpp>
+
+#include <Core/Reflection/ObjectFwd.hpp>
 
 #include <Core/Types.hpp>
 
@@ -30,6 +33,46 @@ namespace Hyperion {
 
 template <class... Components>
 class EntitySet;
+
+template <class... Components>
+struct EntitySetHeadType
+{
+    using Type = Entity*;
+};
+template <class C, bool IsEntityTypeTag = EntityTypeTagInfo<C>::isEntityTypeTag>
+struct EntityTypeTagPointer
+{
+    using Type = void*;
+};
+
+template <class C>
+struct EntityTypeTagPointer<C, true>
+{
+    using Type = typename EntityTypeTagInfo<C>::EntityHandleType*;
+};
+
+template <class FirstComponent, class... RestComponents>
+struct EntitySetHeadType<FirstComponent, RestComponents...>
+{
+    using UnqualifiedFirstComponent = std::remove_const_t<FirstComponent>;
+
+    using Type = std::conditional_t<
+        EntityTypeTagInfo<UnqualifiedFirstComponent>::isEntityTypeTag,
+        typename EntityTypeTagPointer<UnqualifiedFirstComponent>::Type,
+        typename EntitySetHeadType<RestComponents...>::Type>;
+};
+
+template <class... T1>
+constexpr HYP_FORCE_INLINE Tuple<T1...> ConcatTuplesV(const Tuple<T1...>& last)
+{
+    return last;
+}
+
+template <class... T1, class... T2, class... Rest>
+constexpr HYP_FORCE_INLINE auto ConcatTuplesV(const Tuple<T1...>& first, const Tuple<T2...>& second, const Rest&... rest)
+{
+    return ConcatTuplesV(ConcatTuples(first, second), rest...);
+}
 
 template <class... Components>
 struct EntitySetIterator
@@ -72,36 +115,80 @@ struct EntitySetIterator
         return !(*this == other);
     }
 
-    Tuple<Entity*, Components&...> operator*()
+    HYP_FORCE_INLINE auto operator*()
     {
         const typename EntitySet<Components...>::Element& element = set.m_elements[index];
+        Entity* entity = element.template GetElement<0>();
 
-        return ConcatTuples(
-            MakeTuple(element.template GetElement<0>()),
-            GetComponents(element.template GetElement<2>(), std::make_index_sequence<sizeof...(Components)>()));
+        return ConcatTuplesV(
+            MakeTuple(GetHead(entity)),
+            GetComponents<false>(set, element.template GetElement<2>(), std::make_index_sequence<sizeof...(Components)>()));
     }
 
-    Tuple<Entity*, const Components&...> operator*() const
+    HYP_FORCE_INLINE auto operator*() const
     {
-        return const_cast<EntitySetIterator*>(this)->operator*();
+        const typename EntitySet<Components...>::Element& element = set.m_elements[index];
+        Entity* entity = element.template GetElement<0>();
+
+        return ConcatTuplesV(
+            MakeTuple(GetHead(entity)),
+            GetComponents<true>(set, element.template GetElement<2>(), std::make_index_sequence<sizeof...(Components)>()));
     }
 
-    Tuple<Entity*, Components&...> operator->()
+    auto operator->()
     {
         return **this;
     }
 
-    Tuple<Entity*, const Components&...> operator->() const
+    auto operator->() const
     {
         return **this;
     }
 
 private:
-    template <size_t... Indices>
-    Tuple<Components&...> GetComponents(const FixedArray<ComponentId, sizeof...(Components)>& componentIds, std::index_sequence<Indices...>)
+    using HeadType = typename EntitySetHeadType<Components...>::Type;
+
+    static HYP_FORCE_INLINE HeadType GetHead(Entity* entity)
     {
-        return Tuple<Components&...>(
-            set.m_componentContainers.template GetElement<ComponentContainer<Components>*>()->GetComponent(componentIds[Indices])...);
+        if constexpr (std::is_same_v<HeadType, Entity*>)
+        {
+            return entity;
+        }
+        else
+        {
+            // Guaranteed to actually be T, so cast it
+            return StaticCast<std::remove_pointer_t<HeadType>>(entity);
+        }
+    }
+
+    template <class C, bool IsConst>
+    static HYP_FORCE_INLINE auto GetComponentSlot(EntitySet<Components...>& set, ComponentId componentId)
+    {
+        if constexpr (EntityTypeTagInfo<std::remove_const_t<C>>::isEntityTypeTag)
+        {
+            return Tuple<>();
+        }
+        else if constexpr (IsConst)
+        {
+            return Tuple<const C&>(set.m_componentContainers.template GetElement<ComponentContainer<C>*>()->GetComponent(componentId));
+        }
+        else
+        {
+            return Tuple<C&>(set.m_componentContainers.template GetElement<ComponentContainer<C>*>()->GetComponent(componentId));
+        }
+    }
+
+    template <bool IsConst, size_t... Indices>
+    static HYP_FORCE_INLINE auto GetComponents(EntitySet<Components...>& set, const FixedArray<ComponentId, sizeof...(Components)>& componentIds, std::index_sequence<Indices...>)
+    {
+        if constexpr (sizeof...(Indices) == 0)
+        {
+            return Tuple<>();
+        }
+        else
+        {
+            return ConcatTuplesV(GetComponentSlot<Components, IsConst>(set, componentIds[Indices])...);
+        }
     }
 };
 

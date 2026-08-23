@@ -56,10 +56,8 @@ void LightmapSystem::OnAddedToWorld(World* world)
 
         if (mgr != nullptr)
         {
-            for (auto [lmvEntity, _] : mgr->GetEntitySet<EntityType<LightmapVolume>>())
+            for (auto [lmv] : mgr->GetEntitySet<EntityType<LightmapVolume>>())
             {
-                LightmapVolume* lmv = StaticCast<LightmapVolume>(lmvEntity);
-
                 if (lmv->GetLightmapVolumeId() == InvalidLightmapVolumeId)
                 {
                     lmv->SetLightmapVolumeId(AllocateLightmapVolumeId());
@@ -117,10 +115,8 @@ bool LightmapSystem::AssignLightmapVolume(
     LightmapElementComponent& lightmapElementComponent,
     BoundingBoxComponent& boundingBoxComponent)
 {
-    for (auto [lmvEntity, _] : scene.GetEntityManager()->GetEntitySet<EntityType<LightmapVolume>>().GetScopedView(GetComponentInfos()))
+    for (auto [lightmapVolume] : scene.GetEntityManager()->GetEntitySet<EntityType<LightmapVolume>>().GetScopedView(GetComponentInfos()))
     {
-        LightmapVolume* lightmapVolume = StaticCast<LightmapVolume>(lmvEntity);
-
         if (lightmapElementComponent.lightmapVolume.GetUnsafe() != lightmapVolume
             && lightmapElementComponent.GetTopAssignment() == lightmapVolume->GetLightmapVolumeId())
         {

@@ -108,57 +108,14 @@ static Mutex s_globalConfigMutex;
 
 static CommandLineArguments s_commandLineArguments;
 
+static CommandLineArgumentRegistration g_argProfile { "profile", {}, "Enable collection of profiling data for functions that opt in using HYP_SCOPE.", CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false };
+static CommandLineArgumentRegistration g_argBaseDir { "basedir", {}, "Base directory", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING };
+
 CORE_API const CommandLineArgumentDefinitions& DefaultCommandLineArgumentDefinitions()
 {
-    static const struct DefaultCommandLineArgumentDefinitionsInitializer
-    {
-        CommandLineArgumentDefinitions definitions;
+    static const CommandLineArgumentDefinitions definitions(GetRegisteredCommandLineArgumentDefinitions());
 
-        DefaultCommandLineArgumentDefinitionsInitializer()
-        {
-            definitions.Add("profile", {}, "Enable collection of profiling data for functions that opt in using HYP_SCOPE.", CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
-            definitions.Add("traceserver", {}, "The endpoint url that profiling data will be submitted to (this url will have /start appended to it to start the session and /results to add results)", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
-            definitions.Add("basedir", {}, "Base directory", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
-            definitions.Add("cachedir", {}, "Directory for loading blob cache data (or saving for cook)", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
-            definitions.Add("contentdir", {}, "Directory for loading content manifest files", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
-            definitions.Add("cacheserver", {}, "Endpoint to sync cache from", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
-            definitions.Add("resx", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::INTEGER);
-            definitions.Add("resy", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::INTEGER);
-            definitions.Add("headless", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
-            definitions.Add("highdpi", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
-            definitions.Add("detached", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
-            definitions.Add("editor", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
-            definitions.Add("server", {}, "Launch standalone game as headless authoritative server", CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
-            definitions.Add("host", {}, "Provide host address for connecting to a game server", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
-            definitions.Add("autoconnect", {}, "If true, will automatically connect to the given `host`", CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, true);
-            definitions.Add("exec", "", "Execute the commandlet with the given name immediately following --exec. The program will end immediately after running the commandlet and return 0 upon success or otherwise on failure", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
-
-            definitions.Add("RenderOnMainThread",
-                            {},
-                            "Run rendering on the main thread instead of using dedicated render thread.",
-                            CommandLineArgumentFlags::NONE,
-                            CommandLineArgumentType::BOOLEAN,
-                            false);
-
-            definitions.Add("SimulateOnMainThread",
-                            {},
-                            "Simulate game logic on the main thread. Not compatible with -RenderOnMainThread.",
-                            CommandLineArgumentFlags::NONE,
-                            CommandLineArgumentType::BOOLEAN,
-                            true);
-
-            definitions.Add("DedicatedVisThread",
-                            {},
-                            "Use a dedicated thread for setting visibility states. If set to false, visibility will be computed on the simulation thread during normal frame processing.",
-                            CommandLineArgumentFlags::NONE,
-                            CommandLineArgumentType::BOOLEAN,
-                            false);
-
-            definitions.Add("Mode", "m", {}, CommandLineArgumentFlags::NONE, Array<String> { "precompile_shaders", "editor" }, String("editor"));
-        }
-    } s_initializer;
-
-    return s_initializer.definitions;
+    return definitions;
 }
 
 CORE_API bool Initialize(int argc, char** argv)

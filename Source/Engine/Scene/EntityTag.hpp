@@ -214,11 +214,30 @@ struct TagComponent : TagComponentBase
     }
 };
 
+template <class T>
+struct EntityTypeTag : TagComponent<EntityType_Impl<T>::value>
+{
+};
+
 /*! \brief A helper used to query for Entity instances with a specific type.
  *
  *  \tparam T The type of Entity
  */
 template <class T>
-using EntityType = TagComponent<EntityType_Impl<T>::value>;
+using EntityType = EntityTypeTag<T>;
+
+/*! \brief Trait used by EntitySetIterator to detect an EntityType<T> query */
+template <class T>
+struct EntityTypeTagInfo
+{
+    static constexpr bool isEntityTypeTag = false;
+};
+
+template <class T>
+struct EntityTypeTagInfo<EntityTypeTag<T>>
+{
+    static constexpr bool isEntityTypeTag = true;
+    using EntityHandleType = T;
+};
 
 } // namespace Hyperion

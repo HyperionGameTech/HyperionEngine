@@ -39,9 +39,9 @@ Camera* FindMainCamera(World& world)
                 continue;
             }
 
-            for (auto [entity, _0, _1] : entityManager->GetEntitySet<EntityType<Camera>, TagComponent<EntityTag::PrimaryCamera>>())
+            for (auto [camera, _1] : entityManager->GetEntitySet<EntityType<Camera>, TagComponent<EntityTag::PrimaryCamera>>())
             {
-                return StaticCast<Camera>(entity);
+                return camera;
             }
         }
     }

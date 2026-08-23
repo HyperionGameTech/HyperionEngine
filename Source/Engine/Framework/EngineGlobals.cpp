@@ -35,6 +35,14 @@ struct CacheServerContext;
 
 namespace EngineGlobals {
 
+static CommandLineArgumentRegistration g_argCacheDir { "cachedir", {}, "Directory for loading blob cache data (or saving for cook)", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING };
+static CommandLineArgumentRegistration g_argContentDir { "contentdir", {}, "Directory for loading content manifest files", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING };
+static CommandLineArgumentRegistration g_argCacheServer { "cacheserver", {}, "Endpoint to sync cache from", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING };
+static CommandLineArgumentRegistration g_argHeadless { "headless", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false };
+static CommandLineArgumentRegistration g_argServer { "server", {}, "Launch standalone game as headless authoritative server", CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false };
+static CommandLineArgumentRegistration g_argHost { "host", {}, "Provide host address for connecting to a game server", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING };
+static CommandLineArgumentRegistration g_argEditor { "editor", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false };
+
 /// Editor build only
 #ifdef HYP_EDITOR
 

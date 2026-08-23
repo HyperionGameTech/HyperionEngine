@@ -842,9 +842,9 @@ void World::CollectCameras(Array<Camera*, SceneTempAllocator>& outCameras)
 
     for (Scene* scene : m_scenes)
     {
-        for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<Camera>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        for (auto [camera] : scene->GetEntityManager()->GetEntitySet<EntityType<Camera>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
-            outCameras.PushBack(static_cast<Camera*>(entity));
+            outCameras.PushBack(camera);
         }
     }
 }

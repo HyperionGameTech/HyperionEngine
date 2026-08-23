@@ -108,26 +108,24 @@ Result BakeData<FogVolume>::Build()
                 continue;
             }
 
-            for (auto [entity, _] : mgr->GetEntitySet<EntityType<Light>>())
+            for (auto [light] : mgr->GetEntitySet<EntityType<Light>>())
             {
-                if (StaticCast<Light>(entity)->GetLightType() == LightType::Directional)
+                if (light->GetLightType() == LightType::Directional)
                 {
                     if (!foundSun)
                     {
-                        m_sunDirection = StaticCast<DirectionalLight>(entity)->GetDirection();
+                        m_sunDirection = StaticCast<DirectionalLight>(light)->GetDirection();
                         foundSun = true;
                     }
 
                     continue;
                 }
 
-                m_lights.PushBack(MakeStrongRef(StaticCast<Light>(entity)));
+                m_lights.PushBack(MakeStrongRef(light));
             }
 
-            for (auto [entity, _] : mgr->GetEntitySet<EntityType<EnvProbe>>())
+            for (auto [envProbe] : mgr->GetEntitySet<EntityType<EnvProbe>>())
             {
-                EnvProbe* envProbe = StaticCast<EnvProbe>(entity);
-
                 if (!envProbe->IsAmbientProbe())
                 {
                     continue;
