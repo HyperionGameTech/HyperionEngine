@@ -571,6 +571,7 @@ void DefaultGame::ShowConnectScreen()
 
     if (hostTextbox.IsValid())
     {
+        // Fired on submit - enter press
         hostTextbox->OnTextChange.Bind(hostTextbox,
             [submitHost](const String&) -> UIEventHandlerResult
             {

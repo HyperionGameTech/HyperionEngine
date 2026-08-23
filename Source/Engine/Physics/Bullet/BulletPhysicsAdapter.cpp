@@ -517,7 +517,21 @@ void BulletPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physic
         return;
     }
 
-    internalData->kcc->updateAction(m_dynamicsWorld, deltaTime);
+    // Step in fixed substeps: a single sweep over a large delta (loading hitch, breakpoint,
+    // etc.) can tunnel the capsule through geometry, since the kinematic controller only
+    // sweeps against its current overlapping pairs. Cap the total time we are willing to
+    // simulate for one move, and divide whatever remains into substeps.
+    constexpr float maxSubstepDelta = 1.0f / 60.0f;
+    constexpr int maxSubsteps = 3;
+
+    const float totalDelta = MathUtil::Min(deltaTime, maxSubstepDelta * float(maxSubsteps));
+    const int numSubsteps = MathUtil::Min(int(MathUtil::Ceil(totalDelta / maxSubstepDelta)), maxSubsteps);
+    const float substepDelta = totalDelta / float(numSubsteps);
+
+    for (int i = 0; i < numSubsteps; ++i)
+    {
+        internalData->kcc->updateAction(m_dynamicsWorld, substepDelta);
+    }
 }
 
 void BulletPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation)

@@ -276,14 +276,14 @@ namespace Hyperion.Editor.ViewModels
         {
             get
             {
-                EditorProject? project = EngineManager.CurrentProject;
+                World? world = EngineManager.CurrentProject?.World;
 
-                if (project == null)
+                if (world == null)
                 {
                     return false;
                 }
 
-                return project.World.GetGameState().Mode != GameStateMode.Simulating;
+                return world.GetGameState().Mode != GameStateMode.Simulating;
             }
         }
 
@@ -292,14 +292,14 @@ namespace Hyperion.Editor.ViewModels
         {
             get
             {
-                EditorProject? project = EngineManager.CurrentProject;
+                World? world = EngineManager.CurrentProject?.World;
 
-                if (project == null)
+                if (world == null)
                 {
                     return false;
                 }
 
-                return project.World.GetGameState().Mode == GameStateMode.Simulating;
+                return world.GetGameState().Mode == GameStateMode.Simulating;
             }
         }
 
@@ -308,14 +308,14 @@ namespace Hyperion.Editor.ViewModels
         {
             get
             {
-                EditorProject? project = EngineManager.CurrentProject;
+                World? world = EngineManager.CurrentProject?.World;
 
-                if (project == null)
+                if (world == null)
                 {
                     return false;
                 }
 
-                return !project.World.GetGameState().Stopped;
+                return !world.GetGameState().Stopped;
             }
         }
 

@@ -14,6 +14,8 @@
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>
 
+#include <Scene/Camera/Camera.hpp>
+
 #include <Physics/PhysicsWorld.hpp>
 #include <Physics/PhysicsShape.hpp>
 
@@ -214,6 +216,21 @@ static bool IsLocallyControlledPlayerEntity(Entity* entity)
     return playerComponent == nullptr || playerComponent->IsLocalPlayer();
 }
 
+static Vec3f GetPlayerViewDirection(Entity* entity)
+{
+    for (const Handle<Node>& child : entity->GetChildren())
+    {
+        if (Handle<Camera> camera = DynamicCast<Camera>(child); camera.IsValid())
+        {
+            return camera->GetDirection();
+        }
+    }
+
+    const TransformComponent& transformComponent = entity->GetComponent<TransformComponent>();
+
+    return transformComponent.rotation.RotateVector(Vec3f(0.0f, 0.0f, 1.0f));
+}
+
 void CharacterControllerSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
@@ -385,9 +402,6 @@ static void SendPlayerMoves(ClientPredictionState& state)
         TaskEnqueueFlags::FIRE_AND_FORGET);
 }
 
-/// Handles a server move acknowledgement: drops acked moves and, if our prediction for the
-/// acked move deviates too far from the authoritative result, rewinds to the server state
-/// and replays all still-unacknowledged moves on top of it.
 static void ReconcileMoveAck(Entity* entity, CharacterControllerComponent& component, ClientPredictionState& state, const PlayerMoveAck& ack)
 {
     if (ack.ackedMoveId <= state.lastAckedMoveId)
@@ -424,7 +438,8 @@ static void ReconcileMoveAck(Entity* entity, CharacterControllerComponent& compo
     state.lastAckedMoveId = ack.ackedMoveId;
 
     const float correctionThreshold = EngineGlobals::GetCorrectionThreshold();
-    const bool needsCorrection = predictedResult.HasValue()
+
+    const bool needsCorrection = !predictedResult.HasValue()
         || (*predictedResult - ack.authoritativeTranslation).LengthSquared() > correctionThreshold * correctionThreshold;
 
     if (!needsCorrection)
@@ -459,7 +474,7 @@ static void ReconcileMoveAck(Entity* entity, CharacterControllerComponent& compo
         buffered.resultTranslation = resultTranslation;
     }
 
-    if (predictedResult == nullptr && state.unacknowledgedMoves.Empty())
+    if (!predictedResult.HasValue() && state.unacknowledgedMoves.Empty())
     {
         // No local state to compare or replay against -- snap directly to the server state.
         component.translation = authoritativeCapsuleCenter;
@@ -528,16 +543,13 @@ static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent
 
     CharacterControllerInputHandler* inputHandler = StaticCast<CharacterControllerInputHandler>(component.inputHandler.Get());
 
-    TransformComponent& transformComponent = entity->GetComponent<TransformComponent>();
-    const Vec3f facingDirection = transformComponent.rotation.RotateVector(Vec3f(0.0f, 0.0f, 1.0f));
-
     // Predict this tick's move locally
     PlayerMove move;
     move.moveId = state.nextMoveId++;
     move.deltaTime = entity->GetWorld()->GetGameState().deltaTime;
     move.movementInput = inputHandler->GetMovementInput();
     move.jumpRequested = int8(inputHandler->IsJumpPressed());
-    move.viewDirection = facingDirection;
+    move.viewDirection = GetPlayerViewDirection(entity);
 
     Vec3f resultTranslation = Vec3f(0.0f);
 
@@ -641,15 +653,12 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
                     continue;
                 }
 
-                TransformComponent& transformComponent = entity->GetComponent<TransformComponent>();
-                const Vec3f facingDirection = transformComponent.rotation.RotateVector(Vec3f(0.0f, 0.0f, 1.0f));
-
                 PlayerMove move;
                 move.moveId = 0;
                 move.deltaTime = GetWorld()->GetGameState().deltaTime;
                 move.movementInput = inputHandler->GetMovementInput();
                 move.jumpRequested = int8(inputHandler->IsJumpPressed());
-                move.viewDirection = facingDirection;
+                move.viewDirection = GetPlayerViewDirection(entity);
 
                 Vec3f resultTranslation = Vec3f(0.0f);
 
