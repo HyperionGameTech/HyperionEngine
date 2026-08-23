@@ -161,10 +161,10 @@ void StatsOverlay::Update(float delta)
     const Handle<EngineStats>& engineStats = EngineStats::GetInstance();
     const EngineStatsSnapshot& snapshot = engineStats->GetCurrentSnapshot();
 
-    using ProcessGroupFuncRef = ProcRef<void(const EngineStatGroup&)>;
+    using ProcessGroupFuncRef = ProcRef<void(const EngineStatGroup&, const UUID&)>;
     ProcessGroupFuncRef ProcessGroup = nullptr;
 
-    auto ProcessGroupImpl = [this, &ProcessGroup, &snapshot](const EngineStatGroup& group) -> void
+    auto ProcessGroupImpl = [this, &ProcessGroup, &snapshot](const EngineStatGroup& group, const UUID& groupUuid) -> void
     {
         for (EngineStatBase* stat : group.stats)
         {
@@ -172,14 +172,30 @@ void StatsOverlay::Update(float delta)
 
             if (stat->type == EST_GROUP)
             {
+                UUID subGroupUuid;
+                bool isNewGroup = false;
+
                 if (it == m_statUuids.End())
                 {
-                    UUID groupUuid = UUID();
-                    m_statUuids.Set(stat, groupUuid);
-                    m_dataSource->Push(groupUuid, BoxedValue(stat->name), UUID::Invalid());
+                    subGroupUuid = UUID();
+                    isNewGroup = true;
+                    m_statUuids.Set(stat, subGroupUuid);
+                    m_dataSource->Push(subGroupUuid, BoxedValue(stat->name), groupUuid);
+                }
+                else
+                {
+                    subGroupUuid = it->second;
                 }
 
-                ProcessGroup(static_cast<const EngineStatGroup&>(*stat));
+                ProcessGroup(static_cast<const EngineStatGroup&>(*stat), subGroupUuid);
+
+                if (isNewGroup)
+                {
+                    if (UIListViewItem* groupItem = m_panel->FindListViewItem(subGroupUuid))
+                    {
+                        groupItem->SetIsExpanded(true);
+                    }
+                }
             }
             else
             {
@@ -189,7 +205,7 @@ void StatsOverlay::Update(float delta)
                 {
                     UUID statUuid = UUID();
                     m_statUuids.Set(stat, statUuid);
-                    m_dataSource->Push(statUuid, BoxedValue(std::move(statText)), UUID::Invalid());
+                    m_dataSource->Push(statUuid, BoxedValue(std::move(statText)), groupUuid);
                 }
                 else
                 {
@@ -201,7 +217,7 @@ void StatsOverlay::Update(float delta)
 
     ProcessGroup = ProcessGroupImpl;
 
-    ProcessGroup(*engineStats->root);
+    ProcessGroup(*engineStats->root, UUID::Invalid());
 }
 
 #pragma endregion StatsOverlay

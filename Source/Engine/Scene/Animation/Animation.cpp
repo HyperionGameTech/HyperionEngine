@@ -88,6 +88,8 @@ void AnimationTrack::PageBlobData()
 
 void AnimationTrack::UnpageBlobData()
 {
+    AssertBlobDataPersisted(m_keyframeData);
+
     if (!m_keyframeData.readOnly)
     {
         FreeBlobData(m_keyframeData);

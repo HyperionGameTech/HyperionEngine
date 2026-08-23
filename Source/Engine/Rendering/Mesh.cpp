@@ -498,12 +498,16 @@ void Mesh::UnpageBlobData()
 {
     for (uint8 lodIndex = 0; lodIndex < MaxMeshLods; lodIndex++)
     {
+        AssertBlobDataPersisted(m_lodData[lodIndex].vertexData);
+
         if (!m_lodData[lodIndex].vertexData.readOnly)
         {
             FreeBlobData(m_lodData[lodIndex].vertexData);
         }
 
         m_lodData[lodIndex].vertexData.raw = nullptr;
+
+        AssertBlobDataPersisted(m_lodData[lodIndex].indexData);
 
         if (!m_lodData[lodIndex].indexData.readOnly)
         {
@@ -513,11 +517,13 @@ void Mesh::UnpageBlobData()
         m_lodData[lodIndex].indexData.raw = nullptr;
     }
 
+    AssertBlobDataPersisted(m_bvhData);
+
     if (!m_bvhData.readOnly)
     {
         FreeBlobData(m_bvhData);
     }
-    
+
     m_bvhData.raw = nullptr;
 }
 

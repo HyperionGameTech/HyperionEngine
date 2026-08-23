@@ -568,15 +568,17 @@ SplitMetalnessRoughnessResult SplitMetalnessRoughnessTexture(
 
     Handle<Texture> roughnessTexture = MakeHandle<Texture>(channelDesc, roughnessData.ToByteView());
     roughnessTexture->SetName(NAME_FMT("{}_Roughness", baseName));
-    Check(roughnessTexture->Create());
 
     GetCurrentAssetRegistry()->PutAssetUnique(roughnessTexture);
 
+    Check(roughnessTexture->Create());
+
     Handle<Texture> metalnessTexture = MakeHandle<Texture>(metalnessDesc, metalnessData.ToByteView());
     metalnessTexture->SetName(NAME_FMT("{}_Metalness", baseName));
-    Check(metalnessTexture->Create());
 
     GetCurrentAssetRegistry()->PutAssetUnique(metalnessTexture);
+
+    Check(metalnessTexture->Create());
 
     return { metalnessTexture, roughnessTexture };
 }

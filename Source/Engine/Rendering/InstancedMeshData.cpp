@@ -66,6 +66,8 @@ void InstancedMeshData::UnpageBlobData()
 {
     for (BlobDataReference& ref : buffers)
     {
+        AssertBlobDataPersisted(ref);
+
         if (!ref.readOnly)
         {
             FreeBlobData(ref);

@@ -135,6 +135,8 @@ void Shader::UnpageBlobData()
 {
     for (BlobDataReference& ref : shaderBlobs)
     {
+        AssertBlobDataPersisted(ref);
+
         if (!ref.readOnly)
         {
             FreeBlobData(ref);

@@ -103,6 +103,8 @@ void RawDataAsset::PageBlobData()
 
 void RawDataAsset::UnpageBlobData()
 {
+    AssertBlobDataPersisted(m_data);
+
     if (!m_data.readOnly)
     {
         FreeBlobData(m_data);

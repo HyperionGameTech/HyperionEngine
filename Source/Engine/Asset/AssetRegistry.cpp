@@ -914,6 +914,13 @@ void AssetRegistry::PutAsset(const AssetBucket& bucket, const Handle<AssetObject
     }
 
     data.SetAsset(assetDesc, assetObject);
+
+    // Blob data must be persisted before it can be unpaged on last read scope release
+    if (Result persistResult = assetObject->PersistBlobData(); persistResult.HasError())
+    {
+        HYP_LOG(Assets, Warning, "Failed to persist blob data for asset '{}': {}",
+                assetObject->GetName(), persistResult.GetError().GetMessage());
+    }
 }
 
 void AssetRegistry::PutAssetUnique(const Handle<AssetObject>& assetObject)
@@ -982,6 +989,14 @@ void AssetRegistry::PutAssetUnique(const AssetBucket& bucket, const Handle<Asset
     assetObject->m_name = assetDesc.name;
 
     data.SetAsset(assetDesc, assetObject);
+
+    // Blob data must be persisted before it can be unpaged (last read scope release),
+    // otherwise unpaging a never-saved asset would lose its data.
+    if (Result persistResult = assetObject->PersistBlobData(); persistResult.HasError())
+    {
+        HYP_LOG(Assets, Warning, "Failed to persist blob data for asset '{}': {}",
+                assetObject->GetName(), persistResult.GetError().GetMessage());
+    }
 }
 
 void AssetRegistry::WalkAssetDeep(const BoxedValue& target, const ProcRef<void(const Handle<AssetObject>&)>& onAssetFound)

@@ -192,6 +192,9 @@ protected:
     Result SaveManifest(ByteWriter& stream) const;
 
     Result SaveBlobData(BlobStorage* storage, const Optional<FilePath>& localBlobDirectory = {});
+    
+    Result PersistBlobData();
+    void AssertBlobDataPersisted(const BlobDataReference& reference) const;
 
     HYP_FIELD(Property = "Name")
     Name m_name;

@@ -28,6 +28,7 @@ CORE_API extern const char* LookupTypeName(const TypeId& typeId);
 
 // Register allocator for the batch type used if none other is specified
 HYP_REGISTER_DRAW_BATCH_TYPE(EntityInstanceBatch);
+// Batch type used for typical drawing (instanced meshes) 
 HYP_REGISTER_DRAW_BATCH_TYPE(MeshEntityInstanceBatch);
 
 #pragma region DrawCallCollection

@@ -352,6 +352,45 @@ Result AssetObject::SaveBlobData(BlobStorage* storage, const Optional<FilePath>&
     return {};
 }
 
+Result AssetObject::PersistBlobData()
+{
+    if (IsTransient() || !IsRegistered())
+    {
+        return {};
+    }
+
+    Handle<AssetRegistry> registry = GetAssetRegistry();
+    AssertDebug(registry.IsValid());
+
+    if (!registry.IsValid())
+    {
+        return HYP_MAKE_ERROR(Error, "No active asset registry for path: {}", m_assetPath.ToString());
+    }
+
+    const AssetBucket& bucket = m_assetPath.GetBucket();
+
+    if (bucket == AssetBuckets::None)
+    {
+        return HYP_MAKE_ERROR(Error, "Asset '{}' does not have a valid bucket, cannot persist blob data", m_name);
+    }
+
+    const FilePath bucketDir = registry->GetRootPath() / bucket.GetName();
+
+    if (!bucketDir.Exists() && !bucketDir.MkDir())
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to create bucket directory '{}' to persist blob data into", bucketDir);
+    }
+
+    return SaveBlobData(nullptr, bucketDir);
+}
+
+void AssetObject::AssertBlobDataPersisted(const BlobDataReference& reference) const
+{
+    // If this fires, it's because we're trying to unpage something that has never been saved to disk,
+    // so the data would be lost on the next attempt to page it!
+    AssertDebug(reference.raw == nullptr || reference.readOnly || reference.key.IsValid());
+}
+
 Result AssetObject::Load(
     BoxedValue& manifestData,
     Handle<AssetObject>& outAssetObject)
