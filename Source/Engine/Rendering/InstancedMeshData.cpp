@@ -14,30 +14,6 @@
 
 namespace Hyperion {
 
-void InstancedMeshProxy_OnPostLoad(InstancedMeshData& instancedMesh)
-{
-    //// Ensure at least one instance
-    //instancedMesh.numInstances = MathUtil::Max(instancedMesh.numInstances, 1u);
-
-    //if (instancedMesh.buffers.Any())
-    //{
-    //    for (uint32 bufferIndex = 0; bufferIndex < MathUtil::Min(InstancedMeshData::MaxBuffers, uint32(instancedMesh.buffers.Size())); bufferIndex++)
-    //    {
-    //        if (instancedMesh.buffers[bufferIndex].Size() / instancedMesh.bufferStructSizes[bufferIndex] != instancedMesh.numInstances)
-    //        {
-    //            HYP_LOG(Rendering, Warning, "Expected mesh instance data to have a buffer size that is equal to (buffer struct size / number of instances). Buffer size: {}, Buffer struct size: {}, Num instances: {}",
-    //                instancedMesh.buffers[bufferIndex].Size(), instancedMesh.bufferStructSizes[bufferIndex],
-    //                instancedMesh.numInstances);
-    //        }
-    //    }
-
-    //    if (instancedMesh.buffers.Size() > InstancedMeshData::MaxBuffers)
-    //    {
-    //        HYP_LOG(Rendering, Warning, "InstancedMeshData has more buffers than the maximum allowed: {} > {}", instancedMesh.buffers.Size(), InstancedMeshData::MaxBuffers);
-    //    }
-    //}
-}
-
 void InstancedMeshData::PageBlobData()
 {
     for (uint32 i = 0; i < uint32(buffers.Size()); i++)

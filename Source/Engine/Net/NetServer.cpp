@@ -89,11 +89,11 @@ NetServer::NetServer()
 {
     m_dispatcher.RegisterHandler(NetMessageId::ConnectRequest, GetNoOpHandler());
 
-    // Echo
-    m_dispatcher.RegisterHandler(NetMessageId::KeepAlive,
+    // Get Ping, send Pong
+    m_dispatcher.RegisterHandler(NetMessageId::Ping,
         [this](const NetMessageContext& context, ConstByteView payload)
         {
-            SendMessageTo(context.connectionId, NetMessageId::KeepAlive,
+            SendMessageTo(context.connectionId, NetMessageId::Pong,
                 NetChannelMode::UnreliableOrdered, NetStreamKey(0), payload);
         });
 }

@@ -19,11 +19,7 @@
 
 namespace Hyperion {
 
-class InstancedMeshData;
-
-extern void InstancedMeshProxy_OnPostLoad(InstancedMeshData&);
-
-HYP_CLASS(PostLoad = "InstancedMeshProxy_OnPostLoad", AssetBucket = "InstancedMeshData")
+HYP_CLASS(AssetBucket = "InstancedMeshData")
 class InstancedMeshData : public AssetObject
 {
     HYP_OBJECT_BODY(InstancedMeshData);

@@ -44,9 +44,7 @@ NetClient::NetClient()
             }
         });
 
-    // Keep-alive doubles as a ping: the server echoes our send timestamp back to us,
-    // letting us measure round-trip time.
-    m_dispatcher.RegisterHandler(NetMessageId::KeepAlive,
+    m_dispatcher.RegisterHandler(NetMessageId::Pong,
         [this](const NetMessageContext&, ConstByteView payload)
         {
             if (payload.Size() >= sizeof(uint64))
@@ -146,10 +144,11 @@ void NetClient::Update()
         const Time pingSendTime = Time::Now();
         pingWriter.Write(pingSendTime.ToMilliseconds());
 
+        // Send Ping, we'll measure time-to-response on Pong
         m_unreliableChannel.Send(
             m_socket,
             m_serverAddress,
-            NetMessage { NetMessageId::KeepAlive, NetStreamKey(0), pingPayload.ToByteView() });
+            NetMessage { NetMessageId::Ping, NetStreamKey(0), pingPayload.ToByteView() });
 
         m_lastKeepAliveTime = Time::Now();
     }

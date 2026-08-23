@@ -52,7 +52,8 @@ HYP_FORCE_INLINE constexpr bool IsMoreRecent(uint32 a, uint32 b)
 enum class NetMessageId : uint16
 {
     Invalid = 0,
-    KeepAlive,
+    Ping,
+    Pong,
     ConnectRequest,
     ConnectAccept,
     Disconnect,

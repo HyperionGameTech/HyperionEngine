@@ -293,14 +293,14 @@ void ReplicationApplySystem::SyncColliderToEntity(Entity* entity)
 
     World* world = GetWorld();
 
-    if (world == nullptr)
+    if (!world)
     {
         return;
     }
 
     PhysicsWorldBase* physicsWorld = world->GetPhysicsWorld();
 
-    if (physicsWorld == nullptr)
+    if (!physicsWorld)
     {
         return;
     }

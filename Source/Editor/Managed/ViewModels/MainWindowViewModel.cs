@@ -271,52 +271,32 @@ namespace Hyperion.Editor.ViewModels
 
         public bool IsSimulating => _editorSubsystem?.IsSimulating() ?? false;
 
+        private GameStateMode _cachedGameStateMode = GameStateMode.Stopped;
+
         public ICommand SetGameModePlaying { get; private set; }
-        public bool CanSetGameModePlaying
-        {
-            get
-            {
-                World? world = EngineManager.CurrentProject?.World;
-
-                if (world == null)
-                {
-                    return false;
-                }
-
-                return world.GetGameState().Mode != GameStateMode.Simulating;
-            }
-        }
+        public bool CanSetGameModePlaying => _cachedGameStateMode != GameStateMode.Simulating;
 
         public ICommand SetGameModePaused { get; private set; }
-        public bool CanSetGameModePaused
-        {
-            get
-            {
-                World? world = EngineManager.CurrentProject?.World;
-
-                if (world == null)
-                {
-                    return false;
-                }
-
-                return world.GetGameState().Mode == GameStateMode.Simulating;
-            }
-        }
+        public bool CanSetGameModePaused => _cachedGameStateMode == GameStateMode.Simulating;
 
         public ICommand SetGameModeStopped { get; private set; }
-        public bool CanSetGameModeStopped
+        public bool CanSetGameModeStopped => _cachedGameStateMode != GameStateMode.Stopped;
+
+        private void RefreshGameModeState()
         {
-            get
-            {
-                World? world = EngineManager.CurrentProject?.World;
+            Dispatcher.UIThread.VerifyAccess();
 
-                if (world == null)
-                {
-                    return false;
-                }
+            World? world = EngineManager.CurrentProject?.World;
+            _cachedGameStateMode = world?.GetGameState().Mode ?? GameStateMode.Stopped;
 
-                return !world.GetGameState().Stopped;
-            }
+            (SetGameModePlaying as SetGameModeCommand)?.RaiseCanExecuteChanged();
+            (SetGameModeStopped as SetGameModeCommand)?.RaiseCanExecuteChanged();
+            (SetGameModePaused as SetGameModeCommand)?.RaiseCanExecuteChanged();
+
+            OnPropertyChanged(nameof(CanSetGameModePlaying));
+            OnPropertyChanged(nameof(CanSetGameModePaused));
+            OnPropertyChanged(nameof(CanSetGameModeStopped));
+            OnPropertyChanged(nameof(IsSimulating));
         }
 
         private DelegateHandler? _gameInstanceLaunchedHandler;
@@ -877,14 +857,8 @@ namespace Hyperion.Editor.ViewModels
                     {
                         Dispatcher.UIThread.Post(() =>
                         {
-                            (SetGameModePlaying as SetGameModeCommand)?.RaiseCanExecuteChanged();
-                            (SetGameModeStopped as SetGameModeCommand)?.RaiseCanExecuteChanged();
-                            (SetGameModePaused as SetGameModeCommand)?.RaiseCanExecuteChanged();
-                            OnPropertyChanged(nameof(CanSetGameModePlaying));
-                            OnPropertyChanged(nameof(CanSetGameModePaused));
-                            OnPropertyChanged(nameof(CanSetGameModeStopped));
+                            RefreshGameModeState();
 
-                            OnPropertyChanged(nameof(IsSimulating));
                             OnPropertyChanged(nameof(CanUndo));
                             OnPropertyChanged(nameof(CanRedo));
                             OnPropertyChanged(nameof(CanCopy));
@@ -933,9 +907,7 @@ namespace Hyperion.Editor.ViewModels
 
             Dispatcher.UIThread.Post(() =>
             {
-                OnPropertyChanged(nameof(CanSetGameModePlaying));
-                OnPropertyChanged(nameof(CanSetGameModePaused));
-                OnPropertyChanged(nameof(CanSetGameModeStopped));
+                RefreshGameModeState();
 
                 OnPropertyChanged(nameof(CanSelectGizmo));
                 OnPropertyChanged(nameof(CanSelectTransformModeTranslate));
