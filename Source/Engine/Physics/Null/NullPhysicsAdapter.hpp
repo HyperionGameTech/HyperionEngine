@@ -22,6 +22,7 @@ public:
 
     void OnRigidBodyAdded(const Handle<RigidBody>& rigidBody);
     void OnRigidBodyRemoved(const Handle<RigidBody>& rigidBody);
+    void SetRigidBodyTransform(const Handle<RigidBody>& rigidBody, const Transform& transform);
 
     void OnChangePhysicsShape(RigidBody* rigidBody);
     void OnChangePhysicsMaterial(RigidBody* rigidBody);

@@ -8,6 +8,7 @@
 
 #include <Core/Reflection/Handle.hpp>
 #include <Core/Math/Vector3.hpp>
+#include <Core/Math/Transform.hpp>
 #include <Core/Memory/SharedPtr.hpp>
 
 namespace Hyperion {
@@ -63,6 +64,11 @@ public:
     void OnRigidBodyRemoved(const Handle<RigidBody>& rigidBody)
     {
         GetDerivedAdapter()->DerivedAdapter::OnRigidBodyRemoved(rigidBody);
+    }
+
+    void SetRigidBodyTransform(const Handle<RigidBody>& rigidBody, const Transform& transform)
+    {
+        GetDerivedAdapter()->DerivedAdapter::SetRigidBodyTransform(rigidBody, transform);
     }
 
     void OnChangePhysicsShape(RigidBody* rigidBody)

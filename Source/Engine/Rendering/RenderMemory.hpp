@@ -10,7 +10,7 @@
 
 namespace Hyperion {
 
-static constexpr size_t RenderPoolBlockSize = 4 * 1024 * 1024;  // 4 MiB
+static constexpr size_t RenderPoolBlockSize = 64 * 1024 * 1024; // 64 MiB -- needs some more space for structured buffers cpu-side data
 static constexpr size_t RenderArenaSize = 64 * 1024;            // 64 KiB
 
 static constexpr size_t RHIPoolBlockSize = 1 * 1024 * 1024;     // 1 MiB

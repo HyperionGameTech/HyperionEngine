@@ -76,6 +76,8 @@ private:
 
     void UpdateInterpolatedEntities();
     void UpdateStreamingVolume(Span<const Handle<Scene>> scenes);
+
+    void SyncColliderToEntity(Entity* entity);
     
     Scene* FindTargetScene(Span<const Handle<Scene>> scenes, Name sceneName);
     

@@ -40,6 +40,10 @@ void NullPhysicsAdapter::OnRigidBodyRemoved(const Handle<RigidBody>& rigidBody)
 {
 }
 
+void NullPhysicsAdapter::SetRigidBodyTransform(const Handle<RigidBody>& rigidBody, const Transform& transform)
+{
+}
+
 void NullPhysicsAdapter::OnChangePhysicsShape(RigidBody* rigidBody)
 {
 }

@@ -15,8 +15,11 @@
 #include <Scene/Components/ReplicationStateComponent.hpp>
 #include <Scene/Components/PlayerComponent.hpp>
 #include <Scene/Components/CharacterControllerComponent.hpp>
+#include <Scene/Components/RigidBodyComponent.hpp>
 
 #include <Scene/Systems/PhysicsSystem.hpp>
+
+#include <Physics/PhysicsWorld.hpp>
 
 #include <Scene/Camera/Camera.hpp>
 #include <Scene/Camera/FirstPersonCamera.hpp>
@@ -241,44 +244,73 @@ void ReplicationApplySystem::UpdateInterpolatedEntities()
 
         Entity* entity = entityIt->second.Get();
 
+        Transform targetTransform;
+
         if (samples.Size() == 1)
         {
-            entity->SetLocalTransform(samples[0].transform);
-
-            ++it;
-
-            continue;
+            targetTransform = samples[0].transform;
         }
-
-        const InterpolationState::Sample& from = samples[0];
-        const InterpolationState::Sample& to = samples[1];
-
-        const double spanMs = double(to.receiveTimeMs) - double(from.receiveTimeMs);
-
-        if (spanMs <= 0.0)
+        else
         {
-            entity->SetLocalTransform(to.transform);
+            const InterpolationState::Sample& from = samples[0];
+            const InterpolationState::Sample& to = samples[1];
 
-            ++it;
+            const double spanMs = double(to.receiveTimeMs) - double(from.receiveTimeMs);
 
-            continue;
+            if (spanMs <= 0.0)
+            {
+                targetTransform = to.transform;
+            }
+            else
+            {
+                // Clamp to the newest sample: on a burst gap we hold rather than extrapolate.
+                const float alpha = float(MathUtil::Clamp((double(renderTimeMs) - double(from.receiveTimeMs)) / spanMs, 0.0, 1.0));
+
+                // Because we made Lerp()/Slerp() mutate for some reason years ago, we need to wrap in temp objects
+                // @TODO: Change this when we fix those
+                targetTransform.SetTranslation(Vec3(from.transform.GetTranslation()).Lerp(to.transform.GetTranslation(), alpha));
+                targetTransform.SetRotation(Quat4f(from.transform.GetRotation()).Slerp(to.transform.GetRotation(), alpha));
+                targetTransform.SetScale(Vec3f(from.transform.GetScale()).Lerp(to.transform.GetScale(), alpha));
+            }
         }
 
-        // Clamp to the newest sample: on a burst gap we hold rather than extrapolate.
-        const float alpha = float(MathUtil::Clamp((double(renderTimeMs) - double(from.receiveTimeMs)) / spanMs, 0.0, 1.0));
+        entity->SetLocalTransform(targetTransform);
 
-        Transform blended;
-
-        // Because we made Lerp()/Slerp() mutate for some reason years ago, we need to wrap in temp objects
-        // @TODO: Change this when we fix those
-        blended.SetTranslation(Vec3(from.transform.GetTranslation()).Lerp(to.transform.GetTranslation(), alpha));
-        blended.SetRotation(Quat4f(from.transform.GetRotation()).Slerp(to.transform.GetRotation(), alpha));
-        blended.SetScale(Vec3f(from.transform.GetScale()).Lerp(to.transform.GetScale(), alpha));
-
-        entity->SetLocalTransform(blended);
+        SyncColliderToEntity(entity);
 
         ++it;
     }
+}
+
+void ReplicationApplySystem::SyncColliderToEntity(Entity* entity)
+{
+    RigidBodyComponent* rigidBodyComponent = entity->TryGetComponent<RigidBodyComponent>();
+
+    if (rigidBodyComponent == nullptr || !rigidBodyComponent->rigidBody.IsValid())
+    {
+        return;
+    }
+
+    World* world = GetWorld();
+
+    if (world == nullptr)
+    {
+        return;
+    }
+
+    PhysicsWorldBase* physicsWorld = world->GetPhysicsWorld();
+
+    if (physicsWorld == nullptr)
+    {
+        return;
+    }
+
+    Transform worldTransform;
+    worldTransform.SetTranslation(entity->GetWorldTranslation());
+    worldTransform.SetRotation(entity->GetWorldRotation());
+    worldTransform.SetScale(entity->GetWorldScale());
+
+    physicsWorld->SetRigidBodyTransform(rigidBodyComponent->rigidBody, worldTransform);
 }
 
 void ReplicationApplySystem::UpdateStreamingVolume(Span<const Handle<Scene>> scenes)

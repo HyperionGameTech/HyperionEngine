@@ -1982,22 +1982,28 @@ public:
             return;
         }
 
-        // @FIXME: WE need UUID or something for delete!! not string name!!!
-
         Array<Handle<Node>> nodesToDelete;
 
         if (NumArguments() >= 1 && !GetArgument(0).Empty())
         {
-            // Named node deletion (e.g., from context menu)
-            Node* node = subsystem->GetActiveScene()->FindNodeByName(StringHash(GetArgument(0)));
+            // Parse UUID from string arg
+            const UUID nodeUuid = UUID(GetArgument(0).Data());
 
-            if (!node)
+            if (nodeUuid == UUID::Invalid())
             {
-                HYP_LOG(Editor, Warning, "EditorCommandDeleteNode: could not find node '{}'", GetArgument(0));
+                HYP_LOG(Editor, Error, "EditorCommandDeleteNode: invalid UUID '{}'", GetArgument(0));
                 return;
             }
 
-            nodesToDelete.PushBack(node);
+            Node* node = subsystem->GetActiveScene()->FindNodeByUUID(nodeUuid);
+
+            if (!node)
+            {
+                HYP_LOG(Editor, Warning, "EditorCommandDeleteNode: could not find node with UUID '{}'", GetArgument(0));
+                return;
+            }
+
+            nodesToDelete.PushBack(MakeStrongRef(node));
         }
         else
         {
@@ -2152,13 +2158,15 @@ public:
 
         if (NumArguments() >= 1 && !GetArgument(0).Empty())
         {
-            node = subsystem->GetActiveScene()->FindNodeByName(StringHash(GetArgument(0)));
+            Node* foundNode = subsystem->GetActiveScene()->FindNodeByName(StringHash(GetArgument(0)));
 
-            if (!node.IsValid())
+            if (!foundNode)
             {
                 HYP_LOG(Editor, Warning, "EditorCommandTeleportTo: could not find node '{}'", GetArgument(0));
                 return;
             }
+
+            node = MakeStrongRef(foundNode);
         }
         else
         {
@@ -2210,11 +2218,11 @@ public:
 
         if (NumArguments() >= 1 && !GetArgument(0).Empty())
         {
-            Handle<Node> node = subsystem->GetActiveScene()->FindNodeByName(StringHash(GetArgument(0)));
+            Node* node = subsystem->GetActiveScene()->FindNodeByName(StringHash(GetArgument(0)));
 
-            if (node.IsValid())
+            if (node)
             {
-                nodes.PushBack(node);
+                nodes.PushBack(MakeStrongRef(node));
             }
             else
             {

@@ -335,6 +335,39 @@ void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
     rigidBody->SetInternalData(std::move(internalData));
 }
 
+void BulletPhysicsAdapter::SetRigidBodyTransform(const Handle<RigidBody>& rigidBody, const Transform& transform)
+{
+    Assert(m_dynamicsWorld != nullptr);
+
+    if (!rigidBody.IsValid())
+    {
+        return;
+    }
+
+    RigidBodyInternalData* internalData = static_cast<RigidBodyInternalData*>(rigidBody->GetInternalData());
+
+    if (!internalData || !internalData->rigidBody)
+    {
+        return;
+    }
+
+    btTransform bulletTransform;
+    bulletTransform.setIdentity();
+    bulletTransform.setOrigin(ToBtVector(transform.GetTranslation()));
+    bulletTransform.setRotation(ToBtQuaternion(transform.GetRotation().Inverse()));
+
+    internalData->rigidBody->setWorldTransform(bulletTransform);
+
+    if (internalData->motionState)
+    {
+        internalData->motionState->setWorldTransform(bulletTransform);
+    }
+
+    m_dynamicsWorld->updateSingleAabb(internalData->rigidBody.Get());
+
+    rigidBody->SetTransform(transform);
+}
+
 void BulletPhysicsAdapter::OnRigidBodyRemoved(const Handle<RigidBody>& rigidBody)
 {
     if (!rigidBody)
