@@ -52,6 +52,13 @@ struct StrataTypeMapping
     bool isString = false;      // True when this is Strata's `string`, backed by engine String/ANSIString
     bool isArray = false;       // True when this is a Strata `T[]` fat array (ptr + u64), backed by engine Array<T>
     bool isVector = false;      // True when this is a Strata float3/float4 core vector type, backed by Vec3f/Vec4f
+
+    String cxxQualifiedName;
+
+    const String& CxxTypeName() const
+    {
+        return cxxQualifiedName.Any() ? cxxQualifiedName : typeName;
+    }
 };
 
 extern const HypScriptTypeMapping g_hypscriptAnyTypeMapping;

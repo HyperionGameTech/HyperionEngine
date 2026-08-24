@@ -1416,7 +1416,7 @@ void DX12GpuImage::Fill(
         case TextureType::Cubemap:
         case TextureType::CubemapArray:
             dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
-            dsvDesc.Texture2DArray.GetArrayCount = numLayers;
+            dsvDesc.Texture2DArray.ArraySize = numLayers;
             dsvDesc.Texture2DArray.FirstArraySlice = subResource.baseArrayLayer;
             dsvDesc.Texture2DArray.MipSlice = subResource.baseMipLevel;
             break;
@@ -1469,7 +1469,7 @@ void DX12GpuImage::Fill(
         case TextureType::Cubemap:
         case TextureType::CubemapArray:
             rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
-            rtvDesc.Texture2DArray.GetArrayCount = numLayers;
+            rtvDesc.Texture2DArray.ArraySize = numLayers;
             rtvDesc.Texture2DArray.FirstArraySlice = subResource.baseArrayLayer;
             rtvDesc.Texture2DArray.MipSlice = subResource.baseMipLevel;
             break;

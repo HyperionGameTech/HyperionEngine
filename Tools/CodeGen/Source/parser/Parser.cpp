@@ -367,6 +367,21 @@ TResult<HypScriptTypeMapping> MapToHypScriptType(const Analyzer& analyzer, const
     return HYP_MAKE_ERROR(Error, "Type is unable to be mapped to a HypScript type");
 }
 
+static String BuildQualifiedCXXName(const ClassDefinition& definition)
+{
+    String qualified = "::";
+
+    for (const String& part : definition.namespaceParts)
+    {
+        qualified += part;
+        qualified += "::";
+    }
+
+    qualified += definition.name;
+
+    return qualified;
+}
+
 TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTType* type)
 {
     if (type == nullptr)
@@ -436,13 +451,13 @@ TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTTy
             if (const ClassDefinition* definition = analyzer.FindClassDefinition(innerName);
                 definition && definition->type == ClassDefinitionType::Class)
             {
-                return StrataTypeMapping { definition->name, true };
+                return StrataTypeMapping { definition->name, true, false, false, false, false, BuildQualifiedCXXName(*definition) };
             }
 
             if (const ClassDefinition* definition = analyzer.FindClassDefinition(innerName);
                 definition && definition->type == ClassDefinitionType::Struct)
             {
-                return StrataTypeMapping { definition->name, false, true };
+                return StrataTypeMapping { definition->name, false, true, false, false, false, BuildQualifiedCXXName(*definition) };
             }
         }
 
@@ -567,7 +582,7 @@ TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTTy
             return HYP_MAKE_ERROR(Error, "Aggregate value types must be passed as pointers in Strata bindings");
         }
 
-        return StrataTypeMapping { definition->name, false, true };
+        return StrataTypeMapping { definition->name, false, true, false, false, false, BuildQualifiedCXXName(*definition) };
     }
 
     // Unknown types are treated as an unreflected C++ struct that will be forward-

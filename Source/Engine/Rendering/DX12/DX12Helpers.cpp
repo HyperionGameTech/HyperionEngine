@@ -579,7 +579,7 @@ D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuImage* image, uint32 mipIndex,
         srvDesc.Texture2DArray.MostDetailedMip = mipIndex;
         srvDesc.Texture2DArray.MipLevels = numMips;
         srvDesc.Texture2DArray.FirstArraySlice = layerIndex;
-        srvDesc.Texture2DArray.GetArrayCount = numLayers;
+        srvDesc.Texture2DArray.ArraySize = numLayers;
         srvDesc.Texture2DArray.PlaneSlice = 0;
         srvDesc.Texture2DArray.ResourceMinLODClamp = 0.0f;
         break;
@@ -649,7 +649,7 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuImage* image, uint32 mipIndex
     case D3D12_UAV_DIMENSION_TEXTURE2DARRAY:
         uavDesc.Texture2DArray.MipSlice = mipIndex;
         uavDesc.Texture2DArray.FirstArraySlice = layerIndex;
-        uavDesc.Texture2DArray.GetArrayCount = numLayers;
+        uavDesc.Texture2DArray.ArraySize = numLayers;
         uavDesc.Texture2DArray.PlaneSlice = 0;
         break;
     default:

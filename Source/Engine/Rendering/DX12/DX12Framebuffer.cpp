@@ -178,7 +178,7 @@ RendererResult DX12Framebuffer::Create()
                 dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
                 dsvDesc.Texture2DArray.MipSlice = mipSlice;
                 dsvDesc.Texture2DArray.FirstArraySlice = subResource.baseArrayLayer;
-                dsvDesc.Texture2DArray.GetArrayCount = subResource.numLayers;
+                dsvDesc.Texture2DArray.ArraySize = subResource.numLayers;
                 break;
             default:
                 HYP_UNREACHABLE();
@@ -206,7 +206,7 @@ RendererResult DX12Framebuffer::Create()
                 rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
                 rtvDesc.Texture2DArray.MipSlice = mipSlice;
                 rtvDesc.Texture2DArray.FirstArraySlice = subResource.baseArrayLayer;
-                rtvDesc.Texture2DArray.GetArrayCount = subResource.numLayers;
+                rtvDesc.Texture2DArray.ArraySize = subResource.numLayers;
                 break;
             default:
                 HYP_UNREACHABLE();

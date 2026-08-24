@@ -665,8 +665,7 @@ Result StrataModuleGenerator::EmitThunks(const Analyzer& analyzer, const Module&
                 }
                 else if (paramTypeMapping.isStructValue)
                 {
-                    // Strata hands us a pointer; forward/deref based on the C++ signature.
-                    sigParams.PushBack(HYP_FORMAT("{}* {}", paramTypeMapping.typeName, paramName));
+                    sigParams.PushBack(HYP_FORMAT("{}* {}", paramTypeMapping.CxxTypeName(), paramName));
                     callArgs.PushBack(parameter->type->isPointer ? paramName : HYP_FORMAT("*{}", paramName));
                 }
                 else
@@ -721,7 +720,8 @@ Result StrataModuleGenerator::EmitThunks(const Analyzer& analyzer, const Module&
             }
             else if (returnsViaOutParam)
             {
-                allSigParams.PushBack(HYP_FORMAT("{}* outReturn", returnTypeMapping.typeName));
+                // Qualified for the same reason as the struct-value param case above.
+                allSigParams.PushBack(HYP_FORMAT("{}* outReturn", returnTypeMapping.CxxTypeName()));
             }
 
             const String sigParamsString = allSigParams.Any() ? String::Join(allSigParams, ", ") : String("");
