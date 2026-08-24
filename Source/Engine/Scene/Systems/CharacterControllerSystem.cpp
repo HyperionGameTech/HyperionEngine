@@ -23,6 +23,7 @@
 
 #include <Input/Keyboard.hpp>
 #include <Input/InputManager.hpp>
+#include <Input/Event.hpp>
 
 #include <System/AppContext.hpp>
 
@@ -171,6 +172,20 @@ bool CharacterControllerInputHandler::OnKeyUp(const KeyboardEvent& evt)
         return true;
     default:
         break;
+    }
+
+    return false;
+}
+
+bool CharacterControllerInputHandler::OnControllerAnalogMove(const ControllerAnalogData& data)
+{
+    InputHandlerBase::OnControllerAnalogMove(data);
+
+    if (data.actionIndex == 0)
+    {
+        Update();
+
+        return true;
     }
 
     return false;

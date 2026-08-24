@@ -62,6 +62,7 @@ public:
 
     bool OnKeyDown(const KeyboardEvent& evt) override;
     bool OnKeyUp(const KeyboardEvent& evt) override;
+    bool OnControllerAnalogMove(const ControllerAnalogData& data) override;
 
     // Recomputes movement/jump input from live keyboard, touch and controller state.
     void Update();
