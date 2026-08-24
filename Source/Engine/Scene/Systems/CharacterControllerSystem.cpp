@@ -365,7 +365,7 @@ static void ReconcileMoveAck(Entity* entity, CharacterControllerComponent& compo
     const float correctionThreshold = EngineGlobals::GetCorrectionThreshold();
 
     const bool needsCorrection = !predictedResult.HasValue()
-        || (*predictedResult - ack.authoritativeTranslation).LengthSquared() > correctionThreshold * correctionThreshold;
+        || (*predictedResult - ack.GetAuthTranslation()).LengthSquared() > correctionThreshold * correctionThreshold;
 
     if (!needsCorrection)
     {
@@ -385,7 +385,7 @@ static void ReconcileMoveAck(Entity* entity, CharacterControllerComponent& compo
     // Rewind the physics character to the server's authoritative state (entity translation
     // carries a capsule height offset; the controller itself is positioned at the capsule center).
     const float heightOffset = SceneHelpers::GetCapsuleHeightOffset(component);
-    const Vec3f authoritativeCapsuleCenter = ack.authoritativeTranslation - Vec3f(0.0f, heightOffset, 0.0f);
+    const Vec3f authoritativeCapsuleCenter = ack.GetAuthTranslation() - Vec3f(0.0f, heightOffset, 0.0f);
 
     physicsWorld->SetCharacterTranslation(component.physicsHandle, authoritativeCapsuleCenter);
 
@@ -405,7 +405,7 @@ static void ReconcileMoveAck(Entity* entity, CharacterControllerComponent& compo
         component.translation = authoritativeCapsuleCenter;
         component.isOnGround = false;
 
-        entity->SetWorldTranslation(ack.authoritativeTranslation, TransformChangeType::Simulation);
+        entity->SetWorldTranslation(ack.GetAuthTranslation(), TransformChangeType::Simulation);
     }
 
     // Smooth out the visual pop of the rewind/replay over a short time window.
@@ -468,13 +468,20 @@ static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent
 
     CharacterControllerInputHandler* inputHandler = StaticCast<CharacterControllerInputHandler>(component.inputHandler.Get());
 
+    const Vec3f viewDirection = GetPlayerViewDirection(entity);
+
     // Predict this tick's move locally
     PlayerMove move;
+    Memory::Zero(&move, sizeof(move));
+
     move.moveId = state.nextMoveId++;
     move.deltaTime = entity->GetWorld()->GetGameState().deltaTime;
-    move.movementInput = inputHandler->GetMovementInput();
+    move.movementInput[0] = inputHandler->GetMovementInput().x;
+    move.movementInput[1] = inputHandler->GetMovementInput().y;
+    move.viewDirection[0] = viewDirection.x;
+    move.viewDirection[1] = viewDirection.y;
+    move.viewDirection[2] = viewDirection.z;
     move.jumpRequested = int8(inputHandler->IsJumpPressed());
-    move.viewDirection = GetPlayerViewDirection(entity);
 
     Vec3f resultTranslation = Vec3f(0.0f);
 
@@ -580,15 +587,21 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
                     continue;
                 }
 
+                const Vec3f viewDirection = GetPlayerViewDirection(entity);
+
                 PlayerMove move;
+                Memory::Zero(&move, sizeof(move));
+
                 move.moveId = 0;
                 move.deltaTime = GetWorld()->GetGameState().deltaTime;
-                move.movementInput = inputHandler->GetMovementInput();
+                move.movementInput[0] = inputHandler->GetMovementInput().x;
+                move.movementInput[1] = inputHandler->GetMovementInput().y;
+                move.viewDirection[0] = viewDirection.x;
+                move.viewDirection[1] = viewDirection.y;
+                move.viewDirection[2] = viewDirection.z;
                 move.jumpRequested = int8(inputHandler->IsJumpPressed());
-                move.viewDirection = GetPlayerViewDirection(entity);
 
-                Vec3f resultTranslation = Vec3f(0.0f);
-
+                Vec3f resultTranslation;
                 SceneHelpers::MoveCharacter(entity, component, move, resultTranslation);
             }
             else if (isLocalPlayerEntity)

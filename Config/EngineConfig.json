@@ -1,9 +1,6 @@
 {
   "Rendering": {
     "HBAO": {
-      "Radius": 1.000000,
-      "Power": 1.000000,
-      "UseTemporalBlending": false,
       "Enabled": true
     },
     "SSGI": false,
@@ -13,7 +10,7 @@
     "DDGI": false,
     "RayTracedGI": false,
     "RayTracedReflections": false,
-    "RayTracingEnabled": false,
+    "RayTracingEnabled": true,
     "IndirectRendering": true,
     "DepthPrepass": true,
     "ParallelRendering": true,

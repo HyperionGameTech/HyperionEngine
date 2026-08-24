@@ -152,8 +152,13 @@ PrecompileShadersWorkerPool* s_precompileShadersPool;
 
 static const FilePath& GetShaderSourceDirectory()
 {
+#ifndef HYP_SHIPPING
+    static const FilePath s_path = CoreApi::GetBaseDirectory() / "Source/Shaders";
+    return s_path;
+#else   // HYP_SHIPPING
     static DirectoryInitializer<HYP_STATIC_STRING("Source/Shaders")> s_directory;
     return s_directory.path;
+#endif  // !HYP_SHIPPING
 }
 
 #ifdef HYP_DXC

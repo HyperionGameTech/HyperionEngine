@@ -396,7 +396,7 @@ void ReplicationSystem::ProcessPlayerMoves()
         net::NetBuffer payload;
         MemoryByteWriter<NetAllocator, 1> writer(&payload);
 
-        SerializePlayerMoveAck(writer, PlayerMoveAck { lastProcessedMoveId, resultTranslation });
+        SerializePlayerMoveAck(writer, PlayerMoveAck { resultTranslation, lastProcessedMoveId });
 
         targetedAcks.PushBack(TargetedMoveAck { it->first, replicationState->netId, std::move(payload) });
     }

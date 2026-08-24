@@ -69,6 +69,9 @@ namespace Hyperion.Editor.ViewModels
 
 
         private DelegateHandler? _onSelectedBucketChangedHandler;
+        private DelegateHandler? _onAssetsChangedHandler;
+        private DelegateHandler? _onProjectOpenedHandler;
+        private DelegateHandler? _onProjectClosingHandler;
         private uint _pendingFocusBucket;
         private string? _pendingFocusNameHint;
         private bool _pendingOpenEditor;
@@ -178,6 +181,33 @@ namespace Hyperion.Editor.ViewModels
 
                 Dispatcher.UIThread.Post(() => ReloadBucketAssets(bucketIndex));
             });
+
+            _onAssetsChangedHandler = _editorSubsystem.GetOnAssetsChangedDelegate().Bind((uint bucketIndex) =>
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (_currentBucket?.BucketIndex == bucketIndex)
+                    {
+                        RefreshAssets();
+                    }
+                });
+            });
+
+            _onProjectOpenedHandler = _editorSubsystem.GetOnProjectOpenedDelegate().Bind((EditorProject project) =>
+            {
+                Dispatcher.UIThread.Post(RefreshAssets);
+            });
+
+            _onProjectClosingHandler = _editorSubsystem.GetOnProjectClosingDelegate().Bind((EditorProject project) =>
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    Assets.Clear();
+                    SelectedAsset = null;
+
+                    OnPropertyChanged(nameof(Assets));
+                });
+            });
         }
 
         /// <summary>Reloads the asset list for the given bucket and resolves any pending focus/edit request. Must run on the UI thread.</summary>
@@ -250,6 +280,27 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(CurrentBucket));
         }
 
+        /// <summary>Reloads the assets of the currently selected bucket, preserving the selection where possible. Must run on the UI thread.</summary>
+        private void RefreshAssets()
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            uint bucketIndex = _currentBucket?.BucketIndex ?? 0;
+
+            if (bucketIndex == 0)
+            {
+                return;
+            }
+
+            Name selectedName = SelectedAsset?.AssetDesc.Name ?? Name.Invalid;
+            ReloadBucketAssets(bucketIndex);
+
+            if (selectedName.Valid)
+            {
+                SelectedAsset = Assets.FirstOrDefault(a => a.AssetDesc.Name == selectedName);
+            }
+        }
+
         private void ApplySort()
         {
             if (Assets.Count == 0)
@@ -281,6 +332,12 @@ namespace Hyperion.Editor.ViewModels
         {
             _onSelectedBucketChangedHandler?.Remove();
             _onSelectedBucketChangedHandler?.Dispose();
+            _onAssetsChangedHandler?.Remove();
+            _onAssetsChangedHandler?.Dispose();
+            _onProjectOpenedHandler?.Remove();
+            _onProjectOpenedHandler?.Dispose();
+            _onProjectClosingHandler?.Remove();
+            _onProjectClosingHandler?.Dispose();
         }
 
         /// <summary>Switches to the given bucket and focuses the named asset once loaded.</summary>

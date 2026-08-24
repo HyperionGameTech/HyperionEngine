@@ -50,7 +50,7 @@ struct HBAOUniforms
 
 static EngineStatGpuTimer s_statHBAOPass("Rendering/GPU/HBAO");
 
-CVar<float> cvHBAORadius { "Rendering.HBAORadius", 4.0f, "Rendering.HBAO.Radius" };
+CVar<float> cvHBAORadius { "Rendering.HBAORadius", 1.0f, "Rendering.HBAO.Radius" };
 CVar<float> cvHBAOPower { "Rendering.HBAOPower", 3.0f, "Rendering.HBAO.Power" };
 
 HBAO::HBAO(Vec2u extent, GBuffer* gbuffer)

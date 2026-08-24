@@ -24,12 +24,19 @@
 #include <Scene/Prefab.hpp>
 #include <Scene/DetachedScene.hpp>
 
+#include <Scene/Animation/Bone.hpp>
+#include <Scene/Animation/Skeleton.hpp>
+#include <Scene/Animation/Animation.hpp>
+
 #include <Scene/EntityManager.hpp>
 #include <Scene/Components/MeshComponent.hpp>
+#include <Scene/Components/AnimationComponent.hpp>
 
 #include <Core/Utilities/StringUtil.hpp>
 
+#include <Core/Constants.hpp>
 #include <Core/Containers/Array.hpp>
+#include <Core/Containers/Set.hpp>
 #include <Core/Containers/String.hpp>
 
 #include <Core/FileSystem/FsUtil.hpp>
@@ -78,11 +85,21 @@ struct GltfPrimitiveResource
     Handle<Material> material;
     Vec3f localTranslation = Vec3f::Zero();
     uint32 gltfPrimitiveIndex = 0;
+    bool skinned = false;
 };
 
 struct GltfMeshResource
 {
     Array<GltfPrimitiveResource> primitives;
+};
+
+struct GltfSkinResource
+{
+    Handle<Skeleton> skeleton;
+    Array<uint32> jointToBoneIndex;
+    Map<const cgltf_node*, Transform> bindingTransforms;
+    Map<const cgltf_node*, Name> boneNames;
+    Set<const cgltf_node*> jointNodes;
 };
 
 struct GltfLoadContext
@@ -91,6 +108,7 @@ struct GltfLoadContext
     cgltf_data& data;
     Scene* scene;
     Array<GltfMeshResource> meshResources;
+    Map<const cgltf_skin*, GltfSkinResource> skinResources;
     Map<const cgltf_material*, Handle<Material>> materialCache;
     Map<const cgltf_texture*, Handle<Texture>> textureCache;
     uint32 unnamedNodeCounter = 0;
@@ -98,6 +116,8 @@ struct GltfLoadContext
     bool loggedMorphTargetWarning = false;
     bool loggedEmbeddedTextureWarning = false;
     bool loggedTextureWrapModeWarning = false;
+    bool loggedJointIndexOutOfRangeWarning = false;
+    bool loggedSkinnedPrimitiveWithoutInfluencesWarning = false;
 };
 
 const char* ToString(cgltf_result result)
@@ -495,6 +515,370 @@ Transform BuildTransformFromNode(const cgltf_node& node)
     return Transform(translation, scale, rotation);
 }
 
+/*! \brief Same as BuildTransformFromNode, but mirrors the transform across the Z axis,
+ *  matching the vertex position conversion done in BuildPrimitive (right-handed to left-handed).
+ *  This is used for bone binding transforms and animation keyframes, which have to live in the
+ *  same space as the (mirrored) skinned vertices. */
+Transform BuildMirroredTransformFromNode(const cgltf_node& node)
+{
+    if (node.has_matrix)
+    {
+        Mat4f matrix(node.matrix);
+        matrix = matrix.Transpose();
+
+        // Conjugate with D = diag(1, 1, -1, 1) to mirror across Z: M' = D * M * D
+        matrix[0][2] *= -1.0f;
+        matrix[1][2] *= -1.0f;
+        matrix[2][0] *= -1.0f;
+        matrix[2][1] *= -1.0f;
+        matrix[2][3] *= -1.0f;
+
+        const Vec3f translation = matrix.ExtractTranslation();
+
+        const Vec3f scale = Vec3f(
+            Vec3f(matrix[0][0], matrix[1][0], matrix[2][0]).Length(),
+            Vec3f(matrix[0][1], matrix[1][1], matrix[2][1]).Length(),
+            Vec3f(matrix[0][2], matrix[1][2], matrix[2][2]).Length());
+
+        Quat4f rotation = matrix.ExtractRotation().Inverse();
+        rotation.Normalize();
+
+        return Transform(translation, scale, rotation);
+    }
+
+    Vec3f translation(0.0f);
+    Vec3f scale(1.0f);
+    Quat4f rotation = Quat4f::Identity();
+
+    if (node.has_translation)
+    {
+        translation = Vec3f(
+            float(node.translation[0]),
+            float(node.translation[1]),
+            -float(node.translation[2]));
+    }
+
+    if (node.has_scale)
+    {
+        scale = Vec3f(
+            float(node.scale[0]),
+            float(node.scale[1]),
+            float(node.scale[2]));
+    }
+
+    if (node.has_rotation)
+    {
+        rotation = Quat4f(
+                       -float(node.rotation[0]),
+                       -float(node.rotation[1]),
+                       float(node.rotation[2]),
+                       float(node.rotation[3]))
+                       .Inverse();
+        rotation.Normalize();
+    }
+
+    return Transform(translation, scale, rotation);
+}
+
+GltfSkinResource BuildSkinResource(GltfLoadContext& ctx, const cgltf_skin& skin)
+{
+    GltfSkinResource resource;
+
+    for (cgltf_size jointIndex = 0; jointIndex < skin.joints_count; ++jointIndex)
+    {
+        if (skin.joints[jointIndex] != nullptr)
+        {
+            resource.jointNodes.Insert(skin.joints[jointIndex]);
+        }
+    }
+
+    if (resource.jointNodes.Empty())
+    {
+        HYP_LOG(Assets, Warning, "GLTF skin '{}' has no joints; no skeleton will be created",
+                skin.name ? skin.name : "<unnamed>");
+
+        return resource;
+    }
+
+    if (skin.joints_count > MaxBonesPerSkeleton)
+    {
+        HYP_LOG(Assets, Warning, "GLTF skin '{}' has {} joints, but only {} bones are supported per skeleton; skinning of excess bones will be incorrect",
+                skin.name ? skin.name : "<unnamed>",
+                uint32(skin.joints_count),
+                MaxBonesPerSkeleton);
+    }
+
+    const Name skinName = (skin.name && *skin.name)
+        ? CreateNameFromDynamicString(skin.name)
+        : NAME_FMT("Skin{}", ctx.skinResources.Size());
+
+    // Synthetic root bone so that multiple separate joint hierarchies can be represented by a single skeleton
+    Handle<Bone> rootBone = MakeHandle<Bone>(NAME_FMT("{}_Root", skinName));
+
+    Array<Name> usedBoneNames;
+    Map<const cgltf_node*, Handle<Bone>> bonesByNode;
+    Map<const cgltf_node*, const cgltf_node*> jointParents;
+
+    uint32 unnamedJointCounter = 0;
+
+    for (cgltf_size jointIndex = 0; jointIndex < skin.joints_count; ++jointIndex)
+    {
+        const cgltf_node* jointNode = skin.joints[jointIndex];
+
+        if (jointNode == nullptr || bonesByNode.Find(jointNode) != bonesByNode.End())
+        {
+            continue;
+        }
+
+        // The binding transform is the joint's local transform, with any intermediate non-joint
+        // nodes folded in, so that the resulting bone hierarchy consists of joints only
+        Transform bindingTransform = BuildMirroredTransformFromNode(*jointNode);
+        const cgltf_node* jointParent = nullptr;
+
+        for (const cgltf_node* parentNode = jointNode->parent; parentNode != nullptr; parentNode = parentNode->parent)
+        {
+            if (resource.jointNodes.Contains(parentNode))
+            {
+                jointParent = parentNode;
+
+                break;
+            }
+
+            bindingTransform = BuildMirroredTransformFromNode(*parentNode) * bindingTransform;
+        }
+
+        Name boneName = (jointNode->name && *jointNode->name)
+            ? CreateNameFromDynamicString(jointNode->name)
+            : NAME_FMT("{}_Joint{}", skinName, unnamedJointCounter++);
+
+        if (usedBoneNames.Contains(boneName))
+        {
+            uint32 suffix = 0;
+            Name candidateName;
+
+            do
+            {
+                candidateName = NAME_FMT("{}_{}", boneName, suffix++);
+            }
+            while (usedBoneNames.Contains(candidateName));
+
+            boneName = candidateName;
+        }
+
+        usedBoneNames.PushBack(boneName);
+
+        Handle<Bone> bone = MakeHandle<Bone>(boneName);
+        bone->SetBindingTransform(bindingTransform);
+
+        bonesByNode.Set(jointNode, bone);
+        jointParents.Set(jointNode, jointParent);
+        resource.bindingTransforms.Set(jointNode, bindingTransform);
+        resource.boneNames.Set(jointNode, boneName);
+    }
+
+    for (const auto& boneIt : bonesByNode)
+    {
+        Handle<Bone> parentBone = rootBone;
+
+        if (const cgltf_node* jointParent = jointParents.At(boneIt.first); jointParent != nullptr)
+        {
+            if (const auto parentIt = bonesByNode.Find(jointParent); parentIt != bonesByNode.End())
+            {
+                parentBone = parentIt->second;
+            }
+        }
+
+        parentBone->AddChild(boneIt.second);
+    }
+
+    Handle<Skeleton> skeleton = MakeHandle<Skeleton>();
+    skeleton->SetName(skinName);
+    skeleton->SetRootBone(rootBone);
+
+    // Mirror the traversal done in Skeleton::UpdateRenderProxy, so that the joint -> bone index
+    // remapping matches the bone matrix layout used by the skinning shader
+    Map<const Bone*, uint32> boneIndices;
+    boneIndices.Set(rootBone.Get(), 0);
+
+    uint32 traversalIndex = 1;
+
+    for (Node* descendant : rootBone->GetDescendants())
+    {
+        if (Bone* bone = DynamicCast<Bone>(descendant))
+        {
+            boneIndices.Set(bone, traversalIndex);
+        }
+
+        ++traversalIndex;
+    }
+
+    for (cgltf_size jointIndex = 0; jointIndex < skin.joints_count; ++jointIndex)
+    {
+        uint32 boneIndex = 0;
+
+        if (skin.joints[jointIndex] != nullptr)
+        {
+            const auto boneIt = boneIndices.Find(bonesByNode.At(skin.joints[jointIndex]).Get());
+
+            if (boneIt != boneIndices.End())
+            {
+                boneIndex = boneIt->second;
+            }
+        }
+
+        resource.jointToBoneIndex.PushBack(boneIndex);
+    }
+
+    if (Bone* rootBonePtr = skeleton->GetRootBone())
+    {
+        rootBonePtr->SetToBindingPose();
+
+        rootBonePtr->CalculateBoneRotation();
+        rootBonePtr->CalculateBoneTranslation();
+
+        rootBonePtr->StoreBindingPose();
+        rootBonePtr->ClearPose();
+
+        rootBonePtr->UpdateBoneTransform();
+    }
+
+    GetCurrentAssetRegistry()->PutAssetUnique(skeleton);
+    InitObject(skeleton);
+
+    resource.skeleton = skeleton;
+
+    return resource;
+}
+
+Handle<Animation> BuildAnimationForSkin(const cgltf_animation& animation, uint32 animationIndex, const GltfSkinResource& skinResource)
+{
+    const Name animationName = (animation.name && *animation.name)
+        ? CreateNameFromDynamicString(animation.name)
+        : NAME_FMT("Animation{}", animationIndex);
+
+    Handle<Animation> result = MakeHandle<Animation>(animationName);
+
+    for (cgltf_size channelIndex = 0; channelIndex < animation.channels_count; ++channelIndex)
+    {
+        const cgltf_animation_channel& channel = animation.channels[channelIndex];
+
+        if (channel.target_node == nullptr || channel.sampler == nullptr)
+        {
+            continue;
+        }
+
+        switch (channel.target_path)
+        {
+        case cgltf_animation_path_type_translation:
+        case cgltf_animation_path_type_rotation:
+        case cgltf_animation_path_type_scale:
+            break;
+        default:
+            // Morph target weights are not supported; a warning is emitted when loading mesh data
+            continue;
+        }
+
+        if (!skinResource.jointNodes.Contains(channel.target_node))
+        {
+            // Only bones can be animated; channels targeting other nodes are ignored
+            continue;
+        }
+
+        const cgltf_animation_sampler& sampler = *channel.sampler;
+
+        Array<float> timesData;
+
+        if (UnpackAccessorFloats(sampler.input, timesData) == 0)
+        {
+            HYP_LOG(Assets, Warning, "GLTF animation '{}' channel {} has no usable time data; skipping channel",
+                    animationName, uint32(channelIndex));
+
+            continue;
+        }
+
+        Array<float> valuesData;
+
+        if (UnpackAccessorFloats(sampler.output, valuesData) == 0)
+        {
+            HYP_LOG(Assets, Warning, "GLTF animation '{}' channel {} has no usable output data; skipping channel",
+                    animationName, uint32(channelIndex));
+
+            continue;
+        }
+
+        const uint32 numComponents = channel.target_path == cgltf_animation_path_type_rotation ? 4 : 3;
+
+        // Cubic spline samplers store an in-tangent, the value and an out-tangent per keyframe;
+        // only the value (the middle element) is used, other interpolation types are treated as linear
+        const cgltf_size componentStride = numComponents * (sampler.interpolation == cgltf_interpolation_type_cubic_spline ? 3 : 1);
+
+        if (valuesData.Size() < timesData.Size() * componentStride)
+        {
+            HYP_LOG(Assets, Warning, "GLTF animation '{}' channel {} has an insufficient number of output values; skipping channel",
+                    animationName, uint32(channelIndex));
+
+            continue;
+        }
+
+        const auto bindingIt = skinResource.bindingTransforms.Find(channel.target_node);
+        const Transform bindingTransform = bindingIt != skinResource.bindingTransforms.End()
+            ? bindingIt->second
+            : Transform();
+
+        const auto boneNameIt = skinResource.boneNames.Find(channel.target_node);
+        const Name boneName = boneNameIt != skinResource.boneNames.End() ? boneNameIt->second : Name::Invalid();
+
+        Array<Keyframe> keyframes;
+        keyframes.Resize(timesData.Size());
+
+        for (cgltf_size keyframeIndex = 0; keyframeIndex < timesData.Size(); ++keyframeIndex)
+        {
+            // Non-animated components fall back to the bone's binding transform
+            Vec3f translation = bindingTransform.GetTranslation();
+            Vec3f scale = bindingTransform.GetScale();
+            Quat4f rotation = bindingTransform.GetRotation();
+
+            const cgltf_size base = keyframeIndex * componentStride
+                + (sampler.interpolation == cgltf_interpolation_type_cubic_spline ? numComponents : 0);
+
+            switch (channel.target_path)
+            {
+            case cgltf_animation_path_type_translation:
+                translation = Vec3f(valuesData[base], valuesData[base + 1], -valuesData[base + 2]);
+                break;
+            case cgltf_animation_path_type_scale:
+                scale = Vec3f(valuesData[base], valuesData[base + 1], valuesData[base + 2]);
+                break;
+            case cgltf_animation_path_type_rotation:
+                rotation = Quat4f(
+                               -valuesData[base],
+                               -valuesData[base + 1],
+                               valuesData[base + 2],
+                               valuesData[base + 3])
+                               .Inverse();
+                rotation.Normalize();
+                break;
+            default:
+                break;
+            }
+
+            keyframes[keyframeIndex] = Keyframe(timesData[keyframeIndex], Transform(translation, scale, rotation));
+        }
+
+        Handle<AnimationTrack> track = MakeHandle<AnimationTrack>(
+            NAME_FMT("{}_{}", animationName, boneName),
+            boneName);
+
+        track->SetKeyframes(keyframes);
+
+        GetCurrentAssetRegistry()->PutAssetUnique(track);
+
+        result->AddTrack(track);
+    }
+
+    return result;
+}
+
 struct SplitMetalnessRoughnessResult
 {
     Handle<Texture> metalness;
@@ -740,6 +1124,7 @@ struct PrimitiveBuildOutput
 {
     Handle<Mesh> mesh;
     Vec3f localTranslation = Vec3f::Zero();
+    bool skinned = false;
 };
 
 bool BuildPrimitive(GltfLoadContext& ctx,
@@ -747,6 +1132,7 @@ bool BuildPrimitive(GltfLoadContext& ctx,
                     const cgltf_primitive& primitive,
                     uint32 meshIndex,
                     uint32 primitiveIndex,
+                    const Array<uint32>* jointRemap,
                     PrimitiveBuildOutput& out)
 {
     Topology topology;
@@ -884,8 +1270,32 @@ bool BuildPrimitive(GltfLoadContext& ctx,
 
             for (uint32 i = 0; i < 4; ++i)
             {
-                vertex.SetBoneIndex(i, uint8(jointsFloatData[base + i]));
-                vertex.SetBoneWeight(i, weightsData[base + i]);
+                uint32 boneIndex = uint32(jointsFloatData[base + i]);
+                float weight = weightsData[base + i];
+
+                // Remap glTF joint indices (indices into the skin's joint list)
+                // to bone indices of the engine skeleton
+                if (jointRemap != nullptr)
+                {
+                    if (boneIndex < jointRemap->Size())
+                    {
+                        boneIndex = (*jointRemap)[boneIndex];
+                    }
+                    else
+                    {
+                        if (!ctx.loggedJointIndexOutOfRangeWarning)
+                        {
+                            ctx.loggedJointIndexOutOfRangeWarning = true;
+                            HYP_LOG(Assets, Warning, "GLTF joint index out of range of the skin's joint list; the influence will be dropped");
+                        }
+
+                        boneIndex = 0;
+                        weight = 0.0f;
+                    }
+                }
+
+                vertex.SetBoneIndex(i, uint8(boneIndex));
+                vertex.SetBoneWeight(i, weight);
             }
         }
 
@@ -960,6 +1370,7 @@ bool BuildPrimitive(GltfLoadContext& ctx,
     GetCurrentAssetRegistry()->PutAssetUnique(mesh);
 
     out.mesh = mesh;
+    out.skinned = hasSkinning;
 
     return true;
 }
@@ -996,9 +1407,20 @@ Handle<Node> BuildNodeRecursive(GltfLoadContext& ctx, const cgltf_node& node)
     Handle<Node> nodeHandle = MakeHandle<Node>(nodeName);
     nodeHandle->SetLocalTransform(BuildTransformFromNode(node));
 
+    Handle<Skeleton> nodeSkeleton;
+
     if (node.skin != nullptr)
     {
-        HYP_LOG_ONCE(Assets, Warning, "GLTF skinning is not yet supported; meshes will be loaded without skin influences");
+        const auto skinIt = ctx.skinResources.Find(node.skin);
+
+        if (skinIt != ctx.skinResources.End() && skinIt->second.skeleton.IsValid())
+        {
+            nodeSkeleton = skinIt->second.skeleton;
+        }
+        else
+        {
+            HYP_LOG(Assets, Warning, "GLTF node '{}' references a skin that could not be loaded; its meshes will be static", nodeName);
+        }
     }
 
     if (node.mesh != nullptr)
@@ -1023,7 +1445,42 @@ Handle<Node> BuildNodeRecursive(GltfLoadContext& ctx, const cgltf_node& node)
                 entity->SetLocalBounds(primitive.mesh->GetAABB());
                 entity->SetLocalTranslation(primitive.localTranslation);
 
-                ctx.scene->GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { primitive.mesh, primitive.material });
+                Handle<Skeleton> skeleton;
+
+                if (nodeSkeleton.IsValid())
+                {
+                    if (primitive.skinned)
+                    {
+                        skeleton = nodeSkeleton;
+                    }
+                    else if (!ctx.loggedSkinnedPrimitiveWithoutInfluencesWarning)
+                    {
+                        ctx.loggedSkinnedPrimitiveWithoutInfluencesWarning = true;
+                        HYP_LOG(Assets, Warning, "GLTF primitive '{}' belongs to a skinned node but has no JOINTS_0/WEIGHTS_0 attributes; it will be rendered statically",
+                                entityName);
+                    }
+                }
+
+                ctx.scene->GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { primitive.mesh, primitive.material, skeleton });
+
+                if (skeleton.IsValid())
+                {
+                    entity->SetIsDynamic(true);
+
+                    if (!skeleton->GetAnimations().Empty())
+                    {
+                        AnimationComponent animationComponent {};
+                        animationComponent.playbackState = {
+                            .animationIndex = 0,
+                            .status = AnimationPlaybackStatus::PLAYING,
+                            .loopMode = AnimationLoopMode::REPEAT,
+                            .speed = 1.0f,
+                            .currentTime = 0.0f
+                        };
+
+                        ctx.scene->GetEntityManager()->AddComponent<AnimationComponent>(entity, animationComponent);
+                    }
+                }
 
                 nodeHandle->AddChild(entity);
             }
@@ -1062,17 +1519,111 @@ LoadedAsset BuildModel(LoaderState& state, cgltf_data& data)
 
     ctx.meshResources.Resize(data.meshes_count);
 
+    for (cgltf_size skinIndex = 0; skinIndex < data.skins_count; ++skinIndex)
+    {
+        ctx.skinResources.Set(&data.skins[skinIndex], BuildSkinResource(ctx, data.skins[skinIndex]));
+    }
+
+    {
+        Map<const cgltf_skin*, Array<Handle<Animation>>> animationsBySkin;
+
+        for (cgltf_size animationIndex = 0; animationIndex < data.animations_count; ++animationIndex)
+        {
+            const cgltf_animation& gltfAnimation = data.animations[animationIndex];
+
+            // Determine which skin this animation belongs to by looking at the first channel targeting a joint
+            const cgltf_skin* targetSkin = nullptr;
+
+            for (cgltf_size channelIndex = 0; channelIndex < gltfAnimation.channels_count; ++channelIndex)
+            {
+                const cgltf_animation_channel& channel = gltfAnimation.channels[channelIndex];
+
+                if (channel.target_node == nullptr)
+                {
+                    continue;
+                }
+
+                for (const auto& skinIt : ctx.skinResources)
+                {
+                    if (skinIt.second.jointNodes.Contains(channel.target_node))
+                    {
+                        targetSkin = skinIt.first;
+
+                        break;
+                    }
+                }
+
+                if (targetSkin != nullptr)
+                {
+                    break;
+                }
+            }
+
+            if (targetSkin == nullptr)
+            {
+                continue;
+            }
+
+            const auto skinIt = ctx.skinResources.Find(targetSkin);
+
+            if (skinIt == ctx.skinResources.End() || !skinIt->second.skeleton.IsValid())
+            {
+                continue;
+            }
+
+            Handle<Animation> animation = BuildAnimationForSkin(gltfAnimation, uint32(animationIndex), skinIt->second);
+
+            if (animation.IsValid() && animation->NumTracks() > 0)
+            {
+                GetCurrentAssetRegistry()->PutAssetUnique(animation);
+
+                animationsBySkin[targetSkin].PushBack(animation);
+            }
+        }
+
+        for (const auto& animationIt : animationsBySkin)
+        {
+            if (const auto skinIt = ctx.skinResources.Find(animationIt.first); skinIt != ctx.skinResources.End() && skinIt->second.skeleton.IsValid())
+            {
+                skinIt->second.skeleton->SetAnimations(animationIt.second);
+            }
+        }
+    }
+
+    // Associate each mesh with the skin of the first node that instantiates it with a skin
+    Map<const cgltf_mesh*, const cgltf_skin*> meshSkins;
+
+    for (cgltf_size nodeIndex = 0; nodeIndex < data.nodes_count; ++nodeIndex)
+    {
+        const cgltf_node& node = data.nodes[nodeIndex];
+
+        if (node.mesh != nullptr && node.skin != nullptr && meshSkins.Find(node.mesh) == meshSkins.End())
+        {
+            meshSkins.Set(node.mesh, node.skin);
+        }
+    }
+
     for (cgltf_size meshIndex = 0; meshIndex < data.meshes_count; ++meshIndex)
     {
         const cgltf_mesh& gltfMesh = data.meshes[meshIndex];
         GltfMeshResource& meshResource = ctx.meshResources[meshIndex];
         meshResource.primitives.Reserve(gltfMesh.primitives_count);
 
+        const Array<uint32>* jointRemap = nullptr;
+
+        if (const auto meshSkinIt = meshSkins.Find(&gltfMesh); meshSkinIt != meshSkins.End())
+        {
+            if (const auto skinIt = ctx.skinResources.Find(meshSkinIt->second); skinIt != ctx.skinResources.End())
+            {
+                jointRemap = &skinIt->second.jointToBoneIndex;
+            }
+        }
+
         for (cgltf_size primitiveIndex = 0; primitiveIndex < gltfMesh.primitives_count; ++primitiveIndex)
         {
             PrimitiveBuildOutput output;
 
-            if (!BuildPrimitive(ctx, gltfMesh, gltfMesh.primitives[primitiveIndex], uint32(meshIndex), uint32(primitiveIndex), output))
+            if (!BuildPrimitive(ctx, gltfMesh, gltfMesh.primitives[primitiveIndex], uint32(meshIndex), uint32(primitiveIndex), jointRemap, output))
             {
                 continue;
             }
@@ -1084,7 +1635,8 @@ LoadedAsset BuildModel(LoaderState& state, cgltf_data& data)
                 .mesh = output.mesh,
                 .material = material,
                 .localTranslation = output.localTranslation,
-                .gltfPrimitiveIndex = uint32(primitiveIndex) });
+                .gltfPrimitiveIndex = uint32(primitiveIndex),
+                .skinned = output.skinned });
         }
 
         if (meshResource.primitives.Empty())

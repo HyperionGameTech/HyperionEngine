@@ -44,6 +44,7 @@
 #include <Core/Memory/Memory.hpp>
 #include <Core/Memory/Allocator/ArenaAllocator.hpp>
 #include <Core/Memory/Allocator/SlabAllocator.hpp>
+
 #include <Core/Utilities/StringUtil.hpp>
 
 #include <Framework/EngineDriver.hpp>
@@ -389,6 +390,8 @@ struct FBXMesh
     {
         if (!result.HasValue())
         {
+            Assert(name.Length() > 0);
+
             VertexArrayView vertexArrayView {};
             vertexArrayView.floatData = vertexData.Data();
             vertexArrayView.layoutDesc = VertexInputLayoutDesc { VT_Simple | VT_Skeletal };
@@ -727,15 +730,23 @@ static uint64 ReadFBXOffset(ByteReader& reader, FBXVersion version)
 
 static Result ReadFBXNode(ByteReader& reader, FBXVersion version, FBXObject*& out)
 {
-    out = (FBXObject*)t_fbxMemory->objectAllocator->Allocate();
-    new (out) FBXObject();
-
     uint64 endPosition = ReadFBXOffset(reader, version);
     uint64 numProperties = ReadFBXOffset(reader, version);
     uint64 propertyListLength = ReadFBXOffset(reader, version);
 
     uint8 nameLength;
     reader.Read(&nameLength);
+
+    if (endPosition == 0 && numProperties == 0 && propertyListLength == 0 && nameLength == 0)
+    {
+        // Null record terminating the parent's list of children -- not an actual node
+        out = nullptr;
+
+        return {};
+    }
+
+    out = (FBXObject*)t_fbxMemory->objectAllocator->Allocate();
+    new (out) FBXObject();
 
     ByteBuffer nameBuffer = reader.Read(nameLength);
 
@@ -975,7 +986,7 @@ static Result ReadIndexedLayer(
 }
 
 template <class T>
-static bool GetFBXObjectInMapping(Map<FBXObjectID, FBXNodeMapping>& mapping, FBXObjectID id, T*& out)
+static bool GetFBXObjectInMapping(Map<FBXObjectID, FBXNodeMapping, FBXAllocator>& mapping, FBXObjectID id, T*& out)
 {
     out = nullptr;
 
@@ -996,6 +1007,29 @@ static bool GetFBXObjectInMapping(Map<FBXObjectID, FBXNodeMapping>& mapping, FBX
     return false;
 }
 
+struct UniqueNameGenerator
+{
+    const String& baseName;
+    Set<String, FBXAllocator> used;
+
+    HYP_NODISCARD String operator()(const UTF8StringView& nodeName)
+    {
+        const String nodeNameWithBaseName = baseName + "_" + nodeName;
+
+        String name = nodeNameWithBaseName;
+        int counter = 0;
+
+        while (used.Contains(name))
+        {
+            name = HYP_FORMAT("{}_{}", nodeNameWithBaseName, ++counter);
+        }
+
+        used.Insert(name);
+
+        return name;
+    }
+};
+
 FBXModelLoader::FBXModelLoader() = default;
 
 AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
@@ -1003,14 +1037,16 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
     Assert(state.assetManager != nullptr);
 
     // Include our root dir as part of the path
-    const String path = state.filepath;
+    const FilePath path = state.filepath;
     const FilePath currentDir = FilePath::Current();
-    const FilePath basePath = FilePath(path).BasePath();
+    const FilePath basePath = path.BasePath();
 
-    Handle<Node> top = MakeHandle<Node>(CreateNameFromDynamicString(StringUtil::StripExtension(FilePath(path).Basename())));
+    const String baseName = StringUtil::StripExtension(path.Basename());
+
+    Handle<Node> top = MakeHandle<Node>(CreateNameFromDynamicString(baseName));
     Handle<Skeleton> rootSkeleton = MakeHandle<Skeleton>();
 
-    FileByteReader fbr { FilePath::Join(basePath, FilePath(path).Basename()) };
+    FileByteReader fbr { path };
 
     if (fbr.Eof())
     {
@@ -1040,6 +1076,9 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
             DeleteFBXObjectsRecursively(child);
         }
     });
+
+    UniqueNameGenerator getUniqueMeshName { baseName };
+    UniqueNameGenerator getUniqueMaterialName { baseName };
 
     do
     {
@@ -1155,9 +1194,9 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
         return { float(x), float(y), float(z) };
     };
 
-    Map<FBXObjectID, FBXNodeMapping> objectMapping;
-    Set<FBXObjectID> bindPoseIds;
-    Array<FBXConnection> connections;
+    Map<FBXObjectID, FBXNodeMapping, FBXAllocator> objectMapping;
+    Set<FBXObjectID, FBXAllocator> bindPoseIds;
+    Array<FBXConnection, FBXAllocator> connections;
 
     const auto getFbxObject = [&objectMapping](FBXObjectID id, auto*& out)
     {
@@ -1473,7 +1512,8 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
             {
                 Array<Vec3f> modelVertices;
                 Array<uint32> modelIndices;
-                VertexTypeMask attributes;
+
+                Bitset polygonVertexEnds;
 
                 Array<String> layerNodeNames;
 
@@ -1558,12 +1598,8 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                         continue;
                     }
 
-                    if (count % 3 != 0)
-                    {
-                        return HYP_MAKE_ERROR(AssetLoadError, "Not a valid triangle mesh");
-                    }
-
                     modelIndices.Resize(count);
+                    polygonVertexEnds.SetNumBits(count);
 
                     for (size_t index = 0; index < count; ++index)
                     {
@@ -1574,8 +1610,13 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                             return HYP_MAKE_ERROR(AssetLoadError, "Invalid index value");
                         }
 
+                        polygonVertexEnds.Set(index, false);
+
                         if (i < 0)
                         {
+                            // Negative indices mark the last vertex of a polygon
+                            polygonVertexEnds.Set(index, true);
+
                             i = (i * -1) - 1;
                         }
 
@@ -1588,12 +1629,55 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     }
                 }
 
-                Array<FatVertex> verticesUnpacked;
-                verticesUnpacked.Resize(modelIndices.Size());
+                // Fan-triangulate polygons, keeping track of the source polygon-vertex for each expanded corner
+                Array<uint32> triangulatedControlPoints;
+                Array<uint32> triangulatedSourceVertices;
 
-                for (size_t index = 0; index < modelIndices.Size(); ++index)
                 {
-                    verticesUnpacked[index].SetPosition(modelVertices[modelIndices[index]]);
+                    size_t polygonStart = 0;
+
+                    for (size_t index = 0; index < modelIndices.Size(); ++index)
+                    {
+                        if (!polygonVertexEnds.Test(index))
+                        {
+                            continue;
+                        }
+
+                        const size_t polygonFirst = polygonStart;
+                        const size_t polygonSize = (index - polygonFirst) + 1;
+
+                        polygonStart = index + 1;
+
+                        if (polygonSize < 3)
+                        {
+                            HYP_LOG(Assets, Warning, "Skipping degenerate FBX polygon with {} vertices", polygonSize);
+
+                            continue;
+                        }
+
+                        for (size_t corner = 1; corner + 1 < polygonSize; ++corner)
+                        {
+                            const uint32 sourceIndices[3] = {
+                                uint32(polygonFirst),
+                                uint32(polygonFirst + corner),
+                                uint32(polygonFirst + corner + 1)
+                            };
+
+                            for (const uint32 sourceIndex : sourceIndices)
+                            {
+                                triangulatedControlPoints.PushBack(modelIndices[sourceIndex]);
+                                triangulatedSourceVertices.PushBack(sourceIndex);
+                            }
+                        }
+                    }
+                }
+
+                Array<FatVertex> verticesUnpacked;
+                verticesUnpacked.Resize(triangulatedControlPoints.Size());
+
+                for (size_t index = 0; index < triangulatedControlPoints.Size(); ++index)
+                {
+                    verticesUnpacked[index].SetPosition(modelVertices[triangulatedControlPoints[index]]);
                 }
 
                 for (const String& name : layerNodeNames)
@@ -1608,9 +1692,17 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                             HYP_LOG(Assets, Warning, "Failed to read FBX UV layer: {}", result.GetError().GetMessage());
                         }
 
-                        for (size_t index = 0; index < uvFlat.Size() / 2; ++index)
+                        for (size_t index = 0; index < triangulatedSourceVertices.Size(); ++index)
                         {
-                            Vec2f uv { float(uvFlat[index * 2 + 0]), float(uvFlat[index * 2 + 1]) };
+                            const size_t sourceIndex = triangulatedSourceVertices[index];
+
+                            if (sourceIndex * 2 + 1 >= uvFlat.Size())
+                            {
+                                break;
+                            }
+
+                            Vec2f uv { float(uvFlat[sourceIndex * 2 + 0]), float(uvFlat[sourceIndex * 2 + 1]) };
+
                             verticesUnpacked[index].SetUV0(uv);
                         }
                     }
@@ -1624,9 +1716,16 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                             HYP_LOG(Assets, Warning, "Failed to read FBX normal layer: {}", result.GetError().GetMessage());
                         }
 
-                        for (size_t index = 0; index < normalFlat.Size() / 3; ++index)
+                        for (size_t index = 0; index < triangulatedSourceVertices.Size(); ++index)
                         {
-                            Vec3f normal { float(normalFlat[index * 3 + 0]), float(normalFlat[index * 3 + 1]), float(normalFlat[index * 3 + 2]) };
+                            const size_t sourceIndex = triangulatedSourceVertices[index];
+
+                            if (sourceIndex * 3 + 2 >= normalFlat.Size())
+                            {
+                                break;
+                            }
+
+                            Vec3f normal { float(normalFlat[sourceIndex * 3 + 0]), float(normalFlat[sourceIndex * 3 + 1]), float(normalFlat[sourceIndex * 3 + 2]) };
 
                             verticesUnpacked[index].SetNormal(normal);
                         }
@@ -1637,12 +1736,12 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                 FBXMesh fbxMesh;
                 fbxMesh.srcObject = childObject;
-                fbxMesh.name = nodeName;
+                fbxMesh.name = getUniqueMeshName(nodeName);
                 fbxMesh.vertexData = Array<float>(reinterpret_cast<const float*>(newVertsAndIndices.first.Data()), newVertsAndIndices.first.ByteSize() / sizeof(float));
 
-                for (size_t index = 0; index < modelIndices.Size(); ++index)
+                for (size_t index = 0; index < triangulatedControlPoints.Size(); ++index)
                 {
-                    const int32 controlPointIndex = int32(modelIndices[index]);
+                    const int32 controlPointIndex = int32(triangulatedControlPoints[index]);
                     const uint32 expandedVertexIndex = newVertsAndIndices.second[index];
 
                     Array<uint32, FBXAllocator>& expandedIndices = fbxMesh.controlPointToVertices[controlPointIndex];
@@ -1714,7 +1813,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
             else if (fbxTemplate->name == "Material")
             {
                 FBXMaterial material;
-                material.name = nodeName;
+                material.name = getUniqueMaterialName(nodeName);
 
                 for (FBXObject* materialChild : childObject->children)
                 {

@@ -85,24 +85,36 @@ public:
         return HasValue() && GetValue().IsValid();
     }
 
-    const AssetLoadError* GetErrorIfFailed() const&
+    HYP_FORCE_INLINE const AssetLoadError* GetErrorIfFailed() const&
     {
         if (!HasError())
         {
             return nullptr;
         }
 
-        return &GetError();
+        return &TResult::GetError();
     }
 
-    BoxedValue& Unwrap()
+    HYP_FORCE_INLINE const AssetLoadError& GetError() const&
+    {
+        if (!HasError())
+        {
+            // Fallback, in case of no actual error
+            static const AssetLoadError s_defaultError;
+            return s_defaultError;
+        }
+
+        return TResult::GetError();
+    }
+
+    HYP_FORCE_INLINE BoxedValue& Unwrap()
     {
         Assert(IsValid(), "Unwrapping errored LoadedAsset!");
 
         return GetValue();
     }
 
-    const BoxedValue& Unwrap() const
+    HYP_FORCE_INLINE const BoxedValue& Unwrap() const
     {
         Assert(IsValid(), "Unwrapping errored LoadedAsset!");
 

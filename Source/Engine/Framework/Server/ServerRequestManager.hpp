@@ -79,10 +79,7 @@ struct ServerRequest<ServerRequestType::PlayerMoves> final : ServerRequestBase
           numMoves(inNumMoves),
           lastAckedMoveId(lastAckedMoveId)
     {
-        for (uint32 i = 0; i < inNumMoves; ++i)
-        {
-            moves[i] = inMoves[i];
-        }
+        Memory::Copy(moves, inMoves, sizeof(PlayerMove) * inNumMoves);
     }
 };
 

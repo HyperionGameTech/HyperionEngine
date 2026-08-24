@@ -320,8 +320,6 @@ private:
                 continue;
             }
 
-            // Mirrors the header-offset alignment BlobStorage::PutData performs when it
-            // actually writes the blob, so the size computed here matches exactly.
             const size_t headerOffset = ByteUtil::AlignAs(blockSizes[bucketIndex], alignof(BlobHeader));
             blockSizes[bucketIndex] = headerOffset + sizeof(BlobHeader) + reference->size;
 

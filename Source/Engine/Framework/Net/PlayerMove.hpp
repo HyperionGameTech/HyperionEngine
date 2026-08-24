@@ -24,27 +24,49 @@ namespace Hyperion {
 // Maximum number of moves that fits in a single PlayerMovesRequest datagram.
 static constexpr uint32 MaxPlayerMovesPerRequest = 16;
 
-// One simulation tick of player movement input. Sent client -> server in batches
-// (PlayerMovesRequest) and replayed locally for client-side prediction.
 struct PlayerMove
 {
-    uint32 moveId = 0;
-    float deltaTime = 0.0f; // seconds of simulation this move covers
-    Vec2f movementInput = Vec2f(0.0f);
-    int8 jumpRequested = 0;
-    Vec3f viewDirection = Vec3f(0.0f, 0.0f, 1.0f);
+    uint32 moveId;
+    float deltaTime; // seconds of simulation this move covers
+    float movementInput[2];
+    float viewDirection[3];
+    int8 jumpRequested;
+
+    int8 _pad[3];
+
+    PlayerMove() = default;
+
+    HYP_FORCE_INLINE Vec2f GetMovementInput() const
+    {
+        return { movementInput[0], movementInput[1] };
+    }
+
+    HYP_FORCE_INLINE Vec3f GetViewDirection() const
+    {
+        return { viewDirection[0], viewDirection[1], viewDirection[2] };
+    }
 };
 
 static_assert(std::is_trivially_copyable_v<PlayerMove>);
 static_assert(std::is_trivially_destructible_v<PlayerMove>);
 
-// Server -> client acknowledgement of processed moves, carrying the authoritative
-// entity translation as of the last acked move. The client compares this against
-// its own predicted translation for that move and corrects itself if needed.
 struct PlayerMoveAck
 {
-    uint32 ackedMoveId = 0;
-    Vec3f authoritativeTranslation = Vec3f(0.0f);
+    float authTranslation[3];
+    uint32 ackedMoveId;
+
+    PlayerMoveAck() = default;
+
+    PlayerMoveAck(const Vec3f& authTranslation, uint32 ackedMoveId)
+        : authTranslation{ authTranslation.x, authTranslation.y, authTranslation.z },
+          ackedMoveId(ackedMoveId)
+    {
+    }
+
+    HYP_FORCE_INLINE Vec3f GetAuthTranslation() const
+    {
+        return Vec3f(authTranslation[0], authTranslation[1], authTranslation[2]);
+    }
 };
 
 static_assert(std::is_trivially_copyable_v<PlayerMoveAck>);
@@ -54,15 +76,7 @@ HYP_FORCE_INLINE void SerializePlayerMoves(ByteWriter& writer, uint32 lastAckedM
 {
     writer.Write(lastAckedMoveId);
     writer.Write(uint8(numMoves));
-
-    for (uint32 i = 0; i < numMoves; ++i)
-    {
-        writer.Write(moves[i].moveId);
-        writer.Write(moves[i].deltaTime);
-        writer.Write(moves[i].movementInput);
-        writer.Write(moves[i].jumpRequested);
-        writer.Write(moves[i].viewDirection);
-    }
+    writer.Write(moves, sizeof(PlayerMove) * numMoves);
 }
 
 // Deserializes a batch of moves. Returns the number of moves read (clamped to maxMoves).
@@ -74,31 +88,20 @@ HYP_FORCE_INLINE uint32 DeserializePlayerMoves(ByteReader& reader, uint32& outLa
     reader.Read(&numMoves, sizeof(uint8));
 
     const uint32 count = MathUtil::Min(uint32(numMoves), maxMoves);
-
-    for (uint32 i = 0; i < count; ++i)
-    {
-        reader.Read(&outMoves[i].moveId, sizeof(uint32));
-        reader.Read(&outMoves[i].deltaTime, sizeof(float));
-        reader.Read(&outMoves[i].movementInput, sizeof(Vec2f));
-        reader.Read(&outMoves[i].jumpRequested, sizeof(int8));
-        reader.Read(&outMoves[i].viewDirection, sizeof(Vec3f));
-    }
+    reader.Read(outMoves, sizeof(PlayerMove) * count);
 
     return count;
 }
 
 HYP_FORCE_INLINE void SerializePlayerMoveAck(ByteWriter& writer, const PlayerMoveAck& ack)
 {
-    writer.Write(ack.ackedMoveId);
-    writer.Write(ack.authoritativeTranslation);
+    writer.Write(&ack, sizeof(ack));
 }
 
 HYP_FORCE_INLINE PlayerMoveAck DeserializePlayerMoveAck(ByteReader& reader)
 {
     PlayerMoveAck ack;
-
-    reader.Read(&ack.ackedMoveId, sizeof(uint32));
-    reader.Read(&ack.authoritativeTranslation, sizeof(Vec3f));
+    reader.Read(&ack, sizeof(ack));
 
     return ack;
 }

@@ -1730,7 +1730,7 @@ public:
             EngineGlobals::GetDataDirectory(),
             { "obj", "fbx", "gltf", "glb", "mesh.xml", "skeleton.xml", "jpg", "jpeg", "png", "tga", "bmp", "wav" },
             /* allowMultiple */ true, /* allowDirectories */ false,
-            [this](TResult<Array<FilePath>>&& result)
+            [this, weakSubsystem = MakeWeakRef(subsystem)](TResult<Array<FilePath>>&& result) mutable
             {
                 if (result.HasError())
                 {
@@ -1779,20 +1779,31 @@ public:
                 }
 
                 batch->OnComplete
-                    .Bind([editorTaskScope](AssetMap& results)
+                    .Bind([editorTaskScope, weakSubsystem = std::move(weakSubsystem)](AssetMap& results) mutable
                           {
                               HYP_LOG(Editor, Verbose, "{} assets loaded.", results.Size());
+
+                              String postText;
+                              int numFailed = 0;
+
+                              Handle<EditorSubsystem> subsystem = weakSubsystem.Lock();
+
+                              Set<uint32, EditorAllocator> changedBuckets;
 
                               for (auto& it : results)
                               {
                                   String& key = it.first;
                                   LoadedAsset& loadedAsset = it.second;
 
-                                  editorTaskScope->GetEditorTask()->SetDescription("Processing " + key);
+                                  editorTaskScope->GetEditorTask()->SetDescription("Processing " + key + postText);
 
                                   if (!loadedAsset.IsValid())
                                   {
-                                      HYP_LOG(Editor, Error, "Failed to import asset {}", key);
+                                      HYP_LOG(Editor, Error, "Failed to import asset '{}': {}", key, loadedAsset.GetError().GetMessage());
+
+                                      editorTaskScope->GetEditorTask()->SetDescription("Processing " + key + postText);
+                                      postText = HYP_FORMAT(" ({} failed)", ++numFailed);
+
                                       continue;
                                   }
 
@@ -1803,6 +1814,18 @@ public:
                                   }
 
                                   GetCurrentAssetRegistry()->PutAssetUnique(assetObject);
+
+                                  const AssetPath& assetPath = assetObject->GetPath();
+
+                                  if (assetPath.IsValid() && subsystem.IsValid())
+                                  {
+                                      changedBuckets.Insert(assetPath.GetBucket().GetIndex());
+                                  }
+                              }
+
+                              for (uint32 bucketIndex : changedBuckets)
+                              {
+                                  subsystem->OnAssetsChanged(bucketIndex);
                               }
 
                               delete editorTaskScope;
@@ -3048,11 +3071,15 @@ public:
                                 {
                                     manifestPath.Remove();
                                 }
+
+                                editorSubsystem->OnAssetsChanged(bucket.GetIndex());
                             }),
                         .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
                             [asset, &bucket](EditorSubsystem* editorSubsystem, EditorProject*)
                             {
                                 GetCurrentAssetRegistry()->PutAsset(bucket, asset);
+
+                                editorSubsystem->OnAssetsChanged(bucket.GetIndex());
                             })
                     };
                 }));

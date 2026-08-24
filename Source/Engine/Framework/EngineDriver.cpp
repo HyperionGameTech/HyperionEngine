@@ -506,8 +506,9 @@ void EngineDriver::LoadEngineContent()
 
     doSync = doSyncImpl;
 
-    // check manifest exists already:
-    if ((EngineGlobals::GetCacheDirectory() / "Engine.hmf").Exists())
+    // check manifest exists already if not editor
+    // (editor process  doesn't use Cache)
+    if (EngineGlobals::IsEditor() || (EngineGlobals::GetCacheDirectory() / "Engine.hmf").Exists())
     {
         // Initialize with no sync.
         engineRegistry->Initialize(nullptr);

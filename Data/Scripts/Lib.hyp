@@ -799,6 +799,7 @@ extern class EditorSubsystem : Subsystem
     OnActiveSceneChanged : any
     OnSelectedGizmoChanged : any
     OnSelectedBucketChanged : any
+    OnAssetsChanged : any
     OnActiveViewportChanged : any
     OnSelectionChanged : any
     OnMeshEditSelectionChanged : any

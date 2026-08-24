@@ -652,6 +652,11 @@ public:
     HYP_FIELD()
     ScriptableDelegate<void, uint32> OnSelectedBucketChanged;
 
+    /*! \brief Fired when assets are added to or removed from a bucket in the current asset registry
+     *  (e.g. by deleting an asset or importing content). The argument is the index of the affected bucket. */
+    HYP_FIELD()
+    ScriptableDelegate<void, uint32> OnAssetsChanged;
+
     HYP_FIELD()
     ScriptableDelegate<void, Handle<EditorViewport>> OnActiveViewportChanged;
 

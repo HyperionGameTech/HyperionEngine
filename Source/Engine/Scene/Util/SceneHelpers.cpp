@@ -123,21 +123,25 @@ void MoveCharacter(Entity* entity, CharacterControllerComponent& component, cons
 
     // View direction is client-authoritative and carried per-move so both sides
     // derive an identical walk direction.
-    const Vec3f horizontalView(move.viewDirection.x, 0.0f, move.viewDirection.z);
+
+    const Vec3f viewDirection = move.GetViewDirection();
+    const Vec2f movementInput = move.GetMovementInput();
+
+    const Vec3f horizontalView = { viewDirection.x, 0.0f, viewDirection.z };
 
     if (horizontalView.LengthSquared() > 0.0001f)
     {
-        component.viewDirection = move.viewDirection;
+        component.viewDirection = viewDirection;
     }
 
     Vec3f walkDirection;
 
-    if (move.movementInput.LengthSquared() > 0.0001f)
+    if (move.GetMovementInput().LengthSquared() > 0.0001f)
     {
-        Vec3f forward = Vec3f(component.viewDirection.x, 0.0f, component.viewDirection.z).Normalize();
-        Vec3f right = Vec3f(0.0f, 1.0f, 0.0f).Cross(forward).Normalize();
+        Vec3f forward = Vec3f { component.viewDirection.x, 0.0f, component.viewDirection.z }.Normalize();
+        Vec3f right = Vec3f::UnitY().Cross(forward).Normalize();
 
-        walkDirection = (forward * move.movementInput.y + right * move.movementInput.x) * component.moveSpeed;
+        walkDirection = (forward * movementInput.y + right * movementInput.x) * component.moveSpeed;
     }
 
     if (move.jumpRequested)
