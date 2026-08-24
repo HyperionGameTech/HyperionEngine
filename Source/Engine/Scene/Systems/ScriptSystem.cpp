@@ -145,7 +145,7 @@ public:
 
 static const FilePath& GetScriptsSourceDirectory()
 {
-    static DirectoryInitializer<HYP_STATIC_STRING("Data/Scripts"), /* RelativeToExecutablePath */ false> s_directory;
+    static DirectoryInitializer<HYP_STATIC_STRING("Data/Scripts")> s_directory;
     return s_directory.path;
 }
 

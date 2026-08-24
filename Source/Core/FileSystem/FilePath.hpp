@@ -202,6 +202,12 @@ public:
      */
     CORE_API bool Remove() const;
 
+    /*! \brief Remove the file or directory at the path, including any nested files and subdirectories.
+     *
+     * \return true if the path was removed (or did not exist), false otherwise.
+     */
+    CORE_API bool RemoveRecursively() const;
+
     CORE_API bool Rename(const FilePath& newPath) const;
 
     bool IsAbsolute() const

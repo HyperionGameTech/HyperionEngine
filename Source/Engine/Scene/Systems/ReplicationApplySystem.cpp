@@ -152,8 +152,6 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
         }
         case ReplicationOpType::Despawn:
         {
-        HYP_LOG(Replication, Info, "Client got message of type {}", opPtr->type);
-
             const ReplicationOp<ReplicationOpType::Despawn>& op = static_cast<const ReplicationOp<ReplicationOpType::Despawn>&>(*opPtr);
 
             m_interpolationStates.Erase(op.netId);

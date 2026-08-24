@@ -100,6 +100,14 @@ public:
         return m_filepath;
     }
 
+    /// While the project has not yet been saved, its content is kept in a temp directory,
+    /// which is removed once the project is saved or discarded
+    HYP_METHOD()
+    HYP_FORCE_INLINE const FilePath& GetTempDirectory() const
+    {
+        return m_tempDirectory;
+    }
+
     HYP_METHOD()
     void AddScene(const Handle<Scene>& scene);
 
@@ -163,6 +171,9 @@ private:
 
     HYP_FIELD(Property = "FilePath", Transient)
     FilePath m_filepath;
+
+    HYP_FIELD(Property = "TempDirectory", Transient)
+    FilePath m_tempDirectory;
 
     HYP_FIELD(Property = "GameInstance")
     Handle<Game> m_gameInstance;

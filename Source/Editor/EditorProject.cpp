@@ -90,6 +90,17 @@ EditorProject::EditorProject(Name name, const Handle<Game>& gameInstance)
 
 EditorProject::~EditorProject()
 {
+    // If the project was never saved, discard the temporary directory its content was kept in
+    if (!m_tempDirectory.Empty())
+    {
+        if (!m_tempDirectory.RemoveRecursively())
+        {
+            HYP_LOG(Editor, Warning, "Failed to remove temporary project directory '{}'", m_tempDirectory);
+        }
+
+        m_tempDirectory = FilePath();
+    }
+
     if (m_gameInstance)
     {
         m_gameInstance->Shutdown();
@@ -277,6 +288,17 @@ Result EditorProject::SaveAs(FilePath filepath)
 
     registry.SaveDirtyAssets();
 
+    // Moved from temp; remove old dir
+    if (!m_tempDirectory.Empty())
+    {
+        if (!m_tempDirectory.RemoveRecursively())
+        {
+            HYP_LOG(Editor, Warning, "Failed to remove temporary project directory '{}'", m_tempDirectory);
+        }
+
+        m_tempDirectory = FilePath();
+    }
+
     OnProjectSaved(MakeStrongRef(this));
 
     m_lastSavedTime = Time::Now();
@@ -409,7 +431,20 @@ Handle<EditorProject> EditorProject::CreateNew()
     Handle<World> world = MakeHandle<World>(NAME("MainWorld"), WorldFlags::Default);
     gameInstance->SetWorld(world);
 
-    const FilePath projectDir = EngineGlobals::GetProjectsDirectory() / *projectName;
+    // Until the project is saved for the first time, keep all of its contentin a temporary
+    // directory, so that no project directory is created under Projects/ before the project is explicitly saved.
+    const Optional<FilePath> tempDirOpt = EngineGlobals::CreateTempDirectory("UnsavedProject");
+
+    FilePath projectDir;
+
+    if (tempDirOpt.HasValue())
+    {
+        projectDir = *tempDirOpt;
+    }
+    else
+    {
+        HYP_LOG(Editor, Warning, "Failed to create temp directory for project '{}'!", *projectName);
+    }
 
     Handle<AssetRegistry> registry = MakeHandle<AssetRegistry>(AssetRegistryId::Game, projectDir);
     registry->Initialize();
@@ -417,6 +452,7 @@ Handle<EditorProject> EditorProject::CreateNew()
     gameInstance->SetAssetRegistry(registry);
 
     Handle<EditorProject> project = MakeHandle<EditorProject>(projectName, gameInstance);
+    project->m_tempDirectory = tempDirOpt.GetOr(FilePath());
     project->SetEditWorld(world);
 
     return project;

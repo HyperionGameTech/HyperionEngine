@@ -368,6 +368,25 @@ bool FilePath::Remove() const
     return true;
 }
 
+bool FilePath::RemoveRecursively() const
+{
+#if HYP_ANDROID
+    if (IsAndroidAssetPath(*this))
+        return false;
+#endif
+
+    std::error_code ec;
+    std::filesystem::remove_all(Data(), ec);
+
+    if (ec)
+    {
+        HYP_LOG(IO, Warning, "Failed to remove path recursively, got error code: {}", ec.value());
+        return false;
+    }
+
+    return true;
+}
+
 bool FilePath::Rename(const FilePath& newPath) const
 {
 #if HYP_ANDROID

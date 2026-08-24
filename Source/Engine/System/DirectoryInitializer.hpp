@@ -17,7 +17,7 @@ CORE_API extern const FilePath& GetExecutablePath();
 CORE_API extern const FilePath& GetBaseDirectory();
 } // namespace CoreApi
 
-template <auto DirectoryStaticString, bool RelativeToExecutablePath = true>
+template <auto DirectoryStaticString>
 struct DirectoryInitializer
 {
     FilePath path;
@@ -25,19 +25,13 @@ struct DirectoryInitializer
     inline DirectoryInitializer()
     {
         // In non-debug modes, we always want resource directories to be relative to the executable path
-        if (!RelativeToExecutablePath)
-        {
-            path = CoreApi::GetBaseDirectory() / String(DirectoryStaticString.Data());
-        }
-        else
-        {
-#if HYP_ANDROID
-            path = FilePath(AndroidAssetPathPrefix) / String(DirectoryStaticString.Data());
-#else
+        
+#ifdef HYP_ANDROID
+        path = FilePath(AndroidAssetPathPrefix) / String(DirectoryStaticString.Data());
+#else   // !HYP_ANDROID
 
-            path = CoreApi::GetExecutablePath() / String(DirectoryStaticString.Data());
-#endif
-        }
+        path = CoreApi::GetExecutablePath() / String(DirectoryStaticString.Data());
+#endif  // HYP_ANDROID
 
 #ifndef HYP_SHIPPING
         if (!path.Exists())
@@ -52,7 +46,7 @@ struct DirectoryInitializer
         AssertDebug(path.Exists() && path.IsDirectory(), "Resource directory does not exist or is not a directory: {}", path.Data());
         AssertDebug(path.CanRead(), "Resource directory is not readable: {}", path.Data());
         AssertDebug(path.CanWrite(), "Resource directory is not writable: {}", path.Data());
-#endif
+#endif // !HYP_SHIPPING
     }
 };
 

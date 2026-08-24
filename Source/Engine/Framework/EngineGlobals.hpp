@@ -8,6 +8,8 @@
 
 #include <Core/Reflection/Handle.hpp>
 
+#include <Core/Utilities/Optional.hpp>
+
 #include <Core/Types.hpp>
 
 namespace Hyperion {
@@ -108,9 +110,10 @@ ENGINE_API float GetClientSendRate();
 ENGINE_API float GetInterpolationDelay();
 ENGINE_API float GetCorrectionThreshold();
 ENGINE_API float GetCorrectionSmoothingTime();
-ENGINE_API const FilePath& GetTempDirectory();
 ENGINE_API const FilePath& GetConfigDirectory();
-ENGINE_API HYP_NODISCARD FilePath CreateTempDirectory();
+
+ENGINE_API const FilePath& GetTempDirectory();
+ENGINE_API HYP_NODISCARD Optional<FilePath> CreateTempDirectory(const char* prefix = nullptr);
 
 ENGINE_API bool IsShuttingDown();
 

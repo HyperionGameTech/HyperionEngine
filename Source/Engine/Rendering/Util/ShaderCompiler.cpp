@@ -152,7 +152,7 @@ PrecompileShadersWorkerPool* s_precompileShadersPool;
 
 static const FilePath& GetShaderSourceDirectory()
 {
-    static DirectoryInitializer<HYP_STATIC_STRING("Source/Shaders"), /* RelativeToExecutablePath */ false> s_directory;
+    static DirectoryInitializer<HYP_STATIC_STRING("Source/Shaders")> s_directory;
     return s_directory.path;
 }
 

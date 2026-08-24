@@ -57,13 +57,13 @@ HYP_EXPORT const FilePath& GetProjectsDirectory()
 {
     // @TODO Use configuration value for this path. can be in Documents folder eg
 
-    static DirectoryInitializer<HYP_STATIC_STRING("Projects"), /* RelativeToExecutablePath */ false> s_projectsDirectory;
+    static DirectoryInitializer<HYP_STATIC_STRING("Projects")> s_projectsDirectory;
     return s_projectsDirectory.path;
 }
 
 HYP_EXPORT const FilePath& GetDataDirectory()
 {
-    static DirectoryInitializer<HYP_STATIC_STRING("Data"), /* RelativeToExecutablePath */ false> s_dataDirectory;
+    static DirectoryInitializer<HYP_STATIC_STRING("Data")> s_dataDirectory;
     return s_dataDirectory.path;
 }
 
@@ -270,46 +270,49 @@ HYP_EXPORT float GetCorrectionSmoothingTime()
 
 HYP_EXPORT const FilePath& GetConfigDirectory()
 {
-#ifndef HYP_SHIPPING
-    static DirectoryInitializer<HYP_STATIC_STRING("Config"), /* RelativeToExecutablePath */ false> s_configDirectory;
+    static DirectoryInitializer<HYP_STATIC_STRING("Config")> s_configDirectory;
     return s_configDirectory.path;
-#else
-    static DirectoryInitializer<HYP_STATIC_STRING("Config"), /* RelativeToExecutablePath */ true> s_configDirectory;
-    return s_configDirectory.path;
-#endif
 }
 
 HYP_EXPORT const FilePath& GetTempDirectory()
 {
-#if HYP_ANDROID
-    // not used in Android build.
+#if defined(HYP_ANDROID) || defined(HYP_IOS)
+    // not used in Android/iOS build.
     static const FilePath s_emptyPath;
     return s_emptyPath;
 #else  // !HYP_ANDROID
-    static DirectoryInitializer<HYP_STATIC_STRING("Temp"), /* RelativeToExecutablePath */ true> s_tempDirectory;
+    static DirectoryInitializer<HYP_STATIC_STRING("Temp")> s_tempDirectory;
     return s_tempDirectory.path;
 #endif // HYP_ANDROID
 }
 
-HYP_EXPORT FilePath CreateTempDirectory()
+HYP_EXPORT Optional<FilePath> CreateTempDirectory(const char* prefix)
 {
     const FilePath& basePath = GetTempDirectory();
 
     if (basePath.Empty())
     {
-        return FilePath();
+        return {};
     }
 
     if (!basePath.Exists() && !basePath.MkDir())
     {
-        return FilePath();
+        return {};
     }
 
     for (uint32 attempt = 0; attempt < 16; ++attempt)
     {
         const String uuidString = UUID().ToString().ReplaceAll("-", "");
         const String randomSuffix = String(uuidString.Substr(0, 6));
-        const FilePath tempPath = basePath / randomSuffix;
+
+        String dirName = randomSuffix;
+
+        if (prefix != nullptr && prefix[0] != '\0')
+        {
+            dirName = String(prefix) + "_" + dirName;
+        }
+
+        const FilePath tempPath = basePath / dirName;
 
         if (tempPath.MkDir())
         {
@@ -318,7 +321,7 @@ HYP_EXPORT FilePath CreateTempDirectory()
     }
 
     // Failed!
-    return FilePath();
+    return {};
 }
 
 HYP_EXPORT bool IsShuttingDown()

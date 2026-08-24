@@ -214,7 +214,7 @@ static Vec3f GetPlayerViewDirection(Entity* entity)
 
     const TransformComponent& transformComponent = entity->GetComponent<TransformComponent>();
 
-    return transformComponent.rotation.RotateVector(Vec3f(0.0f, 0.0f, 1.0f));
+    return transformComponent.rotation.RotateVector(Vec3f::UnitZ());
 }
 
 void CharacterControllerSystem::OnEntityAdded(Entity* entity)

@@ -2549,6 +2549,7 @@ extern class EditorProject
     SetGame(gameInstance : Game) -> void
     GetLastSavedTime() -> any
     GetFilePath() -> string
+    GetTempDirectory() -> string
     AddScene(scene : Scene) -> void
     RemoveScene(scene : Scene) -> void
     GetProjectsDirectory() -> string
@@ -2562,6 +2563,7 @@ extern class EditorProject
     Name : Name
     LastSavedTime : any
     Filepath : string
+    TempDirectory : string
     GameInstance : Game
     BakerScene : BakerScene
     ActionStack : EditorActionStack

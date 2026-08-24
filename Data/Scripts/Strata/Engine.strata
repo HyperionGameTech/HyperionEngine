@@ -943,6 +943,7 @@ extern void EditorProject_GetName(EditorProject self, ref Name outReturn);
 extern void EditorProject_SetName(EditorProject self, const Name name);
 extern void EditorProject_GetLastSavedTime(EditorProject self, ref Time outReturn);
 extern void EditorProject_GetFilePath(EditorProject self, ref FilePath outReturn);
+extern void EditorProject_GetTempDirectory(EditorProject self, ref FilePath outReturn);
 extern void EditorProject_RemoveScene(EditorProject self, Scene scene);
 extern void EditorProject_GetProjectsDirectory(EditorProject self, ref FilePath outReturn);
 extern bool EditorProject_IsSaved(EditorProject self);
