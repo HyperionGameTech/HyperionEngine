@@ -12,9 +12,37 @@
 
 #include <Core/Types.hpp>
 
+#include <Core/Name/Name.hpp>
+
+#include <Core/Util.hpp>
+
 namespace Hyperion {
 
 class Entity;
+
+// clang-format off
+
+#define HYP_FOR_EACH_ENTITY_TAG(X) \
+    X(None, 0x0, false, false)                      \
+    X(MobStatic, 0x1, true, false)                  \
+    X(MobDynamic, 0x2, true, false)                 \
+    X(Light, 0x3, true, false)                      \
+    X(PrimaryCamera, 0x4, true, true)               \
+    X(EditorCamera, 0x5, true, false)               \
+    X(LightmapElement, 0x6, true, false)            \
+    X(Replicated, 0x7, true, true)                  \
+    X(ReceivesUpdate, 0x8, false, true)             \
+    X(Player, 0x9, true, true)                      \
+    X(UIVisible, 0x10, false, false)                \
+    X(FocusedInEditor, 0x20, false, false)          \
+    X(UpdateRenderProxy, 0x30, false, false)        \
+    X(UpdateVisibility, 0x40, false, false)         \
+    X(UpdateInstancedMeshData, 0x50, false, false)  \
+    X(UpdateReplication, 0x60, false, false)        \
+    X(UpdatePhysicsShape, 0x100, false, false)      \
+    X(UpdatePhysicsMaterial, 0x200, false, false)
+
+// clang-format on
 
 HYP_STRUCT()
 struct EntityTag
@@ -24,39 +52,11 @@ struct EntityTag
     HYP_FIELD()
     uint64 value;
 
-    static const EntityTag None;
-
-    /// Persistent tags
-    static const EntityTag MobStatic;
-    static const EntityTag MobDynamic;
-
-    static const EntityTag Light;
-
-    static const EntityTag PrimaryCamera;
-    static const EntityTag EditorCamera;
-
-    static const EntityTag LightmapElement;
-
-    static const EntityTag Replicated;
-
-    static const EntityTag Player;
-
-    static const EntityTag ReceivesUpdate;
+#define MAKE_ENTITY_TAG_DECL(X, ...) static const EntityTag X;
+    HYP_FOR_EACH_ENTITY_TAG(MAKE_ENTITY_TAG_DECL);
+#undef MAKE_ENTITY_TAG_DECL
 
     static constexpr uint64 SerializableTagMask = 0xF;
-
-    /// Non-persistent
-    static const EntityTag UIVisible;
-
-    static const EntityTag FocusedInEditor;
-
-    static const EntityTag UpdateRenderProxy;
-    static const EntityTag UpdateVisibility;
-    static const EntityTag UpdateInstancedMeshData;
-    static const EntityTag UpdateReplication;
-
-    static const EntityTag UpdatePhysicsShape;
-    static const EntityTag UpdatePhysicsMaterial;
 
     static const EntityTag EntityTypeSentinel;
 
@@ -118,41 +118,60 @@ struct EntityTag
     }
 };
 
-inline constexpr EntityTag EntityTag::None = EntityTag(0x0);
-
-// Persistent tags
-
-inline constexpr EntityTag EntityTag::MobStatic = EntityTag(0x1);
-inline constexpr EntityTag EntityTag::MobDynamic = EntityTag(0x2);
-
-inline constexpr EntityTag EntityTag::Light = EntityTag(0x3);
-
-inline constexpr EntityTag EntityTag::PrimaryCamera = EntityTag(0x4);
-inline constexpr EntityTag EntityTag::EditorCamera = EntityTag(0x5);
-
-inline constexpr EntityTag EntityTag::LightmapElement = EntityTag(0x6);
-
-inline constexpr EntityTag EntityTag::Replicated = EntityTag(0x7);
-
-inline constexpr EntityTag EntityTag::ReceivesUpdate = EntityTag(0x8);
-
-inline constexpr EntityTag EntityTag::Player = EntityTag(0x9);
-
-// Non-persistent
-
-inline constexpr EntityTag EntityTag::UIVisible = EntityTag(0x10);
-
-inline constexpr EntityTag EntityTag::FocusedInEditor = EntityTag(0x20);
-
-inline constexpr EntityTag EntityTag::UpdateRenderProxy = EntityTag(0x30);
-inline constexpr EntityTag EntityTag::UpdateVisibility = EntityTag(0x40);
-inline constexpr EntityTag EntityTag::UpdateInstancedMeshData = EntityTag(0x50);
-inline constexpr EntityTag EntityTag::UpdateReplication = EntityTag(0x60);
-
-inline constexpr EntityTag EntityTag::UpdatePhysicsShape = EntityTag(0x100);
-inline constexpr EntityTag EntityTag::UpdatePhysicsMaterial = EntityTag(0x200);
+#define HYP_ENTITY_TAG_DEF(Name, Value, ...) \
+    inline constexpr EntityTag EntityTag::Name = EntityTag(Value);
+HYP_FOR_EACH_ENTITY_TAG(HYP_ENTITY_TAG_DEF)
+#undef HYP_ENTITY_TAG_DEF
 
 inline constexpr EntityTag EntityTag::EntityTypeSentinel = EntityTag(1ull << 31);
+
+static constexpr const EntityTag AllEntityTags[] = {
+#define HYP_ENTITY_TAG_TAG(Name, Value, ...) EntityTag::Name,
+    HYP_FOR_EACH_ENTITY_TAG(HYP_ENTITY_TAG_TAG)
+#undef HYP_ENTITY_TAG_TAG
+};
+
+static constexpr const char* AllEntityTagNameStrings[] = {
+#define HYP_ENTITY_TAG_STR(Name, Value, ...) HYP_STR(Name),
+    HYP_FOR_EACH_ENTITY_TAG(HYP_ENTITY_TAG_STR)
+#undef HYP_ENTITY_TAG_STR
+};
+
+static constexpr size_t MaxEntityTags = GetArrayCount(AllEntityTags);
+
+/*! \brief Returns the name of the predefined EntityTag matching \p tag, or nullptr. */
+inline constexpr const char* GetEntityTagName(EntityTag tag)
+{
+    for (size_t i = 0; i < MaxEntityTags; i++)
+    {
+        if (AllEntityTags[i] == tag)
+        {
+            return AllEntityTagNameStrings[i];
+        }
+    }
+
+    return nullptr;
+}
+
+/*! \brief Returns the predefined EntityTag whose name matches \p nameHash, or None. */
+inline constexpr EntityTag GetEntityTagByName(StringHash nameHash)
+{
+#define HYP_ENTITY_TAG_HASH(Name, Value, ...) \
+    constexpr HashCode::ValueType Name##Hash = StringHash(#Name).hashCode;
+    HYP_FOR_EACH_ENTITY_TAG(HYP_ENTITY_TAG_HASH)
+#undef HYP_ENTITY_TAG_HASH
+
+    switch (nameHash.hashCode)
+    {
+#define HYP_ENTITY_TAG_CASE(Name, Value, ...) \
+    case Name##Hash:                     \
+        return EntityTag::Name;
+        HYP_FOR_EACH_ENTITY_TAG(HYP_ENTITY_TAG_CASE)
+#undef HYP_ENTITY_TAG_CASE
+    }
+
+    return EntityTag::None;
+}
 
 // Mask for the actual TypeId to be stored in the upper 32 bits of the EntityTag value.
 static constexpr uint64 EntityTypeTagMask = 0xFFFFFFFF00000000ull;
@@ -230,13 +249,13 @@ using EntityType = EntityTypeTag<T>;
 template <class T>
 struct EntityTypeTagInfo
 {
-    static constexpr bool isEntityTypeTag = false;
+    static constexpr bool IsEntityTypeTag = false;
 };
 
 template <class T>
 struct EntityTypeTagInfo<EntityTypeTag<T>>
 {
-    static constexpr bool isEntityTypeTag = true;
+    static constexpr bool IsEntityTypeTag = true;
     using EntityHandleType = T;
 };
 

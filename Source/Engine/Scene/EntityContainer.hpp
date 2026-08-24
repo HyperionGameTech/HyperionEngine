@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include <Core/Containers/FlatMap.hpp>
 #include <Core/Containers/Array.hpp>
+#include <Core/Containers/Map.hpp>
 #include <Core/Containers/SparsePagedArray.hpp>
 
 #include <Core/Threading/DataRaceDetector.hpp>

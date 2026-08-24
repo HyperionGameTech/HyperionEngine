@@ -1,4 +1,4 @@
-Texture "Checkerboard_Cube" {
+Texture Checkerboard_Cube {
     TextureDesc = {
         Type = Cubemap
         Format = RGBA8

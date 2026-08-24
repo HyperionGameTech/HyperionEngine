@@ -111,7 +111,7 @@ Handle<Node> Entity::Clone() const
         cloned->DeserializeComponents(serializedComponents);
 
         // Copy serializable entity tags (skip runtime-only tags like FocusedInEditor)
-        Array<EntityTag> serializedTags = SerializeTags();
+        Array<Name> serializedTags = SerializeTags();
 
         cloned->DeserializeTags(serializedTags);
     }
@@ -661,7 +661,7 @@ static bool ShouldSkipEntityTagForSerialization(EntityTag tag)
         || tag == EntityTag::MobDynamic;
 }
 
-Array<EntityTag> Entity::SerializeTags() const
+Array<Name> Entity::SerializeTags() const
 {
     EntityManager* entityManager = GetEntityManager();
 
@@ -670,7 +670,7 @@ Array<EntityTag> Entity::SerializeTags() const
         return {};
     }
 
-    Array<EntityTag> resultTags;
+    Array<Name> resultTags;
 
     auto SerializeEntityTags = [this, entityManager, &resultTags]()
     {
@@ -697,7 +697,16 @@ Array<EntityTag> Entity::SerializeTags() const
                 continue;
             }
 
-            resultTags.PushBack(tag);
+            const char* tagName = GetEntityTagName(tag);
+
+            if (!tagName)
+            {
+                HYP_LOG(Entity, Warning, "Entity tag {} has no name, cannot serialize it", uint64(tag));
+
+                continue;
+            }
+
+            resultTags.PushBack(Name::FromString(tagName));
         }
     };
 
@@ -720,7 +729,7 @@ Array<EntityTag> Entity::SerializeTags() const
     return resultTags;
 }
 
-void Entity::DeserializeTags(const Array<EntityTag>& tags)
+void Entity::DeserializeTags(const Array<Name>& tags)
 {
     AssertDebug(m_scene != nullptr);
 
@@ -731,8 +740,17 @@ void Entity::DeserializeTags(const Array<EntityTag>& tags)
 
     AssertDebug(m_entityManager != nullptr);
 
-    for (const EntityTag& tag : tags)
+    for (const Name& tagName : tags)
     {
+        const EntityTag tag = GetEntityTagByName(StringHash(tagName));
+
+        if (!tag)
+        {
+            HYP_LOG(Serialization, Warning, "Unknown entity tag '{}'", tagName.LookupString());
+
+            continue;
+        }
+
         if (ShouldSkipEntityTagForSerialization(tag))
         {
             continue;

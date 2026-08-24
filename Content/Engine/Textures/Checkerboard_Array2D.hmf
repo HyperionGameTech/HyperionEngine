@@ -1,4 +1,4 @@
-Texture "Checkerboard_Array2D" {
+Texture Checkerboard_Array2D {
     TextureDesc = {
         Type = Texture2DArray
         Format = RGBA8

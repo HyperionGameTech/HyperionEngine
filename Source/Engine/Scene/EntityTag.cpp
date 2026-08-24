@@ -13,31 +13,11 @@
 
 namespace Hyperion {
 
-HYP_REGISTER_ENTITY_TAG(None, false, false);
+#define HYP_MAKE_ENTITY_TAG_DEF(X, Value, ...) HYP_REGISTER_ENTITY_TAG(X, __VA_ARGS__);
+HYP_FOR_EACH_ENTITY_TAG(HYP_MAKE_ENTITY_TAG_DEF);
+#undef HYP_MAKE_ENTITY_TAG_DEF
 
-HYP_REGISTER_ENTITY_TAG(MobStatic, true, false);
-HYP_REGISTER_ENTITY_TAG(MobDynamic, true, false);
-HYP_REGISTER_ENTITY_TAG(Light, true, false);
-HYP_REGISTER_ENTITY_TAG(PrimaryCamera, true, true);
-HYP_REGISTER_ENTITY_TAG(EditorCamera, true, false);
-HYP_REGISTER_ENTITY_TAG(LightmapElement, true, false);
-HYP_REGISTER_ENTITY_TAG(Replicated, true, true);
-HYP_REGISTER_ENTITY_TAG(Player, true, true);
-
-HYP_REGISTER_ENTITY_TAG(ReceivesUpdate, false, true);
-
-HYP_REGISTER_ENTITY_TAG(FocusedInEditor, false);
-
-HYP_REGISTER_ENTITY_TAG(UIVisible, false);
-
-HYP_REGISTER_ENTITY_TAG(UpdateRenderProxy, false);
-HYP_REGISTER_ENTITY_TAG(UpdateVisibility, false);
-HYP_REGISTER_ENTITY_TAG(UpdateInstancedMeshData, false);
-HYP_REGISTER_ENTITY_TAG(UpdateReplication, false);
-
-HYP_REGISTER_ENTITY_TAG(UpdatePhysicsShape, false);
-HYP_REGISTER_ENTITY_TAG(UpdatePhysicsMaterial, false);
-
-HYP_REGISTER_ENTITY_TAG(EntityTypeSentinel, false);
+// We need to register the sentinel tag as well, so that it can be used in the EntityManager.
+HYP_REGISTER_ENTITY_TAG(EntityTypeSentinel, false, false);
 
 } // namespace Hyperion

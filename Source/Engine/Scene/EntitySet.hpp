@@ -39,7 +39,7 @@ struct EntitySetHeadType
 {
     using Type = Entity*;
 };
-template <class C, bool IsEntityTypeTag = EntityTypeTagInfo<C>::isEntityTypeTag>
+template <class C, bool IsEntityTypeTag = EntityTypeTagInfo<C>::IsEntityTypeTag>
 struct EntityTypeTagPointer
 {
     using Type = void*;
@@ -57,7 +57,7 @@ struct EntitySetHeadType<FirstComponent, RestComponents...>
     using UnqualifiedFirstComponent = std::remove_const_t<FirstComponent>;
 
     using Type = std::conditional_t<
-        EntityTypeTagInfo<UnqualifiedFirstComponent>::isEntityTypeTag,
+        EntityTypeTagInfo<UnqualifiedFirstComponent>::IsEntityTypeTag,
         typename EntityTypeTagPointer<UnqualifiedFirstComponent>::Type,
         typename EntitySetHeadType<RestComponents...>::Type>;
 };
@@ -164,7 +164,7 @@ private:
     template <class C, bool IsConst>
     static HYP_FORCE_INLINE auto GetComponentSlot(EntitySet<Components...>& set, ComponentId componentId)
     {
-        if constexpr (EntityTypeTagInfo<std::remove_const_t<C>>::isEntityTypeTag)
+        if constexpr (EntityTypeTagInfo<std::remove_const_t<C>>::IsEntityTypeTag)
         {
             return Tuple<>();
         }

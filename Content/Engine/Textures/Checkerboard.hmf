@@ -1,4 +1,4 @@
-Texture "Checkerboard" {
+Texture Checkerboard {
     TextureDesc = {
         Type = Texture2D
         Format = RGBA8

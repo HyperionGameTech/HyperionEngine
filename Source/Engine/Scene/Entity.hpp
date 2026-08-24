@@ -163,10 +163,10 @@ private:
     //-- Serialization --
 
     HYP_METHOD(Property = "Tags", NoScriptBindings)
-    Array<EntityTag> SerializeTags() const;
+    Array<Name> SerializeTags() const;
 
     HYP_METHOD(Property = "Tags", NoScriptBindings, LoadOrder = 1001)
-    void DeserializeTags(const Array<EntityTag>& tags);
+    void DeserializeTags(const Array<Name>& tags);
 
     HYP_METHOD(Property = "Components", NoScriptBindings)
     Array<BoxedValue, DynamicAllocator> SerializeComponents() const;

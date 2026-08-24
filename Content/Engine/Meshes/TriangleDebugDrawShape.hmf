@@ -1,4 +1,4 @@
-Mesh "TriangleDebugDrawShape" {
+Mesh TriangleDebugDrawShape {
     AABB = {
         Min = (0, 0, 0)
         Max = (1, 1, 0)

@@ -2419,7 +2419,41 @@ Result BoxedToHMFImpl(
 
     if (value.Is<Name>())
     {
-        EscapeString(outText, value.Get<Name>().LookupString());
+        // `Name`s are written out as idents IF they are valid identifiers
+        // (i.e, starts with alpha or underscore, no whitespace chars, etc)
+        // Otherwise they are written as escaped strings.
+
+        const Name name = value.Get<Name>();
+        const char *str = name.LookupString();
+
+        if (str == nullptr || str[0] == '\0')
+        {
+            // Nothing here -- just emit ""
+            outText += "\"\"";
+            return {};
+        }
+
+        bool isValidIdent = str[0] == '_' || (str[0] >= 'a' && str[0] <= 'z') || (str[0] >= 'A' && str[0] <= 'Z');
+
+        const size_t len = Memory::StrLen(str);
+
+        for (size_t i = 1; i < len && isValidIdent; i++)
+        {
+            if (!(str[i] == '_' || (str[i] >= 'a' && str[i] <= 'z') || (str[i] >= 'A' && str[i] <= 'Z') || (str[i] >= '0' && str[i] <= '9')))
+            {
+                isValidIdent = false;
+            }
+        }
+
+        if (isValidIdent)
+        {
+            outText += str;
+        }
+        else
+        {
+            EscapeString(outText, str);
+        }
+
         return {};
     }
 
@@ -2898,7 +2932,17 @@ Result BoxedToHMFImpl(
                     if (name.IsValid())
                     {
                         outText += " ";
-                        EscapeString(outText, name.LookupString());
+
+                        // This will write IDENT if possible otherwise write string literal
+                        Result res = BoxedToHMFImpl(
+                            nameValue,
+                            outText,
+                            &nameProp->GetTypeInfo(),
+                            opts,
+                            0);
+
+                        // Shouldn't happen
+                        Assert(!res.HasError());
                     }
                 }
             }
@@ -3089,10 +3133,21 @@ Result ObjectToHMF(
         {
             Name name = nameValue.Get<Name>();
 
+            // Write object name
             if (name.IsValid())
             {
                 outText += " ";
-                EscapeString(outText, name.LookupString());
+
+                // This will write IDENT if possible otherwise write string literal
+                Result res = BoxedToHMFImpl(
+                    nameValue,
+                    outText,
+                    &nameProp->GetTypeInfo(),
+                    *pOptions,
+                    0);
+
+                // Shouldn't happen
+                Assert(!res.HasError());
             }
         }
     }

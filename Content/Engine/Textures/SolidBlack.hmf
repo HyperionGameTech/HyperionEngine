@@ -1,4 +1,4 @@
-Texture "SolidBlack" {
+Texture SolidBlack {
     TextureDesc = {
         Type = Texture2D
         Format = RGBA8

@@ -98,7 +98,7 @@ bool Parser::Parse()
 
     String objectName;
 
-    if (Peek().GetTokenClass() == TK_STRING)
+    if (Peek().GetTokenClass() == TK_STRING || Peek().GetTokenClass() == TK_IDENT)
     {
         objectName = Next().GetValue();
     }
@@ -302,8 +302,21 @@ bool Parser::ParseValue(const TypeInfo& typeInfo, BoxedValue& out)
     // Name / StringHash / UUID handling.
     {
         if (typeInfo.id == TypeId::ForType<Name>()
-            || typeInfo.id == TypeId::ForType<StringHash>()
-            || typeInfo.id == TypeId::ForType<UUID>())
+            || typeInfo.id == TypeId::ForType<StringHash>())
+        {
+            // try reading IDENT first
+            if (Peek().GetTokenClass() == TK_IDENT)
+            {
+                Token ident = Next();
+                out = BoxedValue(CreateNameFromDynamicString(ident.GetValue()));
+                return true;
+            }
+
+            // Try reading string
+            return ParseStringValue(typeInfo, out);
+        }
+
+        if (typeInfo.id == TypeId::ForType<UUID>())
         {
             return ParseStringValue(typeInfo, out);
         }
@@ -1036,7 +1049,7 @@ bool Parser::ParseObjectValue(const TypeInfo& typeInfo, BoxedValue& out)
     const Class* actualClass = declaredClass;
 
     if (Peek().GetTokenClass() == TK_IDENT
-        && (Peek(1).GetTokenClass() == TK_OPEN_BRACE || (Peek(1).GetTokenClass() == TK_STRING && Peek(2).GetTokenClass() == TK_OPEN_BRACE)))
+        && (Peek(1).GetTokenClass() == TK_OPEN_BRACE || ((Peek(1).GetTokenClass() == TK_STRING || Peek(1).GetTokenClass() == TK_IDENT) && Peek(2).GetTokenClass() == TK_OPEN_BRACE)))
     {
         Token classToken = Next(); // consume IDENT
         const String& runtimeClassName = classToken.GetValue();
@@ -1075,9 +1088,9 @@ bool Parser::ParseObjectValue(const TypeInfo& typeInfo, BoxedValue& out)
 
     String objectName;
 
-    if (Peek().GetTokenClass() == TK_STRING)
+    if (Peek().GetTokenClass() == TK_STRING || Peek().GetTokenClass() == TK_IDENT)
     {
-        // Read objects' name if there is a string following after the class name.
+        // Read objects' name if there is a string/ident following after the class name.
         objectName = Next().GetValue();
     }
 

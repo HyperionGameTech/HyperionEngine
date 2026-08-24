@@ -1,4 +1,4 @@
-Texture "Checkerboard_3D" {
+Texture Checkerboard_3D {
     TextureDesc = {
         Type = Texture3D
         Format = RGBA8
