@@ -133,6 +133,8 @@ void Shader::PageBlobData()
 
 void Shader::UnpageBlobData()
 {
+    AssetObject::UnpageBlobData();
+    
     for (BlobDataReference& ref : shaderBlobs)
     {
         AssertBlobDataPersisted(ref);

@@ -161,6 +161,8 @@ void EditorPickCache::PutEntry(const Mesh* mesh, bool invalidate)
         }
     }
 
+#if 0 // TEMP: Disabling for now as we figure out dropping data at end of all read scopes
+
     auto resGuard = mesh->GetReadScope();
 
     if (!resGuard)
@@ -226,6 +228,7 @@ void EditorPickCache::PutEntry(const Mesh* mesh, bool invalidate)
     Memory::Copy(entry.indices.Data(), indexData.Data(), numIndices * indexSize);
 
     m_impl->residencyMap[newResidency].Set(mesh->Id().ToIndex(), true);
+#endif
 }
 
 void EditorPickCache::RemoveEntry(const Mesh* mesh)

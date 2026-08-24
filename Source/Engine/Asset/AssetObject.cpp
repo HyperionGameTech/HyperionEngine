@@ -140,6 +140,29 @@ void AssetObject::MarkDirty()
     registry->MarkAssetDirty(*this);
 }
 
+bool AssetObject::IsDirty() const
+{
+    if (IsTransient() || !IsRegistered())
+    {
+        return false;
+    }
+    
+    if (IsGlobalContextActive<AssetLoadingContext>())
+    {
+        return false;
+    }
+    
+    Handle<AssetRegistry> registry = GetAssetRegistry();
+    AssertDebug(registry.IsValid());
+
+    if (!registry.IsValid())
+    {
+        return false;
+    }
+
+    return registry->IsAssetDirty(*this);
+}
+
 void AssetObject::SetPersistentRequested(bool persistentlyLoaded, bool markDirty)
 {
     if (m_flags[AssetObjectFlags::Persistent] != persistentlyLoaded)
@@ -244,9 +267,7 @@ Result AssetObject::SaveAs(const FilePath& manifestPath)
 
     registry->PutAssetsDeep(MakeStrongRef(this));
 
-    BlobStorage* blobStorage = EngineGlobals::GetBlobStorage();
-
-    Result saveBlobDataResult = SaveBlobData(blobStorage, dir);
+    Result saveBlobDataResult = PersistBlobData(nullptr, dir);
     if (saveBlobDataResult.HasError())
     {
         return saveBlobDataResult;
@@ -290,69 +311,53 @@ Result AssetObject::SaveManifest(ByteWriter& stream) const
     return {};
 }
 
-Result AssetObject::SaveBlobData(BlobStorage* storage, const Optional<FilePath>& localBlobDirectory)
+Result AssetObject::PersistBlobData(
+    BlobStorage* blobStorage,
+    const Optional<FilePath>& localBlobDirectory)
 {
+    if (IsTransient() || !IsRegistered())
+    {
+        return {};
+    }
+
     Array<Tuple<const char*, uint16, BlobDataReference*>> blobDataReferences;
     CollectBlobDataReferences(blobDataReferences);
 
     for (auto& tup : blobDataReferences)
     {
         const char* magic = tup.GetElement<0>();
-        uint16 version = tup.GetElement<1>();
+        const uint16 version = tup.GetElement<1>();
+
         BlobDataReference* reference = tup.GetElement<2>();
+        Assert(reference != nullptr, "Blob data reference is null");
 
-        AssertDebug(reference != nullptr);
-
-        // Not loaded
-        if (!reference->raw)
+        if (!reference)
         {
             continue;
         }
 
-        const size_t magicLen = magic ? std::strlen(magic) : 0;
+        Result res = PersistBlobData(
+            magic,
+            version,
+            *reference,
+            blobStorage,
+            localBlobDirectory);
 
-        AssertDebug(magicLen <= sizeof(BlobHeader::magic) && magicLen != 0,
-                    "Blob data reference magic must be non-empty and at most {} characters long",
-                    sizeof(BlobHeader::magic));
-
-        BlobHeader header {};
-        Memory::Copy((char*)header.magic, magic, MathUtil::Min(magicLen, sizeof(header.magic)));
-        header.payloadOffset = 0;
-        header.payloadSize = reference->size;
-        header.version = version;
-
-        // generate new key
-        reference->key = CreateNameFromDynamicString(GetPath().ToString() + "." + magic);
-
-        if (storage != nullptr)
+        if (res.HasError())
         {
-            if (!storage->PutData(GetPath().bucketIndex, StringHash(reference->key), header, reference->raw))
-            {
-                AssertDebug(false, "Failed to write blob data reference!");
-
-                return HYP_MAKE_ERROR(Error, "Failed to write blob data reference (magic: {}, version: {})", magic, version);
-            }
-        }
-
-        if (!EngineGlobals::IsCooking() && localBlobDirectory.HasValue())
-        {
-            // Save the blob data locally as well, as other users may not have the blob data or have mismatched blob data
-            // and we need to "import" it via individual blobs upon fail.
-            // In cooked builds that data will be excluded
-            FileByteWriter stream { *localBlobDirectory / (String(*GetName()) + "." + magic + ".raw.blob") };
-            if (!stream.IsOpen())
-            {
-                return HYP_MAKE_ERROR(Error, "Failed to write local blob data at path: {}", stream.GetFilePath());
-            }
-
-            stream.Write(reference->raw, reference->size);
+            return res.GetError();
         }
     }
 
     return {};
 }
 
-Result AssetObject::PersistBlobData()
+Result AssetObject::PersistBlobData(
+    const char* magic,
+    uint16 version,
+    BlobDataReference& reference,
+    BlobStorage* blobStorage,
+    const Optional<FilePath>& localBlobDirectory)
 {
     if (IsTransient() || !IsRegistered())
     {
@@ -381,14 +386,59 @@ Result AssetObject::PersistBlobData()
         return HYP_MAKE_ERROR(Error, "Failed to create bucket directory '{}' to persist blob data into", bucketDir);
     }
 
-    return SaveBlobData(nullptr, bucketDir);
+    // Not loaded
+    if (!reference.raw)
+    {
+        return {};
+    }
+
+    const size_t magicLen = magic ? std::strlen(magic) : 0;
+
+    AssertDebug(magicLen <= sizeof(BlobHeader::magic) && magicLen != 0,
+                "Blob data reference magic must be non-empty and at most {} characters long",
+                sizeof(BlobHeader::magic));
+
+    BlobHeader header {};
+    Memory::Copy((char*)header.magic, magic, MathUtil::Min(magicLen, sizeof(header.magic)));
+    header.payloadOffset = 0;
+    header.payloadSize = reference.size;
+    header.version = version;
+
+    // generate new key
+    reference.key = CreateNameFromDynamicString(GetPath().ToString() + "." + magic);
+
+    if (blobStorage != nullptr)
+    {
+        if (!blobStorage->PutData(GetPath().bucketIndex, StringHash(reference.key), header, reference.raw))
+        {
+            AssertDebug(false, "Failed to write blob data reference!");
+
+            return HYP_MAKE_ERROR(Error, "Failed to write blob data reference (magic: {}, version: {})", magic, version);
+        }
+    }
+
+    if (!EngineGlobals::IsCooking() && localBlobDirectory.HasValue())
+    {
+        // Save the blob data locally as well, as other users may not have the blob data or have mismatched blob data
+        // and we need to "import" it via individual blobs upon fail.
+        // In cooked builds that data will be excluded
+        FileByteWriter stream { *localBlobDirectory / (String(*GetName()) + "." + magic + ".raw.blob") };
+        if (!stream.IsOpen())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to write local blob data at path: {}", stream.GetFilePath());
+        }
+
+        stream.Write(reference.raw, reference.size);
+    }
+
+    return {}; // ok
 }
 
 void AssetObject::AssertBlobDataPersisted(const BlobDataReference& reference) const
 {
     // If this fires, it's because we're trying to unpage something that has never been saved to disk,
     // so the data would be lost on the next attempt to page it!
-    AssertDebug(reference.raw == nullptr || reference.readOnly || reference.key.IsValid());
+    Assert(reference.raw == nullptr || reference.readOnly || reference.key.IsValid());
 }
 
 Result AssetObject::Load(
@@ -431,6 +481,42 @@ Result AssetObject::Load(
     outAssetObject = targetAssetObject;
 
     return {};
+}
+
+void AssetObject::UnpageBlobData()
+{
+#if 0//def HYP_EDITOR
+    // Save before unpaging, if the data is dirty.
+    // This is editor only (saves the local small blob files)
+
+    if (!EngineGlobals::IsEditor())
+    {
+        return;
+    }
+
+    if (!IsSaved() || !IsDirty())
+    {
+        return;
+    }
+
+    Handle<AssetRegistry> registry = GetAssetRegistry();
+    AssertDebug(registry.IsValid());
+
+    if (!registry.IsValid())
+    {
+        return;
+    }
+
+    const FilePath manifestPath = registry->GetManifestPath(m_assetPath);
+    const FilePath localBlobDir = manifestPath.BasePath();
+
+    Result res = PersistBlobData(nullptr, localBlobDir);
+    if (res.HasError())
+    {
+        HYP_LOG(Assets, Error, "Failed to persist blob data when unpaging '{}': {}", m_name, res.GetError().GetMessage());
+        return;
+    }
+#endif
 }
 
 bool AssetObject::PageBlobDataFromStorage(BlobDataReference& reference)
@@ -740,7 +826,7 @@ void AssetObject::GetNumUsers(int64& outReaders, int64& outWriters) const
 #endif // HYP_ASSET_OBJECT_THREAD_SAFE
 }
 
-Handle<AssetRegistry> AssetObject::GetAssetRegistry()
+Handle<AssetRegistry> AssetObject::GetAssetRegistry() const
 {
     Assert(IsRegistered());
 

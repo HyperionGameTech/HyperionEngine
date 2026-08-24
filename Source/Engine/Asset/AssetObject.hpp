@@ -84,6 +84,9 @@ public:
     void MarkDirty();
 
     HYP_METHOD()
+    bool IsDirty() const;
+
+    HYP_METHOD()
     uint32 GetAssetIndex() const
     {
         return m_assetIndex;
@@ -143,7 +146,7 @@ public:
 
     void GetNumUsers(int64& outReaders, int64& outWriters) const;
 
-    Handle<AssetRegistry> GetAssetRegistry();
+    Handle<AssetRegistry> GetAssetRegistry() const;
 
     virtual void Init() override
     {
@@ -176,10 +179,7 @@ protected:
         // do nothing
     }
 
-    virtual void UnpageBlobData()
-    {
-        // do nothing
-    }
+    virtual void UnpageBlobData();
 
     bool PageBlobDataFromStorage(BlobDataReference& reference);
 
@@ -190,10 +190,18 @@ protected:
     void SetBlobDataResident(bool resident, BlobDataReference& reference);
 
     Result SaveManifest(ByteWriter& stream) const;
-
-    Result SaveBlobData(BlobStorage* storage, const Optional<FilePath>& localBlobDirectory = {});
     
-    Result PersistBlobData();
+    Result PersistBlobData(
+        BlobStorage* blobStorage = nullptr,
+        const Optional<FilePath>& localBlobDirectory = {});
+
+    Result PersistBlobData(
+        const char* magic,
+        uint16 version,
+        BlobDataReference& reference,
+        BlobStorage* blobStorage = nullptr,
+        const Optional<FilePath>& localBlobDirectory = {});
+
     void AssertBlobDataPersisted(const BlobDataReference& reference) const;
 
     HYP_FIELD(Property = "Name")

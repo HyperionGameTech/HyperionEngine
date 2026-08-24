@@ -356,6 +356,7 @@ public:
     AssetBucketData& operator=(AssetBucketData&& other) noexcept = delete;
 
     void MarkDirty(uint32 index);
+    bool IsDirty(uint32 index) const;
 
     void SetAsset(AssetDesc& assetDesc, const Handle<AssetObject>& assetObject);
 
@@ -375,6 +376,12 @@ void AssetBucketData::MarkDirty(uint32 index)
 {
     TUniqueLock lock(mtx);
     dirtyIndices.Set(index, true);
+}
+
+bool AssetBucketData::IsDirty(uint32 index) const
+{
+    TSharedLock lock(mtx);
+    return dirtyIndices.Test(index);
 }
 
 void AssetBucketData::SetAsset(
@@ -831,6 +838,99 @@ void AssetRegistry::MarkAssetDirty(const AssetObject& assetObject)
     data.MarkDirty(assetObject.m_assetIndex);
 }
 
+void AssetRegistry::MarkAllDirty()
+{
+    for (uint32 bucketIndex = 0; bucketIndex < MaxAssetBuckets; ++bucketIndex)
+    {
+        AssetBucketData& data = m_assetBucketData[bucketIndex];
+
+        TUniqueLock lock(data.mtx);
+
+        for (const AssetDesc& assetDesc : data.assetDescs)
+        {
+            data.dirtyIndices.Set(assetDesc.index, true);
+        }
+    }
+}
+
+void AssetRegistry::MakeAllAssetsResident()
+{
+    Array<Handle<AssetObject>> assetObjects;
+
+    for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; ++bucketIndex)
+    {
+        AssetBucketData& data = m_assetBucketData[bucketIndex];
+
+        Array<Name> namesToLoad;
+
+        { // collect loaded assets, and names of assets that still need to be loaded
+            TSharedLock lock(data.mtx);
+
+            for (const AssetDesc& assetDesc : data.assetDescs)
+            {
+                if (const Handle<AssetObject>* pAssetObject = data.assetObjectCache.TryGet(assetDesc.index);
+                    pAssetObject != nullptr && pAssetObject->IsValid())
+                {
+                    assetObjects.PushBack(*pAssetObject);
+                }
+                else
+                {
+                    namesToLoad.PushBack(assetDesc.name);
+                }
+            }
+        }
+
+        // load outside of the bucket lock
+        for (Name name : namesToLoad)
+        {
+            if (Handle<AssetObject> assetObject = GetAsset(*AssetBuckets::AllBuckets[bucketIndex], name);
+                assetObject.IsValid())
+            {
+                assetObjects.PushBack(std::move(assetObject));
+            }
+        }
+    }
+
+    for (const Handle<AssetObject>& assetObject : assetObjects)
+    {
+        if (assetObject.IsValid() && !assetObject->IsTransient())
+        {
+            assetObject->PageBlobData();
+        }
+    }
+}
+
+bool AssetRegistry::IsAssetDirty(const AssetObject& assetObject) const
+{
+    if (assetObject.IsTransient())
+    {
+        return false;
+    }
+
+    const AssetPath& assetPath = assetObject.GetPath();
+
+    if (!assetPath.IsValid())
+    {
+        HYP_LOG(Assets, Warning, "Attempted to mark asset '{}' dirty, but it does not have a valid asset path",
+                assetObject.GetName());
+
+        return false;
+    }
+
+    const AssetBucket& bucket = assetPath.GetBucket();
+
+    if (bucket == AssetBuckets::None)
+    {
+        HYP_LOG(Assets, Warning, "Attempted to mark asset '{}' dirty, but it does not have a valid bucket",
+                assetObject.GetName());
+
+        return false;
+    }
+
+    const AssetBucketData& data = m_assetBucketData[bucket.GetIndex()];
+    return data.IsDirty(assetObject.m_assetIndex);
+}
+
 uint32 AssetRegistry::GetBucketAssetDescs(uint32 bucketIndex, Array<AssetDesc>& outDescs) const
 {
     if (bucketIndex >= MaxAssetBuckets)
@@ -915,11 +1015,15 @@ void AssetRegistry::PutAsset(const AssetBucket& bucket, const Handle<AssetObject
 
     data.SetAsset(assetDesc, assetObject);
 
-    // Blob data must be persisted before it can be unpaged on last read scope release
-    if (Result persistResult = assetObject->PersistBlobData(); persistResult.HasError())
+    if (!IsGlobalContextActive<AssetLoadingContext>())
     {
-        HYP_LOG(Assets, Warning, "Failed to persist blob data for asset '{}': {}",
-                assetObject->GetName(), persistResult.GetError().GetMessage());
+        // Blob data must be persisted before it can be unpaged on last read scope release
+        const FilePath localBlobDir = GetRootPath() / bucket.GetName();
+        if (Result persistResult = assetObject->PersistBlobData(nullptr, localBlobDir); persistResult.HasError())
+        {
+            HYP_LOG(Assets, Warning, "Failed to persist blob data for asset '{}': {}",
+                    assetObject->GetName(), persistResult.GetError().GetMessage());
+        }
     }
 }
 
@@ -1089,8 +1193,11 @@ void AssetRegistry::WalkAssetDeep(const BoxedValue& target, const ProcRef<void(c
                 const auto componentIds = entityManager->GetAllComponents(&entity);
                 if (componentIds.HasValue())
                 {
-                    for (const auto& [typeId, componentId] : *componentIds)
+                    for (const auto& kvp : componentIds.Get())
                     {
+                        const TypeId& typeId = kvp.first;
+                        const ComponentId componentId = kvp.second;
+
                         const AnyRef componentRef = entityManager->TryGetComponent(typeId, &entity);
                         if (!componentRef.HasValue())
                         {
@@ -1528,7 +1635,7 @@ void AssetRegistry::SaveDirtyAssets()
 
             const FilePath manifestPath = GetManifestPath(assetObject->GetPath());
 
-            if (Result saveBlobResult = assetObject->SaveBlobData(nullptr, bucketDir); saveBlobResult.HasError())
+            if (Result saveBlobResult = assetObject->PersistBlobData(nullptr, bucketDir); saveBlobResult.HasError())
             {
                 HYP_LOG(Assets, Warning, "Failed to save blob data for asset '{}' in bucket '{}': {}",
                         assetName, bucketName, saveBlobResult.GetError().GetMessage());

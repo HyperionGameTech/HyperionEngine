@@ -1,0 +1,34 @@
+Texture LTC_Matrix {
+    TextureDesc = {
+        Type = Texture2D
+        Format = RGBA16F
+        Extent = (64, 64, 1)
+        MinFilterMode = TFM_LINEAR
+        MagFilterMode = TFM_LINEAR
+        TextureWrapMode = TWM_CLAMP_TO_EDGE
+        NumLayers = 1
+        ImageUsage = IU_SAMPLED
+        MipOffsets = [
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/LTC_Matrix.TEX"
+        Size = 32768
+    }
+}

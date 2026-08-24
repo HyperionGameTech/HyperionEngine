@@ -17,17 +17,6 @@
 namespace Hyperion {
 
 HYP_ENUM()
-enum class AssetPackageFlags : uint32
-{
-    None = 0x0,
-    Transient = 0x1,    //!< Not saved to disk
-    Hidden = 0x2,       //!< Hide in content browser
-    SaveOnChanged = 0x4 //!< If set, will save whenever asset is added/removed
-};
-
-HYP_MAKE_ENUM_FLAGS(AssetPackageFlags);
-
-HYP_ENUM()
 enum class AddAssetConflictMode : uint8
 {
     FailOnConflict = 0,

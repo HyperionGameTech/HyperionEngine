@@ -2063,12 +2063,6 @@ extern enum AssetObjectFlags : uint8
     Persistent = 0x1,
     Transient = 0x2
 end
-extern enum AssetPackageFlags : uint32
-    None = 0x0,
-    Transient = 0x1,
-    Hidden = 0x2,
-    SaveOnChanged = 0x4
-end
 extern class AssetCollector
     GetBasePath() -> string
     SetBasePath(basePath : string) -> void
@@ -2119,6 +2113,7 @@ extern class AssetObject
     SetName(name : Name) -> void
     Rename(name : Name) -> Result
     MarkDirty() -> void
+    IsDirty() -> bool
     GetAssetIndex() -> uint32
     IsRegistered() -> bool
     GetPath() -> AssetPath

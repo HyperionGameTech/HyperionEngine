@@ -251,9 +251,17 @@ Result EditorProject::SaveAs(FilePath filepath)
     }
 
     AssetRegistry& registry = *m_gameInstance->GetAssetRegistry();
-    registry.SetRootPath(dir);
 
     GlobalContextScope assetRegistryContextScope { AssetRegistryContext { MakeStrongRef(&registry) } };
+
+    if (registry.GetRootPath() != dir)
+    {
+        registry.MakeAllAssetsResident();
+    }
+
+    registry.SetRootPath(dir);
+
+    registry.MarkAllDirty();
 
     EditorTaskScope taskScope(
         TickableEditorTask::StaticClass(),

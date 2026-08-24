@@ -175,6 +175,8 @@ void Sound::PageBlobData()
 
 void Sound::UnpageBlobData()
 {
+    AssetObject::UnpageBlobData();
+    
     AssertBlobDataPersisted(m_data);
 
     if (!m_data.readOnly)

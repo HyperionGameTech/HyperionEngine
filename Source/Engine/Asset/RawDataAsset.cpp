@@ -103,6 +103,8 @@ void RawDataAsset::PageBlobData()
 
 void RawDataAsset::UnpageBlobData()
 {
+    AssetObject::UnpageBlobData();
+    
     AssertBlobDataPersisted(m_data);
 
     if (!m_data.readOnly)

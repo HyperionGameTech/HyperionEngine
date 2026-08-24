@@ -64,6 +64,8 @@ void InstancedMeshData::PageBlobData()
 
 void InstancedMeshData::UnpageBlobData()
 {
+    AssetObject::UnpageBlobData();
+    
     for (BlobDataReference& ref : buffers)
     {
         AssertBlobDataPersisted(ref);

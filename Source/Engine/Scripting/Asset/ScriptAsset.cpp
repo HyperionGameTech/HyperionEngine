@@ -108,6 +108,8 @@ void ScriptAsset::PageBlobData()
 
 void ScriptAsset::UnpageBlobData()
 {
+    AssetObject::UnpageBlobData();
+    
     AssertBlobDataPersisted(m_data);
 
     if (!m_data.readOnly)

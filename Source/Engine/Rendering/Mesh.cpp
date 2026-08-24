@@ -342,7 +342,12 @@ void Mesh::PageBlobData()
                         {
                             // check if failed; if so, try to import from raw data blob in project directory
                             FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (meshName + ".VB.raw.blob") };
-                            if (!stream.Eof())
+                            if (stream.Eof())
+                            {
+                                HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} vertex buffer (LOD {}) at: {} ", GetName(), lodIndex, stream.GetFilepath());
+                                return false;
+                            }
+                            else
                             {
                                 if (stream.Max() != expectedSize)
                                 {
@@ -360,8 +365,6 @@ void Mesh::PageBlobData()
                                 return true;
                             }
                         }
-
-                        HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} vertex buffer (LOD {})", GetName(), lodIndex);
 
                         return false;
                     })();
@@ -390,7 +393,12 @@ void Mesh::PageBlobData()
                         {
                             // check if failed; if so, try to import from raw data blob in project directory
                             FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (meshName + ".IB.raw.blob") };
-                            if (!stream.Eof())
+                            if (stream.Eof())
+                            {
+                                HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} index buffer (LOD {}) at {}", GetName(), lodIndex, stream.GetFilepath());
+                                return false;
+                            }
+                            else
                             {
                                 if (stream.Max() != expectedSize)
                                 {
@@ -409,8 +417,6 @@ void Mesh::PageBlobData()
                                 return true;
                             }
                         }
-
-                        HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} index buffer (LOD {})", GetName(), lodIndex);
 
                         return false;
                     })();
@@ -465,26 +471,25 @@ void Mesh::PageBlobData()
                 if (registry.IsValid())
                 {
                     FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (meshName + ".BVH.raw.blob") };
-                    if (!stream.Eof())
+                    if (stream.Eof())
                     {
-                        if (stream.Max() != expectedSize)
-                        {
-                            HYP_LOG(Engine, Error, "Local BVH blob data for {} is {} bytes but the manifest expects {}, ignoring it",
-                                    GetName(), stream.Max(), expectedSize);
-
-                            return;
-                        }
-
-                        ByteBuffer buffer = stream.Read(stream.Max());
-
-                        AllocateBlobData(m_bvhData, buffer.Data(), buffer.Size(), alignof(uint32));
-                        m_bvhData.key = blobKey;
+                        HYP_LOG(Engine, Error, "Data corruption detected for {} due to missing blob data at {} ", GetPath().ToString(), stream.GetFilepath());
+                        return;
+                    }
+                    
+                    if (stream.Max() != expectedSize)
+                    {
+                        HYP_LOG(Engine, Error, "Local BVH blob data for {} is {} bytes but the manifest expects {}, ignoring it",
+                                GetName(), stream.Max(), expectedSize);
 
                         return;
                     }
+
+                    ByteBuffer buffer = stream.Read(stream.Max());
+
+                    AllocateBlobData(m_bvhData, buffer.Data(), buffer.Size(), alignof(uint32));
+                    m_bvhData.key = blobKey;
                 }
-                 
-                HYP_LOG(Engine, Error, "Data corruption detected for {} due to missing blob data", GetPath().ToString());
         })();
     }
 
@@ -496,6 +501,8 @@ void Mesh::PageBlobData()
 
 void Mesh::UnpageBlobData()
 {
+    AssetObject::UnpageBlobData();
+
     for (uint8 lodIndex = 0; lodIndex < MaxMeshLods; lodIndex++)
     {
         AssertBlobDataPersisted(m_lodData[lodIndex].vertexData);

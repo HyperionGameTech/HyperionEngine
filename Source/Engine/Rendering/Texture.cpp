@@ -541,6 +541,8 @@ void Texture::PageBlobData()
 
 void Texture::UnpageBlobData()
 {
+    AssetObject::UnpageBlobData();
+    
     AssertBlobDataPersisted(m_imageData);
 
     if (!m_imageData.readOnly)

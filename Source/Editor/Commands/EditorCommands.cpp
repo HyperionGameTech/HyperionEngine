@@ -3358,13 +3358,25 @@ public:
                                     GetCurrentAssetRegistry()->PutAsset(cubeMesh);
                                     GetCurrentAssetRegistry()->PutAsset(material);
 
-                                    // assign mesh component
-                                    MeshComponent meshComponent;
-                                    meshComponent.mesh = cubeMesh;
-                                    meshComponent.material = material;
-                                    entity->AddComponent<MeshComponent>(meshComponent);
+                                    if (!entity->HasComponent<MeshComponent>())
+                                    {
+                                        // assign mesh component
+                                        MeshComponent meshComponent;
+                                        meshComponent.mesh = cubeMesh;
+                                        meshComponent.material = material;
+                                        entity->AddComponent<MeshComponent>(meshComponent);
+                                    }
+                                    else // has component
+                                    {
+                                        // This can happen if going undo->redo
+
+                                        MeshComponent& meshComponent = entity->GetComponent<MeshComponent>();
+                                        meshComponent.mesh = cubeMesh;
+                                        meshComponent.material = material;
+                                    }
 
                                     entity->SetLocalBounds(cubeMesh->GetAABB());
+                                    entity->SetNeedsRenderProxyUpdate();
                                 }
                             }),
                         .revert = Proc<void(EditorSubsystem*, EditorProject*)>(

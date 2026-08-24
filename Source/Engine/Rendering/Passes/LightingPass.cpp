@@ -49,6 +49,8 @@
 
 #include <Framework/CVarManager.hpp>
 
+#include <Asset/AssetRegistry.hpp> // For now, for PutAsset()
+
 namespace Hyperion {
 
 static const Float16 s_ltcMatrix[] = {
@@ -199,6 +201,9 @@ void LightingPass::Create()
     {
         m_ltcSampler = RI.samplerCache->GetOrCreate(SamplerDesc { TFM_NEAREST, TFM_LINEAR, TWM_CLAMP_TO_EDGE });
 
+        // @TODO: Change these to be like other RawData/Texture Engine assets...
+        //       should be pre-generated.
+
         ByteBuffer ltcMatrixData(sizeof(s_ltcMatrix), s_ltcMatrix);
 
         m_ltcMatrixTexture = MakeHandle<Texture>(
@@ -212,6 +217,8 @@ void LightingPass::Create()
             ltcMatrixData.ToByteView());
 
         m_ltcMatrixTexture->SetName(NAME("LTC_Matrix"));
+        GetEngineAssetRegistry()->PutAsset(m_ltcMatrixTexture);
+        
         Check(m_ltcMatrixTexture->Create());
 
         ByteBuffer ltcBrdfData(sizeof(s_ltcBrdf), s_ltcBrdf);
@@ -227,6 +234,8 @@ void LightingPass::Create()
             ltcBrdfData.ToByteView());
 
         m_ltcBrdfTexture->SetName(NAME("LTC_BRDF"));
+        GetEngineAssetRegistry()->PutAsset(m_ltcBrdfTexture);
+
         Check(m_ltcBrdfTexture->Create());
     }
 }

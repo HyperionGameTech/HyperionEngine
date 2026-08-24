@@ -44,9 +44,6 @@ float3 CalculateRefraction(
 
     const float IOR = 1.5;
     const float air_ior = 1.0;
-
-    // Use the base dielectric IOR directly for the refraction direction,
-    // not derived from the metal-influenced F0 which would give nonsensical IORs for metals.
     const float eta_ir = air_ior / IOR;
 
     Refraction refraction;
@@ -55,8 +52,6 @@ float3 CalculateRefraction(
     float4 refraction_pos = mul(camera.viewProjMat, float4(refraction.position, 1.0));
     refraction_pos /= refraction_pos.w;
 
-    // NDC -> UV: Y needs negation because our convention maps UV Y=0 -> NDC Y=+1 (top),
-    // UV Y=1 -> NDC Y=-1 (bottom), as used in ReconstructViewSpacePositionFromDepth().
     float2 refraction_texcoord = float2(refraction_pos.x * 0.5 + 0.5, (-refraction_pos.y) * 0.5 + 0.5);
 
     const float lod = ApplyIORToRoughness(IOR, roughness) * log2(float(max_dimension));
@@ -335,6 +330,7 @@ void EvaluateEnvProbes(
         const float skyIrradianceEffectiveWeight = min(skyIrradianceWeightSum, irradianceResidual);
         irradianceSum += (skyIrradianceSum / max(skyIrradianceWeightSum, HYP_FMATH_EPSILON)) * skyIrradianceEffectiveWeight;
         irradianceWeightSum += skyIrradianceEffectiveWeight;
+
     }
 #endif // DEFERRED_LIGHTING_HAS_SKY
 

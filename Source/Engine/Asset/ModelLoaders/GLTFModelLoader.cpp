@@ -315,9 +315,9 @@ Handle<Texture> AcquireTexture(GltfLoadContext& ctx, const cgltf_texture_view& t
                 textureResult.HasValue())
             {
                 const Handle<Texture>& texture = textureResult->Result();
-                Check(texture->Create());
-
                 GetCurrentAssetRegistry()->PutAssetUnique(texture);
+
+                Check(texture->Create());
 
                 return texture;
             }
@@ -1364,10 +1364,10 @@ bool BuildPrimitive(GltfLoadContext& ctx,
         mesh->CalculateNormals();
     }
 
+    GetCurrentAssetRegistry()->PutAssetUnique(mesh);
+
     // mesh->SetOriginalFilepath(FilePath::Relative(ctx.state.filepath, ctx.state.assetManager->GetBasePath()));
     InitObject(mesh);
-
-    GetCurrentAssetRegistry()->PutAssetUnique(mesh);
 
     out.mesh = mesh;
     out.skinned = hasSkinning;

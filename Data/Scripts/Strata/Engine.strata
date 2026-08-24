@@ -812,6 +812,7 @@ extern void AssetObject_GetName(AssetObject self, ref Name outReturn);
 extern void AssetObject_SetName(AssetObject self, const Name name);
 extern void AssetObject_Rename(AssetObject self, const Name name, ref Result outReturn);
 extern void AssetObject_MarkDirty(AssetObject self);
+extern bool AssetObject_IsDirty(AssetObject self);
 extern uint AssetObject_GetAssetIndex(AssetObject self);
 extern bool AssetObject_IsRegistered(AssetObject self);
 extern void AssetObject_GetPath(AssetObject self, ref AssetPath outReturn);

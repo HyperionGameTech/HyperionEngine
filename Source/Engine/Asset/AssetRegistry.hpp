@@ -113,6 +113,15 @@ public:
     }
 
     void MarkAssetDirty(const AssetObject& assetObject);
+    void MarkAllDirty();
+
+    /*! \brief Load all registered assets that are not yet loaded, and page in blob data for all of them.
+     *  Must be called while the root path still refers to the location the blob data currently resides in,
+     *  so that it can be re-written to a new location (eg. when saving an unsaved project from its
+     *  temporary directory) on the next SaveDirtyAssets(). */
+    void MakeAllAssetsResident();
+    
+    bool IsAssetDirty(const AssetObject& assetObject) const;
 
     uint32 GetBucketAssetDescs(uint32 bucketIndex, Array<AssetDesc>& outDescs) const;
 

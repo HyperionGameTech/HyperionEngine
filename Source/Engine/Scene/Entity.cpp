@@ -317,6 +317,13 @@ void Entity::OnComponentAdded(AnyRef component)
     }
 #endif // HYP_EDITOR
 
+    HYP_DEFER({
+        GetEntityManager()->AddTags<
+            EntityTag::UpdateVisibility,
+            EntityTag::UpdateRenderProxy,
+            EntityTag::UpdateReplication>(this);
+    });
+
     if (MeshComponent* meshComponent = component.TryGet<MeshComponent>())
     {
         bool isInvalid = false;
@@ -343,20 +350,23 @@ void Entity::OnComponentAdded(AnyRef component)
             return;
         }
 
-        GetEntityManager()->AddTags<
-            EntityTag::UpdateVisibility,
-            EntityTag::UpdateRenderProxy,
-            EntityTag::UpdateReplication>(this);
-
 #ifdef HYP_EDITOR
         // build mesh BVH if there is no existing one. (size != 0)
         if (m_entityInitInfo.bvhDepth > 0 && meshComponent->mesh->GetBVHDataReference().size == 0)
         {
             meshComponent->mesh->RebuildBVH();
+            
+            // Resave so we don't drop data when unpaging
+            if (meshComponent->mesh->IsSaved() && !meshComponent->mesh->IsTransient())
+            {
+                Result saveResult = meshComponent->mesh->Save();
+                if (saveResult.HasError())
+                {
+                    HYP_LOG(Entity, Warning, "Failed to save mesh '{}' after rebuilding BVH: {}", meshComponent->mesh->GetName(), saveResult.GetError().GetMessage());
+                }
+            }
         }
 #endif // HYP_EDITOR
-
-        return;
     }
 }
 
