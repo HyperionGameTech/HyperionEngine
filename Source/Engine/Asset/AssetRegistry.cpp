@@ -1096,7 +1096,8 @@ void AssetRegistry::PutAssetUnique(const AssetBucket& bucket, const Handle<Asset
 
     // Blob data must be persisted before it can be unpaged (last read scope release),
     // otherwise unpaging a never-saved asset would lose its data.
-    if (Result persistResult = assetObject->PersistBlobData(); persistResult.HasError())
+    const FilePath localBlobDir = GetRootPath() / bucket.GetName();
+    if (Result persistResult = assetObject->PersistBlobData(nullptr, localBlobDir); persistResult.HasError())
     {
         HYP_LOG(Assets, Warning, "Failed to persist blob data for asset '{}': {}",
                 assetObject->GetName(), persistResult.GetError().GetMessage());

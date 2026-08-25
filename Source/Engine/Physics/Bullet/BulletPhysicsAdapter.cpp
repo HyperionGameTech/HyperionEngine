@@ -58,6 +58,7 @@ struct CharacterControllerInternalData
     SharedPtr<btPairCachingGhostObject> ghostObject;
     SharedPtr<btCapsuleShape> capsuleShape;
     SharedPtr<btKinematicCharacterController> kcc;
+    Vec3f walkVelocity;
 };
 
 struct OffsetCollisionShape final : btCompoundShape
@@ -593,7 +594,7 @@ void BulletPhysicsAdapter::SetCharacterWalkDirection(const SharedPtr<void>& phys
         return;
     }
 
-    internalData->kcc->setWalkDirection(ToBtVector(velocity));
+    internalData->walkVelocity = velocity;
 }
 
 void BulletPhysicsAdapter::ApplyCharacterJump(const SharedPtr<void>& physicsHandle)
@@ -620,10 +621,7 @@ void BulletPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physic
         return;
     }
 
-    // Step in fixed substeps: a single sweep over a large delta (loading hitch, breakpoint,
-    // etc.) can tunnel the capsule through geometry, since the kinematic controller only
-    // sweeps against its current overlapping pairs. Cap the total time we are willing to
-    // simulate for one move, and divide whatever remains into substeps.
+    // Step in fixed substeps
     constexpr float maxSubstepDelta = 1.0f / 60.0f;
     constexpr int maxSubsteps = 3;
 
@@ -633,6 +631,7 @@ void BulletPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physic
 
     for (int i = 0; i < numSubsteps; ++i)
     {
+        internalData->kcc->setWalkDirection(ToBtVector(internalData->walkVelocity) * substepDelta);
         internalData->kcc->updateAction(m_dynamicsWorld, substepDelta);
     }
 }

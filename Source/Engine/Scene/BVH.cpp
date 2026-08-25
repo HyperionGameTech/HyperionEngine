@@ -24,6 +24,9 @@ HYP_NODISCARD RayTestResults BVHNode::TestRay(
         return results;
     }
 
+    const size_t vertexSize = vertices.layoutDesc.VertexSize();
+    const size_t vertexSizeInFloats = vertexSize / sizeof(float);
+
     if (IsLeafNode())
     {
         for (size_t t = 0; t < triangleIds.Size(); ++t)
@@ -33,9 +36,9 @@ HYP_NODISCARD RayTestResults BVHNode::TestRay(
             const uint32 i1 = indices[triangleId * 3 + 1];
             const uint32 i2 = indices[triangleId * 3 + 2];
 
-            const float* floatDataOffset0 = vertices.floatData + (i0 * (vertices.layoutDesc.VertexSize() / sizeof(float)));
-            const float* floatDataOffset1 = vertices.floatData + (i1 * (vertices.layoutDesc.VertexSize() / sizeof(float)));
-            const float* floatDataOffset2 = vertices.floatData + (i2 * (vertices.layoutDesc.VertexSize() / sizeof(float)));
+            const float* floatDataOffset0 = vertices.floatData + (i0 * vertexSizeInFloats);
+            const float* floatDataOffset1 = vertices.floatData + (i1 * vertexSizeInFloats);
+            const float* floatDataOffset2 = vertices.floatData + (i2 * vertexSizeInFloats);
 
             const TVertexPacket<VT_Position>* packet0 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset0);
             const TVertexPacket<VT_Position>* packet1 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset1);

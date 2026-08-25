@@ -59,6 +59,7 @@
 #include <UI/UIPanel.hpp>
 #include <UI/UIListView.hpp>
 #include <UI/UIButton.hpp>
+#include <UI/UISpacer.hpp>
 #include <UI/UITextbox.hpp>
 #include <UI/Overlays/BaseStatsOverlay.hpp>
 #include <UI/Overlays/StatsOverlay.hpp>
@@ -527,6 +528,8 @@ void DefaultGame::ShowConnectScreen()
     const bool hasCliHost = cliHostAddress != nullptr && *cliHostAddress != '\0';
     const String cliHostAddressStr = hasCliHost ? String(cliHostAddress) : String::empty;
 
+    //--
+
     Handle<UITextbox> hostTextbox = connectPanel->CreateUIObject<UITextbox>(Vec2i { 0, 30 }, UIObjectSize { { 300, UIObjectSize::PIXEL }, { 30, UIObjectSize::PIXEL } });
     hostTextbox->SetPlaceholder("Enter host address");
     hostTextbox->SetText(cliHostAddressStr);
@@ -535,12 +538,36 @@ void DefaultGame::ShowConnectScreen()
     hostTextbox->SetParentAlignment(UIObjectAlignment::CENTER);
     connectPanel->AddChildUIObject(hostTextbox);
 
-    Handle<UIButton> connectButton = connectPanel->CreateUIObject<UIButton>(Vec2i { 0, 80 }, UIObjectSize { { 150, UIObjectSize::PIXEL }, { 40, UIObjectSize::PIXEL } });
+    //--
+
+    Handle<UIListView> connectButtonsPanel = connectPanel->CreateUIObject<UIListView>(Vec2i { 0, 80 }, UIObjectSize { { 0, UIObjectSize::AUTO }, { 40, UIObjectSize::PIXEL } });
+    connectButtonsPanel->SetOrientation(UIListViewOrientation::HORIZONTAL);
+    connectButtonsPanel->SetOriginAlignment(UIObjectAlignment::CENTER);
+    connectButtonsPanel->SetParentAlignment(UIObjectAlignment::CENTER);
+    
+    //-- play SP
+    Handle<UIButton> spButton = connectButtonsPanel->CreateUIObject<UIButton>(Vec2i { 0, 0 }, UIObjectSize { { 150, UIObjectSize::PIXEL }, { 100, UIObjectSize::PERCENT } });
+    spButton->SetTextSize(16.0f);
+    spButton->SetText("Play Single Player");
+    connectButtonsPanel->AddChildUIObject(spButton);
+
+    //--
+
+    Handle<UISpacer> spacer = connectButtonsPanel->CreateUIObject<UISpacer>(Vec2i { 0, 0 }, UIObjectSize { { 250, UIObjectSize::PIXEL }, { 100, UIObjectSize::PERCENT } });
+    connectButtonsPanel->AddChildUIObject(spacer);
+
+    //-- connect
+
+    Handle<UIButton> connectButton = connectButtonsPanel->CreateUIObject<UIButton>(Vec2i { 0, 0 }, UIObjectSize { { 150, UIObjectSize::PIXEL }, { 100, UIObjectSize::PERCENT } });
     connectButton->SetTextSize(16.0f);
     connectButton->SetText("Connect");
-    connectButton->SetOriginAlignment(UIObjectAlignment::CENTER);
-    connectButton->SetParentAlignment(UIObjectAlignment::CENTER);
-    connectPanel->AddChildUIObject(connectButton);
+    connectButtonsPanel->AddChildUIObject(connectButton);
+
+    //--
+    
+    connectPanel->AddChildUIObject(connectButtonsPanel);
+
+    //--
 
     auto submitHost = [this, cliHostAddressStr, hostTextbox]()
     {
@@ -564,6 +591,21 @@ void DefaultGame::ShowConnectScreen()
         [submitHost](const MouseEvent&) -> UIEventHandlerResult
         {
             submitHost();
+
+            return UIEventHandlerResult::STOP_BUBBLING;
+        })
+        .Detach();
+
+    spButton->OnClick.Bind(spButton,
+        [this](const MouseEvent&) -> UIEventHandlerResult
+        {
+            // next frame
+            GetThreadById(g_simThread)->GetScheduler().Enqueue(
+                [self = MakeStrongRef(this)]()
+                {
+                    self->HideLoadingScreen();
+                    self->SyncContentAndLaunch();
+                }, TaskEnqueueFlags::FIRE_AND_FORGET);
 
             return UIEventHandlerResult::STOP_BUBBLING;
         })

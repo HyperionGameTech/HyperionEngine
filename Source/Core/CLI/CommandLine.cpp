@@ -103,7 +103,8 @@ CommandLineArgumentRegistration::CommandLineArgumentRegistration(
         description.Empty() ? Optional<String>() : description,
         flags,
         type,
-        defaultValue });
+        defaultValue
+    });
 }
 
 CommandLineArgumentRegistration::CommandLineArgumentRegistration(

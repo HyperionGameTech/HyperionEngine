@@ -105,6 +105,8 @@ static void CreateNoiseMap(Handle<Texture>& tex)
     }
 
     tex = MakeHandle<Texture>(textureDesc, noiseMap.ToByteView());
+    tex->SetIsTransient(true);
+
     Check(tex->Create());
 }
 

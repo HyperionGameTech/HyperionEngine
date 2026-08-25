@@ -439,6 +439,15 @@ void EntityManager::ClearEntities_Internal()
     {
         for (EntityData& entityData : subtypeData.data)
         {
+            // The Entity may have already been destructed at this point; this happens when
+            // Shutdown() detached it (nulling its m_entityManager) and then dropped the last
+            // strong reference to it, so ~Entity() could not remove its EntityData.
+            // The weak handle keeps the ObjectHeader alive, so Expired() is safe to call.
+            if (entityData.entityWeak.Expired())
+            {
+                continue;
+            }
+
             Entity* entity = entityData.entityWeak.GetUnsafe();
             Assert(entity != nullptr);
 

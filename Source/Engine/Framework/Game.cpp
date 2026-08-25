@@ -69,6 +69,15 @@ static CommandLineArgumentRegistration g_argAutoconnect {
     true
 };
 
+static CommandLineArgumentRegistration g_argSinglePlayer {
+    "singleplayer",
+    {},
+    "If true, won't try to connect to a host server and instead will immediately start the game in single player mode",
+    CommandLineArgumentFlags::NONE,
+    CommandLineArgumentType::BOOLEAN,
+    false
+};
+
 ScriptableDelegate<void> Game::OnLaunched;
 ScriptableDelegate<void, Game*, GameStateMode, GameStateMode> Game::OnGameStateChange;
 
@@ -117,7 +126,10 @@ void Game::Initialize()
             EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Game")>());
     }
 
-    if (g_gameClient != nullptr && !EngineGlobals::IsEditor() && m_connectionState.state != ServerConnectionState::Connected)
+    if (g_gameClient != nullptr
+        && !EngineGlobals::IsEditor()
+        && !CoreApi::GetCommandLineArguments()["singleplayer"].ToBool()
+        && m_connectionState.state != ServerConnectionState::Connected)
     {
         BeforeConnectingToServer();
 
