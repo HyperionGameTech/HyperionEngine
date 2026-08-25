@@ -13,9 +13,8 @@ namespace Strata {
 
 static Pool& GetPool()
 {
-    static Pool pool { 1 * 1024 * 1024, PF_THREAD_SAFE | PF_FALLBACK };
-
-    return pool;
+    static Pool s_pool { 1 * 1024 * 1024, PF_THREAD_SAFE | PF_FALLBACK };
+    return s_pool;
 }
 
 void* Alloc(size_t size)

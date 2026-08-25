@@ -14,7 +14,6 @@ namespace Strata {
 ThunkDrawer& ThunkDrawer::GetInstance()
 {
     static ThunkDrawer s_instance;
-    
     return s_instance;
 }
 

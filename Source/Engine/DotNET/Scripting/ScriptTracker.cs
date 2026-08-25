@@ -55,6 +55,28 @@ namespace Hyperion
 
             Logger.Log(logChannel, LogLevel.Info, "Script tracker initialized with {0} source directories.", sourceDirectories.Count);
 
+            CreateWatchers();
+        }
+
+        public void UpdateSourceDirectories(Array sourceDirectoriesArray)
+        {
+            Logger.Log(logChannel, LogLevel.Info, "Updating script source directories...");
+
+            foreach (FileSystemWatcher watcher in watchers)
+            {
+                watcher.EnableRaisingEvents = false;
+                watcher.Dispose();
+            }
+
+            watchers.Clear();
+
+            sourceDirectories = sourceDirectoriesArray.Cast<string>().ToList();
+
+            CreateWatchers();
+        }
+
+        private void CreateWatchers()
+        {
             // Set up file system watchers for all source directories
             foreach (string sourceDir in sourceDirectories)
             {

@@ -23,6 +23,7 @@
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>
 #include <Scene/EntityManager.hpp>
+#include <Scene/Systems/ScriptSystem.hpp>
 
 #include <Scene/Camera/Camera.hpp>
 
@@ -68,6 +69,72 @@ static Name GetUniqueProjectName()
     }
 
     return CreateNameFromDynamicString(candidateName);
+}
+
+/*! \brief Copy files not managed by the AssetRegistry (eg. script sources in Scripts/) from an old project
+ *  directory to a new one. Manifests (.hmf), blob data (.blob) and project files (.hypproject) are skipped,
+ *  as those are (re-)written as part of saving the project. */
+static void CopyLooseProjectFiles(const FilePath& sourceDir, const FilePath& targetDir)
+{
+    if (!sourceDir.Exists() || !sourceDir.IsDirectory())
+    {
+        return;
+    }
+
+    for (const FilePath& subdir : sourceDir.GetSubdirectories())
+    {
+        const FilePath targetSubdir = targetDir / String(subdir.Basename());
+
+        if (!targetSubdir.Exists() && !targetSubdir.MkDir())
+        {
+            HYP_LOG(Editor, Warning, "Failed to create directory '{}' while migrating project files", targetSubdir);
+
+            continue;
+        }
+
+        CopyLooseProjectFiles(subdir, targetSubdir);
+    }
+
+    for (const FilePath& file : sourceDir.GetAllFilesInDirectory())
+    {
+        const String extension = file.GetExtension();
+
+        if (extension == "hmf" || extension == "blob" || extension == "hypproject")
+        {
+            continue;
+        }
+
+        const FilePath targetFile = targetDir / String(file.Basename());
+
+        if (targetFile.Exists())
+        {
+            // Never overwrite anything at the target location
+            continue;
+        }
+
+        FileByteReader reader { file };
+
+        if (reader.Eof())
+        {
+            HYP_LOG(Editor, Warning, "Failed to read file '{}' while migrating project files", file);
+
+            continue;
+        }
+
+        const ByteBuffer fileContents = reader.Read();
+
+        FileByteWriter writer { targetFile };
+
+        if (!writer.IsOpen())
+        {
+            HYP_LOG(Editor, Warning, "Failed to open file '{}' for writing while migrating project files", targetFile);
+
+            continue;
+        }
+
+        writer.Write(fileContents.Data(), fileContents.Size());
+        writer.Close();
+    }
 }
 
 EditorProject::EditorProject()
@@ -254,13 +321,22 @@ Result EditorProject::SaveAs(FilePath filepath)
 
     GlobalContextScope assetRegistryContextScope { AssetRegistryContext { MakeStrongRef(&registry) } };
 
-    if (registry.GetRootPath() != dir)
+    const FilePath oldRootPath = registry.GetRootPath();
+    const bool rootPathChanged = oldRootPath != dir;
+
+    if (rootPathChanged)
     {
+        // Blob data that has been unpaged only exists on disk at the current root (eg. the temporary
+        // directory of an unsaved project). Page it back in while the root path still points there,
+        // so that it is re-written to the new project directory on save.
         registry.MakeAllAssetsResident();
     }
 
     registry.SetRootPath(dir);
 
+    // Content may already have been written while the project was unsaved (eg. imported assets persisted into the
+    // temporary directory, which unmarked them as dirty). Re-mark everything dirty so all of it is written
+    // to the final project directory.
     registry.MarkAllDirty();
 
     EditorTaskScope taskScope(
@@ -295,6 +371,22 @@ Result EditorProject::SaveAs(FilePath filepath)
     taskScope.GetEditorTask()->SetDescription("Saving package data");
 
     registry.SaveDirtyAssets();
+
+    // Move files not managed by the registry (eg. script sources in Scripts/) from the old location
+    // (eg. the temporary directory of an unsaved project) to the new one.
+    if (rootPathChanged)
+    {
+        CopyLooseProjectFiles(oldRootPath, dir);
+
+        // Re-point script file watchers at the new project directory
+        if (m_editWorld.IsValid())
+        {
+            if (ScriptSystem* scriptSystem = m_editWorld->GetSystem<ScriptSystem>())
+            {
+                scriptSystem->RefreshScriptSourceDirectories();
+            }
+        }
+    }
 
     // Moved from temp; remove old dir
     if (!m_tempDirectory.Empty())

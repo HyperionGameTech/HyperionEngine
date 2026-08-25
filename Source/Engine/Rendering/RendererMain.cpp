@@ -1843,8 +1843,8 @@ void RenderCollector::ExecuteDrawCalls(
     }
 
     // set these to null after rendering
-    static Array<ParallelRenderingState**> s_parallelRenderingStatesToNull;
-    s_parallelRenderingStatesToNull.Reserve(32);
+    Array<ParallelRenderingState**, RenderTempAllocator> parallelRenderingStatesToNull;
+    parallelRenderingStatesToNull.Reserve(4);
 
     for (auto& mappings : groupsView)
     {
@@ -1892,7 +1892,7 @@ void RenderCollector::ExecuteDrawCalls(
             else
             {
                 // Set null for next frame
-                s_parallelRenderingStatesToNull.PushBack(&drawCallCollection.parallelRenderingState);
+                parallelRenderingStatesToNull.PushBack(&drawCallCollection.parallelRenderingState);
             }
         }
     }
@@ -1902,14 +1902,14 @@ void RenderCollector::ExecuteDrawCalls(
         Commit(frame->cr, uint8(bit));
     }
 
-    if (s_parallelRenderingStatesToNull.Any())
+    if (parallelRenderingStatesToNull.Any())
     {
-        for (ParallelRenderingState** pp : s_parallelRenderingStatesToNull)
+        for (ParallelRenderingState** pp : parallelRenderingStatesToNull)
         {
             *pp = nullptr;
         }
 
-        s_parallelRenderingStatesToNull.Resize(0);
+        parallelRenderingStatesToNull.Resize(0);
     }
 
     if (framebuffer)

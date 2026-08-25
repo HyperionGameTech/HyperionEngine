@@ -11,6 +11,8 @@
 
 #include <Framework/GameState.hpp>
 
+#include <Core/FileSystem/FilePath.hpp>
+
 #include <Core/Functional/Delegate.hpp>
 #include <Core/Memory/UniquePtr.hpp>
 
@@ -40,6 +42,8 @@ public:
 
     void Process(float delta, Span<Handle<Scene>> scenes) override;
 
+    void RefreshScriptSourceDirectories();
+
 private:
     SystemComponentDescriptors GetComponentDescriptors() const override
     {
@@ -47,6 +51,8 @@ private:
             ComponentDescriptor<ScriptComponent, ComponentAccess::READ_WRITE> {}
         };
     }
+
+    Array<FilePath> CollectScriptSourceDirectories() const;
 
     void HandleGameStateChanged(GameStateMode gameStateMode, GameStateMode previousGameStateMode);
 

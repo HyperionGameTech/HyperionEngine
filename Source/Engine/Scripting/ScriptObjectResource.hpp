@@ -142,12 +142,7 @@ public:
 
     void SetScriptObjectData_DotNet(const ScriptObjectData_DotNet& data)
     {
-        if (!dotNetData)
-        {
-            dotNetData = new ScriptObjectData_DotNet();
-        }
-
-        *dotNetData = data;
+        dotNetData = data;
     }
 #endif // HYP_DOTNET
 

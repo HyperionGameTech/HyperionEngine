@@ -89,6 +89,7 @@ Handle<UIObject> StatsOverlay::CreateUIObject(UIObject* spawnParent)
                     Vec2i::Zero(),
                     UIObjectSize(Vec2i::Zero(), UIObjectSize::AUTO));
 
+                text->SetBackgroundColor(Color::Transparent());
                 text->SetPadding(Vec2i(1, 1));
                 text->SetText(value.Get<String>());
 

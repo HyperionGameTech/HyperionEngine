@@ -17,8 +17,8 @@
 namespace Hyperion {
 
 class IndirectRenderer;
+class DrawCallCollection;
 struct RenderSetup;
-struct DrawCallCollection;
 struct ParallelRenderingState;
 
 enum class RenderGroupFlags : uint32

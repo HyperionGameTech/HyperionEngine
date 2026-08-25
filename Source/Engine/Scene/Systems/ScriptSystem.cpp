@@ -9,6 +9,7 @@
 #include <Scene/World.hpp>
 #include <Scene/Scene.hpp>
 #include <Scene/EntityManager.hpp>
+
 #include <Scene/Systems/ScriptSystem.hpp>
 
 #include <Scripting/Asset/ScriptAsset.hpp>
@@ -28,6 +29,7 @@
 #include <Scripting/EntityScripting.hpp>
 
 #include <Asset/AssetRegistry.hpp>
+#include <Asset/AssetBucket.hpp>
 
 #include <System/DirectoryInitializer.hpp>
 
@@ -110,6 +112,18 @@ public:
             binaryOutputDirectory,
             reinterpret_cast<void*>(callbackPtr),
             callbackSelfPtr);
+    }
+
+    void UpdateSourceDirectories(const Array<FilePath>& sourceDirectories)
+    {
+        if (!object || !object->IsValid())
+        {
+            return;
+        }
+
+        object->InvokeMethodByName<void>(
+            "UpdateSourceDirectories",
+            sourceDirectories);
     }
 
     void InvokeUpdate()
@@ -310,32 +324,47 @@ void ScriptSystem::OnAddedToWorld(World* world)
 
         m_scriptTracker = MakeUnique<ScriptTracker>();
 
-        Array<FilePath> scriptSourceDirectories;
-        scriptSourceDirectories.PushBack(GetScriptsSourceDirectory());
-
-        // Add project-specific scripts directory from asset registry
-        if (Handle<AssetRegistry> assetRegistry = GetCurrentAssetRegistry(); assetRegistry.IsValid())
-        {
-            if (assetRegistry->GetRootPath().Exists())
-            {
-                const FilePath projectScriptsPath = assetRegistry->GetRootPath() / "Scripts";
-
-                scriptSourceDirectories.PushBack(projectScriptsPath);
-            }
-        }
-
         void (*scriptTrackerCallback)(void*, ScriptEvent) = [](void* selfPtr, ScriptEvent event)
         {
             static_cast<ScriptingService*>(selfPtr)->PushScriptEvent(event);
         };
 
         m_scriptTracker->Initialize(
-            scriptSourceDirectories,
+            CollectScriptSourceDirectories(),
             EngineGlobals::GetTempDirectory() / "ScriptProjects",
             CoreApi::GetExecutablePath(),
             scriptTrackerCallback,
             m_scriptingService.Get());
     }
+}
+
+Array<FilePath> ScriptSystem::CollectScriptSourceDirectories() const
+{
+    Array<FilePath> scriptSourceDirectories;
+    scriptSourceDirectories.PushBack(GetScriptsSourceDirectory());
+
+    if (Handle<AssetRegistry> assetRegistry = GetCurrentAssetRegistry(); assetRegistry.IsValid())
+    {
+        if (assetRegistry->GetRootPath().Exists())
+        {
+            const FilePath projectScriptsPath = assetRegistry->GetRootPath() / AssetBuckets::Scripts.GetName();
+
+            scriptSourceDirectories.PushBack(projectScriptsPath);
+        }
+    }
+
+    return scriptSourceDirectories;
+}
+
+void ScriptSystem::RefreshScriptSourceDirectories()
+{
+    if (!EnableScriptReloading() || !m_scriptTracker)
+    {
+        return;
+    }
+
+    // Update the source dirs, may have changed, for example "Save As" project or first save going from temp dir -> actual concrete dir
+    m_scriptTracker->UpdateSourceDirectories(CollectScriptSourceDirectories());
 }
 
 void ScriptSystem::OnRemovedFromWorld(World* world)

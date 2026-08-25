@@ -273,8 +273,9 @@ protected:
     size_t m_structAlignment;
 };
 
-struct DrawCallCollection
+class DrawCallCollection
 {
+public:
     DrawCallCollection() = default;
 
     DrawCallCollection(const DrawCallCollection& other) = delete;

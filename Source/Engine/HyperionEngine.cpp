@@ -1281,7 +1281,7 @@ extern "C"
         const Class* commandletBaseClass = ClassRegistry::GetInstance().GetClass("CommandletBase"_sh);
         Assert(commandletBaseClass != nullptr);
 
-        auto Predicate = [&](const Class* cls) -> IterationResult
+        auto doer = [&](const Class* cls) -> IterationResult
         {
             if (cls->IsDerivedFrom(commandletBaseClass))
             {
@@ -1303,7 +1303,7 @@ extern "C"
             return IterationResult::CONTINUE;
         };
 
-        ClassRegistry::GetInstance().ForEachClass(Predicate);
+        ClassRegistry::GetInstance().ForEachClass(doer);
     }
 
 #ifdef HYP_EDITOR
@@ -1315,7 +1315,7 @@ extern "C"
         const Class* editorCommandBaseClass = ClassRegistry::GetInstance().GetClass("EditorCommandBase"_sh);
         Assert(editorCommandBaseClass != nullptr);
 
-        auto Predicate = [&](const Class* cls) -> IterationResult
+        auto doer = [&](const Class* cls) -> IterationResult
         {
             if (cls->IsDerivedFrom(editorCommandBaseClass))
             {
@@ -1331,7 +1331,7 @@ extern "C"
             return IterationResult::CONTINUE;
         };
 
-        ClassRegistry::GetInstance().ForEachClass(Predicate);
+        ClassRegistry::GetInstance().ForEachClass(doer);
     }
 
     HYP_EXPORT void Hyp_GetAllDerivedClassNames(const char* baseClassName, void* callback, void* userData)
@@ -1344,7 +1344,7 @@ extern "C"
         if (!baseClass)
             return;
 
-        auto Predicate = [&](const Class* cls) -> IterationResult
+        auto doer = [&](const Class* cls) -> IterationResult
         {
             if (cls->IsDerivedFrom(baseClass) && !cls->IsAbstract())
             {
@@ -1354,7 +1354,7 @@ extern "C"
             return IterationResult::CONTINUE;
         };
 
-        ClassRegistry::GetInstance().ForEachClass(Predicate);
+        ClassRegistry::GetInstance().ForEachClass(doer);
     }
 
     HYP_EXPORT bool Hyp_CreateInstanceOfClass(const char* className, BoxedValue* outBoxed)
