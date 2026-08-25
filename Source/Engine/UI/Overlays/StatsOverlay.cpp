@@ -43,7 +43,7 @@ Handle<UIObject> StatsOverlay::CreateUIObject(UIObject* spawnParent)
         UIObjectSize({ 250, UIObjectSize::PIXEL }, { 300, UIObjectSize::PIXEL }));
 
     panelBackdrop->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.8f));
-    panelBackdrop->SetPadding(Vec2i(10, 10));
+    panelBackdrop->SetPadding(Vec2i(4, 4));
     panelBackdrop->SetBorderRadius(10);
 
     m_panel = spawnParent->CreateUIObject<UIListView>(
@@ -54,7 +54,7 @@ Handle<UIObject> StatsOverlay::CreateUIObject(UIObject* spawnParent)
     m_panel->SetTextSize(14.0f);
     m_panel->SetTextColor(Color(0.7f, 0.7f, 0.7f, 1.0f));
     m_panel->SetBackgroundColor(Color::Transparent());
-    m_panel->SetPadding(Vec2i(2, 2));
+    m_panel->SetPadding(Vec2i::Zero());
 
     m_dataSource = MakeHandle<UIDataSource>(
         Array<Handle<UIElementFactoryBase>> {},
@@ -67,6 +67,7 @@ Handle<UIObject> StatsOverlay::CreateUIObject(UIObject* spawnParent)
                     UIObjectSize({ 100, UIObjectSize::PERCENT }, { 25, UIObjectSize::PIXEL }));
 
                 textPanel->SetBackgroundColor(Color::Transparent());
+                textPanel->SetPadding(Vec2i::Zero());
 
                 // heading
                 Handle<UIText> text = parent->CreateUIObject<UIText>(
@@ -76,6 +77,7 @@ Handle<UIObject> StatsOverlay::CreateUIObject(UIObject* spawnParent)
                 text->SetBackgroundColor(Color::Transparent());
                 text->SetTextColor(Color(0.9f, 0.9f, 0.9f, 1.0f));
                 text->SetText(*value.Get<Name>());
+                text->SetPadding(Vec2i(2, 2));
                 text->SetOriginAlignment(UIObjectAlignment::CENTER);
                 text->SetParentAlignment(UIObjectAlignment::CENTER);
 
@@ -90,7 +92,7 @@ Handle<UIObject> StatsOverlay::CreateUIObject(UIObject* spawnParent)
                     UIObjectSize(Vec2i::Zero(), UIObjectSize::AUTO));
 
                 text->SetBackgroundColor(Color::Transparent());
-                text->SetPadding(Vec2i(1, 1));
+                text->SetPadding(Vec2i(2, 2));
                 text->SetText(value.Get<String>());
 
                 return text;

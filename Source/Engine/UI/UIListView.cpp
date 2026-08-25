@@ -28,6 +28,7 @@ UIListViewItem::UIListViewItem()
       m_isExpanded(false)
 {
     SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
+    SetBackgroundColor(Color::Transparent());
 
     OnClick
         .Bind(this, [this](...)
@@ -64,6 +65,7 @@ void UIListViewItem::AddChildUIObject(const Handle<UIObject>& uiObject)
         if (!m_expandedElement)
         {
             Handle<UIListView> expandedElement = CreateUIObject<UIListView>(Vec2i { 10, GetActualSize().y }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
+            expandedElement->SetBackgroundColor(Color::Transparent());
             expandedElement->SetIsVisible(m_isExpanded);
 
             UIObject::AddChildUIObject(expandedElement);

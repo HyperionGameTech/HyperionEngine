@@ -435,6 +435,27 @@ void Mesh::PageBlobData()
                 const uint8 layoutMask = m_meshDesc.meshAttributes.inputLayout.mask;
                 const PlaceholderVertexIndexCache::Buffers* placeholder = PlaceholderVertexIndexCache::GetInstance().GetForLayout(layoutMask);
 
+                // Whichever of the real vertex/index buffers did load has to be released first,
+                // so the placeholder data is always allocated as a matched pair
+                // (AllocateBlobData asserts when allocating over non-readonly data).
+                for (BlobDataReference* reference : { &vertexData, &indexData })
+                {
+                    if (reference->raw == nullptr)
+                    {
+                        continue;
+                    }
+
+                    if (reference->readOnly)
+                    {
+                        // Mapped from blob storage; the storage owns the memory
+                        reference->raw = nullptr;
+                    }
+                    else
+                    {
+                        FreeBlobData(*reference);
+                    }
+                }
+
                 const Name vertexBlobKey = vertexData.key;
                 AllocateBlobData(vertexData, placeholder->vertexData.Data(), placeholder->vertexData.ByteSize(), 16);
                 vertexData.key = vertexBlobKey;

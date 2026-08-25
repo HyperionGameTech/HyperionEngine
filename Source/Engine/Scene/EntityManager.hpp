@@ -923,6 +923,7 @@ private:
 
     bool m_isInitialized : 1;
     bool m_isLocked : 1;
+    bool m_isShuttingDown : 1;
 
     HYP_DECLARE_MT_CHECK(m_entitiesDataRaceDetector);
     HYP_DECLARE_MT_CHECK(m_containersDataRaceDetector);

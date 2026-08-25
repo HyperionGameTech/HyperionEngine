@@ -237,10 +237,12 @@ static bool BuildElementTextures(
 static Handle<Mesh> CloneMeshForLightmapBake(const Handle<Mesh>& sourceMesh)
 {
     Handle<Mesh> clonedMesh = MakeHandle<Mesh>();
-    clonedMesh->SetName(NAME_FMT("{}_LightmapBakeClone", sourceMesh->GetName()));
+
+    // Will be made unique on PutAssetUnique().
+    clonedMesh->SetName(sourceMesh->GetName());
 
     {
-        auto readScope = sourceMesh->GetReadScope();
+        auto sourceMeshReadScope = sourceMesh->GetReadScope();
 
         const MeshDesc meshDesc = sourceMesh->GetMeshDesc();
         const VertexArrayView vertexData = sourceMesh->GetVertexData(0);
@@ -252,11 +254,15 @@ static Handle<Mesh> CloneMeshForLightmapBake(const Handle<Mesh>& sourceMesh)
 
         clonedMesh->SetMeshData(meshDesc, meshData);
 
+        sourceMeshReadScope.Reset();
+
         BVHNode bvh;
         clonedMesh->BuildBVH(bvh);
 
         clonedMesh->SetBVH(std::move(bvh));
     }
+
+    GetCurrentAssetRegistry()->PutAssetUnique(clonedMesh);
 
     InitObject(clonedMesh);
 
@@ -400,7 +406,8 @@ void Baker<LightmapVolume>::Build()
             bakeMesh,
             meshComponent.material,
             Transform(transformComponent.translation, transformComponent.scale, transformComponent.rotation).GetMatrix(),
-            boundingBoxComponent.worldAabb });
+            boundingBoxComponent.worldAabb
+        });
     }
 
     m_bakeData = BakeData<LightmapVolume>(m_bakeEntities.ToSpan(), m_volume);
@@ -622,8 +629,21 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
             MeshDataView meshData {};
             meshData.vertices[0] = vertexArrayView;
             meshData.indices[0] = bakeMesh.indices.ToByteView();
-
+            
+            // Handles write scope on its own
             mesh->SetMeshData(newMeshDesc, meshData);
+
+            GetCurrentAssetRegistry()->PutAssetUnique(mesh);
+
+            Result saveResult = mesh->Save();
+            if (saveResult.HasError())
+            {
+                HYP_LOG(Lightmap, Error, "Failed to save mesh '{}' after setting new mesh data: {}",
+                        mesh->GetName(),
+                        saveResult.GetError().GetMessage());
+
+                return;
+            }
 
             // needs reupload!
             if (mesh->isUploaded.Load())

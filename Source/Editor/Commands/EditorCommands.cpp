@@ -3345,7 +3345,8 @@ public:
                         .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
                             [&](EditorSubsystem* subsystem, EditorProject* project)
                             {
-                                GetCurrentAssetRegistry()->PutAsset(cubeMesh);
+                                GetCurrentAssetRegistry()->PutAssetUnique(cubeMesh);
+                                GetCurrentAssetRegistry()->PutAssetUnique(material);
 
                                 // Make an entity, assign MeshComponent w/ Mesh and a base Material
 
@@ -3354,9 +3355,6 @@ public:
                                 if (activeScene.IsValid())
                                 {
                                     activeScene->GetRoot()->AddChild(entity);
-
-                                    GetCurrentAssetRegistry()->PutAsset(cubeMesh);
-                                    GetCurrentAssetRegistry()->PutAsset(material);
 
                                     if (!entity->HasComponent<MeshComponent>())
                                     {

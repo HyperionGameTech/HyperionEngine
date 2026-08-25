@@ -220,7 +220,12 @@ void PathTracer::CreateAccelerationStructures()
         AssertDebug(meshProxy->mesh != nullptr);
 
         BottomLevelASRef blas = BLASBuilder::Build(meshProxy->mesh, meshProxy->material);
-        Assert(blas != nullptr);
+        AssertDebug(blas != nullptr);
+
+        if (!blas)
+        {
+            continue;
+        }
 
         blas->SetTransform(meshProxy->bufferData.modelMatrix);
 
@@ -248,8 +253,6 @@ void PathTracer::CreateAccelerationStructures()
     if (!hasBlas)
     {
         HYP_LOG(Lightmap, Warning, "No bottom-level acceleration structures found. Skipping top-level acceleration structure creation.");
-
-        HYP_BREAKPOINT;
 
         return;
     }

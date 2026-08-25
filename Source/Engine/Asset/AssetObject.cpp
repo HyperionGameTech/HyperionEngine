@@ -787,7 +787,22 @@ void AssetObject::UnlockReader()
         {
             if (!m_flags[AssetObjectFlags::Persistent])
             {
-                UnpageBlobData();
+                if (IsDirty())
+                {
+                    // Modified blob data only exists in memory, so it has to be kept resident until
+                    // it has been persisted by SaveDirtyAssets(); otherwise it would be lost and the
+                    // saved manifest would no longer match the local blob data files on disk.
+                    if (ShouldUseBlobStorage())
+                    {
+                        // We keep the data, but we cannot hold on to storage-mapped (read-only)
+                        // memory after dropping the blob storage reader lock.
+                        SetBlobDataResident(true);
+                    }
+                }
+                else
+                {
+                    UnpageBlobData();
+                }
 
                 // Drop reader for blob storage
                 if (ShouldUseBlobStorage())
@@ -805,8 +820,11 @@ void AssetObject::UnlockReader()
     {
         if (!m_flags[AssetObjectFlags::Persistent])
         {
-            SetBlobDataResident(false);
-            UnpageBlobData();
+            if (!IsDirty())
+            {
+                SetBlobDataResident(false);
+                UnpageBlobData();
+            }
         }
     }
 #endif

@@ -28,6 +28,7 @@
 #include <Core/Reflection/Method.hpp>
 
 #include <Framework/Game.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #ifdef HYP_EDITOR
 #    include <Editor/EditorTask.hpp>

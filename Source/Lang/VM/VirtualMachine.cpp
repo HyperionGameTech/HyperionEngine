@@ -1708,6 +1708,23 @@ public:
             const Class* classPtr = ClassRegistry::GetInstance().GetClass(TypeId(typeIdValue));
             if (classPtr != nullptr)
             {
+                // The class has already been registered (e.g the defining script was re-compiled
+                // and re-executed). Refresh static field values from the new definition,
+                // so that stale values (such as changed enum members) are not kept around.
+                for (const MemberVariant& member : members)
+                {
+                    if (member.internal != nullptr
+                        && member.internal->GetMemberType() == MemberType::StaticField)
+                    {
+                        const StaticField& newField = *static_cast<const StaticField*>(member.internal);
+
+                        if (StaticField* existingField = classPtr->GetStaticField(newField.GetName()))
+                        {
+                            existingField->SetValue(newField.Get());
+                        }
+                    }
+                }
+
                 instance->thread.m_regs[reg] = MakeValue(ClassRef(classPtr));
                 return;
             }

@@ -853,6 +853,13 @@ const SymbolType* AstBinaryExpression::GetExprType() const
     const SymbolType* lTypePtr = m_left->GetExprType();
     Assert(lTypePtr != nullptr);
 
+    if (m_op->ModifiesValue())
+    {
+        // assignment expressions evaluate to the type of the left hand side,
+        // no type promotion should occur
+        return lTypePtr;
+    }
+
     if (m_right != nullptr)
     {
         // the right was not optimized away,

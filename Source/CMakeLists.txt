@@ -479,8 +479,8 @@ if((HYP_IOS OR HYP_SHIPPING) AND NOT HYP_ANDROID)
 endif()
 
 # enable HypScript
-# set(HYP_SCRIPT 1)
-# add_definitions(-DHYP_SCRIPT=1)
+set(HYP_SCRIPT 1)
+add_definitions(-DHYP_SCRIPT=1)
 
 # Set to true if C# is not planned on being used for scripting
 # .NET is necessary for the editor, but for a leaner build this is recommended to disable if not using C# for scripts.

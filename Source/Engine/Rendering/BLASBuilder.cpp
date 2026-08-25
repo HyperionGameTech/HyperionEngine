@@ -131,6 +131,9 @@ BottomLevelASRef BLASBuilder::Build(Mesh* mesh, Material* material)
 
     if (packedVertices.Size() == 0 || packedIndices.Size() == 0)
     {
+        HYP_LOG(Rendering, Warning, "No vertices or indices, skipping blas creation (vertices : {}, indices : {})",
+                packedVertices.Size(), packedIndices.Size());
+
         return BottomLevelASRef::Null();
     }
 

@@ -105,7 +105,8 @@ EntityManager::EntityManager(const ThreadId& ownerThreadId, Scene* scene, EnumFl
       m_scene(scene),
       m_flags(flags),
       m_isLocked(false),
-      m_isInitialized(false)
+      m_isInitialized(false),
+      m_isShuttingDown(false)
 {
     Assert(scene != nullptr);
 
@@ -244,6 +245,7 @@ void EntityManager::Initialize()
     AssertOnThread(m_ownerThreadId);
 
     m_isInitialized = true;
+    m_isShuttingDown = false;
 
     if (m_world != nullptr)
     {
@@ -286,6 +288,8 @@ void EntityManager::Shutdown()
 
         return;
     }
+
+    m_isShuttingDown = true;
 
 #if 0
     // Notify all entities that they're being removed from the world
@@ -431,6 +435,7 @@ void EntityManager::Shutdown()
     ClearEntities_Internal();
 
     m_isInitialized = false;
+    m_isShuttingDown = false;
 }
 
 void EntityManager::ClearEntities_Internal()
@@ -1468,6 +1473,14 @@ void EntityManager::NotifySystemsOfEntityAdded(const Handle<Entity>& entity, con
     // If the EntityManager is initialized, notify systems of the entity being added
     // otherwise, the systems will be notified when the EntityManager is initialized
     if (!m_world)
+    {
+        return;
+    }
+
+    // don't call OnEntityAdded() when shutting down, some systems in OnEntityRemoved() will add tags,
+    // (eg MeshSystem adding UpdateRenderProxy)
+    // we don't want to revive anything here.
+    if (m_isShuttingDown)
     {
         return;
     }

@@ -202,19 +202,38 @@ bool CharacterControllerSystem::ShouldProcessScene(Scene* scene) const
     return (scene->GetSceneFlags() & (SceneFlags::UI | SceneFlags::DETACHED | ExpectedFlags)) == ExpectedFlags;
 }
 
-static Vec3f GetPlayerViewDirection(Entity* entity)
+static const Handle<Camera>& GetCameraChild(const Entity& entity)
 {
-    for (const Handle<Node>& child : entity->GetChildren())
+    for (const Handle<Node>& child : entity.GetChildren())
     {
-        if (Handle<Camera> camera = DynamicCast<Camera>(child); camera.IsValid())
+        if (const Handle<Camera>& camera = DynamicCast<Camera>(child); camera.IsValid())
         {
-            return camera->GetDirection();
+            return camera;
         }
     }
 
-    const TransformComponent& transformComponent = entity->GetComponent<TransformComponent>();
+    return Handle<Camera>::Null();
+}
 
-    return transformComponent.rotation.RotateVector(Vec3f::UnitZ());
+static Vec3f GetPlayerViewDirection(const Entity& entity)
+{
+    const Handle<Camera>& cameraChild = GetCameraChild(entity);
+    if (cameraChild.IsValid())
+    {
+#ifdef HYP_EDITOR
+        const Vec3f& localTranslation = cameraChild->GetLocalTranslation();
+        if (!MathUtil::ApproxEqual(Vec2f(localTranslation.x, localTranslation.z), Vec2f::Zero()))
+        {
+            HYP_LOG_ONCE(Scene, Warning, "Camera '{}' has x/z offset from parent node, character may appear to"
+                                        " interact with the physical world in bizarre and twisted ways",
+                                        cameraChild->GetName());
+        }
+#endif // HYP_EDITOR
+
+        return cameraChild->GetDirection();
+    }
+
+    return entity.GetWorldRotation().RotateVector(Vec3f::UnitZ());
 }
 
 void CharacterControllerSystem::OnEntityAdded(Entity* entity)
@@ -468,7 +487,7 @@ static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent
 
     CharacterControllerInputHandler* inputHandler = StaticCast<CharacterControllerInputHandler>(component.inputHandler.Get());
 
-    const Vec3f viewDirection = GetPlayerViewDirection(entity);
+    const Vec3f viewDirection = GetPlayerViewDirection(*entity);
 
     // Predict this tick's move locally
     PlayerMove move;
@@ -587,7 +606,7 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
                     continue;
                 }
 
-                const Vec3f viewDirection = GetPlayerViewDirection(entity);
+                const Vec3f viewDirection = GetPlayerViewDirection(*entity);
 
                 PlayerMove move;
                 Memory::Zero(&move, sizeof(move));

@@ -51,6 +51,7 @@ struct RigidBodyInternalData
 {
     SharedPtr<btRigidBody> rigidBody;
     SharedPtr<btMotionState> motionState;
+    SharedPtr<btCollisionShape> collisionShape;
 };
 
 struct CharacterControllerInternalData
@@ -299,10 +300,8 @@ void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
     Assert(rigidBody.IsValid());
     Assert(rigidBody->shape != nullptr, "No PhysicsShape on RigidBody!");
 
-    if (!rigidBody->shape->GetInternalData())
-    {
-        rigidBody->shape->SetInternalData(CreatePhysicsShapeHandle(rigidBody->shape, rigidBody->GetTransform().GetScale()));
-    }
+    SharedPtr<RigidBodyInternalData> internalData = MakeSharedWithAllocator<RigidBodyInternalData, PhysicsAllocator>();
+    internalData->collisionShape = CreatePhysicsShapeHandle(rigidBody->shape, rigidBody->GetTransform().GetScale());
 
     // Kinematic bodies are driven externally. Set mass 0 so the
     // solver never integrates them, but they still push the dynamic bodies they collide with.
@@ -313,11 +312,8 @@ void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
 
     if (!isKinematic && mass > 0.0f)
     {
-        static_cast<btCollisionShape*>(rigidBody->shape->GetInternalData())
-            ->calculateLocalInertia(mass, localInertia);
+        internalData->collisionShape->calculateLocalInertia(mass, localInertia);
     }
-
-    SharedPtr<RigidBodyInternalData> internalData = MakeSharedWithAllocator<RigidBodyInternalData, PhysicsAllocator>();
 
     btTransform btTransform;
     btTransform.setIdentity();
@@ -328,7 +324,7 @@ void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
     btRigidBody::btRigidBodyConstructionInfo constructionInfo(
         mass,
         internalData->motionState.Get(),
-        static_cast<btCollisionShape*>(rigidBody->shape->GetInternalData()),
+        internalData->collisionShape.Get(),
         localInertia);
 
     internalData->rigidBody = MakeSharedWithAllocator<btRigidBody, PhysicsAllocator>(constructionInfo);
@@ -423,8 +419,7 @@ void BulletPhysicsAdapter::SetRigidBodyKinematic(const Handle<RigidBody>& rigidB
 
         if (mass > 0.0f)
         {
-            static_cast<btCollisionShape*>(rigidBody->shape->GetInternalData())
-                ->calculateLocalInertia(mass, localInertia);
+            internalData->collisionShape->calculateLocalInertia(mass, localInertia);
         }
 
         body->setCollisionFlags(collisionFlags & ~btCollisionObject::CF_KINEMATIC_OBJECT);
@@ -471,7 +466,7 @@ void BulletPhysicsAdapter::OnChangePhysicsShape(RigidBody* rigidBody)
 
     m_dynamicsWorld->removeRigidBody(internalData->rigidBody.Get());
     internalData->rigidBody->setCollisionShape(newShape.Get());
-    rigidBody->shape->SetInternalData(std::move(newShape));
+    internalData->collisionShape = std::move(newShape);
 
     const bool isKinematic = rigidBody->IsKinematic();
     const float mass = isKinematic ? 0.0f : rigidBody->physicsMaterial->GetMass();
@@ -480,8 +475,7 @@ void BulletPhysicsAdapter::OnChangePhysicsShape(RigidBody* rigidBody)
 
     if (!isKinematic && mass >= 0.00001f)
     {
-        static_cast<btCollisionShape*>(rigidBody->shape->GetInternalData())
-            ->calculateLocalInertia(mass, localInertia);
+        internalData->collisionShape->calculateLocalInertia(mass, localInertia);
     }
 
     internalData->rigidBody->setMassProps(mass, localInertia);
@@ -503,12 +497,7 @@ void BulletPhysicsAdapter::OnChangePhysicsMaterial(RigidBody* rigidBody)
 
     Assert(internalData->rigidBody != nullptr);
 
-    if (!rigidBody->shape->GetInternalData())
-    {
-        rigidBody->shape->SetInternalData(CreatePhysicsShapeHandle(rigidBody->shape, rigidBody->GetTransform().GetScale()));
-    }
-
-    internalData->rigidBody->setCollisionShape(static_cast<btCollisionShape*>(rigidBody->shape->GetInternalData()));
+    internalData->rigidBody->setCollisionShape(internalData->collisionShape.Get());
 }
 
 void BulletPhysicsAdapter::ApplyForceToBody(const RigidBody* rigidBody, const Vec3f& force)

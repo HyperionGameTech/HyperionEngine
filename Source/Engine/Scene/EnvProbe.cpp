@@ -211,9 +211,9 @@ void EnvProbe::CreateVisibilityTexture()
 
     m_visibilityTexture->SetName(NAME_FMT("{}_VisibilityMap", GetName()));
 
-    Check(m_visibilityTexture->Create());
-
     GetCurrentAssetRegistry()->PutAssetUnique(m_visibilityTexture);
+
+    Check(m_visibilityTexture->Create());
 
     // Assume the caller will MarkDirty() / SetNeedsRenderProxyUpdate()
 }
@@ -971,9 +971,9 @@ void EnvProbe::SetVisibilityTexture(const Handle<Texture>& visibilityTexture)
             HYP_LOG(Scene, Warning, "EnvProbe {} does not have visibility flag set, visibility texture will be unused unless the flag is set", GetName());
         }
 
-        Check(m_visibilityTexture->Create());
-
         GetCurrentAssetRegistry()->PutAssetUnique(m_visibilityTexture);
+
+        Check(m_visibilityTexture->Create());
 
         Invalidate(/* forceRerender */ true);
     }

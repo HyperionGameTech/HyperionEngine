@@ -17,6 +17,7 @@ namespace Hyperion.Editor.ViewModels
         private const string Vec4uName = "Vec4u";
         private const string TransformName = "Transform";
         private const string BoundingBoxName = "BoundingBox";
+        private const string UuidName = "UUID";
         private const string MaterialTexturesName = "MaterialTextures";
         private const string BoolName = "bool";
 
@@ -98,6 +99,10 @@ namespace Hyperion.Editor.ViewModels
             else if (typeInfo.Class?.Name == BoundingBoxName)
             {
                 vm = new BoundingBoxPropertyViewModel(target, property, isReadOnly);
+            }
+            else if (typeInfo.Class?.Name == UuidName)
+            {
+                vm = new ReadOnlyPropertyViewModel(target, property, isReadOnly: true);
             }
             else if (typeInfo.Class?.Name == MaterialTexturesName)
             {
@@ -208,6 +213,10 @@ namespace Hyperion.Editor.ViewModels
             {
                 vm = new BoundingBoxPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly);
             }
+            else if (typeInfo.Class?.Name == UuidName)
+            {
+                vm = new ReadOnlyPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly: true);
+            }
             else if (typeInfo.Class?.Name == MaterialTexturesName)
             {
                 vm = new MaterialTexturesPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, depth);
@@ -310,6 +319,10 @@ namespace Hyperion.Editor.ViewModels
             else if (typeInfo.Class?.Name == BoundingBoxName)
             {
                 vm = new BoundingBoxPropertyViewModel(label, typeInfo, getter, setter, isReadOnly);
+            }
+            else if (typeInfo.Class?.Name == UuidName)
+            {
+                vm = new ReadOnlyPropertyViewModel(label, getter, setter, isReadOnly: true);
             }
             else if (typeInfo.Class?.Name == MaterialTexturesName)
             {

@@ -35,7 +35,9 @@ namespace Hyperion.Editor.ViewModels
                 try
                 {
                     using BoxedValue boxed = GetPropertyValue();
-                    rawValue = boxed.GetValue();
+                    object? raw = boxed.GetValue();
+
+                    rawValue = raw is Hyperion.UUID uuid ? uuid.ToString() : raw;
                 }
                 catch (Exception ex)
                 {
