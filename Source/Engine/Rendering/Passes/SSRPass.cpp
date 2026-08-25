@@ -54,8 +54,10 @@ CVar<bool> cvSSRRoughnessScattering { "Rendering.SSR.RoughnessScattering", false
 
 CVar<float> cvSSRRayStep { "Rendering.SSR.RayStep", 0.2f };
 CVar<float> cvSSRDistanceBias { "Rendering.SSR.DistanceBias", 0.025f };
-CVar<float> cvSSRThickness { "Rendering.SSR.Thickness", 0.2f };
+CVar<float> cvSSRThickness { "Rendering.SSR.Thickness", 1.0f };
 CVar<float> cvSSRMaxDistance { "Rendering.SSR.MaxDistance", 1000.0f };
+
+/// Unused currently as we are using stencil testing which needs the same dimensions as viewport
 CVar<float> cvSSRTraceResolutionScale { "Rendering.SSR.TraceResolutionScale", 0.65 };
 CVar<float> cvSSRScreenEdgeFadeStart { "Rendering.SSR.ScreenEdgeFadeStart", 0.92f };
 CVar<float> cvSSRScreenEdgeFadeEnd { "Rendering.SSR.ScreenEdgeFadeEnd", 0.98f };

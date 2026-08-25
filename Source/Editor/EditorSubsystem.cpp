@@ -3192,6 +3192,78 @@ void EditorSubsystem::ShutdownGizmos()
     }
 }
 
+void EditorSubsystem::UpdateGizmoProximityVisibility()
+{
+    AssertOnThread(g_simThread);
+
+    EditorGizmoBase* gizmo = GetSelectedGizmo();
+
+    if (gizmo == nullptr || gizmo->GetManipulationMode() == EditorManipulationMode::None)
+    {
+        m_gizmosHiddenByProximity = false;
+
+        return;
+    }
+
+    // Never change gizmo visibility while a drag is active
+    if (gizmo->IsDragging())
+    {
+        return;
+    }
+
+    const Handle<Node>& gizmoNode = gizmo->GetNode();
+
+    if (!gizmoNode.IsValid() || !m_editorScene.IsValid())
+    {
+        return;
+    }
+
+    EditorViewport* activeViewport = GetActiveViewport();
+
+    if (activeViewport == nullptr || !activeViewport->GetCamera().IsValid())
+    {
+        return;
+    }
+
+    static constexpr float HideDistanceFactor = 0.8f;
+    static constexpr float ShowDistanceFactor = 1.2f;
+
+    const float gizmoScale = gizmoNode->GetWorldScale().Max();
+    const float hideDistance = gizmoScale * HideDistanceFactor;
+    const float showDistance = gizmoScale * ShowDistanceFactor;
+
+    const float cameraDistance = (activeViewport->GetCamera()->GetWorldTranslation() - gizmoNode->GetWorldTranslation()).Length();
+
+    const bool shouldHide = m_gizmosHiddenByProximity
+        ? cameraDistance < showDistance
+        : cameraDistance < hideDistance;
+
+    if (shouldHide == m_gizmosHiddenByProximity)
+    {
+        if (shouldHide && gizmoNode->GetParent() != nullptr)
+        {
+            SetHoveredGizmo(MouseEvent {}, nullptr, Handle<Node>::Null());
+
+            gizmoNode->Remove();
+        }
+
+        return;
+    }
+
+    m_gizmosHiddenByProximity = shouldHide;
+
+    if (shouldHide)
+    {
+        SetHoveredGizmo(MouseEvent {}, nullptr, Handle<Node>::Null());
+
+        gizmoNode->Remove();
+    }
+    else
+    {
+        m_editorScene->GetRoot()->AddChild(gizmoNode);
+    }
+}
+
 #pragma endregion EditorSubsystem Gizmos
 
 #pragma region EditorSubsystem
@@ -3202,7 +3274,8 @@ EditorSubsystem::EditorSubsystem()
     : m_selectedManipulationMode(EditorManipulationMode::None),
       m_snapToGridEnabled(false),
       m_editorCameraEnabled(false),
-      m_shouldCancelNextClick(false)
+      m_shouldCancelNextClick(false),
+      m_gizmosHiddenByProximity(false)
 {
     m_gizmos.Insert(MakeHandle<NullEditorGizmo>());
     m_gizmos.Insert(MakeHandle<TranslateEditorGizmo>());
@@ -3701,6 +3774,8 @@ void EditorSubsystem::Update(float delta)
     AssertOnThread(g_simThread);
 
     m_editorDelegates->Update();
+
+    UpdateGizmoProximityVisibility();
 
     DebugDrawCommandList& dbg = DebugDrawer::GetInstance().CreateCommandList();
 
@@ -4206,7 +4281,8 @@ void EditorSubsystem::InitViewport()
 
             // Hover over a gizmo when mouse is not down
             if (!event.mouseButtons[MouseButtonState::LEFT]
-                && GetSelectedManipulationMode() != EditorManipulationMode::None)
+                && GetSelectedManipulationMode() != EditorManipulationMode::None
+                && !AreGizmosHiddenByProximity())
             {
                 // Ray test the gizmo
 

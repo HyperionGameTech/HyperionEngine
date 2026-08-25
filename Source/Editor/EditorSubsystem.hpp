@@ -688,6 +688,17 @@ private:
         return m_hoveredGizmo.IsValid() && m_hoveredGizmoNode.IsValid();
     }
 
+    /*! \brief Hide or show the active gizmo based on the distance from the editor camera to the focused
+     *  node. Gizmos have a fixed world size, so when the camera is very close the gizmo would cover most
+     *  of the viewport and block grabbing the viewport to move the camera. While hidden, the gizmo node is
+     *  detached from the editor scene (so it is neither rendered nor pickable) until the camera moves away. */
+    void UpdateGizmoProximityVisibility();
+
+    HYP_FORCE_INLINE bool AreGizmosHiddenByProximity() const
+    {
+        return m_gizmosHiddenByProximity;
+    }
+
     struct MeshEditDragData
     {
         Array<uint32, EditorAllocator> affectedVertexIndices;
@@ -783,6 +794,8 @@ private:
 
     WeakHandle<EditorGizmoBase> m_hoveredGizmo;
     WeakHandle<Node> m_hoveredGizmoNode;
+
+    bool m_gizmosHiddenByProximity;
 
     WeakHandle<Node> m_focusedNode;
     // the actual node that displays the highlight for the focused item
