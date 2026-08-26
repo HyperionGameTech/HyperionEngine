@@ -14,14 +14,6 @@ namespace Hyperion {
 class GBuffer;
 class SSRPass;
 
-enum CubemapType : uint32
-{
-    CMT_DEFAULT = 0,
-    CMT_PARALLAX_CORRECTED,
-
-    CMT_MAX
-};
-
 class ReflectionsPass final : public FullScreenPass
 {
 public:
@@ -34,6 +26,7 @@ public:
     bool ShouldRenderSSR() const;
 
     virtual void Create() override;
+    virtual void CreateFramebuffer() override;
     virtual void Render(Frame* frame, const RenderSetup& rs) override;
 
     UniquePtr<SSRPass> ssrPass;

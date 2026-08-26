@@ -23,7 +23,8 @@ class RenderProxyList;
 enum DeferredPassMode : uint32
 {
     DPM_INDIRECT_LIGHTING,
-    DPM_DIRECT_LIGHTING
+    DPM_DIRECT_LIGHTING,
+    DPM_REFLECTIONS_ONLY
 };
 
 class LightingPass final : public FullScreenPass

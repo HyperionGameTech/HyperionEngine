@@ -378,6 +378,17 @@ PSOutput PSMain(PSInput input)
         return output;
     }
 
+    if (ssrConstants.dimension.z /* checkerboard */ != 0u)
+    {
+        const uint cb = (coord.x & 1u) ^ (coord.y & 1u);
+
+        if (cb != (frameCounter & 1u))
+        {
+            output.mask = 0;
+            return output;
+        }
+    }
+
     float3 N = GBufferUnpackNormal(normalSample);
 
     float3 P = ReconstructViewSpacePositionFromDepth(camera.invProjMat, texcoord, depth).xyz;
