@@ -120,6 +120,7 @@ bool TraceRays(
     float3 ray_direction,
     float jitter,
     float surface_roughness,
+    float thickness_scale,
     out float2 hit_pixel,
     out float3 hit_point,
     out float num_iterations)
@@ -185,6 +186,19 @@ bool TraceRays(
     float step_delta = 0.0;
     bool found = false;
 
+    // Previous sample state, used to detect depth crossings between samples
+    float prev_step_delta = 0.0;
+    float3 prev_ray_pos = rayPos - rayDirTex;
+    float3 prev_ray_position_view = ReconstructViewSpacePositionFromDepth(camera.invProjMat, prev_ray_pos.xy, prev_ray_pos.z).xyz;
+
+    // Whether prev_step_delta / step_delta actually bracket the crossing (prev
+    // in front, current behind) when a hit is found. After a big Hi-Z skip
+    // (common at grazing angles) the ray can land already behind the surface
+    // with no valid "in front" previous sample to interpolate against - in
+    // that case we fall back to the coarse sample directly instead of forcing
+    // an interpolation across an invalid bracket.
+    bool hasBracket = false;
+
     const int max_iterations = int(ssrConstants.num_iterations);
 
     int i = 0;
@@ -231,17 +245,55 @@ bool TraceRays(
 
         step_delta = currPosition.z - view_space_position.z;
 
-        if (step_delta > 0.0 && step_delta < ssrConstants.thickness)
+        // The ray's own view-space Z delta since the last fine sample. At grazing
+        // angles a single texel step can correspond to a large depth change, so a
+        // flat world-space thickness either misses real surfaces there (too small)
+        // or bridges unrelated ones everywhere else (too large). Never require less
+        // than the step's own span, so a small base thickness stays tight for
+        // camera-facing surfaces without creating holes at grazing angles.
+        const float step_view_depth_delta = abs(currPosition.z - prev_ray_position_view.z);
+        const float effective_thickness = max(ssrConstants.thickness * thickness_scale, step_view_depth_delta * 1.1);
+
+        if (step_delta > 0.0 && step_delta < effective_thickness)
         {
             found = true;
-            hit_pixel = rayPos.xy;
+            hasBracket = prev_step_delta <= 0.0;
+
+            if (hasBracket)
+            {
+                // We have a genuine in-front/behind bracket - interpolate where
+                // between the two samples the ray crossed the surface.
+                const float t = prev_step_delta / (prev_step_delta - step_delta);
+
+                const float3 crossingRayPos = lerp(prev_ray_pos, rayPos, t);
+
+                depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, HiZTexture, crossingRayPos.xy, 0).r;
+                view_space_position = ReconstructViewSpacePositionFromDepth(camera.invProjMat, crossingRayPos.xy, depth);
+
+                hit_pixel = crossingRayPos.xy;
+
+                // prev_ray_position_view / currPosition are left untouched here so they
+                // still bracket the pre-/post-crossing ray positions for the binary
+                // search below.
+            }
+            else
+            {
+                // No valid bracket (e.g. the ray landed behind the surface right after
+                // a Hi-Z skip) - use the coarse sample directly rather than
+                // interpolating against an unrelated previous sample.
+                hit_pixel = rayPos.xy;
+            }
+
             hit_point = view_space_position.xyz;
 
             break;
         }
-        
+
+        prev_step_delta = step_delta;
+        prev_ray_pos = rayPos;
+        prev_ray_position_view = currPosition;
+
         rayPos += rayDirTex;
-        //level = min(maxLevel, level + 1.0);
     }
 
     if (!found)
@@ -249,25 +301,53 @@ bool TraceRays(
         return false;
     }
 
-    float3 currStep = ssrConstants.ray_step * ray_direction;
+    if (!hasBracket)
+    {
+        // No valid pre-/post-crossing pair to bisect between - the direct
+        // sample from above is the best estimate we have.
+        return true;
+    }
+
+    // Binary search
+    float3 p0 = prev_ray_position_view;
+    float3 p1 = currPosition;
+
+    const float initial_span = distance(p0, p1);
+
+    float4 scene_view_position;
 
     for (int j = 0; j < 4; j++)
     {
-        currStep *= 0.5;
-        currPosition -= currStep * sign(step_delta);
+        const float3 midpoint = (p0 + p1) * 0.5;
 
-        hit_pixel = GetProjectedPositionFromView(camera.projection, currPosition);
+        hit_pixel = GetProjectedPositionFromView(camera.projection, midpoint);
         float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, HiZTexture, hit_pixel, 0).r;
-        float4 view_space_position = ReconstructViewSpacePositionFromDepth(camera.invProjMat, hit_pixel, depth);
+        scene_view_position = ReconstructViewSpacePositionFromDepth(camera.invProjMat, hit_pixel, depth);
 
-        step_delta = currPosition.z - view_space_position.z;
+        const float midpoint_delta = midpoint.z - scene_view_position.z;
 
-        if (abs(step_delta) < ssrConstants.distance_bias)
+        if (abs(midpoint_delta) > initial_span)
         {
-            hit_point = view_space_position.xyz;
-            return true;
+            // Sampled across a depth discontinuity; stop refining
+            break;
+        }
+
+        if (midpoint_delta > 0.0)
+        {
+            p1 = midpoint;
+        }
+        else
+        {
+            p0 = midpoint;
+        }
+
+        if (abs(midpoint_delta) < ssrConstants.distance_bias)
+        {
+            break;
         }
     }
+
+    hit_point = scene_view_position.xyz;
 
     return true;
 }
@@ -349,6 +429,15 @@ PSOutput PSMain(PSInput input)
 
     ray_origin = P + ray_direction * 0.001;
 
+    // Scale the thickness allowance with how inclined the surface is relative
+    // to the camera: camera-facing surfaces keep the strict thickness, grazing
+    // surfaces get a larger penetration allowance (capped). Keep the cap small -
+    // too large and depth discontinuities (e.g. ceiling beams/vents) get bridged
+    // together, showing up as hard slice lines where the accept/reject flips.
+#define MAX_THICKNESS_SCALE 4.0
+    const float normal_slope = length(view_space_normal.xy) / max(abs(view_space_normal.z), 1e-4);
+    const float thickness_scale = 1.0 + min(normal_slope, MAX_THICKNESS_SCALE);
+
     // if (dot(ray_direction, -V) < 0.0)
     // {
     //     output.out_color = (float4)0.0;
@@ -359,7 +448,7 @@ PSOutput PSMain(PSInput input)
     float3 hit_point;
     float num_iterations;
 
-    bool intersect = TraceRays(ray_origin, ray_direction, rnd.x, perceptualRoughness, hit_pixel, hit_point, num_iterations);
+    bool intersect = TraceRays(ray_origin, ray_direction, rnd.x, perceptualRoughness, thickness_scale, hit_pixel, hit_point, num_iterations);
 
     float dist = distance(ray_origin, hit_point);
 

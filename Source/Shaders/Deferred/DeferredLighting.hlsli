@@ -226,8 +226,8 @@ void EvaluateSingleProbe(
     const float diffuseContributionWeight = (1.0 - lightmappedWeight) * diffuseStrength;
 
     // @TODO Make configurable.
-    static const float kIrradianceProbeBlendFactor = 0.04;
-    static const float kReflectionsProbeBlendFactor = 0.02;
+    static const float kIrradianceProbeBlendFactor = 0.2;
+    static const float kReflectionsProbeBlendFactor = 0.2;
     const float blendFactor = lerp(kReflectionsProbeBlendFactor, kIrradianceProbeBlendFactor, irradianceOnlyWeight);
 
     const float boundsWeight = CalculateEnvProbeWeight(positionWS, aabbMin.xyz, aabbMax.xyz, blendFactor);

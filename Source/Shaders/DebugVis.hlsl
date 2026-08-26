@@ -251,8 +251,9 @@ PSOutput PSMain(PSInput input)
 
             float4 ibl = float4(0.0, 0.0, 0.0, 0.0);
 
-            const float lod = 2.0; // give it a little roughness to keep things interesting
-
+            //const float lod = 2.0; // give it a little roughness to keep things interesting
+            const float lod = 0.0;
+    
             ApplyReflectionProbe(
                 GET_ENV_PROBE_COLOR_TEXTURE_INDEX(env_probes[input.env_probe_index]),
                 R,

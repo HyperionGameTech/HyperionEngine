@@ -175,7 +175,7 @@ PSOutput PSMain(PSInput input)
     GBufferMaterialParams materialParams;
     GBufferUnpackMaterialParams(normalSample.x, materialBits >> 28u, materialParams);
 
-    const float roughness = clamp(materialParams.roughness, 0.01, 0.999);
+    const float roughness = clamp(materialParams.roughness, 0.001, 0.999);
     const float metalness = materialParams.metalness;
     const uint mask = materialParams.mask;
 
