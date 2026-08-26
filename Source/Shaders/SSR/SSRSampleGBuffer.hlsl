@@ -133,7 +133,7 @@ PSOutput PSMain(PSInput input)
         GBufferUnpackMaterialParams(normalSample.x, 0 /* don't need mask */, materialParams);
 
         roughness = materialParams.roughness;
-        roughness = clamp(roughness, 0.01, 0.999);
+        roughness = clamp(roughness, 0.001, 0.999);
 
         const float perceptualRoughness = sqrt(roughness);
 
@@ -141,7 +141,10 @@ PSOutput PSMain(PSInput input)
         const float cone_angle = RoughnessToConeAngle(perceptualRoughness) * 0.5;
 
         const float trace_size = float(max(ssrConstants.dimension.x, ssrConstants.dimension.y));
-        const float max_mip_level = 9.0;
+        
+        float max_mip_level = 0.0;
+        // calc max mip level
+        max_mip_level = log2(max((float)gbufferDimensions.x, (float)gbufferDimensions.y));
         
         const float2 delta_p = saturate(hitUV - texcoord);
 
