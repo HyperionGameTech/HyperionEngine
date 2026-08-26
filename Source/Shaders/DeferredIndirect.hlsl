@@ -5,6 +5,7 @@ PERMUTE(SSR_ENABLED);
 PERMUTE(RT_GI);
 PERMUTE(RT_REFLECTIONS);
 PERMUTE(HBAO_ENABLED);
+PERMUTE(REFLECTIONS_ONLY);
 
 STATIC(TILE_Z_BINS, 16);
 STATIC(TILE_SIZE, 32);
@@ -74,10 +75,6 @@ DECLARE_SRV(DeferredPass, SSAOResultTexture) Texture2D SSAOResultTexture;
 #ifdef SSGI_ENABLED
 DECLARE_SRV(DeferredPass, SSGIResultTexture) Texture2D SSGIResultTexture;
 #endif // SSGI_ENABLED
-
-#ifdef SSR_ENABLED
-DECLARE_SRV(DeferredPass, SSRResultTexture) Texture2D SSRResultTexture;
-#endif // SSR_ENABLED
 
 #if defined(RT_REFLECTIONS) || defined(PATHTRACER)
 DECLARE_SRV(DeferredPass, RTRadianceResultTexture) Texture2D RTRadianceResultTexture;
@@ -181,7 +178,11 @@ PSOutput PSMain(PSInput input)
 
     if ((mask & OBJECT_MASK_UNLIT) != 0)
     {
+#ifdef REFLECTIONS_ONLY
+        output.output_color = (float4)0.0;
+#else
         output.output_color = float4(albedo.rgb, 1.0);
+#endif
 
         return output;
     }
@@ -215,18 +216,19 @@ PSOutput PSMain(PSInput input)
         /* inout */ reflections,
         /* inout */ irradiance);
 
-    irradiance.a = saturate(irradiance.a);
     reflections.a = saturate(reflections.a);
-    
-#ifdef SSR_ENABLED
-    float4 ssrResult = SAMPLE_TEXTURE_2D_LOD(sampler_linear, SSRResultTexture, texcoord, 0);
-    ssrResult.a = saturate(ssrResult.a);
-    reflections = (reflections * (1.0 - ssrResult.a)) + ssrResult;
-#endif // SSR_ENABLED
 
 #ifdef RT_REFLECTIONS
     CalculateRayTracingReflection(texcoord, reflections);
 #endif // RT_REFLECTIONS
+
+#ifdef REFLECTIONS_ONLY
+    output.output_color = reflections;
+
+    return output;
+#endif // REFLECTIONS_ONLY
+
+    irradiance.a = saturate(irradiance.a);
 
 #ifdef SSGI_ENABLED
     // Blend ssgi result into irradiance - if no hit, alpha will be zero or close to it so we can lerp it
@@ -249,6 +251,9 @@ PSOutput PSMain(PSInput input)
     const float3 E = CalculateE(F0, dfg);
     float3 Fd = diffuse_color.rgb * irradiance.rgb * (1.0 - E) * ao;
 
+#ifdef SSR_ENABLED
+    result = Fd;
+#else
     float3 specular_ao = (float3)SpecularAO_Lagarde(NdotV, ao, perceptualRoughness);
 
     const float3 energy_compensation = CalculateEnergyCompensation(F0, dfg);
@@ -258,6 +263,7 @@ PSOutput PSMain(PSInput input)
     float3 Fr = E * reflections.rgb;
 
     result = Fd + Fr;
+#endif // SSR_ENABLED
 
 #ifdef PATHTRACER
     result = CalculatePathTracing(texcoord).rgb;

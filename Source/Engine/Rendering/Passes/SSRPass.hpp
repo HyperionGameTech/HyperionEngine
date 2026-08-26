@@ -67,6 +67,7 @@ private:
     DelegateHandler m_onGbufferResolutionChanged;
 
     bool m_isRendered;
+    bool m_uvsTextureNeedsClear;
 };
 
 } // namespace Hyperion

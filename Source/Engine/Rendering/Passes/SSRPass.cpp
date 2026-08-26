@@ -51,6 +51,7 @@ static EngineStatGpuTimer s_statSSRColorPass("Rendering/GPU/SSRColor");
 
 CVar<bool> cvSSRConeTracing { "Rendering.SSR.ConeTracing", true };
 CVar<bool> cvSSRRoughnessScattering { "Rendering.SSR.RoughnessScattering", false };
+CVar<bool> cvSSRCheckerboardTrace { "Rendering.SSR.CheckerboardTrace", true };
 
 CVar<float> cvSSRRayStep { "Rendering.SSR.RayStep", 0.2f };
 CVar<float> cvSSRDistanceBias { "Rendering.SSR.DistanceBias", 0.025f };
@@ -84,7 +85,8 @@ SSRPass::SSRPass(Vec2u extent, GBuffer* gbuffer)
     : FullScreenPass(TextureFormat::R8, extent, gbuffer, FSP_EXTERNAL_RENDERTARGET),
       m_tracePass(nullptr),
       m_samplePass(nullptr),
-      m_isRendered(false)
+      m_isRendered(false),
+      m_uvsTextureNeedsClear(false)
 {
     SetPassName(NAME("SSR"));
 }
@@ -143,7 +145,8 @@ void SSRPass::CreatePasses()
         AttachmentDesc colorAttachmentDesc {};
         colorAttachmentDesc.imageType = TextureType::Texture2D;
         colorAttachmentDesc.format = m_uvsTexture->GetFormat();
-        colorAttachmentDesc.loadOp = LoadOperation::CLEAR;
+        // LOAD so checkerboard tracing can discard half the pixels and keep last frame's value
+        colorAttachmentDesc.loadOp = LoadOperation::LOAD;
         colorAttachmentDesc.storeOp = StoreOperation::STORE;
 
         writeUVsFramebuffer->AddAttachment(
@@ -289,6 +292,9 @@ void SSRPass::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
         m_sampledResultTexture->SetName(NAME("SSRTexture_SampledResult"));
         Check(m_sampledResultTexture->Create());
 
+        // clear it once to avoid undefined memory on the first frame
+        m_uvsTextureNeedsClear = true;
+
         // Create temporal blending
         if (UseTemporalBlending)
         {
@@ -296,7 +302,7 @@ void SSRPass::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
                 m_extent,
                 TextureFormat::RGBA8,
                 TemporalBlendTechnique::TECHNIQUE_1,
-                0.95,
+                0.9,
                 RI.textureViewCache->GetOrCreate(m_sampledResultTexture),
                 m_gbuffer);
 
@@ -328,7 +334,8 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
 
     { // Update cbuffer data
         SSRConstants* constants = RI.cbufferAllocator->Allocate<SSRConstants>();
-        constants->dimensions = Vec4u(m_extent, 0, 0);
+        // dimensions.z doubles as a runtime checkerboard-trace enable flag for SSRWriteUVs.hlsl
+        constants->dimensions = Vec4u(m_extent, cvSSRCheckerboardTrace.Get() ? 1u : 0u, 0);
         constants->rayStep = cvSSRRayStep.Get();
         constants->numIterations = cvSSRMaxIterations.Get();
         constants->maxRayDistance = cvSSRMaxDistance.Get();
@@ -368,6 +375,13 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
         ENGINE_STAT_GPU_SCOPE(&s_statSSRTracePass);
 
         m_tracePass->Begin(frame, renderSetup);
+
+        if (m_uvsTextureNeedsClear)
+        {
+            // 0x1 mask - only attachment 0, never the shared G-buffer depth/stencil at index 1
+            cr << ClearFramebuffer(m_tracePass->GetFramebuffer(), 0x1);
+            m_uvsTextureNeedsClear = false;
+        }
 
         uint32 uniformIndex = 0;
 
