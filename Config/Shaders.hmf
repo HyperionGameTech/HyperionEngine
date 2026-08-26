@@ -16,6 +16,10 @@ ShaderDefinitions "ShaderDefinitions" {
             VS = "Deferred/ApplyReflectionProbe.hlsl"
             PS = "Deferred/ApplyReflectionProbe.hlsl"
         }
+        ShaderDefinition "ApplyReflections" {
+            VS = "Deferred/ApplyReflections.hlsl"
+            PS = "Deferred/ApplyReflections.hlsl"
+        }
         ShaderDefinition "ApplyLightmap" {
             VS = "Deferred/ApplyLightmap.hlsl"
             PS = "Deferred/ApplyLightmap.hlsl"

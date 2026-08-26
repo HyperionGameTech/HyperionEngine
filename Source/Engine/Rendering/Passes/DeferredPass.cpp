@@ -111,6 +111,7 @@ static EngineStatGpuTimer s_statFillOpaque("Rendering/GPU/FillOpaque");
 static EngineStatGpuTimer s_statFillTranslucent("Rendering/GPU/FillTranslucent");
 static EngineStatGpuTimer s_statFillDebug("Rendering/GPU/FillDebug");
 static EngineStatGpuTimer s_statOcclusionCulling("Rendering/GPU/OcclusionCulling");
+static EngineStatGpuTimer s_statReflections("Rendering/GPU/Reflections");
 
 // Global stat counter instances
 EngineStatCounter<uint32> g_statDrawCalls("Rendering/DrawCalls");
@@ -339,7 +340,11 @@ static FramebufferRef CreateLightingFramebuffer(GBuffer* gbuffer)
     AttachmentDesc colorAttachmentDesc {};
     colorAttachmentDesc.imageType = TextureType::Texture2D;
     colorAttachmentDesc.format = TextureFormat::RGBA16F;
-    colorAttachmentDesc.loadOp = LoadOperation::CLEAR;
+    // LOAD, not CLEAR: this framebuffer is bound twice per frame now (once for indirect/lightmap/direct
+    // lighting, again later for the reflections composite pass after SSR runs - see RenderFrameForView).
+    // The first bind clears explicitly via ClearFramebuffer() instead; the second bind needs to
+    // accumulate onto what's already there.
+    colorAttachmentDesc.loadOp = LoadOperation::LOAD;
     colorAttachmentDesc.storeOp = StoreOperation::STORE;
 
     Attachment* colorAttachment = framebuffer->AddAttachment(0, colorAttachmentDesc);
@@ -1028,6 +1033,10 @@ PassData* DeferredPass::CreateViewPassData(View* view, PassDataExt&)
         passData.reflectionsPass = MakeUnique<ReflectionsPass>(gbuffer->GetExtent(), gbuffer);
         passData.reflectionsPass->Create();
 
+        passData.reflectionsOnlyPass = MakeUnique<LightingPass>(DPM_REFLECTIONS_ONLY, gbuffer->GetExtent(), gbuffer, passData.reflectionsPass->GetFramebuffer());
+        passData.reflectionsOnlyPass->SetBlendFunction(BlendFunction::None());
+        passData.reflectionsOnlyPass->Create();
+
         passData.tonemapPass = MakeUnique<TonemapPass>(gbuffer->GetExtent(), gbuffer);
         passData.tonemapPass->Create();
 
@@ -1232,6 +1241,10 @@ void DeferredPass::ResizeView(Viewport viewport, View* view, DeferredPassData& p
 
     passData.reflectionsPass = MakeUnique<ReflectionsPass>(newSize, gbuffer);
     passData.reflectionsPass->Create();
+
+    passData.reflectionsOnlyPass = MakeUnique<LightingPass>(DPM_REFLECTIONS_ONLY, newSize, gbuffer, passData.reflectionsPass->GetFramebuffer());
+    passData.reflectionsOnlyPass->SetBlendFunction(BlendFunction::None());
+    passData.reflectionsOnlyPass->Create();
 
     passData.tonemapPass = MakeUnique<TonemapPass>(newSize, gbuffer);
     passData.tonemapPass->Create();
@@ -1728,32 +1741,19 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
     }
 
-    if (g_cvSSR.Get())
-    {
-        passData.reflectionsPass->ssrPass->Render(frame, rs);
-
-        if (Texture* ssrResultTexture = passData.reflectionsPass->ssrPass->GetFinalResultTexture())
-        {
-            frame->cr << InsertBarrier(
-                ssrResultTexture->GetGpuImage(),
-                RS_SHADER_RESOURCE,
-                ShaderModuleType::Pixel);
-        }
-    }
-
     passData.postProcessing->RenderPre(frame, rs);
+
+    RenderSetup lightingRS = rs.Fork();
+
+    // Set first found sky probe as fallback probe
+    auto& skyProbes = rpl.GetEnvProbes().GetElements<SkyProbe>();
+    if (skyProbes.Any())
+    {
+        lightingRS.envProbe = *skyProbes.Begin();
+    }
 
     { // deferred lighting on opaque objects
         ENGINE_STAT_GPU_SCOPE(&s_statDeferredPass);
-        
-        RenderSetup lightingRS = rs.Fork();
-
-        // Set first found sky probe as fallback probe
-        auto& skyProbes = rpl.GetEnvProbes().GetElements<SkyProbe>();
-        if (skyProbes.Any())
-        {
-            lightingRS.envProbe = *skyProbes.Begin();
-        }
 
         // Transition shadow map atlas to shader resource before the pass
         frame->cr << InsertBarrier(RI.shadowMapCache->GetAtlasImage(), RS_SHADER_RESOURCE, ShaderModuleType::Pixel);
@@ -1761,7 +1761,11 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         frame->cr << InsertBarrier(RI.shadowMapCache->GetPointLightShadowMapImage(), RS_SHADER_RESOURCE, ShaderModuleType::Pixel);
 
         frame->cr << SetCurrentFramebuffer(passData.lightingFramebuffer);
-        
+
+        // attachment 0's load op is LOAD (see CreateLightingFramebuffer) since this framebuffer gets
+        // bound a second time later for the reflections composite pass - clear explicitly here instead.
+        frame->cr << ClearFramebuffer(passData.lightingFramebuffer, 0x1);
+
         // We need to use NONE because we draw lightmap volumes as boxes, not quads,
         // and we need the camera to be able to see the inside of the box.
         // Changing cull mode during lightmap volume drawing will break the render pass.
@@ -1792,6 +1796,79 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     { // generate mipchain after rendering opaque objects' lighting, now we can use it for transmission
         const GpuImageRef& srcImage = passData.lightingFramebuffer->GetAttachment(0)->GetGpuImage();
         GenerateMipChain(frame, rs, renderCollector, srcImage);
+    }
+
+    if (passData.reflectionsPass->ShouldRenderSSR())
+    {
+        ENGINE_STAT_GPU_SCOPE(&s_statReflections);
+
+        frame->cr << SetCurrentFramebuffer(passData.reflectionsPass->GetFramebuffer());
+        passData.reflectionsOnlyPass->RenderToFramebuffer(frame, lightingRS, passData.reflectionsPass->GetFramebuffer());
+        frame->cr << SetCurrentFramebuffer(nullptr);
+
+        passData.reflectionsPass->Render(frame, rs);
+
+        const GpuImageViewRef& reflectionsResultView = passData.reflectionsPass->GetFramebuffer()->GetAttachment(0)->GetImageView();
+
+        frame->cr << InsertBarrier(
+            passData.reflectionsPass->GetFramebuffer()->GetAttachment(0)->GetGpuImage(),
+            RS_SHADER_RESOURCE,
+            ShaderModuleType::Pixel);
+
+        frame->cr << SetCurrentFramebuffer(passData.lightingFramebuffer);
+
+        frame->cr << SetCurrentViewport(rs.viewport);
+
+        frame->cr << SetInputLayout(StaticVertexInputLayout<VT_Simple>);
+        frame->cr << SetFaceCullMode(FCM_BACK);
+        frame->cr << SetFillMode(FM_FILL);
+        frame->cr << SetTopology(TOP_TRIANGLES);
+        frame->cr << SetDepthTest(false);
+        frame->cr << SetDepthWrite(false);
+
+        static constexpr uint8 StencilFilterMask = SkyStencilMask;
+
+        frame->cr << SetStencilTest(true);
+        frame->cr << SetStencilFunction(StencilFunction { SO_KEEP, SO_KEEP, SO_KEEP, SCO_EQUAL });
+        frame->cr << SetStencilState(0, StencilFilterMask, 0x0);
+
+        frame->cr << SetCurrentBlendFunction(BlendFunction::Additive());
+
+        frame->cr << SetCurrentShader(ShaderDesc(NAME("ApplyReflections")));
+
+        uint32 uniformIndex = 0;
+
+        frame->cr << SetShaderUniform(uniformIndex++, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
+        frame->cr << SetShaderUniform(uniformIndex++, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
+
+        frame->cr << SetShaderUniform(uniformIndex++, "GBufferAlbedoTexture"_sh, opaquePassFramebuffer->GetAttachment(GBufferTarget::Color)->GetImageView());
+        frame->cr << SetShaderUniform(uniformIndex++, "GBufferNormalsTexture"_sh, opaquePassFramebuffer->GetAttachment(GBufferTarget::Normals)->GetImageView());
+        frame->cr << SetShaderUniform(uniformIndex++, "GBufferMaterialTexture"_sh, opaquePassFramebuffer->GetAttachment(GBufferTarget::MatData)->GetImageView());
+        frame->cr << SetShaderUniform(uniformIndex++, "GBufferDepthTexture"_sh, opaquePassFramebuffer->GetAttachment(GBufferTarget::Depth)->GetImageView());
+
+        if (passData.hbao != nullptr && g_cvHBAO.Get())
+            frame->cr << SetShaderUniform(uniformIndex++, "SSAOResultTexture"_sh, passData.hbao->GetFinalImageView());
+        else
+            frame->cr << SetShaderUniform(uniformIndex++, "SSAOResultTexture"_sh, RI.textureViewCache->GetOrCreate(RI.placeholderData->textureSolidWhite));
+
+        frame->cr << SetShaderUniform(uniformIndex++, "ReflectionsResultTexture"_sh, reflectionsResultView);
+
+        frame->cr << SetShaderUniform(uniformIndex++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(rs.view->GetCamera()));
+        frame->cr << SetShaderUniform(uniformIndex++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
+
+        frame->cr << CommitDrawState();
+
+        frame->cr << BindVertexBuffer(m_quadMesh->GetVertexBuffer());
+        frame->cr << BindIndexBuffer(m_quadMesh->GetIndexBuffer());
+
+        frame->cr << DrawIndexed(6);
+
+        frame->cr << SetDepthTest(true);
+        frame->cr << SetDepthWrite(true);
+        frame->cr << SetStencilTest(false);
+        frame->cr << SetCurrentBlendFunction(BlendFunction::None());
+
+        frame->cr << SetCurrentFramebuffer(nullptr);
     }
 
     { // Render the deferred lighting into the color target with a full screen quad.

@@ -76,6 +76,7 @@ static StaticShaderPropertyId s_deferredLightTypeProperties[NumLightTypes] = {
 static StaticShaderPropertyId s_propHBAOEnabled { ShaderProperty(NAME("HBAO_ENABLED")) };
 static StaticShaderPropertyId s_propSSGIEnabled { ShaderProperty(NAME("SSGI_ENABLED")) };
 static StaticShaderPropertyId s_propSSREnabled { ShaderProperty(NAME("SSR_ENABLED")) };
+static StaticShaderPropertyId s_propReflectionsOnly { ShaderProperty(NAME("REFLECTIONS_ONLY")) };
 
 static StaticShaderPropertyId s_propRayTracingReflections { ShaderProperty(NAME("RT_REFLECTIONS")) };
 static StaticShaderPropertyId s_propRayTracingGlobalIllumination { ShaderProperty(NAME("RT_GI")) };
@@ -113,6 +114,13 @@ void GetDeferredShaderProperties(
 
     MergeGlobalShaderProperties(outShaderProperties);
 
+    if (mode == DPM_REFLECTIONS_ONLY)
+    {
+        outShaderProperties.Add(s_propReflectionsOnly);
+
+        return;
+    }
+
     if (g_cvHBAO.Get())
     {
         outShaderProperties.Add(s_propHBAOEnabled);
@@ -128,7 +136,7 @@ void GetDeferredShaderProperties(
         }
 
         outShaderProperties.Set(s_propSSGIEnabled, g_cvSSGI.Get());
-        outShaderProperties.Set(s_propSSREnabled, g_cvSSR.Get());
+        outShaderProperties.Set(s_propSSREnabled, g_cvSSR.Get() && !g_cvRayTracedReflections.Get());
     }
     else
     {
@@ -332,14 +340,9 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         cr << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, RI.textureViewCache->GetOrCreate(RI.placeholderData->textureSolidWhite));
     }
 
-    if (dpd->reflectionsPass != nullptr && dpd->reflectionsPass->ssrPass != nullptr && dpd->reflectionsPass->ssrPass->IsRendered())
-        cr << SetShaderUniform(numShaderUniforms++, "SSRResultTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->reflectionsPass->ssrPass->GetFinalResultTexture()));
-    else
-        cr << SetShaderUniform(numShaderUniforms++, "SSRResultTexture"_sh, RI.textureViewCache->GetOrCreate(RI.placeholderData->textureSolidBlack));
-
     const bool useClusteredShading = g_cvClusteredShading.Get();
 
-    if (useClusteredShading || m_mode == DPM_INDIRECT_LIGHTING)
+    if (useClusteredShading || m_mode == DPM_INDIRECT_LIGHTING || m_mode == DPM_REFLECTIONS_ONLY)
     {
         AssertDebug(dpd->gridTilesBuffer != nullptr && dpd->gridIndexBuffer != nullptr);
 
@@ -348,19 +351,22 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         cr << SetShaderUniform(numShaderUniforms++, "ClusterIndexBuffer"_sh, *dpd->gridIndexBuffer);
     }
 
-    if (m_mode == DPM_INDIRECT_LIGHTING)
+    if (m_mode == DPM_INDIRECT_LIGHTING || m_mode == DPM_REFLECTIONS_ONLY)
     {
-        if (dpd->ssgi != nullptr)
-            cr << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->ssgi->GetFinalResultTexture()));
-
-        if (dpd->rayTracingReflections != nullptr)
-            cr << SetShaderUniform(numShaderUniforms++, "RTRadianceResultTexture"_sh, dpd->rayTracingReflections->GetFinalImageView());
-
-        if (dpd->ddgi)
+        if (m_mode == DPM_INDIRECT_LIGHTING)
         {
-            cr << SetShaderUniform(numShaderUniforms++, "DDGIConstants"_sh, dpd->ddgi->GetConstantBuffer(frameIndex));
-            cr << SetShaderUniform(numShaderUniforms++, "DDGIIrradianceTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->ddgi->GetIrradianceTexture()));
-            cr << SetShaderUniform(numShaderUniforms++, "DDGIDepthTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->ddgi->GetVisibilityTexture()));
+            if (dpd->ssgi != nullptr)
+                cr << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->ssgi->GetFinalResultTexture()));
+
+            if (dpd->rayTracingReflections != nullptr)
+                cr << SetShaderUniform(numShaderUniforms++, "RTRadianceResultTexture"_sh, dpd->rayTracingReflections->GetFinalImageView());
+
+            if (dpd->ddgi)
+            {
+                cr << SetShaderUniform(numShaderUniforms++, "DDGIConstants"_sh, dpd->ddgi->GetConstantBuffer(frameIndex));
+                cr << SetShaderUniform(numShaderUniforms++, "DDGIIrradianceTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->ddgi->GetIrradianceTexture()));
+                cr << SetShaderUniform(numShaderUniforms++, "DDGIDepthTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->ddgi->GetVisibilityTexture()));
+            }
         }
 
         { // build indirect lighting constants
@@ -393,7 +399,7 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         }
 
         ShaderPropertySet shaderProperties;
-        DeferredRendererHelpers::GetDeferredShaderProperties(DPM_INDIRECT_LIGHTING, shaderProperties, &rpl);
+        DeferredRendererHelpers::GetDeferredShaderProperties(m_mode, shaderProperties, &rpl);
 
         cr << SetCurrentShader(ShaderDesc(NAME("DeferredIndirect"), shaderProperties));
 

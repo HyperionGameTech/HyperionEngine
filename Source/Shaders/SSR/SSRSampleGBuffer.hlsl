@@ -167,13 +167,13 @@ PSOutput PSMain(PSInput input)
 
             const float mip_level = clamp(log2(incircle_size * (float)max(gbufferDimensions.x, gbufferDimensions.y)), 0.0, max_mip_level);
 
-            float4 current_reflection_sample = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferMipChain, saturate(hitUV - velocity), mip_level);
+            float4 current_reflection_sample = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferMipChain, saturate(hitUV), mip_level);
             current_reflection_sample = any(isnan(current_reflection_sample)) ? float4(0.0, 0.0, 1.0, 1.0) : current_reflection_sample;
 #else
         const float current_radius = length((hitUV - texcoord) * float2(ssrConstants.dimension.xy)) * tan(cone_angle);
         const float mip_level = clamp(log2(current_radius), 0.0, max_mip_level);
 
-        float4 current_reflection_sample = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferMipChain, saturate(hitUV - velocity), mip_level);
+        float4 current_reflection_sample = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferMipChain, saturate(hitUV), mip_level);
 #endif
 
 #ifdef CONE_TRACING
