@@ -130,9 +130,18 @@ DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
     EnvProbe skyProbe;
 };
 
+#ifdef REFLECTIONS_ONLY
+#define HYP_DEFERRED_NO_PROBE_IRRADIANCE
+#elif defined(SSR_ENABLED) && !defined(RT_REFLECTIONS) && !defined(DEBUG_REFLECTIONS)
+#define HYP_DEFERRED_NO_PROBE_REFLECTIONS
+#endif
+
 #define DEFERRED_LIGHTING_HAS_SKY
 #include "./deferred/DeferredLighting.hlsli"
 #undef DEFERRED_LIGHTING_HAS_SKY
+
+#undef HYP_DEFERRED_NO_PROBE_IRRADIANCE
+#undef HYP_DEFERRED_NO_PROBE_REFLECTIONS
 
 #define DDGI_MULTIPLIER 1.0
 
@@ -163,11 +172,6 @@ PSOutput PSMain(PSInput input)
     positionWS /= positionWS.w;
 
     const uint materialBits = GBufferMaterialTexture.Load(int3(pixelCoord, 0));
-
-    const float3 probeLighting = float3(
-        (float)(materialBits & 0xFFu) / 255.0,
-        (float)((materialBits >> 8u) & 0xFFu) / 255.0,
-        (float)((materialBits >> 16u) & 0xFFu) / 255.0);
 
     GBufferMaterialParams materialParams;
     GBufferUnpackMaterialParams(normalSample.x, materialBits >> 28u, materialParams);
@@ -202,8 +206,6 @@ PSOutput PSMain(PSInput input)
     ao = ssao_data.r;
 #endif
 
-    const float3 diffuse_color = CalculateDiffuseColor(albedo.rgb, metalness);
-
     const uint2 viewportExtent = camera.dimensions.xy;
 
     EvaluateEnvProbes(
@@ -223,7 +225,7 @@ PSOutput PSMain(PSInput input)
 #endif // RT_REFLECTIONS
 
 #ifdef REFLECTIONS_ONLY
-    output.output_color = reflections;
+    output.output_color = float4(reflections.rgb * reflections.a, reflections.a);
 
     return output;
 #endif // REFLECTIONS_ONLY
@@ -246,6 +248,7 @@ PSOutput PSMain(PSInput input)
 
     const float NdotV = max(HYP_FMATH_EPSILON, dot(N, V));
     
+    const float3 diffuse_color = CalculateDiffuseColor(albedo.rgb, metalness);
     const float3 F0 = CalculateF0(albedo.rgb, metalness);
     const float3 dfg = CalculateDFG(perceptualRoughness, NdotV);
     const float3 E = CalculateE(F0, dfg);
@@ -260,7 +263,8 @@ PSOutput PSMain(PSInput input)
     specular_ao *= energy_compensation;
 
     reflections.rgb *= specular_ao;
-    float3 Fr = E * reflections.rgb;
+    // scale by alpha, so partially covered pixels don't receive the full reflection.
+    float3 Fr = E * reflections.rgb * reflections.a;
 
     result = Fd + Fr;
 #endif // SSR_ENABLED
@@ -268,7 +272,7 @@ PSOutput PSMain(PSInput input)
 #ifdef PATHTRACER
     result = CalculatePathTracing(texcoord).rgb;
 #elif defined(DEBUG_REFLECTIONS)
-    result = E * reflections.rgb;
+    result = E * reflections.rgb * reflections.a;
 #elif defined(DEBUG_IRRADIANCE)
     result = irradiance.rgb;
 #elif defined(DEBUG_VELOCITY)

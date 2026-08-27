@@ -66,11 +66,6 @@ DECLARE_SRV(ApplyReflections, WorldsBuffer) StructuredBuffer<WorldShaderData> _w
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-// Recombines env-probe reflections (already composited with SSR "over" - see ReflectionsPass) with the
-// lit scene, applying the same Fresnel / specular-AO / energy-compensation weighting DeferredIndirect.hlsl
-// uses for its (non-deferred) reflections path. Additively blended into the lighting framebuffer.
-// Split into its own pass so SSR can trace against this frame's fully-lit mip chain instead of last
-// frame's - see DeferredPass.cpp for the ordering (runs after the main lighting pass + mip chain generation).
 PSOutput PSMain(PSInput input)
 {
     PSOutput output;
@@ -120,7 +115,7 @@ PSOutput PSMain(PSInput input)
     float3 specular_ao = (float3)SpecularAO_Lagarde(NdotV, ao, perceptualRoughness);
     const float3 energy_compensation = CalculateEnergyCompensation(F0, dfg);
     specular_ao *= energy_compensation;
-
+    
     float4 reflections = SAMPLE_TEXTURE_2D_LOD(sampler_linear, ReflectionsResultTexture, texcoord, 0);
     reflections.rgb *= specular_ao;
 

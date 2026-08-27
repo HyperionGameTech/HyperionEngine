@@ -76,6 +76,12 @@ float3 CalculateRefraction(
 void ApplyReflectionProbe(uint probe_texture_index, float3 R, float lod, inout float4 ibl)
 {
     ibl = float4(0.0, 0.0, 0.0, 0.0);
+
+    if (probe_texture_index == INVALID_ENV_PROBE_TEXTURE)
+    {
+        return;
+    }
+
     probe_texture_index = min(probe_texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1);
 
     ibl = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(sampler_linear, envProbesColorTexture, float4(R, float(probe_texture_index)), lod);
@@ -84,6 +90,11 @@ void ApplyReflectionProbe(uint probe_texture_index, float3 R, float lod, inout f
 void ApplyReflectionProbe(uint probe_texture_index, float3 probe_world_position, float3 aabb_min, float3 aabb_max, float3 P, float3 R, float lod, inout float4 ibl)
 {
     ibl = float4(0.0, 0.0, 0.0, 0.0);
+
+    if (probe_texture_index == INVALID_ENV_PROBE_TEXTURE)
+    {
+        return;
+    }
 
     probe_texture_index = min(probe_texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1);
 
@@ -185,9 +196,6 @@ void EvaluateSingleProbe(
     const uint colorTextureIndex = (textureIndices & 0xFFFFu);
     const uint visTextureIndex = (textureIndices >> 16) & 0xFFFFu;
 
-    const float numMips = 7.0; // assuming 128x128 cubemap size for reflection probes
-    const float lod = perceptualRoughness * numMips;
-
     const float4 aabbMin = CURRENT_ENV_PROBE.aabb_min;
     const float4 aabbMax = CURRENT_ENV_PROBE.aabb_max;
 
@@ -195,12 +203,21 @@ void EvaluateSingleProbe(
     const float3 worldPosition3 = worldPosition.xyz;
     const float diffuseStrength = worldPosition.w;
 
+#ifndef HYP_DEFERRED_NO_PROBE_REFLECTIONS
+    const float numMips = 7.0; // assuming 128x128 cubemap size for reflection probes
+    const float lod = perceptualRoughness * numMips;
+
     const float3 probeReflectionVector = bool(envProbeFlags & EPF_PARALLAX_CORRECTED)
             ? normalize(EnvProbeCoordParallaxCorrected(worldPosition3, aabbMin.xyz, aabbMax.xyz, positionWS, R))
             : R;
+#endif
 
     float4 currentReflections = (float4) 0;
-    float4 currentIrradiance = EnvProbeSH(CURRENT_ENV_PROBE, N);
+
+    float4 currentIrradiance = (float4) 0;
+#ifndef HYP_DEFERRED_NO_PROBE_IRRADIANCE
+    currentIrradiance = EnvProbeSH(CURRENT_ENV_PROBE, N);
+#endif
 
     float3 probeToPoint = positionWS - worldPosition3;
     float dist = length(probeToPoint);
@@ -213,6 +230,7 @@ void EvaluateSingleProbe(
         visibility = CalculateProbeVisibility(probeToPoint, dist, N, far, visTextureIndex);
     }
 
+#ifndef HYP_DEFERRED_NO_PROBE_REFLECTIONS
     ApplyReflectionProbe(
             colorTextureIndex,
             probeReflectionVector,
@@ -220,20 +238,21 @@ void EvaluateSingleProbe(
             currentReflections);
 
     currentReflections.a = saturate(currentReflections.a);
+#endif
 
     // dont show where we have lightmaps!
     const float irradianceOnlyWeight = (float) isIrradianceProbe;
     const float diffuseContributionWeight = (1.0 - lightmappedWeight) * diffuseStrength;
 
     // @TODO Make configurable.
-    static const float kIrradianceProbeBlendFactor = 0.002;
-    static const float kReflectionsProbeBlendFactor = 0.002;
+    static const float kIrradianceProbeBlendFactor = 0.25;
+    static const float kReflectionsProbeBlendFactor = 0.25;
     const float blendFactor = lerp(kReflectionsProbeBlendFactor, kIrradianceProbeBlendFactor, irradianceOnlyWeight);
 
     const float boundsWeight = CalculateEnvProbeWeight(positionWS, aabbMin.xyz, aabbMax.xyz, blendFactor);
     
-    const float reflectionsWeight = max(0.0, boundsWeight * visibility * (1.0 - irradianceOnlyWeight) * currentReflections.a);
-    const float irradianceWeight = max(0.0, boundsWeight * visibility * diffuseContributionWeight * currentIrradiance.a);
+    const float reflectionsWeight = saturate(boundsWeight * visibility * (1.0 - irradianceOnlyWeight) * currentReflections.a);
+    const float irradianceWeight = saturate(boundsWeight * visibility * diffuseContributionWeight * currentIrradiance.a);
 
     reflectionsSum += currentReflections.rgb * reflectionsWeight;
     reflectionsWeightSum += reflectionsWeight;
@@ -292,6 +311,9 @@ void EvaluateEnvProbes(
             reflectionsSum, reflectionsWeightSum,
             irradianceSum, irradianceWeightSum);
     }
+    
+    //reflectionsWeightSum = saturate(reflectionsWeightSum);
+    //irradianceWeightSum = saturate(irradianceWeightSum);
 
     // to get that good intellisense
 #ifndef HYP_SHADER_COMPILER
@@ -321,11 +343,11 @@ void EvaluateEnvProbes(
             skyIrradianceSum, skyIrradianceWeightSum);
 
         // Sky only fills in where no env probes cover
-        const float hasReflectionProbes = step(HYP_FMATH_EPSILON, reflectionsWeightSum);
-        const float reflectionsResidual = 1.0 - hasReflectionProbes;
+        const float hasReflectionProbes = step(0.2, reflectionsWeightSum);
+        const float reflectionsResidual = (1.0 - hasReflectionProbes) * (1.0 - reflectionsWeightSum);
 
-        const float hasIrradianceProbes = step(HYP_FMATH_EPSILON, irradianceWeightSum);
-        const float irradianceResidual = 1.0 - hasIrradianceProbes;
+        const float hasIrradianceProbes = step(0.05, irradianceWeightSum);
+        const float irradianceResidual = (1.0 - hasIrradianceProbes) * (1.0 - irradianceWeightSum);
         
         const float skyReflectionsEffectiveWeight = min(skyReflectionsWeightSum, reflectionsResidual);
         reflectionsSum += (skyReflectionsSum / max(skyReflectionsWeightSum, HYP_FMATH_EPSILON)) * skyReflectionsEffectiveWeight;
@@ -368,10 +390,5 @@ void CalculateRayTracingReflection(float2 uv, inout float4 reflections)
 }
 #endif // RT_REFLECTIONS
 #endif // HYP_DEFERRED_NO_RT_RADIANCE
-
-void IntegrateReflections(inout float3 Fr, in float4 reflections)
-{
-    Fr = (Fr * (1.0 - reflections.a)) + (reflections.rgb);
-}
 
 #endif // DEFERRED_LIGHTING_HLSLI
