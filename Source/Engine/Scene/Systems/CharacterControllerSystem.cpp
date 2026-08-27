@@ -262,6 +262,7 @@ void CharacterControllerSystem::OnEntityAdded(Entity* entity)
     config.maxSlopeAngle = component.maxSlopeAngle;
     config.jumpSpeed = component.jumpSpeed;
     config.fallSpeed = component.fallSpeed;
+    config.pushSpeedScale = component.pushSpeedScale;
 
     entity->GetWorld()->GetPhysicsWorld()->AddCharacterController(config, component.physicsHandle);
 
@@ -463,6 +464,7 @@ static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent
         config.maxSlopeAngle = component.maxSlopeAngle;
         config.jumpSpeed = component.jumpSpeed;
         config.fallSpeed = component.fallSpeed;
+        config.pushSpeedScale = component.pushSpeedScale;
 
         entity->GetWorld()->GetPhysicsWorld()->AddCharacterController(config, component.physicsHandle);
 

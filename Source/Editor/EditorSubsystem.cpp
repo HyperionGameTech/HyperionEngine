@@ -2501,42 +2501,31 @@ static void EnsureUniqueMeshEditTarget(const Handle<Node>& node, MeshComponent* 
     }
 
     Mesh* sourceMesh = meshComponent->mesh;
+    Assert(sourceMesh != nullptr);
+
+    if (!sourceMesh)
+    {
+        return;
+    }
 
     Handle<Mesh> clonedMesh = MakeHandle<Mesh>();
-    clonedMesh->SetName(NAME("MeshEditClone"));
+    clonedMesh->SetName(sourceMesh->GetName()); // Will be unique'd anyway
 
     {
-        Array<float, EditorAllocator> mutableVertexData;
-        Array<ubyte, EditorAllocator> indexData;
+        // read scope needed to access the data.
+        auto readScope = sourceMesh->GetReadScope();
 
-        size_t vertexSizeInFloats;
-        VertexInputLayoutDesc layoutDesc;
+        const MeshDesc meshDesc = sourceMesh->GetMeshDesc();
+        const VertexArrayView vertexData = sourceMesh->GetVertexData(0);
+        const Span<const ubyte> indexData = sourceMesh->GetIndexData(0);
 
-        { // read scope needed to access the data.
-            auto readScope = sourceMesh->GetReadScope();
+        MeshDataView meshData {};
+        meshData.vertices[0] = vertexData;
+        meshData.indices[0] = ConstByteView(indexData.Data(), indexData.Data() + indexData.Size());
 
-            const VertexArrayView vertexView = sourceMesh->GetVertexData(0);
+        clonedMesh->SetMeshData(meshDesc, meshData);
 
-            layoutDesc = vertexView.layoutDesc;
-            vertexSizeInFloats = vertexView.layoutDesc.VertexSize() / sizeof(float);
-
-            mutableVertexData = Array<float, EditorAllocator>(vertexView.floatData, vertexView.vertexCount * vertexSizeInFloats);
-            indexData = sourceMesh->GetIndexData(0);
-        }
-
-        Assert(vertexSizeInFloats != 0);
-
-        auto writeScope = clonedMesh->GetWriteScope();
-
-        VertexArrayView newVertexView {};
-        newVertexView.floatData = mutableVertexData.Data();
-        newVertexView.vertexCount = mutableVertexData.Size() / vertexSizeInFloats;
-        newVertexView.layoutDesc = layoutDesc;
-
-        clonedMesh->SetVertexData(0, newVertexView);
-        clonedMesh->SetIndexData(0, indexData);
-
-        clonedMesh->SetAABB(clonedMesh->CalculateAABB());
+        readScope.Reset();
 
         BVHNode bvh;
         clonedMesh->BuildBVH(bvh);
@@ -2544,7 +2533,7 @@ static void EnsureUniqueMeshEditTarget(const Handle<Node>& node, MeshComponent* 
         clonedMesh->SetBVH(std::move(bvh));
     }
 
-    InitObject(clonedMesh);
+    GetCurrentAssetRegistry()->PutAssetUnique(clonedMesh);
 
     clonedMesh->UploadGpuData();
 
@@ -2572,14 +2561,34 @@ bool EditorSubsystem::TryPickMeshEditFace(const Ray& ray, MeshEditFaceSelection&
 
     Handle<Node> targetNode = MakeStrongRef(targetNodeRaw);
 
+    // TEMP DIAGNOSTIC: dump BVH/mesh state for this pick attempt.
+    {
+        Mesh* diagMesh = meshComponent->mesh;
+        const BVHNode& diagBvh = diagMesh->GetBVH();
+        auto diagReadScope = diagMesh->GetReadScope();
+        const VertexArrayView diagVertexData = diagMesh->GetVertexData(0);
+        const Span<const ubyte> diagIndexData = diagMesh->GetIndexData(0);
+
+        HYP_LOG(Editor, Warning,
+            "[MeshEditPickDiag] ray.pos={} ray.dir={} bvh.valid={} bvh.aabb=({} - {}) vertexCount={} indexCount={}",
+            ray.position, ray.direction,
+            diagBvh.IsValid(), diagBvh.aabb.GetMin(), diagBvh.aabb.GetMax(),
+            diagVertexData.vertexCount, diagIndexData.Size() / sizeof(uint32));
+    }
+
     RayTestResults results;
 
-    if (!targetNode->TestRay(ray, results, RayTestFlags::TestBVH | RayTestFlags::EditorPick))
+    const bool hadAnyHit = targetNode->TestRay(ray, results, RayTestFlags::TestBVH | RayTestFlags::EditorPick);
+
+    HYP_LOG(Editor, Warning, "[MeshEditPickDiag] TestRay returned {} with {} total result(s)", hadAnyHit, results.Size());
+
+    if (!hadAnyHit)
     {
         return false;
     }
 
     const RayHit* closestHit = nullptr;
+    uint32 numHitsForTargetNode = 0;
 
     for (const RayHit& hit : results)
     {
@@ -2587,6 +2596,8 @@ bool EditorSubsystem::TryPickMeshEditFace(const Ray& ray, MeshEditFaceSelection&
         {
             continue;
         }
+
+        numHitsForTargetNode++;
 
         // // Reject backfaces.
         // if (hit.normal.Dot(-ray.direction) < FLT_EPSILON)
@@ -2601,6 +2612,12 @@ bool EditorSubsystem::TryPickMeshEditFace(const Ray& ray, MeshEditFaceSelection&
 
         closestHit = &hit;
     }
+
+    HYP_LOG(Editor, Warning, "[MeshEditPickDiag] {} hit(s) matched target node; closestHit={} triangleIndex={} distance={}",
+        numHitsForTargetNode,
+        closestHit != nullptr,
+        closestHit ? closestHit->triangleIndex : ~0u,
+        closestHit ? closestHit->distance : -1.0f);
 
     if (!closestHit)
     {

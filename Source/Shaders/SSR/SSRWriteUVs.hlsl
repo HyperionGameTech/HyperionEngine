@@ -378,14 +378,14 @@ PSOutput PSMain(PSInput input)
         return output;
     }
 
+    // Rendering.SSR.CheckerboardTrace
     if (ssrConstants.dimension.z /* checkerboard */ != 0u)
     {
         const uint cb = (coord.x & 1u) ^ (coord.y & 1u);
 
         if (cb != (frameCounter & 1u))
         {
-            output.mask = 0;
-            return output;
+            discard;
         }
     }
 
