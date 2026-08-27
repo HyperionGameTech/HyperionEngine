@@ -468,6 +468,9 @@ void UISubsystem::AddDebugOverlay(const Handle<OverlayBase>& debugOverlay)
         listViewItem->AddChildUIObject(object);
 
         m_debugOverlayContainers[placement]->AddChildUIObject(listViewItem);
+
+        m_uiStage->UpdateSize(true);
+        m_uiStage->UpdatePosition(true);
     }
 }
 
