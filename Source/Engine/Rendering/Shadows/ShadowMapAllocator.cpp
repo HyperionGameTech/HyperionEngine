@@ -84,7 +84,7 @@ void ShadowMapAllocator::Initialize()
         uint16(m_atlases.Size()),
         IU_SAMPLED | IU_ATTACHMENT });
 
-    m_atlasTextureArray->SetName(NAME("ShadowMapAtlas"));
+    m_atlasTextureArray->SetName(NAME("Shadows"));
     m_atlasTextureArray->SetIsTransient(true);
     Check(m_atlasTextureArray->Create());
 
@@ -101,7 +101,7 @@ void ShadowMapAllocator::Initialize()
         IU_SAMPLED | IU_ATTACHMENT
     });
 
-    m_pointLightTextureArray->SetName(NAME("PointLightShadowMapImage"));
+    m_pointLightTextureArray->SetName(NAME("OmniShadows"));
     m_pointLightTextureArray->SetIsTransient(true);
     Check(m_pointLightTextureArray->Create());
 

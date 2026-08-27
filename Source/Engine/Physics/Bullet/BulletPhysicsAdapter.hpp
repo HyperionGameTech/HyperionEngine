@@ -13,6 +13,7 @@ class btDefaultCollisionConfiguration;
 class btCollisionDispatcher;
 class btSequentialImpulseConstraintSolver;
 class btDiscreteDynamicsWorld;
+struct btOverlapFilterCallback;
 
 namespace Hyperion {
 
@@ -50,6 +51,7 @@ private:
     btCollisionDispatcher* m_dispatcher;
     btSequentialImpulseConstraintSolver* m_solver;
     btDiscreteDynamicsWorld* m_dynamicsWorld;
+    btOverlapFilterCallback* m_characterRegistry;
 };
 
 } // namespace Hyperion

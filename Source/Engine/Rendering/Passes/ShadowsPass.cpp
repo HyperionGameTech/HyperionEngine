@@ -265,7 +265,12 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
             if (!framebuffer.IsValid())
             {
-                const FramebufferDesc& framebufferDesc = firstShadowView->GetViewDesc().framebufferDesc;
+                const View* descSourceView = cachedData->shadowViewsDynamic[viewIndex] != nullptr
+                    ? cachedData->shadowViewsDynamic[viewIndex]
+                    : cachedData->shadowViewsStatic[viewIndex];
+                AssertDebug(descSourceView != nullptr);
+
+                const FramebufferDesc& framebufferDesc = descSourceView->GetViewDesc().framebufferDesc;
 
                 framebuffer = RI.MakeFramebuffer(framebufferDesc);
 
