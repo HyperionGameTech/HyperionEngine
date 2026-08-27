@@ -58,7 +58,7 @@
 namespace Hyperion {
 
 static constexpr float ShadowCascadeClipDistances[] = { 0.075f, 0.15f, 0.3f, 1.0f };
-static constexpr float ShadowCascadeMaxDistance = 300.0f;
+static constexpr float ShadowCascadeMaxDistance = 1000.0f;
 
 // Always mark dirty at this value
 static const int s_dirtyResourceVersion = -1;

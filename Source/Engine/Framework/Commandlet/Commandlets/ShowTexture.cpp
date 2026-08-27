@@ -2,8 +2,8 @@
 
 #include <Framework/Commandlet/Commandlet.hpp>
 
-#include <Framework/EngineDriver.hpp>
 #include <Framework/EngineGlobals.hpp>
+#include <Framework/Game.hpp>
 
 #include <Core/Reflection/ClassUtils.hpp>
 #include <Core/Reflection/ClassRegistry.hpp>
@@ -152,11 +152,12 @@ protected:
 private:
     static UISubsystem* TryGetUISubsystem()
     {
-        World* world = EngineDriver::GetInstance()->GetCurrentWorld();
-
-        if (world != nullptr)
+        if (g_gameInstance != nullptr)
         {
-            return world->GetSubsystem<UISubsystem>();
+            if (const Handle<World>& world = g_gameInstance->GetWorld(); world.IsValid())
+            {
+                return world->GetSubsystem<UISubsystem>();
+            }
         }
 
         return nullptr;

@@ -29,7 +29,7 @@ struct CharacterControllerConfig
     /// Scales the velocity transferred to dynamic bodies the character pushes
     float pushSpeedScale = 0.5f;
 
-    float maxPushSpeed = 3.0f;
+    float maxPushSpeed = 1.5f;
     float pushMassLimit = 350.0f;
 };
 

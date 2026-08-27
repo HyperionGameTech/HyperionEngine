@@ -66,7 +66,7 @@ struct CharacterControllerComponent
     bool isOnGround = false;
 
     HYP_FIELD(Property = "MaxPushSpeed", Serialize)
-    float maxPushSpeed = 3.0f;
+    float maxPushSpeed = 1.5f;
 
     HYP_FIELD(Property = "PushMassLimit", Serialize)
     float pushMassLimit = 350.0f;
