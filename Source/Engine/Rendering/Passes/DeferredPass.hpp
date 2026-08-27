@@ -77,7 +77,7 @@ public:
 
     UniquePtr<LightingPass> indirectLightingPass;
     UniquePtr<LightingPass> directLightingPass;
-    UniquePtr<LightingPass> reflectionsOnlyPass; //!< Writes clustered env-probe (+ RT) reflections into reflectionsPass's buffer - see DPM_REFLECTIONS_ONLY.
+    UniquePtr<LightingPass> reflectionsOnlyPass; //!< Writes clustered env-probe reflections (pre-multiplied by coverage)
 
     FramebufferRef lightingFramebuffer;
     FramebufferRef depthPrepassFramebuffer;
