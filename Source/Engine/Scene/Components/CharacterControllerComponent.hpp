@@ -59,6 +59,9 @@ struct CharacterControllerComponent
     HYP_FIELD(Property = "FallSpeed", Serialize)
     float fallSpeed = 5.0f;
 
+    HYP_FIELD(Property = "PushSpeedScale", Serialize)
+    float pushSpeedScale = 0.5f;
+
     HYP_FIELD(Transient)
     bool isOnGround = false;
 };
