@@ -226,8 +226,8 @@ void EvaluateSingleProbe(
     const float diffuseContributionWeight = (1.0 - lightmappedWeight) * diffuseStrength;
 
     // @TODO Make configurable.
-    static const float kIrradianceProbeBlendFactor = 0.2;
-    static const float kReflectionsProbeBlendFactor = 0.2;
+    static const float kIrradianceProbeBlendFactor = 0.002;
+    static const float kReflectionsProbeBlendFactor = 0.002;
     const float blendFactor = lerp(kReflectionsProbeBlendFactor, kIrradianceProbeBlendFactor, irradianceOnlyWeight);
 
     const float boundsWeight = CalculateEnvProbeWeight(positionWS, aabbMin.xyz, aabbMax.xyz, blendFactor);
@@ -320,8 +320,12 @@ void EvaluateEnvProbes(
             skyReflectionsSum, skyReflectionsWeightSum,
             skyIrradianceSum, skyIrradianceWeightSum);
 
-        const float reflectionsResidual = max(0.0, 1.0 - reflectionsWeightSum);
-        const float irradianceResidual = max(0.0, 1.0 - irradianceWeightSum);
+        // Sky only fills in where no env probes cover
+        const float hasReflectionProbes = step(HYP_FMATH_EPSILON, reflectionsWeightSum);
+        const float reflectionsResidual = 1.0 - hasReflectionProbes;
+
+        const float hasIrradianceProbes = step(HYP_FMATH_EPSILON, irradianceWeightSum);
+        const float irradianceResidual = 1.0 - hasIrradianceProbes;
         
         const float skyReflectionsEffectiveWeight = min(skyReflectionsWeightSum, reflectionsResidual);
         reflectionsSum += (skyReflectionsSum / max(skyReflectionsWeightSum, HYP_FMATH_EPSILON)) * skyReflectionsEffectiveWeight;

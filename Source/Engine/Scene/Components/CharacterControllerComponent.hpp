@@ -64,6 +64,12 @@ struct CharacterControllerComponent
 
     HYP_FIELD(Transient)
     bool isOnGround = false;
+
+    HYP_FIELD(Property = "MaxPushSpeed", Serialize)
+    float maxPushSpeed = 3.0f;
+
+    HYP_FIELD(Property = "PushMassLimit", Serialize)
+    float pushMassLimit = 350.0f;
 };
 
 } // namespace Hyperion

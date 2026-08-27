@@ -711,6 +711,8 @@ extern "C"
 
         s_hypIsInitialized = false;
 
+        g_engineDriver->Shutdown();
+
         if (g_gameServer != nullptr)
         {
             g_gameServer->Stop();
@@ -726,8 +728,6 @@ extern "C"
             delete g_gameClient;
             g_gameClient = nullptr;
         }
-
-        g_engineDriver->Shutdown();
     
 #ifdef HYP_STEAM_SDK
         Steam::SteamInputManager::GetInstance().Shutdown();
