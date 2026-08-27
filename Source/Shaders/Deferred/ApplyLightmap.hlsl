@@ -152,6 +152,11 @@ PSOutput PSMain(PSInput input)
     GBufferMaterialParams materialParams;
     GBufferUnpackMaterialParams(normalSample.x, materialData >> 28u, materialParams);
 
+    if ((materialParams.mask & OBJECT_MASK_LIGHTMAPPED) == 0)
+    {
+        discard;
+    }
+
     const float roughness = materialParams.roughness;
     const float metalness = materialParams.metalness;
 

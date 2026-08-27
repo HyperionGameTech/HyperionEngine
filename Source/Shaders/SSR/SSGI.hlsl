@@ -272,7 +272,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         {
             const uint envProbeTextureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(envProbes[envProbeIdx]);
 
-            if (envProbeTextureIndex != INVALID_ENV_PROBE_TEXTURE)
+            if (envProbeTextureIndex == INVALID_ENV_PROBE_TEXTURE)
             {
                 continue;
             }
