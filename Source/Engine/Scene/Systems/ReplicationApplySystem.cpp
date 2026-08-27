@@ -213,7 +213,7 @@ void ReplicationApplySystem::UpdateInterpolatedEntities()
     }
 
     const uint64 nowMs = Time::Now().ToMilliseconds();
-    const uint64 renderTimeMs = nowMs - uint64(EngineGlobals::GetInterpolationDelay() * 1000.0f);
+    const uint64 renderTimeMs = nowMs - uint64(NetGlobals::GetInterpolationDelay() * 1000.0f);
 
     for (auto it = m_interpolationStates.Begin(); it != m_interpolationStates.End();)
     {

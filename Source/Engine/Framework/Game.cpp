@@ -135,7 +135,7 @@ void Game::Initialize()
 
         if (CoreApi::GetCommandLineArguments()["autoconnect"].ToBool())
         {
-            if (const char* hostAddress = EngineGlobals::GetHostAddress(); hostAddress != nullptr && *hostAddress != '\0')
+            if (const char* hostAddress = NetGlobals::GetHostAddress(); hostAddress != nullptr && *hostAddress != '\0')
             {
                 ConnectToServer(hostAddress);
             }
@@ -159,7 +159,7 @@ void Game::ConnectToServer(const ANSIString& hostAddress)
     m_connectionState.lastResult = {};
     m_connectionState.SetState(ServerConnectionState::Connecting);
 
-    if (Result connectResult = g_gameClient->Connect(hostAddress, EngineGlobals::GetGameServerPort()); connectResult.HasError())
+    if (Result connectResult = g_gameClient->Connect(hostAddress, NetGlobals::GetGameServerPort()); connectResult.HasError())
     {
         m_connectionState.lastResult = connectResult;
         m_connectionState.SetState(ServerConnectionState::Failed);

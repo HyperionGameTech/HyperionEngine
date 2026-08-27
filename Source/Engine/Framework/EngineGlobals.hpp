@@ -103,13 +103,7 @@ extern template ENGINE_API const FilePath& GetContentDirectory<HYP_STATIC_STRING
 extern template ENGINE_API const FilePath& GetContentDirectory<HYP_STATIC_STRING("Game")>();
 
 ENGINE_API const FilePath& GetCacheDirectory();
-ENGINE_API const char* GetCacheServerAddress();
-ENGINE_API const char* GetHostAddress();
-ENGINE_API uint16 GetGameServerPort();
-ENGINE_API float GetClientSendRate();
-ENGINE_API float GetInterpolationDelay();
-ENGINE_API float GetCorrectionThreshold();
-ENGINE_API float GetCorrectionSmoothingTime();
+
 ENGINE_API const FilePath& GetConfigDirectory();
 
 ENGINE_API const FilePath& GetTempDirectory();
@@ -119,7 +113,18 @@ ENGINE_API bool IsShuttingDown();
 
 ENGINE_API BlobStorage* GetBlobStorage();
 
+ENGINE_API const char* GetCacheServerAddress();
+
 } // namespace EngineGlobals
+
+namespace NetGlobals {
+ENGINE_API const char* GetHostAddress();
+ENGINE_API uint16 GetGameServerPort();
+ENGINE_API float GetClientSendRate();
+ENGINE_API float GetInterpolationDelay();
+ENGINE_API float GetCorrectionThreshold();
+ENGINE_API float GetCorrectionSmoothingTime();
+} // namespace NetGlobals
 
 extern MainThread* g_mainThreadInstance;
 extern SimThread* g_simThreadInstance;

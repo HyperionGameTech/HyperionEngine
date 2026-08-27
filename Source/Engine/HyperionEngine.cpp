@@ -662,7 +662,7 @@ extern "C"
         {
             g_gameServer = new GameServer;
 
-            if (Result listenResult = g_gameServer->Start(EngineGlobals::GetGameServerPort()); listenResult.HasError())
+            if (Result listenResult = g_gameServer->Start(NetGlobals::GetGameServerPort()); listenResult.HasError())
             {
                 HYP_LOG(Engine, Error, "Failed to start game server: {}", listenResult.GetError().GetMessage());
 

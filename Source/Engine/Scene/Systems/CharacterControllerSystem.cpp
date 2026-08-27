@@ -384,7 +384,7 @@ static void ReconcileMoveAck(Entity* entity, CharacterControllerComponent& compo
 
     state.lastAckedMoveId = ack.ackedMoveId;
 
-    const float correctionThreshold = EngineGlobals::GetCorrectionThreshold();
+    const float correctionThreshold = NetGlobals::GetCorrectionThreshold();
 
     const bool needsCorrection = !predictedResult.HasValue()
         || (*predictedResult - ack.GetAuthTranslation()).LengthSquared() > correctionThreshold * correctionThreshold;
@@ -433,7 +433,7 @@ static void ReconcileMoveAck(Entity* entity, CharacterControllerComponent& compo
     // Smooth out the visual pop of the rewind/replay over a short time window.
     const Vec3f replayedTranslation = transformComponent.translation;
     const Vec3f correctionOffset = preRewindTranslation - replayedTranslation;
-    const float smoothingTime = EngineGlobals::GetCorrectionSmoothingTime();
+    const float smoothingTime = NetGlobals::GetCorrectionSmoothingTime();
 
     if (smoothingTime > 0.0f && correctionOffset.LengthSquared() > MathUtil::epsilonF)
     {
@@ -524,7 +524,7 @@ static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent
     // towards where it was before the rewind, decaying to zero.
     if (state.smoothingSecondsRemaining > 0.0f)
     {
-        const float smoothingTime = MathUtil::Max(EngineGlobals::GetCorrectionSmoothingTime(), 0.0001f);
+        const float smoothingTime = MathUtil::Max(NetGlobals::GetCorrectionSmoothingTime(), 0.0001f);
 
         state.smoothingSecondsRemaining = MathUtil::Max(0.0f, state.smoothingSecondsRemaining - delta);
 
@@ -538,7 +538,7 @@ static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent
     // Flush batched moves to the server at the configured send rate
     state.secondsSinceLastSend += delta;
 
-    const float sendRate = MathUtil::Max(EngineGlobals::GetClientSendRate(), 1.0f);
+    const float sendRate = MathUtil::Max(NetGlobals::GetClientSendRate(), 1.0f);
     const float sendInterval = 1.0f / sendRate;
 
     if (state.secondsSinceLastSend >= sendInterval && state.lastSentMoveId < state.nextMoveId - 1)
