@@ -15,6 +15,8 @@
 
 #include <Core/Logging/Logger.hpp>
 
+#include <Rendering/Util/FrameLimiter.hpp>
+
 #include <iostream>
 #include <limits>
 
@@ -39,6 +41,8 @@ public:
     {
         InitThreadAllocator();
 
+        FrameLimiter frameLimiter(100);
+
         while (HYP_LIKELY(!m_stopRequested.LoadVolatile()))
         {
             netServer->Update();
@@ -55,11 +59,10 @@ public:
                     task.Execute();
                 }
             }
-            
+
             m_threadAllocator->Reset();
 
-            // @TODO
-            ThreadSleep(10);
+            frameLimiter.Wait();
         }
     }
 
