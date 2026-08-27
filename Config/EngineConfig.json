@@ -37,8 +37,8 @@
   "Editor": {
     "SkipRenderingWhenIdle": true,
     "Camera": {
-      "MovementSpeed": 10,
-      "LookSensitivity": 50
+      "MovementSpeed": 10.0,
+      "MouseSensitivity": 50.0
     }
   },
   "Threads": {

@@ -25,6 +25,9 @@ struct CharacterControllerConfig
     float maxSlopeAngle = 45.0f;
     float jumpSpeed = 10.0f;
     float fallSpeed = 55.0f;
+
+    /// Scales the velocity transferred to dynamic bodies the character pushes
+    float pushSpeedScale = 0.5f;
 };
 
 template <class DerivedAdapter>

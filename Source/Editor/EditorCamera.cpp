@@ -27,8 +27,8 @@
 
 namespace Hyperion {
 
-static constexpr double LookSensitivity = 25.0;
-static constexpr double MovementSpeed = 10.0;
+static CVar<float> s_cvEditorCameraMouseSensitivity { "Editor.Camera.MouseSensitivity", 50.0f };
+static CVar<float> s_cvEditorCameraMovementSpeed { "Editor.Camera.MouseSensitivity", 10.0f };
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Camera);
 
@@ -146,8 +146,8 @@ bool EditorCameraInputHandler::OnMouseDrag(const MouseEvent& evt)
     Camera* camera = m_controller->GetCamera();
     Assert(camera != nullptr);
 
-    const double lookMultiplier = LookSensitivity;
-    const double moveMultiplier = MovementSpeed;
+    const double lookMultiplier = s_cvEditorCameraMouseSensitivity.Get();
+    const double moveMultiplier = s_cvEditorCameraMovementSpeed.Get();
 
     const double mouseDeltaX = double(evt.relativePos.x) - double(evt.relativePrevPos.x);
     const double mouseDeltaY = double(evt.relativePos.y) - double(evt.relativePrevPos.y);
