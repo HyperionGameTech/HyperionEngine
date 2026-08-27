@@ -524,7 +524,7 @@ void DefaultGame::ShowConnectScreen()
     statusText->SetParentAlignment(UIObjectAlignment::CENTER);
     connectPanel->AddChildUIObject(statusText);
 
-    const char* cliHostAddress = EngineGlobals::GetHostAddress();
+    const char* cliHostAddress = NetGlobals::GetHostAddress();
     const bool hasCliHost = cliHostAddress != nullptr && *cliHostAddress != '\0';
     const String cliHostAddressStr = hasCliHost ? String(cliHostAddress) : String::empty;
 
