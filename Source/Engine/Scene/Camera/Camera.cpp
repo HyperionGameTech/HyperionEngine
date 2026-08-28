@@ -819,9 +819,12 @@ void Camera::OnRemovedFromWorld(World* world)
 
 void Camera::UpdateRenderProxy(RenderProxyCamera* proxy)
 {
+    *proxy = {};
+
     proxy->camera = this;
 
     proxy->viewFrustum = m_frustum;
+    proxy->pathTracerResetTemporalAccum = (m_prevViewProjMat != m_viewProjMat);
 
     CameraShaderData& bufferData = proxy->bufferData;
     bufferData.viewMat = m_viewMat;

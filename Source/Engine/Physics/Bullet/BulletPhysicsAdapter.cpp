@@ -60,12 +60,72 @@ struct CharacterControllerInternalData
     SharedPtr<btCapsuleShape> capsuleShape;
     SharedPtr<btKinematicCharacterController> kcc;
     Vec3f walkVelocity;
+    Vec3f pushVelocity;
     float pushSpeedScale = 1.0f;
     float maxPushSpeed = 1.5f;
     float pushMassLimit = 350.0f;
 
     SharedPtr<btRigidBody> shadowBody;
+
+    Vec3f GetPushVelocity() const
+    {
+        Vec3f velocity = { walkVelocity.x, 0.0f, walkVelocity.z };
+
+        const float speed = velocity.Length();
+        const float pushSpeed = MathUtil::Min(speed * pushSpeedScale, maxPushSpeed);
+
+        if (speed > pushSpeed && speed > MathUtil::epsilonF)
+        {
+            velocity *= pushSpeed / speed;
+        }
+
+        return velocity;
+    }
 };
+
+static bool FindPushableBodies(CharacterControllerInternalData* character)
+{
+    Vec3f horizontalWalk = { character->walkVelocity.x, 0.0f, character->walkVelocity.z };
+
+    if (horizontalWalk.LengthSquared() < MathUtil::epsilonF)
+    {
+        return false;
+    }
+
+    const btVector3 travelDirection = ToBtVector(horizontalWalk.Normalize());
+    const btVector3 characterOrigin = character->ghostObject->getWorldTransform().getOrigin();
+
+    bool foundPushable = false;
+
+    for (int i = 0; i < character->ghostObject->getNumOverlappingObjects(); ++i)
+    {
+        btRigidBody* body = btRigidBody::upcast(character->ghostObject->getOverlappingObject(i));
+
+        if (!body || body->isStaticOrKinematicObject() || body->getInvMass() <= 0.0f)
+        {
+            continue;
+        }
+
+        if (btScalar(1.0) / body->getInvMass() > character->pushMassLimit)
+        {
+            continue;
+        }
+
+        btVector3 toBody = body->getWorldTransform().getOrigin() - characterOrigin;
+        toBody.setY(0.0f);
+
+        if (toBody.length2() < SIMD_EPSILON || toBody.normalized().dot(travelDirection) < btScalar(0.5))
+        {
+            continue;
+        }
+
+        body->activate(true);
+
+        foundPushable = true;
+    }
+
+    return foundPushable;
+}
 
 struct CharacterControllerRegistry final : btOverlapFilterCallback
 {
@@ -131,7 +191,7 @@ struct CharacterControllerRegistry final : btOverlapFilterCallback
         return true;
     }
 
-    void ClampPushVelocities()
+    void ApplyPushVelocities()
     {
         for (int i = 0; i < characters.size(); ++i)
         {
@@ -142,19 +202,8 @@ struct CharacterControllerRegistry final : btOverlapFilterCallback
                 continue;
             }
 
-            btVector3 velocity = character->shadowBody->getLinearVelocity();
-            velocity.setY(0.0f);
-            velocity *= character->pushSpeedScale;
-
-            const btScalar maxSpeed = character->maxPushSpeed;
-            const btScalar speed2 = velocity.length2();
-
-            if (speed2 > maxSpeed * maxSpeed)
-            {
-                velocity *= maxSpeed / btSqrt(speed2);
-            }
-
-            character->shadowBody->setLinearVelocity(velocity);
+            character->shadowBody->setLinearVelocity(ToBtVector(character->pushVelocity));
+            character->shadowBody->setAngularVelocity(btVector3(0.0f, 0.0f, 0.0f));
         }
     }
 };
@@ -163,7 +212,7 @@ static void CharacterPushPreTickCallback(btDynamicsWorld* world, btScalar timeSt
 {
     (void)timeStep;
 
-    static_cast<CharacterControllerRegistry*>(world->getWorldUserInfo())->ClampPushVelocities();
+    static_cast<CharacterControllerRegistry*>(world->getWorldUserInfo())->ApplyPushVelocities();
 }
 
 struct OffsetCollisionShape final : btCompoundShape
@@ -702,6 +751,7 @@ void BulletPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerC
 
     internalData->shadowBody = MakeSharedWithAllocator<btRigidBody, PhysicsAllocator>(shadowConstructionInfo);
     internalData->shadowBody->setWorldTransform(startTransform);
+    internalData->shadowBody->setInterpolationWorldTransform(startTransform);
     internalData->shadowBody->setCollisionFlags(internalData->shadowBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
     internalData->shadowBody->setActivationState(DISABLE_DEACTIVATION);
     internalData->shadowBody->setUserPointer(internalData.Get());
@@ -791,15 +841,47 @@ void BulletPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physic
     const int numSubsteps = MathUtil::Min(int(MathUtil::Ceil(totalDelta / maxSubstepDelta)), maxSubsteps);
     const float substepDelta = totalDelta / float(numSubsteps);
 
+    internalData->pushVelocity = internalData->GetPushVelocity();
+
+    const bool isPushing = FindPushableBodies(internalData);
+
+    Vec3f walkVelocity = internalData->walkVelocity;
+
+    if (isPushing)
+    {
+        // disallow travel faster than the prop can be shoved
+        walkVelocity = internalData->pushVelocity + Vec3f(0.0f, walkVelocity.y, 0.0f);
+    }
+
     for (int i = 0; i < numSubsteps; ++i)
     {
-        internalData->kcc->setWalkDirection(ToBtVector(internalData->walkVelocity) * substepDelta);
+        internalData->kcc->setWalkDirection(ToBtVector(walkVelocity) * substepDelta);
         internalData->kcc->updateAction(m_dynamicsWorld, substepDelta);
     }
 
     if (internalData->shadowBody)
     {
-        const btTransform newTransform = internalData->ghostObject->getWorldTransform();
+        btTransform newTransform = internalData->ghostObject->getWorldTransform();
+
+        if (isPushing)
+        {
+            // prevent shadow teleporting into the prop
+            const btVector3 target = newTransform.getOrigin();
+            const btVector3 current = internalData->shadowBody->getWorldTransform().getOrigin();
+
+            btVector3 offset = target - current;
+            offset.setY(0.0f);
+
+            const btScalar distance = offset.length();
+            const btScalar maxAdvance = internalData->pushVelocity.Length() * totalDelta;
+
+            if (distance > maxAdvance && distance > SIMD_EPSILON)
+            {
+                offset *= maxAdvance / distance;
+
+                newTransform.setOrigin(btVector3(current.x() + offset.x(), target.y(), current.z() + offset.z()));
+            }
+        }
 
         internalData->shadowBody->setWorldTransform(newTransform);
 
@@ -819,6 +901,8 @@ void BulletPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physic
     btTransform transform = internalData->ghostObject->getWorldTransform();
     transform.setOrigin(ToBtVector(translation));
     internalData->ghostObject->setWorldTransform(transform);
+
+    internalData->pushVelocity = Vec3f::Zero();
 
     if (internalData->shadowBody)
     {
