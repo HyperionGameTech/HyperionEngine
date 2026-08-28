@@ -27,13 +27,17 @@ struct ReplicationStateComponent
     HYP_FIELD()
     NetId netId;
 
+    uint8 isSleepingReplicated : 1;
+
     ReplicationStateComponent()
-        : netId(Invalid<NetId>)
+        : netId(Invalid<NetId>),
+          isSleepingReplicated(0)
     {
     }
 
     explicit ReplicationStateComponent(NetId netId)
-        : netId(netId)
+        : netId(netId),
+          isSleepingReplicated(0)
     {
     }
 };

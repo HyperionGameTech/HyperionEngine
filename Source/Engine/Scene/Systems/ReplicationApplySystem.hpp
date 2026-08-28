@@ -69,9 +69,15 @@ private:
         {
             uint64 receiveTimeMs;
             Transform transform;
+            Vec3f velocity;
+            Vec3f angularVelocity;
+            bool isSleeping;
         };
 
         Array<Sample, SceneAllocator> samples;
+
+        Vec3f velocityEstimate;
+        Vec3f angularVelocityEstimate;
     };
 
     void UpdateInterpolatedEntities();

@@ -121,6 +121,7 @@ namespace NetGlobals {
 ENGINE_API const char* GetHostAddress();
 ENGINE_API uint16 GetGameServerPort();
 ENGINE_API float GetClientSendRate();
+ENGINE_API bool GetInterpolationEnabled();
 ENGINE_API float GetInterpolationDelay();
 ENGINE_API float GetCorrectionThreshold();
 ENGINE_API float GetCorrectionSmoothingTime();

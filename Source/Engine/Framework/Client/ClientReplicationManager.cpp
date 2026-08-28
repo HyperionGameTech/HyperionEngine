@@ -18,19 +18,33 @@ using net::NetAllocator;
 using net::NetMessageContext;
 using net::NetMessageId;
 
-static Transform ReadTransform(ConstByteView payload)
+static void ReadSnapshotPayload(
+    ConstByteView payload,
+    Transform& outTransform,
+    Vec3f& outVelocity,
+    Vec3f& outAngularVelocity,
+    bool& outIsSleeping)
 {
     MemoryByteReader reader(payload);
 
     Vec3f translation;
     Quat4f rotation;
     Vec3f scale;
+    Vec3f velocity;
+    Vec3f angularVelocity;
+    uint8 isSleeping = 0;
 
     reader.Read(&translation, sizeof(Vec3f));
     reader.Read(&rotation, sizeof(Quat4f));
     reader.Read(&scale, sizeof(Vec3f));
+    reader.Read(&velocity, sizeof(Vec3f));
+    reader.Read(&angularVelocity, sizeof(Vec3f));
+    reader.Read(&isSleeping, sizeof(uint8));
 
-    return Transform(translation, scale, rotation);
+    outTransform = Transform(translation, scale, rotation);
+    outVelocity = velocity;
+    outAngularVelocity = angularVelocity;
+    outIsSleeping = (isSleeping != 0);
 }
 
 void ClientReplicationManager::RegisterHandlers(net::NetClient& netClient)
@@ -80,10 +94,20 @@ void ClientReplicationManager::RegisterHandlers(net::NetClient& netClient)
     netClient.RegisterHandler(NetMessageId::ComponentSnapshot,
         [this](const NetMessageContext& context, ConstByteView payload)
         {
+            Transform transform;
+            Vec3f velocity;
+            Vec3f angularVelocity;
+            bool isSleeping;
+
+            ReadSnapshotPayload(payload, transform, velocity, angularVelocity, isSleeping);
+
             PushOp(ReplicationOp<ReplicationOpType::Snapshot>(
                 NetId(uint32(context.key)),
-                ReadTransform(payload),
-                Time::Now().ToMilliseconds()));
+                transform,
+                velocity,
+                angularVelocity,
+                Time::Now().ToMilliseconds(),
+                isSleeping));
         });
 
     netClient.RegisterHandler(NetMessageId::PlayerMoveAck,
