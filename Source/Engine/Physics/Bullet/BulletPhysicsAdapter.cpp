@@ -67,6 +67,8 @@ struct CharacterControllerInternalData
 
     SharedPtr<btRigidBody> shadowBody;
 
+    bool wasSteppedSinceLastTick = false;
+
     Vec3f GetPushVelocity() const
     {
         Vec3f velocity = { walkVelocity.x, 0.0f, walkVelocity.z };
@@ -204,6 +206,21 @@ struct CharacterControllerRegistry final : btOverlapFilterCallback
 
             character->shadowBody->setLinearVelocity(ToBtVector(character->pushVelocity));
             character->shadowBody->setAngularVelocity(btVector3(0.0f, 0.0f, 0.0f));
+        }
+    }
+
+    void DecayUnsteppedPushVelocities()
+    {
+        for (int i = 0; i < characters.size(); ++i)
+        {
+            CharacterControllerInternalData* character = characters[i];
+
+            if (!character->wasSteppedSinceLastTick)
+            {
+                character->pushVelocity = Vec3f(0.0f);
+            }
+
+            character->wasSteppedSinceLastTick = false;
         }
     }
 };
@@ -416,6 +433,11 @@ void BulletPhysicsAdapter::Tick(PhysicsWorldBase* world, double delta)
     constexpr double maxDelta = maxSubSteps * fixedTimeStep;
 
     const double clampedDelta = delta > maxDelta ? maxDelta : delta;
+
+    if (m_characterRegistry)
+    {
+        static_cast<CharacterControllerRegistry*>(m_characterRegistry)->DecayUnsteppedPushVelocities();
+    }
 
     m_dynamicsWorld->stepSimulation(clampedDelta, maxSubSteps, fixedTimeStep);
 
@@ -807,6 +829,13 @@ void BulletPhysicsAdapter::SetCharacterWalkDirection(const SharedPtr<void>& phys
         return;
     }
 
+    if (!MathUtil::IsFinite(velocity))
+    {
+        HYP_LOG_ONCE(Physics, Warning, "SetCharacterWalkDirection received a non-finite velocity ({}, {}, {}) - ignoring", velocity.x, velocity.y, velocity.z);
+
+        return;
+    }
+
     internalData->walkVelocity = velocity;
 }
 
@@ -887,6 +916,8 @@ void BulletPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physic
 
         m_dynamicsWorld->updateSingleAabb(internalData->shadowBody.Get());
     }
+
+    internalData->wasSteppedSinceLastTick = true;
 }
 
 void BulletPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation)

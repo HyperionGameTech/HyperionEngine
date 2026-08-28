@@ -779,8 +779,7 @@ void EntityManager::AddExistingEntity_Internal(const Handle<Entity>& entity)
 }
 
 /// Called from Entity destructor or from a task enqueued during Entity destructor.
-/// Does not operate on the Entity pointer as it would be invalid at this point,
-/// so NotifySystemsOfEntityRemoved() is not called (it's expected that this is a non-world EntityManager so it wouldn't be called anyway).
+/// Does not operate on the Entity pointer as it would be invalid at this point
 bool EntityManager::RemoveEntity(Entity* entity, bool calledFromEntityDestructor)
 {
     Assert(!IsLocked() && (IsOnThread(m_ownerThreadId) || IsDetachedScene()));
@@ -810,6 +809,21 @@ bool EntityManager::RemoveEntity(Entity* entity, bool calledFromEntityDestructor
     if (!calledFromEntityDestructor)
     {
         NotifySystemsOfEntityRemoved(entity, entityData->components);
+    }
+    else if (m_world != nullptr)
+    {
+        // Entity is being destructed directly - its last strong ref was dropped without
+        // going through SetScene_Internal(nullptr) first, so the normal removal path above
+        // never ran. We can't call NotifySystemsOfEntityRemoved() here since it invokes
+        // system->OnEntityRemoved(entity) on a partially-destructed object, but we still need
+        // to purge the raw pointer from m_systemEntityMap - otherwise EntityManager::Shutdown()
+        // will later dereference this now-dangling pointer via MakeStrongRef().
+        TUniqueLock lock(m_systemEntityMapMutex);
+
+        for (auto& systemEntityPair : m_systemEntityMap)
+        {
+            systemEntityPair.second.Erase(entity);
+        }
     }
 
     for (auto componentInfoPairIt = entityData->components.Begin(); componentInfoPairIt != entityData->components.End();)
