@@ -822,6 +822,8 @@ void World::SyncPhysicsBodyKinematicStates()
             {
                 m_physicsWorld->SetRigidBodyKinematic(rigidBody, shouldBeKinematic);
             }
+
+            m_physicsWorld->SetRigidBodyCharacterGhostCollidable(rigidBody, !shouldBeKinematic);
         }
     }
 }

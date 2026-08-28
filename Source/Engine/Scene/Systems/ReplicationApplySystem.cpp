@@ -272,9 +272,22 @@ void ReplicationApplySystem::UpdateInterpolatedEntities()
             }
         }
 
+        // Render transform: interpolated Net.InterpolationDelay into the past.
         entity->SetLocalTransform(targetTransform);
 
-        SyncColliderToEntity(entity);
+        // Use latest sample
+        if (samples.Size() > 1)
+        {
+            entity->SetLocalTransform(samples.Back().transform);
+
+            SyncColliderToEntity(entity);
+
+            entity->SetLocalTransform(targetTransform);
+        }
+        else
+        {
+            SyncColliderToEntity(entity);
+        }
 
         ++it;
     }

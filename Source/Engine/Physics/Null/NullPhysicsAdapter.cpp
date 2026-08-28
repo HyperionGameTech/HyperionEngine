@@ -52,6 +52,10 @@ void NullPhysicsAdapter::SetRigidBodyKinematic(const Handle<RigidBody>& rigidBod
     }
 }
 
+void NullPhysicsAdapter::SetRigidBodyCharacterGhostCollidable(const Handle<RigidBody>& rigidBody, bool collidable)
+{
+}
+
 void NullPhysicsAdapter::OnChangePhysicsShape(RigidBody* rigidBody)
 {
 }

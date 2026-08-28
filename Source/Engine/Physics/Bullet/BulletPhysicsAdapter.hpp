@@ -10,11 +10,14 @@
 #include <Physics/PhysicsMemory.hpp>
 
 #include <Core/Containers/Array.hpp>
+#include <Core/Containers/Set.hpp>
 
 struct btDbvtBroadphase;
 class btDefaultCollisionConfiguration;
 class btCollisionDispatcher;
 class btSequentialImpulseConstraintSolver;
+class btDynamicsWorld;
+class btRigidBody;
 class btDiscreteDynamicsWorld;
 struct btOverlapFilterCallback;
 
@@ -34,6 +37,7 @@ public:
     void OnRigidBodyRemoved(const Handle<RigidBody>& rigidBody);
     void SetRigidBodyTransform(const Handle<RigidBody>& rigidBody, const Transform& transform);
     void SetRigidBodyKinematic(const Handle<RigidBody>& rigidBody, bool isKinematic);
+    void SetRigidBodyCharacterGhostCollidable(const Handle<RigidBody>& rigidBody, bool collidable);
 
     void OnChangePhysicsShape(RigidBody* rigidBody);
     void OnChangePhysicsMaterial(RigidBody* rigidBody);
@@ -49,9 +53,14 @@ public:
     void GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround);
 
 private:
-    // Source-engine style shadow controller update: advances every character's physics
-    // shadow body toward its game-side target at a bounded velocity, in simulation time.
+    // Source-engine style shadow controller update: computes the bounded chase velocity
+    // for every character's physics shadow body toward its game-side target.
     void UpdateCharacterShadowBodies(double simDelta);
+
+    // Advances shadow bodies by their chase velocity. Called from the world's pre-tick
+    // callback, once per physics substep, so contacts against dynamic bodies see a
+    // smoothly moving surface instead of a per-tick position jump.
+    void AdvanceCharacterShadowBodies(float substepDelta);
 
     btDbvtBroadphase* m_broadphase;
     btDefaultCollisionConfiguration* m_collisionConfiguration;
@@ -60,6 +69,7 @@ private:
     btDiscreteDynamicsWorld* m_dynamicsWorld;
     btOverlapFilterCallback* m_characterOverlapFilter;
     Array<SharedPtr<void>, PhysicsAllocator> m_characterControllers;
+    Set<btRigidBody*, PhysicsAllocator> m_ghostNonCollidableBodies;
 };
 
 } // namespace Hyperion
