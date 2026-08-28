@@ -114,18 +114,17 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
 
     CameraShaderData cameraData = cameraProxy->bufferData;
 
-    if (isPathTracer)
+    if (isPathTracer && cameraProxy->pathTracerResetTemporalAccum)
     {
-        if (cameraData.viewMat != m_previousViewMatrix)
-        {
-            RenderSetup newRenderSetup = renderSetup;
-            newRenderSetup.passData = parentPass;
+        RenderSetup newRenderSetup = renderSetup;
+        newRenderSetup.passData = parentPass;
 
-            m_temporalBlending->ResetProgressiveBlending();
-            m_temporalBlending->Render(frame, newRenderSetup);
+        m_temporalBlending->ResetProgressiveBlending();
+        m_temporalBlending->Render(frame, newRenderSetup);
 
-            m_previousViewMatrix = cameraData.viewMat;
-        }
+        m_previousViewMatrix = cameraData.viewMat;
+
+        cameraProxy->pathTracerResetTemporalAccum = false;
     }
 
     frame->cr << InsertBarrier(m_texture->GetGpuImage(), RS_UNORDERED_ACCESS);

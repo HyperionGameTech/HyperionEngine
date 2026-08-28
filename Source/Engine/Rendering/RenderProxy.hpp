@@ -359,9 +359,11 @@ static_assert(sizeof(CameraShaderData) % 64 == 0);
 
 struct RenderProxyCamera : IRenderProxy
 {
-    Camera* camera = nullptr;
-    CameraShaderData bufferData {};
+    Camera* camera;
+    CameraShaderData bufferData;
     Frustum viewFrustum;
+
+    bool pathTracerResetTemporalAccum;
 };
 
 struct SpriteShaderData
