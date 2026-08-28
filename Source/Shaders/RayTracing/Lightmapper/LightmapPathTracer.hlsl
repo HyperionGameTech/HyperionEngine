@@ -66,8 +66,8 @@ DECLARE_BUFFER(LightmapPathTracer, CBuffer) cbuffer CBuffer
 #define VSM_DEPTH_BIAS_SLOPE_MAX 8.0
 
 #ifdef MODE_LIGHTMAP
-#define NUM_BOUNCES 8
-#define NUM_SAMPLES 32
+#define NUM_BOUNCES 4
+#define NUM_SAMPLES 256
 #define ENVIRONMENT_INTENSITY 1.0
 #elif defined(MODE_FULL) || defined(MODE_IRRADIANCE)
 #define NUM_BOUNCES 8
