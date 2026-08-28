@@ -7,6 +7,9 @@
 #pragma once
 
 #include <Physics/PhysicsAdapter.hpp>
+#include <Physics/PhysicsMemory.hpp>
+
+#include <Core/Containers/Array.hpp>
 
 struct btDbvtBroadphase;
 class btDefaultCollisionConfiguration;
@@ -46,12 +49,17 @@ public:
     void GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround);
 
 private:
+    // Source-engine style shadow controller update: advances every character's physics
+    // shadow body toward its game-side target at a bounded velocity, in simulation time.
+    void UpdateCharacterShadowBodies(double simDelta);
+
     btDbvtBroadphase* m_broadphase;
     btDefaultCollisionConfiguration* m_collisionConfiguration;
     btCollisionDispatcher* m_dispatcher;
     btSequentialImpulseConstraintSolver* m_solver;
     btDiscreteDynamicsWorld* m_dynamicsWorld;
     btOverlapFilterCallback* m_characterOverlapFilter;
+    Array<SharedPtr<void>, PhysicsAllocator> m_characterControllers;
 };
 
 } // namespace Hyperion
