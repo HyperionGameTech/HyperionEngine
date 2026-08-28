@@ -30,6 +30,8 @@
 #include <Core/HashCode.hpp>
 #include <Core/Types.hpp>
 
+#include <Core/FileSystem/FilePath.hpp>
+
 namespace Hyperion {
 
 struct ShaderInputGroup;
@@ -711,6 +713,9 @@ public:
 
     bool Initialize(bool precompileShaders = false, const ShaderCompileParams& params = ShaderCompileParams());
 
+    /*! \brief Get the directory that shader source files are loaded from. */
+    static FilePath GetShaderSourceDirectory();
+
     bool RequestShader(
         Name name,
         ShaderPropertySet properties,
@@ -721,6 +726,12 @@ public:
 
 #if HYP_ENABLE_SHADER_RELOAD
     bool IsShaderBundleOutdated(Name name) const;
+
+    /*! \brief Check all shader bundles for outdated sources (including transitively
+        #included files) and recompile them with precompile semantics (all enabled
+        target platforms / backends, no render-thread interaction).
+        \return True if all outdated bundles were compiled successfully. */
+    bool RecompileOutdatedShaderBundles();
 #endif
 
     /*! \brief Get the current shader compilation parameters. */

@@ -1624,6 +1624,8 @@ void AssetRegistry::SaveDirtyAssets()
         {
             // Unique lock so nothing mutates it
             // Asset data should already be in mem if it's dirty.
+            // 
+            // Is this causing more deadlocks?
             //auto writeScope = assetObject->GetWriteScope();
 
             const Name assetName = assetObject->GetName();

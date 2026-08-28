@@ -150,7 +150,7 @@ PrecompileShadersWorkerPool* s_precompileShadersPool;
 
 #pragma region Helpers
 
-static const FilePath& GetShaderSourceDirectory()
+static const FilePath& GetShaderSourceDirectoryImpl()
 {
 #ifndef HYP_SHIPPING
     static const FilePath s_path = CoreApi::GetBaseDirectory() / "Source/Shaders";
@@ -159,6 +159,157 @@ static const FilePath& GetShaderSourceDirectory()
     static DirectoryInitializer<HYP_STATIC_STRING("Source/Shaders")> s_directory;
     return s_directory.path;
 #endif  // !HYP_SHIPPING
+}
+
+FilePath ShaderCompiler::GetShaderSourceDirectory()
+{
+    return GetShaderSourceDirectoryImpl();
+}
+
+namespace {
+
+// Cache of #include directives scanned from shader source files,
+// invalidated when the file's last modified timestamp changes.
+struct IncludeScanCacheEntry
+{
+    Time lastModifiedTimestamp;
+    Array<FilePath> includes;
+};
+
+Mutex s_includeScanCacheMutex;
+Map<String, IncludeScanCacheEntry> s_includeScanCache;
+
+} // namespace
+
+/*! \brief Scan a shader source file for local #include "..." directives,
+    resolving each path relative to the including file (then the shader source root). */
+static Array<FilePath> ScanSourceFileIncludes(const FilePath& filepath)
+{
+    Array<FilePath> includes;
+
+    FileByteReader reader { filepath };
+
+    if (reader.Eof())
+    {
+        return includes;
+    }
+
+    const String source { ByteBuffer(reader.Read()).ToByteView() };
+
+    for (const String& line : source.Split('\n'))
+    {
+        const String trimmedLine = line.TrimmedLeft();
+
+        if (!trimmedLine.StartsWith("#include"))
+        {
+            continue;
+        }
+
+        const size_t quoteStart = trimmedLine.FindFirstIndex('"');
+
+        if (quoteStart == String::NotFound)
+        {
+            // angle-bracket includes are not local to the shader source tree
+            continue;
+        }
+
+        const UTF8StringView remainder = trimmedLine.Substr(quoteStart + 1);
+        const size_t quoteEnd = remainder.FindFirstIndex('"');
+
+        if (quoteEnd == UTF8StringView::NotFound || quoteEnd == 0)
+        {
+            continue;
+        }
+
+        const String includeStr { remainder.Substr(0, quoteEnd) };
+
+        FilePath resolvedPath = filepath.BasePath() / includeStr;
+
+        if (!resolvedPath.Exists())
+        {
+            resolvedPath = GetShaderSourceDirectoryImpl() / includeStr;
+        }
+
+        if (!resolvedPath.Exists())
+        {
+            continue;
+        }
+
+        includes.PushBack(resolvedPath.ToCanonical());
+    }
+
+    return includes;
+}
+
+/*! \brief Get the latest last-modified timestamp across the bundle's entry source
+    files and all transitively #included files. */
+static Time GetTransitiveSourcesLastModifiedTimestamp(const ShaderBundleDecl& decl)
+{
+    Time maxLastModifiedTimestamp = Time(0);
+
+    Set<String> visitedFiles;
+    Array<FilePath> filesToProcess;
+
+    for (const auto& sourceFile : decl.sources)
+    {
+        filesToProcess.PushBack(FilePath(sourceFile.second).ToCanonical());
+    }
+
+    while (filesToProcess.Any())
+    {
+        const FilePath filepath = filesToProcess.Back();
+        filesToProcess.PopBack();
+
+        const String fileKey { filepath.Data() };
+
+        if (visitedFiles.Contains(fileKey))
+        {
+            continue;
+        }
+
+        visitedFiles.Insert(fileKey);
+
+        const Time lastModifiedTimestamp = filepath.LastModifiedTimestamp();
+
+        maxLastModifiedTimestamp = MathUtil::Max(maxLastModifiedTimestamp, lastModifiedTimestamp);
+
+        Array<FilePath> includes;
+        bool wasCached = false;
+
+        {
+            Mutex::Guard guard(s_includeScanCacheMutex);
+
+            auto it = s_includeScanCache.Find(fileKey);
+
+            if (it != s_includeScanCache.End())
+            {
+                wasCached = true;
+
+                if (it->second.lastModifiedTimestamp == lastModifiedTimestamp)
+                {
+                    includes = it->second.includes;
+                }
+            }
+        }
+
+        if (!wasCached)
+        {
+            includes = ScanSourceFileIncludes(filepath);
+
+            Mutex::Guard guard(s_includeScanCacheMutex);
+
+            IncludeScanCacheEntry& entry = s_includeScanCache[fileKey];
+            entry.lastModifiedTimestamp = lastModifiedTimestamp;
+            entry.includes = includes;
+        }
+
+        for (const FilePath& includePath : includes)
+        {
+            filesToProcess.PushBack(includePath);
+        }
+    }
+
+    return maxLastModifiedTimestamp;
 }
 
 #ifdef HYP_DXC
@@ -648,8 +799,8 @@ static bool PreprocessHLSL(
 
     WideString includeDirs[] = {
         WideString(FilePath(filename).BasePath()),
-        WideString(GetShaderSourceDirectory()),
-        WideString(GetShaderSourceDirectory() / "include")
+        WideString(GetShaderSourceDirectoryImpl()),
+        WideString(GetShaderSourceDirectoryImpl() / "include")
     };
 
     Array<LPCWSTR> args;
@@ -1634,32 +1785,32 @@ void ShaderCompiler::ParseShaderBundleDecl(
 
     if (definition.vertexShader.Any())
     {
-        outShaderBundleDecl.sources[ShaderModuleType::Vertex] = GetShaderSourceDirectory() / definition.vertexShader;
+        outShaderBundleDecl.sources[ShaderModuleType::Vertex] = GetShaderSourceDirectoryImpl() / definition.vertexShader;
     }
 
     if (definition.pixelShader.Any())
     {
-        outShaderBundleDecl.sources[ShaderModuleType::Pixel] = GetShaderSourceDirectory() / definition.pixelShader;
+        outShaderBundleDecl.sources[ShaderModuleType::Pixel] = GetShaderSourceDirectoryImpl() / definition.pixelShader;
     }
 
     if (definition.computeShader.Any())
     {
-        outShaderBundleDecl.sources[ShaderModuleType::Compute] = GetShaderSourceDirectory() / definition.computeShader;
+        outShaderBundleDecl.sources[ShaderModuleType::Compute] = GetShaderSourceDirectoryImpl() / definition.computeShader;
     }
 
     if (definition.rayGenShader.Any())
     {
-        outShaderBundleDecl.sources[ShaderModuleType::RayGen] = GetShaderSourceDirectory() / definition.rayGenShader;
+        outShaderBundleDecl.sources[ShaderModuleType::RayGen] = GetShaderSourceDirectoryImpl() / definition.rayGenShader;
     }
 
     if (definition.closestHitShader.Any())
     {
-        outShaderBundleDecl.sources[ShaderModuleType::ClosestHit] = GetShaderSourceDirectory() / definition.closestHitShader;
+        outShaderBundleDecl.sources[ShaderModuleType::ClosestHit] = GetShaderSourceDirectoryImpl() / definition.closestHitShader;
     }
 
     if (definition.missShader.Any())
     {
-        outShaderBundleDecl.sources[ShaderModuleType::Miss] = GetShaderSourceDirectory() / definition.missShader;
+        outShaderBundleDecl.sources[ShaderModuleType::Miss] = GetShaderSourceDirectoryImpl() / definition.missShader;
     }
 }
 
@@ -1680,15 +1831,11 @@ bool ShaderCompiler::HandleBundle(
     if (CanCompileShaders())
     {
         // Check that each version specified is present in the ShaderBundle.
-        // OR any src files have been changed since the object file was compiled.
+        // OR any src files (or files they transitively include) have been changed
+        // since the object file was compiled.
         // if not, we need to recompile those versions.
 
-        Time maxSourceFileLastModified = Time(0);
-
-        for (const auto& sourceFile : decl.sources)
-        {
-            maxSourceFileLastModified = MathUtil::Max(maxSourceFileLastModified, FilePath(sourceFile.second).LastModifiedTimestamp());
-        }
+        const Time maxSourceFileLastModified = GetTransitiveSourcesLastModifiedTimestamp(decl);
 
         if (maxSourceFileLastModified > lastSavedTimestamp)
         {
@@ -3721,14 +3868,92 @@ bool ShaderCompiler::IsShaderBundleOutdated(Name name) const
 
     const Time bundleManifestModifiedTimestamp = bundleManifestFilePath.LastModifiedTimestamp();
 
-    Time sourceFileModifiedTimestamp = Time(0);
-
-    for (const auto& sourceFile : foundDecl->sources)
-    {
-        sourceFileModifiedTimestamp = MathUtil::Max(sourceFileModifiedTimestamp, FilePath(sourceFile.second).LastModifiedTimestamp());
-    }
+    const Time sourceFileModifiedTimestamp = GetTransitiveSourcesLastModifiedTimestamp(*foundDecl);
 
     return sourceFileModifiedTimestamp > bundleManifestModifiedTimestamp;
+}
+
+bool ShaderCompiler::RecompileOutdatedShaderBundles()
+{
+    if (!m_definitions)
+    {
+        Mutex::Guard guard(m_initMutex);
+
+        if (!m_definitions)
+        {
+            if (!Initialize(/* precompileShaders */ false, m_compileParams))
+            {
+                HYP_LOG(ShaderCompiler, Error, "Failed to load shader definitions");
+
+                return false;
+            }
+        }
+    }
+
+    Array<const ShaderBundleDecl*> outdatedBundles;
+
+    for (const ShaderBundleDecl& decl : m_shaderBundleDecls)
+    {
+        if (!m_compileParams.ShaderMatchesFilter(*decl.name))
+        {
+            continue;
+        }
+
+        if (!IsShaderBundleOutdated(decl.name))
+        {
+            continue;
+        }
+
+        outdatedBundles.PushBack(&decl);
+    }
+
+    if (outdatedBundles.Empty())
+    {
+        return true;
+    }
+
+    HYP_LOG(ShaderCompiler, Info, "Recompiling {} outdated shader bundle(s)...", outdatedBundles.Size());
+
+    PrecompileShadersWorkerPool pool;
+    s_precompileShadersPool = &pool;
+
+    pool.Start();
+
+    HYP_DEFER({
+        s_precompileShadersPool = nullptr;
+
+        pool.Stop();
+    });
+
+    // Use precompile semantics so that all enabled target platforms / backends are
+    // compiled for, and compiled shaders do not require render-thread interaction
+    // to expire existing instances.
+    const bool wasPrecompilingShaders = m_isPrecompilingShaders;
+    m_isPrecompilingShaders = true;
+
+    HYP_DEFER({ m_isPrecompilingShaders = wasPrecompilingShaders; });
+
+    bool allResults = true;
+
+    for (const ShaderBundleDecl* decl : outdatedBundles)
+    {
+        Handle<ShaderBundle> bundle;
+
+        if (!LoadBundle(decl->name, Optional<ShaderRequest>(), bundle))
+        {
+            HYP_LOG(ShaderCompiler, Error,
+                    "{}: Loading of compiled shader failed!\n\tProperties: {}\n\tAttributes: {}",
+                    decl->name, decl->variantPerms.ToString(), decl->variantPerms.GetRequiredVertexAttributes().ToString());
+
+            allResults = false;
+
+            continue;
+        }
+
+        HYP_LOG(ShaderCompiler, Info, "Recompiled shader bundle {}", decl->name);
+    }
+
+    return allResults;
 }
 
 #endif // HYP_ENABLE_SHADER_RELOAD

@@ -18,6 +18,8 @@
 #include <Asset/CookManifest.hpp>
 #include <Asset/SerializationUtils.hpp>
 
+#include <Rendering/Util/ShaderCompiler.hpp>
+
 #include <Core/CLI/CommandLine.hpp>
 #include <Core/Core.hpp>
 
@@ -41,6 +43,8 @@
 #include <Core/Utilities/GlobalContext.hpp>
 
 #include <Core/Threading/ThreadPool.hpp>
+#include <Core/Threading/TaskSystem.hpp>
+#include <Core/Threading/Threads.hpp>
 
 #if defined(HYP_UNIX) || defined(HYP_ANDROID)
 
@@ -585,6 +589,16 @@ class CacheServerCommandlet final : public CommandletBase
         Proc<void(const String&, bool)> engineCallback;
         Proc<void(const String&, bool)> gameCallback;
 
+#if HYP_ENABLE_SHADER_RELOAD
+        UniquePtr<DirectoryWatcher> shaderSourceWatcher;
+        Proc<void(const String&, bool)> shaderSourceCallback;
+
+        std::thread shaderRecompileThread;
+        std::atomic<bool> shaderRecompileThreadRunning { false };
+        std::atomic<bool> shaderRecompilePending { false };
+        std::atomic<uint64> shaderLastSourceChangeMs { 0 };
+#endif
+
         bool devServer = false;
     };
 
@@ -770,6 +784,15 @@ class CacheServerCommandlet final : public CommandletBase
         const String& assetNameStr,
         bool wasDeleted)
     {
+        {
+            TSharedLock lock(state.lock);
+
+            if (state.manifests.Find(registryId) == state.manifests.End())
+            {
+                return;
+            }
+        }
+
         AssetBucket bucket = GetAssetBucketByName(StringHash(bucketName));
         uint32 bucketIndex = bucket.GetIndex();
 
@@ -1006,7 +1029,11 @@ protected:
         }
 
         state.engineRegistry = MakeHandle<AssetRegistry>(AssetRegistryId::Engine, state.engineContentDir);
-        state.engineRegistry->LoadAssetDescs();
+
+        // Make the engine registry available globally (as the editor and precompileshaders
+        // commandlet do) so that the shader compiler loads / saves engine assets through
+        // the same registry this server serves from. Also calls LoadAssetDescs().
+        SetEngineAssetRegistry(state.engineRegistry);
 
         state.gameRegistry = MakeHandle<AssetRegistry>(AssetRegistryId::Game, state.gameContentDir);
         state.gameRegistry->LoadAssetDescs();
@@ -1029,7 +1056,7 @@ protected:
                 UpdateAssetInManifest(
                     state,
                     registry,
-                    AssetRegistryId::Game,
+                    registry->GetRegistryId(),
                     bucketName,
                     assetName,
                     wasDeleted);
@@ -1111,6 +1138,96 @@ protected:
         serverPool.Start();
 
         HYP_DEFER({ serverPool.Stop(); });
+
+#if HYP_ENABLE_SHADER_RELOAD
+#if 0
+        HYP_DEFER({
+            state.shaderRecompileThreadRunning.store(false);
+
+            if (state.shaderRecompileThread.joinable())
+            {
+                state.shaderRecompileThread.join();
+            }
+        });
+
+        // Dev server compiles shaders
+        if (devServer)
+        {
+            if (!TaskSystem::GetInstance().IsRunning())
+            {
+                TaskSystem::GetInstance().Start();
+            }
+
+            if (!g_shaderCompiler)
+            {
+                g_shaderCompiler = new ShaderCompiler;
+            }
+
+            g_shaderCompiler->Initialize(/* precompileShaders */ false);
+
+            const FilePath shaderSourceDir = ShaderCompiler::GetShaderSourceDirectory();
+
+            if (shaderSourceDir.Exists() && shaderSourceDir.IsDirectory())
+            {
+                state.shaderSourceCallback = [&state](const String& relativePath, bool wasDeleted)
+                {
+                    if (wasDeleted)
+                    {
+                        return;
+                    }
+
+                    state.shaderLastSourceChangeMs.store(uint64(Time::Now()));
+                    state.shaderRecompilePending.store(true);
+                };
+
+                state.shaderSourceWatcher = MakeUnique<DirectoryWatcher>(shaderSourceDir, state.shaderSourceCallback);
+
+                state.shaderRecompileThreadRunning.store(true);
+
+                state.shaderRecompileThread = std::thread([&state]()
+                {
+                    // Needed per-thread
+                    GlobalContextScope scope { CacheServerContext() };
+
+                    constexpr uint32 pollIntervalMs = 250;
+                    constexpr uint64 recompileDebounceMs = 1000;
+
+                    while (state.shaderRecompileThreadRunning.load())
+                    {
+                        ThreadSleep(pollIntervalMs);
+
+                        if (!state.shaderRecompileThreadRunning.load())
+                        {
+                            break;
+                        }
+
+                        if (!state.shaderRecompilePending.load())
+                        {
+                            continue;
+                        }
+
+                        if (uint64(Time::Now()) - state.shaderLastSourceChangeMs.load() < recompileDebounceMs)
+                        {
+                            continue;
+                        }
+
+                        state.shaderRecompilePending.store(false);
+
+                        HYP_LOG(Assets, Info, "CacheServer: shader source change detected, recompiling outdated shader bundles");
+
+                        g_shaderCompiler->RecompileOutdatedShaderBundles();
+                    }
+                });
+
+                HYP_LOG(Assets, Info, "CacheServer shader source watcher started on {}", shaderSourceDir);
+            }
+            else
+            {
+                HYP_LOG(Assets, Warning, "CacheServer: shader source directory not found ({}), shader sources will not be watched", shaderSourceDir);
+            }
+        }
+#endif
+#endif
 
         List<Task<void>> tasks;
 
