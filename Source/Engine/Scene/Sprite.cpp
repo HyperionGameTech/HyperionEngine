@@ -28,16 +28,10 @@ Sprite::Sprite(Name name, SpriteType spriteType)
     : Entity(name),
       spriteType(spriteType)
 {
+    m_nodeFlags |= (NodeFlags::ExcludeFromParentBounds | NodeFlags::ExcludeFromOctree);
 }
 
 Sprite::~Sprite() = default;
-
-void Sprite::Init()
-{
-    Entity::Init();
-
-    SetNodeFlags(m_nodeFlags | NodeFlags::ExcludeFromParentBounds | NodeFlags::ExcludeFromOctree);
-}
 
 void Sprite::UpdateRenderProxy(RenderProxySprite* proxy)
 {
@@ -55,7 +49,7 @@ void Sprite::UpdateRenderProxy(RenderProxySprite* proxy)
 
 Handle<Sprite> Sprite::CreateEnvProbeSprite(Scene* scene, EnvProbe* envProbe)
 {
-    Handle<Sprite> sprite = MakeHandle<Sprite>(NAME_FMT("{}_Sprite", envProbe->GetName()), SpriteType::EnvProbe);
+    Handle<Sprite> sprite = MakeHandle<Sprite>(NAME_FMT("{}_Sprite", envProbe->GetName()), SpriteType::Editor_EnvProbe);
     InitObject(sprite);
 
     sprite->size = 2.0f;
@@ -76,7 +70,7 @@ Handle<Sprite> Sprite::CreateEnvProbeSprite(Scene* scene, EnvProbe* envProbe)
 
 Handle<Sprite> Sprite::CreateLightmapVolumeSprite(Scene* scene, LightmapVolume* lightmapVolume)
 {
-    Handle<Sprite> sprite = MakeHandle<Sprite>(NAME_FMT("{}_Sprite", lightmapVolume->GetName()), SpriteType::LightmapVolume);
+    Handle<Sprite> sprite = MakeHandle<Sprite>(NAME_FMT("{}_Sprite", lightmapVolume->GetName()), SpriteType::Editor_LightmapVolume);
     InitObject(sprite);
 
     sprite->size = 2.0f;
@@ -97,7 +91,7 @@ Handle<Sprite> Sprite::CreateLightmapVolumeSprite(Scene* scene, LightmapVolume* 
 
 Handle<Sprite> Sprite::CreateCameraSprite(Scene* scene, Camera* camera)
 {
-    Handle<Sprite> sprite = MakeHandle<Sprite>(NAME_FMT("{}_Sprite", camera->GetName()), SpriteType::Camera);
+    Handle<Sprite> sprite = MakeHandle<Sprite>(NAME_FMT("{}_Sprite", camera->GetName()), SpriteType::Editor_Camera);
     InitObject(sprite);
 
     sprite->size = 1.5f;

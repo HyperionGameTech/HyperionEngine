@@ -277,7 +277,7 @@ void OpenALAudioAdapter::OnAudioSourceSoundChanged(AudioSource* audioSource)
     }
 }
 
-AudioSourceState OpenALAudioAdapter::GetAudioSourceState(const AudioSource* audioSource) const
+AudioPlaybackStatus OpenALAudioAdapter::GetPlaybackStatus(const AudioSource* audioSource) const
 {
     Assert(audioSource != nullptr);
 
@@ -285,7 +285,7 @@ AudioSourceState OpenALAudioAdapter::GetAudioSourceState(const AudioSource* audi
 
     if (!internalData)
     {
-        return AudioSourceState::UNDEFINED;
+        return AudioPlaybackStatus::Stopped;
     }
 
     ALint state;
@@ -295,13 +295,13 @@ AudioSourceState OpenALAudioAdapter::GetAudioSourceState(const AudioSource* audi
     {
     case AL_INITIAL: // fallthrough
     case AL_STOPPED:
-        return AudioSourceState::STOPPED;
+        return AudioPlaybackStatus::Stopped;
     case AL_PLAYING:
-        return AudioSourceState::PLAYING;
+        return AudioPlaybackStatus::Playing;
     case AL_PAUSED:
-        return AudioSourceState::PAUSED;
+        return AudioPlaybackStatus::Paused;
     default:
-        return AudioSourceState::UNDEFINED;
+        return AudioPlaybackStatus::Stopped;
     }
 }
 

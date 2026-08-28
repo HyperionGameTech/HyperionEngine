@@ -502,8 +502,6 @@ public:
     void UpdateRenderProxy(RenderProxyCamera* proxy);
 
 protected:
-    void Init() override;
-
     void UpdateMatchWindowSize();
     void UpdateStreamingVolume();
 

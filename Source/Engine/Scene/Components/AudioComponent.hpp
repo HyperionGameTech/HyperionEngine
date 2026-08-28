@@ -17,31 +17,16 @@
 
 namespace Hyperion {
 
-HYP_ENUM()
-enum AudioPlaybackStatus : uint8
-{
-    APS_STOPPED,
-    APS_PAUSED,
-    APS_PLAYING
-};
-
-HYP_ENUM()
-enum AudioLoopMode : uint8
-{
-    ALM_ONCE,
-    ALM_REPEAT
-};
-
 HYP_STRUCT()
 struct AudioPlaybackState
 {
     HYP_STRUCT_BODY(AudioPlaybackState);
 
     HYP_FIELD(Property = "Status", Editor = true)
-    AudioPlaybackStatus status = APS_STOPPED;
+    AudioPlaybackStatus status = AudioPlaybackStatus::Stopped;
 
     HYP_FIELD(Property = "LoopMode", Editor = true)
-    AudioLoopMode loopMode = ALM_ONCE;
+    AudioLoopMode loopMode = AudioLoopMode::Once;
 
     HYP_FIELD(Property = "Speed", Editor = true)
     float speed = 1.0f;

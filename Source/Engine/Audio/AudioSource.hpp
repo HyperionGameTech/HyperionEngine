@@ -24,12 +24,18 @@ namespace Hyperion {
 class Sound;
 
 HYP_ENUM()
-enum class AudioSourceState : uint32
+enum class AudioPlaybackStatus : uint8
 {
-    UNDEFINED,
-    STOPPED,
-    PLAYING,
-    PAUSED
+    Stopped,
+    Paused,
+    Playing
+};
+
+HYP_ENUM()
+enum class AudioLoopMode : uint8
+{
+    Once,
+    Repeat
 };
 
 HYP_CLASS()
@@ -57,7 +63,7 @@ public:
     HYP_METHOD(Property = "Sound", Serialize, Editor)
     void SetSound(const Handle<Sound>& sound);
 
-    AudioSourceState GetState() const;
+    AudioPlaybackStatus GetPlaybackStatus() const;
 
     void SetPosition(const Vec3f& vec);
     void SetVelocity(const Vec3f& vec);

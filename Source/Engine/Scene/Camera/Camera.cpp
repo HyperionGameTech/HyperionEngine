@@ -172,6 +172,8 @@ Camera::Camera(int width, int height)
       m_fov(75.0f),
       m_streamingVolumeAdded(false)
 {
+    m_nodeFlags |= (NodeFlags::ExcludeFromParentBounds | NodeFlags::ExcludeFromOctree);
+
     // make sure there is always at least 1 camera controller
     m_cameraControllers.PushBack(MakeStrongRef(GetNullCameraController()));
 
@@ -187,6 +189,8 @@ Camera::Camera(float fov, int width, int height, float _near, float _far)
       m_height(height),
       m_fov(fov)
 {
+    m_nodeFlags |= (NodeFlags::ExcludeFromParentBounds | NodeFlags::ExcludeFromOctree);
+
     // make sure there is always at least 1 camera controller
     m_cameraControllers.PushBack(MakeStrongRef(GetNullCameraController()));
 
@@ -204,6 +208,8 @@ Camera::Camera(int width, int height, float left, float right, float bottom, flo
       m_height(height),
       m_fov(0.0f)
 {
+    m_nodeFlags |= (NodeFlags::ExcludeFromParentBounds | NodeFlags::ExcludeFromOctree);
+
     // make sure there is always at least 1 camera controller
     m_cameraControllers.PushBack(MakeStrongRef(GetNullCameraController()));
 
@@ -225,15 +231,6 @@ Camera::~Camera()
         cameraController->OnDeactivated();
         cameraController->OnRemoved();
     }
-}
-
-void Camera::Init()
-{
-    Entity::Init();
-
-    SetNodeFlags(m_nodeFlags | NodeFlags::ExcludeFromParentBounds | NodeFlags::ExcludeFromOctree);
-
-    SetReady(true);
 }
 
 void Camera::SetCameraFlags(EnumFlags<CameraFlags> flags)
