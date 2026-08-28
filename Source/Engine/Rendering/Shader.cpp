@@ -39,6 +39,8 @@ void Shader::AddShaderModule(
 {
     MarkDirty();
 
+    auto writeScope = GetWriteScope();
+
     auto it = moduleTypes.Find(moduleType);
 
     // if we already have this module type, replace the blob and entry point name

@@ -840,6 +840,7 @@ public:
         struct ReloadItem
         {
             ShaderMapEntry* entry;
+            Shader* oldShader;
             Name shaderName;
             ShaderPropertySet properties;
             VertexInputLayoutDesc inputLayout;
@@ -873,7 +874,7 @@ public:
                     }
                 }
 
-                items.PushBack(ReloadItem { entry, entry->shader->baseName, entry->shader->properties, entry->shader->inputLayout });
+                items.PushBack(ReloadItem { entry, entry->shader, entry->shader->baseName, entry->shader->properties, entry->shader->inputLayout });
             }
         }
 
@@ -914,18 +915,21 @@ public:
 
             item.entry->compileTask.Await();
 
-            Shader* shader = item.entry->shader;
-            Assert(shader != nullptr);
+            Shader* reloadedShader = item.entry->shader;
+            Assert(reloadedShader != nullptr);
 
-            if (shader->IsSaved())
+            if (reloadedShader->IsSaved())
             {
-                AssertDebug(!g_shaderCompiler->IsShaderBundleOutdated(shader->baseName));
+                AssertDebug(!g_shaderCompiler->IsShaderBundleOutdated(reloadedShader->baseName));
             }
 
-            shader->AddRef();
-            shadersToExpire.Add(shader);
-
             AssertDebug(item.entry->IsLoaded());
+
+            if (item.oldShader != nullptr && item.oldShader != reloadedShader)
+            {
+                item.oldShader->AddRef();
+                shadersToExpire.Add(item.oldShader);
+            }
         }
 
         if (shadersToExpire.Any())

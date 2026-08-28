@@ -604,7 +604,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
                         if (registry.IsValid())
                         {
-                            const FilePath sourcePath = registry->GetRootPath() / "Scripts" / (scriptAsset->GetName().ToString() + ".hyp");
+                            const FilePath sourcePath = registry->GetRootPath() / AssetBuckets::Scripts.GetName() / (scriptAsset->GetName().ToString() + ".hyp");
 
                             if (sourcePath.Exists() && sourcePath.CanRead())
                             {
@@ -638,7 +638,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                         return;
                     }
 
-                    const FilePath sourcePath = registry->GetRootPath() / "Scripts" / (scriptAsset->GetName().ToString() + ".hyp");
+                    const FilePath sourcePath = registry->GetRootPath() / AssetBuckets::Scripts.GetName() / (scriptAsset->GetName().ToString() + ".hyp");
 
                     if (!sourcePath.Exists() || !sourcePath.CanRead())
                     {
@@ -669,7 +669,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
                     HypScriptCompileParams compileParams;
                     // Add data / scripts path as scan path so we pick up Lib.hyp
-                    compileParams.scanPaths.Add(EngineGlobals::GetDataDirectory() / "Scripts");
+                    compileParams.scanPaths.Add(EngineGlobals::GetDataDirectory() / AssetBuckets::Scripts.GetName());
 
                     ErrorList errorList;
                     instance = HS::Compile(sourceFile, errorList, compileParams);
@@ -804,7 +804,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
                     if (Handle<AssetRegistry> registry = scriptAsset->GetAssetRegistry(); registry.IsValid())
                     {
-                        sourcePath = registry->GetRootPath() / "Scripts" / (scriptAsset->GetName().ToString() + ".strata");
+                        sourcePath = registry->GetRootPath() / AssetBuckets::Scripts.GetName() / (scriptAsset->GetName().ToString() + ".strata");
                     }
 
                     if (!sourcePath.Exists() || !sourcePath.CanRead())

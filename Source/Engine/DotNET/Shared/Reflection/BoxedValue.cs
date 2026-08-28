@@ -559,7 +559,12 @@ namespace Hyperion
 
             if (BoxedValue_GetStruct(ref this, out value.objectReference))
             {
-                return value.objectReference.LoadObject();
+                // objectReference wraps a freshly boxed struct with a strong handle we own,
+                // read it out then release it
+                object? structValue = value.objectReference.LoadObject();
+                value.objectReference.Dispose();
+
+                return structValue;
             }
 
             if (DynamicStruct.TryGet(TypeId, out DynamicStruct? dynamicStruct))
@@ -853,7 +858,12 @@ namespace Hyperion
 
             if (BoxedValue_GetStruct(ref this, out objectReference))
             {
-                return (T)objectReference.LoadObject();
+                // objectReference wraps a freshly boxed struct with a strong handle we own -
+                // read it out then release the handle.
+                T structValue = (T)objectReference.LoadObject();
+                objectReference.Dispose();
+
+                return structValue;
             }
 
             if (DynamicStruct.TryGet(TypeId, out DynamicStruct? dynamicStruct))

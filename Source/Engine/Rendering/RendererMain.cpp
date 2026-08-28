@@ -465,8 +465,8 @@ static inline void UpdateRefs_Impl(ResourceTracker<AllocatorType, ObjId<ElementT
         return;
     }
 
-    Array<ElementType*, ThreadAllocator> removed;
-    resourceTracker.GetRemoved(removed, false);
+    Array<ObjId<ElementType>, ThreadAllocator> removedIds;
+    resourceTracker.GetRemoved(removedIds, false);
 
     Array<ElementType*, ThreadAllocator> added;
     resourceTracker.GetAdded(added, false);
@@ -491,11 +491,13 @@ static inline void UpdateRefs_Impl(ResourceTracker<AllocatorType, ObjId<ElementT
         }
     }
 
-    for (ElementType* resource : removed)
+    // Removed elements may have already been destroyed (e.g. entities removed on disconnect),
+    // so we must not dereference them here -- use the tracker-generated ids instead.
+    for (const ObjId<ElementType> id : removedIds)
     {
         if constexpr (CONSTEXPR_TYPE_ID(ProxyType) != CONSTEXPR_TYPE_ID(NullProxy))
         {
-            resourceTracker.RemoveProxy(ObjId<ElementType>(resource->Id()));
+            resourceTracker.RemoveProxy(id);
         }
     }
 
@@ -512,6 +514,12 @@ static inline void UpdateRefs_Impl(ResourceTracker<AllocatorType, ObjId<ElementT
             ElementType& resource = **ppResource;
 
             ProxyType* pProxy = resourceTracker.GetProxy(id);
+
+            if (!pProxy)
+            {
+                pProxy = resourceTracker.SetProxy(id, ProxyType());
+            }
+
             AssertDebug(pProxy != nullptr);
 
             resource.UpdateRenderProxy(pProxy);

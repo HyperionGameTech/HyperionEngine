@@ -43,19 +43,21 @@ public:
     virtual ~EditorTaskBase() = default;
 
     HYP_METHOD()
-    const String& GetTitle() const
+    String GetTitle() const
     {
+        Mutex::Guard guard(m_mutex);
         return m_title;
     }
 
     HYP_METHOD()
     void SetTitle(const String& title)
     {
+        Mutex::Guard guard(m_mutex);
         m_title = title;
     }
 
     HYP_METHOD()
-    const String& GetDescription() const
+    String GetDescription() const
     {
         Mutex::Guard guard(m_mutex);
         return m_description;

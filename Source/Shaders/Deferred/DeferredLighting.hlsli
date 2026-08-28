@@ -149,7 +149,8 @@ float4 CalculateReflectionProbe(in EnvProbe probe, float3 P, float3 N, float3 R,
 float CalculateProbeVisibility(
     float3 probeToPoint, float dist, float3 N,
     float far,
-    uint visTextureIndex)
+    uint visTextureIndex,
+    bool applyDirectionalWeight)
 {
     const float3 probeToPointN = probeToPoint / dist;
 
@@ -169,8 +170,11 @@ float CalculateProbeVisibility(
 
     float visibility = saturate((p_max - s_softenAmount) / (1.0 - s_softenAmount));
 
-    float directionalWeight = max(HYP_FMATH_EPSILON, (dot(-probeToPointN, N) + 1.0) * 0.5);
-    visibility *= directionalWeight;
+    if (applyDirectionalWeight)
+    {
+        float directionalWeight = max(HYP_FMATH_EPSILON, (dot(-probeToPointN, N) + 1.0) * 0.5);
+        visibility *= directionalWeight;
+    }
 
     return saturate(visibility);
 }
@@ -227,7 +231,7 @@ void EvaluateSingleProbe(
 
     if ((envProbeFlags & EPF_VISIBILITY) && visTextureIndex != INVALID_ENV_PROBE_TEXTURE)
     {
-        visibility = CalculateProbeVisibility(probeToPoint, dist, N, far, visTextureIndex);
+        visibility = CalculateProbeVisibility(probeToPoint, dist, N, far, visTextureIndex, !isIrradianceProbe);
     }
 
 #ifndef HYP_DEFERRED_NO_PROBE_REFLECTIONS
@@ -245,8 +249,8 @@ void EvaluateSingleProbe(
     const float diffuseContributionWeight = (1.0 - lightmappedWeight) * diffuseStrength;
 
     // @TODO Make configurable.
-    static const float kIrradianceProbeBlendFactor = 0.25;
-    static const float kReflectionsProbeBlendFactor = 0.25;
+    static const float kIrradianceProbeBlendFactor = 0.2;
+    static const float kReflectionsProbeBlendFactor = 0.2;
     const float blendFactor = lerp(kReflectionsProbeBlendFactor, kIrradianceProbeBlendFactor, irradianceOnlyWeight);
 
     const float boundsWeight = CalculateEnvProbeWeight(positionWS, aabbMin.xyz, aabbMax.xyz, blendFactor);
@@ -343,11 +347,8 @@ void EvaluateEnvProbes(
             skyIrradianceSum, skyIrradianceWeightSum);
 
         // Sky only fills in where no env probes cover
-        const float hasReflectionProbes = step(0.2, reflectionsWeightSum);
-        const float reflectionsResidual = (1.0 - hasReflectionProbes) * (1.0 - reflectionsWeightSum);
-
-        const float hasIrradianceProbes = step(0.05, irradianceWeightSum);
-        const float irradianceResidual = (1.0 - hasIrradianceProbes) * (1.0 - irradianceWeightSum);
+        const float reflectionsResidual = 1.0 - smoothstep(0.01, 0.2, saturate(reflectionsWeightSum));
+        const float irradianceResidual = 1.0 - smoothstep(0.01, 0.2, saturate(irradianceWeightSum));
         
         const float skyReflectionsEffectiveWeight = min(skyReflectionsWeightSum, reflectionsResidual);
         reflectionsSum += (skyReflectionsSum / max(skyReflectionsWeightSum, HYP_FMATH_EPSILON)) * skyReflectionsEffectiveWeight;
