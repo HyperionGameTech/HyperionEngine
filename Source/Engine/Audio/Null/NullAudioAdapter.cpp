@@ -49,9 +49,9 @@ void NullAudioAdapter::OnAudioSourceSoundChanged(AudioSource* audioSource)
 {
 }
 
-AudioSourceState NullAudioAdapter::GetAudioSourceState(const AudioSource* audioSource) const
+AudioPlaybackStatus NullAudioAdapter::GetPlaybackStatus(const AudioSource* audioSource) const
 {
-    return AudioSourceState::UNDEFINED;
+    return AudioPlaybackStatus::Stopped;
 }
 
 void NullAudioAdapter::SetAudioSourcePosition(AudioSource* audioSource, const Vec3f& position)

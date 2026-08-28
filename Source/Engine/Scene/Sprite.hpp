@@ -25,14 +25,13 @@ enum class SpriteType : uint32
 {
     None = 0,
 
-    Point2D,
-    Spot3D,
-    Crosshair,
-
-    EnvProbe,
-    LightmapVolume,
-    Camera,
     Text,
+    
+    //-- Editor
+    Editor_EnvProbe,
+    Editor_LightmapVolume,
+    Editor_Camera,
+    //--
 
     Max
 };
@@ -51,20 +50,28 @@ public:
 
     ~Sprite() override;
 
-    virtual void Init() override;
-
     virtual void UpdateRenderProxy(struct RenderProxySprite* proxy);
 
     static Handle<Sprite> CreateEnvProbeSprite(Scene* scene, EnvProbe* envProbe);
     static Handle<Sprite> CreateLightmapVolumeSprite(Scene* scene, LightmapVolume* lightmapVolume);
     static Handle<Sprite> CreateCameraSprite(Scene* scene, Camera* camera);
 
+    HYP_FIELD(Property = "SpriteType", Serialize, Editor)
     SpriteType spriteType = SpriteType::None;
+    
+    HYP_FIELD(Property = "Size", Serialize, Editor)
     float size = 1.0f;
+    
+    HYP_FIELD(Property = "Color", Serialize, Editor)
     Color color = Color::White();
-    Handle<Texture> texture;
+    
+    HYP_FIELD(Property = "Opacity", Serialize, Editor)
     float opacity = 1.0f;
+    
+    HYP_FIELD(Property = "AlwaysFaceCamera", Serialize, Editor)
     bool alwaysFaceCamera = true;
+    
+    Handle<Texture> texture;
 
     // @TODO Move to EditorSprite class? Use Handle<ObjectBase> to reduce memory usage
     Handle<EnvProbe> m_envProbe;

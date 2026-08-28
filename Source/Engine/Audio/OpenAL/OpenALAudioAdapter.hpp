@@ -10,6 +10,8 @@
 
 namespace Hyperion {
 
+enum class AudioPlaybackStatus : uint8;
+
 class OpenALAudioAdapter : public AudioAdapter<OpenALAudioAdapter>
 {
 public:
@@ -28,7 +30,7 @@ public:
     void OnAudioSourceDestroy(AudioSource* audioSource);
     void OnAudioSourceSoundChanged(AudioSource* audioSource);
 
-    AudioSourceState GetAudioSourceState(const AudioSource* audioSource) const;
+    AudioPlaybackStatus GetPlaybackStatus(const AudioSource* audioSource) const;
 
     void SetAudioSourcePosition(AudioSource* audioSource, const Vec3f& position);
     void SetAudioSourceVelocity(AudioSource* audioSource, const Vec3f& velocity);

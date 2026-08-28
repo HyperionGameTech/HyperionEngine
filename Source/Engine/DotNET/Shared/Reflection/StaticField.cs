@@ -6,7 +6,7 @@ namespace Hyperion
 {
     public struct StaticField
     {
-        public static readonly StaticField Invalid = new StaticField(IntPtr.Zero);
+        public static readonly StaticField Invalid = new(IntPtr.Zero);
 
         internal IntPtr _ptr;
 
@@ -62,10 +62,10 @@ namespace Hyperion
                 uint count = StaticField_GetAttributes(_ptr, IntPtr.Zero);
 
                 IntPtr attributesPtr = Marshal.AllocHGlobal(IntPtr.Size * (int)count);
+                StaticField_GetAttributes(_ptr, attributesPtr);
+
                 try
                 {
-                    StaticField_GetAttributes(_ptr, attributesPtr);
-
                     for (int i = 0; i < count; i++)
                     {
                         yield return new(Marshal.ReadIntPtr(attributesPtr, i * IntPtr.Size));

@@ -173,12 +173,6 @@ protected:
 
     HYP_FIELD(Transient)
     GpuImageRef m_gpuImage;
-
-private:
-    void Init() override
-    {
-        AssetObject::Init();
-    };
 };
 
 } // namespace Hyperion

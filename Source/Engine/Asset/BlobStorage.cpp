@@ -60,10 +60,6 @@ static void InitBlobStorage(BlobStorage& outStorage, const FilePath& baseDirecto
 
 #pragma region BlobTableOfContents
 
-// @TODO Refactor + fix...
-// AssetPaths are now 12-byte structs that could be bitwise copied,
-// no longer needing string keys.
-
 class BlobTableOfContents
 {
     enum class SlotState : uint8
@@ -75,8 +71,6 @@ class BlobTableOfContents
 
 public:
     HYP_DEF_POOL_NEW_DELETE(g_assetPool);
-
-    static constexpr uint32 MaxKeyLength = 512;
 
     struct Value
     {
@@ -145,7 +139,9 @@ public:
             idx = (idx + 1) % header->capacity;
 
             if (idx == startIdx)
+            {
                 return false;
+            }
         }
 
         return false;
@@ -239,7 +235,9 @@ public:
             idx = (idx + 1) % header->capacity;
 
             if (idx == startIdx)
+            {
                 return false;
+            }
         }
 
         return false; // Not found
@@ -305,7 +303,9 @@ private:
             idx = (idx + 1) % header->capacity;
 
             if (idx == startIdx)
+            {
                 return false;
+            }
         }
 
         entry[idx].key = key;

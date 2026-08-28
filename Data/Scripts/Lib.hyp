@@ -606,20 +606,11 @@ extern struct AudioPlaybackState
     Speed : float
     CurrentTime : float
 end
-extern enum AudioPlaybackStatus : uint8
-    APS_STOPPED,
-    APS_PAUSED,
-    APS_PLAYING
-end
 extern struct AudioComponent
     AudioSource : AudioSource
     PlaybackState : AudioPlaybackState
     LastPosition : Vec3f
     Timer : float
-end
-extern enum AudioLoopMode : uint8
-    ALM_ONCE,
-    ALM_REPEAT
 end
 extern enum AnimationPlaybackStatus : uint8
     STOPPED = 0,
@@ -1099,16 +1090,18 @@ extern enum EnvProbeFlags : uint32
     EPF_DIFFUSE = 0x20
 end
 extern class Sprite : Entity
+    SpriteType : SpriteType
+    Size : float
+    Color : Color
+    Opacity : float
+    AlwaysFaceCamera : bool
 end
 extern enum SpriteType : uint32
     None = 0,
-    Point2D,
-    Spot3D,
-    Crosshair,
-    EnvProbe,
-    LightmapVolume,
-    Camera,
     Text,
+    Editor_EnvProbe,
+    Editor_LightmapVolume,
+    Editor_Camera,
     Max
 end
 extern class TextSprite : Sprite
@@ -2011,17 +2004,20 @@ extern struct BakerConfig
     OnlyGenerateUVs : bool
     MaxRayDistance : float
 end
-extern enum AudioSourceState : uint32
-    UNDEFINED,
-    STOPPED,
-    PLAYING,
-    PAUSED
+extern enum AudioPlaybackStatus : uint8
+    Stopped,
+    Paused,
+    Playing
 end
 extern class AudioSource
     GetSound() -> Sound
     SetSound(sound : Sound) -> void
     static OnChanged : any
     Sound : Sound
+end
+extern enum AudioLoopMode : uint8
+    Once,
+    Repeat
 end
 extern class AudioManager
 end

@@ -48,7 +48,9 @@ void AudioSystem::OnEntityAdded(Entity* entity)
             });
         
         audioComponent.audioSource->SetPitch(audioComponent.playbackState.speed);
-        audioComponent.audioSource->SetLoop(audioComponent.playbackState.loopMode == ALM_REPEAT);
+
+        const bool isLoop = (audioComponent.playbackState.loopMode == AudioLoopMode::Repeat);
+        audioComponent.audioSource->SetLoop(isLoop);
     }
 }
 
@@ -96,23 +98,23 @@ void AudioSystem::Process(float delta, Span<Handle<Scene>> scenes)
         {
             if (!audioComponent.audioSource.IsValid())
             {
-                audioComponent.playbackState.status = APS_STOPPED;
+                audioComponent.playbackState.status = AudioPlaybackStatus::Stopped;
                 audioComponent.playbackState.currentTime = 0.0f;
 
                 continue;
             }
 
-            if (audioComponent.playbackState.status == APS_PLAYING)
+            if (audioComponent.playbackState.status == AudioPlaybackStatus::Playing)
             {
                 const Handle<Sound>& sound = audioComponent.audioSource->GetSound();
                 const float duration = sound.IsValid() ? sound->GetDuration() : 0.0f;
 
                 switch (audioComponent.playbackState.loopMode)
                 {
-                case ALM_ONCE:
+                case AudioLoopMode::Once:
                     if (audioComponent.playbackState.currentTime > duration)
                     {
-                        audioComponent.playbackState.status = APS_STOPPED;
+                        audioComponent.playbackState.status = AudioPlaybackStatus::Stopped;
                         audioComponent.playbackState.currentTime = 0.0f;
 
                         audioComponent.audioSource->Stop();
@@ -121,7 +123,7 @@ void AudioSystem::Process(float delta, Span<Handle<Scene>> scenes)
                     continue;
 
                     break;
-                case ALM_REPEAT:
+                case AudioLoopMode::Repeat:
                     if (audioComponent.playbackState.currentTime > duration)
                     {
                         audioComponent.playbackState.currentTime = 0.0f;
@@ -132,12 +134,12 @@ void AudioSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
                 audioComponent.playbackState.currentTime += delta * audioComponent.playbackState.speed;
 
-                switch (audioComponent.audioSource->GetState())
+                switch (audioComponent.audioSource->GetPlaybackStatus())
                 {
-                case AudioSourceState::PLAYING:
+                case AudioPlaybackStatus::Playing:
                     break;
-                case AudioSourceState::PAUSED: // fallthrough
-                case AudioSourceState::STOPPED:
+                case AudioPlaybackStatus::Paused: // fallthrough
+                case AudioPlaybackStatus::Stopped:
                     audioComponent.audioSource->Play();
                     break;
                 default:
@@ -158,16 +160,16 @@ void AudioSystem::Process(float delta, Span<Handle<Scene>> scenes)
                     audioComponent.lastPosition = position;
                 }
             }
-            else if (audioComponent.playbackState.status == APS_PAUSED)
+            else if (audioComponent.playbackState.status == AudioPlaybackStatus::Paused)
             {
-                if (audioComponent.audioSource->GetState() != AudioSourceState::PAUSED)
+                if (audioComponent.audioSource->GetPlaybackStatus() != AudioPlaybackStatus::Paused)
                 {
                     audioComponent.audioSource->Pause();
                 }
             }
-            else if (audioComponent.playbackState.status == APS_STOPPED)
+            else if (audioComponent.playbackState.status == AudioPlaybackStatus::Stopped)
             {
-                if (audioComponent.audioSource->GetState() != AudioSourceState::STOPPED)
+                if (audioComponent.audioSource->GetPlaybackStatus() != AudioPlaybackStatus::Stopped)
                 {
                     audioComponent.audioSource->Stop();
                 }

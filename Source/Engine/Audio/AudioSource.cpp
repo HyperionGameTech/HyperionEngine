@@ -82,14 +82,14 @@ void AudioSource::SetSound(const Handle<Sound>& sound)
     NotifyChanged();
 }
 
-AudioSourceState AudioSource::GetState() const
+AudioPlaybackStatus AudioSource::GetPlaybackStatus() const
 {
     if (!g_audioManager.IsValid() || !g_audioManager->IsInitialized())
     {
-        return AudioSourceState::UNDEFINED;
+        return AudioPlaybackStatus::Stopped;
     }
 
-    return g_audioManager->GetAdapter().GetAudioSourceState(this);
+    return g_audioManager->GetAdapter().GetPlaybackStatus(this);
 }
 
 void AudioSource::SetPosition(const Vec3f& vec)

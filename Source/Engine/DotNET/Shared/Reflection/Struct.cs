@@ -2,6 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics;
 
 namespace Hyperion
 {
@@ -57,7 +58,7 @@ namespace Hyperion
                 if (typeIdCache.ContainsKey(typeId))
                 {
                     DynamicStruct existingDynamicStruct = typeIdCache[typeId];
-                    Assert.Throw(existingDynamicStruct.type == type, "TypeId already exists for a different type: " + type.Name + " (hashcode: " + type.GetHashCode() + ") != " + existingDynamicStruct.type.Name + " (hashcode: " + existingDynamicStruct.type.GetHashCode() + ")");
+                    Debug.Assert(existingDynamicStruct.type == type, "TypeId already exists for a different type: " + type.Name + " (hashcode: " + type.GetHashCode() + ") != " + existingDynamicStruct.type.Name + " (hashcode: " + existingDynamicStruct.type.GetHashCode() + ")");
 
                     cls = existingDynamicStruct.cls;
                     ownsClass = false;

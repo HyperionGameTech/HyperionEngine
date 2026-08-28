@@ -27,6 +27,8 @@ namespace Hyperion
         Handle = 1
     }
 
+    /// A wrapper struct, acts as a reference to a Hyperion::Class.
+    /// (see: Core/Reflection/Class.hpp)
     public struct Class
     {
         public static readonly Class Invalid = new(IntPtr.Zero);
@@ -137,6 +139,8 @@ namespace Hyperion
                 uint count = Class_GetAttributes(ptr, IntPtr.Zero);
 
                 IntPtr attributesPtr = Marshal.AllocHGlobal(Marshal.SizeOf<IntPtr>() * (int)count);
+                Class_GetAttributes(ptr, attributesPtr);
+
                 try
                 {
                     IntPtr currentPtr = attributesPtr;
@@ -160,11 +164,10 @@ namespace Hyperion
                 uint count = Class_GetProperties(ptr, IntPtr.Zero);
                 
                 IntPtr propertyPtrs = Marshal.AllocHGlobal(IntPtr.Size * (int)count);
+                Class_GetProperties(ptr, propertyPtrs);
 
                 try
                 {
-                    Class_GetProperties(ptr, propertyPtrs);
-
                     for (int i = 0; i < count; i++)
                     {
                         yield return new(Marshal.ReadIntPtr(propertyPtrs, i * IntPtr.Size));
@@ -196,11 +199,10 @@ namespace Hyperion
                 uint count = Class_GetMethods(ptr, IntPtr.Zero);
                 
                 IntPtr methodPtrs = Marshal.AllocHGlobal(IntPtr.Size * (int)count);
+                Class_GetMethods(ptr, methodPtrs);
 
                 try
                 {
-                    Class_GetMethods(ptr, methodPtrs);
-
                     for (int i = 0; i < count; i++)
                     {
                         yield return new(Marshal.ReadIntPtr(methodPtrs, i * IntPtr.Size));
@@ -232,11 +234,10 @@ namespace Hyperion
                 uint count = Class_GetFields(ptr, IntPtr.Zero);
                 
                 IntPtr fieldPtrs = Marshal.AllocHGlobal(IntPtr.Size * (int)count);
+                Class_GetFields(ptr, fieldPtrs);
 
                 try
                 {
-                    Class_GetFields(ptr, fieldPtrs);
-
                     for (int i = 0; i < count; i++)
                     {
                         yield return new(Marshal.ReadIntPtr(fieldPtrs, i * IntPtr.Size));
@@ -268,11 +269,10 @@ namespace Hyperion
                 uint count = Class_GetStaticFields(ptr, IntPtr.Zero);
                 
                 IntPtr staticFieldPtrs = Marshal.AllocHGlobal(IntPtr.Size * (int)count);
+                Class_GetStaticFields(ptr, staticFieldPtrs);
 
                 try
                 {
-                    Class_GetStaticFields(ptr, staticFieldPtrs);
-
                     for (int i = 0; i < count; i++)
                     {
                         yield return new(Marshal.ReadIntPtr(staticFieldPtrs, i * IntPtr.Size));
@@ -336,10 +336,12 @@ namespace Hyperion
             {
                 int size = sizeAttribute.Value.GetInt();
 
+#if DEBUG
                 if (size != Marshal.SizeOf(type))
                 {
                     throw new Exception($"Struct size mismatch: Class struct size ({size}) does not match C# struct size ({Marshal.SizeOf(type)})");
                 }
+#endif // DEBUG
             }
 
             // Validate that all fields from the struct are present in the Class
