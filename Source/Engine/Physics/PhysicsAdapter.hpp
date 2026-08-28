@@ -83,6 +83,11 @@ public:
         GetDerivedAdapter()->DerivedAdapter::SetRigidBodyKinematic(rigidBody, isKinematic);
     }
 
+    void SetRigidBodyCharacterGhostCollidable(const Handle<RigidBody>& rigidBody, bool collidable)
+    {
+        GetDerivedAdapter()->DerivedAdapter::SetRigidBodyCharacterGhostCollidable(rigidBody, collidable);
+    }
+
     void OnChangePhysicsShape(RigidBody* rigidBody)
     {
         GetDerivedAdapter()->DerivedAdapter::OnChangePhysicsShape(rigidBody);

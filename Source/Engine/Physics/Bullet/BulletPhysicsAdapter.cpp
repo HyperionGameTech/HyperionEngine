@@ -63,6 +63,16 @@ struct CharacterControllerInternalData
     float shadowMaxSpeed = 60.0f;
     float shadowTeleportDistance = 0.5f;
 
+    // Shadow controller servo state. The ghost target is stepped by character moves
+    // (possibly several per physics step on a server replaying batched client input),
+    // so its velocity is measured in accumulated character time, which is invariant
+    // to batching, rather than in simulation time, which is not.
+    btVector3 ghostTravel { 0.0f, 0.0f, 0.0f };
+    btScalar characterTime = 0.0f;
+    int idleCharacterTicks = 0;
+    btVector3 targetVelocity { 0.0f, 0.0f, 0.0f };
+    btVector3 shadowVelocity { 0.0f, 0.0f, 0.0f };
+
     SharedPtr<btRigidBody> shadowBody;
     SharedPtr<btMotionState> shadowMotionState;
 };
@@ -70,6 +80,8 @@ struct CharacterControllerInternalData
 
 struct CharacterGhostOverlapFilter final : btOverlapFilterCallback
 {
+    const Set<btRigidBody*, PhysicsAllocator>* ghostNonCollidableBodies = nullptr;
+
     bool needBroadphaseCollision(btBroadphaseProxy* proxy0, btBroadphaseProxy* proxy1) const override
     {
         bool collides = (proxy0->m_collisionFilterGroup & proxy1->m_collisionFilterMask) != 0;
@@ -95,6 +107,20 @@ struct CharacterGhostOverlapFilter final : btOverlapFilterCallback
         btRigidBody* otherRigidBody = btRigidBody::upcast(other);
 
         if (otherRigidBody && !otherRigidBody->isStaticOrKinematicObject())
+        {
+            return false;
+        }
+
+        // Externally driven kinematic colliders (e.g. replication-driven bodies on a
+        // client) are excluded as well. The authoritative side simulates them as dynamic
+        // bodies, whose pairs the ghost already ignores above; the predicting side must
+        // match, or the character controller's penetration recovery will eject the
+        // predicted character out of their (necessarily stale) collider positions after
+        // every rewind/replay correction. Sweep-based blocking is unaffected.
+        if (otherRigidBody
+            && otherRigidBody->isKinematicObject()
+            && ghostNonCollidableBodies != nullptr
+            && ghostNonCollidableBodies->Contains(otherRigidBody))
         {
             return false;
         }
@@ -267,7 +293,18 @@ void BulletPhysicsAdapter::Init(PhysicsWorldBase* world)
     m_dynamicsWorld->getBroadphase()->getOverlappingPairCache()->setInternalGhostPairCallback(HYP_POOL_NEW(g_physicsPool, btGhostPairCallback));
 
     m_characterOverlapFilter = HYP_POOL_NEW(g_physicsPool, CharacterGhostOverlapFilter);
+    static_cast<CharacterGhostOverlapFilter*>(m_characterOverlapFilter)->ghostNonCollidableBodies = &m_ghostNonCollidableBodies;
     m_dynamicsWorld->getBroadphase()->getOverlappingPairCache()->setOverlapFilterCallback(m_characterOverlapFilter);
+
+    // Character shadow bodies advance per substep (see AdvanceCharacterShadowBodies) so
+    // that they present a smoothly moving surface to the contact solver.
+    m_dynamicsWorld->setInternalTickCallback(
+        [](btDynamicsWorld* world, btScalar timeStep)
+        {
+            static_cast<BulletPhysicsAdapter*>(world->getWorldUserInfo())->AdvanceCharacterShadowBodies(float(timeStep));
+        },
+        /* worldUserInfo */ this,
+        /* isPreTick */ true);
 }
 
 void BulletPhysicsAdapter::Teardown(PhysicsWorldBase* world)
@@ -495,7 +532,35 @@ void BulletPhysicsAdapter::OnRigidBodyRemoved(const Handle<RigidBody>& rigidBody
     RigidBodyInternalData* internalData = static_cast<RigidBodyInternalData*>(rigidBody->GetInternalData());
     Assert(internalData != nullptr);
 
+    m_ghostNonCollidableBodies.Erase(internalData->rigidBody.Get());
+
     m_dynamicsWorld->removeRigidBody(internalData->rigidBody.Get());
+}
+
+void BulletPhysicsAdapter::SetRigidBodyCharacterGhostCollidable(const Handle<RigidBody>& rigidBody, bool collidable)
+{
+    if (!rigidBody.IsValid())
+    {
+        return;
+    }
+
+    RigidBodyInternalData* internalData = static_cast<RigidBodyInternalData*>(rigidBody->GetInternalData());
+
+    if (!internalData || !internalData->rigidBody)
+    {
+        return;
+    }
+
+    btRigidBody* body = internalData->rigidBody.Get();
+
+    if (collidable)
+    {
+        m_ghostNonCollidableBodies.Erase(body);
+    }
+    else
+    {
+        m_ghostNonCollidableBodies.Insert(body);
+    }
 }
 
 void BulletPhysicsAdapter::OnChangePhysicsShape(RigidBody* rigidBody)
@@ -712,6 +777,14 @@ void BulletPhysicsAdapter::UpdateCharacterShadowBodies(double simDelta)
         return;
     }
 
+    // The chase velocity is a Source-style servo: feed-forward of the target's measured
+    // velocity plus a proportional position-error correction, clamped to shadowMaxSpeed.
+    // Feeding the target velocity forward is what keeps the push steady -- converging on
+    // the full error within one step (error / simDelta) would slam the shadow into
+    // whatever it is pushing every time a move batch advanced the target.
+    constexpr btScalar errorCorrectionRate = 10.0f;  // 1/s, fraction of position error closed per second
+    constexpr btScalar velocitySmoothing = 0.5f;
+
     for (SharedPtr<void>& physicsHandle : m_characterControllers)
     {
         CharacterControllerInternalData* internalData = static_cast<CharacterControllerInternalData*>(physicsHandle.GetVoid());
@@ -720,6 +793,25 @@ void BulletPhysicsAdapter::UpdateCharacterShadowBodies(double simDelta)
         {
             continue;
         }
+
+        // Measure the target's velocity in character time (invariant to move batching).
+        // Normal batch cadence leaves 1-2 idle ticks between replays; only decay the
+        // estimate once input has genuinely stalled, so it cannot keep pushing a
+        // frozen target forward.
+        if (internalData->characterTime > 0.0f)
+        {
+            const btVector3 measuredVelocity = internalData->ghostTravel / internalData->characterTime;
+
+            internalData->targetVelocity = internalData->targetVelocity.lerp(measuredVelocity, velocitySmoothing);
+            internalData->idleCharacterTicks = 0;
+        }
+        else if (++internalData->idleCharacterTicks >= 2)
+        {
+            internalData->targetVelocity *= 0.85f;
+        }
+
+        internalData->ghostTravel.setValue(0.0f, 0.0f, 0.0f);
+        internalData->characterTime = 0.0f;
 
         const btTransform targetTransform = internalData->ghostObject->getWorldTransform();
         const btTransform previousTransform = internalData->shadowBody->getWorldTransform();
@@ -734,10 +826,14 @@ void BulletPhysicsAdapter::UpdateCharacterShadowBodies(double simDelta)
             internalData->shadowBody->setInterpolationWorldTransform(targetTransform);
             internalData->shadowBody->setLinearVelocity(btVector3(0.0f, 0.0f, 0.0f));
 
+            // Discontinuity -- drop the stale velocity estimate along with the error.
+            internalData->targetVelocity.setValue(0.0f, 0.0f, 0.0f);
+            internalData->shadowVelocity.setValue(0.0f, 0.0f, 0.0f);
+
             continue;
         }
 
-        btVector3 chaseVelocity = positionError / btScalar(simDelta);
+        btVector3 chaseVelocity = internalData->targetVelocity + positionError * errorCorrectionRate;
         const btScalar chaseSpeed = chaseVelocity.length();
 
         if (chaseSpeed > btScalar(internalData->shadowMaxSpeed))
@@ -745,14 +841,36 @@ void BulletPhysicsAdapter::UpdateCharacterShadowBodies(double simDelta)
             chaseVelocity *= btScalar(internalData->shadowMaxSpeed) / chaseSpeed;
         }
 
-        btTransform newTransform = previousTransform;
-        newTransform.setOrigin(previousTransform.getOrigin() + chaseVelocity * btScalar(simDelta));
-        newTransform.setRotation(targetTransform.getRotation());
+        // The transform is NOT advanced here. AdvanceCharacterShadowBodies() moves the
+        // shadow by this velocity once per physics substep, so penetration against
+        // whatever it is pushing stays sub-millimeter instead of one tick's travel,
+        // which the solver would otherwise convert into a depenetration kick.
+        internalData->shadowVelocity = chaseVelocity;
+    }
+}
 
-        internalData->shadowBody->setInterpolationWorldTransform(previousTransform);
-        internalData->shadowBody->setWorldTransform(newTransform);
-        internalData->shadowMotionState->setWorldTransform(newTransform);
-        internalData->shadowBody->setLinearVelocity(chaseVelocity);
+void BulletPhysicsAdapter::AdvanceCharacterShadowBodies(float substepDelta)
+{
+    if (substepDelta <= 0.0f || m_characterControllers.Empty())
+    {
+        return;
+    }
+
+    for (SharedPtr<void>& physicsHandle : m_characterControllers)
+    {
+        CharacterControllerInternalData* internalData = static_cast<CharacterControllerInternalData*>(physicsHandle.GetVoid());
+
+        if (!internalData || !internalData->shadowBody)
+        {
+            continue;
+        }
+
+        btTransform advancedTransform = internalData->shadowBody->getWorldTransform();
+        advancedTransform.setOrigin(advancedTransform.getOrigin() + internalData->shadowVelocity * btScalar(substepDelta));
+
+        internalData->shadowBody->setWorldTransform(advancedTransform);
+        internalData->shadowMotionState->setWorldTransform(advancedTransform);
+        internalData->shadowBody->setLinearVelocity(internalData->shadowVelocity);
     }
 }
 
@@ -773,11 +891,18 @@ void BulletPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physic
     const int numSubsteps = MathUtil::Min(int(MathUtil::Ceil(totalDelta / maxSubstepDelta)), maxSubsteps);
     const float substepDelta = totalDelta / float(numSubsteps);
 
+    const btVector3 ghostPositionBeforeStep = internalData->ghostObject->getWorldTransform().getOrigin();
+
     for (int i = 0; i < numSubsteps; ++i)
     {
         internalData->kcc->setWalkDirection(ToBtVector(internalData->walkVelocity) * substepDelta);
         internalData->kcc->updateAction(m_dynamicsWorld, substepDelta);
     }
+
+    // Accumulate the ghost's travel in character time so that UpdateCharacterShadowBodies()
+    // can measure the target velocity without simulation-time (move batching) distortion.
+    internalData->ghostTravel += internalData->ghostObject->getWorldTransform().getOrigin() - ghostPositionBeforeStep;
+    internalData->characterTime += btScalar(totalDelta);
 
     // The shadow body deliberately is NOT moved here. It chases the ghost transform from
     // UpdateCharacterShadowBodies() during Tick, in simulation time, so that replaying a
@@ -796,6 +921,13 @@ void BulletPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physic
     btTransform transform = internalData->ghostObject->getWorldTransform();
     transform.setOrigin(ToBtVector(translation));
     internalData->ghostObject->setWorldTransform(transform);
+
+    // Discontinuity -- reset the servo state so no velocity is carried across the teleport.
+    internalData->ghostTravel.setValue(0.0f, 0.0f, 0.0f);
+    internalData->characterTime = 0.0f;
+    internalData->idleCharacterTicks = 0;
+    internalData->targetVelocity.setValue(0.0f, 0.0f, 0.0f);
+    internalData->shadowVelocity.setValue(0.0f, 0.0f, 0.0f);
 
     if (internalData->shadowBody)
     {
