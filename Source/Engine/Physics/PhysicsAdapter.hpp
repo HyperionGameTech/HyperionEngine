@@ -28,9 +28,6 @@ struct CharacterControllerConfig
 
     /// Scales the velocity transferred to dynamic bodies the character pushes
     float pushSpeedScale = 0.5f;
-
-    float maxPushSpeed = 1.5f;
-    float pushMassLimit = 350.0f;
 };
 
 template <class DerivedAdapter>
@@ -92,7 +89,7 @@ public:
         GetDerivedAdapter()->DerivedAdapter::OnChangePhysicsMaterial(rigidBody);
     }
 
-    void ApplyForceToBody(const RigidBody* rigidBody, const Vec3f& force)
+    void ApplyForceToBody(const RigidBody* rigidBody, const Vector3& force)
     {
         GetDerivedAdapter()->DerivedAdapter::ApplyForceToBody(rigidBody, force);
     }
