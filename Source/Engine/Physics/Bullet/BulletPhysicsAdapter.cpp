@@ -60,7 +60,8 @@ struct CharacterControllerInternalData
     SharedPtr<btCapsuleShape> capsuleShape;
     SharedPtr<btKinematicCharacterController> kcc;
     Vec3f walkVelocity;
-    float pushSpeedScale = 1.0f;
+    float shadowMaxSpeed = 60.0f;
+    float shadowTeleportDistance = 0.5f;
 
     SharedPtr<btRigidBody> shadowBody;
     SharedPtr<btMotionState> shadowMotionState;
@@ -299,6 +300,8 @@ void BulletPhysicsAdapter::Tick(PhysicsWorldBase* world, double delta)
     constexpr double maxDelta = maxSubSteps * fixedTimeStep;
 
     const double clampedDelta = delta > maxDelta ? maxDelta : delta;
+
+    UpdateCharacterShadowBodies(clampedDelta);
 
     m_dynamicsWorld->stepSimulation(clampedDelta, maxSubSteps, fixedTimeStep);
 
@@ -617,7 +620,8 @@ void BulletPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerC
         btBroadphaseProxy::CharacterFilter,
         btBroadphaseProxy::StaticFilter | btBroadphaseProxy::DefaultFilter);
 
-    internalData->pushSpeedScale = config.pushSpeedScale;
+    internalData->shadowMaxSpeed = config.shadowMaxSpeed;
+    internalData->shadowTeleportDistance = config.shadowTeleportDistance;
 
     internalData->shadowMotionState = MakeSharedWithAllocator<btDefaultMotionState, PhysicsAllocator>(startTransform);
 
@@ -638,6 +642,7 @@ void BulletPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerC
         btBroadphaseProxy::DefaultFilter);
 
     outPhysicsHandle = internalData;
+    m_characterControllers.PushBack(outPhysicsHandle);
 }
 
 void BulletPhysicsAdapter::OnCharacterControllerRemoved(SharedPtr<void>& physicsHandle)
@@ -656,6 +661,18 @@ void BulletPhysicsAdapter::OnCharacterControllerRemoved(SharedPtr<void>& physics
     if (internalData->shadowBody)
     {
         m_dynamicsWorld->removeRigidBody(internalData->shadowBody.Get());
+    }
+
+    for (size_t i = 0; i < m_characterControllers.Size();)
+    {
+        if (m_characterControllers[i].GetVoid() == internalData)
+        {
+            m_characterControllers.EraseAt(i);
+
+            continue;
+        }
+
+        ++i;
     }
 
     physicsHandle.Reset();
@@ -688,6 +705,57 @@ void BulletPhysicsAdapter::ApplyCharacterJump(const SharedPtr<void>& physicsHand
     }
 }
 
+void BulletPhysicsAdapter::UpdateCharacterShadowBodies(double simDelta)
+{
+    if (simDelta <= 0.0)
+    {
+        return;
+    }
+
+    for (SharedPtr<void>& physicsHandle : m_characterControllers)
+    {
+        CharacterControllerInternalData* internalData = static_cast<CharacterControllerInternalData*>(physicsHandle.GetVoid());
+
+        if (!internalData || !internalData->shadowBody)
+        {
+            continue;
+        }
+
+        const btTransform targetTransform = internalData->ghostObject->getWorldTransform();
+        const btTransform previousTransform = internalData->shadowBody->getWorldTransform();
+
+        const btVector3 positionError = targetTransform.getOrigin() - previousTransform.getOrigin();
+        const btScalar errorLength = positionError.length();
+
+        if (errorLength > btScalar(internalData->shadowTeleportDistance))
+        {
+            internalData->shadowBody->setWorldTransform(targetTransform);
+            internalData->shadowMotionState->setWorldTransform(targetTransform);
+            internalData->shadowBody->setInterpolationWorldTransform(targetTransform);
+            internalData->shadowBody->setLinearVelocity(btVector3(0.0f, 0.0f, 0.0f));
+
+            continue;
+        }
+
+        btVector3 chaseVelocity = positionError / btScalar(simDelta);
+        const btScalar chaseSpeed = chaseVelocity.length();
+
+        if (chaseSpeed > btScalar(internalData->shadowMaxSpeed))
+        {
+            chaseVelocity *= btScalar(internalData->shadowMaxSpeed) / chaseSpeed;
+        }
+
+        btTransform newTransform = previousTransform;
+        newTransform.setOrigin(previousTransform.getOrigin() + chaseVelocity * btScalar(simDelta));
+        newTransform.setRotation(targetTransform.getRotation());
+
+        internalData->shadowBody->setInterpolationWorldTransform(previousTransform);
+        internalData->shadowBody->setWorldTransform(newTransform);
+        internalData->shadowMotionState->setWorldTransform(newTransform);
+        internalData->shadowBody->setLinearVelocity(chaseVelocity);
+    }
+}
+
 void BulletPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsHandle, float deltaTime)
 {
     CharacterControllerInternalData* internalData = static_cast<CharacterControllerInternalData*>(physicsHandle.GetVoid());
@@ -711,17 +779,9 @@ void BulletPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physic
         internalData->kcc->updateAction(m_dynamicsWorld, substepDelta);
     }
 
-    if (internalData->shadowBody)
-    {
-        const btTransform newTransform = internalData->ghostObject->getWorldTransform();
-        const btVector3 previousPosition = internalData->shadowBody->getWorldTransform().getOrigin();
-
-        internalData->shadowBody->setWorldTransform(newTransform);
-        internalData->shadowMotionState->setWorldTransform(newTransform);
-
-        const btVector3 impliedVelocity = (newTransform.getOrigin() - previousPosition) / totalDelta;
-        internalData->shadowBody->setLinearVelocity(impliedVelocity * internalData->pushSpeedScale);
-    }
+    // The shadow body deliberately is NOT moved here. It chases the ghost transform from
+    // UpdateCharacterShadowBodies() during Tick, in simulation time, so that replaying a
+    // batch of moves between physics steps cannot accumulate an unbounded velocity.
 }
 
 void BulletPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation)
@@ -741,6 +801,10 @@ void BulletPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physic
     {
         internalData->shadowBody->setWorldTransform(transform);
         internalData->shadowMotionState->setWorldTransform(transform);
+
+        // Keep the interpolation anchor in sync so that no velocity is derived from the teleport.
+        internalData->shadowBody->setInterpolationWorldTransform(transform);
+        internalData->shadowBody->setLinearVelocity(btVector3(0.0f, 0.0f, 0.0f));
     }
 }
 

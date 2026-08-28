@@ -26,8 +26,12 @@ struct CharacterControllerConfig
     float jumpSpeed = 10.0f;
     float fallSpeed = 55.0f;
 
-    /// Scales the velocity transferred to dynamic bodies the character pushes
-    float pushSpeedScale = 0.5f;
+    /// Maximum speed (m/s) at which the character's physics shadow body may follow character transform
+    float shadowMaxSpeed = 60.0f;
+
+    /// Distance (m) beyond which the shadow body teleports to the character transform
+    /// instead of chasing it, deriving no velocity from the snap.
+    float shadowTeleportDistance = 0.5f;
 };
 
 template <class DerivedAdapter>

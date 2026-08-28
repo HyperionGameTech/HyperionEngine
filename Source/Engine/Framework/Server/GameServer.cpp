@@ -41,7 +41,7 @@ public:
     {
         InitThreadAllocator();
 
-        FrameLimiter frameLimiter(100);
+        FrameLimiter frameLimiter { 120 };
 
         while (HYP_LIKELY(!m_stopRequested.LoadVolatile()))
         {
