@@ -59,7 +59,7 @@ DECLARE_BUFFER(LightmapPathTracer, CBuffer) cbuffer CBuffer
     EnvProbe envProbes[MAX_ENV_PROBES];
 };
 
-#define RAY_OFFSET 0.1
+#define RAY_OFFSET 0.01
 
 #define VSM_DEPTH_BIAS_CONSTANT 0.2
 #define VSM_DEPTH_BIAS_SLOPE_SCALE 0.02
@@ -67,11 +67,11 @@ DECLARE_BUFFER(LightmapPathTracer, CBuffer) cbuffer CBuffer
 
 #ifdef MODE_LIGHTMAP
 #define NUM_BOUNCES 8
-#define NUM_SAMPLES 256
+#define NUM_SAMPLES 32
 #define ENVIRONMENT_INTENSITY 1.0
 #elif defined(MODE_FULL) || defined(MODE_IRRADIANCE)
 #define NUM_BOUNCES 8
-#define NUM_SAMPLES 256
+#define NUM_SAMPLES 32
 #define ENVIRONMENT_INTENSITY 1.0
 #elif defined(MODE_BENT_NORMAL)
 #define NUM_BOUNCES 1
@@ -450,7 +450,7 @@ void RayGenMain()
             {
 #ifdef MODE_FULL
                 // sample environment if miss but only for MODE_FULL
-             //   Li += float4(beta * SampleEnvironment(origin, direction).rgb, 1.0);
+                Li += float4(beta * SampleEnvironment(origin, direction).rgb, 1.0);
 #endif
     
                 break;

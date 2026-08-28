@@ -313,13 +313,13 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar,
     float3 accumulatedColor = float3(0.0, 0.0, 0.0);
 
     // @TODO Make these configurable
-    const float DensityScale = 0.2;
-    const float Scattering = 0.2 * DensityScale;
-    const float Absorption = 0.2 * DensityScale;
-    const float Extinction = Scattering + Absorption;
-    const float phaseG = 0.8;
+    static const float DensityScale = 0.2;
+    static const float Scattering = 0.2 * DensityScale;
+    static const float Absorption = 0.2 * DensityScale;
+    static const float Extinction = Scattering + Absorption;
+    static const float phaseG = 0.8;
 
-    const float3 AmbientLight = float3(0.12, 0.12, 0.12);
+    static const float3 AmbientLight = float3(0.12, 0.12, 0.12);
 
     float3 materialColor = float3(1.0, 1.0, 1.0);
 

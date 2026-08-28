@@ -709,9 +709,11 @@ namespace Hyperion
                 object? obj = Marshal.PtrToStructure(ptr, type);
                 Debug.Assert(obj != null, "Failed to marshal object from pointer");
 
+                // Freshly boxed value has no other referrer, so it must be held by a strong
+                // handle until the caller reads it back
                 return new ObjectReference
                 {
-                    WeakHandle = GCHandle.ToIntPtr(GCHandle.Alloc(obj, GCHandleType.Weak)),
+                    WeakHandle = GCHandle.ToIntPtr(GCHandle.Alloc(obj, GCHandleType.Normal)),
                     StrongHandle = IntPtr.Zero
                 };
             }));

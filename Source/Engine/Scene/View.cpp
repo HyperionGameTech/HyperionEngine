@@ -49,6 +49,7 @@
 #include <Core/Threading/Task.hpp>
 
 #include <Framework/EngineDriver.hpp>
+#include <Framework/CVarManager.hpp>
 
 // #define HYP_DISABLE_VISIBILITY_CHECK
 // #define HYP_VISIBILITY_CHECK_DEBUG
@@ -57,8 +58,20 @@
 
 namespace Hyperion {
 
-static constexpr float ShadowCascadeClipDistances[] = { 0.075f, 0.15f, 0.3f, 1.0f };
-static constexpr float ShadowCascadeMaxDistance = 1000.0f;
+
+static CVar<float> s_cvCSMMaxDistance("Rendering.Shadows.CSMMaxDistance", 300.0f);
+
+static CVar<float> s_cvCSMSplit0("Rendering.Shadows.CSMSplit0", 0.075f);
+static CVar<float> s_cvCSMSplit1("Rendering.Shadows.CSMSplit1", 0.15f);
+static CVar<float> s_cvCSMSplit2("Rendering.Shadows.CSMSplit2", 0.3f);
+static CVar<float> s_cvCSMSplit3("Rendering.Shadows.CSMSplit3", 1.0f);
+
+static CVar<float>* s_csmClipDistances[] = {
+    &s_cvCSMSplit0,
+    &s_cvCSMSplit1,
+    &s_cvCSMSplit2,
+    &s_cvCSMSplit3
+};
 
 // Always mark dirty at this value
 static const int s_dirtyResourceVersion = -1;
@@ -468,7 +481,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
             const Frustum& mainCameraFrustum = m_camera->GetFrustum();
 
-            const float mainCameraFarRatio = MathUtil::Clamp(ShadowCascadeMaxDistance / m_camera->GetFarClip(), 0.0f, 1.0f);
+            const float mainCameraFarRatio = MathUtil::Clamp(s_cvCSMMaxDistance.Get() / m_camera->GetFarClip(), 0.0f, 1.0f);
             csmMainCameraFrustum = (mainCameraFarRatio >= 0.9999f ? mainCameraFrustum : mainCameraFrustum.SubFrustum(0.0f, mainCameraFarRatio));
         }
 
@@ -531,8 +544,8 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
             if (isDirectional)
             {
-                const float nearRatio = (shadowViewIndex == 0) ? 0.0f : ShadowCascadeClipDistances[shadowViewIndex - 1];
-                const float farRatio = ShadowCascadeClipDistances[shadowViewIndex];
+                const float nearRatio = (shadowViewIndex == 0) ? 0.0f : s_csmClipDistances[shadowViewIndex - 1]->Get();
+                const float farRatio = s_csmClipDistances[shadowViewIndex]->Get();
 
                 const Vec3f lightDir = light->GetWorldTranslation().Normalized();
 
