@@ -60,99 +60,15 @@ struct CharacterControllerInternalData
     SharedPtr<btCapsuleShape> capsuleShape;
     SharedPtr<btKinematicCharacterController> kcc;
     Vec3f walkVelocity;
-    Vec3f pushVelocity;
     float pushSpeedScale = 1.0f;
-    float maxPushSpeed = 1.5f;
-    float pushMassLimit = 350.0f;
 
     SharedPtr<btRigidBody> shadowBody;
-
-    bool wasSteppedSinceLastTick = false;
-
-    Vec3f GetPushVelocity() const
-    {
-        Vec3f velocity = { walkVelocity.x, 0.0f, walkVelocity.z };
-
-        const float speed = velocity.Length();
-        const float pushSpeed = MathUtil::Min(speed * pushSpeedScale, maxPushSpeed);
-
-        if (speed > pushSpeed && speed > MathUtil::epsilonF)
-        {
-            velocity *= pushSpeed / speed;
-        }
-
-        return velocity;
-    }
+    SharedPtr<btMotionState> shadowMotionState;
 };
 
-static bool FindPushableBodies(CharacterControllerInternalData* character)
+
+struct CharacterGhostOverlapFilter final : btOverlapFilterCallback
 {
-    Vec3f horizontalWalk = { character->walkVelocity.x, 0.0f, character->walkVelocity.z };
-
-    if (horizontalWalk.LengthSquared() < MathUtil::epsilonF)
-    {
-        return false;
-    }
-
-    const btVector3 travelDirection = ToBtVector(horizontalWalk.Normalize());
-    const btVector3 characterOrigin = character->ghostObject->getWorldTransform().getOrigin();
-
-    bool foundPushable = false;
-
-    for (int i = 0; i < character->ghostObject->getNumOverlappingObjects(); ++i)
-    {
-        btRigidBody* body = btRigidBody::upcast(character->ghostObject->getOverlappingObject(i));
-
-        if (!body || body->isStaticOrKinematicObject() || body->getInvMass() <= 0.0f)
-        {
-            continue;
-        }
-
-        if (btScalar(1.0) / body->getInvMass() > character->pushMassLimit)
-        {
-            continue;
-        }
-
-        btVector3 toBody = body->getWorldTransform().getOrigin() - characterOrigin;
-        toBody.setY(0.0f);
-
-        if (toBody.length2() < SIMD_EPSILON || toBody.normalized().dot(travelDirection) < btScalar(0.5))
-        {
-            continue;
-        }
-
-        body->activate(true);
-
-        foundPushable = true;
-    }
-
-    return foundPushable;
-}
-
-struct CharacterControllerRegistry final : btOverlapFilterCallback
-{
-    btAlignedObjectArray<CharacterControllerInternalData*> characters;
-
-    CharacterControllerInternalData* FindCharacterData(const btCollisionObject* collisionObject) const
-    {
-        void* userPointer = collisionObject->getUserPointer();
-
-        if (userPointer == nullptr)
-        {
-            return nullptr;
-        }
-
-        for (int i = 0; i < characters.size(); ++i)
-        {
-            if (static_cast<void*>(characters[i]) == userPointer)
-            {
-                return characters[i];
-            }
-        }
-
-        return nullptr;
-    }
-
     bool needBroadphaseCollision(btBroadphaseProxy* proxy0, btBroadphaseProxy* proxy1) const override
     {
         bool collides = (proxy0->m_collisionFilterGroup & proxy1->m_collisionFilterMask) != 0;
@@ -166,71 +82,25 @@ struct CharacterControllerRegistry final : btOverlapFilterCallback
         btCollisionObject* obj0 = static_cast<btCollisionObject*>(proxy0->m_clientObject);
         btCollisionObject* obj1 = static_cast<btCollisionObject*>(proxy1->m_clientObject);
 
-        CharacterControllerInternalData* character = FindCharacterData(obj0);
-        const btCollisionObject* other = obj1;
+        const bool obj0IsGhost = obj0->getInternalType() == btCollisionObject::CO_GHOST_OBJECT;
+        const bool obj1IsGhost = obj1->getInternalType() == btCollisionObject::CO_GHOST_OBJECT;
 
-        if (character == nullptr)
+        if (!obj0IsGhost && !obj1IsGhost)
         {
-            character = FindCharacterData(obj1);
-            other = obj0;
+            return true;
         }
 
-        if (character != nullptr)
+        btCollisionObject* other = obj0IsGhost ? obj1 : obj0;
+        btRigidBody* otherRigidBody = btRigidBody::upcast(other);
+
+        if (otherRigidBody && !otherRigidBody->isStaticOrKinematicObject())
         {
-            const btRigidBody* body = btRigidBody::upcast(other);
-
-            if (body && !body->isStaticOrKinematicObject() && body->getInvMass() > 0.0f)
-            {
-                const btScalar mass = btScalar(1.0) / body->getInvMass();
-
-                if (mass > character->pushMassLimit)
-                {
-                    return false;
-                }
-            }
+            return false;
         }
 
         return true;
     }
-
-    void ApplyPushVelocities()
-    {
-        for (int i = 0; i < characters.size(); ++i)
-        {
-            CharacterControllerInternalData* character = characters[i];
-
-            if (!character->shadowBody)
-            {
-                continue;
-            }
-
-            character->shadowBody->setLinearVelocity(ToBtVector(character->pushVelocity));
-            character->shadowBody->setAngularVelocity(btVector3(0.0f, 0.0f, 0.0f));
-        }
-    }
-
-    void DecayUnsteppedPushVelocities()
-    {
-        for (int i = 0; i < characters.size(); ++i)
-        {
-            CharacterControllerInternalData* character = characters[i];
-
-            if (!character->wasSteppedSinceLastTick)
-            {
-                character->pushVelocity = Vec3f(0.0f);
-            }
-
-            character->wasSteppedSinceLastTick = false;
-        }
-    }
 };
-
-static void CharacterPushPreTickCallback(btDynamicsWorld* world, btScalar timeStep)
-{
-    (void)timeStep;
-
-    static_cast<CharacterControllerRegistry*>(world->getWorldUserInfo())->ApplyPushVelocities();
-}
 
 struct OffsetCollisionShape final : btCompoundShape
 {
@@ -341,7 +211,7 @@ BulletPhysicsAdapter::BulletPhysicsAdapter()
       m_dispatcher(nullptr),
       m_solver(nullptr),
       m_dynamicsWorld(nullptr),
-      m_characterRegistry(nullptr)
+      m_characterOverlapFilter(nullptr)
 {
     if (!s_bulletCustomAllocatorsInit)
     {
@@ -395,18 +265,14 @@ void BulletPhysicsAdapter::Init(PhysicsWorldBase* world)
     // Required for btKinematicCharacterController ghost objects
     m_dynamicsWorld->getBroadphase()->getOverlappingPairCache()->setInternalGhostPairCallback(HYP_POOL_NEW(g_physicsPool, btGhostPairCallback));
 
-    m_characterRegistry = HYP_POOL_NEW(g_physicsPool, CharacterControllerRegistry);
-    m_dynamicsWorld->getBroadphase()->getOverlappingPairCache()->setOverlapFilterCallback(m_characterRegistry);
-    m_dynamicsWorld->setInternalTickCallback(CharacterPushPreTickCallback, m_characterRegistry, true);
+    m_characterOverlapFilter = HYP_POOL_NEW(g_physicsPool, CharacterGhostOverlapFilter);
+    m_dynamicsWorld->getBroadphase()->getOverlappingPairCache()->setOverlapFilterCallback(m_characterOverlapFilter);
 }
 
 void BulletPhysicsAdapter::Teardown(PhysicsWorldBase* world)
 {
-    m_dynamicsWorld->setInternalTickCallback(nullptr, nullptr, true);
-    m_dynamicsWorld->getBroadphase()->getOverlappingPairCache()->setOverlapFilterCallback(nullptr);
-
-    PoolDelete(*g_physicsPool, m_characterRegistry);
-    m_characterRegistry = nullptr;
+    PoolDelete(*g_physicsPool, m_characterOverlapFilter);
+    m_characterOverlapFilter = nullptr;
 
     PoolDelete(*g_physicsPool, m_dynamicsWorld);
     m_dynamicsWorld = nullptr;
@@ -433,11 +299,6 @@ void BulletPhysicsAdapter::Tick(PhysicsWorldBase* world, double delta)
     constexpr double maxDelta = maxSubSteps * fixedTimeStep;
 
     const double clampedDelta = delta > maxDelta ? maxDelta : delta;
-
-    if (m_characterRegistry)
-    {
-        static_cast<CharacterControllerRegistry*>(m_characterRegistry)->DecayUnsteppedPushVelocities();
-    }
 
     m_dynamicsWorld->stepSimulation(clampedDelta, maxSubSteps, fixedTimeStep);
 
@@ -610,12 +471,6 @@ void BulletPhysicsAdapter::SetRigidBodyKinematic(const Handle<RigidBody>& rigidB
 
         body->setCollisionFlags(collisionFlags & ~btCollisionObject::CF_KINEMATIC_OBJECT);
         body->setMassProps(mass, localInertia);
-
-        // Kinematic bodies don't integrate velocity, so restore whatever the game had
-        // cached for this body instead of leaving it at the zero velocity forced above.
-        body->setLinearVelocity(ToBtVector(rigidBody->GetVelocity()));
-        body->setAngularVelocity(ToBtVector(rigidBody->GetAngularVelocity()));
-
         body->setActivationState(ACTIVE_TAG);
         body->activate(true);
     }
@@ -689,6 +544,7 @@ void BulletPhysicsAdapter::OnChangePhysicsMaterial(RigidBody* rigidBody)
 
     Assert(internalData->rigidBody != nullptr);
 
+    
     const bool isKinematic = rigidBody->IsKinematic();
     const float mass = isKinematic ? 0.0f : rigidBody->physicsMaterial->GetMass();
 
@@ -701,6 +557,8 @@ void BulletPhysicsAdapter::OnChangePhysicsMaterial(RigidBody* rigidBody)
 
     internalData->rigidBody->setMassProps(mass, localInertia);
     internalData->rigidBody->activate(true);
+
+    //internalData->rigidBody->setCollisionShape(internalData->collisionShape.Get());
 }
 
 void BulletPhysicsAdapter::ApplyForceToBody(const RigidBody* rigidBody, const Vec3f& force)
@@ -760,30 +618,24 @@ void BulletPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerC
         btBroadphaseProxy::StaticFilter | btBroadphaseProxy::DefaultFilter);
 
     internalData->pushSpeedScale = config.pushSpeedScale;
-    internalData->maxPushSpeed = config.maxPushSpeed;
-    internalData->pushMassLimit = config.pushMassLimit;
+
+    internalData->shadowMotionState = MakeSharedWithAllocator<btDefaultMotionState, PhysicsAllocator>(startTransform);
 
     btRigidBody::btRigidBodyConstructionInfo shadowConstructionInfo(
         0.0f,
-        nullptr,
+        internalData->shadowMotionState.Get(),
         internalData->capsuleShape.Get(),
         btVector3(0.0f, 0.0f, 0.0f));
-    shadowConstructionInfo.m_friction = 0.0f;
-    shadowConstructionInfo.m_restitution = 0.0f;
 
     internalData->shadowBody = MakeSharedWithAllocator<btRigidBody, PhysicsAllocator>(shadowConstructionInfo);
     internalData->shadowBody->setWorldTransform(startTransform);
-    internalData->shadowBody->setInterpolationWorldTransform(startTransform);
     internalData->shadowBody->setCollisionFlags(internalData->shadowBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
     internalData->shadowBody->setActivationState(DISABLE_DEACTIVATION);
-    internalData->shadowBody->setUserPointer(internalData.Get());
 
     m_dynamicsWorld->addRigidBody(
         internalData->shadowBody.Get(),
         btBroadphaseProxy::StaticFilter,
         btBroadphaseProxy::DefaultFilter);
-
-    static_cast<CharacterControllerRegistry*>(m_characterRegistry)->characters.push_back(internalData.Get());
 
     outPhysicsHandle = internalData;
 }
@@ -806,17 +658,6 @@ void BulletPhysicsAdapter::OnCharacterControllerRemoved(SharedPtr<void>& physics
         m_dynamicsWorld->removeRigidBody(internalData->shadowBody.Get());
     }
 
-    if (m_characterRegistry)
-    {
-        CharacterControllerRegistry* registry = static_cast<CharacterControllerRegistry*>(m_characterRegistry);
-        const int characterIndex = registry->characters.findLinearSearch(internalData);
-
-        if (characterIndex < registry->characters.size())
-        {
-            registry->characters.removeAtIndex(characterIndex);
-        }
-    }
-
     physicsHandle.Reset();
 }
 
@@ -826,13 +667,6 @@ void BulletPhysicsAdapter::SetCharacterWalkDirection(const SharedPtr<void>& phys
 
     if (!internalData)
     {
-        return;
-    }
-
-    if (!MathUtil::IsFinite(velocity))
-    {
-        HYP_LOG_ONCE(Physics, Warning, "SetCharacterWalkDirection received a non-finite velocity ({}, {}, {}) - ignoring", velocity.x, velocity.y, velocity.z);
-
         return;
     }
 
@@ -863,61 +697,31 @@ void BulletPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physic
         return;
     }
 
+    // Step in fixed substeps
     constexpr float maxSubstepDelta = 1.0f / 60.0f;
-    constexpr int maxSubsteps = 4;
+    constexpr int maxSubsteps = 3;
 
     const float totalDelta = MathUtil::Min(deltaTime, maxSubstepDelta * float(maxSubsteps));
     const int numSubsteps = MathUtil::Min(int(MathUtil::Ceil(totalDelta / maxSubstepDelta)), maxSubsteps);
     const float substepDelta = totalDelta / float(numSubsteps);
 
-    internalData->pushVelocity = internalData->GetPushVelocity();
-
-    const bool isPushing = FindPushableBodies(internalData);
-
-    Vec3f walkVelocity = internalData->walkVelocity;
-
-    if (isPushing)
-    {
-        // disallow travel faster than the prop can be shoved
-        walkVelocity = internalData->pushVelocity + Vec3f(0.0f, walkVelocity.y, 0.0f);
-    }
-
     for (int i = 0; i < numSubsteps; ++i)
     {
-        internalData->kcc->setWalkDirection(ToBtVector(walkVelocity) * substepDelta);
+        internalData->kcc->setWalkDirection(ToBtVector(internalData->walkVelocity) * substepDelta);
         internalData->kcc->updateAction(m_dynamicsWorld, substepDelta);
     }
 
     if (internalData->shadowBody)
     {
-        btTransform newTransform = internalData->ghostObject->getWorldTransform();
-
-        if (isPushing)
-        {
-            // prevent shadow teleporting into the prop
-            const btVector3 target = newTransform.getOrigin();
-            const btVector3 current = internalData->shadowBody->getWorldTransform().getOrigin();
-
-            btVector3 offset = target - current;
-            offset.setY(0.0f);
-
-            const btScalar distance = offset.length();
-            const btScalar maxAdvance = internalData->pushVelocity.Length() * totalDelta;
-
-            if (distance > maxAdvance && distance > SIMD_EPSILON)
-            {
-                offset *= maxAdvance / distance;
-
-                newTransform.setOrigin(btVector3(current.x() + offset.x(), target.y(), current.z() + offset.z()));
-            }
-        }
+        const btTransform newTransform = internalData->ghostObject->getWorldTransform();
+        const btVector3 previousPosition = internalData->shadowBody->getWorldTransform().getOrigin();
 
         internalData->shadowBody->setWorldTransform(newTransform);
+        internalData->shadowMotionState->setWorldTransform(newTransform);
 
-        m_dynamicsWorld->updateSingleAabb(internalData->shadowBody.Get());
+        const btVector3 impliedVelocity = (newTransform.getOrigin() - previousPosition) / totalDelta;
+        internalData->shadowBody->setLinearVelocity(impliedVelocity * internalData->pushSpeedScale);
     }
-
-    internalData->wasSteppedSinceLastTick = true;
 }
 
 void BulletPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation)
@@ -933,15 +737,10 @@ void BulletPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physic
     transform.setOrigin(ToBtVector(translation));
     internalData->ghostObject->setWorldTransform(transform);
 
-    internalData->pushVelocity = Vec3f::Zero();
-
     if (internalData->shadowBody)
     {
         internalData->shadowBody->setWorldTransform(transform);
-        internalData->shadowBody->setInterpolationWorldTransform(transform);
-        internalData->shadowBody->setLinearVelocity(btVector3(0.0f, 0.0f, 0.0f));
-
-        m_dynamicsWorld->updateSingleAabb(internalData->shadowBody.Get());
+        internalData->shadowMotionState->setWorldTransform(transform);
     }
 }
 
