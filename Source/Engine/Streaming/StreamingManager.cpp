@@ -149,7 +149,7 @@ public:
 
     virtual ~StreamingManagerThread() override
     {
-        StopThreadPool();
+        Stop();
 
         for (const Handle<StreamingVolumeBase>& volume : m_volumes)
         {
