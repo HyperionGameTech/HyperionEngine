@@ -92,14 +92,18 @@ template <>
 struct ReplicationOp<ReplicationOpType::Snapshot> final : ReplicationOpBase
 {
     Transform transform;
-    // Wall-clock time (ms) at which the message carrying this snapshot was received.
-    // Used to interpolate remote entities on a consistent timeline.
+    Vec3f velocity;
+    Vec3f angularVelocity;
     uint64 receiveTimeMs = 0;
+    uint8 isSleeping : 1;
 
-    ReplicationOp(NetId netId, const Transform& transform, uint64 receiveTimeMs)
+    ReplicationOp(NetId netId, const Transform& transform, const Vec3f& velocity, const Vec3f& angularVelocity, uint64 receiveTimeMs, bool isSleeping)
         : ReplicationOpBase(ReplicationOpType::Snapshot, netId),
           transform(transform),
-          receiveTimeMs(receiveTimeMs)
+          velocity(velocity),
+          angularVelocity(angularVelocity),
+          receiveTimeMs(receiveTimeMs),
+          isSleeping(isSleeping ? 1u : 0u)
     {
     }
 };

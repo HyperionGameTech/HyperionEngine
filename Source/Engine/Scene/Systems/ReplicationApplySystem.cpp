@@ -189,7 +189,18 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
 
             InterpolationState& interpolation = m_interpolationStates[op.netId];
 
-            interpolation.samples.PushBack(InterpolationState::Sample { op.receiveTimeMs, op.transform });
+            interpolation.samples.PushBack(InterpolationState::Sample { op.receiveTimeMs, op.transform, op.velocity, op.angularVelocity, op.isSleeping });
+
+            if (op.isSleeping)
+            {
+                interpolation.velocityEstimate = Vec3f(0.0f);
+                interpolation.angularVelocityEstimate = Vec3f(0.0f);
+            }
+            else
+            {
+                interpolation.velocityEstimate = interpolation.velocityEstimate + (op.velocity - interpolation.velocityEstimate) * 0.5f;
+                interpolation.angularVelocityEstimate = interpolation.angularVelocityEstimate + (op.angularVelocity - interpolation.angularVelocityEstimate) * 0.5f;
+            }
 
             while (interpolation.samples.Size() > InterpolationState::MaxSamples)
             {
@@ -244,7 +255,12 @@ void ReplicationApplySystem::UpdateInterpolatedEntities()
 
         Transform targetTransform;
 
-        if (samples.Size() == 1)
+        if (!NetGlobals::GetInterpolationEnabled())
+        {
+            // Debug vis
+            targetTransform = samples.Back().transform;
+        }
+        else if (samples.Size() == 1)
         {
             targetTransform = samples[0].transform;
         }
@@ -275,18 +291,58 @@ void ReplicationApplySystem::UpdateInterpolatedEntities()
         // Render transform: interpolated Net.InterpolationDelay into the past.
         entity->SetLocalTransform(targetTransform);
 
-        // Use latest sample
-        if (samples.Size() > 1)
         {
-            entity->SetLocalTransform(samples.Back().transform);
+            const InterpolationState::Sample& latest = samples.Back();
+
+            const double sinceReceiveSec = MathUtil::Max(0.0, (double(nowMs) - double(latest.receiveTimeMs)) / 1000.0);
+
+            const double oneWayDelaySec = MathUtil::Clamp(
+                double(g_gameClient->GetNetClient().GetRoundTripTime()) * 0.5 / 1000.0,
+                0.0,
+                0.15);
+
+            const float extrapolationSeconds = latest.isSleeping
+                ? 0.0f
+                : float(sinceReceiveSec + oneWayDelaySec);
+
+            Vec3f extrapolation = it->second.velocityEstimate * extrapolationSeconds;
+
+            constexpr float MaxExtrapolationDistance = 0.25f;
+
+            const float extrapolationLength = extrapolation.Length();
+
+            if (extrapolationLength > MaxExtrapolationDistance)
+            {
+                extrapolation *= MaxExtrapolationDistance / extrapolationLength;
+            }
+
+            Transform colliderTransform = latest.transform;
+            colliderTransform.SetTranslation(latest.transform.GetTranslation() + extrapolation);
+
+            const Vec3f& angularVelocityEstimate = it->second.angularVelocityEstimate;
+            const float angularSpeed = angularVelocityEstimate.Length();
+
+            if (angularSpeed > MathUtil::epsilonF)
+            {
+                constexpr float MaxAngularExtrapolationRadians = 0.25f;
+
+                const float angleRadians = MathUtil::Clamp(
+                    angularSpeed * extrapolationSeconds,
+                    0.0f,
+                    MaxAngularExtrapolationRadians);
+
+                const Quat4f rotationDelta(
+                    angularVelocityEstimate * (1.0f / angularSpeed),
+                    angleRadians);
+
+                colliderTransform.SetRotation(rotationDelta * latest.transform.GetRotation());
+            }
+
+            entity->SetLocalTransform(colliderTransform);
 
             SyncColliderToEntity(entity);
 
             entity->SetLocalTransform(targetTransform);
-        }
-        else
-        {
-            SyncColliderToEntity(entity);
         }
 
         ++it;

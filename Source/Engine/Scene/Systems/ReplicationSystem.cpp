@@ -11,6 +11,7 @@
 #include <Scene/Components/ReplicationStateComponent.hpp>
 #include <Scene/Components/PlayerComponent.hpp>
 #include <Scene/Components/CharacterControllerComponent.hpp>
+#include <Scene/Components/RigidBodyComponent.hpp>
 
 #include <Scene/EntityManager.hpp>
 #include <Scene/Scene.hpp>
@@ -461,16 +462,51 @@ void ReplicationSystem::Process(float delta, Span<Handle<Scene>> scenes)
         targetedSnapshots.Resize(0);
         updatedEntities.Resize(0);
 
+        for (auto [entity, replicationState] : entityManager->GetEntitySet<ReplicationStateComponent>())
+        {
+            const RigidBodyComponent* rigidBodyComponent = entity->TryGetComponent<RigidBodyComponent>();
+
+            const bool isSleeping = rigidBodyComponent != nullptr
+                && rigidBodyComponent->rigidBody.IsValid()
+                && rigidBodyComponent->rigidBody->isSleeping;
+
+            if (isSleeping != replicationState.isSleepingReplicated)
+            {
+                entity->AddTag<EntityTag::UpdateReplication>();
+            }
+        }
+
         for (auto [entity, replicationState, _] : entityManager->GetEntitySet<ReplicationStateComponent, TagComponent<EntityTag::UpdateReplication>>())
         {
             const NetId netId = replicationState.netId;
             const Transform& transform = entity->GetLocalTransform();
+
+            Vec3f linearVelocity = Vec3f::Zero();
+            Vec3f angularVelocity = Vec3f::Zero();
+            
+            bool isSleeping = false;
+
+            if (const RigidBodyComponent* rigidBodyComponent = entity->TryGetComponent<RigidBodyComponent>())
+            {
+                if (rigidBodyComponent->rigidBody.IsValid())
+                {
+                    isSleeping = rigidBodyComponent->rigidBody->isSleeping;
+
+                    linearVelocity = isSleeping ? Vec3f::Zero() : rigidBodyComponent->rigidBody->GetVelocity();
+                    angularVelocity = isSleeping ? Vec3f::Zero() : rigidBodyComponent->rigidBody->GetAngularVelocity();
+                }
+            }
 
             net::NetBuffer payload;
             MemoryByteWriter<NetAllocator, 1> writer(&payload);
             writer.Write(transform.GetTranslation());
             writer.Write(transform.GetRotation());
             writer.Write(transform.GetScale());
+            writer.Write(linearVelocity);
+            writer.Write(angularVelocity);
+            writer.Write(uint8(isSleeping));
+
+            replicationState.isSleepingReplicated = uint8(isSleeping);
 
             if (!playerPositionsComputed)
             {

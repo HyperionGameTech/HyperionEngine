@@ -301,6 +301,13 @@ HYP_EXPORT const char* GetCacheServerAddress()
 
 namespace NetGlobals {
 
+static CVar<uint16> s_cvGameServerPort("Net.GameServerPort", 9192);
+static CVar<float> s_cvClientSendRate("Net.ClientSendRate", 30.0f);
+static CVar<bool> s_cvInterpolationEnabled("Net.InterpolationEnabled", true);
+static CVar<float> s_cvInterpolationDelay("Net.InterpolationDelay", 0.1f);
+static CVar<float> s_cvCorrectionThreshold("Net.CorrectionThreshold", 0.3f);
+static CVar<float> s_cvCorrectionSmoothingTime("Net.CorrectionSmoothingTime", 0.1f);
+
 HYP_EXPORT const char* GetHostAddress()
 {
     static const String s_hostAddress = CoreApi::GetCommandLineArguments()["host"].ToString();
@@ -309,35 +316,38 @@ HYP_EXPORT const char* GetHostAddress()
 
 HYP_EXPORT uint16 GetGameServerPort()
 {
-    static CVar<uint16> s_cvGameServerPort("Net.GameServerPort", 9192);
     return s_cvGameServerPort.Get();
 }
 
 // Minimum interval, in seconds, between client->server player move batch flushes.
 HYP_EXPORT float GetClientSendRate()
 {
-    static CVar<float> s_cvClientSendRate("Net.ClientSendRate", 30.0f);
     return s_cvClientSendRate.Get();
+}
+
+// Whether remote entities are rendered with buffered interpolation. Disabling it
+// renders the newest received snapshot directly -- a debug view of exactly what the
+// server is sending.
+HYP_EXPORT bool GetInterpolationEnabled()
+{
+    return s_cvInterpolationEnabled.Get();
 }
 
 // How far in the past (seconds) remote entities are rendered, to smooth over jitter.
 HYP_EXPORT float GetInterpolationDelay()
 {
-    static CVar<float> s_cvInterpolationDelay("Net.InterpolationDelay", 0.1f);
     return s_cvInterpolationDelay.Get();
 }
 
 // Position deviation (world units) above which the server sends a movement correction.
 HYP_EXPORT float GetCorrectionThreshold()
 {
-    static CVar<float> s_cvCorrectionThreshold("Net.CorrectionThreshold", 0.1f);
     return s_cvCorrectionThreshold.Get();
 }
 
 // Seconds over which a prediction error is smoothed out visually after reconciliation.
 HYP_EXPORT float GetCorrectionSmoothingTime()
 {
-    static CVar<float> s_cvCorrectionSmoothingTime("Net.CorrectionSmoothingTime", 0.1f);
     return s_cvCorrectionSmoothingTime.Get();
 }
 
