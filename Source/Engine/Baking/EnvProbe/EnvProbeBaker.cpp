@@ -227,8 +227,11 @@ void Baker<EnvProbe>::OnCompleted_Internal()
             if (envProbe->ShouldComputeSphericalHarmonics())
             {
                 EnvProbeHelpers::ComputeEnvProbeSphericalHarmonics(*envProbe, *texture);
-                
-                //-- Hit Mask
+            }
+            
+            //-- Hit Mask
+            if (envProbe->GetEnvProbeFlags() & EPF_HIT_MASK)
+            {
                 SphericalHarmonicsData hitMaskSH = ComputeSphericalHarmonicsCubemap<TextureFormat::R8, false>(cmdCasted->payload->hitMaskBitmap);
 
                 Vec4f hitMaskData;
@@ -240,7 +243,6 @@ void Baker<EnvProbe>::OnCompleted_Internal()
                 hitMaskData[3] = order1[2][0];
 
                 envProbe->SetHitMaskData(hitMaskData);
-                //--
             }
 
             HYP_LOG(Lightmap, Verbose, "EnvProbe {} lightmap baking complete", envProbe->GetName());

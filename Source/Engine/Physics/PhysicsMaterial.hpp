@@ -21,20 +21,19 @@ struct PhysicsMaterial
     HYP_FIELD(Property = "Mass", Serialize)
     float mass = 0.0f;
 
-    HYP_FORCE_INLINE float GetMass() const
-    {
-        return mass;
-    }
+    HYP_FIELD(Property = "Friction", Serialize)
+    float friction = 0.5f;
 
-    HYP_FORCE_INLINE void SetMass(float value)
-    {
-        mass = value;
-    }
+    HYP_FIELD(Property = "Restitution", Serialize)
+    float restitution = 0.0f;
+
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hashCode;
         hashCode.Add(mass);
+        hashCode.Add(friction);
+        hashCode.Add(restitution);
 
         return hashCode;
     }

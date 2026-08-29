@@ -3792,6 +3792,26 @@ void EditorSubsystem::Update(float delta)
 
     m_editorDelegates->Update();
 
+    if (g_appContext.IsValid() && g_appContext->GetMainWindow() != nullptr)
+    {
+        const EnumFlags<MouseButtonState> buttonStates = g_appContext->GetMainWindow()->GetInputManager()->GetButtonStates();
+
+        if (!(buttonStates & (MouseButtonState::LEFT | MouseButtonState::RIGHT)))
+        {
+            if (EditorGizmoBase* gizmo = GetSelectedGizmo(); gizmo != nullptr && gizmo->IsDragging())
+            {
+                EditorViewport* activeViewport = GetActiveViewport();
+
+                gizmo->OnDragEnd(activeViewport != nullptr ? activeViewport->GetCamera() : Handle<Camera>(), MouseEvent {});
+            }
+
+            if (IsMeshEditDragActive())
+            {
+                EndMeshEditDrag(/* saveEdits */ true);
+            }
+        }
+    }
+
     UpdateGizmoProximityVisibility();
 
     DebugDrawCommandList& dbg = DebugDrawer::GetInstance().CreateCommandList();
