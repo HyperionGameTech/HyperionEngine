@@ -659,4 +659,29 @@ HYP_FORCE_INLINE uint32 OffsetOf(T1 T2::* member)
 
 #pragma endregion OffsetOf
 
+#pragma region CapArray
+
+/// Cap an array / queue at \p maxBufferSize, chomping off elems in FIRST IN FIRST OUT order
+/// Returns number of elements chomped, or zero if no chomping has been chomped
+template <class ContainerType>
+static inline size_t CapArray(ContainerType& container, size_t maxBufferSize)
+{
+    static_assert(ContainerType::isContiguous, "must be contiguous container type to use CapArray!");
+
+    if (container.Size() > maxBufferSize)
+    {
+        const size_t numToChomp = container.Size() - maxBufferSize;
+
+        container.Erase(
+            container.Begin(),
+            container.Begin() + numToChomp);
+
+        return numToChomp;
+    }
+
+    return 0;
+}
+
+#pragma endregion CapArray
+
 } // namespace Hyperion

@@ -7,8 +7,11 @@
 #pragma once
 
 #include <Core/Types.hpp>
+#include <Core/Constants.hpp>
 
 #include <Core/Utilities/DataMutationState.hpp>
+
+#include <Core/Containers/FixedArray.hpp>
 
 #include <Core/Math/Color.hpp>
 #include <Core/Math/Vector3.hpp>
@@ -42,6 +45,8 @@ enum class LightType : uint32
 static constexpr LightType InvalidLightType = LightType(~0u);
 static constexpr uint32 NumLightTypes = uint32(LightType::Max);
 
+// clang-format off
+
 HYP_ENUM()
 enum class LightFlags : uint32
 {
@@ -56,6 +61,8 @@ enum class LightFlags : uint32
 
     Default = ShadowCaster | CacheStaticShadowMaps  //!< @editor=false
 };
+
+// clang-format on
 
 HYP_MAKE_ENUM_FLAGS(LightFlags);
 
@@ -315,6 +322,17 @@ class ENGINE_API DirectionalLight final : public Light
     HYP_OBJECT_BODY(DirectionalLight);
 
 public:
+    struct CSMState
+    {
+        // Per-cascade last committed FC value
+        FixedArray<uint32, MaxShadowMapCascades> lastCommittedFrame {};
+        
+        Vec3f lastCommittedLightDir;
+        BoundingSphere lastCommittedWorldBounds;
+
+        bool basisInitialized = false;
+    };
+
     DirectionalLight();
     DirectionalLight(const Vec3f& direction, const Color& color, float intensity);
 
@@ -331,6 +349,8 @@ public:
     {
         Light::SetLocalTranslation(direction.Normalized());
     }
+
+    CSMState csmState;
 };
 
 HYP_CLASS()

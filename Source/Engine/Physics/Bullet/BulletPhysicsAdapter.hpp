@@ -53,13 +53,7 @@ public:
     void GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround);
 
 private:
-    // Source-engine style shadow controller update: computes the bounded chase velocity
-    // for every character's physics shadow body toward its game-side target.
     void UpdateCharacterShadowBodies(double simDelta);
-
-    // Advances shadow bodies by their chase velocity. Called from the world's pre-tick
-    // callback, once per physics substep, so contacts against dynamic bodies see a
-    // smoothly moving surface instead of a per-tick position jump.
     void AdvanceCharacterShadowBodies(float substepDelta);
 
     btDbvtBroadphase* m_broadphase;

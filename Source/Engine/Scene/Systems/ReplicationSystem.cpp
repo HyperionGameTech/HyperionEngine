@@ -51,6 +51,15 @@ using net::NetChannelMode;
 using net::NetMessageId;
 using net::NetStreamKey;
 
+/// How many queued moves a single connection may consume per tick
+static constexpr uint32 MaxMovesPerTick = 8;
+
+/// \see CollectInterestedConnections
+static constexpr float ReplicationInterestRadius = 50.0f;
+static constexpr float ReplicationInterestRadiusSq = ReplicationInterestRadius * ReplicationInterestRadius;
+
+using PlayerPosition = Tuple<net::NetConnectionId, Vec3f>;
+
 static ThreadBase* GetGameServerThread()
 {
     return g_gameServer->GetThread();
@@ -83,17 +92,12 @@ static net::NetConnectionId GetOwnerConnectionId(Entity* entity)
     return Invalid<net::NetConnectionId>;
 }
 
-static constexpr float ReplicationInterestRadius = 50.0f;
-
-struct PlayerPosition
-{
-    net::NetConnectionId connectionId;
-    Vec3f worldTranslation;
-};
-
-static Array<PlayerPosition, SceneTempAllocator> CollectPlayerPositions(Span<Handle<Scene>> scenes, SystemBase* system)
+static Array<PlayerPosition, SceneTempAllocator> CollectPlayerPositions(
+    Span<const Handle<Scene>> scenes,
+    SystemBase* system)
 {
     Array<PlayerPosition, SceneTempAllocator> positions;
+    positions.Reserve(8);
 
     for (Scene* scene : scenes)
     {
@@ -109,7 +113,7 @@ static Array<PlayerPosition, SceneTempAllocator> CollectPlayerPositions(Span<Han
                 continue;
             }
 
-            positions.PushBack(PlayerPosition { playerComponent.connectionId, entity->GetWorldTranslation() });
+            positions.EmplaceBack(playerComponent.connectionId, entity->GetWorldTranslation());
         }
     }
 
@@ -117,15 +121,18 @@ static Array<PlayerPosition, SceneTempAllocator> CollectPlayerPositions(Span<Han
 }
 
 template <class AllocatorType>
-static void CollectInterestedConnections(const Vec3f& position, const Array<PlayerPosition, SceneTempAllocator>& playerPositions, Array<net::NetConnectionId, AllocatorType>& outConnections)
+static void CollectInterestedConnections(
+    const Vec3f& position,
+    const Array<PlayerPosition, SceneTempAllocator>& playerPositions,
+    Array<net::NetConnectionId, AllocatorType>& outConnections)
 {
-    const float radiusSquared = ReplicationInterestRadius * ReplicationInterestRadius;
+    outConnections.Reserve(outConnections.Size() + playerPositions.Size());
 
-    for (const PlayerPosition& playerPosition : playerPositions)
+    for (const auto& [netId, pos] : playerPositions)
     {
-        if (position.DistanceSquared(playerPosition.worldTranslation) <= radiusSquared)
+        if (position.DistanceSquared(pos) <= ReplicationInterestRadiusSq)
         {
-            outConnections.PushBack(playerPosition.connectionId);
+            outConnections.PushBack(netId);
         }
     }
 }
@@ -181,8 +188,8 @@ void ReplicationSystem::OnEntityAdded(Entity* entity)
     net::NetBuffer payload = SerializeEntitySpawnPayload(entity);
 
     World* world = GetWorld();
-    Array<Handle<Scene>, SceneTempAllocator> scenes(world->GetScenes());
-    Array<PlayerPosition, SceneTempAllocator> playerPositions = CollectPlayerPositions(scenes, this);
+
+    Array<PlayerPosition, SceneTempAllocator> playerPositions = CollectPlayerPositions(world->GetScenes(), this);
 
     Array<net::NetConnectionId, SceneTempAllocator> interestedConnections;
     CollectInterestedConnections(entity->GetWorldTranslation(), playerPositions, interestedConnections);
@@ -312,13 +319,8 @@ void ReplicationSystem::ApplyPendingRequests()
                 queue.lastQueuedMoveId = move.moveId;
             }
 
-            // Cap the queue so a misbehaving/bursting client can't grow it without bound.
-            // Dropping the oldest moves desyncs the player briefly -- the next correction
-            // resynchronizes them.
-            while (queue.moves.Size() > PlayerMoveQueueState::MaxQueuedMoves)
-            {
-                queue.moves.EraseAt(0);
-            }
+            // cap it
+            CapArray(queue.moves, PlayerMoveQueueState::MaxQueuedMoves);
 
             break;
         }
@@ -332,10 +334,6 @@ void ReplicationSystem::ProcessPlayerMoves()
     {
         return;
     }
-
-    // How many queued moves a single connection may consume per tick. Bounded so a
-    // catching-up client cannot stall the server tick.
-    constexpr uint32 MaxMovesPerTick = 8;
 
     struct TargetedMoveAck
     {
@@ -389,10 +387,7 @@ void ReplicationSystem::ProcessPlayerMoves()
             lastProcessedMoveId = move.moveId;
         }
 
-        for (uint32 i = 0; i < numToProcess; ++i)
-        {
-            queue.moves.EraseAt(0);
-        }
+        queue.moves.Erase(queue.moves.Begin(), queue.moves.Begin() + numToProcess);
 
         net::NetBuffer payload;
         MemoryByteWriter<NetAllocator, 1> writer(&payload);
@@ -558,7 +553,7 @@ void ReplicationSystem::Process(float delta, Span<Handle<Scene>> scenes)
     }
 }
 
-void ReplicationSystem::ProcessPendingCatchUp(Span<Handle<Scene>> scenes)
+void ReplicationSystem::ProcessPendingCatchUp(Span<const Handle<Scene>> scenes)
 {
     if (m_pendingCatchUpConnections.Empty())
     {
@@ -566,31 +561,32 @@ void ReplicationSystem::ProcessPendingCatchUp(Span<Handle<Scene>> scenes)
     }
 
     Array<PlayerPosition, SceneTempAllocator> playerPositions = CollectPlayerPositions(scenes, this);
-    const float radiusSquared = ReplicationInterestRadius * ReplicationInterestRadius;
 
     for (size_t i = 0; i < m_pendingCatchUpConnections.Size();)
     {
         const net::NetConnectionId connectionId = m_pendingCatchUpConnections[i];
 
-        const PlayerPosition* playerPosition = nullptr;
+        Optional<Vec3f> playerPosOpt;
 
-        for (const PlayerPosition& candidate : playerPositions)
+        for (const auto& [netId, pos] : playerPositions)
         {
-            if (candidate.connectionId == connectionId)
+            if (netId == connectionId)
             {
-                playerPosition = &candidate;
+                playerPosOpt = pos;
 
                 break;
             }
         }
 
-        if (!playerPosition)
+        if (!playerPosOpt.HasValue())
         {
             // This connection's player entity hasn't been created/positioned yet -- retry next tick.
             ++i;
 
             continue;
         }
+
+        const Vec3f playerPos = playerPosOpt.GetUnchecked();
 
         Array<ReplicationSnapshot, SceneTempAllocator> catchUpSpawns;
 
@@ -605,7 +601,7 @@ void ReplicationSystem::ProcessPendingCatchUp(Span<Handle<Scene>> scenes)
 
             for (auto [entity, replicationState] : entityManager->GetEntitySet<ReplicationStateComponent>())
             {
-                if (entity->GetWorldTranslation().DistanceSquared(playerPosition->worldTranslation) > radiusSquared)
+                if (entity->GetWorldTranslation().DistanceSquared(playerPos) > ReplicationInterestRadiusSq)
                 {
                     continue;
                 }

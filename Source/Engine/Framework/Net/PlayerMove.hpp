@@ -30,9 +30,9 @@ struct PlayerMove
     float deltaTime; // seconds of simulation this move covers
     float movementInput[2];
     float viewDirection[3];
-    int8 jumpRequested;
+    uint8 jumpRequested;
 
-    int8 _pad[3];
+    uint8 padBytes[3];
 
     PlayerMove() = default;
 
