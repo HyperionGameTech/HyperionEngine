@@ -123,10 +123,7 @@ public:
         return false;
     }
 
-    virtual bool OnLoseFocus(const MouseEvent& evt)
-    {
-        return false;
-    }
+    virtual bool OnLoseFocus(const MouseEvent& evt);
 
     virtual bool OnControllerButtonDown(ControllerButton btn)
     {

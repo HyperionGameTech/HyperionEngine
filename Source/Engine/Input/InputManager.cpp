@@ -271,7 +271,10 @@ void InputManager::SetIsMouseLocked(bool locked)
         return; // already set
     }
 
-    m_ownerWindow->SetIsMouseLocked(locked);
+    if (!locked || m_ownerWindow->HasFocus())
+    {
+        m_ownerWindow->SetIsMouseLocked(locked);
+    }
 
     if (!locked)
     {
@@ -612,6 +615,16 @@ void InputManager::ProcessEvent(Event&& event)
             if (m_isMouseLocked && m_ownerWindow->IsMouseLocked())
             {
                 m_ownerWindow->SetIsMouseLocked(false);
+            }
+
+            for (uint32 i = 0; i < NumKeyboardKeys; i++)
+            {
+                SetKey(KeyCode(i), false);
+            }
+
+            for (uint32 i = 0; i < NumMouseButtons; i++)
+            {
+                SetMouseButton(MouseButtonKey(i), false);
             }
         }
 

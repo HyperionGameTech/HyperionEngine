@@ -687,6 +687,15 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
     {
         const Vec2f mousePosition = ToLogicalCoords(Vec2f(inputManager->GetMousePosition()));
 
+        // notify the focused object that the window has lost focus (without actually unfocusing it),
+        // so that things such as the editor camera can exit mouse look mode and release the mouse lock
+        if (Handle<UIObject> focusedUiObject = m_focusedObject.Lock(); focusedUiObject.IsValid())
+        {
+            eventHandlerResult |= OnLoseFocus.Fire(focusedUiObject.Get(), MouseEvent {
+                .baseEvent = &event
+            });
+        }
+
         // when window focus gets lost we want to unset hover for anything marked as being hovered
         for (auto it = m_hoveredUiObjects.Begin(); it != m_hoveredUiObjects.End(); ++it)
         {
@@ -752,6 +761,18 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
         }
 
         m_keyedDownObjects.Clear();
+
+        break;
+    }
+    case EventType::WINDOW_FOCUS_GAINED:
+    {
+        // notify the focused object that the window has regained focus (mirrors WINDOW_FOCUS_LOST)
+        if (Handle<UIObject> focusedUiObject = m_focusedObject.Lock(); focusedUiObject.IsValid())
+        {
+            eventHandlerResult |= OnGainFocus.Fire(focusedUiObject.Get(), MouseEvent {
+                .baseEvent = &event
+            });
+        }
 
         break;
     }

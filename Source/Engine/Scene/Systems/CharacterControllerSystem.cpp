@@ -513,9 +513,12 @@ static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent
     state.unacknowledgedMoves.PushBack(ClientPredictionState::BufferedMove { move, resultTranslation });
 
     // Cap the buffer so sustained ack loss can't grow it without bound
-    while (state.unacknowledgedMoves.Size() > ClientPredictionState::MaxBufferedMoves)
+    if (state.unacknowledgedMoves.Size() > ClientPredictionState::MaxBufferedMoves)
     {
-        state.unacknowledgedMoves.EraseAt(0);
+        const size_t excess = state.unacknowledgedMoves.Size() - ClientPredictionState::MaxBufferedMoves;
+        state.unacknowledgedMoves.Erase(
+            state.unacknowledgedMoves.Begin(),
+            state.unacknowledgedMoves.Begin() + excess);
     }
 
     // While a correction is being smoothed out, bias the rendered translation back

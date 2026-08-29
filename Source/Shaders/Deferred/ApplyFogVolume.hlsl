@@ -260,7 +260,7 @@ float HenyeyGreenstein(float g, float cosTheta)
 
     float num = 1.0 - g2;
 
-    return (1.0 / (4.0 * HYP_FMATH_PI)) * (num / max(denom, 0.0001));
+    return (1.0 / (4.0 * HYP_FMATH_PI)) * (num / max(denom, HYP_FMATH_EPSILON));
 }
 
 float GetDirectionalLightCSMShadow(float3 currentPos)
@@ -310,7 +310,7 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar,
     float t = tNear;
 
     float transmittance = 1.0;
-    float3 accumulatedColor = float3(0.0, 0.0, 0.0);
+    float3 accumulatedColor = (float3) 0.0;
 
     // @TODO Make these configurable
     static const float DensityScale = 0.2;
@@ -321,16 +321,14 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar,
 
     static const float3 AmbientLight = float3(0.12, 0.12, 0.12);
 
-    float3 materialColor = float3(1.0, 1.0, 1.0);
-
-    float3 albedo = (Extinction > 1e-6) ? float3(Scattering / Extinction, Scattering / Extinction, Scattering / Extinction) : float3(0.0, 0.0, 0.0);
+    float3 albedo = (Extinction > 1e-6) ? (float3) (Scattering / Extinction) : (float3)0;
 
     bool hasDirectionalLight = (directionalLight.type == HYP_LIGHT_TYPE_DIRECTIONAL);
 
     uint3 dataMapDimension;
     DataMap.GetDimensions(dataMapDimension.x, dataMapDimension.y, dataMapDimension.z);
 
-    int2 pixelCoord = int2(screenSpaceUV * screenDimensions);
+    int2 pixelCoord = clamp((int2) (screenSpaceUV * (float2) screenDimensions), (int2) 0, screenDimensions - 1);
     int temporalSampleIndex = int(frameCounter % 32u);
 
     static const float s_dataMapJitterScale = 0.35;

@@ -205,14 +205,18 @@ bool FirstPersonCameraInputHandler::OnClick(const MouseEvent& evt)
 
 bool FirstPersonCameraInputHandler::OnGainFocus(const MouseEvent& evt)
 {
-    m_controller->SetMode(FirstPersonCameraControllerMode::MOUSE_FREE);
+    InputHandlerBase::OnGainFocus(evt);
+
+    m_controller->SetMode(FirstPersonCameraControllerMode::MOUSE_LOCKED);
 
     return true;
 }
 
 bool FirstPersonCameraInputHandler::OnLoseFocus(const MouseEvent& evt)
 {
-    m_controller->SetMode(FirstPersonCameraControllerMode::MOUSE_LOCKED);
+    InputHandlerBase::OnLoseFocus(evt);
+
+    m_controller->SetMode(FirstPersonCameraControllerMode::MOUSE_FREE);
 
     return true;
 }

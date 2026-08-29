@@ -224,11 +224,16 @@ bool EditorCameraInputHandler::OnGainFocus(const MouseEvent& evt)
 
 bool EditorCameraInputHandler::OnLoseFocus(const MouseEvent& evt)
 {
+    // Note: this also clears all tracked key / mouse button states
+    InputHandlerBase::OnLoseFocus(evt);
+
     if (!m_controller)
     {
         return false;
     }
 
+    // Exit mouse look mode when focus is lost, otherwise the mouse lock
+    // would be re-applied when the window regains focus
     m_controller->SetMode(EditorCameraControllerMode::INACTIVE);
 
     return false;

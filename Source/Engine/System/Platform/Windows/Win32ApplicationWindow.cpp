@@ -750,7 +750,10 @@ void Win32ApplicationWindow::SetIsMouseLocked(bool locked)
     {
         ClipCursor(nullptr);
         ReleaseCapture();
-        ShowCursor(TRUE);
+
+        // loop until the cursor is guaranteed to be visible
+        while (::ShowCursor(TRUE) < 0)
+            ;
     }
 }
 

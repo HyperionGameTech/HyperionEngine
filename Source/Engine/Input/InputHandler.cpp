@@ -89,6 +89,15 @@ bool InputHandlerBase::OnMouseUp(const MouseEvent& evt)
     return false;
 }
 
+bool InputHandlerBase::OnLoseFocus(const MouseEvent& evt)
+{
+    m_keyStates = BitField<NumKeyboardKeys> {};
+    m_mouseButtonStates = EnumFlags<MouseButtonState> {};
+
+    // default to not handled
+    return false;
+}
+
 bool InputHandlerBase::OnControllerAnalogMove(const ControllerAnalogData& data)
 {
     switch (data.actionIndex)
