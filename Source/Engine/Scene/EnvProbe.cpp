@@ -43,9 +43,9 @@ static StaticShaderPropertyId s_propForwardShading { ShaderProperty(NAME("FORWAR
 static StaticShaderPropertyId s_propWriteMoments { ShaderProperty(NAME("WRITE_MOMENTS")) };
 
 static constexpr EnumFlags<EnvProbeFlags> DefaultEnvProbeFlags[EPT_MAX] {
-    EPF_ORIGIN_FROM_CENTER | EPF_DIFFUSE,                               // sky
-    EPF_ORIGIN_FROM_CENTER | EPF_BAKED | EPF_PARALLAX_CORRECTED,        // reflection
-    EPF_ORIGIN_FROM_CENTER | EPF_BAKED | EPF_VISIBILITY | EPF_DIFFUSE   // irradiance
+    EPF_ORIGIN_FROM_CENTER,                                                             // sky
+    EPF_ORIGIN_FROM_CENTER | EPF_BAKED | EPF_PARALLAX_CORRECTED | EPF_HIT_MASK,         // reflection
+    EPF_ORIGIN_FROM_CENTER | EPF_BAKED | EPF_VISIBILITY | EPF_HIT_MASK                  // irradiance
 };
 
 static constexpr float EnvProbeCameraNearClip = 0.025f;
@@ -229,7 +229,7 @@ void EnvProbe::SetEnvProbeFlags(EnumFlags<EnvProbeFlags> envProbeFlags)
     {
         // Reflection and irradiance probes are baked through the Baker system
         // when not realtime.
-        if (m_envProbeType == EPT_REFLECTION || m_envProbeType == EPT_AMBIENT)
+        if (IsReflectionProbe() || IsAmbientProbe())
         {
             envProbeFlags |= EPF_BAKED;
         }
@@ -248,7 +248,7 @@ void EnvProbe::SetEnvProbeFlags(EnumFlags<EnvProbeFlags> envProbeFlags)
     bool dirtyViewData = false;
 
     // @TODO stupid overloads for EnumFlags... fix
-    if ((changedFlags & uint32(EPF_BAKED | EPF_DIFFUSE)) != 0)
+    if ((changedFlags & uint32(EPF_BAKED | EPF_VISIBILITY | EPF_HIT_MASK)) != 0)
     {
         dirtyViewData = true;
         shouldForceRerender = true;
@@ -835,22 +835,23 @@ void EnvProbe::Invalidate(bool forceRerender)
 
         if (!IsBaked())
         {
-            GetThreadById(g_simThread)->GetScheduler().Enqueue([weakThis = MakeWeakRef(this)]
-                                                               {
-                                                                   Handle<EnvProbe> strongThis = weakThis.Lock();
-                                                                   if (!strongThis.IsValid())
-                                                                   {
-                                                                       return;
-                                                                   }
+            GetThreadById(g_simThread)->GetScheduler().Enqueue(
+                [weakThis = MakeWeakRef(this)]
+                {
+                    Handle<EnvProbe> strongThis = weakThis.Lock();
+                    if (!strongThis.IsValid())
+                    {
+                        return;
+                    }
 
-                                                                   World* world = strongThis->GetWorld();
+                    World* world = strongThis->GetWorld();
 
-                                                                   if (world != nullptr)
-                                                                   {
-                                                                       strongThis->Update(world->GetGameState().deltaTime);
-                                                                   }
-                                                               },
-                                                               TaskEnqueueFlags::FIRE_AND_FORGET);
+                    if (world != nullptr)
+                    {
+                        strongThis->Update(world->GetGameState().deltaTime);
+                    }
+                },
+                TaskEnqueueFlags::FIRE_AND_FORGET);
         }
     }
 }
@@ -899,12 +900,7 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
 
     const BoundingBox worldBounds = GetWorldBounds();
 
-    float diffuseContributionWeight = m_diffuseStrength;
-    // set contribution to zero if NOT EPF_DIFFUSE - this is ignored for EPT_AMBIENT.
-    if (m_envProbeType != EPT_AMBIENT && !(m_envProbeFlags & EPF_DIFFUSE))
-    {
-        diffuseContributionWeight = 0;
-    }
+    const float diffuseContributionWeight = ShouldComputeSphericalHarmonics() ? m_diffuseStrength : 0;
 
     EnvProbeShaderData& bufferData = proxy->bufferData;
     bufferData.aabbMin = Vec4f(worldBounds.min, m_camera ? m_camera->GetNearClip() : EnvProbeCameraNearClip);

@@ -36,7 +36,7 @@ struct SH9
 #define EPF_REALTIME 0x4
 #define EPF_ORIGIN_FROM_CENTER 0x8
 #define EPF_VISIBILITY 0x10
-#define EPF_DIFFUSE 0x20
+#define EPF_HIT_MASK 0x40
 
 #define INVALID_ENV_PROBE_TEXTURE (0xFFFFu)
 
@@ -52,7 +52,6 @@ float4 EnvProbeSample(
     float3 coord, float lod)
 {
     float4 color = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(samp, tex, float4(normalize(coord), float(textureIndex)), lod);
-    // color.rgb = pow(color.rgb, float3(2.2));
     return color;
 }
 
@@ -104,8 +103,17 @@ float4 EnvProbeSampleParallaxCorrected(
 
     float3 box = world + R * correction;
     float3 coord = box - envProbe.world_position.xyz;
-
+    
     return SAMPLE_TEXTURE_CUBE_ARRAY_LOD(samp, tex, float4(normalize(coord), float(colorTextureIndex)), lod);
+}
+
+float EnvProbeHitMask(in EnvProbe envProbe, float3 N, in float shBands[9])
+{
+    // hitMaskData encodes R channel of L1 spherical harmonics computed mask where 1.0 == hit, 0.0 == miss
+    return select(
+        (GET_ENV_PROBE_FLAGS(envProbe) & EPF_HIT_MASK) != 0,
+        saturate(dot(envProbe.hitMaskData, float4(shBands[0], shBands[1], shBands[2], shBands[3]))),
+        1.0);
 }
 
 void ProjectSHBands(float3 N, out float bands[9])
@@ -121,48 +129,21 @@ void ProjectSHBands(float3 N, out float bands[9])
     bands[8] = 0.546274 * (N.x * N.x - N.y * N.y);
 }
 
-float3 SphericalHarmonicsSample(const in SH9 sh, float3 normal)
-{
-    float bands[9];
-    ProjectSHBands(normal, bands);
-
-    float3 result = sh.values[0] * bands[0]
-        + sh.values[1] * bands[1]
-        + sh.values[2] * bands[2]
-        + sh.values[3] * bands[3]
-        + sh.values[4] * bands[4]
-        + sh.values[5] * bands[5]
-        + sh.values[6] * bands[6]
-        + sh.values[7] * bands[7]
-        + sh.values[8] * bands[8];
-
-    result = max(result, (float3)0.0);
-
-    return result;
-}
-
 // Sample spherical harmonics from an EnvProbe up to the given SH order.
 // alpha encodes hit mask value.
 // @TODO: Quadratic - https://cseweb.ucsd.edu/~ravir/papers/envmap/envmap.pdf
-float4 EnvProbeSH(in EnvProbe envProbe, float3 N)
+float3 EnvProbeSH(in EnvProbe envProbe, in float shBands[9])
 {
-    float bands[9];
-    ProjectSHBands(N, bands);
-
     static const int order = 2;
     static const int numCoeffs = min((order + 1) * (order + 1), 9);
 
-    float4 result = (float4)0.0;
+    float3 result = (float3)0.0;
 
     [unroll]
     for (int i = 0; i < numCoeffs; i++)
     {
-        result.rgb += envProbe.sh[i].rgb * bands[i];
+        result += envProbe.sh[i].rgb * shBands[i];
     }
-    
-    // hitMaskData encodes R channel of L1 spherical harmonics computed mask where 1.0 == hit, 0.0 == miss
-    // sky has no hit data
-    result.a = select(GET_ENV_PROBE_TYPE(envProbe) == EPT_SKY, 1.0, saturate(dot(envProbe.hitMaskData, float4(bands[0], bands[1], bands[2], bands[3]))));
 
     return result;
 }

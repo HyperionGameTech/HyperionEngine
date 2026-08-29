@@ -453,8 +453,7 @@ bool PathTracer::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBas
 
         for (EnvProbe* envProbe : rpl.GetEnvProbes())
         {
-            const bool contributesDiffuseLighting = (envProbe->IsAmbientProbe() || (envProbe->GetEnvProbeFlags() & EPF_DIFFUSE))
-                && envProbe->GetDiffuseStrength() > 0.0f;
+            const bool contributesDiffuseLighting = (envProbe->IsAmbientProbe() && envProbe->GetDiffuseStrength() > 0.0f);
 
             if (envProbe != m_baker->GetSource() && contributesDiffuseLighting) // we don't want to bind a probe if it is being baked!
             {

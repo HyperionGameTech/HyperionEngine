@@ -1787,7 +1787,11 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         {
             passData.directLightingPass->RenderToFramebuffer(frame, lightingRS, passData.lightingFramebuffer);
         }
-        
+        else
+        {
+            passData.clusteredShadowMapIndexBuffer = nullptr;
+        }
+
         frame->cr << SetFaceCullMode(FCM_BACK);
         frame->cr << SetCurrentBlendFunction(BlendFunction::None());
         frame->cr << SetCurrentFramebuffer(nullptr);
