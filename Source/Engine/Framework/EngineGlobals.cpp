@@ -319,15 +319,12 @@ HYP_EXPORT uint16 GetGameServerPort()
     return s_cvGameServerPort.Get();
 }
 
-// Minimum interval, in seconds, between client->server player move batch flushes.
 HYP_EXPORT float GetClientSendRate()
 {
     return s_cvClientSendRate.Get();
 }
 
-// Whether remote entities are rendered with buffered interpolation. Disabling it
-// renders the newest received snapshot directly -- a debug view of exactly what the
-// server is sending.
+/// For debugging. Should remote clients interpolate physics objects?
 HYP_EXPORT bool GetInterpolationEnabled()
 {
     return s_cvInterpolationEnabled.Get();
@@ -339,7 +336,7 @@ HYP_EXPORT float GetInterpolationDelay()
     return s_cvInterpolationDelay.Get();
 }
 
-// Position deviation (world units) above which the server sends a movement correction.
+// Position deviation in world units, above which the server will send a movement correction
 HYP_EXPORT float GetCorrectionThreshold()
 {
     return s_cvCorrectionThreshold.Get();

@@ -494,9 +494,7 @@ static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent
     const Vec3f viewDirection = GetPlayerViewDirection(*entity);
 
     // Predict this tick's move locally
-    PlayerMove move;
-    Memory::Zero(&move, sizeof(move));
-
+    PlayerMove move {};
     move.moveId = state.nextMoveId++;
     move.deltaTime = entity->GetWorld()->GetGameState().deltaTime;
     move.movementInput[0] = inputHandler->GetMovementInput().x;
@@ -504,25 +502,18 @@ static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent
     move.viewDirection[0] = viewDirection.x;
     move.viewDirection[1] = viewDirection.y;
     move.viewDirection[2] = viewDirection.z;
-    move.jumpRequested = int8(inputHandler->IsJumpPressed());
+    move.jumpRequested = uint8(inputHandler->IsJumpPressed());
 
-    Vec3f resultTranslation = Vec3f(0.0f);
+    Vec3f resultTranslation = Vec3f::Zero();
 
     SceneHelpers::MoveCharacter(entity, component, move, resultTranslation);
 
     state.unacknowledgedMoves.PushBack(ClientPredictionState::BufferedMove { move, resultTranslation });
 
-    // Cap the buffer so sustained ack loss can't grow it without bound
-    if (state.unacknowledgedMoves.Size() > ClientPredictionState::MaxBufferedMoves)
-    {
-        const size_t excess = state.unacknowledgedMoves.Size() - ClientPredictionState::MaxBufferedMoves;
-        state.unacknowledgedMoves.Erase(
-            state.unacknowledgedMoves.Begin(),
-            state.unacknowledgedMoves.Begin() + excess);
-    }
+    // cap it
+    CapArray(state.unacknowledgedMoves, ClientPredictionState::MaxBufferedMoves);
 
-    // While a correction is being smoothed out, bias the rendered translation back
-    // towards where it was before the rewind, decaying to zero.
+    // bias the rendered translation back towards where it was before the rewind
     if (state.smoothingSecondsRemaining > 0.0f)
     {
         const float smoothingTime = MathUtil::Max(NetGlobals::GetCorrectionSmoothingTime(), 0.0001f);
@@ -536,7 +527,7 @@ static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent
             TransformChangeType::Simulation);
     }
 
-    // Flush batched moves to the server at the configured send rate
+    // Flush batched moves
     state.secondsSinceLastSend += delta;
 
     const float sendRate = MathUtil::Max(NetGlobals::GetClientSendRate(), 1.0f);
@@ -615,9 +606,7 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
                 const Vec3f viewDirection = GetPlayerViewDirection(*entity);
 
-                PlayerMove move;
-                Memory::Zero(&move, sizeof(move));
-
+                PlayerMove move {};
                 move.moveId = 0;
                 move.deltaTime = GetWorld()->GetGameState().deltaTime;
                 move.movementInput[0] = inputHandler->GetMovementInput().x;
@@ -625,7 +614,7 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
                 move.viewDirection[0] = viewDirection.x;
                 move.viewDirection[1] = viewDirection.y;
                 move.viewDirection[2] = viewDirection.z;
-                move.jumpRequested = int8(inputHandler->IsJumpPressed());
+                move.jumpRequested = uint8(inputHandler->IsJumpPressed());
 
                 Vec3f resultTranslation;
                 SceneHelpers::MoveCharacter(entity, component, move, resultTranslation);

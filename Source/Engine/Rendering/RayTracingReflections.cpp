@@ -165,7 +165,9 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
         {
             const LightType lightType = light->GetLightType();
 
-            if (lightType != LightType::Directional && lightType != LightType::Point)
+            if (lightType != LightType::Directional
+                && lightType != LightType::Point
+                && lightType != LightType::Spot)
             {
                 continue;
             }
@@ -284,7 +286,7 @@ void RayTracingReflections::CreateImages()
 
     m_texture = MakeHandle<Texture>(TextureDesc {
         TextureType::Texture2D,
-        TextureFormat::RGBA8,
+        TextureFormat::RGBA16F,
         Vec3u(m_gbuffer->GetExtent(), 1),
         TFM_NEAREST,
         TFM_NEAREST,
@@ -311,7 +313,7 @@ void RayTracingReflections::InitTemporalBlending(bool isPathTracer)
 
     m_temporalBlending = MakeUnique<TemporalBlending>(
         m_gbuffer->GetExtent(),
-        TextureFormat::RGBA8,
+        TextureFormat::RGBA16F,
         technique,
         DefaultTemporalBlendingFeedback,
         RI.textureViewCache->GetOrCreate(m_texture),

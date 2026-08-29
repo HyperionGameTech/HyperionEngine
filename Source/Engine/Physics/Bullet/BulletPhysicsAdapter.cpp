@@ -782,11 +782,6 @@ void BulletPhysicsAdapter::UpdateCharacterShadowBodies(double simDelta)
         return;
     }
 
-    // The chase velocity is a Source-style servo: feed-forward of the target's measured
-    // velocity plus a proportional position-error correction, clamped to shadowMaxSpeed.
-    // Feeding the target velocity forward is what keeps the push steady -- converging on
-    // the full error within one step (error / simDelta) would slam the shadow into
-    // whatever it is pushing every time a move batch advanced the target.
     constexpr btScalar errorCorrectionRate = 10.0f;  // 1/s, fraction of position error closed per second
     constexpr btScalar velocitySmoothing = 0.5f;
 
@@ -799,10 +794,8 @@ void BulletPhysicsAdapter::UpdateCharacterShadowBodies(double simDelta)
             continue;
         }
 
-        // Measure the target's velocity in character time (invariant to move batching).
-        // Normal batch cadence leaves 1-2 idle ticks between replays; only decay the
-        // estimate once input has genuinely stalled, so it cannot keep pushing a
-        // frozen target forward.
+        /// TODO: review. do we still need this?
+
         if (internalData->characterTime > 0.0f)
         {
             const btVector3 measuredVelocity = internalData->ghostTravel / internalData->characterTime;
@@ -831,7 +824,7 @@ void BulletPhysicsAdapter::UpdateCharacterShadowBodies(double simDelta)
             internalData->shadowBody->setInterpolationWorldTransform(targetTransform);
             internalData->shadowBody->setLinearVelocity(btVector3(0.0f, 0.0f, 0.0f));
 
-            // Discontinuity -- drop the stale velocity estimate along with the error.
+            // drop the stale velocity estimate
             internalData->targetVelocity.setValue(0.0f, 0.0f, 0.0f);
             internalData->shadowVelocity.setValue(0.0f, 0.0f, 0.0f);
 
@@ -846,10 +839,6 @@ void BulletPhysicsAdapter::UpdateCharacterShadowBodies(double simDelta)
             chaseVelocity *= btScalar(internalData->shadowMaxSpeed) / chaseSpeed;
         }
 
-        // The transform is NOT advanced here. AdvanceCharacterShadowBodies() moves the
-        // shadow by this velocity once per physics substep, so penetration against
-        // whatever it is pushing stays sub-millimeter instead of one tick's travel,
-        // which the solver would otherwise convert into a depenetration kick.
         internalData->shadowVelocity = chaseVelocity;
     }
 }
@@ -904,14 +893,8 @@ void BulletPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physic
         internalData->kcc->updateAction(m_dynamicsWorld, substepDelta);
     }
 
-    // Accumulate the ghost's travel in character time so that UpdateCharacterShadowBodies()
-    // can measure the target velocity without simulation-time (move batching) distortion.
     internalData->ghostTravel += internalData->ghostObject->getWorldTransform().getOrigin() - ghostPositionBeforeStep;
     internalData->characterTime += btScalar(totalDelta);
-
-    // The shadow body deliberately is NOT moved here. It chases the ghost transform from
-    // UpdateCharacterShadowBodies() during Tick, in simulation time, so that replaying a
-    // batch of moves between physics steps cannot accumulate an unbounded velocity.
 }
 
 void BulletPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation)
@@ -927,7 +910,7 @@ void BulletPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physic
     transform.setOrigin(ToBtVector(translation));
     internalData->ghostObject->setWorldTransform(transform);
 
-    // Discontinuity -- reset the servo state so no velocity is carried across the teleport.
+    // Reset states
     internalData->ghostTravel.setValue(0.0f, 0.0f, 0.0f);
     internalData->characterTime = 0.0f;
     internalData->idleCharacterTicks = 0;
@@ -939,7 +922,6 @@ void BulletPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physic
         internalData->shadowBody->setWorldTransform(transform);
         internalData->shadowMotionState->setWorldTransform(transform);
 
-        // Keep the interpolation anchor in sync so that no velocity is derived from the teleport.
         internalData->shadowBody->setInterpolationWorldTransform(transform);
         internalData->shadowBody->setLinearVelocity(btVector3(0.0f, 0.0f, 0.0f));
     }

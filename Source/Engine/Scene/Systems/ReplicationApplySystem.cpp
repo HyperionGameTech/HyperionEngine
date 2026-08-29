@@ -44,6 +44,8 @@
 #include <Core/Utilities/Time.hpp>
 #include <Core/Utilities/Traits.hpp>
 
+#include <Core/Util.hpp>
+
 #include <Core/Logging/Logger.hpp>
 
 #include <ReplicationApplySystem.generated.inl>
@@ -189,7 +191,12 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
 
             InterpolationState& interpolation = m_interpolationStates[op.netId];
 
-            interpolation.samples.PushBack(InterpolationState::Sample { op.receiveTimeMs, op.transform, op.velocity, op.angularVelocity, op.isSleeping });
+            InterpolationState::Sample& sample = interpolation.samples.EmplaceBack();
+            sample.receiveTimeMs = op.receiveTimeMs;
+            sample.transform = op.transform;
+            sample.velocity = op.velocity;
+            sample.angularVelocity = op.angularVelocity;
+            sample.isSleeping = bool(op.isSleeping);
 
             if (op.isSleeping)
             {
@@ -202,10 +209,8 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
                 interpolation.angularVelocityEstimate = interpolation.angularVelocityEstimate + (op.angularVelocity - interpolation.angularVelocityEstimate) * 0.5f;
             }
 
-            while (interpolation.samples.Size() > InterpolationState::MaxSamples)
-            {
-                interpolation.samples.EraseAt(0);
-            }
+            // cap it
+            CapArray(interpolation.samples, InterpolationState::MaxSamples);
 
             break;
         }
@@ -246,10 +251,20 @@ void ReplicationApplySystem::UpdateInterpolatedEntities()
 
         Array<InterpolationState::Sample, SceneAllocator>& samples = it->second.samples;
 
-        while (samples.Size() > 1 && samples[1].receiveTimeMs <= renderTimeMs)
+        //-- Sample cull
+
+        size_t numToChomp = 0;
+
+        while (samples.Size() - numToChomp > 1 && samples[numToChomp + 1].receiveTimeMs <= renderTimeMs)
         {
-            samples.EraseAt(0);
+            ++numToChomp;
         }
+
+        if (numToChomp > 0)
+        {
+            samples.Erase(samples.Begin(), samples.Begin() + numToChomp);
+        }
+        //-- 
 
         Entity* entity = entityIt->second.Get();
 

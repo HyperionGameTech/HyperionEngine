@@ -83,13 +83,19 @@ bool IsLocalPlayerEntity(const Entity& entity)
 
 bool CanSimulateEntityPhysics(const Entity& entity)
 {
-    // Has authority? Yes, we can simulate physics on it
+    // if dedicated server / single player / listen server then we can simulate physics for the Entity.
     if (EngineGlobals::HasAuthority())
     {
         return true;
     }
 
-    // Connected client: we can simulate non-Replicated entities.
+    // --
+    // clients that are connected to a server but not authoritive can simulate NON replicated props.
+    // like kicking around a can of beans.
+    // server doesn't need to know you're kicking a can of beans.
+    // --
+    // unless your game necessitates that..? (then make it Replicated!)
+    // --
     return !entity.HasComponent<ReplicationStateComponent>()
         && !entity.HasTag<EntityTag::Replicated>();
 }
@@ -114,16 +120,14 @@ void MoveCharacter(Entity* entity, CharacterControllerComponent& component, cons
     PhysicsWorldBase* physicsWorld = entity->GetWorld()->GetPhysicsWorld();
     Assert(physicsWorld != nullptr);
 
-    outResultTranslation = Vec3f(0.0f);
+    outResultTranslation = Vec3f::Zero();
 
     if (!component.physicsHandle)
     {
         return;
     }
 
-    // View direction is client-authoritative and carried per-move so both sides
-    // derive an identical walk direction.
-
+    // View direction is client-authoritative and carried per-move so both sides derive an identical walk direction
     const Vec3f viewDirection = move.GetViewDirection();
     const Vec2f movementInput = move.GetMovementInput();
 
@@ -144,7 +148,7 @@ void MoveCharacter(Entity* entity, CharacterControllerComponent& component, cons
         walkDirection = (forward * movementInput.y + right * movementInput.x) * component.moveSpeed;
     }
 
-    if (move.jumpRequested)
+    if (bool(move.jumpRequested))
     {
         physicsWorld->ApplyCharacterJump(component.physicsHandle);
     }

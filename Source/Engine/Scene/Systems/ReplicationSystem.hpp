@@ -62,12 +62,12 @@ private:
 
     void ApplyPendingRequests();
     void ProcessPlayerMoves();
-    void ProcessPendingCatchUp(Span<Handle<Scene>> scenes);
+    void ProcessPendingCatchUp(Span<const Handle<Scene>> scenes);
 
     Map<NetId, Handle<Entity>, SceneAllocator> m_netIdToEntity;
-    Map<net::NetConnectionId, Entity*> m_connectionIdToEntity;
+    Map<net::NetConnectionId, Entity*, SceneAllocator> m_connectionIdToEntity;
     Map<net::NetConnectionId, PlayerMoveQueueState, SceneAllocator> m_playerMoveQueues;
-    Array<net::NetConnectionId> m_pendingCatchUpConnections;
+    Array<net::NetConnectionId, SceneAllocator> m_pendingCatchUpConnections;
 }; // class ReplicationSystem
 
 } // namespace Hyperion

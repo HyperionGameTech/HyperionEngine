@@ -73,6 +73,12 @@ static CVar<float>* s_csmClipDistances[] = {
     &s_cvCSMSplit3
 };
 
+CVar<bool> g_cvCSMTimeSlicingEnabled("Rendering.Shadows.CSMTimeSlicingEnabled", true);
+static CVar<int> s_cvCSMMaxUpdatesPerFrame("Rendering.Shadows.CSMMaxUpdatesPerFrame", 1);
+static CVar<int> s_cvCSMMaxStaleFrames("Rendering.Shadows.CSMMaxStaleFrames", 8);
+static CVar<float> s_cvCSMBasisAngleThresholdDegrees("Rendering.Shadows.CSMBasisAngleThresholdDegrees", 0.05f);
+static CVar<float> s_cvCSMBasisPositionThreshold("Rendering.Shadows.CSMBasisPositionThreshold", 1.0f);
+
 // Always mark dirty at this value
 static const int s_dirtyResourceVersion = -1;
 static const int* s_dirtyResourceVersionPtr = &s_dirtyResourceVersion;
@@ -465,6 +471,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
         Mat4f shadowInvProjMatrix;
 
         Frustum csmMainCameraFrustum;
+        Vec3f lightDir;
 
         // Calculate total world bounds for CSM
         BoundingSphere worldBoundsSphere;
@@ -483,6 +490,8 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
             const float mainCameraFarRatio = MathUtil::Clamp(s_cvCSMMaxDistance.Get() / m_camera->GetFarClip(), 0.0f, 1.0f);
             csmMainCameraFrustum = (mainCameraFarRatio >= 0.9999f ? mainCameraFrustum : mainCameraFrustum.SubFrustum(0.0f, mainCameraFarRatio));
+
+            lightDir = light->GetWorldTranslation().Normalized();
         }
 
         // Collect scenes
@@ -527,13 +536,33 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
             shadowViewScenes.PushBack(scene);
         }
 
+        const bool lightForceRedraw = light->forceRedrawShadows;
+
+        bool csmInvalidated = lightForceRedraw;
+
         // Shared CSM view matrix, anchored to the scene bounds so it is stable as the camera moves.
         if (isDirectional && isWorldBoundsSphereValid)
         {
-            shadowViewMatrix = ShadowCameraHelpers::CalculateShadowViewMatrix(
-                worldBoundsSphere,
-                light->GetWorldTranslation().Normalized());
+            shadowViewMatrix = ShadowCameraHelpers::CalculateShadowViewMatrix(worldBoundsSphere, lightDir);
+
+            DirectionalLight::CSMState& csmState = StaticCast<DirectionalLight>(light)->csmState;
+
+            bool basisChanged = !csmState.basisInitialized;
+            !basisChanged && (basisChanged |= (csmState.lastCommittedLightDir.Dot(lightDir) < MathUtil::Cos(MathUtil::DegToRad(s_cvCSMBasisAngleThresholdDegrees.Get()))));
+            !basisChanged && (basisChanged |= ((worldBoundsSphere.GetCenter() - csmState.lastCommittedWorldBounds.GetCenter()).Length() > s_cvCSMBasisPositionThreshold.Get()));
+            !basisChanged && (basisChanged |= (MathUtil::Abs(worldBoundsSphere.GetRadius() - csmState.lastCommittedWorldBounds.GetRadius()) > s_cvCSMBasisPositionThreshold.Get()));
+
+            csmInvalidated |= basisChanged;
+
+            if (csmInvalidated)
+            {
+                csmState.lastCommittedLightDir = lightDir;
+                csmState.lastCommittedWorldBounds = worldBoundsSphere;
+                csmState.basisInitialized = true;
+            }
         }
+
+        uint32 csmUpdatesSpentThisFrame = 0;
 
         for (uint32 shadowViewIndex = 0; shadowViewIndex < numShadowViews; shadowViewIndex++)
         {
@@ -546,8 +575,6 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
             {
                 const float nearRatio = (shadowViewIndex == 0) ? 0.0f : s_csmClipDistances[shadowViewIndex - 1]->Get();
                 const float farRatio = s_csmClipDistances[shadowViewIndex]->Get();
-
-                const Vec3f lightDir = light->GetWorldTranslation().Normalized();
 
                 shadowViewBounds = ShadowCameraHelpers::CalculateCascadeBounds(
                     csmMainCameraFrustum,
@@ -616,6 +643,40 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
             // End Create Shadow views
             ////////////////////////////
 
+            bool updateCascade = true;
+
+            if (isDirectional)
+            {
+                DirectionalLight::CSMState& csmState = StaticCast<DirectionalLight>(light)->csmState;
+
+                View* currentCascadeView = shadowViewsDynamic[shadowViewIndex]
+                    ? shadowViewsDynamic[shadowViewIndex]
+                    : shadowViewsStatic[shadowViewIndex];
+
+                if (!g_cvCSMTimeSlicingEnabled.Get() || csmInvalidated || !currentCascadeView)
+                {
+                    updateCascade = true;
+                }
+                else
+                {
+                    const bool boundsChanged = shadowViewBounds != currentCascadeView->cachedBounds;
+                    const uint32 framesSinceUpdate = GetFrameCounter() - csmState.lastCommittedFrame[shadowViewIndex];
+                    const bool overStaleCap = framesSinceUpdate >= uint32(MathUtil::Max(s_cvCSMMaxStaleFrames.Get(), 1));
+
+                    updateCascade = overStaleCap || (boundsChanged && csmUpdatesSpentThisFrame < uint32(MathUtil::Max(s_cvCSMMaxUpdatesPerFrame.Get(), 0)));
+
+                    if (updateCascade && !overStaleCap)
+                    {
+                        ++csmUpdatesSpentThisFrame;
+                    }
+                }
+
+                if (updateCascade)
+                {
+                    csmState.lastCommittedFrame[shadowViewIndex] = GetFrameCounter();
+                }
+            }
+
             if (!isDirectional)
             {
                 Assert(firstShadowView != nullptr);
@@ -657,6 +718,15 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                     continue;
                 }
 
+                if (!updateCascade)
+                {
+                    shadowView->collectionState.skipNext = true;
+
+                    outShadowViews.PushBack(shadowView);
+
+                    continue;
+                }
+
                 shadowView->cachedMatrices.view = shadowViewMatrix;
                 shadowView->cachedMatrices.viewProj = shadowViewProjMatrix;
                 shadowView->cachedMatrices.invProj = shadowInvProjMatrix;
@@ -668,7 +738,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                 shadowView->m_scenes.Resize(shadowViewScenes.Size());
                 std::copy(shadowViewScenes.Begin(), shadowViewScenes.End(), shadowView->m_scenes.Begin());
 
-                const bool shouldSkipUnchangedViews = (shadowView == shadowViewsStatic[shadowViewIndex]) && !light->forceRedrawShadows;
+                const bool shouldSkipUnchangedViews = (shadowView == shadowViewsStatic[shadowViewIndex]) && !lightForceRedraw;
 
                 if (shouldSkipUnchangedViews)
                 {
@@ -687,12 +757,16 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
                     shadowView->collectionState.UpdateInputs(inputHash, GetFrameCounter());
                 }
-
-                light->forceRedrawShadows = false;
+                else
+                {
+                    shadowView->collectionState.skipNext = false;
+                }
 
                 outShadowViews.PushBack(shadowView);
             }
         }
+
+        light->forceRedrawShadows = false;
     }
 }
 

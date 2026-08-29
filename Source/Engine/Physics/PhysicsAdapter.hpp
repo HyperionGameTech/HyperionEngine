@@ -26,11 +26,9 @@ struct CharacterControllerConfig
     float jumpSpeed = 10.0f;
     float fallSpeed = 55.0f;
 
-    /// Maximum speed (m/s) at which the character's physics shadow body may follow character transform
+    // Max. follow speed for shadow body
     float shadowMaxSpeed = 60.0f;
-
-    /// Distance (m) beyond which the shadow body teleports to the character transform
-    /// instead of chasing it, deriving no velocity from the snap.
+    // Instead of following, shadow body will teleport at this distance.
     float shadowTeleportDistance = 0.5f;
 };
 
@@ -123,15 +121,11 @@ public:
         GetDerivedAdapter()->DerivedAdapter::ApplyCharacterJump(physicsHandle);
     }
 
-    // Advances a character controller by deltaTime seconds using its current walk direction.
-    // Character controllers are stepped explicitly (they are NOT advanced by PhysicsWorld::Tick)
-    // so that client-side prediction can replay moves with identical timing to the server.
     void StepCharacterController(const SharedPtr<void>& physicsHandle, float deltaTime)
     {
         GetDerivedAdapter()->DerivedAdapter::StepCharacterController(physicsHandle, deltaTime);
     }
 
-    // Teleports a character controller to the given translation (capsule center).
     void SetCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation)
     {
         GetDerivedAdapter()->DerivedAdapter::SetCharacterTranslation(physicsHandle, translation);

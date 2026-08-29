@@ -421,26 +421,38 @@ void Entity::OnTagRemoved(EntityTag tag, bool refreshDependentTags)
 
 void Entity::SetScene_Internal(Scene* scene, bool moveToDetached)
 {
-    EntityManager* prevEntityManager = GetEntityManager();
-
-    // We need to call RemoveEntity() if MoveEntity() will not be called.
-    // Do this before Node::SetScene_Internal() is called, because systems may try to do
-    // entity->GetScene() and will not expect nullptr to be returned.
-    if (scene == nullptr && !moveToDetached && prevEntityManager != nullptr)
+    Scene* newScene = scene;
+    
+    // Move to new emgr:
+    // if \p moveToDetached & \p scene is nullptr, grab the detached one for this thread,
+    //  and call SetEntityManager() to MoveEntity() for this to the new one.
+    if (moveToDetached && !newScene)
     {
-        prevEntityManager->RemoveEntity(this);
+        newScene = GetDetachedSceneForCurrentThread();
     }
 
-    Node::SetScene_Internal(scene, moveToDetached);
-
-    if (m_scene != nullptr)
+    if (newScene != nullptr)
     {
-        SetEntityManager(m_scene->GetEntityManager());
+        SetEntityManager(newScene->GetEntityManager());
     }
     else
     {
+        // NULL IT OUT.
+        // If we're here, caller passed nullptr for scene and !moveToDetached,
+        // intention being that we will remove from current emgr (if applicable),
+        // and end up with NO scene/emgr.
+        
+        EntityManager* prevEntityManager = GetEntityManager();
+        
+        if (prevEntityManager != nullptr)
+        {
+            prevEntityManager->RemoveEntity(this);
+        }
+
         m_entityManager = nullptr;
     }
+
+    Node::SetScene_Internal(newScene, moveToDetached);
 }
 
 void Entity::UpdateRenderProxy(RenderProxyMesh* proxy)

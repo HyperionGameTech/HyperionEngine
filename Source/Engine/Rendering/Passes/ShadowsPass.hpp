@@ -78,6 +78,9 @@ private:
 
         FixedArray<Handle<Texture>, 6> cachedShadowMapTextures;
 
+        // For time slicing.
+        FixedArray<Mat4f, MaxShadowMapCascades> lastRenderedViewProj;
+
         uint32 lastUsedFrame;
     };
 

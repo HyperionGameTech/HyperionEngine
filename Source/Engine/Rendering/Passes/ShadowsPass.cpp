@@ -50,6 +50,8 @@ static constexpr uint32 BucketMask = RenderBucketMask<RenderBucket::Opaque, Rend
 EngineStatGpuTimer g_statShadowMaps("Rendering/GPU/ShadowMaps");
 CVar<bool> g_cvCacheShadowMaps("Rendering.CacheShadowMaps", true);
 
+extern CVar<bool> g_cvCSMTimeSlicingEnabled;
+
 #pragma region ShadowsPassData
 
 ShadowsPassData::~ShadowsPassData()
@@ -133,7 +135,10 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
     Assert(lightProxy != nullptr, "Proxy for Light {} not found when rendering shadows!", light->Id());
     
-    const bool isOmni = (static_cast<LightType>(lightProxy->bufferData.lightType) == LightType::Point);
+    const LightType lightType = static_cast<LightType>(lightProxy->bufferData.lightType);
+
+    const bool isOmni = (lightType == LightType::Point);
+    const bool isDirectional = (lightType == LightType::Directional);
 
     const bool hasBakedStaticShadowMaps = (light->GetLightFlags() & LightFlags::BakeStaticShadows) && lightProxy->bakedShadowMap != nullptr;
     const bool cacheStaticShadowMaps = g_cvCacheShadowMaps.Get() && !hasBakedStaticShadowMaps && (light->GetLightFlags() & LightFlags::CacheStaticShadowMaps);
@@ -213,6 +218,25 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         }
 
         Assert(firstShadowView != nullptr);
+
+        //-- Time slicing CSM
+        if (isDirectional && g_cvCSMTimeSlicingEnabled.Get())
+        {
+            View* cascadeView = shadowViewDynamic ? shadowViewDynamic : shadowViewStatic;
+            Assert(cascadeView != nullptr);
+
+            RenderProxyList& cascadeRpl = GetConsumerProxyList(cascadeView);
+            cascadeRpl.BeginRead();
+            const Mat4f cascadeViewProj = cascadeRpl.cachedMatrices.viewProj;
+            cascadeRpl.EndRead();
+
+            if (cascadeViewProj == cachedData->lastRenderedViewProj[cascadeIndex])
+            {
+                continue;
+            }
+
+            cachedData->lastRenderedViewProj[cascadeIndex] = cascadeViewProj;
+        }
 
         const uint32 numViewsToIterate = (isOmni ? 6 : cascadeIndex + 1);
 
