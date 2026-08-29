@@ -307,6 +307,7 @@ static CVar<bool> s_cvInterpolationEnabled("Net.InterpolationEnabled", true);
 static CVar<float> s_cvInterpolationDelay("Net.InterpolationDelay", 0.1f);
 static CVar<float> s_cvCorrectionThreshold("Net.CorrectionThreshold", 0.3f);
 static CVar<float> s_cvCorrectionSmoothingTime("Net.CorrectionSmoothingTime", 0.1f);
+static CVar<bool> s_cvDeadReckoning("Net.DeadReckoning", false);
 
 HYP_EXPORT const char* GetHostAddress()
 {
@@ -340,6 +341,11 @@ HYP_EXPORT float GetInterpolationDelay()
 HYP_EXPORT float GetCorrectionThreshold()
 {
     return s_cvCorrectionThreshold.Get();
+}
+
+HYP_EXPORT bool GetDeadReckoningEnabled()
+{
+    return s_cvDeadReckoning.Get();
 }
 
 // Seconds over which a prediction error is smoothed out visually after reconciliation.
