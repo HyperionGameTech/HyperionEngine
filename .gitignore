@@ -66,8 +66,10 @@ Source/PlatformSpecific/Android/app/.cxx/**/*
 Source/PlatformSpecific/Android/app/**/jniLibs/**/*
 Source/PlatformSpecific/Android/app/**/assets/**/*
 
+# old, not used anymore
 .hyperion-package
 
+# generated code by our CodeGenTool
 Source/Generated/**/*
 
 Content/Game/**/*
@@ -89,3 +91,6 @@ PackagedBuilds/**/*
 Source/Generated/**/*
 
 compile_commands.json
+
+# misc lock files.
+*.lock.json

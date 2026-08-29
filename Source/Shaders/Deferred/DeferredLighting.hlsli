@@ -316,8 +316,8 @@ void EvaluateEnvProbes(
             irradianceSum, irradianceWeightSum);
     }
     
-    //reflectionsWeightSum = saturate(reflectionsWeightSum);
-    //irradianceWeightSum = saturate(irradianceWeightSum);
+    reflectionsWeightSum = saturate(reflectionsWeightSum);
+    irradianceWeightSum = saturate(irradianceWeightSum);
 
     // to get that good intellisense
 #ifndef HYP_SHADER_COMPILER
@@ -348,7 +348,7 @@ void EvaluateEnvProbes(
 
         // Sky only fills in where no env probes cover
         const float reflectionsResidual = 1.0 - smoothstep(0.01, 0.2, saturate(reflectionsWeightSum));
-        const float irradianceResidual = 1.0 - smoothstep(0.01, 0.2, saturate(irradianceWeightSum));
+        const float irradianceResidual = 1.0 - irradianceWeightSum;
         
         const float skyReflectionsEffectiveWeight = min(skyReflectionsWeightSum, reflectionsResidual);
         reflectionsSum += (skyReflectionsSum / max(skyReflectionsWeightSum, HYP_FMATH_EPSILON)) * skyReflectionsEffectiveWeight;

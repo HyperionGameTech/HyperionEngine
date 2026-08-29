@@ -840,7 +840,7 @@ public:
         struct ReloadItem
         {
             ShaderMapEntry* entry;
-            Shader* oldShader;
+            Handle<Shader> oldShader;
             Name shaderName;
             ShaderPropertySet properties;
             VertexInputLayoutDesc inputLayout;
@@ -874,7 +874,7 @@ public:
                     }
                 }
 
-                items.PushBack(ReloadItem { entry, entry->shader, entry->shader->baseName, entry->shader->properties, entry->shader->inputLayout });
+                items.PushBack(ReloadItem { entry, Handle<Shader>::FromPointer(entry->shader), entry->shader->baseName, entry->shader->properties, entry->shader->inputLayout });
             }
         }
 
@@ -907,7 +907,7 @@ public:
             IssueShaderCompile(item.entry, item.shaderName, item.properties, item.inputLayout);
         }
 
-        Set<Shader*, ShaderAllocator> shadersToExpire;
+        Set<Handle<Shader>, ShaderAllocator> shadersToExpire;
 
         for (ReloadItem& item : items)
         {
@@ -925,10 +925,9 @@ public:
 
             AssertDebug(item.entry->IsLoaded());
 
-            if (item.oldShader != nullptr && item.oldShader != reloadedShader)
+            if (item.oldShader != nullptr && item.oldShader.Get() != reloadedShader)
             {
-                item.oldShader->AddRef();
-                shadersToExpire.Add(item.oldShader);
+                shadersToExpire.Add(std::move(item.oldShader));
             }
         }
 
@@ -936,15 +935,18 @@ public:
         {
             auto expireOnRenderThread = [toExpire = std::move(shadersToExpire)]()
             {
-                for (Shader* shader : toExpire)
+                for (const Handle<Shader>& shader : toExpire)
                 {
+                    if (shader->expired)
+                    {
+                        continue;
+                    }
+
                     RI.graphicsPipelineCache->ExpirePipelinesForShader(shader);
                     RI.computePipelineCache->ExpirePipelinesForShader(shader);
                     RI.rayTracingPipelineCache->ExpirePipelinesForShader(shader);
 
                     g_shaderManager->ExpireShaderEntries(shader);
-
-                    shader->Release();
                 }
             };
 
