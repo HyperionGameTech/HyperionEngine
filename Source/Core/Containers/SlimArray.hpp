@@ -64,7 +64,7 @@ public:
     SlimArray(SlimArray&& other) noexcept;
 
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<TAllocator>, typename = std::enable_if_t<ConditionalEnable>>
-    explicit SlimArray(uint32 size)
+    explicit SlimArray(size_t size)
         : SlimArray()
     {
         Resize(size);
@@ -82,37 +82,37 @@ public:
     {
     }
 
-    template <uint32 Sz, bool ConditionalEnable = HasDefaultAllocatorInstance<TAllocator>, typename = std::enable_if_t<ConditionalEnable>>
+    template <size_t Sz, bool ConditionalEnable = HasDefaultAllocatorInstance<TAllocator>, typename = std::enable_if_t<ConditionalEnable>>
     SlimArray(TElemType const (&items)[Sz])
         : SlimArray()
     {
         ResizeUninitialized(Sz);
 
-        for (uint32 i = 0; i < Sz; ++i)
+        for (size_t i = 0; i < Sz; ++i)
         {
             Memory::Construct<TElemType>(&data[i], items[i]);
         }
     }
 
-    template <uint32 Sz, bool ConditionalEnable = HasDefaultAllocatorInstance<TAllocator>, typename = std::enable_if_t<ConditionalEnable>>
+    template <size_t Sz, bool ConditionalEnable = HasDefaultAllocatorInstance<TAllocator>, typename = std::enable_if_t<ConditionalEnable>>
     SlimArray(TElemType (&&items)[Sz])
         : SlimArray()
     {
         ResizeUninitialized(Sz);
 
-        for (uint32 i = 0; i < Sz; ++i)
+        for (size_t i = 0; i < Sz; ++i)
         {
             Memory::Construct<TElemType>(&data[i], std::move(items[i]));
         }
     }
 
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<TAllocator>, typename = std::enable_if_t<ConditionalEnable>>
-    SlimArray(TElemType* ptr, uint32 size)
+    SlimArray(TElemType* ptr, size_t size)
         : SlimArray()
     {
         ResizeUninitialized(size);
 
-        for (uint32 i = 0; i < size; ++i)
+        for (size_t i = 0; i < size; ++i)
         {
             Memory::Construct<TElemType>(&data[i], ptr[i]);
         }
@@ -122,10 +122,10 @@ public:
     SlimArray(Iterator first, Iterator last)
         : SlimArray()
     {
-        const uint32 dist = uint32(last - first);
+        const size_t dist = size_t(last - first);
         ResizeUninitialized(dist);
 
-        for (uint32 i = 0; i < dist; ++i)
+        for (size_t i = 0; i < dist; ++i)
         {
             Memory::Construct<TElemType>(&data[i], first[i]);
         }
@@ -135,17 +135,17 @@ public:
     SlimArray(ConstIterator first, ConstIterator last)
         : SlimArray()
     {
-        const uint32 dist = uint32(last - first);
+        const size_t dist = size_t(last - first);
         ResizeUninitialized(dist);
 
-        for (uint32 i = 0; i < dist; ++i)
+        for (size_t i = 0; i < dist; ++i)
         {
             Memory::Construct<TElemType>(&data[i], first[i]);
         }
     }
 
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<TAllocator>, typename = std::enable_if_t<ConditionalEnable>>
-    SlimArray(const TElemType* ptr, uint32 size)
+    SlimArray(const TElemType* ptr, size_t size)
         : SlimArray(ptr, ptr + size)
     {
     }
@@ -183,14 +183,14 @@ public:
     template <class TOtherAllocator, typename = std::enable_if_t<!std::is_same_v<TOtherAllocator, TAllocator>>>
     SlimArray& operator=(SlimArray<TElemType, TOtherAllocator>&& other) noexcept = delete;
 
-    HYP_FORCE_INLINE uint32 Size() const
+    HYP_FORCE_INLINE size_t Size() const
     {
-        return size;
+        return size_t(size);
     }
 
-    HYP_FORCE_INLINE uint32 ByteSize() const
+    HYP_FORCE_INLINE size_t ByteSize() const
     {
-        return size * uint32(sizeof(TElemType));
+        return size_t(size) * sizeof(TElemType);
     }
 
     HYP_FORCE_INLINE ValueType* Data()
@@ -247,19 +247,19 @@ public:
         return data[index];
     }
 
-    void Reserve(uint32 capacity);
+    void Reserve(size_t capacity);
 
-    void Resize(uint32 newSize);
+    void Resize(size_t newSize);
 
-    void ResizeUninitialized(uint32 newSize);
+    void ResizeUninitialized(size_t newSize);
 
-    void ResizeZeroed(uint32 newSize);
+    void ResizeZeroed(size_t newSize);
 
     void Refit();
 
-    void SetCapacity(uint32 newCapacity);
+    void SetCapacity(size_t newCapacity);
 
-    HYP_FORCE_INLINE uint32 Capacity() const
+    HYP_FORCE_INLINE size_t Capacity() const
     {
         return capacity;
     }
@@ -312,7 +312,7 @@ public:
         return *element;
     }
 
-    void Shift(uint32 count);
+    void Shift(size_t count);
 
     HYP_NODISCARD SlimArray<TElemType, TAllocator> Slice(int first, int last) const;
 
@@ -334,7 +334,7 @@ public:
 
     void Concat(Span<const TElemType> span)
     {
-        const uint32 spanSize = uint32(span.Size());
+        const size_t spanSize = size_t(span.Size());
 
         if (spanSize == 0)
         {
@@ -354,7 +354,7 @@ public:
         }
         else
         {
-            for (uint32 i = 0; i < spanSize; ++i)
+            for (size_t i = 0; i < spanSize; ++i)
             {
                 Memory::Construct<TElemType>(std::addressof(data[size++]), span.Data()[i]);
             }
@@ -366,7 +366,7 @@ public:
     template <class TOtherAllocator>
     void Reverse(SlimArray<TElemType, TOtherAllocator>& outArray) const
     {
-        const uint32 sz = Size();
+        const size_t sz = Size();
 
         if (sz < 2)
         {
@@ -375,7 +375,7 @@ public:
 
         outArray.ResizeUninitialized(sz);
 
-        for (uint32 i = 0; i < sz; ++i)
+        for (size_t i = 0; i < sz; ++i)
         {
             Memory::Construct<TElemType>(&outArray.data[i], data[sz - 1 - i]);
         }
@@ -479,7 +479,7 @@ public:
         return Span<const TElemType>(Data(), Size());
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE ByteView ToByteView(uint32 offset = 0, uint32 sizeVal = ~0u)
+    HYP_NODISCARD HYP_FORCE_INLINE ByteView ToByteView(size_t offset = 0, size_t sizeVal = ~0u)
     {
         if (offset >= Size())
         {
@@ -494,7 +494,7 @@ public:
         return ByteView(reinterpret_cast<ubyte*>(Data()) + offset, sizeVal * sizeof(TElemType));
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE ConstByteView ToByteView(uint32 offset = 0, uint32 sizeVal = ~0u) const
+    HYP_NODISCARD HYP_FORCE_INLINE ConstByteView ToByteView(size_t offset = 0, size_t sizeVal = ~0u) const
     {
         if (offset >= Size())
         {
@@ -517,7 +517,7 @@ protected:
         return GetDefaultAllocatorInstance<TAllocator>();
     }
 
-    void Allocate(uint32 count)
+    HYP_FORCE_INLINE void Allocate(size_t count)
     {
         HYP_CORE_ASSERT(data == nullptr);
         HYP_CORE_ASSERT(count > 0);
@@ -528,7 +528,7 @@ protected:
         capacity = count;
     }
 
-    void Free()
+    HYP_FORCE_INLINE void Free()
     {
         if (data != nullptr)
         {
@@ -543,7 +543,7 @@ protected:
     {
         HYP_CORE_ASSERT(end >= begin);
 
-        const uint32 count = uint32(end - begin);
+        const size_t count = size_t(end - begin);
 
         HYP_CORE_ASSERT(capacity >= count);
 
@@ -553,7 +553,7 @@ protected:
         }
         else
         {
-            for (uint32 i = 0; i < count; i++)
+            for (size_t i = 0; i < count; i++)
             {
                 Memory::Construct<TElemType>(&data[i], begin[i]);
             }
@@ -564,7 +564,7 @@ protected:
     {
         HYP_CORE_ASSERT(end >= begin);
 
-        const uint32 count = uint32(end - begin);
+        const size_t count = size_t(end - begin);
 
         HYP_CORE_ASSERT(capacity >= count);
 
@@ -574,14 +574,14 @@ protected:
         }
         else if constexpr (std::is_move_constructible_v<TElemType>)
         {
-            for (uint32 i = 0; i < count; i++)
+            for (size_t i = 0; i < count; i++)
             {
                 Memory::Construct<TElemType>(&data[i], std::move(begin[i]));
             }
         }
         else if constexpr (std::is_copy_constructible_v<TElemType>)
         {
-            for (uint32 i = 0; i < count; i++)
+            for (size_t i = 0; i < count; i++)
             {
                 Memory::Construct<TElemType>(&data[i], begin[i]);
             }
@@ -596,18 +596,18 @@ protected:
     {
         if constexpr (!std::is_trivially_destructible_v<TElemType>)
         {
-            for (uint32 i = size; i > 0;)
+            for (size_t i = size; i > 0;)
             {
                 data[--i].~TElemType();
             }
         }
     }
 
-    void ShiftElementsRight(uint32 offset)
+    void ShiftElementsRight(size_t offset)
     {
         HYP_CORE_ASSERT(size + offset <= capacity);
 
-        for (uint32 i = size; i > 0;)
+        for (size_t i = size; i > 0;)
         {
             --i;
 
@@ -626,11 +626,11 @@ protected:
         size += offset;
     }
 
-    void ShiftElementsLeft(uint32 count)
+    void ShiftElementsLeft(size_t count)
     {
         HYP_CORE_ASSERT(count <= size);
 
-        const uint32 newSize = size - count;
+        const size_t newSize = size - count;
 
         if constexpr (std::is_trivially_copyable_v<TElemType>)
         {
@@ -638,7 +638,7 @@ protected:
         }
         else
         {
-            for (uint32 i = 0; i < newSize; ++i)
+            for (size_t i = 0; i < newSize; ++i)
             {
                 if constexpr (std::is_move_assignable_v<TElemType>)
                 {
@@ -656,7 +656,7 @@ protected:
             }
 
             // Destruct the tail elements after all moves are complete
-            for (uint32 i = size; i > newSize;)
+            for (size_t i = size; i > newSize;)
             {
                 Memory::Destruct(data[--i]);
             }
@@ -665,9 +665,9 @@ protected:
         size = newSize;
     }
 
-    static uint32 CalculateDesiredCapacity(uint32 desiredSize)
+    static size_t CalculateDesiredCapacity(size_t desiredSize)
     {
-        return 1u << uint32(std::ceil(std::log(desiredSize) / std::log(2.0)));
+        return 1ull << size_t(std::ceil(std::log(desiredSize) / std::log(2.0)));
     }
 
     TElemType* data;
@@ -785,7 +785,7 @@ auto SlimArray<TElemType, TAllocator>::operator=(const SlimArray<TElemType, TOth
 }
 
 template <class TElemType, class TAllocator>
-void SlimArray<TElemType, TAllocator>::Reserve(uint32 capacityValue)
+void SlimArray<TElemType, TAllocator>::Reserve(size_t capacityValue)
 {
     if (capacity >= capacityValue)
     {
@@ -796,7 +796,7 @@ void SlimArray<TElemType, TAllocator>::Reserve(uint32 capacityValue)
 }
 
 template <class TElemType, class TAllocator>
-void SlimArray<TElemType, TAllocator>::Resize(uint32 newSize)
+void SlimArray<TElemType, TAllocator>::Resize(size_t newSize)
 {
     if (newSize == size)
     {
@@ -805,7 +805,7 @@ void SlimArray<TElemType, TAllocator>::Resize(uint32 newSize)
 
     if (newSize > size)
     {
-        const uint32 diff = newSize - size;
+        const size_t diff = newSize - size;
 
         if (size + diff > capacity)
         {
@@ -828,9 +828,9 @@ void SlimArray<TElemType, TAllocator>::Resize(uint32 newSize)
     }
     else
     {
-        const uint32 diff = size - newSize;
+        const size_t diff = size - newSize;
 
-        for (uint32 i = size; i > size - diff;)
+        for (size_t i = size; i > size - diff;)
         {
             Memory::Destruct(data[--i]);
         }
@@ -840,7 +840,7 @@ void SlimArray<TElemType, TAllocator>::Resize(uint32 newSize)
 }
 
 template <class TElemType, class TAllocator>
-void SlimArray<TElemType, TAllocator>::ResizeUninitialized(uint32 newSize)
+void SlimArray<TElemType, TAllocator>::ResizeUninitialized(size_t newSize)
 {
     if (newSize == size)
     {
@@ -849,7 +849,7 @@ void SlimArray<TElemType, TAllocator>::ResizeUninitialized(uint32 newSize)
 
     if (newSize > size)
     {
-        const uint32 diff = newSize - size;
+        const size_t diff = newSize - size;
 
         if (size + diff > capacity)
         {
@@ -860,9 +860,9 @@ void SlimArray<TElemType, TAllocator>::ResizeUninitialized(uint32 newSize)
     }
     else
     {
-        const uint32 diff = size - newSize;
+        const size_t diff = size - newSize;
 
-        for (uint32 i = size; i > size - diff;)
+        for (size_t i = size; i > size - diff;)
         {
             Memory::Destruct(data[--i]);
         }
@@ -872,7 +872,7 @@ void SlimArray<TElemType, TAllocator>::ResizeUninitialized(uint32 newSize)
 }
 
 template <class TElemType, class TAllocator>
-void SlimArray<TElemType, TAllocator>::ResizeZeroed(uint32 newSize)
+void SlimArray<TElemType, TAllocator>::ResizeZeroed(size_t newSize)
 {
     static_assert(std::is_fundamental_v<TElemType> || std::is_trivially_constructible_v<TElemType>,
         "ResizeZeroed can only be used for fundamental or trivially constructible types");
@@ -882,7 +882,7 @@ void SlimArray<TElemType, TAllocator>::ResizeZeroed(uint32 newSize)
         return;
     }
 
-    const uint32 currentSize = size;
+    const size_t currentSize = size;
 
     ResizeUninitialized(newSize);
 
@@ -904,7 +904,7 @@ void SlimArray<TElemType, TAllocator>::Refit()
 }
 
 template <class TElemType, class TAllocator>
-void SlimArray<TElemType, TAllocator>::SetCapacity(uint32 newCapacity)
+void SlimArray<TElemType, TAllocator>::SetCapacity(size_t newCapacity)
 {
     if (newCapacity == capacity)
     {
@@ -914,7 +914,9 @@ void SlimArray<TElemType, TAllocator>::SetCapacity(uint32 newCapacity)
     HYP_CORE_ASSERT(newCapacity <= SIZE_MAX / sizeof(TElemType));
 
     TElemType* newData = nullptr;
-    const uint32 copySize = MathUtil::Min(size, newCapacity);
+    const size_t copySize = MathUtil::Min(size, newCapacity);
+
+    HYP_CORE_ASSERT(newCapacity <= UINT32_MAX && copySize <= UINT32_MAX);
 
     if (newCapacity > 0)
     {
@@ -929,7 +931,7 @@ void SlimArray<TElemType, TAllocator>::SetCapacity(uint32 newCapacity)
             }
             else
             {
-                for (uint32 i = 0; i < copySize; i++)
+                for (size_t i = 0; i < copySize; i++)
                 {
                     Memory::Construct<TElemType>(&newData[i], std::move(data[i]));
                 }
@@ -941,8 +943,9 @@ void SlimArray<TElemType, TAllocator>::SetCapacity(uint32 newCapacity)
     Free();
 
     data = newData;
-    capacity = newCapacity;
-    size = copySize;
+
+    capacity = uint32(newCapacity);
+    size = uint32(copySize);
 }
 
 template <class TElemType, class TAllocator>
@@ -1010,7 +1013,7 @@ auto SlimArray<TElemType, TAllocator>::PushFront(ValueType&& value) -> ValueType
 }
 
 template <class TElemType, class TAllocator>
-void SlimArray<TElemType, TAllocator>::Shift(uint32 count)
+void SlimArray<TElemType, TAllocator>::Shift(size_t count)
 {
     ShiftElementsLeft(count);
 }
@@ -1056,7 +1059,7 @@ SlimArray<TElemType, TAllocator> SlimArray<TElemType, TAllocator>::Slice(int fir
     SlimArray<TElemType, TAllocator> result;
     result.ResizeUninitialized(last - first + 1);
 
-    for (uint32 i = 0; i < result.size; ++i)
+    for (size_t i = 0; i < result.size; ++i)
     {
         Memory::Construct<TElemType>(&result.data[i], data[first + i]);
     }
@@ -1095,12 +1098,12 @@ auto SlimArray<TElemType, TAllocator>::Erase(ConstIterator iter) -> Iterator
         return end;
     }
 
-    const uint32 dist = uint32(iter - begin);
+    const size_t dist = size_t(iter - begin);
 
     if constexpr (std::is_trivially_copyable_v<TElemType>)
     {
         TElemType* erasePtr = data + dist;
-        const uint32 numToMove = size - dist - 1;
+        const size_t numToMove = size - dist - 1;
 
         if (numToMove > 0)
         {
@@ -1109,7 +1112,7 @@ auto SlimArray<TElemType, TAllocator>::Erase(ConstIterator iter) -> Iterator
     }
     else
     {
-        for (uint32 index = dist; index < size - 1; ++index)
+        for (size_t index = dist; index < size - 1; ++index)
         {
             if constexpr (std::is_move_constructible_v<TElemType>)
             {
@@ -1147,13 +1150,13 @@ auto SlimArray<TElemType, TAllocator>::Erase(ConstIterator first, ConstIterator 
         return begin + (first - begin);
     }
 
-    const uint32 dist = uint32(first - begin);
-    const uint32 numErased = uint32(last - first);
+    const size_t dist = size_t(first - begin);
+    const size_t numErased = size_t(last - first);
 
     if constexpr (std::is_trivially_copyable_v<TElemType>)
     {
         TElemType* erasePtr = data + dist;
-        const uint32 numToMove = size - dist - numErased;
+        const size_t numToMove = size - dist - numErased;
 
         if (numToMove > 0)
         {
@@ -1162,7 +1165,7 @@ auto SlimArray<TElemType, TAllocator>::Erase(ConstIterator first, ConstIterator 
     }
     else
     {
-        for (uint32 index = dist; index < size - numErased; ++index)
+        for (size_t index = dist; index < size - numErased; ++index)
         {
             Memory::Destruct(data[index]);
 
@@ -1176,7 +1179,7 @@ auto SlimArray<TElemType, TAllocator>::Erase(ConstIterator first, ConstIterator 
             }
         }
 
-        for (uint32 index = size - numErased; index < size; ++index)
+        for (size_t index = size - numErased; index < size; ++index)
         {
             Memory::Destruct(data[index]);
         }
@@ -1209,7 +1212,7 @@ auto SlimArray<TElemType, TAllocator>::EraseAt(typename Base::KeyType index) -> 
 template <class TElemType, class TAllocator>
 auto SlimArray<TElemType, TAllocator>::Insert(ConstIterator where, const ValueType& value) -> Iterator
 {
-    const uint32 dist = uint32(where - Begin());
+    const size_t dist = size_t(where - Begin());
 
     if (where == End())
     {
@@ -1226,7 +1229,7 @@ auto SlimArray<TElemType, TAllocator>::Insert(ConstIterator where, const ValueTy
     if constexpr (std::is_trivially_copyable_v<TElemType>)
     {
         TElemType* insertPtr = data + dist;
-        const uint32 numToMove = size - dist;
+        const size_t numToMove = size - dist;
 
         if (numToMove > 0)
         {
@@ -1237,7 +1240,7 @@ auto SlimArray<TElemType, TAllocator>::Insert(ConstIterator where, const ValueTy
     }
     else
     {
-        uint32 index;
+        size_t index;
 
         for (index = size; index > dist; --index)
         {
@@ -1264,7 +1267,7 @@ auto SlimArray<TElemType, TAllocator>::Insert(ConstIterator where, const ValueTy
 template <class TElemType, class TAllocator>
 auto SlimArray<TElemType, TAllocator>::Insert(ConstIterator where, ValueType&& value) -> Iterator
 {
-    const uint32 dist = uint32(where - Begin());
+    const size_t dist = size_t(where - Begin());
 
     if (where == End())
     {
@@ -1281,7 +1284,7 @@ auto SlimArray<TElemType, TAllocator>::Insert(ConstIterator where, ValueType&& v
     if constexpr (std::is_trivially_copyable_v<TElemType>)
     {
         TElemType* insertPtr = data + dist;
-        const uint32 numToMove = size - dist;
+        const size_t numToMove = size - dist;
 
         if (numToMove > 0)
         {
@@ -1292,7 +1295,7 @@ auto SlimArray<TElemType, TAllocator>::Insert(ConstIterator where, ValueType&& v
     }
     else
     {
-        uint32 index;
+        size_t index;
 
         for (index = size; index > dist; --index)
         {

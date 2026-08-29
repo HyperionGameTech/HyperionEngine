@@ -166,8 +166,8 @@
     #define DECLARE_SAMPLER(set, var)
 
     // ShaderProperty interfacing
-    #define PERMUTE int HYP_UNIQUE_NAME(_permute)
-    #define STATIC(name, value) int name = value
+    #define PERMUTE(name, ...) int name;
+    #define STATIC(name, value) int name = value;
 
     #define HYP_ATTRIBUTE
     #define HYP_ATTRIBUTE_OPTIONAL
