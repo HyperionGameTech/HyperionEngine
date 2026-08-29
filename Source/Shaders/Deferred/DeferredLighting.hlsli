@@ -353,7 +353,7 @@ void EvaluateEnvProbes(
             skyIrradianceSum, skyIrradianceWeightSum);
 
         // Sky only fills in where no env probes cover
-        const float reflectionsResidual = 1.0 - reflectionsWeightSum;
+        const float reflectionsResidual = 1.0 - smoothstep(0.01, 0.1, saturate(reflectionsWeightSum));
         const float irradianceResidual = 1.0 - irradianceWeightSum;
         
         const float skyReflectionsEffectiveWeight = min(skyReflectionsWeightSum, reflectionsResidual);
