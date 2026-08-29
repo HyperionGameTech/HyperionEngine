@@ -100,8 +100,6 @@ RendererResult VulkanRayTracingPipeline::Create()
 
     VULKAN_CHECK(vkCreatePipelineLayout(RI.GetDevice()->GetDevice(), &layoutInfo, VK_NULL_HANDLE, &m_layout));
 
-    VkRayTracingPipelineCreateInfoKHR pipelineInfo { VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR };
-
     const Array<VkPipelineShaderStageCreateInfo, VulkanAllocator>& stages = m_shaderInstance->GetVulkanShaderStages();
     const Array<VulkanShaderGroup, VulkanAllocator>& shaderGroups = m_shaderInstance->GetShaderGroups();
 
@@ -113,6 +111,7 @@ RendererResult VulkanRayTracingPipeline::Create()
         shaderGroupCreateInfos[i] = shaderGroups[i].rayTracingGroupCreateInfo;
     }
 
+    VkRayTracingPipelineCreateInfoKHR pipelineInfo { VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR };
     pipelineInfo.stageCount = uint32(stages.Size());
     pipelineInfo.pStages = stages.Data();
     pipelineInfo.groupCount = uint32(shaderGroupCreateInfos.Size());
@@ -120,6 +119,8 @@ RendererResult VulkanRayTracingPipeline::Create()
     pipelineInfo.layout = m_layout;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
+    // we DON'T use recursion in ray tracing shaders, we just loop when we need multiple rays traced.
+    pipelineInfo.maxPipelineRayRecursionDepth = 1;
 
     VULKAN_CHECK(RI.dynamicFunctions.vkCreateRayTracingPipelinesKHR(
         RI.GetDevice()->GetDevice(),
@@ -129,6 +130,7 @@ RendererResult VulkanRayTracingPipeline::Create()
         &pipelineInfo,
         VK_NULL_HANDLE,
         &m_handle));
+        
 #ifdef HYP_RHI_DEBUG_NAMES
     if (Name debugName = GetDebugName())
     {

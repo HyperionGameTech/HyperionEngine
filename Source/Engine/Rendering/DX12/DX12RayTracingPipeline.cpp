@@ -189,7 +189,9 @@ RendererResult DX12RayTracingPipeline::Create()
     shaderConfig.MaxAttributeSizeInBytes = 2 * sizeof(float);
 
     D3D12_RAYTRACING_PIPELINE_CONFIG pipelineConfig {};
-    pipelineConfig.MaxTraceRecursionDepth = 1; // @TODO Revisit
+
+    // Just like Vulkan impl, we don't use recursion with ray tracing, just loops
+    pipelineConfig.MaxTraceRecursionDepth = 1;
 
     D3D12_DXIL_LIBRARY_DESC* pLibDescs = (D3D12_DXIL_LIBRARY_DESC*)g_dx12Arena->Allocate(sizeof(D3D12_DXIL_LIBRARY_DESC) * dxilLibraries.Size(), alignof(D3D12_DXIL_LIBRARY_DESC));
     Memory::Copy(pLibDescs, dxilLibraries.Data(), dxilLibraries.Size() * sizeof(D3D12_DXIL_LIBRARY_DESC));
