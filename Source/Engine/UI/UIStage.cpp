@@ -696,35 +696,30 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
             });
         }
 
+        for (auto it = m_objectMouseStates.Begin(); it != m_objectMouseStates.End();)
+        {
+            if (Handle<UIObject> uiObject = it->first.Lock(); uiObject.IsValid() && it->second.mouseButtons != MouseButtonState::NONE)
+            {
+                uiObject->SetFocusState(uiObject->GetFocusState() & ~UIObjectFocusState::PRESSED);
+
+                eventHandlerResult |= OnMouseUp.Fire(uiObject.Get(), MouseEvent {
+                    .baseEvent = &event,
+                    .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
+                    .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
+                    .absolutePos = mousePosition,
+                    .absolutePrevPos = previousMousePosition,
+                    .mouseButtons = it->second.mouseButtons
+                });
+            }
+
+            it = m_objectMouseStates.Erase(it);
+        }
+
         // when window focus gets lost we want to unset hover for anything marked as being hovered
         for (auto it = m_hoveredUiObjects.Begin(); it != m_hoveredUiObjects.End(); ++it)
         {
             if (Handle<UIObject> uiObject = it->Lock(); uiObject.IsValid())
             {
-                auto mouseStatesIt = m_objectMouseStates.Find(uiObject);
-                if (mouseStatesIt != m_objectMouseStates.End())
-                {
-                    EnumFlags<MouseButtonState>& stateMouseButtons = mouseStatesIt->second.mouseButtons;
-
-                    if (stateMouseButtons != MouseButtonState::NONE) // no overlap; skip
-                    {
-                        // trigger mouse up
-                        uiObject->SetFocusState(uiObject->GetFocusState() & ~UIObjectFocusState::PRESSED);
-
-                        UIEventHandlerResult currentResult = OnMouseUp.Fire(uiObject.Get(), MouseEvent {
-                            .baseEvent = &event,
-                            .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
-                            .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
-                            .absolutePos = mousePosition,
-                            .absolutePrevPos = previousMousePosition,
-                            .mouseButtons = stateMouseButtons
-                        });
-
-                        eventHandlerResult |= currentResult;
-                        mouseStatesIt = m_objectMouseStates.Erase(mouseStatesIt);
-                    }
-                }
-
                 uiObject->SetFocusState(uiObject->GetFocusState() & ~UIObjectFocusState::HOVER);
 
                 OnMouseLeave.Fire(uiObject, MouseEvent {

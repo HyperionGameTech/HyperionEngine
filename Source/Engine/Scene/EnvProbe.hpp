@@ -35,6 +35,8 @@ struct RenderProxyEnvProbe;
 ENGINE_API extern Pool* g_scenePool;
 using SceneAllocator = AllocatorInstance<Pool, &g_scenePool>;
 
+// clang-format off
+
 HYP_ENUM()
 enum EnvProbeFlags : uint32
 {
@@ -44,8 +46,11 @@ enum EnvProbeFlags : uint32
     EPF_REALTIME = 0x4,           //!< @title="Real-time"
     EPF_ORIGIN_FROM_CENTER = 0x8, //!< @title="Origin from center"
     EPF_VISIBILITY = 0x10,        //!< @title="Prevent light leaking" @description="This EnvProbe stores distance values to a texture, used to prevent light leaks at the cost of more memory usage and rendering time."
-    EPF_DIFFUSE = 0x20            //!< @title="Provides diffuse lighting" @description="Relevant for reflection and sky only - include irradiance computation for indirect diffuse lighting when rendering the probe"
+    EPF_DIFFUSE = 0x20,           //!< @title="Provides diffuse lighting" @description="Relevant for reflection and sky only - include irradiance computation for indirect diffuse lighting when rendering the probe"
+    EPF_HIT_MASK = 0x40           //!< @editor=false
 };
+
+// clang-format on
 
 HYP_MAKE_ENUM_FLAGS(EnvProbeFlags);
 

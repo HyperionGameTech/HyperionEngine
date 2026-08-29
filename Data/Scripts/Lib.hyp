@@ -1675,6 +1675,8 @@ extern class PhysicsWorldBase
 end
 extern struct PhysicsMaterial
     Mass : float
+    Friction : float
+    Restitution : float
 end
 extern enum MouseButtonKey : uint32
     MBK_INVALID = ~0u,

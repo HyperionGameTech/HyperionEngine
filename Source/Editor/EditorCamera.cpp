@@ -282,6 +282,16 @@ void EditorCameraController::UpdateLogic(double delta)
 {
     HYP_SCOPE;
 
+    if (m_mode == EditorCameraControllerMode::MOUSE_LOCKED && g_appContext.IsValid() && g_appContext->GetMainWindow() != nullptr)
+    {
+        const EnumFlags<MouseButtonState> buttonStates = g_appContext->GetMainWindow()->GetInputManager()->GetButtonStates();
+
+        if (!(buttonStates & (MouseButtonState::LEFT | MouseButtonState::RIGHT)))
+        {
+            SetMode(EditorCameraControllerMode::INACTIVE);
+        }
+    }
+
     FirstPersonCameraController::UpdateLogic(delta);
 }
 

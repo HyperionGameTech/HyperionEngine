@@ -393,7 +393,7 @@ void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
     // Kinematic bodies are driven externally. Set mass 0 so the
     // solver never integrates them, but they still push the dynamic bodies they collide with.
     const bool isKinematic = rigidBody->IsKinematic();
-    const float mass = isKinematic ? 0.0f : rigidBody->physicsMaterial->GetMass();
+    const float mass = isKinematic ? 0.0f : rigidBody->physicsMaterial->mass;
 
     btVector3 localInertia(0, 0, 0);
 
@@ -413,6 +413,9 @@ void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
         internalData->motionState.Get(),
         internalData->collisionShape.Get(),
         localInertia);
+
+    constructionInfo.m_friction = MathUtil::Max(rigidBody->physicsMaterial->friction, 0.0f);
+    constructionInfo.m_restitution = MathUtil::Clamp(rigidBody->physicsMaterial->restitution, 0.0f, 1.0f);
 
     internalData->rigidBody = MakeSharedWithAllocator<btRigidBody, PhysicsAllocator>(constructionInfo);
     internalData->rigidBody->setWorldTransform(btTransform);
@@ -500,7 +503,7 @@ void BulletPhysicsAdapter::SetRigidBodyKinematic(const Handle<RigidBody>& rigidB
     }
     else
     {
-        const float mass = rigidBody->physicsMaterial->GetMass();
+        const float mass = rigidBody->physicsMaterial->mass;
 
         btVector3 localInertia(0, 0, 0);
 
@@ -584,7 +587,7 @@ void BulletPhysicsAdapter::OnChangePhysicsShape(RigidBody* rigidBody)
     internalData->collisionShape = std::move(newShape);
 
     const bool isKinematic = rigidBody->IsKinematic();
-    const float mass = isKinematic ? 0.0f : rigidBody->physicsMaterial->GetMass();
+    const float mass = isKinematic ? 0.0f : rigidBody->physicsMaterial->mass;
 
     btVector3 localInertia(0, 0, 0);
 
@@ -614,7 +617,7 @@ void BulletPhysicsAdapter::OnChangePhysicsMaterial(RigidBody* rigidBody)
 
     
     const bool isKinematic = rigidBody->IsKinematic();
-    const float mass = isKinematic ? 0.0f : rigidBody->physicsMaterial->GetMass();
+    const float mass = isKinematic ? 0.0f : rigidBody->physicsMaterial->mass;
 
     btVector3 localInertia(0, 0, 0);
 
@@ -624,6 +627,8 @@ void BulletPhysicsAdapter::OnChangePhysicsMaterial(RigidBody* rigidBody)
     }
 
     internalData->rigidBody->setMassProps(mass, localInertia);
+    internalData->rigidBody->setFriction(MathUtil::Max(rigidBody->physicsMaterial->friction, 0.0f));
+    internalData->rigidBody->setRestitution(MathUtil::Clamp(rigidBody->physicsMaterial->restitution, 0.0f, 1.0f));
     internalData->rigidBody->activate(true);
 
     //internalData->rigidBody->setCollisionShape(internalData->collisionShape.Get());
