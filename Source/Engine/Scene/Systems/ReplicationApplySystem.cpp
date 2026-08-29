@@ -304,8 +304,9 @@ void ReplicationApplySystem::UpdateInterpolatedEntities()
         }
 
         // Render transform: interpolated Net.InterpolationDelay into the past.
-        entity->SetLocalTransform(targetTransform);
+        entity->SetLocalTransform(targetTransform, TransformChangeType::Simulation);
 
+        if (NetGlobals::GetDeadReckoningEnabled())
         {
             const InterpolationState::Sample& latest = samples.Back();
 
@@ -353,11 +354,15 @@ void ReplicationApplySystem::UpdateInterpolatedEntities()
                 colliderTransform.SetRotation(rotationDelta * latest.transform.GetRotation());
             }
 
-            entity->SetLocalTransform(colliderTransform);
+            entity->SetLocalTransform(colliderTransform, TransformChangeType::Simulation);
 
             SyncColliderToEntity(entity);
 
-            entity->SetLocalTransform(targetTransform);
+            entity->SetLocalTransform(targetTransform, TransformChangeType::Simulation);
+        }
+        else
+        {
+            SyncColliderToEntity(entity);
         }
 
         ++it;
