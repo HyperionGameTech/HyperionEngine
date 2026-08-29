@@ -46,7 +46,7 @@ enum EnvProbeFlags : uint32
     EPF_REALTIME = 0x4,           //!< @title="Real-time"
     EPF_ORIGIN_FROM_CENTER = 0x8, //!< @title="Origin from center"
     EPF_VISIBILITY = 0x10,        //!< @title="Prevent light leaking" @description="This EnvProbe stores distance values to a texture, used to prevent light leaks at the cost of more memory usage and rendering time."
-    EPF_DIFFUSE = 0x20,           //!< @title="Provides diffuse lighting" @description="Relevant for reflection and sky only - include irradiance computation for indirect diffuse lighting when rendering the probe"
+    EPF_RESERVED = 0x20,          //!< @editor=false
     EPF_HIT_MASK = 0x40           //!< @editor=false
 };
 
@@ -119,7 +119,7 @@ public:
     HYP_METHOD()
     bool IsBaked() const
     {
-        return m_envProbeFlags[EPF_BAKED];
+        return bool(m_envProbeFlags & EPF_BAKED);
     }
 
     HYP_METHOD()
@@ -139,7 +139,7 @@ public:
     HYP_METHOD()
     bool IsRealtime() const
     {
-        return m_envProbeFlags[EPF_REALTIME];
+        return bool(m_envProbeFlags & EPF_REALTIME);
     }
 
     HYP_FORCE_INLINE bool ShouldComputePrefilteredEnvMap() const
@@ -151,7 +151,12 @@ public:
     HYP_FORCE_INLINE bool ShouldComputeSphericalHarmonics() const
     {
         return (m_dimensions.Volume() > 1)
-            && (GetEnvProbeType() == EPT_AMBIENT || (GetEnvProbeFlags() & EnvProbeFlags::EPF_DIFFUSE));
+            && (IsAmbientProbe() || IsSkyProbe());
+    }
+
+    HYP_FORCE_INLINE bool ShouldCreateHitMask() const
+    {
+        return bool(m_envProbeFlags & EPF_HIT_MASK);
     }
 
     HYP_METHOD()

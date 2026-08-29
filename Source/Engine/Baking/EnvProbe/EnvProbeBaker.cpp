@@ -192,8 +192,9 @@ void Baker<EnvProbe>::OnCompleted_Internal()
     // Convolves the env probe cubemap and computes SH coefficients on the GPU
     struct ProcessEnvProbePayload
     {
-        Handle<EnvProbe> envProbe;
+        HYP_DEF_POOL_NEW_DELETE(g_renderPool);
 
+        Handle<EnvProbe> envProbe;
         BakeData<EnvProbe>::HitMaskBitmapType hitMaskBitmap;
     };
 
@@ -210,6 +211,7 @@ void Baker<EnvProbe>::OnCompleted_Internal()
         static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         {
             ProcessEnvProbe* cmdCasted = static_cast<ProcessEnvProbe*>(cmd);
+            HYP_DEFER({ delete cmdCasted->payload; });
 
             const Handle<EnvProbe>& envProbe = cmdCasted->payload->envProbe;
 
@@ -229,8 +231,7 @@ void Baker<EnvProbe>::OnCompleted_Internal()
                 EnvProbeHelpers::ComputeEnvProbeSphericalHarmonics(*envProbe, *texture);
             }
             
-            //-- Hit Mask
-            if (envProbe->GetEnvProbeFlags() & EPF_HIT_MASK)
+            if (envProbe->ShouldCreateHitMask())
             {
                 SphericalHarmonicsData hitMaskSH = ComputeSphericalHarmonicsCubemap<TextureFormat::R8, false>(cmdCasted->payload->hitMaskBitmap);
 
@@ -246,8 +247,6 @@ void Baker<EnvProbe>::OnCompleted_Internal()
             }
 
             HYP_LOG(Lightmap, Verbose, "EnvProbe {} lightmap baking complete", envProbe->GetName());
-
-            delete cmdCasted->payload;
         }
     };
 

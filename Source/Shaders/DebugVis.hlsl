@@ -264,9 +264,12 @@ PSOutput PSMain(PSInput input)
         }
         else
         {
-            const float4 shColor = EnvProbeSH(env_probes[input.env_probe_index], normal);
+            float shBands[9];
+            ProjectSHBands(normal, shBands);
+    
+            const float3 shColor = EnvProbeSH(env_probes[input.env_probe_index], shBands);
 
-            output.gbuffer_albedo.rgb = shColor.rgb * shColor.a;
+            output.gbuffer_albedo.rgb = shColor;
         }
     }
 #endif // IMMEDIATE_MODE

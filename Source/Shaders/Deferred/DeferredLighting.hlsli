@@ -206,6 +206,11 @@ void EvaluateSingleProbe(
     const float4 worldPosition = CURRENT_ENV_PROBE.world_position;
     const float3 worldPosition3 = worldPosition.xyz;
     const float diffuseStrength = worldPosition.w;
+    
+    float shBands[9];
+    ProjectSHBands(N, shBands);
+    
+    const float hitMask = EnvProbeHitMask(CURRENT_ENV_PROBE, N, shBands);
 
 #ifndef HYP_DEFERRED_NO_PROBE_REFLECTIONS
     const float numMips = 7.0; // assuming 128x128 cubemap size for reflection probes
@@ -219,8 +224,9 @@ void EvaluateSingleProbe(
     float4 currentReflections = (float4) 0;
 
     float4 currentIrradiance = (float4) 0;
+    
 #ifndef HYP_DEFERRED_NO_PROBE_IRRADIANCE
-    currentIrradiance = EnvProbeSH(CURRENT_ENV_PROBE, N);
+    currentIrradiance = float4(EnvProbeSH(CURRENT_ENV_PROBE, shBands), hitMask);
 #endif
 
     float3 probeToPoint = positionWS - worldPosition3;
@@ -255,8 +261,8 @@ void EvaluateSingleProbe(
 
     const float boundsWeight = CalculateEnvProbeWeight(positionWS, aabbMin.xyz, aabbMax.xyz, blendFactor);
     
-    const float reflectionsWeight = saturate(boundsWeight * visibility * (1.0 - irradianceOnlyWeight) * currentReflections.a);
-    const float irradianceWeight = saturate(boundsWeight * visibility * diffuseContributionWeight * currentIrradiance.a);
+    const float reflectionsWeight = saturate(hitMask * boundsWeight * visibility * (1.0 - irradianceOnlyWeight) * currentReflections.a);
+    const float irradianceWeight = saturate(hitMask * boundsWeight * visibility * diffuseContributionWeight * currentIrradiance.a);
 
     reflectionsSum += currentReflections.rgb * reflectionsWeight;
     reflectionsWeightSum += reflectionsWeight;
@@ -322,7 +328,7 @@ void EvaluateEnvProbes(
     // to get that good intellisense
 #ifndef HYP_SHADER_COMPILER
 #define DEFERRED_LIGHTING_HAS_SKY
-#define skyProbe ((EnvProbe)0)
+    EnvProbe skyProbe = (EnvProbe) 0;
 #endif
 
 #ifdef DEFERRED_LIGHTING_HAS_SKY
@@ -347,7 +353,7 @@ void EvaluateEnvProbes(
             skyIrradianceSum, skyIrradianceWeightSum);
 
         // Sky only fills in where no env probes cover
-        const float reflectionsResidual = 1.0 - smoothstep(0.01, 0.2, saturate(reflectionsWeightSum));
+        const float reflectionsResidual = 1.0 - reflectionsWeightSum;
         const float irradianceResidual = 1.0 - irradianceWeightSum;
         
         const float skyReflectionsEffectiveWeight = min(skyReflectionsWeightSum, reflectionsResidual);

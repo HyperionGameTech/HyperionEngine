@@ -1086,7 +1086,8 @@ extern enum EnvProbeFlags : uint32
     EPF_REALTIME = 0x4,
     EPF_ORIGIN_FROM_CENTER = 0x8,
     EPF_VISIBILITY = 0x10,
-    EPF_DIFFUSE = 0x20
+    EPF_RESERVED = 0x20,
+    EPF_HIT_MASK = 0x40
 end
 extern class Sprite : Entity
     SpriteType : SpriteType

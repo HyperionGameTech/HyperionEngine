@@ -417,7 +417,7 @@ PSOutput PSMain(PSInput input)
 
 #define ORIGIN_NORMAL_BIAS_RATIO 0.001
     const float origin_bias = max(abs(P.z) * ORIGIN_NORMAL_BIAS_RATIO, 1e-3);
-    ray_origin = P + view_space_normal * origin_bias + ray_direction * 0.001;
+    ray_origin = P + view_space_normal * origin_bias + ray_direction * 0.01;
 
     float2 hit_pixel;
     float3 hit_point;
