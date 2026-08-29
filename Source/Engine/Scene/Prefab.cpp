@@ -24,7 +24,7 @@ void Prefab_OnPostLoad(Prefab& prefab)
 
         if (root.IsValid())
         {
-            root->SetScene(GetDetachedSceneForThread(g_simThread));
+            root->SetScene(&GetDetachedSceneForThread(g_simThread));
         }
     }
 }

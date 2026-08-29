@@ -20,7 +20,7 @@ using threading::ThreadId;
 
 void DestroyDetachedScenes();
 
-Scene* GetDetachedSceneForCurrentThread();
-Scene* GetDetachedSceneForThread(const ThreadId& threadId);
+Scene& GetDetachedSceneForCurrentThread();
+Scene& GetDetachedSceneForThread(const ThreadId& threadId);
 
 } // namespace Hyperion

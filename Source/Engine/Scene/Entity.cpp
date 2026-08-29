@@ -242,9 +242,6 @@ void Entity::OnAddedToScene(Scene* scene)
 {
     AssertDebug(scene != nullptr);
 
-    // If a TransformComponent already exists on the Entity, allow it to keep its current transform by moving the Node
-    // to match it, as long as we're not locked
-    // If transform is locked, the Entity's TransformComponent will be synced with the Node's current transform
     if (TransformComponent* transformComponent = m_entityManager->TryGetComponent<TransformComponent>(this))
     {
         transformComponent->translation = GetWorldTranslation();
@@ -253,7 +250,11 @@ void Entity::OnAddedToScene(Scene* scene)
     }
     else
     {
-        m_entityManager->AddComponent<TransformComponent>(this, TransformComponent { GetWorldTranslation(), GetWorldRotation(), GetWorldScale() });
+        m_entityManager->AddComponent<TransformComponent>(this, TransformComponent {
+            GetWorldTranslation(),
+            GetWorldRotation(),
+            GetWorldScale()
+        });
     }
 
     if (BoundingBoxComponent* boundingBoxComponent = m_entityManager->TryGetComponent<BoundingBoxComponent>(this))
@@ -262,7 +263,9 @@ void Entity::OnAddedToScene(Scene* scene)
     }
     else
     {
-        m_entityManager->AddComponent<BoundingBoxComponent>(this, BoundingBoxComponent { GetWorldBounds() });
+        m_entityManager->AddComponent<BoundingBoxComponent>(this, BoundingBoxComponent {
+            GetWorldBounds()
+        });
     }
 
     if (!m_entityManager->HasComponent<VisibilityStateComponent>(this))
@@ -428,7 +431,7 @@ void Entity::SetScene_Internal(Scene* scene, bool moveToDetached)
     //  and call SetEntityManager() to MoveEntity() for this to the new one.
     if (moveToDetached && !newScene)
     {
-        newScene = GetDetachedSceneForCurrentThread();
+        newScene = &GetDetachedSceneForCurrentThread();
     }
 
     if (newScene != nullptr)

@@ -495,12 +495,12 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 
         InitObject(material);
 
-        Scene* scene = GetDetachedSceneForCurrentThread();
+        Scene& scene = GetDetachedSceneForCurrentThread();
 
-        const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
+        const Handle<Entity> entity = scene.GetEntityManager()->AddEntity();
         entity->SetLocalBounds(mesh->GetAABB());
 
-        scene->GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { mesh, material });
+        scene.GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { mesh, material });
 
         entity->SetName(CreateNameFromDynamicString(objMesh.name));
         entity->SetLocalTranslation(meshAabbCenter);

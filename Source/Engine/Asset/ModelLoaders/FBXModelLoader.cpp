@@ -2334,9 +2334,9 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     GetCurrentAssetRegistry()->PutAssetUnique(material);
                 }
 
-                Scene* scene = GetDetachedSceneForCurrentThread();
+                Scene& scene = GetDetachedSceneForCurrentThread();
 
-                const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
+                const Handle<Entity> entity = scene.GetEntityManager()->AddEntity();
                 entity->SetLocalBounds(fbxMesh->bounds);
 
                 entity->AddComponent<MeshComponent>(MeshComponent { mesh, material, meshSkeleton });

@@ -80,7 +80,7 @@ Node::Node(Name name, const Transform& localTransform, Scene* scene)
       m_nodeFlags(NodeFlags::Default),
       m_parentNode(nullptr),
       m_localTransform(localTransform),
-      m_scene(scene != nullptr ? scene : GetDetachedSceneForCurrentThread()),
+      m_scene(scene != nullptr ? scene : &GetDetachedSceneForCurrentThread()),
       m_transformLocked(false)
 {
     for (Node* child : m_childNodes)
@@ -261,7 +261,7 @@ void Node::SetScene_Internal(Scene* scene, bool moveToDetached)
 {
     if (moveToDetached && !scene)
     {
-        scene = GetDetachedSceneForCurrentThread();
+        scene = &GetDetachedSceneForCurrentThread();
     }
 
     if (m_scene != scene)

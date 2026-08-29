@@ -315,9 +315,9 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
             std::swap(subMesh.indices[i + 1], subMesh.indices[i + 2]);
         }
 
-        Scene* scene = GetDetachedSceneForCurrentThread();
+        Scene& scene = GetDetachedSceneForCurrentThread();
 
-        const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
+        const Handle<Entity> entity = scene.GetEntityManager()->AddEntity();
 
         Name assetName = CreateNameFromDynamicString(subMesh.name);
 
@@ -365,7 +365,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
         entity->SetLocalBounds(mesh->GetAABB());
 
-        scene->GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { mesh, material, skeleton });
+        scene.GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { mesh, material, skeleton });
 
         Handle<Node> node = MakeHandle<Node>();
         node->SetName(CreateNameFromDynamicString(subMesh.name));
@@ -384,7 +384,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
                 .currentTime = 0.0f
             };
 
-            scene->GetEntityManager()->AddComponent<AnimationComponent>(entity, animationComponent);
+            scene.GetEntityManager()->AddComponent<AnimationComponent>(entity, animationComponent);
         }
 
         top->AddChild(std::move(node));

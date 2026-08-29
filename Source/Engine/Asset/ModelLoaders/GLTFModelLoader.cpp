@@ -1509,12 +1509,12 @@ Handle<Node> BuildNodeRecursive(GltfLoadContext& ctx, const cgltf_node& node)
 
 LoadedAsset BuildModel(LoaderState& state, cgltf_data& data)
 {
-    Scene* scene = GetDetachedSceneForCurrentThread();
+    Scene& scene = GetDetachedSceneForCurrentThread();
 
     GltfLoadContext ctx {
-        .state = state,
-        .data = data,
-        .scene = scene
+        state,
+        data,
+        &scene
     };
 
     ctx.meshResources.Resize(data.meshes_count);
