@@ -569,7 +569,7 @@ public:
 
         if (IsString())
         {
-            return StringUtil::Parse<Number>(String(AsString()).Data(), defaultValue);
+            return StringUtil::Parse<Number>(String(AsString()), defaultValue);
         }
 
         return defaultValue;

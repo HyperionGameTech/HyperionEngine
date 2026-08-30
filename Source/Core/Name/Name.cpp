@@ -105,7 +105,11 @@ Name NameRegistry::RegisterName(NameID id, const ANSIStringView& str, bool lock)
     }
     else
     {
-        m_nameMap.Insert({ id, Pair<CharBuffer, uint32> { CharBuffer(str.Data(), str.Data() + str.Size() + 1), 1 } });
+        // Since its a SV we might not have the null terminator at the pos we'd expect it at if it was a normal string.
+        CharBuffer charBuffer(str.Data(), str.Data() + str.Size());
+        charBuffer.PushBack('\0');
+
+        m_nameMap.Insert({ id, Pair<CharBuffer, uint32> { std::move(charBuffer), 1 } });
     }
 
     if (lock)

@@ -752,10 +752,16 @@ class CacheServerCommandlet final : public CommandletBase
     static bool ParseAssetFilePath(const String& relativePath, String& outBucketName, String& outAssetName)
     {
         size_t sep = relativePath.FindFirstIndex("/");
+
         if (sep == String::NotFound)
+        {
             sep = relativePath.FindFirstIndex("\\");
+        }
+
         if (sep == String::NotFound)
+        {
             return false;
+        }
 
         outBucketName = relativePath.Substr(0, sep);
         String fileName = relativePath.Substr(sep + 1);
@@ -801,7 +807,7 @@ class CacheServerCommandlet final : public CommandletBase
             return;
         }
 
-        Name name = CreateNameFromDynamicString(assetNameStr);
+        const Name assetName = Name(assetNameStr.ToAnsi());
 
         if (wasDeleted)
         {
@@ -818,7 +824,7 @@ class CacheServerCommandlet final : public CommandletBase
 
                 if (entry.path.registryId == registryId
                     && entry.path.bucketIndex == bucketIndex
-                    && entry.path.assetName == name)
+                    && entry.path.assetName == assetName)
                 {
                     existingIndex = i;
 
@@ -846,7 +852,7 @@ class CacheServerCommandlet final : public CommandletBase
             return;
         }
 
-        Handle<AssetObject> assetObject = registry->GetAsset(bucket, name);
+        Handle<AssetObject> assetObject = registry->GetAsset(bucket, assetName);
         if (!assetObject.IsValid() || assetObject->IsTransient())
         {
             return;
@@ -855,7 +861,7 @@ class CacheServerCommandlet final : public CommandletBase
         Array<Tuple<const char*, uint16, BlobDataReference*>> blobRefs;
         assetObject->CollectBlobDataReferences(blobRefs);
 
-        const AssetPath path { registryId, *AssetBuckets::AllBuckets[bucketIndex], name };
+        const AssetPath path { registryId, *AssetBuckets::AllBuckets[bucketIndex], assetName };
 
         AssetEntry newEntry;
         newEntry.path = path;
@@ -902,7 +908,7 @@ class CacheServerCommandlet final : public CommandletBase
 
             if (entry.path.registryId == registryId
                 && entry.path.bucketIndex == bucketIndex
-                && entry.path.assetName == name)
+                && entry.path.assetName == assetName)
             {
                 existingIndex = i;
 

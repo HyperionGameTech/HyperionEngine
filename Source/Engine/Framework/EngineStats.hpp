@@ -44,8 +44,8 @@ enum EngineStatType : uint8
 class EngineStatBase
 {
 protected:
-    EngineStatBase(EngineStatType type, UTF8StringView path);
-    EngineStatBase(EngineStatType type, UTF8StringView path, bool skipPathParsing);
+    EngineStatBase(EngineStatType type, const ANSIStringView& path);
+    EngineStatBase(EngineStatType type, const ANSIStringView& path, bool skipPathParsing);
 
 public:
     uint16 id;
@@ -74,12 +74,12 @@ public:
     friend class EngineStats;
     friend class EngineStatBase;
 
-    explicit EngineStatGroup(UTF8StringView path)
+    explicit EngineStatGroup(const ANSIStringView& path)
         : EngineStatBase(EST_GROUP, path)
     {
     }
 
-    EngineStatGroup(UTF8StringView path, bool skipPathParsing)
+    EngineStatGroup(const ANSIStringView& path, bool skipPathParsing)
         : EngineStatBase(EST_GROUP, path, skipPathParsing)
     {
     }
@@ -97,7 +97,7 @@ public:
     static_assert(sizeof(T) <= 8, "sizeof(T) must be <= 8");
     static_assert(std::is_integral_v<T>, "EngineStatCounter can only be instantiated with integral types");
 
-    explicit EngineStatCounter(UTF8StringView path, bool resetPerFrame = true)
+    explicit EngineStatCounter(const ANSIStringView& path, bool resetPerFrame = true)
         : EngineStatBase(EST_COUNTER, path),
           m_value {}
     {
@@ -170,7 +170,7 @@ private:
 class ENGINE_API EngineStatTimer : public EngineStatBase
 {
 public:
-    explicit EngineStatTimer(UTF8StringView path, bool resetPerFrame = true)
+    explicit EngineStatTimer(const ANSIStringView& path, bool resetPerFrame = true)
         : EngineStatBase(EST_TIMER, path),
           m_totalMicroseconds { 0 }
     {
@@ -208,7 +208,7 @@ private:
 class ENGINE_API EngineStatGpuTimer : public EngineStatTimer
 {
 public:
-    explicit EngineStatGpuTimer(UTF8StringView path, bool resetPerFrame = true)
+    explicit EngineStatGpuTimer(const ANSIStringView& path, bool resetPerFrame = true)
         : EngineStatTimer(path, resetPerFrame),
           querySlotIndex(UINT32_MAX)
     {
@@ -361,7 +361,7 @@ public:
     EngineStatsSnapshot& GetCurrentSnapshot();
     const EngineStatsSnapshot& GetCurrentSnapshot() const;
 
-    EngineStatBase* GetStat(UTF8StringView path) const;
+    EngineStatBase* GetStat(ANSIStringView path) const;
 
     HYP_METHOD()
     float GetFps() const;
@@ -370,7 +370,7 @@ public:
     float GetMsPerFrame() const;
 
     HYP_METHOD()
-    float QueryStatValue(UTF8StringView path, float valueIfNotFound = 0.0) const;
+    float QueryStatValue(const ANSIStringView& path, float valueIfNotFound = 0.0) const;
 
     void Prepare();
     void Publish();

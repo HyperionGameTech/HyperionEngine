@@ -1979,7 +1979,7 @@ public:
             return;
         }
 
-        String newNameString = GetArgument(1);
+        ANSIString newNameString = GetArgument(1);
 
         for (int argumentIndex = 2; argumentIndex < NumArguments(); argumentIndex++)
         {
@@ -2853,7 +2853,7 @@ public:
         }
 
         uint32 bucketIndex = 0;
-        if (!StringUtil::Parse(GetArgument(0).Data(), &bucketIndex) || bucketIndex == AssetBuckets::None.GetIndex())
+        if (!StringUtil::Parse(GetArgument(0), &bucketIndex) || bucketIndex == AssetBuckets::None.GetIndex())
         {
             HYP_LOG(Editor, Warning, "EditorCommandAddAsset: invalid bucket index '{}'", GetArgument(0));
             return;
@@ -3011,7 +3011,7 @@ public:
         }
 
         uint32 bucketIndex = 0;
-        if (!StringUtil::Parse(GetArgument(0).Data(), &bucketIndex) || bucketIndex == AssetBuckets::None.GetIndex())
+        if (!StringUtil::Parse(GetArgument(0), &bucketIndex) || bucketIndex == AssetBuckets::None.GetIndex())
         {
             HYP_LOG(Editor, Warning, "EditorCommandDeleteAsset: invalid bucket index '{}'", GetArgument(0));
             return;

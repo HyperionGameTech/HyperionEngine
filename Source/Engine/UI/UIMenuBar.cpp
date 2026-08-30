@@ -55,7 +55,7 @@ void UIMenuItem::Init()
     Handle<UIMenuBar> menuBar = GetClosestSpawnParent<UIMenuBar>();
     Assert(menuBar != nullptr);
 
-    Handle<UIImage> iconElement = CreateUIObject<UIImage>(CreateNameFromDynamicString(HYP_FORMAT("{}_Icon", GetName())), Vec2i { 0, 0 }, UIObjectSize({ 16, UIObjectSize::PIXEL }, { 16, UIObjectSize::PIXEL }));
+    Handle<UIImage> iconElement = CreateUIObject<UIImage>(NAME_FMT("{}_Icon", GetName()), Vec2i { 0, 0 }, UIObjectSize({ 16, UIObjectSize::PIXEL }, { 16, UIObjectSize::PIXEL }));
     iconElement->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     iconElement->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
     iconElement->SetIsVisible(false);
@@ -63,7 +63,7 @@ void UIMenuItem::Init()
 
     UIObject::AddChildUIObject(m_iconElement);
 
-    Handle<UIText> textElement = CreateUIObject<UIText>(CreateNameFromDynamicString(HYP_FORMAT("{}_Text", GetName())), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+    Handle<UIText> textElement = CreateUIObject<UIText>(NAME_FMT("{}_Text", GetName()), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
     textElement->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     textElement->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
     textElement->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
@@ -72,7 +72,7 @@ void UIMenuItem::Init()
 
     UIObject::AddChildUIObject(m_textElement);
 
-    Handle<UIPanel> dropDownMenu = CreateUIObject<UIPanel>(CreateNameFromDynamicString(HYP_FORMAT("{}_DropDown", GetName())), Vec2i { 0, 0 }, UIObjectSize({ 150, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
+    Handle<UIPanel> dropDownMenu = CreateUIObject<UIPanel>(NAME_FMT("{}_DropDown", GetName()), Vec2i { 0, 0 }, UIObjectSize({ 150, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
     dropDownMenu->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     dropDownMenu->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
     dropDownMenu->SetPadding({ 2, 2 });
@@ -244,7 +244,7 @@ void UIMenuItem::UpdateSubItemsDropDownMenu()
 
     if (m_subItemsDropDownMenu == nullptr)
     {
-        m_subItemsDropDownMenu = CreateUIObject<UIPanel>(CreateNameFromDynamicString(HYP_FORMAT("{}_SubItemsDropDown", GetName())), Vec2i { 0, 0 }, UIObjectSize({ 150, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
+        m_subItemsDropDownMenu = CreateUIObject<UIPanel>(NAME_FMT("{}_SubItemsDropDown", GetName()), Vec2i { 0, 0 }, UIObjectSize({ 150, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
         m_subItemsDropDownMenu->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
         m_subItemsDropDownMenu->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
         m_subItemsDropDownMenu->SetBorderFlags(UIObjectBorderFlags::BOTTOM | UIObjectBorderFlags::LEFT | UIObjectBorderFlags::RIGHT);

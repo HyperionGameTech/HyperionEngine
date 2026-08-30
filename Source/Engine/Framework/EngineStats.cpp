@@ -73,7 +73,7 @@ struct EngineStatsRecorderImpl
 struct DeferredInitStat
 {
     EngineStatBase* stat;
-    String path;
+    ANSIString path;
 };
 
 static Array<DeferredInitStat>& GetDeferredInitStats()
@@ -82,7 +82,7 @@ static Array<DeferredInitStat>& GetDeferredInitStats()
     return s_deferredInitStats;
 }
 
-static void InitStat(EngineStats* stats, EngineStatBase* stat, UTF8StringView path)
+static void InitStat(EngineStats* stats, EngineStatBase* stat, const ANSIStringView& path)
 {
     AssertDebug(stat != nullptr);
 
@@ -100,16 +100,17 @@ static void InitStat(EngineStats* stats, EngineStatBase* stat, UTF8StringView pa
     EngineStatGroup* currentGroup = static_cast<EngineStatGroup*>(engineStats.root);
     Assert(currentGroup != nullptr);
 
-    UTF8StringView remainingPath = path;
-    UTF8StringView statName = path;
+    ANSIStringView remainingPath = path;
+    ANSIStringView statName = path;
 
     while (remainingPath.Size() > 0)
     {
-        UTF8StringView curr = remainingPath;
+        ANSIStringView curr = remainingPath;
+
         size_t characterIndex = 0;
         bool separatorFound = false;
 
-        for (utf::Char32 ch : remainingPath)
+        for (char ch : remainingPath)
         {
             if (ch == PathSeparator)
             {
@@ -160,7 +161,7 @@ static void InitStat(EngineStats* stats, EngineStatBase* stat, UTF8StringView pa
         }
     }
 
-    stat->name = CreateNameFromDynamicString(statName);
+    stat->name = Name(statName);
 
     if (stat->type != EST_GROUP)
     {
@@ -188,14 +189,14 @@ EngineStats::EngineStats()
 {
     m_impl = new EngineStatsRecorderImpl;
 
-    root = new EngineStatGroup(UTF8StringView(RootStatGroupName), true);
+    root = new EngineStatGroup(ANSIStringView(RootStatGroupName), true);
 
     Array<DeferredInitStat>& deferredInitStats = GetDeferredInitStats();
     if (deferredInitStats.Any())
     {
         for (DeferredInitStat& dis : deferredInitStats)
         {
-            InitStat(this, dis.stat, UTF8StringView(dis.path));
+            InitStat(this, dis.stat, dis.path);
         }
 
         deferredInitStats.Clear();
@@ -211,7 +212,7 @@ EngineStats::~EngineStats()
     m_impl = nullptr;
 }
 
-EngineStatBase* EngineStats::GetStat(UTF8StringView path) const
+EngineStatBase* EngineStats::GetStat(ANSIStringView path) const
 {
     HYP_SCOPE;
 
@@ -219,7 +220,7 @@ EngineStatBase* EngineStats::GetStat(UTF8StringView path) const
 
     while (currentStat != nullptr && path.Size() > 0)
     {
-        UTF8StringView curr = path;
+        ANSIStringView curr = path;
         size_t characterIndex = 0;
         bool separatorFound = false;
 
@@ -238,7 +239,7 @@ EngineStatBase* EngineStats::GetStat(UTF8StringView path) const
 
         if (!separatorFound)
         {
-            path = UTF8StringView();
+            path = ANSIStringView();
         }
 
         EngineStatGroup* currentGroup = currentStat->type == EST_GROUP
@@ -292,7 +293,7 @@ float EngineStats::GetMsPerFrame() const
     return snapshot[StatIdMsPerFrame].value;
 }
 
-float EngineStats::QueryStatValue(UTF8StringView path, float valueIfNotFound) const
+float EngineStats::QueryStatValue(const ANSIStringView& path, float valueIfNotFound) const
 {
     EngineStatBase* stat = GetStat(path);
 
@@ -518,12 +519,12 @@ void EngineStats::RecordValueSet(const EngineStatsValueSet& valueSet)
 
 #pragma region EngineStatBase
 
-EngineStatBase::EngineStatBase(EngineStatType type, UTF8StringView path)
+EngineStatBase::EngineStatBase(EngineStatType type, const ANSIStringView& path)
     : EngineStatBase(type, path, false)
 {
 }
 
-EngineStatBase::EngineStatBase(EngineStatType type, UTF8StringView path,bool skipPathParsing)
+EngineStatBase::EngineStatBase(EngineStatType type, const ANSIStringView& path,bool skipPathParsing)
     : id(-1),
       type(type),
       isHeapAllocated(false),
@@ -531,7 +532,7 @@ EngineStatBase::EngineStatBase(EngineStatType type, UTF8StringView path,bool ski
 {
     if (skipPathParsing)
     {
-        name = CreateNameFromDynamicString(path);
+        name = Name(path);
         return;
     }
 

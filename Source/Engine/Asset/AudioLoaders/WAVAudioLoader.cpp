@@ -149,7 +149,7 @@ AssetLoadResult WAVAudioLoader::LoadAsset(LoaderState& state) const
         return HYP_MAKE_ERROR(AssetLoadError, "unsupported channel count");
     }
 
-    Name assetName = CreateNameFromDynamicString(StringUtil::StripExtension(state.filepath.Basename()));
+    Name assetName = CreateNameFromDynamicString(ANSIString(StringUtil::StripExtension(state.filepath.Basename())));
 
     Handle<Sound> sound = MakeHandle<Sound>();
     sound->SetName(assetName);

@@ -55,6 +55,7 @@ struct TraceLightmapRaysPayload
     Handle<View> view;
     Array<LightmapRay> rays;
     uint32 rayOffset;
+    uint32 numTexels;
 };
 
 class TraceLightmapRaysCmd : public CmdBase
@@ -78,17 +79,36 @@ public:
         Handle<World>& world = payload.world;
         Handle<View>& view = payload.view;
         Array<LightmapRay>& rays = payload.rays;
-        uint32 rayOffset = payload.rayOffset;
+        const uint32 rayOffset = payload.rayOffset;
+        const uint32 numTexels = payload.numTexels;
 
-        bool needsSignal = true;
+        const uint32 numRenderers = uint32(job->GetParams().renderers->Size());
+
+        // Renderers that never got as far as enqueueing a readback - nothing else will signal for them.
+        uint32 numNotDispatched = numRenderers;
+
+        // Whether every renderer that didn't dispatch asked to be retried rather than failing.
+        bool canRequeue = false;
 
         HYP_DEFER({ delete &payload; });
 
         HYP_DEFER({
-            if (needsSignal)
+            if (numNotDispatched == 0)
             {
-                job->tracingCompleteSignal.Signal(uint32(job->GetParams().renderers->Size()));
+                return;
             }
+
+            if (numNotDispatched == numRenderers && canRequeue)
+            {
+                // Nothing was traced and the batch is still viable, so put the texels back rather
+                // than leaving a permanently untraced hole in the bake - one skipped batch is a
+                // whole cubemap face for an env probe.
+                job->RequeueTexels(numTexels);
+            }
+
+            // Signal on behalf of the renderers that have no readback pending, otherwise the job
+            // waits forever for a completion count it can never reach.
+            job->tracingCompleteSignal.Signal(numNotDispatched);
         });
 
         Frame* frame = RI.GetCurrentFrame();
@@ -126,12 +146,27 @@ public:
 
             SharedPtr<Array<LightmapRay>> raysRc = MakeShared<Array<LightmapRay>>(std::move(rays));
 
+            canRequeue = true;
+
             for (const UniquePtr<PathTracer>& pathTracer : *job->GetParams().renderers)
             {
                 AssertDebug(pathTracer != nullptr);
 
-                if (!pathTracer->Render(frame, renderSetup, job, *raysRc, rayOffset))
+                const PathTracerRenderResult renderResult = pathTracer->Render(frame, renderSetup, job, *raysRc, rayOffset);
+
+                if (renderResult == PathTracerRenderResult::Deferred)
                 {
+                    // Hold the remaining renderers back too, so the batch stays atomic and can be
+                    // re-queued as a whole. They build their acceleration structures on the same
+                    // batch, so they would all defer anyway.
+                    break;
+                }
+
+                if (renderResult == PathTracerRenderResult::Failed)
+                {
+                    // Retrying won't help, so consume the batch instead of spinning on it.
+                    canRequeue = false;
+
                     HYP_LOG(Lightmap, Error, "Failed to process lightmap!");
 
                     continue;
@@ -147,7 +182,7 @@ public:
                 };
 
                 pathTracer->ReadHitsBuffer(frame, job, numRays, std::move(cb));
-                needsSignal = false;
+                --numNotDispatched;
 
                 readbackDataOffset += numRays * sizeof(LightmapHit);
             }
@@ -250,6 +285,13 @@ void BakeJobBase::GatherTexels(uint32 maxTexels, Array<LightmapTexel*, BakerTemp
     }
 }
 
+void BakeJobBase::RequeueTexels(uint32 numTexels)
+{
+    AssertDebug(numTexels <= m_texelIndex, "Cannot requeue {} texels, only {} have been processed", numTexels, m_texelIndex);
+
+    m_texelIndex -= MathUtil::Min(numTexels, m_texelIndex);
+}
+
 uint32 BakeJobBase::ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset)
 {
     if (!m_baker->PerformsRayTracing())
@@ -283,6 +325,7 @@ uint32 BakeJobBase::ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffse
     payload->view = m_params.view;
     payload->rays = std::move(rays);
     payload->rayOffset = texelOffset;
+    payload->numTexels = numTexels;
 
     cr << TraceLightmapRaysCmd(payload);
 

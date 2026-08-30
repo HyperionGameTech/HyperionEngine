@@ -706,7 +706,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
 
         uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-        chunk->Append(BytecodeUtil::Make<LoadClass>(rp, CreateNameFromDynamicString(m_symbolType->GetName())));
+        chunk->Append(BytecodeUtil::Make<LoadClass>(rp, Name(m_symbolType->GetName().ToAnsi())));
 
         const Identifier* identifier = m_refDecl->GetIdentifier();
         Assert(identifier != nullptr);

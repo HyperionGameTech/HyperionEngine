@@ -274,8 +274,8 @@ bool CVar<bool>::SetFromConfig(const ConfigValue& cfgValue)
 struct DeferredInitCVar
 {
     CVarBase* cvar;
-    String path;
-    String configPath;
+    ANSIString path;
+    ANSIString configPath;
 };
 
 static Array<DeferredInitCVar>& GetDeferredInitCVars()
@@ -284,7 +284,7 @@ static Array<DeferredInitCVar>& GetDeferredInitCVars()
     return s_deferredInitCVars;
 }
 
-static void InitCVar(CVarManager* manager, CVarBase* cvar, const UTF8StringView& path, const UTF8StringView& configPath = {})
+static void InitCVar(CVarManager* manager, CVarBase* cvar, const ANSIStringView& path, const ANSIStringView& configPath = {})
 {
     AssertDebug(cvar != nullptr);
 
@@ -298,7 +298,7 @@ static void InitCVar(CVarManager* manager, CVarBase* cvar, const UTF8StringView&
         return;
     }
 
-    cvar->name = CreateNameFromDynamicString(path);
+    cvar->name = Name(path);
     cvar->id = s_nextCVarId.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
 
     Assert(cvar->id < MaxCVars);
@@ -319,7 +319,7 @@ static void InitCVar(CVarManager* manager, CVarBase* cvar, const UTF8StringView&
     }
 }
 
-CVarBase::CVarBase(const UTF8StringView& path, const UTF8StringView& configPath)
+CVarBase::CVarBase(const ANSIStringView& path, const ANSIStringView& configPath)
     : id(-1),
       isHeapAllocated(false)
 {
@@ -349,7 +349,7 @@ CVarManager::CVarManager()
     {
         for (DeferredInitCVar& deferredCVar : deferredInitCVars)
         {
-            InitCVar(this, deferredCVar.cvar, UTF8StringView(deferredCVar.path), UTF8StringView(deferredCVar.configPath));
+            InitCVar(this, deferredCVar.cvar, deferredCVar.path, deferredCVar.configPath);
         }
 
         deferredInitCVars.Clear();

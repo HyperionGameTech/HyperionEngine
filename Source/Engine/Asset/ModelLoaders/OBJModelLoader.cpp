@@ -86,7 +86,7 @@ static void AddMesh(OBJModel& model, const String& name, const String& material)
         uniqueName = name + String::ToString(++counter);
     }
 
-    model.meshes.PushBack(OBJMesh { uniqueName, material });
+    model.meshes.PushBack(OBJMesh { Name(uniqueName.ToAnsi()), Name(material.ToAnsi()) });
 }
 
 static OBJMesh& LastMesh(OBJModel& model)
@@ -334,7 +334,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
     if (LoadMaterials && !model.materialLibrary.Empty())
     {
         FilePath materialLibraryPath = FilePath::Relative(
-            (StringUtil::BasePath(model.filepath) + "/" + model.materialLibrary),
+            (StringUtil::BasePath(state.filepath) + "/" + model.materialLibrary),
             FilePath::Current());
 
         if (!materialLibraryPath.EndsWith(".mtl"))
@@ -427,7 +427,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
             vertex.SetPosition(vertex.GetPosition() - meshAabbCenter);
         }
 
-        Name assetName = CreateNameFromDynamicString(StringUtil::StripExtension(objMesh.name.Split('/', '\\').Back()));
+        Name assetName = CreateNameFromDynamicString(StringUtil::StripExtension(ANSIString(objMesh.name.LookupString()).Split('/', '\\').Back()));
 
         MeshDesc meshDesc;
         meshDesc.meshAttributes.inputLayout = { VT_Simple };
@@ -458,11 +458,11 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 
         Handle<Material> material;
 
-        if (!objMesh.material.Empty() && !materialLibrary.Empty())
+        if (objMesh.material.IsValid() && !materialLibrary.Empty())
         {
-            if (materialLibrary.Contains(objMesh.material))
+            if (materialLibrary.Contains(objMesh.material.ToString()))
             {
-                material = materialLibrary.At(objMesh.material);
+                material = materialLibrary.At(objMesh.material.ToString());
             }
             else
             {
@@ -501,7 +501,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 
         scene.GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { mesh, material });
 
-        entity->SetName(CreateNameFromDynamicString(objMesh.name));
+        entity->SetName(objMesh.name);
         entity->SetLocalTranslation(meshAabbCenter);
 
         top->AddChild(entity);

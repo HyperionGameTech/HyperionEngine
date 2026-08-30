@@ -177,7 +177,7 @@ bool PathTracer::CanRender() const
         && m_readyNotification->IsSignalled();
 }
 
-void PathTracer::CreateAccelerationStructures()
+bool PathTracer::CreateAccelerationStructures()
 {
     if (!m_tlas)
     {
@@ -186,7 +186,7 @@ void PathTracer::CreateAccelerationStructures()
     }
     else if (m_tlas->IsCreated())
     {
-        return; // already created
+        return false; // already created
     }
 
     bool hasBlas = false;
@@ -254,10 +254,12 @@ void PathTracer::CreateAccelerationStructures()
     {
         HYP_LOG(Lightmap, Warning, "No bottom-level acceleration structures found. Skipping top-level acceleration structure creation.");
 
-        return;
+        return false;
     }
 
     Check(m_tlas->Create());
+
+    return m_tlas->IsCreated();
 }
 
 void PathTracer::UpdatePipelineState(Frame* frame, BakeJobBase* job)
@@ -381,13 +383,13 @@ void PathTracer::ReadHitsBuffer(
     cr.Done();
 }
 
-bool PathTracer::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset)
+PathTracerRenderResult PathTracer::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset)
 {
     AssertOnThread(g_renderThread);
 
     if (rays.Size() == 0)
     {
-        return false;
+        return PathTracerRenderResult::Failed;
     }
 
     Assert(CanRender());
@@ -400,13 +402,30 @@ bool PathTracer::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBas
 
     AssertDebug(rpl.isShared);
 
-    CreateAccelerationStructures();
+    const bool builtAccelerationStructures = CreateAccelerationStructures();
 
     if (!m_tlas || !m_tlas->IsCreated())
     {
         // no BottomLevelAS to process if TLAS not created
         HYP_LOG(Lightmap, Error, "No top level acceleration structure created, cannot bake lightmap");
-        return false;
+        return PathTracerRenderResult::Failed;
+    }
+
+    if (builtAccelerationStructures)
+    {
+        //--
+        // We run from inside command execution, which is past the point where the render thread
+        // updates the global descriptor sets and drains the deferred buffer flushes for this frame.
+        // Building the acceleration structures above registered new bindless vertex/index buffer
+        // descriptors and queued the TLAS mesh descriptions upload, so neither is in place yet.
+        // Tracing now would read whichever descriptors and mesh descriptions those slots held
+        // before, giving hits with zeroed vertex data - which surfaces as exactly one corrupt
+        // cubemap face (the first batch of a bake) with flat, unlit shading.
+        //
+        // Skip the dispatch. The caller re-queues this batch, and by the time it comes back around
+        // the builds, the descriptor writes and the mesh descriptions upload all precede it.
+        //--
+        return PathTracerRenderResult::Deferred;
     }
 
     UpdatePipelineState(frame, job);
@@ -650,7 +669,7 @@ bool PathTracer::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBas
 
     cr.Done();
 
-    return true;
+    return PathTracerRenderResult::Dispatched;
 }
 
 #pragma endregion PathTracer

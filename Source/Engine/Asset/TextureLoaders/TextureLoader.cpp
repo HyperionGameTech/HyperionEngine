@@ -91,7 +91,7 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
     // data.width = 1;
     // data.height = 1;
 
-    Name assetName = CreateNameFromDynamicString(StringUtil::StripExtension(state.filepath.Basename()));
+    Name assetName = CreateNameFromDynamicString(ANSIString(StringUtil::StripExtension(state.filepath.Basename())));
 
     const size_t imageBytesCount = size_t(data.width)
         * size_t(data.height)

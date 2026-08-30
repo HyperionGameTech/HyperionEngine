@@ -249,7 +249,7 @@ Map<String, Handle<Material>> MTLMaterialLoader::ParseMtl_Internal(LoaderState& 
                 continue;
             }
 
-            const int spec = StringUtil::Parse<int>(tokens[1].Data());
+            const int spec = StringUtil::Parse<int>(tokens[1]);
 
             LastMaterial(library).parameters.roughness = MapSpecularToRoughness(spec);
 
@@ -304,7 +304,7 @@ Map<String, Handle<Material>> MTLMaterialLoader::ParseMtl_Internal(LoaderState& 
                 continue;
             }
 
-            const float dissolve = MathUtil::Clamp(StringUtil::Parse<float>(tokens[valueIndex].Data()), 0.0f, 1.0f);
+            const float dissolve = MathUtil::Clamp(StringUtil::Parse<float>(tokens[valueIndex]), 0.0f, 1.0f);
 
             auto& material = LastMaterial(library);
             material.parameters.albedo.w = dissolve;
@@ -335,7 +335,7 @@ Map<String, Handle<Material>> MTLMaterialLoader::ParseMtl_Internal(LoaderState& 
                 continue;
             }
 
-            const float transparency = MathUtil::Clamp(StringUtil::Parse<float>(tokens[valueIndex].Data()), 0.0f, 1.0f);
+            const float transparency = MathUtil::Clamp(StringUtil::Parse<float>(tokens[valueIndex]), 0.0f, 1.0f);
             const float dissolve = 1.0f - transparency;
 
             auto& material = LastMaterial(library);
@@ -382,7 +382,7 @@ Map<String, Handle<Material>> MTLMaterialLoader::ParseMtl_Internal(LoaderState& 
                 continue;
             }
 
-            const int illumModelValue = StringUtil::Parse<int>(tokens[1].Data());
+            const int illumModelValue = StringUtil::Parse<int>(tokens[1]);
             const int clampedValue = MathUtil::Clamp(illumModelValue, 0, 10);
             const IlluminationModel illumModel = static_cast<IlluminationModel>(clampedValue);
 
@@ -531,7 +531,7 @@ Map<String, Handle<Material>> MTLMaterialLoader::ParseMtl_Internal(LoaderState& 
 
             if (it.name.Any())
             {
-                texture->SetName(CreateNameFromDynamicString(StringUtil::StripExtension(it.name.Split('/', '\\').Back())));
+                texture->SetName(CreateNameFromDynamicString(ANSIString(StringUtil::StripExtension(it.name.Split('/', '\\').Back()))));
             }
 
             TextureDesc textureDesc = texture->GetTextureDesc();
@@ -549,7 +549,7 @@ Map<String, Handle<Material>> MTLMaterialLoader::ParseMtl_Internal(LoaderState& 
             textures[it.mapping.key] = std::move(texture);
         }
 
-        const Name materialName = CreateNameFromDynamicString(item.tag);
+        const Name materialName = CreateNameFromDynamicString(ANSIString(item.tag));
 
         Handle<Material> material = MakeHandle<Material>(
             materialName,

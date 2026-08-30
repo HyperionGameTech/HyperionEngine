@@ -409,7 +409,7 @@ struct FBXMesh
             data.indices[0] = indices.ToByteView();
 
             Handle<Mesh> mesh = MakeHandle<Mesh>();
-            mesh->SetName(CreateNameFromDynamicString(name));
+            mesh->SetName(CreateNameFromDynamicString(ANSIString(name)));
             mesh->SetMeshData(meshDesc, data);
 
             bounds = mesh->GetAABB();
@@ -1043,7 +1043,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
     const String baseName = StringUtil::StripExtension(path.Basename());
 
-    Handle<Node> top = MakeHandle<Node>(CreateNameFromDynamicString(baseName));
+    Handle<Node> top = MakeHandle<Node>(CreateNameFromDynamicString(ANSIString(baseName)));
     Handle<Skeleton> rootSkeleton = MakeHandle<Skeleton>();
 
     FileByteReader fbr { path };
@@ -2189,7 +2189,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                 if (getFbxObject(it.first, fbxTexture) && fbxTexture->name.Any())
                 {
-                    texture->SetName(CreateNameFromDynamicString(fbxTexture->name));
+                    texture->SetName(CreateNameFromDynamicString(ANSIString(fbxTexture->name)));
                 }
 
                 GetCurrentAssetRegistry()->PutAssetUnique(texture);
@@ -2251,7 +2251,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
             assignTexture("Bump", MaterialTextureKey::Normals);
 
             result = MakeHandle<Material>(
-                CreateNameFromDynamicString(fbxMaterial->name),
+                CreateNameFromDynamicString(ANSIString(fbxMaterial->name)),
                 attributes,
                 parameters,
                 textures);
@@ -2294,7 +2294,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
         parentNode->AddChild(node);
 
-        node->SetName(CreateNameFromDynamicString(fbxNode.name));
+        node->SetName(CreateNameFromDynamicString(ANSIString(fbxNode.name)));
         node->SetLocalTransform(fbxNode.localTransform);
 
         if (fbxNode.meshId)
@@ -2324,7 +2324,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     parameters.metalness = 0.0f;
 
                     material = MakeHandle<Material>(
-                        CreateNameFromDynamicString(fbxNode.name),
+                        CreateNameFromDynamicString(ANSIString(fbxNode.name)),
                         attributes,
                         parameters,
                         MaterialTextures {});
@@ -2695,7 +2695,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                 Handle<AnimationTrack> track = MakeHandle<AnimationTrack>(
                     NAME_FMT("Take_{}", targetNode->name),
-                    CreateNameFromDynamicString(targetNode->name));
+                    CreateNameFromDynamicString(ANSIString(targetNode->name)));
 
                 track->SetKeyframes(keyframes);
 

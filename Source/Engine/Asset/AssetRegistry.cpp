@@ -260,7 +260,7 @@ static Name GetUniqueName(Name baseName, T&& elements)
 
     if (counter > 0)
     {
-        return CreateNameFromDynamicString(str);
+        return CreateNameFromDynamicString(ANSIString(str));
     }
 
     return baseName;
@@ -286,7 +286,7 @@ HYP_NODISCARD Name CreateFriendlyName(Name name)
         }
     }
 
-    return CreateNameFromDynamicString(StringUtil::ToPascalCase(friendlyNameStr, true));
+    return CreateNameFromDynamicString(ANSIString(StringUtil::ToPascalCase(friendlyNameStr, true)));
 }
 
 static Result ConstructObjectFromManifest(ByteReader& stream, const FilePath& manifestPath, BoxedValue& outManifestData, HMF::ErrorList* outErrorList)
@@ -1486,7 +1486,7 @@ bool AssetRegistry::LoadAssetDescs()
         {
             AssetDesc& assetDesc = assetDescs.EmplaceBack();
             assetDesc.index = AssetDesc::InvalidIndex;
-            assetDesc.name = CreateNameFromDynamicString(StringUtil::StripExtension(entry.Basename()).ToAnsi());
+            assetDesc.name = CreateNameFromDynamicString(ANSIString(StringUtil::StripExtension(entry.Basename())));
             
             HYP_LOG(Assets, Verbose, "Found asset desc '{}' in '{}'", assetDesc.name, entry);
         }

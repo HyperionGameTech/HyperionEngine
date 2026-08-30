@@ -153,7 +153,7 @@ PLYModel PLYModelLoader::LoadModel(LoaderState& state)
 
             if (split[1] == "vertex")
             {
-                const uint32 numVertices = StringUtil::Parse<uint32>(split[2].Data());
+                const uint32 numVertices = StringUtil::Parse<uint32>(split[2]);
 
                 model.vertices.Resize(numVertices);
             }

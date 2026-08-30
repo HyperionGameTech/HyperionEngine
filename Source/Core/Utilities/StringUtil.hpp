@@ -36,7 +36,7 @@ static inline auto Basename(const utilities::StringView<StringType>& filepath)
         ? index1
         : (index1 == SV::NotFound ? index0 : (index0 > index1 ? index0 : index1));
 
-    return filepath.Substr(lastIndex + 1);
+    return filepath.Substr(lastIndex + 1, SIZE_MAX);
 }
 
 /// String object overload. Delegates to String View overload.
@@ -76,7 +76,7 @@ static inline auto BasePath(const containers::String<StringType, AllocatorType>&
 }
 
 template <int StringType, class AllocatorType>
-static inline auto CanonicalizePath(Span<const containers::String<StringType, AllocatorType>> original)
+static inline auto CanonicalizePath(const Array<containers::String<StringType, AllocatorType>>& original)
 {
     using StringT = containers::String<StringType, AllocatorType>;
 
@@ -120,7 +120,8 @@ static inline auto StripExtension(const containers::String<StringType, Allocator
     return StripExtension(utilities::StringView<StringType>(filepath));
 }
 
-/// Returns auto because it returns a view.
+/// Splits into path components internally, so the result is returned as an owned String
+/// rather than a view 
 template <int StringType, class AllocatorType>
 static inline auto GetExtension(const containers::String<StringType, AllocatorType>& path)
 {
@@ -130,7 +131,7 @@ static inline auto GetExtension(const containers::String<StringType, AllocatorTy
 
     if (splitPath.Empty())
     {
-        return "";
+        return StringT();
     }
 
     const StringT& fileName = splitPath.Back();
@@ -139,17 +140,10 @@ static inline auto GetExtension(const containers::String<StringType, AllocatorTy
 
     if (lastIndex == StringT::NotFound)
     {
-        return fileName.Substr(0, 0); // <--- same deal as above for StripExtension(). This just returns "nothing"
+        return StringT(); // <--- same deal as above for StripExtension(). This just returns "nothing"
     }
 
-    return fileName.Substr(lastIndex + 1);
-}
-
-/// String object overload. Delegates to String View overload.
-template <int StringType, class AllocatorType>
-static inline auto GetExtension(const containers::String<StringType, AllocatorType>& filepath)
-{
-    return GetExtension(utilities::StringView<StringType>(filepath));
+    return StringT(fileName.Substr(lastIndex + 1));
 }
 
 template <int StringType, class AllocatorType>
@@ -370,8 +364,16 @@ static inline bool Parse(const containers::String<StringType, AllocatorType>& st
     return true;
 }
 
+/// StringView overload. Delegates to the String overload (Parse relies on the string being
+/// null-terminated, which a view is not guaranteed to be).
+template <int StringType, class T>
+static inline bool Parse(const utilities::StringView<StringType>& str, T* outValue)
+{
+    return Parse(containers::String<StringType>(str), outValue);
+}
+
 template <class T, int StringType, class AllocatorType>
-static inline bool Parse(const containers::String<StringType, AllocatorType>& str, T valueOnError = T {})
+static inline T Parse(const containers::String<StringType, AllocatorType>& str, T valueOnError = T {})
 {
     T value = valueOnError;
 

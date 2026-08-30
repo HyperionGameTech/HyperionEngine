@@ -61,7 +61,7 @@ public:
     friend class CVarManager;
 
 protected:
-    explicit CVarBase(const UTF8StringView& path, const UTF8StringView& configPath = {});
+    explicit CVarBase(const ANSIStringView& path, const ANSIStringView& configPath = {});
 
 public:
     Name name;
@@ -99,7 +99,7 @@ template <typename T>
 class CVar final : public CVarBase
 {
 public:
-    explicit CVar(const UTF8StringView& path, T defaultValue = T {}, const UTF8StringView& configPath = {})
+    explicit CVar(const ANSIStringView& path, T defaultValue = T {}, const ANSIStringView& configPath = {})
         : CVarBase(path, configPath),
           m_value(Detail::AcquireCVarValue(defaultValue))
     {

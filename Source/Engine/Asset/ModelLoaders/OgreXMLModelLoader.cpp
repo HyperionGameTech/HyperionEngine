@@ -143,15 +143,22 @@ public:
         }
         else if (name == "submesh")
         {
-            String name = String("submesh_") + String::ToString(m_model.submeshes.Size());
+            ANSIString name;
 
+            // Take material name if present
             if (auto nameIt = attributes.Find("material"); nameIt != attributes.End())
             {
                 name = nameIt->second;
             }
 
-            m_model.submeshes.PushBack({ name,
-                                         Array<uint32> {} });
+            if (name.Empty())
+            {
+                // Else falls back to numbered name
+                name = ANSIString("submesh_") + ANSIString::ToString(m_model.submeshes.Size());
+            }
+
+            auto& sm = m_model.submeshes.EmplaceBack();
+            sm.name = Name(name.ToAnsi());
         }
         else if (name == "vertex")
         {

@@ -1394,7 +1394,7 @@ Name DetermineRootName(const LoaderState& state, const cgltf_data& data)
 
     if (!basename.Empty())
     {
-        return CreateNameFromDynamicString(StringUtil::StripExtension(basename));
+        return CreateNameFromDynamicString(ANSIString(StringUtil::StripExtension(basename)));
     }
 
     return NAME("GLTFModel");

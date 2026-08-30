@@ -135,6 +135,9 @@ public:
     virtual void GatherTexels(uint32 maxTexels, Array<LightmapTexel*, BakerTempAllocator>& outTexels);
     virtual uint32 ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset = 0);
 
+    /*! \brief Rewinds the texel counter by \p numTexels */
+    void RequeueTexels(uint32 numTexels);
+
     bool IsCompleted() const;
 
     HYP_FORCE_INLINE bool IsRunning() const

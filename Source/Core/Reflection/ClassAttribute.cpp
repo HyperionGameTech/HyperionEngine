@@ -81,7 +81,7 @@ int ClassAttributeValue::GetInt(int defaultValue) const
         {
             int intValue;
 
-            if (StringUtil::Parse(strValue, &intValue))
+            if (StringUtil::Parse(ANSIString(strValue), &intValue))
             {
                 return intValue;
             }

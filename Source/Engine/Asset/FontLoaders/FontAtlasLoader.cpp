@@ -191,7 +191,7 @@ AssetLoadResult FontAtlasLoader::LoadAsset(LoaderState& state) const
         return HYP_MAKE_ERROR(AssetLoadError, "Failed to load symbol list");
     }
 
-    const Name fontAtlasName = CreateNameFromDynamicString(StringUtil::StripExtension(state.filepath.Basename()));
+    const Name fontAtlasName = CreateNameFromDynamicString(ANSIString(StringUtil::StripExtension(state.filepath.Basename())));
 
     Handle<FontAtlas> fontAtlas = MakeHandle<FontAtlas>(
         fontAtlasName,

@@ -23,6 +23,18 @@ struct GpuLightmapperReadyNotification;
 
 namespace Baking {
 
+enum class PathTracerRenderResult : uint8
+{
+    /*! Rays were dispatched; a readback callback is pending and will signal the job. */
+    Dispatched = 0,
+
+    /*! Nothing was dispatched, but the same batch can be traced again on a later frame. */
+    Deferred,
+
+    /*! Nothing was dispatched and retrying will not help. */
+    Failed
+};
+
 class PathTracer final
 {
 public:
@@ -58,7 +70,7 @@ public:
     void CleanJobData(BakeJobBase* job);
     void ReadHitsBuffer(Frame* frame, BakeJobBase* job, size_t count, Proc<void(Span<LightmapHit> hits)>&& callback);
 
-    bool Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset);
+    PathTracerRenderResult Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset);
 
 private:
     struct JobData
@@ -71,7 +83,10 @@ private:
 
     void UpdatePipelineState(Frame* frame, BakeJobBase* job);
     void CreateBuffers(BakeJobBase* job);
-    void CreateAccelerationStructures();
+
+    /*! \brief Build the acceleration structures if they don't exist yet.
+     *  \return true if they were built by this call, false if they already existed. */
+    bool CreateAccelerationStructures();
 
     BakerBase* m_baker;
 

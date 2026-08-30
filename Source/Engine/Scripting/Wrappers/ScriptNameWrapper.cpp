@@ -26,7 +26,7 @@ HYP_BEGIN_STRUCT(Name, -1, 0, {})
         }),
     Method(NAME("FromString"), +[](const String& str) -> Name
         {
-            return CreateNameFromDynamicString(str);
+            return Name(str.ToAnsi());
         })
 HYP_END_STRUCT
 // clang-format on
