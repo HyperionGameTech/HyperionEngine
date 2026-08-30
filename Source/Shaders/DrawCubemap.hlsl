@@ -7,6 +7,7 @@ STATIC(MAX_LIGHTS, 4)
 PERMUTE(MODE_SHADOWS)
 PERMUTE(WRITE_NORMALS)
 PERMUTE(WRITE_MOMENTS)
+PERMUTE(WRITE_HIT_MASK)
 PERMUTE(FORWARD_SHADING)
 PERMUTE(INSTANCING)
 PERMUTE(SKINNING)
@@ -145,11 +146,25 @@ struct PSOutput
         float2 output_normals : SV_Target1;
         #ifdef WRITE_MOMENTS
             float2 output_moments : SV_Target2;
-        #endif // !WRITE_MOMENTS
+            #ifdef WRITE_HIT_MASK
+                float output_hit_mask : SV_Target3;
+            #endif // WRITE_HIT_MASK
+        #else // !WRITE_MOMENTS
+            #ifdef WRITE_HIT_MASK
+                float output_hit_mask : SV_Target2;
+            #endif // WRITE_HIT_MASK
+        #endif // WRITE_MOMENTS
     #else // !WRITE_NORMALS
         #ifdef WRITE_MOMENTS
             float2 output_moments : SV_Target1;
-        #endif
+            #ifdef WRITE_HIT_MASK
+                float output_hit_mask : SV_Target2;
+            #endif // WRITE_HIT_MASK
+        #else // !WRITE_MOMENTS
+            #ifdef WRITE_HIT_MASK
+                float output_hit_mask : SV_Target1;
+            #endif // WRITE_HIT_MASK
+        #endif // WRITE_MOMENTS
     #endif // WRITE_NORMALS
 #endif // MODE_SHADOWS
 };
@@ -326,22 +341,22 @@ PSOutput PSMain(PSInput input)
 
         float3 indirectLight = (float3)0;
 
-        const uint fallbackTextureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(fallbackProbe);
+        // const uint fallbackTextureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(fallbackProbe);
 
-        if (fallbackTextureIndex != INVALID_ENV_PROBE_TEXTURE)
-        {
-            float4 reflections = (float4)0;
+        // if (fallbackTextureIndex != INVALID_ENV_PROBE_TEXTURE)
+        // {
+        //     float4 reflections = (float4)0;
 
-            const float3 aabbMin = fallbackProbe.aabb_min.xyz;
-            const float3 aabbMax = fallbackProbe.aabb_max.xyz;
+        //     const float3 aabbMin = fallbackProbe.aabb_min.xyz;
+        //     const float3 aabbMax = fallbackProbe.aabb_max.xyz;
 
-            const float numMips = 7.0; // assuming 128x128 cubemap size for reflection probes
-            const float lod = perceptualRoughness * numMips;
+        //     const float numMips = 7.0; // assuming 128x128 cubemap size for reflection probes
+        //     const float lod = perceptualRoughness * numMips;
 
-            reflections = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(sampler_linear, envProbesColorTexture, float4(normalize(R), float(fallbackTextureIndex)), lod);
+        //     reflections = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(sampler_linear, envProbesColorTexture, float4(normalize(R), float(fallbackTextureIndex)), lod);
 
-            indirectLight += diffuseColor * (reflections.rgb * reflections.a);
-        }
+        //     indirectLight += diffuseColor * (reflections.rgb * reflections.a);
+        // }
 
         output.output_color.rgb = saturate(directLight + indirectLight);
     }
@@ -359,6 +374,10 @@ PSOutput PSMain(PSInput input)
 #ifdef WRITE_MOMENTS
     output.output_moments = moments;
 #endif // WRITE_MOMENTS
+
+#ifdef WRITE_HIT_MASK
+    output.output_hit_mask = 1.0;
+#endif // WRITE_HIT_MASK
 
     return output;
 }

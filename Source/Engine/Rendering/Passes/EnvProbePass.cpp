@@ -70,9 +70,15 @@ static EngineStatGpuTimer s_statComputeEnvProbeSH("Rendering/GPU/ComputeEnvProbe
 
 namespace EnvProbeHelpers {
 
-static HYP_FORCE_INLINE EnumFlags<EnvProbeFlags> GetFlagsFromProxy(const RenderProxyEnvProbe& proxy)
+static constexpr HYP_FORCE_INLINE EnumFlags<EnvProbeFlags> GetFlagsFromProxy(const RenderProxyEnvProbe& proxy)
 {
     return static_cast<EnumFlags<EnvProbeFlags>>(proxy.bufferData.typeAndFlags >> 3);
+}
+
+/// Get the attachment index of the hit mask target
+static constexpr HYP_FORCE_INLINE uint32 GetEnvProbeHitMaskAttachmentIndex(EnumFlags<EnvProbeFlags> envProbeFlags)
+{
+    return 1 + ((envProbeFlags & EPF_VISIBILITY) ? 1 : 0);
 }
 
 struct ConvolveProbeConstants
@@ -601,6 +607,8 @@ void ComputeEnvProbeSphericalHarmonics(const EnvProbe& envProbe, const Texture& 
                                 // Remove it to free the memory.
                                 payload.envProbe->SetBakedTexture(Handle<Texture>::Null());
                             }
+
+                            payload.envProbe->NotifyCaptureReadbackComplete();
                         }
 
                         EnqueueDeletion(std::move(payload.shBuffer));
@@ -645,6 +653,185 @@ static void ComputeEnvProbeSphericalHarmonics(Frame* frame, EnvProbe* envProbe)
     Assert(colorAttachment != nullptr && colorAttachment->IsCreated());
 
     ComputeEnvProbeSphericalHarmonics(*envProbe, *colorAttachment);
+}
+
+/// For raster bake!
+void ComputeEnvProbeHitMaskSH(EnvProbe& envProbe, const Texture& inHitMaskTexture)
+{
+    CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
+    HYP_DEFER({ cr.Done(); });
+
+    FixedArray<RWStructuredBuffer, ShNumLevels> shTilesBuffers;
+
+    for (uint32 i = 0; i < ShNumLevels; i++)
+    {
+        shTilesBuffers[i] = RWStructuredBuffer((ShNumTiles.x >> i) * (ShNumTiles.y >> i), sizeof(SHTile));
+        shTilesBuffers[i].Initialize();
+    }
+
+    struct ComputeSHConstants
+    {
+        Vec4u levelDimensions;
+    };
+
+    ComputeSHConstants constants {};
+
+    static constexpr uint32 ShDataSize = sizeof(Vec4f) * 9;
+
+    GpuBufferRef shBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, MathUtil::NextPowerOf2(ShDataSize));
+    Check(shBuffer->Create());
+
+    cr << InsertBarrier(shTilesBuffers[0].gpuBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+    cr << InsertBarrier(shBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+
+    auto runPass = [&](Name mode, const ComputeSHConstants& passConstants, const Vec3u& dispatchGroupSize, const StructuredBuffer& inputBuffer, const StructuredBuffer& outputBuffer)
+    {
+        ShaderDesc shaderDesc(
+            NAME("ComputeSH"),
+            ShaderPropertySet { { InternShaderProperty(ShaderProperty(NAME("MODE"), mode)) } });
+        
+        cr << SetCurrentShader(shaderDesc);
+
+        CBufferAllocator& cba = *RI.cbufferAllocator;
+
+        GpuBuffer* cbuffer = nullptr;
+        size_t cbufferOffset = 0;
+        size_t cbufferSize = 0;
+
+        cba.Write(&passConstants);
+        cba.Commit(cbuffer, cbufferOffset, cbufferSize);
+
+        cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
+        cr << SetShaderUniform(1, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
+        cr << SetShaderUniform(3, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes]);
+
+        cr << SetShaderUniform(4, "OutSHBuffer"_sh, shBuffer, ShaderDataOffset(0, sizeof(Vec4f)));
+
+        cr << SetShaderUniform(8, "InColorCubemap"_sh, RI.textureViewCache->GetOrCreate(const_cast<Texture*>(&inHitMaskTexture)));
+        cr << SetShaderUniform(11, "InputSHTilesBuffer"_sh, inputBuffer);
+        cr << SetShaderUniform(12, "OutputSHTilesBuffer"_sh, outputBuffer);
+        cr << SetShaderUniform(13, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
+
+        cr << DispatchCompute(dispatchGroupSize);
+    };
+
+    runPass(NAME("CLEAR"), constants, Vec3u { 1, 1, 1 }, shTilesBuffers[0], shTilesBuffers[1]);
+
+    cr << InsertBarrier(shTilesBuffers[0].gpuBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+
+    runPass(NAME("BUILD_COEFFICIENTS"), constants, Vec3u { 1, 1, 1 }, shTilesBuffers[0], shTilesBuffers[1]);
+
+    cr << InsertBarrier(shTilesBuffers[0].gpuBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+    cr << InsertBarrier(shBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+
+    runPass(NAME("FINALIZE"), constants, Vec3u { 1, 1, 1 }, shTilesBuffers[0], shTilesBuffers[0]);
+
+    cr << InsertBarrier(shBuffer, RS_COPY_SRC, ShaderModuleType::Compute);
+
+    GpuBufferRef readbackBuffer = RI.MakeGpuBuffer(GpuBufferType::ReadbackBuffer, shBuffer->Size());
+    readbackBuffer->SetIsCpuAccessible(true);
+#ifdef HYP_RHI_DEBUG_NAMES
+    readbackBuffer->SetDebugName(NAME("ComputeEnvProbeHitMaskSH_ReadbackBuffer"));
+#endif // HYP_DEBUG_MODE
+    Check(readbackBuffer->Create());
+
+    cr << InsertBarrier(readbackBuffer, RS_COPY_DST, ShaderModuleType::Compute);
+    cr << CopyBuffer(shBuffer, readbackBuffer, shBuffer->Size());
+
+    struct ReadbackHitMaskPayload
+    {
+        Handle<EnvProbe> envProbe;
+        GpuBufferRef shBuffer;
+        GpuBufferRef readbackBuffer;
+        FixedArray<RWStructuredBuffer, ShNumLevels> shTilesBuffers;
+    };
+
+    class ReadbackHitMaskCmd : public CmdBase
+    {
+    public:
+        ReadbackHitMaskPayload* payload;
+
+        explicit ReadbackHitMaskCmd(ReadbackHitMaskPayload* payload)
+            : payload(payload)
+        {
+        }
+
+        static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+        {
+            ReadbackHitMaskCmd* cmdCasted = static_cast<ReadbackHitMaskCmd*>(cmd);
+
+            Frame* frame = RI.GetCurrentFrame();
+            Assert(frame != nullptr);
+
+            frame->OnFrameEnd.Bind(
+                [pPayload = cmdCasted->payload](...)
+                {
+                    ReadbackHitMaskPayload& payload = *pPayload;
+
+                    Vec4f raw[9];
+                    Assert(payload.readbackBuffer.IsValid() && payload.readbackBuffer->Size() >= sizeof(raw));
+
+                    payload.readbackBuffer->Invalidate();
+                    payload.readbackBuffer->Read(sizeof(raw), raw);
+
+                    {
+                        SphericalHarmonicsData hitMaskSH {};
+                        float* outSH = hitMaskSH.values;
+
+                        const Vec4f* inSH = raw;
+                        for (uint32 j = 0; j < 9; j++)
+                        {
+                            outSH[j * 3 + 0] = inSH[j].x;
+                            outSH[j * 3 + 1] = inSH[j].y;
+                            outSH[j * 3 + 2] = inSH[j].z;
+                        }
+
+                        Vec4f hitMaskData;
+                        hitMaskData[0] = hitMaskSH.GetOrder0().x;
+
+                        const FixedArray<Vec3f, 3> order1 = hitMaskSH.GetOrder1();
+                        hitMaskData[1] = order1[0][0];
+                        hitMaskData[2] = order1[1][0];
+                        hitMaskData[3] = order1[2][0];
+
+                        auto envProbeWriteScope = TUniqueResLock<EnvProbe>(*payload.envProbe);
+                        payload.envProbe->SetHitMaskData(hitMaskData);
+                    }
+
+                    payload.envProbe->NotifyCaptureReadbackComplete();
+
+                    EnqueueDeletion(std::move(payload.shBuffer));
+                    EnqueueDeletion(std::move(payload.readbackBuffer));
+
+                    delete pPayload;
+                })
+                .Detach();
+
+            cmdCasted->payload = nullptr;
+        }
+    };
+
+    ReadbackHitMaskPayload* payload = new ReadbackHitMaskPayload;
+    payload->envProbe = MakeStrongRef(&envProbe);
+    payload->shBuffer = std::move(shBuffer);
+    payload->readbackBuffer = std::move(readbackBuffer);
+    payload->shTilesBuffers = std::move(shTilesBuffers);
+
+    cr << ReadbackHitMaskCmd(payload);
+}
+
+/// For raster bake
+static void ComputeEnvProbeHitMaskSH(Frame* frame, EnvProbe* envProbe)
+{
+    const FramebufferRef& framebuffer = envProbe->GetViewFramebuffer(0);
+    AssertDebug(framebuffer.IsValid() && framebuffer->IsCreated());
+
+    const uint32 hitMaskAttachmentIndex = GetEnvProbeHitMaskAttachmentIndex(envProbe->GetEnvProbeFlags());
+
+    AttachmentBase* hitMaskAttachment = framebuffer->GetAttachment(hitMaskAttachmentIndex);
+    Assert(hitMaskAttachment != nullptr && hitMaskAttachment->IsCreated());
+
+    ComputeEnvProbeHitMaskSH(*envProbe, *hitMaskAttachment);
 }
 
 void UpdateEnvProbeVisibilityTexture(Frame* frame, EnvProbe* envProbe, bool shouldReadback)
@@ -829,6 +1016,8 @@ void UpdateEnvProbeVisibilityTexture(Frame* frame, EnvProbe* envProbe, bool shou
 
                 auto envProbeWriteScope = TUniqueResLock<EnvProbe>(*envProbeStrong);
                 envProbeStrong->SetVisibilityTexture(visTexture);
+
+                envProbeStrong->NotifyCaptureReadbackComplete();
             });
     }
 }
@@ -894,12 +1083,19 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    AssertDebug(!envProbe->IsBaked());
-
     View* firstView = envProbe->GetView(0);
 
     if (!firstView)
     {
+        // // clear stale flag, dont leave it in limbo.
+        // envProbe->needsRender.Store(false);
+
+        return;
+    }
+
+    if (GetRenderCollector(firstView).isFallback)
+    {
+        // Not ready for processing yet. Defer.
         return;
     }
 
@@ -997,6 +1193,11 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
         EnvProbeHelpers::UpdateEnvProbeVisibilityTexture(frame, envProbe, /* shouldReadback */ !isRealtime);
     }
 
+    if (envProbe->ShouldCreateHitMask())
+    {
+        EnvProbeHelpers::ComputeEnvProbeHitMaskSH(frame, envProbe);
+    }
+
     envProbe->needsRender.Store(false);
 }
 
@@ -1023,7 +1224,6 @@ void IrradianceProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    AssertDebug(!envProbe->IsBaked());
     AssertDebug(envProbe->IsA<IrradianceProbe>());
 
     IrradianceProbe* irradianceProbe = StaticCast<IrradianceProbe>(envProbe);
@@ -1031,6 +1231,13 @@ void IrradianceProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
     View* firstView = irradianceProbe->GetView(0);
 
     if (!firstView)
+    {
+        // irradianceProbe->needsRender.Store(false);
+
+        return;
+    }
+
+    if (GetRenderCollector(firstView).isFallback)
     {
         return;
     }
@@ -1079,6 +1286,11 @@ void IrradianceProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
     if (irradianceProbe->GetEnvProbeFlags() & EPF_VISIBILITY)
     {
         EnvProbeHelpers::UpdateEnvProbeVisibilityTexture(frame, irradianceProbe, /* shouldReadback */ !isRealtime);
+    }
+
+    if (irradianceProbe->ShouldCreateHitMask())
+    {
+        EnvProbeHelpers::ComputeEnvProbeHitMaskSH(frame, irradianceProbe);
     }
 
     irradianceProbe->needsRender.Store(false);

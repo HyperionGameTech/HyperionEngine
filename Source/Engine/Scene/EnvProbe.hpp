@@ -13,6 +13,7 @@
 #include <Core/Memory/Pool/Pool.hpp>
 
 #include <Core/Threading/AtomicFlag.hpp>
+#include <Core/Threading/AtomicVar.hpp>
 
 #include <Core/Utilities/EnumFlags.hpp>
 
@@ -41,12 +42,12 @@ HYP_ENUM()
 enum EnvProbeFlags : uint32
 {
     EPF_NONE = 0x0,               //!< @editor=false
-    EPF_PARALLAX_CORRECTED = 0x1, //!< @title="Parallax correction"
+    EPF_PARALLAX_CORRECTED = 0x1, //!< @title="Parallax correction" @description="This probe has reflects fit to the shape of its bounds, rather than being treated as infinitely far away"
     EPF_BAKED = 0x2,              //!< @editor=false
-    EPF_REALTIME = 0x4,           //!< @title="Real-time"
+    EPF_REALTIME = 0x4,           //!< @title="Realtime" @description="Responds to changes in environment in realtime (has a performance cost at runtime!)"
     EPF_ORIGIN_FROM_CENTER = 0x8, //!< @title="Origin from center"
     EPF_VISIBILITY = 0x10,        //!< @title="Prevent light leaking" @description="This EnvProbe stores distance values to a texture, used to prevent light leaks at the cost of more memory usage and rendering time."
-    EPF_RESERVED = 0x20,          //!< @editor=false
+    EPF_PATH_TRACED = 0x20,       //!< @title="Path traced" @description="Bake this probe using hardware ray tracing"
     EPF_HIT_MASK = 0x40           //!< @editor=false
 };
 
@@ -142,6 +143,12 @@ public:
         return bool(m_envProbeFlags & EPF_REALTIME);
     }
 
+    HYP_METHOD()
+    bool IsPathTraced() const
+    {
+        return bool(m_envProbeFlags & EPF_PATH_TRACED);
+    }
+
     HYP_FORCE_INLINE bool ShouldComputePrefilteredEnvMap() const
     {
         return (m_dimensions.Volume() > 1)
@@ -186,6 +193,17 @@ public:
         return m_dimensions;
     }
 
+    HYP_METHOD(Property = "DiffuseStrength")
+    float GetDiffuseStrength() const
+    {
+        return m_diffuseStrength;
+    }
+
+    HYP_METHOD(Property = "DiffuseStrength")
+    void SetDiffuseStrength(float diffuseStrength);
+
+    //-- Data & textures
+
     HYP_FORCE_INLINE const Handle<Texture>& GetPrefilteredEnvMap() const
     {
         return m_texture;
@@ -217,15 +235,6 @@ public:
 
     HYP_METHOD(Property = "SHData", NoScriptBindings)
     void SetSphericalHarmonicsData(const SphericalHarmonicsData& shData);
-
-    HYP_METHOD(Property = "DiffuseStrength")
-    float GetDiffuseStrength() const
-    {
-        return m_diffuseStrength;
-    }
-
-    HYP_METHOD(Property = "DiffuseStrength")
-    void SetDiffuseStrength(float diffuseStrength);
     
     HYP_FORCE_INLINE const Vec4f& GetHitMaskData() const
     {
@@ -233,6 +242,23 @@ public:
     }
 
     void SetHitMaskData(const Vec4f& hitMaskData);
+
+    //-- Baking with raster (todo: move out of here?)
+
+    void BeginRasterCapture();
+    void EndRasterCapture();
+
+    HYP_FORCE_INLINE void NotifyCaptureReadbackComplete()
+    {
+        m_pendingCaptureReadbacks.Decrement(1, MemoryOrder::RELEASE);
+    }
+
+    HYP_FORCE_INLINE bool IsCaptureReadbackComplete() const
+    {
+        return m_pendingCaptureReadbacks.Get(MemoryOrder::ACQUIRE) <= 0;
+    }
+
+    //--
 
     virtual void Invalidate(bool forceRerender = false);
 
@@ -279,6 +305,9 @@ protected:
         return !IsRealtime();
     }
 
+    void InitCaptureData();
+    void DestroyCaptureData();
+
     void CreateCamera();
     void RemoveCamera();
 
@@ -317,7 +346,10 @@ protected:
     HYP_FIELD(Property = "HitMaskData", Editor = false, Serialize)
     Vec4f m_hitMaskData;
 
-    // for reading/writing back data
+    /// Number of outstanding read backs
+    AtomicVar<int32> m_pendingCaptureReadbacks;
+
+    /// for reading/writing back data
     SharedMutex m_mutex;
 };
 

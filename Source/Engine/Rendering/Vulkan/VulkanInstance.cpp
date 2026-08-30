@@ -44,10 +44,8 @@
 #endif
 
 namespace Hyperion {
-#if HYP_DEBUG_MODE
 constexpr bool EnableVulkanSynchronizationValidation = false;
 constexpr bool EnableVulkanVerboseValidationLogging = false;
-#endif
 
 static uint64 ComputeDeviceScore(VulkanFeatures& deviceFeatures)
 {
@@ -204,7 +202,6 @@ static Array<VkPhysicalDevice, VulkanTempAllocator> EnumeratePhysicalDevices(VkI
     return devices;
 }
 
-#if HYP_DEBUG_MODE
 // Returns supported vulkan debug layers
 static Array<const char*, VulkanAllocator> CheckValidationLayerSupport(Span<const char*> requestLayers)
 {
@@ -247,7 +244,6 @@ static Array<const char*, VulkanAllocator> CheckValidationLayerSupport(Span<cons
 
     return supportedLayers;
 }
-#endif
 
 ExtensionMap VulkanInstance::GetExtensionMap()
 {
@@ -297,7 +293,7 @@ ExtensionMap VulkanInstance::GetExtensionMap()
 
     return map;
 }
-#if HYP_DEBUG_MODE
+
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT severity,
     VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -371,15 +367,11 @@ RendererResult VulkanInstance::SetupDebug()
     return {};
 }
 
-#endif
-
 VulkanInstance::VulkanInstance()
     : m_instance(VK_NULL_HANDLE),
       m_allocator(VK_NULL_HANDLE)
 {
-#if HYP_DEBUG_MODE
     m_vkDebugMessenger = VK_NULL_HANDLE;
-#endif
 }
 
 VulkanInstance::~VulkanInstance()
@@ -393,19 +385,16 @@ VulkanInstance::~VulkanInstance()
 
     m_device.Reset();
 
-#if HYP_DEBUG_MODE
     if (m_vkDebugMessenger != VK_NULL_HANDLE)
     {
         DestroyDebugUtilsMessenger(m_instance, m_vkDebugMessenger, nullptr);
         m_vkDebugMessenger = VK_NULL_HANDLE;
     }
-#endif
 
     vkDestroyInstance(m_instance, nullptr);
     m_instance = VK_NULL_HANDLE;
 }
 
-#if HYP_DEBUG_MODE
 RendererResult VulkanInstance::SetupDebugMessenger()
 {
     Assert(m_vkDebugMessenger == VK_NULL_HANDLE);
@@ -427,17 +416,14 @@ RendererResult VulkanInstance::SetupDebugMessenger()
 
     return {};
 }
-#endif
 
 RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
 {
-#if HYP_DEBUG_MODE
     /* Set up our debug and validation layers */
     if (enableDebugLayers)
     {
         CheckResultOrReturn(SetupDebug());
     }
-#endif
 
     Assert(g_appContext != nullptr, "AppContext must be set before initializing VulkanInstance");
 
@@ -451,10 +437,8 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
 
     VkInstanceCreateInfo createInfo { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
     createInfo.pApplicationInfo = &appInfo;
-#if HYP_DEBUG_MODE
     createInfo.enabledLayerCount = uint32(m_validationLayers.Size());
     createInfo.ppEnabledLayerNames = m_validationLayers.Data();
-#endif
     createInfo.flags = 0;
 
 #if HYP_MOLTENVK
@@ -505,9 +489,8 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     }
 #endif
 
-#if HYP_DEBUG_MODE
     // Synchronization validation setup
-    static const const char s_layerName[] = "VK_LAYER_KHRONOS_validation";
+    static const char s_layerName[] = "VK_LAYER_KHRONOS_validation";
     static const VkBool32 s_trueValue = VK_TRUE;
     static const VkBool32 s_falseValue = VK_FALSE;
     static const uint32 s_duplicateMessageLimit = EnableVulkanVerboseValidationLogging ? 0 : 10;
@@ -542,7 +525,6 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
             VulkanHelpers::ChainNext(createInfo, &layerSettingsCreateInfo);
         }
     }
-#endif
 
     HYP_LOG(RenderingBackend, Info, "Enabling {} Vulkan instance extensions:", extensionNames.Size());
 
@@ -559,7 +541,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     VkResult instanceResult = vkCreateInstance(&createInfo, nullptr, &m_instance);
     VULKAN_CHECK_MSG(instanceResult, "Failed to create Vulkan Instance!");
 
-#if defined(HYP_MOLTENVK) && HYP_MOLTENVK && HYP_DEBUG_MODE
+#if defined(HYP_MOLTENVK) && HYP_MOLTENVK
     if (enableDebugLayers)
     {
         PFN_vkGetMoltenVKConfigurationMVK mvkGetConfig = reinterpret_cast<PFN_vkGetMoltenVKConfigurationMVK>(vkGetInstanceProcAddr(m_instance, "vkGetMoltenVKConfigurationMVK"));
@@ -592,12 +574,10 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     delete dummySurfaceContext;
     vkDestroySurfaceKHR(m_instance, surface, nullptr);
 
-#if HYP_DEBUG_MODE
     if (enableDebugLayers)
     {
         SetupDebugMessenger();
     }
-#endif
 
     m_device->SetupAllocator(this);
 

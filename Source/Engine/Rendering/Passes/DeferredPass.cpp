@@ -1448,21 +1448,25 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
                 PassBase* pass = RI.namedPasses[NamedPass::EnvProbe][envProbeType];
                 AssertDebug(pass != nullptr);
 
-                uint32 numRendered = 0;
-
                 for (EnvProbe* envProbe : envProbes[envProbeType])
                 {
-                    if (envProbe->IsBaked())
+                    // We skip path traced baked probes.
+                    // Other probes (realtime, or baked raster) are handled, but baked ones that dont need render are skipped.
+                    if (envProbe->IsPathTraced())
                     {
-                        continue; // skip baked
+                        continue;
+                    }
+
+                    // !PathTraced
+                    if (envProbe->IsBaked() && !envProbe->needsRender.Load())
+                    {
+                        continue;
                     }
 
                     RenderSetup currentEnvProbeSetup = envProbeSetup.Fork();
                     currentEnvProbeSetup.envProbe = envProbe;
 
                     pass->RenderFrame(frame, currentEnvProbeSetup);
-
-                    ++numRendered;
                 }
             }
         }

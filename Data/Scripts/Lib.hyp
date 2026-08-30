@@ -1047,15 +1047,16 @@ extern class EnvProbe : VolumeBase
     IsBaked() -> bool
     SetIsBaked(isBaked : bool) -> void
     IsRealtime() -> bool
+    IsPathTraced() -> bool
     GetOrigin(fromCenter : bool) -> Vec3f
     SetOrigin(origin : Vec3f, fromCenter : bool) -> void
     GetCamera() -> Camera
+    GetDiffuseStrength() -> float
+    SetDiffuseStrength(diffuseStrength : float) -> void
     GetBakedTexture() -> Texture
     SetBakedTexture(texture : Texture) -> void
     GetVisibilityTexture() -> Texture
     SetVisibilityTexture(visibilityTexture : Texture) -> void
-    GetDiffuseStrength() -> float
-    SetDiffuseStrength(diffuseStrength : float) -> void
     Dimensions : Vec2u
     EnvProbeType : EnvProbeType
     EnvProbeFlags : EnvProbeFlags
@@ -1086,7 +1087,7 @@ extern enum EnvProbeFlags : uint32
     EPF_REALTIME = 0x4,
     EPF_ORIGIN_FROM_CENTER = 0x8,
     EPF_VISIBILITY = 0x10,
-    EPF_RESERVED = 0x20,
+    EPF_PATH_TRACED = 0x20,
     EPF_HIT_MASK = 0x40
 end
 extern class Sprite : Entity
@@ -2244,6 +2245,7 @@ extern class Scene : AssetObject
     SetIsAudioListener(isAudioListener : bool) -> void
     GetStreamingCentroid() -> Vec2i
     SetStreamingCenroid(streamingCentroid : Vec2i) -> void
+    GetUniqueNodeName(prefix : string) -> Name
     AddToWorld(world : World) -> bool
     RemoveFromWorld() -> bool
     static OnRootNodeChanged : any

@@ -24,10 +24,8 @@ class VulkanInstance
 {
     static ExtensionMap GetExtensionMap();
 
-#if HYP_DEBUG_MODE
     RendererResult SetupDebug();
     RendererResult SetupDebugMessenger();
-#endif
 
 public:
     HYP_DEF_POOL_NEW_DELETE(g_vulkanPool);
@@ -64,10 +62,8 @@ private:
 
     VulkanDeviceRef m_device;
 
-#if HYP_DEBUG_MODE
     Array<const char*, VulkanAllocator> m_validationLayers;
     VkDebugUtilsMessengerEXT m_vkDebugMessenger;
-#endif
 };
 
 } // namespace Hyperion

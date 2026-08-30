@@ -793,7 +793,8 @@ class CacheServerCommandlet final : public CommandletBase
         {
             TSharedLock lock(state.lock);
 
-            if (state.manifests.Find(registryId) == state.manifests.End())
+            // Not tracking manifest?
+            if (!state.manifests.Contains(registryId))
             {
                 return;
             }

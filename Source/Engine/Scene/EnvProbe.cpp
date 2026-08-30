@@ -41,10 +41,11 @@ EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 
 static StaticShaderPropertyId s_propForwardShading { ShaderProperty(NAME("FORWARD_SHADING")) };
 static StaticShaderPropertyId s_propWriteMoments { ShaderProperty(NAME("WRITE_MOMENTS")) };
+static StaticShaderPropertyId s_propWriteHitMask { ShaderProperty(NAME("WRITE_HIT_MASK")) };
 
 static constexpr EnumFlags<EnvProbeFlags> DefaultEnvProbeFlags[EPT_MAX] {
     EPF_ORIGIN_FROM_CENTER,                                                             // sky
-    EPF_ORIGIN_FROM_CENTER | EPF_BAKED | EPF_PARALLAX_CORRECTED | EPF_HIT_MASK,         // reflection
+    EPF_ORIGIN_FROM_CENTER | EPF_BAKED | EPF_VISIBILITY | EPF_HIT_MASK | EPF_PARALLAX_CORRECTED,         // reflection
     EPF_ORIGIN_FROM_CENTER | EPF_BAKED | EPF_VISIBILITY | EPF_HIT_MASK                  // irradiance
 };
 
@@ -129,6 +130,79 @@ void EnvProbe::SetDiffuseStrength(float diffuseStrength)
     SetNeedsRenderProxyUpdate();
 }
 
+void EnvProbe::InitCaptureData()
+{
+    CreateCamera();
+    CreateViewData();
+
+    if (m_camera != nullptr)
+    {
+        const FixedArray<Mat4f, 6> matrices = CreateCubemapMatrices(GetWorldTranslation());
+
+        for (uint32 viewIndex = 0; viewIndex < 6; viewIndex++)
+        {
+            if (View* view = m_views[viewIndex])
+            {
+                view->cachedMatrices.view = matrices[viewIndex];
+                view->cachedMatrices.viewProj = m_camera->GetProjectionMatrix() * matrices[viewIndex];
+                view->cachedMatrices.invProj = m_camera->GetProjectionMatrix().Inverse();
+            }
+        }
+    }
+
+    EnqueueViewsUpdate();
+
+    if (ShouldComputePrefilteredEnvMap())
+    {
+        if (!m_texture.IsValid())
+        {
+            m_texture = MakeHandle<Texture>(TextureDesc {
+                TextureType::Cubemap,
+                TextureFormat::RGBA16F,
+                Vec3u { m_dimensions, 1 },
+                TFM_LINEAR_MIPMAP,
+                TFM_LINEAR,
+                TWM_CLAMP_TO_EDGE,
+                1,
+                IU_STORAGE | IU_SAMPLED });
+
+            m_texture->SetName(NAME_FMT("{}_ColorMap", GetName()));
+        }
+    }
+
+    if (m_texture.IsValid())
+    {
+        GetCurrentAssetRegistry()->PutAssetUnique(m_texture);
+
+        Check(m_texture->Create());
+    }
+
+    if (m_envProbeFlags & EPF_VISIBILITY)
+    {
+        if (m_visibilityTexture.IsValid())
+        {
+            GetCurrentAssetRegistry()->PutAssetUnique(m_visibilityTexture);
+            Check(m_visibilityTexture->Create());
+        }
+        else
+        {
+            CreateVisibilityTexture();
+        }
+    }
+}
+
+void EnvProbe::DestroyCaptureData()
+{
+    RemoveCamera();
+    DestroyViewData();
+
+    if (IsRealtime())
+    {
+        EnqueueDeletion(std::move(m_texture));
+        EnqueueDeletion(std::move(m_visibilityTexture));
+    }
+}
+
 void EnvProbe::CreateCamera()
 {
     if (m_camera != nullptr)
@@ -149,7 +223,8 @@ void EnvProbe::CreateCamera()
 
         m_camera->SetToPerspectiveProjection(90.0f, EnvProbeCameraNearClip, worldBounds.GetRadius());
     }
-    else
+    
+    if (!m_camera)
     {
         Handle<Camera> camera = MakeHandle<Camera>(
             90.0f,
@@ -191,6 +266,9 @@ void EnvProbe::CreateVisibilityTexture()
 {
     if (m_visibilityTexture.IsValid())
     {
+        GetCurrentAssetRegistry()->PutAssetUnique(m_visibilityTexture);
+        Check(m_visibilityTexture->Create());
+
         return;
     }
 
@@ -212,7 +290,6 @@ void EnvProbe::CreateVisibilityTexture()
     m_visibilityTexture->SetName(NAME_FMT("{}_VisibilityMap", GetName()));
 
     GetCurrentAssetRegistry()->PutAssetUnique(m_visibilityTexture);
-
     Check(m_visibilityTexture->Create());
 
     // Assume the caller will MarkDirty() / SetNeedsRenderProxyUpdate()
@@ -220,10 +297,10 @@ void EnvProbe::CreateVisibilityTexture()
 
 void EnvProbe::SetEnvProbeFlags(EnumFlags<EnvProbeFlags> envProbeFlags)
 {
-    // If baked, can't be realtime
+    // If baked, can't be realtime - flags are mutually exclusive
     if (envProbeFlags & EPF_REALTIME)
     {
-        envProbeFlags &= ~EPF_BAKED;
+        envProbeFlags &= ~(EPF_BAKED | EPF_PATH_TRACED);
     }
     else
     {
@@ -248,7 +325,7 @@ void EnvProbe::SetEnvProbeFlags(EnumFlags<EnvProbeFlags> envProbeFlags)
     bool dirtyViewData = false;
 
     // @TODO stupid overloads for EnumFlags... fix
-    if ((changedFlags & uint32(EPF_BAKED | EPF_VISIBILITY | EPF_HIT_MASK)) != 0)
+    if ((changedFlags & uint32(EPF_BAKED | EPF_VISIBILITY | EPF_HIT_MASK | EPF_PATH_TRACED)) != 0)
     {
         dirtyViewData = true;
         shouldForceRerender = true;
@@ -268,38 +345,26 @@ void EnvProbe::SetEnvProbeFlags(EnumFlags<EnvProbeFlags> envProbeFlags)
         }
     }
 
-    if (changedFlags & EPF_VISIBILITY)
-    {
-        if (envProbeFlags & EPF_VISIBILITY)
-        {
-            if (m_visibilityTexture.IsValid())
-            {
-                Check(m_visibilityTexture->Create());
-            }
-            else
-            {
-                CreateVisibilityTexture();
-            }
-
-            shouldForceRerender = true;
-        }
-        else if (m_visibilityTexture.IsValid())
-        {
-            EnqueueDeletion(std::move(m_visibilityTexture));
-        }
-    }
-
     if (dirtyViewData)
     {
-        if (envProbeFlags & EPF_BAKED)
+        // Baked (or path traced) probes have no persistent capture data
+        if (envProbeFlags & (EPF_BAKED | EPF_PATH_TRACED))
         {
-            RemoveCamera();
-            DestroyViewData();
+            DestroyCaptureData();
         }
         else
         {
-            CreateCamera();
-            CreateViewData();
+            //--
+            // ONLY INIT CAPTURE DATA IF ATTACHED TO A WORLD.
+            // If not, defer it till OnAttachedToWorld().
+            //--
+            // If we don't do this, SetEnvProbeFlags() will be called before SetChildren(), meaning we'll create a camera then SetChildren() will overwrite the children,
+            // we'll be left holding a dangling pointer for m_camera...
+            //--
+            if (GetWorld() != nullptr)
+            {
+                InitCaptureData();
+            }
         }
     }
 
@@ -327,33 +392,14 @@ void EnvProbe::OnAddedToWorld(World* world)
 {
     Entity::OnAddedToWorld(world);
 
+    // Init capture data right away for realtime probes, skybox, anything not BAKED.
     if (!IsBaked())
     {
-        CreateCamera();
-        CreateViewData();
-        EnqueueViewsUpdate();
-
-        if (ShouldComputePrefilteredEnvMap())
-        {
-            if (!m_texture.IsValid())
-            {
-                m_texture = MakeHandle<Texture>(TextureDesc {
-                    TextureType::Cubemap,
-                    TextureFormat::RGBA16F,
-                    Vec3u { m_dimensions, 1 },
-                    TFM_LINEAR_MIPMAP,
-                    TFM_LINEAR,
-                    TWM_CLAMP_TO_EDGE,
-                    1,
-                    IU_STORAGE | IU_SAMPLED });
-
-                m_texture->SetName(NAME_FMT("{}_ColorMap", GetName()));
-
-                GetCurrentAssetRegistry()->PutAssetUnique(m_texture);
-            }
-        }
+        InitCaptureData();
+        return;
     }
 
+    // Still need to init the textures as they are loaded from disk, even if not setting up for capture.
     if (m_texture.IsValid())
     {
         Check(m_texture->Create());
@@ -363,6 +409,8 @@ void EnvProbe::OnAddedToWorld(World* world)
     {
         if (m_visibilityTexture.IsValid())
         {
+            GetCurrentAssetRegistry()->PutAssetUnique(m_visibilityTexture);
+
             Check(m_visibilityTexture->Create());
         }
         else
@@ -376,11 +424,14 @@ void EnvProbe::OnAddedToWorld(World* world)
 
 void EnvProbe::OnRemovedFromWorld(World* world)
 {
+    // Removing camera node before calling base method
+    // @TODO: Do we need this?
     RemoveCamera();
 
     Entity::OnRemovedFromWorld(world);
 
-    DestroyViewData();
+    // @TODO: Ensure removing during bake won't cause major issues.
+    DestroyCaptureData();
 }
 
 void EnvProbe::OnAddedToScene(Scene* scene)
@@ -420,12 +471,13 @@ void EnvProbe::OnTransformUpdated()
 
 void EnvProbe::CreateViewData()
 {
-    if (IsBaked() || EngineGlobals::IsHeadless())
+    if (EngineGlobals::IsHeadless())
     {
-        // Do not create Views and other data if baked
+        // Do not create Views and other data when headless
         return;
     }
-
+    // Not for path traced baked probes!
+    Assert(!(m_envProbeFlags & EPF_PATH_TRACED));
     AssertDebug(m_camera != nullptr);
 
     // If any Views exist, we assume they have already been created
@@ -490,6 +542,27 @@ void EnvProbe::CreateViewData()
         }));
     }
 
+    if (m_envProbeFlags & EPF_HIT_MASK)
+    {
+        AttachmentDesc& hitMaskDesc = attachmentDescs.PushBack(AttachmentDesc {
+            TextureType::Cubemap,
+            TextureFormat::R8,
+            LoadOperation::CLEAR,
+            StoreOperation::STORE
+        });
+
+        attachmentImages.PushBack(RI.MakeImage(TextureDesc {
+            hitMaskDesc.imageType,
+            hitMaskDesc.format,
+            Vec3u(framebufferDesc.extent, 1),
+            TFM_NEAREST,
+            TFM_NEAREST,
+            TWM_CLAMP_TO_EDGE,
+            1,
+            IU_SAMPLED | IU_ATTACHMENT
+        }));
+    }
+
     // Depth target
     AttachmentDesc& depthDesc = attachmentDescs.PushBack(AttachmentDesc {
         TextureType::Cubemap,
@@ -529,6 +602,11 @@ void EnvProbe::CreateViewData()
         {
             materialAttributes.shaderProperties.Add(s_propWriteMoments);
         }
+
+        if (m_envProbeFlags & EPF_HIT_MASK)
+        {
+            materialAttributes.shaderProperties.Add(s_propWriteHitMask);
+        }
     }
 
     AssertDebug(materialAttributes.shaderName.IsValid());
@@ -561,7 +639,7 @@ void EnvProbe::CreateViewData()
 
         if (!IsRealtime())
         {
-            viewDesc.flags |= ViewFlags::NO_PARALLEL_DRAW_CALL_COLLECTION;
+            viewDesc.flags |= (ViewFlags::NO_PARALLEL_DRAW_CALL_COLLECTION | ViewFlags::NOT_MULTI_BUFFERED);
         }
 
         switch (m_envProbeType)
@@ -617,6 +695,24 @@ void EnvProbe::DestroyViewData()
             EnqueueDeletion(std::move(view));
         }
     }
+}
+
+void EnvProbe::BeginRasterCapture()
+{
+    const int32 numReadbacks = (ShouldComputeSphericalHarmonics() ? 1 : 0)
+        + ((m_envProbeFlags & EPF_VISIBILITY) ? 1 : 0)
+        + ((m_envProbeFlags & EPF_HIT_MASK) ? 1 : 0);
+
+    m_pendingCaptureReadbacks.Set(numReadbacks, MemoryOrder::RELEASE);
+
+    InitCaptureData();
+
+    needsRender.Store(true);
+}
+
+void EnvProbe::EndRasterCapture()
+{
+    //DestroyCaptureData();
 }
 
 Vec3f EnvProbe::GetOrigin(bool fromCenter) const
@@ -968,7 +1064,6 @@ void EnvProbe::SetVisibilityTexture(const Handle<Texture>& visibilityTexture)
         }
 
         GetCurrentAssetRegistry()->PutAssetUnique(m_visibilityTexture);
-
         Check(m_visibilityTexture->Create());
 
         Invalidate(/* forceRerender */ true);

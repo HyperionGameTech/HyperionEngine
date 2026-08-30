@@ -660,6 +660,7 @@ extern bool EnvProbe_IsAmbientProbe(EnvProbe self);
 extern bool EnvProbe_IsBaked(EnvProbe self);
 extern void EnvProbe_SetIsBaked(EnvProbe self, bool isBaked);
 extern bool EnvProbe_IsRealtime(EnvProbe self);
+extern bool EnvProbe_IsPathTraced(EnvProbe self);
 extern float3 EnvProbe_GetOrigin(EnvProbe self, bool fromCenter);
 extern void EnvProbe_SetOrigin(EnvProbe self, float3 origin, bool fromCenter);
 extern Camera EnvProbe_GetCamera(EnvProbe self);

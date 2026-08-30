@@ -95,12 +95,24 @@ Result Baker<EnvProbe>::Build_Internal()
     InitObject(m_envProbe);
     m_bakeData = BakeData<EnvProbe>(m_bakeEntities, m_envProbe.Get());
 
+    if (!PerformsRayTracing())
+    {
+        return {};
+    }
+
     return m_bakeData.Build();
 }
 
 void Baker<EnvProbe>::OnCompleted_Internal()
 {
     HYP_SCOPE;
+
+    if (!PerformsRayTracing())
+    {
+        HYP_LOG(Lightmap, Verbose, "EnvProbe {} raster baking complete", m_envProbe->GetName());
+
+        return;
+    }
 
     AssertDebug(m_bakeData.IsBuilt());
     if (!m_bakeData.IsBuilt())

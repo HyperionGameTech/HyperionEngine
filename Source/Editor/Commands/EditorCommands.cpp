@@ -616,6 +616,12 @@ public:
             {
                 if (node->IsA<ReflectionProbe>())
                 {
+                    ReflectionProbe* reflectionProbe = StaticCast<ReflectionProbe>(node);
+                    if (reflectionProbe->IsRealtime())
+                    {
+                        continue;
+                    }
+
                     reflectionProbes.PushBack(MakeStrongRef(node));
                 }
             }
@@ -684,6 +690,12 @@ public:
             {
                 if (node->IsA<IrradianceProbe>())
                 {
+                    IrradianceProbe* irradianceProbe = StaticCast<IrradianceProbe>(node);
+                    if (irradianceProbe->IsRealtime())
+                    {
+                        continue;
+                    }
+
                     irradianceProbes.PushBack(MakeStrongRef(node));
                 }
             }

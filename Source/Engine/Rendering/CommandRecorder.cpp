@@ -39,6 +39,17 @@ namespace Hyperion {
 
 static Handle<Mesh> g_quadMesh;
 
+static inline void EndCurrentPass(CommandBuffer* commandBuffer)
+{
+    RenderInterface::State& state = RI.state;
+
+    if (state.boundFramebuffer != nullptr)
+    {
+        state.boundFramebuffer->EndCapture(commandBuffer);
+        state.boundFramebuffer = nullptr;
+    }
+}
+
 void MergeGlobalShaderProperties(ShaderPropertySet& out);
 
 #pragma region TCommandRecorder
@@ -274,9 +285,9 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
             case CommandType::InsertBarrier:
             {
                 auto* cmd = static_cast<InsertBarrier*>(cmdDataPtr);
-#if defined(HYP_VULKAN) && defined(HYP_DEBUG_MODE)
-                cmd->CheckNotInRenderPass(commandBuffer);
-#endif
+
+                EndCurrentPass(commandBuffer);
+
                 if (cmd->m_buffer)
                 {
                     cmd->m_buffer->InsertBarrier(commandBuffer, cmd->m_state, cmd->m_shaderModuleType);
@@ -299,6 +310,9 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
             case CommandType::InsertUAVBarrier:
             {
                 auto* cmd = static_cast<InsertUAVBarrier*>(cmdDataPtr);
+
+                EndCurrentPass(commandBuffer);
+
                 AssertDebug(cmd->m_image != nullptr);
                 cmd->m_image->InsertUAVBarrier(commandBuffer);
             }
@@ -306,6 +320,8 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
             case CommandType::Blit:
             {
                 auto* cmd = static_cast<Blit*>(cmdDataPtr);
+
+                EndCurrentPass(commandBuffer);
 
                 Texture* src = cmd->m_src;
                 Texture* dst = cmd->m_dst;
@@ -490,12 +506,30 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
             case CommandType::CopyImage:
             {
                 auto* cmd = static_cast<CopyImage*>(cmdDataPtr);
+
+                EndCurrentPass(commandBuffer);
+
+                // Transition src,dst before inserting copy cmd
+                if (cmd->srcImage->GetSubResourceState(cmd->srcSubResource) != RS_COPY_SRC)
+                {
+                    cmd->srcImage->InsertBarrier(commandBuffer, cmd->srcSubResource, RS_COPY_SRC, ShaderModuleType::None);
+                }
+
+                if (cmd->dstImage->GetSubResourceState(cmd->dstSubResource) != RS_COPY_DST)
+                {
+                    cmd->dstImage->InsertBarrier(commandBuffer, cmd->dstSubResource, RS_COPY_DST, ShaderModuleType::None);
+                }
+
+
                 cmd->dstImage->CopyFrom(commandBuffer, cmd->srcImage, cmd->srcOffset, cmd->dstOffset, cmd->extent, cmd->srcSubResource, cmd->dstSubResource);
             }
             break;
             case CommandType::FillImage:
             {
                 auto* cmd = static_cast<FillImage*>(cmdDataPtr);
+
+                EndCurrentPass(commandBuffer);
+
                 cmd->m_image->Fill(commandBuffer, cmd->m_value, cmd->m_subResource, cmd->m_offset, cmd->m_extent);
                 static_assert(std::is_trivially_destructible_v<FillImage>);
             }
@@ -503,18 +537,27 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
             case CommandType::CopyImageToBuffer:
             {
                 auto* cmd = static_cast<CopyImageToBuffer*>(cmdDataPtr);
+
+                EndCurrentPass(commandBuffer);
+
                 cmd->m_image->CopyToBuffer(commandBuffer, cmd->m_buffer, cmd->m_subResource, cmd->m_bufferOffset);
             }
             break;
             case CommandType::CopyBufferToImage:
             {
                 auto* cmd = static_cast<CopyBufferToImage*>(cmdDataPtr);
+
+                EndCurrentPass(commandBuffer);
+
                 cmd->m_dstImage->CopyFromBuffer(commandBuffer, cmd->m_srcBuffer, cmd->m_srcBufferOffset, cmd->m_dstMipIndex, cmd->m_dstArrayLayer);
             }
             break;
             case CommandType::CopyBuffer:
             {
                 auto* cmd = static_cast<CopyBuffer*>(cmdDataPtr);
+
+                EndCurrentPass(commandBuffer);
+
                 cmd->m_dstBuffer->CopyFrom(commandBuffer, cmd->m_srcBuffer, cmd->m_srcOffset, cmd->m_dstOffset, cmd->m_count);
                 static_assert(std::is_trivially_destructible_v<CopyBuffer>);
             }
@@ -522,6 +565,8 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
             case CommandType::GenerateMipmaps:
             {
                 auto* cmd = static_cast<GenerateMipmaps*>(cmdDataPtr);
+
+                EndCurrentPass(commandBuffer);
 
                 Texture* inTexture = cmd->inTexture;
 
@@ -723,6 +768,9 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
             {
                 auto* cmd = static_cast<DispatchCompute*>(cmdDataPtr);
 
+                // A dispatch is not valid inside an active render pass
+                EndCurrentPass(commandBuffer);
+
                 ComputePipeline* pipeline = cmd->m_pipeline;
 
                 if (pipeline == nullptr)
@@ -740,6 +788,9 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
             case CommandType::TraceRays:
             {
                 auto* cmd = static_cast<TraceRays*>(cmdDataPtr);
+
+                // A ray trace is not valid inside an active render pass
+                EndCurrentPass(commandBuffer);
 
                 RayTracingPipeline* pipeline = cmd->m_pipeline;
 
@@ -1296,17 +1347,6 @@ BindDescriptorSet::BindDescriptorSet(DescriptorSet* descriptorSet, RayTracingPip
 }
 
 #pragma endregion BindDescriptorSet
-
-#pragma region InsertBarrier
-
-#if defined(HYP_VULKAN) && defined(HYP_DEBUG_MODE)
-void InsertBarrier::CheckNotInRenderPass(CommandBuffer* commandBuffer) const
-{
-    Assert(!commandBuffer->IsInRenderPass(), "InsertBarrier() used while renderpass active!");
-}
-#endif
-
-#pragma endregion InsertBarrier
 
 #pragma region SetShaderUniform
 

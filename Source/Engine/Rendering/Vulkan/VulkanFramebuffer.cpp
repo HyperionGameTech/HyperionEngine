@@ -165,10 +165,14 @@ RendererResult VulkanFramebuffer::Create()
         VulkanGpuImage* image = attachment->GetGpuImage();
         Assert(image != nullptr);
 
-        Assert(imageExtent == Vec2u::Zero() || imageExtent == image->GetExtent().GetXY(),
+        const Vec2u attachmentExtent = image->GetTextureDesc()
+            .GetMipExtent(attachment->GetImageView()->GetImageSubResource().baseMipLevel)
+            .GetXY();
+
+        Assert(imageExtent == Vec2u::Zero() || imageExtent == attachmentExtent,
             "Attachment dimensions do not match!");
 
-        imageExtent = image->GetExtent().GetXY();
+        imageExtent = attachmentExtent;
 
         m_framebufferDesc.AddAttachment(attachment->GetAttachmentDesc());
     }

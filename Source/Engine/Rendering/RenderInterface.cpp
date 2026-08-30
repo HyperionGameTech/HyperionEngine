@@ -1493,6 +1493,13 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 {
     AssertDebug(commandBuffer != nullptr);
 
+    // Unbind framebuffer is NOT graphics pipeline being bound.
+    if (psoType != PSO_Graphics && state.boundFramebuffer != nullptr)
+    {
+        state.boundFramebuffer->EndCapture(commandBuffer);
+        state.boundFramebuffer = nullptr;
+    }
+
     ShaderInstance* shaderInstance = nullptr;
     bool pipelineChanged = false;
 

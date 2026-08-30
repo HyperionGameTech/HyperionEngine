@@ -20,14 +20,21 @@ template <>
 class BakeJob<EnvProbe> : public BakeJobBase
 {
 public:
-    explicit BakeJob(BakeJobParams&& params, const Handle<EnvProbe>& envProbe, BakeData<EnvProbe>* bakeData)
+    explicit BakeJob(
+        BakeJobParams&& params,
+        const Handle<EnvProbe>& envProbe,
+        BakeData<EnvProbe>* bakeData)
         : BakeJobBase(std::move(params)),
           m_envProbe(envProbe),
-          m_bakeData(bakeData)
+          m_bakeData(bakeData),
+          m_rasterCaptureEnded(false)
     {
     }
 
     virtual ~BakeJob() override;
+
+    /// Do we want to Raster - not using PT?
+    bool IsRaster() const;
 
     HYP_FORCE_INLINE const Handle<EnvProbe>& GetEnvProbe() const
     {
@@ -45,6 +52,9 @@ protected:
 
     Handle<EnvProbe> m_envProbe;
     BakeData<EnvProbe>* m_bakeData;
+
+    /// raster only!
+    bool m_rasterCaptureEnded;
 };
 
 } // namespace Baking

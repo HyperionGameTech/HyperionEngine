@@ -208,6 +208,8 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
     cr << CommitDrawState();
 
     m_upsamplePass->RenderFullScreenQuad(frame, renderSetup);
+
+    m_upsamplePass->End(frame, renderSetup);
 }
 
 } // namespace Hyperion

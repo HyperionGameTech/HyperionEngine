@@ -40,6 +40,11 @@ public:
         return false;
     }
 
+    virtual bool PerformsRayTracing() const override
+    {
+        return m_envProbe && m_envProbe->IsPathTraced();
+    }
+
     virtual uint32 GetShadingTypesMask() const override
     {
         uint32 mask = 1u << int(LightmapShadingType::FULL);

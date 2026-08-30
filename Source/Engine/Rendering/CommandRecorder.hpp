@@ -390,10 +390,6 @@ public:
     {
     }
 
-#if defined(HYP_VULKAN) && defined(HYP_DEBUG_MODE)
-    void CheckNotInRenderPass(CommandBuffer* commandBuffer) const;
-#endif
-
     static constexpr CommandType ThisCommandType = CommandType::InsertBarrier;
 
 private:

@@ -128,6 +128,30 @@ void VulkanFrame::WriteCommandBuffer(VulkanCommandBuffer* commandBuffer)
         commandRecorder->Execute(commandBuffer);
         commandRecorder->Reset(/* freeMemory */ false);
     }
+
+    if (RI.state.boundFramebuffer != nullptr)
+    {
+        RI.state.boundFramebuffer->EndCapture(commandBuffer);
+        RI.state.boundFramebuffer = nullptr;
+    }
+
+    for (auto& it : m_swapchainData)
+    {
+        const VulkanSwapchain* swapchain = it.first;
+        AssertDebug(swapchain != nullptr);
+
+        if (!swapchain->HasAcquiredImage())
+        {
+            continue;
+        }
+
+        VulkanGpuImage* image = swapchain->GetImages()[swapchain->GetAcquiredImageIndex()].Get();
+
+        if (image->GetResourceState() != RS_PRESENT)
+        {
+            image->InsertBarrier(commandBuffer, RS_PRESENT, ShaderModuleType::None);
+        }
+    }
 }
 
 void VulkanFrame::RecreateFence()
