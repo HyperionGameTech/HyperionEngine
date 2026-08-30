@@ -259,7 +259,7 @@ bool MemoryMappedFile::Open()
         return false;
     }
 
-    m_impl->fileSize = static_cast<size_t>(fileSize.QuadPart);
+    m_impl->fileSize = size_t(fileSize.QuadPart);
     m_impl->fileHandle = fileHandle;
 
     if (m_impl->fileSize == 0)
@@ -409,7 +409,7 @@ bool MemoryMappedFile::MapRange(size_t offset, size_t size, MemoryMappedFileView
     SYSTEM_INFO systemInfo = {};
     GetSystemInfo(&systemInfo);
 
-    const size_t granularity = static_cast<size_t>(systemInfo.dwAllocationGranularity);
+    const size_t granularity = size_t(systemInfo.dwAllocationGranularity);
     const size_t alignedOffset = (offset / granularity) * granularity;
     const size_t viewDelta = offset - alignedOffset;
     const size_t mapSize = viewDelta + outView.m_viewSize;
@@ -419,14 +419,14 @@ bool MemoryMappedFile::MapRange(size_t offset, size_t size, MemoryMappedFileView
         : FILE_MAP_READ;
 
     ULARGE_INTEGER offsetValue = {};
-    offsetValue.QuadPart = static_cast<ULONGLONG>(alignedOffset);
+    offsetValue.QuadPart = ULONGLONG(alignedOffset);
 
     void* address = MapViewOfFile(
         m_impl->mappingHandle,
         mapAccess,
         offsetValue.HighPart,
         offsetValue.LowPart,
-        static_cast<SIZE_T>(mapSize));
+        SIZE_T(mapSize));
 
     if (address == nullptr)
     {
@@ -443,14 +443,14 @@ bool MemoryMappedFile::MapRange(size_t offset, size_t size, MemoryMappedFileView
     return true;
 #elif HYP_UNIX
     const long pageSize = sysconf(_SC_PAGE_SIZE);
-    const size_t granularity = pageSize > 0 ? static_cast<size_t>(pageSize) : 4096;
+    const size_t granularity = pageSize > 0 ? size_t(pageSize) : 4096;
     const size_t alignedOffset = (offset / granularity) * granularity;
     const size_t viewDelta = offset - alignedOffset;
     const size_t mapSize = viewDelta + outView.m_viewSize;
 
     const int prot = PROT_READ | (m_impl->mode == Mode::READ_WRITE ? PROT_WRITE : 0);
 
-    void* address = mmap(nullptr, mapSize, prot, MAP_SHARED, m_impl->fd, static_cast<off_t>(alignedOffset));
+    void* address = mmap(nullptr, mapSize, prot, MAP_SHARED, m_impl->fd, off_t(alignedOffset));
 
     if (address == MAP_FAILED)
     {
@@ -582,7 +582,7 @@ bool MemoryMappedFile::Resize(size_t newSize)
     }
 
     LARGE_INTEGER distance = {};
-    distance.QuadPart = static_cast<LONGLONG>(newSize);
+    distance.QuadPart = LONGLONG(newSize);
 
     if (!SetFilePointerEx(m_impl->fileHandle, distance, nullptr, FILE_BEGIN))
     {
@@ -619,14 +619,16 @@ bool MemoryMappedFile::Resize(size_t newSize)
     }
 
     m_impl->mappingHandle = mappingHandle;
+
     return true;
 #elif HYP_UNIX
-    if (ftruncate(m_impl->fd, static_cast<off_t>(newSize)) != 0)
+    if (ftruncate(m_impl->fd, off_t(newSize)) != 0)
     {
         return false;
     }
 
     m_impl->fileSize = newSize;
+
     return true;
 #else
     HYP_FAIL("Unsupported platform for memory mapped files");

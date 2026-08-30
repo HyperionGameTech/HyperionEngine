@@ -207,6 +207,10 @@ public:
         MarkDirty();
     }
 
+    /// Get a unique name (IN THIS SCENE) for a Node starting with \p prefix as part of the name
+    HYP_METHOD()
+    Name GetUniqueNodeName(const ANSIStringView& prefix = ANSIStringView()) const;
+
     HYP_METHOD()
     bool AddToWorld(World* world);
 

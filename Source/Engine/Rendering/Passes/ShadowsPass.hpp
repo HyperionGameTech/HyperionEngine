@@ -11,6 +11,8 @@
 #include <Core/Math/Mat4f.hpp>
 #include <Core/Math/Vector2.hpp>
 
+#include <Core/Utilities/BitField.hpp>
+
 #include <Core/Types.hpp>
 
 namespace Hyperion {
@@ -26,7 +28,8 @@ class ShadowsPassData : public PassData
 public:
     virtual ~ShadowsPassData() override;
 
-    Array<Mat4f, RenderAllocator> prevCameraMatrices;
+    FixedArray<Mat4f, 6> prevCameraMatrices {};
+    BitField<6> staticCacheNeedsRerender {};
 };
 
 struct ShadowsPassDataExt : PassDataExt
@@ -81,6 +84,10 @@ private:
         // For time slicing.
         FixedArray<Mat4f, MaxShadowMapCascades> lastRenderedViewProj;
         FixedArray<uint32, MaxShadowMapCascades> lastRenderedFrame {};
+        FixedArray<HashCode, MaxShadowMapCascades> lastRenderedEntryListHashes {};
+        FixedArray<bool, MaxShadowMapCascades> pendingListRedraw {};
+
+        uint32 nextDirtyDrawCascade = 0;
 
         uint32 lastUsedFrame;
     };

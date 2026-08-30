@@ -265,8 +265,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 {
     Assert(state.assetManager != nullptr);
 
-    OgreXMLModel model;
-    model.filepath = state.filepath;
+    OgreXMLModel model {};
 
     OgreXMLSAXHandler handler(&state, model);
 
@@ -280,13 +279,13 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
     BuildVertices(model);
 
-    Handle<Node> top = MakeHandle<Node>(CreateNameFromDynamicString(StringUtil::StripExtension(FilePath(model.filepath).Basename())));
+    Handle<Node> top = MakeHandle<Node>(Name(ANSIString(StringUtil::Basename(state.filepath.StripExtension()))));
 
     Handle<Skeleton> skeleton;
 
     if (!model.skeletonName.Empty())
     {
-        const String skeletonPath = StringUtil::BasePath(model.filepath) + "/" + model.skeletonName + ".xml";
+        const String skeletonPath = state.filepath.BasePath() + "/" + model.skeletonName + ".xml";
 
         auto skeletonAsset = state.assetManager->Load<Skeleton>(skeletonPath);
 
@@ -319,7 +318,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
         const Handle<Entity> entity = scene.GetEntityManager()->AddEntity();
 
-        Name assetName = CreateNameFromDynamicString(subMesh.name);
+        Name assetName = subMesh.name;
 
         AssertDebug(model.vertexData.ByteSize() % sizeof(FatVertex) == 0);
 
@@ -358,7 +357,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         parameters.transmission = 0.9f;
         parameters.roughness = 0.2f;
 
-        Handle<Material> material = MakeHandle<Material>(CreateNameFromDynamicString(ANSIString(subMesh.name.Data())), attributes, parameters, MaterialTextures {});
+        Handle<Material> material = MakeHandle<Material>(subMesh.name, attributes, parameters, MaterialTextures {});
         GetCurrentAssetRegistry()->PutAsset(material);
 
         InitObject(material);
@@ -368,7 +367,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         scene.GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { mesh, material, skeleton });
 
         Handle<Node> node = MakeHandle<Node>();
-        node->SetName(CreateNameFromDynamicString(subMesh.name));
+        node->SetName(subMesh.name);
         node->AddChild(entity);
 
         if (skeleton.IsValid())

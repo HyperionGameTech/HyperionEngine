@@ -68,7 +68,7 @@ public:
 
     ~NameRegistry() = default;
 
-    Name RegisterName(NameID id, const ANSIString& str, bool lock);
+    Name RegisterName(NameID id, const ANSIStringView& str, bool lock);
     Name RegisterUniqueName(const ANSIString& str, bool lock);
     const CharBuffer& LookupStringForName(Name name) const;
 
@@ -80,7 +80,7 @@ private:
 NameRegistry::Bucket* NameRegistry::g_nullBucket = nullptr;
 NameRegistry::Node* NameRegistry::g_nullNode = nullptr;
 
-Name NameRegistry::RegisterName(NameID id, const ANSIString& str, bool lock)
+Name NameRegistry::RegisterName(NameID id, const ANSIStringView& str, bool lock)
 {
     Name name(id);
 
@@ -287,7 +287,7 @@ String StringHash::ToString() const
 
 #pragma endregion StringHash
 
-Name CreateNameFromDynamicString(const ANSIString& str)
+Name CreateNameFromDynamicString(const ANSIStringView& str)
 {
     const NameRegistration nameRegistration = NameRegistration::FromDynamicString(str);
 
@@ -309,7 +309,7 @@ NameID NameRegistration::GenerateID(const ANSIStringView& str)
     return id;
 }
 
-NameRegistration NameRegistration::FromDynamicString(const ANSIString& str)
+NameRegistration NameRegistration::FromDynamicString(const ANSIStringView& str)
 {
     const NameID id = GenerateID(str);
 

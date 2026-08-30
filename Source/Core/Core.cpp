@@ -78,7 +78,7 @@ CORE_API const FilePath& GetBaseDirectory()
                     pathParts.Concat(valueString.Split('\\', '/'));
 
                     // canonicalize the path
-                    pathParts = StringUtil::CanonicalizePath(pathParts);
+                    pathParts = StringUtil::CanonicalizePath(pathParts.ToSpan());
 
 #if HYP_WINDOWS
                     baseDir = String::Join(pathParts, '\\');

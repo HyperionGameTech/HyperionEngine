@@ -24,30 +24,30 @@ public:
     {
         struct BoneData
         {
-            String name;
+            Name name;
             uint32 id;
 
             String parentName;
-            Vector3 bindingTranslation;
+            Vec3f bindingTranslation;
             Quat4f bindingRotation;
         };
 
         struct KeyframeData
         {
             float time;
-            Vector3 translation;
+            Vec3f translation;
             Quat4f rotation;
         };
 
         struct AnimationTrackData
         {
-            String boneName;
+            Name boneName;
             Array<KeyframeData> keyframes;
         };
 
         struct AnimationData
         {
-            String name;
+            Name name;
             Array<AnimationTrackData> tracks;
         };
 

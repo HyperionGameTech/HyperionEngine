@@ -1996,7 +1996,7 @@ public:
         }
 
         const Name previousName = node->GetName();
-        const Name newName = CreateNameFromDynamicString(newNameString);
+        const Name newName = Name(newNameString);
 
         if (newName == previousName)
         {
@@ -2415,8 +2415,8 @@ public:
                 continue;
             }
 
-            String newName = clipboardNode->GetName().ToString() + "Copy";
-            newNode->SetName(CreateNameFromDynamicString(newName));
+            ANSIString newName = clipboardNode->GetName().ToString() + "Copy";
+            newNode->SetName(Name(newName));
 
             // Attach to the original node's parent, falling back to the scene root
             WeakHandle<Node> parentNode = MakeWeakRef(clipboardNode->GetParent());
@@ -2686,8 +2686,8 @@ public:
         const String& languageArg = GetArgument(0);
         const String& nameArg = GetArgument(1);
 
-        const String assetName = nameArg.Any()
-            ? String(nameArg.Data(), nameArg.Data() + nameArg.Size())
+        const ANSIString assetName = nameArg.Any()
+            ? ANSIString(nameArg.Data(), nameArg.Data() + nameArg.Size())
             : "NewScript";
 
         ScriptDesc scriptDesc;
@@ -2737,7 +2737,7 @@ public:
             templateCode = ScriptTemplateCode;
         }
 
-        Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(CreateNameFromDynamicString(assetName), scriptDesc);
+        Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(Name(assetName), scriptDesc);
         InitObject(scriptAsset);
 
         Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
@@ -2859,7 +2859,7 @@ public:
             return;
         }
 
-        const String& assetName = GetArgument(1);
+        const ANSIString assetName = GetArgument(1);
 
         const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
         if (!currentProject.IsValid())
@@ -2875,7 +2875,7 @@ public:
             return;
         }
 
-        Handle<AssetObject> asset = GetCurrentAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[bucketIndex], CreateNameFromDynamicString(assetName));
+        Handle<AssetObject> asset = GetCurrentAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[bucketIndex], Name(assetName));
         if (!asset.IsValid())
         {
             HYP_LOG(Editor, Warning, "EditorCommandAddAsset: asset '{}' in bucket {} is not valid", assetName, GetAssetBucketName(bucketIndex));
@@ -3017,7 +3017,7 @@ public:
             return;
         }
 
-        const String& assetName = GetArgument(1);
+        const ANSIString assetName = GetArgument(1);
         const AssetBucket& bucket = *AssetBuckets::AllBuckets[bucketIndex];
 
         const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
@@ -3027,7 +3027,7 @@ public:
             return;
         }
 
-        Handle<AssetObject> asset = GetCurrentAssetRegistry()->GetAsset(bucket, CreateNameFromDynamicString(assetName));
+        Handle<AssetObject> asset = GetCurrentAssetRegistry()->GetAsset(bucket, Name(assetName));
         if (!asset.IsValid())
         {
             HYP_LOG(Editor, Warning, "EditorCommandDeleteAsset: asset '{}' in bucket {} is not valid", assetName, GetAssetBucketName(bucketIndex));

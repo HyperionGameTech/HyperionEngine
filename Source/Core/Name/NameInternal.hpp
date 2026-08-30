@@ -28,7 +28,7 @@ struct HashedName;
 template <HashCode::ValueType HashCode>
 static inline Name CreateNameFromStaticString_WithLock(const char* str);
 
-extern CORE_API Name CreateNameFromDynamicString(const ANSIString& str);
+extern CORE_API Name CreateNameFromDynamicString(const ANSIStringView& str);
 
 /*! \brief A name is a hashed string that is used to identify objects, components, and other entities in the engine.
  *  \details Names have their text components stored in a global registry and are internally.
@@ -73,8 +73,16 @@ struct Name
     {
     }
 
+    /// Creates Name from dynamic string at runtime.
+    /// Not free - use sparingly!
+    explicit Name(const ANSIStringView& view)
+        : Name(CreateNameFromDynamicString(view).hashCode)
+    {
+    }
+
     constexpr Name(const Name& other) = default;
     constexpr Name& operator=(const Name& other) = default;
+
     constexpr Name(Name&& other) noexcept = default;
     constexpr Name& operator=(Name&& other) noexcept = default;
 

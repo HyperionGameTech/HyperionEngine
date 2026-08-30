@@ -29,6 +29,8 @@
 #include <Rendering/ShaderManager.hpp>
 #include <Rendering/Util/DeletionQueue.hpp>
 
+#include <Asset/AssetRegistry.hpp>
+
 #include <Framework/EngineGlobals.hpp>
 
 namespace Hyperion {
@@ -250,6 +252,8 @@ void BakeJob<FogVolume>::DispatchOcclusionBake()
     };
 
     Handle<Texture> sdfTexture = MakeHandle<Texture>(sdfTextureDesc, sdfBitmap.ToByteView());
+    sdfTexture->SetName(NAME("FogVolumeSDF"));
+    GetCurrentAssetRegistry()->PutAsset(sdfTexture);
     Check(sdfTexture->Create());
 
     Array<FogVolumeLightGpuData> lightData;

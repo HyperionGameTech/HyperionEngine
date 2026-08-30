@@ -334,6 +334,10 @@ protected:
     void CollectSprites(RenderProxyList& rpl);
     void CollectMeshEntities(RenderProxyList& rpl);
 
+    /// Write out the SceneOctree's entry hashes to \p outEntryHashes,
+    /// since we have multiple scenes, HashCode::Combine() is used to effectively merge HashCodes for multiple Scenes.
+    void GetEntryHashes(Span<HashCode> outEntryHashes);
+
     Array<Scene*> m_scenes;
     Camera* m_camera;
     ViewOutputTarget m_outputTarget;

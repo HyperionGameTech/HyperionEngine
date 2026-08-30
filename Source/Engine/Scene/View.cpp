@@ -59,7 +59,7 @@
 namespace Hyperion {
 
 
-static CVar<float> s_cvCSMMaxDistance("Rendering.Shadows.CSMMaxDistance", 300.0f);
+static CVar<float> s_cvCSMMaxDistance("Rendering.Shadows.CSMMaxDistance", 100.0f);
 
 static CVar<float> s_cvCSMSplit0("Rendering.Shadows.CSMSplit0", 0.075f);
 static CVar<float> s_cvCSMSplit1("Rendering.Shadows.CSMSplit1", 0.15f);
@@ -661,11 +661,11 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                 {
                     const bool boundsChanged = shadowViewBounds != currentCascadeView->cachedBounds;
                     const uint32 framesSinceUpdate = GetFrameCounter() - csmState.lastCommittedFrame[shadowViewIndex];
-                    const bool overStaleCap = framesSinceUpdate >= uint32(MathUtil::Max(g_cvCSMMaxStaleFrames.Get(), 1));
+                    const bool isStale = framesSinceUpdate >= uint32(MathUtil::Max(g_cvCSMMaxStaleFrames.Get(), 1));
 
-                    updateCascade = overStaleCap || (boundsChanged && csmUpdatesSpentThisFrame < uint32(MathUtil::Max(g_cvCSMMaxUpdatesPerFrame.Get(), 0)));
+                    updateCascade = isStale || (boundsChanged && csmUpdatesSpentThisFrame < uint32(MathUtil::Max(g_cvCSMMaxUpdatesPerFrame.Get(), 0)));
 
-                    if (updateCascade && !overStaleCap)
+                    if (updateCascade && !isStale)
                     {
                         ++csmUpdatesSpentThisFrame;
                     }
@@ -718,35 +718,16 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                     continue;
                 }
 
-                if (!updateCascade)
+                const bool isStaticView = (shadowView == shadowViewsStatic[shadowViewIndex]);
+
+                if (isStaticView && !lightForceRedraw)
                 {
-                    const bool isStaticView = (shadowView == shadowViewsStatic[shadowViewIndex]);
-
-                    if (isStaticView)
-                    {
-                        shadowView->collectionState.skipNext = true;
-                    }
-
-                    outShadowViews.PushBack(shadowView);
-
-                    continue;
-                }
-
-                shadowView->cachedMatrices.view = shadowViewMatrix;
-                shadowView->cachedMatrices.viewProj = shadowViewProjMatrix;
-                shadowView->cachedMatrices.invProj = shadowInvProjMatrix;
-
-                shadowView->cachedFrustum = shadowViewFrustum;
-
-                shadowView->cachedBounds = shadowViewBounds;
-
-                shadowView->m_scenes.Resize(shadowViewScenes.Size());
-                std::copy(shadowViewScenes.Begin(), shadowViewScenes.End(), shadowView->m_scenes.Begin());
-
-                const bool shouldSkipUnchangedViews = (shadowView == shadowViewsStatic[shadowViewIndex]) && !lightForceRedraw;
-
-                if (shouldSkipUnchangedViews)
-                {
+                    //--
+                    // static views skip collection when their inputs (light version, viewProj, static geometry hashes) are unchanged.
+                    // this must be evaluated even when the cascade is not being updated this frame.
+                    // 
+                    // otherwise static shadow maps would freeze while the camera is not moving, since their RPL diff would never refresh.
+                    //--
                     HashCode inputHash = HashCode::GetHashCode(*light->GetRenderProxyVersionPtr())
                         .Combine(shadowViewProjMatrix.GetHashCode());
 
@@ -766,6 +747,27 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                 {
                     shadowView->collectionState.skipNext = false;
                 }
+
+                if (!updateCascade)
+                {
+                    outShadowViews.PushBack(shadowView);
+
+                    continue;
+                }
+
+                //-- *Cached State Updates* --//
+
+                shadowView->cachedMatrices.view = shadowViewMatrix;
+                shadowView->cachedMatrices.viewProj = shadowViewProjMatrix;
+                shadowView->cachedMatrices.invProj = shadowInvProjMatrix;
+
+                shadowView->cachedFrustum = shadowViewFrustum;
+                shadowView->cachedBounds = shadowViewBounds;
+
+                //-- ********************** --//
+
+                shadowView->m_scenes.Resize(shadowViewScenes.Size());
+                std::copy(shadowViewScenes.Begin(), shadowViewScenes.End(), shadowView->m_scenes.Begin());
 
                 outShadowViews.PushBack(shadowView);
             }
@@ -810,6 +812,9 @@ void View::BeginAsyncCollection(TaskBatch& batch)
 
             rpl.cachedMatrices = cachedMatrices;
             rpl.cachedBounds = cachedBounds;
+
+            // Write cached entry list hashes
+            GetEntryHashes(rpl.cachedEntryHashes);
 
             CollectCameras(rpl);
             CollectLights(rpl);
@@ -1562,6 +1567,46 @@ void View::CollectSprites(RenderProxyList& rpl)
                     rpl.GetTextures().Track(fontAtlasTexture->Id(), fontAtlasTexture);
                 }
             }
+        }
+    }
+}
+
+void View::GetEntryHashes(Span<HashCode> outEntryHashes)
+{
+    AssertDebug(outEntryHashes.Size() == SceneOctree::NumEntryHashes);
+
+    // Zero it first
+    Memory::Zero(outEntryHashes.Data(), outEntryHashes.Size() * sizeof(HashCode));
+
+    bool isFirst = true;
+
+    for (size_t sceneIndex = 0; sceneIndex < m_scenes.Size(); sceneIndex++)
+    {
+        Scene* scene = m_scenes[sceneIndex];
+
+        if (!(scene->GetSceneFlags() & SceneFlags::HAS_OCTREE))
+        {
+            continue;
+        }
+
+        const SceneOctree& octree = scene->GetOctree();
+        Span<const HashCode> srcHashes = octree.GetEntryListHashes();
+
+        if (isFirst)
+        {
+            Memory::Copy(
+                outEntryHashes.Data(),
+                srcHashes.Data(),
+                srcHashes.Size() * sizeof(HashCode));
+
+            isFirst = false;
+
+            continue;
+        }
+
+        for (uint32 elhIndex = 0; elhIndex < srcHashes.Size(); elhIndex++)
+        {
+            outEntryHashes[elhIndex] = outEntryHashes[elhIndex].Combine(srcHashes[elhIndex]);
         }
     }
 }

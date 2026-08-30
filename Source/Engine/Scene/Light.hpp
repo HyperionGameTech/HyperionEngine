@@ -326,6 +326,7 @@ public:
     {
         // Per-cascade last committed FC value
         FixedArray<uint32, MaxShadowMapCascades> lastCommittedFrame {};
+        FixedArray<HashCode, MaxShadowMapCascades> lastComittedEntryListHashes {};
         
         Vec3f lastCommittedLightDir;
         BoundingSphere lastCommittedWorldBounds;

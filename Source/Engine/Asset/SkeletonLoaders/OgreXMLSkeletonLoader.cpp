@@ -89,13 +89,12 @@ public:
     {
         if (name == "bone")
         {
-            String boneName = attributes.At("name");
+            const String& boneName = attributes.At("name");
             const uint32 id = StringUtil::Parse<uint32>(attributes.At("id"));
 
-            m_skeleton.bones.PushBack({
-                .name = std::move(boneName),
-                .id = id
-            });
+            auto& bd = m_skeleton.bones.EmplaceBack();
+            bd.name = Name(boneName.ToAnsi());
+            bd.id = id;
         }
         else if (name == "position")
         {
@@ -137,15 +136,18 @@ public:
         }
         else if (name == "animation")
         {
-            m_skeleton.animations.PushBack({ .name = attributes.At("name") });
+            auto& ad = m_skeleton.animations.EmplaceBack();
+            ad.name = Name(attributes.At("name").ToAnsi());
         }
         else if (name == "track")
         {
-            LastAnimation().tracks.PushBack({ .boneName = attributes.At("bone") });
+            auto& atd = LastAnimation().tracks.EmplaceBack();
+            atd.boneName = Name(attributes.At("bone").ToAnsi());
         }
         else if (name == "keyframe")
         {
-            LastAnimationTrack().keyframes.PushBack({ .time = StringUtil::Parse<float>(attributes.At("time")) });
+            auto& kfd = LastAnimationTrack().keyframes.EmplaceBack();
+            kfd.time = StringUtil::Parse<float>(attributes.At("time"));
         }
         else if (name == "translate")
         {
@@ -249,7 +251,7 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
 
     for (const auto& item : object.bones)
     {
-        const Name boneName = CreateNameFromDynamicString(item.name);
+        const Name boneName = item.name;
 
         const Transform bindingTransform = Transform(
             item.bindingTranslation,
@@ -307,7 +309,7 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
 
     for (const auto& animationIt : object.animations)
     {
-        const Name animationName = CreateNameFromDynamicString(animationIt.name);
+        const Name animationName = animationIt.name;
 
         Handle<Animation> animation = MakeHandle<Animation>(animationName);
 
@@ -315,7 +317,7 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
         {
             Handle<AnimationTrack> animationTrack = MakeHandle<AnimationTrack>(
                 NAME_FMT("{}_{}", animationIt.name, trackIt.boneName),
-                CreateNameFromDynamicString(trackIt.boneName));
+                trackIt.boneName);
 
             Array<Keyframe> keyframes;
             keyframes.Reserve(trackIt.keyframes.Size());

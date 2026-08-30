@@ -27,7 +27,7 @@ public:
     {
         struct SubMesh
         {
-            String name;
+            Name name;
             Array<uint32> indices;
         };
 
@@ -36,8 +36,6 @@ public:
             uint32 index;
             float weight;
         };
-
-        String filepath;
 
         Array<Vec3f> positions;
         Array<Vec3f> normals;

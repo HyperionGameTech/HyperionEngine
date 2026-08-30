@@ -113,13 +113,13 @@ static OBJIndex ParseOBJIndex(const String& token)
             switch (tokenIndex)
             {
             case 0:
-                objIndex.vertex = StringUtil::Parse<int64>(part.Data()) - 1;
+                objIndex.vertex = StringUtil::Parse<int64>(part) - 1;
                 break;
             case 1:
-                objIndex.texcoord = StringUtil::Parse<int64>(part.Data()) - 1;
+                objIndex.texcoord = StringUtil::Parse<int64>(part) - 1;
                 break;
             case 2:
-                objIndex.normal = StringUtil::Parse<int64>(part.Data()) - 1;
+                objIndex.normal = StringUtil::Parse<int64>(part) - 1;
                 break;
             default:
                 // ??
@@ -153,8 +153,7 @@ Vector GetIndexedVertexProperty(int64 vertexIndex, const Array<Vector>& vectors)
 
 OBJModel OBJModelLoader::LoadModel(LoaderState& state)
 {
-    OBJModel model;
-    model.filepath = state.filepath;
+    OBJModel model {};
 
     Tokens tokens;
     tokens.Reserve(5);
@@ -222,7 +221,7 @@ OBJModel OBJModelLoader::LoadModel(LoaderState& state)
              */
             if (!activeMaterial.Empty())
             {
-                lastMesh.material = activeMaterial;
+                lastMesh.material = Name(activeMaterial.ToAnsi());
             }
 
             if (tokens.Size() > 5)
@@ -245,7 +244,7 @@ OBJModel OBJModelLoader::LoadModel(LoaderState& state)
         {
             if (tokens.Size() != 1)
             {
-                model.name = tokens[1];
+                model.name = Name(tokens[1].ToAnsi());
             }
 
             continue;
@@ -315,9 +314,9 @@ OBJModel OBJModelLoader::LoadModel(LoaderState& state)
         HYP_LOG(Assets, Warning, "Unable to parse obj model line: {}", trimmed);
     }
 
-    if (model.name.Empty())
+    if (!model.name)
     {
-        model.name = StringUtil::StripExtension(state.filepath.Basename());
+        model.name = Name(ANSIString(StringUtil::StripExtension(state.filepath.Basename())));
     }
 
     return model;
@@ -327,7 +326,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 {
     Assert(state.assetManager != nullptr);
 
-    Handle<Node> top = MakeHandle<Node>(CreateNameFromDynamicString(model.name));
+    Handle<Node> top = MakeHandle<Node>(model.name);
     top->SetIsDynamic(false);
 
     Map<String, Handle<Material>> materialLibrary;

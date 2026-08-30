@@ -200,9 +200,9 @@ StringHash AssetObject_KeyByFunction(const Handle<AssetObject>& assetObject)
     return assetObject->GetName();
 }
 
-HYP_NODISCARD String SanitizeName(const UTF8StringView& nameStr)
+HYP_NODISCARD String SanitizeName(const ANSIStringView& nameStr)
 {
-    String newString;
+    ANSIString newString;
     newString.Reserve(nameStr.Size());
 
     for (auto it = nameStr.Begin(); it != nameStr.End(); ++it)
@@ -232,7 +232,7 @@ HYP_NODISCARD Name SanitizeName(Name name)
     const char* str = name.LookupString();
     AssertDebug(str != nullptr);
 
-    String newString = SanitizeName(UTF8StringView(str));
+    ANSIString newString = SanitizeName(ANSIStringView(str));
 
     if (newString == str)
     {
@@ -240,7 +240,7 @@ HYP_NODISCARD Name SanitizeName(Name name)
         return name;
     }
 
-    return CreateNameFromDynamicString(newString);
+    return Name(newString);
 }
 
 template <class T>

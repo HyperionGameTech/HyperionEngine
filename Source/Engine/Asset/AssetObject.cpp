@@ -38,7 +38,7 @@ static Name GetUniqueName(Name baseName, T&& elements)
 {
     baseName = SanitizeName(baseName);
 
-    String str = *baseName;
+    ANSIString str = *baseName;
 
     int counter = 0;
     while (elements.FindAs(StringHash(*str)) != elements.End())
@@ -50,7 +50,7 @@ static Name GetUniqueName(Name baseName, T&& elements)
 
     if (counter > 0)
     {
-        return CreateNameFromDynamicString(str);
+        return Name(str);
     }
 
     return baseName;
@@ -405,7 +405,7 @@ Result AssetObject::PersistBlobData(
     header.version = version;
 
     // generate new key
-    reference.key = CreateNameFromDynamicString(GetPath().ToString() + "." + magic);
+    reference.key = Name(GetPath().ToString().ToAnsi() + "." + magic);
 
     if (blobStorage != nullptr)
     {

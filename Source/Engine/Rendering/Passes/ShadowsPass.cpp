@@ -55,6 +55,8 @@ extern CVar<bool> g_cvCSMTimeSlicingEnabled;
 extern CVar<int> g_cvCSMMaxUpdatesPerFrame;
 extern CVar<int> g_cvCSMMaxStaleFrames;
 
+static CVar<bool> s_cvDebugCSMUpdates("Rendering.Shadows.DebugCSMUpdates", false);
+
 #pragma region ShadowsPassData
 
 ShadowsPassData::~ShadowsPassData()
@@ -175,7 +177,9 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     RenderProxyCamera* shadowCameraProxy = nullptr;
 
-    uint32 csmUpdates = 0;
+    // # of draws due to dirty entry list hashes
+    uint32 numDirtyListDraws = 0;
+    const uint32 maxDirtyListDraws = uint32(MathUtil::Max(g_cvCSMMaxUpdatesPerFrame.Get(), 0));
 
     for (uint32 cascadeIndex = 0; cascadeIndex < lightProxy->numCascades; cascadeIndex++)
     {
@@ -230,33 +234,121 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
             View* cascadeView = shadowViewDynamic ? shadowViewDynamic : shadowViewStatic;
             Assert(cascadeView != nullptr);
 
-            RenderProxyList& cascadeRpl = GetConsumerProxyList(cascadeView);
-            cascadeRpl.BeginRead();
-            const Mat4f cascadeViewProj = cascadeRpl.cachedMatrices.viewProj;
+            const uint32 framesSinceRendered = GetFrameCounter() - cachedData->lastRenderedFrame[cascadeIndex];
+            const bool isStale = (framesSinceRendered >= uint32(MathUtil::Max(g_cvCSMMaxStaleFrames.Get(), 1)));
 
-            // are meshes / skeletons dirty ?
-            const bool rplDirty = (cascadeRpl.GetMeshEntities().GetDiff().NeedsUpdate() || cascadeRpl.GetSkeletons().GetDiff().NeedsUpdate());
-            
-            cascadeRpl.EndRead();
+            bool dirty = isStale;
 
-            const bool viewProjChanged = cascadeViewProj != cachedData->lastRenderedViewProj[cascadeIndex];
-            const uint32 framesSinceDrawn = GetFrameCounter() - cachedData->lastRenderedFrame[cascadeIndex];
-            const bool overStaleCap = framesSinceDrawn >= uint32(MathUtil::Max(g_cvCSMMaxStaleFrames.Get(), 1));
+            HashCode entryListHash = cachedData->lastRenderedEntryListHashes[cascadeIndex];
 
-            bool shouldDraw = viewProjChanged || overStaleCap;
+            Mat4f cascadeViewProj;
 
-            if (!shouldDraw && rplDirty && csmUpdates < uint32(MathUtil::Max(g_cvCSMMaxUpdatesPerFrame.Get(), 0)))
+            bool viewProjChanged = false;
+            bool isListDirty = false;
+            bool isRplDirty = false;
+            bool isStaticRplDirty = false;
+
             {
-                shouldDraw = true;
+                RenderProxyList& cascadeRpl = GetConsumerProxyList(cascadeView);
+                cascadeRpl.BeginRead();
 
-                ++csmUpdates;
+                entryListHash = cascadeRpl.cachedEntryHashes[0];
+                cascadeViewProj = cascadeRpl.cachedMatrices.viewProj;
+
+                viewProjChanged = (cascadeViewProj != cachedData->lastRenderedViewProj[cascadeIndex]);
+                dirty |= viewProjChanged;
+
+                // List hashes dirty: AABBs, transforms changed.
+                isListDirty = (entryListHash != cachedData->lastRenderedEntryListHashes[cascadeIndex]);
+                // RPL proxies dirty: The data changed for the mesh entities / skeletons in the cascade's view.
+                isRplDirty = (cascadeRpl.GetMeshEntities().GetDiff().NeedsUpdate() || cascadeRpl.GetSkeletons().GetDiff().NeedsUpdate());
+
+                cascadeRpl.EndRead();
             }
 
-            if (!shouldDraw)
+            //--
+            // for lights with a separate static shadow view, the static stage (rendering statics into the
+            // atlas + refreshing its cached texture) only executes inside the draw loop below. so a
+            // static-only change (e.g. static geometry moved) must also be able to trigger a draw here,
+            // otherwise the static layer stays frozen until the camera moves.
+            //--
+            // the diff is also latched into the static view's pass data, because the draw (and with it the
+            // static re-render) may be delayed by the budget, at which point the diff is no longer live.
+            //--
+            if (shadowViewDynamic && shadowViewStatic)
+            {
+                RenderProxyList& staticRpl = GetConsumerProxyList(shadowViewStatic);
+                staticRpl.BeginRead();
+
+                isStaticRplDirty = (staticRpl.GetMeshEntities().GetDiff().NeedsUpdate() || staticRpl.GetSkeletons().GetDiff().NeedsUpdate());
+
+                staticRpl.EndRead();
+
+                if (isStaticRplDirty)
+                {
+                    ShadowsPassData* staticPd = DynamicCast<ShadowsPassData>(FetchViewPassData(shadowViewStatic));
+                    AssertDebug(staticPd != nullptr);
+
+                    staticPd->staticCacheNeedsRerender.Set(cascadeIndex, true);
+                }
+            }
+
+            //--
+            // the RPL diffs are the dirty signal: they are already scoped to this cascade (entities outside
+            // its frustum are not collected, so they never bump them), and they are only live for the single
+            // frame the change syncs, so latch them into pendingListRedraw where they stay set until the
+            // cascade actually redraws (budget permitting).
+            //--
+            // note: the octree entry hash cannot be AND-ed with them -- the hash lags the diff by one
+            // frame (it is only rebuilt at the start of the next tick), so a change happening on a
+            // single frame would never have both signals set simultaneously.
+            //--
+            if (isRplDirty || isStaticRplDirty)
+            {
+                cachedData->pendingListRedraw[cascadeIndex] = true;
+            }
+
+            if (!dirty
+                && cachedData->pendingListRedraw[cascadeIndex]
+                && cascadeIndex >= cachedData->nextDirtyDrawCascade
+                && numDirtyListDraws < maxDirtyListDraws)
+            {
+                ++numDirtyListDraws;
+
+                dirty = true;
+
+                cachedData->nextDirtyDrawCascade = (cascadeIndex + 1) % lightProxy->numCascades;
+            }
+
+            if (s_cvDebugCSMUpdates.Get())
+            {
+                HYP_LOG(Rendering, Info,
+                    "[CSM] frame={} light={} cascade={} dynView={} stale={}({}f) viewProjChanged={} listDirty={} rplDirty={} staticRplDirty={} pending={} budget={}/{} hash={}/{} -> draw={}",
+                    GetFrameCounter(),
+                    light->GetName(),
+                    cascadeIndex,
+                    shadowViewDynamic != nullptr,
+                    isStale,
+                    framesSinceRendered,
+                    viewProjChanged,
+                    isListDirty,
+                    isRplDirty,
+                    isStaticRplDirty,
+                    cachedData->pendingListRedraw[cascadeIndex],
+                    numDirtyListDraws,
+                    maxDirtyListDraws,
+                    entryListHash.Value(),
+                    cachedData->lastRenderedEntryListHashes[cascadeIndex].Value(),
+                    dirty);
+            }
+
+            if (!dirty)
             {
                 continue;
             }
 
+            cachedData->pendingListRedraw[cascadeIndex] = false;
+            cachedData->lastRenderedEntryListHashes[cascadeIndex] = entryListHash;
             cachedData->lastRenderedViewProj[cascadeIndex] = cascadeViewProj;
             cachedData->lastRenderedFrame[cascadeIndex] = GetFrameCounter();
         }
@@ -453,10 +545,11 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 rpl.BeginRead();
                 HYP_DEFER({ rpl.EndRead(); });
 
-                const bool isMatrixDirty = viewIndex >= pd->prevCameraMatrices.Size()
-                    || pd->prevCameraMatrices[viewIndex] != rpl.cachedMatrices.viewProj;
+                const bool isMatrixDirty = pd->prevCameraMatrices[viewIndex] != rpl.cachedMatrices.viewProj;
+                const bool isStaticCacheLatchedDirty = pd->staticCacheNeedsRerender.Test(viewIndex);
 
                 if (!isMatrixDirty
+                    && !isStaticCacheLatchedDirty
                     && !rpl.GetMeshEntities().GetDiff().NeedsUpdate()
                     && !rpl.GetSkeletons().GetDiff().NeedsUpdate())
                 {
@@ -512,10 +605,9 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                     // setting this to nullptr will skip it!
                     localPasses[ShadowStage_Static] = nullptr;
                 }
-
-                if (pd->prevCameraMatrices.Size() <= viewIndex)
+                else
                 {
-                    pd->prevCameraMatrices.Resize(viewIndex + 1);
+                    pd->staticCacheNeedsRerender.Set(viewIndex, false);
                 }
 
                 pd->prevCameraMatrices[viewIndex] = rpl.cachedMatrices.viewProj;
@@ -624,6 +716,13 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 frame->cr << InsertBarrier(resultImage, RS_SHADER_RESOURCE, target->GetImageView()->GetImageSubResource());
             }
         }
+    }
+
+    // if nothing was drawn from the budget this frame, wrap the cursor so that
+    // pending cascades before it are not starved of dirty redraws.
+    if (numDirtyListDraws == 0)
+    {
+        cachedData->nextDirtyDrawCascade = 0;
     }
 
     UpdateGpuData(light);

@@ -187,6 +187,9 @@ public:
     CameraMatrices cachedMatrices;
     BoundingBox cachedBounds;
 
+    static constexpr uint32 NumEntryHashes = 10; // must stay in sync with SceneOctree::NumEntryHashesc
+    FixedArray<HashCode, NumEntryHashes> cachedEntryHashes;
+
     SharedMutex m_lock;
 
     HYP_DECLARE_MT_CHECK(m_dataRaceDetector);

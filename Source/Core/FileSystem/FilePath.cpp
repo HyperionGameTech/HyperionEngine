@@ -482,12 +482,12 @@ size_t FilePath::FileSizeOnDisk() const
 
 String FilePath::Basename() const
 {
-    return StringUtil::Basename(*this);
+    return StringUtil::Basename(UTF8StringView(*this));
 }
 
 FilePath FilePath::BasePath() const
 {
-    return FilePath(StringUtil::BasePath(*this));
+    return FilePath(StringUtil::BasePath(UTF8StringView(*this)));
 }
 
 containers::Array<FilePath, DynamicAllocator> FilePath::GetAllFilesInDirectory() const

@@ -68,7 +68,7 @@ static Name GetUniqueProjectName()
         candidateName = HYP_FORMAT("{}{}", s_defaultProjectName, counter);
     }
 
-    return CreateNameFromDynamicString(candidateName);
+    return Name(candidateName);
 }
 
 /*! \brief Copy files not managed by the AssetRegistry (eg. script sources in Scripts/) from an old project
@@ -287,7 +287,7 @@ Result EditorProject::SaveAs(FilePath filepath)
             candidateName = HYP_FORMAT("{}{}", s_defaultProjectName, counter);
         }
 
-        m_name = CreateNameFromDynamicString(candidateName);
+        m_name = Name(candidateName);
     }
 
     FilePath dir;

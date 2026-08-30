@@ -249,7 +249,7 @@ bool Parser::ParseObjectBody(const Class* cls, BoxedValue& target, const UTF8Str
         switch (member->GetMemberType())
         {
         case MemberType::Field:
-            static_cast<const Field*>(member)->Set(target, BoxedValue(CreateNameFromDynamicString(objectName)));
+            static_cast<const Field*>(member)->Set(target, BoxedValue(Name(ANSIString(objectName))));
             break;
         case MemberType::Property:
             if (!static_cast<const Property*>(member)->CanSet())
@@ -258,7 +258,7 @@ bool Parser::ParseObjectBody(const Class* cls, BoxedValue& target, const UTF8Str
                 break;
             }
 
-            static_cast<const Property*>(member)->Set(target, BoxedValue(CreateNameFromDynamicString(objectName)));
+            static_cast<const Property*>(member)->Set(target, BoxedValue(Name(ANSIString(objectName))));
             break;
         default:
             break;
@@ -308,7 +308,7 @@ bool Parser::ParseValue(const TypeInfo& typeInfo, BoxedValue& out)
             if (Peek().GetTokenClass() == TK_IDENT)
             {
                 Token ident = Next();
-                out = BoxedValue(CreateNameFromDynamicString(ident.GetValue()));
+                out = BoxedValue(Name(ident.GetValue().ToAnsi()));
                 return true;
             }
 
@@ -1091,7 +1091,7 @@ bool Parser::ParseObjectValue(const TypeInfo& typeInfo, BoxedValue& out)
     if (Peek().GetTokenClass() == TK_STRING || Peek().GetTokenClass() == TK_IDENT)
     {
         // Read objects' name if there is a string/ident following after the class name.
-        objectName = Next().GetValue();
+        objectName = Next().GetValue().ToAnsi();
     }
 
     if (!Expect(TK_OPEN_BRACE, "{"))

@@ -53,7 +53,7 @@ AssetPath::AssetPath(const ANSIStringView& path)
         bucketIndex = bucket.GetIndex();
     }
 
-    assetName = CreateNameFromDynamicString(curr.Substr(tokenIdx != ANSIStringView::NotFound ? tokenIdx + 1 : 0, SIZE_MAX));
+    assetName = Name(curr.Substr(tokenIdx != ANSIStringView::NotFound ? tokenIdx + 1 : 0, SIZE_MAX));
 }
 
 String AssetPath::ToString() const

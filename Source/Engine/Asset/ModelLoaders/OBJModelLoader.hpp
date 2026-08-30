@@ -55,18 +55,17 @@ public:
 
         struct OBJMesh
         {
-            String name;
-            String material;
+            Name name;
+            Name material;
             Array<OBJIndex> indices;
         };
-
-        String filepath;
 
         Array<Vec3f> positions;
         Array<Vec3f> normals;
         Array<Vec2f> texcoords;
         Array<OBJMesh> meshes;
-        String name;
+
+        Name name;
         String materialLibrary;
     };
 

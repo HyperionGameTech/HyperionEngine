@@ -490,9 +490,10 @@ static inline void CopyDependencies(
         src.resourceTrackers.Data(),
         std::make_index_sequence<TupleSize<RenderProxyList::ResourceTrackerTypes>::value>());
 
-    // Copy cached VP matrix so render subsystem can use it as it was written from the main thread
+    // Copy cached data so render thread can use it as it was written from the main thread
     dst.cachedMatrices = src.cachedMatrices;
     dst.cachedBounds = src.cachedBounds;
+    dst.cachedEntryHashes = src.cachedEntryHashes;
 
     if (src.useOrdering)
     {

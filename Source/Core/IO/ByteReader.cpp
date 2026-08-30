@@ -35,8 +35,9 @@ ByteBuffer MemoryByteReader::Read(size_t size)
         return ByteBuffer();
     }
 
-    const auto previousOffset = m_pos;
+    const size_t previousOffset = m_pos;
     m_pos += size;
+
     return ByteBuffer(size, m_byteView.Data() + previousOffset);
 }
 
@@ -118,7 +119,7 @@ FileByteReader::FileByteReader(const FilePath& filepath, size_t offset)
 
         if (endPos >= 0)
         {
-            m_maxPos = static_cast<size_t>(endPos);
+            m_maxPos = size_t(endPos);
         }
         else
         {
@@ -139,7 +140,8 @@ FileByteReader::FileByteReader(const FilePath& filepath, size_t offset)
     std::fseek(m_file, static_cast<long>(offset), SEEK_SET);
 
     const long cur = std::ftell(m_file);
-    m_pos = cur >= 0 ? static_cast<size_t>(cur) : 0;
+
+    m_pos = cur >= 0 ? size_t(cur) : 0;
     m_filePos = m_pos;
 }
 

@@ -268,6 +268,43 @@ void Scene::SetRoot(const Handle<Node>& root)
     OnRootNodeChanged.Fire(this, m_root, prevRoot);
 }
 
+Name Scene::GetUniqueNodeName(const ANSIStringView& prefix) const
+{
+    ANSIStringView realPrefix = prefix;
+
+    if (!prefix || *prefix == '\0')
+    {
+        realPrefix = "Node";
+    }
+
+    ANSIStringView currentName;
+    Optional<ANSIString> stringMem;
+
+    int counter = 0;
+
+    currentName = realPrefix;
+
+    while (FindNodeByName(StringHash(currentName)) != nullptr)
+    {
+        ++counter;
+
+        if (stringMem.HasValue())
+        {
+            *stringMem = realPrefix;
+        }
+        else
+        {
+            stringMem.Emplace(realPrefix);
+        }
+        
+        *stringMem += ANSIString::ToString(counter);
+
+        currentName = *stringMem;
+    }
+
+    return CreateNameFromDynamicString(currentName);
+}
+
 bool Scene::AddToWorld(World* world)
 {
     AssertOnThread(g_simThread);

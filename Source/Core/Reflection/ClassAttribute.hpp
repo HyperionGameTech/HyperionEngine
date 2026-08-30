@@ -332,8 +332,8 @@ struct ClassAttribute final
     {
     }
 
-    ClassAttribute(ANSIStringView name, const ClassAttributeValue& value)
-        : name(CreateNameFromDynamicString(name)),
+    ClassAttribute(const ANSIStringView& name, const ClassAttributeValue& value)
+        : name(Name(name)),
           value(value)
     {
     }

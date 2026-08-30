@@ -243,7 +243,7 @@ Property* MakeProperty(const Field* field)
 
     if (const ClassAttributeValue& attr = field->GetAttribute(Attributes::g_attrProperty); attr.IsString())
     {
-        propertyName = CreateNameFromDynamicString(attr.GetString());
+        propertyName = Name(attr.GetString());
     }
     else
     {
@@ -285,7 +285,7 @@ Property* MakeProperty(const Field* field, const Method* getter, const Method* s
     Property* pResult = new Property();
     Property& result = *pResult;
 
-    Optional<String> propertyAttributeOpt;
+    Optional<ANSIString> propertyAttributeOpt;
 
     const TypeInfo* typeInfo = nullptr;
     const TypeInfo* targetTypeInfo = nullptr;
@@ -374,7 +374,7 @@ Property* MakeProperty(const Field* field, const Method* getter, const Method* s
     AssertDebug(propertyAttributeOpt.HasValue());
     AssertDebug(typeInfo != nullptr, "Cannot determine TypeId from getter/setter pair or field");
 
-    result.m_name = CreateNameFromDynamicString(*propertyAttributeOpt);
+    result.m_name = Name(*propertyAttributeOpt);
     result.m_typeInfo = typeInfo;
     result.m_ownerClass = nullptr;
 

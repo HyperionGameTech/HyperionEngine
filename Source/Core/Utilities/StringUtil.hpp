@@ -19,45 +19,70 @@ namespace Hyperion {
 
 namespace StringUtil {
 
-static inline String Basename(const String& filepath)
+template <int StringType>
+static inline auto Basename(const utilities::StringView<StringType>& filepath)
 {
+    using SV = utilities::StringView<StringType>;
+
     size_t index0 = filepath.FindLastIndex('/');
     size_t index1 = filepath.FindLastIndex('\\');
 
-    if (index0 == String::NotFound && index1 == String::NotFound)
+    if (index0 == SV::NotFound && index1 == SV::NotFound)
     {
-        return filepath;
+        return filepath.Substr(0, SIZE_MAX); // whole string (view)
     }
 
-    const size_t lastIndex = (index0 == String::NotFound)
+    const size_t lastIndex = (index0 == SV::NotFound)
         ? index1
-        : (index1 == String::NotFound ? index0 : (index0 > index1 ? index0 : index1));
+        : (index1 == SV::NotFound ? index0 : (index0 > index1 ? index0 : index1));
 
     return filepath.Substr(lastIndex + 1);
 }
 
-static inline String BasePath(const String& filepath)
+/// String object overload. Delegates to String View overload.
+template <int StringType, class AllocatorType>
+static inline auto Basename(const containers::String<StringType, AllocatorType>& filepath)
 {
+    return Basename(utilities::StringView<StringType>(filepath));
+}
+
+/// Returns auto because it returns a view.
+template <int StringType>
+static inline auto BasePath(const utilities::StringView<StringType>& filepath)
+{
+    using SV = utilities::StringView<StringType>;
+
     size_t index0 = filepath.FindLastIndex('/');
     size_t index1 = filepath.FindLastIndex('\\');
 
-    if (index0 == String::NotFound && index1 == String::NotFound)
+    if (index0 == SV::NotFound
+        && index1 == SV::NotFound)
     {
-        return "";
+        return filepath.Substr(0, 0);
     }
 
-    const size_t lastIndex = (index0 == String::NotFound)
+    const size_t lastIndex = (index0 == SV::NotFound)
         ? index1
-        : (index1 == String::NotFound ? index0 : (index0 > index1 ? index0 : index1));
+        : (index1 == SV::NotFound ? index0 : (index0 > index1 ? index0 : index1));
 
     return filepath.Substr(0, lastIndex);
 }
 
-static inline Array<String> CanonicalizePath(const Array<String>& original)
+/// String object overload. Delegates to String View overload.
+template <int StringType, class AllocatorType>
+static inline auto BasePath(const containers::String<StringType, AllocatorType>& filepath)
 {
-    Array<String> res;
+    return BasePath(utilities::StringView<StringType>(filepath));
+}
 
-    for (const auto& str : original)
+template <int StringType, class AllocatorType>
+static inline auto CanonicalizePath(Span<const containers::String<StringType, AllocatorType>> original)
+{
+    using StringT = containers::String<StringType, AllocatorType>;
+
+    Array<StringT> res;
+
+    for (const StringT& str : original)
     {
         if (str == ".." && !res.Empty())
         {
@@ -72,46 +97,71 @@ static inline Array<String> CanonicalizePath(const Array<String>& original)
     return res;
 }
 
-static inline String StripExtension(const String& filename)
+/// Returns auto because it returns a view.
+template <int StringType>
+static inline auto StripExtension(const utilities::StringView<StringType>& filepath)
 {
-    size_t lastIndex = filename.FindLastIndex('.');
+    using SV = utilities::StringView<StringType>;
 
-    if (lastIndex == String::NotFound)
+    size_t lastIndex = filepath.FindLastIndex('.');
+
+    if (lastIndex == SV::NotFound)
     {
-        return filename;
+        return filepath.Substr(0, SIZE_MAX); // <-- to return a view and not confuse return types.
     }
 
-    return filename.Substr(0, lastIndex);
+    return filepath.Substr(0, lastIndex);
 }
 
-static inline String GetExtension(const String& path)
+/// String object overload. Delegates to String View overload.
+template <int StringType, class AllocatorType>
+static inline auto StripExtension(const containers::String<StringType, AllocatorType>& filepath)
 {
-    Array<String> splitPath = path.Split('/', '\\');
+    return StripExtension(utilities::StringView<StringType>(filepath));
+}
+
+/// Returns auto because it returns a view.
+template <int StringType, class AllocatorType>
+static inline auto GetExtension(const containers::String<StringType, AllocatorType>& path)
+{
+    using StringT = containers::String<StringType, AllocatorType>;
+
+    Array<StringT> splitPath = path.Split('/', '\\');
 
     if (splitPath.Empty())
     {
         return "";
     }
 
-    const String& filename = splitPath.Back();
+    const StringT& fileName = splitPath.Back();
 
-    size_t lastIndex = filename.FindLastIndex('.');
+    size_t lastIndex = fileName.FindLastIndex('.');
 
-    if (lastIndex == String::NotFound)
+    if (lastIndex == StringT::NotFound)
     {
-        return "";
+        return fileName.Substr(0, 0); // <--- same deal as above for StripExtension(). This just returns "nothing"
     }
 
-    return filename.Substr(lastIndex + 1);
+    return fileName.Substr(lastIndex + 1);
 }
 
-static inline String ToPascalCase(const String& str, bool preserveCase = false)
+/// String object overload. Delegates to String View overload.
+template <int StringType, class AllocatorType>
+static inline auto GetExtension(const containers::String<StringType, AllocatorType>& filepath)
 {
-    Array<String> parts = str.Split('_', ' ', '-');
+    return GetExtension(utilities::StringView<StringType>(filepath));
+}
+
+template <int StringType, class AllocatorType>
+static inline auto ToPascalCase(const containers::String<StringType, AllocatorType>& str, bool preserveCase = false)
+{
+    using StringT = containers::String<StringType, AllocatorType>;
+
+    Array<StringT> parts = str.Split('_', ' ', '-');
 
     for (size_t i = 0; i < parts.Size(); i++)
     {
-        String& part = parts[i];
+        StringT& part = parts[i];
 
         if (part.Empty())
         {
@@ -120,20 +170,23 @@ static inline String ToPascalCase(const String& str, bool preserveCase = false)
 
         if (!preserveCase)
         {
-            part = String(part.Substr(0, 1)).ToUpper() + String(part.Substr(1)).ToLower();
+            part = StringT(part.Substr(0, 1)).ToUpper() + StringT(part.Substr(1)).ToLower();
         }
         else
         {
-            part = String(part.Substr(0, 1)).ToUpper() + String(part.Substr(1));
+            part = StringT(part.Substr(0, 1)).ToUpper() + StringT(part.Substr(1));
         }
     }
 
-    return String::Join(parts, "");
+    return StringT::Join(parts, "");
 }
 
-static inline String ToCamelCase(const String& str, bool preserveCase = false)
+template <int StringType, class AllocatorType>
+static inline auto ToCamelCase(const containers::String<StringType, AllocatorType>& str, bool preserveCase = false)
 {
-    String pascalCase = ToPascalCase(str, preserveCase);
+    using StringT = containers::String<StringType, AllocatorType>;
+
+    StringT pascalCase = ToPascalCase(str, preserveCase);
     if (pascalCase.Empty())
     {
         return pascalCase;
@@ -147,16 +200,19 @@ static inline String ToCamelCase(const String& str, bool preserveCase = false)
         return pascalCase;
     }
 
-    String camelCase;
+    StringT camelCase;
     camelCase.Append(std::tolower(int(firstChar)));
     camelCase.Append(pascalCase.Substr(1));
 
     return camelCase;
 }
 
-static inline String ToSnakeCase(const String& str)
+template <int StringType, class AllocatorType>
+static inline auto ToSnakeCase(const containers::String<StringType, AllocatorType>& str)
 {
-    String result;
+    using StringT = containers::String<StringType, AllocatorType>;
+
+    StringT result;
     result.Reserve(str.Size() * 2);
 
     bool lastWasUpper = false;
@@ -213,10 +269,10 @@ static inline String ToSnakeCase(const String& str)
     return result;
 }
 
-template <int TStringType, class Predicate>
-static inline containers::String<TStringType> TakeWhile(const containers::String<TStringType>& src, Predicate&& predicate)
+template <int StringType, class AllocatorType, class Predicate>
+static inline auto TakeWhile(const containers::String<StringType, AllocatorType>& src, Predicate&& predicate)
 {
-    containers::String<TStringType> dst;
+    containers::String<StringType, AllocatorType> dst;
     dst.Reserve(src.Size());
 
     for (auto ch : src)
@@ -234,92 +290,94 @@ static inline containers::String<TStringType> TakeWhile(const containers::String
     return dst;
 }
 
-static inline bool Parse(const String& str, int8* outValue)
+template <int StringType, class AllocatorType>
+static inline bool Parse(const containers::String<StringType, AllocatorType>& str, int8* outValue)
 {
     *outValue = int8(strtol(str.Data(), nullptr, 0));
 
     return true;
 }
 
-static inline bool Parse(const String& str, int16* outValue)
+template <int StringType, class AllocatorType>
+static inline bool Parse(const containers::String<StringType, AllocatorType>& str, int16* outValue)
 {
     *outValue = int16(strtol(str.Data(), nullptr, 0));
 
     return true;
 }
 
-static inline bool Parse(const String& str, int32* outValue)
+template <int StringType, class AllocatorType>
+static inline bool Parse(const containers::String<StringType, AllocatorType>& str, int32* outValue)
 {
     *outValue = int32(strtol(str.Data(), nullptr, 0));
 
     return true;
 }
 
-static inline bool Parse(const String& str, int64* outValue)
+template <int StringType, class AllocatorType>
+static inline bool Parse(const containers::String<StringType, AllocatorType>& str, int64* outValue)
 {
     *outValue = int64(strtoll(str.Data(), nullptr, 0));
 
     return true;
 }
 
-static inline bool Parse(const String& str, uint8* outValue)
+template <int StringType, class AllocatorType>
+static inline bool Parse(const containers::String<StringType, AllocatorType>& str, uint8* outValue)
 {
     *outValue = uint8(strtoul(str.Data(), nullptr, 0));
 
     return true;
 }
 
-static inline bool Parse(const String& str, uint16* outValue)
+template <int StringType, class AllocatorType>
+static inline bool Parse(const containers::String<StringType, AllocatorType>& str, uint16* outValue)
 {
     *outValue = uint16(strtoul(str.Data(), nullptr, 0));
 
     return true;
 }
 
-static inline bool Parse(const String& str, uint32* outValue)
+template <int StringType, class AllocatorType>
+static inline bool Parse(const containers::String<StringType, AllocatorType>& str, uint32* outValue)
 {
     *outValue = uint32(strtoul(str.Data(), nullptr, 0));
 
     return true;
 }
 
-static inline bool Parse(const String& str, uint64* outValue)
+template <int StringType, class AllocatorType>
+static inline bool Parse(const containers::String<StringType, AllocatorType>& str, uint64* outValue)
 {
     *outValue = uint64(strtoull(str.Data(), nullptr, 0));
 
     return true;
 }
 
-static inline bool Parse(const String& str, float* outValue)
+template <int StringType, class AllocatorType>
+static inline bool Parse(const containers::String<StringType, AllocatorType>& str, float* outValue)
 {
     *outValue = strtof(str.Data(), nullptr);
 
     return true;
 }
 
-static inline bool Parse(const String& str, double* outValue)
+template <int StringType, class AllocatorType>
+static inline bool Parse(const containers::String<StringType, AllocatorType>& str, double* outValue)
 {
     *outValue = strtod(str.Data(), nullptr);
 
     return true;
 }
 
-template <typename T>
-static inline T Parse(const String& str, T valueOnError = T {})
+template <class T, int StringType, class AllocatorType>
+static inline bool Parse(const containers::String<StringType, AllocatorType>& str, T valueOnError = T {})
 {
     T value = valueOnError;
 
     Parse(str, &value);
 
     return value;
-}
-
-template <typename T>
-static inline bool IsNumber(const String& str)
-{
-    T value {};
-
-    return Parse<T>(str, &value);
 }
 
 } // namespace StringUtil

@@ -327,7 +327,7 @@ const ThreadId& CurrentThreadId()
 
         if (SUCCEEDED(result))
         {
-            t_currentThreadId = ThreadId(CreateNameFromDynamicString(&threadNameMb[0]), /* forceUnique */ true);
+            t_currentThreadId = ThreadId(Name(&threadNameMb[0]), /* forceUnique */ true);
         }
         else
         {
@@ -337,7 +337,7 @@ const ThreadId& CurrentThreadId()
         char threadName[256];
         pthread_getname_np(pthread_self(), threadName, sizeof(threadName));
 
-        t_currentThreadId = ThreadId(CreateNameFromDynamicString(threadName), /* forceUnique */ true);
+        t_currentThreadId = ThreadId(Name(threadName), /* forceUnique */ true);
 #endif
     }
 

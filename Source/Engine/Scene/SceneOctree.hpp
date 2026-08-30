@@ -121,6 +121,8 @@ class ENGINE_API SceneOctree final : public OctreeBase<SceneOctree, SceneOctreeP
     SceneOctree(EntityManager* entityManager, SceneOctree* parent, const BoundingBox& aabb, uint8 index);
 
 public:
+    static constexpr uint32 NumEntryHashes = 10;
+
     using DerivedOctreeState = SceneOctreeState;
 
     explicit SceneOctree(EntityManager* entityManager);
@@ -180,6 +182,11 @@ public:
             .Add(m_invalidationMarker);
     }
 
+    HYP_FORCE_INLINE Span<const HashCode> GetEntryListHashes() const
+    {
+        return m_entryHashes.ToSpan();
+    }
+
     void NextVisibilityState();
     void CalculateVisibility(const View* view);
 
@@ -219,8 +226,6 @@ public:
     Result Update(Entity* entity, const BoundingBox& aabb, bool forceInvalidation = false, bool allowRebuild = false);
 
 private:
-    static constexpr uint32 NumEntryHashes = 10;
-
     HYP_FORCE_INLINE bool UseEntityMap() const
     {
         return m_state != nullptr && !Flags[OF_INSERT_ON_OVERLAP];
