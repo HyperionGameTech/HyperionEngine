@@ -42,6 +42,8 @@ namespace Hyperion {
 
 extern CVar<bool> g_cvHBAO;
 
+static StaticShaderPropertyId s_propHBAOEnabled { ShaderProperty(NAME("HBAO_ENABLED")) };
+
 struct LightmapVolumeUniforms
 {
     Mat4f transformMatrix;
@@ -106,7 +108,14 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     CommandRecorder& cr = frame->cr;
 
-    cr << SetCurrentShader(m_shaderDesc);
+    ShaderPropertySet shaderProperties;
+
+    if (g_cvHBAO.Get())
+    {
+        shaderProperties.Add(s_propHBAOEnabled);
+    }
+
+    cr << SetCurrentShader(ShaderDesc(NAME("ApplyLightmap"), shaderProperties));
 
     cr << SetCurrentViewport(renderSetup.viewport);
 

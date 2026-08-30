@@ -1,5 +1,7 @@
 #include "../include/Defines.hlsli"
 
+PERMUTE(HBAO_ENABLED);
+
 #ifdef VERTEX_SHADER
 
 struct VSInput
@@ -170,7 +172,9 @@ PSOutput PSMain(PSInput input)
     const float3 V = normalize(camera.position.xyz - P);
     // const float3 R = normalize(reflect(-V, N));
 
+#ifdef HBAO_ENABLED
     ao = SAMPLE_TEXTURE_2D_LOD(SamplerLinear, SSAOResultTexture, texcoord, 0).r;
+#endif
 
     float2 lightmapUV = UV1;
 
