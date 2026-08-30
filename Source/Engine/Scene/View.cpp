@@ -74,8 +74,8 @@ static CVar<float>* s_csmClipDistances[] = {
 };
 
 CVar<bool> g_cvCSMTimeSlicingEnabled("Rendering.Shadows.CSMTimeSlicingEnabled", true);
-static CVar<int> s_cvCSMMaxUpdatesPerFrame("Rendering.Shadows.CSMMaxUpdatesPerFrame", 1);
-static CVar<int> s_cvCSMMaxStaleFrames("Rendering.Shadows.CSMMaxStaleFrames", 8);
+CVar<int> g_cvCSMMaxUpdatesPerFrame("Rendering.Shadows.CSMMaxUpdatesPerFrame", 1);
+CVar<int> g_cvCSMMaxStaleFrames("Rendering.Shadows.CSMMaxStaleFrames", 8);
 static CVar<float> s_cvCSMBasisAngleThresholdDegrees("Rendering.Shadows.CSMBasisAngleThresholdDegrees", 0.05f);
 static CVar<float> s_cvCSMBasisPositionThreshold("Rendering.Shadows.CSMBasisPositionThreshold", 1.0f);
 
@@ -661,9 +661,9 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                 {
                     const bool boundsChanged = shadowViewBounds != currentCascadeView->cachedBounds;
                     const uint32 framesSinceUpdate = GetFrameCounter() - csmState.lastCommittedFrame[shadowViewIndex];
-                    const bool overStaleCap = framesSinceUpdate >= uint32(MathUtil::Max(s_cvCSMMaxStaleFrames.Get(), 1));
+                    const bool overStaleCap = framesSinceUpdate >= uint32(MathUtil::Max(g_cvCSMMaxStaleFrames.Get(), 1));
 
-                    updateCascade = overStaleCap || (boundsChanged && csmUpdatesSpentThisFrame < uint32(MathUtil::Max(s_cvCSMMaxUpdatesPerFrame.Get(), 0)));
+                    updateCascade = overStaleCap || (boundsChanged && csmUpdatesSpentThisFrame < uint32(MathUtil::Max(g_cvCSMMaxUpdatesPerFrame.Get(), 0)));
 
                     if (updateCascade && !overStaleCap)
                     {
@@ -720,7 +720,12 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
                 if (!updateCascade)
                 {
-                    shadowView->collectionState.skipNext = true;
+                    const bool isStaticView = (shadowView == shadowViewsStatic[shadowViewIndex]);
+
+                    if (isStaticView)
+                    {
+                        shadowView->collectionState.skipNext = true;
+                    }
 
                     outShadowViews.PushBack(shadowView);
 

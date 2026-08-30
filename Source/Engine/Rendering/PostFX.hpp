@@ -6,6 +6,9 @@
 
 #pragma once
 
+/// NOTE: This class/system hasn't been worked on in a while, probably rotted.
+/// could use a rework.
+
 #include <Core/Containers/TypeMap.hpp>
 #include <Core/Threading/Threads.hpp>
 

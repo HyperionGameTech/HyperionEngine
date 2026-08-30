@@ -16,7 +16,6 @@
 #include <Core/Containers/String.hpp>
 
 #include <Rendering/Util/ShaderDefinitions.hpp>
-#include <Core/Containers/String.hpp>
 
 #include <Core/Utilities/Variant.hpp>
 #include <Core/Utilities/StringUtil.hpp>

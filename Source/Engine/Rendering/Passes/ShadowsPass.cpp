@@ -35,6 +35,7 @@
 #include <Scene/Camera/Camera.hpp>
 
 #include <Core/Containers/Array.hpp>
+#include <Core/Math/MathUtil.hpp>
 
 #include <Core/Utilities/GlobalContext.hpp>
 #include <Core/Utilities/DeferredScope.hpp>
@@ -51,6 +52,8 @@ EngineStatGpuTimer g_statShadowMaps("Rendering/GPU/ShadowMaps");
 CVar<bool> g_cvCacheShadowMaps("Rendering.CacheShadowMaps", true);
 
 extern CVar<bool> g_cvCSMTimeSlicingEnabled;
+extern CVar<int> g_cvCSMMaxUpdatesPerFrame;
+extern CVar<int> g_cvCSMMaxStaleFrames;
 
 #pragma region ShadowsPassData
 
@@ -172,6 +175,8 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     RenderProxyCamera* shadowCameraProxy = nullptr;
 
+    uint32 csmUpdates = 0;
+
     for (uint32 cascadeIndex = 0; cascadeIndex < lightProxy->numCascades; cascadeIndex++)
     {
         View* shadowViewDynamic;
@@ -228,14 +233,32 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
             RenderProxyList& cascadeRpl = GetConsumerProxyList(cascadeView);
             cascadeRpl.BeginRead();
             const Mat4f cascadeViewProj = cascadeRpl.cachedMatrices.viewProj;
+
+            // are meshes / skeletons dirty ?
+            const bool rplDirty = (cascadeRpl.GetMeshEntities().GetDiff().NeedsUpdate() || cascadeRpl.GetSkeletons().GetDiff().NeedsUpdate());
+            
             cascadeRpl.EndRead();
 
-            if (cascadeViewProj == cachedData->lastRenderedViewProj[cascadeIndex])
+            const bool viewProjChanged = cascadeViewProj != cachedData->lastRenderedViewProj[cascadeIndex];
+            const uint32 framesSinceDrawn = GetFrameCounter() - cachedData->lastRenderedFrame[cascadeIndex];
+            const bool overStaleCap = framesSinceDrawn >= uint32(MathUtil::Max(g_cvCSMMaxStaleFrames.Get(), 1));
+
+            bool shouldDraw = viewProjChanged || overStaleCap;
+
+            if (!shouldDraw && rplDirty && csmUpdates < uint32(MathUtil::Max(g_cvCSMMaxUpdatesPerFrame.Get(), 0)))
+            {
+                shouldDraw = true;
+
+                ++csmUpdates;
+            }
+
+            if (!shouldDraw)
             {
                 continue;
             }
 
             cachedData->lastRenderedViewProj[cascadeIndex] = cascadeViewProj;
+            cachedData->lastRenderedFrame[cascadeIndex] = GetFrameCounter();
         }
 
         const uint32 numViewsToIterate = (isOmni ? 6 : cascadeIndex + 1);

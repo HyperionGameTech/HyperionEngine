@@ -63,14 +63,6 @@ struct CharacterControllerInternalData
     float shadowMaxSpeed = 60.0f;
     float shadowTeleportDistance = 0.5f;
 
-    // Shadow controller servo state. The ghost target is stepped by character moves
-    // (possibly several per physics step on a server replaying batched client input),
-    // so its velocity is measured in accumulated character time, which is invariant
-    // to batching, rather than in simulation time, which is not.
-    btVector3 ghostTravel { 0.0f, 0.0f, 0.0f };
-    btScalar characterTime = 0.0f;
-    int idleCharacterTicks = 0;
-    btVector3 targetVelocity { 0.0f, 0.0f, 0.0f };
     btVector3 shadowVelocity { 0.0f, 0.0f, 0.0f };
 
     SharedPtr<btRigidBody> shadowBody;
@@ -111,12 +103,6 @@ struct CharacterGhostOverlapFilter final : btOverlapFilterCallback
             return false;
         }
 
-        // Externally driven kinematic colliders (e.g. replication-driven bodies on a
-        // client) are excluded as well. The authoritative side simulates them as dynamic
-        // bodies, whose pairs the ghost already ignores above; the predicting side must
-        // match, or the character controller's penetration recovery will eject the
-        // predicted character out of their (necessarily stale) collider positions after
-        // every rewind/replay correction. Sweep-based blocking is unaffected.
         if (otherRigidBody
             && otherRigidBody->isKinematicObject()
             && ghostNonCollidableBodies != nullptr
@@ -684,6 +670,7 @@ void BulletPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerC
     internalData->kcc->setJumpSpeed(config.jumpSpeed);
     internalData->kcc->setFallSpeed(config.fallSpeed);
     internalData->kcc->setGravity(btVector3(0.0f, -btFabs(m_dynamicsWorld->getGravity().y()), 0.0f));
+    internalData->kcc->setUseGhostSweepTest(false);
 
     m_dynamicsWorld->addCollisionObject(
         internalData->ghostObject.Get(),
@@ -782,8 +769,9 @@ void BulletPhysicsAdapter::UpdateCharacterShadowBodies(double simDelta)
         return;
     }
 
-    constexpr btScalar errorCorrectionRate = 10.0f;  // 1/s, fraction of position error closed per second
-    constexpr btScalar velocitySmoothing = 0.5f;
+    constexpr btScalar errorCorrectionRate = 40.0f;  // 1/s, fraction of position error closed per second
+
+    const btScalar correctionRate = MathUtil::Min(errorCorrectionRate, btScalar(1.0 / simDelta));
 
     for (SharedPtr<void>& physicsHandle : m_characterControllers)
     {
@@ -793,23 +781,6 @@ void BulletPhysicsAdapter::UpdateCharacterShadowBodies(double simDelta)
         {
             continue;
         }
-
-        /// TODO: review. do we still need this?
-
-        if (internalData->characterTime > 0.0f)
-        {
-            const btVector3 measuredVelocity = internalData->ghostTravel / internalData->characterTime;
-
-            internalData->targetVelocity = internalData->targetVelocity.lerp(measuredVelocity, velocitySmoothing);
-            internalData->idleCharacterTicks = 0;
-        }
-        else if (++internalData->idleCharacterTicks >= 2)
-        {
-            internalData->targetVelocity *= 0.85f;
-        }
-
-        internalData->ghostTravel.setValue(0.0f, 0.0f, 0.0f);
-        internalData->characterTime = 0.0f;
 
         const btTransform targetTransform = internalData->ghostObject->getWorldTransform();
         const btTransform previousTransform = internalData->shadowBody->getWorldTransform();
@@ -824,14 +795,12 @@ void BulletPhysicsAdapter::UpdateCharacterShadowBodies(double simDelta)
             internalData->shadowBody->setInterpolationWorldTransform(targetTransform);
             internalData->shadowBody->setLinearVelocity(btVector3(0.0f, 0.0f, 0.0f));
 
-            // drop the stale velocity estimate
-            internalData->targetVelocity.setValue(0.0f, 0.0f, 0.0f);
             internalData->shadowVelocity.setValue(0.0f, 0.0f, 0.0f);
 
             continue;
         }
 
-        btVector3 chaseVelocity = internalData->targetVelocity + positionError * errorCorrectionRate;
+        btVector3 chaseVelocity = ToBtVector(internalData->walkVelocity) + positionError * correctionRate;
         const btScalar chaseSpeed = chaseVelocity.length();
 
         if (chaseSpeed > btScalar(internalData->shadowMaxSpeed))
@@ -885,16 +854,11 @@ void BulletPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physic
     const int numSubsteps = MathUtil::Min(int(MathUtil::Ceil(totalDelta / maxSubstepDelta)), maxSubsteps);
     const float substepDelta = totalDelta / float(numSubsteps);
 
-    const btVector3 ghostPositionBeforeStep = internalData->ghostObject->getWorldTransform().getOrigin();
-
     for (int i = 0; i < numSubsteps; ++i)
     {
         internalData->kcc->setWalkDirection(ToBtVector(internalData->walkVelocity) * substepDelta);
         internalData->kcc->updateAction(m_dynamicsWorld, substepDelta);
     }
-
-    internalData->ghostTravel += internalData->ghostObject->getWorldTransform().getOrigin() - ghostPositionBeforeStep;
-    internalData->characterTime += btScalar(totalDelta);
 }
 
 void BulletPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation)
@@ -911,10 +875,6 @@ void BulletPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physic
     internalData->ghostObject->setWorldTransform(transform);
 
     // Reset states
-    internalData->ghostTravel.setValue(0.0f, 0.0f, 0.0f);
-    internalData->characterTime = 0.0f;
-    internalData->idleCharacterTicks = 0;
-    internalData->targetVelocity.setValue(0.0f, 0.0f, 0.0f);
     internalData->shadowVelocity.setValue(0.0f, 0.0f, 0.0f);
 
     if (internalData->shadowBody)

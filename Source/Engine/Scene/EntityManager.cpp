@@ -614,6 +614,8 @@ Handle<Entity> EntityManager::AddBasicEntity()
         AddTags(entity, entity->m_entityInitInfo.initialTags);
     }
 
+    lock.Reset();
+
     entity->OnAddedToScene(m_scene);
 
     if (m_world)
@@ -691,6 +693,8 @@ Handle<Entity> EntityManager::AddTypedEntity(const Class* cls)
         AddTags(entity, entity->m_entityInitInfo.initialTags);
     }
 
+    lock.Reset();
+
     entity->OnAddedToScene(m_scene);
 
     if (m_world)
@@ -739,7 +743,15 @@ void EntityManager::AddExistingEntity_Internal(const Handle<Entity>& entity)
     m_entities.Add(entity);
 
     entity->m_entityManager = this;
+
+    lock.Reset();
+
     entity->SetScene(m_scene);
+
+    if (IsDetachedScene())
+    {
+        lock.Reset(m_detachedSceneLocked);
+    }
 
     InitObject(entity);
 
@@ -769,6 +781,8 @@ void EntityManager::AddExistingEntity_Internal(const Handle<Entity>& entity)
     {
         AddTags(entity, entity->m_entityInitInfo.initialTags);
     }
+
+    lock.Reset();
 
     entity->OnAddedToScene(m_scene);
 
@@ -1032,7 +1046,15 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
         other->m_entities.Add(entity);
 
         entity->m_entityManager = other;
+
+        lock.Reset();
+
         entity->SetScene(other->m_scene);
+
+        if (other->IsDetachedScene())
+        {
+            lock.Reset(other->m_detachedSceneLocked);
+        }
 
         InitObject(entity);
 

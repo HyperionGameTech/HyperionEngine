@@ -80,6 +80,7 @@ private:
 
         // For time slicing.
         FixedArray<Mat4f, MaxShadowMapCascades> lastRenderedViewProj;
+        FixedArray<uint32, MaxShadowMapCascades> lastRenderedFrame {};
 
         uint32 lastUsedFrame;
     };
