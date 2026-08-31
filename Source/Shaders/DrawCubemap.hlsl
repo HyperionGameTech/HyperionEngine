@@ -4,11 +4,15 @@
 
 STATIC(MAX_LIGHTS, 4)
 
+// Match MaxLightmapVolumeAssignment
+STATIC(MAX_LIGHTMAP_VOLUMES, 4)
+
 PERMUTE(MODE_SHADOWS)
 PERMUTE(WRITE_NORMALS)
 PERMUTE(WRITE_MOMENTS)
 PERMUTE(WRITE_HIT_MASK)
 PERMUTE(FORWARD_SHADING)
+PERMUTE(APPLY_LIGHTMAPS)
 PERMUTE(INSTANCING)
 PERMUTE(SKINNING)
 
@@ -17,8 +21,8 @@ PERMUTE(SKINNING)
 struct VSInput
 {
     HYP_ATTRIBUTE float3 a_position : POSITION;
-    HYP_ATTRIBUTE float3 a_normal : NORMAL;
-    HYP_ATTRIBUTE float2 a_texcoord0 : TEXCOORD0;
+    HYP_ATTRIBUTE_OPTIONAL float3 a_normal : NORMAL;
+    HYP_ATTRIBUTE_OPTIONAL float2 a_texcoord0 : TEXCOORD0;
     HYP_ATTRIBUTE_OPTIONAL float2 a_texcoord1 : TEXCOORD1;
     HYP_ATTRIBUTE_OPTIONAL uint a_bone_indices : BLENDINDICES;
     HYP_ATTRIBUTE_OPTIONAL float4 a_bone_weights : BLENDWEIGHT;
@@ -30,6 +34,7 @@ struct VSOutput
     float3 position : POSITION;
     float3 normal : NORMAL;
     float2 texcoord0 : TEXCOORD0;
+    float2 texcoord1 : TEXCOORD1;
     nointerpolation float3 camera_position : TEXCOORD3;
     nointerpolation uint object_index : TEXCOORD6;
 };
@@ -92,26 +97,43 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     Entity currentEntity = entities[entityIndex];
     float4x4 model_matrix = mul(currentEntity.model_matrix, transform);
     float3x3 normal_matrix = (float3x3)currentEntity.normal_matrix;
-#else
+#else   // !INSTANCING
     Entity currentEntity = entity;
     float4x4 model_matrix = entity.model_matrix;
     float3x3 normal_matrix = (float3x3)entity.normal_matrix;
 
     output.object_index = ~0u; // unused
-#endif
+#endif  // INSTANCING
 
 #if defined(SKINNING) && defined(VT_Skeletal)
     float4x4 skinning_matrix = CreateSkinningMatrix(input.a_bone_indices, input.a_bone_weights);
 
     position = mul(model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
     normal_matrix = mul(normal_matrix, (float3x3)skinning_matrix);
-#else
+#else   // !SKINNING
     position = mul(model_matrix, float4(input.a_position, 1.0));
-#endif
+#endif  // SKINNING
 
     output.position = position.xyz / position.w;
+
+#ifdef HYP_ATTRIBUTE_a_normal
     output.normal = mul(normal_matrix, input.a_normal);
+#else // !HYP_ATTRIBUTE_a_normal
+    output.normal = (float3)0;
+#endif // HYP_ATTRIBUTE_a_normal
+    
+#ifdef HYP_ATTRIBUTE_a_texcoord0
     output.texcoord0 = float2(input.a_texcoord0.x, 1.0 - input.a_texcoord0.y);
+#else
+    output.texcoord0 = float2(0.0, 0.0);
+#endif // HYP_ATTRIBUTE_a_texcoord0
+
+#ifdef HYP_ATTRIBUTE_a_texcoord1
+    output.texcoord1 = float2(input.a_texcoord1.x, input.a_texcoord1.y);
+#else
+    output.texcoord1 = float2(0.0, 0.0);
+#endif // HYP_ATTRIBUTE_a_texcoord1
+
     output.camera_position = camera.position.xyz;
 
     output.position_cs = mul(vpMatrix, position);
@@ -129,6 +151,7 @@ struct PSInput
     float3 position : POSITION;
     float3 normal : NORMAL;
     float2 texcoord0 : TEXCOORD0;
+    float2 texcoord1 : TEXCOORD1;
     nointerpolation float3 camera_position : TEXCOORD3;
     nointerpolation uint object_index : TEXCOORD6;
 };
@@ -201,15 +224,20 @@ DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
 
 #ifdef FORWARD_SHADING
 
+struct LightmapVolumeData
+{
+    float4 aabbMin;
+    float4 aabbMax;
+};
+
 DECLARE_BUFFER_DYNAMIC(Default, ForwardShadingConstants) cbuffer ForwardShadingConstants
 {
     Light lights[MAX_LIGHTS];
     ShadowMap shadowMaps[MAX_LIGHTS];
-    EnvProbe fallbackProbe;
+    EnvProbe fallbackProbe; // always the scene's sky probe, or a zeroed EnvProbe if none
+    
     uint numBoundLights;
 };
-
-DECLARE_SRV(Default, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
 
 DECLARE_SRV(Default, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(Default, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
@@ -217,6 +245,21 @@ DECLARE_SRV(Default, PointLightShadowMapsTextureArray) TextureCubeArray point_sh
 #include "include/Shadows.hlsli"
 
 #endif // FORWARD_SHADING
+
+#ifdef APPLY_LIGHTMAPS
+
+DECLARE_BUFFER_DYNAMIC(Default, ApplyLightmapsConstants) cbuffer ApplyLightmapsConstants
+{
+    LightmapVolumeData lightmapVolumes[MAX_LIGHTMAP_VOLUMES];
+    uint numLightmapVolumes;
+};
+
+DECLARE_SRV(Default, LightmapVolumeIrradianceTexture0) Texture2D LightmapVolumeIrradianceTexture0;
+DECLARE_SRV(Default, LightmapVolumeIrradianceTexture1) Texture2D LightmapVolumeIrradianceTexture1;
+DECLARE_SRV(Default, LightmapVolumeIrradianceTexture2) Texture2D LightmapVolumeIrradianceTexture2;
+DECLARE_SRV(Default, LightmapVolumeIrradianceTexture3) Texture2D LightmapVolumeIrradianceTexture3;
+
+#endif // APPLY_LIGHTMAPS
 
 #ifndef CURRENT_MATERIAL
 #define CURRENT_MATERIAL material
@@ -230,7 +273,6 @@ PSOutput PSMain(PSInput input)
 
     const float3 V = normalize(vsPosition);
     const float3 N = normalize(input.normal);
-    const float3 R = reflect(-V, N);
 
     float4 albedo = float4(1.0, 1.0, 1.0, 1.0);
 
@@ -246,10 +288,7 @@ PSOutput PSMain(PSInput input)
         albedo *= albedo_texture;
     }
 
-    float roughness = 1.0;//GET_MATERIAL_PARAM(CURRENT_MATERIAL, MATERIAL_PARAM_ROUGHNESS);
     float metalness = 0.0;//GET_MATERIAL_PARAM(CURRENT_MATERIAL, MATERIAL_PARAM_METALNESS);
-    float perceptualRoughness = roughness;
-    roughness = roughness * roughness;
 
 #ifdef WRITE_MOMENTS
     const float dist = distance(input.position, input.camera_position) / max(camera.far, HYP_FMATH_EPSILON);
@@ -340,23 +379,40 @@ PSOutput PSMain(PSInput input)
         }
 
         float3 indirectLight = (float3)0;
+        bool hasLightmapContribution = false;
 
-        // const uint fallbackTextureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(fallbackProbe);
+#ifdef APPLY_LIGHTMAPS
+        // clang-format off
+#define HYP_APPLY_LIGHTMAP_VOLUME(idx, tex)                                                       \
+            if (!hasLightmapContribution && idx < numLightmapVolumes)                                     \
+            {                                                                                              \
+                LightmapVolumeData lmv = lightmapVolumes[idx];                                             \
+                const float3 d = max(lmv.aabbMin.xyz - input.position, input.position - lmv.aabbMax.xyz);  \
+                if (max(d.x, max(d.y, d.z)) <= 0.0)                                                        \
+                {                                                                                           \
+                    const float4 irradiance = SAMPLE_TEXTURE_2D_LOD(sampler_linear, tex, input.texcoord1, 0); \
+                    indirectLight = diffuseColor * irradiance.rgb;                                         \
+                    hasLightmapContribution = true;                                                        \
+                }                                                                                            \
+            }
 
-        // if (fallbackTextureIndex != INVALID_ENV_PROBE_TEXTURE)
-        // {
-        //     float4 reflections = (float4)0;
+       HYP_APPLY_LIGHTMAP_VOLUME(0, LightmapVolumeIrradianceTexture0)
+       HYP_APPLY_LIGHTMAP_VOLUME(1, LightmapVolumeIrradianceTexture1)
+       HYP_APPLY_LIGHTMAP_VOLUME(2, LightmapVolumeIrradianceTexture2)
+       HYP_APPLY_LIGHTMAP_VOLUME(3, LightmapVolumeIrradianceTexture3)
+        
+#undef HYP_APPLY_LIGHTMAP_VOLUME
+        // clang-format on
 
-        //     const float3 aabbMin = fallbackProbe.aabb_min.xyz;
-        //     const float3 aabbMax = fallbackProbe.aabb_max.xyz;
+#endif // APPLY_LIGHTMAPS
 
-        //     const float numMips = 7.0; // assuming 128x128 cubemap size for reflection probes
-        //     const float lod = perceptualRoughness * numMips;
+        if (!hasLightmapContribution)
+        {
+            float shBands[9];
+            ProjectSHBands(N, shBands);
 
-        //     reflections = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(sampler_linear, envProbesColorTexture, float4(normalize(R), float(fallbackTextureIndex)), lod);
-
-        //     indirectLight += diffuseColor * (reflections.rgb * reflections.a);
-        // }
+            indirectLight = diffuseColor * EnvProbeSH(fallbackProbe, shBands);
+        }
 
         output.output_color.rgb = saturate(directLight + indirectLight);
     }

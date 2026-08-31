@@ -40,6 +40,7 @@ EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 #endif // HYP_EDITOR
 
 static StaticShaderPropertyId s_propForwardShading { ShaderProperty(NAME("FORWARD_SHADING")) };
+static StaticShaderPropertyId s_propApplyLightmaps { ShaderProperty(NAME("APPLY_LIGHTMAPS")) };
 static StaticShaderPropertyId s_propWriteMoments { ShaderProperty(NAME("WRITE_MOMENTS")) };
 static StaticShaderPropertyId s_propWriteHitMask { ShaderProperty(NAME("WRITE_HIT_MASK")) };
 
@@ -597,6 +598,7 @@ void EnvProbe::CreateViewData()
     {
         materialAttributes.shaderName = NAME("DrawCubemap");
         materialAttributes.shaderProperties.Add(s_propForwardShading);
+        materialAttributes.shaderProperties.Add(s_propApplyLightmaps);
 
         if (m_envProbeFlags & EPF_VISIBILITY)
         {

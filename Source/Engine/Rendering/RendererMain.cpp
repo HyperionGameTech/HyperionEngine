@@ -91,6 +91,7 @@ static StaticShaderPropertyId s_propShadingTypeForward { ShaderProperty(s_nameSh
 
 static StaticShaderPropertyId s_propForwardClustered { ShaderProperty(NAME("FORWARD_CLUSTERED")) };
 static StaticShaderPropertyId s_propForwardShading { ShaderProperty(NAME("FORWARD_SHADING")) };
+static StaticShaderPropertyId s_propApplyLightmaps { ShaderProperty(NAME("APPLY_LIGHTMAPS")) };
 
 static HYP_FORCE_INLINE bool IsCubemapShader(StringHash shaderNameHash)
 {
@@ -712,148 +713,220 @@ struct TPerformRenderingPayload
     PerformRenderingPayloadBase* pNext;
 };
 
-/// Forward shading, NOT clustered
+/// Forward shading (NOT clustered)
 template <class TCommandRecorder>
 static void SetForwardShadingConstants(
     const RenderSetup& renderSetup,
     TCommandRecorder& cr,
+    const ShaderPropertySet& shaderProperties,
     uint32& numShaderUniforms)
 {
-    struct ForwardShadingConstants
-    {
-        LightShaderData lights[MaxBoundLightsForwardShading];
-        ShadowMapData shadowMaps[MaxBoundLightsForwardShading];
-        EnvProbeShaderData fallbackProbe;
-        uint32 numBoundLights;
-    };
+    RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
+    rpl.BeginRead();
+    HYP_DEFER({ rpl.EndRead(); });
 
     GpuBuffer* cbuffer = nullptr;
     size_t cbufferOffset = 0;
-    size_t cbufferSize = 0;
 
-    ForwardShadingConstants* forwardShadingConstants = (ForwardShadingConstants*)RI.cbufferAllocator->Allocate(
-        sizeof(ForwardShadingConstants),
-        alignof(ForwardShadingConstants),
-        cbuffer,
-        cbufferOffset);
-
-    Assert(forwardShadingConstants != nullptr);
-    Memory::Zero(forwardShadingConstants, sizeof(ForwardShadingConstants));
-
-    cbufferSize = sizeof(ForwardShadingConstants);
-
-    RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
-    rpl.BeginRead();
-
-    // @TODO Sort by light dist
-
-    for (Light* light : rpl.GetLights())
     {
-        if (forwardShadingConstants->numBoundLights >= MaxBoundLightsForwardShading)
+        struct ForwardShadingConstants
         {
-            break;
+            LightShaderData lights[MaxBoundLightsForwardShading];
+            ShadowMapData shadowMaps[MaxBoundLightsForwardShading];
+            EnvProbeShaderData fallbackProbe; // always the scene's sky probe, or a zeroed EnvProbeShaderData if none
+            uint32 numBoundLights;
+        };
+
+        ForwardShadingConstants* forwardShadingConstants = (ForwardShadingConstants*)RI.cbufferAllocator->Allocate(
+            sizeof(ForwardShadingConstants),
+            alignof(ForwardShadingConstants),
+            cbuffer,
+            cbufferOffset);
+
+        Assert(forwardShadingConstants != nullptr);
+        Memory::Zero(forwardShadingConstants, sizeof(ForwardShadingConstants));
+
+        // @TODO Sort by light dist
+
+        for (Light* light : rpl.GetLights())
+        {
+            if (forwardShadingConstants->numBoundLights >= MaxBoundLightsForwardShading)
+            {
+                break;
+            }
+
+            RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
+            Assert(lightProxy != nullptr);
+
+            const uint32 lightIndex = forwardShadingConstants->numBoundLights++;
+
+            forwardShadingConstants->lights[lightIndex] = lightProxy->bufferData;
+
+            // Set shadow map
+            ShadowMapData& currShadowMapData = forwardShadingConstants->shadowMaps[lightIndex];
+
+            const uint32 cascadeIndex = 0;
+
+            View* shadowMapViewDynamic;
+            View* shadowMapViewStatic;
+
+            ShadowMap* shadowMap = RI.shadowMapCache->GetShadowMap(
+                light,
+                renderSetup.view,
+                cascadeIndex,
+                shadowMapViewDynamic,
+                shadowMapViewStatic);
+
+            if (shadowMap != nullptr)
+            {
+                ShadowMapAtlasElement* atlasElement = shadowMap->GetAtlasElement();
+                AssertDebug(atlasElement != nullptr);
+
+                if (!atlasElement)
+                {
+                    continue;
+                }
+
+                AssertDebug(shadowMapViewDynamic != nullptr && shadowMapViewDynamic->GetCamera() != nullptr);
+
+                RenderProxyList& rpl = GetConsumerProxyList(shadowMapViewDynamic);
+                rpl.BeginRead();
+                HYP_DEFER({ rpl.EndRead(); });
+
+                const Mat4f& viewProjMat = rpl.cachedMatrices.viewProj;
+                const Mat4f& invProjMat = rpl.cachedMatrices.invProj;
+
+                BoundingBox shadowBoundsNDC;
+                shadowBoundsNDC.min = Vec3f(-1.0f);
+                shadowBoundsNDC.max = Vec3f(1.0f);
+
+                BoundingBox shadowBoundsWS = viewProjMat.Inverse() * shadowBoundsNDC;
+
+                currShadowMapData.layerIndex = atlasElement->layerIndex;
+
+                currShadowMapData.viewProjMat = viewProjMat;
+                currShadowMapData.invProjMat = invProjMat;
+
+                currShadowMapData.aabbMin.x = shadowBoundsWS.min.x;
+                currShadowMapData.aabbMin.y = shadowBoundsWS.min.y;
+                currShadowMapData.aabbMin.z = shadowBoundsWS.min.z;
+                currShadowMapData.aabbMin.w = atlasElement->offsetUV.x;
+
+                currShadowMapData.aabbMax.x = shadowBoundsWS.max.x;
+                currShadowMapData.aabbMax.y = shadowBoundsWS.max.y;
+                currShadowMapData.aabbMax.z = shadowBoundsWS.max.z;
+                currShadowMapData.aabbMax.w = atlasElement->offsetUV.y;
+
+                currShadowMapData.dimensionsScale = Vec4f(Vec2f(atlasElement->dimensions), atlasElement->scale);
+
+                currShadowMapData.splitDistance = 0.0f; // @TODO
+            }
         }
 
-        RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
-        Assert(lightProxy != nullptr);
-
-        const uint32 lightIndex = forwardShadingConstants->numBoundLights++;
-
-        forwardShadingConstants->lights[lightIndex] = lightProxy->bufferData;
-
-        // Set shadow map
-        ShadowMapData& currShadowMapData = forwardShadingConstants->shadowMaps[lightIndex];
-
-        const uint32 cascadeIndex = 0;
-
-        View* shadowMapViewDynamic;
-        View* shadowMapViewStatic;
-
-        ShadowMap* shadowMap = RI.shadowMapCache->GetShadowMap(
-            light,
-            renderSetup.view,
-            cascadeIndex,
-            shadowMapViewDynamic,
-            shadowMapViewStatic);
-
-        if (shadowMap != nullptr)
+        if (const auto& skyProbes = rpl.GetEnvProbes().GetElements<SkyProbe>(); skyProbes.Any())
         {
-            ShadowMapAtlasElement* atlasElement = shadowMap->GetAtlasElement();
-            AssertDebug(atlasElement != nullptr);
+            RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(*skyProbes.Begin()));
+            Assert(envProbeProxy != nullptr);
 
-            if (!atlasElement)
+            forwardShadingConstants->fallbackProbe = envProbeProxy->bufferData;
+        }
+        else
+        {
+            forwardShadingConstants->fallbackProbe = EnvProbeShaderData {};
+        }
+
+        cr << SetShaderUniform(numShaderUniforms++, "ForwardShadingConstants"_sh, cbuffer, ShaderDataOffset(cbufferOffset, sizeof(ForwardShadingConstants)));
+    }
+
+    cbuffer = nullptr;
+    cbufferOffset = 0;
+
+    if (shaderProperties.Test(s_propApplyLightmaps))
+    {
+        struct LightmapVolumeData
+        {
+            Vec4f aabbMin;
+            Vec4f aabbMax;
+        };
+
+        struct ApplyLightmapsConstants
+        {
+            LightmapVolumeData lightmapVolumes[MaxLightmapVolumeAssignments];
+            uint32 numLightmapVolumes;
+        };
+        
+        ApplyLightmapsConstants* applyLightmapsConstants = (ApplyLightmapsConstants*)RI.cbufferAllocator->Allocate(
+            sizeof(ApplyLightmapsConstants),
+            alignof(ApplyLightmapsConstants),
+            cbuffer,
+            cbufferOffset);
+
+        Assert(applyLightmapsConstants != nullptr);
+        Memory::Zero(applyLightmapsConstants, sizeof(ApplyLightmapsConstants));
+
+        Texture* lightmapVolumeIrradianceTextures[MaxLightmapVolumeAssignments] = {};
+
+        for (LightmapVolume* lmv : rpl.GetLightmapVolumes())
+        {
+            if (applyLightmapsConstants->numLightmapVolumes >= MaxLightmapVolumeAssignments)
+            {
+                break;
+            }
+
+            RenderProxyLightmapVolume* lmvProxy = static_cast<RenderProxyLightmapVolume*>(GetRenderProxy(lmv));
+            Assert(lmvProxy != nullptr);
+
+            if (lmvProxy->numAtlases == 0 || lmvProxy->atlasIrradianceTextures[0] == nullptr)
             {
                 continue;
             }
 
-            AssertDebug(shadowMapViewDynamic != nullptr && shadowMapViewDynamic->GetCamera() != nullptr);
+            const uint32 volumeIndex = applyLightmapsConstants->numLightmapVolumes++;
 
-            RenderProxyList& rpl = GetConsumerProxyList(shadowMapViewDynamic);
-            rpl.BeginRead();
-            HYP_DEFER({ rpl.EndRead(); });
+            LightmapVolumeData& volumeData = applyLightmapsConstants->lightmapVolumes[volumeIndex];
+            volumeData.aabbMin = Vec4f(lmvProxy->worldAabb.min, 1.0f);
+            volumeData.aabbMax = Vec4f(lmvProxy->worldAabb.max, 1.0f);
 
-            const Mat4f& viewProjMat = rpl.cachedMatrices.viewProj;
-            const Mat4f& invProjMat = rpl.cachedMatrices.invProj;
-
-            BoundingBox shadowBoundsNDC;
-            shadowBoundsNDC.min = Vec3f(-1.0f);
-            shadowBoundsNDC.max = Vec3f(1.0f);
-
-            BoundingBox shadowBoundsWS = viewProjMat.Inverse() * shadowBoundsNDC;
-
-            currShadowMapData.layerIndex = atlasElement->layerIndex;
-
-            currShadowMapData.viewProjMat = viewProjMat;
-            currShadowMapData.invProjMat = invProjMat;
-
-            currShadowMapData.aabbMin.x = shadowBoundsWS.min.x;
-            currShadowMapData.aabbMin.y = shadowBoundsWS.min.y;
-            currShadowMapData.aabbMin.z = shadowBoundsWS.min.z;
-            currShadowMapData.aabbMin.w = atlasElement->offsetUV.x;
-
-            currShadowMapData.aabbMax.x = shadowBoundsWS.max.x;
-            currShadowMapData.aabbMax.y = shadowBoundsWS.max.y;
-            currShadowMapData.aabbMax.z = shadowBoundsWS.max.z;
-            currShadowMapData.aabbMax.w = atlasElement->offsetUV.y;
-
-            currShadowMapData.dimensionsScale = Vec4f(Vec2f(atlasElement->dimensions), atlasElement->scale);
-
-            currShadowMapData.splitDistance = 0.0f; // @TODO
-        }
-    }
-
-    // Set fallback probe
-    EnvProbe* fallbackProbe = nullptr;
-
-    for (EnvProbe* envProbe : rpl.GetEnvProbes())
-    {
-        // if we are drawing an env probe we don't want to use it as fallback!
-        if (envProbe == renderSetup.envProbe)
-        {
-            continue;
+            lightmapVolumeIrradianceTextures[volumeIndex] = lmvProxy->atlasIrradianceTextures[0];
         }
 
-        if (!fallbackProbe || uint32(envProbe->GetEnvProbeType()) < uint32(fallbackProbe->GetEnvProbeType()))
-        {
-            fallbackProbe = envProbe;
-        }
+        cr << SetShaderUniform(
+            numShaderUniforms++,
+            "ApplyLightmapsConstants"_sh,
+            cbuffer, ShaderDataOffset(cbufferOffset, sizeof(ApplyLightmapsConstants)));
+
+        cr << SetShaderUniform(
+            numShaderUniforms++,
+            "LightmapVolumeIrradianceTexture0"_sh,
+            RI.textureViewCache->GetOrCreate(lightmapVolumeIrradianceTextures[0] != nullptr
+                ? lightmapVolumeIrradianceTextures[0]
+                : RI.placeholderData->textureSolidBlack
+            ));
+            
+        cr << SetShaderUniform(
+            numShaderUniforms++,
+            "LightmapVolumeIrradianceTexture1"_sh,
+            RI.textureViewCache->GetOrCreate(lightmapVolumeIrradianceTextures[1] != nullptr
+                ? lightmapVolumeIrradianceTextures[1]
+                : RI.placeholderData->textureSolidBlack
+            ));
+            
+        cr << SetShaderUniform(
+            numShaderUniforms++,
+            "LightmapVolumeIrradianceTexture2"_sh,
+            RI.textureViewCache->GetOrCreate(lightmapVolumeIrradianceTextures[2] != nullptr
+                ? lightmapVolumeIrradianceTextures[2]
+                : RI.placeholderData->textureSolidBlack
+            ));
+            
+        cr << SetShaderUniform(
+            numShaderUniforms++,
+            "LightmapVolumeIrradianceTexture3"_sh,
+            RI.textureViewCache->GetOrCreate(lightmapVolumeIrradianceTextures[3] != nullptr
+                ? lightmapVolumeIrradianceTextures[3]
+                : RI.placeholderData->textureSolidBlack
+            ));
     }
-
-    if (fallbackProbe != nullptr)
-    {
-        RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(fallbackProbe));
-        Assert(envProbeProxy != nullptr);
-
-        forwardShadingConstants->fallbackProbe = envProbeProxy->bufferData;
-    }
-    else
-    {
-        forwardShadingConstants->fallbackProbe = EnvProbeShaderData {};
-    }
-
-    rpl.EndRead();
-
-    cr << SetShaderUniform(numShaderUniforms++, "ForwardShadingConstants"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 }
 
 template <bool UseIndirectRendering, class TCommandRecorder>
@@ -951,10 +1024,10 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
 
     if (isForwardNonClustered)
     {
-        SetForwardShadingConstants(renderSetup, cr, numShaderUniforms);
+        SetForwardShadingConstants(renderSetup, cr, mas.shaderProperties, numShaderUniforms);
     }
 
-    static const bool s_useBindlessTextures = RI.GetRenderConfig().bindlessTextures;
+    const bool useBindlessTextures = RI.GetRenderConfig().bindlessTextures;
 
     Mesh* prevMesh = nullptr;
 
@@ -1051,7 +1124,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
             cr << SetShaderUniform(numDrawCallUniforms++, "SkeletonsBuffer"_sh, RI.namedBuffers[NamedBuffer::Skeletons], Resources::GetBinding(meshProxy.skeleton));
         }
 
-        if (!s_useBindlessTextures)
+        if (!useBindlessTextures)
         {
             const uint32 materialBoundIndex = Resources::GetBinding(meshProxy.material);
             AssertDebug(materialBoundIndex != ~0u);
@@ -1155,7 +1228,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
             cr << SetShaderUniform(numDrawCallUniforms++, "SkeletonsBuffer"_sh, RI.namedBuffers[NamedBuffer::Skeletons], Resources::GetBinding(meshProxy.skeleton));
         }
 
-        if (!s_useBindlessTextures)
+        if (!useBindlessTextures)
         {
             const uint32 materialBoundIndex = Resources::GetBinding(meshProxy.material);
             AssertDebug(materialBoundIndex != ~0u);
