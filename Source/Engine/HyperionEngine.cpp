@@ -766,6 +766,12 @@ extern "C"
             TaskSystem::GetInstance().Stop();
         }
 
+        delete g_shaderManager;
+        g_shaderManager = nullptr;
+
+        delete g_shaderCompiler;
+        g_shaderCompiler = nullptr;
+
         // must stop before net request thread
         StopProfilerConnectionThread();
 

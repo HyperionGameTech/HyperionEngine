@@ -427,6 +427,7 @@ void EngineDriver::Shutdown()
 
     m_delegates.OnShutdown();
     
+    // NOTE: intentionally not deleting g_shaderManager here
     if (g_shaderManager != nullptr)
     {
         g_shaderManager->StopShaderReloadThread();
@@ -437,13 +438,7 @@ void EngineDriver::Shutdown()
             g_shaderManager->WriteShaderCache(EngineGlobals::GetCacheDirectory());
         }
 #endif // !HYP_SHIPPING
-
-        delete g_shaderManager;
-        g_shaderManager = nullptr;
     }
-
-    delete g_shaderCompiler;
-    g_shaderCompiler = nullptr;
 
     for (const Handle<World>& world : m_worlds)
     {

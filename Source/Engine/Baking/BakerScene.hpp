@@ -13,10 +13,27 @@
 #include <Asset/AssetPath.hpp>
 
 #include <Baking/BakeEpoch.hpp>
+#include <Baking/BakerMemory.hpp>
 
 namespace Hyperion {
 
 namespace Baking {
+
+/// Cached hash codes for a given Scene
+HYP_STRUCT()
+struct BakerSceneHashes
+{
+    HYP_STRUCT_BODY(BakerSceneHashes);
+
+    HYP_FIELD()
+    HashCode staticEntitiesHash;
+    
+    HYP_FIELD()
+    HashCode staticMeshEntitiesHash;
+    
+    HYP_FIELD()
+    HashCode staticLightsHash;
+};
 
 HYP_STRUCT()
 struct BakerSceneCategory
@@ -44,6 +61,11 @@ struct BakerScene
     
     HYP_FIELD(Property = "Categories", Serialize)
     Array<BakerSceneCategory> categories;
+
+    // per-scene hashes - keyed by scene's UUID.
+    // transient, cached are constructed on first use.
+    HYP_FIELD(Property = "SceneHashes", Transient)
+    Map<UUID, BakerSceneHashes, BakerAllocator> sceneHashes;
 
     BakerScene()
     {

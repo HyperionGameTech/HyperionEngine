@@ -6,7 +6,6 @@
 
 #pragma once
 
-
 namespace Hyperion {
 
 class Camera;

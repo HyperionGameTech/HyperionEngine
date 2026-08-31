@@ -49,7 +49,7 @@ void EditorTaskManager::AddTask(const Handle<EditorTaskBase>& task)
 
     {
         Mutex::Guard guard(m_mutex);
-        RunningEditorTask& runningTask = m_tasks.EmplaceBack(task);
+        m_tasks.EmplaceBack(task);
     }
 
     OnTaskAdded(task);
@@ -67,6 +67,7 @@ void EditorTaskManager::Tick()
     for (auto it = m_tasks.Begin(); it != m_tasks.End();)
     {
         const Handle<EditorTaskBase>& task = it->GetTask();
+        Assert(task.IsValid());
 
         if (task->IsCancellationRequested())
         {

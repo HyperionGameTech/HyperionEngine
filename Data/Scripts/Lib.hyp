@@ -1979,8 +1979,14 @@ extern struct BakerSceneCategory
     Revision : uint64
     Assets : Array<any>
 end
+extern struct BakerSceneHashes
+    StaticEntitiesHash : HashCode
+    StaticMeshEntitiesHash : HashCode
+    StaticLightsHash : HashCode
+end
 extern struct BakerScene
     Categories : Array<BakerSceneCategory>
+    SceneHashes : any
 end
 extern class BakerBase
 end
@@ -2228,6 +2234,7 @@ extern enum SceneFlags : uint32
     DEFAULT = ((FOREGROUND | STREAMED) | HAS_OCTREE)
 end
 extern class Scene : AssetObject
+    GetUUID() -> UUID
     GetPrimaryCamera() -> Camera
     GetSceneFlags() -> SceneFlags
     SetSceneFlags(flags : SceneFlags) -> void
@@ -2249,6 +2256,7 @@ extern class Scene : AssetObject
     AddToWorld(world : World) -> bool
     RemoveFromWorld() -> bool
     static OnRootNodeChanged : any
+    Uuid : UUID
     SceneFlags : SceneFlags
     Root : Node
     OwnerThreadId : any

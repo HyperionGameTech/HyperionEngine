@@ -45,15 +45,17 @@ namespace Hyperion {
 using namespace Baking;
 using Cat = BakerSceneCategory;
 
-static void UpdateEpoch(BakerScene& bakerScene, const LightmapVolume& lmv)
+static void UpdateEpoch(const LightmapVolume& lmv, BakerScene& bakerScene)
 {
     uint64 epoch = BakeEpoch::ComputeEpoch(lmv, bakerScene);
-    
+
     bakerScene.SetAssetEpoch<Cat::LightReceiver>(lmv, epoch);
     bakerScene.SetAssetEpoch<Cat::Lightmap>(lmv, epoch);
+
+    bakerScene.BumpEpochRev(Cat::Lightmap);
 }
 
-static void UpdateEpoch(BakerScene& bakerScene, const EnvProbe& envProbe)
+static void UpdateEpoch(const EnvProbe& envProbe, BakerScene& bakerScene)
 {
     uint64 epoch = BakeEpoch::ComputeEpoch(envProbe, bakerScene);
 
@@ -153,14 +155,14 @@ void BakerSubsystem::OnBakeCompleted(Baking::BakerScene& bakerScene, ObjectBase*
     
     if (LightmapVolume* lmv = DynamicCast<LightmapVolume>(source))
     {
-        UpdateEpoch(bakerScene, *lmv);
+        UpdateEpoch(*lmv, bakerScene);
 
         return;
     }
 
     if (EnvProbe* envProbe = DynamicCast<EnvProbe>(source))
     {
-        UpdateEpoch(bakerScene, *envProbe);
+        UpdateEpoch(*envProbe, bakerScene);
 
         return;
     }

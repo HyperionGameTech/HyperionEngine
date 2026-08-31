@@ -11,6 +11,12 @@
 
 #include <Scene/Scene.hpp>
 #include <Scene/EntityTag.hpp>
+#include <Scene/EntityManager.hpp>
+
+#include <Scene/Components/MeshComponent.hpp>
+#include <Scene/Components/BoundingBoxComponent.hpp>
+
+#include <Scene/Util/SceneHelpers.hpp>
 
 #include <Scene/LightmapVolume.hpp>
 #include <Scene/EnvProbe.hpp>
@@ -20,23 +26,48 @@ namespace Hyperion {
 namespace Baking {
 namespace BakeEpoch {
 
-HashCode GetSceneHash(const Scene& scene)
+void ComputeSceneHashes(const Scene& scene, BakerSceneHashes& inOutResult)
 {
-    if (!(scene.GetSceneFlags() & SceneFlags::HAS_OCTREE))
+    const bool hasOctree = (scene.GetSceneFlags() & SceneFlags::HAS_OCTREE);
+    
+    if (hasOctree)
     {
-        return HashCode();
+        const HashCode staticEntitiesHash = scene.GetOctree().GetEntryListHash<EntityTag::MobStatic>();
+
+        if (staticEntitiesHash == inOutResult.staticEntitiesHash)
+        {
+            // use cached
+            return;
+        }
+
+        inOutResult.staticEntitiesHash = staticEntitiesHash;
+    }
+    else
+    {
+        inOutResult.staticEntitiesHash = {};
     }
 
-    const SceneOctree& octree = scene.GetOctree();
+    auto updateHashForComponent = [&]<class ComponentType>(TypeWrapper<ComponentType>, HashCode& hashCode)
+    {
+        HashCode hc;
 
-    // clang-format off
-    return HashCode(0)
-        .Add(octree.GetEntryListHash<EntityTag::MobStatic>())
-        .Add(octree.GetEntryListHash<EntityTag::Light>());
-    // clang-format on
+        if (scene.GetEntityManager().IsValid())
+        {
+            for (auto [entity, _0, boundingBoxComponent, _1] : scene.GetEntityManager()->GetEntitySet<ComponentType, BoundingBoxComponent, TagComponent<EntityTag::MobStatic>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+            {
+                hc.Add(entity->GetUUID());
+                hc.Add(boundingBoxComponent.worldAabb);
+            }
+        }
+
+        hashCode = hc;
+    };
+
+    updateHashForComponent(TypeWrapper<MeshComponent>(), inOutResult.staticMeshEntitiesHash);
+    updateHashForComponent(TypeWrapper<TagComponent<EntityTag::Light>>(), inOutResult.staticLightsHash);
 }
 
-uint64 ComputeEpoch(const LightmapVolume& volume, const BakerScene& bakerScene)
+uint64 ComputeEpoch(const LightmapVolume& volume, BakerScene& bakerScene)
 {
     Scene* scene = volume.GetScene();
 
@@ -45,10 +76,15 @@ uint64 ComputeEpoch(const LightmapVolume& volume, const BakerScene& bakerScene)
         return 0;
     }
 
-    return GetSceneHash(*scene).Value();
+    BakerSceneHashes& hashes = bakerScene.sceneHashes[scene->GetUUID()];
+    ComputeSceneHashes(*scene, hashes);
+
+    return hashes.staticMeshEntitiesHash
+        .Combine(hashes.staticLightsHash)
+        .Value();
 }
 
-uint64 ComputeEpoch(const EnvProbe& probe, const BakerScene& bakerScene)
+uint64 ComputeEpoch(const EnvProbe& probe, BakerScene& bakerScene)
 {
     Scene* scene = probe.GetScene();
 
@@ -57,8 +93,14 @@ uint64 ComputeEpoch(const EnvProbe& probe, const BakerScene& bakerScene)
         return 0;
     }
 
-    return GetSceneHash(*scene)
-        .Add(bakerScene.GetEpochRev(BakerSceneCategory::Lightmap))
+    
+    BakerSceneHashes& hashes = bakerScene.sceneHashes[scene->GetUUID()];
+    ComputeSceneHashes(*scene, hashes);
+
+    // Lightmap revs affect env probes, as they are sampled when building probes
+    return hashes.staticMeshEntitiesHash
+        .Combine(hashes.staticLightsHash)
+        .Combine(bakerScene.GetEpochRev(BakerSceneCategory::Lightmap))
         .Value();
 }
 

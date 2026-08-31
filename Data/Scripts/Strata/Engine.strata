@@ -162,6 +162,7 @@ struct BVHNode;
 struct BakerConfig;
 struct BakerScene;
 struct BakerSceneCategory;
+struct BakerSceneHashes;
 struct BlendFunction;
 struct BlobBlockData;
 struct BlobDataReference;
@@ -849,6 +850,7 @@ extern void World_RemoveView(World self, View view);
 extern bool World_RemoveSystem(World self, SystemBase system);
 
 // Scene
+extern void Scene_GetUUID(Scene self, ref UUID outReturn);
 extern Camera Scene_GetPrimaryCamera(Scene self);
 extern Node Scene_FindNodeByName(Scene self, const StringHash name);
 extern Node Scene_FindNodeByUUID(Scene self, const UUID uuid);

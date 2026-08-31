@@ -88,6 +88,12 @@ public:
     void Initialize();
     void Shutdown();
 
+    HYP_METHOD(Property = "UUID")
+    HYP_FORCE_INLINE const UUID& GetUUID() const
+    {
+        return m_uuid;
+    }
+
     /*! \brief Get the thread Id that owns this Scene. */
     HYP_FORCE_INLINE ThreadId GetOwnerThreadId() const
     {
@@ -225,6 +231,9 @@ public:
 private:
     template <class SystemType>
     void AddSystemIfApplicable();
+    
+    HYP_FIELD(Property = "UUID", Serialize, Editor, EditEnabled = false)
+    UUID m_uuid;
 
     HYP_FIELD(Property = "SceneFlags")
     EnumFlags<SceneFlags> m_sceneFlags;
