@@ -9,6 +9,8 @@
 #include <Baking/BakerSubsystem.hpp>
 #include <Baking/Baker.hpp>
 #include <Baking/BakerMemory.hpp>
+#include <Baking/BakerScene.hpp>
+#include <Baking/BakeEpoch.hpp>
 
 #include <Baking/LightmapVolume/LightmapVolumeBaker.hpp>
 #include <Baking/EnvProbe/EnvProbeBaker.hpp>
@@ -41,6 +43,22 @@
 namespace Hyperion {
 
 using namespace Baking;
+using Cat = BakerSceneCategory;
+
+static void UpdateEpoch(BakerScene& bakerScene, const LightmapVolume& lmv)
+{
+    uint64 epoch = BakeEpoch::ComputeEpoch(lmv, bakerScene);
+    
+    bakerScene.SetAssetEpoch<Cat::LightReceiver>(lmv, epoch);
+    bakerScene.SetAssetEpoch<Cat::Lightmap>(lmv, epoch);
+}
+
+static void UpdateEpoch(BakerScene& bakerScene, const EnvProbe& envProbe)
+{
+    uint64 epoch = BakeEpoch::ComputeEpoch(envProbe, bakerScene);
+
+    bakerScene.SetAssetEpoch<Cat::LightReceiver>(envProbe, epoch);
+}
 
 #pragma region BakerSubsystem
 
@@ -57,13 +75,15 @@ void BakerSubsystem::OnRemovedFromWorld()
 {
     AssertOnThread(g_simThread);
 
-    for (auto& it : m_bakers)
+    for (ObjectBakeState& bs : m_bakes)
     {
-        Handle<BakerBase>& baker = it.second;
+        Handle<BakerBase>& baker = bs.baker;
+        Assert(baker.IsValid());
+
         baker->Shutdown();
     }
 
-    m_bakers.Clear();
+    m_bakes.Clear();
 }
 
 void BakerSubsystem::Update(float delta)
@@ -74,19 +94,33 @@ void BakerSubsystem::Update(float delta)
 
     size_t bakerIndex = 0;
 
-    if (m_bakers.Any())
+    if (m_bakes.Any())
     {
-        const ObjectBase* key = m_bakers[bakerIndex].first;
-        BakerBase* baker = m_bakers[bakerIndex].second;
+        ObjectBakeState& bs = m_bakes[bakerIndex];
+        Assert(bs.obj && bs.bakerScene && bs.baker);
+
+        ObjectBase* source = bs.obj;
+        BakerScene& bakerScene = *bs.bakerScene;
+        BakerBase* baker = bs.baker;
 
         baker->Update(delta);
 
         if (baker->IsComplete())
         {
+            const bool succeeded = baker->GetState() == BakerState::Complete;
+
+            HYP_LOG(Lightmap, Info, "Baker for source {} completed, succeeded = {}",
+                source ? source->Id() : ObjIdBase(), succeeded);
+
             baker->Shutdown();
 
+            if (succeeded)
+            {
+                OnBakeCompleted(bakerScene, source);
+            }
+
             // Remove this guy
-            m_bakers.PopFront();
+            m_bakes.PopFront();
         }
         else
         {
@@ -97,12 +131,12 @@ void BakerSubsystem::Update(float delta)
     }
 
     // keep the others' views alive even if we don't Update() them right now.
-    while (bakerIndex < m_bakers.Size())
+    while (bakerIndex < m_bakes.Size())
     {
-        const ObjectBase* key = m_bakers[bakerIndex].first;
-        BakerBase* baker = m_bakers[bakerIndex].second;
+        ObjectBakeState& bs = m_bakes[bakerIndex];
+        Assert(bs.baker);
 
-        GetWorld()->ProcessViewAsync(baker->GetView());
+        GetWorld()->ProcessViewAsync(bs.baker->GetView());
 
         ++bakerIndex;
     }
@@ -110,32 +144,51 @@ void BakerSubsystem::Update(float delta)
     g_bakerArena->Reset();
 }
 
-template <>
-Task<void> BakerSubsystem::EnqueueBake(const Handle<LightmapVolume>& source, uint32 shadingTypesMaskOverride)
+void BakerSubsystem::OnBakeCompleted(Baking::BakerScene& bakerScene, ObjectBase* source)
 {
-    return EnqueueBake_Internal(source, shadingTypesMaskOverride);
+    if (!source)
+    {
+        return;
+    }
+    
+    if (LightmapVolume* lmv = DynamicCast<LightmapVolume>(source))
+    {
+        UpdateEpoch(bakerScene, *lmv);
+
+        return;
+    }
+
+    if (EnvProbe* envProbe = DynamicCast<EnvProbe>(source))
+    {
+        UpdateEpoch(bakerScene, *envProbe);
+
+        return;
+    }
 }
 
-template <>
-Task<void> BakerSubsystem::EnqueueBake(const Handle<EnvProbe>& source, uint32 shadingTypesMaskOverride)
-{
-    return EnqueueBake_Internal(source, shadingTypesMaskOverride);
-}
+// clang-format off
 
-template <>
-Task<void> BakerSubsystem::EnqueueBake(const Handle<FogVolume>& source, uint32 shadingTypesMaskOverride)
-{
-    return EnqueueBake_Internal(source, shadingTypesMaskOverride);
-}
+#define DEF_ENQUEUE_BAKE_SPECIALIZATION(T) \
+    template <> Task<void> BakerSubsystem::EnqueueBake(Baking::BakerScene& bakerScene, const Handle<T>& source, uint32 shadingTypesMaskOverride) \
+    {   \
+        return EnqueueBake_Internal(bakerScene, source, shadingTypesMaskOverride);  \
+    }
 
-template <>
-Task<void> BakerSubsystem::EnqueueBake(const Handle<Light>& source, uint32 shadingTypesMaskOverride)
-{
-    return EnqueueBake_Internal(source, shadingTypesMaskOverride);
-}
+DEF_ENQUEUE_BAKE_SPECIALIZATION(LightmapVolume);
+DEF_ENQUEUE_BAKE_SPECIALIZATION(EnvProbe);
+DEF_ENQUEUE_BAKE_SPECIALIZATION(FogVolume);
+DEF_ENQUEUE_BAKE_SPECIALIZATION(Light);
+
+#undef DEF_ENQUEUE_BAKE_SPECIALIZATION
+
+// clang-format on
 
 template <class T, class... Args>
-Task<void> BakerSubsystem::EnqueueBake_Internal(const Handle<T>& source, uint32 shadingTypesMaskOverride, Args&&... args)
+Task<void> BakerSubsystem::EnqueueBake_Internal(
+    Baking::BakerScene& bakerScene,
+    const Handle<T>& source,
+    uint32 shadingTypesMaskOverride,
+    Args&&... args)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -145,17 +198,25 @@ Task<void> BakerSubsystem::EnqueueBake_Internal(const Handle<T>& source, uint32 
         return Task<void>();
     }
 
-    auto it = m_bakers.FindIf([source](const Pair<ObjectBase*, Handle<BakerBase>>& item)
+    HYP_LOG(Lightmap, Info, "EnqueueBake_Internal: bakerSubsystem = {}, world = {}, source = {}",
+        (void*)this, (void*)GetWorld(), source->Id());
+    
+    auto it = m_bakes.FindIf([source](const ObjectBakeState& bs)
     {
-        return item.first == source.Get();
+        return bs.obj == source.Get();
     });
 
-    if (it != m_bakers.End())
+    if (it != m_bakes.End())
     {
         return Task<void>();
     }
 
-    Handle<BakerBase> baker = MakeHandle<Baker<T>>(BakerConfig::FromConfig(), source, std::forward<Args>(args)...);
+    Handle<BakerBase> baker = MakeHandle<Baker<T>>(
+        BakerConfig::FromConfig(), // <---- TODO: Not just the global...... should be per-type! Like BakerConfig<Light> ?
+        bakerScene,
+        source,
+        std::forward<Args>(args)...);
+
     baker->SetShadingTypesMaskOverride(shadingTypesMaskOverride);
     InitObject(baker);
 
@@ -173,7 +234,7 @@ Task<void> BakerSubsystem::EnqueueBake_Internal(const Handle<T>& source, uint32 
     
     GetWorld()->ProcessViewAsync(baker->GetView());
 
-    m_bakers.EmplaceBack(source.Get(), std::move(baker));
+    m_bakes.PushBack(ObjectBakeState { source, &bakerScene, std::move(baker) });
 
     return task;
 }
@@ -188,18 +249,20 @@ void BakerSubsystem::CancelBake(ObjectBase* source)
         return;
     }
 
-    auto it = m_bakers.FindIf([source](const Pair<ObjectBase*, Handle<BakerBase>>& item)
+    auto it = m_bakes.FindIf([source](const ObjectBakeState& bs)
     {
-        return item.first == source;
+        return bs.obj == source;
     });
 
-    if (it == m_bakers.End())
+    if (it == m_bakes.End())
     {
         return;
     }
 
-    Handle<BakerBase> baker = std::move(it->second);
-    m_bakers.Erase(it);
+    Handle<BakerBase> baker = std::move(it->baker);
+    Assert(baker.IsValid());
+
+    m_bakes.Erase(it);
 
     baker->RequestCancel();
     baker->Shutdown();
@@ -215,17 +278,19 @@ float BakerSubsystem::GetBakeProgress(ObjectBase* source) const
         return 1.0f;
     }
 
-    auto it = m_bakers.FindIf([source](const Pair<ObjectBase*, Handle<BakerBase>>& item)
+    auto it = m_bakes.FindIf([source](const ObjectBakeState& bs)
     {
-        return item.first == source;
+        return bs.obj == source;
     });
 
-    if (it == m_bakers.End())
+    if (it == m_bakes.End())
     {
         return 1.0f;
     }
 
-    return it->second->GetProgress();
+    Assert(it->baker.IsValid());
+
+    return it->baker->GetProgress();
 }
 
 #pragma endregion BakerSubsystem

@@ -35,8 +35,9 @@ struct VSOutput
     float3 normal : NORMAL;
     float2 texcoord0 : TEXCOORD0;
     float2 texcoord1 : TEXCOORD1;
-    nointerpolation float3 camera_position : TEXCOORD3;
-    nointerpolation uint object_index : TEXCOORD6;
+    nointerpolation float3 camera_position : TEXCOORD2;
+    nointerpolation uint object_index : TEXCOORD3;
+    nointerpolation uint bucket : TEXCOORD4;
 };
 
 #include "include/Entity.hlsli"
@@ -105,6 +106,8 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.object_index = ~0u; // unused
 #endif  // INSTANCING
 
+    output.bucket = currentEntity.bucket;
+
 #if defined(SKINNING) && defined(VT_Skeletal)
     float4x4 skinning_matrix = CreateSkinningMatrix(input.a_bone_indices, input.a_bone_weights);
 
@@ -152,8 +155,9 @@ struct PSInput
     float3 normal : NORMAL;
     float2 texcoord0 : TEXCOORD0;
     float2 texcoord1 : TEXCOORD1;
-    nointerpolation float3 camera_position : TEXCOORD3;
-    nointerpolation uint object_index : TEXCOORD6;
+    nointerpolation float3 camera_position : TEXCOORD2;
+    nointerpolation uint object_index : TEXCOORD3;
+    nointerpolation uint bucket : TEXCOORD4;
 };
 
 struct PSOutput
@@ -258,6 +262,21 @@ DECLARE_SRV(Default, LightmapVolumeIrradianceTexture0) Texture2D LightmapVolumeI
 DECLARE_SRV(Default, LightmapVolumeIrradianceTexture1) Texture2D LightmapVolumeIrradianceTexture1;
 DECLARE_SRV(Default, LightmapVolumeIrradianceTexture2) Texture2D LightmapVolumeIrradianceTexture2;
 DECLARE_SRV(Default, LightmapVolumeIrradianceTexture3) Texture2D LightmapVolumeIrradianceTexture3;
+
+// clang-format off
+#define APPLY_LIGHTMAP_VOLUME(idx, tex)                                                       \
+    if (!hasLightmapContribution && idx < numLightmapVolumes)                                     \
+    {                                                                                              \
+        LightmapVolumeData lmv = lightmapVolumes[idx];                                             \
+        const float3 d = max(lmv.aabbMin.xyz - input.position, input.position - lmv.aabbMax.xyz);  \
+        if (max(d.x, max(d.y, d.z)) <= 0.0)                                                        \
+        {                                                                                           \
+            const float4 irradiance = SAMPLE_TEXTURE_2D_LOD(sampler_linear, tex, input.texcoord1, 0); \
+            indirectLight = diffuseColor * irradiance.rgb;                                         \
+            hasLightmapContribution = true;                                                        \
+        }                                                                                            \
+    }
+// clang-format on
 
 #endif // APPLY_LIGHTMAPS
 
@@ -382,27 +401,15 @@ PSOutput PSMain(PSInput input)
         bool hasLightmapContribution = false;
 
 #ifdef APPLY_LIGHTMAPS
-        // clang-format off
-#define HYP_APPLY_LIGHTMAP_VOLUME(idx, tex)                                                       \
-            if (!hasLightmapContribution && idx < numLightmapVolumes)                                     \
-            {                                                                                              \
-                LightmapVolumeData lmv = lightmapVolumes[idx];                                             \
-                const float3 d = max(lmv.aabbMin.xyz - input.position, input.position - lmv.aabbMax.xyz);  \
-                if (max(d.x, max(d.y, d.z)) <= 0.0)                                                        \
-                {                                                                                           \
-                    const float4 irradiance = SAMPLE_TEXTURE_2D_LOD(sampler_linear, tex, input.texcoord1, 0); \
-                    indirectLight = diffuseColor * irradiance.rgb;                                         \
-                    hasLightmapContribution = true;                                                        \
-                }                                                                                            \
-            }
 
-       HYP_APPLY_LIGHTMAP_VOLUME(0, LightmapVolumeIrradianceTexture0)
-       HYP_APPLY_LIGHTMAP_VOLUME(1, LightmapVolumeIrradianceTexture1)
-       HYP_APPLY_LIGHTMAP_VOLUME(2, LightmapVolumeIrradianceTexture2)
-       HYP_APPLY_LIGHTMAP_VOLUME(3, LightmapVolumeIrradianceTexture3)
-        
-#undef HYP_APPLY_LIGHTMAP_VOLUME
-        // clang-format on
+        // ONLY stuff with the lightmapped bucket
+        if (input.bucket == HYP_OBJECT_BUCKET_LIGHTMAPPED)
+        {
+            APPLY_LIGHTMAP_VOLUME(0, LightmapVolumeIrradianceTexture0)
+            APPLY_LIGHTMAP_VOLUME(1, LightmapVolumeIrradianceTexture1)
+            APPLY_LIGHTMAP_VOLUME(2, LightmapVolumeIrradianceTexture2)
+            APPLY_LIGHTMAP_VOLUME(3, LightmapVolumeIrradianceTexture3)
+        }
 
 #endif // APPLY_LIGHTMAPS
 

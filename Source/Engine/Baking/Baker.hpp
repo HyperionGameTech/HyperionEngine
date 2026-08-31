@@ -64,6 +64,8 @@ class BakerThreadPool;
 struct BakeJobParams;
 struct BakeEntity;
 
+struct BakerScene;
+
 struct LightmapRay;
 
 class PathTracer;
@@ -144,7 +146,12 @@ class ENGINE_API BakerBase : public ObjectBase
     HYP_OBJECT_BODY(BakerBase);
 
 public:
-    BakerBase(BakerConfig&& config, ObjectBase* source, const Handle<Scene>& scene, const BoundingBox& aabb);
+    BakerBase(
+        BakerConfig&& config,
+        BakerScene& bakerScene,
+        ObjectBase* source,
+        const Handle<Scene>& scene,
+        const BoundingBox& aabb);
 
     BakerBase(const BakerBase& other) = delete;
     BakerBase& operator=(const BakerBase& other) = delete;
@@ -157,6 +164,11 @@ public:
     HYP_FORCE_INLINE const BakerConfig& GetConfig() const
     {
         return m_config;
+    }
+
+    HYP_FORCE_INLINE BakerScene* GetBakerScene() const
+    {
+        return m_bakerScene;
     }
 
     HYP_FORCE_INLINE const BoundingBox& GetAABB() const
@@ -310,6 +322,8 @@ protected:
     virtual void CreateLightmapRenderers();
 
     BakerConfig m_config;
+
+    BakerScene* m_bakerScene;
 
     uint32 m_shadingTypesMaskOverride = 0;
 

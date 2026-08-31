@@ -98,6 +98,10 @@
 #include <Baking/BakerSubsystem.hpp>
 #include <Baking/BakeData.hpp>
 #include <Baking/Baker.hpp>
+#include <Baking/BakeEpoch.hpp>
+#include <Baking/BakerScene.hpp>
+
+#include <UI/Overlays/MessagesOverlay.hpp>
 
 // for EnumToString
 #include <Core/Reflection/Enum.hpp>
@@ -1772,69 +1776,6 @@ bool VolumeEditorGizmo::OnKeyPress(const Handle<Camera>& camera, const KeyboardE
 
 #pragma endregion VolumeEditorGizmo
 
-#pragma region EditorSubsystem Gizmos
-
-EditorManipulationMode EditorSubsystem::GetSelectedManipulationMode() const
-{
-    //AssertOnThread(g_simThread);
-
-    return m_selectedManipulationMode;
-}
-
-void EditorSubsystem::SetSelectedManipulationMode(EditorManipulationMode mode)
-{
-    AssertOnThread(g_simThread);
-
-    if (!m_meshEditState.isChanging)
-    {
-        ExitMeshEditMode(/* saveEdits */ true);
-    }
-
-    if (mode == m_selectedManipulationMode)
-    {
-        return;
-    }
-
-    if (!m_gizmos.Contains(mode))
-    {
-        SetSelectedManipulationMode(EditorManipulationMode::None);
-        return;
-    }
-
-    EditorGizmoBase* newGizmo = m_gizmos.At(mode);
-    EditorGizmoBase* prevGizmo = m_gizmos.At(m_selectedManipulationMode);
-
-    m_selectedManipulationMode = mode;
-
-    OnSelectedGizmoChanged(newGizmo, prevGizmo);
-}
-
-EditorGizmoBase* EditorSubsystem::GetSelectedGizmo() const
-{
-    AssertOnThread(g_simThread);
-
-    return m_gizmos.At(m_selectedManipulationMode);
-}
-
-EditorGizmoBase* EditorSubsystem::GetGizmo(EditorManipulationMode mode) const
-{
-    AssertOnThread(g_simThread);
-
-    if (!m_gizmos.Contains(mode))
-    {
-        return nullptr;
-    }
-
-    return m_gizmos.At(mode);
-}
-
-const EditorSubsystem::EditorGizmoSet& EditorSubsystem::GetGizmos() const
-{
-    AssertOnThread(g_simThread);
-
-    return m_gizmos;
-}
-
 bool EditorSubsystem::IsMeshEditModeEnabled() const
 {
     AssertOnThread(g_simThread);
@@ -1945,152 +1886,6 @@ bool EditorSubsystem::IsSimulating() const
     return m_currentProject.IsValid()
         && m_currentProject->GetWorld().IsValid()
         && m_currentProject->GetWorld()->GetGameState().mode == GameStateMode::SIMULATING;
-}
-
-void EditorSubsystem::EnterMeshEditMode()
-{
-    AssertOnThread(g_simThread);
-
-    if (m_meshEditState.enabled)
-    {
-        return;
-    }
-
-    if (!m_currentProject.IsValid())
-    {
-        return;
-    }
-
-    Node* target = ResolveMeshEditTarget();
-
-    if (!target)
-    {
-        HYP_LOG(Editor, Warning, "Cannot enter mesh edit mode: the focused node has no editable mesh");
-
-        return;
-    }
-
-    m_meshEditState.targetNode = MakeWeakRef(target);
-
-    m_meshEditState.manipulationModeBeforeMeshEdit = m_selectedManipulationMode;
-
-    m_meshEditState.enabled = true;
-
-    m_meshEditState.actionStack = MakeHandle<EditorActionStack>(m_currentProject.ToWeak());
-
-    m_meshEditState.baselinePositions.Clear();
-    m_meshEditState.baselineMesh.Reset();
-
-    m_meshEditState.isChanging = true;
-    SetSelectedManipulationMode(EditorManipulationMode::None);
-    m_meshEditState.isChanging = false;
-
-    OnMeshEditStateChanged();
-}
-
-void EditorSubsystem::ExitMeshEditMode(bool saveEdits)
-{
-    AssertOnThread(g_simThread);
-
-    if (!m_meshEditState.enabled)
-    {
-        return;
-    }
-
-    EndMeshEditDrag(/* saveEdits */ true);
-
-    if (saveEdits)
-    {
-        CommitMeshEdits();
-    }
-    else
-    {
-        DiscardMeshEdits();
-    }
-
-    m_meshEditState.enabled = false;
-
-    SetSelectedMeshEditFace({});
-
-    m_meshEditState.hoveredFace.Unset();
-    m_meshEditState.targetNode.Reset();
-    m_meshEditState.actionStack.Reset();
-
-    m_meshEditState.isChanging = true;
-    SetSelectedManipulationMode(m_meshEditState.manipulationModeBeforeMeshEdit);
-    m_meshEditState.isChanging = false;
-
-    OnMeshEditStateChanged();
-}
-
-bool EditorSubsystem::BackOutOfMeshEditState()
-{
-    if (!m_meshEditState.enabled)
-    {
-        return false;
-    }
-
-    if (IsMeshEditDragActive())
-    {
-        EndMeshEditDrag(false);
-
-        return true;
-    }
-
-    if (m_meshEditState.selectedFace)
-    {
-        SetSelectedMeshEditFace({});
-
-        return true;
-    }
-
-    ExitMeshEditMode(/* saveEdits */ true);
-
-    return true;
-}
-
-MeshEditFaceMode EditorSubsystem::GetMeshEditFaceMode() const
-{
-    AssertOnThread(g_simThread);
-
-    return m_meshEditState.faceMode;
-}
-
-void EditorSubsystem::SetMeshEditFaceMode(MeshEditFaceMode faceMode)
-{
-    AssertOnThread(g_simThread);
-
-    if (faceMode == m_meshEditState.faceMode)
-    {
-        return;
-    }
-
-    m_meshEditState.faceMode = faceMode;
-
-    // The existing selection was built for the other mode's vertex count, so it can't carry over.
-    SetSelectedMeshEditFace({});
-    m_meshEditState.hoveredFace.Unset();
-}
-
-bool EditorSubsystem::IsMeshEditAlignToNormal() const
-{
-    AssertOnThread(g_simThread);
-
-    return m_meshEditState.alignToNormal;
-}
-
-void EditorSubsystem::SetMeshEditAlignToNormal(bool alignToNormal)
-{
-    AssertOnThread(g_simThread);
-
-    if (alignToNormal == m_meshEditState.alignToNormal)
-    {
-        return;
-    }
-
-    m_meshEditState.alignToNormal = alignToNormal;
-
-    OnMeshEditStateChanged();
 }
 
 bool EditorSubsystem::IsSnapToGridEnabled() const
@@ -2371,6 +2166,152 @@ static void WriteAllMeshVertexPositions(
     }
 
     ApplyMeshEditVertexPositions(node, lodIndex, vertexIndices, positions, /* recomputeDerivedData */ true);
+}
+
+void EditorSubsystem::EnterMeshEditMode()
+{
+    AssertOnThread(g_simThread);
+
+    if (m_meshEditState.enabled)
+    {
+        return;
+    }
+
+    if (!m_currentProject.IsValid())
+    {
+        return;
+    }
+
+    Node* target = ResolveMeshEditTarget();
+
+    if (!target)
+    {
+        HYP_LOG(Editor, Warning, "Cannot enter mesh edit mode: the focused node has no editable mesh");
+
+        return;
+    }
+
+    m_meshEditState.targetNode = MakeWeakRef(target);
+
+    m_meshEditState.manipulationModeBeforeMeshEdit = m_selectedManipulationMode;
+
+    m_meshEditState.enabled = true;
+
+    m_meshEditState.actionStack = MakeHandle<EditorActionStack>(m_currentProject.ToWeak());
+
+    m_meshEditState.baselinePositions.Clear();
+    m_meshEditState.baselineMesh.Reset();
+
+    m_meshEditState.isChanging = true;
+    SetSelectedManipulationMode(EditorManipulationMode::None);
+    m_meshEditState.isChanging = false;
+
+    OnMeshEditStateChanged();
+}
+
+void EditorSubsystem::ExitMeshEditMode(bool saveEdits)
+{
+    AssertOnThread(g_simThread);
+
+    if (!m_meshEditState.enabled)
+    {
+        return;
+    }
+
+    EndMeshEditDrag(/* saveEdits */ true);
+
+    if (saveEdits)
+    {
+        CommitMeshEdits();
+    }
+    else
+    {
+        DiscardMeshEdits();
+    }
+
+    m_meshEditState.enabled = false;
+
+    SetSelectedMeshEditFace({});
+
+    m_meshEditState.hoveredFace.Unset();
+    m_meshEditState.targetNode.Reset();
+    m_meshEditState.actionStack.Reset();
+
+    m_meshEditState.isChanging = true;
+    SetSelectedManipulationMode(m_meshEditState.manipulationModeBeforeMeshEdit);
+    m_meshEditState.isChanging = false;
+
+    OnMeshEditStateChanged();
+}
+
+bool EditorSubsystem::BackOutOfMeshEditState()
+{
+    if (!m_meshEditState.enabled)
+    {
+        return false;
+    }
+
+    if (IsMeshEditDragActive())
+    {
+        EndMeshEditDrag(false);
+
+        return true;
+    }
+
+    if (m_meshEditState.selectedFace)
+    {
+        SetSelectedMeshEditFace({});
+
+        return true;
+    }
+
+    ExitMeshEditMode(/* saveEdits */ true);
+
+    return true;
+}
+
+MeshEditFaceMode EditorSubsystem::GetMeshEditFaceMode() const
+{
+    AssertOnThread(g_simThread);
+
+    return m_meshEditState.faceMode;
+}
+
+void EditorSubsystem::SetMeshEditFaceMode(MeshEditFaceMode faceMode)
+{
+    AssertOnThread(g_simThread);
+
+    if (faceMode == m_meshEditState.faceMode)
+    {
+        return;
+    }
+
+    m_meshEditState.faceMode = faceMode;
+
+    // The existing selection was built for the other mode's vertex count, so it can't carry over.
+    SetSelectedMeshEditFace({});
+    m_meshEditState.hoveredFace.Unset();
+}
+
+bool EditorSubsystem::IsMeshEditAlignToNormal() const
+{
+    AssertOnThread(g_simThread);
+
+    return m_meshEditState.alignToNormal;
+}
+
+void EditorSubsystem::SetMeshEditAlignToNormal(bool alignToNormal)
+{
+    AssertOnThread(g_simThread);
+
+    if (alignToNormal == m_meshEditState.alignToNormal)
+    {
+        return;
+    }
+
+    m_meshEditState.alignToNormal = alignToNormal;
+
+    OnMeshEditStateChanged();
 }
 
 void EditorSubsystem::CaptureMeshEditBaseline()
@@ -3177,6 +3118,8 @@ void EditorSubsystem::SetMeshEditDragLockedAxis(const Handle<Camera>& camera, co
 
 #pragma endregion MeshEditMode
 
+#pragma region EditorSubsystem Gizmos
+
 void EditorSubsystem::InitializeGizmos()
 {
     AssertOnThread(g_simThread);
@@ -3207,6 +3150,67 @@ void EditorSubsystem::ShutdownGizmos()
     {
         it->Shutdown();
     }
+}
+
+EditorManipulationMode EditorSubsystem::GetSelectedManipulationMode() const
+{
+    //AssertOnThread(g_simThread);
+
+    return m_selectedManipulationMode;
+}
+
+void EditorSubsystem::SetSelectedManipulationMode(EditorManipulationMode mode)
+{
+    AssertOnThread(g_simThread);
+
+    if (!m_meshEditState.isChanging)
+    {
+        ExitMeshEditMode(/* saveEdits */ true);
+    }
+
+    if (mode == m_selectedManipulationMode)
+    {
+        return;
+    }
+
+    if (!m_gizmos.Contains(mode))
+    {
+        SetSelectedManipulationMode(EditorManipulationMode::None);
+        return;
+    }
+
+    EditorGizmoBase* newGizmo = m_gizmos.At(mode);
+    EditorGizmoBase* prevGizmo = m_gizmos.At(m_selectedManipulationMode);
+
+    m_selectedManipulationMode = mode;
+
+    OnSelectedGizmoChanged(newGizmo, prevGizmo);
+}
+
+EditorGizmoBase* EditorSubsystem::GetSelectedGizmo() const
+{
+    AssertOnThread(g_simThread);
+
+    return m_gizmos.At(m_selectedManipulationMode);
+}
+
+EditorGizmoBase* EditorSubsystem::GetGizmo(EditorManipulationMode mode) const
+{
+    AssertOnThread(g_simThread);
+
+    if (!m_gizmos.Contains(mode))
+    {
+        return nullptr;
+    }
+
+    return m_gizmos.At(mode);
+}
+
+const EditorSubsystem::EditorGizmoSet& EditorSubsystem::GetGizmos() const
+{
+    AssertOnThread(g_simThread);
+
+    return m_gizmos;
 }
 
 void EditorSubsystem::UpdateGizmoProximityVisibility()
@@ -3301,6 +3305,8 @@ EditorSubsystem::EditorSubsystem()
     m_gizmos.Insert(MakeHandle<VolumeEditorGizmo>());
 
     m_editorDelegates = new EditorDelegates();
+
+    m_bakeStatusUpdateTimer = ClockTimer { 0.5f };
 
     OnSelectedGizmoChanged
         .Bind(this, [this](EditorGizmoBase* newGizmo, EditorGizmoBase* prevGizmo)
@@ -3813,6 +3819,13 @@ void EditorSubsystem::Update(float delta)
     }
 
     UpdateGizmoProximityVisibility();
+
+    if (!m_bakeStatusUpdateTimer.Waiting())
+    {
+        m_bakeStatusUpdateTimer.NextTick();
+
+        UpdateBakeStatus();
+    }
 
     DebugDrawCommandList& dbg = DebugDrawer::GetInstance().CreateCommandList();
 
@@ -5525,7 +5538,137 @@ void EditorSubsystem::InitializeProjectWorld(const Handle<EditorProject>& projec
             // InitActiveSceneSelection();
         }));
 
+    BakerSubsystem* bakerSubsystem = world->GetSubsystem<BakerSubsystem>();
+
+    if (!bakerSubsystem)
+    {
+        bakerSubsystem = world->AddSubsystem<BakerSubsystem>();
+    }
+
     SetActiveScene(activeScene);
+}
+
+void EditorSubsystem::UpdateBakeStatus()
+{
+    static const Name s_bakeStatusMessageKey = NAME("BakeStatus");
+
+    if (!m_messagesOverlay.IsValid())
+    {
+        return;
+    }
+
+    if (!m_currentProject.IsValid())
+    {
+        m_messagesOverlay->ClearMessage(s_bakeStatusMessageKey);
+
+        return;
+    }
+
+    const Handle<World>& world = m_currentProject->GetWorld();
+
+    if (!world.IsValid())
+    {
+        m_messagesOverlay->ClearMessage(s_bakeStatusMessageKey);
+
+        return;
+    }
+
+    Baking::BakerScene& bakerScene = m_currentProject->GetBakerScene();
+
+    uint32 numLightmapsOutOfDate = 0;
+    uint32 numProbesOutOfDate = 0;
+
+    for (const Handle<Scene>& scene : world->GetScenes())
+    {
+        if (!scene)
+        {
+            continue;
+        }
+
+        for (auto [volume] : scene->GetEntityManager()->GetEntitySet<EntityType<LightmapVolume>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            if (!volume->GetAtlasTexture(0, LightmapVolume::IrradianceTexture).IsValid())
+            {
+                // Not baked yet, but we consider it 'out of date', so we dont have LMVs left unbaked in the scene.
+                ++numLightmapsOutOfDate;
+
+                continue;
+            }
+
+            uint64 storedEpoch;
+
+            if (!bakerScene.TryGetAssetEpoch<Baking::BakerSceneCategory::LightReceiver>(*volume, storedEpoch))
+            {
+                // not tracked yet. bake it to track it
+                ++numLightmapsOutOfDate;
+
+                continue;
+            }
+
+            const uint64 computedEpoch = Baking::BakeEpoch::ComputeEpoch(*volume, bakerScene);
+
+            if (storedEpoch != computedEpoch)
+            {
+                ++numLightmapsOutOfDate;
+            }
+        }
+
+        for (auto [probe] : scene->GetEntityManager()->GetEntitySet<EntityType<EnvProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            if (!probe->IsBaked())
+            {
+                // Fine. no realtime probes are considered.
+                continue;
+            }
+
+            uint64 storedEpoch;
+
+            if (!bakerScene.TryGetAssetEpoch<Baking::BakerSceneCategory::LightReceiver>(*probe, storedEpoch))
+            {
+                // not tracked yet. bake it to track it
+                ++numProbesOutOfDate;
+
+                continue;
+            }
+
+            const uint64 computedEpoch = Baking::BakeEpoch::ComputeEpoch(*probe, bakerScene);
+
+            if (storedEpoch != computedEpoch)
+            {
+                ++numProbesOutOfDate;
+            }
+        }
+    }
+
+    if (numLightmapsOutOfDate == 0 && numProbesOutOfDate == 0)
+    {
+        m_messagesOverlay->ClearMessage(s_bakeStatusMessageKey);
+
+        return;
+    }
+
+    String text;
+
+    if (numLightmapsOutOfDate > 0)
+    {
+        text += HYP_FORMAT("Lightmaps out of date ({})", numLightmapsOutOfDate);
+    }
+
+    if (numProbesOutOfDate > 0)
+    {
+        if (text.Any())
+        {
+            text += "\n";
+        }
+
+        text += HYP_FORMAT("Probes out of date ({})", numProbesOutOfDate);
+    }
+
+    m_messagesOverlay->PutMessage(MessageEntry {
+        s_bakeStatusMessageKey,
+        text,
+        Color(1.0f, 0.7f, 0.1f, 1.0f)
+    });
 }
 
 void EditorSubsystem::ShutdownProjectWorld(const Handle<EditorProject>& project, bool shutdownWorld)
@@ -5573,6 +5716,13 @@ void EditorSubsystem::ShutdownProjectWorld(const Handle<EditorProject>& project,
         {
             vp->OnRemoved(this);
         }
+    }
+
+
+    BakerSubsystem* bakerSubsystem = world->GetSubsystem<BakerSubsystem>();
+    if (bakerSubsystem)
+    {
+        //bakerSubsystem->CancelAllBakes();
     }
 
     world->OnSceneAdded.RemoveAllFromSet(m_delegateHandlers);

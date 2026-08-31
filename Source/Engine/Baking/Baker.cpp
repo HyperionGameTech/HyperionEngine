@@ -113,8 +113,14 @@ static void EmptyViewCollectFunction(RenderProxyList&)
 
 #pragma region BakerBase
 
-BakerBase::BakerBase(BakerConfig&& config, ObjectBase* source, const Handle<Scene>& scene, const BoundingBox& aabb)
+BakerBase::BakerBase(
+    BakerConfig&& config,
+    BakerScene& bakerScene,
+    ObjectBase* source,
+    const Handle<Scene>& scene,
+    const BoundingBox& aabb)
     : m_config(std::move(config)),
+      m_bakerScene(&bakerScene),
       m_source(source),
       m_scene(scene),
       m_aabb(aabb),
@@ -126,7 +132,7 @@ BakerBase::BakerBase(BakerConfig&& config, ObjectBase* source, const Handle<Scen
       m_accumulatedTexelBudget(0.0),
       m_state(BakerState::Initialized)
 {
-    AssertDebug(m_source != nullptr);
+    Assert(m_source);
 }
 
 BakerBase::~BakerBase()

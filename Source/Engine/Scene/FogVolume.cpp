@@ -28,6 +28,10 @@
 #ifdef HYP_EDITOR
 #include <Baking/BakerSubsystem.hpp>
 #include <Baking/FogVolume/FogVolumeBakeData.hpp>
+
+#include <Editor/EditorState.hpp>
+#include <Editor/EditorSubsystem.hpp>
+#include <Editor/EditorProject.hpp>
 #endif
 
 #include <FogVolume.generated.inl>
@@ -168,6 +172,24 @@ void FogVolume::Rebake()
         return;
     }
 
+    Handle<EditorSubsystem> editorSubsystem = g_editorState->GetEditorSubsystem();
+    if (!editorSubsystem.IsValid())
+    {
+        HYP_LOG(Editor, Error, "Cannot bake {}: No editor subsystem", Id());
+
+        return;
+    }
+
+    Handle<EditorProject> currentProject = editorSubsystem->GetCurrentProject();
+    if (!currentProject.IsValid())
+    {
+        HYP_LOG(Editor, Error, "Cannot bake {}: No active project", Id());
+
+        return;
+    }
+
+    Baking::BakerScene& bakerScene = currentProject->GetBakerScene();
+
     BakerSubsystem* bakerSubsystem = world->GetSubsystem<BakerSubsystem>();
 
     if (!bakerSubsystem)
@@ -175,7 +197,7 @@ void FogVolume::Rebake()
         bakerSubsystem = world->AddSubsystem<BakerSubsystem>();
     }
 
-    bakerSubsystem->EnqueueBake(MakeStrongRef(this));
+    bakerSubsystem->EnqueueBake(bakerScene, MakeStrongRef(this));
 }
 
 #endif

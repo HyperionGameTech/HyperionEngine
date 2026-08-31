@@ -26,6 +26,10 @@
 
 #ifdef HYP_EDITOR
 #include <Baking/BakerSubsystem.hpp>
+
+#include <Editor/EditorSubsystem.hpp>
+#include <Editor/EditorProject.hpp>
+#include <Editor/EditorState.hpp>
 #endif // HYP_EDITOR
 
 #include <Framework/EngineDriver.hpp>
@@ -1105,15 +1109,33 @@ void ReflectionProbe::BakeCubemap()
 
         return;
     }
-
-    BakerSubsystem* lightmapperSubsystem = world->GetSubsystem<BakerSubsystem>();
-
-    if (!lightmapperSubsystem)
+    
+    Handle<EditorSubsystem> editorSubsystem = g_editorState->GetEditorSubsystem();
+    if (!editorSubsystem.IsValid())
     {
-        lightmapperSubsystem = world->AddSubsystem<BakerSubsystem>();
+        HYP_LOG(Editor, Error, "Cannot bake {}: No editor subsystem", GetName());
+
+        return;
     }
 
-    lightmapperSubsystem->EnqueueBake(StaticCast<EnvProbe>(MakeStrongRef(this)));
+    Handle<EditorProject> currentProject = editorSubsystem->GetCurrentProject();
+    if (!currentProject.IsValid())
+    {
+        HYP_LOG(Editor, Error, "Cannot bake {}: No active project", GetName());
+
+        return;
+    }
+
+    Baking::BakerScene& bakerScene = currentProject->GetBakerScene();
+
+    BakerSubsystem* bakerSubsystem = world->GetSubsystem<BakerSubsystem>();
+
+    if (!bakerSubsystem)
+    {
+        bakerSubsystem = world->AddSubsystem<BakerSubsystem>();
+    }
+
+    bakerSubsystem->EnqueueBake(bakerScene, StaticCast<EnvProbe>(MakeStrongRef(this)));
 }
 
 #endif
@@ -1154,31 +1176,49 @@ void SkyProbe::CreateTexture()
 
 void IrradianceProbe::RecomputeIrradiance()
 {
-    if (IsBaked())
-    {
-        World* world = GetWorld();
-        AssertDebug(world != nullptr);
-
-        if (!world)
-        {
-            HYP_LOG(Editor, Error, "Cannot bake {}: not attached to a World", Id());
-
-            return;
-        }
-
-        BakerSubsystem* lightmapperSubsystem = world->GetSubsystem<BakerSubsystem>();
-
-        if (!lightmapperSubsystem)
-        {
-            lightmapperSubsystem = world->AddSubsystem<BakerSubsystem>();
-        }
-
-        lightmapperSubsystem->EnqueueBake(StaticCast<EnvProbe>(MakeStrongRef(this)));
-    }
-    else
+    if (!IsBaked())
     {
         Invalidate(true);
+
+        return;
     }
+
+    World* world = GetWorld();
+    AssertDebug(world != nullptr);
+
+    if (!world)
+    {
+        HYP_LOG(Editor, Error, "Cannot bake {}: not attached to a World", Id());
+
+        return;
+    }
+
+    Handle<EditorSubsystem> editorSubsystem = g_editorState->GetEditorSubsystem();
+    if (!editorSubsystem.IsValid())
+    {
+        HYP_LOG(Editor, Error, "Cannot bake {}: No editor subsystem", GetName());
+
+        return;
+    }
+
+    Handle<EditorProject> currentProject = editorSubsystem->GetCurrentProject();
+    if (!currentProject.IsValid())
+    {
+        HYP_LOG(Editor, Error, "Cannot bake {}: No active project", GetName());
+
+        return;
+    }
+
+    Baking::BakerScene& bakerScene = currentProject->GetBakerScene();
+
+    BakerSubsystem* bakerSubsystem = world->GetSubsystem<BakerSubsystem>();
+
+    if (!bakerSubsystem)
+    {
+        bakerSubsystem = world->AddSubsystem<BakerSubsystem>();
+    }
+
+    bakerSubsystem->EnqueueBake(bakerScene, StaticCast<EnvProbe>(MakeStrongRef(this)));
 }
 
 #endif // HYP_EDITOR

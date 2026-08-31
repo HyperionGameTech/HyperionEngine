@@ -9,6 +9,10 @@ class EnvProbe;
 class World;
 class Scene;
 
+namespace Baking {
+struct BakerScene;
+} // namespace Baking
+
 HYP_CLASS()
 class GenerateLightmapsEditorTask : public TickableEditorTask
 {
@@ -16,14 +20,14 @@ class GenerateLightmapsEditorTask : public TickableEditorTask
 
 public:
     GenerateLightmapsEditorTask()
-        : TickableEditorTask()
+        : TickableEditorTask(),
+          m_bakerScene(nullptr)
     {
     }
 
-    explicit GenerateLightmapsEditorTask(const Handle<LightmapVolume>& volume);
-    explicit GenerateLightmapsEditorTask(const Handle<EnvProbe>& probe);
-
-    explicit GenerateLightmapsEditorTask(const Array<Handle<ObjectBase>>& sources);
+    GenerateLightmapsEditorTask(Baking::BakerScene& bakerScene, const Handle<LightmapVolume>& volume);
+    GenerateLightmapsEditorTask(Baking::BakerScene& bakerScene, const Handle<EnvProbe>& probe);
+    GenerateLightmapsEditorTask(Baking::BakerScene& bakerScene, const Array<Handle<ObjectBase>>& sources);
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<World>& GetWorld() const
@@ -63,6 +67,8 @@ protected:
     virtual void Cancel_Impl() override;
 
 private:
+    Baking::BakerScene* m_bakerScene;
+
     Array<Handle<ObjectBase>, EditorAllocator> m_sources;
     Handle<World> m_world;
     Handle<Scene> m_scene;
@@ -77,11 +83,14 @@ class GenerateBentNormalsEditorTask : public TickableEditorTask
 
 public:
     GenerateBentNormalsEditorTask()
-        : TickableEditorTask()
+        : TickableEditorTask(),
+          m_bakerScene(nullptr)
     {
     }
 
-    explicit GenerateBentNormalsEditorTask(const Array<Handle<LightmapVolume>>& volumes);
+    GenerateBentNormalsEditorTask(
+        Baking::BakerScene& bakerScene,
+        const Array<Handle<LightmapVolume>>& volumes);
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<World>& GetWorld() const
@@ -121,6 +130,8 @@ protected:
     virtual void Cancel_Impl() override;
 
 private:
+    Baking::BakerScene* m_bakerScene;
+
     Array<Handle<LightmapVolume>, EditorAllocator> m_volumes;
     Handle<World> m_world;
     Handle<Scene> m_scene;

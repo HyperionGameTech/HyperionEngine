@@ -17,6 +17,7 @@
 #include <UI/UISubsystem.hpp>
 #include <UI/Overlays/DeviceDetailsOverlay.hpp>
 #include <UI/Overlays/StatsOverlay.hpp>
+#include <UI/Overlays/MessagesOverlay.hpp>
 
 #include <Core/Logging/Logger.hpp>
 #include <Core/Logging/LogChannels.hpp>
@@ -55,7 +56,12 @@ void EditorGame::OnLaunch()
     uiSubsystem->AddDebugOverlay(MakeHandle<DeviceDetailsOverlay>());
     uiSubsystem->AddDebugOverlay(MakeHandle<StatsOverlay>());
 
+    Handle<MessagesOverlay> messagesOverlay = MakeHandle<MessagesOverlay>();
+    uiSubsystem->AddDebugOverlay(messagesOverlay);
+
     m_editorSubsystem = GetWorld()->AddSubsystem<EditorSubsystem>().Get();
+
+    m_editorSubsystem->SetMessagesOverlay(messagesOverlay);
 
     m_onFocusedNodeChanged = m_editorSubsystem->OnFocusedNodeChanged.Bind(
         this,

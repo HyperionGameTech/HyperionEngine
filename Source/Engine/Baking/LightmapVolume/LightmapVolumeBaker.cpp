@@ -275,8 +275,8 @@ static Handle<Mesh> CloneMeshForLightmapBake(const Handle<Mesh>& sourceMesh)
 
 #pragma region Baker<LightmapVolume>
 
-Baker<LightmapVolume>::Baker(BakerConfig&& config, const Handle<LightmapVolume>& volume)
-    : BakerBase(std::move(config), volume, MakeStrongRef(volume->GetScene()), volume->GetWorldBounds()),
+Baker<LightmapVolume>::Baker(BakerConfig&& config, BakerScene& bakerScene, const Handle<LightmapVolume>& volume)
+    : BakerBase(std::move(config), bakerScene, volume, MakeStrongRef(volume->GetScene()), volume->GetWorldBounds()),
       m_volume(volume)
 {
 }

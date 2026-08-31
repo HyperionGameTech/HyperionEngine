@@ -1976,7 +1976,7 @@ extern enum GpuVendor : uint8
 end
 extern struct BakerSceneCategory
     Name : Name
-    Epoch : uint64
+    Revision : uint64
     Assets : Array<any>
 end
 extern struct BakerScene

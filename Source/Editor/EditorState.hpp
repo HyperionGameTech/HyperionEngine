@@ -28,6 +28,10 @@ class EditorProject;
 class EditorTaskBase;
 class EditorSubsystem;
 
+namespace Baking {
+struct BakerScene;
+} // namespace Baking
+
 HYP_CLASS()
 class EDITOR_API EditorState : public ObjectBase
 {

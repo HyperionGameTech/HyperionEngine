@@ -20,7 +20,7 @@ template <>
 class Baker<EnvProbe> final : public BakerBase
 {
 public:
-    Baker(BakerConfig&& config, const Handle<EnvProbe>& envProbe);
+    Baker(BakerConfig&& config, BakerScene& bakerScene, const Handle<EnvProbe>& envProbe);
 
     Baker(const Baker& other) = delete;
     Baker& operator=(const Baker& other) = delete;

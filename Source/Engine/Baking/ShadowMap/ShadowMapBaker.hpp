@@ -20,7 +20,7 @@ template <>
 class Baker<Light> final : public BakerBase
 {
 public:
-    Baker(BakerConfig&& config, const Handle<Light>& light);
+    Baker(BakerConfig&& config, BakerScene& bakerScene, const Handle<Light>& light);
 
     Baker(const Baker& other) = delete;
     Baker& operator=(const Baker& other) = delete;

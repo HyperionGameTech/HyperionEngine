@@ -534,9 +534,10 @@ public:
                         .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
                             [lightmapVolume, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
                             {
-                                project->GetBakerScene().Add<Baking::BakerSceneCategory::LightReceiver>(*lightmapVolume);
-
                                 activeScene->GetRoot()->AddChild(lightmapVolume);
+
+                                project->GetBakerScene().Add<Baking::BakerSceneCategory::LightReceiver>(*lightmapVolume);
+                                project->GetBakerScene().Add<Baking::BakerSceneCategory::Lightmap>(*lightmapVolume);
 
                                 editorSubsystem->SetFocusedNode(lightmapVolume, true);
                             }),
@@ -544,6 +545,7 @@ public:
                             [lightmapVolume, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
                             {
                                 project->GetBakerScene().Remove<Baking::BakerSceneCategory::LightReceiver>(*lightmapVolume);
+                                project->GetBakerScene().Remove<Baking::BakerSceneCategory::Lightmap>(*lightmapVolume);
 
                                 lightmapVolume->Remove();
 
@@ -565,18 +567,7 @@ public:
 
         currentProject->GetActionStack()->PushAction(action);
 
-#if 0
-        // kickoff lightmap generation for the new volume
-        Handle<GenerateLightmapsEditorTask> generateLightmapsTask = MakeHandle<GenerateLightmapsEditorTask>(lightmapVolume);
-        InitObject(generateLightmapsTask);
-
-        generateLightmapsTask->SetScene(activeScene);
-
-        Handle<World> worldHandle = MakeStrongRef(subsystem->GetWorld());
-        generateLightmapsTask->SetWorld(worldHandle);
-
-        g_editorState->AddTask(generateLightmapsTask);
-#endif
+        // No kickoff since lightmap volume tasks are heavy and we don't want to put that on the user
     }
 };
 
@@ -607,6 +598,16 @@ public:
 
             return;
         }
+
+        Handle<EditorProject> project = subsystem->GetCurrentProject();
+        if (!project.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No active project");
+
+            return;
+        }
+
+        Baking::BakerScene& bakerScene = project->GetBakerScene();
 
         Array<Handle<ObjectBase>> reflectionProbes;
 
@@ -640,7 +641,7 @@ public:
             return;
         }
 
-        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(reflectionProbes);
+        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(bakerScene, reflectionProbes);
         editorTask->SetIsForegroundTask(true);
         InitObject(editorTask);
 
@@ -682,6 +683,16 @@ public:
             return;
         }
 
+        Handle<EditorProject> project = subsystem->GetCurrentProject();
+        if (!project.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No active project");
+
+            return;
+        }
+
+        Baking::BakerScene& bakerScene = project->GetBakerScene();
+
         Array<Handle<ObjectBase>> irradianceProbes;
 
         if (Handle<Node> root = activeScene->GetRoot(); root.IsValid())
@@ -714,7 +725,7 @@ public:
             return;
         }
 
-        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(irradianceProbes);
+        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(bakerScene, irradianceProbes);
         editorTask->SetIsForegroundTask(true);
         InitObject(editorTask);
 
@@ -756,6 +767,16 @@ public:
             return;
         }
 
+        Handle<EditorProject> project = subsystem->GetCurrentProject();
+        if (!project.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No active project");
+
+            return;
+        }
+
+        Baking::BakerScene& bakerScene = project->GetBakerScene();
+
         Array<Handle<ObjectBase>> sources;
 
         if (Handle<Node> root = activeScene->GetRoot(); root.IsValid())
@@ -784,7 +805,7 @@ public:
 
         Handle<World> worldHandle = MakeStrongRef(subsystem->GetWorld());
 
-        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(sources);
+        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(bakerScene, sources);
         editorTask->SetIsForegroundTask(true);
         editorTask->SetScene(activeScene);
         editorTask->SetWorld(worldHandle);
@@ -813,6 +834,14 @@ public:
 
     virtual void Execute(EditorSubsystem* subsystem) override
     {
+        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No project loaded; cannot add reflection probe!");
+
+            return;
+        }
+
         Handle<Scene> activeScene = subsystem->GetActiveScene();
         if (!activeScene.IsValid())
         {
@@ -823,7 +852,7 @@ public:
 
         Array<Handle<LightmapVolume>> lightmapVolumes;
 
-        if (Handle<Node> root = activeScene->GetRoot())
+        if (Handle<Node> root = activeScene->GetRoot(); root.IsValid())
         {
             for (Node* node : root->GetDescendants())
             {
@@ -833,6 +862,8 @@ public:
                 }
             }
         }
+
+        Baking::BakerScene& bakerScene = currentProject->GetBakerScene();
 
         if (lightmapVolumes.Empty())
         {
@@ -847,7 +878,7 @@ public:
             return;
         }
 
-        Handle<GenerateBentNormalsEditorTask> generateBentNormalsTask = MakeHandle<GenerateBentNormalsEditorTask>(lightmapVolumes);
+        Handle<GenerateBentNormalsEditorTask> generateBentNormalsTask = MakeHandle<GenerateBentNormalsEditorTask>(bakerScene, lightmapVolumes);
         InitObject(generateBentNormalsTask);
 
         generateBentNormalsTask->SetScene(activeScene);
@@ -1118,6 +1149,7 @@ public:
             return;
         }
 
+        Baking::BakerScene& bakerScene = currentProject->GetBakerScene();
 
         const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
 
@@ -1136,9 +1168,9 @@ public:
                         .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
                             [reflectionProbe, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
                             {
-                                project->GetBakerScene().Add<Baking::BakerSceneCategory::LightReceiver>(*reflectionProbe);
-
                                 activeScene->GetRoot()->AddChild(reflectionProbe);
+
+                                project->GetBakerScene().Add<Baking::BakerSceneCategory::LightReceiver>(*reflectionProbe);
 
                                 editorSubsystem->SetFocusedNode(reflectionProbe, true);
                             }),
@@ -1170,7 +1202,7 @@ public:
         if (reflectionProbe->IsBaked())
         {
             // kickoff task to generate reflection cubemap
-            Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(reflectionProbe);
+            Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(bakerScene, reflectionProbe);
             editorTask->SetIsForegroundTask(true);
             InitObject(editorTask);
 
@@ -1236,9 +1268,9 @@ public:
                         .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
                             [irradianceProbe, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
                             {
-                                project->GetBakerScene().Add<Baking::BakerSceneCategory::LightReceiver>(*irradianceProbe);
-
                                 activeScene->GetRoot()->AddChild(irradianceProbe);
+
+                                project->GetBakerScene().Add<Baking::BakerSceneCategory::LightReceiver>(*irradianceProbe);
 
                                 editorSubsystem->SetFocusedNode(irradianceProbe, true);
                             }),
@@ -1397,6 +1429,8 @@ public:
             return;
         }
 
+        Baking::BakerScene& bakerScene = currentProject->GetBakerScene();
+
         Handle<FogVolume> fogVolume = MakeHandle<FogVolume>(BoundingBox(Vec3f(-20.0f, 0.0f, -20.0f), Vec3f(20.0f, 30.0f, 20.0f)));
         InitObject(fogVolume);
 
@@ -1443,7 +1477,7 @@ public:
 
         // start baking fog volume
 
-        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(Array<Handle<ObjectBase>> { fogVolume });
+        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(bakerScene, Array<Handle<ObjectBase>> { fogVolume });
         editorTask->SetIsForegroundTask(true);
         InitObject(editorTask);
 
@@ -1508,11 +1542,6 @@ static void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
                     .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
                         [n, currentFocusedNode, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
                         {
-                            if constexpr (std::is_base_of_v<Light, T>)
-                            {
-                                project->GetBakerScene().Add<Baking::BakerSceneCategory::LightProvider>(*n);
-                            }
-
                             if constexpr (ShouldAddNodeAsChild<T>())
                             {
                                 Handle<Node> parentNode = currentFocusedNode.Lock();
@@ -1527,6 +1556,11 @@ static void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
                             else
                             {
                                 activeScene->GetRoot()->AddChild(n);
+                            }
+
+                            if constexpr (std::is_base_of_v<Light, T>)
+                            {
+                                project->GetBakerScene().Add<Baking::BakerSceneCategory::LightProvider>(*n);
                             }
 
                             editorSubsystem->SetSelectedNodes({ n });

@@ -40,6 +40,10 @@
 #ifdef HYP_EDITOR
 #include <Baking/BakerSubsystem.hpp>
 #include <Baking/ShadowMap/ShadowMapBakeData.hpp>
+
+#include <Editor/EditorState.hpp>
+#include <Editor/EditorSubsystem.hpp>
+#include <Editor/EditorProject.hpp>
 #endif
 
 #include <Light.generated.inl>
@@ -565,6 +569,24 @@ void Light::BakeStaticShadows()
         return;
     }
 
+    Handle<EditorSubsystem> editorSubsystem = g_editorState->GetEditorSubsystem();
+    if (!editorSubsystem.IsValid())
+    {
+        HYP_LOG(Editor, Error, "Cannot bake Light {}: No editor subsystem", GetName());
+
+        return;
+    }
+
+    Handle<EditorProject> currentProject = editorSubsystem->GetCurrentProject();
+    if (!currentProject.IsValid())
+    {
+        HYP_LOG(Editor, Error, "Cannot bake Light {}: No active project", GetName());
+
+        return;
+    }
+
+    Baking::BakerScene& bakerScene = currentProject->GetBakerScene();
+
     BakerSubsystem* bakerSubsystem = world->GetSubsystem<BakerSubsystem>();
 
     if (!bakerSubsystem)
@@ -572,7 +594,7 @@ void Light::BakeStaticShadows()
         bakerSubsystem = world->AddSubsystem<BakerSubsystem>();
     }
 
-    bakerSubsystem->EnqueueBake(MakeStrongRef(this));
+    bakerSubsystem->EnqueueBake(bakerScene, MakeStrongRef(this));
 }
 
 #endif

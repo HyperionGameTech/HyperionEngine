@@ -17,6 +17,8 @@
 
 #include <Core/Math/BoundingBox.hpp>
 
+#include <Core/Functional/Delegate.hpp>
+
 #include <Core/Reflection/Handle.hpp>
 #include <Core/Defines.hpp>
 
@@ -33,6 +35,7 @@ class Scene;
 namespace Baking {
 
 class BakerBase;
+struct BakerScene;
 
 template <class T>
     concept Bakeable = std::is_same_v<T, LightmapVolume>
@@ -52,15 +55,17 @@ public:
 
     virtual void OnAddedToWorld() override;
     virtual void OnRemovedFromWorld() override;
+
     virtual void Update(float delta) override;
 
     /*! \brief Queue up a task to start baking lightmaps or other baked data for the given object.
      *   The returned Task can be used to track the completion state of the lightmap generation job.
+     * 
      *   If a lightmap generation task is already in progress for the given volume, the existing task will be returned instead.
      *   \param shadingTypesMaskOverride If nonzero, restricts the bake to this subset of shading types instead of the
      *   baker's default mask (e.g. baking bent normals only, without recomputing irradiance/radiance). */
     template <Baking::Bakeable T>
-    Task<void> EnqueueBake(const Handle<T>& source, uint32 shadingTypesMaskOverride = 0);
+    Task<void> EnqueueBake(Baking::BakerScene& bakerScene, const Handle<T>& source, uint32 shadingTypesMaskOverride = 0);
 
     /*! \brief Cancel an in-progress bake for the given source, if one exists. Tears down the
      *  associated baker immediately and resolves its Task<void>. Must be called on the sim thread. */
@@ -70,17 +75,29 @@ public:
     float GetBakeProgress(ObjectBase* source) const;
 
 private:
+    struct ObjectBakeState
+    {
+        Handle<ObjectBase> obj;
+        Baking::BakerScene* bakerScene;
+        Handle<Baking::BakerBase> baker;
+    };
+
     SubsystemUpdatePhase GetUpdatePhase_Internal() const override
     {
         return SubsystemUpdatePhase::AfterVis;
     }
 
-    template <class T, class... Args>
-    Task<void> EnqueueBake_Internal(const Handle<T>& source, uint32 shadingTypesMaskOverride, Args&&... args);
+    void OnBakeCompleted(Baking::BakerScene& bakerScene, ObjectBase* source);
 
-    // Map source to lightmapper instance
+    template <class T, class... Args>
+    Task<void> EnqueueBake_Internal(
+        Baking::BakerScene& bakerScene,
+        const Handle<T>& source,
+        uint32 shadingTypesMaskOverride,
+        Args&&... args);
+
     // Added in the order they are enqueued; we only update one at a given time.
-    Array<Pair<ObjectBase*, Handle<Baking::BakerBase>>, Baking::BakerAllocator> m_bakers;
+    Array<ObjectBakeState, Baking::BakerAllocator> m_bakes;
 };
 
 } // namespace Hyperion

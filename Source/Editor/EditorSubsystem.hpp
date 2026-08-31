@@ -16,6 +16,7 @@
 
 #include <Core/Functional/Delegate.hpp>
 #include <Core/Containers/Set.hpp>
+#include <Core/Utilities/ClockTimer.hpp>
 
 namespace Hyperion {
 
@@ -44,6 +45,7 @@ class ApplicationWindow;
 struct MouseEvent;
 struct KeyboardEvent;
 struct MeshComponent;
+class MessagesOverlay;
 class View;
 class EditorViewport;
 class LightmapVolume;
@@ -439,6 +441,11 @@ public:
         return m_currentProject;
     }
 
+    HYP_FORCE_INLINE void SetMessagesOverlay(const Handle<MessagesOverlay>& messagesOverlay)
+    {
+        m_messagesOverlay = messagesOverlay;
+    }
+
     HYP_METHOD()
     EditorViewport* GetActiveViewport() const;
 
@@ -672,11 +679,15 @@ public:
 private:
     void InitViewport();
 
-    void InitializeGizmos();
-    void ShutdownGizmos();
-
     void InitializeProjectWorld(const Handle<EditorProject>& project, bool isStartSimulation = false);
     void ShutdownProjectWorld(const Handle<EditorProject>& project, bool shutdownWorld = true);
+
+    void UpdateBakeStatus();
+
+    //-- Gizmos
+
+    void InitializeGizmos();
+    void ShutdownGizmos();
 
     void SetHoveredGizmo(
         const MouseEvent& event,
@@ -688,16 +699,14 @@ private:
         return m_hoveredGizmo.IsValid() && m_hoveredGizmoNode.IsValid();
     }
 
-    /*! \brief Hide or show the active gizmo based on the distance from the editor camera to the focused
-     *  node. Gizmos have a fixed world size, so when the camera is very close the gizmo would cover most
-     *  of the viewport and block grabbing the viewport to move the camera. While hidden, the gizmo node is
-     *  detached from the editor scene (so it is neither rendered nor pickable) until the camera moves away. */
     void UpdateGizmoProximityVisibility();
 
     HYP_FORCE_INLINE bool AreGizmosHiddenByProximity() const
     {
         return m_gizmosHiddenByProximity;
     }
+
+    //-- Mesh edits
 
     struct MeshEditDragData
     {
@@ -717,10 +726,7 @@ private:
 
     Node* ResolveMeshEditTarget(MeshComponent** outMeshComponent = nullptr) const;
 
-    /*! \brief Record the target mesh's LOD 0 vertex positions as they were before any edit, if not
-     *  already recorded. This is the "before" half of the single action pushed on save, and what
-     *  Discard restores. Called lazily at the first edit so entering and leaving the mode without
-     *  touching anything costs nothing. */
+    /*! \brief Record the target mesh's LOD 0 vertex positions as they were before any edit . */
     void CaptureMeshEditBaseline();
 
     /*! \brief Collapse every edit made this session into one action on the project's action stack,
@@ -735,21 +741,24 @@ private:
     void UpdateHoveredMeshEditFace(const Ray& ray);
     void DebugDrawMeshEditSelection(class DebugDrawCommandList& debugDrawCommandList);
 
-    void DebugDrawPhysicsShapes(class DebugDrawCommandList& debugDrawCommandList);
-
-    /*! \brief If the focused entity's physics shape is referenced by any other entity, clone it and
-     *  assign the clone to this entity, so the shape can be mutated in isolation. Returns the
-     *  now-unique shape (the entity's current shape if it was already exclusive). */
-    Handle<PhysicsShape> EnsureUniquePhysicsShape(Entity* entity);
-
-    bool IsPhysicsShapeShared(Entity* entity, const Handle<PhysicsShape>& shape) const;
-
     void StartMeshEditDrag(const Handle<Camera>& camera, const MouseEvent& mouseEvent);
     void UpdateMeshEditDrag(const Handle<Camera>& camera, const MouseEvent& mouseEvent);
     void EndMeshEditDrag(bool saveEdits);
     void SetMeshEditDragLockedAxis(const Handle<Camera>& camera, const KeyboardEvent& keyboardEvent, int axis);
 
     bool BackOutOfMeshEditState();
+
+    //-- 
+
+    void DebugDrawPhysicsShapes(class DebugDrawCommandList& debugDrawCommandList);
+
+    /*! \brief If the focused entity's physics shape is referenced by any other entity, clone it and
+     *  assign the clone to this entity, so the shape can be mutated */
+    Handle<PhysicsShape> EnsureUniquePhysicsShape(Entity* entity);
+
+    bool IsPhysicsShapeShared(Entity* entity, const Handle<PhysicsShape>& shape) const;
+
+    //--
 
     SubsystemUpdatePhase GetUpdatePhase_Internal() const override
     {
@@ -807,6 +816,9 @@ private:
     bool m_shouldCancelNextClick;
 
     EditorDelegates* m_editorDelegates;
+
+    ClockTimer m_bakeStatusUpdateTimer;
+    Handle<MessagesOverlay> m_messagesOverlay;
 
     uint32 m_selectedBucketIndex;
 

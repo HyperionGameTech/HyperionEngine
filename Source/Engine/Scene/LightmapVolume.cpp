@@ -37,6 +37,10 @@
 #include <Baking/Baker.hpp>
 #include <Baking/BakerSubsystem.hpp>
 #include <Baking/LightmapVolume/LightmapVolumeBakeData.hpp>
+
+#include <Editor/EditorState.hpp>
+#include <Editor/EditorSubsystem.hpp>
+#include <Editor/EditorProject.hpp>
 #endif // HYP_EDITOR
 
 #include <LightmapVolume.generated.inl>
@@ -401,6 +405,24 @@ static void EnqueueBake(LightmapVolume& self)
         return;
     }
 
+    Handle<EditorSubsystem> editorSubsystem = g_editorState->GetEditorSubsystem();
+    if (!editorSubsystem.IsValid())
+    {
+        HYP_LOG(Editor, Error, "Cannot bake {}: No editor subsystem", self.GetName());
+
+        return;
+    }
+
+    Handle<EditorProject> currentProject = editorSubsystem->GetCurrentProject();
+    if (!currentProject.IsValid())
+    {
+        HYP_LOG(Editor, Error, "Cannot bake {}: No active project", self.GetName());
+
+        return;
+    }
+
+    Baking::BakerScene& bakerScene = currentProject->GetBakerScene();
+
     BakerSubsystem* bakerSubsystem = world->GetSubsystem<BakerSubsystem>();
 
     if (!bakerSubsystem)
@@ -408,7 +430,7 @@ static void EnqueueBake(LightmapVolume& self)
         bakerSubsystem = world->AddSubsystem<BakerSubsystem>();
     }
 
-    bakerSubsystem->EnqueueBake(MakeStrongRef(&self), (1u << uint32(ShadingType)));
+    bakerSubsystem->EnqueueBake(bakerScene, MakeStrongRef(&self), (1u << uint32(ShadingType)));
 }
 
 void LightmapVolume::BakeLightmap()
