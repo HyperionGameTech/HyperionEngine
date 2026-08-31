@@ -984,15 +984,13 @@ void SceneOctree::RebuildEntriesHash(uint32 level)
 
         FOR_EACH_BIT(tags, i)
         {
-            EntityTag tag = EntityTag(i + 1);
-            AssertDebug(uint64(tag) < m_entryHashes.Size());
+            const uint32 tagIndex = i + 1;
+            AssertDebug(tagIndex < m_entryHashes.Size());
 
-            if (uint64(tag) >= m_entryHashes.Size())
+            if (tagIndex < m_entryHashes.Size())
             {
-                continue;
+                m_entryHashes[tagIndex].Add(entryHashCode);
             }
-
-            m_entryHashes[uint64(tag)].Add(entryHashCode);
         }
     }
 

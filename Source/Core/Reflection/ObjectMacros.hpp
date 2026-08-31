@@ -124,6 +124,8 @@ public:                                                                         
     struct ClassInfo                                                             \
     {                                                                            \
         using Type = T;                                                          \
+                                                                                 \
+        static constexpr auto TypeIdValue = CONSTEXPR_TYPE_ID(T);                \
     };                                                                           \
                                                                                  \
     void* operator new(size_t size)                                              \
@@ -160,7 +162,13 @@ public:                                                                         
                                                                                  \
     HYP_FORCE_INLINE ObjId<T> Id() const                                         \
     {                                                                            \
-        return (ObjId<T>)(reinterpret_cast<const ObjectBase*>(this)->Id());      \
+        const ObjectHeader* hdr = m_header;                                      \
+                                                                                 \
+        return (ObjId<T>)ObjIdBase(                                              \
+            std::is_final_v<T>                                                   \
+                ? (TypeId)CONSTEXPR_TYPE_ID(T) : GetTypeIdForClass(hdr->cls),    \
+            hdr->index + 1                                                       \
+        );                                                                       \
     }                                                                            \
                                                                                  \
     static const Class* StaticClass();                                           \
@@ -184,6 +192,7 @@ public:                                                                         
         {                                                                        \
             return false;                                                        \
         }                                                                        \
+                                                                                 \
         return Hyperion::IsA(otherClass, InstanceClass());                       \
     }                                                                            \
                                                                                  \

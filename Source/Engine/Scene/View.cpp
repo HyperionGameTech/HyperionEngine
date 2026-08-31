@@ -1575,9 +1575,6 @@ void View::GetEntryHashes(Span<HashCode> outEntryHashes)
 {
     AssertDebug(outEntryHashes.Size() == SceneOctree::NumEntryHashes);
 
-    // Zero it first
-    Memory::Zero(outEntryHashes.Data(), outEntryHashes.Size() * sizeof(HashCode));
-
     bool isFirst = true;
 
     for (size_t sceneIndex = 0; sceneIndex < m_scenes.Size(); sceneIndex++)
@@ -1590,24 +1587,30 @@ void View::GetEntryHashes(Span<HashCode> outEntryHashes)
         }
 
         const SceneOctree& octree = scene->GetOctree();
-        Span<const HashCode> srcHashes = octree.GetEntryListHashes();
 
         if (isFirst)
         {
-            Memory::Copy(
-                outEntryHashes.Data(),
-                srcHashes.Data(),
-                srcHashes.Size() * sizeof(HashCode));
-
+            // Copy direct to out buffer.
+            octree.CopyEntryListHashes(reinterpret_cast<HashCode::ValueType*>(outEntryHashes.Data()));
             isFirst = false;
 
             continue;
         }
 
-        for (uint32 elhIndex = 0; elhIndex < srcHashes.Size(); elhIndex++)
+        // Temporary buffer to copy into.
+        HashCode::ValueType tempHashes[SceneOctree::NumEntryHashes];
+        octree.CopyEntryListHashes(tempHashes);
+
+        for (uint32 elhIndex = 0; elhIndex < SceneOctree::NumEntryHashes; elhIndex++)
         {
-            outEntryHashes[elhIndex] = outEntryHashes[elhIndex].Combine(srcHashes[elhIndex]);
+            outEntryHashes[elhIndex].Add(reinterpret_cast<const HashCode&>(tempHashes[elhIndex]));
         }
+    }
+
+    if (isFirst)
+    {
+        // none hit - zero it
+        Memory::Zero(outEntryHashes.Data(), outEntryHashes.Size() * sizeof(HashCode));
     }
 }
 

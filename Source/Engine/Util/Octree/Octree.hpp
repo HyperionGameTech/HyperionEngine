@@ -213,8 +213,8 @@ protected:
     OctreeState<Derived, Payload>* m_state;
     OctantId m_octantId;
 
-    uint32 m_invalidationMarker : 16;
-    bool m_isDivided : 1;
+    uint32 m_invalidationMarker;
+    bool m_isDivided;
 };
 
 template <class Derived, class Payload>
@@ -262,13 +262,13 @@ OctreeBase<Derived, Payload>::OctreeBase(const BoundingBox& aabb)
 
 template <class Derived, class Payload>
 OctreeBase<Derived, Payload>::OctreeBase(Derived* parent, const BoundingBox& aabb, uint8 index)
-    : m_parent(nullptr),
+    : m_payload {},
+      m_parent(nullptr),
       m_aabb(aabb),
-      m_isDivided(false),
       m_state(nullptr),
       m_octantId(index, OctantId::Invalid()),
       m_invalidationMarker(0),
-      m_payload {}
+      m_isDivided(false)
 {
     if (parent != nullptr)
     {
@@ -453,7 +453,7 @@ void OctreeBase<Derived, Payload>::Undivide()
 template <class Derived, class Payload>
 void OctreeBase<Derived, Payload>::Invalidate()
 {
-    m_invalidationMarker++;
+    ++m_invalidationMarker;
 
     if (IsDivided())
     {

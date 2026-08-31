@@ -163,8 +163,7 @@ public:
     {
         static_assert((uint64(Tag) < NumEntryHashes), "All tags must have a value < NumEntryHashes");
 
-        return HashCode(m_entryHashes[uint64(Tag)])
-            .Add(m_invalidationMarker);
+        return HashCode(m_entryHashes[uint64(Tag)].Value() + m_invalidationMarker);
     }
 
     /*! \brief Get a hashcode of all entities currently in this Octant that match the mask tag (child octants affect this too)
@@ -178,13 +177,30 @@ public:
             return HashCode();
         }
 
-        return HashCode(m_entryHashes[uint64(entityTag)])
-            .Add(m_invalidationMarker);
+        return HashCode(m_entryHashes[uint64(entityTag)].Value() + m_invalidationMarker);
     }
 
-    HYP_FORCE_INLINE Span<const HashCode> GetEntryListHashes() const
+    /// Read out hashes into \p outHashes. Must be \ref{NumEntryHashes} elements in the buffer
+    HYP_FORCE_INLINE void CopyEntryListHashes(HashCode::ValueType* outHashes) const
     {
-        return m_entryHashes.ToSpan();
+        static_assert(sizeof(HashCode::ValueType) == sizeof(HashCode) && alignof(HashCode::ValueType) == alignof(HashCode));
+
+        Memory::Copy(outHashes, m_entryHashes.Data(), sizeof(HashCode::ValueType) * NumEntryHashes);
+
+        const uint32 invalidationMarker = m_invalidationMarker;
+
+        if (invalidationMarker == 0)
+        {
+            return;
+        }
+
+        // apply invalidation marker to all
+        const HashCode::ValueType* outEnd = (outHashes + NumEntryHashes);
+
+        while (outHashes != outEnd)
+        {
+            *(outHashes++) += invalidationMarker;
+        }
     }
 
     void NextVisibilityState();

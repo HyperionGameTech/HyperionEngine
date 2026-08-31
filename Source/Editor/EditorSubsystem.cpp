@@ -1883,9 +1883,8 @@ EditorActionStack* EditorSubsystem::GetActiveActionStack() const
 
 bool EditorSubsystem::IsSimulating() const
 {
-    return m_currentProject.IsValid()
-        && m_currentProject->GetWorld().IsValid()
-        && m_currentProject->GetWorld()->GetGameState().mode == GameStateMode::SIMULATING;
+    // If the pre-sim project is set, we're in simulation mode
+    return m_preSimulationProject.IsValid();
 }
 
 bool EditorSubsystem::IsSnapToGridEnabled() const
@@ -4057,8 +4056,6 @@ bool EditorSubsystem::StopSimulation()
         Game* gameInstance = m_currentProject->GetGame();
         Assert(gameInstance != nullptr);
 
-        // Discard queued DebugDrawer commands before the World's EnvProbes are torn down -
-        // they hold raw EnvProbe pointers the render thread dereferences a frame or two later.
         AssertOnThread(g_simThread);
         DebugDrawer::GetInstance().DiscardPendingCommands();
 
@@ -4071,7 +4068,8 @@ bool EditorSubsystem::StopSimulation()
 
         gameInstance->StopSimulating();
 
-        Assert(m_preSimulationProject.IsValid());
+        Assert(IsSimulating());
+
         OpenProject(m_preSimulationProject);
 
         m_preSimulationProject.Reset();
@@ -4804,7 +4802,7 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
         return;
     }
 
-    const bool isSimulationStateChange = m_preSimulationProject.IsValid();
+    const bool isSimulationStateChange = IsSimulating();
     const bool isStartSimulation = isSimulationStateChange && project != m_preSimulationProject;
 
     CloseProject(/* shutdownWorld*/ true);
@@ -5550,6 +5548,11 @@ void EditorSubsystem::InitializeProjectWorld(const Handle<EditorProject>& projec
 
 void EditorSubsystem::UpdateBakeStatus()
 {
+    if (IsSimulating())
+    {
+        return;
+    }
+
     static const Name s_bakeStatusMessageKey = NAME("BakeStatus");
 
     if (!m_messagesOverlay.IsValid())
@@ -5708,7 +5711,7 @@ void EditorSubsystem::ShutdownProjectWorld(const Handle<EditorProject>& project,
         scene->OnRootNodeChanged.RemoveAllFromSet(m_delegateHandlers);
     }
 
-    const bool isSimulationProject = m_preSimulationProject.IsValid() && project != m_preSimulationProject;
+    const bool isSimulationProject = IsSimulating() && project != m_preSimulationProject;
 
     if (!isSimulationProject)
     {

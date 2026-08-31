@@ -36,9 +36,12 @@ struct VisibilityState
 {
     HYP_STRUCT_BODY(VisibilityState);
 
-    static constexpr uint32 MaxViews = 256;
+    static constexpr uint32 MaxViews = 128;
 
+    // Can be changed to SparseArray if we ever need more..
+    // But will come at a performance cost (cpu cache coherency)
     FixedArray<VisibilityStateSnapshot, MaxViews> snapshots;
+
     uint16 validityMarker { 0u };
 
     VisibilityState() = default;
