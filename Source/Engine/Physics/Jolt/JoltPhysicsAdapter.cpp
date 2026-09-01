@@ -171,9 +171,9 @@ struct JoltCharacterControllerInternalData
     Vec3f walkVelocity;
     float capsuleCenterOffset = 0.0f;
     float stepHeight = 0.35f;
-    float jumpSpeed = 10.0f;
+    float jumpSpeed = 7.0f;
     float fallSpeed = 55.0f;
-    
+
     float coyoteTime = 0.15f;
     float jumpBufferTime = 0.15f;
 

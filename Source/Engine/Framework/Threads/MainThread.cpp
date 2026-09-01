@@ -42,7 +42,7 @@ extern ThreadSignal g_renderInitSignal;
 static CommandLineArgumentRegistration g_argDetached { "detached", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false };
 
 MainThread::MainThread()
-    : Thread(g_mainThread, ThreadPriorityValue::HIGHEST)
+    : Thread(g_mainThread, ThreadPriorityValue::NORMAL)
 {
     // Needs to initialize before Start() is called!
     InitThreadAllocator();

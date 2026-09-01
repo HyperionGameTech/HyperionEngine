@@ -251,7 +251,7 @@ static CommandLineArgumentRegistration g_argSimulateOnMainThread {
     "Simulate game logic on the main thread. Not compatible with -RenderOnMainThread.",
     CommandLineArgumentFlags::NONE,
     CommandLineArgumentType::BOOLEAN,
-    true
+    false
 };
 
 static CommandLineArgumentRegistration g_argDedicatedVisThread {

@@ -84,7 +84,10 @@ void CharacterControllerInputHandler::Update()
     forward += controllerMove.y;
 
     m_movementInput = Vec2f(MathUtil::Clamp(strafe, -1.0f, 1.0f), MathUtil::Clamp(forward, -1.0f, 1.0f));
-    m_isJumpRequested = IsKeyDown(KeyCode::KEY_SPACE);
+
+    const bool jumpKeyDown = IsKeyDown(KeyCode::KEY_SPACE);
+    m_isJumpRequested = jumpKeyDown && !m_wasJumpKeyDown;
+    m_wasJumpKeyDown = jumpKeyDown;
 }
 
 bool CharacterControllerInputHandler::OnKeyDown(const KeyboardEvent& evt)

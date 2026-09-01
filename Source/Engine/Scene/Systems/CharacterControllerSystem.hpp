@@ -31,7 +31,8 @@ public:
     CharacterControllerInputHandler()
         : m_forward(0.0f),
           m_strafe(0.0f),
-          m_isJumpRequested(false)
+          m_isJumpRequested(false),
+          m_wasJumpKeyDown(false)
     {
     }
 
@@ -39,7 +40,8 @@ public:
         : m_parentInputHandler(parentInputHandler),
           m_forward(0.0f),
           m_strafe(0.0f),
-          m_isJumpRequested(false)
+          m_isJumpRequested(false),
+          m_wasJumpKeyDown(false)
     {
     }
 
@@ -76,6 +78,7 @@ private:
 
     Vec2f m_movementInput;
     bool m_isJumpRequested;
+    bool m_wasJumpKeyDown;
 };
 
 struct ClientPredictionState

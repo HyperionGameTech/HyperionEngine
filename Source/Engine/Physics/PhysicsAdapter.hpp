@@ -23,7 +23,7 @@ struct CharacterControllerConfig
     Vec3f startTranslation;
     float stepHeight = 0.35f;
     float maxSlopeAngle = 45.0f;
-    float jumpSpeed = 10.0f;
+    float jumpSpeed = 7.0f;
     float fallSpeed = 55.0f;
 
     // Self explanatory name (picture it)

@@ -54,7 +54,7 @@ struct CharacterControllerComponent
     float maxSlopeAngle = 45.0f;
 
     HYP_FIELD(Property = "JumpSpeed", Serialize, Title = "Jump Speed")
-    float jumpSpeed = 10.0f;
+    float jumpSpeed = 7.0f;
 
     HYP_FIELD(Property = "FallSpeed", Serialize, Title = "Fall Speed")
     float fallSpeed = 55.0f;
