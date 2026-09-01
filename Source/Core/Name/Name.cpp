@@ -277,7 +277,7 @@ String Name::ToString() const
         return String(str);
     }
 
-    return String(HYP_FORMAT("Name({})", hashCode));
+    return String::empty;
 }
 
 #pragma endregion Name

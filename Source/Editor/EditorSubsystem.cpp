@@ -4046,6 +4046,11 @@ bool EditorSubsystem::StartSimulation()
 
     gameInstance->StartSimulating();
 
+    if (UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>())
+    {
+        uiSubsystem->SetDebugOverlaysSuppressed(true);
+    }
+
     return true;
 }
 
@@ -4073,6 +4078,11 @@ bool EditorSubsystem::StopSimulation()
         OpenProject(m_preSimulationProject);
 
         m_preSimulationProject.Reset();
+
+        if (UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>())
+        {
+            uiSubsystem->SetDebugOverlaysSuppressed(false);
+        }
 
         return true;
     }
@@ -5578,8 +5588,9 @@ void EditorSubsystem::UpdateBakeStatus()
 
     Baking::BakerScene& bakerScene = m_currentProject->GetBakerScene();
 
-    uint32 numLightmapsOutOfDate = 0;
-    uint32 numProbesOutOfDate = 0;
+    Array<String, EditorAllocator> lightmapVolumeNames;
+    Array<String, EditorAllocator> reflectionProbeNames;
+    Array<String, EditorAllocator> irradianceProbeNames;
 
     for (const Handle<Scene>& scene : world->GetScenes())
     {
@@ -5593,7 +5604,7 @@ void EditorSubsystem::UpdateBakeStatus()
             if (!volume->GetAtlasTexture(0, LightmapVolume::IrradianceTexture).IsValid())
             {
                 // Not baked yet, but we consider it 'out of date', so we dont have LMVs left unbaked in the scene.
-                ++numLightmapsOutOfDate;
+                lightmapVolumeNames.PushBack(*volume->GetName());
 
                 continue;
             }
@@ -5603,7 +5614,7 @@ void EditorSubsystem::UpdateBakeStatus()
             if (!bakerScene.TryGetAssetEpoch<Baking::BakerSceneCategory::LightReceiver>(*volume, storedEpoch))
             {
                 // not tracked yet. bake it to track it
-                ++numLightmapsOutOfDate;
+                lightmapVolumeNames.PushBack(*volume->GetName());
 
                 continue;
             }
@@ -5612,7 +5623,7 @@ void EditorSubsystem::UpdateBakeStatus()
 
             if (storedEpoch != computedEpoch)
             {
-                ++numLightmapsOutOfDate;
+                lightmapVolumeNames.PushBack(*volume->GetName());
             }
         }
 
@@ -5624,12 +5635,27 @@ void EditorSubsystem::UpdateBakeStatus()
                 continue;
             }
 
+            Array<String, EditorAllocator>* outNames;
+
+            if (DynamicCast<ReflectionProbe>(probe))
+            {
+                outNames = &reflectionProbeNames;
+            }
+            else if (DynamicCast<IrradianceProbe>(probe))
+            {
+                outNames = &irradianceProbeNames;
+            }
+            else
+            {
+                continue;
+            }
+
             uint64 storedEpoch;
 
             if (!bakerScene.TryGetAssetEpoch<Baking::BakerSceneCategory::LightReceiver>(*probe, storedEpoch))
             {
                 // not tracked yet. bake it to track it
-                ++numProbesOutOfDate;
+                outNames->PushBack(*probe->GetName());
 
                 continue;
             }
@@ -5638,12 +5664,12 @@ void EditorSubsystem::UpdateBakeStatus()
 
             if (storedEpoch != computedEpoch)
             {
-                ++numProbesOutOfDate;
+                outNames->PushBack(*probe->GetName());
             }
         }
     }
 
-    if (numLightmapsOutOfDate == 0 && numProbesOutOfDate == 0)
+    if (lightmapVolumeNames.Empty() && reflectionProbeNames.Empty() && irradianceProbeNames.Empty())
     {
         m_messagesOverlay->ClearMessage(s_bakeStatusMessageKey);
 
@@ -5652,20 +5678,39 @@ void EditorSubsystem::UpdateBakeStatus()
 
     String text;
 
-    if (numLightmapsOutOfDate > 0)
+    auto appendSection = [&text](ANSIStringView label, Span<const String> names)
     {
-        text += HYP_FORMAT("Lightmaps out of date ({})", numLightmapsOutOfDate);
-    }
+        static constexpr uint32 MaxToShow = 5;
 
-    if (numProbesOutOfDate > 0)
-    {
-        if (text.Any())
+        if (names.Size() == 0)
         {
-            text += "\n";
+            return;
         }
 
-        text += HYP_FORMAT("Probes out of date ({})", numProbesOutOfDate);
-    }
+        if (text.Any())
+        {
+            text += "\n\n";
+        }
+
+        text += HYP_FORMAT("{} {} need a rebake", names.Size(), label);
+
+        const uint32 numToShow = MathUtil::Min(uint32(names.Size()), MaxToShow);
+
+        for (uint32 i = 0; i < numToShow; i++)
+        {
+            text += "\n";
+            text += names[i];
+        }
+
+        if (uint32(names.Size()) > numToShow)
+        {
+            text += HYP_FORMAT("\n... and {} more", uint32(names.Size()) - numToShow);
+        }
+    };
+
+    appendSection("LightmapVolumes", lightmapVolumeNames);
+    appendSection("ReflectionProbes", reflectionProbeNames);
+    appendSection("IrradianceProbes", irradianceProbeNames);
 
     m_messagesOverlay->PutMessage(MessageEntry {
         s_bakeStatusMessageKey,

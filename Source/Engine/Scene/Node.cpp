@@ -268,6 +268,14 @@ void Node::SetScene_Internal(Scene* scene, bool moveToDetached)
     {
         m_scene = scene;
 
+        // If we are unnamed, give ourselves a name
+        if (m_scene != nullptr && !HasName())
+        {
+            const Class* nodeClass = InstanceClass();
+
+            SetName(m_scene->GetUniqueNodeName(nodeClass != nullptr ? nodeClass->GetName().LookupString() : ANSIStringView()));
+        }
+
         MarkDirty();
 
         for (Node* child : m_childNodes)
@@ -647,8 +655,9 @@ Array<Name> Node::GetDeepPath() const
         current = current->m_parentNode;
     }
 
-    // pop root.
-    path.PopFront();
+    // pop root name.
+    path.PopBack();
+
     // reverse order to have higher parents first.
     path.Reverse();
 

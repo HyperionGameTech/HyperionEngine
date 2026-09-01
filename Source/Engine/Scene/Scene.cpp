@@ -274,6 +274,7 @@ Name Scene::GetUniqueNodeName(const ANSIStringView& prefix) const
 
     if (!prefix || *prefix == '\0')
     {
+        // if no prefix, then use "Node"
         realPrefix = "Node";
     }
 

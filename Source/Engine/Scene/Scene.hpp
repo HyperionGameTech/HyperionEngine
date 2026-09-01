@@ -217,6 +217,17 @@ public:
     HYP_METHOD()
     Name GetUniqueNodeName(const ANSIStringView& prefix = {}) const;
 
+    template <class T, typename = std::enable_if_t<std::is_base_of_v<Node, T>>>
+    HYP_FORCE_INLINE Name GetUniqueNodeNameT(const ANSIStringView& prefix = {}) const
+    {
+        if (prefix)
+        {
+            return GetUniqueNodeName(prefix);
+        }
+
+        return GetUniqueNodeName(TypeNameWithoutNamespace<T>().Data());
+    }
+
     HYP_METHOD()
     bool AddToWorld(World* world);
 

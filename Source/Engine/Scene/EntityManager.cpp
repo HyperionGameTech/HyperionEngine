@@ -826,17 +826,18 @@ bool EntityManager::RemoveEntity(Entity* entity, bool calledFromEntityDestructor
     }
     else if (m_world != nullptr)
     {
-        // Entity is being destructed directly - its last strong ref was dropped without
-        // going through SetScene_Internal(nullptr) first, so the normal removal path above
-        // never ran. We can't call NotifySystemsOfEntityRemoved() here since it invokes
-        // system->OnEntityRemoved(entity) on a partially-destructed object, but we still need
-        // to purge the raw pointer from m_systemEntityMap - otherwise EntityManager::Shutdown()
-        // will later dereference this now-dangling pointer via MakeStrongRef().
-        TUniqueLock lock(m_systemEntityMapMutex);
-
-        for (auto& systemEntityPair : m_systemEntityMap)
         {
-            systemEntityPair.second.Erase(entity);
+            TUniqueLock lock(m_systemEntityMapMutex);
+
+            for (auto& systemEntityPair : m_systemEntityMap)
+            {
+                systemEntityPair.second.Erase(entity);
+            }
+        }
+
+        if (m_scene != nullptr && (m_scene->GetSceneFlags() & SceneFlags::HAS_OCTREE))
+        {
+            m_scene->GetOctree().Remove(entity);
         }
     }
 

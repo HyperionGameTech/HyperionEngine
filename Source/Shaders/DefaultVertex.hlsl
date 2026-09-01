@@ -136,7 +136,16 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 
     output.color = material.albedo;
 
-    output.object_mask = ((uint)(currentEntity.bucket == HYP_OBJECT_BUCKET_LIGHTMAPPED) * OBJECT_MASK_LIGHTMAPPED)
+    // Use the compiled shading type rather than the raw entity bucket so this stays in sync with
+    // Rendering.LightmapVolumes - when that cvar is off, lightmapped entities are drawn with the
+    // deferred permutation instead and must not be masked out of probe irradiance.
+#ifdef SHADING_TYPE_LIGHTMAPPED
+    const uint lightmappedMask = OBJECT_MASK_LIGHTMAPPED;
+#else // !SHADING_TYPE_LIGHTMAPPED
+    const uint lightmappedMask = 0u;
+#endif // SHADING_TYPE_LIGHTMAPPED
+
+    output.object_mask = lightmappedMask
         | (min(1u, GET_MATERIAL_PARAM_BIT(material, 0)) * OBJECT_MASK_UNLIT);
 
 #ifndef INSTANCING

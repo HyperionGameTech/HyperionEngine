@@ -120,7 +120,8 @@ UISubsystem::UISubsystem(const Handle<UIStage>& uiStage)
     : m_uiStage(uiStage),
       m_uiRenderer(nullptr),
       m_wasProcessedLastFrame(false),
-      m_wasDebugUIEnabled(false)
+      m_wasDebugUIEnabled(false),
+      m_debugOverlaysSuppressed(false)
 {
     if (!m_uiStage.IsValid())
     {
@@ -228,8 +229,8 @@ void UISubsystem::Update(float delta)
 {
     HYP_SCOPE;
 
-    const bool enableDebugUI = g_cvShowDebugUI.Get();
-    
+    const bool enableDebugUI = g_cvShowDebugUI.Get() && !m_debugOverlaysSuppressed;
+
     if (enableDebugUI != m_wasDebugUIEnabled)
     {
         for (auto& container : m_debugOverlayContainers)

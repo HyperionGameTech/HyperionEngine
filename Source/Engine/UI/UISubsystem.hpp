@@ -77,6 +77,11 @@ public:
     HYP_METHOD()
     bool RemoveDebugOverlay(OverlayBase* debugOverlay);
 
+    HYP_FORCE_INLINE void SetDebugOverlaysSuppressed(bool suppressed)
+    {
+        m_debugOverlaysSuppressed = suppressed;
+    }
+
     void PreUpdate(float delta) override;
     void Update(float delta) override;
 
@@ -113,6 +118,7 @@ private:
 
     bool m_wasProcessedLastFrame;
     bool m_wasDebugUIEnabled;
+    bool m_debugOverlaysSuppressed;
 };
 
 } // namespace Hyperion

@@ -83,6 +83,7 @@ static EngineStatTimer s_statProxyListReadWait("Rendering/CPU/ProxyListReadWait"
 
 extern CVar<bool> g_cvDepthPrepass;
 extern CVar<bool> g_cvPathTracing;
+extern CVar<bool> g_cvEnableLightmapVolumes;
 
 static const Name s_nameShadingType = NAME("SHADING_TYPE");
 static const Name s_nameForward = NAME("FORWARD");
@@ -257,7 +258,7 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     const RenderBucket bucket = mas.bucket;
 
     const bool hasForwardLighting = (bucket == RenderBucket::Translucent || bucket == RenderBucket::Sky || bucket == RenderBucket::Debug);
-    const bool hasLightmaps = (bucket == RenderBucket::Lightmapped);
+    const bool hasLightmaps = (bucket == RenderBucket::Lightmapped) && g_cvEnableLightmapVolumes.Get();
     const bool isSky = (bucket == RenderBucket::Sky);
     const bool isDebug = (bucket == RenderBucket::Debug);
 

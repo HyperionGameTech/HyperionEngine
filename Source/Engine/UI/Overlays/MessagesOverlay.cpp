@@ -51,7 +51,10 @@ Handle<UIObject> MessagesOverlay::CreateUIObject(UIObject* spawnParent)
     m_listView = spawnParent->CreateUIObject<UIListView>(
         NAME("MessagesOverlay_List"),
         Vec2i::Zero(),
-        UIObjectSize({ 300, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
+        UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
+
+    m_listView->SetTextSize(12.0f);
+    m_listView->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.1f));
 
     return m_listView;
 }

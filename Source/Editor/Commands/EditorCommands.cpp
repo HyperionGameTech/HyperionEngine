@@ -522,6 +522,7 @@ public:
         BoundingBox lightmapVolumeAabb(Vec3f(-60.0f, -5.0f, -60.0f), Vec3f(60.0f, 40.0f, 60.0f));
 
         Handle<LightmapVolume> lightmapVolume = MakeHandle<LightmapVolume>(lightmapVolumeAabb);
+        lightmapVolume->SetName(activeScene->GetUniqueNodeNameT<LightmapVolume>());
 
         WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
 
@@ -1154,6 +1155,7 @@ public:
         const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
 
         Handle<ReflectionProbe> reflectionProbe = MakeHandle<ReflectionProbe>(BoundingBox(Vec3f(-10.0f), Vec3f(10.0f)), Vec2u(128, 128));
+        reflectionProbe->SetName(activeScene->GetUniqueNodeNameT<ReflectionProbe>());
         reflectionProbe->SetIsBaked(true);
         reflectionProbe->SetWorldTranslation(insertionPoint);
 
@@ -1255,6 +1257,7 @@ public:
         const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
 
         Handle<IrradianceProbe> irradianceProbe = MakeHandle<IrradianceProbe>(BoundingBox(Vec3f(-10.0f), Vec3f(10.0f)), Vec2u(8, 8));
+        irradianceProbe->SetName(activeScene->GetUniqueNodeNameT<IrradianceProbe>());
         irradianceProbe->SetWorldTranslation(insertionPoint);
 
         WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
@@ -1339,6 +1342,7 @@ public:
         }
 
         Handle<ParticleVolume> particleVolume = MakeHandle<ParticleVolume>(BoundingBox(Vec3f(-20.0f, 0.0f, -20.0f), Vec3f(20.0f, 20.0f, 20.0f)));
+        particleVolume->SetName(activeScene->GetUniqueNodeNameT<ParticleVolume>());
 
         particleVolume->texture = g_assetManager->Load<Texture>("Textures/spark.png").GetValue().ExtractAs<Handle<Texture>>();
         particleVolume->mesh = MeshBuilder::Quad();
@@ -1432,6 +1436,7 @@ public:
         Baking::BakerScene& bakerScene = currentProject->GetBakerScene();
 
         Handle<FogVolume> fogVolume = MakeHandle<FogVolume>(BoundingBox(Vec3f(-20.0f, 0.0f, -20.0f), Vec3f(20.0f, 30.0f, 20.0f)));
+        fogVolume->SetName(activeScene->GetUniqueNodeNameT<FogVolume>());
         InitObject(fogVolume);
 
         WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
