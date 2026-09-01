@@ -264,6 +264,7 @@ void CharacterControllerSystem::OnEntityAdded(Entity* entity)
     config.fallSpeed = component.fallSpeed;
     config.shadowMaxSpeed = component.shadowMaxSpeed;
     config.shadowTeleportDistance = component.shadowTeleportDistance;
+    config.pushMassLimit = component.pushMassLimit;
 
     entity->GetWorld()->GetPhysicsWorld()->AddCharacterController(config, component.physicsHandle);
 
@@ -467,6 +468,7 @@ static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent
         config.fallSpeed = component.fallSpeed;
         config.shadowMaxSpeed = component.shadowMaxSpeed;
         config.shadowTeleportDistance = component.shadowTeleportDistance;
+        config.pushMassLimit = component.pushMassLimit;
 
         entity->GetWorld()->GetPhysicsWorld()->AddCharacterController(config, component.physicsHandle);
 

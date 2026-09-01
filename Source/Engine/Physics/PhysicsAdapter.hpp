@@ -30,6 +30,10 @@ struct CharacterControllerConfig
     float shadowMaxSpeed = 60.0f;
     // Instead of following, shadow body will teleport at this distance.
     float shadowTeleportDistance = 0.5f;
+
+    float pushMassLimit = 350.0f;
+    float maxPushSpeed = 1.5f;
+    float pushSpeedScale = 1.0f;
 };
 
 template <class DerivedAdapter>

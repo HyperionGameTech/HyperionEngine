@@ -63,16 +63,112 @@ struct CharacterControllerInternalData
     float shadowMaxSpeed = 60.0f;
     float shadowTeleportDistance = 0.5f;
 
+    float pushMassLimit = 350.0f;
+    float maxPushSpeed = 1.5f;
+    float pushSpeedScale = 1.0f;
+
+    Vec3f pushVelocity;
+
+    //-- servo
+    btVector3 ghostTravel { 0.0f, 0.0f, 0.0f };
+    btScalar characterTime = 0.0f;
+    int idleCharacterTicks = 0;
+    btVector3 targetVelocity { 0.0f, 0.0f, 0.0f };
     btVector3 shadowVelocity { 0.0f, 0.0f, 0.0f };
+    //--
 
     SharedPtr<btRigidBody> shadowBody;
     SharedPtr<btMotionState> shadowMotionState;
+
+    Vec3f GetPushVelocity() const
+    {
+        Vec3f velocity = { walkVelocity.x, 0.0f, walkVelocity.z };
+
+        const float speed = velocity.Length();
+        const float pushSpeed = MathUtil::Min(speed * pushSpeedScale, maxPushSpeed);
+
+        if (speed > pushSpeed && speed > MathUtil::epsilonF)
+        {
+            velocity *= pushSpeed / speed;
+        }
+
+        return velocity;
+    }
 };
 
+static bool FindPushableBodies(CharacterControllerInternalData* character)
+{
+    Vec3f horizontalWalk = { character->walkVelocity.x, 0.0f, character->walkVelocity.z };
+
+    if (horizontalWalk.LengthSquared() < MathUtil::epsilonF)
+    {
+        return false;
+    }
+
+    const btVector3 travelDirection = ToBtVector(horizontalWalk.Normalize());
+    const btVector3 characterOrigin = character->ghostObject->getWorldTransform().getOrigin();
+
+    bool foundPushable = false;
+
+    for (int i = 0; i < character->ghostObject->getNumOverlappingObjects(); ++i)
+    {
+        btRigidBody* body = btRigidBody::upcast(character->ghostObject->getOverlappingObject(i));
+
+        if (!body || body->isStaticOrKinematicObject() || body->getInvMass() <= 0.0f)
+        {
+            continue;
+        }
+
+        if (btScalar(1.0) / body->getInvMass() > character->pushMassLimit)
+        {
+            continue;
+        }
+
+        btVector3 toBody = body->getWorldTransform().getOrigin() - characterOrigin;
+        toBody.setY(0.0f);
+
+        if (toBody.length2() < SIMD_EPSILON || toBody.normalized().dot(travelDirection) < btScalar(0.5))
+        {
+            continue;
+        }
+
+        body->activate(true);
+
+        foundPushable = true;
+    }
+
+    return foundPushable;
+}
 
 struct CharacterGhostOverlapFilter final : btOverlapFilterCallback
 {
     const Set<btRigidBody*, PhysicsAllocator>* ghostNonCollidableBodies = nullptr;
+    const Array<SharedPtr<void>, PhysicsAllocator>* characterControllers = nullptr;
+
+    CharacterControllerInternalData* FindCharacterData(const btCollisionObject* collisionObject) const
+    {
+        if (characterControllers == nullptr)
+        {
+            return nullptr;
+        }
+
+        void* userPointer = collisionObject->getUserPointer();
+
+        if (userPointer == nullptr)
+        {
+            return nullptr;
+        }
+
+        for (const SharedPtr<void>& physicsHandle : *characterControllers)
+        {
+            if (physicsHandle.GetVoid() == userPointer)
+            {
+                return static_cast<CharacterControllerInternalData*>(userPointer);
+            }
+        }
+
+        return nullptr;
+    }
 
     bool needBroadphaseCollision(btBroadphaseProxy* proxy0, btBroadphaseProxy* proxy1) const override
     {
@@ -90,20 +186,36 @@ struct CharacterGhostOverlapFilter final : btOverlapFilterCallback
         const bool obj0IsGhost = obj0->getInternalType() == btCollisionObject::CO_GHOST_OBJECT;
         const bool obj1IsGhost = obj1->getInternalType() == btCollisionObject::CO_GHOST_OBJECT;
 
-        if (!obj0IsGhost && !obj1IsGhost)
+        CharacterControllerInternalData* character = FindCharacterData(obj0);
+        btCollisionObject* other = obj1;
+        bool characterIsGhost = obj0IsGhost;
+
+        if (character == nullptr)
+        {
+            character = FindCharacterData(obj1);
+            other = obj0;
+            characterIsGhost = obj1IsGhost;
+        }
+
+        if (character == nullptr)
         {
             return true;
         }
 
-        btCollisionObject* other = obj0IsGhost ? obj1 : obj0;
         btRigidBody* otherRigidBody = btRigidBody::upcast(other);
 
-        if (otherRigidBody && !otherRigidBody->isStaticOrKinematicObject())
+        if (!characterIsGhost && otherRigidBody && !otherRigidBody->isStaticOrKinematicObject())
         {
-            return false;
+            const btScalar invMass = otherRigidBody->getInvMass();
+
+            if (invMass <= 0.0f || btScalar(1.0) / invMass > character->pushMassLimit)
+            {
+                return false;
+            }
         }
 
-        if (otherRigidBody
+        if (characterIsGhost
+            && otherRigidBody
             && otherRigidBody->isKinematicObject()
             && ghostNonCollidableBodies != nullptr
             && ghostNonCollidableBodies->Contains(otherRigidBody))
@@ -280,6 +392,7 @@ void BulletPhysicsAdapter::Init(PhysicsWorldBase* world)
 
     m_characterOverlapFilter = HYP_POOL_NEW(g_physicsPool, CharacterGhostOverlapFilter);
     static_cast<CharacterGhostOverlapFilter*>(m_characterOverlapFilter)->ghostNonCollidableBodies = &m_ghostNonCollidableBodies;
+    static_cast<CharacterGhostOverlapFilter*>(m_characterOverlapFilter)->characterControllers = &m_characterControllers;
     m_dynamicsWorld->getBroadphase()->getOverlappingPairCache()->setOverlapFilterCallback(m_characterOverlapFilter);
 
     // Character shadow bodies advance per substep (see AdvanceCharacterShadowBodies) so
@@ -660,6 +773,7 @@ void BulletPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerC
     internalData->ghostObject->setWorldTransform(startTransform);
     internalData->ghostObject->setCollisionShape(internalData->capsuleShape.Get());
     internalData->ghostObject->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
+    internalData->ghostObject->setUserPointer(internalData.Get());
 
     internalData->kcc = MakeSharedWithAllocator<btKinematicCharacterController, PhysicsAllocator>(
         internalData->ghostObject.Get(),
@@ -679,6 +793,9 @@ void BulletPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerC
 
     internalData->shadowMaxSpeed = config.shadowMaxSpeed;
     internalData->shadowTeleportDistance = config.shadowTeleportDistance;
+    internalData->pushMassLimit = config.pushMassLimit;
+    internalData->maxPushSpeed = config.maxPushSpeed;
+    internalData->pushSpeedScale = config.pushSpeedScale;
 
     internalData->shadowMotionState = MakeSharedWithAllocator<btDefaultMotionState, PhysicsAllocator>(startTransform);
 
@@ -692,6 +809,7 @@ void BulletPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerC
     internalData->shadowBody->setWorldTransform(startTransform);
     internalData->shadowBody->setCollisionFlags(internalData->shadowBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
     internalData->shadowBody->setActivationState(DISABLE_DEACTIVATION);
+    internalData->shadowBody->setUserPointer(internalData.Get());
 
     m_dynamicsWorld->addRigidBody(
         internalData->shadowBody.Get(),
@@ -770,6 +888,7 @@ void BulletPhysicsAdapter::UpdateCharacterShadowBodies(double simDelta)
     }
 
     constexpr btScalar errorCorrectionRate = 40.0f;  // 1/s, fraction of position error closed per second
+    constexpr btScalar velocitySmoothing = 0.5f;
 
     const btScalar correctionRate = MathUtil::Min(errorCorrectionRate, btScalar(1.0 / simDelta));
 
@@ -781,6 +900,21 @@ void BulletPhysicsAdapter::UpdateCharacterShadowBodies(double simDelta)
         {
             continue;
         }
+
+        if (internalData->characterTime > 0.0f)
+        {
+            const btVector3 measuredVelocity = internalData->ghostTravel / internalData->characterTime;
+
+            internalData->targetVelocity = internalData->targetVelocity.lerp(measuredVelocity, velocitySmoothing);
+            internalData->idleCharacterTicks = 0;
+        }
+        else if (++internalData->idleCharacterTicks >= 2)
+        {
+            internalData->targetVelocity *= 0.85f;
+        }
+
+        internalData->ghostTravel.setValue(0.0f, 0.0f, 0.0f);
+        internalData->characterTime = 0.0f;
 
         const btTransform targetTransform = internalData->ghostObject->getWorldTransform();
         const btTransform previousTransform = internalData->shadowBody->getWorldTransform();
@@ -795,12 +929,14 @@ void BulletPhysicsAdapter::UpdateCharacterShadowBodies(double simDelta)
             internalData->shadowBody->setInterpolationWorldTransform(targetTransform);
             internalData->shadowBody->setLinearVelocity(btVector3(0.0f, 0.0f, 0.0f));
 
+            // Discontinuity -- drop the stale velocity estimate along with the error.
+            internalData->targetVelocity.setValue(0.0f, 0.0f, 0.0f);
             internalData->shadowVelocity.setValue(0.0f, 0.0f, 0.0f);
 
             continue;
         }
 
-        btVector3 chaseVelocity = ToBtVector(internalData->walkVelocity) + positionError * correctionRate;
+        btVector3 chaseVelocity = internalData->targetVelocity + positionError * correctionRate;
         const btScalar chaseSpeed = chaseVelocity.length();
 
         if (chaseSpeed > btScalar(internalData->shadowMaxSpeed))
@@ -854,11 +990,29 @@ void BulletPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physic
     const int numSubsteps = MathUtil::Min(int(MathUtil::Ceil(totalDelta / maxSubstepDelta)), maxSubsteps);
     const float substepDelta = totalDelta / float(numSubsteps);
 
+    internalData->pushVelocity = internalData->GetPushVelocity();
+
+    Vec3f walkVelocity = internalData->walkVelocity;
+
+    if (FindPushableBodies(internalData))
+    {
+        // Don't let the character outrun the object it's pushing
+        walkVelocity = internalData->pushVelocity + Vec3f(0.0f, walkVelocity.y, 0.0f);
+    }
+
+    const btVector3 ghostPositionBeforeStep = internalData->ghostObject->getWorldTransform().getOrigin();
+
     for (int i = 0; i < numSubsteps; ++i)
     {
-        internalData->kcc->setWalkDirection(ToBtVector(internalData->walkVelocity) * substepDelta);
+        internalData->kcc->setWalkDirection(ToBtVector(walkVelocity) * substepDelta);
         internalData->kcc->updateAction(m_dynamicsWorld, substepDelta);
     }
+
+    // accum ghost travel
+    internalData->ghostTravel += internalData->ghostObject->getWorldTransform().getOrigin() - ghostPositionBeforeStep;
+    internalData->characterTime += btScalar(totalDelta);
+
+    // The shadow body deliberately is NOT moved here (chases during tick)
 }
 
 void BulletPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation)
@@ -875,6 +1029,11 @@ void BulletPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physic
     internalData->ghostObject->setWorldTransform(transform);
 
     // Reset states
+    internalData->pushVelocity = Vec3f::Zero();
+    internalData->ghostTravel.setValue(0.0f, 0.0f, 0.0f);
+    internalData->characterTime = 0.0f;
+    internalData->idleCharacterTicks = 0;
+    internalData->targetVelocity.setValue(0.0f, 0.0f, 0.0f);
     internalData->shadowVelocity.setValue(0.0f, 0.0f, 0.0f);
 
     if (internalData->shadowBody)

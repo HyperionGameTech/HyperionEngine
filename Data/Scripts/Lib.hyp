@@ -594,6 +594,9 @@ extern struct CharacterControllerComponent
     FallSpeed : float
     ShadowMaxSpeed : float
     ShadowTeleportDistance : float
+    PushMassLimit : float
+    MaxPushSpeed : float
+    PushSpeedScale : float
     IsOnGround : bool
 end
 extern struct BoundingBoxComponent

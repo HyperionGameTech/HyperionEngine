@@ -38,32 +38,41 @@ struct CharacterControllerComponent
     HYP_FIELD(Transient)
     SharedPtr<void> physicsHandle;
 
-    HYP_FIELD(Property = "ViewDirection", Serialize)
+    HYP_FIELD(Transient)
     Vec3f viewDirection = Vec3f(0.0f, 0.0f, 1.0f);
 
     HYP_FIELD(Transient)
     Vec3f translation;
 
-    HYP_FIELD(Property = "MoveSpeed", Serialize)
+    HYP_FIELD(Property = "MoveSpeed", Serialize, Title = "Move Speed")
     float moveSpeed = 0.05f;
 
-    HYP_FIELD(Property = "StepHeight", Serialize)
+    HYP_FIELD(Property = "StepHeight", Serialize, Title = "Step Height")
     float stepHeight = 0.35f;
 
-    HYP_FIELD(Property = "MaxSlopeAngle", Serialize)
+    HYP_FIELD(Property = "MaxSlopeAngle", Serialize, Title = "Max Slope Angle")
     float maxSlopeAngle = 45.0f;
 
-    HYP_FIELD(Property = "JumpSpeed", Serialize)
+    HYP_FIELD(Property = "JumpSpeed", Serialize, Title = "Jump Speed")
     float jumpSpeed = 1.0f;
 
-    HYP_FIELD(Property = "FallSpeed", Serialize)
+    HYP_FIELD(Property = "FallSpeed", Serialize, Title = "Fall Speed")
     float fallSpeed = 5.0f;
 
-    HYP_FIELD(Property = "ShadowMaxSpeed", Serialize)
+    HYP_FIELD(Property = "ShadowMaxSpeed", Serialize, Editor = false)
     float shadowMaxSpeed = 60.0f;
 
-    HYP_FIELD(Property = "ShadowTeleportDistance", Serialize)
+    HYP_FIELD(Property = "ShadowTeleportDistance", Serialize, Editor = false)
     float shadowTeleportDistance = 0.5f;
+
+    HYP_FIELD(Property = "PushMassLimit", Serialize, Title = "Push Mass Limit")
+    float pushMassLimit = 350.0f;
+
+    HYP_FIELD(Property = "MaxPushSpeed", Serialize, Title = "Max Push Speed")
+    float maxPushSpeed = 1.5f;
+
+    HYP_FIELD(Property = "PushSpeedScale", Serialize, Title = "Push Speed Scale")
+    float pushSpeedScale = 1.0f;
 
     HYP_FIELD(Transient)
     bool isOnGround = false;
