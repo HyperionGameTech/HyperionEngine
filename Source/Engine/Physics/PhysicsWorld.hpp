@@ -72,6 +72,7 @@ public:
     virtual void StepCharacterController(const SharedPtr<void>& physicsHandle, float deltaTime) = 0;
     virtual void SetCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation) = 0;
     virtual void GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround) = 0;
+    virtual void GetCharacterTouchedRigidBodies(const SharedPtr<void>& physicsHandle, Array<Handle<RigidBody>, PhysicsAllocator>& out) = 0;
 
 protected:
     Vec3f m_gravity = EarthGravity;
@@ -190,6 +191,11 @@ public:
     void GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround) override
     {
         m_adapter.GetCharacterState(physicsHandle, outTranslation, outIsOnGround);
+    }
+
+    void GetCharacterTouchedRigidBodies(const SharedPtr<void>& physicsHandle, Array<Handle<RigidBody>, PhysicsAllocator>& out) override
+    {
+        m_adapter.GetCharacterTouchedRigidBodies(physicsHandle, out);
     }
 
     void Initialize() override

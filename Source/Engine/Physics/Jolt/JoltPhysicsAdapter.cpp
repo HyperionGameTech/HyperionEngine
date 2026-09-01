@@ -536,6 +536,8 @@ void JoltPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
 
     internalData->bodyID = body->GetID();
 
+    m_bodyIdToRigidBody.Set(internalData->bodyID.GetIndexAndSequenceNumber(), rigidBody);
+
     bodyInterface.AddBody(
         internalData->bodyID,
         internalData->isDynamic ? JPH::EActivation::Activate : JPH::EActivation::DontActivate);
@@ -671,6 +673,7 @@ void JoltPhysicsAdapter::OnRigidBodyRemoved(const Handle<RigidBody>& rigidBody)
     Assert(internalData != nullptr);
 
     m_ghostNonCollidableBodyIds.Erase(internalData->bodyID.GetIndexAndSequenceNumber());
+    m_bodyIdToRigidBody.Erase(internalData->bodyID.GetIndexAndSequenceNumber());
 
     JPH::BodyInterface& bodyInterface = m_physicsSystem->GetBodyInterface();
 
@@ -1031,6 +1034,52 @@ void JoltPhysicsAdapter::GetCharacterState(const SharedPtr<void>& physicsHandle,
 
     outTranslation = FromJPHVec(character->GetPosition()) + Vec3f(0.0f, internalData->capsuleCenterOffset, 0.0f);
     outIsOnGround = character->IsSupported();
+}
+
+void JoltPhysicsAdapter::GetCharacterTouchedRigidBodies(const SharedPtr<void>& physicsHandle, Array<Handle<RigidBody>, PhysicsAllocator>& out)
+{
+    JoltCharacterControllerInternalData* internalData = static_cast<JoltCharacterControllerInternalData*>(physicsHandle.GetVoid());
+
+    if (!internalData)
+    {
+        return;
+    }
+
+    JPH::CharacterVirtual* character = internalData->character.GetPtr();
+
+    for (const JPH::CharacterContact& contact : character->GetActiveContacts())
+    {
+        if (!contact.mHadCollision || contact.mBodyB.IsInvalid())
+        {
+            continue;
+        }
+
+        auto it = m_bodyIdToRigidBody.Find(contact.mBodyB.GetIndexAndSequenceNumber());
+
+        if (it == m_bodyIdToRigidBody.End())
+        {
+            continue;
+        }
+
+        const Handle<RigidBody>& rigidBody = it->second;
+
+        if (!rigidBody)
+        {
+            continue;
+        }
+
+        if (!rigidBody->IsKinematic() && !rigidBody->IsLocallyPredicted())
+        {
+            continue;
+        }
+
+        if (rigidBody->physicsMaterial == nullptr || rigidBody->physicsMaterial->mass <= MathUtil::epsilonF)
+        {
+            continue;
+        }
+
+        out.PushBack(rigidBody);
+    }
 }
 
 } // namespace Hyperion

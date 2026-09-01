@@ -268,6 +268,20 @@ void ReplicationApplySystem::UpdateInterpolatedEntities(float delta)
 
         Entity* entity = entityIt->second.Get();
 
+        // While a Kinematic body is locally flipped to Dynamic for push prediction, its visible
+        // transform is owned by the local simulation (World::SyncPhysicsToEntities), not this
+        // replication path. Keep accumulating samples (so there's a smooth glide-back once the
+        // prediction ends) but do not write the entity transform here.
+        if (RigidBodyComponent* rigidBodyComponent = entity->TryGetComponent<RigidBodyComponent>())
+        {
+            if (rigidBodyComponent->rigidBody.IsValid() && rigidBodyComponent->rigidBody->IsLocallyPredicted())
+            {
+                ++it;
+
+                continue;
+            }
+        }
+
         Transform targetTransform;
 
         if (!NetGlobals::GetInterpolationEnabled())
@@ -400,6 +414,13 @@ void ReplicationApplySystem::SyncColliderToEntity(Entity* entity, float deltaTim
     // Kinematic bodies here are driven purely by replication (see World::SyncPhysicsBodyKinematicStates);
     // move them with a derived velocity rather than teleporting, so contacts against them (a character
     // standing on/pushing one) solve smoothly instead of every network update popping them in place.
+    if (rigidBodyComponent->rigidBody->IsLocallyPredicted())
+    {
+        // While the body is temporarily Dynamic for local push prediction, Jolt's own solver owns it;
+        // don't write into the physics body at all.
+        return;
+    }
+
     if (rigidBodyComponent->rigidBody->IsKinematic())
     {
         physicsWorld->MoveRigidBodyKinematic(rigidBodyComponent->rigidBody, worldTransform, deltaTime);

@@ -89,6 +89,12 @@ struct ClientPredictionState
         Vec3f resultTranslation; // predicted entity translation after applying this move
     };
 
+    struct PredictedBodyState
+    {
+        Handle<RigidBody> rigidBody;
+        float timeSinceLastTouch = 0.0f;
+    };
+
     static constexpr uint32 MaxBufferedMoves = 128;
 
     Array<BufferedMove, SceneAllocator> unacknowledgedMoves;
@@ -98,6 +104,8 @@ struct ClientPredictionState
     Vec3f smoothingOffset = Vec3f(0.0f);
     float smoothingSecondsRemaining = 0.0f;
     float secondsSinceLastSend = 0.0f;
+
+    Array<PredictedBodyState, SceneAllocator> locallyPredictedBodies;
 };
 
 HYP_CLASS(NoScriptBindings)

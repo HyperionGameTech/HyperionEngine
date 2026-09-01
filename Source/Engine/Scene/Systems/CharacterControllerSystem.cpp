@@ -452,6 +452,110 @@ static void ReconcileMoveAck(Entity* entity, CharacterControllerComponent& compo
     }
 }
 
+/// Local prediction of replicated props
+static constexpr bool EnableLocalPrediction = false;
+
+static void ProcessClientPredictionBodies(Entity* entity, CharacterControllerComponent& component, ClientPredictionState& state, float delta)
+{
+    PhysicsWorldBase* physicsWorld = entity->GetWorld()->GetPhysicsWorld();
+
+    if (!physicsWorld || !component.physicsHandle)
+    {
+        return;
+    }
+    
+    Array<Handle<RigidBody>, PhysicsAllocator> touched;
+    
+    const float releaseDelay = MathUtil::Max(component.pushPredictionReleaseDelay, 0.0f);
+
+    if constexpr (EnableLocalPrediction)
+    {
+        physicsWorld->GetCharacterTouchedRigidBodies(component.physicsHandle, touched);
+
+        for (const Handle<RigidBody>& rigidBody : touched)
+        {
+            if (!rigidBody)
+            {
+                continue;
+            }
+
+            bool tracked = false;
+
+            for (ClientPredictionState::PredictedBodyState& predicted : state.locallyPredictedBodies)
+            {
+                if (predicted.rigidBody == rigidBody)
+                {
+                    predicted.timeSinceLastTouch = 0.0f;
+                    tracked = true;
+
+                    break;
+                }
+            }
+
+            if (tracked)
+            {
+                continue;
+            }
+
+            // Only prediction for bodies that are still Kinematic
+            if (!rigidBody->IsKinematic())
+            {
+                continue;
+            }
+
+            physicsWorld->SetRigidBodyKinematic(rigidBody, false);
+            rigidBody->SetIsLocallyPredicted(true);
+
+            state.locallyPredictedBodies.PushBack(ClientPredictionState::PredictedBodyState { rigidBody, 0.0f });
+        }
+    }
+
+    for (size_t i = 0; i < state.locallyPredictedBodies.Size();)
+    {
+        ClientPredictionState::PredictedBodyState& predicted = state.locallyPredictedBodies[i];
+
+        bool touchedThisFrame = false;
+
+        for (const Handle<RigidBody>& rigidBody : touched)
+        {
+            if (rigidBody == predicted.rigidBody)
+            {
+                touchedThisFrame = true;
+
+                break;
+            }
+        }
+
+        if (touchedThisFrame)
+        {
+            predicted.timeSinceLastTouch = 0.0f;
+
+            ++i;
+
+            continue;
+        }
+
+        predicted.timeSinceLastTouch += delta;
+
+        if (predicted.timeSinceLastTouch < releaseDelay)
+        {
+            ++i;
+
+            continue;
+        }
+
+        // Release: hand the body back to Kinematic; MoveRigidBodyKinematic glides it smoothly onto
+        // the latest authoritative sample. Guard against a despawned/invalidated body.
+        if (predicted.rigidBody.IsValid())
+        {
+            predicted.rigidBody->SetIsLocallyPredicted(false);
+            physicsWorld->SetRigidBodyKinematic(predicted.rigidBody, true);
+        }
+
+        state.locallyPredictedBodies.EraseAt(i);
+    }
+}
+
 static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent& component, CharacterControllerSystem* system, float delta)
 {
     ClientPredictionState& state = system->GetPredictionState(entity);
@@ -516,6 +620,8 @@ static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent
     Vec3f resultTranslation = Vec3f::Zero();
 
     SceneHelpers::MoveCharacter(entity, component, move, resultTranslation);
+
+    ProcessClientPredictionBodies(entity, component, state, delta);
 
     state.unacknowledgedMoves.PushBack(ClientPredictionState::BufferedMove { move, resultTranslation });
 

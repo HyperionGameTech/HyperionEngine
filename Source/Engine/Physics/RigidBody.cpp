@@ -36,7 +36,8 @@ RigidBody::RigidBody()
     : shape(GetDefaultPhysicsShape()),
       physicsMaterial(&GetDefaultPhysicsMaterial()),
       isSleeping(false),
-      m_isKinematic(false)
+      m_isKinematic(false),
+      m_isLocallyPredicted(false)
 {
 }
 

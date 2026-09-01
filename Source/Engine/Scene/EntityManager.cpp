@@ -375,9 +375,7 @@ void EntityManager::Shutdown()
                 SystemBase* system = systemIt.second;
                 Assert(system != nullptr);
 
-                // Drain all remaining entities registered with this system in the system entity map.
-                // This covers entities that were moved out of the main entity list (e.g. via MoveEntity
-                // from SetScene(nullptr)) before Shutdown had a chance to process them.
+                // Drain all remaining entities registered with this system in the system entity map
                 Array<Entity*> entities;
 
                 {

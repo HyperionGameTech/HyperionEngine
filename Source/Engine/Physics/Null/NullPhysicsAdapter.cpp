@@ -100,4 +100,9 @@ void NullPhysicsAdapter::GetCharacterState(const SharedPtr<void>& physicsHandle,
 {
 }
 
+void NullPhysicsAdapter::GetCharacterTouchedRigidBodies(const SharedPtr<void>& physicsHandle, Array<Handle<RigidBody>, PhysicsAllocator>& out)
+{
+    out.Clear();
+}
+
 } // namespace Hyperion

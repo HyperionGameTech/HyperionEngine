@@ -80,6 +80,9 @@ struct CharacterControllerComponent
     HYP_FIELD(Property = "PushSpeedScale", Serialize, Title = "Push Speed Scale")
     float pushSpeedScale = 1.0f;
 
+    HYP_FIELD(Property = "PushPredictionReleaseDelay", Serialize, Title = "Push Prediction Release Delay", Description = "Grace period after last contact before a locally-predicted pushed body is handed back to replication")
+    float pushPredictionReleaseDelay = 0.25f;
+
     HYP_FIELD(Transient)
     bool isOnGround = false;
 };

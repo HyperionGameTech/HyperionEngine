@@ -153,7 +153,9 @@ void MeshSystem::OnEntityRemoved(Entity* entity)
 
     DestroyInstancedMeshData(*entity, entity->GetComponent<MeshComponent>(), /* removeFromPackage */ false);
 
+    // FIXME: This is getting called on EntityManager Shutdown(), which triggers an assertion due to not being locked
     entity->AddTag<EntityTag::UpdateRenderProxy>();
+
     entity->RemoveTag<EntityTag::UpdateInstancedMeshData>();
 
 #ifdef HYP_EDITOR

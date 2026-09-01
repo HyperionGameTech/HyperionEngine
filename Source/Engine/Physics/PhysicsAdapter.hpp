@@ -11,6 +11,10 @@
 #include <Core/Math/Transform.hpp>
 #include <Core/Memory/SharedPtr.hpp>
 
+#include <Core/Containers/Array.hpp>
+
+#include <Physics/PhysicsMemory.hpp>
+
 namespace Hyperion {
 
 class PhysicsWorldBase;
@@ -40,6 +44,10 @@ struct CharacterControllerConfig
     float pushMassLimit = 350.0f;
     float maxPushSpeed = 1.5f;
     float pushSpeedScale = 1.0f;
+
+    // Grace period after the last character contact before a locally-predicted
+    // body is handed back to Kinematic and glided back onto the replication stream.
+    float pushPredictionReleaseDelay = 0.25f;
 };
 
 template <class DerivedAdapter>
@@ -149,6 +157,11 @@ public:
     void GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround)
     {
         GetDerivedAdapter()->DerivedAdapter::GetCharacterState(physicsHandle, outTranslation, outIsOnGround);
+    }
+
+    void GetCharacterTouchedRigidBodies(const SharedPtr<void>& physicsHandle, Array<Handle<RigidBody>, PhysicsAllocator>& out)
+    {
+        GetDerivedAdapter()->DerivedAdapter::GetCharacterTouchedRigidBodies(physicsHandle, out);
     }
 };
 

@@ -40,6 +40,7 @@ public:
     void StepCharacterController(const SharedPtr<void>& physicsHandle, float deltaTime);
     void SetCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation);
     void GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround);
+    void GetCharacterTouchedRigidBodies(const SharedPtr<void>& physicsHandle, Array<Handle<RigidBody>, PhysicsAllocator>& out);
 };
 
 } // namespace Hyperion

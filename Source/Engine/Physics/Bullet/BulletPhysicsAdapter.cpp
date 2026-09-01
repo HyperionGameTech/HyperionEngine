@@ -1094,6 +1094,11 @@ void BulletPhysicsAdapter::GetCharacterState(const SharedPtr<void>& physicsHandl
     outIsOnGround = internalData->kcc->onGround();
 }
 
+void BulletPhysicsAdapter::GetCharacterTouchedRigidBodies(const SharedPtr<void>& physicsHandle, Array<Handle<RigidBody>, PhysicsAllocator>& out)
+{
+    out.Clear();
+}
+
 } // namespace Hyperion
 
 #endif // HYP_BULLET_PHYSICS

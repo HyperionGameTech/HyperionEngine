@@ -89,6 +89,16 @@ public:
         m_isKinematic = isKinematic;
     }
 
+    HYP_FORCE_INLINE bool IsLocallyPredicted() const
+    {
+        return m_isLocallyPredicted;
+    }
+
+    HYP_FORCE_INLINE void SetIsLocallyPredicted(bool isLocallyPredicted)
+    {
+        m_isLocallyPredicted = isLocallyPredicted;
+    }
+
     /*! \brief Return the handle specific to the physics engine in use */
     HYP_FORCE_INLINE void* GetInternalData() const
     {
@@ -113,6 +123,7 @@ private:
     Vec3f m_angularVelocity;
 
     bool m_isKinematic;
+    bool m_isLocallyPredicted;
 
     SharedPtr<void> m_internalData;
 };

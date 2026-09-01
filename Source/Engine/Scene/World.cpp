@@ -816,7 +816,7 @@ void World::SyncPhysicsBodyKinematicStates()
                 continue;
             }
 
-            const bool shouldBeKinematic = !SceneHelpers::CanSimulateEntityPhysics(*entity);
+            const bool shouldBeKinematic = !SceneHelpers::CanSimulateEntityPhysics(*entity) && !rigidBody->IsLocallyPredicted();
 
             if (rigidBody->IsKinematic() != shouldBeKinematic)
             {

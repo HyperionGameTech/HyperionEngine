@@ -10,6 +10,7 @@
 #include <Physics/PhysicsMemory.hpp>
 
 #include <Core/Containers/Array.hpp>
+#include <Core/Containers/Map.hpp>
 #include <Core/Containers/Set.hpp>
 
 namespace JPH {
@@ -54,6 +55,7 @@ public:
     void StepCharacterController(const SharedPtr<void>& physicsHandle, float deltaTime);
     void SetCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation);
     void GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround);
+    void GetCharacterTouchedRigidBodies(const SharedPtr<void>& physicsHandle, Array<Handle<RigidBody>, PhysicsAllocator>& out);
 
 private:
     JPH::PhysicsSystem* m_physicsSystem;
@@ -66,6 +68,7 @@ private:
     JPH::CharacterVsCharacterCollisionSimple* m_characterVsCharacterCollision;
     Array<SharedPtr<void>, PhysicsAllocator> m_characterControllers;
     Set<uint32, PhysicsAllocator> m_ghostNonCollidableBodyIds;
+    Map<uint32, Handle<RigidBody>, PhysicsAllocator> m_bodyIdToRigidBody;
     bool m_needsBroadphaseOptimize;
 };
 
