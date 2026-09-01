@@ -2255,7 +2255,7 @@ extern class Scene : AssetObject
     SetIsAudioListener(isAudioListener : bool) -> void
     GetStreamingCentroid() -> Vec2i
     SetStreamingCenroid(streamingCentroid : Vec2i) -> void
-    GetUniqueNodeName(prefix : string) -> Name
+    GetUniqueNodeName(prefix : string, firstIsNumbered : bool) -> Name
     AddToWorld(world : World) -> bool
     RemoveFromWorld() -> bool
     static OnRootNodeChanged : any

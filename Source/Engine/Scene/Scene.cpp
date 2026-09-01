@@ -268,7 +268,7 @@ void Scene::SetRoot(const Handle<Node>& root)
     OnRootNodeChanged.Fire(this, m_root, prevRoot);
 }
 
-Name Scene::GetUniqueNodeName(const ANSIStringView& prefix) const
+Name Scene::GetUniqueNodeName(const ANSIStringView& prefix, bool firstIsNumbered) const
 {
     ANSIStringView realPrefix = prefix;
 
@@ -283,7 +283,19 @@ Name Scene::GetUniqueNodeName(const ANSIStringView& prefix) const
 
     int counter = 0;
 
-    currentName = realPrefix;
+    if (firstIsNumbered)
+    {
+        ++counter;
+        
+        ANSIString& str = stringMem.Emplace(realPrefix);
+        str.Append('1');
+
+        currentName = str;
+    }
+    else
+    {
+        currentName = realPrefix;
+    }
 
     while (FindNodeByName(StringHash(currentName)) != nullptr)
     {
@@ -303,7 +315,7 @@ Name Scene::GetUniqueNodeName(const ANSIStringView& prefix) const
         currentName = *stringMem;
     }
 
-    return CreateNameFromDynamicString(currentName);
+    return Name(currentName);
 }
 
 bool Scene::AddToWorld(World* world)

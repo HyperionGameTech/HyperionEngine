@@ -219,7 +219,15 @@ private:
 
 } // namespace Hyperion
 
-#if defined(HYP_BULLET) && HYP_BULLET
+#if defined(HYP_JOLT) && HYP_JOLT
+
+#include <Physics/Jolt/JoltPhysicsAdapter.hpp>
+
+namespace Hyperion {
+using PhysicsWorld = TPhysicsWorld<JoltPhysicsAdapter>;
+} // namespace Hyperion
+
+#elif defined(HYP_BULLET) && HYP_BULLET
 
 #include <Physics/Bullet/BulletPhysicsAdapter.hpp>
 

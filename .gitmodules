@@ -11,3 +11,6 @@
 [submodule "External/Submodules/stratac"]
 	path = External/Submodules/stratac
 	url = https://github.com/StrataLanguage/stratac
+[submodule "External/Submodules/JoltPhysics"]
+	path = External/Submodules/JoltPhysics
+	url = https://github.com/jrouwe/JoltPhysics.git

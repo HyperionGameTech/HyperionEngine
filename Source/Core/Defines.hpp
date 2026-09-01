@@ -402,6 +402,10 @@
 #define HYP_BULLET_PHYSICS 1
 #endif // HYP_BULLET
 
+#ifdef HYP_JOLT
+#define HYP_JOLT_PHYSICS 1
+#endif // HYP_JOLT
+
 #pragma endregion Engine Static Configuration
 
 #pragma region Symbol Visibility

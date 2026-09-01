@@ -13,7 +13,7 @@
 
 namespace Hyperion {
 
-static constexpr size_t PhysicsPoolBlockSize = 4 * 1024 * 1024; // 4 MiB
+static constexpr size_t PhysicsPoolBlockSize = 32 * 1024 * 1024; // 32 MiB
 static constexpr size_t PhysicsArenaBlockSize = 16 * 1024; // 16 KiB
 
 static Pool s_physicsPool { PhysicsPoolBlockSize, PF_DEFAULT };

@@ -361,25 +361,74 @@ endif()
 # endif()
 
 find_package(Threads REQUIRED)
-find_package(Bullet CONFIG QUIET)
 
-# Fallback: try MODULE mode with hints for vcpkg Android installations
-if(NOT Bullet_FOUND)
-  set(BULLET_ROOT_DIR_HINT "")
-  if(DEFINED ENV{VCPKG_ROOT} AND HYP_ANDROID)
-    set(BULLET_ROOT_DIR_HINT "$ENV{VCPKG_ROOT}/installed/arm64-android")
-  elseif(DEFINED ENV{VCPKG_ROOT})
-    set(BULLET_ROOT_DIR_HINT "$ENV{VCPKG_ROOT}/installed/${VCPKG_DEFAULT_TRIPLET}")
+# if Jolt submodule exists, use it
+set(JOLT_SUBMODULE_DIR "${SUBMODULES_DIR}/JoltPhysics")
+
+if(EXISTS "${JOLT_SUBMODULE_DIR}/Jolt/Jolt.h")
+  set(HYP_JOLT 1)
+endif()
+
+if(HYP_JOLT)
+  message(STATUS "Jolt Physics submodule found at ${JOLT_SUBMODULE_DIR}")
+
+  # Keep Jolt on the engine's compiler flags / CRT and only build the CPU physics library.
+  set(ENABLE_ALL_WARNINGS OFF CACHE BOOL "" FORCE)
+  set(INTERPROCEDURAL_OPTIMIZATION OFF CACHE BOOL "" FORCE)
+  set(FLOATING_POINT_EXCEPTIONS_ENABLED OFF CACHE BOOL "" FORCE)
+  set(GENERATE_DEBUG_SYMBOLS OFF CACHE BOOL "" FORCE)
+  set(ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
+  set(OVERRIDE_CXX_FLAGS OFF CACHE BOOL "" FORCE)
+  set(JPH_USE_DX12 OFF CACHE BOOL "" FORCE)
+  set(JPH_USE_VK OFF CACHE BOOL "" FORCE)
+  set(JPH_USE_MTL OFF CACHE BOOL "" FORCE)
+
+  if(MSVC)
+    # The engine links against the dynamic CRT (/MD).
+    set(USE_STATIC_MSVC_RUNTIME_LIBRARY OFF CACHE BOOL "" FORCE)
   endif()
 
-  if(BULLET_ROOT_DIR_HINT)
-    find_package(Bullet REQUIRED
-      HINTS "${BULLET_ROOT_DIR_HINT}"
-      PATH_SUFFIXES lib/cmake/bullet3 share/bullet3)
+  add_subdirectory("${JOLT_SUBMODULE_DIR}/Build" "${CMAKE_BINARY_DIR}/JoltPhysicsBuild")
+
+  get_target_property(JOLT_INTERFACE_COMPILE_OPTIONS Jolt INTERFACE_COMPILE_OPTIONS)
+  if(JOLT_INTERFACE_COMPILE_OPTIONS)
+    list(FILTER JOLT_INTERFACE_COMPILE_OPTIONS EXCLUDE REGEX "^-m")
+    set_target_properties(Jolt PROPERTIES INTERFACE_COMPILE_OPTIONS "${JOLT_INTERFACE_COMPILE_OPTIONS}")
+  endif()
+
+  get_target_property(JOLT_INTERFACE_COMPILE_DEFINITIONS Jolt INTERFACE_COMPILE_DEFINITIONS)
+  if(JOLT_INTERFACE_COMPILE_DEFINITIONS)
+    list(FILTER JOLT_INTERFACE_COMPILE_DEFINITIONS EXCLUDE REGEX "^JPH_USE_")
+    set_target_properties(Jolt PROPERTIES INTERFACE_COMPILE_DEFINITIONS "${JOLT_INTERFACE_COMPILE_DEFINITIONS}")
+  endif()
+
+  add_definitions(-DHYP_JOLT=1)
+
+  message(STATUS "Jolt Physics enabled")
+  message(STATUS "  Jolt submodule: ${JOLT_SUBMODULE_DIR}")
+  message(STATUS "Bullet physics backend disabled (HYP_JOLT is enabled)")
+else()
+  find_package(Bullet CONFIG QUIET)
+
+  # Fallback: try MODULE mode with hints for vcpkg Android installations
+  if(NOT Bullet_FOUND)
+    set(BULLET_ROOT_DIR_HINT "")
+
+    if(DEFINED ENV{VCPKG_ROOT} AND HYP_ANDROID)
+      set(BULLET_ROOT_DIR_HINT "$ENV{VCPKG_ROOT}/installed/arm64-android")
+    elseif(DEFINED ENV{VCPKG_ROOT})
+      set(BULLET_ROOT_DIR_HINT "$ENV{VCPKG_ROOT}/installed/${VCPKG_DEFAULT_TRIPLET}")
+    endif()
+
+    if(BULLET_ROOT_DIR_HINT)
+      find_package(Bullet REQUIRED
+        HINTS "${BULLET_ROOT_DIR_HINT}"
+        PATH_SUFFIXES lib/cmake/bullet3 share/bullet3)
+    endif()
   endif()
 endif()
 
-if(Bullet_FOUND)
+if(NOT HYP_JOLT AND Bullet_FOUND)
   # Homebrew's BulletConfig.cmake ships BULLET_INCLUDE_DIRS / BULLET_LIBRARY_DIRS
   # as paths relative to BULLET_ROOT_DIR rather than absolute paths, so resolve
   # them here. Without this, BULLET_LIBRARIES (bare names like "Bullet3Common")
@@ -416,7 +465,7 @@ if(Bullet_FOUND)
         ${COMMON_LIBRARIES}
         ${BULLET_LIBRARIES}
     )
-else()
+elseif(NOT HYP_JOLT)
   message(WARNING "Bullet not found, physics will be disabled!")
 endif()
 
@@ -1160,6 +1209,10 @@ set(SUB_LIBRARIES ${SUB_LIBRARIES} ${THIRD_PARTY_LIBRARIES})
 
 target_link_libraries(${BUILD_NAME} PUBLIC ${COMMON_LIBRARIES})
 target_link_libraries(${BUILD_NAME} PUBLIC ${RENDERER_LIBRARIES})
+
+if(HYP_JOLT)
+  target_link_libraries(${BUILD_NAME} PRIVATE Jolt::Jolt)
+endif()
 
 if(HYP_SCRIPT)
     target_link_libraries(${BUILD_NAME} PUBLIC hyperion-script) #Lang
