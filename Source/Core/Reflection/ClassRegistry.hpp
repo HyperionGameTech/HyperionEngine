@@ -103,6 +103,9 @@ public:
      */
     const Class* GetClass(ANSIStringView typeName, bool ignoreCase) const;
 
+    /*! \brief Get a Class instance by \p staticInsdex, returns nullptr if non-existant */
+    const Class* GetClassByStaticIndex(int staticIndex) const;
+
     /*! \brief Get an enum Class instance associated with the given type.
      *
      *  \tparam T The type to get the Class instance for.

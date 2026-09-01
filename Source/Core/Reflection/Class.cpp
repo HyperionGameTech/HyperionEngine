@@ -1236,6 +1236,27 @@ bool Class::IsBaseOf(const Class* other) const
     return false;
 }
 
+void Class::ForEachStaticallyDerivedClass(const ProcRef<void(const Class*)>& callback) const
+{
+    Assert(callback);
+    Assert(m_staticIndex >= 0);
+
+    if (m_staticIndex < 0)
+    {
+        return;
+    }
+
+    // If the class has a static ID, we can find derived classes by iterating over classes with static IDs
+    // that are > ours and < ours+num derived.
+
+    ClassRegistry& classRegistry = ClassRegistry::GetInstance();
+
+    for (size_t currStaticIndex = size_t(m_staticIndex) + 1; currStaticIndex < m_numDescendants; currStaticIndex++)
+    {
+        callback(classRegistry.GetClassByStaticIndex(currStaticIndex));
+    }
+}
+
 #ifdef HYP_DOTNET
 
 bool Class::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& outObjectReference) const

@@ -341,8 +341,10 @@ public:
 
     Class(const Class& other) = delete;
     Class& operator=(const Class& other) = delete;
+    
     Class(Class&& other) noexcept = delete;
     Class& operator=(Class&& other) noexcept = delete;
+
     virtual ~Class();
 
     virtual void Initialize();
@@ -572,6 +574,11 @@ public:
     }
 
     Array<StaticField*> GetStaticFieldsInherited() const;
+
+    /// Iterate over statically defined derived classes of this type.
+    /// ONLY applicable for statically defined classes!
+    /// Dynamically created classes are not included in the search
+    void ForEachStaticallyDerivedClass(const ProcRef<void(const Class*)>& callback) const;
 
 #ifdef HYP_DOTNET
     HYP_FORCE_INLINE SharedPtr<dotnet::ManagedClass> GetManagedClass() const

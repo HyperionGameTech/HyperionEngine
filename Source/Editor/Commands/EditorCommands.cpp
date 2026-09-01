@@ -859,7 +859,7 @@ public:
             {
                 if (node->IsA<LightmapVolume>())
                 {
-                    lightmapVolumes.PushBack(MakeStrongRef(static_cast<LightmapVolume*>(node)));
+                    lightmapVolumes.PushBack(MakeStrongRef(StaticCast<LightmapVolume>(node)));
                 }
             }
         }
@@ -3163,9 +3163,9 @@ public:
     {
         for (uint8 i = 0; i < uint8(PhysicsShapeType::Max); i++)
         {
-            if (EnumToString(static_cast<PhysicsShapeType>(i)) == str)
+            if (EnumToString(PhysicsShapeType(i)) == str)
             {
-                return static_cast<PhysicsShapeType>(i);
+                return PhysicsShapeType(i);
             }
         }
 

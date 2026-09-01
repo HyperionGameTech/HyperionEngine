@@ -225,6 +225,21 @@ const Class* ClassRegistry::GetClass(ANSIStringView typeName, bool ignoreCase) c
     return it->second;
 }
 
+const Class* ClassRegistry::GetClassByStaticIndex(int staticIndex) const
+{
+    if (staticIndex < 0)
+    {
+        return nullptr;
+    }
+
+    if (size_t(staticIndex) >= m_classesByStaticIndex.Size())
+    {
+        return nullptr;
+    }
+
+    return m_classesByStaticIndex[size_t(staticIndex)];
+}
+
 const Class* ClassRegistry::GetEnum(TypeId typeId) const
 {
     const Class* cls = GetClass(typeId);
