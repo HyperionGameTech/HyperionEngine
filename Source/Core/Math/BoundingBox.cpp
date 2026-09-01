@@ -21,19 +21,29 @@ CORE_API BoundingBox operator*(const Mat4f& transform, const BoundingBox& aabb)
         return aabb;
     }
 
-    BoundingBox result;
+    /// Graphics Gems I, Arvo - "Transforming Axis-Aligned Bounding Boxes"
 
-    // auto corners = aabb.GetCorners();
+    const Vec3f center = aabb.GetCenter();
+    const Vec3f halfExtent = aabb.GetExtent() * 0.5f;
 
-    for (uint8 cornerIndex = 0; cornerIndex < 8; cornerIndex++)
+    Vec3f newCenter;
+    Vec3f newHalfExtent;
+
+    for (uint32 i = 0; i < 3; i++)
     {
-        Vec3f corner = aabb.GetCorner(cornerIndex);
+        const float* row = transform.rows[i];
 
-        result = result.Union(transform.TransformVector(corner));
+        newCenter[i] = row[3]
+            + row[0] * center.x
+            + row[1] * center.y
+            + row[2] * center.z;
 
+        newHalfExtent[i] = MathUtil::Abs(row[0]) * halfExtent.x
+            + MathUtil::Abs(row[1]) * halfExtent.y
+            + MathUtil::Abs(row[2]) * halfExtent.z;
     }
 
-    return result;
+    return BoundingBox(newCenter - newHalfExtent, newCenter + newHalfExtent);
 }
 
 CORE_API BoundingBox operator*(const Transform& transform, const BoundingBox& aabb)

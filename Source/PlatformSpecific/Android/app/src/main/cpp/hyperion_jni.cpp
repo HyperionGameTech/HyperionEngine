@@ -48,9 +48,7 @@ Java_com_hyperion_engine_HyperionBridge_nativeInit(JNIEnv* env, jclass clazz)
     Hyp_Android_InitJNI(env, clazz);
 
     const char* baseArgs[] = {
-        "hyperion",
-        "-SimulateOnMainThread=true",
-        "-RenderOnMainThread=false"
+        "hyperion"
     };
 
     int argc = int(sizeof(baseArgs) / sizeof(baseArgs[0]));

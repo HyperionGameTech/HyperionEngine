@@ -13,6 +13,8 @@
 #include <Framework/Threads/RenderThread.hpp>
 #include <Framework/Threads/SimThread.hpp>
 
+#include <Framework/Util/FrameLimiter.hpp>
+
 #include <Core/Threading/Threads.hpp>
 #include <Core/Threading/ThreadSignal.hpp>
 
@@ -37,9 +39,21 @@ namespace CoreApi {
 CORE_API extern const CommandLineArguments& GetCommandLineArguments();
 } // namespace CoreApi
 
+// Main thread gets locked at this tick rate unless we are using RenderOnMainThread or SimulateOnMainThread.
+static constexpr uint32 MainThreadLockedHz = 120;
+
 extern ThreadSignal g_renderInitSignal;
 
-static CommandLineArgumentRegistration g_argDetached { "detached", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false };
+/// Only set if Update() will be called externally.
+/// (e.g from editor driver)
+static CommandLineArgumentRegistration g_argDetached {
+    "detached",
+    {},
+    {},
+    CommandLineArgumentFlags::NONE,
+    CommandLineArgumentType::BOOLEAN,
+    false
+};
 
 MainThread::MainThread()
     : Thread(g_mainThread, ThreadPriorityValue::NORMAL)
@@ -155,13 +169,25 @@ void MainThread::Update()
 
 void MainThread::operator()()
 {
-    static const bool s_isDetached = CoreApi::GetCommandLineArguments()["detached"].ToBool();
+    const bool isDetached = CoreApi::GetCommandLineArguments()["detached"].ToBool();
 
-    if (!s_isDetached)
+    const bool isSimulateOnMainThread = (g_mainThread == g_simThread);
+    const bool isRenderOnMainThread = (g_mainThread == g_renderThread);
+
+    if (!isDetached)
     {
-        while (m_isRunning.Load())
+
+        // Keep main thread locked, unless we're simulating or rendering on the main thread
+        FrameLimiter frameLimiter { MainThreadLockedHz };
+
+        while (m_isRunning.LoadVolatile())
         {
             Update();
+
+            if (!isSimulateOnMainThread && !isRenderOnMainThread)
+            {
+                frameLimiter.Wait();
+            }
         }
     }
 }

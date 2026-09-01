@@ -410,16 +410,14 @@ Texture::~Texture()
 
 RendererResult Texture::Create()
 {
-    if (EngineGlobals::IsHeadless())
+    if (EngineGlobals::IsHeadless() || EngineGlobals::IsCooking() || EngineGlobals::IsCacheServer())
     {
         return {};
     }
 
     auto readScope = GetReadScope();
 
-    const bool shouldCreateGpuImage = !EngineGlobals::IsCooking() && !EngineGlobals::IsCacheServer();
-
-    if (shouldCreateGpuImage && !m_gpuImage.IsValid())
+    if (!m_gpuImage.IsValid())
     {
         if (m_textureDesc.extent.Volume() == 0)
         {
@@ -459,14 +457,11 @@ RendererResult Texture::Create()
 
     readScope.Reset();
 
-    if (shouldCreateGpuImage)
-    {
-        auto writeScope = GetWriteScope();
+    auto writeScope = GetWriteScope();
 
-        if (!m_gpuImage->IsCreated())
-        {
-            CheckResultOrReturn(m_gpuImage->Create());
-        }
+    if (!m_gpuImage->IsCreated())
+    {
+        CheckResultOrReturn(m_gpuImage->Create());
     }
 
     return {};
@@ -489,6 +484,44 @@ void Texture::SetImageData(ConstByteView imageData)
     AllocateBlobData(m_imageData, imageData.Data(), imageData.Size(), 1);
 
     MarkDirty();
+}
+
+void Texture::OnLoaded()
+{
+    // Early-out check, so we don't bother enqueuing a task to Create() for nought.
+    if (EngineGlobals::IsHeadless()
+        || EngineGlobals::IsCooking()
+        || EngineGlobals::IsCacheServer())
+    {
+        return;
+    }
+
+    // if we should create it... do it on the render thread.
+    // checking out the flame graph, on the sim thread,
+    // the largest chunk of loading assets is due to the blocking Texture::Create() calls.
+
+    // NOTE: we don't check IsCreated() - that would require locking read scope, potentially loading in contents,
+    // creating more of a bottleneck than we're setting out to solve.
+
+    if (IsOnThread(g_renderThread))
+    {
+        Check(Create());
+        return;
+    }
+
+    GetThreadById(g_renderThread)->GetScheduler().Enqueue(
+        [weakThis = MakeWeakRef(this)]()
+        {
+            Handle<Texture> strongThis = weakThis.Lock();
+            if (!strongThis.IsValid())
+            {
+                HYP_LOG(Engine, Warning, "Texture asset {} was evicted before it could be created on the render thread", weakThis.Id());
+                return;
+            }
+
+            Check(strongThis->Create());
+        },
+        TaskEnqueueFlags::FIRE_AND_FORGET);
 }
 
 void Texture::PageBlobData()

@@ -15,6 +15,8 @@
 #include <Framework/EngineMemory.hpp>
 #include <Framework/CVarManager.hpp>
 
+#include <Framework/Util/FrameLimiter.hpp>
+
 #include <Rendering/PostFX.hpp>
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/GBuffer.hpp>
@@ -34,7 +36,6 @@
 #include <Rendering/Passes/DeferredPass.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
-#include <Rendering/Util/FrameLimiter.hpp>
 
 #include <Core/Memory/Allocator/ThreadAllocator.hpp>
 

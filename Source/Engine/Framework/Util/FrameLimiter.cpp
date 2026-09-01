@@ -4,9 +4,7 @@
  *  @licence MIT
 */
 
-#include <RenderingPch.hpp>
-
-#include <Rendering/Util/FrameLimiter.hpp>
+#include <Framework/Util/FrameLimiter.hpp>
 
 #include <algorithm>
 #include <thread>

@@ -8,14 +8,14 @@
 
 #include <Framework/Server/GameServer.hpp>
 
+#include <Framework/Util/FrameLimiter.hpp>
+
 #include <Core/Threading/Thread.hpp>
 #include <Core/Threading/Threads.hpp>
 
 #include <Core/Memory/Allocator/ThreadAllocator.hpp>
 
 #include <Core/Logging/Logger.hpp>
-
-#include <Rendering/Util/FrameLimiter.hpp>
 
 #include <iostream>
 #include <limits>

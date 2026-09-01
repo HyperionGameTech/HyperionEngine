@@ -152,10 +152,7 @@ public:
 #endif // HYP_EDITOR
 
 protected:
-    void OnLoaded() override
-    {
-        Check(Create());
-    }
+    void OnLoaded() override;
 
     void PageBlobData() override;
     void UnpageBlobData() override;
