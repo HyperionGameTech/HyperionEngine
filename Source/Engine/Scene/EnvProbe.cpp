@@ -178,8 +178,6 @@ void EnvProbe::InitCaptureData()
     if (m_texture.IsValid())
     {
         GetCurrentAssetRegistry()->PutAssetUnique(m_texture);
-
-        Check(m_texture->Create());
     }
 
     if (m_envProbeFlags & EPF_VISIBILITY)
@@ -187,7 +185,6 @@ void EnvProbe::InitCaptureData()
         if (m_visibilityTexture.IsValid())
         {
             GetCurrentAssetRegistry()->PutAssetUnique(m_visibilityTexture);
-            Check(m_visibilityTexture->Create());
         }
         else
         {
@@ -272,7 +269,6 @@ void EnvProbe::CreateVisibilityTexture()
     if (m_visibilityTexture.IsValid())
     {
         GetCurrentAssetRegistry()->PutAssetUnique(m_visibilityTexture);
-        Check(m_visibilityTexture->Create());
 
         return;
     }
@@ -295,7 +291,6 @@ void EnvProbe::CreateVisibilityTexture()
     m_visibilityTexture->SetName(NAME_FMT("{}_VisibilityMap", GetName()));
 
     GetCurrentAssetRegistry()->PutAssetUnique(m_visibilityTexture);
-    Check(m_visibilityTexture->Create());
 
     // Assume the caller will MarkDirty() / SetNeedsRenderProxyUpdate()
 }
@@ -404,19 +399,11 @@ void EnvProbe::OnAddedToWorld(World* world)
         return;
     }
 
-    // Still need to init the textures as they are loaded from disk, even if not setting up for capture.
-    if (m_texture.IsValid())
-    {
-        Check(m_texture->Create());
-    }
-
     if (m_envProbeFlags & EPF_VISIBILITY)
     {
         if (m_visibilityTexture.IsValid())
         {
             GetCurrentAssetRegistry()->PutAssetUnique(m_visibilityTexture);
-
-            Check(m_visibilityTexture->Create());
         }
         else
         {
@@ -1039,11 +1026,6 @@ void EnvProbe::SetBakedTexture(const Handle<Texture>& texture)
 
     m_texture = texture;
 
-    if (m_texture.IsValid())
-    {
-        Check(m_texture->Create());
-    }
-
     MarkDirty();
     SetNeedsRenderProxyUpdate();
 }
@@ -1070,7 +1052,6 @@ void EnvProbe::SetVisibilityTexture(const Handle<Texture>& visibilityTexture)
         }
 
         GetCurrentAssetRegistry()->PutAssetUnique(m_visibilityTexture);
-        Check(m_visibilityTexture->Create());
 
         Invalidate(/* forceRerender */ true);
     }
@@ -1164,8 +1145,6 @@ void SkyProbe::CreateTexture()
 
     m_texture->SetName(NAME_FMT("{}_ColorMap", GetName()));
     m_texture->SetIsTransient(true);
-
-    Check(m_texture->Create());
 }
 
 #pragma endregion SkyProbe

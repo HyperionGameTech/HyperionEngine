@@ -183,20 +183,6 @@ void Material::Init()
         }
     }
 
-    for (size_t i = 0; i < m_textures.Size(); i++)
-    {
-        Pair<MaterialTextureKey, Handle<Texture>&> keyValue = m_textures.KeyValueAt(i);
-
-        const Handle<Texture>& texture = keyValue.second;
-
-        if (!texture.IsValid())
-        {
-            continue;
-        }
-
-        Check(keyValue.second->Create());
-    }
-
     AssetObject::Init();
 
     SetNeedsRenderProxyUpdate();
@@ -305,11 +291,6 @@ void Material::SetTexture(MaterialTextureKey key, const Handle<Texture>& texture
         m_textures[key] = texture;
     }
 
-    if (texture.IsValid())
-    {
-        Check(texture->Create());
-    }
-
     SetNeedsRenderProxyUpdate();
     MarkDirty();
 }
@@ -339,11 +320,6 @@ void Material::SetTextures(const MaterialTextures& textures)
             }
 
             texture = otherTexture;
-
-            if (texture.IsValid())
-            {
-                Check(texture->Create());
-            }
         }
     }
 

@@ -368,7 +368,7 @@ Texture::Texture()
     : Texture(TextureDesc {
           TextureType::Texture2D,
           TextureFormat::RGBA8,
-          Vec3u { 1, 1, 1 },
+          Vec3u::One(),
           TFM_NEAREST,
           TFM_NEAREST,
           TWM_CLAMP_TO_EDGE })
@@ -410,13 +410,27 @@ Texture::~Texture()
 
 RendererResult Texture::Create()
 {
-    if (EngineGlobals::IsHeadless() || EngineGlobals::IsCooking() || EngineGlobals::IsCacheServer())
+    if (EngineGlobals::IsHeadless()
+        || EngineGlobals::IsCooking()
+        || EngineGlobals::IsCacheServer())
     {
         return {};
     }
 
+    TUniqueLock<AtomicFlag> isUploadingLock;
+
+    // Write scope setting isUploaded to false, pending re-upload to set it back.
+    {
+        // sets isUploading to 1.
+        isUploadingLock.Reset(isUploading);
+        
+        auto writeScope = GetWriteScope();
+        isUploaded.Store(false);
+    }
+
     auto readScope = GetReadScope();
 
+    // No GPU image? Create one from streamed data!
     if (!m_gpuImage.IsValid())
     {
         if (m_textureDesc.extent.Volume() == 0)
@@ -442,15 +456,10 @@ RendererResult Texture::Create()
         readScope.Reset();
 
         auto writeScope = GetWriteScope();
-
-        if (m_gpuImage.IsValid())
-        {
-            // another thread set the gpu image
-            gpuImage.Reset();
-            return {};
-        }
-
         m_gpuImage = std::move(gpuImage);
+
+        // We uploaded it; we're responsible for setting isUploaded to true.
+        isUploaded.Store(true);
 
         return {};
     }
@@ -459,18 +468,21 @@ RendererResult Texture::Create()
 
     auto writeScope = GetWriteScope();
 
+    // GPU image was already valid here, just not created yet.
+    // Do that now!
     if (!m_gpuImage->IsCreated())
     {
         CheckResultOrReturn(m_gpuImage->Create());
     }
+
+    isUploaded.Store(true);
 
     return {};
 }
 
 bool Texture::IsCreated() const
 {
-    return m_gpuImage.IsValid()
-        && m_gpuImage->IsCreated();
+    return isUploaded.Load();
 }
 
 Result Texture::Rename(Name name)
@@ -488,6 +500,9 @@ void Texture::SetImageData(ConstByteView imageData)
 
 void Texture::OnLoaded()
 {
+    // TEMP: Debugging what happens if we put off creation.
+    return;
+
     // Early-out check, so we don't bother enqueuing a task to Create() for nought.
     if (EngineGlobals::IsHeadless()
         || EngineGlobals::IsCooking()
@@ -502,6 +517,8 @@ void Texture::OnLoaded()
 
     // NOTE: we don't check IsCreated() - that would require locking read scope, potentially loading in contents,
     // creating more of a bottleneck than we're setting out to solve.
+
+    Assert(!IsCreated());
 
     if (IsOnThread(g_renderThread))
     {
@@ -519,7 +536,13 @@ void Texture::OnLoaded()
                 return;
             }
 
-            Check(strongThis->Create());
+            // lazy: don't recreate it if we created it already
+            // e.g we bound it and created it there
+
+            if (!strongThis->IsCreated())
+            {
+                Check(strongThis->Create());
+            }
         },
         TaskEnqueueFlags::FIRE_AND_FORGET);
 }

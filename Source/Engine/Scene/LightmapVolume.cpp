@@ -281,8 +281,6 @@ void LightmapVolume::SetAtlasTexture(uint16 atlasIndex, AtlasTextureType type, c
 
     texture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_{}", m_name, TextureTypeNames[type]));
     GetCurrentAssetRegistry()->PutAssetUnique(texture);
-
-    Check(texture->Create());
 }
 
 void LightmapVolume::OnAddedToWorld(World* world)

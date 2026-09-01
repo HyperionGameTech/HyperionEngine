@@ -21,7 +21,14 @@ extern void WriteBufferData_EnvProbe(StructuredBuffer& sbuffer, uint32 idx, IRen
 // for setting texture only
 extern void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 next);
 
+extern void OnBindingChanged_LightmapVolume(LightmapVolume* lightmapVolume, uint32 prev, uint32 next);
+
+extern void OnBindingChanged_Light(Light* light, uint32 prev, uint32 next);
 extern void WriteBufferData_Light(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* proxy);
+
+extern void OnBindingChanged_ParticleVolume(ParticleVolume* particleVolume, uint32 prev, uint32 next);
+extern void OnBindingChanged_FogVolume(FogVolume* fogVolume, uint32 prev, uint32 next);
+extern void OnBindingChanged_Sprite(Sprite* sprite, uint32 prev, uint32 next);
 
 extern void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next);
 
@@ -51,23 +58,21 @@ static ResourceBinder<EnvProbe, &OnBindingChanged_ReflectionProbe> s_reflectionP
 ResourceBinderBase* g_reflectionProbeTextureBinder = &s_reflectionProbeTextureBinder;
 
 static ResourceBindingAllocator<MaxBoundLights> s_lightBindingsAllocator;
-static ResourceBinder<Light> s_lightBinder { &s_lightBindingsAllocator };
+static ResourceBinder<Light, &OnBindingChanged_Light> s_lightBinder { &s_lightBindingsAllocator };
 ResourceBinderBase* g_lightBinder = &s_lightBinder;
 
 static ResourceBindingAllocator<MaxBoundLightmapVolumes> s_lightmapVolumeBindingsAllocator;
-static ResourceBinder<LightmapVolume> s_lightmapVolumeBinder {
-    &s_lightmapVolumeBindingsAllocator
-};
+static ResourceBinder<LightmapVolume, &OnBindingChanged_LightmapVolume> s_lightmapVolumeBinder { &s_lightmapVolumeBindingsAllocator };
 ResourceBinderBase* g_lightmapVolumeBinder = &s_lightmapVolumeBinder;
 
 static ResourceBindingAllocator<MaxBoundParticleVolumes> s_particleVolumeBindingsAllocator;
-static ResourceBinder<ParticleVolume> s_particleVolumeBinder {
+static ResourceBinder<ParticleVolume, &OnBindingChanged_ParticleVolume> s_particleVolumeBinder {
     &s_particleVolumeBindingsAllocator
 };
 ResourceBinderBase* g_particleVolumeBinder = &s_particleVolumeBinder;
 
 static ResourceBindingAllocator<MaxBoundFogVolumes> s_fogVolumeBindingsAllocator;
-static ResourceBinder<FogVolume> s_fogVolumeBinder {
+static ResourceBinder<FogVolume, &OnBindingChanged_FogVolume> s_fogVolumeBinder {
     &s_fogVolumeBindingsAllocator
 };
 ResourceBinderBase* g_fogVolumeBinder = &s_fogVolumeBinder;
@@ -85,7 +90,7 @@ static ResourceBinder<Skeleton> s_skeletonBinder { &s_skeletonBindingsAllocator 
 ResourceBinderBase* g_skeletonBinder = &s_skeletonBinder;
 
 static ResourceBindingAllocator<MaxBoundSprites> s_spriteBindingsAllocator;
-static ResourceBinder<Sprite> s_spriteBinder { &s_spriteBindingsAllocator };
+static ResourceBinder<Sprite, &OnBindingChanged_Sprite> s_spriteBinder { &s_spriteBindingsAllocator };
 ResourceBinderBase* g_spriteBinder = &s_spriteBinder;
 
 static ResourceBinderBase* s_resourceBinders[] = {

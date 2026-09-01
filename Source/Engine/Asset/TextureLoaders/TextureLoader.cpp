@@ -153,8 +153,6 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
 
     GetCurrentAssetRegistry()->PutAssetUnique(texture);
 
-    Check(texture->Create());
-
     AssetLoadResult result = LoadedAsset { std::move(texture) };
 
     return result;

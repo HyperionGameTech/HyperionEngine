@@ -19,6 +19,8 @@
 
 #include <Scene/Light.hpp>
 
+#include <Asset/AssetRegistry.hpp>
+
 #include <Framework/EngineGlobals.hpp>
 
 namespace Hyperion {
@@ -104,7 +106,7 @@ void Baker<Light>::OnCompleted_Internal()
 
     Handle<Texture> shadowMap = MakeHandle<Texture>(textureDesc, bitmap.ToByteView());
     shadowMap->SetName(NAME_FMT("{}_BakedShadowMap", m_light->GetName()));
-    Check(shadowMap->Create());
+    GetCurrentAssetRegistry()->PutAssetUnique(shadowMap);
 
     //auto writeScope = TUniqueResLock<Light>(*m_light);
     m_light->SetBakedShadowMap(shadowMap);

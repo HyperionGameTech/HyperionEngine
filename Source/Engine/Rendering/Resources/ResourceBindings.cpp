@@ -16,8 +16,11 @@
 #include <Framework/Resources/ResourceBinder.hpp>
 
 #include <Scene/EnvProbe.hpp>
+#include <Scene/FogVolume.hpp>
 #include <Scene/Light.hpp>
 #include <Scene/LightmapVolume.hpp>
+#include <Scene/ParticleVolume.hpp>
+#include <Scene/Sprite.hpp>
 
 #include <Scene/Animation/Skeleton.hpp>
 
@@ -27,9 +30,25 @@ namespace Resources {
 
 extern ResourceBinderBase* g_reflectionProbeTextureBinder;
 
+/// Helper to upload it to gpu if it hasn't been yet.
+static HYP_FORCE_INLINE void CreateTextureIfNotAlready(Texture* tex)
+{
+    if (!tex)
+    {
+        return;
+    }
+
+    if (!tex->isUploaded.Load())
+    {
+        Check(tex->Create());
+
+        Assert(tex->isUploaded.LoadVolatile());
+    }
+}
+
 void WriteBufferData_MeshEntity(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* proxy)
 {
-    AssertDebug(idx != ~0u);
+    AssertDebug(idx != InvalidBinding);
 
     RenderProxyMesh* proxyCasted = static_cast<RenderProxyMesh*>(proxy);
 
@@ -44,14 +63,14 @@ void OnBindingChanged_Mesh(Mesh* mesh, uint32 prev, uint32 next)
 {
     AssertDebug(mesh != nullptr);
 
-    if (next != ~0u)
+    if (next != InvalidBinding)
     {
         if (!mesh->isUploaded.Load())
         {
             mesh->UploadGpuData();
         }
     }
-    else if (prev != ~0u)
+    else if (prev != InvalidBinding)
     {
         if (!(mesh->GetFlags() & MeshFlags::ViewIndependent))
         {
@@ -66,7 +85,7 @@ void OnBindingChanged_EnvProbe(EnvProbe* envProbe, uint32 prev, uint32 next)
 {
     SetBinding(envProbe, next);
 
-    if (next != ~0u)
+    if (next != InvalidBinding)
     {
         IRenderProxy* proxy = GetRenderProxy(envProbe);
         AssertDebug(proxy != nullptr);
@@ -82,9 +101,11 @@ void OnBindingChanged_EnvProbe(EnvProbe* envProbe, uint32 prev, uint32 next)
         // depth
         if (proxyCasted->visibilityTexture != nullptr)
         {
+            Texture* srcTexture = proxyCasted->visibilityTexture;
+            CreateTextureIfNotAlready(srcTexture);
+
             CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
 
-            Texture* srcTexture = proxyCasted->visibilityTexture;
             Texture* dstTexture = RI.envProbesDepthTexture;
 
             // blit to the array texture
@@ -126,7 +147,7 @@ void OnBindingChanged_EnvProbe(EnvProbe* envProbe, uint32 prev, uint32 next)
 
 void WriteBufferData_EnvProbe(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* proxy)
 {
-    AssertDebug(idx != ~0u);
+    AssertDebug(idx != InvalidBinding);
 
     RenderProxyEnvProbe* proxyCasted = static_cast<RenderProxyEnvProbe*>(proxy);
     AssertDebug(proxyCasted != nullptr);
@@ -137,7 +158,7 @@ void WriteBufferData_EnvProbe(StructuredBuffer& sbuffer, uint32 idx, IRenderProx
         || proxyCasted->envProbe->IsA<ReflectionProbe>())
     {
         const uint32 colorTextureBinding = Resources::g_reflectionProbeTextureBinder->GetBindingForObject(proxyCasted->envProbe);
-        AssertDebug(colorTextureBinding != ~0u);
+        AssertDebug(colorTextureBinding != InvalidBinding);
         AssertDebug(colorTextureBinding < 0xFFFFu); // we consider anything >= 0xFFFFu to be invalid
 
         proxyCasted->bufferData.textureIndices |= (colorTextureBinding & 0xFFFFu);
@@ -160,7 +181,7 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
     Assert(envProbe->IsA<SkyProbe>() || envProbe->IsA<ReflectionProbe>(),
            "EnvProbe must be a SkyProbe or ReflectionProbe, but is a {}", envProbe->InstanceClass()->GetName());
 
-    if (next != ~0u)
+    if (next != InvalidBinding)
     {
         IRenderProxy* proxy = GetRenderProxy(envProbe);
         AssertDebug(proxy != nullptr);
@@ -183,6 +204,8 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
         CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
 
         Texture* srcTexture = proxyCasted->texture;
+        CreateTextureIfNotAlready(srcTexture);
+
         Texture* dstTexture = RI.envProbesColorTexture;
 
         // blit to the array texture
@@ -192,9 +215,6 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
         GpuImage* dstImage = dstTexture->GetGpuImage();
         AssertDebug(dstImage != nullptr);
 
-        // Scope barriers to just this probe's 6-layer slice of the shared array texture -
-        // a whole-image barrier would transition every other probe's layers too, racing
-        // against their in-flight sampling of this same array (e.g. during concurrent bakes).
         ImageSubResource srcAllMipsSubResource {};
         srcAllMipsSubResource.baseMipLevel = 0;
         srcAllMipsSubResource.numLevels = srcImage->NumMips();
@@ -255,9 +275,49 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
     }
 }
 
+void OnBindingChanged_LightmapVolume(LightmapVolume* lightmapVolume, uint32 prev, uint32 next)
+{
+    SetBinding(lightmapVolume, next);
+
+    static constexpr auto CreateLightmapVolumeTextures = [](const FixedArray<Texture*, MaxAtlasesPerLightmapVolume>& textures)
+    {
+        for (Texture* texture : textures)
+        {
+            CreateTextureIfNotAlready(texture);
+        }
+    };
+    
+    if (next != InvalidBinding)
+    {
+        IRenderProxy* proxy = GetRenderProxy(lightmapVolume);
+        Assert(proxy != nullptr);
+
+        RenderProxyLightmapVolume* proxyCasted = static_cast<RenderProxyLightmapVolume*>(proxy);
+
+        CreateLightmapVolumeTextures(proxyCasted->atlasIrradianceTextures);
+        CreateLightmapVolumeTextures(proxyCasted->atlasBentNormalTextures);
+    }
+}
+
+void OnBindingChanged_Light(Light* light, uint32 prev, uint32 next)
+{
+    SetBinding(light, next);
+
+    if (next != InvalidBinding)
+    {
+        IRenderProxy* proxy = GetRenderProxy(light);
+        Assert(proxy != nullptr);
+
+        RenderProxyLight* proxyCasted = static_cast<RenderProxyLight*>(proxy);
+
+        // it might be null, but the helper handles it
+        CreateTextureIfNotAlready(proxyCasted->bakedShadowMap);
+    }
+}
+
 void WriteBufferData_Light(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* proxy)
 {
-    AssertDebug(idx != ~0u);
+    AssertDebug(idx != InvalidBinding);
 
     RenderProxyLight* proxyCasted = static_cast<RenderProxyLight*>(proxy);
     AssertDebug(proxyCasted != nullptr);
@@ -268,13 +328,13 @@ void WriteBufferData_Light(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* 
     if (proxyCasted->lightMaterial != nullptr)
     {
         const uint32 materialBoundIndex = GetBinding(proxyCasted->lightMaterial);
-        AssertDebug(materialBoundIndex != ~0u, "Light uses Material {} but it is not bound", proxyCasted->lightMaterial->Id());
+        AssertDebug(materialBoundIndex != InvalidBinding, "Light uses Material {} but it is not bound", proxyCasted->lightMaterial->Id());
 
         bufferData.materialIndex = materialBoundIndex;
     }
     else
     {
-        bufferData.materialIndex = ~0u;
+        bufferData.materialIndex = InvalidBinding;
     }
 
     sbuffer.Write(idx * sizeof(bufferData), sizeof(bufferData), &bufferData);
@@ -284,13 +344,11 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
 {
     AssertOnThread(g_renderThread);
 
-    static const IRenderConfig& s_renderConfig = RI.GetRenderConfig();
-
     AssertDebug(material != nullptr);
 
     SetBinding(material, next);
 
-    if (prev != ~0u)
+    if (prev != InvalidBinding)
     {
         if (RI.materialTextureCache->imageViews.HasIndex(prev))
         {
@@ -303,7 +361,7 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
         }
     }
 
-    if (next != ~0u)
+    if (next != InvalidBinding)
     {
         IRenderProxy* proxy = GetRenderProxy(material);
         Assert(proxy != nullptr);
@@ -319,9 +377,12 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
 
         for (uint32 i = 0; i < uint32(proxyCasted->boundTextures.Size()); i++)
         {
+            Texture* tex = proxyCasted->boundTextures[i];
+            CreateTextureIfNotAlready(tex);
+
             if (imageViews[i].IsValid())
             {
-                if (imageViews[i]->GetImage() == proxyCasted->boundTextures[i]->GetGpuImage())
+                if (imageViews[i]->GetImage() == tex->GetGpuImage())
                 {
                     continue; // skip; already valid image view set
                 }
@@ -330,7 +391,7 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
                 EnqueueDeletion(std::move(imageViews[i]));
             }
 
-            imageViews[i] = RI.textureViewCache->GetOrCreate(proxyCasted->boundTextures[i]);
+            imageViews[i] = RI.textureViewCache->GetOrCreate(tex);
         }
     }
 }
@@ -340,9 +401,14 @@ void OnBindingChanged_Texture(Texture* texture, uint32 prev, uint32 next)
     static const IRenderConfig& s_renderConfig = RI.GetRenderConfig();
     static const bool s_isBindlessSupported = s_renderConfig.bindlessTextures;
 
+    if (next != InvalidBinding)
+    {
+        CreateTextureIfNotAlready(texture);
+    }
+
     if (s_isBindlessSupported)
     {
-        if (next != ~0u)
+        if (next != InvalidBinding)
         {
             // @TODO Use 'next' rather than texture->Id().ToIndex() here
             RI.bindlessStorage->AddResource(BindlessStorage_Textures, texture->Id().ToIndex(), RI.textureViewCache->GetOrCreate(texture));
@@ -355,6 +421,50 @@ void OnBindingChanged_Texture(Texture* texture, uint32 prev, uint32 next)
     }
 
     SetBinding(texture, next);
+}
+
+void OnBindingChanged_ParticleVolume(ParticleVolume* particleVolume, uint32 prev, uint32 next)
+{
+    SetBinding(particleVolume, next);
+
+    if (next != InvalidBinding)
+    {
+        IRenderProxy* proxy = GetRenderProxy(particleVolume);
+        Assert(proxy != nullptr);
+
+        RenderProxyParticleVolume* proxyCasted = static_cast<RenderProxyParticleVolume*>(proxy);
+        CreateTextureIfNotAlready(proxyCasted->particleTexture);
+    }
+}
+
+void OnBindingChanged_FogVolume(FogVolume* fogVolume, uint32 prev, uint32 next)
+{
+    SetBinding(fogVolume, next);
+
+    if (next != InvalidBinding)
+    {
+        IRenderProxy* proxy = GetRenderProxy(fogVolume);
+        Assert(proxy != nullptr);
+
+        RenderProxyFogVolume* proxyCasted = static_cast<RenderProxyFogVolume*>(proxy);
+
+        CreateTextureIfNotAlready(proxyCasted->volumeTexture);
+        CreateTextureIfNotAlready(proxyCasted->noiseTexture);
+    }
+}
+
+void OnBindingChanged_Sprite(Sprite* sprite, uint32 prev, uint32 next)
+{
+    SetBinding(sprite, next);
+
+    if (next != InvalidBinding)
+    {
+        IRenderProxy* proxy = GetRenderProxy(sprite);
+        Assert(proxy != nullptr);
+
+        RenderProxySprite* proxyCasted = static_cast<RenderProxySprite*>(proxy);
+        CreateTextureIfNotAlready(proxyCasted->texture);
+    }
 }
 
 } // namespace Resources

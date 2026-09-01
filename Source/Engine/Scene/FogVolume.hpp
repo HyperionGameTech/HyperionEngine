@@ -21,7 +21,6 @@ public:
     static constexpr uint32 MaxVolumeTextureExtent = 64;
     static constexpr uint32 MaxNoiseTextureExtent = 32;
 
-
     FogVolume();
 
     explicit FogVolume(const BoundingBox& localBounds);
@@ -50,8 +49,6 @@ public:
 #endif
 
 private:
-    void Init() override;
-
     HYP_FIELD()
     Handle<Texture> m_volumeTexture;
 

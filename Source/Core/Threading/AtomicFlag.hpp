@@ -23,6 +23,9 @@ class AtomicFlag final
 
     friend class TLockGuard<AtomicFlag>;
 
+    friend class TUniqueLock<AtomicFlag>;
+    friend class TSharedLock<AtomicFlag>;
+
 public:
     using Guard = TLockGuard<AtomicFlag>;
 
@@ -101,6 +104,19 @@ private:
     {
         Release();
     }
+
+    // For TUniqueLock
+    HYP_FORCE_INLINE void LockWriter() const
+    {
+        Acquire();
+    }
+
+    HYP_FORCE_INLINE void UnlockWriter() const
+    {
+        Release();
+    }
+
+    // No TSharedLock support for now
 
     mutable volatile int64 m_value;
 };

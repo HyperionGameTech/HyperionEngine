@@ -254,7 +254,6 @@ void BakeJob<FogVolume>::DispatchOcclusionBake()
     Handle<Texture> sdfTexture = MakeHandle<Texture>(sdfTextureDesc, sdfBitmap.ToByteView());
     sdfTexture->SetName(NAME("FogVolumeSDF"));
     GetCurrentAssetRegistry()->PutAsset(sdfTexture);
-    Check(sdfTexture->Create());
 
     Array<FogVolumeLightGpuData> lightData;
 

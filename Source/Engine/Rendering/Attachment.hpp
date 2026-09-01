@@ -20,7 +20,7 @@
 
 namespace Hyperion {
 
-HYP_CLASS(Abstract, NoScriptBindings)
+HYP_CLASS(Abstract, NoScriptBindings, Serialize = false)
 class AttachmentBase : public Texture
 {
     HYP_OBJECT_BODY(AttachmentBase);

@@ -136,16 +136,6 @@ FontAtlas::FontAtlas(
       m_symbolList(std::move(symbolList))
 {
     Assert(m_symbolList.Size() != 0);
-
-    for (auto& it : m_atlasTextures.atlases)
-    {
-        if (!it.second.IsValid())
-        {
-            continue;
-        }
-
-        Check(it.second->Create());
-    }
 }
 
 FontAtlas::~FontAtlas() = default;
@@ -254,7 +244,6 @@ Result FontAtlas::RenderAtlasTextures(float mainAtlasScale, float maxScale, floa
 
         Handle<Texture> atlasTexture = MakeHandle<Texture>(atlasTextureDesc, imageData.ToByteView());
         atlasTexture->SetName(NAME_FMT("FontAtlas_{}", scale));
-        Check(atlasTexture->Create());
 
         // register the texture to the asset registry
         GetCurrentAssetRegistry()->PutAsset(atlasTexture);

@@ -14,6 +14,8 @@
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/Shared.hpp>
 
+#include <Core/Threading/AtomicFlag.hpp>
+
 #include <Core/Containers/FixedArray.hpp>
 
 #include <Core/Utilities/Pair.hpp>
@@ -150,6 +152,9 @@ public:
     HYP_METHOD(EditorOnly, EditorAction = "Regenerate Mipmaps")
     void RegenerateMipmaps();
 #endif // HYP_EDITOR
+    
+    AtomicFlag isUploaded;
+    AtomicFlag isUploading;
 
 protected:
     void OnLoaded() override;

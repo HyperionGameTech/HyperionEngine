@@ -64,25 +64,6 @@ FogVolume::~FogVolume()
     }
 }
 
-void FogVolume::Init()
-{
-    VolumeBase::Init();
-
-    if (m_volumeTexture)
-    {
-        Check(m_volumeTexture->Create());
-    }
-
-    if (m_noiseTexture)
-    {
-        Check(m_noiseTexture->Create());
-    }
-
-    SetNeedsRenderProxyUpdate();
-
-    SetReady(true);
-}
-
 void FogVolume::SetTextures(
     const Handle<Texture>& volumeTexture,
     const Handle<Texture>& noiseTexture)
@@ -107,15 +88,8 @@ void FogVolume::SetTextures(
         m_noiseTexture = noiseTexture;
     }
 
-    if (IsInitCalled())
-    {
-        if (m_volumeTexture.IsValid())
-        {
-            Check(m_volumeTexture->Create());
-        }
-
-        SetNeedsRenderProxyUpdate();
-    }
+    SetNeedsRenderProxyUpdate();
+    MarkDirty();
 }
 
 void FogVolume::UpdateRenderProxy(RenderProxyFogVolume* proxy)
