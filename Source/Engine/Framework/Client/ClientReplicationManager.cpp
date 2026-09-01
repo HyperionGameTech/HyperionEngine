@@ -23,6 +23,7 @@ static void ReadSnapshotPayload(
     Transform& outTransform,
     Vec3f& outVelocity,
     Vec3f& outAngularVelocity,
+    Time& outServerTimeMs,
     bool& outIsSleeping)
 {
     MemoryByteReader reader(payload);
@@ -32,6 +33,7 @@ static void ReadSnapshotPayload(
     Vec3f scale;
     Vec3f velocity;
     Vec3f angularVelocity;
+    uint64 serverTimeMs = 0;
     uint8 isSleeping = 0;
 
     reader.Read(&translation, sizeof(Vec3f));
@@ -39,11 +41,13 @@ static void ReadSnapshotPayload(
     reader.Read(&scale, sizeof(Vec3f));
     reader.Read(&velocity, sizeof(Vec3f));
     reader.Read(&angularVelocity, sizeof(Vec3f));
+    reader.Read(&serverTimeMs, sizeof(uint64));
     reader.Read(&isSleeping, sizeof(uint8));
 
     outTransform = Transform(translation, scale, rotation);
     outVelocity = velocity;
     outAngularVelocity = angularVelocity;
+    outServerTimeMs = Time(serverTimeMs);
     outIsSleeping = (isSleeping != 0);
 }
 
@@ -97,16 +101,18 @@ void ClientReplicationManager::RegisterHandlers(net::NetClient& netClient)
             Transform transform;
             Vec3f velocity;
             Vec3f angularVelocity;
+            Time serverTimeMs;
             bool isSleeping;
 
-            ReadSnapshotPayload(payload, transform, velocity, angularVelocity, isSleeping);
+            ReadSnapshotPayload(payload, transform, velocity, angularVelocity, serverTimeMs, isSleeping);
 
             PushOp(ReplicationOp<ReplicationOpType::Snapshot>(
                 NetId(uint32(context.key)),
                 transform,
                 velocity,
                 angularVelocity,
-                Time::Now().ToMilliseconds(),
+                Time::Now(),
+                serverTimeMs,
                 isSleeping));
         });
 

@@ -307,7 +307,8 @@ static CVar<bool> s_cvInterpolationEnabled("Net.InterpolationEnabled", true);
 static CVar<float> s_cvInterpolationDelay("Net.InterpolationDelay", 0.1f);
 static CVar<float> s_cvCorrectionThreshold("Net.CorrectionThreshold", 0.3f);
 static CVar<float> s_cvCorrectionSmoothingTime("Net.CorrectionSmoothingTime", 0.1f);
-static CVar<bool> s_cvDeadReckoning("Net.DeadReckoning", false);
+static CVar<bool> s_cvDeadReckoning("Net.DeadReckoning", true);
+static CVar<float> s_cvInterpRatio("Net.InterpRatio", 2.0f);
 
 HYP_EXPORT const char* GetHostAddress()
 {
@@ -346,6 +347,12 @@ HYP_EXPORT float GetCorrectionThreshold()
 HYP_EXPORT bool GetDeadReckoningEnabled()
 {
     return s_cvDeadReckoning.Get();
+}
+
+// How many measured sample intervals the interpolation buffer should span (floor on the interp delay).
+HYP_EXPORT float GetInterpRatio()
+{
+    return s_cvInterpRatio.Get();
 }
 
 // Seconds over which a prediction error is smoothed out visually after reconciliation.

@@ -13,6 +13,8 @@
 #include <Framework/Threads/RenderThread.hpp>
 #include <Framework/Threads/SimThread.hpp>
 
+#include <Framework/Server/GameServer.hpp>
+
 #include <Framework/Util/FrameLimiter.hpp>
 
 #include <Core/Threading/Threads.hpp>
@@ -129,6 +131,12 @@ void MainThread::Update()
         {
             window->GetInputManager()->MainThreadUpdate();
         }
+    }
+    
+    // Tick GameServer for dedicated server.
+    if (g_gameServer != nullptr && !g_gameServer->IsDedicatedThread())
+    {
+        g_gameServer->Update();
     }
 
     if (s_renderOnMainThread

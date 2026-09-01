@@ -176,6 +176,46 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
         {
             const ReplicationOp<ReplicationOpType::Snapshot>& op = static_cast<const ReplicationOp<ReplicationOpType::Snapshot>&>(*opPtr);
 
+            // Server clock estimate: offset between the local clock and the server's sim clock.
+            // Measured from the arrival time vs. the server timestamp the snapshot was captured at.
+            const int64 localNowMs = int64(Time::Now().ToMilliseconds());
+            const int64 serverTimeMs = int64(op.serverTimeMs.ToMilliseconds());
+
+            // Track the inter-sample cadence in server-time space (ignores intra-burst duplicates
+            // where multiple entities stamped with the same server tick arrive together).
+            if (m_hasSeenServerTime)
+            {
+                const int64 intervalMs = int64(op.serverTimeMs.ToMilliseconds()) - int64(m_lastSeenServerTimeMs.ToMilliseconds());
+
+                if (intervalMs > 0 && intervalMs <= 1000)
+                {
+                    const double alpha = 0.1;
+                    m_estimatedSampleIntervalMs = m_estimatedSampleIntervalMs * (1.0 - alpha) + double(intervalMs) * alpha;
+                }
+            }
+
+            m_lastSeenServerTimeMs = op.serverTimeMs;
+            m_hasSeenServerTime = true;
+
+            if (!m_hasClockEstimate)
+            {
+                m_clockOffsetMs = double(localNowMs - serverTimeMs);
+                m_hasClockEstimate = true;
+            }
+            else
+            {
+                const double rawOffsetMs = double(localNowMs - serverTimeMs);
+
+                // Discard outliers (e.g. a stalled/rerouted packet) rather than yanking the clock.
+                if (MathUtil::Abs(rawOffsetMs - m_clockOffsetMs) <= 250.0)
+                {
+                    // Ease the estimate toward the raw offset so network jitter doesn't modulate
+                    // playback speed (Source cl_smooth-style clock correction).
+                    const double alpha = 0.05;
+                    m_clockOffsetMs += (rawOffsetMs - m_clockOffsetMs) * alpha;
+                }
+            }
+
             auto it = m_netIdToEntity.Find(op.netId);
 
             if (it == m_netIdToEntity.End())
@@ -191,8 +231,25 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
 
             InterpolationState& interpolation = m_interpolationStates[op.netId];
 
+            // Teleport detection: if the new sample is implausibly far from the previous newest
+            // sample (respawn, shove, scene reset), clear history and snap instead of gliding.
+            if (interpolation.samples.Any())
+            {
+                const InterpolationState::Sample& newest = interpolation.samples.Back();
+
+                const float intervalSec = float(MathUtil::Max(m_estimatedSampleIntervalMs, 0.0)) * 0.001f;
+                const float plausibleDistance = MathUtil::Max(2.0f, newest.velocity.Length() * intervalSec * 4.0f);
+
+                if ((op.transform.GetTranslation() - newest.transform.GetTranslation()).LengthSquared() > plausibleDistance * plausibleDistance)
+                {
+                    interpolation.samples.Clear();
+                    interpolation.snapNextColliderSync = true;
+                }
+            }
+
             InterpolationState::Sample& sample = interpolation.samples.EmplaceBack();
             sample.receiveTimeMs = op.receiveTimeMs;
+            sample.serverTimeMs = op.serverTimeMs;
             sample.transform = op.transform;
             sample.velocity = op.velocity;
             sample.angularVelocity = op.angularVelocity;
@@ -228,8 +285,20 @@ void ReplicationApplySystem::UpdateInterpolatedEntities(float delta)
         return;
     }
 
-    const uint64 nowMs = Time::Now().ToMilliseconds();
-    const uint64 renderTimeMs = nowMs - uint64(NetGlobals::GetInterpolationDelay() * 1000.0f);
+    const double nowMs = double(Time::Now().ToMilliseconds());
+
+    // "Now" expressed on the server timeline. When we have a clock estimate, playback is driven by
+    // the server clock (smooth, jitter-independent); until then fall back to local arrival time.
+    const double spaceNowMs = m_hasClockEstimate ? (nowMs - m_clockOffsetMs) : nowMs;
+
+    // Effective interpolation delay: at least the CVar value, but floored to interpRatio x the
+    // measured sample cadence (Source cl_interp_ratio 2 behavior) so the render time never runs
+    // past the newest buffered sample on a normal connection.
+    const double interpDelayMs = MathUtil::Max(
+        double(NetGlobals::GetInterpolationDelay()) * 1000.0,
+        double(NetGlobals::GetInterpRatio()) * m_estimatedSampleIntervalMs);
+
+    const double renderTimeMs = spaceNowMs - interpDelayMs;
 
     for (auto it = m_interpolationStates.Begin(); it != m_interpolationStates.End();)
     {
@@ -251,11 +320,16 @@ void ReplicationApplySystem::UpdateInterpolatedEntities(float delta)
 
         Array<InterpolationState::Sample, SceneAllocator>& samples = it->second.samples;
 
+        const auto sample_time = [this](const InterpolationState::Sample& sample) -> double
+        {
+            return m_hasClockEstimate ? double(sample.serverTimeMs.ToMilliseconds()) : double(sample.receiveTimeMs.ToMilliseconds());
+        };
+
         //-- Sample cull
 
         size_t numToChomp = 0;
 
-        while (samples.Size() - numToChomp > 1 && samples[numToChomp + 1].receiveTimeMs <= renderTimeMs)
+        while (samples.Size() - numToChomp > 1 && sample_time(samples[numToChomp + 1]) <= renderTimeMs)
         {
             ++numToChomp;
         }
@@ -298,7 +372,7 @@ void ReplicationApplySystem::UpdateInterpolatedEntities(float delta)
             const InterpolationState::Sample& from = samples[0];
             const InterpolationState::Sample& to = samples[1];
 
-            const double spanMs = double(to.receiveTimeMs) - double(from.receiveTimeMs);
+            const double spanMs = sample_time(to) - sample_time(from);
 
             if (spanMs <= 0.0)
             {
@@ -306,84 +380,116 @@ void ReplicationApplySystem::UpdateInterpolatedEntities(float delta)
             }
             else
             {
-                // Clamp to the newest sample: on a burst gap we hold rather than extrapolate.
-                const float alpha = float(MathUtil::Clamp((double(renderTimeMs) - double(from.receiveTimeMs)) / spanMs, 0.0, 1.0));
+                const float alpha = float(MathUtil::Clamp((renderTimeMs - sample_time(from)) / spanMs, 0.0, 1.0));
 
-                // Because we made Lerp()/Slerp() mutate for some reason years ago, we need to wrap in temp objects
-                // @TODO: Change this when we fix those
-                targetTransform.SetTranslation(Vec3(from.transform.GetTranslation()).Lerp(to.transform.GetTranslation(), alpha));
+                // Hermite interpolation using the per-sample velocities when both endpoints carry a
+                // real simulation state (smooth acceleration across the boundary, Source-style).
+                if (!from.isSleeping && !to.isSleeping)
+                {
+                    const float spanSec = float(spanMs) * 0.001f;
+
+                    const float a = alpha;
+                    const float a2 = a * a;
+                    const float a3 = a2 * a;
+
+                    const float h00 = 2.0f * a3 - 3.0f * a2 + 1.0f;
+                    const float h10 = a3 - 2.0f * a2 + a;
+                    const float h01 = -2.0f * a3 + 3.0f * a2;
+                    const float h11 = a3 - a2;
+
+                    const Vec3f p0 = from.transform.GetTranslation();
+                    const Vec3f p1 = to.transform.GetTranslation();
+                    const Vec3f m0 = from.velocity * spanSec;
+                    const Vec3f m1 = to.velocity * spanSec;
+
+                    targetTransform.SetTranslation(p0 * h00 + m0 * h10 + p1 * h01 + m1 * h11);
+                }
+                else
+                {
+                    targetTransform.SetTranslation(Vec3(from.transform.GetTranslation()).Lerp(to.transform.GetTranslation(), alpha));
+                }
+
                 targetTransform.SetRotation(Quat4f(from.transform.GetRotation()).Slerp(to.transform.GetRotation(), alpha));
                 targetTransform.SetScale(Vec3f(from.transform.GetScale()).Lerp(to.transform.GetScale(), alpha));
             }
         }
 
-        // Render transform: interpolated Net.InterpolationDelay into the past.
-        entity->SetLocalTransform(targetTransform, TransformChangeType::Simulation);
-
-        if (NetGlobals::GetDeadReckoningEnabled())
-        {
-            const InterpolationState::Sample& latest = samples.Back();
-
-            const double sinceReceiveSec = MathUtil::Max(0.0, (double(nowMs) - double(latest.receiveTimeMs)) / 1000.0);
-
-            const double oneWayDelaySec = MathUtil::Clamp(
-                double(g_gameClient->GetNetClient().GetRoundTripTime()) * 0.5 / 1000.0,
-                0.0,
-                0.15);
-
-            const float extrapolationSeconds = latest.isSleeping
-                ? 0.0f
-                : float(sinceReceiveSec + oneWayDelaySec);
-
-            Vec3f extrapolation = it->second.velocityEstimate * extrapolationSeconds;
-
-            constexpr float MaxExtrapolationDistance = 0.25f;
-
-            const float extrapolationLength = extrapolation.Length();
-
-            if (extrapolationLength > MaxExtrapolationDistance)
-            {
-                extrapolation *= MaxExtrapolationDistance / extrapolationLength;
-            }
-
-            Transform colliderTransform = latest.transform;
-            colliderTransform.SetTranslation(latest.transform.GetTranslation() + extrapolation);
-
-            const Vec3f& angularVelocityEstimate = it->second.angularVelocityEstimate;
-            const float angularSpeed = angularVelocityEstimate.Length();
-
-            if (angularSpeed > MathUtil::epsilonF)
-            {
-                constexpr float MaxAngularExtrapolationRadians = 0.25f;
-
-                const float angleRadians = MathUtil::Clamp(
-                    angularSpeed * extrapolationSeconds,
-                    0.0f,
-                    MaxAngularExtrapolationRadians);
-
-                const Quat4f rotationDelta(
-                    angularVelocityEstimate * (1.0f / angularSpeed),
-                    angleRadians);
-
-                colliderTransform.SetRotation(rotationDelta * latest.transform.GetRotation());
-            }
-
-            entity->SetLocalTransform(colliderTransform, TransformChangeType::Simulation);
-
-            SyncColliderToEntity(entity, delta);
-
+            // Render transform: interpolated Net.InterpolationDelay into the past.
             entity->SetLocalTransform(targetTransform, TransformChangeType::Simulation);
-        }
-        else
-        {
-            SyncColliderToEntity(entity, delta);
-        }
+
+            if (NetGlobals::GetDeadReckoningEnabled())
+            {
+                const InterpolationState::Sample& latest = samples.Back();
+
+                const double latestTimeMs = sample_time(latest);
+
+                const double sinceSampleSec = MathUtil::Max(0.0, (spaceNowMs - latestTimeMs) / 1000.0);
+
+                const double oneWayDelaySec = MathUtil::Clamp(
+                    double(g_gameClient->GetNetClient().GetRoundTripTime()) * 0.5 / 1000.0,
+                    0.0,
+                    0.15);
+
+                const float extrapolationSeconds = latest.isSleeping
+                    ? 0.0f
+                    : float(sinceSampleSec + oneWayDelaySec);
+
+                Vec3f extrapolation = it->second.velocityEstimate * extrapolationSeconds;
+
+                constexpr float MaxExtrapolationDistance = 0.25f;
+
+                const float extrapolationLength = extrapolation.Length();
+
+                if (extrapolationLength > MaxExtrapolationDistance)
+                {
+                    extrapolation *= MaxExtrapolationDistance / extrapolationLength;
+                }
+
+                Transform colliderTransform = latest.transform;
+                colliderTransform.SetTranslation(latest.transform.GetTranslation() + extrapolation);
+
+                const Vec3f& angularVelocityEstimate = it->second.angularVelocityEstimate;
+                const float angularSpeed = angularVelocityEstimate.Length();
+
+                if (angularSpeed > MathUtil::epsilonF)
+                {
+                    constexpr float MaxAngularExtrapolationRadians = 0.25f;
+
+                    const float angleRadians = MathUtil::Clamp(
+                        angularSpeed * extrapolationSeconds,
+                        0.0f,
+                        MaxAngularExtrapolationRadians);
+
+                    const Quat4f rotationDelta(
+                        angularVelocityEstimate * (1.0f / angularSpeed),
+                        angleRadians);
+
+                    colliderTransform.SetRotation(rotationDelta * latest.transform.GetRotation());
+                }
+
+                // Underrun: the render time has run past the newest buffered sample (packet burst
+                // gap). Ride the extrapolated position instead of freezing at the newest sample.
+                if (renderTimeMs > latestTimeMs)
+                {
+                    targetTransform = colliderTransform;
+                }
+
+                entity->SetLocalTransform(colliderTransform, TransformChangeType::Simulation);
+
+                SyncColliderToEntity(entity, it->second, delta);
+
+                entity->SetLocalTransform(targetTransform, TransformChangeType::Simulation);
+            }
+            else
+            {
+                SyncColliderToEntity(entity, it->second, delta);
+            }
 
         ++it;
     }
 }
 
-void ReplicationApplySystem::SyncColliderToEntity(Entity* entity, float deltaTime)
+void ReplicationApplySystem::SyncColliderToEntity(Entity* entity, InterpolationState& interpolation, float deltaTime)
 {
     RigidBodyComponent* rigidBodyComponent = entity->TryGetComponent<RigidBodyComponent>();
 
@@ -423,11 +529,23 @@ void ReplicationApplySystem::SyncColliderToEntity(Entity* entity, float deltaTim
 
     if (rigidBodyComponent->rigidBody->IsKinematic())
     {
-        physicsWorld->MoveRigidBodyKinematic(rigidBodyComponent->rigidBody, worldTransform, deltaTime);
+        if (interpolation.snapNextColliderSync)
+        {
+            // Large authoritative jump (respawn/teleport): hard-snap the body rather than gliding.
+            physicsWorld->SetRigidBodyTransform(rigidBodyComponent->rigidBody, worldTransform);
+
+            interpolation.snapNextColliderSync = false;
+        }
+        else
+        {
+            physicsWorld->MoveRigidBodyKinematic(rigidBodyComponent->rigidBody, worldTransform, deltaTime);
+        }
     }
     else
     {
         physicsWorld->SetRigidBodyTransform(rigidBodyComponent->rigidBody, worldTransform);
+
+        interpolation.snapNextColliderSync = false;
     }
 }
 

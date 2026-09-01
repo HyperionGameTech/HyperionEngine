@@ -8,6 +8,7 @@
 
 #include <Framework/Server/GameServer.hpp>
 
+#include <Framework/EngineGlobals.hpp>
 #include <Framework/Util/FrameLimiter.hpp>
 
 #include <Core/Threading/Thread.hpp>
@@ -28,7 +29,7 @@ using namespace net;
 
 extern "C" int Hyp_ExecuteConsoleCommand(int argc, const char** argv);
 
-class GameServerThread : public Thread<Scheduler, NetServer*>
+class GameServerThread : public Thread<Scheduler>
 {
 public:
     GameServerThread(GameServer* ownerServer)
@@ -37,7 +38,7 @@ public:
     {
     }
 
-    virtual void operator()(NetServer* netServer) override
+    virtual void operator()() override
     {
         InitThreadAllocator();
 
@@ -45,9 +46,7 @@ public:
 
         while (HYP_LIKELY(!m_stopRequested.LoadVolatile()))
         {
-            netServer->Update();
-
-            m_ownerServer->GetRequestManager().PublishBatch();
+            m_ownerServer->Update();
 
             if (m_scheduler->NumEnqueued())
             {
@@ -119,6 +118,7 @@ public:
 };
 
 GameServer::GameServer()
+    : m_isDedicatedThread(true)
 {
     m_requestManager.RegisterHandlers(m_netServer);
 
@@ -147,9 +147,30 @@ GameServer::~GameServer()
     m_netServer.OnClientDisconnected.RemoveAllDetached();
 }
 
+ThreadBase* GameServer::GetThread() const
+{
+    // Get m_thread if m_isDedicatedThread.
+    // Runs on main thread otherwise.
+    return m_isDedicatedThread
+        ? m_thread.Get()
+        : GetThreadById(g_mainThread);
+}
+
 bool GameServer::IsRunning() const
 {
+    if (!m_isDedicatedThread)
+    {
+        return true;
+    }
+
     return m_thread != nullptr && m_thread->IsRunning();
+}
+
+void GameServer::Update()
+{
+    m_netServer.Update();
+
+    m_requestManager.PublishBatch();
 }
 
 Result GameServer::Start(uint16 port)
@@ -166,8 +187,15 @@ Result GameServer::Start(uint16 port)
 
     HYP_LOG(GameServer, Info, "Game server listening on port {}", port);
 
-    m_thread = MakeUnique<GameServerThread>(this);
-    m_thread->Start(&m_netServer);
+    // Dedicated server == no dedicated thread
+    // @TODO If we change IsServer() semantics when adding Listen Server, we'll need to address this here.
+    m_isDedicatedThread = !EngineGlobals::IsServer();
+
+    if (m_isDedicatedThread)
+    {
+        m_thread = MakeUnique<GameServerThread>(this);
+        m_thread->Start();
+    }
 
     m_consoleInputThread = MakeUnique<ConsoleInputThread>();
     m_consoleInputThread->Start();
@@ -177,14 +205,14 @@ Result GameServer::Start(uint16 port)
 
 void GameServer::Stop()
 {
-    if (m_thread == nullptr)
+    if (m_thread != nullptr)
     {
-        return;
+        m_thread->Stop();
+        m_thread->Join();
+        m_thread.Reset();
     }
 
-    m_thread->Stop();
-    m_thread->Join();
-    m_thread.Reset();
+    m_isDedicatedThread = true;
 
     m_netServer.StopListening();
 

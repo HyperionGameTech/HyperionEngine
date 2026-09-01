@@ -19,6 +19,9 @@
 
 #include <Scene/Util/SceneHelpers.hpp>
 
+#include <Framework/GameState.hpp>
+#include <Framework/EngineGlobals.hpp>
+
 #include <Framework/Server/GameServer.hpp>
 #include <Framework/Server/ServerRequestManager.hpp>
 
@@ -34,6 +37,8 @@
 #include <Core/Reflection/Class.hpp>
 
 #include <Core/Utilities/Traits.hpp>
+
+#include <Core/Utilities/Time.hpp>
 
 #include <Core/Threading/Threads.hpp>
 #include <Core/Threading/Task.hpp>
@@ -492,6 +497,10 @@ void ReplicationSystem::Process(float delta, Span<Handle<Scene>> scenes)
                 }
             }
 
+            // Stamp with the server's monotonic simulation time (ms) so clients interpolate on the
+            // server timeline rather than on packet arrival times (which jitter).
+            const uint64 serverTimeMs = uint64(GetWorld()->GetGameState().gameTime * 1000.0f);
+
             net::NetBuffer payload;
             MemoryByteWriter<NetAllocator, 1> writer(&payload);
             writer.Write(transform.GetTranslation());
@@ -499,6 +508,7 @@ void ReplicationSystem::Process(float delta, Span<Handle<Scene>> scenes)
             writer.Write(transform.GetScale());
             writer.Write(linearVelocity);
             writer.Write(angularVelocity);
+            writer.Write(serverTimeMs);
             writer.Write(uint8(isSleeping));
 
             replicationState.isSleepingReplicated = uint8(isSleeping);

@@ -126,6 +126,7 @@ ENGINE_API float GetInterpolationDelay();
 ENGINE_API float GetCorrectionThreshold();
 ENGINE_API float GetCorrectionSmoothingTime();
 ENGINE_API bool GetDeadReckoningEnabled();
+ENGINE_API float GetInterpRatio();
 } // namespace NetGlobals
 
 extern MainThread* g_mainThreadInstance;

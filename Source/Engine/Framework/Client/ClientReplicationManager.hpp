@@ -16,6 +16,8 @@
 
 #include <Core/Utilities/Uuid.hpp>
 
+#include <Core/Utilities/Time.hpp>
+
 #include <Net/NetMessage.hpp>
 #include <Net/NetMessageDispatcher.hpp>
 #include <Net/NetMemory.hpp>
@@ -94,15 +96,24 @@ struct ReplicationOp<ReplicationOpType::Snapshot> final : ReplicationOpBase
     Transform transform;
     Vec3f velocity;
     Vec3f angularVelocity;
-    uint64 receiveTimeMs = 0;
+    Time receiveTimeMs;
+    Time serverTimeMs;
     uint8 isSleeping : 1;
 
-    ReplicationOp(NetId netId, const Transform& transform, const Vec3f& velocity, const Vec3f& angularVelocity, uint64 receiveTimeMs, bool isSleeping)
+    ReplicationOp(
+        NetId netId,
+        const Transform& transform,
+        const Vec3f& velocity,
+        const Vec3f& angularVelocity,
+        Time receiveTimeMs,
+        Time serverTimeMs,
+        bool isSleeping)
         : ReplicationOpBase(ReplicationOpType::Snapshot, netId),
           transform(transform),
           velocity(velocity),
           angularVelocity(angularVelocity),
           receiveTimeMs(receiveTimeMs),
+          serverTimeMs(serverTimeMs),
           isSleeping(isSleeping ? 1u : 0u)
     {
     }

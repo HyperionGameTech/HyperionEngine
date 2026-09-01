@@ -19,6 +19,8 @@
 
 #include <Core/Name/Name.hpp>
 
+#include <Core/Utilities/Time.hpp>
+
 namespace Hyperion {
 
 enum class NetId : uint32;
@@ -67,10 +69,11 @@ private:
 
         struct Sample
         {
-            uint64 receiveTimeMs;
             Transform transform;
             Vec3f velocity;
             Vec3f angularVelocity;
+            Time receiveTimeMs;
+            Time serverTimeMs;
             bool isSleeping;
         };
 
@@ -78,12 +81,16 @@ private:
 
         Vec3f velocityEstimate;
         Vec3f angularVelocityEstimate;
+
+        // When true, the next collider sync uses a hard teleport instead of the kinematic glide
+        // (e.g. after an implausibly large authoritative jump).
+        bool snapNextColliderSync = false;
     };
 
     void UpdateInterpolatedEntities(float delta);
     void UpdateStreamingVolume(Span<const Handle<Scene>> scenes);
 
-    void SyncColliderToEntity(Entity* entity, float deltaTime);
+    void SyncColliderToEntity(Entity* entity, InterpolationState& interpolation, float deltaTime);
     
     Scene* FindTargetScene(Span<const Handle<Scene>> scenes, Name sceneName);
     
@@ -103,6 +110,15 @@ private:
     Array<PendingSpawn, SceneAllocator> m_pendingSpawns;
     Map<NetId, Handle<Entity>, SceneAllocator> m_netIdToEntity;
     Map<NetId, InterpolationState, SceneAllocator> m_interpolationStates;
+
+    // Smoothed estimate of the server clock: estimatedServerNowMs = localNowMs - m_clockOffsetMs.
+    double m_clockOffsetMs = 0.0;
+    bool m_hasClockEstimate = false;
+
+    // EMA of consecutive inter-sample server-time deltas (used to size the interp buffer).
+    double m_estimatedSampleIntervalMs = 0.0;
+    Time m_lastSeenServerTimeMs;
+    bool m_hasSeenServerTime = false;
 
     Handle<Entity> m_resolvedPlayerEntity;
     Handle<CameraStreamingVolume> m_playerStreamingVolume;

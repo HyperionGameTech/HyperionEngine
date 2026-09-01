@@ -35,15 +35,20 @@ public:
 
     ~GameServer();
 
-    HYP_FORCE_INLINE ThreadBase* GetThread() const
-    {
-        return reinterpret_cast<ThreadBase*>(m_thread.Get());
-    }
+    ThreadBase* GetThread() const;
 
     bool IsRunning() const;
 
     Result Start(uint16 port);
     void Stop();
+
+    HYP_FORCE_INLINE bool IsDedicatedThread() const
+    {
+        return m_isDedicatedThread;
+    }
+
+    /// called from MainThread when GameServerThread isn't actually a dedicated thread 
+    void Update();
 
     HYP_NODISCARD NetId AllocNetId();
     void FreeNetId(NetId netId);
@@ -85,6 +90,8 @@ private:
 
     Mutex m_newConnectionsMutex;
     Array<net::NetConnectionId> m_newConnections;
+
+    bool m_isDedicatedThread;
 };
 
 } // namespace Hyperion
