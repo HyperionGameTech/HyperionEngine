@@ -160,9 +160,14 @@ public:                                                                         
     {                                                                            \
     }                                                                            \
                                                                                  \
+    HYP_FORCE_INLINE ObjectHeader* GetObjectHeader_Internal() const              \
+    {                                                                            \
+        return m_header ? m_header : &GetDefaultHeader<T>();                     \
+    }                                                                            \
+                                                                                 \
     HYP_FORCE_INLINE ObjId<T> Id() const                                         \
     {                                                                            \
-        const ObjectHeader* hdr = m_header;                                      \
+        const ObjectHeader* hdr = GetObjectHeader_Internal();                    \
                                                                                  \
         return (ObjId<T>)ObjIdBase(                                              \
             std::is_final_v<T>                                                   \

@@ -11,12 +11,7 @@ namespace Hyperion {
 
 CORE_API TypeId GetTypeIdForClass(const Class* cls)
 {
-    if (cls == nullptr)
-    {
-        return TypeId::Void();
-    }
-
-    return cls->GetTypeId();
+    return cls ? cls->GetTypeId() : TypeId::Void();
 }
 
 CORE_API ObjectContainerBase* GetObjectContainerForClass(const Class* cls)

@@ -162,6 +162,24 @@ struct ObjectHeader
     static CORE_API void DestructThisObject(ObjectHeader* header);
 };
 
+/// Get fallback ObjectHeader for type T.
+/// Not to be mutated; used as fallback when object wasn't allocated using pools (eg stack allocated)
+template <class T>
+inline ObjectHeader& GetDefaultHeader()
+{
+    static ObjectHeader s_defaultHeader {};
+
+    static std::once_flag s_onceFlag;
+    std::call_once(
+        s_onceFlag,
+        []
+        {
+            s_defaultHeader.cls = GetClass<T>();
+        });
+
+    return s_defaultHeader;
+}
+
 template <class T>
 class ObjectContainer final : public ObjectContainerBase
 {

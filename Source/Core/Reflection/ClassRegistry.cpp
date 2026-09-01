@@ -7,7 +7,6 @@
 #include <Core/Reflection/ClassRegistry.hpp>
 #include <Core/Reflection/Class.hpp>
 
-#include <Core/Threading/ThreadLocalStorage.hpp>
 #include <Core/Threading/Thread.hpp>
 #include <Core/Threading/Threads.hpp>
 #include <Core/Threading/Util/ThreadId.hpp>
@@ -47,16 +46,16 @@ static void InitThreadLocalCache()
 
     if (thisThread)
     {
-        t_cache = thisThread->GetTLS().Allocate<ThreadLocalCacheMap>();
+        t_cache = new ThreadLocalCacheMap;
 
         if (t_cache)
         {
-            new (t_cache) ThreadLocalCacheMap;
-
-            thisThread->AddOnExitCallback([]()
-                                          {
-                                              t_cache->~ThreadLocalCacheMap();
-                                          });
+            thisThread->AddOnExitCallback(
+                []()
+                {
+                    delete t_cache;
+                    t_cache = nullptr;
+                });
 
             return;
         }

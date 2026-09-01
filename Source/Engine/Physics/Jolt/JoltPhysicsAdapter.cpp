@@ -638,26 +638,7 @@ void JoltPhysicsAdapter::OnRigidBodyRemoved(const Handle<RigidBody>& rigidBody)
 
 void JoltPhysicsAdapter::SetRigidBodyCharacterGhostCollidable(const Handle<RigidBody>& rigidBody, bool collidable)
 {
-    if (!rigidBody.IsValid())
-    {
-        return;
-    }
-
-    JoltRigidBodyInternalData* internalData = static_cast<JoltRigidBodyInternalData*>(rigidBody->GetInternalData());
-
-    if (!internalData || internalData->bodyID.IsInvalid())
-    {
-        return;
-    }
-
-    if (collidable)
-    {
-        m_ghostNonCollidableBodyIds.Erase(internalData->bodyID.GetIndexAndSequenceNumber());
-    }
-    else
-    {
-        m_ghostNonCollidableBodyIds.Insert(internalData->bodyID.GetIndexAndSequenceNumber());
-    }
+    // no-op
 }
 
 void JoltPhysicsAdapter::OnChangePhysicsShape(RigidBody* rigidBody)

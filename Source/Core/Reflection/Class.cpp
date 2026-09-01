@@ -459,11 +459,8 @@ Property* MakeProperty(const Field* field, const Method* getter, const Method* s
 using FormattedStringMap = Map<TypeId, String, DynamicAllocator, HashTablePolicy::NotPooled>;
 thread_local FormattedStringMap* t_formattedStringMap;
 
-static void InitFormattedStringMap(void* mem)
+static void InitFormattedStringMap(FormattedStringMap& map)
 {
-    Assert(mem != nullptr);
-    FormattedStringMap& map = *new (mem) FormattedStringMap();
-
 #define ADD_TYPE_NAME(type) map[TypeId::ForType<type>()] = #type
 
     // pre-initialize some common type names for easier debugging
@@ -520,13 +517,15 @@ const char* LookupTypeName(const TypeId& typeId)
             return "<could not lookup type name>";
         }
 
-        t_formattedStringMap = currentThreadObject->GetTLS().Allocate<FormattedStringMap>();
-        InitFormattedStringMap(t_formattedStringMap);
+        t_formattedStringMap = new FormattedStringMap;
+        InitFormattedStringMap(*t_formattedStringMap);
 
-        currentThreadObject->AddOnExitCallback([]()
-                                               {
-                                                   t_formattedStringMap->~FormattedStringMap();
-                                               });
+        currentThreadObject->AddOnExitCallback(
+            []()
+            {
+                delete t_formattedStringMap;
+                t_formattedStringMap = nullptr;
+            });
     }
 
     auto it = t_formattedStringMap->Find(typeId);

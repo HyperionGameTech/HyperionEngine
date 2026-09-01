@@ -52,6 +52,9 @@ class ManagedObject;
 CORE_API extern bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
 CORE_API extern bool IsA(const Class* cls, const Class* instanceClass);
 
+template <class T>
+extern ObjectHeader& GetDefaultHeader();
+
 class CORE_API ObjectBase
 {
     template <class T>
@@ -102,7 +105,7 @@ public:
 
     HYP_FORCE_INLINE ObjectHeader* GetObjectHeader_Internal() const
     {
-        return m_header;
+        return m_header ? m_header : &GetDefaultHeader<ObjectBase>();
     }
 
 #if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
