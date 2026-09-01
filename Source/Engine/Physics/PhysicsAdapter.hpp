@@ -26,6 +26,12 @@ struct CharacterControllerConfig
     float jumpSpeed = 10.0f;
     float fallSpeed = 55.0f;
 
+    // Self explanatory name (picture it)
+    float coyoteTime = 0.15f;
+
+    // Grace period during which a jump requested before landing is still honored.
+    float jumpBufferTime = 0.15f;
+
     // Max. follow speed for shadow body
     float shadowMaxSpeed = 60.0f;
     // Instead of following, shadow body will teleport at this distance.
@@ -78,6 +84,11 @@ public:
     void SetRigidBodyTransform(const Handle<RigidBody>& rigidBody, const Transform& transform)
     {
         GetDerivedAdapter()->DerivedAdapter::SetRigidBodyTransform(rigidBody, transform);
+    }
+
+    void MoveRigidBodyKinematic(const Handle<RigidBody>& rigidBody, const Transform& transform, float deltaTime)
+    {
+        GetDerivedAdapter()->DerivedAdapter::MoveRigidBodyKinematic(rigidBody, transform, deltaTime);
     }
 
     void SetRigidBodyKinematic(const Handle<RigidBody>& rigidBody, bool isKinematic)

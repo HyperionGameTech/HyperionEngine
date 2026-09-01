@@ -568,6 +568,41 @@ void BulletPhysicsAdapter::SetRigidBodyTransform(const Handle<RigidBody>& rigidB
     rigidBody->SetTransform(transform);
 }
 
+void BulletPhysicsAdapter::MoveRigidBodyKinematic(const Handle<RigidBody>& rigidBody, const Transform& transform, float deltaTime)
+{
+    Assert(m_dynamicsWorld != nullptr);
+
+    if (!rigidBody.IsValid())
+    {
+        return;
+    }
+
+    RigidBodyInternalData* internalData = static_cast<RigidBodyInternalData*>(rigidBody->GetInternalData());
+
+    if (!internalData || !internalData->rigidBody)
+    {
+        return;
+    }
+
+    // Give bodies in contact with this one (e.g. a character standing on/pushing it) a velocity to
+    // solve against instead of a teleport every time a network update arrives.
+    if (deltaTime > 0.0f && internalData->rigidBody->isKinematicObject())
+    {
+        const btTransform oldTransform = internalData->rigidBody->getWorldTransform();
+
+        const btVector3 deltaPosition = ToBtVector(transform.GetTranslation()) - oldTransform.getOrigin();
+        internalData->rigidBody->setLinearVelocity(deltaPosition / deltaTime);
+
+        const btQuaternion deltaRotation = ToBtQuaternion(transform.GetRotation().Inverse()) * oldTransform.getRotation().inverse();
+        const btScalar angle = deltaRotation.getAngle();
+
+        internalData->rigidBody->setAngularVelocity(
+            angle > SIMD_EPSILON ? deltaRotation.getAxis() * (angle / deltaTime) : btVector3(0.0f, 0.0f, 0.0f));
+    }
+
+    SetRigidBodyTransform(rigidBody, transform);
+}
+
 void BulletPhysicsAdapter::SetRigidBodyKinematic(const Handle<RigidBody>& rigidBody, bool isKinematic)
 {
     Assert(m_dynamicsWorld != nullptr);

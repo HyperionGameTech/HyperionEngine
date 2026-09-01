@@ -721,6 +721,10 @@ SceneOctree::Result SceneOctree::Move(Entity* entity, const BoundingBox& aabb, b
                     }
 
                     m_payload.entries.Erase(entry->value->Id());
+
+                    // entry is now erased from this octant. must not touch it again if OF_INSERT_ON_OVERLAP
+                    // causes this loop to match more than one child octant.
+                    entry = nullptr;
                 }
 
                 if (!IsDivided())

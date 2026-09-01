@@ -36,6 +36,7 @@ public:
     void OnRigidBodyAdded(const Handle<RigidBody>& rigidBody);
     void OnRigidBodyRemoved(const Handle<RigidBody>& rigidBody);
     void SetRigidBodyTransform(const Handle<RigidBody>& rigidBody, const Transform& transform);
+    void MoveRigidBodyKinematic(const Handle<RigidBody>& rigidBody, const Transform& transform, float deltaTime);
     void SetRigidBodyKinematic(const Handle<RigidBody>& rigidBody, bool isKinematic);
     void SetRigidBodyCharacterGhostCollidable(const Handle<RigidBody>& rigidBody, bool collidable);
 

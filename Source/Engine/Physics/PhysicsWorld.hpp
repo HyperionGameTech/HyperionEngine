@@ -58,6 +58,10 @@ public:
     virtual void AddRigidBody(const Handle<RigidBody>& rigidBody) = 0;
     virtual void RemoveRigidBody(const Handle<RigidBody>& rigidBody) = 0;
     virtual void SetRigidBodyTransform(const Handle<RigidBody>& rigidBody, const Transform& transform) = 0;
+    // Moves a Kinematic body toward `transform` over `deltaTime`, imparting the velocity the solver
+    // needs to resolve contacts against it smoothly (rather than as a teleport). Only meaningful for
+    // Kinematic bodies; adapters fall back to a plain SetRigidBodyTransform otherwise.
+    virtual void MoveRigidBodyKinematic(const Handle<RigidBody>& rigidBody, const Transform& transform, float deltaTime) = 0;
     virtual void SetRigidBodyKinematic(const Handle<RigidBody>& rigidBody, bool isKinematic) = 0;
     virtual void SetRigidBodyCharacterGhostCollidable(const Handle<RigidBody>& rigidBody, bool collidable) = 0;
 
@@ -136,6 +140,11 @@ public:
     void SetRigidBodyTransform(const Handle<RigidBody>& rigidBody, const Transform& transform) override
     {
         m_adapter.SetRigidBodyTransform(rigidBody, transform);
+    }
+
+    void MoveRigidBodyKinematic(const Handle<RigidBody>& rigidBody, const Transform& transform, float deltaTime) override
+    {
+        m_adapter.MoveRigidBodyKinematic(rigidBody, transform, deltaTime);
     }
 
     void SetRigidBodyKinematic(const Handle<RigidBody>& rigidBody, bool isKinematic) override

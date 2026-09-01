@@ -824,8 +824,9 @@ bool EntityManager::RemoveEntity(Entity* entity, bool calledFromEntityDestructor
     {
         NotifySystemsOfEntityRemoved(entity, entityData->components);
     }
-    else if (m_world != nullptr)
+    else
     {
+        if (m_world != nullptr)
         {
             TUniqueLock lock(m_systemEntityMapMutex);
 

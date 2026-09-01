@@ -173,7 +173,12 @@ struct JoltCharacterControllerInternalData
     float stepHeight = 0.35f;
     float jumpSpeed = 10.0f;
     float fallSpeed = 55.0f;
-    bool pendingJump = false;
+    
+    float coyoteTime = 0.15f;
+    float jumpBufferTime = 0.15f;
+
+    float coyoteTimeRemaining = 0.0f;
+    float jumpBufferTimeRemaining = 0.0f;
 };
 
 static JPH::MassProperties CreateMassProperties(const JPH::Shape* shape, float mass)
@@ -567,6 +572,43 @@ void JoltPhysicsAdapter::SetRigidBodyTransform(const Handle<RigidBody>& rigidBod
     rigidBody->SetTransform(transform);
 }
 
+void JoltPhysicsAdapter::MoveRigidBodyKinematic(const Handle<RigidBody>& rigidBody, const Transform& transform, float deltaTime)
+{
+    Assert(m_physicsSystem != nullptr);
+
+    if (!rigidBody.IsValid())
+    {
+        return;
+    }
+
+    JoltRigidBodyInternalData* internalData = static_cast<JoltRigidBodyInternalData*>(rigidBody->GetInternalData());
+
+    if (!internalData || internalData->bodyID.IsInvalid())
+    {
+        return;
+    }
+
+    JPH::BodyInterface& bodyInterface = m_physicsSystem->GetBodyInterface();
+
+    // MoveKinematic derives the velocity needed to reach the target over deltaTime, so bodies in
+    // contact with this one (e.g. a character standing on/pushing it) get a continuously-moving
+    // surface to solve against instead of a teleport every time a network update arrives.
+    if (deltaTime > 0.0f && bodyInterface.GetMotionType(internalData->bodyID) == JPH::EMotionType::Kinematic)
+    {
+        bodyInterface.MoveKinematic(
+            internalData->bodyID,
+            ToJPHVec(transform.GetTranslation()),
+            ToJPHQuat(transform.GetRotation().Inverse()),
+            deltaTime);
+
+        rigidBody->SetTransform(transform);
+
+        return;
+    }
+
+    SetRigidBodyTransform(rigidBody, transform);
+}
+
 void JoltPhysicsAdapter::SetRigidBodyKinematic(const Handle<RigidBody>& rigidBody, bool isKinematic)
 {
     Assert(m_physicsSystem != nullptr);
@@ -790,6 +832,8 @@ void JoltPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerCon
     internalData->stepHeight = config.stepHeight;
     internalData->jumpSpeed = config.jumpSpeed;
     internalData->fallSpeed = config.fallSpeed;
+    internalData->coyoteTime = config.coyoteTime;
+    internalData->jumpBufferTime = config.jumpBufferTime;
 
     m_characterVsCharacterCollision->Add(internalData->character.GetPtr());
 
@@ -846,10 +890,7 @@ void JoltPhysicsAdapter::ApplyCharacterJump(const SharedPtr<void>& physicsHandle
         return;
     }
 
-    if (internalData->character->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround)
-    {
-        internalData->pendingJump = true;
-    }
+    internalData->jumpBufferTimeRemaining = internalData->jumpBufferTime;
 }
 
 void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsHandle, float deltaTime)
@@ -886,21 +927,41 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
 
         const bool movingTowardsGround = (currentVerticalVelocity.GetY() - groundVelocity.GetY()) < 0.1f;
 
+        const bool isGrounded = character->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround
+            && !character->IsSlopeTooSteep(character->GetGroundNormal());
+
+        if (isGrounded)
+        {
+            internalData->coyoteTimeRemaining = internalData->coyoteTime;
+        }
+        else
+        {
+            internalData->coyoteTimeRemaining = MathUtil::Max(0.0f, internalData->coyoteTimeRemaining - substepDelta);
+        }
+
         JPH::Vec3 newVelocity;
 
-        if (character->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround
-            && !character->IsSlopeTooSteep(character->GetGroundNormal()))
+        if (isGrounded)
         {
             newVelocity = groundVelocity;
-
-            if (internalData->pendingJump && movingTowardsGround)
-            {
-                newVelocity += JPH::Vec3(0.0f, internalData->jumpSpeed, 0.0f);
-            }
         }
         else
         {
             newVelocity = currentVerticalVelocity;
+        }
+
+        const bool canJump = internalData->jumpBufferTimeRemaining > 0.0f && (isGrounded || internalData->coyoteTimeRemaining > 0.0f);
+
+        if (canJump && movingTowardsGround)
+        {
+            newVelocity += JPH::Vec3(0.0f, internalData->jumpSpeed, 0.0f);
+
+            internalData->jumpBufferTimeRemaining = 0.0f;
+            internalData->coyoteTimeRemaining = 0.0f;
+        }
+        else
+        {
+            internalData->jumpBufferTimeRemaining = MathUtil::Max(0.0f, internalData->jumpBufferTimeRemaining - substepDelta);
         }
 
         newVelocity += gravity * substepDelta;
@@ -927,8 +988,6 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
             JPH::ShapeFilter(),
             *m_tempAllocator);
     }
-
-    internalData->pendingJump = false;
 }
 
 void JoltPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation)
@@ -947,7 +1006,8 @@ void JoltPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physicsH
     character->SetPosition(ToJPHVec(feetPosition));
     character->SetLinearVelocity(JPH::Vec3::sZero());
 
-    internalData->pendingJump = false;
+    internalData->jumpBufferTimeRemaining = 0.0f;
+    internalData->coyoteTimeRemaining = 0.0f;
     internalData->walkVelocity = Vec3f::Zero();
 
     character->RefreshContacts(

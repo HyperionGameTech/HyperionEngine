@@ -262,6 +262,8 @@ void CharacterControllerSystem::OnEntityAdded(Entity* entity)
     config.maxSlopeAngle = component.maxSlopeAngle;
     config.jumpSpeed = component.jumpSpeed;
     config.fallSpeed = component.fallSpeed;
+    config.coyoteTime = component.coyoteTime;
+    config.jumpBufferTime = component.jumpBufferTime;
     config.shadowMaxSpeed = component.shadowMaxSpeed;
     config.shadowTeleportDistance = component.shadowTeleportDistance;
     config.pushMassLimit = component.pushMassLimit;
@@ -466,6 +468,8 @@ static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent
         config.maxSlopeAngle = component.maxSlopeAngle;
         config.jumpSpeed = component.jumpSpeed;
         config.fallSpeed = component.fallSpeed;
+        config.coyoteTime = component.coyoteTime;
+        config.jumpBufferTime = component.jumpBufferTime;
         config.shadowMaxSpeed = component.shadowMaxSpeed;
         config.shadowTeleportDistance = component.shadowTeleportDistance;
         config.pushMassLimit = component.pushMassLimit;

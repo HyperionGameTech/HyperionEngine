@@ -32,6 +32,13 @@ namespace Hyperion
         public float MaxSlopeAngle;
         public float JumpSpeed;
         public float FallSpeed;
+        public float WileECoyote;
+        public float JumpBufferTime;
+        public float ShadowMaxSpeed;
+        public float ShadowTeleportDistance;
+        public float PushMassLimit;
+        public float MaxPushSpeed;
+        public float PushSpeedScale;
 
         [MarshalAs(UnmanagedType.I1)]
         public bool IsOnGround;

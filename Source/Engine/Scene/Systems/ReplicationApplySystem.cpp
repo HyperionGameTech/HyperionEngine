@@ -217,11 +217,11 @@ void ReplicationApplySystem::Process(float delta, Span<Handle<Scene>> scenes)
         }
     }
 
-    UpdateInterpolatedEntities();
+    UpdateInterpolatedEntities(delta);
     UpdateStreamingVolume(scenes);
 }
 
-void ReplicationApplySystem::UpdateInterpolatedEntities()
+void ReplicationApplySystem::UpdateInterpolatedEntities(float delta)
 {
     if (m_interpolationStates.Empty())
     {
@@ -356,20 +356,20 @@ void ReplicationApplySystem::UpdateInterpolatedEntities()
 
             entity->SetLocalTransform(colliderTransform, TransformChangeType::Simulation);
 
-            SyncColliderToEntity(entity);
+            SyncColliderToEntity(entity, delta);
 
             entity->SetLocalTransform(targetTransform, TransformChangeType::Simulation);
         }
         else
         {
-            SyncColliderToEntity(entity);
+            SyncColliderToEntity(entity, delta);
         }
 
         ++it;
     }
 }
 
-void ReplicationApplySystem::SyncColliderToEntity(Entity* entity)
+void ReplicationApplySystem::SyncColliderToEntity(Entity* entity, float deltaTime)
 {
     RigidBodyComponent* rigidBodyComponent = entity->TryGetComponent<RigidBodyComponent>();
 
@@ -397,7 +397,17 @@ void ReplicationApplySystem::SyncColliderToEntity(Entity* entity)
     worldTransform.SetRotation(entity->GetWorldRotation());
     worldTransform.SetScale(entity->GetWorldScale());
 
-    physicsWorld->SetRigidBodyTransform(rigidBodyComponent->rigidBody, worldTransform);
+    // Kinematic bodies here are driven purely by replication (see World::SyncPhysicsBodyKinematicStates);
+    // move them with a derived velocity rather than teleporting, so contacts against them (a character
+    // standing on/pushing one) solve smoothly instead of every network update popping them in place.
+    if (rigidBodyComponent->rigidBody->IsKinematic())
+    {
+        physicsWorld->MoveRigidBodyKinematic(rigidBodyComponent->rigidBody, worldTransform, deltaTime);
+    }
+    else
+    {
+        physicsWorld->SetRigidBodyTransform(rigidBodyComponent->rigidBody, worldTransform);
+    }
 }
 
 void ReplicationApplySystem::UpdateStreamingVolume(Span<const Handle<Scene>> scenes)

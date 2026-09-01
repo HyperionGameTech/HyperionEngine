@@ -80,10 +80,10 @@ private:
         Vec3f angularVelocityEstimate;
     };
 
-    void UpdateInterpolatedEntities();
+    void UpdateInterpolatedEntities(float delta);
     void UpdateStreamingVolume(Span<const Handle<Scene>> scenes);
 
-    void SyncColliderToEntity(Entity* entity);
+    void SyncColliderToEntity(Entity* entity, float deltaTime);
     
     Scene* FindTargetScene(Span<const Handle<Scene>> scenes, Name sceneName);
     

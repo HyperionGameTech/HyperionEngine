@@ -592,6 +592,8 @@ extern struct CharacterControllerComponent
     MaxSlopeAngle : float
     JumpSpeed : float
     FallSpeed : float
+    CoyoteTime : float
+    JumpBufferTime : float
     ShadowMaxSpeed : float
     ShadowTeleportDistance : float
     PushMassLimit : float

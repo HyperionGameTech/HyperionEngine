@@ -44,6 +44,10 @@ void NullPhysicsAdapter::SetRigidBodyTransform(const Handle<RigidBody>& rigidBod
 {
 }
 
+void NullPhysicsAdapter::MoveRigidBodyKinematic(const Handle<RigidBody>& rigidBody, const Transform& transform, float deltaTime)
+{
+}
+
 void NullPhysicsAdapter::SetRigidBodyKinematic(const Handle<RigidBody>& rigidBody, bool isKinematic)
 {
     if (rigidBody.IsValid())
