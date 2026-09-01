@@ -107,17 +107,16 @@ void Baker<EnvProbe>::OnCompleted_Internal()
 {
     HYP_SCOPE;
 
+    // This is all PT only stuff (raster does its own stuff, see EnvProbePass.cpp)
     if (!PerformsRayTracing())
     {
-        HYP_LOG(Lightmap, Verbose, "EnvProbe {} raster baking complete", m_envProbe->GetName());
-
         return;
     }
 
     AssertDebug(m_bakeData.IsBuilt());
     if (!m_bakeData.IsBuilt())
     {
-        HYP_LOG(Lightmap, Warning, "Lightmap data for EnvProbe {} is not built, skipping texture creation", m_envProbe->Id());
+        HYP_LOG(Lightmap, Warning, "Lightmap data for PT EnvProbe {} is not built! shouldn't get here", m_envProbe->Id());
         return;
     }
 
@@ -178,8 +177,7 @@ void Baker<EnvProbe>::OnCompleted_Internal()
             Vec3u {
                 EnvProbe::VisibilityTextureDimensions,
                 EnvProbe::VisibilityTextureDimensions,
-                1
-            },
+                1 },
             TFM_LINEAR,
             TFM_LINEAR,
             TWM_CLAMP_TO_EDGE,
@@ -202,27 +200,27 @@ void Baker<EnvProbe>::OnCompleted_Internal()
     }
 
     // Convolves the env probe cubemap and computes SH coefficients on the GPU
-    struct ProcessEnvProbePayload
-    {
-        HYP_DEF_POOL_NEW_DELETE(g_renderPool);
-
-        Handle<EnvProbe> envProbe;
-        BakeData<EnvProbe>::HitMaskBitmapType hitMaskBitmap;
-    };
-
-    class ProcessEnvProbe : public CmdBase
+    class PostProcessEnvProbe : public CmdBase
     {
     public:
-        ProcessEnvProbePayload* payload;
+        struct Payload
+        {
+            HYP_DEF_POOL_NEW_DELETE(g_renderPool);
 
-        explicit ProcessEnvProbe(ProcessEnvProbePayload* payload)
+            Handle<EnvProbe> envProbe;
+            BakeData<EnvProbe>::HitMaskBitmapType hitMaskBitmap;
+        };
+
+        Payload* payload;
+
+        explicit PostProcessEnvProbe(Payload* payload)
             : payload(payload)
         {
         }
 
         static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         {
-            ProcessEnvProbe* cmdCasted = static_cast<ProcessEnvProbe*>(cmd);
+            PostProcessEnvProbe* cmdCasted = static_cast<PostProcessEnvProbe*>(cmd);
             HYP_DEFER({ delete cmdCasted->payload; });
 
             const Handle<EnvProbe>& envProbe = cmdCasted->payload->envProbe;
@@ -263,7 +261,7 @@ void Baker<EnvProbe>::OnCompleted_Internal()
     };
 
     CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
-    cr << ProcessEnvProbe(new ProcessEnvProbePayload { m_envProbe, m_bakeData.ToHitMaskBitmap() });
+    cr << PostProcessEnvProbe(new PostProcessEnvProbe::Payload { m_envProbe, m_bakeData.ToHitMaskBitmap() });
     cr.Done();
 
     m_envProbe->Invalidate(true);

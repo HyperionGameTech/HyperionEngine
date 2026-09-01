@@ -138,14 +138,14 @@ public:
     /*! \brief Rewinds the texel counter by \p numTexels */
     void RequeueTexels(uint32 numTexels);
 
-    bool IsCompleted() const;
+    virtual bool IsCompleted() const;
 
     HYP_FORCE_INLINE bool IsRunning() const
     {
         return m_runningSemaphore.IsInSignalState();
     }
 
-    // Lightmap tracing only
+    // Path Tracing only
     ThreadSignal tracingCompleteSignal;
     memory::ByteBuffer<BakerAllocator> readbackData;
 

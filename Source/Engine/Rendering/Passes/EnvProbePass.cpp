@@ -1147,6 +1147,7 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
     const bool isRealtime = bool(envProbeFlags & EPF_REALTIME);
 
     uint8 renderedViews = 0;
+    bool allViewsReady = true;
 
     for (uint8 viewIndex = 0; viewIndex < 6; viewIndex++)
     {
@@ -1154,6 +1155,13 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
         rs.view = envProbe->GetView(viewIndex);
         rs.framebuffer = envProbe->GetViewFramebuffer(viewIndex);
         rs.passData = pd;
+
+        if (GetRenderCollector(rs.view).isFallback)
+        {
+            allViewsReady = false;
+
+            continue;
+        }
 
         RenderProxyList& rpl = GetConsumerProxyList(rs.view);
         rpl.BeginRead();
@@ -1172,6 +1180,11 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
     }
 
     if (renderedViews == 0)
+    {
+        return;
+    }
+
+    if (!allViewsReady)
     {
         return;
     }
@@ -1198,7 +1211,10 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
         EnvProbeHelpers::ComputeEnvProbeHitMaskSH(frame, envProbe);
     }
 
-    envProbe->needsRender.Store(false);
+    if (allViewsReady)
+    {
+        envProbe->needsRender.Store(false);
+    }
 }
 
 void ReflectionProbePass::RenderProbeView(Frame* frame, const RenderSetup& renderSetup, EnvProbe* envProbe)
@@ -1230,14 +1246,14 @@ void IrradianceProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
 
     View* firstView = irradianceProbe->GetView(0);
 
-    if (!firstView)
+    if (HYP_UNLIKELY(!firstView))
     {
         // irradianceProbe->needsRender.Store(false);
 
         return;
     }
 
-    if (GetRenderCollector(firstView).isFallback)
+    if (HYP_UNLIKELY(GetRenderCollector(firstView).isFallback))
     {
         return;
     }
@@ -1248,12 +1264,18 @@ void IrradianceProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
     RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(irradianceProbe));
     AssertDebug(envProbeProxy != nullptr);
 
+    if (HYP_UNLIKELY(!pd || !envProbeProxy))
+    {
+        return;
+    }
+
     const EnumFlags<EnvProbeFlags> envProbeFlags = EnvProbeHelpers::GetFlagsFromProxy(*envProbeProxy);
 
     const bool isRealtime = bool(envProbeFlags & EPF_REALTIME);
 
     bool needsRerender = irradianceProbe->needsRender.Load();
     uint8 renderedViews = 0;
+    bool allViewsReady = true;
 
     for (uint8 viewIndex = 0; viewIndex < 6; viewIndex++)
     {
@@ -1261,6 +1283,13 @@ void IrradianceProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
         rs.view = irradianceProbe->GetView(viewIndex);
         rs.framebuffer = irradianceProbe->GetViewFramebuffer(viewIndex);
         rs.passData = pd;
+
+        if (GetRenderCollector(rs.view).isFallback)
+        {
+            allViewsReady = false;
+
+            continue;
+        }
 
         RenderProxyList& rpl = GetConsumerProxyList(rs.view);
         rpl.BeginRead();
@@ -1281,6 +1310,11 @@ void IrradianceProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
         return;
     }
 
+    if (!allViewsReady)
+    {
+        return;
+    }
+
     EnvProbeHelpers::ComputeEnvProbeSphericalHarmonics(frame, irradianceProbe);
 
     if (irradianceProbe->GetEnvProbeFlags() & EPF_VISIBILITY)
@@ -1293,7 +1327,10 @@ void IrradianceProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
         EnvProbeHelpers::ComputeEnvProbeHitMaskSH(frame, irradianceProbe);
     }
 
-    irradianceProbe->needsRender.Store(false);
+    if (allViewsReady)
+    {
+        irradianceProbe->needsRender.Store(false);
+    }
 }
 
 void IrradianceProbePass::RenderProbeView(Frame* frame, const RenderSetup& renderSetup, EnvProbe* envProbe)

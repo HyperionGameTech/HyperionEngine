@@ -420,8 +420,7 @@ uint32 BakeJobBase::Process(uint32 maxTexels)
         }
     }
 
-    if (m_texelIndex >= m_texelIndices.Size() * m_baker->NumTexelSamples()
-        && tracingCompleteSignal.IsSignalled(expectedSignalValue))
+    if (m_texelIndex >= m_texelIndices.Size() * m_baker->NumTexelSamples())
     {
         HYP_LOG(Lightmap, Verbose, "Lightmap job {}: All texels processed ({} / {}), stopping", m_uuid, m_texelIndex, m_texelIndices.Size() * m_baker->NumTexelSamples());
 

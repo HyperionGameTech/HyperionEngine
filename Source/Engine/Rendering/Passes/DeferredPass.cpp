@@ -1450,15 +1450,8 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
 
                 for (EnvProbe* envProbe : envProbes[envProbeType])
                 {
-                    // We skip path traced baked probes.
-                    // Other probes (realtime, or baked raster) are handled, but baked ones that dont need render are skipped.
-                    if (envProbe->IsPathTraced())
-                    {
-                        continue;
-                    }
-
-                    // !PathTraced
-                    if (envProbe->IsBaked() && !envProbe->needsRender.Load())
+                    // Only realtime or sky probes are rendered here
+                    if (envProbe->IsBaked())
                     {
                         continue;
                     }

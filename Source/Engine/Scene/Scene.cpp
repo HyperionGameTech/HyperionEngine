@@ -272,7 +272,7 @@ Name Scene::GetUniqueNodeName(const ANSIStringView& prefix, bool firstIsNumbered
 {
     ANSIStringView realPrefix = prefix;
 
-    if (!prefix || *prefix == '\0')
+    if (!prefix || *prefix.Data() == '\0')
     {
         // if no prefix, then use "Node"
         realPrefix = "Node";

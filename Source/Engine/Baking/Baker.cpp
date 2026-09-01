@@ -187,7 +187,9 @@ void BakerBase::Initialize()
                 .Text("This baking technique requires support for ray tracing which doesn't appear to be supported on this device (or it has been explicitly disabled via config).")
                 .Show();
         }
+    }
 
+    { // Init view
         m_camera = MakeHandle<Camera>();
         m_camera->SetName(NAME_FMT("{}_Camera", InstanceClass()->GetName()));
         m_camera->AddCameraController(MakeHandle<OrthoCameraController>());
