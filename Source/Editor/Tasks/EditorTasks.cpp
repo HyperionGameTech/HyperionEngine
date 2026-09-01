@@ -118,17 +118,26 @@ void GenerateLightmapsEditorTask::Cancel_Impl()
 {
     if (m_world.IsValid())
     {
-        GetThreadById(g_simThread)->GetScheduler().Enqueue(
-            [world = m_world, sources = m_sources]()
+        auto cancelImpl = [world = m_world, sources = m_sources]()
+        {
+            if (BakerSubsystem* bakerSubsystem = world->GetSubsystem<BakerSubsystem>())
             {
-                if (BakerSubsystem* bakerSubsystem = world->GetSubsystem<BakerSubsystem>())
+                for (const Handle<ObjectBase>& source : sources)
                 {
-                    for (const Handle<ObjectBase>& source : sources)
-                    {
-                        bakerSubsystem->CancelBake(source.Get());
-                    }
+                    bakerSubsystem->CancelBake(source.Get());
                 }
-            });
+            }
+        };
+
+        if (IsOnThread(g_simThread))
+        {
+            cancelImpl();
+        }
+        else
+        {
+            GetThreadById(g_simThread)->GetScheduler().Enqueue(
+                cancelImpl, TaskEnqueueFlags::FIRE_AND_FORGET);
+        }
     }
 
     TickableEditorTask::Cancel_Impl();

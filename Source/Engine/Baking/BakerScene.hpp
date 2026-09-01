@@ -46,6 +46,7 @@ struct BakerSceneCategory
     HYP_FIELD(Property = "Name", Serialize)
     Name name;
 
+    /// Bumped whenever something needs to force all in category to rebake
     HYP_FIELD(Property = "Revision", Serialize)
     uint64 revision = 0;
 
@@ -54,13 +55,15 @@ struct BakerSceneCategory
     Array<Pair<String, uint64>> assets;
 };
 
+static constexpr uint32 NumBakerSceneCategories = uint32(BakerSceneCategory::Max);
+
 HYP_STRUCT()
 struct BakerScene
 {
     HYP_STRUCT_BODY(BakerScene);
     
     HYP_FIELD(Property = "Categories", Serialize)
-    Array<BakerSceneCategory> categories;
+    FixedArray<BakerSceneCategory, NumBakerSceneCategories> categories;
 
     // per-scene hashes - keyed by scene's UUID.
     // transient, cached are constructed on first use.
@@ -69,7 +72,6 @@ struct BakerScene
 
     BakerScene()
     {
-        categories.Resize(BakerSceneCategory::Max);
         categories[BakerSceneCategory::LightProvider] = { NAME("LightProvider") };
         categories[BakerSceneCategory::LightReceiver] = { NAME("LightReceiver") };
         categories[BakerSceneCategory::Lightmap] = { NAME("Lightmap") };

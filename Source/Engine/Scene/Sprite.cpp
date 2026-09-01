@@ -36,7 +36,12 @@ Sprite::~Sprite() = default;
 void Sprite::UpdateRenderProxy(RenderProxySprite* proxy)
 {
     proxy->sprite = this;
-    proxy->texture = texture.Get();
+
+    if (proxy->texture != texture.Get())
+    {
+        proxy->texture = texture.Get();
+        proxy->forceRebind = true;
+    }
 
     SpriteShaderData& bufferData = proxy->bufferData;
     bufferData.positionSize = Vec4f(GetWorldTranslation(), size);

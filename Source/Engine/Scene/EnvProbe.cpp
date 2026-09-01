@@ -964,11 +964,9 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
 
     if (proxy->texture != m_texture)
     {
-        // force texture to get rebound if we already have a texture but it has changed
+        proxy->texture = m_texture.Get();
         proxy->forceRebind = true;
     }
-
-    proxy->texture = m_texture;
 
     if (m_envProbeFlags & EPF_VISIBILITY)
     {

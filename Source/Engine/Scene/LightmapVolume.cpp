@@ -357,18 +357,32 @@ void LightmapVolume::UpdateRenderProxy(RenderProxyLightmapVolume* proxy)
 {
     proxy->lightmapVolume = this;
 
-    proxy->atlasIrradianceTextures = {};
-
     for (uint32 i = 0; i < uint32(m_irradianceAtlasTextures.Size()); i++)
     {
-        proxy->atlasIrradianceTextures[i] = m_irradianceAtlasTextures[i].Get();
-    }
+        if (proxy->atlasIrradianceTextures[i] != m_irradianceAtlasTextures[i].Get())
+        {
+            proxy->atlasIrradianceTextures[i] = m_irradianceAtlasTextures[i].Get();
 
-    proxy->atlasBentNormalTextures = {};
+            if (m_irradianceAtlasTextures[i].IsValid())
+            {
+                // needs full rebind to ensure the texture is uploaded on the render thread.
+                proxy->forceRebind = true;
+            }
+        }
+    }
 
     for (uint32 i = 0; i < uint32(m_bentNormalAtlasTextures.Size()); i++)
     {
-        proxy->atlasBentNormalTextures[i] = m_bentNormalAtlasTextures[i].Get();
+        if (proxy->atlasBentNormalTextures[i] != m_bentNormalAtlasTextures[i].Get())
+        {
+            proxy->atlasBentNormalTextures[i] = m_bentNormalAtlasTextures[i].Get();
+
+            if (m_bentNormalAtlasTextures[i].IsValid())
+            {
+                // needs full rebind to ensure the texture is uploaded on the render thread.
+                proxy->forceRebind = true;
+            }
+        }
     }
 
     proxy->numAtlases = uint32(m_atlases.Size());

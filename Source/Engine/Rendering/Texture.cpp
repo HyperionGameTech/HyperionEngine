@@ -500,8 +500,14 @@ void Texture::SetImageData(ConstByteView imageData)
 
 void Texture::OnLoaded()
 {
-    // TEMP: Debugging what happens if we put off creation.
-    return;
+    /// Instead of uploading here, upload when bound (render thread only)
+    /// See: ResourceBindings.cpp
+    static constexpr bool UseLazyUpload = true;
+
+    if constexpr (UseLazyUpload)
+    {
+        return;
+    }
 
     // Early-out check, so we don't bother enqueuing a task to Create() for nought.
     if (EngineGlobals::IsHeadless()

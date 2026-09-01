@@ -43,6 +43,7 @@ void ParticleVolume::UpdateRenderProxy(RenderProxyParticleVolume* proxy)
 
     if (proxy->particleTexture != texture)
     {
+        // force rebind of proxy, to ensure texture gets upload to gpu
         proxy->forceRebind = true;
 
         proxy->particleTexture = texture;
@@ -50,6 +51,7 @@ void ParticleVolume::UpdateRenderProxy(RenderProxyParticleVolume* proxy)
 
     if (proxy->particleMesh != mesh)
     {
+        // force rebind of proxy, to ensure texture gets upload to gpu
         proxy->forceRebind = true;
 
         proxy->particleMesh = mesh;
