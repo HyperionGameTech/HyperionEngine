@@ -684,4 +684,44 @@ static inline size_t CapArray(ContainerType& container, size_t maxBufferSize)
 
 #pragma endregion CapArray
 
+#pragma region PadToMultiple
+
+// clang-format off
+
+namespace detail {
+
+/// Apply exactly \tparam{NumBytes} bytes of padding after.
+template <class T, size_t NumBytes>
+struct PadToMultiple_Impl : T { ubyte padding[NumBytes]; };
+
+/// No padding applied.
+template <class T>
+struct PadToMultiple_Impl<T, 0> : T { };
+
+template <class T, typename = std::enable_if_t<std::is_scalar_v<T>>>
+struct PadToMultiple_ScalarWrapper { T value; };
+
+} // namespace detail
+
+/// Wrapper for T to pad it out to \tparam{Padding} bytes.
+/// If sizeof(T) is less than (or equal to) \tparam{Padding}, the remaining bytes will be used to pad the struct.
+/// If sizeof(T) is greater than \tparam{Padding}, the struct will be padded such that it becomes a size that is a multiple of \tparam{Padding}.
+template <class T, size_t Padding, class SFINAE = void>
+struct PadToMultiple;
+
+template <class T, size_t Padding>
+struct PadToMultiple<T, Padding, std::enable_if_t<std::is_class_v<T>>> : detail::PadToMultiple_Impl<
+    T,
+    (Padding > sizeof(T) ? Padding - sizeof(T) : sizeof(T) % Padding)> { };
+
+/// Specialization to allow PadToMultiple<scalar type>
+template <class T, size_t Padding>
+struct PadToMultiple<T, Padding, std::enable_if_t<std::is_scalar_v<T>>> : PadToMultiple<
+    detail::PadToMultiple_ScalarWrapper<T>,
+    Padding> { };
+
+// clang-format on
+
+#pragma endregion PadToMultiple
+
 } // namespace Hyperion

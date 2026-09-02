@@ -86,7 +86,12 @@ void CharacterControllerInputHandler::Update()
     m_movementInput = Vec2f(MathUtil::Clamp(strafe, -1.0f, 1.0f), MathUtil::Clamp(forward, -1.0f, 1.0f));
 
     const bool jumpKeyDown = IsKeyDown(KeyCode::KEY_SPACE);
-    m_isJumpRequested = jumpKeyDown && !m_wasJumpKeyDown;
+
+    if (jumpKeyDown && !m_wasJumpKeyDown)
+    {
+        m_isJumpRequested = true;
+    }
+
     m_wasJumpKeyDown = jumpKeyDown;
 }
 
@@ -617,6 +622,8 @@ static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent
     move.viewDirection[2] = viewDirection.z;
     move.jumpRequested = uint8(inputHandler->IsJumpPressed());
 
+    inputHandler->ConsumeJumpRequest();
+
     Vec3f resultTranslation = Vec3f::Zero();
 
     SceneHelpers::MoveCharacter(entity, component, move, resultTranslation);
@@ -730,6 +737,8 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
                 move.viewDirection[1] = viewDirection.y;
                 move.viewDirection[2] = viewDirection.z;
                 move.jumpRequested = uint8(inputHandler->IsJumpPressed());
+
+                inputHandler->ConsumeJumpRequest();
 
                 Vec3f resultTranslation;
                 SceneHelpers::MoveCharacter(entity, component, move, resultTranslation);

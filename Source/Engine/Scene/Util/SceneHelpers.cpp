@@ -140,7 +140,7 @@ void MoveCharacter(Entity* entity, CharacterControllerComponent& component, cons
 
     Vec3f walkDirection;
 
-    if (move.GetMovementInput().LengthSquared() > 0.0001f)
+    if (component.isOnGround && move.GetMovementInput().LengthSquared() > 0.0001f)
     {
         Vec3f forward = Vec3f { component.viewDirection.x, 0.0f, component.viewDirection.z }.Normalize();
         Vec3f right = Vec3f::UnitY().Cross(forward).Normalize();

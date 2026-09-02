@@ -62,6 +62,13 @@ public:
         return m_isJumpRequested;
     }
 
+    // Clears the latched jump request. Must be called once the request has been
+    // consumed into a move, otherwise it would be re-sent on the next tick.
+    HYP_FORCE_INLINE void ConsumeJumpRequest()
+    {
+        m_isJumpRequested = false;
+    }
+
     bool OnKeyDown(const KeyboardEvent& evt) override;
     bool OnKeyUp(const KeyboardEvent& evt) override;
     bool OnControllerAnalogMove(const ControllerAnalogData& data) override;

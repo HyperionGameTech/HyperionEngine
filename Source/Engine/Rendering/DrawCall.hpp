@@ -48,11 +48,8 @@ struct EntityInstanceBatch
     HYP_FIELD()
     uint32 numEntities = 0;
 
-    uint32 _pad0;
-    uint32 _pad1;
-
-    // pad 48 bytes so sizeof % 64 == 0
-    HYP_PAD_STRUCT_HERE(48);
+    // pad, indices start at offset 64
+    PadToMultiple<ubyte, 56> padding;
 
     HYP_FIELD()
     FixedArray<uint32, MaxEntitiesPerBatch> indices;
@@ -61,6 +58,7 @@ struct EntityInstanceBatch
     FixedArray<Mat4f, MaxEntitiesPerBatch> transforms;
 };
 
+static_assert(offsetof(EntityInstanceBatch, indices) == 64);
 static_assert(sizeof(EntityInstanceBatch) % 64 == 0);
 
 HYP_STRUCT(NoScriptBindings)

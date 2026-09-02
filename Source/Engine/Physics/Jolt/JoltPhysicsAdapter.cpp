@@ -484,16 +484,42 @@ void JoltPhysicsAdapter::Tick(PhysicsWorldBase* world, double delta)
 
         bodyInterface.GetPositionAndRotation(internalData->bodyID, position, rotation);
 
-        Transform rigidBodyTransform = rigidBody->GetTransform();
-        rigidBodyTransform.GetTranslation() = FromJPHVec(position);
-        rigidBodyTransform.GetRotation() = FromJPHQuat(rotation).Inverse();
-
-        rigidBody->SetTransform(rigidBodyTransform);
+        static constexpr float MaxRigidBodySpeed = 1000.0f;
 
         JPH::Vec3 linearVelocity;
         JPH::Vec3 angularVelocity;
 
         bodyInterface.GetLinearAndAngularVelocity(internalData->bodyID, linearVelocity, angularVelocity);
+
+        if (position.IsNaN() || rotation.IsNaN() || linearVelocity.IsNaN() || angularVelocity.IsNaN()
+            || linearVelocity.LengthSq() > MaxRigidBodySpeed * MaxRigidBodySpeed)
+        {
+            HYP_LOG(Physics, Error, "RigidBody '{}' diverged (pos: {}, {}, {}, linear velocity length: {}); resetting to its last known-good transform.",
+                rigidBody->shape ? rigidBody->shape->GetName() : Name::Invalid(),
+                position.GetX(), position.GetY(), position.GetZ(),
+                linearVelocity.IsNaN() ? -1.0f : linearVelocity.Length());
+
+            const Transform& lastGoodTransform = rigidBody->GetTransform();
+
+            bodyInterface.SetPositionAndRotation(
+                internalData->bodyID,
+                ToJPHVec(lastGoodTransform.GetTranslation()),
+                ToJPHQuat(lastGoodTransform.GetRotation().Inverse()),
+                JPH::EActivation::DontActivate);
+
+            bodyInterface.SetLinearAndAngularVelocity(internalData->bodyID, JPH::Vec3::sZero(), JPH::Vec3::sZero());
+
+            rigidBody->SetVelocity(Vec3f::Zero());
+            rigidBody->SetAngularVelocity(Vec3f::Zero());
+
+            continue;
+        }
+
+        Transform rigidBodyTransform = rigidBody->GetTransform();
+        rigidBodyTransform.GetTranslation() = FromJPHVec(position);
+        rigidBodyTransform.GetRotation() = FromJPHQuat(rotation).Inverse();
+
+        rigidBody->SetTransform(rigidBodyTransform);
 
         rigidBody->SetVelocity(FromJPHVec(linearVelocity));
         rigidBody->SetAngularVelocity(FromJPHVec(angularVelocity));
@@ -990,6 +1016,22 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
         if (newVelocity.GetY() < -internalData->fallSpeed)
         {
             newVelocity.SetY(-internalData->fallSpeed);
+        }
+
+        static constexpr float MaxCharacterSpeed = 100.0f;
+
+        if (newVelocity.IsNaN())
+        {
+            HYP_LOG(Physics, Error, "CharacterVirtual velocity went NaN this substep; resetting to zero.");
+
+            newVelocity = JPH::Vec3::sZero();
+        }
+        else if (newVelocity.LengthSq() > MaxCharacterSpeed * MaxCharacterSpeed)
+        {
+            HYP_LOG(Physics, Warning, "CharacterVirtual velocity ({}) exceeded the {} m/s safety clamp this substep; likely a runaway push feedback loop against a body it's standing on.",
+                newVelocity.Length(), MaxCharacterSpeed);
+
+            newVelocity = newVelocity.NormalizedOr(JPH::Vec3::sZero()) * MaxCharacterSpeed;
         }
 
         character->SetLinearVelocity(newVelocity);
