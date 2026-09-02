@@ -28,17 +28,26 @@ namespace Hyperion
         public Vec3f Translation;
 
         public float MoveSpeed;
+        public float SprintSpeed;
+        public float GroundAcceleration;
+        public float AirAcceleration;
+        public float Friction;
+        public float StopSpeed;
         public float StepHeight;
         public float MaxSlopeAngle;
         public float JumpSpeed;
+        public float JumpCutGravityMultiplier;
+        public float ApexGravityMultiplier;
+        public float FallGravityMultiplier;
         public float FallSpeed;
-        public float WileECoyote;
+        public float CoyoteTime;
         public float JumpBufferTime;
         public float ShadowMaxSpeed;
         public float ShadowTeleportDistance;
         public float PushMassLimit;
         public float MaxPushSpeed;
         public float PushSpeedScale;
+        public float PushPredictionReleaseDelay;
 
         [MarshalAs(UnmanagedType.I1)]
         public bool IsOnGround;

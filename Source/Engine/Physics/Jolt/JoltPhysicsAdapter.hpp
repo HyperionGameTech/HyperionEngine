@@ -51,7 +51,7 @@ public:
     void OnCharacterControllerAdded(const CharacterControllerConfig& config, SharedPtr<void>& outPhysicsHandle);
     void OnCharacterControllerRemoved(SharedPtr<void>& physicsHandle);
     void SetCharacterWalkDirection(const SharedPtr<void>& physicsHandle, const Vec3f& velocity);
-    void ApplyCharacterJump(const SharedPtr<void>& physicsHandle);
+    void ApplyCharacterJump(const SharedPtr<void>& physicsHandle, bool jumpRequested, bool jumpHeld);
     void StepCharacterController(const SharedPtr<void>& physicsHandle, float deltaTime);
     void SetCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation);
     void GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround);

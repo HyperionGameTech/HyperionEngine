@@ -93,6 +93,9 @@ void CharacterControllerInputHandler::Update()
     }
 
     m_wasJumpKeyDown = jumpKeyDown;
+    m_isJumpHeld = jumpKeyDown;
+
+    m_isSprintHeld = IsKeyDown(KeyCode::KEY_LSHIFT) || IsKeyDown(KeyCode::KEY_RSHIFT);
 }
 
 bool CharacterControllerInputHandler::OnKeyDown(const KeyboardEvent& evt)
@@ -270,6 +273,13 @@ void CharacterControllerSystem::OnEntityAdded(Entity* entity)
     config.maxSlopeAngle = component.maxSlopeAngle;
     config.jumpSpeed = component.jumpSpeed;
     config.fallSpeed = component.fallSpeed;
+    config.groundAcceleration = component.groundAcceleration;
+    config.airAcceleration = component.airAcceleration;
+    config.friction = component.friction;
+    config.stopSpeed = component.stopSpeed;
+    config.jumpCutGravityMultiplier = component.jumpCutGravityMultiplier;
+    config.apexGravityMultiplier = component.apexGravityMultiplier;
+    config.fallGravityMultiplier = component.fallGravityMultiplier;
     config.coyoteTime = component.coyoteTime;
     config.jumpBufferTime = component.jumpBufferTime;
     config.shadowMaxSpeed = component.shadowMaxSpeed;
@@ -580,6 +590,13 @@ static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent
         config.maxSlopeAngle = component.maxSlopeAngle;
         config.jumpSpeed = component.jumpSpeed;
         config.fallSpeed = component.fallSpeed;
+        config.groundAcceleration = component.groundAcceleration;
+        config.airAcceleration = component.airAcceleration;
+        config.friction = component.friction;
+        config.stopSpeed = component.stopSpeed;
+        config.jumpCutGravityMultiplier = component.jumpCutGravityMultiplier;
+        config.apexGravityMultiplier = component.apexGravityMultiplier;
+        config.fallGravityMultiplier = component.fallGravityMultiplier;
         config.coyoteTime = component.coyoteTime;
         config.jumpBufferTime = component.jumpBufferTime;
         config.shadowMaxSpeed = component.shadowMaxSpeed;
@@ -621,6 +638,8 @@ static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent
     move.viewDirection[1] = viewDirection.y;
     move.viewDirection[2] = viewDirection.z;
     move.jumpRequested = uint8(inputHandler->IsJumpPressed());
+    move.sprintHeld = uint8(inputHandler->IsSprintHeld());
+    move.jumpHeld = uint8(inputHandler->IsJumpHeld());
 
     inputHandler->ConsumeJumpRequest();
 
@@ -737,6 +756,8 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
                 move.viewDirection[1] = viewDirection.y;
                 move.viewDirection[2] = viewDirection.z;
                 move.jumpRequested = uint8(inputHandler->IsJumpPressed());
+                move.sprintHeld = uint8(inputHandler->IsSprintHeld());
+                move.jumpHeld = uint8(inputHandler->IsJumpHeld());
 
                 inputHandler->ConsumeJumpRequest();
 

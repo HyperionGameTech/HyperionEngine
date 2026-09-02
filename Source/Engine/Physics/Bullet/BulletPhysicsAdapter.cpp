@@ -916,7 +916,7 @@ void BulletPhysicsAdapter::SetCharacterWalkDirection(const SharedPtr<void>& phys
     internalData->walkVelocity = velocity;
 }
 
-void BulletPhysicsAdapter::ApplyCharacterJump(const SharedPtr<void>& physicsHandle)
+void BulletPhysicsAdapter::ApplyCharacterJump(const SharedPtr<void>& physicsHandle, bool jumpRequested, bool jumpHeld)
 {
     CharacterControllerInternalData* internalData = static_cast<CharacterControllerInternalData*>(physicsHandle.GetVoid());
 
@@ -925,7 +925,7 @@ void BulletPhysicsAdapter::ApplyCharacterJump(const SharedPtr<void>& physicsHand
         return;
     }
 
-    if (internalData->kcc->onGround())
+    if (jumpRequested && internalData->kcc->onGround())
     {
         internalData->kcc->jump(btVector3(0.0f, 1.0f, 0.0f));
     }

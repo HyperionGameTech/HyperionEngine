@@ -8,6 +8,8 @@
 
 #include <Scene/Util/SceneHelpers.hpp>
 
+#include <Core/Math/MathUtil.hpp>
+
 #include <Scene/World.hpp>
 #include <Scene/Scene.hpp>
 #include <Scene/EntityManager.hpp>
@@ -138,20 +140,28 @@ void MoveCharacter(Entity* entity, CharacterControllerComponent& component, cons
         component.viewDirection = viewDirection;
     }
 
-    Vec3f walkDirection;
+    Vec3f walkDirection = Vec3f::Zero();
 
-    if (component.isOnGround && move.GetMovementInput().LengthSquared() > 0.0001f)
+    if (movementInput.LengthSquared() > 0.0001f)
     {
         Vec3f forward = Vec3f { component.viewDirection.x, 0.0f, component.viewDirection.z }.Normalize();
         Vec3f right = Vec3f::UnitY().Cross(forward).Normalize();
 
-        walkDirection = (forward * movementInput.y + right * movementInput.x) * component.moveSpeed;
+        Vec3f wishDirection = forward * movementInput.y + right * movementInput.x;
+
+        if (wishDirection.LengthSquared() > 1.0f)
+        {
+            wishDirection.Normalize();
+        }
+
+        const float wishSpeed = bool(move.sprintHeld)
+            ? MathUtil::Max(component.sprintSpeed, 0.0f)
+            : MathUtil::Max(component.moveSpeed, 0.0f);
+
+        walkDirection = wishDirection * wishSpeed;
     }
 
-    if (bool(move.jumpRequested))
-    {
-        physicsWorld->ApplyCharacterJump(component.physicsHandle);
-    }
+    physicsWorld->ApplyCharacterJump(component.physicsHandle, bool(move.jumpRequested), bool(move.jumpHeld));
 
     physicsWorld->SetCharacterWalkDirection(component.physicsHandle, walkDirection);
 

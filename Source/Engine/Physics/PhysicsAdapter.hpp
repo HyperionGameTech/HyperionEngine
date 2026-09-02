@@ -27,8 +27,17 @@ struct CharacterControllerConfig
     Vec3f startTranslation;
     float stepHeight = 0.35f;
     float maxSlopeAngle = 45.0f;
-    float jumpSpeed = 7.0f;
+    float jumpSpeed = 4.9f;
     float fallSpeed = 55.0f;
+
+    float groundAcceleration = 12.0f;
+    float airAcceleration = 3.0f;
+    float friction = 8.0f;
+    float stopSpeed = 2.5f;
+
+    float jumpCutGravityMultiplier = 2.2f;
+    float apexGravityMultiplier = 0.85f;
+    float fallGravityMultiplier = 1.8f;
 
     // Self explanatory name (picture it)
     float coyoteTime = 0.15f;
@@ -139,9 +148,9 @@ public:
         GetDerivedAdapter()->DerivedAdapter::SetCharacterWalkDirection(physicsHandle, velocity);
     }
 
-    void ApplyCharacterJump(const SharedPtr<void>& physicsHandle)
+    void ApplyCharacterJump(const SharedPtr<void>& physicsHandle, bool jumpRequested, bool jumpHeld)
     {
-        GetDerivedAdapter()->DerivedAdapter::ApplyCharacterJump(physicsHandle);
+        GetDerivedAdapter()->DerivedAdapter::ApplyCharacterJump(physicsHandle, jumpRequested, jumpHeld);
     }
 
     void StepCharacterController(const SharedPtr<void>& physicsHandle, float deltaTime)

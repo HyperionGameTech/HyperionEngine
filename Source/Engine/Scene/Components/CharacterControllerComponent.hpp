@@ -44,8 +44,23 @@ struct CharacterControllerComponent
     HYP_FIELD(Transient)
     Vec3f translation;
 
-    HYP_FIELD(Property = "MoveSpeed", Serialize, Title = "Move Speed")
-    float moveSpeed = 0.05f;
+    HYP_FIELD(Property = "MoveSpeed", Serialize, Title = "Move Speed", Description = "Target ground speed in m/s")
+    float moveSpeed = 5.0f;
+
+    HYP_FIELD(Property = "SprintSpeed", Serialize, Title = "Sprint Speed", Description = "Target ground speed while sprinting (hold Shift)")
+    float sprintSpeed = 7.5f;
+
+    HYP_FIELD(Property = "GroundAcceleration", Serialize, Title = "Ground Acceleration", Description = "How quickly ground speed ramps toward the target (higher = snappier)")
+    float groundAcceleration = 12.0f;
+
+    HYP_FIELD(Property = "AirAcceleration", Serialize, Title = "Air Acceleration", Description = "How quickly the character can steer toward the target speed while airborne")
+    float airAcceleration = 3.0f;
+
+    HYP_FIELD(Property = "Friction", Serialize, Title = "Friction", Description = "Ground friction; how quickly the character slows down when input is released")
+    float friction = 8.0f;
+
+    HYP_FIELD(Property = "StopSpeed", Serialize, Title = "Stop Speed", Description = "Minimum speed friction acts against, keeps the final stop from feeling sluggish")
+    float stopSpeed = 2.5f;
 
     HYP_FIELD(Property = "StepHeight", Serialize, Title = "Step Height")
     float stepHeight = 0.35f;
@@ -54,9 +69,18 @@ struct CharacterControllerComponent
     float maxSlopeAngle = 45.0f;
 
     HYP_FIELD(Property = "JumpSpeed", Serialize, Title = "Jump Speed")
-    float jumpSpeed = 7.0f;
+    float jumpSpeed = 4.9f;
 
-    HYP_FIELD(Property = "FallSpeed", Serialize, Title = "Fall Speed")
+    HYP_FIELD(Property = "JumpCutGravityMultiplier", Serialize, Title = "Jump Cut Gravity Multiplier", Description = "Extra gravity while rising if the jump button was released early (variable jump height)")
+    float jumpCutGravityMultiplier = 2.2f;
+
+    HYP_FIELD(Property = "ApexGravityMultiplier", Serialize, Title = "Apex Gravity Multiplier", Description = "Gravity scale near the top of the jump; below 1 gives a little hang time")
+    float apexGravityMultiplier = 0.85f;
+
+    HYP_FIELD(Property = "FallGravityMultiplier", Serialize, Title = "Fall Gravity Multiplier", Description = "Gravity scale while falling; above 1 makes descents snappier than the rise")
+    float fallGravityMultiplier = 1.8f;
+
+    HYP_FIELD(Property = "FallSpeed", Serialize, Title = "Fall Speed", Description = "Terminal fall speed")
     float fallSpeed = 55.0f;
 
     HYP_FIELD(Property = "CoyoteTime", Serialize, Title = "Coyote Time", Description = "Time before falling off a ledge")

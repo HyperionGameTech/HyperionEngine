@@ -31,8 +31,10 @@ struct PlayerMove
     float movementInput[2];
     float viewDirection[3];
     uint8 jumpRequested;
+    uint8 sprintHeld;   // sprint button held this move
+    uint8 jumpHeld;     // jump button held this move
 
-    uint8 padBytes[3];
+    uint8 padBytes[1];
 
     PlayerMove() = default;
 

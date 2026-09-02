@@ -84,7 +84,7 @@ void NullPhysicsAdapter::SetCharacterWalkDirection(const SharedPtr<void>& physic
 {
 }
 
-void NullPhysicsAdapter::ApplyCharacterJump(const SharedPtr<void>& physicsHandle)
+void NullPhysicsAdapter::ApplyCharacterJump(const SharedPtr<void>& physicsHandle, bool jumpRequested, bool jumpHeld)
 {
 }
 
