@@ -53,67 +53,6 @@ EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 
 static const ANSIString s_defaultProjectName = "Project";
 
-static const Name s_defaultBakeLayerName = NAME("Default");
-
-#pragma region BakeLayers
-
-// @TODO: This will need to be enforced
-static constexpr uint32 MaxBakeLayers = 16;
-
-BakeLayers::BakeLayers()
-{
-    // Reserve memory to prevent reallocation of the underlying BakeLayer data
-    // Since we take raw pointers in the Baker to BakerLayer, we want to reduce the risk of them becoming dangling.
-    layers.Reserve(MaxBakeLayers);
-}
-
-bool BakeLayers::HasLayer(Name layerName) const
-{
-    return layers.FindIf(
-        [&layerName](const BakeLayer& layer)
-        {
-            return layer.name == layerName;
-        })
-        != layers.End();
-}
-
-BakeLayer* BakeLayers::TryGetLayer(Name layerName)
-{
-    auto it = layers.FindIf([&layerName](const BakeLayer& layer)
-    {
-        return layer.name == layerName;
-    });
-
-    if (it == layers.End())
-    {
-        return nullptr;
-    }
-
-    return it;
-}
-
-const BakeLayer* BakeLayers::TryGetLayer(Name layerName) const
-{
-    return const_cast<BakeLayers*>(this)->TryGetLayer(layerName);
-}
-
-BakeLayer& BakeLayers::GetOrCreateLayer(Name layerName)
-{
-    auto it = layers.FindIf([&layerName](const BakeLayer& layer)
-    {
-        return layer.name == layerName;
-    });
-
-    if (it == layers.End())
-    {
-        it = layers.Insert(layers.End(), BakeLayer(layerName));
-    }
-
-    return *it;
-}
-
-#pragma endregion BakeLayers
-
 #pragma region EditorProject
 
 static Name GetUniqueProjectName()
@@ -211,11 +150,8 @@ EditorProject::EditorProject(const Handle<Game>& gameInstance)
 EditorProject::EditorProject(Name name, const Handle<Game>& gameInstance)
     : m_name(name),
       m_lastSavedTime(~0ull),
-      m_gameInstance(gameInstance),
-      m_activeBakeLayer(s_defaultBakeLayerName)
+      m_gameInstance(gameInstance)
 {
-    (void)m_bakeLayers.GetOrCreateLayer(s_defaultBakeLayerName);
-
     m_actionStack = MakeHandle<EditorActionStack>(WeakHandleFromThis());
 }
 
@@ -486,57 +422,39 @@ bool EditorProject::IsDirty() const
 
 BakeLayer& EditorProject::GetActiveBakeLayer()
 {
-    TSharedLock lock(m_bakeLayersMutex);
+    const Handle<World>& world = GetWorld();
+    Assert(world.IsValid(), "No World set on the project!");
 
-    Name activeBakeLayer = m_activeBakeLayer;
+    Handle<Layer> layer = world->GetActiveLayer();
+    Assert(layer.IsValid());
 
-    if (!activeBakeLayer)
-    {
-        activeBakeLayer = s_defaultBakeLayerName;
-    }
+    return layer->bakeLayer;
+}
 
-    BakeLayer* bakeLayer = m_bakeLayers.TryGetLayer(activeBakeLayer);
+Array<Name> EditorProject::GetBakeLayerNames() const
+{
+    const Handle<World>& world = GetWorld();
+    Assert(world.IsValid(), "No World set on the project!");
 
-    if (bakeLayer)
-    {
-        return *bakeLayer;
-    }
-
-    lock.Reset();
-
-    TUniqueLock uniqueLock(m_bakeLayersMutex);
-    return m_bakeLayers.GetOrCreateLayer(m_activeBakeLayer);
+    return world->GetLayerNames();
 }
 
 Name EditorProject::GetActiveBakeLayerName() const
 {
-    TSharedLock lock(m_bakeLayersMutex);
+    const Handle<World>& world = GetWorld();
+    Assert(world.IsValid(), "No World set on the project!");
 
-    if (!m_activeBakeLayer)
-    {
-        return s_defaultBakeLayerName;
-    }
-
-    return m_activeBakeLayer;
+    return world->GetActiveLayerName();
 }
 
 void EditorProject::SetActiveBakeLayer(Name layerName)
 {
-    if (layerName == Name::Invalid())
-    {
-        layerName = s_defaultBakeLayerName;
-    }
+    const Handle<World>& world = GetWorld();
+    Assert(world.IsValid(), "No World set on the project!");
 
-    {
-        TUniqueLock lock(m_bakeLayersMutex);
+    world->SetActiveLayer(layerName);
 
-        m_activeBakeLayer = layerName;
-
-        // Trigger creation, to save time later
-        (void)m_bakeLayers.GetOrCreateLayer(m_activeBakeLayer);
-    }
-
-    OnActiveBakeLayerChanged(m_activeBakeLayer);
+    OnActiveBakeLayerChanged(world->GetActiveLayerName());
 }
 
 TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)

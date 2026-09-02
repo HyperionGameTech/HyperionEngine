@@ -17,7 +17,7 @@ namespace Hyperion
 
         public EntityManager? EntityManager => this.GetEntityManager(); // extension method
 
-        public World World => this.GetWorld(); // extension method
+        public World? World => this.GetWorld(); // extension method
 
         public bool ReceivesUpdate
         {

@@ -53,7 +53,8 @@ Entity::Entity(Name name)
     : Node(name),
       m_entityManager(nullptr),
       m_renderProxyVersion(0),
-      m_transformChanged(false)
+      m_transformChanged(false),
+      m_layerMask {}
 {
 }
 
@@ -76,6 +77,89 @@ Entity::~Entity()
     }
 
     m_entityManager = nullptr;
+}
+
+void Entity::AddToLayer(LayerId layerId)
+{
+    if (uint32(layerId) >= MaxLayersPerWorld)
+    {
+        return;
+    }
+
+    m_layerMask.Set(uint32(layerId), true);
+
+    SetNeedsRenderProxyUpdate();
+    MarkDirty();
+}
+
+void Entity::RemoveFromLayer(LayerId layerId)
+{
+    if (uint32(layerId) >= MaxLayersPerWorld)
+    {
+        return;
+    }
+
+    m_layerMask.Set(uint32(layerId), false);
+
+    SetNeedsRenderProxyUpdate();
+    MarkDirty();
+}
+
+bool Entity::IsInLayerByName(Name layerName) const
+{
+    World* world = GetWorld();
+
+    if (!world)
+    {
+        return false;
+    }
+
+    const Handle<Layer>& layer = world->TryGetLayer(layerName);
+
+    if (!layer)
+    {
+        return false;
+    }
+
+    return IsInLayer(layer->layerId);
+}
+
+void Entity::AddToLayerByName(Name layerName)
+{
+    World* world = GetWorld();
+
+    if (!world)
+    {
+        return;
+    }
+
+    const Handle<Layer>& layer = world->TryGetLayer(layerName);
+
+    if (!layer)
+    {
+        return;
+    }
+
+    AddToLayer(layer->layerId);
+}
+
+void Entity::RemoveFromLayerByName(Name layerName)
+{
+    World* world = GetWorld();
+
+    if (!world)
+    {
+        return;
+    }
+
+    const Handle<Layer>& layer = world->TryGetLayer(layerName);
+
+    if (!layer)
+    {
+        return;
+    }
+
+    RemoveFromLayer(layer->layerId);
 }
 
 Handle<Node> Entity::Clone() const
@@ -112,8 +196,10 @@ Handle<Node> Entity::Clone() const
 
         // Copy serializable entity tags (skip runtime-only tags like FocusedInEditor)
         Array<Name> serializedTags = SerializeTags();
-
         cloned->DeserializeTags(serializedTags);
+
+        Array<Name> serializedLayers = SerializeLayers();
+        cloned->DeserializeLayers(serializedLayers);
     }
 
     return cloned;
@@ -232,10 +318,50 @@ void Entity::OnAddedToWorld(World* world)
             EntityTag::UpdateVisibility,
             EntityTag::UpdateReplication>(this);
     }
+
+    if (m_entityInitInfo.layerNames.Any())
+    {
+        for (Name layerName : m_entityInitInfo.layerNames)
+        {
+            const Handle<Layer>& layer = world->TryGetLayer(layerName);
+
+            if (!layer)
+            {
+                HYP_LOG(Entity, Warning, "Entity {} references unknown Layer '{}'", GetName(), layerName);
+
+                continue;
+            }
+
+            AddToLayer(layer->layerId);
+        }
+
+        // we're done with these deferred layer names.
+        m_entityInitInfo.layerNames.Clear();
+    }
 }
 
 void Entity::OnRemovedFromWorld(World* world)
 {
+    // Clear our the names list
+    m_entityInitInfo.layerNames.SetCapacity(m_layerMask.CountOnes());
+    
+    // init layerNames as we otherwise won't be able to reach the layers we're attached to
+    for (uint64 bit : m_layerMask)
+    {
+        const Handle<Layer>& layer = world->TryGetLayerById(LayerId(bit));
+
+        if (!layer)
+        {
+            HYP_LOG(Entity, Warning, "Entity {} references invalid Layer bit '{}'", GetName(), bit);
+
+            continue;
+        }
+
+        m_entityInitInfo.layerNames.PushBack(layer->name);
+    }
+
+    // zero out the transient layer mask bits
+    m_layerMask = {};
 }
 
 void Entity::OnAddedToScene(Scene* scene)
@@ -785,6 +911,82 @@ void Entity::DeserializeTags(const Array<Name>& tags)
     }
 }
 
+Array<Name> Entity::SerializeLayers() const
+{
+    Array<Name> result;
+
+    if (HasNoLayers())
+    {
+        return result;
+    }
+
+    World* world = GetWorld();
+
+    if (!world)
+    {
+        return result;
+    }
+
+    for (uint32 layerId = 0; layerId < MaxLayersPerWorld; layerId++)
+    {
+        if (!m_layerMask.Test(layerId))
+        {
+            continue;
+        }
+
+        const Handle<Layer>& layer = world->TryGetLayerById(LayerId(layerId));
+
+        if (!layer)
+        {
+            continue;
+        }
+
+        result.PushBack(layer->name);
+    }
+
+    return result;
+}
+
+void Entity::DeserializeLayers(const Array<Name>& layerNames)
+{
+    World* world = GetWorld();
+
+    if (!world)
+    {
+        // Defer till we are attached to the world.
+        m_entityInitInfo.layerNames.Resize(layerNames.Size());
+        m_entityInitInfo.layerNames.Concat(layerNames);
+
+        return;
+    }
+
+    for (const Name layerName : layerNames)
+    {
+        const Handle<Layer>& layer = world->TryGetLayer(layerName);
+
+        if (!layer)
+        {
+            HYP_LOG(Serialization, Warning, "Entity {} references layer '{}' which does not exist on World '{}'",
+                GetName(),
+                layerName,
+                world->GetName());
+
+            continue;
+        }
+
+        const LayerId layerId = layer->layerId;
+        
+        if (uint32(layerId) >= MaxLayersPerWorld)
+        {
+            HYP_LOG(Serialization, Warning, "Layer '{}' has invalid LayerId {}", layerName, uint32(layerId));
+
+            continue;
+        }
+
+        m_layerMask.Set(uint32(layerId), true);
+    }
+}
+
 Array<BoxedValue, DynamicAllocator> Entity::SerializeComponents() const
 {
     EntityManager* entityManager = GetEntityManager();
@@ -796,7 +998,7 @@ Array<BoxedValue, DynamicAllocator> Entity::SerializeComponents() const
 
     Array<BoxedValue, DynamicAllocator> resultArray;
 
-    auto SerializeEntityAndComponents = [this, entityManager, &resultArray]()
+    auto serializeEntityAndComponents = [this, entityManager, &resultArray]()
     {
         Optional<const ComponentMap&> allComponentsOpt = entityManager->GetAllComponents(this);
 
@@ -854,16 +1056,14 @@ Array<BoxedValue, DynamicAllocator> Entity::SerializeComponents() const
 
     if (IsOnThread(entityManager->GetOwnerThreadId()))
     {
-        SerializeEntityAndComponents();
+        serializeEntityAndComponents();
     }
     else
     {
         HYP_NAMED_SCOPE("Awaiting async entity and component serialization");
 
-        Task<void> serializeEntityAndComponentsTask = GetThreadById(entityManager->GetOwnerThreadId())->GetScheduler().Enqueue(HYP_STATIC_MESSAGE("Serialize Entity and Components"), [&SerializeEntityAndComponents]()
-                                                                                                                               {
-                                                                                                                                   SerializeEntityAndComponents();
-                                                                                                                               });
+        Task<void> serializeEntityAndComponentsTask = GetThreadById(entityManager->GetOwnerThreadId())
+            ->GetScheduler().Enqueue(serializeEntityAndComponents);
 
         serializeEntityAndComponentsTask.Await();
     }

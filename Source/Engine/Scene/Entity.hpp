@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <Core/Constants.hpp>
+
 #include <Core/Reflection/Handle.hpp>
 
 #include <Core/Containers/Array.hpp>
@@ -14,6 +16,8 @@
 #include <Core/Memory/AnyRef.hpp>
 
 #include <Core/Math/Mat4f.hpp>
+
+#include <Core/Utilities/BitField.hpp>
 
 #include <Scene/Node.hpp>
 #include <Scene/EntityTag.hpp>
@@ -28,14 +32,18 @@ struct Transform;
 struct BoxedValue;
 struct RenderProxyMesh;
 
+enum class LayerId : uint32;
+
 struct EntityInitInfo
 {
-    uint8 receivesUpdate : 1 = false;
-    uint8 canEverUpdate : 1 = true;
-    uint8 bvhDepth : 3 = 3; // 0 means no BVH, 1 means 1 level deep, etc.
-
     // Initial tags to add to the Entity when it is created
-    Array<EntityTag> initialTags;
+    FatArray<EntityTag, InlineAllocator<4, SceneAllocator>> initialTags;
+    FatArray<Name, InlineAllocator<4, SceneAllocator>> layerNames;
+    
+    bool receivesUpdate = false;
+    bool canEverUpdate = true;
+
+    uint8 bvhDepth = 3; // 0 means no BVH, 1 means 1 level deep, etc.
 };
 
 HYP_CLASS()
@@ -88,6 +96,36 @@ public:
 
     template <EntityTag Tag, class EntityManagerPtr = EntityManager*>
     bool HasTag() const;
+
+    //-- Layers --
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE bool HasNoLayers() const
+    {
+        return m_layerMask.CountOnes() == 0;
+    }
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE bool IsInLayer(LayerId layerId) const
+    {
+        return uint32(layerId) < MaxLayersPerWorld
+            && m_layerMask.Test(uint32(layerId));
+    }
+
+    HYP_METHOD()
+    void AddToLayer(LayerId layerId);
+
+    HYP_METHOD()
+    void RemoveFromLayer(LayerId layerId);
+
+    HYP_METHOD()
+    bool IsInLayerByName(Name layerName) const;
+
+    HYP_METHOD()
+    void AddToLayerByName(Name layerName);
+
+    HYP_METHOD()
+    void RemoveFromLayerByName(Name layerName);
 
     //-- Tick --
 
@@ -174,7 +212,13 @@ private:
     HYP_METHOD(Property = "Components", NoScriptBindings, LoadOrder = 1000)
     void DeserializeComponents(const Array<BoxedValue, DynamicAllocator>& components);
 
-    //--
+    HYP_METHOD(Property = "Layers", NoScriptBindings)
+    Array<Name> SerializeLayers() const;
+
+    HYP_METHOD(Property = "Layers", NoScriptBindings, LoadOrder = 1002)
+    void DeserializeLayers(const Array<Name>& layerNames);
+
+    //-- Transient properties
 
     EntityManager* m_entityManager;
 
@@ -182,6 +226,11 @@ private:
 
     // has the transform been updated since the Node's transform has been unlocked?
     bool m_transformChanged : 1;
+
+    HYP_FIELD(Transient)
+    BitField<MaxLayersPerWorld> m_layerMask;
+
+    //--
 };
 
 #include <Scene/Entity.inl>

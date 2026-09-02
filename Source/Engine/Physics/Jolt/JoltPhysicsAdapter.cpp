@@ -83,6 +83,8 @@ static constexpr JPH::ObjectLayer NUM_LAYERS = 2;
 static constexpr JPH::BroadPhaseLayer JoltBroadPhaseNON_MOVING(0);
 static constexpr JPH::BroadPhaseLayer JoltBroadPhaseMOVING(1);
 
+static constexpr float CharacterApexVerticalSpeed = 1.0f;
+
 class JoltBroadPhaseLayerInterface final : public JPH::BroadPhaseLayerInterface
 {
 public:

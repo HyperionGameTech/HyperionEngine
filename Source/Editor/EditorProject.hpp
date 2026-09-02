@@ -34,24 +34,6 @@ class EditorSubsystem;
 
 using Baking::BakeLayer;
 
-HYP_STRUCT()
-struct BakeLayers
-{
-    HYP_STRUCT_BODY(BakeLayers);
-
-    HYP_FIELD(Property = "Layers", Serialize)
-    Array<BakeLayer, EditorAllocator> layers;
-
-    BakeLayers();
-    
-    bool HasLayer(Name layerName) const;
-
-    BakeLayer* TryGetLayer(Name layerName);
-    const BakeLayer* TryGetLayer(Name layerName) const;
-
-    BakeLayer& GetOrCreateLayer(Name layerName);
-};
-
 HYP_CLASS()
 class EDITOR_API EditorProject final : public ObjectBase
 {
@@ -154,26 +136,14 @@ public:
         return m_actionStack;
     }
 
-    HYP_FORCE_INLINE BakeLayers& GetBakeLayers()
-    {
-        return m_bakeLayers;
-    }
-
-    HYP_FORCE_INLINE const BakeLayers& GetBakeLayers() const
-    {
-        return m_bakeLayers;
-    }
+    /*! \brief The Layer/BakeLayer data now lives on World (so it works outside the editor too) - these
+     *  are thin forwarders kept so existing callers (editor commands, the toolbar UI) don't need to
+     *  change. \see{World::GetActiveLayer} */
+    BakeLayer& GetActiveBakeLayer();
 
     /// For editor interop
     HYP_METHOD()
-    Array<Name> GetBakeLayerNames() const
-    {
-        TSharedLock lock(m_bakeLayersMutex);
-
-        return MapToArray(m_bakeLayers.layers, &BakeLayer::name);
-    }
-
-    BakeLayer& GetActiveBakeLayer();
+    Array<Name> GetBakeLayerNames() const;
 
     HYP_METHOD()
     Name GetActiveBakeLayerName() const;
@@ -216,12 +186,6 @@ private:
     HYP_FIELD(Property = "GameInstance", Serialize)
     Handle<Game> m_gameInstance;
 
-    HYP_FIELD(Property = "BakeLayers", Serialize)
-    BakeLayers m_bakeLayers;
-
-    HYP_FIELD(Property = "ActiveBakeLayer", Serialize)
-    Name m_activeBakeLayer;
-
     HYP_FIELD(Transient)
     Handle<EditorActionStack> m_actionStack;
 
@@ -229,8 +193,6 @@ private:
     Handle<World> m_editWorld;
 
     WeakHandle<EditorSubsystem> m_editorSubsystem;
-
-    SharedMutex m_bakeLayersMutex;
 };
 
 } // namespace Hyperion

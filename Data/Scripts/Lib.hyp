@@ -588,9 +588,17 @@ extern struct CharacterControllerComponent
     ViewDirection : Vec3f
     Translation : Vec3f
     MoveSpeed : float
+    SprintSpeed : float
+    GroundAcceleration : float
+    AirAcceleration : float
+    Friction : float
+    StopSpeed : float
     StepHeight : float
     MaxSlopeAngle : float
     JumpSpeed : float
+    JumpCutGravityMultiplier : float
+    ApexGravityMultiplier : float
+    FallGravityMultiplier : float
     FallSpeed : float
     CoyoteTime : float
     JumpBufferTime : float
@@ -913,8 +921,16 @@ end
 extern class Entity : Node
     Clone() -> Node
     GetEntityManager() -> EntityManager
+    HasNoLayers() -> bool
+    IsInLayer(layerId : any) -> bool
+    AddToLayer(layerId : any) -> void
+    RemoveFromLayer(layerId : any) -> void
+    IsInLayerByName(layerName : Name) -> bool
+    AddToLayerByName(layerName : Name) -> void
+    RemoveFromLayerByName(layerName : Name) -> void
     ReceivesUpdate() -> bool
     SetReceivesUpdate(receivesUpdate : bool) -> void
+    LayerMask : any
 end
 extern class Camera : Entity
     GetCameraFlags() -> CameraFlags
@@ -1186,6 +1202,11 @@ extern enum LightFlags : uint32
     BakeStaticShadows = 0x20,
     OnlyDrawStaticShadowMaps = 0x40,
     Default = (ShadowCaster | CacheStaticShadowMaps)
+end
+extern class Layer
+    Name : Name
+    LayerId : any
+    BakeLayer : BakeLayer
 end
 extern struct TagComponentBase
     Value : EntityTag
@@ -2213,6 +2234,10 @@ extern class World : AssetObject
     RemoveSubsystem(subsystem : Subsystem) -> bool
     GetWorldGrid() -> WorldGrid
     GetGameState() -> GameState
+    GetLayerNames() -> Array<Name>
+    GetActiveLayerName() -> Name
+    SetActiveLayer(layerName : Name) -> void
+    OnActiveLayerChanged : any
     AddScene(scene : Scene, addToStreamingLayer : bool) -> void
     RemoveScene(scene : Scene, removeFromStreamingLayer : bool) -> bool
     HasScene(sceneId : any) -> bool
@@ -2233,6 +2258,8 @@ extern class World : AssetObject
     GameInstance : Game
     WorldFlags : WorldFlags
     Scenes : Array<Scene>
+    Layers : Array<Layer>
+    ActiveLayer : Name
     Systems : Array<SystemBase>
 end
 extern enum SceneFlags : uint32
@@ -2590,12 +2617,7 @@ extern class EditorProject
     Filepath : string
     TempDirectory : string
     GameInstance : Game
-    BakeLayers : BakeLayers
-    ActiveBakeLayer : Name
     ActionStack : EditorActionStack
-end
-extern struct BakeLayers
-    Layers : Array<BakeLayer>
 end
 extern class EditorCommandBase
     GetText() -> string

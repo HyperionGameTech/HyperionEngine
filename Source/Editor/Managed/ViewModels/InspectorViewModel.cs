@@ -86,6 +86,13 @@ namespace Hyperion.Editor.ViewModels
             private set => SetProperty(ref _entityTags, value);
         }
 
+        private EntityLayersViewModel? _entityLayers;
+        public EntityLayersViewModel? EntityLayers
+        {
+            get => _entityLayers;
+            private set => SetProperty(ref _entityLayers, value);
+        }
+
         private Node? _selectedNode;
         public Node? SelectedNode
         {
@@ -153,6 +160,7 @@ namespace Hyperion.Editor.ViewModels
             AttachedScript = null;
             HasAttachedScript = false;
             EntityTags = null;
+            EntityLayers = null;
 
             HasActions = false;
             HasComponents = false;
@@ -286,6 +294,7 @@ namespace Hyperion.Editor.ViewModels
                 AttachedScript = new AttachedScriptViewModel(entity);
                 HasAttachedScript = true;
                 EntityTags = new EntityTagsViewModel(entity);
+                EntityLayers = new EntityLayersViewModel(entity);
 
                 _ = EngineManager.PostToSimThread(() =>
                 {
@@ -382,6 +391,11 @@ namespace Hyperion.Editor.ViewModels
             if (EntityTags != null)
             {
                 _ = EntityTags.RefreshAsync();
+            }
+
+            if (EntityLayers != null)
+            {
+                _ = EntityLayers.RefreshAsync();
             }
         }
 

@@ -580,7 +580,8 @@ namespace Hyperion.Editor.ViewModels
 
                             project.SetActiveBakeLayer(new Name(layerName));
 
-                            Dispatcher.UIThread.Post(RefreshBakeLayers);
+                            // Already on the sim thread here.
+                            RefreshBakeLayers();
                         }
                         catch (Exception ex)
                         {
@@ -941,6 +942,13 @@ namespace Hyperion.Editor.ViewModels
                                 BakeLayers.Add(ActiveBakeLayerName);
                                 OnPropertyChanged(nameof(BakeLayers));
                             }
+
+                            // A new/renamed active layer changes what's assignable in the per-entity
+                            // "Layers" section of the Inspector too - refresh it if it's showing.
+                            if (Inspector.EntityLayers != null)
+                            {
+                                _ = Inspector.EntityLayers.RefreshAsync();
+                            }
                         });
                     });
             }
@@ -1046,33 +1054,45 @@ namespace Hyperion.Editor.ViewModels
 
                 OnPropertyChanged(nameof(Scenes));
 
-                RefreshBakeLayers();
+                _ = EngineManager.PostToSimThread(RefreshBakeLayers);
             });
         }
 
         private void RefreshBakeLayers()
         {
-            Dispatcher.UIThread.VerifyAccess();
-
             EditorProject? project = EngineManager.CurrentProject;
 
-            BakeLayers.Clear();
+            List<string>? layerNames = null;
+            string? activeLayerName = null;
 
             if (project != null)
             {
+                layerNames = new List<string>();
+
                 foreach (Name layerName in project.GetBakeLayerNames())
                 {
-                    BakeLayers.Add(layerName.ToString());
+                    layerNames.Add(layerName.ToString());
                 }
 
-                ActiveBakeLayerName = project.GetActiveBakeLayerName().ToString();
-            }
-            else
-            {
-                ActiveBakeLayerName = null;
+                activeLayerName = project.GetActiveBakeLayerName().ToString();
             }
 
-            OnPropertyChanged(nameof(BakeLayers));
+            Dispatcher.UIThread.Post(() =>
+            {
+                BakeLayers.Clear();
+
+                if (layerNames != null)
+                {
+                    foreach (string layerName in layerNames)
+                    {
+                        BakeLayers.Add(layerName);
+                    }
+                }
+
+                ActiveBakeLayerName = activeLayerName;
+
+                OnPropertyChanged(nameof(BakeLayers));
+            });
         }
 
         private void OnSceneHierarchyNodeSelected(Node? node)

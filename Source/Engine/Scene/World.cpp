@@ -42,6 +42,8 @@
 #include <Core/Threading/TaskSystem.hpp>
 #include <Core/Threading/DataRaceDetector.hpp>
 
+#include <Core/Utilities/BitField.hpp>
+
 #include <Core/Config/Config.hpp>
 
 #include <System/AppContext.hpp>
@@ -85,6 +87,7 @@ static EngineStatTimer s_statPhysicsUpdate("Physics/Update");
 
 static const Name s_nameStreamingLayerScenes = NAME("Scenes_Layer");
 static const Name s_nameUnnamedWorld = NAME("<unnamed world>");
+static const Name s_defaultLayerName = NAME("Default");
 
 World::World()
     : World(s_nameUnnamedWorld)
@@ -95,6 +98,7 @@ World::World(Name name, EnumFlags<WorldFlags> worldFlags)
     : AssetObject(name),
       m_gameInstance(nullptr),
       m_worldFlags(worldFlags),
+      m_activeLayer(s_defaultLayerName),
       m_rayTracingView(nullptr),
       m_rootSynchronousExecutionGroup(nullptr),
       m_isInitialized(false)
@@ -103,6 +107,9 @@ World::World(Name name, EnumFlags<WorldFlags> worldFlags)
     {
         Assert(m_worldFlags & WorldFlags::HasStreaming, "Streaming layers require streaming to be enabled!");
     }
+
+    const Handle<Layer>& defaultLayer = GetOrCreateLayer(s_defaultLayerName);
+    m_activeLayerIdCache.Set(defaultLayer ? defaultLayer->layerId : InvalidLayerId, MemoryOrder::RELEASE);
 }
 
 World::~World()
@@ -557,6 +564,168 @@ const GameState& World::GetGameState() const
     static GameState s_defaultGameState;
     return s_defaultGameState;
 }
+
+#pragma region Layers
+
+const Handle<Layer>& World::GetOrCreateLayer(Name layerName)
+{
+    auto it = m_layers.FindIf([&layerName](const Handle<Layer>& layer)
+    {
+        if (!layer)
+        {
+            return false;
+        }
+
+        return layer->name == layerName;
+    });
+
+    if (it != m_layers.End())
+    {
+        return *it;
+    }
+
+    BitField<MaxLayersPerWorld> usedIds {};
+
+    for (const Handle<Layer>& layer : m_layers)
+    {
+        Assert(layer);
+
+        if (!layer)
+        {
+            continue;
+        }
+
+        if (uint32(layer->layerId) < MaxLayersPerWorld)
+        {
+            usedIds.Set(uint32(layer->layerId), true);
+        }
+    }
+
+    uint32 freeId = MaxLayersPerWorld;
+
+    for (uint32 i = 0; i < MaxLayersPerWorld; i++)
+    {
+        if (!usedIds.Test(i))
+        {
+            freeId = i;
+
+            break;
+        }
+    }
+
+    if (freeId >= MaxLayersPerWorld)
+    {
+        HYP_LOG(Scene, Error, "Cannot create Layer '{}': maximum of {} Layers already exist on World {}", layerName, MaxLayersPerWorld, GetName());
+
+        return Handle<Layer>::Null();
+    }
+
+    return m_layers.PushBack(MakeHandle<Layer>(layerName, LayerId(freeId)));
+}
+
+Array<Name> World::GetLayerNames() const
+{
+    AssertOnThread(g_simThread);
+
+    return MapToArray(m_layers, [](const Handle<Layer>& layer)
+        {
+            if (!layer.IsValid())
+            {
+                return Name();
+            }
+
+            return layer->name;    
+        });
+}
+
+Name World::GetActiveLayerName() const
+{
+    AssertOnThread(g_simThread);
+
+    if (!m_activeLayer)
+    {
+        return s_defaultLayerName;
+    }
+
+    return m_activeLayer;
+}
+
+void World::SetActiveLayer(Name layerName)
+{
+    AssertOnThread(g_simThread);
+
+    if (layerName == Name::Invalid())
+    {
+        layerName = s_defaultLayerName;
+    }
+
+    m_activeLayer = layerName;
+
+    const Handle<Layer>& layer = GetOrCreateLayer(m_activeLayer);
+    m_activeLayerIdCache.Set(layer ? layer->layerId : InvalidLayerId, MemoryOrder::RELEASE);
+
+    OnActiveLayerChanged(m_activeLayer);
+}
+
+const Handle<Layer>& World::GetActiveLayer()
+{
+    AssertOnThread(g_simThread);
+
+    Name activeLayer = m_activeLayer;
+
+    if (!activeLayer)
+    {
+        activeLayer = s_defaultLayerName;
+    }
+
+    return GetOrCreateLayer(activeLayer);
+}
+
+const Handle<Layer>& World::TryGetLayer(Name layerName)
+{
+    AssertOnThread(g_simThread);
+
+    auto it = m_layers.FindIf([&layerName](const Handle<Layer>& layer)
+    {
+        if (!layer)
+        {
+            return false;
+        }
+
+        return layer->name == layerName;
+    });
+
+    if (it == m_layers.End())
+    {
+        return Handle<Layer>::Null();
+    }
+
+    return *it;
+}
+
+const Handle<Layer>& World::TryGetLayerById(LayerId layerId) const
+{
+    AssertOnThread(g_simThread);
+
+    auto it = m_layers.FindIf([layerId](const Handle<Layer>& layer)
+    {
+        if (!layer)
+        {
+            return false;
+        }
+
+        return layer->layerId == layerId;
+    });
+
+    if (it == m_layers.End())
+    {
+        return Handle<Layer>::Null();
+    }
+
+    return *it;
+}
+
+#pragma endregion Layers
 
 void World::ProcessViewAsync(View* view)
 {

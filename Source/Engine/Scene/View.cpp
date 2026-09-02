@@ -8,6 +8,7 @@
 
 #include <Scene/View.hpp>
 #include <Scene/Scene.hpp>
+#include <Scene/World.hpp>
 #include <Scene/Light.hpp>
 #include <Scene/EnvProbe.hpp>
 #include <Scene/EntityManager.hpp>
@@ -911,6 +912,9 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
         const VisibilityStateSnapshot visibilityStateSnapshot = scene->GetOctree().GetVisibilityState().GetSnapshot(Id());
 
+        World* world = scene->GetWorld();
+        const LayerId activeLayerId = world ? world->GetActiveLayerId() : InvalidLayerId;
+
         [[maybe_unused]] uint32 numCollectedEntities = 0;
         [[maybe_unused]] uint32 numSkippedEntities = 0;
 
@@ -921,6 +925,11 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             {
                 for (auto [entity, meshComponent, boundingBoxComponent] : scene->GetEntityManager()->GetEntitySet<MeshComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
+                    if (!entity->HasNoLayers() && !entity->IsInLayer(activeLayerId))
+                    {
+                        continue;
+                    }
+
                     if (desc.bounds.IsValid() && !desc.bounds.Overlaps(boundingBoxComponent.worldAabb))
                     {
                         continue;
@@ -965,6 +974,11 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             {
                 for (auto [entity, meshComponent, boundingBoxComponent, visibilityStateComponent] : scene->GetEntityManager()->GetEntitySet<MeshComponent, BoundingBoxComponent, VisibilityStateComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
+                    if (!entity->HasNoLayers() && !entity->IsInLayer(activeLayerId))
+                    {
+                        continue;
+                    }
+
                     if (desc.bounds.IsValid() && !desc.bounds.Overlaps(boundingBoxComponent.worldAabb))
                     {
                         continue;
@@ -1035,6 +1049,11 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             {
                 for (auto [entity, meshComponent, boundingBoxComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, BoundingBoxComponent, TagComponent<EntityTag::MobStatic>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
+                    if (!entity->HasNoLayers() && !entity->IsInLayer(activeLayerId))
+                    {
+                        continue;
+                    }
+
                     if (desc.bounds.IsValid() && !desc.bounds.Overlaps(boundingBoxComponent.worldAabb))
                     {
                         continue;
@@ -1079,6 +1098,11 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             {
                 for (auto [entity, meshComponent, boundingBoxComponent, visibilityStateComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, BoundingBoxComponent, VisibilityStateComponent, TagComponent<EntityTag::MobStatic>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
+                    if (!entity->HasNoLayers() && !entity->IsInLayer(activeLayerId))
+                    {
+                        continue;
+                    }
+
                     if (desc.bounds.IsValid() && !desc.bounds.Overlaps(boundingBoxComponent.worldAabb))
                     {
                         continue;
@@ -1149,6 +1173,11 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             {
                 for (auto [entity, meshComponent, boundingBoxComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, BoundingBoxComponent, TagComponent<EntityTag::MobDynamic>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
+                    if (!entity->HasNoLayers() && !entity->IsInLayer(activeLayerId))
+                    {
+                        continue;
+                    }
+
                     if (desc.bounds.IsValid() && !desc.bounds.Overlaps(boundingBoxComponent.worldAabb))
                     {
                         continue;
@@ -1193,6 +1222,11 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             {
                 for (auto [entity, meshComponent, boundingBoxComponent, visibilityStateComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, BoundingBoxComponent, VisibilityStateComponent, TagComponent<EntityTag::MobDynamic>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
+                    if (!entity->HasNoLayers() && !entity->IsInLayer(activeLayerId))
+                    {
+                        continue;
+                    }
+
                     if (desc.bounds.IsValid() && !desc.bounds.Overlaps(boundingBoxComponent.worldAabb))
                     {
                         continue;
@@ -1302,8 +1336,16 @@ void View::CollectLights(RenderProxyList& rpl)
 
     for (Scene* scene : m_scenes)
     {
+        World* world = scene->GetWorld();
+        const LayerId activeLayerId = world ? world->GetActiveLayerId() : InvalidLayerId;
+
         for (auto [light] : scene->GetEntityManager()->GetEntitySet<EntityType<Light>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
+            if (!light->HasNoLayers() && !light->IsInLayer(activeLayerId))
+            {
+                continue;
+            }
+
             bool isLightInFrustum = false;
             bool lightCastsShadows = light->GetLightFlags() & LightFlags::ShadowCaster;
 
@@ -1367,8 +1409,16 @@ void View::CollectLightmapVolumes(RenderProxyList& rpl)
 
     for (Scene* scene : m_scenes)
     {
+        World* world = scene->GetWorld();
+        const LayerId activeLayerId = world ? world->GetActiveLayerId() : InvalidLayerId;
+
         for (auto [lightmapVolume] : scene->GetEntityManager()->GetEntitySet<EntityType<LightmapVolume>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
+            if (!lightmapVolume->HasNoLayers() && !lightmapVolume->IsInLayer(activeLayerId))
+            {
+                continue;
+            }
+
             const BoundingBox worldBounds = lightmapVolume->GetWorldBounds();
 
             if (!worldBounds.IsValid() || !worldBounds.IsFinite())
@@ -1404,8 +1454,16 @@ void View::CollectParticleVolumes(RenderProxyList& rpl)
 
     for (Scene* scene : m_scenes)
     {
+        World* world = scene->GetWorld();
+        const LayerId activeLayerId = world ? world->GetActiveLayerId() : InvalidLayerId;
+
         for (auto [volume] : scene->GetEntityManager()->GetEntitySet<EntityType<ParticleVolume>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
+            if (!volume->HasNoLayers() && !volume->IsInLayer(activeLayerId))
+            {
+                continue;
+            }
+
             const BoundingBox worldBounds = volume->GetWorldBounds();
 
             if (!worldBounds.IsValid() || !worldBounds.IsFinite())
@@ -1453,8 +1511,16 @@ void View::CollectFogVolumes(RenderProxyList& rpl)
 
     for (Scene* scene : m_scenes)
     {
+        World* world = scene->GetWorld();
+        const LayerId activeLayerId = world ? world->GetActiveLayerId() : InvalidLayerId;
+
         for (auto [volume] : scene->GetEntityManager()->GetEntitySet<EntityType<FogVolume>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
+            if (!volume->HasNoLayers() && !volume->IsInLayer(activeLayerId))
+            {
+                continue;
+            }
+
             const BoundingBox worldBounds = volume->GetWorldBounds();
 
             if (!worldBounds.IsValid() || !worldBounds.IsFinite())
@@ -1492,8 +1558,16 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
 
     for (Scene* scene : m_scenes)
     {
+        World* world = scene->GetWorld();
+        const LayerId activeLayerId = world ? world->GetActiveLayerId() : InvalidLayerId;
+
         for (auto [probe] : scene->GetEntityManager()->GetEntitySet<EntityType<EnvProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
+            if (!probe->HasNoLayers() && !probe->IsInLayer(activeLayerId))
+            {
+                continue;
+            }
+
             if (desc.flags & ViewFlags::ENV_PROBE_VIEW)
             {
                 bool skipProbe = false;
@@ -1554,8 +1628,16 @@ void View::CollectSprites(RenderProxyList& rpl)
 
     for (Scene* scene : m_scenes)
     {
+        World* world = scene->GetWorld();
+        const LayerId activeLayerId = world ? world->GetActiveLayerId() : InvalidLayerId;
+
         for (auto [sprite] : scene->GetEntityManager()->GetEntitySet<EntityType<Sprite>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
+            if (!sprite->HasNoLayers() && !sprite->IsInLayer(activeLayerId))
+            {
+                continue;
+            }
+
             rpl.GetSprites().Track(sprite->Id(), sprite, GET_RESOURCE_VERSION(sprite));
 
             if (sprite->IsA<TextSprite>())

@@ -20,9 +20,13 @@
 
 #include <Core/Math/Color.hpp>
 
+#include <Core/Threading/AtomicVar.hpp>
+
 #include <Scripting/ScriptableDelegate.hpp>
 
 #include <Framework/EngineMemory.hpp>
+
+#include <Scene/Layer.hpp>
 
 namespace Hyperion {
 
@@ -167,6 +171,32 @@ public:
 
     HYP_METHOD()
     const GameState& GetGameState() const;
+
+    HYP_METHOD()
+    Array<Name> GetLayerNames() const;
+
+    HYP_METHOD()
+    Name GetActiveLayerName() const;
+
+    HYP_METHOD()
+    void SetActiveLayer(Name layerName);
+
+    const Handle<Layer>& GetActiveLayer();
+
+    const Handle<Layer>& TryGetLayer(Name layerName);
+    const Handle<Layer>& TryGetLayerById(LayerId layerId) const;
+    const Handle<Layer>& GetOrCreateLayer(Name layerName);
+
+    /*! \brief Lock-free snapshot of the active Layer's id - safe to read from any thread, including
+     *  the parallel View-collection tasks dispatched via TaskSystem, unlike GetActiveLayer()/etc.
+     *  above which assert the sim thread. Only updated from SetActiveLayer() (sim thread only). */
+    HYP_FORCE_INLINE LayerId GetActiveLayerId() const
+    {
+        return m_activeLayerIdCache.Get(MemoryOrder::ACQUIRE);
+    }
+
+    HYP_FIELD()
+    ScriptableDelegate<void, Name> OnActiveLayerChanged;
 
     HYP_METHOD()
     void AddScene(const Handle<Scene>& scene, bool addToStreamingLayer = true);
@@ -343,6 +373,14 @@ private:
 
     HYP_FIELD(Property = "Scenes", Transient)
     Array<Handle<Scene>> m_scenes;
+
+    HYP_FIELD(Property = "Layers", Serialize)
+    Array<Handle<Layer>> m_layers;
+
+    HYP_FIELD(Property = "ActiveLayer", Serialize)
+    Name m_activeLayer;
+
+    AtomicVar<LayerId> m_activeLayerIdCache { InvalidLayerId };
 
     // systems must load after flags are set
     HYP_FIELD(Property = "Systems", LoadOrder = 200)
