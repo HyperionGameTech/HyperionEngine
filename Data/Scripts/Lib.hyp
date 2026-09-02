@@ -1043,7 +1043,7 @@ extern class FogVolume : VolumeBase
     VolumeTexture : Texture
     NoiseTexture : Texture
 end
-extern enum EnvProbeDimensions : uint32
+extern enum EnvProbeDimensions : uint16
     Dim64 = 64,
     Dim128 = 128,
     Dim256 = 256
@@ -2580,9 +2580,11 @@ extern class EditorProject
     IsDirty() -> bool
     GetActionStack() -> EditorActionStack
     GetBakeLayerNames() -> Array<Name>
+    GetActiveBakeLayerName() -> Name
     SetActiveBakeLayer(layerName : Name) -> void
     Close(shutdownWorld : bool) -> void
     OnProjectSaved : any
+    OnActiveBakeLayerChanged : any
     Name : Name
     LastSavedTime : any
     Filepath : string

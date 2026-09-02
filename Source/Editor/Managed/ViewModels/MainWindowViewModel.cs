@@ -315,6 +315,7 @@ namespace Hyperion.Editor.ViewModels
         private DelegateHandler? _activeSceneChangedHandler;
         private DelegateHandler? _actionStackStateChangedHandler;
         private DelegateHandler? _meshEditStateChangedHandler;
+        private DelegateHandler? _activeBakeLayerChangedHandler;
 
         private int _isUpdatingSelectionFromEngine = 0; // atomic
         private int _isUpdatingFocusedNodeFromEngine = 0; // atomic
@@ -350,6 +351,18 @@ namespace Hyperion.Editor.ViewModels
 
         public ICommand SetActiveSceneCommand { get; private set; }
         public ICommand AddNewSceneCommand { get; private set; }
+
+        public ObservableCollection<string> BakeLayers { get; } = new();
+
+        private string? _activeBakeLayerName;
+        public string? ActiveBakeLayerName
+        {
+            get => _activeBakeLayerName;
+            set => SetProperty(ref _activeBakeLayerName, value);
+        }
+
+        public ICommand SetActiveBakeLayerCommand { get; private set; }
+        public ICommand AddNewBakeLayerCommand { get; private set; }
 
         public MainWindowViewModel()
         {
@@ -522,6 +535,63 @@ namespace Hyperion.Editor.ViewModels
                 PanelService.Instance.OpenPanel(panel);
             });
 
+            SetActiveBakeLayerCommand = new RelayCommand<string>(layerName =>
+            {
+                if (string.IsNullOrEmpty(layerName))
+                    return;
+
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    try
+                    {
+                        EditorProject? project = EngineManager.CurrentProject;
+                        if (project == null)
+                        {
+                            throw new Exception("Current project is null");
+                        }
+
+                        project.SetActiveBakeLayer(new Name(layerName));
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Log(LogLevel.Warning, $"Failed to set active bake layer: {ex.Message}");
+                    }
+                });
+            });
+
+            AddNewBakeLayerCommand = new RelayCommand(() =>
+            {
+                var panel = new AddNewBakeLayerPanelViewModel(result =>
+                {
+                    if (string.IsNullOrEmpty(result))
+                        return;
+
+                    string layerName = result;
+
+                    _ = EngineManager.PostToSimThread(() =>
+                    {
+                        try
+                        {
+                            EditorProject? project = EngineManager.CurrentProject;
+                            if (project == null)
+                            {
+                                throw new Exception("Current project is null");
+                            }
+
+                            project.SetActiveBakeLayer(new Name(layerName));
+
+                            Dispatcher.UIThread.Post(RefreshBakeLayers);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Log(LogLevel.Warning, $"Failed to add new bake layer: {ex.Message}");
+                        }
+                    });
+                });
+
+                PanelService.Instance.OpenPanel(panel);
+            });
+
             AddNormalizedCubeSphereCommand = new RelayCommand(() =>
             {
                 var panel = new AddNormalizedCubeSpherePanelViewModel(_editorSubsystem, confirmed => { });
@@ -635,6 +705,7 @@ namespace Hyperion.Editor.ViewModels
             _selectedGizmoChangedHandler?.Remove();
             _activeSceneChangedHandler?.Remove();
             _actionStackStateChangedHandler?.Remove();
+            _activeBakeLayerChangedHandler?.Remove();
 
             if (isDisposing)
             {
@@ -853,6 +924,27 @@ namespace Hyperion.Editor.ViewModels
                     });
             }
 
+            _activeBakeLayerChangedHandler?.Remove();
+            _activeBakeLayerChangedHandler = null;
+
+            if (project != null)
+            {
+                _activeBakeLayerChangedHandler = project.GetOnActiveBakeLayerChangedDelegate()
+                    .Bind((Name layerName) =>
+                    {
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            ActiveBakeLayerName = layerName.ToString();
+
+                            if (!BakeLayers.Contains(ActiveBakeLayerName))
+                            {
+                                BakeLayers.Add(ActiveBakeLayerName);
+                                OnPropertyChanged(nameof(BakeLayers));
+                            }
+                        });
+                    });
+            }
+
             UpdateUndoRedoHeaders(project);
             UpdatePasteHeader();
 
@@ -953,7 +1045,34 @@ namespace Hyperion.Editor.ViewModels
                 }
 
                 OnPropertyChanged(nameof(Scenes));
+
+                RefreshBakeLayers();
             });
+        }
+
+        private void RefreshBakeLayers()
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            EditorProject? project = EngineManager.CurrentProject;
+
+            BakeLayers.Clear();
+
+            if (project != null)
+            {
+                foreach (Name layerName in project.GetBakeLayerNames())
+                {
+                    BakeLayers.Add(layerName.ToString());
+                }
+
+                ActiveBakeLayerName = project.GetActiveBakeLayerName().ToString();
+            }
+            else
+            {
+                ActiveBakeLayerName = null;
+            }
+
+            OnPropertyChanged(nameof(BakeLayers));
         }
 
         private void OnSceneHierarchyNodeSelected(Node? node)

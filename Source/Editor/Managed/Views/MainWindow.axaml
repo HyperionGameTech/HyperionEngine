@@ -230,6 +230,41 @@
                         <Button Command="{Binding Paste}" ToolTip.Tip="{Binding PasteHeader}" IsEnabled="{Binding CanPaste}">
                             <LucideIcon Kind="ClipboardPaste" Size="16" />
                         </Button>
+
+                        <DropDownButton
+                            x:Name="BakeLayerDropDown"
+                            Margin="12,0,0,0"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            ToolTip.Tip="Active Bake Layer">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <LucideIcon Kind="Layers" Size="16" />
+                                <TextBlock
+                                    VerticalAlignment="Center"
+                                    Text="{Binding ActiveBakeLayerName, FallbackValue='Default'}" />
+                            </StackPanel>
+                            <DropDownButton.Flyout>
+                                <Flyout Placement="Bottom">
+                                    <StackPanel MinWidth="150">
+                                        <ItemsControl ItemsSource="{Binding BakeLayers}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="x:String">
+                                                    <MenuItem
+                                                        Command="{Binding DataContext.SetActiveBakeLayerCommand, ElementName=Root}"
+                                                        CommandParameter="{Binding}"
+                                                        Header="{Binding}" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+
+                                        <Separator />
+                                        <MenuItem
+                                            Command="{Binding DataContext.AddNewBakeLayerCommand, ElementName=Root}"
+                                            Header="New Bake Layer..." />
+                                    </StackPanel>
+                                </Flyout>
+                            </DropDownButton.Flyout>
+                        </DropDownButton>
                     </StackPanel>
 
                     <StackPanel

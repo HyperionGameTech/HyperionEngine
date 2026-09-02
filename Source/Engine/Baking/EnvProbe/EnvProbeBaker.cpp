@@ -45,7 +45,7 @@ void ComputeEnvProbeSphericalHarmonics(
 namespace Baking {
 
 Baker<EnvProbe>::Baker(BakerConfig&& config, BakeLayer& bakeLayer, const Handle<EnvProbe>& envProbe)
-    : BakerBase(std::move(config), BakeLayer, envProbe, MakeStrongRef(envProbe->GetScene()), BoundingBox::Empty()),
+    : BakerBase(std::move(config), bakeLayer, envProbe, MakeStrongRef(envProbe->GetScene()), BoundingBox::Empty()),
       m_envProbe(envProbe)
 {
 }

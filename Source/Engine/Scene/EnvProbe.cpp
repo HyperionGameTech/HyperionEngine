@@ -1166,7 +1166,7 @@ void ReflectionProbe::BakeCubemap()
         bakerSubsystem = world->AddSubsystem<BakerSubsystem>();
     }
 
-    bakerSubsystem->EnqueueBake(BakeLayer, StaticCast<EnvProbe>(MakeStrongRef(this)));
+    bakerSubsystem->EnqueueBake(bakeLayer, StaticCast<EnvProbe>(MakeStrongRef(this)));
 }
 
 #endif
@@ -1247,7 +1247,7 @@ void IrradianceProbe::RecomputeIrradiance()
         bakerSubsystem = world->AddSubsystem<BakerSubsystem>();
     }
 
-    bakerSubsystem->EnqueueBake(BakeLayer, StaticCast<EnvProbe>(MakeStrongRef(this)));
+    bakerSubsystem->EnqueueBake(bakeLayer, StaticCast<EnvProbe>(MakeStrongRef(this)));
 }
 
 #endif // HYP_EDITOR

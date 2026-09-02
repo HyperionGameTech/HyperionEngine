@@ -176,8 +176,11 @@ public:
     BakeLayer& GetActiveBakeLayer();
 
     HYP_METHOD()
+    Name GetActiveBakeLayerName() const;
+
+    HYP_METHOD()
     void SetActiveBakeLayer(Name layerName);
-    
+
     static TResult<Handle<EditorProject>> Load(const FilePath& filepath);
     static Handle<EditorProject> CreateNew();
 
@@ -186,6 +189,9 @@ public:
 
     HYP_FIELD()
     ScriptableDelegate<void, const Handle<EditorProject>&> OnProjectSaved;
+
+    HYP_FIELD()
+    ScriptableDelegate<void, Name> OnActiveBakeLayerChanged;
 
 private:
     HYP_FORCE_INLINE void SetEditorSubsystem(const WeakHandle<EditorSubsystem>& editorSubsystem)

@@ -57,7 +57,15 @@ static const Name s_defaultBakeLayerName = NAME("Default");
 
 #pragma region BakeLayers
 
-BakeLayers::BakeLayers() = default;
+// @TODO: This will need to be enforced
+static constexpr uint32 MaxBakeLayers = 16;
+
+BakeLayers::BakeLayers()
+{
+    // Reserve memory to prevent reallocation of the underlying BakeLayer data
+    // Since we take raw pointers in the Baker to BakerLayer, we want to reduce the risk of them becoming dangling.
+    layers.Reserve(MaxBakeLayers);
+}
 
 bool BakeLayers::HasLayer(Name layerName) const
 {
@@ -206,6 +214,8 @@ EditorProject::EditorProject(Name name, const Handle<Game>& gameInstance)
       m_gameInstance(gameInstance),
       m_activeBakeLayer(s_defaultBakeLayerName)
 {
+    (void)m_bakeLayers.GetOrCreateLayer(s_defaultBakeLayerName);
+
     m_actionStack = MakeHandle<EditorActionStack>(WeakHandleFromThis());
 }
 
@@ -380,18 +390,12 @@ Result EditorProject::SaveAs(FilePath filepath)
 
     if (rootPathChanged)
     {
-        // Blob data that has been unpaged only exists on disk at the current root (eg. the temporary
-        // directory of an unsaved project). Page it back in while the root path still points there,
-        // so that it is re-written to the new project directory on save.
+        // load all into memory before we re-assign paths
         registry.MakeAllAssetsResident();
+
+        registry.SetRootPath(dir);
+        registry.MarkAllDirty();
     }
-
-    registry.SetRootPath(dir);
-
-    // Content may already have been written while the project was unsaved (eg. imported assets persisted into the
-    // temporary directory, which unmarked them as dirty). Re-mark everything dirty so all of it is written
-    // to the final project directory.
-    registry.MarkAllDirty();
 
     EditorTaskScope taskScope(
         TickableEditorTask::StaticClass(),
@@ -504,6 +508,18 @@ BakeLayer& EditorProject::GetActiveBakeLayer()
     return m_bakeLayers.GetOrCreateLayer(m_activeBakeLayer);
 }
 
+Name EditorProject::GetActiveBakeLayerName() const
+{
+    TSharedLock lock(m_bakeLayersMutex);
+
+    if (!m_activeBakeLayer)
+    {
+        return s_defaultBakeLayerName;
+    }
+
+    return m_activeBakeLayer;
+}
+
 void EditorProject::SetActiveBakeLayer(Name layerName)
 {
     if (layerName == Name::Invalid())
@@ -511,12 +527,16 @@ void EditorProject::SetActiveBakeLayer(Name layerName)
         layerName = s_defaultBakeLayerName;
     }
 
-    TUniqueLock lock(m_bakeLayersMutex);
+    {
+        TUniqueLock lock(m_bakeLayersMutex);
 
-    m_activeBakeLayer = layerName;
+        m_activeBakeLayer = layerName;
 
-    // Trigger creation, to save time later
-    (void)m_bakeLayers.GetOrCreateLayer(m_activeBakeLayer);
+        // Trigger creation, to save time later
+        (void)m_bakeLayers.GetOrCreateLayer(m_activeBakeLayer);
+    }
+
+    OnActiveBakeLayerChanged(m_activeBakeLayer);
 }
 
 TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)

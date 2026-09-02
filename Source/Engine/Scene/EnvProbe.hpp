@@ -68,7 +68,7 @@ enum EnvProbeType : uint32
 };
 
 HYP_ENUM()
-enum class EnvProbeDimensions : uint32
+enum class EnvProbeDimensions : uint16
 {
     Dim64 = 64,     //!< @title="64x64"
     Dim128 = 128,   //!< @title="128x128"

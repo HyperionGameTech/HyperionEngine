@@ -21,6 +21,14 @@ namespace Hyperion
         Ambient = 3
     }
 
+    [ClassBinding(Name = "EnvProbeDimensions")]
+    public enum EnvProbeDimensions : ushort
+    {
+        Dim64 = 64,
+        Dim128 = 128,
+        Dim256 = 256
+    }
+
     [ClassBinding(Name = "EnvProbe")]
     public class EnvProbe : VolumeBase
     {

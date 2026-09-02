@@ -47,19 +47,19 @@ using Cat = BakeLayerCategory;
 
 static void UpdateEpoch(const LightmapVolume& lmv, BakeLayer& bakeLayer)
 {
-    uint64 epoch = BakeEpoch::ComputeEpoch(lmv, BakeLayer);
+    uint64 epoch = BakeEpoch::ComputeEpoch(lmv, bakeLayer);
 
-    BakeLayer.SetAssetEpoch<Cat::LightReceiver>(lmv, epoch);
-    BakeLayer.SetAssetEpoch<Cat::Lightmap>(lmv, epoch);
+    bakeLayer.SetAssetEpoch<Cat::LightReceiver>(lmv, epoch);
+    bakeLayer.SetAssetEpoch<Cat::Lightmap>(lmv, epoch);
 
-    BakeLayer.BumpEpochRev(Cat::Lightmap);
+    bakeLayer.BumpEpochRev(Cat::Lightmap);
 }
 
 static void UpdateEpoch(const EnvProbe& envProbe, BakeLayer& bakeLayer)
 {
-    uint64 epoch = BakeEpoch::ComputeEpoch(envProbe, BakeLayer);
+    uint64 epoch = BakeEpoch::ComputeEpoch(envProbe, bakeLayer);
 
-    BakeLayer.SetAssetEpoch<Cat::LightReceiver>(envProbe, epoch);
+    bakeLayer.SetAssetEpoch<Cat::LightReceiver>(envProbe, epoch);
 }
 
 #pragma region BakerSubsystem
@@ -102,7 +102,7 @@ void BakerSubsystem::Update(float delta)
         Assert(bs.obj && bs.bakeLayer && bs.baker);
 
         ObjectBase* source = bs.obj;
-        BakeLayer& bakeLayer = *bs.BakeLayer;
+        BakeLayer& bakeLayer = *bs.bakeLayer;
         BakerBase* baker = bs.baker;
 
         baker->Update(delta);
@@ -118,7 +118,7 @@ void BakerSubsystem::Update(float delta)
 
             if (succeeded)
             {
-                OnBakeCompleted(BakeLayer, source);
+                OnBakeCompleted(bakeLayer, source);
             }
 
             // Remove this guy
@@ -155,14 +155,14 @@ void BakerSubsystem::OnBakeCompleted(Baking::BakeLayer& bakeLayer, ObjectBase* s
     
     if (LightmapVolume* lmv = DynamicCast<LightmapVolume>(source))
     {
-        UpdateEpoch(*lmv, BakeLayer);
+        UpdateEpoch(*lmv, bakeLayer);
 
         return;
     }
 
     if (EnvProbe* envProbe = DynamicCast<EnvProbe>(source))
     {
-        UpdateEpoch(*envProbe, BakeLayer);
+        UpdateEpoch(*envProbe, bakeLayer);
 
         return;
     }
@@ -173,7 +173,7 @@ void BakerSubsystem::OnBakeCompleted(Baking::BakeLayer& bakeLayer, ObjectBase* s
 #define DEF_ENQUEUE_BAKE_SPECIALIZATION(T) \
     template <> Task<void> BakerSubsystem::EnqueueBake(Baking::BakeLayer& bakeLayer, const Handle<T>& source, uint32 shadingTypesMaskOverride) \
     {   \
-        return EnqueueBake_Internal(BakeLayer, source, shadingTypesMaskOverride);  \
+        return EnqueueBake_Internal(bakeLayer, source, shadingTypesMaskOverride);  \
     }
 
 DEF_ENQUEUE_BAKE_SPECIALIZATION(LightmapVolume);
@@ -215,7 +215,7 @@ Task<void> BakerSubsystem::EnqueueBake_Internal(
 
     Handle<BakerBase> baker = MakeHandle<Baker<T>>(
         BakerConfig::FromConfig(), // <---- TODO: Not just the global...... should be per-type! Like BakerConfig<Light> ?
-        BakeLayer,
+        bakeLayer,
         source,
         std::forward<Args>(args)...);
 
@@ -236,7 +236,7 @@ Task<void> BakerSubsystem::EnqueueBake_Internal(
     
     GetWorld()->ProcessViewAsync(baker->GetView());
 
-    m_bakes.PushBack(ObjectBakeState { source, &BakeLayer, std::move(baker) });
+    m_bakes.PushBack(ObjectBakeState { source, &bakeLayer, std::move(baker) });
 
     return task;
 }

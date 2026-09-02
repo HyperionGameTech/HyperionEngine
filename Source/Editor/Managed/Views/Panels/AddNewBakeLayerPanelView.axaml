@@ -1,0 +1,42 @@
+<UserControl
+    x:Class="Hyperion.Editor.Views.Panels.AddNewBakeLayerPanelView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+    x:DataType="vm:AddNewBakeLayerPanelViewModel"
+    mc:Ignorable="d">
+    <DockPanel>
+        <Border
+            DockPanel.Dock="Bottom"
+            Background="{DynamicResource Brush.PanelAlt}"
+            BorderBrush="{DynamicResource Brush.Border}"
+            BorderThickness="0,1,0,0"
+            Padding="12,10">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button
+                    Padding="20,6"
+                    Classes="Primary"
+                    Command="{Binding ConfirmCommand}"
+                    Content="Create" />
+
+                <Button
+                    Padding="20,6"
+                    Command="{Binding CancelCommand}"
+                    Content="Cancel" />
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Padding="4,0" Offset="{Binding ScrollOffset, Mode=TwoWay}">
+            <StackPanel Margin="12,12,12,8" Spacing="12">
+                <StackPanel Spacing="6">
+                    <TextBlock Classes="section-label" Text="Layer Name" />
+                    <TextBox
+                        Text="{Binding LayerName, Mode=TwoWay}"
+                        Watermark="Enter bake layer name..." />
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

@@ -22,18 +22,18 @@ EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 #pragma region GenerateLightmapsEditorTask
 
 GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(Baking::BakeLayer& bakeLayer, const Handle<LightmapVolume>& volume)
-    : GenerateLightmapsEditorTask(BakeLayer, Array<Handle<ObjectBase>> { { StaticCast<ObjectBase>(volume) } })
+    : GenerateLightmapsEditorTask(bakeLayer, Array<Handle<ObjectBase>> { { StaticCast<ObjectBase>(volume) } })
 {
 }
 
 GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(Baking::BakeLayer& bakeLayer, const Handle<EnvProbe>& probe)
-    : GenerateLightmapsEditorTask(BakeLayer, Array<Handle<ObjectBase>> { { StaticCast<ObjectBase>(probe) } })
+    : GenerateLightmapsEditorTask(bakeLayer, Array<Handle<ObjectBase>> { { StaticCast<ObjectBase>(probe) } })
 {
 }
 
 GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(Baking::BakeLayer& bakeLayer, const Array<Handle<ObjectBase>>& sources)
     : TickableEditorTask(),
-      m_bakeLayer(&BakeLayer),
+      m_bakeLayer(&bakeLayer),
       m_sources(sources)
 {
     m_title = "Bake Task";
@@ -203,7 +203,7 @@ void GenerateLightmapsEditorTask::Tick()
 
 GenerateBentNormalsEditorTask::GenerateBentNormalsEditorTask(Baking::BakeLayer& bakeLayer, const Array<Handle<LightmapVolume>>& volumes)
     : TickableEditorTask(),
-      m_bakeLayer(&BakeLayer),
+      m_bakeLayer(&bakeLayer),
       m_volumes(volumes)
 {
     m_title = "Generating bent normals";

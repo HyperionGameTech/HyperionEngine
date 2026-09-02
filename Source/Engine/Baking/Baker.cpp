@@ -120,7 +120,7 @@ BakerBase::BakerBase(
     const Handle<Scene>& scene,
     const BoundingBox& aabb)
     : m_config(std::move(config)),
-      m_bakeLayer(&BakeLayer),
+      m_bakeLayer(&bakeLayer),
       m_source(source),
       m_scene(scene),
       m_aabb(aabb),

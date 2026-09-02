@@ -5611,7 +5611,7 @@ void EditorSubsystem::UpdateBakeStatus()
 
             uint64 storedEpoch;
 
-            if (!BakeLayer.TryGetAssetEpoch<Baking::BakeLayerCategory::LightReceiver>(*volume, storedEpoch))
+            if (!bakeLayer.TryGetAssetEpoch<Baking::BakeLayerCategory::LightReceiver>(*volume, storedEpoch))
             {
                 // not tracked yet. bake it to track it
                 lightmapVolumeNames.PushBack(*volume->GetName());
@@ -5619,7 +5619,7 @@ void EditorSubsystem::UpdateBakeStatus()
                 continue;
             }
 
-            const uint64 computedEpoch = Baking::BakeEpoch::ComputeEpoch(*volume, BakeLayer);
+            const uint64 computedEpoch = Baking::BakeEpoch::ComputeEpoch(*volume, bakeLayer);
 
             if (storedEpoch != computedEpoch)
             {
@@ -5652,7 +5652,7 @@ void EditorSubsystem::UpdateBakeStatus()
 
             uint64 storedEpoch;
 
-            if (!BakeLayer.TryGetAssetEpoch<Baking::BakeLayerCategory::LightReceiver>(*probe, storedEpoch))
+            if (!bakeLayer.TryGetAssetEpoch<Baking::BakeLayerCategory::LightReceiver>(*probe, storedEpoch))
             {
                 // not tracked yet. bake it to track it
                 outNames->PushBack(*probe->GetName());
@@ -5660,7 +5660,7 @@ void EditorSubsystem::UpdateBakeStatus()
                 continue;
             }
 
-            const uint64 computedEpoch = Baking::BakeEpoch::ComputeEpoch(*probe, BakeLayer);
+            const uint64 computedEpoch = Baking::BakeEpoch::ComputeEpoch(*probe, bakeLayer);
 
             if (storedEpoch != computedEpoch)
             {

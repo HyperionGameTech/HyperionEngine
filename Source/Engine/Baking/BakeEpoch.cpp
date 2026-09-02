@@ -76,7 +76,7 @@ uint64 ComputeEpoch(const LightmapVolume& volume, BakeLayer& bakeLayer)
         return 0;
     }
 
-    BakeLayerHashes& hashes = BakeLayer.sceneHashes[scene->GetUUID()];
+    BakeLayerHashes& hashes = bakeLayer.sceneHashes[scene->GetUUID()];
     ComputeSceneHashes(*scene, hashes);
 
     return hashes.staticMeshEntitiesHash
@@ -94,13 +94,13 @@ uint64 ComputeEpoch(const EnvProbe& probe, BakeLayer& bakeLayer)
     }
 
     
-    BakeLayerHashes& hashes = BakeLayer.sceneHashes[scene->GetUUID()];
+    BakeLayerHashes& hashes = bakeLayer.sceneHashes[scene->GetUUID()];
     ComputeSceneHashes(*scene, hashes);
 
     // Lightmap revs affect env probes, as they are sampled when building probes
     return hashes.staticMeshEntitiesHash
         .Combine(hashes.staticLightsHash)
-        .Combine(BakeLayer.GetEpochRev(BakeLayerCategory::Lightmap))
+        .Combine(bakeLayer.GetEpochRev(BakeLayerCategory::Lightmap))
         .Value();
 }
 
