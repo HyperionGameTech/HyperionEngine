@@ -1450,8 +1450,17 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
 
                 for (EnvProbe* envProbe : envProbes[envProbeType])
                 {
-                    // Only realtime or sky probes are rendered here
-                    if (envProbe->IsBaked())
+                    // We skip path traced baked probes - those never render through this path at
+                    // all (raytraced directly against the scene by the Baker instead).
+                    if (envProbe->IsPathTraced())
+                    {
+                        continue;
+                    }
+
+                    // !PathTraced: render realtime probes every frame, and baked (raster) probes
+                    // only while they're actively being captured (BeginRasterCapture() sets
+                    // needsRender; RenderProbe() clears it once all 6 faces are done).
+                    if (envProbe->IsBaked() && !envProbe->needsRender.Load())
                     {
                         continue;
                     }

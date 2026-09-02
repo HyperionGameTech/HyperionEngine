@@ -126,8 +126,6 @@ void Baker<EnvProbe>::OnCompleted_Internal()
     // prevent writing on other threads
     auto envProbeWriteScope = TUniqueResLock<EnvProbe>(*m_envProbe);
 
-    // Dimensions were already normalized in Build_Internal(), before tracing ran, so what
-    // GetDimensions() returns here matches what m_bakeData was actually built/traced at.
     const Vec2u dimensions = Vec2u(uint32(m_envProbe->GetDimensions()));
     AssertDebug(dimensions.Volume() > 0);
 

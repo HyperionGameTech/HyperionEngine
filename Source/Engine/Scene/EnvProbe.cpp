@@ -132,16 +132,8 @@ void EnvProbe::SetDimensions(EnvProbeDimensions dimensions)
 
     m_dimensions = dimensions;
 
-    // Per-face capture framebuffers/views (and, per DestroyCaptureData()'s own rules, the
-    // persisted texture) are all sized off m_dimensions. CreateViewData() refuses to recreate
-    // views that already exist, so we have to tear everything down unconditionally here -
-    // regardless of realtime/baked/sky status - or a dimensions change silently gets ignored by
-    // the capture pipeline forever.
     DestroyCaptureData();
 
-    // CreateViewData() (called via InitCaptureData()) asserts against path-traced probes, which
-    // never use per-face views/framebuffers - they capture directly against the scene via ray
-    // tracing instead.
     if (!(m_envProbeFlags & EPF_PATH_TRACED))
     {
         if (GetWorld() != nullptr)
@@ -256,12 +248,6 @@ void EnvProbe::DestroyCaptureData()
     RemoveCamera();
     DestroyViewData();
 
-    // A baked-and-not-realtime probe's texture gets rebuilt fresh at bake-completion time by the
-    // Baker, so there's no need to (and for the PT path, no reason to want to) destroy it here.
-    // Everything else - realtime probes, and probes like SkyProbe that eagerly own a persistent
-    // texture entirely outside the bake pipeline - has nothing else that will ever rebuild it,
-    // so it has to be torn down here or a resize (SetDimensions()) would leave it stuck at the
-    // old size forever.
     if (IsRealtime() || !IsBaked())
     {
         EnqueueDeletion(std::move(m_texture));

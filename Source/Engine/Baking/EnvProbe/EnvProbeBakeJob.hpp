@@ -10,12 +10,9 @@
 
 #include <Baking/EnvProbe/EnvProbeBakeData.hpp>
 
-#include <Core/Threading/ThreadSignal.hpp>
-
 namespace Hyperion {
 
 class EnvProbe;
-class EnvProbePassBase;
 
 namespace Baking {
 
@@ -30,9 +27,7 @@ public:
         : BakeJobBase(std::move(params)),
           m_envProbe(envProbe),
           m_bakeData(bakeData),
-          m_rasterComplete(false),
-          m_rasterCancellationToken(false),
-          m_rasterStarted(false)
+          m_rasterCaptureEnded(false)
     {
     }
 
@@ -50,23 +45,18 @@ public:
     {
         return *m_bakeData;
     }
-    
+
     virtual bool IsCompleted() const override;
 
 protected:
-    bool IsRasterComplete() const;
-
     virtual void Start_Internal() override;
     virtual void Process_Internal(bool* outIsReadyToProcess) override;
 
     Handle<EnvProbe> m_envProbe;
     BakeData<EnvProbe>* m_bakeData;
 
-    // For raster
-    UniquePtr<EnvProbePassBase, BakerAllocator> m_envProbePass;
-    ThreadSignal m_rasterComplete;
-    ThreadSignal m_rasterCancellationToken;
-    bool m_rasterStarted;
+    /// raster only!
+    bool m_rasterCaptureEnded;
 };
 
 } // namespace Baking

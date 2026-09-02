@@ -13,7 +13,6 @@
 #include <Scene/EnvProbe.hpp>
 
 namespace Hyperion {
-
 namespace Baking {
 
 Result BakeData<EnvProbe>::Build()
