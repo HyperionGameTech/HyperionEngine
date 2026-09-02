@@ -21,9 +21,9 @@ namespace Baking {
 
 /// Cached hash codes for a given Scene
 HYP_STRUCT()
-struct BakerSceneHashes
+struct BakeLayerHashes
 {
-    HYP_STRUCT_BODY(BakerSceneHashes);
+    HYP_STRUCT_BODY(BakeLayerHashes);
 
     HYP_FIELD()
     HashCode staticEntitiesHash;
@@ -36,9 +36,9 @@ struct BakerSceneHashes
 };
 
 HYP_STRUCT()
-struct BakerSceneCategory
+struct BakeLayerCategory
 {
-    HYP_STRUCT_BODY(BakerSceneCategory);
+    HYP_STRUCT_BODY(BakeLayerCategory);
 
     enum { LightProvider, LightReceiver, Lightmap, Max };
 
@@ -55,26 +55,37 @@ struct BakerSceneCategory
     Array<Pair<String, uint64>> assets;
 };
 
-static constexpr uint32 NumBakerSceneCategories = uint32(BakerSceneCategory::Max);
+static constexpr uint32 NumBakeLayerCategories = uint32(BakeLayerCategory::Max);
 
 HYP_STRUCT()
-struct BakerScene
+struct BakeLayer
 {
-    HYP_STRUCT_BODY(BakerScene);
+    HYP_STRUCT_BODY(BakeLayer);
+
+    HYP_FIELD(Property = "Name", Serialize)
+    Name name;
     
     HYP_FIELD(Property = "Categories", Serialize)
-    FixedArray<BakerSceneCategory, NumBakerSceneCategories> categories;
+    FixedArray<BakeLayerCategory, NumBakeLayerCategories> categories;
 
     // per-scene hashes - keyed by scene's UUID.
     // transient, cached are constructed on first use.
     HYP_FIELD(Property = "SceneHashes", Transient)
-    Map<UUID, BakerSceneHashes, BakerAllocator> sceneHashes;
+    Map<UUID, BakeLayerHashes, BakerAllocator> sceneHashes;
 
-    BakerScene()
+    BakeLayer()
     {
-        categories[BakerSceneCategory::LightProvider] = { NAME("LightProvider") };
-        categories[BakerSceneCategory::LightReceiver] = { NAME("LightReceiver") };
-        categories[BakerSceneCategory::Lightmap] = { NAME("Lightmap") };
+        categories[BakeLayerCategory::LightProvider] = { NAME("LightProvider") };
+        categories[BakeLayerCategory::LightReceiver] = { NAME("LightReceiver") };
+        categories[BakeLayerCategory::Lightmap] = { NAME("Lightmap") };
+    }
+
+    explicit BakeLayer(Name name)
+        : name(name)
+    {
+        categories[BakeLayerCategory::LightProvider] = { NAME("LightProvider") };
+        categories[BakeLayerCategory::LightReceiver] = { NAME("LightReceiver") };
+        categories[BakeLayerCategory::Lightmap] = { NAME("Lightmap") };
     }
 
     template <class T>

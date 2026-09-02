@@ -20,7 +20,7 @@
 
 #include <Scripting/ScriptableDelegate.hpp>
 
-#include <Baking/BakerScene.hpp>
+#include <Baking/BakeLayer.hpp>
 
 #include <Editor/EditorMemory.hpp>
 
@@ -32,7 +32,25 @@ class Game;
 class EditorActionStack;
 class EditorSubsystem;
 
-using Baking::BakerScene;
+using Baking::BakeLayer;
+
+HYP_STRUCT()
+struct BakeLayers
+{
+    HYP_STRUCT_BODY(BakeLayers);
+
+    HYP_FIELD(Property = "Layers", Serialize)
+    Array<BakeLayer, EditorAllocator> layers;
+
+    BakeLayers();
+    
+    bool HasLayer(Name layerName) const;
+
+    BakeLayer* TryGetLayer(Name layerName);
+    const BakeLayer* TryGetLayer(Name layerName) const;
+
+    BakeLayer& GetOrCreateLayer(Name layerName);
+};
 
 HYP_CLASS()
 class EDITOR_API EditorProject final : public ObjectBase
@@ -136,16 +154,30 @@ public:
         return m_actionStack;
     }
 
-    HYP_FORCE_INLINE BakerScene& GetBakerScene()
+    HYP_FORCE_INLINE BakeLayers& GetBakeLayers()
     {
-        return m_bakerScene;
+        return m_bakeLayers;
     }
 
-    HYP_FORCE_INLINE const BakerScene& GetBakerScene() const
+    HYP_FORCE_INLINE const BakeLayers& GetBakeLayers() const
     {
-        return m_bakerScene;
+        return m_bakeLayers;
     }
 
+    /// For editor interop
+    HYP_METHOD()
+    Array<Name> GetBakeLayerNames() const
+    {
+        TSharedLock lock(m_bakeLayersMutex);
+
+        return MapToArray(m_bakeLayers.layers, &BakeLayer::name);
+    }
+
+    BakeLayer& GetActiveBakeLayer();
+
+    HYP_METHOD()
+    void SetActiveBakeLayer(Name layerName);
+    
     static TResult<Handle<EditorProject>> Load(const FilePath& filepath);
     static Handle<EditorProject> CreateNew();
 
@@ -163,7 +195,7 @@ private:
 
     Name GetNextDefaultProjectName_Impl(const String& defaultProjectName) const;
 
-    HYP_FIELD(Property = "Name")
+    HYP_FIELD(Property = "Name", Serialize)
     Name m_name;
 
     HYP_FIELD(Property = "LastSavedTime", Transient)
@@ -175,11 +207,14 @@ private:
     HYP_FIELD(Property = "TempDirectory", Transient)
     FilePath m_tempDirectory;
 
-    HYP_FIELD(Property = "GameInstance")
+    HYP_FIELD(Property = "GameInstance", Serialize)
     Handle<Game> m_gameInstance;
 
-    HYP_FIELD(Property = "BakerScene")
-    BakerScene m_bakerScene;
+    HYP_FIELD(Property = "BakeLayers", Serialize)
+    BakeLayers m_bakeLayers;
+
+    HYP_FIELD(Property = "ActiveBakeLayer", Serialize)
+    Name m_activeBakeLayer;
 
     HYP_FIELD(Transient)
     Handle<EditorActionStack> m_actionStack;
@@ -188,6 +223,8 @@ private:
     Handle<World> m_editWorld;
 
     WeakHandle<EditorSubsystem> m_editorSubsystem;
+
+    SharedMutex m_bakeLayersMutex;
 };
 
 } // namespace Hyperion

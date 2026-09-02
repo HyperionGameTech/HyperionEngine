@@ -21,8 +21,8 @@
 namespace Hyperion {
 namespace Baking {
 
-Baker<FogVolume>::Baker(BakerConfig&& config, BakerScene& bakerScene, const Handle<FogVolume>& fogVolume)
-    : BakerBase(std::move(config), bakerScene, fogVolume, MakeStrongRef(fogVolume->GetScene()), fogVolume->GetWorldBounds()),
+Baker<FogVolume>::Baker(BakerConfig&& config, BakeLayer& bakeLayer, const Handle<FogVolume>& fogVolume)
+    : BakerBase(std::move(config), BakeLayer, fogVolume, MakeStrongRef(fogVolume->GetScene()), fogVolume->GetWorldBounds()),
       m_fogVolume(fogVolume)
 {
 }

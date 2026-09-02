@@ -68,7 +68,7 @@
 #include <UI/UISubsystem.hpp>
 #include <UI/Overlays/Overlay.hpp>
 
-#include <Baking/BakerScene.hpp>
+#include <Baking/BakeLayer.hpp>
 
 namespace Hyperion {
 
@@ -537,16 +537,16 @@ public:
                             {
                                 activeScene->GetRoot()->AddChild(lightmapVolume);
 
-                                project->GetBakerScene().Add<Baking::BakerSceneCategory::LightReceiver>(*lightmapVolume);
-                                project->GetBakerScene().Add<Baking::BakerSceneCategory::Lightmap>(*lightmapVolume);
+                                project->GetActiveBakeLayer().Add<Baking::BakeLayerCategory::LightReceiver>(*lightmapVolume);
+                                project->GetActiveBakeLayer().Add<Baking::BakeLayerCategory::Lightmap>(*lightmapVolume);
 
                                 editorSubsystem->SetFocusedNode(lightmapVolume, true);
                             }),
                         .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
                             [lightmapVolume, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
                             {
-                                project->GetBakerScene().Remove<Baking::BakerSceneCategory::LightReceiver>(*lightmapVolume);
-                                project->GetBakerScene().Remove<Baking::BakerSceneCategory::Lightmap>(*lightmapVolume);
+                                project->GetActiveBakeLayer().Remove<Baking::BakeLayerCategory::LightReceiver>(*lightmapVolume);
+                                project->GetActiveBakeLayer().Remove<Baking::BakeLayerCategory::Lightmap>(*lightmapVolume);
 
                                 lightmapVolume->Remove();
 
@@ -608,7 +608,7 @@ public:
             return;
         }
 
-        Baking::BakerScene& bakerScene = project->GetBakerScene();
+        Baking::BakeLayer& bakeLayer = project->GetActiveBakeLayer();
 
         Array<Handle<ObjectBase>> reflectionProbes;
 
@@ -642,7 +642,7 @@ public:
             return;
         }
 
-        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(bakerScene, reflectionProbes);
+        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(BakeLayer, reflectionProbes);
         editorTask->SetIsForegroundTask(true);
         InitObject(editorTask);
 
@@ -692,7 +692,7 @@ public:
             return;
         }
 
-        Baking::BakerScene& bakerScene = project->GetBakerScene();
+        Baking::BakeLayer& bakeLayer = project->GetActiveBakeLayer();
 
         Array<Handle<ObjectBase>> irradianceProbes;
 
@@ -726,7 +726,7 @@ public:
             return;
         }
 
-        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(bakerScene, irradianceProbes);
+        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(BakeLayer, irradianceProbes);
         editorTask->SetIsForegroundTask(true);
         InitObject(editorTask);
 
@@ -776,7 +776,7 @@ public:
             return;
         }
 
-        Baking::BakerScene& bakerScene = project->GetBakerScene();
+        Baking::BakeLayer& bakeLayer = project->GetActiveBakeLayer();
 
         Array<Handle<ObjectBase>> sources;
 
@@ -806,7 +806,7 @@ public:
 
         Handle<World> worldHandle = MakeStrongRef(subsystem->GetWorld());
 
-        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(bakerScene, sources);
+        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(BakeLayer, sources);
         editorTask->SetIsForegroundTask(true);
         editorTask->SetScene(activeScene);
         editorTask->SetWorld(worldHandle);
@@ -864,7 +864,7 @@ public:
             }
         }
 
-        Baking::BakerScene& bakerScene = currentProject->GetBakerScene();
+        Baking::BakeLayer& bakeLayer = currentProject->GetActiveBakeLayer();
 
         if (lightmapVolumes.Empty())
         {
@@ -879,7 +879,7 @@ public:
             return;
         }
 
-        Handle<GenerateBentNormalsEditorTask> generateBentNormalsTask = MakeHandle<GenerateBentNormalsEditorTask>(bakerScene, lightmapVolumes);
+        Handle<GenerateBentNormalsEditorTask> generateBentNormalsTask = MakeHandle<GenerateBentNormalsEditorTask>(BakeLayer, lightmapVolumes);
         InitObject(generateBentNormalsTask);
 
         generateBentNormalsTask->SetScene(activeScene);
@@ -1150,7 +1150,7 @@ public:
             return;
         }
 
-        Baking::BakerScene& bakerScene = currentProject->GetBakerScene();
+        Baking::BakeLayer& bakeLayer = currentProject->GetActiveBakeLayer();
 
         const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
 
@@ -1172,14 +1172,14 @@ public:
                             {
                                 activeScene->GetRoot()->AddChild(reflectionProbe);
 
-                                project->GetBakerScene().Add<Baking::BakerSceneCategory::LightReceiver>(*reflectionProbe);
+                                project->GetActiveBakeLayer().Add<Baking::BakeLayerCategory::LightReceiver>(*reflectionProbe);
 
                                 editorSubsystem->SetFocusedNode(reflectionProbe, true);
                             }),
                         .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
                             [reflectionProbe, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
                             {
-                                project->GetBakerScene().Remove<Baking::BakerSceneCategory::LightReceiver>(*reflectionProbe);
+                                project->GetActiveBakeLayer().Remove<Baking::BakeLayerCategory::LightReceiver>(*reflectionProbe);
 
                                 reflectionProbe->Remove();
 
@@ -1204,7 +1204,7 @@ public:
         if (reflectionProbe->IsBaked())
         {
             // kickoff task to generate reflection cubemap
-            Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(bakerScene, reflectionProbe);
+            Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(BakeLayer, reflectionProbe);
             editorTask->SetIsForegroundTask(true);
             InitObject(editorTask);
 
@@ -1273,14 +1273,14 @@ public:
                             {
                                 activeScene->GetRoot()->AddChild(irradianceProbe);
 
-                                project->GetBakerScene().Add<Baking::BakerSceneCategory::LightReceiver>(*irradianceProbe);
+                                project->GetActiveBakeLayer().Add<Baking::BakeLayerCategory::LightReceiver>(*irradianceProbe);
 
                                 editorSubsystem->SetFocusedNode(irradianceProbe, true);
                             }),
                         .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
                             [irradianceProbe, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
                             {
-                                project->GetBakerScene().Remove<Baking::BakerSceneCategory::LightReceiver>(*irradianceProbe);
+                                project->GetActiveBakeLayer().Remove<Baking::BakeLayerCategory::LightReceiver>(*irradianceProbe);
 
                                 irradianceProbe->Remove();
 
@@ -1433,7 +1433,7 @@ public:
             return;
         }
 
-        Baking::BakerScene& bakerScene = currentProject->GetBakerScene();
+        Baking::BakeLayer& bakeLayer = currentProject->GetActiveBakeLayer();
 
         Handle<FogVolume> fogVolume = MakeHandle<FogVolume>(BoundingBox(Vec3f(-20.0f, 0.0f, -20.0f), Vec3f(20.0f, 30.0f, 20.0f)));
         fogVolume->SetName(activeScene->GetUniqueNodeNameT<FogVolume>());
@@ -1453,12 +1453,12 @@ public:
                                 activeScene->GetRoot()->AddChild(fogVolume);
                                 editorSubsystem->SetFocusedNode(fogVolume, true);
 
-                                project->GetBakerScene().Add<Baking::BakerSceneCategory::LightReceiver>(*fogVolume);
+                                project->GetActiveBakeLayer().Add<Baking::BakeLayerCategory::LightReceiver>(*fogVolume);
                             }),
                         .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
                             [fogVolume, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
                             {
-                                project->GetBakerScene().Remove<Baking::BakerSceneCategory::LightReceiver>(*fogVolume);
+                                project->GetActiveBakeLayer().Remove<Baking::BakeLayerCategory::LightReceiver>(*fogVolume);
 
                                 fogVolume->Remove();
 
@@ -1482,7 +1482,7 @@ public:
 
         // start baking fog volume
 
-        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(bakerScene, Array<Handle<ObjectBase>> { fogVolume });
+        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(BakeLayer, Array<Handle<ObjectBase>> { fogVolume });
         editorTask->SetIsForegroundTask(true);
         InitObject(editorTask);
 
@@ -1565,7 +1565,7 @@ static void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
 
                             if constexpr (std::is_base_of_v<Light, T>)
                             {
-                                project->GetBakerScene().Add<Baking::BakerSceneCategory::LightProvider>(*n);
+                                project->GetActiveBakeLayer().Add<Baking::BakeLayerCategory::LightProvider>(*n);
                             }
 
                             editorSubsystem->SetSelectedNodes({ n });
@@ -1576,7 +1576,7 @@ static void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
                         {
                             if constexpr (std::is_base_of_v<Light, T>)
                             {
-                                project->GetBakerScene().Remove<Baking::BakerSceneCategory::LightProvider>(*n);
+                                project->GetActiveBakeLayer().Remove<Baking::BakeLayerCategory::LightProvider>(*n);
                             }
 
                             n->Remove();

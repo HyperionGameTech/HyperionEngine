@@ -53,6 +53,59 @@ EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 
 static const ANSIString s_defaultProjectName = "Project";
 
+static const Name s_defaultBakeLayerName = NAME("Default");
+
+#pragma region BakeLayers
+
+BakeLayers::BakeLayers() = default;
+
+bool BakeLayers::HasLayer(Name layerName) const
+{
+    return layers.FindIf(
+        [&layerName](const BakeLayer& layer)
+        {
+            return layer.name == layerName;
+        })
+        != layers.End();
+}
+
+BakeLayer* BakeLayers::TryGetLayer(Name layerName)
+{
+    auto it = layers.FindIf([&layerName](const BakeLayer& layer)
+    {
+        return layer.name == layerName;
+    });
+
+    if (it == layers.End())
+    {
+        return nullptr;
+    }
+
+    return it;
+}
+
+const BakeLayer* BakeLayers::TryGetLayer(Name layerName) const
+{
+    return const_cast<BakeLayers*>(this)->TryGetLayer(layerName);
+}
+
+BakeLayer& BakeLayers::GetOrCreateLayer(Name layerName)
+{
+    auto it = layers.FindIf([&layerName](const BakeLayer& layer)
+    {
+        return layer.name == layerName;
+    });
+
+    if (it == layers.End())
+    {
+        it = layers.Insert(layers.End(), BakeLayer(layerName));
+    }
+
+    return *it;
+}
+
+#pragma endregion BakeLayers
+
 #pragma region EditorProject
 
 static Name GetUniqueProjectName()
@@ -149,8 +202,9 @@ EditorProject::EditorProject(const Handle<Game>& gameInstance)
 
 EditorProject::EditorProject(Name name, const Handle<Game>& gameInstance)
     : m_name(name),
+      m_lastSavedTime(~0ull),
       m_gameInstance(gameInstance),
-      m_lastSavedTime(~0ull)
+      m_activeBakeLayer(s_defaultBakeLayerName)
 {
     m_actionStack = MakeHandle<EditorActionStack>(WeakHandleFromThis());
 }
@@ -424,6 +478,45 @@ bool EditorProject::IsDirty() const
     }
 
     return !IsSaved() || registry->HasDirtyAssets();
+}
+
+BakeLayer& EditorProject::GetActiveBakeLayer()
+{
+    TSharedLock lock(m_bakeLayersMutex);
+
+    Name activeBakeLayer = m_activeBakeLayer;
+
+    if (!activeBakeLayer)
+    {
+        activeBakeLayer = s_defaultBakeLayerName;
+    }
+
+    BakeLayer* bakeLayer = m_bakeLayers.TryGetLayer(activeBakeLayer);
+
+    if (bakeLayer)
+    {
+        return *bakeLayer;
+    }
+
+    lock.Reset();
+
+    TUniqueLock uniqueLock(m_bakeLayersMutex);
+    return m_bakeLayers.GetOrCreateLayer(m_activeBakeLayer);
+}
+
+void EditorProject::SetActiveBakeLayer(Name layerName)
+{
+    if (layerName == Name::Invalid())
+    {
+        layerName = s_defaultBakeLayerName;
+    }
+
+    TUniqueLock lock(m_bakeLayersMutex);
+
+    m_activeBakeLayer = layerName;
+
+    // Trigger creation, to save time later
+    (void)m_bakeLayers.GetOrCreateLayer(m_activeBakeLayer);
 }
 
 TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)

@@ -115,12 +115,12 @@ static void EmptyViewCollectFunction(RenderProxyList&)
 
 BakerBase::BakerBase(
     BakerConfig&& config,
-    BakerScene& bakerScene,
+    BakeLayer& bakeLayer,
     ObjectBase* source,
     const Handle<Scene>& scene,
     const BoundingBox& aabb)
     : m_config(std::move(config)),
-      m_bakerScene(&bakerScene),
+      m_bakeLayer(&BakeLayer),
       m_source(source),
       m_scene(scene),
       m_aabb(aabb),

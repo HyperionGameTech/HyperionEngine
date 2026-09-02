@@ -22,7 +22,7 @@ template <>
 class Baker<LightmapVolume> final : public BakerBase
 {
 public:
-    Baker(BakerConfig&& config, BakerScene& bakerScene, const Handle<LightmapVolume>& volume);
+    Baker(BakerConfig&& config, BakeLayer& bakeLayer, const Handle<LightmapVolume>& volume);
 
     Baker(const Baker& other) = delete;
     Baker& operator=(const Baker& other) = delete;

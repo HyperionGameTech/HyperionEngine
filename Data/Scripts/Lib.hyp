@@ -1043,6 +1043,11 @@ extern class FogVolume : VolumeBase
     VolumeTexture : Texture
     NoiseTexture : Texture
 end
+extern enum EnvProbeDimensions : uint32
+    Dim64 = 64,
+    Dim128 = 128,
+    Dim256 = 256
+end
 extern class EnvProbe : VolumeBase
     GetEnvProbeType() -> EnvProbeType
     GetEnvProbeFlags() -> EnvProbeFlags
@@ -1057,13 +1062,15 @@ extern class EnvProbe : VolumeBase
     GetOrigin(fromCenter : bool) -> Vec3f
     SetOrigin(origin : Vec3f, fromCenter : bool) -> void
     GetCamera() -> Camera
+    GetDimensions() -> EnvProbeDimensions
+    SetDimensions(dimensions : EnvProbeDimensions) -> void
     GetDiffuseStrength() -> float
     SetDiffuseStrength(diffuseStrength : float) -> void
     GetBakedTexture() -> Texture
     SetBakedTexture(texture : Texture) -> void
     GetVisibilityTexture() -> Texture
     SetVisibilityTexture(visibilityTexture : Texture) -> void
-    Dimensions : Vec2u
+    Dimensions : EnvProbeDimensions
     EnvProbeType : EnvProbeType
     EnvProbeFlags : EnvProbeFlags
     ShData : SphericalHarmonicsData
@@ -1980,20 +1987,6 @@ extern enum GpuVendor : uint8
     Apple,
     Microsoft
 end
-extern struct BakerSceneCategory
-    Name : Name
-    Revision : uint64
-    Assets : Array<any>
-end
-extern struct BakerSceneHashes
-    StaticEntitiesHash : HashCode
-    StaticMeshEntitiesHash : HashCode
-    StaticLightsHash : HashCode
-end
-extern struct BakerScene
-    Categories : Array<BakerSceneCategory>
-    SceneHashes : any
-end
 extern class BakerBase
 end
 extern enum BakerState : uint8
@@ -2018,6 +2011,21 @@ extern struct BakerConfig
     MaxTexelsPerFrame : uint32
     OnlyGenerateUVs : bool
     MaxRayDistance : float
+end
+extern struct BakeLayerHashes
+    StaticEntitiesHash : HashCode
+    StaticMeshEntitiesHash : HashCode
+    StaticLightsHash : HashCode
+end
+extern struct BakeLayer
+    Name : Name
+    Categories : Array<BakeLayerCategory>
+    SceneHashes : any
+end
+extern struct BakeLayerCategory
+    Name : Name
+    Revision : uint64
+    Assets : Array<any>
 end
 extern enum AudioPlaybackStatus : uint8
     Stopped,
@@ -2571,6 +2579,8 @@ extern class EditorProject
     SaveAs(filepath : string) -> Result
     IsDirty() -> bool
     GetActionStack() -> EditorActionStack
+    GetBakeLayerNames() -> Array<Name>
+    SetActiveBakeLayer(layerName : Name) -> void
     Close(shutdownWorld : bool) -> void
     OnProjectSaved : any
     Name : Name
@@ -2578,8 +2588,12 @@ extern class EditorProject
     Filepath : string
     TempDirectory : string
     GameInstance : Game
-    BakerScene : BakerScene
+    BakeLayers : BakeLayers
+    ActiveBakeLayer : Name
     ActionStack : EditorActionStack
+end
+extern struct BakeLayers
+    Layers : Array<BakeLayer>
 end
 extern class EditorCommandBase
     GetText() -> string

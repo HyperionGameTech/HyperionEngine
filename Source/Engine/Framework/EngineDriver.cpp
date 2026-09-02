@@ -527,6 +527,11 @@ void EngineDriver::LoadEngineContent()
 
 void EngineDriver::Simulate(float delta, Game* gameInstance)
 {
+    if (HYP_UNLIKELY(m_isShuttingDown.LoadVolatile()))
+    {
+        return;
+    }
+
     static const bool s_dedicatedVisThread = CoreApi::GetCommandLineArguments()["DedicatedVisThread"].ToBool();
     static const bool s_isHeadless = EngineGlobals::IsHeadless();
 
@@ -656,7 +661,7 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
         RI.shadowMapCache->Update();
     }
 
-    static const auto removeNonUnique = []<class ArrayType>(ArrayType& elems)
+    static const auto s_removeNonUnique = []<class ArrayType>(ArrayType& elems)
     {
         for (size_t idx = 0; idx < elems.Size();)
         {
@@ -671,9 +676,9 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
         }
     };
 
-    removeNonUnique(views);
-    removeNonUnique(subsystems);
-    removeNonUnique(scenes);
+    s_removeNonUnique(views);
+    s_removeNonUnique(subsystems);
+    s_removeNonUnique(scenes);
 
     for (View* view : views)
     {

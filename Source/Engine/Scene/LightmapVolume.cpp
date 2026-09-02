@@ -433,7 +433,7 @@ static void EnqueueBake(LightmapVolume& self)
         return;
     }
 
-    Baking::BakerScene& bakerScene = currentProject->GetBakerScene();
+    Baking::BakeLayer& bakeLayer = currentProject->GetActiveBakeLayer();
 
     BakerSubsystem* bakerSubsystem = world->GetSubsystem<BakerSubsystem>();
 
@@ -442,7 +442,7 @@ static void EnqueueBake(LightmapVolume& self)
         bakerSubsystem = world->AddSubsystem<BakerSubsystem>();
     }
 
-    bakerSubsystem->EnqueueBake(bakerScene, MakeStrongRef(&self), (1u << uint32(ShadingType)));
+    bakerSubsystem->EnqueueBake(BakeLayer, MakeStrongRef(&self), (1u << uint32(ShadingType)));
 }
 
 void LightmapVolume::BakeLightmap()

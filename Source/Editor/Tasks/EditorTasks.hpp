@@ -10,7 +10,7 @@ class World;
 class Scene;
 
 namespace Baking {
-struct BakerScene;
+struct BakeLayer;
 } // namespace Baking
 
 HYP_CLASS()
@@ -21,13 +21,13 @@ class GenerateLightmapsEditorTask : public TickableEditorTask
 public:
     GenerateLightmapsEditorTask()
         : TickableEditorTask(),
-          m_bakerScene(nullptr)
+          m_bakeLayer(nullptr)
     {
     }
 
-    GenerateLightmapsEditorTask(Baking::BakerScene& bakerScene, const Handle<LightmapVolume>& volume);
-    GenerateLightmapsEditorTask(Baking::BakerScene& bakerScene, const Handle<EnvProbe>& probe);
-    GenerateLightmapsEditorTask(Baking::BakerScene& bakerScene, const Array<Handle<ObjectBase>>& sources);
+    GenerateLightmapsEditorTask(Baking::BakeLayer& bakeLayer, const Handle<LightmapVolume>& volume);
+    GenerateLightmapsEditorTask(Baking::BakeLayer& bakeLayer, const Handle<EnvProbe>& probe);
+    GenerateLightmapsEditorTask(Baking::BakeLayer& bakeLayer, const Array<Handle<ObjectBase>>& sources);
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<World>& GetWorld() const
@@ -67,7 +67,7 @@ protected:
     virtual void Cancel_Impl() override;
 
 private:
-    Baking::BakerScene* m_bakerScene;
+    Baking::BakeLayer* m_bakeLayer;
 
     Array<Handle<ObjectBase>, EditorAllocator> m_sources;
     Handle<World> m_world;
@@ -84,12 +84,12 @@ class GenerateBentNormalsEditorTask : public TickableEditorTask
 public:
     GenerateBentNormalsEditorTask()
         : TickableEditorTask(),
-          m_bakerScene(nullptr)
+          m_bakeLayer(nullptr)
     {
     }
 
     GenerateBentNormalsEditorTask(
-        Baking::BakerScene& bakerScene,
+        Baking::BakeLayer& bakeLayer,
         const Array<Handle<LightmapVolume>>& volumes);
 
     HYP_METHOD()
@@ -130,7 +130,7 @@ protected:
     virtual void Cancel_Impl() override;
 
 private:
-    Baking::BakerScene* m_bakerScene;
+    Baking::BakeLayer* m_bakeLayer;
 
     Array<Handle<LightmapVolume>, EditorAllocator> m_volumes;
     Handle<World> m_world;

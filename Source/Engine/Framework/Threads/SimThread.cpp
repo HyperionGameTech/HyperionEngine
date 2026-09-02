@@ -172,7 +172,7 @@ void SimThread::Update()
         BeginSimRenderSyncBlock(&m_stopRequested);
     }
 
-    if (HYP_UNLIKELY(m_stopRequested.LoadVolatile()))
+    if (HYP_UNLIKELY(m_stopRequested.LoadVolatile() || g_engineDriver->IsShuttingDown()))
     {
         return;
     }

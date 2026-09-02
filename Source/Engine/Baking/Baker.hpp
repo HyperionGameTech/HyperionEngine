@@ -64,7 +64,7 @@ class BakerThreadPool;
 struct BakeJobParams;
 struct BakeEntity;
 
-struct BakerScene;
+struct BakeLayer;
 
 struct LightmapRay;
 
@@ -148,7 +148,7 @@ class ENGINE_API BakerBase : public ObjectBase
 public:
     BakerBase(
         BakerConfig&& config,
-        BakerScene& bakerScene,
+        BakeLayer& bakeLayer,
         ObjectBase* source,
         const Handle<Scene>& scene,
         const BoundingBox& aabb);
@@ -166,9 +166,9 @@ public:
         return m_config;
     }
 
-    HYP_FORCE_INLINE BakerScene* GetBakerScene() const
+    HYP_FORCE_INLINE BakeLayer* GetBakeLayer() const
     {
-        return m_bakerScene;
+        return m_bakeLayer;
     }
 
     HYP_FORCE_INLINE const BoundingBox& GetAABB() const
@@ -323,7 +323,7 @@ protected:
 
     BakerConfig m_config;
 
-    BakerScene* m_bakerScene;
+    BakeLayer* m_bakeLayer;
 
     uint32 m_shadingTypesMaskOverride = 0;
 

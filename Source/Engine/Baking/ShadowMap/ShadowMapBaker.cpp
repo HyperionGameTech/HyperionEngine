@@ -31,8 +31,8 @@ CORE_API extern const FilePath& GetExecutablePath();
 
 namespace Baking {
 
-Baker<Light>::Baker(BakerConfig&& config, BakerScene& bakerScene, const Handle<Light>& light)
-    : BakerBase(std::move(config), bakerScene, light, MakeStrongRef(light->GetScene()), light->GetWorldBounds()),
+Baker<Light>::Baker(BakerConfig&& config, BakeLayer& bakeLayer, const Handle<Light>& light)
+    : BakerBase(std::move(config), BakeLayer, light, MakeStrongRef(light->GetScene()), light->GetWorldBounds()),
       m_light(light)
 {
 }

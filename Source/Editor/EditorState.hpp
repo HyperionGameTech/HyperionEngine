@@ -29,7 +29,7 @@ class EditorTaskBase;
 class EditorSubsystem;
 
 namespace Baking {
-struct BakerScene;
+struct BakeLayer;
 } // namespace Baking
 
 HYP_CLASS()

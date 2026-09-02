@@ -159,10 +159,11 @@ struct AssetReference;
 struct AudioComponent;
 struct AudioPlaybackState;
 struct BVHNode;
+struct BakeLayer;
+struct BakeLayerCategory;
+struct BakeLayerHashes;
+struct BakeLayers;
 struct BakerConfig;
-struct BakerScene;
-struct BakerSceneCategory;
-struct BakerSceneHashes;
 struct BlendFunction;
 struct BlobBlockData;
 struct BlobDataReference;
@@ -954,6 +955,7 @@ extern bool EditorProject_IsSaved(EditorProject self);
 extern void EditorProject_Save(EditorProject self, ref Result outReturn);
 extern void EditorProject_SaveAs(EditorProject self, const FilePath filepath, ref Result outReturn);
 extern bool EditorProject_IsDirty(EditorProject self);
+extern void EditorProject_SetActiveBakeLayer(EditorProject self, const Name layerName);
 extern void EditorProject_Close(EditorProject self, bool shutdownWorld);
 
 // EditorCommandBase (requires HYP_EDITOR)

@@ -7,7 +7,7 @@
 #include <HyperionPch.hpp>
 
 #include <Baking/BakeEpoch.hpp>
-#include <Baking/BakerScene.hpp>
+#include <Baking/BakeLayer.hpp>
 
 #include <Scene/Scene.hpp>
 #include <Scene/EntityTag.hpp>
@@ -26,7 +26,7 @@ namespace Hyperion {
 namespace Baking {
 namespace BakeEpoch {
 
-void ComputeSceneHashes(const Scene& scene, BakerSceneHashes& inOutResult)
+void ComputeSceneHashes(const Scene& scene, BakeLayerHashes& inOutResult)
 {
     const bool hasOctree = (scene.GetSceneFlags() & SceneFlags::HAS_OCTREE);
     
@@ -67,7 +67,7 @@ void ComputeSceneHashes(const Scene& scene, BakerSceneHashes& inOutResult)
     updateHashForComponent(TypeWrapper<TagComponent<EntityTag::Light>>(), inOutResult.staticLightsHash);
 }
 
-uint64 ComputeEpoch(const LightmapVolume& volume, BakerScene& bakerScene)
+uint64 ComputeEpoch(const LightmapVolume& volume, BakeLayer& bakeLayer)
 {
     Scene* scene = volume.GetScene();
 
@@ -76,7 +76,7 @@ uint64 ComputeEpoch(const LightmapVolume& volume, BakerScene& bakerScene)
         return 0;
     }
 
-    BakerSceneHashes& hashes = bakerScene.sceneHashes[scene->GetUUID()];
+    BakeLayerHashes& hashes = BakeLayer.sceneHashes[scene->GetUUID()];
     ComputeSceneHashes(*scene, hashes);
 
     return hashes.staticMeshEntitiesHash
@@ -84,7 +84,7 @@ uint64 ComputeEpoch(const LightmapVolume& volume, BakerScene& bakerScene)
         .Value();
 }
 
-uint64 ComputeEpoch(const EnvProbe& probe, BakerScene& bakerScene)
+uint64 ComputeEpoch(const EnvProbe& probe, BakeLayer& bakeLayer)
 {
     Scene* scene = probe.GetScene();
 
@@ -94,13 +94,13 @@ uint64 ComputeEpoch(const EnvProbe& probe, BakerScene& bakerScene)
     }
 
     
-    BakerSceneHashes& hashes = bakerScene.sceneHashes[scene->GetUUID()];
+    BakeLayerHashes& hashes = BakeLayer.sceneHashes[scene->GetUUID()];
     ComputeSceneHashes(*scene, hashes);
 
     // Lightmap revs affect env probes, as they are sampled when building probes
     return hashes.staticMeshEntitiesHash
         .Combine(hashes.staticLightsHash)
-        .Combine(bakerScene.GetEpochRev(BakerSceneCategory::Lightmap))
+        .Combine(BakeLayer.GetEpochRev(BakeLayerCategory::Lightmap))
         .Value();
 }
 

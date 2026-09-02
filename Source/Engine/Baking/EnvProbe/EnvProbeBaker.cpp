@@ -44,8 +44,8 @@ void ComputeEnvProbeSphericalHarmonics(
 
 namespace Baking {
 
-Baker<EnvProbe>::Baker(BakerConfig&& config, BakerScene& bakerScene, const Handle<EnvProbe>& envProbe)
-    : BakerBase(std::move(config), bakerScene, envProbe, MakeStrongRef(envProbe->GetScene()), BoundingBox::Empty()),
+Baker<EnvProbe>::Baker(BakerConfig&& config, BakeLayer& bakeLayer, const Handle<EnvProbe>& envProbe)
+    : BakerBase(std::move(config), BakeLayer, envProbe, MakeStrongRef(envProbe->GetScene()), BoundingBox::Empty()),
       m_envProbe(envProbe)
 {
 }
@@ -231,8 +231,17 @@ void Baker<EnvProbe>::OnCompleted_Internal()
             auto envProbeWriteScope = TUniqueResLock<EnvProbe>(*envProbe);
 
             const Handle<Texture>& texture = envProbe->GetBakedTexture();
-
             Assert(texture.IsValid());
+
+            if (!texture->IsCreated())
+            {
+                // Must be in created state, or we'll crash (gpu image can't be null)
+                if (!Check(texture->Create()))
+                {
+                    HYP_LOG(Lightmap, Error, "Texture creation failed, cannot bake probe");
+                    return;
+                }
+            }
 
             if (envProbe->ShouldComputePrefilteredEnvMap())
             {

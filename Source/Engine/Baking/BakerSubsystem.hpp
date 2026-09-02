@@ -35,7 +35,7 @@ class Scene;
 namespace Baking {
 
 class BakerBase;
-struct BakerScene;
+struct BakeLayer;
 
 template <class T>
     concept Bakeable = std::is_same_v<T, LightmapVolume>
@@ -65,7 +65,7 @@ public:
      *   \param shadingTypesMaskOverride If nonzero, restricts the bake to this subset of shading types instead of the
      *   baker's default mask (e.g. baking bent normals only, without recomputing irradiance/radiance). */
     template <Baking::Bakeable T>
-    Task<void> EnqueueBake(Baking::BakerScene& bakerScene, const Handle<T>& source, uint32 shadingTypesMaskOverride = 0);
+    Task<void> EnqueueBake(Baking::BakeLayer& bakeLayer, const Handle<T>& source, uint32 shadingTypesMaskOverride = 0);
 
     /*! \brief Cancel an in-progress bake for the given source, if one exists. Tears down the
      *  associated baker immediately and resolves its Task<void>. Must be called on the sim thread. */
@@ -78,7 +78,7 @@ private:
     struct ObjectBakeState
     {
         Handle<ObjectBase> obj;
-        Baking::BakerScene* bakerScene;
+        Baking::BakeLayer* bakeLayer;
         Handle<Baking::BakerBase> baker;
     };
 
@@ -87,11 +87,11 @@ private:
         return SubsystemUpdatePhase::AfterVis;
     }
 
-    void OnBakeCompleted(Baking::BakerScene& bakerScene, ObjectBase* source);
+    void OnBakeCompleted(Baking::BakeLayer& bakeLayer, ObjectBase* source);
 
     template <class T, class... Args>
     Task<void> EnqueueBake_Internal(
-        Baking::BakerScene& bakerScene,
+        Baking::BakeLayer& bakeLayer,
         const Handle<T>& source,
         uint32 shadingTypesMaskOverride,
         Args&&... args);

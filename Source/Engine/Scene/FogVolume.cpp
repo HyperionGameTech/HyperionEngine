@@ -162,7 +162,7 @@ void FogVolume::Rebake()
         return;
     }
 
-    Baking::BakerScene& bakerScene = currentProject->GetBakerScene();
+    Baking::BakeLayer& bakeLayer = currentProject->GetActiveBakeLayer();
 
     BakerSubsystem* bakerSubsystem = world->GetSubsystem<BakerSubsystem>();
 
@@ -171,7 +171,7 @@ void FogVolume::Rebake()
         bakerSubsystem = world->AddSubsystem<BakerSubsystem>();
     }
 
-    bakerSubsystem->EnqueueBake(bakerScene, MakeStrongRef(this));
+    bakerSubsystem->EnqueueBake(BakeLayer, MakeStrongRef(this));
 }
 
 #endif

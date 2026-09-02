@@ -9,7 +9,7 @@
 #include <Baking/BakerSubsystem.hpp>
 #include <Baking/Baker.hpp>
 #include <Baking/BakerMemory.hpp>
-#include <Baking/BakerScene.hpp>
+#include <Baking/BakeLayer.hpp>
 #include <Baking/BakeEpoch.hpp>
 
 #include <Baking/LightmapVolume/LightmapVolumeBaker.hpp>
@@ -43,23 +43,23 @@
 namespace Hyperion {
 
 using namespace Baking;
-using Cat = BakerSceneCategory;
+using Cat = BakeLayerCategory;
 
-static void UpdateEpoch(const LightmapVolume& lmv, BakerScene& bakerScene)
+static void UpdateEpoch(const LightmapVolume& lmv, BakeLayer& bakeLayer)
 {
-    uint64 epoch = BakeEpoch::ComputeEpoch(lmv, bakerScene);
+    uint64 epoch = BakeEpoch::ComputeEpoch(lmv, BakeLayer);
 
-    bakerScene.SetAssetEpoch<Cat::LightReceiver>(lmv, epoch);
-    bakerScene.SetAssetEpoch<Cat::Lightmap>(lmv, epoch);
+    BakeLayer.SetAssetEpoch<Cat::LightReceiver>(lmv, epoch);
+    BakeLayer.SetAssetEpoch<Cat::Lightmap>(lmv, epoch);
 
-    bakerScene.BumpEpochRev(Cat::Lightmap);
+    BakeLayer.BumpEpochRev(Cat::Lightmap);
 }
 
-static void UpdateEpoch(const EnvProbe& envProbe, BakerScene& bakerScene)
+static void UpdateEpoch(const EnvProbe& envProbe, BakeLayer& bakeLayer)
 {
-    uint64 epoch = BakeEpoch::ComputeEpoch(envProbe, bakerScene);
+    uint64 epoch = BakeEpoch::ComputeEpoch(envProbe, BakeLayer);
 
-    bakerScene.SetAssetEpoch<Cat::LightReceiver>(envProbe, epoch);
+    BakeLayer.SetAssetEpoch<Cat::LightReceiver>(envProbe, epoch);
 }
 
 #pragma region BakerSubsystem
@@ -99,10 +99,10 @@ void BakerSubsystem::Update(float delta)
     if (m_bakes.Any())
     {
         ObjectBakeState& bs = m_bakes[bakerIndex];
-        Assert(bs.obj && bs.bakerScene && bs.baker);
+        Assert(bs.obj && bs.bakeLayer && bs.baker);
 
         ObjectBase* source = bs.obj;
-        BakerScene& bakerScene = *bs.bakerScene;
+        BakeLayer& bakeLayer = *bs.BakeLayer;
         BakerBase* baker = bs.baker;
 
         baker->Update(delta);
@@ -118,7 +118,7 @@ void BakerSubsystem::Update(float delta)
 
             if (succeeded)
             {
-                OnBakeCompleted(bakerScene, source);
+                OnBakeCompleted(BakeLayer, source);
             }
 
             // Remove this guy
@@ -146,7 +146,7 @@ void BakerSubsystem::Update(float delta)
     g_bakerArena->Reset();
 }
 
-void BakerSubsystem::OnBakeCompleted(Baking::BakerScene& bakerScene, ObjectBase* source)
+void BakerSubsystem::OnBakeCompleted(Baking::BakeLayer& bakeLayer, ObjectBase* source)
 {
     if (!source)
     {
@@ -155,14 +155,14 @@ void BakerSubsystem::OnBakeCompleted(Baking::BakerScene& bakerScene, ObjectBase*
     
     if (LightmapVolume* lmv = DynamicCast<LightmapVolume>(source))
     {
-        UpdateEpoch(*lmv, bakerScene);
+        UpdateEpoch(*lmv, BakeLayer);
 
         return;
     }
 
     if (EnvProbe* envProbe = DynamicCast<EnvProbe>(source))
     {
-        UpdateEpoch(*envProbe, bakerScene);
+        UpdateEpoch(*envProbe, BakeLayer);
 
         return;
     }
@@ -171,9 +171,9 @@ void BakerSubsystem::OnBakeCompleted(Baking::BakerScene& bakerScene, ObjectBase*
 // clang-format off
 
 #define DEF_ENQUEUE_BAKE_SPECIALIZATION(T) \
-    template <> Task<void> BakerSubsystem::EnqueueBake(Baking::BakerScene& bakerScene, const Handle<T>& source, uint32 shadingTypesMaskOverride) \
+    template <> Task<void> BakerSubsystem::EnqueueBake(Baking::BakeLayer& bakeLayer, const Handle<T>& source, uint32 shadingTypesMaskOverride) \
     {   \
-        return EnqueueBake_Internal(bakerScene, source, shadingTypesMaskOverride);  \
+        return EnqueueBake_Internal(BakeLayer, source, shadingTypesMaskOverride);  \
     }
 
 DEF_ENQUEUE_BAKE_SPECIALIZATION(LightmapVolume);
@@ -187,7 +187,7 @@ DEF_ENQUEUE_BAKE_SPECIALIZATION(Light);
 
 template <class T, class... Args>
 Task<void> BakerSubsystem::EnqueueBake_Internal(
-    Baking::BakerScene& bakerScene,
+    Baking::BakeLayer& bakeLayer,
     const Handle<T>& source,
     uint32 shadingTypesMaskOverride,
     Args&&... args)
@@ -215,7 +215,7 @@ Task<void> BakerSubsystem::EnqueueBake_Internal(
 
     Handle<BakerBase> baker = MakeHandle<Baker<T>>(
         BakerConfig::FromConfig(), // <---- TODO: Not just the global...... should be per-type! Like BakerConfig<Light> ?
-        bakerScene,
+        BakeLayer,
         source,
         std::forward<Args>(args)...);
 
@@ -236,7 +236,7 @@ Task<void> BakerSubsystem::EnqueueBake_Internal(
     
     GetWorld()->ProcessViewAsync(baker->GetView());
 
-    m_bakes.PushBack(ObjectBakeState { source, &bakerScene, std::move(baker) });
+    m_bakes.PushBack(ObjectBakeState { source, &BakeLayer, std::move(baker) });
 
     return task;
 }

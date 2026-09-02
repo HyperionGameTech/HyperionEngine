@@ -1157,7 +1157,7 @@ void ReflectionProbe::BakeCubemap()
         return;
     }
 
-    Baking::BakerScene& bakerScene = currentProject->GetBakerScene();
+    Baking::BakeLayer& bakeLayer = currentProject->GetActiveBakeLayer();
 
     BakerSubsystem* bakerSubsystem = world->GetSubsystem<BakerSubsystem>();
 
@@ -1166,7 +1166,7 @@ void ReflectionProbe::BakeCubemap()
         bakerSubsystem = world->AddSubsystem<BakerSubsystem>();
     }
 
-    bakerSubsystem->EnqueueBake(bakerScene, StaticCast<EnvProbe>(MakeStrongRef(this)));
+    bakerSubsystem->EnqueueBake(BakeLayer, StaticCast<EnvProbe>(MakeStrongRef(this)));
 }
 
 #endif
@@ -1238,7 +1238,7 @@ void IrradianceProbe::RecomputeIrradiance()
         return;
     }
 
-    Baking::BakerScene& bakerScene = currentProject->GetBakerScene();
+    Baking::BakeLayer& bakeLayer = currentProject->GetActiveBakeLayer();
 
     BakerSubsystem* bakerSubsystem = world->GetSubsystem<BakerSubsystem>();
 
@@ -1247,7 +1247,7 @@ void IrradianceProbe::RecomputeIrradiance()
         bakerSubsystem = world->AddSubsystem<BakerSubsystem>();
     }
 
-    bakerSubsystem->EnqueueBake(bakerScene, StaticCast<EnvProbe>(MakeStrongRef(this)));
+    bakerSubsystem->EnqueueBake(BakeLayer, StaticCast<EnvProbe>(MakeStrongRef(this)));
 }
 
 #endif // HYP_EDITOR

@@ -21,19 +21,19 @@ EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 
 #pragma region GenerateLightmapsEditorTask
 
-GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(Baking::BakerScene& bakerScene, const Handle<LightmapVolume>& volume)
-    : GenerateLightmapsEditorTask(bakerScene, Array<Handle<ObjectBase>> { { StaticCast<ObjectBase>(volume) } })
+GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(Baking::BakeLayer& bakeLayer, const Handle<LightmapVolume>& volume)
+    : GenerateLightmapsEditorTask(BakeLayer, Array<Handle<ObjectBase>> { { StaticCast<ObjectBase>(volume) } })
 {
 }
 
-GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(Baking::BakerScene& bakerScene, const Handle<EnvProbe>& probe)
-    : GenerateLightmapsEditorTask(bakerScene, Array<Handle<ObjectBase>> { { StaticCast<ObjectBase>(probe) } })
+GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(Baking::BakeLayer& bakeLayer, const Handle<EnvProbe>& probe)
+    : GenerateLightmapsEditorTask(BakeLayer, Array<Handle<ObjectBase>> { { StaticCast<ObjectBase>(probe) } })
 {
 }
 
-GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(Baking::BakerScene& bakerScene, const Array<Handle<ObjectBase>>& sources)
+GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(Baking::BakeLayer& bakeLayer, const Array<Handle<ObjectBase>>& sources)
     : TickableEditorTask(),
-      m_bakerScene(&bakerScene),
+      m_bakeLayer(&BakeLayer),
       m_sources(sources)
 {
     m_title = "Bake Task";
@@ -60,9 +60,9 @@ void GenerateLightmapsEditorTask::Start()
 {
     AssertOnThread(g_simThread);
 
-    Assert(m_bakerScene != nullptr);
+    Assert(m_bakeLayer != nullptr);
 
-    if (!m_bakerScene)
+    if (!m_bakeLayer)
     {
         return;
     }
@@ -96,15 +96,15 @@ void GenerateLightmapsEditorTask::Start()
 
         if (source->IsA<LightmapVolume>())
         {
-            task = bakerSubsystem->EnqueueBake(*m_bakerScene, StaticCast<LightmapVolume>(source));
+            task = bakerSubsystem->EnqueueBake(*m_bakeLayer, StaticCast<LightmapVolume>(source));
         }
         else if (source->IsA<EnvProbe>())
         {
-            task = bakerSubsystem->EnqueueBake(*m_bakerScene, StaticCast<EnvProbe>(source));
+            task = bakerSubsystem->EnqueueBake(*m_bakeLayer, StaticCast<EnvProbe>(source));
         }
         else if (source->IsA<FogVolume>())
         {
-            task = bakerSubsystem->EnqueueBake(*m_bakerScene, StaticCast<FogVolume>(source));
+            task = bakerSubsystem->EnqueueBake(*m_bakeLayer, StaticCast<FogVolume>(source));
         }
 
         if (task.IsValid())
@@ -201,9 +201,9 @@ void GenerateLightmapsEditorTask::Tick()
 
 #pragma region GenerateBentNormalsEditorTask
 
-GenerateBentNormalsEditorTask::GenerateBentNormalsEditorTask(Baking::BakerScene& bakerScene, const Array<Handle<LightmapVolume>>& volumes)
+GenerateBentNormalsEditorTask::GenerateBentNormalsEditorTask(Baking::BakeLayer& bakeLayer, const Array<Handle<LightmapVolume>>& volumes)
     : TickableEditorTask(),
-      m_bakerScene(&bakerScene),
+      m_bakeLayer(&BakeLayer),
       m_volumes(volumes)
 {
     m_title = "Generating bent normals";
@@ -213,9 +213,9 @@ void GenerateBentNormalsEditorTask::Start()
 {
     AssertOnThread(g_simThread);
 
-    Assert(m_bakerScene != nullptr);
+    Assert(m_bakeLayer != nullptr);
 
-    if (!m_bakerScene)
+    if (!m_bakeLayer)
     {
         return;
     }
@@ -247,7 +247,7 @@ void GenerateBentNormalsEditorTask::Start()
 
     for (const Handle<LightmapVolume>& volume : m_volumes)
     {
-        Task<void> task = lightmapperSubsystem->EnqueueBake(*m_bakerScene, volume, bentNormalOnlyMask);
+        Task<void> task = lightmapperSubsystem->EnqueueBake(*m_bakeLayer, volume, bentNormalOnlyMask);
 
         if (task.IsValid())
         {

@@ -99,7 +99,7 @@
 #include <Baking/BakeData.hpp>
 #include <Baking/Baker.hpp>
 #include <Baking/BakeEpoch.hpp>
-#include <Baking/BakerScene.hpp>
+#include <Baking/BakeLayer.hpp>
 
 #include <UI/Overlays/MessagesOverlay.hpp>
 
@@ -5586,7 +5586,7 @@ void EditorSubsystem::UpdateBakeStatus()
         return;
     }
 
-    Baking::BakerScene& bakerScene = m_currentProject->GetBakerScene();
+    Baking::BakeLayer& bakeLayer = m_currentProject->GetActiveBakeLayer();
 
     Array<String, EditorAllocator> lightmapVolumeNames;
     Array<String, EditorAllocator> reflectionProbeNames;
@@ -5611,7 +5611,7 @@ void EditorSubsystem::UpdateBakeStatus()
 
             uint64 storedEpoch;
 
-            if (!bakerScene.TryGetAssetEpoch<Baking::BakerSceneCategory::LightReceiver>(*volume, storedEpoch))
+            if (!BakeLayer.TryGetAssetEpoch<Baking::BakeLayerCategory::LightReceiver>(*volume, storedEpoch))
             {
                 // not tracked yet. bake it to track it
                 lightmapVolumeNames.PushBack(*volume->GetName());
@@ -5619,7 +5619,7 @@ void EditorSubsystem::UpdateBakeStatus()
                 continue;
             }
 
-            const uint64 computedEpoch = Baking::BakeEpoch::ComputeEpoch(*volume, bakerScene);
+            const uint64 computedEpoch = Baking::BakeEpoch::ComputeEpoch(*volume, BakeLayer);
 
             if (storedEpoch != computedEpoch)
             {
@@ -5652,7 +5652,7 @@ void EditorSubsystem::UpdateBakeStatus()
 
             uint64 storedEpoch;
 
-            if (!bakerScene.TryGetAssetEpoch<Baking::BakerSceneCategory::LightReceiver>(*probe, storedEpoch))
+            if (!BakeLayer.TryGetAssetEpoch<Baking::BakeLayerCategory::LightReceiver>(*probe, storedEpoch))
             {
                 // not tracked yet. bake it to track it
                 outNames->PushBack(*probe->GetName());
@@ -5660,7 +5660,7 @@ void EditorSubsystem::UpdateBakeStatus()
                 continue;
             }
 
-            const uint64 computedEpoch = Baking::BakeEpoch::ComputeEpoch(*probe, bakerScene);
+            const uint64 computedEpoch = Baking::BakeEpoch::ComputeEpoch(*probe, BakeLayer);
 
             if (storedEpoch != computedEpoch)
             {

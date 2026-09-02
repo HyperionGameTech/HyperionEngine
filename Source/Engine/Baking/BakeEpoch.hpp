@@ -17,16 +17,16 @@ class EnvProbe;
 
 namespace Baking {
 
-struct BakerScene;
-struct BakerSceneHashes;
+struct BakeLayer;
+struct BakeLayerHashes;
 
 namespace BakeEpoch {
 
 /// Combined hash of the static geometry and lights that affect a bake for \p scene
-ENGINE_API void ComputeSceneHashes(const Scene& scene, BakerSceneHashes& inOutResult);
+ENGINE_API void ComputeSceneHashes(const Scene& scene, BakeLayerHashes& inOutResult);
 
-ENGINE_API uint64 ComputeEpoch(const LightmapVolume& volume, BakerScene& bakerScene);
-ENGINE_API uint64 ComputeEpoch(const EnvProbe& probe, BakerScene& bakerScene);
+ENGINE_API uint64 ComputeEpoch(const LightmapVolume& volume, BakeLayer& bakeLayer);
+ENGINE_API uint64 ComputeEpoch(const EnvProbe& probe, BakeLayer& bakeLayer);
 
 } // namespace BakeEpoch
 } // namespace Baking
