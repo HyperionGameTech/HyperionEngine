@@ -56,7 +56,7 @@ bool VulkanGpuTimerBackend::Initialize(DeviceBase* device)
         return false;
     }
 
-    Array<VkQueueFamilyProperties, VulkanTempAllocator> queueFamilyProperties;
+    Array<VkQueueFamilyProperties, VulkanAllocator> queueFamilyProperties;
     queueFamilyProperties.Resize(queueFamilyCount);
 
     vkGetPhysicalDeviceQueueFamilyProperties(m_device->GetPhysicalDevice(), &queueFamilyCount, queueFamilyProperties.Data());

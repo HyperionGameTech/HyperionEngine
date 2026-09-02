@@ -199,8 +199,8 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
 {
     AssertOnThread(g_renderThread);
 
-    Array<VkVertexInputAttributeDescription, VulkanTempAllocator> vkVertexAttributes;
-    Array<VkVertexInputBindingDescription, VulkanTempAllocator> vkVertexBindingDescriptions;
+    Array<VkVertexInputAttributeDescription, VulkanAllocator> vkVertexAttributes;
+    Array<VkVertexInputBindingDescription, VulkanAllocator> vkVertexBindingDescriptions;
 
     BuildVertexAttributes(vkVertexAttributes, vkVertexBindingDescriptions);
 
@@ -515,8 +515,8 @@ void VulkanGraphicsPipeline::UpdateViewport(VulkanCommandBuffer* commandBuffer, 
 }
 
 void VulkanGraphicsPipeline::BuildVertexAttributes(
-    Array<VkVertexInputAttributeDescription, VulkanTempAllocator>& outVkVertexAttributes,
-    Array<VkVertexInputBindingDescription, VulkanTempAllocator>& outVkVertexBindingDescriptions)
+    Array<VkVertexInputAttributeDescription, VulkanAllocator>& outVkVertexAttributes,
+    Array<VkVertexInputBindingDescription, VulkanAllocator>& outVkVertexBindingDescriptions)
 {
     static constexpr VkFormat SizeToFormat[] = {
         VK_FORMAT_UNDEFINED,
@@ -526,7 +526,7 @@ void VulkanGraphicsPipeline::BuildVertexAttributes(
         VK_FORMAT_R32G32B32A32_SFLOAT
     };
 
-    FlatMap<uint32, uint32, VulkanTempAllocator> bindingSizes {};
+    FlatMap<uint32, uint32, VulkanAllocator> bindingSizes {};
 
     const uint32 bits = uint32(ByteUtil::BitCount(m_inputLayout.mask));
     Assert(bits != 0);

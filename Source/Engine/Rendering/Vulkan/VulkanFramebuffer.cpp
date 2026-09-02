@@ -63,7 +63,7 @@ RendererResult VulkanAttachmentMap::Create()
         return HYP_MAKE_ERROR(RendererError, "Framebuffer is not valid");
     }
 
-    // @NOTE this can be called on any thread, so don't use VulkanTempAllocator
+    // @NOTE this can be called on any thread, so don't use VulkanAllocator
     Array<VulkanAttachment*> attachments;
     attachments.Reserve(this->attachments.Size());
 
@@ -357,7 +357,7 @@ void VulkanFramebuffer::Clear(
 
     AssertDebug(m_attachmentMap.attachments.Size() == m_renderPass.GetFramebufferDesc().numAttachments);
 
-    Array<const AttachmentDesc*, VulkanTempAllocator> colorAttachments;
+    Array<const AttachmentDesc*, VulkanAllocator> colorAttachments;
     colorAttachments.Reserve(m_framebufferDesc.numAttachments);
 
     for (uint32 attachmentIndex = 0; attachmentIndex < m_framebufferDesc.numAttachments; attachmentIndex++)
@@ -368,10 +368,10 @@ void VulkanFramebuffer::Clear(
         }
     }
 
-    Array<VkClearAttachment, VulkanTempAllocator> clearAttachments;
+    Array<VkClearAttachment, VulkanAllocator> clearAttachments;
     clearAttachments.Reserve(m_attachmentMap.attachments.Size());
 
-    Array<VkClearRect, VulkanTempAllocator> clearRects;
+    Array<VkClearRect, VulkanAllocator> clearRects;
     clearRects.Resize(m_attachmentMap.attachments.Size());
 
     const Vec2u& maxExtent = GetExtent();

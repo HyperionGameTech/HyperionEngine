@@ -139,8 +139,12 @@ static EngineStatTimer s_statViewDataAllocTime("Rendering/ViewData/AllocTime", /
 ENGINE_API Pool* g_renderPool;
 ENGINE_API Arena* g_renderArena;
 
-ENGINE_API Pool* g_rhiPool;
-ENGINE_API Arena* g_rhiArena;
+#if defined(HYP_VULKAN)
+ENGINE_API Pool* g_vulkanPool;
+#elif defined(HYP_DX12)
+ENGINE_API Pool* g_dx12Pool;
+#endif
+
 /// ========================
 
 CVar<bool> g_cvEnableVSync("Rendering.VSync", true);
@@ -672,20 +676,33 @@ RenderInterface::RenderInterface()
 {
     Assert(g_renderPool == nullptr);
 
-    g_renderPool = new Pool(RenderPoolBlockSize);
-    g_renderArena = new Arena(RenderArenaSize);
+    static Pool s_renderPool(RenderPoolBlockSize, PF_THREAD_SAFE);
+    static Arena s_renderArena(RenderArenaSize);
 
-    Assert(g_rhiPool == nullptr);
-    g_rhiPool = new Pool(RHIPoolBlockSize);
-    g_rhiArena = new Arena(RHIArenaSize);
+    g_renderPool = &s_renderPool;
+    g_renderArena = &s_renderArena;
+
+    static Pool s_rhiPool(RHIPoolBlockSize, PF_THREAD_SAFE);
+
+#if defined(HYP_VULKAN)
+    Assert(g_vulkanPool == nullptr);
+    g_vulkanPool = &s_rhiPool;
+#elif defined(HYP_DX12)
+    Assert(g_dx12Pool == nullptr);
+    g_dx12Pool = &s_rhiPool;
+#endif
+
+    // must be created by the end of the block!
+    // if we got here and it's still null, no proper RHI is defined
+    Assert(g_rhiPool != nullptr);
 }
 
 RenderInterface::~RenderInterface()
 {
-    delete g_renderPool;
+    g_renderPool->Reset();
     g_renderPool = nullptr;
 
-    delete g_rhiPool;
+    g_rhiPool->Reset();
     g_rhiPool = nullptr;
 }
 

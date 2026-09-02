@@ -63,7 +63,7 @@ static uint64 ComputeDeviceScore(VulkanFeatures& deviceFeatures)
     uint32 numQueueFamilies = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(deviceFeatures.GetPhysicalDevice(), &numQueueFamilies, nullptr);
 
-    Array<VkQueueFamilyProperties, VulkanTempAllocator> queueFamilyProperties;
+    Array<VkQueueFamilyProperties, VulkanAllocator> queueFamilyProperties;
     queueFamilyProperties.Resize(numQueueFamilies);
     vkGetPhysicalDeviceQueueFamilyProperties(deviceFeatures.GetPhysicalDevice(), &numQueueFamilies, queueFamilyProperties.Data());
 
@@ -90,7 +90,7 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
     VulkanFeatures::DeviceRequirementsResult deviceRequirementsResult(VulkanFeatures::DeviceRequirementsResult::DEVICE_REQUIREMENTS_ERR, "No device found");
     VulkanFeatures deviceFeatures;
 
-    Array<VkPhysicalDevice, VulkanTempAllocator> validDevices;
+    Array<VkPhysicalDevice, VulkanAllocator> validDevices;
     validDevices.Reserve(devices.Size());
 
     for (VkPhysicalDevice device : devices)
@@ -135,10 +135,10 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
         }
     }
 
-    Array<uint32, VulkanTempAllocator> deviceOrder;
+    Array<uint32, VulkanAllocator> deviceOrder;
     deviceOrder.Resize(validDevices.Size());
 
-    Array<uint64, VulkanTempAllocator> deviceScores;
+    Array<uint64, VulkanAllocator> deviceScores;
     deviceScores.Resize(validDevices.Size());
 
     for (uint32 index = 0; index < uint32(validDevices.Size()); index++)
@@ -185,7 +185,7 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
     return device;
 }
 
-static Array<VkPhysicalDevice, VulkanTempAllocator> EnumeratePhysicalDevices(VkInstance instance)
+static Array<VkPhysicalDevice, VulkanAllocator> EnumeratePhysicalDevices(VkInstance instance)
 {
     uint32 deviceCount = 0;
 
@@ -194,7 +194,7 @@ static Array<VkPhysicalDevice, VulkanTempAllocator> EnumeratePhysicalDevices(VkI
     Assert(deviceCount != 0, "No devices with Vulkan support found! "
                              "Please update your graphics drivers or install a Vulkan compatible device.\n");
 
-    Array<VkPhysicalDevice, VulkanTempAllocator> devices;
+    Array<VkPhysicalDevice, VulkanAllocator> devices;
     devices.Resize(deviceCount);
 
     vkEnumeratePhysicalDevices(instance, &deviceCount, devices.Data());
@@ -211,7 +211,7 @@ static Array<const char*, VulkanAllocator> CheckValidationLayerSupport(Span<cons
     uint32 layersCount;
     vkEnumerateInstanceLayerProperties(&layersCount, nullptr);
 
-    Array<VkLayerProperties, VulkanTempAllocator> availableLayers;
+    Array<VkLayerProperties, VulkanAllocator> availableLayers;
     availableLayers.Resize(layersCount);
 
     vkEnumerateInstanceLayerProperties(&layersCount, availableLayers.Data());
@@ -453,7 +453,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     uint32 availableInstanceExtensionCount = 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &availableInstanceExtensionCount, nullptr);
 
-    Array<VkExtensionProperties, VulkanTempAllocator> availableInstanceExtensions;
+    Array<VkExtensionProperties, VulkanAllocator> availableInstanceExtensions;
     availableInstanceExtensions.Resize(availableInstanceExtensionCount);
 
     if (availableInstanceExtensionCount != 0)
@@ -495,7 +495,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     static const VkBool32 s_falseValue = VK_FALSE;
     static const uint32 s_duplicateMessageLimit = EnableVulkanVerboseValidationLogging ? 0 : 10;
 
-    Array<VkLayerSettingEXT, VulkanTempAllocator> layerSettings;
+    Array<VkLayerSettingEXT, VulkanAllocator> layerSettings;
 
     VkLayerSettingsCreateInfoEXT layerSettingsCreateInfo { VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT };
 
@@ -565,7 +565,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     IDummyVulkanSurfaceContext* dummySurfaceContext = nullptr;
     VkSurfaceKHR surface = RI.CreateSurface(nullptr, &dummySurfaceContext);
 
-    Array<VkPhysicalDevice, VulkanTempAllocator> devices = EnumeratePhysicalDevices(m_instance);
+    Array<VkPhysicalDevice, VulkanAllocator> devices = EnumeratePhysicalDevices(m_instance);
     VkPhysicalDevice physicalDevice = PickPhysicalDevice(devices.ToSpan());
 
     /* Find and set up an adequate GPU for rendering and presentation */

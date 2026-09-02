@@ -121,10 +121,10 @@ static VkDescriptorSetLayout CreateVkDescriptorSetLayout(VulkanDevice* device, c
         | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
         | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
 
-    Array<VkDescriptorSetLayoutBinding, VulkanTempAllocator> bindings;
+    Array<VkDescriptorSetLayoutBinding, VulkanAllocator> bindings;
     bindings.Reserve(layout.GetElements().Size());
 
-    Array<VkDescriptorBindingFlags, VulkanTempAllocator> bindingFlags;
+    Array<VkDescriptorBindingFlags, VulkanAllocator> bindingFlags;
     bindingFlags.Reserve(layout.GetElements().Size());
 
     bool isBindlessTextures = false;
@@ -437,7 +437,7 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VulkanDescriptor
 
     const uint32 descriptorsPerType = InitialDescriptorsPerTypePerPool * growthFactor;
 
-    Array<VkDescriptorPoolSize, VulkanTempAllocator> descriptorPoolSizes = {
+    Array<VkDescriptorPoolSize, VulkanAllocator> descriptorPoolSizes = {
         { VK_DESCRIPTOR_TYPE_SAMPLER, descriptorsPerType },
         { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, (reqs & VDPR_BindlessTextures) ? MaxBindlessResources[BindlessStorage_Textures] * maxSets : descriptorsPerType },
         { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, descriptorsPerType },
@@ -1540,10 +1540,10 @@ void VulkanRenderInterface::ResolveGpuFrameResults(uint32 completedFrameIndex)
 
 void VulkanRenderInterface::ReleaseTransientMemory()
 {
-    // must happen before arena is reset or it's corruption city!
-    GetCurrentFrame()->ResetTransientStates();
+    VulkanFrame* frame = GetCurrentFrame();
+    Assert(frame != nullptr);
 
-    g_vulkanArena->Reset();
+    frame->ResetTransientStates();
 }
 
 VkSurfaceKHR VulkanRenderInterface::CreateSurface(ApplicationWindow* window, IDummyVulkanSurfaceContext** ppOutDummySurfaceContext)

@@ -89,8 +89,8 @@ private:
     RendererResult Rebuild() override;
 
     void BuildVertexAttributes(
-        Array<VkVertexInputAttributeDescription, VulkanTempAllocator>& outVkVertexAttributes,
-        Array<VkVertexInputBindingDescription, VulkanTempAllocator>& outVkVertexBindingDescriptions);
+        Array<VkVertexInputAttributeDescription, VulkanAllocator>& outVkVertexAttributes,
+        Array<VkVertexInputBindingDescription, VulkanAllocator>& outVkVertexBindingDescriptions);
 
     void UpdateViewport(VulkanCommandBuffer* commandBuffer, const Viewport& viewport);
 

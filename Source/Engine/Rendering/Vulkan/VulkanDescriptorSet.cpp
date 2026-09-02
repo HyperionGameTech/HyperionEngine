@@ -236,7 +236,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
         }
     }
 
-    Array<VulkanCachedDescriptor, VulkanTempAllocator> localDescriptors;
+    Array<VulkanCachedDescriptor, VulkanAllocator> localDescriptors;
 
     // detect changes from cachedValues
     for (auto& it : m_elements)
@@ -459,10 +459,10 @@ void VulkanDescriptorSet::Update(bool force)
         return;
     }
 
-    Array<VkWriteDescriptorSet, VulkanTempAllocator> vkWriteDescriptorSets;
+    Array<VkWriteDescriptorSet, VulkanAllocator> vkWriteDescriptorSets;
     vkWriteDescriptorSets.Resize(m_pendingDescriptors.Size());
 
-    Array<VkWriteDescriptorSetAccelerationStructureKHR, VulkanTempAllocator> vkWriteDescriptorSetAccelerationStructures;
+    Array<VkWriteDescriptorSetAccelerationStructureKHR, VulkanAllocator> vkWriteDescriptorSetAccelerationStructures;
 
     for (size_t i = 0; i < vkWriteDescriptorSets.Size(); i++)
     {

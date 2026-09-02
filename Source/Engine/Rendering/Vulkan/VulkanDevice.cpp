@@ -508,8 +508,8 @@ void VulkanDevice::InitQueueFamilies(VkSurfaceKHR surface)
 
     const bool needPresentation = surface != VK_NULL_HANDLE;
 
-    Array<VulkanDeviceQueue, VulkanTempAllocator> queues;
-    Array<VulkanDeviceQueue**, VulkanTempAllocator> queueMembers;
+    Array<VulkanDeviceQueue, VulkanAllocator> queues;
+    Array<VulkanDeviceQueue**, VulkanAllocator> queueMembers;
 
     queues.PushBack({
         .type = VulkanDeviceQueueType::GRAPHICS,

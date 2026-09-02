@@ -212,12 +212,12 @@ RendererResult VulkanRenderPass::Create()
 {
     CreateDependencies();
 
-    Array<VkAttachmentDescription, VulkanTempAllocator> vkAttachmentDescriptions;
+    Array<VkAttachmentDescription, VulkanAllocator> vkAttachmentDescriptions;
     vkAttachmentDescriptions.Reserve(m_framebufferDesc.numAttachments);
 
     VkAttachmentReference depthAttachmentReference {};
 
-    Array<VkAttachmentReference, VulkanTempAllocator> colorAttachmentReferences;
+    Array<VkAttachmentReference, VulkanAllocator> colorAttachmentReferences;
     colorAttachmentReferences.Reserve(4);
 
     VkSubpassDescription subpassDescription {};

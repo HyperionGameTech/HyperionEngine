@@ -299,8 +299,8 @@ private:
 
     RendererResult Rebuild(RTUpdateStateFlags& outUpdateStateFlags);
 
-    Array<VkAccelerationStructureGeometryKHR, VulkanTempAllocator> GetGeometries() const;
-    Array<uint32, VulkanTempAllocator> GetPrimitiveCounts() const;
+    Array<VkAccelerationStructureGeometryKHR, VulkanAllocator> GetGeometries() const;
+    Array<uint32, VulkanAllocator> GetPrimitiveCounts() const;
 
     RendererResult BuildInstancesBuffer();
     RendererResult BuildInstancesBuffer(uint32 first, uint32 last);

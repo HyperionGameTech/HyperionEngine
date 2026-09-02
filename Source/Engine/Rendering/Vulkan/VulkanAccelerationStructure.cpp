@@ -395,7 +395,7 @@ RendererResult VulkanASBase::CreateAccelerationStructure(
         {
             BuildAccelerationStructureCmd* cmdCasted = static_cast<BuildAccelerationStructureCmd*>(cmd);
 
-            Array<VkAccelerationStructureBuildRangeInfoKHR*, VulkanTempAllocator> rangeInfoPtrs;
+            Array<VkAccelerationStructureBuildRangeInfoKHR*, VulkanAllocator> rangeInfoPtrs;
             rangeInfoPtrs.Resize(cmdCasted->payload->numGeometries);
 
             for (uint32 i = 0; i < cmdCasted->payload->numGeometries; i++)
@@ -516,7 +516,7 @@ bool VulkanTopLevelAS::IsCreated() const
     return m_accelerationStructure != VK_NULL_HANDLE;
 }
 
-Array<VkAccelerationStructureGeometryKHR, VulkanTempAllocator> VulkanTopLevelAS::GetGeometries() const
+Array<VkAccelerationStructureGeometryKHR, VulkanAllocator> VulkanTopLevelAS::GetGeometries() const
 {
     Assert(m_instancesBuffer != nullptr && m_instancesBuffer->IsCreated());
 
@@ -532,7 +532,7 @@ Array<VkAccelerationStructureGeometryKHR, VulkanTempAllocator> VulkanTopLevelAS:
     };
 }
 
-Array<uint32, VulkanTempAllocator> VulkanTopLevelAS::GetPrimitiveCounts() const
+Array<uint32, VulkanAllocator> VulkanTopLevelAS::GetPrimitiveCounts() const
 {
     return { uint32(m_blases.Size()) };
 }
@@ -564,8 +564,8 @@ RendererResult VulkanTopLevelAS::Create()
 
     RTUpdateStateFlags updateStateFlags = RT_UPDATE_STATE_FLAGS_NONE;
 
-    Array<VkAccelerationStructureGeometryKHR, VulkanTempAllocator> geometries = GetGeometries();
-    Array<uint32, VulkanTempAllocator> primitiveCounts = GetPrimitiveCounts();
+    Array<VkAccelerationStructureGeometryKHR, VulkanAllocator> geometries = GetGeometries();
+    Array<uint32, VulkanAllocator> primitiveCounts = GetPrimitiveCounts();
 
     CheckResultOrReturn(CreateAccelerationStructure(GetType(), geometries, primitiveCounts, false, updateStateFlags));
 
@@ -718,7 +718,7 @@ RendererResult VulkanTopLevelAS::BuildInstancesBuffer(uint32 first, uint32 last)
         last = uint32(m_blases.Size());
     }
 
-    Array<VkAccelerationStructureInstanceKHR, VulkanTempAllocator> instances;
+    Array<VkAccelerationStructureInstanceKHR, VulkanAllocator> instances;
     instances.Resize(last - first);
 
     for (uint32 i = first; i < last; i++)
@@ -769,7 +769,7 @@ RendererResult VulkanTopLevelAS::BuildMeshDescriptionsBuffer(uint32 first, uint3
         return RendererResult();
     }
 
-    Array<MeshDescription, VulkanTempAllocator> meshDescriptions;
+    Array<MeshDescription, VulkanAllocator> meshDescriptions;
     meshDescriptions.Resize(last - first);
 
     for (uint32 i = first; i < last; i++)
@@ -839,8 +839,8 @@ RendererResult VulkanTopLevelAS::UpdateStructure(RTUpdateStateFlags& outUpdateSt
         CheckResultOrReturn(BuildInstancesBuffer(dirtyRange.GetStart(), dirtyRange.GetEnd()));
         CheckResultOrReturn(BuildMeshDescriptionsBuffer(dirtyRange.GetStart(), dirtyRange.GetEnd()));
 
-        Array<VkAccelerationStructureGeometryKHR, VulkanTempAllocator> geometries = GetGeometries();
-        Array<uint32, VulkanTempAllocator> primitiveCounts = GetPrimitiveCounts();
+        Array<VkAccelerationStructureGeometryKHR, VulkanAllocator> geometries = GetGeometries();
+        Array<uint32, VulkanAllocator> primitiveCounts = GetPrimitiveCounts();
 
         CheckResultOrReturn(CreateAccelerationStructure(GetType(), geometries, primitiveCounts, true, outUpdateStateFlags));
 
@@ -873,8 +873,8 @@ RendererResult VulkanTopLevelAS::Rebuild(RTUpdateStateFlags& outUpdateStateFlags
     CheckResultOrReturn(BuildInstancesBuffer());
     outUpdateStateFlags |= RT_UPDATE_STATE_FLAGS_UPDATE_INSTANCES;
 
-    Array<VkAccelerationStructureGeometryKHR, VulkanTempAllocator> geometries = GetGeometries();
-    Array<uint32, VulkanTempAllocator> primitiveCounts = GetPrimitiveCounts();
+    Array<VkAccelerationStructureGeometryKHR, VulkanAllocator> geometries = GetGeometries();
+    Array<uint32, VulkanAllocator> primitiveCounts = GetPrimitiveCounts();
 
     CheckResultOrReturn(CreateAccelerationStructure(
         GetType(),
@@ -934,8 +934,8 @@ RendererResult VulkanBottomLevelAS::Create()
 
     RendererResult result;
 
-    Array<VkAccelerationStructureGeometryKHR, VulkanTempAllocator> geometries(m_geometries.Size());
-    Array<uint32, VulkanTempAllocator> primitiveCounts(m_geometries.Size());
+    Array<VkAccelerationStructureGeometryKHR, VulkanAllocator> geometries(m_geometries.Size());
+    Array<uint32, VulkanAllocator> primitiveCounts(m_geometries.Size());
 
     if (m_geometries.Empty())
     {
