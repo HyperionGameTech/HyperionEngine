@@ -43,17 +43,10 @@ namespace Hyperion {
 
 extern uint32 GetFrameCounter();
 
-static constexpr Vec2u DefaultSkyCubemapDimensions = Vec2u { 128, 128 };
 static constexpr ClockTimer::TickUnit DynamicSkyUpdateTimer = ClockTimer::TickUnit(1.0f); // update every second
 
 DynamicSkySystem::DynamicSkySystem()
-    : DynamicSkySystem(DefaultSkyCubemapDimensions)
-{
-}
-
-DynamicSkySystem::DynamicSkySystem(Vec2u dimensions)
-    : m_dimensions(dimensions),
-      m_updateTimer { DynamicSkyUpdateTimer },
+    : m_updateTimer { DynamicSkyUpdateTimer },
       m_lastFrame(UINT32_MAX)
 {
 }
@@ -126,7 +119,10 @@ void DynamicSkySystem::InitializeSky()
         m_visScene->SetIsTransient(true); // don't save; it's generated at runtime
         m_visScene->GetRoot()->AddChild(m_skyboxEntity);
 
-        m_envProbe = m_renderScene->GetEntityManager()->AddEntity<SkyProbe>(BoundingBox(Vec3f(-100.0f), Vec3f(100.0f)), m_dimensions);
+        m_envProbe = m_renderScene->GetEntityManager()->AddEntity<SkyProbe>(
+            BoundingBox(Vec3f(-100.0f), Vec3f(100.0f)),
+            SkyProbe::DefaultDimensions);
+
         m_envProbe->SetName(NAME("DynamicSkyProbe"));
         InitObject(m_envProbe);
 

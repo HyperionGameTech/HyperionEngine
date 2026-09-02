@@ -84,7 +84,10 @@ public:
     static constexpr uint32 VisibilityTextureDimensions = 64;
     static constexpr EnvProbeDimensions DefaultDimensions = EnvProbeDimensions::Dim128;
 
+    static EnvProbeDimensions GetDefaultDimensions(EnvProbeType envProbeType);
+
     EnvProbe();
+
     explicit EnvProbe(EnvProbeType envProbeType);
     EnvProbe(EnvProbeType envProbeType, const BoundingBox& aabb, EnvProbeDimensions dimensions);
 

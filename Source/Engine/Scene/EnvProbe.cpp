@@ -48,10 +48,16 @@ static StaticShaderPropertyId s_propApplyLightmaps { ShaderProperty(NAME("APPLY_
 static StaticShaderPropertyId s_propWriteMoments { ShaderProperty(NAME("WRITE_MOMENTS")) };
 static StaticShaderPropertyId s_propWriteHitMask { ShaderProperty(NAME("WRITE_HIT_MASK")) };
 
-static constexpr EnumFlags<EnvProbeFlags> DefaultEnvProbeFlags[EPT_MAX] {
-    EPF_ORIGIN_FROM_CENTER,                                                             // sky
-    EPF_ORIGIN_FROM_CENTER | EPF_BAKED | EPF_VISIBILITY | EPF_HIT_MASK | EPF_PARALLAX_CORRECTED,         // reflection
-    EPF_ORIGIN_FROM_CENTER | EPF_BAKED | EPF_VISIBILITY | EPF_HIT_MASK                  // irradiance
+static constexpr EnumFlags<EnvProbeFlags> DefaultEnvProbeFlags[EPT_MAX] = {
+    EPF_ORIGIN_FROM_CENTER,                                                                                 // sky
+    EPF_ORIGIN_FROM_CENTER | EPF_BAKED | EPF_VISIBILITY | EPF_HIT_MASK | EPF_PARALLAX_CORRECTED,            // reflection
+    EPF_ORIGIN_FROM_CENTER | EPF_BAKED | EPF_VISIBILITY | EPF_HIT_MASK                                      // irradiance
+};
+
+static constexpr EnvProbeDimensions DefaultDimensionsByType[EPT_MAX] = {
+    SkyProbe::DefaultDimensions,
+    ReflectionProbe::DefaultDimensions,
+    IrradianceProbe::DefaultDimensions
 };
 
 static constexpr float EnvProbeCameraNearClip = 0.025f;
@@ -112,6 +118,11 @@ EnvProbe::~EnvProbe()
     }
 }
 
+EnvProbeDimensions EnvProbe::GetDefaultDimensions(EnvProbeType envProbeType)
+{
+    return DefaultDimensionsByType[uint32(envProbeType)];
+}
+
 void EnvProbe::SetDimensions(EnvProbeDimensions dimensions)
 {
     if (dimensions == m_dimensions)
@@ -121,15 +132,17 @@ void EnvProbe::SetDimensions(EnvProbeDimensions dimensions)
 
     m_dimensions = dimensions;
 
-    if (IsRealtime())
-    {
-        // destroy realtime capture data + textures
-        DestroyCaptureData();
-    }
-    // other (baked) will recreate textures upon bake
-    // NOTE: we need to check out what SkyProbe should do...
+    // Per-face capture framebuffers/views (and, per DestroyCaptureData()'s own rules, the
+    // persisted texture) are all sized off m_dimensions. CreateViewData() refuses to recreate
+    // views that already exist, so we have to tear everything down unconditionally here -
+    // regardless of realtime/baked/sky status - or a dimensions change silently gets ignored by
+    // the capture pipeline forever.
+    DestroyCaptureData();
 
-    if (!(m_envProbeFlags & (EPF_BAKED | EPF_PATH_TRACED)))
+    // CreateViewData() (called via InitCaptureData()) asserts against path-traced probes, which
+    // never use per-face views/framebuffers - they capture directly against the scene via ray
+    // tracing instead.
+    if (!(m_envProbeFlags & EPF_PATH_TRACED))
     {
         if (GetWorld() != nullptr)
         {
@@ -210,10 +223,17 @@ void EnvProbe::InitCaptureData()
             });
 
             m_texture->SetName(NAME_FMT("{}_ColorMap", GetName()));
+
+            if (IsSkyProbe())
+            {
+                // Sky's cubemap is realtime-rendered scratch data (matches SkyProbe::CreateTexture()),
+                // not a persisted bake asset - don't register it below.
+                m_texture->SetIsTransient(true);
+            }
         }
     }
 
-    if (m_texture.IsValid())
+    if (m_texture.IsValid() && !IsSkyProbe())
     {
         GetCurrentAssetRegistry()->PutAssetUnique(m_texture);
     }
@@ -236,7 +256,13 @@ void EnvProbe::DestroyCaptureData()
     RemoveCamera();
     DestroyViewData();
 
-    if (IsRealtime())
+    // A baked-and-not-realtime probe's texture gets rebuilt fresh at bake-completion time by the
+    // Baker, so there's no need to (and for the PT path, no reason to want to) destroy it here.
+    // Everything else - realtime probes, and probes like SkyProbe that eagerly own a persistent
+    // texture entirely outside the bake pipeline - has nothing else that will ever rebuild it,
+    // so it has to be torn down here or a resize (SetDimensions()) would leave it stuck at the
+    // old size forever.
+    if (IsRealtime() || !IsBaked())
     {
         EnqueueDeletion(std::move(m_texture));
         EnqueueDeletion(std::move(m_visibilityTexture));
@@ -730,6 +756,8 @@ void EnvProbe::DestroyViewData()
 
 void EnvProbe::BeginRasterCapture()
 {
+    SetDimensions(GetDefaultDimensions(m_envProbeType));
+
     const int32 numReadbacks = (ShouldComputeSphericalHarmonics() ? 1 : 0)
         + ((m_envProbeFlags & EPF_VISIBILITY) ? 1 : 0)
         + ((m_envProbeFlags & EPF_HIT_MASK) ? 1 : 0);
@@ -743,7 +771,7 @@ void EnvProbe::BeginRasterCapture()
 
 void EnvProbe::EndRasterCapture()
 {
-    //DestroyCaptureData();
+    DestroyCaptureData();
 }
 
 Vec3f EnvProbe::GetOrigin(bool fromCenter) const

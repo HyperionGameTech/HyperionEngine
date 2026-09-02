@@ -289,7 +289,11 @@ HYP_NODISCARD Name CreateFriendlyName(Name name)
     return CreateNameFromDynamicString(ANSIString(StringUtil::ToPascalCase(friendlyNameStr, true)));
 }
 
-static Result ConstructObjectFromManifest(ByteReader& stream, const FilePath& manifestPath, BoxedValue& outManifestData, HMF::ErrorList* outErrorList)
+static Result ConstructObjectFromManifest(
+    ByteReader& stream,
+    const FilePath& manifestPath,
+    BoxedValue& outManifestData,
+    HMF::ErrorList* outErrorList)
 {
     HMF::ParseResult parseResult = HMF::Parse(manifestPath, stream, outErrorList);
 
@@ -761,9 +765,20 @@ Handle<AssetObject> AssetRegistry::GetAsset(const AssetBucket& bucket, StringHas
 
     if (Result readManifestResult = ConstructObjectFromManifest(stream, manifestPath, objectBoxed, &errorList); readManifestResult.HasError())
     {
-        HYP_LOG(Assets, Warning, "Failed to read asset manifest: {}", readManifestResult.GetError().GetMessage());
+        String str;
+        errorList.WriteAllMessages(str);
+
+        HYP_LOG(Assets, Error, "Asset manifest failed to be read. Errors: {}", str);
 
         return Handle<AssetObject>::Null();
+    }
+
+    if (errorList.Size() != 0)
+    {
+        String str;
+        errorList.WriteAllMessages(str);
+
+        HYP_LOG(Assets, Warning, "Asset manifest read with errors and/or warnings. {}", str);
     }
 
     Result loadResult = AssetObject::Load(objectBoxed, assetObject);

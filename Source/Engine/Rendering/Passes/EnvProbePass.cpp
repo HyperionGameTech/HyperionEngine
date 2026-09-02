@@ -168,7 +168,7 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
     ConvolveProbeConstants constants {};
     constants.inImageDimensions = inTexture->GetExtent().GetXY();
 
-    const Vec2u extent = envProbe.GetDimensions();
+    const Vec2u extent = Vec2u(uint32(envProbe.GetDimensions()));
     const uint8 numMips = uint8(MathUtil::FastLog2(MathUtil::Max(extent.x, extent.y))) + 1;
 
     if (needsMipMapGeneration)
@@ -1121,7 +1121,7 @@ void EnvProbePassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     RenderSetup newRenderSetup = renderSetup.Fork();
     newRenderSetup.envProbe = nullptr;
-    newRenderSetup.viewport = Viewport { envProbe->GetDimensions() };
+    newRenderSetup.viewport = Viewport { Vec2u(uint32(envProbe->GetDimensions())) };
 
     ENGINE_STAT_GPU_SCOPE(&s_statDrawEnvProbe, &frame->cr);
 

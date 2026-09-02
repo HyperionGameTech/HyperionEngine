@@ -1154,7 +1154,7 @@ public:
 
         const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
 
-        Handle<ReflectionProbe> reflectionProbe = MakeHandle<ReflectionProbe>(BoundingBox(Vec3f(-10.0f), Vec3f(10.0f)), Vec2u(128, 128));
+        Handle<ReflectionProbe> reflectionProbe = MakeHandle<ReflectionProbe>(BoundingBox(Vec3f(-10.0f), Vec3f(10.0f)), ReflectionProbe::DefaultDimensions);
         reflectionProbe->SetName(activeScene->GetUniqueNodeNameT<ReflectionProbe>());
         reflectionProbe->SetIsBaked(true);
         reflectionProbe->SetWorldTranslation(insertionPoint);
@@ -1256,7 +1256,7 @@ public:
 
         const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
 
-        Handle<IrradianceProbe> irradianceProbe = MakeHandle<IrradianceProbe>(BoundingBox(Vec3f(-10.0f), Vec3f(10.0f)), Vec2u(8, 8));
+        Handle<IrradianceProbe> irradianceProbe = MakeHandle<IrradianceProbe>(BoundingBox(Vec3f(-10.0f), Vec3f(10.0f)), IrradianceProbe::DefaultDimensions);
         irradianceProbe->SetName(activeScene->GetUniqueNodeNameT<IrradianceProbe>());
         irradianceProbe->SetWorldTranslation(insertionPoint);
 

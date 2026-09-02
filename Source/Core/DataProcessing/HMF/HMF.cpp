@@ -25,7 +25,11 @@ static const FilePath s_inMemoryFilePath = FilePath("<memory-buffer>");
 
 namespace {
 
-ParseResult RunParse(const FilePath& filePath, ByteReader& reader, ErrorList* outErrors, BoxedValue* target = nullptr)
+ParseResult RunParse(
+    const FilePath& filePath,
+    ByteReader& reader,
+    ErrorList* outErrors,
+    BoxedValue* target = nullptr)
 {
     ErrorList errorList;
 
@@ -36,40 +40,19 @@ ParseResult RunParse(const FilePath& filePath, ByteReader& reader, ErrorList* ou
     lexer.Analyze();
 
     Parser parser(&tokenStream, &errorList, target);
-
-    ParseResult result = HYP_MAKE_ERROR(Error, "Failed due to unknown error");
+    
+    BoxedValue resultValue;
 
     if (target != nullptr)
     {
-        if (parser.Parse())
-        {
-            // ok
-            result = *target;
-        }
+        parser.Parse();
+
+        resultValue = *target;
     }
     else
     {
         // grab value from parse result
-        BoxedValue boxedResultValue;
-
-        if (parser.Parse(boxedResultValue, /* moveResult */ true))
-        {
-            result = std::move(boxedResultValue);
-        }
-    }
-
-    if (Failed(result))
-    {
-        if (errorList.Size() != 0)
-        {
-            const CompilerError& firstError = errorList[0];
-
-            result = HYP_MAKE_ERROR(Error, "{} in file {}, line {} col {}",
-                firstError.GetText(),
-                firstError.GetLocation().GetFileName(),
-                firstError.GetLocation().GetLine(),
-                firstError.GetLocation().GetColumn());
-        }
+        parser.Parse(resultValue, /* moveResult */ true);
     }
 
     if (outErrors)
@@ -77,7 +60,12 @@ ParseResult RunParse(const FilePath& filePath, ByteReader& reader, ErrorList* ou
         outErrors->Concatenate(errorList);
     }
 
-    return result;
+    if (!resultValue.IsValid())
+    {
+        return HYP_MAKE_ERROR(Error, "Parse failed");
+    }
+
+    return resultValue;
 }
 
 } // namespace anonymous

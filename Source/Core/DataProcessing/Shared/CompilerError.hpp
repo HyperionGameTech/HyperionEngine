@@ -76,6 +76,8 @@ class CORE_API CompilerError
     static const Map<ErrorMessage, String> s_errorMessageStrings;
 
 public:
+    using Level = ErrorLevel;
+
     template <typename... Args>
     CompilerError(ErrorLevel level, ErrorMessage msg, const SourceLocation& location, const Args&... args)
         : m_level(level),

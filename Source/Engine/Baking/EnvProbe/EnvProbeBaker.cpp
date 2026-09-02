@@ -30,12 +30,6 @@ namespace Hyperion {
 
 extern ENGINE_API const FilePath& GetTempDirectory();
 
-static constexpr EnvProbeDimensions DefaultEnvProbeDimensions[EPT_MAX] = {
-    SkyProbe::DefaultDimensions,
-    ReflectionProbe::DefaultDimensions,
-    IrradianceProbe::DefaultDimensions
-};
-
 namespace EnvProbeHelpers {
 
 void ConvolveEnvProbeCubemap(
@@ -99,6 +93,9 @@ Result Baker<EnvProbe>::Build_Internal()
     Assert(m_envProbe != nullptr);
 
     InitObject(m_envProbe);
+
+    m_envProbe->SetDimensions(EnvProbe::GetDefaultDimensions(m_envProbe->GetEnvProbeType()));
+
     m_bakeData = BakeData<EnvProbe>(m_bakeEntities, m_envProbe.Get());
 
     if (!PerformsRayTracing())
@@ -129,9 +126,9 @@ void Baker<EnvProbe>::OnCompleted_Internal()
     // prevent writing on other threads
     auto envProbeWriteScope = TUniqueResLock<EnvProbe>(*m_envProbe);
 
-    m_envProbe->SetDimensions(DefaultEnvProbeDimensions[m_envProbe->GetEnvProbeType()]);
-
-    const Vec2u dimensions = m_envProbe->GetDimensions();
+    // Dimensions were already normalized in Build_Internal(), before tracing ran, so what
+    // GetDimensions() returns here matches what m_bakeData was actually built/traced at.
+    const Vec2u dimensions = Vec2u(uint32(m_envProbe->GetDimensions()));
     AssertDebug(dimensions.Volume() > 0);
 
     // Convert lightmap data to bitmaps (6 faces stacked vertically)

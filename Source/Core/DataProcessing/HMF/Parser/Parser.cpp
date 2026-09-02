@@ -52,25 +52,31 @@ Parser::~Parser()
 
 bool Parser::Parse(BoxedValue& out, bool moveResult)
 {
-    if (!Parse())
+    const bool b = Parse();
+
+    if (b)
     {
-        return false;
+        // if parse succeed then target must *not* be null
+        Assert(m_target != nullptr);
     }
 
-    Assert(m_target != nullptr);
-
-    if (moveResult)
+    // .. but.. it can be non-null even if parse failed
+    // since we believe in second chances
+    if (m_target != nullptr)
     {
-        AssertDebug(m_ownsTarget);
+        if (moveResult)
+        {
+            AssertDebug(m_ownsTarget);
 
-        out = std::move(*m_target);
-    }
-    else
-    {
-        out = *m_target;
+            out = std::move(*m_target);
+        }
+        else
+        {
+            out = *m_target;
+        }
     }
 
-    return true;
+    return b;
 }
 
 bool Parser::Parse()
@@ -212,7 +218,10 @@ bool Parser::ParseObjectBody(const Class* cls, BoxedValue& target, const UTF8Str
         BoxedValue fieldValue;
         if (!ParseValue(fieldTypeInfo, fieldValue))
         {
-            return false;
+            // Failed to parse field value; continue so we don't stop the world on a fields' schema change or something
+            SkipValue();
+
+            continue;
         }
 
         if (member->GetMemberType() == MemberType::Property)

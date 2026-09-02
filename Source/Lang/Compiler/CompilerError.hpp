@@ -208,14 +208,17 @@ public:
     {
         return m_level;
     }
+    
     ErrorMessage GetMessage() const
     {
         return m_msg;
     }
+    
     const SourceLocation& GetLocation() const
     {
         return m_location;
     }
+
     const String& GetText() const
     {
         return m_text;

@@ -21,7 +21,7 @@ Result BakeData<EnvProbe>::Build()
     Assert(m_envProbe != nullptr);
 
     // texels need to be 6*resolution^2 in size
-    dimensions = Vec3u(m_envProbe->GetDimensions(), 1);
+    dimensions = Vec3u(Vec2u(uint32(m_envProbe->GetDimensions())), 1);
 
     AssertDebug(dimensions.Volume() > 0 && dimensions.x == dimensions.y,
                 "EnvProbe lightmap dimensions must be square and non-zero! Dimensions: {}", dimensions);

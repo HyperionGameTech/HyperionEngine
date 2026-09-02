@@ -23,7 +23,6 @@ class ENGINE_API DynamicSkySystem : public SystemBase
 
 public:
     DynamicSkySystem();
-    explicit DynamicSkySystem(Vec2u dimensions);
     virtual ~DynamicSkySystem() override;
 
     HYP_FORCE_INLINE const Handle<Texture>& GetCubemap() const
@@ -54,7 +53,6 @@ private:
         return { };
     }
 
-    Vec2u m_dimensions;
     Handle<Texture> m_cubemap;
 
     // For rendering the sky into the cubemap
