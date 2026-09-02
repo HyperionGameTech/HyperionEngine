@@ -39,6 +39,7 @@
 #include <Scene/EnvProbe.hpp>
 #include <Scene/Light.hpp>
 
+#include <Framework/EngineGlobals.hpp>
 #include <Framework/EngineStats.hpp>
 
 #include <Framework/Resources/ResourceBinder.hpp>
@@ -91,6 +92,37 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
 {
     Assert(inTexture != nullptr);
     Assert(!envProbe.IsAmbientProbe());
+
+    //// temp: dump the raw rendered cubemap before mip generation / convolution touch it,
+    //// so we can tell whether corruption is already present in the render output or only
+    //// shows up after the scratch-image mip/convolve step below.
+    {
+        GpuBufferRef tempReadbackBuffer;
+        inTexture->Readback(tempReadbackBuffer);
+
+        if (tempReadbackBuffer.IsValid())
+        {
+            const Vec3u extent = inTexture->GetExtent();
+
+            Bitmap_RGBA16F tempBitmap(extent.x, extent.y * 6);
+
+            const size_t faceByteSize = tempBitmap.GetByteSize() / 6;
+            AssertDebug(tempReadbackBuffer->Size() >= faceByteSize * 6);
+
+            ubyte* dst = tempBitmap.ToByteView().Data();
+
+            for (uint32 face = 0; face < 6; face++)
+            {
+                tempReadbackBuffer->Read(face * faceByteSize, faceByteSize, dst + face * faceByteSize);
+            }
+
+            FileByteWriter tempWriter(EngineGlobals::GetTempDirectory() / "TempEnvProbeRaster.bmp");
+            tempBitmap.Write(&tempWriter);
+            tempWriter.Close();
+
+            EnqueueDeletion(std::move(tempReadbackBuffer));
+        }
+    }
 
     // Alloc command recorder
     // we need to do this after we Create() the src texture,
@@ -393,6 +425,36 @@ static void ComputePrefilteredEnvMap(Frame* frame, const RenderSetup& renderSetu
 
 void ComputeEnvProbeSphericalHarmonics(const EnvProbe& envProbe, const Texture& inColorTexture)
 {
+    //// temp: dump exactly what the SH compute shader is about to read, so we can tell whether
+    //// bake-to-bake SH drift comes from the render output itself or from something in the SH pass.
+    {
+        GpuBufferRef tempReadbackBuffer;
+        const_cast<Texture&>(inColorTexture).Readback(tempReadbackBuffer);
+
+        if (tempReadbackBuffer.IsValid())
+        {
+            const Vec3u extent = inColorTexture.GetExtent();
+
+            Bitmap_RGBA16F tempBitmap(extent.x, extent.y * 6);
+
+            const size_t faceByteSize = tempBitmap.GetByteSize() / 6;
+            AssertDebug(tempReadbackBuffer->Size() >= faceByteSize * 6);
+
+            ubyte* dst = tempBitmap.ToByteView().Data();
+
+            for (uint32 face = 0; face < 6; face++)
+            {
+                tempReadbackBuffer->Read(face * faceByteSize, faceByteSize, dst + face * faceByteSize);
+            }
+
+            FileByteWriter tempWriter(EngineGlobals::GetTempDirectory() / HYP_FORMAT("TempEnvProbeSHInput_{}.bmp", envProbe.GetName()));
+            tempBitmap.Write(&tempWriter);
+            tempWriter.Close();
+
+            EnqueueDeletion(std::move(tempReadbackBuffer));
+        }
+    }
+
     static constexpr bool UseAsyncCompute = false;
 
     bool useAsyncCompute = UseAsyncCompute;

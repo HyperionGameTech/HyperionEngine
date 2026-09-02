@@ -57,10 +57,16 @@ struct BufferAllocatorImpl
             ++it;
         }
 
-        // Recycle buffers that were used in the frame
+        // Recycle buffers that were in a frame long enough ago that we won't trip over it.
         for (auto it = usedBuffers.Begin(); it != usedBuffers.End();)
         {
             CachedStructuredBuffer& usedBuffer = *it;
+
+            if (int64(prevFrameIndex) - int64(usedBuffer.lastUsedFrame) < int64(NumFramesInFlight))
+            {
+                break;
+            }
+
             cachedBuffers.PushBack(std::move(usedBuffer));
 
             it = usedBuffers.Erase(it);

@@ -18,21 +18,38 @@ namespace Hyperion {
 #pragma region ScratchImageAllocator
 
 static constexpr bool UseNextPowerOfTwoExtent = true;
-static constexpr uint32 MaxFramesBeforeDiscard = NumFramesInFlight;
+static constexpr uint32 MaxFramesBeforeDiscard = 100;
 
 struct ScratchImageAllocatorImpl
 {
     struct CachedScratchImage
     {
-        TextureType type = TextureType::Texture2D;
-        TextureFormat format = TextureFormat::RGBA8;
-        Vec3u extent = Vec3u::One();
-        Vec3u alignedExtent = Vec3u::One();
-        uint32 lastUsedFrame = 0;
+        TextureType type;
+        TextureFormat format;
+        Vec3u extent;
+        Vec3u alignedExtent;
+        uint32 lastUsedFrame;
         Handle<Texture> texture;
+
+        // cachedImages is kept sorted by this ordering so AcquireScratchImage() can LowerBound()
+        // straight to the first plausible (type, format) group instead of scanning the whole cache.
+        HYP_FORCE_INLINE bool operator<(const CachedScratchImage& other) const
+        {
+            if (type != other.type)
+            {
+                return type < other.type;
+            }
+
+            if (format != other.format)
+            {
+                return format < other.format;
+            }
+
+            return alignedExtent.Volume() < other.alignedExtent.Volume();
+        }
     };
 
-    List<CachedScratchImage, RenderAllocator> cachedImages;
+    Array<CachedScratchImage, RenderAllocator> cachedImages;
     List<CachedScratchImage, RenderAllocator> usedImages;
 
     SharedMutex mutex;
@@ -62,13 +79,22 @@ struct ScratchImageAllocatorImpl
             ++it;
         }
 
-        for (auto it = usedImages.Begin(); it != usedImages.End();)
+        // usedImages is populated in strictly non-decreasing lastUsedFrame order (frameIndex only
+        // increases across acquisitions), so we can stop at the first entry that isn't old enough
+        // yet instead of scanning the whole list.
+        while (!usedImages.Empty())
         {
-            CachedScratchImage& usedImage = *it;
+            CachedScratchImage& usedImage = usedImages.Front();
 
-            cachedImages.PushBack(std::move(usedImage));
+            if (int64(prevFrameIndex) - int64(usedImage.lastUsedFrame) < int64(NumFramesInFlight))
+            {
+                break;
+            }
 
-            it = usedImages.Erase(it);
+            auto lowerBoundIt = cachedImages.LowerBound(usedImage);
+            cachedImages.Insert(lowerBoundIt, std::move(usedImage));
+
+            usedImages.PopFront();
         }
     }
 
@@ -82,25 +108,40 @@ struct ScratchImageAllocatorImpl
 
         TUniqueLock lock(mutex);
 
-        for (auto it = cachedImages.Begin(); it != cachedImages.End(); ++it)
+        CachedScratchImage searchKey {};
+        searchKey.type = type;
+        searchKey.format = format;
+        searchKey.alignedExtent = alignedExtent;
+
+        // cachedImages is sorted by (type, format, volume) - LowerBound() jumps straight to the
+        // first entry that could possibly satisfy this request.
+        for (auto it = cachedImages.LowerBound(searchKey); it != cachedImages.End(); ++it)
         {
-            if (it->type == type
-                && it->format == format
-                && it->alignedExtent.x >= alignedExtent.x
+            if (it->type != type || it->format != format)
+            {
+                // Past this (type, format) group entirely - no later entry can match either.
+                break;
+            }
+
+            if (it->alignedExtent.x >= alignedExtent.x
                 && it->alignedExtent.y >= alignedExtent.y
                 && it->alignedExtent.z >= alignedExtent.z)
             {
-                CachedScratchImage& entry = usedImages.PushBack(std::move(*it));
+                CachedScratchImage entry = std::move(*it);
                 entry.lastUsedFrame = frameIndex;
 
                 cachedImages.Erase(it);
 
-                return entry.texture;
+                Handle<Texture> texture = entry.texture;
+                usedImages.PushBack(std::move(entry));
+
+                return texture;
             }
         }
 
         CachedScratchImage& newEntry = usedImages.EmplaceBack();
 
+        newEntry = {};
         newEntry.lastUsedFrame = frameIndex;
         newEntry.type = type;
         newEntry.format = format;

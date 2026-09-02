@@ -418,7 +418,7 @@ PSOutput PSMain(PSInput input)
             float shBands[9];
             ProjectSHBands(N, shBands);
 
-            indirectLight = diffuseColor * EnvProbeSH(fallbackProbe, shBands);
+            // indirectLight = diffuseColor * EnvProbeSH(fallbackProbe, shBands);
         }
 
         output.output_color.rgb = saturate(directLight + indirectLight);

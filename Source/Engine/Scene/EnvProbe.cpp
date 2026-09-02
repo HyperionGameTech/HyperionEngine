@@ -77,11 +77,11 @@ EnvProbe::EnvProbe()
 }
 
 EnvProbe::EnvProbe(EnvProbeType envProbeType)
-    : EnvProbe(envProbeType, BoundingBox(Vec3f(-25.0f), Vec3f(25.0f)), Vec2u { 128, 128 })
+    : EnvProbe(envProbeType, BoundingBox(Vec3f(-25.0f), Vec3f(25.0f)), DefaultDimensions)
 {
 }
 
-EnvProbe::EnvProbe(EnvProbeType envProbeType, const BoundingBox& aabb, const Vec2u& dimensions)
+EnvProbe::EnvProbe(EnvProbeType envProbeType, const BoundingBox& aabb, EnvProbeDimensions dimensions)
     : m_dimensions(dimensions),
       m_envProbeType(envProbeType),
       m_envProbeFlags(DefaultEnvProbeFlags[envProbeType]),
@@ -110,6 +110,41 @@ EnvProbe::~EnvProbe()
     {
         EnqueueDeletion(std::move(m_texture));
     }
+}
+
+void EnvProbe::SetDimensions(EnvProbeDimensions dimensions)
+{
+    if (dimensions == m_dimensions)
+    {
+        return;
+    }
+
+    m_dimensions = dimensions;
+
+    if (IsRealtime())
+    {
+        // destroy realtime capture data + textures
+        DestroyCaptureData();
+    }
+    // other (baked) will recreate textures upon bake
+    // NOTE: we need to check out what SkyProbe should do...
+
+    if (!(m_envProbeFlags & (EPF_BAKED | EPF_PATH_TRACED)))
+    {
+        if (GetWorld() != nullptr)
+        {
+            InitCaptureData();
+        }
+    }
+
+    // needs a re-render
+    Invalidate(true);
+
+    // needs editor to save it again
+    MarkDirty();
+
+    // and update the proxy, rebind the textures.
+    SetNeedsRenderProxyUpdate();
 }
 
 void EnvProbe::SetDiffuseStrength(float diffuseStrength)
@@ -161,15 +196,18 @@ void EnvProbe::InitCaptureData()
     {
         if (!m_texture.IsValid())
         {
+            Assert(uint32(m_dimensions) > 0);
+
             m_texture = MakeHandle<Texture>(TextureDesc {
                 TextureType::Cubemap,
                 TextureFormat::RGBA16F,
-                Vec3u { m_dimensions, 1 },
+                Vec3u(Vec2u(uint32(m_dimensions)), 1),
                 TFM_LINEAR_MIPMAP,
                 TFM_LINEAR,
                 TWM_CLAMP_TO_EDGE,
                 1,
-                IU_STORAGE | IU_SAMPLED });
+                IU_STORAGE | IU_SAMPLED
+            });
 
             m_texture->SetName(NAME_FMT("{}_ColorMap", GetName()));
         }
@@ -230,7 +268,7 @@ void EnvProbe::CreateCamera()
     {
         Handle<Camera> camera = MakeHandle<Camera>(
             90.0f,
-            int(m_dimensions.x), int(m_dimensions.y),
+            uint32(m_dimensions), uint32(m_dimensions),
             EnvProbeCameraNearClip, worldBounds.GetRadius());
 
         camera->SetName(NAME_FMT("{}_Capture", GetName()));
@@ -485,7 +523,7 @@ void EnvProbe::CreateViewData()
     Array<GpuImageRef> attachmentImages;
 
     FramebufferDesc framebufferDesc {};
-    framebufferDesc.extent = Vec2u(m_dimensions);
+    framebufferDesc.extent = Vec2u(uint32(m_dimensions));
     framebufferDesc.numAttachments = 0;
     framebufferDesc.numLayers = 6;
 
@@ -993,7 +1031,7 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
     bufferData.aabbMin = Vec4f(worldBounds.min, m_camera ? m_camera->GetNearClip() : EnvProbeCameraNearClip);
     bufferData.aabbMax = Vec4f(worldBounds.max, m_camera ? m_camera->GetFarClip() : worldBounds.GetRadius());
     bufferData.worldPosition = Vec4f(GetWorldTranslation(), diffuseContributionWeight);
-    bufferData.dimensions = Vec2u { m_dimensions.x, m_dimensions.y };
+    bufferData.dimensions = Vec2u(uint32(m_dimensions));
     bufferData.typeAndFlags = uint32(m_envProbeType) | (uint32(m_envProbeFlags) << 3);
 
     // Update Spherical Harmonics data.
@@ -1133,7 +1171,7 @@ void SkyProbe::CreateTexture()
     m_texture = MakeHandle<Texture>(TextureDesc {
         TextureType::Cubemap,
         TextureFormat::RGBA16F,
-        Vec3u { m_dimensions.x, m_dimensions.y, 1 },
+        Vec3u(Vec2u(uint32(m_dimensions)), 1),
         TFM_LINEAR_MIPMAP,
         TFM_LINEAR,
         TWM_CLAMP_TO_EDGE,

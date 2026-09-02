@@ -30,6 +30,12 @@ namespace Hyperion {
 
 extern ENGINE_API const FilePath& GetTempDirectory();
 
+static constexpr EnvProbeDimensions DefaultEnvProbeDimensions[EPT_MAX] = {
+    SkyProbe::DefaultDimensions,
+    ReflectionProbe::DefaultDimensions,
+    IrradianceProbe::DefaultDimensions
+};
+
 namespace EnvProbeHelpers {
 
 void ConvolveEnvProbeCubemap(
@@ -122,6 +128,8 @@ void Baker<EnvProbe>::OnCompleted_Internal()
 
     // prevent writing on other threads
     auto envProbeWriteScope = TUniqueResLock<EnvProbe>(*m_envProbe);
+
+    m_envProbe->SetDimensions(DefaultEnvProbeDimensions[m_envProbe->GetEnvProbeType()]);
 
     const Vec2u dimensions = m_envProbe->GetDimensions();
     AssertDebug(dimensions.Volume() > 0);

@@ -67,6 +67,14 @@ enum EnvProbeType : uint32
     EPT_MAX
 };
 
+HYP_ENUM()
+enum class EnvProbeDimensions : uint32
+{
+    Dim64 = 64,     //!< @title="64x64"
+    Dim128 = 128,   //!< @title="128x128"
+    Dim256 = 256    //!< @title="256x256"
+};
+
 HYP_CLASS()
 class ENGINE_API EnvProbe : public VolumeBase
 {
@@ -74,10 +82,11 @@ class ENGINE_API EnvProbe : public VolumeBase
 
 public:
     static constexpr uint32 VisibilityTextureDimensions = 64;
+    static constexpr EnvProbeDimensions DefaultDimensions = EnvProbeDimensions::Dim128;
 
     EnvProbe();
     explicit EnvProbe(EnvProbeType envProbeType);
-    EnvProbe(EnvProbeType envProbeType, const BoundingBox& aabb, const Vec2u& dimensions);
+    EnvProbe(EnvProbeType envProbeType, const BoundingBox& aabb, EnvProbeDimensions dimensions);
 
     EnvProbe(const EnvProbe& other) = delete;
     EnvProbe& operator=(const EnvProbe& other) = delete;
@@ -151,14 +160,12 @@ public:
 
     HYP_FORCE_INLINE bool ShouldComputePrefilteredEnvMap() const
     {
-        return (m_dimensions.Volume() > 1)
-            && (IsReflectionProbe() || IsSkyProbe());
+        return IsReflectionProbe() || IsSkyProbe();
     }
 
     HYP_FORCE_INLINE bool ShouldComputeSphericalHarmonics() const
     {
-        return (m_dimensions.Volume() > 1)
-            && (IsAmbientProbe() || IsSkyProbe());
+        return IsAmbientProbe() || IsSkyProbe();
     }
 
     HYP_FORCE_INLINE bool ShouldCreateHitMask() const
@@ -187,11 +194,15 @@ public:
     {
         return m_framebuffers[viewFramebufferIndex];
     }
-
-    HYP_FORCE_INLINE Vec2u GetDimensions() const
+    
+    HYP_METHOD(Property = "Dimensions")
+    HYP_FORCE_INLINE EnvProbeDimensions GetDimensions() const
     {
         return m_dimensions;
     }
+
+    HYP_METHOD(Property = "Dimensions")
+    void SetDimensions(EnvProbeDimensions dimensions);
 
     HYP_METHOD(Property = "DiffuseStrength")
     float GetDiffuseStrength() const
@@ -319,7 +330,7 @@ protected:
     void EnqueueViewsUpdate();
 
     HYP_FIELD(Property = "Dimensions", Editor = false, Serialize)
-    Vec2u m_dimensions;
+    EnvProbeDimensions m_dimensions;
 
     HYP_FIELD(Property = "EnvProbeType", Editor = false, Transient)
     EnvProbeType m_envProbeType;
@@ -362,9 +373,10 @@ public:
     ReflectionProbe()
         : EnvProbe(EPT_REFLECTION)
     {
+        m_dimensions = DefaultDimensions;
     }
 
-    ReflectionProbe(const BoundingBox& aabb, const Vec2u& dimensions)
+    ReflectionProbe(const BoundingBox& aabb, EnvProbeDimensions dimensions)
         : EnvProbe(EPT_REFLECTION, aabb, dimensions)
     {
     }
@@ -388,12 +400,12 @@ class ENGINE_API SkyProbe final : public EnvProbe
 
 public:
     SkyProbe()
-        : EnvProbe(EPT_SKY, BoundingBox(Vec3f(-100.0f), Vec3f(100.0f)), Vec2u(1, 1))
+        : EnvProbe(EPT_SKY, BoundingBox(Vec3f(-100.0f), Vec3f(100.0f)), DefaultDimensions)
     {
         CreateTexture();
     }
 
-    SkyProbe(const BoundingBox& aabb, const Vec2u& dimensions)
+    SkyProbe(const BoundingBox& aabb, EnvProbeDimensions dimensions)
         : EnvProbe(EPT_SKY, aabb, dimensions)
     {
         CreateTexture();
@@ -420,12 +432,15 @@ class ENGINE_API IrradianceProbe final : public EnvProbe
     HYP_OBJECT_BODY(IrradianceProbe);
 
 public:
+    static constexpr EnvProbeDimensions DefaultDimensions = EnvProbeDimensions::Dim64;
+
     IrradianceProbe()
         : EnvProbe(EPT_AMBIENT)
     {
+        m_dimensions = DefaultDimensions;
     }
 
-    IrradianceProbe(const BoundingBox& aabb, const Vec2u& dimensions)
+    IrradianceProbe(const BoundingBox& aabb, EnvProbeDimensions dimensions)
         : EnvProbe(EPT_AMBIENT, aabb, dimensions)
     {
     }
