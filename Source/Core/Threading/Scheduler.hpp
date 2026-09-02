@@ -35,10 +35,13 @@ class CORE_API SchedulerBase
 {
 public:
     SchedulerBase() = delete;
+    
     SchedulerBase(const SchedulerBase& other) = delete;
     SchedulerBase& operator=(const SchedulerBase& other) = delete;
+    
     SchedulerBase(SchedulerBase&& other) noexcept = delete;
     SchedulerBase& operator=(SchedulerBase&& other) noexcept = delete;
+
     virtual ~SchedulerBase() = default;
 
     HYP_FORCE_INLINE ThreadId GetOwnerThread() const
@@ -119,14 +122,15 @@ protected:
 
     uint32 m_idCounter = 0;
 
-    alignas(64) AtomicVar<uint32> m_numEnqueued { 0 };
-    alignas(64) AtomicFlag m_stopRequested;
+    AtomicVar<uint32> m_numEnqueued { 0 };
 
     mutable Mutex m_mutex;
     ConditionVariable m_hasTasksCV;
     ConditionVariable m_taskExecutedCV;
 
     ThreadId m_ownerThread;
+    
+    AtomicFlag m_stopRequested;
 };
 
 class Scheduler : public SchedulerBase

@@ -78,7 +78,9 @@ private:
     void Error(ErrorMessage msg, const SourceLocation& loc);
     void Error(ErrorMessage msg, const SourceLocation& loc, const String& arg1);
     void Error(ErrorMessage msg, const SourceLocation& loc, const String& arg1, const String& arg2);
+
     void Warning(ErrorMessage msg, const SourceLocation& loc, const String& arg1);
+    void Warning(ErrorMessage msg, const SourceLocation& loc, const String& arg1, const String& arg2);
 
     HYP_FORCE_INLINE Token Peek(int n = 0) const
     {

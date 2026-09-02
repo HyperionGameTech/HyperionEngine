@@ -229,7 +229,7 @@ bool Parser::ParseObjectBody(const Class* cls, BoxedValue& target, const UTF8Str
             if (!static_cast<const Property*>(member)->CanSet())
             {
                 // Dispatch warning and continue on
-                Warning(MSG_CANNOT_ASSIGN_PROPERTY, Peek().GetLocation(), cls->GetName().ToString() + "::" + member->GetName().ToString());
+                Warning(MSG_CANNOT_ASSIGN_PROPERTY, Peek().GetLocation(), member->GetName().ToString(), cls->GetName().ToString());
                 
                 continue;
             }
@@ -1548,6 +1548,11 @@ void Parser::Error(ErrorMessage msg, const SourceLocation& loc, const String& ar
 void Parser::Warning(ErrorMessage msg, const SourceLocation& loc, const String& arg1)
 {
     m_errorList->AddError(CompilerError(ErrorLevel::Warning, msg, loc, arg1));
+}
+
+void Parser::Warning(ErrorMessage msg, const SourceLocation& loc, const String& arg1, const String& arg2)
+{
+    m_errorList->AddError(CompilerError(ErrorLevel::Warning, msg, loc, arg1, arg2));
 }
 
 } // namespace Hyperion::DataProcessing::HMF

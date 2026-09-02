@@ -37,6 +37,7 @@ public:
 
     FastScheduler(const FastScheduler& other) = delete;
     FastScheduler& operator=(const FastScheduler& other) = delete;
+
     FastScheduler(FastScheduler&& other) noexcept = delete;
     FastScheduler& operator=(FastScheduler&& other) noexcept = delete;
 
@@ -283,11 +284,19 @@ private:
 
     RingSlot m_ringBuffer[RingBufferSize];
 
+    template <class T, size_t Padding = 64>
+    struct Padded : T
+    {
+        static constexpr size_t NumPaddingBytes = (Padding > sizeof(T) ? Padding - sizeof(T) : 1);
+
+        uint8 padding[NumPaddingBytes];
+    };
+
     // padded out to prevent false sharing.
-    alignas(64) AtomicVar<uint64> m_head { 0 }; // dequeue position (consumer / owner thread)
-    alignas(64) AtomicVar<uint64> m_tail { 0 }; // enqueue position (producers)
-    alignas(64) AtomicVar<uint32> m_fastIdCounter { 0 };
-    alignas(64) AtomicVar<uint32> m_wakeEpoch { 0 };
+    Padded<AtomicVar<uint64>> m_head { 0 }; // dequeue position (consumer / owner thread)
+    Padded<AtomicVar<uint64>> m_tail { 0 }; // enqueue position (producers)
+    Padded<AtomicVar<uint32>> m_fastIdCounter { 0 };
+    Padded<AtomicVar<uint32>> m_wakeEpoch { 0 };
 };
 
 } // namespace threading

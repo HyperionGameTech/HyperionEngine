@@ -41,11 +41,17 @@ void PhysicsSystem::OnEntityAdded(Entity* entity)
 
     RigidBodyComponent& rigidBodyComponent = entity->GetEntityManager()->GetComponent<RigidBodyComponent>(entity);
     TransformComponent& transformComponent = entity->GetEntityManager()->GetComponent<TransformComponent>(entity);
+
     if (!rigidBodyComponent.shape)
     {
+        auto isUsableBounds = [](const BoundingBox& bounds)
+        {
+            return bounds.IsValid() && bounds.IsFinite();
+        };
+
         BoundingBox boxBounds = entity->GetLocalBounds();
 
-        if (!boxBounds.IsValid())
+        if (!isUsableBounds(boxBounds))
         {
             if (MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>(); meshComponent != nullptr && meshComponent->mesh.IsValid())
             {
@@ -53,7 +59,7 @@ void PhysicsSystem::OnEntityAdded(Entity* entity)
             }
         }
 
-        if (!boxBounds.IsValid())
+        if (!isUsableBounds(boxBounds))
         {
             boxBounds = BoundingBox(Vec3f(-0.5f), Vec3f(0.5f));
         }

@@ -198,7 +198,17 @@ static JPH::RefConst<JPH::Shape> CreatePhysicsShapeHandle(PhysicsShape* physicsS
     {
     case PhysicsShapeType::Box:
     {
-        const BoundingBox& aabb = static_cast<BoxPhysicsShape*>(physicsShape)->GetAABB();
+        BoundingBox aabb = static_cast<BoxPhysicsShape*>(physicsShape)->GetAABB();
+
+        // Guards against e.g an entity's local bounds being infinite (directional lights) or a mesh AABB
+        // that hasn't been computed yet — an unbounded shape here trips Jolt's broadphase assertions.
+        // This runs on every shape rebuild (OnRigidBodyAdded and OnChangePhysicsShape), not just creation.
+        if (!aabb.IsValid() || !aabb.IsFinite())
+        {
+            HYP_LOG(Physics, Warning, "BoxPhysicsShape '{}' has invalid or non-finite bounds; falling back to a unit box", physicsShape->GetName());
+
+            aabb = BoundingBox(Vec3f(-0.5f), Vec3f(0.5f));
+        }
 
         const Vec3f halfExtent = aabb.GetExtent() * 0.5f * scale;
 
@@ -215,7 +225,14 @@ static JPH::RefConst<JPH::Shape> CreatePhysicsShapeHandle(PhysicsShape* physicsS
     }
     case PhysicsShapeType::Sphere:
     {
-        const BoundingSphere& sphere = static_cast<SpherePhysicsShape*>(physicsShape)->GetSphere();
+        BoundingSphere sphere = static_cast<SpherePhysicsShape*>(physicsShape)->GetSphere();
+
+        if (!sphere.IsValid() || !sphere.IsFinite())
+        {
+            HYP_LOG(Physics, Warning, "SpherePhysicsShape '{}' has invalid or non-finite bounds; falling back to a unit sphere", physicsShape->GetName());
+
+            sphere = BoundingSphere(Vec3f::Zero(), 0.5f);
+        }
 
         const float radiusScale = MathUtil::Max(MathUtil::Abs(scale.x), MathUtil::Abs(scale.y), MathUtil::Abs(scale.z));
 

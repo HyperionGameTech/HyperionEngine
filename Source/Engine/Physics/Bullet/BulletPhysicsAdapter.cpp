@@ -255,7 +255,16 @@ static SharedPtr<btCollisionShape> CreatePhysicsShapeHandle(PhysicsShape* physic
     {
     case PhysicsShapeType::Box:
     {
-        const BoundingBox& aabb = static_cast<BoxPhysicsShape*>(physicsShape)->GetAABB();
+        BoundingBox aabb = static_cast<BoxPhysicsShape*>(physicsShape)->GetAABB();
+
+        // guard against invalid aabb
+        if (!aabb.IsValid() || !aabb.IsFinite())
+        {
+            HYP_LOG(Physics, Warning, "BoxPhysicsShape '{}' has invalid or non-finite bounds; falling back to a unit box", physicsShape->GetName());
+
+            aabb = BoundingBox(Vec3f(-0.5f), Vec3f(0.5f));
+        }
+
         SharedPtr<btBoxShape> boxShape = MakeSharedWithAllocator<btBoxShape, PhysicsAllocator>(ToBtVector(aabb.GetExtent() * 0.5f * scale));
 
         // btBoxShape is centered on the body origin. If the AABB is off-center, embed the box in a
@@ -275,7 +284,14 @@ static SharedPtr<btCollisionShape> CreatePhysicsShapeHandle(PhysicsShape* physic
     }
     case PhysicsShapeType::Sphere:
     {
-        const BoundingSphere& sphere = static_cast<SpherePhysicsShape*>(physicsShape)->GetSphere();
+        BoundingSphere sphere = static_cast<SpherePhysicsShape*>(physicsShape)->GetSphere();
+
+        if (!sphere.IsValid() || !sphere.IsFinite())
+        {
+            HYP_LOG(Physics, Warning, "SpherePhysicsShape '{}' has invalid or non-finite bounds; falling back to a unit sphere", physicsShape->GetName());
+
+            sphere = BoundingSphere(Vec3f::Zero(), 0.5f);
+        }
 
         // Non-uniform scale can't be represented by a single radius.
         // calculate the max to ensure coverage.

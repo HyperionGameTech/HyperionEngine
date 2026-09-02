@@ -21,6 +21,38 @@
 
 namespace Hyperion {
 
+namespace {
+
+// WIN32 only. calls timeBeginPeriod/timeEndPeriod based on reference count.
+// these functions are only ever used in this source file so it lives in here.
+// if needed, could be moved to a platform-specific utility helper.
+#ifdef _WIN32
+struct SetTimerPeriodScope
+{
+    static int s_counter;
+
+    SetTimerPeriodScope()
+    {
+        if (s_counter++ == 0)
+        {
+            timeBeginPeriod(1);
+        }
+    }
+
+    ~SetTimerPeriodScope()
+    {
+        if (--s_counter == 0)
+        {
+            timeEndPeriod(1);
+        }
+    }
+};
+
+int SetTimerPeriodScope::s_counter = 0;
+#endif // _WIN32
+
+} // anonymous namespace
+
 FrameLimiter::FrameLimiter(int targetFps)
     : m_targetFps(targetFps)
 {
@@ -30,28 +62,38 @@ FrameLimiter::FrameLimiter(int targetFps)
     }
 
 #ifdef _WIN32
-    timeBeginPeriod(1);
-#endif
+    m_win32SetTimerPeriodState = MakePimpl<SetTimerPeriodScope>();
+#endif // _WIN32
 
     m_frameDuration = std::chrono::nanoseconds(1000000000LL / m_targetFps);
     m_nextFrameTime = Clock::now() + m_frameDuration;
 }
 
-FrameLimiter::~FrameLimiter()
-{
-#ifdef _WIN32
-    timeEndPeriod(1);
-#endif
-}
+FrameLimiter::~FrameLimiter() = default;
 
-void FrameLimiter::SetTargetFPS(int targetFps)
+void FrameLimiter::SetTargetRate(int targetFps)
 {
     if (m_targetFps == targetFps)
     {
         return;
     }
 
+    if (targetFps <= 0)
+    {
+        m_targetFps = 0;
+        m_win32SetTimerPeriodState.Reset();
+
+        return;
+    }
+
     targetFps = std::max(1, targetFps);
+
+#ifdef _WIN32
+    if (!m_win32SetTimerPeriodState)
+    {
+        m_win32SetTimerPeriodState = MakePimpl<SetTimerPeriodScope>();
+    }
+#endif // _WIN32
 
     m_frameDuration = std::chrono::nanoseconds(1000000000LL / targetFps);
     m_nextFrameTime = Clock::now() + m_frameDuration;

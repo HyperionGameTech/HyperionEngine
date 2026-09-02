@@ -14,42 +14,59 @@
 
 #include <Core/Memory/Allocator/Allocator.hpp>
 
-#include <Core/Utilities/ValueStorage.hpp>
+#include <Core/Utilities/ByteUtil.hpp>
 
 #include <Core/Types.hpp>
 #include <Core/Constants.hpp>
 
 #include <cstdlib>
+#include <cstddef>
+#include <new>
 
 namespace Hyperion {
 namespace memory {
 
+namespace detail {
+
+struct PimplHeader
+{
+    void (*destructObject)(void* pObj);
+};
+
+/// max_align_t is usually alignof(double) == 8 on x86_64.
+/// we use 16 for our alignment of Pimpl, since we have a lot of SIMD types used throughout the engine.
+inline constexpr size_t PimplMaxAlign = 16;
+
+inline constexpr size_t PimplObjectOffset = ByteUtil::AlignAs(sizeof(PimplHeader), PimplMaxAlign);
+
+HYP_FORCE_INLINE static PimplHeader* PimplHeaderOf(void* obj)
+{
+    return reinterpret_cast<PimplHeader*>(static_cast<char*>(obj) - PimplObjectOffset);
+}
+
+HYP_FORCE_INLINE static void* PimplBlockOf(void* obj)
+{
+    return static_cast<char*>(obj) - PimplObjectOffset;
+}
+
+} // namespace detail
+
 /*! Hides implementation from outside observers using the PIMPL pattern (pointer to implementation
- *   Bit like a UniquePtr, but simpler and more adapted to the use case. */
+ *   Bit like a UniquePtr, but users don't need to have the type's implementation at the source */
 template <class T>
 class Pimpl
 {
     template <class TOther>
     friend class Pimpl;
 
-    struct AllocationBase
-    {
-        void (*destructObject)(void*);
-    };
-
-    struct Allocation : AllocationBase
-    {
-        ValueStorage<T> storage;
-    };
-
 public:
     Pimpl()
-        : m_allocation(nullptr)
+        : m_ptr(nullptr)
     {
     }
 
     Pimpl(std::nullptr_t)
-        : m_allocation(nullptr)
+        : m_ptr(nullptr)
     {
     }
 
@@ -57,20 +74,20 @@ public:
     Pimpl& operator=(const Pimpl& other) = delete;
 
     Pimpl(Pimpl&& other) noexcept
-        : m_allocation(other.m_allocation)
+        : m_ptr(other.m_ptr)
     {
-        other.m_allocation = nullptr;
+        other.m_ptr = nullptr;
     }
 
     Pimpl& operator=(Pimpl&& other) noexcept
     {
-        if (m_allocation)
+        if (m_ptr)
         {
             Reset();
         }
 
-        m_allocation = other.m_allocation;
-        other.m_allocation = nullptr;
+        m_ptr = other.m_ptr;
+        other.m_ptr = nullptr;
 
         return *this;
     }
@@ -82,38 +99,37 @@ public:
 
     HYP_FORCE_INLINE explicit operator bool() const
     {
-        return m_allocation != nullptr;
+        return m_ptr != nullptr;
     }
 
     HYP_FORCE_INLINE bool operator!() const
     {
-        return m_allocation == nullptr;
+        return m_ptr == nullptr;
     }
 
     HYP_FORCE_INLINE bool operator==(const Pimpl& other) const
     {
-        return m_allocation == other.m_allocation;
+        return m_ptr == other.m_ptr;
     }
 
     HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
     {
-        return m_allocation == nullptr;
+        return m_ptr == nullptr;
     }
 
     HYP_FORCE_INLINE bool operator!=(const Pimpl& other) const
     {
-        return m_allocation != other.m_allocation;
+        return m_ptr != other.m_ptr;
     }
 
     HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
     {
-        return m_allocation != nullptr;
+        return m_ptr != nullptr;
     }
 
     HYP_FORCE_INLINE T* Get() const
     {
-        return m_allocation ? (static_cast<Allocation*>(m_allocation))->storage.GetPointer() : nullptr;
-        // return HYP_ALIGN_PTR_AS(reinterpret_cast<UIntPtr>(m_allocation) + offsetof(Allocation, storage), T);
+        return static_cast<T*>(m_ptr);
     }
 
     HYP_FORCE_INLINE T* operator->() const
@@ -128,7 +144,7 @@ public:
 
     HYP_FORCE_INLINE bool operator<(const Pimpl& other) const
     {
-        return UIntPtr(m_allocation) < UIntPtr(other.m_allocation);
+        return UIntPtr(m_ptr) < UIntPtr(other.m_ptr);
     }
 
     HYP_FORCE_INLINE void Reset(std::nullptr_t)
@@ -139,11 +155,11 @@ public:
     /*! \brief Destroys any currently held object.  */
     HYP_FORCE_INLINE void Reset()
     {
-        if (m_allocation)
+        if (m_ptr)
         {
-            m_allocation->destructObject(m_allocation);
+            detail::PimplHeaderOf(m_ptr)->destructObject(m_ptr);
 
-            m_allocation = nullptr;
+            m_ptr = nullptr;
         }
     }
 
@@ -167,30 +183,35 @@ public:
     template <class AllocatorType, class... Args>
     HYP_NODISCARD HYP_FORCE_INLINE static Pimpl ConstructWithAllocator(Args&&... args)
     {
+        static_assert(alignof(T) <= detail::PimplMaxAlign, "Pimpl<T> requires alignof(T) <= detail::PimplMaxAlign");
         static_assert(std::is_constructible_v<T, Args...>, "T must be constructible using the given args");
-        static_assert(std::is_trivial_v<Allocation>, "Allocation type must be trivial");
+
+        static constexpr size_t TotalSize = detail::PimplObjectOffset + sizeof(T);
+        static constexpr size_t BlockAlign = detail::PimplMaxAlign;
 
         AllocatorType* allocator = GetDefaultAllocatorInstance<AllocatorType>();
         HYP_CORE_ASSERT(allocator != nullptr);
 
-        Pimpl pimpl;
+        void* block = allocator->Allocate(TotalSize, BlockAlign);
+        HYP_CORE_ASSERT(block != nullptr);
 
-        Allocation* allocation = (Allocation*)allocator->Allocate(sizeof(Allocation), alignof(Allocation));
-        HYP_CORE_ASSERT(allocation != nullptr);
+        detail::PimplHeader* header = new (block) detail::PimplHeader;
 
-        allocation->destructObject = [](void* allocation)
+        header->destructObject = [](void* pObj)
         {
+            static_cast<T*>(pObj)->~T();
+
             AllocatorType* allocator = GetDefaultAllocatorInstance<AllocatorType>();
             HYP_CORE_ASSERT(allocator != nullptr);
 
-            static_cast<Allocation*>(allocation)->storage.Destruct();
-
-            allocator->Free(allocation);
+            // Free the whole block
+            allocator->Free(detail::PimplBlockOf(pObj));
         };
 
-        allocation->storage.Construct(std::forward<Args>(args)...);
+        T* obj = new (static_cast<char*>(block) + detail::PimplObjectOffset) T(std::forward<Args>(args)...);
 
-        pimpl.m_allocation = allocation;
+        Pimpl pimpl;
+        pimpl.m_ptr = obj;
 
         return pimpl;
     }
@@ -203,7 +224,133 @@ public:
     }
 
 private:
-    AllocationBase* m_allocation;
+    void* m_ptr;
+};
+
+/// void specialization
+template <>
+class Pimpl<void>
+{
+    template <class TOther>
+    friend class Pimpl;
+
+public:
+    Pimpl()
+        : m_ptr(nullptr)
+    {
+    }
+
+    Pimpl(std::nullptr_t)
+        : m_ptr(nullptr)
+    {
+    }
+
+    Pimpl(const Pimpl& other) = delete;
+    Pimpl& operator=(const Pimpl& other) = delete;
+
+    Pimpl(Pimpl&& other) noexcept
+        : m_ptr(other.m_ptr)
+    {
+        other.m_ptr = nullptr;
+    }
+
+    Pimpl& operator=(Pimpl&& other) noexcept
+    {
+        if (m_ptr)
+        {
+            Reset();
+        }
+
+        m_ptr = other.m_ptr;
+        other.m_ptr = nullptr;
+
+        return *this;
+    }
+
+    template <class Ty>
+    Pimpl(Pimpl<Ty>&& other) noexcept
+        : m_ptr(other.m_ptr)
+    {
+        other.m_ptr = nullptr;
+    }
+
+    template <class Ty>
+    Pimpl& operator=(Pimpl<Ty>&& other) noexcept
+    {
+        if (m_ptr)
+        {
+            Reset();
+        }
+
+        m_ptr = other.m_ptr;
+        other.m_ptr = nullptr;
+
+        return *this;
+    }
+
+    ~Pimpl()
+    {
+        Reset();
+    }
+
+    HYP_FORCE_INLINE explicit operator bool() const
+    {
+        return m_ptr != nullptr;
+    }
+
+    HYP_FORCE_INLINE bool operator!() const
+    {
+        return m_ptr == nullptr;
+    }
+
+    HYP_FORCE_INLINE bool operator==(const Pimpl& other) const
+    {
+        return m_ptr == other.m_ptr;
+    }
+
+    HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
+    {
+        return m_ptr == nullptr;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const Pimpl& other) const
+    {
+        return m_ptr != other.m_ptr;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
+    {
+        return m_ptr != nullptr;
+    }
+
+    HYP_FORCE_INLINE void* Get() const
+    {
+        return m_ptr;
+    }
+
+    HYP_FORCE_INLINE bool operator<(const Pimpl& other) const
+    {
+        return UIntPtr(m_ptr) < UIntPtr(other.m_ptr);
+    }
+
+    HYP_FORCE_INLINE void Reset(std::nullptr_t)
+    {
+        Reset();
+    }
+
+    /*! \brief Destroys any currently held object.  */
+    HYP_FORCE_INLINE void Reset()
+    {
+        if (m_ptr)
+        {
+            detail::PimplHeaderOf(m_ptr)->destructObject(m_ptr);
+
+            m_ptr = nullptr;
+        }
+    }
+
+private:
+    void* m_ptr;
 };
 
 template <class T, class AllocatorType = DynamicAllocator>
