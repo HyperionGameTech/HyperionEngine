@@ -196,9 +196,10 @@ RendererResult VulkanCommandBuffer::Submit(
     VulkanDeviceQueue* queue,
     VulkanFence* fence,
     Span<VulkanSemaphore*> waitSemaphores,
-    Span<VulkanSemaphore*> signalSemaphores)
+    Span<VulkanSemaphore*> signalSemaphores,
+    Span<VkPipelineStageFlags> waitStages)
 {
-    return Submit(queue, fence, waitSemaphores, signalSemaphores, nullptr, nullptr);
+    return Submit(queue, fence, waitSemaphores, signalSemaphores, nullptr, nullptr, waitStages);
 }
 
 RendererResult VulkanCommandBuffer::Submit(
@@ -207,9 +208,13 @@ RendererResult VulkanCommandBuffer::Submit(
     Span<VulkanSemaphore*> waitSemaphores,
     Span<VulkanSemaphore*> signalSemaphores,
     const uint64* waitValues,
-    const uint64* signalValues)
+    const uint64* signalValues,
+    Span<VkPipelineStageFlags> waitStages)
 {
     AssertOnThread(g_renderThread);
+
+    AssertDebug(waitStages.Size() == 0 || waitStages.Size() == waitSemaphores.Size(),
+        "must have one entry per wait semaphore when waitStages are present");
 
     VkSemaphore* signalSemaphoresVk = signalSemaphores.Size() > 0 ? (VkSemaphore*)StackAlloc(sizeof(VkSemaphore) * signalSemaphores.Size()) : nullptr;
 
@@ -219,12 +224,12 @@ RendererResult VulkanCommandBuffer::Submit(
     }
 
     VkSemaphore* waitSemaphoresVk = waitSemaphores.Size() > 0 ? (VkSemaphore*)StackAlloc(sizeof(VkSemaphore) * waitSemaphores.Size()) : nullptr;
-    VkPipelineStageFlags* waitStages = waitSemaphores.Size() > 0 ? (VkPipelineStageFlags*)StackAlloc(sizeof(VkPipelineStageFlags) * waitSemaphores.Size()) : nullptr;
+    VkPipelineStageFlags* waitStagesVk = waitSemaphores.Size() > 0 ? (VkPipelineStageFlags*)StackAlloc(sizeof(VkPipelineStageFlags) * waitSemaphores.Size()) : nullptr;
 
     for (uint32 i = 0; i < uint32(waitSemaphores.Size()); i++)
     {
         waitSemaphoresVk[i] = waitSemaphores[i]->GetVulkanHandle();
-        waitStages[i] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+        waitStagesVk[i] = i < uint32(waitStages.Size()) ? waitStages[i] : VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     }
 
     const bool useTimelineInfo = (waitValues != nullptr || signalValues != nullptr);
@@ -267,7 +272,7 @@ RendererResult VulkanCommandBuffer::Submit(
     {
         submitInfo.waitSemaphoreCount = uint32(waitSemaphores.Size());
         submitInfo.pWaitSemaphores = waitSemaphoresVk;
-        submitInfo.pWaitDstStageMask = waitStages;
+        submitInfo.pWaitDstStageMask = waitStagesVk;
     }
     else
     {

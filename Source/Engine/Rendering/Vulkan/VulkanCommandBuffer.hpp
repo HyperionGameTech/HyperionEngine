@@ -128,7 +128,8 @@ public:
         VulkanDeviceQueue* queue,
         VulkanFence* fence,
         Span<VulkanSemaphore*> waitSemaphores,
-        Span<VulkanSemaphore*> signalSemaphores);
+        Span<VulkanSemaphore*> signalSemaphores,
+        Span<VkPipelineStageFlags> waitStages = {});
 
     RendererResult Submit(
         VulkanDeviceQueue* queue,
@@ -136,7 +137,8 @@ public:
         Span<VulkanSemaphore*> waitSemaphores,
         Span<VulkanSemaphore*> signalSemaphores,
         const uint64* waitValues,
-        const uint64* signalValues);
+        const uint64* signalValues,
+        Span<VkPipelineStageFlags> waitStages = {});
 
     void BindVertexBuffer(const VulkanGpuBuffer* buffer) override;
     void BindIndexBuffer(const VulkanGpuBuffer* buffer, GpuElemType elemType = GET_UNSIGNED_INT) override;

@@ -1053,6 +1053,36 @@ void VulkanRenderInterface::PresentToSwapchain(VulkanSwapchain* swapchain)
         AssertDebug(waitSemaphore != nullptr && signalSemaphore != nullptr);
     }
 
+    VulkanSemaphore* transientSemaphore = nullptr;
+    
+    {
+        const uint32 transientFrameIndex = GetFrameCounter() % NumFramesInFlight;
+
+        Mutex::Guard guard(m_transientCommandBuffersMutex);
+
+        if (m_transientCommandBufferSemaphores[transientFrameIndex].Any())
+        {
+            transientSemaphore = &m_transientCommandBufferSemaphores[transientFrameIndex].Back();
+        }
+    }
+
+    VulkanSemaphore* waitSemaphoreCandidates[2] = { waitSemaphore, transientSemaphore };
+    VkPipelineStageFlags waitStageCandidates[2] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT };
+
+    VulkanSemaphore* waitSemaphoresCompact[2] = {};
+    VkPipelineStageFlags waitStagesCompact[2] = {};
+    uint32 numWaitSemaphores = 0;
+
+    for (uint32 i = 0; i < 2; i++)
+    {
+        if (waitSemaphoreCandidates[i] != nullptr)
+        {
+            waitSemaphoresCompact[numWaitSemaphores] = waitSemaphoreCandidates[i];
+            waitStagesCompact[numWaitSemaphores] = waitStageCandidates[i];
+            numWaitSemaphores++;
+        }
+    }
+
     const bool useTimeline = frame->IsUsingTimelineSemaphore();
     VulkanFence* submitFence = useTimeline ? nullptr : frame->GetFence();
 
@@ -1076,18 +1106,20 @@ void VulkanRenderInterface::PresentToSwapchain(VulkanSwapchain* swapchain)
         commandBuffer->Submit(
             presentQueue,
             submitFence,
-            Span<VulkanSemaphore*>(&waitSemaphore, waitSemaphore ? 1 : 0),
+            Span<VulkanSemaphore*>(waitSemaphoresCompact, numWaitSemaphores),
             Span<VulkanSemaphore*>(signalSemaphores, signalCount),
             nullptr,
-            signalValues);
+            signalValues,
+            Span<VkPipelineStageFlags>(waitStagesCompact, numWaitSemaphores));
     }
     else
     {
         commandBuffer->Submit(
             presentQueue,
             submitFence,
-            Span<VulkanSemaphore*>(&waitSemaphore, waitSemaphore ? 1 : 0),
-            Span<VulkanSemaphore*>(&signalSemaphore, signalSemaphore ? 1 : 0));
+            Span<VulkanSemaphore*>(waitSemaphoresCompact, numWaitSemaphores),
+            Span<VulkanSemaphore*>(&signalSemaphore, signalSemaphore ? 1 : 0),
+            Span<VkPipelineStageFlags>(waitStagesCompact, numWaitSemaphores));
     }
 
     if (swapchain != nullptr)
