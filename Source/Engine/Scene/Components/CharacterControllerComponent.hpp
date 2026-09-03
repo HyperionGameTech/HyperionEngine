@@ -107,6 +107,9 @@ struct CharacterControllerComponent
     HYP_FIELD(Property = "PushPredictionReleaseDelay", Serialize, Title = "Push Prediction Release Delay", Description = "Grace period after last contact before a locally-predicted pushed body is handed back to replication")
     float pushPredictionReleaseDelay = 0.25f;
 
+    HYP_FIELD(Property = "MinGroundSupportMass", Serialize, Title = "Min Ground Support Mass", Description = "Dynamic bodies lighter than this won't have their velocity treated as moving-platform footing, so a light pushable prop can't fling the character around when brushed or briefly stood on")
+    float minGroundSupportMass = 20.0f;
+
     HYP_FIELD(Transient)
     bool isOnGround = false;
 };

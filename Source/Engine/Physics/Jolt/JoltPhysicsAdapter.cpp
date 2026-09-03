@@ -192,6 +192,8 @@ struct JoltCharacterControllerInternalData
     float coyoteTime = 0.15f;
     float jumpBufferTime = 0.15f;
 
+    float minGroundSupportMass = 20.0f;
+
     float coyoteTimeRemaining = 0.0f;
     float jumpBufferTimeRemaining = 0.0f;
 
@@ -905,6 +907,7 @@ void JoltPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerCon
     internalData->fallGravityMultiplier = config.fallGravityMultiplier;
     internalData->coyoteTime = config.coyoteTime;
     internalData->jumpBufferTime = config.jumpBufferTime;
+    internalData->minGroundSupportMass = config.minGroundSupportMass;
 
     m_characterVsCharacterCollision->Add(internalData->character.GetPtr());
 
@@ -1031,13 +1034,40 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
     {
         const JPH::Vec3 currentVelocity = character->GetLinearVelocity();
 
-        const JPH::Vec3 groundVelocity = character->GetGroundVelocity();
+        const bool isGrounded = character->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround
+            && !character->IsSlopeTooSteep(character->GetGroundNormal());
+
+        JPH::Vec3 groundVelocity = character->GetGroundVelocity();
+
+        if (isGrounded)
+        {
+            const JPH::BodyID groundBodyID = character->GetGroundBodyID();
+
+            if (!groundBodyID.IsInvalid())
+            {
+                JPH::BodyLockRead groundLock(m_physicsSystem->GetBodyLockInterface(), groundBodyID);
+
+                if (groundLock.SucceededAndIsInBroadPhase())
+                {
+                    const JPH::Body& groundBody = groundLock.GetBody();
+
+                    if (groundBody.GetMotionType() == JPH::EMotionType::Dynamic)
+                    {
+                        const float groundInverseMass = groundBody.GetMotionProperties()->GetInverseMass();
+                        const float groundMass = groundInverseMass > MathUtil::epsilonF ? 1.0f / groundInverseMass : MathUtil::Infinity<float>();
+
+                        if (groundMass < internalData->minGroundSupportMass)
+                        {
+                            groundVelocity = JPH::Vec3::sZero();
+                        }
+                    }
+                }
+            }
+        }
+
         const JPH::Vec3 groundHorizontalVelocity = JPH::Vec3(groundVelocity.GetX(), 0.0f, groundVelocity.GetZ());
 
         const bool movingTowardsGround = (currentVelocity.GetY() - groundVelocity.GetY()) < 0.1f;
-
-        const bool isGrounded = character->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround
-            && !character->IsSlopeTooSteep(character->GetGroundNormal());
 
         if (isGrounded)
         {

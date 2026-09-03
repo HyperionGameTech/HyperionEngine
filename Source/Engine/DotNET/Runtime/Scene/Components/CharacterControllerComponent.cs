@@ -48,6 +48,7 @@ namespace Hyperion
         public float MaxPushSpeed;
         public float PushSpeedScale;
         public float PushPredictionReleaseDelay;
+        public float MinGroundSupportMass;
 
         [MarshalAs(UnmanagedType.I1)]
         public bool IsOnGround;

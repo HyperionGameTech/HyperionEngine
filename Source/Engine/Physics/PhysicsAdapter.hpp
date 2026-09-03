@@ -54,9 +54,9 @@ struct CharacterControllerConfig
     float maxPushSpeed = 1.5f;
     float pushSpeedScale = 1.0f;
 
-    // Grace period after the last character contact before a locally-predicted
-    // body is handed back to Kinematic and glided back onto the replication stream.
-    float pushPredictionReleaseDelay = 0.25f;
+    // Dynamic bodies lighter than this aren't trusted as moving-platform footing
+    // (Jolt only) - see JoltPhysicsAdapter::StepCharacterController.
+    float minGroundSupportMass = 20.0f;
 };
 
 template <class DerivedAdapter>
