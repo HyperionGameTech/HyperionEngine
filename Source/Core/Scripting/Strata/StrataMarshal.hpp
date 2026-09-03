@@ -8,6 +8,7 @@
 
 #include <Core/Memory/Memory.hpp>
 
+#include <Core/Math/Vector2.hpp>
 #include <Core/Math/Vector3.hpp>
 #include <Core/Math/Vector4.hpp>
 
@@ -57,6 +58,7 @@ HYP_FORCE_INLINE Vec4f SimdVectorToVec4f(SimdVector value)
 }
 
 #else
+
 using SimdVector = __m128;
 
 HYP_FORCE_INLINE SimdVector ToSimdVector(const Vec3f& value)
@@ -85,6 +87,40 @@ HYP_FORCE_INLINE Vec4f SimdVectorToVec4f(SimdVector value)
     return { data[0], data[1], data[2], data[3] };
 }
 
+#endif
+
+#if defined(HYP_MSVC)
+union SimdVector2
+{
+    float values[2];
+    struct { float x; float y; };
+};
+
+HYP_FORCE_INLINE SimdVector2 ToSimdVector2(const Vec2f& value)
+{
+    SimdVector2 result;
+    result.x = value.x;
+    result.y = value.y;
+
+    return result;
+}
+
+HYP_FORCE_INLINE Vec2f SimdVector2ToVec2f(SimdVector2 value)
+{
+    return { value.x, value.y };
+}
+#else
+using SimdVector2 = float __attribute__((vector_size(8)));
+
+HYP_FORCE_INLINE SimdVector2 ToSimdVector2(const Vec2f& value)
+{
+    return SimdVector2 { value.x, value.y };
+}
+
+HYP_FORCE_INLINE Vec2f SimdVector2ToVec2f(SimdVector2 value)
+{
+    return { value[0], value[1] };
+}
 #endif
 
 CORE_API void* Alloc(size_t size);

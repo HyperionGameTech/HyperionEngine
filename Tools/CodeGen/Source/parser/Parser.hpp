@@ -51,7 +51,8 @@ struct StrataTypeMapping
     bool isStructValue = false; // True when typeName is an unreflected C++ struct (forward-declared), or a HYP_STRUCT value type
     bool isString = false;      // True when this is Strata's `string`, backed by engine String/ANSIString
     bool isArray = false;       // True when this is a Strata `T[]` fat array (ptr + u64), backed by engine Array<T>
-    bool isVector = false;      // True when this is a Strata float3/float4 core vector type, backed by Vec3f/Vec4f
+    bool isVector = false;      // True when this is a Strata float2/float3/float4 core vector type, backed by Vec2f/Vec3f/Vec4f
+    bool isEnum = false;        // True when typeName names a reflected C++ enum (strong enum type in Strata, ABI = underlying scalar)
 
     String cxxQualifiedName;
 

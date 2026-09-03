@@ -67,6 +67,434 @@ const DBL_EPSILON : double = 2.2204460492503131e-16
 
 )";
 
+namespace {
+
+static constexpr const char* g_strataScalarTypes[] = {
+    "bool", "int", "uint", "long", "ulong", "byte", "sbyte", "short", "ushort", "float", "double"
+};
+
+// These map directly to strata types
+static constexpr const char* g_strataCoreMappedTypes[] = {
+    "Vec2f", "Vec3f", "Vec4f", "String", "ANSIString"
+};
+
+struct StrataStructBody
+{
+    String name;
+    Array<String> fieldTypes;
+};
+
+static bool IsStrataScalarType(const String& typeName)
+{
+    for (const char* scalarType : g_strataScalarTypes)
+    {
+        if (typeName == scalarType)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// Strips `//` line comments and `/* */` block comments.
+static String StripStrataComments(const String& contents)
+{
+    String result;
+    result.Reserve(contents.Size());
+
+    bool inLineComment = false;
+    bool inBlockComment = false;
+
+    for (size_t i = 0; i < contents.Size(); i++)
+    {
+        const char ch = contents[i];
+        const char next = (i + 1 < contents.Size()) ? contents[i + 1] : '\0';
+
+        if (inLineComment)
+        {
+            if (ch == '\n')
+            {
+                inLineComment = false;
+                result.Append(ch);
+            }
+
+            continue;
+        }
+
+        if (inBlockComment)
+        {
+            if (ch == '*' && next == '/')
+            {
+                inBlockComment = false;
+                i++;
+                result.Append(' ');
+            }
+
+            continue;
+        }
+
+        if (ch == '/' && next == '/')
+        {
+            inLineComment = true;
+            i++;
+
+            continue;
+        }
+
+        if (ch == '/' && next == '*')
+        {
+            inBlockComment = true;
+            i++;
+
+            continue;
+        }
+
+        result.Append(ch);
+    }
+
+    return result;
+}
+
+static bool IsIdentChar(char ch)
+{
+    return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_';
+}
+
+// Reads one identifier
+static String ReadStrataToken(const String& text, size_t& pos)
+{
+    String token;
+
+    while (pos < text.Size())
+    {
+        char ch = text[pos];
+
+        if (IsIdentChar(ch))
+        {
+            token.Append(ch);
+            pos++;
+
+            continue;
+        }
+
+        // `fieldoffset(0)`, `byte[16]` -- attach non-ident continuation chars
+        // while they directly follow the token.
+        if (token.Any() && (ch == '(' || ch == '['))
+        {
+            char open = ch;
+            char close = (open == '(') ? ')' : ']';
+
+            token.Append(ch);
+            pos++;
+
+            while (pos < text.Size() && text[pos] != close)
+            {
+                token.Append(text[pos]);
+                pos++;
+            }
+
+            if (pos < text.Size())
+            {
+                token.Append(close);
+                pos++;
+            }
+
+            continue;
+        }
+
+        break;
+    }
+
+    return token;
+}
+
+static Result ParseStrataStructBodies(const String& cleanText, Array<StrataStructBody>& outBodies)
+{
+    size_t pos = 0;
+    size_t size = cleanText.Size();
+
+    while (pos < size)
+    {
+        while (pos < size && !IsIdentChar(cleanText[pos]))
+        {
+            pos++;
+        }
+
+        if (pos >= size)
+        {
+            break;
+        }
+
+        String token = ReadStrataToken(cleanText, pos);
+
+        if (token != "extern" && token != "struct")
+        {
+            continue;
+        }
+
+        if (token == "extern")
+        {
+            while (pos < size && !IsIdentChar(cleanText[pos]))
+            {
+                pos++;
+            }
+
+            token = ReadStrataToken(cleanText, pos);
+
+            if (token != "struct")
+            {
+                continue;
+            }
+        }
+
+        while (pos < size && !IsIdentChar(cleanText[pos]))
+        {
+            pos++;
+        }
+
+        const String structName = ReadStrataToken(cleanText, pos);
+
+        if (!structName.Any())
+        {
+            return HYP_MAKE_ERROR(Error, "Expected a struct name in struct bodies file");
+        }
+
+        while (pos < size && cleanText[pos] != '{' && cleanText[pos] != ';' && cleanText[pos] != '=')
+        {
+            pos++;
+        }
+
+        if (pos >= size)
+        {
+            continue;
+        }
+
+        StrataStructBody body;
+        body.name = structName;
+
+        if (cleanText[pos] == '=')
+        {
+            // Alias definition
+            outBodies.PushBack(body);
+
+            while (pos < size && cleanText[pos] != ';')
+            {
+                pos++;
+            }
+
+            if (pos < size)
+            {
+                pos++;
+            }
+
+            continue;
+        }
+
+        if (cleanText[pos] == ';')
+        {
+            continue; // forward declaration -- skip
+        }
+
+        pos++; // skip '{'
+
+        String bodyText;
+        int depth = 1;
+
+        while (pos < size && depth > 0)
+        {
+            char ch = cleanText[pos];
+
+            if (ch == '{')
+            {
+                depth++;
+            }
+            else if (ch == '}')
+            {
+                depth--;
+
+                if (depth == 0)
+                {
+                    break;
+                }
+            }
+
+            bodyText.Append(ch);
+            pos++;
+        }
+
+        while (pos < size && cleanText[pos] != ';')
+        {
+            pos++;
+        }
+
+        if (pos < size)
+        {
+            pos++; // skip ';'
+        }
+
+        // Each field: [fieldoffset(N)] <type text...> <name> ;
+        Array<String> fieldSegments = bodyText.Split(';');
+
+        for (const String& fieldSegment : fieldSegments)
+        {
+            String segment = fieldSegment.Trimmed();
+
+            if (!segment.Any())
+            {
+                continue;
+            }
+
+            if (segment.StartsWith("fieldoffset"))
+            {
+                const size_t openPos = segment.FindFirstIndex('(');
+                const size_t closePos = segment.FindFirstIndex(')');
+
+                if (openPos != String::NotFound && closePos != String::NotFound && closePos > openPos)
+                {
+                    segment = String(segment.Substr(closePos + 1)).Trimmed();
+                }
+            }
+
+            Array<String> tokens = segment.Split(' ');
+
+            for (size_t i = tokens.Size(); i > 0;)
+            {
+                i--;
+
+                if (!tokens[i].Any())
+                {
+                    tokens.EraseAt(i);
+                }
+            }
+
+            if (tokens.Empty())
+            {
+                continue;
+            }
+
+            // Last token is the field name; everything before it is the type.
+            for (size_t i = 0; i < tokens.Size() - 1; i++)
+            {
+                body.fieldTypes.PushBack(tokens[i]);
+            }
+        }
+
+        outBodies.PushBack(body);
+    }
+
+    return {};
+}
+
+static Result LoadStrataBodies(const FilePath& filePath, const Set<String>& allDeclaredNames,
+    String& outContents, Set<String>& outBodyNames)
+{
+    outContents = String::empty;
+    outBodyNames.Clear();
+
+    if (!filePath.Any())
+    {
+        return {};
+    }
+
+    FileBufferedReaderSource readerSource { filePath };
+
+    if (!readerSource.IsOK())
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to open struct bodies file '{}'", String(filePath));
+    }
+
+    BufferedByteReader reader { &readerSource };
+
+    Array<String> lines = reader.ReadAllLines();
+
+    reader.Close();
+
+    String contents;
+
+    for (const String& line : lines)
+    {
+        contents.Append(line);
+        contents.Append('\n');
+    }
+
+    if (!contents.Any())
+    {
+        return {};
+    }
+
+    const String cleanText = StripStrataComments(contents);
+
+    Array<StrataStructBody> bodies;
+
+    if (Result parseRes = ParseStrataStructBodies(cleanText, bodies); parseRes.HasError())
+    {
+        return parseRes;
+    }
+
+    Set<String> seenBodyNames;
+
+    for (const StrataStructBody& body : bodies)
+    {
+        for (const char* coreMappedType : g_strataCoreMappedTypes)
+        {
+            if (body.name == coreMappedType)
+            {
+                return HYP_MAKE_ERROR(Error, "Struct body '{}' conflicts with a core-mapped Strata type; remove it from the struct bodies file", body.name);
+            }
+        }
+
+        if (allDeclaredNames.Contains(body.name))
+        {
+            return HYP_MAKE_ERROR(Error, "Struct body '{}' conflicts with a declared engine type (handle, struct, or enum)", body.name);
+        }
+
+        if (seenBodyNames.Contains(body.name))
+        {
+            return HYP_MAKE_ERROR(Error, "Duplicate struct body '{}'", body.name);
+        }
+
+        seenBodyNames.Insert(body.name);
+        outBodyNames.Insert(body.name);
+
+        for (const String& fieldType : body.fieldTypes)
+        {
+            // Strip fixed-array dimensions: `byte[16]`, `int[2][6]`.
+            String baseType = fieldType;
+            size_t bracketPos;
+
+            while ((bracketPos = baseType.FindFirstIndex('[')) != String::NotFound)
+            {
+                baseType = String(baseType.Substr(0, bracketPos)).Trimmed();
+            }
+
+            if (IsStrataScalarType(baseType))
+            {
+                continue;
+            }
+
+            if (outBodyNames.Contains(baseType) || seenBodyNames.Contains(baseType))
+            {
+                continue;
+            }
+
+            if (allDeclaredNames.Contains(baseType))
+            {
+                continue;
+            }
+
+            return HYP_MAKE_ERROR(Error, "Struct body '{}' references field type '{}' that is not a Strata scalar, a fixed array of one, another struct body, or a declared handle",
+                body.name, fieldType);
+        }
+    }
+
+    outContents = contents;
+
+    return {};
+}
+
+} // namespace
+
 class WorkerThread : public TaskThread
 {
 public:
@@ -105,9 +533,11 @@ public:
         const FilePath& csharpOutputDirectory,
         const FilePath& hypscriptOutputDirectory,
         const FilePath& strataOutputDirectory,
+        const FilePath& strataBodiesFile,
         const Set<FilePath>& excludeDirectories,
         const Set<FilePath>& excludeFiles,
         CXXGenerationMode cxxMode = CXXGenerationMode::CPP)
+        : m_strataBodiesFile(strataBodiesFile)
     {
         m_analyzer.SetWorkingDirectory(workingDirectory);
         m_analyzer.SetSourceDirectory(sourceDirectory);
@@ -704,12 +1134,46 @@ private:
                     }
                 }
 
+                // Declared Strata type names (handles + enums): method
+                // signatures, body fields, and property accessors may only
+                // reference types from this set. Enums are emitted below, ahead
+                // of all method declarations.
+                Set<String> allDeclaredNames = allHandleNames;
+
+                for (const String& enumName : strataModuleGenerator.CollectEnumNames(m_analyzer))
+                {
+                    allDeclaredNames.Insert(enumName);
+                }
+
+                String strataBodiesContents;
+                Set<String> strataBodyNames;
+
+                if (Result bodiesRes = LoadStrataBodies(m_strataBodiesFile, allDeclaredNames, strataBodiesContents, strataBodyNames); bodiesRes.HasError())
+                {
+                    m_analyzer.AddError(AnalyzerError(bodiesRes.GetError(), m_strataBodiesFile));
+                }
+
+                if (Result enumsRes = strataModuleGenerator.EmitEnums(m_analyzer, strataWriter); enumsRes.HasError())
+                {
+                    m_analyzer.AddError(AnalyzerError(enumsRes.GetError(), FilePath("<enums>")));
+                }
+
                 // Forward-declare unreflected C++ struct types that appear in method signatures
-                const Set<String> allStructNames = strataModuleGenerator.CollectForwardStructNames(m_analyzer);
+                Set<String> allStructNames = strataModuleGenerator.CollectForwardStructNames(m_analyzer);
+
+                for (const String& bodyName : strataBodyNames)
+                {
+                    allStructNames.Erase(bodyName);
+                }
 
                 if (Result structRes = strataModuleGenerator.EmitForwardStructDeclarations(m_analyzer, allStructNames, strataWriter); structRes.HasError())
                 {
                     m_analyzer.AddError(AnalyzerError(structRes.GetError(), FilePath("<structs>")));
+                }
+
+                if (strataBodyNames.Any())
+                {
+                    strataWriter.WriteString(strataBodiesContents);
                 }
 
                 Array<Module*> sortedModules = SortModulesTopologically();
@@ -723,7 +1187,7 @@ private:
 
                     MemoryByteWriter<DynamicAllocator> writer;
 
-                    if (Result res = strataModuleGenerator.EmitMethods(m_analyzer, *mod, allHandleNames, writer); res.HasError())
+                    if (Result res = strataModuleGenerator.EmitMethods(m_analyzer, *mod, allDeclaredNames, writer); res.HasError())
                     {
                         m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
 
@@ -815,9 +1279,19 @@ private:
             // is fully defined). Only emit when Strata generation is enabled.
             StrataModuleGenerator strataModuleGenerator;
             const bool strataEnabled = m_analyzer.GetStrataOutputDirectory().Any();
-            const Set<String> strataHandleNames = strataEnabled
+            Set<String> strataHandleNames = strataEnabled
                 ? strataModuleGenerator.CollectHandleNames(m_analyzer)
                 : Set<String>{};
+
+            if (strataEnabled)
+            {
+                // Enums are declared types too (EmitEnums emits them into
+                // Engine.strata ahead of all method declarations).
+                for (const String& enumName : strataModuleGenerator.CollectEnumNames(m_analyzer))
+                {
+                    strataHandleNames.Insert(enumName);
+                }
+            }
 
             // Pre-scan for duplicate flattened .inl filenames (e.g., Foo.generated.inl)
             Map<String, FilePath> seenInlNames; // maps inl filename to first header path encountered
@@ -1970,6 +2444,8 @@ private:
     WorkerThreadPool m_threadPool;
     Analyzer m_analyzer;
     CXXGenerationMode m_cxxMode = CXXGenerationMode::INL;
+
+    FilePath m_strataBodiesFile;
 };
 
 } // namespace CodeGen
@@ -1991,6 +2467,7 @@ int main(int argc, char** argv)
     definitions.Add("CSharpOutputDirectory", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING, /* defaultValue */ String::empty);
     definitions.Add("HypScriptOutputDirectory", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING, /* defaultValue */ String::empty);
     definitions.Add("StrataOutputDirectory", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING, /* defaultValue */ String::empty);
+    definitions.Add("StrataBodiesFile", "", "Authored Strata struct bodies (extern struct) merged into Engine.strata", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING, /* defaultValue */ String::empty);
     definitions.Add("ExcludeDirectories", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
     definitions.Add("ExcludeFiles", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
     definitions.Add("Mode", "m", "", CommandLineArgumentFlags::NONE, Array<String> { "ParseHeaders" }, String("ParseHeaders"));
@@ -2031,6 +2508,14 @@ int main(int argc, char** argv)
         const FilePath hypscriptOutputDirectory = FilePath(parseResult.GetValue()["HypScriptOutputDirectory"].AsString());
         const FilePath strataOutputDirectory = FilePath(parseResult.GetValue()["StrataOutputDirectory"].AsString());
 
+        FilePath strataBodiesFile = FilePath(parseResult.GetValue()["StrataBodiesFile"].AsString());
+
+        if (!strataBodiesFile.Any())
+        {
+            // Authored struct bodies live in the codegen tool's source tree.
+            strataBodiesFile = FilePath(HYP_ROOT_DIR "/Strata/StructBodies.strata");
+        }
+
         Set<FilePath> excludeDirectories;
         Set<FilePath> excludeFiles;
 
@@ -2068,6 +2553,7 @@ int main(int argc, char** argv)
             csharpOutputDirectory,
             hypscriptOutputDirectory,
             strataOutputDirectory,
+            strataBodiesFile,
             excludeDirectories,
             excludeFiles,
             cxxMode

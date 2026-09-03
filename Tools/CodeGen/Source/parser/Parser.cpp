@@ -391,7 +391,7 @@ TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTTy
 
     // References have no Strata representation, except for the handful of
     // value types that are conventionally passed around by const reference in
-    // C++ (String/ANSIString, Array<T>, Vec3f/Vec4f) despite crossing the
+    // C++ (String/ANSIString, Array<T>, Vec2f/Vec3f/Vec4f) despite crossing the
     // Strata boundary by value / fat-pointer rather than by C++ reference, and
     // UDT structs (HYP_STRUCT / unreflected types), which Strata always passes
     // by reference implicitly, matching the pointer convention used when the
@@ -547,6 +547,7 @@ TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTTy
 
         // Engine's float vectors map directly to Strata's core vector types.
         // Unlike structs these are core language types, passed by value.
+        { "Vec2f", { "float2", false, false, false, false, true } },
         { "Vec3f", { "float3", false, false, false, false, true } },
         { "Vec4f", { "float4", false, false, false, false, true } }
     };
@@ -556,20 +557,16 @@ TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTTy
         return it->second;
     }
 
-    // @FIXME proper enum support needed. for now just use underlying type.
+    // Reflected enums map to their own strong enum type in Strata
+    // ABI uses underlying type (scalar)
     if (const ClassDefinition* definition = analyzer.FindClassDefinition(typeNameString);
         definition && definition->type == ClassDefinitionType::Enum)
     {
-        const UTF8StringView underlyingTypeName = definition->baseClassNames.Any()
-            ? definition->baseClassNames[0]
-            : "int32";
+        StrataTypeMapping mapping;
+        mapping.typeName = definition->name;
+        mapping.isEnum = true;
 
-        if (auto underlyingIt = s_mapping.Find(underlyingTypeName); underlyingIt != s_mapping.End())
-        {
-            return underlyingIt->second;
-        }
-
-        return HYP_MAKE_ERROR(Error, "Enum '{}' has underlying type '{}' with no Strata equivalent", typeNameString, underlyingTypeName);
+        return mapping;
     }
     
     // HYP_CLASS() -> handle.

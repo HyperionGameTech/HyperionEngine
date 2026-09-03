@@ -35,6 +35,9 @@ public:
     // Collect the names of every scriptable class/struct across all modules
     Set<String> CollectHandleNames(const Analyzer& analyzer) const;
 
+    // Collect the names of every scriptable enum across all modules
+    Set<String> CollectEnumNames(const Analyzer& analyzer) const;
+
     // Collect every unreflected C++ type name encountered in bindable method
     // signatures. These become `struct Name;` forward declarations.
     Set<String> CollectForwardStructNames(const Analyzer& analyzer) const;
@@ -46,6 +49,10 @@ public:
     // Emits `handle <Name>;` (or `handle <Name> extends <Base>;`) for each
     // scriptable class/struct in this module.
     Result EmitHandles(const Analyzer& analyzer, const Module& mod, ByteWriter& writer) const;
+
+    // Emits `enum <Name> : <underlying> { ... };` for every scriptable enum
+    // across all modules (sorted for stable output).
+    Result EmitEnums(const Analyzer& analyzer, ByteWriter& writer) const;
 
     // Emit `struct <Name>;` forward declarations for unreflected struct types.
     Result EmitForwardStructDeclarations(const Analyzer& analyzer, const Set<String>& allStructNames, ByteWriter& writer) const;

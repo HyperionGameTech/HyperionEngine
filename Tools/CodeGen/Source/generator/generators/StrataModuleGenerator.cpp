@@ -162,6 +162,11 @@ TResult<StrataAccessorBinding> ResolveStrataAccessorBinding(const Analyzer& anal
             return HYP_MAKE_ERROR(Error, "Property '{}' accessor '{}' has an unsupported function type", propertyName, refMember.name);
         }
 
+        if (refMember.cxxType->isStatic)
+        {
+            return HYP_MAKE_ERROR(Error, "Property '{}' accessor '{}' must not be static", propertyName, refMember.name);
+        }
+
         if (isSetter)
         {
             if (functionType->parameters.Size() != 1)
@@ -212,9 +217,10 @@ TResult<StrataAccessorBinding> ResolveStrataAccessorBinding(const Analyzer& anal
         return HYP_MAKE_ERROR(Error, "Property '{}' type '{}' is not representable as a Strata property", propertyName, mapping.typeName);
     }
 
-    if (mapping.isHandle && !allHandleNames.Contains(mapping.typeName))
+    if ((mapping.isHandle || mapping.isEnum) && !allHandleNames.Contains(mapping.typeName))
     {
-        return HYP_MAKE_ERROR(Error, "Property '{}' references undeclared handle type '{}'", propertyName, mapping.typeName);
+        return HYP_MAKE_ERROR(Error, "Property '{}' references undeclared {} type '{}'", propertyName,
+            mapping.isEnum ? "enum" : "handle", mapping.typeName);
     }
 
     return StrataAccessorBinding { &refMember, valueType, std::move(mapping) };
@@ -335,6 +341,12 @@ TResult<ResolvedStrataProperty> ResolveStrataProperty(const Analyzer& analyzer, 
 Array<ResolvedStrataProperty> CollectImplProperties(const Analyzer& analyzer, const ClassDefinition& cls,
     const Set<String>& allHandleNames)
 {
+    // No instance properties on enum.
+    if (cls.type == ClassDefinitionType::Enum)
+    {
+        return {};
+    }
+
     Array<ResolvedStrataProperty> properties;
 
     for (const MemberDef& member : cls.members)
@@ -422,6 +434,174 @@ String PropertyAccessorCondition(const ResolvedStrataProperty& prop, const Membe
     return prop.condition.Any() ? prop.condition : accessor->condition;
 }
 
+// The accessor symbols a property's .strata decl references. Reused symbols
+// point at the referenced method's own extern binding; synthesized ones get
+// dedicated Node_Get_X / Node_Set_X thunks.
+struct PropertyAccessorBinding
+{
+    String getterSymbol;
+    bool getterSynthesized = false;
+    String setterSymbol;
+    bool setterSynthesized = false;
+};
+
+// Mirrors EmitMethods' overload dedup: a member's extern symbol is only
+// emitted when it is the first scriptable member with that managed name.
+bool IsEmittedOverload(const ClassDefinition& cls, const MemberDef& member)
+{
+    const String managedName = ResolveManagedName(member);
+
+    for (const MemberDef& clsMember : cls.members)
+    {
+        if (&clsMember == &member)
+        {
+            return true;
+        }
+
+        if (MemberIsStrataScriptable(clsMember) && ResolveManagedName(clsMember) == managedName)
+        {
+            return false;
+        }
+    }
+
+    return false;
+}
+
+// Returns the referenced method's own extern symbol ({Class}_{MethodName})
+// when its existing method binding can serve directly as the property
+// accessor - i.e. the shape stratac's synthesized-accessor validation expects:
+// getter (self) -> T with a direct return, setter (self, T value) -> void.
+// Empty when the accessor needs a dedicated thunk instead.
+String ResolveExistingAccessorSymbol(const Analyzer& analyzer, const ClassDefinition& cls,
+    const MemberDef& accessor, const StrataTypeMapping& propMapping, bool isSetter,
+    const Set<String>& allHandleNames)
+{
+    if (!accessor.cxxType || !accessor.cxxType->isFunction || accessor.cxxType->isStatic || !IsEmittedOverload(cls, accessor))
+    {
+        return String::empty;
+    }
+
+    const ASTFunctionType* functionType = dynamic_cast<const ASTFunctionType*>(accessor.cxxType.Get());
+
+    if (!functionType)
+    {
+        return String::empty;
+    }
+
+    if (isSetter)
+    {
+        if (functionType->parameters.Size() != 1)
+        {
+            return String::empty;
+        }
+
+        if (!functionType->returnType->IsVoid())
+        {
+            return String::empty;
+        }
+
+        TResult<StrataTypeMapping> paramRes = MapToStrataType(analyzer, functionType->parameters[0]->type.Get());
+
+        if (paramRes.HasError() || paramRes.GetValue().typeName != propMapping.typeName)
+        {
+            return String::empty;
+        }
+    }
+    else
+    {
+        if (functionType->parameters.Size() != 0)
+        {
+            return String::empty;
+        }
+
+        TResult<StrataTypeMapping> retRes = MapToStrataType(analyzer, functionType->returnType);
+
+        if (retRes.HasError())
+        {
+            return String::empty;
+        }
+
+        const StrataTypeMapping& retMapping = retRes.GetValue();
+
+        // Aggregates cross the boundary via the `return` out-param form
+        // (a 2-param extern at the Strata level), which does not match the
+        // synthesized getter shape - those need a dedicated thunk.
+        if (retMapping.isStructValue || retMapping.isArray)
+        {
+            return String::empty;
+        }
+
+        if ((retMapping.isHandle || retMapping.isEnum) && !allHandleNames.Contains(retMapping.typeName))
+        {
+            return String::empty;
+        }
+
+        if (retMapping.typeName != propMapping.typeName)
+        {
+            return String::empty;
+        }
+    }
+
+    return HYP_FORMAT("{}_{}", cls.name, ResolveManagedName(accessor));
+}
+
+// Decides the accessor symbols for one property, preferring reuse of the
+// referenced methods' own extern bindings. Returns false when the property
+// must be skipped (a synthesized symbol collides with an emitted extern).
+bool ResolvePropertyAccessorBinding(const Analyzer& analyzer, const ClassDefinition& cls,
+    const ResolvedStrataProperty& prop, const Set<String>& allHandleNames,
+    const Set<String>& emittedExternNames, PropertyAccessorBinding& out)
+{
+    out.getterSymbol = prop.getterSymbol;
+    out.getterSynthesized = true;
+    out.setterSymbol = prop.setterSymbol;
+    out.setterSynthesized = false;
+
+    if (String existing = ResolveExistingAccessorSymbol(analyzer, cls, *prop.getter, prop.mapping, false, allHandleNames); existing.Any())
+    {
+        out.getterSymbol = existing;
+        out.getterSynthesized = false;
+    }
+    else if (emittedExternNames.Contains(prop.getterSymbol))
+    {
+        return false;
+    }
+
+    if (prop.setter)
+    {
+        if (String existing = ResolveExistingAccessorSymbol(analyzer, cls, *prop.setter, prop.mapping, true, allHandleNames); existing.Any())
+        {
+            out.setterSymbol = existing;
+        }
+        else
+        {
+            out.setterSynthesized = true;
+
+            if (emittedExternNames.Contains(prop.setterSymbol))
+            {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+String StrataEnumUnderlyingType(const String& cxxUnderlying)
+{
+    static const Map<String, String> s_underlyingMap {
+        { "int8", "sbyte" }, { "uint8", "byte" },
+        { "int16", "short" }, { "uint16", "ushort" },
+        { "int32", "int" }, { "uint32", "uint" },
+        { "int64", "long" }, { "uint64", "ulong" },
+        { "int", "int" }, { "unsigned int", "uint" }, { "uint", "uint" }
+    };
+
+    const auto it = s_underlyingMap.Find(cxxUnderlying);
+
+    return it != s_underlyingMap.End() ? it->second : String::empty;
+}
+
 // Maps one value crossing the extern boundary (method param or property setter
 // value) from its Strata representation to the C++ call form: appends the thunk
 // signature param and the forwarded call argument.
@@ -437,9 +617,11 @@ TResult<StrataTypeMapping> BuildThunkInputParam(const Analyzer& analyzer, const 
 
     const StrataTypeMapping paramTypeMapping = paramRes.GetValue();
 
-    if (paramTypeMapping.isHandle && !allHandleNames.Contains(paramTypeMapping.typeName))
+    if ((paramTypeMapping.isHandle || paramTypeMapping.isEnum)
+        && !allHandleNames.Contains(paramTypeMapping.typeName))
     {
-        return HYP_MAKE_ERROR(Error, "Handle type '{}' is not a declared Strata handle", paramTypeMapping.typeName);
+        return HYP_MAKE_ERROR(Error, "Type '{}' is not a declared Strata {}", paramTypeMapping.typeName,
+            paramTypeMapping.isEnum ? "enum" : "handle");
     }
 
     // The parameter type with any top-level reference stripped: Strata's
@@ -471,13 +653,28 @@ TResult<StrataTypeMapping> BuildThunkInputParam(const Analyzer& analyzer, const 
     }
     else if (paramTypeMapping.isVector)
     {
-        // float3/float4 cross the extern "C" boundary as a raw SIMD
-        // register (stratac lowers them to __m128/float32x4_t), not
-        // a Vec3f/Vec4f struct by value - convert explicitly.
+        // float2/float3/float4 cross the extern "C" boundary as raw SIMD
+        // values (stratac lowers them to LLVM vector types, not Vec2f/Vec3f/
+        // Vec4f structs by value) - convert explicitly. float2 is a 64-bit
+        // short vector (SimdVector2); float3/float4 are 128-bit registers
+        // (SimdVector = __m128/float32x4_t).
         const String vectorCxxTypeName = unwrappedParamType->typeName->ToString(/* includeNamespace */ false);
-        const String convertFnName = vectorCxxTypeName == "Vec4f" ? "SimdVectorToVec4f" : "SimdVectorToVec3f";
 
-        sigParams.PushBack(HYP_FORMAT("::Hyperion::Strata::SimdVector {}", paramName));
+        String convertFnName;
+        String carrierTypeName;
+
+        if (paramTypeMapping.typeName == "float2")
+        {
+            convertFnName = "SimdVector2ToVec2f";
+            carrierTypeName = "::Hyperion::Strata::SimdVector2";
+        }
+        else
+        {
+            convertFnName = vectorCxxTypeName == "Vec4f" ? "SimdVectorToVec4f" : "SimdVectorToVec3f";
+            carrierTypeName = "::Hyperion::Strata::SimdVector";
+        }
+
+        sigParams.PushBack(HYP_FORMAT("{} {}", carrierTypeName, paramName));
         callArgs.PushBack(HYP_FORMAT("::Hyperion::Strata::{}({})", convertFnName, paramName));
     }
     else if (paramTypeMapping.isStructValue)
@@ -531,12 +728,18 @@ String FormatThunkDefinition(const String& externName, const StrataTypeMapping& 
     }
     else if (returnTypeMapping.isVector)
     {
-        // float3/float4 cross the extern "C" boundary as a raw SIMD
-        // register (stratac lowers them to __m128/float32x4_t), not a
-        // Vec3f/Vec4f struct by value - convert explicitly via the
-        // overloaded ToSimdVector (picks Vec3f/Vec4f by callExpr's type).
-        methodOutput += HYP_FORMAT("extern \"C\" ::Hyperion::Strata::SimdVector {}({})", externName, sigParamsString);
-        methodOutput += " { return ::Hyperion::Strata::ToSimdVector(";
+        // float2/float3/float4 cross the extern "C" boundary as raw SIMD
+        // values (stratac lowers them to LLVM vector types, not Vec2f/
+        // Vec3f/Vec4f structs by value) - convert explicitly via the
+        // ToSimdVector2 / overloaded ToSimdVector helpers.
+        const bool isFloat2 = returnTypeMapping.typeName == "float2";
+        const char* carrierTypeName = isFloat2 ? "::Hyperion::Strata::SimdVector2" : "::Hyperion::Strata::SimdVector";
+        const char* convertFnName = isFloat2 ? "ToSimdVector2" : "ToSimdVector";
+
+        methodOutput += HYP_FORMAT("extern \"C\" {} {}({})", carrierTypeName, externName, sigParamsString);
+        methodOutput += " { return ::Hyperion::Strata::";
+        methodOutput += convertFnName;
+        methodOutput += "(";
         methodOutput += callExpr;
         methodOutput += "); }\n";
     }
@@ -622,6 +825,112 @@ String StrataModuleGenerator::ResolveHandleBase(const Analyzer& analyzer, const 
     }
 
     return String::empty;
+}
+
+Set<String> StrataModuleGenerator::CollectEnumNames(const Analyzer& analyzer) const
+{
+    Set<String> enumNames;
+
+    for (const UniquePtr<Module>& mod : analyzer.GetModules())
+    {
+        for (const Pair<String, ClassDefinition>& pair : mod->GetClasses())
+        {
+            const ClassDefinition& cls = pair.second;
+
+            if (cls.type == ClassDefinitionType::Enum && IsStrataScriptable(analyzer, cls))
+            {
+                enumNames.Insert(cls.name);
+            }
+        }
+    }
+
+    return enumNames;
+}
+
+Result StrataModuleGenerator::EmitEnums(const Analyzer& analyzer, ByteWriter& writer) const
+{
+    Array<const ClassDefinition*> enums;
+
+    for (const UniquePtr<Module>& mod : analyzer.GetModules())
+    {
+        for (const Pair<String, ClassDefinition>& pair : mod->GetClasses())
+        {
+            const ClassDefinition& cls = pair.second;
+
+            if (cls.type == ClassDefinitionType::Enum && IsStrataScriptable(analyzer, cls))
+            {
+                enums.PushBack(&cls);
+            }
+        }
+    }
+
+    if (enums.Empty())
+    {
+        return {};
+    }
+
+    // Deterministic ordering for stable output (mirrors handle emission).
+    std::sort(enums.Begin(), enums.End(), [](const ClassDefinition* a, const ClassDefinition* b)
+        {
+            if (a->staticIndex != b->staticIndex)
+            {
+                return a->staticIndex < b->staticIndex;
+            }
+
+            return a->name < b->name;
+        });
+
+    writer.WriteString("\n");
+
+    for (const ClassDefinition* cls : enums)
+    {
+        if (cls->baseClassNames.Size() > 1)
+        {
+            return HYP_MAKE_ERROR(Error, "Enum '{}' may only have one underlying type", cls->name);
+        }
+
+        // C++ enums without an explicit underlying use `int`.
+        const String underlying = cls->baseClassNames.Any()
+            ? StrataEnumUnderlyingType(cls->baseClassNames.Front())
+            : String("int");
+
+        if (!underlying.Any())
+        {
+            return HYP_MAKE_ERROR(Error, "Enum '{}' has underlying type '{}' with no Strata equivalent (only the integral scalars are legal)",
+                cls->name, cls->baseClassNames.Any() ? cls->baseClassNames.Front() : "<none>");
+        }
+
+        Array<String> memberDecls;
+
+        for (const MemberDef& member : cls->members)
+        {
+            if (!MemberIsStrataScriptable(member) || member.type != MemberType::StaticField)
+            {
+                continue;
+            }
+
+            String memberDecl = ResolveManagedName(member);
+
+            // Emit explicit values verbatim so bit-flag enums (A = 1, B = 2,
+            // C = 4) keep their C++ values; stratac ranges-checks them
+            // against the underlying type.
+            if (member.cxxDecl != nullptr && member.cxxDecl->value != nullptr)
+            {
+                memberDecl += HYP_FORMAT(" = {}", member.cxxDecl->value->ToString());
+            }
+
+            memberDecls.PushBack(memberDecl);
+        }
+
+        if (memberDecls.Empty())
+        {
+            continue;
+        }
+
+        writer.WriteString(HYP_FORMAT("enum {} : {} ", cls->name, underlying) + "{ " + String::Join(memberDecls, ", ") + " };\n");
+    }
+
+    return {};
 }
 
 Set<String> StrataModuleGenerator::CollectForwardStructNames(const Analyzer& analyzer) const
@@ -763,10 +1072,10 @@ Result StrataModuleGenerator::EmitMethods(const Analyzer& analyzer, const Module
     {
         const ClassDefinition& cls = pair.second;
 
-        if (cls.type != ClassDefinitionType::Class && cls.type != ClassDefinitionType::Struct)
+        if (cls.type != ClassDefinitionType::Class && cls.type != ClassDefinitionType::Struct
+            && cls.type != ClassDefinitionType::Enum)
         {
-            // Enums / unknown types: Strata has no enum or aggregate constant
-            // form (YET), so nothing to emit here.
+            // Unknown types: nothing to emit here.
             continue;
         }
 
@@ -775,11 +1084,11 @@ Result StrataModuleGenerator::EmitMethods(const Analyzer& analyzer, const Module
             continue;
         }
 
-        // Classes are Strata handles and take impl blocks with methods and
-        // C#-style properties. Structs have no impl form; their methods stay
-        // flat extern free functions taking the struct as the first parameter.
-        const bool isHandleType = cls.type == ClassDefinitionType::Class;
-
+        // Both handles (HYP_CLASS) and structs (HYP_STRUCT / unreflected, kept
+        // opaque via bodyless forward declarations) take impl blocks: methods
+        // get `expr.Method()` call syntax, and structs additionally get
+        // properties. The struct's `Foo self` receiver crosses the ABI as the
+        // same pointer the `{Foo}* self` thunks already take.
         String classOutput;
         bool emittedAnyForClass = false;
 
@@ -804,10 +1113,7 @@ Result StrataModuleGenerator::EmitMethods(const Analyzer& analyzer, const Module
                 classOutput += HYP_FORMAT("\n// {}\n", cls.name);
             }
 
-            if (isHandleType)
-            {
-                classOutput += HYP_FORMAT("impl {}", cls.name) + " {\n";
-            }
+            classOutput += HYP_FORMAT("impl {}", cls.name) + " {\n";
 
             emittedAnyForClass = true;
         };
@@ -840,6 +1146,12 @@ Result StrataModuleGenerator::EmitMethods(const Analyzer& analyzer, const Module
 
             const bool isStatic = member.cxxType->isStatic;
 
+            // C++ enums cannot declare instance members
+            if (cls.type == ClassDefinitionType::Enum && !isStatic)
+            {
+                continue;
+            }
+
             // Map the return type. Unsupported return types skip the method.
             StrataTypeMapping returnTypeMapping;
 
@@ -852,8 +1164,9 @@ Result StrataModuleGenerator::EmitMethods(const Analyzer& analyzer, const Module
                 returnTypeMapping = res.GetValue();
             }
 
-            // A handle return must reference a declared handle.
-            if (returnTypeMapping.isHandle && !allHandleNames.Contains(returnTypeMapping.typeName))
+            // A handle/enum return must reference a declared type.
+            if ((returnTypeMapping.isHandle || returnTypeMapping.isEnum)
+                && !allHandleNames.Contains(returnTypeMapping.typeName))
             {
                 continue;
             }
@@ -885,7 +1198,8 @@ Result StrataModuleGenerator::EmitMethods(const Analyzer& analyzer, const Module
 
                 StrataTypeMapping paramTypeMapping = paramRes.GetValue();
 
-                if (paramTypeMapping.isHandle && !allHandleNames.Contains(paramTypeMapping.typeName))
+                if ((paramTypeMapping.isHandle || paramTypeMapping.isEnum)
+                    && !allHandleNames.Contains(paramTypeMapping.typeName))
                 {
                     paramsOk = false;
 
@@ -917,7 +1231,7 @@ Result StrataModuleGenerator::EmitMethods(const Analyzer& analyzer, const Module
                 }
                 else
                 {
-                    // Scalars and vector types (float3/float4) pass by value.
+                    // Scalars and vector types (float2/float3/float4) pass by value.
                     paramDecls.PushBack(HYP_FORMAT("{} {}", paramTypeMapping.typeName, paramName));
                 }
             }
@@ -928,8 +1242,11 @@ Result StrataModuleGenerator::EmitMethods(const Analyzer& analyzer, const Module
             }
 
             // Strata cannot return aggregates (structs, fat arrays) across the
-            // ABI boundary; write those through an out (ref) param instead.
-            // `string` and float3/float4 are single-value/core types and
+            // ABI boundary; a trailing `return` out-param transforms into the
+            // actual return at the Strata level (ABI: void ret + out-pointer),
+            // so scripts get real `T x = obj.GetValue()` semantics. The C++
+            // thunk convention (void ret + `T* outReturn`) already matches.
+            // `string` and float2/float3/float4 are single-value/core types and
             // return directly.
             const bool returnsViaOutParam = returnTypeMapping.isStructValue || returnTypeMapping.isArray;
             String strataReturnType = returnTypeMapping.typeName;
@@ -937,12 +1254,12 @@ Result StrataModuleGenerator::EmitMethods(const Analyzer& analyzer, const Module
             if (returnsViaOutParam)
             {
                 strataReturnType = "void";
-                paramDecls.PushBack(HYP_FORMAT("ref {} outReturn", returnTypeMapping.typeName));
+                paramDecls.PushBack(HYP_FORMAT("return {} outReturn", returnTypeMapping.typeName));
             }
 
             const String managedName = ResolveManagedName(member);
-            // The actual extern symbol: impl-block methods are renamed by the
-            // Strata parser (`Handle_Method`), structs keep flat extern names.
+            // The actual extern symbol: the Strata parser renames impl-block
+            // methods to `Type_Method`.
             const String externName = HYP_FORMAT("{}_{}", cls.name, managedName);
 
             // Skip C++ overloads that would collide with an already-emitted symbol.
@@ -965,19 +1282,20 @@ Result StrataModuleGenerator::EmitMethods(const Analyzer& analyzer, const Module
                 classOutput += HYP_FORMAT("    // requires: {}\n", member.condition);
             }
 
-            classOutput += HYP_FORMAT("{}extern {} {}({});\n",
-                isHandleType ? "    " : "", strataReturnType, isHandleType ? managedName : externName, paramsString);
+            classOutput += HYP_FORMAT("    extern {} {}({});\n", strataReturnType, managedName, paramsString);
         }
 
-        // Properties are an impl-block feature: handles only. Both engine forms
-        // (HYP_PROPERTY macro members and HYP_METHOD(Property = "...") pairs)
-        // are collected by CollectImplProperties.
-        if (isHandleType)
+        // Properties on all impl targets (handles and structs). Both engine
+        // forms (HYP_PROPERTY macro members and HYP_METHOD(Property = "...")
+        // pairs) are collected by CollectImplProperties. Enums have no
+        // instance accessors in C++, so they carry no properties.
+        if (cls.type != ClassDefinitionType::Enum)
         {
             for (const ResolvedStrataProperty& prop : CollectImplProperties(analyzer, cls, allHandleNames))
             {
-                if (emittedExternNames.Contains(prop.getterSymbol)
-                    || (prop.setterSymbol.Any() && emittedExternNames.Contains(prop.setterSymbol)))
+                PropertyAccessorBinding binding;
+
+                if (!ResolvePropertyAccessorBinding(analyzer, cls, prop, allHandleNames, emittedExternNames, binding))
                 {
                     continue;
                 }
@@ -995,16 +1313,24 @@ Result StrataModuleGenerator::EmitMethods(const Analyzer& analyzer, const Module
 
                 String accessors;
 
-                if (prop.getterSymbol.Any())
+                if (binding.getterSymbol.Any())
                 {
-                    accessors += HYP_FORMAT("get = {};", prop.getterSymbol);
-                    emittedExternNames.Insert(prop.getterSymbol);
+                    accessors += HYP_FORMAT("get = {};", binding.getterSymbol);
+
+                    if (binding.getterSynthesized)
+                    {
+                        emittedExternNames.Insert(binding.getterSymbol);
+                    }
                 }
 
-                if (prop.setterSymbol.Any())
+                if (binding.setterSymbol.Any())
                 {
-                    accessors += HYP_FORMAT("{}set = {};", accessors.Any() ? " " : "", prop.setterSymbol);
-                    emittedExternNames.Insert(prop.setterSymbol);
+                    accessors += HYP_FORMAT("{}set = {};", accessors.Any() ? " " : "", binding.setterSymbol);
+
+                    if (binding.setterSynthesized)
+                    {
+                        emittedExternNames.Insert(binding.setterSymbol);
+                    }
                 }
 
                 classOutput += HYP_FORMAT("    property {} {} ", prop.mapping.typeName, prop.name) + "{ " + accessors + " }\n";
@@ -1013,10 +1339,7 @@ Result StrataModuleGenerator::EmitMethods(const Analyzer& analyzer, const Module
 
         if (emittedAnyForClass)
         {
-            if (isHandleType)
-            {
-                classOutput += "}\n";
-            }
+            classOutput += "}\n";
 
             writer.WriteString(classOutput);
         }
@@ -1052,7 +1375,8 @@ Result StrataModuleGenerator::EmitThunks(const Analyzer& analyzer, const Module&
     {
         const ClassDefinition& cls = pair.second;
 
-        if ((cls.type != ClassDefinitionType::Class && cls.type != ClassDefinitionType::Struct)
+        if ((cls.type != ClassDefinitionType::Class && cls.type != ClassDefinitionType::Struct
+                && cls.type != ClassDefinitionType::Enum)
             || !IsStrataScriptable(analyzer, cls))
         {
             continue;
@@ -1089,6 +1413,12 @@ Result StrataModuleGenerator::EmitThunks(const Analyzer& analyzer, const Module&
 
             const bool isStatic = member.cxxType->isStatic;
 
+            // C++ enums cannot declare instance members
+            if (cls.type == ClassDefinitionType::Enum && !isStatic)
+            {
+                continue;
+            }
+
             // Predicate must match EmitMethods exactly. Unsupported types skip.
             StrataTypeMapping returnTypeMapping;
 
@@ -1101,7 +1431,8 @@ Result StrataModuleGenerator::EmitThunks(const Analyzer& analyzer, const Module&
                 returnTypeMapping = res.GetValue();
             }
 
-            if (returnTypeMapping.isHandle && !allHandleNames.Contains(returnTypeMapping.typeName))
+            if ((returnTypeMapping.isHandle || returnTypeMapping.isEnum)
+                && !allHandleNames.Contains(returnTypeMapping.typeName))
             {
                 continue;
             }
@@ -1210,23 +1541,21 @@ Result StrataModuleGenerator::EmitThunks(const Analyzer& analyzer, const Module&
             classThunks += "\n";
         }
 
-        // Property accessor thunks (impl blocks are handles-only, like the
-        // .strata side emitted by EmitMethods).
-        if (cls.type == ClassDefinitionType::Class)
+        // Property accessor thunks on all impl targets (handles and structs).
+        // Accessors that reuse an existing method extern need no dedicated thunk.
         {
             for (const ResolvedStrataProperty& prop : CollectImplProperties(analyzer, cls, allHandleNames))
             {
-                // Skip the whole property if either accessor symbol collides,
-                // matching EmitMethods' skip decision.
-                if (emittedExternNames.Contains(prop.getterSymbol)
-                    || (prop.setterSymbol.Any() && emittedExternNames.Contains(prop.setterSymbol)))
+                PropertyAccessorBinding binding;
+
+                if (!ResolvePropertyAccessorBinding(analyzer, cls, prop, allHandleNames, emittedExternNames, binding))
                 {
                     continue;
                 }
 
                 const String selfParam = HYP_FORMAT("{}* self", cls.name);
 
-                if (prop.getter)
+                if (binding.getterSynthesized)
                 {
                     const String getterCall = prop.getter->cxxType->isFunction
                         ? HYP_FORMAT("self->{}()", prop.getter->name)
@@ -1252,10 +1581,10 @@ Result StrataModuleGenerator::EmitThunks(const Analyzer& analyzer, const Module&
 
                     classThunks += "\n";
 
-                    emittedExternNames.Insert(prop.getterSymbol);
+                    emittedExternNames.Insert(binding.getterSymbol);
                 }
 
-                if (prop.setter)
+                if (binding.setterSynthesized)
                 {
                     Array<String> sigParams;
                     Array<String> callArgs;
@@ -1289,7 +1618,7 @@ Result StrataModuleGenerator::EmitThunks(const Analyzer& analyzer, const Module&
 
                         classThunks += "\n";
 
-                        emittedExternNames.Insert(prop.setterSymbol);
+                        emittedExternNames.Insert(binding.setterSymbol);
                     }
                 }
             }
@@ -1337,7 +1666,26 @@ Result StrataModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
         }
     }
 
+    // EmitEnums declares every scriptable enum ahead of the methods, so enum
+    // names are declared types in this file too.
+    for (const String& enumName : CollectEnumNames(analyzer))
+    {
+        moduleHandles.Insert(enumName);
+    }
+
     if (Result res = EmitHandles(analyzer, mod, writer); res.HasError())
+    {
+        return res;
+    }
+
+    if (Result res = EmitEnums(analyzer, writer); res.HasError())
+    {
+        return res;
+    }
+
+    // impl blocks (and struct-typed params) need the struct types registered;
+    // bodyless forward declarations are sufficient.
+    if (Result res = EmitForwardStructDeclarations(analyzer, CollectForwardStructNames(analyzer), writer); res.HasError())
     {
         return res;
     }

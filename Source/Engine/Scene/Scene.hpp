@@ -213,13 +213,13 @@ public:
         MarkDirty();
     }
 
-    /// Get a unique name (IN THIS SCENE) for a Node starting with \p prefix as part of the name
-    /// If \p{firstIsNumbered}, then the first element will be <prefix>1, second will be <prefix>2, so on.
+    /// Get a unique name (IN THIS SCENE) for a Node starting with `prefix` as part of the name
+    /// If `firstIsNumbered` is passed as true, then the first element will be <prefix>1, second will be <prefix>2, so on.
     /// Otherwise, will start at simply <prefix>, then <prefix>1, etc.
     HYP_METHOD()
     Name GetUniqueNodeName(const ANSIStringView& prefix = {}, bool firstIsNumbered = false) const;
 
-    /// \see{GetUniqueNodeName}
+    /// See `GetUniqueNodeName`
     template <class T, typename = std::enable_if_t<std::is_base_of_v<Node, T>>>
     HYP_FORCE_INLINE Name GetUniqueNodeNameT(const ANSIStringView& prefix = {}, bool firstIsNumbered = false) const
     {

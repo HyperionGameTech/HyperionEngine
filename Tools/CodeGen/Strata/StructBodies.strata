@@ -1,0 +1,20 @@
+
+/// *This file gets copied into Engine.strata when the CodeGenTool runs*
+/// --------------------------------------------------------------------
+/// Engine types that are usable directly from Strata code.
+/// Note, Vec2f, Vec3f, Vec4f, String types, etc. Are INTENTIONALLY excluded from here,
+/// we handle those type mappings directly in the CodeGenTool's StrataModuleGenerator.
+
+extern struct Name
+{
+    ulong hashCode;
+};
+
+struct StringHash = ulong;
+
+extern struct Color
+{
+    uint color32;
+};
+
+/// --------------------------------------------------------------------
