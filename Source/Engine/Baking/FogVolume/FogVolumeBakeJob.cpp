@@ -255,6 +255,9 @@ void BakeJob<FogVolume>::DispatchOcclusionBake()
     sdfTexture->SetName(NAME("FogVolumeSDF"));
     GetCurrentAssetRegistry()->PutAsset(sdfTexture);
 
+    // Needs to be Create()'d before the render command works on it.
+    Check(sdfTexture->Create());
+
     Array<FogVolumeLightGpuData> lightData;
 
     for (const Handle<Light>& light : m_bakeData->GetLights())

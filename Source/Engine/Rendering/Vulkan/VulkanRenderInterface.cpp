@@ -821,6 +821,8 @@ void VulkanRenderInterface::Shutdown()
 
         fences.Clear();
 
+        Mutex::Guard guard(m_transientCommandBuffersMutex);
+
         m_recycledTransientCommandBufferFences.Clear();
         m_recycledTransientCommandBufferSemaphores.Clear();
 
@@ -951,44 +953,48 @@ void VulkanRenderInterface::PrepareFrame(VulkanFrame* frame)
         }
     }
 
-    auto& fences = m_transientCommandBufferFences[frameCounter % NumFramesInFlight];
-    for (auto it = fences.Begin(); it != fences.End();)
     {
-        VulkanFence& fence = *it;
+        Mutex::Guard guard(m_transientCommandBuffersMutex);
 
-        if (fence.isSubmitted)
+        auto& fences = m_transientCommandBufferFences[frameCounter % NumFramesInFlight];
+        for (auto it = fences.Begin(); it != fences.End();)
         {
-            ENGINE_STAT_SCOPE(&s_statVulkanFrameSync);
-            ENGINE_STAT_SCOPE(&g_statTotalStallTime);
+            VulkanFence& fence = *it;
 
-            fence.Wait(true);
+            if (fence.isSubmitted)
+            {
+                ENGINE_STAT_SCOPE(&s_statVulkanFrameSync);
+                ENGINE_STAT_SCOPE(&g_statTotalStallTime);
 
-            fence.Reset();
+                fence.Wait(true);
+
+                fence.Reset();
+            }
+
+            m_recycledTransientCommandBufferFences.PushBack(std::move(fence));
+
+            it = fences.Erase(it);
         }
 
-        m_recycledTransientCommandBufferFences.PushBack(std::move(fence));
+        // Semaphores are destroyed when cleared (destructor enqueues vkDestroySemaphore).
+        // No recycling needed: each transient submit creates a fresh semaphore.
+        m_transientCommandBufferSemaphores[frameCounter % NumFramesInFlight].Clear();
 
-        it = fences.Erase(it);
-    }
-
-    // Semaphores are destroyed when cleared (destructor enqueues vkDestroySemaphore).
-    // No recycling needed: each transient submit creates a fresh semaphore.
-    m_transientCommandBufferSemaphores[frameCounter % NumFramesInFlight].Clear();
-
-    for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
-    {
-        // reset our transient command buffers
-        List<VulkanCommandBuffer, VulkanAllocator>& freeList = m_transientCommandBuffers[threadIndex][frameCounter % NumFramesInFlight];
-        List<VulkanCommandBuffer, VulkanAllocator>& pendingList = m_pendingTransientCommandBuffers[threadIndex][frameCounter % NumFramesInFlight];
-
-        for (auto it = pendingList.Begin(); it != pendingList.End();)
+        for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
         {
-            VulkanCommandBuffer& commandBuffer = *it;
-            Assert(!commandBuffer.IsRecording());
+            // reset our transient command buffers
+            List<VulkanCommandBuffer, VulkanAllocator>& freeList = m_transientCommandBuffers[threadIndex][frameCounter % NumFramesInFlight];
+            List<VulkanCommandBuffer, VulkanAllocator>& pendingList = m_pendingTransientCommandBuffers[threadIndex][frameCounter % NumFramesInFlight];
 
-            freeList.EmplaceBack(std::move(*it));
+            for (auto it = pendingList.Begin(); it != pendingList.End();)
+            {
+                VulkanCommandBuffer& commandBuffer = *it;
+                Assert(!commandBuffer.IsRecording());
 
-            it = pendingList.Erase(it);
+                freeList.EmplaceBack(std::move(*it));
+
+                it = pendingList.Erase(it);
+            }
         }
     }
 
@@ -1153,20 +1159,25 @@ VulkanCommandBuffer& VulkanRenderInterface::GetTransientCommandBuffer()
     VkCommandPool pool = graphicsQueue->commandPools[renderThreadIndex];
     Assert(pool != VK_NULL_HANDLE);
 
-    if (freeList.Empty())
+    VulkanCommandBuffer* pCommandBuffer = nullptr;
+
     {
-        VulkanCommandBuffer& commandBuffer = pendingList.EmplaceBack();
-        Check(commandBuffer.Create(pool));
+        Mutex::Guard guard(m_transientCommandBuffersMutex);
 
-        commandBuffer.Begin();
-
-        return commandBuffer;
+        if (freeList.Empty())
+        {
+            pCommandBuffer = &pendingList.EmplaceBack();
+            Check(pCommandBuffer->Create(pool));
+        }
+        else
+        {
+            pCommandBuffer = &pendingList.PushBack(freeList.PopFront());
+        }
     }
 
-    VulkanCommandBuffer& commandBuffer = pendingList.PushBack(freeList.PopFront());
-    commandBuffer.Begin();
+    pCommandBuffer->Begin();
 
-    return commandBuffer;
+    return *pCommandBuffer;
 }
 
 void VulkanRenderInterface::SubmitTransientCommandBuffer(VulkanCommandBuffer& commandBuffer)

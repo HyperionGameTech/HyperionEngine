@@ -546,10 +546,6 @@ void DX12RenderInterface::Shutdown()
     delete m_gpuTimerBackend;
     m_gpuTimerBackend = nullptr;
 
-    // Subsystems torn down here may still enqueue commands via GetCommandRecorder() as part
-    // of their own shutdown (RenderInterface::Shutdown() performs the final flush of the
-    // command recorder allocator as its last step), so the transient command buffer
-    // submission machinery below must stay alive until this returns.
     RenderInterface::Shutdown();
 
     { // Flush transient submits
@@ -565,6 +561,8 @@ void DX12RenderInterface::Shutdown()
         }
 
         fences.Clear();
+
+        Mutex::Guard guard(m_transientCommandBuffersMutex);
 
         for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
         {
@@ -724,32 +722,36 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
         }
     }
 
-    // The frame fence wait above guarantees ALL GPU work from this frame slot is
+    // The frame fence wait above guarantees all gpu work from this frame slot is
     // complete, so every transient fence is guaranteed to be signaled.
-    auto& fences = m_transientCommandBufferFences[frameIndex];
-    for (auto it = fences.Begin(); it != fences.End();)
     {
-        DX12Fence& fence = *it;
+        Mutex::Guard guard(m_transientCommandBuffersMutex);
 
-        fence.isSubmitted = false;
-        m_recycledTransientCommandBufferFences.PushBack(std::move(fence));
-
-        it = fences.Erase(it);
-    }
-
-    for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
-    {
-        List<DX12CommandBuffer, DX12Allocator>& freeList = m_transientCommandBuffers[threadIndex][frameIndex];
-        List<DX12CommandBuffer, DX12Allocator>& pendingList = m_pendingTransientCommandBuffers[threadIndex][frameIndex];
-
-        for (auto it = pendingList.Begin(); it != pendingList.End();)
+        auto& fences = m_transientCommandBufferFences[frameIndex];
+        for (auto it = fences.Begin(); it != fences.End();)
         {
-            DX12CommandBuffer& commandBuffer = *it;
-            Assert(!commandBuffer.IsRecording());
+            DX12Fence& fence = *it;
 
-            freeList.EmplaceBack(std::move(*it));
+            fence.isSubmitted = false;
+            m_recycledTransientCommandBufferFences.PushBack(std::move(fence));
 
-            it = pendingList.Erase(it);
+            it = fences.Erase(it);
+        }
+
+        for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
+        {
+            List<DX12CommandBuffer, DX12Allocator>& freeList = m_transientCommandBuffers[threadIndex][frameIndex];
+            List<DX12CommandBuffer, DX12Allocator>& pendingList = m_pendingTransientCommandBuffers[threadIndex][frameIndex];
+
+            for (auto it = pendingList.Begin(); it != pendingList.End();)
+            {
+                DX12CommandBuffer& commandBuffer = *it;
+                Assert(!commandBuffer.IsRecording());
+
+                freeList.EmplaceBack(std::move(*it));
+
+                it = pendingList.Erase(it);
+            }
         }
     }
 
@@ -821,17 +823,21 @@ DX12CommandBuffer& DX12RenderInterface::GetTransientCommandBuffer()
 
     DX12CommandBuffer* pCommandBuffer = nullptr;
 
-    if (freeList.Any())
     {
-        pCommandBuffer = &pendingList.PushBack(freeList.PopBack());
-    }
-    else
-    {
-        const DX12QueueData* queueData = GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
-        AssertDebug(queueData != nullptr && queueData->commandQueue != nullptr);
+        Mutex::Guard guard(m_transientCommandBuffersMutex);
 
-        pCommandBuffer = &pendingList.EmplaceBack(D3D12_COMMAND_LIST_TYPE_DIRECT, queueData->commandQueue.Get());
-        Check(pCommandBuffer->Create());
+        if (freeList.Any())
+        {
+            pCommandBuffer = &pendingList.PushBack(freeList.PopBack());
+        }
+        else
+        {
+            const DX12QueueData* queueData = GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
+            AssertDebug(queueData != nullptr && queueData->commandQueue != nullptr);
+
+            pCommandBuffer = &pendingList.EmplaceBack(D3D12_COMMAND_LIST_TYPE_DIRECT, queueData->commandQueue.Get());
+            Check(pCommandBuffer->Create());
+        }
     }
 
     pCommandBuffer->Begin();
